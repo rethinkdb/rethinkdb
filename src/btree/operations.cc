@@ -47,6 +47,7 @@ void find_keyvalue_location_for_write(value_sizer_t *sizer, transaction_t *txn, 
         }
     }
 
+    keyvalue_location_out->last_buf.swap(last_buf);
     keyvalue_location_out->buf.swap(buf);
 }
 

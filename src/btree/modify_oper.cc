@@ -3,13 +3,13 @@
 
 #include "utils.hpp"
 #include <boost/shared_ptr.hpp>
+
 #include "buffer_cache/buf_lock.hpp"
 #include "buffer_cache/co_functions.hpp"
-#include "btree/leaf_node.hpp"
 #include "btree/internal_node.hpp"
-
-#include "buffer_cache/co_functions.hpp"
-#include "slice.hpp"
+#include "btree/leaf_node.hpp"
+#include "btree/operations.hpp"
+#include "btree/slice.hpp"
 
 // TODO: consider B#/B* trees to improve space efficiency
 
@@ -163,9 +163,6 @@ void get_root(value_sizer_t *sizer, transaction_t *txn, buf_lock_t& sb_buf, buf_
 
 // Runs a btree_modify_oper_t.
 void run_btree_modify_oper(value_sizer_t *sizer, btree_modify_oper_t *oper, btree_slice_t *slice, const store_key_t &store_key, castime_t castime, order_token_t token) {
-    scoped_malloc<btree_value_t> the_value(MAX_BTREE_VALUE_SIZE);
-    memset(the_value.get(), 0, MAX_BTREE_VALUE_SIZE);
-
     btree_key_buffer_t kbuffer(store_key);
     btree_key_t *key = kbuffer.key();
 
@@ -189,50 +186,40 @@ void run_btree_modify_oper(value_sizer_t *sizer, btree_modify_oper_t *oper, btre
         // superblock gets released.
         oper->do_superblock_sidequest(&txn, sb_buf, castime.timestamp, &store_key);
 
-        buf_lock_t last_buf;
-        buf_lock_t buf;
-        get_root(sizer, &txn, sb_buf, &buf, castime.timestamp);
+        keyvalue_location_t kv_location;
+        find_keyvalue_location_for_write(sizer, &txn, sb_buf, key, castime.timestamp, &kv_location);
 
-        // Walk down the tree to the leaf.
-        while (node::is_internal(reinterpret_cast<const node_t *>(buf->get_data_read()))) {
-            // Check if the node is overfull and proactively split it if it is (since this is an internal node).
-            check_and_handle_split(sizer, &txn, buf, last_buf, sb_buf, key, NULL, block_size);
-            // Check if the node is underfull, and merge/level if it is.
-            check_and_handle_underfull(&txn, buf, last_buf, sb_buf, key, block_size);
+        bool key_found = kv_location.value;
 
-            // Release the superblock, if we've gone past the root (and haven't
-            // already released it). If we're still at the root or at one of
-            // its direct children, we might still want to replace the root, so
-            // we can't release the superblock yet.
-            if (sb_buf.is_acquired() && last_buf.is_acquired()) {
-                sb_buf.release();
-            }
+        scoped_malloc<value_type_t> the_value;
+        the_value.swap(kv_location.value);
 
-            // Release the old previous node (unless we're at the root), and set
-            // the next previous node (which is the current node).
-
-            // Look up and acquire the next node.
-            block_id_t node_id = internal_node::lookup(reinterpret_cast<const internal_node_t *>(buf->get_data_read()), key);
-            rassert(node_id != NULL_BLOCK_ID && node_id != SUPERBLOCK_ID);
-
-            buf_lock_t tmp(&txn, node_id, rwi_write);
-            last_buf.swap(tmp);
-            buf.swap(last_buf);
-        }
-
-        // We've gone down the tree and gotten to a leaf. Now look up the key.
-        bool key_found = leaf::lookup(sizer, reinterpret_cast<const leaf_node_t *>(buf->get_data_read()), key, reinterpret_cast<value_type_t *>(the_value.get()));
-
-        bool expired = key_found && the_value->expired();
+        bool expired = key_found && the_value.as<btree_value_t>()->expired();
         if (expired) key_found = false;
 
         // If the value's expired, delete it.
         if (expired) {
-            blob_t b(the_value->value_ref(), blob::btree_maxreflen);
+            blob_t b(the_value.as<btree_value_t>()->value_ref(), blob::btree_maxreflen);
             b.unappend_region(&txn, b.valuesize());
             the_value.reset();
         }
-        bool update_needed = oper->operate(&txn, the_value);
+
+        scoped_malloc<btree_value_t> tmp_ugly;
+        if (the_value) {
+            scoped_malloc<btree_value_t> tmp(MAX_BTREE_VALUE_SIZE);
+            memcpy(tmp.get(), the_value.get(), MAX_BTREE_VALUE_SIZE);
+            tmp_ugly.swap(tmp);
+        }
+        bool update_needed = oper->operate(&txn, tmp_ugly);
+        {
+            if (tmp_ugly) {
+                scoped_malloc<value_type_t> tmp(MAX_BTREE_VALUE_SIZE);
+                memcpy(tmp.get(), tmp_ugly.get(), MAX_BTREE_VALUE_SIZE);
+                the_value.swap(tmp);
+            } else {
+                the_value.reset();
+            }
+        }
 
         // If the value is expired and operate() decided not to make any
         // change, we'll silently delete the key.
@@ -247,21 +234,21 @@ void run_btree_modify_oper(value_sizer_t *sizer, btree_modify_oper_t *oper, btre
                 // Split the node if necessary, to make sure that we have room
                 // for the value; This isn't necessary when we're deleting,
                 // because the node isn't going to grow.
-                check_and_handle_split(sizer, &txn, buf, last_buf, sb_buf, key, the_value.get(), block_size);
+                check_and_handle_split(sizer, &txn, kv_location.buf, kv_location.last_buf, sb_buf, key, reinterpret_cast<btree_value_t *>(the_value.get()), block_size);
 
                 // Add a CAS to the value if necessary (this won't change its size).
-                if (the_value->has_cas()) {
+                if (the_value.as<btree_value_t>()->has_cas()) {
                     rassert(castime.proposed_cas != BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS);
-                    the_value->set_cas(block_size, castime.proposed_cas);
+                    the_value.as<btree_value_t>()->set_cas(block_size, castime.proposed_cas);
                 }
 
                 repli_timestamp new_value_timestamp = castime.timestamp;
 
-                bool success = leaf::insert(sizer, *buf.buf(), key, reinterpret_cast<value_type_t *>(the_value.get()), new_value_timestamp);
+                bool success = leaf::insert(sizer, *kv_location.buf.buf(), key, the_value.get(), new_value_timestamp);
                 guarantee(success, "could not insert leaf btree node");
             } else { // Delete the value if it's there.
                 if (key_found || expired) {
-                    leaf::remove(sizer, *buf.buf(), key);
+                    leaf::remove(sizer, *kv_location.buf.buf(), key);
                 } else {
                      // operate() told us to delete a value (update_needed && !the_value), but the
                      // key wasn't in the node (!key_found && !expired), so we do nothing.
@@ -274,14 +261,14 @@ void run_btree_modify_oper(value_sizer_t *sizer, btree_modify_oper_t *oper, btre
 
             // Check to see if the leaf is underfull (following a change in
             // size or a deletion), and merge/level if it is.
-            check_and_handle_underfull(&txn, buf, last_buf, sb_buf, key, block_size);
+            check_and_handle_underfull(&txn, kv_location.buf, kv_location.last_buf, sb_buf, key, block_size);
         }
 
         // Release bufs as necessary.
         sb_buf.release_if_acquired();
-        rassert(buf.is_acquired());
-        buf.release();
-        last_buf.release_if_acquired();
+        rassert(kv_location.buf.is_acquired());
+        kv_location.buf.release();
+        kv_location.last_buf.release_if_acquired();
 
         // Committing the transaction and moving back to the home thread are
         // handled automatically with RAII.

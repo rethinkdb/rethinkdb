@@ -31,6 +31,12 @@ public:
         other.ptr_ = tmp;
     }
 
+    // TODO: Remove this function.
+    template <class U>
+    U *as() {
+        return reinterpret_cast<U *>(ptr_);
+    }
+
     operator bool() const {
         return ptr_ != NULL;
     }
