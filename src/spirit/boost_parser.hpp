@@ -7,12 +7,17 @@
 #include <boost/spirit/include/classic_debug.hpp>
 #include <boost/spirit/include/phoenix_core.hpp>
 #include <boost/spirit/include/phoenix_operator.hpp>
+#include <boost/spirit/include/phoenix_container.hpp>
+#include <boost/spirit/include/phoenix_fusion.hpp>
+#include <boost/spirit/include/phoenix_bind.hpp>
 
 //#define BOOST_SPIRIT_DEBUG
 //#undef BOOST_SPIRIT_DEBUG_PRINT_SOME
 //#define BOOST_SPIRIT_DEBUG_PRINT_SOME 1
 
 namespace qi = boost::spirit::qi;
+namespace phoenix = boost::phoenix;
+namespace fusion = boost::fusion;
 namespace ascii = boost::spirit::ascii;
 
 template<typename Expr>

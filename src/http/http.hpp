@@ -30,6 +30,8 @@ struct http_msg_t {
     std::string body;
 };
 
+int content_length(http_msg_t);
+
 BOOST_FUSION_ADAPT_STRUCT(
      http_msg_t,
      (http_method_t, method)
@@ -39,8 +41,6 @@ BOOST_FUSION_ADAPT_STRUCT(
      (std::string, body)
 )
 
-void f_break();
-
 template <typename Iterator>
 struct http_msg_parser_t : qi::grammar<Iterator, http_msg_t()> {
     http_msg_parser_t() : http_msg_parser_t::base_type(start) {
@@ -49,19 +49,24 @@ struct http_msg_parser_t : qi::grammar<Iterator, http_msg_t()> {
         using ascii::char_;
         using ascii::space;
         using qi::_1;
+        using qi::repeat;
+        namespace labels = qi::labels;
+        using boost::phoenix::at_c;
+        using boost::phoenix::bind;
+        //using boost::phoenix::at;
 
         just_space %= ' ';
         method %= (lit("GET")[_val = GET] || lit("POST")[_val = POST]);
         resource %= (+(char_ - space));
         version %= lit("HTTP/") >> (+(char_ - space));
         key_val_pair %= ((+(char_ - ":")) >>":" >> just_space >> (+(char_ - CRLF)));
-        body %= (+char_);
+        body %= repeat(labels::_r1)[char_];
         CRLF %= lit("\r\n") || lit("\n");
 
         start %= method >> just_space >> resource >> just_space >> version >> CRLF >>
-                 (key_val_pair % CRLF) >>
+                 ((key_val_pair - CRLF) % CRLF) >> CRLF >>
                  CRLF >>
-                 body;
+                 body(phoenix::bind(content_length, _val));
 
         //just_space.name("just_space"); debug(just_space);
         //method.name("method"); debug(method);
@@ -77,7 +82,7 @@ struct http_msg_parser_t : qi::grammar<Iterator, http_msg_t()> {
     qi::rule<Iterator, std::string()> resource;
     qi::rule<Iterator, std::string()> version;
     qi::rule<Iterator, header_line_t()> key_val_pair;
-    qi::rule<Iterator, std::string()> body;
+    qi::rule<Iterator, std::string(int)> body;
     qi::rule<Iterator> CRLF;
     qi::rule<Iterator, http_msg_t()> start;
 };

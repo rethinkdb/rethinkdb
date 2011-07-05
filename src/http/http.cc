@@ -1,6 +1,15 @@
 #include "http/http.hpp"
 #include <iostream>
 
+int content_length(http_msg_t msg) {
+    for (std::vector<header_line_t>::iterator it = msg.header_lines.begin(); it != msg.header_lines.end(); it++) {
+        if (it->key == std::string("Content-Length"))
+            return atoi(it->val.c_str());
+    }
+    unreachable();
+    return -1;
+}
+
 typedef std::string::const_iterator str_iterator_type;
 typedef http_msg_parser_t<str_iterator_type> str_http_msg_parser_t;
 
@@ -49,6 +58,7 @@ void http_server_t::handle_conn(boost::scoped_ptr<tcp_conn_t> &conn) {
     /* parse the request */
     printf("BOOST_SPIRIT_DEBUG_PRINT_SOME = %d\n", BOOST_SPIRIT_DEBUG_PRINT_SOME);
     parse(iter, end, http_msg_parser, req);
+    BREAKPOINT;
 
     http_msg_t res = handle(req);
     write_http_msg(conn, res);
