@@ -47,7 +47,7 @@ void check_and_handle_underfull(transaction_t *txn, buf_lock_t& buf, buf_lock_t&
                                 const btree_key_t *key, block_size_t block_size);
 
 void check_and_handle_split(value_sizer_t *sizer, transaction_t *txn, buf_lock_t& buf, buf_lock_t& last_buf, buf_lock_t& sb_buf,
-                            const btree_key_t *key, btree_value_t *new_value, block_size_t block_size);
+                            const btree_key_t *key, value_type_t *new_value, block_size_t block_size);
 
 
 

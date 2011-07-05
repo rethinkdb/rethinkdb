@@ -34,7 +34,7 @@ void insert_root(block_id_t root_id, buf_lock_t& sb_buf) {
 // value that will be inserted; if it's an internal node, provide NULL (we
 // split internal nodes proactively).
 void check_and_handle_split(value_sizer_t *sizer, transaction_t *txn, buf_lock_t& buf, buf_lock_t& last_buf, buf_lock_t& sb_buf,
-                            const btree_key_t *key, btree_value_t *new_value, block_size_t block_size) {
+                            const btree_key_t *key, value_type_t *new_value, block_size_t block_size) {
     txn->assert_thread();
 
     const node_t *node = reinterpret_cast<const node_t *>(buf->get_data_read());
@@ -42,10 +42,14 @@ void check_and_handle_split(value_sizer_t *sizer, transaction_t *txn, buf_lock_t
     // If the node isn't full, we don't need to split, so we're done.
     if (node::is_leaf(node)) { // This should only be called when update_needed.
         rassert(new_value);
-        if (!leaf::is_full(sizer, reinterpret_cast<const leaf_node_t *>(node), key, reinterpret_cast<value_type_t *>(new_value))) return;
+        if (!leaf::is_full(sizer, reinterpret_cast<const leaf_node_t *>(node), key, new_value)) {
+            return;
+        }
     } else {
         rassert(!new_value);
-        if (!internal_node::is_full(reinterpret_cast<const internal_node_t *>(node))) return;
+        if (!internal_node::is_full(reinterpret_cast<const internal_node_t *>(node))) {
+            return;
+        }
     }
 
     // Allocate a new node to split into, and some temporary memory to keep
@@ -234,7 +238,7 @@ void run_btree_modify_oper(value_sizer_t *sizer, btree_modify_oper_t *oper, btre
                 // Split the node if necessary, to make sure that we have room
                 // for the value; This isn't necessary when we're deleting,
                 // because the node isn't going to grow.
-                check_and_handle_split(sizer, &txn, kv_location.buf, kv_location.last_buf, sb_buf, key, reinterpret_cast<btree_value_t *>(the_value.get()), block_size);
+                check_and_handle_split(sizer, &txn, kv_location.buf, kv_location.last_buf, sb_buf, key, the_value.get(), block_size);
 
                 // Add a CAS to the value if necessary (this won't change its size).
                 if (the_value.as<btree_value_t>()->has_cas()) {
