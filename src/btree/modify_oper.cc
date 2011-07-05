@@ -199,7 +199,6 @@ void run_btree_modify_oper(value_sizer_t *sizer, btree_modify_oper_t *oper, btre
         the_value.swap(kv_location.value);
 
         bool expired = key_found && the_value.as<btree_value_t>()->expired();
-        if (expired) key_found = false;
 
         // If the value's expired, delete it.
         if (expired) {
@@ -209,13 +208,7 @@ void run_btree_modify_oper(value_sizer_t *sizer, btree_modify_oper_t *oper, btre
         }
 
         bool update_needed = oper->operate(&txn, the_value);
-
-        // If the value is expired and operate() decided not to make any
-        // change, we'll silently delete the key.
-        if (!update_needed && expired) {
-            rassert(!the_value);
-            update_needed = true;
-        }
+        update_needed = update_needed || expired;
 
         // Actually update the leaf, if needed.
         if (update_needed) {
@@ -236,11 +229,8 @@ void run_btree_modify_oper(value_sizer_t *sizer, btree_modify_oper_t *oper, btre
                 bool success = leaf::insert(sizer, *kv_location.buf.buf(), key, the_value.get(), new_value_timestamp);
                 guarantee(success, "could not insert leaf btree node");
             } else { // Delete the value if it's there.
-                if (key_found || expired) {
+                if (key_found) {
                     leaf::remove(sizer, *kv_location.buf.buf(), key);
-                } else {
-                     // operate() told us to delete a value (update_needed && !the_value), but the
-                     // key wasn't in the node (!key_found && !expired), so we do nothing.
                 }
             }
 
