@@ -64,9 +64,7 @@ void btree_delete_all_keys_for_backfill(btree_slice_t *slice, order_token_t toke
 
     transaction_t txn(slice->cache(), helper.transaction_mode(), 0, repli_timestamp::invalid);
 
-    slice->post_begin_transaction_sink_.check_out(begin_transaction_token);
-
-    txn.set_token(slice->post_begin_transaction_source_.check_in(token.tag() + "+post"));
+    txn.set_token(slice->post_begin_transaction_checkpoint_.check_through(token));
 
     // The timestamp never gets used, because we're just deleting
     // stuff.  The use of repli_timestamp::invalid here might trip

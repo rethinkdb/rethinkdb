@@ -47,6 +47,7 @@ btree_slice_t::btree_slice_t(cache_t *c, int64_t delete_queue_limit)
     : cache_(c), delete_queue_limit_(delete_queue_limit),
         backfill_account(cache()->create_account(BACKFILL_CACHE_PRIORITY)) {
     order_checkpoint_.set_tagappend("slice");
+    post_begin_transaction_checkpoint_.set_tagappend("post");
 }
 
 btree_slice_t::~btree_slice_t() {

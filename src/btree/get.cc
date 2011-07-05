@@ -21,9 +21,8 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, order
     slice->pre_begin_transaction_sink_.check_out(token);
     order_token_t begin_transaction_token = slice->pre_begin_transaction_read_mode_source_.check_in(token.tag() + "+begin_transaction_token").with_read_mode();
     transaction_t txn(slice->cache(), rwi_read);
-    slice->post_begin_transaction_sink_.check_out(begin_transaction_token);
 
-    txn.set_token(slice->post_begin_transaction_source_.check_in(token.tag() + "+post").with_read_mode());
+    txn.set_token(slice->post_begin_transaction_checkpoint_.check_through(token).with_read_mode());
 
     // Acquire the superblock
     buf_lock_t buf(&txn, SUPERBLOCK_ID, rwi_read);

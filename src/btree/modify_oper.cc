@@ -179,9 +179,7 @@ void run_btree_modify_oper(value_sizer_t *sizer, btree_modify_oper_t *oper, btre
 
         transaction_t txn(slice->cache(), rwi_write, oper->compute_expected_change_count(block_size),  castime.timestamp);
 
-        slice->post_begin_transaction_sink_.check_out(begin_transaction_token);
-
-	txn.set_token(slice->post_begin_transaction_source_.check_in(token.tag() + "+post"));
+        txn.set_token(slice->post_begin_transaction_checkpoint_.check_through(begin_transaction_token));
 
         buf_lock_t sb_buf(&txn, SUPERBLOCK_ID, rwi_write);
 

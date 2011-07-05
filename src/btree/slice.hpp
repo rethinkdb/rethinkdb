@@ -64,8 +64,7 @@ public:
 
     enum { PRE_BEGIN_TRANSACTION_READ_MODE_BUCKET = 0, PRE_BEGIN_TRANSACTION_WRITE_MODE_BUCKET = 1 };
 
-    order_sink_t post_begin_transaction_sink_;
-    order_source_t post_begin_transaction_source_;
+    order_checkpoint_t post_begin_transaction_checkpoint_;
 private:
     cache_t *cache_;
     int64_t delete_queue_limit_;

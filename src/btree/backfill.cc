@@ -129,9 +129,7 @@ void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, boost::sha
 
         transaction_t txn(slice->cache(), rwi_read_sync);
 
-        slice->post_begin_transaction_sink_.check_out(begin_transaction_token);
-
-	txn.set_token(slice->post_begin_transaction_source_.check_in(token.tag() + "+post").with_read_mode());
+	txn.set_token(slice->post_begin_transaction_checkpoint_.check_through(token).with_read_mode());
 
 #ifndef NDEBUG
         boost::scoped_ptr<assert_no_coro_waiting_t> no_coro_waiting(new assert_no_coro_waiting_t());
