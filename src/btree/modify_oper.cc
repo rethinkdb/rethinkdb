@@ -234,7 +234,7 @@ void run_btree_modify_oper(value_sizer_t *sizer, btree_modify_oper_t *oper, btre
                 }
             }
 
-            // XXX: Previously this was checked whether or not update_needed,
+            // TODO: Previously this was checked whether or not update_needed,
             // but I'm pretty sure a leaf node can only be underfull
             // immediately following a split or an update. Double check this.
 
