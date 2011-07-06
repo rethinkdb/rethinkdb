@@ -4,13 +4,11 @@
 #include <pthread.h>
 #include "config/args.hpp"
 #include "arch/linux/event_queue.hpp"
-#include "arch/linux/disk.hpp"
 #include "arch/linux/system_event.hpp"
 #include "arch/linux/message_hub.hpp"
 #include "arch/linux/coroutines.hpp"
 #include "arch/timer.hpp"
 
-class linux_thread_message_t;
 class linux_thread_t;
 
 /* A thread pool represents a group of threads, each of which is associated with an
