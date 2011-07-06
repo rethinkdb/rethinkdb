@@ -1,13 +1,20 @@
 #include "http/http.hpp"
 #include <iostream>
 
-int content_length(http_msg_t msg) {
+int content_length(http_req_t msg) {
     for (std::vector<header_line_t>::iterator it = msg.header_lines.begin(); it != msg.header_lines.end(); it++) {
         if (it->key == std::string("Content-Length"))
             return atoi(it->val.c_str());
     }
     unreachable();
     return -1;
+}
+
+void http_res_t::add_header_line(std::string const &key, std::string const &val) {
+    header_line_t hdr_ln;
+    hdr_ln.key = key;
+    hdr_ln.val = val;
+    header_lines.push_back(hdr_ln);
 }
 
 typedef std::string::const_iterator str_iterator_type;
@@ -17,7 +24,7 @@ typedef tcp_conn_t::iterator tcp_iterator_type;
 typedef http_msg_parser_t<tcp_iterator_type> tcp_http_msg_parser_t;
 
 void test_header_parser() {
-    http_msg_t res;
+    http_req_t res;
     str_http_msg_parser_t http_msg_parser;
     std::string header = 
         "GET /foo/bar HTTP/1.0\r\n"
@@ -42,12 +49,26 @@ http_server_t::http_server_t(int port) {
     tcp_listener.reset(new tcp_listener_t(port, boost::bind(&http_server_t::handle_conn, this, _1)));
 }
 
-void write_http_msg(boost::scoped_ptr<tcp_conn_t> &, http_msg_t &) {
-    not_implemented();
+std::string human_readable_status(int code) {
+    switch(code) {
+    case 200:
+        return std::string("OK");
+    default:
+        unreachable();
+    }
+}
+
+void write_http_msg(boost::scoped_ptr<tcp_conn_t> &conn, http_res_t const &res) {
+    conn->writef("HTTP/%s %d %s\r\n", res.version.c_str(), res.code, human_readable_status(res.code).c_str());
+    for (std::vector<header_line_t>::const_iterator it = res.header_lines.begin(); it != res.header_lines.end(); it++) {
+        conn->writef("%s: %s\r\n", it->key.c_str(), it->val.c_str());
+    }
+    conn->writef("\r\n");
+    conn->writef("%s", res.body.c_str());
 }
 
 void http_server_t::handle_conn(boost::scoped_ptr<tcp_conn_t> &conn) {
-    http_msg_t req;
+    http_req_t req;
     tcp_http_msg_parser_t http_msg_parser;
 
     //debug(http_msg_parser);
@@ -56,18 +77,25 @@ void http_server_t::handle_conn(boost::scoped_ptr<tcp_conn_t> &conn) {
     tcp_iterator_type end = conn->end();
 
     /* parse the request */
-    printf("BOOST_SPIRIT_DEBUG_PRINT_SOME = %d\n", BOOST_SPIRIT_DEBUG_PRINT_SOME);
     parse(iter, end, http_msg_parser, req);
-    BREAKPOINT;
 
-    http_msg_t res = handle(req);
+    http_res_t res = handle(req);
     write_http_msg(conn, res);
+    BREAKPOINT;
 }
 
 test_server_t::test_server_t(int port) 
     : http_server_t(port)
 { }
 
-http_msg_t test_server_t::handle(const http_msg_t &msg) {
-    return msg;
+http_res_t test_server_t::handle(const http_req_t &req) {
+    http_res_t res;
+
+    res.version = req.version;
+    res.code = 200;
+
+    res.add_header_line("Vary", "Accept-Encoding");
+    res.add_header_line("Content-Length", "0");
+
+    return res;
 }

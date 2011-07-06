@@ -14,6 +14,10 @@
 #include "perfmon_types.hpp"
 #include <boost/iterator/iterator_facade.hpp>
 
+#include <stdexcept>
+#include <stdarg.h>
+#include <unistd.h>
+
 /* linux_tcp_conn_t provides a nice wrapper around a TCP network connection. */
 
 struct linux_tcp_conn_t :
@@ -91,6 +95,22 @@ public:
     write() is called. Internally, it bundles together the buffered writes; this may improve
     performance. */
     void write_buffered(const void *buf, size_t size);
+
+    void vwritef(const char *format, va_list args) {
+        char buffer[1000];
+        size_t bytes = vsnprintf(buffer, sizeof(buffer), format, args);
+        rassert(bytes < sizeof(buffer));
+        write(buffer, bytes);
+    }
+
+    void writef(const char *format, ...)
+        __attribute__ ((format (printf, 2, 3))) {
+        va_list args;
+        va_start(args, format);
+        vwritef(format, args);
+        va_end(args);
+    }
+
     void flush_buffer();   // Blocks until flush is done
     void flush_buffer_eventually();   // Blocks only if the queue is backed up
 
