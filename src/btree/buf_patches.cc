@@ -84,7 +84,7 @@ leaf_insert_pair_patch_t::leaf_insert_pair_patch_t(block_id_t block_id, patch_co
 }
 
 void leaf_insert_pair_patch_t::serialize_data(char* destination) const {
-    const btree_value_t *value = reinterpret_cast<const btree_value_t *>(value_buf);
+    const value_type_t *value = reinterpret_cast<const value_type_t *>(value_buf);
     const btree_key_t *key = reinterpret_cast<btree_key_t *>(key_buf);
 
     memcpy(destination, &value_size, sizeof(value_size));
