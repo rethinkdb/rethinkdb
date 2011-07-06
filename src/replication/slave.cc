@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-#include "arch/linux/coroutines.hpp"
+#include "arch/coroutines.hpp"
 #include "logger.hpp"
 #include "replication/net_structs.hpp"
 #include "server/key_value_store.hpp"

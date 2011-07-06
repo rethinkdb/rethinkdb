@@ -2,7 +2,7 @@
 #include "btree/iteration.hpp"
 #include "containers/iterators.hpp"
 #include "containers/unique_ptr.hpp"
-#include "arch/linux/coroutines.hpp"
+#include "arch/coroutines.hpp"
 
 /*
  * Possible rget designs:
