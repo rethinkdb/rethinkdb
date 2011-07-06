@@ -158,6 +158,11 @@ void check_and_handle_underfull(transaction_t *txn, buf_lock_t& buf, buf_lock_t&
     }
 }
 
+void get_btree_superblock(btree_slice_t *slice, access_t access, order_token_t token, got_superblock_t *got_superblock_out) {
+    rassert(is_read_mode(access));
+    get_btree_superblock(slice, access, 0, repli_timestamp::distant_past, token, got_superblock_out);
+}
+
 void get_btree_superblock(btree_slice_t *slice, access_t access, int expected_change_count, repli_timestamp_t tstamp, order_token_t token, got_superblock_t *got_superblock_out) {
     slice->assert_thread();
 

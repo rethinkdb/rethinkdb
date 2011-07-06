@@ -20,6 +20,9 @@ private:
     DISABLE_COPYING(got_superblock_t);
 };
 
+// For read mode operations.
+void get_btree_superblock(btree_slice_t *slice, access_t access, order_token_t token, got_superblock_t *got_superblock_out);
+
 void get_btree_superblock(btree_slice_t *slice, access_t access, int expected_change_count, repli_timestamp_t tstamp, order_token_t token, got_superblock_t *got_superblock_out);
 
 class keyvalue_location_t {
