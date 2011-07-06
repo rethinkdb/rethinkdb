@@ -2,10 +2,11 @@
 #ifndef __CONCURRENCY_PMAP_HPP__
 #define __CONCURRENCY_PMAP_HPP__
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "concurrency/cond_var.hpp"
 #include "utils.hpp"
-#include "errors.hpp"
-#include <boost/function.hpp>
 
 template<typename callable_t, typename value_t>
 void pmap_runner_one_arg(value_t i, const callable_t *c, int *outstanding, cond_t *to_signal) {
