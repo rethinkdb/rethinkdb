@@ -2,6 +2,7 @@
 #ifndef __ARCH_LINUX_TIMERFD_PROVIDER_HPP__
 #define __ARCH_LINUX_TIMERFD_PROVIDER_HPP__
 
+#include "arch/linux/event_queue.hpp"
 #include "arch/linux/timer/timer_provider_callback.hpp"
 
 /* Kernel timer provider based on timerfd  */
