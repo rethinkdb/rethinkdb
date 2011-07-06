@@ -24,7 +24,7 @@ void get_btree_superblock(btree_slice_t *slice, access_t access, int expected_ch
 
 class keyvalue_location_t {
 public:
-    keyvalue_location_t() { }
+    keyvalue_location_t() : there_originally_was_value(false) { }
 
     boost::scoped_ptr<transaction_t> txn;
     buf_lock_t sb_buf;
@@ -35,6 +35,7 @@ public:
     // The buf owning the leaf node which contains the value.
     buf_lock_t buf;
 
+    bool there_originally_was_value;
     // If the key/value pair was found, a pointer to a copy of the
     // value, otherwise NULL.
     scoped_malloc<value_type_t> value;
@@ -44,5 +45,7 @@ private:
 };
 
 void find_keyvalue_location_for_write(value_sizer_t *sizer, got_superblock_t *got_superblock, btree_key_t *key, repli_timestamp_t tstamp, keyvalue_location_t *keyvalue_location_out);
+
+void apply_keyvalue_change(value_sizer_t *sizer, keyvalue_location_t *location_and_value, btree_key_t *key, repli_timestamp_t timestamp);
 
 #endif  // __BTREE_OPERATIONS_HPP__

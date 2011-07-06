@@ -4,6 +4,18 @@
 #include "btree/internal_node.hpp"
 #include "btree/leaf_node.hpp"
 
+void get_btree_superblock(btree_slice_t *slice, access_t access, int expected_change_count, repli_timestamp_t tstamp, order_token_t token, got_superblock_t *got_superblock_out) {
+    slice->assert_thread();
+
+    slice->pre_begin_transaction_sink_.check_out(token);
+    order_token_t begin_transaction_token = (is_read_mode(access) ? slice->pre_begin_transaction_read_mode_source_ : slice->pre_begin_transaction_write_mode_source_).check_in(token.tag() + "+begin_transaction_token");
+    got_superblock_out->txn.reset(new transaction_t(slice->cache(), access, expected_change_count, tstamp));
+    got_superblock_out->txn->set_token(slice->post_begin_transaction_checkpoint_.check_through(begin_transaction_token));
+
+    buf_lock_t tmp(got_superblock_out->txn.get(), SUPERBLOCK_ID, access);
+    got_superblock_out->sb_buf.swap(tmp);
+}
+
 void find_keyvalue_location_for_write(value_sizer_t *sizer, got_superblock_t *got_superblock, btree_key_t *key, repli_timestamp_t tstamp, keyvalue_location_t *keyvalue_location_out) {
     keyvalue_location_out->sb_buf.swap(got_superblock->sb_buf);
     keyvalue_location_out->txn.swap(got_superblock->txn);
@@ -46,6 +58,7 @@ void find_keyvalue_location_for_write(value_sizer_t *sizer, got_superblock_t *go
         bool key_found = leaf::lookup(sizer, reinterpret_cast<const leaf_node_t *>(buf->get_data_read()), key, tmp.get());
 
         if (key_found) {
+            keyvalue_location_out->there_originally_was_value = true;
             keyvalue_location_out->value.swap(tmp);
         }
     }
@@ -55,14 +68,26 @@ void find_keyvalue_location_for_write(value_sizer_t *sizer, got_superblock_t *go
 }
 
 
-void get_btree_superblock(btree_slice_t *slice, access_t access, int expected_change_count, repli_timestamp_t tstamp, order_token_t token, got_superblock_t *got_superblock_out) {
-    slice->assert_thread();
+void apply_keyvalue_change(value_sizer_t *sizer, keyvalue_location_t *kv_loc, btree_key_t *key, repli_timestamp_t tstamp) {
+    if (kv_loc->value) {
+        // We have a value to insert.
 
-    slice->pre_begin_transaction_sink_.check_out(token);
-    order_token_t begin_transaction_token = (is_read_mode(access) ? slice->pre_begin_transaction_read_mode_source_ : slice->pre_begin_transaction_write_mode_source_).check_in(token.tag() + "+begin_transaction_token");
-    got_superblock_out->txn.reset(new transaction_t(slice->cache(), access, expected_change_count, tstamp));
-    got_superblock_out->txn->set_token(slice->post_begin_transaction_checkpoint_.check_through(begin_transaction_token));
+        // Split the node if necessary, to make sure that we have room
+        // for the value.  Not necessary when deleting, because the
+        // node won't grow.
 
-    buf_lock_t tmp(got_superblock_out->txn.get(), SUPERBLOCK_ID, access);
-    got_superblock_out->sb_buf.swap(tmp);
+        check_and_handle_split(sizer, kv_loc->txn.get(), kv_loc->buf, kv_loc->last_buf, kv_loc->sb_buf, key, kv_loc->value.get(), kv_loc->txn->get_cache()->get_block_size());
+
+        bool success = leaf::insert(sizer, *kv_loc->buf.buf(), key, kv_loc->value.get(), tstamp);
+        guarantee(success, "could not insert into leaf btree node");
+    } else {
+        // Delete the value if it's there.
+        if (kv_loc->there_originally_was_value) {
+            leaf::remove(sizer, *kv_loc->buf.buf(), key);
+        }
+    }
+
+    // Check to see if the leaf is underfull (following a change in
+    // size or a deletion, and merge/level if it is.
+    check_and_handle_underfull(kv_loc->txn.get(), kv_loc->buf, kv_loc->last_buf, kv_loc->sb_buf, key, kv_loc->txn->get_cache()->get_block_size());
 }

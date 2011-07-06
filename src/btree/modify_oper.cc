@@ -211,25 +211,7 @@ void run_btree_modify_oper(value_sizer_t *sizer, btree_modify_oper_t *oper, btre
 
         // Actually update the leaf, if needed.
         if (update_needed) {
-            if (kv_location.value) { // We have a value to insert.
-                // Split the node if necessary, to make sure that we have room
-                // for the value; This isn't necessary when we're deleting,
-                // because the node isn't going to grow.
-                check_and_handle_split(sizer, txn, kv_location.buf, kv_location.last_buf, kv_location.sb_buf, key, kv_location.value.get(), block_size);
-
-                repli_timestamp new_value_timestamp = castime.timestamp;
-
-                bool success = leaf::insert(sizer, *kv_location.buf.buf(), key, kv_location.value.get(), new_value_timestamp);
-                guarantee(success, "could not insert leaf btree node");
-            } else { // Delete the value if it's there.
-                if (key_found) {
-                    leaf::remove(sizer, *kv_location.buf.buf(), key);
-                }
-            }
-
-            // Check to see if the leaf is underfull (following a change in
-            // size or a deletion), and merge/level if it is.
-            check_and_handle_underfull(txn, kv_location.buf, kv_location.last_buf, kv_location.sb_buf, key, block_size);
+            apply_keyvalue_change(sizer, &kv_location, key, castime.timestamp);
         }
     }
 }
