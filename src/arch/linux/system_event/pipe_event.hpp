@@ -4,8 +4,8 @@
 
 #include <stdint.h>
 
-// An event API implemented in terms of eventfd. May not be available
-// on older kernels.
+#include "errors.hpp"
+
 struct pipe_event_t {
 public:
     pipe_event_t();
@@ -20,6 +20,7 @@ public:
 
 private:
     int pipefd[2];
+    DISABLE_COPYING(pipe_event_t);
 };
 
 

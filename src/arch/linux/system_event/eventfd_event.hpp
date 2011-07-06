@@ -4,8 +4,8 @@
 
 #include <fcntl.h>
 #include <unistd.h>
-#include "arch/linux/system_event/eventfd.hpp"
-#include "utils2.hpp"
+#include <stdint.h>
+#include "errors.hpp"
 
 // An event API implemented in terms of eventfd. May not be available
 // on older kernels.

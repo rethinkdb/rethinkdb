@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include "utils.hpp"
+#include "arch/linux/system_event/eventfd.hpp"
 
 eventfd_event_t::eventfd_event_t() {
     _eventfd = eventfd(0, 0);
