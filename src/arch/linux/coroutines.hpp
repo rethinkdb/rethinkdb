@@ -2,11 +2,9 @@
 #define __ARCH_LINUX_COROUTINES_HPP__
 
 #include "utils2.hpp"
-#include <list>
-#include <vector>
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
-#include "arch/linux/message_hub.hpp"
+#include "arch/linux/linux_utils.hpp"
 
 const size_t MAX_COROUTINE_STACK_SIZE = 8*1024*1024;
 

@@ -3,6 +3,7 @@
 #define __ARCH_LINUX_UTILS_HPP__
 
 #include "errors.hpp"
+#include "containers/intrusive_list.hpp"
 
 // Thanks glibc for not providing a wrapper for this syscall :(
 int _gettid();
@@ -30,6 +31,14 @@ public:
 private:
     fd_t fd;
     DISABLE_COPYING(scoped_fd_t);
+};
+
+class linux_thread_message_t :
+    public intrusive_list_node_t<linux_thread_message_t>
+{
+public:
+    virtual ~linux_thread_message_t() {}
+    virtual void on_thread_switch() = 0;
 };
 
 #endif // __ARCH_LINUX_UTILS_HPP__
