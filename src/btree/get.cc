@@ -14,15 +14,11 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, order
     slice->assert_thread();
     on_thread_t mover(slice->home_thread());
 
-    transaction_t *txn = NULL;
+    got_superblock_t got;
+    get_btree_superblock(slice, rwi_read, token, &got);
+    transaction_t *txn = got.txn.get();
     buf_lock_t buf;
-
-    {
-        got_superblock_t got;
-        get_btree_superblock(slice, rwi_read, token, &got);
-        txn = got.txn.get();
-        buf.swap(got.sb_buf);
-    }
+    buf.swap(got.sb_buf);
 
     block_id_t node_id = reinterpret_cast<const btree_superblock_t *>(buf->get_data_read())->root_block;
     rassert(node_id != SUPERBLOCK_ID);
