@@ -1,4 +1,7 @@
 #include "riak/riak.hpp"
+#include "http/json.hpp"
+
+namespace riak {
 
 http_res_t riak_server_t::handle(const http_req_t &req) {
     //setup a tokenizer
@@ -95,6 +98,16 @@ http_res_t riak_server_t::handle(const http_req_t &req) {
 }
 
 http_res_t riak_server_t::list_buckets(const http_req_t &) {
+    std::vector<bucket_t> buckets = riak.list_buckets();
+
+    json::json_t json;
+
+    json["buckets"] = json::json_array_t();
+
+    for (std::vector<bucket_t>::iterator it = buckets.begin(); it != buckets.end(); it++) {
+        boost::get<json::json_array_t>(json["buckets"]).push_back(it->name);
+    }
+
     not_implemented();
     http_res_t res;
     return res;
@@ -196,3 +209,4 @@ http_res_t riak_server_t::list_resources(const http_req_t &) {
     return res;
 }
 
+}; //namespace riak
