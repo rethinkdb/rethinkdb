@@ -31,10 +31,14 @@ public:
         other.ptr_ = tmp;
     }
 
-    // TODO: Remove this function.
     template <class U>
-    U *as() {
-        return reinterpret_cast<U *>(ptr_);
+    friend class scoped_malloc;
+
+    template <class U>
+    void reinterpret_swap(scoped_malloc<U>& other) {
+        T *tmp = ptr_;
+        ptr_ = reinterpret_cast<T *>(other.ptr_);
+        other.ptr_ = reinterpret_cast<U *>(tmp);
     }
 
     operator bool() const {

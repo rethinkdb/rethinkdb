@@ -37,31 +37,34 @@ void run_btree_modify_oper(value_sizer_t *sizer, btree_modify_oper_t *oper, btre
         keyvalue_location_t kv_location;
         find_keyvalue_location_for_write(sizer, &got_superblock, key, castime.timestamp, &kv_location);
         transaction_t *txn = kv_location.txn.get();
+        scoped_malloc<btree_value_t> the_value;
+        the_value.reinterpret_swap(kv_location.value);
 
         bool key_found = kv_location.value;
 
-        bool expired = key_found && kv_location.value.as<btree_value_t>()->expired();
+        bool expired = key_found && the_value->expired();
 
         // If the value's expired, delete it.
         if (expired) {
-            blob_t b(kv_location.value.as<btree_value_t>()->value_ref(), blob::btree_maxreflen);
+            blob_t b(the_value->value_ref(), blob::btree_maxreflen);
             b.unappend_region(txn, b.valuesize());
             kv_location.value.reset();
         }
 
-        bool update_needed = oper->operate(txn, kv_location.value);
+        bool update_needed = oper->operate(txn, the_value);
         update_needed = update_needed || expired;
 
         // Add a CAS to the value if necessary
-        if (kv_location.value) {
-            if (kv_location.value.as<btree_value_t>()->has_cas()) {
+        if (the_value) {
+            if (the_value->has_cas()) {
                 rassert(castime.proposed_cas != BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS);
-                kv_location.value.as<btree_value_t>()->set_cas(block_size, castime.proposed_cas);
+                the_value->set_cas(block_size, castime.proposed_cas);
             }
         }
 
         // Actually update the leaf, if needed.
         if (update_needed) {
+            the_value.reinterpret_swap(the_value);
             apply_keyvalue_change(sizer, &kv_location, key, castime.timestamp);
         }
     }
