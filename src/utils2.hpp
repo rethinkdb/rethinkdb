@@ -6,12 +6,12 @@ The reason it is separate from utils.hpp is that the IO layer needs some of the 
 utils2.hpp, but utils.hpp needs some things in the IO layer. */
 
 #include <stdlib.h>
-#include <string>
 #include <stdint.h>
+
+#include <string>
+
 #include "config/args.hpp"
 #include "errors.hpp"
-
-typedef uint64_t cas_t;
 
 /* Note that repli_timestamp_t does NOT represent an actual timestamp; instead it's an arbitrary
 counter. */

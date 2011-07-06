@@ -3,16 +3,18 @@
 
 #include <stdio.h>
 #include <ctype.h>
+#include <endian.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
+
 #include <functional>
+#include <string>
 #include <vector>
-#include <endian.h>
+
 #include "errors.hpp"
 #include "arch/core.hpp"
 #include "utils2.hpp"
-#include <string>
 
 // Precise time (time+nanoseconds) for logging, etc.
 

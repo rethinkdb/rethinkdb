@@ -24,6 +24,8 @@ typedef uint32_t mcflags_t;
 // do timestamp comparisons wrong.
 typedef uint32_t exptime_t;
 
+typedef uint64_t cas_t;
+
 struct metadata_flags_t {
     uint8_t flags;
 };
