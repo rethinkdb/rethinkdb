@@ -42,13 +42,6 @@ public:
 // Runs a btree_modify_oper_t.
 void run_btree_modify_oper(value_sizer_t *sizer, btree_modify_oper_t *oper, btree_slice_t *slice, const store_key_t &key, castime_t castime, order_token_t token);
 
-void get_root(value_sizer_t *sizer, transaction_t *txn, buf_lock_t& sb_buf, buf_lock_t *buf_out, repli_timestamp timestamp);
-void check_and_handle_underfull(transaction_t *txn, buf_lock_t& buf, buf_lock_t& last_buf, buf_lock_t& sb_buf,
-                                const btree_key_t *key, block_size_t block_size);
-
-void check_and_handle_split(value_sizer_t *sizer, transaction_t *txn, buf_lock_t& buf, buf_lock_t& last_buf, buf_lock_t& sb_buf,
-                            const btree_key_t *key, value_type_t *new_value, block_size_t block_size);
-
 
 
 #endif // __BTREE_MODIFY_OPER_HPP__
