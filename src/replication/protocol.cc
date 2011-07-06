@@ -58,7 +58,7 @@ void check_pass(message_callback_t *receiver, const char *buf, size_t realsize) 
 template <class T>
 void print_and_pass_message(message_callback_t *receiver, stream_pair<T> &spair) {
 #ifdef REPLICATION_DEBUG
-    debugf("recv %s\n", debug_format(spair.data.get(), spair.stream->peek()).c_str());
+    debugf("recv %s\n", debug_format(spair.data, spair.stream->peek()).c_str());
 #endif
     receiver->send(spair);
 }
