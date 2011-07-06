@@ -47,6 +47,9 @@ struct http_req_t {
     std::string version;
     std::vector<header_line_t> header_lines;
     std::string body;
+
+    std::string find_query_param(std::string) const;
+    std::string find_header_line(std::string) const;
 };
 
 int content_length(http_req_t);

@@ -1,6 +1,20 @@
 #include "http/http.hpp"
 #include <iostream>
 
+std::string http_req_t::find_query_param(std::string key) const {
+    for (std::vector<query_parameter_t>::const_iterator it = query_params.begin(); it != query_params.end(); it++) {
+        if (it->val == key) return it->key;
+    }
+    return std::string("");
+}
+
+std::string http_req_t::find_header_line(std::string key) const {
+    for (std::vector<header_line_t>::const_iterator it = header_lines.begin(); it != header_lines.end(); it++) {
+        if (it->val == key) return it->key;
+    }
+    return std::string("");
+}
+
 int content_length(http_req_t msg) {
     for (std::vector<header_line_t>::iterator it = msg.header_lines.begin(); it != msg.header_lines.end(); it++) {
         if (it->key == std::string("Content-Length"))
