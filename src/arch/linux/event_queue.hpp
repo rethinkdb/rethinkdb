@@ -4,12 +4,13 @@
 
 #include <signal.h>
 
+#include "errors.hpp"
 #include <boost/function.hpp>
 #include <boost/scoped_ptr.hpp>
 
 #include "perfmon_types.hpp"
-#include "arch/linux/linux_utils.hpp"
 
+typedef int fd_t;
 
 
 // Event queue callback

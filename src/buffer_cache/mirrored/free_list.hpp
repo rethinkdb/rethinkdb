@@ -1,6 +1,8 @@
 #ifndef __BUFFER_CACHE_MIRRORED_FREE_LIST_HPP__
 #define __BUFFER_CACHE_MIRRORED_FREE_LIST_HPP__
 
+#include <deque>
+
 #include "serializer/serializer.hpp"
 #include "buffer_cache/types.hpp"
 #include "utils.hpp"

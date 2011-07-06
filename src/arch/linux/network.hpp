@@ -5,6 +5,7 @@
 #include "utils2.hpp"
 #include <boost/scoped_ptr.hpp>
 #include "arch/linux/event_queue.hpp"
+#include "arch/linux/linux_utils.hpp"
 #include "arch/address.hpp"
 #include "concurrency/side_coro.hpp"
 #include "concurrency/cond_var.hpp"

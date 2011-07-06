@@ -5,8 +5,10 @@
 #include <vector>
 #include "utils2.hpp"
 #include <boost/scoped_ptr.hpp>
+
 #include "config/args.hpp"
 #include "arch/linux/event_queue.hpp"
+#include "arch/linux/linux_utils.hpp"
 
 /* Types of IO backends */
 enum linux_io_backend_t {

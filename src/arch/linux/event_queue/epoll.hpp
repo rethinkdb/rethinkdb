@@ -2,9 +2,12 @@
 #ifndef __EPOLL_EVENT_QUEUE_HPP__
 #define __EPOLL_EVENT_QUEUE_HPP__
 
+#ifndef NDEBUG
 #include <map>
-#include <queue>                // TODO is this necessary?
+#endif
+
 #include <sys/epoll.h>
+
 #include "config/args.hpp"
 
 /* This file must only be included from event_queue.hpp, because it needs

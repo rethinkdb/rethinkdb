@@ -1,10 +1,13 @@
 #ifndef __ARCH_LINUX_BLOCKER_POOL_HPP__
 #define __ARCH_LINUX_BLOCKER_POOL_HPP__
 
+#include <vector>
+
+#include <pthread.h>
+
 #include "arch/linux/event_queue.hpp"
 #include "arch/linux/concurrency.hpp"
 #include "arch/linux/system_event.hpp"
-#include <pthread.h>
 
 struct blocker_pool_t :
     public linux_event_callback_t
