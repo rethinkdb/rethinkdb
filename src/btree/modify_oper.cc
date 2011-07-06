@@ -173,25 +173,19 @@ void run_btree_modify_oper(value_sizer_t *sizer, btree_modify_oper_t *oper, btre
     block_size_t block_size = slice->cache()->get_block_size();
 
     {
-        slice->assert_thread();
+        got_superblock_t got_superblock;
 
-        slice->pre_begin_transaction_sink_.check_out(token);
-        order_token_t begin_transaction_token = slice->pre_begin_transaction_write_mode_source_.check_in(token.tag() + "+begin_transaction_token");
-
-        transaction_t txn(slice->cache(), rwi_write, oper->compute_expected_change_count(block_size),  castime.timestamp);
-
-        txn.set_token(slice->post_begin_transaction_checkpoint_.check_through(begin_transaction_token));
-
-        buf_lock_t sb_buf(&txn, SUPERBLOCK_ID, rwi_write);
+        get_btree_superblock(slice, rwi_write, oper->compute_expected_change_count(block_size), castime.timestamp, token, &got_superblock);
 
         // TODO: do_superblock_sidequest is blocking.  It doesn't have
         // to be, but when you fix this, make sure the superblock
         // sidequest is done using the superblock before the
         // superblock gets released.
-        oper->do_superblock_sidequest(&txn, sb_buf, castime.timestamp, &store_key);
+        oper->do_superblock_sidequest(got_superblock.txn.get(), got_superblock.sb_buf, castime.timestamp, &store_key);
 
         keyvalue_location_t kv_location;
-        find_keyvalue_location_for_write(sizer, &txn, sb_buf, key, castime.timestamp, &kv_location);
+        find_keyvalue_location_for_write(sizer, &got_superblock, key, castime.timestamp, &kv_location);
+        transaction_t *txn = kv_location.txn.get();
 
         bool key_found = kv_location.value;
 
@@ -200,11 +194,11 @@ void run_btree_modify_oper(value_sizer_t *sizer, btree_modify_oper_t *oper, btre
         // If the value's expired, delete it.
         if (expired) {
             blob_t b(kv_location.value.as<btree_value_t>()->value_ref(), blob::btree_maxreflen);
-            b.unappend_region(&txn, b.valuesize());
+            b.unappend_region(txn, b.valuesize());
             kv_location.value.reset();
         }
 
-        bool update_needed = oper->operate(&txn, kv_location.value);
+        bool update_needed = oper->operate(txn, kv_location.value);
         update_needed = update_needed || expired;
 
         // Add a CAS to the value if necessary
@@ -221,7 +215,7 @@ void run_btree_modify_oper(value_sizer_t *sizer, btree_modify_oper_t *oper, btre
                 // Split the node if necessary, to make sure that we have room
                 // for the value; This isn't necessary when we're deleting,
                 // because the node isn't going to grow.
-                check_and_handle_split(sizer, &txn, kv_location.buf, kv_location.last_buf, sb_buf, key, kv_location.value.get(), block_size);
+                check_and_handle_split(sizer, txn, kv_location.buf, kv_location.last_buf, kv_location.sb_buf, key, kv_location.value.get(), block_size);
 
                 repli_timestamp new_value_timestamp = castime.timestamp;
 
@@ -233,22 +227,9 @@ void run_btree_modify_oper(value_sizer_t *sizer, btree_modify_oper_t *oper, btre
                 }
             }
 
-            // TODO: Previously this was checked whether or not update_needed,
-            // but I'm pretty sure a leaf node can only be underfull
-            // immediately following a split or an update. Double check this.
-
             // Check to see if the leaf is underfull (following a change in
             // size or a deletion), and merge/level if it is.
-            check_and_handle_underfull(&txn, kv_location.buf, kv_location.last_buf, sb_buf, key, block_size);
+            check_and_handle_underfull(txn, kv_location.buf, kv_location.last_buf, kv_location.sb_buf, key, block_size);
         }
-
-        // Release bufs as necessary.
-        sb_buf.release_if_acquired();
-        rassert(kv_location.buf.is_acquired());
-        kv_location.buf.release();
-        kv_location.last_buf.release_if_acquired();
-
-        // Committing the transaction and moving back to the home thread are
-        // handled automatically with RAII.
     }
 }
