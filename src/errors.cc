@@ -9,6 +9,8 @@
 
 #include <execinfo.h>
 
+#include "utils2.hpp"
+
 #include "containers/scoped_malloc.hpp"
 
 static bool parse_backtrace_line(char *line, char **filename, char **function, char **offset, char **address) {
