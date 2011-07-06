@@ -7,8 +7,6 @@
 #include <exception>
 #include "containers/buffer_group.hpp"
 
-#include "concurrency/cond_var.hpp"
-
 /* A data_provider_t conceptually represents a read-only array of bytes. It is an abstract
 superclass; its concrete subclasses represent different sources of bytes. */
 
