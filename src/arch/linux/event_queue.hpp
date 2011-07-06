@@ -8,7 +8,7 @@
 #include <boost/scoped_ptr.hpp>
 
 #include "perfmon_types.hpp"
-#include "linux_utils.hpp"
+#include "arch/linux/linux_utils.hpp"
 
 
 
