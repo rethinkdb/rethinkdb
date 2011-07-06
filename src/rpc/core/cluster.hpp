@@ -134,6 +134,19 @@ private:
 
     /* Use shared_ptr for automatic deallocation */
 public:
+    /* TODO! This should become a UUID->cluster_peer map. In addition, we should
+    introduce a semi-lattice containing an UUID->address mapping, with versioned address values.
+    UUIDs can be removed (by whom, by anyone?), and added by a node itself, where the node provides
+    a new version number for the address value.
+    Let's say UUIDs can be removed by anyone (on an administrator's command). Then
+    upon joining or when receiving an updated version of the metadata, the node should
+    checks whether it has been removed. If it has, it generates a new UUID and joins
+    as a completely new node (printing a warning).
+    TODO! Instead of having separate maps to cluster_peers and the SL-based address map,
+    we should see how we can unify both (probably by putting them into a cluster
+    connection manager class or something that handles reconnects, peer states etc.)
+    */
+    // TODO! In general, all those node ints should become UUIDs
     std::map<int, boost::shared_ptr<cluster_peer_t> > peers;
     int us;
 

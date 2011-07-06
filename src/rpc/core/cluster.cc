@@ -92,6 +92,9 @@ cluster_t::cluster_t(int port, const char *contact_host, int contact_port,
         if (welcome.peers(i).state() == population::LIVE) {
             peers[addr.id()]->connect();
             peers[addr.id()]->write(&initial);
+            // TODO! What we should really do is run a periodic reconnect procedure and just ignore the failure for now.
+            // We might consider to fail if we reach less than a certain fraction of the peers, but I'm not sure if that's useful.
+            // Maybe just warn about it.
             guarantee(peers[addr.id()]->read(&initial), "Failed to connect to a cluster peer exitting\n");
             peers[addr.id()]->state = cluster_peer_t::connected;
             start_main_srvcs(peers[addr.id()]);
