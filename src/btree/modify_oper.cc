@@ -64,7 +64,7 @@ void run_btree_modify_oper(value_sizer_t *sizer, btree_modify_oper_t *oper, btre
 
         // Actually update the leaf, if needed.
         if (update_needed) {
-            the_value.reinterpret_swap(the_value);
+            kv_location.value.reinterpret_swap(the_value);
             apply_keyvalue_change(sizer, &kv_location, key, castime.timestamp);
         }
     }
