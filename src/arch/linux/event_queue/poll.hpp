@@ -1,12 +1,10 @@
-
 #ifndef __POLL_EVENT_QUEUE_HPP__
 #define __POLL_EVENT_QUEUE_HPP__
 
-#include <queue>
 #include <map>
-#include <poll.h>
 #include <vector>
-#include "config/args.hpp"
+
+#include <poll.h>
 
 // Event queue structure
 struct poll_event_queue_t : public event_queue_base_t {
