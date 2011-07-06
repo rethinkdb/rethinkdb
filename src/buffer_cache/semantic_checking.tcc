@@ -1,6 +1,3 @@
-#include "buffer_cache/semantic_checking.hpp"
-#include "semantic_checking.hpp"
-
 /* Buf */
 
 template<class inner_cache_t>
