@@ -4,6 +4,7 @@
 #include "buffer_cache/buf_lock.hpp"
 #include "buffer_cache/co_functions.hpp"
 #include "containers/scoped_malloc.hpp"
+#include "data_provider.hpp"
 #include "logger.hpp"
 #include "store.hpp"
 

@@ -3,7 +3,10 @@
 #include <stdexcept>
 #include <stdarg.h>
 #include <unistd.h>
+
+#include "errors.hpp"
 #include <boost/make_shared.hpp>
+#include <boost/optional.hpp>
 
 #include "arch/arch.hpp"
 #include "concurrency/semaphore.hpp"
@@ -11,6 +14,7 @@
 #include "concurrency/cond_var.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/promise.hpp"
+#include "containers/iterators.hpp"
 #include "server/control.hpp"
 #include "store.hpp"
 #include "logger.hpp"

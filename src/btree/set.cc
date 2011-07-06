@@ -1,8 +1,10 @@
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
-#include "set.hpp"
+
+#include "btree/set.hpp"
 #include "btree/modify_oper.hpp"
 #include "buffer_cache/co_functions.hpp"
+#include "data_provider.hpp"
 
 struct btree_set_oper_t : public btree_modify_oper_t {
     explicit btree_set_oper_t(boost::shared_ptr<data_provider_t> _data, mcflags_t _mcflags, exptime_t _exptime,

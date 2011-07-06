@@ -1,19 +1,22 @@
 #ifndef __STORE_HPP__
 #define __STORE_HPP__
 
-#include "utils.hpp"
-#include "arch/arch.hpp"
-#include "data_provider.hpp"
-#include "concurrency/cond_var.hpp"
-#include "concurrency/fifo_checker.hpp"
-#include "containers/iterators.hpp"
-#include "containers/unique_ptr.hpp"
+#include <string.h>
+
+#include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 #include <boost/variant.hpp>
+
+#include "utils.hpp"
 
 typedef uint32_t mcflags_t;
 typedef uint32_t exptime_t;
 typedef uint64_t cas_t;
+
+class data_provider_t;
+class order_token_t;
+
+template <typename T> struct one_way_iterator_t;
 
 struct store_key_t {
     uint8_t size;

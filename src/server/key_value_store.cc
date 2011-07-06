@@ -5,6 +5,7 @@
 #include "concurrency/signal.hpp"
 #include "concurrency/side_coro.hpp"
 #include "concurrency/pmap.hpp"
+#include "containers/iterators.hpp"
 #include "db_thread_info.hpp"
 #include "replication/backfill.hpp"
 #include "replication/master.hpp"

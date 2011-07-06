@@ -1,6 +1,9 @@
 #ifndef __CONCURRENCY_GATE_HPP__
 #define __CONCURRENCY_GATE_HPP__
 
+#include "errors.hpp"
+#include <boost/scoped_array.hpp>
+
 #include "concurrency/resettable_cond_var.hpp"
 #include "concurrency/pmap.hpp"
 #include "utils2.hpp"

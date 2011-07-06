@@ -1,6 +1,7 @@
 #include "incr_decr.hpp"
 
 #include "btree/modify_oper.hpp"
+#include "containers/buffer_group.hpp"
 
 struct btree_incr_decr_oper_t : public btree_modify_oper_t {
 

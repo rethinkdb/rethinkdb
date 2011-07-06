@@ -1,12 +1,13 @@
 #ifndef __CONTAINERS_ITERATOR_HPP__
 #define __CONTAINERS_ITERATOR_HPP__
 
-#include "errors.hpp"
 #include <algorithm>
 #include <functional>
 #include <queue>
 #include <set>
 #include <vector>
+
+#include "errors.hpp"
 #include <boost/optional.hpp>
 #include <boost/shared_ptr.hpp>
 
