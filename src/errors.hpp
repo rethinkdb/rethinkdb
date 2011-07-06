@@ -108,4 +108,12 @@ namespace boost {
     void assertion_failed(char const * expr, char const * function, char const * file, long line);
 }
 
+
+// Put this in a private: section.
+#define DISABLE_COPYING(T)                      \
+    T(const T&);                                \
+    void operator=(const T&)
+
+
+
 #endif /* __ERRORS_HPP__ */

@@ -2,6 +2,7 @@
 
 #include "arch/arch.hpp"
 #include "arch/timing.hpp"
+#include "logger.hpp"
 
 heartbeat_sender_t::heartbeat_sender_t(int heartbeat_frequency_ms) :
         heartbeat_frequency_ms_(heartbeat_frequency_ms), heartbeat_timer_(NULL), continue_firing(false) {

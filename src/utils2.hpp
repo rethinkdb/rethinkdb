@@ -107,11 +107,6 @@ long strtol_strict(const char *string, char **end, int base);
 unsigned long strtoul_strict(const char *string, char **end, int base);
 unsigned long long strtoull_strict(const char *string, char **end, int base);
 
-// Put this in a private: section.
-#define DISABLE_COPYING(T)                      \
-    T(const T&);                                \
-    void operator=(const T&)
-
 // This is inefficient, it calls vsnprintf twice and copies the
 // arglist and output buffer excessively.
 std::string strprintf(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
