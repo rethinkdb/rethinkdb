@@ -1,12 +1,9 @@
 #ifndef __CONCURRENCY_FIFO_CHECKER_HPP__
 #define __CONCURRENCY_FIFO_CHECKER_HPP__
 
-#include <vector>
-
 #include <boost/function.hpp>
 
-#include "arch/arch.hpp"
-#include "utils2.hpp"
+#include "utils.hpp"
 
 
 struct order_bucket_t {
