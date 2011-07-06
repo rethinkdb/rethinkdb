@@ -7,20 +7,20 @@
 #ifndef __PERFMON_HPP__
 #define __PERFMON_HPP__
 
-#include <string>
+#include <stdarg.h>
+
 #include <map>
 #include <deque>
-#include <stdarg.h>
+#include <limits>
+#include <sstream>
+#include <string>
+
+#include "arch/core.hpp"
 #include "utils2.hpp"
 #include "config/args.hpp"
 #include "containers/intrusive_list.hpp"
-#include <limits>
 #include "server/control.hpp"
 #include "perfmon_types.hpp"
-
-#include <sstream>
-
-#include "arch/core.hpp"
 
 // Pad a value to the size of a cache line to avoid false sharing.
 // TODO: This is implemented as a struct with subtraction rather than a union
