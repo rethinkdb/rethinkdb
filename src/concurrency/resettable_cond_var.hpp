@@ -1,6 +1,8 @@
 #ifndef __CONCURRENCY_RESETTABLE_COND_VAR_HPP__
 #define __CONCURRENCY_RESETTABLE_COND_VAR_HPP__
 
+#include <boost/scoped_ptr.hpp>
+
 #include "concurrency/cond_var.hpp"
 
 /* resettable_cond_t is like cond_t except that it can be "un-pulsed" using the reset()

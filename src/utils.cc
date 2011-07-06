@@ -171,3 +171,11 @@ home_thread_mixin_t::rethread_t::~rethread_t() {
 }
 
 home_thread_mixin_t::home_thread_mixin_t() : real_home_thread(get_thread_id()) { }
+
+
+on_thread_t::on_thread_t(int thread) {
+    coro_t::move_to_thread(thread);
+}
+on_thread_t::~on_thread_t() {
+    coro_t::move_to_thread(home_thread());
+}

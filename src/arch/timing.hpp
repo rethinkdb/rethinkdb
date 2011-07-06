@@ -7,6 +7,8 @@
 
 void nap(int ms);
 
+class timer_token_t;
+
 /* Construct a `signal_timer_t` to start a one-shot timer. When the timer "rings",
 the signal will be pulsed. It is safe to destroy the `signal_timer_t` before the
 timer "rings". */

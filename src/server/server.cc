@@ -192,9 +192,9 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             if (!cmd_config->import_config.file.empty()) {
                 store.set_replication_master_id(NOT_A_SLAVE);
                 std::vector<std::string>::iterator it;
-                for(it = cmd_config->import_config.file.begin(); it != cmd_config->import_config.file.end(); it++) {
+                for (it = cmd_config->import_config.file.begin(); it != cmd_config->import_config.file.end(); it++) {
                     logINF("Importing file %s...\n", it->c_str());
-                    import_memcache(*it, &store, &os_signal_cond);
+                    import_memcache(it->c_str(), &store, &os_signal_cond);
                     logINF("Done\n");
                 }
             } else {

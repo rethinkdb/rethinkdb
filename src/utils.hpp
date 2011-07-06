@@ -14,6 +14,7 @@
 
 #include "errors.hpp"
 #include "arch/core.hpp"
+#include "arch/coroutines.hpp"
 #include "utils2.hpp"
 
 // Precise time (time+nanoseconds) for logging, etc.
@@ -48,7 +49,7 @@ void print_hd(const void *buf, size_t offset, size_t length);
 
 int sized_strcmp(const char *str1, int len1, const char *str2, int len2);
 
-std::string strip_spaces(std::string); 
+std::string strip_spaces(std::string);
 
 
 /* The home thread mixin is a mixin for objects that can only be used
@@ -102,12 +103,8 @@ back in its destructor. For example:
 */
 
 struct on_thread_t : public home_thread_mixin_t {
-    on_thread_t(int thread) {
-        coro_t::move_to_thread(thread);
-    }
-    ~on_thread_t() {
-        coro_t::move_to_thread(home_thread());
-    }
+    on_thread_t(int thread);
+    ~on_thread_t();
 };
 
 

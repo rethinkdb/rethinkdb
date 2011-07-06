@@ -1,6 +1,8 @@
-
 #ifndef __RWI_LOCK_HPP__
 #define __RWI_LOCK_HPP__
+
+#include "errors.hpp"
+#include <boost/function.hpp>
 
 #include "containers/intrusive_list.hpp"
 #include "concurrency/access.hpp"

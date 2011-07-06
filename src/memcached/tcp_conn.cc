@@ -3,6 +3,7 @@
 #include "concurrency/cross_thread_signal.hpp"
 #include "db_thread_info.hpp"
 #include "perfmon.hpp"
+#include "logger.hpp"
 
 struct tcp_conn_memcached_interface_t : public memcached_interface_t, public home_thread_mixin_t {
 

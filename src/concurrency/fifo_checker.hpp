@@ -3,6 +3,8 @@
 
 #include <boost/function.hpp>
 
+#include <map>
+
 #include "utils.hpp"
 
 
