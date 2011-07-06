@@ -1,11 +1,10 @@
-
 #ifndef __SERIALIZER_LOG_LBA_DISK_STRUCTURE__
 #define __SERIALIZER_LOG_LBA_DISK_STRUCTURE__
 
 #include "arch/arch.hpp"
 #include "serializer/log/extents/extent_manager.hpp"
-#include "disk_format.hpp"
-#include "disk_extent.hpp"
+#include "serializer/log/lba/disk_format.hpp"
+#include "serializer/log/lba/disk_extent.hpp"
 
 class lba_load_fsm_t;
 class lba_writer_t;

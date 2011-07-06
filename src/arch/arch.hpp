@@ -12,14 +12,15 @@ typedef linux_io_config_t platform_io_config_t;
 
 /* #elif WE_ARE_ON_WINDOWS
 
-#include "arch/win32/arch.hpp"
-typedef win32_io_config_t platform_io_config_t
+// #include "arch/win32/arch.hpp"
+// typedef win32_io_config_t platform_io_config_t
 
-#elif ...
+// #elif ...
 
-...
+// ...
 
-#endif */
+// #endif
+*/
 
 /* Optionally mock the IO layer */
 

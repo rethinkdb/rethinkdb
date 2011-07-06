@@ -1,9 +1,9 @@
 #ifndef NO_EVENTFD
+#include "arch/linux/system_event/eventfd_event.hpp"
 
 #include <fcntl.h>
 #include <unistd.h>
 #include "utils.hpp"
-#include "eventfd_event.hpp"
 
 eventfd_event_t::eventfd_event_t() {
     _eventfd = eventfd(0, 0);

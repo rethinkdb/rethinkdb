@@ -20,15 +20,15 @@
 #include <list>
 #include <map>
 
-#include "writeback/writeback.hpp"
+#include "buffer_cache/mirrored/writeback/writeback.hpp"
 
-#include "page_repl/page_repl_random.hpp"
+#include "buffer_cache/mirrored/page_repl/page_repl_random.hpp"
 typedef page_repl_random_t page_repl_t;
 
-#include "free_list.hpp"
+#include "buffer_cache/mirrored/free_list.hpp"
 typedef array_free_list_t free_list_t;
 
-#include "page_map.hpp"
+#include "buffer_cache/mirrored/page_map.hpp"
 typedef array_map_t page_map_t;
 
 

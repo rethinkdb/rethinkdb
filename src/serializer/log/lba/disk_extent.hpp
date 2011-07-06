@@ -4,10 +4,10 @@
 
 #include "containers/intrusive_list.hpp"
 #include "arch/arch.hpp"
-#include "extent.hpp"
+#include "serializer/log/lba/extent.hpp"
 #include "serializer/log/extents/extent_manager.hpp"
-#include "disk_format.hpp"
-#include "in_memory_index.hpp"
+#include "serializer/log/lba/disk_format.hpp"
+#include "serializer/log/lba/in_memory_index.hpp"
 
 class lba_disk_extent_t :
     public intrusive_list_node_t<lba_disk_extent_t> {

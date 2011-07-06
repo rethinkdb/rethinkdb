@@ -1,7 +1,8 @@
+#include "serializer/log/data_block_manager.hpp"
+
 #include <boost/smart_ptr/scoped_ptr.hpp>
 
-#include "data_block_manager.hpp"
-#include "log_serializer.hpp"
+#include "serializer/log/log_serializer.hpp"
 #include "utils.hpp"
 #include "concurrency/mutex.hpp"
 #include "arch/arch.hpp"

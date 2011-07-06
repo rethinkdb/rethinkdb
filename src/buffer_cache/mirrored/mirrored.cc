@@ -1,6 +1,5 @@
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "buffer_cache/stats.hpp"
-#include "mirrored.hpp"
 
 #include "stats/persist.hpp"
 

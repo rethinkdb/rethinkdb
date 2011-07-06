@@ -2,7 +2,7 @@
 #ifndef __ARCH_LINUX_TIMER_SIGNAL_PROVIDER_HPP__
 #define __ARCH_LINUX_TIMER_SIGNAL_PROVIDER_HPP__
 
-#include "timer_provider_callback.hpp"
+#include "arch/linux/timer/timer_provider_callback.hpp"
 
 #define TIMER_NOTIFY_SIGNAL    (SIGRTMIN + 3)
 

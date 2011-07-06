@@ -6,10 +6,10 @@
 // don't support fdtimers, so we have to resort to signals.
 
 #ifdef LEGACY_LINUX
-#include "timer/timer_signal_provider.hpp"
+#include "arch/linux/timer/timer_signal_provider.hpp"
 typedef timer_signal_provider_t timer_provider_t;
 #else
-#include "timer/timerfd_provider.hpp"
+#include "arch/linux/timer/timerfd_provider.hpp"
 typedef timerfd_provider_t timer_provider_t;
 #endif
 

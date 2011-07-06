@@ -7,7 +7,6 @@
 #include "logger.hpp"
 #include "utils.hpp"
 #include "help.hpp"
-#include "checker.hpp"
 
 namespace fsck {
 

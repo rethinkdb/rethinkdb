@@ -12,7 +12,7 @@
 #include "containers/two_level_array.hpp"
 #include "containers/bitset.hpp"
 #include "concurrency/mutex.hpp"
-#include "extents/extent_manager.hpp"
+#include "serializer/log/extents/extent_manager.hpp"
 #include "serializer/serializer.hpp"
 #include "serializer/types.hpp"
 #include "perfmon.hpp"

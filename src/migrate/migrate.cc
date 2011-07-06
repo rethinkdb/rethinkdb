@@ -1,9 +1,13 @@
 #include "migrate/migrate.hpp"
+
 #include <getopt.h>
-#include "help.hpp"
-#include "string.h"
+#include <string.h>
+
+#include "errors.hpp"
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/replace.hpp>
+
+#include "help.hpp"
 
 namespace migrate {
 

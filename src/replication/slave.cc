@@ -1,10 +1,10 @@
-#include "slave.hpp"
+#include "replication/slave.hpp"
 
 #include <stdint.h>
 
 #include "arch/linux/coroutines.hpp"
 #include "logger.hpp"
-#include "net_structs.hpp"
+#include "replication/net_structs.hpp"
 #include "server/key_value_store.hpp"
 #include "replication/backfill.hpp"
 #include "replication/slave_stream_manager.hpp"

@@ -1,5 +1,5 @@
-#include "page_map.hpp"
-#include "mirrored.hpp"
+#include "buffer_cache/mirrored/page_map.hpp"
+#include "buffer_cache/mirrored/mirrored.hpp"
 
 array_map_t::local_buf_t::local_buf_t(mc_inner_buf_t *gbuf)
     : gbuf(gbuf)

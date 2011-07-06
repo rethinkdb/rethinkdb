@@ -7,7 +7,6 @@
 #include "utils.hpp"
 #include "help.hpp"
 #include "arch/arch.hpp"
-#include "cmd_args.hpp"
 #include "perfmon.hpp"   // For `global_full_perfmon`
 
 /* Note that this file only parses arguments for the 'serve' and 'create' subcommands. */

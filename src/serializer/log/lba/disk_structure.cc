@@ -1,4 +1,4 @@
-#include "disk_structure.hpp"
+#include "serializer/log/lba/disk_structure.hpp"
 #include "containers/scoped_malloc.hpp"
 
 lba_disk_structure_t::lba_disk_structure_t(extent_manager_t *em, direct_file_t *file)

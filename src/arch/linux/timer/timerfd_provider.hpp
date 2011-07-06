@@ -2,7 +2,7 @@
 #ifndef __ARCH_LINUX_TIMERFD_PROVIDER_HPP__
 #define __ARCH_LINUX_TIMERFD_PROVIDER_HPP__
 
-#include "timer_provider_callback.hpp"
+#include "arch/linux/timer/timer_provider_callback.hpp"
 
 /* Kernel timer provider based on timerfd  */
 struct timerfd_provider_t : public linux_event_callback_t {

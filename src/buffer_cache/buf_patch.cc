@@ -6,7 +6,6 @@
 #include <string.h>
 #include "errors.hpp"
 #include "logger.hpp"
-#include "buf_patch.hpp"
 
 buf_patch_t *buf_patch_t::load_patch(UNUSED block_size_t bs, const char *source) {
     try {

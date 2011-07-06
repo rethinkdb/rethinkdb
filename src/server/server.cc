@@ -1,5 +1,7 @@
+#include "server/server.hpp"
+
 #include <math.h>
-#include "server.hpp"
+
 #include "db_thread_info.hpp"
 #include "memcached/tcp_conn.hpp"
 #include "memcached/file.hpp"
@@ -9,7 +11,7 @@
 #include "server/cmd_args.hpp"
 #include "replication/master.hpp"
 #include "replication/slave.hpp"
-#include "control.hpp"
+#include "server/control.hpp"
 #include "gated_store.hpp"
 #include "concurrency/promise.hpp"
 #include "arch/os_signal.hpp"

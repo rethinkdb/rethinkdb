@@ -9,7 +9,7 @@
 #include "db_thread_info.hpp"
 #include "replication/backfill.hpp"
 #include "replication/master.hpp"
-#include "cmd_args.hpp"
+#include "server/cmd_args.hpp"
 #include "arch/timing.hpp"
 
 #include <boost/shared_ptr.hpp>

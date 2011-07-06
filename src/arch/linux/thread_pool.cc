@@ -2,7 +2,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <fcntl.h>
-#include "thread_pool.hpp"
+#include "arch/linux/thread_pool.hpp"
 #include "errors.hpp"
 #include "arch/linux/arch.hpp"
 #include "arch/linux/event_queue.hpp"

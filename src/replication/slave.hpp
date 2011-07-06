@@ -7,7 +7,7 @@
 #include "server/cmd_args.hpp"
 #include "server/control.hpp"
 #include "store.hpp"
-#include "failover.hpp"
+#include "replication/failover.hpp"
 
 // The initial time we wait to reconnect to the master, upon failure.  In ms.
 #define INITIAL_TIMEOUT  (100)

@@ -1,7 +1,9 @@
-#include "writeback.hpp"
-#include "buffer_cache/mirrored/mirrored.hpp"
+#include "buffer_cache/mirrored/writeback/writeback.hpp"
+
 #include <cmath>
 #include <set>
+
+#include "buffer_cache/mirrored/mirrored.hpp"
 
 // TODO: We added a writeback->possibly_unthrottle_transactions() call
 // in the begin_transaction_fsm_t(..) constructor, where did that get

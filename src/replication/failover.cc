@@ -1,4 +1,5 @@
-#include "failover.hpp"
+#include "replication/failover.hpp"
+
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>

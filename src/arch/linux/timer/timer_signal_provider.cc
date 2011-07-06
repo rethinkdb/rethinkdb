@@ -1,11 +1,13 @@
+#include "arch/linux/timer/timer_signal_provider.hpp"
+
 #include <signal.h>
 #include <sys/types.h>
 #include <time.h>
 #include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
+
 #include "arch/linux/event_queue.hpp"
-#include "timer_signal_provider.hpp"
 #include "logger.hpp"
 #include "arch/linux/linux_utils.hpp"
 

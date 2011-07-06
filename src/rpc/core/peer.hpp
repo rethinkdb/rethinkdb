@@ -6,7 +6,7 @@
 #include <boost/shared_ptr.hpp>
 #include <list>
 #include "concurrency/mutex.hpp"
-#include "protob.hpp"
+#include "rpc/core/protob.hpp"
 #include "rpc/core/population.pb.h"
 #include "concurrency/cond_var.hpp"
 #include "rpc/core/srvc.hpp"

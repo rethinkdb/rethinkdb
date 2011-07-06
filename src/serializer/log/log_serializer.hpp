@@ -17,10 +17,10 @@
 
 class log_serializer_t;
 
-#include "metablock/metablock_manager.hpp"
-#include "extents/extent_manager.hpp"
-#include "lba/lba_list.hpp"
-#include "data_block_manager.hpp"
+#include "serializer/log/metablock/metablock_manager.hpp"
+#include "serializer/log/extents/extent_manager.hpp"
+#include "serializer/log/lba/lba_list.hpp"
+#include "serializer/log/data_block_manager.hpp"
 
 struct block_magic_t;
 

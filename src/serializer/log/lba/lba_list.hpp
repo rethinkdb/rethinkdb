@@ -5,9 +5,9 @@
 
 #include "serializer/serializer.hpp"
 #include "serializer/log/extents/extent_manager.hpp"
-#include "disk_format.hpp"
-#include "in_memory_index.hpp"
-#include "disk_structure.hpp"
+#include "serializer/log/lba/disk_format.hpp"
+#include "serializer/log/lba/in_memory_index.hpp"
+#include "serializer/log/lba/disk_structure.hpp"
 
 class lba_start_fsm_t;
 class lba_syncer_t;

@@ -4,7 +4,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 #include "concurrency/mutex.hpp"
-#include "protob.hpp"
+#include "rpc/core/protob.hpp"
 #include <string>
 #include "logger.hpp"
 #include "rpc/core/pop_srvc.hpp"

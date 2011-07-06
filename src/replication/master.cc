@@ -1,4 +1,4 @@
-#include "master.hpp"
+#include "replication/master.hpp"
 
 #include <boost/scoped_ptr.hpp>
 

@@ -1,4 +1,4 @@
-#include "page_repl_random.hpp"
+#include "buffer_cache/mirrored/page_repl/page_repl_random.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"
 
 page_repl_random_t::page_repl_random_t(unsigned int _unload_threshold, cache_t *_cache)
