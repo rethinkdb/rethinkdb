@@ -11,6 +11,8 @@
 #include <boost/optional.hpp>
 #include <boost/shared_ptr.hpp>
 
+#include "utils2.hpp"
+
 template <typename T>
 struct one_way_iterator_t {
     virtual ~one_way_iterator_t() { }
@@ -21,11 +23,11 @@ struct one_way_iterator_t {
 };
 
 template <typename F, typename S, typename Cmp = std::less<F> >
-struct first_not_less {
+struct first_greater {
     typedef F first_argument_type;
     typedef S second_argument_type;
     bool operator()(std::pair<F,S> l, std::pair<F,S> r) {
-        return !Cmp()(l.first, r.first);
+        return Cmp()(r.first, l.first);
     }
 };
 
@@ -40,7 +42,7 @@ public:
 
 
     merge_ordered_data_iterator_t() : mergees(), next_to_pop_from(),
-        merge_heap(first_not_less<T, mergee_t, Cmp>(), heap_container_t()) { }
+        merge_heap(first_greater<T, mergee_t, Cmp>(), heap_container_t()) { }
 
     virtual ~merge_ordered_data_iterator_t() {
         done();
@@ -79,7 +81,6 @@ public:
             } else {
                 next_to_pop_from.reset();    // relinquish our hold
                 mergees.erase(next_to_pop_from);
-                //next_to_pop_from = NULL;
             }
         }
         if (merge_heap.size() == 0) {
@@ -100,20 +101,14 @@ public:
         for (it = mergees.begin(); it != mergees.end(); it++) {
             (*it)->prefetch();
         }
-        //std::for_each(mergees.begin(), mergees.end(), std::mem_fun(&mergee_t::prefetch));
     }
 private:
     void done() {
-        /* for (typename mergees_t::iterator it = mergees.begin(); it != mergees.end(); ++it) {
-            mergee_t mergee = *it;
-            if (mergee)
-                delete mergee;
-        } */
         mergees.clear();
     }
     mergees_t mergees;
     mergee_t next_to_pop_from;
-    typename std::priority_queue<heap_elem_t, heap_container_t, first_not_less<T, mergee_t, Cmp> > merge_heap;
+    typename std::priority_queue<heap_elem_t, heap_container_t, first_greater<T, mergee_t, Cmp> > merge_heap;
 
 };
 

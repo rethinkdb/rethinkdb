@@ -45,12 +45,12 @@ private:
 };
 
 struct delete_check_iterator : test_iterator {
-    delete_check_iterator(data_blocks_t& data_blocks, volatile bool *deleted) : test_iterator(data_blocks), deleted(deleted) { *deleted = false; } 
+    delete_check_iterator(data_blocks_t& data_blocks, bool *deleted) : test_iterator(data_blocks), deleted(deleted) { *deleted = false; } 
     virtual ~delete_check_iterator() {
         *deleted = true;
     }
 private:
-    volatile bool *deleted;
+    bool *deleted;
 };
 
 // Helper functions
@@ -170,7 +170,7 @@ TEST(MergeIteratorsTest, iterators_get_deleted) {
     test_iterator::data_blocks_t c_db = parse_data_blocks("5 8 | 9 | 12 15 16");
     test_iterator::data_blocks_t d_db = parse_data_blocks("");
 
-    volatile bool a_deleted = false, b_deleted = false, c_deleted = false, d_deleted = false;
+    bool a_deleted = false, b_deleted = false, c_deleted = false, d_deleted = false;
     test_iterator *a = new delete_check_iterator(a_db, &a_deleted);
     test_iterator *b = new delete_check_iterator(b_db, &b_deleted);
     test_iterator *c = new delete_check_iterator(c_db, &c_deleted);
@@ -187,16 +187,18 @@ TEST(MergeIteratorsTest, iterators_get_deleted) {
 
     boost::optional<int> next;
     bool expect_a_deleted = false;
-    while (next = merge_iterator.next()) {
-        if (expect_a_deleted)
+    while ((next = merge_iterator.next())) {
+        if (expect_a_deleted) {
             EXPECT_TRUE(a_deleted) << "merge_ordered_data_iterator_t should delete the iterator after it has exhausted";
+        }
 
         if (next.get() == 10) {
             expect_a_deleted = true; // when the next element is fetched, merge iterator will recognize that
                                      // 'a' iterator has exhausted, so it can delete it
         }
     }
-    
+
+    EXPECT_TRUE(a_deleted) << "merge_ordered_data_iterator_t should have deleted the 'a' iterator long ago";
     EXPECT_TRUE(b_deleted && c_deleted) << "merge_ordered_data_iterator_t should delete the iterator after it has exhausted";
 
     a_deleted = false;
