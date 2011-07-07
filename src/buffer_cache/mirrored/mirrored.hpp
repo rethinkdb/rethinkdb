@@ -176,7 +176,7 @@ private:
 
 
 
-/* This class represents a hold on a mc_inner_buf_t. */
+/* This class represents a hold on a mc_inner_buf_t (and potentially a specific version of one). */
 class mc_buf_t {
     typedef mc_cache_t cache_t;
 
