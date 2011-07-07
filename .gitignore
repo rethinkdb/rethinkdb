@@ -4,6 +4,8 @@
 .*.swp
 .tags
 .cscope
+cscope.files
+cscope.out
 build
 src/quickrun_rethinkdb
 src/debug_rethinkdb
