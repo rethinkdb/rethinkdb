@@ -446,8 +446,8 @@ bool check_metablock(nondirect_file_t *file, file_knowledge_t *knog, metablock_e
     manager_t::metablock_version_t high_version = MB_START_VERSION - 1;
 
     // TODO (rntz) transaction ids are no more; use ser_block_sequence_ids
-    int high_transaction_index = -1;
-    ser_transaction_id_t high_transaction = NULL_SER_TRANSACTION_ID;
+    int high_block_sequence_index = -1;
+    ser_block_sequence_id_t high_block_sequence_id = NULL_SER_BLOCK_SEQUENCE_ID;
 
 
     for (int i = 0, n = metablock_offsets.size(); i < n; ++i) {
@@ -468,9 +468,11 @@ bool check_metablock(nondirect_file_t *file, file_knowledge_t *knog, metablock_e
             }
 
             manager_t::metablock_version_t version = metablock->version;
-            ser_transaction_id_t tx = metablock->metablock.transaction_id;
+            ser_block_sequence_id_t seqid = metablock->metablock.block_sequence_id;
 
-            if (version == MB_BAD_VERSION || version < MB_START_VERSION || tx == NULL_SER_TRANSACTION_ID || tx < FIRST_SER_TRANSACTION_ID) {
+            if (version == MB_BAD_VERSION || version < MB_START_VERSION ||
+                seqid == NULL_SER_BLOCK_SEQUENCE_ID || seqid < FIRST_SER_BLOCK_SEQUENCE_ID)
+            {
                 errs->bad_content_count++;
             } else {
                 if (high_version < version) {
@@ -478,9 +480,9 @@ bool check_metablock(nondirect_file_t *file, file_knowledge_t *knog, metablock_e
                     high_version_index = i;
                 }
                 
-                if (high_transaction < tx) {
-                    high_transaction = tx;
-                    high_transaction_index = i;
+                if (high_block_sequence_id < seqid) {
+                    high_block_sequence_id = seqid;
+                    high_block_sequence_index = i;
                 }
 
             }
@@ -501,7 +503,7 @@ bool check_metablock(nondirect_file_t *file, file_knowledge_t *knog, metablock_e
     }
 
     errs->no_valid_metablocks = (high_version_index == -1);
-    errs->not_monotonic = (high_version_index != high_transaction_index);
+    errs->not_monotonic = (high_version_index != high_block_sequence_index);
 
     if (errs->bad_markers_count != 0 || errs->bad_content_count != 0 || errs->no_valid_metablocks) {
         return false;

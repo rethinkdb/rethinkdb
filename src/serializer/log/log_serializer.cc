@@ -30,7 +30,6 @@ void log_serializer_t::create(dynamic_config_t *dynamic_config, private_dynamic_
     data_block_manager_t::prepare_initial_metablock(&metablock.data_block_manager_part);
     lba_index_t::prepare_initial_metablock(&metablock.lba_index_part);
 
-    metablock.transaction_id = FIRST_SER_TRANSACTION_ID;
     metablock.block_sequence_id = NULL_SER_BLOCK_SEQUENCE_ID;
 
     mb_manager_t::create(&df, static_config->extent_size(), &metablock);
@@ -102,7 +101,6 @@ struct ls_start_existing_fsm_t :
         if (state == state_start_lba) {
             guarantee(metablock_found, "Could not find any valid metablock.");
 
-            ser->current_transaction_id = metablock_buffer.transaction_id;
             ser->latest_block_sequence_id = metablock_buffer.block_sequence_id;
 
             if (ser->lba_index->start_existing(ser->dbfile, &metablock_buffer.lba_index_part, this)) {
@@ -343,7 +341,6 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
 }
 
 void log_serializer_t::index_write_prepare(index_write_context_t &context) {
-    current_transaction_id++;
     active_write_count++;
 
     /* Start an extent manager transaction so we can allocate and release extents */
@@ -642,7 +639,6 @@ void log_serializer_t::prepare_metablock(metablock_t *mb_buffer) {
     extent_manager->prepare_metablock(&mb_buffer->extent_manager_part);
     data_block_manager->prepare_metablock(&mb_buffer->data_block_manager_part);
     lba_index->prepare_metablock(&mb_buffer->lba_index_part);
-    mb_buffer->transaction_id = current_transaction_id;
     mb_buffer->block_sequence_id = latest_block_sequence_id;
 }
 

@@ -6,10 +6,6 @@
 
 // A relatively "lightweight" header file (we wish), in a sense.
 
-typedef uint64_t ser_transaction_id_t;
-#define NULL_SER_TRANSACTION_ID (ser_transaction_id_t(0))
-#define FIRST_SER_TRANSACTION_ID (ser_transaction_id_t(1))
-
 typedef uint32_t block_id_t;
 #define NULL_BLOCK_ID (block_id_t(-1))
 

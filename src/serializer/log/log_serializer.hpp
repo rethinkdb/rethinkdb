@@ -36,8 +36,6 @@ struct log_serializer_metablock_t {
     extent_manager_t::metablock_mixin_t extent_manager_part;
     lba_index_t::metablock_mixin_t lba_index_part;
     data_block_manager_t::metablock_mixin_t data_block_manager_part;
-    // TODO (rntz) transaction ids are gone, yet this remained in daniel's branch. ask him about it.
-    ser_transaction_id_t transaction_id;
     ser_block_sequence_id_t block_sequence_id;
 };
 
@@ -225,8 +223,6 @@ private:
 
     int active_write_count;
 
-    // TODO (rntz) transaction ids are gone, yet this remained in daniel's branch. ask him about it.
-    ser_transaction_id_t current_transaction_id;
     ser_block_sequence_id_t latest_block_sequence_id;
 };
 

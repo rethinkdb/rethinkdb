@@ -18,6 +18,7 @@ the log serializer. */
 
 //#define SERIALIZER_DEBUG_PRINT 1
 
+// TODO (rntz) fix this for new serializer interface
 template<class inner_serializer_t>
 class semantic_checking_serializer_t :
     public serializer_t

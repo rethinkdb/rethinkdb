@@ -15,8 +15,8 @@ public:
 
     bool has_block(block_id_t block_id, off64_t offset);
   
-    // Destroys transaction_ids, we don't need them any more and we'd
-    // like to free up memory.
+    // Destroys block sequence_ids, we don't need them any more and we'd like to
+    // free up memory.
     const std::map<size_t, off64_t>& destroy_block_sequence_ids();
 
     enum { null = -1 };

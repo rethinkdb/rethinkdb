@@ -40,7 +40,7 @@ void patch_memory_storage_t::load_block_patch_list(block_id_t block_id, const st
     }
 }
 
-// Removes all patches which are obsolete w.r.t. the given transaction_id
+// Removes all patches which are obsolete w.r.t. the given block sequence_id
 void patch_memory_storage_t::filter_applied_patches(block_id_t block_id, ser_block_sequence_id_t block_sequence_id) {
     patch_map_t::iterator map_entry = patch_map.find(block_id);
     rassert(map_entry != patch_map.end());
