@@ -43,4 +43,8 @@ std::string print_visitor::operator()(json_null_t) const {
     return "null";
 }
 
+std::string print(const json_t &json) {
+    return print_visitor()(json);
+}
+
 }; //namespace json

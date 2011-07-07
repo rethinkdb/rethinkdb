@@ -31,6 +31,22 @@ void http_res_t::add_header_line(std::string const &key, std::string const &val)
     header_lines.push_back(hdr_ln);
 }
 
+void http_res_t::set_body(std::string const &content_type, std::string const &content) {
+    for (std::vector<header_line_t>::iterator it = header_lines.begin(); it != header_lines.end(); it++) {
+        rassert(it->key != "Content-Type");
+        rassert(it->key != "Conent-Length");
+    }
+    rassert(body.size() == 0);
+
+    add_header_line("Content-Type", content_type);
+
+    std::ostringstream res;
+    res << content.size();
+    add_header_line("Content-Length", res.str());
+
+    body = content;
+}
+
 typedef std::string::const_iterator str_iterator_type;
 typedef http_msg_parser_t<str_iterator_type> str_http_msg_parser_t;
 

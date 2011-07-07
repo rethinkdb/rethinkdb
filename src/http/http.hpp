@@ -71,6 +71,7 @@ struct http_res_t {
     std::string body;
 
     void add_header_line(std::string const &, std::string const &);
+    void set_body(std::string const &, std::string const &);
 };
 
 template <typename Iterator>

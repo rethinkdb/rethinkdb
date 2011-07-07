@@ -108,8 +108,11 @@ http_res_t riak_server_t::list_buckets(const http_req_t &) {
         boost::get<json::json_array_t>(json["buckets"]).push_back(it->name);
     }
 
-    not_implemented();
     http_res_t res;
+
+    res.set_body("application/json", json::print(json));
+    res.code = 200;
+
     return res;
 }
 

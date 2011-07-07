@@ -26,12 +26,6 @@ typedef boost::make_recursive_variant<json_num_t,
 typedef std::vector<json_value_t> json_array_t;
 typedef std::map<json_str_t, json_value_t> json_object_t;
 
-/* class json_value_t
-    : public boost::variant<json_num_t, json_str_t, json_bool_t, json_array_t, json_object_t, json_null_t> 
-{ 
-public:
-}; */
-
 class print_visitor
     : public boost::static_visitor<std::string>
 {
@@ -45,6 +39,8 @@ class print_visitor
 };
 
 typedef json_object_t json_t;
+
+std::string print(const json_t &);
 
 }; //namespace json
 
