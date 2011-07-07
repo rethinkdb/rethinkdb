@@ -304,17 +304,18 @@ bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version) {
     }
 
     // check whether snapshot refcount is > 0
-    if (0 == num_snapshots_affected + cow_refcount)
-        return false;           // no snapshot necessary
+    // NOTE! (rntz) we may have called register_snapshotted_block() even if snapshot_refcount is 0 - is this safe?
+    size_t snapshot_refcount = num_snapshots_affected + cow_refcount;
+    if (!snapshot_refcount) return false; // no snapshot necessary
 
     // Pick a snapshotting strategy
     if (data_token) {
         // We have an up-to-date token, so we can later read the snapshot from disk
-        snapshots.push_front(new on_disk_snapshot_t(version_id, num_snapshots_affected, cache->serializer, data_token));
+        snapshots.push_front(new on_disk_snapshot_t(version_id, snapshot_refcount, cache->serializer, data_token));
     } else {
         // Ok, let's just keep it in memory for now
         // TODO: Maybe write it to disk instead and then delete the old in-memory buffer?
-        snapshots.push_front(new in_memory_snapshot_t(version_id, num_snapshots_affected, cache->serializer, data));
+        snapshots.push_front(new in_memory_snapshot_t(version_id, snapshot_refcount, cache->serializer, data));
     }
     cow_refcount = 0;
     return true;
@@ -388,7 +389,8 @@ void mc_buf_t::acquire_block(bool locked, mc_inner_buf_t::version_id_t version_t
     mc_inner_buf_t::version_id_t inner_version = inner_buf->version_id;
     // In case we don't have received a version yet (i.e. this is the first block we are acquiring, just access the most recent version)
     if (snapshotted && version_to_access != mc_inner_buf_t::faux_version_id) {
-        // FIXME (rntz) needs to be updated for written-to-disk snapshotted blocks
+        // TODO (rntz) needs to be updated for written-to-disk snapshotted blocks
+        // NOTE! (rntz) doesn't inc snapshot refcount. is this safe? - because of calculate_snapshots_affected(), it should be
         data = inner_version <= version_to_access ? inner_buf->data : inner_buf->get_snapshot_data(version_to_access);
         guarantee(data != NULL);
     } else {
