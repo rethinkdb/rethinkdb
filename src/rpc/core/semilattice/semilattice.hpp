@@ -23,6 +23,8 @@ T=void or something like that.
 
 template<typename T> class constructive_semilattice_t {
 public:
+    virtual ~constructive_semilattice_t();
+
     // Modifies this object by joining with x.
     // Must be associative, commutatice and idempotent
     virtual void sl_join(const T &x) = 0;

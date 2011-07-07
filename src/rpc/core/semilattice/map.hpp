@@ -3,6 +3,9 @@
 
 #include <map>
 #include <set>
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/map.hpp>
+#include <boost/serialization/set.hpp>
 
 #include "errors.hpp"
 #include "rpc/core/semilattice/semilattice.hpp"
@@ -16,8 +19,6 @@ template<typename key_t, typename value_t> class sl_map_t :
     public constructive_semilattice_t<sl_map_t<key_t, value_t> > {
 
 public:
-    // TODO! We need some nice constructor that can be used when reading metadata messages
-
     const std::map<key_t, value_t> &get_map() const {
         return members;
     }
@@ -54,6 +55,15 @@ public:
 private:
     std::map<key_t, value_t> members;
     std::set<key_t> defunct;
+    
+private:
+    // Serialization code
+    friend class boost::serialization::access;
+    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version)
+    {
+        ar & members;
+        ar & defunct;
+    }
 };
 
 // TODO: Would an sl_unique_map_t be useful?

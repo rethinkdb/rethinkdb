@@ -80,7 +80,7 @@ else
 CXX:=g++
 endif
 LDFLAGS:=-Wl,--no-as-needed -lpthread -lrt -laio
-STATIC_LIBRARIES:=protoc protobuf
+STATIC_LIBRARIES:=protoc protobuf boost_serialization
 
 CXXFLAGS?=
 
