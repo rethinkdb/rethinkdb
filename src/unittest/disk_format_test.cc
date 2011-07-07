@@ -1,5 +1,6 @@
 #include "serializer/log/lba/disk_format.hpp"
 #include "serializer/log/log_serializer.hpp"
+#include "utils/align.hpp"
 
 #include "unittest/gtest.hpp"
 
@@ -111,7 +112,7 @@ TEST(DiskFormatTest, ExtentManagerMetablockMixinT) {
 }
 
 TEST(DiskFormatTest, LogSerializerMetablockT) {
-    int n = 0;
+    size_t n = 0;
     EXPECT_EQ(n, offsetof(log_serializer_metablock_t, extent_manager_part));
 
     n += sizeof(extent_manager_t::metablock_mixin_t);
@@ -121,14 +122,15 @@ TEST(DiskFormatTest, LogSerializerMetablockT) {
     EXPECT_EQ(n, offsetof(log_serializer_metablock_t, data_block_manager_part));
 
     n += sizeof(data_block_manager_t::metablock_mixin_t);
+    n = align_upto(n, sizeof(ser_block_sequence_id_t));
     EXPECT_EQ(n, offsetof(log_serializer_metablock_t, block_sequence_id));
 
     EXPECT_EQ(16, sizeof(ser_block_sequence_id_t));
     n += sizeof(ser_block_sequence_id_t);
     EXPECT_EQ(n, sizeof(log_serializer_metablock_t));
 
-    EXPECT_EQ(1560, 8 + 512 + 1024 + 16);
-    EXPECT_EQ(1560, sizeof(log_serializer_metablock_t));
+    EXPECT_EQ(1568, align_upto(8 + 512 + 1024, 16) + 16);
+    EXPECT_EQ(1568, sizeof(log_serializer_metablock_t));
 }
 
 TEST(DiskFormatTest, LogSerializerStaticConfigT) {
