@@ -81,7 +81,6 @@ public:
             } else {
                 next_to_pop_from.reset();    // relinquish our hold
                 mergees.erase(next_to_pop_from);
-                //next_to_pop_from = NULL;
             }
         }
         if (merge_heap.size() == 0) {
@@ -102,15 +101,9 @@ public:
         for (it = mergees.begin(); it != mergees.end(); it++) {
             (*it)->prefetch();
         }
-        //std::for_each(mergees.begin(), mergees.end(), std::mem_fun(&mergee_t::prefetch));
     }
 private:
     void done() {
-        /* for (typename mergees_t::iterator it = mergees.begin(); it != mergees.end(); ++it) {
-            mergee_t mergee = *it;
-            if (mergee)
-                delete mergee;
-        } */
         mergees.clear();
     }
     mergees_t mergees;
