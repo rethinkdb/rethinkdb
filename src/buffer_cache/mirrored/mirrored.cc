@@ -402,6 +402,8 @@ void mc_buf_t::acquire_block(bool locked, mc_inner_buf_t::version_id_t version_t
                 break;
             }
             case rwi_read_outdated_ok: {
+                // TODO (rntz) if possible, switch this over to using snapshots; then we could
+                // delete cow_refcount entirely.
                 ++inner_buf->cow_refcount;
                 data = inner_buf->data;
                 rassert(data != NULL);
