@@ -44,6 +44,8 @@ void page_repl_random_t::make_space(unsigned int space_needed) {
         inner_buf_t *block_to_unload = NULL;
         for (int tries = PAGE_REPL_NUM_TRIES; tries > 0; tries --) {
             /* Choose a block in memory at random. */
+            // NOTE: this method of random selection is slightly biased towards lower indices, I
+            // think. @rntz
             unsigned int n = random() % array.size();
             inner_buf_t *block = array.get(n);
             
