@@ -61,7 +61,10 @@ class mc_inner_buf_t : public home_thread_mixin_t {
     void *data;
     version_id_t version_id;
     /* As long as data has not been changed since the last serializer write, data_token contains a token to the on-serializer block */
-    // TODO! In order for this to be set, the current do_write() wrapper in serializer_t should be moved to writeback. Then writeback can preserve the tokens whenever the written data buffer is still the same as inner_buf->data (i.e. no COW was necessary)
+
+    // TODO! In order for this to be set, the current do_write() wrapper in serializer_t should be moved to writeback.
+    // Then writeback can preserve the tokens whenever the written data buffer is still the same as inner_buf->data
+    // (i.e. no COW was necessary)
     boost::shared_ptr<serializer_t::block_token_t> data_token;
 
     rwi_lock_t lock;
@@ -107,7 +110,7 @@ class mc_inner_buf_t : public home_thread_mixin_t {
         version_id_t snapshotted_version;
         unsigned int refcount;
     };
-    // TODO: Move the implementations to the .cc file
+    // TODO: Move these to mirrored.cc
     struct in_memory_snapshot_t : public buf_snapshot_info_t {
         // Takes ownership of data!
         in_memory_snapshot_t(version_id_t version, unsigned int initial_refcount, serializer_t *ser, void *data) :

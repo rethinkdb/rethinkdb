@@ -69,7 +69,8 @@ struct load_buf_fsm_t : public thread_message_t, serializer_t::read_callback_t {
         if (!have_loaded) {
             inner_buf->subtree_recency = inner_buf->cache->serializer->get_recency(inner_buf->block_id);
             // TODO! Actually setting data_token currently makes stuff crash :-(
-            //inner_buf->data_token = inner_buf->cache->serializer->index_read(inner_buf->block_id); // TODO: Merge this initialization with the read itself eventually
+            // TODO: Merge this initialization with the read itself eventually
+            //inner_buf->data_token = inner_buf->cache->serializer->index_read(inner_buf->block_id);
             if (inner_buf->cache->serializer->do_read(inner_buf->block_id, inner_buf->data, io_account_, this))
                 on_serializer_read();
         } else {
@@ -161,7 +162,8 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, r
     
     replay_patches();
 
-    // TODO: This should initialize data_token at some point. That however requires switching to the serializer thread and we cannot afford that here, except if we lock. Maybe read ahead should pass the token through to here.
+    // TODO: This should initialize data_token at some point. That however requires switching to the serializer thread
+    // and we cannot afford that here, except if we lock. Maybe read ahead should pass the token through to here.
 }
 
 mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache, version_id_t snapshot_version, repli_timestamp recency_timestamp) {
