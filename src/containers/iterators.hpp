@@ -11,6 +11,8 @@
 #include <boost/optional.hpp>
 #include <boost/shared_ptr.hpp>
 
+#include "utils2.hpp"
+
 template <typename T>
 struct one_way_iterator_t {
     virtual ~one_way_iterator_t() { }
