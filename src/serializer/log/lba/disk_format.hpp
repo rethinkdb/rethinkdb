@@ -33,8 +33,7 @@ union flagged_off64_t {
         parts.value = -2;
     }
     bool has_value() const {
-        rassert(!is_padding());
-        return parts.value >= 0;
+        return !is_padding() && parts.value >= 0;
     }
     off64_t get_value() const {
         rassert(has_value());
