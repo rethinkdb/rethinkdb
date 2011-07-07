@@ -321,10 +321,11 @@ bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version) {
 }
 
 void mc_inner_buf_t::release_snapshot(void *data) {
+    guarantee(data, "tried to release NULL snapshot data");
     for (snapshot_data_list_t::iterator it = snapshots.begin(); it != snapshots.end(); ++it) {
         buf_snapshot_info_t* snap = *it;
         // !TODO (rntz) is this guaranteed to release the snapshot if it is appropriate?
-        // what if data == NULL?
+        // what if get_data_if_available() returns NULL?
         if (snap->get_data_if_available() == data) {
             if (--snap->refcount == 0) {
                 delete snap;
