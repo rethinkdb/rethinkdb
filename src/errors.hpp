@@ -3,6 +3,7 @@
 
 #include <errno.h>
 #include <stdlib.h>
+#include <string.h>
 
 #ifdef __linux__
 #if defined __i386 || defined __x86_64

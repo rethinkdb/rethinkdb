@@ -1,6 +1,7 @@
 #ifndef __CONCURRENCY_SIGNAL_HPP__
 #define __CONCURRENCY_SIGNAL_HPP__
 
+#include "arch/coroutines.hpp"
 #include "containers/intrusive_list.hpp"
 #include "utils.hpp"
 
