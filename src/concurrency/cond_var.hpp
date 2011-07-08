@@ -73,8 +73,9 @@ struct multi_cond_t {
     void pulse() {
         rassert(!ready);
         ready = true;
-        for (waiter_list_t::iterator it = waiters.begin(); it != waiters.end(); it++)
-            (*it)->coro->notify();
+        for (waiter_t *w = waiters.head(); w; w = waiters.next(w)) {
+            w->coro->notify();
+        }
         waiters.clear();
     }
 
@@ -97,8 +98,7 @@ private:
         coro_t *coro;
     };
 
-    typedef intrusive_list_t<waiter_t> waiter_list_t;
-     waiter_list_t waiters;
+    intrusive_list_t<waiter_t> waiters;
 };
 
 /* cond_link_t pulses a given cond_t if a given signal_t is pulsed. */

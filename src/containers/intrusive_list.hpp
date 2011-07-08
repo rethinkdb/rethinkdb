@@ -183,66 +183,8 @@ public:
         rassert(_size == count);
     }
 #endif
-    
-    class iterator {
-        friend class intrusive_list_t<node_t>;
-        
-    private:
-        explicit iterator(node_t *node) : _node(node) { }
-        node_t *_node;
-        
-    public:
-        iterator() : _node(NULL) { }
-        
-        node_t *operator*() const {
-            rassert(_node);
-            return _node;
-        }
-        
-        iterator operator++() {   // Prefix version
-            rassert(_node);
-            _node = static_cast<intrusive_list_node_t<node_t> *>(_node)->next;
-            return this;
-        }
-        iterator operator++(int) {   // Postfix version
-            rassert(_node);
-            iterator last(_node);
-            _node = static_cast<intrusive_list_node_t<node_t> *>(_node)->next;
-            return last;
-        }
-        
-        // Currently it's impossible to start at list.end() and then decrement to get the last
-        // element in the list. Is it worth adding this?
-        
-        iterator operator--() {   // Prefix version
-            rassert(_node);
-            _node = static_cast<intrusive_list_node_t<node_t> *>(_node)->prev;
-            return this;
-        }
-        iterator operator--(int) {   // Postfix version
-            rassert(_node);
-            iterator last(_node);
-            _node = static_cast<intrusive_list_node_t<node_t> *>(_node)->prev;
-            return last;
-        }
-        
-        bool operator==(const iterator &other) const {
-            return other._node == _node;
-        }
-        
-        bool operator!=(const iterator &other) const {
-            return other._node != _node;
-        }
-    };
-    
-    iterator begin() {
-        return iterator(_head);
-    }
-    
-    iterator end() {
-        return iterator(NULL);
-    }
-    
+
+
 private:
     node_t *_head, *_tail;
     unsigned int _size;
