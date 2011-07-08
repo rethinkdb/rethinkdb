@@ -3,16 +3,29 @@
 
 #include "utils.hpp"
 
+#include <sstream>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
+
+// TODO! Switch to binary archives...
+typedef boost::archive::text_iarchive rpc_iarchive_t;
+typedef boost::archive::text_oarchive rpc_oarchive_t;
+
+
+// TODO! Completely overhaul all of this, this is just a hack for testing purposes...
+
 /* `cluster_outpipe_t` and `cluster_inpipe_t` are passed to user-code that's supposed to serialize
 and deserialize cluster messages. User-code should use them by calling `write()` and `read()`. */
 
 struct cluster_outpipe_t {
     virtual void write(const void *buf, size_t size) = 0;
+    virtual rpc_oarchive_t &get_archive() = 0;
     virtual ~cluster_outpipe_t() { }
 };
 
 struct cluster_inpipe_t {
     virtual void read(void *buf, size_t size) = 0;
+    virtual rpc_iarchive_t &get_archive() = 0;
     virtual ~cluster_inpipe_t() { }
 };
 
@@ -20,11 +33,17 @@ struct cluster_inpipe_t {
 eventual byte count will be without actually collecting the bytes that are written. */
 
 struct counting_outpipe_t : public cluster_outpipe_t {
-    counting_outpipe_t() : bytes(0) { }
+    counting_outpipe_t() : bytes(0), dummy_archive(dummy_stream) { }
     void write(UNUSED const void *buf, size_t size) {
         bytes += size;
     }
+    rpc_oarchive_t &get_archive() {
+        return dummy_archive;
+    }
+    
     int bytes;
+    std::stringstream dummy_stream;
+    rpc_oarchive_t dummy_archive;
 };
 
 /* Implementation code should typically subclass `checking_outpipe_t` and `checking_inpipe_t`

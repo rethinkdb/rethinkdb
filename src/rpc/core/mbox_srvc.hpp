@@ -1,6 +1,8 @@
 #ifndef _RPC_CORE_MBOX_SRVC_HPP_
 #define _RPC_CORE_MBOX_SRVC_HPP_
 
+#include <istream>
+#include "arch/conn_streambuf.hpp"
 #include "rpc/core/mailbox.pb.h"
 #include "rpc/core/srvc.hpp"
 #include "rpc/core/cluster.hpp"
@@ -28,8 +30,23 @@ struct cluster_peer_inpipe_t : public checking_inpipe_t {
             conn->read(buf, size);
         } catch (tcp_conn_t::read_closed_exc_t) {}
     }
-    cluster_peer_inpipe_t(tcp_conn_t *conn, int bytes) : checking_inpipe_t(bytes), conn(conn) { }
+    
+    rpc_iarchive_t &get_archive() {
+        return archive;
+    }
+    
+    cluster_peer_inpipe_t(tcp_conn_t *conn, int bytes) :
+            checking_inpipe_t(bytes),
+            conn(conn),
+            conn_streambuf(conn), 
+            conn_stream(&conn_streambuf),
+            archive(conn_stream) {
+    }
+    
     tcp_conn_t *conn;
+    tcp_conn_streambuf_t conn_streambuf;
+    std::istream conn_stream;
+    rpc_iarchive_t archive;
 };
 
 #endif /* _RPC_CORE_MBOX_SRVC_HPP_ */

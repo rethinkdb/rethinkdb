@@ -2,6 +2,13 @@
 #define __RPC_SERIALIZE_OTHERS_HPP__
 
 #include <map>
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/map.hpp>
+#include <boost/serialization/utility.hpp>
+#include <boost/serialization/split_free.hpp>
+#include <boost/serialization/binary_object.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/serialization/shared_ptr.hpp>
 
 #include "concurrency/fifo_checker.hpp"
 #include "data_provider.hpp"
@@ -12,7 +19,8 @@
 
 /* Serializing and unserializing std::vector of a serializable type */
 
-template<class element_t>
+// TODO! Don't need those
+/*template<class element_t>
 void serialize(cluster_outpipe_t *conn, const std::vector<element_t> &e) {
     serialize(conn, int(e.size()));
     for (int i = 0; i < (int)e.size(); i++) {
@@ -29,10 +37,12 @@ void unserialize(cluster_inpipe_t *conn, unserialize_extra_storage_t *es, std::v
         element_t *ei = &(*e)[i];
         unserialize(conn, es, ei);
     }
-}
+}*/
 
 /* Serializing and unserializing std::pair of 2 serializable types */
 
+// TODO! Probably don't need those
+/*
 template<class T, class U>
 void serialize(cluster_outpipe_t *conn, const std::pair<T, U> &pair) {
     serialize(conn, pair.first);
@@ -43,9 +53,11 @@ template<class T, class U>
 void unserialize(cluster_inpipe_t *conn, unserialize_extra_storage_t *es, std::pair<T, U> *pair) {
     unserialize(conn, es, &(pair->first));
     unserialize(conn, es, &(pair->second));
-}
+}*/
 
 /* Serializing and unserializing std::map from a serializable type to another serializable type */
+// TODO! Don't need those
+/*
 template<class K, class V>
 void serialize(cluster_outpipe_t *conn, const std::map<K, V> &m) {
     serialize(conn, int(m.size()));
@@ -64,10 +76,12 @@ void unserialize(cluster_inpipe_t *conn, unserialize_extra_storage_t *es, std::m
         unserialize(conn, es, &key);
         unserialize(conn, es, &((*m)[key]));
     }
-}
+}*/
 
 /* Serializing and unserializing boost::scoped_ptr */
 
+// TODO! Probably don't need those
+/*
 template<class object_t>
 void serialize(cluster_outpipe_t *conn, const boost::scoped_ptr<object_t> &p) {
     if (p) {
@@ -89,108 +103,96 @@ void unserialize(cluster_inpipe_t *conn, unserialize_extra_storage_t *es, boost:
     } else {
         p->reset(NULL);
     }
-}
+}*/
 
 /* Serializing and unserializing ip_address_t */
 
-inline void serialize(cluster_outpipe_t *conn, const ip_address_t &addr) {
-    rassert(sizeof(ip_address_t) == 4);
-    conn->write(&addr, sizeof(ip_address_t));
-}
-
-inline void unserialize(cluster_inpipe_t *conn, UNUSED unserialize_extra_storage_t *es, ip_address_t *addr) {
-    rassert(sizeof(ip_address_t) == 4);
-    conn->read(addr, sizeof(ip_address_t));
-}
+namespace boost {
+namespace serialization {
+    template<class Archive> void serialize(Archive &ar, ip_address_t &addr, UNUSED const unsigned int version) {
+        rassert(sizeof(ip_address_t) == 4);
+        ar & ::boost::serialization::binary_object(&addr, sizeof(ip_address_t));
+    }
+} // namespace serialization
+} // namespace boost
 
 /* Serializing and unserializing store_key_t */
 
-inline void serialize(cluster_outpipe_t *conn, const store_key_t &key) {
-    conn->write(&key.size, sizeof(key.size));
-    conn->write(key.contents, key.size);
-}
+namespace boost {
+namespace serialization {
+    template<class Archive> void serialize(Archive &ar, store_key_t &key, UNUSED const unsigned int version) {
+        ar & key.size;
+        ::boost::serialization::binary_object obj(key.contents, key.size);
+        ar & obj;
+    }
+} // namespace serialization
+} // namespace boost
 
-inline void unserialize(cluster_inpipe_t *conn, UNUSED unserialize_extra_storage_t *es, store_key_t *key) {
-    conn->read(&key->size, sizeof(key->size));
-    conn->read(key->contents, key->size);
-}
+/* Serializing and unserializing data_provider_ts. This currently only works with data_providers inside
+of a boost::shared_ptr, namely boost::shared_ptr<data_provider_t>. */
 
-/* Serializing and unserializing data_provider_ts. Two flavors are provided: one that works with
-boost::shared_ptr<data_provider_t>, and one that works with raw data_provider_t*. */
-
-inline void serialize(cluster_outpipe_t *conn,  data_provider_t *data) {
-    if (data) {
-        ::serialize(conn, true);
-        int size = data->get_size();
-        ::serialize(conn, size);
-        const const_buffer_group_t *buffers = data->get_data_as_buffers();
-        for (int i = 0; i < (int)buffers->num_buffers(); i++) {
-            conn->write(buffers->get_buffer(i).data, buffers->get_buffer(i).size);
+namespace boost {
+namespace serialization {
+    template<class Archive> void save(Archive &ar, const ::boost::shared_ptr<data_provider_t> &data, UNUSED const unsigned int version) {
+        bool non_null = data.get() != NULL;
+        ar & non_null;
+        if (non_null) {
+            int size = data.get()->get_size();
+            ar & size;
+            const const_buffer_group_t *buffers = data.get()->get_data_as_buffers();
+            for (int i = 0; i < (int)buffers->num_buffers(); i++) {
+                ar.save_binary(buffers->get_buffer(i).data, buffers->get_buffer(i).size);
+            }
         }
-    } else {
-        ::serialize(conn, false);
     }
-}
-
-inline void unserialize(cluster_inpipe_t *conn, unserialize_extra_storage_t *es, data_provider_t **data) {
-    bool non_null;
-    ::unserialize(conn, es, &non_null);
-    if (non_null) {
-        int size;
-        ::unserialize(conn, es, &size);
-        void *buffer;
-        /* The buffered_data_provider_t needs to remain after we return, so we can't allocate it on
-        the stack. It needs to be deleted eventually, so we can't just call "operator new" and
-        forget about it. This is what unserialize_extra_storage_t is for: we call allocate() and
-        it is guaranteed to be freed at the right time. */
-        *data = es->reg(new buffered_data_provider_t(size, &buffer));
-        conn->read(buffer, size);
-    } else {
-        *data = NULL;
+    
+    template<class Archive> void load(Archive &ar, ::boost::shared_ptr<data_provider_t> &data, UNUSED const unsigned int version) {
+        bool non_null;
+        ar >> non_null;
+        if (non_null) {
+            int size;
+            ar & size;
+            void *buffer;
+            data.reset(new buffered_data_provider_t(size, &buffer));
+            ar.load_binary(buffer, size);
+        } else {
+            data.reset();
+        }
     }
-}
-
-inline void serialize(cluster_outpipe_t *conn, const boost::shared_ptr<data_provider_t> &data) {
-    serialize(conn, data.get());
-}
-
-inline void unserialize(cluster_inpipe_t *conn, unserialize_extra_storage_t *es, boost::shared_ptr<data_provider_t> *data) {
-    bool non_null;
-    ::unserialize(conn, es, &non_null);
-    if (non_null) {
-        int size;
-        ::unserialize(conn, es, &size);
-        void *buffer;
-        /* We don't need to use the unserialize_extra_storage_t because we have a smart pointer. */
-        (*data).reset(new buffered_data_provider_t(size, &buffer));
-        conn->read(buffer, size);
-    } else {
-        (*data).reset();
-    }
-}
+} // namespace serialization
+} // namespace boost
+BOOST_SERIALIZATION_SPLIT_FREE(boost::shared_ptr<data_provider_t>)
 
 /* Serializing and unserializing `order_token_t`. For now we don't actually serialize
 anything because we don't have a way of making sure that buckets are unique across
 different machines in the cluster. */
 
-inline void serialize(UNUSED cluster_outpipe_t *conn, UNUSED const order_token_t &tok) {
-    // Do nothing
-}
-
-inline void unserialize(UNUSED cluster_inpipe_t *conn, UNUSED unserialize_extra_storage_t *es, order_token_t *tok) {
-    *tok = order_token_t::ignore;
-}
+namespace boost {
+namespace serialization {
+    template<class Archive> void save(UNUSED Archive &ar, UNUSED const order_token_t &tok, UNUSED const unsigned int version) {
+        // Do nothing
+    }
+    
+    template<class Archive> void load(UNUSED Archive &ar, order_token_t &tok, UNUSED const unsigned int version) {
+        tok = order_token_t::ignore;
+    }
+} // namespace serialization
+} // namespace boost
+BOOST_SERIALIZATION_SPLIT_FREE(order_token_t)
 
 /* Serializing and unserializing mailbox addresses */
 
-inline void serialize(cluster_outpipe_t *conn, const cluster_address_t &addr) {
-    conn->write(&addr.peer, sizeof(addr.peer));
-    conn->write(&addr.mailbox, sizeof(addr.mailbox));
-}
+// TODO: These (and maybe a few others) should probably be moved into the classes/structs
+// themselves. These "free" serialize functions are kind of ugly, and you have to
+// be very careful to update them when you're adding data to the class/struct.
 
-inline void unserialize(cluster_inpipe_t *conn, UNUSED unserialize_extra_storage_t *es, cluster_address_t *addr) {
-    conn->read(&addr->peer, sizeof(addr->peer));
-    conn->read(&addr->mailbox, sizeof(addr->mailbox));
-}
+namespace boost {
+namespace serialization {
+    template<class Archive> void serialize(Archive &ar, cluster_address_t &addr, UNUSED const unsigned int version) {
+        ar & addr.peer;
+        ar & addr.mailbox;
+    }
+} // namespace serialization
+} // namespace boost
 
 #endif /* __RPC_SERIALIZE_OTHERS_HPP__ */

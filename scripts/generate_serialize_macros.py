@@ -17,28 +17,23 @@ $ ../scripts/generate_serialize_macros.py > rpc/serialize/serialize_macros.hpp
 def generate_make_serializable_macro(nfields):
     print "#define RDB_MAKE_SERIALIZABLE_%d(type_t%s) \\" % \
         (nfields, "".join(", field%d" % (i+1) for i in xrange(nfields)))
-    print "    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \\"
+    print "    namespace boost {\\"
+    print "    namespace serialization {\\"
+    print "    template<class Archive> void serialize(%sArchive &ar, type_t &m, UNUSED const unsigned int version) { \\"  % ("UNUSED " if nfields == 0 else "")
     for i in xrange(nfields):
-        print "        serialize(pipe, m.field%d); \\" % (i+1)
-    print "    } \\"
-    print "    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \\"
-    for i in xrange(nfields):
-        print "        unserialize(pipe, es, &m->field%d); \\" % (i+1)
-    print "    } \\"
+        print "        ar & m.field%d; \\" % (i+1)
+    print "    }}} \\"
     # See the note in the comment below.
     print "    extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;"
 
 def generate_make_me_serializable_macro(nfields):
     print "#define RDB_MAKE_ME_SERIALIZABLE_%d(%s) \\" % \
         (nfields, ", ".join("field%d" % (i+1) for i in xrange(nfields)))
-    print "    void serialize_self(cluster_outpipe_t *pipe) const { \\"
+    print "    friend class boost::serialization::access; \\"
+    print "    template<typename Archive> void serialize(%sArchive &ar, UNUSED const unsigned int version) { \\"  % ("UNUSED " if nfields == 0 else "")
     for i in xrange(nfields):
-        print "        global_serialize(pipe, field%d); \\" % (i+1)
+        print "        ar & field%d; \\" % (i+1)
     print "    } \\"
-    print "    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \\"
-    for i in xrange(nfields):
-        print "        global_unserialize(pipe, es, &field%d); \\" % (i+1)
-    print "    }"
 
 if __name__ == "__main__":
 
@@ -50,6 +45,7 @@ if __name__ == "__main__":
     print "Please modify '%s' instead of modifying this file.*/" % sys.argv[0]
     print
 
+    print "#include <boost/serialize/serialize.hpp>"
     print "#include \"rpc/serialize/serialize.hpp\""
     print
 

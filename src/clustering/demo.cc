@@ -58,25 +58,27 @@ struct demo_delegate_t : public cluster_delegate_t {
 
     static demo_delegate_t *construct(cluster_inpipe_t *p, boost::function<void()> done) {
         set_store_interface_mailbox_t::address_t master_store;
-        ::unserialize(p, NULL, &master_store);
+        p->get_archive() >> master_store;
         get_store_mailbox_t::address_t master_get_store;
-        ::unserialize(p, NULL, &master_get_store);
+        p->get_archive() >> master_get_store;
         registration_mailbox_t::address_t registration_address;
-        ::unserialize(p, NULL, &registration_address);
+        p->get_archive() >> registration_address;
         map_council_t<int, int>::address_t demo_map_council_addr;
-        ::unserialize(p, NULL, &demo_map_council_addr);
+        p->get_archive() >> demo_map_council_addr;
         routing::routing_map_t::address_t routing_map_addr;
-        ::unserialize(p, NULL, &routing_map_addr);
+        p->get_archive() >> routing_map_addr;
         done();
         return new demo_delegate_t(master_store, master_get_store, registration_address, demo_map_council_addr, routing_map_addr);
     }
 
     void introduce_new_node(cluster_outpipe_t *p) {
-        ::serialize(p, master_store);
-        ::serialize(p, master_get_store);
-        ::serialize(p, registration_address);
-        ::serialize(p, map_council_t<int, int>::address_t(&demo_map_council));
-        ::serialize(p, routing_map.get_address());
+        p->get_archive() << master_store;
+        p->get_archive() << master_get_store;
+        p->get_archive() << registration_address;
+        map_council_t<int, int>::address_t demo_map_council_addr(&demo_map_council);
+        p->get_archive() << demo_map_council_addr;
+        routing::routing_map_t::address_t routing_map_addr = routing_map.get_address();
+        p->get_archive() << routing_map_addr;
     }
 
     class map_council_control_t : public control_t {

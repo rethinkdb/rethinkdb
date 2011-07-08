@@ -24,7 +24,7 @@ void mailbox_srvc_t::handle(cluster_peer_t *sndr) {
         cluster_peer_inpipe_t inpipe(sndr->conn.get(), msg.length());
         cond_t to_signal_when_done;
         coro_t::spawn_now(boost::bind(
-            &cluster_mailbox_t::unserialize, mbox, &inpipe,
+            &cluster_mailbox_t::unserialize, mbox, boost::ref(inpipe.get_archive()),
             // Wrap in `boost::function` to avoid a weird `boost::bind()` feature
             boost::function<void()>(boost::bind(&cond_t::pulse, &to_signal_when_done))
             ));

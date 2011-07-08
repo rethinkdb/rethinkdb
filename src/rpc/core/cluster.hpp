@@ -49,7 +49,7 @@ private:
     /* Called to when a message is sent to the mailbox over the network. Should deserialize the
     message, then call the second argument to indicate it is done deserializing, then do the
     same thing as `run()`. */
-    virtual void unserialize(cluster_inpipe_t *, boost::function<void()>) = 0;
+    virtual void unserialize(rpc_iarchive_t &ar, boost::function<void()>) = 0;
 
     /* Called when a message is sent to the mailbox. Should destroy the message that is passed to
     it. Beware: may be called on any thread. */

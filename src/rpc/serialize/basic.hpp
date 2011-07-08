@@ -21,6 +21,8 @@ affecting the rest of the codebase:
 
 /* serialize() and unserialize() implementations for built-in arithmetic types */
 
+// TODO! Don't need these anymore
+/*
 template<class T>
 void serialize(cluster_outpipe_t *pipe, const T &value,
         typename boost::enable_if< boost::is_arithmetic<T> >::type * = 0) {
@@ -31,10 +33,12 @@ template<class T>
 void unserialize(cluster_inpipe_t *pipe, UNUSED unserialize_extra_storage_t *es, T *value,
         typename boost::enable_if< boost::is_arithmetic<T> >::type * = 0) {
     pipe->read(value, sizeof(*value));
-}
+}*/
 
 /* serialize() and unserialize() implementations for enums */
 
+// TODO! Don't need these anymore
+/*
 template<class T>
 void serialize(cluster_outpipe_t *pipe, const T &value,
         typename boost::enable_if< boost::is_enum<T> >::type * = 0) {
@@ -45,6 +49,6 @@ template<class T>
 void unserialize(cluster_inpipe_t *pipe, UNUSED unserialize_extra_storage_t *es, T *value,
         typename boost::enable_if< boost::is_enum<T> >::type * = 0) {
     pipe->read(value, sizeof(*value));
-}
+}*/
 
 #endif /* __RPC_SERIALIZE_BASIC_HPP__ */

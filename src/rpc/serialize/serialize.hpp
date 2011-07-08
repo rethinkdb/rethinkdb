@@ -8,6 +8,8 @@
 #include <boost/type_traits.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <boost/scoped_array.hpp>
+#include <boost/serialization/scoped_ptr.hpp>
+#include <boost/serialization/shared_ptr.hpp>
 
 /* The RPC templates need to be able to figure out how to serialize and unserialize types. We would
 like to automatically know how to (un)serialize as many types as possible, and make it as easy as
@@ -66,10 +68,13 @@ For example, we could write an unserialize() instance for "char*" like this:
     }
 */
 
+// TODO! Don't need these anymore
+/*
+
 struct unserialize_extra_storage_t {
 
     ~unserialize_extra_storage_t() {
-        /* Delete in reverse order of creation */
+        // Delete in reverse order of creation 
         while (destructible_t *d = to_free.tail()) {
             to_free.remove(d);
             delete d;
@@ -103,12 +108,13 @@ public:
         to_free.push_back(new array_destructible_t<T>(x));
         return x;
     }
-};
+};*/
 
 /* These functions exist so that we can look up appropriate serialize()/unserialize()
 implementations even when we are in a class which has a method of the same name. Otherwise, C++
 would assume we wanted the class's method. */
 
+/*
 template<class T>
 void global_serialize(cluster_outpipe_t *p, const T &t) {
     serialize(p, t);
@@ -116,14 +122,14 @@ void global_serialize(cluster_outpipe_t *p, const T &t) {
 template<class T>
 void global_unserialize(cluster_inpipe_t *p, unserialize_extra_storage_t *es, T *t) {
     unserialize(p, es, t);
-}
+}*/
 
 /* These overloads of serialize() and friends are what makes it possibe to define them
 as methods. */
 
-template<class T>
+/*template<class T>
 void serialize(cluster_outpipe_t *pipe, const T &value,
-        /* Use horrible boost hackery to make sure this is only used for classes */
+        // Use horrible boost hackery to make sure this is only used for classes
         typename boost::enable_if< boost::is_class<T> >::type * = 0) {
     value.serialize_self(pipe);
 }
@@ -132,6 +138,6 @@ template<class T>
 void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, T *value,
         typename boost::enable_if< boost::is_class<T> >::type * = 0) {
     value->unserialize_self(pipe, es);
-}
+}*/
 
 #endif /* __RPC_SERIALIZE_SERIALIZE_HPP__ */

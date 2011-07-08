@@ -26,1003 +26,603 @@ This is a noop at the global scope, but produces a (somewhat weird) error in
 the class scope. */
 
 #define RDB_MAKE_SERIALIZABLE_0(type_t) \
-    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-    } \
-    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
-    } \
+    namespace boost {\
+    namespace serialization {\
+    template<class Archive> void serialize(UNUSED Archive &ar, type_t &m, UNUSED const unsigned int version) { \
+    }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_0() \
-    void serialize_self(cluster_outpipe_t *pipe) const { \
+    friend class boost::serialization::access; \
+    template<typename Archive> void serialize(UNUSED Archive &ar, UNUSED const unsigned int version) { \
     } \
-    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
-    }
 
 #define RDB_MAKE_SERIALIZABLE_1(type_t, field1) \
-    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        serialize(pipe, m.field1); \
-    } \
-    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
-        unserialize(pipe, es, &m->field1); \
-    } \
+    namespace boost {\
+    namespace serialization {\
+    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
+        ar & m.field1; \
+    }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_1(field1) \
-    void serialize_self(cluster_outpipe_t *pipe) const { \
-        global_serialize(pipe, field1); \
+    friend class boost::serialization::access; \
+    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
+        ar & field1; \
     } \
-    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
-        global_unserialize(pipe, es, &field1); \
-    }
 
 #define RDB_MAKE_SERIALIZABLE_2(type_t, field1, field2) \
-    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        serialize(pipe, m.field1); \
-        serialize(pipe, m.field2); \
-    } \
-    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
-        unserialize(pipe, es, &m->field1); \
-        unserialize(pipe, es, &m->field2); \
-    } \
+    namespace boost {\
+    namespace serialization {\
+    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
+        ar & m.field1; \
+        ar & m.field2; \
+    }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_2(field1, field2) \
-    void serialize_self(cluster_outpipe_t *pipe) const { \
-        global_serialize(pipe, field1); \
-        global_serialize(pipe, field2); \
+    friend class boost::serialization::access; \
+    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
+        ar & field1; \
+        ar & field2; \
     } \
-    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
-        global_unserialize(pipe, es, &field1); \
-        global_unserialize(pipe, es, &field2); \
-    }
 
 #define RDB_MAKE_SERIALIZABLE_3(type_t, field1, field2, field3) \
-    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        serialize(pipe, m.field1); \
-        serialize(pipe, m.field2); \
-        serialize(pipe, m.field3); \
-    } \
-    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
-        unserialize(pipe, es, &m->field1); \
-        unserialize(pipe, es, &m->field2); \
-        unserialize(pipe, es, &m->field3); \
-    } \
+    namespace boost {\
+    namespace serialization {\
+    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
+        ar & m.field1; \
+        ar & m.field2; \
+        ar & m.field3; \
+    }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_3(field1, field2, field3) \
-    void serialize_self(cluster_outpipe_t *pipe) const { \
-        global_serialize(pipe, field1); \
-        global_serialize(pipe, field2); \
-        global_serialize(pipe, field3); \
+    friend class boost::serialization::access; \
+    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
+        ar & field1; \
+        ar & field2; \
+        ar & field3; \
     } \
-    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
-        global_unserialize(pipe, es, &field1); \
-        global_unserialize(pipe, es, &field2); \
-        global_unserialize(pipe, es, &field3); \
-    }
 
 #define RDB_MAKE_SERIALIZABLE_4(type_t, field1, field2, field3, field4) \
-    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        serialize(pipe, m.field1); \
-        serialize(pipe, m.field2); \
-        serialize(pipe, m.field3); \
-        serialize(pipe, m.field4); \
-    } \
-    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
-        unserialize(pipe, es, &m->field1); \
-        unserialize(pipe, es, &m->field2); \
-        unserialize(pipe, es, &m->field3); \
-        unserialize(pipe, es, &m->field4); \
-    } \
+    namespace boost {\
+    namespace serialization {\
+    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
+        ar & m.field1; \
+        ar & m.field2; \
+        ar & m.field3; \
+        ar & m.field4; \
+    }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_4(field1, field2, field3, field4) \
-    void serialize_self(cluster_outpipe_t *pipe) const { \
-        global_serialize(pipe, field1); \
-        global_serialize(pipe, field2); \
-        global_serialize(pipe, field3); \
-        global_serialize(pipe, field4); \
+    friend class boost::serialization::access; \
+    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
+        ar & field1; \
+        ar & field2; \
+        ar & field3; \
+        ar & field4; \
     } \
-    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
-        global_unserialize(pipe, es, &field1); \
-        global_unserialize(pipe, es, &field2); \
-        global_unserialize(pipe, es, &field3); \
-        global_unserialize(pipe, es, &field4); \
-    }
 
 #define RDB_MAKE_SERIALIZABLE_5(type_t, field1, field2, field3, field4, field5) \
-    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        serialize(pipe, m.field1); \
-        serialize(pipe, m.field2); \
-        serialize(pipe, m.field3); \
-        serialize(pipe, m.field4); \
-        serialize(pipe, m.field5); \
-    } \
-    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
-        unserialize(pipe, es, &m->field1); \
-        unserialize(pipe, es, &m->field2); \
-        unserialize(pipe, es, &m->field3); \
-        unserialize(pipe, es, &m->field4); \
-        unserialize(pipe, es, &m->field5); \
-    } \
+    namespace boost {\
+    namespace serialization {\
+    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
+        ar & m.field1; \
+        ar & m.field2; \
+        ar & m.field3; \
+        ar & m.field4; \
+        ar & m.field5; \
+    }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_5(field1, field2, field3, field4, field5) \
-    void serialize_self(cluster_outpipe_t *pipe) const { \
-        global_serialize(pipe, field1); \
-        global_serialize(pipe, field2); \
-        global_serialize(pipe, field3); \
-        global_serialize(pipe, field4); \
-        global_serialize(pipe, field5); \
+    friend class boost::serialization::access; \
+    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
+        ar & field1; \
+        ar & field2; \
+        ar & field3; \
+        ar & field4; \
+        ar & field5; \
     } \
-    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
-        global_unserialize(pipe, es, &field1); \
-        global_unserialize(pipe, es, &field2); \
-        global_unserialize(pipe, es, &field3); \
-        global_unserialize(pipe, es, &field4); \
-        global_unserialize(pipe, es, &field5); \
-    }
 
 #define RDB_MAKE_SERIALIZABLE_6(type_t, field1, field2, field3, field4, field5, field6) \
-    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        serialize(pipe, m.field1); \
-        serialize(pipe, m.field2); \
-        serialize(pipe, m.field3); \
-        serialize(pipe, m.field4); \
-        serialize(pipe, m.field5); \
-        serialize(pipe, m.field6); \
-    } \
-    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
-        unserialize(pipe, es, &m->field1); \
-        unserialize(pipe, es, &m->field2); \
-        unserialize(pipe, es, &m->field3); \
-        unserialize(pipe, es, &m->field4); \
-        unserialize(pipe, es, &m->field5); \
-        unserialize(pipe, es, &m->field6); \
-    } \
+    namespace boost {\
+    namespace serialization {\
+    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
+        ar & m.field1; \
+        ar & m.field2; \
+        ar & m.field3; \
+        ar & m.field4; \
+        ar & m.field5; \
+        ar & m.field6; \
+    }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_6(field1, field2, field3, field4, field5, field6) \
-    void serialize_self(cluster_outpipe_t *pipe) const { \
-        global_serialize(pipe, field1); \
-        global_serialize(pipe, field2); \
-        global_serialize(pipe, field3); \
-        global_serialize(pipe, field4); \
-        global_serialize(pipe, field5); \
-        global_serialize(pipe, field6); \
+    friend class boost::serialization::access; \
+    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
+        ar & field1; \
+        ar & field2; \
+        ar & field3; \
+        ar & field4; \
+        ar & field5; \
+        ar & field6; \
     } \
-    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
-        global_unserialize(pipe, es, &field1); \
-        global_unserialize(pipe, es, &field2); \
-        global_unserialize(pipe, es, &field3); \
-        global_unserialize(pipe, es, &field4); \
-        global_unserialize(pipe, es, &field5); \
-        global_unserialize(pipe, es, &field6); \
-    }
 
 #define RDB_MAKE_SERIALIZABLE_7(type_t, field1, field2, field3, field4, field5, field6, field7) \
-    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        serialize(pipe, m.field1); \
-        serialize(pipe, m.field2); \
-        serialize(pipe, m.field3); \
-        serialize(pipe, m.field4); \
-        serialize(pipe, m.field5); \
-        serialize(pipe, m.field6); \
-        serialize(pipe, m.field7); \
-    } \
-    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
-        unserialize(pipe, es, &m->field1); \
-        unserialize(pipe, es, &m->field2); \
-        unserialize(pipe, es, &m->field3); \
-        unserialize(pipe, es, &m->field4); \
-        unserialize(pipe, es, &m->field5); \
-        unserialize(pipe, es, &m->field6); \
-        unserialize(pipe, es, &m->field7); \
-    } \
+    namespace boost {\
+    namespace serialization {\
+    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
+        ar & m.field1; \
+        ar & m.field2; \
+        ar & m.field3; \
+        ar & m.field4; \
+        ar & m.field5; \
+        ar & m.field6; \
+        ar & m.field7; \
+    }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_7(field1, field2, field3, field4, field5, field6, field7) \
-    void serialize_self(cluster_outpipe_t *pipe) const { \
-        global_serialize(pipe, field1); \
-        global_serialize(pipe, field2); \
-        global_serialize(pipe, field3); \
-        global_serialize(pipe, field4); \
-        global_serialize(pipe, field5); \
-        global_serialize(pipe, field6); \
-        global_serialize(pipe, field7); \
+    friend class boost::serialization::access; \
+    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
+        ar & field1; \
+        ar & field2; \
+        ar & field3; \
+        ar & field4; \
+        ar & field5; \
+        ar & field6; \
+        ar & field7; \
     } \
-    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
-        global_unserialize(pipe, es, &field1); \
-        global_unserialize(pipe, es, &field2); \
-        global_unserialize(pipe, es, &field3); \
-        global_unserialize(pipe, es, &field4); \
-        global_unserialize(pipe, es, &field5); \
-        global_unserialize(pipe, es, &field6); \
-        global_unserialize(pipe, es, &field7); \
-    }
 
 #define RDB_MAKE_SERIALIZABLE_8(type_t, field1, field2, field3, field4, field5, field6, field7, field8) \
-    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        serialize(pipe, m.field1); \
-        serialize(pipe, m.field2); \
-        serialize(pipe, m.field3); \
-        serialize(pipe, m.field4); \
-        serialize(pipe, m.field5); \
-        serialize(pipe, m.field6); \
-        serialize(pipe, m.field7); \
-        serialize(pipe, m.field8); \
-    } \
-    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
-        unserialize(pipe, es, &m->field1); \
-        unserialize(pipe, es, &m->field2); \
-        unserialize(pipe, es, &m->field3); \
-        unserialize(pipe, es, &m->field4); \
-        unserialize(pipe, es, &m->field5); \
-        unserialize(pipe, es, &m->field6); \
-        unserialize(pipe, es, &m->field7); \
-        unserialize(pipe, es, &m->field8); \
-    } \
+    namespace boost {\
+    namespace serialization {\
+    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
+        ar & m.field1; \
+        ar & m.field2; \
+        ar & m.field3; \
+        ar & m.field4; \
+        ar & m.field5; \
+        ar & m.field6; \
+        ar & m.field7; \
+        ar & m.field8; \
+    }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_8(field1, field2, field3, field4, field5, field6, field7, field8) \
-    void serialize_self(cluster_outpipe_t *pipe) const { \
-        global_serialize(pipe, field1); \
-        global_serialize(pipe, field2); \
-        global_serialize(pipe, field3); \
-        global_serialize(pipe, field4); \
-        global_serialize(pipe, field5); \
-        global_serialize(pipe, field6); \
-        global_serialize(pipe, field7); \
-        global_serialize(pipe, field8); \
+    friend class boost::serialization::access; \
+    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
+        ar & field1; \
+        ar & field2; \
+        ar & field3; \
+        ar & field4; \
+        ar & field5; \
+        ar & field6; \
+        ar & field7; \
+        ar & field8; \
     } \
-    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
-        global_unserialize(pipe, es, &field1); \
-        global_unserialize(pipe, es, &field2); \
-        global_unserialize(pipe, es, &field3); \
-        global_unserialize(pipe, es, &field4); \
-        global_unserialize(pipe, es, &field5); \
-        global_unserialize(pipe, es, &field6); \
-        global_unserialize(pipe, es, &field7); \
-        global_unserialize(pipe, es, &field8); \
-    }
 
 #define RDB_MAKE_SERIALIZABLE_9(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9) \
-    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        serialize(pipe, m.field1); \
-        serialize(pipe, m.field2); \
-        serialize(pipe, m.field3); \
-        serialize(pipe, m.field4); \
-        serialize(pipe, m.field5); \
-        serialize(pipe, m.field6); \
-        serialize(pipe, m.field7); \
-        serialize(pipe, m.field8); \
-        serialize(pipe, m.field9); \
-    } \
-    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
-        unserialize(pipe, es, &m->field1); \
-        unserialize(pipe, es, &m->field2); \
-        unserialize(pipe, es, &m->field3); \
-        unserialize(pipe, es, &m->field4); \
-        unserialize(pipe, es, &m->field5); \
-        unserialize(pipe, es, &m->field6); \
-        unserialize(pipe, es, &m->field7); \
-        unserialize(pipe, es, &m->field8); \
-        unserialize(pipe, es, &m->field9); \
-    } \
+    namespace boost {\
+    namespace serialization {\
+    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
+        ar & m.field1; \
+        ar & m.field2; \
+        ar & m.field3; \
+        ar & m.field4; \
+        ar & m.field5; \
+        ar & m.field6; \
+        ar & m.field7; \
+        ar & m.field8; \
+        ar & m.field9; \
+    }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_9(field1, field2, field3, field4, field5, field6, field7, field8, field9) \
-    void serialize_self(cluster_outpipe_t *pipe) const { \
-        global_serialize(pipe, field1); \
-        global_serialize(pipe, field2); \
-        global_serialize(pipe, field3); \
-        global_serialize(pipe, field4); \
-        global_serialize(pipe, field5); \
-        global_serialize(pipe, field6); \
-        global_serialize(pipe, field7); \
-        global_serialize(pipe, field8); \
-        global_serialize(pipe, field9); \
+    friend class boost::serialization::access; \
+    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
+        ar & field1; \
+        ar & field2; \
+        ar & field3; \
+        ar & field4; \
+        ar & field5; \
+        ar & field6; \
+        ar & field7; \
+        ar & field8; \
+        ar & field9; \
     } \
-    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
-        global_unserialize(pipe, es, &field1); \
-        global_unserialize(pipe, es, &field2); \
-        global_unserialize(pipe, es, &field3); \
-        global_unserialize(pipe, es, &field4); \
-        global_unserialize(pipe, es, &field5); \
-        global_unserialize(pipe, es, &field6); \
-        global_unserialize(pipe, es, &field7); \
-        global_unserialize(pipe, es, &field8); \
-        global_unserialize(pipe, es, &field9); \
-    }
 
 #define RDB_MAKE_SERIALIZABLE_10(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10) \
-    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        serialize(pipe, m.field1); \
-        serialize(pipe, m.field2); \
-        serialize(pipe, m.field3); \
-        serialize(pipe, m.field4); \
-        serialize(pipe, m.field5); \
-        serialize(pipe, m.field6); \
-        serialize(pipe, m.field7); \
-        serialize(pipe, m.field8); \
-        serialize(pipe, m.field9); \
-        serialize(pipe, m.field10); \
-    } \
-    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
-        unserialize(pipe, es, &m->field1); \
-        unserialize(pipe, es, &m->field2); \
-        unserialize(pipe, es, &m->field3); \
-        unserialize(pipe, es, &m->field4); \
-        unserialize(pipe, es, &m->field5); \
-        unserialize(pipe, es, &m->field6); \
-        unserialize(pipe, es, &m->field7); \
-        unserialize(pipe, es, &m->field8); \
-        unserialize(pipe, es, &m->field9); \
-        unserialize(pipe, es, &m->field10); \
-    } \
+    namespace boost {\
+    namespace serialization {\
+    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
+        ar & m.field1; \
+        ar & m.field2; \
+        ar & m.field3; \
+        ar & m.field4; \
+        ar & m.field5; \
+        ar & m.field6; \
+        ar & m.field7; \
+        ar & m.field8; \
+        ar & m.field9; \
+        ar & m.field10; \
+    }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_10(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10) \
-    void serialize_self(cluster_outpipe_t *pipe) const { \
-        global_serialize(pipe, field1); \
-        global_serialize(pipe, field2); \
-        global_serialize(pipe, field3); \
-        global_serialize(pipe, field4); \
-        global_serialize(pipe, field5); \
-        global_serialize(pipe, field6); \
-        global_serialize(pipe, field7); \
-        global_serialize(pipe, field8); \
-        global_serialize(pipe, field9); \
-        global_serialize(pipe, field10); \
+    friend class boost::serialization::access; \
+    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
+        ar & field1; \
+        ar & field2; \
+        ar & field3; \
+        ar & field4; \
+        ar & field5; \
+        ar & field6; \
+        ar & field7; \
+        ar & field8; \
+        ar & field9; \
+        ar & field10; \
     } \
-    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
-        global_unserialize(pipe, es, &field1); \
-        global_unserialize(pipe, es, &field2); \
-        global_unserialize(pipe, es, &field3); \
-        global_unserialize(pipe, es, &field4); \
-        global_unserialize(pipe, es, &field5); \
-        global_unserialize(pipe, es, &field6); \
-        global_unserialize(pipe, es, &field7); \
-        global_unserialize(pipe, es, &field8); \
-        global_unserialize(pipe, es, &field9); \
-        global_unserialize(pipe, es, &field10); \
-    }
 
 #define RDB_MAKE_SERIALIZABLE_11(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11) \
-    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        serialize(pipe, m.field1); \
-        serialize(pipe, m.field2); \
-        serialize(pipe, m.field3); \
-        serialize(pipe, m.field4); \
-        serialize(pipe, m.field5); \
-        serialize(pipe, m.field6); \
-        serialize(pipe, m.field7); \
-        serialize(pipe, m.field8); \
-        serialize(pipe, m.field9); \
-        serialize(pipe, m.field10); \
-        serialize(pipe, m.field11); \
-    } \
-    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
-        unserialize(pipe, es, &m->field1); \
-        unserialize(pipe, es, &m->field2); \
-        unserialize(pipe, es, &m->field3); \
-        unserialize(pipe, es, &m->field4); \
-        unserialize(pipe, es, &m->field5); \
-        unserialize(pipe, es, &m->field6); \
-        unserialize(pipe, es, &m->field7); \
-        unserialize(pipe, es, &m->field8); \
-        unserialize(pipe, es, &m->field9); \
-        unserialize(pipe, es, &m->field10); \
-        unserialize(pipe, es, &m->field11); \
-    } \
+    namespace boost {\
+    namespace serialization {\
+    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
+        ar & m.field1; \
+        ar & m.field2; \
+        ar & m.field3; \
+        ar & m.field4; \
+        ar & m.field5; \
+        ar & m.field6; \
+        ar & m.field7; \
+        ar & m.field8; \
+        ar & m.field9; \
+        ar & m.field10; \
+        ar & m.field11; \
+    }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_11(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11) \
-    void serialize_self(cluster_outpipe_t *pipe) const { \
-        global_serialize(pipe, field1); \
-        global_serialize(pipe, field2); \
-        global_serialize(pipe, field3); \
-        global_serialize(pipe, field4); \
-        global_serialize(pipe, field5); \
-        global_serialize(pipe, field6); \
-        global_serialize(pipe, field7); \
-        global_serialize(pipe, field8); \
-        global_serialize(pipe, field9); \
-        global_serialize(pipe, field10); \
-        global_serialize(pipe, field11); \
+    friend class boost::serialization::access; \
+    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
+        ar & field1; \
+        ar & field2; \
+        ar & field3; \
+        ar & field4; \
+        ar & field5; \
+        ar & field6; \
+        ar & field7; \
+        ar & field8; \
+        ar & field9; \
+        ar & field10; \
+        ar & field11; \
     } \
-    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
-        global_unserialize(pipe, es, &field1); \
-        global_unserialize(pipe, es, &field2); \
-        global_unserialize(pipe, es, &field3); \
-        global_unserialize(pipe, es, &field4); \
-        global_unserialize(pipe, es, &field5); \
-        global_unserialize(pipe, es, &field6); \
-        global_unserialize(pipe, es, &field7); \
-        global_unserialize(pipe, es, &field8); \
-        global_unserialize(pipe, es, &field9); \
-        global_unserialize(pipe, es, &field10); \
-        global_unserialize(pipe, es, &field11); \
-    }
 
 #define RDB_MAKE_SERIALIZABLE_12(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12) \
-    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        serialize(pipe, m.field1); \
-        serialize(pipe, m.field2); \
-        serialize(pipe, m.field3); \
-        serialize(pipe, m.field4); \
-        serialize(pipe, m.field5); \
-        serialize(pipe, m.field6); \
-        serialize(pipe, m.field7); \
-        serialize(pipe, m.field8); \
-        serialize(pipe, m.field9); \
-        serialize(pipe, m.field10); \
-        serialize(pipe, m.field11); \
-        serialize(pipe, m.field12); \
-    } \
-    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
-        unserialize(pipe, es, &m->field1); \
-        unserialize(pipe, es, &m->field2); \
-        unserialize(pipe, es, &m->field3); \
-        unserialize(pipe, es, &m->field4); \
-        unserialize(pipe, es, &m->field5); \
-        unserialize(pipe, es, &m->field6); \
-        unserialize(pipe, es, &m->field7); \
-        unserialize(pipe, es, &m->field8); \
-        unserialize(pipe, es, &m->field9); \
-        unserialize(pipe, es, &m->field10); \
-        unserialize(pipe, es, &m->field11); \
-        unserialize(pipe, es, &m->field12); \
-    } \
+    namespace boost {\
+    namespace serialization {\
+    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
+        ar & m.field1; \
+        ar & m.field2; \
+        ar & m.field3; \
+        ar & m.field4; \
+        ar & m.field5; \
+        ar & m.field6; \
+        ar & m.field7; \
+        ar & m.field8; \
+        ar & m.field9; \
+        ar & m.field10; \
+        ar & m.field11; \
+        ar & m.field12; \
+    }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_12(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12) \
-    void serialize_self(cluster_outpipe_t *pipe) const { \
-        global_serialize(pipe, field1); \
-        global_serialize(pipe, field2); \
-        global_serialize(pipe, field3); \
-        global_serialize(pipe, field4); \
-        global_serialize(pipe, field5); \
-        global_serialize(pipe, field6); \
-        global_serialize(pipe, field7); \
-        global_serialize(pipe, field8); \
-        global_serialize(pipe, field9); \
-        global_serialize(pipe, field10); \
-        global_serialize(pipe, field11); \
-        global_serialize(pipe, field12); \
+    friend class boost::serialization::access; \
+    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
+        ar & field1; \
+        ar & field2; \
+        ar & field3; \
+        ar & field4; \
+        ar & field5; \
+        ar & field6; \
+        ar & field7; \
+        ar & field8; \
+        ar & field9; \
+        ar & field10; \
+        ar & field11; \
+        ar & field12; \
     } \
-    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
-        global_unserialize(pipe, es, &field1); \
-        global_unserialize(pipe, es, &field2); \
-        global_unserialize(pipe, es, &field3); \
-        global_unserialize(pipe, es, &field4); \
-        global_unserialize(pipe, es, &field5); \
-        global_unserialize(pipe, es, &field6); \
-        global_unserialize(pipe, es, &field7); \
-        global_unserialize(pipe, es, &field8); \
-        global_unserialize(pipe, es, &field9); \
-        global_unserialize(pipe, es, &field10); \
-        global_unserialize(pipe, es, &field11); \
-        global_unserialize(pipe, es, &field12); \
-    }
 
 #define RDB_MAKE_SERIALIZABLE_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13) \
-    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        serialize(pipe, m.field1); \
-        serialize(pipe, m.field2); \
-        serialize(pipe, m.field3); \
-        serialize(pipe, m.field4); \
-        serialize(pipe, m.field5); \
-        serialize(pipe, m.field6); \
-        serialize(pipe, m.field7); \
-        serialize(pipe, m.field8); \
-        serialize(pipe, m.field9); \
-        serialize(pipe, m.field10); \
-        serialize(pipe, m.field11); \
-        serialize(pipe, m.field12); \
-        serialize(pipe, m.field13); \
-    } \
-    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
-        unserialize(pipe, es, &m->field1); \
-        unserialize(pipe, es, &m->field2); \
-        unserialize(pipe, es, &m->field3); \
-        unserialize(pipe, es, &m->field4); \
-        unserialize(pipe, es, &m->field5); \
-        unserialize(pipe, es, &m->field6); \
-        unserialize(pipe, es, &m->field7); \
-        unserialize(pipe, es, &m->field8); \
-        unserialize(pipe, es, &m->field9); \
-        unserialize(pipe, es, &m->field10); \
-        unserialize(pipe, es, &m->field11); \
-        unserialize(pipe, es, &m->field12); \
-        unserialize(pipe, es, &m->field13); \
-    } \
+    namespace boost {\
+    namespace serialization {\
+    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
+        ar & m.field1; \
+        ar & m.field2; \
+        ar & m.field3; \
+        ar & m.field4; \
+        ar & m.field5; \
+        ar & m.field6; \
+        ar & m.field7; \
+        ar & m.field8; \
+        ar & m.field9; \
+        ar & m.field10; \
+        ar & m.field11; \
+        ar & m.field12; \
+        ar & m.field13; \
+    }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_13(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13) \
-    void serialize_self(cluster_outpipe_t *pipe) const { \
-        global_serialize(pipe, field1); \
-        global_serialize(pipe, field2); \
-        global_serialize(pipe, field3); \
-        global_serialize(pipe, field4); \
-        global_serialize(pipe, field5); \
-        global_serialize(pipe, field6); \
-        global_serialize(pipe, field7); \
-        global_serialize(pipe, field8); \
-        global_serialize(pipe, field9); \
-        global_serialize(pipe, field10); \
-        global_serialize(pipe, field11); \
-        global_serialize(pipe, field12); \
-        global_serialize(pipe, field13); \
+    friend class boost::serialization::access; \
+    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
+        ar & field1; \
+        ar & field2; \
+        ar & field3; \
+        ar & field4; \
+        ar & field5; \
+        ar & field6; \
+        ar & field7; \
+        ar & field8; \
+        ar & field9; \
+        ar & field10; \
+        ar & field11; \
+        ar & field12; \
+        ar & field13; \
     } \
-    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
-        global_unserialize(pipe, es, &field1); \
-        global_unserialize(pipe, es, &field2); \
-        global_unserialize(pipe, es, &field3); \
-        global_unserialize(pipe, es, &field4); \
-        global_unserialize(pipe, es, &field5); \
-        global_unserialize(pipe, es, &field6); \
-        global_unserialize(pipe, es, &field7); \
-        global_unserialize(pipe, es, &field8); \
-        global_unserialize(pipe, es, &field9); \
-        global_unserialize(pipe, es, &field10); \
-        global_unserialize(pipe, es, &field11); \
-        global_unserialize(pipe, es, &field12); \
-        global_unserialize(pipe, es, &field13); \
-    }
 
 #define RDB_MAKE_SERIALIZABLE_14(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14) \
-    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        serialize(pipe, m.field1); \
-        serialize(pipe, m.field2); \
-        serialize(pipe, m.field3); \
-        serialize(pipe, m.field4); \
-        serialize(pipe, m.field5); \
-        serialize(pipe, m.field6); \
-        serialize(pipe, m.field7); \
-        serialize(pipe, m.field8); \
-        serialize(pipe, m.field9); \
-        serialize(pipe, m.field10); \
-        serialize(pipe, m.field11); \
-        serialize(pipe, m.field12); \
-        serialize(pipe, m.field13); \
-        serialize(pipe, m.field14); \
-    } \
-    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
-        unserialize(pipe, es, &m->field1); \
-        unserialize(pipe, es, &m->field2); \
-        unserialize(pipe, es, &m->field3); \
-        unserialize(pipe, es, &m->field4); \
-        unserialize(pipe, es, &m->field5); \
-        unserialize(pipe, es, &m->field6); \
-        unserialize(pipe, es, &m->field7); \
-        unserialize(pipe, es, &m->field8); \
-        unserialize(pipe, es, &m->field9); \
-        unserialize(pipe, es, &m->field10); \
-        unserialize(pipe, es, &m->field11); \
-        unserialize(pipe, es, &m->field12); \
-        unserialize(pipe, es, &m->field13); \
-        unserialize(pipe, es, &m->field14); \
-    } \
+    namespace boost {\
+    namespace serialization {\
+    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
+        ar & m.field1; \
+        ar & m.field2; \
+        ar & m.field3; \
+        ar & m.field4; \
+        ar & m.field5; \
+        ar & m.field6; \
+        ar & m.field7; \
+        ar & m.field8; \
+        ar & m.field9; \
+        ar & m.field10; \
+        ar & m.field11; \
+        ar & m.field12; \
+        ar & m.field13; \
+        ar & m.field14; \
+    }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_14(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14) \
-    void serialize_self(cluster_outpipe_t *pipe) const { \
-        global_serialize(pipe, field1); \
-        global_serialize(pipe, field2); \
-        global_serialize(pipe, field3); \
-        global_serialize(pipe, field4); \
-        global_serialize(pipe, field5); \
-        global_serialize(pipe, field6); \
-        global_serialize(pipe, field7); \
-        global_serialize(pipe, field8); \
-        global_serialize(pipe, field9); \
-        global_serialize(pipe, field10); \
-        global_serialize(pipe, field11); \
-        global_serialize(pipe, field12); \
-        global_serialize(pipe, field13); \
-        global_serialize(pipe, field14); \
+    friend class boost::serialization::access; \
+    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
+        ar & field1; \
+        ar & field2; \
+        ar & field3; \
+        ar & field4; \
+        ar & field5; \
+        ar & field6; \
+        ar & field7; \
+        ar & field8; \
+        ar & field9; \
+        ar & field10; \
+        ar & field11; \
+        ar & field12; \
+        ar & field13; \
+        ar & field14; \
     } \
-    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
-        global_unserialize(pipe, es, &field1); \
-        global_unserialize(pipe, es, &field2); \
-        global_unserialize(pipe, es, &field3); \
-        global_unserialize(pipe, es, &field4); \
-        global_unserialize(pipe, es, &field5); \
-        global_unserialize(pipe, es, &field6); \
-        global_unserialize(pipe, es, &field7); \
-        global_unserialize(pipe, es, &field8); \
-        global_unserialize(pipe, es, &field9); \
-        global_unserialize(pipe, es, &field10); \
-        global_unserialize(pipe, es, &field11); \
-        global_unserialize(pipe, es, &field12); \
-        global_unserialize(pipe, es, &field13); \
-        global_unserialize(pipe, es, &field14); \
-    }
 
 #define RDB_MAKE_SERIALIZABLE_15(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15) \
-    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        serialize(pipe, m.field1); \
-        serialize(pipe, m.field2); \
-        serialize(pipe, m.field3); \
-        serialize(pipe, m.field4); \
-        serialize(pipe, m.field5); \
-        serialize(pipe, m.field6); \
-        serialize(pipe, m.field7); \
-        serialize(pipe, m.field8); \
-        serialize(pipe, m.field9); \
-        serialize(pipe, m.field10); \
-        serialize(pipe, m.field11); \
-        serialize(pipe, m.field12); \
-        serialize(pipe, m.field13); \
-        serialize(pipe, m.field14); \
-        serialize(pipe, m.field15); \
-    } \
-    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
-        unserialize(pipe, es, &m->field1); \
-        unserialize(pipe, es, &m->field2); \
-        unserialize(pipe, es, &m->field3); \
-        unserialize(pipe, es, &m->field4); \
-        unserialize(pipe, es, &m->field5); \
-        unserialize(pipe, es, &m->field6); \
-        unserialize(pipe, es, &m->field7); \
-        unserialize(pipe, es, &m->field8); \
-        unserialize(pipe, es, &m->field9); \
-        unserialize(pipe, es, &m->field10); \
-        unserialize(pipe, es, &m->field11); \
-        unserialize(pipe, es, &m->field12); \
-        unserialize(pipe, es, &m->field13); \
-        unserialize(pipe, es, &m->field14); \
-        unserialize(pipe, es, &m->field15); \
-    } \
+    namespace boost {\
+    namespace serialization {\
+    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
+        ar & m.field1; \
+        ar & m.field2; \
+        ar & m.field3; \
+        ar & m.field4; \
+        ar & m.field5; \
+        ar & m.field6; \
+        ar & m.field7; \
+        ar & m.field8; \
+        ar & m.field9; \
+        ar & m.field10; \
+        ar & m.field11; \
+        ar & m.field12; \
+        ar & m.field13; \
+        ar & m.field14; \
+        ar & m.field15; \
+    }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_15(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15) \
-    void serialize_self(cluster_outpipe_t *pipe) const { \
-        global_serialize(pipe, field1); \
-        global_serialize(pipe, field2); \
-        global_serialize(pipe, field3); \
-        global_serialize(pipe, field4); \
-        global_serialize(pipe, field5); \
-        global_serialize(pipe, field6); \
-        global_serialize(pipe, field7); \
-        global_serialize(pipe, field8); \
-        global_serialize(pipe, field9); \
-        global_serialize(pipe, field10); \
-        global_serialize(pipe, field11); \
-        global_serialize(pipe, field12); \
-        global_serialize(pipe, field13); \
-        global_serialize(pipe, field14); \
-        global_serialize(pipe, field15); \
+    friend class boost::serialization::access; \
+    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
+        ar & field1; \
+        ar & field2; \
+        ar & field3; \
+        ar & field4; \
+        ar & field5; \
+        ar & field6; \
+        ar & field7; \
+        ar & field8; \
+        ar & field9; \
+        ar & field10; \
+        ar & field11; \
+        ar & field12; \
+        ar & field13; \
+        ar & field14; \
+        ar & field15; \
     } \
-    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
-        global_unserialize(pipe, es, &field1); \
-        global_unserialize(pipe, es, &field2); \
-        global_unserialize(pipe, es, &field3); \
-        global_unserialize(pipe, es, &field4); \
-        global_unserialize(pipe, es, &field5); \
-        global_unserialize(pipe, es, &field6); \
-        global_unserialize(pipe, es, &field7); \
-        global_unserialize(pipe, es, &field8); \
-        global_unserialize(pipe, es, &field9); \
-        global_unserialize(pipe, es, &field10); \
-        global_unserialize(pipe, es, &field11); \
-        global_unserialize(pipe, es, &field12); \
-        global_unserialize(pipe, es, &field13); \
-        global_unserialize(pipe, es, &field14); \
-        global_unserialize(pipe, es, &field15); \
-    }
 
 #define RDB_MAKE_SERIALIZABLE_16(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16) \
-    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        serialize(pipe, m.field1); \
-        serialize(pipe, m.field2); \
-        serialize(pipe, m.field3); \
-        serialize(pipe, m.field4); \
-        serialize(pipe, m.field5); \
-        serialize(pipe, m.field6); \
-        serialize(pipe, m.field7); \
-        serialize(pipe, m.field8); \
-        serialize(pipe, m.field9); \
-        serialize(pipe, m.field10); \
-        serialize(pipe, m.field11); \
-        serialize(pipe, m.field12); \
-        serialize(pipe, m.field13); \
-        serialize(pipe, m.field14); \
-        serialize(pipe, m.field15); \
-        serialize(pipe, m.field16); \
-    } \
-    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
-        unserialize(pipe, es, &m->field1); \
-        unserialize(pipe, es, &m->field2); \
-        unserialize(pipe, es, &m->field3); \
-        unserialize(pipe, es, &m->field4); \
-        unserialize(pipe, es, &m->field5); \
-        unserialize(pipe, es, &m->field6); \
-        unserialize(pipe, es, &m->field7); \
-        unserialize(pipe, es, &m->field8); \
-        unserialize(pipe, es, &m->field9); \
-        unserialize(pipe, es, &m->field10); \
-        unserialize(pipe, es, &m->field11); \
-        unserialize(pipe, es, &m->field12); \
-        unserialize(pipe, es, &m->field13); \
-        unserialize(pipe, es, &m->field14); \
-        unserialize(pipe, es, &m->field15); \
-        unserialize(pipe, es, &m->field16); \
-    } \
+    namespace boost {\
+    namespace serialization {\
+    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
+        ar & m.field1; \
+        ar & m.field2; \
+        ar & m.field3; \
+        ar & m.field4; \
+        ar & m.field5; \
+        ar & m.field6; \
+        ar & m.field7; \
+        ar & m.field8; \
+        ar & m.field9; \
+        ar & m.field10; \
+        ar & m.field11; \
+        ar & m.field12; \
+        ar & m.field13; \
+        ar & m.field14; \
+        ar & m.field15; \
+        ar & m.field16; \
+    }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_16(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16) \
-    void serialize_self(cluster_outpipe_t *pipe) const { \
-        global_serialize(pipe, field1); \
-        global_serialize(pipe, field2); \
-        global_serialize(pipe, field3); \
-        global_serialize(pipe, field4); \
-        global_serialize(pipe, field5); \
-        global_serialize(pipe, field6); \
-        global_serialize(pipe, field7); \
-        global_serialize(pipe, field8); \
-        global_serialize(pipe, field9); \
-        global_serialize(pipe, field10); \
-        global_serialize(pipe, field11); \
-        global_serialize(pipe, field12); \
-        global_serialize(pipe, field13); \
-        global_serialize(pipe, field14); \
-        global_serialize(pipe, field15); \
-        global_serialize(pipe, field16); \
+    friend class boost::serialization::access; \
+    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
+        ar & field1; \
+        ar & field2; \
+        ar & field3; \
+        ar & field4; \
+        ar & field5; \
+        ar & field6; \
+        ar & field7; \
+        ar & field8; \
+        ar & field9; \
+        ar & field10; \
+        ar & field11; \
+        ar & field12; \
+        ar & field13; \
+        ar & field14; \
+        ar & field15; \
+        ar & field16; \
     } \
-    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
-        global_unserialize(pipe, es, &field1); \
-        global_unserialize(pipe, es, &field2); \
-        global_unserialize(pipe, es, &field3); \
-        global_unserialize(pipe, es, &field4); \
-        global_unserialize(pipe, es, &field5); \
-        global_unserialize(pipe, es, &field6); \
-        global_unserialize(pipe, es, &field7); \
-        global_unserialize(pipe, es, &field8); \
-        global_unserialize(pipe, es, &field9); \
-        global_unserialize(pipe, es, &field10); \
-        global_unserialize(pipe, es, &field11); \
-        global_unserialize(pipe, es, &field12); \
-        global_unserialize(pipe, es, &field13); \
-        global_unserialize(pipe, es, &field14); \
-        global_unserialize(pipe, es, &field15); \
-        global_unserialize(pipe, es, &field16); \
-    }
 
 #define RDB_MAKE_SERIALIZABLE_17(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17) \
-    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        serialize(pipe, m.field1); \
-        serialize(pipe, m.field2); \
-        serialize(pipe, m.field3); \
-        serialize(pipe, m.field4); \
-        serialize(pipe, m.field5); \
-        serialize(pipe, m.field6); \
-        serialize(pipe, m.field7); \
-        serialize(pipe, m.field8); \
-        serialize(pipe, m.field9); \
-        serialize(pipe, m.field10); \
-        serialize(pipe, m.field11); \
-        serialize(pipe, m.field12); \
-        serialize(pipe, m.field13); \
-        serialize(pipe, m.field14); \
-        serialize(pipe, m.field15); \
-        serialize(pipe, m.field16); \
-        serialize(pipe, m.field17); \
-    } \
-    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
-        unserialize(pipe, es, &m->field1); \
-        unserialize(pipe, es, &m->field2); \
-        unserialize(pipe, es, &m->field3); \
-        unserialize(pipe, es, &m->field4); \
-        unserialize(pipe, es, &m->field5); \
-        unserialize(pipe, es, &m->field6); \
-        unserialize(pipe, es, &m->field7); \
-        unserialize(pipe, es, &m->field8); \
-        unserialize(pipe, es, &m->field9); \
-        unserialize(pipe, es, &m->field10); \
-        unserialize(pipe, es, &m->field11); \
-        unserialize(pipe, es, &m->field12); \
-        unserialize(pipe, es, &m->field13); \
-        unserialize(pipe, es, &m->field14); \
-        unserialize(pipe, es, &m->field15); \
-        unserialize(pipe, es, &m->field16); \
-        unserialize(pipe, es, &m->field17); \
-    } \
+    namespace boost {\
+    namespace serialization {\
+    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
+        ar & m.field1; \
+        ar & m.field2; \
+        ar & m.field3; \
+        ar & m.field4; \
+        ar & m.field5; \
+        ar & m.field6; \
+        ar & m.field7; \
+        ar & m.field8; \
+        ar & m.field9; \
+        ar & m.field10; \
+        ar & m.field11; \
+        ar & m.field12; \
+        ar & m.field13; \
+        ar & m.field14; \
+        ar & m.field15; \
+        ar & m.field16; \
+        ar & m.field17; \
+    }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_17(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17) \
-    void serialize_self(cluster_outpipe_t *pipe) const { \
-        global_serialize(pipe, field1); \
-        global_serialize(pipe, field2); \
-        global_serialize(pipe, field3); \
-        global_serialize(pipe, field4); \
-        global_serialize(pipe, field5); \
-        global_serialize(pipe, field6); \
-        global_serialize(pipe, field7); \
-        global_serialize(pipe, field8); \
-        global_serialize(pipe, field9); \
-        global_serialize(pipe, field10); \
-        global_serialize(pipe, field11); \
-        global_serialize(pipe, field12); \
-        global_serialize(pipe, field13); \
-        global_serialize(pipe, field14); \
-        global_serialize(pipe, field15); \
-        global_serialize(pipe, field16); \
-        global_serialize(pipe, field17); \
+    friend class boost::serialization::access; \
+    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
+        ar & field1; \
+        ar & field2; \
+        ar & field3; \
+        ar & field4; \
+        ar & field5; \
+        ar & field6; \
+        ar & field7; \
+        ar & field8; \
+        ar & field9; \
+        ar & field10; \
+        ar & field11; \
+        ar & field12; \
+        ar & field13; \
+        ar & field14; \
+        ar & field15; \
+        ar & field16; \
+        ar & field17; \
     } \
-    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
-        global_unserialize(pipe, es, &field1); \
-        global_unserialize(pipe, es, &field2); \
-        global_unserialize(pipe, es, &field3); \
-        global_unserialize(pipe, es, &field4); \
-        global_unserialize(pipe, es, &field5); \
-        global_unserialize(pipe, es, &field6); \
-        global_unserialize(pipe, es, &field7); \
-        global_unserialize(pipe, es, &field8); \
-        global_unserialize(pipe, es, &field9); \
-        global_unserialize(pipe, es, &field10); \
-        global_unserialize(pipe, es, &field11); \
-        global_unserialize(pipe, es, &field12); \
-        global_unserialize(pipe, es, &field13); \
-        global_unserialize(pipe, es, &field14); \
-        global_unserialize(pipe, es, &field15); \
-        global_unserialize(pipe, es, &field16); \
-        global_unserialize(pipe, es, &field17); \
-    }
 
 #define RDB_MAKE_SERIALIZABLE_18(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18) \
-    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        serialize(pipe, m.field1); \
-        serialize(pipe, m.field2); \
-        serialize(pipe, m.field3); \
-        serialize(pipe, m.field4); \
-        serialize(pipe, m.field5); \
-        serialize(pipe, m.field6); \
-        serialize(pipe, m.field7); \
-        serialize(pipe, m.field8); \
-        serialize(pipe, m.field9); \
-        serialize(pipe, m.field10); \
-        serialize(pipe, m.field11); \
-        serialize(pipe, m.field12); \
-        serialize(pipe, m.field13); \
-        serialize(pipe, m.field14); \
-        serialize(pipe, m.field15); \
-        serialize(pipe, m.field16); \
-        serialize(pipe, m.field17); \
-        serialize(pipe, m.field18); \
-    } \
-    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
-        unserialize(pipe, es, &m->field1); \
-        unserialize(pipe, es, &m->field2); \
-        unserialize(pipe, es, &m->field3); \
-        unserialize(pipe, es, &m->field4); \
-        unserialize(pipe, es, &m->field5); \
-        unserialize(pipe, es, &m->field6); \
-        unserialize(pipe, es, &m->field7); \
-        unserialize(pipe, es, &m->field8); \
-        unserialize(pipe, es, &m->field9); \
-        unserialize(pipe, es, &m->field10); \
-        unserialize(pipe, es, &m->field11); \
-        unserialize(pipe, es, &m->field12); \
-        unserialize(pipe, es, &m->field13); \
-        unserialize(pipe, es, &m->field14); \
-        unserialize(pipe, es, &m->field15); \
-        unserialize(pipe, es, &m->field16); \
-        unserialize(pipe, es, &m->field17); \
-        unserialize(pipe, es, &m->field18); \
-    } \
+    namespace boost {\
+    namespace serialization {\
+    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
+        ar & m.field1; \
+        ar & m.field2; \
+        ar & m.field3; \
+        ar & m.field4; \
+        ar & m.field5; \
+        ar & m.field6; \
+        ar & m.field7; \
+        ar & m.field8; \
+        ar & m.field9; \
+        ar & m.field10; \
+        ar & m.field11; \
+        ar & m.field12; \
+        ar & m.field13; \
+        ar & m.field14; \
+        ar & m.field15; \
+        ar & m.field16; \
+        ar & m.field17; \
+        ar & m.field18; \
+    }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_18(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18) \
-    void serialize_self(cluster_outpipe_t *pipe) const { \
-        global_serialize(pipe, field1); \
-        global_serialize(pipe, field2); \
-        global_serialize(pipe, field3); \
-        global_serialize(pipe, field4); \
-        global_serialize(pipe, field5); \
-        global_serialize(pipe, field6); \
-        global_serialize(pipe, field7); \
-        global_serialize(pipe, field8); \
-        global_serialize(pipe, field9); \
-        global_serialize(pipe, field10); \
-        global_serialize(pipe, field11); \
-        global_serialize(pipe, field12); \
-        global_serialize(pipe, field13); \
-        global_serialize(pipe, field14); \
-        global_serialize(pipe, field15); \
-        global_serialize(pipe, field16); \
-        global_serialize(pipe, field17); \
-        global_serialize(pipe, field18); \
+    friend class boost::serialization::access; \
+    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
+        ar & field1; \
+        ar & field2; \
+        ar & field3; \
+        ar & field4; \
+        ar & field5; \
+        ar & field6; \
+        ar & field7; \
+        ar & field8; \
+        ar & field9; \
+        ar & field10; \
+        ar & field11; \
+        ar & field12; \
+        ar & field13; \
+        ar & field14; \
+        ar & field15; \
+        ar & field16; \
+        ar & field17; \
+        ar & field18; \
     } \
-    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
-        global_unserialize(pipe, es, &field1); \
-        global_unserialize(pipe, es, &field2); \
-        global_unserialize(pipe, es, &field3); \
-        global_unserialize(pipe, es, &field4); \
-        global_unserialize(pipe, es, &field5); \
-        global_unserialize(pipe, es, &field6); \
-        global_unserialize(pipe, es, &field7); \
-        global_unserialize(pipe, es, &field8); \
-        global_unserialize(pipe, es, &field9); \
-        global_unserialize(pipe, es, &field10); \
-        global_unserialize(pipe, es, &field11); \
-        global_unserialize(pipe, es, &field12); \
-        global_unserialize(pipe, es, &field13); \
-        global_unserialize(pipe, es, &field14); \
-        global_unserialize(pipe, es, &field15); \
-        global_unserialize(pipe, es, &field16); \
-        global_unserialize(pipe, es, &field17); \
-        global_unserialize(pipe, es, &field18); \
-    }
 
 #define RDB_MAKE_SERIALIZABLE_19(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19) \
-    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        serialize(pipe, m.field1); \
-        serialize(pipe, m.field2); \
-        serialize(pipe, m.field3); \
-        serialize(pipe, m.field4); \
-        serialize(pipe, m.field5); \
-        serialize(pipe, m.field6); \
-        serialize(pipe, m.field7); \
-        serialize(pipe, m.field8); \
-        serialize(pipe, m.field9); \
-        serialize(pipe, m.field10); \
-        serialize(pipe, m.field11); \
-        serialize(pipe, m.field12); \
-        serialize(pipe, m.field13); \
-        serialize(pipe, m.field14); \
-        serialize(pipe, m.field15); \
-        serialize(pipe, m.field16); \
-        serialize(pipe, m.field17); \
-        serialize(pipe, m.field18); \
-        serialize(pipe, m.field19); \
-    } \
-    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
-        unserialize(pipe, es, &m->field1); \
-        unserialize(pipe, es, &m->field2); \
-        unserialize(pipe, es, &m->field3); \
-        unserialize(pipe, es, &m->field4); \
-        unserialize(pipe, es, &m->field5); \
-        unserialize(pipe, es, &m->field6); \
-        unserialize(pipe, es, &m->field7); \
-        unserialize(pipe, es, &m->field8); \
-        unserialize(pipe, es, &m->field9); \
-        unserialize(pipe, es, &m->field10); \
-        unserialize(pipe, es, &m->field11); \
-        unserialize(pipe, es, &m->field12); \
-        unserialize(pipe, es, &m->field13); \
-        unserialize(pipe, es, &m->field14); \
-        unserialize(pipe, es, &m->field15); \
-        unserialize(pipe, es, &m->field16); \
-        unserialize(pipe, es, &m->field17); \
-        unserialize(pipe, es, &m->field18); \
-        unserialize(pipe, es, &m->field19); \
-    } \
+    namespace boost {\
+    namespace serialization {\
+    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
+        ar & m.field1; \
+        ar & m.field2; \
+        ar & m.field3; \
+        ar & m.field4; \
+        ar & m.field5; \
+        ar & m.field6; \
+        ar & m.field7; \
+        ar & m.field8; \
+        ar & m.field9; \
+        ar & m.field10; \
+        ar & m.field11; \
+        ar & m.field12; \
+        ar & m.field13; \
+        ar & m.field14; \
+        ar & m.field15; \
+        ar & m.field16; \
+        ar & m.field17; \
+        ar & m.field18; \
+        ar & m.field19; \
+    }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_19(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19) \
-    void serialize_self(cluster_outpipe_t *pipe) const { \
-        global_serialize(pipe, field1); \
-        global_serialize(pipe, field2); \
-        global_serialize(pipe, field3); \
-        global_serialize(pipe, field4); \
-        global_serialize(pipe, field5); \
-        global_serialize(pipe, field6); \
-        global_serialize(pipe, field7); \
-        global_serialize(pipe, field8); \
-        global_serialize(pipe, field9); \
-        global_serialize(pipe, field10); \
-        global_serialize(pipe, field11); \
-        global_serialize(pipe, field12); \
-        global_serialize(pipe, field13); \
-        global_serialize(pipe, field14); \
-        global_serialize(pipe, field15); \
-        global_serialize(pipe, field16); \
-        global_serialize(pipe, field17); \
-        global_serialize(pipe, field18); \
-        global_serialize(pipe, field19); \
+    friend class boost::serialization::access; \
+    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
+        ar & field1; \
+        ar & field2; \
+        ar & field3; \
+        ar & field4; \
+        ar & field5; \
+        ar & field6; \
+        ar & field7; \
+        ar & field8; \
+        ar & field9; \
+        ar & field10; \
+        ar & field11; \
+        ar & field12; \
+        ar & field13; \
+        ar & field14; \
+        ar & field15; \
+        ar & field16; \
+        ar & field17; \
+        ar & field18; \
+        ar & field19; \
     } \
-    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
-        global_unserialize(pipe, es, &field1); \
-        global_unserialize(pipe, es, &field2); \
-        global_unserialize(pipe, es, &field3); \
-        global_unserialize(pipe, es, &field4); \
-        global_unserialize(pipe, es, &field5); \
-        global_unserialize(pipe, es, &field6); \
-        global_unserialize(pipe, es, &field7); \
-        global_unserialize(pipe, es, &field8); \
-        global_unserialize(pipe, es, &field9); \
-        global_unserialize(pipe, es, &field10); \
-        global_unserialize(pipe, es, &field11); \
-        global_unserialize(pipe, es, &field12); \
-        global_unserialize(pipe, es, &field13); \
-        global_unserialize(pipe, es, &field14); \
-        global_unserialize(pipe, es, &field15); \
-        global_unserialize(pipe, es, &field16); \
-        global_unserialize(pipe, es, &field17); \
-        global_unserialize(pipe, es, &field18); \
-        global_unserialize(pipe, es, &field19); \
-    }
 
 #endif /* __RPC_SERIALIZE_SERIALIZE_MACROS_HPP__ */

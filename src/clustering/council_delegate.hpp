@@ -13,12 +13,12 @@ public:
     { }
 
     void introduce_new_node(cluster_outpipe_t *p) {
-        ::serialize(p, Council::address_t(&council));
+        p->get_archive() << Council::address_t(&council);
     }
 
     static council_delegate_t<Council> *construct(cluster_inpipe_t *p, boost::function<void()> done) {
         typename Council::address_t addr;
-        ::unserialize(p, addr);
+        p->get_archive() >> addr;
         done();
         return new council_delegate_t<Council>(addr);
     }

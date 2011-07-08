@@ -89,6 +89,8 @@ private:
     // Read buffer
     static const size_t GET_BUF_LENGTH = 512;
     char get_buf[GET_BUF_LENGTH];
+    
+    DISABLE_COPYING(tcp_conn_streambuf_t);
 };
 
 #endif
