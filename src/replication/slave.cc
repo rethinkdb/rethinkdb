@@ -119,7 +119,7 @@ void slave_t::run(signal_t *shutdown_signal) {
                 cond_link_t close_connection_on_shutdown(shutdown_signal, &slave_cond);
 
                 // last_sync is the latest timestamp that we didn't get all the master's changes for
-                repli_timestamp last_sync = internal_store_->get_last_sync();
+                repli_timestamp_t last_sync = internal_store_->get_last_sync();
                 debugf("Last sync: %d\n", last_sync.time);
 
                 if (!were_connected_before) {

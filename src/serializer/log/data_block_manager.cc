@@ -183,7 +183,7 @@ public:
                     continue;
                 }
 
-                const repli_timestamp recency_timestamp = parent->serializer->lba_index->get_block_recency(block_id);
+                const repli_timestamp_t recency_timestamp = parent->serializer->lba_index->get_block_recency(block_id);
 
                 buf_data_t *data = reinterpret_cast<buf_data_t *>(parent->serializer->malloc());
                 --data;

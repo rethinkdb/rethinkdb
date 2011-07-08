@@ -110,13 +110,13 @@ public:
     block_size_t get_block_size();
     block_id_t max_block_id();
     bool block_in_use(block_id_t id);
-    repli_timestamp get_recency(block_id_t id);
+    repli_timestamp_t get_recency(block_id_t id);
 
 private:
     bool do_write(write_t *writes, int num_writes, file_t::account_t *io_account, write_txn_callback_t *callback, write_tid_callback_t *tid_callback, bool main_mutex_has_been_acquired);
 
     std::vector<read_ahead_callback_t*> read_ahead_callbacks;
-    bool offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
+    bool offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp);
     bool should_perform_read_ahead();
 
     /* Called by the data block manager when it wants us to rewrite some blocks */

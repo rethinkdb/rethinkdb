@@ -39,7 +39,7 @@ struct serializer_t :
     public:
         virtual ~read_ahead_callback_t() { }
         /* If the callee returns true, it is responsible to free buf by calling free(buf) in the corresponding serializer. */
-        virtual bool offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp) = 0;
+        virtual bool offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp) = 0;
     };
     virtual void register_read_ahead_cb(read_ahead_callback_t *cb) = 0;
     virtual void unregister_read_ahead_cb(read_ahead_callback_t *cb) = 0;
@@ -80,7 +80,7 @@ struct serializer_t :
         block_id_t block_id;
         bool recency_specified;
         bool buf_specified;
-        repli_timestamp recency;
+        repli_timestamp_t recency;
         const void *buf;   /* If NULL, a deletion */
         bool write_empty_deleted_block;
         write_block_callback_t *callback;
@@ -88,11 +88,11 @@ struct serializer_t :
 
         friend class log_serializer_t;
 
-        static write_t make_touch(block_id_t block_id_, repli_timestamp recency_, write_block_callback_t *callback_) {
+        static write_t make_touch(block_id_t block_id_, repli_timestamp_t recency_, write_block_callback_t *callback_) {
             return write_t(block_id_, true, recency_, false, NULL, true, callback_, false);
         }
 
-        static write_t make(block_id_t block_id_, repli_timestamp recency_, const void *buf_, bool write_empty_deleted_block_, write_block_callback_t *callback_) {
+        static write_t make(block_id_t block_id_, repli_timestamp_t recency_, const void *buf_, bool write_empty_deleted_block_, write_block_callback_t *callback_) {
             return write_t(block_id_, true, recency_, true, buf_, write_empty_deleted_block_, callback_, true);
         }
 
@@ -100,14 +100,14 @@ struct serializer_t :
 
     private:
         static write_t make_internal(block_id_t block_id_, const void *buf_, write_block_callback_t *callback_) {
-            // The recency_specified field is false, hence the repli_timestamp::invalid value.
-            return write_t(block_id_, false, repli_timestamp::invalid, true, buf_, true, callback_, false);
+            // The recency_specified field is false, hence the repli_timestamp_t::invalid value.
+            return write_t(block_id_, false, repli_timestamp_t::invalid, true, buf_, true, callback_, false);
         }
 
         // TODO: Use boost::option or whatever it's called, instead of
         // these boolean "foo_specified_" parameters.
 
-        write_t(block_id_t block_id_, bool recency_specified_, repli_timestamp recency_,
+        write_t(block_id_t block_id_, bool recency_specified_, repli_timestamp_t recency_,
                 bool buf_specified_, const void *buf_, bool write_empty_deleted_block_, write_block_callback_t *callback_, bool assign_transaction_id)
             : block_id(block_id_), recency_specified(recency_specified_), buf_specified(buf_specified_), recency(recency_), buf(buf_), write_empty_deleted_block(write_empty_deleted_block_), callback(callback_), assign_transaction_id(assign_transaction_id) { }
     };
@@ -131,8 +131,8 @@ struct serializer_t :
     /* Checks whether a given block ID exists */
     virtual bool block_in_use(block_id_t id) = 0;
 
-    /* Gets a block's timestamp.  This may return repli_timestamp::invalid. */
-    virtual repli_timestamp get_recency(block_id_t id) = 0;
+    /* Gets a block's timestamp.  This may return repli_timestamp_t::invalid. */
+    virtual repli_timestamp_t get_recency(block_id_t id) = 0;
 
 private:
     DISABLE_COPYING(serializer_t);

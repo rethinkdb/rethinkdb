@@ -113,7 +113,7 @@ public:
         order_source->backfill_done();
     }
 
-    void do_backfill_and_realtime_stream(repli_timestamp since_when);
+    void do_backfill_and_realtime_stream(repli_timestamp_t since_when);
 
 #ifndef NDEBUG
     static bool inside_backfill_done_or_backfill;

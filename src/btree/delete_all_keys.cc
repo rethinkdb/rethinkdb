@@ -62,12 +62,12 @@ void btree_delete_all_keys_for_backfill(btree_slice_t *slice, order_token_t toke
     slice->pre_begin_transaction_sink_.check_out(token);
     order_token_t begin_transaction_token = slice->pre_begin_transaction_write_mode_source_.check_in(token.tag() + "+begin_transaction_token");
 
-    transaction_t txn(slice->cache(), helper.transaction_mode(), 0, repli_timestamp::invalid);
+    transaction_t txn(slice->cache(), helper.transaction_mode(), 0, repli_timestamp_t::invalid);
 
     txn.set_token(slice->post_begin_transaction_checkpoint_.check_through(token));
 
     // The timestamp never gets used, because we're just deleting
-    // stuff.  The use of repli_timestamp::invalid here might trip
+    // stuff.  The use of repli_timestamp_t::invalid here might trip
     // some assertions, though.
     btree_parallel_traversal(&txn, slice, &helper);
 }

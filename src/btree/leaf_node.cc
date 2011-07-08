@@ -17,7 +17,7 @@ bool leaf_pair_fits(value_sizer_t *sizer, const btree_leaf_pair *pair, size_t si
 
 namespace leaf {
 
-void init(value_sizer_t *sizer, buf_t& node_buf, repli_timestamp modification_time) {
+void init(value_sizer_t *sizer, buf_t& node_buf, repli_timestamp_t modification_time) {
     leaf_node_t *node = reinterpret_cast<leaf_node_t *>(node_buf.get_data_major_write());
 
     node->magic = leaf_node_t::expected_magic;
@@ -30,7 +30,7 @@ void init(value_sizer_t *sizer, buf_t& node_buf, repli_timestamp modification_ti
 // more coarse than conceivably possible.  We could also let the
 // caller supply an earlier[] array.
 // TODO: maybe lnode should just supply the modification time.
-void init(value_sizer_t *sizer, buf_t& node_buf, const leaf_node_t *lnode, const uint16_t *offsets, int numpairs, repli_timestamp modification_time) {
+void init(value_sizer_t *sizer, buf_t& node_buf, const leaf_node_t *lnode, const uint16_t *offsets, int numpairs, repli_timestamp_t modification_time) {
     leaf_node_t *node = reinterpret_cast<leaf_node_t *>(node_buf.get_data_major_write());
 
     init(sizer, node_buf, modification_time);
@@ -43,7 +43,7 @@ void init(value_sizer_t *sizer, buf_t& node_buf, const leaf_node_t *lnode, const
 }
 
 
-bool insert(value_sizer_t *sizer, buf_t& node_buf, const btree_key_t *key, const value_type_t *value, repli_timestamp insertion_time) {
+bool insert(value_sizer_t *sizer, buf_t& node_buf, const btree_key_t *key, const value_type_t *value, repli_timestamp_t insertion_time) {
     const leaf_node_t *node = reinterpret_cast<const leaf_node_t *>(node_buf.get_data_read());
 
     if (is_full(sizer, node, key, value)) {
@@ -56,7 +56,7 @@ bool insert(value_sizer_t *sizer, buf_t& node_buf, const btree_key_t *key, const
     return true;
 }
 
-void insert(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *key, const value_type_t *value, repli_timestamp insertion_time) {
+void insert(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *key, const value_type_t *value, repli_timestamp_t insertion_time) {
     int index = impl::get_offset_index(node, key);
 
     uint16_t prev_offset;
@@ -417,13 +417,13 @@ int nodecmp(const leaf_node_t *node1, const leaf_node_t *node2) {
     return sized_strcmp(key1->contents, key1->size, key2->contents, key2->size);
 }
 
-repli_timestamp get_timestamp_value(value_sizer_t *sizer, const leaf_node_t *node, uint16_t offset) {
+repli_timestamp_t get_timestamp_value(value_sizer_t *sizer, const leaf_node_t *node, uint16_t offset) {
     int toff = impl::get_timestamp_offset(sizer, node, offset);
 
     if (toff == -1) {
         return node->times.last_modified;
     } else {
-        repli_timestamp tmp;
+        repli_timestamp_t tmp;
         tmp.time = node->times.last_modified.time - node->times.earlier[std::min(toff, NUM_LEAF_NODE_EARLIER_TIMES - 1)];
         return tmp;
     }
@@ -531,20 +531,20 @@ bool is_equal(const btree_key_t *key1, const btree_key_t *key2) {
     return sized_strcmp(key1->contents, key1->size, key2->contents, key2->size) == 0;
 }
 
-void initialize_times(buf_t &node_buf, repli_timestamp current_time) {
+void initialize_times(buf_t &node_buf, repli_timestamp_t current_time) {
     const leaf_node_t *node = reinterpret_cast<const leaf_node_t *>(node_buf.get_data_read());
     leaf_timestamps_t new_times;
     initialize_times(&new_times, current_time);
     node_buf.set_data(const_cast<leaf_timestamps_t *>(&node->times), &new_times, sizeof(leaf_timestamps_t));
 }
-void initialize_times(leaf_timestamps_t *times, repli_timestamp current_time) {
+void initialize_times(leaf_timestamps_t *times, repli_timestamp_t current_time) {
     times->last_modified = current_time;
     for (int i = 0; i < NUM_LEAF_NODE_EARLIER_TIMES; ++i) {
         times->earlier[i] = 0;
     }
 }
 
-void rotate_time(leaf_timestamps_t *times, repli_timestamp latest_time, int prev_timestamp_offset) {
+void rotate_time(leaf_timestamps_t *times, repli_timestamp_t latest_time, int prev_timestamp_offset) {
     int32_t diff = latest_time.time - times->last_modified.time;
     if (diff < 0) {
         logWRN("We seemingly stepped backwards in time, with new timestamp %d earlier than %d\n", latest_time.time, times->last_modified.time);

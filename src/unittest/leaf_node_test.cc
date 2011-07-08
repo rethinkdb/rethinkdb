@@ -14,7 +14,7 @@ namespace unittest {
 
 #include "btree/leaf_node.cc" // Build a local variant which uses test_buf_t!
 
-repli_timestamp fake_timestamp = { -2 };
+repli_timestamp_t fake_timestamp = { -2 };
 
 // TODO: Sperg out and make these tests much more brutal.
 

@@ -124,7 +124,7 @@ void leaf_insert_pair_patch_t::apply_to_buf(char* buf_data, block_size_t bs) {
     leaf::impl::insert_pair(&sizer, reinterpret_cast<leaf_node_t *>(buf_data), reinterpret_cast<const value_type_t *>(value_buf), reinterpret_cast<btree_key_t *>(key_buf));
 }
 
-leaf_insert_patch_t::leaf_insert_patch_t(block_id_t block_id, patch_counter_t patch_counter, uint16_t value_size, const value_type_t *value, uint8_t key_size, const char *key_contents, repli_timestamp insertion_time) :
+leaf_insert_patch_t::leaf_insert_patch_t(block_id_t block_id, patch_counter_t patch_counter, uint16_t value_size, const value_type_t *value, uint8_t key_size, const char *key_contents, repli_timestamp_t insertion_time) :
             buf_patch_t(block_id, patch_counter, buf_patch_t::OPER_LEAF_INSERT),
             value_size(value_size),
             insertion_time(insertion_time) {

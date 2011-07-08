@@ -35,7 +35,7 @@ struct backfill_and_realtime_streaming_callback_t {
                                     castime_t castime, order_token_t token) = 0;
     virtual void realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key,
                                          boost::shared_ptr<data_provider_t> data, castime_t castime, order_token_t token) = 0;
-    virtual void realtime_delete_key(const store_key_t &key, repli_timestamp timestamp, order_token_t token) = 0;
+    virtual void realtime_delete_key(const store_key_t &key, repli_timestamp_t timestamp, order_token_t token) = 0;
 
     // `realtime_time_barrier()` is called when all the realtime changes with timestamps less than
     // `timestamp` have been sent.

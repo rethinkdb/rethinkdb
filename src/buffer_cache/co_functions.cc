@@ -27,7 +27,7 @@ struct transaction_begun_callback_t : public transaction_begin_callback_t {
     }
 };
 
-transaction_t *co_begin_transaction(cache_t *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp) {
+transaction_t *co_begin_transaction(cache_t *cache, access_t access, int expected_change_count, repli_timestamp_t recency_timestamp) {
     cache->assert_thread();
     transaction_begun_callback_t cb;
 
@@ -61,7 +61,7 @@ transaction_t *co_begin_transaction(cache_t *cache, access_t access, int expecte
 */
 
 
-void co_get_subtree_recencies(transaction_t *txn, block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out) {
+void co_get_subtree_recencies(transaction_t *txn, block_id_t *block_ids, size_t num_block_ids, repli_timestamp_t *recencies_out) {
     struct : public get_subtree_recencies_callback_t {
         void got_subtree_recencies() { cond.pulse(); }
         cond_t cond;

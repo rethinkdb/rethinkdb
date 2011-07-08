@@ -108,12 +108,12 @@ public:
 // at the top, the precise same information gets sent to the replicas.
 struct castime_t {
     cas_t proposed_cas;
-    repli_timestamp timestamp;
+    repli_timestamp_t timestamp;
 
-    castime_t(cas_t proposed_cas_, repli_timestamp timestamp_)
+    castime_t(cas_t proposed_cas_, repli_timestamp_t timestamp_)
         : proposed_cas(proposed_cas_), timestamp(timestamp_) { }
 
-    castime_t() : proposed_cas(0), timestamp(repli_timestamp::invalid) { }
+    castime_t() : proposed_cas(0), timestamp(repli_timestamp_t::invalid) { }
 };
 
 /* get_cas is a mutation instead of another method on get_store_t because it may need to

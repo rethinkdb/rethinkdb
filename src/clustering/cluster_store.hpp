@@ -111,7 +111,7 @@ public:
 
 /* Various things we need to be able to serialize and unserialize */
 
-RDB_MAKE_SERIALIZABLE_1(repli_timestamp, time)
+RDB_MAKE_SERIALIZABLE_1(repli_timestamp_t, time)
 RDB_MAKE_SERIALIZABLE_2(castime_t, proposed_cas, timestamp)
 
 /* If the incr/decr fails, then new_value is meaningless; garbage will be

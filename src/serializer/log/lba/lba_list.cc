@@ -97,14 +97,14 @@ flagged_off64_t lba_list_t::get_block_offset(block_id_t block) {
     return in_memory_index.get_block_info(block).offset;
 }
 
-repli_timestamp lba_list_t::get_block_recency(block_id_t block) {
+repli_timestamp_t lba_list_t::get_block_recency(block_id_t block) {
     rassert(state == state_ready);
 
     return in_memory_index.get_block_info(block).recency;
 }
 
 // TODO rename to set_block_info
-void lba_list_t::set_block_offset(block_id_t block, repli_timestamp recency, flagged_off64_t offset, file_t::account_t *io_account) {
+void lba_list_t::set_block_offset(block_id_t block, repli_timestamp_t recency, flagged_off64_t offset, file_t::account_t *io_account) {
     rassert(state == state_ready);
 
     in_memory_index.set_block_info(block, recency, offset);

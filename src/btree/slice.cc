@@ -112,7 +112,7 @@ void btree_slice_t::delete_all_keys_for_backfill(order_token_t token) {
     btree_delete_all_keys_for_backfill(this, token);
 }
 
-void btree_slice_t::backfill(repli_timestamp since_when, backfill_callback_t *callback, order_token_t token) {
+void btree_slice_t::backfill(repli_timestamp_t since_when, backfill_callback_t *callback, order_token_t token) {
     assert_thread();
 
     order_sink_.check_out(token);
@@ -136,7 +136,7 @@ void btree_slice_t::set_replication_clock(repli_timestamp_t t, order_token_t tok
 // TODO: Why are we using repli_timestamp_t::distant_past instead of
 // repli_timestamp_t::invalid?
 
-repli_timestamp btree_slice_t::get_replication_clock() {
+repli_timestamp_t btree_slice_t::get_replication_clock() {
     on_thread_t th(cache()->home_thread());
     transaction_t transaction(cache(), rwi_read, 0, repli_timestamp_t::distant_past);
     // TODO: Set the transaction's order token.
@@ -159,7 +159,7 @@ void btree_slice_t::set_last_sync(repli_timestamp_t t, UNUSED order_token_t toke
     sb->last_sync = t;
 }
 
-repli_timestamp btree_slice_t::get_last_sync() {
+repli_timestamp_t btree_slice_t::get_last_sync() {
     on_thread_t th(cache()->home_thread());
     transaction_t transaction(cache(), rwi_read, 0, repli_timestamp_t::distant_past);
     // TODO: Set the transaction's order token.

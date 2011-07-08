@@ -38,7 +38,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         for (int i = 0; i < npairs; ++i) {
             uint16_t offset = data->pair_offsets[i];
             memcached_value_sizer_t sizer(txn->get_cache()->get_block_size());
-            repli_timestamp recency = leaf::get_timestamp_value(&sizer, data, offset);
+            repli_timestamp_t recency = leaf::get_timestamp_value(&sizer, data, offset);
             const btree_leaf_pair *pair = leaf::get_pair(data, offset);
 
             if (recency.time >= since_when_.time) {
@@ -72,8 +72,8 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         interesting_children_callback_t *cb;
         boost::scoped_array<block_id_t> block_ids;
         int num_block_ids;
-        boost::scoped_array<repli_timestamp> recencies;
-        repli_timestamp since_when;
+        boost::scoped_array<repli_timestamp_t> recencies;
+        repli_timestamp_t since_when;
 
         void got_subtree_recencies() {
             coro_t::spawn(boost::bind(&annoying_t::do_got_subtree_recencies, this));
@@ -105,20 +105,20 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         std::copy(block_ids, block_ids + num_block_ids, fsm->block_ids.get());
         fsm->num_block_ids = num_block_ids;
         fsm->since_when = since_when_;
-        fsm->recencies.reset(new repli_timestamp[num_block_ids]);
+        fsm->recencies.reset(new repli_timestamp_t[num_block_ids]);
 
         txn->get_subtree_recencies(fsm->block_ids.get(), num_block_ids, fsm->recencies.get(), fsm);
     }
 
     backfill_callback_t *callback_;
-    repli_timestamp since_when_;
+    repli_timestamp_t since_when_;
 
-    backfill_traversal_helper_t(backfill_callback_t *callback, repli_timestamp since_when)
+    backfill_traversal_helper_t(backfill_callback_t *callback, repli_timestamp_t since_when)
         : callback_(callback), since_when_(since_when) { }
 };
 
 
-void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, boost::shared_ptr<cache_account_t> backfill_account, backfill_callback_t *callback, order_token_t token) {
+void btree_backfill(btree_slice_t *slice, repli_timestamp_t since_when, boost::shared_ptr<cache_account_t> backfill_account, backfill_callback_t *callback, order_token_t token) {
     {
         rassert(coro_t::self());
 

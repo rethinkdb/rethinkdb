@@ -34,8 +34,8 @@ void co_btree_delete_expired(const store_key_t &key, btree_slice_t *slice) {
     // TODO: Something is wrong with our abstraction since we are
     // passing a completely meaningless proposed cas and because we
     // should not really be passing a recency timestamp.
-    // It's okay to use repli_timestamp::invalid here.
-    run_btree_modify_oper(&sizer, &oper, slice, key, castime_t(BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS, repli_timestamp::invalid), order_token_t::ignore);
+    // It's okay to use repli_timestamp_t::invalid here.
+    run_btree_modify_oper(&sizer, &oper, slice, key, castime_t(BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS, repli_timestamp_t::invalid), order_token_t::ignore);
 }
 
 void btree_delete_expired(const store_key_t &key, btree_slice_t *slice) {

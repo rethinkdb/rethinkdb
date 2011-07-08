@@ -27,7 +27,7 @@ void insert_root(block_id_t root_id, buf_lock_t& sb_buf) {
 }
 
 // Get a root block given a superblock, or make a new root if there isn't one.
-void get_root(value_sizer_t *sizer, transaction_t *txn, buf_lock_t& sb_buf, buf_lock_t *buf_out, repli_timestamp timestamp) {
+void get_root(value_sizer_t *sizer, transaction_t *txn, buf_lock_t& sb_buf, buf_lock_t *buf_out, repli_timestamp_t timestamp) {
     rassert(!buf_out->is_acquired());
 
     block_id_t node_id = reinterpret_cast<const btree_superblock_t*>(sb_buf->get_data_read())->root_block;
@@ -160,7 +160,7 @@ void check_and_handle_underfull(transaction_t *txn, buf_lock_t& buf, buf_lock_t&
 
 void get_btree_superblock(btree_slice_t *slice, access_t access, order_token_t token, got_superblock_t *got_superblock_out) {
     rassert(is_read_mode(access));
-    get_btree_superblock(slice, access, 0, repli_timestamp::distant_past, token, got_superblock_out);
+    get_btree_superblock(slice, access, 0, repli_timestamp_t::distant_past, token, got_superblock_out);
 }
 
 void get_btree_superblock(btree_slice_t *slice, access_t access, int expected_change_count, repli_timestamp_t tstamp, order_token_t token, got_superblock_t *got_superblock_out) {

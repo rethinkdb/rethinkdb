@@ -198,7 +198,7 @@ void backfill_sender_t::realtime_append_prepend(append_prepend_kind_t kind, cons
     order_sink_after_send.check_out(token);
 }
 
-void backfill_sender_t::realtime_delete_key(const store_key_t &key, repli_timestamp timestamp, order_token_t token) {
+void backfill_sender_t::realtime_delete_key(const store_key_t &key, repli_timestamp_t timestamp, order_token_t token) {
     assert_thread();
     block_pm_duration set_timer(&master_rt_op);
     order_sink_before_send.check_out(token);
@@ -216,7 +216,7 @@ void backfill_sender_t::realtime_delete_key(const store_key_t &key, repli_timest
     order_sink_after_send.check_out(token);
 }
 
-void backfill_sender_t::realtime_time_barrier(repli_timestamp timestamp, order_token_t token) {
+void backfill_sender_t::realtime_time_barrier(repli_timestamp_t timestamp, order_token_t token) {
     block_pm_duration timer(&master_rt_timebarrier);
     order_sink_before_send.check_out(token);
     assert_thread();

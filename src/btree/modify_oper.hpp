@@ -35,7 +35,7 @@ public:
     // transactional ordering.
     virtual void do_superblock_sidequest(UNUSED transaction_t *txn,
                                          UNUSED buf_lock_t& superblock,
-                                         UNUSED repli_timestamp recency,
+                                         UNUSED repli_timestamp_t recency,
                                          UNUSED const store_key_t *key) { }
 };
 

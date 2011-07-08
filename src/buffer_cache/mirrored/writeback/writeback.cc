@@ -255,7 +255,7 @@ void writeback_t::concurrent_flush_t::start_and_acquire_lock() {
         bool saved_shutting_down = parent->cache->shutting_down;
         parent->cache->shutting_down = false;   // Backdoor around "no new transactions" assert.
 
-        // It's a read transaction, that's why we use repli_timestamp::invalid.
+        // It's a read transaction, that's why we use repli_timestamp_t::invalid.
         transaction = new mc_transaction_t(parent->cache, rwi_read);
         parent->cache->shutting_down = saved_shutting_down;
     }
@@ -443,7 +443,7 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
         // NULL indicates a deletion
         serializer_writes.push_back(serializer_t::write_t::make(
             parent->deleted_blocks[i].block_id,
-            repli_timestamp::invalid,
+            repli_timestamp_t::invalid,
             NULL,
             parent->deleted_blocks[i].write_empty_block,
             NULL
