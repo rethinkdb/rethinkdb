@@ -71,6 +71,9 @@ struct load_buf_fsm_t : public thread_message_t, serializer_t::read_callback_t {
             // TODO! Actually setting data_token currently makes stuff crash :-(
             // TODO: Merge this initialization with the read itself eventually
             //inner_buf->data_token = inner_buf->cache->serializer->index_read(inner_buf->block_id);
+
+            // NOTE: do_read() now spawns a coroutine; the only reason we still have load_buf_fsm_t
+            // was to avoid having to spawn coros to avoid perf regression.
             if (inner_buf->cache->serializer->do_read(inner_buf->block_id, inner_buf->data, io_account_, this))
                 on_serializer_read();
         } else {
