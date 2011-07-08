@@ -3,8 +3,6 @@
 
 #include <string>
 
-#include "errors.hpp"
-#include "arch/core.hpp"
 #include "utils2.hpp"
 
 // Precise time (time+nanoseconds) for logging, etc.
@@ -52,9 +50,11 @@ class home_thread_mixin_t {
 public:
     int home_thread() const { return real_home_thread; }
 
-    void assert_thread() const {
-        rassert(home_thread() == get_thread_id());
-    }
+#ifndef NDEBUG
+    void assert_thread() const;
+#else
+    void assert_thread() { }
+#endif  // NDEBUG
 
     virtual void rethread(int thread);
 

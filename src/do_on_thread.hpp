@@ -1,6 +1,7 @@
 #ifndef __DO_ON_THREAD_HPP__
 #define __DO_ON_THREAD_HPP__
 
+#include "arch/core.hpp"
 #include "utils.hpp"
 
 /* Functions to do something on another core in a way that is more convenient than

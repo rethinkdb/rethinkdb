@@ -1,5 +1,6 @@
 #include "concurrency/fifo_checker.hpp"
 
+#include "arch/core.hpp"
 #include "arch/coroutines.hpp"
 
 #ifndef NDEBUG

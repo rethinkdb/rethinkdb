@@ -144,6 +144,12 @@ std::string format_precise_time(const precise_time_t& time) {
     return std::string(buf);
 }
 
+#ifndef NDEBUG
+void home_thread_mixin_t::assert_thread() const {
+    rassert(home_thread() == get_thread_id());
+}
+#endif
+
 void home_thread_mixin_t::rethread(UNUSED int thread) {
     crash("This class is not rethreadable.\n");
 }
