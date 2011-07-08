@@ -1,4 +1,4 @@
-#include "replication/debug.hpp"
+#include "replication/debug_format.hpp"
 #include "utils2.hpp"
 #include "store.hpp"
 

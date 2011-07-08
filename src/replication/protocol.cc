@@ -1,5 +1,5 @@
 #include "replication/protocol.hpp"
-#include "replication/debug.hpp"
+#include "replication/debug_format.hpp"
 #include "concurrency/coro_fifo.hpp"
 #include "perfmon.hpp"
 
