@@ -46,14 +46,13 @@ struct link_t {
     std::string bucket;
     std::string key;
     std::string tag;
-};
 
-class link_iterator_t {
-    //TODO
+    std::string as_string();
 };
 
 struct object_t {
     std::string key;
+    std::string content;
     std::string content_type;
     std::string meta_data;
     std::string ETag;
@@ -77,22 +76,35 @@ public:
 class riak_interface_t {
 public:
     // Get a bucket by name
-    bucket_t bucket(std::string) {
-        not_implemented();
-        return bucket_t();
+    bucket_t const &bucket_read(std::string) {
+        crash("Not implementated");
+    }
+
+    bucket_t &bucket_write(std::string) {
+        crash("Not implementated");
     }
 
     //Get all the buckets
     std::pair<bucket_iterator_t, bucket_iterator_t> buckets() { 
-        not_implemented(); 
-        return std::make_pair(bucket_iterator_t(), bucket_iterator_t());
+        crash("Not implementated");
     };
 
     //Get all the keys in a bucket
     std::pair<object_iterator_t, object_iterator_t> objects(std::string) { 
-        not_implemented(); 
-        return std::make_pair(object_iterator_t(), object_iterator_t());
+        crash("Not implementated");
     };
+
+    const object_t &get_object(std::string, std::string) {
+        crash("Not implementated");
+    }
+
+    const object_t &store_object(std::string, object_t&) {
+        crash("Not implementated");
+    }
+
+    const object_t &delete_object(std::string, std::string) {
+        crash("Not implementated");
+    }
 };
 
 class riak_server_t : public http_server_t {

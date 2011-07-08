@@ -3,9 +3,27 @@
 #include <sstream>
 #include <boost/algorithm/string/join.hpp>
 
+/* What's the deal with the "m"s in front of all the json_spirit types?
+ * Json_spirit provides 2 different json implementations, one in which the
+ * dicts are represented as std::vectors, one in which they're represented as
+ * std::maps the "m" indicates that you're using the map implementation (which
+ * we probably will always do here because our dicts are small enough to make
+ * the complexity differences negligible and the syntax is nicer) */
 
 namespace riak {
 namespace json = json_spirit;
+
+std::string link_t::as_string() {
+    std::stringstream res;
+
+    res << bucket;
+    if (key.size() > 0) {
+        res << "/" << key;
+    }
+    res << "; riaktag=" << "\"" << tag << "\"";
+
+    return res.str();
+}
 
 http_res_t riak_server_t::handle(const http_req_t &req) {
     //setup a tokenizer
@@ -122,7 +140,7 @@ http_res_t riak_server_t::get_bucket(const http_req_t &req) {
     rassert(url_it != url_end, "This function should only be called if there's a bucket specified in the url");
 
     //grab the bucket
-    bucket_t bucket = riak.bucket(*url_it);
+    bucket_t bucket = riak.bucket_read(*url_it);
 
     http_res_t res; //the response we'll be sending
     json::mObject body; //the json for our body
@@ -180,16 +198,113 @@ http_res_t riak_server_t::get_bucket(const http_req_t &req) {
     return res;
 }
 
-http_res_t riak_server_t::set_bucket(const http_req_t &) {
+http_res_t riak_server_t::set_bucket(const http_req_t &req) {
+    boost::char_separator<char> sep("/");
+    tokenizer tokens(req.resource, sep);
+    tok_iterator url_it = tokens.begin(), url_end = tokens.end();
+    rassert(url_it != url_end, "This function should only be called if there's a bucket specified in the url");
 
-    not_implemented();
-    http_res_t res;
+    http_res_t res; //what we'll be sending back
+    json::mValue value; //value to parse the json in to
+
+    if (req.find_header_line("Content-Type") != "application/json") {
+        res.code = 415;
+        return res;
+    }
+
+    if (!json::read_string(req.body, value)) {
+        res.code = 400;
+        return res;
+    }
+
+    try {
+        json::mObject &obj = value.get_obj();
+
+        // get the fucket for writing 
+        bucket_t &bucket = riak.bucket_write(*url_it);
+
+        for (json::mObject::iterator it = obj.begin(); it != obj.end(); it++) {
+            if (it->first == "n_val") {
+                bucket.n_val = it->second.get_int();
+            }
+
+            if (it->first == "allow_mult") {
+                bucket.allow_mult = it->second.get_bool();
+            }
+            if (it->first == "last_write_wins") {
+                bucket.last_write_wins = it->second.get_bool();
+            }
+
+            if (it->first == "precommit") {
+            }
+            if (it->second == "postcommit") {
+            }
+
+            if (it->first == "r") {
+                bucket.r = it->second.get_int();
+            }
+
+            if (it->first == "w") {
+                bucket.w = it->second.get_int();
+            }
+
+            if (it->first == "dw") {
+                bucket.dw = it->second.get_int();
+            }
+
+            if (it->first == "rw") {
+                bucket.rw = it->second.get_int();
+            }
+
+            if (it->first == "backend") {
+                bucket.backend = it->second.get_str();
+            }
+
+        }
+    } catch (std::runtime_error) {
+        //We land here if the json has any type mismatches
+        res.code = 400;
+        return res;
+    }
+
+    res.code = 204;
+
     return res;
 }
 
-http_res_t riak_server_t::fetch_object(const http_req_t &) {
-    not_implemented();
+http_res_t riak_server_t::fetch_object(const http_req_t &req) {
+    //TODO this doesn't handle conditional request sementics
+    boost::char_separator<char> sep("/");
+    tokenizer tokens(req.resource, sep);
+    tok_iterator url_it = tokens.begin(), url_end = tokens.end();
+
+    rassert(url_it != url_end, "This function should only be called if there's a bucket specified in the url");
+    std::string bucket = *url_it;
+
+    url_it++;
+    rassert(url_it != url_end, "This function should only be called if there's a key specified in the url");
+    std::string key = *url_it;
+
+    //needs some sort of indication if the object isn't found
+    object_t obj = riak.get_object(bucket, key); //the object we're looking for
+
     http_res_t res;
+    res.set_body(obj.content_type, obj.content);
+    res.add_header_line("ETag", obj.ETag);
+
+    if (!obj.links.empty()) {
+
+        std::vector<std::string> links;
+
+        for (std::vector<link_t>::iterator it = obj.links.begin(); it != obj.links.end(); it++) {
+            links.push_back(it->as_string());
+        }
+
+        res.add_header_line("Link", boost::algorithm::join(links, ", "));
+    }
+
+    res.code = 200;
+
     return res;
 }
 
