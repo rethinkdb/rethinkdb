@@ -32,15 +32,9 @@ void mc_inner_buf_t::load_inner_buf(bool should_lock, file_t::account_t *io_acco
         subtree_recency = cache->serializer->get_recency(block_id);
         // TODO! Actually setting data_token currently makes stuff crash :-(
         // TODO: Merge this initialization with the read itself eventually
-        //inner_buf->data_token = inner_buf->cache->serializer->index_read(inner_buf->block_id);
-        struct : public serializer_t::read_callback_t, public cond_t {
-            void on_serializer_read() { pulse(); }
-        } cb;
-        rassert(data); // Should have been malloced before!
-        // TODO (rntz) use index_read()/block_read() instead of deprecated do_read().
-        if (!cache->serializer->do_read(block_id, data, io_account, &cb)) {
-            cb.wait();
-        }
+        //inner_buf->data_token = cache->serializer->index_read(block_id);
+        boost::shared_ptr<serializer_t::block_token_t> token = cache->serializer->index_read(block_id);
+        cache->serializer->block_read(token, data, io_account);
     }
 
     // Read the transaction id
