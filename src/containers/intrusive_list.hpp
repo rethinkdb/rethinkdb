@@ -1,8 +1,7 @@
-
 #ifndef __INTRUSIVE_LIST_HPP__
 #define __INTRUSIVE_LIST_HPP__
 
-#include "utils2.hpp"
+#include "errors.hpp"
 
 template <class node_t> class intrusive_list_t;
 
@@ -54,19 +53,11 @@ public:
         }
     }
 
-    node_t* front() {
+    node_t *head() {
         return _head;
     }
-    node_t* back() {
+    node_t *tail() {
         return _tail;
-    }
-
-    /* These are obsolete; use front() and back() instead. */
-    node_t* head() {
-        return front();
-    }
-    node_t* tail() {
-        return back();
     }
 
     node_t *next(node_t *elem) {
@@ -139,11 +130,11 @@ public:
 
     void pop_front() {
         rassert(!empty());
-        remove(front());
+        remove(head());
     }
     void pop_back() {
         rassert(!empty());
-        remove(back());
+        remove(tail());
     }
 
     void append_and_clear(intrusive_list_t<node_t> *list) {
