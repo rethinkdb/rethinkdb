@@ -79,8 +79,8 @@ public:
             if (next_val) {
                 merge_heap.push(std::make_pair(next_val.get(), next_to_pop_from));
             } else {
-                next_to_pop_from.reset();    // relinquish our hold
                 mergees.erase(next_to_pop_from);
+                next_to_pop_from.reset();    // relinquish our hold
             }
         }
         if (merge_heap.size() == 0) {
