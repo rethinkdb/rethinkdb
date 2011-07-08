@@ -1,7 +1,6 @@
 #include "btree/rget.hpp"
 #include "btree/iteration.hpp"
 #include "containers/iterators.hpp"
-#include "containers/unique_ptr.hpp"
 #include "arch/coroutines.hpp"
 
 /*
