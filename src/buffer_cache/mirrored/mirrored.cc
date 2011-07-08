@@ -346,7 +346,8 @@ perfmon_duration_sampler_t
     pm_bufs_acquiring("bufs_acquiring", secs_to_ticks(1)),
     pm_bufs_held("bufs_held", secs_to_ticks(1));
 
-mc_buf_t::mc_buf_t(mc_inner_buf_t *inner_buf, access_t mode, mc_inner_buf_t::version_id_t version_to_access, bool snapshotted, boost::function<void()> call_when_in_line)
+mc_buf_t::mc_buf_t(mc_inner_buf_t *inner_buf, access_t mode, mc_inner_buf_t::version_id_t version_to_access, bool snapshotted,
+                   boost::function<void()> call_when_in_line)
     : mode(mode), non_locking_access(false), inner_buf(inner_buf), data(NULL)
 {
     inner_buf->cache->assert_thread();
@@ -418,7 +419,7 @@ void mc_buf_t::acquire_block(bool locked, mc_inner_buf_t::version_id_t version_t
                 break;
             }
             case rwi_write: {
-                // FIXME (rntz) is it valid for version_to_access to be anything /other/ than
+                // NOTE (rntz) is it valid for version_to_access to be anything /other/ than
                 // faux_version_id? it looks like it might happen if called from
                 // transaction_t::allocate()
                 if (version_to_access == mc_inner_buf_t::faux_version_id)
