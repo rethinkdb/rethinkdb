@@ -29,13 +29,31 @@ struct bucket_t {
     std::string backend;
 };
 
+class bucket_iterator_t {
+    //TODO actually implement this instead of just duping the type checker
+private:
+    bucket_t bucket;
+public:
+    bool operator!=(bucket_iterator_t const &) {not_implemented(); return true;}
+    bool operator==(bucket_iterator_t const &) {not_implemented(); return true;}
+    bucket_iterator_t operator++() {not_implemented(); return *this;}
+    bucket_iterator_t operator++(int) {not_implemented(); return *this;}
+    bucket_t operator*() {not_implemented(); return bucket_t(); }
+    bucket_t *operator->() {not_implemented(); return &bucket;};
+};
+
 struct link_t {
     std::string bucket;
     std::string key;
     std::string tag;
 };
 
+class link_iterator_t {
+    //TODO
+};
+
 struct object_t {
+    std::string key;
     std::string content_type;
     std::string meta_data;
     std::string ETag;
@@ -43,9 +61,38 @@ struct object_t {
     std::vector<link_t> links;
 };
 
+class object_iterator_t {
+    //TODO actually implement this instead of just duping the type checker
+private:
+    object_t object;
+public:
+    bool operator!=(object_iterator_t const &) {not_implemented(); return true;}
+    bool operator==(object_iterator_t const &) {not_implemented(); return true;}
+    object_iterator_t operator++() {not_implemented(); return *this;}
+    object_iterator_t operator++(int) {not_implemented(); return *this;}
+    object_t operator*() {not_implemented(); return object_t(); }
+    object_t *operator->() {not_implemented(); return &object;};
+};
+
 class riak_interface_t {
 public:
-    std::vector<bucket_t> list_buckets() { not_implemented(); return std::vector<bucket_t>(); };
+    // Get a bucket by name
+    bucket_t bucket(std::string) {
+        not_implemented();
+        return bucket_t();
+    }
+
+    //Get all the buckets
+    std::pair<bucket_iterator_t, bucket_iterator_t> buckets() { 
+        not_implemented(); 
+        return std::make_pair(bucket_iterator_t(), bucket_iterator_t());
+    };
+
+    //Get all the keys in a bucket
+    std::pair<object_iterator_t, object_iterator_t> objects(std::string) { 
+        not_implemented(); 
+        return std::make_pair(object_iterator_t(), object_iterator_t());
+    };
 };
 
 class riak_server_t : public http_server_t {
@@ -62,7 +109,8 @@ private:
 //handlers for specific commands, really just to break up the code
 private:
     http_res_t list_buckets(const http_req_t &);
-    http_res_t list_keys(const http_req_t &);
+
+    //http_res_t list_keys(const http_req_t &);
     http_res_t get_bucket(const http_req_t &);
     http_res_t set_bucket(const http_req_t &);
     http_res_t fetch_object(const http_req_t &);

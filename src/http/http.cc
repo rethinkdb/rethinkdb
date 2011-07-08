@@ -2,6 +2,7 @@
 #include <iostream>
 
 std::string http_req_t::find_query_param(std::string key) const {
+    //TODO this is inefficient we should actually load it all into a map
     for (std::vector<query_parameter_t>::const_iterator it = query_params.begin(); it != query_params.end(); it++) {
         if (it->val == key) return it->key;
     }
@@ -9,6 +10,7 @@ std::string http_req_t::find_query_param(std::string key) const {
 }
 
 std::string http_req_t::find_header_line(std::string key) const {
+    //TODO this is inefficient we should actually load it all into a map
     for (std::vector<header_line_t>::const_iterator it = header_lines.begin(); it != header_lines.end(); it++) {
         if (it->val == key) return it->key;
     }
