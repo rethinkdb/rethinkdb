@@ -16,6 +16,66 @@ perfmon_sampler_t pm_snapshots_per_transaction("snapshots_per_transaction", secs
 
 perfmon_persistent_counter_t pm_cache_hits("cache_hits"), pm_cache_misses("cache_misses");
 
+// Types of snapshots
+struct mc_inner_buf_t::buf_snapshot_info_t {
+    buf_snapshot_info_t(version_id_t version, unsigned int initial_refcount) : snapshotted_version(version), refcount(initial_refcount) {}
+    virtual ~buf_snapshot_info_t() { }
+    virtual void *get_data_if_available() const = 0;
+    virtual void *get_data() = 0;
+    version_id_t snapshotted_version;
+    unsigned int refcount;
+};
+
+struct mc_inner_buf_t::in_memory_snapshot_t : public buf_snapshot_info_t {
+    // Takes ownership of data!
+    in_memory_snapshot_t(version_id_t version, unsigned int initial_refcount, serializer_t *ser, void *data) :
+        buf_snapshot_info_t(version, initial_refcount), serializer(ser), data(data) { }
+    ~in_memory_snapshot_t() {
+        serializer->free(data);
+    }
+    void *get_data() { return data; }
+    void *get_data_if_available() const { return data; }
+  private:
+    serializer_t *serializer;
+    void *data;
+};
+
+/* This snapshots writes an existing buffer to disk and as soon as the write has finished behaves exactly like an on_disk_snapshot_t*/
+//struct mc_inner_buf_t::write_to_disk_snapshot_t : public buf_snapshot_info_t, public iocallback_t {
+// TODO! (there's some tricky stuff here)
+//};
+
+/* The on_disk_snapshot_t acquires the block the first time it gets accessed*/
+struct mc_inner_buf_t::on_disk_snapshot_t : public buf_snapshot_info_t {
+    on_disk_snapshot_t(version_id_t version, unsigned int initial_refcount, serializer_t *ser, boost::shared_ptr<serializer_t::block_token_t> token) :
+        buf_snapshot_info_t(version, initial_refcount), serializer(ser), token(token), data(NULL) { }
+    // Be careful, this blocks (hope that's fine?)
+    void *get_data() {
+        mutex_acquisition_t m(&data_mutex);
+        if (data) {
+            return data;
+        }
+        data = serializer->malloc();
+        // XXX (rntz) should this be using DEFAULT_DISK_ACCOUNT?
+        serializer->block_read(token, data, DEFAULT_DISK_ACCOUNT);
+        token.reset(); // Free the block
+        return data;
+    }
+    void *get_data_if_available() const {
+        mutex_acquisition_t m(&data_mutex);
+        if (data) {
+            return data;
+        } else {
+            return NULL;
+        }
+    }
+  private:
+    serializer_t *serializer;
+    boost::shared_ptr<serializer_t::block_token_t> token;
+    void *data;
+    mutable mutex_t data_mutex;
+};
+
 // This loads a block from the serializer and stores it into buf.
 void mc_inner_buf_t::load_inner_buf(bool should_lock, file_t::account_t *io_account) {
     if (should_lock) {
