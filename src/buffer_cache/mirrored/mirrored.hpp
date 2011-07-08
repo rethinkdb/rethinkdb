@@ -36,7 +36,6 @@ typedef array_map_t page_map_t;
 class mc_cache_account_t;
 
 class mc_inner_buf_t : public home_thread_mixin_t {
-    friend class load_buf_fsm_t;
     friend class mc_cache_t;
     friend class mc_transaction_t;
     friend class mc_buf_t;
@@ -357,7 +356,6 @@ class mc_cache_account_t {
 
 
 class mc_cache_t : public home_thread_mixin_t, public serializer_t::read_ahead_callback_t {
-    friend class load_buf_fsm_t;
     friend class mc_buf_t;
     friend class mc_inner_buf_t;
     friend class mc_transaction_t;

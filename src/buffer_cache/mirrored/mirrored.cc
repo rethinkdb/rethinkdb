@@ -30,10 +30,14 @@ void mc_inner_buf_t::load_inner_buf(bool should_lock, file_t::account_t *io_acco
     {
         on_thread_t thread(cache->serializer->home_thread());
         subtree_recency = cache->serializer->get_recency(block_id);
+        // TODO! Actually setting data_token currently makes stuff crash :-(
+        // TODO: Merge this initialization with the read itself eventually
+        //inner_buf->data_token = inner_buf->cache->serializer->index_read(inner_buf->block_id);
         struct : public serializer_t::read_callback_t, public cond_t {
             void on_serializer_read() { pulse(); }
         } cb;
         rassert(data); // Should have been malloced before!
+        // TODO (rntz) use index_read()/block_read() instead of deprecated do_read().
         if (!cache->serializer->do_read(block_id, data, io_account, &cb)) {
             cb.wait();
         }
@@ -48,52 +52,6 @@ void mc_inner_buf_t::load_inner_buf(bool should_lock, file_t::account_t *io_acco
         lock.unlock();
     }
 }
-
-// TODO: This is basically equivalent in functionality to doing a spawn_now() on
-// load_inner_buf(). However, it takes less memory and for now, I don't want to risk
-// a regression. We should remove this after 1.1!
-// <DEPRECATED>
-struct load_buf_fsm_t : public thread_message_t, serializer_t::read_callback_t {
-    bool have_loaded;
-    mc_inner_buf_t *inner_buf;
-    file_t::account_t *io_account_;
-    explicit load_buf_fsm_t(mc_inner_buf_t *buf, file_t::account_t *io_account) :
-            inner_buf(buf),
-            io_account_(io_account) {
-        bool locked UNUSED = inner_buf->lock.lock(rwi_write, NULL);
-        rassert(locked);
-        have_loaded = false;
-        if (continue_on_thread(inner_buf->cache->serializer->home_thread(), this)) on_thread_switch();
-    }
-    void on_thread_switch() {
-        if (!have_loaded) {
-            inner_buf->subtree_recency = inner_buf->cache->serializer->get_recency(inner_buf->block_id);
-            // TODO! Actually setting data_token currently makes stuff crash :-(
-            // TODO: Merge this initialization with the read itself eventually
-            //inner_buf->data_token = inner_buf->cache->serializer->index_read(inner_buf->block_id);
-
-            // NOTE: do_read() now spawns a coroutine; the only reason we still have load_buf_fsm_t
-            // was to avoid having to spawn coros to avoid perf regression.
-            if (inner_buf->cache->serializer->do_read(inner_buf->block_id, inner_buf->data, io_account_, this))
-                on_serializer_read();
-        } else {
-            // Read the block sequence id
-            inner_buf->block_sequence_id = inner_buf->cache->serializer->get_block_sequence_id(inner_buf->block_id, inner_buf->data);
-
-            inner_buf->replay_patches();
-
-            inner_buf->lock.unlock();
-            delete this;
-        }
-    }
-    void on_serializer_read() {
-        have_loaded = true;
-        if (continue_on_thread(inner_buf->cache->home_thread(), this)) on_thread_switch();
-    }
-};
-// </DEPRECATED>
-
-
 
 // This form of the buf constructor is used when the block exists on disk and needs to be loaded
 mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_load, file_t::account_t *io_account)
@@ -115,14 +73,10 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_
     rassert(version_id != faux_version_id);
 
     if (should_load) {
-        // Some things expect us to return immediately (as of 5/12/2011), so we do the loading in a separate coro.
-        // We have to make sure that load_inner_buf() acquires the lock first however,
-        // so we use spawn_now().
-        //coro_t::spawn_now(boost::bind(&load_inner_buf, this, true));
-        // TODO: Spawning a coroutine for each load might introduce a performance regression.
-        // Also it doesn't harmonize with the current patch_disk_storage preloading.
-        // Therefore, we are still using the old load_buf_fsm_t at this one place for now.
-        new load_buf_fsm_t(this, io_account);
+        // Some things expect us to return immediately (as of 5/12/2011), so we do the loading in a
+        // separate coro. We have to make sure that load_inner_buf() acquires the lock first
+        // however, so we use spawn_now().
+        coro_t::spawn_now(boost::bind(&mc_inner_buf_t::load_inner_buf, this, true, io_account));
     }
 
     // pm_n_blocks_in_memory gets incremented in cases where
@@ -162,7 +116,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, r
 
     // Read the block sequence id
     block_sequence_id = cache->serializer->get_block_sequence_id(block_id, data);
-    
+
     replay_patches();
 
     // TODO: This should initialize data_token at some point. That however requires switching to the serializer thread
@@ -650,7 +604,7 @@ void mc_buf_t::release() {
                 unreachable("Unexpected mode.");
         }
     }
-    
+
     // If the buf is marked deleted, then we can delete it from memory already
     // and just keep track of the deleted block_id (and whether to write an
     // empty block).
