@@ -7,11 +7,13 @@ page_repl_random_t::page_repl_random_t(unsigned int _unload_threshold, cache_t *
     {}
     
 page_repl_random_t::local_buf_t::local_buf_t(inner_buf_t *gbuf) : gbuf(gbuf) {
+    gbuf->cache->assert_thread();
     index = gbuf->cache->page_repl.array.size();
     gbuf->cache->page_repl.array.set(index, gbuf);
 }
     
 page_repl_random_t::local_buf_t::~local_buf_t() {
+    gbuf->cache->assert_thread();
     unsigned int last_index = gbuf->cache->page_repl.array.size() - 1;
 
     if (index == last_index) {
@@ -26,6 +28,7 @@ page_repl_random_t::local_buf_t::~local_buf_t() {
 }
 
 bool page_repl_random_t::is_full(unsigned int space_needed) {
+    cache->assert_thread();
     return array.size() + space_needed > unload_threshold;
 }
 
@@ -34,6 +37,7 @@ perfmon_counter_t pm_n_blocks_evicted("blocks_evicted");
 // make_space tries to make sure that the number of blocks currently in memory is at least
 // 'space_needed' less than the user-specified memory limit.
 void page_repl_random_t::make_space(unsigned int space_needed) {
+    cache->assert_thread();
     unsigned int target;
     // TODO: why, if more space is needed than unload_threshold, do we set the target number of
     // pages in cache to unload_threshold rather than 0? (note: git blames this on tim) - rntz
@@ -77,11 +81,13 @@ void page_repl_random_t::make_space(unsigned int space_needed) {
 }
 
 mc_inner_buf_t *page_repl_random_t::get_first_buf() {
+    cache->assert_thread();
     if (array.size() == 0) return NULL;
     return array.get(0);
 }
 
 mc_inner_buf_t *page_repl_random_t::get_next_buf(inner_buf_t *buf) {
+    cache->assert_thread();
     if (buf->page_repl_buf.index == array.size() - 1) return NULL;
     else return array.get(buf->page_repl_buf.index + 1);
 }
