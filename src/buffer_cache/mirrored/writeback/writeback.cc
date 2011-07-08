@@ -367,8 +367,7 @@ void writeback_t::concurrent_flush_t::prepare_patches() {
     pm_flushes_diff_store.begin(&start_time2);
     bool patch_storage_failure = false;
     unsigned int patches_stored = 0;
-    for (intrusive_list_t<local_buf_t>::iterator lbuf_it = parent->dirty_bufs.begin(); lbuf_it != parent->dirty_bufs.end(); lbuf_it++) {
-        local_buf_t *lbuf = *lbuf_it;
+    for (local_buf_t *lbuf = parent->dirty_bufs.head(); lbuf; lbuf = parent->dirty_bufs.next(lbuf)) {
         inner_buf_t *inner_buf = lbuf->gbuf;
 
         if (patch_storage_failure && lbuf->dirty && !lbuf->needs_flush) {
