@@ -221,6 +221,9 @@ struct acquire_buftree_fsm_t : public tree_available_callback_t {
 }
 
     void go() {
+        // NOTE: This is the one and only place in our codebase (as of 2011-07-07, commit
+        // 06f90feccdd0e727bfacd33ca7d9793edbe1a251) in which we can potentially pass
+        // should_load=false to transaction_t::acquire() and thus to inner_buf_t(). -rntz
         bool should_load = should_load_code > no_load_leaves || levels != 1;
         buf_t *buf = lb->txn->acquire(block_id, lb->access, boost::function<void()>(), should_load);
 
