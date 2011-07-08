@@ -1,6 +1,7 @@
 #ifndef __CONCURRENCY_COND_VAR_HPP__
 #define __CONCURRENCY_COND_VAR_HPP__
 
+#include "do_on_thread.hpp"
 #include "arch/core.hpp"
 #include "concurrency/signal.hpp"
 

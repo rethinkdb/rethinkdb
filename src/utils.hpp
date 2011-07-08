@@ -105,15 +105,4 @@ struct on_thread_t : public home_thread_mixin_t {
     ~on_thread_t();
 };
 
-
-/* API to allow a nicer way of performing jobs on other cores than subclassing
-from thread_message_t. Call do_on_thread() with an object and a method for that object.
-The method will be called on the other thread. If the thread to call the method on is
-the current thread, returns the method's return value. Otherwise, returns false. */
-
-template<class callable_t>
-void do_on_thread(int thread, const callable_t& callable);
-
-#include "utils.tcc"
-
 #endif // __UTILS_HPP__
