@@ -780,6 +780,7 @@ mc_buf_t *mc_transaction_t::allocate() {
 
     inner_buf_t *inner_buf = inner_buf_t::allocate(cache, snapshot_version, recency_timestamp);
 
+    // Assign a snapshot version, to ensure we can no longer become a snapshotting transaction.
     if (snapshot_version == mc_inner_buf_t::faux_version_id)
         snapshot_version = inner_buf->version_id;
 
@@ -824,9 +825,6 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
         }
     }
 
-    // If we are not in a snapshot transaction, then snapshot_version is faux_version_id,
-    // so the latest block version will be acquired (possibly, after acquiring the lock).
-    // If the snapshot version is specified, then no locking is used.
     buf_t *buf = new buf_t(inner_buf, mode, snapshot_version, snapshotted, call_when_in_line);
 
     if (!(mode == rwi_read || mode == rwi_read_outdated_ok)) {
@@ -846,7 +844,8 @@ void mc_transaction_t::maybe_finalize_version() {
         cache->register_snapshot(this);
     }
     if (snapshot_version == mc_inner_buf_t::faux_version_id) {
-        // For non-snapshotted transactions, we still assign a version number on the first acquire
+        // For non-snapshotted transactions, we still assign a version number on the first acquire,
+        // to allow us to check for snapshotting after having acquired blocks
         snapshot_version = cache->next_snapshot_version;
     }
 }
