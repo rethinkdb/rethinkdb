@@ -54,30 +54,30 @@ void timer_handler_t::on_timer(int nexpirations) {
     timer_ticks_since_server_startup += nexpirations;
     long time_in_ms = timer_ticks_since_server_startup * TIMER_TICKS_IN_MS;
 
-    intrusive_list_t<timer_token_t>::iterator t;
-    for (t = timers.begin(); t != timers.end(); ) {
-        timer_token_t *timer = *t;
-        
+    timer_token_t *p = timers.head();
+    while (p) {
+        timer_token_t *timer = p;
+
         // Increment now instead of in the header of the 'for' loop because we may
         // delete the timer we are on
-        t++;
-        
+        p = timers.next(p);
+
         if (!timer->deleted && time_in_ms > timer->next_time_in_ms) {
             // Note that a repeating timer may have "expired" multiple times since the last time
             // process_timer_notify() was called. However, everything that uses the timer mechanism
             // right now works better if the timer's callback only happens once. Perhaps there
             // should be a flag on the timer that determines whether to call the timer's callback
             // more than once or not.
-            
+
             timer->callback(timer->context);
-            
+
             if (timer->once) {
                 cancel_timer(timer);
             } else {
                 timer->next_time_in_ms = time_in_ms + timer->interval_ms;
             }
         }
-        
+
         if (timer->deleted) {
             timers.remove(timer);
             delete timer;
