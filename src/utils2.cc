@@ -4,6 +4,7 @@
 #include <limits.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <sys/time.h>
 #include <boost/scoped_array.hpp>
 

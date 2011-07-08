@@ -2,6 +2,8 @@
 
 #ifndef NDEBUG
 
+#include <vector>
+
 #define ORDER_INVALID (-2)
 #define ORDER_INVALID (-2)
 

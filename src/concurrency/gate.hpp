@@ -1,6 +1,8 @@
 #ifndef __CONCURRENCY_GATE_HPP__
 #define __CONCURRENCY_GATE_HPP__
 
+#include <vector>
+
 #include "errors.hpp"
 #include <boost/scoped_array.hpp>
 

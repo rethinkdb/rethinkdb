@@ -2,6 +2,7 @@
 #define __STORE_HPP__
 
 #include <string.h>
+#include <stdio.h>
 
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>

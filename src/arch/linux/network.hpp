@@ -1,6 +1,7 @@
-
 #ifndef __ARCH_LINUX_NETWORK_HPP__
 #define __ARCH_LINUX_NETWORK_HPP__
+
+#include <vector>
 
 #include "utils2.hpp"
 #include <boost/scoped_ptr.hpp>

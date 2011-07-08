@@ -1,12 +1,14 @@
 #ifndef __CMD_ARGS_HPP__
 #define __CMD_ARGS_HPP__
 
-#include "config/args.hpp"
-#include <stdint.h>
-#include <sys/types.h>
 #include <string>
 #include <vector>
 
+#include <stdint.h>
+#include <stdio.h>
+#include <sys/types.h>
+
+#include "config/args.hpp"
 #include "serializer/types.hpp"
 #include "arch/arch.hpp"
 

@@ -1,6 +1,8 @@
 #ifndef __MEMCACHED_MEMCACHED_HPP__
 #define __MEMCACHED_MEMCACHED_HPP__
 
+#include <vector>
+
 #include "store.hpp"
 
 /* `handle_memcache()` handles memcache queries from the given `memcached_interface_t`,

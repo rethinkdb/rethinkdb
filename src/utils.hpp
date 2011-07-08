@@ -1,16 +1,7 @@
 #ifndef __UTILS_HPP__
 #define __UTILS_HPP__
 
-#include <stdio.h>
-#include <ctype.h>
-#include <endian.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <stdio.h>
-
-#include <functional>
 #include <string>
-#include <vector>
 
 #include "errors.hpp"
 #include "arch/core.hpp"
