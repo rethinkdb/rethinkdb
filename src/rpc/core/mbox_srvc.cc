@@ -4,7 +4,9 @@
 void mailbox_srvc_t::handle(cluster_peer_t *sndr) {
     if (cluster_mailbox_t *mbox = get_cluster()->get_mailbox(msg.id())) {
 #ifndef NDEBUG
+        fprintf(stderr, "Got a message\n");
         if (msg.has_type()) {
+            fprintf(stderr, "Type: %s\n", msg.type().c_str());
             std::string realname = demangle_cpp_name(mbox->expected_type().name());
             if (realname != msg.type()) {
                 logERR("Error, mailbox type mismatch. Mailbox msg of type: %s "
@@ -23,6 +25,8 @@ void mailbox_srvc_t::handle(cluster_peer_t *sndr) {
 
         cluster_peer_inpipe_t inpipe(sndr->conn.get(), msg.length());
         cond_t to_signal_when_done;
+        // TODO! Hook into this for debugging...
+        fprintf(stderr, "Handing over to mailbox\n");
         coro_t::spawn_now(boost::bind(
             &cluster_mailbox_t::unserialize, mbox, boost::ref(inpipe.get_archive()),
             // Wrap in `boost::function` to avoid a weird `boost::bind()` feature

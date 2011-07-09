@@ -134,6 +134,7 @@ of a boost::shared_ptr, namely boost::shared_ptr<data_provider_t>. */
 namespace boost {
 namespace serialization {
     template<class Archive> void save(Archive &ar, const ::boost::shared_ptr<data_provider_t> &data, UNUSED const unsigned int version) {
+        fprintf(stderr, "Saving data_provider_t\n");
         bool non_null = data.get() != NULL;
         ar & non_null;
         if (non_null) {
@@ -147,6 +148,7 @@ namespace serialization {
     }
     
     template<class Archive> void load(Archive &ar, ::boost::shared_ptr<data_provider_t> &data, UNUSED const unsigned int version) {
+        fprintf(stderr, "Loading data_provider_t\n");
         bool non_null;
         ar >> non_null;
         if (non_null) {
@@ -163,6 +165,20 @@ namespace serialization {
 } // namespace boost
 BOOST_SERIALIZATION_SPLIT_FREE(boost::shared_ptr<data_provider_t>)
 
+// TODO!
+namespace boost {
+namespace serialization {
+    template<class Archive> void save(UNUSED Archive &ar, UNUSED const data_provider_t *&data, UNUSED const unsigned int version) {
+        crash("Saving data_provider_t* not implemented\n");
+    }
+    
+    template<class Archive> void load(UNUSED Archive &ar, UNUSED data_provider_t *&data, UNUSED const unsigned int version) {
+        crash("Loading data_provider_t* not implemented\n");
+    }
+} // namespace serialization
+} // namespace boost
+BOOST_SERIALIZATION_SPLIT_FREE(data_provider_t*)
+
 /* Serializing and unserializing `order_token_t`. For now we don't actually serialize
 anything because we don't have a way of making sure that buckets are unique across
 different machines in the cluster. */
@@ -170,10 +186,12 @@ different machines in the cluster. */
 namespace boost {
 namespace serialization {
     template<class Archive> void save(UNUSED Archive &ar, UNUSED const order_token_t &tok, UNUSED const unsigned int version) {
+        fprintf(stderr, "Saving order_token_t\n");
         // Do nothing
     }
     
     template<class Archive> void load(UNUSED Archive &ar, order_token_t &tok, UNUSED const unsigned int version) {
+        fprintf(stderr, "Loading order_token_t\n");
         tok = order_token_t::ignore;
     }
 } // namespace serialization

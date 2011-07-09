@@ -57,11 +57,8 @@ private:
     struct message_t : public cluster_message_t {
         message_t()
             { }
-        void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(UNUSED Archive &ar, UNUSED const unsigned int version) {
+        void serialize(UNUSED cluster_outpipe_t *pipe) const {
+            fprintf(stderr, "serialize in message_t\n");
         }
     };
 #ifndef NDEBUG
@@ -149,11 +146,8 @@ private:
             { }
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(UNUSED Archive &ar, UNUSED const unsigned int version) {
-            ar & reply_to;
+            fprintf(stderr, "serialize in call_message_t\n");
+            pipe->get_archive() << reply_to;
         }
     };
 #ifndef NDEBUG
@@ -163,11 +157,8 @@ private:
 #endif
 
     struct ret_message_t : public cluster_message_t {
-        void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(UNUSED Archive &ar, UNUSED const unsigned int version) {
+        void serialize(UNUSED cluster_outpipe_t *pipe) const {
+            fprintf(stderr, "serialize in ret_message_t\n");
         }
     };
 
@@ -266,11 +257,8 @@ private:
             { }
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(UNUSED Archive &ar, UNUSED const unsigned int version) {
-            ar & reply_to;
+            fprintf(stderr, "serialize in call_message_t\n");
+            pipe->get_archive() << reply_to;
         }
     };
 #ifndef NDEBUG
@@ -282,11 +270,8 @@ private:
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & ret;
+            pipe->get_archive() << ret;
+            fprintf(stderr, "serialize in ret_message_t\n");
         }
     };
 
@@ -345,11 +330,8 @@ private:
             : arg0(arg0) { }
         const arg0_t &arg0;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & arg0;
+            fprintf(stderr, "serialize in message_t\n");
+            pipe->get_archive() << arg0;
         }
     };
 #ifndef NDEBUG
@@ -442,12 +424,9 @@ private:
         const arg0_t &arg0;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & arg0;
-            ar & reply_to;
+            fprintf(stderr, "serialize in call_message_t\n");
+            pipe->get_archive() << arg0;
+            pipe->get_archive() << reply_to;
         }
     };
 #ifndef NDEBUG
@@ -457,11 +436,8 @@ private:
 #endif
 
     struct ret_message_t : public cluster_message_t {
-        void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(UNUSED Archive &ar, UNUSED const unsigned int version) {
+        void serialize(UNUSED cluster_outpipe_t *pipe) const {
+            fprintf(stderr, "serialize in ret_message_t\n");
         }
     };
 
@@ -563,12 +539,9 @@ private:
         const arg0_t &arg0;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & arg0;
-            ar & reply_to;
+            fprintf(stderr, "serialize in call_message_t\n");
+            pipe->get_archive() << arg0;
+            pipe->get_archive() << reply_to;
         }
     };
 #ifndef NDEBUG
@@ -580,11 +553,8 @@ private:
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & ret;
+            pipe->get_archive() << ret;
+            fprintf(stderr, "serialize in ret_message_t\n");
         }
     };
 
@@ -646,12 +616,9 @@ private:
         const arg0_t &arg0;
         const arg1_t &arg1;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & arg0;
-            ar & arg1;
+            fprintf(stderr, "serialize in message_t\n");
+            pipe->get_archive() << arg0;
+            pipe->get_archive() << arg1;
         }
     };
 #ifndef NDEBUG
@@ -748,13 +715,10 @@ private:
         const arg1_t &arg1;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & arg0;
-            ar & arg1;
-            ar & reply_to;
+            fprintf(stderr, "serialize in call_message_t\n");
+            pipe->get_archive() << arg0;
+            pipe->get_archive() << arg1;
+            pipe->get_archive() << reply_to;
         }
     };
 #ifndef NDEBUG
@@ -764,11 +728,8 @@ private:
 #endif
 
     struct ret_message_t : public cluster_message_t {
-        void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(UNUSED Archive &ar, UNUSED const unsigned int version) {
+        void serialize(UNUSED cluster_outpipe_t *pipe) const {
+            fprintf(stderr, "serialize in ret_message_t\n");
         }
     };
 
@@ -873,13 +834,10 @@ private:
         const arg1_t &arg1;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & arg0;
-            ar & arg1;
-            ar & reply_to;
+            fprintf(stderr, "serialize in call_message_t\n");
+            pipe->get_archive() << arg0;
+            pipe->get_archive() << arg1;
+            pipe->get_archive() << reply_to;
         }
     };
 #ifndef NDEBUG
@@ -891,11 +849,8 @@ private:
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & ret;
+            pipe->get_archive() << ret;
+            fprintf(stderr, "serialize in ret_message_t\n");
         }
     };
 
@@ -960,13 +915,10 @@ private:
         const arg1_t &arg1;
         const arg2_t &arg2;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & arg0;
-            ar & arg1;
-            ar & arg2;
+            fprintf(stderr, "serialize in message_t\n");
+            pipe->get_archive() << arg0;
+            pipe->get_archive() << arg1;
+            pipe->get_archive() << arg2;
         }
     };
 #ifndef NDEBUG
@@ -1067,14 +1019,11 @@ private:
         const arg2_t &arg2;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & arg0;
-            ar & arg1;
-            ar & arg2;
-            ar & reply_to;
+            fprintf(stderr, "serialize in call_message_t\n");
+            pipe->get_archive() << arg0;
+            pipe->get_archive() << arg1;
+            pipe->get_archive() << arg2;
+            pipe->get_archive() << reply_to;
         }
     };
 #ifndef NDEBUG
@@ -1084,11 +1033,8 @@ private:
 #endif
 
     struct ret_message_t : public cluster_message_t {
-        void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(UNUSED Archive &ar, UNUSED const unsigned int version) {
+        void serialize(UNUSED cluster_outpipe_t *pipe) const {
+            fprintf(stderr, "serialize in ret_message_t\n");
         }
     };
 
@@ -1196,14 +1142,11 @@ private:
         const arg2_t &arg2;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & arg0;
-            ar & arg1;
-            ar & arg2;
-            ar & reply_to;
+            fprintf(stderr, "serialize in call_message_t\n");
+            pipe->get_archive() << arg0;
+            pipe->get_archive() << arg1;
+            pipe->get_archive() << arg2;
+            pipe->get_archive() << reply_to;
         }
     };
 #ifndef NDEBUG
@@ -1215,11 +1158,8 @@ private:
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & ret;
+            pipe->get_archive() << ret;
+            fprintf(stderr, "serialize in ret_message_t\n");
         }
     };
 
@@ -1287,14 +1227,11 @@ private:
         const arg2_t &arg2;
         const arg3_t &arg3;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & arg0;
-            ar & arg1;
-            ar & arg2;
-            ar & arg3;
+            fprintf(stderr, "serialize in message_t\n");
+            pipe->get_archive() << arg0;
+            pipe->get_archive() << arg1;
+            pipe->get_archive() << arg2;
+            pipe->get_archive() << arg3;
         }
     };
 #ifndef NDEBUG
@@ -1399,15 +1336,12 @@ private:
         const arg3_t &arg3;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & arg0;
-            ar & arg1;
-            ar & arg2;
-            ar & arg3;
-            ar & reply_to;
+            fprintf(stderr, "serialize in call_message_t\n");
+            pipe->get_archive() << arg0;
+            pipe->get_archive() << arg1;
+            pipe->get_archive() << arg2;
+            pipe->get_archive() << arg3;
+            pipe->get_archive() << reply_to;
         }
     };
 #ifndef NDEBUG
@@ -1417,11 +1351,8 @@ private:
 #endif
 
     struct ret_message_t : public cluster_message_t {
-        void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(UNUSED Archive &ar, UNUSED const unsigned int version) {
+        void serialize(UNUSED cluster_outpipe_t *pipe) const {
+            fprintf(stderr, "serialize in ret_message_t\n");
         }
     };
 
@@ -1532,15 +1463,12 @@ private:
         const arg3_t &arg3;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & arg0;
-            ar & arg1;
-            ar & arg2;
-            ar & arg3;
-            ar & reply_to;
+            fprintf(stderr, "serialize in call_message_t\n");
+            pipe->get_archive() << arg0;
+            pipe->get_archive() << arg1;
+            pipe->get_archive() << arg2;
+            pipe->get_archive() << arg3;
+            pipe->get_archive() << reply_to;
         }
     };
 #ifndef NDEBUG
@@ -1552,11 +1480,8 @@ private:
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & ret;
+            pipe->get_archive() << ret;
+            fprintf(stderr, "serialize in ret_message_t\n");
         }
     };
 
@@ -1627,15 +1552,12 @@ private:
         const arg3_t &arg3;
         const arg4_t &arg4;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & arg0;
-            ar & arg1;
-            ar & arg2;
-            ar & arg3;
-            ar & arg4;
+            fprintf(stderr, "serialize in message_t\n");
+            pipe->get_archive() << arg0;
+            pipe->get_archive() << arg1;
+            pipe->get_archive() << arg2;
+            pipe->get_archive() << arg3;
+            pipe->get_archive() << arg4;
         }
     };
 #ifndef NDEBUG
@@ -1744,16 +1666,13 @@ private:
         const arg4_t &arg4;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & arg0;
-            ar & arg1;
-            ar & arg2;
-            ar & arg3;
-            ar & arg4;
-            ar & reply_to;
+            fprintf(stderr, "serialize in call_message_t\n");
+            pipe->get_archive() << arg0;
+            pipe->get_archive() << arg1;
+            pipe->get_archive() << arg2;
+            pipe->get_archive() << arg3;
+            pipe->get_archive() << arg4;
+            pipe->get_archive() << reply_to;
         }
     };
 #ifndef NDEBUG
@@ -1763,11 +1682,8 @@ private:
 #endif
 
     struct ret_message_t : public cluster_message_t {
-        void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(UNUSED Archive &ar, UNUSED const unsigned int version) {
+        void serialize(UNUSED cluster_outpipe_t *pipe) const {
+            fprintf(stderr, "serialize in ret_message_t\n");
         }
     };
 
@@ -1881,16 +1797,13 @@ private:
         const arg4_t &arg4;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & arg0;
-            ar & arg1;
-            ar & arg2;
-            ar & arg3;
-            ar & arg4;
-            ar & reply_to;
+            fprintf(stderr, "serialize in call_message_t\n");
+            pipe->get_archive() << arg0;
+            pipe->get_archive() << arg1;
+            pipe->get_archive() << arg2;
+            pipe->get_archive() << arg3;
+            pipe->get_archive() << arg4;
+            pipe->get_archive() << reply_to;
         }
     };
 #ifndef NDEBUG
@@ -1902,11 +1815,8 @@ private:
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & ret;
+            pipe->get_archive() << ret;
+            fprintf(stderr, "serialize in ret_message_t\n");
         }
     };
 
@@ -1980,16 +1890,13 @@ private:
         const arg4_t &arg4;
         const arg5_t &arg5;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & arg0;
-            ar & arg1;
-            ar & arg2;
-            ar & arg3;
-            ar & arg4;
-            ar & arg5;
+            fprintf(stderr, "serialize in message_t\n");
+            pipe->get_archive() << arg0;
+            pipe->get_archive() << arg1;
+            pipe->get_archive() << arg2;
+            pipe->get_archive() << arg3;
+            pipe->get_archive() << arg4;
+            pipe->get_archive() << arg5;
         }
     };
 #ifndef NDEBUG
@@ -2102,17 +2009,14 @@ private:
         const arg5_t &arg5;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & arg0;
-            ar & arg1;
-            ar & arg2;
-            ar & arg3;
-            ar & arg4;
-            ar & arg5;
-            ar & reply_to;
+            fprintf(stderr, "serialize in call_message_t\n");
+            pipe->get_archive() << arg0;
+            pipe->get_archive() << arg1;
+            pipe->get_archive() << arg2;
+            pipe->get_archive() << arg3;
+            pipe->get_archive() << arg4;
+            pipe->get_archive() << arg5;
+            pipe->get_archive() << reply_to;
         }
     };
 #ifndef NDEBUG
@@ -2122,11 +2026,8 @@ private:
 #endif
 
     struct ret_message_t : public cluster_message_t {
-        void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(UNUSED Archive &ar, UNUSED const unsigned int version) {
+        void serialize(UNUSED cluster_outpipe_t *pipe) const {
+            fprintf(stderr, "serialize in ret_message_t\n");
         }
     };
 
@@ -2243,17 +2144,14 @@ private:
         const arg5_t &arg5;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & arg0;
-            ar & arg1;
-            ar & arg2;
-            ar & arg3;
-            ar & arg4;
-            ar & arg5;
-            ar & reply_to;
+            fprintf(stderr, "serialize in call_message_t\n");
+            pipe->get_archive() << arg0;
+            pipe->get_archive() << arg1;
+            pipe->get_archive() << arg2;
+            pipe->get_archive() << arg3;
+            pipe->get_archive() << arg4;
+            pipe->get_archive() << arg5;
+            pipe->get_archive() << reply_to;
         }
     };
 #ifndef NDEBUG
@@ -2265,11 +2163,8 @@ private:
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & ret;
+            pipe->get_archive() << ret;
+            fprintf(stderr, "serialize in ret_message_t\n");
         }
     };
 
@@ -2346,17 +2241,14 @@ private:
         const arg5_t &arg5;
         const arg6_t &arg6;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & arg0;
-            ar & arg1;
-            ar & arg2;
-            ar & arg3;
-            ar & arg4;
-            ar & arg5;
-            ar & arg6;
+            fprintf(stderr, "serialize in message_t\n");
+            pipe->get_archive() << arg0;
+            pipe->get_archive() << arg1;
+            pipe->get_archive() << arg2;
+            pipe->get_archive() << arg3;
+            pipe->get_archive() << arg4;
+            pipe->get_archive() << arg5;
+            pipe->get_archive() << arg6;
         }
     };
 #ifndef NDEBUG
@@ -2473,18 +2365,15 @@ private:
         const arg6_t &arg6;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & arg0;
-            ar & arg1;
-            ar & arg2;
-            ar & arg3;
-            ar & arg4;
-            ar & arg5;
-            ar & arg6;
-            ar & reply_to;
+            fprintf(stderr, "serialize in call_message_t\n");
+            pipe->get_archive() << arg0;
+            pipe->get_archive() << arg1;
+            pipe->get_archive() << arg2;
+            pipe->get_archive() << arg3;
+            pipe->get_archive() << arg4;
+            pipe->get_archive() << arg5;
+            pipe->get_archive() << arg6;
+            pipe->get_archive() << reply_to;
         }
     };
 #ifndef NDEBUG
@@ -2494,11 +2383,8 @@ private:
 #endif
 
     struct ret_message_t : public cluster_message_t {
-        void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(UNUSED Archive &ar, UNUSED const unsigned int version) {
+        void serialize(UNUSED cluster_outpipe_t *pipe) const {
+            fprintf(stderr, "serialize in ret_message_t\n");
         }
     };
 
@@ -2618,18 +2504,15 @@ private:
         const arg6_t &arg6;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & arg0;
-            ar & arg1;
-            ar & arg2;
-            ar & arg3;
-            ar & arg4;
-            ar & arg5;
-            ar & arg6;
-            ar & reply_to;
+            fprintf(stderr, "serialize in call_message_t\n");
+            pipe->get_archive() << arg0;
+            pipe->get_archive() << arg1;
+            pipe->get_archive() << arg2;
+            pipe->get_archive() << arg3;
+            pipe->get_archive() << arg4;
+            pipe->get_archive() << arg5;
+            pipe->get_archive() << arg6;
+            pipe->get_archive() << reply_to;
         }
     };
 #ifndef NDEBUG
@@ -2641,11 +2524,8 @@ private:
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & ret;
+            pipe->get_archive() << ret;
+            fprintf(stderr, "serialize in ret_message_t\n");
         }
     };
 
@@ -2725,18 +2605,15 @@ private:
         const arg6_t &arg6;
         const arg7_t &arg7;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & arg0;
-            ar & arg1;
-            ar & arg2;
-            ar & arg3;
-            ar & arg4;
-            ar & arg5;
-            ar & arg6;
-            ar & arg7;
+            fprintf(stderr, "serialize in message_t\n");
+            pipe->get_archive() << arg0;
+            pipe->get_archive() << arg1;
+            pipe->get_archive() << arg2;
+            pipe->get_archive() << arg3;
+            pipe->get_archive() << arg4;
+            pipe->get_archive() << arg5;
+            pipe->get_archive() << arg6;
+            pipe->get_archive() << arg7;
         }
     };
 #ifndef NDEBUG
@@ -2857,19 +2734,16 @@ private:
         const arg7_t &arg7;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & arg0;
-            ar & arg1;
-            ar & arg2;
-            ar & arg3;
-            ar & arg4;
-            ar & arg5;
-            ar & arg6;
-            ar & arg7;
-            ar & reply_to;
+            fprintf(stderr, "serialize in call_message_t\n");
+            pipe->get_archive() << arg0;
+            pipe->get_archive() << arg1;
+            pipe->get_archive() << arg2;
+            pipe->get_archive() << arg3;
+            pipe->get_archive() << arg4;
+            pipe->get_archive() << arg5;
+            pipe->get_archive() << arg6;
+            pipe->get_archive() << arg7;
+            pipe->get_archive() << reply_to;
         }
     };
 #ifndef NDEBUG
@@ -2879,11 +2753,8 @@ private:
 #endif
 
     struct ret_message_t : public cluster_message_t {
-        void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(UNUSED Archive &ar, UNUSED const unsigned int version) {
+        void serialize(UNUSED cluster_outpipe_t *pipe) const {
+            fprintf(stderr, "serialize in ret_message_t\n");
         }
     };
 
@@ -3006,19 +2877,16 @@ private:
         const arg7_t &arg7;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & arg0;
-            ar & arg1;
-            ar & arg2;
-            ar & arg3;
-            ar & arg4;
-            ar & arg5;
-            ar & arg6;
-            ar & arg7;
-            ar & reply_to;
+            fprintf(stderr, "serialize in call_message_t\n");
+            pipe->get_archive() << arg0;
+            pipe->get_archive() << arg1;
+            pipe->get_archive() << arg2;
+            pipe->get_archive() << arg3;
+            pipe->get_archive() << arg4;
+            pipe->get_archive() << arg5;
+            pipe->get_archive() << arg6;
+            pipe->get_archive() << arg7;
+            pipe->get_archive() << reply_to;
         }
     };
 #ifndef NDEBUG
@@ -3030,11 +2898,8 @@ private:
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & ret;
+            pipe->get_archive() << ret;
+            fprintf(stderr, "serialize in ret_message_t\n");
         }
     };
 
@@ -3117,19 +2982,16 @@ private:
         const arg7_t &arg7;
         const arg8_t &arg8;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & arg0;
-            ar & arg1;
-            ar & arg2;
-            ar & arg3;
-            ar & arg4;
-            ar & arg5;
-            ar & arg6;
-            ar & arg7;
-            ar & arg8;
+            fprintf(stderr, "serialize in message_t\n");
+            pipe->get_archive() << arg0;
+            pipe->get_archive() << arg1;
+            pipe->get_archive() << arg2;
+            pipe->get_archive() << arg3;
+            pipe->get_archive() << arg4;
+            pipe->get_archive() << arg5;
+            pipe->get_archive() << arg6;
+            pipe->get_archive() << arg7;
+            pipe->get_archive() << arg8;
         }
     };
 #ifndef NDEBUG
@@ -3254,20 +3116,17 @@ private:
         const arg8_t &arg8;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & arg0;
-            ar & arg1;
-            ar & arg2;
-            ar & arg3;
-            ar & arg4;
-            ar & arg5;
-            ar & arg6;
-            ar & arg7;
-            ar & arg8;
-            ar & reply_to;
+            fprintf(stderr, "serialize in call_message_t\n");
+            pipe->get_archive() << arg0;
+            pipe->get_archive() << arg1;
+            pipe->get_archive() << arg2;
+            pipe->get_archive() << arg3;
+            pipe->get_archive() << arg4;
+            pipe->get_archive() << arg5;
+            pipe->get_archive() << arg6;
+            pipe->get_archive() << arg7;
+            pipe->get_archive() << arg8;
+            pipe->get_archive() << reply_to;
         }
     };
 #ifndef NDEBUG
@@ -3277,11 +3136,8 @@ private:
 #endif
 
     struct ret_message_t : public cluster_message_t {
-        void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(UNUSED Archive &ar, UNUSED const unsigned int version) {
+        void serialize(UNUSED cluster_outpipe_t *pipe) const {
+            fprintf(stderr, "serialize in ret_message_t\n");
         }
     };
 
@@ -3407,20 +3263,17 @@ private:
         const arg8_t &arg8;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & arg0;
-            ar & arg1;
-            ar & arg2;
-            ar & arg3;
-            ar & arg4;
-            ar & arg5;
-            ar & arg6;
-            ar & arg7;
-            ar & arg8;
-            ar & reply_to;
+            fprintf(stderr, "serialize in call_message_t\n");
+            pipe->get_archive() << arg0;
+            pipe->get_archive() << arg1;
+            pipe->get_archive() << arg2;
+            pipe->get_archive() << arg3;
+            pipe->get_archive() << arg4;
+            pipe->get_archive() << arg5;
+            pipe->get_archive() << arg6;
+            pipe->get_archive() << arg7;
+            pipe->get_archive() << arg8;
+            pipe->get_archive() << reply_to;
         }
     };
 #ifndef NDEBUG
@@ -3432,11 +3285,8 @@ private:
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *pipe) const {
-            pipe->get_archive() << *this;
-        }
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & ret;
+            pipe->get_archive() << ret;
+            fprintf(stderr, "serialize in ret_message_t\n");
         }
     };
 

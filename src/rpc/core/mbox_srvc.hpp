@@ -40,7 +40,9 @@ struct cluster_peer_inpipe_t : public checking_inpipe_t {
             conn(conn),
             conn_streambuf(conn), 
             conn_stream(&conn_streambuf),
-            archive(conn_stream) {
+            //archive(std::cin) {
+            // TODO! Re-enable boost header!
+            archive(conn_stream, boost::archive::no_header) {
     }
     
     tcp_conn_t *conn;

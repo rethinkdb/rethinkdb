@@ -56,16 +56,13 @@ def generate_async_message_template(nargs):
         print "            { }"
     for i in xrange(nargs):
         print "        const arg%d_t &arg%d;" % (i, i)
-    print "        void serialize(cluster_outpipe_t *pipe) const {"
-    print "            pipe->get_archive() << *this;"
-    print "        }"
-    print "        friend class boost::serialization::access;"
     if nargs > 0:
-        print "        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {"
+        print "        void serialize(cluster_outpipe_t *pipe) const {"
     else:
-        print "        template<class Archive> void serialize(UNUSED Archive &ar, UNUSED const unsigned int version) {"
+        print "        void serialize(UNUSED cluster_outpipe_t *pipe) const {"
+    print "            fprintf(stderr, \"serialize in message_t\\n\");"
     for i in xrange(nargs):
-        print "            ar & arg%d;" % i
+        print "            pipe->get_archive() << arg%d;" % i
     print "        }"
     print "    };"
     print "#ifndef NDEBUG"
@@ -210,16 +207,10 @@ def generate_sync_message_template(nargs, void):
         print "        const arg%d_t &arg%d;" % (i, i)
     print "        cluster_address_t reply_to;"
     print "        void serialize(cluster_outpipe_t *pipe) const {"
-    print "            pipe->get_archive() << *this;"
-    print "        }"
-    print "        friend class boost::serialization::access;"
-    if nargs > 0:
-        print "        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {"
-    else:
-        print "        template<class Archive> void serialize(UNUSED Archive &ar, UNUSED const unsigned int version) {"
+    print "            fprintf(stderr, \"serialize in call_message_t\\n\");"
     for i in xrange(nargs):
-        print "            ar & arg%d;" % i
-    print "            ar & reply_to;"
+        print "            pipe->get_archive() << arg%d;" % i
+    print "            pipe->get_archive() << reply_to;"
     print "        }"
     print "    };"
     print "#ifndef NDEBUG"
@@ -231,16 +222,12 @@ def generate_sync_message_template(nargs, void):
     print "    struct ret_message_t : public cluster_message_t {"
     if not void:
         print "        ret_t ret;"
-    print "        void serialize(cluster_outpipe_t *pipe) const {"
-    print "            pipe->get_archive() << *this;"
-    print "        }"
-    print "        friend class boost::serialization::access;"
     if not void:
-        print "        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {"
+        print "        void serialize(cluster_outpipe_t *pipe) const {"
+        print "            pipe->get_archive() << ret;"
     else:
-        print "        template<class Archive> void serialize(UNUSED Archive &ar, UNUSED const unsigned int version) {"
-    if not void:
-        print "            ar & ret;"
+        print "        void serialize(UNUSED cluster_outpipe_t *pipe) const {"
+    print "            fprintf(stderr, \"serialize in ret_message_t\\n\");"
     print "        }"
     print "    };"
     print

@@ -39,7 +39,9 @@ struct cluster_peer_outpipe_t : public checking_outpipe_t {
             conn(conn),
             conn_streambuf(conn), 
             conn_stream(&conn_streambuf),
-            archive(conn_stream) {
+            //archive(std::cout) {
+            // TODO! Re-enable boost header!
+            archive(conn_stream, boost::archive::no_header) {
     }
     
     tcp_conn_t *conn;
@@ -349,6 +351,7 @@ void cluster_t::send_message(int peer, int mailbox, cluster_message_t *msg) {
         coro_t::spawn_now(boost::bind(&cluster_mailbox_t::run, mailbox_map.map[mailbox], msg));
 
     } else {
+        fprintf(stderr, "Preparing a message\n");
         on_thread_t syncer(home_thread());
         mailbox::mailbox_msg mbox_msg;
 
@@ -365,10 +368,12 @@ void cluster_t::send_message(int peer, int mailbox, cluster_message_t *msg) {
 #ifndef NDEBUG
         std::string realname = demangle_cpp_name(typeid(*msg).name());
         mbox_msg.set_type(realname);
+        fprintf(stderr, "Type: %s\n", realname.c_str());
 #endif
         p->write(&mbox_msg);
 
         /* Write the message body */
+        fprintf(stderr, "Writing the body\n");
         cluster_peer_outpipe_t pipe(p->conn.get(), msg_size_counter.bytes);
         msg->serialize(&pipe);
     }

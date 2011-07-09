@@ -28,6 +28,7 @@ typedef storage_map_t::iterator storage_iterator;
 
 rh_iterator storage_map_t::redundant_hasher_t::get_buckets(store_key_t key) {
     hash_t raw = hasher.hash(key);
+    rassert(log_buckets > log_redundancy);
     int modulos = 1 << (log_buckets - log_redundancy);
     return storage_map_t::redundant_hasher_t::iterator(raw % modulos, modulos, log_buckets);
 }
@@ -43,7 +44,8 @@ bool rh_iterator::operator!=(rh_iterator const &other) {
     return (!(*this == other));
 }
 
-int rh_iterator::operator*() const { 
+int rh_iterator::operator*() const {
+    fprintf(stderr, "Dereferencing rh iterator, val is %d, modulos is %d, log_buckets is %d\n", val, modulos, log_buckets);
     guarantee(!end && val < (1 << log_buckets), "Trying to dereference end");
     return val; 
 }
@@ -68,7 +70,8 @@ storage_iterator::iterator(std::map<int, std::pair<set_store_t*, get_store_t *> 
 }
 
 std::pair<set_store_t *, get_store_t *> storage_iterator::operator*() const {
-    guarantee(inner_map->find(*hasher_iterator) != inner_map->end(), "Trying to dereference a map that doesn't exist. This means that jdoliner messed up this iterator");
+    fprintf(stderr, "dereferencing %d\n", *hasher_iterator);
+    guarantee(inner_map->find(*hasher_iterator) != inner_map->end(), "Trying to dereference a map that doesn't exist. This means that somebody messed up this iterator");
     //logINF("Yielding peer %d in indirection operator.\n", *hasher_iterator);
     return (*inner_map)[*hasher_iterator];
 }

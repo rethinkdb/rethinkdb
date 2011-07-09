@@ -29,6 +29,9 @@ Usage example:
     stream << age << " is a nice age." << std::endl;
 */
 
+// TODO! This is just severely destructed right now, just to allow sharing the conn with protobuffers...
+// TODO! Make protobuffers use the stream! (and change the interface, so it's either a stream conn or a legacy conn)
+
 class tcp_conn_streambuf_t : public std::basic_streambuf<char, std::char_traits<char> > {
 public:
     tcp_conn_streambuf_t(tcp_conn_t *conn) : conn(conn) {
@@ -51,11 +54,13 @@ protected:
                 rassert (bytes_read > 0);
                 setg(&get_buf[0], &get_buf[0], &get_buf[bytes_read]);
             } catch (tcp_conn_t::read_closed_exc_t &e) {
+                fprintf(stderr, "G: EOF\n");
                 return std::char_traits<char>::eof();
             }
         }
         
         int i = std::char_traits<char>::to_int_type(*gptr());
+        fprintf(stderr, "G: %c\n", (char)i);
         return std::char_traits<char>::not_eof(i);
     }
     
@@ -68,7 +73,10 @@ protected:
             char c = static_cast<char>(i);
             rassert(static_cast<int>(c) == i);
             try {
-                conn->write_buffered(&c, 1);
+                // TODO!
+                //conn->write_buffered(&c, 1);
+                conn->write(&c, 1);
+                fprintf(stderr, "S: %c\n", c);
             } catch (tcp_conn_t::write_closed_exc_t &e) {
                 return std::char_traits<char>::eof();
             }
@@ -78,7 +86,8 @@ protected:
     
     virtual int sync() {
         try {
-            conn->flush_buffer();
+            // TODO!
+            //conn->flush_buffer();
             return 0;
         } catch (tcp_conn_t::write_closed_exc_t &e) {
             return -1;
@@ -87,7 +96,9 @@ protected:
     
 private:
     // Read buffer
-    static const size_t GET_BUF_LENGTH = 512;
+    // TODO!
+    static const size_t GET_BUF_LENGTH = 1;
+    //static const size_t GET_BUF_LENGTH = 512;
     char get_buf[GET_BUF_LENGTH];
     
     DISABLE_COPYING(tcp_conn_streambuf_t);
