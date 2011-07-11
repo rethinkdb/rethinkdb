@@ -816,6 +816,11 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
     assert_thread();
 
     inner_buf_t *inner_buf = cache->find_buf(block_id);
+    // Note that it is critical that between here and creating our buf_t wrapper that we do nothing
+    // blocking (unless it acquires a lock on inner_buf or otherwise prevents it from being
+    // unloaded), or else inner_buf could be selected for deletion from the cache, then recreated,
+    // and we'd have two inner_bufs corresponding to the same block id floating around.
+
     if (!inner_buf) {
         /* The buf isn't in the cache and must be loaded from disk */
         // We are either not snapshotted or our snapshot is consistent with the latest version;
