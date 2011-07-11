@@ -17,6 +17,10 @@ perfmon_sampler_t pm_snapshots_per_transaction("snapshots_per_transaction", secs
 perfmon_persistent_counter_t pm_cache_hits("cache_hits"), pm_cache_misses("cache_misses");
 
 // Types of snapshots
+
+// In order for snapshots to get deleted properly, they must obey the invariant that, after
+// get_data() returns or get_data_if_available() returns non-NULL, get_data_if_available() will
+// return the same (non-NULL) value.
 struct mc_inner_buf_t::buf_snapshot_info_t {
     buf_snapshot_info_t(version_id_t version, unsigned int initial_refcount) : snapshotted_version(version), refcount(initial_refcount) {}
     virtual ~buf_snapshot_info_t() { }
