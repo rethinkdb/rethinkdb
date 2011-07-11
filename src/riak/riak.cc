@@ -308,9 +308,54 @@ http_res_t riak_server_t::fetch_object(const http_req_t &req) {
     return res;
 }
 
-http_res_t riak_server_t::store_object(const http_req_t &) {
-    not_implemented();
-    http_res_t res;
+http_res_t riak_server_t::store_object(const http_req_t &req) {
+    boost::char_separator<char> sep("/");
+    tokenizer tokens(req.resource, sep);
+    tok_iterator url_it = tokens.begin(), url_end = tokens.end();
+
+    http_res_t res; //the response we'll be returning
+
+    rassert(url_it != url_end, "This function should only be called if there's a bucket specified in the url");
+    std::string bucket = *url_it;
+    url_it++;
+
+
+    object_t obj; //the obj we'll be submitting
+
+    //Parse the links
+    std::string links = req.find_header_line("Link");
+    if (!parse(links.begin(), links.end(), link_parser_t<std::string::iterator>(), obj.links)) {
+        // parsing the links failed
+        res.code = 400; //Bad request
+        return res;
+    }
+
+    obj.content = req.body;
+    obj.content_type = req.find_header_line("Content-Type");
+
+    if (obj.content_type == "") {
+        //must set a content type
+        res.code = 400;
+        return res;
+    }
+
+    if (req.find_query_param("returnbody") == "true") {
+        res.body = req.body;
+        res.code = 200;
+    } else {
+        res.code = 204;
+    }
+
+    //Grab the key
+    if (url_it == url_end) {
+        //no key given, generate a unique one
+        obj.key = riak.gen_key();
+        res.add_header_line("Location", "/riak/" +  bucket + "/" + obj.key);
+        res.code = 201;
+    } else {
+        obj.key = *url_it;
+    }
+
     return res;
 }
 

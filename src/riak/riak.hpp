@@ -3,6 +3,9 @@
 
 #include "http/http.hpp"
 #include <boost/tokenizer.hpp>
+#include "spirit/boost_parser.hpp"
+#include <boost/fusion/include/adapt_struct.hpp>
+#include <boost/fusion/include/io.hpp>
 
 namespace riak {
 
@@ -48,6 +51,41 @@ struct link_t {
     std::string tag;
 
     std::string as_string();
+};
+} //namespace riak
+
+// this really sucks, but we can't do a BOOST_FUSION_ADAPT_STRUCT within a
+// namespace so we need to break it
+
+BOOST_FUSION_ADAPT_STRUCT(
+    riak::link_t,
+    (std::string, bucket)
+    (std::string, key)
+    (std::string, tag)
+)
+
+namespace riak {
+
+template <typename Iterator>
+struct link_parser_t: qi::grammar<Iterator, std::vector<link_t>()> {
+    link_parser_t() : link_parser_t::base_type(start) {
+        using qi::lit;
+        using qi::_val;
+        using ascii::char_;
+        using ascii::space;
+        using qi::_1;
+        using qi::repeat;
+        namespace labels = qi::labels;
+        using boost::phoenix::at_c;
+        using boost::phoenix::bind;
+
+        link %= lit("</riak/") >> +(char_ - "/") >> "/" >> +(char_ - ">") >>
+                lit(">; riaktag=\"") >> +(char_ - "\"") >> "\"";
+        start %= (link % lit(", "));
+    }
+
+    qi::rule<Iterator, link_t()> link;
+    qi::rule<Iterator, std::vector<link_t>()> start;
 };
 
 struct object_t {
@@ -103,6 +141,10 @@ public:
     }
 
     const object_t &delete_object(std::string, std::string) {
+        crash("Not implementated");
+    }
+
+    std::string gen_key() {
         crash("Not implementated");
     }
 };
