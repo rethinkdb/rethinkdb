@@ -810,8 +810,6 @@ mc_buf_t *mc_transaction_t::allocate() {
 mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
                                     boost::function<void()> call_when_in_line, bool should_load) {
     rassert(block_id != NULL_BLOCK_ID);
-    // XXX (rntz) this assert is always true; remove it.
-    rassert(is_read_mode(mode) || access != rwi_read); // TODO: What is the meaning of this assert?!?
     rassert(should_load || access == rwi_write);
     assert_thread();
 
