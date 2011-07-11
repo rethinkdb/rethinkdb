@@ -52,22 +52,22 @@ struct mc_inner_buf_t::on_disk_snapshot_t : public buf_snapshot_info_t {
     // Be careful, this blocks (hope that's fine?)
     void *get_data() {
         mutex_acquisition_t m(&data_mutex);
-        if (data) {
-            return data;
-        }
-        data = serializer->malloc();
+        if (data) return data;  // Somebody  might have loaded the data in the meantime
+
+        // Use a temporary to avoid putting our data member in an allocated-but-uninitialized state.
+        void *tmp = serializer->malloc();
         // XXX (rntz) should this be using DEFAULT_DISK_ACCOUNT?
-        serializer->block_read(token, data, DEFAULT_DISK_ACCOUNT);
+        serializer->block_read(token, tmp, DEFAULT_DISK_ACCOUNT);
+        rassert(!data, "data changed while holding mutex");
+        data = tmp;             // Swap in the initialized buffer.
         token.reset(); // Free the block
         return data;
     }
     void *get_data_if_available() const {
+        // If someone else is acquiring the data, this blocks until it is acquired. TODO (rntz):
+        // This may or may not be the desired behavior.
         mutex_acquisition_t m(&data_mutex);
-        if (data) {
-            return data;
-        } else {
-            return NULL;
-        }
+        return data;
     }
   private:
     serializer_t *serializer;
