@@ -3,6 +3,7 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
+#include "arch/coroutines.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 

@@ -3,6 +3,7 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
+#include "arch/coroutines.hpp"
 #include "config/args.hpp"
 #include "utils.hpp"
     

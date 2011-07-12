@@ -3,6 +3,7 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
+#include "arch/coroutines.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/buf_lock.hpp"
 #include "btree/node.hpp"

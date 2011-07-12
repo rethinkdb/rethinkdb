@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+
+#include "arch/coroutines.hpp"
 #include "server/cmd_args.hpp"
 #include "utils.hpp"
 #include "help.hpp"

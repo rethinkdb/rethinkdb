@@ -5,7 +5,7 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
-#include "arch/arch.hpp"
+#include "arch/coroutines.hpp"
 #include "buffer_cache/co_functions.hpp"
 #include "btree/btree_data_provider.hpp"
 #include "btree/node.hpp"

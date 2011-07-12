@@ -9,14 +9,6 @@ const size_t MAX_COROUTINE_STACK_SIZE = 8*1024*1024;
 
 class coro_context_t;
 
-/* Please only construct one coro_globals_t per thread. Coroutines can only be used when
-a coro_globals_t exists. It exists to take advantage of RAII. */
-
-struct coro_globals_t {
-    coro_globals_t();
-    ~coro_globals_t();
-};
-
 /* A coro_t represents a fiber of execution within a thread. Create one with spawn_*(). Within a
 coroutine, call wait() to return control to the scheduler; the coroutine will be resumed when
 another fiber calls notify_*() on it.

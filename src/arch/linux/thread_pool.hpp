@@ -6,10 +6,19 @@
 #include "arch/linux/event_queue.hpp"
 #include "arch/linux/system_event.hpp"
 #include "arch/linux/message_hub.hpp"
-#include "arch/linux/coroutines.hpp"
 #include "arch/timer.hpp"
 
 class linux_thread_t;
+
+/* coro_globals_t is borrowed from coroutines.hpp.  Please only
+construct one coro_globals_t per thread. Coroutines can only be used
+when a coro_globals_t exists. It exists to take advantage of RAII. */
+
+struct coro_globals_t {
+    coro_globals_t();
+    ~coro_globals_t();
+};
+
 
 /* A thread pool represents a group of threads, each of which is associated with an
 event queue. There is one thread pool per server. It is responsible for starting up

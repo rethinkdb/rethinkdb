@@ -12,6 +12,7 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
+#include "arch/linux/coroutines.hpp"
 #include "arch/linux/thread_pool.hpp"
 #include "arch/timing.hpp"
 #include "concurrency/cond_var.hpp"
