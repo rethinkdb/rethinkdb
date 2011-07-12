@@ -14,7 +14,7 @@ than the home thread. In the constructor, pass an extra parameter for the
 thread that you intend to push objects onto the queue from. Pushing objects
 onto the queue from that thread will be very efficient. */
 
-template<class value_t, class queue_t=std::list<value_t> >
+template <class value_t, class queue_t = std::list<value_t> >
 struct cross_thread_limited_fifo_t :
     public passive_producer_t<value_t>,
     public home_thread_mixin_t
