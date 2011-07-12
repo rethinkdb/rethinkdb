@@ -3,7 +3,6 @@
 
 #include "arch/linux/disk.hpp"
 #include "arch/linux/network.hpp"
-#include "arch/linux/event_queue.hpp"
 #include "arch/linux/thread_pool.hpp"
 
 struct linux_io_config_t {
