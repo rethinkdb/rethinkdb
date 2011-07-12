@@ -43,7 +43,7 @@ protected:
             input_buf = cs.beg[0];
             conn->pop(1);
             setg(&input_buf, &input_buf, &input_buf+1);
-            fprintf(stderr, "G: %c\n", input_buf);
+            //fprintf(stderr, "G: %c\n", input_buf);
         } catch (tcp_conn_t::read_closed_exc_t &e) {
             return std::char_traits<char>::eof();
         }
@@ -63,7 +63,7 @@ protected:
             try {
                 unsynced_write = true;
                 conn->write_buffered(&c, 1);
-                fprintf(stderr, "S: %c\n", c);
+                //fprintf(stderr, "S: %c\n", c);
             } catch (tcp_conn_t::write_closed_exc_t &e) {
                 return std::char_traits<char>::eof();
             }
