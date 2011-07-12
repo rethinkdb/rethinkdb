@@ -1,5 +1,8 @@
 #include "server/key_value_store.hpp"
 
+#include "errors.hpp"
+#include <boost/shared_ptr.hpp>
+
 #include "btree/rget.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/signal.hpp"
@@ -11,8 +14,7 @@
 #include "replication/master.hpp"
 #include "server/cmd_args.hpp"
 #include "arch/timing.hpp"
-
-#include <boost/shared_ptr.hpp>
+#include "stats/persist.hpp"
 
 #include <math.h>
 
