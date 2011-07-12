@@ -1,3 +1,5 @@
+#include "arch/linux/event_queue/poll.hpp"
+
 #include <unistd.h>
 #include <sched.h>
 #include <stdio.h>
@@ -12,7 +14,6 @@
 #include "config/args.hpp"
 #include "utils.hpp"
 #include "arch/linux/event_queue.hpp"
-#include "arch/linux/event_queue/poll.hpp"
 #include "arch/linux/thread_pool.hpp"
 #include "logger.hpp"
 #include "perfmon.hpp"
