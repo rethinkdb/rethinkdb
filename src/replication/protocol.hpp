@@ -10,6 +10,7 @@
 #include "concurrency/mutex.hpp"
 #include "containers/scoped_malloc.hpp"
 #include "data_provider.hpp"
+#include "logger.hpp"
 #include "replication/multistream.hpp"
 #include "replication/net_structs.hpp"
 #include "replication/heartbeat_manager.hpp"

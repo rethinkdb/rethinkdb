@@ -162,7 +162,7 @@ public:
 #ifndef NDEBUG
     void assert_thread() const;
 #else
-    void assert_thread() { }
+    void assert_thread() const { }
 #endif  // NDEBUG
 
     virtual void rethread(int thread);
