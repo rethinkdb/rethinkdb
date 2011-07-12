@@ -6,10 +6,10 @@
 
 #include "containers/intrusive_list.hpp"
 #include "concurrency/access.hpp"
-#include "arch/core.hpp"
 
 // Forward declarations
 struct rwi_lock_t;
+struct lock_request_t;
 
 /**
  * Callback class used to notify lock clients that they now have the
@@ -29,24 +29,13 @@ public:
  */
 struct rwi_lock_t {
 public:
-    struct lock_request_t : public thread_message_t,
-                            public intrusive_list_node_t<lock_request_t>
-    {
-        lock_request_t(access_t _op, lock_available_callback_t *_callback)
-            : op(_op), callback(_callback)
-            {}
-        access_t op;
-        lock_available_callback_t *callback;
-        void on_thread_switch();   // Actually, this is called later on the same thread...
-    };
-
     // Note, the receiver of lock_request_t completion notifications
     // is responsible for freeing associated memory by calling delete.
-    
+
     rwi_lock_t()
         : state(rwis_unlocked), nreaders(0)
         {}
-    
+
     // Call to lock for read, write, intent, or upgrade intent to write
     bool lock(access_t access, lock_available_callback_t *callback);
 
@@ -58,7 +47,6 @@ public:
     // Call if you've locked for read or write, or upgraded to write,
     // and are now unlocking.
     void unlock();
-
     // Call if you've locked for intent before, didn't upgrade to
     // write, and are now unlocking.
     void unlock_intent();
