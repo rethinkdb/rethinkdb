@@ -9,23 +9,6 @@
 #include "arch/arch.hpp"
 #include "utils.hpp"
 
-/* Number formatter */
-
-template<class T>
-std::string format(T value, std::streamsize prec) {
-    std::stringstream ss;
-    ss.precision(prec);
-    ss << std::fixed << value;
-    return ss.str();
-}
-
-template<class T>
-std::string format(T value) {
-    return format(value, 8);
-}
-
-
-
 /* The var list keeps track of all of the perfmon_t objects. */
 
 intrusive_list_t<perfmon_t> &get_var_list() {
@@ -151,7 +134,7 @@ void perfmon_sampler_t::update(ticks_t now) {
     }
 }
 
-void perfmon_sampler_t::record(value_t v) {
+void perfmon_sampler_t::record(double v) {
     ticks_t now = get_ticks();
     update(now);
     thread_info_t *thread = &thread_data[get_thread_id()];

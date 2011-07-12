@@ -136,16 +136,14 @@ time period, the average record, and the min and max records. */
 // need to use a namespace, not inner classes, so we can pass the auxiliary
 // classes to the templated base classes
 namespace perfmon_sampler {
-    typedef double value_t;
-
     struct stats_t {
         int count;
-        value_t sum, min, max;
+        double sum, min, max;
         stats_t() : count(0), sum(0),
-            min(std::numeric_limits<value_t>::max()),
-            max(std::numeric_limits<value_t>::min())
+            min(std::numeric_limits<double>::max()),
+            max(std::numeric_limits<double>::min())
             { }
-        void record(value_t v) {
+        void record(double v) {
             count++;
             sum += v;
             if (count) {
@@ -169,7 +167,6 @@ namespace perfmon_sampler {
 class perfmon_sampler_t
     : public perfmon_perthread_t<perfmon_sampler::stats_t>
 {
-    typedef perfmon_sampler::value_t value_t;
     typedef perfmon_sampler::stats_t stats_t;
     struct thread_info_t {
         stats_t current_stats, last_stats;
@@ -187,7 +184,7 @@ class perfmon_sampler_t
     bool include_rate;
   public:
     perfmon_sampler_t(std::string name, ticks_t length, bool include_rate = false, bool internal = true);
-    void record(value_t value);
+    void record(double value);
 };
 
 /* Tracks the mean and standard deviation of a sequence value in constant space
