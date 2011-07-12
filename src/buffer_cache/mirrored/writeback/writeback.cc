@@ -4,6 +4,7 @@
 #include <set>
 
 #include "buffer_cache/mirrored/mirrored.hpp"
+#include "do_on_thread.hpp"
 #include "perfmon.hpp"
 
 // TODO: We added a writeback->possibly_unthrottle_transactions() call

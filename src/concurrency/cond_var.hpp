@@ -4,7 +4,6 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
-#include "do_on_thread.hpp"
 #include "concurrency/signal.hpp"
 
 /* A cond_t is the simplest form of signal. It just exposes the pulse() method directly.
@@ -17,13 +16,9 @@ class coro_t;
 
 struct cond_t : public signal_t {
     cond_t() { }
-    void pulse() {
-        do_on_thread(home_thread(), boost::bind(&cond_t::do_pulse, this));
-    }
+    void pulse();
 private:
-    void do_pulse() {
-        signal_t::pulse();
-    }
+    void do_pulse();
 
     bool ready;
     coro_t *waiter;

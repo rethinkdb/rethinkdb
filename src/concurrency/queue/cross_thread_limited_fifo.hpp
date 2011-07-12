@@ -1,10 +1,12 @@
 #ifndef __CONCURRENCY_QUEUE_CROSS_THREAD_LIMITED_FIFO_HPP__
 #define __CONCURRENCY_QUEUE_CROSS_THREAD_LIMITED_FIFO_HPP__
 
+#include <list>
+
 #include "concurrency/queue/passive_producer.hpp"
 #include "concurrency/semaphore.hpp"
 #include "concurrency/drain_semaphore.hpp"
-#include <list>
+#include "do_on_thread.hpp"
 
 /* `cross_thread_limited_fifo_t` is like `limited_fifo_t`, except that it is
 efficient even when objects are being pushed onto the queue from a thread other

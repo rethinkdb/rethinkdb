@@ -1,6 +1,15 @@
 #include "concurrency/cond_var.hpp"
 
 #include "arch/coroutines.hpp"
+#include "do_on_thread.hpp"
+
+void cond_t::pulse() {
+    do_on_thread(home_thread(), boost::bind(&cond_t::do_pulse, this));
+}
+
+void cond_t::do_pulse() {
+    signal_t::pulse();
+}
 
 void cond_weak_ptr_t::watch(cond_t *c) {
     rassert(!cond);
