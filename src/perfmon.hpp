@@ -10,9 +10,7 @@
 #include <stdarg.h>
 
 #include <map>
-#include <deque>
 #include <limits>
-#include <sstream>
 #include <string>
 
 #include "arch/core.hpp"
@@ -34,22 +32,6 @@ struct cache_line_padded_t {
     value_t value;
     char padding[CACHE_LINE_SIZE - sizeof(value_t)];
 };
-
-/* Number formatter */
-// TODO (rntz) should this go somewhere else?
-
-template<class T>
-std::string format(T value, std::streamsize prec) {
-    std::stringstream ss;
-    ss.precision(prec);
-    ss << std::fixed << value;
-    return ss.str();
-}
-
-template<class T>
-std::string format(T value) {
-    return format(value, 8);
-}
 
 /* The perfmon (short for "PERFormance MONitor") is responsible for gathering data about
 various parts of the server. */

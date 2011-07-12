@@ -1,9 +1,30 @@
 #include "perfmon.hpp"
+
+#include <stdarg.h>
+#include <math.h>
+
+#include <sstream>
+
 #include "concurrency/pmap.hpp"
 #include "arch/arch.hpp"
 #include "utils.hpp"
-#include <stdarg.h>
-#include <math.h>
+
+/* Number formatter */
+
+template<class T>
+std::string format(T value, std::streamsize prec) {
+    std::stringstream ss;
+    ss.precision(prec);
+    ss << std::fixed << value;
+    return ss.str();
+}
+
+template<class T>
+std::string format(T value) {
+    return format(value, 8);
+}
+
+
 
 /* The var list keeps track of all of the perfmon_t objects. */
 
