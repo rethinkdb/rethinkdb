@@ -1,5 +1,7 @@
 #include "concurrency/coro_pool.hpp"
 
+#include <boost/bind.hpp>
+
 #include "arch/coroutines.hpp"
 
 coro_pool_t::coro_pool_t(size_t worker_count_, passive_producer_t<boost::function<void()> > *source) :

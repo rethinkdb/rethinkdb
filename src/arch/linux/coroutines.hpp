@@ -2,7 +2,6 @@
 #define __ARCH_LINUX_COROUTINES_HPP__
 
 #include "utils.hpp"
-#include <boost/bind.hpp>
 #include <boost/function.hpp>
 #include "arch/linux/linux_utils.hpp"
 
