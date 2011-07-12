@@ -1,9 +1,9 @@
-
 #ifndef __ARCH_LINUX_TIMER_SIGNAL_PROVIDER_HPP__
 #define __ARCH_LINUX_TIMER_SIGNAL_PROVIDER_HPP__
 
 #include "arch/linux/event_queue.hpp"
-#include "arch/linux/timer/timer_provider_callback.hpp"
+
+struct timer_provider_callback_t;
 
 #define TIMER_NOTIFY_SIGNAL    (SIGRTMIN + 3)
 

@@ -7,7 +7,9 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/eventfd.h>
+
 #include "arch/linux/event_queue.hpp"
+#include "arch/linux/timer_provider.hpp"
 #include "logger.hpp"
 
 /* Kernel timer provider based on timerfd  */

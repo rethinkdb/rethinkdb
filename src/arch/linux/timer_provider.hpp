@@ -13,4 +13,10 @@ typedef timer_signal_provider_t timer_provider_t;
 typedef timerfd_provider_t timer_provider_t;
 #endif
 
+/* Timer provider callback */
+struct timer_provider_callback_t {
+    virtual ~timer_provider_callback_t() {}
+    virtual void on_timer(int nexpirations) = 0;
+};
+
 #endif // __ARCH_LINUX_TIMER_PROVIDER_HPP__
