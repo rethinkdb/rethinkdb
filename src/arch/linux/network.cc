@@ -66,7 +66,8 @@ linux_tcp_conn_t::linux_tcp_conn_t(const char *host, int port) :
     sock(connect_to(host, port)),
     event_watcher(new linux_event_watcher_t(sock.get(), this)),
     read_in_progress(false), write_in_progress(false),
-    write_queue_limiter(WRITE_QUEUE_MAX_SIZE), write_coro_pool(1, &write_queue)
+    write_queue_limiter(WRITE_QUEUE_MAX_SIZE), write_coro_pool(1, &write_queue),
+    popped_bytes(0)
     { }
 
 static fd_t connect_to(const ip_address_t &host, int port) {
@@ -96,7 +97,8 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port) :
     sock(connect_to(host, port)),
     event_watcher(new linux_event_watcher_t(sock.get(), this)),
     read_in_progress(false), write_in_progress(false),
-    write_queue_limiter(WRITE_QUEUE_MAX_SIZE), write_coro_pool(1, &write_queue)
+    write_queue_limiter(WRITE_QUEUE_MAX_SIZE), write_coro_pool(1, &write_queue),
+    popped_bytes(0)
     { }
 
 linux_tcp_conn_t::linux_tcp_conn_t(fd_t s) :
@@ -104,7 +106,8 @@ linux_tcp_conn_t::linux_tcp_conn_t(fd_t s) :
     sock(s),
     event_watcher(new linux_event_watcher_t(sock.get(), this)),
     read_in_progress(false), write_in_progress(false),
-    write_queue_limiter(WRITE_QUEUE_MAX_SIZE), write_coro_pool(1, &write_queue)
+    write_queue_limiter(WRITE_QUEUE_MAX_SIZE), write_coro_pool(1, &write_queue),
+    popped_bytes(0)
 {
     rassert(sock.get() != INVALID_FD);
 
@@ -179,6 +182,32 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
     }
 }
 
+size_t linux_tcp_conn_t::memcpy_from_read_buffer(void *buf, const size_t n) {
+
+    assert_thread();
+
+    if (read_buffer.size() > popped_bytes) {
+        /* Fetch the data from the peek buffer */
+        size_t read_buffer_bytes = std::min(read_buffer.size() - popped_bytes, n);
+        memcpy(buf, reinterpret_cast<char *>(read_buffer.data()) + popped_bytes, read_buffer_bytes);
+        return read_buffer_bytes;
+    } else {
+        /* The read_buffer is empty. */
+        return 0;
+    }
+}
+
+void linux_tcp_conn_t::pop_read_buffer(const size_t n) {
+
+    assert_thread();
+
+    popped_bytes += n;
+    if (popped_bytes > POP_THRESHOLD) {
+        read_buffer.erase(read_buffer.begin(), read_buffer.begin() + popped_bytes);  // INEFFICIENT
+        popped_bytes = 0;
+    }
+}
+
 size_t linux_tcp_conn_t::read_some(void *buf, size_t size) {
 
     assert_thread();
@@ -186,11 +215,10 @@ size_t linux_tcp_conn_t::read_some(void *buf, size_t size) {
     rassert(!read_in_progress);
     if (read_closed.is_pulsed()) throw read_closed_exc_t();
 
-    if (read_buffer.size()) {
+    size_t read_buffer_bytes = memcpy_from_read_buffer(buf, size);
+    if (read_buffer_bytes > 0) {
         /* Return the data from the peek buffer */
-        size_t read_buffer_bytes = std::min(read_buffer.size(), size);
-        memcpy(buf, read_buffer.data(), read_buffer_bytes);
-        read_buffer.erase(read_buffer.begin(), read_buffer.begin() + read_buffer_bytes);
+        pop_read_buffer(read_buffer_bytes);
         return read_buffer_bytes;
     } else {
         /* Go to the kernel _once_. */
@@ -205,10 +233,8 @@ void linux_tcp_conn_t::read(void *buf, size_t size) {
     if (read_closed.is_pulsed()) throw read_closed_exc_t();
 
     /* First, consume any data in the peek buffer */
-    int read_buffer_bytes = std::min(read_buffer.size(), size);
-    memcpy(buf, read_buffer.data(), read_buffer_bytes);
-    read_buffer.erase(read_buffer.begin(), read_buffer.begin() + read_buffer_bytes);
-    buf = reinterpret_cast<void *>(reinterpret_cast<char *>(buf) + read_buffer_bytes);
+    int read_buffer_bytes = memcpy_from_read_buffer(buf, size);
+    pop_read_buffer(read_buffer_bytes);
     size -= read_buffer_bytes;
 
     /* Now go to the kernel for any more data that we need */
@@ -239,12 +265,16 @@ const_charslice linux_tcp_conn_t::peek() const {
     rassert(!read_in_progress);   // Is there a read already in progress?
     if (read_closed.is_pulsed()) throw read_closed_exc_t();
 
-    return const_charslice(read_buffer.data(), read_buffer.data() + read_buffer.size());
+    rassert(popped_bytes <= read_buffer.size());
+    const char *actual_read_buffer_beg = read_buffer.data() + popped_bytes;
+
+    return const_charslice(actual_read_buffer_beg, read_buffer.data() + read_buffer.size());
 }
 
 const_charslice linux_tcp_conn_t::peek(size_t size) {
-    while (read_buffer.size() < size) read_more_buffered();
-    return const_charslice(read_buffer.data(), read_buffer.data() + size);
+    rassert(popped_bytes <= read_buffer.size());
+    while (read_buffer.size() - popped_bytes < size) read_more_buffered();
+    return const_charslice(read_buffer.data() + popped_bytes, read_buffer.data() + popped_bytes + size);
 }
 
 void linux_tcp_conn_t::pop(size_t len) {
@@ -254,7 +284,7 @@ void linux_tcp_conn_t::pop(size_t len) {
     if (read_closed.is_pulsed()) throw read_closed_exc_t();
 
     peek(len);
-    read_buffer.erase(read_buffer.begin(), read_buffer.begin() + len);  // INEFFICIENT
+    pop_read_buffer(len);
 }
 
 void linux_tcp_conn_t::shutdown_read() {
