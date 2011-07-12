@@ -41,7 +41,6 @@ class mc_inner_buf_t : public home_thread_mixin_t {
     friend class mc_buf_t;
     friend class writeback_t;
     friend class writeback_t::local_buf_t;
-    friend class writeback_t::concurrent_flush_t;
     friend class page_repl_random_t;
     friend class page_repl_random_t::local_buf_t;
     friend class array_map_t;
@@ -302,7 +301,6 @@ class mc_cache_t : public home_thread_mixin_t, public serializer_t::read_ahead_c
     friend class mc_transaction_t;
     friend class writeback_t;
     friend class writeback_t::local_buf_t;
-    friend class writeback_t::concurrent_flush_t;
     friend class page_repl_random_t;
     friend class page_repl_random_t::local_buf_t;
     friend class array_map_t;
