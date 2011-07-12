@@ -1,5 +1,7 @@
 #include "arch/linux/disk/pool.hpp"
 
+#include "config/args.hpp"
+
 #define BLOCKER_POOL_QUEUE_DEPTH (MAX_CONCURRENT_IO_REQUESTS * 2)
 
 pool_diskmgr_t::pool_diskmgr_t(
