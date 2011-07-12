@@ -210,9 +210,12 @@ struct stddev_t {
     static stddev_t combine(size_t nelts, stddev_t *data);
 
   private:
-    // N is the number of datapoints, M is the current mean, Q/N is the
-    // standard variance, and sqrt(Q/N) is the standard deviation. Read the
-    // paper for why it works.
+    // N is the number of datapoints, M is the current mean, Q/N is
+    // the standard variance, and sqrt(Q/N) is the standard
+    // deviation. Read the paper for why it works or use algebra.
+    //
+    // (Note that this is a better scheme numerically than using the
+    // classic calculator technique of storing sum(x), sum(x^2), n.)
     size_t N;
     float M, Q;
 };
