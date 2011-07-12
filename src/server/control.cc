@@ -33,6 +33,7 @@ std::string control_t::exec(int argc, char **argv) {
     }
     std::string command = argv[0];
 
+
     control_map_t::iterator it = get_control_map().find(command);
     if (it == get_control_map().end()) {
         return "There is no command called \"" + command + "\". Type \"rethinkdb help\" for a "
