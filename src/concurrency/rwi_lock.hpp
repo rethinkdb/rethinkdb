@@ -87,7 +87,7 @@ private:
     };
 
     typedef intrusive_list_t<lock_request_t> request_list_t;
-    
+
     bool try_lock(access_t access, bool from_queue);
     bool try_lock_read(bool from_queue);
     bool try_lock_write(bool from_queue);
@@ -96,8 +96,6 @@ private:
     void enqueue_request(access_t access, lock_available_callback_t *callback);
     void process_queue();
 
-    //private:
-public:
     rwi_state state;
     int nreaders; // not counting reader with intent
     request_list_t queue;
