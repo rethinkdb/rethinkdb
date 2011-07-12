@@ -71,8 +71,8 @@ private:
     const btree_key_t *right_key;
 
     std::list<internal_node_state> traversal_state;
-    volatile bool started;
-    volatile bool nevermore;
+    bool started;
+    bool nevermore;
 };
 
 /* slice_keys_iterator_t combines slice_leaves_iterator_t and leaf_iterator_t to allow you
