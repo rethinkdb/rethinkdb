@@ -708,12 +708,13 @@ void parsing_cmd_config_t::set_log_file(const char* value) {
 
     // See if we can open or create the file at this path with write permissions
     FILE* logfile = fopen(value, "a");
-    if (logfile == NULL)
+    if (logfile == NULL) {
         fail_due_to_user_error("Inaccessible or invalid log file: \"%s\": %s", value, strerror(errno));
-    else
+    } else {
         fclose(logfile);
-    
-    strncpy(log_file_name, value, MAX_LOG_FILE_NAME);
+    }
+
+    log_file_name = value;
 }
 
 void parsing_cmd_config_t::set_port(const char* value) {
@@ -771,8 +772,7 @@ void parsing_cmd_config_t::set_master_addr(const char *value) {
         fail_due_to_user_error("Invalid master address, address should be of the form hostname:port");
     }
 
-    strncpy(replication_config.hostname, token, MAX_HOSTNAME_LEN);
-    replication_config.hostname[MAX_HOSTNAME_LEN - 1] = '\0';
+    replication_config.hostname = token;
 
     token = strtok(NULL, ":");
     if (token == NULL) {
@@ -807,7 +807,7 @@ void parsing_cmd_config_t::set_failover_file(const char* value) {
     if (strlen(value) > MAX_PATH_LEN)
         fail_due_to_user_error("Failover script path is too long");
 
-    strcpy(failover_config.failover_script_path, value);
+    failover_config.failover_script_path = value;
 }
 
 void parsing_cmd_config_t::set_io_backend(const char* value) {
@@ -984,7 +984,7 @@ cmd_config_t::cmd_config_t() {
     shutdown_after_creation = false;
 
     replication_config.port = DEFAULT_REPLICATION_PORT;
-    memset(replication_config.hostname, 0, MAX_HOSTNAME_LEN);
+    replication_config.hostname = "";
     replication_config.active = false;
     replication_config.heartbeat_timeout = DEFAULT_REPLICATION_HEARTBEAT_TIMEOUT;
     replication_master_listen_port = DEFAULT_REPLICATION_PORT;
