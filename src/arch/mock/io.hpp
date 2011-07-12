@@ -3,9 +3,9 @@
 
 #include <stdlib.h>
 
-#include "containers/segmented_vector.hpp"
-#include "utils.hpp"
 #include "arch/random_delay.hpp"
+#include "containers/segmented_vector.hpp"
+#include "errors.hpp"
 
 struct mock_iocallback_t {
     virtual void on_io_complete() = 0;
