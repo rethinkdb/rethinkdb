@@ -1,7 +1,7 @@
-
 #ifndef __SERIALIZER_HPP__
 #define __SERIALIZER_HPP__
 
+#include "arch/arch.hpp"
 #include "serializer/types.hpp"
 #include "server/cmd_args.hpp"
 

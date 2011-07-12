@@ -1,7 +1,7 @@
 #ifndef __SERVER_HPP__
 #define __SERVER_HPP__
 
-#include "arch/core.hpp"
+#include "arch/arch.hpp"
 #include "server/cmd_args.hpp"
 
 /* run_server() is called by main() once it determines that the subprogram to be run

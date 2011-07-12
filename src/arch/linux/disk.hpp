@@ -7,11 +7,6 @@
 #include "config/args.hpp"
 #include "arch/linux/linux_utils.hpp"
 
-/* Types of IO backends */
-enum linux_io_backend_t {
-    aio_native, aio_pool
-};
-
 struct linux_iocallback_t {
     virtual ~linux_iocallback_t() {}
     virtual void on_io_complete() = 0;
