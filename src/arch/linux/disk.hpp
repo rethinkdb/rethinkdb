@@ -1,7 +1,6 @@
 #ifndef __ARCH_LINUX_DISK_HPP__
 #define __ARCH_LINUX_DISK_HPP__
 
-#include <libaio.h>
 #include "utils.hpp"
 #include <boost/scoped_ptr.hpp>
 
