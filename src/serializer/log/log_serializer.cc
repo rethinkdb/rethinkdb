@@ -296,7 +296,7 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
     pm_serializer_index_writes_size.record(write_ops.size());
 
     index_write_context_t context;
-    index_write_prepare(context);
+    index_write_prepare(context, io_account);
 
     for (std::vector<index_write_op_t>::const_iterator write_op_it = write_ops.begin();
          write_op_it != write_ops.end();
@@ -335,31 +335,29 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
         lba_index->set_block_info(op.block_id, recency, offset, io_account);
     }
 
-    index_write_finish(context);
+    index_write_finish(context, io_account);
 
     pm_serializer_index_writes.end(&pm_time);
 }
 
-void log_serializer_t::index_write_prepare(index_write_context_t &context) {
+void log_serializer_t::index_write_prepare(index_write_context_t &context, file_t::account_t *io_account) {
     active_write_count++;
 
     /* Start an extent manager transaction so we can allocate and release extents */
     context.extent_txn = extent_manager->begin_transaction();
 
     /* Just to make sure that the LBA GC gets exercised */
-    // FIXME (rntz) should this be using DEFAULT_DISK_ACCOUNT?
-    lba_index->consider_gc(DEFAULT_DISK_ACCOUNT);
+    lba_index->consider_gc(io_account);
 }
 
-void log_serializer_t::index_write_finish(index_write_context_t &context) {
+void log_serializer_t::index_write_finish(index_write_context_t &context, file_t::account_t *io_account) {
     metablock_t mb_buffer;
 
     /* Sync the LBA */
     struct : public cond_t, public lba_index_t::sync_callback_t {
         void on_lba_sync() { pulse(); }
     } on_lba_sync;
-    // FIXME (rntz) should this be using DEFAULT_DISK_ACCOUNT?
-    const bool offsets_were_written = lba_index->sync(DEFAULT_DISK_ACCOUNT, &on_lba_sync);
+    const bool offsets_were_written = lba_index->sync(io_account, &on_lba_sync);
 
     /* Prepare metablock now instead of in when we write it so that we will have the correct
     metablock information for this write even if another write starts before we finish writing
@@ -387,8 +385,7 @@ void log_serializer_t::index_write_finish(index_write_context_t &context) {
     struct : public cond_t, public mb_manager_t::metablock_write_callback_t {
         void on_metablock_write() { pulse(); }
     } on_metablock_write;
-    // FIXME (rntz) should this be using DEFAULT_DISK_ACCOUNT?
-    const bool done_with_metablock = metablock_manager->write_metablock(&mb_buffer, DEFAULT_DISK_ACCOUNT, &on_metablock_write);
+    const bool done_with_metablock = metablock_manager->write_metablock(&mb_buffer, io_account, &on_metablock_write);
 
     /* If there was another transaction waiting for us to write our metablock so it could
     write its metablock, notify it now so it can write its metablock. */

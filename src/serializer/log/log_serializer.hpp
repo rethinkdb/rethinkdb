@@ -157,9 +157,9 @@ private:
         cond_t *next_metablock_write;
     };
     /* Starts a new transaction, updates perfmons etc. */
-    void index_write_prepare(index_write_context_t &context);
+    void index_write_prepare(index_write_context_t &context, file_t::account_t *io_account);
     /* Finishes a write transaction */
-    void index_write_finish(index_write_context_t &context);
+    void index_write_finish(index_write_context_t &context, file_t::account_t *io_account);
 
     /* This mess is because the serializer is still mostly FSM-based */
     bool shutdown(cond_t *cb);
