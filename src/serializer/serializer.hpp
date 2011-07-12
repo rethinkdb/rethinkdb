@@ -5,7 +5,6 @@
 #include "serializer/types.hpp"
 #include "server/cmd_args.hpp"
 
-#include "utils2.hpp"
 #include "utils.hpp"
 
 /* serializer_t is an abstract interface that describes how each serializer should

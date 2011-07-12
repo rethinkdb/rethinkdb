@@ -2,7 +2,7 @@
 #define __ARCH_LINUX_DISK_HPP__
 
 #include <libaio.h>
-#include "utils2.hpp"
+#include "utils.hpp"
 #include <boost/scoped_ptr.hpp>
 
 #include "config/args.hpp"

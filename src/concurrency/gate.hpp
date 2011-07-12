@@ -8,7 +8,7 @@
 
 #include "concurrency/resettable_cond_var.hpp"
 #include "concurrency/pmap.hpp"
-#include "utils2.hpp"
+#include "utils.hpp"
 
 /* A gate is a concurrency object that monitors some shared resource. Opening the
 gate allows actors to access the resource. Closing the gate prevents actors from

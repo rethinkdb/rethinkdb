@@ -1,4 +1,3 @@
-
 #ifndef __ARCH_LINUX_DISK_AIO_HPP__
 #define __ARCH_LINUX_DISK_AIO_HPP__
 
@@ -6,8 +5,9 @@
 #include "errors.hpp"
 #include <boost/scoped_ptr.hpp>
 #include <boost/function.hpp>
+
 #include "arch/linux/system_event.hpp"
-#include "utils2.hpp"
+#include "utils.hpp"
 #include "config/args.hpp"
 #include "arch/linux/event_queue.hpp"
 #include "concurrency/queue/passive_producer.hpp"
