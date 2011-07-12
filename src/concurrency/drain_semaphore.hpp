@@ -1,8 +1,8 @@
 #ifndef __CONCURRENCY_DRAIN_SEMAPHORE_HPP__
 #define __CONCURRENCY_DRAIN_SEMAPHORE_HPP__
 
+#include "utils.hpp"
 #include "concurrency/resettable_cond_var.hpp"
-#include <boost/scoped_array.hpp>
 
 /* A common paradigm is to have some resource and some number of processes using that
 resource, and to wait for all the processes to complete before destroying the resource
@@ -28,7 +28,9 @@ struct drain_semaphore_t : public home_thread_mixin_t {
     void release() {
         assert_thread();
         refcount--;
-        if (draining && refcount == 0) cond.pulse();
+        if (draining && refcount == 0) {
+            cond.pulse();
+        }
     }
 
     struct lock_t {
@@ -55,14 +57,7 @@ struct drain_semaphore_t : public home_thread_mixin_t {
 
     /* Call drain() to wait for all processes to finish and not allow any new ones
     to start. */
-    void drain() {
-        draining = true;
-        if (refcount) {
-            cond.get_signal()->wait();
-            cond.reset();
-        }
-        draining = false;
-    }
+    void drain();
 
     void rethread(int new_thread) {
         rassert(refcount == 0);
