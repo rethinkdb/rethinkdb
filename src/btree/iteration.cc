@@ -6,8 +6,8 @@ perfmon_counter_t
     leaf_iterators("leaf_iterators"),
     slice_leaves_iterators("slice_leaves_iterators");
 
-leaf_iterator_t::leaf_iterator_t(const leaf_node_t *leaf, int index, buf_lock_t *lock, const boost::shared_ptr<transaction_t>& transaction) :
-    leaf(leaf), index(index), lock(lock), transaction(transaction) {
+leaf_iterator_t::leaf_iterator_t(const leaf_node_t *_leaf, int _index, buf_lock_t *_lock, const boost::shared_ptr<transaction_t>& _transaction) :
+    leaf(_leaf), index(_index), lock(_lock), transaction(_transaction) {
 
     rassert(leaf != NULL);
     rassert(lock != NULL);
