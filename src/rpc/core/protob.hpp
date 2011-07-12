@@ -29,6 +29,6 @@ void pop_protob(tcp_conn_t *conn, header::hdr *hdr = NULL);
 /* read a packet of this type of the socket (returns false if the packet found is not of this type) */
 bool read_protob(tcp_conn_t *conn, Message *msg);
 
-void write_protob(tcp_conn_t *conn, Message *msg); 
+void write_protob(tcp_conn_t *conn, Message *msg);
 
 #endif

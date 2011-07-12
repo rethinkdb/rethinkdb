@@ -17,93 +17,9 @@
 #include "rpc/core/cluster.hpp"
 #include "store.hpp"
 
-/* Serializing and unserializing std::vector of a serializable type */
-
-// TODO! Don't need those
-/*template<class element_t>
-void serialize(cluster_outpipe_t *conn, const std::vector<element_t> &e) {
-    serialize(conn, int(e.size()));
-    for (int i = 0; i < (int)e.size(); i++) {
-        serialize(conn, e[i]);
-    }
-}
-
-template<class element_t>
-void unserialize(cluster_inpipe_t *conn, unserialize_extra_storage_t *es, std::vector<element_t> *e) {
-    int count;
-    unserialize(conn, es, &count);
-    e->resize(count);
-    for (int i = 0; i < count; i++) {
-        element_t *ei = &(*e)[i];
-        unserialize(conn, es, ei);
-    }
-}*/
-
-/* Serializing and unserializing std::pair of 2 serializable types */
-
-// TODO! Probably don't need those
-/*
-template<class T, class U>
-void serialize(cluster_outpipe_t *conn, const std::pair<T, U> &pair) {
-    serialize(conn, pair.first);
-    serialize(conn, pair.second);
-}
-
-template<class T, class U>
-void unserialize(cluster_inpipe_t *conn, unserialize_extra_storage_t *es, std::pair<T, U> *pair) {
-    unserialize(conn, es, &(pair->first));
-    unserialize(conn, es, &(pair->second));
-}*/
-
-/* Serializing and unserializing std::map from a serializable type to another serializable type */
-// TODO! Don't need those
-/*
-template<class K, class V>
-void serialize(cluster_outpipe_t *conn, const std::map<K, V> &m) {
-    serialize(conn, int(m.size()));
-    for (typename std::map<K, V>::const_iterator it = m.begin(); it != m.end(); it++) {
-        serialize(conn, it->first);
-        serialize(conn, it->second);
-    }
-}
-
-template<class K, class V>
-void unserialize(cluster_inpipe_t *conn, unserialize_extra_storage_t *es, std::map<K, V> *m) {
-    int count;
-    unserialize(conn, es, &count);
-    for (int i = 0; i < count; i++) {
-        K key;
-        unserialize(conn, es, &key);
-        unserialize(conn, es, &((*m)[key]));
-    }
-}*/
-
-/* Serializing and unserializing boost::scoped_ptr */
-
-// TODO! Probably don't need those
-/*
-template<class object_t>
-void serialize(cluster_outpipe_t *conn, const boost::scoped_ptr<object_t> &p) {
-    if (p) {
-        serialize(conn, true);
-        serialize(conn, *p);
-    } else {
-        serialize(conn, false);
-    }
-}
-
-template<class object_t>
-void unserialize(cluster_inpipe_t *conn, unserialize_extra_storage_t *es, boost::scoped_ptr<object_t> *p) {
-    bool is_non_null;
-    unserialize(conn, es, &is_non_null);
-    if (is_non_null) {
-        object_t *buffer = new object_t;
-        p->reset(buffer);
-        unserialize(conn, es, buffer);
-    } else {
-        p->reset(NULL);
-    }
-}*/
+// TODO: Most of this should probably be moved into the classes/structs
+// themselves. These "free" serialize functions are kind of ugly, and you have to
+// be very careful to update them when you're adding data to the class/struct.
 
 /* Serializing and unserializing ip_address_t */
 
@@ -199,10 +115,6 @@ namespace serialization {
 BOOST_SERIALIZATION_SPLIT_FREE(order_token_t)
 
 /* Serializing and unserializing mailbox addresses */
-
-// TODO: These (and maybe a few others) should probably be moved into the classes/structs
-// themselves. These "free" serialize functions are kind of ugly, and you have to
-// be very careful to update them when you're adding data to the class/struct.
 
 namespace boost {
 namespace serialization {

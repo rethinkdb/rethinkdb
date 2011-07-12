@@ -2,6 +2,7 @@
 #define _RPC_CORE_PEER_HPP_
 
 #include "arch/arch.hpp"
+#include "arch/streamed_tcp.hpp"
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
 #include <list>
@@ -25,7 +26,7 @@ private:
     unsigned int port;
 
     friend class mailbox_srvc_t; //mailboxes need to get at the conn for now
-    boost::scoped_ptr<tcp_conn_t> conn;   // NULL if it's us
+    boost::scoped_ptr<streamed_tcp_conn_t> conn;   // NULL if it's us
 
     mutex_t write_lock;
 
@@ -94,7 +95,7 @@ public:
 
 public:
     void connect() {
-        conn.reset(new tcp_conn_t(address, port));
+        conn.reset(new streamed_tcp_conn_t(address, port));
     }
     /* write a message directly to the socket */
     void write(Message *msg) {
@@ -104,7 +105,7 @@ public:
             state == cluster_peer_t::killed) {
             throw write_peer_killed_exc_t();
         }
-        write_protob(conn.get(), msg);
+        write_protob(conn.get()->get_raw_conn(), msg);
     }
 
     /* read a message directly off the socket:
@@ -117,7 +118,7 @@ public:
             state == cluster_peer_t::killed) {
             throw read_peer_killed_exc_t();
         }
-        return read_protob(conn.get(), msg);
+        return read_protob(conn.get()->get_raw_conn(), msg);
     }
 
     bool peek(Message *msg) {
@@ -127,7 +128,7 @@ public:
             state == cluster_peer_t::killed) {
             throw read_peer_killed_exc_t();
         }
-        return peek_protob(conn.get(), msg);
+        return peek_protob(conn.get()->get_raw_conn(), msg);
     }
 
     void pop() {
@@ -137,7 +138,7 @@ public:
             state == cluster_peer_t::killed) {
             throw read_peer_killed_exc_t();
         }
-        pop_protob(conn.get());
+        pop_protob(conn.get()->get_raw_conn());
     }
 
 public:

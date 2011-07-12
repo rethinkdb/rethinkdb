@@ -224,17 +224,17 @@ private:
 
     boost::scoped_ptr<cluster_delegate_t> delegate;
 
-    tcp_listener_t *listener;
-    void on_tcp_listener_accept(boost::scoped_ptr<tcp_conn_t> &);
+    streamed_tcp_listener_t *listener;
+    void on_tcp_listener_accept(boost::scoped_ptr<streamed_tcp_conn_t> &);
 
     /* handle_unknown_peer gets called when a completely new peer wants to join
      * the cluster */
-    void handle_unknown_peer(boost::scoped_ptr<tcp_conn_t> &, population::Join_initial *);
+    void handle_unknown_peer(boost::scoped_ptr<streamed_tcp_conn_t> &, population::Join_initial *);
 
     /* handle_known_peer gets called when a peer that we already know about
      * (have in our peers map) joins and wants to start services with us. This
      * happens even if we were the proposer for this peer */
-    void handle_known_peer(boost::scoped_ptr<tcp_conn_t> &, population::Join_initial *);
+    void handle_known_peer(boost::scoped_ptr<streamed_tcp_conn_t> &, population::Join_initial *);
 
     void send_message(int peer, int mailbox, cluster_message_t *msg);
 

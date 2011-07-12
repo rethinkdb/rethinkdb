@@ -23,7 +23,7 @@ void cluster_peer_t::start_servicing() {
         bool handled_a_message = false;
         for (srvc_list_t::iterator it = srvcs.begin(); it != srvcs.end(); it++) {
             if (peek((*it)->_msg) && (*it)->want_message(this)) {
-                pop_protob(conn.get());
+                pop_protob(conn.get()->get_raw_conn());
                 (*it)->on_receipt(this);
                 if ((*it)->one_off) it = srvcs.erase(it);
                 handled_a_message = true;
@@ -34,7 +34,7 @@ void cluster_peer_t::start_servicing() {
         if (!handled_a_message) {
             /* a message came in on the wire that we didn't know how to handle */
             header::hdr hdr;
-            pop_protob(conn.get(), &hdr);
+            pop_protob(conn.get()->get_raw_conn(), &hdr);
             logERR("Unhandled message of type: %s\n", hdr.type().c_str());
         }
     }

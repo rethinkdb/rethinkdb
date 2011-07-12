@@ -2,7 +2,7 @@
 #define _RPC_CORE_MBOX_SRVC_HPP_
 
 #include <istream>
-#include "arch/conn_streambuf.hpp"
+#include "arch/streamed_tcp.hpp"
 #include "rpc/core/mailbox.pb.h"
 #include "rpc/core/srvc.hpp"
 #include "rpc/core/cluster.hpp"
@@ -26,28 +26,25 @@ public:
 
 struct cluster_peer_inpipe_t : public checking_inpipe_t {
     void do_read(void *buf, size_t size) {
-        try {
-            conn->read(buf, size);
-        } catch (tcp_conn_t::read_closed_exc_t) {}
+        stream->read(reinterpret_cast<char*>(buf), size);
+        if (!stream->good()) {
+            debugf("FIXME: Unhandled read error.");
+            // TODO: Handle the error!
+        }
     }
     
     rpc_iarchive_t &get_archive() {
         return archive;
     }
     
-    cluster_peer_inpipe_t(tcp_conn_t *conn, int bytes) :
+    cluster_peer_inpipe_t(std::istream *stream, int bytes) :
             checking_inpipe_t(bytes),
-            conn(conn),
-            conn_streambuf(conn), 
-            conn_stream(&conn_streambuf),
-            //archive(std::cin) {
+            stream(stream),
             // TODO! Re-enable boost header!
-            archive(conn_stream, boost::archive::no_header) {
+            archive(*stream, boost::archive::no_header) {
     }
     
-    tcp_conn_t *conn;
-    tcp_conn_streambuf_t conn_streambuf;
-    std::istream conn_stream;
+    std::istream *stream;
     rpc_iarchive_t archive;
 };
 

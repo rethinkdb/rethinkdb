@@ -1,6 +1,6 @@
 #include "rpc/core/cluster.hpp"
 #include <ostream>
-#include "arch/conn_streambuf.hpp"
+#include "arch/streamed_tcp.hpp"
 #include "arch/arch.hpp"
 #include "utils.hpp"
 #include <boost/shared_ptr.hpp>
@@ -8,6 +8,7 @@
 #include "concurrency/mutex.hpp"
 #include "protob.hpp"
 #include <string>
+#include <ostream>
 #include "logger.hpp"
 #include "rpc/core/pop_srvc.hpp"
 #include "rpc/core/mbox_srvc.hpp"
@@ -25,28 +26,22 @@ cluster_mailbox_t::~cluster_mailbox_t() {
 
 struct cluster_peer_outpipe_t : public checking_outpipe_t {
     void do_write(const void *buf, size_t size) {
-        try {
-            conn->write(buf, size);
-        } catch (tcp_conn_t::write_closed_exc_t) {}
+        stream->write(reinterpret_cast<const char*>(buf), size);
+        // TODO: Should we handle errors?
     }
     
     rpc_oarchive_t &get_archive() {
         return archive;
     }
     
-    cluster_peer_outpipe_t(tcp_conn_t *conn, int bytes) :
+    cluster_peer_outpipe_t(std::ostream *stream, int bytes) :
             checking_outpipe_t(bytes),
-            conn(conn),
-            conn_streambuf(conn), 
-            conn_stream(&conn_streambuf),
-            //archive(std::cout) {
+            stream(stream),
             // TODO! Re-enable boost header!
-            archive(conn_stream, boost::archive::no_header) {
+            archive(*stream, boost::archive::no_header) {
     }
     
-    tcp_conn_t *conn;
-    tcp_conn_streambuf_t conn_streambuf;
-    std::ostream conn_stream;
+    std::ostream *stream;
     rpc_oarchive_t archive;
 };
 
@@ -59,7 +54,7 @@ cluster_t *get_cluster() {
 }
 
 cluster_t::cluster_t(int port, cluster_delegate_t *d) :
-    delegate(d), listener(new tcp_listener_t(port, boost::bind(&cluster_t::on_tcp_listener_accept, this, _1)))
+    delegate(d), listener(new streamed_tcp_listener_t(port, boost::bind(&cluster_t::on_tcp_listener_accept, this, _1)))
 {
     rassert(the_cluster == NULL);
     the_cluster = this;
@@ -72,7 +67,7 @@ cluster_t::cluster_t(int port, cluster_delegate_t *d) :
 
 cluster_t::cluster_t(int port, const char *contact_host, int contact_port,
                      boost::function<cluster_delegate_t *(cluster_inpipe_t *, boost::function<void()>)> startup_function) :
-    listener(new tcp_listener_t(port, boost::bind(&cluster_t::on_tcp_listener_accept, this, _1)))
+    listener(new streamed_tcp_listener_t(port, boost::bind(&cluster_t::on_tcp_listener_accept, this, _1)))
 {
     rassert(the_cluster == NULL);
     the_cluster = this;
@@ -81,17 +76,17 @@ cluster_t::cluster_t(int port, const char *contact_host, int contact_port,
     population::Join_welcome welcome;
 
     /* Get in touch with our specified contact */
-    tcp_conn_t contact_conn(contact_host, contact_port);
+    streamed_tcp_conn_t contact_conn(contact_host, contact_port);
 
     /* send a join request to to the cluster */
     initial.mutable_addr()->set_ip(ip_address_t::us().ip_as_uint32());
     initial.mutable_addr()->set_port(port);
     initial.mutable_addr()->set_id(-1); //we don't know our id
 
-    write_protob(&contact_conn, &initial);
+    write_protob(contact_conn.get_raw_conn(), &initial);
 
     /* receive a welcome packet off the socket */
-    read_protob(&contact_conn, &welcome);
+    read_protob(contact_conn.get_raw_conn(), &welcome);
 
     /* put ourselves in the population vector */
     peers[welcome.addr().id()] = boost::make_shared<cluster_peer_t>(port, welcome.addr().id());
@@ -124,25 +119,25 @@ cluster_t::cluster_t(int port, const char *contact_host, int contact_port,
     }
 
     mailbox::intro_msg introduction_header;
-    read_protob(&contact_conn, &introduction_header);
+    read_protob(contact_conn.get_raw_conn(), &introduction_header);
     cluster_peer_inpipe_t intro_msg_pipe(&contact_conn, introduction_header.length());
     cond_t to_signal_when_done;
     delegate.reset(startup_function(&intro_msg_pipe, boost::bind(&cond_t::pulse, &to_signal_when_done)));
     to_signal_when_done.wait();
 }
 
-void cluster_t::on_tcp_listener_accept(boost::scoped_ptr<tcp_conn_t> &conn) {
+void cluster_t::on_tcp_listener_accept(boost::scoped_ptr<streamed_tcp_conn_t> &conn) {
     on_thread_t syncer(home_thread());
     /* the protocol buffers we're going to need for this process */
     population::Join_initial    initial;
-    if (!read_protob(conn.get(), &initial))
+    if (!read_protob(conn.get()->get_raw_conn(), &initial))
         logINF("Troll peer connected and didn't send a valid first packet\n");
 
     if (initial.addr().id() == -1) handle_unknown_peer(conn, &initial);
     else handle_known_peer(conn, &initial);
 }
 
-void cluster_t::handle_unknown_peer(boost::scoped_ptr<tcp_conn_t> &conn, population::Join_initial *initial) {
+void cluster_t::handle_unknown_peer(boost::scoped_ptr<streamed_tcp_conn_t> &conn, population::Join_initial *initial) {
     on_thread_t syncer(home_thread());
     logINF("Handle unknown peer\n");
     population::addrinfo            addr;
@@ -227,7 +222,7 @@ void cluster_t::handle_unknown_peer(boost::scoped_ptr<tcp_conn_t> &conn, populat
         *(welcome.add_peers()) = peer;
     }
 
-    write_protob(conn.get(), &welcome);
+    write_protob(conn.get()->get_raw_conn(), &welcome);
 
     /* Determine how long the introduction will be */
     counting_outpipe_t intro_size_counter;
@@ -236,14 +231,14 @@ void cluster_t::handle_unknown_peer(boost::scoped_ptr<tcp_conn_t> &conn, populat
     /* Write the introduction header */
     mailbox::intro_msg intro_msg;
     intro_msg.set_length(intro_size_counter.bytes);
-    write_protob(conn.get(), &intro_msg);
+    write_protob(conn.get()->get_raw_conn(), &intro_msg);
 
     /* Write the introduction body */
     cluster_peer_outpipe_t out_pipe(conn.get(), intro_size_counter.bytes);
     delegate->introduce_new_node(&out_pipe);
 }
 
-void cluster_t::handle_known_peer(boost::scoped_ptr<tcp_conn_t> &conn, population::Join_initial *initial) {
+void cluster_t::handle_known_peer(boost::scoped_ptr<streamed_tcp_conn_t> &conn, population::Join_initial *initial) {
     on_thread_t syncer(home_thread());
     if (peers.find(initial->addr().id()) != peers.end() && peers[initial->addr().id()]->state != cluster_peer_t::join_official) {
         logINF("Peer that hasn't been made official attempted to connect\n");
@@ -284,10 +279,13 @@ void cluster_t::_start_main_srvcs(boost::shared_ptr<cluster_peer_t> peer) {
         peer->add_srvc(*it);
 
     try {
+        fprintf(stderr, "Start_servicing\n");
         peer->start_servicing();
+        fprintf(stderr, "Stop start_servicing without exception\n");
     } 
     catch (linux_tcp_conn_t::read_closed_exc_t) {}
     catch (linux_tcp_conn_t::write_closed_exc_t) {}
+    fprintf(stderr, "Stop start_servicing\n");
     kill_peer(peer->id);
 }
 

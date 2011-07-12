@@ -25,7 +25,6 @@ void mailbox_srvc_t::handle(cluster_peer_t *sndr) {
 
         cluster_peer_inpipe_t inpipe(sndr->conn.get(), msg.length());
         cond_t to_signal_when_done;
-        // TODO! Hook into this for debugging...
         fprintf(stderr, "Handing over to mailbox\n");
         coro_t::spawn_now(boost::bind(
             &cluster_mailbox_t::unserialize, mbox, boost::ref(inpipe.get_archive()),
@@ -46,5 +45,5 @@ void mailbox_srvc_t::handle(cluster_peer_t *sndr) {
 
 ERROR_BREAKOUT:
         /* consume the msg so that we can keep going */
-        sndr->conn->pop(msg.length());
+        sndr->conn->get_raw_conn()->pop(msg.length());
 }
