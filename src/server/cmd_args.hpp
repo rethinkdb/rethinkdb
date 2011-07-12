@@ -42,7 +42,7 @@ struct log_serializer_dynamic_config_t {
     size_t file_zone_size;
 
     /* Which i/o backend should the log serializer use for accessing files? */
-    platform_io_config_t::io_backend_t io_backend;
+    io_backend_t io_backend;
 
     /* The (minimal) batch size of i/o requests being taken from a single i/o account.
     It is a factor because the actual batch size is this factor multiplied by the

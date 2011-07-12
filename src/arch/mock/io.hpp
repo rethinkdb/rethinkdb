@@ -6,6 +6,7 @@
 #include "utils2.hpp"
 #include "arch/random_delay.hpp"
 #include <stdlib.h>
+#include "arch/linux/disk.hpp"
 
 struct mock_iocallback_t {
     virtual void on_io_complete() = 0;
@@ -14,7 +15,6 @@ struct mock_iocallback_t {
 
 #define DEFAULT_DISK_ACCOUNT NULL
 
-template<class inner_io_config_t>
 class mock_file_t
 {
     int mode;
@@ -31,21 +31,21 @@ public:
     };
 
 protected:
-    mock_file_t(const char *path, int mode, const typename inner_io_config_t::io_backend_t io_backend = (typename inner_io_config_t::io_backend_t)-1, const int batch_factor = DEFAULT_IO_BATCH_FACTOR)
+    mock_file_t(const char *path, int mode, const linux_io_backend_t io_backend = (linux_io_backend_t)(-1), const int batch_factor = DEFAULT_IO_BATCH_FACTOR)
         : mode(mode)
     {
         int mode2 = 0;
-        if (mode & mode_read) mode2 |= inner_io_config_t::file_t::mode_read;
+        if (mode & mode_read) mode2 |= linux_file_t::mode_read;
         // We always enable writing because the mock layer does
         // truncation on exit
-        mode2 |= inner_io_config_t::file_t::mode_write;
-        if (mode & mode_create) mode2 |= inner_io_config_t::file_t::mode_create;
+        mode2 |= linux_file_t::mode_write;
+        if (mode & mode_create) mode2 |= linux_file_t::mode_create;
 
-        if (io_backend == (typename inner_io_config_t::io_backend_t)-1)
+        if (io_backend == (linux_io_backend_t)(-1))
             // Use the defaults of the underlying implementation
-            inner_file = new typename inner_io_config_t::nondirect_file_t(path, mode2);
+            inner_file = new linux_nondirect_file_t(path, mode2);
         else
-            inner_file = new typename inner_io_config_t::nondirect_file_t(path, mode2, io_backend, batch_factor);
+            inner_file = new linux_nondirect_file_t(path, mode2, io_backend, batch_factor);
 
         if (inner_file->is_block_device()) {
             fail_due_to_user_error(
@@ -137,7 +137,7 @@ protected:
     }
 
 private:
-    typename inner_io_config_t::nondirect_file_t *inner_file;
+    linux_nondirect_file_t *inner_file;
     
     struct block_t {
         char *data;
@@ -172,39 +172,37 @@ private:
     DISABLE_COPYING(mock_file_t);
 };
 
-template <class inner_io_config_t>
-class mock_direct_file_t : public mock_file_t<inner_io_config_t> {
+class mock_direct_file_t : public mock_file_t {
 public:
-    using mock_file_t<inner_io_config_t>::exists;
-    using mock_file_t<inner_io_config_t>::is_block_device;
-    using mock_file_t<inner_io_config_t>::get_size;
-    using mock_file_t<inner_io_config_t>::set_size;
-    using mock_file_t<inner_io_config_t>::set_size_at_least;
-    using mock_file_t<inner_io_config_t>::read_async;
-    using mock_file_t<inner_io_config_t>::write_async;
-    using mock_file_t<inner_io_config_t>::read_blocking;
-    using mock_file_t<inner_io_config_t>::write_blocking;
+    using mock_file_t::exists;
+    using mock_file_t::is_block_device;
+    using mock_file_t::get_size;
+    using mock_file_t::set_size;
+    using mock_file_t::set_size_at_least;
+    using mock_file_t::read_async;
+    using mock_file_t::write_async;
+    using mock_file_t::read_blocking;
+    using mock_file_t::write_blocking;
 
-    mock_direct_file_t(const char *path, int mode, const typename inner_io_config_t::io_backend_t io_backend = (typename inner_io_config_t::io_backend_t)-1, const int batch_factor = DEFAULT_IO_BATCH_FACTOR) : mock_file_t<inner_io_config_t>(path, mode, io_backend, batch_factor) { }
+    mock_direct_file_t(const char *path, int mode, const linux_io_backend_t io_backend = (linux_io_backend_t)(-1), const int batch_factor = DEFAULT_IO_BATCH_FACTOR) : mock_file_t(path, mode, io_backend, batch_factor) { }
 
 private:
     DISABLE_COPYING(mock_direct_file_t);
 };
 
-template <class inner_io_config_t>
-class mock_nondirect_file_t : private mock_file_t<inner_io_config_t> {
+class mock_nondirect_file_t : private mock_file_t {
 public:
-    using mock_file_t<inner_io_config_t>::exists;
-    using mock_file_t<inner_io_config_t>::is_block_device;
-    using mock_file_t<inner_io_config_t>::get_size;
-    using mock_file_t<inner_io_config_t>::set_size;
-    using mock_file_t<inner_io_config_t>::set_size_at_least;
-    using mock_file_t<inner_io_config_t>::read_async;
-    using mock_file_t<inner_io_config_t>::write_async;
-    using mock_file_t<inner_io_config_t>::read_blocking;
-    using mock_file_t<inner_io_config_t>::write_blocking;
+    using mock_file_t::exists;
+    using mock_file_t::is_block_device;
+    using mock_file_t::get_size;
+    using mock_file_t::set_size;
+    using mock_file_t::set_size_at_least;
+    using mock_file_t::read_async;
+    using mock_file_t::write_async;
+    using mock_file_t::read_blocking;
+    using mock_file_t::write_blocking;
 
-    mock_nondirect_file_t(const char *path, int mode, const typename inner_io_config_t::io_backend_t io_backend = (typename inner_io_config_t::io_backend_t)-1, const int batch_factor = DEFAULT_IO_BATCH_FACTOR) : mock_file_t<inner_io_config_t>(path, mode, io_backend, batch_factor) { }
+    mock_nondirect_file_t(const char *path, int mode, const linux_io_backend_t io_backend = (linux_io_backend_t)(-1), const int batch_factor = DEFAULT_IO_BATCH_FACTOR) : mock_file_t(path, mode, io_backend, batch_factor) { }
 
 private:
     DISABLE_COPYING(mock_nondirect_file_t);
