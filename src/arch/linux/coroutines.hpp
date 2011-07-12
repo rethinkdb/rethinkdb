@@ -25,11 +25,11 @@ another fiber calls notify_*() on it.
 coro_t objects can switch threads with move_to_thread(), but it is recommended that you use
 on_thread_t for more safety. */
 
-struct coro_t : private linux_thread_message_t {
+class coro_t : private linux_thread_message_t {
+public:
     friend class coro_context_t;
     friend bool is_coroutine_stack_overflow(void *);
 
-public:
     static void spawn_later(const boost::function<void()> &deed);
     static void spawn_now(const boost::function<void()> &deed);
     static void spawn_on_thread(int thread, const boost::function<void()> &deed);

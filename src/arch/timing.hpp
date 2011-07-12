@@ -1,6 +1,9 @@
 #ifndef __ARCH_TIMING_HPP__
 #define __ARCH_TIMING_HPP__
 
+#include "errors.hpp"
+#include <boost/function.hpp>
+
 #include "concurrency/signal.hpp"
 
 /* Coroutine function that delays for some number of milliseconds. */

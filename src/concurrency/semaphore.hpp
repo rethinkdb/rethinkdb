@@ -4,7 +4,8 @@
 #include "concurrency/rwi_lock.hpp"   // For lock_available_callback_t
 #include "concurrency/cond_var.hpp"
 
-struct semaphore_available_callback_t {
+class semaphore_available_callback_t {
+public:
     virtual ~semaphore_available_callback_t() {}
     virtual void on_semaphore_available() = 0;
 };
@@ -35,56 +36,12 @@ public:
         rassert(capacity >= 0 || capacity == SEMAPHORE_NO_LIMIT);
     }
 
-    void lock(semaphore_available_callback_t *cb, int count = 1) {
-        rassert(!in_callback);
-        rassert(count <= capacity || capacity == SEMAPHORE_NO_LIMIT);
-        if (current + count <= capacity || capacity == SEMAPHORE_NO_LIMIT) {
-            current += count;
-            DEBUG_ONLY(in_callback = true);
-            cb->on_semaphore_available();
-            rassert(in_callback);
-            DEBUG_ONLY(in_callback = false);
-        } else {
-            lock_request_t *r = new lock_request_t;
-            r->count = count;
-            r->cb = cb;
-            waiters.push_back(r);
-        }
-    }
+    void lock(semaphore_available_callback_t *cb, int count = 1);
 
-    void co_lock(int count = 1) {
-        rassert(!in_callback);
-        struct : public semaphore_available_callback_t, public one_waiter_cond_t {
-            void on_semaphore_available() { pulse(); }
-        } cb;
-        lock(&cb, count);
-        cb.wait_eagerly();
-        // TODO: Remove the need for in_callback checks.
-        coro_t::yield();
-    }
+    void co_lock(int count = 1);
 
-    void unlock(int count = 1) {
-        rassert(!in_callback);
-        rassert(current >= count);
-        current -= count;
-        if (lock_request_t *h = waiters.head()) {
-            if (current + h->count <= capacity) {
-                waiters.remove(h);
-                current += h->count;
-                rassert(!in_callback);
-                DEBUG_ONLY(in_callback = true);
-                h->on_available();
-                rassert(in_callback);
-                DEBUG_ONLY(in_callback = false);
-            }
-        }
-    }
-
-    void lock_now(int count = 1) {
-        rassert(!in_callback);
-        rassert(current + count <= capacity || capacity == SEMAPHORE_NO_LIMIT);
-        current += count;
-    }
+    void unlock(int count = 1);
+    void lock_now(int count = 1);
 };
 
 /* `adjustable_semaphore_t` is a `semaphore_t` where you can change the
@@ -117,87 +74,22 @@ public:
         rassert(capacity >= 0 || capacity == SEMAPHORE_NO_LIMIT);
     }
 
-    void lock(semaphore_available_callback_t *cb, int count = 1) {
-        rassert(!in_callback);
-        rassert(count <= capacity || capacity == SEMAPHORE_NO_LIMIT);
-        if (try_lock(count)) {
-            rassert(!in_callback);
-            DEBUG_ONLY(in_callback = true);
-            cb->on_semaphore_available();
-            rassert(in_callback);
-            DEBUG_ONLY(in_callback = false);
-        } else {
-            lock_request_t *r = new lock_request_t;
-            r->count = count;
-            r->cb = cb;
-            waiters.push_back(r);
-        }
-    }
+    void lock(semaphore_available_callback_t *cb, int count = 1);
 
-    void co_lock(int count = 1) {
-        rassert(!in_callback);
-        struct : public semaphore_available_callback_t, public one_waiter_cond_t {
-            void on_semaphore_available() { pulse(); }
-        } cb;
-        lock(&cb, count);
-        cb.wait_eagerly();
-        // TODO: remove need for in_callback checks
-        coro_t::yield();
-    }
+    void co_lock(int count = 1);
 
-    void unlock(int count = 1) {
-        rassert(!in_callback);
-        rassert(current >= count);
-        current -= count;
-        if (current > capacity && capacity != SEMAPHORE_NO_LIMIT) {
-            trickle_points += trickle_fraction * count;
-        }
-        pump();
-    }
+    void unlock(int count = 1);
 
-    void lock_now(int count = 1) {
-        rassert(!in_callback);
-        if (!try_lock(count)) {
-            crash("lock_now() can't lock now.\n");
-        }
-    }
+    void lock_now(int count = 1);
 
-    void force_lock(int count = 1) {
-        current += count;
-    }
+    void force_lock(int count = 1);
 
-    void set_capacity(int new_capacity) {
-        rassert(!in_callback);
-        capacity = new_capacity;
-        rassert(capacity >= 0 || capacity == SEMAPHORE_NO_LIMIT);
-        pump();
-    }
+    void set_capacity(int new_capacity);
 
 private:
-    bool try_lock(int count) {
-        if (current + count > capacity && capacity != SEMAPHORE_NO_LIMIT) {
-            if (trickle_points >= count) {
-                trickle_points -= count;
-            } else {
-                return false;
-            }
-        }
-        current += count;
-        return true;
-    }
+    bool try_lock(int count);
 
-    void pump() {
-        rassert(!in_callback);
-        lock_request_t *h;
-        while ((h = waiters.head()) && try_lock(h->count)) {
-            waiters.remove(h);
-            rassert(!in_callback);
-            DEBUG_ONLY(in_callback = true);
-            h->on_available();
-            rassert(in_callback);
-            DEBUG_ONLY(in_callback = false);
-        }
-    }
+    void pump();
 };
 
 #endif /* __CONCURRENCY_SEMAPHORE_HPP__ */
