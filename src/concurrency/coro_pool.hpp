@@ -4,10 +4,11 @@
 #include "utils.hpp"
 #include <boost/function.hpp>
 
-#include "concurrency/queue/passive_producer.hpp"
 #include "concurrency/drain_semaphore.hpp"
+#include "concurrency/watchable.hpp"
 
-
+template <class value_t>
+struct passive_producer_t;
 
 /* coro_pool_t maintains a bunch of coroutines; when you give it tasks, it
 distributes them among the coroutines. It draws its tasks from a

@@ -8,12 +8,13 @@
 #include "arch/linux/event_queue.hpp"
 #include "arch/linux/linux_utils.hpp"
 #include "arch/address.hpp"
-#include "concurrency/side_coro.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/queue/unlimited_fifo.hpp"
 #include "concurrency/semaphore.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "perfmon_types.hpp"
+
+class side_coro_handler_t;
 
 /* linux_tcp_conn_t provides a nice wrapper around a TCP network connection. */
 

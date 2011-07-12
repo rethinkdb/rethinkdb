@@ -15,7 +15,7 @@
 #include "arch/linux/coroutines.hpp"
 #include "arch/linux/thread_pool.hpp"
 #include "arch/timing.hpp"
-#include "concurrency/cond_var.hpp"
+#include "concurrency/side_coro.hpp"
 #include "logger.hpp"
 #include "perfmon.hpp"
 
