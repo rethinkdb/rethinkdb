@@ -1,9 +1,14 @@
 #include "server/control.hpp"
+
+#include <map>
+
 #include "arch/spinlock.hpp"
 
 #include "utils.hpp"
 #include "logger.hpp"
 #include "errors.hpp"
+
+typedef std::map<std::string, control_t *> control_map_t;
 
 control_map_t& get_control_map() {
     /* Getter function so that we can be sure that control_list is initialized before it is needed,
