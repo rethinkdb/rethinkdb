@@ -1,8 +1,7 @@
 #ifndef __CONCURRENCY_SEMAPHORE_HPP__
 #define __CONCURRENCY_SEMAPHORE_HPP__
 
-#include "concurrency/rwi_lock.hpp"   // For lock_available_callback_t
-#include "concurrency/cond_var.hpp"
+#include "containers/intrusive_list.hpp"
 
 class semaphore_available_callback_t {
 public:
