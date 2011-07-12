@@ -1,4 +1,8 @@
 #include "replication/protocol.hpp"
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "replication/debug_format.hpp"
 #include "concurrency/coro_fifo.hpp"
 #include "perfmon.hpp"

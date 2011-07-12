@@ -1,4 +1,8 @@
 #include "rpc/core/mbox_srvc.hpp"
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "rpc/core/cluster.hpp"
 
 void mailbox_srvc_t::handle(cluster_peer_t *sndr) {

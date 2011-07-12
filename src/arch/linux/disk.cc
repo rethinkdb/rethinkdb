@@ -1,3 +1,5 @@
+#include "arch/linux/disk.hpp"
+
 #include <algorithm>
 #include <fcntl.h>
 #include <linux/fs.h>
@@ -6,6 +8,9 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
 
 #include "arch/linux/system_event/eventfd.hpp"
 #include "arch/linux/arch.hpp"

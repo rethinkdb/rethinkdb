@@ -1,7 +1,7 @@
 #ifndef __ARCH_LINUX_COROUTINES_HPP__
 #define __ARCH_LINUX_COROUTINES_HPP__
 
-#include "utils.hpp"
+#include "errors.hpp"
 #include <boost/function.hpp>
 #include "arch/linux/linux_utils.hpp"
 

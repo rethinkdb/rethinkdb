@@ -1,7 +1,11 @@
 #include "buffer_cache/mirrored/writeback/writeback.hpp"
 
-#include <cmath>
 #include <set>
+
+#include <math.h>
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
 
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "do_on_thread.hpp"

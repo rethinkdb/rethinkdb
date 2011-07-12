@@ -1,5 +1,8 @@
 #include "concurrency/side_coro.hpp"
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "arch/coroutines.hpp"
 
 side_coro_handler_t::side_coro_handler_t(const boost::function<void (signal_t *)>& f)

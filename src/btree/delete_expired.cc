@@ -1,5 +1,8 @@
 #include "btree/delete_expired.hpp"
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "btree/modify_oper.hpp"
 
 class btree_delete_expired_oper_t : public btree_modify_oper_t

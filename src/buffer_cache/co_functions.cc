@@ -1,4 +1,8 @@
 #include "buffer_cache/co_functions.hpp"
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "concurrency/promise.hpp"
 
 buf_t *co_acquire_block(transaction_t *transaction, block_id_t block_id, access_t mode, threadsafe_cond_t *acquisition_cond) {

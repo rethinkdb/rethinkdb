@@ -3,7 +3,9 @@
 #include <stdio.h>
 #include <sys/mman.h>
 #include <ucontext.h>
-#include <arch/arch.hpp>
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
 
 #include "arch/linux/arch.hpp"
 #include "arch/linux/thread_pool.hpp"

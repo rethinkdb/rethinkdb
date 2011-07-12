@@ -1,4 +1,8 @@
 #include "serializer/log/static_header.hpp"
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "config/args.hpp"
 #include "utils.hpp"
     

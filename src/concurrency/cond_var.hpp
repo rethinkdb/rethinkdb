@@ -2,8 +2,6 @@
 #define __CONCURRENCY_COND_VAR_HPP__
 
 #include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "concurrency/signal.hpp"
 
 /* A cond_t is the simplest form of signal. It just exposes the pulse() method directly.

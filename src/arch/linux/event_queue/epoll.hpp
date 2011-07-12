@@ -1,4 +1,3 @@
-
 #ifndef __EPOLL_EVENT_QUEUE_HPP__
 #define __EPOLL_EVENT_QUEUE_HPP__
 

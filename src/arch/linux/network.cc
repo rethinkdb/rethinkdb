@@ -1,8 +1,5 @@
 #include "arch/linux/network.hpp"
-#include "arch/linux/thread_pool.hpp"
-#include "arch/timing.hpp"
-#include "logger.hpp"
-#include "concurrency/cond_var.hpp"
+
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
@@ -11,6 +8,14 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
+#include "arch/linux/thread_pool.hpp"
+#include "arch/timing.hpp"
+#include "concurrency/cond_var.hpp"
+#include "logger.hpp"
 #include "perfmon.hpp"
 
 /* Network connection object */

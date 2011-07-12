@@ -1,9 +1,6 @@
-
 #ifndef __ARCH_LINUX_EVENTFD_EVENT_HPP__
 #define __ARCH_LINUX_EVENTFD_EVENT_HPP__
 
-#include <fcntl.h>
-#include <unistd.h>
 #include <stdint.h>
 #include "errors.hpp"
 
@@ -18,11 +15,11 @@ public:
     void write(uint64_t value);
 
     int get_notify_fd() {
-        return _eventfd;
+        return eventfd_;
     }
 
 private:
-    int _eventfd;
+    int eventfd_;
     DISABLE_COPYING(eventfd_event_t);
 };
 
