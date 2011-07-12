@@ -1,7 +1,7 @@
 #ifndef __CONCURRENCY_CORO_POOL_HPP__
 #define __CONCURRENCY_CORO_POOL_HPP__
 
-#include "errors.hpp"
+#include "utils.hpp"
 #include <boost/function.hpp>
 
 #include "concurrency/queue/passive_producer.hpp"

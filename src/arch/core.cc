@@ -1,7 +1,6 @@
 #include "arch/core.hpp"
 
 #include "utils.hpp"
-#include "arch/linux/coroutines.hpp"
 #include "arch/linux/thread_pool.hpp"
 
 int get_thread_id() {
