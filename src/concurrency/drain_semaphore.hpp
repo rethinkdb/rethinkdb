@@ -2,7 +2,6 @@
 #define __CONCURRENCY_DRAIN_SEMAPHORE_HPP__
 
 #include "concurrency/resettable_cond_var.hpp"
-#include "concurrency/pmap.hpp"
 #include <boost/scoped_array.hpp>
 
 /* A common paradigm is to have some resource and some number of processes using that
