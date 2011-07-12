@@ -12,25 +12,10 @@ changed back. We'll sort this mess out when it's time to support another OS. */
 
 typedef linux_thread_pool_t thread_pool_t;
 
-/* If `MOCK_IO_LAYER=1` is passed to the makefile, it will insert a layer in
-the disk IO stack that randomly changes how long operations take. */
-
-#ifndef MOCK_IO_LAYER
-
 typedef linux_file_t file_t;
 typedef linux_direct_file_t direct_file_t;
 typedef linux_nondirect_file_t nondirect_file_t;
 typedef linux_iocallback_t iocallback_t;
-
-#else
-
-#include "arch/mock/io.hpp"
-typedef mock_file_t file_t;
-typedef mock_direct_file_t direct_file_t;
-typedef mock_nondirect_file_t nondirect_file_t;
-typedef mock_iocallback_t iocallback_t;
-
-#endif
 
 typedef linux_io_backend_t io_backend_t;
 
