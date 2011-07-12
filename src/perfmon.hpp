@@ -301,8 +301,12 @@ public:
 public:
     std::string call(UNUSED int argc, UNUSED char **argv) {
         ignore_global_full_perfmon = !ignore_global_full_perfmon;
-        if (ignore_global_full_perfmon) return std::string("Enabled\n");
-        else                            return std::string("Disabled\n");
+        if (ignore_global_full_perfmon) {
+            return "Enabled\n";
+        }
+        else {
+            return "Disabled\n";
+        }
     }
 };
 
