@@ -374,6 +374,16 @@ void repli_stream_t::send_hello(UNUSED const mutex_acquisition_t& evidence_of_ac
     try_write(&msg, sizeof(msg));
 }
 
+void repli_stream_t::send_heartbeat() {
+    net_heartbeat_t msg;
+    msg.padding = 0;
+    send(msg);
+}
+void repli_stream_t::on_heartbeat_timeout() {
+    logINF("Terminating connection due to heartbeat timeout.\n");
+    shutdown();
+}
+
 perfmon_duration_sampler_t master_write("master_write", secs_to_ticks(1.0));
 
 void repli_stream_t::try_write(const void *data, size_t size) {
