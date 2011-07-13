@@ -156,6 +156,8 @@ struct replication_config_t {
     bool    active;
     /* Terminate the connection if no heartbeat is received within this many milliseconds */
     int     heartbeat_timeout;
+
+    replication_config_t() : port(0), active(false), heartbeat_timeout(0) { }
 };
 
 /* Configuration for failover */

@@ -946,9 +946,6 @@ void cmd_config_t::print() {
 }
 
 cmd_config_t::cmd_config_t() {
-    bzero(&replication_config, sizeof(replication_config));
-    bzero(&failover_config, sizeof(failover_config));
-
     verbose = false;
     port = DEFAULT_LISTEN_PORT;
     n_workers = get_cpu_count();
