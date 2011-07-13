@@ -3,6 +3,7 @@
 #include "btree/modify_oper.hpp"
 #include "btree/internal_node.hpp"
 #include "btree/leaf_node.hpp"
+#include "btree/slice.hpp"
 
 
 // TODO: consider B#/B* trees to improve space efficiency

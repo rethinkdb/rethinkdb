@@ -1,22 +1,21 @@
 #ifndef __BTREE_MODIFY_OPER_HPP__
 #define __BTREE_MODIFY_OPER_HPP__
 
-#include "utils.hpp"
 #include "btree/node.hpp"
-#include "btree/slice.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "buffer_cache/buf_lock.hpp"
-#include "buffer_cache/blob.hpp"
-#include "buffer_cache/co_functions.hpp"
 #include "containers/scoped_malloc.hpp"
+
+class btree_slice_t;
 
 #define BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS 0
 
 /* Stats */
 class btree_modify_oper_t {
-public:
+protected:
     virtual ~btree_modify_oper_t() { }
 
+public:
     // run_btree_modify_oper() calls operate() when it reaches the
     // leaf node.  It modifies the value of (or the existence of
     // `value` in some way.  For example, if value contains a NULL
