@@ -2,6 +2,7 @@
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
+#include <boost/make_shared.hpp>
 
 #include "btree/btree_data_provider.hpp"
 #include "btree/iteration.hpp"
@@ -76,11 +77,12 @@ rget_result_t btree_rget_slice(btree_slice_t *slice, rget_bound_mode_t left_mode
     boost::shared_ptr<transaction_t> transaction = boost::shared_ptr<transaction_t>(new transaction_t(slice->cache(), rwi_read));
     transaction->set_token(slice->post_begin_transaction_checkpoint_.check_through(token).with_read_mode());
 
+    boost::shared_ptr<value_sizer_t> sizer = boost::make_shared<memcached_value_sizer_t>(transaction->get_cache()->get_block_size());
     transaction->snapshot();
     return boost::shared_ptr<one_way_iterator_t<key_with_data_provider_t> >(
         new transform_iterator_t<key_value_pair_t, key_with_data_provider_t>(
             boost::bind(pair_to_key_with_data_provider, transaction, _1),
             new filter_iterator_t<key_value_pair_t>(
                 is_not_expired,
-                new slice_keys_iterator_t(transaction, slice, left_mode, left_key, right_mode, right_key))));
+                new slice_keys_iterator_t(sizer, transaction, slice, left_mode, left_key, right_mode, right_key))));
 }

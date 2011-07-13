@@ -6,8 +6,8 @@ perfmon_counter_t
     leaf_iterators("leaf_iterators"),
     slice_leaves_iterators("slice_leaves_iterators");
 
-leaf_iterator_t::leaf_iterator_t(const leaf_node_t *_leaf, int _index, buf_lock_t *_lock, const boost::shared_ptr<transaction_t>& _transaction) :
-    leaf(_leaf), index(_index), lock(_lock), transaction(_transaction) {
+leaf_iterator_t::leaf_iterator_t(const leaf_node_t *_leaf, int _index, buf_lock_t *_lock, const boost::shared_ptr<value_sizer_t>& _sizer, const boost::shared_ptr<transaction_t>& _transaction) :
+    leaf(_leaf), index(_index), lock(_lock), sizer(_sizer), transaction(_transaction) {
 
     rassert(leaf != NULL);
     rassert(lock != NULL);
@@ -45,12 +45,12 @@ void leaf_iterator_t::done() {
     }
 }
 
-slice_leaves_iterator_t::slice_leaves_iterator_t(const boost::shared_ptr<transaction_t>& transaction, btree_slice_t *slice,
-    rget_bound_mode_t left_mode, const btree_key_t *left_key, rget_bound_mode_t right_mode, const btree_key_t *right_key) :
-        transaction(transaction), slice(slice),
-        left_mode(left_mode), left_key(left_key), right_mode(right_mode), right_key(right_key),
-        traversal_state(), started(false), nevermore(false) {
-            slice_leaves_iterators++;
+slice_leaves_iterator_t::slice_leaves_iterator_t(const boost::shared_ptr<value_sizer_t>& _sizer, const boost::shared_ptr<transaction_t>& _transaction, btree_slice_t *_slice,
+    rget_bound_mode_t _left_mode, const btree_key_t *_left_key, rget_bound_mode_t _right_mode, const btree_key_t *_right_key) :
+    sizer(_sizer), transaction(_transaction), slice(_slice),
+    left_mode(_left_mode), left_key(_left_key), right_mode(_right_mode), right_key(_right_key),
+    traversal_state(), started(false), nevermore(false) {
+    slice_leaves_iterators++;
 }
 
 boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::next() {
@@ -136,7 +136,7 @@ boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_first_leaf() {
     int index = leaf::impl::get_offset_index(l_node, left_key);
 
     if (index < l_node->npairs) {
-        return boost::make_optional(new leaf_iterator_t(l_node, index, buf_lock, transaction));
+        return boost::make_optional(new leaf_iterator_t(l_node, index, buf_lock, sizer, transaction));
     } else {
         // there's nothing more in this leaf, we might as well move to the next leaf
         delete buf_lock;
@@ -190,7 +190,7 @@ boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_leftmost_leaf(blo
     rassert(buf_lock != NULL);
 
     const leaf_node_t *l_node = reinterpret_cast<const leaf_node_t *>(node);
-    return boost::make_optional(new leaf_iterator_t(l_node, 0, buf_lock, transaction));
+    return boost::make_optional(new leaf_iterator_t(l_node, 0, buf_lock, sizer, transaction));
 }
 
 block_id_t slice_leaves_iterator_t::get_child_id(const internal_node_t *i_node, int index) const {
@@ -201,11 +201,11 @@ block_id_t slice_leaves_iterator_t::get_child_id(const internal_node_t *i_node, 
     return child_id;
 }
 
-slice_keys_iterator_t::slice_keys_iterator_t(const boost::shared_ptr<transaction_t>& transaction_, btree_slice_t *slice_,
-        rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key) :
-    transaction(transaction_), slice(slice_),
-    left_mode(left_mode), left_key(left_key), right_mode(right_mode), right_key(right_key),
-    left_str(key_to_str(left_key)), right_str(key_to_str(right_key)),
+slice_keys_iterator_t::slice_keys_iterator_t(const boost::shared_ptr<value_sizer_t>& _sizer, const boost::shared_ptr<transaction_t>& _transaction, btree_slice_t *_slice,
+        rget_bound_mode_t _left_mode, const store_key_t &_left_key, rget_bound_mode_t _right_mode, const store_key_t &_right_key) :
+    sizer(_sizer), transaction(_transaction), slice(_slice),
+    left_mode(_left_mode), left_key(_left_key), right_mode(_right_mode), right_key(_right_key),
+    left_str(key_to_str(_left_key)), right_str(key_to_str(_right_key)),
     no_more_data(false), active_leaf(NULL), leaves_iterator(NULL) { }
 
 slice_keys_iterator_t::~slice_keys_iterator_t() {
@@ -227,7 +227,7 @@ void slice_keys_iterator_t::prefetch() {
 }
 
 boost::optional<key_value_pair_t> slice_keys_iterator_t::get_first_value() {
-    leaves_iterator = new slice_leaves_iterator_t(transaction, slice, left_mode, left_key.key(), right_mode, right_key.key());
+    leaves_iterator = new slice_leaves_iterator_t(sizer, transaction, slice, left_mode, left_key.key(), right_mode, right_key.key());
 
     // get the first leaf with our left key (or something greater)
     boost::optional<leaf_iterator_t*> first = leaves_iterator->next();
