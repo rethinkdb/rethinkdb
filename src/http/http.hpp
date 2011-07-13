@@ -61,7 +61,7 @@ BOOST_FUSION_ADAPT_STRUCT(
      (std::vector<query_parameter_t>, query_params)
      (std::string, version)
      (std::vector<header_line_t>, header_lines)
-     (std::string, body)
+     //(std::string, body)
 )
 
 struct http_res_t {
@@ -100,16 +100,16 @@ struct http_msg_parser_t : qi::grammar<Iterator, http_req_t()> {
         resource %= (+(char_ - space - "?"));
         query_parameter %= (+(char_ - "=" - space)) >> "=" >> (+(char_ - "&" - space));
         version %= lit("HTTP/") >> (+(char_ - space));
-        header_line %= ((+(char_ - ":")) >>":" >> just_space >> (+(char_ - CRLF)));
+        header_line %= ((+(char_ - ":" - space)) >>":" >> just_space >> (+(char_ - CRLF)));
         body %= repeat(labels::_r1)[char_];
         CRLF %= lit("\r\n") || lit("\n");
 
         start %= method >> just_space >> resource >> 
                  -("?" >> ((query_parameter) % "&")) >>
                  just_space >> version >> CRLF >>
-                 ((header_line - CRLF) % CRLF) >> CRLF >>
-                 CRLF >>
-                 body(phoenix::bind(content_length, _val));
+                 ((header_line) % CRLF); //CRLF //>>
+                 //CRLF >>
+                 //body(phoenix::bind(content_length, _val));
 
         //just_space.name("just_space"); debug(just_space);
         //method.name("method"); debug(method);

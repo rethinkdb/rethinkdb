@@ -1,6 +1,8 @@
 #ifndef BOOST_PARSER_HPP
 #define BOOST_PARSER_HPP
 
+#define BOOST_SPIRIT_DEBUG_PRINT_SOME 1
+
 #include "arch/arch.hpp"
 #include <boost/config/warning_disable.hpp>
 #include <boost/spirit/include/qi.hpp>
@@ -11,9 +13,6 @@
 #include <boost/spirit/include/phoenix_fusion.hpp>
 #include <boost/spirit/include/phoenix_bind.hpp>
 
-//#define BOOST_SPIRIT_DEBUG
-//#undef BOOST_SPIRIT_DEBUG_PRINT_SOME
-//#define BOOST_SPIRIT_DEBUG_PRINT_SOME 1
 
 namespace qi = boost::spirit::qi;
 namespace phoenix = boost::phoenix;

@@ -59,16 +59,11 @@ void test_header_parser() {
     http_req_t res;
     str_http_msg_parser_t http_msg_parser;
     std::string header = 
-        "GET /foo/bar HTTP/1.0\r\n"
+        "GET /foo/bar HTTP/1.1\r\n"
         "Date: Fri, 31 Dec 1999 23:59:59 GMT\r\n"
         "Content-Type: text/html\r\n"
-        "Content-Length: 1354\r\n"
+        "Content-Length: 0\r\n"
         "\r\n"
-        "<html>\r\n"
-        "<body>\r\n"
-        "<h1>Happy New Millennium!</h1>\r\n"
-        "</body>\r\n"
-        "</html>\r\n";
         ;
     std::string::const_iterator iter = header.begin();
     std::string::const_iterator end = header.end();
@@ -111,6 +106,16 @@ void http_server_t::handle_conn(boost::scoped_ptr<tcp_conn_t> &conn) {
 
     /* parse the request */
     parse(iter, end, http_msg_parser, req);
+    conn->pop(iter);
+    const_charslice slc = conn->peek(4);
+
+    if (strncmp(slc.beg, "\r\n\r\n", 4) != 0) {
+        ; //error
+    }
+    conn->pop(4);
+
+    slc = conn->peek(content_length(req));
+    req.body.append(slc.beg, content_length(req));
 
     http_res_t res = handle(req);
     write_http_msg(conn, res);

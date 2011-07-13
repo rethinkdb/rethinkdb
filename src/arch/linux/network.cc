@@ -263,6 +263,11 @@ void linux_tcp_conn_t::pop(size_t len) {
     read_buffer.erase(read_buffer.begin(), read_buffer.begin() + len);  // INEFFICIENT
 }
 
+void linux_tcp_conn_t::pop(iterator &it) {
+    rassert(!it.end, "Trying to pop an end iterator doesn't make any sense");
+    pop(it.pos);
+}
+
 void linux_tcp_conn_t::shutdown_read() {
     assert_thread();
     int res = ::shutdown(sock.get(), SHUT_RD);

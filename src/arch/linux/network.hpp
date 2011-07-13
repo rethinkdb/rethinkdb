@@ -73,6 +73,10 @@ public:
 
     void pop(size_t len);
 
+    //pop to the position the iterator has been incremented to
+    class iterator;
+    void pop(iterator &);
+
     void read_more_buffered();
 
     /* Call shutdown_read() to close the half of the pipe that goes from the peer to us. If there
