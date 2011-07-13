@@ -16,7 +16,6 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, order
     btree_key_t *key = kbuffer.key();
 
     slice->assert_thread();
-    on_thread_t mover(slice->home_thread());
 
     got_superblock_t got;
     get_btree_superblock(slice, rwi_read, token, &got);
