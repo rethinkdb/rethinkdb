@@ -3,9 +3,10 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
-#include "replication/debug_format.hpp"
 #include "concurrency/coro_fifo.hpp"
+#include "logger.hpp"
 #include "perfmon.hpp"
+#include "replication/debug_format.hpp"
 
 /* If `REPLICATION_DEBUG` is defined, then every time a network message is sent
 or received, the contents of the message will be printed to `stderr`. */

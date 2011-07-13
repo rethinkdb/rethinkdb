@@ -1,4 +1,6 @@
 #include "replication/backfill_sender.hpp"
+
+#include "logger.hpp"
 #include "perfmon.hpp"
 
 namespace replication {

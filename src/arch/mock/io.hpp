@@ -31,7 +31,7 @@ public:
     };
 
 protected:
-    mock_file_t(const char *path, int mode, const typename inner_io_config_t::io_backend_t io_backend = (typename inner_io_config_t::io_backend_t)-1, const int batch_factor = DEFAULT_IO_BATCH_FACTOR)
+    mock_file_t(const char *path, int mode, const io_backend_t io_backend = (io_backend_t)-1, const int batch_factor = DEFAULT_IO_BATCH_FACTOR)
         : mode(mode)
     {
         int mode2 = 0;
@@ -41,7 +41,7 @@ protected:
         mode2 |= inner_io_config_t::file_t::mode_write;
         if (mode & mode_create) mode2 |= inner_io_config_t::file_t::mode_create;
 
-        if (io_backend == (typename inner_io_config_t::io_backend_t)-1)
+        if (io_backend == (io_backend_t)-1)
             // Use the defaults of the underlying implementation
             inner_file = new typename inner_io_config_t::nondirect_file_t(path, mode2);
         else
@@ -185,7 +185,7 @@ public:
     using mock_file_t<inner_io_config_t>::read_blocking;
     using mock_file_t<inner_io_config_t>::write_blocking;
 
-    mock_direct_file_t(const char *path, int mode, const typename inner_io_config_t::io_backend_t io_backend = (typename inner_io_config_t::io_backend_t)-1, const int batch_factor = DEFAULT_IO_BATCH_FACTOR) : mock_file_t<inner_io_config_t>(path, mode, io_backend, batch_factor) { }
+    mock_direct_file_t(const char *path, int mode, const io_backend_t io_backend = (io_backend_t)-1, const int batch_factor = DEFAULT_IO_BATCH_FACTOR) : mock_file_t<inner_io_config_t>(path, mode, io_backend, batch_factor) { }
 
 private:
     DISABLE_COPYING(mock_direct_file_t);
@@ -204,7 +204,7 @@ public:
     using mock_file_t<inner_io_config_t>::read_blocking;
     using mock_file_t<inner_io_config_t>::write_blocking;
 
-    mock_nondirect_file_t(const char *path, int mode, const typename inner_io_config_t::io_backend_t io_backend = (typename inner_io_config_t::io_backend_t)-1, const int batch_factor = DEFAULT_IO_BATCH_FACTOR) : mock_file_t<inner_io_config_t>(path, mode, io_backend, batch_factor) { }
+    mock_nondirect_file_t(const char *path, int mode, const io_backend_t io_backend = (io_backend_t)-1, const int batch_factor = DEFAULT_IO_BATCH_FACTOR) : mock_file_t<inner_io_config_t>(path, mode, io_backend, batch_factor) { }
 
 private:
     DISABLE_COPYING(mock_nondirect_file_t);
