@@ -18,13 +18,10 @@ class btree_slice_t :
 {
 public:
     // Blocks
-    static void create(serializer_t *serializer,
-                       mirrored_cache_static_config_t *static_config);
+    static void create(cache_t *cache);
 
     // Blocks
-    btree_slice_t(serializer_t *serializer,
-                  mirrored_cache_config_t *dynamic_config,
-                  int64_t delete_queue_limit);
+    btree_slice_t(cache_t *cache, int64_t delete_queue_limit);
 
     // Blocks
     ~btree_slice_t();
@@ -42,20 +39,20 @@ public:
 
     void delete_all_keys_for_backfill(order_token_t token);
 
-    void backfill(repli_timestamp since_when, backfill_callback_t *callback, order_token_t token);
+    void backfill(repli_timestamp_t since_when, backfill_callback_t *callback, order_token_t token);
 
     /* These store metadata for replication. There must be a better way to store this information,
     since it really doesn't belong on the btree_slice_t! TODO: Move them elsewhere. */
     void set_replication_clock(repli_timestamp_t t, order_token_t token);
-    repli_timestamp get_replication_clock();
+    repli_timestamp_t get_replication_clock();
     void set_last_sync(repli_timestamp_t t, order_token_t token);
-    repli_timestamp get_last_sync();
+    repli_timestamp_t get_last_sync();
     void set_replication_master_id(uint32_t t);
     uint32_t get_replication_master_id();
     void set_replication_slave_id(uint32_t t);
     uint32_t get_replication_slave_id();
 
-    cache_t *cache() { return &cache_; }
+    cache_t *cache() { return cache_; }
     int64_t delete_queue_limit() { return delete_queue_limit_; }
 
     plain_sink_t pre_begin_transaction_sink_;
@@ -67,10 +64,9 @@ public:
 
     enum { PRE_BEGIN_TRANSACTION_READ_MODE_BUCKET = 0, PRE_BEGIN_TRANSACTION_WRITE_MODE_BUCKET = 1 };
 
-    order_sink_t post_begin_transaction_sink_;
-    order_source_t post_begin_transaction_source_;
+    order_checkpoint_t post_begin_transaction_checkpoint_;
 private:
-    cache_t cache_;
+    cache_t *cache_;
     int64_t delete_queue_limit_;
 
     /* We serialize all `order_token_t`s through here. This way we can use `plain_sink_t` for

@@ -1,7 +1,8 @@
+#include "serializer/log/data_block_manager.hpp"
+
 #include <boost/smart_ptr/scoped_ptr.hpp>
 
-#include "data_block_manager.hpp"
-#include "log_serializer.hpp"
+#include "serializer/log/log_serializer.hpp"
 #include "utils.hpp"
 #include "concurrency/mutex.hpp"
 #include "arch/arch.hpp"
@@ -160,16 +161,16 @@ public:
         // Walk over the read ahead buffer and copy stuff...
         for (uint64_t current_block = 0; current_block * parent->static_config->block_size().ser_value() < read_ahead_size; ++current_block) {
 
-            const char *current_buf = (char*)read_ahead_buf + (current_block * parent->static_config->block_size().ser_value());
+            const char *current_buf = reinterpret_cast<char *>(read_ahead_buf) + (current_block * parent->static_config->block_size().ser_value());
             const size_t current_offset = read_ahead_offset + (current_block * parent->static_config->block_size().ser_value());
 
             // Copy either into buf_out or create a new buffer for read ahead
             if ((off64_t)current_offset == off_in) {
-                ls_buf_data_t *data = (ls_buf_data_t*)buf_out;
+                ls_buf_data_t *data = reinterpret_cast<ls_buf_data_t *>(buf_out);
                 --data;
                 memcpy(data, current_buf, parent->static_config->block_size().ser_value());
             } else {
-                const block_id_t block_id = ((ls_buf_data_t*)current_buf)->block_id;
+                const block_id_t block_id = reinterpret_cast<const ls_buf_data_t *>(current_buf)->block_id;
 
                 // Determine whether the block is live.
                 bool block_is_live = block_id != 0;
@@ -183,7 +184,7 @@ public:
                     continue;
                 }
 
-                const repli_timestamp recency_timestamp = parent->serializer->lba_index->get_block_recency(block_id);
+                const repli_timestamp_t recency_timestamp = parent->serializer->lba_index->get_block_recency(block_id);
 
                 ls_buf_data_t *data = reinterpret_cast<ls_buf_data_t *>(parent->serializer->malloc());
                 --data;
@@ -204,15 +205,26 @@ public:
     }
 };
 
+bool data_block_manager_t::should_perform_read_ahead(off64_t offset) {
+    unsigned int extent_id = static_config->extent_index(offset);
+
+    gc_entry *entry = entries.get(extent_id);
+
+    // If the extent was written, we don't perform read ahead because it would
+    // a) be potentially useless and b) has an elevated risk of conflicting with
+    // active writes on the io queue.
+    return !entry->was_written && serializer->should_perform_read_ahead();
+}
+
 bool data_block_manager_t::read(off64_t off_in, void *buf_out, file_t::account_t *io_account, iocallback_t *cb) {
     rassert(state == state_ready);
 
-    if (serializer->should_perform_read_ahead()) {
+    if (should_perform_read_ahead(off_in)) {
         // We still need an fsm for read ahead as additional work has to be done on io complete...
         new dbm_read_ahead_fsm_t(this, off_in, buf_out, io_account, cb);
     }
     else {
-        ls_buf_data_t *data = (ls_buf_data_t*)buf_out;
+        ls_buf_data_t *data = reinterpret_cast<ls_buf_data_t *>(buf_out);
         data--;
         dbfile->read_async(off_in, static_config->block_size().ser_value(), data, io_account, cb);
     }
@@ -645,6 +657,7 @@ off64_t data_block_manager_t::gimme_a_new_offset() {
     rassert(blocks_in_active_extent[next_active_extent] < static_config->blocks_per_extent());
 
     off64_t offset = active_extents[next_active_extent]->offset + blocks_in_active_extent[next_active_extent] * static_config->block_size().ser_value();
+    active_extents[next_active_extent]->was_written = true;
 
     rassert(active_extents[next_active_extent]->g_array[blocks_in_active_extent[next_active_extent]]);
     active_extents[next_active_extent]->t_array.set(blocks_in_active_extent[next_active_extent], 1);

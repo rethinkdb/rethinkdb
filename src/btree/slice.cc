@@ -1,5 +1,3 @@
-#include <boost/scoped_ptr.hpp>
-
 #include "errors.hpp"
 #include "btree/backfill.hpp"
 #include "btree/delete_all_keys.hpp"
@@ -17,33 +15,12 @@
 #include "replication/delete_queue.hpp"
 #include "replication/master.hpp"
 
-void btree_slice_t::create(serializer_t *serializer,
-                           mirrored_cache_static_config_t *static_config) {
-    cache_t::create(serializer, static_config);
-
-    /* Construct a cache so we can write the superblock */
-
-    /* The values we pass here are almost totally irrelevant. The cache-size parameter must
-    be big enough to hold the patch log so we don't trip an assert, though. */
-    mirrored_cache_config_t startup_dynamic_config;
-    int size = static_config->n_patch_log_blocks * serializer->get_block_size().ser_value() + MEGABYTE;
-    startup_dynamic_config.max_size = size * 2;
-    startup_dynamic_config.wait_for_flush = false;
-    startup_dynamic_config.flush_timer_ms = NEVER_FLUSH;
-    startup_dynamic_config.max_dirty_size = size;
-    startup_dynamic_config.flush_dirty_size = size;
-    startup_dynamic_config.flush_waiting_threshold = INT_MAX;
-    startup_dynamic_config.max_concurrent_flushes = 1;
-    startup_dynamic_config.io_priority_reads = 100;
-    startup_dynamic_config.io_priority_writes = 100;
-
-    /* Cache is in a scoped pointer because it may be too big to allocate on the coroutine stack */
-    boost::scoped_ptr<cache_t> cache(new cache_t(serializer, &startup_dynamic_config));
+void btree_slice_t::create(cache_t *cache) {
 
     /* Initialize the btree superblock and the delete queue */
-    boost::shared_ptr<transaction_t> txn(new transaction_t(cache.get(), rwi_write, 1, repli_timestamp_t::distant_past));
+    transaction_t txn(cache, rwi_write, 1, repli_timestamp_t::distant_past);
 
-    buf_lock_t superblock(txn.get(), SUPERBLOCK_ID, rwi_write);
+    buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_write);
 
     // Initialize replication time barrier to 0 so that if we are a slave, we will begin by pulling
     // ALL updates from master.
@@ -57,21 +34,20 @@ void btree_slice_t::create(serializer_t *serializer,
 
     // Allocate sb->delete_queue_block like an ordinary block.
     buf_lock_t delete_queue_block;
-    delete_queue_block.allocate(txn.get());
+    delete_queue_block.allocate(&txn);
     replication::delete_queue_block_t *dqb = reinterpret_cast<replication::delete_queue_block_t *>(delete_queue_block->get_data_major_write());
-    initialize_empty_delete_queue(txn, dqb, serializer->get_block_size());
+    initialize_empty_delete_queue(&txn, dqb, cache->get_block_size());
     sb->delete_queue_block = delete_queue_block->get_block_id();
 
     sb->replication_clock = sb->last_sync = repli_timestamp_t::distant_past;
     sb->replication_master_id = sb->replication_slave_id = 0;
 }
 
-btree_slice_t::btree_slice_t(serializer_t *serializer,
-                             mirrored_cache_config_t *dynamic_config,
-                             int64_t delete_queue_limit)
-    : cache_(serializer, dynamic_config), delete_queue_limit_(delete_queue_limit),
+btree_slice_t::btree_slice_t(cache_t *c, int64_t delete_queue_limit)
+    : cache_(c), delete_queue_limit_(delete_queue_limit),
         backfill_account(cache()->create_account(BACKFILL_CACHE_PRIORITY)) {
     order_checkpoint_.set_tagappend("slice");
+    post_begin_transaction_checkpoint_.set_tagappend("post");
 }
 
 btree_slice_t::~btree_slice_t() {
@@ -104,7 +80,8 @@ struct btree_slice_change_visitor_t : public boost::static_visitor<mutation_resu
         return btree_append_prepend(m.key, parent, m.data, (m.kind == append_prepend_APPEND), ct, order_token);
     }
     mutation_result_t operator()(const delete_mutation_t &m) {
-        return btree_delete(m.key, m.dont_put_in_delete_queue, parent, ct.timestamp, order_token);
+        memcached_value_sizer_t sizer(parent->cache()->get_block_size());
+        return btree_delete(&sizer, m.key, m.dont_put_in_delete_queue, parent, ct.timestamp, order_token);
     }
 
     btree_slice_change_visitor_t(btree_slice_t *_parent, castime_t _ct, order_token_t _order_token)
@@ -135,7 +112,7 @@ void btree_slice_t::delete_all_keys_for_backfill(order_token_t token) {
     btree_delete_all_keys_for_backfill(this, token);
 }
 
-void btree_slice_t::backfill(repli_timestamp since_when, backfill_callback_t *callback, order_token_t token) {
+void btree_slice_t::backfill(repli_timestamp_t since_when, backfill_callback_t *callback, order_token_t token) {
     assert_thread();
 
     order_sink_.check_out(token);
@@ -159,7 +136,7 @@ void btree_slice_t::set_replication_clock(repli_timestamp_t t, order_token_t tok
 // TODO: Why are we using repli_timestamp_t::distant_past instead of
 // repli_timestamp_t::invalid?
 
-repli_timestamp btree_slice_t::get_replication_clock() {
+repli_timestamp_t btree_slice_t::get_replication_clock() {
     on_thread_t th(cache()->home_thread());
     transaction_t transaction(cache(), rwi_read, 0, repli_timestamp_t::distant_past);
     // TODO: Set the transaction's order token.
@@ -182,7 +159,7 @@ void btree_slice_t::set_last_sync(repli_timestamp_t t, UNUSED order_token_t toke
     sb->last_sync = t;
 }
 
-repli_timestamp btree_slice_t::get_last_sync() {
+repli_timestamp_t btree_slice_t::get_last_sync() {
     on_thread_t th(cache()->home_thread());
     transaction_t transaction(cache(), rwi_read, 0, repli_timestamp_t::distant_past);
     // TODO: Set the transaction's order token.

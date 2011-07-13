@@ -36,7 +36,7 @@ slave_stream_manager_t::~slave_stream_manager_t() {
     shutdown_cond_.wait();
 }
 
-void slave_stream_manager_t::backfill(repli_timestamp since_when) {
+void slave_stream_manager_t::backfill(repli_timestamp_t since_when) {
 
     cond_t c;
 
@@ -49,7 +49,7 @@ void slave_stream_manager_t::backfill(repli_timestamp since_when) {
     c.wait();
 }
 
-void slave_stream_manager_t::reverse_side_backfill(repli_timestamp since_when) {
+void slave_stream_manager_t::reverse_side_backfill(repli_timestamp_t since_when) {
 
     assert_thread();
 

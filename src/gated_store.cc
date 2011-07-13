@@ -1,5 +1,7 @@
 #include "gated_store.hpp"
 
+#include "concurrency/fifo_checker.hpp"
+
 // gated_get_store_t
 
 gated_get_store_t::gated_get_store_t(get_store_t *internal) : internal(internal) { }

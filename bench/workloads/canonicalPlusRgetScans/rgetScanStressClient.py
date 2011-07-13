@@ -33,7 +33,11 @@ assert options.workload == "special_rget_scan_workload"
 # The workload parameters are hard-coded.
 
 duration = (1800, "seconds")
-num_clients = 512
+assert options.servers[0]
+if options.servers[0].startswith("mysql,"):
+    num_clients = 96
+else:
+    num_clients = 512
 keys = (8,16)
 values = (8,128)
 delete_freq = 1

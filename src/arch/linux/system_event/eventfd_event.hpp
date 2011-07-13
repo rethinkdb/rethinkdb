@@ -1,11 +1,8 @@
-
 #ifndef __ARCH_LINUX_EVENTFD_EVENT_HPP__
 #define __ARCH_LINUX_EVENTFD_EVENT_HPP__
 
-#include <fcntl.h>
-#include <unistd.h>
-#include "eventfd.hpp"
-#include "utils2.hpp"
+#include <stdint.h>
+#include "errors.hpp"
 
 // An event API implemented in terms of eventfd. May not be available
 // on older kernels.
@@ -18,11 +15,11 @@ public:
     void write(uint64_t value);
 
     int get_notify_fd() {
-        return _eventfd;
+        return eventfd_;
     }
 
 private:
-    int _eventfd;
+    int eventfd_;
     DISABLE_COPYING(eventfd_event_t);
 };
 

@@ -1,16 +1,21 @@
+#include "arch/linux/disk.hpp"
+
 #include <algorithm>
 #include <fcntl.h>
 #include <linux/fs.h>
 #include <stdio.h>
 #include <unistd.h>
-#include "arch/linux/system_event/eventfd.hpp"
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
+#include "arch/linux/system_event/eventfd.hpp"
 #include "arch/linux/arch.hpp"
 #include "config/args.hpp"
-#include "utils2.hpp"
-#include "print_backtrace.hpp"
+#include "utils.hpp"
 #include "arch/linux/coroutines.hpp"
 #include "logger.hpp"
 #include "arch/linux/disk/aio.hpp"
@@ -28,6 +33,8 @@ perfmon_duration_sampler_t
 perfmon_duration_sampler_t
     pm_io_disk_backend_reads("io_disk_backend_reads", secs_to_ticks(1), false),
     pm_io_disk_backend_writes("io_disk_backend_writes", secs_to_ticks(1), false);
+
+perfmon_sampler_t pm_io_disk_stack_conflicts("io_disk_stack_conflicts", secs_to_ticks(1));
 
 /* Disk manager object takes care of queueing operations, collecting statistics, preventing
 conflicts, and actually sending them to the disk. Defined as an abstract class so that different
@@ -79,10 +86,10 @@ struct linux_templated_disk_manager_t : public linux_disk_manager_t {
     backend_stats_t backend_stats;
     backend_t backend;
 
-    linux_templated_disk_manager_t(linux_event_queue_t *queue) :
+    linux_templated_disk_manager_t(linux_event_queue_t *queue, const int batch_factor) :
         stack_stats(&pm_io_disk_stack_reads, &pm_io_disk_stack_writes),
         conflict_resolver(),
-        accounter(),
+        accounter(batch_factor),
         backend_stats(&pm_io_disk_backend_reads, &pm_io_disk_backend_writes, accounter.producer),
         backend(queue, backend_stats.producer),
         outstanding_txn(0)
@@ -154,7 +161,7 @@ linux_file_t::account_t::~account_t() {
 
 /* Disk file object */
 
-linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, const linux_io_backend_t io_backend)
+linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, const linux_io_backend_t io_backend, const int batch_factor)
     : fd(INVALID_FD), file_size(0)
 {
     // Determine if it is a block device
@@ -240,9 +247,9 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, co
     if (linux_thread_pool_t::thread) {
         linux_event_queue_t *queue = &linux_thread_pool_t::thread->queue;
         if (io_backend == aio_native) {
-            diskmgr.reset(new linux_templated_disk_manager_t<linux_diskmgr_aio_t>(queue));
+            diskmgr.reset(new linux_templated_disk_manager_t<linux_diskmgr_aio_t>(queue, batch_factor));
         } else {
-            diskmgr.reset(new linux_templated_disk_manager_t<pool_diskmgr_t>(queue));
+            diskmgr.reset(new linux_templated_disk_manager_t<pool_diskmgr_t>(queue, batch_factor));
         }
 
         default_account.reset(new account_t(this, 1, UNLIMITED_OUTSTANDING_REQUESTS));

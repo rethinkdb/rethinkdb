@@ -99,11 +99,11 @@ static const block_id_t PADDING_BLOCK_ID = NULL_BLOCK_ID;
 
 struct lba_entry_t {
     block_id_t block_id;
-    repli_timestamp recency;
+    repli_timestamp_t recency;
     // An offset into the file, with is_delete set appropriately.
     flagged_off64_t offset;
 
-    static inline lba_entry_t make(block_id_t block_id, repli_timestamp recency, flagged_off64_t offset) {
+    static inline lba_entry_t make(block_id_t block_id, repli_timestamp_t recency, flagged_off64_t offset) {
         lba_entry_t entry;
         entry.block_id = block_id;
         entry.recency = recency;
@@ -116,7 +116,7 @@ struct lba_entry_t {
     }
 
     static inline lba_entry_t make_padding_entry() {
-        return make(PADDING_BLOCK_ID, repli_timestamp::invalid, flagged_off64_t::padding());
+        return make(PADDING_BLOCK_ID, repli_timestamp_t::invalid, flagged_off64_t::padding());
     }
 } __attribute__((__packed__));
 

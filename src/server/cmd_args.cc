@@ -3,11 +3,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+
+#include "arch/coroutines.hpp"
 #include "server/cmd_args.hpp"
 #include "utils.hpp"
 #include "help.hpp"
 #include "arch/arch.hpp"
-#include "cmd_args.hpp"
 #include "perfmon.hpp"   // For `global_full_perfmon`
 
 /* Note that this file only parses arguments for the 'serve' and 'create' subcommands. */
@@ -47,7 +48,8 @@ void usage_serve() {
                 "                        combination with --wait-for-flush this option can be used\n"
                 "                        to optimize the write latency for concurrent strong\n"
                 "                        durability workloads. Defaults to %d\n"
-                "      --flush-concurrency   Maximal number of concurrently active flushes per\n"
+                "      --flush-concurrency\n"
+                "                        Maximal number of concurrently active flushes per\n"
                 "                        slice. Defaults to %d\n",
                                 DEFAULT_FLUSH_WAITING_THRESHOLD, DEFAULT_MAX_CONCURRENT_FLUSHES);
     help->pagef("      --unsaved-data-limit\n" 
@@ -70,7 +72,12 @@ void usage_serve() {
                 "      --io-backend      Possible options are 'native' (the default) and 'pool'.\n"
                 "                        The native backend is most efficient, but may have\n"
                 "                        performance problems in some environments.\n"
-                "      --read-ahead      Enable or disable read ahead during cache warmup. Read\n"
+                "      --io-batch-factor The number of disk operations in an i/o scheduler batch.\n"
+                "                        A higher value can increase the sequentiality of i/o\n"
+                "                        requests, increasing i/o throughput on drives that have\n"
+                "                        high random seek times. A lower value improves latency.\n"
+                "                        Defaults to %d\n", DEFAULT_IO_BATCH_FACTOR);
+    help->pagef("      --read-ahead      Enable or disable read ahead during cache warmup. Read\n"
                 "                        ahead can significantly speed up the cache warmup time\n"
                 "                        for disks which have high costs for random access.\n"
                 "                        Expects 'y' or 'n'.\n"
@@ -95,21 +102,25 @@ void usage_serve() {
     help->pagef("\n"
                 "Replication & Failover options:\n"
                 "      --master [port]\n"
-                "                        The port on which to listen for a slave, or OFF or ON.\n"
-                "                        If ON, defaults to %d.\n", DEFAULT_REPLICATION_PORT);
+                "                        The port on which the server will listen for a slave, or\n"
+                "                        OFF or ON. If ON, defaults to %d.\n", DEFAULT_REPLICATION_PORT);
     help->pagef("      --slave-of host:port\n"
                 "                        Run this server as a slave of a master server. As a\n"
-                "                        slave it will be replica of the master and will respond\n"
+                "                        slave it will be a replica of the master and will respond\n"
                 "                        only to get and rget. When the master goes down it will\n"
                 "                        begin responding to writes.\n"
                 "      --heartbeat-timeout\n"
                 "                        If the slave does not receive a heartbeat message from the\n"
                 "                        master within --heartbeat-timeout seconds, it will\n"
                 "                        terminate the connection and try to reconnect. If that\n"
-                "                        fails too, it will assume masterhood.\n"
+                "                        fails too, it will promote itself ot master.\n"
                 "      --failover-script Used in conjunction with --slave-of to specify a script\n"
-                "                        that will be run when the master fails and comes back up\n"
-                "                        see manual for an example script.\n");
+                "                        that will be run when the master fails and comes back up.\n"
+                "                        See the manual for an example script.\n"
+                "      --no-rogue        If the connection to master is intermittent (e.g. the\n"
+                "                        master disconnects five times within five minutes), the\n"
+                "                        slave will promote itself to master. Use the --no-rogue\n"
+                "                        flag to disable this behavior.\n");
     help->pagef("\n"
                 "Serve can be called with no arguments to run a server with default parameters.\n"
                 "For best performance RethinkDB should be run with one --file per device and a\n"
@@ -186,6 +197,7 @@ enum {
     gc_range,
     active_data_extents,
     io_backend,
+    io_batch_factor,
     block_size,
     extent_size,
     read_ahead,
@@ -202,7 +214,9 @@ enum {
     full_perfmon,
     total_delete_queue_limit,
     memcache_file,
-    metadata_file
+    metadata_file,
+    verbose,
+    no_rogue
 };
 
 cmd_config_t parse_cmd_args(int argc, char *argv[]) {
@@ -257,6 +271,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"diff-log-size",        required_argument, 0, diff_log_size},
                 {"active-data-extents",  required_argument, 0, active_data_extents},
                 {"io-backend",           required_argument, 0, io_backend},
+                {"io-batch-factor",      required_argument, 0, io_batch_factor},
                 {"coroutine-stack-size", required_argument, 0, coroutine_stack_size},
                 {"cores",                required_argument, 0, 'c'},
                 {"slices",               required_argument, 0, 's'},
@@ -268,7 +283,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"max-cache-size",       required_argument, 0, 'm'},
                 {"log-file",             required_argument, 0, 'l'},
                 {"port",                 required_argument, 0, 'p'},
-                {"verbose",              no_argument, (int*)&config.verbose, 1},
+                {"verbose",              no_argument, 0, verbose},
                 {"force",                no_argument, &do_force_create, 1},
                 {"force-unslavify",      no_argument, &do_force_unslavify, 1},
                 {"help",                 no_argument, &do_help, 1},
@@ -276,7 +291,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"slave-of",             required_argument, 0, slave_of},
                 {"failover-script",      required_argument, 0, failover_script},
                 {"heartbeat-timeout",    required_argument, 0, heartbeat_timeout},
-                {"no-rogue",             no_argument, (int*)&config.failover_config.no_rogue, 1},
+                {"no-rogue",             no_argument, 0, no_rogue},
                 {"full-perfmon",         no_argument, &do_full_perfmon, 1},
                 {"total-delete-queue-limit", required_argument, 0, total_delete_queue_limit},
                 {"memcached-file", required_argument, 0, memcache_file},
@@ -342,6 +357,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 config.set_active_data_extents(optarg); break;
             case io_backend:
                 config.set_io_backend(optarg); break;
+            case io_batch_factor:
+                config.set_io_batch_factor(optarg); break;
             case block_size:
                 config.set_block_size(optarg); break;
             case extent_size:
@@ -370,6 +387,10 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 config.set_total_delete_queue_limit(optarg); break;
             case memcache_file:
                 config.import_config.add_import_file(optarg); break;
+            case verbose:
+                config.verbose = true; break;
+            case no_rogue:
+                config.failover_config.no_rogue = true; break;
             case 'h':
             default:
                 /* getopt_long already printed an error message. */
@@ -687,12 +708,13 @@ void parsing_cmd_config_t::set_log_file(const char* value) {
 
     // See if we can open or create the file at this path with write permissions
     FILE* logfile = fopen(value, "a");
-    if (logfile == NULL)
+    if (logfile == NULL) {
         fail_due_to_user_error("Inaccessible or invalid log file: \"%s\": %s", value, strerror(errno));
-    else
+    } else {
         fclose(logfile);
-    
-    strncpy(log_file_name, value, MAX_LOG_FILE_NAME);
+    }
+
+    log_file_name = value;
 }
 
 void parsing_cmd_config_t::set_port(const char* value) {
@@ -750,8 +772,7 @@ void parsing_cmd_config_t::set_master_addr(const char *value) {
         fail_due_to_user_error("Invalid master address, address should be of the form hostname:port");
     }
 
-    strncpy(replication_config.hostname, token, MAX_HOSTNAME_LEN);
-    replication_config.hostname[MAX_HOSTNAME_LEN - 1] = '\0';
+    replication_config.hostname = token;
 
     token = strtok(NULL, ":");
     if (token == NULL) {
@@ -786,7 +807,7 @@ void parsing_cmd_config_t::set_failover_file(const char* value) {
     if (strlen(value) > MAX_PATH_LEN)
         fail_due_to_user_error("Failover script path is too long");
 
-    strcpy(failover_config.failover_script_path, value);
+    failover_config.failover_script_path = value;
 }
 
 void parsing_cmd_config_t::set_io_backend(const char* value) {
@@ -799,6 +820,16 @@ void parsing_cmd_config_t::set_io_backend(const char* value) {
         fail_due_to_user_error("Possible options for IO backend are 'native' and 'pool'.");
     }
     /* #endif */
+}
+
+void parsing_cmd_config_t::set_io_batch_factor(const char* value) {
+    int& target = store_dynamic_config.serializer.io_batch_factor;
+    const int minimum_value = 1;
+    const int maximum_value = 128;
+
+    target = parse_int(value);
+    if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
+        fail_due_to_user_error("The io batch factor must be a number from %d to %d.", minimum_value, maximum_value);
 }
 
 long long int parsing_cmd_config_t::parse_longlong(const char* value) {
@@ -915,9 +946,6 @@ void cmd_config_t::print() {
 }
 
 cmd_config_t::cmd_config_t() {
-    bzero(&replication_config, sizeof(replication_config));
-    bzero(&failover_config, sizeof(failover_config));
-
     verbose = false;
     port = DEFAULT_LISTEN_PORT;
     n_workers = get_cpu_count();
@@ -934,6 +962,7 @@ cmd_config_t::cmd_config_t() {
     /* #if WE_ARE_ON_LINUX */
     store_dynamic_config.serializer.io_backend = aio_native;
     /* #endif */
+    store_dynamic_config.serializer.io_batch_factor = DEFAULT_IO_BATCH_FACTOR;
     
     store_dynamic_config.cache.max_size = (long long int)(DEFAULT_MAX_CACHE_RATIO * get_available_ram());
     store_dynamic_config.cache.wait_for_flush = false;
@@ -952,7 +981,7 @@ cmd_config_t::cmd_config_t() {
     shutdown_after_creation = false;
 
     replication_config.port = DEFAULT_REPLICATION_PORT;
-    memset(replication_config.hostname, 0, MAX_HOSTNAME_LEN);
+    replication_config.hostname = "";
     replication_config.active = false;
     replication_config.heartbeat_timeout = DEFAULT_REPLICATION_HEARTBEAT_TIMEOUT;
     replication_master_listen_port = DEFAULT_REPLICATION_PORT;

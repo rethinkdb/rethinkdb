@@ -12,11 +12,11 @@
 #include "containers/two_level_array.hpp"
 #include "containers/bitset.hpp"
 #include "concurrency/mutex.hpp"
-#include "extents/extent_manager.hpp"
+#include "serializer/log/extents/extent_manager.hpp"
 #include "serializer/serializer.hpp"
 #include "serializer/types.hpp"
 #include "perfmon.hpp"
-#include "utils2.hpp"
+#include "utils.hpp"
 
 class log_serializer_t;
 
@@ -206,6 +206,7 @@ private:
         }
         microtime_t timestamp; /* !< when we started writing to the extent */
         priority_queue_t<gc_entry*, Less>::entry_t *our_pq_entry; /* !< The PQ entry pointing to us */
+        bool was_written; /* true iff the extent has been written to after starting up the serializer */
         
         enum state_t {
             // It has been, or is being, reconstructed from data on disk.
@@ -229,7 +230,8 @@ private:
               g_array(parent->static_config->blocks_per_extent()),
               t_array(parent->static_config->blocks_per_extent()),
               i_array(parent->static_config->blocks_per_extent()),
-              timestamp(current_microtime())
+              timestamp(current_microtime()),
+              was_written(false)
         {
             rassert(parent->entries.get(offset / parent->extent_manager->extent_size) == NULL);
             parent->entries.set(offset / parent->extent_manager->extent_size, this);
@@ -246,7 +248,8 @@ private:
               g_array(parent->static_config->blocks_per_extent()),
               t_array(parent->static_config->blocks_per_extent()),
               i_array(parent->static_config->blocks_per_extent()),
-              timestamp(current_microtime())
+              timestamp(current_microtime()),
+              was_written(false)
         {
             parent->extent_manager->reserve_extent(offset);
             rassert(parent->entries.get(offset / parent->extent_manager->extent_size) == NULL);
@@ -310,6 +313,8 @@ private:
     void remove_last_unyoung_entry();
 
 private:
+    bool should_perform_read_ahead(off64_t offset);
+
     /* internal garbage collection structures */
     struct gc_read_callback_t : public iocallback_t {
         data_block_manager_t *parent;
@@ -346,7 +351,7 @@ private:
         explicit gc_state_t(size_t extent_size) : step_(gc_ready), should_be_stopped(0), refcount(0), current_entry(NULL)
         {
             /* TODO this is excessive as soon as we have a bound on how much space we need we should allocate less */
-            gc_blocks = (char *)malloc_aligned(extent_size, DEVICE_BLOCK_SIZE);
+            gc_blocks = reinterpret_cast<char *>(malloc_aligned(extent_size, DEVICE_BLOCK_SIZE));
         }
         ~gc_state_t() {
             free(gc_blocks);

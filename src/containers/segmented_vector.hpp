@@ -4,7 +4,7 @@
 
 #include <stdio.h>
 
-#include "utils2.hpp"
+#include "errors.hpp"
 
 
 #define ELEMENTS_PER_SEGMENT (1 << 14)

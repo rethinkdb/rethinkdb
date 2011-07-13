@@ -21,15 +21,15 @@
 #include <list>
 #include <map>
 
-#include "writeback/writeback.hpp"
+#include "buffer_cache/mirrored/writeback/writeback.hpp"
 
-#include "page_repl/page_repl_random.hpp"
+#include "buffer_cache/mirrored/page_repl/page_repl_random.hpp"
 typedef page_repl_random_t page_repl_t;
 
-#include "free_list.hpp"
+#include "buffer_cache/mirrored/free_list.hpp"
 typedef array_free_list_t free_list_t;
 
-#include "page_map.hpp"
+#include "buffer_cache/mirrored/page_map.hpp"
 typedef array_map_t page_map_t;
 
 
@@ -41,7 +41,6 @@ class mc_inner_buf_t : public home_thread_mixin_t {
     friend class mc_buf_t;
     friend class writeback_t;
     friend class writeback_t::local_buf_t;
-    friend class writeback_t::concurrent_flush_t;
     friend class page_repl_random_t;
     friend class page_repl_random_t::local_buf_t;
     friend class array_map_t;
@@ -55,7 +54,7 @@ class mc_inner_buf_t : public home_thread_mixin_t {
 
     cache_t *cache;
     block_id_t block_id;
-    repli_timestamp subtree_recency;
+    repli_timestamp_t subtree_recency;
 
     void *data;
     version_id_t version_id;
@@ -90,11 +89,11 @@ class mc_inner_buf_t : public home_thread_mixin_t {
     mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_load, file_t::account_t *io_account);
 
     // Load an existing buf but use the provided data buffer (for read ahead)
-    mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
+    mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp);
 
     // Create an entirely new buf
-    static mc_inner_buf_t *allocate(cache_t *cache, version_id_t snapshot_version, repli_timestamp recency_timestamp);
-    mc_inner_buf_t(cache_t *cache, block_id_t block_id, version_id_t snapshot_version, repli_timestamp recency_timestamp);
+    static mc_inner_buf_t *allocate(cache_t *cache, version_id_t snapshot_version, repli_timestamp_t recency_timestamp);
+    mc_inner_buf_t(cache_t *cache, block_id_t block_id, version_id_t snapshot_version, repli_timestamp_t recency_timestamp);
     ~mc_inner_buf_t();
 
     // Loads data from the serializer
@@ -175,17 +174,17 @@ public:
 
     void mark_deleted(bool write_null = true);
 
-    void touch_recency(repli_timestamp timestamp) {
+    void touch_recency(repli_timestamp_t timestamp) {
         // Some operations acquire in write mode but should not
         // actually affect subtree recency.  For example, delete
         // operations, and delete_expired operations -- the subtree
         // recency is an upper bound of the maximum timestamp of all
         // the subtree's keys, and this cannot get affected by a
         // delete operation.  (It is a bit ghetto that we use
-        // repli_timestamp invalid as a magic constant that indicates
+        // repli_timestamp_t invalid as a magic constant that indicates
         // this fact, instead of using something robust.  We are so
         // prone to using that value as a placeholder.)
-        if (timestamp.time != repli_timestamp::invalid.time) {
+        if (timestamp.time != repli_timestamp_t::invalid.time) {
             // TODO: Add rassert(inner_buf->subtree_recency <= timestamp)
 
             // TODO: use some slice-specific timestamp that gets updated
@@ -195,7 +194,7 @@ public:
         }
     }
 
-    repli_timestamp get_recency() {
+    repli_timestamp_t get_recency() {
         // TODO: Make it possible to get the recency _without_
         // acquiring the buf.  The recency should be locked with a
         // lock that sits "above" buffer acquisition.  Or the recency
@@ -227,7 +226,7 @@ class mc_transaction_t :
     friend struct acquire_lock_callback_t;
     
 public:
-    mc_transaction_t(cache_t *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp);
+    mc_transaction_t(cache_t *cache, access_t access, int expected_change_count, repli_timestamp_t recency_timestamp);
     mc_transaction_t(cache_t *cache, access_t access);   // Not for use with write transactions
     ~mc_transaction_t();
 
@@ -245,24 +244,17 @@ public:
 
     buf_t *allocate();
 
-    void get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out, get_subtree_recencies_callback_t *cb);
+    void get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp_t *recencies_out, get_subtree_recencies_callback_t *cb);
 
     // This just sets the snapshotted flag, we finalize the snapshot as soon as the first block has been acquired (see finalize_version() )
     void snapshot();
 
-    void set_account(boost::shared_ptr<cache_account_t> cache_account);
+    void set_account(const boost::shared_ptr<cache_account_t>& cache_account);
 
-    void set_token(UNUSED  order_token_t token) {
-#ifndef NDEBUG
-        order_token = token;
-#endif
-    }
+    // Order tokens are only actually stored by semantic checking and mock caches.
+    void set_token(UNUSED order_token_t token) { }
 
     cache_t *cache;
-
-#ifndef NDEBUG
-    order_token_t order_token;
-#endif
 
 private:
     void register_snapshotted_block(mc_inner_buf_t *inner_buf, void *data);
@@ -270,7 +262,7 @@ private:
     ticks_t start_time;
     const int expected_change_count;
     access_t access;
-    repli_timestamp recency_timestamp;
+    repli_timestamp_t recency_timestamp;
     mc_inner_buf_t::version_id_t snapshot_version;
     bool snapshotted;
     boost::shared_ptr<cache_account_t> cache_account_;
@@ -309,7 +301,6 @@ class mc_cache_t : public home_thread_mixin_t, public serializer_t::read_ahead_c
     friend class mc_transaction_t;
     friend class writeback_t;
     friend class writeback_t::local_buf_t;
-    friend class writeback_t::concurrent_flush_t;
     friend class page_repl_random_t;
     friend class page_repl_random_t::local_buf_t;
     friend class array_map_t;
@@ -404,10 +395,12 @@ private:
     unsigned int max_patches_size_ratio;
 
 public:
-    bool offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
+    bool offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp);
 private:
-    bool offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
+    bool offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp);
     bool can_read_ahead_block_be_accepted(block_id_t block_id);
+    void maybe_unregister_read_ahead_callback();
+    bool read_ahead_registered;
 
     typedef std::map<mc_inner_buf_t::version_id_t, mc_transaction_t*> snapshots_map_t;
     snapshots_map_t active_snapshots;

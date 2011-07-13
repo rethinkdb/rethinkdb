@@ -1,6 +1,8 @@
 #ifndef __EXTRACT_FILEWALK_HPP__
 #define __EXTRACT_FILEWALK_HPP__
 
+#include <vector>
+
 #include "utils.hpp"
 #include "serializer/types.hpp"
 

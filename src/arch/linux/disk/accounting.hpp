@@ -32,8 +32,9 @@ number of different "accounts". */
 template<class payload_t>
 struct accounting_diskmgr_t {
 
-    accounting_diskmgr_t() :
+    accounting_diskmgr_t(int batch_factor) :
         producer(&caster),
+        queue(batch_factor),
         caster(&queue)
         { }
 
@@ -72,7 +73,7 @@ struct accounting_diskmgr_t {
             outstanding_requests_limiter.lock(this, 1);
         }
         void on_semaphore_available() {
-            action_t *action = throttled_queue.front();
+            action_t *action = throttled_queue.head();
             throttled_queue.pop_front();
             queue.push(action);
         }

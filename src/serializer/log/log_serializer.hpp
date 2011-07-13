@@ -17,10 +17,10 @@
 
 class log_serializer_t;
 
-#include "metablock/metablock_manager.hpp"
-#include "extents/extent_manager.hpp"
-#include "lba/lba_list.hpp"
-#include "data_block_manager.hpp"
+#include "serializer/log/metablock/metablock_manager.hpp"
+#include "serializer/log/extents/extent_manager.hpp"
+#include "serializer/log/lba/lba_list.hpp"
+#include "serializer/log/data_block_manager.hpp"
 
 struct block_magic_t;
 
@@ -123,7 +123,7 @@ public:
     void register_read_ahead_cb(read_ahead_callback_t *cb);
     void unregister_read_ahead_cb(read_ahead_callback_t *cb);
     block_id_t max_block_id();
-    repli_timestamp get_recency(block_id_t id);
+    repli_timestamp_t get_recency(block_id_t id);
 
     bool get_delete_bit(block_id_t id);
     boost::shared_ptr<block_token_t> index_read(block_id_t block_id);
@@ -148,7 +148,7 @@ private:
     boost::shared_ptr<block_token_t> generate_block_token(off64_t offset);
 
     std::vector<read_ahead_callback_t*> read_ahead_callbacks;
-    bool offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
+    bool offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp);
     bool should_perform_read_ahead();
 
     struct index_write_context_t {

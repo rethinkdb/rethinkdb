@@ -2,7 +2,6 @@
 #define __REPLICATION_MASTER_HPP__
 
 #include "store.hpp"
-#include "arch/arch.hpp"
 #include "gated_store.hpp"
 #include "replication/backfill_out.hpp"
 #include "replication/backfill_sender.hpp"
@@ -71,7 +70,7 @@ public:
     bool has_slave() { return stream_ != NULL; }
 
     // Listener callback functions
-    void on_conn(boost::scoped_ptr<linux_tcp_conn_t>& conn);
+    void on_conn(boost::scoped_ptr<tcp_conn_t>& conn);
 
     void hello(UNUSED net_hello_t message) { debugf("Received hello from slave.\n"); }
 
@@ -114,7 +113,7 @@ public:
         order_source->backfill_done();
     }
 
-    void do_backfill_and_realtime_stream(repli_timestamp since_when);
+    void do_backfill_and_realtime_stream(repli_timestamp_t since_when);
 
 #ifndef NDEBUG
     static bool inside_backfill_done_or_backfill;

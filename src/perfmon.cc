@@ -1,9 +1,13 @@
 #include "perfmon.hpp"
+
+#include <stdarg.h>
+#include <math.h>
+
+#include <sstream>
+
 #include "concurrency/pmap.hpp"
 #include "arch/arch.hpp"
 #include "utils.hpp"
-#include <stdarg.h>
-#include <math.h>
 
 /* The var list keeps track of all of the perfmon_t objects. */
 
@@ -99,7 +103,7 @@ int64_t perfmon_counter_t::combine_stats(padded_int64_t *data) {
 }
 
 void perfmon_counter_t::output_stat(const int64_t &stat, perfmon_stats_t *dest) {
-    (*dest)[name] = format(stat);
+    (*dest)[name] = strprintf("%ld", stat);
 }
 
 /* perfmon_sampler_t */
@@ -130,7 +134,7 @@ void perfmon_sampler_t::update(ticks_t now) {
     }
 }
 
-void perfmon_sampler_t::record(value_t v) {
+void perfmon_sampler_t::record(double v) {
     ticks_t now = get_ticks();
     update(now);
     thread_info_t *thread = &thread_data[get_thread_id()];
@@ -155,16 +159,16 @@ perfmon_sampler_t::stats_t perfmon_sampler_t::combine_stats(stats_t *stats) {
 
 void perfmon_sampler_t::output_stat(const stats_t &aggregated, perfmon_stats_t *dest) {
     if (aggregated.count > 0) {
-        (*dest)[name + "_avg"] = format(aggregated.sum / aggregated.count);
-        (*dest)[name + "_min"] = format(aggregated.min);
-        (*dest)[name + "_max"] = format(aggregated.max);
+        (*dest)[name + "_avg"] = strprintf("%.8f", aggregated.sum / aggregated.count);
+        (*dest)[name + "_min"] = strprintf("%.8f", aggregated.min);
+        (*dest)[name + "_max"] = strprintf("%.8f", aggregated.max);
     } else {
         (*dest)[name + "_avg"] = "-";
         (*dest)[name + "_min"] = "-";
         (*dest)[name + "_max"] = "-";
     }
     if (include_rate) {
-        (*dest)[name + "_persec"] = format(aggregated.count / ticks_to_secs(length));
+        (*dest)[name + "_persec"] = strprintf("%.8f", aggregated.count / ticks_to_secs(length));
     }
 }
 
@@ -244,10 +248,10 @@ stddev_t perfmon_stddev_t::combine_stats(stddev_t *stats) {
 }
 
 void perfmon_stddev_t::output_stat(const stddev_t &stat, perfmon_stats_t *dest) {
-    (*dest)[name + "_count"] = format(stat.datapoints());
+    (*dest)[name + "_count"] = strprintf("%zu", stat.datapoints());
     if (stat.datapoints()) {
-        (*dest)[name + "_mean"] = format(stat.mean());
-        (*dest)[name + "_stddev"] = format(stat.standard_deviation());
+        (*dest)[name + "_mean"] = strprintf("%.8f", stat.mean());
+        (*dest)[name + "_stddev"] = strprintf("%.8f", stat.standard_deviation());
     } else {
         // No stats
         (*dest)[name + "_mean"] = "-";
@@ -307,7 +311,7 @@ double perfmon_rate_monitor_t::combine_stats(double *stats) {
 }    
 
 void perfmon_rate_monitor_t::output_stat(const double &stat, perfmon_stats_t *dest) {
-    (*dest)[name] = format(stat / ticks_to_secs(length));
+    (*dest)[name] = strprintf("%.8f", stat / ticks_to_secs(length));
 }
 
 /* perfmon_function_t */

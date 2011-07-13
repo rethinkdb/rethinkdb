@@ -1,6 +1,6 @@
 #include "rpc/core/peer.hpp"
 #include "rpc/core/protob.hpp"
-#include "arch/linux/coroutines.hpp"
+#include "arch/coroutines.hpp"
 
 void cluster_peer_t::add_srvc(msg_srvc_ptr srvc) {
     srvcs.push_back(srvc);

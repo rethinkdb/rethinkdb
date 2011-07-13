@@ -1,5 +1,7 @@
 #ifndef NO_EPOLL // To make the build system happy.
 
+#include "arch/linux/event_queue/epoll.hpp"
+
 #include <unistd.h>
 #include <sched.h>
 #include <stdio.h>
@@ -9,10 +11,10 @@
 #include <algorithm>
 #include <string>
 #include <sstream>
+
 #include "config/args.hpp"
-#include "utils2.hpp"
+#include "utils.hpp"
 #include "arch/linux/event_queue.hpp"
-#include "arch/linux/event_queue/epoll.hpp"
 #include "arch/linux/thread_pool.hpp"
 #include "logger.hpp"
 #include "perfmon.hpp"

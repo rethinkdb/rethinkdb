@@ -7,18 +7,13 @@
 been called a certain number of times. It is safe to call the cound_down() method
 on any thread. */
 
-struct count_down_latch_t : public signal_t {
+class count_down_latch_t : public signal_t {
+public:
+    count_down_latch_t(size_t _count) : count(_count) { }
 
-    count_down_latch_t(size_t count) : count(count) { }
-
-    void count_down() {
-        do_on_thread(home_thread(), boost::bind(&count_down_latch_t::do_count_down, this));
-    }
+    void count_down();
 private:
-    void do_count_down() {
-        rassert(count > 0);
-        if (--count == 0) pulse();
-    }
+    void do_count_down();
 
     size_t count;
     DISABLE_COPYING(count_down_latch_t);

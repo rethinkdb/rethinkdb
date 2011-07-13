@@ -1,11 +1,11 @@
-
 #ifndef __ARCH_MOCK_IO_HPP__
 #define __ARCH_MOCK_IO_HPP__
 
-#include "containers/segmented_vector.hpp"
-#include "utils2.hpp"
-#include "arch/random_delay.hpp"
 #include <stdlib.h>
+
+#include "arch/random_delay.hpp"
+#include "containers/segmented_vector.hpp"
+#include "errors.hpp"
 
 struct mock_iocallback_t {
     virtual void on_io_complete() = 0;
@@ -31,7 +31,7 @@ public:
     };
 
 protected:
-    mock_file_t(const char *path, int mode, const typename inner_io_config_t::io_backend_t io_backend = (typename inner_io_config_t::io_backend_t)-1)
+    mock_file_t(const char *path, int mode, const io_backend_t io_backend = (io_backend_t)-1, const int batch_factor = DEFAULT_IO_BATCH_FACTOR)
         : mode(mode)
     {
         int mode2 = 0;
@@ -41,10 +41,11 @@ protected:
         mode2 |= inner_io_config_t::file_t::mode_write;
         if (mode & mode_create) mode2 |= inner_io_config_t::file_t::mode_create;
 
-        if (io_backend == (typename inner_io_config_t::io_backend_t)-1)
+        if (io_backend == (io_backend_t)-1)
+            // Use the defaults of the underlying implementation
             inner_file = new typename inner_io_config_t::nondirect_file_t(path, mode2);
         else
-            inner_file = new typename inner_io_config_t::nondirect_file_t(path, mode2, io_backend);
+            inner_file = new typename inner_io_config_t::nondirect_file_t(path, mode2, io_backend, batch_factor);
 
         if (inner_file->is_block_device()) {
             fail_due_to_user_error(
@@ -184,7 +185,7 @@ public:
     using mock_file_t<inner_io_config_t>::read_blocking;
     using mock_file_t<inner_io_config_t>::write_blocking;
 
-    mock_direct_file_t(const char *path, int mode, const typename inner_io_config_t::io_backend_t io_backend = (typename inner_io_config_t::io_backend_t)-1) : mock_file_t<inner_io_config_t>(path, mode, io_backend) { }
+    mock_direct_file_t(const char *path, int mode, const io_backend_t io_backend = (io_backend_t)-1, const int batch_factor = DEFAULT_IO_BATCH_FACTOR) : mock_file_t<inner_io_config_t>(path, mode, io_backend, batch_factor) { }
 
 private:
     DISABLE_COPYING(mock_direct_file_t);
@@ -203,7 +204,7 @@ public:
     using mock_file_t<inner_io_config_t>::read_blocking;
     using mock_file_t<inner_io_config_t>::write_blocking;
 
-    mock_nondirect_file_t(const char *path, int mode, const typename inner_io_config_t::io_backend_t io_backend = (typename inner_io_config_t::io_backend_t)-1) : mock_file_t<inner_io_config_t>(path, mode, io_backend) { }
+    mock_nondirect_file_t(const char *path, int mode, const io_backend_t io_backend = (io_backend_t)-1, const int batch_factor = DEFAULT_IO_BATCH_FACTOR) : mock_file_t<inner_io_config_t>(path, mode, io_backend, batch_factor) { }
 
 private:
     DISABLE_COPYING(mock_nondirect_file_t);

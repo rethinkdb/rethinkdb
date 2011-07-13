@@ -7,11 +7,11 @@
 struct internal_buf_t {
     mock_cache_t *cache;
     block_id_t block_id;
-    repli_timestamp subtree_recency;
+    repli_timestamp_t subtree_recency;
     void *data;
     rwi_lock_t lock;
     
-    internal_buf_t(mock_cache_t *_cache, block_id_t _block_id, repli_timestamp _subtree_recency)
+    internal_buf_t(mock_cache_t *_cache, block_id_t _block_id, repli_timestamp_t _subtree_recency)
         : cache(_cache), block_id(_block_id), subtree_recency(_subtree_recency),
           data(cache->serializer->malloc()) {
         rassert(data);
@@ -51,7 +51,7 @@ void *mock_buf_t::get_data_major_write() {
 void mock_buf_t::apply_patch(buf_patch_t *patch) {
     rassert(access == rwi_write);
 
-    patch->apply_to_buf((char*)internal_buf->data);
+    patch->apply_to_buf(reinterpret_cast<char *>(internal_buf->data), internal_buf->cache->block_size);
     dirty = true;
 
     delete patch;
@@ -78,7 +78,7 @@ void mock_buf_t::mark_deleted(UNUSED bool write_null) {
     deleted = true;
 }
 
-void mock_buf_t::touch_recency(repli_timestamp timestamp) {
+void mock_buf_t::touch_recency(repli_timestamp_t timestamp) {
     rassert(access == rwi_write);
     internal_buf->subtree_recency = timestamp;
 }
@@ -142,7 +142,7 @@ mock_buf_t *mock_transaction_t::allocate() {
     return buf;
 }
 
-void mock_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out, get_subtree_recencies_callback_t *cb) {
+void mock_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp_t *recencies_out, get_subtree_recencies_callback_t *cb) {
     for (size_t i = 0; i < num_block_ids; ++i) {
         rassert(block_ids[i] < cache->bufs.get_size());
         internal_buf_t *internal_buf = cache->bufs[block_ids[i]];
@@ -152,7 +152,7 @@ void mock_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num
     cb->got_subtree_recencies();
 }
 
-mock_transaction_t::mock_transaction_t(mock_cache_t *_cache, access_t _access, UNUSED int expected_change_count, repli_timestamp _recency_timestamp)
+mock_transaction_t::mock_transaction_t(mock_cache_t *_cache, access_t _access, UNUSED int expected_change_count, repli_timestamp_t _recency_timestamp)
     : cache(_cache), order_token(order_token_t::ignore), access(_access), recency_timestamp(_recency_timestamp) {
     cache->transaction_counter.acquire();
     if (access == rwi_write) nap(5);   // TODO: Nap for a random amount of time.
@@ -180,7 +180,7 @@ void mock_cache_t::create( serializer_t *serializer, UNUSED mirrored_cache_stati
     void *superblock = serializer->malloc();
     bzero(superblock, serializer->get_block_size().value());
     serializer_t::write_t write = serializer_t::write_t::make(
-        SUPERBLOCK_ID, repli_timestamp::invalid, superblock, false, NULL);
+        SUPERBLOCK_ID, repli_timestamp_t::invalid, superblock, false, NULL);
 
     struct : public serializer_t::write_txn_callback_t, public cond_t {
         void on_serializer_write_txn() { pulse(); }
@@ -225,7 +225,7 @@ mock_cache_t::~mock_cache_t() {
         std::vector<serializer_t::write_t> writes;
         for (block_id_t i = 0; i < bufs.get_size(); i++) {
             writes.push_back(serializer_t::write_t::make(
-                i, bufs[i] ? bufs[i]->subtree_recency : repli_timestamp::invalid,
+                i, bufs[i] ? bufs[i]->subtree_recency : repli_timestamp_t::invalid,
                 bufs[i] ? bufs[i]->data : NULL,
                 true, NULL));
         }
@@ -245,7 +245,7 @@ block_size_t mock_cache_t::get_block_size() {
     return block_size;
 }
 
-bool mock_cache_t::offer_read_ahead_buf(UNUSED block_id_t block_id, UNUSED void *buf, UNUSED repli_timestamp recency_timestamp) {
+bool mock_cache_t::offer_read_ahead_buf(UNUSED block_id_t block_id, UNUSED void *buf, UNUSED repli_timestamp_t recency_timestamp) {
     // We never use read-ahead.
     return false;
 }

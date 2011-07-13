@@ -2,7 +2,6 @@
 #define __SERVER_CONTROL_HPP__
 
 #include <string>
-#include <map>
 
 class control_t {
 public:
@@ -19,7 +18,5 @@ private:
     std::string help_string;
     bool internal;
 };
-
-typedef std::map<std::string, control_t *> control_map_t;
 
 #endif  // __SERVER_CONTROL_HPP__

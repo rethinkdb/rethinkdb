@@ -58,5 +58,5 @@ public:
     void validate();
 };
 
-#include "priority_queue.tcc"
+#include "containers/priority_queue.tcc"
 #endif

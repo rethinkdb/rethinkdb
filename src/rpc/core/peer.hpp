@@ -6,7 +6,7 @@
 #include <boost/shared_ptr.hpp>
 #include <list>
 #include "concurrency/mutex.hpp"
-#include "protob.hpp"
+#include "rpc/core/protob.hpp"
 #include "rpc/core/population.pb.h"
 #include "concurrency/cond_var.hpp"
 #include "rpc/core/srvc.hpp"
@@ -184,19 +184,19 @@ private:
 
     void call_kill_cbs() {
         on_thread_t syncer(home_thread());
-        for (kill_cb_list_t::iterator it = kill_cb_list.begin(); it != kill_cb_list.end(); it++) {
-            (*it)->on_kill();
+        for (kill_cb_t *kill_cb = kill_cb_list.head(); kill_cb; kill_cb = kill_cb_list.next(kill_cb)) {
+            kill_cb->on_kill();
         }
     }
 public:
     struct write_peer_killed_exc_t : public std::exception {
         const char *what() throw () {
-            return "Trying to write to a killed peer\n";
+            return "Trying to write to a killed peer";
         }
     };
     struct read_peer_killed_exc_t : public std::exception {
         const char *what() throw () {
-            return "Trying to write to a killed peer\n";
+            return "Trying to read from a killed peer";
         }
     };
 };

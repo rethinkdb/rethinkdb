@@ -3,9 +3,23 @@
 
 #include <errno.h>
 #include <stdlib.h>
-#include <string>
+#include <string.h>
+#include <stdio.h>
 
-#include "debug.hpp"
+#ifdef __linux__
+#if defined __i386 || defined __x86_64
+#define BREAKPOINT __asm__ volatile ("int3")
+#else   /* not x86/amd64 */
+#define BREAKPOINT raise(SIGTRAP)
+#endif  /* x86/amd64 */
+#endif /* __linux__ */
+
+
+#ifndef NDEBUG
+#define DEBUG_ONLY(expr) do { expr; } while (0)
+#else
+#define DEBUG_ONLY(expr) ((void)(0))
+#endif
 
 /* Error handling
  *
@@ -100,16 +114,6 @@ void report_user_error(const char*, ...) __attribute__((format (printf, 1, 2)));
     } while (0)
 #endif
 
-/* `demangle_cpp_name()` attempts to de-mangle the given symbol name. If it
-succeeds, it returns the result as a `std::string`. If it fails, it throws
-`demangle_failed_exc_t`. */
-struct demangle_failed_exc_t : public std::exception {
-    const char *what() const throw () {
-        return "Could not demangle C++ name.";
-    }
-};
-std::string demangle_cpp_name(const char *mangled_name);
-
 void install_generic_crash_handler();
 
 // If you include errors.hpp before including a Boost library, then Boost assertion
@@ -118,5 +122,14 @@ void install_generic_crash_handler();
 namespace boost {
     void assertion_failed(char const * expr, char const * function, char const * file, long line);
 }
+
+void print_backtrace(FILE *out = stderr, bool use_addr2line = true);
+
+
+// Put this in a private: section.
+#define DISABLE_COPYING(T)                      \
+    T(const T&);                                \
+    void operator=(const T&)
+
 
 #endif /* __ERRORS_HPP__ */

@@ -1,7 +1,9 @@
+#include "arch/linux/message_hub.hpp"
+
 #include <fcntl.h>
 #include <unistd.h>
+
 #include "config/args.hpp"
-#include "message_hub.hpp"
 #include "arch/linux/event_queue.hpp"
 #include "arch/linux/thread_pool.hpp"
 #include "logger.hpp"

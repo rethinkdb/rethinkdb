@@ -10,6 +10,7 @@
 #include <iomanip>
 #include <stdarg.h>
 
+#include "arch/linux/linux_utils.hpp"
 #include "perfmon.hpp"
 #include "logger.hpp"
 #include "utils.hpp"
@@ -17,7 +18,7 @@
 /* Class to represent and parse the contents of /proc/[pid]/stat */
 
 struct proc_pid_stat_exc_t : public std::exception {
-    proc_pid_stat_exc_t(const char *format, ...) {
+    proc_pid_stat_exc_t(const char *format, ...) __attribute__ ((format (printf, 2, 3))) {
         char buffer[2000];
         va_list l;
         va_start(l, format);
@@ -117,7 +118,7 @@ struct perfmon_system_t :
     void end_stats(void *, perfmon_stats_t *dest) {
         put_timestamp(dest);
         (*dest)["version"] = std::string(RETHINKDB_VERSION);
-        (*dest)["pid"] = format(getpid());
+        (*dest)["pid"] = strprintf("%d", getpid());
 
         proc_pid_stat_t pid_stat;
         try {
@@ -131,8 +132,8 @@ struct perfmon_system_t :
             return;
         }
 
-        (*dest)["memory_virtual[bytes]"] = format(pid_stat.vsize);
-        (*dest)["memory_real[bytes]"] = format(pid_stat.rss * sysconf(_SC_PAGESIZE));
+        (*dest)["memory_virtual[bytes]"] = strprintf("%lu", pid_stat.vsize);
+        (*dest)["memory_real[bytes]"] = strprintf("%ld", pid_stat.rss * sysconf(_SC_PAGESIZE));
     }
     void put_timestamp(perfmon_stats_t *dest) {
         timespec uptime = get_uptime();

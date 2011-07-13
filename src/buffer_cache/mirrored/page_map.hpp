@@ -5,6 +5,7 @@
 #include "containers/two_level_array.hpp"
 #include "config/args.hpp"
 #include "buffer_cache/types.hpp"
+#include "serializer/types.hpp"
 
 class mc_inner_buf_t;
 
@@ -27,7 +28,7 @@ public:
         rassert(array.size() == 0);
     }
 
-    inner_buf_t* find(block_id_t block_id) {
+    inner_buf_t *find(block_id_t block_id) {
         return array.get(block_id);
     }
 

@@ -39,7 +39,7 @@ void prep_serializer(
     c->this_serializer = i;
     c->n_proxies = n_proxies;
 
-    serializer_t::write_t w = serializer_t::write_t::make(CONFIG_BLOCK_ID.ser_id, repli_timestamp::invalid, c, true, NULL);
+    serializer_t::write_t w = serializer_t::write_t::make(CONFIG_BLOCK_ID.ser_id, repli_timestamp_t::invalid, c, true, NULL);
     struct : public serializer_t::write_txn_callback_t, public cond_t {
         void on_serializer_write_txn() { pulse(); }
     } write_cb;
@@ -77,7 +77,7 @@ void create_proxies(const std::vector<serializer_t *> &underlying,
         read_cb.wait();
 
     /* Verify that stuff is sane */
-    if (!check_magic<multiplexer_config_block_t>(c->magic)) {
+    if (c->magic != multiplexer_config_block_t::expected_magic) {
         fail_due_to_user_error("File did not come from 'rethinkdb create'.");
     }
     if (c->creation_timestamp != creation_timestamp) {
@@ -137,7 +137,7 @@ serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<serializer_
         } read_cb;
         if (!underlying[0]->do_read(CONFIG_BLOCK_ID.ser_id, c, DEFAULT_DISK_ACCOUNT, &read_cb)) read_cb.wait();
 
-        rassert(check_magic<multiplexer_config_block_t>(c->magic));
+        rassert(c->magic == multiplexer_config_block_t::expected_magic);
         creation_timestamp = c->creation_timestamp;
         proxies.resize(c->n_proxies);
 
@@ -283,7 +283,7 @@ block_id_t translator_serializer_t::max_block_id() {
     return x;
 }
 
-repli_timestamp translator_serializer_t::get_recency(block_id_t id) {
+repli_timestamp_t translator_serializer_t::get_recency(block_id_t id) {
     return inner->get_recency(translate_block_id(id));
 }
 
@@ -291,7 +291,7 @@ bool translator_serializer_t::get_delete_bit(block_id_t id) {
     return inner->get_delete_bit(translate_block_id(id));
 }
 
-bool translator_serializer_t::offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {
+bool translator_serializer_t::offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp) {
     inner->assert_thread();
 
     // Offer the buffer if we are the correct shard

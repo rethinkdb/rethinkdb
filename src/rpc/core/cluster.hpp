@@ -9,7 +9,7 @@
 #include <map>
 #include <list>
 #include "concurrency/mutex.hpp"
-#include "protob.hpp"
+#include "rpc/core/protob.hpp"
 #include "rpc/core/population.pb.h"
 #include "concurrency/cond_var.hpp"
 #include "rpc/core/peer.hpp"

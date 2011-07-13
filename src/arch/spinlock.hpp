@@ -1,10 +1,9 @@
 #ifndef __ARCH_SPINLOCK_HPP__
 #define __ARCH_SPINLOCK_HPP__
 
-#include "errors.hpp"
-
 #include <pthread.h>
-#include <string.h>
+
+#include "errors.hpp"
 
 class spinlock_t {
 public:

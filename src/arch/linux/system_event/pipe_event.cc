@@ -1,8 +1,8 @@
+#include "arch/linux/system_event/pipe_event.hpp"
 
 #include <unistd.h>
 #include <fcntl.h>
 #include "utils.hpp"
-#include "pipe_event.hpp"
 #include "logger.hpp"
 
 pipe_event_t::pipe_event_t() {

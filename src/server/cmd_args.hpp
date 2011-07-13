@@ -1,14 +1,15 @@
 #ifndef __CMD_ARGS_HPP__
 #define __CMD_ARGS_HPP__
 
-#include "config/args.hpp"
-#include <stdint.h>
-#include <sys/types.h>
 #include <string>
 #include <vector>
 
+#include <stdint.h>
+#include <stdio.h>
+#include <sys/types.h>
+
 #include "serializer/types.hpp"
-#include "arch/arch.hpp"
+#include "arch/core.hpp"
 
 #define NEVER_FLUSH -1
 
@@ -40,7 +41,12 @@ struct log_serializer_dynamic_config_t {
     size_t file_zone_size;
 
     /* Which i/o backend should the log serializer use for accessing files? */
-    platform_io_config_t::io_backend_t io_backend;
+    io_backend_t io_backend;
+
+    /* The (minimal) batch size of i/o requests being taken from a single i/o account.
+    It is a factor because the actual batch size is this factor multiplied by the
+    i/o priority of the account. */
+    int io_batch_factor;
 
     /* Enable reading more data than requested to let the cache warmup more quickly esp. on rotational drives */
     bool read_ahead;
@@ -145,24 +151,22 @@ struct btree_key_value_store_static_config_t {
 
 /* Configuration for replication */
 struct replication_config_t {
-    char    hostname[MAX_HOSTNAME_LEN];
+    std::string hostname;
     int     port;
     bool    active;
     /* Terminate the connection if no heartbeat is received within this many milliseconds */
     int     heartbeat_timeout;
+
+    replication_config_t() : port(0), active(false), heartbeat_timeout(0) { }
 };
 
 /* Configuration for failover */
 struct failover_config_t {
-    char    failover_script_path[MAX_PATH_LEN]; /* !< script to be called when the other server goes down */
+    std::string    failover_script_path; /* !< script to be called when the other server goes down */
     bool    active;
     bool    no_rogue; /* whether to go rogue when the master is struggling to stay up */
 
-    failover_config_t()
-        : active(false), no_rogue(false)
-    {
-        *failover_script_path = 0;
-    }
+    failover_config_t() : active(false), no_rogue(false) { }
 };
 
 /* Configuration for import */
@@ -201,8 +205,8 @@ struct cmd_config_t {
     
     int port;
     int n_workers;
-    
-    char log_file_name[MAX_LOG_FILE_NAME];
+
+    std::string log_file_name;
     // Log messages below this level aren't printed
     //log_level min_log_level;
     
@@ -257,6 +261,7 @@ public:
     void set_total_delete_queue_limit(const char *value);
     void set_failover_file(const char* value);
     void set_io_backend(const char* value);
+    void set_io_batch_factor(const char* value);
     void push_private_config(const char* value);
     void set_metadata_file(const char *value);
 

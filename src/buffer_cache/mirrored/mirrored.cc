@@ -1,9 +1,13 @@
 #include <boost/smart_ptr/shared_ptr.hpp>
 
 #include "buffer_cache/mirrored/mirrored.hpp"
-#include "buffer_cache/stats.hpp"
-#include "mirrored.hpp"
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
+#include "arch/coroutines.hpp"
+#include "buffer_cache/stats.hpp"
+#include "do_on_thread.hpp"
 #include "stats/persist.hpp"
 
 /**
@@ -113,7 +117,7 @@ void mc_inner_buf_t::load_inner_buf(bool should_lock, file_t::account_t *io_acco
 mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_load, file_t::account_t *io_account)
     : cache(cache),
       block_id(block_id),
-      subtree_recency(repli_timestamp::invalid),  // Gets initialized by load_inner_buf
+      subtree_recency(repli_timestamp_t::invalid),  // Gets initialized by load_inner_buf
       data(should_load ? cache->serializer->malloc() : NULL),
       version_id(cache->get_min_snapshot_version(cache->get_current_version_id())),
       next_patch_counter(1),
@@ -143,12 +147,13 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
 
     cache->page_repl.make_space(1);
+    cache->maybe_unregister_read_ahead_callback();
 
     refcount--;
 }
 
 // This form of the buf constructor is used when the block exists on disks but has been loaded into buf already
-mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, repli_timestamp recency_timestamp)
+mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp)
     : cache(cache),
       block_id(block_id),
       subtree_recency(recency_timestamp),
@@ -168,6 +173,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, r
     pm_n_blocks_in_memory++;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
     cache->page_repl.make_space(1);
+    cache->maybe_unregister_read_ahead_callback();
     refcount--;
 
     // Read the block sequence id
@@ -180,7 +186,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, r
     // should pass the token through to here.
 }
 
-mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache, version_id_t snapshot_version, repli_timestamp recency_timestamp) {
+mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache, version_id_t snapshot_version, repli_timestamp_t recency_timestamp) {
     cache->assert_thread();
 
     if (snapshot_version == faux_version_id)
@@ -220,7 +226,7 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache, version_id_t snapshot_v
 // Used by mc_inner_buf_t::allocate() and by the patch log.
 // If you update this constructor, please don't forget to update mc_inner_buf_t::allocate
 // accordingly.
-mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, version_id_t snapshot_version, repli_timestamp recency_timestamp)
+mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, version_id_t snapshot_version, repli_timestamp_t recency_timestamp)
     : cache(cache),
       block_id(block_id),
       subtree_recency(recency_timestamp),
@@ -249,6 +255,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, version_id_t
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
 
     cache->page_repl.make_space(1);
+    cache->maybe_unregister_read_ahead_callback();
 
     refcount--;
 }
@@ -283,7 +290,7 @@ void mc_inner_buf_t::replay_patches() {
     writeback_buf.last_patch_materialized = cache->patch_memory_storage.last_patch_materialized_or_zero(block_id);
 
     // Apply outstanding patches
-    cache->patch_memory_storage.apply_patches(block_id, reinterpret_cast<char *>(data));
+    cache->patch_memory_storage.apply_patches(block_id, reinterpret_cast<char *>(data), cache->get_block_size());
 
     // Set next_patch_counter such that the next patches get values consistent with the existing patches
     next_patch_counter = cache->patch_memory_storage.last_patch_materialized_or_zero(block_id) + 1;
@@ -292,7 +299,7 @@ void mc_inner_buf_t::replay_patches() {
 bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version) {
     cache->assert_thread();
     // we can get snapshotted_version == version_id due to copy-on-write doing the snapshotting
-    rassert(snapshots.size() == 0 || snapshots.front()->snapshotted_version <= version_id);
+    rassert(snapshots.empty() || snapshots.front()->snapshotted_version <= version_id);
 
     // all snapshot txns such that
     //   inner_version <= snapshot_txn->version_id < new_version
@@ -354,7 +361,7 @@ void mc_inner_buf_t::release_snapshot(void *data) {
 }
 
 bool mc_inner_buf_t::safe_to_unload() {
-    return !lock.locked() && writeback_buf.safe_to_unload() && refcount == 0 && cow_refcount == 0 && snapshots.size() == 0;
+    return !lock.locked() && writeback_buf.safe_to_unload() && refcount == 0 && cow_refcount == 0 && snapshots.empty();
 }
 
 perfmon_duration_sampler_t
@@ -485,7 +492,7 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
     rassert(data, "Probably tried to write to a buffer acquired with !should_load.");
     rassert(patch->get_block_id() == inner_buf->block_id);
 
-    patch->apply_to_buf((char*)data);
+    patch->apply_to_buf(reinterpret_cast<char *>(data), inner_buf->cache->get_block_size());
     inner_buf->writeback_buf.set_dirty();
     // Invalidate the token
     inner_buf->data_token.reset();
@@ -701,11 +708,8 @@ perfmon_duration_sampler_t
     pm_transactions_active("transactions_active", secs_to_ticks(1)),
     pm_transactions_committing("transactions_committing", secs_to_ticks(1));
 
-mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, int _expected_change_count, repli_timestamp _recency_timestamp)
+mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, int _expected_change_count, repli_timestamp_t _recency_timestamp)
     : cache(_cache),
-#ifndef NDEBUG
-      order_token(order_token_t::ignore),
-#endif
       expected_change_count(_expected_change_count),
       access(_access),
       recency_timestamp(_recency_timestamp),
@@ -726,9 +730,6 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, int _expec
 /* This version is only for read transactions. */
 mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access) :
     cache(_cache),
-#ifndef NDEBUG
-    order_token(order_token_t::ignore),
-#endif
     expected_change_count(0),
     access(_access),
     recency_timestamp(repli_timestamp_t::distant_past),
@@ -873,7 +874,7 @@ void mc_transaction_t::snapshot() {
     snapshotted = true;
 }
 
-void mc_transaction_t::set_account(boost::shared_ptr<mc_cache_account_t> cache_account) {
+void mc_transaction_t::set_account(const boost::shared_ptr<mc_cache_account_t>& cache_account) {
     cache_account_ = cache_account;
 }
 
@@ -881,11 +882,11 @@ file_t::account_t *mc_transaction_t::get_io_account() const {
     return (cache_account_.get() == NULL ? cache->reads_io_account.get() : cache_account_->io_account_.get());
 }
 
-void get_subtree_recencies_helper(int slice_home_thread, serializer_t *serializer, block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out, get_subtree_recencies_callback_t *cb) {
+void get_subtree_recencies_helper(int slice_home_thread, serializer_t *serializer, block_id_t *block_ids, size_t num_block_ids, repli_timestamp_t *recencies_out, get_subtree_recencies_callback_t *cb) {
     serializer->assert_thread();
 
     for (size_t i = 0; i < num_block_ids; ++i) {
-        if (recencies_out[i].time == repli_timestamp::invalid.time) {
+        if (recencies_out[i].time == repli_timestamp_t::invalid.time) {
             recencies_out[i] = serializer->get_recency(block_ids[i]);
         }
     }
@@ -893,7 +894,7 @@ void get_subtree_recencies_helper(int slice_home_thread, serializer_t *serialize
     do_on_thread(slice_home_thread, boost::bind(&get_subtree_recencies_callback_t::got_subtree_recencies, cb));
 }
 
-void mc_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out, get_subtree_recencies_callback_t *cb) {
+void mc_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp_t *recencies_out, get_subtree_recencies_callback_t *cb) {
     bool need_second_loop = false;
     for (size_t i = 0; i < num_block_ids; ++i) {
         inner_buf_t *inner_buf = cache->find_buf(block_ids[i]);
@@ -901,7 +902,7 @@ void mc_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num_b
             recencies_out[i] = inner_buf->subtree_recency;
         } else {
             need_second_loop = true;
-            recencies_out[i] = repli_timestamp::invalid;
+            recencies_out[i] = repli_timestamp_t::invalid;
         }
     }
 
@@ -929,7 +930,7 @@ void mc_cache_t::create(serializer_t *serializer, mirrored_cache_static_config_t
     void *superblock = serializer->malloc();
     bzero(superblock, serializer->get_block_size().value());
     serializer_t::write_t write = serializer_t::write_t::make(
-        SUPERBLOCK_ID, repli_timestamp::invalid, superblock, false, NULL);
+        SUPERBLOCK_ID, repli_timestamp_t::invalid, superblock, false, NULL);
 
     struct : public serializer_t::write_txn_callback_t, public cond_t {
         void on_serializer_write_txn() { pulse(); }
@@ -965,6 +966,7 @@ mc_cache_t::mc_cache_t(
     num_live_transactions(0),
     to_pulse_when_last_transaction_commits(NULL),
     max_patches_size_ratio(dynamic_config->wait_for_flush ? MAX_PATCHES_SIZE_RATIO_DURABILITY : MAX_PATCHES_SIZE_RATIO_MIN),
+    read_ahead_registered(false),
     next_snapshot_version(mc_inner_buf_t::faux_version_id+1)
 {
 #ifndef NDEBUG
@@ -983,6 +985,7 @@ mc_cache_t::mc_cache_t(
 
     // Register us for read ahead to warm up faster
     serializer->register_read_ahead_cb(this);
+    read_ahead_registered = true;
 
     /* We may have made a lot of blocks dirty by initializing the patch log. We need to start
     a sync explicitly because it bypassed transaction_t. */
@@ -1109,14 +1112,14 @@ void mc_cache_t::on_transaction_commit(transaction_t *txn) {
     }
 }
 
-bool mc_cache_t::offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {
+bool mc_cache_t::offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp) {
     // Note that the offered block might get deleted between the point where the serializer offers it and the message gets delivered!
     do_on_thread(home_thread(), boost::bind(&mc_cache_t::offer_read_ahead_buf_home_thread, this, block_id, buf, recency_timestamp));
     return true;
 }
 
 // TODO (rntz) why does this return a bool? no-one will ever see it!
-bool mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {
+bool mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp) {
     assert_thread();
 
     // Check that the offered block is allowed to be accepted at the current time
@@ -1125,12 +1128,6 @@ bool mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf
         new mc_inner_buf_t(this, block_id, buf, recency_timestamp);
     } else {
         serializer->free(buf);
-    }
-
-    // Check if we want to unregister ourselves
-    if (page_repl.is_full(5)) {
-        // unregister_read_ahead_cb requires a coro context, but we might not be in any
-        coro_t::spawn_now(boost::bind(&serializer_t::unregister_read_ahead_cb, serializer, this));
     }
 
     return true;
@@ -1147,4 +1144,13 @@ bool mc_cache_t::can_read_ahead_block_be_accepted(block_id_t block_id) {
     const bool writeback_has_no_objections = writeback.can_read_ahead_block_be_accepted(block_id);
 
     return !we_already_have_the_block && writeback_has_no_objections;
+}
+
+void mc_cache_t::maybe_unregister_read_ahead_callback() {
+    // Unregister when 90 % of the cache are filled up.
+    if (read_ahead_registered && page_repl.is_full(dynamic_config.max_size / serializer->get_block_size().ser_value() / 10 + 1)) {
+        read_ahead_registered = false;
+        // unregister_read_ahead_cb requires a coro context, but we might not be in any
+        coro_t::spawn_now(boost::bind(&serializer_t::unregister_read_ahead_cb, serializer, this));
+    }
 }

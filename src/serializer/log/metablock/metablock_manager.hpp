@@ -162,6 +162,6 @@ private:
     direct_file_t *dbfile;
 };
 
-#include "metablock_manager.tcc"
+#include "serializer/log/metablock/metablock_manager.tcc"
 
 #endif /* __SERIALIZER_LOG_METABLOCK_METABLOCK_MANAGER_HPP__ */

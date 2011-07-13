@@ -1,4 +1,3 @@
-
 #ifndef __ARCH_LINUX_DISK_AIO_HPP__
 #define __ARCH_LINUX_DISK_AIO_HPP__
 
@@ -6,10 +5,12 @@
 #include "errors.hpp"
 #include <boost/scoped_ptr.hpp>
 #include <boost/function.hpp>
-#include "arch/linux/system_event.hpp"
-#include "utils2.hpp"
-#include "config/args.hpp"
+
 #include "arch/linux/event_queue.hpp"
+#include "arch/linux/system_event.hpp"
+#include "utils.hpp"
+#include "config/args.hpp"
+
 #include "concurrency/queue/passive_producer.hpp"
 
 /* Simple wrapper around io_context_t that handles creation and destruction */
@@ -48,6 +49,7 @@ public:
         fd_t get_fd() const { return this->aio_fildes; }
         void *get_buf() const { return this->u.c.buf; }
         bool get_is_read() const { return (this->aio_lio_opcode == IO_CMD_PREAD); }
+        bool get_is_write() const { return !get_is_read(); }
         off_t get_offset() const { return this->u.c.offset; }
         size_t get_count() const { return this->u.c.nbytes; }
     private:

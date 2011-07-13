@@ -1,5 +1,9 @@
 #include "btree/get_cas.hpp"
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
+#include "arch/coroutines.hpp"
 #include "btree/modify_oper.hpp"
 #include "concurrency/promise.hpp"
 #include "btree/btree_data_provider.hpp"
@@ -39,70 +43,47 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
     btree_get_cas_oper_t(cas_t proposed_cas_, promise_t<get_result_t> *res_)
         : proposed_cas(proposed_cas_), res(res_) { }
 
-    bool operate(const boost::shared_ptr<transaction_t>& txn, btree_value *old_value, boost::scoped_ptr<large_buf_t>& old_large_buflock, btree_value **new_value, boost::scoped_ptr<large_buf_t>& new_large_buflock) {
-        if (!old_value) {
-            /* If not found, there's nothing to do */
+    bool operate(transaction_t *txn, scoped_malloc<btree_value_t>& value) {
+        if (!value) {
+            // If not found, there's nothing to do.
             res->pulse(get_result_t());
             return false;
         }
 
-        // Duplicate the value and put a CAS on it if necessary
-        valuecpy(&value, old_value);   // Can we fix this extra copy?
-        bool there_was_cas_before = value.has_cas();
+        bool there_was_cas_before = value->has_cas();
         cas_t cas_to_report;
-        if (value.has_cas()) {
-            // How convenient; there already was a CAS.
-            cas_to_report = value.cas();
+        if (there_was_cas_before) {
+            // How convenient, there already was a CAS.
+            cas_to_report = value->cas();
         } else {
-            // We have always been at war with Eurasia.
-            /* This doesn't set the CAS--it just makes room for the CAS, and
-            run_btree_modify_oper() sets the CAS. */
-            value.add_cas();
+            // This doesn't set the CAS -- it just makes room for the
+            // CAS, and run_btree_modify_oper() sets the CAS.
+            value->add_cas(txn->get_cache()->get_block_size());
             cas_to_report = proposed_cas;
         }
 
-        // Deliver the value to the client via the promise_t we got
-        boost::shared_ptr<value_data_provider_t> dp(value_data_provider_t::create(&value, txn));
-        if (value.is_large()) {
-            // Need to block on the caller so we don't free the large value before it's done
-            // When `dp2` is destroyed, it will signal `to_signal_when_done`.
-            cond_t to_signal_when_done;
-            boost::shared_ptr<death_signalling_data_provider_t> dp2(
-                new death_signalling_data_provider_t(dp, &to_signal_when_done));
-            res->pulse(get_result_t(dp2, value.mcflags(), cas_to_report));
-            to_signal_when_done.wait();
-        } else {
-            res->pulse(get_result_t(dp, value.mcflags(), cas_to_report));
-        }
+        // Deliver the value to the client via the promise_t we got.
+        boost::shared_ptr<value_data_provider_t> dp(value_data_provider_t::create(value.get(), txn));
+        res->pulse(get_result_t(dp, value->mcflags(), cas_to_report));
 
-        // Return the new value to the code that will put it into the tree
-        if (there_was_cas_before) {
-            return false; // We didn't actually fail, but we made no change
-        } else {
-            *new_value = &value;
-            new_large_buflock.swap(old_large_buflock);
-            return true;
-        }
+        // Return whether we made a change to the value.
+        return !there_was_cas_before;
     }
 
-    int compute_expected_change_count(UNUSED const size_t block_size) {
+    int compute_expected_change_count(UNUSED block_size_t block_size) {
         return 1;
     }
 
     cas_t proposed_cas;
     get_result_t result;
     promise_t<get_result_t> *res;
-
-    union {
-        char value_memory[MAX_BTREE_VALUE_SIZE];
-        btree_value value;
-    };
 };
 
 void co_btree_get_cas(const store_key_t &key, castime_t castime, btree_slice_t *slice,
                       promise_t<get_result_t> *res, order_token_t token) {
     btree_get_cas_oper_t oper(castime.proposed_cas, res);
-    run_btree_modify_oper(&oper, slice, key, castime, token);
+    memcached_value_sizer_t sizer(slice->cache()->get_block_size());
+    run_btree_modify_oper(&sizer, &oper, slice, key, castime, token);
 }
 
 get_result_t btree_get_cas(const store_key_t &key, btree_slice_t *slice, castime_t castime, order_token_t token) {

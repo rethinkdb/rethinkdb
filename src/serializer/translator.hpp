@@ -135,7 +135,7 @@ public:
     // block id contiguity will be ensured.
     block_id_t max_block_id();
 
-    repli_timestamp get_recency(block_id_t id);
+    repli_timestamp_t get_recency(block_id_t id);
     bool get_delete_bit(block_id_t id);
     ser_block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf);
 
@@ -143,7 +143,7 @@ public:
     boost::shared_ptr<block_token_t> index_read(block_id_t block_id);
 
 public:
-    bool offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
+    bool offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp);
 };
 
 #endif /* __SERIALIZER_TRANSLATOR_HPP__ */

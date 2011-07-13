@@ -1,4 +1,3 @@
-
 #ifndef __DB_THREAD_INFO_HPP__
 #define __DB_THREAD_INFO_HPP__
 

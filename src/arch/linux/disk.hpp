@@ -1,17 +1,11 @@
 #ifndef __ARCH_LINUX_DISK_HPP__
 #define __ARCH_LINUX_DISK_HPP__
 
-#include <libaio.h>
-#include <vector>
-#include "utils2.hpp"
+#include "utils.hpp"
 #include <boost/scoped_ptr.hpp>
-#include "config/args.hpp"
-#include "arch/linux/event_queue.hpp"
 
-/* Types of IO backends */
-enum linux_io_backend_t {
-    aio_native, aio_pool
-};
+#include "config/args.hpp"
+#include "arch/linux/linux_utils.hpp"
 
 struct linux_iocallback_t {
     virtual ~linux_iocallback_t() {}
@@ -43,7 +37,7 @@ public:
         void *account;
     };
 
-    linux_file_t(const char *path, int mode, bool is_really_direct, const linux_io_backend_t io_backend);
+    linux_file_t(const char *path, int mode, bool is_really_direct, const linux_io_backend_t io_backend, const int batch_factor);
 
     bool exists();
     bool is_block_device();
@@ -82,8 +76,8 @@ file is opened in O_DIRECT mode, and there are restrictions on the
 alignment of the chunks being written and read to and from the file. */
 class linux_direct_file_t : public linux_file_t {
 public:
-    linux_direct_file_t(const char *path, int mode, const linux_io_backend_t io_backend = aio_native) :
-        linux_file_t(path, mode, true, io_backend) { }
+    linux_direct_file_t(const char *path, int mode, const linux_io_backend_t io_backend = aio_native, const int batch_factor = DEFAULT_IO_BATCH_FACTOR) :
+        linux_file_t(path, mode, true, io_backend, batch_factor) { }
 
 private:
     DISABLE_COPYING(linux_direct_file_t);
@@ -91,8 +85,8 @@ private:
 
 class linux_nondirect_file_t : public linux_file_t {
 public:
-    linux_nondirect_file_t(const char *path, int mode, const linux_io_backend_t io_backend = aio_native) :
-        linux_file_t(path, mode, false, io_backend) { }
+    linux_nondirect_file_t(const char *path, int mode, const linux_io_backend_t io_backend = aio_native, const int batch_factor = DEFAULT_IO_BATCH_FACTOR) :
+        linux_file_t(path, mode, false, io_backend, batch_factor) { }
 
 private:
     DISABLE_COPYING(linux_nondirect_file_t);

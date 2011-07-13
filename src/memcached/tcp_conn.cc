@@ -1,8 +1,14 @@
 #include "memcached/tcp_conn.hpp"
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
+#include "arch/coroutines.hpp"
 #include "memcached/memcached.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "db_thread_info.hpp"
 #include "perfmon.hpp"
+#include "logger.hpp"
 
 struct tcp_conn_memcached_interface_t : public memcached_interface_t, public home_thread_mixin_t {
 
@@ -56,7 +62,7 @@ struct tcp_conn_memcached_interface_t : public memcached_interface_t, public hom
 
                 if (crlf_loc) {
                     // We have a valid line.
-                    size_t line_size = (char *)crlf_loc - (char *)sl.beg;
+                    size_t line_size = reinterpret_cast<char *>(crlf_loc) - sl.beg;
 
                     dest->resize(line_size + 2);  // +2 for CRLF
                     memcpy(dest->data(), sl.beg, line_size + 2);

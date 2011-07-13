@@ -3,14 +3,20 @@
 #include <stdexcept>
 #include <stdarg.h>
 #include <unistd.h>
-#include <boost/make_shared.hpp>
 
-#include "arch/arch.hpp"
+#include "errors.hpp"
+#include <boost/make_shared.hpp>
+#include <boost/optional.hpp>
+
 #include "concurrency/semaphore.hpp"
+#include "concurrency/fifo_checker.hpp"
 #include "concurrency/drain_semaphore.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/promise.hpp"
+#include "containers/buffer_group.hpp"
+#include "containers/iterators.hpp"
+#include "data_provider.hpp"
 #include "server/control.hpp"
 #include "store.hpp"
 #include "logger.hpp"

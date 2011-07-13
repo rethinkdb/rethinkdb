@@ -20,29 +20,45 @@ namespace replication {
 template <class T>
 struct stream_pair {
     boost::shared_ptr<buffered_data_provider_t> stream;
-    unique_malloc_t<T> data;
+    T *data;
 
     /* The `stream_pair()` constructor takes a buffer that contains the beginning of a multipart
     message. It's guaranteed to contain the entire header and the entire key and probably part of
     the value, but it's not guaranteed to contain the entire value. The network logic will later
     fill in the rest of the value. */
     // This uses key_size, which is completely crap.
-    stream_pair(const char *beg, const char *end, ssize_t size = 0) : stream(), data() {
+    stream_pair(const char *beg, const char *end, ssize_t size = 0) : stream(), data(NULL) {
         void *p;
         size_t m = sizeof(T) + reinterpret_cast<const T *>(beg)->key_size;
 
         const char *cutpoint = beg + m;
-        {
-            unique_malloc_t<T> tmp(beg, cutpoint);
-            data = tmp;
-        }
+        data = reinterpret_cast<T *>(malloc(m));
+        memcpy(data, beg, m);
 
         stream.reset(new buffered_data_provider_t(size == 0 ? end - cutpoint : size, &p));
 
         memcpy(p, cutpoint, end - cutpoint);
     }
 
-    T *operator->() { return data.get(); }
+    stream_pair(const stream_pair& other) : data(NULL) {
+        operator=(const_cast<stream_pair&>(other));
+    }
+
+    stream_pair& operator=(stream_pair& other) {
+        if (this != &other) {
+            stream = other.stream;
+            free(data);
+            data = other.data;
+            other.data = NULL;
+        }
+        return *this;
+    }
+
+    ~stream_pair() {
+        free(data);
+    }
+
+    T *operator->() { return data; }
 };
 
 class message_callback_t {
@@ -116,6 +132,7 @@ public:
     // Call shutdown() when you want the repli_stream to stop. shutdown() causes
     // the connection to be closed and conn_closed() to be called.
     void shutdown() {
+        drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
         unwatch_heartbeat();
         stop_sending_heartbeats();
         try {
@@ -149,15 +166,8 @@ public:
     void flush();
 
 protected:
-    void send_heartbeat() {
-        net_heartbeat_t msg;
-        msg.padding = 0;
-        send(msg);
-    }
-    void on_heartbeat_timeout() {
-        logINF("Terminating connection due to heartbeat timeout.\n");
-        shutdown();
-    }
+    void send_heartbeat();
+    void on_heartbeat_timeout();
 
 private:
 

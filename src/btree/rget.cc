@@ -1,8 +1,12 @@
 #include "btree/rget.hpp"
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
+#include "btree/btree_data_provider.hpp"
 #include "btree/iteration.hpp"
 #include "containers/iterators.hpp"
-#include "containers/unique_ptr.hpp"
-#include "arch/linux/coroutines.hpp"
+#include "arch/coroutines.hpp"
 
 /*
  * Possible rget designs:
@@ -55,14 +59,18 @@
  * Actual merging of the slice iterators is done in server/key_value_store.cc.
  */
 
+key_with_data_provider_t pair_to_key_with_data_provider(boost::shared_ptr<transaction_t>& txn, key_value_pair_t& pair) {
+    on_thread_t(txn->home_thread());
+    boost::shared_ptr<data_provider_t> data_provider(value_data_provider_t::create(reinterpret_cast<btree_value_t *>(pair.value.get()), txn.get()));
+    return key_with_data_provider_t(pair.key, reinterpret_cast<btree_value_t *>(pair.value.get())->mcflags(), data_provider);
+}
+
 rget_result_t btree_rget_slice(btree_slice_t *slice, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token) {
     slice->pre_begin_transaction_sink_.check_out(token);
     order_token_t begin_transaction_token = slice->pre_begin_transaction_read_mode_source_.check_in(token.tag() + "+begin_transaction_token").with_read_mode();
     boost::shared_ptr<transaction_t> transaction = boost::shared_ptr<transaction_t>(new transaction_t(slice->cache(), rwi_read));
-    slice->post_begin_transaction_sink_.check_out(begin_transaction_token);
-    transaction->set_token(slice->post_begin_transaction_source_.check_in(token.tag() + "+post").with_read_mode());
+    transaction->set_token(slice->post_begin_transaction_checkpoint_.check_through(token).with_read_mode());
 
     transaction->snapshot();
-    return boost::shared_ptr<one_way_iterator_t<key_with_data_provider_t> >(
-        new slice_keys_iterator_t(transaction, slice, left_mode, left_key, right_mode, right_key));
+    return boost::shared_ptr<one_way_iterator_t<key_with_data_provider_t> >(new transform_iterator_t<key_value_pair_t, key_with_data_provider_t>(boost::bind(pair_to_key_with_data_provider, transaction, _1), new slice_keys_iterator_t(transaction, slice, left_mode, left_key, right_mode, right_key)));
 }

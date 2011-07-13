@@ -1,11 +1,14 @@
 #ifndef __RPC_SERIALIZE_OTHERS_HPP__
 #define __RPC_SERIALIZE_OTHERS_HPP__
 
+#include <map>
+
+#include "concurrency/fifo_checker.hpp"
+#include "data_provider.hpp"
 #include "rpc/serialize/serialize.hpp"
 #include "rpc/serialize/basic.hpp"
 #include "rpc/core/cluster.hpp"
 #include "store.hpp"
-#include <map>
 
 /* Serializing and unserializing std::vector of a serializable type */
 

@@ -67,12 +67,12 @@ TEST(DiskFormatTest, LbaEntryT) {
     flagged_off64_t real = flagged_off64_t::unused();
     real.set_value(1);
     real.set_delete_bit(false);
-    ent = lba_entry_t::make(1, repli_timestamp::invalid, real);
+    ent = lba_entry_t::make(1, repli_timestamp_t::invalid, real);
     ASSERT_FALSE(lba_entry_t::is_padding(&ent));
     flagged_off64_t deleteblock = flagged_off64_t::unused();
     deleteblock.set_value(1);
     deleteblock.set_delete_bit(true);
-    ent = lba_entry_t::make(1, repli_timestamp::invalid, deleteblock);
+    ent = lba_entry_t::make(1, repli_timestamp_t::invalid, deleteblock);
     ASSERT_FALSE(lba_entry_t::is_padding(&ent));
 }
 

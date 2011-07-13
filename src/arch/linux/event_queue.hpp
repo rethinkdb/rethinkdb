@@ -4,35 +4,13 @@
 
 #include <signal.h>
 
+#include "errors.hpp"
 #include <boost/function.hpp>
 #include <boost/scoped_ptr.hpp>
 
 #include "perfmon_types.hpp"
-#include "linux_utils.hpp"
-
-
-
-// Event queue callback
-struct linux_event_callback_t {
-    virtual void on_event(int events) = 0;
-    virtual ~linux_event_callback_t() {}
-};
-
-// Common event queue functionality
-struct event_queue_base_t {
-public:
-    void watch_signal(const sigevent *evp, linux_event_callback_t *cb);
-    void forget_signal(const sigevent *evp, linux_event_callback_t *cb);
-
-private:
-    static void signal_handler(int signum, siginfo_t *siginfo, void *uctx);
-};
-
-struct linux_queue_parent_t {
-    virtual void pump() = 0;
-    virtual bool should_shut_down() = 0;
-    virtual ~linux_queue_parent_t() {}
-};
+#include "arch/linux/linux_utils.hpp"
+#include "arch/linux/event_queue_types.hpp"
 
 const int poll_event_in = 1;
 const int poll_event_out = 2;

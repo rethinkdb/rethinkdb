@@ -1,4 +1,5 @@
-#include "log_serializer.hpp"
+#include "serializer/log/log_serializer.hpp"
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -7,6 +8,7 @@
 #include <boost/variant/apply_visitor.hpp>
 
 #include "buffer_cache/types.hpp"
+#include "do_on_thread.hpp"
 
 // TODO: This is just kind of a hack. See types.hpp for more information
 uint64_t block_size_t::value() const {
@@ -15,7 +17,7 @@ uint64_t block_size_t::value() const {
 
 void log_serializer_t::create(dynamic_config_t *dynamic_config, private_dynamic_config_t *private_dynamic_config, static_config_t *static_config) {
 
-    direct_file_t df(private_dynamic_config->db_filename.c_str(), file_t::mode_read | file_t::mode_write | file_t::mode_create, dynamic_config->io_backend);
+    direct_file_t df(private_dynamic_config->db_filename.c_str(), file_t::mode_read | file_t::mode_write | file_t::mode_create, dynamic_config->io_backend, dynamic_config->io_batch_factor);
 
     co_static_header_write(&df, static_config, sizeof(*static_config));
 
@@ -57,7 +59,7 @@ struct ls_start_existing_fsm_t :
         rassert(ser->state == log_serializer_t::state_unstarted);
         ser->state = log_serializer_t::state_starting_up;
         
-        ser->dbfile = new direct_file_t(ser->db_path, file_t::mode_read | file_t::mode_write, ser->dynamic_config->io_backend);
+        ser->dbfile = new direct_file_t(ser->db_path, file_t::mode_read | file_t::mode_write, ser->dynamic_config->io_backend, ser->dynamic_config->io_batch_factor);
         if (!ser->dbfile->exists()) {
             crash("Database file \"%s\" does not exist.\n", ser->db_path);
         }
@@ -545,7 +547,7 @@ bool log_serializer_t::get_delete_bit(block_id_t id) {
     return offset.get_delete_bit();
 }
 
-repli_timestamp log_serializer_t::get_recency(block_id_t id) {
+repli_timestamp_t log_serializer_t::get_recency(block_id_t id) {
     return lba_index->get_block_recency(id);
 }
 
@@ -680,7 +682,7 @@ void log_serializer_t::unregister_read_ahead_cb(read_ahead_callback_t *cb) {
     }
 }
 
-bool log_serializer_t::offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {
+bool log_serializer_t::offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp) {
     for (size_t i = 0; i < read_ahead_callbacks.size(); ++i) {
         if (read_ahead_callbacks[i]->offer_read_ahead_buf(block_id, buf, recency_timestamp)) {
             return true;

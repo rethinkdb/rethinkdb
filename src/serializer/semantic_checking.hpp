@@ -215,7 +215,7 @@ public:
             if (!writes[i].buf_specified) continue;
 
             block_info_t b;
-            bzero((void*)&b, sizeof(b));  // make valgrind happy
+            memset(&b, 0, sizeof(b));  // make valgrind happy
             if (writes[i].buf) {
                 b.state = block_info_t::state_have_crc;
                 b.crc = compute_crc(writes[i].buf);
@@ -233,7 +233,7 @@ public:
             // Add the block to the semantic checker file
             persisted_block_info_t buf;
 #ifdef VALGRIND
-            bzero((void*)&buf, sizeof(buf));  // make valgrind happy
+            memset(&buf, 0, sizeof(buf));  // make valgrind happy
 #endif
             buf.block_id = writes[i].block_id;
             buf.block_info = b;
@@ -272,7 +272,7 @@ public:
         return in_use;
     }
 
-    repli_timestamp get_recency(block_id_t id) {
+    repli_timestamp_t get_recency(block_id_t id) {
         return inner_serializer.get_recency(id);
     }
 

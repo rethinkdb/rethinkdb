@@ -67,8 +67,6 @@ else
 BUILD_DIR:=$(BUILD_ROOT_DIR)/release
 endif
 
-PROTO_DIR:=$(BUILD_DIR)/proto
-
 PACKAGES_DIR:=$(BUILD_ROOT_DIR)/packages
 RPM_PACKAGE_DIR:=$(PACKAGES_DIR)/rpm
 DEB_PACKAGE_DIR:=$(PACKAGES_DIR)/deb
@@ -84,7 +82,7 @@ STATIC_LIBRARIES:=protoc protobuf
 
 CXXFLAGS?=
 
-CXXFLAGS+=-I$(SOURCE_DIR) -I$(PROTO_DIR) -Wall -Wextra -Wformat=2 -Wswitch-enum -Werror -Wnon-virtual-dtor
+CXXFLAGS+=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wswitch-enum -Werror -Wnon-virtual-dtor
 CXXFLAGS+="-DPRODUCT_NAME=\"$(PRODUCT_NAME)\""
 
 ifeq ($(SOLO),1)
@@ -206,6 +204,9 @@ CXXFLAGS+=-DVALGRIND
 BUILD_DIR:=$(BUILD_DIR)-valgrind
 NO_TCMALLOC:=1
 endif
+
+PROTO_DIR:=$(BUILD_DIR)/proto
+CXXFLAGS += -I$(PROTO_DIR)
 
 ifeq ($(NO_TCMALLOC),0)
 STATIC_LIBRARIES+=tcmalloc_minimal
@@ -339,7 +340,10 @@ endif
 install-manpages: $(ASSETS_DIR)/man/rethinkdb.1
 	$(QUIET) install -m755 -d $(DESTDIR)$(man1_dir)
 # TODO: support other man pages
-	$(QUIET) gzip -9 < $(ASSETS_DIR)/man/rethinkdb.1 | install -m644 -T /dev/stdin $(DESTDIR)$(man1_dir)/$(VERSIONED_PACKAGE_NAME).1.gz;
+	$(QUIET) m4 \
+			-D "SHORT_VERSION=$(RETHINKDB_SHORT_VERSION)" \
+			-D "CURRENT_DATE=$(shell date +%F)" \
+			< $(ASSETS_DIR)/man/rethinkdb.1 | gzip -9 | install -m644 -T /dev/stdin $(DESTDIR)$(man1_dir)/$(VERSIONED_PACKAGE_NAME).1.gz;
 #	$(QUIET) for manpage in $(MAN_PAGES); do \
 #			gzip -9 < $$manpage | install -m644 -T /dev/stdin $(DESTDIR)$(man1_dir)/$$(basename $$manpage).gz; \
 #		done

@@ -1,6 +1,7 @@
-#include "incr_decr.hpp"
+#include "btree/incr_decr.hpp"
 
 #include "btree/modify_oper.hpp"
+#include "containers/buffer_group.hpp"
 
 struct btree_incr_decr_oper_t : public btree_modify_oper_t {
 
@@ -8,59 +9,79 @@ struct btree_incr_decr_oper_t : public btree_modify_oper_t {
         : increment(increment), delta(delta)
     { }
 
-    bool operate(UNUSED const boost::shared_ptr<transaction_t>& txn, btree_value *old_value, UNUSED boost::scoped_ptr<large_buf_t>& old_large_buflock, btree_value **new_value, UNUSED boost::scoped_ptr<large_buf_t>& new_large_buflock) {
-        // If the key didn't exist before, we fail
-        if (!old_value) {
+    bool operate(transaction_t *txn, scoped_malloc<btree_value_t>& value) {
+        // If the key didn't exist before, we fail.
+        if (!value) {
             result.res = incr_decr_result_t::idr_not_found;
             return false;
         }
-        
-        // If we can't parse the key as a number, we fail
+
+        // If we can't parse the value as a number, we fail.
         bool valid;
         uint64_t number;
-        if (old_value->size < 50) {
+
+        blob_t b(value->value_ref(), blob::btree_maxreflen);
+        rassert(50 <= blob::btree_maxreflen);
+        if (b.valuesize() < 50) {
+            buffer_group_t buffergroup;
+            blob_acq_t acqs;
+            b.expose_region(txn, rwi_read, 0, b.valuesize(), &buffergroup, &acqs);
+            rassert(buffergroup.num_buffers() == 1);
+
             char buffer[50];
-            memcpy(buffer, old_value->value(), old_value->size);
-            buffer[old_value->size] = 0;
+            memcpy(buffer, buffergroup.get_buffer(0).data, buffergroup.get_buffer(0).size);
+            buffer[buffergroup.get_buffer(0).size] = '\0';
             char *endptr;
             number = strtoull_strict(buffer, &endptr, 10);
-            if (endptr == buffer) valid = false;
-            else valid = true;
+            valid = (endptr != buffer);
         } else {
             valid = false;
         }
+
         if (!valid) {
             result.res = incr_decr_result_t::idr_not_numeric;
             return false;
         }
 
-        // If we overflow when doing an increment, set number to 0 (this is as memcached does it as of version 1.4.5)
-        // for decrements, set to 0 on underflows
+        // If we overflow when doing an increment, set number to 0
+        // (this is as memcached does it as of version 1.4.5).  For
+        // decrements, set to 0 on underflows.
         if (increment) {
-            if (number + delta < number) number = 0;
-            else number += delta;
+            if (number + delta < number) {
+                number = 0;
+            } else {
+                number = number + delta;
+            }
         } else {
-            if (number - delta > number) number = 0;
-            else number -= delta;
+            if (number - delta > number) {
+                number = 0;
+            } else {
+                number = number - delta;
+            }
         }
 
         result.res = incr_decr_result_t::idr_success;
         result.new_value = number;
 
-        // We write into our member variable 'temp_value' because the buffer we return must remain
-        // valid until the btree FSM is destroyed. That's why we can't allocate a buffer on the
-        // stack.
+        scoped_malloc<btree_value_t> newvalue(MAX_BTREE_VALUE_SIZE);
+        valuecpy(txn->get_cache()->get_block_size(), newvalue.get(), value.get());
+        char tmp[50];
+        int chars_written = sprintf(tmp, "%llu", (long long unsigned)number);
+        rassert(chars_written <= 49);
+        b.unappend_region(txn, 0);
+        b.append_region(txn, chars_written);
+        buffer_group_t group;
+        blob_acq_t acqs;
+        b.expose_region(txn, rwi_write, 0, b.valuesize(), &group, &acqs);
+        rassert(group.num_buffers() == 1);
+        rassert(group.get_buffer(0).size == chars_written);
+        memcpy(group.get_buffer(0).data, tmp, chars_written);
 
-        valuecpy(&temp_value, old_value);
-        int chars_written = sprintf(temp_value.value(), "%llu", (long long unsigned)number);
-        rassert(chars_written <= MAX_IN_NODE_VALUE_SIZE); // Not really necessary.
-        temp_value.value_size(chars_written, slice->cache()->get_block_size());
-
-        *new_value = &temp_value;
+        value.swap(newvalue);
         return true;
     }
 
-    int compute_expected_change_count(UNUSED const size_t block_size) {
+    int compute_expected_change_count(UNUSED block_size_t block_size) {
         return 1;
     }
 
@@ -68,17 +89,11 @@ struct btree_incr_decr_oper_t : public btree_modify_oper_t {
     uint64_t delta;   // Amount to increment or decrement by
 
     incr_decr_result_t result;
-
-    /* Used as temporary storage, so that the value we return from operate() doesn't become invalid
-    before run_btree_modify_oper is done with it. */
-    union {
-        char temp_value_memory[MAX_BTREE_VALUE_SIZE];
-        btree_value temp_value;
-    };
 };
 
 incr_decr_result_t btree_incr_decr(const store_key_t &key, btree_slice_t *slice, bool increment, uint64_t delta, castime_t castime, order_token_t token) {
     btree_incr_decr_oper_t oper(increment, delta);
-    run_btree_modify_oper(&oper, slice, key, castime, token);
+    memcached_value_sizer_t sizer(slice->cache()->get_block_size());
+    run_btree_modify_oper(&sizer, &oper, slice, key, castime, token);
     return oper.result;
 }
