@@ -26,7 +26,8 @@ void parse_connection(boost::scoped_ptr<tcp_conn_t> conn, Expr const& expr) {
 }
 
 void print_int(int n) {
-    logINF("Got an int: %d\n", n);
+    (void)n;
+    //logINF("Got an int: %d\n", n);
 }
 
 void parse_ints(boost::scoped_ptr<tcp_conn_t> &conn) {
@@ -39,6 +40,7 @@ void parse_ints(boost::scoped_ptr<tcp_conn_t> &conn) {
                  >> ')')
             ,
             space);
-    logINF("Val = %d\n", val);
+    (void)val;
+    //logINF("Val = %d\n", val);
 }
 

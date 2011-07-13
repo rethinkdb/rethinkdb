@@ -1,5 +1,5 @@
-#include "memcached/file.hpp"
-#include "memcached/memcached.hpp"
+#include "protocol/memcached/file.hpp"
+#include "protocol/memcached/memcached.hpp"
 #include "progress/progress.hpp"
 #include "concurrency/fifo_checker.hpp"
 

@@ -11,6 +11,8 @@ memcached_interface_t::memcached_interface_t(tcp_conn_t *conn_p, get_store_t *ge
 memcached_interface_t::~memcached_interface_t() {}
 
 void memcached_interface_t::do_get(std::vector<char> &key) {
+    (void)key;
+    /*
     std::string key_str(key.begin(), key.end());
     store_key_t store_key;
     str_to_key(key_str.c_str(), &store_key);
@@ -27,6 +29,7 @@ void memcached_interface_t::do_get(std::vector<char> &key) {
         tcp_conn->write("\r\n", 2);
         tcp_conn->write("END\r\n", 3);
     }
+    */
 }
 
 void memcached_interface_t::do_set(std::vector<char> &key, unsigned flags, unsigned expiration, std::vector<char> &data) {

@@ -5,6 +5,8 @@
 #include "concurrency/cross_thread_signal.hpp"
 #include "db_thread_info.hpp"
 #include "perfmon.hpp"
+#include "arch/conn_streambuf.hpp"
+#include <iostream>
 
 // TODO Redis: Possibly extra argument giving the protocol
 protocol_listener_t::protocol_listener_t(int port, get_store_t *get_store, set_store_interface_t *set_store) :
@@ -82,5 +84,7 @@ void protocol_listener_t::handle(boost::scoped_ptr<tcp_conn_t> &conn) {
 
     /* `serve_memcache()` will continuously serve memcache queries on the given conn
     until the connection is closed. */
+    //tcp_conn_streambuf_t conn_stream_buff(conn.get());
+    //std::iostream conn_stream(&conn_stream_buff);
     serve_func(conn.get(), get_store, set_store);
 }

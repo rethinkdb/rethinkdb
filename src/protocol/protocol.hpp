@@ -3,10 +3,12 @@
 
 #include "arch/arch.hpp"
 #include "store.hpp"
+#include <iostream>
 
 struct protocol_listener_t;
 
 typedef void (*tcp_serve_func)(tcp_conn_t*, get_store_t*, set_store_interface_t*);
+//typedef void (*tcp_serve_func)(std::iostream &, get_store_t*, set_store_interface_t*);
 
 /* Listens for TCP connections on the given port. Handles connections with appropriate protocol */
 struct protocol_listener_t : public home_thread_mixin_t {
