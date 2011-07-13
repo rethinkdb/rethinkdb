@@ -59,6 +59,11 @@
  * Actual merging of the slice iterators is done in server/key_value_store.cc.
  */
 
+bool is_not_expired(key_value_pair_t& pair) {
+    const btree_value_t *value = reinterpret_cast<const btree_value_t *>(pair.value.get());
+    return !value->expired();
+}
+
 key_with_data_provider_t pair_to_key_with_data_provider(boost::shared_ptr<transaction_t>& txn, key_value_pair_t& pair) {
     on_thread_t(txn->home_thread());
     boost::shared_ptr<data_provider_t> data_provider(value_data_provider_t::create(reinterpret_cast<btree_value_t *>(pair.value.get()), txn.get()));
@@ -72,5 +77,10 @@ rget_result_t btree_rget_slice(btree_slice_t *slice, rget_bound_mode_t left_mode
     transaction->set_token(slice->post_begin_transaction_checkpoint_.check_through(token).with_read_mode());
 
     transaction->snapshot();
-    return boost::shared_ptr<one_way_iterator_t<key_with_data_provider_t> >(new transform_iterator_t<key_value_pair_t, key_with_data_provider_t>(boost::bind(pair_to_key_with_data_provider, transaction, _1), new slice_keys_iterator_t(transaction, slice, left_mode, left_key, right_mode, right_key)));
+    return boost::shared_ptr<one_way_iterator_t<key_with_data_provider_t> >(
+        new transform_iterator_t<key_value_pair_t, key_with_data_provider_t>(
+            boost::bind(pair_to_key_with_data_provider, transaction, _1),
+            new filter_iterator_t<key_value_pair_t>(
+                is_not_expired,
+                new slice_keys_iterator_t(transaction, slice, left_mode, left_key, right_mode, right_key))));
 }
