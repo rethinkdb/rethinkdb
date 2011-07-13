@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "errors.hpp"
+#include <boost/function.hpp>
 #include <boost/optional.hpp>
 #include <boost/shared_ptr.hpp>
 
@@ -20,6 +21,28 @@ struct one_way_iterator_t {
     virtual void prefetch() = 0;    // Fetch all the necessary data to be able to give the next value without blocking.
                                     // prefetch() is assumed to be asynchronous. Thus if next() is called before the data
                                     // is available, next() can still block.
+};
+
+template <class T, class U>
+struct transform_iterator_t : public one_way_iterator_t<U> {
+    transform_iterator_t(const boost::function<U(T&)>& _func, one_way_iterator_t<T> *_ownee) : func(_func), ownee(_ownee) { }
+    ~transform_iterator_t() {
+        delete ownee;
+    }
+    virtual typename boost::optional<U> next() {
+        boost::optional<T> value = ownee->next();
+        if (!value) {
+            return boost::none;
+        } else {
+            return boost::make_optional(func(value.get()));
+        }
+    }
+    void prefetch() {
+        ownee->prefetch();
+    }
+
+    boost::function<U(T&)> func;
+    one_way_iterator_t<T> *ownee;
 };
 
 template <typename F, typename S, typename Cmp = std::less<F> >

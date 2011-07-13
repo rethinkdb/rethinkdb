@@ -14,7 +14,7 @@ leaf_iterator_t::leaf_iterator_t(const leaf_node_t *_leaf, int _index, buf_lock_
     leaf_iterators++;
 }
 
-boost::optional<key_with_data_provider_t> leaf_iterator_t::next() {
+boost::optional<key_value_pair_t> leaf_iterator_t::next() {
     rassert(index >= 0);
     const btree_leaf_pair *pair;
     do {
@@ -25,7 +25,8 @@ boost::optional<key_with_data_provider_t> leaf_iterator_t::next() {
         pair = leaf::get_pair_by_index(leaf, index++);
     } while (reinterpret_cast<const btree_value_t *>(pair->value())->expired());
 
-    return boost::make_optional(pair_to_key_with_data_provider(pair));
+    memcached_value_sizer_t sizer(transaction->get_cache()->get_block_size());
+    return boost::make_optional(key_value_pair_t(&sizer, key_to_str(&pair->key), pair->value()));
 }
 
 void leaf_iterator_t::prefetch() {
@@ -45,12 +46,14 @@ void leaf_iterator_t::done() {
     }
 }
 
+/*
 key_with_data_provider_t leaf_iterator_t::pair_to_key_with_data_provider(const btree_leaf_pair* pair) {
     on_thread_t th(transaction->home_thread());
     value_data_provider_t *data_provider = value_data_provider_t::create(reinterpret_cast<const btree_value_t *>(pair->value()), transaction.get());
     return key_with_data_provider_t(key_to_str(&pair->key), reinterpret_cast<const btree_value_t *>(pair->value())->mcflags(),
         boost::shared_ptr<data_provider_t>(data_provider));
 }
+*/
 
 slice_leaves_iterator_t::slice_leaves_iterator_t(const boost::shared_ptr<transaction_t>& transaction, btree_slice_t *slice,
     rget_bound_mode_t left_mode, const btree_key_t *left_key, rget_bound_mode_t right_mode, const btree_key_t *right_key) :
@@ -219,11 +222,11 @@ slice_keys_iterator_t::~slice_keys_iterator_t() {
     done();
 }
 
-boost::optional<key_with_data_provider_t> slice_keys_iterator_t::next() {
+boost::optional<key_value_pair_t> slice_keys_iterator_t::next() {
     if (no_more_data)
         return boost::none;
 
-    boost::optional<key_with_data_provider_t> result = active_leaf == NULL ? get_first_value() : get_next_value();
+    boost::optional<key_value_pair_t> result = active_leaf == NULL ? get_first_value() : get_next_value();
     if (!result) {
         done();
     }
@@ -233,7 +236,7 @@ boost::optional<key_with_data_provider_t> slice_keys_iterator_t::next() {
 void slice_keys_iterator_t::prefetch() {
 }
 
-boost::optional<key_with_data_provider_t> slice_keys_iterator_t::get_first_value() {
+boost::optional<key_value_pair_t> slice_keys_iterator_t::get_first_value() {
     leaves_iterator = new slice_leaves_iterator_t(transaction, slice, left_mode, left_key.key(), right_mode, right_key.key());
 
     // get the first leaf with our left key (or something greater)
@@ -245,11 +248,12 @@ boost::optional<key_with_data_provider_t> slice_keys_iterator_t::get_first_value
     rassert(active_leaf != NULL);
 
     // get a value from the leaf
-    boost::optional<key_with_data_provider_t> first_pair = active_leaf->next();
-    if (!first_pair)
+    boost::optional<key_value_pair_t> first_pair = active_leaf->next();
+    if (!first_pair) {
         return first_pair;  // returns empty result
+    }
 
-    key_with_data_provider_t pair = first_pair.get();
+    key_value_pair_t pair = first_pair.get();
 
     // skip the left key if left_mode == rget_bound_mode_open
     int compare_result = pair.key.compare(left_str);
@@ -261,30 +265,32 @@ boost::optional<key_with_data_provider_t> slice_keys_iterator_t::get_first_value
     }
 }
 
-boost::optional<key_with_data_provider_t> slice_keys_iterator_t::get_next_value() {
+boost::optional<key_value_pair_t> slice_keys_iterator_t::get_next_value() {
     rassert(leaves_iterator != NULL);
     rassert(active_leaf != NULL);
 
     // get a value from the leaf
-    boost::optional<key_with_data_provider_t> current_pair = active_leaf->next();
+    boost::optional<key_value_pair_t> current_pair = active_leaf->next();
     if (!current_pair) {
         delete active_leaf;
         active_leaf = NULL;
 
         boost::optional<leaf_iterator_t*> leaf = leaves_iterator->next();
-        if (!leaf)
+        if (!leaf) {
             return boost::none;
+        }
 
         active_leaf = leaf.get();
         current_pair = active_leaf->next();
-        if (!current_pair)
+        if (!current_pair) {
             return boost::none;
+        }
     }
 
     return validate_return_value(current_pair.get());
 }
 
-boost::optional<key_with_data_provider_t> slice_keys_iterator_t::validate_return_value(key_with_data_provider_t &pair) const {
+boost::optional<key_value_pair_t> slice_keys_iterator_t::validate_return_value(key_value_pair_t &pair) const {
     if (right_mode == rget_bound_none)
         return boost::make_optional(pair);
 
