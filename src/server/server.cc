@@ -14,6 +14,7 @@
 #include "concurrency/promise.hpp"
 #include "arch/os_signal.hpp"
 #include "http/http.hpp"
+//#include "riak/riak.hpp"
 
 int run_server(int argc, char *argv[]) {
 
@@ -266,7 +267,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 } else {
 
                     /* We aren't doing any sort of replication. */
-                    test_server_t server(2222);
+                    //riak::riak_server_t server(2222);
 
                     /* Make it impossible for this database file to later be used as a slave, because
                     that would confuse the replication logic. */

@@ -2,6 +2,7 @@
 #include "http/json.hpp"
 #include <sstream>
 #include <boost/algorithm/string/join.hpp>
+#include <boost/regex.hpp>
 
 /* What's the deal with the "m"s in front of all the json_spirit types?
  * Json_spirit provides 2 different json implementations, one in which the
@@ -25,7 +26,12 @@ std::string link_t::as_string() {
     return res.str();
 }
 
+riak_server_t::riak_server_t(int port)
+    : http_server_t(port)
+{ }
+
 http_res_t riak_server_t::handle(const http_req_t &req) {
+    //BREAKPOINT;
     //setup a tokenizer
     boost::char_separator<char> sep("/");
     tokenizer tokens(req.resource, sep);
@@ -42,7 +48,6 @@ http_res_t riak_server_t::handle(const http_req_t &req) {
             } else { /* 404 */ }
         } else {
             /* I haz a bucket */
-            std::string bucket = *it;
             it++;
 
             if (it == end) {
@@ -78,11 +83,7 @@ http_res_t riak_server_t::handle(const http_req_t &req) {
         
         if (it == end) {
             if (req.method == GET) {
-                if (req.find_query_param("keys") == "true" || req.find_query_param("keys") == "stream") {
-                    return luwak_keys(req);
-                } else {
-                    return luwak_props(req);
-                }
+                return luwak_info(req);
             } else if (req.method == POST) {
                 luwak_store(req);
             } else { /* 404 */ }
@@ -137,6 +138,8 @@ http_res_t riak_server_t::get_bucket(const http_req_t &req) {
     boost::char_separator<char> sep("/");
     tokenizer tokens(req.resource, sep);
     tok_iterator url_it = tokens.begin(), url_end = tokens.end();
+    rassert(url_it != url_end, "The first path compenent in the resource should be riak");
+    url_it++;
     rassert(url_it != url_end, "This function should only be called if there's a bucket specified in the url");
 
     //grab the bucket
@@ -202,6 +205,9 @@ http_res_t riak_server_t::set_bucket(const http_req_t &req) {
     boost::char_separator<char> sep("/");
     tokenizer tokens(req.resource, sep);
     tok_iterator url_it = tokens.begin(), url_end = tokens.end();
+    rassert(url_it != url_end, "The first path compenent in the resource should be riak");
+    url_it++; //get past the /riak
+
     rassert(url_it != url_end, "This function should only be called if there's a bucket specified in the url");
 
     http_res_t res; //what we'll be sending back
@@ -277,6 +283,8 @@ http_res_t riak_server_t::fetch_object(const http_req_t &req) {
     boost::char_separator<char> sep("/");
     tokenizer tokens(req.resource, sep);
     tok_iterator url_it = tokens.begin(), url_end = tokens.end();
+    rassert(url_it != url_end, "The first path compenent in the resource should be riak");
+    url_it++; //get past the /riak
 
     rassert(url_it != url_end, "This function should only be called if there's a bucket specified in the url");
     std::string bucket = *url_it;
@@ -309,9 +317,12 @@ http_res_t riak_server_t::fetch_object(const http_req_t &req) {
 }
 
 http_res_t riak_server_t::store_object(const http_req_t &req) {
+    BREAKPOINT;
     boost::char_separator<char> sep("/");
     tokenizer tokens(req.resource, sep);
     tok_iterator url_it = tokens.begin(), url_end = tokens.end();
+    rassert(url_it != url_end, "The first path compenent in the resource should be riak");
+    url_it++; //get past the /riak
 
     http_res_t res; //the response we'll be returning
 
@@ -324,7 +335,7 @@ http_res_t riak_server_t::store_object(const http_req_t &req) {
 
     //Parse the links
     std::string links = req.find_header_line("Link");
-    if (!parse(links.begin(), links.end(), link_parser_t<std::string::iterator>(), obj.links)) {
+    if (!links.empty() && !parse(links.begin(), links.end(), link_parser_t<std::string::iterator>(), obj.links)) {
         // parsing the links failed
         res.code = 400; //Bad request
         return res;
@@ -359,15 +370,102 @@ http_res_t riak_server_t::store_object(const http_req_t &req) {
     return res;
 }
 
-http_res_t riak_server_t::delete_object(const http_req_t &) {
-    not_implemented();
-    http_res_t res;
+http_res_t riak_server_t::delete_object(const http_req_t &req) {
+    boost::char_separator<char> sep("/");
+    tokenizer tokens(req.resource, sep);
+    tok_iterator url_it = tokens.begin(), url_end = tokens.end();
+    rassert(url_it != url_end, "The first path compenent in the resource should be riak");
+    url_it++; //get past the /riak
+
+    http_res_t res; //the response we'll be returning
+
+    if (url_it == url_end) {
+        res.code = 400;
+        return res;
+    }
+    std::string bucket = *url_it++;
+
+    if (url_it == url_end) {
+        res.code = 400;
+        return res;
+    }
+    std::string key = *url_it;
+
+    if (riak.delete_object(bucket, key)) {
+        res.code = 204;
+    } else {
+        res.code = 404;
+    }
+
     return res;
 }
 
-http_res_t riak_server_t::link_walk(const http_req_t &) {
-    not_implemented();
-    http_res_t res;
+http_res_t riak_server_t::link_walk(const http_req_t &req) {
+    boost::char_separator<char> sep("/");
+    tokenizer tokens(req.resource, sep);
+    tok_iterator url_it = tokens.begin(), url_end = tokens.end();
+
+    //grab the bucket and the key
+    rassert(url_it != url_end, "This should only be called if we have a bucket");
+    std::string bucket = *url_it++;
+
+    rassert(url_it != url_end, "This should only be called if we have a key");
+    std::string key = *url_it++;
+
+    http_res_t res; //the response we'll be returning
+
+    //parse the links
+    std::vector<link_filter_t> filters;
+    for(;url_it != url_end; url_it++) {
+        boost::char_separator<char> sep(",");
+        tokenizer lf_tokens(*url_it, sep);
+        tok_iterator lft_it = lf_tokens.begin(), lf_end = tokens.end();
+
+        link_filter_t filter;
+
+        if (lft_it == lf_end) { goto ERROR_BAD_REQUEST; }
+        filter.bucket = *lft_it++;
+
+        if (lft_it == lf_end) { goto ERROR_BAD_REQUEST; }
+        filter.tag = *lft_it++;
+
+        if (lft_it == lf_end) { goto ERROR_BAD_REQUEST; }
+        if (*lft_it == "1") {
+            filter.keep = true;
+        } else if (*lft_it == "0") {
+            filter.keep = false;
+        } else {
+            goto ERROR_BAD_REQUEST;
+        }
+
+        filters.push_back(filter);
+    }
+
+    //We need to do a breadth first traversal of the links, however the rub is
+    //that we need to keep track of which level we're on, to do this we use 2
+    //vectors
+    //
+    //current is the objects for the level we're currently on
+    //next is the objects for the level below
+
+    /* std::vector<std::pair<object_tree_iterator_t, object_tree_iterator_t> > current, next;
+    typedef std::vector<std::pair<object_tree_iterator_t, object_tree_iterator_t> >::iterator oti_pair_t;
+
+    current.push_back(riak.link_walk(bucket, key, filters)); */
+
+    /* for (std::vector<link_filter_t>::iterator lf_it = filters.begin(); lf_it != filters.end(); lf_it++) {
+    for (oti_pair cur_pair_it = current.begin(); cur_pair_it != current.end(); cur_pair_it++) {
+        for (object_tree_iterator_t cur_obj_it = 
+        }
+    } */
+
+    //object_tree_iterator_t obj_it = iters.first, obj_end = iters.second;
+
+    return res;
+
+ERROR_BAD_REQUEST:
+    http_res_t err_res;
+    res.code = 400;
     return res;
 }
 
@@ -377,26 +475,65 @@ http_res_t riak_server_t::mapreduce(const http_req_t &) {
     return res;
 }
 
-http_res_t riak_server_t::luwak_props(const http_req_t &) {
-    not_implemented();
-    http_res_t res;
+http_res_t riak_server_t::luwak_info(const http_req_t &req) {
+    http_res_t res; //the response we'll be sending back
+    json::mObject body;
+
+    if (req.find_query_param("props") != "false") {
+        body["props"] = json::mObject();
+        luwak_props_t props = riak.luwak_props();
+
+
+        body["props"].get_obj()["o_bucket"] = props.root_bucket;
+        body["props"].get_obj()["n_bucket"] = props.segment_bucket;
+        body["props"].get_obj()["block_default"] = props.block_default;
+    }
+
+    if (req.find_query_param("keys") == "true" || req.find_query_param("keys") == "stream") {
+        body["keys"] = json::mArray();
+        std::pair<object_iterator_t, object_iterator_t> obj_iters = riak.objects(riak.luwak_props().root_bucket);
+
+        for (object_iterator_t obj_it = obj_iters.first; obj_it != obj_iters.second; obj_it++) {
+            body["keys"].get_array().push_back(obj_it->key);
+        }
+    }
+
     return res;
 }
 
-http_res_t riak_server_t::luwak_keys(const http_req_t &) {
-    not_implemented();
+http_res_t riak_server_t::luwak_fetch(const http_req_t &req) {
+    boost::char_separator<char> sep("/");
+    tokenizer tokens(req.resource, sep);
+    tok_iterator url_it = tokens.begin(), url_end = tokens.end();
+
     http_res_t res;
+
+    //rassert(url_it != url_end, "We should only call this function when we have a key");
+    //std::string key = *url_it;
+
+    //std::string range = req.find_header_line("Range");
+
+    //boost::regex range_regex("^bytes=(\\d+)-(\\d+)$");
+    //boost::smatch what;
+
+    //if (!boost::regex_match(range, what, range_regex, boost::match_extra)) {
+    //    res.code = 400;
+    //    return res;
+    //}
+    //rassert(what.size() == 1 && what.captures(0).size() == 2, "Since we've successfully parsed a bytes header we should have exactly one match with exactly 2 captures");
+
+    //object_t obj = riak.get_luwak(key, what.captures(0)[0], what.captures(0)[1]);
+
+    //res.set_body(obj.content_type, obj.content);
+
     return res;
 }
 
-http_res_t riak_server_t::luwak_fetch(const http_req_t &) {
-    not_implemented();
-    http_res_t res;
-    return res;
-}
+http_res_t riak_server_t::luwak_store(const http_req_t &req) {
+    boost::char_separator<char> sep("/");
+    tokenizer tokens(req.resource, sep);
+    tok_iterator url_it = tokens.begin(), url_end = tokens.end();
 
-http_res_t riak_server_t::luwak_store(const http_req_t &) {
-    not_implemented();
     http_res_t res;
     return res;
 }

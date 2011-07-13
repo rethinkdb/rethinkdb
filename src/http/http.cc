@@ -4,7 +4,7 @@
 std::string http_req_t::find_query_param(std::string key) const {
     //TODO this is inefficient we should actually load it all into a map
     for (std::vector<query_parameter_t>::const_iterator it = query_params.begin(); it != query_params.end(); it++) {
-        if (it->val == key) return it->key;
+        if (it->key == key) return it->val;
     }
     return std::string("");
 }
@@ -12,7 +12,7 @@ std::string http_req_t::find_query_param(std::string key) const {
 std::string http_req_t::find_header_line(std::string key) const {
     //TODO this is inefficient we should actually load it all into a map
     for (std::vector<header_line_t>::const_iterator it = header_lines.begin(); it != header_lines.end(); it++) {
-        if (it->val == key) return it->key;
+        if (it->key == key) return it->val;
     }
     return std::string("");
 }
@@ -22,8 +22,7 @@ int content_length(http_req_t msg) {
         if (it->key == std::string("Content-Length"))
             return atoi(it->val.c_str());
     }
-    unreachable();
-    return -1;
+    return 0;
 }
 
 void http_res_t::add_header_line(std::string const &key, std::string const &val) {
@@ -100,6 +99,7 @@ void write_http_msg(boost::scoped_ptr<tcp_conn_t> &conn, http_res_t const &res) 
 }
 
 void http_server_t::handle_conn(boost::scoped_ptr<tcp_conn_t> &conn) {
+    //BREAKPOINT;
     http_req_t req;
     tcp_http_msg_parser_t http_msg_parser;
 
@@ -113,7 +113,6 @@ void http_server_t::handle_conn(boost::scoped_ptr<tcp_conn_t> &conn) {
 
     http_res_t res = handle(req);
     write_http_msg(conn, res);
-    BREAKPOINT;
 }
 
 test_server_t::test_server_t(int port) 

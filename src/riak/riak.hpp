@@ -88,6 +88,12 @@ struct link_parser_t: qi::grammar<Iterator, std::vector<link_t>()> {
     qi::rule<Iterator, std::vector<link_t>()> start;
 };
 
+struct link_filter_t {
+    std::string bucket;
+    std::string tag;
+    bool keep;
+};
+
 struct object_t {
     std::string key;
     std::string content;
@@ -97,6 +103,7 @@ struct object_t {
     int last_written;
     std::vector<link_t> links;
 };
+
 
 class object_iterator_t {
     //TODO actually implement this instead of just duping the type checker
@@ -111,8 +118,31 @@ public:
     object_t *operator->() {not_implemented(); return &object;};
 };
 
+struct object_tree_iterator_t;
+
+struct object_tree_t : public object_t {
+    object_tree_iterator_t &children() { crash("Not implemented"); }
+    object_tree_iterator_t &children_end() { crash("Not implemented"); }
+};
+
+struct object_tree_iterator_t {
+    bool operator!=(object_tree_iterator_t const &) {crash("Not implemented");}
+    bool operator==(object_tree_iterator_t const &) {crash("Not implemented");}
+    object_tree_iterator_t operator++() {crash("Not implemented");}
+    object_tree_iterator_t operator++(int) {crash("Not implemented");}
+    object_tree_t operator*() {crash("Not implemented");}
+    object_tree_t *operator->() {crash("Not implemented");}
+};
+
+struct luwak_props_t {
+    std::string root_bucket, segment_bucket;
+    int block_default;
+};
+
+
 class riak_interface_t {
 public:
+    // Bucket operations:
     // Get a bucket by name
     bucket_t const &bucket_read(std::string) {
         crash("Not implementated");
@@ -127,6 +157,8 @@ public:
         crash("Not implementated");
     };
 
+
+    //Object operations:
     //Get all the keys in a bucket
     std::pair<object_iterator_t, object_iterator_t> objects(std::string) { 
         crash("Not implementated");
@@ -136,12 +168,25 @@ public:
         crash("Not implementated");
     }
 
+    std::pair<object_tree_iterator_t, object_tree_iterator_t> link_walk(std::string, std::string, std::vector<link_filter_t>) {
+        crash("Not implemented");
+    }
+
     const object_t &store_object(std::string, object_t&) {
         crash("Not implementated");
     }
 
-    const object_t &delete_object(std::string, std::string) {
+    bool delete_object(std::string, std::string) {
         crash("Not implementated");
+    }
+
+    //Luwak operations:
+    luwak_props_t luwak_props() {
+        crash("Not implemented");
+    }
+
+    object_t get_luwak(std::string, int, int) {
+        crash("Not implemented");
     }
 
     std::string gen_key() {
@@ -150,6 +195,8 @@ public:
 };
 
 class riak_server_t : public http_server_t {
+public:
+    riak_server_t(int);
 private:
     http_res_t handle(const http_req_t &);
 
@@ -172,8 +219,8 @@ private:
     http_res_t delete_object(const http_req_t &);
     http_res_t link_walk(const http_req_t &);
     http_res_t mapreduce(const http_req_t &);
-    http_res_t luwak_props(const http_req_t &);
-    http_res_t luwak_keys(const http_req_t &);
+    http_res_t luwak_info(const http_req_t &);
+    //http_res_t luwak_keys(const http_req_t &);
     http_res_t luwak_fetch(const http_req_t &);
     http_res_t luwak_store(const http_req_t &);
     http_res_t luwak_delete(const http_req_t &);
