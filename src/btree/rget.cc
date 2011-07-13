@@ -66,7 +66,7 @@ bool is_not_expired(key_value_pair_t& pair) {
 }
 
 key_with_data_provider_t pair_to_key_with_data_provider(boost::shared_ptr<transaction_t>& txn, key_value_pair_t& pair) {
-    on_thread_t(txn->home_thread());
+    on_thread_t th(txn->home_thread());
     boost::shared_ptr<data_provider_t> data_provider(value_data_provider_t::create(reinterpret_cast<btree_value_t *>(pair.value.get()), txn.get()));
     return key_with_data_provider_t(pair.key, reinterpret_cast<btree_value_t *>(pair.value.get())->mcflags(), data_provider);
 }
