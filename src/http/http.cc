@@ -1,5 +1,6 @@
 #include "http/http.hpp"
 #include <iostream>
+#include <boost/bind.hpp>
 
 std::string http_req_t::find_query_param(std::string key) const {
     //TODO this is inefficient we should actually load it all into a map

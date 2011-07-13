@@ -1,5 +1,6 @@
 #include "spirit/boost_parser.hpp"
 #include "arch/arch.hpp"
+#include "logger.hpp"
 #include <vector>
 
 #include <boost/config/warning_disable.hpp>
