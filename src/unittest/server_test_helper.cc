@@ -74,7 +74,7 @@ void server_test_helper_t::change_value(buf_t *buf, uint32_t value) {
 }
 
 uint32_t server_test_helper_t::get_value(buf_t *buf) {
-    return *((uint32_t*) buf->get_data_read());
+    return *reinterpret_cast<const uint32_t *>(buf->get_data_read());
 }
 
 buf_t *server_test_helper_t::acq_check_if_blocks_until_buf_released(transaction_t *txn, buf_t *already_acquired_block, access_t acquire_mode, bool do_release, bool &blocked) {

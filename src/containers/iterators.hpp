@@ -1,14 +1,18 @@
 #ifndef __CONTAINERS_ITERATOR_HPP__
 #define __CONTAINERS_ITERATOR_HPP__
 
-#include "errors.hpp"
 #include <algorithm>
 #include <functional>
 #include <queue>
 #include <set>
 #include <vector>
+
+#include "errors.hpp"
+#include <boost/function.hpp>
 #include <boost/optional.hpp>
 #include <boost/shared_ptr.hpp>
+
+#include "utils.hpp"
 
 template <typename T>
 struct one_way_iterator_t {
@@ -19,12 +23,66 @@ struct one_way_iterator_t {
                                     // is available, next() can still block.
 };
 
+template <class T, class U>
+struct transform_iterator_t : public one_way_iterator_t<U> {
+    transform_iterator_t(const boost::function<U(T&)>& _func, one_way_iterator_t<T> *_ownee) : func(_func), ownee(_ownee) { }
+    ~transform_iterator_t() {
+        delete ownee;
+    }
+    virtual typename boost::optional<U> next() {
+        boost::optional<T> value = ownee->next();
+        if (!value) {
+            return boost::none;
+        } else {
+            return boost::make_optional(func(value.get()));
+        }
+    }
+    void prefetch() {
+        ownee->prefetch();
+    }
+
+    boost::function<U(T&)> func;
+    one_way_iterator_t<T> *ownee;
+};
+
+template <class T>
+struct filter_iterator_t : public one_way_iterator_t<T> {
+    filter_iterator_t(const boost::function<bool(T&)>& _predicate, one_way_iterator_t<T> *_ownee) : predicate(_predicate), ownee(_ownee) { }
+    ~filter_iterator_t() {
+        delete ownee;
+    }
+    virtual typename boost::optional<T> next() {
+        for (;;) {
+            boost::optional<T> value = ownee->next();
+            if (!value) {
+                return boost::none;
+            } else {
+                if (predicate(value.get())) {
+                    return value;
+                }
+                // otherwise, continue.
+            }
+        }
+    }
+    void prefetch() {
+        // Unfortunately we don't feel like really implementing this
+        // function right now.  It would require running the filter
+        // operation on return values, consuming ahead into the
+        // iterator.  Also some other one_way_iterator_t
+        // implementations blow this off, so why not us.
+        ownee->prefetch();
+    }
+
+    boost::function<bool(T&)> predicate;
+    one_way_iterator_t<T> *ownee;
+};
+
 template <typename F, typename S, typename Cmp = std::less<F> >
-struct first_not_less {
+struct first_greater {
     typedef F first_argument_type;
     typedef S second_argument_type;
     bool operator()(std::pair<F,S> l, std::pair<F,S> r) {
-        return !Cmp()(l.first, r.first);
+        return Cmp()(r.first, l.first);
     }
 };
 
@@ -39,7 +97,7 @@ public:
 
 
     merge_ordered_data_iterator_t() : mergees(), next_to_pop_from(),
-        merge_heap(first_not_less<T, mergee_t, Cmp>(), heap_container_t()) { }
+        merge_heap(first_greater<T, mergee_t, Cmp>(), heap_container_t()) { }
 
     virtual ~merge_ordered_data_iterator_t() {
         done();
@@ -76,9 +134,8 @@ public:
             if (next_val) {
                 merge_heap.push(std::make_pair(next_val.get(), next_to_pop_from));
             } else {
-                next_to_pop_from.reset();    // relinquish our hold
                 mergees.erase(next_to_pop_from);
-                //next_to_pop_from = NULL;
+                next_to_pop_from.reset();    // relinquish our hold
             }
         }
         if (merge_heap.size() == 0) {
@@ -99,20 +156,14 @@ public:
         for (it = mergees.begin(); it != mergees.end(); it++) {
             (*it)->prefetch();
         }
-        //std::for_each(mergees.begin(), mergees.end(), std::mem_fun(&mergee_t::prefetch));
     }
 private:
     void done() {
-        /* for (typename mergees_t::iterator it = mergees.begin(); it != mergees.end(); ++it) {
-            mergee_t mergee = *it;
-            if (mergee)
-                delete mergee;
-        } */
         mergees.clear();
     }
     mergees_t mergees;
     mergee_t next_to_pop_from;
-    typename std::priority_queue<heap_elem_t, heap_container_t, first_not_less<T, mergee_t, Cmp> > merge_heap;
+    typename std::priority_queue<heap_elem_t, heap_container_t, first_greater<T, mergee_t, Cmp> > merge_heap;
 
 };
 

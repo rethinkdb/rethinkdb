@@ -9,7 +9,7 @@
 #include "serializer/serializer.hpp"
 
 // TODO: Have the semantic checking cache make sure that the
-// repli_timestamps are correct.
+// repli_timestamp_ts are correct.
 
 /* The semantic-checking cache (scc_cache_t) is a wrapper around another cache that will
 make sure that the inner cache obeys the proper semantics. */
@@ -37,7 +37,7 @@ public:
     void apply_patch(buf_patch_t *patch); // This might delete the supplied patch, do not use patch after its application
     patch_counter_t get_next_patch_counter();
     void mark_deleted(bool write_null = true);
-    void touch_recency(repli_timestamp timestamp);
+    void touch_recency(repli_timestamp_t timestamp);
     void release();
 
 private:
@@ -51,7 +51,7 @@ private:
 private:
     crc_t compute_crc() {
         boost::crc_optimal<32, 0x04C11DB7, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc_computer;
-        crc_computer.process_bytes((void *) inner_buf->get_data_read(), cache->get_block_size().value());
+        crc_computer.process_bytes(inner_buf->get_data_read(), cache->get_block_size().value());
         return crc_computer.checksum();
     }
 };
@@ -65,7 +65,7 @@ class scc_transaction_t :
     typedef scc_buf_t<inner_cache_t> buf_t;
 
 public:
-    scc_transaction_t(scc_cache_t<inner_cache_t> *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp);
+    scc_transaction_t(scc_cache_t<inner_cache_t> *cache, access_t access, int expected_change_count, repli_timestamp_t recency_timestamp);
     scc_transaction_t(scc_cache_t<inner_cache_t> *cache, access_t access);
     ~scc_transaction_t();
 
@@ -75,13 +75,14 @@ public:
         inner_transaction.snapshot();
     }
 
-    void set_account(boost::shared_ptr<typename inner_cache_t::cache_account_t> cache_account);
+    void set_account(const boost::shared_ptr<typename inner_cache_t::cache_account_t>& cache_account);
 
     buf_t *acquire(block_id_t block_id, access_t mode,
                    boost::function<void()> call_when_in_line = 0, bool should_load = true);
     buf_t *allocate();
-    void get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out, get_subtree_recencies_callback_t *cb);
+    void get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp_t *recencies_out, get_subtree_recencies_callback_t *cb);
 
+    scc_cache_t<inner_cache_t> *get_cache() const { return cache; }
     scc_cache_t<inner_cache_t> *cache;
 
     order_token_t order_token;
@@ -115,7 +116,7 @@ public:
     block_size_t get_block_size();
     boost::shared_ptr<cache_account_t> create_account(int priority);
 
-    bool offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
+    bool offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp);
     bool contains_block(block_id_t block_id);
 
     coro_fifo_t& co_begin_coro_fifo() { return inner_cache.co_begin_coro_fifo(); }

@@ -38,17 +38,15 @@ uint64_t unserialize_u64(std::istream &s) {
 
 // TODO (rntz) this is not a portable representation format
 void serialize_float(std::ostream &s, float val) {
-    char buf[sizeof val];
-    *(float*)&buf[0] = val;
     rassert(s.good());
-    s.write(buf, sizeof buf);
+    s.write(reinterpret_cast<char *>(&val), sizeof(val));
     rassert(!s.fail());
 }
 
 float unserialize_float(std::istream &s) {
-    char buf[sizeof(float)];
+    float x;
     rassert(s.good());
-    s.read(buf, sizeof buf);
+    s.read(reinterpret_cast<char *>(&x), sizeof(x));
     rassert(!s.fail());
-    return *(float*)&buf[0];
+    return x;
 }

@@ -3,14 +3,9 @@
 
 #include "errors.hpp"
 #include <boost/scoped_array.hpp>
-#include <boost/scoped_ptr.hpp>
 #include <boost/shared_ptr.hpp>
-#include <vector>
 #include <exception>
 #include "containers/buffer_group.hpp"
-#include "containers/unique_ptr.hpp"
-
-#include "concurrency/cond_var.hpp"
 
 /* A data_provider_t conceptually represents a read-only array of bytes. It is an abstract
 superclass; its concrete subclasses represent different sources of bytes. */

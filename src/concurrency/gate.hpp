@@ -1,9 +1,13 @@
 #ifndef __CONCURRENCY_GATE_HPP__
 #define __CONCURRENCY_GATE_HPP__
 
+#include <vector>
+
+#include "errors.hpp"
+#include <boost/scoped_array.hpp>
+
 #include "concurrency/resettable_cond_var.hpp"
-#include "concurrency/pmap.hpp"
-#include "utils2.hpp"
+#include "utils.hpp"
 
 /* A gate is a concurrency object that monitors some shared resource. Opening the
 gate allows actors to access the resource. Closing the gate prevents actors from
@@ -15,28 +19,15 @@ gate_t is not thread-safe! If you want thread-safety, use threadsafe_gate_t. */
 struct gate_t {
 
     /* Gate is closed in the constructor and must be closed in the destructor. */
-    gate_t() : open(false), num_inside_gate(0) {
-        pulsed_when_num_inside_gate_zero.pulse();
-    }
-    ~gate_t() {
-        rassert(!open);
-    }
+    gate_t();
+    ~gate_t();
 
-    bool is_open() {
-        return open;
-    }
+    bool is_open();
 
     /* Sentry that represents using the resource that the gate protects */
     struct entry_t : public home_thread_mixin_t {
-        entry_t(gate_t *g) : gate(g) {
-            rassert(gate->open);
-            gate->num_inside_gate++;
-            if (gate->num_inside_gate == 1) gate->pulsed_when_num_inside_gate_zero.reset();
-        }
-        ~entry_t() {
-            if (gate->num_inside_gate == 1) gate->pulsed_when_num_inside_gate_zero.pulse();
-            gate->num_inside_gate--;
-        }
+        entry_t(gate_t *g);
+        ~entry_t();
     private:
         DISABLE_COPYING(entry_t);
         gate_t *gate;
@@ -44,15 +35,8 @@ struct gate_t {
 
     /* Sentry that opens and then closes gate */
     struct open_t : public home_thread_mixin_t {
-        open_t(gate_t *g) : gate(g) {
-            rassert(!gate->open);
-            gate->open = true;
-        }
-        ~open_t() {
-            rassert(gate->open);
-            gate->open = false;
-            gate->pulsed_when_num_inside_gate_zero.get_signal()->wait();
-        }
+        open_t(gate_t *g);
+        ~open_t();
     private:
         DISABLE_COPYING(open_t);
         gate_t *gate;
@@ -77,63 +61,37 @@ and opened/closed from any thread. Its behavior is undefined if you open/close i
 threads concurrently. */
 
 struct threadsafe_gate_t {
-
-    threadsafe_gate_t() :
-        subgates(new gate_t*[get_num_threads()])
-    {
-        pmap(get_num_threads(), boost::bind(&threadsafe_gate_t::create_gate, this, _1));
-    }
-
-    ~threadsafe_gate_t() {
-        pmap(get_num_threads(), boost::bind(&threadsafe_gate_t::destroy_gate, this, _1));
-    }
-
-    bool is_open() {
-        return subgates[get_thread_id()]->is_open();
-    }
+    threadsafe_gate_t();
+    ~threadsafe_gate_t();
+    bool is_open();
 
     /* Sentry that represents using the resource that the gate protects */
     struct entry_t {
-        entry_t(threadsafe_gate_t *g) : subentry(g->subgates[get_thread_id()]) { }
+        entry_t(threadsafe_gate_t *g);
     private:
-        DISABLE_COPYING(entry_t);
         gate_t::entry_t subentry;
+
+        DISABLE_COPYING(entry_t);
     };
 
     /* Sentry that opens and then closes gate */
     struct open_t {
-        open_t(threadsafe_gate_t *g) : gate(g) {
-            subopens.resize(get_num_threads());
-            pmap(get_num_threads(), boost::bind(&open_t::do_open, this, _1));
-        }
-        ~open_t() {
-            pmap(get_num_threads(), boost::bind(&open_t::do_close, this, _1));
-        }
+        open_t(threadsafe_gate_t *g);
+        ~open_t();
     private:
-        DISABLE_COPYING(open_t);
-        void do_open(int thread) {
-            on_thread_t thread_switcher(thread);
-            subopens[thread] = new gate_t::open_t(gate->subgates[thread]);
-        }
-        void do_close(int thread) {
-            on_thread_t thread_switcher(thread);
-            delete subopens[thread];
-        }
+        void do_open(int thread);
+        void do_close(int thread);
         threadsafe_gate_t *gate;
         std::vector<gate_t::open_t *> subopens;
+
+        DISABLE_COPYING(open_t);
     };
 
 private:
     friend struct open_t;
     friend struct entry_t;
-    void create_gate(int i) {
-        on_thread_t thread_switcher(i);
-        subgates[i] = new gate_t;
-    }
-    void destroy_gate(int i) {
-        on_thread_t thread_switcher(i);
-        delete subgates[i];
-    }
+    void create_gate(int i);
+    void destroy_gate(int i);
     boost::scoped_array<gate_t*> subgates;
 };
 

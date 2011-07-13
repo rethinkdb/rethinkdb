@@ -1,4 +1,4 @@
-#include "patch_memory_storage.hpp"
+#include "buffer_cache/mirrored/patch_memory_storage.hpp"
 
 #include <list>
 #include <map>
@@ -49,7 +49,7 @@ void patch_memory_storage_t::filter_applied_patches(block_id_t block_id, ser_tra
 }
 
 // Returns true iff any changes have been made to the buf
-bool patch_memory_storage_t::apply_patches(block_id_t block_id, char *buf_data) const {
+bool patch_memory_storage_t::apply_patches(block_id_t block_id, char *buf_data, block_size_t bs) const {
     patch_map_t::const_iterator map_entry = patch_map.find(block_id);
     if (map_entry == patch_map.end()) {
         return false;
@@ -58,7 +58,7 @@ bool patch_memory_storage_t::apply_patches(block_id_t block_id, char *buf_data) 
     for (block_patch_list_t::const_iterator p = map_entry->second.patches_begin(), e = map_entry->second.patches_end();
          p != e;
          ++p) {
-        (*p)->apply_to_buf(buf_data);
+        (*p)->apply_to_buf(buf_data, bs);
     }
 
     return true;

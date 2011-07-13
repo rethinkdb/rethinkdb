@@ -1,12 +1,15 @@
 #ifndef LEGACY_LINUX // So the build system doesn't try to compile this file otherwise.
 
+#include "arch/linux/timer/timerfd_provider.hpp"
+
 #include <sys/timerfd.h>
 #include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/eventfd.h>
+
 #include "arch/linux/event_queue.hpp"
-#include "timerfd_provider.hpp"
+#include "arch/linux/timer_provider.hpp"
 #include "logger.hpp"
 
 /* Kernel timer provider based on timerfd  */

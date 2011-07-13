@@ -1,10 +1,12 @@
 #ifndef __CONCURRENCY_QUEUE_CROSS_THREAD_LIMITED_FIFO_HPP__
 #define __CONCURRENCY_QUEUE_CROSS_THREAD_LIMITED_FIFO_HPP__
 
+#include <list>
+
 #include "concurrency/queue/passive_producer.hpp"
 #include "concurrency/semaphore.hpp"
 #include "concurrency/drain_semaphore.hpp"
-#include <list>
+#include "do_on_thread.hpp"
 
 /* `cross_thread_limited_fifo_t` is like `limited_fifo_t`, except that it is
 efficient even when objects are being pushed onto the queue from a thread other
@@ -12,7 +14,7 @@ than the home thread. In the constructor, pass an extra parameter for the
 thread that you intend to push objects onto the queue from. Pushing objects
 onto the queue from that thread will be very efficient. */
 
-template<class value_t, class queue_t=std::list<value_t> >
+template <class value_t, class queue_t = std::list<value_t> >
 struct cross_thread_limited_fifo_t :
     public passive_producer_t<value_t>,
     public home_thread_mixin_t

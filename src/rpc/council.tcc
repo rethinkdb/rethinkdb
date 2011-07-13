@@ -1,3 +1,6 @@
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 template<class value_t, class diff_t>
 council_t<value_t, diff_t>::council_t() :
     lock_mailbox(boost::bind(&council_t::handle_lock, this, _1)),

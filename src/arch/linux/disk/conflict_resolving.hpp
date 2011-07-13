@@ -1,10 +1,16 @@
 #ifndef __ARCH_LINUX_DISK_CONFLICT_RESOLVING_HPP__
 #define __ARCH_LINUX_DISK_CONFLICT_RESOLVING_HPP__
 
+#include <map>
+#include <deque>
+
+#include "errors.hpp"
+#include <boost/function.hpp>
+
+
+
 #include "arch/linux/event_queue.hpp"
 #include "containers/bitset.hpp"
-#include <map>
-#include <boost/function.hpp>
 
 /* The purpose of the conflict-resolving disk manager is to deal with the case
 where we have been sent a number of different reads or writes for overlapping

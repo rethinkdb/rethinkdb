@@ -1,6 +1,7 @@
-
 #ifndef __ARCH_LINUX_DISK_AIO_GETEVENTS_NOEVENTFD_HPP__
 #define __ARCH_LINUX_DISK_AIO_GETEVENTS_NOEVENTFD_HPP__
+
+#include <vector>
 
 #include "arch/linux/disk/aio.hpp"
 

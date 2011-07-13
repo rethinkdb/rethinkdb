@@ -1,11 +1,10 @@
-
 #ifndef __ARCH_LINUX_PIPE_EVENT_HPP__
 #define __ARCH_LINUX_PIPE_EVENT_HPP__
 
 #include <stdint.h>
 
-// An event API implemented in terms of eventfd. May not be available
-// on older kernels.
+#include "errors.hpp"
+
 struct pipe_event_t {
 public:
     pipe_event_t();
@@ -20,6 +19,7 @@ public:
 
 private:
     int pipefd[2];
+    DISABLE_COPYING(pipe_event_t);
 };
 
 

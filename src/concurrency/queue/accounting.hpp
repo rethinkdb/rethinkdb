@@ -112,15 +112,17 @@ private:
 
         int batch_selector = selector / batch_factor;
 
-        typename intrusive_list_t<account_t>::iterator it = active_accounts.begin();
+        account_t *acct = active_accounts.head();
         int count = 0;
-        while (true) {
-            count += (*it)->shares;
-            if (count > batch_selector) break;
-            it++;
+        for (;;) {
+            count += acct->shares;
+            if (count > batch_selector) {
+                break;
+            }
+            acct = active_accounts.next(acct);
         }
         selector++;
-        return (*it)->source->pop();
+        return acct->source->pop();
     }
 };
 

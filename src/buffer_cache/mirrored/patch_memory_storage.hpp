@@ -3,6 +3,8 @@
 
 #include <list>
 #include <map>
+#include <vector>
+
 #include "buffer_cache/buf_patch.hpp"
 
 /*
@@ -66,7 +68,7 @@ public:
     void filter_applied_patches(block_id_t block_id, ser_transaction_id_t transaction_id);
 
     // Returns true iff any changes have been made to the buf
-    bool apply_patches(block_id_t block_id, char *buf_data) const;
+    bool apply_patches(block_id_t block_id, char *buf_data, block_size_t bs) const;
 
     inline void store_patch(buf_patch_t *patch) {
         patch_map[patch->get_block_id()].add_patch(patch);

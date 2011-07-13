@@ -1,5 +1,7 @@
-#include "event_queue.hpp"
+#include "arch/linux/event_queue.hpp"
+
 #include <string.h>
+
 #include "arch/linux/thread_pool.hpp"
 #include "concurrency/cond_var.hpp"
 #include "utils.hpp"

@@ -42,7 +42,7 @@ public:
     void apply_patch(buf_patch_t *patch); // This might delete the supplied patch, do not use patch after its application
     patch_counter_t get_next_patch_counter();
     void mark_deleted(bool write_null = true);
-    void touch_recency(repli_timestamp timestamp);
+    void touch_recency(repli_timestamp_t timestamp);
     void release();
     bool is_dirty();
     bool is_deleted();
@@ -65,17 +65,17 @@ class mock_transaction_t :
     typedef mock_buf_t buf_t;
 
 public:
-    mock_transaction_t(mock_cache_t *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp);
+    mock_transaction_t(mock_cache_t *cache, access_t access, int expected_change_count, repli_timestamp_t recency_timestamp);
     mock_transaction_t(mock_cache_t *cache, access_t access);
     ~mock_transaction_t();
 
     void snapshot() { }
 
-    void set_account(UNUSED boost::shared_ptr<mock_cache_account_t> cache_account) { }
+    void set_account(UNUSED const boost::shared_ptr<mock_cache_account_t>& cache_account) { }
 
     buf_t *acquire(block_id_t block_id, access_t mode, boost::function<void()> call_when_in_line = 0, bool should_load = true);
     buf_t *allocate();
-    void get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out, get_subtree_recencies_callback_t *cb);
+    void get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp_t *recencies_out, get_subtree_recencies_callback_t *cb);
 
     mock_cache_t *cache;
 
@@ -87,7 +87,7 @@ private:
     friend class mock_cache_t;
     access_t access;
     int n_bufs;
-    repli_timestamp recency_timestamp;
+    repli_timestamp_t recency_timestamp;
 };
 
 /* Cache */
@@ -115,7 +115,7 @@ public:
 
     boost::shared_ptr<cache_account_t> create_account(UNUSED int priority) { return boost::shared_ptr<cache_account_t>(); }
 
-    bool offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
+    bool offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp);
 
     bool contains_block(block_id_t id);
 

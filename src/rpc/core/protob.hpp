@@ -1,15 +1,17 @@
 #ifndef _RPC_CORE_PROTOB_HPP_
 #define _RPC_CORE_PROTOB_HPP_
 
-#include "arch/arch.hpp"
-#include <google/protobuf/message.h>
-#include "rpc/core/header.pb.h"
-#include "utils.hpp"
-#include "utils2.hpp"
 #include <string>
 #include <vector>
 #include <utility>
+
+#include <google/protobuf/message.h>
+
+#include "rpc/core/header.pb.h"
+
+#include "arch/arch.hpp"
 #include "logger.hpp"
+#include "utils.hpp"
 
 using namespace google; //TODO get rid of these
 using namespace protobuf;

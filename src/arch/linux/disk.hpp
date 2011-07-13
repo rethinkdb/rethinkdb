@@ -1,17 +1,11 @@
 #ifndef __ARCH_LINUX_DISK_HPP__
 #define __ARCH_LINUX_DISK_HPP__
 
-#include <libaio.h>
-#include <vector>
-#include "utils2.hpp"
+#include "utils.hpp"
 #include <boost/scoped_ptr.hpp>
-#include "config/args.hpp"
-#include "arch/linux/event_queue.hpp"
 
-/* Types of IO backends */
-enum linux_io_backend_t {
-    aio_native, aio_pool
-};
+#include "config/args.hpp"
+#include "arch/linux/linux_utils.hpp"
 
 struct linux_iocallback_t {
     virtual ~linux_iocallback_t() {}

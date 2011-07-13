@@ -1,5 +1,7 @@
+#include "server/server.hpp"
+
 #include <math.h>
-#include "server.hpp"
+
 #include "db_thread_info.hpp"
 #include "memcached/tcp_conn.hpp"
 #include "memcached/file.hpp"
@@ -9,7 +11,7 @@
 #include "server/cmd_args.hpp"
 #include "replication/master.hpp"
 #include "replication/slave.hpp"
-#include "control.hpp"
+#include "server/control.hpp"
 #include "gated_store.hpp"
 #include "concurrency/promise.hpp"
 #include "arch/os_signal.hpp"
@@ -23,7 +25,7 @@ int run_server(int argc, char *argv[]) {
 
     // Open the log file, if necessary.
     if (config.log_file_name[0]) {
-        log_file = fopen(config.log_file_name, "a");
+        log_file = fopen(config.log_file_name.c_str(), "a");
     }
 
     // Initial thread message to start server
@@ -192,9 +194,9 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             if (!cmd_config->import_config.file.empty()) {
                 store.set_replication_master_id(NOT_A_SLAVE);
                 std::vector<std::string>::iterator it;
-                for(it = cmd_config->import_config.file.begin(); it != cmd_config->import_config.file.end(); it++) {
+                for (it = cmd_config->import_config.file.begin(); it != cmd_config->import_config.file.end(); it++) {
                     logINF("Importing file %s...\n", it->c_str());
-                    import_memcache(*it, &store, &os_signal_cond);
+                    import_memcache(it->c_str(), &store, &os_signal_cond);
                     logINF("Done\n");
                 }
             } else {
@@ -213,9 +215,8 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
                     /* So that we call the appropriate user-defined callback on failure */
                     boost::scoped_ptr<failover_script_callback_t> failover_script;
-                    if (strlen(cmd_config->failover_config.failover_script_path) > 0) {
-                        failover_script.reset(new failover_script_callback_t(
-                            cmd_config->failover_config.failover_script_path));
+                    if (!cmd_config->failover_config.failover_script_path.empty()) {
+                        failover_script.reset(new failover_script_callback_t(cmd_config->failover_config.failover_script_path.c_str()));
                         failover.add_callback(failover_script.get());
                     }
 

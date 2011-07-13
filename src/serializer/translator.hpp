@@ -132,10 +132,10 @@ public:
     // block id contiguity will be ensured.
     block_id_t max_block_id();
     bool block_in_use(block_id_t id);
-    repli_timestamp get_recency(block_id_t id);
+    repli_timestamp_t get_recency(block_id_t id);
 
 public:
-    bool offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
+    bool offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp);
 };
 
 #endif /* __SERIALIZER_TRANSLATOR_HPP__ */

@@ -1,4 +1,4 @@
-#include "master.hpp"
+#include "replication/master.hpp"
 
 #include <boost/scoped_ptr.hpp>
 
@@ -71,7 +71,7 @@ void master_t::destroy_existing_slave_conn_if_it_exists() {
     rassert(stream_ == NULL);
 }
 
-void master_t::do_backfill_and_realtime_stream(repli_timestamp since_when) {
+void master_t::do_backfill_and_realtime_stream(repli_timestamp_t since_when) {
 
 #ifndef NDEBUG
     rassert(!master_t::inside_backfill_done_or_backfill);

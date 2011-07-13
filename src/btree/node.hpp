@@ -10,15 +10,68 @@
 #include "buffer_cache/types.hpp"
 #include "store.hpp"
 
-// The existence of these functions does not constitute an endorsement
-// for casts.  These constitute an endorsement for the use of
-// reinterpret_cast, rather than C-style casts.  The latter can break
-// const correctness.
-template <class T>
-inline const T* ptr_cast(const void *p) { return reinterpret_cast<const T*>(p); }
+struct value_type_t;
 
-template <class T>
-inline T* ptr_cast(void *p) { return reinterpret_cast<T*>(p); }
+class value_sizer_t {
+public:
+    value_sizer_t(block_size_t bs) : block_size_(bs) { }
+
+    // The number of bytes the value takes up.  Reference implementation:
+    //
+    // for (int i = 0; i < INT_MAX; ++i) {
+    //    if (fits(value, i)) return i;
+    // }
+    virtual int size(const value_type_t *value) const = 0;
+
+    // True if size(value) would return no more than length_available.
+    // Does not read any bytes outside of [value, value +
+    // length_available).
+    virtual bool fits(const value_type_t *value, int length_available) const = 0;
+
+    virtual int max_possible_size() const = 0;
+
+    // The magic that should be used for btree leaf nodes (or general
+    // nodes) with this kind of value.
+    virtual block_magic_t btree_leaf_magic() const = 0;
+
+    block_size_t block_size() const { return block_size_; }
+
+protected:
+    virtual ~value_sizer_t() { }
+
+    // The block size.  It's convenient for leaf node code and for
+    // some subclasses, too.
+    block_size_t block_size_;
+
+private:
+    DISABLE_COPYING(value_sizer_t);
+};
+
+// This will eventually be moved to a memcached-specific part of the
+// project.
+class memcached_value_sizer_t : public value_sizer_t {
+public:
+    memcached_value_sizer_t(block_size_t bs) : value_sizer_t(bs) { }
+
+    int size(const value_type_t *value) const {
+        return reinterpret_cast<const btree_value_t *>(value)->inline_size(block_size_);
+    }
+
+    virtual bool fits(const value_type_t *value, int length_available) const {
+        return btree_value_fits(block_size_, length_available, reinterpret_cast<const btree_value_t *>(value));
+    }
+
+    virtual int max_possible_size() const {
+        return MAX_BTREE_VALUE_SIZE;
+    }
+
+    virtual block_magic_t btree_leaf_magic() const {
+        block_magic_t magic = { { 'l', 'e', 'a', 'f' } };
+        return magic;
+    }
+};
+
+
 
 
 struct btree_superblock_t {
@@ -68,7 +121,7 @@ struct internal_node_t {
 // newer than it really is.  So when earlier[i] overflows,
 // we pin it to 0xFFFF.
 struct leaf_timestamps_t {
-    repli_timestamp last_modified;
+    repli_timestamp_t last_modified;
     uint16_t earlier[NUM_LEAF_NODE_EARLIER_TIMES];
 };
 
@@ -83,6 +136,8 @@ struct leaf_node_t {
     uint16_t frontmost_offset;
     uint16_t pair_offsets[0];
 
+    // TODO: Remove this field, the magic value used in leaf nodes is
+    // protocol-specific.
     static const block_magic_t expected_magic;
 };
 
@@ -129,19 +184,22 @@ struct node_t {
     block_magic_t magic;
 };
 
-template <>
-bool check_magic<node_t>(block_magic_t magic);
-
 namespace node {
 
 inline bool is_leaf(const node_t *node) {
-    rassert(check_magic<node_t>(node->magic));
-    return check_magic<leaf_node_t>(node->magic);
+    if (node->magic == leaf_node_t::expected_magic) {
+        return true;
+    }
+    rassert(node->magic == internal_node_t::expected_magic);
+    return false;
 }
 
 inline bool is_internal(const node_t *node) {
-    rassert(check_magic<node_t>(node->magic));
-    return check_magic<internal_node_t>(node->magic);
+    if (node->magic == internal_node_t::expected_magic) {
+        return true;
+    }
+    rassert(node->magic == leaf_node_t::expected_magic);
+    return false;
 }
 
 bool has_sensible_offsets(block_size_t block_size, const node_t *node);
@@ -162,8 +220,8 @@ inline void keycpy(btree_key_t *dest, const btree_key_t *src) {
     memcpy(dest, src, sizeof(btree_key_t) + src->size);
 }
 
-inline void valuecpy(btree_value *dest, const btree_value *src) {
-    memcpy(dest, src, src->full_size());
+inline void valuecpy(block_size_t bs, btree_value_t *dest, const btree_value_t *src) {
+    memcpy(dest, src, src->inline_size(bs));
 }
 
 #endif // __BTREE_NODE_HPP__

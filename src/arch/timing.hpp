@@ -1,11 +1,16 @@
 #ifndef __ARCH_TIMING_HPP__
 #define __ARCH_TIMING_HPP__
 
+#include "errors.hpp"
+#include <boost/function.hpp>
+
 #include "concurrency/signal.hpp"
 
 /* Coroutine function that delays for some number of milliseconds. */
 
 void nap(int ms);
+
+class timer_token_t;
 
 /* Construct a `signal_timer_t` to start a one-shot timer. When the timer "rings",
 the signal will be pulsed. It is safe to destroy the `signal_timer_t` before the

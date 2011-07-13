@@ -5,7 +5,9 @@
 #include "containers/intrusive_list.hpp"
 #include "perfmon.hpp"
 
-struct metadata_store_t {
+
+class metadata_store_t {
+public:
     // TODO (rntz) should this use key_store_t and data_provider_t, etc?
     virtual bool get_meta(const std::string &key, std::string *out) = 0;
     virtual void set_meta(const std::string &key, const std::string &value) = 0;
@@ -46,11 +48,11 @@ struct persistent_stat_perthread_t
     void *begin_persist() { return new thread_stat_t[get_num_threads()]; }
 
     void visit_persist(void *data) {
-        get_thread_persist(&((thread_stat_t *) data)[get_thread_id()]);
+        get_thread_persist(&(reinterpret_cast<thread_stat_t *>(data))[get_thread_id()]);
     }
 
     std::string end_persist(void *data) {
-        thread_stat_t *stats = (thread_stat_t*) data;
+        thread_stat_t *stats = reinterpret_cast<thread_stat_t *>(data);
         std::string result = combine_persist(stats);
         delete[] stats;
         return result;

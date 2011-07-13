@@ -4,6 +4,24 @@
 #include "arch/arch.hpp"
 #include "concurrency/cond_var.hpp"
 
+
+struct lock_request_t : public thread_message_t,
+                        public intrusive_list_node_t<lock_request_t>
+{
+    lock_request_t(access_t _op, lock_available_callback_t *_callback)
+        : op(_op), callback(_callback)
+    {}
+    access_t op;
+    lock_available_callback_t *callback;
+
+    // Actually, this is called later on the same thread...
+    void on_thread_switch() {
+        callback->on_lock_available();
+        delete this;
+    }
+};
+
+
 bool rwi_lock_t::lock(access_t access, lock_available_callback_t *callback) {
     //    debugf("rwi_lock_t::lock (access = %d)\n", access);
     if (try_lock(access, false)) {
@@ -203,9 +221,3 @@ void rwi_lock_t::process_queue() {
     // rwrwrw should probably be reordered to rrrwww so that the reads
     // could be executed in parallel.
 }
-
-void rwi_lock_t::lock_request_t::on_thread_switch() {
-    callback->on_lock_available();
-    delete this;
-}
-

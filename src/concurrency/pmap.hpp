@@ -2,10 +2,12 @@
 #ifndef __CONCURRENCY_PMAP_HPP__
 #define __CONCURRENCY_PMAP_HPP__
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
+#include "arch/coroutines.hpp"
 #include "concurrency/cond_var.hpp"
 #include "utils.hpp"
-#include "errors.hpp"
-#include <boost/function.hpp>
 
 template<typename callable_t, typename value_t>
 void pmap_runner_one_arg(value_t i, const callable_t *c, int *outstanding, cond_t *to_signal) {
@@ -38,6 +40,7 @@ void pmap(int count, const callable_t &c) {
     cond.wait();
 }
 
+// TODO: Passing end by reference seems very questionable to me.
 template<typename callable_t, typename iterator_t>
 void pmap(iterator_t start, const iterator_t &end, const callable_t &c) {
     cond_t cond;

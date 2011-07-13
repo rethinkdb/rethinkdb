@@ -2,7 +2,7 @@
 #define __ARCH_LINUX_DISK_STATS_HPP__
 
 #include <boost/function.hpp>
-#include "perfmon.hpp"
+#include "perfmon_types.hpp"
 
 /* There are two types of stat-collectors in the disk stack. One type is a passive
 consumer and active producer of disk operations. The other type is an active consumer

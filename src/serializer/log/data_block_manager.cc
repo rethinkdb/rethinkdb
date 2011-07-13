@@ -1,7 +1,8 @@
+#include "serializer/log/data_block_manager.hpp"
+
 #include <boost/smart_ptr/scoped_ptr.hpp>
 
-#include "data_block_manager.hpp"
-#include "log_serializer.hpp"
+#include "serializer/log/log_serializer.hpp"
 #include "utils.hpp"
 #include "concurrency/mutex.hpp"
 #include "arch/arch.hpp"
@@ -159,16 +160,16 @@ public:
         // Walk over the read ahead buffer and copy stuff...
         for (uint64_t current_block = 0; current_block * parent->static_config->block_size().ser_value() < read_ahead_size; ++current_block) {
 
-            const char *current_buf = (char*)read_ahead_buf + (current_block * parent->static_config->block_size().ser_value());
+            const char *current_buf = reinterpret_cast<char *>(read_ahead_buf) + (current_block * parent->static_config->block_size().ser_value());
             const size_t current_offset = read_ahead_offset + (current_block * parent->static_config->block_size().ser_value());
 
             // Copy either into buf_out or create a new buffer for read ahead
             if ((off64_t)current_offset == off_in) {
-                buf_data_t *data = (buf_data_t*)buf_out;
+                buf_data_t *data = reinterpret_cast<buf_data_t *>(buf_out);
                 --data;
                 memcpy(data, current_buf, parent->static_config->block_size().ser_value());
             } else {
-                const block_id_t block_id = ((buf_data_t*)current_buf)->block_id;
+                const block_id_t block_id = reinterpret_cast<const buf_data_t *>(current_buf)->block_id;
 
                 // Determine whether the block is live.
                 bool block_is_live = block_id != 0;
@@ -182,7 +183,7 @@ public:
                     continue;
                 }
 
-                const repli_timestamp recency_timestamp = parent->serializer->lba_index->get_block_recency(block_id);
+                const repli_timestamp_t recency_timestamp = parent->serializer->lba_index->get_block_recency(block_id);
 
                 buf_data_t *data = reinterpret_cast<buf_data_t *>(parent->serializer->malloc());
                 --data;
@@ -222,7 +223,7 @@ bool data_block_manager_t::read(off64_t off_in, void *buf_out, file_t::account_t
         new dbm_read_ahead_fsm_t(this, off_in, buf_out, io_account, cb);
     }
     else {
-        buf_data_t *data = (buf_data_t*)buf_out;
+        buf_data_t *data = reinterpret_cast<buf_data_t *>(buf_out);
         data--;
         dbfile->read_async(off_in, static_config->block_size().ser_value(), data, io_account, cb);
     }

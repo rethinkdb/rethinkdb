@@ -1,3 +1,9 @@
+#ifndef __DO_ON_THREAD_HPP__
+#define __DO_ON_THREAD_HPP__
+
+#include "arch/core.hpp"
+#include "utils.hpp"
+
 /* Functions to do something on another core in a way that is more convenient than
 continue_on_thread() is. */
 
@@ -50,6 +56,11 @@ struct thread_doer_t :
     }
 };
 
+/* API to allow a nicer way of performing jobs on other cores than subclassing
+from thread_message_t. Call do_on_thread() with an object and a method for that object.
+The method will be called on the other thread. If the thread to call the method on is
+the current thread, returns the method's return value. Otherwise, returns false. */
+
 template<class callable_t>
 void do_on_thread(int thread, const callable_t &callable) {
     assert_good_thread_id(thread);
@@ -57,27 +68,6 @@ void do_on_thread(int thread, const callable_t &callable) {
     fsm->run();
 }
 
-template<class callable_t>
-struct later_doer_t :
-    public thread_message_t
-{
-    callable_t callable;
-    
-    later_doer_t(const callable_t &_callable)
-        : callable(_callable) {
-        call_later_on_this_thread(this);
-    }
-    
-    void on_thread_switch() {
-        callable_t local = callable;
-        delete this;
-        local();
-    }
-};
 
 
-template<class callable_t>
-void do_later(const callable_t &callable) {
-    new later_doer_t<callable_t>(callable);
-}
-
+#endif  // __DO_ON_THREAD_HPP__

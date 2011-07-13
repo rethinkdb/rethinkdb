@@ -96,7 +96,7 @@ void backfill_storer_t::backfill_deletion(store_key_t key, order_token_t token) 
         // timestamp is part of the "->change" interface in a way not
         // relevant to slaves -- it's used when putting deletions into the
         // delete queue.
-        castime_t(NO_CAS_SUPPLIED, repli_timestamp::invalid), token
+        castime_t(NO_CAS_SUPPLIED, repli_timestamp_t::invalid), token
         ));
 }
 
@@ -223,7 +223,7 @@ void backfill_storer_t::realtime_append_prepend(append_prepend_kind_t kind, cons
     realtime_queue_.push(boost::bind(&btree_key_value_store_t::change, kvs_, mut, castime, token));
 }
 
-void backfill_storer_t::realtime_delete_key(const store_key_t &key, repli_timestamp timestamp, order_token_t token) {
+void backfill_storer_t::realtime_delete_key(const store_key_t &key, repli_timestamp_t timestamp, order_token_t token) {
     delete_mutation_t mut;
     mut.key = key;
     mut.dont_put_in_delete_queue = true;

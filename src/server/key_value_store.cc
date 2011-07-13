@@ -1,17 +1,20 @@
 #include "server/key_value_store.hpp"
 
+#include "errors.hpp"
+#include <boost/shared_ptr.hpp>
+
 #include "btree/rget.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/signal.hpp"
 #include "concurrency/side_coro.hpp"
 #include "concurrency/pmap.hpp"
+#include "containers/iterators.hpp"
 #include "db_thread_info.hpp"
 #include "replication/backfill.hpp"
 #include "replication/master.hpp"
-#include "cmd_args.hpp"
+#include "server/cmd_args.hpp"
 #include "arch/timing.hpp"
-
-#include <boost/shared_ptr.hpp>
+#include "stats/persist.hpp"
 
 #include <math.h>
 
@@ -338,7 +341,7 @@ void btree_key_value_store_t::set_replication_clock(repli_timestamp_t t, order_t
     shards[0]->set_replication_clock(t, token);
 }
 
-repli_timestamp btree_key_value_store_t::get_replication_clock() {
+repli_timestamp_t btree_key_value_store_t::get_replication_clock() {
     return shards[0]->btree.get_replication_clock();   /* Read the value from disk */
 }
 
@@ -346,7 +349,7 @@ void btree_key_value_store_t::set_last_sync(repli_timestamp_t t, order_token_t t
     shards[0]->btree.set_last_sync(t, token);   /* Write the value to disk */
 }
 
-repli_timestamp btree_key_value_store_t::get_last_sync() {
+repli_timestamp_t btree_key_value_store_t::get_last_sync() {
     return shards[0]->btree.get_last_sync();   /* Read the value from disk */
 }
 
@@ -372,8 +375,7 @@ uint32_t btree_key_value_store_t::get_replication_slave_id() {
  * is taken from <http://www.azillionmonkeys.com/qed/hash.html>.
  * According to the site, the source is licensed under LGPL 2.1.
  */
-#define get16bits(d) ((((uint32_t)(((const uint8_t *)(d))[1])) << 8)\
-                       +(uint32_t)(((const uint8_t *)(d))[0]) )
+#define get16bits(d) (uint32_t(*reinterpret_cast<const uint16_t *>(d)))
 
 uint32_t btree_key_value_store_t::hash(const store_key_t &key) {
     const char *data = key.contents;
@@ -491,7 +493,7 @@ bool btree_key_value_store_t::get_meta(const std::string &key, std::string *out)
     size_t nbufs = bufs->num_buffers();
     for (unsigned i = 0; i < nbufs; ++i) {
         const_buffer_group_t::buffer_t buf = bufs->get_buffer(i);
-        out->append((const char *) buf.data, (size_t) buf.size);
+        out->append(reinterpret_cast<const char *>(buf.data), buf.size);
     }
     return true;
 }
@@ -499,7 +501,7 @@ bool btree_key_value_store_t::get_meta(const std::string &key, std::string *out)
 void btree_key_value_store_t::set_meta(const std::string &key, const std::string &value) {
     store_key_t sk = key_from_string(key);
     boost::shared_ptr<buffered_data_provider_t>
-        datap(new buffered_data_provider_t((const void*) value.data(), value.size()));
+        datap(new buffered_data_provider_t(value.data(), value.size()));
 
     // TODO (rntz) code dup with run_storage_command :/
     mcflags_t mcflags = 0;      // default, no flags

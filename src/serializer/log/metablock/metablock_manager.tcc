@@ -1,10 +1,14 @@
-#include "errors.hpp"
-#include "arch/arch.hpp"
-#include "concurrency/cond_var.hpp"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <boost/scoped_array.hpp>
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
+#include "arch/arch.hpp"
+#include "arch/coroutines.hpp"
+#include "concurrency/cond_var.hpp"
+
 
 /* head functions */
 
@@ -46,8 +50,8 @@ metablock_manager_t<metablock_t>::metablock_manager_t(extent_manager_t *em)
     : head(this), extent_manager(em), state(state_unstarted), dbfile(NULL)
 {    
     rassert(sizeof(crc_metablock_t) <= DEVICE_BLOCK_SIZE);
-    mb_buffer = (crc_metablock_t *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
-    startup_values.mb_buffer_last = (crc_metablock_t *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
+    mb_buffer = reinterpret_cast<crc_metablock_t *>(malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE));
+    startup_values.mb_buffer_last = reinterpret_cast<crc_metablock_t *>(malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE));
     rassert(mb_buffer);
     mb_buffer_in_use = false;
     
@@ -86,7 +90,7 @@ void metablock_manager_t<metablock_t>::create(direct_file_t *dbfile, off64_t ext
     dbfile->set_size_at_least(metablock_offsets[metablock_offsets.size() - 1] + DEVICE_BLOCK_SIZE);
 
     /* Allocate a buffer for doing our writes */
-    crc_metablock_t *buffer = reinterpret_cast<crc_metablock_t*>(malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE));
+    crc_metablock_t *buffer = reinterpret_cast<crc_metablock_t *>(malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE));
     bzero(buffer, DEVICE_BLOCK_SIZE);
 
     /* Wipe the metablock slots so we don't mistake something left by a previous database for a

@@ -3,11 +3,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+
+#include "arch/coroutines.hpp"
 #include "server/cmd_args.hpp"
 #include "utils.hpp"
 #include "help.hpp"
 #include "arch/arch.hpp"
-#include "cmd_args.hpp"
 #include "perfmon.hpp"   // For `global_full_perfmon`
 
 /* Note that this file only parses arguments for the 'serve' and 'create' subcommands. */
@@ -213,7 +214,9 @@ enum {
     full_perfmon,
     total_delete_queue_limit,
     memcache_file,
-    metadata_file
+    metadata_file,
+    verbose,
+    no_rogue
 };
 
 cmd_config_t parse_cmd_args(int argc, char *argv[]) {
@@ -280,7 +283,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"max-cache-size",       required_argument, 0, 'm'},
                 {"log-file",             required_argument, 0, 'l'},
                 {"port",                 required_argument, 0, 'p'},
-                {"verbose",              no_argument, (int*)&config.verbose, 1},
+                {"verbose",              no_argument, 0, verbose},
                 {"force",                no_argument, &do_force_create, 1},
                 {"force-unslavify",      no_argument, &do_force_unslavify, 1},
                 {"help",                 no_argument, &do_help, 1},
@@ -288,7 +291,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"slave-of",             required_argument, 0, slave_of},
                 {"failover-script",      required_argument, 0, failover_script},
                 {"heartbeat-timeout",    required_argument, 0, heartbeat_timeout},
-                {"no-rogue",             no_argument, (int*)&config.failover_config.no_rogue, 1},
+                {"no-rogue",             no_argument, 0, no_rogue},
                 {"full-perfmon",         no_argument, &do_full_perfmon, 1},
                 {"total-delete-queue-limit", required_argument, 0, total_delete_queue_limit},
                 {"memcached-file", required_argument, 0, memcache_file},
@@ -384,6 +387,10 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 config.set_total_delete_queue_limit(optarg); break;
             case memcache_file:
                 config.import_config.add_import_file(optarg); break;
+            case verbose:
+                config.verbose = true; break;
+            case no_rogue:
+                config.failover_config.no_rogue = true; break;
             case 'h':
             default:
                 /* getopt_long already printed an error message. */
@@ -701,12 +708,13 @@ void parsing_cmd_config_t::set_log_file(const char* value) {
 
     // See if we can open or create the file at this path with write permissions
     FILE* logfile = fopen(value, "a");
-    if (logfile == NULL)
+    if (logfile == NULL) {
         fail_due_to_user_error("Inaccessible or invalid log file: \"%s\": %s", value, strerror(errno));
-    else
+    } else {
         fclose(logfile);
-    
-    strncpy(log_file_name, value, MAX_LOG_FILE_NAME);
+    }
+
+    log_file_name = value;
 }
 
 void parsing_cmd_config_t::set_port(const char* value) {
@@ -764,8 +772,7 @@ void parsing_cmd_config_t::set_master_addr(const char *value) {
         fail_due_to_user_error("Invalid master address, address should be of the form hostname:port");
     }
 
-    strncpy(replication_config.hostname, token, MAX_HOSTNAME_LEN);
-    replication_config.hostname[MAX_HOSTNAME_LEN - 1] = '\0';
+    replication_config.hostname = token;
 
     token = strtok(NULL, ":");
     if (token == NULL) {
@@ -800,7 +807,7 @@ void parsing_cmd_config_t::set_failover_file(const char* value) {
     if (strlen(value) > MAX_PATH_LEN)
         fail_due_to_user_error("Failover script path is too long");
 
-    strcpy(failover_config.failover_script_path, value);
+    failover_config.failover_script_path = value;
 }
 
 void parsing_cmd_config_t::set_io_backend(const char* value) {
@@ -939,9 +946,6 @@ void cmd_config_t::print() {
 }
 
 cmd_config_t::cmd_config_t() {
-    bzero(&replication_config, sizeof(replication_config));
-    bzero(&failover_config, sizeof(failover_config));
-
     verbose = false;
     port = DEFAULT_LISTEN_PORT;
     n_workers = get_cpu_count();
@@ -977,7 +981,7 @@ cmd_config_t::cmd_config_t() {
     shutdown_after_creation = false;
 
     replication_config.port = DEFAULT_REPLICATION_PORT;
-    memset(replication_config.hostname, 0, MAX_HOSTNAME_LEN);
+    replication_config.hostname = "";
     replication_config.active = false;
     replication_config.heartbeat_timeout = DEFAULT_REPLICATION_HEARTBEAT_TIMEOUT;
     replication_master_listen_port = DEFAULT_REPLICATION_PORT;

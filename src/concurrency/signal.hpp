@@ -35,33 +35,11 @@ public:
 
     /* The coro that calls `wait_lazily()` will be pushed onto the event queue
     when the signal is pulsed, but will not wake up immediately. */
-    void wait_lazily() {
-        on_thread_t thread_switcher(home_thread());
-        if (!is_pulsed()) {
-            struct : public waiter_t {
-                coro_t *to_wake;
-                void on_signal_pulsed() { to_wake->notify(); }
-            } waiter;
-            waiter.to_wake = coro_t::self();
-            add_waiter(&waiter);
-            coro_t::wait();
-        }
-    }
+    void wait_lazily();
 
     /* The coro that calls `wait_eagerly()` will be woken up immediately when
     the signal is pulsed, before `pulse()` even returns. */
-    void wait_eagerly() {
-        on_thread_t thread_switcher(home_thread());
-        if (!is_pulsed()) {
-            struct : public waiter_t {
-                coro_t *to_wake;
-                void on_signal_pulsed() { to_wake->notify_now(); }
-            } waiter;
-            waiter.to_wake = coro_t::self();
-            add_waiter(&waiter);
-            coro_t::wait();
-        }
-    }
+    void wait_eagerly();
 
     /* `wait()` is a synonym for `wait_lazily()`, but it's better to explicitly
     call `wait_lazily()` or `wait_eagerly()`. */
@@ -69,11 +47,7 @@ public:
         wait_lazily();
     }
 
-    void rethread(int new_thread) {
-        rassert(waiters.empty(), "It might not be safe to rethread() a signal_t with "
-            "something currently waiting on it.");
-        real_home_thread = new_thread;
-    }
+    void rethread(int new_thread);
 
 protected:
     signal_t();

@@ -1,7 +1,7 @@
 #ifndef __CONCURRENCY_CORO_FIFO_HPP__
 #define __CONCURRENCY_CORO_FIFO_HPP__
 
-#include "utils.hpp"
+#include "errors.hpp"
 #include "concurrency/cond_var.hpp"
 #include "containers/intrusive_list.hpp"
 

@@ -1,11 +1,10 @@
-
 #ifndef __SERIALIZER_LOG_LBA_DISK_STRUCTURE__
 #define __SERIALIZER_LOG_LBA_DISK_STRUCTURE__
 
 #include "arch/arch.hpp"
 #include "serializer/log/extents/extent_manager.hpp"
-#include "disk_format.hpp"
-#include "disk_extent.hpp"
+#include "serializer/log/lba/disk_format.hpp"
+#include "serializer/log/lba/disk_extent.hpp"
 
 class lba_load_fsm_t;
 class lba_writer_t;
@@ -29,7 +28,7 @@ public:
     void set_load_callback(load_callback_t *lcb);
 
     // Put entries in an LBA and then call sync() to write to disk
-    void add_entry(block_id_t block_id, repli_timestamp recency,
+    void add_entry(block_id_t block_id, repli_timestamp_t recency,
                    flagged_off64_t offset, file_t::account_t *io_account);
     struct sync_callback_t {
         virtual void on_lba_sync() = 0;

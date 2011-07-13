@@ -42,10 +42,8 @@ protected:
     void set(const value_t &v) {
         if (value != v) {
             value = v;
-            for (typename intrusive_list_t<watcher_t>::iterator it = watchers.begin();
-                 it != watchers.end();
-                 it++) {
-                (*it)->on_watchable_changed();
+            for (watcher_t *w = watchers.head(); w; w = watchers.next(w)) {
+                w->on_watchable_changed();
             }
         }
     }

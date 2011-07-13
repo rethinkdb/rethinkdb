@@ -4,10 +4,10 @@
 
 #include "containers/intrusive_list.hpp"
 #include "arch/arch.hpp"
-#include "extent.hpp"
+#include "serializer/log/lba/extent.hpp"
 #include "serializer/log/extents/extent_manager.hpp"
-#include "disk_format.hpp"
-#include "in_memory_index.hpp"
+#include "serializer/log/lba/disk_format.hpp"
+#include "serializer/log/lba/in_memory_index.hpp"
 
 class lba_disk_extent_t :
     public intrusive_list_node_t<lba_disk_extent_t> {
@@ -91,7 +91,7 @@ public:
     }
     
     void read_step_2(read_info_t *info, in_memory_index_t *index) {
-        lba_extent_t *extent = (lba_extent_t *)info->buffer;
+        lba_extent_t *extent = reinterpret_cast<lba_extent_t *>(info->buffer);
         rassert(memcmp(extent->header.magic, lba_magic, LBA_MAGIC_SIZE) == 0);
 
         for (int i = 0; i < info->count; i++) {

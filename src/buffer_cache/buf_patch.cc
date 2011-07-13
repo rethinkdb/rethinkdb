@@ -4,11 +4,15 @@
 #include "btree/buf_patches.hpp"
 
 #include <string.h>
-#include "errors.hpp"
+#include "utils.hpp"
 #include "logger.hpp"
-#include "buf_patch.hpp"
 
-buf_patch_t* buf_patch_t::load_patch(const char* source) {
+patch_deserialization_error_t::patch_deserialization_error_t(const char *file, int line, const char *msg) {
+    message = strprintf("Patch deserialization error%s%s (in %s:%d)",
+                            msg[0] ? ": " : "", msg, file, line);
+}
+
+buf_patch_t *buf_patch_t::load_patch(UNUSED block_size_t bs, const char *source) {
     try {
         uint16_t remaining_length = *reinterpret_cast<const uint16_t *>(source);
         source += sizeof(remaining_length);
@@ -126,7 +130,7 @@ size_t memcpy_patch_t::get_affected_data_size() const {
     return n;
 }
 
-void memcpy_patch_t::apply_to_buf(char* buf_data) {
+void memcpy_patch_t::apply_to_buf(char* buf_data, UNUSED block_size_t bs) {
     memcpy(buf_data + dest_offset, src_buf, n);
 }
 
@@ -163,7 +167,7 @@ size_t memmove_patch_t::get_affected_data_size() const {
     return n;
 }
 
-void memmove_patch_t::apply_to_buf(char* buf_data) {
+void memmove_patch_t::apply_to_buf(char* buf_data, UNUSED block_size_t bs) {
     memmove(buf_data + dest_offset, buf_data + src_offset, n);
 }
 

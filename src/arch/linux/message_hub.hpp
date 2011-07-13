@@ -5,22 +5,15 @@
 #include <strings.h>
 #include "arch/linux/system_event.hpp"
 #include "containers/intrusive_list.hpp"
-#include "utils2.hpp"
+#include "utils.hpp"
 #include "config/args.hpp"
 #include "arch/linux/event_queue.hpp"
+#include "arch/linux/linux_utils.hpp"
 
 class linux_thread_pool_t;
 
 // TODO: perhaps we can issue cache prefetching commands to the CPU to
 // speed up the process of sending messages across cores.
-
-class linux_thread_message_t :
-    public intrusive_list_node_t<linux_thread_message_t>
-{
-public:
-    virtual ~linux_thread_message_t() {}
-    virtual void on_thread_switch() = 0;
-};
 
 /* There is one message hub per thread, NOT one message hub for the entire program.
 

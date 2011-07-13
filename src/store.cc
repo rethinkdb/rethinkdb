@@ -1,5 +1,7 @@
 #include "store.hpp"
 
+#include "concurrency/fifo_checker.hpp"
+
 struct mutation_get_key_functor_t : public boost::static_visitor<store_key_t> {
     store_key_t operator()(const get_cas_mutation_t &m) { return m.key; }
     store_key_t operator()(const sarc_mutation_t &m) { return m.key; }

@@ -12,11 +12,11 @@
 #include "containers/two_level_array.hpp"
 #include "containers/bitset.hpp"
 #include "concurrency/mutex.hpp"
-#include "extents/extent_manager.hpp"
+#include "serializer/log/extents/extent_manager.hpp"
 #include "serializer/serializer.hpp"
 #include "serializer/types.hpp"
 #include "perfmon.hpp"
-#include "utils2.hpp"
+#include "utils.hpp"
 
 class log_serializer_t;
 
@@ -350,7 +350,7 @@ private:
         explicit gc_state_t(size_t extent_size) : step_(gc_ready), should_be_stopped(0), refcount(0), current_entry(NULL)
         {
             /* TODO this is excessive as soon as we have a bound on how much space we need we should allocate less */
-            gc_blocks = (char *)malloc_aligned(extent_size, DEVICE_BLOCK_SIZE);
+            gc_blocks = reinterpret_cast<char *>(malloc_aligned(extent_size, DEVICE_BLOCK_SIZE));
         }
         ~gc_state_t() {
             free(gc_blocks);

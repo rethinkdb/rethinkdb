@@ -1,12 +1,18 @@
 #ifndef __CLUSTERING_ROUTING__
 #define __CLUSTERING_ROUTING__
 
+#include "errors.hpp"
+#include <boost/ptr_container/ptr_map.hpp>
+
 #include "rpc/council.hpp"
 #include "concurrency/rwi_lock.hpp"
-#include "boost/ptr_container/ptr_map.hpp"
 #include "clustering/map_council.hpp"
 
 namespace routing {
+
+// TODO: What is this code and why is it commented out?  I will delete
+// this if you don't tell me.
+
 //
 //template <class T>
 //class access_map_t :

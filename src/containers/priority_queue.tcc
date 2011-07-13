@@ -1,5 +1,3 @@
-#include "priority_queue.hpp"
-
 template<class T, class Less>
 void priority_queue_t<T, Less>::entry_t::update() {
     if (pq)
