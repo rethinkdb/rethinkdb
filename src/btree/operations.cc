@@ -241,6 +241,11 @@ void find_keyvalue_location_for_read(value_sizer_t *sizer, got_superblock_t *got
         return;
     }
 
+    {
+        buf_lock_t tmp(txn.get(), node_id, rwi_read);
+        buf.swap(tmp);
+    }
+
 #ifndef NDEBUG
     node::validate(sizer->block_size(), reinterpret_cast<const node_t *>(buf->get_data_read()));
 #endif  // NDEBUG
