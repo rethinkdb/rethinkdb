@@ -105,19 +105,25 @@ void http_server_t::handle_conn(boost::scoped_ptr<tcp_conn_t> &conn) {
     tcp_iterator_type end = conn->end();
 
     /* parse the request */
-    parse(iter, end, http_msg_parser, req);
-    conn->pop(iter);
-    const_charslice slc = conn->peek(4);
+    if (parse(iter, end, http_msg_parser, req)) {
+        conn->pop(iter);
+        const_charslice slc = conn->peek(4);
 
-    if (strncmp(slc.beg, "\r\n\r\n", 4) != 0) {
-        ; //error
+        if (strncmp(slc.beg, "\r\n\r\n", 4) != 0) {
+            goto PARSE_ERROR;
+        }
+        conn->pop(4);
+
+        slc = conn->peek(content_length(req));
+        req.body.append(slc.beg, content_length(req));
+
+        http_res_t res = handle(req);
+        write_http_msg(conn, res);
     }
-    conn->pop(4);
 
-    slc = conn->peek(content_length(req));
-    req.body.append(slc.beg, content_length(req));
-
-    http_res_t res = handle(req);
+PARSE_ERROR:
+    http_res_t res;
+    res.code = 400;
     write_http_msg(conn, res);
 }
 
