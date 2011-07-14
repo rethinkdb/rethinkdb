@@ -116,6 +116,7 @@ void http_server_t::handle_conn(boost::scoped_ptr<tcp_conn_t> &conn) {
 
         slc = conn->peek(content_length(req));
         req.body.append(slc.beg, content_length(req));
+        conn->pop(content_length(req));
 
         http_res_t res = handle(req);
         write_http_msg(conn, res);
