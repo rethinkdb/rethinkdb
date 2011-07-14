@@ -1,5 +1,9 @@
 #include "btree/get_cas.hpp"
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
+#include "arch/coroutines.hpp"
 #include "btree/modify_oper.hpp"
 #include "concurrency/promise.hpp"
 #include "btree/btree_data_provider.hpp"

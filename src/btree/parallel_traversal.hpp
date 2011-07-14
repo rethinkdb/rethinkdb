@@ -1,6 +1,9 @@
 #ifndef __BTREE_PARALLEL_TRAVERSAL_HPP__
 #define __BTREE_PARALLEL_TRAVERSAL_HPP__
 
+#include "errors.hpp"
+#include <boost/scoped_array.hpp>
+
 #include "buffer_cache/buffer_cache.hpp"
 #include "concurrency/access.hpp"
 

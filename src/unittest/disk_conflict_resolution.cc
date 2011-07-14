@@ -52,13 +52,10 @@ struct test_driver_t {
 
         /* The conflict_resolving_diskmgr_t should not have sent us two potentially
         conflicting actions */
-        for (intrusive_list_t<core_action_t>::iterator it = running_actions.begin();
-             it != running_actions.end(); it++) {
-            if (!(a->is_read && (*it)->is_read)) {
-                /* They aren't both reads, so they should be non-overlapping. */
-                ASSERT_TRUE(
-                    (int)a->offset >= (int)((*it)->offset + (*it)->count) ||
-                    (int)(*it)->offset >= (int)(a->offset + a->count));
+        for (core_action_t *p = running_actions.head(); p; p = running_actions.next(p)) {
+            if (!(a->is_read && p->is_read)) {
+                ASSERT_TRUE((int)a->offset >= (int)(p->offset + p->count) ||
+                            (int)p->offset >= (int)(a->offset + a->count));
             }
         }
 

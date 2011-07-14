@@ -3,6 +3,7 @@
 
 #include <queue>
 
+#include "concurrency/side_coro.hpp"
 #include "replication/protocol.hpp"
 #include "server/cmd_args.hpp"
 #include "server/control.hpp"

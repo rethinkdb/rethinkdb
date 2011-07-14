@@ -5,6 +5,11 @@
 #include "errors.hpp"
 #include "containers/intrusive_list.hpp"
 
+/* Types of IO backends */
+enum linux_io_backend_t {
+    aio_native, aio_pool
+};
+
 // Thanks glibc for not providing a wrapper for this syscall :(
 int _gettid();
 

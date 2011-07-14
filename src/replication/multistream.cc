@@ -1,6 +1,12 @@
 #include "replication/multistream.hpp"
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
+#include "arch/coroutines.hpp"
 #include "containers/scoped_malloc.hpp"
 #include "containers/thick_list.hpp"
+#include "logger.hpp"
 #include "perfmon.hpp"
 
 namespace replication {

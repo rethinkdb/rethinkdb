@@ -1,7 +1,7 @@
 #ifndef __BUF_PATCH_HPP__
 #define	__BUF_PATCH_HPP__
 
-#include <sstream>
+#include <string>
 
 /*
  * This file provides the basic buf_patch_t type as well as a few low-level binary
@@ -22,20 +22,11 @@ typedef char patch_operation_code_t;
  * Instead patches should emit a patch_deserialization_error_t exception.
  */
 class patch_deserialization_error_t {
+    // TODO: This isn't a std::exception?
+
     std::string message;
 public:
-    patch_deserialization_error_t(const char *file, int line, const char *msg) {
-        if (msg[0]) {
-            message = "Patch deserialization error: " + std::string(msg);
-        } else {
-            message = "Patch deserialization error.";
-        }
-        std::stringstream conv;
-        conv << line;
-        std::string line_str;
-        conv >> line_str;
-        message += " (in " + std::string(file) + ":" + line_str + ")";
-    }
+    patch_deserialization_error_t(const char *file, int line, const char *msg);
     const char *c_str() { return message.c_str(); }
 };
 #define guarantee_patch_format(cond, msg...) do {    \

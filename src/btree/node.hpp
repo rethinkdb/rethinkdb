@@ -121,7 +121,7 @@ struct internal_node_t {
 // newer than it really is.  So when earlier[i] overflows,
 // we pin it to 0xFFFF.
 struct leaf_timestamps_t {
-    repli_timestamp last_modified;
+    repli_timestamp_t last_modified;
     uint16_t earlier[NUM_LEAF_NODE_EARLIER_TIMES];
 };
 

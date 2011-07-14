@@ -5,6 +5,7 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
+#include "arch/coroutines.hpp"
 #include "concurrency/cond_var.hpp"
 #include "utils.hpp"
 

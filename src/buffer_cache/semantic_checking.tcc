@@ -54,7 +54,7 @@ void scc_buf_t<inner_cache_t>::mark_deleted(bool write_null) {
 }
 
 template<class inner_cache_t>
-void scc_buf_t<inner_cache_t>::touch_recency(repli_timestamp timestamp) {
+void scc_buf_t<inner_cache_t>::touch_recency(repli_timestamp_t timestamp) {
     rassert(inner_buf);
     // TODO: Why are we not tracking this?
     inner_buf->touch_recency(timestamp);
@@ -94,7 +94,7 @@ scc_buf_t<inner_cache_t>::scc_buf_t(scc_cache_t<inner_cache_t> *_cache, bool sna
 /* Transaction */
 
 template<class inner_cache_t>
-scc_transaction_t<inner_cache_t>::scc_transaction_t(scc_cache_t<inner_cache_t> *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp) :
+scc_transaction_t<inner_cache_t>::scc_transaction_t(scc_cache_t<inner_cache_t> *cache, access_t access, int expected_change_count, repli_timestamp_t recency_timestamp) :
     cache(cache),
     order_token(order_token_t::ignore),
     snapshotted(false),
@@ -154,7 +154,7 @@ scc_buf_t<inner_cache_t> *scc_transaction_t<inner_cache_t>::allocate() {
 }
 
 template<class inner_cache_t>
-void scc_transaction_t<inner_cache_t>::get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out, get_subtree_recencies_callback_t *cb) {
+void scc_transaction_t<inner_cache_t>::get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp_t *recencies_out, get_subtree_recencies_callback_t *cb) {
     return inner_transaction.get_subtree_recencies(block_ids, num_block_ids, recencies_out, cb);
 }
 
@@ -186,7 +186,7 @@ boost::shared_ptr<typename inner_cache_t::cache_account_t> scc_cache_t<inner_cac
 }
 
 template<class inner_cache_t>
-bool scc_cache_t<inner_cache_t>::offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {
+bool scc_cache_t<inner_cache_t>::offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp) {
     return inner_cache.offer_read_ahead_buf(block_id, buf, recency_timestamp);
 }
 

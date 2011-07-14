@@ -1,6 +1,10 @@
 #include "replication/heartbeat_manager.hpp"
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "arch/arch.hpp"
+#include "arch/coroutines.hpp"
 #include "arch/timing.hpp"
 #include "logger.hpp"
 

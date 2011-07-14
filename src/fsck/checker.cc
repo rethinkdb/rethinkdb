@@ -1235,7 +1235,7 @@ struct delete_queue_errors {
     // The timestamps' offsets (after subtracting the primal_offset)
     // must be aligned to key boundaries.  These next two variables
     // are unused.
-    std::vector<repli_timestamp> timestamp_key_alignment;
+    std::vector<repli_timestamp_t> timestamp_key_alignment;
     int64_t bad_keysize_offset;
     int64_t primal_offset;    // Just for the fyi.
 

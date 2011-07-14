@@ -25,7 +25,7 @@ private:
     static void test_snapshot_acq_blocks_on_unfinished_create(cache_t *cache) {
         // t0:create(A), t1:snap(), t1:acq(A) blocks, t0:release(A), t1 unblocks, t1 sees the block.
         transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past);
-        transaction_t t1(cache, rwi_read, 0, repli_timestamp::invalid);
+        transaction_t t1(cache, rwi_read, 0, repli_timestamp_t::invalid);
 
         buf_t *buf0 = create(&t0);
         snap(&t1);
@@ -44,7 +44,7 @@ private:
         block_id_t block_A, block_B;
         create_two_blocks(&t0, block_A, block_B);
 
-        transaction_t t1(cache, rwi_read, 0, repli_timestamp::invalid);
+        transaction_t t1(cache, rwi_read, 0, repli_timestamp_t::invalid);
         transaction_t t2(cache, rwi_write, 0, repli_timestamp_t::distant_past);
 
         snap(&t1);
@@ -74,9 +74,9 @@ private:
         block_id_t block_A, block_B;
         create_two_blocks(&t0, block_A, block_B);
 
-        transaction_t t1(cache, rwi_read, 0, repli_timestamp::invalid);
+        transaction_t t1(cache, rwi_read, 0, repli_timestamp_t::invalid);
         transaction_t t2(cache, rwi_write, 0, repli_timestamp_t::distant_past);
-        transaction_t t3(cache, rwi_read, 0, repli_timestamp::invalid);
+        transaction_t t3(cache, rwi_read, 0, repli_timestamp_t::invalid);
 
         snap(&t1);
         buf_t *buf1 = acq(&t1, block_A, rwi_read);
@@ -104,7 +104,7 @@ private:
         block_id_t block_A, UNUSED block_B;
         create_two_blocks(&t0, block_A, block_B);
 
-        transaction_t t1(cache, rwi_read, 0, repli_timestamp::invalid);
+        transaction_t t1(cache, rwi_read, 0, repli_timestamp_t::invalid);
         transaction_t t2(cache, rwi_write, 0, repli_timestamp_t::distant_past);
 
         snap(&t1);
@@ -133,7 +133,7 @@ private:
         create_two_blocks(&t0, block_A, block_B);
 
         transaction_t t1(cache, rwi_write, 0, repli_timestamp_t::distant_past);
-        transaction_t t2(cache, rwi_read, 0, repli_timestamp::invalid);
+        transaction_t t2(cache, rwi_read, 0, repli_timestamp_t::invalid);
 
         buf_t *buf1_A = acq(&t1, block_A, rwi_write);
         buf_t *buf1_B = acq(&t1, block_B, rwi_write);
@@ -164,7 +164,7 @@ private:
 
         transaction_t t1(cache, rwi_write, 0, repli_timestamp_t::distant_past);
         transaction_t t2(cache, rwi_write, 0, repli_timestamp_t::distant_past);
-        transaction_t t3(cache, rwi_read, 0, repli_timestamp::invalid);
+        transaction_t t3(cache, rwi_read, 0, repli_timestamp_t::invalid);
 
         buf_t *buf1_A = acq(&t1, block_A, rwi_write);
         buf1_A->release();
@@ -199,7 +199,7 @@ private:
 
         transaction_t t1(cache, rwi_write, 0, repli_timestamp_t::distant_past);
         transaction_t t2(cache, rwi_write, 0, repli_timestamp_t::distant_past);
-        transaction_t t3(cache, rwi_read, 0, repli_timestamp::invalid);
+        transaction_t t3(cache, rwi_read, 0, repli_timestamp_t::invalid);
 
         buf_t *buf3_A = acq(&t3, block_A, rwi_read_outdated_ok);
         uint32_t old_value = get_value(buf3_A);
@@ -224,8 +224,8 @@ private:
         block_id_t block_A, block_B;
         create_two_blocks(&t0, block_A, block_B);
 
-        transaction_t t1(cache, rwi_read, 0, repli_timestamp::invalid);
-        transaction_t t2(cache, rwi_read, 0, repli_timestamp::invalid);
+        transaction_t t1(cache, rwi_read, 0, repli_timestamp_t::invalid);
+        transaction_t t2(cache, rwi_read, 0, repli_timestamp_t::invalid);
 
         buf_t *buf1_A = acq(&t1, block_A, rwi_read_outdated_ok);
         buf_t *buf2_A = acq(&t2, block_A, rwi_read_outdated_ok);
@@ -241,8 +241,8 @@ private:
         block_id_t block_A, block_B;
         create_two_blocks(&t0, block_A, block_B);
 
-        transaction_t t1(cache, rwi_read, 0, repli_timestamp::invalid);
-        transaction_t t2(cache, rwi_read, 0, repli_timestamp::invalid);
+        transaction_t t1(cache, rwi_read, 0, repli_timestamp_t::invalid);
+        transaction_t t2(cache, rwi_read, 0, repli_timestamp_t::invalid);
         transaction_t t3(cache, rwi_write, 0, repli_timestamp_t::distant_past);
 
         buf_t *buf1_A = acq(&t1, block_A, rwi_read_outdated_ok);

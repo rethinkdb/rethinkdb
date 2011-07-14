@@ -3,8 +3,23 @@
 
 #include <errno.h>
 #include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 
-#include "debug.hpp"
+#ifdef __linux__
+#if defined __i386 || defined __x86_64
+#define BREAKPOINT __asm__ volatile ("int3")
+#else   /* not x86/amd64 */
+#define BREAKPOINT raise(SIGTRAP)
+#endif  /* x86/amd64 */
+#endif /* __linux__ */
+
+
+#ifndef NDEBUG
+#define DEBUG_ONLY(expr) do { expr; } while (0)
+#else
+#define DEBUG_ONLY(expr) ((void)(0))
+#endif
 
 /* Error handling
  *
@@ -108,12 +123,13 @@ namespace boost {
     void assertion_failed(char const * expr, char const * function, char const * file, long line);
 }
 
+void print_backtrace(FILE *out = stderr, bool use_addr2line = true);
+
 
 // Put this in a private: section.
 #define DISABLE_COPYING(T)                      \
     T(const T&);                                \
     void operator=(const T&)
-
 
 
 #endif /* __ERRORS_HPP__ */

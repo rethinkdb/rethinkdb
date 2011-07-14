@@ -9,6 +9,7 @@
 
 #include "serializer/types.hpp"
 #include "buffer_cache/buf_patch.hpp"
+#include "errors.hpp"
 
 namespace unittest {
 

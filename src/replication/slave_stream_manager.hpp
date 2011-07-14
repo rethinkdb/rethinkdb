@@ -30,10 +30,10 @@ struct slave_stream_manager_t :
 
     /* backfill() returns when the backfill is over, but continues streaming realtime updates even
     after it has returned */
-    void backfill(repli_timestamp since_when);
+    void backfill(repli_timestamp_t since_when);
 
     // Called by run() after the slave_stream_manager_t is created. Fold into constructor?
-    void reverse_side_backfill(repli_timestamp since_when);
+    void reverse_side_backfill(repli_timestamp_t since_when);
 
     /* message_callback_t interface */
     // These call .swap on their parameter, taking ownership of the pointee.

@@ -1,9 +1,11 @@
 #include "serializer/log/log_serializer.hpp"
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
 #include "buffer_cache/types.hpp"
+#include "do_on_thread.hpp"
 
 const block_magic_t log_serializer_t::zerobuf_magic = { { 'z', 'e', 'r', 'o' } };
 
@@ -314,7 +316,7 @@ struct ls_block_writer_t :
 
             bool done;
 
-            repli_timestamp recency = write.recency_specified ? write.recency : ser->lba_index->get_block_recency(write.block_id);
+            repli_timestamp_t recency = write.recency_specified ? write.recency : ser->lba_index->get_block_recency(write.block_id);
 
 
             if (write.buf) {
@@ -751,7 +753,7 @@ bool log_serializer_t::block_in_use(block_id_t id) {
     return !(lba_index->get_block_offset(id).parts.is_delete);
 }
 
-repli_timestamp log_serializer_t::get_recency(block_id_t id) {
+repli_timestamp_t log_serializer_t::get_recency(block_id_t id) {
     return lba_index->get_block_recency(id);
 }
 
@@ -886,7 +888,7 @@ void log_serializer_t::unregister_read_ahead_cb(read_ahead_callback_t *cb) {
     }
 }
 
-bool log_serializer_t::offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {
+bool log_serializer_t::offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp) {
     for (size_t i = 0; i < read_ahead_callbacks.size(); ++i) {
         if (read_ahead_callbacks[i]->offer_read_ahead_buf(block_id, buf, recency_timestamp)) {
             return true;

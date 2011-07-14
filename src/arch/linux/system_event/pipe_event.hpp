@@ -1,4 +1,3 @@
-
 #ifndef __ARCH_LINUX_PIPE_EVENT_HPP__
 #define __ARCH_LINUX_PIPE_EVENT_HPP__
 

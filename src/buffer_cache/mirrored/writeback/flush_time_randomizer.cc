@@ -1,10 +1,10 @@
 #include "buffer_cache/mirrored/writeback/flush_time_randomizer.hpp"
 
 #include <stdlib.h>
+
 #include <algorithm>
 
-#include "errors.hpp"
-#include "utils2.hpp"
+#include "utils.hpp"
 
 flush_time_randomizer_t::flush_time_randomizer_t(int flush_timer_ms_)
     : flush_timer_ms(flush_timer_ms_), first_time_interval(randint(std::max(1, flush_timer_ms))), done_first_time_interval(false) {

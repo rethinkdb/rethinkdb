@@ -5,7 +5,9 @@
 #include "containers/intrusive_list.hpp"
 #include "perfmon.hpp"
 
-struct metadata_store_t {
+
+class metadata_store_t {
+public:
     // TODO (rntz) should this use key_store_t and data_provider_t, etc?
     virtual bool get_meta(const std::string &key, std::string *out) = 0;
     virtual void set_meta(const std::string &key, const std::string &value) = 0;

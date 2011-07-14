@@ -2,6 +2,9 @@
 
 #include "btree/modify_oper.hpp"
 #include "containers/buffer_group.hpp"
+#include "buffer_cache/buf_lock.hpp"
+#include "containers/scoped_malloc.hpp"
+
 
 struct btree_incr_decr_oper_t : public btree_modify_oper_t {
 

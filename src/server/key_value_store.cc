@@ -1,5 +1,8 @@
 #include "server/key_value_store.hpp"
 
+#include "errors.hpp"
+#include <boost/shared_ptr.hpp>
+
 #include "btree/rget.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/signal.hpp"
@@ -11,8 +14,7 @@
 #include "replication/master.hpp"
 #include "server/cmd_args.hpp"
 #include "arch/timing.hpp"
-
-#include <boost/shared_ptr.hpp>
+#include "stats/persist.hpp"
 
 #include <math.h>
 
@@ -339,7 +341,7 @@ void btree_key_value_store_t::set_replication_clock(repli_timestamp_t t, order_t
     shards[0]->set_replication_clock(t, token);
 }
 
-repli_timestamp btree_key_value_store_t::get_replication_clock() {
+repli_timestamp_t btree_key_value_store_t::get_replication_clock() {
     return shards[0]->btree.get_replication_clock();   /* Read the value from disk */
 }
 
@@ -347,7 +349,7 @@ void btree_key_value_store_t::set_last_sync(repli_timestamp_t t, order_token_t t
     shards[0]->btree.set_last_sync(t, token);   /* Write the value to disk */
 }
 
-repli_timestamp btree_key_value_store_t::get_last_sync() {
+repli_timestamp_t btree_key_value_store_t::get_last_sync() {
     return shards[0]->btree.get_last_sync();   /* Read the value from disk */
 }
 

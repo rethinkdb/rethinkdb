@@ -1,4 +1,9 @@
 #include "buffer_cache/mirrored/patch_disk_storage.hpp"
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
+#include "arch/coroutines.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 
@@ -14,7 +19,7 @@ void patch_disk_storage_t::create(serializer_t *serializer, block_id_t start_id,
 
     serializer_t::write_t write = serializer_t::write_t::make(
         start_id,
-        repli_timestamp::invalid,
+        repli_timestamp_t::invalid,
         c,
         false,
         NULL);
@@ -90,7 +95,7 @@ patch_disk_storage_t::patch_disk_storage_t(mc_cache_t &_cache, block_id_t start_
     for (block_id_t current_block = first_block; current_block < first_block + number_of_blocks; ++current_block) {
         if (block_is_empty[current_block - first_block]) {
             // Initialize a new log block here
-            new mc_inner_buf_t(&cache, current_block, cache.get_current_version_id(), repli_timestamp::invalid);
+            new mc_inner_buf_t(&cache, current_block, cache.get_current_version_id(), repli_timestamp_t::invalid);
 
             log_block_bufs.push_back(acquire_block_no_locking(current_block));
 

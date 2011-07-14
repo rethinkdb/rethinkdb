@@ -3,6 +3,7 @@
 #include "btree/modify_oper.hpp"
 #include "btree/internal_node.hpp"
 #include "btree/leaf_node.hpp"
+#include "btree/slice.hpp"
 
 
 // TODO: consider B#/B* trees to improve space efficiency
@@ -27,7 +28,7 @@ void insert_root(block_id_t root_id, buf_lock_t& sb_buf) {
 }
 
 // Get a root block given a superblock, or make a new root if there isn't one.
-void get_root(value_sizer_t *sizer, transaction_t *txn, buf_lock_t& sb_buf, buf_lock_t *buf_out, repli_timestamp timestamp) {
+void get_root(value_sizer_t *sizer, transaction_t *txn, buf_lock_t& sb_buf, buf_lock_t *buf_out, repli_timestamp_t timestamp) {
     rassert(!buf_out->is_acquired());
 
     block_id_t node_id = reinterpret_cast<const btree_superblock_t*>(sb_buf->get_data_read())->root_block;
@@ -160,7 +161,7 @@ void check_and_handle_underfull(transaction_t *txn, buf_lock_t& buf, buf_lock_t&
 
 void get_btree_superblock(btree_slice_t *slice, access_t access, order_token_t token, got_superblock_t *got_superblock_out) {
     rassert(is_read_mode(access));
-    get_btree_superblock(slice, access, 0, repli_timestamp::distant_past, token, got_superblock_out);
+    get_btree_superblock(slice, access, 0, repli_timestamp_t::distant_past, token, got_superblock_out);
 }
 
 void get_btree_superblock(btree_slice_t *slice, access_t access, int expected_change_count, repli_timestamp_t tstamp, order_token_t token, got_superblock_t *got_superblock_out) {
@@ -226,6 +227,65 @@ void find_keyvalue_location_for_write(value_sizer_t *sizer, got_superblock_t *go
     keyvalue_location_out->buf.swap(buf);
 }
 
+void find_keyvalue_location_for_read(value_sizer_t *sizer, got_superblock_t *got_superblock, btree_key_t *key, keyvalue_location_t *keyvalue_location_out) {
+    buf_lock_t buf;
+    buf.swap(got_superblock->sb_buf);
+    boost::scoped_ptr<transaction_t> txn;
+    txn.swap(got_superblock->txn);
+
+    block_id_t node_id = reinterpret_cast<const btree_superblock_t *>(buf->get_data_read())->root_block;
+    rassert(node_id != SUPERBLOCK_ID);
+
+    if (node_id == NULL_BLOCK_ID) {
+        // There is no root, so the tree is empty.
+        keyvalue_location_out->txn.swap(txn);
+        return;
+    }
+
+    {
+        buf_lock_t tmp(txn.get(), node_id, rwi_read);
+        buf.swap(tmp);
+    }
+
+#ifndef NDEBUG
+    node::validate(sizer->block_size(), reinterpret_cast<const node_t *>(buf->get_data_read()));
+#endif  // NDEBUG
+
+    while (node::is_internal(reinterpret_cast<const node_t *>(buf->get_data_read()))) {
+        node_id = internal_node::lookup(reinterpret_cast<const internal_node_t *>(buf->get_data_read()), key);
+        rassert(node_id != NULL_BLOCK_ID && node_id != SUPERBLOCK_ID);
+
+        {
+            buf_lock_t tmp(txn.get(), node_id, rwi_read);
+            buf.swap(tmp);
+        }
+
+#ifndef NDEBUG
+        node::validate(sizer->block_size(), reinterpret_cast<const node_t *>(buf->get_data_read()));
+#endif  // NDEBUG
+    }
+
+    // Got down to the leaf, now probe it.
+    const leaf_node_t *leaf = reinterpret_cast<const leaf_node_t *>(buf->get_data_read());
+    int key_index = leaf::impl::find_key(leaf, key);
+
+    if (key_index == leaf::impl::key_not_found) {
+        keyvalue_location_out->txn.swap(txn);
+        return;
+    }
+
+    const value_type_t *value = leaf::get_pair_by_index(leaf, key_index)->value();
+
+    keyvalue_location_out->txn.swap(txn);
+    keyvalue_location_out->buf.swap(buf);
+    keyvalue_location_out->there_originally_was_value = true;
+    {
+        int n = sizer->size(value);
+        scoped_malloc<value_type_t> tmp(n);
+        memcpy(tmp.get(), value, n);
+        keyvalue_location_out->value.swap(tmp);
+    }
+}
 
 void apply_keyvalue_change(value_sizer_t *sizer, keyvalue_location_t *kv_loc, btree_key_t *key, repli_timestamp_t tstamp) {
     if (kv_loc->value) {

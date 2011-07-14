@@ -8,8 +8,9 @@
 #include <unistd.h>
 
 #include "arch/linux/event_queue.hpp"
-#include "logger.hpp"
 #include "arch/linux/linux_utils.hpp"
+#include "arch/linux/timer_provider.hpp"
+#include "logger.hpp"
 
 // This *should* be a member of sigevent exposed by glibc, who the
 // heck knows why it isn't...

@@ -271,7 +271,7 @@ public:
         return in_use;
     }
 
-    repli_timestamp get_recency(block_id_t id) {
+    repli_timestamp_t get_recency(block_id_t id) {
         return inner_serializer.get_recency(id);
     }
 
