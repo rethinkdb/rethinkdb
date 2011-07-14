@@ -12,7 +12,7 @@ struct btree_incr_decr_oper_t : public btree_modify_oper_t {
         : increment(increment), delta(delta)
     { }
 
-    bool operate(transaction_t *txn, scoped_malloc<btree_value_t>& value) {
+    bool operate(transaction_t *txn, scoped_malloc<memcached_value_t>& value) {
         // If the key didn't exist before, we fail.
         if (!value) {
             result.res = incr_decr_result_t::idr_not_found;
@@ -66,7 +66,7 @@ struct btree_incr_decr_oper_t : public btree_modify_oper_t {
         result.res = incr_decr_result_t::idr_success;
         result.new_value = number;
 
-        scoped_malloc<btree_value_t> newvalue(MAX_BTREE_VALUE_SIZE);
+        scoped_malloc<memcached_value_t> newvalue(MAX_BTREE_VALUE_SIZE);
         valuecpy(txn->get_cache()->get_block_size(), newvalue.get(), value.get());
         char tmp[50];
         int chars_written = sprintf(tmp, "%llu", (long long unsigned)number);

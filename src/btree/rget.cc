@@ -61,14 +61,14 @@
  */
 
 bool is_not_expired(key_value_pair_t& pair) {
-    const btree_value_t *value = reinterpret_cast<const btree_value_t *>(pair.value.get());
+    const memcached_value_t *value = reinterpret_cast<const memcached_value_t *>(pair.value.get());
     return !value->expired();
 }
 
 key_with_data_provider_t pair_to_key_with_data_provider(boost::shared_ptr<transaction_t>& txn, key_value_pair_t& pair) {
     on_thread_t th(txn->home_thread());
-    boost::shared_ptr<data_provider_t> data_provider(value_data_provider_t::create(reinterpret_cast<btree_value_t *>(pair.value.get()), txn.get()));
-    return key_with_data_provider_t(pair.key, reinterpret_cast<btree_value_t *>(pair.value.get())->mcflags(), data_provider);
+    boost::shared_ptr<data_provider_t> data_provider(value_data_provider_t::create(reinterpret_cast<memcached_value_t *>(pair.value.get()), txn.get()));
+    return key_with_data_provider_t(pair.key, reinterpret_cast<memcached_value_t *>(pair.value.get())->mcflags(), data_provider);
 }
 
 rget_result_t btree_rget_slice(btree_slice_t *slice, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token) {

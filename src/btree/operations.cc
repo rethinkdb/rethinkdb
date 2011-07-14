@@ -310,3 +310,7 @@ void apply_keyvalue_change(value_sizer_t *sizer, keyvalue_location_t *kv_loc, bt
     // size or a deletion, and merge/level if it is.
     check_and_handle_underfull(kv_loc->txn.get(), kv_loc->buf, kv_loc->last_buf, kv_loc->sb_buf, key, kv_loc->txn->get_cache()->get_block_size());
 }
+
+template<class ReturnType, class Value>
+ReturnType apply_mutation(btree_key_t *key, ReturnType mutator(Value &)) {
+}

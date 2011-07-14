@@ -19,7 +19,7 @@ repli_timestamp_t fake_timestamp = { -2 };
 // TODO: Sperg out and make these tests much more brutal.
 
 void expect_valid_value_shallowly(const value_type_t *value) {
-    const btree_value_t *btree_value = reinterpret_cast<const btree_value_t *>(value);
+    const memcached_value_t *btree_value = reinterpret_cast<const memcached_value_t *>(value);
     EXPECT_EQ(0, btree_value->metadata_flags.flags & ~(MEMCACHED_FLAGS | MEMCACHED_CAS | MEMCACHED_EXPTIME));
 
     // size_t size = value->value_size();
@@ -96,7 +96,7 @@ TEST(LeafNodeTest, Offsets) {
 
     EXPECT_EQ(1, sizeof(btree_key_t));
     EXPECT_EQ(1, offsetof(btree_key_t, contents));
-    EXPECT_EQ(1, sizeof(btree_value_t));
+    EXPECT_EQ(1, sizeof(memcached_value_t));
 
     EXPECT_EQ(1, sizeof(metadata_flags_t));
 
@@ -114,7 +114,7 @@ public:
         EXPECT_LE(data_.size(), MAX_IN_NODE_VALUE_SIZE);
     }
 
-    void WriteBtreeValue(btree_value_t *out, UNUSED block_size_t block_size) const {
+    void WriteBtreeValue(memcached_value_t *out, UNUSED block_size_t block_size) const {
         out->metadata_flags.flags = 0;
 
         ASSERT_LE(data_.size(), MAX_IN_NODE_VALUE_SIZE);
@@ -128,7 +128,7 @@ public:
         memcpy(out->value_ref() + 1, data_.data(), data_.size());
     }
 
-    static Value Make(const btree_value_t *v) {
+    static Value Make(const memcached_value_t *v) {
         EXPECT_LE(*reinterpret_cast<const uint8_t *>(v->value_ref()), 250);
         return Value(std::string(v->value_ref() + 1, v->value_ref() + 1 + v->value_size()),
                      v->mcflags(), v->has_cas() ? v->cas() : 0, v->has_cas(), v->exptime());
@@ -143,7 +143,7 @@ public:
     }
 
     int full_size() const {
-        return sizeof(btree_value_t) + (mcflags_ ? sizeof(mcflags_t) : 0) + (has_cas_ ? sizeof(cas_t) : 0)
+        return sizeof(memcached_value_t) + (mcflags_ ? sizeof(mcflags_t) : 0) + (has_cas_ ? sizeof(cas_t) : 0)
             + (exptime_ ? sizeof(exptime_t) : 0) + 1 + data_.size();
     }
 
@@ -212,16 +212,16 @@ public:
         return reinterpret_cast<value_type_t *>(&val);
     }
 
-    const btree_value_t *look() const {
+    const memcached_value_t *look() const {
         return &val;
     }
-    btree_value_t *look_write() {
+    memcached_value_t *look_write() {
         return &val;
     }
 private:
     union {
         char val_padding[MAX_BTREE_VALUE_SIZE];
-        btree_value_t val;
+        memcached_value_t val;
     };
 };
 
@@ -520,13 +520,13 @@ btree_key_t *malloc_key(const char *s) {
     return k;
 }
 
-btree_value_t *malloc_value(const char *s) {
+memcached_value_t *malloc_value(const char *s) {
     size_t origlen = strlen(s);
     EXPECT_LE(origlen, MAX_IN_NODE_VALUE_SIZE);
 
     size_t len = std::min<size_t>(origlen, MAX_IN_NODE_VALUE_SIZE);
 
-    btree_value_t *v = reinterpret_cast<btree_value_t *>(malloc(sizeof(btree_value_t) + 1 + len));
+    memcached_value_t *v = reinterpret_cast<memcached_value_t *>(malloc(sizeof(memcached_value_t) + 1 + len));
     v->metadata_flags.flags = 0;
     *reinterpret_cast<uint8_t *>(v->value_ref()) = len;
     memcpy(v->value_ref() + 1, s, len);

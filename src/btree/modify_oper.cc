@@ -37,7 +37,7 @@ void run_btree_modify_oper(value_sizer_t *sizer, btree_modify_oper_t *oper, btre
         keyvalue_location_t kv_location;
         find_keyvalue_location_for_write(sizer, &got_superblock, key, castime.timestamp, &kv_location);
         transaction_t *txn = kv_location.txn.get();
-        scoped_malloc<btree_value_t> the_value;
+        scoped_malloc<memcached_value_t> the_value;
         the_value.reinterpret_swap(kv_location.value);
 
         bool key_found = kv_location.value;

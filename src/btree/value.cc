@@ -61,7 +61,7 @@ char *metadata_write(metadata_flags_t *mf_out, char *to, mcflags_t mcflags, expt
     return p;
 }
 
-bool btree_value_fits(block_size_t block_size, int data_length, const btree_value_t *value) {
+bool btree_value_fits(block_size_t block_size, int data_length, const memcached_value_t *value) {
     if (data_length < 1) {
         return false;
     }

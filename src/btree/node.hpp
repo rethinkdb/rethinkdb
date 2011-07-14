@@ -54,11 +54,11 @@ public:
     memcached_value_sizer_t(block_size_t bs) : value_sizer_t(bs) { }
 
     int size(const value_type_t *value) const {
-        return reinterpret_cast<const btree_value_t *>(value)->inline_size(block_size_);
+        return reinterpret_cast<const memcached_value_t *>(value)->inline_size(block_size_);
     }
 
     virtual bool fits(const value_type_t *value, int length_available) const {
-        return btree_value_fits(block_size_, length_available, reinterpret_cast<const btree_value_t *>(value));
+        return btree_value_fits(block_size_, length_available, reinterpret_cast<const memcached_value_t *>(value));
     }
 
     virtual int max_possible_size() const {
@@ -220,7 +220,7 @@ inline void keycpy(btree_key_t *dest, const btree_key_t *src) {
     memcpy(dest, src, sizeof(btree_key_t) + src->size);
 }
 
-inline void valuecpy(block_size_t bs, btree_value_t *dest, const btree_value_t *src) {
+inline void valuecpy(block_size_t bs, memcached_value_t *dest, const memcached_value_t *src) {
     memcpy(dest, src, src->inline_size(bs));
 }
 

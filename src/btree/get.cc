@@ -28,7 +28,7 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, order
         return get_result_t();
     }
 
-    const btree_value_t *value = reinterpret_cast<const btree_value_t *>(kv_location.value.get());
+    const memcached_value_t *value = reinterpret_cast<const memcached_value_t *>(kv_location.value.get());
     if (value->expired()) {
         // If the value is expired, delete it in the background.
         btree_delete_expired(store_key, slice);

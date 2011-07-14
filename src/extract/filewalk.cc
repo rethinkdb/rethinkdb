@@ -268,7 +268,7 @@ bool recover_basic_block_consistency(const cfg_t cfg, void *buf) {
         if (unsigned(pair_offsets_back_offset) < cfg.block_size().value()) {
             for (int j = 0; j < num_pairs; ++j) {
                 uint16_t pair_offset = leaf->pair_offsets[j];
-                if (!(pair_offset >= pair_offsets_back_offset && pair_offset + sizeof(btree_leaf_pair) + sizeof(btree_value_t) + 1 <= cfg.block_size().value())) {
+                if (!(pair_offset >= pair_offsets_back_offset && pair_offset + sizeof(btree_leaf_pair) + sizeof(memcached_value_t) + 1 <= cfg.block_size().value())) {
                     // Illegal pair offset
                     // Recover...
                     logERR("Recovering from a corrupted leaf node block. Data might be lost.\n");
@@ -398,7 +398,7 @@ void dump_pair_value(dumper_t &dumper, UNUSED nondirect_file_t& file, const cfg_
     }
 
     const btree_key_t *key = &pair->key;
-    const btree_value_t *value = reinterpret_cast<const btree_value_t *>(pair->value());
+    const memcached_value_t *value = reinterpret_cast<const memcached_value_t *>(pair->value());
 
     mcflags_t flags = value->mcflags();
     exptime_t exptime = value->exptime();

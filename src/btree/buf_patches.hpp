@@ -9,7 +9,7 @@
 struct value_type_t;
 
 // TODO: Eventually we should not need this declaration.
-struct btree_value_t;
+struct memcached_value_t;
 
 /* Btree leaf node logical patches */
 

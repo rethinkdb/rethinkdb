@@ -44,7 +44,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
             const btree_leaf_pair *pair = leaf::get_pair(data, offset);
 
             if (recency.time >= since_when_.time) {
-                const btree_value_t *value = reinterpret_cast<const btree_value_t *>(pair->value());
+                const memcached_value_t *value = reinterpret_cast<const memcached_value_t *>(pair->value());
                 boost::shared_ptr<value_data_provider_t> data_provider(value_data_provider_t::create(value, txn));
                 backfill_atom_t atom;
                 atom.key.assign(pair->key.size, pair->key.contents);

@@ -986,7 +986,7 @@ void check_blob(slicecx_t& cx, const char *ref, int maxreflen, largebuf_error *e
 
 }
 
-void check_value(UNUSED slicecx_t& cx, const btree_value_t *value, value_error *errs) {
+void check_value(UNUSED slicecx_t& cx, const memcached_value_t *value, value_error *errs) {
     errs->bad_metadata_flags = !!(value->metadata_flags.flags & ~(MEMCACHED_FLAGS | MEMCACHED_CAS | MEMCACHED_EXPTIME));
 
     check_blob(cx, value->value_ref(), blob::btree_maxreflen, &errs->largebuf_errs);
@@ -998,7 +998,7 @@ bool leaf_node_inspect_range(const slicecx_t& cx, const leaf_node_t *buf, uint16
     if (cx.block_size().value() - 3 >= offset
         && offset >= buf->frontmost_offset) {
         const btree_leaf_pair *pair = leaf::get_pair(buf, offset);
-        const btree_value_t *value = reinterpret_cast<const btree_value_t *>(pair->value());
+        const memcached_value_t *value = reinterpret_cast<const memcached_value_t *>(pair->value());
         uint32_t value_offset = (reinterpret_cast<const char *>(value) - reinterpret_cast<const char *>(pair)) + offset;
         // The other HACK: We subtract 2 for value->size, value->metadata_flags.
         if (value_offset <= cx.block_size().value() - 2) {
@@ -1037,7 +1037,7 @@ void check_subtree_leaf_node(slicecx_t& cx, const leaf_node_t *buf, const btree_
         errs->out_of_order |= !(prev_key == NULL || leaf_key_comp::compare(prev_key, &pair->key) < 0);
 
         value_error valerr(errs->block_id);
-        check_value(cx, reinterpret_cast<const btree_value_t *>(pair->value()), &valerr);
+        check_value(cx, reinterpret_cast<const memcached_value_t *>(pair->value()), &valerr);
 
         if (valerr.is_bad()) {
             valerr.key = std::string(pair->key.contents, pair->key.contents + pair->key.size);
