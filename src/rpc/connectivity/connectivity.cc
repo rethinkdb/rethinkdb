@@ -18,13 +18,6 @@ cluster_t::cluster_t(int port) :
     routing_table[me] = address_t(ip_address_t::us(), port);
 }
 
-cluster_t::cluster_t(int port, peer_id_t id_from_last_time) :
-    listener(port, boost::bind(&connectivity::cluster_t::on_new_connection, this, _1)),
-    me(id_from_last_time)
-{
-    routing_table[me] = address_t(ip_address_t::us(), port);
-}
-
 cluster_t::~cluster_t() {
     shutdown_cond.pulse();
     shutdown_semaphore.drain();

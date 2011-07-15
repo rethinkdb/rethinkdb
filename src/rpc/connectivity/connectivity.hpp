@@ -76,7 +76,6 @@ public:
     /* Creating a new cluster node, and connecting one cluster to another
     cluster */
     cluster_t(int port);
-    cluster_t(int port, peer_id_t id_from_last_time);
     ~cluster_t();
     void join(address_t);
 
