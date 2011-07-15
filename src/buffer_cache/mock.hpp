@@ -14,6 +14,7 @@
 #include "server/cmd_args.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "buffer_cache/buf_patch.hpp"
+#include "buffer_cache/abstract_buf.hpp"
 
 /* The mock cache, mock_cache_t, is a drop-in replacement for mc_cache_t that keeps all of
 its contents in memory and artificially generates delays in responding to requests. It
@@ -28,11 +29,11 @@ class mock_cache_account_t;
 /* Buf */
 
 class mock_buf_t :
-    public home_thread_mixin_t
+    public home_thread_mixin_t, public abstract_buf_t
 {
 public:
-    block_id_t get_block_id();
-    const void *get_data_read();
+    block_id_t get_block_id() const;
+    const void *get_data_read() const;
     // Use this only for writes which affect a large part of the block, as it bypasses the diff system
     void *get_data_major_write();
     // Convenience function to set some address in the buffer acquired through get_data_read. (similar to memcpy)

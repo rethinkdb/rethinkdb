@@ -12,6 +12,7 @@
 #include "serializer/serializer.hpp"
 #include "server/cmd_args.hpp"
 #include "buffer_cache/stats.hpp"
+#include "buffer_cache/abstract_buf.hpp"
 #include "buffer_cache/buf_patch.hpp"
 #include "buffer_cache/mirrored/patch_memory_storage.hpp"
 #include "buffer_cache/mirrored/patch_disk_storage.hpp"
@@ -122,7 +123,7 @@ private:
 
 
 /* This class represents a hold on a mc_inner_buf_t. */
-class mc_buf_t {
+class mc_buf_t : public abstract_buf_t {
     typedef mc_cache_t cache_t;
 
     friend class mc_cache_t;

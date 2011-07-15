@@ -7,6 +7,7 @@
 #include "containers/two_level_array.hpp"
 #include "buffer_cache/buf_patch.hpp"
 #include "serializer/serializer.hpp"
+#include "buffer_cache/abstract_buf.hpp"
 
 // TODO: Have the semantic checking cache make sure that the
 // repli_timestamp_ts are correct.
@@ -23,9 +24,9 @@ typedef uint32_t crc_t;
 /* Buf */
 
 template<class inner_cache_t>
-class scc_buf_t {
+class scc_buf_t : public abstract_buf_t {
 public:
-    block_id_t get_block_id();
+    block_id_t get_block_id() const;
     bool is_dirty();
     const void *get_data_read() const;
     // Use this only for writes which affect a large part of the block, as it bypasses the diff system
