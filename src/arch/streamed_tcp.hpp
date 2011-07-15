@@ -17,85 +17,6 @@ make this synchronous. */
 #include "arch/arch.hpp"
 
 /*
- This implements the actual streambuf object. It is unbuffered, so that it's
- safe to also use the read and write functionality of the underlying tcp_conn_t
- object.
- */
-
-class tcp_conn_streambuf_t : public std::basic_streambuf<char, std::char_traits<char> > {
-public:
-    tcp_conn_streambuf_t(tcp_conn_t *conn) : conn(conn) {
-        // Initialize basic_streambuf, with both gets and puts being unbuffered
-        setg(0, 0, 0);
-        setp(0, 0);
-        unsynced_write = false;
-    }
-
-private:
-    tcp_conn_t *conn;
-
-protected:
-    // Implementation of basic_streambuf methods
-    virtual int underflow() {
-        try {
-            const_charslice cs = conn->peek(1);
-            rassert(cs.end > cs.beg, "Didn't get data from peek(1). This is weird.");
-            input_buf = cs.beg[0];
-            conn->pop(1);
-            setg(&input_buf, &input_buf, &input_buf+1);
-            //fprintf(stderr, "G: %c\n", input_buf);
-        } catch (tcp_conn_t::read_closed_exc_t &e) {
-            return std::char_traits<char>::eof();
-        }
-
-        int i = std::char_traits<char>::to_int_type(input_buf);
-        return std::char_traits<char>::not_eof(i);
-    }
-
-    virtual int overflow(int i = std::char_traits<char>::eof()) {
-        if (!conn->is_write_open()) {
-            return std::char_traits<char>::eof();
-        } else if (i == std::char_traits<char>::eof()) {
-            return std::char_traits<char>::not_eof(i);
-        } else {
-            char c = static_cast<char>(i);
-            rassert(static_cast<int>(c) == i);
-            try {
-                unsynced_write = true;
-                conn->write_buffered(&c, 1);
-                //fprintf(stderr, "S: %c\n", c);
-            } catch (tcp_conn_t::write_closed_exc_t &e) {
-                return std::char_traits<char>::eof();
-            }
-            return std::char_traits<char>::not_eof(i);
-        }
-    }
-
-    virtual int sync() {
-        try {
-            if (unsynced_write) {
-                // Hack so we don't flush if we are used for reads only. Otherwise
-                // we can run into problems because tcp_conn_t allows only one
-                // active write or flush at a time.
-                conn->flush_buffer();
-                unsynced_write = false;
-            }
-            return 0;
-        } catch (tcp_conn_t::write_closed_exc_t &e) {
-            return -1;
-        }
-    }
-
-private:
-    DISABLE_COPYING(tcp_conn_streambuf_t);
-
-    char input_buf;
-
-    bool unsynced_write;
-};
-
-
-/*
  streamed_tcp_conn_t provides an input and output stream around a
  tcp_conn_t.
  In the long term, this might become a replacement for the public tcp_conn_t
@@ -115,15 +36,111 @@ public:
             conn_streambuf(conn_.get()) {
     }
 
-    tcp_conn_t *get_raw_conn() {
-        /* Thanks to tcp_conn_streambuf_t being unbuffered with respect to
-        tcp_conn_t, it is safe to pass out the tcp_conn_t. */
-        rassert(conn_.get());
-        return conn_.get();
+    // TODO: The following might already have equivalents in std::iostream, which we should
+    // support instead.
+    // However they are convenient for porting legacy code to the streamed_tcp_conn_t
+    // interface.
+
+    /* Call shutdown_read() to close the half of the pipe that goes from the peer to us. If there
+    is an outstanding read() or peek_until() operation, it will throw read_closed_exc_t. */
+    void shutdown_read() {
+        conn_->shutdown_read();
     }
 
+    /* Returns false if the half of the pipe that goes from the peer to us has been closed. */
+    bool is_read_open() {
+        return conn_->is_read_open();
+    }
+
+    /* Call shutdown_write() to close the half of the pipe that goes from us to the peer. If there
+    is a write currently happening, it will get write_closed_exc_t. */
+    void shutdown_write() {
+        conn_->shutdown_write();
+    }
+
+    /* Returns false if the half of the pipe that goes from us to the peer has been closed. */
+    bool is_write_open() {
+        return conn_->is_write_open();
+    }
 
 private:
+    /*
+     This implements the actual streambuf object. It is buffered, so it's *not*
+     safe to also use the read and write functionality of the underlying tcp_conn_t
+     object at the same time. This is why we make this private to streamed_tcp_conn_t.
+     */
+    class tcp_conn_streambuf_t : public std::basic_streambuf<char, std::char_traits<char> > {
+    public:
+        tcp_conn_streambuf_t(tcp_conn_t *conn) : conn(conn) {
+            // Initialize basic_streambuf, with gets being buffered and puts being unbuffered
+            setg(&get_buf[0], &get_buf[0], &get_buf[0]);
+            setp(0, 0);
+            unsynced_write = false;
+        }
+
+    private:
+        tcp_conn_t *conn;
+
+    protected:
+        // Implementation of basic_streambuf methods
+        virtual int underflow() {
+            if (gptr() >= egptr()) {
+                // No data left in buffer, retrieve new data
+                try {
+                    // Read up to GET_BUF_LENGTH characters into get_buf
+                    size_t bytes_read = conn->read_some(get_buf, GET_BUF_LENGTH);
+                    rassert (bytes_read > 0);
+                    setg(&get_buf[0], &get_buf[0], &get_buf[bytes_read]);
+                } catch (tcp_conn_t::read_closed_exc_t &e) {
+                    return std::char_traits<char>::eof();
+                }
+            }
+
+            int i = std::char_traits<char>::to_int_type(*gptr());
+            return std::char_traits<char>::not_eof(i);
+        }
+
+        virtual int overflow(int i = std::char_traits<char>::eof()) {
+            if (!conn->is_write_open()) {
+                return std::char_traits<char>::eof();
+            } else if (i == std::char_traits<char>::eof()) {
+                return std::char_traits<char>::not_eof(i);
+            } else {
+                char c = static_cast<char>(i);
+                rassert(static_cast<int>(c) == i);
+                try {
+                    unsynced_write = true;
+                    conn->write_buffered(&c, 1);
+                } catch (tcp_conn_t::write_closed_exc_t &e) {
+                    return std::char_traits<char>::eof();
+                }
+                return std::char_traits<char>::not_eof(i);
+            }
+        }
+
+        virtual int sync() {
+            try {
+                // Only flush if necessary...
+                if (unsynced_write) {
+                    conn->flush_buffer();
+                    unsynced_write = false;
+                }
+                return 0;
+            } catch (tcp_conn_t::write_closed_exc_t &e) {
+                return -1;
+            }
+        }
+
+    private:
+        DISABLE_COPYING(tcp_conn_streambuf_t);
+
+        // Read buffer
+        static const size_t GET_BUF_LENGTH = 512;
+        char get_buf[GET_BUF_LENGTH];
+
+        bool unsynced_write;
+    };
+
     friend class streamed_tcp_listener_t;
     // Used by streamed_tcp_listener_t
     explicit streamed_tcp_conn_t(boost::scoped_ptr<tcp_conn_t> &conn) :
