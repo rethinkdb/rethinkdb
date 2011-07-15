@@ -104,4 +104,14 @@ private:
     DISABLE_COPYING(tcp_conn_streambuf_t);
 };
 
+struct streamed_tcp_conn_t{
+
+    streamed_tcp_conn_t(tcp_conn_t *c) :
+        conn(c), streambuf(conn.get()), stream(&streambuf) { }
+
+    boost::scoped_ptr<tcp_conn_t> conn;
+    std::streambuf streambuf;
+    std::iostream stream;
+};
+
 #endif
