@@ -571,13 +571,15 @@ ifeq ($(VALGRIND),0)
 endif
 	valgrind $(VALGRIND_FLAGS) $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) -f $(RUN_FILE) $(RUN_FLAGS)
 
-callgrind: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 ifeq ($(CALLGRIND),0)
-	$(error Using the 'callgrind' target doesn't automatically set CALLGRIND to 1. Try again with \
-'make calgrind CALLGRIND=1')
-endif
+callgrind:
+	$(error "Using the 'callgrind' target doesn't automatically set CALLGRIND to 1. Try again with \
+'make calgrind CALLGRIND=1'")
+else
+callgrind: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 	$(QUIET) rm -f $(RUN_FILE)
 	valgrind --tool=callgrind $(CALLGRIND_FLAGS) $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) -f $(RUN_FILE) $(RUN_FLAGS)
+endif
 
 tags:
 	$(QUIET) ctags -R --c++-kinds=+p --fields=+iaS --extra=+q -f $(TAGS) --langmap="c++:.cc.tcc.hpp"
