@@ -23,7 +23,7 @@ cluster_t::~cluster_t() {
 
 void cluster_t::join(address_t address) {
 
-    streamed_tcp_conn_t *conn = new streamed_tcp_conn_t(new tcp_conn_t(address.ip, address.port));
+    streamed_tcp_conn_t *conn = new streamed_tcp_conn_t(address.ip, address.port);
 
     drain_semaphore_t::lock_t drain_semaphore_lock(&shutdown_semaphore);
 
@@ -122,13 +122,13 @@ void cluster_t::send_message(peer_id_t dest, boost::function<void(std::ostream&)
         mutex_acquisition_t acq(&dest->send_mutex);
 
         try {
-            boost::archive::xml_oarchive sender(dest->conn->stream);
+            boost::archive::xml_oarchive sender(dest->conn);
             sender << buffer.str();
         } catch (tcp_conn_t::write_closed_exc_t) {
             /* Close the other half of the connection to make sure that
             `cluster_t::handle()` notices that something is up */
-            if (dest->conn->conn->is_read_open()) {
-                dest->conn->conn->shutdown_read();
+            if (dest->conn->get_raw_conn()->is_read_open()) {
+                dest->conn->get_raw_conn()->shutdown_read();
             }
         }
     }
@@ -153,11 +153,11 @@ void cluster_t::handle(streamed_tcp_conn_t *c,
     struct connection_closer_t : public signal_t::watcher_t {
         streamed_tcp_conn_t *conn_to_close;
         void on_signal_pulsed() {
-            if (conn_to_close->conn->is_read_open()) {
-                conn_to_close->conn->shutdown_read();
+            if (conn_to_close->get_raw_conn()->is_read_open()) {
+                conn_to_close->get_raw_conn()->shutdown_read();
             }
-            if (conn_to_close->conn->is_write_open()) {
-                conn_to_close->conn->shutdown_write();
+            if (conn_to_close->get_raw_conn()->is_write_open()) {
+                conn_to_close->get_raw_conn()->shutdown_write();
             }
         }
     };
@@ -165,8 +165,8 @@ void cluster_t::handle(streamed_tcp_conn_t *c,
     shutdown_cond.add_watcher(&connection_closer);
 
     /* Use XML as a joke */
-    boost::archive::xml_oarchive sender(conn->stream);
-    boost::archive::xml_iarchive receiver(conn->stream);
+    boost::archive::xml_oarchive sender(*conn);
+    boost::archive::xml_iarchive receiver(*conn);
 
     /* Each side sends their own ID and address, then receives the other side's.
     */

@@ -676,7 +676,7 @@ void linux_tcp_listener_t::accept_loop(signal_t *shutdown_signal) {
             c.wait();
 
         } else if (errno == EINTR) {
-            /* Harmless error; just try again. */ 
+            /* Harmless error; just try again. */
 
         } else {
             /* Unexpected error. Log it unless it's a repeat error. */

@@ -162,6 +162,19 @@ private:
     /* Used to actually perform a write. If the write end of the connection is open, then writes
     `size` bytes from `buffer` to the socket. */
     void perform_write(const void *buffer, size_t size);
+
+    /* memcpy up to n bytes from read_buffer into dest. Returns the number of bytes
+    copied. Then pop_read_buffer() can be used to remove the fetched bytes from the read buffer.
+    */
+    // TODO! Recover that to make pop() fast again
+    //size_t memcpy_from_read_buffer(void *buf, const size_t n);
+    //void pop_read_buffer(const size_t n);
+
+    /* To make pop() more efficient, we only actually erase part of the read_buffer
+    when POP_THRESHOLD bytes can be popped of. Before that point, we accumulate
+    the length of popped bytes in popped_bytes. */
+    static const size_t POP_THRESHOLD = 1024;
+    size_t popped_bytes;
 };
 
 /* The linux_tcp_listener_t is used to listen on a network port for incoming
