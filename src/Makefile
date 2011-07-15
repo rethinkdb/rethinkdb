@@ -67,8 +67,6 @@ else
 BUILD_DIR:=$(BUILD_ROOT_DIR)/release
 endif
 
-PROTO_DIR:=$(BUILD_DIR)/proto
-
 PACKAGES_DIR:=$(BUILD_ROOT_DIR)/packages
 RPM_PACKAGE_DIR:=$(PACKAGES_DIR)/rpm
 DEB_PACKAGE_DIR:=$(PACKAGES_DIR)/deb
@@ -80,11 +78,11 @@ else
 CXX:=g++
 endif
 LDFLAGS:=-Wl,--no-as-needed -lpthread -lrt -laio
-STATIC_LIBRARIES:=protoc protobuf
+STATIC_LIBRARIES:=protoc protobuf boost_serialization
 
 CXXFLAGS?=
 
-CXXFLAGS+=-I$(SOURCE_DIR) -I$(PROTO_DIR) -Wall -Wextra -Wformat=2 -Wswitch-enum -Werror -Wnon-virtual-dtor
+CXXFLAGS+=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wswitch-enum -Werror -Wnon-virtual-dtor
 CXXFLAGS+="-DPRODUCT_NAME=\"$(PRODUCT_NAME)\""
 
 ifeq ($(SOLO),1)
@@ -201,6 +199,9 @@ CXXFLAGS+=-DVALGRIND
 BUILD_DIR:=$(BUILD_DIR)-valgrind
 NO_TCMALLOC:=1
 endif
+
+PROTO_DIR:=$(BUILD_DIR)/proto
+CXXFLAGS += -I$(PROTO_DIR)
 
 ifeq ($(NO_TCMALLOC),0)
 STATIC_LIBRARIES+=tcmalloc_minimal
@@ -565,13 +566,15 @@ ifeq ($(VALGRIND),0)
 endif
 	valgrind $(VALGRIND_FLAGS) $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) -f $(RUN_FILE) $(RUN_FLAGS)
 
-callgrind: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 ifeq ($(CALLGRIND),0)
-	$(error Using the 'callgrind' target doesn't automatically set CALLGRIND to 1. Try again with \
-'make calgrind CALLGRIND=1')
-endif
+callgrind:
+	$(error "Using the 'callgrind' target doesn't automatically set CALLGRIND to 1. Try again with \
+'make calgrind CALLGRIND=1'")
+else
+callgrind: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 	$(QUIET) rm -f $(RUN_FILE)
 	valgrind --tool=callgrind $(CALLGRIND_FLAGS) $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) -f $(RUN_FILE) $(RUN_FLAGS)
+endif
 
 tags:
 	$(QUIET) ctags -R --c++-kinds=+p --fields=+iaS --extra=+q -f $(TAGS) --langmap="c++:.cc.tcc.hpp"

@@ -1,4 +1,5 @@
 #include "buffer_cache/stats.hpp"
+#include "perfmon.hpp"
 
 perfmon_counter_t
     pm_n_blocks_in_memory("blocks_in_memory[blocks]", false),

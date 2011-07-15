@@ -3,6 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <vector>
+
+#include "arch/coroutines.hpp"
 #include "server/cmd_args.hpp"
 #include "utils.hpp"
 #include "help.hpp"
@@ -221,7 +224,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     parsing_cmd_config_t config;
 
     std::vector<log_serializer_private_dynamic_config_t>& private_configs = config.store_dynamic_config.serializer_private;
-    log_serializer_private_dynamic_config_t &metadata_private_config = config.store_dynamic_config.metadata_serializer_private;
+    config.metadata_store_dynamic_config.serializer_private.resize(std::max(static_cast<size_t>(1), config.metadata_store_dynamic_config.serializer_private.size()));
+    log_serializer_private_dynamic_config_t &metadata_private_config = config.metadata_store_dynamic_config.serializer_private[0];
 
     /* main() will have automatically inserted "serve" if no argument was specified */
     rassert(!strcmp(argv[0], "serve") || !strcmp(argv[0], "create") || !strcmp(argv[0], "import"));
@@ -543,9 +547,10 @@ void parsing_cmd_config_t::push_private_config(const char* value) {
 }
 
 void parsing_cmd_config_t::set_metadata_file(const char *value) {
-    store_dynamic_config.metadata_serializer_private.db_filename = std::string(value);
+    metadata_store_dynamic_config.serializer_private.resize(std::max(static_cast<size_t>(1), metadata_store_dynamic_config.serializer_private.size()));
+    metadata_store_dynamic_config.serializer_private[0].db_filename = std::string(value);
 #ifdef SEMANTIC_SERIALIZER_CHECK
-    store_dynamic_config.metadata_serializer_private.semantic_filename = std::string(value) + DEFAULT_SEMANTIC_EXTENSION;
+    metadata_store_dynamic_config.serializer_private.semantic_filename = std::string(value) + DEFAULT_SEMANTIC_EXTENSION;
 #endif
 }
 
@@ -706,12 +711,13 @@ void parsing_cmd_config_t::set_log_file(const char* value) {
 
     // See if we can open or create the file at this path with write permissions
     FILE* logfile = fopen(value, "a");
-    if (logfile == NULL)
+    if (logfile == NULL) {
         fail_due_to_user_error("Inaccessible or invalid log file: \"%s\": %s", value, strerror(errno));
-    else
+    } else {
         fclose(logfile);
-    
-    strncpy(log_file_name, value, MAX_LOG_FILE_NAME);
+    }
+
+    log_file_name = value;
 }
 
 void parsing_cmd_config_t::set_port(const char* value) {
@@ -769,8 +775,7 @@ void parsing_cmd_config_t::set_master_addr(const char *value) {
         fail_due_to_user_error("Invalid master address, address should be of the form hostname:port");
     }
 
-    strncpy(replication_config.hostname, token, MAX_HOSTNAME_LEN);
-    replication_config.hostname[MAX_HOSTNAME_LEN - 1] = '\0';
+    replication_config.hostname = token;
 
     token = strtok(NULL, ":");
     if (token == NULL) {
@@ -805,15 +810,17 @@ void parsing_cmd_config_t::set_failover_file(const char* value) {
     if (strlen(value) > MAX_PATH_LEN)
         fail_due_to_user_error("Failover script path is too long");
 
-    strcpy(failover_config.failover_script_path, value);
+    failover_config.failover_script_path = value;
 }
 
 void parsing_cmd_config_t::set_io_backend(const char* value) {
     /* #if WE_ARE_ON_LINUX */
     if(strcmp(value, "native") == 0) {
         store_dynamic_config.serializer.io_backend = aio_native;
+        metadata_store_dynamic_config.serializer.io_backend = aio_native;
     } else if(strcmp(value, "pool") == 0) {
         store_dynamic_config.serializer.io_backend = aio_pool;
+        metadata_store_dynamic_config.serializer.io_backend = aio_pool;
     } else {
         fail_due_to_user_error("Possible options for IO backend are 'native' and 'pool'.");
     }
@@ -898,7 +905,8 @@ void cmd_config_t::print_runtime_flags() {
 }
 
 void cmd_config_t::print_database_flags() {
-    log_serializer_private_dynamic_config_t &metadata_config = store_dynamic_config.metadata_serializer_private;
+    metadata_store_dynamic_config.serializer_private.resize(std::max(static_cast<size_t>(1), metadata_store_dynamic_config.serializer_private.size()));
+    log_serializer_private_dynamic_config_t &metadata_config = metadata_store_dynamic_config.serializer_private[0];
     const std::vector<log_serializer_private_dynamic_config_t>& private_configs = store_dynamic_config.serializer_private;
 
     printf("--- Database ---\n");
@@ -944,16 +952,19 @@ void cmd_config_t::print() {
 }
 
 cmd_config_t::cmd_config_t() {
-    bzero(&replication_config, sizeof(replication_config));
-    bzero(&failover_config, sizeof(failover_config));
-
     verbose = false;
     port = DEFAULT_LISTEN_PORT;
     n_workers = get_cpu_count();
     
     log_file_name[0] = 0;
     log_file_name[MAX_LOG_FILE_NAME - 1] = 0;
-    
+
+    // TODO: Initializing all the sub-configurations should not happen here,
+    // but in the respective sub-configuration types!
+    // Eventually, we want to create for example store configs at runtime
+    // (like to create a namespace). Then having the initialization here
+    // is a very bad thing.
+
     store_dynamic_config.serializer.gc_low_ratio = DEFAULT_GC_LOW_RATIO;
     store_dynamic_config.serializer.gc_high_ratio = DEFAULT_GC_HIGH_RATIO;
     store_dynamic_config.serializer.num_active_data_extents = DEFAULT_ACTIVE_DATA_EXTENTS;
@@ -982,7 +993,7 @@ cmd_config_t::cmd_config_t() {
     shutdown_after_creation = false;
 
     replication_config.port = DEFAULT_REPLICATION_PORT;
-    memset(replication_config.hostname, 0, MAX_HOSTNAME_LEN);
+    replication_config.hostname = "";
     replication_config.active = false;
     replication_config.heartbeat_timeout = DEFAULT_REPLICATION_HEARTBEAT_TIMEOUT;
     replication_master_listen_port = DEFAULT_REPLICATION_PORT;
@@ -995,5 +1006,12 @@ cmd_config_t::cmd_config_t() {
     store_static_config.btree.n_slices = DEFAULT_BTREE_SHARD_FACTOR;
 
     store_static_config.cache.n_patch_log_blocks = DEFAULT_PATCH_LOG_SIZE / store_static_config.serializer.block_size().ser_value() / store_static_config.btree.n_slices;
+
+    // TODO: This is hacky. It also doesn't belong here. Also see the comment above
+    metadata_store_dynamic_config = store_dynamic_config;
+    metadata_store_dynamic_config.total_delete_queue_limit = 0;
+    metadata_store_dynamic_config.cache.max_size = 8 * MEGABYTE;
+    metadata_store_dynamic_config.cache.max_dirty_size = 4 * MEGABYTE;
+    metadata_store_dynamic_config.cache.flush_dirty_size = 2 * MEGABYTE;
 }
 

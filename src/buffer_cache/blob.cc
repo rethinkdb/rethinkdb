@@ -3,6 +3,7 @@
 #include "buffer_cache/buf_lock.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "serializer/types.hpp"
+#include "concurrency/pmap.hpp"
 #include "containers/buffer_group.hpp"
 
 namespace blob {

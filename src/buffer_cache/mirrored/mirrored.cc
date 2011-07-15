@@ -1,6 +1,11 @@
 #include "buffer_cache/mirrored/mirrored.hpp"
-#include "buffer_cache/stats.hpp"
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
+#include "arch/coroutines.hpp"
+#include "buffer_cache/stats.hpp"
+#include "do_on_thread.hpp"
 #include "stats/persist.hpp"
 
 /**

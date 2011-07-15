@@ -8,6 +8,8 @@
 class linux_thread_message_t;
 typedef linux_thread_message_t thread_message_t;
 
+typedef linux_io_backend_t io_backend_t;
+
 int get_thread_id();
 
 int get_num_threads();

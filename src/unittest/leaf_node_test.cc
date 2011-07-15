@@ -255,12 +255,12 @@ public:
     }
 
     void insert_nocheck(const std::string& k, const Value& v) {
-        SCOPED_TRACE("insert_nocheck k='" + std::string(k) + "' v='" + format(v) + "'");
+        SCOPED_TRACE(testing::Message() << "insert_nocheck k='" << k << "' v='" << v << "'");
         do_insert(k, v);
     }
 
     void insert(const std::string& k, const Value& v) {
-        SCOPED_TRACE("insert k='" + k + "' v='" + format(v) + "'");
+        SCOPED_TRACE(testing::Message() << "insert k='" << k << "' v='" << v << "'");
         do_insert(k, v);
         validate();
     }
@@ -537,8 +537,8 @@ void fill_nonsense(LeafNodeGrinder& gr, const char *prefix, int max_space_filled
     std::string p(prefix);
     int i = 0;
     for (;;) {
-        std::string key = p + format(i);
-        Value value(format(i * i));
+        std::string key = p + strprintf("%d", i);
+        Value value(strprintf("%d", i * i));
         if (gr.expected_used() + value.full_size() + int(key.size()) + 1 > max_space_filled) {
             break;
         }

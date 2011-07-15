@@ -1,5 +1,7 @@
 #include "concurrency/signal.hpp"
 
+#include "arch/coroutines.hpp"
+
 void signal_t::add_waiter(waiter_t *w) {
     assert_thread();
     switch (state) {
@@ -69,6 +71,38 @@ signal_t::~signal_t() {
         default:
             unreachable();
     }
+}
+
+void signal_t::wait_lazily() {
+    on_thread_t thread_switcher(home_thread());
+    if (!is_pulsed()) {
+        struct : public waiter_t {
+            coro_t *to_wake;
+            void on_signal_pulsed() { to_wake->notify(); }
+        } waiter;
+        waiter.to_wake = coro_t::self();
+        add_waiter(&waiter);
+        coro_t::wait();
+    }
+}
+
+void signal_t::wait_eagerly() {
+    on_thread_t thread_switcher(home_thread());
+    if (!is_pulsed()) {
+        struct : public waiter_t {
+            coro_t *to_wake;
+            void on_signal_pulsed() { to_wake->notify_now(); }
+        } waiter;
+        waiter.to_wake = coro_t::self();
+        add_waiter(&waiter);
+        coro_t::wait();
+    }
+}
+
+void signal_t::rethread(int new_thread) {
+    rassert(waiters.empty(), "It might not be safe to rethread() a signal_t with "
+            "something currently waiting on it.");
+    real_home_thread = new_thread;
 }
 
 void signal_t::pulse() {

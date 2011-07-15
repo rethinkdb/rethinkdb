@@ -1,9 +1,11 @@
 #include "serializer/log/log_serializer.hpp"
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
 #include "buffer_cache/types.hpp"
+#include "do_on_thread.hpp"
 
 const block_magic_t log_serializer_t::zerobuf_magic = { { 'z', 'e', 'r', 'o' } };
 

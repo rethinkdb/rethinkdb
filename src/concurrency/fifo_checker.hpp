@@ -1,11 +1,12 @@
 #ifndef __CONCURRENCY_FIFO_CHECKER_HPP__
 #define __CONCURRENCY_FIFO_CHECKER_HPP__
 
+#include "utils.hpp"
 #include <boost/function.hpp>
 
+#ifndef NDEBUG
 #include <map>
-
-#include "utils.hpp"
+#endif
 
 
 struct order_bucket_t {

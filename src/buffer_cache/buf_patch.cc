@@ -4,8 +4,13 @@
 #include "btree/buf_patches.hpp"
 
 #include <string.h>
-#include "errors.hpp"
+#include "utils.hpp"
 #include "logger.hpp"
+
+patch_deserialization_error_t::patch_deserialization_error_t(const char *file, int line, const char *msg) {
+    message = strprintf("Patch deserialization error%s%s (in %s:%d)",
+                            msg[0] ? ": " : "", msg, file, line);
+}
 
 buf_patch_t *buf_patch_t::load_patch(UNUSED block_size_t bs, const char *source) {
     try {

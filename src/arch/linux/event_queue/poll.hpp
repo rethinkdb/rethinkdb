@@ -6,6 +6,9 @@
 
 #include <poll.h>
 
+#include "arch/linux/event_queue_types.hpp"
+#include "arch/linux/linux_utils.hpp"
+
 // Event queue structure
 struct poll_event_queue_t : public event_queue_base_t {
 public:

@@ -3,9 +3,7 @@
 
 #include "arch/linux/disk.hpp"
 #include "arch/linux/network.hpp"
-#include "arch/linux/event_queue.hpp"
 #include "arch/linux/thread_pool.hpp"
-#include "arch/linux/coroutines.hpp"
 
 /* Timer functions create (non-)periodic timers, callbacks for which are
  * executed on the same thread that they were created on. Thus, non-thread-safe

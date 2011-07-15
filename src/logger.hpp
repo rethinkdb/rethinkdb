@@ -2,7 +2,6 @@
 #define __LOGGER_HPP__
 
 #include <stdio.h>
-#include <stdlib.h>
 
 // The file to write log messages to. It defaults to stderr, but main() may set it to something
 // different.

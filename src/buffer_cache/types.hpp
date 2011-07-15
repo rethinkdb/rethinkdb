@@ -1,7 +1,7 @@
 #ifndef __BUFFER_CACHE_TYPES_HPP__
 #define __BUFFER_CACHE_TYPES_HPP__
 
-#include "serializer/types.hpp"
+#include <stdint.h>
 
 typedef uint32_t block_magic_comparison_t;
 

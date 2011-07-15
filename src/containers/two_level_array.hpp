@@ -1,9 +1,7 @@
-
 #ifndef __TWO_LEVEL_ARRAY_HPP__
 #define __TWO_LEVEL_ARRAY_HPP__
 
-#include "utils.hpp"
-#include <boost/scoped_array.hpp>
+#include "errors.hpp"
 
 /* two_level_array_t is a tree that always has exactly two levels. Its computational complexity is
 similar to that of an array, but it neither allocates all of its memory at once nor needs to
@@ -42,7 +40,7 @@ private:
         unsigned int count;
         value_t values[chunk_size];
     };
-    boost::scoped_array<chunk_t*> chunks;
+    chunk_t **chunks;
 
     static unsigned int chunk_for_key(key_t key) {
         unsigned int chunk_id = key / chunk_size;
@@ -61,8 +59,9 @@ public:
     }
     ~two_level_array_t() {
         for (unsigned int i = 0; i < num_chunks; i++) {
-            if (chunks[i]) delete chunks[i];
+            delete chunks[i];
         }
+        delete[] chunks;
     }
 
     value_t& operator[](key_t key) {

@@ -166,15 +166,8 @@ public:
     void flush();
 
 protected:
-    void send_heartbeat() {
-        net_heartbeat_t msg;
-        msg.padding = 0;
-        send(msg);
-    }
-    void on_heartbeat_timeout() {
-        logINF("Terminating connection due to heartbeat timeout.\n");
-        shutdown();
-    }
+    void send_heartbeat();
+    void on_heartbeat_timeout();
 
 private:
 

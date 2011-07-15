@@ -38,7 +38,7 @@ void slave_t::new_master(std::string host, int port) {
     on_thread_t thread_switcher(home_thread());
 
     /* redo the replication_config info */
-    strcpy(replication_config_.hostname, host.c_str());
+    replication_config_.hostname = host;
     replication_config_.port = port;
 
     failover_reset();
@@ -93,7 +93,7 @@ void slave_t::run(signal_t *shutdown_signal) {
             cond_t slave_cond;
 
             logINF("Attempting to connect as slave to: %s:%d\n",
-                replication_config_.hostname, replication_config_.port);
+                   replication_config_.hostname.c_str(), replication_config_.port);
 
             /* These brackets are so that the `slave_stream_manager_t` gets destroyed before we
             go on to the phase of incrementing the replication clock. This is important, or else
@@ -101,15 +101,14 @@ void slave_t::run(signal_t *shutdown_signal) {
             until after we have incremented the replication clock, and that would cause corruption.
             */
             {
-                boost::scoped_ptr<tcp_conn_t> conn(
-                    new tcp_conn_t(replication_config_.hostname, replication_config_.port));
+                boost::scoped_ptr<tcp_conn_t> conn(new tcp_conn_t(replication_config_.hostname.c_str(), replication_config_.port));
                 slave_stream_manager_t stream_mgr(&conn, internal_store_, &slave_cond, &slave_order_source, replication_config_.heartbeat_timeout);
 
                 // No exception was thrown; it must have worked.
                 timeout_ = INITIAL_TIMEOUT;
                 give_up_.on_reconnect();
                 failover_->on_resume();
-                logINF("Connected as slave to: %s:%d\n", replication_config_.hostname, replication_config_.port);
+                logINF("Connected as slave to: %s:%d\n", replication_config_.hostname.c_str(), replication_config_.port);
 
                 // This makes it so that if we get a reset command, the connection
                 // will get closed.
@@ -162,7 +161,7 @@ void slave_t::run(signal_t *shutdown_signal) {
             // our first time connecting, we blame the failure to connect on user error.
             if (were_connected_before) {
                 fail_due_to_user_error("Master at %s:%d is not responding. Perhaps you haven't brought it up yet?\n",
-                    replication_config_.hostname, replication_config_.port);
+                                       replication_config_.hostname.c_str(), replication_config_.port);
             }
         }
 
@@ -183,7 +182,7 @@ void slave_t::run(signal_t *shutdown_signal) {
                    "The slave is now going rogue; it will stop trying to reconnect to the master "
                    "and it will accept writes. To resume normal slave behavior, send the command "
                    "\"rethinkdb failover-reset\" (over telnet).\n",
-                   replication_config_.hostname, replication_config_.port,
+                   replication_config_.hostname.c_str(), replication_config_.port,
                    MAX_RECONNECTS_PER_N_SECONDS, N_SECONDS);
 
             cond_t c;

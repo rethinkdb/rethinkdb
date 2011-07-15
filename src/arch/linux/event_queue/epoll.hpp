@@ -1,4 +1,3 @@
-
 #ifndef __EPOLL_EVENT_QUEUE_HPP__
 #define __EPOLL_EVENT_QUEUE_HPP__
 
@@ -8,10 +7,9 @@
 
 #include <sys/epoll.h>
 
+#include "arch/linux/event_queue_types.hpp"
+#include "arch/linux/linux_utils.hpp"
 #include "config/args.hpp"
-
-/* This file must only be included from event_queue.hpp, because it needs
-event_queue_base_t. */
 
 // Event queue structure
 struct epoll_event_queue_t : public event_queue_base_t {

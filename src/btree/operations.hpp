@@ -1,7 +1,7 @@
 #ifndef __BTREE_OPERATIONS_HPP__
 #define __BTREE_OPERATIONS_HPP__
 
-#include "utils2.hpp"
+#include "utils.hpp"
 #include "buffer_cache/buf_lock.hpp"
 #include "containers/scoped_malloc.hpp"
 #include "btree/node.hpp"
@@ -48,6 +48,8 @@ private:
 };
 
 void find_keyvalue_location_for_write(value_sizer_t *sizer, got_superblock_t *got_superblock, btree_key_t *key, repli_timestamp_t tstamp, keyvalue_location_t *keyvalue_location_out);
+
+void find_keyvalue_location_for_read(value_sizer_t *sizer, got_superblock_t *got_superblock, btree_key_t *key, keyvalue_location_t *keyvalue_location_out);
 
 void apply_keyvalue_change(value_sizer_t *sizer, keyvalue_location_t *location_and_value, btree_key_t *key, repli_timestamp_t timestamp);
 

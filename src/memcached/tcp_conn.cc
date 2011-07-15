@@ -1,4 +1,9 @@
 #include "memcached/tcp_conn.hpp"
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
+#include "arch/coroutines.hpp"
 #include "memcached/memcached.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "db_thread_info.hpp"

@@ -8,9 +8,13 @@
 #include <stdio.h>
 #include <sys/types.h>
 
-#include "config/args.hpp"
 #include "serializer/types.hpp"
-#include "arch/arch.hpp"
+#include "arch/core.hpp"
+
+// TODO! Move the things which have to be serialized to somewhere else
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/access.hpp>
+#include <boost/serialization/vector.hpp>
 
 #define NEVER_FLUSH -1
 
@@ -21,23 +25,31 @@ struct log_serializer_private_dynamic_config_t {
 #ifdef SEMANTIC_SERIALIZER_CHECK
     std::string semantic_filename;
 #endif
+
+    friend class boost::serialization::access;
+    template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
+        ar & db_filename;
+#ifdef SEMANTIC_SERIALIZER_CHECK
+        ar & semantic_filename;
+#endif
+    }
 };
 
 /* Configuration for the serializer that can change from run to run */
 
 struct log_serializer_dynamic_config_t {
     /* When the proportion of garbage blocks hits gc_high_ratio, then the serializer will collect
-    garbage until it reaches gc_low_ratio. */
+garbage until it reaches gc_low_ratio. */
     float gc_low_ratio, gc_high_ratio;
-    
+
     /* How many data block extents the serializer will be writing to at once */
     unsigned num_active_data_extents;
 
     /* If file_size is nonzero and the serializer is not running on a block device, then it will
-    pretend to be running on a block device by immediately resizing the file to file_size and then
-    zoning it like a block device. */
+pretend to be running on a block device by immediately resizing the file to file_size and then
+zoning it like a block device. */
     size_t file_size;
-    
+
     /* How big to make each zone if the database is on a block device or if file_size is given */
     size_t file_zone_size;
 
@@ -45,12 +57,24 @@ struct log_serializer_dynamic_config_t {
     io_backend_t io_backend;
 
     /* The (minimal) batch size of i/o requests being taken from a single i/o account.
-    It is a factor because the actual batch size is this factor multiplied by the
-    i/o priority of the account. */
+It is a factor because the actual batch size is this factor multiplied by the
+i/o priority of the account. */
     int io_batch_factor;
 
     /* Enable reading more data than requested to let the cache warmup more quickly esp. on rotational drives */
     bool read_ahead;
+
+    friend class boost::serialization::access;
+    template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
+        ar & gc_low_ratio;
+        ar & gc_high_ratio;
+        ar & num_active_data_extents;
+        ar & file_size;
+        ar & file_zone_size;
+        ar & io_backend;
+        ar & io_batch_factor;
+        ar & read_ahead;
+    }
 };
 
 /* Configuration for the serializer that is set when the database is created */
@@ -76,20 +100,20 @@ struct log_serializer_static_config_t {
 struct mirrored_cache_config_t {
     // Max amount of memory that will be used for the cache, in bytes.
     long long max_size;
-    
+
     // If wait_for_flush is true, then write operations will not return until after the data is
     // safely sitting on the disk.
     bool wait_for_flush;
-    
+
     // flush_timer_ms is how long (in milliseconds) the cache will allow modified data to sit in
     // memory before flushing it to disk. If it is NEVER_FLUSH, then data will be allowed to sit in
     // memory indefinitely.
     int flush_timer_ms;
-    
+
     // max_dirty_size is the most unsaved data that is allowed in memory before the cache will
     // throttle write transactions. It's in bytes.
     long long max_dirty_size;
-    
+
     // flush_dirty_size is the amount of unsaved data that will trigger an immediate flush. It
     // should be much less than max_dirty_size. It's in bytes.
     long long flush_dirty_size;
@@ -109,6 +133,19 @@ struct mirrored_cache_config_t {
     // one account for writes, and one account for reads.
     int io_priority_reads;
     int io_priority_writes;
+
+    friend class boost::serialization::access;
+    template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
+        ar & max_size;
+        ar & wait_for_flush;
+        ar & flush_timer_ms;
+        ar & max_dirty_size;
+        ar & flush_dirty_size;
+        ar & flush_waiting_threshold;
+        ar & max_concurrent_flushes;
+        ar & io_priority_reads;
+        ar & io_priority_writes;
+    }
 };
 
 /* This part of the serializer is part of the on-disk serializer_config_block and can
@@ -134,11 +171,18 @@ struct btree_key_value_store_dynamic_config_t {
 
     /* Vector of per-serializer database information structures */
     std::vector<log_serializer_private_dynamic_config_t> serializer_private;
-    log_serializer_private_dynamic_config_t metadata_serializer_private;
 
     mirrored_cache_config_t cache;
 
     int64_t total_delete_queue_limit;
+
+    friend class boost::serialization::access;
+    template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
+        ar & serializer;
+        ar & serializer_private;
+        ar & cache;
+        ar & total_delete_queue_limit;
+    }
 };
 
 /* Configuration for the store (btree, cache, and serializers) that is set at database
@@ -152,7 +196,7 @@ struct btree_key_value_store_static_config_t {
 
 /* Configuration for replication */
 struct replication_config_t {
-    char    hostname[MAX_HOSTNAME_LEN];
+    std::string hostname;
     int     port;
     bool    active;
     /* Terminate the connection if no heartbeat is received within this many milliseconds */
@@ -161,15 +205,11 @@ struct replication_config_t {
 
 /* Configuration for failover */
 struct failover_config_t {
-    char    failover_script_path[MAX_PATH_LEN]; /* !< script to be called when the other server goes down */
+    std::string    failover_script_path; /* !< script to be called when the other server goes down */
     bool    active;
     bool    no_rogue; /* whether to go rogue when the master is struggling to stay up */
 
-    failover_config_t()
-        : active(false), no_rogue(false)
-    {
-        *failover_script_path = 0;
-    }
+    failover_config_t() : active(false), no_rogue(false) { }
 };
 
 /* Configuration for import */
@@ -186,7 +226,7 @@ struct import_config_t {
             fail_due_to_user_error("Inaccessible or invalid import file: \"%s\": %s", s.c_str(), strerror(errno));
         else
             fclose(import_file);
-        
+
         file.push_back(s);
     }
 };
@@ -203,18 +243,19 @@ struct cmd_config_t {
     void print_database_flags();
     void print_system_spec();
 
-    
+
     /* Attributes */
-    
+
     int port;
     int n_workers;
-    
-    char log_file_name[MAX_LOG_FILE_NAME];
+
+    std::string log_file_name;
     // Log messages below this level aren't printed
     //log_level min_log_level;
-    
+
     // Configuration information for the btree
     btree_key_value_store_dynamic_config_t store_dynamic_config;
+    btree_key_value_store_dynamic_config_t metadata_store_dynamic_config;
     btree_key_value_store_static_config_t store_static_config;
     bool create_store, force_create, shutdown_after_creation;
 
@@ -238,7 +279,7 @@ class parsing_cmd_config_t : public cmd_config_t
 {
 public:
     parsing_cmd_config_t();
-    
+
     void set_cores(const char* value);
     void set_port(const char* value);
     void set_log_file(const char* value);
@@ -269,12 +310,12 @@ public:
     void set_metadata_file(const char *value);
 
     long long parse_diff_log_size(const char* value);
-    
+
 private:
     bool parsing_failed;
     int parse_int(const char* value);
     long long int parse_longlong(const char* value);
-    
+
     template<typename T> bool is_positive(const T value) const;
     template<typename T> bool is_in_range(const T value, const T minimum_value, const T maximum_value) const;
     template<typename T> bool is_at_least(const T value, const T minimum_value) const;
@@ -287,4 +328,3 @@ void usage_create();
 void usage_import();
 
 #endif // __CMD_ARGS_HPP__
-

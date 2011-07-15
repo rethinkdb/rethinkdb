@@ -1,11 +1,9 @@
-
 #ifndef __SERIALIZER_HPP__
 #define __SERIALIZER_HPP__
 
+#include "arch/arch.hpp"
 #include "serializer/types.hpp"
-#include "server/cmd_args.hpp"
 
-#include "utils2.hpp"
 #include "utils.hpp"
 
 /* serializer_t is an abstract interface that describes how each serializer should
