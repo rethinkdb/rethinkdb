@@ -41,6 +41,8 @@ private:
 struct cluster_t :
     public home_thread_mixin_t
 {
+public:
+
     /* `peer_id_t` is a wrapper around a `boost::uuids::uuid`. Each newly
     created cluster node picks a UUID to be its peer-ID. */
     struct peer_id_t {
@@ -122,7 +124,7 @@ struct cluster_t :
 private:
     /* We are always listening for new connections from other peers. */
     streamed_tcp_listener_t listener;
-    void on_new_connection(boost::scoped_ptr<streamed_tcp_conn_t> &);
+    void on_new_connection(streamed_tcp_conn_t *);
 
     void handle(streamed_tcp_conn_t *c,
         boost::optional<peer_id_t> expected_id,

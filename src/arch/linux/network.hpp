@@ -185,7 +185,7 @@ class linux_tcp_listener_t : public linux_event_callback_t {
 public:
     linux_tcp_listener_t(
         int port,
-        boost::function<void(boost::scoped_ptr<linux_tcp_conn_t>&)> callback
+        boost::function<void(linux_tcp_conn_t*)> callback
         );
     ~linux_tcp_listener_t();
 
@@ -206,7 +206,7 @@ private:
     linux_event_watcher_t event_watcher;
 
     // The callback to call when we get a connection
-    boost::function<void(boost::scoped_ptr<linux_tcp_conn_t>&)> callback;
+    boost::function<void(linux_tcp_conn_t*)> callback;
 
     /* accept_loop() runs in a separate coroutine. It repeatedly tries to accept
     new connections; when accept() blocks, then it waits for events from the

@@ -12,14 +12,14 @@
 namespace connectivity {
 
 cluster_t::cluster_t(int port) :
-    listener(port, boost::bind(&cluster_t::on_new_connection, this, _1)),
+    listener(port, boost::bind(&connectivity::cluster_t::on_new_connection, this, _1)),
     me(peer_id_t(boost::uuids::random_generator()()))
 {
     routing_table[me] = address_t(ip_address_t::us(), port);
 }
 
 cluster_t::cluster_t(int port, peer_id_t id_from_last_time) :
-    listener(port, boost::bind(&cluster_t::on_new_connection, this, _1)),
+    listener(port, boost::bind(&connectivity::cluster_t::on_new_connection, this, _1)),
     me(id_from_last_time)
 {
     routing_table[me] = address_t(ip_address_t::us(), port);
@@ -42,6 +42,25 @@ void cluster_t::join(address_t address) {
         conn,
         boost::none,
         boost::optional<address_t>(address),
+        drain_semaphore_lock
+        ));
+}
+
+/* The handling of incomming connections is symmetric to reaching out to another
+cluster. So this is very much like join(), except that it uses the supplied
+connection.
+ TODO (daniel): Hope this is right?
+*/
+void cluster_t::on_new_connection(streamed_tcp_conn_t *conn) {
+
+    drain_semaphore_t::lock_t drain_semaphore_lock(&shutdown_semaphore);
+
+    coro_t::spawn(boost::bind(
+        &connectivity::cluster_t::handle,
+        this,
+        conn,
+        boost::none,
+        boost::none,                // TODO (daniel): Are those nones correct here?
         drain_semaphore_lock
         ));
 }
@@ -135,7 +154,8 @@ void cluster_t::send_message(peer_id_t dest, boost::function<void(std::ostream&)
 
         try {
             boost::archive::text_oarchive sender(*dest_conn->conn);
-            std::string buffer_str = buffer.str(); // TODO: Stupid copying...
+            std::string buffer_str;
+            buffer.str(buffer_str); // TODO: Stupid copying...
             sender << buffer_str;
         } catch (std::ios_base::failure) {
             /* Close the other half of the connection to make sure that
