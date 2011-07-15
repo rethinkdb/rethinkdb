@@ -7,12 +7,11 @@
 #include "btree/node.hpp"
 #include "logger.hpp"
 #include "btree/buf_patches.hpp"
+#include "btree/leaf_node.hpp"
 
 #include "perfmon.hpp"          // for format(), oddly enough
 
 namespace unittest {
-
-#include "btree/leaf_node.cc" // Build a local variant which uses test_buf_t!
 
 repli_timestamp_t fake_timestamp = { -2 };
 
@@ -249,7 +248,7 @@ public:
 
     void init() {
         SCOPED_TRACE("init");
-        leaf::init(&sizer, *node_buf, fake_timestamp);
+        leaf::init(&sizer, node_buf, fake_timestamp);
         initialized = true;
         validate();
     }
@@ -271,9 +270,9 @@ public:
         StackValue sval(v, bs);
 
         if (expected_space() < int((1 + k.size()) + v.full_size() + sizeof(*node->pair_offsets))) {
-            ASSERT_FALSE(leaf::insert(&sizer, *node_buf, skey.look(), sval.lookv(), fake_timestamp));
+            ASSERT_FALSE(leaf::insert(&sizer, node_buf, skey.look(), sval.lookv(), fake_timestamp));
         } else {
-            ASSERT_TRUE(leaf::insert(&sizer, *node_buf, skey.look(), sval.lookv(), fake_timestamp));
+            ASSERT_TRUE(leaf::insert(&sizer, node_buf, skey.look(), sval.lookv(), fake_timestamp));
 
             std::pair<expected_t::iterator, bool> res = expected.insert(std::make_pair(k, v));
             if (res.second) {
@@ -379,7 +378,7 @@ public:
             // in two mutually exclusive intervals.
 
             StackKey skey;
-            leaf::merge(&sizer, lnode.node, *node_buf, skey.look_write());
+            leaf::merge(&sizer, lnode.node, node_buf, skey.look_write());
 
             for (expected_t::const_iterator p = lnode.expected.begin(), e = lnode.expected.end();
                  p != e;
@@ -408,7 +407,7 @@ public:
         int fo_sum = expected_frontmost_offset + sibling.expected_frontmost_offset;
         int npair_sum = expected_npairs + sibling.expected_npairs;
 
-        leaf::level(&sizer, *node_buf, *sibling.node_buf, key_to_replace.look_write(), replacement_key.look_write());
+        leaf::level(&sizer, node_buf, sibling.node_buf, key_to_replace.look_write(), replacement_key.look_write());
 
         // Sanity check that npairs and frontmost_offset are in sane ranges.
 
