@@ -1,19 +1,28 @@
 #include "rpc/connectivity/connectivity.hpp"
 
+#include <sstream>
+#include <ios>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/serialization/base_object.hpp>
+#include <boost/serialization/string.hpp>
+#include <boost/serialization/map.hpp>
+#include "concurrency/drain_semaphore.hpp"
+
 namespace connectivity {
 
 cluster_t::cluster_t(int port) :
-    listener(port),
+    listener(port, boost::bind(&cluster_t::on_new_connection, this, _1)),
     me(peer_id_t(boost::uuids::random_generator()()))
 {
-    routing_table[me] = address_t(ip_address_t::me(), port);
+    routing_table[me] = address_t(ip_address_t::us(), port);
 }
 
 cluster_t::cluster_t(int port, peer_id_t id_from_last_time) :
-    listener(port),
+    listener(port, boost::bind(&cluster_t::on_new_connection, this, _1)),
     me(id_from_last_time)
 {
-    routing_table[me] = address_t(ip_address_t::me(), port);
+    routing_table[me] = address_t(ip_address_t::us(), port);
 }
 
 cluster_t::~cluster_t() {
@@ -28,7 +37,8 @@ void cluster_t::join(address_t address) {
     drain_semaphore_t::lock_t drain_semaphore_lock(&shutdown_semaphore);
 
     coro_t::spawn(boost::bind(
-        &cluster_t::handle,
+        &connectivity::cluster_t::handle,
+        this,
         conn,
         boost::none,
         boost::optional<address_t>(address),
@@ -36,11 +46,11 @@ void cluster_t::join(address_t address) {
         ));
 }
 
-peer_id_t cluster_t::get_me() {
+cluster_t::peer_id_t cluster_t::get_me() {
     return me;
 }
 
-std::map<peer_id_t, address_t> cluster_t::get_everybody() {
+std::map<cluster_t::peer_id_t, address_t> cluster_t::get_everybody() {
     /* We can't just return `routing_table` because `routing_table` includes
     some partially-connected peers, so if we just returned `routing_table` then
     some peers would appear in the output from `get_everybody()` before the
@@ -60,13 +70,13 @@ std::map<peer_id_t, address_t> cluster_t::get_everybody() {
 cluster_t::event_watcher_t::event_watcher_t(cluster_t *parent) :
     cluster(parent)
 {
-    mutex_acquisition_t acq(&parent->watcher_mutex);
+    mutex_acquisition_t acq(&parent->watchers_mutex);
     parent->watchers.push_back(this);
 }
 
 cluster_t::event_watcher_t::~event_watcher_t() {
-    mutex_acquisition_t acq(&parent->watcher_mutex);
-    parent->watchers.remove(this);
+    mutex_acquisition_t acq(&cluster->watchers_mutex);
+    cluster->watchers.remove(this);
 }
 
 /* cluster_t::connect_watcher_t */
@@ -101,16 +111,18 @@ void cluster_t::disconnect_watcher_t::on_disconnect(peer_id_t p) {
 
 void cluster_t::send_message(peer_id_t dest, boost::function<void(std::ostream&)> writer) {
 
-    std::stringstream buffer(ios_base::out);
+    std::stringstream buffer(std::ios_base::out);
     writer(buffer);
 
     if (dest == me) {
-        std::stringstream buffer2(buffer.str(), ios_base::in);
+        std::stringstream buffer2(buffer.str(), std::ios_base::in);
         on_message(me, buffer2);
 
     } else {
-        connection_t *dest = connections[dest];
-        if (!dest) {
+        // TODO! (daniel) I think this adds a NULL pointer to the map if the connection
+        // doesn't exist, which might not be what we expect.
+        connection_t *dest_conn = connections[dest];
+        if (!dest_conn) {
             /* We don't currently have access to this peer. Our policy is to not
             notify the sender when a message cannot be transmitted (since this
             is not always possible). So just return. */
@@ -119,16 +131,17 @@ void cluster_t::send_message(peer_id_t dest, boost::function<void(std::ostream&)
 
         /* Acquire the send-mutex so we don't collide with other things trying
         to send on the same connection. */
-        mutex_acquisition_t acq(&dest->send_mutex);
+        mutex_acquisition_t acq(&dest_conn->send_mutex);
 
         try {
-            boost::archive::xml_oarchive sender(dest->conn);
-            sender << buffer.str();
-        } catch (tcp_conn_t::write_closed_exc_t) {
+            boost::archive::text_oarchive sender(*dest_conn->conn);
+            std::string buffer_str = buffer.str(); // TODO: Stupid copying...
+            sender << buffer_str;
+        } catch (std::ios_base::failure) {
             /* Close the other half of the connection to make sure that
             `cluster_t::handle()` notices that something is up */
-            if (dest->conn->get_raw_conn()->is_read_open()) {
-                dest->conn->get_raw_conn()->shutdown_read();
+            if (dest_conn->conn->is_read_open()) {
+                dest_conn->conn->shutdown_read();
             }
         }
     }
@@ -150,23 +163,24 @@ void cluster_t::handle(streamed_tcp_conn_t *c,
 
     /* Make sure that if we're ordered to shut down, any pending read or write
     gets interrupted. */
-    struct connection_closer_t : public signal_t::watcher_t {
+    struct connection_closer_t : public signal_t::waiter_t {
         streamed_tcp_conn_t *conn_to_close;
         void on_signal_pulsed() {
-            if (conn_to_close->get_raw_conn()->is_read_open()) {
-                conn_to_close->get_raw_conn()->shutdown_read();
+            if (conn_to_close->is_read_open()) {
+                conn_to_close->shutdown_read();
             }
-            if (conn_to_close->get_raw_conn()->is_write_open()) {
-                conn_to_close->get_raw_conn()->shutdown_write();
+            if (conn_to_close->is_write_open()) {
+                conn_to_close->shutdown_write();
             }
         }
     };
     connection_closer_t connection_closer;
-    shutdown_cond.add_watcher(&connection_closer);
+    shutdown_cond.add_waiter(&connection_closer);
 
-    /* Use XML as a joke */
-    boost::archive::xml_oarchive sender(*conn);
-    boost::archive::xml_iarchive receiver(*conn);
+    /* Don't use XML as a joke, it's not funny and causes problems because it
+    requires using make_nvp everywhere */
+    boost::archive::text_oarchive sender(*conn);
+    boost::archive::text_iarchive receiver(*conn);
 
     /* Each side sends their own ID and address, then receives the other side's.
     */
@@ -174,7 +188,7 @@ void cluster_t::handle(streamed_tcp_conn_t *c,
     try {
         sender << me;
         sender << routing_table[me];
-    } catch (tcp_conn_t::write_closed_exc_t) {
+    } catch (std::ios_base::failure) {
         return;
     }
 
@@ -183,7 +197,7 @@ void cluster_t::handle(streamed_tcp_conn_t *c,
     try {
         receiver >> other_id;
         receiver >> other_address;
-    } catch (tcp_conn_t::read_closed_exc_t) {
+    } catch (std::ios_base::failure) {
         return;
     }
 
@@ -194,7 +208,7 @@ void cluster_t::handle(streamed_tcp_conn_t *c,
     if (expected_id && other_id != *expected_id) {
         crash("Inconsistent routing information: wrong ID");
     }
-    if (expected_addr && other_address != *expected_addr) {
+    if (expected_address && other_address != *expected_address) {
         crash("Inconsistent routing information: wrong address");
     }
 
@@ -240,7 +254,7 @@ void cluster_t::handle(streamed_tcp_conn_t *c,
         knows we're in. */
         try {
             sender << routing_table_to_send;
-        } catch (tcp_conn_t::write_failed_exc_t) {
+        } catch (std::ios_base::failure) {
             routing_table.erase(other_id);
             return;
         }
@@ -248,7 +262,7 @@ void cluster_t::handle(streamed_tcp_conn_t *c,
         /* Receive the follower's routing table */
         try {
             receiver >> other_routing_table;
-        } catch (tcp_conn_t::read_failed_exc_t) {
+        } catch (std::ios_base::failure) {
             routing_table.erase(other_id);
             return;
         }
@@ -260,7 +274,7 @@ void cluster_t::handle(streamed_tcp_conn_t *c,
         the routing table. */
         try {
             receiver >> other_routing_table;
-        } catch (tcp_conn_t::read_failed_exc_t) {
+        } catch (std::ios_base::failure) {
             return;
         }
 
@@ -288,7 +302,7 @@ void cluster_t::handle(streamed_tcp_conn_t *c,
         /* Send our routing table to the leader */
         try {
             sender << routing_table_to_send;
-        } catch (tcp_conn_t::write_failed_exc_t) {
+        } catch (std::ios_base::failure) {
             routing_table.erase(other_id);
             return;
         }
@@ -303,7 +317,7 @@ void cluster_t::handle(streamed_tcp_conn_t *c,
             coro_t::spawn(boost::bind(
                 &cluster_t::handle,
                 this,
-                new tcp_conn_t((*it).second.host, (*it).second.port),
+                new streamed_tcp_conn_t((*it).second.ip, (*it).second.port),
                 boost::optional<peer_id_t>((*it).first),
                 boost::optional<address_t>((*it).second),
                 drain_semaphore_lock
@@ -321,7 +335,7 @@ void cluster_t::handle(streamed_tcp_conn_t *c,
         /* Put ourselves in the connection-map and notify event-watchers that
         the connection is up */
         {
-            mutex_acquisition_t acq(&watcher_mutex);
+            mutex_acquisition_t acq(&watchers_mutex);
 
             rassert(connections.find(other_id) == connections.end());
             connections[other_id] = &conn_structure;
@@ -344,17 +358,17 @@ void cluster_t::handle(streamed_tcp_conn_t *c,
                 should change it when we care about performance. */
                 std::string message;
                 receiver >> message;
-                std::stringstream stream(message, ios_base::in);
+                std::stringstream stream(message, std::ios_base::in);
                 on_message(other_id, stream);
             }
-        } catch (tcp_conn_t::read_closed_exc_t) {
+        } catch (std::ios_base::failure) {
             /* The exception broke us out of the loop, and that's what we
             wanted. */
         }
 
         /* Remove us from the connection map. */
         {
-            mutex_acquisition_t acq(&watcher_mutex);
+            mutex_acquisition_t acq(&watchers_mutex);
 
             /* This is kind of tricky: We want new calls to `send_message()` to
             see that we are gone, but we don't want to cause segfaults by
@@ -365,7 +379,7 @@ void cluster_t::handle(streamed_tcp_conn_t *c,
             gets a chance to finish). */
             rassert(connections[other_id] == &conn_structure);
             connections.erase(other_id);
-            conn_structure.send_mutex.lock();
+            co_lock_mutex(&conn_structure.send_mutex);
 
             /* `event_watcher_t`s shouldn't block. */
             ASSERT_FINITE_CORO_WAITING;
@@ -381,7 +395,7 @@ void cluster_t::handle(streamed_tcp_conn_t *c,
 
     /* Get rid of the `connection_closer_t` */
     if (!shutdown_cond.is_pulsed()) {
-        shutdown_cond.remove_watcher(&connection_closer);
+        shutdown_cond.remove_waiter(&connection_closer);
     }
 }
 

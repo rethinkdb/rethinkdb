@@ -34,11 +34,11 @@ ip_address_t::ip_address_t(uint32_t a) {
     addr.s_addr = a;
 }
 
-bool ip_address_t::operator==(const ip_address_t &x) {
+bool ip_address_t::operator==(const ip_address_t &x) const {
     return !memcmp(&addr, &x.addr, sizeof(struct in_addr));
 }
 
-bool ip_address_t::operator!=(const ip_address_t &x) {
+bool ip_address_t::operator!=(const ip_address_t &x) const {
     return memcmp(&addr, &x.addr, sizeof(struct in_addr));
 }
 

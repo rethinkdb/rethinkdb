@@ -1,17 +1,75 @@
 #ifndef __RPC_CONNECTIVITY_CONNECTIVITY_HPP__
 #define __RPC_CONNECTIVITY_CONNECTIVITY_HPP__
 
+#include <map>
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/optional.hpp>
+#include <boost/serialization/access.hpp>
+#include <boost/serialization/base_object.hpp>
+#include <boost/serialization/binary_object.hpp>
+#include <boost/serialization/utility.hpp>
+#include "arch/streamed_tcp.hpp"
+#include "arch/address.hpp"
+#include "utils.hpp"
+#include "concurrency/signal.hpp"
+#include "concurrency/mutex.hpp"
+
 namespace connectivity {
 
 struct address_t {
     address_t(ip_address_t i, int p) : ip(i), port(p) { }
+    address_t() : ip(), port(0) { } // For deserialization
     ip_address_t ip;
     int port;
+
+    bool operator==(const address_t &a) const {
+        return ip == a.ip && port == a.port;
+    }
+    bool operator!=(const address_t &a) const {
+        return ip != a.ip || port != a.port;
+    }
+
+private:
+    friend class ::boost::serialization::access;
+    template<class Archive> void serialize(Archive & ar, UNUSED const unsigned int version) {
+        ar & ip;
+        ar & port;
+    }
 };
 
 struct cluster_t :
     public home_thread_mixin_t
 {
+    /* `peer_id_t` is a wrapper around a `boost::uuids::uuid`. Each newly
+    created cluster node picks a UUID to be its peer-ID. */
+    struct peer_id_t {
+        bool operator==(const peer_id_t &p) const {
+            return p.uuid == uuid;
+        }
+        bool operator!=(const peer_id_t &p) const {
+            return p.uuid != uuid;
+        }
+        bool operator<(const peer_id_t &p) const {
+            return p.uuid < uuid;
+        }
+
+        // TODO: This should not be used. Can we get rid of it without breaking
+        // the possibility of using this in an std::map and for deserialization?
+        // (other than making all required classes friends and this private)
+        peer_id_t() { }
+    private:
+        friend class cluster_t;
+        boost::uuids::uuid uuid;
+        peer_id_t(boost::uuids::uuid u) : uuid(u) { }
+
+        friend class boost::serialization::access;
+        template<class Archive> void serialize(Archive & ar, UNUSED const unsigned int version) {
+            // Not really platform independent...
+            boost::serialization::binary_object bin_uuid(&uuid, boost::uuids::uuid::static_size());
+            ar & bin_uuid;
+        }
+    };
 
     /* Creating a new cluster node, and connecting one cluster to another
     cluster */
@@ -19,15 +77,6 @@ struct cluster_t :
     cluster_t(int port, peer_id_t id_from_last_time);
     ~cluster_t();
     void join(address_t);
-
-    /* `peer_id_t` is a wrapper around a `boost::uuids::uuid`. Each newly
-    created cluster node picks a UUID to be its peer-ID. */
-    struct peer_id_t {
-    private:
-        friend class cluster_t;
-        boost::uuid uuid;
-        peer_id_t(boost::uuid u) : uuid(u) { }
-    };
 
     /* `get_me()` returns the `peer_id_t` for this cluster node.
     `get_everybody()` returns all the currently-accessible peers in the
@@ -38,9 +87,9 @@ struct cluster_t :
     /* `event_watcher_t` is used to watch for any node joining or leaving the
     cluster. `connect_watcher_t` and `disconnect_watcher_t` are used to watch
     for a specific peer connecting or disconnecting. */
-    struct event_watcher_t : private intrusive_list_node_t<event_watcher_t> {
+    struct event_watcher_t : public intrusive_list_node_t<event_watcher_t> {
         event_watcher_t(cluster_t *);
-        ~event_watcher_t();
+        virtual ~event_watcher_t();
         virtual void on_connect(peer_id_t) = 0;
         virtual void on_disconnect(peer_id_t) = 0;
     private:
@@ -72,8 +121,8 @@ struct cluster_t :
 
 private:
     /* We are always listening for new connections from other peers. */
-    tcp_listener_t listener;
-    void on_new_connection(boost::scoped_ptr<tcp_conn_t> &);
+    streamed_tcp_listener_t listener;
+    void on_new_connection(boost::scoped_ptr<streamed_tcp_conn_t> &);
 
     void handle(streamed_tcp_conn_t *c,
         boost::optional<peer_id_t> expected_id,
