@@ -126,10 +126,11 @@ private:
     streamed_tcp_listener_t listener;
     void on_new_connection(boost::scoped_ptr<streamed_tcp_conn_t> &);
 
-    void handle(boost::scoped_ptr<streamed_tcp_conn_t> c,
+    void join_blocking(address_t address, boost::optional<peer_id_t>, drain_semaphore_t::lock_t);
+
+    void handle(streamed_tcp_conn_t *c,
         boost::optional<peer_id_t> expected_id,
-        boost::optional<address_t> expected_address,
-        drain_semaphore_t::lock_t drain_semaphore_lock);
+        boost::optional<address_t> expected_address);
 
     /* `me` is our `peer_id_t`. `routing_table` is all the peers we can
     currently access and their addresses. Peers that are in the process of

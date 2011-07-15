@@ -31,35 +31,15 @@ cluster_t::~cluster_t() {
 }
 
 void cluster_t::join(address_t address) {
-
-    streamed_tcp_conn_t *conn = new streamed_tcp_conn_t(address.ip, address.port);
-
     drain_semaphore_t::lock_t drain_semaphore_lock(&shutdown_semaphore);
-
-    coro_t::spawn(boost::bind(
-        &connectivity::cluster_t::handle,
+    coro_t::spawn_now(boost::bind(
+        &cluster_t::join_blocking,
         this,
-        conn,
+        address,
+        /* We don't know what `peer_id_t` the peer has until we connect to it */
         boost::none,
-        boost::optional<address_t>(address),
         drain_semaphore_lock
         ));
-}
-
-/* The handling of incomming connections is symmetric to reaching out to another
-cluster. So this is very much like join(), except that it uses the supplied
-connection.
- TODO (daniel): Hope this is right?
-*/
-void cluster_t::on_new_connection(boost::scoped_ptr<streamed_tcp_conn_t> conn) {
-
-    drain_semaphore_t::lock_t drain_semaphore_lock(&shutdown_semaphore);
-
-    handle(conn,
-        boost::none,
-        boost::none,                // TODO (daniel): Are those nones correct here?
-        drain_semaphore_lock
-        );
 }
 
 cluster_t::peer_id_t cluster_t::get_me() {
@@ -127,6 +107,9 @@ void cluster_t::disconnect_watcher_t::on_disconnect(peer_id_t p) {
 
 void cluster_t::send_message(peer_id_t dest, boost::function<void(std::ostream&)> writer) {
 
+    /* We currently write the message to a `stringstream`, then serialize that
+    as a string. It's horribly inefficient, of course. */
+
     std::stringstream buffer(std::ios_base::out);
     writer(buffer);
 
@@ -135,15 +118,14 @@ void cluster_t::send_message(peer_id_t dest, boost::function<void(std::ostream&)
         on_message(me, buffer2);
 
     } else {
-        // TODO! (daniel) I think this adds a NULL pointer to the map if the connection
-        // doesn't exist, which might not be what we expect.
-        connection_t *dest_conn = connections[dest];
-        if (!dest_conn) {
+        std::map<peer_id_t, connection_t*>::iterator it = connections.find(dest);
+        if (it == connections.end()) {
             /* We don't currently have access to this peer. Our policy is to not
             notify the sender when a message cannot be transmitted (since this
             is not always possible). So just return. */
             return;
         }
+        connection_t *dest_conn = (*it).second;
 
         /* Acquire the send-mutex so we don't collide with other things trying
         to send on the same connection. */
@@ -152,7 +134,7 @@ void cluster_t::send_message(peer_id_t dest, boost::function<void(std::ostream&)
         try {
             boost::archive::text_oarchive sender(*dest_conn->conn);
             std::string buffer_str;
-            buffer.str(buffer_str); // TODO: Stupid copying...
+            buffer.str(buffer_str);
             sender << buffer_str;
         } catch (std::ios_base::failure) {
             /* Close the other half of the connection to make sure that
@@ -164,24 +146,39 @@ void cluster_t::send_message(peer_id_t dest, boost::function<void(std::ostream&)
     }
 }
 
+void cluster_t::on_new_connection(boost::scoped_ptr<streamed_tcp_conn_t> &conn) {
+    drain_semaphore_t::lock_t drain_semaphore_lock(&shutdown_semaphore);
+    handle(conn.get(), boost::none, boost::none);
+}
+
+/* `cluster_t::join_blocking()` is spawned in a new coroutine by
+`cluster_t::join()`. It's also run by `cluster_t::handle()` when we hear about
+a new peer from a peer we are connected to. */
+
+void cluster_t::join_blocking(
+        address_t address,
+        boost::optional<peer_id_t> expected_id,
+        UNUSED drain_semaphore_t::lock_t lock) {
+    streamed_tcp_conn_t conn(address.ip, address.port);
+    handle(&conn, expected_id, boost::optional<address_t>(address));
+}
+
 /* `cluster_t::handle` is responsible for the entire lifetime of an
 intra-cluster TCP connection. It handles the handshake, exchanging node maps,
 sending out the connect-notification, receiving messages from the peer until it
 disconnects or we are shut down, and sending out the disconnect-notification. */
 
-void cluster_t::handle(boost::scoped_ptr<streamed_tcp_conn_t> c,
+void cluster_t::handle(
+        /* `conn` should remain valid until `cluster_t::handle()` returns.
+        `cluster_t::handle()` does not take ownership of `conn`. */
+        streamed_tcp_conn_t *conn,
         boost::optional<peer_id_t> expected_id,
-        boost::optional<address_t> expected_address,
-        UNUSED drain_semaphore_t::lock_t drain_semaphore_lock) {
-
-    /* Put the connection in a `boost::scoped_ptr` so that it won't leak if we
-    get an exception */
-    boost::scoped_ptr<streamed_tcp_conn_t> conn;
-    conn.swap(c);
+        boost::optional<address_t> expected_address) {
 
     /* Make sure that if we're ordered to shut down, any pending read or write
     gets interrupted. */
     struct connection_closer_t : public signal_t::waiter_t {
+        connection_closer_t(streamed_tcp_conn_t *c) : conn_to_close(c) { }
         streamed_tcp_conn_t *conn_to_close;
         void on_signal_pulsed() {
             if (conn_to_close->is_read_open()) {
@@ -192,7 +189,7 @@ void cluster_t::handle(boost::scoped_ptr<streamed_tcp_conn_t> c,
             }
         }
     };
-    connection_closer_t connection_closer;
+    connection_closer_t connection_closer(conn);
     shutdown_cond.add_waiter(&connection_closer);
 
     /* Don't use XML as a joke, it's not funny and causes problems because it
@@ -327,19 +324,24 @@ void cluster_t::handle(boost::scoped_ptr<streamed_tcp_conn_t> c,
     }
 
     /* For each peer that our new friend told us about that we don't already
-    know about, start a new connection */
-    for (std::map<peer_id_t, address_t>::iterator it = other_routing_table.begin();
-         it != other_routing_table.end(); it++) {
-        if (routing_table.find((*it).first) != routing_table.end()) {
-            /* Start the process of connecting to the newly-discovered peer */
-            coro_t::spawn(boost::bind(
-                &cluster_t::handle,
-                this,
-                new streamed_tcp_conn_t((*it).second.ip, (*it).second.port),
-                boost::optional<peer_id_t>((*it).first),
-                boost::optional<address_t>((*it).second),
-                drain_semaphore_lock
-                ));
+    know about, start a new connection.*/
+    {
+        /* Acquire the drain semaphore so we can pass a
+        `drain_semaphore_t::lock_t` to the coroutine we spawn. That way, the
+        `cluster_t` won't shut down while there coroutine is still active. */
+        drain_semaphore_t::lock_t drain_semaphore_lock(&shutdown_semaphore);
+
+        for (std::map<peer_id_t, address_t>::iterator it = other_routing_table.begin();
+             it != other_routing_table.end(); it++) {
+            if (routing_table.find((*it).first) != routing_table.end()) {
+                /* `(*it).first` is the ID of a peer that our peer is connected
+                to, but we aren't connected to. */
+                coro_t::spawn_now(boost::bind(
+                    &cluster_t::join_blocking, this,
+                    (*it).second,
+                    boost::optional<peer_id_t>((*it).first),
+                    drain_semaphore_lock));
+            }
         }
     }
 
@@ -348,7 +350,7 @@ void cluster_t::handle(boost::scoped_ptr<streamed_tcp_conn_t> c,
         pointer to `conn_structure` into `connections`, and clients use that to
         find us for the purpose of sending messages. */
         connection_t conn_structure;
-        conn_structure.conn = conn.get();
+        conn_structure.conn = conn;
 
         /* Put ourselves in the connection-map and notify event-watchers that
         the connection is up */
