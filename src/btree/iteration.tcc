@@ -6,7 +6,8 @@ perfmon_counter_t
     leaf_iterators("leaf_iterators"),
     slice_leaves_iterators("slice_leaves_iterators");
 
-leaf_iterator_t::leaf_iterator_t(const leaf_node_t *_leaf, int _index, buf_lock_t *_lock, const boost::shared_ptr<value_sizer_t>& _sizer, const boost::shared_ptr<transaction_t>& _transaction) :
+template <class Value>
+leaf_iterator_t<Value>::leaf_iterator_t(const leaf_node_t *_leaf, int _index, buf_lock_t *_lock, const boost::shared_ptr<value_sizer_t<Value> >& _sizer, const boost::shared_ptr<transaction_t>& _transaction) :
     leaf(_leaf), index(_index), lock(_lock), sizer(_sizer), transaction(_transaction) {
 
     rassert(leaf != NULL);
@@ -14,30 +15,33 @@ leaf_iterator_t::leaf_iterator_t(const leaf_node_t *_leaf, int _index, buf_lock_
     leaf_iterators++;
 }
 
-boost::optional<key_value_pair_t> leaf_iterator_t::next() {
+template <class Value>
+boost::optional<key_value_pair_t<Value> > leaf_iterator_t<Value>::next() {
     rassert(index >= 0);
-    const btree_leaf_pair *pair;
+    const btree_leaf_pair<Value> *pair;
     if (index >= leaf->npairs) {
         done();
         return boost::none;
     } else {
-        pair = leaf::get_pair_by_index(leaf, index++);
+        pair = leaf::get_pair_by_index<Value>(leaf, index++);
 
-        memcached_value_sizer_t sizer(transaction->get_cache()->get_block_size());
-        return boost::make_optional(key_value_pair_t(&sizer, key_to_str(&pair->key), pair->value()));
+        return boost::make_optional(key_value_pair_t<Value>(sizer.get(), key_to_str(&pair->key), pair->value()));
     }
 }
 
-void leaf_iterator_t::prefetch() {
+template <class Value>
+void leaf_iterator_t<Value>::prefetch() {
     /* this space intentionally left blank */
 }
 
-leaf_iterator_t::~leaf_iterator_t() {
+template <class Value>
+leaf_iterator_t<Value>::~leaf_iterator_t() {
     leaf_iterators--;
     done();
 }
 
-void leaf_iterator_t::done() {
+template <class Value>
+void leaf_iterator_t<Value>::done() {
     if (lock) {
         on_thread_t th(transaction->home_thread());
         delete lock;
@@ -45,7 +49,8 @@ void leaf_iterator_t::done() {
     }
 }
 
-slice_leaves_iterator_t::slice_leaves_iterator_t(const boost::shared_ptr<value_sizer_t>& _sizer, const boost::shared_ptr<transaction_t>& _transaction, btree_slice_t *_slice,
+template <class Value>
+slice_leaves_iterator_t<Value>::slice_leaves_iterator_t(const boost::shared_ptr<value_sizer_t<Value> >& _sizer, const boost::shared_ptr<transaction_t>& _transaction, btree_slice_t *_slice,
     rget_bound_mode_t _left_mode, const btree_key_t *_left_key, rget_bound_mode_t _right_mode, const btree_key_t *_right_key) :
     sizer(_sizer), transaction(_transaction), slice(_slice),
     left_mode(_left_mode), left_key(_left_key), right_mode(_right_mode), right_key(_right_key),
@@ -53,26 +58,30 @@ slice_leaves_iterator_t::slice_leaves_iterator_t(const boost::shared_ptr<value_s
     slice_leaves_iterators++;
 }
 
-boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::next() {
+template <class Value>
+boost::optional<leaf_iterator_t<Value>*> slice_leaves_iterator_t<Value>::next() {
     if (nevermore)
         return boost::none;
 
-    boost::optional<leaf_iterator_t*> leaf = !started ? get_first_leaf() : get_next_leaf();
+    boost::optional<leaf_iterator_t<Value>*> leaf = !started ? get_first_leaf() : get_next_leaf();
     if (!leaf)
         done();
     return leaf;
 }
 
-void slice_leaves_iterator_t::prefetch() {
+template <class Value>
+void slice_leaves_iterator_t<Value>::prefetch() {
     // Not implemented yet
 }
 
-slice_leaves_iterator_t::~slice_leaves_iterator_t() {
+template <class Value>
+slice_leaves_iterator_t<Value>::~slice_leaves_iterator_t() {
     slice_leaves_iterators--;
     done();
 }
 
-void slice_leaves_iterator_t::done() {
+template <class Value>
+void slice_leaves_iterator_t<Value>::done() {
     while (!traversal_state.empty()) {
         delete traversal_state.back().lock;
         traversal_state.pop_back();
@@ -80,7 +89,8 @@ void slice_leaves_iterator_t::done() {
     nevermore = true;
 }
 
-boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_first_leaf() {
+template <class Value>
+boost::optional<leaf_iterator_t<Value>*> slice_leaves_iterator_t<Value>::get_first_leaf() {
     on_thread_t mover(slice->home_thread()); // Move to the slice's thread.
 
     started = true;
@@ -95,7 +105,7 @@ boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_first_leaf() {
     }
 
     if (left_mode == rget_bound_none) {
-        boost::optional<leaf_iterator_t*> leftmost_leaf = get_leftmost_leaf(root_id);
+        boost::optional<leaf_iterator_t<Value>*> leftmost_leaf = get_leftmost_leaf(root_id);
         delete buf_lock;
         return leftmost_leaf;
     }
@@ -136,7 +146,7 @@ boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_first_leaf() {
     int index = leaf::impl::get_offset_index(l_node, left_key);
 
     if (index < l_node->npairs) {
-        return boost::make_optional(new leaf_iterator_t(l_node, index, buf_lock, sizer, transaction));
+        return boost::make_optional(new leaf_iterator_t<Value>(l_node, index, buf_lock, sizer, transaction));
     } else {
         // there's nothing more in this leaf, we might as well move to the next leaf
         delete buf_lock;
@@ -144,7 +154,8 @@ boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_first_leaf() {
     }
 }
 
-boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_next_leaf() {
+template <class Value>
+boost::optional<leaf_iterator_t<Value>*> slice_leaves_iterator_t<Value>::get_next_leaf() {
     while (traversal_state.size() > 0) {
         internal_node_state state = traversal_state.back();
         traversal_state.pop_back();
@@ -164,7 +175,8 @@ boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_next_leaf() {
     return boost::none;
 }
 
-boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_leftmost_leaf(block_id_t node_id) {
+template <class Value>
+boost::optional<leaf_iterator_t<Value>*> slice_leaves_iterator_t<Value>::get_leftmost_leaf(block_id_t node_id) {
     on_thread_t mover(slice->home_thread()); // Move to the slice's thread.
 
     // TODO: Why is there a buf_lock_t pointer?  This is not how
@@ -190,10 +202,11 @@ boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_leftmost_leaf(blo
     rassert(buf_lock != NULL);
 
     const leaf_node_t *l_node = reinterpret_cast<const leaf_node_t *>(node);
-    return boost::make_optional(new leaf_iterator_t(l_node, 0, buf_lock, sizer, transaction));
+    return boost::make_optional(new leaf_iterator_t<Value>(l_node, 0, buf_lock, sizer, transaction));
 }
 
-block_id_t slice_leaves_iterator_t::get_child_id(const internal_node_t *i_node, int index) const {
+template <class Value>
+block_id_t slice_leaves_iterator_t<Value>::get_child_id(const internal_node_t *i_node, int index) const {
     block_id_t child_id = internal_node::get_pair_by_index(i_node, index)->lnode;
     rassert(child_id != NULL_BLOCK_ID);
     rassert(child_id != SUPERBLOCK_ID);
@@ -201,36 +214,41 @@ block_id_t slice_leaves_iterator_t::get_child_id(const internal_node_t *i_node, 
     return child_id;
 }
 
-slice_keys_iterator_t::slice_keys_iterator_t(const boost::shared_ptr<value_sizer_t>& _sizer, const boost::shared_ptr<transaction_t>& _transaction, btree_slice_t *_slice,
+template <class Value>
+slice_keys_iterator_t<Value>::slice_keys_iterator_t(const boost::shared_ptr<value_sizer_t<Value> >& _sizer, const boost::shared_ptr<transaction_t>& _transaction, btree_slice_t *_slice,
         rget_bound_mode_t _left_mode, const store_key_t &_left_key, rget_bound_mode_t _right_mode, const store_key_t &_right_key) :
     sizer(_sizer), transaction(_transaction), slice(_slice),
     left_mode(_left_mode), left_key(_left_key), right_mode(_right_mode), right_key(_right_key),
     left_str(key_to_str(_left_key)), right_str(key_to_str(_right_key)),
     no_more_data(false), active_leaf(NULL), leaves_iterator(NULL) { }
 
-slice_keys_iterator_t::~slice_keys_iterator_t() {
+template <class Value>
+slice_keys_iterator_t<Value>::~slice_keys_iterator_t() {
     done();
 }
 
-boost::optional<key_value_pair_t> slice_keys_iterator_t::next() {
+template <class Value>
+boost::optional<key_value_pair_t<Value> > slice_keys_iterator_t<Value>::next() {
     if (no_more_data)
         return boost::none;
 
-    boost::optional<key_value_pair_t> result = active_leaf == NULL ? get_first_value() : get_next_value();
+    boost::optional<key_value_pair_t<Value> > result = active_leaf == NULL ? get_first_value() : get_next_value();
     if (!result) {
         done();
     }
     return result;
 }
 
-void slice_keys_iterator_t::prefetch() {
+template <class Value>
+void slice_keys_iterator_t<Value>::prefetch() {
 }
 
-boost::optional<key_value_pair_t> slice_keys_iterator_t::get_first_value() {
-    leaves_iterator = new slice_leaves_iterator_t(sizer, transaction, slice, left_mode, left_key.key(), right_mode, right_key.key());
+template <class Value>
+boost::optional<key_value_pair_t<Value> > slice_keys_iterator_t<Value>::get_first_value() {
+    leaves_iterator = new slice_leaves_iterator_t<Value>(sizer, transaction, slice, left_mode, left_key.key(), right_mode, right_key.key());
 
     // get the first leaf with our left key (or something greater)
-    boost::optional<leaf_iterator_t*> first = leaves_iterator->next();
+    boost::optional<leaf_iterator_t<Value>*> first = leaves_iterator->next();
     if (!first)
         return boost::none;
 
@@ -238,12 +256,12 @@ boost::optional<key_value_pair_t> slice_keys_iterator_t::get_first_value() {
     rassert(active_leaf != NULL);
 
     // get a value from the leaf
-    boost::optional<key_value_pair_t> first_pair = active_leaf->next();
+    boost::optional<key_value_pair_t<Value> > first_pair = active_leaf->next();
     if (!first_pair) {
         return first_pair;  // returns empty result
     }
 
-    key_value_pair_t pair = first_pair.get();
+    key_value_pair_t<Value> pair = first_pair.get();
 
     // skip the left key if left_mode == rget_bound_mode_open
     int compare_result = pair.key.compare(left_str);
@@ -255,17 +273,18 @@ boost::optional<key_value_pair_t> slice_keys_iterator_t::get_first_value() {
     }
 }
 
-boost::optional<key_value_pair_t> slice_keys_iterator_t::get_next_value() {
+template <class Value>
+boost::optional<key_value_pair_t<Value> > slice_keys_iterator_t<Value>::get_next_value() {
     rassert(leaves_iterator != NULL);
     rassert(active_leaf != NULL);
 
     // get a value from the leaf
-    boost::optional<key_value_pair_t> current_pair = active_leaf->next();
+    boost::optional<key_value_pair_t<Value> > current_pair = active_leaf->next();
     if (!current_pair) {
         delete active_leaf;
         active_leaf = NULL;
 
-        boost::optional<leaf_iterator_t*> leaf = leaves_iterator->next();
+        boost::optional<leaf_iterator_t<Value>*> leaf = leaves_iterator->next();
         if (!leaf) {
             return boost::none;
         }
@@ -280,7 +299,8 @@ boost::optional<key_value_pair_t> slice_keys_iterator_t::get_next_value() {
     return validate_return_value(current_pair.get());
 }
 
-boost::optional<key_value_pair_t> slice_keys_iterator_t::validate_return_value(key_value_pair_t &pair) const {
+template <class Value>
+boost::optional<key_value_pair_t<Value> > slice_keys_iterator_t<Value>::validate_return_value(key_value_pair_t<Value> &pair) const {
     if (right_mode == rget_bound_none)
         return boost::make_optional(pair);
 
@@ -292,7 +312,8 @@ boost::optional<key_value_pair_t> slice_keys_iterator_t::validate_return_value(k
     }
 }
 
-void slice_keys_iterator_t::done() {
+template <class Value>
+void slice_keys_iterator_t<Value>::done() {
     if (active_leaf) {
         delete active_leaf;
         active_leaf = NULL;

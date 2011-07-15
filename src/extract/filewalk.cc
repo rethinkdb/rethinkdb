@@ -88,7 +88,7 @@ void observe_blocks(block_registry &registry, nondirect_file_t &file, const cfg_
 void load_diff_log(const std::map<size_t, off64_t>& offsets, nondirect_file_t& file, const cfg_t cfg, uint64_t filesize);
 void get_all_values(dumper_t& dumper, const std::map<size_t, off64_t>& offsets, nondirect_file_t& file, const cfg_t cfg, uint64_t filesize);
 bool check_config(const cfg_t& cfg);
-void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg, const std::map<size_t, off64_t>& offsets, const btree_leaf_pair *pair, block_id_t this_block, int pair_size_limiter);
+void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg, const std::map<size_t, off64_t>& offsets, const btree_leaf_pair<memcached_value_t> *pair, block_id_t this_block, int pair_size_limiter);
 void walkfile(dumper_t &dumper, const char *path);
 
 
@@ -268,7 +268,7 @@ bool recover_basic_block_consistency(const cfg_t cfg, void *buf) {
         if (unsigned(pair_offsets_back_offset) < cfg.block_size().value()) {
             for (int j = 0; j < num_pairs; ++j) {
                 uint16_t pair_offset = leaf->pair_offsets[j];
-                if (!(pair_offset >= pair_offsets_back_offset && pair_offset + sizeof(btree_leaf_pair) + sizeof(btree_value_t) + 1 <= cfg.block_size().value())) {
+                if (!(pair_offset >= pair_offsets_back_offset && pair_offset + sizeof(btree_leaf_pair<memcached_value_t>) + sizeof(memcached_value_t) + 1 <= cfg.block_size().value())) {
                     // Illegal pair offset
                     // Recover...
                     logERR("Recovering from a corrupted leaf node block. Data might be lost.\n");
@@ -281,7 +281,7 @@ bool recover_basic_block_consistency(const cfg_t cfg, void *buf) {
             }
             for (int j = 0; j < num_pairs; ++j) {
                 uint16_t pair_offset = leaf->pair_offsets[j];
-                btree_leaf_pair *pair = leaf::get_pair_by_index(leaf, j);
+                btree_leaf_pair<memcached_value_t> *pair = leaf::get_pair_by_index<memcached_value_t>(leaf, j);
                 memcached_value_sizer_t sizer(cfg.block_size());
                 if (!leaf_pair_fits(&sizer, pair, (signed int)cfg.block_size().value() - (signed int)pair_offset)) {
                     logERR("A pair juts off the end of the block. Truncating pair.\n");
@@ -363,7 +363,7 @@ void get_all_values(dumper_t& dumper, const std::map<size_t, off64_t>& offsets, 
                     for (int j = 0; j < num_pairs; ++j) {
                         uint16_t pair_offset = leaf->pair_offsets[j];
                         if (pair_offset >= pair_offsets_back_offset && pair_offset <= cfg.block_size().value()) {
-                            const btree_leaf_pair *pair = leaf::get_pair_by_index(leaf, j);
+                            const btree_leaf_pair<memcached_value_t> *pair = leaf::get_pair_by_index<memcached_value_t>(leaf, j);
                             dump_pair_value(dumper, file, cfg, offsets, pair, block_id, cfg.block_size().value() - pair_offset);
                         }
                     }
@@ -390,7 +390,7 @@ private:
 
 
 // Dumps the values for a given pair.
-void dump_pair_value(dumper_t &dumper, UNUSED nondirect_file_t& file, const cfg_t& cfg, UNUSED const std::map<size_t, off64_t>& offsets, const btree_leaf_pair *pair, block_id_t this_block, int pair_size_limiter) {
+void dump_pair_value(dumper_t &dumper, UNUSED nondirect_file_t& file, const cfg_t& cfg, UNUSED const std::map<size_t, off64_t>& offsets, const btree_leaf_pair<memcached_value_t> *pair, block_id_t this_block, int pair_size_limiter) {
     memcached_value_sizer_t sizer(cfg.block_size());
     if (pair_size_limiter < 0 || !leaf_pair_fits(&sizer, pair, pair_size_limiter)) {
         logERR("(In block %u) A pair juts off the end of the block.\n", this_block);
@@ -398,7 +398,7 @@ void dump_pair_value(dumper_t &dumper, UNUSED nondirect_file_t& file, const cfg_
     }
 
     const btree_key_t *key = &pair->key;
-    const btree_value_t *value = reinterpret_cast<const btree_value_t *>(pair->value());
+    const memcached_value_t *value = reinterpret_cast<const memcached_value_t *>(pair->value());
 
     mcflags_t flags = value->mcflags();
     exptime_t exptime = value->exptime();
