@@ -11,9 +11,7 @@
 
 namespace replication {
 
-void master_t::on_conn(linux_tcp_conn_t *conn_raw) {
-    boost::scoped_ptr<linux_tcp_conn_t> conn(conn_raw);
-
+void master_t::on_conn(boost::scoped_ptr<linux_tcp_conn_t>& conn) {
     mutex_acquisition_t ak(&stream_setup_teardown_);
 
     // Note: As destroy_existing_slave_conn_if_it_exists() acquires

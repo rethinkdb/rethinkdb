@@ -590,7 +590,7 @@ void linux_tcp_conn_t::on_event(int events) {
 
 linux_tcp_listener_t::linux_tcp_listener_t(
         int port,
-        boost::function<void(linux_tcp_conn_t*)> cb) :
+        boost::function<void(boost::scoped_ptr<linux_tcp_conn_t>&)> cb) :
     sock(socket(AF_INET, SOCK_STREAM, 0)),
     event_watcher(sock.get(), this),
     callback(cb),
@@ -701,7 +701,7 @@ void linux_tcp_listener_t::accept_loop(signal_t *shutdown_signal) {
 }
 
 void linux_tcp_listener_t::handle(fd_t socket) {
-    linux_tcp_conn_t *conn = new linux_tcp_conn_t(socket);
+    boost::scoped_ptr<linux_tcp_conn_t> conn(new linux_tcp_conn_t(socket));
     callback(conn);
 }
 

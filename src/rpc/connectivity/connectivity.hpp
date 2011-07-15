@@ -124,9 +124,9 @@ public:
 private:
     /* We are always listening for new connections from other peers. */
     streamed_tcp_listener_t listener;
-    void on_new_connection(streamed_tcp_conn_t *);
+    void on_new_connection(boost::scoped_ptr<streamed_tcp_conn_t> &);
 
-    void handle(streamed_tcp_conn_t *c,
+    void handle(boost::scoped_ptr<streamed_tcp_conn_t> c,
         boost::optional<peer_id_t> expected_id,
         boost::optional<address_t> expected_address,
         drain_semaphore_t::lock_t drain_semaphore_lock);

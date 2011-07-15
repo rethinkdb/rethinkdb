@@ -143,10 +143,10 @@ private:
 
     friend class streamed_tcp_listener_t;
     // Used by streamed_tcp_listener_t
-    explicit streamed_tcp_conn_t(tcp_conn_t *conn) :
+    explicit streamed_tcp_conn_t(boost::scoped_ptr<tcp_conn_t> &conn) :
             std::iostream(&conn_streambuf),
-            conn_streambuf(conn) {
-        conn_.reset(conn);
+            conn_streambuf(conn.get()) {
+        conn_.swap(conn);
     }
 
     boost::scoped_ptr<tcp_conn_t> conn_;
@@ -163,19 +163,19 @@ class streamed_tcp_listener_t {
 public:
     streamed_tcp_listener_t(
             int port,
-            boost::function<void(streamed_tcp_conn_t*)> callback
+            boost::function<void(boost::scoped_ptr<streamed_tcp_conn_t>&)> callback
         ) : callback(callback), listener(port, boost::bind(&streamed_tcp_listener_t::handle, this, _1) ) {
     }
 
 private:
     // The wrapping handler
-    void handle(linux_tcp_conn_t *conn) {
-        streamed_tcp_conn_t *streamed_conn = new streamed_tcp_conn_t(conn);
+    void handle(boost::scoped_ptr<linux_tcp_conn_t> &conn) {
+        boost::scoped_ptr<streamed_tcp_conn_t> streamed_conn(new streamed_tcp_conn_t(conn));
         callback(streamed_conn);
     }
 
     // The callback to call when we get a connection
-    boost::function<void(streamed_tcp_conn_t*)> callback;
+    boost::function<void(boost::scoped_ptr<streamed_tcp_conn_t>&)> callback;
 
     tcp_listener_t listener;
 };

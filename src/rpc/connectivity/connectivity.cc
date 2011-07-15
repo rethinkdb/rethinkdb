@@ -51,18 +51,15 @@ cluster. So this is very much like join(), except that it uses the supplied
 connection.
  TODO (daniel): Hope this is right?
 */
-void cluster_t::on_new_connection(streamed_tcp_conn_t *conn) {
+void cluster_t::on_new_connection(boost::scoped_ptr<streamed_tcp_conn_t> conn) {
 
     drain_semaphore_t::lock_t drain_semaphore_lock(&shutdown_semaphore);
 
-    coro_t::spawn(boost::bind(
-        &connectivity::cluster_t::handle,
-        this,
-        conn,
+    handle(conn,
         boost::none,
         boost::none,                // TODO (daniel): Are those nones correct here?
         drain_semaphore_lock
-        ));
+        );
 }
 
 cluster_t::peer_id_t cluster_t::get_me() {
@@ -172,14 +169,15 @@ intra-cluster TCP connection. It handles the handshake, exchanging node maps,
 sending out the connect-notification, receiving messages from the peer until it
 disconnects or we are shut down, and sending out the disconnect-notification. */
 
-void cluster_t::handle(streamed_tcp_conn_t *c,
+void cluster_t::handle(boost::scoped_ptr<streamed_tcp_conn_t> c,
         boost::optional<peer_id_t> expected_id,
         boost::optional<address_t> expected_address,
         UNUSED drain_semaphore_t::lock_t drain_semaphore_lock) {
 
     /* Put the connection in a `boost::scoped_ptr` so that it won't leak if we
     get an exception */
-    boost::scoped_ptr<streamed_tcp_conn_t> conn(c);
+    boost::scoped_ptr<streamed_tcp_conn_t> conn;
+    conn.swap(c);
 
     /* Make sure that if we're ordered to shut down, any pending read or write
     gets interrupted. */
