@@ -8,13 +8,13 @@
 // in other tests which rely on buf_t
 
 #include "serializer/types.hpp"
+#include "buffer_cache/abstract_buf.hpp"
 #include "buffer_cache/buf_patch.hpp"
 #include "errors.hpp"
 
 namespace unittest {
 
-class test_buf_t
-{
+class test_buf_t : public abstract_buf_t {
 public:
     test_buf_t(block_size_t bs, block_id_t _block_id)
         : block_size(bs), block_id(_block_id) {
@@ -23,11 +23,11 @@ public:
         next_patch_counter = 1;
     }
 
-    block_id_t get_block_id() {
+    block_id_t get_block_id() const {
         return block_id;
     }
 
-    const void *get_data_read() {
+    const void *get_data_read() const {
         return &data[0];
     }
 

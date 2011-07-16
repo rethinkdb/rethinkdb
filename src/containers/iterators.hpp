@@ -45,6 +45,38 @@ struct transform_iterator_t : public one_way_iterator_t<U> {
     one_way_iterator_t<T> *ownee;
 };
 
+template <class T>
+struct filter_iterator_t : public one_way_iterator_t<T> {
+    filter_iterator_t(const boost::function<bool(T&)>& _predicate, one_way_iterator_t<T> *_ownee) : predicate(_predicate), ownee(_ownee) { }
+    ~filter_iterator_t() {
+        delete ownee;
+    }
+    virtual typename boost::optional<T> next() {
+        for (;;) {
+            boost::optional<T> value = ownee->next();
+            if (!value) {
+                return boost::none;
+            } else {
+                if (predicate(value.get())) {
+                    return value;
+                }
+                // otherwise, continue.
+            }
+        }
+    }
+    void prefetch() {
+        // Unfortunately we don't feel like really implementing this
+        // function right now.  It would require running the filter
+        // operation on return values, consuming ahead into the
+        // iterator.  Also some other one_way_iterator_t
+        // implementations blow this off, so why not us.
+        ownee->prefetch();
+    }
+
+    boost::function<bool(T&)> predicate;
+    one_way_iterator_t<T> *ownee;
+};
+
 template <typename F, typename S, typename Cmp = std::less<F> >
 struct first_greater {
     typedef F first_argument_type;

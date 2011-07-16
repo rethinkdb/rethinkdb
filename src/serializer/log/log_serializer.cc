@@ -331,8 +331,8 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
 
         // Update block info (delete bit, recency)
         if (op.delete_bit) offset.set_delete_bit(op.delete_bit.get());
-        repli_timestamp recency = op.recency ? op.recency.get()
-                                : lba_index->get_block_recency(op.block_id);
+        repli_timestamp_t recency = op.recency ? op.recency.get()
+                                  : lba_index->get_block_recency(op.block_id);
 
         lba_index->set_block_info(op.block_id, recency, offset, io_account);
     }

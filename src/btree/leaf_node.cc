@@ -18,8 +18,8 @@ bool leaf_pair_fits(value_sizer_t *sizer, const btree_leaf_pair *pair, size_t si
 
 namespace leaf {
 
-void init(value_sizer_t *sizer, buf_t& node_buf, repli_timestamp_t modification_time) {
-    leaf_node_t *node = reinterpret_cast<leaf_node_t *>(node_buf.get_data_major_write());
+void init(value_sizer_t *sizer, abstract_buf_t *node_buf, repli_timestamp_t modification_time) {
+    leaf_node_t *node = reinterpret_cast<leaf_node_t *>(node_buf->get_data_major_write());
 
     node->magic = leaf_node_t::expected_magic;
     node->npairs = 0;
@@ -31,8 +31,8 @@ void init(value_sizer_t *sizer, buf_t& node_buf, repli_timestamp_t modification_
 // more coarse than conceivably possible.  We could also let the
 // caller supply an earlier[] array.
 // TODO: maybe lnode should just supply the modification time.
-void init(value_sizer_t *sizer, buf_t& node_buf, const leaf_node_t *lnode, const uint16_t *offsets, int numpairs, repli_timestamp_t modification_time) {
-    leaf_node_t *node = reinterpret_cast<leaf_node_t *>(node_buf.get_data_major_write());
+void init(value_sizer_t *sizer, abstract_buf_t *node_buf, const leaf_node_t *lnode, const uint16_t *offsets, int numpairs, repli_timestamp_t modification_time) {
+    leaf_node_t *node = reinterpret_cast<leaf_node_t *>(node_buf->get_data_major_write());
 
     init(sizer, node_buf, modification_time);
     for (int i = 0; i < numpairs; i++) {
@@ -44,14 +44,14 @@ void init(value_sizer_t *sizer, buf_t& node_buf, const leaf_node_t *lnode, const
 }
 
 
-bool insert(value_sizer_t *sizer, buf_t& node_buf, const btree_key_t *key, const value_type_t *value, repli_timestamp_t insertion_time) {
-    const leaf_node_t *node = reinterpret_cast<const leaf_node_t *>(node_buf.get_data_read());
+bool insert(value_sizer_t *sizer, abstract_buf_t *node_buf, const btree_key_t *key, const value_type_t *value, repli_timestamp_t insertion_time) {
+    const leaf_node_t *node = reinterpret_cast<const leaf_node_t *>(node_buf->get_data_read());
 
     if (is_full(sizer, node, key, value)) {
         return false;
     }
 
-    node_buf.apply_patch(new leaf_insert_patch_t(node_buf.get_block_id(), node_buf.get_next_patch_counter(), sizer->size(value), value, key->size, key->contents, insertion_time));
+    node_buf->apply_patch(new leaf_insert_patch_t(node_buf->get_block_id(), node_buf->get_next_patch_counter(), sizer->size(value), value, key->size, key->contents, insertion_time));
 
     validate(sizer, node);
     return true;
@@ -95,10 +95,10 @@ void insert(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *key, con
 // TODO: This assumes that key is in the node.  This means we're
 // already sure the key is in the node.  This means we're doing an
 // unnecessary binary search.
-void remove(value_sizer_t *sizer, buf_t &node_buf, const btree_key_t *key) {
-    const leaf_node_t *node = reinterpret_cast<const leaf_node_t *>(node_buf.get_data_read());
+void remove(value_sizer_t *sizer, abstract_buf_t *node_buf, const btree_key_t *key) {
+    const leaf_node_t *node = reinterpret_cast<const leaf_node_t *>(node_buf->get_data_read());
 
-    node_buf.apply_patch(new leaf_remove_patch_t(node_buf.get_block_id(), node_buf.get_next_patch_counter(), sizer->block_size(), key->size, key->contents));
+    node_buf->apply_patch(new leaf_remove_patch_t(node_buf->get_block_id(), node_buf->get_next_patch_counter(), sizer->block_size(), key->size, key->contents));
 
     // TODO: Currently this will error incorrectly on root
     // guarantee(node->npairs != 0, "leaf became zero size!");
@@ -135,9 +135,9 @@ bool lookup(value_sizer_t *sizer, const leaf_node_t *node, const btree_key_t *ke
 // plus some extra.  Let's say greater than 1500, just to be
 // comfortable.  TODO: prove that block_size - node->frontmost_offset
 // meets this 1500 lower bound.
-void split(value_sizer_t *sizer, buf_t &node_buf, buf_t &rnode_buf, btree_key_t *median_out) {
-    const leaf_node_t *node = reinterpret_cast<const leaf_node_t *>(node_buf.get_data_read());
-    const leaf_node_t *rnode __attribute__((unused)) = reinterpret_cast<const leaf_node_t *>(rnode_buf.get_data_read());
+void split(value_sizer_t *sizer, abstract_buf_t *node_buf, abstract_buf_t *rnode_buf, btree_key_t *median_out) {
+    const leaf_node_t *node = reinterpret_cast<const leaf_node_t *>(node_buf->get_data_read());
+    const leaf_node_t *rnode __attribute__((unused)) = reinterpret_cast<const leaf_node_t *>(rnode_buf->get_data_read());
 
     rassert(node != rnode);
 
@@ -165,7 +165,7 @@ void split(value_sizer_t *sizer, buf_t &node_buf, buf_t &rnode_buf, btree_key_t 
     }
 
     uint16_t new_npairs = median_index;
-    node_buf.set_data(const_cast<uint16_t *>(&node->npairs), &new_npairs, sizeof(new_npairs));
+    node_buf->set_data(const_cast<uint16_t *>(&node->npairs), &new_npairs, sizeof(new_npairs));
 
     // TODO: this could be less coarse (if we made leaf::init less coarse).
     impl::initialize_times(node_buf, node->times.last_modified);
@@ -176,8 +176,8 @@ void split(value_sizer_t *sizer, buf_t &node_buf, buf_t &rnode_buf, btree_key_t 
     keycpy(median_out, median_key);
 }
 
-void merge(value_sizer_t *sizer, const leaf_node_t *node, buf_t &rnode_buf, btree_key_t *key_to_remove_out) {
-    const leaf_node_t *rnode = reinterpret_cast<const leaf_node_t *>(rnode_buf.get_data_read());
+void merge(value_sizer_t *sizer, const leaf_node_t *node, abstract_buf_t *rnode_buf, btree_key_t *key_to_remove_out) {
+    const leaf_node_t *rnode = reinterpret_cast<const leaf_node_t *>(rnode_buf->get_data_read());
 
     rassert(node != rnode);
 
@@ -188,14 +188,14 @@ void merge(value_sizer_t *sizer, const leaf_node_t *node, buf_t &rnode_buf, btre
     // TODO: this is coarser than it could be.
     impl::initialize_times(rnode_buf, repli_max(node->times.last_modified, rnode->times.last_modified));
 
-    rnode_buf.move_data(const_cast<uint16_t *>(rnode->pair_offsets + node->npairs), rnode->pair_offsets, rnode->npairs * sizeof(*rnode->pair_offsets));
+    rnode_buf->move_data(const_cast<uint16_t *>(rnode->pair_offsets + node->npairs), rnode->pair_offsets, rnode->npairs * sizeof(*rnode->pair_offsets));
 
     for (int i = 0; i < node->npairs; i++) {
         uint16_t new_offset = impl::insert_pair(sizer, rnode_buf, get_pair_by_index(node, i));
-        rnode_buf.set_data(const_cast<uint16_t *>(&rnode->pair_offsets[i]), &new_offset, sizeof(new_offset));
+        rnode_buf->set_data(const_cast<uint16_t *>(&rnode->pair_offsets[i]), &new_offset, sizeof(new_offset));
     }
     uint16_t new_npairs = rnode->npairs + node->npairs;
-    rnode_buf.set_data(const_cast<uint16_t *>(&rnode->npairs), &new_npairs, sizeof(new_npairs));
+    rnode_buf->set_data(const_cast<uint16_t *>(&rnode->npairs), &new_npairs, sizeof(new_npairs));
 
     keycpy(key_to_remove_out, &get_pair_by_index(rnode, 0)->key);
 
@@ -204,9 +204,9 @@ void merge(value_sizer_t *sizer, const leaf_node_t *node, buf_t &rnode_buf, btre
 #endif
 }
 
-bool level(value_sizer_t *sizer, buf_t &node_buf, buf_t &sibling_buf, btree_key_t *key_to_replace_out, btree_key_t *replacement_key_out) {
-    const leaf_node_t *node = reinterpret_cast<const leaf_node_t *>(node_buf.get_data_read());
-    const leaf_node_t *sibling = reinterpret_cast<const leaf_node_t *>(sibling_buf.get_data_read());
+bool level(value_sizer_t *sizer, abstract_buf_t *node_buf, abstract_buf_t *sibling_buf, btree_key_t *key_to_replace_out, btree_key_t *replacement_key_out) {
+    const leaf_node_t *node = reinterpret_cast<const leaf_node_t *>(node_buf->get_data_read());
+    const leaf_node_t *sibling = reinterpret_cast<const leaf_node_t *>(sibling_buf->get_data_read());
 
     rassert(node != sibling);
 
@@ -253,10 +253,10 @@ bool level(value_sizer_t *sizer, buf_t &node_buf, buf_t &sibling_buf, btree_key_
         {
             int node_npairs = node->npairs;
             uint16_t new_npairs = node->npairs + index;
-            node_buf.set_data(const_cast<uint16_t *>(&node->npairs), &new_npairs, sizeof(new_npairs));
+            node_buf->set_data(const_cast<uint16_t *>(&node->npairs), &new_npairs, sizeof(new_npairs));
             for (int i = 0; i < index; i++) {
                 uint16_t new_offset = impl::insert_pair(sizer, node_buf, get_pair_by_index(sibling, i));
-                node_buf.set_data(const_cast<uint16_t *>(&node->pair_offsets[node_npairs + i]), &new_offset, sizeof(new_offset));
+                node_buf->set_data(const_cast<uint16_t *>(&node->pair_offsets[node_npairs + i]), &new_offset, sizeof(new_offset));
             }
         }
 
@@ -306,12 +306,12 @@ bool level(value_sizer_t *sizer, buf_t &node_buf, buf_t &sibling_buf, btree_key_
         // make sure that we aren't overfilling node.  This is very low priority.
 
         // Copy from the end of the sibling to the beginning of the node.
-        node_buf.move_data(const_cast<uint16_t *>(node->pair_offsets + pairs_to_move), node->pair_offsets, node->npairs * sizeof(*node->pair_offsets));
+        node_buf->move_data(const_cast<uint16_t *>(node->pair_offsets + pairs_to_move), node->pair_offsets, node->npairs * sizeof(*node->pair_offsets));
         uint16_t new_npairs = node->npairs + pairs_to_move;
-        node_buf.set_data(const_cast<uint16_t *>(&node->npairs), &new_npairs, sizeof(new_npairs));
+        node_buf->set_data(const_cast<uint16_t *>(&node->npairs), &new_npairs, sizeof(new_npairs));
         for (int i = index; i < sibling->npairs; i++) {
             uint16_t new_offset = impl::insert_pair(sizer, node_buf, get_pair_by_index(sibling, i));
-            node_buf.set_data(const_cast<uint16_t *>(&node->pair_offsets[i-index]), &new_offset, sizeof(new_offset));
+            node_buf->set_data(const_cast<uint16_t *>(&node->pair_offsets[i-index]), &new_offset, sizeof(new_offset));
         }
 
         // This is ~(n^2) when it could be ~(n).  Profile.
@@ -444,12 +444,12 @@ void shift_pairs(leaf_node_t *node, uint16_t offset, long shift) {
     }
 }
 
-void delete_pair(value_sizer_t *sizer, buf_t &node_buf, uint16_t offset) {
-    const leaf_node_t *node = reinterpret_cast<const leaf_node_t *>(node_buf.get_data_read());
+void delete_pair(value_sizer_t *sizer, abstract_buf_t *node_buf, uint16_t offset) {
+    const leaf_node_t *node = reinterpret_cast<const leaf_node_t *>(node_buf->get_data_read());
     const btree_leaf_pair *pair_to_delete = get_pair(node, offset);
     size_t shift = pair_size(sizer, pair_to_delete);
 
-    node_buf.apply_patch(new leaf_shift_pairs_patch_t(node_buf.get_block_id(), node_buf.get_next_patch_counter(), offset, shift));
+    node_buf->apply_patch(new leaf_shift_pairs_patch_t(node_buf->get_block_id(), node_buf->get_next_patch_counter(), offset, shift));
 }
 void delete_pair(value_sizer_t *sizer, leaf_node_t *node, uint16_t offset) {
     const btree_leaf_pair *pair_to_delete = get_pair(node, offset);
@@ -460,16 +460,16 @@ void delete_pair(value_sizer_t *sizer, leaf_node_t *node, uint16_t offset) {
 
 // Copies pair contents snugly onto the front of the data region,
 // modifying the frontmost_offset.  Returns the new frontmost_offset.
-uint16_t insert_pair(value_sizer_t *sizer, buf_t &node_buf, const btree_leaf_pair *pair) {
+uint16_t insert_pair(value_sizer_t *sizer, abstract_buf_t *node_buf, const btree_leaf_pair *pair) {
     return insert_pair(sizer, node_buf, pair->value(), &pair->key);
 }
 
 // Decreases frontmost_offset by the pair size, key->full_size() + value->full_size().
 // Copies key and value into pair snugly onto the front of the data region.
 // Returns the new frontmost_offset.
-uint16_t insert_pair(value_sizer_t *sizer, buf_t &node_buf, const value_type_t *value, const btree_key_t *key) {
-    node_buf.apply_patch(new leaf_insert_pair_patch_t(node_buf.get_block_id(), node_buf.get_next_patch_counter(), sizer->size(value), value, key->size, key->contents));
-    const leaf_node_t *node = reinterpret_cast<const leaf_node_t *>(node_buf.get_data_read());
+uint16_t insert_pair(value_sizer_t *sizer, abstract_buf_t *node_buf, const value_type_t *value, const btree_key_t *key) {
+    node_buf->apply_patch(new leaf_insert_pair_patch_t(node_buf->get_block_id(), node_buf->get_next_patch_counter(), sizer->size(value), value, key->size, key->contents));
+    const leaf_node_t *node = reinterpret_cast<const leaf_node_t *>(node_buf->get_data_read());
     return node->frontmost_offset;
 }
 
@@ -503,14 +503,14 @@ int find_key(const leaf_node_t *node, const btree_key_t *key) {
     }
 }
 
-void delete_offset(buf_t &node_buf, int index) {
-    const leaf_node_t *node = reinterpret_cast<const leaf_node_t *>(node_buf.get_data_read());
+void delete_offset(abstract_buf_t *node_buf, int index) {
+    const leaf_node_t *node = reinterpret_cast<const leaf_node_t *>(node_buf->get_data_read());
     const uint16_t *pair_offsets = node->pair_offsets;
     if (node->npairs > 1) {
-        node_buf.move_data(const_cast<uint16_t *>(pair_offsets+index), pair_offsets+index+1, (node->npairs-index-1) * sizeof(uint16_t));
+        node_buf->move_data(const_cast<uint16_t *>(pair_offsets+index), pair_offsets+index+1, (node->npairs-index-1) * sizeof(uint16_t));
     }
     uint16_t npairs = node->npairs - 1;
-    node_buf.set_data(const_cast<uint16_t *>(&node->npairs), &npairs, sizeof(npairs));
+    node_buf->set_data(const_cast<uint16_t *>(&node->npairs), &npairs, sizeof(npairs));
 }
 void delete_offset(leaf_node_t *node, int index) {
     uint16_t *pair_offsets = node->pair_offsets;
@@ -533,11 +533,11 @@ bool is_equal(const btree_key_t *key1, const btree_key_t *key2) {
     return sized_strcmp(key1->contents, key1->size, key2->contents, key2->size) == 0;
 }
 
-void initialize_times(buf_t &node_buf, repli_timestamp_t current_time) {
-    const leaf_node_t *node = reinterpret_cast<const leaf_node_t *>(node_buf.get_data_read());
+void initialize_times(abstract_buf_t *node_buf, repli_timestamp_t current_time) {
+    const leaf_node_t *node = reinterpret_cast<const leaf_node_t *>(node_buf->get_data_read());
     leaf_timestamps_t new_times;
     initialize_times(&new_times, current_time);
-    node_buf.set_data(const_cast<leaf_timestamps_t *>(&node->times), &new_times, sizeof(leaf_timestamps_t));
+    node_buf->set_data(const_cast<leaf_timestamps_t *>(&node->times), &new_times, sizeof(leaf_timestamps_t));
 }
 void initialize_times(leaf_timestamps_t *times, repli_timestamp_t current_time) {
     times->last_modified = current_time;

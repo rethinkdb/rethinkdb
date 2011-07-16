@@ -3,6 +3,7 @@
 #include "btree/modify_oper.hpp"
 #include "btree/internal_node.hpp"
 #include "btree/leaf_node.hpp"
+#include "btree/slice.hpp"
 
 
 // TODO: consider B#/B* trees to improve space efficiency
@@ -37,7 +38,7 @@ void get_root(value_sizer_t *sizer, transaction_t *txn, buf_lock_t& sb_buf, buf_
         buf_out->swap(tmp);
     } else {
         buf_out->allocate(txn);
-        leaf::init(sizer, *buf_out->buf(), timestamp);
+        leaf::init(sizer, buf_out->buf(), timestamp);
         insert_root(buf_out->buf()->get_block_id(), sb_buf);
     }
 }
@@ -72,18 +73,18 @@ void check_and_handle_split(value_sizer_t *sizer, transaction_t *txn, buf_lock_t
     btree_key_buffer_t median_buffer;
     btree_key_t *median = median_buffer.key();
 
-    node::split(block_size, *buf.buf(), *rbuf.buf(), median);
+    node::split(block_size, buf.buf(), rbuf.buf(), median);
 
     // Insert the key that sets the two nodes apart into the parent.
     if (!last_buf.is_acquired()) {
         // We're splitting what was previously the root, so create a new root to use as the parent.
         last_buf.allocate(txn);
-        internal_node::init(block_size, *last_buf.buf());
+        internal_node::init(block_size, last_buf.buf());
 
         insert_root(last_buf->get_block_id(), sb_buf);
     }
 
-    bool success __attribute__((unused)) = internal_node::insert(block_size, *last_buf.buf(), median, buf->get_block_id(), rbuf->get_block_id());
+    bool success __attribute__((unused)) = internal_node::insert(block_size, last_buf.buf(), median, buf->get_block_id(), rbuf->get_block_id());
     rassert(success, "could not insert internal btree node");
 
     // We've split the node; now figure out where the key goes and release the other buf (since we're done with it).
@@ -125,18 +126,18 @@ void check_and_handle_underfull(transaction_t *txn, buf_lock_t& buf, buf_lock_t&
             btree_key_t *key_to_remove = key_to_remove_buffer.key();
 
             if (nodecmp_node_with_sib < 0) { // Nodes must be passed to merge in ascending order.
-                node::merge(block_size, node, *sib_buf.buf(), key_to_remove, parent_node);
+                node::merge(block_size, node, sib_buf.buf(), key_to_remove, parent_node);
                 buf->mark_deleted();
                 buf.swap(sib_buf);
             } else {
-                node::merge(block_size, sib_node, *buf.buf(), key_to_remove, parent_node);
+                node::merge(block_size, sib_node, buf.buf(), key_to_remove, parent_node);
                 sib_buf->mark_deleted();
             }
 
             sib_buf.release();
 
             if (!internal_node::is_singleton(parent_node)) {
-                internal_node::remove(block_size, *last_buf.buf(), key_to_remove);
+                internal_node::remove(block_size, last_buf.buf(), key_to_remove);
             } else {
                 // The parent has only 1 key after the merge (which means that
                 // it's the root and our node is its only child). Insert our
@@ -149,10 +150,10 @@ void check_and_handle_underfull(transaction_t *txn, buf_lock_t& buf, buf_lock_t&
             btree_key_t *key_to_replace = key_to_replace_buffer.key();
             btree_key_t *replacement_key = replacement_key_buffer.key();
 
-            bool leveled = node::level(block_size, *buf.buf(), *sib_buf.buf(), key_to_replace, replacement_key, parent_node);
+            bool leveled = node::level(block_size, buf.buf(), sib_buf.buf(), key_to_replace, replacement_key, parent_node);
 
             if (leveled) {
-                internal_node::update_key(*last_buf.buf(), key_to_replace, replacement_key);
+                internal_node::update_key(last_buf.buf(), key_to_replace, replacement_key);
             }
         }
     }
@@ -226,6 +227,65 @@ void find_keyvalue_location_for_write(value_sizer_t *sizer, got_superblock_t *go
     keyvalue_location_out->buf.swap(buf);
 }
 
+void find_keyvalue_location_for_read(value_sizer_t *sizer, got_superblock_t *got_superblock, btree_key_t *key, keyvalue_location_t *keyvalue_location_out) {
+    buf_lock_t buf;
+    buf.swap(got_superblock->sb_buf);
+    boost::scoped_ptr<transaction_t> txn;
+    txn.swap(got_superblock->txn);
+
+    block_id_t node_id = reinterpret_cast<const btree_superblock_t *>(buf->get_data_read())->root_block;
+    rassert(node_id != SUPERBLOCK_ID);
+
+    if (node_id == NULL_BLOCK_ID) {
+        // There is no root, so the tree is empty.
+        keyvalue_location_out->txn.swap(txn);
+        return;
+    }
+
+    {
+        buf_lock_t tmp(txn.get(), node_id, rwi_read);
+        buf.swap(tmp);
+    }
+
+#ifndef NDEBUG
+    node::validate(sizer->block_size(), reinterpret_cast<const node_t *>(buf->get_data_read()));
+#endif  // NDEBUG
+
+    while (node::is_internal(reinterpret_cast<const node_t *>(buf->get_data_read()))) {
+        node_id = internal_node::lookup(reinterpret_cast<const internal_node_t *>(buf->get_data_read()), key);
+        rassert(node_id != NULL_BLOCK_ID && node_id != SUPERBLOCK_ID);
+
+        {
+            buf_lock_t tmp(txn.get(), node_id, rwi_read);
+            buf.swap(tmp);
+        }
+
+#ifndef NDEBUG
+        node::validate(sizer->block_size(), reinterpret_cast<const node_t *>(buf->get_data_read()));
+#endif  // NDEBUG
+    }
+
+    // Got down to the leaf, now probe it.
+    const leaf_node_t *leaf = reinterpret_cast<const leaf_node_t *>(buf->get_data_read());
+    int key_index = leaf::impl::find_key(leaf, key);
+
+    if (key_index == leaf::impl::key_not_found) {
+        keyvalue_location_out->txn.swap(txn);
+        return;
+    }
+
+    const value_type_t *value = leaf::get_pair_by_index(leaf, key_index)->value();
+
+    keyvalue_location_out->txn.swap(txn);
+    keyvalue_location_out->buf.swap(buf);
+    keyvalue_location_out->there_originally_was_value = true;
+    {
+        int n = sizer->size(value);
+        scoped_malloc<value_type_t> tmp(n);
+        memcpy(tmp.get(), value, n);
+        keyvalue_location_out->value.swap(tmp);
+    }
+}
 
 void apply_keyvalue_change(value_sizer_t *sizer, keyvalue_location_t *kv_loc, btree_key_t *key, repli_timestamp_t tstamp) {
     if (kv_loc->value) {
@@ -237,12 +297,12 @@ void apply_keyvalue_change(value_sizer_t *sizer, keyvalue_location_t *kv_loc, bt
 
         check_and_handle_split(sizer, kv_loc->txn.get(), kv_loc->buf, kv_loc->last_buf, kv_loc->sb_buf, key, kv_loc->value.get(), kv_loc->txn->get_cache()->get_block_size());
 
-        bool success = leaf::insert(sizer, *kv_loc->buf.buf(), key, kv_loc->value.get(), tstamp);
+        bool success = leaf::insert(sizer, kv_loc->buf.buf(), key, kv_loc->value.get(), tstamp);
         guarantee(success, "could not insert into leaf btree node");
     } else {
         // Delete the value if it's there.
         if (kv_loc->there_originally_was_value) {
-            leaf::remove(sizer, *kv_loc->buf.buf(), key);
+            leaf::remove(sizer, kv_loc->buf.buf(), key);
         }
     }
 

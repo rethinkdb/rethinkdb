@@ -1,4 +1,7 @@
+#include <boost/bind.hpp>
+
 #include "serializer/serializer.hpp"
+#include "arch/coroutines.hpp"
 
 // Blocking block_write implementation
 boost::shared_ptr<serializer_t::block_token_t>

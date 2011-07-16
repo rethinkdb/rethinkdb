@@ -15,7 +15,6 @@
 #include "serializer/config.hpp"
 #include "serializer/translator.hpp"
 #include "store.hpp"
-#include "stats/persist.hpp"
 
 namespace replication {
     class backfill_and_streaming_manager_t;
@@ -53,15 +52,60 @@ struct shard_store_t :
     timestamping_set_store_interface_t timestamper;
 };
 
+namespace btree_store_helpers {
+    // These helper functions are currently used by both btree_key_value_store_t
+    // and btree_metadata_store_t
+    void create_existing_shard(
+        shard_store_t **shard,
+        int i,
+        serializer_t *serializer,
+        mirrored_cache_config_t *dynamic_config,
+        int64_t delete_queue_limit);
+
+    void create_existing_serializer(standard_serializer_t **serializer, int i,
+        log_serializer_dynamic_config_t *config,
+        log_serializer_private_dynamic_config_t *privconfig);
+
+    void prep_serializer(
+        serializer_t *serializer,
+        mirrored_cache_static_config_t *static_config,
+        int i);
+
+    void prep_serializer_for_shard(
+        translator_serializer_t **pseudoserializers,
+        mirrored_cache_static_config_t *static_config,
+        int i);
+
+    void prep_for_serializer(
+        btree_key_value_store_dynamic_config_t *dynamic_config,
+        btree_key_value_store_static_config_t *static_config,
+        int i);
+
+    void create_existing_shard_serializer(
+        btree_key_value_store_dynamic_config_t *dynamic_config,
+        standard_serializer_t **serializers,
+        int i);
+
+    void create_existing_data_shard(
+        shard_store_t **shards,
+        int i,
+        translator_serializer_t **pseudoserializers,
+        mirrored_cache_config_t *dynamic_config,
+        int64_t delete_queue_limit);
+
+    void destroy_serializer(standard_serializer_t *serializer);
+
+    void destroy_shard_serializer(standard_serializer_t **serializers, int i);
+}
+
 class btree_key_value_store_t :
     public home_thread_mixin_t,
     public get_store_t,
     /* The btree_key_value_store_t can take changes with or without castimes. It takes changes with
-    castimes if they are coming from a replication slave; it takes changes without castimes if they
-    are coming directly from a memcached handler. This is kind of hacky. */
+castimes if they are coming from a replication slave; it takes changes without castimes if they
+are coming directly from a memcached handler. This is kind of hacky. */
     public set_store_interface_t,
-    public set_store_t,
-    public metadata_store_t
+    public set_store_t
 {
 public:
     // Blocks
@@ -69,7 +113,7 @@ public:
                        btree_key_value_store_static_config_t *static_config);
 
     // Blocks
-    btree_key_value_store_t(btree_key_value_store_dynamic_config_t *dynamic_config);
+    btree_key_value_store_t(const btree_key_value_store_dynamic_config_t &dynamic_config);
 
     // Blocks
     ~btree_key_value_store_t();
@@ -98,20 +142,15 @@ public:
 
     void delete_all_keys_for_backfill(order_token_t token);
 
-    /* metadata_store_t interface */
-    // NOTE: key cannot be longer than MAX_KEY_SIZE. currently enforced by guarantee().
-    bool get_meta(const std::string &key, std::string *out);
-    void set_meta(const std::string &key, const std::string &value);
-
     /* The value passed to `set_timestampers()` is the value that will be used as the
-    timestamp for all new operations. When the key-value store starts up, it is
-    initialized to the value of `get_replication_clock()`. */
+timestamp for all new operations. When the key-value store starts up, it is
+initialized to the value of `get_replication_clock()`. */
     void set_timestampers(repli_timestamp_t t);
 
     /* These values are persisted to disk, but except for initializing the value of
-    `set_timestampers()`, changing them doesn't change anything in the
-    `btree_key_value_store_t` itself. They are used by the higher-level code to persist
-    metadata to disk. */
+`set_timestampers()`, changing them doesn't change anything in the
+`btree_key_value_store_t` itself. They are used by the higher-level code to persist
+metadata to disk. */
     void set_replication_clock(repli_timestamp_t t, order_token_t token);
     repli_timestamp_t get_replication_clock();
     void set_last_sync(repli_timestamp_t t, order_token_t token);
@@ -131,32 +170,28 @@ private:
     int n_files;
     btree_config_t btree_static_config;
     mirrored_cache_static_config_t cache_static_config;
+    btree_key_value_store_dynamic_config_t store_dynamic_config;
 
     /* These five things are declared in reverse order from how they are used. (The order they are
-    declared is the order in which they are created.)
+declared is the order in which they are created.)
 
-    Sets are sent to the appropriate timestamper, which gives it a castime_t, puts it on the
-    correct core, and sends it to the appropriate dispatcher. The dispatcher sends a copy to any
-    replication slaves and then forwards it to the appropriate btree. The btree makes whatever
-    changes are appropriate in its local cache, and eventually flushes it to disk via the
-    multiplexer and the serializers.
+Sets are sent to the appropriate timestamper, which gives it a castime_t, puts it on the
+correct core, and sends it to the appropriate dispatcher. The dispatcher sends a copy to any
+replication slaves and then forwards it to the appropriate btree. The btree makes whatever
+changes are appropriate in its local cache, and eventually flushes it to disk via the
+multiplexer and the serializers.
 
-    Gets go straight to the btree.
+Gets go straight to the btree.
 
-    Sets that come from a master during replication come via the set_store_t interface, and they
-    are treated the same as normal sets except that they bypass the timestamper because they already
-    have timestamps. */
+Sets that come from a master during replication come via the set_store_t interface, and they
+are treated the same as normal sets except that they bypass the timestamper because they already
+have timestamps. */
 
     standard_serializer_t *serializers[MAX_SERIALIZERS];
     serializer_multiplexer_t *multiplexer;   // Helps us split the serializers among the slices
 
     shard_store_t *shards[MAX_SLICES];
     uint32_t slice_num(const store_key_t &key);
-
-    standard_serializer_t *metadata_serializer;
-    shard_store_t *metadata_shard;
-    // Used for persisting stats; see stats/persist.hpp
-    side_coro_handler_t *stat_persistence_side_coro_ptr;
 
     /* slice debug control_t which allows us to see slice and hash for a key */
     class hash_control_t :
@@ -191,7 +226,8 @@ private:
         }
     };
 
-    hash_control_t hash_control;
+    // TODO: Re-enable the hash control
+// hash_control_t hash_control;
 
     DISABLE_COPYING(btree_key_value_store_t);
 };
