@@ -543,7 +543,9 @@ void linux_tcp_conn_t::on_event(int events) {
     bool reading = event_watcher->is_watching(poll_event_in);
     bool writing = event_watcher->is_watching(poll_event_out);
 
-    if (events == (poll_event_err | poll_event_hup)) {
+    /* Nobody seems to understand this particular bit of code. */
+
+    if (events == (poll_event_err | poll_event_hup) || events == poll_event_hup) {
 
         /* HEY: What's the significance of these 'if' statements? Do they actually make
         any sense? Why don't we just close both halves of the socket? */
