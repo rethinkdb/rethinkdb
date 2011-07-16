@@ -12,13 +12,18 @@
 namespace connectivity {
 
 cluster_t::cluster_t(int port) :
-    listener(port, boost::bind(&connectivity::cluster_t::on_new_connection, this, _1)),
     me(peer_id_t(boost::uuids::random_generator()()))
 {
     routing_table[me] = address_t(ip_address_t::us(), port);
+    listener.reset(
+        new streamed_tcp_listener_t(
+            port,
+            boost::bind(&connectivity::cluster_t::on_new_connection, this, _1)
+        ));
 }
 
 cluster_t::~cluster_t() {
+    listener.reset();
     shutdown_cond.pulse();
     shutdown_semaphore.drain();
 }
@@ -126,10 +131,9 @@ void cluster_t::send_message(peer_id_t dest, boost::function<void(std::ostream&)
 
         try {
             boost::archive::text_oarchive sender(*dest_conn->conn);
-            std::string buffer_str;
-            buffer.str(buffer_str);
+            std::string buffer_str = buffer.str();
             sender << buffer_str;
-        } catch (std::ios_base::failure) {
+        } catch (boost::archive::archive_exception) {
             /* Close the other half of the connection to make sure that
             `cluster_t::handle()` notices that something is up */
             if (dest_conn->conn->is_read_open()) {
@@ -152,8 +156,12 @@ void cluster_t::join_blocking(
         address_t address,
         boost::optional<peer_id_t> expected_id,
         UNUSED drain_semaphore_t::lock_t lock) {
-    streamed_tcp_conn_t conn(address.ip, address.port);
-    handle(&conn, expected_id, boost::optional<address_t>(address));
+    try {
+        streamed_tcp_conn_t conn(address.ip, address.port);
+        handle(&conn, expected_id, boost::optional<address_t>(address));
+    } catch (tcp_conn_t::connect_failed_exc_t) {
+        /* Ignore */
+    }
 }
 
 /* `cluster_t::handle` is responsible for the entire lifetime of an
@@ -171,7 +179,17 @@ void cluster_t::handle(
     /* Make sure that if we're ordered to shut down, any pending read or write
     gets interrupted. */
     struct connection_closer_t : public signal_t::waiter_t {
-        connection_closer_t(streamed_tcp_conn_t *c) : conn_to_close(c) { }
+        connection_closer_t(signal_t *s, streamed_tcp_conn_t *c) :
+            signal(s), conn_to_close(c)
+        {
+            signal->add_waiter(this);
+        }
+        ~connection_closer_t() {
+            if (!signal->is_pulsed()) {
+                signal->remove_waiter(this);
+            }
+        }
+        signal_t *signal;
         streamed_tcp_conn_t *conn_to_close;
         void on_signal_pulsed() {
             if (conn_to_close->is_read_open()) {
@@ -181,32 +199,32 @@ void cluster_t::handle(
                 conn_to_close->shutdown_write();
             }
         }
-    };
-    connection_closer_t connection_closer(conn);
-    shutdown_cond.add_waiter(&connection_closer);
-
-    /* Don't use XML as a joke, it's not funny and causes problems because it
-    requires using make_nvp everywhere */
-    boost::archive::text_oarchive sender(*conn);
-    boost::archive::text_iarchive receiver(*conn);
+    } connection_closer(&shutdown_cond, conn);
 
     /* Each side sends their own ID and address, then receives the other side's.
     */
 
     try {
+        boost::archive::text_oarchive sender(*conn);
         sender << me;
         sender << routing_table[me];
-    } catch (std::ios_base::failure) {
-        return;
+    } catch (boost::archive::archive_exception) {
+        /* We expect that sending can fail due to a network problem. If that
+        happens, just ignore it. If sending fails for some other reason, then
+        the programmer should learn about it, so we rethrow the exception. */
+        if (conn->bad() || conn->eof()) return;
+        else throw;
     }
 
     peer_id_t other_id;
     address_t other_address;
     try {
+        boost::archive::text_iarchive receiver(*conn);
         receiver >> other_id;
         receiver >> other_address;
-    } catch (std::ios_base::failure) {
-        return;
+    } catch (boost::archive::archive_exception) {
+        if (conn->bad() || conn->eof()) return;
+        else throw;
     }
 
     /* Sanity checks */
@@ -261,18 +279,22 @@ void cluster_t::handle(
         /* We're good to go! Transmit the routing table to the follower, so it
         knows we're in. */
         try {
+            boost::archive::text_oarchive sender(*conn);
             sender << routing_table_to_send;
-        } catch (std::ios_base::failure) {
+        } catch (boost::archive::archive_exception) {
             routing_table.erase(other_id);
-            return;
+            if (conn->bad() || conn->eof()) return;
+            else throw;
         }
 
         /* Receive the follower's routing table */
         try {
+            boost::archive::text_iarchive receiver(*conn);
             receiver >> other_routing_table;
-        } catch (std::ios_base::failure) {
+        } catch (boost::archive::archive_exception) {
             routing_table.erase(other_id);
-            return;
+            if (conn->bad() || conn->eof()) return;
+            else throw;
         }
 
     } else {
@@ -281,9 +303,11 @@ void cluster_t::handle(
         conflict, then the leader will close the connection instead of sending
         the routing table. */
         try {
+            boost::archive::text_iarchive receiver(*conn);
             receiver >> other_routing_table;
-        } catch (std::ios_base::failure) {
-            return;
+        } catch (boost::archive::archive_exception) {
+            if (conn->bad() || conn->eof()) return;
+            else throw;
         }
 
         std::map<peer_id_t, address_t> routing_table_to_send;
@@ -309,10 +333,11 @@ void cluster_t::handle(
 
         /* Send our routing table to the leader */
         try {
+            boost::archive::text_oarchive sender(*conn);
             sender << routing_table_to_send;
-        } catch (std::ios_base::failure) {
-            routing_table.erase(other_id);
-            return;
+        } catch (boost::archive::archive_exception) {
+            if (conn->bad() || conn->eof()) return;
+            else throw;
         }
     }
 
@@ -326,7 +351,7 @@ void cluster_t::handle(
 
         for (std::map<peer_id_t, address_t>::iterator it = other_routing_table.begin();
              it != other_routing_table.end(); it++) {
-            if (routing_table.find((*it).first) != routing_table.end()) {
+            if (routing_table.find((*it).first) == routing_table.end()) {
                 /* `(*it).first` is the ID of a peer that our peer is connected
                 to, but we aren't connected to. */
                 coro_t::spawn_now(boost::bind(
@@ -370,13 +395,15 @@ void cluster_t::handle(
                 just a length and a byte vector. This is obviously slow and we
                 should change it when we care about performance. */
                 std::string message;
+                boost::archive::text_iarchive receiver(*conn);
                 receiver >> message;
                 std::stringstream stream(message, std::ios_base::in);
                 on_message(other_id, stream);
             }
-        } catch (std::ios_base::failure) {
+        } catch (boost::archive::archive_exception) {
             /* The exception broke us out of the loop, and that's what we
             wanted. */
+            if (!(conn->bad() || conn->eof())) throw;
         }
 
         /* Remove us from the connection map. */
@@ -405,11 +432,6 @@ void cluster_t::handle(
 
     /* Remove us from the routing map */
     routing_table.erase(other_id);
-
-    /* Get rid of the `connection_closer_t` */
-    if (!shutdown_cond.is_pulsed()) {
-        shutdown_cond.remove_waiter(&connection_closer);
-    }
 }
 
 }   /* namespace connectivity */

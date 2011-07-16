@@ -121,8 +121,10 @@ public:
     virtual void on_message(peer_id_t, std::istream&) = 0;
 
 private:
-    /* We are always listening for new connections from other peers. */
-    streamed_tcp_listener_t listener;
+    /* We listen for new connections from other peers. (The reason `listener` is
+    in a `boost::scoped_ptr` is so that we can stop listening at the beginning
+    of our destructor.) */
+    boost::scoped_ptr<streamed_tcp_listener_t> listener;
     void on_new_connection(boost::scoped_ptr<streamed_tcp_conn_t> &);
 
     void join_blocking(address_t address, boost::optional<peer_id_t>, drain_semaphore_t::lock_t);
