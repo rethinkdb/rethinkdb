@@ -369,6 +369,7 @@ void writeback_t::do_concurrent_flush() {
         if (!serializer_writes.empty()) {
             if (cache->serializer->do_write(serializer_writes.data(), serializer_writes.size(), cache->writes_io_account.get(),
                                             &txn_cond, &tid_cond))
+                // Tid cond gets pulsed regardless
                 txn_cond.pulse();
         } else {
             tid_cond.pulse();
@@ -376,7 +377,7 @@ void writeback_t::do_concurrent_flush() {
         }
     }
 
-    // Once all transaction ids have been assigned, update transaction ids.
+    // Once all block sequence ids have been assigned, update block sequence ids.
     tid_cond.wait();
     flush_update_block_sequence_ids(serializer_writes, serializer_inner_bufs, block_sequence_ids_have_been_updated);
 
@@ -541,7 +542,7 @@ void writeback_t::flush_acquire_bufs(transaction_t *transaction,
                 inner_buf->write_empty_deleted_block,
                 buf_writer));
         } else if (recency_dirty) {
-            // No need to acquire the block.
+            // No need to acquire the block, since we're only writing its recency & don't need its contents.
             serializer_writes.push_back(serializer_t::write_t::make_touch(inner_buf->block_id, inner_buf->subtree_recency, NULL));
         }
 
