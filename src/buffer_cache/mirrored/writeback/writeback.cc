@@ -242,16 +242,15 @@ void writeback_t::flush_timer_callback(void *ctx) {
 
 struct writeback_t::buf_writer_t :
     public serializer_t::write_block_callback_t,
-    public thread_message_t,
-    public home_thread_mixin_t
+    public thread_message_t
 {
     writeback_t *parent;
     mc_buf_t *buf;
     bool *block_sequence_ids_have_been_updated;
-    bool released_buffer;
     explicit buf_writer_t(writeback_t *wb, mc_buf_t *buf, bool *tids_updated)
-        : parent(wb), buf(buf), block_sequence_ids_have_been_updated(tids_updated), released_buffer(false)
+        : parent(wb), buf(buf), block_sequence_ids_have_been_updated(tids_updated)
     {
+        parent->cache->assert_thread();
         /* When we spawn a flush, the block ceases to be dirty, so we release the
         semaphore. To avoid releasing a tidal wave of write transactions every time
         the flush starts, we have the writer acquire the semaphore and release it only
@@ -259,19 +258,21 @@ struct writeback_t::buf_writer_t :
         parent->dirty_block_semaphore.force_lock(1);
     }
     void on_serializer_write_block() {
-        if (continue_on_thread(home_thread(), this)) on_thread_switch();
+        if (continue_on_thread(parent->cache->home_thread(), this)) on_thread_switch();
     }
     void on_thread_switch() {
+        parent->cache->assert_thread();
         parent->dirty_block_semaphore.unlock();
         if (!*block_sequence_ids_have_been_updated) {
             // Writeback might still need the buffer. We wait until we get destructed before releasing it...
             return;
         }
-        released_buffer = true;
         buf->release();
+        buf = NULL;
     }
     ~buf_writer_t() {
-        if (!released_buffer) {
+        parent->cache->assert_thread();
+        if (buf) {
             buf->release();
         }
     }
@@ -386,6 +387,7 @@ void writeback_t::do_concurrent_flush() {
 
     /* We are done writing all of the buffers */
     // At this point it's definitely safe to release all the buffers
+    // XXX (rntz) actually I don't think it is. the callbacks may not have finished yet.
     for (size_t i = 0; i < buf_writers.size(); ++i)
         delete buf_writers[i];
     delete transaction;
