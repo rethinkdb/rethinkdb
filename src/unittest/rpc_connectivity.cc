@@ -141,14 +141,14 @@ void run_event_watchers_test() {
     boost::scoped_ptr<dummy_cluster_t> c2(new dummy_cluster_t(port+1));
 
     /* Make sure `c1` notifies us when `c2` connects */
-    connectivity_cluster_t::connect_watcher_t connect_watcher(&c1, c2->get_me());
+    connect_watcher_t connect_watcher(&c1, c2->get_me());
     EXPECT_FALSE(connect_watcher.is_pulsed());
     c1.join(peer_address_t(ip_address_t::us(), port+1));
     let_stuff_happen();
     EXPECT_TRUE(connect_watcher.is_pulsed());
 
     /* Make sure `c1` notifies us when `c2` disconnects */
-    connectivity_cluster_t::disconnect_watcher_t disconnect_watcher(&c1, c2->get_me());
+    disconnect_watcher_t disconnect_watcher(&c1, c2->get_me());
     EXPECT_FALSE(disconnect_watcher.is_pulsed());
     c2.reset();
     let_stuff_happen();
@@ -166,10 +166,10 @@ void run_event_watcher_ordering_test() {
     int port = 10000 + rand() % 20000;
     dummy_cluster_t c1(port);
 
-    struct watcher_t : public connectivity_cluster_t::event_watcher_t {
+    struct watcher_t : public event_watcher_t {
 
         watcher_t(dummy_cluster_t *c) :
-            connectivity_cluster_t::event_watcher_t(c), cluster(c) { }
+            event_watcher_t(c), cluster(c) { }
         dummy_cluster_t *cluster;
 
         void on_connect(peer_id_t p) {

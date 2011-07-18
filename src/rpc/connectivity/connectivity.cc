@@ -9,6 +9,54 @@
 #include <boost/serialization/map.hpp>
 #include "concurrency/drain_semaphore.hpp"
 
+/* event_watcher_t */
+
+event_watcher_t::event_watcher_t(connectivity_cluster_t *parent) :
+    cluster(parent)
+{
+    cluster->assert_thread();
+    mutex_acquisition_t acq(&cluster->watchers_mutex);
+    cluster->watchers.push_back(this);
+}
+
+event_watcher_t::~event_watcher_t() {
+    cluster->assert_thread();
+    mutex_acquisition_t acq(&cluster->watchers_mutex);
+    cluster->watchers.remove(this);
+}
+
+/* connect_watcher_t */
+
+connect_watcher_t::connect_watcher_t(connectivity_cluster_t *parent, peer_id_t peer) :
+    event_watcher_t(parent), peer(peer) { }
+
+void connect_watcher_t::on_connect(peer_id_t p) {
+    if (peer == p && !is_pulsed()) {
+        pulse();
+    }
+}
+
+void connect_watcher_t::on_disconnect(peer_id_t) {
+    // Ignore this event
+}
+
+/* disconnect_watcher_t */
+
+disconnect_watcher_t::disconnect_watcher_t(connectivity_cluster_t *parent, peer_id_t peer) :
+    event_watcher_t(parent), peer(peer) { }
+
+void disconnect_watcher_t::on_connect(peer_id_t) {
+    // Ignore this event
+}
+
+void disconnect_watcher_t::on_disconnect(peer_id_t p) {
+    if (peer == p && !is_pulsed()) {
+        pulse();
+    }
+}
+
+/* connectivity_cluster_t */
+
 connectivity_cluster_t::connectivity_cluster_t(int port) :
     me(peer_id_t(boost::uuids::random_generator()()))
 {
@@ -58,52 +106,6 @@ std::map<peer_id_t, peer_address_t> connectivity_cluster_t::get_everybody() {
         peers[(*it).first] = routing_table[(*it).first];
     }
     return peers;
-}
-
-/* connectivity_cluster_t::event_watcher_t */
-
-connectivity_cluster_t::event_watcher_t::event_watcher_t(connectivity_cluster_t *parent) :
-    cluster(parent)
-{
-    cluster->assert_thread();
-    mutex_acquisition_t acq(&cluster->watchers_mutex);
-    cluster->watchers.push_back(this);
-}
-
-connectivity_cluster_t::event_watcher_t::~event_watcher_t() {
-    cluster->assert_thread();
-    mutex_acquisition_t acq(&cluster->watchers_mutex);
-    cluster->watchers.remove(this);
-}
-
-/* connectivity_cluster_t::connect_watcher_t */
-
-connectivity_cluster_t::connect_watcher_t::connect_watcher_t(connectivity_cluster_t *parent, peer_id_t peer) :
-    event_watcher_t(parent), peer(peer) { }
-
-void connectivity_cluster_t::connect_watcher_t::on_connect(peer_id_t p) {
-    if (peer == p && !is_pulsed()) {
-        pulse();
-    }
-}
-
-void connectivity_cluster_t::connect_watcher_t::on_disconnect(peer_id_t) {
-    // Ignore this event
-}
-
-/* connectivity_cluster_t::disconnect_watcher_t */
-
-connectivity_cluster_t::disconnect_watcher_t::disconnect_watcher_t(connectivity_cluster_t *parent, peer_id_t peer) :
-    event_watcher_t(parent), peer(peer) { }
-
-void connectivity_cluster_t::disconnect_watcher_t::on_connect(peer_id_t) {
-    // Ignore this event
-}
-
-void connectivity_cluster_t::disconnect_watcher_t::on_disconnect(peer_id_t p) {
-    if (peer == p && !is_pulsed()) {
-        pulse();
-    }
 }
 
 void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(std::ostream&)> writer) {

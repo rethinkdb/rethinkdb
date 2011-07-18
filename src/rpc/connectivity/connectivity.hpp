@@ -66,6 +66,37 @@ private:
     }
 };
 
+/* `event_watcher_t` is used to watch for any node joining or leaving the
+cluster. `connect_watcher_t` and `disconnect_watcher_t` are used to watch for a
+specific peer connecting or disconnecting. */
+
+struct connectivity_cluster_t;
+
+struct event_watcher_t : public intrusive_list_node_t<event_watcher_t> {
+    event_watcher_t(connectivity_cluster_t *);
+    virtual ~event_watcher_t();
+    virtual void on_connect(peer_id_t) = 0;
+    virtual void on_disconnect(peer_id_t) = 0;
+private:
+    connectivity_cluster_t *cluster;
+};
+
+struct connect_watcher_t : public signal_t, private event_watcher_t {
+    connect_watcher_t(connectivity_cluster_t *, peer_id_t);
+private:
+    void on_connect(peer_id_t);
+    void on_disconnect(peer_id_t);
+    peer_id_t peer;
+};
+
+struct disconnect_watcher_t : public signal_t, private event_watcher_t {
+    disconnect_watcher_t(connectivity_cluster_t *, peer_id_t);
+private:
+    void on_connect(peer_id_t);
+    void on_disconnect(peer_id_t);
+    peer_id_t peer;
+};
+
 struct connectivity_cluster_t :
     public home_thread_mixin_t
 {
@@ -82,32 +113,6 @@ public:
     cluster and their addresses, including us. */
     peer_id_t get_me();
     std::map<peer_id_t, peer_address_t> get_everybody();
-
-    /* `event_watcher_t` is used to watch for any node joining or leaving the
-    cluster. `connect_watcher_t` and `disconnect_watcher_t` are used to watch
-    for a specific peer connecting or disconnecting. */
-    struct event_watcher_t : public intrusive_list_node_t<event_watcher_t> {
-        event_watcher_t(connectivity_cluster_t *);
-        virtual ~event_watcher_t();
-        virtual void on_connect(peer_id_t) = 0;
-        virtual void on_disconnect(peer_id_t) = 0;
-    private:
-        connectivity_cluster_t *cluster;
-    };
-    struct connect_watcher_t : public signal_t, private event_watcher_t {
-        connect_watcher_t(connectivity_cluster_t *, peer_id_t);
-    private:
-        void on_connect(peer_id_t);
-        void on_disconnect(peer_id_t);
-        peer_id_t peer;
-    };
-    struct disconnect_watcher_t : public signal_t, private event_watcher_t {
-        disconnect_watcher_t(connectivity_cluster_t *, peer_id_t);
-    private:
-        void on_connect(peer_id_t);
-        void on_disconnect(peer_id_t);
-        peer_id_t peer;
-    };
 
     /* `send_message()` is used to send a message to a specific peer. The
     function will be called with a `std::ostream&` that leads to the peer in
@@ -153,6 +158,7 @@ private:
 
     /* List of everybody watching for connectivity events. `watchers_mutex` is
     so nobody updates `watchers` while we're iterating over it. */
+    friend class event_watcher_t;
     intrusive_list_t<event_watcher_t> watchers;
     mutex_t watchers_mutex;
 
