@@ -245,8 +245,14 @@ struct writeback_t::buf_writer_t :
     writeback_t *parent;
     mc_buf_t *buf;
     bool *block_sequence_ids_have_been_updated;
+#ifndef NDEBUG
+    bool done;
+#endif
     explicit buf_writer_t(writeback_t *wb, mc_buf_t *buf, bool *tids_updated)
         : parent(wb), buf(buf), block_sequence_ids_have_been_updated(tids_updated)
+#ifndef NDEBUG
+        , done(false)
+#endif
     {
         parent->cache->assert_thread();
         /* When we spawn a flush, the block ceases to be dirty, so we release the
@@ -261,6 +267,9 @@ struct writeback_t::buf_writer_t :
     void on_thread_switch() {
         parent->cache->assert_thread();
         parent->dirty_block_semaphore.unlock();
+#ifndef NDEBUG
+        done = true;
+#endif
         if (!*block_sequence_ids_have_been_updated) {
             // Writeback might still need the buffer. We wait until we get destructed before releasing it...
             return;
@@ -269,6 +278,7 @@ struct writeback_t::buf_writer_t :
         buf = NULL;
     }
     ~buf_writer_t() {
+        rassert(done);          // XXX this assert gets tripped by unittests! fix!
         parent->cache->assert_thread();
         if (buf) {
             buf->release();
