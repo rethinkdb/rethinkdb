@@ -1,7 +1,5 @@
 #include "buffer_cache/mirrored/writeback/writeback.hpp"
 
-#include <set>
-
 #include <math.h>
 
 #include "errors.hpp"
