@@ -166,6 +166,8 @@ private:
     down, we signal `shutdown_cond` then drain `drain_semaphore`. */
     cond_t shutdown_cond;
     drain_semaphore_t shutdown_semaphore;
+
+    DISABLE_COPYING(connectivity_cluster_t);
 };
 
 #endif /* __RPC_CONNECTIVITY_CONNECTIVITY_HPP__ */
