@@ -18,6 +18,9 @@ the log serializer. */
 
 //#define SERIALIZER_DEBUG_PRINT 1
 
+// TODO make this just an interface and move implementation into semantic_checking.tcc, then use
+// tim's template hack to instantiate as necessary in a .cc file.
+
 // TODO (rntz) fix this for new serializer interface
 template<class inner_serializer_t>
 class semantic_checking_serializer_t :
