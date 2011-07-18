@@ -11,8 +11,8 @@
 #include "utils.hpp"
 #include "serializer/serializer.hpp"
 #include "serializer/translator.hpp"
-#include "server/cmd_args.hpp"
 #include "concurrency/rwi_lock.hpp"
+#include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/buf_patch.hpp"
 #include "buffer_cache/abstract_buf.hpp"
 

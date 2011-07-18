@@ -67,7 +67,7 @@ struct file_knowledge_t {
     learned_t<uint64_t> filesize;
 
     // The block_size and extent_size.
-    learned_t<log_serializer_static_config_t> static_config;
+    learned_t<log_serializer_on_disk_static_config_t> static_config;
 
     // The metablock with the most recent version.
     learned_t<log_serializer_metablock_t> metablock;
@@ -341,7 +341,7 @@ bool check_static_config(nondirect_file_t *file, file_knowledge_t *knog, static_
     }
     static_header_t *buf = reinterpret_cast<static_header_t *>(header.realbuf);
 
-    log_serializer_static_config_t *static_cfg = reinterpret_cast<log_serializer_static_config_t *>(buf + 1);
+    log_serializer_on_disk_static_config_t *static_cfg = reinterpret_cast<log_serializer_on_disk_static_config_t *>(buf + 1);
 
     block_size_t block_size = static_cfg->block_size();
     uint64_t extent_size = static_cfg->extent_size();
@@ -396,7 +396,7 @@ std::string extract_static_config_flags(nondirect_file_t *file, UNUSED file_know
     }
     static_header_t *buf = reinterpret_cast<static_header_t *>(header.realbuf);
 
-    log_serializer_static_config_t *static_cfg = reinterpret_cast<log_serializer_static_config_t *>(buf + 1);
+    log_serializer_on_disk_static_config_t *static_cfg = reinterpret_cast<log_serializer_on_disk_static_config_t *>(buf + 1);
 
     block_size_t block_size = static_cfg->block_size();
     uint64_t extent_size = static_cfg->extent_size();
@@ -1734,7 +1734,7 @@ std::string extract_cache_flags(nondirect_file_t *file, const multiplexer_config
         return " --diff-log-size intentionally-invalid";
     }
     static_header_t *buf = reinterpret_cast<static_header_t *>(header.realbuf);
-    log_serializer_static_config_t *static_cfg = reinterpret_cast<log_serializer_static_config_t *>(buf + 1);
+    log_serializer_on_disk_static_config_t *static_cfg = reinterpret_cast<log_serializer_on_disk_static_config_t *>(buf + 1);
     block_size_t block_size = static_cfg->block_size();
 
 

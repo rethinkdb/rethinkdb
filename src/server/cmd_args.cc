@@ -10,7 +10,8 @@
 #include "utils.hpp"
 #include "help.hpp"
 #include "arch/arch.hpp"
-#include "perfmon.hpp"   // For `global_full_perfmon`
+#include "perfmon.hpp"
+#include "key_value_store_config.hpp"   // For `global_full_perfmon`
 
 /* Note that this file only parses arguments for the 'serve' and 'create' subcommands. */
 
@@ -608,7 +609,7 @@ void parsing_cmd_config_t::set_extent_size(const char* value) {
     if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
         fail_due_to_user_error("Extent size must be a number from %lld to %lld.", minimum_value, maximum_value);
 
-    store_static_config.serializer.unsafe_extent_size() = static_cast<long long unsigned int>(target);
+    store_static_config.serializer.extent_size_ = static_cast<long long unsigned int>(target);
 }
 
 void parsing_cmd_config_t::set_read_ahead(const char* value) {
@@ -641,7 +642,7 @@ void parsing_cmd_config_t::set_block_size(const char* value) {
     if (target % DEVICE_BLOCK_SIZE != 0)
         fail_due_to_user_error("Block size must be a multiple of %ld.", DEVICE_BLOCK_SIZE);
         
-    store_static_config.serializer.unsafe_block_size() = static_cast<unsigned int>(target);
+    store_static_config.serializer.block_size_ = static_cast<unsigned int>(target);
 }
 
 void parsing_cmd_config_t::set_active_data_extents(const char* value) {
@@ -959,35 +960,6 @@ cmd_config_t::cmd_config_t() {
     log_file_name[0] = 0;
     log_file_name[MAX_LOG_FILE_NAME - 1] = 0;
 
-    // TODO: Initializing all the sub-configurations should not happen here,
-    // but in the respective sub-configuration types!
-    // Eventually, we want to create for example store configs at runtime
-    // (like to create a namespace). Then having the initialization here
-    // is a very bad thing.
-
-    store_dynamic_config.serializer.gc_low_ratio = DEFAULT_GC_LOW_RATIO;
-    store_dynamic_config.serializer.gc_high_ratio = DEFAULT_GC_HIGH_RATIO;
-    store_dynamic_config.serializer.num_active_data_extents = DEFAULT_ACTIVE_DATA_EXTENTS;
-    store_dynamic_config.serializer.file_size = 0;   // Unlimited file size
-    store_dynamic_config.serializer.file_zone_size = GIGABYTE;
-    store_dynamic_config.serializer.read_ahead = true;
-    /* #if WE_ARE_ON_LINUX */
-    store_dynamic_config.serializer.io_backend = aio_native;
-    /* #endif */
-    store_dynamic_config.serializer.io_batch_factor = DEFAULT_IO_BATCH_FACTOR;
-    
-    store_dynamic_config.cache.max_size = (long long int)(DEFAULT_MAX_CACHE_RATIO * get_available_ram());
-    store_dynamic_config.cache.wait_for_flush = false;
-    store_dynamic_config.cache.flush_timer_ms = DEFAULT_FLUSH_TIMER_MS;
-    store_dynamic_config.cache.max_dirty_size = DEFAULT_UNSAVED_DATA_LIMIT;
-    store_dynamic_config.cache.flush_dirty_size = 0;
-    store_dynamic_config.cache.flush_waiting_threshold = DEFAULT_FLUSH_WAITING_THRESHOLD;
-    store_dynamic_config.cache.max_concurrent_flushes = DEFAULT_MAX_CONCURRENT_FLUSHES;
-    store_dynamic_config.cache.io_priority_reads = CACHE_READS_IO_PRIORITY;
-    store_dynamic_config.cache.io_priority_writes = CACHE_WRITES_IO_PRIORITY;
-
-    store_dynamic_config.total_delete_queue_limit = DEFAULT_TOTAL_DELETE_QUEUE_LIMIT;
-
     create_store = false;
     force_create = false;
     shutdown_after_creation = false;
@@ -1000,14 +972,12 @@ cmd_config_t::cmd_config_t() {
     replication_master_active = false;
     force_unslavify = false;
 
-    store_static_config.serializer.unsafe_extent_size() = DEFAULT_EXTENT_SIZE;
-    store_static_config.serializer.unsafe_block_size() = DEFAULT_BTREE_BLOCK_SIZE;
-    
-    store_static_config.btree.n_slices = DEFAULT_BTREE_SHARD_FACTOR;
+    store_dynamic_config.cache.max_size = (long long int)(DEFAULT_MAX_CACHE_RATIO * get_available_ram());
 
     store_static_config.cache.n_patch_log_blocks = DEFAULT_PATCH_LOG_SIZE / store_static_config.serializer.block_size().ser_value() / store_static_config.btree.n_slices;
 
-    // TODO: This is hacky. It also doesn't belong here. Also see the comment above
+    // TODO: This is hacky. It also doesn't belong here. Probably the metadata
+    // store should really have a configuration structure of its own.
     metadata_store_dynamic_config = store_dynamic_config;
     metadata_store_dynamic_config.total_delete_queue_limit = 0;
     metadata_store_dynamic_config.cache.max_size = 8 * MEGABYTE;
