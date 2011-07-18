@@ -549,6 +549,7 @@ void writeback_t::flush_acquire_bufs(transaction_t *transaction,
 
     pm_flushes_blocks_dirty.record(really_dirty);
 }
+
 void writeback_t::flush_update_block_sequence_ids(std::vector<serializer_t::write_t>& serializer_writes,
                                                   std::vector<inner_buf_t*> &serializer_inner_bufs,
                                                   bool &block_sequence_ids_have_been_updated)
