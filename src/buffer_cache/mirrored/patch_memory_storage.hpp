@@ -31,7 +31,7 @@ class patch_memory_storage_t {
 
         // Deletes all patches that apply to transactions lower than
         // the given transaction id
-        void filter_before_block_sequence(const ser_block_sequence_id_t block_sequence_id);
+        void filter_before_block_sequence(const block_sequence_id_t block_sequence_id);
 
         // Grabs ownership of the patch.
         void add_patch(buf_patch_t *patch);
@@ -44,7 +44,7 @@ class patch_memory_storage_t {
         const_iterator patches_end() const { return patches_.end(); }
 
 #ifndef NDEBUG
-        void verify_patches_list(ser_block_sequence_id_t) const;
+        void verify_patches_list(block_sequence_id_t) const;
 #endif
     private:
         // TODO: Why is this unsigned?  Provide a rationale for this
@@ -65,7 +65,7 @@ public:
     void load_block_patch_list(block_id_t block_id, const std::list<buf_patch_t *>& patches);
 
     // Removes all patches which are obsolete w.r.t. the given block sequence id
-    void filter_applied_patches(block_id_t block_id, ser_block_sequence_id_t block_sequence_id);
+    void filter_applied_patches(block_id_t block_id, block_sequence_id_t block_sequence_id);
 
     // Returns true iff any changes have been made to the buf
     bool apply_patches(block_id_t block_id, char *buf_data, block_size_t bs) const;

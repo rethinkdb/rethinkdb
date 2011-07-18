@@ -240,7 +240,7 @@ boost::shared_ptr<serializer_t::block_token_t> translator_serializer_t::index_re
     return inner->index_read(translate_block_id(block_id));
 }
 
-ser_block_sequence_id_t translator_serializer_t::get_block_sequence_id(block_id_t block_id, const void* buf) {
+block_sequence_id_t translator_serializer_t::get_block_sequence_id(block_id_t block_id, const void* buf) {
     return inner->get_block_sequence_id(translate_block_id(block_id), buf);
 }
 

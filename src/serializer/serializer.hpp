@@ -105,7 +105,7 @@ struct serializer_t :
     virtual boost::shared_ptr<block_token_t> block_write(const void *buf, file_t::account_t *io_account);
     virtual boost::shared_ptr<block_token_t> block_write(const void *buf, block_id_t block_id, file_t::account_t *io_account);
 
-    virtual ser_block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf) = 0;
+    virtual block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf) = 0;
 
     /* TODO: The following part is all just wrapper code. It should be removed eventually */
 

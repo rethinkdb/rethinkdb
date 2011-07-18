@@ -137,7 +137,7 @@ public:
 
     repli_timestamp_t get_recency(block_id_t id);
     bool get_delete_bit(block_id_t id);
-    ser_block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf);
+    block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf);
 
     void block_read(boost::shared_ptr<block_token_t> token, void *buf, file_t::account_t *io_account);
     boost::shared_ptr<block_token_t> index_read(block_id_t block_id);

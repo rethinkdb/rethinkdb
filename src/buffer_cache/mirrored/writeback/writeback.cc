@@ -424,7 +424,7 @@ void writeback_t::flush_prepare_patches() {
         }
 
         if (!lbuf->needs_flush && lbuf->dirty && inner_buf->next_patch_counter > 1) {
-            const ser_block_sequence_id_t block_sequence_id = inner_buf->block_sequence_id;
+            const block_sequence_id_t block_sequence_id = inner_buf->block_sequence_id;
             if (cache->patch_memory_storage.has_patches_for_block(inner_buf->block_id)) {
 #ifndef NDEBUG
                 patch_counter_t previous_patch_counter = 0;

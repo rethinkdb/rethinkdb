@@ -25,7 +25,7 @@ private:
 
     // We use maps to be more safe about corrupted block and block sequence ids. (otherwise those
     // could easily lead to excessive memory consumption)
-    std::map<size_t, ser_block_sequence_id_t> block_sequence_ids;
+    std::map<size_t, block_sequence_id_t> block_sequence_ids;
     std::map<size_t, off64_t> offsets;
 
     DISABLE_COPYING(block_registry);

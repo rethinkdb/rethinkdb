@@ -100,7 +100,7 @@ class mc_inner_buf_t : public home_thread_mixin_t {
     // Loads data from the serializer
     void load_inner_buf(bool should_lock, file_t::account_t *io_account);
 
-    ser_block_sequence_id_t block_sequence_id;
+    block_sequence_id_t block_sequence_id;
 
     // snapshot types' implementations are internal and deferred to mirrored.cc
     struct buf_snapshot_info_t;

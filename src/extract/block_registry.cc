@@ -7,9 +7,9 @@ block_registry::block_registry() { }
 void block_registry::tell_block(off64_t offset, const ls_buf_data_t& buf_data) {
     block_id_t block_id = buf_data.block_id;
     if (block_id < MAX_BLOCK_ID) {
-        ser_block_sequence_id_t block_sequence_id = buf_data.block_sequence_id;
+        block_sequence_id_t block_sequence_id = buf_data.block_sequence_id;
 
-        ser_block_sequence_id_t *curr_block_sequence_id = &block_sequence_ids[block_id];
+        block_sequence_id_t *curr_block_sequence_id = &block_sequence_ids[block_id];
         if (*curr_block_sequence_id < block_sequence_id) {
             *curr_block_sequence_id = block_sequence_id;
             offsets[block_id] = offset;

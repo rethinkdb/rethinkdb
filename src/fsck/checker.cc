@@ -26,7 +26,7 @@ struct block_knowledge_t {
 
     // The serializer block sequence id we saw when we've read the block.
     // Or, NULL_SER_BLOCK_SEQUENCE_ID, if we have not read the block.
-    ser_block_sequence_id_t block_sequence_id;
+    block_sequence_id_t block_sequence_id;
 
     static const block_knowledge_t unused;
 };
@@ -291,7 +291,7 @@ public:
 
         
         
-        ser_block_sequence_id_t bseq_id = realbuf->block_sequence_id;
+        block_sequence_id_t bseq_id = realbuf->block_sequence_id;
         if (bseq_id <= NULL_SER_BLOCK_SEQUENCE_ID) {
             err = block_sequence_id_invalid;
             return false;
@@ -304,7 +304,7 @@ public:
         if (patches_list) {
             // Replay patches
             for (std::list<buf_patch_t*>::iterator patch = patches_list->begin(); patch != patches_list->end(); ++patch) {
-                ser_block_sequence_id_t first_matching_id = NULL_SER_BLOCK_SEQUENCE_ID;
+                block_sequence_id_t first_matching_id = NULL_SER_BLOCK_SEQUENCE_ID;
                 if ((*patch)->get_block_sequence_id() >= realbuf->block_sequence_id) {
                     if (first_matching_id == NULL_SER_BLOCK_SEQUENCE_ID) {
                         first_matching_id = (*patch)->get_block_sequence_id();
@@ -449,7 +449,7 @@ bool check_metablock(nondirect_file_t *file, file_knowledge_t *knog, metablock_e
 
     // TODO (rntz) transaction ids are no more; use ser_block_sequence_ids
     int high_block_sequence_index = -1;
-    ser_block_sequence_id_t high_block_sequence_id = NULL_SER_BLOCK_SEQUENCE_ID;
+    block_sequence_id_t high_block_sequence_id = NULL_SER_BLOCK_SEQUENCE_ID;
 
 
     for (int i = 0, n = metablock_offsets.size(); i < n; ++i) {
@@ -470,7 +470,7 @@ bool check_metablock(nondirect_file_t *file, file_knowledge_t *knog, metablock_e
             }
 
             manager_t::metablock_version_t version = metablock->version;
-            ser_block_sequence_id_t seqid = metablock->metablock.block_sequence_id;
+            block_sequence_id_t seqid = metablock->metablock.block_sequence_id;
 
             if (version == MB_BAD_VERSION || version < MB_START_VERSION ||
                 seqid == NULL_SER_BLOCK_SEQUENCE_ID || seqid < FIRST_SER_BLOCK_SEQUENCE_ID)
@@ -841,7 +841,7 @@ void check_and_load_diff_log(slicecx_t& cx, diff_log_errors *errs) {
         patch_list->second.sort(dereferencing_buf_patch_compare_t());
 
         // Verify patches list
-        ser_block_sequence_id_t previous_block_sequence = 0;
+        block_sequence_id_t previous_block_sequence = 0;
         patch_counter_t previous_patch_counter = 0;
         for(std::list<buf_patch_t*>::const_iterator p = patch_list->second.begin(); p != patch_list->second.end(); ++p) {
             if (previous_block_sequence == 0 || (*p)->get_block_sequence_id() != previous_block_sequence) {

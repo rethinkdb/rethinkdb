@@ -124,8 +124,8 @@ TEST(DiskFormatTest, LogSerializerMetablockT) {
     n += sizeof(data_block_manager_t::metablock_mixin_t);
     EXPECT_EQ(n, offsetof(log_serializer_metablock_t, block_sequence_id));
 
-    EXPECT_EQ(8, sizeof(ser_block_sequence_id_t));
-    n += sizeof(ser_block_sequence_id_t);
+    EXPECT_EQ(8, sizeof(block_sequence_id_t));
+    n += sizeof(block_sequence_id_t);
     EXPECT_EQ(n, sizeof(log_serializer_metablock_t));
 
     EXPECT_EQ(1552, 8 + 512 + 1024 + 8);

@@ -36,14 +36,14 @@ struct log_serializer_metablock_t {
     extent_manager_t::metablock_mixin_t extent_manager_part;
     lba_index_t::metablock_mixin_t lba_index_part;
     data_block_manager_t::metablock_mixin_t data_block_manager_part;
-    ser_block_sequence_id_t block_sequence_id;
+    block_sequence_id_t block_sequence_id;
 };
 
 //  Data to be serialized to disk with each block.  Changing this changes the disk format!
 // TODO: This header data should maybe go to the cache
 struct ls_buf_data_t {
     block_id_t block_id;
-    ser_block_sequence_id_t block_sequence_id;
+    block_sequence_id_t block_sequence_id;
 } __attribute__((__packed__));
 
 typedef metablock_manager_t<log_serializer_metablock_t> mb_manager_t;
@@ -135,7 +135,7 @@ public:
     boost::shared_ptr<block_token_t> block_write(const void *buf, block_id_t block_id, file_t::account_t *io_account, iocallback_t *cb);
     boost::shared_ptr<block_token_t> block_write(const void *buf, file_t::account_t *io_account, iocallback_t *cb);
 
-    ser_block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf);
+    block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf);
 
     block_size_t get_block_size();
 
@@ -223,7 +223,7 @@ private:
 
     int active_write_count;
 
-    ser_block_sequence_id_t latest_block_sequence_id;
+    block_sequence_id_t latest_block_sequence_id;
 };
 
 #endif /* __LOG_SERIALIZER_HPP__ */

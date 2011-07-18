@@ -26,9 +26,9 @@ buf_patch_t *buf_patch_t::load_patch(UNUSED block_size_t bs, const char *source)
         patch_counter_t patch_counter = *reinterpret_cast<const patch_counter_t *>(source);
         source += sizeof(patch_counter_t);
         remaining_length -= sizeof(block_id_t);
-        ser_block_sequence_id_t applies_to_block_sequence_id = *reinterpret_cast<const ser_block_sequence_id_t *>(source);
-        source += sizeof(ser_block_sequence_id_t);
-        remaining_length -= sizeof(ser_block_sequence_id_t);
+        block_sequence_id_t applies_to_block_sequence_id = *reinterpret_cast<const block_sequence_id_t *>(source);
+        source += sizeof(block_sequence_id_t);
+        remaining_length -= sizeof(block_sequence_id_t);
         patch_operation_code_t operation_code = *reinterpret_cast<const patch_operation_code_t *>(source);
         source += sizeof(patch_operation_code_t);
         remaining_length -= sizeof(patch_operation_code_t);

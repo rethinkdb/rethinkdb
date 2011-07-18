@@ -13,7 +13,7 @@ void patch_memory_storage_t::load_block_patch_list(block_id_t block_id, const st
     rassert(patch_map.find(block_id) == patch_map.end());
 
     // Verify patches list
-    ser_block_sequence_id_t previous_block_sequence = 0;
+    block_sequence_id_t previous_block_sequence = 0;
     patch_counter_t previous_patch_counter = 0;
     for(std::list<buf_patch_t*>::const_iterator p = patches.begin(); p != patches.end(); ++p) {
         rassert(previous_block_sequence <= (*p)->get_block_sequence_id(),
@@ -35,7 +35,7 @@ void patch_memory_storage_t::load_block_patch_list(block_id_t block_id, const st
 }
 
 // Removes all patches which are obsolete w.r.t. the given block sequence_id
-void patch_memory_storage_t::filter_applied_patches(block_id_t block_id, ser_block_sequence_id_t block_sequence_id) {
+void patch_memory_storage_t::filter_applied_patches(block_id_t block_id, block_sequence_id_t block_sequence_id) {
     patch_map_t::iterator map_entry = patch_map.find(block_id);
     rassert(map_entry != patch_map.end());
     map_entry->second.filter_before_block_sequence(block_sequence_id);
@@ -119,7 +119,7 @@ void patch_memory_storage_t::block_patch_list_t::add_patch(buf_patch_t *patch) {
     affected_data_size_ += patch->get_affected_data_size();
 }
 
-void patch_memory_storage_t::block_patch_list_t::filter_before_block_sequence(ser_block_sequence_id_t block_sequence_id) {
+void patch_memory_storage_t::block_patch_list_t::filter_before_block_sequence(block_sequence_id_t block_sequence_id) {
     std::vector<buf_patch_t *>::iterator first_patch_to_keep = patches_.end();
     for (std::vector<buf_patch_t *>::iterator p = patches_.begin(), e = patches_.end(); p != e; ++p) {
         if ((*p)->get_block_sequence_id() < block_sequence_id) {
@@ -134,9 +134,9 @@ void patch_memory_storage_t::block_patch_list_t::filter_before_block_sequence(se
 }
 
 #ifndef NDEBUG
-void patch_memory_storage_t::block_patch_list_t::verify_patches_list(ser_block_sequence_id_t block_sequence_id) const {
+void patch_memory_storage_t::block_patch_list_t::verify_patches_list(block_sequence_id_t block_sequence_id) const {
     // Verify patches list (with strict start patch counter)
-    ser_block_sequence_id_t previous_block_sequence = 0;
+    block_sequence_id_t previous_block_sequence = 0;
     patch_counter_t previous_patch_counter = 0;
     for (std::vector<buf_patch_t*>::const_iterator p = patches_.begin(), e = patches_.end(); p != e; ++p) {
         rassert((*p)->get_block_sequence_id() >= block_sequence_id || (*p)->get_block_sequence_id() == 0);

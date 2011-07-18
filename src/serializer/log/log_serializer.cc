@@ -502,7 +502,7 @@ void log_serializer_t::remap_block_to_new_offset(off64_t current_offset, off64_t
 // The block_id is there to keep the interface independent from the serializer
 // implementation. This method should work even if there's no block sequence id in
 // buf.
-ser_block_sequence_id_t log_serializer_t::get_block_sequence_id(UNUSED block_id_t block_id, const void* buf) {
+block_sequence_id_t log_serializer_t::get_block_sequence_id(UNUSED block_id_t block_id, const void* buf) {
     const ls_buf_data_t *ser_data = reinterpret_cast<const ls_buf_data_t *>(buf);
     ser_data--;
     rassert(ser_data->block_id == block_id);
