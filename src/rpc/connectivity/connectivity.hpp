@@ -15,18 +15,16 @@
 #include "concurrency/signal.hpp"
 #include "concurrency/mutex.hpp"
 
-namespace connectivity {
-
-struct address_t {
-    address_t(ip_address_t i, int p) : ip(i), port(p) { }
-    address_t() : ip(), port(0) { } // For deserialization
+struct peer_address_t {
+    peer_address_t(ip_address_t i, int p) : ip(i), port(p) { }
+    peer_address_t() : ip(), port(0) { } // For deserialization
     ip_address_t ip;
     int port;
 
-    bool operator==(const address_t &a) const {
+    bool operator==(const peer_address_t &a) const {
         return ip == a.ip && port == a.port;
     }
-    bool operator!=(const address_t &a) const {
+    bool operator!=(const peer_address_t &a) const {
         return ip != a.ip || port != a.port;
     }
 
@@ -56,7 +54,7 @@ struct peer_id_t {
     than making all required classes friends and this private) */
     peer_id_t() { }
 private:
-    friend class cluster_t;
+    friend class connectivity_cluster_t;
     boost::uuids::uuid uuid;
     peer_id_t(boost::uuids::uuid u) : uuid(u) { }
 
@@ -68,43 +66,43 @@ private:
     }
 };
 
-struct cluster_t :
+struct connectivity_cluster_t :
     public home_thread_mixin_t
 {
 public:
 
     /* Creating a new cluster node, and connecting one cluster to another
     cluster */
-    cluster_t(int port);
-    ~cluster_t();
-    void join(address_t);
+    connectivity_cluster_t(int port);
+    ~connectivity_cluster_t();
+    void join(peer_address_t);
 
     /* `get_me()` returns the `peer_id_t` for this cluster node.
     `get_everybody()` returns all the currently-accessible peers in the
     cluster and their addresses, including us. */
     peer_id_t get_me();
-    std::map<peer_id_t, address_t> get_everybody();
+    std::map<peer_id_t, peer_address_t> get_everybody();
 
     /* `event_watcher_t` is used to watch for any node joining or leaving the
     cluster. `connect_watcher_t` and `disconnect_watcher_t` are used to watch
     for a specific peer connecting or disconnecting. */
     struct event_watcher_t : public intrusive_list_node_t<event_watcher_t> {
-        event_watcher_t(cluster_t *);
+        event_watcher_t(connectivity_cluster_t *);
         virtual ~event_watcher_t();
         virtual void on_connect(peer_id_t) = 0;
         virtual void on_disconnect(peer_id_t) = 0;
     private:
-        cluster_t *cluster;
+        connectivity_cluster_t *cluster;
     };
     struct connect_watcher_t : public signal_t, private event_watcher_t {
-        connect_watcher_t(cluster_t *, peer_id_t);
+        connect_watcher_t(connectivity_cluster_t *, peer_id_t);
     private:
         void on_connect(peer_id_t);
         void on_disconnect(peer_id_t);
         peer_id_t peer;
     };
     struct disconnect_watcher_t : public signal_t, private event_watcher_t {
-        disconnect_watcher_t(cluster_t *, peer_id_t);
+        disconnect_watcher_t(connectivity_cluster_t *, peer_id_t);
     private:
         void on_connect(peer_id_t);
         void on_disconnect(peer_id_t);
@@ -127,18 +125,18 @@ private:
     boost::scoped_ptr<streamed_tcp_listener_t> listener;
     void on_new_connection(boost::scoped_ptr<streamed_tcp_conn_t> &);
 
-    void join_blocking(address_t address, boost::optional<peer_id_t>, drain_semaphore_t::lock_t);
+    void join_blocking(peer_address_t address, boost::optional<peer_id_t>, drain_semaphore_t::lock_t);
 
     void handle(streamed_tcp_conn_t *c,
         boost::optional<peer_id_t> expected_id,
-        boost::optional<address_t> expected_address);
+        boost::optional<peer_address_t> expected_address);
 
     /* `me` is our `peer_id_t`. `routing_table` is all the peers we can
     currently access and their addresses. Peers that are in the process of
     connecting or disconnecting may be in `routing_table` but not in
     `connections`. */
     peer_id_t me;
-    std::map<peer_id_t, address_t> routing_table;
+    std::map<peer_id_t, peer_address_t> routing_table;
 
     /* `connections` holds open connections to other peers. It has an entry for
     every peer that we are fully and officially connected to, not including us.
@@ -163,7 +161,5 @@ private:
     cond_t shutdown_cond;
     drain_semaphore_t shutdown_semaphore;
 };
-
-} /* namespace connectivity */
 
 #endif /* __RPC_CONNECTIVITY_CONNECTIVITY_HPP__ */

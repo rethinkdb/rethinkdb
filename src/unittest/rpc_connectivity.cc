@@ -30,13 +30,13 @@ void let_stuff_happen() {
     nap(50);
 }
 
-/* `dummy_cluster_t` is a `connectivity::cluster_t` that keeps track of messages
+/* `dummy_cluster_t` is a `connectivity_cluster_t` that keeps track of messages
 it receives from other nodes in the cluster. */
 
-struct dummy_cluster_t : public connectivity::cluster_t {
+struct dummy_cluster_t : public connectivity_cluster_t {
 private:
-    std::map<int, connectivity::peer_id_t> inbox;
-    void on_message(connectivity::peer_id_t peer, std::istream &stream) {
+    std::map<int, peer_id_t> inbox;
+    void on_message(peer_id_t peer, std::istream &stream) {
         int i;
         stream >> i;
         inbox[i] = peer;
@@ -45,11 +45,11 @@ private:
         stream << i;
     }
 public:
-    dummy_cluster_t(int i) : connectivity::cluster_t(i) { }
-    void send(int message, connectivity::peer_id_t peer) {
+    dummy_cluster_t(int i) : connectivity_cluster_t(i) { }
+    void send(int message, peer_id_t peer) {
         send_message(peer, boost::bind(&write, message, _1));
     }
-    void expect(int message, connectivity::peer_id_t peer) {
+    void expect(int message, peer_id_t peer) {
         EXPECT_TRUE(inbox.find(message) != inbox.end());
         EXPECT_TRUE(inbox[message] == peer);
     }
@@ -60,8 +60,8 @@ public:
 void run_start_stop_test() {
     int port = 10000 + rand() % 20000;
     dummy_cluster_t c1(port), c2(port+1), c3(port+2);
-    c2.join(connectivity::address_t(ip_address_t::us(), port));
-    c3.join(connectivity::address_t(ip_address_t::us(), port));
+    c2.join(peer_address_t(ip_address_t::us(), port));
+    c3.join(peer_address_t(ip_address_t::us(), port));
     let_stuff_happen();
 }
 TEST(RPCConnectivityTest, StartStop) {
@@ -73,8 +73,8 @@ TEST(RPCConnectivityTest, StartStop) {
 void run_message_test() {
     int port = 10000 + rand() % 20000;
     dummy_cluster_t c1(port), c2(port+1), c3(port+2);
-    c2.join(connectivity::address_t(ip_address_t::us(), port));
-    c3.join(connectivity::address_t(ip_address_t::us(), port));
+    c2.join(peer_address_t(ip_address_t::us(), port));
+    c3.join(peer_address_t(ip_address_t::us(), port));
 
     let_stuff_happen();
 
@@ -100,19 +100,19 @@ void run_get_everybody_test() {
     dummy_cluster_t c1(port);
 
     /* Make sure `get_everybody()` is initially sane */
-    std::map<connectivity::peer_id_t, connectivity::address_t> routing_table_1;
+    std::map<peer_id_t, peer_address_t> routing_table_1;
     routing_table_1 = c1.get_everybody();
     EXPECT_TRUE(routing_table_1.find(c1.get_me()) != routing_table_1.end());
     EXPECT_EQ(routing_table_1.size(), 1);
 
     {
         dummy_cluster_t c2(port+1);
-        c2.join(connectivity::address_t(ip_address_t::us(), port));
+        c2.join(peer_address_t(ip_address_t::us(), port));
 
         let_stuff_happen();
 
         /* Make sure `get_everybody()` correctly notices that a peer connects */
-        std::map<connectivity::peer_id_t, connectivity::address_t> routing_table_2;
+        std::map<peer_id_t, peer_address_t> routing_table_2;
         routing_table_2 = c1.get_everybody();
         EXPECT_TRUE(routing_table_2.find(c2.get_me()) != routing_table_2.end());
         EXPECT_EQ(routing_table_2[c2.get_me()].port, port+1);
@@ -123,7 +123,7 @@ void run_get_everybody_test() {
     let_stuff_happen();
 
     /* Make sure `get_everybody()` notices that a peer has disconnected */
-    std::map<connectivity::peer_id_t, connectivity::address_t> routing_table_3;
+    std::map<peer_id_t, peer_address_t> routing_table_3;
     routing_table_3 = c1.get_everybody();
     EXPECT_EQ(routing_table_3.size(), 1);
 }
@@ -141,14 +141,14 @@ void run_event_watchers_test() {
     boost::scoped_ptr<dummy_cluster_t> c2(new dummy_cluster_t(port+1));
 
     /* Make sure `c1` notifies us when `c2` connects */
-    connectivity::cluster_t::connect_watcher_t connect_watcher(&c1, c2->get_me());
+    connectivity_cluster_t::connect_watcher_t connect_watcher(&c1, c2->get_me());
     EXPECT_FALSE(connect_watcher.is_pulsed());
-    c1.join(connectivity::address_t(ip_address_t::us(), port+1));
+    c1.join(peer_address_t(ip_address_t::us(), port+1));
     let_stuff_happen();
     EXPECT_TRUE(connect_watcher.is_pulsed());
 
     /* Make sure `c1` notifies us when `c2` disconnects */
-    connectivity::cluster_t::disconnect_watcher_t disconnect_watcher(&c1, c2->get_me());
+    connectivity_cluster_t::disconnect_watcher_t disconnect_watcher(&c1, c2->get_me());
     EXPECT_FALSE(disconnect_watcher.is_pulsed());
     c2.reset();
     let_stuff_happen();
@@ -166,16 +166,16 @@ void run_event_watcher_ordering_test() {
     int port = 10000 + rand() % 20000;
     dummy_cluster_t c1(port);
 
-    struct watcher_t : public connectivity::cluster_t::event_watcher_t {
+    struct watcher_t : public connectivity_cluster_t::event_watcher_t {
 
         watcher_t(dummy_cluster_t *c) :
-            connectivity::cluster_t::event_watcher_t(c), cluster(c) { }
+            connectivity_cluster_t::event_watcher_t(c), cluster(c) { }
         dummy_cluster_t *cluster;
 
-        void on_connect(connectivity::peer_id_t p) {
+        void on_connect(peer_id_t p) {
             /* When we get a connection event, make sure that the peer address
             is present in the routing table */
-            std::map<connectivity::peer_id_t, connectivity::address_t> routing_table;
+            std::map<peer_id_t, peer_address_t> routing_table;
             routing_table = cluster->get_everybody();
             EXPECT_TRUE(routing_table.find(p) != routing_table.end());
 
@@ -185,10 +185,10 @@ void run_event_watcher_ordering_test() {
             coro_t::spawn_now(boost::bind(&dummy_cluster_t::send, cluster, 89765, p));
         }
 
-        void on_disconnect(connectivity::peer_id_t p) {
+        void on_disconnect(peer_id_t p) {
             /* When we get a disconnection event, make sure that the peer
             address is gone from the routing table */
-            std::map<connectivity::peer_id_t, connectivity::address_t> routing_table;
+            std::map<peer_id_t, peer_address_t> routing_table;
             routing_table = cluster->get_everybody();
             EXPECT_TRUE(routing_table.find(p) == routing_table.end());
         }
@@ -197,7 +197,7 @@ void run_event_watcher_ordering_test() {
     /* Generate some connection/disconnection activity */
     {
         dummy_cluster_t c2(port+1);
-        c2.join(connectivity::address_t(ip_address_t::us(), port));
+        c2.join(peer_address_t(ip_address_t::us(), port));
 
         let_stuff_happen();
 
@@ -226,7 +226,7 @@ void run_stop_mid_join_test() {
         nodes[i].reset(new dummy_cluster_t(port+i));
     }
     for (int i = 1; i < num_members; i++) {
-        nodes[i]->join(connectivity::address_t(ip_address_t::us(), port));
+        nodes[i]->join(peer_address_t(ip_address_t::us(), port));
     }
 
     coro_t::yield();
@@ -260,15 +260,15 @@ void run_blob_join_test() {
     }
 
     for (int i = 1; i < blob_size; i++) {
-        nodes[i]->join(connectivity::address_t(ip_address_t::us(), port));
+        nodes[i]->join(peer_address_t(ip_address_t::us(), port));
     }
     for (int i = blob_size+1; i < blob_size*2; i++) {
-        nodes[i]->join(connectivity::address_t(ip_address_t::us(), port+blob_size));
+        nodes[i]->join(peer_address_t(ip_address_t::us(), port+blob_size));
     }
 
     let_stuff_happen();
 
-    nodes[1]->join(connectivity::address_t(ip_address_t::us(), port+blob_size+1));
+    nodes[1]->join(peer_address_t(ip_address_t::us(), port+blob_size+1));
 
     let_stuff_happen();
 

@@ -9,30 +9,28 @@
 #include <boost/serialization/map.hpp>
 #include "concurrency/drain_semaphore.hpp"
 
-namespace connectivity {
-
-cluster_t::cluster_t(int port) :
+connectivity_cluster_t::connectivity_cluster_t(int port) :
     me(peer_id_t(boost::uuids::random_generator()()))
 {
-    routing_table[me] = address_t(ip_address_t::us(), port);
+    routing_table[me] = peer_address_t(ip_address_t::us(), port);
     listener.reset(
         new streamed_tcp_listener_t(
             port,
-            boost::bind(&connectivity::cluster_t::on_new_connection, this, _1)
+            boost::bind(&connectivity_cluster_t::on_new_connection, this, _1)
         ));
 }
 
-cluster_t::~cluster_t() {
+connectivity_cluster_t::~connectivity_cluster_t() {
     listener.reset();
     shutdown_cond.pulse();
     shutdown_semaphore.drain();
 }
 
-void cluster_t::join(address_t address) {
+void connectivity_cluster_t::join(peer_address_t address) {
     assert_thread();
     drain_semaphore_t::lock_t drain_semaphore_lock(&shutdown_semaphore);
     coro_t::spawn_now(boost::bind(
-        &cluster_t::join_blocking,
+        &connectivity_cluster_t::join_blocking,
         this,
         address,
         /* We don't know what `peer_id_t` the peer has until we connect to it */
@@ -41,19 +39,19 @@ void cluster_t::join(address_t address) {
         ));
 }
 
-peer_id_t cluster_t::get_me() {
+peer_id_t connectivity_cluster_t::get_me() {
     assert_thread();
     return me;
 }
 
-std::map<peer_id_t, address_t> cluster_t::get_everybody() {
+std::map<peer_id_t, peer_address_t> connectivity_cluster_t::get_everybody() {
     assert_thread();
     /* We can't just return `routing_table` because `routing_table` includes
     some partially-connected peers, so if we just returned `routing_table` then
     some peers would appear in the output from `get_everybody()` before the
     `on_connect()` event was sent out or after the `on_disconnect()` event was
     sent out. */
-    std::map<peer_id_t, address_t> peers;
+    std::map<peer_id_t, peer_address_t> peers;
     peers[me] = routing_table[me];
     for (std::map<peer_id_t, connection_t*>::iterator it = connections.begin();
             it != connections.end(); it++) {
@@ -62,9 +60,9 @@ std::map<peer_id_t, address_t> cluster_t::get_everybody() {
     return peers;
 }
 
-/* cluster_t::event_watcher_t */
+/* connectivity_cluster_t::event_watcher_t */
 
-cluster_t::event_watcher_t::event_watcher_t(cluster_t *parent) :
+connectivity_cluster_t::event_watcher_t::event_watcher_t(connectivity_cluster_t *parent) :
     cluster(parent)
 {
     cluster->assert_thread();
@@ -72,43 +70,43 @@ cluster_t::event_watcher_t::event_watcher_t(cluster_t *parent) :
     cluster->watchers.push_back(this);
 }
 
-cluster_t::event_watcher_t::~event_watcher_t() {
+connectivity_cluster_t::event_watcher_t::~event_watcher_t() {
     cluster->assert_thread();
     mutex_acquisition_t acq(&cluster->watchers_mutex);
     cluster->watchers.remove(this);
 }
 
-/* cluster_t::connect_watcher_t */
+/* connectivity_cluster_t::connect_watcher_t */
 
-cluster_t::connect_watcher_t::connect_watcher_t(cluster_t *parent, peer_id_t peer) :
+connectivity_cluster_t::connect_watcher_t::connect_watcher_t(connectivity_cluster_t *parent, peer_id_t peer) :
     event_watcher_t(parent), peer(peer) { }
 
-void cluster_t::connect_watcher_t::on_connect(peer_id_t p) {
+void connectivity_cluster_t::connect_watcher_t::on_connect(peer_id_t p) {
     if (peer == p && !is_pulsed()) {
         pulse();
     }
 }
 
-void cluster_t::connect_watcher_t::on_disconnect(peer_id_t) {
+void connectivity_cluster_t::connect_watcher_t::on_disconnect(peer_id_t) {
     // Ignore this event
 }
 
-/* cluster_t::disconnect_watcher_t */
+/* connectivity_cluster_t::disconnect_watcher_t */
 
-cluster_t::disconnect_watcher_t::disconnect_watcher_t(cluster_t *parent, peer_id_t peer) :
+connectivity_cluster_t::disconnect_watcher_t::disconnect_watcher_t(connectivity_cluster_t *parent, peer_id_t peer) :
     event_watcher_t(parent), peer(peer) { }
 
-void cluster_t::disconnect_watcher_t::on_connect(peer_id_t) {
+void connectivity_cluster_t::disconnect_watcher_t::on_connect(peer_id_t) {
     // Ignore this event
 }
 
-void cluster_t::disconnect_watcher_t::on_disconnect(peer_id_t p) {
+void connectivity_cluster_t::disconnect_watcher_t::on_disconnect(peer_id_t p) {
     if (peer == p && !is_pulsed()) {
         pulse();
     }
 }
 
-void cluster_t::send_message(peer_id_t dest, boost::function<void(std::ostream&)> writer) {
+void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(std::ostream&)> writer) {
     assert_thread();
 
     /* We currently write the message to a `stringstream`, then serialize that
@@ -141,7 +139,7 @@ void cluster_t::send_message(peer_id_t dest, boost::function<void(std::ostream&)
             sender << buffer_str;
         } catch (boost::archive::archive_exception) {
             /* Close the other half of the connection to make sure that
-            `cluster_t::handle()` notices that something is up */
+            `connectivity_cluster_t::handle()` notices that something is up */
             if (dest_conn->conn->is_read_open()) {
                 dest_conn->conn->shutdown_read();
             }
@@ -149,38 +147,38 @@ void cluster_t::send_message(peer_id_t dest, boost::function<void(std::ostream&)
     }
 }
 
-void cluster_t::on_new_connection(boost::scoped_ptr<streamed_tcp_conn_t> &conn) {
+void connectivity_cluster_t::on_new_connection(boost::scoped_ptr<streamed_tcp_conn_t> &conn) {
     drain_semaphore_t::lock_t drain_semaphore_lock(&shutdown_semaphore);
     handle(conn.get(), boost::none, boost::none);
 }
 
-/* `cluster_t::join_blocking()` is spawned in a new coroutine by
-`cluster_t::join()`. It's also run by `cluster_t::handle()` when we hear about
+/* `connectivity_cluster_t::join_blocking()` is spawned in a new coroutine by
+`connectivity_cluster_t::join()`. It's also run by `connectivity_cluster_t::handle()` when we hear about
 a new peer from a peer we are connected to. */
 
-void cluster_t::join_blocking(
-        address_t address,
+void connectivity_cluster_t::join_blocking(
+        peer_address_t address,
         boost::optional<peer_id_t> expected_id,
         UNUSED drain_semaphore_t::lock_t lock) {
     try {
         streamed_tcp_conn_t conn(address.ip, address.port);
-        handle(&conn, expected_id, boost::optional<address_t>(address));
+        handle(&conn, expected_id, boost::optional<peer_address_t>(address));
     } catch (tcp_conn_t::connect_failed_exc_t) {
         /* Ignore */
     }
 }
 
-/* `cluster_t::handle` is responsible for the entire lifetime of an
+/* `connectivity_cluster_t::handle` is responsible for the entire lifetime of an
 intra-cluster TCP connection. It handles the handshake, exchanging node maps,
 sending out the connect-notification, receiving messages from the peer until it
 disconnects or we are shut down, and sending out the disconnect-notification. */
 
-void cluster_t::handle(
-        /* `conn` should remain valid until `cluster_t::handle()` returns.
-        `cluster_t::handle()` does not take ownership of `conn`. */
+void connectivity_cluster_t::handle(
+        /* `conn` should remain valid until `connectivity_cluster_t::handle()` returns.
+        `connectivity_cluster_t::handle()` does not take ownership of `conn`. */
         streamed_tcp_conn_t *conn,
         boost::optional<peer_id_t> expected_id,
-        boost::optional<address_t> expected_address) {
+        boost::optional<peer_address_t> expected_address) {
 
     /* Make sure that if we're ordered to shut down, any pending read or write
     gets interrupted. */
@@ -223,7 +221,7 @@ void cluster_t::handle(
     }
 
     peer_id_t other_id;
-    address_t other_address;
+    peer_address_t other_address;
     try {
         boost::archive::text_iarchive receiver(*conn);
         receiver >> other_id;
@@ -253,11 +251,11 @@ void cluster_t::handle(
     Then the follower sends its routing table to the leader. */
     bool we_are_leader = me < other_id;
 
-    std::map<peer_id_t, address_t> other_routing_table;
+    std::map<peer_id_t, peer_address_t> other_routing_table;
 
     if (we_are_leader) {
 
-        std::map<peer_id_t, address_t> routing_table_to_send;
+        std::map<peer_id_t, peer_address_t> routing_table_to_send;
 
         /* Critical section: we must check for conflicts and register ourself
         without the interference of any other connections. This ensures that
@@ -316,7 +314,7 @@ void cluster_t::handle(
             else throw;
         }
 
-        std::map<peer_id_t, address_t> routing_table_to_send;
+        std::map<peer_id_t, peer_address_t> routing_table_to_send;
 
         /* Register ourselves locally. This is in a critical section so that if
         we get two connections from different nodes at the same time, one will
@@ -352,16 +350,16 @@ void cluster_t::handle(
     {
         /* Acquire the drain semaphore so we can pass a
         `drain_semaphore_t::lock_t` to the coroutine we spawn. That way, the
-        `cluster_t` won't shut down while there coroutine is still active. */
+        `connectivity_cluster_t` won't shut down while there coroutine is still active. */
         drain_semaphore_t::lock_t drain_semaphore_lock(&shutdown_semaphore);
 
-        for (std::map<peer_id_t, address_t>::iterator it = other_routing_table.begin();
+        for (std::map<peer_id_t, peer_address_t>::iterator it = other_routing_table.begin();
              it != other_routing_table.end(); it++) {
             if (routing_table.find((*it).first) == routing_table.end()) {
                 /* `(*it).first` is the ID of a peer that our peer is connected
                 to, but we aren't connected to. */
                 coro_t::spawn_now(boost::bind(
-                    &cluster_t::join_blocking, this,
+                    &connectivity_cluster_t::join_blocking, this,
                     (*it).second,
                     boost::optional<peer_id_t>((*it).first),
                     drain_semaphore_lock));
@@ -439,5 +437,3 @@ void cluster_t::handle(
     /* Remove us from the routing map */
     routing_table.erase(other_id);
 }
-
-}   /* namespace connectivity */
