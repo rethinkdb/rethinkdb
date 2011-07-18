@@ -149,8 +149,8 @@ private:
     };
     std::map<peer_id_t, connection_t*> connections;
 
-    /* Writes to `everybody` and `connections` are protected by this mutex so
-    we never get redundant connections to the same peer. */
+    /* Writes to `routing_table` and `connections` are protected by this mutex
+    so we never get redundant connections to the same peer. */
     mutex_t new_connection_mutex;
 
     /* List of everybody watching for connectivity events. `watchers_mutex` is
@@ -158,7 +158,8 @@ private:
     intrusive_list_t<event_watcher_t> watchers;
     mutex_t watchers_mutex;
 
-    /* Shutdown process stuff */
+    /* These monitors are for use in the shutdown process. When we want to shut
+    down, we signal `shutdown_cond` then drain `drain_semaphore`. */
     cond_t shutdown_cond;
     drain_semaphore_t shutdown_semaphore;
 };
