@@ -38,40 +38,40 @@ private:
     }
 };
 
+/* `peer_id_t` is a wrapper around a `boost::uuids::uuid`. Each newly
+created cluster node picks a UUID to be its peer-ID. */
+struct peer_id_t {
+    bool operator==(const peer_id_t &p) const {
+        return p.uuid == uuid;
+    }
+    bool operator!=(const peer_id_t &p) const {
+        return p.uuid != uuid;
+    }
+    bool operator<(const peer_id_t &p) const {
+        return p.uuid < uuid;
+    }
+
+    /* TODO: This should not be used. Can we get rid of it without breaking the
+    possibility of using this in an std::map and for deserialization? (other
+    than making all required classes friends and this private) */
+    peer_id_t() { }
+private:
+    friend class cluster_t;
+    boost::uuids::uuid uuid;
+    peer_id_t(boost::uuids::uuid u) : uuid(u) { }
+
+    friend class boost::serialization::access;
+    template<class Archive> void serialize(Archive & ar, UNUSED const unsigned int version) {
+        // Not really platform independent...
+        boost::serialization::binary_object bin_uuid(&uuid, boost::uuids::uuid::static_size());
+        ar & bin_uuid;
+    }
+};
+
 struct cluster_t :
     public home_thread_mixin_t
 {
 public:
-
-    /* `peer_id_t` is a wrapper around a `boost::uuids::uuid`. Each newly
-    created cluster node picks a UUID to be its peer-ID. */
-    struct peer_id_t {
-        bool operator==(const peer_id_t &p) const {
-            return p.uuid == uuid;
-        }
-        bool operator!=(const peer_id_t &p) const {
-            return p.uuid != uuid;
-        }
-        bool operator<(const peer_id_t &p) const {
-            return p.uuid < uuid;
-        }
-
-        // TODO: This should not be used. Can we get rid of it without breaking
-        // the possibility of using this in an std::map and for deserialization?
-        // (other than making all required classes friends and this private)
-        peer_id_t() { }
-    private:
-        friend class cluster_t;
-        boost::uuids::uuid uuid;
-        peer_id_t(boost::uuids::uuid u) : uuid(u) { }
-
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive & ar, UNUSED const unsigned int version) {
-            // Not really platform independent...
-            boost::serialization::binary_object bin_uuid(&uuid, boost::uuids::uuid::static_size());
-            ar & bin_uuid;
-        }
-    };
 
     /* Creating a new cluster node, and connecting one cluster to another
     cluster */

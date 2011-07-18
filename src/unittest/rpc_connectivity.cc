@@ -35,8 +35,8 @@ it receives from other nodes in the cluster. */
 
 struct dummy_cluster_t : public connectivity::cluster_t {
 private:
-    std::map<int, connectivity::cluster_t::peer_id_t> inbox;
-    void on_message(peer_id_t peer, std::istream &stream) {
+    std::map<int, connectivity::peer_id_t> inbox;
+    void on_message(connectivity::peer_id_t peer, std::istream &stream) {
         int i;
         stream >> i;
         inbox[i] = peer;
@@ -46,10 +46,10 @@ private:
     }
 public:
     dummy_cluster_t(int i) : connectivity::cluster_t(i) { }
-    void send(int message, peer_id_t peer) {
+    void send(int message, connectivity::peer_id_t peer) {
         send_message(peer, boost::bind(&write, message, _1));
     }
-    void expect(int message, peer_id_t peer) {
+    void expect(int message, connectivity::peer_id_t peer) {
         EXPECT_TRUE(inbox.find(message) != inbox.end());
         EXPECT_TRUE(inbox[message] == peer);
     }
@@ -100,7 +100,7 @@ void run_get_everybody_test() {
     dummy_cluster_t c1(port);
 
     /* Make sure `get_everybody()` is initially sane */
-    std::map<connectivity::cluster_t::peer_id_t, connectivity::address_t> routing_table_1;
+    std::map<connectivity::peer_id_t, connectivity::address_t> routing_table_1;
     routing_table_1 = c1.get_everybody();
     EXPECT_TRUE(routing_table_1.find(c1.get_me()) != routing_table_1.end());
     EXPECT_EQ(routing_table_1.size(), 1);
@@ -112,7 +112,7 @@ void run_get_everybody_test() {
         let_stuff_happen();
 
         /* Make sure `get_everybody()` correctly notices that a peer connects */
-        std::map<connectivity::cluster_t::peer_id_t, connectivity::address_t> routing_table_2;
+        std::map<connectivity::peer_id_t, connectivity::address_t> routing_table_2;
         routing_table_2 = c1.get_everybody();
         EXPECT_TRUE(routing_table_2.find(c2.get_me()) != routing_table_2.end());
         EXPECT_EQ(routing_table_2[c2.get_me()].port, port+1);
@@ -123,7 +123,7 @@ void run_get_everybody_test() {
     let_stuff_happen();
 
     /* Make sure `get_everybody()` notices that a peer has disconnected */
-    std::map<connectivity::cluster_t::peer_id_t, connectivity::address_t> routing_table_3;
+    std::map<connectivity::peer_id_t, connectivity::address_t> routing_table_3;
     routing_table_3 = c1.get_everybody();
     EXPECT_EQ(routing_table_3.size(), 1);
 }
@@ -172,10 +172,10 @@ void run_event_watcher_ordering_test() {
             connectivity::cluster_t::event_watcher_t(c), cluster(c) { }
         dummy_cluster_t *cluster;
 
-        void on_connect(connectivity::cluster_t::peer_id_t p) {
+        void on_connect(connectivity::peer_id_t p) {
             /* When we get a connection event, make sure that the peer address
             is present in the routing table */
-            std::map<connectivity::cluster_t::peer_id_t, connectivity::address_t> routing_table;
+            std::map<connectivity::peer_id_t, connectivity::address_t> routing_table;
             routing_table = cluster->get_everybody();
             EXPECT_TRUE(routing_table.find(p) != routing_table.end());
 
@@ -185,10 +185,10 @@ void run_event_watcher_ordering_test() {
             coro_t::spawn_now(boost::bind(&dummy_cluster_t::send, cluster, 89765, p));
         }
 
-        void on_disconnect(connectivity::cluster_t::peer_id_t p) {
+        void on_disconnect(connectivity::peer_id_t p) {
             /* When we get a disconnection event, make sure that the peer
             address is gone from the routing table */
-            std::map<connectivity::cluster_t::peer_id_t, connectivity::address_t> routing_table;
+            std::map<connectivity::peer_id_t, connectivity::address_t> routing_table;
             routing_table = cluster->get_everybody();
             EXPECT_TRUE(routing_table.find(p) == routing_table.end());
         }

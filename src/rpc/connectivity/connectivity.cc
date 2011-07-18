@@ -29,6 +29,7 @@ cluster_t::~cluster_t() {
 }
 
 void cluster_t::join(address_t address) {
+    assert_thread();
     drain_semaphore_t::lock_t drain_semaphore_lock(&shutdown_semaphore);
     coro_t::spawn_now(boost::bind(
         &cluster_t::join_blocking,
@@ -40,11 +41,13 @@ void cluster_t::join(address_t address) {
         ));
 }
 
-cluster_t::peer_id_t cluster_t::get_me() {
+peer_id_t cluster_t::get_me() {
+    assert_thread();
     return me;
 }
 
-std::map<cluster_t::peer_id_t, address_t> cluster_t::get_everybody() {
+std::map<peer_id_t, address_t> cluster_t::get_everybody() {
+    assert_thread();
     /* We can't just return `routing_table` because `routing_table` includes
     some partially-connected peers, so if we just returned `routing_table` then
     some peers would appear in the output from `get_everybody()` before the
@@ -64,11 +67,13 @@ std::map<cluster_t::peer_id_t, address_t> cluster_t::get_everybody() {
 cluster_t::event_watcher_t::event_watcher_t(cluster_t *parent) :
     cluster(parent)
 {
-    mutex_acquisition_t acq(&parent->watchers_mutex);
-    parent->watchers.push_back(this);
+    cluster->assert_thread();
+    mutex_acquisition_t acq(&cluster->watchers_mutex);
+    cluster->watchers.push_back(this);
 }
 
 cluster_t::event_watcher_t::~event_watcher_t() {
+    cluster->assert_thread();
     mutex_acquisition_t acq(&cluster->watchers_mutex);
     cluster->watchers.remove(this);
 }
@@ -104,6 +109,7 @@ void cluster_t::disconnect_watcher_t::on_disconnect(peer_id_t p) {
 }
 
 void cluster_t::send_message(peer_id_t dest, boost::function<void(std::ostream&)> writer) {
+    assert_thread();
 
     /* We currently write the message to a `stringstream`, then serialize that
     as a string. It's horribly inefficient, of course. */
