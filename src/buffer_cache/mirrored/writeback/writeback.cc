@@ -289,6 +289,7 @@ void writeback_t::start_concurrent_flush() {
     coro_t::spawn(boost::bind(&writeback_t::do_concurrent_flush, this));
 }
 
+// TODO (rntz) break this up into smaller functions
 void writeback_t::do_concurrent_flush() {
     ticks_t start_time;
     pm_flushes_locking.begin(&start_time);
