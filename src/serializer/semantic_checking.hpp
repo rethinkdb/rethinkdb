@@ -87,7 +87,7 @@ public:
                 persisted_block_info_t buf;
                 res = read(semantic_fd, &buf, sizeof(buf));
                 guarantee_err(res != -1, "Could not read from the semantic checker file");
-                if(res == sizeof(persisted_block_info_t)) {
+                if(res == sizeof(persisted_block_info_t)) { // XXX (rntz) shouldn't it be an error if this is not the case?
                     blocks.set(buf.block_id.value, buf.block_info);
                 }
             } while(res == sizeof(persisted_block_info_t));
