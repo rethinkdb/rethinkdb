@@ -56,7 +56,6 @@ private:
 
     int last_write_started, last_write_callbacked;
 
-private:
     struct persisted_block_info_t {
         block_id_t block_id;
         block_info_t block_info;
@@ -67,8 +66,6 @@ public:
     typedef typename inner_serializer_t::private_dynamic_config_t private_dynamic_config_t;
     typedef typename inner_serializer_t::dynamic_config_t dynamic_config_t;
     typedef typename inner_serializer_t::static_config_t static_config_t;
-
-public:
 
     static void create(dynamic_config_t *config, private_dynamic_config_t *private_config, static_config_t *static_config) {
         inner_serializer_t::create(config, private_config, static_config);
@@ -105,7 +102,6 @@ public:
         inner_serializer_t::check_existing(db_path, cb);
     }
 
-public:
     void *malloc() {
         return inner_serializer.malloc();
     }
@@ -122,7 +118,6 @@ public:
         return inner_serializer.make_io_account(priority, outstanding_requests_limit);
     }
 
-public:
     /* For reads, we check to make sure that the data we get back in the read is
     consistent with what was last written there. */
 
@@ -190,7 +185,6 @@ public:
         return inner_serializer.get_current_transaction_id(block_id, buf);
     }
 
-public:
     /* For writes, we make sure that the writes come back in the same order that
     we send them to the serializer. */
 
@@ -255,7 +249,6 @@ public:
         }
     }
 
-public:
     block_size_t get_block_size() {
         return inner_serializer.get_block_size();
     }
@@ -286,7 +279,6 @@ public:
         return false;
     }
 
-public:
     struct shutdown_callback_t {
         virtual void on_serializer_shutdown(semantic_checking_serializer_t *) = 0;
         virtual ~shutdown_callback_t() {}
