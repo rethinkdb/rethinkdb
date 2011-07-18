@@ -664,6 +664,12 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, int _expec
       snapshotted(false)
 {
     block_pm_duration start_timer(&pm_transactions_starting);
+
+    coro_fifo_acq_t acq;
+    if (is_write_mode(access)) {
+        acq.enter(&cache->co_begin_coro_fifo());
+    }
+
     rassert(access == rwi_read || access == rwi_read_sync || access == rwi_write);
     cache->assert_thread();
     rassert(!cache->shutting_down);
