@@ -16,15 +16,9 @@ void patch_memory_storage_t::load_block_patch_list(block_id_t block_id, const st
     ser_block_sequence_id_t previous_block_sequence = 0;
     patch_counter_t previous_patch_counter = 0;
     for(std::list<buf_patch_t*>::const_iterator p = patches.begin(); p != patches.end(); ++p) {
-        if ((*p)->get_block_sequence_id() != previous_block_sequence) {
-#ifndef NDEBUG
-            if ((*p)->get_block_sequence_id() <= previous_block_sequence) {
-                std::string bs = block_sequence_string((*p)->get_block_sequence_id()),
-                            pbs = block_sequence_string(previous_block_sequence);
-                crash_or_trap("Non-sequential patch list: Block sequence id %s follows %s", bs.c_str(), pbs.c_str());
-            }
-#endif
-        }
+        rassert(previous_block_sequence <= (*p)->get_block_sequence_id(),
+                "Non-sequential patch list: Block sequence id %lu follows %lu",
+                (*p)->get_block_sequence_id(), previous_block_sequence);
         if (previous_block_sequence == 0 || (*p)->get_block_sequence_id() != previous_block_sequence) {
             previous_patch_counter = 0;
         }
@@ -146,14 +140,9 @@ void patch_memory_storage_t::block_patch_list_t::verify_patches_list(ser_block_s
     patch_counter_t previous_patch_counter = 0;
     for (std::vector<buf_patch_t*>::const_iterator p = patches_.begin(), e = patches_.end(); p != e; ++p) {
         rassert((*p)->get_block_sequence_id() >= block_sequence_id || (*p)->get_block_sequence_id() == 0);
-        if ((*p)->get_block_sequence_id() != previous_block_sequence) {
-            if ((*p)->get_block_sequence_id() <= previous_block_sequence) {
-                std::string bs = block_sequence_string((*p)->get_block_sequence_id()),
-                    pbs = block_sequence_string(previous_block_sequence);
-                crash_or_trap("Non-sequential patch list: Transaction id %s follows %s",
-                              bs.c_str(), pbs.c_str());
-            }
-        }
+        rassert(previous_block_sequence <= (*p)->get_block_sequence_id(),
+                "Non-sequential patch list: Block sequence id %lu follows %lu",
+                (*p)->get_block_sequence_id(), previous_block_sequence);
         if (previous_block_sequence == 0 || (*p)->get_block_sequence_id() != previous_block_sequence) {
             previous_patch_counter = 0;
         }
