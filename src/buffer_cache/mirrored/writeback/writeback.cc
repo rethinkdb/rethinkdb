@@ -323,9 +323,6 @@ void writeback_t::do_concurrent_flush() {
         transaction = new mc_transaction_t(cache, rwi_read);
         cache->shutting_down = saved_shutting_down;
     }
-    // FIXME (rntz) Is this rassert necessary? Is it possible for new foo() to return NULL? git
-    // blames ivan for this.
-    rassert(transaction != NULL); // Read txns always start immediately.
 
     bool block_sequence_ids_have_been_updated = false;
     std::vector<buf_writer_t *> buf_writers;
