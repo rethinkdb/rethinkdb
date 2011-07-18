@@ -167,4 +167,95 @@ private:
 
 };
 
+/*
+unique_iterator_t removes duplicates. It requires the input iterator to be sorted.
+T has to implement operator==().
+*/
+template <class T>
+class unique_filter_iterator_t : public one_way_iterator_t<T> {
+public:
+    unique_filter_iterator_t(one_way_iterator_t<T> *_ownee) : previous(boost::none), ownee(_ownee) { }
+    ~unique_filter_iterator_t() {
+        delete ownee;
+    }
+    virtual typename boost::optional<T> next() {
+        for (;;) {
+            boost::optional<T> value = ownee->next();
+            if (!value) {
+                previous = value;
+                return boost::none;
+            } else {
+                // Is this element different from what we had before?
+                if (!previous || !(previous.get() == value.get())) {
+                    previous = value;
+                    return value;
+                }
+                // otherwise, continue.
+            }
+        }
+    }
+    void prefetch() {
+        // TODO: Should we implement this?
+        ownee->prefetch();
+    }
+
+private:
+    boost::optional<T> previous;
+    one_way_iterator_t<T> *ownee;
+};
+
+// TODO: Union of sets can be implemented as a unque iterator around a merge iterator.
+
+/* TODO! Document (especially what happens in case of more than n repetitions) */
+template <class T>
+class repetition_filter_iterator_t : public one_way_iterator_t<T> {
+public:
+    repetition_filter_iterator_t(one_way_iterator_t<T> *_ownee, int _n_repetitions) : previous(boost::none), previous_repetitions(0), ownee(_ownee), n_repetitions(_n_repetitions) {
+        rassert(n_repetitions > 0);
+    }
+    ~repetition_filter_iterator_t() {
+        delete ownee;
+    }
+    virtual typename boost::optional<T> next() {
+        for (;;) {
+            boost::optional<T> value = ownee->next();
+            if (!value) {
+                previous = value;
+                previous_repetitions = 0;
+                return boost::none;
+            } else {
+                // Is this element different from what we had before?
+                if (!previous || !(previous.get() == value.get())) {
+                    // Different, start over
+                    previous_repetitions = 1;
+                    previous = value;
+                } else {
+                    // The same, increment counter
+                    ++previous_repetitions;
+                }
+
+                // Have we got enough repetitions?
+                rassert(previous_repetitions <= n_repetitions);
+                if (previous_repetitions == n_repetitions) {
+                    previous_repetitions = 0;
+                    return value;
+                }
+                // otherwise, continue.
+            }
+        }
+    }
+    void prefetch() {
+        // TODO: Should we implement this?
+        ownee->prefetch();
+    }
+
+private:
+    boost::optional<T> previous;
+    int previous_repetitions;
+    one_way_iterator_t<T> *ownee;
+    int n_repetitions;
+};
+
+// TODO: Intersection of sets can be implemented as a repetition iterator around a merge iterator.
+
 #endif /* __CONTAINERS_ITERATOR_HPP__ */

@@ -16,6 +16,14 @@ struct key_value_pair_t {
     std::string key;
     boost::shared_array<char> value;
 
+    // TODO! Going to change with templated btrees...
+    bool operator==(const key_value_pair_t &k) const {
+        return key == k.key;
+    }
+    bool operator<(const key_value_pair_t &k) const {
+        return key < k.key;
+    }
+
     key_value_pair_t(value_sizer_t *sizer, const std::string& _key, const value_type_t *_value) : key(_key) {
         int size = sizer->size(_value);
         value.reset(new char[size]);
