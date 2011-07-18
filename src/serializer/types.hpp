@@ -10,10 +10,11 @@ typedef uint32_t block_id_t;
 #define NULL_BLOCK_ID (block_id_t(-1))
 
 /* Each time we write a block to disk, that block receives a new unique block sequence id */
-typedef __uint128_t ser_block_sequence_id_t;
+typedef uint64_t ser_block_sequence_id_t;
 #define NULL_SER_BLOCK_SEQUENCE_ID (ser_block_sequence_id_t(0))
 #define FIRST_SER_BLOCK_SEQUENCE_ID (ser_block_sequence_id_t(1))
 
+// TODO (rntz) remove
 std::string block_sequence_string(ser_block_sequence_id_t id);
 
 /* TODO: block_size_t depends on the serializer implementation details, so it doesn't
