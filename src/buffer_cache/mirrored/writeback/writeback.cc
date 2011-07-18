@@ -383,7 +383,6 @@ void writeback_t::do_concurrent_flush() {
 
     // Once transaction has completed, perform cleanup.
     txn_cond.wait();
-    rassert(block_sequence_ids_have_been_updated);
 
     /* We are done writing all of the buffers */
     // At this point it's definitely safe to release all the buffers
