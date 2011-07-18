@@ -7,7 +7,6 @@
 #include "config/args.hpp"
 #include "serializer/log/config.hpp"
 #include "buffer_cache/mirrored/config.hpp"
-#include "server/cmd_args.hpp"
 
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/access.hpp>
