@@ -219,7 +219,7 @@ void plain_sink_t::check_out(order_token_t token) {
             bucket_ = token.bucket_;
             have_bucket_ = true;
         } else {
-            rassert(token.bucket_ == bucket_, "plain_sink_t can only be used with one order_source_t.");
+            rassert(token.bucket_ == bucket_, "plain_sink_t can only be used with one order_source_t. for %s", token.tag_.c_str());
         }
 
         order_sink_t::verify_token_value_and_update(token, &ls_pair_);
