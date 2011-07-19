@@ -8,13 +8,87 @@
 
 class btree_slice_t;
 
+/* TODO! */
+class superblock_t {
+public:
+    superblock_t() { }
+    virtual ~superblock_t() { }
+    virtual void release() = 0;
+    virtual void swap_buf(buf_lock_t &swapee) = 0;
+    virtual block_id_t get_root_block_id() const = 0;
+    virtual void set_root_block_id(const block_id_t new_root_block) = 0;
+    virtual block_id_t get_delete_queue_block() const = 0;
+
+private:
+    DISABLE_COPYING(superblock_t);
+};
+
+/* TODO! */
+class real_superblock_t : public superblock_t {
+public:
+    real_superblock_t(buf_lock_t &sb_buf) {
+        sb_buf_.swap(sb_buf);
+    }
+
+    void release() {
+        sb_buf_.release_if_acquired();
+    }
+    void swap_buf(buf_lock_t &swapee) {
+        sb_buf_.swap(swapee);
+    }
+    block_id_t get_root_block_id() const {
+        rassert (sb_buf_.is_acquired());
+        return reinterpret_cast<const btree_superblock_t *>(sb_buf_.const_buf()->get_data_read())->root_block;
+    }
+    void set_root_block_id(const block_id_t new_root_block) {
+        rassert (sb_buf_.is_acquired());
+        // We have to const_cast, because set_data unfortunately takes void* pointers, but get_data_read()
+        // gives us const data. No way around this (except for making set_data take a const void * again, as it used to be).
+        sb_buf_->set_data(const_cast<block_id_t *>(&reinterpret_cast<const btree_superblock_t *>(sb_buf_.buf()->get_data_read())->root_block), &new_root_block, sizeof(new_root_block));
+    }
+    block_id_t get_delete_queue_block() const {
+        rassert (sb_buf_.is_acquired());
+        return reinterpret_cast<const btree_superblock_t *>(sb_buf_.const_buf()->get_data_read())->delete_queue_block;
+    }
+
+private:
+    buf_lock_t sb_buf_;
+};
+
+/* This is for nested btrees, where the "superblock" is really more like a super value.
+ It provides an in-memory superblock, which can be used to perform operations on the nested
+ btree. Once those operations have finished, the user of this type is responsible
+ to check whether the root_block_id has been changed, and if it has, to update the
+ super value.
+ (TODO! shitty documentation)
+ */
+class virtual_superblock_t : public superblock_t {
+public:
+    virtual_superblock_t() : root_block_id_(NULL_BLOCK_ID) { }
+
+    void release() { }
+    void swap_buf(buf_lock_t &swapee) {
+        // Swap with empty buf_lock
+        buf_lock_t tmp;
+        tmp.swap(swapee);
+    }
+    block_id_t get_root_block_id() const {
+        return root_block_id_;
+    }
+    void set_root_block_id(const block_id_t new_root_block) {
+        root_block_id_ = new_root_block;
+    }
+
+private:
+    block_id_t root_block_id_;
+};
+
 class got_superblock_t {
 public:
     got_superblock_t() { }
 
     boost::scoped_ptr<transaction_t> txn;
-
-    buf_lock_t sb_buf;
+    boost::scoped_ptr<superblock_t> sb;
 
 private:
     DISABLE_COPYING(got_superblock_t);
@@ -31,7 +105,7 @@ public:
     keyvalue_location_t() : there_originally_was_value(false) { }
 
     boost::scoped_ptr<transaction_t> txn;
-    buf_lock_t sb_buf;
+    boost::scoped_ptr<superblock_t> sb;
 
     // The parent buf of buf, if buf is not the root node.  This is hacky.
     buf_lock_t last_buf;

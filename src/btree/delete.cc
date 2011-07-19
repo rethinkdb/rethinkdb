@@ -31,15 +31,19 @@ struct btree_delete_oper_t : public btree_modify_oper_t {
     }
 
     void do_superblock_sidequest(transaction_t *txn,
-                                 buf_lock_t& superblock,
+                                 superblock_t *superblock,
                                  repli_timestamp_t recency,
                                  const store_key_t *key) {
 
         if (!dont_put_in_delete_queue) {
             slice->assert_thread();
-            const btree_superblock_t *sb = reinterpret_cast<const btree_superblock_t *>(superblock->get_data_read());
 
-            replication::add_key_to_delete_queue(slice->delete_queue_limit(), txn, sb->delete_queue_block, recency, key);
+            block_id_t delete_queue_root = superblock->get_delete_queue_block();
+            if (delete_queue_root != NULL_BLOCK_ID) {
+                replication::add_key_to_delete_queue(slice->delete_queue_limit(), txn, delete_queue_root, recency, key);
+            } else {
+                debugf("Failed to locate delete queue\n"); // TODO! I think this is ok, but check that.
+            }
         }
     }
 };

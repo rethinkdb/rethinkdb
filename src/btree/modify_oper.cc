@@ -32,7 +32,7 @@ void run_btree_modify_oper(value_sizer_t<memcached_value_t> *sizer, btree_modify
         // to be, but when you fix this, make sure the superblock
         // sidequest is done using the superblock before the
         // superblock gets released.
-        oper->do_superblock_sidequest(got_superblock.txn.get(), got_superblock.sb_buf, castime.timestamp, &store_key);
+        oper->do_superblock_sidequest(got_superblock.txn.get(), got_superblock.sb.get(), castime.timestamp, &store_key);
 
         keyvalue_location_t<memcached_value_t> kv_location;
         find_keyvalue_location_for_write(sizer, &got_superblock, key, castime.timestamp, &kv_location);
