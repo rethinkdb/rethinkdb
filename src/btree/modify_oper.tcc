@@ -12,12 +12,9 @@
 #include "btree/slice.hpp"
 
 
-
-
-
-
 // Runs a btree_modify_oper_t.
-void run_btree_modify_oper(value_sizer_t<memcached_value_t> *sizer, btree_modify_oper_t *oper, btree_slice_t *slice, const store_key_t &store_key, castime_t castime, order_token_t token) {
+template <class Value>
+void run_btree_modify_oper(value_sizer_t<Value> *sizer, btree_modify_oper_t<Value> *oper, btree_slice_t *slice, const store_key_t &store_key, castime_t castime, order_token_t token) {
     btree_key_buffer_t kbuffer(store_key);
     btree_key_t *key = kbuffer.key();
 
@@ -34,10 +31,10 @@ void run_btree_modify_oper(value_sizer_t<memcached_value_t> *sizer, btree_modify
         // superblock gets released.
         oper->do_superblock_sidequest(got_superblock.txn.get(), got_superblock.sb_buf, castime.timestamp, &store_key);
 
-        keyvalue_location_t<memcached_value_t> kv_location;
+        keyvalue_location_t<Value> kv_location;
         find_keyvalue_location_for_write(sizer, &got_superblock, key, castime.timestamp, &kv_location);
         transaction_t *txn = kv_location.txn.get();
-        scoped_malloc<memcached_value_t> the_value;
+        scoped_malloc<Value> the_value;
         the_value.reinterpret_swap(kv_location.value);
 
         bool expired = the_value && the_value->expired();
