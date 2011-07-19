@@ -230,13 +230,13 @@ void find_keyvalue_location_for_write(value_sizer_t<Value> *sizer, got_superbloc
 
 template <class Value>
 void find_keyvalue_location_for_read(value_sizer_t<Value> *sizer, got_superblock_t *got_superblock, btree_key_t *key, keyvalue_location_t<Value> *keyvalue_location_out) {
-    buf_lock_t buf;
-    got_superblock->sb->swap_buf(buf);
-    boost::scoped_ptr<transaction_t> txn;
-    txn.swap(got_superblock->txn);
-
     block_id_t node_id = got_superblock->sb->get_root_block_id();
     rassert(node_id != SUPERBLOCK_ID);
+
+    boost::scoped_ptr<transaction_t> txn;
+    txn.swap(got_superblock->txn);
+    buf_lock_t buf;
+    got_superblock->sb->swap_buf(buf);
 
     if (node_id == NULL_BLOCK_ID) {
         // There is no root, so the tree is empty.
