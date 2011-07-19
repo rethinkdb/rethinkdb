@@ -237,7 +237,7 @@ class DataFiles(object):
             "-s", str(self.opts["slices"]),
             "--diff-log-size", str(self.opts["diff-log-size"]),
             "-c", str(self.opts["cores"]),
-            ] + (["--extent-size", "1048576"] if self.opts["valgrind"] else []) + self.rethinkdb_flags(),
+            ] + (["--extent-size", "1048576"] if self.opts["valgrind"] else []) + self.rethinkdb_flags() + ["--metadata-file", self.metadata_file],
             "creator_output.txt",
             timeout = 30 * ec2,
             valgrind_tool = self.opts["valgrind-tool"] if self.opts["valgrind"] else None,
@@ -248,12 +248,11 @@ class DataFiles(object):
         flags = []
         for file in self.files:
             flags.extend(["-f", file])
-        flags.extend(["--metadata-file", self.metadata_file])
         return flags
-    
+
     def fsck(self):
         run_executable(
-            [get_executable_path(self.opts, "rethinkdb"), "fsck"] + self.rethinkdb_flags(),
+            [get_executable_path(self.opts, "rethinkdb"), "fsck"] + self.rethinkdb_flags() + ["--metadata-file", self.metadata_file],
             "fsck_output.txt",
             timeout = 2000, #TODO this should be based on the size of the data file 4.6Gb takes about 30 minutes
             valgrind_tool = self.opts["valgrind-tool"] if self.opts["valgrind"] else None,
@@ -357,7 +356,7 @@ class Server(object):
                 "-p", str(self.internal_server_port),
                 "-c", str(self.opts["cores"]),
                 "-m", str(self.opts["memory"]),
-                ] + self.data_files.rethinkdb_flags() + \
+                ] + self.data_files.rethinkdb_flags() + ["--metadata-file", self.data_files.metadata_file] + \
                 shlex.split(self.opts["serve-flags"]) + \
                 self.extra_flags
 
