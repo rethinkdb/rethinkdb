@@ -16,79 +16,127 @@
 // Note: This struct is stored directly on disk.  Changing it
 // invalidates old data.  (It's not really representative of what's
 // stored on disk, but be aware of how you might invalidate old data.)
+template <class Value>
 struct btree_leaf_pair {
     btree_key_t key;
     // key is of variable size and there's a btree_value that follows
     // it that is of variable size.
-    value_type_t *value() {
-        return reinterpret_cast<value_type_t *>(reinterpret_cast<char *>(&key) + sizeof(btree_key_t) + key.size);
+    Value *value() {
+        return reinterpret_cast<Value *>(reinterpret_cast<char *>(&key) + sizeof(btree_key_t) + key.size);
     }
-    const value_type_t *value() const {
-        return reinterpret_cast<const value_type_t *>(reinterpret_cast<const char *>(&key) + sizeof(btree_key_t) + key.size);
+    const Value *value() const {
+        return reinterpret_cast<const Value *>(reinterpret_cast<const char *>(&key) + sizeof(btree_key_t) + key.size);
     }
 };
 
-bool leaf_pair_fits(value_sizer_t *sizer, const btree_leaf_pair *pair, size_t size);
+template <class Value>
+bool leaf_pair_fits(value_sizer_t<Value> *sizer, const btree_leaf_pair<Value> *pair, size_t size);
 
 class leaf_key_comp;
 
 namespace leaf {
-void init(value_sizer_t *sizer, abstract_buf_t *node_buf, repli_timestamp_t modification_time);
-void init(value_sizer_t *sizer, abstract_buf_t *node_buf, const leaf_node_t *lnode, const uint16_t *offsets, int numpairs, repli_timestamp_t modification_time);
+template <class Value>
+void init(value_sizer_t<Value> *sizer, abstract_buf_t *node_buf, repli_timestamp_t modification_time);
 
-bool lookup(value_sizer_t *sizer, const leaf_node_t *node, const btree_key_t *key, value_type_t *value);
+template <class Value>
+void init(value_sizer_t<Value> *sizer, abstract_buf_t *node_buf, const leaf_node_t *lnode, const uint16_t *offsets, int numpairs, repli_timestamp_t modification_time);
+
+template <class Value>
+bool lookup(value_sizer_t<Value> *sizer, const leaf_node_t *node, const btree_key_t *key, Value *value);
 
 // TODO: The names of these functions are too similar.  The only difference between them is leaf_node_t* vs abstract_buf_t*?
 
 // Returns true if insertion was successful.  Returns false if the
 // node was full.  TODO: make sure we always check return value.
-bool insert(value_sizer_t *sizer, abstract_buf_t *node_buf, const btree_key_t *key, const value_type_t *value, repli_timestamp_t insertion_time);
-void insert(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *key, const value_type_t *value, repli_timestamp_t insertion_time); // For use by the corresponding patch
+template <class Value>
+bool insert(value_sizer_t<Value> *sizer, abstract_buf_t *node_buf, const btree_key_t *key, const Value *value, repli_timestamp_t insertion_time);
+
+template <class Value>
+void insert(value_sizer_t<Value> *sizer, leaf_node_t *node, const btree_key_t *key, const Value *value, repli_timestamp_t insertion_time); // For use by the corresponding patch
 
 // Assumes key is contained inside the node.
-void remove(value_sizer_t *block_size, abstract_buf_t *node_buf, const btree_key_t *key);
-void remove(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *key); // For use by the corresponding patch
+template <class Value>
+void remove(value_sizer_t<Value> *block_size, abstract_buf_t *node_buf, const btree_key_t *key);
+
+template <class Value>
+void remove(value_sizer_t<Value> *sizer, leaf_node_t *node, const btree_key_t *key); // For use by the corresponding patch
 
 // Initializes rnode with the greater half of node, copying the
 // new greatest key of node to median_out.
-void split(value_sizer_t *sizer, abstract_buf_t *node_buf, abstract_buf_t *rnode_buf, btree_key_t *median_out);
+template <class Value>
+void split(value_sizer_t<Value> *sizer, abstract_buf_t *node_buf, abstract_buf_t *rnode_buf, btree_key_t *median_out);
+
 // Merges the contents of node onto the front of rnode.
-void merge(value_sizer_t *sizer, const leaf_node_t *node, abstract_buf_t *rnode_buf, btree_key_t *key_to_remove_out);
+template <class Value>
+void merge(value_sizer_t<Value> *sizer, const leaf_node_t *node, abstract_buf_t *rnode_buf, btree_key_t *key_to_remove_out);
+
 // Removes pairs from sibling, adds them to node.
-bool level(value_sizer_t *sizer, abstract_buf_t *node_buf, abstract_buf_t *sibling_buf, btree_key_t *key_to_replace, btree_key_t *replacement_key);
+template <class Value>
+bool level(value_sizer_t<Value> *sizer, abstract_buf_t *node_buf, abstract_buf_t *sibling_buf, btree_key_t *key_to_replace, btree_key_t *replacement_key);
 
 
 bool is_empty(const leaf_node_t *node);
-bool is_full(value_sizer_t *sizer, const leaf_node_t *node, const btree_key_t *key, const value_type_t *value);
+template <class Value>
+bool is_full(value_sizer_t<Value> *sizer, const leaf_node_t *node, const btree_key_t *key, const Value *value);
 bool has_sensible_offsets(block_size_t block_size, const leaf_node_t *node);
 bool is_underfull(block_size_t block_size, const leaf_node_t *node);
 bool is_mergable(block_size_t block_size, const leaf_node_t *node, const leaf_node_t *sibling);
-void validate(value_sizer_t *sizer, const leaf_node_t *node);
+
+template <class Value>
+void validate(value_sizer_t<Value> *sizer, const leaf_node_t *node);
 
 // Assumes node1 and node2 are non-empty.
 int nodecmp(const leaf_node_t *node1, const leaf_node_t *node2);
 
 void print(const leaf_node_t *node);
 
-const btree_leaf_pair *get_pair(const leaf_node_t *node, uint16_t offset);
-btree_leaf_pair *get_pair(leaf_node_t *node, uint16_t offset);
+//pair access
+template<class Value>
+const btree_leaf_pair<Value> *get_pair(const leaf_node_t *node, uint16_t offset);
 
-const btree_leaf_pair *get_pair_by_index(const leaf_node_t *node, int index);
-btree_leaf_pair *get_pair_by_index(leaf_node_t *node, int index);
+template<class Value>
+btree_leaf_pair<Value> *get_pair(leaf_node_t *node, uint16_t offset);
 
-size_t pair_size(value_sizer_t *sizer, const btree_leaf_pair *pair);
-repli_timestamp_t get_timestamp_value(value_sizer_t *sizer, const leaf_node_t *node, uint16_t offset);
+template<class Value>
+const btree_leaf_pair<Value> *get_pair_by_index(const leaf_node_t *node, int index);
+
+template<class Value>
+btree_leaf_pair<Value> *get_pair_by_index(leaf_node_t *node, int index);
+
+//key access
+const btree_key_t *get_key(const leaf_node_t *node, uint16_t offset);
+
+btree_key_t *get_key(leaf_node_t *node, uint16_t offset);
+
+const btree_key_t *get_key_by_index(const leaf_node_t *node, int index);
+
+btree_key_t *get_key_by_index(leaf_node_t *node, int index);
+
+template<class Value>
+size_t pair_size(value_sizer_t<Value> *sizer, const btree_leaf_pair<Value> *pair);
+
+template<class Value>
+repli_timestamp_t get_timestamp_value(value_sizer_t<Value> *sizer, const leaf_node_t *node, uint16_t offset);
 
 // We can't use "internal" because that's for internal nodes... So we
 // have to use impl :( I'm sorry.
 namespace impl {
 const int key_not_found = -1;
 
-void delete_pair(value_sizer_t *sizer, abstract_buf_t *node_buf, uint16_t offset);
-void delete_pair(value_sizer_t *sizer, leaf_node_t *node, uint16_t offset);
-uint16_t insert_pair(value_sizer_t *sizer, abstract_buf_t *node_buf, const btree_leaf_pair *pair);
-uint16_t insert_pair(value_sizer_t *sizer, abstract_buf_t *node_buf, const value_type_t *value, const btree_key_t *key);
-uint16_t insert_pair(value_sizer_t *sizer, leaf_node_t *node, const value_type_t *value, const btree_key_t *key);
+template <class Value>
+void delete_pair(value_sizer_t<Value> *sizer, abstract_buf_t *node_buf, uint16_t offset);
+
+template <class Value>
+void delete_pair(value_sizer_t<Value> *sizer, leaf_node_t *node, uint16_t offset);
+
+template<class Value>
+uint16_t insert_pair(value_sizer_t<Value> *sizer, abstract_buf_t *node_buf, const btree_leaf_pair<Value> *pair);
+
+template<class Value>
+uint16_t insert_pair(value_sizer_t<Value> *sizer, abstract_buf_t *node_buf, const Value *value, const btree_key_t *key);
+
+template<class Value>
+uint16_t insert_pair(value_sizer_t<Value> *sizer, leaf_node_t *node, const Value *value, const btree_key_t *key);
 
 int get_offset_index(const leaf_node_t *node, const btree_key_t *key);
 int find_key(const leaf_node_t *node, const btree_key_t *key);
@@ -111,7 +159,8 @@ void remove_time(leaf_timestamps_t *times, int offset);
 // Returns the offset of the timestamp (or -1 or
 // NUM_LEAF_NODE_EARLIER_TIMES) for the key-value pair at the
 // given offset.
-int get_timestamp_offset(value_sizer_t *sizer, const leaf_node_t *node, uint16_t offset);
+template <class Value>
+int get_timestamp_offset(value_sizer_t<Value> *sizer, const leaf_node_t *node, uint16_t offset);
 }  // namespace leaf::impl
 
 }  // namespace leaf
@@ -126,8 +175,8 @@ public:
     leaf_key_comp(const leaf_node_t *_node, const btree_key_t *_key) : node(_node), key(_key)  { }
 
     bool operator()(const uint16_t offset1, const uint16_t offset2) {
-        const btree_key_t *key1 = offset1 == faux_offset ? key : &leaf::get_pair(node, offset1)->key;
-        const btree_key_t *key2 = offset2 == faux_offset ? key : &leaf::get_pair(node, offset2)->key;
+        const btree_key_t *key1 = offset1 == faux_offset ? key : leaf::get_key(node, offset1);
+        const btree_key_t *key2 = offset2 == faux_offset ? key : leaf::get_key(node, offset2);
 
         return leaf_key_comp::less(key1, key2);
     }
@@ -146,11 +195,13 @@ struct btree_leaf_key_less {
 };
 
 // this one ignores the value, doing less only on the key
+template<class Value>
 struct btree_leaf_pair_less {
-    bool operator()(const btree_leaf_pair *leaf_pair1, const btree_leaf_pair *leaf_pair2) {
+    bool operator()(const btree_leaf_pair<Value> *leaf_pair1, const btree_leaf_pair<Value> *leaf_pair2) {
         return leaf_key_comp::less(&leaf_pair1->key, &leaf_pair2->key);
     }
 };
 
+#include "btree/leaf_node.tcc"
 
 #endif // __BTREE_LEAF_NODE_HPP__

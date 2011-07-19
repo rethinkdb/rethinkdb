@@ -9,7 +9,7 @@
 class btree_delete_expired_oper_t : public btree_modify_oper_t
 {
 public:
-    bool operate(UNUSED transaction_t *txn, UNUSED scoped_malloc<btree_value_t>& value) {
+    bool operate(UNUSED transaction_t *txn, UNUSED scoped_malloc<memcached_value_t>& value) {
         /* Don't do anything.  run_btree_modify_oper() will take
            advantage of the fact that we got to the leaf in write mode
            to automatically delete the expired key if necessary. */

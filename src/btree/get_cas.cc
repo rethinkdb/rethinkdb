@@ -43,7 +43,7 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
     btree_get_cas_oper_t(cas_t proposed_cas_, promise_t<get_result_t> *res_)
         : proposed_cas(proposed_cas_), res(res_) { }
 
-    bool operate(transaction_t *txn, scoped_malloc<btree_value_t>& value) {
+    bool operate(transaction_t *txn, scoped_malloc<memcached_value_t>& value) {
         if (!value) {
             // If not found, there's nothing to do.
             res->pulse(get_result_t());

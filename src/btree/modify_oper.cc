@@ -17,7 +17,7 @@
 
 
 // Runs a btree_modify_oper_t.
-void run_btree_modify_oper(value_sizer_t *sizer, btree_modify_oper_t *oper, btree_slice_t *slice, const store_key_t &store_key, castime_t castime, order_token_t token) {
+void run_btree_modify_oper(value_sizer_t<memcached_value_t> *sizer, btree_modify_oper_t *oper, btree_slice_t *slice, const store_key_t &store_key, castime_t castime, order_token_t token) {
     btree_key_buffer_t kbuffer(store_key);
     btree_key_t *key = kbuffer.key();
 
@@ -34,21 +34,19 @@ void run_btree_modify_oper(value_sizer_t *sizer, btree_modify_oper_t *oper, btre
         // superblock gets released.
         oper->do_superblock_sidequest(got_superblock.txn.get(), got_superblock.sb_buf, castime.timestamp, &store_key);
 
-        keyvalue_location_t kv_location;
+        keyvalue_location_t<memcached_value_t> kv_location;
         find_keyvalue_location_for_write(sizer, &got_superblock, key, castime.timestamp, &kv_location);
         transaction_t *txn = kv_location.txn.get();
-        scoped_malloc<btree_value_t> the_value;
+        scoped_malloc<memcached_value_t> the_value;
         the_value.reinterpret_swap(kv_location.value);
 
-        bool key_found = kv_location.value;
-
-        bool expired = key_found && the_value->expired();
+        bool expired = the_value && the_value->expired();
 
         // If the value's expired, delete it.
         if (expired) {
             blob_t b(the_value->value_ref(), blob::btree_maxreflen);
             b.unappend_region(txn, b.valuesize());
-            kv_location.value.reset();
+            the_value.reset();
         }
 
         bool update_needed = oper->operate(txn, the_value);
