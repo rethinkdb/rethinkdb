@@ -11,7 +11,7 @@
 #include "utils.hpp"
 #include "arch/arch.hpp"
 #include "config/args.hpp"
-#include "server/cmd_args.hpp"
+#include "serializer/log/config.hpp"
 #include "containers/segmented_vector.hpp"
 #include "logger.hpp"
 
@@ -34,7 +34,7 @@ private:
     typedef std::set<off64_t> reserved_extent_set_t;
     typedef std::deque<off64_t> free_queue_t;
     
-    log_serializer_static_config_t *static_config;
+    log_serializer_on_disk_static_config_t *static_config;
     log_serializer_dynamic_config_t *dynamic_config;
 
 public:
@@ -49,7 +49,7 @@ public:
     };
 
 public:
-    extent_manager_t(direct_file_t *file, log_serializer_static_config_t *static_config, log_serializer_dynamic_config_t *dynamic_config);
+    extent_manager_t(direct_file_t *file, log_serializer_on_disk_static_config_t *static_config, log_serializer_dynamic_config_t *dynamic_config);
     ~extent_manager_t();
 
 private:

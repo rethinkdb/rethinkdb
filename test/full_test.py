@@ -11,17 +11,15 @@ do_test("cd ../src/; make clean")
 # Make every target first, as some tests depend on multiple targets
 for mode in ["debug", "release"]:
     for checker in ["valgrind", None]:
-        for mock_io in [True, False]:
-            for mock_cache in [True, False]:
-                for poll_mode in ["poll", "epoll"]:
-                    # Build our targets
-                    do_test("cd ../src/; make -j 9",
-                            { "DEBUG"            : 1 if mode    == "debug"    else 0,
-                              "VALGRIND"         : 1 if checker == "valgrind" else 0,
-                              "MOCK_IO_LAYER"    : 1 if mock_io               else 0,
-                              "MOCK_CACHE_CHECK" : 1 if mock_cache            else 0,
-                              "NO_EPOLL"         : 1 if poll_mode == "poll"   else 0 },
-                            cmd_format="make", timeout=180)
+        for mock_cache in [True, False]:
+            for poll_mode in ["poll", "epoll"]:
+                # Build our targets
+                do_test("cd ../src/; make -j 9",
+                        { "DEBUG"            : 1 if mode    == "debug"    else 0,
+                          "VALGRIND"         : 1 if checker == "valgrind" else 0,
+                          "MOCK_CACHE_CHECK" : 1 if mock_cache            else 0,
+                          "NO_EPOLL"         : 1 if poll_mode == "poll"   else 0 },
+                        cmd_format="make", timeout=180)
 
 # Make sure auxillary tools compile
 do_test("cd ../bench/stress-client/; make clean; make -j 9 MYSQL=0 LIBMEMCACHED=0 LIBGSL=0 stress libstress.so",
@@ -82,7 +80,7 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
                     "sigint-timeout" : sigint_timeout },
                   repeat=3, timeout = 180 * ec2)
     
-    # Don't run the corruption test in mockio or mockcache mode because in those modes
+    # Don't run the corruption test in mockcache mode because in that modes
     # we don't flush to disk at all until the server is shut down, so obviously the
     # corruption test will fail.
     if "mock" not in mode:
@@ -808,7 +806,6 @@ try:
             ("debug", "valgrind"),
             ("release", "valgrind"),
             ("release", None),
-            ("release-mockio", None),
             ("debug-mockcache", "valgrind"),
             ("debug-noepoll", "valgrind")]:
         for protocol in ["text"]: # ["text", "binary"]:

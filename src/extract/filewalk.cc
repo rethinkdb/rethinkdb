@@ -475,7 +475,7 @@ void walkfile(dumper_t& dumper, const std::string& db_file, cfg_t overrides) {
     logINF("software_name: %s\n", header->software_name);
     logINF("version: %s\n", header->version);
 
-    log_serializer_static_config_t static_config;
+    log_serializer_on_disk_static_config_t static_config;
     memcpy(&static_config, header->data, sizeof(static_config));
 
     // Do overrides.
