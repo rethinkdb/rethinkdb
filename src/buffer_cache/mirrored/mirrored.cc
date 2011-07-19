@@ -128,7 +128,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_
       writeback_buf(this),
       page_repl_buf(this),
       page_map_buf(this),
-      block_sequence_id(NULL_SER_BLOCK_SEQUENCE_ID) {
+      block_sequence_id(NULL_BLOCK_SEQUENCE_ID) {
 
     rassert(version_id != faux_version_id);
 
@@ -166,7 +166,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, r
       writeback_buf(this),
       page_repl_buf(this),
       page_map_buf(this),
-      block_sequence_id(NULL_SER_BLOCK_SEQUENCE_ID) {
+      block_sequence_id(NULL_BLOCK_SEQUENCE_ID) {
 
     rassert(version_id != faux_version_id);
 
@@ -215,7 +215,7 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache, version_id_t snapshot_v
         inner_buf->next_patch_counter = 1;
         inner_buf->write_empty_deleted_block = false;
         inner_buf->cow_refcount = 0;
-        inner_buf->block_sequence_id = NULL_SER_BLOCK_SEQUENCE_ID;
+        inner_buf->block_sequence_id = NULL_BLOCK_SEQUENCE_ID;
         inner_buf->data_token.reset();
 
         return inner_buf;
@@ -240,7 +240,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, version_id_t
       writeback_buf(this),
       page_repl_buf(this),
       page_map_buf(this),
-      block_sequence_id(NULL_SER_BLOCK_SEQUENCE_ID)
+      block_sequence_id(NULL_BLOCK_SEQUENCE_ID)
 {
     rassert(version_id != faux_version_id);
     cache->assert_thread();
@@ -498,7 +498,7 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
     inner_buf->data_token.reset();
 
     // We cannot accept patches for blocks without a valid block sequence id (namely newly allocated blocks, they have to be written to disk at least once)
-    if (inner_buf->block_sequence_id == NULL_SER_BLOCK_SEQUENCE_ID) {
+    if (inner_buf->block_sequence_id == NULL_BLOCK_SEQUENCE_ID) {
         ensure_flush();
     }
 

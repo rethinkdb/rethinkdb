@@ -32,7 +32,7 @@ void log_serializer_t::create(dynamic_config_t *dynamic_config, private_dynamic_
     data_block_manager_t::prepare_initial_metablock(&metablock.data_block_manager_part);
     lba_index_t::prepare_initial_metablock(&metablock.lba_index_part);
 
-    metablock.block_sequence_id = NULL_SER_BLOCK_SEQUENCE_ID;
+    metablock.block_sequence_id = NULL_BLOCK_SEQUENCE_ID;
 
     mb_manager_t::create(&df, static_config->extent_size(), &metablock);
 }
@@ -231,7 +231,7 @@ void *log_serializer_t::malloc() {
     char *data = reinterpret_cast<char *>(malloc_aligned(static_config.block_size().ser_value(), DEVICE_BLOCK_SIZE));
 
     // Initialize the block sequence id...
-    reinterpret_cast<ls_buf_data_t *>(data)->block_sequence_id = NULL_SER_BLOCK_SEQUENCE_ID;
+    reinterpret_cast<ls_buf_data_t *>(data)->block_sequence_id = NULL_BLOCK_SEQUENCE_ID;
 
     data += sizeof(ls_buf_data_t);
     return reinterpret_cast<void *>(data);

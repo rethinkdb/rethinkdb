@@ -443,7 +443,7 @@ void writeback_t::flush_prepare_patches() {
                 while (range.second != range.first) {
                     --range.second;
 
-                    rassert(block_sequence_id > NULL_SER_BLOCK_SEQUENCE_ID);
+                    rassert(block_sequence_id > NULL_BLOCK_SEQUENCE_ID);
                     rassert(previous_patch_counter == 0 || (*range.second)->get_patch_counter() == previous_patch_counter - 1);
                     if (lbuf->last_patch_materialized < (*range.second)->get_patch_counter()) {
                         if (!cache->patch_disk_storage->store_patch(*(*range.second), block_sequence_id)) {

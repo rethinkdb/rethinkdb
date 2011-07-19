@@ -11,8 +11,8 @@ typedef uint32_t block_id_t;
 
 /* Each time we write a block to disk, that block receives a new unique block sequence id */
 typedef uint64_t block_sequence_id_t;
-#define NULL_SER_BLOCK_SEQUENCE_ID (block_sequence_id_t(0))
-#define FIRST_SER_BLOCK_SEQUENCE_ID (block_sequence_id_t(1))
+#define NULL_BLOCK_SEQUENCE_ID  (block_sequence_id_t(0))
+#define FIRST_BLOCK_SEQUENCE_ID (block_sequence_id_t(1))
 
 /* TODO: block_size_t depends on the serializer implementation details, so it doesn't
 belong in this file. */

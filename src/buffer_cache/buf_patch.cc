@@ -77,7 +77,7 @@ void buf_patch_t::serialize(char* destination) const {
 buf_patch_t::buf_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const patch_operation_code_t operation_code) :
             block_id(block_id),
             patch_counter(patch_counter),
-            applies_to_block_sequence_id(NULL_SER_BLOCK_SEQUENCE_ID),
+            applies_to_block_sequence_id(NULL_BLOCK_SEQUENCE_ID),
             operation_code(operation_code) {
 }
 

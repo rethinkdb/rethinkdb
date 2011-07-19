@@ -25,13 +25,13 @@ struct block_knowledge_t {
     flagged_off64_t offset;
 
     // The serializer block sequence id we saw when we've read the block.
-    // Or, NULL_SER_BLOCK_SEQUENCE_ID, if we have not read the block.
+    // Or, NULL_BLOCK_SEQUENCE_ID, if we have not read the block.
     block_sequence_id_t block_sequence_id;
 
     static const block_knowledge_t unused;
 };
 
-const block_knowledge_t block_knowledge_t::unused = { flagged_off64_t::unused(), NULL_SER_BLOCK_SEQUENCE_ID };
+const block_knowledge_t block_knowledge_t::unused = { flagged_off64_t::unused(), NULL_BLOCK_SEQUENCE_ID };
 
 // A safety wrapper to make sure we've learned a value before we try
 // to use it.
@@ -280,7 +280,7 @@ public:
             err = no_block;
             return false;
         }
-        if (info.block_sequence_id != NULL_SER_BLOCK_SEQUENCE_ID) {
+        if (info.block_sequence_id != NULL_BLOCK_SEQUENCE_ID) {
             err = already_accessed;
             return false;
         }
@@ -292,7 +292,7 @@ public:
         
         
         block_sequence_id_t bseq_id = realbuf->block_sequence_id;
-        if (bseq_id <= NULL_SER_BLOCK_SEQUENCE_ID) {
+        if (bseq_id <= NULL_BLOCK_SEQUENCE_ID) {
             err = block_sequence_id_invalid;
             return false;
         } else if (bseq_id > knog->metablock->block_sequence_id) {
@@ -304,9 +304,9 @@ public:
         if (patches_list) {
             // Replay patches
             for (std::list<buf_patch_t*>::iterator patch = patches_list->begin(); patch != patches_list->end(); ++patch) {
-                block_sequence_id_t first_matching_id = NULL_SER_BLOCK_SEQUENCE_ID;
+                block_sequence_id_t first_matching_id = NULL_BLOCK_SEQUENCE_ID;
                 if ((*patch)->get_block_sequence_id() >= realbuf->block_sequence_id) {
-                    if (first_matching_id == NULL_SER_BLOCK_SEQUENCE_ID) {
+                    if (first_matching_id == NULL_BLOCK_SEQUENCE_ID) {
                         first_matching_id = (*patch)->get_block_sequence_id();
                     }
                     else if (first_matching_id != (*patch)->get_block_sequence_id()) {
@@ -449,7 +449,7 @@ bool check_metablock(nondirect_file_t *file, file_knowledge_t *knog, metablock_e
 
     // TODO (rntz) transaction ids are no more; use ser_block_sequence_ids
     int high_block_sequence_index = -1;
-    block_sequence_id_t high_block_sequence_id = NULL_SER_BLOCK_SEQUENCE_ID;
+    block_sequence_id_t high_block_sequence_id = NULL_BLOCK_SEQUENCE_ID;
 
 
     for (int i = 0, n = metablock_offsets.size(); i < n; ++i) {
@@ -473,7 +473,7 @@ bool check_metablock(nondirect_file_t *file, file_knowledge_t *knog, metablock_e
             block_sequence_id_t seqid = metablock->metablock.block_sequence_id;
 
             if (version == MB_BAD_VERSION || version < MB_START_VERSION ||
-                seqid == NULL_SER_BLOCK_SEQUENCE_ID || seqid < FIRST_SER_BLOCK_SEQUENCE_ID)
+                seqid == NULL_BLOCK_SEQUENCE_ID || seqid < FIRST_BLOCK_SEQUENCE_ID)
             {
                 errs->bad_content_count++;
             } else {
@@ -1199,7 +1199,7 @@ void check_slice_other_blocks(slicecx_t& cx, other_block_errors *errs) {
                 errs->contiguity_failure = first_valueless_block;
             }
 
-            if (!info.offset.parts.is_delete && info.block_sequence_id == NULL_SER_BLOCK_SEQUENCE_ID) {
+            if (!info.offset.parts.is_delete && info.block_sequence_id == NULL_BLOCK_SEQUENCE_ID) {
                 // Aha!  We have an orphan block!  Crap.
                 rogue_block_description desc;
                 desc.block_id = id;
@@ -1213,7 +1213,7 @@ void check_slice_other_blocks(slicecx_t& cx, other_block_errors *errs) {
 
                 errs->orphan_blocks.push_back(desc);
             } else if (info.offset.parts.is_delete) {
-                rassert(info.block_sequence_id == NULL_SER_BLOCK_SEQUENCE_ID);
+                rassert(info.block_sequence_id == NULL_BLOCK_SEQUENCE_ID);
                 rogue_block_description desc;
                 desc.block_id = id;
 
