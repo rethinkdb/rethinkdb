@@ -14,7 +14,7 @@ struct linux_iocallback_t {
 
 struct linux_disk_manager_t;
 
-#define DEFAULT_DISK_ACCOUNT NULL
+#define DEFAULT_DISK_ACCOUNT ((linux_file_t::account_t*) NULL)
 #define UNLIMITED_OUTSTANDING_REQUESTS (-1)
 
 class linux_file_t {
