@@ -117,6 +117,7 @@ static void do_write_wrapper(serializer_t *serializer,
             }
         } else { // Recency update
             rassert(write.recency_specified);
+            rassert(!write.callback);
         }
 
         index_write_ops.push_back(op);
