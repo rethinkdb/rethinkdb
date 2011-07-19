@@ -3,6 +3,13 @@
 #include "serializer/serializer.hpp"
 #include "arch/coroutines.hpp"
 
+serializer_t::index_write_op_t::index_write_op_t(
+        block_id_t block_id,
+        boost::optional<boost::shared_ptr<block_token_t> > token,
+        boost::optional<repli_timestamp_t> recency,
+        boost::optional<bool> delete_bit)
+    : block_id(block_id), token(token), recency(recency), delete_bit(delete_bit) {}
+
 // Blocking block_write implementation
 boost::shared_ptr<serializer_t::block_token_t>
 serializer_t::block_write(const void *buf, file_t::account_t *io_account) {

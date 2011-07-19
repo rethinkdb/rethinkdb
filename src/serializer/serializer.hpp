@@ -82,15 +82,13 @@ struct serializer_t :
         block_id_t block_id;
         // Buf to write. None if not to be modified. Initialized but a null ptr if to be removed from lba.
         boost::optional<boost::shared_ptr<block_token_t> > token;
-        boost::optional<bool> delete_bit;           // Delete bit, if it should be modified.
         boost::optional<repli_timestamp_t> recency; // Recency, if it should be modified.
+        boost::optional<bool> delete_bit;           // Delete bit, if it should be modified.
 
-        index_write_op_t(block_id_t block_id) : block_id(block_id) {}
-        index_write_op_t(block_id_t block_id, boost::shared_ptr<block_token_t> token)
-            : block_id(block_id), token(token) {}
-        index_write_op_t(block_id_t block_id, boost::optional<boost::shared_ptr<block_token_t> > token,
-                         boost::optional<bool> delete_bit, boost::optional<repli_timestamp_t> recency)
-            : block_id(block_id), token(token), delete_bit(delete_bit), recency(recency) {}
+        index_write_op_t(block_id_t block_id,
+                         boost::optional<boost::shared_ptr<block_token_t> > token = boost::none,
+                         boost::optional<repli_timestamp_t> recency = boost::none,
+                         boost::optional<bool> delete_bit = boost::none);
     };
 
     /* index_write() applies all given index operations in an atomic way */
