@@ -10,6 +10,12 @@ serializer_t::index_write_op_t::index_write_op_t(
         boost::optional<bool> delete_bit)
     : block_id(block_id), token(token), recency(recency), delete_bit(delete_bit) {}
 
+void serializer_t::index_write(const index_write_op_t &op, file_t::account_t *io_account) {
+    std::vector<index_write_op_t> ops;
+    ops.push_back(op);
+    return index_write(ops, io_account);
+}
+
 // Blocking block_write implementation
 boost::shared_ptr<serializer_t::block_token_t>
 serializer_t::block_write(const void *buf, file_t::account_t *io_account) {

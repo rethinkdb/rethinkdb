@@ -93,6 +93,8 @@ struct serializer_t :
 
     /* index_write() applies all given index operations in an atomic way */
     virtual void index_write(const std::vector<index_write_op_t>& write_ops, file_t::account_t *io_account) = 0;
+    // convenience wrapper for a single index_write_op_t
+    void index_write(const index_write_op_t &op, file_t::account_t *io_account);
 
     /* Non-blocking variants */
     virtual boost::shared_ptr<block_token_t> block_write(const void *buf, block_id_t block_id, file_t::account_t *io_account, iocallback_t *cb) = 0;
