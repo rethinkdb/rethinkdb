@@ -96,11 +96,13 @@ struct serializer_t :
     /* index_write() applies all given index operations in an atomic way */
     virtual void index_write(const std::vector<index_write_op_t>& write_ops, file_t::account_t *io_account) = 0;
 
-    /* Non-blocking variant */
+    /* Non-blocking variants */
     virtual boost::shared_ptr<block_token_t> block_write(const void *buf, block_id_t block_id, file_t::account_t *io_account, iocallback_t *cb) = 0;
-    virtual boost::shared_ptr<block_token_t> block_write(const void *buf, file_t::account_t *io_account, iocallback_t *cb) = 0;
+    // it is required that `block_write(buf, acct, cb)` behaves identically to `block_write(buf,
+    // NULL_BLOCK_ID, acct, cb)`. a default implementation is provided that uses this.
+    virtual boost::shared_ptr<block_token_t> block_write(const void *buf, file_t::account_t *io_account, iocallback_t *cb);
 
-    /* Blocking variant (use in coroutine context) with and without known block_id */
+    /* Blocking variants (use in coroutine context) with and without known block_id */
     // these have default implementations in serializer.cc in terms of the non-blocking variants above
     virtual boost::shared_ptr<block_token_t> block_write(const void *buf, file_t::account_t *io_account);
     virtual boost::shared_ptr<block_token_t> block_write(const void *buf, block_id_t block_id, file_t::account_t *io_account);

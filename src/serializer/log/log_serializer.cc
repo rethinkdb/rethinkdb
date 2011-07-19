@@ -424,11 +424,6 @@ boost::shared_ptr<serializer_t::block_token_t> log_serializer_t::generate_block_
 }
 
 boost::shared_ptr<serializer_t::block_token_t>
-log_serializer_t::block_write(const void *buf, file_t::account_t *io_account, iocallback_t *cb) {
-    return block_write(buf, NULL_BLOCK_ID, io_account, cb);
-}
-
-boost::shared_ptr<serializer_t::block_token_t>
 log_serializer_t::block_write(const void *buf, block_id_t block_id, file_t::account_t *io_account, iocallback_t *cb) {
     // TODO: Implement a duration sampler perfmon for this
     pm_serializer_block_writes++;

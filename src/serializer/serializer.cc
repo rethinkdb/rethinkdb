@@ -26,6 +26,11 @@ serializer_t::block_write(const void *buf, block_id_t block_id, file_t::account_
     return result;
 }
 
+boost::shared_ptr<serializer_t::block_token_t>
+serializer_t::block_write(const void *buf, file_t::account_t *io_account, iocallback_t *cb) {
+    return block_write(buf, NULL_BLOCK_ID, io_account, cb);
+}
+
 // do_read implementation
 static void do_read_wrapper(serializer_t *serializer, block_id_t block_id, void *buf,
                             file_t::account_t *io_account, serializer_t::read_callback_t *callback) {
