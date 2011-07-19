@@ -39,11 +39,11 @@ void prep_serializer(
     c->this_serializer = i;
     c->n_proxies = n_proxies;
 
-    serializer_t::write_t w = serializer_t::write_t::make(CONFIG_BLOCK_ID.ser_id, repli_timestamp_t::invalid, c, true, NULL);
-    struct : public serializer_t::write_txn_callback_t, public cond_t {
-        void on_serializer_write_txn() { pulse(); }
-    } write_cb;
-    if (!ser->do_write(&w, 1, DEFAULT_DISK_ACCOUNT, &write_cb)) write_cb.wait();
+    serializer_t::index_write_op_t op(CONFIG_BLOCK_ID.ser_id);
+    op.token = ser->block_write(c, CONFIG_BLOCK_ID.ser_id, DEFAULT_DISK_ACCOUNT);
+    op.recency = repli_timestamp_t::invalid;
+    op.delete_bit = false;
+    ser->index_write(op, DEFAULT_DISK_ACCOUNT);
 
     ser->free(c);
 }
