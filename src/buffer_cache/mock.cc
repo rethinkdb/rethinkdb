@@ -174,18 +174,17 @@ mock_transaction_t::~mock_transaction_t() {
 // TODO: Why do we take a static_config if we don't use it?
 // (I.i.r.c. we have a similar situation in the mirrored cache.)
 
-void mock_cache_t::create( serializer_t *serializer, UNUSED mirrored_cache_static_config_t *static_config) {
+void mock_cache_t::create(serializer_t *serializer, UNUSED mirrored_cache_static_config_t *static_config) {
     on_thread_t switcher(serializer->home_thread());
 
     void *superblock = serializer->malloc();
     bzero(superblock, serializer->get_block_size().value());
-    serializer_t::write_t write = serializer_t::write_t::make(
-        SUPERBLOCK_ID, repli_timestamp_t::invalid, superblock, false, NULL);
 
-    struct : public serializer_t::write_txn_callback_t, public cond_t {
-        void on_serializer_write_txn() { pulse(); }
-    } cb;
-    if (!serializer->do_write(&write, 1, DEFAULT_DISK_ACCOUNT, &cb)) cb.wait();
+    serializer_t::index_write_op_t op(SUPERBLOCK_ID);
+    op.token = serializer->block_write(superblock, SUPERBLOCK_ID, DEFAULT_DISK_ACCOUNT);
+    op.recency = repli_timestamp_t::invalid;
+    op.delete_bit = false;
+    serializer->index_write(op, DEFAULT_DISK_ACCOUNT);
 
     serializer->free(superblock);
 }

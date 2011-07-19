@@ -930,13 +930,12 @@ void mc_cache_t::create(serializer_t *serializer, mirrored_cache_static_config_t
 
     void *superblock = serializer->malloc();
     bzero(superblock, serializer->get_block_size().value());
-    serializer_t::write_t write = serializer_t::write_t::make(
-        SUPERBLOCK_ID, repli_timestamp_t::invalid, superblock, false, NULL);
 
-    struct : public serializer_t::write_txn_callback_t, public cond_t {
-        void on_serializer_write_txn() { pulse(); }
-    } cb;
-    if (!serializer->do_write(&write, 1, DEFAULT_DISK_ACCOUNT, &cb)) cb.wait();
+    serializer_t::index_write_op_t op(SUPERBLOCK_ID);
+    op.token = serializer->block_write(superblock, SUPERBLOCK_ID, DEFAULT_DISK_ACCOUNT);
+    op.recency = repli_timestamp_t::invalid;
+    op.delete_bit = false;      // I'm not sure why this is necessary, but it is. XXX DO NOT COMMIT
+    serializer->index_write(op, DEFAULT_DISK_ACCOUNT);
 
     serializer->free(superblock);
 }

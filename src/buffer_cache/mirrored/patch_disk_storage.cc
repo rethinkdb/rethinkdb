@@ -17,20 +17,14 @@ void patch_disk_storage_t::create(serializer_t *serializer, block_id_t start_id,
     c->magic = mc_config_block_t::expected_magic;
     c->cache = *config;
 
-    serializer_t::write_t write = serializer_t::write_t::make(
-        start_id,
-        repli_timestamp_t::invalid,
-        c,
-        false,
-        NULL);
-
     /* Write it to the serializer */
     on_thread_t switcher(serializer->home_thread());
 
-    struct : public serializer_t::write_txn_callback_t, public cond_t {
-        void on_serializer_write_txn() { pulse(); }
-    } cb;
-    if (!serializer->do_write(&write, 1, DEFAULT_DISK_ACCOUNT, &cb)) cb.wait();
+    serializer_t::index_write_op_t op(start_id);
+    op.token = serializer->block_write(c, start_id, DEFAULT_DISK_ACCOUNT);
+    op.recency = repli_timestamp_t::invalid;
+    op.delete_bit = false;
+    serializer->index_write(op, DEFAULT_DISK_ACCOUNT);
 
     serializer->free(c);
 }
