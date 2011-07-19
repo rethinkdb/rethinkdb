@@ -237,14 +237,20 @@ class DataFiles(object):
             "-s", str(self.opts["slices"]),
             "--diff-log-size", str(self.opts["diff-log-size"]),
             "-c", str(self.opts["cores"]),
-            ] + (["--extent-size", "1048576"] if self.opts["valgrind"] else []) + self.rethinkdb_flags() + ["--metadata-file", self.metadata_file],
+            ] + (["--extent-size", "1048576"] if self.opts["valgrind"] else []) + self.rethinkdb_serve_flags(),
             "creator_output.txt",
             timeout = 30 * ec2,
             valgrind_tool = self.opts["valgrind-tool"] if self.opts["valgrind"] else None,
             test_dir = self.test_dir
             )
 
-    def rethinkdb_flags(self):
+    def rethinkdb_serve_flags(self):
+        flags = []
+        for file in self.files:
+            flags.extend(["-f", file])
+        return flags + ["--metadata-file", self.metadata_file]
+
+    def rethinkdb_extract_flags(self):
         flags = []
         for file in self.files:
             flags.extend(["-f", file])
@@ -252,7 +258,7 @@ class DataFiles(object):
 
     def fsck(self):
         run_executable(
-            [get_executable_path(self.opts, "rethinkdb"), "fsck"] + self.rethinkdb_flags() + ["--metadata-file", self.metadata_file],
+            [get_executable_path(self.opts, "rethinkdb"), "fsck"] + self.rethinkdb_serve_flags(),
             "fsck_output.txt",
             timeout = 2000, #TODO this should be based on the size of the data file 4.6Gb takes about 30 minutes
             valgrind_tool = self.opts["valgrind-tool"] if self.opts["valgrind"] else None,
@@ -356,7 +362,7 @@ class Server(object):
                 "-p", str(self.internal_server_port),
                 "-c", str(self.opts["cores"]),
                 "-m", str(self.opts["memory"]),
-                ] + self.data_files.rethinkdb_flags() + ["--metadata-file", self.data_files.metadata_file] + \
+                ] + self.data_files.rethinkdb_serve_flags() + \
                 shlex.split(self.opts["serve-flags"]) + \
                 self.extra_flags
 
