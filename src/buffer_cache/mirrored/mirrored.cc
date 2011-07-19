@@ -696,7 +696,6 @@ void mc_buf_t::release() {
     delete this;
 }
 
-// TODO (rntz) ensure invariant that we are released before destructor is called.
 mc_buf_t::~mc_buf_t() {
 }
 
