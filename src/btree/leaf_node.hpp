@@ -8,7 +8,6 @@
 // See leaf_node_t in node.hpp
 
 /* EPSILON to prevent split then merge bug */
-// TODO BLIND: LEAF_EPSILON is b.s., use value_sizer_t.
 #define LEAF_EPSILON (sizeof(btree_key_t) + MAX_KEY_SIZE + MAX_BTREE_VALUE_SIZE)
 
 
