@@ -6,10 +6,10 @@
 #include "buffer_cache/co_functions.hpp"
 #include "data_provider.hpp"
 
-struct btree_set_oper_t : public btree_modify_oper_t {
+struct btree_set_oper_t : public btree_modify_oper_t<memcached_value_t> {
     explicit btree_set_oper_t(boost::shared_ptr<data_provider_t> _data, mcflags_t _mcflags, exptime_t _exptime,
             add_policy_t ap, replace_policy_t rp, cas_t _req_cas)
-        : btree_modify_oper_t(), data(_data), mcflags(_mcflags), exptime(_exptime),
+        : data(_data), mcflags(_mcflags), exptime(_exptime),
             add_policy(ap), replace_policy(rp), req_cas(_req_cas)
     {
     }

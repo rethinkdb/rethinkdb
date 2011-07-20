@@ -6,7 +6,7 @@
 #include "containers/scoped_malloc.hpp"
 
 
-struct btree_incr_decr_oper_t : public btree_modify_oper_t {
+struct btree_incr_decr_oper_t : public btree_modify_oper_t<memcached_value_t> {
 
     explicit btree_incr_decr_oper_t(bool increment, uint64_t delta)
         : increment(increment), delta(delta)
