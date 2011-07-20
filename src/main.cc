@@ -59,9 +59,14 @@ int main(int argc, char *argv[]) {
     return dispatch_on_args(args);
 }
 
+
+#include "server/nested_btree_demo.hpp"
 int dispatch_on_args(std::vector<char *> args) {
     /* Default to "rethinkdb serve" */
     if (args.size() == 1) args.push_back(const_cast<char *>("serve"));
+
+    // TODO!
+    return run_nested_demo(args.size() - 1, args.data() + 1);
 
     /* Switch based on subcommand, then dispatch to the appropriate function */
     if (!strcmp(args[1], "serve") || !strcmp(args[1], "create") || !strcmp(args[1], "import")) {

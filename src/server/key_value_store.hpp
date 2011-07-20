@@ -164,6 +164,11 @@ public:
 
     creation_timestamp_t get_creation_timestamp() const { return multiplexer->creation_timestamp; }
 
+    // TODO! Demo hack
+    shard_store_t *get_some_shard() {
+        return shards[0];
+    }
+
 private:
     friend class replication::backfill_and_streaming_manager_t;
 
