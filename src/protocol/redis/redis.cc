@@ -1,87 +1,67 @@
 #include "protocol/redis/redis.hpp"
+#include "btree/slice.hpp"
 #include <iostream>
 #include <string>
 #include <vector>
 
-redis_interface_t::redis_interface_t(get_store_t *get_store_p, set_store_interface_t *set_store_p) :
-    get_store(get_store_p),
-    set_store(set_store_p)
-{ }
+#include "serializer/log/log_serializer.hpp"
+
+redis_interface_t::redis_interface_t() {
+    //DUMMY stack
+    cmd_config_t config;
+    config.store_dynamic_config.cache.max_dirty_size = config.store_dynamic_config.cache.max_size / 10;
+    char filename[200];
+    snprintf(filename, sizeof(filename), "rethinkdb_data_%d", 0);
+    log_serializer_private_dynamic_config_t ser_config;
+    ser_config.db_filename = filename;
+
+    log_serializer_t::create(&config.store_dynamic_config.serializer, &ser_config, &config.store_static_config.serializer);
+    log_serializer_t *serializer = new log_serializer_t(&config.store_dynamic_config.serializer, &ser_config);
+
+    std::vector<serializer_t *> *serializers = new std::vector<serializer_t *>();
+    serializers->push_back(serializer);
+    serializer_multiplexer_t::create(*serializers, 1);
+    serializer_multiplexer_t *multiplexer = new serializer_multiplexer_t(*serializers);
+
+    cache_t::create(multiplexer->proxies[0], &config.store_static_config.cache);
+    cache_t *cache = new cache_t(multiplexer->proxies[0], &config.store_dynamic_config.cache);
+
+    btree_slice_t::create(cache);
+    btree_slice_t *slice = new btree_slice_t(cache, 1000);
+
+    actor = new redis_actor_t(slice);
+}
 
 redis_interface_t::~redis_interface_t() {}
 
-//This class is nothing more than a hack to make implementing a default "not implemented" definition
-//for as yet unimplemented redis commands much easier. It helps us use the type system to
-//automatically select the right "null" result for the given command.
-struct unimplemented_result {
-    unimplemented_result() { }
-    operator status_result () {
-        boost::shared_ptr<status_result_struct> result(new status_result_struct);
-        result->status = ERROR;
-        result->msg = (const char *)("Unimplemented");
-        return result;
-    }
-
-    operator integer_result () {
-        return 0;
-    }
-
-    operator bulk_result () {
-        boost::shared_ptr<std::string> res(new std::string("Unimplemented"));
-        return res;
-    }
-
-    operator multi_bulk_result () {
-        multi_bulk_result res(new std::vector<std::string>());
-        res->push_back(std::string("Unimplemented"));
-        return res;
-    }
-};
-
-//These macros deliberately match those in the header file. They simply define an "unimplemented
-//command" definition for the given command. When adding new commands we can simply copy and paste
-//declaration from the header file to get a default implementation. Gradually these will go away
-//as we actually define real implementations of the various redis commands.
 #define COMMAND_0(RETURN, CNAME) RETURN##_result \
 redis_interface_t::CNAME() \
 { \
-    std::cout << "Redis command \"" << #CNAME << "\" has not been implemented" << std::endl; \
-    return unimplemented_result(); \
+    return actor->CNAME(); \
 }
 
 #define COMMAND_1(RETURN, CNAME, ARG_TYPE_ONE) RETURN##_result \
 redis_interface_t::CNAME(ARG_TYPE_ONE one) \
 { \
-    (void)one; \
-    std::cout << "Redis command \"" << #CNAME << "\" has not been implemented" << std::endl; \
-    return unimplemented_result(); \
+    return actor->CNAME(one); \
 }
 
 #define COMMAND_2(RETURN, CNAME, ARG_TYPE_ONE, ARG_TYPE_TWO) RETURN##_result \
 redis_interface_t::CNAME(ARG_TYPE_ONE one, ARG_TYPE_TWO two) \
 { \
-    (void)one; \
-    (void)two; \
-    std::cout << "Redis command \"" << #CNAME << "\" has not been implemented" << std::endl; \
-    return unimplemented_result(); \
+    return actor->CNAME(one, two); \
 }
 
 #define COMMAND_3(RETURN, CNAME, ARG_TYPE_ONE, ARG_TYPE_TWO, ARG_TYPE_THREE) RETURN##_result \
 redis_interface_t::CNAME(ARG_TYPE_ONE one, ARG_TYPE_TWO two, ARG_TYPE_THREE three) \
 { \
-    (void)one; \
-    (void)two; \
-    (void)three; \
-    std::cout << "Redis command \"" << #CNAME << "\" has not been implemented" << std::endl; \
-    return unimplemented_result(); \
+    return actor->CNAME(one, two, three); \
 }
 
 #define COMMAND_N(RETURN, CNAME) RETURN##_result \
 redis_interface_t::CNAME(std::vector<std::string> &one) \
 { \
-    (void)one; \
-    std::cout << "Redis command \"" << #CNAME << "\" has not been implemented" << std::endl; \
-    return unimplemented_result(); \
+    return actor->CNAME(one); \
 }
 
 //KEYS

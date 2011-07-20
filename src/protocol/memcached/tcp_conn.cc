@@ -1,6 +1,7 @@
 #include "protocol/memcached/tcp_conn.hpp"
 #include "protocol/memcached/memcached.hpp"
 #include "concurrency/cross_thread_signal.hpp"
+#include "arch/coroutines.hpp"
 #include "db_thread_info.hpp"
 #include "perfmon.hpp"
 #include "logger.hpp"

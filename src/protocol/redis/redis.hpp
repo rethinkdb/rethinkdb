@@ -2,34 +2,12 @@
 #define __PROTOCOL_REDIS_REDIS_HPP__
 
 #include "arch/arch.hpp"
-#include "store.hpp"
+#include "protocol/redis/redis_actor.hpp"
 #include <boost/shared_ptr.hpp>
 #include <vector>
 #include <string>
 using std::string;
 
-//Redis result types. All redis commands return one of these types. Any redis parser
-//should know how to serialize these
-enum redis_status {
-    OK,
-    ERROR
-};
-
-struct status_result_struct {
-    redis_status status;
-    const char *msg;
-};
-
-typedef const boost::shared_ptr<status_result_struct> status_result;
-typedef unsigned integer_result;
-typedef const boost::shared_ptr<std::string> bulk_result;
-typedef const boost::shared_ptr<std::vector<std::string> > multi_bulk_result;
-
-//These macros deliberately correspond to those in the redis parser. Though it may
-//seem a bit silly to turn a simple method declaration into a macro like this (it
-//really isn't any less typing) it does allow us to simply copy the declaration of
-//a new command from the parser when adding a new command and it makes the
-//correspondence between commands in the parser and in the redis_interface clearer.
 #define COMMAND_0(RETURN, CNAME) RETURN##_result CNAME();
 #define COMMAND_1(RETURN, CNAME, ARG_TYPE_ONE) RETURN##_result CNAME(ARG_TYPE_ONE);
 #define COMMAND_2(RETURN, CNAME, ARG_TYPE_ONE, ARG_TYPE_TWO)\
@@ -44,7 +22,7 @@ typedef const boost::shared_ptr<std::vector<std::string> > multi_bulk_result;
 //scripting layer or even a staticly linked redis client library could sit
 //on top of it. Have fun!
 struct redis_interface_t {
-    redis_interface_t(get_store_t *get_store, set_store_interface_t *set_store);
+    redis_interface_t();
     ~redis_interface_t();
 
     //KEYS
@@ -81,8 +59,7 @@ struct redis_interface_t {
     COMMAND_1(integer, Strlen, string&)
     
 protected:
-    get_store_t *get_store;
-    set_store_interface_t *set_store;
+    redis_actor_t *actor;
 };
 
 //Equivalently (perhaps deliberately equivalently :) ) named macros might live

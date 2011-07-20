@@ -67,9 +67,9 @@ namespace px = boost::phoenix;
 
 template <typename Iterator>
 struct redis_grammar : qi::grammar<Iterator>, redis_interface_t {
-    redis_grammar(tcp_conn_t *conn, std::iostream *redis_stream, get_store_t *get_store, set_store_interface_t *set_store) :
+    redis_grammar(tcp_conn_t *conn, std::iostream *redis_stream) :
         redis_grammar::base_type(start),
-        redis_interface_t(get_store, set_store),
+        redis_interface_t(),
         out_stream(redis_stream),
         out_conn(conn)
     {
@@ -182,11 +182,17 @@ private:
     }
     
     void output_integer_result(integer_result res) {
-        char buff[20]; //Max size of a base 10 representation of a 64 bit number
-        sprintf(buff, "%d", res);
-        out_conn->write(":", 1);
-        out_conn->write(buff, strlen(buff));
-        out_conn->write("\r\n", 2);
+        if(res.which() == 1) {
+            //Error
+            output_status_result(boost::get<status_result>(res));
+        } else {
+            char buff[20]; //Max size of a base 10 representation of a 64 bit number
+            const unsigned value = boost::get<const unsigned>(res);
+            sprintf(buff, "%d", value);
+            out_conn->write(":", 1);
+            out_conn->write(buff, strlen(buff));
+            out_conn->write("\r\n", 2);
+        }
     }
 
     //Utility used by output bulk result and multi_bulk result
@@ -201,19 +207,39 @@ private:
         out_conn->write("\r\n", 2);
     }
 
+    void output_nil() {
+        out_conn->write("$-1\r\n", 5);
+    }
+
     void output_bulk_result(bulk_result res) {
-        output_result_vector(*res);
+        if(res.which() == 1) {
+            //Error
+            output_status_result(boost::get<status_result>(res));
+        } else {
+            boost::shared_ptr<std::string> result = boost::get<boost::shared_ptr<std::string> >(res);
+            if(result == NULL) {
+                output_nil();
+            } else {
+                output_result_vector(*result);
+            }
+        }
     }
 
     void output_multi_bulk_result(multi_bulk_result res) {
-        char buff[20];
-        sprintf(buff, "%d", (int)res->size());
+        if(res.which() == 1) {
+            //Error
+            output_status_result(boost::get<status_result>(res));
+        } else {
+            boost::shared_ptr<std::vector<std::string> > result = boost::get<boost::shared_ptr<std::vector<std::string> > >(res);
+            char buff[20];
+            sprintf(buff, "%d", (int)result->size());
 
-        out_conn->write("*", 1);
-        out_conn->write(buff, strlen(buff));
-        out_conn->write("\r\n", 2);
-        for(std::vector<std::string>::iterator iter = res->begin(); iter != res->end(); ++iter) {
-            output_result_vector(*iter);
+            out_conn->write("*", 1);
+            out_conn->write(buff, strlen(buff));
+            out_conn->write("\r\n", 2);
+            for(std::vector<std::string>::iterator iter = result->begin(); iter != result->end(); ++iter) {
+                output_result_vector(*iter);
+            }
         }
     }
 
@@ -221,7 +247,9 @@ private:
 
 //The entry point for the parser. The only requirement for a parser is that it implement this function.
 void serve_redis(tcp_conn_t *conn, get_store_t *get_store, set_store_interface_t *set_store) {
-    redis_grammar<tcp_conn_t::iterator> redis(conn, NULL, get_store, set_store);
+    (void)get_store;
+    (void)set_store;
+    redis_grammar<tcp_conn_t::iterator> redis(conn, NULL);
     try {
         while(true) {
             qi::parse(conn->begin(), conn->end(), redis);

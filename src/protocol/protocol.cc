@@ -6,6 +6,7 @@
 #include "db_thread_info.hpp"
 #include "perfmon.hpp"
 #include "arch/conn_streambuf.hpp"
+#include <boost/bind.hpp>
 #include <iostream>
 
 // TODO Redis: Possibly extra argument giving the protocol
@@ -19,6 +20,9 @@ protocol_listener_t::protocol_listener_t(int port, get_store_t *get_store, set_s
         serve_func = serve_memcache;
         break;
     case 6379: // Default redis port
+        serve_func = serve_redis;
+        break;
+    case 6380: // Default redis port
         serve_func = serve_redis;
         break;
     default: // Default to memcached

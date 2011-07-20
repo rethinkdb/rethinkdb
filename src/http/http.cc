@@ -1,4 +1,5 @@
 #include "http/http.hpp"
+#include <boost/bind.hpp>
 #include <iostream>
 
 typedef std::string::const_iterator str_iterator_type;
