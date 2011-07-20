@@ -1,4 +1,5 @@
 #include <boost/bind.hpp>
+#include <boost/variant.hpp>
 
 #include "serializer/serializer.hpp"
 #include "arch/coroutines.hpp"
@@ -58,96 +59,99 @@ bool serializer_t::do_read(block_id_t block_id, void *buf, file_t::account_t *io
 }
 
 // do_write implementation
+serializer_t::write_t::write_t(block_id_t block_id, action_t action) : block_id(block_id), action(action) {}
+
+serializer_t::write_t serializer_t::write_t::make_touch(block_id_t block_id, repli_timestamp_t recency) {
+    touch_t touch;
+    touch.recency = recency;
+    return write_t(block_id, touch);
+}
+
+serializer_t::write_t serializer_t::write_t::make_update(
+        block_id_t block_id, repli_timestamp_t recency, const void *buf, iocallback_t *callback)
+{
+    update_t update;
+    update.buf = buf, update.recency = recency, update.callback = callback;
+    return write_t(block_id, update);
+}
+
+serializer_t::write_t serializer_t::write_t::make_delete(block_id_t block_id, bool write_zero_block) {
+    delete_t del;
+    del.write_zero_block = write_zero_block;
+    return write_t(block_id, del);
+}
+
 struct block_write_cond_t : public cond_t, public iocallback_t {
-    block_write_cond_t(serializer_t::write_block_callback_t *cb) : callback(cb) { }
+    block_write_cond_t(iocallback_t *cb) : callback(cb) { }
     void on_io_complete() {
-        if (callback) callback->on_serializer_write_block();
+        if (callback) callback->on_io_complete();
         pulse();
     }
-    serializer_t::write_block_callback_t *callback;
+    iocallback_t *callback;
 };
 
-static void do_write_wrapper(serializer_t *serializer,
-                             serializer_t::write_t *writes,
-                             int num_writes,
-                             file_t::account_t *io_account,
-                             serializer_t::write_txn_callback_t *callback,
-                             serializer_t::write_tid_callback_t *tid_callback)
-{
-    std::vector<block_write_cond_t*> block_write_conds;
-    block_write_conds.reserve(num_writes);
+struct write_performer_t : public boost::static_visitor<void> {
+    serializer_t *serializer;
+    file_t::account_t *io_account;
+    void *zerobuf;
+    std::vector<block_write_cond_t*> *block_write_conds;
+    serializer_t::index_write_op_t *op;
+    write_performer_t(serializer_t *ser, file_t::account_t *acct, void *zerobuf,
+                      std::vector<block_write_cond_t*> *conds, serializer_t::index_write_op_t *op)
+        : serializer(ser), io_account(acct), zerobuf(zerobuf), block_write_conds(conds), op(op) {}
 
+    void operator()(const serializer_t::write_t::update_t &update) {
+        block_write_conds->push_back(new block_write_cond_t(update.callback));
+        op->token = serializer->block_write(update.buf, op->block_id, io_account, block_write_conds->back());
+        op->delete_bit = false;
+        op->recency = update.recency;
+    }
+
+    void operator()(const serializer_t::write_t::delete_t &del) {
+        op->delete_bit = true;
+        op->recency = repli_timestamp_t::invalid;
+        if (del.write_zero_block) {
+            block_write_conds->push_back(new block_write_cond_t(NULL));
+            op->token = serializer->block_write(zerobuf, op->block_id, io_account, block_write_conds->back());
+        }
+    }
+
+    void operator()(const serializer_t::write_t::touch_t &touch) {
+        op->recency = touch.recency;
+    }
+};
+
+void serializer_t::do_write(std::vector<write_t> writes, file_t::account_t *io_account, writes_launched_callback_t *cb) {
+    std::vector<block_write_cond_t*> block_write_conds;
     std::vector<serializer_t::index_write_op_t> index_write_ops;
-    // Prepare a zero buf for deletions
-    void *zerobuf = serializer->malloc();
-    bzero(zerobuf, serializer->get_block_size().value());
+    block_write_conds.reserve(writes.size());
+    index_write_ops.reserve(writes.size());
+
+    // Prepare a zero buf for deletions.
+    void *zerobuf = malloc();
+    bzero(zerobuf, get_block_size().value());
     memcpy(zerobuf, "zero", 4); // TODO: This constant should be part of the serializer implementation or something like that or we should get rid of zero blocks completely...
 
     // Step 1: Write buffers to disk and assemble index operations
-    for (size_t i = 0; i < (size_t)num_writes; ++i) {
+    for (size_t i = 0; i < writes.size(); ++i) {
         const serializer_t::write_t& write = writes[i];
         serializer_t::index_write_op_t op(write.block_id);
-        if (write.recency_specified) op.recency = write.recency;
-
-        // Buffer writes:
-        if (write.buf_specified) {
-            if (write.buf) {
-                block_write_conds.push_back(new block_write_cond_t(write.callback));
-                boost::shared_ptr<serializer_t::block_token_t> token = serializer->block_write(
-                    write.buf, write.block_id, io_account, block_write_conds.back());
-
-                // also generate the corresponding index op
-                op.token = token;
-                op.delete_bit = false;
-                if (write.recency_specified) op.recency = write.recency;
-            } else {
-                // Deletion:
-                boost::shared_ptr<serializer_t::block_token_t> token;
-                if (write.write_empty_deleted_block) {
-                    /* Extract might get confused if we delete a block, because it doesn't
-                     * search the LBA for deletion entries. We clear things up for extract by
-                     * writing a block with the block ID of the block to be deleted but zero
-                     * contents. All that matters is that this block is on disk somewhere. */
-                    block_write_conds.push_back(new block_write_cond_t(write.callback));
-                    token = serializer->block_write(zerobuf, write.block_id, io_account, block_write_conds.back());
-                }
-
-                op.token = token;
-                op.delete_bit = true;
-            }
-        } else { // Recency update
-            rassert(write.recency_specified);
-            rassert(!write.callback);
-        }
-
+        write_performer_t performer(this, io_account, zerobuf, &block_write_conds, &op);
+        boost::apply_visitor(performer, write.action);
         index_write_ops.push_back(op);
     }
 
-    // Step 2: At the point where all writes have been started, we can call tid_callback
-    if (tid_callback) {
-        tid_callback->on_serializer_write_tid();
-    }
+    // Step 2: At the point where all writes have been started, we can call the writes_launched_callback
+    if (cb) cb->on_writes_launched();
 
     // Step 3: Wait on all writes to finish
     for (size_t i = 0; i < block_write_conds.size(); ++i) {
         block_write_conds[i]->wait();
         delete block_write_conds[i];
     }
-    // (free the zerobuf)
-    serializer->free(zerobuf);
+    block_write_conds.clear();
+    free(zerobuf);
 
     // Step 4: Commit the transaction to the serializer
-    serializer->index_write(index_write_ops, io_account);
-    index_write_ops.clear(); // clean up index_write_ops; not strictly necessary
-
-    // Step 5: Call callback
-    callback->on_serializer_write_txn();
-}
-
-bool serializer_t::do_write(write_t *writes, int num_writes, file_t::account_t *io_account,
-                            write_txn_callback_t *callback, write_tid_callback_t *tid_callback)
-{
-    // Just a wrapper around the new interface.
-    coro_t::spawn(boost::bind(&do_write_wrapper, this, writes, num_writes, io_account, callback, tid_callback));
-    return false;
+    index_write(index_write_ops, io_account);
 }

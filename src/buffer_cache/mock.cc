@@ -214,25 +214,21 @@ mock_cache_t::mock_cache_t( serializer_t *serializer, UNUSED mirrored_cache_conf
     read_cb.drain();
 }
 
+struct mock_cb_t : public iocallback_t, public cond_t { void on_io_complete() { pulse(); } };
+
 mock_cache_t::~mock_cache_t() {
     /* Wait for all transactions to complete */
     transaction_counter.drain();
 
     {
         on_thread_t thread_switcher(serializer->home_thread());
-
         std::vector<serializer_t::write_t> writes;
-        for (block_id_t i = 0; i < bufs.get_size(); i++) {
-            writes.push_back(serializer_t::write_t::make(
-                i, bufs[i] ? bufs[i]->subtree_recency : repli_timestamp_t::invalid,
-                bufs[i] ? bufs[i]->data : NULL,
-                true, NULL));
-        }
-
-        struct : public serializer_t::write_txn_callback_t, public cond_t {
-            void on_serializer_write_txn() { pulse(); }
-        } cb;
-        if (!serializer->do_write(writes.data(), writes.size(), DEFAULT_DISK_ACCOUNT, &cb)) cb.wait();
+        for (block_id_t i = 0; i < bufs.get_size(); i++)
+            writes.push_back(
+                bufs[i]
+                ? serializer_t::write_t::make_update(i, bufs[i]->subtree_recency, bufs[i]->data)
+                : serializer_t::write_t::make_delete(i));
+        serializer->do_write(writes, DEFAULT_DISK_ACCOUNT);
     }
 
     for (block_id_t i = 0; i < bufs.get_size(); i++) {

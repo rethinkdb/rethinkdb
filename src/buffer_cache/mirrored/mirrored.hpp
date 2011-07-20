@@ -130,6 +130,8 @@ class mc_buf_t : public abstract_buf_t {
     friend class mc_cache_t;
     friend class mc_transaction_t;
     friend class patch_disk_storage_t;
+    friend class writeback_t;
+    friend class writeback_t::buf_writer_t;
 
 private:
     mc_buf_t(mc_inner_buf_t *inner, access_t mode, mc_inner_buf_t::version_id_t version_id, bool snapshotted, boost::function<void()> call_when_in_line);

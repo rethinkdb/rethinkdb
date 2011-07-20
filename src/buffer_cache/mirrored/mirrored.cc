@@ -103,7 +103,7 @@ void mc_inner_buf_t::load_inner_buf(bool should_lock, file_t::account_t *io_acco
         cache->serializer->block_read(data_token, data, io_account);
     }
 
-    // Read the transaction id
+    // Read the block sequence id
     block_sequence_id = cache->serializer->get_block_sequence_id(block_id, data);
 
     replay_patches();

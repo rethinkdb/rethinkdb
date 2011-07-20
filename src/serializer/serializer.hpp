@@ -6,6 +6,7 @@
 
 #include <boost/optional.hpp>
 #include <boost/smart_ptr.hpp>
+#include <boost/variant/variant.hpp>
 #include "utils.hpp"
 #include "concurrency/cond_var.hpp"
 
@@ -125,63 +126,36 @@ struct serializer_t :
     in a coroutine aware manner
     */
     bool do_read(block_id_t block_id, void *buf, file_t::account_t *io_account, read_callback_t *callback);
+    /* DEPRECATED wrapper code ends here! */
 
-    /* do_write() updates or deletes a group of bufs.
-
-    Each write_t passed to do_write() identifies an update or deletion. If 'buf' is NULL, then it
-    represents a deletion. If 'buf' is non-NULL, then it identifies an update, and the given
-    callback will be called as soon as the data has been copied out of 'buf'. If the entire
-    transaction completes immediately, it will return 'true'; otherwise, it will return 'false' and
-    call the given callback at a later date.
-
-    'writes' can be freed as soon as do_write() returns. */
-
-    struct write_txn_callback_t {
-        virtual void on_serializer_write_txn() = 0;
-        virtual ~write_txn_callback_t() {}
-    };
-    struct write_tid_callback_t {
-        virtual void on_serializer_write_tid() = 0;
-        virtual ~write_tid_callback_t() {}
-    };
-    struct write_block_callback_t {
-        virtual void on_serializer_write_block() = 0;
-        virtual ~write_block_callback_t() {}
+    // New do_write interface
+    struct writes_launched_callback_t {
+        virtual void on_writes_launched() = 0;
+        virtual ~writes_launched_callback_t() {};
     };
     struct write_t {
         block_id_t block_id;
-        bool recency_specified;
-        bool buf_specified;
-        repli_timestamp_t recency;
-        const void *buf;   /* If NULL, a deletion */
-        bool write_empty_deleted_block;
-        write_block_callback_t *callback;
+        struct update_t { const void *buf; repli_timestamp_t recency; iocallback_t *callback; };
+        struct delete_t { bool write_zero_block; };
+        struct touch_t { repli_timestamp_t recency; };
+        // if none, indicates just a recency update.
+        typedef boost::variant<update_t, delete_t, touch_t> action_t;
+        action_t action;
 
-        friend class log_serializer_t;
-
-        static write_t make_touch(block_id_t block_id_, repli_timestamp_t recency_, write_block_callback_t *callback_) {
-            return write_t(block_id_, true, recency_, false, NULL, true, callback_);
-        }
-
-        static write_t make(block_id_t block_id_, repli_timestamp_t recency_, const void *buf_, bool write_empty_deleted_block_, write_block_callback_t *callback_) {
-            return write_t(block_id_, true, recency_, true, buf_, write_empty_deleted_block_, callback_);
-        }
-
-    private:
-        write_t(block_id_t block_id_, bool recency_specified_, repli_timestamp_t recency_, bool buf_specified_,
-                const void *buf_, bool write_empty_deleted_block_, write_block_callback_t *callback_)
-            : block_id(block_id_), recency_specified(recency_specified_), buf_specified(buf_specified_)
-            , recency(recency_), buf(buf_), write_empty_deleted_block(write_empty_deleted_block_)
-            , callback(callback_) { }
+        static write_t make_touch(block_id_t block_id, repli_timestamp_t recency);
+        static write_t make_update(block_id_t block_id, repli_timestamp_t recency, const void *buf, iocallback_t *callback = NULL);
+        static write_t make_delete(block_id_t block_id, bool write_zero_block = true);
+        write_t(block_id_t block_id, action_t action);
     };
 
-    /* tid_callback is called as soon as new transaction ids have been assigned to each written block,
-     * callback gets called when all data has been written to disk */
-    /* do_write() is DEPRECATED.
-     * Please use block_write and index_write instead */
-    bool do_write(write_t *writes, int num_writes, file_t::account_t *io_account,
-                  write_txn_callback_t *callback, write_tid_callback_t *tid_callback = NULL);
-    /* DEPRECATED wrapper code ends here! */
+    /* Performs a group of writes. Must be called from coroutine context. cb is called (in coroutine
+     * context) as soon as all block writes have been sent to the serializer (but not necessarily
+     * completed). Returns when all writes are finished and the LBA has been updated.
+     *
+     * Note that this is not virtual. It is implement in terms of block_write() and index_write(),
+     * and not meant to be overridden in subclasses.
+     */
+    void do_write(std::vector<write_t> writes, file_t::account_t *io_account, writes_launched_callback_t *cb = NULL);
 
     /* The size, in bytes, of each serializer block */
 
