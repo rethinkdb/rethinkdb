@@ -138,7 +138,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(s
         pulse_when_done_reading.wait();
 
     } else {
-        on_thread_t thread_switcher(home_thread);
+        on_thread_t thread_switcher(home_thread());
 
         std::map<peer_id_t, connection_t*>::iterator it = connections.find(dest);
         if (it == connections.end()) {

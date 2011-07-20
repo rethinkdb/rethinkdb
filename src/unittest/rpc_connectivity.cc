@@ -82,12 +82,14 @@ void run_message_test() {
     c1.send(873, c2.get_me());
     c2.send(66663, c1.get_me());
     c3.send(6849, c1.get_me());
+    c3.send(999, c3.get_me());
 
     let_stuff_happen();
 
     c2.expect(873, c1.get_me());
     c1.expect(66663, c2.get_me());
     c1.expect(6849, c3.get_me());
+    c3.expect(999, c3.get_me());
 }
 TEST(RPCConnectivityTest, Message) {
     run_in_thread_pool(&run_message_test);
