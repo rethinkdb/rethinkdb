@@ -49,10 +49,12 @@ struct peer_id_t {
         return p.uuid < uuid;
     }
 
-    /* TODO: This should not be used. Can we get rid of it without breaking the
-    possibility of using this in an std::map and for deserialization? (other
-    than making all required classes friends and this private) */
-    peer_id_t() { }
+    peer_id_t() : uuid(boost::uuids::nil_uuid()) { }
+
+    bool is_nil() {
+        return uuid.is_nil();
+    }
+
 private:
     friend class connectivity_cluster_t;
     boost::uuids::uuid uuid;
@@ -114,6 +116,7 @@ public:
     peer_id_t get_me();
     std::map<peer_id_t, peer_address_t> get_everybody();
 
+protected:
     /* `send_message()` is used to send a message to a specific peer. The
     function will be called with a `std::ostream&` that leads to the peer in
     question. */

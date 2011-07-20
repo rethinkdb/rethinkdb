@@ -28,7 +28,10 @@ event_watcher_t::~event_watcher_t() {
 /* connect_watcher_t */
 
 connect_watcher_t::connect_watcher_t(connectivity_cluster_t *parent, peer_id_t peer) :
-    event_watcher_t(parent), peer(peer) { }
+    event_watcher_t(parent), peer(peer)
+{
+    rassert(!peer.is_nil());
+}
 
 void connect_watcher_t::on_connect(peer_id_t p) {
     if (peer == p && !is_pulsed()) {
@@ -43,7 +46,10 @@ void connect_watcher_t::on_disconnect(peer_id_t) {
 /* disconnect_watcher_t */
 
 disconnect_watcher_t::disconnect_watcher_t(connectivity_cluster_t *parent, peer_id_t peer) :
-    event_watcher_t(parent), peer(peer) { }
+    event_watcher_t(parent), peer(peer)
+{
+    rassert(!peer.is_nil());
+}
 
 void disconnect_watcher_t::on_connect(peer_id_t) {
     // Ignore this event
@@ -110,6 +116,7 @@ std::map<peer_id_t, peer_address_t> connectivity_cluster_t::get_everybody() {
 
 void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(std::ostream&)> writer) {
     assert_thread();
+    rassert(!dest.is_nil());
 
     /* We currently write the message to a `stringstream`, then serialize that
     as a string. It's horribly inefficient, of course. */
@@ -236,6 +243,9 @@ void connectivity_cluster_t::handle(
     /* Sanity checks */
     if (other_id == me) {
         crash("Help, I'm being impersonated!");
+    }
+    if (other_id.is_nil()) {
+        crash("Peer is nil");
     }
     if (expected_id && other_id != *expected_id) {
         crash("Inconsistent routing information: wrong ID");

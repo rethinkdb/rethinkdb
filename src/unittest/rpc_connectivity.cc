@@ -281,4 +281,19 @@ TEST(RPCConnectivityTest, BlobJoin) {
     run_in_thread_pool(&run_blob_join_test);
 }
 
+/* `PeerIDSemantics` makes sure that `peer_id_t::is_nil()` works as expected. */
+
+void run_peer_id_semantics_test() {
+
+    peer_id_t nil_peer;
+    ASSERT_TRUE(nil_peer.is_nil());
+
+    int port = 10000 + rand() % 20000;
+    dummy_cluster_t cluster_node(port);
+    ASSERT_FALSE(cluster_node.get_me().is_nil());
+}
+TEST(RPCConnectivityTest, PeerIDSemantics) {
+    run_in_thread_pool(&run_peer_id_semantics_test);
+}
+
 }   /* namespace unittest */
