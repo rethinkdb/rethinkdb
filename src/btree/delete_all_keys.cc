@@ -20,7 +20,7 @@ struct delete_all_keys_traversal_helper_t : public btree_traversal_helper_t {
 
         for (int i = 0; i < npairs; ++i) {
             uint16_t offset = data->pair_offsets[i];
-            btree_leaf_pair *pair = leaf::get_pair(data, offset);
+            btree_leaf_pair<memcached_value_t> *pair = leaf::get_pair<memcached_value_t>(data, offset);
 
             blob_t b(reinterpret_cast<memcached_value_t *>(pair->value())->value_ref(), blob::btree_maxreflen);
             b.unappend_region(txn, b.valuesize());

@@ -1,7 +1,7 @@
 /* Buf */
 
 template<class inner_cache_t>
-block_id_t scc_buf_t<inner_cache_t>::get_block_id() {
+block_id_t scc_buf_t<inner_cache_t>::get_block_id() const {
     rassert(inner_buf);
     return inner_buf->get_block_id();
 }

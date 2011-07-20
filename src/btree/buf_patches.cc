@@ -39,7 +39,7 @@ uint16_t leaf_shift_pairs_patch_t::get_data_size() const {
 }
 
 
-leaf_insert_pair_patch_t::leaf_insert_pair_patch_t(block_id_t block_id, patch_counter_t patch_counter, uint16_t value_size, const value_type_t *value, uint8_t key_size, const char *key_contents)
+leaf_insert_pair_patch_t::leaf_insert_pair_patch_t(block_id_t block_id, patch_counter_t patch_counter, uint16_t value_size, const opaque_value_t *value, uint8_t key_size, const char *key_contents)
     : buf_patch_t(block_id, patch_counter, buf_patch_t::OPER_LEAF_INSERT_PAIR), value_size(value_size) {
     value_buf = new char[value_size];
     memcpy(value_buf, value, value_size);
@@ -84,7 +84,7 @@ leaf_insert_pair_patch_t::leaf_insert_pair_patch_t(block_id_t block_id, patch_co
 }
 
 void leaf_insert_pair_patch_t::serialize_data(char* destination) const {
-    const value_type_t *value = reinterpret_cast<const value_type_t *>(value_buf);
+    const opaque_value_t *value = reinterpret_cast<const opaque_value_t *>(value_buf);
     const btree_key_t *key = reinterpret_cast<btree_key_t *>(key_buf);
 
     memcpy(destination, &value_size, sizeof(value_size));
@@ -121,10 +121,10 @@ void leaf_insert_pair_patch_t::apply_to_buf(char* buf_data, block_size_t bs) {
     // create.
     memcached_value_sizer_t sizer(bs);
 
-    leaf::impl::insert_pair(&sizer, reinterpret_cast<leaf_node_t *>(buf_data), reinterpret_cast<const value_type_t *>(value_buf), reinterpret_cast<btree_key_t *>(key_buf));
+    leaf::impl::insert_pair<memcached_value_t>(&sizer, reinterpret_cast<leaf_node_t *>(buf_data), reinterpret_cast<const memcached_value_t *>(value_buf), reinterpret_cast<btree_key_t *>(key_buf));
 }
 
-leaf_insert_patch_t::leaf_insert_patch_t(block_id_t block_id, patch_counter_t patch_counter, uint16_t value_size, const value_type_t *value, uint8_t key_size, const char *key_contents, repli_timestamp_t insertion_time) :
+leaf_insert_patch_t::leaf_insert_patch_t(block_id_t block_id, patch_counter_t patch_counter, uint16_t value_size, const opaque_value_t *value, uint8_t key_size, const char *key_contents, repli_timestamp_t insertion_time) :
             buf_patch_t(block_id, patch_counter, buf_patch_t::OPER_LEAF_INSERT),
             value_size(value_size),
             insertion_time(insertion_time) {
@@ -173,7 +173,7 @@ void leaf_insert_patch_t::serialize_data(char* destination) const {
     memcpy(destination, &insertion_time, sizeof(insertion_time));
     destination += sizeof(insertion_time);
 
-    const value_type_t *value = reinterpret_cast<value_type_t *>(value_buf);
+    const opaque_value_t *value = reinterpret_cast<opaque_value_t *>(value_buf);
     const btree_key_t *key = reinterpret_cast<btree_key_t *>(key_buf);
 
     memcpy(destination, value, value_size);
@@ -206,7 +206,7 @@ void leaf_insert_patch_t::apply_to_buf(char* buf_data, block_size_t bs) {
     // at the leaf buf's magic value to decide what kind of sizer to
     // create.
     memcached_value_sizer_t sizer(bs);
-    leaf::insert(&sizer, reinterpret_cast<leaf_node_t *>(buf_data), reinterpret_cast<btree_key_t *>(key_buf), reinterpret_cast<value_type_t *>(value_buf), insertion_time);
+    leaf::insert<memcached_value_t>(&sizer, reinterpret_cast<leaf_node_t *>(buf_data), reinterpret_cast<btree_key_t *>(key_buf), reinterpret_cast<memcached_value_t *>(value_buf), insertion_time);
 }
 
 
@@ -273,6 +273,6 @@ void leaf_remove_patch_t::apply_to_buf(char* buf_data, block_size_t bs) {
     // at the leaf buf's magic value to decide what kind of sizer to
     // create.
     memcached_value_sizer_t sizer(bs);
-    leaf::remove(&sizer, reinterpret_cast<leaf_node_t *>(buf_data), reinterpret_cast<btree_key_t *>(key_buf));
+    leaf::remove<memcached_value_t>(&sizer, reinterpret_cast<leaf_node_t *>(buf_data), reinterpret_cast<btree_key_t *>(key_buf));
 }
 

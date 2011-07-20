@@ -34,11 +34,11 @@ struct internal_buf_t {
 
 /* Buf */
 
-block_id_t mock_buf_t::get_block_id() {
+block_id_t mock_buf_t::get_block_id() const {
     return internal_buf->block_id;
 }
 
-const void *mock_buf_t::get_data_read() {
+const void *mock_buf_t::get_data_read() const {
     return internal_buf->data;
 }
 

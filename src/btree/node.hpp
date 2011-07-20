@@ -10,8 +10,14 @@
 #include "buffer_cache/types.hpp"
 #include "store.hpp"
 
-struct value_type_t;
+/* opaque value is really just a stand in for void * it's used in some rare
+ * cases where we don't actually need to know the type of the data we're
+ * working with. This basically only happens in patches where we pass in the
+ * value size ahead of time and can just copy the data as raw data. Still it's
+ * a little be legacy and should maybe be removed */
+struct opaque_value_t;
 
+template <class Value>
 class value_sizer_t {
 public:
     value_sizer_t(block_size_t bs) : block_size_(bs) { }
@@ -21,12 +27,12 @@ public:
     // for (int i = 0; i < INT_MAX; ++i) {
     //    if (fits(value, i)) return i;
     // }
-    virtual int size(const value_type_t *value) const = 0;
+    virtual int size(const Value *value) const = 0;
 
     // True if size(value) would return no more than length_available.
     // Does not read any bytes outside of [value, value +
     // length_available).
-    virtual bool fits(const value_type_t *value, int length_available) const = 0;
+    virtual bool fits(const Value *value, int length_available) const = 0;
 
     virtual int max_possible_size() const = 0;
 
@@ -49,28 +55,38 @@ private:
 
 // This will eventually be moved to a memcached-specific part of the
 // project.
-class memcached_value_sizer_t : public value_sizer_t {
+
+template <>
+class value_sizer_t<memcached_value_t> {
 public:
-    memcached_value_sizer_t(block_size_t bs) : value_sizer_t(bs) { }
+    value_sizer_t<memcached_value_t>(block_size_t bs) : block_size_(bs) { }
 
-    int size(const value_type_t *value) const {
-        return reinterpret_cast<const memcached_value_t *>(value)->inline_size(block_size_);
+    int size(const memcached_value_t *value) const {
+        return value->inline_size(block_size_);
     }
 
-    virtual bool fits(const value_type_t *value, int length_available) const {
-        return btree_value_fits(block_size_, length_available, reinterpret_cast<const memcached_value_t *>(value));
+    bool fits(const memcached_value_t *value, int length_available) const {
+        return btree_value_fits(block_size_, length_available, value);
     }
 
-    virtual int max_possible_size() const {
+    int max_possible_size() const {
         return MAX_BTREE_VALUE_SIZE;
     }
 
-    virtual block_magic_t btree_leaf_magic() const {
+    block_magic_t btree_leaf_magic() const {
         block_magic_t magic = { { 'l', 'e', 'a', 'f' } };
         return magic;
     }
+
+    block_size_t block_size() const { return block_size_; }
+
+protected:
+    // The block size.  It's convenient for leaf node code and for
+    // some subclasses, too.
+    block_size_t block_size_;
 };
 
+typedef value_sizer_t<memcached_value_t> memcached_value_sizer_t;
 
 
 
@@ -206,9 +222,9 @@ bool has_sensible_offsets(block_size_t block_size, const node_t *node);
 bool is_underfull(block_size_t block_size, const node_t *node);
 bool is_mergable(block_size_t block_size, const node_t *node, const node_t *sibling, const internal_node_t *parent);
 int nodecmp(const node_t *node1, const node_t *node2);
-void split(block_size_t block_size, buf_t &node_buf, buf_t &rnode_buf, btree_key_t *median);
-void merge(block_size_t block_size, const node_t *node, buf_t &rnode_buf, btree_key_t *key_to_remove, const internal_node_t *parent);
-bool level(block_size_t block_size, buf_t &node_buf, buf_t &rnode_buf, btree_key_t *key_to_replace, btree_key_t *replacement_key, const internal_node_t *parent);
+void split(block_size_t block_size, abstract_buf_t *node_buf, abstract_buf_t *rnode_buf, btree_key_t *median);
+void merge(block_size_t block_size, const node_t *node, abstract_buf_t *rnode_buf, btree_key_t *key_to_remove, const internal_node_t *parent);
+bool level(block_size_t block_size, abstract_buf_t *node_buf, abstract_buf_t *rnode_buf, btree_key_t *key_to_replace, btree_key_t *replacement_key, const internal_node_t *parent);
 
 void print(const node_t *node);
 
