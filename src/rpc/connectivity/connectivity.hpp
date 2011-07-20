@@ -51,7 +51,7 @@ struct peer_id_t {
 
     peer_id_t() : uuid(boost::uuids::nil_uuid()) { }
 
-    bool is_nil() {
+    bool is_nil() const {
         return uuid.is_nil();
     }
 
