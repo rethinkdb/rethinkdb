@@ -21,6 +21,8 @@
 #include "cmd_args.hpp"
 #include "containers/scoped_malloc.hpp"
 #include "btree/operations.hpp"
+#include "btree/iteration.hpp"
+#include "containers/iterators.hpp"
 
 // TODO!
 
@@ -144,11 +146,10 @@ void nested_demo_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             logINF("Now running demo operations....\n");
 
             block_id_t nested_btree_1_root = NULL_BLOCK_ID;
-            //block_id_t nested_btree_2_root = NULL_BLOCK_ID;
+            block_id_t nested_btree_2_root = NULL_BLOCK_ID;
 
-            // TODO!
             {
-                on_thread_t thread(shard->cache.home_thread());
+                on_thread_t thread(shard->home_thread());
 
                 boost::scoped_ptr<transaction_t> transaction(new transaction_t(&shard->cache, rwi_write, 1, repli_timestamp_t::invalid));
                 boost::scoped_ptr<superblock_t> nested_btree_1_sb(new virtual_superblock_t());
@@ -177,6 +178,199 @@ void nested_demo_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 // Update the root block id in case it has changed
                 nested_btree_1_root = kv_location.sb->get_root_block_id();
                 logINF("Done, nested_btree_1 now has root %u\n", nested_btree_1_root);
+            }
+            {
+                on_thread_t thread(shard->home_thread());
+
+                boost::scoped_ptr<transaction_t> transaction(new transaction_t(&shard->cache, rwi_write, 1, repli_timestamp_t::invalid));
+                boost::scoped_ptr<superblock_t> nested_btree_1_sb(new virtual_superblock_t());
+                nested_btree_1_sb->set_root_block_id(nested_btree_1_root);
+
+                keyvalue_location_t<demo_value_t> kv_location;
+                value_sizer_t<demo_value_t> sizer(shard->cache.get_block_size());
+                got_superblock_t got_superblock;
+                got_superblock.sb.swap(nested_btree_1_sb);
+                got_superblock.txn.swap(transaction);
+
+                std::string key_str("key_3");
+                std::string value_str("value_3");
+                logINF("Inserting %s -> %s into nested_btree_1...\n", key_str.c_str(), value_str.c_str());
+                btree_key_t *key = reinterpret_cast<btree_key_t*>(malloc(offsetof(btree_key_t, contents) + key_str.length()));
+                key->size = key_str.length();
+                memcpy(key->contents, key_str.data(), key_str.length());
+                find_keyvalue_location_for_write(&sizer, &got_superblock, key, repli_timestamp_t::invalid, &kv_location);
+                scoped_malloc<demo_value_t> value(sizeof(demo_value_t::length) + value_str.length());
+                value->length = value_str.length();
+                memcpy(value->contents, value_str.data(), value_str.length());
+                kv_location.value.swap(value);
+                apply_keyvalue_change(&sizer, &kv_location, key, repli_timestamp_t::invalid);
+                free(key);
+
+                // Update the root block id in case it has changed
+                nested_btree_1_root = kv_location.sb->get_root_block_id();
+                logINF("Done, nested_btree_1 now has root %u\n", nested_btree_1_root);
+            }
+            {
+                on_thread_t thread(shard->home_thread());
+
+                boost::scoped_ptr<transaction_t> transaction(new transaction_t(&shard->cache, rwi_write, 1, repli_timestamp_t::invalid));
+                boost::scoped_ptr<superblock_t> nested_btree_2_sb(new virtual_superblock_t());
+                nested_btree_2_sb->set_root_block_id(nested_btree_2_root);
+
+                keyvalue_location_t<demo_value_t> kv_location;
+                value_sizer_t<demo_value_t> sizer(shard->cache.get_block_size());
+                got_superblock_t got_superblock;
+                got_superblock.sb.swap(nested_btree_2_sb);
+                got_superblock.txn.swap(transaction);
+
+                std::string key_str("key_1");
+                std::string value_str("value_1");
+                logINF("Inserting %s -> %s into nested_btree_2...\n", key_str.c_str(), value_str.c_str());
+                btree_key_t *key = reinterpret_cast<btree_key_t*>(malloc(offsetof(btree_key_t, contents) + key_str.length()));
+                key->size = key_str.length();
+                memcpy(key->contents, key_str.data(), key_str.length());
+                find_keyvalue_location_for_write(&sizer, &got_superblock, key, repli_timestamp_t::invalid, &kv_location);
+                scoped_malloc<demo_value_t> value(sizeof(demo_value_t::length) + value_str.length());
+                value->length = value_str.length();
+                memcpy(value->contents, value_str.data(), value_str.length());
+                kv_location.value.swap(value);
+                apply_keyvalue_change(&sizer, &kv_location, key, repli_timestamp_t::invalid);
+                free(key);
+
+                // Update the root block id in case it has changed
+                nested_btree_2_root = kv_location.sb->get_root_block_id();
+                logINF("Done, nested_btree_2 now has root %u\n", nested_btree_2_root);
+            }
+            {
+                on_thread_t thread(shard->home_thread());
+
+                boost::scoped_ptr<transaction_t> transaction(new transaction_t(&shard->cache, rwi_write, 1, repli_timestamp_t::invalid));
+                boost::scoped_ptr<superblock_t> nested_btree_2_sb(new virtual_superblock_t());
+                nested_btree_2_sb->set_root_block_id(nested_btree_2_root);
+
+                keyvalue_location_t<demo_value_t> kv_location;
+                value_sizer_t<demo_value_t> sizer(shard->cache.get_block_size());
+                got_superblock_t got_superblock;
+                got_superblock.sb.swap(nested_btree_2_sb);
+                got_superblock.txn.swap(transaction);
+
+                std::string key_str("key_2");
+                std::string value_str("value_2");
+                logINF("Inserting %s -> %s into nested_btree_2...\n", key_str.c_str(), value_str.c_str());
+                btree_key_t *key = reinterpret_cast<btree_key_t*>(malloc(offsetof(btree_key_t, contents) + key_str.length()));
+                key->size = key_str.length();
+                memcpy(key->contents, key_str.data(), key_str.length());
+                find_keyvalue_location_for_write(&sizer, &got_superblock, key, repli_timestamp_t::invalid, &kv_location);
+                scoped_malloc<demo_value_t> value(sizeof(demo_value_t::length) + value_str.length());
+                value->length = value_str.length();
+                memcpy(value->contents, value_str.data(), value_str.length());
+                kv_location.value.swap(value);
+                apply_keyvalue_change(&sizer, &kv_location, key, repli_timestamp_t::invalid);
+                free(key);
+
+                // Update the root block id in case it has changed
+                nested_btree_2_root = kv_location.sb->get_root_block_id();
+                logINF("Done, nested_btree_2 now has root %u\n", nested_btree_2_root);
+            }
+            {
+                // (flush logs)
+                on_thread_t thread(shard->home_thread());
+                coro_t::yield();
+            }
+            {
+                on_thread_t thread(shard->home_thread());
+
+                boost::shared_ptr<transaction_t> transaction(new transaction_t(&shard->cache, rwi_read));
+                boost::scoped_ptr<superblock_t> nested_btree_1_sb(new virtual_superblock_t());
+                nested_btree_1_sb->set_root_block_id(nested_btree_1_root);
+                boost::scoped_ptr<superblock_t> nested_btree_2_sb(new virtual_superblock_t());
+                nested_btree_2_sb->set_root_block_id(nested_btree_2_root);
+
+                boost::shared_ptr<value_sizer_t<demo_value_t> > sizer_ptr(new value_sizer_t<demo_value_t>(shard->cache.get_block_size()));
+                store_key_t none_key;
+                none_key.size = 0;
+                slice_keys_iterator_t<demo_value_t> tree1_iter(sizer_ptr, transaction, nested_btree_1_sb, shard->home_thread(), rget_bound_none, none_key, rget_bound_none, none_key);
+                slice_keys_iterator_t<demo_value_t> tree2_iter(sizer_ptr, transaction, nested_btree_2_sb, shard->home_thread(), rget_bound_none, none_key, rget_bound_none, none_key);
+
+                fprintf(stderr, "\nKeys in nested_btree_1\n");
+                while (true) {
+                    boost::optional<key_value_pair_t<demo_value_t> > next = tree1_iter.next();
+                    if (next) {
+                        fprintf(stderr, "\t%s\n", next->key.c_str());
+                    } else {
+                        break;
+                    }
+                }
+                fprintf(stderr, "\nKeys in nested_btree_2\n");
+                while (true) {
+                    boost::optional<key_value_pair_t<demo_value_t> > next = tree2_iter.next();
+                    if (next) {
+                        fprintf(stderr, "\t%s\n", next->key.c_str());
+                    } else {
+                        break;
+                    }
+                }
+            }
+            {
+                on_thread_t thread(shard->home_thread());
+
+                boost::shared_ptr<transaction_t> transaction(new transaction_t(&shard->cache, rwi_read));
+                boost::scoped_ptr<superblock_t> nested_btree_1_sb(new virtual_superblock_t());
+                nested_btree_1_sb->set_root_block_id(nested_btree_1_root);
+                boost::scoped_ptr<superblock_t> nested_btree_2_sb(new virtual_superblock_t());
+                nested_btree_2_sb->set_root_block_id(nested_btree_2_root);
+
+                boost::shared_ptr<value_sizer_t<demo_value_t> > sizer_ptr(new value_sizer_t<demo_value_t>(shard->cache.get_block_size()));
+                store_key_t none_key;
+                none_key.size = 0;
+                slice_keys_iterator_t<demo_value_t> *tree1_iter = new slice_keys_iterator_t<demo_value_t>(sizer_ptr, transaction, nested_btree_1_sb, shard->home_thread(), rget_bound_none, none_key, rget_bound_none, none_key);
+                slice_keys_iterator_t<demo_value_t> *tree2_iter = new slice_keys_iterator_t<demo_value_t>(sizer_ptr, transaction, nested_btree_2_sb, shard->home_thread(), rget_bound_none, none_key, rget_bound_none, none_key);
+                merge_ordered_data_iterator_t<key_value_pair_t<demo_value_t> > *merge_iter = new merge_ordered_data_iterator_t<key_value_pair_t<demo_value_t> >();
+                merge_iter->add_mergee(tree1_iter);
+                merge_iter->add_mergee(tree2_iter);
+                unique_filter_iterator_t<key_value_pair_t<demo_value_t> > union_iter(merge_iter);
+
+                fprintf(stderr, "\nUnion of nested_btree_1 and nested_btree_2\n");
+                while (true) {
+                    boost::optional<key_value_pair_t<demo_value_t> > next = union_iter.next();
+                    if (next) {
+                        fprintf(stderr, "\t%s\n", next->key.c_str());
+                    } else {
+                        break;
+                    }
+                }
+            }
+            {
+                on_thread_t thread(shard->home_thread());
+
+                boost::shared_ptr<transaction_t> transaction(new transaction_t(&shard->cache, rwi_read));
+                boost::scoped_ptr<superblock_t> nested_btree_1_sb(new virtual_superblock_t());
+                nested_btree_1_sb->set_root_block_id(nested_btree_1_root);
+                boost::scoped_ptr<superblock_t> nested_btree_2_sb(new virtual_superblock_t());
+                nested_btree_2_sb->set_root_block_id(nested_btree_2_root);
+
+                boost::shared_ptr<value_sizer_t<demo_value_t> > sizer_ptr(new value_sizer_t<demo_value_t>(shard->cache.get_block_size()));
+                store_key_t none_key;
+                none_key.size = 0;
+                slice_keys_iterator_t<demo_value_t> *tree1_iter = new slice_keys_iterator_t<demo_value_t>(sizer_ptr, transaction, nested_btree_1_sb, shard->home_thread(), rget_bound_none, none_key, rget_bound_none, none_key);
+                slice_keys_iterator_t<demo_value_t> *tree2_iter = new slice_keys_iterator_t<demo_value_t>(sizer_ptr, transaction, nested_btree_2_sb, shard->home_thread(), rget_bound_none, none_key, rget_bound_none, none_key);
+                merge_ordered_data_iterator_t<key_value_pair_t<demo_value_t> > *merge_iter = new merge_ordered_data_iterator_t<key_value_pair_t<demo_value_t> >();
+                merge_iter->add_mergee(tree1_iter);
+                merge_iter->add_mergee(tree2_iter);
+                // This gives the intersection only because both input iterators already provide sets.
+                // Otherwise there could be duplicates and you would have to filter everything through an
+                // additional unique_filter_iterator.
+                repetition_filter_iterator_t<key_value_pair_t<demo_value_t> > intersection_iter(merge_iter, 2);
+
+                fprintf(stderr, "\nIntersection of nested_btree_1 and nested_btree_2\n");
+                while (true) {
+                    boost::optional<key_value_pair_t<demo_value_t> > next = intersection_iter.next();
+                    if (next) {
+                        fprintf(stderr, "\t%s\n", next->key.c_str());
+                    } else {
+                        break;
+                    }
+                }
             }
 
             // TODO!

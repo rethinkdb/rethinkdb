@@ -2,9 +2,10 @@
 #include "btree/btree_data_provider.hpp"
 #include "perfmon.hpp"
 
-perfmon_counter_t
-    leaf_iterators("leaf_iterators"),
-    slice_leaves_iterators("slice_leaves_iterators");
+// TODO! Fix
+//perfmon_counter_t
+//    leaf_iterators("leaf_iterators"),
+//    slice_leaves_iterators("slice_leaves_iterators");
 
 template <class Value>
 leaf_iterator_t<Value>::leaf_iterator_t(const leaf_node_t *_leaf, int _index, buf_lock_t *_lock, const boost::shared_ptr<value_sizer_t<Value> >& _sizer, const boost::shared_ptr<transaction_t>& _transaction) :
@@ -12,7 +13,7 @@ leaf_iterator_t<Value>::leaf_iterator_t(const leaf_node_t *_leaf, int _index, bu
 
     rassert(leaf != NULL);
     rassert(lock != NULL);
-    leaf_iterators++;
+    //leaf_iterators++;
 }
 
 template <class Value>
@@ -36,7 +37,7 @@ void leaf_iterator_t<Value>::prefetch() {
 
 template <class Value>
 leaf_iterator_t<Value>::~leaf_iterator_t() {
-    leaf_iterators--;
+    //leaf_iterators--;
     done();
 }
 
@@ -56,7 +57,7 @@ slice_leaves_iterator_t<Value>::slice_leaves_iterator_t(const boost::shared_ptr<
     left_mode(_left_mode), left_key(_left_key), right_mode(_right_mode), right_key(_right_key),
     traversal_state(), started(false), nevermore(false) {
     superblock.swap(_superblock);
-    slice_leaves_iterators++;
+    //slice_leaves_iterators++;
 }
 
 template <class Value>
@@ -77,7 +78,7 @@ void slice_leaves_iterator_t<Value>::prefetch() {
 
 template <class Value>
 slice_leaves_iterator_t<Value>::~slice_leaves_iterator_t() {
-    slice_leaves_iterators--;
+    //slice_leaves_iterators--;
     done();
 }
 
