@@ -78,6 +78,9 @@ public:
     void set_root_block_id(const block_id_t new_root_block) {
         root_block_id_ = new_root_block;
     }
+    block_id_t get_delete_queue_block() const {
+        return NULL_BLOCK_ID;
+    }
 
 private:
     block_id_t root_block_id_;

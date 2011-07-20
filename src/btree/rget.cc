@@ -75,7 +75,6 @@ rget_result_t btree_rget_slice(btree_slice_t *slice, rget_bound_mode_t left_mode
     slice->pre_begin_transaction_sink_.check_out(token);
     order_token_t begin_transaction_token = slice->pre_begin_transaction_read_mode_source_.check_in(token.tag() + "+begin_transaction_token").with_read_mode();
 
-
     boost::shared_ptr<transaction_t> transaction(new transaction_t(slice->cache(), rwi_read));
     transaction->set_token(slice->post_begin_transaction_checkpoint_.check_through(token).with_read_mode());
 

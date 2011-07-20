@@ -188,7 +188,7 @@ void find_keyvalue_location_for_write(value_sizer_t<Value> *sizer, got_superbloc
     // Walk down the tree to the leaf.
     while (node::is_internal(reinterpret_cast<const node_t *>(buf->get_data_read()))) {
         // Check if the node is overfull and proactively split it if it is (since this is an internal node).
-        check_and_handle_split(sizer, keyvalue_location_out->txn.get(), buf, last_buf, keyvalue_location_out->sb.get(), key, reinterpret_cast<memcached_value_t *>(NULL), keyvalue_location_out->txn->get_cache()->get_block_size());
+        check_and_handle_split(sizer, keyvalue_location_out->txn.get(), buf, last_buf, keyvalue_location_out->sb.get(), key, reinterpret_cast<Value *>(NULL), keyvalue_location_out->txn->get_cache()->get_block_size());
         // Check if the node is underfull, and merge/level if it is.
         check_and_handle_underfull(keyvalue_location_out->txn.get(), buf, last_buf, keyvalue_location_out->sb.get(), key, keyvalue_location_out->txn->get_cache()->get_block_size());
 
