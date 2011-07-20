@@ -315,3 +315,37 @@ void apply_keyvalue_change(value_sizer_t<Value> *sizer, keyvalue_location_t<Valu
     // size or a deletion, and merge/level if it is.
     check_and_handle_underfull(kv_loc->txn.get(), kv_loc->buf, kv_loc->last_buf, kv_loc->sb_buf, key, kv_loc->txn->get_cache()->get_block_size());
 }
+
+template <class Value>
+value_txn_t<Value>::value_txn_t(btree_key_t *key, value_sizer_t<Value> *sizer, keyvalue_location_t<Value> *value, repli_timestamp_t tstamp) 
+    : key(key), sizer(sizer), value(value), tstamp(tstamp)
+{ }
+
+template <class Value>
+value_txn_t<Value>::~value_txn_t() {
+    kv_location->value.reinterpret_swap(value);
+    apply_keyvalue_change(sizer, kv_location, key, tstamp);
+}
+
+template <class Value>
+value_txn_t<Value> get_key_value_write(btree_slice_t *slice, btree_key_t *key, repli_timestamp_t tstamp, order_token_t token) {
+    value_sizer_t<Value> sizer(slice->cache()->get_block_size());
+    got_superblock_t got_superblock;
+
+    get_btree_superblock(slice, rwi_write, 1, tstamp, token, &got_superblock);
+
+    keyvalue_location_t<Value> kv_location;
+    find_keyvalue_location_for_write(sizer, &got_superblock, key, tstamp, &kv_location);
+
+    value_txn_t<Value> value_txn;
+    value_txn.value.reinterpret_swap(kv_location.value);
+}
+
+template <class Value>
+void get_value_read(btree_slice_t *slice, btree_key_t *key, order_token_t token, keyvalue_location_t<Value> *kv_location_out) {
+    value_sizer_t<Value> sizer(slice->cache()->get_block_size());
+    got_superblock_t got_superblock;
+    get_btree_superblock(slice, rwi_read, token, &got_superblock);
+
+    find_keyvalue_location_for_read(sizer, got_superblock, key, kv_location_out);
+}
