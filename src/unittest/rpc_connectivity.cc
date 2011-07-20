@@ -36,9 +36,10 @@ it receives from other nodes in the cluster. */
 struct dummy_cluster_t : public connectivity_cluster_t {
 private:
     std::map<int, peer_id_t> inbox;
-    void on_message(peer_id_t peer, std::istream &stream) {
+    void on_message(peer_id_t peer, std::istream &stream, boost::function<void()> &on_done) {
         int i;
         stream >> i;
+        on_done();
         inbox[i] = peer;
     }
     static void write(int i, std::ostream &stream) {

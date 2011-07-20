@@ -115,7 +115,6 @@ std::map<peer_id_t, peer_address_t> connectivity_cluster_t::get_everybody() {
 }
 
 void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(std::ostream&)> writer) {
-    assert_thread();
     rassert(!dest.is_nil());
 
     /* We currently write the message to a `stringstream`, then serialize that
@@ -126,9 +125,21 @@ void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(s
 
     if (dest == me) {
         std::stringstream buffer2(buffer.str(), std::ios_base::in);
-        on_message(me, buffer2);
+
+        /* Spawn `on_message()` directly in a new coroutine */
+        cond_t pulse_when_done_reading;
+        coro_t::spawn_now(boost::bind(
+            &connectivity_cluster_t::on_message,
+            this,
+            me,
+            boost::ref(buffer2),
+            boost::function<void()>(boost::bind(&cond_t::pulse, &pulse_when_done_reading))
+            ));
+        pulse_when_done_reading.wait();
 
     } else {
+        on_thread_t thread_switcher(home_thread);
+
         std::map<peer_id_t, connection_t*>::iterator it = connections.find(dest);
         if (it == connections.end()) {
             /* We don't currently have access to this peer. Our policy is to not
@@ -413,8 +424,21 @@ void connectivity_cluster_t::handle(
                 std::string message;
                 boost::archive::text_iarchive receiver(*conn);
                 receiver >> message;
+
+                /* In case anyone is tempted to refactor this so it doesn't wait
+                on `pulse_when_done_reading`, refrain. It may look silly now,
+                but later we will want to read directly off the socket for
+                better performance, and then we will need this code. */
                 std::stringstream stream(message, std::ios_base::in);
-                on_message(other_id, stream);
+                cond_t pulse_when_done_reading;
+                coro_t::spawn_now(boost::bind(
+                    &connectivity_cluster_t::on_message,
+                    this,
+                    other_id,
+                    boost::ref(stream),
+                    boost::function<void()>(boost::bind(&cond_t::pulse, &pulse_when_done_reading))
+                    ));
+                pulse_when_done_reading.wait();
             }
         } catch (boost::archive::archive_exception) {
             /* The exception broke us out of the loop, and that's what we

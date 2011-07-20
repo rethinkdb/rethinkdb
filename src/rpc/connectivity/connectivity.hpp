@@ -108,23 +108,37 @@ public:
     cluster */
     connectivity_cluster_t(int port);
     ~connectivity_cluster_t();
+
+    /* Attaches the cluster this node is part of to another existing cluster.
+    May only be called on home thread. */
     void join(peer_address_t);
 
     /* `get_me()` returns the `peer_id_t` for this cluster node.
     `get_everybody()` returns all the currently-accessible peers in the
-    cluster and their addresses, including us. */
+    cluster and their addresses, including us. These may only be called on the
+    home thread. */
     peer_id_t get_me();
     std::map<peer_id_t, peer_address_t> get_everybody();
 
 protected:
+    /* TODO: We should have a better mechanism for sending messages to ourself.
+    Right now, they get serialized and then deserialized. If we did it more
+    efficiently, we wouldn't have to special-case messages to local mailboxes on
+    the higher levels. */
+
     /* `send_message()` is used to send a message to a specific peer. The
     function will be called with a `std::ostream&` that leads to the peer in
-    question. */
+    question. `send_message()` can be called on any thread. It may block. */
     void send_message(peer_id_t, boost::function<void(std::ostream&)>);
 
-    /* `on_message()` is called every time we receive a message. It's called
-    with a `std::istream&` that comes from the peer in question. */
-    virtual void on_message(peer_id_t, std::istream&) = 0;
+    /* Whenever we receive a message, we spawn a new coroutine running
+    `on_message()`. Its arguments are the peer we received the message from, a
+    `std::istream&` from that peer, and a function to call when we're done
+    reading the message off the stream. `on_message()` should read the message,
+    call the function, then perform whatever action the message requires. This
+    way, the next message can be read off the socket as soon as possible.
+    `connectivity_cluster_t` may run `on_message()` on any thread. */
+    virtual void on_message(peer_id_t, std::istream&, boost::function<void()>&) = 0;
 
 private:
     /* We listen for new connections from other peers. (The reason `listener` is
