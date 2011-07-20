@@ -117,7 +117,7 @@ void add_key_to_delete_queue(int64_t delete_queue_limit, transaction_t *txn, blo
                     blob_acq_t acqs;
                     buffer_group_t bg;
 
-                    t_o_blob.expose_region(txn, rwi_read, 0, 2 * sizeof(second_tao), &bg, &acqs);
+                    t_o_blob.expose_region(txn, rwi_read, sizeof(second_tao), sizeof(second_tao), &bg, &acqs);
                     buffer_group_t target;
                     target.add_buffer(sizeof(second_tao), &second_tao);
                     buffer_group_copy_data(&target, const_view(&bg));
