@@ -89,6 +89,7 @@ perfmon_counter_t::perfmon_counter_t(std::string name, bool internal)
 }
 
 int64_t &perfmon_counter_t::get() {
+    rassert(get_thread_id() >= 0);
     return thread_data[get_thread_id()].value;
 }
 
@@ -118,6 +119,7 @@ perfmon_sampler_t::perfmon_sampler_t(std::string name, ticks_t length, bool incl
 
 void perfmon_sampler_t::update(ticks_t now) {
     int interval = now / length;
+    rassert(get_thread_id() >= 0);
     thread_info_t *thread = &thread_data[get_thread_id()];
 
     if (thread->current_interval == interval) {
@@ -137,6 +139,7 @@ void perfmon_sampler_t::update(ticks_t now) {
 void perfmon_sampler_t::record(double v) {
     ticks_t now = get_ticks();
     update(now);
+    rassert(get_thread_id() >= 0);
     thread_info_t *thread = &thread_data[get_thread_id()];
     thread->current_stats.record(v);
 }
@@ -146,6 +149,7 @@ void perfmon_sampler_t::get_thread_stat(stats_t *stat) {
     /* Return last_stats instead of current_stats so that we can give a complete interval's
     worth of stats. We might be halfway through an interval, in which case current_stats will
     only have half an interval worth. */
+    rassert(get_thread_id() >= 0);
     *stat = thread_data[get_thread_id()].last_stats;
 }
 
@@ -240,6 +244,7 @@ perfmon_stddev_t::perfmon_stddev_t(std::string name, bool internal)
     : perfmon_perthread_t<stddev_t>(internal), name(name) { }
 
 void perfmon_stddev_t::get_thread_stat(stddev_t *stat) {
+    rassert(get_thread_id() >= 0);
     *stat = thread_data[get_thread_id()];
 }
 
@@ -259,7 +264,10 @@ void perfmon_stddev_t::output_stat(const stddev_t &stat, perfmon_stats_t *dest) 
     }
 }
 
-void perfmon_stddev_t::record(float value) { thread_data[get_thread_id()].add(value); }
+void perfmon_stddev_t::record(float value) {
+    rassert(get_thread_id() >= 0);
+    thread_data[get_thread_id()].add(value);
+}
 
 /* perfmon_rate_monitor_t */
 
@@ -273,6 +281,7 @@ perfmon_rate_monitor_t::perfmon_rate_monitor_t(std::string name, ticks_t length,
 
 void perfmon_rate_monitor_t::update(ticks_t now) {
     int interval = now / length;
+    rassert(get_thread_id() >= 0);
     thread_info_t &thread = thread_data[get_thread_id()];
 
     if (thread.current_interval == interval) {
@@ -292,6 +301,7 @@ void perfmon_rate_monitor_t::update(ticks_t now) {
 void perfmon_rate_monitor_t::record(double count) {
     ticks_t now = get_ticks();
     update(now);
+    rassert(get_thread_id() >= 0);
     thread_info_t &thread = thread_data[get_thread_id()];
     thread.current_count += count;
 }
@@ -301,6 +311,7 @@ void perfmon_rate_monitor_t::get_thread_stat(double *stat) {
     /* Return last_count instead of current_stats so that we can give a complete interval's
     worth of stats. We might be halfway through an interval, in which case current_count will
     only have half an interval worth. */
+    rassert(get_thread_id() >= 0);
     *stat = thread_data[get_thread_id()].last_count;
 }
 
@@ -319,10 +330,12 @@ void perfmon_rate_monitor_t::output_stat(const double &stat, perfmon_stats_t *de
 perfmon_function_t::internal_function_t::internal_function_t(perfmon_function_t *p)
     : parent(p)
 {
+    rassert(get_thread_id() >= 0);
     parent->funs[get_thread_id()].push_back(this);
 }
 
 perfmon_function_t::internal_function_t::~internal_function_t() {
+    rassert(get_thread_id() >= 0);
     parent->funs[get_thread_id()].remove(this);
 }
 
@@ -331,6 +344,7 @@ void *perfmon_function_t::begin_stats() {
 }
 
 void perfmon_function_t::visit_stats(void *data) {
+    rassert(get_thread_id() >= 0);
     std::string *string = reinterpret_cast<std::string*>(data);
     for (internal_function_t *f = funs[get_thread_id()].head(); f; f = funs[get_thread_id()].next(f)) {
         if (string->size() > 0) (*string) += ", ";

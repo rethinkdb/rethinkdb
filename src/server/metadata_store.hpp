@@ -3,7 +3,7 @@
 
 #include "server/key_value_store.hpp"
 #include "stats/persist.hpp"
-#include "key_value_store.hpp"
+#include "server/key_value_store.hpp"
 
 class btree_metadata_store_t : public metadata_store_t {
 public:

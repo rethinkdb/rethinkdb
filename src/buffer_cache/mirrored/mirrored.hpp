@@ -10,7 +10,7 @@
 #include "concurrency/cond_var.hpp"
 #include "containers/two_level_array.hpp"
 #include "serializer/serializer.hpp"
-#include "server/cmd_args.hpp"
+#include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/stats.hpp"
 #include "buffer_cache/abstract_buf.hpp"
 #include "buffer_cache/buf_patch.hpp"

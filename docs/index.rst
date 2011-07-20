@@ -328,10 +328,11 @@ Memory
 ``````
 
 The amount of available main memory can drastically affect performance
-of a database system because main memory is used to cache data and delays the need to go to disk, which is orders of magnitude slower.
-By default, RethinkDB will use as much memory as necessary (and as the
-system has available) to operate efficiently. However, this number can
-be specified explicitly::
+of a database system because main memory is used to cache data and
+delays the need to go to disk, which is orders of magnitude slower.
+By default, RethinkDB will use up to half of the available system
+memory for its buffer cache. However, this number can be specified
+explicitly::
 
   $ rethinkdb --max-cache-size 8192
 

@@ -10,7 +10,7 @@
 #include "buffer_cache/blob.hpp"
 
 class value_data_provider_t : public auto_copying_data_provider_t {
-    value_data_provider_t(transaction_t *txn, const btree_value_t *value);
+    value_data_provider_t(transaction_t *txn, const memcached_value_t *value);
     buffer_group_t buffers;
     boost::scoped_array<char> buf;
 public:
@@ -20,7 +20,7 @@ public:
     /* When create() returns, it is safe for the caller to invalidate "value" and it is
     safe for the caller to release the leaf node that "value" came from. */
     // TODO: Make this return a `boost::shared_ptr`.
-    static value_data_provider_t *create(const btree_value_t *value, transaction_t *transaction);
+    static value_data_provider_t *create(const memcached_value_t *value, transaction_t *transaction);
 };
 
 
