@@ -12,12 +12,14 @@
 #include "btree/slice.hpp"
 #include "store.hpp"
 
+
+template <class Value>
 struct key_value_pair_t {
     std::string key;
     boost::shared_array<char> value;
 
-    key_value_pair_t(value_sizer_t *sizer, const std::string& _key, const value_type_t *_value) : key(_key) {
-        int size = sizer->size(_value);
+    key_value_pair_t(value_sizer_t<Value> *sizer, const std::string& _key, const Value *_value) : key(_key) {
+        int size = sizer->size(reinterpret_cast<const Value *>(_value));
         value.reset(new char[size]);
         memcpy(value.get(), _value, size);
     }
@@ -28,20 +30,21 @@ struct key_value_pair_t {
  *
  * TODO: should the buf_lock be released by the caller instead?
  */
-struct leaf_iterator_t : public one_way_iterator_t<key_value_pair_t> {
-    leaf_iterator_t(const leaf_node_t *leaf, int index, buf_lock_t *lock, const boost::shared_ptr<value_sizer_t>& sizer, const boost::shared_ptr<transaction_t>& transaction);
+template <class Value>
+struct leaf_iterator_t : public one_way_iterator_t<key_value_pair_t<Value> > {
+    leaf_iterator_t(const leaf_node_t *leaf, int index, buf_lock_t *lock, const boost::shared_ptr<value_sizer_t<Value> >& sizer, const boost::shared_ptr<transaction_t>& transaction);
 
-    boost::optional<key_value_pair_t> next();
+    boost::optional<key_value_pair_t<Value> > next();
     void prefetch();
     virtual ~leaf_iterator_t();
 private:
     void done();
-    key_with_data_provider_t pair_to_key_with_data_provider(const btree_leaf_pair* pair);
+    key_with_data_provider_t pair_to_key_with_data_provider(const btree_leaf_pair<Value>* pair);
 
     const leaf_node_t *leaf;
     int index;
     buf_lock_t *lock;
-    boost::shared_ptr<value_sizer_t> sizer;
+    boost::shared_ptr<value_sizer_t<Value> > sizer;
     boost::shared_ptr<transaction_t> transaction;
 };
 
@@ -54,7 +57,8 @@ private:
  * nodes and unlocking them as iteration progresses. Currently this locking is
  * done in DFS manner, as described in the btree/rget.cc file comment.
  */
-class slice_leaves_iterator_t : public one_way_iterator_t<leaf_iterator_t*> {
+template <class Value>
+class slice_leaves_iterator_t : public one_way_iterator_t<leaf_iterator_t<Value>*> {
     struct internal_node_state {
         internal_node_state(const internal_node_t *node, int index, buf_lock_t *lock)
             : node(node), index(index), lock(lock) { }
@@ -64,20 +68,20 @@ class slice_leaves_iterator_t : public one_way_iterator_t<leaf_iterator_t*> {
         buf_lock_t *lock;
     };
 public:
-    slice_leaves_iterator_t(const boost::shared_ptr<value_sizer_t>& sizer, const boost::shared_ptr<transaction_t>& transaction, btree_slice_t *slice, rget_bound_mode_t left_mode, const btree_key_t *left_key, rget_bound_mode_t right_mode, const btree_key_t *right_key);
+    slice_leaves_iterator_t(const boost::shared_ptr<value_sizer_t<Value> >& sizer, const boost::shared_ptr<transaction_t>& transaction, btree_slice_t *slice, rget_bound_mode_t left_mode, const btree_key_t *left_key, rget_bound_mode_t right_mode, const btree_key_t *right_key);
 
-    boost::optional<leaf_iterator_t*> next();
+    boost::optional<leaf_iterator_t<Value>*> next();
     void prefetch();
     virtual ~slice_leaves_iterator_t();
 private:
     void done();
 
-    boost::optional<leaf_iterator_t*> get_first_leaf();
-    boost::optional<leaf_iterator_t*> get_next_leaf();
-    boost::optional<leaf_iterator_t*> get_leftmost_leaf(block_id_t node_id);
+    boost::optional<leaf_iterator_t<Value>*> get_first_leaf();
+    boost::optional<leaf_iterator_t<Value>*> get_next_leaf();
+    boost::optional<leaf_iterator_t<Value>*> get_leftmost_leaf(block_id_t node_id);
     block_id_t get_child_id(const internal_node_t *i_node, int index) const;
 
-    boost::shared_ptr<value_sizer_t> sizer;
+    boost::shared_ptr<value_sizer_t<Value> > sizer;
     boost::shared_ptr<transaction_t> transaction;
     btree_slice_t *slice;
     rget_bound_mode_t left_mode;
@@ -96,23 +100,24 @@ private:
  * Use merge_ordered_data_iterator_t class to funnel multiple slice_keys_iterator_t instances,
  * e.g. to get a range query for all the slices.
  */
-class slice_keys_iterator_t : public one_way_iterator_t<key_value_pair_t> {
+template <class Value>
+class slice_keys_iterator_t : public one_way_iterator_t<key_value_pair_t<Value> > {
 public:
     /* Cannot assume that 'start' and 'end' will remain valid after the constructor returns! */
-    slice_keys_iterator_t(const boost::shared_ptr<value_sizer_t>& sizer, const boost::shared_ptr<transaction_t>& transaction, btree_slice_t *slice, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key);
+    slice_keys_iterator_t(const boost::shared_ptr<value_sizer_t<Value> >& sizer, const boost::shared_ptr<transaction_t>& transaction, btree_slice_t *slice, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key);
     virtual ~slice_keys_iterator_t();
 
-    boost::optional<key_value_pair_t> next();
+    boost::optional<key_value_pair_t<Value> > next();
     void prefetch();
 private:
-    boost::optional<key_value_pair_t> get_first_value();
-    boost::optional<key_value_pair_t> get_next_value();
+    boost::optional<key_value_pair_t<Value> > get_first_value();
+    boost::optional<key_value_pair_t<Value> > get_next_value();
 
-    boost::optional<key_value_pair_t> validate_return_value(key_value_pair_t &pair) const;
+    boost::optional<key_value_pair_t<Value> > validate_return_value(key_value_pair_t<Value> &pair) const;
 
     void done();
 
-    boost::shared_ptr<value_sizer_t> sizer;
+    boost::shared_ptr<value_sizer_t<Value> > sizer;
     boost::shared_ptr<transaction_t> transaction;
     btree_slice_t *slice;
     rget_bound_mode_t left_mode;
@@ -123,9 +128,11 @@ private:
     std::string right_str;
 
     bool no_more_data;
-    leaf_iterator_t *active_leaf;
-    slice_leaves_iterator_t *leaves_iterator;
+    leaf_iterator_t<Value> *active_leaf;
+    slice_leaves_iterator_t<Value> *leaves_iterator;
 };
+
+#include "btree/iteration.tcc"
 
 
 #endif // __BTREE_ITERATION_HPP__

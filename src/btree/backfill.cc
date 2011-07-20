@@ -19,7 +19,7 @@ class btree_slice_t;
 
 class agnostic_backfill_callback_t : public replication::deletion_key_stream_receiver_t {
 public:
-    virtual void on_pair(transaction_t *txn, repli_timestamp_t recency, const btree_key_t *key, const value_type_t *value) = 0;
+    virtual void on_pair(transaction_t *txn, repli_timestamp_t recency, const btree_key_t *key, const opaque_value_t *value) = 0;
     virtual void done_backfill() = 0;
     virtual ~agnostic_backfill_callback_t() { }
 };
@@ -47,11 +47,11 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         for (int i = 0; i < npairs; ++i) {
             uint16_t offset = data->pair_offsets[i];
             memcached_value_sizer_t sizer(txn->get_cache()->get_block_size());
-            repli_timestamp_t recency = leaf::get_timestamp_value(&sizer, data, offset);
-            const btree_leaf_pair *pair = leaf::get_pair(data, offset);
+            repli_timestamp_t recency = leaf::get_timestamp_value<memcached_value_t>(&sizer, data, offset);
+            const btree_leaf_pair<memcached_value_t> *pair = leaf::get_pair<memcached_value_t>(data, offset);
 
             if (recency.time >= since_when_.time) {
-                callback_->on_pair(txn, recency, &pair->key, pair->value());
+                callback_->on_pair(txn, recency, &pair->key, reinterpret_cast<const opaque_value_t *>(pair->value()));
             }
         }
     }
@@ -154,8 +154,8 @@ class agnostic_memcached_backfill_callback_t : public agnostic_backfill_callback
 public:
     agnostic_memcached_backfill_callback_t(backfill_callback_t *cb) : cb_(cb) { }
 
-    void on_pair(transaction_t *txn, repli_timestamp_t recency, const btree_key_t *key, const value_type_t *val) {
-        const btree_value_t *value = reinterpret_cast<const btree_value_t *>(val);
+    void on_pair(transaction_t *txn, repli_timestamp_t recency, const btree_key_t *key, const opaque_value_t *val) {
+        const memcached_value_t *value = reinterpret_cast<const memcached_value_t *>(val);
         boost::shared_ptr<value_data_provider_t> data_provider(value_data_provider_t::create(value, txn));
         backfill_atom_t atom;
         atom.key.assign(key->size, key->contents);

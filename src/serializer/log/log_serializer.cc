@@ -9,7 +9,9 @@
 
 const block_magic_t log_serializer_t::zerobuf_magic = { { 'z', 'e', 'r', 'o' } };
 
-void log_serializer_t::create(dynamic_config_t *dynamic_config, private_dynamic_config_t *private_dynamic_config, static_config_t *static_config) {
+void log_serializer_t::create(dynamic_config_t *dynamic_config, private_dynamic_config_t *private_dynamic_config, public_static_config_t *public_static_config) {
+
+    static_config_t *static_config = static_cast<static_config_t*>(public_static_config);
 
     direct_file_t df(private_dynamic_config->db_filename.c_str(), file_t::mode_read | file_t::mode_write | file_t::mode_create, dynamic_config->io_backend, dynamic_config->io_batch_factor);
 

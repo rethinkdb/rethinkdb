@@ -10,6 +10,7 @@
 #include "concurrency/mutex.hpp"
 #include "replication/net_structs.hpp"
 #include "replication/protocol.hpp"
+#include "server/cmd_args.hpp"
 
 class btree_key_value_store_t;
 

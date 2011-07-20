@@ -14,6 +14,8 @@
 #include "concurrency/promise.hpp"
 #include "arch/os_signal.hpp"
 #include "protocol/protocol.hpp"
+#include "server/key_value_store.hpp"
+#include "server/metadata_store.hpp"
 
 int run_server(int argc, char *argv[]) {
 
@@ -175,6 +177,12 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             logINF("Creating database...\n");
             btree_key_value_store_t::create(&cmd_config->store_dynamic_config,
                                             &cmd_config->store_static_config);
+            // TODO: Shouldn't do this... Setting up the metadata static config doesn't belong here
+            // and it's very hacky to build on the store_static_config.
+            btree_key_value_store_static_config_t metadata_static_config = cmd_config->store_static_config;
+            metadata_static_config.cache.n_patch_log_blocks = 0;
+            btree_metadata_store_t::create(&cmd_config->metadata_store_dynamic_config,
+                                            &metadata_static_config);
             logINF("Done creating.\n");
         }
 
@@ -182,7 +190,8 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
             /* Start key-value store */
             logINF("Loading database...\n");
-            btree_key_value_store_t store(&cmd_config->store_dynamic_config);
+            btree_metadata_store_t metadata_store(cmd_config->metadata_store_dynamic_config);
+            btree_key_value_store_t store(cmd_config->store_dynamic_config);
 
 #ifdef TIMEBOMB_DAYS
             /* This continuously checks to see if RethinkDB has expired */

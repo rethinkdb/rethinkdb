@@ -81,7 +81,7 @@ if __name__ == "__main__":
         print "Extracting values..."
         dump_path = test_dir.p("db_data_dump.txt")
         run_executable(
-            [get_executable_path(opts, "rethinkdb"), "extract", "-o", dump_path] + insertion_server.data_files.rethinkdb_flags(),
+            [get_executable_path(opts, "rethinkdb"), "extract", "-o", dump_path] + insertion_server.data_files.rethinkdb_extract_flags(),
             "extractor_output.txt",
             valgrind_tool = opts["valgrind-tool"] if opts["valgrind"] else None,
             test_dir = test_dir,
