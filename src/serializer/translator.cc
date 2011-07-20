@@ -244,21 +244,6 @@ block_sequence_id_t translator_serializer_t::get_block_sequence_id(block_id_t bl
     return inner->get_block_sequence_id(translate_block_id(block_id), buf);
 }
 
-struct write_fsm_t : public serializer_t::write_txn_callback_t, public serializer_t::write_tid_callback_t {
-    std::vector<serializer_t::write_t> writes;
-    serializer_t::write_txn_callback_t *cb;
-    serializer_t::write_tid_callback_t *tid_cb;
-    void on_serializer_write_txn() {
-        cb->on_serializer_write_txn();
-        delete this;
-    }
-    void on_serializer_write_tid() {
-        if (tid_cb) {
-            tid_cb->on_serializer_write_tid();
-        }
-    }
-};
-
 block_size_t translator_serializer_t::get_block_size() {
     return inner->get_block_size();
 }
