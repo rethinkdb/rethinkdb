@@ -17,7 +17,6 @@
 #include "arch/os_signal.hpp"
 #include "server/key_value_store.hpp"
 #include "server/metadata_store.hpp"
-#include "cmd_args.hpp"
 
 int run_server(int argc, char *argv[]) {
 

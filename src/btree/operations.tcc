@@ -1,6 +1,3 @@
-#include "btree/operations.hpp"
-
-#include "btree/modify_oper.hpp"
 #include "btree/internal_node.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/slice.hpp"

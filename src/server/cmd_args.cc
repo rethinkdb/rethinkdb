@@ -11,7 +11,7 @@
 #include "help.hpp"
 #include "arch/arch.hpp"
 #include "perfmon.hpp"
-#include "key_value_store_config.hpp"   // For `global_full_perfmon`
+#include "server/key_value_store_config.hpp"   // For `global_full_perfmon`
 
 /* Note that this file only parses arguments for the 'serve' and 'create' subcommands. */
 
