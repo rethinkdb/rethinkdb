@@ -62,6 +62,7 @@ template <class Value>
 class value_txn_t {
 public:
     value_txn_t(btree_key_t *, value_sizer_t<Value> *, keyvalue_location_t<Value> *, repli_timestamp_t);
+    value_txn_t(const value_txn_t &);
     ~value_txn_t();
     scoped_malloc<Value> value;
 private:
@@ -72,7 +73,7 @@ private:
 };
 
 template <class Value>
-value_txn_t<Value> get_value_write(btree_slice_t *, btree_key_t *, repli_timestamp_t, order_token_t);
+value_txn_t<Value> get_value_write(btree_slice_t *, value_sizer_t<Value> *, btree_key_t *, repli_timestamp_t, order_token_t);
 
 template <class Value>
 void get_value_read(btree_slice_t *, btree_key_t *, order_token_t, keyvalue_location_t<Value> *);

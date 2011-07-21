@@ -187,7 +187,7 @@ void find_keyvalue_location_for_write(value_sizer_t<Value> *sizer, got_superbloc
     // Walk down the tree to the leaf.
     while (node::is_internal(reinterpret_cast<const node_t *>(buf->get_data_read()))) {
         // Check if the node is overfull and proactively split it if it is (since this is an internal node).
-        check_and_handle_split(sizer, keyvalue_location_out->txn.get(), buf, last_buf, keyvalue_location_out->sb_buf, key, reinterpret_cast<memcached_value_t *>(NULL), keyvalue_location_out->txn->get_cache()->get_block_size());
+        check_and_handle_split<Value>(sizer, keyvalue_location_out->txn.get(), buf, last_buf, keyvalue_location_out->sb_buf, key, reinterpret_cast<Value *>(NULL), keyvalue_location_out->txn->get_cache()->get_block_size());
         // Check if the node is underfull, and merge/level if it is.
         check_and_handle_underfull(keyvalue_location_out->txn.get(), buf, last_buf, keyvalue_location_out->sb_buf, key, keyvalue_location_out->txn->get_cache()->get_block_size());
 
@@ -297,7 +297,7 @@ void apply_keyvalue_change(value_sizer_t<Value> *sizer, keyvalue_location_t<Valu
         // for the value.  Not necessary when deleting, because the
         // node won't grow.
 
-        check_and_handle_split(sizer, kv_loc->txn.get(), kv_loc->buf, kv_loc->last_buf, kv_loc->sb_buf, key, kv_loc->value.get(), kv_loc->txn->get_cache()->get_block_size());
+        check_and_handle_split<Value>(sizer, kv_loc->txn.get(), kv_loc->buf, kv_loc->last_buf, kv_loc->sb_buf, key, kv_loc->value.get(), kv_loc->txn->get_cache()->get_block_size());
 
         bool success = leaf::insert(sizer, kv_loc->buf.buf(), key, kv_loc->value.get(), tstamp);
         guarantee(success, "could not insert into leaf btree node");
@@ -314,8 +314,8 @@ void apply_keyvalue_change(value_sizer_t<Value> *sizer, keyvalue_location_t<Valu
 }
 
 template <class Value>
-value_txn_t<Value>::value_txn_t(btree_key_t *key, value_sizer_t<Value> *sizer, keyvalue_location_t<Value> *value, repli_timestamp_t tstamp) 
-    : key(key), sizer(sizer), value(value), tstamp(tstamp)
+value_txn_t<Value>::value_txn_t(btree_key_t *key, value_sizer_t<Value> *sizer, keyvalue_location_t<Value> *location, repli_timestamp_t tstamp) 
+    : key(key), sizer(sizer), kv_location(location), tstamp(tstamp)
 { }
 
 template <class Value>
@@ -324,17 +324,17 @@ value_txn_t<Value>::~value_txn_t() {
     apply_keyvalue_change(sizer, kv_location, key, tstamp);
 }
 
-template <class Value>
-value_txn_t<Value> get_key_value_write(btree_slice_t *slice, btree_key_t *key, repli_timestamp_t tstamp, order_token_t token) {
-    value_sizer_t<Value> sizer(slice->cache()->get_block_size());
+template <class Value, class Sizer>
+value_txn_t<Value> get_value_write(btree_slice_t *slice, btree_key_t *key, repli_timestamp_t tstamp, order_token_t token) {
+    Sizer sizer(slice->cache()->get_block_size());
     got_superblock_t got_superblock;
 
     get_btree_superblock(slice, rwi_write, 1, tstamp, token, &got_superblock);
 
     keyvalue_location_t<Value> kv_location;
-    find_keyvalue_location_for_write(sizer, &got_superblock, key, tstamp, &kv_location);
+    find_keyvalue_location_for_write<Value>(&sizer, &got_superblock, key, tstamp, &kv_location);
 
-    value_txn_t<Value> value_txn;
+    value_txn_t<Value> value_txn(key, &sizer, &kv_location, tstamp);
     value_txn.value.swap(kv_location.value);
 
     return value_txn;

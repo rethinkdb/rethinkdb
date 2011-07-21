@@ -17,6 +17,7 @@ enum redis_value_type {
 
 //Base class of all redis value types. Contains metadata relevant to all redis value types.
 struct redis_value_t {
+    uint8_t value_begin[0];
     uint8_t flags;
     uint32_t metadata_values[0];
 
@@ -67,6 +68,10 @@ struct redis_string_value_t : redis_value_t {
     size_t inline_size() const {
         return sizeof(redis_string_value_t) + get_string_size();
     }
+
+    char *get_content() {
+       return reinterpret_cast<char *>(value_begin + get_metadata_size());
+    }
 };
 
 class redis_value_sizer_t : public value_sizer_t<redis_value_t> {
@@ -107,13 +112,32 @@ public:
     }
 };
 
-redis_value_sizer_t *sizer;
+class redis_string_value_sizer_t : public value_sizer_t<redis_string_value_t> {
+public:
+    redis_string_value_sizer_t(block_size_t bs) : value_sizer_t<redis_string_value_t>(bs) {}
+
+    int size(const redis_string_value_t *value) const {
+        return value->inline_size();
+    }
+
+    virtual bool fits(const redis_string_value_t *value, int length_available) const {
+        int value_size = size(value);
+        return value_size <= length_available;
+    }
+
+    virtual int max_possible_size() const {
+        return sizeof(redis_string_value_t) + 256;
+    }
+
+    virtual block_magic_t btree_leaf_magic() const {
+        block_magic_t magic = { {'r', 'd', 's', 'l'} };
+        return magic;
+    }
+};
 
 redis_actor_t::redis_actor_t(btree_slice_t *btree) :
     btree(btree)
-{
-    sizer = new redis_value_sizer_t(btree->cache()->get_block_size());
-}
+{ }
 
 redis_actor_t::~redis_actor_t() {}
 
@@ -305,13 +329,14 @@ status_result redis_actor_t::set(string &key, string &val) {
 
     //Construct a btree_key from our key string
     btree_key_buffer_t btree_key(key);
-    value_txn_t<redis_string_value_t> txn = get_value_write<redis_string_value_t>(btree,
+    value_txn_t<redis_string_value_t> txn =
+        get_value_write<redis_string_value_t, redis_string_value_sizer_t>(btree,
         btree_key.key(), tstamp, order_token_t::ignore);
 
     //This is a string operation so we'll assume that the value is a string value
     if(txn.value.get() == NULL) {
         //This key has not already been set, allocate space and specify its type as a string
-        scoped_malloc<redis_string_value_t> smrsv(sizer->max_possible_size());
+        scoped_malloc<redis_string_value_t> smrsv(MAX_BTREE_VALUE_SIZE);
         txn.value.swap(smrsv);
     } else {
         //This key has already been set, before we reset it, check if it is a string
@@ -319,11 +344,19 @@ status_result redis_actor_t::set(string &key, string &val) {
         if(!value->get_redis_type() != REDIS_STRING) {
             return redis_error("Operation against key holding wrong kind of value");
         }
+        blob_t blob(value->get_content(), blob::btree_maxreflen);
+        blob.unappend_region(txn, b.valuesize());
     }
 
     redis_string_value_t *value = txn.value.get();
     value->set_redis_type(REDIS_STRING);
-    //memcpy(value->string, &val.at(0), value->string_size);
+    blob_t blob(value->get_content(), blob::btree_maxreflen);
+    blob.append_region(txn, val.size());
+    buffer_group_t bg;
+    boost::scoped_ptr<blob_acq_t> acq(new blob_acq_t);
+    b.expose_region(txn, rwi_write, 0, val.size(), &bg, acq.get());
+
+    //TODO And them somehow get the data into the exposed region, sheesh
 
     boost::shared_ptr<status_result_struct> result(new status_result_struct);
     result->status = OK;
