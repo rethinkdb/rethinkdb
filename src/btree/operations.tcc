@@ -1,5 +1,6 @@
 #include "btree/internal_node.hpp"
 #include "btree/leaf_node.hpp"
+#include "btree/node_functions.hpp"
 #include "btree/slice.hpp"
 
 
@@ -72,7 +73,7 @@ void check_and_handle_split(value_sizer_t<Value> *sizer, transaction_t *txn, buf
     btree_key_buffer_t median_buffer;
     btree_key_t *median = median_buffer.key();
 
-    node::split(block_size, buf.buf(), rbuf.buf(), median);
+    node::split(sizer, buf.buf(), rbuf.buf(), median);
 
     // Insert the key that sets the two nodes apart into the parent.
     if (!last_buf.is_acquired()) {
