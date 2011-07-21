@@ -152,7 +152,7 @@ void check_and_handle_underfull(value_sizer_t<Value> *sizer, transaction_t *txn,
             btree_key_t *key_to_replace = key_to_replace_buffer.key();
             btree_key_t *replacement_key = replacement_key_buffer.key();
 
-            bool leveled = node::level(sizer->block_size(), buf.buf(), sib_buf.buf(), key_to_replace, replacement_key, parent_node);
+            bool leveled = node::level(sizer, buf.buf(), sib_buf.buf(), key_to_replace, replacement_key, parent_node);
 
             if (leveled) {
                 internal_node::update_key(last_buf.buf(), key_to_replace, replacement_key);
@@ -317,7 +317,7 @@ void apply_keyvalue_change(value_sizer_t<Value> *sizer, keyvalue_location_t<Valu
 }
 
 template <class Value>
-value_txn_t<Value>::value_txn_t(btree_key_t *key, value_sizer_t<Value> *sizer, keyvalue_location_t<Value> *value, repli_timestamp_t tstamp) 
+value_txn_t<Value>::value_txn_t(btree_key_t *key, value_sizer_t<Value> *sizer, keyvalue_location_t<Value> *value, repli_timestamp_t tstamp)
     : key(key), sizer(sizer), value(value), tstamp(tstamp)
 { }
 

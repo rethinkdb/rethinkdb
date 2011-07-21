@@ -26,6 +26,15 @@ void merge(value_sizer_t<Value> *sizer, const node_t *node, buf_t *rnode_buf, bt
     }
 }
 
+template <class Value>
+bool level(value_sizer_t<Value> *sizer, buf_t *node_buf, buf_t *rnode_buf, btree_key_t *key_to_replace, btree_key_t *replacement_key, const internal_node_t *parent) {
+    if (is_leaf(reinterpret_cast<const node_t *>(node_buf->get_data_read()))) {
+        return leaf::level(sizer, node_buf, rnode_buf, key_to_replace, replacement_key);
+    } else {
+        return internal_node::level(sizer->block_size(), node_buf, rnode_buf, key_to_replace, replacement_key, parent);
+    }
+}
+
 
 }  // namespace node
 
