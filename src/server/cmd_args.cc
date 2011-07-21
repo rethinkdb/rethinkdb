@@ -551,7 +551,7 @@ void parsing_cmd_config_t::set_metadata_file(const char *value) {
     metadata_store_dynamic_config.serializer_private.resize(std::max(static_cast<size_t>(1), metadata_store_dynamic_config.serializer_private.size()));
     metadata_store_dynamic_config.serializer_private[0].db_filename = std::string(value);
 #ifdef SEMANTIC_SERIALIZER_CHECK
-    metadata_store_dynamic_config.serializer_private.semantic_filename = std::string(value) + DEFAULT_SEMANTIC_EXTENSION;
+    metadata_store_dynamic_config.serializer_private[0].semantic_filename = std::string(value) + DEFAULT_SEMANTIC_EXTENSION;
 #endif
 }
 
