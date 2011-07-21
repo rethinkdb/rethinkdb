@@ -1,5 +1,6 @@
 #include "protocol/redis/redis.hpp"
 #include "btree/slice.hpp"
+#include "import/import.hpp"
 #include <iostream>
 #include <string>
 #include <vector>

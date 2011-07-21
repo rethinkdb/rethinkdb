@@ -335,7 +335,9 @@ value_txn_t<Value> get_key_value_write(btree_slice_t *slice, btree_key_t *key, r
     find_keyvalue_location_for_write(sizer, &got_superblock, key, tstamp, &kv_location);
 
     value_txn_t<Value> value_txn;
-    value_txn.value.reinterpret_swap(kv_location.value);
+    value_txn.value.swap(kv_location.value);
+
+    return value_txn;
 }
 
 template <class Value>
