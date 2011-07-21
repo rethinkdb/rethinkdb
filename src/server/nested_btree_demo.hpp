@@ -375,6 +375,33 @@ void nested_demo_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                     }
                 }
             }
+            {
+                on_thread_t thread(shard->home_thread());
+
+                boost::shared_ptr<transaction_t> transaction(new transaction_t(&shard->cache, rwi_read));
+                boost::scoped_ptr<superblock_t> nested_btree_1_sb(new virtual_superblock_t());
+                nested_btree_1_sb->set_root_block_id(nested_btree_1_root);
+                boost::scoped_ptr<superblock_t> nested_btree_2_sb(new virtual_superblock_t());
+                nested_btree_2_sb->set_root_block_id(nested_btree_2_root);
+
+                boost::shared_ptr<value_sizer_t<demo_value_t> > sizer_ptr(new value_sizer_t<demo_value_t>(shard->cache.get_block_size()));
+                store_key_t none_key;
+                none_key.size = 0;
+                slice_keys_iterator_t<demo_value_t> *tree1_iter = new slice_keys_iterator_t<demo_value_t>(sizer_ptr, transaction, nested_btree_1_sb, shard->home_thread(), rget_bound_none, none_key, rget_bound_none, none_key);
+                slice_keys_iterator_t<demo_value_t> *tree2_iter = new slice_keys_iterator_t<demo_value_t>(sizer_ptr, transaction, nested_btree_2_sb, shard->home_thread(), rget_bound_none, none_key, rget_bound_none, none_key);
+                // This works because both input iterators provide a sorted key/value stream.
+                diff_filter_iterator_t<key_value_pair_t<demo_value_t> > diff_iter(tree1_iter, tree2_iter);
+
+                fprintf(stderr, "\nDifference of nested_btree_1 and nested_btree_2\n");
+                while (true) {
+                    boost::optional<key_value_pair_t<demo_value_t> > next = diff_iter.next();
+                    if (next) {
+                        fprintf(stderr, "\t%s\n", next->key.c_str());
+                    } else {
+                        break;
+                    }
+                }
+            }
 
             /* TODO!
              * Build a proper testing framework, that hooks the trees into values

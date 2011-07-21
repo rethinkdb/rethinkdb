@@ -267,7 +267,7 @@ private:
 template <class T>
 class diff_filter_iterator_t : public one_way_iterator_t<T> {
 public:
-    diff_filter_iterator_t(one_way_iterator_t<T> *_ownee_left, one_way_iterator_t<T> *_ownee_right) : prefetched_right(boost::none), ownee_left(_ownee_left), ownee_right(_ownee_right) { }
+    diff_filter_iterator_t(one_way_iterator_t<T> *_ownee_left, one_way_iterator_t<T> *_ownee_right) : ownee_left(_ownee_left), ownee_right(_ownee_right), prefetched_right(boost::none) { }
     ~diff_filter_iterator_t() {
         delete ownee_left;
         delete ownee_right;
