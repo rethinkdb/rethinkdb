@@ -154,12 +154,18 @@ void mock_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num
 
 mock_transaction_t::mock_transaction_t(mock_cache_t *_cache, access_t _access, UNUSED int expected_change_count, repli_timestamp_t _recency_timestamp)
     : cache(_cache), order_token(order_token_t::ignore), access(_access), recency_timestamp(_recency_timestamp) {
+    coro_fifo_acq_t fifo_acq;
+    fifo_acq.enter(&cache->transaction_constructor_coro_fifo_);
+
     cache->transaction_counter.acquire();
     if (access == rwi_write) nap(5);   // TODO: Nap for a random amount of time.
 }
 
 mock_transaction_t::mock_transaction_t(mock_cache_t *_cache, access_t _access)
     : cache(_cache), order_token(order_token_t::ignore), access(_access) {
+    coro_fifo_acq_t fifo_acq;
+    fifo_acq.enter(&cache->transaction_constructor_coro_fifo_);
+
     cache->transaction_counter.acquire();
 }
 
