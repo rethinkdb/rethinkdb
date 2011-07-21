@@ -432,15 +432,15 @@ bool get_blob_children_segments(const btree_key_t *key, nondirect_file_t& file, 
 }
 
 bool get_blob_segments(const btree_key_t *key, nondirect_file_t& file, const char *ref, const cfg_t& cfg, int mod_id, const std::map<size_t, off64_t>& offsets, blocks_t *segblocks_out) {
-    int64_t offset = blob::ref_value_offset(ref, 251);
-    int64_t size = blob::value_size(ref, 251);
+    int64_t offset = blob::ref_value_offset(ref, blob::btree_maxreflen);
+    int64_t size = blob::value_size(ref, blob::btree_maxreflen);
     // We already checked that offset >= 0, size >= 0.
 
     // Ensure no overflow for ceil_aligned division.
     if (offset >= 0 && std::numeric_limits<int64_t>::max() / 4 - offset > size) {
-        int levels = blob::ref_info(cfg.block_size(), ref, 251).levels;
+        int levels = blob::ref_info(cfg.block_size(), ref, blob::btree_maxreflen).levels;
 
-        return get_blob_children_segments(key, file, cfg, levels, blob::block_ids(ref, 251), offset, size, mod_id, offsets, segblocks_out);
+        return get_blob_children_segments(key, file, cfg, levels, blob::block_ids(ref, blob::btree_maxreflen), offset, size, mod_id, offsets, segblocks_out);
     } else {
         return false;
     }
@@ -473,33 +473,33 @@ void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg,
 
 
     if (*reinterpret_cast<const uint8_t *>(ref) > 250) {
-       int64_t blob_offset = blob::ref_value_offset(ref, 251);
+        int64_t blob_offset = blob::ref_value_offset(ref, blob::btree_maxreflen);
 
-       if (blob_offset < 0) {
-           logERR("Nonsensical blob offset on key '%.*s'\n", key->size, key->contents);
-           return;
-       }
-       if (blob::value_size(ref, 251) < 0) {
-           logERR("Nonsensical blob size on key '%.*s'\n", key->size, key->contents);
-           return;
-       }
+        if (blob_offset < 0) {
+            logERR("Nonsensical blob offset on key '%.*s'\n", key->size, key->contents);
+            return;
+        }
+        if (blob::value_size(ref, blob::btree_maxreflen) < 0) {
+            logERR("Nonsensical blob size on key '%.*s'\n", key->size, key->contents);
+            return;
+        }
 
-       int mod_id = translator_serializer_t::untranslate_block_id_to_mod_id(this_block, cfg.mod_count, CONFIG_BLOCK_ID);
+        int mod_id = translator_serializer_t::untranslate_block_id_to_mod_id(this_block, cfg.mod_count, CONFIG_BLOCK_ID);
 
-       if (!get_blob_segments(key, file, ref, cfg, mod_id, offsets, &segblocks)) {
-           return;
-       }
+        if (!get_blob_segments(key, file, ref, cfg, mod_id, offsets, &segblocks)) {
+            return;
+        }
 
-       pieces.resize(segblocks.bs.size());
-       int64_t seg_size = blob::stepsize(cfg.block_size(), 1);
+        pieces.resize(segblocks.bs.size());
+        int64_t seg_size = blob::stepsize(cfg.block_size(), 1);
 
-       int64_t bytes_left = blob::value_size(ref, 251);
-       for (int64_t i = 0, n = segblocks.bs.size(); i < n; ++i) {
-           int64_t beg = (i == 0 ? blob_offset % seg_size : 0);
-           pieces[i].buf = blob::leaf_node_data(segblocks.bs[i]->buf);
-           pieces[i].len = (i == n - 1 ? bytes_left : seg_size) - beg;
-           bytes_left -= pieces[i].len;
-       }
+        int64_t bytes_left = blob::value_size(ref, blob::btree_maxreflen);
+        for (int64_t i = 0, n = segblocks.bs.size(); i < n; ++i) {
+            int64_t beg = (i == 0 ? blob_offset % seg_size : 0);
+            pieces[i].buf = blob::leaf_node_data(segblocks.bs[i]->buf);
+            pieces[i].len = (i == n - 1 ? bytes_left : seg_size) - beg;
+            bytes_left -= pieces[i].len;
+        }
 
     } else {
         pieces.resize(1);
