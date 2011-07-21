@@ -106,8 +106,8 @@ private:
             } else if (i == std::char_traits<char>::eof()) {
                 return std::char_traits<char>::not_eof(i);
             } else {
-                char c = static_cast<char>(i);
-                rassert(static_cast<int>(c) == i);
+                unsigned char c = static_cast<unsigned char>(i);
+                rassert(static_cast<int>(c) == i, "cannot safely cast %d to char and back", i);
                 try {
                     unsynced_write = true;
                     conn->write_buffered(&c, 1);

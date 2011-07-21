@@ -366,6 +366,50 @@ TEST(RPCConnectivityTest, BlobJoin) {
     run_in_thread_pool(&run_blob_join_test);
 }
 
+/* `BinaryData` makes sure that any octet can be sent over the wire. */
+
+void run_binary_data_test() {
+
+    struct binary_cluster_t : public connectivity_cluster_t {
+        binary_cluster_t(int port) : connectivity_cluster_t(port), got_spectrum(false) { }
+        bool got_spectrum;
+        static void dump_spectrum(std::ostream &stream) {
+            char spectrum[CHAR_MAX - CHAR_MIN + 1];
+            for (int i = CHAR_MIN; i <= CHAR_MAX; i++) spectrum[i - CHAR_MIN] = i;
+            stream.write(spectrum, CHAR_MAX - CHAR_MIN + 1);
+        }
+        void send_spectrum(peer_id_t peer) {
+            send_message(peer, &dump_spectrum);
+        }
+        void on_message(peer_id_t, std::istream &stream, boost::function<void()> &on_done) {
+            char spectrum[CHAR_MAX - CHAR_MIN + 1];
+            stream.read(spectrum, CHAR_MAX - CHAR_MIN + 1);
+            int eof = stream.peek();
+            on_done();
+            for (int i = CHAR_MIN; i <= CHAR_MAX; i++) {
+                EXPECT_EQ(spectrum[i - CHAR_MIN], i);
+            }
+            EXPECT_EQ(eof, EOF);
+            got_spectrum = true;
+        }
+    };
+
+    int port = 10000 + rand() % 20000;
+    binary_cluster_t cluster1(port), cluster2(port+1);
+    cluster1.join(cluster2.get_everybody()[cluster2.get_me()]);
+
+    let_stuff_happen();
+
+    cluster1.send_spectrum(cluster2.get_me());
+
+    let_stuff_happen();
+
+    EXPECT_TRUE(cluster2.got_spectrum);
+}
+TEST(RPCConnectivityTest, BinaryData) {
+    run_in_thread_pool(&run_binary_data_test);
+}
+
 /* `PeerIDSemantics` makes sure that `peer_id_t::is_nil()` works as expected. */
 
 void run_peer_id_semantics_test() {
