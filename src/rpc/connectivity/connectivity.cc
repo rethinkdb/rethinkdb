@@ -128,11 +128,11 @@ void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(s
     /* We currently write the message to a `stringstream`, then serialize that
     as a string. It's horribly inefficient, of course. */
 
-    std::stringstream buffer(std::ios_base::out);
+    std::stringstream buffer(std::ios_base::out|std::stringstream::binary);
     writer(buffer);
 
     if (dest == me) {
-        std::stringstream buffer2(buffer.str(), std::ios_base::in);
+        std::stringstream buffer2(buffer.str(), std::stringstream::in|std::stringstream::binary);
 
         /* Spawn `on_message()` directly in a new coroutine */
         cond_t pulse_when_done_reading;
@@ -437,7 +437,7 @@ void connectivity_cluster_t::handle(
                 on `pulse_when_done_reading`, refrain. It may look silly now,
                 but later we will want to read directly off the socket for
                 better performance, and then we will need this code. */
-                std::stringstream stream(message, std::ios_base::in);
+                std::stringstream stream(message, std::stringstream::in|std::stringstream::binary);
                 cond_t pulse_when_done_reading;
                 coro_t::spawn_now(boost::bind(
                     &connectivity_cluster_t::on_message,
