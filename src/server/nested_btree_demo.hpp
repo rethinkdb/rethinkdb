@@ -24,6 +24,9 @@
 #include "btree/iteration.hpp"
 #include "containers/iterators.hpp"
 
+#include "server/nested_demo/redis_utils.hpp"
+#include "server/nested_demo/redis_list_values.hpp"
+#include "server/nested_demo/redis_hash_values.hpp"
 // TODO!
 
 struct demo_value_t {
@@ -372,6 +375,15 @@ void nested_demo_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                     }
                 }
             }
+
+            /* TODO!
+             * Build a proper testing framework, that hooks the trees into values
+             * Deletion: Deleting a key requires first deleting all keys in the nested tree
+             * Implement a smart value type that represents Redis lists (lex. sorted int keys, string values, size in super value)
+             * Implement a smart value type that represents Redis hash sets (string keys, string values, size in super value)
+             * Implement a smart value type that represents Redis sets (string keys, empty values, size in super value)
+             * Implement a smart value type that represents Redis sorted sets (tree 1: string keys, score values; tree 2: lex. sorted score + string keys, empty values; tree 3: block_id_t keys, subtree-size values)
+            */
 
             // TODO!
 

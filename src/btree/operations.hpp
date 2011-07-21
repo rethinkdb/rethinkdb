@@ -64,7 +64,7 @@ private:
  */
 class virtual_superblock_t : public superblock_t {
 public:
-    virtual_superblock_t() : root_block_id_(NULL_BLOCK_ID) { }
+    virtual_superblock_t(block_id_t root_block_id = NULL_BLOCK_ID) : root_block_id_(root_block_id) { }
 
     void release() { }
     void swap_buf(buf_lock_t &swapee) {
