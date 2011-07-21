@@ -21,22 +21,25 @@ public:
 
     /* Some operations that you can do on a list (resembling redis commands)... */
 
-    boost::optional<std::string> hget(value_sizer_t<redis_demo_hash_value_t> *super_sizer, boost::scoped_ptr<transaction_t> &transaction, const std::string &field) const;
-    bool hexists(value_sizer_t<redis_demo_hash_value_t> *super_sizer, boost::scoped_ptr<transaction_t> &transaction, const std::string &field) const;
+    boost::optional<std::string> hget(value_sizer_t<redis_demo_hash_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, const std::string &field) const;
+
+    bool hexists(value_sizer_t<redis_demo_hash_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, const std::string &field) const;
+
     int hlen() const;
+
     // In contrast to the redis command, this deletes only a single field. Call multiple times if necessary.
     // returns true if a field has been deleted (i.e. existed in the hash)
-    bool hdel(value_sizer_t<redis_demo_hash_value_t> *super_sizer, boost::scoped_ptr<transaction_t> &transaction, const std::string &field);
-    // Returns true iff the field was new
-    bool hset(value_sizer_t<redis_demo_hash_value_t> *super_sizer, boost::scoped_ptr<transaction_t> &transaction, const std::string &field, const std::string &value);
+    bool hdel(value_sizer_t<redis_demo_hash_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, const std::string &field);
 
-    // So you can construct an iterator over the nested data
-    // TODO! This should go away and instead construct an iterator itself, returning
-    // an abstract iterator type. That will allow us to use similar methods for other
-    // redis types, such as sorted sets which have to work a bit differently. Think about this...
-    boost::shared_ptr<superblock_t> get_nested_superblock() const {
-        return boost::shared_ptr<superblock_t>(new virtual_superblock_t(nested_root));
-    }
+    // Returns true iff the field was new
+    bool hset(value_sizer_t<redis_demo_hash_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, const std::string &field, const std::string &value);
+
+    // Deletes all elements from the subtree. Must be called before deleting the hash value in the super tree!
+    void clear(value_sizer_t<redis_demo_hash_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, int slice_home_thread);
+
+    // Provides an iterator over field->value pairs
+    boost::shared_ptr<one_way_iterator_t<std::pair<std::string, std::string> > > hgetall(value_sizer_t<redis_demo_hash_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, int slice_home_thread) const;
+
 
 private:
     // Constructs a btree_key_t from key and puts it into out_buf
@@ -47,9 +50,16 @@ private:
         memcpy((*out_buf)->contents, key.data(), key.length());
     }
 
+    // Transforms from key_value_pair_t<redis_nested_string_value_t> to key_value_pair_t<std::string> for
+    // cleaner outside-facing iterator interface
+    std::pair<std::string, std::string> transform_value(const key_value_pair_t<redis_nested_string_value_t> &pair) const {
+        const redis_nested_string_value_t *value = reinterpret_cast<redis_nested_string_value_t*>(pair.value.get());
+        return std::pair<std::string, std::string>(pair.key, std::string(value->contents, value->length));
+    }
+
     // These are shortcuts that operate on the nested btree
-    void find_nested_keyvalue_location_for_write(block_size_t block_size, boost::scoped_ptr<transaction_t> &transaction, const std::string &field, repli_timestamp_t ts, keyvalue_location_t<redis_nested_string_value_t> *kv_location, scoped_malloc<btree_key_t> *btree_key);
-    void find_nested_keyvalue_location_for_read(block_size_t block_size, boost::scoped_ptr<transaction_t> &transaction, const std::string &field, keyvalue_location_t<redis_nested_string_value_t> *kv_location) const;
+    void find_nested_keyvalue_location_for_write(block_size_t block_size, boost::shared_ptr<transaction_t> &transaction, const std::string &field, repli_timestamp_t ts, keyvalue_location_t<redis_nested_string_value_t> *kv_location, scoped_malloc<btree_key_t> *btree_key);
+    void find_nested_keyvalue_location_for_read(block_size_t block_size, boost::shared_ptr<transaction_t> &transaction, const std::string &field, keyvalue_location_t<redis_nested_string_value_t> *kv_location) const;
 };
 
 template <>
@@ -57,7 +67,7 @@ class value_sizer_t<redis_demo_hash_value_t> {
 public:
     value_sizer_t<redis_demo_hash_value_t>(block_size_t bs) : block_size_(bs) { }
 
-    int size(const redis_demo_list_value_t *value) const {
+    int size(const redis_demo_hash_value_t *value) const {
         return value->inline_size(block_size_);
     }
 
@@ -72,7 +82,7 @@ public:
     }
 
     block_magic_t btree_leaf_magic() const {
-        block_magic_t magic = { { 'l', 'r', 'l', 'i' } };
+        block_magic_t magic = { { 'l', 'e', 'a', 'f' } }; // TODO!
         return magic;
     }
 
@@ -86,7 +96,7 @@ protected:
 
 
 /* TODO! Implementations...*/
-boost::optional<std::string> redis_demo_hash_value_t::hget(value_sizer_t<redis_demo_hash_value_t> *super_sizer, boost::scoped_ptr<transaction_t> &transaction, const std::string &field) const {
+boost::optional<std::string> redis_demo_hash_value_t::hget(value_sizer_t<redis_demo_hash_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, const std::string &field) const {
     // Find the element
     keyvalue_location_t<redis_nested_string_value_t> kv_location;
     find_nested_keyvalue_location_for_read(super_sizer->block_size(), transaction, field, &kv_location);
@@ -101,7 +111,7 @@ boost::optional<std::string> redis_demo_hash_value_t::hget(value_sizer_t<redis_d
     }    
 }
 
-bool redis_demo_hash_value_t::hexists(value_sizer_t<redis_demo_hash_value_t> *super_sizer, boost::scoped_ptr<transaction_t> &transaction, const std::string &field) const {
+bool redis_demo_hash_value_t::hexists(value_sizer_t<redis_demo_hash_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, const std::string &field) const {
     // Find the element
     keyvalue_location_t<redis_nested_string_value_t> kv_location;
     find_nested_keyvalue_location_for_read(super_sizer->block_size(), transaction, field, &kv_location);
@@ -116,7 +126,7 @@ int redis_demo_hash_value_t::hlen() const {
     return static_cast<int>(size);
 }
 
-bool redis_demo_hash_value_t::hdel(value_sizer_t<redis_demo_hash_value_t> *super_sizer, boost::scoped_ptr<transaction_t> &transaction, const std::string &field) {
+bool redis_demo_hash_value_t::hdel(value_sizer_t<redis_demo_hash_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, const std::string &field) {
     value_sizer_t<redis_nested_string_value_t> sizer(super_sizer->block_size());
 
     // Find the element
@@ -136,7 +146,7 @@ bool redis_demo_hash_value_t::hdel(value_sizer_t<redis_demo_hash_value_t> *super
     return kv_location.there_originally_was_value;
 }
 
-bool redis_demo_hash_value_t::hset(value_sizer_t<redis_demo_hash_value_t> *super_sizer, boost::scoped_ptr<transaction_t> &transaction, const std::string &field, const std::string &value) {
+bool redis_demo_hash_value_t::hset(value_sizer_t<redis_demo_hash_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, const std::string &field, const std::string &value) {
     value_sizer_t<redis_nested_string_value_t> sizer(super_sizer->block_size());
 
     // Construct the value
@@ -144,6 +154,7 @@ bool redis_demo_hash_value_t::hset(value_sizer_t<redis_demo_hash_value_t> *super
     // TODO! Should use blobs, plus this check is bad
     guarantee(value.length() < sizer.max_possible_size() - sizeof(btree_value->contents));
     memcpy(btree_value->contents, value.data(), value.length());
+    btree_value->length = value.length();
 
     // Find the element
     // TODO! Rather use a proper timestamp
@@ -162,7 +173,56 @@ bool redis_demo_hash_value_t::hset(value_sizer_t<redis_demo_hash_value_t> *super
     return !kv_location.there_originally_was_value;
 }
 
-void redis_demo_hash_value_t::find_nested_keyvalue_location_for_write(block_size_t block_size, boost::scoped_ptr<transaction_t> &transaction, const std::string &field, repli_timestamp_t ts, keyvalue_location_t<redis_nested_string_value_t> *kv_location, scoped_malloc<btree_key_t> *btree_key) {
+void redis_demo_hash_value_t::clear(value_sizer_t<redis_demo_hash_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, int slice_home_thread) {
+    boost::shared_ptr<value_sizer_t<redis_nested_string_value_t> > sizer_ptr(new value_sizer_t<redis_nested_string_value_t>(super_sizer->block_size()));
+
+    std::vector<std::string> keys;
+    keys.reserve(size);
+
+    // Make an iterator and collect all keys in the nested tree
+    store_key_t none_key;
+    none_key.size = 0;
+    boost::scoped_ptr<superblock_t> nested_btree_sb(new virtual_superblock_t(nested_root));
+    {
+        slice_keys_iterator_t<redis_nested_string_value_t> tree_iter(sizer_ptr, transaction, nested_btree_sb, slice_home_thread, rget_bound_none, none_key, rget_bound_none, none_key);
+        while (true) {
+            boost::optional<key_value_pair_t<redis_nested_string_value_t> > next = tree_iter.next();
+            if (next) {
+                keys.push_back(next.get().key);
+            } else {
+                break;
+            }
+        }
+    }
+
+    // Delete all keys
+    nested_btree_sb.reset(new virtual_superblock_t(nested_root));
+    scoped_malloc<btree_key_t> btree_key;
+    for (size_t i = 0; i < keys.size(); ++i) {
+        hdel(super_sizer, transaction, keys[i]);
+    }
+
+    // All subtree blocks should have been deleted
+    rassert(nested_root == NULL_BLOCK_ID);
+}
+
+boost::shared_ptr<one_way_iterator_t<std::pair<std::string, std::string> > > redis_demo_hash_value_t::hgetall(value_sizer_t<redis_demo_hash_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, int slice_home_thread) const {
+    boost::shared_ptr<value_sizer_t<redis_nested_string_value_t> > sizer_ptr(new value_sizer_t<redis_nested_string_value_t>(super_sizer->block_size()));
+
+    // We nest a slice_keys iterator inside a transform iterator
+    store_key_t none_key;
+    none_key.size = 0;
+    boost::scoped_ptr<superblock_t> nested_btree_sb(new virtual_superblock_t(nested_root));
+    slice_keys_iterator_t<redis_nested_string_value_t> *tree_iter =
+            new slice_keys_iterator_t<redis_nested_string_value_t>(sizer_ptr, transaction, nested_btree_sb, slice_home_thread, rget_bound_none, none_key, rget_bound_none, none_key);
+    boost::shared_ptr<one_way_iterator_t<std::pair<std::string, std::string> > > transform_iter(
+            new transform_iterator_t<key_value_pair_t<redis_nested_string_value_t>, std::pair<std::string, std::string> >(
+                    boost::bind(&redis_demo_hash_value_t::transform_value, this, _1), tree_iter));
+
+    return transform_iter;
+}
+
+void redis_demo_hash_value_t::find_nested_keyvalue_location_for_write(block_size_t block_size, boost::shared_ptr<transaction_t> &transaction, const std::string &field, repli_timestamp_t ts, keyvalue_location_t<redis_nested_string_value_t> *kv_location, scoped_malloc<btree_key_t> *btree_key) {
     boost::scoped_ptr<superblock_t> nested_btree_sb(new virtual_superblock_t(nested_root));
 
     // Construct a sizer for the sub tree, using the same block size as the super tree
@@ -170,19 +230,16 @@ void redis_demo_hash_value_t::find_nested_keyvalue_location_for_write(block_size
 
     got_superblock_t got_superblock;
     got_superblock.sb.swap(nested_btree_sb);
-    got_superblock.txn.swap(transaction);
+    got_superblock.txn = transaction;
 
     // Construct the key
     construct_key(field, btree_key);
 
     // Find the element
     ::find_keyvalue_location_for_write(&sizer, &got_superblock, btree_key->get(), ts, kv_location);
-
-    // Swap the transaction back in, we don't need it here anymore...
-    transaction.swap(kv_location->txn);
 }
 
-void redis_demo_hash_value_t::find_nested_keyvalue_location_for_read(block_size_t block_size, boost::scoped_ptr<transaction_t> &transaction, const std::string &field, keyvalue_location_t<redis_nested_string_value_t> *kv_location) const {
+void redis_demo_hash_value_t::find_nested_keyvalue_location_for_read(block_size_t block_size, boost::shared_ptr<transaction_t> &transaction, const std::string &field, keyvalue_location_t<redis_nested_string_value_t> *kv_location) const {
     boost::scoped_ptr<superblock_t> nested_btree_sb(new virtual_superblock_t(nested_root));
 
     // Construct a sizer for the sub tree, using the same block size as the super tree
@@ -190,7 +247,7 @@ void redis_demo_hash_value_t::find_nested_keyvalue_location_for_read(block_size_
 
     got_superblock_t got_superblock;
     got_superblock.sb.swap(nested_btree_sb);
-    got_superblock.txn.swap(transaction);
+    got_superblock.txn = transaction;
 
     // Construct the key
     scoped_malloc<btree_key_t> btree_key;
@@ -198,9 +255,6 @@ void redis_demo_hash_value_t::find_nested_keyvalue_location_for_read(block_size_
 
     // Find the element
     ::find_keyvalue_location_for_read(&sizer, &got_superblock, btree_key.get(), kv_location);
-
-    // Swap the transaction back in, we don't need it here anymore...
-    transaction.swap(kv_location->txn);
 }
 
 #endif	/* __SERVER_NESTED_DEMO_REDIS_HASH_VALUES_HPP__ */

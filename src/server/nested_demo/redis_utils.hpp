@@ -39,7 +39,7 @@ public:
     }
 
     block_magic_t btree_leaf_magic() const {
-        block_magic_t magic = { { 'l', 'r', 'n', 's' } };
+        block_magic_t magic = { { 'l', 'e', 'a', 'f' } };  // TODO!
         return magic;
     }
 
@@ -83,7 +83,7 @@ public:
     }
 
     block_magic_t btree_leaf_magic() const {
-        block_magic_t magic = { { 'l', 'r', 'n', 'e' } };
+        block_magic_t magic = { { 'l', 'e', 'a', 'f' } }; // TODO!
         return magic;
     }
 

@@ -18,7 +18,8 @@ struct key_value_pair_t {
     std::string key;
     boost::shared_array<char> value;
 
-    // TODO! Is this just a hack? Or is it ok?
+    // TODO! This is just a hack, because it doesn't compare value.
+    // We should really use a specialized comparator in the iterators that need this.
     bool operator==(const key_value_pair_t &k) const {
         return key == k.key;
     }

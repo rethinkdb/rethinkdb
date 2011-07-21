@@ -179,7 +179,7 @@ inline void get_btree_superblock(btree_slice_t *slice, access_t access, int expe
 template <class Value>
 void find_keyvalue_location_for_write(value_sizer_t<Value> *sizer, got_superblock_t *got_superblock, btree_key_t *key, repli_timestamp_t tstamp, keyvalue_location_t<Value> *keyvalue_location_out) {
     keyvalue_location_out->sb.swap(got_superblock->sb);
-    keyvalue_location_out->txn.swap(got_superblock->txn);
+    keyvalue_location_out->txn = got_superblock->txn;
 
     buf_lock_t last_buf;
     buf_lock_t buf;
@@ -233,14 +233,13 @@ void find_keyvalue_location_for_read(value_sizer_t<Value> *sizer, got_superblock
     block_id_t node_id = got_superblock->sb->get_root_block_id();
     rassert(node_id != SUPERBLOCK_ID);
 
-    boost::scoped_ptr<transaction_t> txn;
-    txn.swap(got_superblock->txn);
+    boost::shared_ptr<transaction_t> txn = got_superblock->txn;
     buf_lock_t buf;
     got_superblock->sb->swap_buf(buf);
 
     if (node_id == NULL_BLOCK_ID) {
         // There is no root, so the tree is empty.
-        keyvalue_location_out->txn.swap(txn);
+        keyvalue_location_out->txn = txn;
         return;
     }
 
@@ -272,13 +271,13 @@ void find_keyvalue_location_for_read(value_sizer_t<Value> *sizer, got_superblock
     int key_index = leaf::impl::find_key(leaf, key);
 
     if (key_index == leaf::impl::key_not_found) {
-        keyvalue_location_out->txn.swap(txn);
+        keyvalue_location_out->txn = txn;
         return;
     }
 
     const Value *value = leaf::get_pair_by_index<Value>(leaf, key_index)->value();
 
-    keyvalue_location_out->txn.swap(txn);
+    keyvalue_location_out->txn = txn;
     keyvalue_location_out->buf.swap(buf);
     keyvalue_location_out->there_originally_was_value = true;
     {

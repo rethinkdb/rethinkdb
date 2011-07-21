@@ -90,7 +90,7 @@ class got_superblock_t {
 public:
     got_superblock_t() { }
 
-    boost::scoped_ptr<transaction_t> txn;
+    boost::shared_ptr<transaction_t> txn;
     boost::scoped_ptr<superblock_t> sb;
 
 private:
@@ -107,7 +107,7 @@ class keyvalue_location_t {
 public:
     keyvalue_location_t() : there_originally_was_value(false) { }
 
-    boost::scoped_ptr<transaction_t> txn;
+    boost::shared_ptr<transaction_t> txn;
     boost::scoped_ptr<superblock_t> sb;
 
     // The parent buf of buf, if buf is not the root node.  This is hacky.

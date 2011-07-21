@@ -27,6 +27,7 @@
 #include "server/nested_demo/redis_utils.hpp"
 #include "server/nested_demo/redis_list_values.hpp"
 #include "server/nested_demo/redis_hash_values.hpp"
+#include "nested_demo/redis_hash_values.hpp"
 // TODO!
 
 struct demo_value_t {
@@ -154,7 +155,7 @@ void nested_demo_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             {
                 on_thread_t thread(shard->home_thread());
 
-                boost::scoped_ptr<transaction_t> transaction(new transaction_t(&shard->cache, rwi_write, 1, repli_timestamp_t::invalid));
+                boost::shared_ptr<transaction_t> transaction(new transaction_t(&shard->cache, rwi_write, 1, repli_timestamp_t::invalid));
                 boost::scoped_ptr<superblock_t> nested_btree_1_sb(new virtual_superblock_t());
                 nested_btree_1_sb->set_root_block_id(nested_btree_1_root);
 
@@ -162,7 +163,7 @@ void nested_demo_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 value_sizer_t<demo_value_t> sizer(shard->cache.get_block_size());
                 got_superblock_t got_superblock;
                 got_superblock.sb.swap(nested_btree_1_sb);
-                got_superblock.txn.swap(transaction);
+                got_superblock.txn = transaction;
 
                 std::string key_str("key_1");
                 std::string value_str("value_1");
@@ -185,7 +186,7 @@ void nested_demo_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             {
                 on_thread_t thread(shard->home_thread());
 
-                boost::scoped_ptr<transaction_t> transaction(new transaction_t(&shard->cache, rwi_write, 1, repli_timestamp_t::invalid));
+                boost::shared_ptr<transaction_t> transaction(new transaction_t(&shard->cache, rwi_write, 1, repli_timestamp_t::invalid));
                 boost::scoped_ptr<superblock_t> nested_btree_1_sb(new virtual_superblock_t());
                 nested_btree_1_sb->set_root_block_id(nested_btree_1_root);
 
@@ -193,7 +194,7 @@ void nested_demo_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 value_sizer_t<demo_value_t> sizer(shard->cache.get_block_size());
                 got_superblock_t got_superblock;
                 got_superblock.sb.swap(nested_btree_1_sb);
-                got_superblock.txn.swap(transaction);
+                got_superblock.txn = transaction;
 
                 std::string key_str("key_3");
                 std::string value_str("value_3");
@@ -216,7 +217,7 @@ void nested_demo_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             {
                 on_thread_t thread(shard->home_thread());
 
-                boost::scoped_ptr<transaction_t> transaction(new transaction_t(&shard->cache, rwi_write, 1, repli_timestamp_t::invalid));
+                boost::shared_ptr<transaction_t> transaction(new transaction_t(&shard->cache, rwi_write, 1, repli_timestamp_t::invalid));
                 boost::scoped_ptr<superblock_t> nested_btree_2_sb(new virtual_superblock_t());
                 nested_btree_2_sb->set_root_block_id(nested_btree_2_root);
 
@@ -224,7 +225,7 @@ void nested_demo_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 value_sizer_t<demo_value_t> sizer(shard->cache.get_block_size());
                 got_superblock_t got_superblock;
                 got_superblock.sb.swap(nested_btree_2_sb);
-                got_superblock.txn.swap(transaction);
+                got_superblock.txn = transaction;
 
                 std::string key_str("key_1");
                 std::string value_str("value_1");
@@ -247,7 +248,7 @@ void nested_demo_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             {
                 on_thread_t thread(shard->home_thread());
 
-                boost::scoped_ptr<transaction_t> transaction(new transaction_t(&shard->cache, rwi_write, 1, repli_timestamp_t::invalid));
+                boost::shared_ptr<transaction_t> transaction(new transaction_t(&shard->cache, rwi_write, 1, repli_timestamp_t::invalid));
                 boost::scoped_ptr<superblock_t> nested_btree_2_sb(new virtual_superblock_t());
                 nested_btree_2_sb->set_root_block_id(nested_btree_2_root);
 
@@ -255,7 +256,7 @@ void nested_demo_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 value_sizer_t<demo_value_t> sizer(shard->cache.get_block_size());
                 got_superblock_t got_superblock;
                 got_superblock.sb.swap(nested_btree_2_sb);
-                got_superblock.txn.swap(transaction);
+                got_superblock.txn = transaction;
 
                 std::string key_str("key_2");
                 std::string value_str("value_2");
@@ -401,6 +402,53 @@ void nested_demo_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                         break;
                     }
                 }
+            }
+
+            // Now some redis value type tests...
+            block_id_t redis_hash_btree_root = NULL_BLOCK_ID;
+            {
+                on_thread_t thread(shard->home_thread());
+
+                boost::shared_ptr<transaction_t> transaction(new transaction_t(&shard->cache, rwi_write, 1, repli_timestamp_t::invalid));
+                boost::scoped_ptr<superblock_t> redis_hash_btree_sb(new virtual_superblock_t());
+                redis_hash_btree_sb->set_root_block_id(redis_hash_btree_root);
+
+                keyvalue_location_t<redis_demo_hash_value_t> kv_location;
+                value_sizer_t<redis_demo_hash_value_t> sizer(shard->cache.get_block_size());
+                got_superblock_t got_superblock;
+                got_superblock.sb.swap(redis_hash_btree_sb);
+                got_superblock.txn = transaction;
+
+                std::string key_str("key_1");
+                logINF("Inserting %s -> hash into redis_hash_btree...\n", key_str.c_str());
+                btree_key_t *key = reinterpret_cast<btree_key_t*>(malloc(offsetof(btree_key_t, contents) + key_str.length()));
+                key->size = key_str.length();
+                memcpy(key->contents, key_str.data(), key_str.length());
+                find_keyvalue_location_for_write(&sizer, &got_superblock, key, repli_timestamp_t::invalid, &kv_location);
+                scoped_malloc<redis_demo_hash_value_t> value(sizeof(redis_demo_hash_value_t));
+                value->nested_root = NULL_BLOCK_ID;
+                value->size = 0;
+                kv_location.value.swap(value);
+                apply_keyvalue_change(&sizer, &kv_location, key, repli_timestamp_t::invalid);
+                free(key);
+
+                // Update the root block id in case it has changed
+                redis_hash_btree_root = kv_location.sb->get_root_block_id();
+                logINF("Done, redis_hash_btree now has root %u\n", redis_hash_btree_root);
+            }
+            
+            // Ok, for now we are not actually using the redis_demo_hash_value_t we just inserted but use
+            // an in-memory one...
+            redis_demo_hash_value_t demo_hash_value;
+            demo_hash_value.nested_root = NULL_BLOCK_ID;
+            demo_hash_value.size = 0;
+            {
+                on_thread_t thread(shard->home_thread());
+
+                boost::shared_ptr<transaction_t> transaction(new transaction_t(&shard->cache, rwi_write, 1, repli_timestamp_t::invalid));
+                value_sizer_t<redis_demo_hash_value_t> sizer(shard->cache.get_block_size());
+
+                demo_hash_value.hset(&sizer, transaction, "field_1", "value_1");
             }
 
             /* TODO!

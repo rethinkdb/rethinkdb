@@ -44,7 +44,7 @@ public:
 
     /* Some operations that you can do on a list (resembling redis commands)... */
     
-    std::string lindex(value_sizer_t<redis_demo_list_value_t> *super_sizer, boost::scoped_ptr<transaction_t> &transaction, int index) const;
+    std::string lindex(value_sizer_t<redis_demo_list_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, int index) const;
 
 private:
     // TODO! Document
@@ -83,7 +83,7 @@ public:
     }
 
     block_magic_t btree_leaf_magic() const {
-        block_magic_t magic = { { 'l', 'r', 'l', 'i' } };
+        block_magic_t magic = { { 'l', 'e', 'a', 'f' } }; // TODO!
         return magic;
     }
 
@@ -97,35 +97,11 @@ protected:
 
 
 /* TODO! Implementations...*/
-std::string redis_demo_list_value_t::lindex(value_sizer_t<redis_demo_list_value_t> *super_sizer, boost::scoped_ptr<transaction_t> &transaction, int index) const {
+std::string redis_demo_list_value_t::lindex(UNUSED value_sizer_t<redis_demo_list_value_t> *super_sizer, UNUSED boost::shared_ptr<transaction_t> transaction, int index) const {
     index = translate_index(index);
 
-    boost::scoped_ptr<superblock_t> nested_btree_sb(new virtual_superblock_t());
-    nested_btree_sb->set_root_block_id(nested_root);
-
-    // Construct a sizer for the sub tree, using the same block size as the super tree
-    value_sizer_t<redis_nested_string_value_t> sizer(super_sizer->block_size());
-
-    got_superblock_t got_superblock;
-    got_superblock.sb.swap(nested_btree_sb);
-    got_superblock.txn.swap(transaction);
-    keyvalue_location_t<redis_nested_string_value_t> kv_location;
-
-    // Construct the key from index
-    char key_buf[offsetof(btree_key_t, contents) + LEX_INT_SIZE];
-    btree_key_t *key = reinterpret_cast<btree_key_t*>(key_buf);
-    key->size = LEX_INT_SIZE;
-    to_lex_int(index, key->contents);
-    find_keyvalue_location_for_read(&sizer, &got_superblock, key, &kv_location);
-
-    // Get out the string value
-    std::string value;
-    value.assign(kv_location.value->contents, kv_location.value->length);
-
-    // Swap the transaction back in, we don't need it anymore...
-    transaction.swap(kv_location.txn);
-
-    return value;
+    // TODO!
+    return std::string("FIXME");
 }
 
 #endif	/* __SERVER_NESTED_DEMO_REDIS_LIST_VALUES_HPP__ */
