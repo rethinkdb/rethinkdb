@@ -6,6 +6,7 @@
 #include "spirit/boost_parser.hpp"
 #include <boost/fusion/include/adapt_struct.hpp>
 #include <boost/fusion/include/io.hpp>
+#include "store_manager.hpp"
 
 namespace riak {
 
@@ -192,6 +193,7 @@ public:
     std::string gen_key() {
         crash("Not implementated");
     }
+
 };
 
 class riak_server_t : public http_server_t {

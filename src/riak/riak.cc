@@ -4,6 +4,7 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/regex.hpp>
 #include "riak/riak_value.hpp"
+#include "store_manager.hpp"
 
 /* What's the deal with the "m"s in front of all the json_spirit types?
  * Json_spirit provides 2 different json implementations, one in which the
