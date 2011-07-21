@@ -2,7 +2,6 @@
 #include <vector>
 
 #include "unittest/gtest.hpp"
-#include "unittest/buf_helpers.hpp"
 #include "unittest/server_test_helper.hpp"
 
 #include "btree/node.hpp"
