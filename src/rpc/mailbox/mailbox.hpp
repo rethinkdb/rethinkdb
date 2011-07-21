@@ -73,8 +73,9 @@ void send(
 /* `mailbox_cluster_t` is a subclass of `connectivity_cluster_t` that adds
 message routing infrastructure. */
 
-class mailbox_cluster_t : public connectivity_cluster_t {
+struct mailbox_cluster_t : public connectivity_cluster_t {
 
+public:
     mailbox_cluster_t(int port);
     ~mailbox_cluster_t();
 
