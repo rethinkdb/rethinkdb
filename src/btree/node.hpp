@@ -194,8 +194,6 @@ int nodecmp(const node_t *node1, const node_t *node2);
 
 void print(const node_t *node);
 
-void validate(block_size_t block_size, const node_t *node);
-
 }  // namespace node
 
 inline void keycpy(btree_key_t *dest, const btree_key_t *src) {

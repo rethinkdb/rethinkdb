@@ -46,17 +46,4 @@ void print(const node_t *node) {
     }
 }
 
-void validate(UNUSED block_size_t block_size, UNUSED const node_t *node) {
-#ifndef NDEBUG
-    if (node->magic == leaf_node_t::expected_magic) {
-        memcached_value_sizer_t sizer(block_size);
-        leaf::validate(&sizer, reinterpret_cast<const leaf_node_t *>(node));
-    } else if (node->magic == internal_node_t::expected_magic) {
-        internal_node::validate(block_size, reinterpret_cast<const internal_node_t *>(node));
-    } else {
-        unreachable("Invalid leaf node type.");
-    }
-#endif
-}
-
 }  // namespace node

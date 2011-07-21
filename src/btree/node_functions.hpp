@@ -35,6 +35,20 @@ bool level(value_sizer_t<Value> *sizer, buf_t *node_buf, buf_t *rnode_buf, btree
     }
 }
 
+template <class Value>
+void validate(UNUSED value_sizer_t<Value> *sizer, UNUSED const node_t *node) {
+#ifndef NDEBUG
+    if (node->magic == leaf_node_t::expected_magic) {
+        leaf::validate(sizer, reinterpret_cast<const leaf_node_t *>(node));
+    } else if (node->magic == internal_node_t::expected_magic) {
+        internal_node::validate(sizer->block_size(), reinterpret_cast<const internal_node_t *>(node));
+    } else {
+        unreachable("Invalid leaf node type.");
+    }
+#endif
+}
+
+
 
 }  // namespace node
 

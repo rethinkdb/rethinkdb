@@ -118,7 +118,7 @@ void check_and_handle_underfull(value_sizer_t<Value> *sizer, transaction_t *txn,
         const node_t *sib_node = reinterpret_cast<const node_t *>(sib_buf->get_data_read());
 
 #ifndef NDEBUG
-        node::validate(sizer->block_size(), sib_node);
+        node::validate(sizer, sib_node);
 #endif
 
         if (node::is_mergable(sizer->block_size(), node, sib_node, parent_node)) { // Merge.
@@ -252,7 +252,7 @@ void find_keyvalue_location_for_read(value_sizer_t<Value> *sizer, got_superblock
     }
 
 #ifndef NDEBUG
-    node::validate(sizer->block_size(), reinterpret_cast<const node_t *>(buf->get_data_read()));
+    node::validate(sizer, reinterpret_cast<const node_t *>(buf->get_data_read()));
 #endif  // NDEBUG
 
     while (node::is_internal(reinterpret_cast<const node_t *>(buf->get_data_read()))) {
@@ -265,7 +265,7 @@ void find_keyvalue_location_for_read(value_sizer_t<Value> *sizer, got_superblock
         }
 
 #ifndef NDEBUG
-        node::validate(sizer->block_size(), reinterpret_cast<const node_t *>(buf->get_data_read()));
+        node::validate(sizer, reinterpret_cast<const node_t *>(buf->get_data_read()));
 #endif  // NDEBUG
     }
 
