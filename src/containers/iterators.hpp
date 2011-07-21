@@ -258,4 +258,58 @@ private:
 
 // TODO: Intersection of sets can be implemented as a repetition iterator around a merge iterator.
 
+/*
+ diff_filter_iterator_t implements set difference semantics. It's output
+ are all the keys from ownee_left that are not in ownee_right, assuming
+ that they are both sorted.
+*/
+// TODO! test this!
+template <class T>
+class diff_filter_iterator_t : public one_way_iterator_t<T> {
+public:
+    diff_filter_iterator_t(one_way_iterator_t<T> *_ownee_left, one_way_iterator_t<T> *_ownee_right) : prefetched_right(boost::none), ownee_left(_ownee_left), ownee_right(_ownee_right) { }
+    ~diff_filter_iterator_t() {
+        delete ownee_left;
+        delete ownee_right;
+    }
+    virtual typename boost::optional<T> next() {
+        for (;;) {
+            boost::optional<T> value = ownee_left->next();
+            if (!value) {
+                return boost::none;
+            } else {
+                // Is this element the same as prefetched_right?
+                if (prefetched_right && prefetched_right.get() == value.get()) {
+                    // It is, skip value.
+                } else {
+                    // Fetch new elements from ownee_right until they pass value
+                    if (!prefetched_right || prefetched_right.get() < value.get()) {
+                        do {
+                            prefetched_right = ownee_right->next();
+                        } while (prefetched_right && prefetched_right.get() < value.get());
+                    }
+
+                    // Now check again...
+                    if (prefetched_right && prefetched_right.get() == value.get()) {
+                        // Ok, it's the same as value. Skip value.
+                    } else {
+                        // no element like value in prefetched_right, return value
+                        return value;
+                    }
+                }
+            }
+        }
+    }
+    void prefetch() {
+        // TODO: Should we implement this?
+        ownee_left->prefetch();
+        ownee_right->prefetch();
+    }
+
+private:
+    one_way_iterator_t<T> *ownee_left;
+    one_way_iterator_t<T> *ownee_right;
+    boost::optional<T> prefetched_right;
+};
+
 #endif /* __CONTAINERS_ITERATOR_HPP__ */

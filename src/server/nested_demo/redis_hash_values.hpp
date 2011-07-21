@@ -33,7 +33,7 @@ public:
     // So you can construct an iterator over the nested data
     // TODO! This should go away and instead construct an iterator itself, returning
     // an abstract iterator type. That will allow us to use similar methods for other
-    // redis types, such as sorted sets which have to work a bit differently.
+    // redis types, such as sorted sets which have to work a bit differently. Think about this...
     boost::shared_ptr<superblock_t> get_nested_superblock() const {
         return boost::shared_ptr<superblock_t>(new virtual_superblock_t(nested_root));
     }
