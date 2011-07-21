@@ -73,7 +73,7 @@ private:
 };
 
 template <class Value>
-value_txn_t<Value> get_value_write(btree_slice_t *, value_sizer_t<Value> *, btree_key_t *, repli_timestamp_t, order_token_t);
+value_txn_t<Value> get_value_write(btree_slice_t *, btree_key_t *, repli_timestamp_t, order_token_t);
 
 template <class Value>
 void get_value_read(btree_slice_t *, btree_key_t *, order_token_t, keyvalue_location_t<Value> *);
