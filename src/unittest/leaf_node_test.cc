@@ -472,7 +472,7 @@ public:
     expected_t expected;
     int expected_frontmost_offset;
     int expected_npairs;
-    abstract_buf_t *node_buf;
+    buf_t *node_buf;
     leaf_node_t *node;
     bool initialized;
 
