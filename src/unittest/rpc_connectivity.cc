@@ -36,23 +36,37 @@ it receives from other nodes in the cluster. */
 struct dummy_cluster_t : public connectivity_cluster_t {
 private:
     std::map<int, peer_id_t> inbox;
+    std::map<int, int> timing;
+    int sequence_number;
     void on_message(peer_id_t peer, std::istream &stream, boost::function<void()> &on_done) {
         int i;
         stream >> i;
         on_done();
         inbox[i] = peer;
+        timing[i] = sequence_number++;
     }
     static void write(int i, std::ostream &stream) {
         stream << i;
     }
 public:
-    dummy_cluster_t(int i) : connectivity_cluster_t(i) { }
+    dummy_cluster_t(int i) : connectivity_cluster_t(i), sequence_number(0) { }
     void send(int message, peer_id_t peer) {
         send_message(peer, boost::bind(&write, message, _1));
     }
     void expect(int message, peer_id_t peer) {
-        EXPECT_TRUE(inbox.find(message) != inbox.end());
+        expect_delivered(message);
         EXPECT_TRUE(inbox[message] == peer);
+    }
+    void expect_delivered(int message) {
+        EXPECT_TRUE(inbox.find(message) != inbox.end());
+    }
+    void expect_undelivered(int message) {
+        EXPECT_TRUE(inbox.find(message) == inbox.end());
+    }
+    void expect_order(int first, int second) {
+        expect_delivered(first);
+        expect_delivered(second);
+        EXPECT_LT(timing[first], timing[second]);
     }
 };
 
@@ -93,6 +107,65 @@ void run_message_test() {
 }
 TEST(RPCConnectivityTest, Message) {
     run_in_thread_pool(&run_message_test);
+}
+
+/* `UnreachablePeer` tests that messages sent to unreachable peers silently
+fail. */
+
+void run_unreachable_peer_test() {
+    int port = 10000 + rand() % 20000;
+    dummy_cluster_t c1(port), c2(port+1);
+    /* Note that we DON'T join them together. */
+
+    let_stuff_happen();
+
+    c1.send(888, c2.get_me());
+
+    let_stuff_happen();
+
+    /* The message should not have been delivered. The system shouldn't have
+    crashed, either. */
+    c2.expect_undelivered(888);
+
+    c1.join(peer_address_t(ip_address_t::us(), port+1));
+
+    let_stuff_happen();
+
+    c1.send(999, c2.get_me());
+
+    let_stuff_happen();
+
+    c2.expect_undelivered(888);
+    c2.expect(999, c1.get_me());
+}
+TEST(RPCConnectivityTest, UnreachablePeer) {
+    run_in_thread_pool(&run_unreachable_peer_test);
+}
+
+/* `Ordering` tests that messages sent by the same route arrive in the same
+order they were sent in. */
+
+void run_ordering_test() {
+    int port = 10000 + rand() % 20000;
+    dummy_cluster_t c1(port), c2(port+1);
+    c1.join(peer_address_t(ip_address_t::us(), port+1));
+
+    let_stuff_happen();
+
+    for (int i = 0; i < 10; i++) {
+        c1.send(i, c2.get_me());
+        c1.send(i, c1.get_me());
+    }
+
+    let_stuff_happen();
+
+    for (int i = 0; i < 9; i++) {
+        c1.expect_order(i, i+1);
+        c2.expect_order(i, i+1);
+    }
+}
+TEST(RPCConnectivityTest, Ordering) {
+    run_in_thread_pool(&run_ordering_test);
 }
 
 /* `GetEverybody` confirms that the behavior of `cluster_t::get_everybody()` is
@@ -142,20 +215,29 @@ void run_event_watchers_test() {
     dummy_cluster_t c1(port);
 
     boost::scoped_ptr<dummy_cluster_t> c2(new dummy_cluster_t(port+1));
+    peer_id_t c2_id = c2->get_me();
 
     /* Make sure `c1` notifies us when `c2` connects */
-    connect_watcher_t connect_watcher(&c1, c2->get_me());
+    connect_watcher_t connect_watcher(&c1, c2_id);
     EXPECT_FALSE(connect_watcher.is_pulsed());
     c1.join(peer_address_t(ip_address_t::us(), port+1));
     let_stuff_happen();
     EXPECT_TRUE(connect_watcher.is_pulsed());
 
+    /* Make sure `connect_watcher_t` works for an already-connected peer */
+    connect_watcher_t connect_watcher_2(&c1, c2_id);
+    EXPECT_TRUE(connect_watcher_2.is_pulsed());
+
     /* Make sure `c1` notifies us when `c2` disconnects */
-    disconnect_watcher_t disconnect_watcher(&c1, c2->get_me());
+    disconnect_watcher_t disconnect_watcher(&c1, c2_id);
     EXPECT_FALSE(disconnect_watcher.is_pulsed());
     c2.reset();
     let_stuff_happen();
     EXPECT_TRUE(disconnect_watcher.is_pulsed());
+
+    /* Make sure `disconnect_watcher_t` works for an already-unconnected peer */
+    disconnect_watcher_t disconnect_watcher_2(&c1, c2_id);
+    EXPECT_TRUE(disconnect_watcher_2.is_pulsed());
 }
 TEST(RPCConnectivityTest, EventWatchers) {
     run_in_thread_pool(&run_event_watchers_test);

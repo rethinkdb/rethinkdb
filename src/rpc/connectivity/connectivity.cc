@@ -31,6 +31,10 @@ connect_watcher_t::connect_watcher_t(connectivity_cluster_t *parent, peer_id_t p
     event_watcher_t(parent), peer(peer)
 {
     rassert(!peer.is_nil());
+    std::map<peer_id_t, peer_address_t> everybody = parent->get_everybody();
+    if (everybody.find(peer) != everybody.end()) {
+        pulse();
+    }
 }
 
 void connect_watcher_t::on_connect(peer_id_t p) {
@@ -49,6 +53,10 @@ disconnect_watcher_t::disconnect_watcher_t(connectivity_cluster_t *parent, peer_
     event_watcher_t(parent), peer(peer)
 {
     rassert(!peer.is_nil());
+    std::map<peer_id_t, peer_address_t> everybody = parent->get_everybody();
+    if (everybody.find(peer) == everybody.end()) {
+        pulse();
+    }
 }
 
 void disconnect_watcher_t::on_connect(peer_id_t) {
