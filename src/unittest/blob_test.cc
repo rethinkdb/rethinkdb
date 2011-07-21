@@ -161,6 +161,11 @@ private:
 struct blob_tester_t : public server_test_helper_t {
 protected:
     void run_tests(cache_t *cache) {
+        // The tests below hard-code constants related to these numbers.
+        EXPECT_EQ(251, blob::btree_maxreflen);
+        EXPECT_EQ(4080, blob::stepsize(cache->get_block_size(), 1));
+        EXPECT_EQ(4080 * (4080 / sizeof(block_id_t)), blob::stepsize(cache->get_block_size(), 2));
+
         debugf("small_value_test...\n");
         small_value_test(cache);
         debugf("small_value_boundary_test...\n");

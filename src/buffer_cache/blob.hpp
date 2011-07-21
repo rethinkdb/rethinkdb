@@ -41,8 +41,6 @@ memcpy(tmp, ref, blob::ref_size(bs, ref, mrl));
 // The ref size changed because we modified the blob.
 write_blob_ref_to_something(tmp, blob::ref_size(bs, ref, mrl));
 
-    
-
  */
 
 
