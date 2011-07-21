@@ -1,6 +1,7 @@
 #include "unittest/gtest.hpp"
 
 #include "rpc/mailbox/mailbox.hpp"
+#include "rpc/mailbox/typed.hpp"
 
 namespace unittest {
 
@@ -198,5 +199,33 @@ TEST(RPCMailboxTest, MailboxAddressSemantics) {
     run_in_thread_pool(&run_mailbox_address_semantics_test);
 }
 
+/* `TypedMailbox` makes sure that `async_mailbox_t<>` works. */
+
+void run_typed_mailbox_test() {
+
+    int port = 10000 + rand() % 20000;
+    dummy_cluster_t cluster(port);
+
+    std::vector<std::string> inbox;
+    async_mailbox_t<void(std::string)> mbox(&cluster, boost::bind(&std::vector<std::string>::push_back, &inbox, _1));
+
+    async_mailbox_t<void(std::string)>::address_t addr(&mbox);
+
+    send(&cluster, addr, std::string("foo"));
+    send(&cluster, addr, std::string("bar"));
+    send(&cluster, addr, std::string("baz"));
+
+    let_stuff_happen();
+
+    EXPECT_EQ(inbox.size(), 3);
+    if (inbox.size() == 3) {
+        EXPECT_EQ(inbox[0], "foo");
+        EXPECT_EQ(inbox[1], "bar");
+        EXPECT_EQ(inbox[2], "baz");
+    }
+}
+TEST(RPCMailboxTest, TypedMailbox) {
+    run_in_thread_pool(&run_typed_mailbox_test);
+}
 
 }   /* namespace unittest */
