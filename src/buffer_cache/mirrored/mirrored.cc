@@ -115,7 +115,7 @@ void mc_inner_buf_t::load_inner_buf(bool should_lock, file_t::account_t *io_acco
 
 // This form of the buf constructor is used when the block exists on disk and needs to be loaded
 mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_load, file_t::account_t *io_account)
-    : cache(cache),
+    : evictable_t(cache),
       block_id(block_id),
       subtree_recency(repli_timestamp_t::invalid),  // Gets initialized by load_inner_buf
       data(should_load ? cache->serializer->malloc() : NULL),
@@ -126,7 +126,6 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_
       write_empty_deleted_block(false),
       cow_refcount(0),
       writeback_buf(this),
-      page_repl_buf(this),
       page_map_buf(this),
       block_sequence_id(NULL_BLOCK_SEQUENCE_ID) {
 
@@ -154,7 +153,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_
 
 // This form of the buf constructor is used when the block exists on disks but has been loaded into buf already
 mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp)
-    : cache(cache),
+    : evictable_t(cache),
       block_id(block_id),
       subtree_recency(recency_timestamp),
       data(buf),
@@ -164,7 +163,6 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, r
       write_empty_deleted_block(false),
       cow_refcount(0),
       writeback_buf(this),
-      page_repl_buf(this),
       page_map_buf(this),
       block_sequence_id(NULL_BLOCK_SEQUENCE_ID) {
 
@@ -227,7 +225,7 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache, version_id_t snapshot_v
 // If you update this constructor, please don't forget to update mc_inner_buf_t::allocate
 // accordingly.
 mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, version_id_t snapshot_version, repli_timestamp_t recency_timestamp)
-    : cache(cache),
+    : evictable_t(cache),
       block_id(block_id),
       subtree_recency(recency_timestamp),
       data(cache->serializer->malloc()),
@@ -238,7 +236,6 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, version_id_t
       write_empty_deleted_block(false),
       cow_refcount(0),
       writeback_buf(this),
-      page_repl_buf(this),
       page_map_buf(this),
       block_sequence_id(NULL_BLOCK_SEQUENCE_ID)
 {
@@ -1025,8 +1022,9 @@ mc_cache_t::~mc_cache_t() {
     patch_disk_storage.reset();
 
     /* Delete all the buffers */
-    while (inner_buf_t *buf = page_repl.get_first_buf()) {
-       delete buf;
+    while (evictable_t *buf = page_repl.get_first_buf()) {
+        // TODO (rntz) check that buf is actually a mc_inner_buf_t
+        delete buf;
     }
 }
 

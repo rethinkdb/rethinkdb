@@ -20,31 +20,28 @@ position in the dense random array; this allows all insertion, deletion, and ran
 done in constant time.
 */
 
-class mc_inner_buf_t;
 class mc_cache_t;
+
+struct evictable_t {
+    /* When bufs are created or destroyed, this constructor and destructor are called; this is how
+     * the page replacement system keeps track of the buffers in memory. */
+    explicit evictable_t(mc_cache_t *cache);
+    virtual ~evictable_t();
+    virtual bool safe_to_unload() = 0; // Must be implemented by subclass.
+    //evictable_t *get_next_buf();     // commented out because not actually used.
+  protected:
+    mc_cache_t *cache;
+  private:
+    unsigned int page_repl_index;
+};
 
 class page_repl_random_t {
     typedef mc_cache_t cache_t;
-    typedef mc_inner_buf_t inner_buf_t;
-    
+    friend class evictable_t;
+
 public:
-    
+
     page_repl_random_t(unsigned int _unload_threshold, cache_t *_cache);
-    
-    class local_buf_t {
-        friend class page_repl_random_t;
-    
-    public:
-        /* When bufs are created or destroyed, this constructor and destructor are called; this is
-        how the page replacement system keeps track of the buffers in memory. */
-        explicit local_buf_t(inner_buf_t *gbuf);
-        ~local_buf_t();
-    
-    private:
-        inner_buf_t *gbuf;
-        unsigned int index;
-    };
-    friend class local_buf_t;
 
     // If is_full(space_needed), the next call to make_space(space_needed) probably has to evict something
     bool is_full(unsigned int space_needed);
@@ -60,13 +57,12 @@ public:
     reasonable implementation of a page replacement system will need to keep track of all of the
     buffers in memory anyway, so the cache can depend on the page replacement system's buffer list
     rather than keeping a buffer list of its own. */
-    inner_buf_t *get_first_buf();
-    inner_buf_t *get_next_buf(inner_buf_t *buf);
+    evictable_t *get_first_buf();
     
 private:
     unsigned int unload_threshold;
     cache_t *cache;
-    two_level_array_t<inner_buf_t*, MAX_BLOCKS_IN_MEMORY> array;
+    two_level_array_t<evictable_t*, MAX_BLOCKS_IN_MEMORY> array;
 };
 
 #endif // __PAGE_REPL_RANDOM_HPP__

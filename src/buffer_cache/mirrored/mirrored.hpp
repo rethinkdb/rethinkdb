@@ -36,14 +36,13 @@ typedef array_map_t page_map_t;
 
 class mc_cache_account_t;
 
-class mc_inner_buf_t : public home_thread_mixin_t {
+class mc_inner_buf_t : public home_thread_mixin_t, public evictable_t {
     friend class mc_cache_t;
     friend class mc_transaction_t;
     friend class mc_buf_t;
     friend class writeback_t;
     friend class writeback_t::local_buf_t;
     friend class page_repl_random_t;
-    friend class page_repl_random_t::local_buf_t;
     friend class array_map_t;
     friend class array_map_t::local_buf_t;
     friend class patch_disk_storage_t;
@@ -53,7 +52,6 @@ class mc_inner_buf_t : public home_thread_mixin_t {
     typedef uint64_t version_id_t;
     static const version_id_t faux_version_id = 0;  // this version id must be smaller than any valid version id
 
-    cache_t *cache;
     block_id_t block_id;
     repli_timestamp_t subtree_recency;
 
@@ -81,7 +79,6 @@ class mc_inner_buf_t : public home_thread_mixin_t {
 
     // Each of these local buf types holds a redundant pointer to the inner_buf that they are a part of
     writeback_t::local_buf_t writeback_buf;
-    page_repl_t::local_buf_t page_repl_buf;
     page_map_t::local_buf_t page_map_buf;
 
     bool safe_to_unload();
@@ -305,7 +302,7 @@ class mc_cache_t : public home_thread_mixin_t, public serializer_t::read_ahead_c
     friend class writeback_t;
     friend class writeback_t::local_buf_t;
     friend class page_repl_random_t;
-    friend class page_repl_random_t::local_buf_t;
+    friend class evictable_t;
     friend class array_map_t;
     friend class array_map_t::local_buf_t;
     friend class patch_disk_storage_t;
