@@ -61,11 +61,6 @@ struct net_backfill_complete_t {
     repli_timestamp_t time_barrier_timestamp;
 } __attribute__((__packed__));
 
-struct net_backfill_delete_everything_t {
-    // Unnecessary padding.
-    uint32_t padding;
-} __attribute__((__packed__));
-
 struct net_heartbeat_t {
     // Unnecessary padding.
     uint32_t padding;

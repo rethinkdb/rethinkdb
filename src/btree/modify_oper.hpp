@@ -28,15 +28,6 @@ public:
 
 
     virtual int compute_expected_change_count(block_size_t block_size) = 0;
-
-    // This is a dorky name.  This function shall be called
-    // immediately after the superblock has been acquired.  The delete
-    // queue is a child of the superblock, when it comes to
-    // transactional ordering.
-    virtual void do_superblock_sidequest(UNUSED transaction_t *txn,
-                                         UNUSED buf_lock_t& superblock,
-                                         UNUSED repli_timestamp_t recency,
-                                         UNUSED const store_key_t *key) { }
 };
 
 // Runs a btree_modify_oper_t.

@@ -27,9 +27,7 @@ struct btree_config_t {
 to run */
 
 struct btree_key_value_store_dynamic_config_t {
-    btree_key_value_store_dynamic_config_t() {
-        total_delete_queue_limit = DEFAULT_TOTAL_DELETE_QUEUE_LIMIT;
-    }
+    btree_key_value_store_dynamic_config_t() { }
 
     log_serializer_dynamic_config_t serializer;
 
@@ -38,14 +36,11 @@ struct btree_key_value_store_dynamic_config_t {
 
     mirrored_cache_config_t cache;
 
-    int64_t total_delete_queue_limit;
-
     friend class boost::serialization::access;
     template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
         ar & serializer;
         ar & serializer_private;
         ar & cache;
-        ar & total_delete_queue_limit;
     }
 };
 

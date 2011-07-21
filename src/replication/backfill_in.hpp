@@ -73,7 +73,6 @@ struct backfill_storer_t : public backfill_and_realtime_streaming_callback_t {
     backfill_storer_t(btree_key_value_store_t *underlying);
     ~backfill_storer_t();
 
-    void backfill_delete_everything(order_token_t token);
     void backfill_deletion(store_key_t key, order_token_t token);
     void backfill_set(backfill_atom_t atom, order_token_t token);
     void backfill_done(repli_timestamp_t timestamp, order_token_t token);

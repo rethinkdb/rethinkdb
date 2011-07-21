@@ -1,8 +1,6 @@
 #include "btree/delete.hpp"
 #include "btree/modify_oper.hpp"
 
-#include "replication/delete_queue.hpp"
-
 struct btree_delete_oper_t : public btree_modify_oper_t<memcached_value_t> {
 
     btree_delete_oper_t(bool dont_record, btree_slice_t *_slice) : dont_put_in_delete_queue(dont_record), slice(_slice) { }
@@ -28,19 +26,6 @@ struct btree_delete_oper_t : public btree_modify_oper_t<memcached_value_t> {
 
     int compute_expected_change_count(UNUSED block_size_t block_size) {
         return 1;
-    }
-
-    void do_superblock_sidequest(transaction_t *txn,
-                                 buf_lock_t& superblock,
-                                 repli_timestamp_t recency,
-                                 const store_key_t *key) {
-
-        if (!dont_put_in_delete_queue) {
-            slice->assert_thread();
-            const btree_superblock_t *sb = reinterpret_cast<const btree_superblock_t *>(superblock->get_data_read());
-
-            replication::add_key_to_delete_queue(slice->delete_queue_limit(), txn, sb->delete_queue_block, recency, key);
-        }
     }
 };
 

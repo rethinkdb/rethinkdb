@@ -175,36 +175,6 @@ public:
             realtime_job_queue.push(job);
         }
 
-        /* backfill_callback_t implementation */
-
-        bool should_send_deletion_keys(bool can_send_deletion_keys) {
-            on_thread_t th(parent_->home_thread());
-
-            rassert(backfilling_);
-
-            if (parent_->all_delete_queues_so_far_can_send_keys_ && !can_send_deletion_keys) {
-                parent_->all_delete_queues_so_far_can_send_keys_ = false;
-
-                // We only send this once, and it is important that we
-                // send it before the delete_queues_can_send_keys_latch_
-                // gets pulsed, because then a delete queue could finish
-                // and start sending sets before we sent a
-                // delete_everything message.
-                parent_->handler_->backfill_delete_everything(order_token_t::ignore);
-            }
-
-            parent_->delete_queues_can_send_keys_latch_.count_down();
-
-            // Wait until all slices have gotten here.
-            parent_->delete_queues_can_send_keys_latch_.wait();
-
-            return parent_->all_delete_queues_so_far_can_send_keys_;
-        }
-
-        void wait_and_maybe_send_delete_all_keys_message() {
-            parent_->delete_queues_can_send_keys_latch_.wait();
-        }
-
         /* The store calls this when we need to backfill a deletion. */
         void deletion_key(const btree_key_t *key) {
             // This runs in the scheduler context.
@@ -300,9 +270,6 @@ public:
 
     /* Startup, shutdown, and member variables */
 
-    count_down_latch_t delete_queues_can_send_keys_latch_;
-    bool all_delete_queues_so_far_can_send_keys_;
-
     btree_key_value_store_t *internal_store_;
     backfill_and_realtime_streaming_callback_t *handler_;
 
@@ -330,8 +297,6 @@ public:
     backfill_and_streaming_manager_t(btree_key_value_store_t *kvs,
             backfill_and_realtime_streaming_callback_t *handler,
             repli_timestamp_t backfill_from) :
-        delete_queues_can_send_keys_latch_(kvs->btree_static_config.n_slices),
-        all_delete_queues_so_far_can_send_keys_(true),
         internal_store_(kvs),
         handler_(handler),
         combined_job_queue(1),

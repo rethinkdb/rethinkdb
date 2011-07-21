@@ -134,7 +134,7 @@ void serve(int id, demo_delegate_t *delegate) {
     cache_t cache(multiplexer.proxies[0], &config.store_dynamic_config.cache);
 
     btree_slice_t::create(&cache);
-    btree_slice_t slice(&cache, 1000);
+    btree_slice_t slice(&cache);
 
     set_store_mailbox_t change_mailbox(&slice);
     get_store_mailbox_t get_mailbox(&slice);

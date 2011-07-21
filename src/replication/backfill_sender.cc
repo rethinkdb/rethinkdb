@@ -22,18 +22,6 @@ void backfill_sender_t::warn_about_expiration() {
     }
 }
 
-void backfill_sender_t::backfill_delete_everything(order_token_t token) {
-    order_sink_before_send.check_out(token);
-
-    if (*stream_) {
-        net_backfill_delete_everything_t msg;
-        msg.padding = 0;
-        (*stream_)->send(msg);
-    }
-
-    order_sink_after_send.check_out(token);
-}
-
 void backfill_sender_t::backfill_deletion(store_key_t key, order_token_t token) {
     order_sink_before_send.check_out(token);
     block_pm_duration set_timer(&master_bf_del);

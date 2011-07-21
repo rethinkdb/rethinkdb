@@ -259,8 +259,6 @@ void btree_parallel_traversal(transaction_t *txn, btree_slice_t *slice, btree_tr
 
     const btree_superblock_t *superblock = reinterpret_cast<const btree_superblock_t *>(superblock_buf->get_data_read());
 
-    helper->preprocess_btree_superblock(state.transaction_ptr, superblock);
-
     block_id_t root_id = superblock->root_block;
     rassert(root_id != SUPERBLOCK_ID);
 

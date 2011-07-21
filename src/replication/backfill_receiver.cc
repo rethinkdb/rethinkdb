@@ -12,12 +12,6 @@ void backfill_receiver_t::send(scoped_malloc<net_backfill_complete_t>& message) 
     cb->backfill_done(message->time_barrier_timestamp, token);
 }
 
-void backfill_receiver_t::send(UNUSED scoped_malloc<net_backfill_delete_everything_t>& msg) {
-    block_pm_duration timer(&pm_replication_slave_handling_2);
-    order_token_t token = order_source->check_in_backfill_operation("net_backfill_delete_everything_t");
-    cb->backfill_delete_everything(token);
-}
-
 void backfill_receiver_t::send(scoped_malloc<net_get_cas_t>& msg) {
     block_pm_duration timer(&pm_replication_slave_handling_2);
     order_token_t token = order_source->check_in_realtime_operation("net_get_cas_t");

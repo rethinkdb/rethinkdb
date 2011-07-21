@@ -3,7 +3,8 @@
 
 #include "utils.hpp"
 #include "store.hpp"
-#include "replication/delete_queue.hpp"
+
+#include "buffer_cache/buffer_cache.hpp"
 
 // Run backfilling at a reduced priority
 #define BACKFILL_CACHE_PRIORITY 10
@@ -21,7 +22,7 @@ struct backfill_atom_t {
 
 // How to use this class: Send deletion_key calls first, then call
 // done_deletion_keys, then send on_keyvalues, then send done().
-class backfill_callback_t : public replication::deletion_key_stream_receiver_t {
+class backfill_callback_t {
 public:
     virtual void on_keyvalue(backfill_atom_t atom) = 0;
     virtual void done_backfill() = 0;

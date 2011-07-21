@@ -38,12 +38,6 @@ rget_result_t dispatching_store_t::rget(rget_bound_mode_t left_mode, const store
     return substore->rget(left_mode, left_key, right_mode, right_key, substore_token);
 }
 
-void dispatching_store_t::delete_all_keys_for_backfill(order_token_t token) {
-    sink.check_out(token);
-    order_token_t substore_token = substore_order_source.check_in(token.tag() + "shard_store_t::delete_all_keys_for_backfill");
-    substore->delete_all_keys_for_backfill(substore_token);
-}
-
 void dispatching_store_t::set_replication_clock(repli_timestamp_t t, order_token_t token) {
     sink.check_out(token);
     substore->set_replication_clock(t, substore_order_source.check_in(token.tag() + "shard_store_t::set_replication_clock"));

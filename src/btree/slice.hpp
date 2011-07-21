@@ -21,7 +21,7 @@ public:
     static void create(cache_t *cache);
 
     // Blocks
-    btree_slice_t(cache_t *cache, int64_t delete_queue_limit);
+    btree_slice_t(cache_t *cache);
 
     // Blocks
     ~btree_slice_t();
@@ -37,8 +37,6 @@ public:
 
     /* btree_slice_t interface */
 
-    void delete_all_keys_for_backfill(order_token_t token);
-
     void backfill(repli_timestamp_t since_when, backfill_callback_t *callback, order_token_t token);
 
     /* These store metadata for replication. There must be a better way to store this information,
@@ -53,7 +51,6 @@ public:
     uint32_t get_replication_slave_id();
 
     cache_t *cache() { return cache_; }
-    int64_t delete_queue_limit() { return delete_queue_limit_; }
 
     plain_sink_t pre_begin_transaction_sink_;
 
@@ -67,7 +64,6 @@ public:
     order_checkpoint_t post_begin_transaction_checkpoint_;
 private:
     cache_t *cache_;
-    int64_t delete_queue_limit_;
 
     // We put all `order_token_t`s through this.
     order_checkpoint_t order_checkpoint_;

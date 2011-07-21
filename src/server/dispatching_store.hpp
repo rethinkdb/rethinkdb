@@ -15,7 +15,6 @@ public:
     mutation_result_t change(const mutation_t& m, castime_t castime, order_token_t token);
     get_result_t get(const store_key_t &key, order_token_t token);
     rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token);
-    void delete_all_keys_for_backfill(order_token_t token);
     void set_replication_clock(repli_timestamp_t t, order_token_t token);
 
 private:

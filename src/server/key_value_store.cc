@@ -22,10 +22,9 @@
 
 shard_store_t::shard_store_t(
     serializer_t *serializer,
-    mirrored_cache_config_t *dynamic_config,
-    int64_t delete_queue_limit) :
+    mirrored_cache_config_t *dynamic_config) :
     cache(serializer, dynamic_config),
-    btree(&cache, delete_queue_limit),
+    btree(&cache),
     dispatching_store(&btree),
     timestamper(&dispatching_store)
     { }
@@ -52,11 +51,6 @@ mutation_result_t shard_store_t::change(const mutation_t &m, castime_t ct, order
     /* Bypass the timestamper because we already have a castime_t */
     on_thread_t th(home_thread());
     return dispatching_store.change(m, ct, token);
-}
-
-void shard_store_t::delete_all_keys_for_backfill(order_token_t token) {
-    on_thread_t th(home_thread());
-    dispatching_store.delete_all_keys_for_backfill(token);
 }
 
 void shard_store_t::set_replication_clock(repli_timestamp_t t, order_token_t token) {
@@ -145,23 +139,21 @@ void btree_store_helpers::create_existing_shard(
         shard_store_t **shard,
         int i,
         serializer_t *serializer,
-        mirrored_cache_config_t *dynamic_config,
-        int64_t delete_queue_limit)
+        mirrored_cache_config_t *dynamic_config)
 {
     on_thread_t thread_switcher(i % get_num_db_threads());
-    *shard = new shard_store_t(serializer, dynamic_config, delete_queue_limit);
+    *shard = new shard_store_t(serializer, dynamic_config);
 }
 
 void btree_store_helpers::create_existing_data_shard(
         shard_store_t **shards,
         int i,
         translator_serializer_t **pseudoserializers,
-        mirrored_cache_config_t *dynamic_config,
-        int64_t delete_queue_limit)
+        mirrored_cache_config_t *dynamic_config)
 {
     // TODO try to align slices with serializers so that when possible, a slice is on the
     // same thread as its serializer
-    btree_store_helpers::create_existing_shard(&shards[i], i, pseudoserializers[i], dynamic_config, delete_queue_limit);
+    btree_store_helpers::create_existing_shard(&shards[i], i, pseudoserializers[i], dynamic_config);
 }
 
 /* btree_key_value_store_t */
@@ -236,13 +228,12 @@ btree_key_value_store_t::btree_key_value_store_t(const btree_key_value_store_dyn
 
     /* Divide resources among the several slices */
     mirrored_cache_config_t per_slice_config = partition_cache_config(store_dynamic_config.cache, shard_share);
-    int64_t per_slice_delete_queue_limit = store_dynamic_config.total_delete_queue_limit * shard_share;
 
     /* Load btrees */
     translator_serializer_t **pseudoserializers = multiplexer->proxies.data();
     pmap(btree_static_config.n_slices,
          boost::bind(&btree_store_helpers::create_existing_data_shard, shards, _1,
-                     pseudoserializers, &per_slice_config, per_slice_delete_queue_limit));
+                     pseudoserializers, &per_slice_config));
 
     /* Initialize the timestampers to the timestamp value on disk */
     repli_timestamp_t t = get_replication_clock();
@@ -430,10 +421,3 @@ mutation_result_t btree_key_value_store_t::change(const mutation_t &m, castime_t
     return shards[slice_num(m.get_key())]->change(m, ct, token);
 }
 
-/* btree_key_value_store_t interface */
-
-void btree_key_value_store_t::delete_all_keys_for_backfill(order_token_t token) {
-    for (int i = 0; i < btree_static_config.n_slices; ++i) {
-        coro_t::spawn_now(boost::bind(&shard_store_t::delete_all_keys_for_backfill, shards[i], token));
-    }
-}

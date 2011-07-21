@@ -1,6 +1,5 @@
 #include "errors.hpp"
 #include "btree/backfill.hpp"
-#include "btree/delete_all_keys.hpp"
 #include "btree/slice.hpp"
 #include "btree/node.hpp"
 #include "buffer_cache/buf_lock.hpp"
@@ -12,7 +11,6 @@
 #include "btree/append_prepend.hpp"
 #include "btree/delete.hpp"
 #include "btree/get_cas.hpp"
-#include "replication/delete_queue.hpp"
 #include "replication/master.hpp"
 
 void btree_slice_t::create(cache_t *cache) {
@@ -32,20 +30,12 @@ void btree_slice_t::create(cache_t *cache) {
     sb->magic = btree_superblock_t::expected_magic;
     sb->root_block = NULL_BLOCK_ID;
 
-    // Allocate sb->delete_queue_block like an ordinary block.
-    buf_lock_t delete_queue_block;
-    delete_queue_block.allocate(&txn);
-    replication::delete_queue_block_t *dqb = reinterpret_cast<replication::delete_queue_block_t *>(delete_queue_block->get_data_major_write());
-    initialize_empty_delete_queue(&txn, dqb, cache->get_block_size());
-    sb->delete_queue_block = delete_queue_block->get_block_id();
-
     sb->replication_clock = sb->last_sync = repli_timestamp_t::distant_past;
     sb->replication_master_id = sb->replication_slave_id = 0;
 }
 
-btree_slice_t::btree_slice_t(cache_t *c, int64_t delete_queue_limit)
-    : cache_(c), delete_queue_limit_(delete_queue_limit),
-        backfill_account(cache()->create_account(BACKFILL_CACHE_PRIORITY)) {
+btree_slice_t::btree_slice_t(cache_t *c)
+    : cache_(c), backfill_account(cache()->create_account(BACKFILL_CACHE_PRIORITY)) {
     order_checkpoint_.set_tagappend("slice");
     post_begin_transaction_checkpoint_.set_tagappend("post");
 }
@@ -102,14 +92,6 @@ mutation_result_t btree_slice_t::change(const mutation_t &m, castime_t castime, 
 
     btree_slice_change_visitor_t functor(this, castime, token);
     return boost::apply_visitor(functor, m.mutation);
-}
-
-void btree_slice_t::delete_all_keys_for_backfill(order_token_t token) {
-    assert_thread();
-
-    token = order_checkpoint_.check_through(token);
-
-    btree_delete_all_keys_for_backfill(this, token);
 }
 
 void btree_slice_t::backfill(repli_timestamp_t since_when, backfill_callback_t *callback, order_token_t token) {

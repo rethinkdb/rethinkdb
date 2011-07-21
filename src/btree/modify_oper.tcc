@@ -23,12 +23,6 @@ void run_btree_modify_oper(value_sizer_t<Value> *sizer, btree_modify_oper_t<Valu
 
         get_btree_superblock(slice, rwi_write, oper->compute_expected_change_count(block_size), castime.timestamp, token, &got_superblock);
 
-        // TODO: do_superblock_sidequest is blocking.  It doesn't have
-        // to be, but when you fix this, make sure the superblock
-        // sidequest is done using the superblock before the
-        // superblock gets released.
-        oper->do_superblock_sidequest(got_superblock.txn.get(), got_superblock.sb_buf, castime.timestamp, &store_key);
-
         keyvalue_location_t<Value> kv_location;
         find_keyvalue_location_for_write(sizer, &got_superblock, key, castime.timestamp, &kv_location);
         transaction_t *txn = kv_location.txn.get();

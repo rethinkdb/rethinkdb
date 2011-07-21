@@ -17,7 +17,7 @@
 
 class btree_slice_t;
 
-class agnostic_backfill_callback_t : public replication::deletion_key_stream_receiver_t {
+class agnostic_backfill_callback_t {
 public:
     virtual void on_pair(transaction_t *txn, repli_timestamp_t recency, const btree_key_t *key, const opaque_value_t *value) = 0;
     virtual void done_backfill() = 0;
@@ -25,16 +25,6 @@ public:
 };
 
 struct backfill_traversal_helper_t : public btree_traversal_helper_t, public home_thread_mixin_t {
-
-    // The deletes have to go first (since they get overridden by
-    // newer sets)
-    void preprocess_btree_superblock(transaction_t *txn, const btree_superblock_t *superblock) {
-        assert_thread();
-        if (!dump_keys_from_delete_queue(txn, superblock->delete_queue_block, since_when_, callback_)) {
-            // Set since_when_ to the minimum timestamp, so that we backfill everything.
-            since_when_.time = 0;
-        }
-    }
 
     void process_a_leaf(transaction_t *txn, buf_t *leaf_node_buf) {
         assert_thread();
@@ -169,18 +159,6 @@ public:
 
     void done_backfill() {
         cb_->done_backfill();
-    }
-
-    bool should_send_deletion_keys(bool can_send_deletion_keys) {
-        return cb_->should_send_deletion_keys(can_send_deletion_keys);
-    }
-
-    void deletion_key(const btree_key_t *key) {
-        cb_->deletion_key(key);
-    }
-
-    void done_deletion_keys() {
-        cb_->done_deletion_keys();
     }
 
     backfill_callback_t *cb_;

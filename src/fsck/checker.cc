@@ -10,7 +10,6 @@
 #include "btree/internal_node.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "fsck/raw_block.hpp"
-#include "replication/delete_queue.hpp"
 #include "server/key_value_store.hpp"
 
 namespace fsck {
@@ -1226,62 +1225,12 @@ void check_slice_other_blocks(slicecx_t& cx, other_block_errors *errs) {
     }
 }
 
-struct delete_queue_errors {
-    btree_block_t::error dq_block_code;
-    bool dq_block_bad_magic;
-    largebuf_error timestamp_buf;
-    largebuf_error keys_buf;
-
-    // TODO: We don't do the timestamp key alignment checks below.
-    // The timestamps' offsets (after subtracting the primal_offset)
-    // must be aligned to key boundaries.  These next two variables
-    // are unused.
-    std::vector<repli_timestamp_t> timestamp_key_alignment;
-    int64_t bad_keysize_offset;
-    int64_t primal_offset;    // Just for the fyi.
-
-    delete_queue_errors() : dq_block_code(btree_block_t::none), dq_block_bad_magic(false), bad_keysize_offset(-1), primal_offset(-1) { }
-
-    bool is_bad() const {
-        return dq_block_code != btree_block_t::none || dq_block_bad_magic
-            || timestamp_buf.is_bad() || keys_buf.is_bad()
-            || !timestamp_key_alignment.empty() || bad_keysize_offset != -1;
-    }
-};
-
-void check_delete_queue(UNUSED slicecx_t& cx, UNUSED block_id_t block_id, UNUSED delete_queue_errors *errs) {
-    btree_block_t dq_block;
-    if (!dq_block.init(cx, block_id)) {
-        errs->dq_block_code = dq_block.err;
-        return;
-    }
-
-    replication::delete_queue_block_t *buf = const_cast<replication::delete_queue_block_t *>(reinterpret_cast<const replication::delete_queue_block_t *>(dq_block.buf));
-
-    if (buf->magic != replication::delete_queue_block_t::expected_magic) {
-        errs->dq_block_bad_magic = true;
-        return;
-    }
-
-    errs->primal_offset = *replication::delete_queue::primal_offset(buf);
-    char *t_o_ref = replication::delete_queue::timestamps_and_offsets_blob_ref(buf);
-    char *keys_ref = replication::delete_queue::keys_blob_ref(buf);
-    int keys_ref_size = replication::delete_queue::keys_blob_ref_size(cx.block_size());
-
-    check_blob(cx, t_o_ref, replication::delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE, &errs->timestamp_buf);
-    check_blob(cx, keys_ref, keys_ref_size, &errs->keys_buf);
-
-    // TODO: Analyze key alignment and make sure keys have valid sizes (> 0 and <= MAX_KEY_SIZE).
-}
-
-
 struct slice_errors {
     int global_slice_number;
     std::string home_filename;
     btree_block_t::error superblock_code;
     bool superblock_bad_magic;
 
-    delete_queue_errors delete_queue_errs;
     diff_log_errors diff_log_errs;
     subtree_errors tree_errs;
     other_block_errors other_block_errs;
@@ -1300,7 +1249,6 @@ void check_slice(slicecx_t &cx, slice_errors *errs) {
     check_and_load_diff_log(cx, &errs->diff_log_errs);
 
     block_id_t root_block_id;
-    block_id_t delete_queue_block_id;
     {
         btree_block_t btree_superblock;
         if (!btree_superblock.init(cx, SUPERBLOCK_ID)) {
@@ -1313,10 +1261,7 @@ void check_slice(slicecx_t &cx, slice_errors *errs) {
             return;
         }
         root_block_id = buf->root_block;
-        delete_queue_block_id = buf->delete_queue_block;
     }
-
-    check_delete_queue(cx, delete_queue_block_id, &errs->delete_queue_errs);
 
     if (root_block_id != NULL_BLOCK_ID) {
         check_subtree(cx, root_block_id, NULL, NULL, &errs->tree_errs);
@@ -1565,23 +1510,6 @@ void report_any_largebuf_errors(const char *name, const largebuf_error *errs) {
     }
 }
 
-bool report_delete_queue_errors(const delete_queue_errors *errs) {
-    if (errs->is_bad()) {
-        if (errs->dq_block_code != btree_block_t::none) {
-            printf("ERROR %s could not find delete queue block: %s\n", state, btree_block_t::error_name(errs->dq_block_code));
-        }
-
-        if (errs->dq_block_bad_magic) {
-            printf("ERROR %s delete queue block had bad magic\n", state);
-        }
-
-        report_any_largebuf_errors("delete queue timestamp buffer", &errs->timestamp_buf);
-        report_any_largebuf_errors("delete queue keys buffer", &errs->keys_buf);
-
-    }
-    return !errs->is_bad();
-}
-
 bool report_subtree_errors(const subtree_errors *errs) {
     if (!errs->node_errors.empty()) {
         printf("ERROR %s subtree node errors found...\n", state);
@@ -1693,11 +1621,10 @@ bool report_slice_errors(const std::string &slice_name, const slice_errors *errs
         printf("ERROR %s btree superblock had bad magic\n", state);
         return false;
     }
-    bool no_delete_queue_errors = report_delete_queue_errors(&errs->delete_queue_errs);
     bool no_diff_log_errors = report_diff_log_errors(&errs->diff_log_errs);
     bool no_subtree_errors = report_subtree_errors(&errs->tree_errs);
     bool no_other_block_errors = report_other_block_errors(&errs->other_block_errs);
-    return no_delete_queue_errors && no_diff_log_errors && no_subtree_errors && no_other_block_errors;
+    return no_diff_log_errors && no_subtree_errors && no_other_block_errors;
 }
 
 bool report_post_config_block_errors(const all_slices_errors& slices_errs) {

@@ -29,7 +29,6 @@ template <> struct stream_type<net_backfill_set_t> { typedef stream_pair<net_bac
 size_t objsize(UNUSED const net_introduce_t *buf) { return sizeof(net_introduce_t); }
 size_t objsize(UNUSED const net_backfill_t *buf) { return sizeof(net_backfill_t); }
 size_t objsize(UNUSED const net_backfill_complete_t *buf) { return sizeof(net_backfill_complete_t); }
-size_t objsize(UNUSED const net_backfill_delete_everything_t *buf) { return sizeof(net_backfill_delete_everything_t); }
 size_t objsize(UNUSED const net_timebarrier_t *buf) { return sizeof(net_timebarrier_t); }
 size_t objsize(UNUSED const net_heartbeat_t *buf) { return sizeof(net_heartbeat_t); }
 size_t objsize(const net_get_cas_t *buf) { return sizeof(net_get_cas_t) + buf->key_size; }
@@ -108,7 +107,6 @@ void replication_stream_handler_t::stream_part(const char *buf, size_t size) {
         case INTRODUCE: check_pass<net_introduce_t>(receiver_, buf, size); break;
         case BACKFILL: check_pass<net_backfill_t>(receiver_, buf, size); break;
         case BACKFILL_COMPLETE: check_pass<net_backfill_complete_t>(receiver_, buf, size); break;
-        case BACKFILL_DELETE_EVERYTHING: check_pass<net_backfill_delete_everything_t>(receiver_, buf, size); break;
         case TIMEBARRIER: check_pass<net_timebarrier_t>(receiver_, buf, size); break;
         case HEARTBEAT: check_pass<net_heartbeat_t>(receiver_, buf, size); break;
         case GET_CAS: check_pass<net_get_cas_t>(receiver_, buf, size); break;
@@ -302,11 +300,6 @@ void repli_stream_t::send(net_backfill_complete_t *msg) {
     drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(BACKFILL_COMPLETE, msg);
     flush();
-}
-
-void repli_stream_t::send(net_backfill_delete_everything_t msg) {
-    drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
-    sendobj(BACKFILL_DELETE_EVERYTHING, &msg);
 }
 
 void repli_stream_t::send(net_get_cas_t *msg) {

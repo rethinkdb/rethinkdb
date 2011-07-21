@@ -93,7 +93,6 @@ typedef value_sizer_t<memcached_value_t> memcached_value_sizer_t;
 struct btree_superblock_t {
     block_magic_t magic;
     block_id_t root_block;
-    block_id_t delete_queue_block;
 
     /* These are used for replication. replication_clock is a value that is kept synchronized
     between the master and the slave, which is updated once per second. last_sync is the value that

@@ -74,13 +74,6 @@ void backfill_storer_t::ensure_backfilling() {
     backfilling_ = true;
 }
 
-void backfill_storer_t::backfill_delete_everything(order_token_t token) {
-    print_backfill_warning_ = true;
-    ensure_backfilling();
-    block_pm_duration timer(&pm_replication_slave_backfill_enqueue);
-    backfill_queue_.push(boost::bind(&btree_key_value_store_t::delete_all_keys_for_backfill, kvs_, token));
-}
-
 void backfill_storer_t::backfill_deletion(store_key_t key, order_token_t token) {
     print_backfill_warning_ = true;
     ensure_backfilling();

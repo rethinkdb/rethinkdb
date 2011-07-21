@@ -36,14 +36,12 @@ struct shard_store_t :
 {
     shard_store_t(
         serializer_t *serializer,
-        mirrored_cache_config_t *dynamic_config,
-        int64_t delete_queue_limit);
+        mirrored_cache_config_t *dynamic_config);
 
     get_result_t get(const store_key_t &key, order_token_t token);
     rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token);
     mutation_result_t change(const mutation_t &m, order_token_t token);
     mutation_result_t change(const mutation_t &m, castime_t ct, order_token_t token);
-    void delete_all_keys_for_backfill(order_token_t token);
     void set_replication_clock(repli_timestamp_t t, order_token_t token);
 
     cache_t cache;
@@ -59,8 +57,7 @@ namespace btree_store_helpers {
         shard_store_t **shard,
         int i,
         serializer_t *serializer,
-        mirrored_cache_config_t *dynamic_config,
-        int64_t delete_queue_limit);
+        mirrored_cache_config_t *dynamic_config);
 
     void create_existing_serializer(standard_serializer_t **serializer, int i,
         log_serializer_dynamic_config_t *config,
@@ -90,8 +87,7 @@ namespace btree_store_helpers {
         shard_store_t **shards,
         int i,
         translator_serializer_t **pseudoserializers,
-        mirrored_cache_config_t *dynamic_config,
-        int64_t delete_queue_limit);
+        mirrored_cache_config_t *dynamic_config);
 
     void destroy_serializer(standard_serializer_t *serializer);
 
@@ -137,10 +133,6 @@ public:
     /* set_store_t interface */
 
     mutation_result_t change(const mutation_t &m, castime_t ct, order_token_t order_token);
-
-    /* btree_key_value_store_t interface */
-
-    void delete_all_keys_for_backfill(order_token_t token);
 
     /* The value passed to `set_timestampers()` is the value that will be used as the
     timestamp for all new operations. When the key-value store starts up, it is

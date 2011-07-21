@@ -8,7 +8,6 @@ namespace replication {
 
 struct backfill_and_realtime_streaming_callback_t {
 
-    virtual void backfill_delete_everything(order_token_t token) = 0;
     virtual void backfill_deletion(store_key_t key, order_token_t token) = 0;
     virtual void backfill_set(backfill_atom_t atom, order_token_t token) = 0;
 

@@ -39,8 +39,6 @@ private:
 
 
 struct btree_traversal_helper_t {
-    virtual void preprocess_btree_superblock(transaction_t *txn, const btree_superblock_t *superblock) = 0;
-
     // This is free to call mark_deleted.
     virtual void process_a_leaf(transaction_t *txn, buf_t *leaf_node_buf) = 0;
 
