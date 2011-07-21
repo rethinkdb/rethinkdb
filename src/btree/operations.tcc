@@ -325,6 +325,11 @@ value_txn_t<Value>::~value_txn_t() {
 }
 
 template <class Value>
+transaction_t *value_txn_t<Value>::get_txn() {
+    return kv_location->txn.get();
+}
+
+template <class Value>
 value_txn_t<Value> get_value_write(btree_slice_t *slice, btree_key_t *key, repli_timestamp_t tstamp, order_token_t token) {
     value_sizer_t<Value> sizer(slice->cache()->get_block_size());
     got_superblock_t got_superblock;

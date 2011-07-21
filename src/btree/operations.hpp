@@ -65,6 +65,7 @@ public:
     value_txn_t(const value_txn_t &);
     ~value_txn_t();
     scoped_malloc<Value> value;
+    transaction_t *get_txn();
 private:
     btree_key_t *key;
     value_sizer_t<Value> *sizer;

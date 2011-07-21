@@ -3,6 +3,7 @@
 #include "btree/node.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/blob.hpp"
+#include "containers/buffer_group.hpp"
 #include <iostream>
 #include <string>
 #include <vector>
@@ -74,65 +75,33 @@ struct redis_string_value_t : redis_value_t {
     }
 };
 
-class redis_value_sizer_t : public value_sizer_t<redis_value_t> {
+template <>
+class value_sizer_t<redis_string_value_t> {
 public:
-    redis_value_sizer_t(block_size_t bs) : value_sizer_t<redis_value_t>(bs) {}
-
-    int size(const redis_value_t *value) const {
-        size_t size = sizeof(redis_value_t);
-        switch(value->get_redis_type()) {
-        case REDIS_STRING:
-            size = reinterpret_cast<const redis_string_value_t*>(value)->inline_size();
-            break;
-        case REDIS_LIST:
-            break;
-        case REDIS_HASH:
-            break;
-        case REDIS_SET:
-            break;
-        case REDIS_SORTED_SET:
-            break;
-        }
-
-        return size;
-    }
-
-    virtual bool fits(const redis_value_t *value, int length_available) const {
-        int value_size = size(value);
-        return value_size <= length_available;
-    }
-
-    virtual int max_possible_size() const {
-        return sizeof(redis_string_value_t) + 256;
-    }
-
-    virtual block_magic_t btree_leaf_magic() const {
-        block_magic_t magic = { {'r', 'd', 's', 'l'} };
-        return magic;
-    }
-};
-
-class redis_string_value_sizer_t : public value_sizer_t<redis_string_value_t> {
-public:
-    redis_string_value_sizer_t(block_size_t bs) : value_sizer_t<redis_string_value_t>(bs) {}
+    value_sizer_t<redis_string_value_t>(block_size_t bs) : block_size_(bs) { }
 
     int size(const redis_string_value_t *value) const {
         return value->inline_size();
     }
 
-    virtual bool fits(const redis_string_value_t *value, int length_available) const {
+    bool fits(const redis_string_value_t *value, int length_available) const {
         int value_size = size(value);
         return value_size <= length_available;
     }
 
-    virtual int max_possible_size() const {
-        return sizeof(redis_string_value_t) + 256;
+    int max_possible_size() const {
+        return MAX_BTREE_VALUE_SIZE;
     }
 
-    virtual block_magic_t btree_leaf_magic() const {
-        block_magic_t magic = { {'r', 'd', 's', 'l'} };
+    block_magic_t btree_leaf_magic() const {
+        block_magic_t magic = { { 'l', 'e', 'a', 'f' } };
         return magic;
     }
+
+    block_size_t block_size() const { return block_size_; }
+
+protected:
+    block_size_t block_size_;
 };
 
 redis_actor_t::redis_actor_t(btree_slice_t *btree) :
@@ -330,7 +299,7 @@ status_result redis_actor_t::set(string &key, string &val) {
     //Construct a btree_key from our key string
     btree_key_buffer_t btree_key(key);
     value_txn_t<redis_string_value_t> txn =
-        get_value_write<redis_string_value_t, redis_string_value_sizer_t>(btree,
+        get_value_write<redis_string_value_t>(btree,
         btree_key.key(), tstamp, order_token_t::ignore);
 
     //This is a string operation so we'll assume that the value is a string value
@@ -344,17 +313,18 @@ status_result redis_actor_t::set(string &key, string &val) {
         if(!value->get_redis_type() != REDIS_STRING) {
             return redis_error("Operation against key holding wrong kind of value");
         }
+        //Clear any old contents
         blob_t blob(value->get_content(), blob::btree_maxreflen);
-        blob.unappend_region(txn, b.valuesize());
+        blob.unappend_region(txn.get_txn(), blob.valuesize());
     }
 
     redis_string_value_t *value = txn.value.get();
     value->set_redis_type(REDIS_STRING);
     blob_t blob(value->get_content(), blob::btree_maxreflen);
-    blob.append_region(txn, val.size());
+    blob.append_region(txn.get_txn(), val.size());
     buffer_group_t bg;
     boost::scoped_ptr<blob_acq_t> acq(new blob_acq_t);
-    b.expose_region(txn, rwi_write, 0, val.size(), &bg, acq.get());
+    blob.expose_region(txn.get_txn(), rwi_write, 0, val.size(), &bg, acq.get());
 
     //TODO And them somehow get the data into the exposed region, sheesh
 
