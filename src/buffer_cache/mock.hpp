@@ -120,8 +120,6 @@ public:
 
     bool contains_block(block_id_t id);
 
-    coro_fifo_t& co_begin_coro_fifo() { return co_begin_coro_fifo_; }
-
 private:
     friend class mock_transaction_t;
     friend class mock_buf_t;
@@ -137,7 +135,7 @@ private:
 
     segmented_vector_t<internal_buf_t *, MAX_BLOCK_ID> bufs;
 
-    coro_fifo_t co_begin_coro_fifo_;
+    coro_fifo_t transaction_constructor_coro_fifo_;
 };
 
 #endif /* __BUFFER_CACHE_MOCK_HPP__ */

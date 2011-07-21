@@ -65,11 +65,16 @@ struct btree_set_oper_t : public btree_modify_oper_t<memcached_value_t> {
             return true;
         }
 
-        if (value && value->has_cas()) {
-            // run_btree_modify_oper will set an actual CAS later.
-            metadata_write(&value->metadata_flags, value->contents, mcflags, exptime, 0xCA5ADDED);
-        } else {
-            metadata_write(&value->metadata_flags, value->contents, mcflags, exptime);
+        {
+            scoped_malloc<memcached_value_t> tmp(MAX_BTREE_VALUE_SIZE);
+            if (value->has_cas()) {
+                // run_btree_modify_oper will set an actual CAS later.
+                metadata_write(&tmp->metadata_flags, tmp->contents, mcflags, exptime, 0xCA5ADDED);
+            } else {
+                metadata_write(&tmp->metadata_flags, tmp->contents, mcflags, exptime);
+            }
+            memcpy(tmp->value_ref(), value->value_ref(), blob::ref_size(txn->get_cache()->get_block_size(), value->value_ref(), blob::btree_maxreflen));
+            value.swap(tmp);
         }
 
         blob_t b(value->value_ref(), blob::btree_maxreflen);

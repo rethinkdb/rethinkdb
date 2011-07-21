@@ -17,11 +17,13 @@ def run_rethinkdb(opts, test_dir, flags = [], timeout = 10):
     has_s_flag = False
     has_f_flag = False
     has_p_flag = False
+    has_md_flag = False
     for flag in flags:
         has_c_flag = has_c_flag or flag == "-c"
         has_s_flag = has_s_flag or flag == "-s"
         has_f_flag = has_f_flag or flag == "-f"
         has_p_flag = has_p_flag or flag == "-p"
+        has_md_flag = has_md_flag or flag == "--metadata-file"
     
     if not has_c_flag:
         flags += ["-c", str(opts["cores"])]
@@ -31,7 +33,9 @@ def run_rethinkdb(opts, test_dir, flags = [], timeout = 10):
         flags += ["-f", db_data_path]
     if not has_p_flag:
         flags += ["-p", str(find_unused_port())]
-        
+    if not has_md_flag:
+        flags += ["--metadata-file", os.path.join(db_data_dir, "metadata_file")]
+
     command_line = [executable_path] + flags
     
     print "Executing " + subprocess.list2cmdline(command_line)
