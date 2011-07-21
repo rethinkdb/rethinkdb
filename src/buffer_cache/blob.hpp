@@ -119,6 +119,9 @@ ref_info_t ref_info(block_size_t block_size, const char *ref, size_t maxreflen);
 // Returns the internal block ids of a non-inlined blob ref.
 const block_id_t *block_ids(const char *ref, size_t maxreflen);
 
+// Returns the char bytes of a leaf node.
+const char *leaf_node_data(const void *buf);
+
 // Returns the internal offset of the ref value, which is especially useful when it's not inlined.
 size_t ref_value_offset(const char *ref, size_t maxreflen);
 extern block_magic_t internal_node_magic;
