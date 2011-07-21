@@ -79,7 +79,9 @@ http_server_t::http_server_t(int port) {
 std::string human_readable_status(int code) {
     switch(code) {
     case 200:
-        return std::string("OK");
+        return "OK";
+    case 404:
+        return "NOT FOUND";
     default:
         unreachable();
     }
@@ -119,8 +121,11 @@ void http_server_t::handle_conn(boost::scoped_ptr<tcp_conn_t> &conn) {
         conn->pop(content_length(req));
 
         http_res_t res = handle(req);
+        res.version = req.version;
         write_http_msg(conn, res);
     }
+
+    return;
 
 PARSE_ERROR:
     http_res_t res;

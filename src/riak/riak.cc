@@ -28,8 +28,8 @@ std::string link_t::as_string() {
     return res.str();
 }
 
-riak_server_t::riak_server_t(int port)
-    : http_server_t(port)
+riak_server_t::riak_server_t(int port, store_manager_t<std::list<std::string> > *store_manager)
+    : http_server_t(port), riak_interface(store_manager)
 { }
 
 http_res_t riak_server_t::handle(const http_req_t &req) {
@@ -117,7 +117,7 @@ http_res_t riak_server_t::handle(const http_req_t &req) {
 }
 
 http_res_t riak_server_t::list_buckets(const http_req_t &) {
-    std::pair<bucket_iterator_t, bucket_iterator_t> bucket_iters = riak.buckets();
+    std::pair<bucket_iterator_t, bucket_iterator_t> bucket_iters = riak_interface.buckets();
 
     json::mObject body;
     body["buckets"] = json::mArray();
@@ -145,9 +145,14 @@ http_res_t riak_server_t::get_bucket(const http_req_t &req) {
     rassert(url_it != url_end, "This function should only be called if there's a bucket specified in the url");
 
     //grab the bucket
-    bucket_t bucket = riak.bucket_read(*url_it);
+    boost::optional<bucket_t> bucket = riak_interface.bucket_read(*url_it);
 
     http_res_t res; //the response we'll be sending
+
+    if (!bucket) {
+        res.code = 404;
+        return res;
+    }
     json::mObject body; //the json for our body
 
     if (req.find_query_param("keys") == "true" || req.find_query_param("keys") == "stream") {
@@ -158,12 +163,12 @@ http_res_t riak_server_t::get_bucket(const http_req_t &req) {
         std::vector<std::string> links;
 
         //get an iterator to the keys
-        std::pair<object_iterator_t, object_iterator_t> object_iters = riak.objects(*url_it);
+        std::pair<object_iterator_t, object_iterator_t> object_iters = riak_interface.objects(*url_it);
         object_iterator_t obj_it = object_iters.first, obj_end = object_iters.second;
 
         for(; obj_it != obj_end; obj_it++) {
             body["keys"].get_array().push_back(obj_it->key);
-            links.push_back("</riak/" + bucket.name + "/" + obj_it->key + ">; riaktag=\"contained\"");
+            links.push_back("</riak/" + bucket->name + "/" + obj_it->key + ">; riaktag=\"contained\"");
         }
 
         res.add_header_line("Link", boost::algorithm::join(links, ", "));
@@ -173,28 +178,28 @@ http_res_t riak_server_t::get_bucket(const http_req_t &req) {
         body["props"] = json::mObject();
 
         json::mObject &props = body["props"].get_obj();
-        props["name"] = bucket.name;
-        props["n_val"] = bucket.n_val;
-        props["allow_mult"] = bucket.allow_mult;
-        props["last_write_wins"] = bucket.last_write_wins;
+        props["name"] = bucket->name;
+        props["n_val"] = bucket->n_val;
+        props["allow_mult"] = bucket->allow_mult;
+        props["last_write_wins"] = bucket->last_write_wins;
         
         props["precommit"] = json::mArray();
-        for (std::vector<hook_t>::iterator it = bucket.precommit.begin(); it != bucket.precommit.end(); it++) {
+        for (std::vector<hook_t>::iterator it = bucket->precommit.begin(); it != bucket->precommit.end(); it++) {
             props["precommit"].get_array().push_back(it->code); //TODO not sure if there should be a name here or what
         }
 
         props["postcommit"] = json::mArray();
-        for (std::vector<hook_t>::iterator it = bucket.postcommit.begin(); it != bucket.postcommit.end(); it++) {
+        for (std::vector<hook_t>::iterator it = bucket->postcommit.begin(); it != bucket->postcommit.end(); it++) {
             props["postcommit"].get_array().push_back(it->code); //TODO not sure if there should be a name here or what
         }
 
 
-        props["r"] = bucket.r;
-        props["w"] = bucket.w;
-        props["dw"] = bucket.dw;
-        props["rw"] = bucket.rw;
+        props["r"] = bucket->r;
+        props["w"] = bucket->w;
+        props["dw"] = bucket->dw;
+        props["rw"] = bucket->rw;
 
-        props["backend"] = bucket.backend;
+        props["backend"] = bucket->backend;
     }
 
     res.set_body("application/json", json::write_string(json::mValue(body)));
@@ -229,7 +234,7 @@ http_res_t riak_server_t::set_bucket(const http_req_t &req) {
         json::mObject &obj = value.get_obj();
 
         // get the fucket for writing 
-        bucket_t &bucket = riak.bucket_write(*url_it);
+        bucket_t &bucket = riak_interface.bucket_write(*url_it);
 
         for (json::mObject::iterator it = obj.begin(); it != obj.end(); it++) {
             if (it->first == "n_val") {
@@ -296,7 +301,7 @@ http_res_t riak_server_t::fetch_object(const http_req_t &req) {
     std::string key = *url_it;
 
     //needs some sort of indication if the object isn't found
-    object_t obj = riak.get_object(bucket, key); //the object we're looking for
+    object_t obj = riak_interface.get_object(bucket, key); //the object we're looking for
 
     http_res_t res;
     res.set_body(obj.content_type, obj.content);
@@ -362,7 +367,7 @@ http_res_t riak_server_t::store_object(const http_req_t &req) {
     //Grab the key
     if (url_it == url_end) {
         //no key given, generate a unique one
-        obj.key = riak.gen_key();
+        obj.key = riak_interface.gen_key();
         res.add_header_line("Location", "/riak/" +  bucket + "/" + obj.key);
         res.code = 201;
     } else {
@@ -393,7 +398,7 @@ http_res_t riak_server_t::delete_object(const http_req_t &req) {
     }
     std::string key = *url_it;
 
-    if (riak.delete_object(bucket, key)) {
+    if (riak_interface.delete_object(bucket, key)) {
         res.code = 204;
     } else {
         res.code = 404;
@@ -453,7 +458,7 @@ http_res_t riak_server_t::link_walk(const http_req_t &req) {
     /* std::vector<std::pair<object_tree_iterator_t, object_tree_iterator_t> > current, next;
     typedef std::vector<std::pair<object_tree_iterator_t, object_tree_iterator_t> >::iterator oti_pair_t;
 
-    current.push_back(riak.link_walk(bucket, key, filters)); */
+    current.push_back(riak_interface.link_walk(bucket, key, filters)); */
 
     /* for (std::vector<link_filter_t>::iterator lf_it = filters.begin(); lf_it != filters.end(); lf_it++) {
     for (oti_pair cur_pair_it = current.begin(); cur_pair_it != current.end(); cur_pair_it++) {
@@ -483,7 +488,7 @@ http_res_t riak_server_t::luwak_info(const http_req_t &req) {
 
     if (req.find_query_param("props") != "false") {
         body["props"] = json::mObject();
-        luwak_props_t props = riak.luwak_props();
+        luwak_props_t props = riak_interface.luwak_props();
 
 
         body["props"].get_obj()["o_bucket"] = props.root_bucket;
@@ -493,7 +498,7 @@ http_res_t riak_server_t::luwak_info(const http_req_t &req) {
 
     if (req.find_query_param("keys") == "true" || req.find_query_param("keys") == "stream") {
         body["keys"] = json::mArray();
-        std::pair<object_iterator_t, object_iterator_t> obj_iters = riak.objects(riak.luwak_props().root_bucket);
+        std::pair<object_iterator_t, object_iterator_t> obj_iters = riak_interface.objects(riak_interface.luwak_props().root_bucket);
 
         for (object_iterator_t obj_it = obj_iters.first; obj_it != obj_iters.second; obj_it++) {
             body["keys"].get_array().push_back(obj_it->key);
@@ -524,7 +529,7 @@ http_res_t riak_server_t::luwak_fetch(const http_req_t &req) {
     //}
     //rassert(what.size() == 1 && what.captures(0).size() == 2, "Since we've successfully parsed a bytes header we should have exactly one match with exactly 2 captures");
 
-    //object_t obj = riak.get_luwak(key, what.captures(0)[0], what.captures(0)[1]);
+    //object_t obj = riak_interface.get_luwak(key, what.captures(0)[0], what.captures(0)[1]);
 
     //res.set_body(obj.content_type, obj.content);
 

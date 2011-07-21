@@ -1,6 +1,8 @@
 #ifndef __STORE_MANAGER_HPP__
 #define	__STORE_MANAGER_HPP__
 
+#include "riak/structures.hpp"
+
 /*
 Managing multiple stores involves two components:
 - a store_manager, which contains a number of store objects.
@@ -151,6 +153,37 @@ private:
     }
 };
 
+typedef riak::bucket_t riak_store_metadata_t;
+
+namespace boost {
+namespace serialization {
+template<class Archive>
+void serialize(Archive &ar, riak_store_metadata_t &m, const unsigned int) {
+    ar & m.name;
+    ar & m.n_val;
+    ar & m.allow_mult;
+    ar & m.last_write_wins;
+    ar & m.precommit;
+    ar & m.postcommit;
+    ar & m.r;
+    ar & m.w;
+    ar & m.dw; 
+    ar & m.rw;
+    ar & m.backend;
+}
+} //namespace boost
+} //namespace serialization
+
+/* struct riak_store_metadata_t {
+//obviously a lot more is going to go in here, this is just a place holder
+    int n_val;
+private:
+    friend class boost::serialization::access;
+    template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
+        ar & n_val;
+    }
+}; */
+
 // This is just some non-sense type, basically meaning "void". We can't use void
 // though, because C++ doesn't seem to consider "void values" first class values.
 // So we just use int instead (which works as long as we don't have store_metadata
@@ -158,7 +191,7 @@ private:
 typedef int invalid_variant_t;
 
 // Add your metadata types here...
-typedef boost::variant<invalid_variant_t, memcached_store_metadata_t> store_metadata_t;
+typedef boost::variant<invalid_variant_t, memcached_store_metadata_t, riak_store_metadata_t> store_metadata_t;
 
 // Add your store_config types here... (these must be serialized)
 typedef boost::variant<invalid_variant_t, btree_key_value_store_dynamic_config_t> store_config_t;
@@ -336,6 +369,15 @@ private:
 
     DISABLE_COPYING(store_manager_t);
 };
+
+namespace boost {
+namespace serialization {
+template<class Archive>
+void serialize(Archive &ar, std::list<std::string> &target, const unsigned int) {
+    ar & target;
+}
+} //namespace boost
+} //namespace serialization
 
 
 #endif	/* __STORE_MANAGER_HPP__ */
