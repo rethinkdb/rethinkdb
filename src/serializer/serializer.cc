@@ -17,6 +17,15 @@ void serializer_t::index_write(const index_write_op_t &op, file_t::account_t *io
     return index_write(ops, io_account);
 }
 
+// Blocking block_read implementation
+void serializer_t::block_read(boost::shared_ptr<block_token_t> token, void *buf, file_t::account_t *io_account) {
+    struct : public cond_t, public iocallback_t {
+        void on_io_complete() { pulse(); }
+    } cb;
+    block_read(token, buf, io_account, &cb);
+    cb.wait();
+}
+
 // Blocking block_write implementation
 boost::shared_ptr<serializer_t::block_token_t>
 serializer_t::block_write(const void *buf, file_t::account_t *io_account) {
@@ -43,19 +52,6 @@ serializer_t::block_write(const void *buf, block_id_t block_id, file_t::account_
 boost::shared_ptr<serializer_t::block_token_t>
 serializer_t::block_write(const void *buf, file_t::account_t *io_account, iocallback_t *cb) {
     return block_write(buf, NULL_BLOCK_ID, io_account, cb);
-}
-
-// do_read implementation
-static void do_read_wrapper(serializer_t *serializer, block_id_t block_id, void *buf,
-                            file_t::account_t *io_account, serializer_t::read_callback_t *callback) {
-    serializer->block_read(serializer->index_read(block_id), buf, io_account);
-    callback->on_serializer_read();
-}
-
-bool serializer_t::do_read(block_id_t block_id, void *buf, file_t::account_t *io_account, read_callback_t *callback) {
-    // Just a wrapper around the new interface. TODO: Get rid of this eventually
-    coro_t::spawn(boost::bind(&do_read_wrapper, this, block_id, buf, io_account, callback));
-    return false;
 }
 
 // do_write implementation

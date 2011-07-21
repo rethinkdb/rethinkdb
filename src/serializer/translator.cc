@@ -70,11 +70,7 @@ void create_proxies(const std::vector<serializer_t *> &underlying,
 
     /* Load config block */
     multiplexer_config_block_t *c = reinterpret_cast<multiplexer_config_block_t *>(ser->malloc());
-    struct : public serializer_t::read_callback_t, public cond_t {
-        void on_serializer_read() { pulse(); }
-    } read_cb;
-    if (!ser->do_read(CONFIG_BLOCK_ID.ser_id, c, DEFAULT_DISK_ACCOUNT, &read_cb))
-        read_cb.wait();
+    ser->block_read(ser->index_read(CONFIG_BLOCK_ID.ser_id), c, DEFAULT_DISK_ACCOUNT);
 
     /* Verify that stuff is sane */
     if (c->magic != multiplexer_config_block_t::expected_magic) {
@@ -132,10 +128,7 @@ serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<serializer_
         /* Load config block */
         multiplexer_config_block_t *c = reinterpret_cast<multiplexer_config_block_t *>(
             underlying[0]->malloc());
-        struct : public serializer_t::read_callback_t, public cond_t {
-            void on_serializer_read() { pulse(); }
-        } read_cb;
-        if (!underlying[0]->do_read(CONFIG_BLOCK_ID.ser_id, c, DEFAULT_DISK_ACCOUNT, &read_cb)) read_cb.wait();
+        underlying[0]->block_read(underlying[0]->index_read(CONFIG_BLOCK_ID.ser_id), c, DEFAULT_DISK_ACCOUNT);
 
         rassert(c->magic == multiplexer_config_block_t::expected_magic);
         creation_timestamp = c->creation_timestamp;
@@ -230,6 +223,10 @@ translator_serializer_t::block_write(const void *buf, block_id_t block_id, file_
 boost::shared_ptr<serializer_t::block_token_t>
 translator_serializer_t::block_write(const void *buf, file_t::account_t *io_account, iocallback_t *cb) {
     return inner->block_write(buf, io_account, cb);
+}
+
+void translator_serializer_t::block_read(boost::shared_ptr<block_token_t> token, void *buf, file_t::account_t *io_account, iocallback_t *cb) {
+    return inner->block_read(token, buf, io_account, cb);
 }
 
 void translator_serializer_t::block_read(boost::shared_ptr<block_token_t> token, void *buf, file_t::account_t *io_account) {

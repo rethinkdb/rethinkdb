@@ -196,17 +196,17 @@ mock_cache_t::mock_cache_t( serializer_t *serializer, UNUSED mirrored_cache_conf
 {
     on_thread_t switcher(serializer->home_thread());
 
-    struct : public serializer_t::read_callback_t, public drain_semaphore_t {
-        void on_serializer_read() { release(); }
+    struct : public iocallback_t, public drain_semaphore_t {
+        void on_io_complete() { release(); }
     } read_cb;
 
     block_id_t end_block_id = serializer->max_block_id();
     bufs.set_size(end_block_id, NULL);
     for (block_id_t i = 0; i < end_block_id; i++) {
         if (!serializer->get_delete_bit(i)) {
-            internal_buf_t *internal_buf = new internal_buf_t(this, i, serializer->get_recency(i));
-            bufs[i] = internal_buf;
-            if (!serializer->do_read(i, internal_buf->data, DEFAULT_DISK_ACCOUNT, &read_cb)) read_cb.acquire();
+            internal_buf_t *internal_buf = bufs[i] = new internal_buf_t(this, i, serializer->get_recency(i));
+            read_cb.acquire();
+            serializer->block_read(serializer->index_read(i), internal_buf, DEFAULT_DISK_ACCOUNT, &read_cb);
         }
     }
 

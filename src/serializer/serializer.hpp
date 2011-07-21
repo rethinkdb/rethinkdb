@@ -52,9 +52,11 @@ struct serializer_t :
     };
 
     /* Reading a block from the serializer */
+    // Non-blocking variant
+    virtual void block_read(boost::shared_ptr<block_token_t> token, void *buf, file_t::account_t *io_account, iocallback_t *cb) = 0;
 
-    /* Require coroutine context, block until data is available */
-    virtual void block_read(boost::shared_ptr<block_token_t> token, void *buf, file_t::account_t *io_account) = 0;
+    // Blocking variant (requires coroutine context). Has default implementation.
+    virtual void block_read(boost::shared_ptr<block_token_t> token, void *buf, file_t::account_t *io_account);
 
     /* The index stores three pieces of information for each ID:
      * 1. A pointer to a data block on disk (which may be NULL)
@@ -99,8 +101,8 @@ struct serializer_t :
 
     /* Non-blocking variants */
     virtual boost::shared_ptr<block_token_t> block_write(const void *buf, block_id_t block_id, file_t::account_t *io_account, iocallback_t *cb) = 0;
-    // it is required that `block_write(buf, acct, cb)` behaves identically to `block_write(buf,
-    // NULL_BLOCK_ID, acct, cb)`. a default implementation is provided that uses this.
+    // `block_write(buf, acct, cb)` must behave identically to `block_write(buf, NULL_BLOCK_ID, acct, cb)`
+    // a default implementation is provided using this
     virtual boost::shared_ptr<block_token_t> block_write(const void *buf, file_t::account_t *io_account, iocallback_t *cb);
 
     /* Blocking variants (use in coroutine context) with and without known block_id */
@@ -110,28 +112,10 @@ struct serializer_t :
 
     virtual block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf) = 0;
 
-    /* TODO: The following part is all just wrapper code. It should be removed eventually */
-
-    /* DEPRECATED wrapper code begins here! */
-
-    // TODO: Remove this legacy interface at some point
-    struct read_callback_t {
-        virtual void on_serializer_read() = 0;
-        virtual ~read_callback_t() {}
-    };
-
-    /*
-    do_read() is DEPRECATED.
-    Please use block_read(index_read(...), ...) to get the same functionality
-    in a coroutine aware manner
-    */
-    bool do_read(block_id_t block_id, void *buf, file_t::account_t *io_account, read_callback_t *callback);
-    /* DEPRECATED wrapper code ends here! */
-
     // New do_write interface
     struct writes_launched_callback_t {
         virtual void on_writes_launched() = 0;
-        virtual ~writes_launched_callback_t() {};
+        virtual ~writes_launched_callback_t() {}
     };
     struct write_t {
         block_id_t block_id;
