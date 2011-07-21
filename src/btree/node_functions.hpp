@@ -17,6 +17,16 @@ void split(value_sizer_t<Value> *sizer, buf_t *node_buf, buf_t *rnode_buf, btree
     }
 }
 
+template <class Value>
+void merge(value_sizer_t<Value> *sizer, const node_t *node, buf_t *rnode_buf, btree_key_t *key_to_remove, const internal_node_t *parent) {
+    if (is_leaf(node)) {
+        leaf::merge(sizer, reinterpret_cast<const leaf_node_t *>(node), rnode_buf, key_to_remove);
+    } else {
+        internal_node::merge(sizer->block_size(), reinterpret_cast<const internal_node_t *>(node), rnode_buf, key_to_remove, parent);
+    }
+}
+
+
 }  // namespace node
 
 

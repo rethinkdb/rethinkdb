@@ -100,10 +100,12 @@ void check_and_handle_split(value_sizer_t<Value> *sizer, transaction_t *txn, buf
 }
 
 // Merge or level the node if necessary.
-inline void check_and_handle_underfull(transaction_t *txn, buf_lock_t& buf, buf_lock_t& last_buf, buf_lock_t& sb_buf,
-                                const btree_key_t *key, block_size_t block_size) {
+template <class Value>
+void check_and_handle_underfull(value_sizer_t<Value> *sizer, transaction_t *txn,
+                                buf_lock_t& buf, buf_lock_t& last_buf, buf_lock_t& sb_buf,
+                                const btree_key_t *key) {
     const node_t *node = reinterpret_cast<const node_t *>(buf->get_data_read());
-    if (last_buf.is_acquired() && node::is_underfull(block_size, node)) { // The root node is never underfull.
+    if (last_buf.is_acquired() && node::is_underfull(sizer->block_size(), node)) { // The root node is never underfull.
 
         const internal_node_t *parent_node = reinterpret_cast<const internal_node_t *>(last_buf->get_data_read());
 
@@ -116,28 +118,28 @@ inline void check_and_handle_underfull(transaction_t *txn, buf_lock_t& buf, buf_
         const node_t *sib_node = reinterpret_cast<const node_t *>(sib_buf->get_data_read());
 
 #ifndef NDEBUG
-        node::validate(block_size, sib_node);
+        node::validate(sizer->block_size(), sib_node);
 #endif
 
-        if (node::is_mergable(block_size, node, sib_node, parent_node)) { // Merge.
+        if (node::is_mergable(sizer->block_size(), node, sib_node, parent_node)) { // Merge.
 
             // This is the key that we remove.
             btree_key_buffer_t key_to_remove_buffer;
             btree_key_t *key_to_remove = key_to_remove_buffer.key();
 
             if (nodecmp_node_with_sib < 0) { // Nodes must be passed to merge in ascending order.
-                node::merge(block_size, node, sib_buf.buf(), key_to_remove, parent_node);
+                node::merge(sizer, node, sib_buf.buf(), key_to_remove, parent_node);
                 buf->mark_deleted();
                 buf.swap(sib_buf);
             } else {
-                node::merge(block_size, sib_node, buf.buf(), key_to_remove, parent_node);
+                node::merge(sizer, sib_node, buf.buf(), key_to_remove, parent_node);
                 sib_buf->mark_deleted();
             }
 
             sib_buf.release();
 
             if (!internal_node::is_singleton(parent_node)) {
-                internal_node::remove(block_size, last_buf.buf(), key_to_remove);
+                internal_node::remove(sizer->block_size(), last_buf.buf(), key_to_remove);
             } else {
                 // The parent has only 1 key after the merge (which means that
                 // it's the root and our node is its only child). Insert our
@@ -150,7 +152,7 @@ inline void check_and_handle_underfull(transaction_t *txn, buf_lock_t& buf, buf_
             btree_key_t *key_to_replace = key_to_replace_buffer.key();
             btree_key_t *replacement_key = replacement_key_buffer.key();
 
-            bool leveled = node::level(block_size, buf.buf(), sib_buf.buf(), key_to_replace, replacement_key, parent_node);
+            bool leveled = node::level(sizer->block_size(), buf.buf(), sib_buf.buf(), key_to_replace, replacement_key, parent_node);
 
             if (leveled) {
                 internal_node::update_key(last_buf.buf(), key_to_replace, replacement_key);
@@ -190,7 +192,7 @@ void find_keyvalue_location_for_write(value_sizer_t<Value> *sizer, got_superbloc
         // Check if the node is overfull and proactively split it if it is (since this is an internal node).
         check_and_handle_split(sizer, keyvalue_location_out->txn.get(), buf, last_buf, keyvalue_location_out->sb_buf, key, reinterpret_cast<memcached_value_t *>(NULL), keyvalue_location_out->txn->get_cache()->get_block_size());
         // Check if the node is underfull, and merge/level if it is.
-        check_and_handle_underfull(keyvalue_location_out->txn.get(), buf, last_buf, keyvalue_location_out->sb_buf, key, keyvalue_location_out->txn->get_cache()->get_block_size());
+        check_and_handle_underfull(sizer, keyvalue_location_out->txn.get(), buf, last_buf, keyvalue_location_out->sb_buf, key);
 
         // Release the superblock, if we've gone past the root (and haven't
         // already released it). If we're still at the root or at one of
@@ -311,7 +313,7 @@ void apply_keyvalue_change(value_sizer_t<Value> *sizer, keyvalue_location_t<Valu
 
     // Check to see if the leaf is underfull (following a change in
     // size or a deletion, and merge/level if it is.
-    check_and_handle_underfull(kv_loc->txn.get(), kv_loc->buf, kv_loc->last_buf, kv_loc->sb_buf, key, kv_loc->txn->get_cache()->get_block_size());
+    check_and_handle_underfull(sizer, kv_loc->txn.get(), kv_loc->buf, kv_loc->last_buf, kv_loc->sb_buf, key);
 }
 
 template <class Value>

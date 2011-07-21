@@ -36,14 +36,6 @@ int nodecmp(const node_t *node1, const node_t *node2) {
     }
 }
 
-void merge(block_size_t block_size, const node_t *node, buf_t *rnode_buf, btree_key_t *key_to_remove, const internal_node_t *parent) {
-    if (is_leaf(node)) {
-        memcached_value_sizer_t sizer(block_size);
-        leaf::merge<memcached_value_t>(&sizer, reinterpret_cast<const leaf_node_t *>(node), rnode_buf, key_to_remove);
-    } else {
-        internal_node::merge(block_size, reinterpret_cast<const internal_node_t *>(node), rnode_buf, key_to_remove, parent);
-    }
-}
 
 bool level(block_size_t block_size, buf_t *node_buf, buf_t *rnode_buf, btree_key_t *key_to_replace, btree_key_t *replacement_key, const internal_node_t *parent) {
     if (is_leaf(reinterpret_cast<const node_t *>(node_buf->get_data_read()))) {
