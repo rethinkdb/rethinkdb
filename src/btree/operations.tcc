@@ -48,7 +48,7 @@ void get_root(value_sizer_t<Value> *sizer, transaction_t *txn, buf_lock_t& sb_bu
 // split internal nodes proactively).
 template <class Value>
 void check_and_handle_split(value_sizer_t<Value> *sizer, transaction_t *txn, buf_lock_t& buf, buf_lock_t& last_buf, buf_lock_t& sb_buf,
-                            const btree_key_t *key, Value *new_value, block_size_t block_size) {
+                            const btree_key_t *key, Value *new_value) {
     txn->assert_thread();
 
     const node_t *node = reinterpret_cast<const node_t *>(buf->get_data_read());
@@ -79,12 +79,12 @@ void check_and_handle_split(value_sizer_t<Value> *sizer, transaction_t *txn, buf
     if (!last_buf.is_acquired()) {
         // We're splitting what was previously the root, so create a new root to use as the parent.
         last_buf.allocate(txn);
-        internal_node::init(block_size, last_buf.buf());
+        internal_node::init(sizer->block_size(), last_buf.buf());
 
         insert_root(last_buf->get_block_id(), sb_buf);
     }
 
-    bool success __attribute__((unused)) = internal_node::insert(block_size, last_buf.buf(), median, buf->get_block_id(), rbuf->get_block_id());
+    bool success __attribute__((unused)) = internal_node::insert(sizer->block_size(), last_buf.buf(), median, buf->get_block_id(), rbuf->get_block_id());
     rassert(success, "could not insert internal btree node");
 
     // We've split the node; now figure out where the key goes and release the other buf (since we're done with it).
@@ -190,7 +190,7 @@ void find_keyvalue_location_for_write(value_sizer_t<Value> *sizer, got_superbloc
     // Walk down the tree to the leaf.
     while (node::is_internal(reinterpret_cast<const node_t *>(buf->get_data_read()))) {
         // Check if the node is overfull and proactively split it if it is (since this is an internal node).
-        check_and_handle_split(sizer, keyvalue_location_out->txn.get(), buf, last_buf, keyvalue_location_out->sb_buf, key, reinterpret_cast<memcached_value_t *>(NULL), keyvalue_location_out->txn->get_cache()->get_block_size());
+        check_and_handle_split(sizer, keyvalue_location_out->txn.get(), buf, last_buf, keyvalue_location_out->sb_buf, key, reinterpret_cast<memcached_value_t *>(NULL));
         // Check if the node is underfull, and merge/level if it is.
         check_and_handle_underfull(sizer, keyvalue_location_out->txn.get(), buf, last_buf, keyvalue_location_out->sb_buf, key);
 
@@ -300,7 +300,7 @@ void apply_keyvalue_change(value_sizer_t<Value> *sizer, keyvalue_location_t<Valu
         // for the value.  Not necessary when deleting, because the
         // node won't grow.
 
-        check_and_handle_split(sizer, kv_loc->txn.get(), kv_loc->buf, kv_loc->last_buf, kv_loc->sb_buf, key, kv_loc->value.get(), kv_loc->txn->get_cache()->get_block_size());
+        check_and_handle_split(sizer, kv_loc->txn.get(), kv_loc->buf, kv_loc->last_buf, kv_loc->sb_buf, key, kv_loc->value.get());
 
         bool success = leaf::insert(sizer, kv_loc->buf.buf(), key, kv_loc->value.get(), tstamp);
         guarantee(success, "could not insert into leaf btree node");
