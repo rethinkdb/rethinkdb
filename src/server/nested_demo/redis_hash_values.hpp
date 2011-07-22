@@ -143,6 +143,11 @@ bool redis_demo_hash_value_t::hdel(value_sizer_t<redis_demo_hash_value_t> *super
     // Update the nested root id (in case the root got removed)
     nested_root = kv_location.sb->get_root_block_id();
 
+    if (kv_location.there_originally_was_value) {
+        rassert(size > 0);
+        --size;
+    }
+
     return kv_location.there_originally_was_value;
 }
 
@@ -169,6 +174,10 @@ bool redis_demo_hash_value_t::hset(value_sizer_t<redis_demo_hash_value_t> *super
 
     // Update the nested root id (in case this was the first field and a root got added)
     nested_root = kv_location.sb->get_root_block_id();
+
+    if (!kv_location.there_originally_was_value) {
+        ++size;
+    }
 
     return !kv_location.there_originally_was_value;
 }
@@ -197,12 +206,20 @@ void redis_demo_hash_value_t::clear(value_sizer_t<redis_demo_hash_value_t> *supe
 
     // Delete all keys
     nested_btree_sb.reset(new virtual_superblock_t(nested_root));
-    scoped_malloc<btree_key_t> btree_key;
     for (size_t i = 0; i < keys.size(); ++i) {
+        fprintf(stderr, "Deleting %s\n", keys[i].c_str());
         hdel(super_sizer, transaction, keys[i]);
     }
 
     // All subtree blocks should have been deleted
+    rassert(size == 0);
+
+    // Now delete the root if we still have one
+    if (nested_root != NULL_BLOCK_ID) {
+        buf_lock_t root_buf(transaction.get(), nested_root, rwi_write);
+        root_buf.buf()->mark_deleted();
+        nested_root = NULL_BLOCK_ID;
+    }
     rassert(nested_root == NULL_BLOCK_ID);
 }
 

@@ -443,12 +443,38 @@ void nested_demo_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             demo_hash_value.nested_root = NULL_BLOCK_ID;
             demo_hash_value.size = 0;
             {
+                // (flush logs)
+                on_thread_t thread(shard->home_thread());
+                coro_t::yield();
+            }
+            {
                 on_thread_t thread(shard->home_thread());
 
                 boost::shared_ptr<transaction_t> transaction(new transaction_t(&shard->cache, rwi_write, 1, repli_timestamp_t::invalid));
                 value_sizer_t<redis_demo_hash_value_t> sizer(shard->cache.get_block_size());
 
                 demo_hash_value.hset(&sizer, transaction, "field_1", "value_1");
+                demo_hash_value.hset(&sizer, transaction, "field_2", "value_2");
+
+                rassert(demo_hash_value.hexists(&sizer, transaction, "field_1"));
+                rassert(demo_hash_value.hexists(&sizer, transaction, "field_2"));
+                rassert(!demo_hash_value.hexists(&sizer, transaction, "field_3"));
+
+                boost::shared_ptr<one_way_iterator_t<std::pair<std::string, std::string> > > iter = demo_hash_value.hgetall(&sizer, transaction, shard->home_thread());
+                fprintf(stderr, "\nHash contents:\n");
+                while (true) {
+                    boost::optional<std::pair<std::string, std::string> > next = iter->next();
+                    if (next) {
+                        fprintf(stderr, "\t%s -> %s\n", next->first.c_str(), next->second.c_str());
+                    } else {
+                        break;
+                    }
+                }
+                iter.reset();
+
+                demo_hash_value.clear(&sizer, transaction, shard->home_thread());
+                rassert(!demo_hash_value.hexists(&sizer, transaction, "field_1"));
+                rassert(!demo_hash_value.hexists(&sizer, transaction, "field_2"));
             }
 
             /* TODO!
