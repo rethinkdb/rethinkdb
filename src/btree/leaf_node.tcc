@@ -161,9 +161,8 @@ bool lookup(value_sizer_t<Value> *sizer, const leaf_node_t *node, const btree_ke
 // comfortable.  TODO: prove that block_size - node->frontmost_offset
 // meets this 1500 lower bound.
 template <class Value>
-void split(value_sizer_t<Value> *sizer, buf_t *node_buf, buf_t *rnode_buf, btree_key_t *median_out) {
+void split(value_sizer_t<Value> *sizer, buf_t *node_buf, leaf_node_t *rnode, btree_key_t *median_out) {
     const leaf_node_t *node = reinterpret_cast<const leaf_node_t *>(node_buf->get_data_read());
-    leaf_node_t *rnode = reinterpret_cast<leaf_node_t *>(rnode_buf->get_data_major_write());
 
     rassert(node != rnode);
 
