@@ -9,11 +9,11 @@
 namespace node {
 
 template <class Value>
-void split(value_sizer_t<Value> *sizer, buf_t *node_buf, buf_t *rnode_buf, btree_key_t *median) {
+void split(value_sizer_t<Value> *sizer, buf_t *node_buf, node_t *rnode, btree_key_t *median) {
     if (is_leaf(reinterpret_cast<const node_t *>(node_buf->get_data_read()))) {
-        leaf::split(sizer, node_buf, reinterpret_cast<leaf_node_t *>(rnode_buf->get_data_major_write()), median);
+        leaf::split(sizer, node_buf, reinterpret_cast<leaf_node_t *>(rnode), median);
     } else {
-        internal_node::split(sizer->block_size(), node_buf, reinterpret_cast<internal_node_t *>(rnode_buf->get_data_major_write()), median);
+        internal_node::split(sizer->block_size(), node_buf, reinterpret_cast<internal_node_t *>(rnode), median);
     }
 }
 
