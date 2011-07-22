@@ -269,21 +269,11 @@ void find_keyvalue_location_for_read(value_sizer_t<Value> *sizer, got_superblock
 
     // Got down to the leaf, now probe it.
     const leaf_node_t *leaf = reinterpret_cast<const leaf_node_t *>(buf->get_data_read());
-    int key_index = leaf::impl::find_key(leaf, key);
-
-    if (key_index == leaf::impl::key_not_found) {
-        return;
-    }
-
-    const Value *value = leaf::get_pair_by_index<Value>(leaf, key_index)->value();
-
-    keyvalue_location_out->buf.swap(buf);
-    keyvalue_location_out->there_originally_was_value = true;
-    {
-        int n = sizer->size(value);
-        scoped_malloc<Value> tmp(n);
-        memcpy(tmp.get(), value, n);
-        keyvalue_location_out->value.swap(tmp);
+    scoped_malloc<Value> value(sizer->max_possible_size());
+    if (leaf::lookup(sizer, leaf, key, value.get())) {
+        keyvalue_location_out->buf.swap(buf);
+        keyvalue_location_out->there_originally_was_value = true;
+        keyvalue_location_out->value.swap(value);
     }
 }
 
