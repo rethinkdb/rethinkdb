@@ -132,7 +132,7 @@ public:
     //Used to iterate over an exposed region of a blob
     class iterator {
     public:
-        iterator(boost::shared_ptr<buffer_group_t>, boost::shared_ptr<blob_acq_t>, int64_t);
+        iterator(boost::shared_ptr<buffer_group_t>, boost::shared_ptr<blob_acq_t>);
         iterator(const iterator &);
         char& operator*();
         void operator++();
@@ -143,8 +143,6 @@ public:
 
         boost::shared_ptr<buffer_group_t> bg;
         boost::shared_ptr<blob_acq_t> acq;
-        int64_t exposed_size;
-        int64_t traversed;
 
         buffer_group_t::buffer_t current_buffer;
         unsigned cur_buffer_index;
