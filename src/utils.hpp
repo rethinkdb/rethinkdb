@@ -165,7 +165,7 @@ public:
     void assert_thread() const { }
 #endif  // NDEBUG
 
-    virtual void rethread(int thread);
+    void rethread(int thread);
 
     struct rethread_t {
         rethread_t(home_thread_mixin_t *m, int thread);
