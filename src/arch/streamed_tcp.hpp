@@ -1,17 +1,18 @@
 #ifndef __ARCH_STREAMED_TCP_HPP__
 #define __ARCH_STREAMED_TCP_HPP__
 
-/* This file contains an std::streambuf implementation that works 
+/* This file contains an std::streambuf implementation that works
 with a tcp_conn_t object. This allows us to create std::ostream and std::istream
 objects that interact directly with a tcp_conn_t TCP connection. For example
-boost serialize requires streams for serializing data. 
+boost serialize requires streams for serializing data.
 This implementation does read buffering itself (where the buffering logic is
 inherited from basic_streambuf). This is mostly because linux_tcp_conn_t::pop
 is badly implemented and basic_streambuf has that logic implemented anyway.
 Eventually we should rather fix buffering in the tcp_conn_t implementation and
 make this synchronous. */
 
-#include <iostream>
+#include <istream>
+#include <ostream>
 #include <boost/scoped_ptr.hpp>
 #include <streambuf>
 #include "arch/arch.hpp"
@@ -21,19 +22,38 @@ make this synchronous. */
  tcp_conn_t.
  In the long term, this might become a replacement for the public tcp_conn_t
  interface.
+
+ There is a reason for why we don't derive from std::istream and std::ostream
+ directly: Both classes inherit virtually from std::ios. However we want
+ their sync()s to behave differently, namely it should be a no-op for the istream
+ and actually flush changed data out for the ostream.
+ Now because both have virtual inheritance from std::ios, they would share a
+ streambuf pointer, therefore making it impossible to provide different
+ implementations of sync().
 */
 
-class streamed_tcp_conn_t : public std::iostream {
+class streamed_tcp_conn_t {
 public:
     streamed_tcp_conn_t(const char *host, int port) :
-            std::iostream(&conn_streambuf),
             conn_(new tcp_conn_t(host, port)),
-            conn_streambuf(conn_.get()) {
+            conn_streambuf_in(conn_.get()),
+            conn_streambuf_out(conn_.get()),
+            istream(&conn_streambuf_in),
+            ostream(&conn_streambuf_out) {
     }
     streamed_tcp_conn_t(const ip_address_t &host, int port) :
-            std::iostream(&conn_streambuf),
             conn_(new tcp_conn_t(host, port)),
-            conn_streambuf(conn_.get()) {
+            conn_streambuf_in(conn_.get()),
+            conn_streambuf_out(conn_.get()),
+            istream(&conn_streambuf_in),
+            ostream(&conn_streambuf_out) {
+    }
+
+    std::istream &get_istream() {
+        return istream;
+    }
+    std::ostream &get_ostream() {
+        return ostream;
     }
 
     // TODO: The following might already have equivalents in std::iostream, which we should
@@ -68,21 +88,20 @@ private:
      This implements the actual streambuf object. It is buffered, so it's *not*
      safe to also use the read and write functionality of the underlying tcp_conn_t
      object at the same time. This is why we make this private to streamed_tcp_conn_t.
+
+     Additionally, we split the streambuf up into an input and output streambuf.
+     This is so that the input streambuf can ignore calls to sync(), which would
+     interfere with sync()s on the output streambuf if both were the same.
      */
-    class tcp_conn_streambuf_t : public std::basic_streambuf<char, std::char_traits<char> > {
+    class tcp_conn_streambuf_in_t : public std::basic_streambuf<char, std::char_traits<char> > {
     public:
-        tcp_conn_streambuf_t(tcp_conn_t *conn) : conn(conn) {
+        tcp_conn_streambuf_in_t(tcp_conn_t *conn) : conn(conn) {
             // Initialize basic_streambuf, with gets being buffered and puts being unbuffered
             setg(&get_buf[0], &get_buf[0], &get_buf[0]);
             setp(0, 0);
-            unsynced_write = false;
         }
 
-    private:
-        tcp_conn_t *conn;
-
     protected:
-        // Implementation of basic_streambuf methods
         virtual int underflow() {
             if (gptr() >= egptr()) {
                 // No data left in buffer, retrieve new data
@@ -100,57 +119,109 @@ private:
             return std::char_traits<char>::not_eof(i);
         }
 
+        virtual int overflow(UNUSED int i = std::char_traits<char>::eof()) {
+            fprintf(stderr, "overflow called on in stream!\n");
+            return std::char_traits<char>::eof();
+        }
+
+        virtual int sync() {
+            // There's nothing to do for input streams
+            return 0;
+        }
+
+    private:
+        DISABLE_COPYING(tcp_conn_streambuf_in_t);
+
+        tcp_conn_t *conn;
+
+        // Read buffer
+        static const size_t GET_BUF_LENGTH = 512;
+        char get_buf[GET_BUF_LENGTH];
+    };
+
+    class tcp_conn_streambuf_out_t : public std::basic_streambuf<char, std::char_traits<char> > {
+    public:
+        tcp_conn_streambuf_out_t(tcp_conn_t *conn) : conn(conn) {
+            setg(0, 0, 0);
+            setp(&put_buf[0], &put_buf[PUT_BUF_LENGTH]);
+            we_are_syncing = false;
+        }
+
+    protected:
+        virtual int underflow() {
+            crash("underflow called on out stream!\n");
+            fprintf(stderr, "underflow called on out stream!\n");
+            return std::char_traits<char>::eof();
+        }
+
         virtual int overflow(int i = std::char_traits<char>::eof()) {
             if (!conn->is_write_open()) {
                 return std::char_traits<char>::eof();
             } else if (i == std::char_traits<char>::eof()) {
                 return std::char_traits<char>::not_eof(i);
             } else {
-                char c = static_cast<char>(i);
-                rassert(static_cast<int>(c) == i);
-                try {
-                    unsynced_write = true;
-                    conn->write_buffered(&c, 1);
-                } catch (tcp_conn_t::write_closed_exc_t &e) {
+                // First flush out the current buffer and then put c on the buffer.
+                if (sync() != 0) {
                     return std::char_traits<char>::eof();
                 }
+                char c = std::char_traits<char>::to_char_type(i);
+                rassert(std::char_traits<char>::to_int_type(c) == i, "cannot safely cast %d to char and back", i);
+                rassert(pptr() < epptr()); // We just ran sync(), so there should be space
+                *pptr() = c;
+                pbump(1);
                 return std::char_traits<char>::not_eof(i);
             }
         }
 
         virtual int sync() {
+            rassert(!we_are_syncing);
+            we_are_syncing = true;
             try {
+                rassert(pptr() >= pbase());
+                char *pptr_when_starting = pptr();
+                size_t size = static_cast<size_t>(pptr_when_starting - pbase());
                 // Only flush if necessary...
-                if (unsynced_write) {
-                    conn->flush_buffer();
-                    unsynced_write = false;
+                if (size > 0) {
+                    conn->write(pbase(), size);
+                    rassert(pptr() == pptr_when_starting, "Write happened while syncing?!");
+                    setp(&put_buf[0], &put_buf[PUT_BUF_LENGTH]);
                 }
+                we_are_syncing = false;
                 return 0;
             } catch (tcp_conn_t::write_closed_exc_t &e) {
+                we_are_syncing = false;
                 return -1;
             }
         }
 
     private:
-        DISABLE_COPYING(tcp_conn_streambuf_t);
+        DISABLE_COPYING(tcp_conn_streambuf_out_t);
 
-        // Read buffer
-        static const size_t GET_BUF_LENGTH = 512;
-        char get_buf[GET_BUF_LENGTH];
+        tcp_conn_t *conn;
 
-        bool unsynced_write;
+        // Write buffer
+        // TODO: Do we have to tune this?
+        static const size_t PUT_BUF_LENGTH = 512;
+        char put_buf[PUT_BUF_LENGTH];
+
+        bool we_are_syncing;
     };
 
     friend class streamed_tcp_listener_t;
     // Used by streamed_tcp_listener_t
     explicit streamed_tcp_conn_t(boost::scoped_ptr<tcp_conn_t> &conn) :
-            std::iostream(&conn_streambuf),
-            conn_streambuf(conn.get()) {
+            conn_streambuf_in(conn.get()),
+            conn_streambuf_out(conn.get()),
+            istream(&conn_streambuf_in),
+            ostream(&conn_streambuf_out) {
         conn_.swap(conn);
     }
 
     boost::scoped_ptr<tcp_conn_t> conn_;
-    tcp_conn_streambuf_t conn_streambuf;
+    tcp_conn_streambuf_in_t conn_streambuf_in;
+    tcp_conn_streambuf_out_t conn_streambuf_out;
+    std::istream istream;
+    std::ostream ostream;
 };
 
 /*
