@@ -977,9 +977,9 @@ void check_blob(slicecx_t& cx, const char *ref, int maxreflen, largebuf_error *e
             int levels = blob::ref_info(cx.block_size(), ref, maxreflen).levels;
 
             check_blob_children(cx, levels, blob::block_ids(ref, maxreflen), offset, value_size, errs);
-        }
 
-        return;
+            return;
+        }
     }
 
     errs->bogus_ref = true;

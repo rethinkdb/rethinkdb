@@ -2,7 +2,7 @@
 #include <vector>
 
 #include "unittest/gtest.hpp"
-#include "unittest/buf_helpers.hpp"
+#include "unittest/server_test_helper.hpp"
 
 #include "btree/node.hpp"
 #include "logger.hpp"
@@ -218,7 +218,7 @@ private:
 
 class LeafNodeGrinder {
 public:
-    LeafNodeGrinder(int block_size) : sizer(block_size_t::unsafe_make(block_size)), bs(block_size_t::unsafe_make(block_size)), expected(), expected_frontmost_offset(bs.value()), expected_npairs(0), node_buf(new test_buf_t(bs, 1)), initialized(false) {
+    LeafNodeGrinder(transaction_t *txn) : sizer(txn->get_cache()->get_block_size()), bs(txn->get_cache()->get_block_size()), expected(), expected_frontmost_offset(bs.value()), expected_npairs(0), node_buf(txn->allocate()), initialized(false) {
         node = reinterpret_cast<leaf_node_t *>(node_buf->get_data_major_write());
     }
 
@@ -472,7 +472,7 @@ public:
     expected_t expected;
     int expected_frontmost_offset;
     int expected_npairs;
-    test_buf_t *node_buf;
+    buf_t *node_buf;
     leaf_node_t *node;
     bool initialized;
 
@@ -543,132 +543,107 @@ void fill_nonsense(LeafNodeGrinder& gr, const char *prefix) {
     fill_nonsense(gr, prefix, gr.expected_space());
 }
 
-TEST(LeafNodeTest, Initialization) {
-    LeafNodeGrinder gr(4096);
-
-    gr.init();
-}
-
-void InsertRemoveHelper(const std::string& key, const char *value) {
-    SCOPED_TRACE(std::string("InsertRemoveHelper(key='") + key + "' value='" + value + "'");
-
-    LeafNodeGrinder gr(4096);
-
-    gr.init();
-    gr.insert(key, Value(value));
-    gr.remove(key);
-}
-
-TEST(LeafNodeTest, InsertRemoveOnce) {
-    InsertRemoveHelper("the_key", "the_value");
-    InsertRemoveHelper("the_key", "");
-    InsertRemoveHelper("", "the_value");
-    InsertRemoveHelper("", "");
-}
-
-
-TEST(LeafNodeTest, Crazy) {
-    /*
-    LeafNodeGrinder gr(4096);
-    gr.init();
-
-    const int m = 500;
-
-    for (int i = 0; i < m; ++i) {
-        std::string s = format(i);
-
-        gr.insert_nocheck(format(i), format(i * i));
-    }
-    gr.validate();
-
-    for (int i = 0; i < m; i += 2) {
-        gr.try_remove(format(i));
+class leaf_node_tester_t : public server_test_helper_t {
+    void run_tests(cache_t *cache) {
+        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past);
+        test_initialization(&txn);
+        test_insert_remove(&txn);
+        test_merging(&txn);
+        test_leveling(&txn);
     }
 
-    for (int i = 0; i < m; i += 4) {
-        gr.insert_nocheck(format(i), format(i * i * i));
-    }
-    gr.validate();
+    void test_initialization(transaction_t *txn) {
+        LeafNodeGrinder gr(txn);
 
-    for (int i = 0; i < m; i += 8) {
-        gr.try_remove(format(i));
+        gr.init();
     }
 
-    for (int i = 0; i < m; ++i) {
-        gr.insert_nocheck(format(i), format(i * i + i));
+    void InsertRemoveHelper(transaction_t *txn, const std::string& key, const char *value) {
+        SCOPED_TRACE(std::string("InsertRemoveHelper(key='") + key + "' value='" + value + "'");
+
+        LeafNodeGrinder gr(txn);
+
+        gr.init();
+        gr.insert(key, Value(value));
+        gr.remove(key);
     }
-    gr.validate();
 
-    gr.remove_all();
-    */
+    void test_insert_remove(transaction_t *txn) {
+        InsertRemoveHelper(txn, "the_key", "the_value");
+        InsertRemoveHelper(txn, "the_key", "");
+        InsertRemoveHelper(txn, "", "the_value");
+        InsertRemoveHelper(txn, "", "");
+    }
+
+    void test_merging(transaction_t *txn) {
+
+        LeafNodeGrinder x(txn);
+        LeafNodeGrinder y(txn);
+
+        x.init();
+        y.init();
+
+        // Empty node merging.
+        x.merge(y);
+
+        fill_nonsense(x, "x");
+
+        // Merge nothing into something
+        x.merge(y);
+
+        // Merge something into nothing
+        y.merge(x);
+
+        // Merge two full things.
+        y.remove_all();
+        fill_nonsense(y, "y");
+
+        // TODO: This doesn't really try merging them.
+        x.merge(y);
+
+        x.remove_all();
+        y.remove_all();
+
+        fill_nonsense(x, "x", x.expected_space() / 3);
+        fill_nonsense(y, "y", y.expected_space() / 3);
+
+        y.merge(x);
+
+    }
+
+    void test_leveling(transaction_t *txn) {
+
+        LeafNodeGrinder x(txn);
+        LeafNodeGrinder y(txn);
+
+        x.init();
+        y.init();
+
+        // Empty node leveling.
+        x.level(y);
+
+        fill_nonsense(x, "x");
+
+        // Leveling nothing into something.
+        x.level(y);
+
+        // Leveling something into nothing.
+        y.level(x);
+
+        x.remove_all();
+        y.remove_all();
+
+        fill_nonsense(x, "x", x.expected_space() / 2);
+        fill_nonsense(y, "y", y.expected_space() / 2);
+
+        x.level(y);
+
+    }
+};
+
+TEST(LeafNodeTest, all_tests) {
+    leaf_node_tester_t().run();
 }
-
-TEST(LeafNodeTest, Merging) {
-    const int bs = 4096;
-
-    LeafNodeGrinder x(bs);
-    LeafNodeGrinder y(bs);
-
-    x.init();
-    y.init();
-
-    // Empty node merging.
-    x.merge(y);
-
-    fill_nonsense(x, "x");
-
-    // Merge nothing into something
-    x.merge(y);
-
-    // Merge something into nothing
-    y.merge(x);
-
-    // Merge two full things.
-    y.remove_all();
-    fill_nonsense(y, "y");
-
-    // TODO: This doesn't really try merging them.
-    x.merge(y);
-
-    x.remove_all();
-    y.remove_all();
-
-    fill_nonsense(x, "x", x.expected_space() / 3);
-    fill_nonsense(y, "y", y.expected_space() / 3);
-
-    y.merge(x);
-
-}
-
-TEST(LeafNodeTest, Leveling) {
-    const int bs = 4096;
-
-    LeafNodeGrinder x(bs);
-    LeafNodeGrinder y(bs);
-
-    x.init();
-    y.init();
-
-    // Empty node leveling.
-    x.level(y);
-
-    fill_nonsense(x, "x");
-
-    // Leveling nothing into something.
-    x.level(y);
-
-    // Leveling something into nothing.
-    y.level(x);
-
-    x.remove_all();
-    y.remove_all();
-
-    fill_nonsense(x, "x", x.expected_space() / 2);
-    fill_nonsense(y, "y", y.expected_space() / 2);
-
-    x.level(y);
-}
-
 
 
 }  // namespace unittest

@@ -18,40 +18,7 @@
 struct opaque_value_t;
 
 template <class Value>
-class value_sizer_t {
-public:
-    value_sizer_t(block_size_t bs) : block_size_(bs) { }
-
-    // The number of bytes the value takes up.  Reference implementation:
-    //
-    // for (int i = 0; i < INT_MAX; ++i) {
-    //    if (fits(value, i)) return i;
-    // }
-    virtual int size(const Value *value) const = 0;
-
-    // True if size(value) would return no more than length_available.
-    // Does not read any bytes outside of [value, value +
-    // length_available).
-    virtual bool fits(const Value *value, int length_available) const = 0;
-
-    virtual int max_possible_size() const = 0;
-
-    // The magic that should be used for btree leaf nodes (or general
-    // nodes) with this kind of value.
-    virtual block_magic_t btree_leaf_magic() const = 0;
-
-    block_size_t block_size() const { return block_size_; }
-
-protected:
-    virtual ~value_sizer_t() { }
-
-    // The block size.  It's convenient for leaf node code and for
-    // some subclasses, too.
-    block_size_t block_size_;
-
-private:
-    DISABLE_COPYING(value_sizer_t);
-};
+class value_sizer_t;
 
 // This will eventually be moved to a memcached-specific part of the
 // project.
@@ -80,10 +47,12 @@ public:
 
     block_size_t block_size() const { return block_size_; }
 
-protected:
+private:
     // The block size.  It's convenient for leaf node code and for
     // some subclasses, too.
     block_size_t block_size_;
+
+    DISABLE_COPYING(value_sizer_t<memcached_value_t>);
 };
 
 typedef value_sizer_t<memcached_value_t> memcached_value_sizer_t;
@@ -226,9 +195,9 @@ bool has_sensible_offsets(block_size_t block_size, const node_t *node);
 bool is_underfull(block_size_t block_size, const node_t *node);
 bool is_mergable(block_size_t block_size, const node_t *node, const node_t *sibling, const internal_node_t *parent);
 int nodecmp(const node_t *node1, const node_t *node2);
-void split(block_size_t block_size, abstract_buf_t *node_buf, abstract_buf_t *rnode_buf, btree_key_t *median);
-void merge(block_size_t block_size, const node_t *node, abstract_buf_t *rnode_buf, btree_key_t *key_to_remove, const internal_node_t *parent);
-bool level(block_size_t block_size, abstract_buf_t *node_buf, abstract_buf_t *rnode_buf, btree_key_t *key_to_replace, btree_key_t *replacement_key, const internal_node_t *parent);
+void split(block_size_t block_size, buf_t *node_buf, buf_t *rnode_buf, btree_key_t *median);
+void merge(block_size_t block_size, const node_t *node, buf_t *rnode_buf, btree_key_t *key_to_remove, const internal_node_t *parent);
+bool level(block_size_t block_size, buf_t *node_buf, buf_t *rnode_buf, btree_key_t *key_to_replace, btree_key_t *replacement_key, const internal_node_t *parent);
 
 void print(const node_t *node);
 

@@ -5,6 +5,7 @@
 #include <stddef.h>
 
 #include "buffer_cache/buffer_cache.hpp"
+#include "containers/buffer_group.hpp"
 
 /* An explanation of blobs.
 
@@ -40,8 +41,6 @@ memcpy(tmp, ref, blob::ref_size(bs, ref, mrl));
 
 // The ref size changed because we modified the blob.
 write_blob_ref_to_something(tmp, blob::ref_size(bs, ref, mrl));
-
-    
 
  */
 
@@ -119,6 +118,9 @@ ref_info_t ref_info(block_size_t block_size, const char *ref, size_t maxreflen);
 // Returns the internal block ids of a non-inlined blob ref.
 const block_id_t *block_ids(const char *ref, size_t maxreflen);
 
+// Returns the char bytes of a leaf node.
+const char *leaf_node_data(const void *buf);
+
 // Returns the internal offset of the ref value, which is especially useful when it's not inlined.
 size_t ref_value_offset(const char *ref, size_t maxreflen);
 extern block_magic_t internal_node_magic;
@@ -127,6 +129,28 @@ extern block_magic_t leaf_node_magic;
 
 class blob_t {
 public:
+    //Used to iterate over an exposed region of a blob
+    class iterator {
+    public:
+        iterator(boost::shared_ptr<buffer_group_t>, boost::shared_ptr<blob_acq_t>, int64_t);
+        iterator(const iterator &);
+        char& operator*();
+        void operator++();
+        bool at_end();
+        
+    private:
+        void increment_buffer();
+
+        boost::shared_ptr<buffer_group_t> bg;
+        boost::shared_ptr<blob_acq_t> acq;
+        int64_t exposed_size;
+        int64_t traversed;
+
+        buffer_group_t::buffer_t current_buffer;
+        unsigned cur_buffer_index;
+        unsigned next_buffer;
+    };
+
     // maxreflen must be less than the block size minus 4 bytes.
     blob_t(char *ref, size_t maxreflen);
 
@@ -145,6 +169,9 @@ public:
     // must not be destroyed until the buffers are finished being
     // used.
     void expose_region(transaction_t *txn, access_t mode, int64_t offset, int64_t size, buffer_group_t *buffer_group_out, blob_acq_t *acq_group_out);
+
+    // Alternate interface that returns an iterator to the exposed region.
+    iterator expose_region(transaction_t *txn, access_t mode, int64_t offset, int64_t size);
 
     // Appends size bytes of garbage data to the blob.
     void append_region(transaction_t *txn, int64_t size);

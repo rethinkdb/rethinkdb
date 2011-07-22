@@ -385,12 +385,70 @@ private:
     DISABLE_COPYING(blocks_t);
 };
 
+bool get_blob_children_segments(const btree_key_t *key, nondirect_file_t& file, const cfg_t& cfg, int levels, const block_id_t *ids, int64_t offset, int64_t size, int mod_id, const std::map<size_t, off64_t>& offsets, blocks_t *segblocks_out) {
+    int64_t step = blob::stepsize(cfg.block_size(), levels);
 
+    for (int64_t i = offset / step, e = ceil_divide(offset + size, step); i < e; ++i) {
+        int64_t suboffset, subsize;
+        blob::shrink(cfg.block_size(), levels, offset, size, i, &suboffset, &subsize);
 
+        block_id_t ser_id = translator_serializer_t::translate_block_id(ids[i], cfg.mod_count, mod_id, CONFIG_BLOCK_ID);
+
+        std::map<size_t, off64_t>::const_iterator offset_it = offsets.find(ser_id);
+
+        if (offset_it == offsets.end()) {
+            logERR("With key '%.*s': no blocks seen with block id: %u\n", key->size, key->contents, ser_id);
+            return false;
+        }
+
+        if (levels == 1) {
+            block_t *b = new block_t();
+            segblocks_out->bs.push_back(b);
+
+            b->init(cfg.block_size(), &file, offset_it->second, ser_id);
+
+            if (*reinterpret_cast<block_magic_t *>(b->buf) != blob::leaf_node_magic) {
+                logERR("With key '%.*s': blob leaf (offset %lu) has invalid magic: '%.*s'\n",
+                       key->size, key->contents, offset_it->second, (int)sizeof(block_magic_t), reinterpret_cast<block_magic_t *>(b->buf)->bytes);
+                return false;
+            }
+        } else {
+            block_t internal;
+            internal.init(cfg.block_size(), &file, offset_it->second, ser_id);
+
+            if (*reinterpret_cast<block_magic_t *>(internal.buf) != blob::internal_node_magic) {
+                logERR("With key '%.*s': blob internal node (offset %lu) has invalid magic: '%.*s'\n",
+                       key->size, key->contents, offset_it->second, (int)sizeof(block_magic_t), reinterpret_cast<block_magic_t *>(internal.buf)->bytes);
+                return false;
+            }
+
+            if (!get_blob_children_segments(key, file, cfg, levels - 1, blob::internal_node_block_ids(internal.buf), suboffset, subsize, mod_id, offsets, segblocks_out)) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+bool get_blob_segments(const btree_key_t *key, nondirect_file_t& file, const char *ref, const cfg_t& cfg, int mod_id, const std::map<size_t, off64_t>& offsets, blocks_t *segblocks_out) {
+    int64_t offset = blob::ref_value_offset(ref, blob::btree_maxreflen);
+    int64_t size = blob::value_size(ref, blob::btree_maxreflen);
+    // We already checked that offset >= 0, size >= 0.
+
+    // Ensure no overflow for ceil_aligned division.
+    if (offset >= 0 && std::numeric_limits<int64_t>::max() / 4 - offset > size) {
+        int levels = blob::ref_info(cfg.block_size(), ref, blob::btree_maxreflen).levels;
+
+        return get_blob_children_segments(key, file, cfg, levels, blob::block_ids(ref, blob::btree_maxreflen), offset, size, mod_id, offsets, segblocks_out);
+    } else {
+        return false;
+    }
+}
 
 
 // Dumps the values for a given pair.
-void dump_pair_value(dumper_t &dumper, UNUSED nondirect_file_t& file, const cfg_t& cfg, UNUSED const std::map<size_t, off64_t>& offsets, const btree_leaf_pair<memcached_value_t> *pair, block_id_t this_block, int pair_size_limiter) {
+void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg, const std::map<size_t, off64_t>& offsets, const btree_leaf_pair<memcached_value_t> *pair, block_id_t this_block, int pair_size_limiter) {
     memcached_value_sizer_t sizer(cfg.block_size());
     if (pair_size_limiter < 0 || !leaf_pair_fits(&sizer, pair, pair_size_limiter)) {
         logERR("(In block %u) A pair juts off the end of the block.\n", this_block);
@@ -404,49 +462,49 @@ void dump_pair_value(dumper_t &dumper, UNUSED nondirect_file_t& file, const cfg_
     exptime_t exptime = value->exptime();
     // We can't save the cas right now.
 
-    const char *valuebuf = value->value_ref();
+    const char *ref = value->value_ref();
 
     // We're going to write the value, split into pieces, into this set of pieces.
     std::vector<charslice_t> pieces;
     blocks_t segblocks;
 
 
-    logDBG("Dumping value for key '%.*s'...\n",
-           key->size, key->contents);
+    logDBG("Dumping value for key '%.*s'...\n", key->size, key->contents);
 
 
-    if (*reinterpret_cast<const uint8_t *>(valuebuf) > 250) {
-        crash("Can't handle large values.\n");
-              /*
-        if (value->size >= sizeof(large_buf_ref) && ((value->size - sizeof(large_buf_ref)) % sizeof(block_id_t) == 0)) {
+    if (*reinterpret_cast<const uint8_t *>(ref) > 250) {
+        int64_t blob_offset = blob::ref_value_offset(ref, blob::btree_maxreflen);
 
-            int mod_id = translator_serializer_t::untranslate_block_id_to_mod_id(this_block, cfg.mod_count, CONFIG_BLOCK_ID);
-
-            int64_t seg_size = large_buf_t::bytes_per_leaf(cfg.block_size());
-
-            const large_buf_ref *ref = value->lb_ref();
-            if (!get_large_buf_segments(key, file, ref, value->size, cfg, mod_id, offsets, &segblocks)) {
-                return;
-            }
-
-            pieces.resize(segblocks.bs.size());
-
-            int64_t bytes_left = ref->size;
-            for (int64_t i = 0, n = segblocks.bs.size(); i < n; ++i) {
-                int64_t beg = (i == 0 ? ref->offset % seg_size : 0);
-                pieces[i].buf = reinterpret_cast<const large_buf_leaf *>(segblocks.bs[i]->buf)->buf;
-                pieces[i].len = (i == n - 1 ? bytes_left : seg_size) - beg;
-                bytes_left -= pieces[i].len;
-            }
-        } else {
-            logERR("(In block %u) Value for key '%.*s' is corrupted.\n", this_block, int(key->size), key->contents);
+        if (blob_offset < 0) {
+            logERR("Nonsensical blob offset on key '%.*s'\n", key->size, key->contents);
             return;
         }
-              */
+        if (blob::value_size(ref, blob::btree_maxreflen) < 0) {
+            logERR("Nonsensical blob size on key '%.*s'\n", key->size, key->contents);
+            return;
+        }
+
+        int mod_id = translator_serializer_t::untranslate_block_id_to_mod_id(this_block, cfg.mod_count, CONFIG_BLOCK_ID);
+
+        if (!get_blob_segments(key, file, ref, cfg, mod_id, offsets, &segblocks)) {
+            return;
+        }
+
+        pieces.resize(segblocks.bs.size());
+        int64_t seg_size = blob::stepsize(cfg.block_size(), 1);
+
+        int64_t bytes_left = blob::value_size(ref, blob::btree_maxreflen);
+        for (int64_t i = 0, n = segblocks.bs.size(); i < n; ++i) {
+            int64_t beg = (i == 0 ? blob_offset % seg_size : 0);
+            pieces[i].buf = blob::leaf_node_data(segblocks.bs[i]->buf);
+            pieces[i].len = (i == n - 1 ? bytes_left : seg_size) - beg;
+            bytes_left -= pieces[i].len;
+        }
+
     } else {
         pieces.resize(1);
-        pieces[0].buf = valuebuf + 1;
-        pieces[0].len = *reinterpret_cast<const uint8_t *>(valuebuf);
+        pieces[0].buf = ref + 1;
+        pieces[0].len = *reinterpret_cast<const uint8_t *>(ref);
     }
 
     // So now we have a key, and a value split into one or more pieces.

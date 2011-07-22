@@ -275,6 +275,43 @@ void blob_t::expose_region(transaction_t *txn, access_t mode, int64_t offset, in
     }
 }
 
+
+blob_t::iterator blob_t::expose_region(transaction_t *txn, access_t mode, int64_t offset, int64_t size) {
+    boost::shared_ptr<buffer_group_t> bg(new buffer_group_t);
+    boost::shared_ptr<blob_acq_t> acq(new blob_acq_t);
+    expose_region(txn, mode, offset, size, bg.get(), acq.get());
+    return iterator(bg, acq, size); 
+}
+
+blob_t::iterator::iterator(boost::shared_ptr<buffer_group_t> bg, boost::shared_ptr<blob_acq_t> acq, int64_t exposed) :
+    bg(bg), acq(acq), exposed_size(exposed), traversed(0), next_buffer(0)
+{
+    increment_buffer();
+}
+
+void blob_t::iterator::increment_buffer() {
+    current_buffer = bg->get_buffer(next_buffer);
+    next_buffer++;
+    cur_buffer_index = 0;
+}
+
+char &blob_t::iterator::operator*() {
+    return reinterpret_cast<char *>(current_buffer.data)[cur_buffer_index];
+}
+
+void blob_t::iterator::operator++() {
+    traversed++;
+    cur_buffer_index++;
+    if(cur_buffer_index >= current_buffer.size) {
+        //Move on to next buffer
+        increment_buffer();
+    }
+}
+
+bool blob_t::iterator::at_end() {
+    return traversed >= exposed_size;
+}
+
 namespace blob {
 
 struct region_tree_filler_t {

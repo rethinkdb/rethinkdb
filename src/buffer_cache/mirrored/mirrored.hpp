@@ -1,6 +1,13 @@
 #ifndef __MIRRORED_CACHE_HPP__
 #define __MIRRORED_CACHE_HPP__
 
+#include <list>
+#include <map>
+
+#include "errors.hpp"
+#include <boost/crc.hpp>
+#include <boost/shared_ptr.hpp>
+
 #include "arch/arch.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
@@ -12,14 +19,9 @@
 #include "serializer/serializer.hpp"
 #include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/stats.hpp"
-#include "buffer_cache/abstract_buf.hpp"
 #include "buffer_cache/buf_patch.hpp"
 #include "buffer_cache/mirrored/patch_memory_storage.hpp"
 #include "buffer_cache/mirrored/patch_disk_storage.hpp"
-#include <boost/crc.hpp>
-#include <boost/shared_ptr.hpp>
-#include <list>
-#include <map>
 
 #include "buffer_cache/mirrored/writeback/writeback.hpp"
 
@@ -123,7 +125,7 @@ private:
 
 
 /* This class represents a hold on a mc_inner_buf_t. */
-class mc_buf_t : public abstract_buf_t {
+class mc_buf_t {
     typedef mc_cache_t cache_t;
 
     friend class mc_cache_t;
