@@ -77,10 +77,11 @@ serializer_t::write_t serializer_t::write_t::make_delete(block_id_t block_id, bo
     return write_t(block_id, del);
 }
 
-struct block_write_cond_t : public cond_t, public iocallback_t {
-    block_write_cond_t(iocallback_t *cb) : callback(cb) { }
+struct write_cond_t : public cond_t, public iocallback_t {
+    write_cond_t(iocallback_t *cb) : callback(cb) { }
     void on_io_complete() {
-        if (callback) callback->on_io_complete();
+        if (callback)
+            callback->on_io_complete();
         pulse();
     }
     iocallback_t *callback;
@@ -90,24 +91,26 @@ struct write_performer_t : public boost::static_visitor<void> {
     serializer_t *serializer;
     file_t::account_t *io_account;
     void *zerobuf;
-    std::vector<block_write_cond_t*> *block_write_conds;
+    std::vector<write_cond_t*> *block_write_conds;
     serializer_t::index_write_op_t *op;
     write_performer_t(serializer_t *ser, file_t::account_t *acct, void *zerobuf,
-                      std::vector<block_write_cond_t*> *conds, serializer_t::index_write_op_t *op)
+                      std::vector<write_cond_t*> *conds, serializer_t::index_write_op_t *op)
         : serializer(ser), io_account(acct), zerobuf(zerobuf), block_write_conds(conds), op(op) {}
 
     void operator()(const serializer_t::write_t::update_t &update) {
-        block_write_conds->push_back(new block_write_cond_t(update.callback));
+        block_write_conds->push_back(new write_cond_t(update.callback));
         op->token = serializer->block_write(update.buf, op->block_id, io_account, block_write_conds->back());
         op->delete_bit = false;
         op->recency = update.recency;
     }
 
     void operator()(const serializer_t::write_t::delete_t &del) {
+        // FIXME (rntz): should op.token become shared_ptr(NULL)? changes what index ops get done.
+        // compare to effects of old code.
         op->delete_bit = true;
         op->recency = repli_timestamp_t::invalid;
         if (del.write_zero_block) {
-            block_write_conds->push_back(new block_write_cond_t(NULL));
+            block_write_conds->push_back(new write_cond_t(NULL));
             op->token = serializer->block_write(zerobuf, op->block_id, io_account, block_write_conds->back());
         }
     }
@@ -118,7 +121,7 @@ struct write_performer_t : public boost::static_visitor<void> {
 };
 
 void serializer_t::do_write(std::vector<write_t> writes, file_t::account_t *io_account, writes_launched_callback_t *cb) {
-    std::vector<block_write_cond_t*> block_write_conds;
+    std::vector<write_cond_t*> block_write_conds;
     std::vector<serializer_t::index_write_op_t> index_write_ops;
     block_write_conds.reserve(writes.size());
     index_write_ops.reserve(writes.size());

@@ -262,13 +262,14 @@ struct writeback_t::buf_writer_t :
     void on_thread_switch() {
         assert_thread();
         parent->dirty_block_semaphore.unlock();
-        pulse();
         if (!*block_sequence_ids_have_been_updated) {
             // Writeback might still need the buffer. Wait until destruction before releasing it...
+            pulse();
             return;
         }
         buf->release();
         buf = NULL;
+        pulse();
     }
     ~buf_writer_t() {
         parent->cache->assert_thread();
