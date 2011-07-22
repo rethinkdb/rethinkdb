@@ -13,7 +13,7 @@ void split(value_sizer_t<Value> *sizer, buf_t *node_buf, buf_t *rnode_buf, btree
     if (is_leaf(reinterpret_cast<const node_t *>(node_buf->get_data_read()))) {
         leaf::split(sizer, node_buf, reinterpret_cast<leaf_node_t *>(rnode_buf->get_data_major_write()), median);
     } else {
-        internal_node::split(sizer->block_size(), node_buf, rnode_buf, median);
+        internal_node::split(sizer->block_size(), node_buf, reinterpret_cast<internal_node_t *>(rnode_buf->get_data_major_write()), median);
     }
 }
 

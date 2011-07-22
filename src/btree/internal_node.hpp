@@ -30,7 +30,7 @@ void get_children_ids(const internal_node_t *node, boost::scoped_array<block_id_
 block_id_t lookup(const internal_node_t *node, const btree_key_t *key);
 bool insert(block_size_t block_size, buf_t *node_buf, const btree_key_t *key, block_id_t lnode, block_id_t rnode);
 bool remove(block_size_t block_size, buf_t *node_buf, const btree_key_t *key);
-void split(block_size_t block_size, buf_t *node_buf, buf_t *rnode_buf, btree_key_t *median);
+void split(block_size_t block_size, buf_t *node_buf, internal_node_t *rnode, btree_key_t *median);
 void merge(block_size_t block_size, const internal_node_t *node, buf_t *rnode_buf, btree_key_t *key_to_remove, const internal_node_t *parent);
 bool level(block_size_t block_size, buf_t *node_buf, buf_t *rnode_buf, btree_key_t *key_to_replace, btree_key_t *replacement_key, const internal_node_t *parent);
 int sibling(const internal_node_t *node, const btree_key_t *key, block_id_t *sib_id);

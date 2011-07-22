@@ -114,9 +114,8 @@ bool remove(block_size_t block_size, buf_t *node_buf, const btree_key_t *key) {
     return true;
 }
 
-void split(block_size_t block_size, buf_t *node_buf, buf_t *rnode_buf, btree_key_t *median) {
+void split(block_size_t block_size, buf_t *node_buf, internal_node_t *rnode, btree_key_t *median) {
     const internal_node_t *node = reinterpret_cast<const internal_node_t *>(node_buf->get_data_read());
-    internal_node_t *rnode = reinterpret_cast<internal_node_t *>(rnode_buf->get_data_major_write());
 
     uint16_t total_pairs = block_size.value() - node->frontmost_offset;
     uint16_t first_pairs = 0;
