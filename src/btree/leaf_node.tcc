@@ -18,13 +18,11 @@ bool leaf_pair_fits(value_sizer_t<Value> *sizer, const btree_leaf_pair<Value> *p
 namespace leaf {
 
 template <class Value>
-void init(value_sizer_t<Value> *sizer, buf_t *node_buf, repli_timestamp_t modification_time) {
-    leaf_node_t *node = reinterpret_cast<leaf_node_t *>(node_buf->get_data_major_write());
-
+void init(value_sizer_t<Value> *sizer, leaf_node_t *node, repli_timestamp_t modification_time) {
     node->magic = leaf_node_t::expected_magic;
     node->npairs = 0;
     node->frontmost_offset = sizer->block_size().value();
-    impl::initialize_times(node_buf, modification_time);
+    impl::initialize_times(&node->times, modification_time);
 }
 
 template <class comp_type>
@@ -54,7 +52,7 @@ template <class Value>
 void init(value_sizer_t<Value> *sizer, buf_t *node_buf, const leaf_node_t *lnode, const uint16_t *offsets, int numpairs, repli_timestamp_t modification_time) {
     leaf_node_t *node = reinterpret_cast<leaf_node_t *>(node_buf->get_data_major_write());
 
-    init(sizer, node_buf, modification_time);
+    init(sizer, node, modification_time);
     for (int i = 0; i < numpairs; i++) {
         const btree_leaf_pair<Value> *pair = get_pair<Value>(lnode, offsets[i]);
         node->pair_offsets[i] = impl::insert_pair(sizer, node, pair->value(), &pair->key);

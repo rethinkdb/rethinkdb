@@ -37,7 +37,7 @@ void get_root(value_sizer_t<Value> *sizer, transaction_t *txn, buf_lock_t& sb_bu
         buf_out->swap(tmp);
     } else {
         buf_out->allocate(txn);
-        leaf::init(sizer, buf_out->buf(), timestamp);
+        leaf::init(sizer, reinterpret_cast<leaf_node_t *>(buf_out->buf()->get_data_major_write()), timestamp);
         insert_root(buf_out->buf()->get_block_id(), sb_buf);
     }
 }

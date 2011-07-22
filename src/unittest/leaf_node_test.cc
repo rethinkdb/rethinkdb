@@ -240,7 +240,7 @@ public:
 
     void init() {
         SCOPED_TRACE("init");
-        leaf::init(&sizer, node_buf, fake_timestamp);
+        leaf::init(&sizer, reinterpret_cast<leaf_node_t *>(node_buf->get_data_major_write()), fake_timestamp);
         initialized = true;
         validate();
     }
