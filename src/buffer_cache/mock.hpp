@@ -1,6 +1,7 @@
 #ifndef __BUFFER_CACHE_MOCK_HPP__
 #define __BUFFER_CACHE_MOCK_HPP__
 
+#include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
@@ -14,7 +15,6 @@
 #include "concurrency/rwi_lock.hpp"
 #include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/buf_patch.hpp"
-#include "buffer_cache/abstract_buf.hpp"
 
 /* The mock cache, mock_cache_t, is a drop-in replacement for mc_cache_t that keeps all of
 its contents in memory and artificially generates delays in responding to requests. It
@@ -28,9 +28,7 @@ class mock_cache_account_t;
 
 /* Buf */
 
-class mock_buf_t :
-    public home_thread_mixin_t, public abstract_buf_t
-{
+class mock_buf_t : public home_thread_mixin_t {
 public:
     block_id_t get_block_id() const;
     const void *get_data_read() const;

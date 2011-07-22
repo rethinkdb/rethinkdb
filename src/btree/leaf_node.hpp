@@ -35,27 +35,27 @@ class leaf_key_comp;
 
 namespace leaf {
 template <class Value>
-void init(value_sizer_t<Value> *sizer, abstract_buf_t *node_buf, repli_timestamp_t modification_time);
+void init(value_sizer_t<Value> *sizer, buf_t *node_buf, repli_timestamp_t modification_time);
 
 template <class Value>
-void init(value_sizer_t<Value> *sizer, abstract_buf_t *node_buf, const leaf_node_t *lnode, const uint16_t *offsets, int numpairs, repli_timestamp_t modification_time);
+void init(value_sizer_t<Value> *sizer, buf_t *node_buf, const leaf_node_t *lnode, const uint16_t *offsets, int numpairs, repli_timestamp_t modification_time);
 
 template <class Value>
 bool lookup(value_sizer_t<Value> *sizer, const leaf_node_t *node, const btree_key_t *key, Value *value);
 
-// TODO: The names of these functions are too similar.  The only difference between them is leaf_node_t* vs abstract_buf_t*?
+// TODO: The names of these functions are too similar.  The only difference between them is leaf_node_t* vs buf_t*?
 
 // Returns true if insertion was successful.  Returns false if the
 // node was full.  TODO: make sure we always check return value.
 template <class Value>
-bool insert(value_sizer_t<Value> *sizer, abstract_buf_t *node_buf, const btree_key_t *key, const Value *value, repli_timestamp_t insertion_time);
+bool insert(value_sizer_t<Value> *sizer, buf_t *node_buf, const btree_key_t *key, const Value *value, repli_timestamp_t insertion_time);
 
 template <class Value>
 void insert(value_sizer_t<Value> *sizer, leaf_node_t *node, const btree_key_t *key, const Value *value, repli_timestamp_t insertion_time); // For use by the corresponding patch
 
 // Assumes key is contained inside the node.
 template <class Value>
-void remove(value_sizer_t<Value> *block_size, abstract_buf_t *node_buf, const btree_key_t *key);
+void remove(value_sizer_t<Value> *block_size, buf_t *node_buf, const btree_key_t *key);
 
 template <class Value>
 void remove(value_sizer_t<Value> *sizer, leaf_node_t *node, const btree_key_t *key); // For use by the corresponding patch
@@ -63,15 +63,15 @@ void remove(value_sizer_t<Value> *sizer, leaf_node_t *node, const btree_key_t *k
 // Initializes rnode with the greater half of node, copying the
 // new greatest key of node to median_out.
 template <class Value>
-void split(value_sizer_t<Value> *sizer, abstract_buf_t *node_buf, abstract_buf_t *rnode_buf, btree_key_t *median_out);
+void split(value_sizer_t<Value> *sizer, buf_t *node_buf, buf_t *rnode_buf, btree_key_t *median_out);
 
 // Merges the contents of node onto the front of rnode.
 template <class Value>
-void merge(value_sizer_t<Value> *sizer, const leaf_node_t *node, abstract_buf_t *rnode_buf, btree_key_t *key_to_remove_out);
+void merge(value_sizer_t<Value> *sizer, const leaf_node_t *node, buf_t *rnode_buf, btree_key_t *key_to_remove_out);
 
 // Removes pairs from sibling, adds them to node.
 template <class Value>
-bool level(value_sizer_t<Value> *sizer, abstract_buf_t *node_buf, abstract_buf_t *sibling_buf, btree_key_t *key_to_replace, btree_key_t *replacement_key);
+bool level(value_sizer_t<Value> *sizer, buf_t *node_buf, buf_t *sibling_buf, btree_key_t *key_to_replace, btree_key_t *replacement_key);
 
 
 bool is_empty(const leaf_node_t *node);
@@ -123,16 +123,16 @@ namespace impl {
 const int key_not_found = -1;
 
 template <class Value>
-void delete_pair(value_sizer_t<Value> *sizer, abstract_buf_t *node_buf, uint16_t offset);
+void delete_pair(value_sizer_t<Value> *sizer, buf_t *node_buf, uint16_t offset);
 
 template <class Value>
 void delete_pair(value_sizer_t<Value> *sizer, leaf_node_t *node, uint16_t offset);
 
 template<class Value>
-uint16_t insert_pair(value_sizer_t<Value> *sizer, abstract_buf_t *node_buf, const btree_leaf_pair<Value> *pair);
+uint16_t insert_pair(value_sizer_t<Value> *sizer, buf_t *node_buf, const btree_leaf_pair<Value> *pair);
 
 template<class Value>
-uint16_t insert_pair(value_sizer_t<Value> *sizer, abstract_buf_t *node_buf, const Value *value, const btree_key_t *key);
+uint16_t insert_pair(value_sizer_t<Value> *sizer, buf_t *node_buf, const Value *value, const btree_key_t *key);
 
 template<class Value>
 uint16_t insert_pair(value_sizer_t<Value> *sizer, leaf_node_t *node, const Value *value, const btree_key_t *key);
@@ -140,13 +140,13 @@ uint16_t insert_pair(value_sizer_t<Value> *sizer, leaf_node_t *node, const Value
 int get_offset_index(const leaf_node_t *node, const btree_key_t *key);
 int find_key(const leaf_node_t *node, const btree_key_t *key);
 void shift_pairs(leaf_node_t *node, uint16_t offset, long shift);
-void delete_offset(abstract_buf_t *node_buf, int index);
+void delete_offset(buf_t *node_buf, int index);
 void delete_offset(leaf_node_t *node, int index);
 void insert_offset(leaf_node_t *node, uint16_t offset, int index);
 bool is_equal(const btree_key_t *key1, const btree_key_t *key2);
 
 // Initializes a the leaf_timestamps_t in node_buf
-void initialize_times(abstract_buf_t *node_buf, repli_timestamp_t current_time);
+void initialize_times(buf_t *node_buf, repli_timestamp_t current_time);
 void initialize_times(leaf_timestamps_t *times, repli_timestamp_t current_time);
 
 // Shifts a newer timestamp onto the leaf_timestamps_t, pushing
