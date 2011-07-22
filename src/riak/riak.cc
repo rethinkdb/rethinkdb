@@ -33,7 +33,6 @@ riak_server_t::riak_server_t(int port, store_manager_t<std::list<std::string> > 
 { }
 
 http_res_t riak_server_t::handle(const http_req_t &req) {
-    //BREAKPOINT;
     //setup a tokenizer
     boost::char_separator<char> sep("/");
     tokenizer tokens(req.resource, sep);
@@ -236,43 +235,57 @@ http_res_t riak_server_t::set_bucket(const http_req_t &req) {
         // get the bucket for writing 
         bucket_t bucket;
 
-        for (json::mObject::iterator it = obj.begin(); it != obj.end(); it++) {
+        for (json::mObject::iterator it = obj["props"].get_obj().begin(); it != obj["props"].get_obj().end(); it++) {
             if (it->first == "n_val") {
                 bucket.n_val = it->second.get_int();
+                continue;
             }
 
             if (it->first == "allow_mult") {
                 bucket.allow_mult = it->second.get_bool();
+                continue;
             }
+
             if (it->first == "last_write_wins") {
                 bucket.last_write_wins = it->second.get_bool();
+                continue;
             }
 
             if (it->first == "precommit") {
+                continue;
             }
+
             if (it->second == "postcommit") {
+                continue;
             }
 
             if (it->first == "r") {
                 bucket.r = it->second.get_int();
+                continue;
             }
 
             if (it->first == "w") {
                 bucket.w = it->second.get_int();
+                continue;
             }
 
             if (it->first == "dw") {
                 bucket.dw = it->second.get_int();
+                continue;
             }
 
             if (it->first == "rw") {
                 bucket.rw = it->second.get_int();
+                continue;
             }
 
             if (it->first == "backend") {
                 bucket.backend = it->second.get_str();
+                continue;
             }
 
+            res.code = 400;
+            return res;
         }
         riak_interface.set_bucket(*url_it, bucket);
     } catch (std::runtime_error) {
@@ -325,7 +338,6 @@ http_res_t riak_server_t::fetch_object(const http_req_t &req) {
 }
 
 http_res_t riak_server_t::store_object(const http_req_t &req) {
-    BREAKPOINT;
     boost::char_separator<char> sep("/");
     tokenizer tokens(req.resource, sep);
     tok_iterator url_it = tokens.begin(), url_end = tokens.end();
