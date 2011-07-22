@@ -56,7 +56,8 @@ void init(value_sizer_t<Value> *sizer, buf_t *node_buf, const leaf_node_t *lnode
 
     init(sizer, node_buf, modification_time);
     for (int i = 0; i < numpairs; i++) {
-        node->pair_offsets[i] = impl::insert_pair(sizer, node_buf, get_pair<Value>(lnode, offsets[i]));
+        const btree_leaf_pair<Value> *pair = get_pair<Value>(lnode, offsets[i]);
+        node->pair_offsets[i] = impl::insert_pair(sizer, node, pair->value(), &pair->key);
     }
     node->npairs = numpairs;
 
