@@ -322,11 +322,14 @@ status_result redis_actor_t::set(string &key, string &val) {
     value->set_redis_type(REDIS_STRING);
     blob_t blob(value->get_content(), blob::btree_maxreflen);
     blob.append_region(txn.get_txn(), val.size());
-    buffer_group_t bg;
-    boost::scoped_ptr<blob_acq_t> acq(new blob_acq_t);
-    blob.expose_region(txn.get_txn(), rwi_write, 0, val.size(), &bg, acq.get());
 
-    //TODO And them somehow get the data into the exposed region, sheesh
+    int val_index = 0;
+    blob_t::iterator iter = blob.expose_region(txn.get_txn(), rwi_write, 0, val.size());
+    while(!iter.at_end()) {
+        *iter = val.at(val_index);
+        ++val_index;
+        ++iter;
+    }
 
     boost::shared_ptr<status_result_struct> result(new status_result_struct);
     result->status = OK;
