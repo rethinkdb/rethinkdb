@@ -52,12 +52,10 @@ void init(block_size_t block_size, internal_node_t *node) {
     node->frontmost_offset = block_size.value();
 }
 
-void init(block_size_t block_size, buf_t *node_buf, const internal_node_t *lnode, const uint16_t *offsets, int numpairs) {
-    internal_node_t *node = reinterpret_cast<internal_node_t *>(node_buf->get_data_major_write());
-
+void init(block_size_t block_size, internal_node_t *node, const internal_node_t *lnode, const uint16_t *offsets, int numpairs) {
     init(block_size, node);
     for (int i = 0; i < numpairs; i++) {
-        buf_ibuf_t ibuf(node_buf);
+        raw_ibuf_t ibuf(node);
         node->pair_offsets[i] = insert_pair(&ibuf, get_pair(lnode, offsets[i]));
     }
     node->npairs = numpairs;
@@ -118,7 +116,7 @@ bool remove(block_size_t block_size, buf_t *node_buf, const btree_key_t *key) {
 
 void split(block_size_t block_size, buf_t *node_buf, buf_t *rnode_buf, btree_key_t *median) {
     const internal_node_t *node = reinterpret_cast<const internal_node_t *>(node_buf->get_data_read());
-    const internal_node_t *rnode = reinterpret_cast<const internal_node_t *>(rnode_buf->get_data_read());
+    internal_node_t *rnode = reinterpret_cast<internal_node_t *>(rnode_buf->get_data_major_write());
 
     uint16_t total_pairs = block_size.value() - node->frontmost_offset;
     uint16_t first_pairs = 0;
@@ -133,7 +131,7 @@ void split(block_size_t block_size, buf_t *node_buf, buf_t *rnode_buf, btree_key
     const btree_key_t *median_key = &get_pair_by_index(node, median_index-1)->key;
     keycpy(median, median_key);
 
-    init(block_size, rnode_buf, node, node->pair_offsets + median_index, node->npairs - median_index);
+    init(block_size, rnode, node, node->pair_offsets + median_index, node->npairs - median_index);
 
     // TODO: This is really slow because most pairs will likely be copied
     // repeatedly.  There should be a better way.
