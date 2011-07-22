@@ -315,7 +315,8 @@ status_result redis_actor_t::set(string &key, string &val) {
         }
         //Clear any old contents
         blob_t blob(value->get_content(), blob::btree_maxreflen);
-        blob.unappend_region(txn.get_txn(), blob.valuesize());
+        //blob.unappend_region(txn.get_txn(), blob.valuesize());
+        blob.clear(txn.get_txn());
     }
 
     redis_string_value_t *value = txn.value.get();
@@ -323,13 +324,13 @@ status_result redis_actor_t::set(string &key, string &val) {
     blob_t blob(value->get_content(), blob::btree_maxreflen);
     blob.append_region(txn.get_txn(), val.size());
 
-    int val_index = 0;
-    blob_t::iterator iter = blob.expose_region(txn.get_txn(), rwi_write, 0, val.size());
-    while(!iter.at_end()) {
-        *iter = val.at(val_index);
-        ++val_index;
-        ++iter;
-    }
+    buffer_group_t dest;
+    boost::scoped_ptr<blob_acq_t> acq(new blob_acq_t);
+    blob.expose_region(txn.get_txn(), rwi_write, 0, val.size(), &dest, acq.get());
+
+    buffer_group_t src;
+    src.add_buffer(val.size(), const_cast<char *>(val.c_str()));
+    buffer_group_copy_data(&dest, const_view(&src));
 
     boost::shared_ptr<status_result_struct> result(new status_result_struct);
     result->status = OK;

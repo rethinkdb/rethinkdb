@@ -302,11 +302,10 @@ char &blob_t::iterator::operator*() {
 }
 
 void blob_t::iterator::operator++() {
+    cur_buffer_index++;
     if(cur_buffer_index >= current_buffer.size) {
         //Move on to next buffer
         increment_buffer();
-    } else {
-        cur_buffer_index++;
     }
 }
 
