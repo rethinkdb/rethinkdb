@@ -36,6 +36,13 @@ typedef array_map_t page_map_t;
 
 class mc_cache_account_t;
 
+// TODO: It should be possible to unload the data of an mc_inner_buf_t from the cache even when
+// there are still snapshots of it around - there is no reason why the data shouldn't be able to
+// leave the cache, even if we still need the object around to keep track of snapshots. With the way
+// this is currently set up, this is not possible; unloading an mc_inner_buf_t requires deleting it.
+// To change this requires some tricky rewriting/refactoring, and I was unable to get around to it.
+// -rntz
+
 class mc_inner_buf_t : public home_thread_mixin_t, public evictable_t {
     friend class mc_cache_t;
     friend class mc_transaction_t;
