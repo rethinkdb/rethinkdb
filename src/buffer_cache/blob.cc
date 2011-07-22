@@ -280,19 +280,21 @@ blob_t::iterator blob_t::expose_region(transaction_t *txn, access_t mode, int64_
     boost::shared_ptr<buffer_group_t> bg(new buffer_group_t);
     boost::shared_ptr<blob_acq_t> acq(new blob_acq_t);
     expose_region(txn, mode, offset, size, bg.get(), acq.get());
-    return iterator(bg, acq, size); 
+    return iterator(bg, acq); 
 }
 
-blob_t::iterator::iterator(boost::shared_ptr<buffer_group_t> bg, boost::shared_ptr<blob_acq_t> acq, int64_t exposed) :
-    bg(bg), acq(acq), exposed_size(exposed), traversed(0), next_buffer(0)
+blob_t::iterator::iterator(boost::shared_ptr<buffer_group_t> bg, boost::shared_ptr<blob_acq_t> acq) :
+    bg(bg), acq(acq), next_buffer(0)
 {
     increment_buffer();
 }
 
 void blob_t::iterator::increment_buffer() {
-    current_buffer = bg->get_buffer(next_buffer);
-    next_buffer++;
-    cur_buffer_index = 0;
+    if(!at_end()) {
+        current_buffer = bg->get_buffer(next_buffer);
+        next_buffer++;
+        cur_buffer_index = 0;
+    }
 }
 
 char &blob_t::iterator::operator*() {
@@ -300,16 +302,16 @@ char &blob_t::iterator::operator*() {
 }
 
 void blob_t::iterator::operator++() {
-    traversed++;
-    cur_buffer_index++;
     if(cur_buffer_index >= current_buffer.size) {
         //Move on to next buffer
         increment_buffer();
+    } else {
+        cur_buffer_index++;
     }
 }
 
 bool blob_t::iterator::at_end() {
-    return traversed >= exposed_size;
+    return next_buffer >= bg->num_buffers() && cur_buffer_index >= current_buffer.size;
 }
 
 namespace blob {
