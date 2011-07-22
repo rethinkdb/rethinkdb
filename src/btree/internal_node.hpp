@@ -54,12 +54,13 @@ const btree_internal_pair *get_pair_by_index(const internal_node_t *node, int in
 btree_internal_pair *get_pair_by_index(internal_node_t *node, int index);
 
 // We can't use "internal" for internal stuff obviously.
+class ibuf_t;
 namespace impl {
 size_t pair_size_with_key(const btree_key_t *key);
 size_t pair_size_with_key_size(uint8_t size);
 
 void delete_pair(buf_t *node_buf, uint16_t offset);
-uint16_t insert_pair(buf_t *node_buf, const btree_internal_pair *pair);
+uint16_t insert_pair(ibuf_t *node_buf, const btree_internal_pair *pair);
 uint16_t insert_pair(buf_t *node_buf, block_id_t lnode, const btree_key_t *key);
 int get_offset_index(const internal_node_t *node, const btree_key_t *key);
 void delete_offset(buf_t *node_buf, int index);
