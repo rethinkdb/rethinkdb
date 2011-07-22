@@ -155,22 +155,6 @@ void home_thread_mixin_t::assert_thread() const {
 }
 #endif
 
-void home_thread_mixin_t::rethread(UNUSED int thread) {
-    crash("This class is not rethreadable.\n");
-}
-
-home_thread_mixin_t::rethread_t::rethread_t(home_thread_mixin_t *m, int thread)
-    : mixin(m), old_thread(mixin->home_thread()), new_thread(thread) {
-    mixin->rethread(new_thread);
-    rassert(mixin->home_thread() == new_thread);
-}
-
-home_thread_mixin_t::rethread_t::~rethread_t() {
-    rassert(mixin->home_thread() == new_thread);
-    mixin->rethread(old_thread);
-    rassert(mixin->home_thread() == old_thread);
-}
-
 home_thread_mixin_t::home_thread_mixin_t() : real_home_thread(get_thread_id()) { }
 
 
