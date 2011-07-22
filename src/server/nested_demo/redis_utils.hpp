@@ -1,8 +1,10 @@
 #ifndef __SERVER_NESTED_DEMO_REDIS_UTILS_HPP_
 #define	__SERVER_NESTED_DEMO_REDIS_UTILS_HPP_
 
+#include "btree/operations.hpp"
+
 /* nested string value type */
-// TODO! Replace this by a version that supports blobs!
+// TODO! Replace this by a version that uses blobs!
 struct redis_nested_string_value_t {
     int length;
     char contents[];
@@ -95,59 +97,24 @@ protected:
     block_size_t block_size_;
 };
 
-/* Conversion between int and a lexicographical string representation of those */
-#ifndef NDEBUG
-void check_int_representation() {
-    // Assert that ints are stored in the right representation on this architecture...
-    // (specifically that they are using 2's complement for negatives)
-    rassert((unsigned int)((int)1) == (unsigned int)0x00000001u);
-    rassert((unsigned int)((int)-1) == (unsigned int)0xffffffffu);
-    rassert(sizeof(int) == 4);
-    // Also check the endianess
-    int check = 1;
-    rassert((reinterpret_cast<char*>(&check))[0] == (char)1 && (reinterpret_cast<char*>(&check))[sizeof(int)-1] == (char)0, "Wrong endianess (not little).");
-}
-#endif
+namespace redis_utils {
+    /* Constructs a btree_key_t from an std::string and puts it into out_buf */
+    void construct_key(const std::string &key, scoped_malloc<btree_key_t> *out_buf);
 
-#define LEX_INT_SIZE (sizeof(int))
+    /* Convenience accessor functions for nested trees */
+    void find_nested_keyvalue_location_for_write(block_size_t block_size, boost::shared_ptr<transaction_t> &transaction, const std::string &field, repli_timestamp_t ts, keyvalue_location_t<redis_nested_string_value_t> *kv_location, scoped_malloc<btree_key_t> *btree_key, const block_id_t nested_root);
+    void find_nested_keyvalue_location_for_read(block_size_t block_size, boost::shared_ptr<transaction_t> &transaction, const std::string &field, keyvalue_location_t<redis_nested_string_value_t> *kv_location, const block_id_t nested_root);
 
-void to_lex_int(const int i, char* buf) {
-#ifndef NDEBUG
-    check_int_representation();
-#endif
+    /* Conversion between int and a lexicographical string representation of those */
+    const size_t LEX_INT_SIZE = sizeof(int);
+    void to_lex_int(const int i, char* buf);
+    int from_lex_int(char* buf);
 
-    // Flip the sign bit, so positive values are larger than negative ones
-    int i_flipped_sign = i ^ 0x80000000;
-
-    // We are on a little endian architecture, so revert the bytes
-    for (size_t p = 0; p < sizeof(int); ++p) {
-        buf[sizeof(int) - p] = (reinterpret_cast<char*>(&i_flipped_sign))[p];
-    }
-}
-
-int from_lex_int(char* buf) {
-#ifndef NDEBUG
-    check_int_representation();
-#endif
-
-    // Reverse to_lex_int()...
-    int i_flipped_sign = 0;
-    for (size_t p = 0; p < sizeof(int); ++p) {
-        (reinterpret_cast<char*>(i_flipped_sign))[sizeof(int) - p] = buf[p];
-    }
-    int i = i_flipped_sign ^ 0x80000000;
-    return i;
-}
-
-// TODO! (later) lex. float key representation
-static const size_t LEX_FLOAT_SIZE = 0;
-void to_lex_float(UNUSED const float f, UNUSED char* buf) {
-    // TODO!
-}
-float from_lex_float(UNUSED char* buf) {
-    // TODO!
-    return 0.0f;
-}
+    // TODO! (later) lex. float key representation
+    const size_t LEX_FLOAT_SIZE = 0;
+    void to_lex_float(const float f, UNUSED char* buf);
+    float from_lex_float(char* buf);
+} /* namespace redis_utils */
 
 #endif	/* __SERVER_NESTED_DEMO_REDIS_UTILS_HPP_ */
 
