@@ -142,7 +142,7 @@ boost::optional<leaf_iterator_t<Value>*> slice_leaves_iterator_t<Value>::get_fir
     rassert(buf_lock != NULL);
 
     const leaf_node_t *l_node = reinterpret_cast<const leaf_node_t *>(node);
-    int index = leaf::impl::get_offset_index(l_node, left_key);
+    int index = leaf::get_offset_index(l_node, left_key);
 
     if (index < l_node->npairs) {
         return boost::make_optional(new leaf_iterator_t<Value>(l_node, index, buf_lock, sizer, transaction));

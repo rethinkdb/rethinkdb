@@ -485,6 +485,14 @@ repli_timestamp_t get_timestamp_value(value_sizer_t<Value> *sizer, const leaf_no
     }
 }
 
+// Gets the index at which we'd want to insert the key without
+// violating ordering.  Or returns the index at which the key already
+// exists.  Returns a value in [0, node->npairs].
+inline int get_offset_index(const leaf_node_t *node, const btree_key_t *key) {
+    // lower_bound returns the first place where the key could be inserted without violating the ordering
+    return std::lower_bound(node->pair_offsets, node->pair_offsets+node->npairs, (uint16_t)leaf_key_comp::faux_offset, leaf_key_comp(node, key)) - node->pair_offsets;
+}
+
 namespace impl {
 
 inline void shift_pairs(leaf_node_t *node, uint16_t offset, long shift) {
@@ -543,14 +551,6 @@ uint16_t insert_pair(value_sizer_t<Value> *sizer, leaf_node_t *node, const Value
     memcpy(new_pair->value(), value, sizer->size(value));
 
     return node->frontmost_offset;
-}
-
-// Gets the index at which we'd want to insert the key without
-// violating ordering.  Or returns the index at which the key already
-// exists.  Returns a value in [0, node->npairs].
-inline int get_offset_index(const leaf_node_t *node, const btree_key_t *key) {
-    // lower_bound returns the first place where the key could be inserted without violating the ordering
-    return std::lower_bound(node->pair_offsets, node->pair_offsets+node->npairs, (uint16_t)leaf_key_comp::faux_offset, leaf_key_comp(node, key)) - node->pair_offsets;
 }
 
 // find_key returns the index of the offset for key if it's in the node or -1 if it is not

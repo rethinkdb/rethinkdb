@@ -117,6 +117,8 @@ size_t pair_size(value_sizer_t<Value> *sizer, const btree_leaf_pair<Value> *pair
 template<class Value>
 repli_timestamp_t get_timestamp_value(value_sizer_t<Value> *sizer, const leaf_node_t *node, uint16_t offset);
 
+int get_offset_index(const leaf_node_t *node, const btree_key_t *key);
+
 // We can't use "internal" because that's for internal nodes... So we
 // have to use impl :( I'm sorry.
 namespace impl {
@@ -137,7 +139,6 @@ uint16_t insert_pair(value_sizer_t<Value> *sizer, buf_t *node_buf, const Value *
 template<class Value>
 uint16_t insert_pair(value_sizer_t<Value> *sizer, leaf_node_t *node, const Value *value, const btree_key_t *key);
 
-int get_offset_index(const leaf_node_t *node, const btree_key_t *key);
 int find_key(const leaf_node_t *node, const btree_key_t *key);
 void shift_pairs(leaf_node_t *node, uint16_t offset, long shift);
 void delete_offset(buf_t *node_buf, int index);
