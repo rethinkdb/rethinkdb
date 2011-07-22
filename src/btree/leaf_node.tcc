@@ -27,6 +27,25 @@ void init(value_sizer_t<Value> *sizer, buf_t *node_buf, repli_timestamp_t modifi
     impl::initialize_times(node_buf, modification_time);
 }
 
+template <class comp_type>
+bool is_sorted(uint16_t *p, uint16_t *q, comp_type comp) {
+    if (p == q) {
+        return true;
+    }
+
+    uint16_t prev = *p++;
+    while (p < q) {
+        if (!comp(prev, *p)) {
+            return false;
+        }
+        prev = *p++;
+    }
+    return true;
+}
+
+
+
+
 // TODO: We end up making modification time data more conservative and
 // more coarse than conceivably possible.  We could also let the
 // caller supply an earlier[] array.
@@ -40,7 +59,11 @@ void init(value_sizer_t<Value> *sizer, buf_t *node_buf, const leaf_node_t *lnode
         node->pair_offsets[i] = impl::insert_pair(sizer, node_buf, get_pair<Value>(lnode, offsets[i]));
     }
     node->npairs = numpairs;
+
     // TODO: Why is this sorting step necessary?  Is [offsets, offset + numpairs) not sorted?
+
+    rassert(is_sorted(node->pair_offsets, node->pair_offsets + numpairs, leaf_key_comp(node)));
+
     std::sort(node->pair_offsets, node->pair_offsets + numpairs, leaf_key_comp(node));
 }
 
