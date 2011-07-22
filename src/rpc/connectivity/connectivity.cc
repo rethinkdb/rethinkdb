@@ -174,7 +174,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(s
         mutex_acquisition_t acq(&dest_conn->send_mutex);
 
         try {
-            boost::archive::text_oarchive sender(*dest_conn->conn);
+            boost::archive::text_oarchive sender(dest_conn->conn->get_ostream());
             std::string buffer_str = buffer.str();
             sender << buffer_str;
         } catch (boost::archive::archive_exception) {
@@ -249,25 +249,25 @@ void connectivity_cluster_t::handle(
     */
 
     try {
-        boost::archive::text_oarchive sender(*conn);
+        boost::archive::text_oarchive sender(conn->get_ostream());
         sender << me;
         sender << routing_table[me];
     } catch (boost::archive::archive_exception) {
         /* We expect that sending can fail due to a network problem. If that
         happens, just ignore it. If sending fails for some other reason, then
         the programmer should learn about it, so we rethrow the exception. */
-        if (conn->bad() || conn->eof()) return;
+        if (conn->get_ostream().bad() || conn->get_ostream().eof()) return;
         else throw;
     }
 
     peer_id_t other_id;
     peer_address_t other_address;
     try {
-        boost::archive::text_iarchive receiver(*conn);
+        boost::archive::text_iarchive receiver(conn->get_istream());
         receiver >> other_id;
         receiver >> other_address;
     } catch (boost::archive::archive_exception) {
-        if (conn->bad() || conn->eof()) return;
+        if (conn->get_istream().bad() || conn->get_istream().eof()) return;
         else throw;
     }
 
@@ -326,21 +326,21 @@ void connectivity_cluster_t::handle(
         /* We're good to go! Transmit the routing table to the follower, so it
         knows we're in. */
         try {
-            boost::archive::text_oarchive sender(*conn);
+            boost::archive::text_oarchive sender(conn->get_ostream());
             sender << routing_table_to_send;
         } catch (boost::archive::archive_exception) {
             routing_table.erase(other_id);
-            if (conn->bad() || conn->eof()) return;
+            if (conn->get_ostream().bad() || conn->get_ostream().eof()) return;
             else throw;
         }
 
         /* Receive the follower's routing table */
         try {
-            boost::archive::text_iarchive receiver(*conn);
+            boost::archive::text_iarchive receiver(conn->get_istream());
             receiver >> other_routing_table;
         } catch (boost::archive::archive_exception) {
             routing_table.erase(other_id);
-            if (conn->bad() || conn->eof()) return;
+            if (conn->get_istream().bad() || conn->get_istream().eof()) return;
             else throw;
         }
 
@@ -350,10 +350,10 @@ void connectivity_cluster_t::handle(
         conflict, then the leader will close the connection instead of sending
         the routing table. */
         try {
-            boost::archive::text_iarchive receiver(*conn);
+            boost::archive::text_iarchive receiver(conn->get_istream());
             receiver >> other_routing_table;
         } catch (boost::archive::archive_exception) {
-            if (conn->bad() || conn->eof()) return;
+            if (conn->get_istream().bad() || conn->get_istream().eof()) return;
             else throw;
         }
 
@@ -380,10 +380,10 @@ void connectivity_cluster_t::handle(
 
         /* Send our routing table to the leader */
         try {
-            boost::archive::text_oarchive sender(*conn);
+            boost::archive::text_oarchive sender(conn->get_ostream());
             sender << routing_table_to_send;
         } catch (boost::archive::archive_exception) {
-            if (conn->bad() || conn->eof()) return;
+            if (conn->get_ostream().bad() || conn->get_ostream().eof()) return;
             else throw;
         }
     }
@@ -443,7 +443,7 @@ void connectivity_cluster_t::handle(
                 should change it when we care about performance. */
                 std::string message;
                 {
-                    boost::archive::text_iarchive receiver(*conn);
+                    boost::archive::text_iarchive receiver(conn->get_istream());
                     receiver >> message;
                 }
 
@@ -465,7 +465,7 @@ void connectivity_cluster_t::handle(
         } catch (boost::archive::archive_exception) {
             /* The exception broke us out of the loop, and that's what we
             wanted. */
-            if (!(conn->bad() || conn->eof())) throw;
+            if (!(conn->get_istream().bad() || conn->get_istream().eof())) throw;
         }
 
         /* Remove us from the connection map. */
