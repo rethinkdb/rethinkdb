@@ -19,7 +19,6 @@
 
 inline void insert_root(block_id_t root_id, buf_lock_t& sb_buf) {
     rassert(sb_buf.is_acquired());
-    // TODO: WTF is up with this const cast?  This makes NO SENSE.  gtfo.
     sb_buf->set_data(const_cast<block_id_t *>(&reinterpret_cast<const btree_superblock_t *>(sb_buf->get_data_read())->root_block), &root_id, sizeof(root_id));
 
     sb_buf.release();
@@ -234,20 +233,19 @@ template <class Value>
 void find_keyvalue_location_for_read(value_sizer_t<Value> *sizer, got_superblock_t *got_superblock, btree_key_t *key, keyvalue_location_t<Value> *keyvalue_location_out) {
     buf_lock_t buf;
     buf.swap(got_superblock->sb_buf);
-    boost::scoped_ptr<transaction_t> txn;
-    txn.swap(got_superblock->txn);
+    keyvalue_location_out->txn.swap(got_superblock->txn);
+    transaction_t *txn = keyvalue_location_out->txn.get();
 
     block_id_t node_id = reinterpret_cast<const btree_superblock_t *>(buf->get_data_read())->root_block;
     rassert(node_id != SUPERBLOCK_ID);
 
     if (node_id == NULL_BLOCK_ID) {
         // There is no root, so the tree is empty.
-        keyvalue_location_out->txn.swap(txn);
         return;
     }
 
     {
-        buf_lock_t tmp(txn.get(), node_id, rwi_read);
+        buf_lock_t tmp(txn, node_id, rwi_read);
         buf.swap(tmp);
     }
 
@@ -260,7 +258,7 @@ void find_keyvalue_location_for_read(value_sizer_t<Value> *sizer, got_superblock
         rassert(node_id != NULL_BLOCK_ID && node_id != SUPERBLOCK_ID);
 
         {
-            buf_lock_t tmp(txn.get(), node_id, rwi_read);
+            buf_lock_t tmp(txn, node_id, rwi_read);
             buf.swap(tmp);
         }
 
@@ -274,13 +272,11 @@ void find_keyvalue_location_for_read(value_sizer_t<Value> *sizer, got_superblock
     int key_index = leaf::impl::find_key(leaf, key);
 
     if (key_index == leaf::impl::key_not_found) {
-        keyvalue_location_out->txn.swap(txn);
         return;
     }
 
     const Value *value = leaf::get_pair_by_index<Value>(leaf, key_index)->value();
 
-    keyvalue_location_out->txn.swap(txn);
     keyvalue_location_out->buf.swap(buf);
     keyvalue_location_out->there_originally_was_value = true;
     {
