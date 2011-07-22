@@ -45,7 +45,6 @@ public:
     void mark_deleted(bool write_null = true);
     void touch_recency(repli_timestamp_t timestamp);
     void release();
-    bool is_dirty();
     bool is_deleted();
 
 private:

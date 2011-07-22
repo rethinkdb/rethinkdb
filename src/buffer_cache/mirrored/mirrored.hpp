@@ -202,10 +202,6 @@ public:
         return inner_buf->subtree_recency;
     }
 
-    bool is_dirty() {
-        return inner_buf->writeback_buf.dirty;
-    }
-
 private:
     DISABLE_COPYING(mc_buf_t);
 };

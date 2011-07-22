@@ -90,10 +90,6 @@ void mock_buf_t::release() {
 }
 
 // TODO: Add notiont of recency_dirty
-bool mock_buf_t::is_dirty() {
-    return dirty;
-}
-
 bool mock_buf_t::is_deleted() {
     return deleted;
 }

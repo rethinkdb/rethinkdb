@@ -60,10 +60,6 @@ public:
         delete this;
     }
 
-    bool is_dirty() {
-        return dirty;
-    }
-
 private:
     block_size_t block_size;
     block_id_t block_id;

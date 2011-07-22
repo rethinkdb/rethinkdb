@@ -19,7 +19,6 @@ struct abstract_buf_t {
     virtual void apply_patch(buf_patch_t *patch) = 0;
     virtual patch_counter_t get_next_patch_counter() = 0;
     virtual void release() = 0;
-    virtual bool is_dirty() = 0;
     virtual ~abstract_buf_t() { }
 };
 
