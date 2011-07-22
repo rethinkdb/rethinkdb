@@ -39,7 +39,7 @@ template <class Value>
 void init(value_sizer_t<Value> *sizer, leaf_node_t *node, repli_timestamp_t modification_time);
 
 template <class Value>
-void init(value_sizer_t<Value> *sizer, buf_t *node_buf, const leaf_node_t *lnode, const uint16_t *offsets, int numpairs, repli_timestamp_t modification_time);
+void init(value_sizer_t<Value> *sizer, leaf_node_t *node, const leaf_node_t *lnode, const uint16_t *offsets, int numpairs, repli_timestamp_t modification_time);
 
 template <class Value>
 bool lookup(value_sizer_t<Value> *sizer, const leaf_node_t *node, const btree_key_t *key, Value *value);

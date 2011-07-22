@@ -49,9 +49,7 @@ bool is_uint16_sorted(uint16_t *p, uint16_t *q, comp_type comp) {
 // caller supply an earlier[] array.
 // TODO: maybe lnode should just supply the modification time.
 template <class Value>
-void init(value_sizer_t<Value> *sizer, buf_t *node_buf, const leaf_node_t *lnode, const uint16_t *offsets, int numpairs, repli_timestamp_t modification_time) {
-    leaf_node_t *node = reinterpret_cast<leaf_node_t *>(node_buf->get_data_major_write());
-
+void init(value_sizer_t<Value> *sizer, leaf_node_t *node, const leaf_node_t *lnode, const uint16_t *offsets, int numpairs, repli_timestamp_t modification_time) {
     init(sizer, node, modification_time);
     for (int i = 0; i < numpairs; i++) {
         const btree_leaf_pair<Value> *pair = get_pair<Value>(lnode, offsets[i]);
@@ -165,7 +163,7 @@ bool lookup(value_sizer_t<Value> *sizer, const leaf_node_t *node, const btree_ke
 template <class Value>
 void split(value_sizer_t<Value> *sizer, buf_t *node_buf, buf_t *rnode_buf, btree_key_t *median_out) {
     const leaf_node_t *node = reinterpret_cast<const leaf_node_t *>(node_buf->get_data_read());
-    const leaf_node_t *rnode __attribute__((unused)) = reinterpret_cast<const leaf_node_t *>(rnode_buf->get_data_read());
+    leaf_node_t *rnode = reinterpret_cast<leaf_node_t *>(rnode_buf->get_data_major_write());
 
     rassert(node != rnode);
 
@@ -184,7 +182,7 @@ void split(value_sizer_t<Value> *sizer, buf_t *node_buf, buf_t *rnode_buf, btree
     int median_index = index;
 
     rassert(median_index < node->npairs);
-    init<Value>(sizer, rnode_buf, node, node->pair_offsets + median_index, node->npairs - median_index, node->times.last_modified);
+    init<Value>(sizer, rnode, node, node->pair_offsets + median_index, node->npairs - median_index, node->times.last_modified);
 
     // This is ~(n^2); it could be ~(n).  Profiling tells us there are
     // bigger problems.
