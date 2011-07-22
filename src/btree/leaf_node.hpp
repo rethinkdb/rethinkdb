@@ -118,8 +118,10 @@ size_t pair_size(value_sizer_t<Value> *sizer, const btree_leaf_pair<Value> *pair
 template<class Value>
 repli_timestamp_t get_timestamp_value(value_sizer_t<Value> *sizer, const leaf_node_t *node, uint16_t offset);
 
-// We can't use "internal" because that's for internal nodes... So we
-// have to use impl :( I'm sorry.
+// The "impl" namespace is for functions internal to the leaf node.
+// Do not use these functions outside of leaf_node.tcc or
+// leaf_node.cc.  If you want to use such a function, move it outside
+// of impl.
 namespace impl {
 const int key_not_found = -1;
 
