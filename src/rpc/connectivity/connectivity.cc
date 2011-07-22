@@ -1,5 +1,4 @@
 #include "rpc/connectivity/connectivity.hpp"
-
 #include <sstream>
 #include <ios>
 #include <boost/archive/text_oarchive.hpp>
@@ -8,6 +7,9 @@
 #include <boost/serialization/string.hpp>
 #include <boost/serialization/map.hpp>
 #include "concurrency/drain_semaphore.hpp"
+#ifdef VALGRIND
+#include <valgrind/memcheck.h>
+#endif
 
 /* event_watcher_t */
 
@@ -74,7 +76,17 @@ void disconnect_watcher_t::on_disconnect(peer_id_t p) {
 connectivity_cluster_t::connectivity_cluster_t(int port) :
     me(peer_id_t(boost::uuids::random_generator()()))
 {
+    /* `boost::uuids::random_generator()()` will sometimes produce UUIDs that
+    Valgrind considers invalid. We explicitly tell Valgrind that they are valid
+    here. */
+#ifdef VALGRIND
+    VALGRIND_MAKE_MEM_DEFINED_IF_ADDRESSABLE(&me.uuid, sizeof(me.uuid));
+#endif
+
+    /* Put ourselves in the routing table */
     routing_table[me] = peer_address_t(ip_address_t::us(), port);
+
+    /* Start listening for peers */
     listener.reset(
         new streamed_tcp_listener_t(
             port,
@@ -430,8 +442,10 @@ void connectivity_cluster_t::handle(
                 just a length and a byte vector. This is obviously slow and we
                 should change it when we care about performance. */
                 std::string message;
-                boost::archive::text_iarchive receiver(*conn);
-                receiver >> message;
+                {
+                    boost::archive::text_iarchive receiver(*conn);
+                    receiver >> message;
+                }
 
                 /* In case anyone is tempted to refactor this so it doesn't wait
                 on `pulse_when_done_reading`, refrain. It may look silly now,
