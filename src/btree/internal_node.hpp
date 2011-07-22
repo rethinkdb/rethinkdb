@@ -23,7 +23,7 @@ class internal_key_comp;
 // In a perfect world, this namespace would be 'branch'.
 namespace internal_node {
 
-void init(block_size_t block_size, buf_t *node_buf);
+void init(block_size_t block_size, internal_node_t *node);
 void init(block_size_t block_size, buf_t *node_buf, const internal_node_t *lnode, const uint16_t *offsets, int numpairs);
 
 void get_children_ids(const internal_node_t *node, boost::scoped_array<block_id_t>& ids_out, size_t *num_children);

@@ -79,7 +79,7 @@ void check_and_handle_split(value_sizer_t<Value> *sizer, transaction_t *txn, buf
     if (!last_buf.is_acquired()) {
         // We're splitting what was previously the root, so create a new root to use as the parent.
         last_buf.allocate(txn);
-        internal_node::init(sizer->block_size(), last_buf.buf());
+        internal_node::init(sizer->block_size(), reinterpret_cast<internal_node_t *>(last_buf->get_data_major_write()));
 
         insert_root(last_buf->get_block_id(), sb_buf);
     }

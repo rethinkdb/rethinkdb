@@ -8,9 +8,7 @@ namespace internal_node {
 
 using namespace impl;
 
-void init(block_size_t block_size, buf_t *node_buf) {
-    internal_node_t *node = reinterpret_cast<internal_node_t *>(node_buf->get_data_major_write());
-
+void init(block_size_t block_size, internal_node_t *node) {
     node->magic = internal_node_t::expected_magic;
     node->npairs = 0;
     node->frontmost_offset = block_size.value();
@@ -19,7 +17,7 @@ void init(block_size_t block_size, buf_t *node_buf) {
 void init(block_size_t block_size, buf_t *node_buf, const internal_node_t *lnode, const uint16_t *offsets, int numpairs) {
     internal_node_t *node = reinterpret_cast<internal_node_t *>(node_buf->get_data_major_write());
 
-    init(block_size, node_buf);
+    init(block_size, node);
     for (int i = 0; i < numpairs; i++) {
         node->pair_offsets[i] = insert_pair(node_buf, get_pair(lnode, offsets[i]));
     }
