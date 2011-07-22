@@ -69,10 +69,10 @@ TEST(LeafNodeTest, Offsets) {
     // Check leaf_node_t.
     EXPECT_EQ(0, offsetof(leaf_node_t, magic));
     EXPECT_EQ(4, offsetof(leaf_node_t, times));
-    EXPECT_EQ(12, offsetof(leaf_node_t, npairs));
-    EXPECT_EQ(14, offsetof(leaf_node_t, frontmost_offset));
-    EXPECT_EQ(16, offsetof(leaf_node_t, pair_offsets));
-    EXPECT_EQ(16, sizeof(leaf_node_t));
+    EXPECT_EQ(16, offsetof(leaf_node_t, npairs));
+    EXPECT_EQ(18, offsetof(leaf_node_t, frontmost_offset));
+    EXPECT_EQ(20, offsetof(leaf_node_t, pair_offsets));
+    EXPECT_EQ(20, sizeof(leaf_node_t));
 
 
     // Check leaf_timestamps_t, since that's specifically part of leaf_node_t.
@@ -80,9 +80,9 @@ TEST(LeafNodeTest, Offsets) {
     EXPECT_EQ(4, offsetof(leaf_timestamps_t, earlier));
 
     // Changing NUM_LEAF_NODE_EARLIER_TIMES changes the disk format.
-    EXPECT_EQ(2, NUM_LEAF_NODE_EARLIER_TIMES);
+    EXPECT_EQ(4, NUM_LEAF_NODE_EARLIER_TIMES);
 
-    EXPECT_EQ(8, sizeof(leaf_timestamps_t));
+    EXPECT_EQ(12, sizeof(leaf_timestamps_t));
 
 
     // Check btree_leaf_pair.
