@@ -80,8 +80,10 @@ std::string human_readable_status(int code) {
     switch(code) {
     case 200:
         return "OK";
+    case 204:
+        return "No Content";
     case 404:
-        return "NOT FOUND";
+        return "Not Found";
     default:
         unreachable();
     }

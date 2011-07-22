@@ -327,7 +327,7 @@ public:
     // database or namespace but don't actually want to serve for that
     // database/namespace yet.
     void create_store(const Key &key, const store_config_t &store_config) {
-        rassert(store_map.find(key) != store_map.end());
+        rassert(store_map.find(key) == store_map.end());
         // Create the store
         store_t *store = new store_t;
         store->store_config = store_config;

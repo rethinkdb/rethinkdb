@@ -47,7 +47,7 @@ public:
 public:
     // Bucket operations:
     // Get a bucket by name
-    boost::optional<bucket_t> bucket_read(std::string s) {
+    boost::optional<bucket_t> get_bucket(std::string s) {
         std::list<std::string> key;
         key.push_back("riak"); key.push_back(s);
         store_t *store = store_manager->get_store(key);
@@ -59,8 +59,19 @@ public:
         }
     }
 
-    bucket_t &bucket_write(std::string) {
-        crash("Not implementated");
+    void set_bucket(std::string name, bucket_t bucket) {
+        std::list<std::string> key;
+        key.push_back("riak"); key.push_back(name);
+
+        if (!store_manager->get_store(key)) {
+            store_config_t store_config;
+            store_manager->create_store(key, store_config);
+        }
+
+        store_t *store = store_manager->get_store(key);
+        rassert(store != NULL, "We just created this it better not be null");
+
+        store->store_metadata = bucket;
     }
 
     //Get all the buckets

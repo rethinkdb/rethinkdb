@@ -145,7 +145,7 @@ http_res_t riak_server_t::get_bucket(const http_req_t &req) {
     rassert(url_it != url_end, "This function should only be called if there's a bucket specified in the url");
 
     //grab the bucket
-    boost::optional<bucket_t> bucket = riak_interface.bucket_read(*url_it);
+    boost::optional<bucket_t> bucket = riak_interface.get_bucket(*url_it);
 
     http_res_t res; //the response we'll be sending
 
@@ -233,8 +233,8 @@ http_res_t riak_server_t::set_bucket(const http_req_t &req) {
     try {
         json::mObject &obj = value.get_obj();
 
-        // get the fucket for writing 
-        bucket_t &bucket = riak_interface.bucket_write(*url_it);
+        // get the bucket for writing 
+        bucket_t bucket;
 
         for (json::mObject::iterator it = obj.begin(); it != obj.end(); it++) {
             if (it->first == "n_val") {
@@ -274,6 +274,7 @@ http_res_t riak_server_t::set_bucket(const http_req_t &req) {
             }
 
         }
+        riak_interface.set_bucket(*url_it, bucket);
     } catch (std::runtime_error) {
         //We land here if the json has any type mismatches
         res.code = 400;
