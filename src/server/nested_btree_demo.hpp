@@ -460,6 +460,8 @@ void nested_demo_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 rassert(demo_hash_value.hexists(&sizer, transaction, "field_2"));
                 rassert(!demo_hash_value.hexists(&sizer, transaction, "field_3"));
 
+                fprintf(stderr, "Hash length: %d\n", (int)demo_hash_value.hlen());
+
                 boost::shared_ptr<one_way_iterator_t<std::pair<std::string, std::string> > > iter = demo_hash_value.hgetall(&sizer, transaction, shard->home_thread());
                 fprintf(stderr, "\nHash contents:\n");
                 while (true) {
@@ -475,6 +477,8 @@ void nested_demo_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 demo_hash_value.clear(&sizer, transaction, shard->home_thread());
                 rassert(!demo_hash_value.hexists(&sizer, transaction, "field_1"));
                 rassert(!demo_hash_value.hexists(&sizer, transaction, "field_2"));
+
+                fprintf(stderr, "Hash length after clear(): %d\n", (int)demo_hash_value.hlen());
             }
 
             /* TODO!

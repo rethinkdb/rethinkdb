@@ -207,7 +207,6 @@ void redis_demo_hash_value_t::clear(value_sizer_t<redis_demo_hash_value_t> *supe
     // Delete all keys
     nested_btree_sb.reset(new virtual_superblock_t(nested_root));
     for (size_t i = 0; i < keys.size(); ++i) {
-        fprintf(stderr, "Deleting %s\n", keys[i].c_str());
         hdel(super_sizer, transaction, keys[i]);
     }
 
