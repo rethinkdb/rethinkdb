@@ -377,8 +377,33 @@ void writeback_t::do_concurrent_flush() {
     }
 
     // Once transaction has completed, perform cleanup.
+    for (size_t i = 0; i < state.serializer_writes.size(); ++i) {
+        const serializer_t::write_t &write = state.serializer_writes[i];
+        const serializer_t::write_t::delete_t *del = boost::get<serializer_t::write_t::delete_t>(&write.action);
+        if (del) {
+            // All deleted blocks are now reflected in the serializer's LBA and will not get offered
+            // as read-ahead blocks anymore. Therefore we can remove them from our
+            // reject_read_ahead_blocks list.
+            reject_read_ahead_blocks.erase(write.block_id);
 
-    // Wait for all the buffers to be written.
+            // Also we are now allowed to reuse the block id without further conflicts
+            // TODO! (rntz) shouldn't it be possible to do this as soon as the block is deleted?
+            cache->free_list.release_block_id(write.block_id);
+        }
+    }
+    state.serializer_writes.clear();
+
+    // Allow new concurrent flushes to start from now on
+    // (we had to wait until the transaction got passed to the serializer)
+    writeback_in_progress = false;
+
+    // Also start the next sync now in case it was requested
+    if (start_next_sync_immediately) {
+        start_next_sync_immediately = false;
+        sync(NULL);
+    }
+
+    // Wait for the buf_writers to finish running their callbacks
     for (size_t i = 0; i < state.buf_writers.size(); ++i) {
         state.buf_writers[i]->wait();
         delete state.buf_writers[i];
@@ -394,11 +419,6 @@ void writeback_t::do_concurrent_flush() {
 
     pm_flushes_writing.end(&start_time);
     --active_flushes;
-
-    if (start_next_sync_immediately) {
-        start_next_sync_immediately = false;
-        sync(NULL);
-    }
 }
 
 void writeback_t::flush_prepare_patches() {
@@ -548,28 +568,6 @@ void writeback_t::flush_update_block_sequence_ids(flush_state_t &state)
             rassert(buf->block_id == write.block_id);
             buf->block_sequence_id = cache->serializer->get_block_sequence_id(write.block_id, update->buf);
         }
-
-        const serializer_t::write_t::delete_t *del = boost::get<serializer_t::write_t::delete_t>(&write.action);
-        if (del) {
-            // We assume that all deleted blocks are reflected in the serializer's LBA (in case of the log serializer) by now
-            // and will not get offered as read-ahead blocks anymore.
-            // Therefore we can remove them from our reject_read_ahead_blocks list.
-            // TODO: I don't like this implicit assumption (which is not really part of the tid_callback semantics). Change it.
-            reject_read_ahead_blocks.erase(write.block_id);
-
-            // Also we are now allowed to reuse the block id without further conflicts
-            cache->free_list.release_block_id(write.block_id);
-        }
     }
     state.block_sequence_ids_have_been_updated = true;
-
-    // Allow new concurrent flushes to start from now on
-    // (we had to wait until the transaction got passed to the serializer)
-    writeback_in_progress = false;
-
-    // Also start the next sync now in case it was requested
-    if (start_next_sync_immediately) {
-        start_next_sync_immediately = false;
-        sync(NULL);
-    }
 }
