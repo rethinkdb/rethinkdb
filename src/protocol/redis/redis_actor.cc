@@ -55,23 +55,19 @@ struct redis_value_t {
         return was_set;
     }
 
-    size_t get_metadata_size() {
+    size_t get_metadata_size() const {
         return sizeof(redis_value_t) + sizeof(uint32_t)*expiration_set();
     }
 
 };
 
 struct redis_string_value_t : redis_value_t {
-    size_t get_string_size() const {
-        return 0;
-    }
-
-    size_t inline_size() const {
-        return sizeof(redis_string_value_t) + get_string_size();
-    }
-
     char *get_content() {
        return reinterpret_cast<char *>(value_begin + get_metadata_size());
+    }
+
+    char *get_content() const {
+       return const_cast<char *>(reinterpret_cast<const char *>(value_begin + get_metadata_size()));
     }
 };
 
@@ -81,7 +77,8 @@ public:
     value_sizer_t<redis_string_value_t>(block_size_t bs) : block_size_(bs) { }
 
     int size(const redis_string_value_t *value) const {
-        return value->inline_size();
+        blob_t blob(value->get_content(), blob::btree_maxreflen);
+        return value->get_metadata_size() + blob.refsize(block_size_);
     }
 
     bool fits(const redis_string_value_t *value, int length_available) const {
@@ -136,6 +133,12 @@ struct unimplemented_result {
     }
 };
 
+status_result redis_error(const char *msg) {
+    boost::shared_ptr<status_result_struct> result(new status_result_struct);
+    result->status = ERROR;
+    result->msg = msg;
+    return result;
+}
 
 //These macros deliberately match those in the header file. They simply define an "unimplemented
 //command" definition for the given command. When adding new commands we can simply copy and paste
@@ -242,35 +245,45 @@ integer_result redis_actor_t::append(std::string &key, std::string &toappend) {
 COMMAND_1(integer, decr, string&)
 COMMAND_2(integer, decrby, string&, int)
 
-COMMAND_1(bulk, get, string&)
-/*
+//COMMAND_1(bulk, get, string&)
 bulk_result redis_actor_t::get(string &key) {
+    on_thread_t thread_switcher(btree->home_thread());
+
     got_superblock_t superblock;
     get_btree_superblock(btree, rwi_read, order_token_t::ignore, &superblock);
 
     //Construct a btree_key from our key string
     btree_key_buffer_t btree_key(key);
 
-    keyvalue_location_t location;
-    find_keyvalue_location_for_read(sizer, &superblock, btree_key.key(), &location);
+    keyvalue_location_t<redis_string_value_t> location;
+    value_sizer_t<redis_string_value_t> sizer(btree->cache()->get_block_size());
+    find_keyvalue_location_for_read(&sizer, &superblock, btree_key.key(), &location);
 
-    redis_string_value_t *value = reinterpret_cast<redis_string_value_t*>(location.value.get());
+    redis_string_value_t *value = location.value.get();
     static std::string *result = NULL;
     if(value == NULL) {
         //Error key doesn't exist
-        std::cout << "Key " << key << " doesn't exist" << std::endl;
+    } else if(value->get_redis_type() != REDIS_STRING) {
+        //Error key isn't a string
+        return bulk_result(redis_error("Operation against key holding the wrong value"));
     } else {
-        if(value->get_redis_type() == REDIS_STRING) {
-            result = new std::string(value->string, value->get_string_size());
-        } else {
-            //Error key isn't a string
-            std::cout << "Key " << key << " isn't a string" << std::endl;
-        }
+        blob_t blob(value->get_content(), blob::btree_maxreflen);
+        int64_t val_size = blob.valuesize();
+        result = new std::string(val_size, '\0');
+        //result->reserve(val_size);
+
+        buffer_group_t dest;
+        dest.add_buffer(val_size, const_cast<char *>(result->c_str()));
+
+        buffer_group_t src;
+        boost::scoped_ptr<blob_acq_t> acq(new blob_acq_t);
+        blob.expose_region(location.txn.get(), rwi_read, 0, val_size, &src, acq.get());
+        buffer_group_copy_data(&dest, const_view(&src));
     }
+
     boost::shared_ptr<std::string> res(result);
-    return res;
+    return bulk_result(res);
 }
-*/
 
 COMMAND_2(integer, getbit, string&, unsigned)
 COMMAND_3(bulk, getrange, string&, int, int)
@@ -281,56 +294,53 @@ COMMAND_N(multi_bulk, mget)
 COMMAND_N(status, mset)
 COMMAND_N(integer, msetnx)
 
-status_result redis_error(const char *msg) {
-    boost::shared_ptr<status_result_struct> result(new status_result_struct);
-    result->status = ERROR;
-    result->msg = msg;
-    return result;
-}
-
 //COMMAND_2(status, set, string&, string&)
 status_result redis_actor_t::set(string &key, string &val) {
-    (void)key;
-    (void)val;
+    on_thread_t thread_switcher(btree->home_thread());
 
     repli_timestamp_t tstamp;
     tstamp.time = 123456;
 
+    got_superblock_t superblock;
+    get_btree_superblock(btree, rwi_write, 1, tstamp, order_token_t::ignore, &superblock);
+
     //Construct a btree_key from our key string
     btree_key_buffer_t btree_key(key);
-    value_txn_t<redis_string_value_t> txn =
-        get_value_write<redis_string_value_t>(btree,
-        btree_key.key(), tstamp, order_token_t::ignore);
+
+    keyvalue_location_t<redis_string_value_t> location;
+    value_sizer_t<redis_string_value_t> sizer(btree->cache()->get_block_size());
+    find_keyvalue_location_for_write(&sizer, &superblock, btree_key.key(), tstamp, &location);
 
     //This is a string operation so we'll assume that the value is a string value
-    if(txn.value.get() == NULL) {
+    if(location.value.get() == NULL) {
         //This key has not already been set, allocate space and specify its type as a string
         scoped_malloc<redis_string_value_t> smrsv(MAX_BTREE_VALUE_SIZE);
-        txn.value.swap(smrsv);
+        location.value.swap(smrsv);
     } else {
         //This key has already been set, before we reset it, check if it is a string
-        redis_string_value_t *value = txn.value.get();
-        if(!value->get_redis_type() != REDIS_STRING) {
+        redis_string_value_t *value = location.value.get();
+        if(value->get_redis_type() != REDIS_STRING) {
             return redis_error("Operation against key holding wrong kind of value");
         }
         //Clear any old contents
         blob_t blob(value->get_content(), blob::btree_maxreflen);
-        //blob.unappend_region(txn.get_txn(), blob.valuesize());
-        blob.clear(txn.get_txn());
+        blob.clear(location.txn.get());
     }
 
-    redis_string_value_t *value = txn.value.get();
+    redis_string_value_t *value = location.value.get();
     value->set_redis_type(REDIS_STRING);
     blob_t blob(value->get_content(), blob::btree_maxreflen);
-    blob.append_region(txn.get_txn(), val.size());
-
+    blob.append_region(location.txn.get(), val.size());
+    
     buffer_group_t dest;
     boost::scoped_ptr<blob_acq_t> acq(new blob_acq_t);
-    blob.expose_region(txn.get_txn(), rwi_write, 0, val.size(), &dest, acq.get());
+    blob.expose_region(location.txn.get(), rwi_write, 0, val.size(), &dest, acq.get());
 
     buffer_group_t src;
     src.add_buffer(val.size(), const_cast<char *>(val.c_str()));
     buffer_group_copy_data(&dest, const_view(&src));
+
+    apply_keyvalue_change(&sizer, &location, btree_key.key(), tstamp);
 
     boost::shared_ptr<status_result_struct> result(new status_result_struct);
     result->status = OK;

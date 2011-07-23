@@ -61,15 +61,15 @@ void apply_keyvalue_change(value_sizer_t<Value> *sizer, keyvalue_location_t<Valu
 template <class Value>
 class value_txn_t {
 public:
-    value_txn_t(btree_key_t *, value_sizer_t<Value> *, keyvalue_location_t<Value> *, repli_timestamp_t);
+    value_txn_t(btree_key_t *, value_sizer_t<Value> *, repli_timestamp_t);
     value_txn_t(const value_txn_t &);
     ~value_txn_t();
     scoped_malloc<Value> value;
+    boost::scoped_ptr<keyvalue_location_t<Value> > kv_location;
     transaction_t *get_txn();
 private:
     btree_key_t *key;
     value_sizer_t<Value> *sizer;
-    keyvalue_location_t<Value> *kv_location;
     repli_timestamp_t tstamp;
 };
 

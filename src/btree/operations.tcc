@@ -297,10 +297,8 @@ void apply_keyvalue_change(value_sizer_t<Value> *sizer, keyvalue_location_t<Valu
         // for the value.  Not necessary when deleting, because the
         // node won't grow.
 
-        printf("%p\n", &kv_loc);
-        printf("%p\n", kv_loc->txn.get());
-        printf("%p\n", kv_loc->txn->get_cache());
-        check_and_handle_split(sizer, kv_loc->txn.get(), kv_loc->buf, kv_loc->last_buf, kv_loc->sb_buf, key, kv_loc->value.get(), kv_loc->txn->get_cache()->get_block_size());
+        //check_and_handle_split(sizer, kv_loc->txn.get(), kv_loc->buf, kv_loc->last_buf, kv_loc->sb_buf, key, kv_loc->value.get(), kv_loc->txn->get_cache()->get_block_size());
+        check_and_handle_split(sizer, kv_loc->txn.get(), kv_loc->buf, kv_loc->last_buf, kv_loc->sb_buf, key, kv_loc->value.get(), sizer->block_size());
 
         bool success = leaf::insert(sizer, kv_loc->buf.buf(), key, kv_loc->value.get(), tstamp);
         guarantee(success, "could not insert into leaf btree node");
@@ -317,14 +315,14 @@ void apply_keyvalue_change(value_sizer_t<Value> *sizer, keyvalue_location_t<Valu
 }
 
 template <class Value>
-value_txn_t<Value>::value_txn_t(btree_key_t *key, value_sizer_t<Value> *sizer, keyvalue_location_t<Value> *location, repli_timestamp_t tstamp) 
-    : key(key), sizer(sizer), kv_location(location), tstamp(tstamp)
+value_txn_t<Value>::value_txn_t(btree_key_t *key, value_sizer_t<Value> *sizer, repli_timestamp_t tstamp) 
+    : key(key), sizer(sizer), tstamp(tstamp)
 { }
 
 template <class Value>
 value_txn_t<Value>::~value_txn_t() {
     kv_location->value.reinterpret_swap(value);
-    apply_keyvalue_change(sizer, kv_location, key, tstamp);
+    apply_keyvalue_change(sizer, kv_location.get(), key, tstamp);
 }
 
 template <class Value>
@@ -339,11 +337,12 @@ value_txn_t<Value> get_value_write(btree_slice_t *slice, btree_key_t *key, repli
 
     get_btree_superblock(slice, rwi_write, 1, tstamp, token, &got_superblock);
 
-    keyvalue_location_t<Value> kv_location;
-    find_keyvalue_location_for_write<Value>(&sizer, &got_superblock, key, tstamp, &kv_location);
+    boost::scoped_ptr<keyvalue_location_t<Value> > kv_location(new keyvalue_location_t<Value>());
+    find_keyvalue_location_for_write<Value>(&sizer, &got_superblock, key, tstamp, kv_location.get());
 
-    value_txn_t<Value> value_txn(key, &sizer, &kv_location, tstamp);
-    value_txn.value.swap(kv_location.value);
+    value_txn_t<Value> value_txn(key, &sizer, tstamp);
+    value_txn.value.swap(kv_location->value);
+    value_txn.kv_location.swap(kv_location);
 
     return value_txn;
 }
