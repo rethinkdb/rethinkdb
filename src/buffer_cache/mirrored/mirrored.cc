@@ -328,6 +328,7 @@ bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version) {
 
     // Pick a snapshotting strategy
     if (data_token) {
+        // XXX! BUG! (rntz): when do we free the data when using an on_disk_snapshot_t?
         // We have an up-to-date token, so we can later read the snapshot from disk
         snapshots.push_front(new on_disk_snapshot_t(version_id, snapshot_refcount, cache->serializer, data_token));
     } else {
