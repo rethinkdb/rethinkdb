@@ -24,10 +24,8 @@
 #include "btree/iteration.hpp"
 #include "containers/iterators.hpp"
 
-#include "server/nested_demo/redis_utils.hpp"
-#include "server/nested_demo/redis_list_values.hpp"
 #include "server/nested_demo/redis_hash_values.hpp"
-#include "nested_demo/redis_hash_values.hpp"
+#include "server/nested_demo/redis_set_values.hpp"
 // TODO!
 
 struct demo_value_t {
@@ -479,6 +477,56 @@ void nested_demo_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 rassert(!demo_hash_value.hexists(&sizer, transaction, "field_2"));
 
                 fprintf(stderr, "Hash length after clear(): %d\n", (int)demo_hash_value.hlen());
+            }
+
+            // ...same for redis_demo_set_value_t
+            redis_demo_set_value_t demo_set_value;
+            demo_set_value.nested_root = NULL_BLOCK_ID;
+            demo_set_value.size = 0;
+            {
+                // (flush logs)
+                on_thread_t thread(shard->home_thread());
+                coro_t::yield();
+            }
+            {
+                on_thread_t thread(shard->home_thread());
+
+                boost::shared_ptr<transaction_t> transaction(new transaction_t(&shard->cache, rwi_write, 1, repli_timestamp_t::invalid));
+                value_sizer_t<redis_demo_set_value_t> sizer(shard->cache.get_block_size());
+
+                guarantee(demo_set_value.sadd(&sizer, transaction, "member_1"));
+                guarantee(demo_set_value.sadd(&sizer, transaction, "member_2"));
+                rassert(!demo_set_value.sadd(&sizer, transaction, "member_1"));
+                rassert(!demo_set_value.sadd(&sizer, transaction, "member_2"));
+
+                rassert(demo_set_value.sismember(&sizer, transaction, "member_1"));
+                rassert(demo_set_value.sismember(&sizer, transaction, "member_2"));
+                rassert(!demo_set_value.sismember(&sizer, transaction, "member_3"));
+
+                fprintf(stderr, "Set cardinality: %d\n", (int)demo_set_value.scard());
+
+                boost::shared_ptr<one_way_iterator_t<std::string> > iter = demo_set_value.smembers(&sizer, transaction, shard->home_thread());
+                fprintf(stderr, "\nSet contents:\n");
+                while (true) {
+                    boost::optional<std::string> next = iter->next();
+                    if (next) {
+                        fprintf(stderr, "\t%s \n", next->c_str());
+                    } else {
+                        break;
+                    }
+                }
+                iter.reset();
+
+                guarantee(demo_set_value.sadd(&sizer, transaction, "member_3"));
+                rassert(demo_set_value.sismember(&sizer, transaction, "member_3"));
+                guarantee(demo_set_value.srem(&sizer, transaction, "member_3"));
+                rassert(!demo_set_value.sismember(&sizer, transaction, "member_3"));
+
+                demo_set_value.clear(&sizer, transaction, shard->home_thread());
+                rassert(!demo_set_value.sismember(&sizer, transaction, "member_1"));
+                rassert(!demo_set_value.sismember(&sizer, transaction, "member_2"));
+
+                fprintf(stderr, "Set cardinality after clear(): %d\n", (int)demo_set_value.scard());
             }
 
             /* TODO!
