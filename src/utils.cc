@@ -9,6 +9,12 @@
 #include "arch/arch.hpp"
 #include "db_thread_info.hpp"
 
+#include <boost/uuid/uuid_generators.hpp>
+
+#ifdef VALGRIND
+#include <valgrind/memcheck.h>
+#endif
+
 // fast non-null terminated string comparison
 int sized_strcmp(const char *str1, int len1, const char *str2, int len2) {
     int min_len = std::min(len1, len2);
@@ -171,3 +177,16 @@ home_thread_mixin_t::rethread_t::~rethread_t() {
 }
 
 home_thread_mixin_t::home_thread_mixin_t() : real_home_thread(get_thread_id()) { }
+
+boost::uuids::uuid generate_uuid() {
+    boost::mt19937 number_generator;
+    boost::uuids::detail::seed(number_generator);
+    /* `boost::uuids::detail::seed()` uses uninitialized memory as one source of
+    entropy. This means that Valgrind thinks that `number_generator` contains
+    uninitialized contents. Explicitly tell Valgrind that it's OK. */
+#ifdef VALGRIND
+    VALGRIND_MAKE_MEM_DEFINED_IF_ADDRESSABLE(&number_generator, sizeof(number_generator));
+#endif
+    boost::uuids::random_generator uuid_generator(number_generator);
+    return uuid_generator();
+}

@@ -12,6 +12,8 @@
 #include <string>
 #include <vector>
 
+#include <boost/uuid/uuid.hpp>
+
 #include "errors.hpp"
 #include "arch/core.hpp"
 #include "utils2.hpp"
@@ -110,6 +112,9 @@ struct on_thread_t : public home_thread_mixin_t {
     }
 };
 
+/* This does the same thing as `boost::uuids::random_generator()()`, except that
+Valgrind won't complain about it. */
+boost::uuids::uuid generate_uuid();
 
 /* API to allow a nicer way of performing jobs on other cores than subclassing
 from thread_message_t. Call do_on_thread() with an object and a method for that object.

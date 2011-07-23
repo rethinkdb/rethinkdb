@@ -7,9 +7,6 @@
 #include <boost/serialization/string.hpp>
 #include <boost/serialization/map.hpp>
 #include "concurrency/drain_semaphore.hpp"
-#ifdef VALGRIND
-#include <valgrind/memcheck.h>
-#endif
 
 /* event_watcher_t */
 
@@ -74,15 +71,8 @@ void disconnect_watcher_t::on_disconnect(peer_id_t p) {
 /* connectivity_cluster_t */
 
 connectivity_cluster_t::connectivity_cluster_t(int port) :
-    me(peer_id_t(boost::uuids::random_generator()()))
+    me(peer_id_t(generate_uuid()))
 {
-    /* `boost::uuids::random_generator()()` will sometimes produce UUIDs that
-    Valgrind considers invalid. We explicitly tell Valgrind that they are valid
-    here. */
-#ifdef VALGRIND
-    VALGRIND_MAKE_MEM_DEFINED_IF_ADDRESSABLE(&me.uuid, sizeof(me.uuid));
-#endif
-
     /* Put ourselves in the routing table */
     routing_table[me] = peer_address_t(ip_address_t::us(), port);
 
