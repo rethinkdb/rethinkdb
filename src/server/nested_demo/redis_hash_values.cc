@@ -23,9 +23,6 @@ bool redis_demo_hash_value_t::hexists(value_sizer_t<redis_demo_hash_value_t> *su
     keyvalue_location_t<redis_nested_string_value_t> kv_location;
     redis_utils::find_nested_keyvalue_location_for_read(super_sizer->block_size(), transaction, field, &kv_location, nested_root);
 
-    // Swap the transaction back in, we don't need it anymore...
-    transaction.swap(kv_location.txn);
-
     return kv_location.there_originally_was_value;
 }
 

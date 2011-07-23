@@ -102,8 +102,39 @@ namespace redis_utils {
     void construct_key(const std::string &key, scoped_malloc<btree_key_t> *out_buf);
 
     /* Convenience accessor functions for nested trees */
-    void find_nested_keyvalue_location_for_write(block_size_t block_size, boost::shared_ptr<transaction_t> &transaction, const std::string &field, repli_timestamp_t ts, keyvalue_location_t<redis_nested_string_value_t> *kv_location, scoped_malloc<btree_key_t> *btree_key, const block_id_t nested_root);
-    void find_nested_keyvalue_location_for_read(block_size_t block_size, boost::shared_ptr<transaction_t> &transaction, const std::string &field, keyvalue_location_t<redis_nested_string_value_t> *kv_location, const block_id_t nested_root);
+    template<typename Value> void find_nested_keyvalue_location_for_write(block_size_t block_size, boost::shared_ptr<transaction_t> &transaction, const std::string &field, repli_timestamp_t ts, keyvalue_location_t<Value> *kv_location, scoped_malloc<btree_key_t> *btree_key, const block_id_t nested_root) {
+        boost::scoped_ptr<superblock_t> nested_btree_sb(new virtual_superblock_t(nested_root));
+
+        // Construct a sizer for the sub tree, using the same block size as the super tree
+        value_sizer_t<Value> sizer(block_size);
+
+        got_superblock_t got_superblock;
+        got_superblock.sb.swap(nested_btree_sb);
+        got_superblock.txn = transaction;
+
+        // Construct the key
+        construct_key(field, btree_key);
+
+        // Find the element
+        ::find_keyvalue_location_for_write(&sizer, &got_superblock, btree_key->get(), ts, kv_location);
+    }
+    template<typename Value> void find_nested_keyvalue_location_for_read(block_size_t block_size, boost::shared_ptr<transaction_t> &transaction, const std::string &field, keyvalue_location_t<Value> *kv_location, const block_id_t nested_root) {
+        boost::scoped_ptr<superblock_t> nested_btree_sb(new virtual_superblock_t(nested_root));
+
+        // Construct a sizer for the sub tree, using the same block size as the super tree
+        value_sizer_t<Value> sizer(block_size);
+
+        got_superblock_t got_superblock;
+        got_superblock.sb.swap(nested_btree_sb);
+        got_superblock.txn = transaction;
+
+        // Construct the key
+        scoped_malloc<btree_key_t> btree_key;
+        construct_key(field, &btree_key);
+
+        // Find the element
+        ::find_keyvalue_location_for_read(&sizer, &got_superblock, btree_key.get(), kv_location);
+    }
 
     /* Conversion between int and a lexicographical string representation of those */
     const size_t LEX_INT_SIZE = sizeof(int);

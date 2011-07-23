@@ -46,7 +46,7 @@ public:
 
 
 private:
-    // Transforms from key_value_pair_t<redis_nested_string_value_t> to key_value_pair_t<std::string> for
+    // Transforms from key_value_pair_t<redis_nested_string_value_t> to pairs of key and value for
     // cleaner outside-facing iterator interface
     std::pair<std::string, std::string> transform_value(const key_value_pair_t<redis_nested_string_value_t> &pair) const {
         const redis_nested_string_value_t *value = reinterpret_cast<redis_nested_string_value_t*>(pair.value.get());
