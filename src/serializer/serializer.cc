@@ -64,10 +64,12 @@ serializer_t::write_t serializer_t::write_t::make_touch(block_id_t block_id, rep
 }
 
 serializer_t::write_t serializer_t::write_t::make_update(
-        block_id_t block_id, repli_timestamp_t recency, const void *buf, iocallback_t *callback)
+        block_id_t block_id, repli_timestamp_t recency, const void *buf,
+        iocallback_t *io_callback, write_launched_callback_t *launch_callback)
 {
     update_t update;
-    update.buf = buf, update.recency = recency, update.callback = callback;
+    update.buf = buf, update.recency = recency, update.io_callback = io_callback,
+        update.launch_callback = launch_callback;
     return write_t(block_id, update);
 }
 
@@ -98,8 +100,10 @@ struct write_performer_t : public boost::static_visitor<void> {
         : serializer(ser), io_account(acct), zerobuf(zerobuf), block_write_conds(conds), op(op) {}
 
     void operator()(const serializer_t::write_t::update_t &update) {
-        block_write_conds->push_back(new write_cond_t(update.callback));
+        block_write_conds->push_back(new write_cond_t(update.io_callback));
         op->token = serializer->block_write(update.buf, op->block_id, io_account, block_write_conds->back());
+        if (update.launch_callback)
+            update.launch_callback->on_write_launched(op->token.get());
         op->delete_bit = false;
         op->recency = update.recency;
     }
@@ -120,7 +124,7 @@ struct write_performer_t : public boost::static_visitor<void> {
     }
 };
 
-void serializer_t::do_write(std::vector<write_t> writes, file_t::account_t *io_account, writes_launched_callback_t *cb) {
+void serializer_t::do_write(std::vector<write_t> writes, file_t::account_t *io_account) {
     std::vector<write_cond_t*> block_write_conds;
     std::vector<serializer_t::index_write_op_t> index_write_ops;
     block_write_conds.reserve(writes.size());
@@ -140,10 +144,7 @@ void serializer_t::do_write(std::vector<write_t> writes, file_t::account_t *io_a
         index_write_ops.push_back(op);
     }
 
-    // Step 2: At the point where all writes have been started, we can call the writes_launched_callback
-    if (cb) cb->on_writes_launched();
-
-    // Step 3: Wait on all writes to finish
+    // Step 2: Wait on all writes to finish
     for (size_t i = 0; i < block_write_conds.size(); ++i) {
         block_write_conds[i]->wait();
         delete block_write_conds[i];
@@ -151,6 +152,6 @@ void serializer_t::do_write(std::vector<write_t> writes, file_t::account_t *io_a
     block_write_conds.clear();
     free(zerobuf);
 
-    // Step 4: Commit the transaction to the serializer
+    // Step 3: Commit the transaction to the serializer
     index_write(index_write_ops, io_account);
 }

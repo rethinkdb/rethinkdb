@@ -243,38 +243,60 @@ struct writeback_t::buf_writer_t :
     public thread_message_t,
     public cond_t               // note: inherits from home_thread_mixin_t
 {
-    writeback_t *parent;
-    mc_buf_t *buf;
-    bool *block_sequence_ids_have_been_updated;
-    explicit buf_writer_t(writeback_t *wb, mc_buf_t *buf, bool *bsids_updated)
-        : parent(wb), buf(buf), block_sequence_ids_have_been_updated(bsids_updated)
+    struct launch_callback_t :
+        public serializer_t::write_launched_callback_t,
+        public thread_message_t,
+        public cond_t
     {
-        parent->cache->assert_thread();
+        writeback_t *parent;
+        mc_buf_t *buf;
+        boost::shared_ptr<serializer_t::block_token_t> token;
+        void on_write_launched(boost::shared_ptr<serializer_t::block_token_t> tok) {
+            token = tok;        // XXX does this work?
+            if (continue_on_thread(home_thread(), this)) on_thread_switch();
+        }
+        void on_thread_switch() {
+            assert_thread();
+            // TODO: update buf's (or snapshot's) data token appropriately if it is up-to-date.
+            token.reset();
+            // Update block sequence id.
+            buf->inner_buf->block_sequence_id = parent->cache->serializer->get_block_sequence_id(
+                buf->get_block_id(), buf->get_data_read());
+            // We're done here.
+            pulse();
+        }
+    } launch_cb;
+
+    explicit buf_writer_t(writeback_t *wb, mc_buf_t *buf) {
+        launch_cb.parent = wb;
+        launch_cb.buf = buf;
+        launch_cb.parent->cache->assert_thread();
         /* When we spawn a flush, the block ceases to be dirty, so we release the
         semaphore. To avoid releasing a tidal wave of write transactions every time
         the flush starts, we have the writer acquire the semaphore and release it only
         once the block is safely on disk. */
-        parent->dirty_block_semaphore.force_lock(1);
+        launch_cb.parent->dirty_block_semaphore.force_lock(1);
     }
     void on_io_complete() {
         if (continue_on_thread(home_thread(), this)) on_thread_switch();
     }
     void on_thread_switch() {
         assert_thread();
-        parent->dirty_block_semaphore.unlock();
-        if (!*block_sequence_ids_have_been_updated) {
-            // Writeback might still need the buffer. Wait until destruction before releasing it...
-            pulse();
-            return;
+        launch_cb.parent->dirty_block_semaphore.unlock();
+        // If we're done updating the block sequence id, we can release the buffer now.
+        if (launch_cb.is_pulsed()) {
+            launch_cb.buf->release();
+            launch_cb.buf = NULL;
         }
-        buf->release();
-        buf = NULL;
         pulse();
     }
     ~buf_writer_t() {
-        parent->cache->assert_thread();
+        assert_thread();
         rassert(is_pulsed());
-        if (buf) buf->release();
+        rassert(launch_cb.is_pulsed());
+        rassert(!launch_cb.buf);
+        if (launch_cb.buf)
+            launch_cb.buf->release();
     }
 };
 
@@ -360,41 +382,31 @@ void writeback_t::do_concurrent_flush() {
 
     // Now that preparations are complete, send the writes to the serializer
     if (!state.serializer_writes.empty()) {
-        struct launch_cb_t : public serializer_t::writes_launched_callback_t {
-            writeback_t *wb;
-            flush_state_t *state;
-            launch_cb_t(writeback_t *w, flush_state_t *s) : wb(w), state(s) {}
-            void on_writes_launched() {
-                on_thread_t switcher(wb->cache->home_thread());
-                wb->flush_update_block_sequence_ids(*state);
-            }
-        } launched_cb(this, &state);
         on_thread_t switcher(cache->serializer->home_thread());
-        cache->serializer->do_write(state.serializer_writes, cache->writes_io_account.get(), &launched_cb);
-    } else {
-        // Make sure to call the appropriate function anyway.
-        flush_update_block_sequence_ids(state);
+        cache->serializer->do_write(state.serializer_writes, cache->writes_io_account.get());
     }
 
     // Once transaction has completed, perform cleanup.
     for (size_t i = 0; i < state.serializer_writes.size(); ++i) {
         const serializer_t::write_t &write = state.serializer_writes[i];
         const serializer_t::write_t::delete_t *del = boost::get<serializer_t::write_t::delete_t>(&write.action);
-        if (del) {
-            // All deleted blocks are now reflected in the serializer's LBA and will not get offered
-            // as read-ahead blocks anymore. Therefore we can remove them from our
-            // reject_read_ahead_blocks list.
-            reject_read_ahead_blocks.erase(write.block_id);
+        if (!del) break;
 
-            // Also we are now allowed to reuse the block id without further conflicts
-            // TODO! (rntz) shouldn't it be possible to do this as soon as the block is deleted?
-            cache->free_list.release_block_id(write.block_id);
-        }
+        // All deleted blocks are now reflected in the serializer's LBA and will not get offered as
+        // read-ahead blocks anymore. Therefore we can remove them from our reject_read_ahead_blocks
+        // list.
+        reject_read_ahead_blocks.erase(write.block_id);
+
+        // Also we are now allowed to reuse the block id without further conflicts
+        cache->free_list.release_block_id(write.block_id);
     }
     state.serializer_writes.clear();
 
+    // Wait for block sequence ids to be updated.
+    for (size_t i = 0; i < state.buf_writers.size(); ++i)
+        state.buf_writers[i]->launch_cb.wait();
+
     // Allow new concurrent flushes to start from now on
-    // (we had to wait until the transaction got passed to the serializer)
     writeback_in_progress = false;
 
     // Also start the next sync now in case it was requested
@@ -403,7 +415,7 @@ void writeback_t::do_concurrent_flush() {
         sync(NULL);
     }
 
-    // Wait for the buf_writers to finish running their callbacks
+    // Wait for the buf_writers to finish running their io callbacks
     for (size_t i = 0; i < state.buf_writers.size(); ++i) {
         state.buf_writers[i]->wait();
         delete state.buf_writers[i];
@@ -535,12 +547,14 @@ void writeback_t::flush_acquire_bufs(transaction_t *transaction, flush_state_t &
             }
 
             // Fill the serializer structure
-            buf_writer_t *buf_writer = new buf_writer_t(this, buf, &state.block_sequence_ids_have_been_updated);
+            buf_writer_t *buf_writer = new buf_writer_t(this, buf);
             state.buf_writers.push_back(buf_writer);
-            state.serializer_writes.push_back(serializer_t::write_t::make_update(inner_buf->block_id,
-                                                                                 inner_buf->subtree_recency,
-                                                                                 buf->get_data_read(),
-                                                                                 buf_writer));
+            state.serializer_writes.push_back(
+                serializer_t::write_t::make_update(inner_buf->block_id,
+                                                   inner_buf->subtree_recency,
+                                                   buf->get_data_read(),
+                                                   buf_writer,
+                                                   &buf_writer->launch_cb));
         } else if (recency_dirty) {
             // No need to acquire the block, since we're only writing its recency & don't need its contents.
             state.serializer_writes.push_back(serializer_t::write_t::make_touch(inner_buf->block_id, inner_buf->subtree_recency));
@@ -549,25 +563,4 @@ void writeback_t::flush_acquire_bufs(transaction_t *transaction, flush_state_t &
     }
 
     pm_flushes_blocks_dirty.record(really_dirty);
-}
-
-void writeback_t::flush_update_block_sequence_ids(flush_state_t &state)
-{
-    rassert(writeback_in_progress);
-    rassert(!state.block_sequence_ids_have_been_updated);
-    cache->assert_thread();
-
-    // Retrieve changed block sequence ids
-    size_t inner_buf_ix = 0;
-    for (size_t i = 0; i < state.serializer_writes.size(); ++i) {
-        const serializer_t::write_t &write = state.serializer_writes[i];
-
-        const serializer_t::write_t::update_t *update = boost::get<serializer_t::write_t::update_t>(&write.action);
-        if (update) {
-            mc_inner_buf_t *buf = state.buf_writers[inner_buf_ix++]->buf->inner_buf;
-            rassert(buf->block_id == write.block_id);
-            buf->block_sequence_id = cache->serializer->get_block_sequence_id(write.block_id, update->buf);
-        }
-    }
-    state.block_sequence_ids_have_been_updated = true;
 }

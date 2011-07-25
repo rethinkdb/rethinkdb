@@ -113,13 +113,18 @@ struct serializer_t :
     virtual block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf) = 0;
 
     // New do_write interface
-    struct writes_launched_callback_t {
-        virtual void on_writes_launched() = 0;
-        virtual ~writes_launched_callback_t() {}
+    struct write_launched_callback_t {
+        virtual void on_write_launched(boost::shared_ptr<block_token_t> token) = 0;
+        virtual ~write_launched_callback_t() {}
     };
     struct write_t {
         block_id_t block_id;
-        struct update_t { const void *buf; repli_timestamp_t recency; iocallback_t *callback; };
+        struct update_t {
+            const void *buf;
+            repli_timestamp_t recency;
+            iocallback_t *io_callback;
+            write_launched_callback_t *launch_callback;
+        };
         struct delete_t { bool write_zero_block; };
         struct touch_t { repli_timestamp_t recency; };
         // if none, indicates just a recency update.
@@ -127,7 +132,9 @@ struct serializer_t :
         action_t action;
 
         static write_t make_touch(block_id_t block_id, repli_timestamp_t recency);
-        static write_t make_update(block_id_t block_id, repli_timestamp_t recency, const void *buf, iocallback_t *callback = NULL);
+        static write_t make_update(block_id_t block_id, repli_timestamp_t recency, const void *buf,
+                                   iocallback_t *io_callback = NULL,
+                                   write_launched_callback_t *launch_callback = NULL);
         static write_t make_delete(block_id_t block_id, bool write_zero_block = true);
         write_t(block_id_t block_id, action_t action);
     };
@@ -139,7 +146,7 @@ struct serializer_t :
      * Note that this is not virtual. It is implement in terms of block_write() and index_write(),
      * and not meant to be overridden in subclasses.
      */
-    void do_write(std::vector<write_t> writes, file_t::account_t *io_account, writes_launched_callback_t *cb = NULL);
+    void do_write(std::vector<write_t> writes, file_t::account_t *io_account);
 
     /* The size, in bytes, of each serializer block */
 
