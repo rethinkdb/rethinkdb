@@ -80,24 +80,27 @@ void run_boost_serialize_test() {
     streamed_tcp_listener_t listener(port, boost::bind(&handle_charwise_echo_conn, _1));
     streamed_tcp_conn_t conn("localhost", port);
 
-    {
-        int i = 123;
-        boost::archive::text_oarchive sender(conn.get_ostream());
-        sender << i;
+    for (int n = 0; n < 5; n++) {
+
+        {
+            int i = 123;
+            boost::archive::text_oarchive sender(conn.get_ostream());
+            sender << i;
+        }
+    
+        EXPECT_FALSE(conn.get_istream().fail());
+        EXPECT_FALSE(conn.get_ostream().fail());
+    
+        {
+            boost::archive::text_iarchive receiver(conn.get_istream());
+            int i;
+            receiver >> i;
+            EXPECT_EQ(i, 123);
+        }
+    
+        EXPECT_FALSE(conn.get_istream().fail());
+        EXPECT_FALSE(conn.get_ostream().fail());
     }
-
-    EXPECT_FALSE(conn.get_istream().fail());
-    EXPECT_FALSE(conn.get_ostream().fail());
-
-    {
-        boost::archive::text_iarchive receiver(conn.get_istream());
-        int i;
-        receiver >> i;
-        EXPECT_EQ(i, 123);
-    }
-
-    EXPECT_FALSE(conn.get_istream().fail());
-    EXPECT_FALSE(conn.get_ostream().fail());
 }
 TEST(TCPStreamTest, BoostSerialize) {
     run_in_thread_pool(&run_boost_serialize_test);
