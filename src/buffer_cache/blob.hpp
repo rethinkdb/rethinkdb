@@ -80,12 +80,12 @@ struct traverse_helper_t;
 
 // Returns the number of bytes actually used by the blob reference.
 // Returns a value in the range [1, maxreflen].
-size_t ref_size(block_size_t block_size, const char *ref, size_t maxreflen);
+int ref_size(block_size_t block_size, const char *ref, int maxreflen);
 
 // Returns true if the size of the blob reference is less than or
 // equal to data_length, only reading memory in the range [ref, ref +
 // data_length).
-bool ref_fits(block_size_t block_size, int data_length, const char *ref, size_t maxreflen);
+bool ref_fits(block_size_t block_size, int data_length, const char *ref, int maxreflen);
 
 // Returns what the maxreflen would be, given the desired number of
 // block ids in the blob ref.
@@ -101,27 +101,27 @@ const block_id_t *internal_node_block_ids(const void *buf);
 void shrink(block_size_t block_size, int levels, int64_t offset, int64_t size, int index, int64_t *suboffset_out, int64_t *subsize_out);
 
 // The maxreflen value appropriate for use with memcached btrees.  It's 251.  This should be renamed.
-extern size_t btree_maxreflen;
+extern int btree_maxreflen;
 
 // The size of a blob, equivalent to blob_t(ref, maxreflen).valuesize().
-int64_t value_size(const char *ref, size_t maxreflen);
+int64_t value_size(const char *ref, int maxreflen);
 
 struct ref_info_t {
     // The ref_size of a ref.
-    size_t refsize;
+    int refsize;
     // the number of levels in the underlying tree of buffers.
     int levels;
 };
-ref_info_t ref_info(block_size_t block_size, const char *ref, size_t maxreflen);
+ref_info_t ref_info(block_size_t block_size, const char *ref, int maxreflen);
 
 // Returns the internal block ids of a non-inlined blob ref.
-const block_id_t *block_ids(const char *ref, size_t maxreflen);
+const block_id_t *block_ids(const char *ref, int maxreflen);
 
 // Returns the char bytes of a leaf node.
 const char *leaf_node_data(const void *buf);
 
 // Returns the internal offset of the ref value, which is especially useful when it's not inlined.
-size_t ref_value_offset(const char *ref, size_t maxreflen);
+int64_t ref_value_offset(const char *ref, int maxreflen);
 extern block_magic_t internal_node_magic;
 extern block_magic_t leaf_node_magic;
 }  // namespace blob
@@ -129,12 +129,12 @@ extern block_magic_t leaf_node_magic;
 class blob_t {
 public:
     // maxreflen must be less than the block size minus 4 bytes.
-    blob_t(char *ref, size_t maxreflen);
+    blob_t(char *ref, int maxreflen);
 
     // Returns ref_size(block_size, ref, maxreflen), the number of
     // bytes actually used in the blob ref.  A value in the internal
     // [1, maxreflen_].
-    size_t refsize(block_size_t block_size) const;
+    int refsize(block_size_t block_size) const;
 
     // Returns the actual size of the value, some number >= 0 and less
     // than one gazillion.
@@ -178,7 +178,7 @@ private:
     bool remove_level(transaction_t *txn, int *levels_ref);
 
     char *ref_;
-    size_t maxreflen_;
+    int maxreflen_;
 
     // disable copying
     blob_t(const blob_t&);
