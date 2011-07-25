@@ -36,7 +36,7 @@ void get_root(value_sizer_t<Value> *sizer, transaction_t *txn, buf_lock_t& sb_bu
         buf_out->swap(tmp);
     } else {
         buf_out->allocate(txn);
-        leaf::init(sizer, buf_out->buf(), timestamp);
+        leaf::init(sizer, reinterpret_cast<leaf_node_t *>(buf_out->buf()->get_data_major_write()), timestamp);
         insert_root(buf_out->buf()->get_block_id(), sb_buf);
     }
 }
@@ -72,13 +72,13 @@ void check_and_handle_split(value_sizer_t<Value> *sizer, transaction_t *txn, buf
     btree_key_buffer_t median_buffer;
     btree_key_t *median = median_buffer.key();
 
-    node::split(sizer, buf.buf(), rbuf.buf(), median);
+    node::split(sizer, buf.buf(), reinterpret_cast<node_t *>(rbuf->get_data_major_write()), median);
 
     // Insert the key that sets the two nodes apart into the parent.
     if (!last_buf.is_acquired()) {
         // We're splitting what was previously the root, so create a new root to use as the parent.
         last_buf.allocate(txn);
-        internal_node::init(sizer->block_size(), last_buf.buf());
+        internal_node::init(sizer->block_size(), reinterpret_cast<internal_node_t *>(last_buf->get_data_major_write()));
 
         insert_root(last_buf->get_block_id(), sb_buf);
     }

@@ -149,9 +149,8 @@ int sized_strcmp(const char *str1, int len1, const char *str2, int len2);
 
 /* The home thread mixin is a mixin for objects that can only be used
 on a single thread. Its thread ID is exposed as the `home_thread()`
-method. Some subclasses of `home_thread_mixin_t` can be moved to
-another thread; to do this, you can use the `rethread_t` type or the
-`rethread()` method. */
+method. Some subclasses of `home_thread_mixin_t` can move themselves to
+another thread, modifying the field real_home_thread. */
 
 #define INVALID_THREAD (-1)
 
@@ -165,19 +164,9 @@ public:
     void assert_thread() const { }
 #endif  // NDEBUG
 
-    virtual void rethread(int thread);
-
-    struct rethread_t {
-        rethread_t(home_thread_mixin_t *m, int thread);
-        ~rethread_t();
-    private:
-        home_thread_mixin_t *mixin;
-        int old_thread, new_thread;
-    };
-
 protected:
     home_thread_mixin_t();
-    virtual ~home_thread_mixin_t() { }
+    ~home_thread_mixin_t() { }
 
     int real_home_thread;
 

@@ -35,10 +35,10 @@ class leaf_key_comp;
 
 namespace leaf {
 template <class Value>
-void init(value_sizer_t<Value> *sizer, buf_t *node_buf, repli_timestamp_t modification_time);
+void init(value_sizer_t<Value> *sizer, leaf_node_t *node, repli_timestamp_t modification_time);
 
 template <class Value>
-void init(value_sizer_t<Value> *sizer, buf_t *node_buf, const leaf_node_t *lnode, const uint16_t *offsets, int numpairs, repli_timestamp_t modification_time);
+void init(value_sizer_t<Value> *sizer, leaf_node_t *node, const leaf_node_t *lnode, const uint16_t *offsets, int numpairs, repli_timestamp_t modification_time);
 
 template <class Value>
 bool lookup(value_sizer_t<Value> *sizer, const leaf_node_t *node, const btree_key_t *key, Value *value);
@@ -63,7 +63,7 @@ void remove(value_sizer_t<Value> *sizer, leaf_node_t *node, const btree_key_t *k
 // Initializes rnode with the greater half of node, copying the
 // new greatest key of node to median_out.
 template <class Value>
-void split(value_sizer_t<Value> *sizer, buf_t *node_buf, buf_t *rnode_buf, btree_key_t *median_out);
+void split(value_sizer_t<Value> *sizer, buf_t *node_buf, leaf_node_t *rnode, btree_key_t *median_out);
 
 // Merges the contents of node onto the front of rnode.
 template <class Value>
@@ -119,8 +119,10 @@ repli_timestamp_t get_timestamp_value(value_sizer_t<Value> *sizer, const leaf_no
 
 int get_offset_index(const leaf_node_t *node, const btree_key_t *key);
 
-// We can't use "internal" because that's for internal nodes... So we
-// have to use impl :( I'm sorry.
+// The "impl" namespace is for functions internal to the leaf node.
+// Do not use these functions outside of leaf_node.tcc or
+// leaf_node.cc.  If you want to use such a function, move it outside
+// of impl.
 namespace impl {
 const int key_not_found = -1;
 
