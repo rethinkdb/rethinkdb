@@ -80,7 +80,7 @@ bool insert(value_sizer_t<Value> *sizer, buf_t *node_buf, const btree_key_t *key
 
 template <class Value>
 void insert(value_sizer_t<Value> *sizer, leaf_node_t *node, const btree_key_t *key, const Value *value, repli_timestamp_t insertion_time) {
-    int index = impl::get_offset_index(node, key);
+    int index = get_offset_index(node, key);
 
     uint16_t prev_offset;
     const btree_leaf_pair<Value> *previous = NULL;
