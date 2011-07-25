@@ -23,12 +23,19 @@ done in constant time.
 class mc_cache_t;
 
 struct evictable_t {
-    /* When bufs are created or destroyed, this constructor and destructor are called; this is how
-     * the page replacement system keeps track of the buffers in memory. */
-    explicit evictable_t(mc_cache_t *cache);
-    virtual ~evictable_t();
-    virtual bool safe_to_unload() = 0; // Must be implemented by subclass.
-    //evictable_t *get_next_buf();     // commented out because not actually used.
+    explicit evictable_t(mc_cache_t *cache, bool loaded = true);
+    virtual ~evictable_t();    // removes us from the page repl if necessary; does not call unload()
+
+    // Returns true if this object can be unloaded from the cache.
+    virtual bool safe_to_unload() = 0;
+    // Called when the page_repl_random_t decides to evict this object. Must relinquish the buf
+    // associated with this object.
+    virtual void unload() = 0;
+
+    bool in_page_repl();
+    void insert_into_page_repl();
+    void remove_from_page_repl(); // does *not* call unload()
+
   protected:
     mc_cache_t *cache;
   private:

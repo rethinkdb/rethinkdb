@@ -3,12 +3,27 @@
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "perfmon.hpp"
 
-evictable_t::evictable_t(mc_cache_t *cache) : cache(cache), page_repl_index(cache->page_repl.array.size()) {
-    cache->assert_thread();
-    cache->page_repl.array.set(page_repl_index, this);
+evictable_t::evictable_t(mc_cache_t *cache, bool loaded) : cache(cache), page_repl_index(-1) {
+    if (loaded)
+        insert_into_page_repl();
 }
 
 evictable_t::~evictable_t() {
+    if (in_page_repl())
+        remove_from_page_repl();
+}
+
+bool evictable_t::in_page_repl() {
+    return page_repl_index != (unsigned) -1;
+}
+
+void evictable_t::insert_into_page_repl() {
+    cache->assert_thread();
+    page_repl_index = cache->page_repl.array.size();
+    cache->page_repl.array.set(page_repl_index, this);
+}
+
+void evictable_t::remove_from_page_repl() {
     cache->assert_thread();
     unsigned int last_index = cache->page_repl.array.size() - 1;
 
@@ -19,15 +34,9 @@ evictable_t::~evictable_t() {
         replacement->page_repl_index = page_repl_index;
         cache->page_repl.array.set(page_repl_index, replacement);
         cache->page_repl.array.set(last_index, NULL);
-        page_repl_index = -1;
     }
+    page_repl_index = -1;
 }
-
-// evictable_t *evictable_t::get_next_buf() {
-//     cache->assert_thread();
-//     return page_repl_index == cache->page_repl.array.size() - 1 ? NULL
-//            : cache->page_repl.array.get(page_repl_index + 1);
-// }
 
 page_repl_random_t::page_repl_random_t(unsigned int _unload_threshold, cache_t *_cache)
     : unload_threshold(_unload_threshold),
@@ -75,8 +84,10 @@ void page_repl_random_t::make_space(unsigned int space_needed) {
             break;
         }
 
-        /* evictable_t's destructor takes care of the details */
-        delete block_to_unload;
+        // Remove it from the page repl and call its callback. Need to remove it from the repl first
+        // because its callback could delete it.
+        block_to_unload->remove_from_page_repl();
+        block_to_unload->unload();
         pm_n_blocks_evicted++;
     }
 }

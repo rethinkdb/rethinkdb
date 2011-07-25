@@ -89,6 +89,7 @@ class mc_inner_buf_t : public home_thread_mixin_t, public evictable_t {
     page_map_t::local_buf_t page_map_buf;
 
     bool safe_to_unload();
+    void unload();
 
     // Load an existing buf from disk
     mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_load, file_t::account_t *io_account);

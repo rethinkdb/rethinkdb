@@ -257,6 +257,10 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, version_id_t
     refcount--;
 }
 
+void mc_inner_buf_t::unload() {
+    delete this;
+}
+
 mc_inner_buf_t::~mc_inner_buf_t() {
     cache->assert_thread();
 
