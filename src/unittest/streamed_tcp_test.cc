@@ -1,6 +1,8 @@
 #include "unittest/gtest.hpp"
 
 #include "arch/streamed_tcp.hpp"
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
 
 namespace unittest {
 
@@ -38,9 +40,20 @@ void handle_echo_conn(boost::scoped_ptr<streamed_tcp_conn_t> &conn) {
     }
 }
 
+void handle_charwise_echo_conn(boost::scoped_ptr<streamed_tcp_conn_t> &conn) {
+    while (conn->get_istream().good()) {
+        // Read a char and send it back
+        char c;
+        conn->get_istream().read(&c, 1);
+        if (!conn->get_istream().fail()) {
+            conn->get_ostream().write(&c, 1).flush();
+        }
+    }
+}
+
 }   /* anonymous namespace */
 
-void run_tcp_stream_test() {
+void run_transmit_lines_test() {
     int port = 10000 + rand() % 20000;
     streamed_tcp_listener_t listener(port, boost::bind(&handle_echo_conn, _1));
 
@@ -58,8 +71,36 @@ void run_tcp_stream_test() {
     }
     conn.get_ostream().flush();
 }
-TEST(TCPStreamTest, StartStop) {
-    run_in_thread_pool(&run_tcp_stream_test);
+TEST(TCPStreamTest, TransmitLines) {
+    run_in_thread_pool(&run_transmit_lines_test);
+}
+
+void run_boost_serialize_test() {
+    int port = 10000 + rand() % 20000;
+    streamed_tcp_listener_t listener(port, boost::bind(&handle_charwise_echo_conn, _1));
+    streamed_tcp_conn_t conn("localhost", port);
+
+    {
+        int i = 123;
+        boost::archive::text_oarchive sender(conn.get_ostream());
+        sender << i;
+    }
+
+    EXPECT_FALSE(conn.get_istream().fail());
+    EXPECT_FALSE(conn.get_ostream().fail());
+
+    {
+        boost::archive::text_iarchive receiver(conn.get_istream());
+        int i;
+        receiver >> i;
+        EXPECT_EQ(i, 123);
+    }
+
+    EXPECT_FALSE(conn.get_istream().fail());
+    EXPECT_FALSE(conn.get_ostream().fail());
+}
+TEST(TCPStreamTest, BoostSerialize) {
+    run_in_thread_pool(&run_boost_serialize_test);
 }
 
 }
