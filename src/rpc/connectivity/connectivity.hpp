@@ -4,6 +4,8 @@
 #include <map>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
+#include <boost/uuid/uuid_serialize.hpp>
 #include <boost/optional.hpp>
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/base_object.hpp>
@@ -62,9 +64,7 @@ private:
 
     friend class boost::serialization::access;
     template<class Archive> void serialize(Archive & ar, UNUSED const unsigned int version) {
-        // Not really platform independent...
-        boost::serialization::binary_object bin_uuid(&uuid, boost::uuids::uuid::static_size());
-        ar & bin_uuid;
+        ar & uuid;
     }
 };
 
