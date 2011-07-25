@@ -379,11 +379,13 @@ void connectivity_cluster_t::handle(
     }
 
     /* For each peer that our new friend told us about that we don't already
-    know about, start a new connection.*/
-    {
+    know about, start a new connection. If the cluster is shutting down, skip
+    this step. */
+    if (!shutdown_cond.is_pulsed()) {
         /* Acquire the drain semaphore so we can pass a
         `drain_semaphore_t::lock_t` to the coroutine we spawn. That way, the
-        `connectivity_cluster_t` won't shut down while there coroutine is still active. */
+        `connectivity_cluster_t` won't shut down while there coroutine is still
+        active. */
         drain_semaphore_t::lock_t drain_semaphore_lock(&shutdown_semaphore);
 
         for (std::map<peer_id_t, peer_address_t>::iterator it = other_routing_table.begin();
