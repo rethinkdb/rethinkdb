@@ -11,6 +11,7 @@ struct redis_nested_string_value_t {
 
 public:
     int inline_size(UNUSED block_size_t bs) const {
+        // TODO! (what if this is not packed?)
         return sizeof(length) + length;
     }
 

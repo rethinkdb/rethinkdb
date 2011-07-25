@@ -12,6 +12,7 @@ struct redis_demo_hash_value_t {
 
 public:
     int inline_size(UNUSED block_size_t bs) const {
+        // TODO! (what if this is not packed?)
         return sizeof(nested_root) + sizeof(size);
     }
 
