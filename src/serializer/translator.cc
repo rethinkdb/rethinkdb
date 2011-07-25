@@ -182,6 +182,7 @@ block_id_t translator_serializer_t::untranslate_block_id_to_id(block_id_t inner_
 }
 
 block_id_t translator_serializer_t::translate_block_id(block_id_t id) {
+    rassert(id != NULL_BLOCK_ID);
     return translate_block_id(id, mod_count, mod_id, cfgid);
 }
 
@@ -217,7 +218,10 @@ void translator_serializer_t::index_write(const std::vector<index_write_op_t>& w
 
 boost::shared_ptr<serializer_t::block_token_t>
 translator_serializer_t::block_write(const void *buf, block_id_t block_id, file_t::account_t *io_account, iocallback_t *cb) {
-    return inner->block_write(buf, translate_block_id(block_id), io_account, cb);
+    // NULL_BLOCK_ID is special: it indicates no block id specified.
+    if (block_id != NULL_BLOCK_ID)
+        block_id = translate_block_id(block_id);
+    return inner->block_write(buf, block_id, io_account, cb);
 }
 
 boost::shared_ptr<serializer_t::block_token_t>
