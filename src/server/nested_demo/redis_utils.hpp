@@ -11,7 +11,6 @@ struct redis_nested_string_value_t {
 
 public:
     int inline_size(UNUSED block_size_t bs) const {
-        // TODO! (what if this is not packed?)
         return sizeof(length) + length;
     }
 
@@ -21,7 +20,7 @@ public:
 
     const char *value_ref() const { return contents; }
     char *value_ref() { return contents; }
-};
+} __attribute__((__packed__));
 template <>
 class value_sizer_t<redis_nested_string_value_t> {
 public:
@@ -67,7 +66,7 @@ struct redis_nested_empty_value_t {
 
     const char *value_ref() const { return NULL; }
     char *value_ref() { return NULL; }
-};
+} __attribute__((__packed__));
 template <>
 class value_sizer_t<redis_nested_empty_value_t> {
 public:
