@@ -7,20 +7,26 @@
 #ifndef MOCK_CACHE_CHECK
 
 #include "buffer_cache/mirrored/mirrored.hpp"
-#include "buffer_cache/semantic_checking.hpp"
 
 #if !defined(VALGRIND) && !defined(NDEBUG)
+
+#include "buffer_cache/semantic_checking.hpp"
+
 // scc_cache_t is way too slow under valgrind and makes automated
 // tests run forever.
 typedef scc_cache_t<mc_cache_t> cache_t;
+
 #else
+
 typedef mc_cache_t cache_t;
+
 #endif  // !defined(VALGRIND) && !defined(NDEBUG)
 
 #else
 
 #include "buffer_cache/mock.hpp"
 #include "buffer_cache/semantic_checking.hpp"
+
 typedef scc_cache_t<mock_cache_t> cache_t;
 
 #endif // MOCK_CACHE_CHECK
