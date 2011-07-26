@@ -21,14 +21,14 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, order
     get_btree_superblock(slice, rwi_read, token, &got);
 
     memcached_value_sizer_t sizer(slice->cache()->get_block_size());
-    keyvalue_location_t kv_location;
+    keyvalue_location_t<memcached_value_t> kv_location;
     find_keyvalue_location_for_read(&sizer, &got, key, &kv_location);
 
     if (!kv_location.value) {
         return get_result_t();
     }
 
-    const btree_value_t *value = reinterpret_cast<const btree_value_t *>(kv_location.value.get());
+    const memcached_value_t *value = kv_location.value.get();
     if (value->expired()) {
         // If the value is expired, delete it in the background.
         btree_delete_expired(store_key, slice);

@@ -7,7 +7,7 @@
 #include <utility>
 
 #include "arch/arch.hpp"
-#include "server/cmd_args.hpp"
+#include "serializer/log/config.hpp"
 #include "containers/priority_queue.hpp"
 #include "containers/two_level_array.hpp"
 #include "containers/bitset.hpp"
@@ -55,7 +55,7 @@ private:
     };
 
 public:
-    data_block_manager_t(const log_serializer_dynamic_config_t *dynamic_config, extent_manager_t *em, log_serializer_t *serializer, const log_serializer_static_config_t *static_config)
+    data_block_manager_t(const log_serializer_dynamic_config_t *dynamic_config, extent_manager_t *em, log_serializer_t *serializer, const log_serializer_on_disk_static_config_t *static_config)
         : shutdown_callback(NULL), state(state_unstarted), 
           dynamic_config(dynamic_config), static_config(static_config), extent_manager(em), serializer(serializer),
           next_active_extent(0),
@@ -158,7 +158,7 @@ private:
     } state;
 
     const log_serializer_dynamic_config_t* const dynamic_config;
-    const log_serializer_static_config_t* const static_config;
+    const log_serializer_on_disk_static_config_t* const static_config;
 
     extent_manager_t* const extent_manager;
     /* TODO: This pointer should not be required */

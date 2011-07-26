@@ -3,7 +3,7 @@
 
 #include "replication/delete_queue.hpp"
 
-struct btree_delete_oper_t : public btree_modify_oper_t {
+struct btree_delete_oper_t : public btree_modify_oper_t<memcached_value_t> {
 
     btree_delete_oper_t(bool dont_record, btree_slice_t *_slice) : dont_put_in_delete_queue(dont_record), slice(_slice) { }
 
@@ -11,7 +11,7 @@ struct btree_delete_oper_t : public btree_modify_oper_t {
     bool dont_put_in_delete_queue;
     btree_slice_t *slice;
 
-    bool operate(transaction_t *txn, scoped_malloc<btree_value_t>& value) {
+    bool operate(transaction_t *txn, scoped_malloc<memcached_value_t>& value) {
         if (value) {
             result = dr_deleted;
             {
@@ -44,8 +44,8 @@ struct btree_delete_oper_t : public btree_modify_oper_t {
     }
 };
 
-delete_result_t btree_delete(value_sizer_t *sizer, const store_key_t &key, bool dont_put_in_delete_queue, btree_slice_t *slice, repli_timestamp_t timestamp, order_token_t token) {
+delete_result_t btree_delete(value_sizer_t<memcached_value_t> *sizer, const store_key_t &key, bool dont_put_in_delete_queue, btree_slice_t *slice, repli_timestamp_t timestamp, order_token_t token) {
     btree_delete_oper_t oper(dont_put_in_delete_queue, slice);
-    run_btree_modify_oper(sizer, &oper, slice, key, castime_t(BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS, timestamp), token);
+    run_btree_modify_oper<memcached_value_t>(sizer, &oper, slice, key, castime_t(BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS, timestamp), token);
     return oper.result;
 }

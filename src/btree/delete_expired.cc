@@ -6,10 +6,10 @@
 #include "arch/coroutines.hpp"
 #include "btree/modify_oper.hpp"
 
-class btree_delete_expired_oper_t : public btree_modify_oper_t
+class btree_delete_expired_oper_t : public btree_modify_oper_t<memcached_value_t>
 {
 public:
-    bool operate(UNUSED transaction_t *txn, UNUSED scoped_malloc<btree_value_t>& value) {
+    bool operate(UNUSED transaction_t *txn, UNUSED scoped_malloc<memcached_value_t>& value) {
         /* Don't do anything.  run_btree_modify_oper() will take
            advantage of the fact that we got to the leaf in write mode
            to automatically delete the expired key if necessary. */
@@ -39,7 +39,7 @@ void co_btree_delete_expired(const store_key_t &key, btree_slice_t *slice) {
     // passing a completely meaningless proposed cas and because we
     // should not really be passing a recency timestamp.
     // It's okay to use repli_timestamp_t::invalid here.
-    run_btree_modify_oper(&sizer, &oper, slice, key, castime_t(BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS, repli_timestamp_t::invalid), order_token_t::ignore);
+    run_btree_modify_oper<memcached_value_t>(&sizer, &oper, slice, key, castime_t(BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS, repli_timestamp_t::invalid), order_token_t::ignore);
 }
 
 void btree_delete_expired(const store_key_t &key, btree_slice_t *slice) {

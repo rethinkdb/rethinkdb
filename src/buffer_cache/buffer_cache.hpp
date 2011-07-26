@@ -12,7 +12,7 @@
 #if !defined(VALGRIND) && !defined(NDEBUG)
 // scc_cache_t is way too slow under valgrind and makes automated
 // tests run forever.
-typedef scc_cache_t<mc_cache_t > cache_t;
+typedef scc_cache_t<mc_cache_t> cache_t;
 #else
 typedef mc_cache_t cache_t;
 #endif  // !defined(VALGRIND) && !defined(NDEBUG)
@@ -27,9 +27,7 @@ typedef scc_cache_t<mock_cache_t> cache_t;
 
 /* Move elements of chosen cache into global namespace */
 
-#ifndef CUSTOM_BUF_TYPE
 typedef cache_t::buf_t buf_t;
-#endif  // CUSTOM_BUF_TYPE
 typedef cache_t::transaction_t transaction_t;
 typedef cache_t::cache_account_t cache_account_t;
 

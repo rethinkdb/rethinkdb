@@ -154,7 +154,7 @@ def try_block_mutation(mutation_name, mutation, length_checker):
     extract_path = get_executable_path(opts, "rethinkdb")
     dump_path = test_dir.p("db_data_dump." + mutation_name + ".txt")
     run_executable(
-        [extract_path, "extract", "-o", dump_path, "--force-slice-count", str(opts['slices'])] + server1.data_files.rethinkdb_flags(),
+        [extract_path, "extract", "-o", dump_path, "--force-slice-count", str(opts['slices'])] + server1.data_files.rethinkdb_extract_flags(),
         "extractor_output.txt",
         valgrind_tool = opts["valgrind-tool"] if opts["valgrind"] else None,
         test_dir = test_dir,

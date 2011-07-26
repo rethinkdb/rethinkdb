@@ -66,8 +66,9 @@ public:
     typedef typename inner_serializer_t::private_dynamic_config_t private_dynamic_config_t;
     typedef typename inner_serializer_t::dynamic_config_t dynamic_config_t;
     typedef typename inner_serializer_t::static_config_t static_config_t;
+    typedef typename inner_serializer_t::public_static_config_t public_static_config_t;
 
-    static void create(dynamic_config_t *config, private_dynamic_config_t *private_config, static_config_t *static_config) {
+    static void create(dynamic_config_t *config, private_dynamic_config_t *private_config, public_static_config_t *static_config) {
         inner_serializer_t::create(config, private_config, static_config);
     }
 
@@ -88,7 +89,7 @@ public:
                 res = read(semantic_fd, &buf, sizeof(buf));
                 guarantee_err(res != -1, "Could not read from the semantic checker file");
                 if(res == sizeof(persisted_block_info_t)) { // XXX (rntz) shouldn't it be an error if this is not the case?
-                    blocks.set(buf.block_id.value, buf.block_info);
+                    blocks.set(buf.block_id, buf.block_info);
                 }
             } while(res == sizeof(persisted_block_info_t));
         }
@@ -153,7 +154,7 @@ public:
 #ifdef SERIALIZER_DEBUG_PRINT
                     printf("Read %ld: %u\n", block_id, actual_crc);
 #endif
-                    guarantee(expected_block_state.crc == actual_crc, "Serializer returned bad value for block ID %u", block_id.value);
+                    guarantee(expected_block_state.crc == actual_crc, "Serializer returned bad value for block ID %u", block_id);
                     break;
                 }
                 default:
@@ -169,7 +170,7 @@ public:
 #ifdef SERIALIZER_DEBUG_PRINT
         printf("Reading %ld\n", block_id);
 #endif
-        reader_t *reader = new reader_t(this, block_id, buf, blocks.get(block_id.value));
+        reader_t *reader = new reader_t(this, block_id, buf, blocks.get(block_id));
         reader->callback = NULL;
         if (inner_serializer.do_read(block_id, buf, io_account, reader)) {
             reader->on_serializer_read();
@@ -225,7 +226,7 @@ public:
                 printf("Deleting %ld\n", writes[i].block_id);
 #endif
             }
-            blocks.set(writes[i].block_id.value, b);
+            blocks.set(writes[i].block_id, b);
             
             // Add the block to the semantic checker file
             persisted_block_info_t buf;
@@ -259,7 +260,7 @@ public:
 
     bool block_in_use(block_id_t id) {
         bool in_use = inner_serializer.block_in_use(id);
-        switch (blocks.get(id.value).state) {
+        switch (blocks.get(id).state) {
             case block_info_t::state_unknown: break;
             case block_info_t::state_deleted: rassert(!in_use); break;
             case block_info_t::state_have_crc: rassert(in_use); break;
@@ -272,12 +273,10 @@ public:
         return inner_serializer.get_recency(id);
     }
 
-    bool register_read_ahead_cb(read_ahead_callback_t *cb) {
+    void register_read_ahead_cb(UNUSED read_ahead_callback_t *cb) {
         // Ignore this, it might make the checking ineffective...
     }
-    bool unregister_read_ahead_cb(read_ahead_callback_t *cb) {
-        return false;
-    }
+    void unregister_read_ahead_cb(UNUSED read_ahead_callback_t *cb) { }
 
     struct shutdown_callback_t {
         virtual void on_serializer_shutdown(semantic_checking_serializer_t *) = 0;

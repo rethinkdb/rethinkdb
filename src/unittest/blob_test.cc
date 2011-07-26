@@ -161,6 +161,11 @@ private:
 struct blob_tester_t : public server_test_helper_t {
 protected:
     void run_tests(cache_t *cache) {
+        // The tests below hard-code constants related to these numbers.
+        EXPECT_EQ(251, blob::btree_maxreflen);
+        EXPECT_EQ(4080, blob::stepsize(cache->get_block_size(), 1));
+        EXPECT_EQ(4080 * (4080 / sizeof(block_id_t)), blob::stepsize(cache->get_block_size(), 2));
+
         debugf("small_value_test...\n");
         small_value_test(cache);
         debugf("small_value_boundary_test...\n");
@@ -335,8 +340,8 @@ private:
     void combinations_test(cache_t *cache) {
         SCOPED_TRACE("combinations_test");
         int64_t inline_sz = 4080 * ((250 - 1 - 8 - 8) / 4);
-        int64_t l2_sz = 4080 * (4080 / 4);
-	int64_t szs[] = { 0, 251, 4080, 4081, inline_sz - 300, inline_sz, inline_sz + 1, l2_sz, l2_sz + 1, l2_sz * 3 + 1 };
+        //        int64_t l2_sz = 4080 * (4080 / 4);
+	int64_t szs[] = { 0, 251, 4080, 4081, inline_sz - 300, inline_sz, inline_sz + 1 };  // for now, until we can make this test faster.  // , l2_sz, l2_sz + 1, l2_sz * 3 + 1 };
 
         int n = sizeof(szs) / sizeof(szs[0]);
 

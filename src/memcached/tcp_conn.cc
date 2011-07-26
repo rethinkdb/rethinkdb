@@ -116,6 +116,26 @@ memcache_listener_t::~memcache_listener_t() {
     active_connection_drain_semaphore.drain();
 }
 
+class rethread_tcp_conn_t {
+public:
+    rethread_tcp_conn_t(tcp_conn_t *conn, int thread) : conn_(conn), old_thread_(conn->home_thread()), new_thread_(thread) {
+        conn->rethread(thread);
+        rassert(conn->home_thread() == thread);
+    }
+
+    ~rethread_tcp_conn_t() {
+        rassert(conn_->home_thread() == new_thread_);
+        conn_->rethread(old_thread_);
+        rassert(conn_->home_thread() == old_thread_);
+    }
+
+private:
+    tcp_conn_t *conn_;
+    int old_thread_, new_thread_;
+
+    DISABLE_COPYING(rethread_tcp_conn_t);
+};
+
 void memcache_listener_t::handle(boost::scoped_ptr<tcp_conn_t> &conn) {
     assert_thread();
 
@@ -134,9 +154,9 @@ void memcache_listener_t::handle(boost::scoped_ptr<tcp_conn_t> &conn) {
     /* Switch to the other thread. We use the `rethread_t` objects to unregister
     the conn with the event loop on this thread and to reregister it with the
     event loop on the new thread, then do the reverse when we switch back. */
-    home_thread_mixin_t::rethread_t unregister_conn(conn.get(), INVALID_THREAD);
+    rethread_tcp_conn_t unregister_conn(conn.get(), INVALID_THREAD);
     on_thread_t thread_switcher(chosen_thread);
-    home_thread_mixin_t::rethread_t reregister_conn(conn.get(), get_thread_id());
+    rethread_tcp_conn_t reregister_conn(conn.get(), get_thread_id());
 
     /* Set up an object that will close the network connection when a shutdown signal
     is delivered */
