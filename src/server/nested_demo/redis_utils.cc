@@ -51,12 +51,26 @@ namespace redis_utils {
         return i;
     }
 
-    // TODO! (later) lex. float key representation
-    void to_lex_float(UNUSED const float f, UNUSED char* buf) {
-        // TODO!
+    void to_lex_float(const float f, char* buf) {
+        // The trick is as follows: IEEE 754 floats already are lexicographically
+        // comparable, except for negative numbers, where the order is inverted
+        // (e.g. -0.1 > -0.01). To work around this, we negate negative floats
+        // after casting them to ints and then recover their sign bit to keep
+        // comparison between positive and negative numbers intact.
+        rassert(sizeof(int) == sizeof(float));
+        int i = *reinterpret_cast<const int*>(&f);
+        if (i < 0) {
+            i = (-i) ^ 0x80000000;
+        }
+        to_lex_int(i, buf);
     }
-    float from_lex_float(UNUSED char* buf) {
-        // TODO!
-        return 0.0f;
+    float from_lex_float(char* buf) {
+        rassert(sizeof(int) == sizeof(float));
+        // TODO! Test this
+        int i = from_lex_int(buf);
+        if (i < 0) {
+            i = -(i ^ 0x80000000);
+        }
+        return *reinterpret_cast<const float*>(&i);
     }
 } /* namespace redis_utils */

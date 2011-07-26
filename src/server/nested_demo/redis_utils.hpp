@@ -137,14 +137,14 @@ namespace redis_utils {
         ::find_keyvalue_location_for_read(&sizer, &got_superblock, btree_key.get(), kv_location);
     }
 
-    /* Conversion between int and a lexicographical string representation of those */
+    /* Conversion between int and a lexicographical string representation */
     const size_t LEX_INT_SIZE = sizeof(int);
     void to_lex_int(const int i, char* buf);
     int from_lex_int(char* buf);
 
-    // TODO! (later) lex. float key representation
-    const size_t LEX_FLOAT_SIZE = 0;
-    void to_lex_float(const float f, UNUSED char* buf);
+    /* Conversion between float and a lexicographical string representation */
+    const size_t LEX_FLOAT_SIZE = LEX_INT_SIZE;
+    void to_lex_float(const float f, char* buf);
     float from_lex_float(char* buf);
 } /* namespace redis_utils */
 
