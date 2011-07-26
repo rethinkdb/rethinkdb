@@ -109,7 +109,7 @@ public:
 
     public:
         virtual ~ls_block_token_t() {
-            on_thread_t(serializer->home_thread());
+            on_thread_t switcher(serializer->home_thread());
             serializer->unregister_block_token(this);
         }
     };
