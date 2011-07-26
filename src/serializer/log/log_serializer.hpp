@@ -129,10 +129,12 @@ public:
     bool get_delete_bit(block_id_t id);
     boost::shared_ptr<block_token_t> index_read(block_id_t block_id);
 
+    using serializer_t::block_read; // hack to make block_read overloading work properly
     void block_read(boost::shared_ptr<block_token_t> token, void *buf, file_t::account_t *io_account, iocallback_t *cb);
 
     void index_write(const std::vector<index_write_op_t>& write_ops, file_t::account_t *io_account);
 
+    using serializer_t::block_write; // hack to make block_write overloading work properly
     boost::shared_ptr<block_token_t> block_write(const void *buf, block_id_t block_id, file_t::account_t *io_account, iocallback_t *cb);
 
     block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf);
