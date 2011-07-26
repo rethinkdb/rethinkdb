@@ -109,8 +109,9 @@ class mc_inner_buf_t : public home_thread_mixin_t, public evictable_t {
     // Loads data from the serializer
     void load_inner_buf(bool should_lock, file_t::account_t *io_account);
 
-    // Updates block token for the snapshot (or current version) associated with `data`; used by writeback
-    void update_token_for(const void *data, boost::shared_ptr<serializer_t::block_token_t> token);
+    // Informs us that a certain data buffer (whether the current one or one used by a
+    // buf_snapshot_t) has been written back to disk; used by writeback
+    void update_data_token(const void *data, boost::shared_ptr<serializer_t::block_token_t> token);
 
     block_sequence_id_t block_sequence_id;
 
