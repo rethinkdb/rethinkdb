@@ -52,10 +52,13 @@ def generate_async_message_template(nargs):
         print "        archive << arg%d;" % i
     print "    }"
     print "    void on_message(std::istream &stream, boost::function<void()> &done) {"
-    print "        boost::archive::binary_iarchive archive(stream);"
     for i in xrange(nargs):
         print "        arg%d_t arg%d;" % (i, i)
+    print "        {"
+    print "            boost::archive::binary_iarchive archive(stream);"
+    for i in xrange(nargs):
         print "        archive >> arg%d;" % i
+    print "        }"
     print "        done();"
     print "        callback(" + csep("arg#") + ");"
     print "    }"

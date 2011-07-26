@@ -62,9 +62,11 @@ void metadata_cluster_t<metadata_t>::write_metadata(std::ostream &stream, metada
 
 template<class metadata_t>
 void metadata_cluster_t<metadata_t>::on_utility_message(peer_id_t, std::istream &stream, boost::function<void()> &on_done) {
-    boost::archive::binary_iarchive archive(stream);
     metadata_t added_metadata;
-    archive >> added_metadata;
+    {
+        boost::archive::binary_iarchive archive(stream);
+        archive >> added_metadata;
+    }
     on_done();
     join_metadata_locally(added_metadata);
 }
