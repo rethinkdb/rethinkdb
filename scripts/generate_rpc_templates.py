@@ -47,12 +47,12 @@ def generate_async_message_template(nargs):
         print "    template<" + csep("class a#_t") + ">"
         print "    friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(" + csep("a#_t") + ") >::address_t" + cpre("const a#_t&") + ");"
     print "    static void write(std::ostream &stream" + cpre("const arg#_t &arg#") + ") {"
-    print "        boost::archive::text_oarchive archive(stream);"
+    print "        boost::archive::binary_oarchive archive(stream);"
     for i in xrange(nargs):
         print "        archive << arg%d;" % i
     print "    }"
     print "    void on_message(std::istream &stream, boost::function<void()> &done) {"
-    print "        boost::archive::text_iarchive archive(stream);"
+    print "        boost::archive::binary_iarchive archive(stream);"
     for i in xrange(nargs):
         print "        arg%d_t arg%d;" % (i, i)
         print "        archive >> arg%d;" % i
@@ -81,8 +81,8 @@ if __name__ == "__main__":
     print "Please modify '%s' instead of modifying this file.*/" % sys.argv[0]
     print
 
-    print "#include <boost/archive/text_iarchive.hpp>"
-    print "#include <boost/archive/text_oarchive.hpp>"
+    print "#include <boost/archive/binary_iarchive.hpp>"
+    print "#include <boost/archive/binary_oarchive.hpp>"
     print "#include \"rpc/serialize_macros.hpp\""
     print "#include \"rpc/mailbox/mailbox.hpp\""
     print

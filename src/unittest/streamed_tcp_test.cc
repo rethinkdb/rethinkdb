@@ -1,8 +1,8 @@
 #include "unittest/gtest.hpp"
 
 #include "arch/streamed_tcp.hpp"
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
 
 namespace unittest {
 
@@ -84,7 +84,7 @@ void run_boost_serialize_test() {
 
         {
             int i = 123;
-            boost::archive::text_oarchive sender(conn.get_ostream());
+            boost::archive::binary_oarchive sender(conn.get_ostream());
             sender << i;
         }
     
@@ -92,7 +92,7 @@ void run_boost_serialize_test() {
         EXPECT_FALSE(conn.get_ostream().fail());
     
         {
-            boost::archive::text_iarchive receiver(conn.get_istream());
+            boost::archive::binary_iarchive receiver(conn.get_istream());
             int i;
             receiver >> i;
             EXPECT_EQ(i, 123);

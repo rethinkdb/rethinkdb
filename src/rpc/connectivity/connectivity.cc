@@ -1,8 +1,8 @@
 #include "rpc/connectivity/connectivity.hpp"
 #include <sstream>
 #include <ios>
-#include <boost/archive/text_oarchive.hpp>
-#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/base_object.hpp>
 #include <boost/serialization/string.hpp>
 #include <boost/serialization/map.hpp>
@@ -164,7 +164,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(s
         mutex_acquisition_t acq(&dest_conn->send_mutex);
 
         try {
-            boost::archive::text_oarchive sender(dest_conn->conn->get_ostream());
+            boost::archive::binary_oarchive sender(dest_conn->conn->get_ostream());
             std::string buffer_str = buffer.str();
             sender << buffer_str;
         } catch (boost::archive::archive_exception) {
@@ -239,7 +239,7 @@ void connectivity_cluster_t::handle(
     */
 
     try {
-        boost::archive::text_oarchive sender(conn->get_ostream());
+        boost::archive::binary_oarchive sender(conn->get_ostream());
         sender << me;
         sender << routing_table[me];
     } catch (boost::archive::archive_exception) {
@@ -253,7 +253,7 @@ void connectivity_cluster_t::handle(
     peer_id_t other_id;
     peer_address_t other_address;
     try {
-        boost::archive::text_iarchive receiver(conn->get_istream());
+        boost::archive::binary_iarchive receiver(conn->get_istream());
         receiver >> other_id;
         receiver >> other_address;
     } catch (boost::archive::archive_exception) {
@@ -316,7 +316,7 @@ void connectivity_cluster_t::handle(
         /* We're good to go! Transmit the routing table to the follower, so it
         knows we're in. */
         try {
-            boost::archive::text_oarchive sender(conn->get_ostream());
+            boost::archive::binary_oarchive sender(conn->get_ostream());
             sender << routing_table_to_send;
         } catch (boost::archive::archive_exception) {
             routing_table.erase(other_id);
@@ -326,7 +326,7 @@ void connectivity_cluster_t::handle(
 
         /* Receive the follower's routing table */
         try {
-            boost::archive::text_iarchive receiver(conn->get_istream());
+            boost::archive::binary_iarchive receiver(conn->get_istream());
             receiver >> other_routing_table;
         } catch (boost::archive::archive_exception) {
             routing_table.erase(other_id);
@@ -340,7 +340,7 @@ void connectivity_cluster_t::handle(
         conflict, then the leader will close the connection instead of sending
         the routing table. */
         try {
-            boost::archive::text_iarchive receiver(conn->get_istream());
+            boost::archive::binary_iarchive receiver(conn->get_istream());
             receiver >> other_routing_table;
         } catch (boost::archive::archive_exception) {
             if (!conn->is_read_open()) return;
@@ -370,7 +370,7 @@ void connectivity_cluster_t::handle(
 
         /* Send our routing table to the leader */
         try {
-            boost::archive::text_oarchive sender(conn->get_ostream());
+            boost::archive::binary_oarchive sender(conn->get_ostream());
             sender << routing_table_to_send;
         } catch (boost::archive::archive_exception) {
             if (!conn->is_write_open()) return;
@@ -435,7 +435,7 @@ void connectivity_cluster_t::handle(
                 should change it when we care about performance. */
                 std::string message;
                 {
-                    boost::archive::text_iarchive receiver(conn->get_istream());
+                    boost::archive::binary_iarchive receiver(conn->get_istream());
                     receiver >> message;
                 }
 

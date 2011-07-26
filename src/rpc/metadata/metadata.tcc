@@ -1,5 +1,5 @@
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
 
 template<class metadata_t>
 metadata_cluster_t<metadata_t>::metadata_cluster_t(int port, const metadata_t &initial_metadata) :
@@ -56,13 +56,13 @@ void metadata_cluster_t<metadata_t>::join_metadata_on_thread(int thread, const m
 
 template<class metadata_t>
 void metadata_cluster_t<metadata_t>::write_metadata(std::ostream &stream, metadata_t md) {
-    boost::archive::text_oarchive archive(stream);
+    boost::archive::binary_oarchive archive(stream);
     archive << md;
 }
 
 template<class metadata_t>
 void metadata_cluster_t<metadata_t>::on_utility_message(peer_id_t, std::istream &stream, boost::function<void()> &on_done) {
-    boost::archive::text_iarchive archive(stream);
+    boost::archive::binary_iarchive archive(stream);
     metadata_t added_metadata;
     archive >> added_metadata;
     on_done();
