@@ -1,6 +1,7 @@
 #ifndef __BTREE_VALUE_HPP__
 #define __BTREE_VALUE_HPP__
 
+#include "errors.hpp"
 #include "buffer_cache/blob.hpp"
 
 
@@ -77,9 +78,7 @@ public:
         return ret;
     }
 
-    bool expired() const {
-        return exptime() ? time(NULL) >= exptime() : false;
-    }
+    bool expired() const;
 
     // CAS is treated differently from the other fields. Values initially don't
     // have a CAS; once it's added, though, we assume it's there for good. An

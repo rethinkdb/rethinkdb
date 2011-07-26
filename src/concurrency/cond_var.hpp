@@ -23,12 +23,6 @@ private:
     DISABLE_COPYING(cond_t);
 };
 
-/* It used to be that cond_t was not thread-safe, and instead there was a "threadsafe_cond_t"
-that was thread-safe. Now cond_t is thread-safe, so "threadsafe_cond_t" is obsolete and should
-eventually go away. TODO: Get rid of this. */
-
-typedef cond_t threadsafe_cond_t;
-
 /* cond_weak_ptr_t is a pointer to a cond_t, but it NULLs itself when the
 cond_t is pulsed. */
 

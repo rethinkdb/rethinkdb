@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#include "serializer/types.hpp"
+
 typedef uint32_t block_magic_comparison_t;
 
 struct block_magic_t {

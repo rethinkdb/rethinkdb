@@ -2,7 +2,6 @@
 #define __BTREE_RGET_HPP__
 
 #include "utils.hpp"
-#include "buffer_cache/buffer_cache.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/co_functions.hpp"
 
