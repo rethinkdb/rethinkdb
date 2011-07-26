@@ -84,6 +84,10 @@ class mc_inner_buf_t : public home_thread_mixin_t, public evictable_t {
     // number of references from mc_buf_t buffers, which hold a pointer to the data in read_outdated_ok mode
     size_t cow_refcount;
 
+    // number of references from mc_buf_t buffers which point to the current version of `data` as a
+    // snapshot. this is ugly, but necessary to correctly initialize buf_snapshot_t refcounts.
+    size_t snap_refcount;
+
     // Each of these local buf types holds a redundant pointer to the inner_buf that they are a part of
     writeback_t::local_buf_t writeback_buf;
     page_map_t::local_buf_t page_map_buf;
@@ -105,19 +109,22 @@ class mc_inner_buf_t : public home_thread_mixin_t, public evictable_t {
     // Loads data from the serializer
     void load_inner_buf(bool should_lock, file_t::account_t *io_account);
 
+    // Updates block token for the snapshot (or current version) associated with `data`; used by writeback
+    void update_token_for(const void *data, boost::shared_ptr<serializer_t::block_token_t> token);
+
     block_sequence_id_t block_sequence_id;
 
     // snapshot types' implementations are internal and deferred to mirrored.cc
-    struct buf_snapshot_info_t;
-    struct in_memory_snapshot_t;
-    struct on_disk_snapshot_t;
-    typedef std::list<buf_snapshot_info_t*> snapshot_data_list_t;
+    struct buf_snapshot_t;
+    // TODO (rntz): should be an intrusive list (?)
+    typedef std::list<buf_snapshot_t*> snapshot_data_list_t;
     snapshot_data_list_t snapshots;
 
     // If required, make a snapshot of the data before being overwritten with new_version
     bool snapshot_if_needed(version_id_t new_version);
-    void *get_snapshot_data(version_id_t version_to_access);
-    void release_snapshot(void *data);
+    void release_snapshot(buf_snapshot_t *snapshot);
+    void *acquire_snapshot_data(version_id_t version_to_access); // gives back the snapshot data buffer
+    void release_snapshot_data(void *data);
 
 private:
     // Helper function for inner_buf construction from an existing block
@@ -261,7 +268,7 @@ public:
     cache_t *cache;
 
 private:
-    void register_snapshotted_block(mc_inner_buf_t *inner_buf, void *data);
+    void register_buf_snapshot(mc_inner_buf_t *inner_buf, mc_inner_buf_t::buf_snapshot_t *snap);
 
     ticks_t start_time;
     const int expected_change_count;
@@ -274,7 +281,7 @@ private:
     // If not done before, sets snapshot_version, if in snapshotted mode also registers the snapshot
     void maybe_finalize_version();
 
-    typedef std::vector<std::pair<mc_inner_buf_t*, void*> > owned_snapshots_list_t;
+    typedef std::vector<std::pair<mc_inner_buf_t*, mc_inner_buf_t::buf_snapshot_t*> > owned_snapshots_list_t;
     owned_snapshots_list_t owned_buf_snapshots;
 
     file_t::account_t *get_io_account() const;
@@ -373,10 +380,10 @@ public:
     void register_snapshot(mc_transaction_t *txn);
     void unregister_snapshot(mc_transaction_t *txn);
 
-    size_t register_snapshotted_block(mc_inner_buf_t *inner_buf, void * data, mc_inner_buf_t::version_id_t snapshotted_version, mc_inner_buf_t::version_id_t new_version);
+private:
+    size_t register_buf_snapshot(mc_inner_buf_t *inner_buf, mc_inner_buf_t::buf_snapshot_t *snap, mc_inner_buf_t::version_id_t snapshotted_version, mc_inner_buf_t::version_id_t new_version);
     size_t calculate_snapshots_affected(mc_inner_buf_t::version_id_t snapshotted_version, mc_inner_buf_t::version_id_t new_version);
 
-private:
     inner_buf_t *find_buf(block_id_t block_id);
     void on_transaction_commit(transaction_t *txn);
 

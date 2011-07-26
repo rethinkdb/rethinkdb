@@ -25,63 +25,82 @@ perfmon_persistent_counter_t pm_cache_hits("cache_hits"), pm_cache_misses("cache
 // In order for snapshots to get deleted properly, they must obey the invariant that, after
 // get_data() returns or get_data_if_available() returns non-NULL, get_data_if_available() will
 // return the same (non-NULL) value.
-struct mc_inner_buf_t::buf_snapshot_info_t {
-    buf_snapshot_info_t(version_id_t version, unsigned int initial_refcount) : snapshotted_version(version), refcount(initial_refcount) {}
-    virtual ~buf_snapshot_info_t() { }
-    virtual void *get_data_if_available() const = 0;
-    virtual void *get_data() = 0;
-    version_id_t snapshotted_version;
-    unsigned int refcount;
-};
 
-struct mc_inner_buf_t::in_memory_snapshot_t : public buf_snapshot_info_t {
-    // Takes ownership of data!
-    in_memory_snapshot_t(version_id_t version, unsigned int initial_refcount, serializer_t *ser, void *data) :
-        buf_snapshot_info_t(version, initial_refcount), serializer(ser), data(data) { }
-    ~in_memory_snapshot_t() {
-        serializer->free(data);
+// TODO (rntz): it should be possible for us to cause snapshots which were not cow-referenced to be
+// flushed to disk during writeback, sans block id, to allow them to be unloaded if necessary.
+struct mc_inner_buf_t::buf_snapshot_t : evictable_t {
+    buf_snapshot_t(mc_inner_buf_t *buf, version_id_t version,
+                   size_t snapshot_refcount, size_t active_refcount,
+                   void *data, boost::shared_ptr<serializer_t::block_token_t> token)
+        : evictable_t(buf->cache, data ? true : false),
+          parent(buf), snapshotted_version(version),
+          data(data), token(token),
+          snapshot_refcount(snapshot_refcount), active_refcount(active_refcount) {
+        rassert(data || token, "creating buf snapshot without data or block token");
+        rassert(snapshot_refcount + active_refcount, "creating buf snapshot with 0 refcount");
     }
-    void *get_data() { return data; }
-    void *get_data_if_available() const { return data; }
-  private:
-    serializer_t *serializer;
-    void *data;
-};
 
-/* This snapshots writes an existing buffer to disk and as soon as the write has finished behaves exactly like an on_disk_snapshot_t*/
-//struct mc_inner_buf_t::write_to_disk_snapshot_t : public buf_snapshot_info_t, public iocallback_t {
-// TODO! (there's some tricky stuff here)
-//};
+    ~buf_snapshot_t() {
+        rassert(!snapshot_refcount && !active_refcount);
+        parent->snapshots.remove(this); // XXX (rntz) linear time!
+        if (data)
+            cache->serializer->free(data);
+    }
 
-/* The on_disk_snapshot_t acquires the block the first time it gets accessed*/
-struct mc_inner_buf_t::on_disk_snapshot_t : public buf_snapshot_info_t {
-    on_disk_snapshot_t(version_id_t version, unsigned int initial_refcount, serializer_t *ser, boost::shared_ptr<serializer_t::block_token_t> token) :
-        buf_snapshot_info_t(version, initial_refcount), serializer(ser), token(token), data(NULL) { }
-    // Be careful, this blocks (hope that's fine?)
-    void *get_data() {
+    void *acquire_data() {
+        cache->assert_thread();
+        ++active_refcount;
+        if (data) return data;  // Fast path.
+
+        // Slow path: data not present, need to load it from disk.
+        rassert(token, "buffer snapshot lacks both token and data");
         mutex_acquisition_t m(&data_mutex);
-        if (data) return data;  // Somebody  might have loaded the data in the meantime
+        if (data) return data;  // Somebody might have loaded the data in the meantime.
 
         // Use a temporary to avoid putting our data member in an allocated-but-uninitialized state.
-        void *tmp = serializer->malloc();
-        // XXX (rntz) should this be using DEFAULT_DISK_ACCOUNT?
-        serializer->block_read(token, tmp, DEFAULT_DISK_ACCOUNT);
+        void *tmp = cache->serializer->malloc();
+        // XXX (rntz) this shouldn't be using DEFAULT_DISK_ACCOUNT
+        cache->serializer->block_read(token, tmp, DEFAULT_DISK_ACCOUNT);
         rassert(!data, "data changed while holding mutex");
         data = tmp;             // Swap in the initialized buffer.
-        token.reset(); // Free the block
         return data;
     }
-    void *get_data_if_available() const {
-        // If someone else is acquiring the data, this blocks until it is acquired. TODO (rntz):
-        // This may or may not be the desired behavior.
-        mutex_acquisition_t m(&data_mutex);
-        return data;
+
+    void release_data() {
+        rassert(active_refcount, "releasing snapshot data with no active references");
+        if (0 == --active_refcount + snapshot_refcount)
+            delete this;
     }
-  private:
-    serializer_t *serializer;
-    boost::shared_ptr<serializer_t::block_token_t> token;
-    void *data;
+
+    void release() {
+        rassert(snapshot_refcount, "releasing snapshot with no references");
+        if (0 == --snapshot_refcount + active_refcount)
+            delete this;
+    }
+
+    // We are safe to unload if we are saved to disk and have no mc_buf_ts actively referencing us.
+    bool safe_to_unload() {
+        return bool(token) && !active_refcount;
+    }
+
+    void unload() {
+        // Acquiring the mutex isn't necessary here because active_refcount == 0.
+        rassert(safe_to_unload());
+        rassert(data);
+        cache->serializer->free(data);
+        data = NULL;
+    }
+
+    mc_inner_buf_t *parent;
+    version_id_t snapshotted_version;
     mutable mutex_t data_mutex;
+    void *data;
+    boost::shared_ptr<serializer_t::block_token_t> token;
+    // snapshot_refcount is the number of snapshots that could potentially use this buf_snapshot_t.
+    size_t snapshot_refcount;
+    // active_refcount is the number of mc_buf_ts currently using this buf_snapshot_t. As long as
+    // >0, we cannot be unloaded.
+    size_t active_refcount;
 };
 
 // This loads a block from the serializer and stores it into buf.
@@ -125,6 +144,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_
       do_delete(false),
       write_empty_deleted_block(false),
       cow_refcount(0),
+      snap_refcount(0),
       writeback_buf(this),
       page_map_buf(this),
       block_sequence_id(NULL_BLOCK_SEQUENCE_ID) {
@@ -162,6 +182,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, r
       do_delete(false),
       write_empty_deleted_block(false),
       cow_refcount(0),
+      snap_refcount(0),
       writeback_buf(this),
       page_map_buf(this),
       block_sequence_id(NULL_BLOCK_SEQUENCE_ID) {
@@ -213,6 +234,7 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache, version_id_t snapshot_v
         inner_buf->next_patch_counter = 1;
         inner_buf->write_empty_deleted_block = false;
         inner_buf->cow_refcount = 0;
+        inner_buf->snap_refcount = 0;
         inner_buf->block_sequence_id = NULL_BLOCK_SEQUENCE_ID;
         inner_buf->data_token.reset();
 
@@ -235,6 +257,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, version_id_t
       do_delete(false),
       write_empty_deleted_block(false),
       cow_refcount(0),
+      snap_refcount(0),
       writeback_buf(this),
       page_map_buf(this),
       block_sequence_id(NULL_BLOCK_SEQUENCE_ID)
@@ -316,50 +339,59 @@ bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version) {
             // to acquire another one inside of load_inner_buf (and of course it would dead-lock).
             load_inner_buf(false, cache->reads_io_account.get());
 
-            // Now that we have loaded the data, it could have happended that the snapshot
-            // is actually not needed anymore (in which case we have loaded the block
-            // unnecessarily, but what could we  possibly do about that?).
-            // So we register the snapshotted block and also update the affected count,
-            // and then recheck if the refcount is still positive.
+            // Now that we have loaded the data, it could have happended that the snapshot is
+            // actually not needed anymore (in which case we have loaded the block unnecessarily,
+            // but what could we possibly do about that?). So, we update the count of affected
+            // snapshots.
+            num_snapshots_affected = cache->calculate_snapshots_affected(version_id, new_version);
         }
-        num_snapshots_affected = cache->register_snapshotted_block(this, data, version_id, new_version);
     }
+    rassert(snap_refcount <= num_snapshots_affected); // sanity check
 
     // check whether snapshot refcount is > 0
-    // NOTE! (rntz) we may have called register_snapshotted_block() even if snapshot_refcount is 0 - is this safe?
-    size_t snapshot_refcount = num_snapshots_affected + cow_refcount;
-    if (!snapshot_refcount) return false; // no snapshot necessary
+    if (0 == num_snapshots_affected + cow_refcount)
+        return false;           // no snapshot necessary
 
-    // Pick a snapshotting strategy
-    if (data_token) {
-        // XXX! BUG! (rntz): when do we free the data when using an on_disk_snapshot_t?
-        // We have an up-to-date token, so we can later read the snapshot from disk
-        snapshots.push_front(new on_disk_snapshot_t(version_id, snapshot_refcount, cache->serializer, data_token));
-    } else {
-        // Ok, let's just keep it in memory for now
-        // TODO: Maybe write it to disk instead and then delete the old in-memory buffer?
-        snapshots.push_front(new in_memory_snapshot_t(version_id, snapshot_refcount, cache->serializer, data));
-    }
+    // Initially actively referencing the snapshotted buf are mc_buf_t's in rwi_read_outdated_ok
+    // mode, corresponding to cow_refcount; and mc_buf_t's in snapshotted rwi_read mode, indicated
+    // by snap_refcount.
+    buf_snapshot_t *snap = new buf_snapshot_t(this, version_id, num_snapshots_affected, cow_refcount + snap_refcount, data, data_token);
     cow_refcount = 0;
+    snap_refcount = 0;
+
+    // Register the snapshot
+    snapshots.push_front(snap);
+    cache->register_buf_snapshot(this, snap, version_id, new_version);
+
     return true;
 }
 
-void mc_inner_buf_t::release_snapshot(void *data) {
+void *mc_inner_buf_t::acquire_snapshot_data(version_id_t version_to_access) {
+    rassert(version_to_access != mc_inner_buf_t::faux_version_id);
+    for (snapshot_data_list_t::iterator it = snapshots.begin(); it != snapshots.end(); it++) {
+        if ((*it)->snapshotted_version <= version_to_access) {
+            return (*it)->acquire_data();
+        }
+    }
+    return NULL;
+}
+
+void mc_inner_buf_t::release_snapshot_data(void *data) {
+    cache->assert_thread();
     rassert(data, "tried to release NULL snapshot data");
     for (snapshot_data_list_t::iterator it = snapshots.begin(); it != snapshots.end(); ++it) {
-        buf_snapshot_info_t* snap = *it;
-        // TODO! (rntz) is this guaranteed to release the snapshot if it is appropriate?
-        // what if get_data_if_available() returns NULL?
-        // TODO: add a unittest for this scenario.
-        if (snap->get_data_if_available() == data) {
-            if (--snap->refcount == 0) {
-                delete snap;
-                snapshots.erase(it);
-            }
+        buf_snapshot_t* snap = *it;
+        if (snap->data == data) {
+            snap->release_data();
             return;
         }
     }
     unreachable("Tried to release block snapshot that doesn't exist");
+}
+
+void mc_inner_buf_t::release_snapshot(buf_snapshot_t *snapshot) {
+    cache->assert_thread();
+    snapshot->release();
 }
 
 bool mc_inner_buf_t::safe_to_unload() {
@@ -372,7 +404,7 @@ perfmon_duration_sampler_t
 
 mc_buf_t::mc_buf_t(mc_inner_buf_t *inner_buf, access_t mode, mc_inner_buf_t::version_id_t version_to_access, bool snapshotted,
                    boost::function<void()> call_when_in_line)
-    : mode(mode), non_locking_access(false), inner_buf(inner_buf), data(NULL)
+    : mode(mode), non_locking_access(snapshotted), inner_buf(inner_buf), data(NULL)
 {
     inner_buf->cache->assert_thread();
     inner_buf->refcount++;
@@ -398,24 +430,13 @@ mc_buf_t::mc_buf_t(mc_inner_buf_t *inner_buf, access_t mode, mc_inner_buf_t::ver
     }
 }
 
-void *mc_inner_buf_t::get_snapshot_data(version_id_t version_to_access) {
-    rassert(version_to_access != mc_inner_buf_t::faux_version_id);
-    for (snapshot_data_list_t::iterator it = snapshots.begin(); it != snapshots.end(); it++) {
-        if ((*it)->snapshotted_version <= version_to_access) {
-            return (*it)->get_data();
-        }
-    }
-    return NULL;
-}
-
 void mc_buf_t::acquire_block(bool locked, mc_inner_buf_t::version_id_t version_to_access, bool snapshotted) {
     inner_buf->cache->assert_thread();
 
     mc_inner_buf_t::version_id_t inner_version = inner_buf->version_id;
     // In case we don't have received a version yet (i.e. this is the first block we are acquiring, just access the most recent version)
-    if (snapshotted && version_to_access != mc_inner_buf_t::faux_version_id) {
-        // NOTE (rntz) why are we guaranteed (inner_buf->data != NULL) when inner_version <= version_to_access?
-        data = inner_version <= version_to_access ? inner_buf->data : inner_buf->get_snapshot_data(version_to_access);
+    if (snapshotted && version_to_access != mc_inner_buf_t::faux_version_id && version_to_access < inner_version) {
+        data = inner_buf->acquire_snapshot_data(version_to_access);
         guarantee(data != NULL);
     } else {
         // we want the most recent version
@@ -424,6 +445,8 @@ void mc_buf_t::acquire_block(bool locked, mc_inner_buf_t::version_id_t version_t
         switch (mode) {
             case rwi_read_sync:
             case rwi_read: {
+                if (snapshotted)
+                    ++inner_buf->snap_refcount;
                 data = inner_buf->data;
                 rassert(data != NULL);
                 break;
@@ -479,11 +502,8 @@ void mc_buf_t::acquire_block(bool locked, mc_inner_buf_t::version_id_t version_t
 
     pm_bufs_held.begin(&start_time);
 
-    if (snapshotted) {
-        if (locked)
-            inner_buf->lock.unlock();
-        non_locking_access = true;
-    }
+    if (snapshotted && locked)
+        inner_buf->lock.unlock();
 }
 
 void mc_buf_t::apply_patch(buf_patch_t *patch) {
@@ -641,33 +661,35 @@ void mc_buf_t::release() {
             pm_patches_size_per_write.record(inner_buf->cache->patch_memory_storage.get_affected_data_size(inner_buf->block_id) - patches_affected_data_size_at_start);
     }
 
-    inner_buf->cache->assert_thread();
+    inner_buf->cache->assert_thread(); // XXX (rntz) redundant
 
     rassert(inner_buf->refcount > 0);
     --inner_buf->refcount;
 
-    if (!non_locking_access) {
-        switch (mode) {
-            case rwi_read_sync:
-            case rwi_read:
-            case rwi_write: {
+    switch (mode) {
+        case rwi_read_sync:
+        case rwi_read:
+        case rwi_write: {
+            if (!non_locking_access)
                 inner_buf->lock.unlock();
-                break;
-            }
-            case rwi_read_outdated_ok: {
-                if (data == inner_buf->data) {
-                    rassert(inner_buf->cow_refcount > 0);
-                    --inner_buf->cow_refcount;
-                } else {
-                    inner_buf->release_snapshot(data);
-                }
-                break;
-            }
-            case rwi_intent:
-            case rwi_upgrade:
-            default:
-                unreachable("Unexpected mode.");
+            if (data != inner_buf->data)
+                // we refer to a snapshot
+                inner_buf->release_snapshot_data(data);
+            break;
         }
+        case rwi_read_outdated_ok: {
+            if (data == inner_buf->data) {
+                rassert(inner_buf->cow_refcount > 0);
+                --inner_buf->cow_refcount;
+            } else {
+                inner_buf->release_snapshot_data(data);
+            }
+            break;
+        }
+        case rwi_intent:
+        case rwi_upgrade:
+        default:
+            unreachable("Unexpected mode.");
     }
 
     // If the buf is marked deleted, then we can delete it from memory already
@@ -747,9 +769,9 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access) :
     pm_transactions_active.begin(&start_time);
 }
 
-void mc_transaction_t::register_snapshotted_block(mc_inner_buf_t *inner_buf, void *data) {
+void mc_transaction_t::register_buf_snapshot(mc_inner_buf_t *inner_buf, mc_inner_buf_t::buf_snapshot_t *snap) {
     pm_registered_snapshot_blocks++;
-    owned_buf_snapshots.push_back(std::make_pair(inner_buf, data));
+    owned_buf_snapshots.push_back(std::make_pair(inner_buf, snap));
 }
 
 mc_transaction_t::~mc_transaction_t() {
@@ -1064,11 +1086,11 @@ size_t mc_cache_t::calculate_snapshots_affected(mc_inner_buf_t::version_id_t sna
     return num_snapshots_affected;
 }
 
-size_t mc_cache_t::register_snapshotted_block(mc_inner_buf_t *inner_buf, void *data, mc_inner_buf_t::version_id_t snapshotted_version, mc_inner_buf_t::version_id_t new_version) {
+size_t mc_cache_t::register_buf_snapshot(mc_inner_buf_t *inner_buf, mc_inner_buf_t::buf_snapshot_t *snap, mc_inner_buf_t::version_id_t snapshotted_version, mc_inner_buf_t::version_id_t new_version) {
     rassert(snapshotted_version <= new_version);    // on equals we'll get 0 snapshots affected
     size_t num_snapshots_affected = 0;
     for (snapshots_map_t::iterator it = active_snapshots.lower_bound(snapshotted_version); it != active_snapshots.lower_bound(new_version); it++) {
-        (*it).second->register_snapshotted_block(inner_buf, data);
+        (*it).second->register_buf_snapshot(inner_buf, snap);
         num_snapshots_affected++;
     }
     return num_snapshots_affected;
