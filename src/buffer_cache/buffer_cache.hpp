@@ -12,7 +12,7 @@
 #if !defined(VALGRIND) && !defined(NDEBUG)
 // scc_cache_t is way too slow under valgrind and makes automated
 // tests run forever.
-typedef scc_cache_t<mc_cache_t > cache_t;
+typedef scc_cache_t<mc_cache_t> cache_t;
 #else
 typedef mc_cache_t cache_t;
 #endif  // !defined(VALGRIND) && !defined(NDEBUG)
