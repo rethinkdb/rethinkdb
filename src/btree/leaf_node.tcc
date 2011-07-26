@@ -1,4 +1,3 @@
-
 #include <algorithm>
 #include "logger.hpp"
 #include "btree/buf_patches.hpp"
