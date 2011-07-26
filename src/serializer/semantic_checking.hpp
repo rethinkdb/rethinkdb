@@ -21,7 +21,6 @@ the log serializer. */
 // TODO make this just an interface and move implementation into semantic_checking.tcc, then use
 // tim's template hack to instantiate as necessary in a .cc file.
 
-// TODO (rntz) fix this for new serializer interface
 template<class inner_serializer_t>
 class semantic_checking_serializer_t :
     public serializer_t
@@ -41,6 +40,7 @@ private:
 
         // For compatibility with two_level_array_t
         block_info_t() : state(state_unknown) {}
+        block_info_t(crc_t crc) : state(state_have_crc), crc(crc) {}
         operator bool() { return state != state_unknown; }
     };
 
@@ -54,13 +54,39 @@ private:
         return crc_computer.checksum();
     }
 
-    int last_write_started, last_write_callbacked;
+    int last_index_write_started, last_index_write_finished;
 
     struct persisted_block_info_t {
         block_id_t block_id;
         block_info_t block_info;
     };
     int semantic_fd;
+
+    // Helper function
+    void update_block_info(block_id_t block_id, block_info_t info) {
+        blocks.set(block_id, info);
+        persisted_block_info_t buf;
+        buf.block_id = block_id;
+        buf.block_info = info;
+        int res = write(semantic_fd, &buf, sizeof(buf));
+        guarantee_err(res == sizeof(buf), "Could not write data to semantic checker file");
+    }
+
+    struct scc_block_token_t : public block_token_t {
+        scc_block_token_t(semantic_checking_serializer_t *ser, block_id_t block_id, const block_info_t &info,
+                          boost::shared_ptr<block_token_t> tok)
+            : serializer(ser), block_id(block_id), info(info), inner_token(tok) {
+            rassert(inner_token, "scc_block_token wrapping null token");
+        }
+        semantic_checking_serializer_t *serializer;
+        block_id_t block_id;    // NULL_BLOCK_ID if not associated with a block id
+        block_info_t info;      // invariant: info.state != block_info_t::state_deleted
+        boost::shared_ptr<block_token_t> inner_token;
+    };
+
+    boost::shared_ptr<block_token_t> wrap_token(block_id_t block_id, block_info_t info, boost::shared_ptr<block_token_t> inner_token) {
+        return boost::shared_ptr<block_token_t>(new scc_block_token_t(this, block_id, info, inner_token));
+    }
 
 public:
     typedef typename inner_serializer_t::private_dynamic_config_t private_dynamic_config_t;
@@ -74,7 +100,7 @@ public:
 
     semantic_checking_serializer_t(dynamic_config_t *config, private_dynamic_config_t *private_config)
         : inner_serializer(config, private_config),
-          last_write_started(0), last_write_callbacked(0),
+          last_index_write_started(0), last_index_write_finished(0),
           semantic_fd(-1)
         {
             semantic_fd = open(private_config->semantic_filename.c_str(),
@@ -119,135 +145,141 @@ public:
         return inner_serializer.make_io_account(priority, outstanding_requests_limit);
     }
 
+    boost::shared_ptr<block_token_t> index_read(block_id_t block_id) {
+        block_info_t info = blocks.get(block_id);
+        boost::shared_ptr<block_token_t> result = inner_serializer.index_read(block_id);
+        guarantee(info.state != block_info_t::state_deleted || !result,
+                  "Cache asked for a deleted block, and serializer didn't complain.");
+        return result ? wrap_token(block_id, info, result) : result;
+    }
+
     /* For reads, we check to make sure that the data we get back in the read is
     consistent with what was last written there. */
 
-    struct reader_t :
-        public read_callback_t
-    {
-        semantic_checking_serializer_t *parent;
-        block_id_t block_id;
+    void read_check_state(scc_block_token_t *token, const void *buf) {
+        crc_t actual_crc = compute_crc(buf);
+        block_info_t &expected = token->info;
+
+        switch (expected.state) {
+            case block_info_t::state_unknown: {
+                /* We don't know what this block was supposed to contain, so we can't do any
+                verification */
+                break;
+            }
+
+            case block_info_t::state_have_crc: {
+#ifdef SERIALIZER_DEBUG_PRINT
+                printf("Read %u: %u\n", token->block_id, actual_crc);
+#endif
+                guarantee(expected.crc == actual_crc, "Serializer returned bad value for block ID %u", token->block_id);
+                break;
+            }
+
+            case block_info_t::state_deleted:
+            default:
+                unreachable();
+        }
+    }
+
+    struct reader_t : public iocallback_t {
+        scc_block_token_t *token;
         void *buf;
-        block_info_t expected_block_state;
-        read_callback_t *callback;
+        iocallback_t *callback;
 
-        reader_t(semantic_checking_serializer_t *parent, block_id_t block_id, void *buf, block_info_t expected_block_state)
-            : parent(parent), block_id(block_id), buf(buf), expected_block_state(expected_block_state) {}
+        reader_t(scc_block_token_t *token, void *buf, iocallback_t *cb) : token(token), buf(buf), callback(cb) {}
 
-        void on_serializer_read() {
-            /* Make sure that the value that the serializer returned was valid */
-
-            crc_t actual_crc = parent->compute_crc(buf);
-
-            switch (expected_block_state.state) {
-                case block_info_t::state_unknown: {
-                    /* We don't know what this block was supposed to contain, so we can't do any
-                    verification */
-                    break;
-                }
-
-                case block_info_t::state_deleted: {
-                    unreachable("Cache asked for a deleted block, and serializer didn't complain.");
-                }
-
-                case block_info_t::state_have_crc: {
-#ifdef SERIALIZER_DEBUG_PRINT
-                    printf("Read %ld: %u\n", block_id, actual_crc);
-#endif
-                    guarantee(expected_block_state.crc == actual_crc, "Serializer returned bad value for block ID %u", block_id);
-                    break;
-                }
-                default:
-                    unreachable();
-            }
-
-            if (callback) callback->on_serializer_read();
+        void on_io_complete() {
+            token->serializer->read_check_state(token, buf);
+            if (callback) callback->on_io_complete();
             delete this;
         }
     };
 
-    bool do_read(block_id_t block_id, void *buf, file_t::account_t *io_account, read_callback_t *callback) {
+    void block_read(boost::shared_ptr<block_token_t> token_, void *buf, file_t::account_t *io_account, iocallback_t *callback) {
+        scc_block_token_t *token = dynamic_cast<scc_block_token_t*>(token_.get());
+        guarantee(token, "bad token");
 #ifdef SERIALIZER_DEBUG_PRINT
-        printf("Reading %ld\n", block_id);
+        printf("Reading %u\n", token->block_id);
 #endif
-        reader_t *reader = new reader_t(this, block_id, buf, blocks.get(block_id));
-        reader->callback = NULL;
-        if (inner_serializer.do_read(block_id, buf, io_account, reader)) {
-            reader->on_serializer_read();
-            return true;
-        } else {
-            reader->callback = callback;
-            return false;
-        }
+        reader_t *reader = new reader_t(token, buf, callback);
+        inner_serializer.block_read(token->inner_token, buf, io_account, reader);
     }
 
-    ser_transaction_id_t get_current_transaction_id(block_id_t block_id, const void* buf) {
+    void block_read(boost::shared_ptr<block_token_t> token_, void *buf, file_t::account_t *io_account) {
+        scc_block_token_t *token = dynamic_cast<scc_block_token_t*>(token_.get());
+        guarantee(token, "bad token");
+#ifdef SERIALIZER_DEBUG_PRINT
+        printf("Reading %u\n", token->block_id);
+#endif
+        inner_serializer.block_read(token->inner_token, buf, io_account);
+        read_check_state(token, buf);
+    }
+
+    block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf) {
         // TODO: Implement some checking for this operation
-        return inner_serializer.get_current_transaction_id(block_id, buf);
+        return inner_serializer.get_block_sequence_id(block_id, buf);
     }
 
-    /* For writes, we make sure that the writes come back in the same order that
-    we send them to the serializer. */
+    void index_write(const std::vector<index_write_op_t>& write_ops, file_t::account_t *io_account) {
+        std::vector<index_write_op_t> inner_ops;
+        inner_ops.reserve(write_ops.size());
 
-    struct writer_t :
-        public write_txn_callback_t
-    {
-        semantic_checking_serializer_t *parent;
-        int version;
-        write_txn_callback_t *callback;
+        for (size_t i = 0; i < write_ops.size(); ++i) {
+            index_write_op_t op = write_ops[i];
+            block_info_t info;
+            if (op.token) {
+                boost::shared_ptr<block_token_t> tok = op.token.get();
+                if (tok) {
+                    scc_block_token_t *token = dynamic_cast<scc_block_token_t*>(tok.get());
+                    // Fix the op to point at the inner serializer's block token.
+                    op.token = token->inner_token;
+                    info = token->info;
+                    guarantee(token->block_id == op.block_id,
+                              "indexing token with block id %u under block id %u", token->block_id, op.block_id);
+                }
+            }
 
-        writer_t(semantic_checking_serializer_t *parent, int version)
-            : parent(parent), version(version) {}
-
-        void on_serializer_write_txn() {
-            guarantee(parent->last_write_callbacked == version-1, "Serializer completed writes in the wrong order.");
-            parent->last_write_callbacked = version;
-            if (callback) callback->on_serializer_write_txn();
-            delete this;
-       }
-    };
-
-    bool do_write(write_t *writes, int num_writes, file_t::account_t *io_account, write_txn_callback_t *callback, write_tid_callback_t *tid_callback = NULL) {
-        for (int i = 0; i < num_writes; i++) {
-
-            if (!writes[i].buf_specified) continue;
-
-            block_info_t b;
-            memset(&b, 0, sizeof(b));  // make valgrind happy
-            if (writes[i].buf) {
-                b.state = block_info_t::state_have_crc;
-                b.crc = compute_crc(writes[i].buf);
+            if (op.delete_bit && op.delete_bit.get()) {
+                info.state = block_info_t::state_deleted;
 #ifdef SERIALIZER_DEBUG_PRINT
-                printf("Writing %ld: %u\n", writes[i].block_id, b.crc);
+                printf("Setting delete bit for %u\n", op.block_id);
 #endif
-            } else {
-                b.state = block_info_t::state_deleted;
+            } else if (info.state == block_info_t::state_have_crc) {
 #ifdef SERIALIZER_DEBUG_PRINT
-                printf("Deleting %ld\n", writes[i].block_id);
+                printf("Indexing under block id %u: %u\n", op.block_id, info.crc);
 #endif
             }
-            blocks.set(writes[i].block_id, b);
-            
-            // Add the block to the semantic checker file
-            persisted_block_info_t buf;
-#ifdef VALGRIND
-            memset(&buf, 0, sizeof(buf));  // make valgrind happy
-#endif
-            buf.block_id = writes[i].block_id;
-            buf.block_info = b;
-            int res = write(semantic_fd, &buf, sizeof(buf));
-            guarantee_err(res == sizeof(buf), "Could not write data to semantic checker file");
+
+            // Update the info and add it to the semantic checker file.
+            update_block_info(op.block_id, info);
+            // Add possibly modified op to the op vector
+            inner_ops.push_back(op);
         }
 
-        writer_t *writer = new writer_t(this, ++last_write_started);
-        writer->callback = NULL;
-        if (inner_serializer.do_write(writes, num_writes, io_account, writer, tid_callback)) {
-            writer->on_serializer_write_txn();
-            return true;
-        } else {
-            writer->callback = callback;
-            return false;
-        }
+        int our_index_write = ++last_index_write_started;
+        inner_serializer.index_write(inner_ops, io_account);
+        guarantee(last_index_write_finished == our_index_write - 1, "Serializer completed index_writes in the wrong order");
+        last_index_write_finished = our_index_write;
+    }
+
+    boost::shared_ptr<block_token_t> wrap_buf_token(block_id_t block_id, const void *buf, boost::shared_ptr<block_token_t> inner_token) {
+        return wrap_token(block_id, block_info_t(compute_crc(buf)), inner_token);
+    }
+
+    boost::shared_ptr<block_token_t> block_write(const void *buf, block_id_t block_id, file_t::account_t *io_account, iocallback_t *cb) {
+        return wrap_buf_token(block_id, buf, inner_serializer.block_write(buf, block_id, io_account, cb));
+    }
+
+    boost::shared_ptr<block_token_t> block_write(const void *buf, file_t::account_t *io_account, iocallback_t *cb) {
+        return wrap_buf_token(NULL_BLOCK_ID, buf, inner_serializer.block_write(buf, io_account, cb));
+    }
+
+    boost::shared_ptr<block_token_t> block_write(const void *buf, block_id_t block_id, file_t::account_t *io_account) {
+        return wrap_buf_token(block_id, buf, inner_serializer.block_write(buf, block_id, io_account));
+    }
+
+    boost::shared_ptr<block_token_t> block_write(const void *buf, file_t::account_t *io_account) {
+        return wrap_buf_token(NULL_BLOCK_ID, buf, inner_serializer.block_write(buf, io_account));
     }
 
     block_size_t get_block_size() {
@@ -258,19 +290,15 @@ public:
         return inner_serializer.max_block_id();
     }
 
-    bool block_in_use(block_id_t id) {
-        bool in_use = inner_serializer.block_in_use(id);
-        switch (blocks.get(id).state) {
-            case block_info_t::state_unknown: break;
-            case block_info_t::state_deleted: rassert(!in_use); break;
-            case block_info_t::state_have_crc: rassert(in_use); break;
-            default: unreachable();
-        }
-        return in_use;
-    }
-
     repli_timestamp_t get_recency(block_id_t id) {
         return inner_serializer.get_recency(id);
+    }
+
+    bool get_delete_bit(block_id_t id) {
+        bool bit = inner_serializer.get_delete_bit(id);
+        bool deleted = blocks.get(id).state == block_info_t::state_deleted;
+        guarantee(bit == deleted, "serializer returned incorrect delete bit for block id %u", id);
+        return bit;
     }
 
     void register_read_ahead_cb(UNUSED read_ahead_callback_t *cb) {
@@ -278,26 +306,13 @@ public:
     }
     void unregister_read_ahead_cb(UNUSED read_ahead_callback_t *cb) { }
 
-    struct shutdown_callback_t {
-        virtual void on_serializer_shutdown(semantic_checking_serializer_t *) = 0;
-        virtual ~shutdown_callback_t() {}
-    };
-    bool shutdown(shutdown_callback_t *cb) {
-        shutdown_callback = cb;
-        return inner_serializer.shutdown(this);
-    }
-private:
-    shutdown_callback_t *shutdown_callback;
-    void on_serializer_shutdown(inner_serializer_t *ser) {
-        if (shutdown_callback) shutdown_callback->on_serializer_shutdown(this);
-    }
-
 public:
+    // TODO (rntz) is this used by anything? if not, remove it.
     typedef typename inner_serializer_t::gc_disable_callback_t gc_disable_callback_t;
     bool disable_gc(gc_disable_callback_t *cb) {
         return inner_serializer.disable_gc(cb);
     }
-    bool enable_gc() {
+    void enable_gc() {
         return inner_serializer.enable_gc();
     }
 
