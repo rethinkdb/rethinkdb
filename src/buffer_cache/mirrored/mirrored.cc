@@ -479,7 +479,6 @@ void mc_buf_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access, boo
             rassert(inner_version <= version_to_access);
 
             bool snapshotted = inner_buf->snapshot_if_needed(version_to_access);
-            // XXX (rntz) why are we doing this instead of inner_buf doing it itself?
             if (snapshotted)
                 inner_buf->data = inner_buf->cache->serializer->clone(inner_buf->data);
 
