@@ -159,8 +159,6 @@ private:
 
     /* Internal variables used only during a flush operation. */
 
-    ticks_t start_time;         // TODO (rntz) remove if unnecessary
-
 public:
     // This just considers objections which writeback knows about Other subsystems
     // might have their own objections to accepting a read-ahead block...
