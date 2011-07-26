@@ -109,8 +109,7 @@ struct write_performer_t : public boost::static_visitor<void> {
     }
 
     void operator()(const serializer_t::write_t::delete_t &del) {
-        // FIXME (rntz): should op.token become shared_ptr(NULL)? changes what index ops get done.
-        // compare to effects of old code.
+        op->token = boost::shared_ptr<serializer_t::block_token_t>();
         op->delete_bit = true;
         op->recency = repli_timestamp_t::invalid;
         if (del.write_zero_block) {
