@@ -661,8 +661,6 @@ void mc_buf_t::release() {
             pm_patches_size_per_write.record(inner_buf->cache->patch_memory_storage.get_affected_data_size(inner_buf->block_id) - patches_affected_data_size_at_start);
     }
 
-    inner_buf->cache->assert_thread(); // XXX (rntz) redundant
-
     rassert(inner_buf->refcount > 0);
     --inner_buf->refcount;
 
