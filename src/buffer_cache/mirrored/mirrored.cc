@@ -28,7 +28,7 @@ perfmon_persistent_counter_t pm_cache_hits("cache_hits"), pm_cache_misses("cache
 
 // TODO (rntz): it should be possible for us to cause snapshots which were not cow-referenced to be
 // flushed to disk during writeback, sans block id, to allow them to be unloaded if necessary.
-struct mc_inner_buf_t::buf_snapshot_t : evictable_t {
+struct mc_inner_buf_t::buf_snapshot_t : evictable_t, intrusive_list_node_t<mc_inner_buf_t::buf_snapshot_t> {
     buf_snapshot_t(mc_inner_buf_t *buf, version_id_t version,
                    size_t snapshot_refcount, size_t active_refcount,
                    void *data, boost::shared_ptr<serializer_t::block_token_t> token)
@@ -42,7 +42,7 @@ struct mc_inner_buf_t::buf_snapshot_t : evictable_t {
 
     ~buf_snapshot_t() {
         rassert(!snapshot_refcount && !active_refcount);
-        parent->snapshots.remove(this); // XXX (rntz) linear time!
+        parent->snapshots.remove(this);
         if (data)
             cache->serializer->free(data);
     }
@@ -323,7 +323,7 @@ void mc_inner_buf_t::replay_patches() {
 bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version) {
     cache->assert_thread();
     // we can get snapshotted_version == version_id due to copy-on-write doing the snapshotting
-    rassert(snapshots.empty() || snapshots.front()->snapshotted_version <= version_id);
+    rassert(snapshots.empty() || snapshots.head()->snapshotted_version <= version_id);
 
     // all snapshot txns such that
     //   inner_version <= snapshot_txn->version_id < new_version
@@ -368,9 +368,9 @@ bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version) {
 
 void *mc_inner_buf_t::acquire_snapshot_data(version_id_t version_to_access) {
     rassert(version_to_access != mc_inner_buf_t::faux_version_id);
-    for (snapshot_data_list_t::iterator it = snapshots.begin(); it != snapshots.end(); it++) {
-        if ((*it)->snapshotted_version <= version_to_access) {
-            return (*it)->acquire_data();
+    for (buf_snapshot_t *snap = snapshots.head(); snap; snap = snapshots.next(snap)) {
+        if (snap->snapshotted_version <= version_to_access) {
+            return snap->acquire_data();
         }
     }
     return NULL;
@@ -379,8 +379,7 @@ void *mc_inner_buf_t::acquire_snapshot_data(version_id_t version_to_access) {
 void mc_inner_buf_t::release_snapshot_data(void *data) {
     cache->assert_thread();
     rassert(data, "tried to release NULL snapshot data");
-    for (snapshot_data_list_t::iterator it = snapshots.begin(); it != snapshots.end(); ++it) {
-        buf_snapshot_t* snap = *it;
+    for (buf_snapshot_t *snap = snapshots.head(); snap; snap = snapshots.next(snap)) {
         if (snap->data == data) {
             snap->release_data();
             return;
@@ -405,8 +404,7 @@ void mc_inner_buf_t::update_data_token(const void *data, boost::shared_ptr<seria
         data_token = token;
         return;
     }
-    for (snapshot_data_list_t::iterator it = snapshots.begin(); it != snapshots.end(); ++it) {
-        buf_snapshot_t *snap = *it;
+    for (buf_snapshot_t *snap = snapshots.head(); snap; snap = snapshots.next(snap)) {
         if (snap->data != data) continue;
         rassert(!snap->token, "snapshot data token already up-to-date");
         snap->token = token;

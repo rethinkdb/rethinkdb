@@ -16,6 +16,7 @@
 #include "concurrency/rwi_lock.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/mutex.hpp"
+#include "containers/intrusive_list.hpp"
 #include "containers/two_level_array.hpp"
 #include "serializer/serializer.hpp"
 #include "buffer_cache/mirrored/config.hpp"
@@ -119,8 +120,7 @@ class mc_inner_buf_t : public home_thread_mixin_t, public evictable_t {
 
     // snapshot types' implementations are internal and deferred to mirrored.cc
     struct buf_snapshot_t;
-    // TODO (rntz): should be an intrusive list (?)
-    typedef std::list<buf_snapshot_t*> snapshot_data_list_t;
+    typedef intrusive_list_t<buf_snapshot_t> snapshot_data_list_t;
     snapshot_data_list_t snapshots;
 
     // If required, make a snapshot of the data before being overwritten with new_version
