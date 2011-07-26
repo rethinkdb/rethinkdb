@@ -71,7 +71,7 @@ struct object_t {
     std::string content;
     std::string content_type;
     std::string meta_data;
-    std::string ETag;
+    int ETag;
     int last_written;
     std::vector<link_t> links;
 };

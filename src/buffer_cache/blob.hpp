@@ -64,6 +64,7 @@ public:
     int64_t valuesize() const;
 
     void expose_region(transaction_t *txn, access_t mode, int64_t offset, int64_t size, buffer_group_t *buffer_group_out, blob_acq_t *acq_group_out);
+    void expose_all(transaction_t *txn, access_t mode, buffer_group_t *buffer_group_out, blob_acq_t *acq_group_out);
     void append_region(transaction_t *txn, int64_t size);
     void prepend_region(transaction_t *txn, int64_t size);
 

@@ -29,7 +29,7 @@ struct link_t {
     unsigned size() { return  bucket_len + key_len + tag_len; }
 };
 
-//notice this class does nothing to make sure that if you access the contents
+//notice this class does nothing to maintain its consistency
 class riak_value_t {
 public:
     last_modified_time_t mod_time;

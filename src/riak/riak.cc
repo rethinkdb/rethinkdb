@@ -333,7 +333,7 @@ http_res_t riak_server_t::fetch_object(const http_req_t &req) {
 
     http_res_t res;
     res.set_body(obj.content_type, obj.content);
-    res.add_header_line("ETag", obj.ETag);
+    res.add_header_line("ETag", strprintf("%d",  obj.ETag));
 
     if (!obj.links.empty()) {
 

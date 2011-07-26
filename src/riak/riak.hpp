@@ -13,6 +13,7 @@
 #include "btree/slice.hpp"
 #include "btree/operations.hpp"
 #include "riak/riak_value.hpp"
+#include "containers/buffer_group.hpp"
 
 namespace riak {
 
@@ -96,7 +97,7 @@ public:
         crash("Not implementated");
     };
 
-    const object_t &get_object(std::string bucket, std::string key) {
+    const object_t get_object(std::string bucket, std::string key) {
         std::list<std::string> sm_key;
         sm_key.push_back("riak"); sm_key.push_back(bucket);
         btree_slice_t *slice = get_slice(sm_key);
@@ -108,7 +109,31 @@ public:
         keyvalue_location_t<riak_value_t> kv_location;
         get_value_read(slice, btree_key_buffer_t(key).key(), order_token_t::ignore, &kv_location);
 
-        crash("Not implemented");
+        object_t res;
+        res.key = key;
+        res.last_written = kv_location.value->mod_time;
+        res.ETag = kv_location.value->etag;
+
+        blob_t blob(kv_location.value->contents, blob::btree_maxreflen);
+        buffer_group_t buffer_group;
+        blob_acq_t acq;
+        blob.expose_all(kv_location.txn.get(), rwi_read, &buffer_group, &acq);
+
+        const_buffer_group_t::iterator it = buffer_group.begin(), end = buffer_group.end(); 
+
+        /* grab the content type */
+        res.content_type.reserve(kv_location.value->content_type_len);
+        for (unsigned i = 0; i < kv_location.value->content_type_len; i++) {
+            res.content_type += *it++;
+        }
+
+        for (unsigned i = 0; i < kv_location.value->value_len; i++) {
+            res.content += *it++;
+        }
+
+        //TODO links code goes here, when those are implemented in a sensible way
+
+        return res;
     }
 
     std::pair<object_tree_iterator_t, object_tree_iterator_t> link_walk(std::string, std::string, std::vector<link_filter_t>) {
