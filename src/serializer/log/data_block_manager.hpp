@@ -45,7 +45,6 @@ private:
     };
 
     struct gc_writer_t {
-        // TODO (rntz) make sure gc_writer uses appropriate io account
         gc_writer_t(gc_write_t *writes, int num_writes, data_block_manager_t *parent);
         bool done;
     private:

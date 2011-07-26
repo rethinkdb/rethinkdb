@@ -417,10 +417,8 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
     // Step 1: Write buffers to disk and assemble index operations
     for (size_t i = 0; i < (size_t)num_writes; ++i) {
         block_write_conds.push_back(new block_write_cond_t());
-        // the "false' argument indicates that we do not with to assign a new block sequence id
-        // FIXME (rntz) should this really use DEFAULT_DISK_ACCOUNT?
-        // (I think we should use choose_gc_io_account())
-        const off64_t offset = parent->write(writes[i].buf, writes[i].block_id, false, DEFAULT_DISK_ACCOUNT, block_write_conds.back());
+        // the "false" argument indicates that we do not with to assign a new block sequence id
+        const off64_t offset = parent->write(writes[i].buf, writes[i].block_id, false, parent->choose_gc_io_account(), block_write_conds.back());
         writes[i].new_offset = offset;
         boost::shared_ptr<serializer_t::block_token_t> token = parent->serializer->generate_block_token(offset);
 
@@ -440,8 +438,7 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
     }
 
     // Step 3: Commit the transaction to the serializer
-    // FIXME (rntz) should this be using DEFAULT_DISK_ACCOUNT?
-    parent->serializer->index_write(index_write_ops, DEFAULT_DISK_ACCOUNT);
+    parent->serializer->index_write(index_write_ops, parent->choose_gc_io_account());
     index_write_ops.clear(); // cleanup index_write_ops
 
     // Step 4: Call parent
