@@ -156,7 +156,7 @@ private:
     // DEFAULT_DISK_ACCOUNT if snapshotted is false. TODO: this is ugly. find a cleaner interface.
     mc_buf_t(mc_inner_buf_t *inner, access_t mode, mc_inner_buf_t::version_id_t version_id, bool snapshotted,
              boost::function<void()> call_when_in_line, file_t::account_t *io_account = DEFAULT_DISK_ACCOUNT);
-    void acquire_block(bool locked, mc_inner_buf_t::version_id_t version_to_access, bool snapshotted, file_t::account_t *io_account);
+    void acquire_block(mc_inner_buf_t::version_id_t version_to_access, bool snapshotted);
 
     ticks_t start_time;
 

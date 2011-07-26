@@ -427,8 +427,10 @@ mc_buf_t::mc_buf_t(mc_inner_buf_t *inner_buf, access_t mode, mc_inner_buf_t::ver
     // If the top version is less or equal to version_to_access, then we need to acquire
     // a read lock first (otherwise we may get the data of the unfinished write on top).
     if (snapshotted && version_to_access != mc_inner_buf_t::faux_version_id && version_to_access < inner_buf->version_id) {
-        // we're accessing a snapshotted block, no need to lock
-        acquire_block(false, version_to_access, snapshotted, io_account);
+        // acquire the snapshotted block; no need to lock
+        data = inner_buf->acquire_snapshot_data(version_to_access, io_account);
+        guarantee(data != NULL);
+
         // we never needed to get in line, so just call the function straight-up to ensure it gets called.
         if (call_when_in_line) call_when_in_line();
 
@@ -438,82 +440,72 @@ mc_buf_t::mc_buf_t(mc_inner_buf_t *inner_buf, access_t mode, mc_inner_buf_t::ver
         inner_buf->lock.co_lock(mode == rwi_read_outdated_ok ? rwi_read : mode, call_when_in_line);
         pm_bufs_acquiring.end(&start_time);
 
-        acquire_block(true, version_to_access, snapshotted, io_account);
-    }
-}
-
-void mc_buf_t::acquire_block(bool locked, mc_inner_buf_t::version_id_t version_to_access, bool snapshotted, file_t::account_t *io_account) {
-    inner_buf->cache->assert_thread();
-
-    mc_inner_buf_t::version_id_t inner_version = inner_buf->version_id;
-    // XXX! (rntz) refactor this out into mc_buf_t constructor
-    // In case we don't have received a version yet (i.e. this is the first block we are acquiring, just access the most recent version)
-    if (snapshotted && version_to_access != mc_inner_buf_t::faux_version_id && version_to_access < inner_version) {
-        data = inner_buf->acquire_snapshot_data(version_to_access, io_account);
-        guarantee(data != NULL);
-    } else {
-        // we want the most recent version
-        rassert(!inner_buf->do_delete);
-
-        switch (mode) {
-            case rwi_read_sync:
-            case rwi_read: {
-                if (snapshotted)
-                    ++inner_buf->snap_refcount;
-                data = inner_buf->data;
-                rassert(data != NULL);
-                break;
-            }
-            case rwi_read_outdated_ok: {
-                ++inner_buf->cow_refcount;
-                data = inner_buf->data;
-                rassert(data != NULL);
-                // unlock the buffer now that we have established a COW reference to it so that
-                // writers can overwrite it. we know we have locked the buffer because !snapshotted,
-                // therefore mc_buf_t() locked it before calling us.
-                rassert(locked);
-                inner_buf->lock.unlock();
-                break;
-            }
-            case rwi_write: {
-                // NOTE (rntz) is it valid for version_to_access to be anything /other/ than
-                // faux_version_id? it looks like it might happen if called from
-                // transaction_t::allocate()
-                if (version_to_access == mc_inner_buf_t::faux_version_id)
-                    version_to_access = inner_buf->cache->get_current_version_id();
-                rassert(inner_version <= version_to_access);
-
-                bool snapshotted = inner_buf->snapshot_if_needed(version_to_access);
-                // XXX (rntz) why are we doing this instead of inner_buf doing it itself?
-                if (snapshotted)
-                    inner_buf->data = inner_buf->cache->serializer->clone(inner_buf->data);
-
-                inner_buf->version_id = version_to_access;
-                data = inner_buf->data;
-                // The inner_buf could just have been acquired with should_load == false,
-                // so we cannot assert data here unfortunately!
-                //rassert(data != NULL);
-
-                if (!inner_buf->writeback_buf.needs_flush &&
-                        patches_affected_data_size_at_start == -1 &&
-                        global_full_perfmon) {
-                    patches_affected_data_size_at_start =
-                        inner_buf->cache->patch_memory_storage.get_affected_data_size(inner_buf->block_id);
-                }
-
-                break;
-            }
-            case rwi_intent:
-                not_implemented("Locking with intent not supported yet.");
-            case rwi_upgrade:
-            default:
-                unreachable();
-        }
+        acquire_block(version_to_access, snapshotted);
     }
 
     pm_bufs_held.begin(&start_time);
+}
 
-    if (snapshotted && locked)
+void mc_buf_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access, bool snapshotted) {
+    inner_buf->cache->assert_thread();
+
+    mc_inner_buf_t::version_id_t inner_version = inner_buf->version_id;
+    rassert(!inner_buf->do_delete);
+
+    switch (mode) {
+        case rwi_read_sync:
+        case rwi_read: {
+            if (snapshotted) {
+                rassert(version_to_access == mc_inner_buf_t::faux_version_id || inner_version <= version_to_access);
+                ++inner_buf->snap_refcount;
+            }
+            data = inner_buf->data;
+            rassert(data != NULL);
+            break;
+        }
+        case rwi_read_outdated_ok: {
+            ++inner_buf->cow_refcount;
+            data = inner_buf->data;
+            rassert(data != NULL);
+            // unlock the buffer now that we have established a COW reference to it so that
+            // writers can overwrite it. we know we have locked the buffer because !snapshotted,
+            // therefore mc_buf_t() locked it before calling us.
+            inner_buf->lock.unlock();
+            break;
+        }
+        case rwi_write: {
+            if (version_to_access == mc_inner_buf_t::faux_version_id)
+                version_to_access = inner_buf->cache->get_current_version_id();
+            rassert(inner_version <= version_to_access);
+
+            bool snapshotted = inner_buf->snapshot_if_needed(version_to_access);
+            // XXX (rntz) why are we doing this instead of inner_buf doing it itself?
+            if (snapshotted)
+                inner_buf->data = inner_buf->cache->serializer->clone(inner_buf->data);
+
+            inner_buf->version_id = version_to_access;
+            data = inner_buf->data;
+            // The inner_buf could just have been acquired with should_load == false,
+            // so we cannot assert data here unfortunately!
+            //rassert(data != NULL);
+
+            if (!inner_buf->writeback_buf.needs_flush &&
+                    patches_affected_data_size_at_start == -1 &&
+                    global_full_perfmon) {
+                patches_affected_data_size_at_start =
+                    inner_buf->cache->patch_memory_storage.get_affected_data_size(inner_buf->block_id);
+            }
+
+            break;
+        }
+        case rwi_intent:
+            not_implemented("Locking with intent not supported yet.");
+        case rwi_upgrade:
+        default:
+            unreachable();
+    }
+
+    if (snapshotted)
         inner_buf->lock.unlock();
 }
 
