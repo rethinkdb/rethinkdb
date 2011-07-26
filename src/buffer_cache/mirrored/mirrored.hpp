@@ -68,10 +68,6 @@ class mc_inner_buf_t : public home_thread_mixin_t, public evictable_t {
     void *data;
     version_id_t version_id;
     /* As long as data has not been changed since the last serializer write, data_token contains a token to the on-serializer block */
-
-    // TODO! In order for this to be set, the current do_write() wrapper in serializer_t should be moved to writeback.
-    // Then writeback can preserve the tokens whenever the written data buffer is still the same as inner_buf->data
-    // (i.e. no COW was necessary)
     boost::shared_ptr<serializer_t::block_token_t> data_token;
 
     rwi_lock_t lock;

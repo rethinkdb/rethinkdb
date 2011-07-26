@@ -87,7 +87,6 @@ public:
     bool read(off64_t off_in, void *buf_out, file_t::account_t *io_account, iocallback_t *cb);
 
     /* Returns the offset to which the block will be written */
-    // TODO (rntz) see whether anything uses assign_new_block_sequence_id=false
     off64_t write(const void *buf_in, block_id_t block_id, bool assign_new_block_sequence_id,
                   file_t::account_t *io_account, iocallback_t *cb);
 

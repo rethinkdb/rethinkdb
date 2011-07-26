@@ -255,8 +255,6 @@ off64_t data_block_manager_t::write(const void *buf_in, block_id_t block_id, boo
     if (assign_new_block_sequence_id) {
         data->block_sequence_id = ++serializer->latest_block_sequence_id;
     }
-    // TODO (rntz) why is it okay to not write the block_sequence_id if assign_new_block_sequence_id
-    // is false? are we guaranteed that it contains something sane?
 
     if (dbfile->write_async(offset, static_config->block_size().ser_value(), data, io_account, cb)) {
         cb->on_io_complete();

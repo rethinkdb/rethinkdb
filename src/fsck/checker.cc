@@ -447,7 +447,6 @@ bool check_metablock(nondirect_file_t *file, file_knowledge_t *knog, metablock_e
     int high_version_index = -1;
     manager_t::metablock_version_t high_version = MB_START_VERSION - 1;
 
-    // TODO (rntz) transaction ids are no more; use ser_block_sequence_ids
     int high_block_sequence_index = -1;
     block_sequence_id_t high_block_sequence_id = NULL_BLOCK_SEQUENCE_ID;
 

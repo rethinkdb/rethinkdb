@@ -307,7 +307,6 @@ public:
     void unregister_read_ahead_cb(UNUSED read_ahead_callback_t *cb) { }
 
 public:
-    // TODO (rntz) is this used by anything? if not, remove it.
     typedef typename inner_serializer_t::gc_disable_callback_t gc_disable_callback_t;
     bool disable_gc(gc_disable_callback_t *cb) {
         return inner_serializer.disable_gc(cb);
