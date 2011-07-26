@@ -246,7 +246,7 @@ void connectivity_cluster_t::handle(
         /* We expect that sending can fail due to a network problem. If that
         happens, just ignore it. If sending fails for some other reason, then
         the programmer should learn about it, so we rethrow the exception. */
-        if (conn->get_ostream().bad() || conn->get_ostream().eof()) return;
+        if (!conn->is_write_open()) return;
         else throw;
     }
 
@@ -257,7 +257,7 @@ void connectivity_cluster_t::handle(
         receiver >> other_id;
         receiver >> other_address;
     } catch (boost::archive::archive_exception) {
-        if (conn->get_istream().bad() || conn->get_istream().eof()) return;
+        if (!conn->is_read_open()) return;
         else throw;
     }
 
@@ -320,7 +320,7 @@ void connectivity_cluster_t::handle(
             sender << routing_table_to_send;
         } catch (boost::archive::archive_exception) {
             routing_table.erase(other_id);
-            if (conn->get_ostream().bad() || conn->get_ostream().eof()) return;
+            if (!conn->is_write_open()) return;
             else throw;
         }
 
@@ -330,7 +330,7 @@ void connectivity_cluster_t::handle(
             receiver >> other_routing_table;
         } catch (boost::archive::archive_exception) {
             routing_table.erase(other_id);
-            if (conn->get_istream().bad() || conn->get_istream().eof()) return;
+            if (!conn->is_read_open()) return;
             else throw;
         }
 
@@ -343,7 +343,7 @@ void connectivity_cluster_t::handle(
             boost::archive::text_iarchive receiver(conn->get_istream());
             receiver >> other_routing_table;
         } catch (boost::archive::archive_exception) {
-            if (conn->get_istream().bad() || conn->get_istream().eof()) return;
+            if (!conn->is_read_open()) return;
             else throw;
         }
 
@@ -373,7 +373,7 @@ void connectivity_cluster_t::handle(
             boost::archive::text_oarchive sender(conn->get_ostream());
             sender << routing_table_to_send;
         } catch (boost::archive::archive_exception) {
-            if (conn->get_ostream().bad() || conn->get_ostream().eof()) return;
+            if (!conn->is_write_open()) return;
             else throw;
         }
     }
@@ -457,7 +457,7 @@ void connectivity_cluster_t::handle(
         } catch (boost::archive::archive_exception) {
             /* The exception broke us out of the loop, and that's what we
             wanted. */
-            if (!(conn->get_istream().bad() || conn->get_istream().eof())) throw;
+            if (conn->is_read_open()) throw;
         }
 
         /* Remove us from the connection map. */
