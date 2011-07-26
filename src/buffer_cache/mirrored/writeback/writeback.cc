@@ -257,7 +257,8 @@ struct writeback_t::buf_writer_t :
         }
         void on_thread_switch() {
             assert_thread();
-            // TODO: update buf's (or snapshot's) data token appropriately if it is up-to-date.
+            // update buf's (or one of it's snapshot's) data token appropriately
+            buf->inner_buf->update_data_token(buf->get_data_read(), token);
             token.reset();
             // Update block sequence id.
             buf->inner_buf->block_sequence_id = parent->cache->serializer->get_block_sequence_id(
