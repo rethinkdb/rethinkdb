@@ -12,7 +12,7 @@ namespace replication {
 first one is empty, it tries the next one. */
 
 template <class value_t>
-class selective_passive_producer_t : public passive_producer_t<value_t>, public watchable_t<bool>::watcher_t {
+class selective_passive_producer_t : public passive_producer_t<value_t>, public watchable_value_t<bool>::watcher_t {
 public:
     selective_passive_producer_t(passive_producer_t<value_t> *selectee) :
         passive_producer_t<value_t>(&available_var),
@@ -34,7 +34,7 @@ public:
         recompute();
     }
 
-    void on_watchable_changed() {
+    void on_watchable_value_changed() {
 	recompute();
     }
 
