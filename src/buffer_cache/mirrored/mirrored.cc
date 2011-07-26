@@ -35,7 +35,8 @@ struct mc_inner_buf_t::buf_snapshot_t : evictable_t, intrusive_list_node_t<mc_in
         : evictable_t(buf->cache, data ? true : false),
           parent(buf), snapshotted_version(version),
           data(data), token(token),
-          snapshot_refcount(snapshot_refcount), active_refcount(active_refcount) {
+          snapshot_refcount(snapshot_refcount), active_refcount(active_refcount)
+    {
         rassert(data || token, "creating buf snapshot without data or block token");
         rassert(snapshot_refcount + active_refcount, "creating buf snapshot with 0 refcount");
     }
@@ -158,14 +159,11 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_
         coro_t::spawn_now(boost::bind(&mc_inner_buf_t::load_inner_buf, this, true, io_account));
     }
 
-    // pm_n_blocks_in_memory gets incremented in cases where
-    // should_load == false, because currently we're still mallocing
-    // the buffer.
-    // TODO: ^this appears to be false (see data(should_load ? cache->serializer->mallc() : NULL) above)
+    // TODO: only increment pm_n_blocks_in_memory when we actually load the block into memory.
     pm_n_blocks_in_memory++;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
 
-    cache->page_repl.make_space(1);
+    cache->page_repl.make_space();
     cache->maybe_unregister_read_ahead_callback();
 
     refcount--;
@@ -191,7 +189,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, r
 
     pm_n_blocks_in_memory++;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
-    cache->page_repl.make_space(1);
+    cache->page_repl.make_space();
     cache->maybe_unregister_read_ahead_callback();
     refcount--;
 
@@ -274,7 +272,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, version_id_t
     pm_n_blocks_in_memory++;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
 
-    cache->page_repl.make_space(1);
+    cache->page_repl.make_space();
     cache->maybe_unregister_read_ahead_callback();
 
     refcount--;
