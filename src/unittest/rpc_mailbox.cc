@@ -30,7 +30,7 @@ void run_in_thread_pool(boost::function<void()> fun, int nthreads = 1) {
 
 /* `let_stuff_happen()` delays for some time to let events occur */
 void let_stuff_happen() {
-    nap(50);
+    nap(1000);
 }
 
 /* `dummy_cluster_t` is a `mailbox_cluster_t` that keeps track of utility

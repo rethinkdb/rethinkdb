@@ -27,7 +27,7 @@ void run_in_thread_pool(boost::function<void()> fun) {
 
 /* `let_stuff_happen()` delays for some time to let events occur */
 void let_stuff_happen() {
-    nap(100);
+    nap(1000);
 }
 
 /* `dummy_cluster_t` is a `connectivity_cluster_t` that keeps track of messages
