@@ -12,8 +12,6 @@
     (proxy_id / n_files))).
 */
 
-// FIXME (rntz) does not appear to contain index_write() or block_write() implementations
-
 const block_magic_t multiplexer_config_block_t::expected_magic = { { 'c','f','g','_' } };
 
 void prep_serializer(
