@@ -58,11 +58,7 @@ void init(value_sizer_t<Value> *sizer, leaf_node_t *node, const leaf_node_t *lno
     }
     node->npairs = numpairs;
 
-    // TODO: Why is this sorting step necessary?  Is [offsets, offset + numpairs) not sorted?
-
     rassert(is_uint16_sorted(node->pair_offsets, node->pair_offsets + numpairs, leaf_key_comp(node)));
-
-    std::sort(node->pair_offsets, node->pair_offsets + numpairs, leaf_key_comp(node));
 }
 
 template <class Value>
