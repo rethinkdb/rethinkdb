@@ -2,6 +2,7 @@
 #include <algorithm>
 #include "logger.hpp"
 #include "btree/buf_patches.hpp"
+#include "buffer_cache/buffer_cache.hpp"
 
 template <class Value>
 bool leaf_pair_fits(value_sizer_t<Value> *sizer, const btree_leaf_pair<Value> *pair, size_t size) {

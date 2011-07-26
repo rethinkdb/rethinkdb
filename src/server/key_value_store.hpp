@@ -1,11 +1,12 @@
 #ifndef __BTREE_KEY_VALUE_STORE_HPP__
 #define __BTREE_KEY_VALUE_STORE_HPP__
 
+#include "utils.hpp"
 #include <boost/scoped_ptr.hpp>
 
+#include "buffer_cache/buffer_cache.hpp"
 #include "btree/slice.hpp"
 #include "btree/node.hpp"
-#include "utils.hpp"
 #include "concurrency/access.hpp"
 #include "concurrency/signal.hpp"
 #include "server/key_value_store_config.hpp"
