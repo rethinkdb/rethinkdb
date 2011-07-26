@@ -401,14 +401,15 @@ bool mc_inner_buf_t::safe_to_unload() {
 void mc_inner_buf_t::update_data_token(const void *data, boost::shared_ptr<serializer_t::block_token_t> token) {
     cache->assert_thread();
     if (data == this->data) {
-        if (!data_token)
-            data_token = token;
+        rassert(!data_token, "data token already up-to-date");
+        data_token = token;
         return;
     }
     for (snapshot_data_list_t::iterator it = snapshots.begin(); it != snapshots.end(); ++it) {
         buf_snapshot_t *snap = *it;
         if (snap->data != data) continue;
-        if (!snap->token) snap->token = token;
+        rassert(!snap->token, "snapshot data token already up-to-date");
+        snap->token = token;
         return;
     }
     unreachable("data does not correspond to current buffer or any existing snapshot of it");
