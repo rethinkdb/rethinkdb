@@ -150,7 +150,6 @@ class mc_buf_t {
 
 private:
     mc_buf_t(mc_inner_buf_t *inner, access_t mode, mc_inner_buf_t::version_id_t version_id, bool snapshotted, boost::function<void()> call_when_in_line);
-    void on_lock_available();
     void acquire_block(bool locked, mc_inner_buf_t::version_id_t version_to_access, bool snapshotted);
 
     ticks_t start_time;
