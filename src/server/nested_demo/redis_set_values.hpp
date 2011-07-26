@@ -39,7 +39,7 @@ public:
     // Deletes all elements from the subtree. Must be called before deleting the set value in the super tree!
     void clear(value_sizer_t<redis_demo_set_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, int slice_home_thread);
 
-    // Provides an iterator over all members pairs
+    // Provides an iterator over all members
     boost::shared_ptr<one_way_iterator_t<std::string> > smembers(value_sizer_t<redis_demo_set_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, int slice_home_thread) const;
 
     /*

@@ -23,7 +23,7 @@ namespace redis_utils {
     }
     #endif
 
-    void to_lex_int(const int i, char* buf) {
+    void to_lex_int(const int i, char *buf) {
     #ifndef NDEBUG
         check_int_representation();
     #endif
@@ -37,7 +37,7 @@ namespace redis_utils {
         }
     }
 
-    int from_lex_int(char* buf) {
+    int from_lex_int(const char *buf) {
     #ifndef NDEBUG
         check_int_representation();
     #endif
@@ -51,7 +51,7 @@ namespace redis_utils {
         return i;
     }
 
-    void to_lex_float(const float f, char* buf) {
+    void to_lex_float(const float f, char *buf) {
         // The trick is as follows: IEEE 754 floats already are lexicographically
         // comparable, except for negative numbers, where the order is inverted
         // (e.g. -0.1 > -0.01). To work around this, we negate negative floats
@@ -64,7 +64,8 @@ namespace redis_utils {
         }
         to_lex_int(i, buf);
     }
-    float from_lex_float(char* buf) {
+    
+    float from_lex_float(const char *buf) {
         rassert(sizeof(int) == sizeof(float));
         // TODO! Test this
         int i = from_lex_int(buf);
