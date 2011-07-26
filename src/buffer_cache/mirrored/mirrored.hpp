@@ -125,8 +125,11 @@ class mc_inner_buf_t : public home_thread_mixin_t, public evictable_t {
 
     // If required, make a snapshot of the data before being overwritten with new_version
     bool snapshot_if_needed(version_id_t new_version);
+    // releases a buffer snapshot used by a transaction snapshot
     void release_snapshot(buf_snapshot_t *snapshot);
-    void *acquire_snapshot_data(version_id_t version_to_access); // gives back the snapshot data buffer
+    // acquires the snapshot data buffer, loading from disk if necessary; must be matched by a call
+    // to release_snapshot_data to keep track of when data buffer is in use
+    void *acquire_snapshot_data(version_id_t version_to_access, file_t::account_t *io_account);
     void release_snapshot_data(void *data);
 
 private:
@@ -149,8 +152,11 @@ class mc_buf_t {
     friend class writeback_t::buf_writer_t;
 
 private:
-    mc_buf_t(mc_inner_buf_t *inner, access_t mode, mc_inner_buf_t::version_id_t version_id, bool snapshotted, boost::function<void()> call_when_in_line);
-    void acquire_block(bool locked, mc_inner_buf_t::version_id_t version_to_access, bool snapshotted);
+    // io_account is only used if a snapshot needs to be read from disk. it may safely be
+    // DEFAULT_DISK_ACCOUNT if snapshotted is false. TODO: this is ugly. find a cleaner interface.
+    mc_buf_t(mc_inner_buf_t *inner, access_t mode, mc_inner_buf_t::version_id_t version_id, bool snapshotted,
+             boost::function<void()> call_when_in_line, file_t::account_t *io_account = DEFAULT_DISK_ACCOUNT);
+    void acquire_block(bool locked, mc_inner_buf_t::version_id_t version_to_access, bool snapshotted, file_t::account_t *io_account);
 
     ticks_t start_time;
 

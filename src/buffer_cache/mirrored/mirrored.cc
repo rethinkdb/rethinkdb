@@ -48,7 +48,7 @@ struct mc_inner_buf_t::buf_snapshot_t : evictable_t, intrusive_list_node_t<mc_in
             cache->serializer->free(data);
     }
 
-    void *acquire_data() {
+    void *acquire_data(file_t::account_t *io_account) {
         cache->assert_thread();
         ++active_refcount;
         if (data) return data;  // Fast path.
@@ -60,8 +60,7 @@ struct mc_inner_buf_t::buf_snapshot_t : evictable_t, intrusive_list_node_t<mc_in
 
         // Use a temporary to avoid putting our data member in an allocated-but-uninitialized state.
         void *tmp = cache->serializer->malloc();
-        // XXX (rntz) this shouldn't be using DEFAULT_DISK_ACCOUNT
-        cache->serializer->block_read(token, tmp, DEFAULT_DISK_ACCOUNT);
+        cache->serializer->block_read(token, tmp, io_account);
         rassert(!data, "data changed while holding mutex");
         data = tmp;             // Swap in the initialized buffer.
         return data;
@@ -364,11 +363,11 @@ bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version) {
     return true;
 }
 
-void *mc_inner_buf_t::acquire_snapshot_data(version_id_t version_to_access) {
+void *mc_inner_buf_t::acquire_snapshot_data(version_id_t version_to_access, file_t::account_t *io_account) {
     rassert(version_to_access != mc_inner_buf_t::faux_version_id);
     for (buf_snapshot_t *snap = snapshots.head(); snap; snap = snapshots.next(snap)) {
         if (snap->snapshotted_version <= version_to_access) {
-            return snap->acquire_data();
+            return snap->acquire_data(io_account);
         }
     }
     return NULL;
@@ -416,7 +415,7 @@ perfmon_duration_sampler_t
     pm_bufs_held("bufs_held", secs_to_ticks(1));
 
 mc_buf_t::mc_buf_t(mc_inner_buf_t *inner_buf, access_t mode, mc_inner_buf_t::version_id_t version_to_access, bool snapshotted,
-                   boost::function<void()> call_when_in_line)
+                   boost::function<void()> call_when_in_line, file_t::account_t *io_account)
     : mode(mode), non_locking_access(snapshotted), inner_buf(inner_buf), data(NULL)
 {
     inner_buf->cache->assert_thread();
@@ -429,7 +428,7 @@ mc_buf_t::mc_buf_t(mc_inner_buf_t *inner_buf, access_t mode, mc_inner_buf_t::ver
     // a read lock first (otherwise we may get the data of the unfinished write on top).
     if (snapshotted && version_to_access != mc_inner_buf_t::faux_version_id && version_to_access < inner_buf->version_id) {
         // we're accessing a snapshotted block, no need to lock
-        acquire_block(false, version_to_access, snapshotted);
+        acquire_block(false, version_to_access, snapshotted, io_account);
         // we never needed to get in line, so just call the function straight-up to ensure it gets called.
         if (call_when_in_line) call_when_in_line();
 
@@ -439,17 +438,18 @@ mc_buf_t::mc_buf_t(mc_inner_buf_t *inner_buf, access_t mode, mc_inner_buf_t::ver
         inner_buf->lock.co_lock(mode == rwi_read_outdated_ok ? rwi_read : mode, call_when_in_line);
         pm_bufs_acquiring.end(&start_time);
 
-        acquire_block(true, version_to_access, snapshotted);
+        acquire_block(true, version_to_access, snapshotted, io_account);
     }
 }
 
-void mc_buf_t::acquire_block(bool locked, mc_inner_buf_t::version_id_t version_to_access, bool snapshotted) {
+void mc_buf_t::acquire_block(bool locked, mc_inner_buf_t::version_id_t version_to_access, bool snapshotted, file_t::account_t *io_account) {
     inner_buf->cache->assert_thread();
 
     mc_inner_buf_t::version_id_t inner_version = inner_buf->version_id;
+    // XXX! (rntz) refactor this out into mc_buf_t constructor
     // In case we don't have received a version yet (i.e. this is the first block we are acquiring, just access the most recent version)
     if (snapshotted && version_to_access != mc_inner_buf_t::faux_version_id && version_to_access < inner_version) {
-        data = inner_buf->acquire_snapshot_data(version_to_access);
+        data = inner_buf->acquire_snapshot_data(version_to_access, io_account);
         guarantee(data != NULL);
     } else {
         // we want the most recent version
@@ -868,12 +868,15 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
         // it is not wasteful to load the latest version if should_load is true.
         inner_buf = new inner_buf_t(cache, block_id, should_load, get_io_account());
     } else {
-        // TODO (rntz) this seems like something that should be handled by buf_t.
+        // TODO: the logic for when to load an inner_buf's versions (most recent or snapshotted) is
+        // scattered around everywhere (eg: here). consolidate it, perhaps in mc_buf_t.
         rassert(!inner_buf->do_delete || snapshotted);
 
-        // ensures the inner buf's data is loaded if should_load is true
-        // FIXME (rntz) this overeagerly loads the latest version when we need a snapshotted version
-        if (!inner_buf->data && should_load && !inner_buf->do_delete) {
+        // ensures inner_buf->data is loaded if should_load is true and we're using the top version
+        if (!inner_buf->data && !inner_buf->do_delete && should_load &&
+            // if we're accessing a snapshot rather than the top version, no need to load it here
+            !(snapshotted && snapshot_version != mc_inner_buf_t::faux_version_id && snapshot_version < inner_buf->version_id))
+        {
             // The inner_buf doesn't have any data currently. We need the data though,
             // so load it!
             inner_buf->data = cache->serializer->malloc();
@@ -883,7 +886,7 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
         }
     }
 
-    buf_t *buf = new buf_t(inner_buf, mode, snapshot_version, snapshotted, call_when_in_line);
+    buf_t *buf = new buf_t(inner_buf, mode, snapshot_version, snapshotted, call_when_in_line, get_io_account());
 
     if (!(mode == rwi_read || mode == rwi_read_outdated_ok)) {
         buf->touch_recency(recency_timestamp);
