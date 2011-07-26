@@ -471,9 +471,9 @@ void mc_buf_t::acquire_block(bool locked, mc_inner_buf_t::version_id_t version_t
                 data = inner_buf->data;
                 rassert(data != NULL);
                 // unlock the buffer now that we have established a COW reference to it so that
-                // writers can overwrite it. we know we have locked the buffer because !(snapshotted
-                // && version_to_access != faux_version_id) and therefore mc_buf_t() locked it
-                // before calling us.
+                // writers can overwrite it. we know we have locked the buffer because !snapshotted,
+                // therefore mc_buf_t() locked it before calling us.
+                rassert(locked);
                 inner_buf->lock.unlock();
                 break;
             }
