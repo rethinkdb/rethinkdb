@@ -28,6 +28,20 @@ std::string link_t::as_string() {
     return res.str();
 }
 
+btree_slice_t *riak_interface_t::get_slice(std::list<std::string> key) {
+    if (slice_map.find(key) != slice_map.end()) {
+        return &slice_map.at(key);
+    } else if (store_manager->get_store(key) != NULL) {
+        standard_serializer_t *serializer = store_manager->get_store(key)->get_store_interface<standard_serializer_t>();
+
+        mirrored_cache_config_t config;
+        slice_map.insert(key, new btree_slice_t(new cache_t(serializer, &config), 0));
+        return &slice_map.at(key);
+    } else {
+        return NULL;
+    }
+}
+
 riak_server_t::riak_server_t(int port, store_manager_t<std::list<std::string> > *store_manager)
     : http_server_t(port), riak_interface(store_manager)
 { }

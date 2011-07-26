@@ -70,6 +70,23 @@ public:
     typedef log_serializer_dynamic_config_t dynamic_config_t;
     typedef log_serializer_on_disk_static_config_t static_config_t;
     typedef log_serializer_static_config_t public_static_config_t;
+
+    struct log_serializer_config_t {
+        dynamic_config_t dynamic_config;
+        private_dynamic_config_t private_dynamic_config;
+
+        log_serializer_config_t(std::string file_name) 
+            : private_dynamic_config(file_name)
+        { }
+
+        friend class boost::serialization::access;
+        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
+            ar & dynamic_config;
+            ar & private_dynamic_config;
+        }
+    };
+
+    typedef log_serializer_config_t config_t;
     
     dynamic_config_t *dynamic_config;
     private_dynamic_config_t *private_config;

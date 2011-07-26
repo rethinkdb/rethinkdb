@@ -6,9 +6,13 @@
 #include "spirit/boost_parser.hpp"
 #include <boost/fusion/include/adapt_struct.hpp>
 #include <boost/fusion/include/io.hpp>
+#include <boost/ptr_container/ptr_map.hpp>
 #include "store_manager.hpp"
 #include <stdarg.h>
 #include "riak/structures.hpp"
+#include "btree/slice.hpp"
+#include "btree/operations.hpp"
+#include "riak/riak_value.hpp"
 
 namespace riak {
 
@@ -39,6 +43,12 @@ struct link_parser_t: qi::grammar<Iterator, std::vector<link_t>()> {
 class riak_interface_t {
 private:
     store_manager_t<std::list<std::string> > *store_manager;
+
+    typedef boost::ptr_map<std::list<std::string>, btree_slice_t> slice_map_t;
+
+    slice_map_t slice_map;
+
+    btree_slice_t *get_slice(std::list<std::string>);
 public:
     riak_interface_t(store_manager_t<std::list<std::string> > *store_manager)
         : store_manager(store_manager)
@@ -64,8 +74,8 @@ public:
         key.push_back("riak"); key.push_back(name);
 
         if (!store_manager->get_store(key)) {
-            store_config_t store_config;
-            store_manager->create_store(key, store_config);
+            standard_serializer_t::config_t config(name);
+            store_manager->create_store(key, config);
         }
 
         store_t *store = store_manager->get_store(key);
@@ -86,8 +96,19 @@ public:
         crash("Not implementated");
     };
 
-    const object_t &get_object(std::string, std::string) {
-        crash("Not implementated");
+    const object_t &get_object(std::string bucket, std::string key) {
+        std::list<std::string> sm_key;
+        sm_key.push_back("riak"); sm_key.push_back(bucket);
+        btree_slice_t *slice = get_slice(sm_key);
+
+        if (!slice) {
+            //no value
+        }
+
+        keyvalue_location_t<riak_value_t> kv_location;
+        get_value_read(slice, btree_key_buffer_t(key).key(), order_token_t::ignore, &kv_location);
+
+        crash("Not implemented");
     }
 
     std::pair<object_tree_iterator_t, object_tree_iterator_t> link_walk(std::string, std::string, std::vector<link_filter_t>) {

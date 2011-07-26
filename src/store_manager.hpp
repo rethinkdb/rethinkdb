@@ -194,11 +194,11 @@ typedef int invalid_variant_t;
 typedef boost::variant<invalid_variant_t, memcached_store_metadata_t, riak_store_metadata_t> store_metadata_t;
 
 // Add your store_config types here... (these must be serialized)
-typedef boost::variant<invalid_variant_t, btree_key_value_store_dynamic_config_t> store_config_t;
+typedef boost::variant<invalid_variant_t, btree_key_value_store_dynamic_config_t, standard_serializer_t::config_t> store_config_t;
 
 // Add your underlying store types here... (these must be creatable based on the information of the corresponding store_config)
 // The store types (i.e. what's inside the pointer) must provide RTTI (have a virtual member)
-typedef boost::variant<boost::shared_ptr<invalid_variant_t>, boost::shared_ptr<btree_key_value_store_t> > store_object_t;
+typedef boost::variant<boost::shared_ptr<invalid_variant_t>, boost::shared_ptr<btree_key_value_store_t> , boost::shared_ptr<serializer_t> > store_object_t;
 
 // This visitor must be extended if new types of store configs are added
 class store_loader_t : public boost::static_visitor<store_object_t> {
@@ -207,6 +207,12 @@ public:
         return store_object_t(boost::shared_ptr<btree_key_value_store_t>(
                 new btree_key_value_store_t(config)));
     }
+
+    store_object_t operator()(standard_serializer_t::config_t &config) const {
+        return store_object_t(boost::shared_ptr<standard_serializer_t>(
+                new standard_serializer_t(&(config.dynamic_config), &(config.private_dynamic_config))));
+    }
+
     // Add implementations for other store_config types here...
     store_object_t operator()(invalid_variant_t) const {
         crash("Tried to create an invalid store\n");
