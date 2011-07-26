@@ -139,11 +139,10 @@ struct serializer_t :
         write_t(block_id_t block_id, action_t action);
     };
 
-    /* Performs a group of writes. Must be called from coroutine context. cb is called (in coroutine
-     * context) as soon as all block writes have been sent to the serializer (but not necessarily
-     * completed). Returns when all writes are finished and the LBA has been updated.
+    /* Performs a group of writes. Must be called from coroutine context. Returns when all writes
+     * are finished and the LBA has been updated.
      *
-     * Note that this is not virtual. It is implement in terms of block_write() and index_write(),
+     * Note that this is not virtual. It is implemented in terms of block_write() and index_write(),
      * and not meant to be overridden in subclasses.
      */
     void do_write(std::vector<write_t> writes, file_t::account_t *io_account);
