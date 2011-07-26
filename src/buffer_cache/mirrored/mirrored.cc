@@ -448,15 +448,13 @@ mc_buf_t::mc_buf_t(mc_inner_buf_t *inner_buf, access_t mode, mc_inner_buf_t::ver
 
 void mc_buf_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access, bool snapshotted) {
     inner_buf->cache->assert_thread();
-
-    mc_inner_buf_t::version_id_t inner_version = inner_buf->version_id;
     rassert(!inner_buf->do_delete);
 
     switch (mode) {
         case rwi_read_sync:
         case rwi_read: {
             if (snapshotted) {
-                rassert(version_to_access == mc_inner_buf_t::faux_version_id || inner_version <= version_to_access);
+                rassert(version_to_access == mc_inner_buf_t::faux_version_id || inner_buf->version_id <= version_to_access);
                 ++inner_buf->snap_refcount;
             }
             data = inner_buf->data;
@@ -476,7 +474,7 @@ void mc_buf_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access, boo
         case rwi_write: {
             if (version_to_access == mc_inner_buf_t::faux_version_id)
                 version_to_access = inner_buf->cache->get_current_version_id();
-            rassert(inner_version <= version_to_access);
+            rassert(inner_buf->version_id <= version_to_access);
 
             bool snapshotted = inner_buf->snapshot_if_needed(version_to_access);
             if (snapshotted)
