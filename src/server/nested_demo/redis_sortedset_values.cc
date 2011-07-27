@@ -25,7 +25,6 @@ bool redis_demo_sortedset_value_t::zrem(value_sizer_t<redis_demo_sortedset_value
         // Get score
         if (kv_location.there_originally_was_value) {
             score = kv_location.value->value;
-            fprintf(stderr, "got %f %s\n", score, member.c_str());
         }
 
         // Delete the key
@@ -124,7 +123,6 @@ bool redis_demo_sortedset_value_t::zadd(value_sizer_t<redis_demo_sortedset_value
 
         // Update the nested root id (in case this was the first member and a root got added)
         member_score_nested_root = kv_location.sb->get_root_block_id();
-        fprintf(stderr, "inserted %f %s\n", score, member.c_str());
     }
 
     ++size; // We can do this regardless of had_key, because we removed existing entries at the start

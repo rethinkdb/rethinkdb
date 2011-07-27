@@ -124,7 +124,6 @@ private:
         redis_utils::to_lex_float(score, lex_score);
         key.assign(lex_score, redis_utils::LEX_FLOAT_SIZE);
         key.append(member);
-        fprintf(stderr, "Made key %d from %f %s\n", *((int*)key.data()), score, member.c_str());
         return key;
     }
 
@@ -133,7 +132,6 @@ private:
         rassert(key.length() >= redis_utils::LEX_FLOAT_SIZE);
         const float score = redis_utils::from_lex_float(key.data());
         const std::string member = key.substr(redis_utils::LEX_FLOAT_SIZE);
-        fprintf(stderr, "Decoded key %d to %f %s\n", *((int*)key.data()), score, member.c_str());
         return std::pair<float, std::string>(score, member);
     }
 } __attribute__((__packed__));

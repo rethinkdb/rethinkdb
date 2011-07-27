@@ -45,7 +45,7 @@ namespace redis_utils {
         // Reverse to_lex_int()...
         int i_flipped_sign = 0;
         for (size_t p = 0; p < sizeof(int); ++p) {
-            (reinterpret_cast<char*>(i_flipped_sign))[sizeof(int) - p - 1] = buf[p];
+            (reinterpret_cast<char*>(&i_flipped_sign))[sizeof(int) - p - 1] = buf[p];
         }
         int i = i_flipped_sign ^ 0x80000000;
         return i;
