@@ -9,8 +9,7 @@
 /* The pool disk manager uses a thread pool in conjunction with synchronous
 (blocking) IO calls to asynchronously run IO requests. */
 
-struct pool_diskmgr_t :
-    private watchable_value_t<bool>::watcher_t
+struct pool_diskmgr_t
 {
     struct action_t : private blocker_pool_t::job_t {
 
@@ -60,7 +59,7 @@ private:
     passive_producer_t<action_t *> *source;
     blocker_pool_t blocker_pool;
 
-    void on_watchable_value_changed();
+    void on_source_availability_changed();
     int n_pending;
     void pump();
 };
