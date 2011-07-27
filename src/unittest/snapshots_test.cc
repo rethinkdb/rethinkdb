@@ -2,7 +2,7 @@
 #include "unittest/gtest.hpp"
 #include "unittest/server_test_helper.hpp"
 #include "unittest/unittest_utils.hpp"
-#include "buffer_cache/co_functions.hpp"
+#include "buffer_cache/buffer_cache.hpp"
 
 namespace unittest {
 

@@ -1,3 +1,4 @@
+#include "buffer_cache/buffer_cache.hpp"
 #include "clustering/demo.hpp"
 #include "rpc/core/cluster.hpp"
 #include "rpc/serialize/serialize.hpp"

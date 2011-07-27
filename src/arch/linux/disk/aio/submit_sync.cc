@@ -27,7 +27,7 @@ void linux_aio_submit_sync_t::notify_done() {
     pump();
 }
 
-void linux_aio_submit_sync_t::on_watchable_changed() {
+void linux_aio_submit_sync_t::on_watchable_value_changed() {
     /* This is called when data becomes available on the source-queue or when
     it stops being available. If it became available, we need to start the cycle
     of pulling operations off the source queue and running them. */

@@ -11,7 +11,7 @@ coro_pool_t::coro_pool_t(size_t worker_count_, passive_producer_t<boost::functio
     active_worker_count(0)
 {
     rassert(max_worker_count > 0);
-    on_watchable_changed();   // Start process if necessary
+    on_watchable_value_changed();   // Start process if necessary
     source->available->add_watcher(this);
 }
 
@@ -24,7 +24,7 @@ coro_pool_t::~coro_pool_t() {
 }
 
 
-void coro_pool_t::on_watchable_changed() {
+void coro_pool_t::on_watchable_value_changed() {
     assert_thread();
     while (source->available->get() && active_worker_count < max_worker_count) {
         coro_t::spawn_now(boost::bind(&coro_pool_t::worker_run,

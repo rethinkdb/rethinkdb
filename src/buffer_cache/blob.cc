@@ -6,17 +6,23 @@
 #include "concurrency/pmap.hpp"
 #include "containers/buffer_group.hpp"
 
+blob_acq_t::~blob_acq_t() {
+    for (int i = 0, e = bufs_.size(); i < e; ++i) {
+        bufs_[i]->release();
+    }
+}
+
 namespace blob {
 
-size_t big_size_offset(size_t maxreflen) {
+int big_size_offset(int maxreflen) {
     return maxreflen <= 255 ? 1 : 2;
 }
 
-size_t big_offset_offset(size_t maxreflen) {
+int big_offset_offset(int maxreflen) {
     return big_size_offset(maxreflen) + sizeof(int64_t);
 }
 
-size_t block_ids_offset(size_t maxreflen) {
+int block_ids_offset(int maxreflen) {
     return big_offset_offset(maxreflen) + sizeof(int64_t);
 }
 
@@ -24,7 +30,7 @@ temporary_acq_tree_node_t *make_tree_from_block_ids(transaction_t *txn, access_t
 void expose_tree_from_block_ids(transaction_t *txn, access_t mode, int levels, int64_t offset, int64_t size, temporary_acq_tree_node_t *tree, buffer_group_t *buffer_group_out, blob_acq_t *acq_group_out);
 
 
-size_t small_size(const char *ref, size_t maxreflen) {
+int small_size(const char *ref, int maxreflen) {
     // small value sizes range from 0 to maxreflen - big_size_offset(maxreflen), and maxreflen indicates large value.
     if (maxreflen <= 255) {
         return *reinterpret_cast<const uint8_t *>(ref);
@@ -33,11 +39,11 @@ size_t small_size(const char *ref, size_t maxreflen) {
     }
 }
 
-bool size_would_be_small(size_t proposed_size, size_t maxreflen) {
+bool size_would_be_small(int64_t proposed_size, int maxreflen) {
     return proposed_size <= maxreflen - big_size_offset(maxreflen);
 }
 
-void set_small_size_field(char *ref, size_t maxreflen, size_t size) {
+void set_small_size_field(char *ref, int maxreflen, int64_t size) {
     if (maxreflen <= 255) {
         *reinterpret_cast<uint8_t *>(ref) = size;
     } else {
@@ -45,40 +51,40 @@ void set_small_size_field(char *ref, size_t maxreflen, size_t size) {
     }
 }
 
-void set_small_size(char *ref, size_t maxreflen, size_t size) {
+void set_small_size(char *ref, int maxreflen, int64_t size) {
     rassert(size_would_be_small(size, maxreflen));
     set_small_size_field(ref, maxreflen, size);
 }
 
-bool is_small(const char *ref, size_t maxreflen) {
+bool is_small(const char *ref, int maxreflen) {
     return small_size(ref, maxreflen) < maxreflen;
 }
 
-char *small_buffer(char *ref, size_t maxreflen) {
+char *small_buffer(char *ref, int maxreflen) {
     return ref + big_size_offset(maxreflen);
 }
 
-int64_t big_size(const char *ref, size_t maxreflen) {
+int64_t big_size(const char *ref, int maxreflen) {
     return *reinterpret_cast<const int64_t *>(ref + big_size_offset(maxreflen));
 }
 
-void set_big_size(char *ref, size_t maxreflen, int64_t new_size) {
+void set_big_size(char *ref, int maxreflen, int64_t new_size) {
     *reinterpret_cast<int64_t *>(ref + big_size_offset(maxreflen)) = new_size;
 }
 
-void set_big_offset(char *ref, size_t maxreflen, int64_t new_offset) {
+void set_big_offset(char *ref, int maxreflen, int64_t new_offset) {
     *reinterpret_cast<int64_t *>(ref + big_offset_offset(maxreflen)) = new_offset;
 }
 
-int64_t big_offset(const char *ref, size_t maxreflen) {
+int64_t big_offset(const char *ref, int maxreflen) {
     return *reinterpret_cast<const int64_t *>(ref + big_offset_offset(maxreflen));
 }
 
-const block_id_t *block_ids(const char *ref, size_t maxreflen) {
+const block_id_t *block_ids(const char *ref, int maxreflen) {
     return reinterpret_cast<const block_id_t *>(ref + block_ids_offset(maxreflen));
 }
 
-block_id_t *block_ids(char *ref, size_t maxreflen) {
+block_id_t *block_ids(char *ref, int maxreflen) {
     return reinterpret_cast<block_id_t *>(ref + block_ids_offset(maxreflen));
 }
 
@@ -106,7 +112,7 @@ block_id_t *internal_node_block_ids(void *buf) {
     return reinterpret_cast<block_id_t *>(reinterpret_cast<char *>(buf) + sizeof(block_magic_t));
 }
 
-ref_info_t big_ref_info(block_size_t block_size, int64_t offset, int64_t size, size_t maxreflen) {
+ref_info_t big_ref_info(block_size_t block_size, int64_t offset, int64_t size, int maxreflen) {
     rassert(size > int64_t(maxreflen - big_size_offset(maxreflen)));
     int64_t max_blockid_count = (maxreflen - block_ids_offset(maxreflen)) / sizeof(block_id_t);
 
@@ -124,8 +130,8 @@ ref_info_t big_ref_info(block_size_t block_size, int64_t offset, int64_t size, s
     return info;
 }
 
-ref_info_t ref_info(block_size_t block_size, const char *ref, size_t maxreflen) {
-    size_t smallsize = small_size(ref, maxreflen);
+ref_info_t ref_info(block_size_t block_size, const char *ref, int maxreflen) {
+    int smallsize = small_size(ref, maxreflen);
     if (smallsize <= maxreflen - big_size_offset(maxreflen)) {
         ref_info_t info;
 	info.refsize = big_size_offset(maxreflen) + smallsize;
@@ -136,23 +142,23 @@ ref_info_t ref_info(block_size_t block_size, const char *ref, size_t maxreflen) 
     }
 }
 
-size_t ref_size(block_size_t block_size, const char *ref, size_t maxreflen) {
+int ref_size(block_size_t block_size, const char *ref, int maxreflen) {
     return ref_info(block_size, ref, maxreflen).refsize;
 }
 
-bool ref_fits(block_size_t block_size, int data_length, const char *ref, size_t maxreflen) {
+bool ref_fits(block_size_t block_size, int data_length, const char *ref, int maxreflen) {
     if (data_length <= 0) {
         return false;
     }
-    size_t smallsize = small_size(ref, maxreflen);
+    int smallsize = small_size(ref, maxreflen);
     if (smallsize <= maxreflen - big_size_offset(maxreflen)) {
-        return big_size_offset(maxreflen) + smallsize <= size_t(data_length);
+        return big_size_offset(maxreflen) + smallsize <= data_length;
     } else {
-        if (size_t(data_length) < block_ids_offset(maxreflen)) {
+        if (data_length < block_ids_offset(maxreflen)) {
             return false;
         }
 
-        return size_t(data_length) >= ref_size(block_size, ref, maxreflen);
+        return data_length >= ref_size(block_size, ref, maxreflen);
     }
 }
 
@@ -164,8 +170,8 @@ int maxreflen_from_blockid_count(int count) {
     return diff + sz;
 }
 
-int64_t value_size(const char *ref, size_t maxreflen) {
-    size_t smallsize = blob::small_size(ref, maxreflen);
+int64_t value_size(const char *ref, int maxreflen) {
+    int smallsize = blob::small_size(ref, maxreflen);
     if (smallsize <= maxreflen - big_size_offset(maxreflen)) {
         return smallsize;
     } else {
@@ -176,12 +182,12 @@ int64_t value_size(const char *ref, size_t maxreflen) {
 }
 
 
-size_t btree_maxreflen = 251;
+int btree_maxreflen = 251;
 block_magic_t internal_node_magic = { { 'l', 'a', 'r', 'i' } };
 block_magic_t leaf_node_magic = { { 'l', 'a', 'r', 'l' } };
 
 
-size_t ref_value_offset(const char *ref, size_t maxreflen) {
+int64_t ref_value_offset(const char *ref, int maxreflen) {
     return is_small(ref, maxreflen) ? 0 : big_offset(ref, maxreflen);
 }
 
@@ -194,11 +200,11 @@ int64_t stepsize(block_size_t block_size, int levels) {
     return step;
 }
 
-int64_t max_end_offset(block_size_t block_size, int levels, size_t maxreflen) {
+int64_t max_end_offset(block_size_t block_size, int levels, int maxreflen) {
     if (levels == 0) {
         return maxreflen - big_size_offset(maxreflen);
     } else {
-        size_t ref_block_ids = (maxreflen - block_ids_offset(maxreflen)) / sizeof(block_id_t);
+        int ref_block_ids = (maxreflen - block_ids_offset(maxreflen)) / sizeof(block_id_t);
         return stepsize(block_size, levels) * ref_block_ids;
     }
 }
@@ -229,14 +235,14 @@ void compute_acquisition_offsets(block_size_t block_size, int levels, int64_t of
 
 }  // namespace blob
 
-blob_t::blob_t(char *ref, size_t maxreflen)
+blob_t::blob_t(char *ref, int maxreflen)
     : ref_(ref), maxreflen_(maxreflen) {
-    rassert(maxreflen >= blob::block_ids_offset(maxreflen) + sizeof(block_id_t));
+    rassert(maxreflen >= blob::block_ids_offset(maxreflen) + int(sizeof(block_id_t)));
 }
 
 
 
-size_t blob_t::refsize(block_size_t block_size) const {
+int blob_t::refsize(block_size_t block_size) const {
     return blob::ref_size(block_size, ref_, maxreflen_);
 }
 
@@ -256,9 +262,11 @@ void blob_t::expose_region(transaction_t *txn, access_t mode, int64_t offset, in
 
     if (blob::is_small(ref_, maxreflen_)) {
         char *b = blob::small_buffer(ref_, maxreflen_);
-        UNUSED size_t n = blob::small_size(ref_, maxreflen_);
-        rassert(0 <= offset && size_t(offset) <= n);
-        rassert(0 <= size && size_t(size) <= n && size_t(offset + size) <= n);
+#ifndef NDEBUG
+        UNUSED int n = blob::small_size(ref_, maxreflen_);
+        rassert(0 <= offset && offset <= n);
+        rassert(0 <= size && size <= n && offset + size <= n);
+#endif
         buffer_group_out->add_buffer(size, b + offset);
     } else {
         // It's large.
@@ -373,7 +381,7 @@ void blob_t::append_region(transaction_t *txn, int64_t size) {
 
     if (levels == 0) {
         rassert(blob::is_small(ref_, maxreflen_));
-        size_t new_size = size + blob::small_size(ref_, maxreflen_);
+        int64_t new_size = size + blob::small_size(ref_, maxreflen_);
         rassert(blob::size_would_be_small(new_size, maxreflen_));
         blob::set_small_size(ref_, maxreflen_, new_size);
     } else {
@@ -388,7 +396,7 @@ void blob_t::prepend_region(transaction_t *txn, int64_t size) {
     int levels = blob::ref_info(block_size, ref_, maxreflen_).levels;
 
     if (levels == 0) {
-        size_t small_size = blob::small_size(ref_, maxreflen_);
+        int small_size = blob::small_size(ref_, maxreflen_);
         if (small_size + size <= maxreflen_ - blob::big_size_offset(maxreflen_)) {
             char *buf = blob::small_buffer(ref_, maxreflen_);
             memmove(buf + size, buf, small_size);
@@ -475,6 +483,10 @@ void blob_t::unprepend_region(transaction_t *txn, int64_t size) {
         rassert(blob::small_size(ref_, maxreflen_) == 1);
         blob::set_small_size(ref_, maxreflen_, 0);
     }
+}
+
+void blob_t::clear(transaction_t *txn) {
+    unappend_region(txn, valuesize());
 }
 
 namespace blob {
@@ -650,9 +662,9 @@ void blob_t::consider_big_shift(transaction_t *txn, int levels, int64_t *min_shi
         if (practical_end_offset + min_conceivable_shift <= blob::max_end_offset(block_size, levels, maxreflen_)) {
             block_id_t *ids = blob::block_ids(ref_, maxreflen_);
 
-            size_t steps_to_shift = min_conceivable_shift / step;
-            size_t beg = practical_offset / step;
-            size_t end = practical_end_offset / step;
+            int64_t steps_to_shift = min_conceivable_shift / step;
+            int64_t beg = practical_offset / step;
+            int64_t end = practical_end_offset / step;
             memmove(ids + beg + steps_to_shift, ids + beg, (end - beg) * sizeof(block_id_t));
 
             blob::set_big_offset(ref_, maxreflen_, offset + min_conceivable_shift);
@@ -679,15 +691,15 @@ void blob_t::consider_small_shift(transaction_t *txn, int levels, int64_t *min_s
                 block_id_t *ids = blob::block_ids(ref_, maxreflen_);
                 buf_lock_t lobuf(txn, ids[0], rwi_write);
 
-                size_t physical_shift = (min_conceivable_shift / substep) * (levels == 1 ? 1 : sizeof(block_id_t));
-                size_t physical_offset = (practical_offset / substep) * (levels == 1 ? 1 : sizeof(block_id_t));
-                size_t physical_end_offset = (practical_end_offset / substep) * (levels == 1 ? 1 : sizeof(block_id_t));
+                int64_t physical_shift = (min_conceivable_shift / substep) * (levels == 1 ? 1 : sizeof(block_id_t));
+                int64_t physical_offset = (practical_offset / substep) * (levels == 1 ? 1 : sizeof(block_id_t));
+                int64_t physical_end_offset = (practical_end_offset / substep) * (levels == 1 ? 1 : sizeof(block_id_t));
 
                 char *data = blob::leaf_node_data(lobuf->get_data_major_write());
-                size_t low_copycount = std::min(physical_end_offset, size_t(blob::leaf_size(block_size))) - physical_offset;
+                int64_t low_copycount = std::min(physical_end_offset, int64_t(blob::leaf_size(block_size))) - physical_offset;
                 memmove(data + physical_offset + physical_shift, data + physical_offset, low_copycount);
 
-                if (physical_end_offset > size_t(blob::leaf_size(block_size))) {
+                if (physical_end_offset > blob::leaf_size(block_size)) {
                     buf_lock_t hibuf(txn, ids[1], rwi_write);
                     const char *data2 = blob::leaf_node_data(hibuf->get_data_read());
 
@@ -710,7 +722,7 @@ int blob_t::add_level(transaction_t *txn, int levels) {
     if (levels == 0) {
         *reinterpret_cast<block_magic_t *>(b) = blob::leaf_node_magic;
 
-        size_t sz = blob::small_size(ref_, maxreflen_);
+        int sz = blob::small_size(ref_, maxreflen_);
         rassert(sz < maxreflen_);
 
         memcpy(blob::leaf_node_data(b), blob::small_buffer(ref_, maxreflen_), sz);
@@ -724,7 +736,7 @@ int blob_t::add_level(transaction_t *txn, int levels) {
 
         // We don't know how many block ids there could be, so we'll
         // just copy as many as there can be.
-        size_t sz = maxreflen_ - blob::block_ids_offset(maxreflen_);
+        int sz = maxreflen_ - blob::block_ids_offset(maxreflen_);
 
         memcpy(blob::internal_node_block_ids(b), blob::block_ids(ref_, maxreflen_), sz);
         blob::block_ids(ref_, maxreflen_)[0] = lock->get_block_id();

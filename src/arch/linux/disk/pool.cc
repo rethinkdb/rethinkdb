@@ -31,7 +31,7 @@ void pool_diskmgr_t::action_t::done() {
     parent->done_fun(this);
 }
 
-void pool_diskmgr_t::on_watchable_changed() {
+void pool_diskmgr_t::on_watchable_value_changed() {
     /* This is called when the queue used to be empty but now has requests on
     it, and also when the queue's last request is consumed. */
     if (source->available->get()) pump();

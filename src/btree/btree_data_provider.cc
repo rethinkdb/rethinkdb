@@ -1,5 +1,5 @@
 #include "btree/btree_data_provider.hpp"
-#include "buffer_cache/co_functions.hpp"
+#include "buffer_cache/buffer_cache.hpp"
 
 value_data_provider_t::value_data_provider_t(transaction_t *txn, const memcached_value_t *value) {
     blob_t blob(const_cast<memcached_value_t *>(value)->value_ref(), blob::btree_maxreflen);

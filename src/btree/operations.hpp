@@ -1,6 +1,9 @@
 #ifndef __BTREE_OPERATIONS_HPP__
 #define __BTREE_OPERATIONS_HPP__
 
+
+#include <boost/scoped_ptr.hpp>
+#include <boost/shared_ptr.hpp>
 #include "utils.hpp"
 #include "buffer_cache/buf_lock.hpp"
 #include "containers/scoped_malloc.hpp"
@@ -26,30 +29,13 @@ private:
 /* TODO! */
 class real_superblock_t : public superblock_t {
 public:
-    real_superblock_t(buf_lock_t &sb_buf) {
-        sb_buf_.swap(sb_buf);
-    }
+    real_superblock_t(buf_lock_t &sb_buf);
 
-    void release() {
-        sb_buf_.release_if_acquired();
-    }
-    void swap_buf(buf_lock_t &swapee) {
-        sb_buf_.swap(swapee);
-    }
-    block_id_t get_root_block_id() const {
-        rassert (sb_buf_.is_acquired());
-        return reinterpret_cast<const btree_superblock_t *>(sb_buf_.const_buf()->get_data_read())->root_block;
-    }
-    void set_root_block_id(const block_id_t new_root_block) {
-        rassert (sb_buf_.is_acquired());
-        // We have to const_cast, because set_data unfortunately takes void* pointers, but get_data_read()
-        // gives us const data. No way around this (except for making set_data take a const void * again, as it used to be).
-        sb_buf_->set_data(const_cast<block_id_t *>(&reinterpret_cast<const btree_superblock_t *>(sb_buf_.buf()->get_data_read())->root_block), &new_root_block, sizeof(new_root_block));
-    }
-    block_id_t get_delete_queue_block() const {
-        rassert (sb_buf_.is_acquired());
-        return reinterpret_cast<const btree_superblock_t *>(sb_buf_.const_buf()->get_data_read())->delete_queue_block;
-    }
+    void release();
+    void swap_buf(buf_lock_t &swapee);
+    block_id_t get_root_block_id() const;
+    void set_root_block_id(const block_id_t new_root_block);
+    block_id_t get_delete_queue_block() const;
 
 private:
     buf_lock_t sb_buf_;
@@ -133,6 +119,26 @@ void find_keyvalue_location_for_read(value_sizer_t<Value> *sizer, got_superblock
 
 template <class Value>
 void apply_keyvalue_change(value_sizer_t<Value> *sizer, keyvalue_location_t<Value> *location_and_value, btree_key_t *key, repli_timestamp_t timestamp);
+
+
+template <class Value>
+class value_txn_t {
+public:
+    value_txn_t(btree_key_t *, value_sizer_t<Value> *, keyvalue_location_t<Value> *, repli_timestamp_t);
+    ~value_txn_t();
+    scoped_malloc<Value> value;
+private:
+    btree_key_t *key;
+    value_sizer_t<Value> *sizer;
+    keyvalue_location_t<Value> *kv_location;
+    repli_timestamp_t tstamp;
+};
+
+template <class Value>
+value_txn_t<Value> get_value_write(btree_slice_t *, btree_key_t *, repli_timestamp_t, order_token_t);
+
+template <class Value>
+void get_value_read(btree_slice_t *, btree_key_t *, order_token_t, keyvalue_location_t<Value> *);
 
 #include "btree/operations.tcc"
 

@@ -1,27 +1,64 @@
 #include "btree/internal_node.hpp"
+
 #include <algorithm>
-#include "utils.hpp"
+
+#include "buffer_cache/buffer_cache.hpp"
 
 //In this tree, less than or equal takes the left-hand branch and greater than takes the right hand branch
 
 namespace internal_node {
 
+class ibuf_t {
+public:
+    virtual void set_data(void *dest, const void *src, size_t n) = 0;
+    virtual const internal_node_t *data() = 0;
+protected:
+    ibuf_t() { }
+    virtual ~ibuf_t() { }
+private:
+    DISABLE_COPYING(ibuf_t);
+};
+
+class buf_ibuf_t : public ibuf_t {
+public:
+    buf_ibuf_t(buf_t *buf) : buf_(buf) { }
+    void set_data(void *dest, const void *src, size_t n) {
+        buf_->set_data(dest, src, n);
+    }
+    const internal_node_t *data() {
+        return reinterpret_cast<const internal_node_t *>(buf_->get_data_read());
+    }
+
+private:
+    buf_t *buf_;
+};
+
+class raw_ibuf_t : public ibuf_t {
+public:
+    raw_ibuf_t(internal_node_t *node) : node_(node) { }
+    void set_data(void *dest, const void *src, size_t n) {
+        memcpy(dest, src, n);
+    }
+    const internal_node_t *data() {
+        return node_;
+    }
+private:
+    internal_node_t *node_;
+};
+
 using namespace impl;
 
-void init(block_size_t block_size, abstract_buf_t *node_buf) {
-    internal_node_t *node = reinterpret_cast<internal_node_t *>(node_buf->get_data_major_write());
-
+void init(block_size_t block_size, internal_node_t *node) {
     node->magic = internal_node_t::expected_magic;
     node->npairs = 0;
     node->frontmost_offset = block_size.value();
 }
 
-void init(block_size_t block_size, abstract_buf_t *node_buf, const internal_node_t *lnode, const uint16_t *offsets, int numpairs) {
-    internal_node_t *node = reinterpret_cast<internal_node_t *>(node_buf->get_data_major_write());
-
-    init(block_size, node_buf);
+void init(block_size_t block_size, internal_node_t *node, const internal_node_t *lnode, const uint16_t *offsets, int numpairs) {
+    init(block_size, node);
     for (int i = 0; i < numpairs; i++) {
-        node->pair_offsets[i] = insert_pair(node_buf, get_pair(lnode, offsets[i]));
+        raw_ibuf_t ibuf(node);
+        node->pair_offsets[i] = insert_pair(&ibuf, get_pair(lnode, offsets[i]));
     }
     node->npairs = numpairs;
     std::sort(node->pair_offsets, node->pair_offsets+node->npairs, internal_key_comp(node));
@@ -41,7 +78,7 @@ block_id_t lookup(const internal_node_t *node, const btree_key_t *key) {
 }
 
 // TODO: If it's unused, let's get rid of it.
-bool insert(UNUSED block_size_t block_size, abstract_buf_t *node_buf, const btree_key_t *key, block_id_t lnode, block_id_t rnode) {
+bool insert(UNUSED block_size_t block_size, buf_t *node_buf, const btree_key_t *key, block_id_t lnode, block_id_t rnode) {
     const internal_node_t *node = reinterpret_cast<const internal_node_t *>(node_buf->get_data_read());
 
     //TODO: write a unit test for this
@@ -65,7 +102,7 @@ bool insert(UNUSED block_size_t block_size, abstract_buf_t *node_buf, const btre
     return true;
 }
 
-bool remove(block_size_t block_size, abstract_buf_t *node_buf, const btree_key_t *key) {
+bool remove(block_size_t block_size, buf_t *node_buf, const btree_key_t *key) {
     const internal_node_t *node = reinterpret_cast<const internal_node_t *>(node_buf->get_data_read());
     int index = get_offset_index(node, key);
     delete_pair(node_buf, node->pair_offsets[index]);
@@ -79,9 +116,8 @@ bool remove(block_size_t block_size, abstract_buf_t *node_buf, const btree_key_t
     return true;
 }
 
-void split(block_size_t block_size, abstract_buf_t *node_buf, abstract_buf_t *rnode_buf, btree_key_t *median) {
+void split(block_size_t block_size, buf_t *node_buf, internal_node_t *rnode, btree_key_t *median) {
     const internal_node_t *node = reinterpret_cast<const internal_node_t *>(node_buf->get_data_read());
-    const internal_node_t *rnode = reinterpret_cast<const internal_node_t *>(rnode_buf->get_data_read());
 
     uint16_t total_pairs = block_size.value() - node->frontmost_offset;
     uint16_t first_pairs = 0;
@@ -96,7 +132,7 @@ void split(block_size_t block_size, abstract_buf_t *node_buf, abstract_buf_t *rn
     const btree_key_t *median_key = &get_pair_by_index(node, median_index-1)->key;
     keycpy(median, median_key);
 
-    init(block_size, rnode_buf, node, node->pair_offsets + median_index, node->npairs - median_index);
+    init(block_size, rnode, node, node->pair_offsets + median_index, node->npairs - median_index);
 
     // TODO: This is really slow because most pairs will likely be copied
     // repeatedly.  There should be a better way.
@@ -113,7 +149,7 @@ void split(block_size_t block_size, abstract_buf_t *node_buf, abstract_buf_t *rn
     validate(block_size, rnode);
 }
 
-void merge(block_size_t block_size, const internal_node_t *node, abstract_buf_t *rnode_buf, btree_key_t *key_to_remove, const internal_node_t *parent) {
+void merge(block_size_t block_size, const internal_node_t *node, buf_t *rnode_buf, btree_key_t *key_to_remove, const internal_node_t *parent) {
     const internal_node_t *rnode = reinterpret_cast<const internal_node_t *>(rnode_buf->get_data_read());
 
     validate(block_size, node);
@@ -128,7 +164,8 @@ void merge(block_size_t block_size, const internal_node_t *node, abstract_buf_t 
     rnode_buf->move_data(const_cast<uint16_t *>(rnode->pair_offsets + node->npairs), rnode->pair_offsets, rnode->npairs * sizeof(*rnode->pair_offsets));
 
     for (int i = 0; i < node->npairs-1; i++) { // the last pair is special
-        uint16_t new_offset = insert_pair(rnode_buf, get_pair_by_index(node, i));
+        buf_ibuf_t ibuf(rnode_buf);
+        uint16_t new_offset = insert_pair(&ibuf, get_pair_by_index(node, i));
         rnode_buf->set_data(const_cast<uint16_t *>(&rnode->pair_offsets[i]), &new_offset, sizeof(new_offset));
     }
     uint16_t new_offset = insert_pair(rnode_buf, get_pair_by_index(node, node->npairs-1)->lnode, key_from_parent);
@@ -142,7 +179,7 @@ void merge(block_size_t block_size, const internal_node_t *node, abstract_buf_t 
     validate(block_size, rnode);
 }
 
-bool level(block_size_t block_size, abstract_buf_t *node_buf, abstract_buf_t *sibling_buf, btree_key_t *key_to_replace, btree_key_t *replacement_key, const internal_node_t *parent) {
+bool level(block_size_t block_size, buf_t *node_buf, buf_t *sibling_buf, btree_key_t *key_to_replace, btree_key_t *replacement_key, const internal_node_t *parent) {
     const internal_node_t *node = reinterpret_cast<const internal_node_t *>(node_buf->get_data_read());
     const internal_node_t *sibling = reinterpret_cast<const internal_node_t *>(sibling_buf->get_data_read());
 
@@ -165,7 +202,8 @@ bool level(block_size_t block_size, abstract_buf_t *node_buf, abstract_buf_t *si
             uint16_t size_change = sizeof(*node->pair_offsets) + pair_size(pair_to_move);
             if (new_npairs*sizeof(*node->pair_offsets) + (block_size.value() - node->frontmost_offset) + size_change >= sibling->npairs*sizeof(*sibling->pair_offsets) + (block_size.value() - sibling->frontmost_offset) - size_change)
                 break;
-            uint16_t new_offset = insert_pair(node_buf, pair_to_move);
+            buf_ibuf_t ibuf(node_buf);
+            uint16_t new_offset = insert_pair(&ibuf, pair_to_move);
             // TODO: Don't use new_npairs++ like this, it's so obscure and I'm sure you've never heard of it.
             node_buf->set_data(const_cast<uint16_t *>(&node->pair_offsets[new_npairs++]), &new_offset, sizeof(new_offset));
             delete_pair(sibling_buf, sibling->pair_offsets[0]);
@@ -202,7 +240,8 @@ bool level(block_size_t block_size, abstract_buf_t *node_buf, abstract_buf_t *si
             uint16_t size_change = sizeof(*node->pair_offsets) + pair_size(pair_to_move);
             if (node->npairs*sizeof(*node->pair_offsets) + (block_size.value() - node->frontmost_offset) + size_change >= sibling->npairs*sizeof(*sibling->pair_offsets) + (block_size.value() - sibling->frontmost_offset) - size_change)
                 break;
-            offset = insert_pair(node_buf, pair_to_move);
+            buf_ibuf_t ibuf(node_buf);
+            offset = insert_pair(&ibuf, pair_to_move);
             insert_offset(node_buf, offset, 0);
 
             delete_pair(sibling_buf, sibling->pair_offsets[sibling->npairs-1]);
@@ -250,7 +289,7 @@ bool is_sorted(ForwardIterator first, ForwardIterator last,
     return true;
 }
 
-void update_key(abstract_buf_t *node_buf, const btree_key_t *key_to_replace, const btree_key_t *replacement_key) {
+void update_key(buf_t *node_buf, const btree_key_t *key_to_replace, const btree_key_t *replacement_key) {
     const internal_node_t *node = reinterpret_cast<const internal_node_t *>(node_buf->get_data_read());
 
     int index = get_offset_index(node, key_to_replace);
@@ -374,7 +413,7 @@ size_t pair_size_with_key_size(uint8_t size) {
     return offsetof(btree_internal_pair, key) + offsetof(btree_key_t, contents) + size;
 }
 
-void delete_pair(abstract_buf_t *node_buf, uint16_t offset) {
+void delete_pair(buf_t *node_buf, uint16_t offset) {
     const internal_node_t *node = reinterpret_cast<const internal_node_t *>(node_buf->get_data_read());
     const btree_internal_pair *pair_to_delete = get_pair(node, offset);
     const btree_internal_pair *front_pair = get_pair(node, node->frontmost_offset);
@@ -398,8 +437,8 @@ void delete_pair(abstract_buf_t *node_buf, uint16_t offset) {
     delete[] new_pair_offsets;
 }
 
-uint16_t insert_pair(abstract_buf_t *node_buf, const btree_internal_pair *pair) {
-    const internal_node_t *node = reinterpret_cast<const internal_node_t *>(node_buf->get_data_read());
+uint16_t insert_pair(ibuf_t *node_buf, const btree_internal_pair *pair) {
+    const internal_node_t *node = node_buf->data();
     uint16_t frontmost_offset = node->frontmost_offset - pair_size(pair);
     node_buf->set_data(const_cast<uint16_t *>(&node->frontmost_offset), &frontmost_offset, sizeof(frontmost_offset));
     // insert contents
@@ -408,7 +447,7 @@ uint16_t insert_pair(abstract_buf_t *node_buf, const btree_internal_pair *pair) 
     return frontmost_offset;
 }
 
-uint16_t insert_pair(abstract_buf_t *node_buf, block_id_t lnode, const btree_key_t *key) {
+uint16_t insert_pair(buf_t *node_buf, block_id_t lnode, const btree_key_t *key) {
     const internal_node_t *node = reinterpret_cast<const internal_node_t *>(node_buf->get_data_read());
     uint16_t frontmost_offset = node->frontmost_offset - pair_size_with_key(key);
     node_buf->set_data(const_cast<uint16_t *>(&node->frontmost_offset), &frontmost_offset, sizeof(frontmost_offset));
@@ -433,7 +472,7 @@ int get_offset_index(const internal_node_t *node, const btree_key_t *key) {
     return std::lower_bound(node->pair_offsets, node->pair_offsets+node->npairs, (uint16_t) internal_key_comp::faux_offset, internal_key_comp(node, key)) - node->pair_offsets;
 }
 
-void delete_offset(abstract_buf_t *node_buf, int index) {
+void delete_offset(buf_t *node_buf, int index) {
     const internal_node_t *node = reinterpret_cast<const internal_node_t *>(node_buf->get_data_read());
     const uint16_t *pair_offsets = node->pair_offsets;
     if (node->npairs > 1) {
@@ -443,7 +482,7 @@ void delete_offset(abstract_buf_t *node_buf, int index) {
     node_buf->set_data(const_cast<uint16_t *>(&node->npairs), &npairs, sizeof(npairs));
 }
 
-void insert_offset(abstract_buf_t *node_buf, uint16_t offset, int index) {
+void insert_offset(buf_t *node_buf, uint16_t offset, int index) {
     const internal_node_t *node = reinterpret_cast<const internal_node_t *>(node_buf->get_data_read());
     const uint16_t *pair_offsets = node->pair_offsets;
     node_buf->move_data(const_cast<uint16_t *>(pair_offsets+index+1), pair_offsets+index, (node->npairs-index) * sizeof(uint16_t));
@@ -452,7 +491,7 @@ void insert_offset(abstract_buf_t *node_buf, uint16_t offset, int index) {
     node_buf->set_data(const_cast<uint16_t *>(&node->npairs), &npairs, sizeof(npairs));
 }
 
-void make_last_pair_special(abstract_buf_t *node_buf) {
+void make_last_pair_special(buf_t *node_buf) {
     const internal_node_t *node = reinterpret_cast<const internal_node_t *>(node_buf->get_data_read());
     int index = node->npairs-1;
     uint16_t old_offset = node->pair_offsets[index];
