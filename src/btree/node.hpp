@@ -40,7 +40,7 @@ public:
         return MAX_BTREE_VALUE_SIZE;
     }
 
-    block_magic_t btree_leaf_magic() const {
+    static block_magic_t btree_leaf_magic() {
         block_magic_t magic = { { 'l', 'e', 'a', 'f' } };
         return magic;
     }
