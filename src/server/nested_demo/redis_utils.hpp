@@ -40,8 +40,8 @@ public:
         return MAX_BTREE_VALUE_SIZE;
     }
 
-    block_magic_t btree_leaf_magic() const {
-        block_magic_t magic = { { 'l', 'e', 'a', 'f' } };  // TODO!
+    static block_magic_t btree_leaf_magic() {
+        block_magic_t magic = { { 'l', 'r', 'n', 's' } };  // leaf redis nested string
         return magic;
     }
 
@@ -75,8 +75,8 @@ public:
         return 0;
     }
 
-    block_magic_t btree_leaf_magic() const {
-        block_magic_t magic = { { 'l', 'e', 'a', 'f' } }; // TODO!
+    static block_magic_t btree_leaf_magic() {
+        block_magic_t magic = { { 'l', 'r', 'n', 'e' } }; // leaf redis nested empty
         return magic;
     }
 

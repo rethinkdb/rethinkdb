@@ -148,7 +148,7 @@ void nested_demo_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
             logINF("Now running demo operations....\n");
 
-            block_id_t nested_btree_1_root = NULL_BLOCK_ID;
+            /*block_id_t nested_btree_1_root = NULL_BLOCK_ID;
             block_id_t nested_btree_2_root = NULL_BLOCK_ID;
 
             {
@@ -405,7 +405,7 @@ void nested_demo_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                         break;
                     }
                 }
-            }
+            }*/
 
             // Now some redis value type tests...
             block_id_t redis_hash_btree_root = NULL_BLOCK_ID;

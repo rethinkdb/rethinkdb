@@ -39,8 +39,8 @@ public:
         return sizeof(float);
     }
 
-    block_magic_t btree_leaf_magic() const {
-        block_magic_t magic = { { 'l', 'e', 'a', 'f' } };  // TODO!
+    static block_magic_t btree_leaf_magic() {
+        block_magic_t magic = { { 'l', 'r', 'n', 'f' } }; // leaf redis nested float
         return magic;
     }
 
