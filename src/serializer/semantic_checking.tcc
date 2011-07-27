@@ -276,8 +276,11 @@ template<class inner_serializer_t>
 bool semantic_checking_serializer_t<inner_serializer_t>::
 get_delete_bit(block_id_t id) {
     bool bit = inner_serializer.get_delete_bit(id);
-    bool deleted = blocks.get(id).state == scc_block_info_t::state_deleted;
-    guarantee(bit == deleted, "serializer returned incorrect delete bit for block id %u", id);
+    scc_block_info_t::state_t state = blocks.get(id).state;
+    // If we know what the state is, it should be consistent with the delete bit.
+    if (state != scc_block_info_t::state_unknown)
+        guarantee(bit == (state == scc_block_info_t::state_deleted),
+                  "serializer returned incorrect delete bit for block id %u", id);
     return bit;
 }
 
