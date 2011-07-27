@@ -317,30 +317,42 @@ void apply_keyvalue_change(value_sizer_t<Value> *sizer, keyvalue_location_t<Valu
 }
 
 template <class Value>
-value_txn_t<Value>::value_txn_t(btree_key_t *key, value_sizer_t<Value> *sizer, keyvalue_location_t<Value> *location, repli_timestamp_t tstamp) 
-    : key(key), sizer(sizer), kv_location(location), tstamp(tstamp)
-{ }
-
-template <class Value>
-value_txn_t<Value>::~value_txn_t() {
-    kv_location->value.reinterpret_swap(value);
-    apply_keyvalue_change(sizer, kv_location, key, tstamp);
+value_txn_t<Value>::value_txn_t(btree_key_t *key, boost::scoped_ptr<got_superblock_t> &_got_superblock, 
+                               boost::scoped_ptr<value_sizer_t<Value> > &_sizer, boost::scoped_ptr<keyvalue_location_t<Value> > &_kv_location, 
+                               repli_timestamp_t tstamp)  
+    : key(key), tstamp(tstamp)
+{ 
+    got_superblock.swap(_got_superblock);
+    sizer.swap(_sizer);
+    kv_location.swap(_kv_location);
+    value.swap(kv_location->value);
 }
 
 template <class Value>
-value_txn_t<Value> get_value_write(btree_slice_t *slice, btree_key_t *key, repli_timestamp_t tstamp, order_token_t token) {
-    value_sizer_t<Value> sizer(slice->cache()->get_block_size());
-    got_superblock_t got_superblock;
+value_txn_t<Value>::~value_txn_t() {
+    BREAKPOINT;
+    kv_location->value.reinterpret_swap(value);
+    apply_keyvalue_change(sizer.get(), kv_location.get(), key, tstamp);
+}
 
-    get_btree_superblock(slice, rwi_write, 1, tstamp, token, &got_superblock);
+template <class Value>
+value_txn_t<Value> get_value_write(btree_slice_t *slice, btree_key_t *key, const repli_timestamp_t tstamp, const order_token_t token) {
+    boost::scoped_ptr<value_sizer_t<Value> > sizer(new value_sizer_t<Value>(slice->cache()->get_block_size()));
+    boost::scoped_ptr<got_superblock_t> got_superblock(new got_superblock_t);
 
-    keyvalue_location_t<Value> kv_location;
-    find_keyvalue_location_for_write(sizer, &got_superblock, key, tstamp, &kv_location);
+    get_btree_superblock(slice, rwi_write, 1, tstamp, token, got_superblock.get());
 
-    value_txn_t<Value> value_txn(key, &sizer, &kv_location, tstamp);
-    value_txn.value.swap(kv_location.value);
+    boost::scoped_ptr<keyvalue_location_t<Value> > kv_location(new keyvalue_location_t<Value>);
+    find_keyvalue_location_for_write(sizer.get(), got_superblock.get(), key, tstamp, kv_location.get());
+
+    value_txn_t<Value> value_txn(key, got_superblock, sizer, kv_location, tstamp);
 
     return value_txn;
+}
+
+template <class Value>
+transaction_t *value_txn_t<Value>::get_txn() {
+    return kv_location->txn.get();
 }
 
 template <class Value>

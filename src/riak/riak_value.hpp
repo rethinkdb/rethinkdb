@@ -43,7 +43,13 @@ public:
 
     //contents is blob_t which has the follwing structure:
     // contents = content_type content (link)* 
+
+    void print(block_size_t block_size) {
+        print_hd(this, 0, offsetof(riak_value_t, contents) + blob::ref_size(block_size, contents, blob::btree_maxreflen));
+    }
 };
+
+#define MAX_RIAK_VALUE_SIZE (offsetof(riak_value_t, contents) + blob::btree_maxreflen)
 
 template <>
 class value_sizer_t<riak_value_t> {
@@ -56,7 +62,7 @@ public:
     //    if (fits(value, i)) return i;
     // }
     int size(const riak_value_t *value) {
-        return sizeof(riak_value_t) + blob::ref_size(block_size_, value->contents, blob::btree_maxreflen);
+        return offsetof(riak_value_t, contents) + blob::ref_size(block_size_, value->contents, blob::btree_maxreflen);
     }
 
     // True if size(value) would return no more than length_available.
@@ -67,7 +73,7 @@ public:
     }
 
     int max_possible_size() {
-        return sizeof(riak_value_t) + blob::btree_maxreflen;
+        return offsetof(riak_value_t, contents) + blob::btree_maxreflen;
     }
 
     // The magic that should be used for btree leaf nodes (or general

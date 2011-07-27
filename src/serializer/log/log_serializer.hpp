@@ -74,6 +74,7 @@ public:
     struct log_serializer_config_t {
         dynamic_config_t dynamic_config;
         private_dynamic_config_t private_dynamic_config;
+        public_static_config_t public_static_config;
 
         log_serializer_config_t(std::string file_name) 
             : private_dynamic_config(file_name)
@@ -83,6 +84,7 @@ public:
         template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
             ar & dynamic_config;
             ar & private_dynamic_config;
+            ar & public_static_config;
         }
     };
 

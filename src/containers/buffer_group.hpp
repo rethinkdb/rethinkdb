@@ -94,7 +94,7 @@ public:
 
     buffer_group_t() { }
 
-    void add_buffer(size_t s, void *d) { inner_.add_buffer(s, d); }
+    void add_buffer(size_t s, const void *d) { inner_.add_buffer(s, d); }
 
     size_t num_buffers() const { return inner_.num_buffers(); }
 

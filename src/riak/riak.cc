@@ -32,14 +32,39 @@ btree_slice_t *riak_interface_t::get_slice(std::list<std::string> key) {
     if (slice_map.find(key) != slice_map.end()) {
         return &slice_map.at(key);
     } else if (store_manager->get_store(key) != NULL) {
+        //the serializer exists and has been initiated as a slice we just need
+        //to recreate the slice
         standard_serializer_t *serializer = store_manager->get_store(key)->get_store_interface<standard_serializer_t>();
 
         mirrored_cache_config_t config;
         slice_map.insert(key, new btree_slice_t(new cache_t(serializer, &config), 0));
+
         return &slice_map.at(key);
     } else {
         return NULL;
     }
+}
+
+//create_slice is the only function that calls the ::create methods for
+//serializer, cache and slice
+btree_slice_t *riak_interface_t::create_slice(std::list<std::string> key) {
+    rassert(!store_manager->get_store(key));
+
+    standard_serializer_t::config_t ser_config(boost::algorithm::join(key,"_"));
+    store_manager->create_store(key, ser_config);
+    store_manager->get_store(key)->load_store();
+
+    standard_serializer_t *serializer = store_manager->get_store(key)->get_store_interface<standard_serializer_t>();
+
+    mirrored_cache_static_config_t mc_static_config;
+    mirrored_cache_config_t mc_config;
+    cache_t::create(serializer, &mc_static_config);
+    cache_t *cache = new cache_t(serializer, &mc_config);
+
+    btree_slice_t::create(cache);
+    slice_map.insert(key, new btree_slice_t(cache, 0));
+
+    return get_slice(key);
 }
 
 riak_server_t::riak_server_t(int port, store_manager_t<std::list<std::string> > *store_manager)
@@ -400,6 +425,8 @@ http_res_t riak_server_t::store_object(const http_req_t &req) {
     } else {
         obj.key = *url_it;
     }
+
+    riak_interface.store_object(bucket, obj);
 
     return res;
 }

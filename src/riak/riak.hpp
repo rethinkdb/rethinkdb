@@ -50,6 +50,7 @@ private:
     slice_map_t slice_map;
 
     btree_slice_t *get_slice(std::list<std::string>);
+    btree_slice_t *create_slice(std::list<std::string>);
 public:
     riak_interface_t(store_manager_t<std::list<std::string> > *store_manager)
         : store_manager(store_manager)
@@ -75,8 +76,8 @@ public:
         key.push_back("riak"); key.push_back(name);
 
         if (!store_manager->get_store(key)) {
-            standard_serializer_t::config_t config(name);
-            store_manager->create_store(key, config);
+            //among other things, creates the store
+            create_slice(key);
         }
 
         store_t *store = store_manager->get_store(key);
@@ -109,6 +110,8 @@ public:
         keyvalue_location_t<riak_value_t> kv_location;
         get_value_read(slice, btree_key_buffer_t(key).key(), order_token_t::ignore, &kv_location);
 
+        kv_location.value->print(slice->cache()->get_block_size());
+
         object_t res;
         res.key = key;
         res.last_written = kv_location.value->mod_time;
@@ -140,8 +143,48 @@ public:
         crash("Not implemented");
     }
 
-    const object_t &store_object(std::string, object_t&) {
-        crash("Not implementated");
+    void store_object(std::string bucket, object_t obj) {
+        BREAKPOINT;
+        std::list<std::string> sm_key;
+        sm_key.push_back("riak"); sm_key.push_back(bucket);
+        btree_slice_t *slice = get_slice(sm_key);
+
+        if (!slice) {
+            // if we're doing a set we need to create the slice
+            slice = create_slice(sm_key);
+        }
+
+        value_txn_t<riak_value_t> txn = get_value_write<riak_value_t>(slice, btree_key_buffer_t(obj.key).key(), repli_timestamp_t::invalid, order_token_t::ignore);
+
+        if (!txn.value) {
+            scoped_malloc<riak_value_t> tmp(MAX_RIAK_VALUE_SIZE);
+            txn.value.swap(tmp);
+            memset(txn.value.get(), 0, MAX_RIAK_VALUE_SIZE);
+        }
+
+        txn.value->mod_time = obj.last_written;
+        txn.value->mod_time = 1212;
+        txn.value->etag = obj.ETag;
+        txn.value->etag = 5;
+        txn.value->content_type_len = obj.content_type.size();
+        txn.value->value_len = obj.content.size();
+
+        blob_t blob(txn.value->contents, blob::btree_maxreflen);
+        blob.clear(txn.get_txn());
+        blob.append_region(txn.get_txn(), obj.content_type.size() + obj.content.size());
+
+        buffer_group_t dest;
+        blob_acq_t acq;
+
+        blob.expose_all(txn.get_txn(), rwi_read, &dest, &acq);
+
+        buffer_group_t src;
+        src.add_buffer(obj.content_type.size(), obj.content_type.data());
+        src.add_buffer(obj.content.size(), obj.content.data());
+
+        buffer_group_copy_data(&dest, const_view(&src));
+
+        txn.value->print(slice->cache()->get_block_size());
     }
 
     bool delete_object(std::string, std::string) {

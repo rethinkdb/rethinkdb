@@ -1,8 +1,6 @@
 #ifndef __STORE_MANAGER_HPP__
 #define	__STORE_MANAGER_HPP__
 
-#include "riak/structures.hpp"
-
 /*
 Managing multiple stores involves two components:
 - a store_manager, which contains a number of store objects.
@@ -31,6 +29,10 @@ structures into a metadata file or metadata_store of some kind.
 #include <boost/serialization/variant.hpp>
 #include "errors.hpp"
 #include "server/key_value_store.hpp"
+#include "riak/structures.hpp"
+#include "concurrency/promise.hpp"
+#include "serializer/log/log_serializer.hpp"
+
 
 /* class store_id_t {
 public:
@@ -198,7 +200,7 @@ typedef boost::variant<invalid_variant_t, btree_key_value_store_dynamic_config_t
 
 // Add your underlying store types here... (these must be creatable based on the information of the corresponding store_config)
 // The store types (i.e. what's inside the pointer) must provide RTTI (have a virtual member)
-typedef boost::variant<boost::shared_ptr<invalid_variant_t>, boost::shared_ptr<btree_key_value_store_t> , boost::shared_ptr<serializer_t> > store_object_t;
+typedef boost::variant<boost::shared_ptr<invalid_variant_t>, boost::shared_ptr<btree_key_value_store_t> , boost::shared_ptr<standard_serializer_t> > store_object_t;
 
 // This visitor must be extended if new types of store configs are added
 class store_loader_t : public boost::static_visitor<store_object_t> {
@@ -209,6 +211,16 @@ public:
     }
 
     store_object_t operator()(standard_serializer_t::config_t &config) const {
+        struct : public promise_t<bool>, 
+                 public log_serializer_t::check_callback_t
+        { 
+            void on_serializer_check(bool is_existing) { pulse(is_existing); }
+        } existing_cb;
+        log_serializer_t::check_existing(config.private_dynamic_config.db_filename.c_str(), &existing_cb);
+
+        if (!existing_cb.wait()) {
+            log_serializer_t::create(&(config.dynamic_config), &(config.private_dynamic_config), &(config.public_static_config));
+        }
         return store_object_t(boost::shared_ptr<standard_serializer_t>(
                 new standard_serializer_t(&(config.dynamic_config), &(config.private_dynamic_config))));
     }
