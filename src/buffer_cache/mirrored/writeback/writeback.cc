@@ -284,20 +284,19 @@ struct writeback_t::buf_writer_t :
     void on_thread_switch() {
         assert_thread();
         launch_cb.parent->dirty_block_semaphore.unlock();
-        // If we're done updating the block sequence id, we can release the buffer now.
-        if (launch_cb.is_pulsed()) {
-            launch_cb.buf->release();
-            launch_cb.buf = NULL;
-        }
+        // Ideally, if we were done updating the block sequence id, we would be able to release the
+        // buffer now. However, we're not in coroutine context, and releasing a buffer could require
+        // releasing a snapshot, which could cause an ls_block_token to hit refcount 0 and be
+        // destroyed, which requires being in coroutine context to switch back to the serializer
+        // thread and unregister it. So, we cannot do that here.
+        // TODO: fix this^ somehow.
         pulse();
     }
     ~buf_writer_t() {
         assert_thread();
         rassert(is_pulsed());
         rassert(launch_cb.is_pulsed());
-        rassert(!launch_cb.buf);
-        if (launch_cb.buf)
-            launch_cb.buf->release();
+        launch_cb.buf->release();
     }
 };
 
