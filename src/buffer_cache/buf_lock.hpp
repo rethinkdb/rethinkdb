@@ -3,8 +3,11 @@
 
 // TODO: get rid of a separate buf_t entirely (that is, have buf_t use RAII).
 
-#include "buffer_cache/buffer_cache.hpp"
+#include "buffer_cache/types.hpp"
+#include "concurrency/access.hpp"
 #include "utils.hpp"
+
+class cond_t;
 
 // A buf_lock_t acquires and holds a buf_t.  Make sure you call
 // release() as soon as it's feasible to do so.  The destructor will
@@ -14,7 +17,7 @@ class buf_lock_t {
 public:
     buf_lock_t() : buf_(NULL) { }
 
-    buf_lock_t(transaction_t *txn, block_id_t block_id, access_t mode, threadsafe_cond_t *acquisition_cond = NULL);
+    buf_lock_t(transaction_t *txn, block_id_t block_id, access_t mode, cond_t *acquisition_cond = NULL);
     ~buf_lock_t();
 
     void allocate(transaction_t *txn);

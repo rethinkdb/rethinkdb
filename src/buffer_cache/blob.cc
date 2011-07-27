@@ -6,6 +6,12 @@
 #include "concurrency/pmap.hpp"
 #include "containers/buffer_group.hpp"
 
+blob_acq_t::~blob_acq_t() {
+    for (int i = 0, e = bufs_.size(); i < e; ++i) {
+        bufs_[i]->release();
+    }
+}
+
 namespace blob {
 
 int big_size_offset(int maxreflen) {

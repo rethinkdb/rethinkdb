@@ -1,36 +1,34 @@
-
 #ifndef __BUFFER_CACHE_HPP__
 #define __BUFFER_CACHE_HPP__
 
+// Predeclarations are in here.
+#include "buffer_cache/types.hpp"
+
 /* Choose our cache */
+
+// This file should be kept synced up with buffer_cache/types.hpp,
+// which defines what buf_t, cache_t, etc, are.
 
 #ifndef MOCK_CACHE_CHECK
 
 #include "buffer_cache/mirrored/mirrored.hpp"
-#include "buffer_cache/semantic_checking.hpp"
 
 #if !defined(VALGRIND) && !defined(NDEBUG)
-// scc_cache_t is way too slow under valgrind and makes automated
-// tests run forever.
-typedef scc_cache_t<mc_cache_t> cache_t;
-#else
-typedef mc_cache_t cache_t;
+
+#include "buffer_cache/semantic_checking.hpp"
+
+#else  // !defined(VALGRIND) && !defined(NDEBUG)
+
+// include nothing else
+
 #endif  // !defined(VALGRIND) && !defined(NDEBUG)
 
-#else
+#else  // MOCK_CACHE_CHECK
 
 #include "buffer_cache/mock.hpp"
 #include "buffer_cache/semantic_checking.hpp"
-typedef scc_cache_t<mock_cache_t> cache_t;
 
-#endif // MOCK_CACHE_CHECK
-
-/* Move elements of chosen cache into global namespace */
-
-typedef cache_t::buf_t buf_t;
-typedef cache_t::transaction_t transaction_t;
-typedef cache_t::cache_account_t cache_account_t;
-
+#endif  // MOCK_CACHE_CHECK
 
 
 #endif /* __BUFFER_CACHE_HPP__ */

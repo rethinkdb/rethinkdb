@@ -3,6 +3,7 @@
 #include "unittest/server_test_helper.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "serializer/log/log_serializer.hpp" // for ls_buf_data_t
+#include "buffer_cache/buffer_cache.hpp"
 
 namespace unittest {
 

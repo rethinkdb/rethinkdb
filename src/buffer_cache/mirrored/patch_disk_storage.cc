@@ -5,7 +5,6 @@
 
 #include "arch/coroutines.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"
-#include "buffer_cache/buffer_cache.hpp"
 
 const block_magic_t mc_config_block_t::expected_magic = { { 'm','c','f','g' } };
 

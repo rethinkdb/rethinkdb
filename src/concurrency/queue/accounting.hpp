@@ -38,7 +38,7 @@ public:
 
     class account_t :
         public intrusive_list_node_t<account_t>,
-        private watchable_t<bool>::watcher_t
+        private watchable_value_t<bool>::watcher_t
     {
     public:
         account_t(accounting_queue_t *p, passive_producer_t<value_t> *s, int shares) :
@@ -63,7 +63,7 @@ public:
     private:
         friend class accounting_queue_t;
 
-        void on_watchable_changed() {
+        void on_watchable_value_changed() {
             parent->assert_thread();
             if (source->available->get() && !active) {
                 parent->inactive_accounts.remove(this);

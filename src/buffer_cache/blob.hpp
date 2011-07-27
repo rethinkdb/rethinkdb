@@ -1,10 +1,13 @@
 #ifndef __BUFFER_CACHE_BLOB_HPP__
 #define __BUFFER_CACHE_BLOB_HPP__
 
+#include <vector>
+
 #include <stdint.h>
 #include <stddef.h>
 
-#include "buffer_cache/buffer_cache.hpp"
+#include "buffer_cache/types.hpp"
+#include "concurrency/access.hpp"
 
 /* An explanation of blobs.
 
@@ -53,11 +56,7 @@ class buffer_group_t;
 class blob_acq_t {
 public:
     blob_acq_t() { }
-    ~blob_acq_t() {
-        for (int i = 0, e = bufs_.size(); i < e; ++i) {
-            bufs_[i]->release();
-        }
-    }
+    ~blob_acq_t();
 
     void add_buf(buf_t *buf) {
         bufs_.push_back(buf);
