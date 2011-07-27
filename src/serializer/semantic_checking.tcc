@@ -15,6 +15,7 @@ void semantic_checking_serializer_t<inner_serializer_t>::
 update_block_info(block_id_t block_id, scs_block_info_t info) {
     blocks.set(block_id, info);
     scs_persisted_block_info_t buf;
+    memset(&buf, 0, sizeof(buf)); // make valgrind happy
     buf.block_id = block_id;
     buf.block_info = info;
     int res = write(semantic_fd, &buf, sizeof(buf));
