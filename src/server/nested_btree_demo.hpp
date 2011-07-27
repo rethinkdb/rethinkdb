@@ -550,12 +550,21 @@ void nested_demo_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 boost::shared_ptr<transaction_t> transaction(new transaction_t(&shard->cache, rwi_write, 1, repli_timestamp_t::invalid));
                 value_sizer_t<redis_demo_sortedset_value_t> sizer(shard->cache.get_block_size());
 
-                guarantee(demo_sortedset_value.zadd(&sizer, transaction, "member_1", -0.5));
-                guarantee(demo_sortedset_value.zadd(&sizer, transaction, "member_2", 0.0));
-                guarantee(demo_sortedset_value.zadd(&sizer, transaction, "member_3", 0.1));
-                guarantee(!demo_sortedset_value.zadd(&sizer, transaction, "member_1", -0.1)); // Should update the score
-                guarantee(!demo_sortedset_value.zadd(&sizer, transaction, "member_2", 0.0));
-                guarantee(!demo_sortedset_value.zadd(&sizer, transaction, "member_3", 0.1));
+                guarantee(demo_sortedset_value.zadd(&sizer, transaction, "member_1", -0.5f));
+                guarantee(demo_sortedset_value.zadd(&sizer, transaction, "member_3", 0.1f));
+                guarantee(demo_sortedset_value.zadd(&sizer, transaction, "member_2", 0.0f));
+                guarantee(demo_sortedset_value.zrank(&sizer, transaction, shard->home_thread(), "member_1").get() == 0);
+                guarantee(demo_sortedset_value.zrank(&sizer, transaction, shard->home_thread(), "member_2").get() == 1);
+                guarantee(demo_sortedset_value.zrank(&sizer, transaction, shard->home_thread(), "member_3").get() == 2);
+                guarantee(demo_sortedset_value.zscore(&sizer, transaction, "member_1").get() == -0.5f);
+                guarantee(demo_sortedset_value.zscore(&sizer, transaction, "member_2").get() == 0.0f);
+                guarantee(demo_sortedset_value.zscore(&sizer, transaction, "member_3").get() == 0.1f);
+                guarantee(!demo_sortedset_value.zadd(&sizer, transaction, "member_1", -0.1f)); // Should update the score
+                guarantee(!demo_sortedset_value.zadd(&sizer, transaction, "member_2", 0.0f));
+                guarantee(!demo_sortedset_value.zadd(&sizer, transaction, "member_3", 0.1f));
+                guarantee(demo_sortedset_value.zrank(&sizer, transaction, shard->home_thread(), "member_1").get() == 0);
+                guarantee(demo_sortedset_value.zrank(&sizer, transaction, shard->home_thread(), "member_2").get() == 1);
+                guarantee(demo_sortedset_value.zrank(&sizer, transaction, shard->home_thread(), "member_3").get() == 2);
 
                 fprintf(stderr, "Sorted set cardinality: %d\n", (int)demo_sortedset_value.zcard());
 
