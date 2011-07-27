@@ -26,6 +26,7 @@
 
 #include "server/nested_demo/redis_hash_values.hpp"
 #include "server/nested_demo/redis_set_values.hpp"
+#include "server/nested_demo/redis_sortedset_values.hpp"
 // TODO!
 
 struct demo_value_t {
@@ -527,6 +528,63 @@ void nested_demo_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 rassert(!demo_set_value.sismember(&sizer, transaction, "member_2"));
 
                 fprintf(stderr, "Set cardinality after clear(): %d\n", (int)demo_set_value.scard());
+            }
+
+            // ...same for redis_demo_sortedset_value_t
+            redis_demo_sortedset_value_t demo_sortedset_value;
+            demo_sortedset_value.member_score_nested_root = NULL_BLOCK_ID;
+            demo_sortedset_value.score_member_nested_root = NULL_BLOCK_ID;
+            demo_sortedset_value.size = 0;
+            {
+                // (flush logs)
+                on_thread_t thread(shard->home_thread());
+                coro_t::yield();
+            }
+            {
+                on_thread_t thread(shard->home_thread());
+
+                boost::shared_ptr<transaction_t> transaction(new transaction_t(&shard->cache, rwi_write, 1, repli_timestamp_t::invalid));
+                value_sizer_t<redis_demo_sortedset_value_t> sizer(shard->cache.get_block_size());
+
+                guarantee(demo_sortedset_value.zadd(&sizer, transaction, "member_1", -0.5));
+                guarantee(demo_sortedset_value.zadd(&sizer, transaction, "member_2", 0.0));
+                guarantee(demo_sortedset_value.zadd(&sizer, transaction, "member_3", 0.1));
+                guarantee(!demo_sortedset_value.zadd(&sizer, transaction, "member_1", -0.1)); // Should update the score
+                guarantee(!demo_sortedset_value.zadd(&sizer, transaction, "member_2", 0.0));
+                guarantee(!demo_sortedset_value.zadd(&sizer, transaction, "member_3", 0.1));
+
+                fprintf(stderr, "Sorted set cardinality: %d\n", (int)demo_sortedset_value.zcard());
+
+                boost::shared_ptr<one_way_iterator_t<std::pair<float, std::string> > > iter = demo_sortedset_value.zrange(&sizer, transaction, shard->home_thread(), 0);
+                fprintf(stderr, "\nSorted set contents:\n");
+                while (true) {
+                    boost::optional<std::pair<float, std::string> > next = iter->next();
+                    if (next) {
+                        fprintf(stderr, "\t%f %s \n", next->first, next->second.c_str());
+                    } else {
+                        break;
+                    }
+                }
+                iter.reset();
+
+
+                // Make all members ambiguous when it comes to score
+                guarantee(!demo_sortedset_value.zadd(&sizer, transaction, "member_1", 0.0));
+                guarantee(!demo_sortedset_value.zadd(&sizer, transaction, "member_3", 0.0));
+                iter = demo_sortedset_value.zrange(&sizer, transaction, shard->home_thread(), -2);
+                fprintf(stderr, "\nLast two elements int sorted set:\n");
+                while (true) {
+                    boost::optional<std::pair<float, std::string> > next = iter->next();
+                    if (next) {
+                        fprintf(stderr, "\t%f %s \n", next->first, next->second.c_str());
+                    } else {
+                        break;
+                    }
+                }
+                iter.reset();
+
+                demo_sortedset_value.clear(&sizer, transaction, shard->home_thread());
+                fprintf(stderr, "Set cardinality after clear(): %d\n", (int)demo_sortedset_value.zcard());
             }
 
             /* TODO!

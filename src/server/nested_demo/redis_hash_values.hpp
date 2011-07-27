@@ -12,7 +12,6 @@ struct redis_demo_hash_value_t {
 
 public:
     int inline_size(UNUSED block_size_t bs) const {
-        // TODO! (what if this is not packed?)
         return sizeof(nested_root) + sizeof(size);
     }
 
@@ -53,7 +52,7 @@ private:
         const redis_nested_string_value_t *value = reinterpret_cast<redis_nested_string_value_t*>(pair.value.get());
         return std::pair<std::string, std::string>(pair.key, std::string(value->contents, value->length));
     }
-};
+} __attribute__((__packed__));
 
 template <>
 class value_sizer_t<redis_demo_hash_value_t> {

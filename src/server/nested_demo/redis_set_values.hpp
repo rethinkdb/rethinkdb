@@ -12,7 +12,6 @@ struct redis_demo_set_value_t {
 
 public:
     int inline_size(UNUSED block_size_t bs) const {
-        // TODO! (what if this is not packed?)
         return sizeof(nested_root) + sizeof(size);
     }
 
@@ -70,7 +69,7 @@ private:
     std::string transform_value(const key_value_pair_t<redis_nested_empty_value_t> &pair) const {
         return pair.key;
     }
-};
+} __attribute__((__packed__));
 
 template <>
 class value_sizer_t<redis_demo_set_value_t> {

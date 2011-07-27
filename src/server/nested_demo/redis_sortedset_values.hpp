@@ -24,17 +24,16 @@ struct redis_nested_float_value_t {
 
 public:
     int inline_size(UNUSED block_size_t bs) const {
-        // TODO! (what if this is not packed?)
-        return sizeof(value);
+        return sizeof(float);
     }
 
     int64_t value_size() const {
-        return sizeof(value);
+        return sizeof(float);
     }
 
     const char *value_ref() const { return reinterpret_cast<const char *>(&value); }
     char *value_ref() { return reinterpret_cast<char *>(&value); }
-};
+} __attribute__((__packed__));
 template <>
 class value_sizer_t<redis_nested_float_value_t> {
 public:
@@ -44,13 +43,11 @@ public:
         return value->inline_size(block_size_);
     }
 
-    bool fits(UNUSED const redis_nested_float_value_t *value, UNUSED int length_available) const {
-        // TODO!
-        return true;
+    bool fits(UNUSED const redis_nested_float_value_t *value, int length_available) const {
+        return length_available >= value->inline_size(block_size_);
     }
 
     int max_possible_size() const {
-        // TODO?
         return sizeof(float);
     }
 
@@ -138,8 +135,9 @@ private:
         key.reserve(redis_utils::LEX_FLOAT_SIZE + member.length());
         char lex_score[redis_utils::LEX_FLOAT_SIZE];
         redis_utils::to_lex_float(score, lex_score);
-        key.append(lex_score, redis_utils::LEX_FLOAT_SIZE);
+        key.assign(lex_score, redis_utils::LEX_FLOAT_SIZE);
         key.append(member);
+        fprintf(stderr, "Made key %d from %f %s\n", *((int*)key.data()), score, member.c_str());
         return key;
     }
 
@@ -148,9 +146,10 @@ private:
         rassert(key.length() >= redis_utils::LEX_FLOAT_SIZE);
         const float score = redis_utils::from_lex_float(key.data());
         const std::string member = key.substr(redis_utils::LEX_FLOAT_SIZE);
+        fprintf(stderr, "Decoded key %d to %f %s\n", *((int*)key.data()), score, member.c_str());
         return std::pair<float, std::string>(score, member);
     }
-};
+} __attribute__((__packed__));
 
 template <>
 class value_sizer_t<redis_demo_sortedset_value_t> {

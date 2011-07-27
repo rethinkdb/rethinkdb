@@ -25,6 +25,7 @@ bool redis_demo_sortedset_value_t::zrem(value_sizer_t<redis_demo_sortedset_value
         // Get score
         if (kv_location.there_originally_was_value) {
             score = kv_location.value->value;
+            fprintf(stderr, "got %f %s\n", score, member.c_str());
         }
 
         // Delete the key
@@ -67,7 +68,7 @@ bool redis_demo_sortedset_value_t::zrem(value_sizer_t<redis_demo_sortedset_value
         score_member_had_key = kv_location.there_originally_was_value;
     }
 
-    rassert (score_member_had_key, "The member \"%s\" (score: %f) was in the member_score tree, but not in the score_member tree.", member.c_str(), score);
+    rassert(score_member_had_key, "The member \"%s\" (score: %f) was in the member_score tree, but not in the score_member tree.", member.c_str(), score);
     rassert(size > 0);
     --size;
     return true;
@@ -98,7 +99,7 @@ bool redis_demo_sortedset_value_t::zadd(value_sizer_t<redis_demo_sortedset_value
         // TODO! Rather use a proper timestamp
         apply_keyvalue_change(&sizer, &kv_location, btree_key.get(), repli_timestamp_t::invalid);
 
-        // Update the nested root id (in case this was the first field and a root got added)
+        // Update the nested root id (in case this was the first member and a root got added)
         score_member_nested_root = kv_location.sb->get_root_block_id();
     }
 
@@ -121,8 +122,9 @@ bool redis_demo_sortedset_value_t::zadd(value_sizer_t<redis_demo_sortedset_value
         // TODO! Rather use a proper timestamp
         apply_keyvalue_change(&sizer, &kv_location, btree_key.get(), repli_timestamp_t::invalid);
 
-        // Update the nested root id (in case this was the first field and a root got added)
+        // Update the nested root id (in case this was the first member and a root got added)
         member_score_nested_root = kv_location.sb->get_root_block_id();
+        fprintf(stderr, "inserted %f %s\n", score, member.c_str());
     }
 
     ++size; // We can do this regardless of had_key, because we removed existing entries at the start

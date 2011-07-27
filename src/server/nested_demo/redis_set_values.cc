@@ -58,7 +58,7 @@ bool redis_demo_set_value_t::sadd(value_sizer_t<redis_demo_set_value_t> *super_s
     // TODO! Rather use a proper timestamp
     apply_keyvalue_change(&sizer, &kv_location, btree_key.get(), repli_timestamp_t::invalid);
 
-    // Update the nested root id (in case this was the first field and a root got added)
+    // Update the nested root id (in case this was the first member and a root got added)
     nested_root = kv_location.sb->get_root_block_id();
 
     if (!kv_location.there_originally_was_value) {
