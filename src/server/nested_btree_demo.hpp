@@ -408,7 +408,7 @@ void nested_demo_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             }*/
 
             // Now some redis value type tests...
-            block_id_t redis_hash_btree_root = NULL_BLOCK_ID;
+            /*block_id_t redis_hash_btree_root = NULL_BLOCK_ID;
             {
                 on_thread_t thread(shard->home_thread());
 
@@ -438,7 +438,7 @@ void nested_demo_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 // Update the root block id in case it has changed
                 redis_hash_btree_root = kv_location.sb->get_root_block_id();
                 logINF("Done, redis_hash_btree now has root %u\n", redis_hash_btree_root);
-            }
+            }*/
             
             // Ok, for now we are not actually using the redis_demo_hash_value_t we just inserted but use
             // an in-memory one...
