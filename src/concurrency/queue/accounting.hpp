@@ -23,7 +23,7 @@ class accounting_queue_t :
 {
 public:
     accounting_queue_t(int batch_factor) :
-        passive_producer_t<value_t>(&available_var),
+        passive_producer_t<value_t>(&available_control),
         total_shares(0),
         selector(0),
         batch_factor(batch_factor) {
@@ -37,8 +37,7 @@ public:
     }
 
     class account_t :
-        public intrusive_list_node_t<account_t>,
-        private watchable_value_t<bool>::watcher_t
+        public intrusive_list_node_t<account_t>
     {
     public:
         account_t(accounting_queue_t *p, passive_producer_t<value_t> *s, int shares) :
@@ -48,22 +47,22 @@ public:
             rassert(shares > 0);
             if (source->available->get()) activate();
             else parent->inactive_accounts.push_back(this);
-            source->available->add_watcher(this);
-            parent->available_var.set(!parent->active_accounts.empty());
+            source->available->set_callback(boost::bind(&account_t::on_availability_changed, this));
+            parent->available_control.set_available(!parent->active_accounts.empty());
         }
         ~account_t() {
             on_thread_t thread_switcher(parent->home_thread());
             parent->assert_thread();
-            source->available->remove_watcher(this);
+            source->available->unset_callback();
             if (active) deactivate();
             else parent->inactive_accounts.remove(this);
-            parent->available_var.set(!parent->active_accounts.empty());
+            parent->available_control.set_available(!parent->active_accounts.empty());
         }
 
     private:
         friend class accounting_queue_t;
 
-        void on_watchable_value_changed() {
+        void on_availability_changed() {
             parent->assert_thread();
             if (source->available->get() && !active) {
                 parent->inactive_accounts.remove(this);
@@ -72,7 +71,7 @@ public:
                 deactivate();
                 parent->inactive_accounts.push_back(this);
             }
-            parent->available_var.set(!parent->active_accounts.empty());
+            parent->available_control.set_available(!parent->active_accounts.empty());
         }
 
         void activate() {
@@ -99,7 +98,7 @@ private:
 
     int total_shares, selector, batch_factor;
 
-    watchable_var_t<bool> available_var;
+    availability_control_t available_control;
     value_t produce_next_value() {
         assert_thread();
 

@@ -5,7 +5,6 @@
 #include <boost/function.hpp>
 
 #include "concurrency/drain_semaphore.hpp"
-#include "concurrency/watchable_value.hpp"
 
 template <class value_t>
 struct passive_producer_t;
@@ -21,8 +20,7 @@ returns. */
 class coro_t;
 
 class coro_pool_t :
-    public home_thread_mixin_t,
-    private watchable_value_t<bool>::watcher_t
+    public home_thread_mixin_t
 {
 public:
     coro_pool_t(size_t worker_count_, passive_producer_t<boost::function<void()> > *source);
@@ -37,7 +35,7 @@ public:
 private:
     passive_producer_t<boost::function<void()> > *source;
 
-    void on_watchable_value_changed();
+    void on_source_availability_changed();
 
     int max_worker_count, active_worker_count;
 
