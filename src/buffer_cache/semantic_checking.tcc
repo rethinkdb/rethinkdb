@@ -7,12 +7,6 @@ block_id_t scc_buf_t<inner_cache_t>::get_block_id() const {
 }
 
 template<class inner_cache_t>
-bool scc_buf_t<inner_cache_t>::is_dirty() {
-    rassert(inner_buf);
-    return inner_buf->is_dirty();
-}
-
-template<class inner_cache_t>
 const void *scc_buf_t<inner_cache_t>::get_data_read() const {
     rassert(inner_buf);
     return inner_buf->get_data_read();

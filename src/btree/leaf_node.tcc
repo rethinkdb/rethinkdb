@@ -2,6 +2,7 @@
 #include <algorithm>
 #include "logger.hpp"
 #include "btree/buf_patches.hpp"
+#include "serializer/log/log_serializer.hpp" // for ls_buf_data_t
 #include "buffer_cache/buffer_cache.hpp"
 
 template <class Value>
@@ -240,7 +241,8 @@ bool level(value_sizer_t<Value> *sizer, buf_t *node_buf, buf_t *sibling_buf, btr
     int sibling_size = sizer->block_size().value() - sibling->frontmost_offset;
 
     if (sibling_size < node_size + 2) {
-        logWRN("leaf::level called with bad node_size %d and sibling_size %d on block id %u\n", node_size, sibling_size, reinterpret_cast<const buf_data_t *>(reinterpret_cast<const char *>(node) - sizeof(buf_data_t))->block_id);
+        logWRN("leaf::level called with bad node_size %d and sibling_size %d on block id %u\n",
+               node_size, sibling_size, (reinterpret_cast<const ls_buf_data_t *>(node) - 1)->block_id);
         return false;
     }
 

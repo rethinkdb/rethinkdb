@@ -159,29 +159,22 @@ private:
 
     /* Internal variables used only during a flush operation. */
 
-    ticks_t start_time;         // TODO (rntz) remove if unnecessary
-
 public:
     // This just considers objections which writeback knows about Other subsystems
     // might have their own objections to accepting a read-ahead block...
     // (mc_cache_t::can_read_ahead_block_be_accepted() should consider everything)
     bool can_read_ahead_block_be_accepted(block_id_t block_id);
 
-private:
-    struct buf_writer_t;
-
     // Concurrent flush helpers
+    struct buf_writer_t;      // public so that mc_buf_t can declare it a friend
+
+private:
+    struct flush_state_t;
     void start_concurrent_flush();
     void do_concurrent_flush();
     void flush_prepare_patches();
-    void flush_acquire_bufs(transaction_t *transaction,
-                            std::vector<serializer_t::write_t>& serializer_writes,
-                            std::vector<inner_buf_t*>& serializer_inner_bufs,
-                            std::vector<buf_writer_t*>& buf_writers,
-                            bool &transaction_ids_have_been_updated);
-    void flush_update_transaction_ids(std::vector<serializer_t::write_t>& serializer_writes,
-                                      std::vector<inner_buf_t*> &serializer_inner_bufs,
-                                      bool &transaction_ids_have_been_updated);
+    void flush_acquire_bufs(transaction_t *transaction, flush_state_t &state);
+    void flush_update_block_sequence_ids(flush_state_t &state);
 };
 
 #endif // __BUFFER_CACHE_WRITEBACK_HPP__
