@@ -21,30 +21,18 @@ not trivial.
 
 struct redis_nested_float_value_t {
     float value;
-
-public:
-    int inline_size(UNUSED block_size_t bs) const {
-        return sizeof(float);
-    }
-
-    int64_t value_size() const {
-        return sizeof(float);
-    }
-
-    const char *value_ref() const { return reinterpret_cast<const char *>(&value); }
-    char *value_ref() { return reinterpret_cast<char *>(&value); }
 } __attribute__((__packed__));
 template <>
 class value_sizer_t<redis_nested_float_value_t> {
 public:
     value_sizer_t<redis_nested_float_value_t>(block_size_t bs) : block_size_(bs) { }
 
-    int size(const redis_nested_float_value_t *value) const {
-        return value->inline_size(block_size_);
+    int size(UNUSED const redis_nested_float_value_t *value) const {
+        return sizeof(float);
     }
 
-    bool fits(UNUSED const redis_nested_float_value_t *value, int length_available) const {
-        return length_available >= value->inline_size(block_size_);
+    bool fits(UNUSED const redis_nested_float_value_t *value, UNUSED int length_available) const {
+        return length_available >= static_cast<int>(sizeof(float));
     }
 
     int max_possible_size() const {
@@ -72,7 +60,6 @@ struct redis_demo_sortedset_value_t {
 
 public:
     int inline_size(UNUSED block_size_t bs) const {
-        // TODO! (what if this is not packed?)
         return sizeof(member_score_nested_root) + sizeof(score_member_nested_root) + sizeof(size);
     }
 

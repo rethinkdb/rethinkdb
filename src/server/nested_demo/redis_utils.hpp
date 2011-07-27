@@ -32,7 +32,7 @@ public:
 
     bool fits(UNUSED const redis_nested_string_value_t *value, UNUSED int length_available) const {
         // TODO!
-        return true;
+        return size(value) <= length_available;
     }
 
     int max_possible_size() const {
@@ -56,24 +56,15 @@ protected:
 
 /* nested empty value type */
 struct redis_nested_empty_value_t {
-    int inline_size(UNUSED block_size_t bs) const {
-        return 0;
-    }
 
-    int64_t value_size() const {
-        return 0;
-    }
-
-    const char *value_ref() const { return NULL; }
-    char *value_ref() { return NULL; }
 } __attribute__((__packed__));
 template <>
 class value_sizer_t<redis_nested_empty_value_t> {
 public:
     value_sizer_t<redis_nested_empty_value_t>(block_size_t bs) : block_size_(bs) { }
 
-    int size(const redis_nested_empty_value_t *value) const {
-        return value->inline_size(block_size_);
+    int size(UNUSED const redis_nested_empty_value_t *value) const {
+        return 0;
     }
 
     bool fits(UNUSED const redis_nested_empty_value_t *value, UNUSED int length_available) const {

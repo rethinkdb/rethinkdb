@@ -44,7 +44,7 @@ public:
 
     const char *value_ref() const { return contents; }
     char *value_ref() { return contents; }
-};
+} __attribute__((__packed__));
 
 template <>
 class value_sizer_t<demo_value_t> {
@@ -171,7 +171,8 @@ void nested_demo_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 key->size = key_str.length();
                 memcpy(key->contents, key_str.data(), key_str.length());
                 find_keyvalue_location_for_write(&sizer, &got_superblock, key, repli_timestamp_t::invalid, &kv_location);
-                scoped_malloc<demo_value_t> value(sizeof(demo_value_t::length) + value_str.length());
+                scoped_malloc<demo_value_t> value(sizer.max_possible_size());
+                bzero(value.get(), sizer.max_possible_size());
                 value->length = value_str.length();
                 memcpy(value->contents, value_str.data(), value_str.length());
                 kv_location.value.swap(value);
@@ -202,7 +203,8 @@ void nested_demo_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 key->size = key_str.length();
                 memcpy(key->contents, key_str.data(), key_str.length());
                 find_keyvalue_location_for_write(&sizer, &got_superblock, key, repli_timestamp_t::invalid, &kv_location);
-                scoped_malloc<demo_value_t> value(sizeof(demo_value_t::length) + value_str.length());
+                scoped_malloc<demo_value_t> value(sizer.max_possible_size());
+                bzero(value.get(), sizer.max_possible_size());
                 value->length = value_str.length();
                 memcpy(value->contents, value_str.data(), value_str.length());
                 kv_location.value.swap(value);
@@ -233,7 +235,8 @@ void nested_demo_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 key->size = key_str.length();
                 memcpy(key->contents, key_str.data(), key_str.length());
                 find_keyvalue_location_for_write(&sizer, &got_superblock, key, repli_timestamp_t::invalid, &kv_location);
-                scoped_malloc<demo_value_t> value(sizeof(demo_value_t::length) + value_str.length());
+                scoped_malloc<demo_value_t> value(sizer.max_possible_size());
+                bzero(value.get(), sizer.max_possible_size());
                 value->length = value_str.length();
                 memcpy(value->contents, value_str.data(), value_str.length());
                 kv_location.value.swap(value);
@@ -264,7 +267,8 @@ void nested_demo_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 key->size = key_str.length();
                 memcpy(key->contents, key_str.data(), key_str.length());
                 find_keyvalue_location_for_write(&sizer, &got_superblock, key, repli_timestamp_t::invalid, &kv_location);
-                scoped_malloc<demo_value_t> value(sizeof(demo_value_t::length) + value_str.length());
+                scoped_malloc<demo_value_t> value(sizer.max_possible_size());
+                bzero(value.get(), sizer.max_possible_size());
                 value->length = value_str.length();
                 memcpy(value->contents, value_str.data(), value_str.length());
                 kv_location.value.swap(value);
