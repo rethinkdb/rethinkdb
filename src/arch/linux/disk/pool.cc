@@ -1,6 +1,6 @@
 #include "arch/linux/disk/pool.hpp"
-
 #include "config/args.hpp"
+#include <boost/bind.hpp>
 
 #define BLOCKER_POOL_QUEUE_DEPTH (MAX_CONCURRENT_IO_REQUESTS * 2)
 
@@ -11,11 +11,11 @@ pool_diskmgr_t::pool_diskmgr_t(
     n_pending(0)
 {
     if (source->available->get()) pump();
-    source->available->add_watcher(this);
+    source->available->set_callback(boost::bind(&pool_diskmgr_t::on_source_availability_changed, this));
 }
 
 pool_diskmgr_t::~pool_diskmgr_t() {
-    source->available->remove_watcher(this);
+    source->available->unset_callback();
 }
 
 void pool_diskmgr_t::action_t::run() {
@@ -31,7 +31,7 @@ void pool_diskmgr_t::action_t::done() {
     parent->done_fun(this);
 }
 
-void pool_diskmgr_t::on_watchable_value_changed() {
+void pool_diskmgr_t::on_source_availability_changed() {
     /* This is called when the queue used to be empty but now has requests on
     it, and also when the queue's last request is consumed. */
     if (source->available->get()) pump();

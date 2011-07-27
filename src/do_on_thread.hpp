@@ -64,6 +64,7 @@ the current thread, returns the method's return value. Otherwise, returns false.
 template<class callable_t>
 void do_on_thread(int thread, const callable_t &callable) {
     assert_good_thread_id(thread);
+    // TODO: if we are currently on `thread`, we shouldn't need to allocate memory to do this.
     thread_doer_t<callable_t> *fsm = new thread_doer_t<callable_t>(callable, thread);
     fsm->run();
 }

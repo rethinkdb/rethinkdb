@@ -625,9 +625,7 @@ endif
 # TODO: Adding PROTO_HEADERS here is kind of hacky
 $(DEP_DIR)/%.d: $(SOURCE_DIR)/%.cc $(PROTO_HEADERS)
 	$(QUIET) mkdir -p $(dir $@)
-	$(QUIET) $(CXX) $(CXXFLAGS) -M $< > $@.$$$$;				   \
-	sed 's,$(notdir $*)\.o[ :]*,$(OBJ_DIR)/$*.o $@ : ,g' < $@.$$$$ > $@;	  \
-	rm -f $@.$$$$
+	$(QUIET) $(CXX) $(CXXFLAGS) -M -MQ $(OBJ_DIR)/$*.o -MQ $@ $< > $@
 # Include the dependencies into the makefile so that they take effect
 
 ifneq ($(MAKECMDGOALS),clean)
