@@ -15,7 +15,7 @@ for mode in ["debug", "release"]:
                 cmd_format="make")
 
 # Do quick smoke tests in some environments
-for (mode, checker, protocol) in [("debug", "valgrind", "text")]:
+for (mode, checker, protocol) in [("debug-scs", "valgrind", "text")]:
     # VERY basic tests
     do_test("integration/append_prepend.py",
             { "auto"        : True,
