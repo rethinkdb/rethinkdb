@@ -10,6 +10,38 @@ int redis_demo_sortedset_value_t::zcard() const {
     return static_cast<int>(size);
 }
 
+boost::optional<float> redis_demo_sortedset_value_t::zscore(value_sizer_t<redis_demo_sortedset_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, const std::string &member) const {
+    // Find the element
+    keyvalue_location_t<redis_nested_float_value_t> kv_location;
+    redis_utils::find_nested_keyvalue_location_for_read(super_sizer->block_size(), transaction, member, &kv_location, member_score_nested_root);
+
+    // Get out the score
+    if (kv_location.there_originally_was_value) {
+        return boost::optional<float>(kv_location.value->value);
+    } else {
+        return boost::none;
+    }
+}
+
+// TODO! This has O(n) runtime right now! We need a third index to fix this (also see zrange)
+// (that maps from internal node of the score_member tree to the number of keys in the corresponding subtree)
+boost::optional<int> redis_demo_sortedset_value_t::zrank(value_sizer_t<redis_demo_sortedset_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, int slice_home_thread, const std::string &member) const {
+    // For now, we just do an O(n) search to skip the first start elements.
+    boost::shared_ptr<one_way_iterator_t<std::pair<float, std::string> > > full_iter = get_full_iter(super_sizer, transaction, slice_home_thread);
+
+    // Count up until we arrive at element
+    int rank = 0;
+    while (true) {
+        boost::optional<std::pair<float, std::string> > next = full_iter->next();
+        if (!next) {
+            return boost::none;
+        } else if (next->second == member) {
+            return boost::optional<int>(rank);
+        }
+        ++rank;
+    }
+}
+
 bool redis_demo_sortedset_value_t::zrem(value_sizer_t<redis_demo_sortedset_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, const std::string &member) {
     // First check member_score_nested_root, to get the score (and delete the entry from that tree)
     float score = 0.0f;
@@ -192,30 +224,6 @@ boost::shared_ptr<one_way_iterator_t<std::pair<float, std::string> > > redis_dem
     return transform_iter;
 }
 
-boost::shared_ptr<one_way_iterator_t<std::pair<float, std::string> > > redis_demo_sortedset_value_t::zrangebyscore(value_sizer_t<redis_demo_sortedset_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, int slice_home_thread, rget_bound_mode_t min_mode, float min, rget_bound_mode_t max_mode, float max) const {
-    boost::shared_ptr<value_sizer_t<redis_nested_empty_value_t> > sizer_ptr(new value_sizer_t<redis_nested_empty_value_t>(super_sizer->block_size()));
-
-    // Construct btree prefix keys
-    store_key_t min_key;
-    char min_key_buf[redis_utils::LEX_FLOAT_SIZE];
-    redis_utils::to_lex_float(min, min_key_buf);
-    min_key.assign(redis_utils::LEX_FLOAT_SIZE, min_key_buf);
-    store_key_t max_key;
-    char max_key_buf[redis_utils::LEX_FLOAT_SIZE];
-    redis_utils::to_lex_float(max, max_key_buf);
-    max_key.assign(redis_utils::LEX_FLOAT_SIZE, max_key_buf);
-
-    // We nest a slice_keys iterator inside a transform iterator
-    boost::scoped_ptr<superblock_t> nested_btree_sb(new virtual_superblock_t(score_member_nested_root));
-    slice_keys_iterator_t<redis_nested_empty_value_t> *tree_iter =
-            new slice_keys_iterator_t<redis_nested_empty_value_t>(sizer_ptr, transaction, nested_btree_sb, slice_home_thread, min_mode, min_key, max_mode, max_key);
-    boost::shared_ptr<one_way_iterator_t<std::pair<float, std::string> > > transform_iter(
-            new transform_iterator_t<key_value_pair_t<redis_nested_empty_value_t>, std::pair<float, std::string> >(
-                    boost::bind(&redis_demo_sortedset_value_t::transform_value, this, _1), tree_iter));
-
-    return transform_iter;
-}
-
 // TODO! Be cautious, this right now is O(start) in runtime complexity
 boost::shared_ptr<one_way_iterator_t<std::pair<float, std::string> > > redis_demo_sortedset_value_t::zrange(value_sizer_t<redis_demo_sortedset_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, int slice_home_thread, int start) const {
 
@@ -240,4 +248,28 @@ boost::shared_ptr<one_way_iterator_t<std::pair<float, std::string> > > redis_dem
     }
 
     return full_iter;
+}
+
+boost::shared_ptr<one_way_iterator_t<std::pair<float, std::string> > > redis_demo_sortedset_value_t::zrangebyscore(value_sizer_t<redis_demo_sortedset_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, int slice_home_thread, rget_bound_mode_t min_mode, float min, rget_bound_mode_t max_mode, float max) const {
+    boost::shared_ptr<value_sizer_t<redis_nested_empty_value_t> > sizer_ptr(new value_sizer_t<redis_nested_empty_value_t>(super_sizer->block_size()));
+
+    // Construct btree prefix keys
+    store_key_t min_key;
+    char min_key_buf[redis_utils::LEX_FLOAT_SIZE];
+    redis_utils::to_lex_float(min, min_key_buf);
+    min_key.assign(redis_utils::LEX_FLOAT_SIZE, min_key_buf);
+    store_key_t max_key;
+    char max_key_buf[redis_utils::LEX_FLOAT_SIZE];
+    redis_utils::to_lex_float(max, max_key_buf);
+    max_key.assign(redis_utils::LEX_FLOAT_SIZE, max_key_buf);
+
+    // We nest a slice_keys iterator inside a transform iterator
+    boost::scoped_ptr<superblock_t> nested_btree_sb(new virtual_superblock_t(score_member_nested_root));
+    slice_keys_iterator_t<redis_nested_empty_value_t> *tree_iter =
+            new slice_keys_iterator_t<redis_nested_empty_value_t>(sizer_ptr, transaction, nested_btree_sb, slice_home_thread, min_mode, min_key, max_mode, max_key);
+    boost::shared_ptr<one_way_iterator_t<std::pair<float, std::string> > > transform_iter(
+            new transform_iterator_t<key_value_pair_t<redis_nested_empty_value_t>, std::pair<float, std::string> >(
+                    boost::bind(&redis_demo_sortedset_value_t::transform_value, this, _1), tree_iter));
+
+    return transform_iter;
 }

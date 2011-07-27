@@ -75,6 +75,12 @@ public:
 
     int zcard() const;
 
+    // Returns the score if member exists
+    boost::optional<float> zscore(value_sizer_t<redis_demo_sortedset_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, const std::string &member) const;
+
+    // TODO! This has O(n) runtime right now!
+    boost::optional<int> zrank(value_sizer_t<redis_demo_sortedset_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, int slice_home_thread, const std::string &member) const;
+
     // returns true if a member has been deleted (i.e. existed in the set)
     bool zrem(value_sizer_t<redis_demo_sortedset_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, const std::string &member);
 
@@ -93,13 +99,14 @@ public:
      offsets from the end of the sorted set, with -1 being the last element of
      the sorted set, -2 the penultimate element and so on.
     */
+    // TODO! This has O(n) runtime right now!
     boost::shared_ptr<one_way_iterator_t<std::pair<float, std::string> > > zrange(value_sizer_t<redis_demo_sortedset_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, int slice_home_thread, int start) const;
-
-    /* This is equivalent to zrange with start == 0. It might be faster though, and is meant for internal operations. */
-    boost::shared_ptr<one_way_iterator_t<std::pair<float, std::string> > > get_full_iter(value_sizer_t<redis_demo_sortedset_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, int slice_home_thread) const;
 
     /* (can also trivially be used to implement zcount) */
     boost::shared_ptr<one_way_iterator_t<std::pair<float, std::string> > > zrangebyscore(value_sizer_t<redis_demo_sortedset_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, int slice_home_thread, rget_bound_mode_t min_mode, float min, rget_bound_mode_t max_mode, float max) const;
+
+    /* This is equivalent to zrange with start == 0. It might be faster though, and is meant for internal operations. */
+    boost::shared_ptr<one_way_iterator_t<std::pair<float, std::string> > > get_full_iter(value_sizer_t<redis_demo_sortedset_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, int slice_home_thread) const;
 
     // TODO! Add more stuff
 
