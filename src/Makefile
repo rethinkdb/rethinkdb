@@ -589,6 +589,13 @@ style:
 showdefines:
 	$(QUIET) $(CXX) $(CXXFLAGS) -m32 -E -dM - < /dev/null
 
+.PHONY: depclean clean
+depclean:
+ifeq ($(VERBOSE),0)
+	@echo "    RM -f $(BUILD_ROOT_DIR)/*.d"
+endif
+	$(QUIET) find $(BUILD_ROOT_DIR) -name '*.d' -exec rm {} \;
+
 clean:
 ifeq ($(VERBOSE),0)
 	@echo "    RM *~"
@@ -637,6 +644,8 @@ endif
 .SECONDARY: $(PROTO_HEADERS)
 
 # Include the dependencies into the makefile so that they take effect
-ifneq ($(MAKECMDGOALS),clean)
+ifneq ($(MAKECMDGOALS), clean)
+ifneq ($(MAKECMDGOALS), depclean)
 -include $(DEPS)
+endif
 endif
