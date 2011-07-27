@@ -16,6 +16,7 @@ src/.gdb_history
 src/.gdbinit
 src/standard_commands
 rethinkdb_data
+rethinkdb_metadata
 */output_from_test/
 test/unit/.retest
 bench/stress-client/stress

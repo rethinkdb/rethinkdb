@@ -148,7 +148,7 @@ public:
     council_t(address_t);
 
     /* Leave the council */
-    ~council_t();
+    virtual ~council_t();
 
     /* Call to get the current value */
     const value_t &get_value();

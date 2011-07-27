@@ -482,7 +482,7 @@ void blob_t::unprepend_region(transaction_t *txn, int64_t size) {
 }
 
 void blob_t::clear(transaction_t *txn) {
-        unappend_region(txn, valuesize());
+    unappend_region(txn, valuesize());
 }
 
 namespace blob {

@@ -15,7 +15,6 @@
 #include "server/cmd_args.hpp"
 #include "arch/timing.hpp"
 #include "stats/persist.hpp"
-#include "cmd_args.hpp"
 
 
 static void co_persist_stats(btree_metadata_store_t *store, signal_t *shutdown);

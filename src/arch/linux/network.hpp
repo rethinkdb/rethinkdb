@@ -175,6 +175,9 @@ public:
     iterator begin();
     iterator end();
 
+    // Changes the home_thread_mixin_t superclass's real_home_thread.
+    void rethread(int);
+
 private:
     explicit linux_tcp_conn_t(fd_t sock);   // Used by tcp_listener_t
 
@@ -186,9 +189,6 @@ private:
     void on_shutdown_write();
 
     scoped_fd_t sock;
-
-    /* Overrides `home_thread_mixin_t`'s `rethread()` method */
-    void rethread(int);
 
     /* Object that we use to watch for events. It's NULL when we are not registered on any
     thread, and otherwise is an object that's valid for the current thread. */
