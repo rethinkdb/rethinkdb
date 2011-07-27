@@ -45,8 +45,10 @@ struct availability_control_t : public availability_t {
         available = false;
     }
     void set_available(bool a) {
-        available = a;
-        if (callback) callback();
+        if (available != a) {
+            available = a;
+            if (callback) callback();
+        }
     }
 };
 
