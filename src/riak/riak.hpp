@@ -127,11 +127,13 @@ public:
         /* grab the content type */
         res.content_type.reserve(kv_location.value->content_type_len);
         for (unsigned i = 0; i < kv_location.value->content_type_len; i++) {
-            res.content_type += *it++;
+            res.content_type += *it;
+            it++;
         }
 
         for (unsigned i = 0; i < kv_location.value->value_len; i++) {
-            res.content += *it++;
+            res.content += *it;
+            it++;
         }
 
         //TODO links code goes here, when those are implemented in a sensible way
@@ -144,7 +146,6 @@ public:
     }
 
     void store_object(std::string bucket, object_t obj) {
-        BREAKPOINT;
         std::list<std::string> sm_key;
         sm_key.push_back("riak"); sm_key.push_back(bucket);
         btree_slice_t *slice = get_slice(sm_key);
@@ -163,9 +164,7 @@ public:
         }
 
         txn.value->mod_time = obj.last_written;
-        txn.value->mod_time = 1212;
         txn.value->etag = obj.ETag;
-        txn.value->etag = 5;
         txn.value->content_type_len = obj.content_type.size();
         txn.value->value_len = obj.content.size();
 

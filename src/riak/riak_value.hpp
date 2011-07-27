@@ -78,7 +78,7 @@ public:
 
     // The magic that should be used for btree leaf nodes (or general
     // nodes) with this kind of value.
-    block_magic_t btree_leaf_magic() {
+    static block_magic_t btree_leaf_magic() {
         block_magic_t magic = { { 'r', 'i', 'a', 'k'} };
         return magic;
     }

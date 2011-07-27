@@ -330,7 +330,6 @@ value_txn_t<Value>::value_txn_t(btree_key_t *key, boost::scoped_ptr<got_superblo
 
 template <class Value>
 value_txn_t<Value>::~value_txn_t() {
-    BREAKPOINT;
     kv_location->value.reinterpret_swap(value);
     apply_keyvalue_change(sizer.get(), kv_location.get(), key, tstamp);
 }

@@ -1,6 +1,7 @@
 #include "btree/buf_patches.hpp"
 
 #include "btree/leaf_node.hpp"
+#include "riak/riak_value.hpp"
 #include "btree/detemplatizer.hpp"
 
 
