@@ -11,7 +11,7 @@ raw_block_t::raw_block_t() : err(none), buf(NULL), realbuf(NULL) { }
 
 bool raw_block_t::init(int64_t size, nondirect_file_t *file, off64_t offset) {
     rassert(!realbuf);
-    realbuf = (buf_data_t *)malloc_aligned(size, DEVICE_BLOCK_SIZE);
+    realbuf = (ls_buf_data_t *)malloc_aligned(size, DEVICE_BLOCK_SIZE);
     off64_t filesize = file->get_size();
     if (offset > filesize || offset + size > filesize) {
         err = bad_offset;

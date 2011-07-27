@@ -2,6 +2,8 @@
 #include <algorithm>
 #include "logger.hpp"
 #include "btree/buf_patches.hpp"
+#include "serializer/log/log_serializer.hpp" // for ls_buf_data_t
+#include "buffer_cache/buffer_cache.hpp"
 
 template <class Value>
 bool leaf_pair_fits(value_sizer_t<Value> *sizer, const btree_leaf_pair<Value> *pair, size_t size) {
@@ -19,7 +21,7 @@ namespace leaf {
 
 template <class Value>
 void init(value_sizer_t<Value> *sizer, leaf_node_t *node, repli_timestamp_t modification_time) {
-    node->magic = leaf_node_t::expected_magic;
+    node->magic = sizer->btree_leaf_magic();
     node->npairs = 0;
     node->frontmost_offset = sizer->block_size().value();
     impl::initialize_times(&node->times, modification_time);
@@ -57,11 +59,7 @@ void init(value_sizer_t<Value> *sizer, leaf_node_t *node, const leaf_node_t *lno
     }
     node->npairs = numpairs;
 
-    // TODO: Why is this sorting step necessary?  Is [offsets, offset + numpairs) not sorted?
-
     rassert(is_uint16_sorted(node->pair_offsets, node->pair_offsets + numpairs, leaf_key_comp(node)));
-
-    std::sort(node->pair_offsets, node->pair_offsets + numpairs, leaf_key_comp(node));
 }
 
 template <class Value>
@@ -79,7 +77,8 @@ bool insert(value_sizer_t<Value> *sizer, buf_t *node_buf, const btree_key_t *key
 }
 
 template <class Value>
-void insert(value_sizer_t<Value> *sizer, leaf_node_t *node, const btree_key_t *key, const Value *value, repli_timestamp_t insertion_time) {
+void insert(value_sizer_t<Value> *sizer, leaf_node_t *node, const btree_key_t *key, const void *v_value, repli_timestamp_t insertion_time) {
+    const Value *value = reinterpret_cast<const Value *>(v_value);
     int index = impl::get_offset_index(node, key);
 
     uint16_t prev_offset;
@@ -243,7 +242,8 @@ bool level(value_sizer_t<Value> *sizer, buf_t *node_buf, buf_t *sibling_buf, btr
     int sibling_size = sizer->block_size().value() - sibling->frontmost_offset;
 
     if (sibling_size < node_size + 2) {
-        logWRN("leaf::level called with bad node_size %d and sibling_size %d on block id %u\n", node_size, sibling_size, reinterpret_cast<const buf_data_t *>(reinterpret_cast<const char *>(node) - sizeof(buf_data_t))->block_id);
+        logWRN("leaf::level called with bad node_size %d and sibling_size %d on block id %u\n",
+               node_size, sibling_size, (reinterpret_cast<const ls_buf_data_t *>(node) - 1)->block_id);
         return false;
     }
 
@@ -529,7 +529,8 @@ inline uint16_t insert_pair(value_sizer_t<Value> *sizer, buf_t *node_buf, const 
 }
 
 template <class Value>
-uint16_t insert_pair(value_sizer_t<Value> *sizer, leaf_node_t *node, const Value *value, const btree_key_t *key) {
+uint16_t insert_pair(value_sizer_t<Value> *sizer, leaf_node_t *node, const void *v_value, const btree_key_t *key) {
+    const Value *value = reinterpret_cast<const Value *>(v_value);
     node->frontmost_offset -= key->full_size() + sizer->size(value);
     btree_leaf_pair<Value> *new_pair = get_pair<Value>(node, node->frontmost_offset);
 

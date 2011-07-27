@@ -2,6 +2,7 @@
 #include "unittest/server_test_helper.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "buffer_cache/blob.hpp"
+#include "buffer_cache/buffer_cache.hpp"
 #include "containers/buffer_group.hpp"
 
 namespace unittest {
@@ -280,6 +281,7 @@ private:
         tk.unappend(&txn, 4081);
     }
 
+    // Regression test - these magic numbers caused failures previously.
     void special_4161600_prepend_12484801_test(cache_t *cache) {
         SCOPED_TRACE("special_4080_prepend_4081_test");
         block_size_t block_size = cache->get_block_size();

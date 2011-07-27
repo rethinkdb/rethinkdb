@@ -27,7 +27,6 @@ template<class inner_cache_t>
 class scc_buf_t {
 public:
     block_id_t get_block_id() const;
-    bool is_dirty();
     const void *get_data_read() const;
     // Use this only for writes which affect a large part of the block, as it bypasses the diff system
     void *get_data_major_write();

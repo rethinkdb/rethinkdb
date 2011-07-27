@@ -1,5 +1,7 @@
 #include "btree/value.hpp"
 
+#include <time.h>
+
 int metadata_size(metadata_flags_t mf) {
     return ((mf.flags & MEMCACHED_FLAGS) ? sizeof(mcflags_t) : 0)
         + ((mf.flags & MEMCACHED_CAS) ? sizeof(cas_t) : 0)
@@ -71,4 +73,8 @@ bool btree_value_fits(block_size_t block_size, int data_length, const memcached_
     }
 
     return blob::ref_fits(block_size ,data_length - (1 + msize), value->value_ref(), blob::btree_maxreflen);
+}
+
+bool memcached_value_t::expired() const {
+    return exptime() && time(NULL) >= exptime();
 }
