@@ -3,7 +3,7 @@
 #include <boost/bind.hpp>
 
 /* Implementations...*/
-boost::optional<std::string> redis_demo_hash_value_t::hget(value_sizer_t<redis_demo_hash_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, const std::string &field) const {
+boost::optional<std::string> redis_hash_value_t::hget(value_sizer_t<redis_hash_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, const std::string &field) const {
     // Find the element
     keyvalue_location_t<redis_nested_string_value_t> kv_location;
     redis_utils::find_nested_keyvalue_location_for_read(super_sizer->block_size(), transaction, field, &kv_location, nested_root);
@@ -18,7 +18,7 @@ boost::optional<std::string> redis_demo_hash_value_t::hget(value_sizer_t<redis_d
     }
 }
 
-bool redis_demo_hash_value_t::hexists(value_sizer_t<redis_demo_hash_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, const std::string &field) const {
+bool redis_hash_value_t::hexists(value_sizer_t<redis_hash_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, const std::string &field) const {
     // Find the element
     keyvalue_location_t<redis_nested_string_value_t> kv_location;
     redis_utils::find_nested_keyvalue_location_for_read(super_sizer->block_size(), transaction, field, &kv_location, nested_root);
@@ -26,11 +26,11 @@ bool redis_demo_hash_value_t::hexists(value_sizer_t<redis_demo_hash_value_t> *su
     return kv_location.there_originally_was_value;
 }
 
-int redis_demo_hash_value_t::hlen() const {
+int redis_hash_value_t::hlen() const {
     return static_cast<int>(size);
 }
 
-bool redis_demo_hash_value_t::hdel(value_sizer_t<redis_demo_hash_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, const std::string &field) {
+bool redis_hash_value_t::hdel(value_sizer_t<redis_hash_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, const std::string &field) {
     value_sizer_t<redis_nested_string_value_t> sizer(super_sizer->block_size());
 
     // Find the element
@@ -55,7 +55,7 @@ bool redis_demo_hash_value_t::hdel(value_sizer_t<redis_demo_hash_value_t> *super
     return kv_location.there_originally_was_value;
 }
 
-bool redis_demo_hash_value_t::hset(value_sizer_t<redis_demo_hash_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, const std::string &field, const std::string &value) {
+bool redis_hash_value_t::hset(value_sizer_t<redis_hash_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, const std::string &field, const std::string &value) {
     value_sizer_t<redis_nested_string_value_t> sizer(super_sizer->block_size());
 
     // Construct the value
@@ -86,7 +86,7 @@ bool redis_demo_hash_value_t::hset(value_sizer_t<redis_demo_hash_value_t> *super
     return !kv_location.there_originally_was_value;
 }
 
-void redis_demo_hash_value_t::clear(value_sizer_t<redis_demo_hash_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, int slice_home_thread) {
+void redis_hash_value_t::clear(value_sizer_t<redis_hash_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, int slice_home_thread) {
     boost::shared_ptr<value_sizer_t<redis_nested_string_value_t> > sizer_ptr(new value_sizer_t<redis_nested_string_value_t>(super_sizer->block_size()));
 
     std::vector<std::string> keys;
@@ -126,7 +126,7 @@ void redis_demo_hash_value_t::clear(value_sizer_t<redis_demo_hash_value_t> *supe
     rassert(nested_root == NULL_BLOCK_ID);
 }
 
-boost::shared_ptr<one_way_iterator_t<std::pair<std::string, std::string> > > redis_demo_hash_value_t::hgetall(value_sizer_t<redis_demo_hash_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, int slice_home_thread) const {
+boost::shared_ptr<one_way_iterator_t<std::pair<std::string, std::string> > > redis_hash_value_t::hgetall(value_sizer_t<redis_hash_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, int slice_home_thread) const {
     boost::shared_ptr<value_sizer_t<redis_nested_string_value_t> > sizer_ptr(new value_sizer_t<redis_nested_string_value_t>(super_sizer->block_size()));
 
     // We nest a slice_keys iterator inside a transform iterator
@@ -137,7 +137,7 @@ boost::shared_ptr<one_way_iterator_t<std::pair<std::string, std::string> > > red
             new slice_keys_iterator_t<redis_nested_string_value_t>(sizer_ptr, transaction, nested_btree_sb, slice_home_thread, rget_bound_none, none_key, rget_bound_none, none_key);
     boost::shared_ptr<one_way_iterator_t<std::pair<std::string, std::string> > > transform_iter(
             new transform_iterator_t<key_value_pair_t<redis_nested_string_value_t>, std::pair<std::string, std::string> >(
-                    boost::bind(&redis_demo_hash_value_t::transform_value, this, _1), tree_iter));
+                    boost::bind(&redis_hash_value_t::transform_value, this, _1), tree_iter));
 
     return transform_iter;
 }

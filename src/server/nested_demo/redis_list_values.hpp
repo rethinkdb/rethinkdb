@@ -24,7 +24,7 @@
  */
 
 // TODO! demo super value (contains block_id_t plus size of list) with redis interface methods
-struct redis_demo_list_value_t {
+struct redis_list_value_t {
     block_id_t nested_root;
     uint32_t list_length;
     int32_t index_offset; // TODO! Explain
@@ -44,7 +44,7 @@ public:
 
     /* Some operations that you can do on a list (resembling redis commands)... */
     
-    std::string lindex(value_sizer_t<redis_demo_list_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, int index) const;
+    std::string lindex(value_sizer_t<redis_list_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, int index) const;
 
 private:
     // TODO! Document
@@ -64,22 +64,22 @@ private:
     }
 };
 template <>
-class value_sizer_t<redis_demo_list_value_t> {
+class value_sizer_t<redis_list_value_t> {
 public:
-    value_sizer_t<redis_demo_list_value_t>(block_size_t bs) : block_size_(bs) { }
+    value_sizer_t<redis_list_value_t>(block_size_t bs) : block_size_(bs) { }
 
-    int size(const redis_demo_list_value_t *value) const {
+    int size(const redis_list_value_t *value) const {
         return value->inline_size(block_size_);
     }
 
-    bool fits(UNUSED const redis_demo_list_value_t *value, UNUSED int length_available) const {
+    bool fits(UNUSED const redis_list_value_t *value, UNUSED int length_available) const {
         // It's of constant size...
         return true;
     }
 
     int max_possible_size() const {
         // It's of constant size...
-        return sizeof(redis_demo_list_value_t);
+        return sizeof(redis_list_value_t);
     }
 
     block_magic_t btree_leaf_magic() const {
@@ -97,7 +97,7 @@ protected:
 
 
 /* TODO! Implementations...*/
-std::string redis_demo_list_value_t::lindex(UNUSED value_sizer_t<redis_demo_list_value_t> *super_sizer, UNUSED boost::shared_ptr<transaction_t> transaction, int index) const {
+std::string redis_list_value_t::lindex(UNUSED value_sizer_t<redis_list_value_t> *super_sizer, UNUSED boost::shared_ptr<transaction_t> transaction, int index) const {
     index = translate_index(index);
 
     // TODO!

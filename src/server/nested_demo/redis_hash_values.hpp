@@ -6,7 +6,7 @@
 #include "server/nested_demo/redis_utils.hpp"
 #include "btree/iteration.hpp"
 
-struct redis_demo_hash_value_t {
+struct redis_hash_value_t {
     block_id_t nested_root;
     uint32_t size;
 
@@ -25,24 +25,24 @@ public:
 
     /* Some operations that you can do on a hash (resembling redis commands)... */
 
-    boost::optional<std::string> hget(value_sizer_t<redis_demo_hash_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, const std::string &field) const;
+    boost::optional<std::string> hget(value_sizer_t<redis_hash_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, const std::string &field) const;
 
-    bool hexists(value_sizer_t<redis_demo_hash_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, const std::string &field) const;
+    bool hexists(value_sizer_t<redis_hash_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, const std::string &field) const;
 
     int hlen() const;
 
     // In contrast to the redis command, this deletes only a single field. Call multiple times if necessary.
     // returns true if a field has been deleted (i.e. existed in the hash)
-    bool hdel(value_sizer_t<redis_demo_hash_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, const std::string &field);
+    bool hdel(value_sizer_t<redis_hash_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, const std::string &field);
 
     // Returns true iff the field was new
-    bool hset(value_sizer_t<redis_demo_hash_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, const std::string &field, const std::string &value);
+    bool hset(value_sizer_t<redis_hash_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, const std::string &field, const std::string &value);
 
     // Deletes all elements from the subtree. Must be called before deleting the hash value in the super tree!
-    void clear(value_sizer_t<redis_demo_hash_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, int slice_home_thread);
+    void clear(value_sizer_t<redis_hash_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, int slice_home_thread);
 
     // Provides an iterator over field->value pairs
-    boost::shared_ptr<one_way_iterator_t<std::pair<std::string, std::string> > > hgetall(value_sizer_t<redis_demo_hash_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, int slice_home_thread) const;
+    boost::shared_ptr<one_way_iterator_t<std::pair<std::string, std::string> > > hgetall(value_sizer_t<redis_hash_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, int slice_home_thread) const;
 
 
 private:
@@ -55,22 +55,22 @@ private:
 } __attribute__((__packed__));
 
 template <>
-class value_sizer_t<redis_demo_hash_value_t> {
+class value_sizer_t<redis_hash_value_t> {
 public:
-    value_sizer_t<redis_demo_hash_value_t>(block_size_t bs) : block_size_(bs) { }
+    value_sizer_t<redis_hash_value_t>(block_size_t bs) : block_size_(bs) { }
 
-    int size(const redis_demo_hash_value_t *value) const {
+    int size(const redis_hash_value_t *value) const {
         return value->inline_size(block_size_);
     }
 
-    bool fits(UNUSED const redis_demo_hash_value_t *value, UNUSED int length_available) const {
+    bool fits(UNUSED const redis_hash_value_t *value, UNUSED int length_available) const {
         // It's of constant size...
         return true;
     }
 
     int max_possible_size() const {
         // It's of constant size...
-        return sizeof(redis_demo_hash_value_t);
+        return sizeof(redis_hash_value_t);
     }
 
     block_magic_t btree_leaf_magic() const {

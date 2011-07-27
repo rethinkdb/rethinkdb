@@ -88,7 +88,7 @@ static void server_shutdown() {
     }
 }
 
-void nested_demo_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
+void nested_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
     os_signal_cond_t os_signal_cond;
     try {
         /* Start logger */
@@ -416,8 +416,8 @@ void nested_demo_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 boost::scoped_ptr<superblock_t> redis_hash_btree_sb(new virtual_superblock_t());
                 redis_hash_btree_sb->set_root_block_id(redis_hash_btree_root);
 
-                keyvalue_location_t<redis_demo_hash_value_t> kv_location;
-                value_sizer_t<redis_demo_hash_value_t> sizer(shard->cache.get_block_size());
+                keyvalue_location_t<redis_hash_value_t> kv_location;
+                value_sizer_t<redis_hash_value_t> sizer(shard->cache.get_block_size());
                 got_superblock_t got_superblock;
                 got_superblock.sb.swap(redis_hash_btree_sb);
                 got_superblock.txn = transaction;
@@ -428,7 +428,7 @@ void nested_demo_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 key->size = key_str.length();
                 memcpy(key->contents, key_str.data(), key_str.length());
                 find_keyvalue_location_for_write(&sizer, &got_superblock, key, repli_timestamp_t::invalid, &kv_location);
-                scoped_malloc<redis_demo_hash_value_t> value(sizeof(redis_demo_hash_value_t));
+                scoped_malloc<redis_hash_value_t> value(sizeof(redis_hash_value_t));
                 value->nested_root = NULL_BLOCK_ID;
                 value->size = 0;
                 kv_location.value.swap(value);
@@ -439,10 +439,12 @@ void nested_demo_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 redis_hash_btree_root = kv_location.sb->get_root_block_id();
                 logINF("Done, redis_hash_btree now has root %u\n", redis_hash_btree_root);
             }*/
-            
-            // Ok, for now we are not actually using the redis_demo_hash_value_t we just inserted but use
+
+            // TODO! Almost all of the following should become a unit test
+
+            // Ok, for now we are not actually using the redis_hash_value_t we just inserted but use
             // an in-memory one...
-            redis_demo_hash_value_t demo_hash_value;
+            redis_hash_value_t demo_hash_value;
             demo_hash_value.nested_root = NULL_BLOCK_ID;
             demo_hash_value.size = 0;
             {
@@ -454,7 +456,7 @@ void nested_demo_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 on_thread_t thread(shard->home_thread());
 
                 boost::shared_ptr<transaction_t> transaction(new transaction_t(&shard->cache, rwi_write, 1, repli_timestamp_t::invalid));
-                value_sizer_t<redis_demo_hash_value_t> sizer(shard->cache.get_block_size());
+                value_sizer_t<redis_hash_value_t> sizer(shard->cache.get_block_size());
 
                 demo_hash_value.hset(&sizer, transaction, "field_1", "value_1");
                 demo_hash_value.hset(&sizer, transaction, "field_2", "value_2");
@@ -484,8 +486,8 @@ void nested_demo_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 fprintf(stderr, "Hash length after clear(): %d\n", (int)demo_hash_value.hlen());
             }
 
-            // ...same for redis_demo_set_value_t
-            redis_demo_set_value_t demo_set_value;
+            // ...same for redis_set_value_t
+            redis_set_value_t demo_set_value;
             demo_set_value.nested_root = NULL_BLOCK_ID;
             demo_set_value.size = 0;
             {
@@ -497,7 +499,7 @@ void nested_demo_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 on_thread_t thread(shard->home_thread());
 
                 boost::shared_ptr<transaction_t> transaction(new transaction_t(&shard->cache, rwi_write, 1, repli_timestamp_t::invalid));
-                value_sizer_t<redis_demo_set_value_t> sizer(shard->cache.get_block_size());
+                value_sizer_t<redis_set_value_t> sizer(shard->cache.get_block_size());
 
                 guarantee(demo_set_value.sadd(&sizer, transaction, "member_1"));
                 guarantee(demo_set_value.sadd(&sizer, transaction, "member_2"));
@@ -534,8 +536,8 @@ void nested_demo_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 fprintf(stderr, "Set cardinality after clear(): %d\n", (int)demo_set_value.scard());
             }
 
-            // ...same for redis_demo_sortedset_value_t
-            redis_demo_sortedset_value_t demo_sortedset_value;
+            // ...same for redis_sortedset_value_t
+            redis_sortedset_value_t demo_sortedset_value;
             demo_sortedset_value.member_score_nested_root = NULL_BLOCK_ID;
             demo_sortedset_value.score_member_nested_root = NULL_BLOCK_ID;
             demo_sortedset_value.size = 0;
@@ -548,7 +550,7 @@ void nested_demo_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 on_thread_t thread(shard->home_thread());
 
                 boost::shared_ptr<transaction_t> transaction(new transaction_t(&shard->cache, rwi_write, 1, repli_timestamp_t::invalid));
-                value_sizer_t<redis_demo_sortedset_value_t> sizer(shard->cache.get_block_size());
+                value_sizer_t<redis_sortedset_value_t> sizer(shard->cache.get_block_size());
 
                 guarantee(demo_sortedset_value.zadd(&sizer, transaction, "member_1", -0.5f));
                 guarantee(demo_sortedset_value.zadd(&sizer, transaction, "member_3", 0.1f));
@@ -669,7 +671,7 @@ int run_nested_demo(int argc, char *argv[]) {
         cmd_config_t *cmd_config;
         thread_pool_t *thread_pool;
         void on_thread_switch() {
-            coro_t::spawn(boost::bind(&nested_demo_main, cmd_config, thread_pool));
+            coro_t::spawn(boost::bind(&nested_main, cmd_config, thread_pool));
         }
     } starter;
     starter.cmd_config = &config;
