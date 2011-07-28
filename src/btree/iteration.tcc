@@ -1,10 +1,9 @@
 #include "btree/btree_data_provider.hpp"
 #include "perfmon.hpp"
 
-// TODO! Fix
-//perfmon_counter_t
-//    leaf_iterators("leaf_iterators"),
-//    slice_leaves_iterators("slice_leaves_iterators");
+extern perfmon_counter_t
+    leaf_iterators,
+    slice_leaves_iterators;
 
 template <class Value>
 leaf_iterator_t<Value>::leaf_iterator_t(const leaf_node_t *_leaf, int _index, buf_lock_t *_lock, const boost::shared_ptr<value_sizer_t<Value> >& _sizer, const boost::shared_ptr<transaction_t>& _transaction) :
