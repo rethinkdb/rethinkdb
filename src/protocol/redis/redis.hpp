@@ -60,6 +60,9 @@ struct redis_interface_t {
     
 protected:
     redis_actor_t *actor;
+
+    // Only necessary for the dummy stack phase
+    btree_slice_t *slice;
 };
 
 //Equivalently (perhaps deliberately equivalently :) ) named macros might live

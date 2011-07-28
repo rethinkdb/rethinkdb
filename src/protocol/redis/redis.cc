@@ -28,7 +28,7 @@ redis_interface_t::redis_interface_t() {
     cache_t *cache = new cache_t(multiplexer->proxies[0], &config.store_dynamic_config.cache);
 
     btree_slice_t::create(cache);
-    btree_slice_t *slice = new btree_slice_t(cache, 1000);
+    slice = new btree_slice_t(cache, 1000);
 
     actor = new redis_actor_t(slice);
 }
@@ -38,30 +38,35 @@ redis_interface_t::~redis_interface_t() {}
 #define COMMAND_0(RETURN, CNAME) RETURN##_result \
 redis_interface_t::CNAME() \
 { \
+    on_thread_t thread_switcher(slice->home_thread()); \
     return actor->CNAME(); \
 }
 
 #define COMMAND_1(RETURN, CNAME, ARG_TYPE_ONE) RETURN##_result \
 redis_interface_t::CNAME(ARG_TYPE_ONE one) \
 { \
+    on_thread_t thread_switcher(slice->home_thread()); \
     return actor->CNAME(one); \
 }
 
 #define COMMAND_2(RETURN, CNAME, ARG_TYPE_ONE, ARG_TYPE_TWO) RETURN##_result \
 redis_interface_t::CNAME(ARG_TYPE_ONE one, ARG_TYPE_TWO two) \
 { \
+    on_thread_t thread_switcher(slice->home_thread()); \
     return actor->CNAME(one, two); \
 }
 
 #define COMMAND_3(RETURN, CNAME, ARG_TYPE_ONE, ARG_TYPE_TWO, ARG_TYPE_THREE) RETURN##_result \
 redis_interface_t::CNAME(ARG_TYPE_ONE one, ARG_TYPE_TWO two, ARG_TYPE_THREE three) \
 { \
+    on_thread_t thread_switcher(slice->home_thread()); \
     return actor->CNAME(one, two, three); \
 }
 
 #define COMMAND_N(RETURN, CNAME) RETURN##_result \
 redis_interface_t::CNAME(std::vector<std::string> &one) \
 { \
+    on_thread_t thread_switcher(slice->home_thread()); \
     return actor->CNAME(one); \
 }
 

@@ -87,6 +87,9 @@ struct redis_actor_t {
     COMMAND_1(integer, Strlen, string&)
     
 protected:
+    integer_result crement(string&, int);
+    std::string *get_string(string &);
+
     btree_slice_t *btree;
 };
 
