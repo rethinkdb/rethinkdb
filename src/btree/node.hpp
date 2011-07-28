@@ -133,6 +133,9 @@ struct btree_key_t {
     uint16_t full_size() const {
         return size + offsetof(btree_key_t, contents);
     }
+    bool fits(int space) const {
+        return space > 0 && space > size;
+    }
     void print() const {
         printf("%*.*s", size, size, contents);
     }
