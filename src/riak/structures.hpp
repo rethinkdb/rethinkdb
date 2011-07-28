@@ -24,20 +24,20 @@ struct bucket_t {
     std::vector<hook_t> postcommit;
     int r, w, dw, rw; //Quorum values
     std::string backend;
+
+    bucket_t() 
+        : n_val(1), allow_mult(false),
+          last_write_wins(false), r(1), w(1), dw(1), 
+          rw(1), backend("rethinkdb")
+    { }
+
+    bucket_t(std::string name) 
+        : name(name), n_val(1), allow_mult(false),
+          last_write_wins(false), r(1), w(1), dw(1), 
+          rw(1), backend("rethinkdb")
+    { }
 };
 
-class bucket_iterator_t {
-    //TODO actually implement this instead of just duping the type checker
-private:
-    bucket_t bucket;
-public:
-    bool operator!=(bucket_iterator_t const &) {not_implemented(); return true;}
-    bool operator==(bucket_iterator_t const &) {not_implemented(); return true;}
-    bucket_iterator_t operator++() {not_implemented(); return *this;}
-    bucket_iterator_t operator++(int) {not_implemented(); return *this;}
-    bucket_t operator*() {not_implemented(); return bucket_t(); }
-    bucket_t *operator->() {not_implemented(); return &bucket;};
-};
 
 struct link_t {
     std::string bucket;

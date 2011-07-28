@@ -281,7 +281,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                     store_manager_t<std::list<std::string> > *store_manager = new store_manager_t<std::list<std::string> >();
 
                     /* We aren't doing any sort of replication. */
-                    //riak::riak_server_t server(2222, store_manager);
+                    riak::riak_server_t server(2222, store_manager);
 
                     /* Make it impossible for this database file to later be used as a slave, because
                     that would confuse the replication logic. */

@@ -39,6 +39,24 @@ struct link_parser_t: qi::grammar<Iterator, std::vector<link_t>()> {
     qi::rule<Iterator, std::vector<link_t>()> start;
 };
 
+class bucket_iterator_t {
+private:
+    store_manager_t<std::list<std::string> >::const_iterator it;
+
+public:
+    bucket_iterator_t(store_manager_t<std::list<std::string> >::const_iterator const &it) 
+        : it(it)
+    { }
+
+public:
+    bool operator==(bucket_iterator_t const &other) { return it == other.it; }
+    bool operator!=(bucket_iterator_t const &other) { return !operator==(other); }
+    bucket_iterator_t operator++() { it++; return *this; }
+    bucket_iterator_t operator++(int) { it++; return *this; }
+    bucket_t operator*() { return boost::get<riak_store_metadata_t>(it->second->store_metadata); }
+    bucket_t *operator->() { return &boost::get<riak_store_metadata_t>(it->second->store_metadata); };
+};
+
 
 
 class riak_interface_t {
@@ -60,6 +78,7 @@ public:
     // Bucket operations:
     // Get a bucket by name
     boost::optional<bucket_t> get_bucket(std::string s) {
+        //BREAKPOINT;
         std::list<std::string> key;
         key.push_back("riak"); key.push_back(s);
         store_t *store = store_manager->get_store(key);
@@ -88,7 +107,7 @@ public:
 
     //Get all the buckets
     std::pair<bucket_iterator_t, bucket_iterator_t> buckets() { 
-        crash("Not implementated");
+        return std::make_pair(bucket_iterator_t(store_manager->begin()), bucket_iterator_t(store_manager->end()));
     };
 
 
@@ -186,8 +205,27 @@ public:
         txn.value->print(slice->cache()->get_block_size());
     }
 
-    bool delete_object(std::string, std::string) {
-        crash("Not implementated");
+    bool delete_object(std::string bucket, std::string key) {
+        std::list<std::string> sm_key;
+        sm_key.push_back("riak"); sm_key.push_back(bucket);
+        btree_slice_t *slice = get_slice(sm_key);
+
+        if (!slice) {
+            // if we're doing a set we need to create the slice
+            slice = create_slice(sm_key);
+        }
+
+        value_txn_t<riak_value_t> txn = get_value_write<riak_value_t>(slice, btree_key_buffer_t(key).key(), repli_timestamp_t::invalid, order_token_t::ignore);
+
+        blob_t blob(txn.value->contents, blob::btree_maxreflen);
+        blob.clear(txn.get_txn());
+
+        if (txn.value) {
+            txn.value.reset();
+            return true;
+        } else {
+            return false;
+        }
     }
 
     //Luwak operations:

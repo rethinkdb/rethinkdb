@@ -8,6 +8,7 @@
 
 #include "config/args.hpp"
 #include "errors.hpp"
+#include <list>
 
 /* Note that repli_timestamp_t does NOT represent an actual timestamp; instead it's an arbitrary
 counter. */
@@ -192,5 +193,23 @@ struct on_thread_t : public home_thread_mixin_t {
     on_thread_t(int thread);
     ~on_thread_t();
 };
+
+/* I think we basically all know this... but this function has linear
+ * complexity and thus you can't use it for anything real, if you want to do
+ * this type of access pattern use a different STL container. This only exists
+ * because it's convenient to pass around paths as std::lists and I don't want
+ * to write 3 lines of code to access the second element. */
+template <class T>
+T const &nth(std::list<T> const &l, unsigned n) {
+    typename std::list<T>::const_iterator it = l.begin();
+
+    while (n > 0) {
+        rassert(it != l.end(), "n > list.size()");
+        n--;
+        it++;
+    }
+
+    return *it;
+}
 
 #endif // __UTILS_HPP__
