@@ -14,8 +14,10 @@
         if (leaf_node->magic == value_sizer_t<memcached_value_t>::btree_leaf_magic()) { \
             value_sizer_t<memcached_value_t> sizer(sizer_argument); \
             op_name<memcached_value_t>(&sizer, __VA_ARGS__); \
-        } \
-        else \
+        } else if (leaf_node->magic == value_sizer_t<riak_value_t>::btree_leaf_magic()) { \
+            value_sizer_t<riak_value_t> sizer(sizer_argument); \
+            op_name<riak_value_t>(&sizer, __VA_ARGS__); \
+        } else \
             crash("Unmatched leaf node magic: %.*s", (int)sizeof(block_magic_t), leaf_node->magic.bytes); \
     } while(0)
 
