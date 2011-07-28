@@ -116,6 +116,7 @@ namespace json_spirit
                 }
                 break;
             }
+            default: unreachable(); break;
         }
     }
 
