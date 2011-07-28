@@ -275,6 +275,7 @@ get_recency(block_id_t id) { return inner_serializer.get_recency(id); }
 template<class inner_serializer_t>
 bool semantic_checking_serializer_t<inner_serializer_t>::
 get_delete_bit(block_id_t id) {
+    // FIXME: tests seems to indicate that this code is broken. I don't know why, but it is. @rntz
     bool bit = inner_serializer.get_delete_bit(id);
     scs_block_info_t::state_t state = blocks.get(id).state;
     // If we know what the state is, it should be consistent with the delete bit.
