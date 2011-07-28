@@ -3,9 +3,10 @@
 
 #include "arch/arch.hpp"
 #include "utils.hpp"
-#include "buffer_cache/buffer_cache.hpp"
+#include "buffer_cache/types.hpp"
 #include "buffer_cache/co_functions.hpp"
 
+class translator_serializer_t;
 
 class server_test_helper_t {
     thread_pool_t thread_pool;

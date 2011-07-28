@@ -11,20 +11,20 @@ coro_pool_t::coro_pool_t(size_t worker_count_, passive_producer_t<boost::functio
     active_worker_count(0)
 {
     rassert(max_worker_count > 0);
-    on_watchable_changed();   // Start process if necessary
-    source->available->add_watcher(this);
+    on_source_availability_changed();   // Start process if necessary
+    source->available->set_callback(boost::bind(&coro_pool_t::on_source_availability_changed, this));
 }
 
 
 coro_pool_t::~coro_pool_t() {
     assert_thread();
-    source->available->remove_watcher(this);
+    source->available->unset_callback();
     coro_drain_semaphore.drain();
     rassert(active_worker_count == 0);
 }
 
 
-void coro_pool_t::on_watchable_changed() {
+void coro_pool_t::on_source_availability_changed() {
     assert_thread();
     while (source->available->get() && active_worker_count < max_worker_count) {
         coro_t::spawn_now(boost::bind(&coro_pool_t::worker_run,

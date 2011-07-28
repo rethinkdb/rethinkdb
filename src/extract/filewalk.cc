@@ -16,6 +16,8 @@
 
 namespace extract {
 
+static block_magic_t zerobuf_magic = { { 'z', 'e', 'r', 'o' } }; // TODO: Refactor
+
 typedef config_t::override_t cfg_t;
 
 class block_t : public fsck::raw_block_t {
@@ -25,7 +27,7 @@ public:
     using raw_block_t::init;
     using raw_block_t::realbuf;
 
-    const buf_data_t& buf_data() const {
+    const ls_buf_data_t& buf_data() const {
         return *realbuf;
     }
 };
@@ -128,7 +130,7 @@ void walk_extents(dumper_t &dumper, nondirect_file_t &file, cfg_t cfg) {
     observe_blocks(registry, file, cfg, filesize);
 
     // 2.  Pass 2.  Load diff log / Visit leaf nodes, dump their values.
-    const std::map<size_t, off64_t>& offsets = registry.destroy_transaction_ids();
+    const std::map<size_t, off64_t>& offsets = registry.destroy_block_sequence_ids();
 
     if (offsets.empty()) {
         logERR("No block offsets found.\n");
@@ -181,7 +183,7 @@ bool check_all_known_magic(block_magic_t magic) {
         || magic == blob::internal_node_magic
         || magic == blob::leaf_node_magic
         || magic == multiplexer_config_block_t::expected_magic
-        || magic == log_serializer_t::zerobuf_magic;
+        || magic == zerobuf_magic;
 }
 
 void observe_blocks(block_registry& registry, nondirect_file_t& file, const cfg_t cfg, uint64_t filesize) {
@@ -214,7 +216,7 @@ void load_diff_log(const std::map<size_t, off64_t>& offsets, nondirect_file_t& f
             if (memcmp(reinterpret_cast<const char *>(data), "LOGB00", 6) == 0) {
                 int num_patches = 0;
                 uint16_t current_offset = 6; //sizeof(LOG_BLOCK_MAGIC);
-                while (current_offset + buf_patch_t::get_min_serialized_size() < cfg.block_size_ - sizeof(buf_data_t)) {
+                while (current_offset + buf_patch_t::get_min_serialized_size() < cfg.block_size_ - sizeof(ls_buf_data_t)) {
                     buf_patch_t *patch;
                     try {
                         patch = buf_patch_t::load_patch(cfg.block_size(), reinterpret_cast<const char *>(data) + current_offset);
@@ -332,12 +334,11 @@ void get_all_values(dumper_t& dumper, const std::map<size_t, off64_t>& offsets, 
                     // Replay patches
                     std::map<block_id_t, std::list<buf_patch_t*> >::iterator patches = buf_patches.find(cache_block_id);
                     if (patches != buf_patches.end()) {
-                        // We apply only patches which match exactly the provided transaction ID.
-                        // Sepcifically, this ensures that we only replay patches which are for the right slice,
-                        // as transaction IDs are disjoint across slices (this relies on the current implementation
-                        // details of the cache and serializer though)
+                        // We apply only patches which match exactly the provided block sequence ID.
+                        // Sepcifically, this ensures that we only replay patches which are for the
+                        // right slice, as block sequence IDs are disjoint across slices
                         for (std::list<buf_patch_t*>::iterator patch = patches->second.begin(); patch != patches->second.end(); ++patch) {
-                            if ((*patch)->get_transaction_id() == b.buf_data().transaction_id) {
+                            if ((*patch)->get_block_sequence_id() == b.buf_data().block_sequence_id) {
                                 (*patch)->apply_to_buf(reinterpret_cast<char *>(b.buf), cfg.block_size());
                             }
                         }

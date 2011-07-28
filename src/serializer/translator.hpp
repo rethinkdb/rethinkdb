@@ -114,15 +114,18 @@ public:
     translator_serializer_t(serializer_t *inner, int mod_count, int mod_id, config_block_id_t cfgid);
     
     void *malloc();
-    virtual void *clone(void*);
+    void *clone(void*);
     void free(void *ptr);
 
     /* Allocates a new io account for the underlying file */
     file_t::account_t *make_io_account(int priority, int outstanding_requests_limit = UNLIMITED_OUTSTANDING_REQUESTS);
 
-    bool do_read(block_id_t block_id, void *buf, file_t::account_t *io_account, serializer_t::read_callback_t *callback);
-    ser_transaction_id_t get_current_transaction_id(block_id_t block_id, const void* buf);
-    bool do_write(serializer_t::write_t *writes, int num_writes, file_t::account_t *io_account, serializer_t::write_txn_callback_t *callback, serializer_t::write_tid_callback_t *tid_callback = NULL);
+    void index_write(const std::vector<index_write_op_t>& write_ops, file_t::account_t *io_account);
+
+    /* Non-blocking variant */
+    boost::shared_ptr<block_token_t> block_write(const void *buf, block_id_t block_id, file_t::account_t *io_account, iocallback_t *cb);
+    boost::shared_ptr<block_token_t> block_write(const void *buf, file_t::account_t *io_account, iocallback_t *cb);
+
     block_size_t get_block_size();
 
     // Returns the first never-used block id.  Every block with id
@@ -131,8 +134,14 @@ public:
     // created.  As long as you don't skip ahead past max_block_id,
     // block id contiguity will be ensured.
     block_id_t max_block_id();
-    bool block_in_use(block_id_t id);
+
     repli_timestamp_t get_recency(block_id_t id);
+    bool get_delete_bit(block_id_t id);
+    block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf);
+
+    void block_read(boost::shared_ptr<block_token_t> token, void *buf, file_t::account_t *io_account, iocallback_t *cb);
+    void block_read(boost::shared_ptr<block_token_t> token, void *buf, file_t::account_t *io_account);
+    boost::shared_ptr<block_token_t> index_read(block_id_t block_id);
 
 public:
     bool offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp);

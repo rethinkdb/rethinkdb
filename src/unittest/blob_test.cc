@@ -2,6 +2,7 @@
 #include "unittest/server_test_helper.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "buffer_cache/blob.hpp"
+#include "buffer_cache/buffer_cache.hpp"
 #include "containers/buffer_group.hpp"
 
 namespace unittest {
@@ -280,6 +281,7 @@ private:
         tk.unappend(&txn, 4081);
     }
 
+    // Regression test - these magic numbers caused failures previously.
     void special_4161600_prepend_12484801_test(cache_t *cache) {
         SCOPED_TRACE("special_4080_prepend_4081_test");
         block_size_t block_size = cache->get_block_size();
@@ -339,8 +341,8 @@ private:
     void combinations_test(cache_t *cache) {
         SCOPED_TRACE("combinations_test");
         int64_t inline_sz = 4080 * ((250 - 1 - 8 - 8) / 4);
-        int64_t l2_sz = 4080 * (4080 / 4);
-	int64_t szs[] = { 0, 251, 4080, 4081, inline_sz - 300, inline_sz, inline_sz + 1, l2_sz, l2_sz + 1, l2_sz * 3 + 1 };
+        //        int64_t l2_sz = 4080 * (4080 / 4);
+	int64_t szs[] = { 0, 251, 4080, 4081, inline_sz - 300, inline_sz, inline_sz + 1 };  // for now, until we can make this test faster.  // , l2_sz, l2_sz + 1, l2_sz * 3 + 1 };
 
         int n = sizeof(szs) / sizeof(szs[0]);
 

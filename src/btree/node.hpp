@@ -40,7 +40,7 @@ public:
         return MAX_BTREE_VALUE_SIZE;
     }
 
-    block_magic_t btree_leaf_magic() const {
+    static block_magic_t btree_leaf_magic() {
         block_magic_t magic = { { 'l', 'e', 'a', 'f' } };
         return magic;
     }
@@ -175,33 +175,28 @@ struct node_t {
 
 namespace node {
 
-inline bool is_leaf(const node_t *node) {
-    if (node->magic == leaf_node_t::expected_magic) {
-        return true;
-    }
-    rassert(node->magic == internal_node_t::expected_magic);
-    return false;
-}
-
 inline bool is_internal(const node_t *node) {
     if (node->magic == internal_node_t::expected_magic) {
         return true;
     }
-    rassert(node->magic == leaf_node_t::expected_magic);
     return false;
+}
+
+inline bool is_leaf(const node_t *node) {
+    // We assume that a node is a leaf whenever it's not internal.
+    // Unfortunately we cannot check the magic directly, because it differs
+    // for different value types.
+    // TODO: Maybe assert that the first character of the magic is 'l' or
+    // something like that?
+    return !is_internal(node);
 }
 
 bool has_sensible_offsets(block_size_t block_size, const node_t *node);
 bool is_underfull(block_size_t block_size, const node_t *node);
 bool is_mergable(block_size_t block_size, const node_t *node, const node_t *sibling, const internal_node_t *parent);
 int nodecmp(const node_t *node1, const node_t *node2);
-void split(block_size_t block_size, buf_t *node_buf, buf_t *rnode_buf, btree_key_t *median);
-void merge(block_size_t block_size, const node_t *node, buf_t *rnode_buf, btree_key_t *key_to_remove, const internal_node_t *parent);
-bool level(block_size_t block_size, buf_t *node_buf, buf_t *rnode_buf, btree_key_t *key_to_replace, btree_key_t *replacement_key, const internal_node_t *parent);
 
 void print(const node_t *node);
-
-void validate(block_size_t block_size, const node_t *node);
 
 }  // namespace node
 
@@ -212,5 +207,8 @@ inline void keycpy(btree_key_t *dest, const btree_key_t *src) {
 inline void valuecpy(block_size_t bs, memcached_value_t *dest, const memcached_value_t *src) {
     memcpy(dest, src, src->inline_size(bs));
 }
+
+
+
 
 #endif // __BTREE_NODE_HPP__

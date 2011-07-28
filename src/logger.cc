@@ -140,11 +140,19 @@ void mlogf(const char *format, ...) {
     va_end(arg);
 }
 
+static void do_write_message(log_message_t *msg) {
+    size_t written = fwrite(msg->contents.data(), 1, msg->contents.size(), log_file);
+    if (written != msg->contents.size() || ferror(log_file)) {
+        // An error occurred. Not a lot we can do here.
+        BREAKPOINT;
+    }
+}
+
 void write_log_message(log_message_t *msg, log_controller_t *lc) {
 
     {
         on_thread_t thread_switcher(lc->home_thread_);
-        fwrite(msg->contents.data(), 1, msg->contents.size(), log_file);
+        do_write_message(msg);
     }
 
     delete msg;
@@ -154,7 +162,7 @@ void write_log_message(log_message_t *msg, log_controller_t *lc) {
 void mlog_end() {
     rassert(current_message);
     if (!log_controller) {
-        fwrite(current_message->contents.data(), 1, current_message->contents.size(), log_file);
+        do_write_message(current_message);
         delete current_message;
     } else {
         log_controller_lock->co_lock(rwi_read);

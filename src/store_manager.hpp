@@ -28,8 +28,13 @@ structures into a metadata file or metadata_store of some kind.
 #include <boost/serialization/map.hpp>
 #include <boost/serialization/variant.hpp>
 #include "errors.hpp"
+#include "server/key_value_store.hpp"
+#include "riak/structures.hpp"
+#include "concurrency/promise.hpp"
+#include "serializer/log/log_serializer.hpp"
 
-class store_id_t {
+
+/* class store_id_t {
 public:
     bool operator<(const store_id_t &id) const {
         return raw_id < id.raw_id;
@@ -41,7 +46,7 @@ public:
         raw_id = -1;
     }
 private:
-    friend class store_manager_t;
+    //friend class store_manager_t;
     store_id_t(int raw_id) : raw_id(raw_id) {
     }
     int raw_id;
@@ -50,7 +55,7 @@ private:
     template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
         ar & raw_id;
     }
-};
+}; */
 
 /* ---- Name mapping ---- */
 /*
@@ -83,7 +88,7 @@ Consider the following example.
         their own metadata field in some kind of metadata_store_t, to make
         them persistent
  */
-template<typename identifier_t> class store_registry_t {
+/* template<typename identifier_t> class store_registry_t {
 public:
     // For checking identifiers, it's cheaper than list_identifiers()...
     bool has_identifier(const identifier_t &ident) const {
@@ -118,11 +123,11 @@ private:
     template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
         ar & id_map;
     }
-};
+}; */
 
 // A few examples...
-typedef store_registry_t<std::string> string_store_registry_t; // e.g. for flat namespaces
-typedef store_registry_t<std::list<std::string> > hierarchical_store_registry_t; // e.g. for hierarchical namespaces
+//typedef store_registry_t<std::string> string_store_registry_t; // e.g. for flat namespaces
+//typedef store_registry_t<std::list<std::string> > hierarchical_store_registry_t; // e.g. for hierarchical namespaces
 
 
 /* ---- Store variants ---- */\
@@ -150,6 +155,37 @@ private:
     }
 };
 
+typedef riak::bucket_t riak_store_metadata_t;
+
+namespace boost {
+namespace serialization {
+template<class Archive>
+void serialize(Archive &ar, riak_store_metadata_t &m, const unsigned int) {
+    ar & m.name;
+    ar & m.n_val;
+    ar & m.allow_mult;
+    ar & m.last_write_wins;
+    ar & m.precommit;
+    ar & m.postcommit;
+    ar & m.r;
+    ar & m.w;
+    ar & m.dw; 
+    ar & m.rw;
+    ar & m.backend;
+}
+} //namespace boost
+} //namespace serialization
+
+/* struct riak_store_metadata_t {
+//obviously a lot more is going to go in here, this is just a place holder
+    int n_val;
+private:
+    friend class boost::serialization::access;
+    template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
+        ar & n_val;
+    }
+}; */
+
 // This is just some non-sense type, basically meaning "void". We can't use void
 // though, because C++ doesn't seem to consider "void values" first class values.
 // So we just use int instead (which works as long as we don't have store_metadata
@@ -157,14 +193,14 @@ private:
 typedef int invalid_variant_t;
 
 // Add your metadata types here...
-typedef boost::variant<invalid_variant_t, memcached_store_metadata_t> store_metadata_t;
+typedef boost::variant<invalid_variant_t, memcached_store_metadata_t, riak_store_metadata_t> store_metadata_t;
 
 // Add your store_config types here... (these must be serialized)
-typedef boost::variant<invalid_variant_t, btree_key_value_store_dynamic_config_t> store_config_t;
+typedef boost::variant<invalid_variant_t, btree_key_value_store_dynamic_config_t, standard_serializer_t::config_t> store_config_t;
 
 // Add your underlying store types here... (these must be creatable based on the information of the corresponding store_config)
 // The store types (i.e. what's inside the pointer) must provide RTTI (have a virtual member)
-typedef boost::variant<boost::shared_ptr<invalid_variant_t>, boost::shared_ptr<btree_key_value_store_t> > store_object_t;
+typedef boost::variant<boost::shared_ptr<invalid_variant_t>, boost::shared_ptr<btree_key_value_store_t> , boost::shared_ptr<standard_serializer_t> > store_object_t;
 
 // This visitor must be extended if new types of store configs are added
 class store_loader_t : public boost::static_visitor<store_object_t> {
@@ -173,6 +209,22 @@ public:
         return store_object_t(boost::shared_ptr<btree_key_value_store_t>(
                 new btree_key_value_store_t(config)));
     }
+
+    store_object_t operator()(standard_serializer_t::config_t &config) const {
+        struct : public promise_t<bool>, 
+                 public log_serializer_t::check_callback_t
+        { 
+            void on_serializer_check(bool is_existing) { pulse(is_existing); }
+        } existing_cb;
+        log_serializer_t::check_existing(config.private_dynamic_config.db_filename.c_str(), &existing_cb);
+
+        if (!existing_cb.wait()) {
+            log_serializer_t::create(&(config.dynamic_config), &(config.private_dynamic_config), &(config.public_static_config));
+        }
+        return store_object_t(boost::shared_ptr<standard_serializer_t>(
+                new standard_serializer_t(&(config.dynamic_config), &(config.private_dynamic_config))));
+    }
+
     // Add implementations for other store_config types here...
     store_object_t operator()(invalid_variant_t) const {
         crash("Tried to create an invalid store\n");
@@ -268,17 +320,23 @@ entry, you get a store_id_t, which is required for accessing the store.
 You should then use that store_id to register it with some store_registry_t,
 for later access to the created store.
 */
+template <class Key, class Compare = std::less<Key> >
 class store_manager_t {
+public:
+    typedef std::map<Key, store_t *, Compare> store_map_t;
 public:
     store_manager_t() { }
     ~store_manager_t() {
-        for (std::map<store_id_t, store_t *>::iterator store = store_map.begin(); store != store_map.end(); ++store) {
+        for (typename store_map_t::iterator store = store_map.begin(); store != store_map.end(); ++store) {
             delete store->second;
         }
     }
-    store_t *get_store(const store_id_t &id) {
-        rassert(store_map.find(id) != store_map.end());
-        return store_map.find(id)->second;
+    store_t *get_store(const Key &key) {
+        if (store_map.find(key) == store_map.end()) {
+            return NULL;
+        } else {
+            return store_map.find(key)->second;
+        }
     }
     // This does not automatically load the store. Please do so yourself...
     // (loading works by calling get_store(store_id)->load_store(); )
@@ -286,27 +344,25 @@ public:
     // create a store, but not use it until a later time. E.g. you create a
     // database or namespace but don't actually want to serve for that
     // database/namespace yet.
-    store_id_t create_store(const store_config_t &store_config) {
+    void create_store(const Key &key, const store_config_t &store_config) {
+        rassert(store_map.find(key) == store_map.end());
         // Create the store
         store_t *store = new store_t;
         store->store_config = store_config;
 
-        // Generate an id
-        // TODO: Re-use free store ids.
-        int free_raw_id = store_map.empty() ? 0 : (store_map.rbegin()->first.raw_id + 1);
-        store_id_t store_id(free_raw_id);
-        guarantee(store_map.find(store_id) == store_map.end(), "Store id overflow (too many namespaces created?)");
-
         // Store the store
-        store_map.insert(std::pair<store_id_t, store_t *>(store_id, store));
+        store_map.insert(std::make_pair(key, store));
+    }
+    void delete_store(const Key &key) {
+        rassert(store_map.find(key) != store_map.end());
+        delete store_map[key];
+        store_map.erase(key);
+    }
 
-        return store_id;
-    }
-    void delete_store(const store_id_t &id) {
-        rassert(store_map.find(id) != store_map.end());
-        delete store_map[id];
-        store_map.erase(id);
-    }
+    //functions to iterater through the elements
+    typename store_map_t::const_iterator begin() { return store_map.begin(); }
+
+    typename store_map_t::const_iterator end() { return store_map.end(); }
     
     // Note: We don't provide listing capabilities, because we rely on stores
     // being registered with some store_mapper_t. So you are able to list existing
@@ -322,7 +378,7 @@ public:
     // to the user as a lost&found namespace on request or something).
 
 private:
-    std::map<store_id_t, store_t *> store_map;
+    store_map_t store_map;
 
     friend class boost::serialization::access;
     template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
@@ -331,6 +387,15 @@ private:
 
     DISABLE_COPYING(store_manager_t);
 };
+
+namespace boost {
+namespace serialization {
+template<class Archive>
+void serialize(Archive &ar, std::list<std::string> &target, const unsigned int) {
+    ar & target;
+}
+} //namespace boost
+} //namespace serialization
 
 
 #endif	/* __STORE_MANAGER_HPP__ */

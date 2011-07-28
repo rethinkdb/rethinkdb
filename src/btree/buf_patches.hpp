@@ -8,9 +8,6 @@
 
 struct opaque_value_t;
 
-// TODO: Eventually we should not need this declaration.
-struct memcached_value_t;
-
 /* Btree leaf node logical patches */
 
 /* Shift key/value pairs in a leaf node by a give offset */

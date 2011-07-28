@@ -15,6 +15,15 @@ struct log_serializer_private_dynamic_config_t {
     std::string semantic_filename;
 #endif
 
+    log_serializer_private_dynamic_config_t() { }
+
+    log_serializer_private_dynamic_config_t(std::string db_filename) 
+        : db_filename(db_filename)
+#ifdef SEMANTIC_SERIALIZER_CHECK
+          , semantic_filename(db_filename + "_sementic")
+#endif
+    { }
+
     friend class boost::serialization::access;
     template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
         ar & db_filename;

@@ -1,5 +1,6 @@
 #include "spirit/boost_parser.hpp"
 #include "arch/arch.hpp"
+#include "logger.hpp"
 #include <vector>
 
 #include <boost/config/warning_disable.hpp>
@@ -26,8 +27,7 @@ void parse_connection(boost::scoped_ptr<tcp_conn_t> conn, Expr const& expr) {
 }
 
 void print_int(int n) {
-    (void)n;
-    //logINF("Got an int: %d\n", n);
+    logINF("Got an int: %d\n", n);
 }
 
 void parse_ints(boost::scoped_ptr<tcp_conn_t> &conn) {
@@ -40,7 +40,14 @@ void parse_ints(boost::scoped_ptr<tcp_conn_t> &conn) {
                  >> ')')
             ,
             space);
-    (void)val;
-    //logINF("Val = %d\n", val);
+    logINF("Val = %d\n", val);
 }
 
+void echo_conn(boost::scoped_ptr<tcp_conn_t> &conn) {
+    conn->write("foo", strlen("foo"));
+    conn->shutdown_write();
+
+    for (tcp_conn_t::iterator it = conn->begin(); it != conn->end(); it++)
+        printf("%c", *it);
+    
+}

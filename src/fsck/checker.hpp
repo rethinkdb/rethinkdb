@@ -40,7 +40,7 @@ namespace fsck {
     grow monotonically from some starting point.  (metablock
     monotonicity check)
 
-  - that blocks in use have greater transaction ids than blocks not
+  - that blocks in use have greater block sequence ids than blocks not
     in use.  (supremacy check)
 
   - that the patches in the diff storage are sequentially numbered

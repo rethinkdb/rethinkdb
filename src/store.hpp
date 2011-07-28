@@ -28,6 +28,10 @@ struct store_key_t {
         assign(sz, buf);
     }
 
+    store_key_t(std::string const &s) {
+        assign(s.size(), s.data());
+    }
+
     void assign(int sz, const char *buf) {
         rassert(sz <= MAX_KEY_SIZE);
         size = sz;

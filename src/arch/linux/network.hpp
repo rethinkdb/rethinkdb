@@ -14,6 +14,9 @@
 #include "concurrency/coro_pool.hpp"
 #include "perfmon_types.hpp"
 #include <boost/iterator/iterator_facade.hpp>
+#include <stdexcept>
+#include <stdarg.h>
+#include <unistd.h>
 
 class side_coro_handler_t;
 
@@ -69,6 +72,10 @@ public:
 
     void pop(size_t len);
 
+    //pop to the position the iterator has been incremented to
+    class iterator;
+    void pop(iterator &);
+
     void read_more_buffered();
 
     /* Call shutdown_read() to close the half of the pipe that goes from the peer to us. If there
@@ -94,6 +101,22 @@ public:
     write() is called. Internally, it bundles together the buffered writes; this may improve
     performance. */
     void write_buffered(const void *buf, size_t size);
+
+    void vwritef(const char *format, va_list args) {
+        char buffer[1000];
+        size_t bytes = vsnprintf(buffer, sizeof(buffer), format, args);
+        rassert(bytes < sizeof(buffer));
+        write(buffer, bytes);
+    }
+
+    void writef(const char *format, ...)
+        __attribute__ ((format (printf, 2, 3))) {
+        va_list args;
+        va_start(args, format);
+        vwritef(format, args);
+        va_end(args);
+    }
+
     void flush_buffer();   // Blocks until flush is done
     void flush_buffer_eventually();   // Blocks only if the queue is backed up
 
@@ -151,6 +174,9 @@ public:
     iterator begin();
     iterator end();
 
+    // Changes the home_thread_mixin_t superclass's real_home_thread.
+    void rethread(int);
+
 private:
     explicit linux_tcp_conn_t(fd_t sock);   // Used by tcp_listener_t
 
@@ -162,9 +188,6 @@ private:
     void on_shutdown_write();
 
     scoped_fd_t sock;
-
-    /* Overrides `home_thread_mixin_t`'s `rethread()` method */
-    void rethread(int);
 
     /* Object that we use to watch for events. It's NULL when we are not registered on any
     thread, and otherwise is an object that's valid for the current thread. */
