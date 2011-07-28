@@ -419,7 +419,7 @@ perfmon_duration_sampler_t
 
 mc_buf_t::mc_buf_t(mc_inner_buf_t *inner_buf, access_t mode, mc_inner_buf_t::version_id_t version_to_access, bool snapshotted,
                    boost::function<void()> call_when_in_line, file_t::account_t *io_account)
-    : mode(mode), non_locking_access(snapshotted), inner_buf(inner_buf), data(NULL)
+    : mode(mode), snapshotted(snapshotted), non_locking_access(snapshotted), inner_buf(inner_buf), data(NULL)
 {
     inner_buf->cache->assert_thread();
     inner_buf->refcount++;
@@ -443,13 +443,13 @@ mc_buf_t::mc_buf_t(mc_inner_buf_t *inner_buf, access_t mode, mc_inner_buf_t::ver
         inner_buf->lock.co_lock(mode == rwi_read_outdated_ok ? rwi_read : mode, call_when_in_line);
         pm_bufs_acquiring.end(&start_time);
 
-        acquire_block(version_to_access, snapshotted);
+        acquire_block(version_to_access);
     }
 
     pm_bufs_held.begin(&start_time);
 }
 
-void mc_buf_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access, bool snapshotted) {
+void mc_buf_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access) {
     inner_buf->cache->assert_thread();
     rassert(!inner_buf->do_delete);
 
@@ -458,6 +458,7 @@ void mc_buf_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access, boo
         case rwi_read: {
             if (snapshotted) {
                 rassert(version_to_access == mc_inner_buf_t::faux_version_id || inner_buf->version_id <= version_to_access);
+                // FIXME: need to decrement in deconstructor!
                 ++inner_buf->snap_refcount;
             }
             data = inner_buf->data;
@@ -673,9 +674,13 @@ void mc_buf_t::release() {
         case rwi_write: {
             if (!non_locking_access)
                 inner_buf->lock.unlock();
-            if (data != inner_buf->data)
-                // we refer to a snapshot
-                inner_buf->release_snapshot_data(data);
+            if (snapshotted) {
+                if (data == inner_buf->data)
+                    --inner_buf->snap_refcount;
+                else
+                    inner_buf->release_snapshot_data(data);
+            } else
+                rassert(data == inner_buf->data);
             break;
         }
         case rwi_read_outdated_ok: {
