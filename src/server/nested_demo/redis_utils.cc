@@ -1,8 +1,11 @@
 #include "server/nested_demo/redis_utils.hpp"
 
+#include "config/args.hpp"
+
 namespace redis_utils {
     /* Constructs a btree_key_t from an std::string and puts it into out_buf */
     void construct_key(const std::string &key, scoped_malloc<btree_key_t> *out_buf) {
+        rassert(key.length() <= MAX_KEY_SIZE);
         scoped_malloc<btree_key_t> tmp(offsetof(btree_key_t, contents) + key.length());
         out_buf->swap(tmp);
         (*out_buf)->size = key.length();

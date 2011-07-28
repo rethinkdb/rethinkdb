@@ -11,12 +11,15 @@
 
 class btree_slice_t;
 
-/* TODO! */
+/* An abstract superblock provides the starting point for performing btree operations */
 class superblock_t {
 public:
     superblock_t() { }
     virtual ~superblock_t() { }
+    // Release the superblock if possible (otherwise do nothing)
     virtual void release() = 0;
+    // If we hold a lock on a super block, swap it into swapee
+    // (might swap in an empty buf_lock_t if we don't have an actual superblock)
     virtual void swap_buf(buf_lock_t &swapee) = 0;
     virtual block_id_t get_root_block_id() const = 0;
     virtual void set_root_block_id(const block_id_t new_root_block) = 0;
@@ -26,7 +29,8 @@ private:
     DISABLE_COPYING(superblock_t);
 };
 
-/* TODO! */
+/* real_superblock_t implements superblock_t in terms of an actual on-disk block
+   structure. */
 class real_superblock_t : public superblock_t {
 public:
     real_superblock_t(buf_lock_t &sb_buf);
@@ -42,11 +46,15 @@ private:
 };
 
 /* This is for nested btrees, where the "superblock" is really more like a super value.
- It provides an in-memory superblock, which can be used to perform operations on the nested
- btree. Once those operations have finished, the user of this type is responsible
- to check whether the root_block_id has been changed, and if it has, to update the
- super value.
- (TODO! shitty documentation)
+ It provides an in-memory superblock replacement.
+
+ Note for use for nested btrees: If you want to nest a tree into some super value,
+ you would probably have a block_id_t nested_root value in the super value. Then,
+ before accessing the nested tree, you can construct a virtual_superblock_t
+ based on the nested_root value. Once write operations to the nested btree have
+ finished, you should check whether the root_block_id has been changed,
+ and if it has, ude get_root_block_id() to update the nested_root value in the
+ super block.
  */
 class virtual_superblock_t : public superblock_t {
 public:

@@ -5,6 +5,7 @@
 #include <boost/shared_ptr.hpp>
 #include "server/nested_demo/redis_utils.hpp"
 #include "btree/iteration.hpp"
+#include "config/args.hpp"
 
 struct redis_hash_value_t {
     block_id_t nested_root;
@@ -24,6 +25,11 @@ public:
 
 
     /* Some operations that you can do on a hash (resembling redis commands)... */
+
+    // For checking if a field name is too long
+    bool does_field_fit(const std::string &field) const {
+        return field.length() <= MAX_KEY_SIZE;
+    }
 
     boost::optional<std::string> hget(value_sizer_t<redis_hash_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, const std::string &field) const;
 
@@ -64,8 +70,7 @@ public:
     }
 
     bool fits(UNUSED const redis_hash_value_t *value, UNUSED int length_available) const {
-        // It's of constant size...
-        return true;
+        return size(value) <= length_available;
     }
 
     int max_possible_size() const {
@@ -74,7 +79,7 @@ public:
     }
 
     block_magic_t btree_leaf_magic() const {
-        block_magic_t magic = { { 'l', 'e', 'a', 'f' } }; // TODO!
+        block_magic_t magic = { { 'l', 'r', 'e', 'h' } }; // Leaf REdis Hash
         return magic;
     }
 

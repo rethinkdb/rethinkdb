@@ -5,19 +5,8 @@
 #include <boost/shared_ptr.hpp>
 #include "server/nested_demo/redis_utils.hpp"
 #include "btree/iteration.hpp"
+#include "config/args.hpp"
 
-
-/* TODO!
-The member_score btree goes from the member as a key to a redis_nested_float_value_t.
-The score_member btree goes from a concatenation of score (in lex representation) and
-member to an empty value.
- 
-We then use a smart transformation iterator to factor out the score and member from
-the score_member keys.
-
-TODO! We need some size checking, especially as max sized in the score_member tree are
-not trivial.
- */
 
 struct redis_nested_float_value_t {
     float value;
@@ -53,6 +42,11 @@ protected:
 };
 
 struct redis_sortedset_value_t {
+    /*
+    The member_score btree maps from the member to a redis_nested_float_value_t.
+    The score_member btree maps from a concatenation of score (in lexicographical representation) and
+    member to an empty value.
+     */
     block_id_t member_score_nested_root; // nested tree from member to score
     block_id_t score_member_nested_root; // nested tree from score to member
     // TODO! We need the third subtree size nested tree!
@@ -72,6 +66,12 @@ public:
 
 
     /* Some operations that you can do on a hash (resembling redis commands)... */
+
+    // For checking if a member is too long
+    bool does_member_fit(const std::string &member) const {
+        // We construct concatenations of a lex float and the actual member, so that has to fit
+        return member.length() + redis_utils::LEX_FLOAT_SIZE <= MAX_KEY_SIZE;
+    }
 
     int zcard() const;
 
@@ -108,11 +108,13 @@ public:
     /* This is equivalent to zrange with start == 0. It might be faster though, and is meant for internal operations. */
     boost::shared_ptr<one_way_iterator_t<std::pair<float, std::string> > > get_full_iter(value_sizer_t<redis_sortedset_value_t> *super_sizer, boost::shared_ptr<transaction_t> transaction, int slice_home_thread) const;
 
-    // TODO! Add more stuff
-
     /*
-     Set operations can be implemented on top of smembers, and this is how:
+     Set operations can be implemented on top of get_full_iter, and this is how:
      TODO!
+     (we need special iterators for this, because merging two members with different scores adds
+     complexity over the implementation for plain sets. Specifically, two members with different scores
+     have to be treated as equal, but their scores have to be merged in certain ways (summing them up
+     or taking the maximum or mininum).
      */
 
 
@@ -155,9 +157,8 @@ public:
         return value->inline_size(block_size_);
     }
 
-    bool fits(UNUSED const redis_sortedset_value_t *value, UNUSED int length_available) const {
-        // It's of constant size...
-        return true;
+    bool fits(const redis_sortedset_value_t *value, int length_available) const {
+        return size(value) <= length_available;
     }
 
     int max_possible_size() const {
@@ -166,7 +167,7 @@ public:
     }
 
     block_magic_t btree_leaf_magic() const {
-        block_magic_t magic = { { 'l', 'e', 'a', 'f' } }; // TODO!
+        block_magic_t magic = { { 'l', 'r', 'e', 'z' } }; // Leaf REdis sorted set
         return magic;
     }
 

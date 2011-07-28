@@ -18,15 +18,6 @@ struct key_value_pair_t {
     std::string key;
     boost::shared_array<char> value;
 
-    // TODO! This is just a hack, because it doesn't compare value.
-    // We should really use a specialized comparator in the iterators that need this.
-    bool operator==(const key_value_pair_t &k) const {
-        return key == k.key;
-    }
-    bool operator<(const key_value_pair_t &k) const {
-        return key < k.key;
-    }
-
     key_value_pair_t(value_sizer_t<Value> *sizer, const std::string& _key, const Value *_value) : key(_key) {
         int size = sizer->size(reinterpret_cast<const Value *>(_value));
         value.reset(new char[size]);

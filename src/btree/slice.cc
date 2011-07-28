@@ -33,7 +33,6 @@ void btree_slice_t::create(cache_t *cache) {
     sb->root_block = NULL_BLOCK_ID;
 
     // Allocate sb->delete_queue_block like an ordinary block.
-    // TODO! Allow disabling that extra block.
     buf_lock_t delete_queue_block;
     delete_queue_block.allocate(&txn);
     replication::delete_queue_block_t *dqb = reinterpret_cast<replication::delete_queue_block_t *>(delete_queue_block->get_data_major_write());
