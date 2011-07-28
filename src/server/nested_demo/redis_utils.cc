@@ -70,7 +70,6 @@ namespace redis_utils {
     
     float from_lex_float(const char *buf) {
         rassert(sizeof(int) == sizeof(float));
-        // TODO! Test this
         int i = from_lex_int(buf);
         if (i < 0) {
             i = -(i ^ 0x80000000);

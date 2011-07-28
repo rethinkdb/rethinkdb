@@ -125,12 +125,14 @@ namespace redis_utils {
     }
 
     /* Conversion between int and a lexicographical string representation */
+    // TODO: We would like a unit test for these
     const size_t LEX_INT_SIZE = sizeof(int);
     void to_lex_int(const int i, char *buf);
     int from_lex_int(const char *buf);
 
     /* Conversion between float and a lexicographical string representation */
     /* Note: In the lexicographic representation, it is -0.0f < 0.0f. */
+    // TODO: We would like a unit test for these
     const size_t LEX_FLOAT_SIZE = LEX_INT_SIZE;
     void to_lex_float(const float f, char *buf);
     float from_lex_float(const char *buf);
