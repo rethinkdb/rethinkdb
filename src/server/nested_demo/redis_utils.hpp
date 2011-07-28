@@ -2,20 +2,19 @@
 #define	__SERVER_NESTED_DEMO_REDIS_UTILS_HPP_
 
 #include "btree/operations.hpp"
+#include "buffer_cache/blob.hpp"
 
 /* nested string value type */
-// TODO! Replace this by a version that uses blobs!
 struct redis_nested_string_value_t {
-    int length;
     char contents[];
 
 public:
-    int inline_size(UNUSED block_size_t bs) const {
-        return sizeof(length) + length;
+    int inline_size(block_size_t bs) const {
+        return offsetof(memcached_value_t, contents) + blob::ref_size(bs, contents, blob::btree_maxreflen);
     }
 
     int64_t value_size() const {
-        return length;
+        return blob::value_size(contents, blob::btree_maxreflen);
     }
 
     const char *value_ref() const { return contents; }
@@ -30,13 +29,11 @@ public:
         return value->inline_size(block_size_);
     }
 
-    bool fits(UNUSED const redis_nested_string_value_t *value, UNUSED int length_available) const {
-        // TODO!
-        return size(value) <= length_available;
+    bool fits(const redis_nested_string_value_t *value, int length_available) const {
+        return blob::ref_fits(block_size_, length_available, value->value_ref(), blob::btree_maxreflen);
     }
 
     int max_possible_size() const {
-        // TODO?
         return MAX_BTREE_VALUE_SIZE;
     }
 

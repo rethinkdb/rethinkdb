@@ -56,9 +56,13 @@ public:
 private:
     // Transforms from key_value_pair_t<redis_nested_string_value_t> to pairs of key and value for
     // cleaner outside-facing iterator interface
-    std::pair<std::string, std::string> transform_value(const key_value_pair_t<redis_nested_string_value_t> &pair) const {
+    std::pair<std::string, std::string> transform_value(boost::shared_ptr<transaction_t> transaction, const key_value_pair_t<redis_nested_string_value_t> &pair) const {
         const redis_nested_string_value_t *value = reinterpret_cast<redis_nested_string_value_t*>(pair.value.get());
-        return std::pair<std::string, std::string>(pair.key, std::string(value->contents, value->length));
+        std::string value_str;
+        // const_cast is safe because all we do is reading from the blob
+        blob_t b(const_cast<char *>(value->contents), blob::btree_maxreflen);
+        b.read_to_string(value_str, transaction.get(), 0, b.valuesize());
+        return std::pair<std::string, std::string>(pair.key, value_str);
     }
 } __attribute__((__packed__));
 

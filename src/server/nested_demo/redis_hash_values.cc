@@ -1,4 +1,5 @@
 #include "server/nested_demo/redis_hash_values.hpp"
+#include "redis_utils.hpp"
 
 #include <boost/bind.hpp>
 
@@ -10,8 +11,9 @@ boost::optional<std::string> redis_hash_value_t::hget(value_sizer_t<redis_hash_v
 
     // Get out the string value
     if (kv_location.there_originally_was_value) {
+        blob_t b(kv_location.value->contents, blob::btree_maxreflen);
         std::string value;
-        value.assign(kv_location.value->contents, kv_location.value->length);
+        b.read_to_string(value, transaction.get(), 0, b.valuesize());
         return boost::optional<std::string>(value);
     } else {
         return boost::none;
@@ -40,6 +42,11 @@ bool redis_hash_value_t::hdel(value_sizer_t<redis_hash_value_t> *super_sizer, bo
     redis_utils::find_nested_keyvalue_location_for_write(super_sizer->block_size(), transaction, field, repli_timestamp_t::invalid, &kv_location, &btree_key, nested_root);
 
     // Delete the key
+    if (kv_location.there_originally_was_value) {
+        // Clear the existing blob...
+        blob_t b_old(kv_location.value->contents, blob::btree_maxreflen);
+        b_old.clear(transaction.get());
+    }
     kv_location.value.reset(); // Remove value
     // TODO! Rather use a proper timestamp
     apply_keyvalue_change(&sizer, &kv_location, btree_key.get(), repli_timestamp_t::invalid);
@@ -60,10 +67,10 @@ bool redis_hash_value_t::hset(value_sizer_t<redis_hash_value_t> *super_sizer, bo
 
     // Construct the value
     scoped_malloc<redis_nested_string_value_t> btree_value(sizer.max_possible_size());
-    // TODO! Should use blobs, plus this check is bad
-    guarantee(value.length() < sizer.max_possible_size() - sizeof(btree_value->contents));
-    memcpy(btree_value->contents, value.data(), value.length());
-    btree_value->length = value.length();
+    memset(btree_value.get(), 0, sizer.max_possible_size());
+    blob_t b(btree_value->contents, blob::btree_maxreflen);
+    b.append_region(transaction.get(), value.length());
+    b.write_from_string(value, transaction.get(), 0);
 
     // Find the element
     // TODO! Rather use a proper timestamp
@@ -72,6 +79,11 @@ bool redis_hash_value_t::hset(value_sizer_t<redis_hash_value_t> *super_sizer, bo
     redis_utils::find_nested_keyvalue_location_for_write(super_sizer->block_size(), transaction, field, repli_timestamp_t::invalid, &kv_location, &btree_key, nested_root);
 
     // Update/insert the value
+    if (kv_location.there_originally_was_value) {
+        // Clear the existing blob...
+        blob_t b_old(kv_location.value->contents, blob::btree_maxreflen);
+        b_old.clear(transaction.get());
+    }
     kv_location.value.swap(btree_value);
     // TODO! Rather use a proper timestamp
     apply_keyvalue_change(&sizer, &kv_location, btree_key.get(), repli_timestamp_t::invalid);
@@ -137,7 +149,7 @@ boost::shared_ptr<one_way_iterator_t<std::pair<std::string, std::string> > > red
             new slice_keys_iterator_t<redis_nested_string_value_t>(sizer_ptr, transaction, nested_btree_sb, slice_home_thread, rget_bound_none, none_key, rget_bound_none, none_key);
     boost::shared_ptr<one_way_iterator_t<std::pair<std::string, std::string> > > transform_iter(
             new transform_iterator_t<key_value_pair_t<redis_nested_string_value_t>, std::pair<std::string, std::string> >(
-                    boost::bind(&redis_hash_value_t::transform_value, this, _1), tree_iter));
+                    boost::bind(&redis_hash_value_t::transform_value, this, transaction, _1), tree_iter));
 
     return transform_iter;
 }
