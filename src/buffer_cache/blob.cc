@@ -493,7 +493,7 @@ void blob_t::clear(transaction_t *txn) {
     unappend_region(txn, valuesize());
 }
 
-void blob_t::write_from_string(std::string &val, transaction_t *txn, int64_t offset) {
+void blob_t::write_from_string(const std::string &val, transaction_t *txn, int64_t offset) {
     buffer_group_t dest;
     boost::scoped_ptr<blob_acq_t> acq(new blob_acq_t);
     expose_region(txn, rwi_write, offset, val.size(), &dest, acq.get());

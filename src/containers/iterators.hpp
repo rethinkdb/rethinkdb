@@ -167,4 +167,156 @@ private:
 
 };
 
+/*
+unique_iterator_t removes duplicates. It requires the input iterator to be sorted.
+T has to implement operator==().
+
+Note: Union of sets can be implemented as a unque iterator around a merge iterator.
+*/
+template <class T>
+class unique_filter_iterator_t : public one_way_iterator_t<T> {
+public:
+    unique_filter_iterator_t(one_way_iterator_t<T> *_ownee) : previous(boost::none), ownee(_ownee) { }
+    ~unique_filter_iterator_t() {
+        delete ownee;
+    }
+    virtual typename boost::optional<T> next() {
+        for (;;) {
+            boost::optional<T> value = ownee->next();
+            if (!value) {
+                previous = value;
+                return boost::none;
+            } else {
+                // Is this element different from what we had before?
+                if (!previous || !(previous.get() == value.get())) {
+                    previous = value;
+                    return value;
+                }
+                // otherwise, continue.
+            }
+        }
+    }
+    void prefetch() {
+        // TODO: Should we implement this?
+        ownee->prefetch();
+    }
+
+private:
+    boost::optional<T> previous;
+    one_way_iterator_t<T> *ownee;
+};
+
+/* repetition_filter_iterator_t produces an element whenever it was repeated
+n_repetitions times in the input iterator. T has to implement operator==().
+If a element is repeated more than n_repetitions times, repetition_filter_iterator_t
+will output the element once per n_repetitions repetitions.
+
+Note: Intersection of sets can be implemented as a repetition iterator around a merge iterator,
+ where n_repetitions must be set to the number of input sets. This works as
+ long as the input iterators are sorted and don't produce any element more than once.
+ */
+template <class T>
+class repetition_filter_iterator_t : public one_way_iterator_t<T> {
+public:
+    repetition_filter_iterator_t(one_way_iterator_t<T> *_ownee, int _n_repetitions) : previous(boost::none), previous_repetitions(0), ownee(_ownee), n_repetitions(_n_repetitions) {
+        rassert(n_repetitions > 0);
+    }
+    ~repetition_filter_iterator_t() {
+        delete ownee;
+    }
+    virtual typename boost::optional<T> next() {
+        for (;;) {
+            boost::optional<T> value = ownee->next();
+            if (!value) {
+                previous = value;
+                previous_repetitions = 0;
+                return boost::none;
+            } else {
+                // Is this element different from what we had before?
+                if (!previous || !(previous.get() == value.get())) {
+                    // Different, start over
+                    previous_repetitions = 1;
+                    previous = value;
+                } else {
+                    // The same, increment counter
+                    ++previous_repetitions;
+                }
+
+                // Have we got enough repetitions?
+                rassert(previous_repetitions <= n_repetitions);
+                if (previous_repetitions == n_repetitions) {
+                    previous_repetitions = 0;
+                    return value;
+                }
+                // otherwise, continue.
+            }
+        }
+    }
+    void prefetch() {
+        // TODO: Should we implement this?
+        ownee->prefetch();
+    }
+
+private:
+    boost::optional<T> previous;
+    int previous_repetitions;
+    one_way_iterator_t<T> *ownee;
+    int n_repetitions;
+};
+
+/*
+ diff_filter_iterator_t implements set difference semantics. It's output
+ are all the keys from ownee_left that are not in ownee_right, assuming
+ that they are both sorted. T has to implement operator==() and operator<().
+*/
+// TODO/WARNING: As of Jul 28th, this has not been thoroughly tested. (daniel)
+//  If you use this and stuff fails, consider diff_filter_iterator_t to be potentially faulty.
+template <class T>
+class diff_filter_iterator_t : public one_way_iterator_t<T> {
+public:
+    diff_filter_iterator_t(one_way_iterator_t<T> *_ownee_left, one_way_iterator_t<T> *_ownee_right) : ownee_left(_ownee_left), ownee_right(_ownee_right), prefetched_right(boost::none) { }
+    ~diff_filter_iterator_t() {
+        delete ownee_left;
+        delete ownee_right;
+    }
+    virtual typename boost::optional<T> next() {
+        for (;;) {
+            boost::optional<T> value = ownee_left->next();
+            if (!value) {
+                return boost::none;
+            } else {
+                // Is this element the same as prefetched_right?
+                if (prefetched_right && prefetched_right.get() == value.get()) {
+                    // It is, skip value.
+                } else {
+                    // Fetch new elements from ownee_right until they pass value
+                    if (!prefetched_right || prefetched_right.get() < value.get()) {
+                        do {
+                            prefetched_right = ownee_right->next();
+                        } while (prefetched_right && prefetched_right.get() < value.get());
+                    }
+
+                    // Now check again...
+                    if (prefetched_right && prefetched_right.get() == value.get()) {
+                        // Ok, it's the same as value. Skip value.
+                    } else {
+                        // no element like value in prefetched_right, return value
+                        return value;
+                    }
+                }
+            }
+        }
+    }
+    void prefetch() {
+        // TODO: Should we implement this?
+        ownee_left->prefetch();
+        ownee_right->prefetch();
+    }
+
+private:
+    one_way_iterator_t<T> *ownee_left;
+    one_way_iterator_t<T> *ownee_right;
+    boost::optional<T> prefetched_right;
+};
+
 #endif /* __CONTAINERS_ITERATOR_HPP__ */

@@ -1,9 +1,9 @@
 #include "btree/btree_data_provider.hpp"
 #include "perfmon.hpp"
 
-perfmon_counter_t
-    leaf_iterators("leaf_iterators"),
-    slice_leaves_iterators("slice_leaves_iterators");
+extern perfmon_counter_t
+    leaf_iterators,
+    slice_leaves_iterators;
 
 template <class Value>
 leaf_iterator_t<Value>::leaf_iterator_t(const leaf_node_t *_leaf, int _index, buf_lock_t *_lock, const boost::shared_ptr<value_sizer_t<Value> >& _sizer, const boost::shared_ptr<transaction_t>& _transaction) :
@@ -11,7 +11,7 @@ leaf_iterator_t<Value>::leaf_iterator_t(const leaf_node_t *_leaf, int _index, bu
 
     rassert(leaf != NULL);
     rassert(lock != NULL);
-    leaf_iterators++;
+    //leaf_iterators++;
 }
 
 template <class Value>
@@ -35,7 +35,7 @@ void leaf_iterator_t<Value>::prefetch() {
 
 template <class Value>
 leaf_iterator_t<Value>::~leaf_iterator_t() {
-    leaf_iterators--;
+    //leaf_iterators--;
     done();
 }
 
@@ -49,12 +49,13 @@ void leaf_iterator_t<Value>::done() {
 }
 
 template <class Value>
-slice_leaves_iterator_t<Value>::slice_leaves_iterator_t(const boost::shared_ptr<value_sizer_t<Value> >& _sizer, const boost::shared_ptr<transaction_t>& _transaction, btree_slice_t *_slice,
+slice_leaves_iterator_t<Value>::slice_leaves_iterator_t(const boost::shared_ptr<value_sizer_t<Value> >& _sizer, const boost::shared_ptr<transaction_t>& _transaction, boost::scoped_ptr<superblock_t> &_superblock, int _slice_home_thread,
     rget_bound_mode_t _left_mode, const btree_key_t *_left_key, rget_bound_mode_t _right_mode, const btree_key_t *_right_key) :
-    sizer(_sizer), transaction(_transaction), slice(_slice),
+    sizer(_sizer), transaction(_transaction), slice_home_thread(_slice_home_thread),
     left_mode(_left_mode), left_key(_left_key), right_mode(_right_mode), right_key(_right_key),
     traversal_state(), started(false), nevermore(false) {
-    slice_leaves_iterators++;
+    superblock.swap(_superblock);
+    //slice_leaves_iterators++;
 }
 
 template <class Value>
@@ -75,7 +76,7 @@ void slice_leaves_iterator_t<Value>::prefetch() {
 
 template <class Value>
 slice_leaves_iterator_t<Value>::~slice_leaves_iterator_t() {
-    slice_leaves_iterators--;
+    //slice_leaves_iterators--;
     done();
 }
 
@@ -90,24 +91,26 @@ void slice_leaves_iterator_t<Value>::done() {
 
 template <class Value>
 boost::optional<leaf_iterator_t<Value>*> slice_leaves_iterator_t<Value>::get_first_leaf() {
-    on_thread_t mover(slice->home_thread()); // Move to the slice's thread.
+    on_thread_t mover(slice_home_thread); // Move to the slice's thread.
 
     started = true;
-    // TODO: Why is this a buf_lock_t pointer?  That's not how buf_lock_t should be used.
-    buf_lock_t *buf_lock = new buf_lock_t(transaction.get(), block_id_t(SUPERBLOCK_ID), rwi_read);
-    block_id_t root_id = reinterpret_cast<const btree_superblock_t *>(buf_lock->buf()->get_data_read())->root_block;
+    block_id_t root_id = superblock->get_root_block_id();
     rassert(root_id != SUPERBLOCK_ID);
 
     if (root_id == NULL_BLOCK_ID) {
-        delete buf_lock;
+        superblock->release();
         return boost::none;
     }
 
     if (left_mode == rget_bound_none) {
         boost::optional<leaf_iterator_t<Value>*> leftmost_leaf = get_leftmost_leaf(root_id);
-        delete buf_lock;
+        superblock->release();
         return leftmost_leaf;
     }
+
+    // TODO: Can we do all this without having buf_lock being a pointer?
+    buf_lock_t *buf_lock = new buf_lock_t();
+    superblock->swap_buf(*buf_lock);
 
     {
         buf_lock_t tmp(transaction.get(), root_id, rwi_read);
@@ -176,7 +179,7 @@ boost::optional<leaf_iterator_t<Value>*> slice_leaves_iterator_t<Value>::get_nex
 
 template <class Value>
 boost::optional<leaf_iterator_t<Value>*> slice_leaves_iterator_t<Value>::get_leftmost_leaf(block_id_t node_id) {
-    on_thread_t mover(slice->home_thread()); // Move to the slice's thread.
+    on_thread_t mover(slice_home_thread); // Move to the slice's thread.
 
     // TODO: Why is there a buf_lock_t pointer?  This is not how
     // buf_lock_t works.  Just use a buf_t pointer then.
@@ -214,12 +217,14 @@ block_id_t slice_leaves_iterator_t<Value>::get_child_id(const internal_node_t *i
 }
 
 template <class Value>
-slice_keys_iterator_t<Value>::slice_keys_iterator_t(const boost::shared_ptr<value_sizer_t<Value> >& _sizer, const boost::shared_ptr<transaction_t>& _transaction, btree_slice_t *_slice,
+slice_keys_iterator_t<Value>::slice_keys_iterator_t(const boost::shared_ptr<value_sizer_t<Value> >& _sizer, const boost::shared_ptr<transaction_t>& _transaction, boost::scoped_ptr<superblock_t> &_superblock, int _slice_home_thread,
         rget_bound_mode_t _left_mode, const store_key_t &_left_key, rget_bound_mode_t _right_mode, const store_key_t &_right_key) :
-    sizer(_sizer), transaction(_transaction), slice(_slice),
+    sizer(_sizer), transaction(_transaction), slice_home_thread(_slice_home_thread),
     left_mode(_left_mode), left_key(_left_key), right_mode(_right_mode), right_key(_right_key),
     left_str(key_to_str(_left_key)), right_str(key_to_str(_right_key)),
-    no_more_data(false), active_leaf(NULL), leaves_iterator(NULL) { }
+    no_more_data(false), active_leaf(NULL), leaves_iterator(NULL) {
+    superblock.swap(_superblock);
+}
 
 template <class Value>
 slice_keys_iterator_t<Value>::~slice_keys_iterator_t() {
@@ -244,7 +249,8 @@ void slice_keys_iterator_t<Value>::prefetch() {
 
 template <class Value>
 boost::optional<key_value_pair_t<Value> > slice_keys_iterator_t<Value>::get_first_value() {
-    leaves_iterator = new slice_leaves_iterator_t<Value>(sizer, transaction, slice, left_mode, left_key.key(), right_mode, right_key.key());
+    rassert(superblock);
+    leaves_iterator = new slice_leaves_iterator_t<Value>(sizer, transaction, superblock, slice_home_thread, left_mode, left_key.key(), right_mode, right_key.key());
 
     // get the first leaf with our left key (or something greater)
     boost::optional<leaf_iterator_t<Value>*> first = leaves_iterator->next();

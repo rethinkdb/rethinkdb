@@ -39,6 +39,7 @@ public:
     // Gets the buf_t that has been locked.  Don't call release() on it!
     // TODO: Remove buf_t::release, or make it private.
     buf_t *buf() { return buf_; }
+    const buf_t *const_buf() const { return buf_; }
 
     buf_t *operator->() { return buf_; }
 

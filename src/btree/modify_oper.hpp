@@ -4,6 +4,7 @@
 #include "btree/node.hpp"
 #include "buffer_cache/buf_lock.hpp"
 #include "containers/scoped_malloc.hpp"
+#include "btree/operations.hpp"
 
 class btree_slice_t;
 
@@ -33,7 +34,7 @@ public:
     // queue is a child of the superblock, when it comes to
     // transactional ordering.
     virtual void do_superblock_sidequest(UNUSED transaction_t *txn,
-                                         UNUSED buf_lock_t& superblock,
+                                         UNUSED superblock_t *superblock,
                                          UNUSED repli_timestamp_t recency,
                                          UNUSED const store_key_t *key) { }
 };

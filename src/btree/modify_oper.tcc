@@ -27,7 +27,7 @@ void run_btree_modify_oper(value_sizer_t<Value> *sizer, btree_modify_oper_t<Valu
         // to be, but when you fix this, make sure the superblock
         // sidequest is done using the superblock before the
         // superblock gets released.
-        oper->do_superblock_sidequest(got_superblock.txn.get(), got_superblock.sb_buf, castime.timestamp, &store_key);
+        oper->do_superblock_sidequest(got_superblock.txn.get(), got_superblock.sb.get(), castime.timestamp, &store_key);
 
         keyvalue_location_t<Value> kv_location;
         find_keyvalue_location_for_write(sizer, &got_superblock, key, castime.timestamp, &kv_location);
