@@ -170,6 +170,8 @@ private:
 /*
 unique_iterator_t removes duplicates. It requires the input iterator to be sorted.
 T has to implement operator==().
+
+Note: Union of sets can be implemented as a unque iterator around a merge iterator.
 */
 template <class T>
 class unique_filter_iterator_t : public one_way_iterator_t<T> {
@@ -204,9 +206,15 @@ private:
     one_way_iterator_t<T> *ownee;
 };
 
-// TODO: Union of sets can be implemented as a unque iterator around a merge iterator.
+/* repetition_filter_iterator_t produces an element whenever it was repeated
+n_repetitions times in the input iterator. T has to implement operator==().
+If a element is repeated more than n_repetitions times, repetition_filter_iterator_t
+will output the element once per n_repetitions repetitions.
 
-/* TODO! Document (especially what happens in case of more than n repetitions) */
+Note: Intersection of sets can be implemented as a repetition iterator around a merge iterator,
+ where n_repetitions must be set to the number of input sets. This works as
+ long as the input iterators are sorted and don't produce any element more than once.
+ */
 template <class T>
 class repetition_filter_iterator_t : public one_way_iterator_t<T> {
 public:
@@ -256,14 +264,13 @@ private:
     int n_repetitions;
 };
 
-// TODO: Intersection of sets can be implemented as a repetition iterator around a merge iterator.
-
 /*
  diff_filter_iterator_t implements set difference semantics. It's output
  are all the keys from ownee_left that are not in ownee_right, assuming
- that they are both sorted.
+ that they are both sorted. T has to implement operator==() and operator<().
 */
-// TODO! test this!
+// TODO/WARNING: As of Jul 28th, this has not been thoroughly tested. (daniel)
+//  If you use this and stuff fails, consider diff_filter_iterator_t to be potentially faulty.
 template <class T>
 class diff_filter_iterator_t : public one_way_iterator_t<T> {
 public:

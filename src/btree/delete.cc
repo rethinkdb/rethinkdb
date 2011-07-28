@@ -42,7 +42,7 @@ struct btree_delete_oper_t : public btree_modify_oper_t<memcached_value_t> {
             if (delete_queue_root != NULL_BLOCK_ID) {
                 replication::add_key_to_delete_queue(slice->delete_queue_limit(), txn, delete_queue_root, recency, key);
             } else {
-                debugf("Failed to locate delete queue\n"); // TODO! I think this is ok, but check that.
+                crash("Failed to locate delete queue\n"); // TODO: Is it ok to fail in this case?
             }
         }
     }

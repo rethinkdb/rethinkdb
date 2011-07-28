@@ -7,7 +7,8 @@
 #include "btree/iteration.hpp"
 #include "config/args.hpp"
 
-
+/* redis_nested_float_value_t right now is architecture dependent. Specifically
+it stores a raw float value to disk. */
 struct redis_nested_float_value_t {
     float value;
 } __attribute__((__packed__));
@@ -41,6 +42,8 @@ protected:
     block_size_t block_size_;
 };
 
+/* Please note: before deleing a redis_sortedset_value_t, you have to call
+ clear() on it. Otherwise, you might end up having orphaned nested btree blocks. */
 struct redis_sortedset_value_t {
     /*
     The member_score btree maps from the member to a redis_nested_float_value_t.

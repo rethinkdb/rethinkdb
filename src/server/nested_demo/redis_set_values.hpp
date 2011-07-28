@@ -7,6 +7,8 @@
 #include "btree/iteration.hpp"
 #include "config/args.hpp"
 
+/* Please note: before deleing a redis_set_value_t, you have to call
+ clear() on it. Otherwise, you might end up having orphaned nested btree blocks. */
 struct redis_set_value_t {
     block_id_t nested_root;
     uint32_t size;
