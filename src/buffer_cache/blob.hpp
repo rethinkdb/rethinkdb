@@ -166,6 +166,14 @@ public:
     // holds no internal blocks, once it has been cleared.
     void clear(transaction_t *txn);
 
+    // Writes over the portion of the blob, starting at offset, with
+    // the contents of the string val. Caller is responsible for making
+    // sure this portion of the blob exists
+    void write_from_string(std::string &val, transaction_t *txn, int64_t offset);
+
+    // Reads from the region of the blob from offset to offset + length into the string s_out
+    void read_to_string(std::string &s_out, transaction_t *txn, int64_t offset, int64_t length);
+
 private:
     bool traverse_to_dimensions(transaction_t *txn, int levels, int64_t old_offset, int64_t old_size, int64_t new_offset, int64_t new_size, blob::traverse_helper_t *helper);
     bool allocate_to_dimensions(transaction_t *txn, int levels, int64_t new_offset, int64_t new_size);

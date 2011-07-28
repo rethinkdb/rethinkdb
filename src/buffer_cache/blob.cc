@@ -489,6 +489,28 @@ void blob_t::clear(transaction_t *txn) {
     unappend_region(txn, valuesize());
 }
 
+void blob_t::write_from_string(std::string &val, transaction_t *txn, int64_t offset) {
+    buffer_group_t dest;
+    boost::scoped_ptr<blob_acq_t> acq(new blob_acq_t);
+    expose_region(txn, rwi_write, offset, val.size(), &dest, acq.get());
+
+    buffer_group_t src;
+    src.add_buffer(val.size(), const_cast<char *>(val.c_str()));
+    buffer_group_copy_data(&dest, const_view(&src));
+}
+
+void blob_t::read_to_string(std::string &s_out, transaction_t *txn, int64_t offset, int64_t length) {
+    s_out.resize(length, '\0');
+
+    buffer_group_t dest;
+    dest.add_buffer(length, const_cast<char *>(s_out.c_str()));
+
+    buffer_group_t src;
+    boost::scoped_ptr<blob_acq_t> acq(new blob_acq_t);
+    expose_region(txn, rwi_read, offset, length, &src, acq.get());
+    buffer_group_copy_data(&dest, const_view(&src));
+}
+
 namespace blob {
 
 struct traverse_helper_t {
