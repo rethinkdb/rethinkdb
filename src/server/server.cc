@@ -15,8 +15,13 @@
 #include "gated_store.hpp"
 #include "concurrency/promise.hpp"
 #include "arch/os_signal.hpp"
+#include "http/http.hpp"
+#include "riak/riak.hpp"
 #include "server/key_value_store.hpp"
 #include "server/metadata_store.hpp"
+#include "cmd_args.hpp"
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
 
 int run_server(int argc, char *argv[]) {
 
@@ -273,8 +278,10 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                     /* Master destructor called here */
 
                 } else {
+                    store_manager_t<std::list<std::string> > *store_manager = new store_manager_t<std::list<std::string> >();
 
                     /* We aren't doing any sort of replication. */
+                    //riak::riak_server_t server(2222, store_manager);
 
                     /* Make it impossible for this database file to later be used as a slave, because
                     that would confuse the replication logic. */
@@ -298,6 +305,8 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                     logINF("Server will now permit memcached queries on port %d.\n", cmd_config->port);
 
                     wait_for_sigint();
+
+                    delete store_manager;
 
                     logINF("Waiting for running operations to finish...\n");
                 }

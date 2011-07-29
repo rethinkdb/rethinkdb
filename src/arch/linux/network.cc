@@ -264,6 +264,11 @@ void linux_tcp_conn_t::pop(size_t len) {
     read_buffer.erase(read_buffer.begin(), read_buffer.begin() + len);  // INEFFICIENT
 }
 
+void linux_tcp_conn_t::pop(iterator &it) {
+    rassert(!it.end, "Trying to pop an end iterator doesn't make any sense");
+    pop(it.pos);
+}
+
 void linux_tcp_conn_t::shutdown_read() {
     assert_thread();
     int res = ::shutdown(sock.get(), SHUT_RD);
@@ -514,6 +519,15 @@ linux_tcp_conn_t::~linux_tcp_conn_t() {
     /* scoped_fd_t's destructor will take care of close()ing the socket. */
 }
 
+linux_tcp_conn_t::iterator linux_tcp_conn_t::begin() {
+    return iterator(this, (size_t) 0);
+}
+
+linux_tcp_conn_t::iterator linux_tcp_conn_t::end() {
+    linux_tcp_conn_t::iterator res = iterator(this, true);
+    return res;
+}
+
 void linux_tcp_conn_t::rethread(int new_thread) {
 
     if (home_thread() == get_thread_id() && new_thread == INVALID_THREAD) {
@@ -594,6 +608,86 @@ void linux_tcp_conn_t::on_event(int events) {
     }
 }
 
+void linux_tcp_conn_t::iterator::increment() {
+    pos++;
+}
+
+/* compare ourselves to another iterator:
+ * Returns:
+ * -1 -> *this < other
+ *  0 -> *this == other
+ *  1 -> *this > other */
+int linux_tcp_conn_t::iterator::compare(iterator const& other) const {
+    rassert(source == other.source, "Comparing iterators from different connections\n");
+
+    if (!end && other.end) return -1;
+    if (end && other.end) return 0;
+    if (end && !other.end) return 1;
+
+    //compare the positions
+    if (pos < other.pos) return -1;
+    if (pos == other.pos) return 0;
+    if (pos > other.pos) return 1;
+
+    unreachable();
+    return -2; //happify gcc
+}
+
+bool linux_tcp_conn_t::iterator::equal(iterator const& other) {
+    return compare(other) == 0;
+}
+
+const char &linux_tcp_conn_t::iterator::dereference() {
+    const_charslice slc = source->peek(pos + 1);
+
+    /* check to make sure we at least got some data */
+    /* rassert(slc.end >= slc.beg);
+    while ((size_t) (slc.end - slc.beg) <= (pos - source->pos)) {
+        source->read_more_buffered();
+        slc = source->peek();
+    } */
+
+    return *(slc.beg + pos);
+}
+
+linux_tcp_conn_t::iterator::iterator() {
+    not_implemented();
+}
+
+linux_tcp_conn_t::iterator::iterator(linux_tcp_conn_t *source, size_t pos)
+    : source(source), end(false), pos(pos)
+{ }
+
+linux_tcp_conn_t::iterator::iterator(linux_tcp_conn_t *source, bool)
+    : source(source), end(true), pos(-1)
+{ }
+
+linux_tcp_conn_t::iterator::iterator(iterator const& other) 
+    : source(other.source), end(other.end), pos(other.pos)
+{ }
+
+linux_tcp_conn_t::iterator::~iterator() { }
+
+char linux_tcp_conn_t::iterator::operator*() {
+    return dereference();
+}
+
+void linux_tcp_conn_t::iterator::operator++() {
+    increment();
+}
+
+void linux_tcp_conn_t::iterator::operator++(int) {
+    increment();
+}
+
+bool linux_tcp_conn_t::iterator::operator==(linux_tcp_conn_t::iterator const &other) {
+    return equal(other);
+}
+
+bool linux_tcp_conn_t::iterator::operator!=(linux_tcp_conn_t::iterator const &other) {
+    return !equal(other);
+}
+
 /* Network listener object */
 
 linux_tcp_listener_t::linux_tcp_listener_t(
@@ -648,6 +742,7 @@ linux_tcp_listener_t::linux_tcp_listener_t(
     res = fcntl(sock.get(), F_SETFL, O_NONBLOCK);
     guarantee_err(res == 0, "Could not make socket non-blocking");
 
+    logINF("Listening on port %d\n", port);
     // Start the accept loop
     accept_loop_handler.reset(new side_coro_handler_t(
         boost::bind(&linux_tcp_listener_t::accept_loop, this, _1)

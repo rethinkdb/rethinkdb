@@ -21,34 +21,35 @@ the log serializer. */
 // TODO make this just an interface and move implementation into semantic_checking.tcc, then use
 // tim's template hack to instantiate as necessary in a .cc file.
 
-struct scc_block_info_t;
-struct scc_persisted_block_info_t;
+struct scs_block_info_t;
+struct scs_persisted_block_info_t;
 
 template<class inner_serializer_t>
 class semantic_checking_serializer_t :
     public serializer_t
 {
 private:
-    struct scc_block_token_t;
+    struct scs_block_token_t;
     struct reader_t;
 
     inner_serializer_t inner_serializer;
-    two_level_array_t<scc_block_info_t, MAX_BLOCK_ID> blocks;
+    two_level_array_t<scs_block_info_t, MAX_BLOCK_ID> blocks;
     int last_index_write_started, last_index_write_finished;
     int semantic_fd;
 
     // Helper functions
     uint32_t compute_crc(const void *buf);
-    void update_block_info(block_id_t block_id, scc_block_info_t info);
-    boost::shared_ptr<block_token_t> wrap_token(block_id_t block_id, scc_block_info_t info, boost::shared_ptr<block_token_t> inner_token);
+    void update_block_info(block_id_t block_id, scs_block_info_t info);
+    boost::shared_ptr<block_token_t> wrap_token(block_id_t block_id, scs_block_info_t info, boost::shared_ptr<block_token_t> inner_token);
     boost::shared_ptr<block_token_t> wrap_buf_token(block_id_t block_id, const void *buf, boost::shared_ptr<block_token_t> inner_token);
-    void read_check_state(scc_block_token_t *token, const void *buf);
+    void read_check_state(scs_block_token_t *token, const void *buf);
 
 public:
     typedef typename inner_serializer_t::private_dynamic_config_t private_dynamic_config_t;
     typedef typename inner_serializer_t::dynamic_config_t dynamic_config_t;
     typedef typename inner_serializer_t::static_config_t static_config_t;
     typedef typename inner_serializer_t::public_static_config_t public_static_config_t;
+    typedef typename inner_serializer_t::config_t config_t;
 
     static void create(dynamic_config_t *config, private_dynamic_config_t *private_config, public_static_config_t *static_config);
     semantic_checking_serializer_t(dynamic_config_t *config, private_dynamic_config_t *private_config);

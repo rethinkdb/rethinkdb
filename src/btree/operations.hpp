@@ -61,18 +61,22 @@ void apply_keyvalue_change(value_sizer_t<Value> *sizer, keyvalue_location_t<Valu
 template <class Value>
 class value_txn_t {
 public:
-    value_txn_t(btree_key_t *, value_sizer_t<Value> *, keyvalue_location_t<Value> *, repli_timestamp_t);
+    value_txn_t(btree_key_t *, boost::scoped_ptr<got_superblock_t> &, boost::scoped_ptr<value_sizer_t<Value> > &, boost::scoped_ptr<keyvalue_location_t<Value> > &, repli_timestamp_t);
+    value_txn_t(const value_txn_t &);
     ~value_txn_t();
     scoped_malloc<Value> value;
+
+    transaction_t *get_txn();
 private:
     btree_key_t *key;
-    value_sizer_t<Value> *sizer;
-    keyvalue_location_t<Value> *kv_location;
+    boost::scoped_ptr<got_superblock_t> got_superblock;
+    boost::scoped_ptr<value_sizer_t<Value> > sizer;
+    boost::scoped_ptr<keyvalue_location_t<Value> > kv_location;
     repli_timestamp_t tstamp;
 };
 
 template <class Value>
-value_txn_t<Value> get_value_write(btree_slice_t *, btree_key_t *, repli_timestamp_t, order_token_t);
+value_txn_t<Value> get_value_write(btree_slice_t *, btree_key_t *, const repli_timestamp_t, const order_token_t);
 
 template <class Value>
 void get_value_read(btree_slice_t *, btree_key_t *, order_token_t, keyvalue_location_t<Value> *);

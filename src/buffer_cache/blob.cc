@@ -283,6 +283,10 @@ void blob_t::expose_region(transaction_t *txn, access_t mode, int64_t offset, in
     }
 }
 
+void blob_t::expose_all(transaction_t *txn, access_t mode, buffer_group_t *buffer_group_out, blob_acq_t *acq_group_out) {
+    expose_region(txn, mode, 0, valuesize(), buffer_group_out, acq_group_out);
+}
+
 namespace blob {
 
 struct region_tree_filler_t {
