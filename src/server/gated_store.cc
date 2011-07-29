@@ -1,4 +1,4 @@
-#include "gated_store.hpp"
+#include "server/gated_store.hpp"
 
 #include "concurrency/fifo_checker.hpp"
 

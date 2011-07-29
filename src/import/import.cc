@@ -8,7 +8,6 @@
 #include "logger.hpp"
 #include "replication/master.hpp"
 #include "replication/slave.hpp"
-#include "gated_store.hpp"
 #include "concurrency/promise.hpp"
 
 namespace import {

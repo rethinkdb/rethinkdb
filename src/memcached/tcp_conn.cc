@@ -136,6 +136,10 @@ private:
     DISABLE_COPYING(rethread_tcp_conn_t);
 };
 
+static void close_conn_if_open(tcp_conn_t *conn) {
+    if (conn->is_read_open()) conn->shutdown_read();
+}
+
 void memcache_listener_t::handle(boost::scoped_ptr<tcp_conn_t> &conn) {
     assert_thread();
 
@@ -160,20 +164,9 @@ void memcache_listener_t::handle(boost::scoped_ptr<tcp_conn_t> &conn) {
 
     /* Set up an object that will close the network connection when a shutdown signal
     is delivered */
-    struct conn_closer_t : public signal_t::waiter_t {
-        tcp_conn_t *conn;
-        signal_t *signal;
-        conn_closer_t(tcp_conn_t *c, signal_t *s) : conn(c), signal(s) {
-            if (signal->is_pulsed()) on_signal_pulsed();
-            else signal->add_waiter(this);
-        }
-        void on_signal_pulsed() {
-            if (conn->is_read_open()) conn->shutdown_read();
-        }
-        ~conn_closer_t() {
-            if (!signal->is_pulsed()) signal->remove_waiter(this);
-        }
-    } conn_closer(conn.get(), &signal_transfer);
+    signal_t::subscription_t conn_closer(boost::bind(&close_conn_if_open, conn.get()));
+    if (signal_transfer.is_pulsed()) close_conn_if_open(conn.get());
+    else conn_closer.resubscribe(&signal_transfer);
 
     /* `serve_memcache()` will continuously serve memcache queries on the given conn
     until the connection is closed. */

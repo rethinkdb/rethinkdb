@@ -12,6 +12,7 @@ slave_stream_manager_t::slave_stream_manager_t(boost::scoped_ptr<tcp_conn_t> *co
     backfill_receiver_t(&backfill_storer_, slave_order_source),
     stream_(NULL),
     cond_(NULL),
+    subs_(boost::bind(&slave_stream_manager_t::on_signal_pulsed, this)),
     kvs_(kvs),
     backfill_storer_(kvs),
     interrupted_by_external_event_(false) {
@@ -27,7 +28,7 @@ slave_stream_manager_t::slave_stream_manager_t(boost::scoped_ptr<tcp_conn_t> *co
     if (cond_->is_pulsed()) {
         on_signal_pulsed();
     } else {
-        cond_->add_waiter(this);
+        subs_.resubscribe(cond);
     }
 }
 
@@ -44,7 +45,7 @@ void slave_stream_manager_t::backfill(repli_timestamp_t since_when) {
     bf.timestamp = since_when;
     if (stream_) stream_->send(&bf);
 
-    backfill_done_cond_.watch(&c);   // Stop when the backfill finishes
+    cond_link_t return_when_backfill_done(&backfill_done_cond_, &c);   // Stop when the backfill finishes
     cond_link_t abort_if_connection_closed(&shutdown_cond_, &c);   // Stop if the connection is closed
     c.wait();
 }
@@ -87,7 +88,7 @@ void slave_stream_manager_t::conn_closed() {
     // the run loop gets unstuck. cond_ could be NULL if we didn't finish our
     // constructor yet.
     if (!interrupted_by_external_event_ && cond_) {
-        cond_->remove_waiter(this);   // So on_cond_pulsed() doesn't get called
+        subs_.unsubscribe();   // So `on_signal_pulsed()` doesn't get called
         cond_->pulse();
     }
 
