@@ -449,6 +449,9 @@ void writeback_t::flush_prepare_patches() {
 
     /* Write patches for blocks we don't want to flush now */
     // Please note: Writing patches to the oocore_storage can still alter the dirty_bufs list!
+    // (because some of the patch storage blocks will become dirty)
+    // The iteration below doesn't have a problem with that, but be careful if you
+    // want to change it.
     ticks_t start_time2;
     pm_flushes_diff_store.begin(&start_time2);
     bool patch_storage_failure = false;
@@ -456,8 +459,12 @@ void writeback_t::flush_prepare_patches() {
     for (local_buf_t *lbuf = dirty_bufs.head(); lbuf; lbuf = dirty_bufs.next(lbuf)) {
         inner_buf_t *inner_buf = lbuf->gbuf;
 
+        // If the patch storage failed before (which usually happens if it ran out of space),
+        // we don't even try to write patches for this buffer. Instead we set needs_flush,
+        // causing the block itself to be written to disk instead of its patches.
         if (patch_storage_failure && lbuf->dirty && !lbuf->needs_flush) {
             lbuf->needs_flush = true;
+            cache->patch_memory_storage.drop_patches(inner_buf->block_id);
         }
 
         if (!lbuf->needs_flush && lbuf->dirty && inner_buf->next_patch_counter > 1) {
@@ -470,21 +477,34 @@ void writeback_t::flush_prepare_patches() {
                     range = cache->patch_memory_storage.patches_for_block(inner_buf->block_id);
 
                 while (range.second != range.first) {
+                    // Why do we write patches in reverse oder?
+                    // Because that way we first get the most recent patches,
+                    // and can then just break out of the loop as soon as we hit
+                    // the first patch that is older than last_patch_materialized.
                     --range.second;
 
                     rassert(block_sequence_id > NULL_BLOCK_SEQUENCE_ID);
                     rassert(previous_patch_counter == 0 || (*range.second)->get_patch_counter() == previous_patch_counter - 1);
+                    // Write only those patches that we have not written in a previous
+                    // writeback. Use lbuf->last_patch_materialized to make
+                    // that decision. This way we never have duplicate patches on disk.
                     if (lbuf->last_patch_materialized < (*range.second)->get_patch_counter()) {
                         if (!cache->patch_disk_storage->store_patch(*(*range.second), block_sequence_id)) {
                             patch_storage_failure = true;
+                            // We were not able to store all the patches to disk,
+                            // so we fall back to re-writing the block itself.
                             lbuf->needs_flush = true;
+                            // Dropping the patches invalidates our iterators in range,
+                            // but we can simply break out of the loop at this point.
+                            cache->patch_memory_storage.drop_patches(inner_buf->block_id);
                             break;
-                        }
-                        else {
+                        } else {
                             patches_stored++;
                         }
-                    }
-                    else {
+                    } else {
+                        // We hit a patch that we had written to disk before.
+                        // Because we are iterating over patches from most recent to older,
+                        // we can just break out of the loop at this point.
                         break;
                     }
 #ifndef NDEBUG
@@ -495,17 +515,25 @@ void writeback_t::flush_prepare_patches() {
                 if (!patch_storage_failure) {
                     lbuf->last_patch_materialized = cache->patch_memory_storage.last_patch_materialized_or_zero(inner_buf->block_id);
                 }
+                // (if there was a patch_storage_failure, lbuf->needs_flush got set
+                // and we are going to reset last_patch_materialized a few lines later...)
             }
         }
 
         if (lbuf->needs_flush) {
+            // Because the block will be rewritten and therefore receive a new
+            // block_sequence_id, we can reset the patch counter.
+            // (Remember: The applicability of a patch is determined by the
+            // block_sequence_id that it applies to, while the patch_counter
+            // provides an ordering over all patches that apply to a certain
+            // version of a block.)
             inner_buf->next_patch_counter = 1;
             lbuf->last_patch_materialized = 0;
         }
     }
     pm_flushes_diff_store.end(&start_time2);
     if (patch_storage_failure)
-        force_patch_storage_flush = true; // Make sure we resolve the storage space shortage for the next flush...
+        force_patch_storage_flush = true; // Make sure we resolve the storage space shortage before the next flush...
 
     pm_flushes_diff_patches_stored.record(patches_stored);
     if (patch_storage_failure)
