@@ -23,9 +23,27 @@ const int SKIP_ENTRY_CODE_MANY = 252;
 // A reserved meaningless value.
 const int SKIP_ENTRY_RESERVED = 251;
 
-// The amount of extra timestamp information we _must_ carry if there
-// are sufficiently many keys in the node.
+// We must maintain timestamps and deletion entries as best we can,
+// with the following limitations.  The timestamps stored need not be
+// more than the most `MANDATORY_TIMESTAMPS` recent timestamps.  The
+// deletions stored need not be any more than what is necessary to
+// fill `(block_size - offsetof(loof_t, pair_offsets)) /
+// DELETION_RESERVE_FRACTION` bytes.  For example, with a 4084 block
+// size, if the five most recent operations were deletions of 250-byte
+// keys, we would only be required to store the 2 most recent
+// deletions and the 2 most recent timestamps.
+
 const int MANDATORY_TIMESTAMPS = 5;
+const int DELETION_RESERVE_FRACTION = 10;
+
+// The maximum fraction of leaf node memory that must be devoted to
+// deletion entries, if necessary.  So deletion entries are limited by
+// MANDATORY_TIMESTAMPS (only the deletion entries of that many most
+// recent entries must be preserved) and by this fraction of the total
+// buffer size (if the last five operations were deletions of 250-byte
+// keys (in a 4096-block-size node), we'd only have to store 2
+// deletions because that's how many it takes to overflow 410 (or a
+// smaller number, since we subtract fixed costs).
 
 struct entry_t;
 struct value_t;
@@ -186,26 +204,33 @@ void init(value_sizer_t<V> *sizer, loof_t *node) {
 }
 
 template <class V>
-bool is_full(value_sizer_t<V> *sizer, const loof_t *node, const btree_key_t *key, const V *value) {
+int free_space(value_sizer_t<V> *sizer) {
+    return sizer->block_size().value() - offsetof(loof_t, pair_offsets);
+}
+
+template <class V>
+int mandatory_cost(value_sizer_t<V> *sizer, const loof_t *node, int required_timestamps) {
     int size = node->live_size;
-
-    // node->live_size does not include the space we'll need for the
-    // new key/value pair we would insert.  We conservatively assume
-    // the key is not already contained in the node.
-
-    size += sizeof(uint16_t) + sizeof(repli_timestamp_t) + key->full_size() + sizer->size(value);
 
     // node->live_size does not include deletion entries, deletion
     // entries' timestamps, and live entries' timestamps.  We add that
     // to size.
 
     entry_iter_t iter = entry_iter_t::make(node);
-    int count = 1;
-    while (!(count == MANDATORY_TIMESTAMPS || iter.done(sizer) || iter.tstamp_index == node->num_tstamps)) {
+    int count = 0;
+    int deletions_cost = 0;
+    int max_deletions_cost = free_space(sizer) / DELETION_RESERVE_FRACTION;
+    while (!(count == required_timestamps || iter.done(sizer) || iter.tstamp_index == node->num_tstamps)) {
 
 	entry_t *ent = iter.entry(sizer, node);
 	if (entry_is_deletion(ent)) {
-	    size += sizeof(uint16_t) + sizeof(repli_timestamp_t) + entry_size(ent);
+            if (deletions_cost >= max_deletions_cost) {
+                break;
+            }
+
+            int this_entry_cost = sizeof(uint16_t) + sizeof(repli_timestamp_t) + entry_size(ent);
+            deletions_cost += this_entry_cost;
+	    size += this_entry_cost;
 	    ++count;
 	} else if (entry_is_live(ent)) {
 	    ++count;
@@ -215,9 +240,62 @@ bool is_full(value_sizer_t<V> *sizer, const loof_t *node, const btree_key_t *key
 	iter.step(sizer, node);
     }
 
-    // The node is full if we can't fit all that data within the block size.
-    return size > sizer->block_size().value();
+    return size;
 }
+
+template <class V>
+int loof_epsilon(value_sizer_t<V> *sizer) {
+    // Returns the maximum possible entry size, i.e. the key cost plus
+    // the value cost plus pair_offsets plus timestamp cost.
+
+    int key_cost = sizeof(uint8_t) + MAX_KEY_SIZE;
+
+    // If the value is always empty, the DELETE_ENTRY_CODE byte needs to be considered.
+    int n = std::max(sizer->max_possible_size(), 1);
+    int pair_offsets_cost = sizeof(uint16_t);
+    int timestamp_cost = sizeof(repli_timestamp_t);
+
+    return key_cost + n + pair_offsets_cost + timestamp_cost;
+}
+
+template <class V>
+bool is_full(value_sizer_t<V> *sizer, const loof_t *node, const btree_key_t *key, const V *value) {
+
+    // Upon an insertion, we preserve `MANDATORY_TIMESTAMPS - 1`
+    // timestamps and add our own (accounted for below)
+    int size = mandatory_cost(sizer, node, MANDATORY_TIMESTAMPS - 1);
+
+    // Add the space we'll need for the new key/value pair we would
+    // insert.  We conservatively assume the key is not already
+    // contained in the node.
+
+    size += sizeof(uint16_t) + sizeof(repli_timestamp_t) + key->full_size() + sizer->size(value);
+
+    // The node is full if we can't fit all that data within the free space.
+    return size > free_space(sizer);
+}
+
+template <class V>
+bool is_underfull(value_sizer_t<V> *sizer, const loof_t *node) {
+
+    // An underfull node is one whose mandatory fields' cost
+    // constitutes significantly less than half the free space, where
+    // "significantly" is enough to prevent a split-then-merge.
+
+    // A split node's size S is always within loof_epsilon of
+    // free_space and then is split as evenly as possible.  This means
+    // the two resultant nodes' sizes are both no less than S / 2 -
+    // loof_epsilon / 2, which is no less than (free_space -
+    // loof_epsilon) / 2 - loof_epsilon / 2.  Which is no less than is
+    // free_space / 2 - loof_epsilon.  We don't want an immediately
+    // split node to be underfull, hence the threshold used below.
+
+    return mandatory_cost(sizer, node, MANDATORY_TIMESTAMPS) < free_space(sizer) / 2 - loof_epsilon(sizer);
+}
+
+
+
+
 
 
 
