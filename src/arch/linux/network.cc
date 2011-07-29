@@ -139,7 +139,8 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
             cond_link_t pulse_if_shut_down(&read_closed, &cond);
 
             /* Set up the cond so it gets pulsed if an event comes */
-            event_watcher->watch(poll_event_in, boost::bind(&cond_t::pulse, &cond), &cond);
+            linux_event_watcher_t::watch_t watch(event_watcher, poll_event_in);
+            cond_link_t pulse_if_got_event(&watch, &cond);
 
             /* Wait for something to happen.
 
@@ -341,7 +342,8 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
             cond_link_t pulse_if_shut_down(&write_closed, &cond);
 
             /* Set up the cond so it gets pulsed if an event comes */
-            event_watcher->watch(poll_event_out, boost::bind(&cond_t::pulse, &cond), &cond);
+            linux_event_watcher_t::watch_t watch(event_watcher, poll_event_out);
+            cond_link_t pulse_if_got_event(&watch, &cond);
 
             /* Wait for something to happen. */
             cond.wait_lazily();
@@ -677,8 +679,12 @@ void linux_tcp_listener_t::accept_loop(signal_t *shutdown_signal) {
             /* Wait for a notification from the event loop, or for a command to shut down,
             before continuing */
             cond_t c;
+
             cond_link_t interrupt_wait_on_shutdown(shutdown_signal, &c);
-            event_watcher.watch(poll_event_in, boost::bind(&cond_t::pulse, &c), &c);
+
+            linux_event_watcher_t::watch_t watch(&event_watcher, poll_event_in);
+            cond_link_t interrupt_wait_on_event(&watch, &c);
+
             c.wait();
 
         } else if (errno == EINTR) {

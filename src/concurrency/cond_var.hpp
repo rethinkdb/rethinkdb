@@ -23,32 +23,6 @@ private:
     DISABLE_COPYING(cond_t);
 };
 
-/* cond_weak_ptr_t is a pointer to a cond_t, but it NULLs itself when the
-cond_t is pulsed. */
-
-struct cond_weak_ptr_t : private signal_t::waiter_t {
-    cond_weak_ptr_t() : cond(NULL) { }
-    virtual ~cond_weak_ptr_t() {
-        rassert(!cond);
-    }
-    void watch(cond_t *c);
-
-    void pulse_if_non_null() {
-        if (cond) {
-            cond->pulse();  // Calls on_signal_pulsed()
-                            // It's not safe to access local variables at this point; we might have
-                            // been deleted.
-        }
-    }
-
-private:
-    cond_t *cond;
-    void on_signal_pulsed() {
-        rassert(cond);
-        cond = NULL;
-    }
-};
-
 /* A multi_cond is a condition variable that can be waited on by multiple
  * things. Pulse will unlock everything that was waiting on it.
  * It is NOT threadsafe. */
@@ -73,26 +47,21 @@ private:
 
 /* cond_link_t pulses a given cond_t if a given signal_t is pulsed. */
 
-struct cond_link_t : private signal_t::waiter_t {
-    cond_link_t(signal_t *s, cond_t *d) : source(NULL) {
-        if (s->is_pulsed()) {
-            d->pulse();
-        } else {
-            source = s;
-            dest.watch(d);
-            source->add_waiter(this);
-        }
-    }
-    ~cond_link_t() {
-        if (source) source->remove_waiter(this);
+struct cond_link_t {
+    cond_link_t(signal_t *s, cond_t *d) :
+        subs(boost::bind(&cond_link_t::go, this)),
+        dest(d)
+    {
+        if (s->is_pulsed()) go();
+        else subs.resubscribe(s);
     }
 private:
-    signal_t *source;
-    void on_signal_pulsed() {
-        source = NULL;   // So we don't do an extra remove_waiter() in our destructor
-        dest.pulse_if_non_null();
+    void go() {
+        if (!dest->is_pulsed()) dest->pulse();
     }
-    cond_weak_ptr_t dest;
+    signal_t::subscription_t subs;
+    cond_t *dest;
+    DISABLE_COPYING(cond_link_t);
 };
 
 class one_waiter_cond_t {
