@@ -166,12 +166,6 @@ struct entry_iter_t {
     int tstamp_index;
 
     template <class V>
-    entry_t *entry(value_sizer_t<V> *sizer, const loof_t *node) {
-	rassert(!done(sizer));
-	return get_entry(node, offset);
-    }
-
-    template <class V>
     void step(value_sizer_t<V> *sizer, const loof_t *node) {
 	rassert(!done(sizer));
 
@@ -208,8 +202,11 @@ int free_space(value_sizer_t<V> *sizer) {
     return sizer->block_size().value() - offsetof(loof_t, pair_offsets);
 }
 
+// Returns the mandatory storage cost of the node, returning a value
+// in the closed interval [0, free_space(sizer)].  Outputs the offset
+// of the first entry for which storing a timestamp is not mandatory.
 template <class V>
-int mandatory_cost(value_sizer_t<V> *sizer, const loof_t *node, int required_timestamps) {
+int mandatory_cost(value_sizer_t<V> *sizer, const loof_t *node, int required_timestamps, int *tstamp_back_offset_out) {
     int size = node->live_size;
 
     // node->live_size does not include deletion entries, deletion
@@ -222,7 +219,7 @@ int mandatory_cost(value_sizer_t<V> *sizer, const loof_t *node, int required_tim
     int max_deletions_cost = free_space(sizer) / DELETION_RESERVE_FRACTION;
     while (!(count == required_timestamps || iter.done(sizer) || iter.tstamp_index == node->num_tstamps)) {
 
-	entry_t *ent = iter.entry(sizer, node);
+	entry_t *ent = get_entry(node, iter.offset);
 	if (entry_is_deletion(ent)) {
             if (deletions_cost >= max_deletions_cost) {
                 break;
@@ -240,7 +237,15 @@ int mandatory_cost(value_sizer_t<V> *sizer, const loof_t *node, int required_tim
 	iter.step(sizer, node);
     }
 
+    *tstamp_back_offset_out = iter.offset;
+
     return size;
+}
+
+template <class V>
+int mandatory_cost(value_sizer_t<V> *sizer, const loof_t *node, int required_timestamps) {
+    int ignored;
+    return mandatory_cost(sizer, node, required_timestamps, &ignored);
 }
 
 template <class V>
@@ -282,6 +287,8 @@ bool is_underfull(value_sizer_t<V> *sizer, const loof_t *node) {
     // constitutes significantly less than half the free space, where
     // "significantly" is enough to prevent a split-then-merge.
 
+    // (Note that x / y is indeed taken to mean floor(x / y) below.)
+
     // A split node's size S is always within loof_epsilon of
     // free_space and then is split as evenly as possible.  This means
     // the two resultant nodes' sizes are both no less than S / 2 -
@@ -293,7 +300,82 @@ bool is_underfull(value_sizer_t<V> *sizer, const loof_t *node) {
     return mandatory_cost(sizer, node, MANDATORY_TIMESTAMPS) < free_space(sizer) / 2 - loof_epsilon(sizer);
 }
 
+template <class V>
+void split(value_sizer_t<V> *sizer, loof_t *node, loof_t *rnode, btree_key_t *median_out) {
+    int tstamp_back_offset;
+    int mandatory = mandatory_cost(sizer, node, MANDATORY_TIMESTAMPS, &tstamp_back_offset);
 
+    rassert(mandatory >= free_space(sizer) - loof_epsilon(sizer));
+
+    // We shall split the mandatory cost of this node as evenly as possible.
+
+    int i = 0;
+    int prev_lcost = 0;
+    int lcost = 0;
+    while (i < node->num_pairs && 2 * lcost < mandatory) {
+        int offset = node->pair_offsets[i];
+        entry_t *ent = get_entry(node, offset);
+
+        // We only take mandatory entries' costs into consideration,
+        // which guarantees correct behavior (in that neither node nor
+        // can become underfull after a split).  If we didn't do this,
+        // it would be possible to bias one node with a bunch of
+        // deletions that makes its mandatory_cost artificially small.
+
+        if (entry_is_live(ent)) {
+            prev_lcost = lcost;
+            lcost += entry_size(entry) + sizeof(uint16_t) + (offset < tstamp_back_offset ? sizeof(repli_timestamp_t) : 0);
+        } else {
+            rassert(entry_is_deletion(ent));
+
+            if (offset < tstamp_back_offset) {
+                prev_lcost = lcost;
+                lcost += entry_size(entry) + sizeof(uint16_t) + sizeof(repli_timestamp_t);
+            }
+        }
+
+        lcost += sz + (node->pair_offsets[i] < tstamp_back_offset ? sizeof(repli_timestamp_t) : 0);
+
+        ++i;
+    }
+
+    // Since the mandatory_cost is at least free_space - loof_epsilon there's no way i can equal num_pairs or zero.
+    rassert(i < node->num_pairs);
+    rassert(i > 0);
+
+    // Now prev_lcost and lcost envelope mandatory / 2.
+    rassert(prev_lcost <= mandatory / 2);
+    rassert(lcost > mandatory / 2);
+
+    int s;
+#ifndef NDEBUG
+    int end_lcost;
+#endif
+    if ((mandatory - prev_lcost) - prev_lcost < lcost - (mandatory - lcost)) {
+#ifndef NDEBUG
+        end_lcost = prev_lcost;
+#endif
+        s = i - 1;
+    } else {
+#ifndef NDEBUG
+        end_lcost = lcost;
+#endif
+        s = i;
+    }
+
+    // If our math was right, neither node can be underfull just
+    // considering the split of the mandatory costs.
+    rassert(end_lcost >= free_space(sizer) / 2 - loof_epsilon(sizer));
+    rassert(mandatory - end_lcost >= free_space(sizer) / 2 - loof_epsilon(sizer));
+
+    // Now we wish to move the elements at indices [s, num_pairs) to rnode.
+
+    init(sizer, rnode);
+
+    move_elements(sizer, node, s, node->num_pairs, rnode);
+
+    node->num_pairs = s;
+}
 
 
 
