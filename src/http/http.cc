@@ -18,6 +18,22 @@ std::string http_req_t::find_header_line(std::string key) const {
     return std::string("");
 }
 
+bool http_req_t::has_query_param(std::string key) const {
+    //TODO this is inefficient we should actually load it all into a map
+    for (std::vector<query_parameter_t>::const_iterator it = query_params.begin(); it != query_params.end(); it++) {
+        if (it->key == key) return true;
+    }
+    return false;
+}
+
+bool http_req_t::has_header_line(std::string key) const {
+    //TODO this is inefficient we should actually load it all into a map
+    for (std::vector<header_line_t>::const_iterator it = header_lines.begin(); it != header_lines.end(); it++) {
+        if (it->key == key) return true;
+    }
+    return false;
+}
+
 int content_length(http_req_t msg) {
     for (std::vector<header_line_t>::iterator it = msg.header_lines.begin(); it != msg.header_lines.end(); it++) {
         if (it->key == std::string("Content-Length"))
@@ -47,6 +63,35 @@ void http_res_t::set_body(std::string const &content_type, std::string const &co
     add_header_line("Content-Length", res.str());
 
     body = content;
+}
+
+//TODO there are multiple http date formats that are accepted we need to parse
+//all of them 
+#define HTTP_DATE_FORMAT "%a, %d %b %Y %X %Z"
+
+std::string secs_to_http_date(time_t secs) {
+    struct tm *time = gmtime(&secs);
+    char buffer[100]; 
+
+    size_t res = strftime(buffer, 100, HTTP_DATE_FORMAT, time);
+    rassert(res != 0, "Not enough space for the date time");
+
+    return std::string(buffer);
+    free(time);
+}
+
+time_t http_date_to_secs(std::string date) {
+    struct tm _tm;
+    strptime(date.c_str(), 
+             HTTP_DATE_FORMAT, 
+             &_tm);
+
+    return mktime(&_tm);
+}
+
+void http_res_t::add_last_modified(time_t secs) {
+    last_modified_time = secs;
+    add_header_line("Last-Modified", secs_to_http_date(secs));
 }
 
 typedef std::string::const_iterator str_iterator_type;
@@ -86,6 +131,8 @@ std::string human_readable_status(int code) {
         return "Bad Request";
     case 404:
         return "Not Found";
+    case 412:
+        return "Precondition Failed";
     default:
         unreachable();
     }
@@ -125,8 +172,19 @@ void http_server_t::handle_conn(boost::scoped_ptr<tcp_conn_t> &conn) {
         conn->pop(content_length(req));
 
         http_res_t res = handle(req);
-        res.version = req.version;
+
+        if ((req.has_header_line("If-Unmodified-Since") && http_date_to_secs(req.find_header_line("If-Unmodified-Since")) < res.get_last_modified_time()) ||
+            (req.has_header_line("If-Modified-Since") && http_date_to_secs(req.find_header_line("If-Modified-Since")) > res.get_last_modified_time()))
+        {
+            //a precondition has failed, construct an appropriate response
+            res = http_res_t();
+            res.code = 412;
+        }
+
+        res.version = req.version; //TODO this isn't really correct handle versioning
         write_http_msg(conn, res);
+    } else {
+        goto PARSE_ERROR;
     }
 
     return;

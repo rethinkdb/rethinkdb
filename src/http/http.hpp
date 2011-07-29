@@ -50,6 +50,8 @@ struct http_req_t {
 
     std::string find_query_param(std::string) const;
     std::string find_header_line(std::string) const;
+    bool has_query_param(std::string) const;
+    bool has_header_line(std::string) const;
 };
 
 int content_length(http_req_t);
@@ -72,6 +74,16 @@ struct http_res_t {
 
     void add_header_line(std::string const &, std::string const &);
     void set_body(std::string const &, std::string const &);
+    void add_last_modified(time_t);
+
+    http_res_t()
+        : code(-1), last_modified_time(-1)
+    { }
+
+private:
+    time_t last_modified_time;
+public:
+    time_t get_last_modified_time() { return last_modified_time; }
 };
 
 template <typename Iterator>

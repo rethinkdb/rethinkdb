@@ -281,6 +281,12 @@ ticks_t get_ticks() {
     return secs_to_ticks(tv.tv_sec) + tv.tv_nsec;
 }
 
+time_t get_secs() {
+    timespec tv;
+    clock_gettime(CLOCK_REALTIME, &tv);
+    return tv.tv_sec;
+}
+
 long get_ticks_res() {
     timespec tv;
     clock_getres(CLOCK_MONOTONIC, &tv);

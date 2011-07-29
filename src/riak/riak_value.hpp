@@ -4,7 +4,6 @@
 #include "buffer_cache/blob.hpp"
 #include "btree/node.hpp"
 
-typedef uint32_t last_modified_time_t;
 
 typedef uint32_t etag_t;
 
@@ -32,7 +31,7 @@ struct link_t {
 //notice this class does nothing to maintain its consistency
 class riak_value_t {
 public:
-    last_modified_time_t mod_time;
+    time_t mod_time;
     etag_t etag;
     uint16_t content_type_len;
     uint32_t value_len;

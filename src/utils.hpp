@@ -78,6 +78,7 @@ T1 ceil_modulo(T1 value, T2 alignment) {
 typedef unsigned long long ticks_t;
 ticks_t secs_to_ticks(float secs);
 ticks_t get_ticks();
+time_t get_secs();
 long get_ticks_res();
 double ticks_to_secs(ticks_t ticks);
 

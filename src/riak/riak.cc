@@ -362,6 +362,7 @@ http_res_t riak_server_t::fetch_object(const http_req_t &req) {
     http_res_t res;
     res.set_body(obj.content_type, obj.content);
     res.add_header_line("ETag", strprintf("%d",  obj.ETag));
+    res.add_last_modified(obj.last_written);
 
     if (!obj.links.empty()) {
 
@@ -428,6 +429,8 @@ http_res_t riak_server_t::store_object(const http_req_t &req) {
     } else {
         obj.key = *url_it;
     }
+
+    obj.last_written = get_secs();
 
     riak_interface.store_object(bucket, obj);
 
