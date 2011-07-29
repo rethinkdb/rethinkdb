@@ -668,6 +668,17 @@ void split(value_sizer_t<V> *sizer, loof_t *node, loof_t *rnode, btree_key_t *me
     keycpy(median_out, entry_key(get_entry(node, node->pair_offsets[s - 1])));
 }
 
+// Merges the contents of left into right.
+template <class V>
+void merge(value_sizer_t<V> *sizer, loof_t *left, loof_t *right, btree_key_t *key_to_remove_out) {
+    allow_everything_t filter;
+
+    move_entries_into_other_node(sizer, left, right, filter);
+
+    keycpy(key_to_remove_out, entry_key(get_entry(right, right->pair_offsets[0])));
+}
+
+
 
 
 
