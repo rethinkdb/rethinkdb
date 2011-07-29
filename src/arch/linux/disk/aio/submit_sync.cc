@@ -1,7 +1,6 @@
-#include <vector>
-
 #include "arch/linux/disk/aio/submit_sync.hpp"
 #include "logger.hpp"
+#include <boost/bind.hpp>
 
 linux_aio_submit_sync_t::linux_aio_submit_sync_t(
         linux_aio_context_t *context, passive_producer_t<iocb *> *source) :
@@ -11,12 +10,12 @@ linux_aio_submit_sync_t::linux_aio_submit_sync_t(
     if (source->available->get()) pump();
 
     /* Register so we get notified when requests come in */
-    source->available->add_watcher(this);
+    source->available->set_callback(boost::bind(&linux_aio_submit_sync_t::on_source_availability_changed, this));
 }
 
 linux_aio_submit_sync_t::~linux_aio_submit_sync_t() {
     rassert(n_pending == 0);
-    source->available->remove_watcher(this);
+    source->available->unset_callback();
 }
 
 void linux_aio_submit_sync_t::notify_done() {
@@ -27,7 +26,7 @@ void linux_aio_submit_sync_t::notify_done() {
     pump();
 }
 
-void linux_aio_submit_sync_t::on_watchable_changed() {
+void linux_aio_submit_sync_t::on_source_availability_changed() {
     /* This is called when data becomes available on the source-queue or when
     it stops being available. If it became available, we need to start the cycle
     of pulling operations off the source queue and running them. */

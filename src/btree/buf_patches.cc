@@ -1,9 +1,8 @@
 #include "btree/buf_patches.hpp"
 
 #include "btree/leaf_node.hpp"
-
-
-
+#include "riak/riak_value.hpp"
+#include "btree/detemplatizer.hpp"
 
 
 
@@ -116,12 +115,8 @@ size_t leaf_insert_pair_patch_t::get_affected_data_size() const {
 }
 
 void leaf_insert_pair_patch_t::apply_to_buf(char* buf_data, block_size_t bs) {
-    // When we have more than one kind of leaf node sizer, we can look
-    // at the leaf buf's magic value to decide what kind of sizer to
-    // create.
-    memcached_value_sizer_t sizer(bs);
-
-    leaf::impl::insert_pair<memcached_value_t>(&sizer, reinterpret_cast<leaf_node_t *>(buf_data), reinterpret_cast<const memcached_value_t *>(value_buf), reinterpret_cast<btree_key_t *>(key_buf));
+    leaf_node_t *leaf_node = reinterpret_cast<leaf_node_t *>(buf_data);
+    DETEMPLATIZE_LEAF_NODE_OP(leaf::impl::insert_pair, leaf_node, bs, reinterpret_cast<leaf_node_t *>(buf_data), value_buf, reinterpret_cast<btree_key_t *>(key_buf));
 }
 
 leaf_insert_patch_t::leaf_insert_patch_t(block_id_t block_id, patch_counter_t patch_counter, uint16_t value_size, const opaque_value_t *value, uint8_t key_size, const char *key_contents, repli_timestamp_t insertion_time) :
@@ -202,11 +197,8 @@ size_t leaf_insert_patch_t::get_affected_data_size() const {
 }
 
 void leaf_insert_patch_t::apply_to_buf(char* buf_data, block_size_t bs) {
-    // When we have more than one kind of leaf node sizer, we can look
-    // at the leaf buf's magic value to decide what kind of sizer to
-    // create.
-    memcached_value_sizer_t sizer(bs);
-    leaf::insert<memcached_value_t>(&sizer, reinterpret_cast<leaf_node_t *>(buf_data), reinterpret_cast<btree_key_t *>(key_buf), reinterpret_cast<memcached_value_t *>(value_buf), insertion_time);
+    leaf_node_t *leaf_node = reinterpret_cast<leaf_node_t *>(buf_data);
+    DETEMPLATIZE_LEAF_NODE_OP(leaf::insert, leaf_node, bs, reinterpret_cast<leaf_node_t *>(buf_data), reinterpret_cast<btree_key_t *>(key_buf), value_buf, insertion_time);
 }
 
 
@@ -269,10 +261,7 @@ size_t leaf_remove_patch_t::get_affected_data_size() const {
 }
 
 void leaf_remove_patch_t::apply_to_buf(char* buf_data, block_size_t bs) {
-    // When we have more than one kind of leaf node sizer, we can look
-    // at the leaf buf's magic value to decide what kind of sizer to
-    // create.
-    memcached_value_sizer_t sizer(bs);
-    leaf::remove<memcached_value_t>(&sizer, reinterpret_cast<leaf_node_t *>(buf_data), reinterpret_cast<btree_key_t *>(key_buf));
-}
+    leaf_node_t *leaf_node = reinterpret_cast<leaf_node_t *>(buf_data);
+    DETEMPLATIZE_LEAF_NODE_OP(leaf::remove, leaf_node, bs, reinterpret_cast<leaf_node_t *>(buf_data), reinterpret_cast<btree_key_t *>(key_buf));
+ }
 

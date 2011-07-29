@@ -5,15 +5,14 @@
 #include <vector>
 
 struct linux_aio_submit_sync_t :
-    public linux_diskmgr_aio_t::submit_strategy_t,
-    public watchable_t<bool>::watcher_t
+    public linux_diskmgr_aio_t::submit_strategy_t
 {
     linux_aio_submit_sync_t(linux_aio_context_t *context, passive_producer_t<iocb *> *source);
     ~linux_aio_submit_sync_t();
     void notify_done();
 
 private:
-    void on_watchable_changed();
+    void on_source_availability_changed();
     void pump();
     linux_aio_context_t *context;
     passive_producer_t<iocb *> *source;

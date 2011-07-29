@@ -40,7 +40,7 @@ public:
         return MAX_BTREE_VALUE_SIZE;
     }
 
-    block_magic_t btree_leaf_magic() const {
+    static block_magic_t btree_leaf_magic() {
         block_magic_t magic = { { 'l', 'e', 'a', 'f' } };
         return magic;
     }
@@ -173,20 +173,20 @@ struct node_t {
 
 namespace node {
 
-inline bool is_leaf(const node_t *node) {
-    if (node->magic == leaf_node_t::expected_magic) {
-        return true;
-    }
-    rassert(node->magic == internal_node_t::expected_magic);
-    return false;
-}
-
 inline bool is_internal(const node_t *node) {
     if (node->magic == internal_node_t::expected_magic) {
         return true;
     }
-    rassert(node->magic == leaf_node_t::expected_magic);
     return false;
+}
+
+inline bool is_leaf(const node_t *node) {
+    // We assume that a node is a leaf whenever it's not internal.
+    // Unfortunately we cannot check the magic directly, because it differs
+    // for different value types.
+    // TODO: Maybe assert that the first character of the magic is 'l' or
+    // something like that?
+    return !is_internal(node);
 }
 
 bool has_sensible_offsets(block_size_t block_size, const node_t *node);

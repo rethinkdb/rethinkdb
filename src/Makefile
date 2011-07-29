@@ -91,10 +91,8 @@ else
 CXXFLAGS+=-DRETHINKDB_CACHE_PRODUCT
 endif
 
-ifeq ($(UNIT_TESTS),0)
 ifeq ($(CLANG),0)
 CXXFLAGS+=-Wswitch-default
-endif
 endif
 
 ifeq ($(AGRESSIVE_BUF_UNLOADING),1)
@@ -150,6 +148,7 @@ endif
 
 ifeq ($(SEMANTIC_SERIALIZER_CHECK),1)
 CXXFLAGS+=-DSEMANTIC_SERIALIZER_CHECK
+BUILD_DIR:=$(BUILD_DIR)-scs
 endif
 
 ifeq ($(MOCK_CACHE_CHECK),1)
@@ -244,9 +243,9 @@ DEPS:=$(patsubst %,$(DEP_DIR)/%.d,$(NAMES))
 OBJS:=$(PROTO_OBJS) $(patsubst %,$(OBJ_DIR)/%.o,$(NAMES))
 
 
-SERVER_EXEC_OBJS:=$(PROTO_OBJS) $(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR)/unittest`"))
+SERVER_EXEC_OBJS:=$(PROTO_OBJS) $(patsubst %.cc,$(OBJ_DIR)/%.o,$(filter-out $(SOURCE_DIR)/unittest/%,$(SOURCES)))
 
-SERVER_NOMAIN_OBJS:=$(PROTO_OBJS) $(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR) -name 'main.cc'`"))
+SERVER_NOMAIN_OBJS:=$(PROTO_OBJS) $(patsubst %.cc,$(OBJ_DIR)/%.o,$(filter-out %/main.cc,$(SOURCES)))
 
 SERVER_UNIT_TEST_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/unittest/main.o
 
@@ -515,6 +514,10 @@ ifeq ($(NO_TCMALLOC),0)
 endif
 	@echo "    Finished building RethinkDB key-value store server version '${RETHINKDB_VERSION}'"
 
+# The unittests use gtest, which uses macros that expand into switch statements which don't contain
+# default cases. So we have to remove the -Wswitch-default argument for them.
+$(OBJ_DIR)/unittest/%.o: CXXFLAGS:=$(filter-out -Wswitch-default,$(CXXFLAGS))
+
 $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME): $(OBJS) $(BUILD_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    LD $@"
@@ -588,6 +591,13 @@ style:
 showdefines:
 	$(QUIET) $(CXX) $(CXXFLAGS) -m32 -E -dM - < /dev/null
 
+.PHONY: depclean clean
+depclean:
+ifeq ($(VERBOSE),0)
+	@echo "    RM -f $(BUILD_ROOT_DIR)/*.d"
+endif
+	$(QUIET) find $(BUILD_ROOT_DIR) -name '*.d' -exec rm {} \;
+
 clean:
 ifeq ($(VERBOSE),0)
 	@echo "    RM *~"
@@ -614,7 +624,7 @@ ifeq ($(VERBOSE),0)
 endif
 	$(QUIET) $(CXX) $(CXXFLAGS) -c -o $@ $<
 
-$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc Makefile $(PROTO_HEADERS)
+$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc Makefile
 	$(QUIET) mkdir -p $(dir $@)
 ifeq ($(VERBOSE),0)
 	@echo "    CC $< -o $@"
@@ -622,14 +632,22 @@ endif
 	$(QUIET) $(CXX) $(CXXFLAGS) -c -o $@ $<
 
 # Dependencies
-# TODO: Adding PROTO_HEADERS here is kind of hacky
 $(DEP_DIR)/%.d: $(SOURCE_DIR)/%.cc $(PROTO_HEADERS)
+ifeq ($(VERBOSE),0)
+	@echo "    DEP $@"
+endif
 	$(QUIET) mkdir -p $(dir $@)
-	$(QUIET) $(CXX) $(CXXFLAGS) -M $< > $@.$$$$;				   \
-	sed 's,$(notdir $*)\.o[ :]*,$(OBJ_DIR)/$*.o $@ : ,g' < $@.$$$$ > $@;	  \
-	rm -f $@.$$$$
-# Include the dependencies into the makefile so that they take effect
+	$(QUIET) $(CXX) $(CXXFLAGS) -M -MQ $(OBJ_DIR)/$*.o -MQ $@ $< > $@
 
-ifneq ($(MAKECMDGOALS),clean)
+# Without this, the proto headers get generated to build the .d files, then are removed as
+# intermediate files; then the .d files are read in, and some depend on the proto headers, so they
+# get remade. This is redundant work. Also, it appears to cause nondeterministic races - possibly a
+# bug in GNU Make, possibly a bug in our Makefile.
+.SECONDARY: $(PROTO_HEADERS)
+
+# Include the dependencies into the makefile so that they take effect
+ifneq ($(MAKECMDGOALS), clean)
+ifneq ($(MAKECMDGOALS), depclean)
 -include $(DEPS)
+endif
 endif

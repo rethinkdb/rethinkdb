@@ -51,7 +51,7 @@ template <class Value>
 bool insert(value_sizer_t<Value> *sizer, buf_t *node_buf, const btree_key_t *key, const Value *value, repli_timestamp_t insertion_time);
 
 template <class Value>
-void insert(value_sizer_t<Value> *sizer, leaf_node_t *node, const btree_key_t *key, const Value *value, repli_timestamp_t insertion_time); // For use by the corresponding patch
+void insert(value_sizer_t<Value> *sizer, leaf_node_t *node, const btree_key_t *key, const void *v_value, repli_timestamp_t insertion_time); // For use by the corresponding patch
 
 // Assumes key is contained inside the node.
 template <class Value>
@@ -139,7 +139,7 @@ template<class Value>
 uint16_t insert_pair(value_sizer_t<Value> *sizer, buf_t *node_buf, const Value *value, const btree_key_t *key);
 
 template<class Value>
-uint16_t insert_pair(value_sizer_t<Value> *sizer, leaf_node_t *node, const Value *value, const btree_key_t *key);
+uint16_t insert_pair(value_sizer_t<Value> *sizer, leaf_node_t *node, const void *v_value, const btree_key_t *key);
 
 int find_key(const leaf_node_t *node, const btree_key_t *key);
 void shift_pairs(leaf_node_t *node, uint16_t offset, long shift);

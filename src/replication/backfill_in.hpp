@@ -12,51 +12,42 @@ namespace replication {
 first one is empty, it tries the next one. */
 
 template <class value_t>
-class selective_passive_producer_t : public passive_producer_t<value_t>, public watchable_t<bool>::watcher_t {
+class selective_passive_producer_t : public passive_producer_t<value_t> {
 public:
     selective_passive_producer_t(passive_producer_t<value_t> *selectee) :
-        passive_producer_t<value_t>(&available_var),
-	the_producer(NULL) {
+        passive_producer_t<value_t>(&available_control),
+        the_producer(NULL) {
         set_source(selectee);
     }
     ~selective_passive_producer_t() {
         set_source(NULL);
     }
     void set_source(passive_producer_t<value_t> *selectee) {
-	if (the_producer) {
-	    the_producer->available->remove_watcher(this);
-	    the_producer = NULL;
-	}
-	if (selectee != NULL) {
-	    the_producer = selectee;
-	    the_producer->available->add_watcher(this);
+        if (the_producer) {
+            the_producer->available->unset_callback();
+            the_producer = NULL;
+        }
+        if (selectee != NULL) {
+            the_producer = selectee;
+            the_producer->available->set_callback(boost::bind(&selective_passive_producer_t<value_t>::recompute, this));
         }
         recompute();
-    }
-
-    void on_watchable_changed() {
-	recompute();
     }
 
 private:
 
     void recompute() {
         /* We are available if our source is available. */
-        available_var.set(the_producer && the_producer->available->get());
+        available_control.set_available(the_producer && the_producer->available->get());
     }
     value_t produce_next_value() {
-        /* Find the first available source. */
-	if (the_producer && the_producer->available->get()) {
-	    return the_producer->pop();
-	}
-        /* If none of the producers were `available`, then our `available_var`
-        should have been `false`, so `produce_next_value()` should never have
-        been called. */
-        unreachable();
+        rassert(available_control.get());
+        rassert(the_producer, "available_control doesn't match the_producer");
+        return the_producer->pop();
     }
 
     passive_producer_t<value_t> *the_producer;
-    watchable_var_t<bool> available_var;
+    availability_control_t available_control;
 
     DISABLE_COPYING(selective_passive_producer_t);
 };

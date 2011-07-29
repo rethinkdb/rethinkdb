@@ -2,7 +2,7 @@
 from cloud_retester import do_test, do_test_cloud, report_cloud, setup_testing_nodes, terminate_testing_nodes
 
 # Clean the repo
-do_test("cd ../src/; make clean")
+do_test("cd ../src/; make depclean")
 
 # Make every target first, as some tests depend on multiple targets
 

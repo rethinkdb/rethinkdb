@@ -15,6 +15,8 @@
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "concurrency/cond_var.hpp"
+#include "concurrency/mutex.hpp"
+#include "containers/intrusive_list.hpp"
 #include "containers/two_level_array.hpp"
 #include "serializer/serializer.hpp"
 #include "buffer_cache/mirrored/config.hpp"
@@ -37,15 +39,20 @@ typedef array_map_t page_map_t;
 
 class mc_cache_account_t;
 
-class mc_inner_buf_t : public home_thread_mixin_t {
-    friend class load_buf_fsm_t;
+// TODO: It should be possible to unload the data of an mc_inner_buf_t from the cache even when
+// there are still snapshots of it around - there is no reason why the data shouldn't be able to
+// leave the cache, even if we still need the object around to keep track of snapshots. With the way
+// this is currently set up, this is not possible; unloading an mc_inner_buf_t requires deleting it.
+// To change this requires some tricky rewriting/refactoring, and I was unable to get around to it.
+// -rntz
+
+class mc_inner_buf_t : public home_thread_mixin_t, public evictable_t {
     friend class mc_cache_t;
     friend class mc_transaction_t;
     friend class mc_buf_t;
     friend class writeback_t;
     friend class writeback_t::local_buf_t;
     friend class page_repl_random_t;
-    friend class page_repl_random_t::local_buf_t;
     friend class array_map_t;
     friend class array_map_t::local_buf_t;
     friend class patch_disk_storage_t;
@@ -55,12 +62,13 @@ class mc_inner_buf_t : public home_thread_mixin_t {
     typedef uint64_t version_id_t;
     static const version_id_t faux_version_id = 0;  // this version id must be smaller than any valid version id
 
-    cache_t *cache;
     block_id_t block_id;
     repli_timestamp_t subtree_recency;
 
     void *data;
     version_id_t version_id;
+    /* As long as data has not been changed since the last serializer write, data_token contains a token to the on-serializer block */
+    boost::shared_ptr<serializer_t::block_token_t> data_token;
 
     rwi_lock_t lock;
     patch_counter_t next_patch_counter;
@@ -75,12 +83,16 @@ class mc_inner_buf_t : public home_thread_mixin_t {
     // number of references from mc_buf_t buffers, which hold a pointer to the data in read_outdated_ok mode
     size_t cow_refcount;
 
+    // number of references from mc_buf_t buffers which point to the current version of `data` as a
+    // snapshot. this is ugly, but necessary to correctly initialize buf_snapshot_t refcounts.
+    size_t snap_refcount;
+
     // Each of these local buf types holds a redundant pointer to the inner_buf that they are a part of
     writeback_t::local_buf_t writeback_buf;
-    page_repl_t::local_buf_t page_repl_buf;
     page_map_t::local_buf_t page_map_buf;
 
     bool safe_to_unload();
+    void unload();
 
     // Load an existing buf from disk
     mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_load, file_t::account_t *io_account);
@@ -96,24 +108,25 @@ class mc_inner_buf_t : public home_thread_mixin_t {
     // Loads data from the serializer
     void load_inner_buf(bool should_lock, file_t::account_t *io_account);
 
-    struct buf_snapshot_info_t {
-        void *data;
-        version_id_t snapshotted_version;
-        unsigned int refcount;
+    // Informs us that a certain data buffer (whether the current one or one used by a
+    // buf_snapshot_t) has been written back to disk; used by writeback
+    void update_data_token(const void *data, boost::shared_ptr<serializer_t::block_token_t> token);
 
-        buf_snapshot_info_t(void *data, version_id_t snapshotted_version, unsigned int refcount) :
-            data(data), snapshotted_version(snapshotted_version), refcount(refcount) { }
-    };
+    block_sequence_id_t block_sequence_id;
 
-    typedef std::list<buf_snapshot_info_t> snapshot_data_list_t;
+    // snapshot types' implementations are internal and deferred to mirrored.cc
+    struct buf_snapshot_t;
+    typedef intrusive_list_t<buf_snapshot_t> snapshot_data_list_t;
     snapshot_data_list_t snapshots;
 
     // If required, make a snapshot of the data before being overwritten with new_version
     bool snapshot_if_needed(version_id_t new_version);
-    void *get_snapshot_data(version_id_t version_to_access);
-    void release_snapshot(void *data);
-
-    ser_transaction_id_t transaction_id;
+    // releases a buffer snapshot used by a transaction snapshot
+    void release_snapshot(buf_snapshot_t *snapshot);
+    // acquires the snapshot data buffer, loading from disk if necessary; must be matched by a call
+    // to release_snapshot_data to keep track of when data buffer is in use
+    void *acquire_snapshot_data(version_id_t version_to_access, file_t::account_t *io_account);
+    void release_snapshot_data(void *data);
 
 private:
     // Helper function for inner_buf construction from an existing block
@@ -124,22 +137,29 @@ private:
 
 
 
-/* This class represents a hold on a mc_inner_buf_t. */
+/* This class represents a hold on a mc_inner_buf_t (and potentially a specific version of one). */
 class mc_buf_t {
     typedef mc_cache_t cache_t;
 
     friend class mc_cache_t;
     friend class mc_transaction_t;
     friend class patch_disk_storage_t;
+    friend class writeback_t;
+    friend class writeback_t::buf_writer_t;
 
 private:
-    mc_buf_t(mc_inner_buf_t *inner, access_t mode, mc_inner_buf_t::version_id_t version_id, bool snapshotted, boost::function<void()> call_when_in_line);
-    void on_lock_available();
-    void acquire_block(bool locked, mc_inner_buf_t::version_id_t version_to_access, bool snapshotted);
+    // io_account is only used if a snapshot needs to be read from disk. it may safely be
+    // DEFAULT_DISK_ACCOUNT if snapshotted is false. TODO: this is ugly. find a cleaner interface.
+    mc_buf_t(mc_inner_buf_t *inner, access_t mode, mc_inner_buf_t::version_id_t version_id, bool snapshotted,
+             boost::function<void()> call_when_in_line, file_t::account_t *io_account = DEFAULT_DISK_ACCOUNT);
+    void acquire_block(mc_inner_buf_t::version_id_t version_to_access);
 
     ticks_t start_time;
 
     access_t mode;
+    bool snapshotted;
+    // non_locking_access is a hack for the sake of patch_disk_storage.cc. It would be nice if we
+    // could eliminate it.
     bool non_locking_access;
     mc_inner_buf_t *inner_buf;
     void *data; /* Usually the same as inner_buf->data. If a COW happens or this mc_buf_t is part of a snapshotted transaction, it reference a different buffer however. */
@@ -204,10 +224,6 @@ public:
         return inner_buf->subtree_recency;
     }
 
-    bool is_dirty() {
-        return inner_buf->writeback_buf.dirty;
-    }
-
 private:
     DISABLE_COPYING(mc_buf_t);
 };
@@ -259,7 +275,7 @@ public:
     cache_t *cache;
 
 private:
-    void register_snapshotted_block(mc_inner_buf_t *inner_buf, void *data);
+    void register_buf_snapshot(mc_inner_buf_t *inner_buf, mc_inner_buf_t::buf_snapshot_t *snap);
 
     ticks_t start_time;
     const int expected_change_count;
@@ -272,7 +288,7 @@ private:
     // If not done before, sets snapshot_version, if in snapshotted mode also registers the snapshot
     void maybe_finalize_version();
 
-    typedef std::vector<std::pair<mc_inner_buf_t*, void*> > owned_snapshots_list_t;
+    typedef std::vector<std::pair<mc_inner_buf_t*, mc_inner_buf_t::buf_snapshot_t*> > owned_snapshots_list_t;
     owned_snapshots_list_t owned_buf_snapshots;
 
     file_t::account_t *get_io_account() const;
@@ -298,14 +314,13 @@ class mc_cache_account_t {
 
 
 class mc_cache_t : public home_thread_mixin_t, public serializer_t::read_ahead_callback_t {
-    friend class load_buf_fsm_t;
     friend class mc_buf_t;
     friend class mc_inner_buf_t;
     friend class mc_transaction_t;
     friend class writeback_t;
     friend class writeback_t::local_buf_t;
     friend class page_repl_random_t;
-    friend class page_repl_random_t::local_buf_t;
+    friend class evictable_t;
     friend class array_map_t;
     friend class array_map_t::local_buf_t;
     friend class patch_disk_storage_t;
@@ -372,10 +387,10 @@ public:
     void register_snapshot(mc_transaction_t *txn);
     void unregister_snapshot(mc_transaction_t *txn);
 
-    size_t register_snapshotted_block(mc_inner_buf_t *inner_buf, void * data, mc_inner_buf_t::version_id_t snapshotted_version, mc_inner_buf_t::version_id_t new_version);
+private:
+    size_t register_buf_snapshot(mc_inner_buf_t *inner_buf, mc_inner_buf_t::buf_snapshot_t *snap, mc_inner_buf_t::version_id_t snapshotted_version, mc_inner_buf_t::version_id_t new_version);
     size_t calculate_snapshots_affected(mc_inner_buf_t::version_id_t snapshotted_version, mc_inner_buf_t::version_id_t new_version);
 
-private:
     inner_buf_t *find_buf(block_id_t block_id);
     void on_transaction_commit(transaction_t *txn);
 

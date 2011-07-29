@@ -13,6 +13,11 @@
 #include "concurrency/semaphore.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "perfmon_types.hpp"
+#include <boost/iterator/iterator_facade.hpp>
+
+#include <stdexcept>
+#include <stdarg.h>
+#include <unistd.h>
 
 class side_coro_handler_t;
 
@@ -68,6 +73,10 @@ public:
 
     void pop(size_t len);
 
+    //pop to the position the iterator has been incremented to
+    class iterator;
+    void pop(iterator &);
+
     void read_more_buffered();
 
     /* Call shutdown_read() to close the half of the pipe that goes from the peer to us. If there
@@ -93,6 +102,22 @@ public:
     write() is called. Internally, it bundles together the buffered writes; this may improve
     performance. */
     void write_buffered(const void *buf, size_t size);
+
+    void vwritef(const char *format, va_list args) {
+        char buffer[1000];
+        size_t bytes = vsnprintf(buffer, sizeof(buffer), format, args);
+        rassert(bytes < sizeof(buffer));
+        write(buffer, bytes);
+    }
+
+    void writef(const char *format, ...)
+        __attribute__ ((format (printf, 2, 3))) {
+        va_list args;
+        va_start(args, format);
+        vwritef(format, args);
+        va_end(args);
+    }
+
     void flush_buffer();   // Blocks until flush is done
     void flush_buffer_eventually();   // Blocks only if the queue is backed up
 
@@ -110,6 +135,45 @@ public:
     /* Note that is_read_open() and is_write_open() must both be false1 before the socket is
     destroyed. */
     ~linux_tcp_conn_t();
+
+public:
+    /* iterator always you to handle the stream of data off the
+     * socket with iterators, the iterator handles all of the buffering itself. The
+     * impetus for this class comes from wanting to use network connection's with
+     * Boost's spirit parser */
+
+    class iterator 
+        : public boost::iterator_facade<iterator, const char, boost::forward_traversal_tag>
+    {
+    friend class linux_tcp_conn_t;
+    private:
+        linux_tcp_conn_t *source;
+        bool end;
+        size_t pos;
+    private:
+        int compare(iterator const& other) const;
+    private:
+    // boost iterator interface
+        void increment();
+        bool equal(iterator const& other);
+        const char &dereference();
+    public:
+        iterator();
+        iterator(linux_tcp_conn_t *, size_t);
+        iterator(linux_tcp_conn_t *, bool);
+        iterator(iterator const& );
+        ~iterator();
+        char operator*();
+        void operator++();
+        void operator++(int);
+        bool operator==(iterator const &);
+        bool operator!=(iterator const &);
+        bool operator<(iterator const &);
+    };
+
+public:
+    iterator begin();
+    iterator end();
 
     // Changes the home_thread_mixin_t superclass's real_home_thread.
     void rethread(int);

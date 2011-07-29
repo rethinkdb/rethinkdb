@@ -2,7 +2,7 @@
 from retester import do_test, report
 
 # Clean the repo
-do_test("cd ../src/; make clean")
+do_test("cd ../src/; make depclean")
 
 # Build everything
 for mode in ["debug", "release"]:
@@ -12,10 +12,10 @@ for mode in ["debug", "release"]:
                 { "DEBUG"                     : 1 if mode    == "debug"    else 0,
                   "VALGRIND"                  : 1 if checker == "valgrind" else 0,
                   "SEMANTIC_SERIALIZER_CHECK" : 1},
-                cmd_format="make")
+                cmd_format="make", timeout=180)
 
 # Do quick smoke tests in some environments
-for (mode, checker, protocol) in [("debug", "valgrind", "text")]:
+for (mode, checker, protocol) in [("debug-scs", "valgrind", "text")]:
     # VERY basic tests
     do_test("integration/append_prepend.py",
             { "auto"        : True,
