@@ -25,7 +25,7 @@ const int SKIP_ENTRY_RESERVED = 251;
 
 // The amount of extra timestamp information we _must_ carry if there
 // are sufficiently many keys in the node.
-const int MANDATORY_EXTRAS = 4;
+const int MANDATORY_TIMESTAMPS = 5;
 
 struct entry_t;
 struct value_t;
@@ -114,16 +114,24 @@ struct loof_t {
     block_magic_t magic;
 
     // The size of pair_offsets.
-    uint16_t npairs;
+    uint16_t num_pairs;
 
-    // The number of 
-    int16_t nextra;
-    repli_timestamp_t base_tstamp;
+    // The number of timestamps we have (stored after the pair_offsets).
+    uint16_t num_tstamps;
+
+    // The total size (in bytes) of the live entries and their 2-byte
+    // pair offsets in pair_offsets.
+    uint16_t live_size;
+
+    // The frontmost offset.
     uint16_t frontmost;
+
+    // The pair offsets.
     uint16_t pair_offsets[];
 
-    uint16_t *extra_tstamps() const {
-        return pair_offsets + npairs;
+    // The timestamps are stored after the pair offsets.
+    repli_timestamp_t *tstamps() const {
+        return reinterpret_cast<repli_timestamp_t *>(pair_offsets + num_pairs);
     }
 };
 
@@ -133,6 +141,82 @@ const entry_t *get_entry(const loof_t *node, int offset) {
 
 entry_t *get_entry(loof_t *node, int offset) {
     return reinterpret_cast<entry_t *>(reinterpret_cast<char *>(node) + offset);
+}
+
+struct entry_iter_t {
+    int offset;
+    int tstamp_index;
+
+    template <class V>
+    entry_t *entry(value_sizer_t<V> *sizer, const loof_t *node) {
+	rassert(!done(sizer));
+	return get_entry(node, offset);
+    }
+
+    template <class V>
+    void step(value_sizer_t<V> *sizer, const loof_t *node) {
+	rassert(!done(sizer));
+
+	offset += entry_size(get_entry(node, offset));
+
+	rassert(tstamp_index <= node->num_tstamps);
+	tstamp_index += tstamp_index < node->num_tstamps;
+    }
+
+    bool done(value_sizer_t<V> *sizer) const {
+	rassert(offset <= sizer->block_size().value());
+	return offset >= sizer->block_size().value();
+    }
+
+    static entry_iter_t make(const loof_t *node) {
+	entry_iter_t ret;
+	ret.offset = node->frontmost;
+	ret.tstamp_index = 0;
+	return ret;
+    }
+};
+
+template <class V>
+void init(value_sizer_t<V> *sizer, loof_t *node) {
+    node->magic = sizer->btree_leaf_magic();
+    node->num_pairs = 0;
+    node->num_tstamps = 0;
+    node->live_size = 0;
+    node->frontmost = sizer->block_size().value();
+}
+
+template <class V>
+bool is_full(value_sizer_t<V> *sizer, const loof_t *node, const btree_key_t *key, const V *value) {
+    int size = node->live_size;
+
+    // node->live_size does not include the space we'll need for the
+    // new key/value pair we would insert.  We conservatively assume
+    // the key is not already contained in the node.
+
+    size += sizeof(uint16_t) + sizeof(repli_timestamp_t) + key->full_size() + sizer->size(value);
+
+    // node->live_size does not include deletion entries, deletion
+    // entries' timestamps, and live entries' timestamps.  We add that
+    // to size.
+
+    entry_iter_t iter = entry_iter_t::make(node);
+    int count = 1;
+    while (!(count == MANDATORY_TIMESTAMPS || iter.done(sizer) || iter.tstamp_index == node->num_tstamps)) {
+
+	entry_t *ent = iter.entry(sizer, node);
+	if (entry_is_deletion(ent)) {
+	    size += sizeof(uint16_t) + sizeof(repli_timestamp_t) + entry_size(ent);
+	    ++count;
+	} else if (entry_is_live(ent)) {
+	    ++count;
+	    size += sizeof(repli_timestamp_t);
+	}
+
+	iter.step(sizer, node);
+    }
+
+    // The node is full if we can't fit all that data within the block size.
+    return size > sizer->block_size().value();
 }
 
 
