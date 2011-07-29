@@ -219,6 +219,17 @@ void writeback_t::flush_timer_callback(void *ctx) {
 
     pm_patches_size_ratio.record(self->cache->max_patches_size_ratio);
 
+    /*
+     * Update the max_patches_size_ratio. If we detect that the previous writeback
+     * is still active and the max_dirty_blocks_limit is exhausted at a level of
+     * at least RAISE_PATCHES_RATIO_AT_FRACTION_OF_UNSAVED_DATA_LIMIT, we
+     * consider the system to be i/o bound. In this case, we proactively decrease
+     * the max_patches_size_ratio towards MAX_PATCHES_SIZE_RATIO_MIN, to increase
+     * the usage of patches and reduce the amount of i/o.
+     * Otherwise, we consider the system to be bound by something other than i/o
+     * and gradually increase max_patches_size_ratio towards MAX_PATCHES_SIZE_RATIO_MAX
+     * to save the overhead associated with managing and writing patches.
+     */
     if (self->active_flushes < self->max_concurrent_flushes || self->num_dirty_blocks() < (float)self->max_dirty_blocks * RAISE_PATCHES_RATIO_AT_FRACTION_OF_UNSAVED_DATA_LIMIT) {
         /* The currently running writeback probably finished on-time. (of we have enough headroom left before hitting the unsaved data limit)
         Adjust max_patches_size_ratio to trade i/o efficiency for CPU cycles */
