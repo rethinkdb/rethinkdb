@@ -78,7 +78,6 @@ public:
     // Bucket operations:
     // Get a bucket by name
     boost::optional<bucket_t> get_bucket(std::string s) {
-        //BREAKPOINT;
         std::list<std::string> key;
         key.push_back("riak"); key.push_back(s);
         store_t *store = store_manager->get_store(key);
@@ -113,8 +112,20 @@ public:
 
     //Object operations:
     //Get all the keys in a bucket
-    std::pair<object_iterator_t, object_iterator_t> objects(std::string) { 
-        crash("Not implementated");
+    object_iterator_t objects(std::string bucket) { 
+        std::list<std::string> sm_key;
+        sm_key.push_back("riak"); sm_key.push_back(bucket);
+        btree_slice_t *slice = get_slice(sm_key);
+
+        if (!slice) {
+            //no value
+        }
+
+        range_txn_t<riak_value_t> range_txn = 
+            get_range<riak_value_t>(slice, order_token_t::ignore, rget_bound_none, store_key_t(), rget_bound_none, store_key_t());
+
+
+        return object_iterator_t(range_txn.it, range_txn.txn);
     };
 
     const object_t get_object(std::string bucket, std::string key) {
@@ -131,33 +142,7 @@ public:
 
         kv_location.value->print(slice->cache()->get_block_size());
 
-        object_t res;
-        res.key = key;
-        res.last_written = kv_location.value->mod_time;
-        res.ETag = kv_location.value->etag;
-
-        blob_t blob(kv_location.value->contents, blob::btree_maxreflen);
-        buffer_group_t buffer_group;
-        blob_acq_t acq;
-        blob.expose_all(kv_location.txn.get(), rwi_read, &buffer_group, &acq);
-
-        const_buffer_group_t::iterator it = buffer_group.begin(), end = buffer_group.end(); 
-
-        /* grab the content type */
-        res.content_type.reserve(kv_location.value->content_type_len);
-        for (unsigned i = 0; i < kv_location.value->content_type_len; i++) {
-            res.content_type += *it;
-            it++;
-        }
-
-        for (unsigned i = 0; i < kv_location.value->value_len; i++) {
-            res.content += *it;
-            it++;
-        }
-
-        //TODO links code goes here, when those are implemented in a sensible way
-
-        return res;
+        return object_t(key, kv_location.value.get(), kv_location.txn.get());
     }
 
     std::pair<object_tree_iterator_t, object_tree_iterator_t> link_walk(std::string, std::string, std::vector<link_filter_t>) {
@@ -259,8 +244,6 @@ private:
 //handlers for specific commands, really just to break up the code
 private:
     http_res_t list_buckets(const http_req_t &);
-
-    //http_res_t list_keys(const http_req_t &);
     http_res_t get_bucket(const http_req_t &);
     http_res_t set_bucket(const http_req_t &);
     http_res_t fetch_object(const http_req_t &);

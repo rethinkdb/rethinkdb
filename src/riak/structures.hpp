@@ -1,6 +1,12 @@
 #ifndef __RIAK_STRUCTURES__
 #define __RIAK_STRUCTURES__
 
+#include "riak/riak_value.hpp"
+#include "containers/buffer_group.hpp"
+#include "containers/scoped_malloc.hpp"
+#include "containers/iterators.hpp"
+#include "btree/iteration.hpp"
+
 namespace riak {
 
 // Data defintions:
@@ -74,20 +80,53 @@ struct object_t {
     int ETag;
     int last_written;
     std::vector<link_t> links;
+
+    object_t() { }
+
+    object_t(std::string const &key, riak_value_t *val, transaction_t *txn) 
+        : key(key)
+    {
+        last_written = val->mod_time;
+        ETag = val->etag;
+
+        blob_t blob(val->contents, blob::btree_maxreflen);
+        buffer_group_t buffer_group;
+        blob_acq_t acq;
+        blob.expose_all(txn, rwi_read, &buffer_group, &acq);
+
+        const_buffer_group_t::iterator it = buffer_group.begin(), end = buffer_group.end(); 
+
+        /* grab the content type */
+        content_type.reserve(val->content_type_len);
+        for (unsigned i = 0; i < val->content_type_len; i++) {
+            content_type += *it;
+            it++;
+        }
+
+        for (unsigned i = 0; i < val->value_len; i++) {
+            content += *it;
+            it++;
+        }
+
+        //TODO links code goes here, when those are implemented in a sensible way
+    }
+
 };
 
-
-class object_iterator_t {
-    //TODO actually implement this instead of just duping the type checker
+class object_iterator_t : public transform_iterator_t<key_value_pair_t<riak_value_t>, object_t> {
 private:
-    object_t object;
+    object_t make_object(key_value_pair_t<riak_value_t> val) {
+        return object_t(val.key, reinterpret_cast<riak_value_t *>(val.value.get()), txn.get());
+    }
+
+    boost::shared_ptr<transaction_t> txn;
+    //boost::shared_ptr<slice_keys_iterator_t<riak_value_t> > it;
+
 public:
-    bool operator!=(object_iterator_t const &) {not_implemented(); return true;}
-    bool operator==(object_iterator_t const &) {not_implemented(); return true;}
-    object_iterator_t operator++() {not_implemented(); return *this;}
-    object_iterator_t operator++(int) {not_implemented(); return *this;}
-    object_t operator*() {not_implemented(); return object_t(); }
-    object_t *operator->() {not_implemented(); return &object;};
+    object_iterator_t(slice_keys_iterator_t<riak_value_t> *it, boost::shared_ptr<transaction_t> &txn)
+        : transform_iterator_t<key_value_pair_t<riak_value_t>, object_t>(boost::bind(&object_iterator_t::make_object, this, _1), it), 
+          txn(txn)
+    { }
 };
 
 struct object_tree_iterator_t;

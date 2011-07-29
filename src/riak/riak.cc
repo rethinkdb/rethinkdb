@@ -204,12 +204,12 @@ http_res_t riak_server_t::get_bucket(const http_req_t &req) {
         std::vector<std::string> links;
 
         //get an iterator to the keys
-        std::pair<object_iterator_t, object_iterator_t> object_iters = riak_interface.objects(*url_it);
-        object_iterator_t obj_it = object_iters.first, obj_end = object_iters.second;
+        object_iterator_t obj_it = riak_interface.objects(*url_it);
 
-        for(; obj_it != obj_end; obj_it++) {
-            body["keys"].get_array().push_back(obj_it->key);
-            links.push_back("</riak/" + bucket->name + "/" + obj_it->key + ">; riaktag=\"contained\"");
+        boost::optional<object_t> cur;
+        while(cur = obj_it.next()) {
+            body["keys"].get_array().push_back(cur->key);
+            links.push_back("</riak/" + bucket->name + "/" + cur->key + ">; riaktag=\"contained\"");
         }
 
         res.add_header_line("Link", boost::algorithm::join(links, ", "));
@@ -555,10 +555,11 @@ http_res_t riak_server_t::luwak_info(const http_req_t &req) {
 
     if (req.find_query_param("keys") == "true" || req.find_query_param("keys") == "stream") {
         body["keys"] = json::mArray();
-        std::pair<object_iterator_t, object_iterator_t> obj_iters = riak_interface.objects(riak_interface.luwak_props().root_bucket);
+        object_iterator_t obj_it = riak_interface.objects(riak_interface.luwak_props().root_bucket);
 
-        for (object_iterator_t obj_it = obj_iters.first; obj_it != obj_iters.second; obj_it++) {
-            body["keys"].get_array().push_back(obj_it->key);
+        boost::optional<object_t> cur;
+        while (cur = obj_it.next()) {
+            body["keys"].get_array().push_back(cur->key);
         }
     }
 

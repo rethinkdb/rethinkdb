@@ -5,6 +5,7 @@
 #include "buffer_cache/buf_lock.hpp"
 #include "containers/scoped_malloc.hpp"
 #include "btree/node.hpp"
+#include "btree/iteration.hpp"
 
 class btree_slice_t;
 
@@ -12,7 +13,7 @@ class got_superblock_t {
 public:
     got_superblock_t() { }
 
-    boost::scoped_ptr<transaction_t> txn;
+    boost::shared_ptr<transaction_t> txn;
 
     buf_lock_t sb_buf;
 
@@ -30,7 +31,7 @@ class keyvalue_location_t {
 public:
     keyvalue_location_t() : there_originally_was_value(false) { }
 
-    boost::scoped_ptr<transaction_t> txn;
+    boost::shared_ptr<transaction_t> txn;
     buf_lock_t sb_buf;
 
     // The parent buf of buf, if buf is not the root node.  This is hacky.
@@ -80,6 +81,21 @@ value_txn_t<Value> get_value_write(btree_slice_t *, btree_key_t *, const repli_t
 
 template <class Value>
 void get_value_read(btree_slice_t *, btree_key_t *, order_token_t, keyvalue_location_t<Value> *);
+
+template <class Value>
+class range_txn_t {
+public:
+    boost::shared_ptr<transaction_t> txn;
+    slice_keys_iterator_t<Value> *it;
+
+public:
+    range_txn_t(boost::shared_ptr<transaction_t> &, slice_keys_iterator_t<Value> *);
+    transaction_t *get_txn();
+    range_txn_t(range_txn_t const&);
+};
+
+template <class Value> 
+range_txn_t<Value> get_range(btree_slice_t *, order_token_t, rget_bound_mode_t, store_key_t const &, rget_bound_mode_t, store_key_t const &);
 
 #include "btree/operations.tcc"
 

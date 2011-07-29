@@ -13,6 +13,7 @@
 #include "store.hpp"
 
 
+//TODO make this not store value as a char array
 template <class Value>
 struct key_value_pair_t {
     std::string key;

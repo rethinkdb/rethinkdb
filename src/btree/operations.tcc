@@ -181,7 +181,7 @@ inline void get_btree_superblock(btree_slice_t *slice, access_t access, int expe
 template <class Value>
 void find_keyvalue_location_for_write(value_sizer_t<Value> *sizer, got_superblock_t *got_superblock, btree_key_t *key, repli_timestamp_t tstamp, keyvalue_location_t<Value> *keyvalue_location_out) {
     keyvalue_location_out->sb_buf.swap(got_superblock->sb_buf);
-    keyvalue_location_out->txn.swap(got_superblock->txn);
+    keyvalue_location_out->txn = got_superblock->txn;
 
     buf_lock_t last_buf;
     buf_lock_t buf;
@@ -234,15 +234,14 @@ template <class Value>
 void find_keyvalue_location_for_read(value_sizer_t<Value> *sizer, got_superblock_t *got_superblock, btree_key_t *key, keyvalue_location_t<Value> *keyvalue_location_out) {
     buf_lock_t buf;
     buf.swap(got_superblock->sb_buf);
-    boost::scoped_ptr<transaction_t> txn;
-    txn.swap(got_superblock->txn);
+    boost::shared_ptr<transaction_t> txn = got_superblock->txn;
 
     block_id_t node_id = reinterpret_cast<const btree_superblock_t *>(buf->get_data_read())->root_block;
     rassert(node_id != SUPERBLOCK_ID);
 
     if (node_id == NULL_BLOCK_ID) {
         // There is no root, so the tree is empty.
-        keyvalue_location_out->txn.swap(txn);
+        keyvalue_location_out->txn =txn;
         return;
     }
 
@@ -361,4 +360,28 @@ void get_value_read(btree_slice_t *slice, btree_key_t *key, order_token_t token,
     get_btree_superblock(slice, rwi_read, token, &got_superblock);
 
     find_keyvalue_location_for_read(&sizer, &got_superblock, key, kv_location_out);
+}
+
+template <class Value>
+range_txn_t<Value>::range_txn_t(boost::shared_ptr<transaction_t> &txn, slice_keys_iterator_t<Value> *it) 
+    : txn(txn), it(it)
+{ }
+
+template <class Value>
+range_txn_t<Value>::range_txn_t(range_txn_t const& other) 
+    : txn(other.txn), it(other.it)
+{ }
+
+template <class Value>
+transaction_t *range_txn_t<Value>::get_txn() {
+    return txn.get();
+}
+
+template <class Value>
+range_txn_t<Value> get_range(btree_slice_t *slice, order_token_t token, rget_bound_mode_t left_mode, store_key_t const &left_key, rget_bound_mode_t right_mode, store_key_t const &right_key) {
+    boost::shared_ptr<value_sizer_t<Value> > sizer(new value_sizer_t<Value>(slice->cache()->get_block_size()));
+    got_superblock_t got_superblock;
+    get_btree_superblock(slice, rwi_read, token, &got_superblock);
+
+    return range_txn_t<Value>(got_superblock.txn, new slice_keys_iterator_t<Value>(sizer, got_superblock.txn, slice, left_mode, left_key, right_mode, right_key));
 }
