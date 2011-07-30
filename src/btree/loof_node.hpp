@@ -36,14 +36,26 @@ const int SKIP_ENTRY_RESERVED = 251;
 const int MANDATORY_TIMESTAMPS = 5;
 const int DELETION_RESERVE_FRACTION = 10;
 
-// The maximum fraction of leaf node memory that must be devoted to
-// deletion entries, if necessary.  So deletion entries are limited by
-// MANDATORY_TIMESTAMPS (only the deletion entries of that many most
-// recent entries must be preserved) and by this fraction of the total
-// buffer size (if the last five operations were deletions of 250-byte
-// keys (in a 4096-block-size node), we'd only have to store 2
-// deletions because that's how many it takes to overflow 410 (or a
-// smaller number, since we subtract fixed costs).
+struct loof_t {
+    // The value-type-specific magic value.
+    block_magic_t magic;
+
+    // The size of pair_offsets.
+    uint16_t num_pairs;
+
+    // The total size (in bytes) of the live entries and their 2-byte
+    // pair offsets in pair_offsets.
+    uint16_t live_size;
+
+    // The frontmost offset.
+    uint16_t frontmost;
+
+    // The first offset whose entry is not accompanied by a timestamp.
+    uint16_t tstamp_cutpoint;
+
+    // The pair offsets.
+    uint16_t pair_offsets[];
+};
 
 struct entry_t;
 struct value_t;
@@ -126,28 +138,6 @@ int entry_size(value_sizer_t<V> *sizer, const entry_t *p) {
     }
 }
 
-
-struct loof_t {
-    // The value-type-specific magic value.
-    block_magic_t magic;
-
-    // The size of pair_offsets.
-    uint16_t num_pairs;
-
-    // The total size (in bytes) of the live entries and their 2-byte
-    // pair offsets in pair_offsets.
-    uint16_t live_size;
-
-    // The frontmost offset.
-    uint16_t frontmost;
-
-    // The first offset whose entry is not accompanied by a timestamp.
-    uint16_t tstamp_cutpoint;
-
-    // The pair offsets.
-    uint16_t pair_offsets[];
-};
-
 const entry_t *get_entry(const loof_t *node, int offset) {
     return reinterpret_cast<const entry_t *>(reinterpret_cast<const char *>(node) + offset + (offset < node->tstamp_cutpoint ? sizeof(repli_timestamp_t) : 0));
 }
@@ -163,7 +153,7 @@ struct entry_iter_t {
     void step(value_sizer_t<V> *sizer, const loof_t *node) {
 	rassert(!done(sizer));
 
-	offset += entry_size(get_entry(node, offset));
+	offset += entry_size(get_entry(node, offset)) + (offset < node->tstamp_cutpoint ? sizeof(repli_timestamp_t) : 0);
     }
 
     bool done(value_sizer_t<V> *sizer) const {
