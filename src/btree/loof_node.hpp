@@ -134,9 +134,6 @@ struct loof_t {
     // The size of pair_offsets.
     uint16_t num_pairs;
 
-    // The number of timestamps we have (stored after the pair_offsets).
-    uint16_t num_tstamps;
-
     // The total size (in bytes) of the live entries and their 2-byte
     // pair offsets in pair_offsets.
     uint16_t live_size;
@@ -144,35 +141,29 @@ struct loof_t {
     // The frontmost offset.
     uint16_t frontmost;
 
+    // The first offset whose entry is not accompanied by a timestamp.
+    uint16_t tstamp_cutpoint;
+
     // The pair offsets.
     uint16_t pair_offsets[];
-
-    // The timestamps are stored after the pair offsets.
-    repli_timestamp_t *tstamps() const {
-        return reinterpret_cast<repli_timestamp_t *>(pair_offsets + num_pairs);
-    }
 };
 
 const entry_t *get_entry(const loof_t *node, int offset) {
-    return reinterpret_cast<const entry_t *>(reinterpret_cast<const char *>(node) + offset);
+    return reinterpret_cast<const entry_t *>(reinterpret_cast<const char *>(node) + offset + (offset < node->tstamp_cutpoint ? sizeof(repli_timestamp_t) : 0));
 }
 
 entry_t *get_entry(loof_t *node, int offset) {
-    return reinterpret_cast<entry_t *>(reinterpret_cast<char *>(node) + offset);
+    return reinterpret_cast<entry_t *>(reinterpret_cast<char *>(node) + offset + (offset < node->tstamp_cutpoint ? sizeof(repli_timestamp_t) : 0));
 }
 
 struct entry_iter_t {
     int offset;
-    int tstamp_index;
 
     template <class V>
     void step(value_sizer_t<V> *sizer, const loof_t *node) {
 	rassert(!done(sizer));
 
 	offset += entry_size(get_entry(node, offset));
-
-	rassert(tstamp_index <= node->num_tstamps);
-	tstamp_index += tstamp_index < node->num_tstamps;
     }
 
     bool done(value_sizer_t<V> *sizer) const {
@@ -183,7 +174,6 @@ struct entry_iter_t {
     static entry_iter_t make(const loof_t *node) {
 	entry_iter_t ret;
 	ret.offset = node->frontmost;
-	ret.tstamp_index = 0;
 	return ret;
     }
 };
@@ -192,9 +182,9 @@ template <class V>
 void init(value_sizer_t<V> *sizer, loof_t *node) {
     node->magic = sizer->btree_leaf_magic();
     node->num_pairs = 0;
-    node->num_tstamps = 0;
     node->live_size = 0;
     node->frontmost = sizer->block_size().value();
+    node->tstamp_cutpoint = node->frontmost;
 }
 
 template <class V>
@@ -217,7 +207,7 @@ int mandatory_cost(value_sizer_t<V> *sizer, const loof_t *node, int required_tim
     int count = 0;
     int deletions_cost = 0;
     int max_deletions_cost = free_space(sizer) / DELETION_RESERVE_FRACTION;
-    while (!(count == required_timestamps || iter.done(sizer) || iter.tstamp_index == node->num_tstamps)) {
+    while (!(count == required_timestamps || iter.done(sizer) || iter.offset >= node->tstamp_cutpoint)) {
 
 	entry_t *ent = get_entry(node, iter.offset);
 	if (entry_is_deletion(ent)) {
