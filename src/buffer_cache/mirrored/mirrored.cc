@@ -5,7 +5,7 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
-#include "arch/coroutines.hpp"
+#include "arch/runtime/coroutines.hpp"
 #include "buffer_cache/stats.hpp"
 #include "do_on_thread.hpp"
 #include "stats/persist.hpp"

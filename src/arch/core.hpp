@@ -3,7 +3,7 @@
 
 /* HACK. See Tim for more information. */
 
-#include "arch/linux/linux_utils.hpp"
+#include "arch/runtime/linux_utils.hpp"
 
 class linux_thread_message_t;
 typedef linux_thread_message_t thread_message_t;

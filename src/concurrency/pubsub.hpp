@@ -3,9 +3,7 @@
 
 #include "concurrency/mutex.hpp"
 #include "utils.hpp"
-/* HACK. We need `ASSERT_FINITE_CORO_WAITING`, but we shouldn't have to include
-something directly from `arch/linux` to get it... */
-#include "arch/linux/coroutines.hpp"
+#include "arch/runtime/coroutines.hpp"
 
 /* `publisher_t` is used to implement small-scale pub/sub architectures. It's
 useful whenever you need to broadcast notifications to some number of listeners.
