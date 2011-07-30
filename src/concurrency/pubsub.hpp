@@ -25,7 +25,8 @@ struct publisher_t :
 {
 public:
     class subscription_t :
-        public intrusive_list_node_t<subscription_t>
+        public intrusive_list_node_t<subscription_t>,
+        public home_thread_mixin_t
     {
     public:
         /* Construct a `subscription_t` that is not subscribed to any publisher.
@@ -42,8 +43,10 @@ public:
         /* Subscribe to the given publisher. It's only legal to call
         `resubscribe()` if you are not subscribed to a publisher. */
         void resubscribe(publisher_t *pub) {
+            assert_thread();
             rassert(!publisher);
             rassert(pub);
+            pub->assert_thread();
             publisher = pub;
             rassert(!publisher->shutting_down);
             mutex_acquisition_t acq(&publisher->lock);
@@ -52,6 +55,7 @@ public:
 
         /* Unsubscribe from the publisher you are subscribed to. */
         void unsubscribe() {
+            assert_thread();
             rassert(publisher);
             rassert(!publisher->shutting_down);
             mutex_acquisition_t acq(&publisher->lock);
