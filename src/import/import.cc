@@ -3,7 +3,7 @@
 #include <math.h>
 #include "db_thread_info.hpp"
 #include "memcached/memcached.hpp"
-#include "diskinfo.hpp"
+#include "server/diskinfo.hpp"
 #include "concurrency/cond_var.hpp"
 #include "logger.hpp"
 #include "replication/master.hpp"
