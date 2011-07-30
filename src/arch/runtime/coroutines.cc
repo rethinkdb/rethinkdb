@@ -295,6 +295,10 @@ void coro_t::set_coroutine_stack_size(size_t size) {
     coro_stack_size = size;
 }
 
+artificial_stack_t* coro_t::get_stack() {
+    return &context->stack;
+}
+
 /* Called by SIGSEGV handler to identify segfaults that come from overflowing a coroutine's
 stack. Could also in theory be used by a function to check if it's about to overflow
 the stack. */
