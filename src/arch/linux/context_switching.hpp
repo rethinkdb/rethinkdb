@@ -50,6 +50,12 @@ struct artificial_stack_t {
     /* Returns `true` if the given address is in the stack's protection page. */
     bool address_is_stack_overflow(void *);
 
+    /* Returns the base of the stack */
+    void* get_stack_base() { return (void*)((char*)stack + stack_size); }
+
+    /* Returns the end of the stack */
+    void* get_stack_bound() { return stack; }
+    
 private:
     void *stack;
     size_t stack_size;

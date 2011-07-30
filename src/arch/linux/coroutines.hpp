@@ -8,6 +8,7 @@
 const size_t MAX_COROUTINE_STACK_SIZE = 8*1024*1024;
 
 class coro_context_t;
+struct artificial_stack_t;
 
 /* A coro_t represents a fiber of execution within a thread. Create one with spawn_*(). Within a
 coroutine, call wait() to return control to the scheduler; the coroutine will be resumed when
@@ -46,6 +47,8 @@ public:
 
 public:
     static void set_coroutine_stack_size(size_t size);
+
+    artificial_stack_t* get_stack();
 
 private:
     /* Internally, we recycle ucontexts and stacks. So the real guts of the coroutine are in the
