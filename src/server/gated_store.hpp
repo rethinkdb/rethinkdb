@@ -1,5 +1,5 @@
-#ifndef __GATED_STORE_HPP__
-#define __GATED_STORE_HPP__
+#ifndef __SERVER_GATED_STORE_HPP__
+#define __SERVER_GATED_STORE_HPP__
 
 #include "store.hpp"
 #include "concurrency/gate.hpp"
@@ -52,4 +52,4 @@ private:
     threadsafe_gate_t gate;
 };
 
-#endif /* __GATED_STORE_HPP__ */
+#endif /* __SERVER_GATED_STORE_HPP__ */

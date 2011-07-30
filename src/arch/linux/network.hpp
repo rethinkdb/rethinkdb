@@ -13,6 +13,7 @@
 #include "concurrency/semaphore.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "perfmon_types.hpp"
+#include "arch/linux/event_watcher.hpp"
 #include <boost/iterator/iterator_facade.hpp>
 
 #include <stdexcept>

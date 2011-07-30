@@ -14,15 +14,6 @@ void cond_t::do_pulse() {
     signal_t::pulse();
 }
 
-void cond_weak_ptr_t::watch(cond_t *c) {
-    rassert(!cond);
-    rassert(c);
-    if (!c->is_pulsed()) {
-        cond = c;
-        cond->add_waiter(this);
-    }
-}
-
 void multi_cond_t::pulse() {
     rassert(!ready);
     ready = true;

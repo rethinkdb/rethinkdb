@@ -106,8 +106,9 @@ void master_t::do_backfill_and_realtime_stream(repli_timestamp_t since_when) {
     if (stream_) {
 
         cond_t cond; // when cond is pulsed, backfill_and_realtime_stream() will return
-        interrupt_streaming_cond_.watch(&cond);
+        interrupt_streaming_cond_ = &cond;
         backfill_and_realtime_stream(kvs_, since_when, this, &cond);
+        interrupt_streaming_cond_ = NULL;
 
         debugf("backfill_and_realtime_stream() returned.\n");
     } else if (opened) {
