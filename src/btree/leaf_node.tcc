@@ -328,7 +328,8 @@ bool level(value_sizer_t<Value> *sizer, buf_t *node_buf, buf_t *sibling_buf, btr
         // It's sufficient to show that sibling_size > 1300, and right
         // now we can prove that.  However, our correctness relies on
         // the arithmetic, and not on the logic, so to speak.  Also
-        // make sure that we aren't overfilling node.  This is very low priority.
+        // make sure that we aren't overfilling node.  This is very
+        // low priority.
 
         // Copy from the end of the sibling to the beginning of the node.
         node_buf->move_data(const_cast<uint16_t *>(node->pair_offsets + pairs_to_move), node->pair_offsets, node->npairs * sizeof(*node->pair_offsets));

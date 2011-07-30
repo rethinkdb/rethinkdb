@@ -304,17 +304,15 @@ void split(value_sizer_t<V> *sizer, loof_t *node, loof_t *rnode, btree_key_t *me
 
         if (entry_is_live(ent)) {
             prev_lcost = lcost;
-            lcost += entry_size(entry) + sizeof(uint16_t) + (offset < tstamp_back_offset ? sizeof(repli_timestamp_t) : 0);
+            lcost += entry_size(sizer, ent) + sizeof(uint16_t) + (offset < tstamp_back_offset ? sizeof(repli_timestamp_t) : 0);
         } else {
             rassert(entry_is_deletion(ent));
 
             if (offset < tstamp_back_offset) {
                 prev_lcost = lcost;
-                lcost += entry_size(entry) + sizeof(uint16_t) + sizeof(repli_timestamp_t);
+                lcost += entry_size(sizer, ent) + sizeof(uint16_t) + sizeof(repli_timestamp_t);
             }
         }
-
-        lcost += sz + (node->pair_offsets[i] < tstamp_back_offset ? sizeof(repli_timestamp_t) : 0);
 
         ++i;
     }
@@ -355,7 +353,125 @@ void split(value_sizer_t<V> *sizer, loof_t *node, loof_t *rnode, btree_key_t *me
     move_elements(sizer, node, s, node->num_pairs, rnode);
 
     node->num_pairs = s;
+
+    keycpy(median_out, entry_key(get_entry(node, node->pair_offsets[s - 1])));
 }
+
+template <class V>
+void merge(value_sizer_t<V> *sizer, loof_t *left, loof_t *right, btree_key_t *key_to_remove_out) {
+    rassert(left != right);
+    rassert(is_underfull(sizer, left));
+    rassert(is_underfull(sizer, right));
+
+    rassert(left->num_pairs > 0);
+    rassert(right->num_pairs > 0);
+
+    move_elements(sizer, left, 0, left->num_pairs, right);
+
+    rassert(right->num_pairs > 0);
+    keycpy(key_to_remove_out, entry_key(get_entry(right, right->pair_offsets[0])));
+}
+
+// We move keys out of sibling and into node.
+template <class V>
+bool level(value_sizer_t<V> *sizer, loof_t *node, loof_t *sibling, btree_key_t *key_to_replace_out, btree_key_t *replacement_key_out) {
+    rassert(node != sibling);
+
+    // If sibling were underfull, we'd just merge the nodes.
+    rassert(is_underfull(node));
+    rassert(!is_underfull(sibling));
+
+    rassert(node->num_pairs > 0);
+    rassert(sibling->num_pairs > 0);
+
+    // First figure out the inclusive range [beg, end] of elements we want to move from sibling.
+    int beg, end, *w, wstep;
+
+    int node_weight = mandatory_cost(sizer, node, MANDATORY_TIMESTAMPS);
+    int tstamp_back_offset;
+    int sibling_weight = mandatory_cost(sizer, node, MANDATORY_TIMESTAMPS, &tstamp_back_offset);
+
+    rassert(node_weight < sibling_weight);
+
+    int nodecmp_result = nodecmp(node, sibling);
+    rassert(nodecmp_result != 0);
+    if (nodecmp_result < 0) {
+        // node is to the left of sibling, so we want to move elements
+        // [0, k) from sibling.
+
+        beg = 0;
+        end = 0;
+        w = &end;
+        wstep = 1;
+    } else {
+        // node is to the right of sibling, so we want to move
+        // elements [num_pairs - k, num_pairs) from sibling.
+
+        beg = sibling->num_pairs - 1;
+        end = sibling->num_pairs - 1;
+        w = &beg;
+        wstep = -1;
+    }
+
+    rassert(end - beg != sibling->num_pairs - 1);
+
+    int prev_diff;
+    for (;;) {
+        int offset = sibling->pair_offsets[*w];
+        entry_t *ent = get_entry(sibling, offset);
+
+        // We only take mandatory entries' costs into consideration.
+        if (entry_is_live(ent)) {
+            int sz = entry_size(sizer, ent) + sizeof(uint16_t) + (offset < tstamp_back_offset ? sizeof(repli_timestamp_t) : 0);
+            prev_diff = sibling_weight - node_weight;
+            node_weight += sz;
+            sibling_weight -= sz;
+        } else {
+            rassert(entry_is_deletion(ent));
+
+            if (offset < tstamp_back_offset) {
+                int sz = entry_size(sizer, ent) + sizeof(uint16_t) + sizeof(repli_timestamp_t);
+                prev_diff = sibling_weight - node_weight;
+                node_weight += sz;
+                sibling_weight -= sz;
+            }
+        }
+
+        if (end - beg == sibling->num_pairs - 1 || node_weight >= sibling_weight) {
+            break;
+        }
+
+        *w += wstep;
+    }
+
+    rassert(end - beg < sibling->num_pairs - 1);
+
+    if (prev_diff <= sibling_weight - node_weight) {
+        *w -= wstep;
+    }
+
+    if (end < beg) {
+        // Alas, there is no actual leveling to do.
+        rassert(end + 1 == beg);
+        return false;
+    }
+
+    move_elements(sizer, sibling, beg, end + 1, node);
+
+    // key_to_replace_out is set to a key that is <= the key to
+    // replace, but > any lesser key, and replacement_key_out is the
+    // actual replacement key.
+    if (nodecmp_result < 0) {
+        keycpy(key_to_replace_out, entry_key(get_entry(node, node->pair_offsets[0])));
+        keycpy(replacement_key_out, entry_key(get_entry(node, node->pair_offsets[node->num_pairs - 1])));
+    } else {
+        keycpy(key_to_replace_out, entry_key(get_entry(sibling, sibling->pair_offsets[0])));
+        keycpy(replacement_key_out, entry_key(get_entry(sibling, sibling->pair_offsets[sibling->num_pairs - 1])));
+    }
+
+    return true;
+}
+
 
 
 
