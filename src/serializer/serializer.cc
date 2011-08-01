@@ -2,7 +2,7 @@
 #include <boost/variant.hpp>
 
 #include "serializer/serializer.hpp"
-#include "arch/coroutines.hpp"
+#include "arch/runtime/coroutines.hpp"
 
 serializer_t::index_write_op_t::index_write_op_t(
         block_id_t block_id,

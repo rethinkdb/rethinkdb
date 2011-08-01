@@ -1,7 +1,7 @@
 #include "arch/core.hpp"
 
 #include "utils.hpp"
-#include "arch/linux/thread_pool.hpp"
+#include "arch/runtime/thread_pool.hpp"
 
 int get_thread_id() {
     return linux_thread_pool_t::thread_id;

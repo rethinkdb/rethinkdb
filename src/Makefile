@@ -596,7 +596,7 @@ depclean:
 ifeq ($(VERBOSE),0)
 	@echo "    RM -f $(BUILD_ROOT_DIR)/*.d"
 endif
-	$(QUIET) find $(BUILD_ROOT_DIR) -name '*.d' -exec rm {} \;
+	$(QUIET) if test -d $(BUILD_ROOT_DIR); then find $(BUILD_ROOT_DIR) -name '*.d' -exec rm {} \; ; fi
 
 clean:
 ifeq ($(VERBOSE),0)

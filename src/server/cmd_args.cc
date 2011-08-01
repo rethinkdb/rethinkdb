@@ -5,7 +5,7 @@
 #include <errno.h>
 #include <vector>
 
-#include "arch/coroutines.hpp"
+#include "arch/runtime/coroutines.hpp"
 #include "server/cmd_args.hpp"
 #include "utils.hpp"
 #include "help.hpp"
@@ -18,12 +18,13 @@
 void usage_serve() {
     Help_Pager *help = Help_Pager::instance();
     help->pagef("Usage:\n"
-                "        rethinkdb serve [OPTIONS] [-f <file_1> -f <file_2> ... --metadata-file <file>]\n"
+                "        rethinkdb serve [OPTIONS]\n"
+                "                [-f <file_1> -f <file_2> ... --metadata-file <file>]\n"
                 "        Serve a database with one or more storage files.\n"
                 "\n"
                 "Options:\n"
 
-    //          "                        24 characters start here.                              | < last character
+    //          "                        24 characters, start here                              | < last character
                 "  -f, --file            Path to file or block device where database goes.\n"
                 "                        Can be specified multiple times to use multiple files.\n"
                 "  --metadata-file       Path to file or block device used for database metadata.\n");
@@ -47,8 +48,8 @@ void usage_serve() {
     }
     help->pagef("      --flush-threshold Number of transactions waiting for a flush on any slice\n"
                 "                        at which a flush is automatically triggered. In\n"
-                "                        combination with --wait-for-flush this option can be used\n"
-                "                        to optimize the write latency for concurrent strong\n"
+                "                        combination with --wait-for-flush this option can be\n"
+                "                        used to optimize the write latency for concurrent strong\n"
                 "                        durability workloads. Defaults to %d\n"
                 "      --flush-concurrency\n"
                 "                        Maximal number of concurrently active flushes per\n"
@@ -108,17 +109,17 @@ void usage_serve() {
                 "                        OFF or ON. If ON, defaults to %d.\n", DEFAULT_REPLICATION_PORT);
     help->pagef("      --slave-of host:port\n"
                 "                        Run this server as a slave of a master server. As a\n"
-                "                        slave it will be a replica of the master and will respond\n"
-                "                        only to get and rget. When the master goes down it will\n"
-                "                        begin responding to writes.\n"
+                "                        slave it will be a replica of the master and will\n"
+                "                        respond only to get and rget. When the master goes down\n"
+                "                        it will begin responding to writes.\n"
                 "      --heartbeat-timeout\n"
-                "                        If the slave does not receive a heartbeat message from the\n"
-                "                        master within --heartbeat-timeout seconds, it will\n"
+                "                        If the slave does not receive a heartbeat message from\n"
+                "                        the master within --heartbeat-timeout seconds, it will\n"
                 "                        terminate the connection and try to reconnect. If that\n"
                 "                        fails too, it will promote itself ot master.\n"
                 "      --failover-script Used in conjunction with --slave-of to specify a script\n"
-                "                        that will be run when the master fails and comes back up.\n"
-                "                        See the manual for an example script.\n"
+                "                        that will be run when the master fails and comes back\n"
+                "                        up. See the manual for an example script.\n"
                 "      --no-rogue        If the connection to master is intermittent (e.g. the\n"
                 "                        master disconnects five times within five minutes), the\n"
                 "                        slave will promote itself to master. Use the --no-rogue\n"
