@@ -146,6 +146,14 @@ entry_t *get_entry(loof_t *node, int offset) {
     return reinterpret_cast<entry_t *>(reinterpret_cast<char *>(node) + offset + (offset < node->tstamp_cutpoint ? sizeof(repli_timestamp_t) : 0));
 }
 
+char *get_at_offset(loof_t *node, int offset) {
+    return reinterpret_cast<char *>(node) + offset;
+}
+
+repli_timestamp_t get_timestamp(const loof_t *node, int offset) {
+    return *reinterpret_cast<const repli_timestamp_t *>(reinterpret_cast<const char *>(node) + offset);
+}
+
 struct entry_iter_t {
     int offset;
 
@@ -279,6 +287,220 @@ bool is_underfull(value_sizer_t<V> *sizer, const loof_t *node) {
 
     return mandatory_cost(sizer, node, MANDATORY_TIMESTAMPS) < free_space(sizer) / 2 - loof_epsilon(sizer);
 }
+
+// Compares indices by looking at values in another array.
+class indirect_index_comparator_t {
+public:
+    indirect_index_comparator_t(const uint16_t *array) : array_(array) { }
+
+    bool operator()(uint16_t x, uint16_t y) {
+        return array_[x] < array_[y];
+    }
+
+private:
+    const uint16_t *array_;
+};
+
+// Moves entries with pair_offsets indices in the clopen range [beg,
+// end) from fro to tow.
+template <class V>
+void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int wpoint, loof_t *tow, int fro_copysize, repli_timestamp_t fro_earliest_mandatory, int fro_mand_offset) {
+    rassert(is_underfull(tow));
+
+    int bs = sizer->block_size().value();
+
+#ifndef NDEBUG
+    int verify_fro_mand_offset;
+    int fro_cost = mandatory_cost(sizer, fro, MANDATORY_TIMESTAMPS, &verify_fro_mand_offset);
+    rassert(fro_cost + mandatory_cost(sizer, tow, MANDATORY_TIMESTAMPS) <= free_space(sizer));
+    rassert(verify_fro_mand_offset == fro_mand_offset);
+#endif
+
+    // Make tow have a nice big region we can copy entries to.  Also,
+    // this means we have no "skip" entries in tow.
+    garbage_collect(sizer, tow, MANDATORY_TIMESTAMPS);
+
+    // Now resize and move tow's pair_offsets.
+    memmove(tow->pair_offsets + wpoint + (end - beg), tow->pair_offsets + wpoint, sizeof(uint16_t) * (tow->num_pairs - wpoint));
+
+    tow->num_pairs += end - beg;
+
+    // Now we're going to do something crazy.  Fill the new hole in
+    // the pair offsets with the numbers in [0, end - beg).
+    for (int i = 0; i < end - beg; ++i) {
+        tow->pair_offsets[wpoint + i] = i;
+    }
+
+    // We treat these numbers as indices into [beg, end) in fro, and
+    // sort them so that we can access [beg, end) in order by
+    // increasing offset.
+    std::sort(tow->pair_offsets + wpoint, tow->pair_offsets + wpoint + (end - beg), indirect_index_comparator_t(fro->pair_offsets + beg));
+
+    // The offset we read from, in tow.
+    int tow_offset = tow->frontmost;
+
+    // The offset we read from (indirectly pointing to fro's [beg,
+    // end)) in tow->pair_offsets, and the offset at which we stop.
+    int fro_index = wpoint;
+    int fro_index_end = wpoint + (end - beg);
+
+    // The new frontmost offset.
+    const int new_frontmost = tow->frontmost - fro_copysize;
+
+    // The offset at which we write the next entry.
+    int wri_offset = new_frontmost;
+
+    int adjustable_tow_offsets[MANDATORY_TIMESTAMPS];
+    int num_adjustable_tow_offsets = 0;
+
+    // We will gradually compute the live size.
+    int livesize = tow->livesize;
+
+    for (int i = 0; i < wpoint; ++i) {
+        if (tow->pair_offsets[i] < tow->tstamp_cutpoint) {
+            rassert(num_adjustable_tow_offsets < MANDATORY_TIMESTAMPS);
+            adjustable_tow_offsets[num_adjustable_tow_offsets] = i;
+            num_adjustable_tow_offsets ++;
+        }
+    }
+
+    for (int i = wpoint + (end - beg); i < tow->num_pairs; ++i) {
+        if (tow->pair_offsets[i] < tow->tstamp_cutpoint) {
+            rassert(num_adjustable_tow_offsets < MANDATORY_TIMESTAMPS);
+            adjustable_tow_offsets[num_adjustable_tow_offsets] = i;
+            num_adjustable_tow_offsets ++;
+        }
+    }
+
+    for (;;) {
+        rassert(tow_offset <= tow->tstamp_cutpoint);
+        if (tow_offset == tow->tstamp_cutpoint || fro_index == fro_index_end) {
+            // We have no more timestamped information to push.
+            break;
+        }
+
+        int fro_offset = fro->pair_offsets[beg + tow->pair_offsets[fro_index]];
+
+        if (fro_offset >= fro_mand_offset) {
+            // We have no more timestamped information to push.
+            break;
+        }
+
+        repli_timestamp_t fro_tstamp = get_timestamp(fro, fro_offset);
+        repli_timestamp_t tow_tstamp = get_timestamp(tow, tow_offset);
+
+        // Greater timestamps go first.
+        if (fro_tstamp > tow_tstamp) {
+            entry_t *ent = get_entry(fro, fro_offset);
+            int sz = sizeof(repli_timestamp_t) + entry_size(ent);
+            memmove(get_at_offset(tow, wri_offset), get_at_offset(fro, fro_offset), sz);
+            clean_entry_with_timestamp(fro, fro_offset, sz);
+
+            // Update the pair offset in fro to be the offset in tow
+            // -- we'll never use the old value again and we'll copy
+            // the newer values to tow later.
+            fro->pair_offsets[beg + tow->pair_offsets[fro_index]] = wri_offset;
+
+            wri_offset += sz;
+            fro_index++;
+
+            if (entry_is_live(ent)) {
+                livesize += sz + sizeof(uint16_t);
+            }
+        } else {
+            int sz = sizeof(repli_timestamp_t) + entry_size(get_entry(tow, tow_offset));
+            memmove(get_at_offset(tow, wri_offset), get_at_offset(tow, tow_offset), sz);
+
+            // Update the pair offset of the entry we've moved.
+            int i;
+            for (i = 0; i < num_adjustable_tow_offsets; ++i) {
+                int j = adjustable_tow_offsets[i];
+                if (tow->pair_offsets[j] == tow_offset) {
+                    tow->pair_offsets[j] = wri_offset;
+                    break;
+                }
+            }
+
+            // Make sure we updated something.
+            rassert(i != num_adjustable_tow_offsets);
+
+            wri_offset += sz;
+            tow_offset += sz;
+        }
+    }
+
+    // Now we have some untimestamped entries to write.
+    for (; fro_index < fro_index_end; ++fro_index) {
+        int fro_offset = fro->pair_offsets[beg + tow->pair_offsets[fro_index]];
+        entry_t *ent = get_entry(fro, fro_offset);
+        if (entry_is_live(ent)) {
+            int sz = entry_size(ent);
+            memmove(get_at_offset(tow, wri_offset), get_at_offset(fro, fro_offset), sz);
+            clean_entry_sans_timestamp(fro, fro_offset, sz);
+            fro->pair_offsets[beg + tow->pair_offsets[fro_index]] = wri_offset;
+            wri_offset += sz;
+            livesize += sz + sizeof(uint16_t);
+        }
+    }
+
+    rassert(wri_offset == tow_offset);
+
+    uint16_t new_tstamp_cutpoint = wri_offset;
+
+    // tow may have some timestamped entries that need to become
+    // un-timestamped.
+    while (tow_offset < tow->tstamp_cutpoint) {
+        rassert(wri_offset <= tow_offset);
+
+        entry_t *ent = get_entry(tow, tow_offset);
+        int sz = entry_size(ent);
+        if (entry_is_live(ent)) {
+            memmove(get_at_offset(tow, wri_offset), ent, sz);
+
+            // Update the pair offset of the entry we've moved.
+            int i;
+            for (i = 0; i < num_adjustable_tow_offsets; ++i) {
+                int j = adjustable_tow_offsets[i];
+                if (tow->pair_offsets[j] == tow_offset) {
+                    tow->pair_offsets[j] = wri_offset;
+                    break;
+                }
+            }
+
+            // Make sure we updated something.
+            rassert(i != num_adjustable_tow_offsets);
+
+            wri_offset += sz;
+
+            livesize -= sizeof(repli_timestamp_t);
+        }
+        tow_offset += sizeof(repli_timestamp_t) + sz;
+    }
+
+    rassert(wri_offset <= tow_offset);
+
+    // If we needed to untimestamp any tow entries, we'll need a skip
+    // entry for the open space.
+    if (wri_offset < tow_offset) {
+        clean_entry_sans_timestamp(tow, wri_offset, tow_offset - wri_offset);
+    }
+
+    // We don't need to do anything else for tow entries because we
+    // did a garbage collection in tow so they are contiguous through
+    // the end of the buffer (and the rest don't have timestamps).
+
+    // Copy the valid tow offsets from [beg, end) to the wpoint point
+    // in tow, and move fro entries.
+    memcpy(tow->pair_offsets + wpoint, fro->pair_offsets + beg,
+           sizeof(uint16_t) * (end - beg));
+    memmove(fro->pair_offsets + beg, fro->pair_offsets + end, sizeof(uint16_t) * (fro->num_pairs - end));
+    fro->num_pairs -= beg - end;
+
+    tow->frontmost = new_frontmost;
+
+    tow->livesize = livesize;
+}
+
 
 template <class V>
 void split(value_sizer_t<V> *sizer, loof_t *node, loof_t *rnode, btree_key_t *median_out) {
@@ -471,6 +693,8 @@ bool level(value_sizer_t<V> *sizer, loof_t *node, loof_t *sibling, btree_key_t *
 
     return true;
 }
+
+
 
 
 
