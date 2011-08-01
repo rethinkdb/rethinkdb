@@ -4,7 +4,7 @@
 #include "spirit/boost_parser.hpp"
 #include <boost/fusion/include/adapt_struct.hpp>
 #include <boost/fusion/include/io.hpp>
-
+#include <boost/ptr_container/ptr_vector.hpp>
 
 enum http_method_t {
     HEAD = 0,
@@ -66,7 +66,71 @@ BOOST_FUSION_ADAPT_STRUCT(
      //(std::string, body)
 )
 
-struct http_res_t {
+struct http_res_header_t {
+public:
+    std::string version;
+    int code;
+protected:
+    std::map<std::string, std::string> header_lines;
+    time_t last_modified;
+    
+
+public:
+    time_t get_last_modified() { return last_modified; }
+
+    void add_header_line(std::string const &, std::string const &);
+    void add_last_modified(time_t);
+
+    http_res_header_t()
+        : code(-1), last_modified(-1)
+    { }
+};
+
+struct http_res_body_t {
+    virtual std::string content_type() = 0;
+    virtual size_t content_length() = 0;
+    virtual std::string content() = 0;
+
+    virtual ~http_res_body_t() { }
+};
+
+struct http_res_simple_body_t : public http_res_body_t {
+    std::string content_type();
+    size_t content_length();
+    std::string content();
+
+    http_res_simple_body_t(const std::string &, const std::string &);
+
+private:
+    std::string _content_type;
+    std::string _content;
+};
+
+struct http_res_multipart_body_t : public http_res_body_t {
+    std::string content_type();
+    size_t content_length();
+    std::string content();
+
+    http_res_multipart_body_t();
+private:
+    boost::ptr_vector<http_res_body_t> _content();
+
+public:
+    //takes responsibility for the pointer
+    void add_content(http_res_body_t *);
+};
+
+struct http_res_t  : public http_res_header_t {
+    boost::shared_ptr<http_res_body_t> body;
+public:
+    void write_conn(boost::scoped_ptr<tcp_conn_t> &);
+
+    // this is a convenience/legacy function that just sets up a
+    // http_res_simple_body_t with this content-type and content
+    void set_body(std::string const &, std::string const &);
+};
+
+/* struct http_res_t {
     std::string version;
     int code;
     std::vector<header_line_t> header_lines;
@@ -84,7 +148,7 @@ private:
     time_t last_modified_time;
 public:
     time_t get_last_modified_time() { return last_modified_time; }
-};
+}; */
 
 template <typename Iterator>
 struct http_msg_parser_t : qi::grammar<Iterator, http_req_t()> {

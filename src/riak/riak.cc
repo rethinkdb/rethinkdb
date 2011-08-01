@@ -414,7 +414,7 @@ http_res_t riak_server_t::store_object(const http_req_t &req) {
     }
 
     if (req.find_query_param("returnbody") == "true") {
-        res.body = req.body;
+        res.set_body(req.find_header_line("Content-Type"), req.body);
         res.code = 200;
     } else {
         res.code = 204;
