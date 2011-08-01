@@ -11,8 +11,7 @@ thread to its constructor. It will deliver a notification to the specified
 thread when the original signal is pulsed. */
 
 class cross_thread_signal_t :
-    public signal_t,
-    private signal_t::waiter_t
+    public signal_t
 {
 public:
     cross_thread_signal_t(signal_t *source, int dest_thread);
@@ -23,8 +22,8 @@ private:
 
     void deliver(const drain_semaphore_t::lock_t &);
 
-    signal_t *source;
     int source_thread, dest_thread;
+    signal_t::subscription_t subs;
     drain_semaphore_t drain_semaphore;
 };
 

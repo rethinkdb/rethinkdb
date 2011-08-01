@@ -3,6 +3,7 @@
 #define __CONCURRENCY_MUTEX_HPP__
 
 #include "concurrency/rwi_lock.hpp"   // For lock_available_callback_t
+#include "arch/core.hpp"
 
 class mutex_t {
     struct lock_request_t :

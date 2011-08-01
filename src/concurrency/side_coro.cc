@@ -3,7 +3,7 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
-#include "arch/coroutines.hpp"
+#include "arch/runtime/coroutines.hpp"
 
 side_coro_handler_t::side_coro_handler_t(const boost::function<void (signal_t *)>& f)
     : fun(f) {

@@ -1,7 +1,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
-#include "arch/linux/event_queue.hpp"
+#include "arch/runtime/event_queue.hpp"
 #include "arch/timer.hpp"
 #include "logger.hpp"
 #include "arch/arch.hpp"

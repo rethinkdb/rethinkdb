@@ -1,5 +1,5 @@
 #include "arch/arch.hpp"
-#include "arch/coroutines.hpp"
+#include "arch/runtime/coroutines.hpp"
 
 struct io_coroutine_adapter_t : public iocallback_t {
     coro_t *cont;
