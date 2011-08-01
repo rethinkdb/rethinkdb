@@ -1,6 +1,7 @@
 #include "http/http.hpp"
 #include <iostream>
 #include <boost/bind.hpp>
+#include "logger.hpp"
 
 std::string http_req_t::find_query_param(std::string key) const {
     //TODO this is inefficient we should actually load it all into a map
@@ -123,6 +124,8 @@ void http_server_t::handle_conn(boost::scoped_ptr<tcp_conn_t> &conn) {
         slc = conn->peek(content_length(req));
         req.body.append(slc.beg, content_length(req));
         conn->pop(content_length(req));
+
+        logINF("Request for: %s\n", req.resource.c_str());
 
         http_res_t res = handle(req);
         res.version = req.version;
