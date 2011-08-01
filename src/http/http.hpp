@@ -1,5 +1,5 @@
-#ifndef __HTTP_HTTP_HPP__
-#define __HTTP_HTTP_HPP__
+#ifndef __HTPP_HTPP_HPP__
+#define __HTPP_HTPP_HPP__
 
 #include "spirit/boost_parser.hpp"
 #include <boost/fusion/include/adapt_struct.hpp>
@@ -158,4 +158,4 @@ private:
     http_res_t handle(const http_req_t &);
 };
 
-#endif   /* __HTTP_HTTP_HPP__ */
+#endif
