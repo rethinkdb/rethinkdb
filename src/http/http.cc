@@ -125,7 +125,7 @@ void http_server_t::handle_conn(boost::scoped_ptr<tcp_conn_t> &conn) {
         req.body.append(slc.beg, content_length(req));
         conn->pop(content_length(req));
 
-        logINF("Request for: %s\n", req.resource.c_str());
+        logDBG("Request for: %s\n", req.resource.c_str());
 
         http_res_t res = handle(req);
         res.version = req.version;
