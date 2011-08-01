@@ -74,7 +74,7 @@ char *keys_blob_ref(void *root_buffer);
 int keys_blob_ref_size(block_size_t block_size);
 
 struct t_and_o {
-    repli_timestamp timestamp;
+    repli_timestamp_t timestamp;
     off64_t offset;
 } __attribute__((__packed__));
 
@@ -106,7 +106,7 @@ protected:
 // Acquires a delete queue, appends a (timestamp, key) pair to the
 // queue, and releases the queue.  The delete queue is identified by
 // queue_root.  This must be called on the transaction's home thread.
-void add_key_to_delete_queue(int64_t delete_queue_limit, transaction_t *txn, block_id_t queue_root, repli_timestamp timestamp, const store_key_t *key);
+void add_key_to_delete_queue(int64_t delete_queue_limit, transaction_t *txn, block_id_t queue_root, repli_timestamp_t timestamp, const store_key_t *key);
 
 // Dumps keys from the delete queue, blocking until all the keys in
 // the interval have been passed to the recipient.  All keys whose
@@ -114,7 +114,7 @@ void add_key_to_delete_queue(int64_t delete_queue_limit, transaction_t *txn, blo
 // end_timestamp are passed to recipient, in no particular order.
 //
 // Returns false if we should send _everything_ when backfilling.
-bool dump_keys_from_delete_queue(transaction_t *txn, block_id_t queue_root, repli_timestamp begin_timestamp, deletion_key_stream_receiver_t *recipient);
+bool dump_keys_from_delete_queue(transaction_t *txn, block_id_t queue_root, repli_timestamp_t begin_timestamp, deletion_key_stream_receiver_t *recipient);
 
 
 

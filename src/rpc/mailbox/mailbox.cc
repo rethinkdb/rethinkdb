@@ -1,18 +1,6 @@
 #include "rpc/mailbox/mailbox.hpp"
 
-mailbox_t::mailbox_t(mailbox_cluster_t *cluster) :
-    cluster(cluster),
-    mailbox_id(cluster->mailbox_tables[home_thread()].next_mailbox_id++)
-{
-    rassert(cluster->mailbox_tables[home_thread()].mailboxes.find(mailbox_id) ==
-        cluster->mailbox_tables[home_thread()].mailboxes.end());
-    cluster->mailbox_tables[home_thread()].mailboxes[mailbox_id] = this;
-}
-
-mailbox_t::~mailbox_t() {
-    rassert(cluster->mailbox_tables[home_thread()].mailboxes[mailbox_id] == this);
-    cluster->mailbox_tables[home_thread()].mailboxes.erase(mailbox_id);
-}
+/* mailbox_t */
 
 mailbox_t::address_t::address_t() :
     peer(peer_id_t()), thread(-1), mailbox_id(-1) { }
@@ -35,6 +23,20 @@ peer_id_t mailbox_t::address_t::get_peer() const {
     return peer;
 }
 
+mailbox_t::mailbox_t(mailbox_cluster_t *cluster) :
+    cluster(cluster),
+    mailbox_id(cluster->mailbox_tables[home_thread()].next_mailbox_id++)
+{
+    rassert(cluster->mailbox_tables[home_thread()].mailboxes.find(mailbox_id) ==
+        cluster->mailbox_tables[home_thread()].mailboxes.end());
+    cluster->mailbox_tables[home_thread()].mailboxes[mailbox_id] = this;
+}
+
+mailbox_t::~mailbox_t() {
+    rassert(cluster->mailbox_tables[home_thread()].mailboxes[mailbox_id] == this);
+    cluster->mailbox_tables[home_thread()].mailboxes.erase(mailbox_id);
+}
+
 void send(mailbox_cluster_t *src, mailbox_t::address_t dest, boost::function<void(std::ostream&)> writer) {
     rassert(src);
     rassert(!dest.is_nil());
@@ -48,6 +50,8 @@ void send(mailbox_cluster_t *src, mailbox_t::address_t dest, boost::function<voi
             writer
             ));
 }
+
+/* mailbox_cluster_t */
 
 mailbox_cluster_t::mailbox_cluster_t(int port) :
     connectivity_cluster_t(port)

@@ -9,28 +9,33 @@
 #include "serializer/log/lba/disk_format.hpp"
 
 
-struct in_memory_index_t
+class in_memory_index_t
 {
     // blocks.get_size() == timestamps.get_size().  We use parallel
     // arrays to avoid wasting memory from alignment.
     segmented_vector_t<flagged_off64_t, MAX_BLOCK_ID> blocks;
-    segmented_vector_t<repli_timestamp, MAX_BLOCK_ID> timestamps;
+    segmented_vector_t<repli_timestamp_t, MAX_BLOCK_ID> timestamps;
 
 public:
     in_memory_index_t();
 
-    // TODO: Rename this function.  It's one greater than the max
-    // block id.
-    block_id_t max_block_id();
+    // end_block_id is one greater than the max block id.
+    block_id_t end_block_id();
 
     struct info_t {
         flagged_off64_t offset;
-        repli_timestamp recency;
+        repli_timestamp_t recency;
     };
 
     info_t get_block_info(block_id_t id);
-    void set_block_info(block_id_t id, repli_timestamp recency,
+    void set_block_info(block_id_t id, repli_timestamp_t recency,
                         flagged_off64_t offset);
+
+    bool is_offset_indexed(off64_t offset);
+    block_id_t get_block_id(off64_t offset);
+
+    // Rebuild the reverse mapping offset -> block id. Can become necessary on startup, when the LBA contains outdaited entries with offset collisions to recent ones
+    void rebuild_reverse_index(); 
 
 #ifndef NDEBUG
     void print();

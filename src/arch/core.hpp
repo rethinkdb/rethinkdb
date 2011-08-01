@@ -3,26 +3,21 @@
 
 /* HACK. See Tim for more information. */
 
-#include "arch/linux/coroutines.hpp"
-#include "arch/linux/thread_pool.hpp"
+#include "arch/runtime/linux_utils.hpp"
 
+class linux_thread_message_t;
 typedef linux_thread_message_t thread_message_t;
 
-inline int get_thread_id() {
-    return linux_thread_pool_t::thread_id;
-}
+typedef linux_io_backend_t io_backend_t;
 
-inline int get_num_threads() {
-    return linux_thread_pool_t::thread_pool->n_threads;
-}
+int get_thread_id();
+
+int get_num_threads();
 
 #ifndef NDEBUG
-inline void assert_good_thread_id(int thread) {
-    rassert(thread >= 0, "(thread = %d)", thread);
-    rassert(thread < get_num_threads(), "(thread = %d, n_threads = %d)", thread, get_num_threads());
-}
+void assert_good_thread_id(int thread);
 #else
-#define assert_good_thread_id(thread) do { } while(0)
+inline void assert_good_thread_id(UNUSED int thread) { }
 #endif
 
 // TODO: continue_on_thread() and call_later_on_this_thread are mostly obsolete because of
@@ -32,23 +27,12 @@ inline void assert_good_thread_id(int thread) {
 // thread that we are already on, then it returns 'true'; otherwise, it will cause the other
 // thread's event loop to call msg->on_thread_switch().
 
-inline bool continue_on_thread(int thread, linux_thread_message_t *msg) {
-    assert_good_thread_id(thread);
-    if (thread == linux_thread_pool_t::thread_id) {
-        // The thread to continue on is the thread we are already on
-        return true;
-    } else {
-        linux_thread_pool_t::thread->message_hub.store_message(thread, msg);
-        return false;
-    }
-}
+bool continue_on_thread(int thread, linux_thread_message_t *msg);
 
 // call_later_on_this_thread() will cause msg->on_thread_switch() to be called from the main event loop
 // of the thread we are currently on. It's a bit of a hack.
 
-inline void call_later_on_this_thread(linux_thread_message_t *msg) {
-    linux_thread_pool_t::thread->message_hub.store_message(linux_thread_pool_t::thread_id, msg);
-}
+void call_later_on_this_thread(linux_thread_message_t *msg);
 
 /* TODO: It is common in the codebase right now to have code like this:
 

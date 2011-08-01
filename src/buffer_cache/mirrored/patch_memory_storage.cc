@@ -1,5 +1,6 @@
-#include "patch_memory_storage.hpp"
+#include "buffer_cache/mirrored/patch_memory_storage.hpp"
 
+#include <stdint.h>
 #include <list>
 #include <map>
 #include "errors.hpp"
@@ -12,18 +13,18 @@ void patch_memory_storage_t::load_block_patch_list(block_id_t block_id, const st
     rassert(patch_map.find(block_id) == patch_map.end());
 
     // Verify patches list
-    ser_transaction_id_t previous_transaction = 0;
+    block_sequence_id_t previous_block_sequence = 0;
     patch_counter_t previous_patch_counter = 0;
     for(std::list<buf_patch_t*>::const_iterator p = patches.begin(); p != patches.end(); ++p) {
-        if ((*p)->get_transaction_id() != previous_transaction) {
-            rassert((*p)->get_transaction_id() > previous_transaction, "Non-sequential patch list: Transaction id %ld follows %ld", (*p)->get_transaction_id(), previous_transaction);
-        }
-        if (previous_transaction == 0 || (*p)->get_transaction_id() != previous_transaction) {
+        rassert(previous_block_sequence <= (*p)->get_block_sequence_id(),
+                "Non-sequential patch list: Block sequence id %lu follows %lu",
+                (*p)->get_block_sequence_id(), previous_block_sequence);
+        if (previous_block_sequence == 0 || (*p)->get_block_sequence_id() != previous_block_sequence) {
             previous_patch_counter = 0;
         }
         guarantee(previous_patch_counter == 0 || (*p)->get_patch_counter() > previous_patch_counter, "Non-sequential patch list: Patch counter %d follows %d", (*p)->get_patch_counter(), previous_patch_counter);
         previous_patch_counter = (*p)->get_patch_counter();
-        previous_transaction = (*p)->get_transaction_id();
+        previous_block_sequence = (*p)->get_block_sequence_id();
     }
 
     block_patch_list_t& summarizing_patch_list = patch_map[block_id];
@@ -33,17 +34,17 @@ void patch_memory_storage_t::load_block_patch_list(block_id_t block_id, const st
     }
 }
 
-// Removes all patches which are obsolete w.r.t. the given transaction_id
-void patch_memory_storage_t::filter_applied_patches(block_id_t block_id, ser_transaction_id_t transaction_id) {
+// Removes all patches which are obsolete w.r.t. the given block sequence_id
+void patch_memory_storage_t::filter_applied_patches(block_id_t block_id, block_sequence_id_t block_sequence_id) {
     patch_map_t::iterator map_entry = patch_map.find(block_id);
     rassert(map_entry != patch_map.end());
-    map_entry->second.filter_before_transaction(transaction_id);
+    map_entry->second.filter_before_block_sequence(block_sequence_id);
     if (map_entry->second.empty()) {
         patch_map.erase(map_entry);
     }
 #ifndef NDEBUG
     else {
-        map_entry->second.verify_patches_list(transaction_id);
+        map_entry->second.verify_patches_list(block_sequence_id);
     }
 #endif
 }
@@ -118,10 +119,10 @@ void patch_memory_storage_t::block_patch_list_t::add_patch(buf_patch_t *patch) {
     affected_data_size_ += patch->get_affected_data_size();
 }
 
-void patch_memory_storage_t::block_patch_list_t::filter_before_transaction(const ser_transaction_id_t transaction_id) {
+void patch_memory_storage_t::block_patch_list_t::filter_before_block_sequence(block_sequence_id_t block_sequence_id) {
     std::vector<buf_patch_t *>::iterator first_patch_to_keep = patches_.end();
     for (std::vector<buf_patch_t *>::iterator p = patches_.begin(), e = patches_.end(); p != e; ++p) {
-        if ((*p)->get_transaction_id() < transaction_id) {
+        if ((*p)->get_block_sequence_id() < block_sequence_id) {
             affected_data_size_ -= (*p)->get_affected_data_size();
             delete *p;
         } else {
@@ -133,21 +134,21 @@ void patch_memory_storage_t::block_patch_list_t::filter_before_transaction(const
 }
 
 #ifndef NDEBUG
-void patch_memory_storage_t::block_patch_list_t::verify_patches_list(ser_transaction_id_t transaction_id) const {
+void patch_memory_storage_t::block_patch_list_t::verify_patches_list(block_sequence_id_t block_sequence_id) const {
     // Verify patches list (with strict start patch counter)
-    ser_transaction_id_t previous_transaction = 0;
+    block_sequence_id_t previous_block_sequence = 0;
     patch_counter_t previous_patch_counter = 0;
     for (std::vector<buf_patch_t*>::const_iterator p = patches_.begin(), e = patches_.end(); p != e; ++p) {
-        rassert((*p)->get_transaction_id() >= transaction_id || (*p)->get_transaction_id() == 0);
-        if ((*p)->get_transaction_id() != previous_transaction) {
-            guarantee((*p)->get_transaction_id() > previous_transaction, "Non-sequential patch list: Transaction id %ld follows %ld", (*p)->get_transaction_id(), previous_transaction);
-        }
-        if (previous_transaction == 0 || (*p)->get_transaction_id() != previous_transaction) {
+        rassert((*p)->get_block_sequence_id() >= block_sequence_id || (*p)->get_block_sequence_id() == 0);
+        rassert(previous_block_sequence <= (*p)->get_block_sequence_id(),
+                "Non-sequential patch list: Block sequence id %lu follows %lu",
+                (*p)->get_block_sequence_id(), previous_block_sequence);
+        if (previous_block_sequence == 0 || (*p)->get_block_sequence_id() != previous_block_sequence) {
             previous_patch_counter = 0;
         }
         guarantee((*p)->get_patch_counter() == previous_patch_counter + 1, "Non-sequential patch list: Patch counter %d follows %d", (*p)->get_patch_counter(), previous_patch_counter);
         ++previous_patch_counter;
-        previous_transaction = (*p)->get_transaction_id();
+        previous_block_sequence = (*p)->get_block_sequence_id();
     }
 }
 #endif

@@ -1,5 +1,6 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
+#include "concurrency/pmap.hpp"
 
 template<class metadata_t>
 metadata_cluster_t<metadata_t>::metadata_cluster_t(int port, const metadata_t &initial_metadata) :

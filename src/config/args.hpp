@@ -12,7 +12,7 @@
  */
 
 #define SOFTWARE_NAME_STRING "RethinkDB"
-#define VERSION_STRING "0.3"
+#define VERSION_STRING "0.4"
 
 /**
  * Basic configuration parameters.
@@ -31,12 +31,16 @@
 #define MAX_IO_EVENT_PROCESSING_BATCH_SIZE        50
 
 // The io batch factor ensures a minimum number of i/o operations
-// which are picked from any specific i/o account consequtively.
+// which are picked from any specific i/o account consecutively.
 // A higher value might be advantageous for throughput if seek times
 // matter on the underlying i/o system. A low value improves latency.
-// The advantage only holds as long as each account as a tendentially
-// sequential set of i/o operations though, as it is usually the case
-// for our serializer writes.
+// The advantage only holds as long as each account has a tendentially
+// sequential set of i/o operations though. If access patterns are random
+// for all accounts, a low io batch factor does just as well (as bad) when it comes
+// to the number of random seeks, but might still provide a lower latency
+// than a high batch factor. Our serializer writes usually generate a sequential
+// access pattern and therefore take considerable advantage from a high io batch
+// factor.
 #define DEFAULT_IO_BATCH_FACTOR                   8
 
 // Currently, each cache uses two IO accounts:
@@ -91,7 +95,7 @@
 #define LOG_WORKER 0
 
 // Ratio of free ram to use for the cache by default
-#define DEFAULT_MAX_CACHE_RATIO                   0.7f
+#define DEFAULT_MAX_CACHE_RATIO                   0.5f
 
 // Maximum number of threads we support
 // TODO: make this dynamic where possible
@@ -153,11 +157,21 @@
 
 // If the size of the data affected by the current set of patches in a block is larger than
 // block size / MAX_PATCHES_SIZE_RATIO, we flush the block instead of waiting for
-// more patches to come.
+// more patches to come. Flushing the block means that we rewrite the actual data
+// block (including all patches). In this case, we don't have to store any of the
+// patches for that block, because to block will be re-written anyway. This results
+// in improved CPU efficiency, because we save the overhead of storing and managing
+// patches.
+// In summary: larger max patches size ratio -> less usage of patches, more i/o
+//     smaller max patches size ratio -> more usage of patches, less i/o, more CPU usage
+//
 // Note: An average write transaction under canonical workload leads to patches of about 75
 // bytes of affected data.
-// The actual value is continuously adjusted between MAX_PATCHES_SIZE_RATIO_MIN and
-// MAX_PATCHES_SIZE_RATIO_MAX depending on how much the system is i/o bound
+// The actual value is constantly adjusted between MAX_PATCHES_SIZE_RATIO_MIN and
+// MAX_PATCHES_SIZE_RATIO_MAX depending on whether the system is i/o bound or not.
+// An exception from this is operating in durability mode, where any write
+// operation is ultimately i/o bound anyway. In this case, the patches size ratio
+// does not get dynamically adjusted but stays constant at MAX_PATCHES_SIZE_RATIO_DURABILITY.
 #define MAX_PATCHES_SIZE_RATIO_MIN                100
 #define MAX_PATCHES_SIZE_RATIO_MAX                2
 #define MAX_PATCHES_SIZE_RATIO_DURABILITY         5
@@ -192,7 +206,7 @@
 // In addition to the value itself we could potentially store
 // memcached flags, exptime, and a CAS value in the value contents,
 // plus the first size byte, so we reserve space for that.
-#define MAX_BTREE_VALUE_AUXILIARY_SIZE            (sizeof(btree_value_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint64_t) + 1)
+#define MAX_BTREE_VALUE_AUXILIARY_SIZE            (sizeof(memcached_value_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint64_t) + 1)
 #define MAX_BTREE_VALUE_SIZE                      (MAX_BTREE_VALUE_AUXILIARY_SIZE + MAX_IN_NODE_VALUE_SIZE)
 
 // memcached specifies the maximum value size to be 1MB, but customers asked this to be much higher

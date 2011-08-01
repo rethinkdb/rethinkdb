@@ -1,10 +1,10 @@
 #ifndef __ARCH_STREAMED_TCP_HPP__
 #define __ARCH_STREAMED_TCP_HPP__
 
-/* This file contains an std::streambuf implementation that works 
+/* This file contains an std::streambuf implementation that works
 with a tcp_conn_t object. This allows us to create std::ostream and std::istream
 objects that interact directly with a tcp_conn_t TCP connection. For example
-boost serialize requires streams for serializing data. 
+boost serialize requires streams for serializing data.
 This implementation does read buffering itself (where the buffering logic is
 inherited from basic_streambuf). This is mostly because linux_tcp_conn_t::pop
 is badly implemented and basic_streambuf has that logic implemented anyway.

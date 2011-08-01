@@ -1,6 +1,8 @@
-
 #ifndef __MIGRATE_MIGRATE_HPP_
 #define __MIGRATE_MIGRATE_HPP_
+
+#include <vector>
+#include <string>
 
 #include "utils.hpp"
 

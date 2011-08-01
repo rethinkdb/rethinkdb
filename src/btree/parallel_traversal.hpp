@@ -1,7 +1,10 @@
 #ifndef __BTREE_PARALLEL_TRAVERSAL_HPP__
 #define __BTREE_PARALLEL_TRAVERSAL_HPP__
 
-#include "buffer_cache/buffer_cache.hpp"
+#include "errors.hpp"
+#include <boost/scoped_array.hpp>
+
+#include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
 
 struct btree_superblock_t;

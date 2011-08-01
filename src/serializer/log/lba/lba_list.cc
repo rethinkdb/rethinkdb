@@ -1,7 +1,7 @@
-#include <vector>
+#include "serializer/log/lba/lba_list.hpp"
+
 #include "utils.hpp"
-#include "disk_format.hpp"
-#include "lba_list.hpp"
+#include "serializer/log/lba/disk_format.hpp"
 #include "arch/arch.hpp"
 #include "logger.hpp"
 #include "perfmon.hpp"
@@ -85,26 +85,25 @@ bool lba_list_t::start_existing(direct_file_t *file, metablock_mixin_t *last_met
     }
 }
 
-block_id_t lba_list_t::max_block_id() {
+block_id_t lba_list_t::end_block_id() {
     rassert(state == state_ready);
-    
-    return in_memory_index.max_block_id();
+
+    return in_memory_index.end_block_id();
 }
 
 flagged_off64_t lba_list_t::get_block_offset(block_id_t block) {
     rassert(state == state_ready);
-    
+
     return in_memory_index.get_block_info(block).offset;
 }
 
-repli_timestamp lba_list_t::get_block_recency(block_id_t block) {
+repli_timestamp_t lba_list_t::get_block_recency(block_id_t block) {
     rassert(state == state_ready);
 
     return in_memory_index.get_block_info(block).recency;
 }
 
-// TODO rename to set_block_info
-void lba_list_t::set_block_offset(block_id_t block, repli_timestamp recency, flagged_off64_t offset, file_t::account_t *io_account) {
+void lba_list_t::set_block_info(block_id_t block, repli_timestamp_t recency, flagged_off64_t offset, file_t::account_t *io_account) {
     rassert(state == state_ready);
 
     in_memory_index.set_block_info(block, recency, offset);
@@ -195,12 +194,12 @@ public:
         
         /* Put entries in the new empty LBA */
 
-        for (block_id_t id = i, end_id = owner->max_block_id();
+        for (block_id_t id = i, end_id = owner->end_block_id();
              id < end_id;
              id += LBA_SHARD_FACTOR) {
             block_id_t block_id = id;
             flagged_off64_t off = owner->get_block_offset(block_id);
-            if (flagged_off64_t::has_value(off)) {
+            if (off.has_value()) {
                 owner->disk_structures[i]->add_entry(block_id, owner->get_block_recency(block_id), off, io_account);
             }
         }
@@ -240,7 +239,7 @@ bool lba_list_t::we_want_to_gc(int i) {
     // If we are not using more than N times the amount of space that we need, don't GC
     int entries_per_extent = disk_structures[i]->num_entries_that_can_fit_in_an_extent();
     int64_t entries_total = disk_structures[i]->extents_in_superblock.size() * entries_per_extent;
-    int64_t entries_live = max_block_id() / LBA_SHARD_FACTOR;
+    int64_t entries_live = end_block_id() / LBA_SHARD_FACTOR;
     if ((entries_live / (float)entries_total) > LBA_MIN_UNGARBAGE_FRACTION) {
         return false;
     }

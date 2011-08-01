@@ -7,16 +7,16 @@
 #include <utility>
 
 #include "arch/arch.hpp"
-#include "server/cmd_args.hpp"
+#include "serializer/log/config.hpp"
 #include "containers/priority_queue.hpp"
 #include "containers/two_level_array.hpp"
 #include "containers/bitset.hpp"
 #include "concurrency/mutex.hpp"
-#include "extents/extent_manager.hpp"
+#include "serializer/log/extents/extent_manager.hpp"
 #include "serializer/serializer.hpp"
 #include "serializer/types.hpp"
 #include "perfmon.hpp"
-#include "utils2.hpp"
+#include "utils.hpp"
 
 class log_serializer_t;
 
@@ -30,38 +30,32 @@ extern perfmon_counter_t
 //extern perfmon_function_t
 //    pm_serializer_garbage_ratio;
 
-struct data_block_manager_gc_write_callback_t {
-
-    virtual void on_gc_write_done() = 0;
-    virtual ~data_block_manager_gc_write_callback_t() {}
-};
-
-class data_block_manager_t :
-    public data_block_manager_gc_write_callback_t,
-    public lock_available_callback_t
+class data_block_manager_t
 {
 
     friend class dbm_read_ahead_fsm_t;
 
-public:
-
-    typedef data_block_manager_gc_write_callback_t gc_write_callback_t;
-    
+private:
     struct gc_write_t {
         block_id_t block_id;
         const void *buf;
-        gc_write_t(block_id_t i, const void *b) : block_id(i), buf(b) { }
+        off64_t old_offset;
+        off64_t new_offset;
+        gc_write_t(block_id_t i, const void *b, off64_t old_offset) : block_id(i), buf(b), old_offset(old_offset), new_offset(0) { }
     };
-    
+
     struct gc_writer_t {
-    
-        virtual bool write_gcs(gc_write_t *writes, int num_writes, file_t::account_t *io_account, gc_write_callback_t *cb) = 0;
-        virtual ~gc_writer_t() {}
+        gc_writer_t(gc_write_t *writes, int num_writes, data_block_manager_t *parent);
+        bool done;
+    private:
+        /* TODO: This should go into log_serializer_t */
+        void write_gcs(gc_write_t *writes, int num_writes);
+        data_block_manager_t *parent;
     };
 
 public:
-    data_block_manager_t(gc_writer_t *gc_writer, const log_serializer_dynamic_config_t *dynamic_config, extent_manager_t *em, log_serializer_t *serializer, const log_serializer_static_config_t *static_config)
-        : shutdown_callback(NULL), state(state_unstarted), gc_writer(gc_writer),
+    data_block_manager_t(const log_serializer_dynamic_config_t *dynamic_config, extent_manager_t *em, log_serializer_t *serializer, const log_serializer_on_disk_static_config_t *static_config)
+        : shutdown_callback(NULL), state(state_unstarted), 
           dynamic_config(dynamic_config), static_config(static_config), extent_manager(em), serializer(serializer),
           next_active_extent(0),
           gc_state(extent_manager->extent_size)//,
@@ -69,7 +63,6 @@ public:
     {
         rassert(dynamic_config);
         rassert(static_config);
-        rassert(gc_writer);
         rassert(extent_manager);
         rassert(serializer);
     }
@@ -87,28 +80,15 @@ public:
     restarting an existing database, call start() with the last metablock. */
 
 public:
-
-        
-    static buf_data_t make_buf_data_t(block_id_t block_id, ser_transaction_id_t transaction_id) {
-        buf_data_t ret;
-        ret.block_id = block_id;
-        ret.transaction_id = transaction_id;
-        return ret;
-    }
-
-
-
-public:
     static void prepare_initial_metablock(metablock_mixin_t *mb);
     void start_existing(direct_file_t *dbfile, metablock_mixin_t *last_metablock);
 
 public:
     bool read(off64_t off_in, void *buf_out, file_t::account_t *io_account, iocallback_t *cb);
 
-    /* The offset that the data block manager chose will be left in off_out as soon as write()
-    returns. The callback will be called when the data is actually on disk and it is safe to reuse
-    the buffer. */
-    bool write(const void *buf_in, block_id_t block_id, ser_transaction_id_t transaction_id, off64_t *off_out, file_t::account_t *io_account, iocallback_t *cb);
+    /* Returns the offset to which the block will be written */
+    off64_t write(const void *buf_in, block_id_t block_id, bool assign_new_block_sequence_id,
+                  file_t::account_t *io_account, iocallback_t *cb);
 
 public:
     /* exposed gc api */
@@ -123,6 +103,12 @@ public:
     void start_reconstruct();
     void mark_live(off64_t);  // Takes a real off64_t.
     void end_reconstruct();
+
+    /* We must make sure that blocks which have tokens pointing to them don't
+    get garbage collected. This interface allows log_serializer to tell us about
+    tokens */
+    void mark_token_live(off64_t);
+    void mark_token_garbage(off64_t);
 
     /* garbage collect the extents which meet the gc_criterion */
     void start_gc();
@@ -169,12 +155,11 @@ private:
         state_shut_down
     } state;
 
-    gc_writer_t* gc_writer;
-
     const log_serializer_dynamic_config_t* const dynamic_config;
-    const log_serializer_static_config_t* const static_config;
+    const log_serializer_on_disk_static_config_t* const static_config;
 
     extent_manager_t* const extent_manager;
+    /* TODO: This pointer should not be required */
     log_serializer_t *serializer;
 
     direct_file_t* dbfile;
@@ -183,6 +168,14 @@ private:
     file_t::account_t *choose_gc_io_account();
 
     off64_t gimme_a_new_offset();
+
+    /* Checks whether the extent is empty and if it is, notifies the extent manager and cleans up */
+    void check_and_handle_empty_extent(unsigned int extent_id);
+    /* Just pushes the given extent on the potentially_empty_extents queue */
+    void check_and_handle_empty_extent_later(unsigned int extent_id);
+    std::vector<unsigned int> potentially_empty_extents;
+    /* Runs check_and_handle_empty extent() for each extent in potentially_empty_extents */
+    void check_and_handle_outstanding_empty_extents();
 
 private:
     
@@ -203,6 +196,12 @@ private:
         
         off64_t offset; /* !< the offset that this extent starts at */
         bitset_t g_array; /* !< bit array for whether or not each block is garbage */
+        bitset_t t_array; /* !< bit array for whether or not each block is referenced by some token */
+        bitset_t i_array; /* !< bit array for whether or not each block is referenced by the current lba (*i*ndex) */
+        // g_array is redundant. g_array[i] = !(t_array[i] || i_array[i])
+        void update_g_array(unsigned int block_id) {
+            g_array.set(block_id, !(t_array[block_id] || i_array[block_id]));
+        }
         microtime_t timestamp; /* !< when we started writing to the extent */
         priority_queue_t<gc_entry*, Less>::entry_t *our_pq_entry; /* !< The PQ entry pointing to us */
         bool was_written; /* true iff the extent has been written to after starting up the serializer */
@@ -227,6 +226,8 @@ private:
             : parent(parent),
               offset(parent->extent_manager->gen_extent()),
               g_array(parent->static_config->blocks_per_extent()),
+              t_array(parent->static_config->blocks_per_extent()),
+              i_array(parent->static_config->blocks_per_extent()),
               timestamp(current_microtime()),
               was_written(false)
         {
@@ -243,8 +244,10 @@ private:
             : parent(parent),
               offset(offset),
               g_array(parent->static_config->blocks_per_extent()),
+              t_array(parent->static_config->blocks_per_extent()),
+              i_array(parent->static_config->blocks_per_extent()),
               timestamp(current_microtime()),
-              was_written(false) 
+              was_written(false)
         {
             parent->extent_manager->reserve_extent(offset);
             rassert(parent->entries.get(offset / parent->extent_manager->extent_size) == NULL);
@@ -320,14 +323,10 @@ private:
 
     void on_gc_write_done();
 
-    void on_lock_available();
-
     enum gc_step {
         gc_reconstruct, /* reconstructing on startup */
         gc_ready, /* ready to start */
-        gc_ready_lock_available, /* ready to start, got main_mutex */
         gc_read,  /* waiting for reads, acquiring main_mutex */
-        gc_read_lock_available,  /* waiting for reads, sending out writes */
         gc_write, /* waiting for writes */
     };
 

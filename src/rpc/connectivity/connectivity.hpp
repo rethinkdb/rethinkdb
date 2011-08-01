@@ -103,12 +103,6 @@ struct connectivity_cluster_t :
     public home_thread_mixin_t
 {
 public:
-
-    /* Creating a new cluster node, and connecting one cluster to another
-    cluster */
-    connectivity_cluster_t(int port);
-    ~connectivity_cluster_t();
-
     /* Attaches the cluster this node is part of to another existing cluster.
     May only be called on home thread. */
     void join(peer_address_t);
@@ -121,6 +115,11 @@ public:
     std::map<peer_id_t, peer_address_t> get_everybody();
 
 protected:
+    /* Creating a new cluster node, and connecting one cluster to another
+    cluster */
+    connectivity_cluster_t(int port);
+    virtual ~connectivity_cluster_t();
+
     /* TODO: We should have a better mechanism for sending messages to ourself.
     Right now, they get serialized and then deserialized. If we did it more
     efficiently, we wouldn't have to special-case messages to local mailboxes on

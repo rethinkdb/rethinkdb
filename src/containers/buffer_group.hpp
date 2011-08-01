@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <vector>
 
-#include "utils2.hpp"
+#include "utils.hpp"
 
 class const_buffer_group_t {
 public:
@@ -37,6 +37,49 @@ public:
         return s;
     }
 
+    class iterator {
+    private:
+        std::vector<buffer_t>::iterator it;
+        ssize_t offset;
+
+    friend class const_buffer_group_t;
+        iterator(std::vector<buffer_t>::iterator it, ssize_t offset) 
+            : it(it), offset(offset)
+        { }
+
+    public:
+        char operator*() {
+            rassert(offset < it->size);
+            return *(reinterpret_cast<const char *>(it->data) + offset);
+        }
+        iterator operator++() {
+            rassert(offset < it->size);
+            offset++;
+            if (offset == it->size) {
+                it++;
+                offset = 0;
+            }
+            return *this;
+        }
+        iterator operator++(int) {
+            return operator++();
+        }
+        bool operator==(iterator const &other) {
+            return it == other.it && offset == other.offset;
+        }
+        bool operator!=(iterator const &other) {
+            return !operator==(other);
+        }
+    };
+
+    iterator begin() {
+        return iterator(buffers_.begin(), 0);
+    }
+
+    iterator end() {
+        return iterator(buffers_.end(), 0);
+    }
+
 private:
     std::vector<buffer_t> buffers_;
     DISABLE_COPYING(const_buffer_group_t);
@@ -51,7 +94,7 @@ public:
 
     buffer_group_t() { }
 
-    void add_buffer(size_t s, void *d) { inner_.add_buffer(s, d); }
+    void add_buffer(size_t s, const void *d) { inner_.add_buffer(s, d); }
 
     size_t num_buffers() const { return inner_.num_buffers(); }
 
@@ -67,6 +110,14 @@ public:
     size_t get_size() const { return inner_.get_size(); }
 
     friend const const_buffer_group_t *const_view(const buffer_group_t *group);
+
+    const_buffer_group_t::iterator begin() {
+        return inner_.begin();
+    }
+
+    const_buffer_group_t::iterator end() {
+        return inner_.end();
+    }
 
 private:
     const_buffer_group_t inner_;

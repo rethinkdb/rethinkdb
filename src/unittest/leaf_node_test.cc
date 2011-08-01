@@ -2,25 +2,23 @@
 #include <vector>
 
 #include "unittest/gtest.hpp"
-#include "unittest/buf_helpers.hpp"
+#include "unittest/server_test_helper.hpp"
 
 #include "btree/node.hpp"
 #include "logger.hpp"
 #include "btree/buf_patches.hpp"
+#include "btree/leaf_node.hpp"
 
 #include "perfmon.hpp"          // for format(), oddly enough
 
 namespace unittest {
 
-#include "btree/leaf_node.cc" // Build a local variant which uses test_buf_t!
-
-repli_timestamp fake_timestamp = { -2 };
+repli_timestamp_t fake_timestamp = { -2 };
 
 // TODO: Sperg out and make these tests much more brutal.
 
-void expect_valid_value_shallowly(const value_type_t *value) {
-    const btree_value_t *btree_value = reinterpret_cast<const btree_value_t *>(value);
-    EXPECT_EQ(0, btree_value->metadata_flags.flags & ~(MEMCACHED_FLAGS | MEMCACHED_CAS | MEMCACHED_EXPTIME));
+void expect_valid_value_shallowly(const memcached_value_t *value) {
+    EXPECT_EQ(0, value->metadata_flags.flags & ~(MEMCACHED_FLAGS | MEMCACHED_CAS | MEMCACHED_EXPTIME));
 
     // size_t size = value->value_size();
 
@@ -34,7 +32,7 @@ void expect_valid_value_shallowly(const value_type_t *value) {
     // }
 }
 
-void verify(value_sizer_t *sizer, const leaf_node_t *buf, int expected_free_space) {
+void verify(value_sizer_t<memcached_value_t> *sizer, const leaf_node_t *buf, int expected_free_space) {
 
     int end_of_pair_offsets = offsetof(leaf_node_t, pair_offsets) + buf->npairs * 2;
     EXPECT_TRUE(buf->magic == leaf_node_t::expected_magic);
@@ -49,13 +47,13 @@ void verify(value_sizer_t *sizer, const leaf_node_t *buf, int expected_free_spac
     for (std::vector<uint16_t>::const_iterator p = offsets.begin(), e = offsets.end(); p < e; ++p) {
         ASSERT_LE(expected, sizer->block_size().value());
         ASSERT_EQ(expected, *p);
-        expected += leaf::pair_size(sizer, leaf::get_pair(buf, *p));
+        expected += leaf::pair_size<memcached_value_t>(sizer, leaf::get_pair<memcached_value_t>(buf, *p));
     }
     ASSERT_EQ(sizer->block_size().value(), expected);
 
     const btree_key_t *last_key = NULL;
     for (const uint16_t *p = buf->pair_offsets, *e = p + buf->npairs; p < e; ++p) {
-        const btree_leaf_pair *pair = leaf::get_pair(buf, *p);
+        const btree_leaf_pair<memcached_value_t> *pair = leaf::get_pair<memcached_value_t>(buf, *p);
         const btree_key_t *next_key = &pair->key;
 
         if (last_key != NULL) {
@@ -88,15 +86,15 @@ TEST(LeafNodeTest, Offsets) {
 
 
     // Check btree_leaf_pair.
-    EXPECT_EQ(0, offsetof(btree_leaf_pair, key));
+    EXPECT_EQ(0, offsetof(btree_leaf_pair<memcached_value_t>, key));
 
-    btree_leaf_pair p;
+    btree_leaf_pair<memcached_value_t> p;
     p.key.size = 173;
     EXPECT_EQ(174, reinterpret_cast<char *>(p.value()) - reinterpret_cast<char *>(&p));
 
     EXPECT_EQ(1, sizeof(btree_key_t));
     EXPECT_EQ(1, offsetof(btree_key_t, contents));
-    EXPECT_EQ(1, sizeof(btree_value_t));
+    EXPECT_EQ(1, sizeof(memcached_value_t));
 
     EXPECT_EQ(1, sizeof(metadata_flags_t));
 
@@ -114,7 +112,7 @@ public:
         EXPECT_LE(data_.size(), MAX_IN_NODE_VALUE_SIZE);
     }
 
-    void WriteBtreeValue(btree_value_t *out, UNUSED block_size_t block_size) const {
+    void WriteBtreeValue(memcached_value_t *out, UNUSED block_size_t block_size) const {
         out->metadata_flags.flags = 0;
 
         ASSERT_LE(data_.size(), MAX_IN_NODE_VALUE_SIZE);
@@ -128,7 +126,7 @@ public:
         memcpy(out->value_ref() + 1, data_.data(), data_.size());
     }
 
-    static Value Make(const btree_value_t *v) {
+    static Value Make(const memcached_value_t *v) {
         EXPECT_LE(*reinterpret_cast<const uint8_t *>(v->value_ref()), 250);
         return Value(std::string(v->value_ref() + 1, v->value_ref() + 1 + v->value_size()),
                      v->mcflags(), v->has_cas() ? v->cas() : 0, v->has_cas(), v->exptime());
@@ -143,7 +141,7 @@ public:
     }
 
     int full_size() const {
-        return sizeof(btree_value_t) + (mcflags_ ? sizeof(mcflags_t) : 0) + (has_cas_ ? sizeof(cas_t) : 0)
+        return sizeof(memcached_value_t) + (mcflags_ ? sizeof(mcflags_t) : 0) + (has_cas_ ? sizeof(cas_t) : 0)
             + (exptime_ ? sizeof(exptime_t) : 0) + 1 + data_.size();
     }
 
@@ -205,29 +203,22 @@ public:
         value.WriteBtreeValue(&val, block_size);
     }
 
-    const value_type_t *lookv() const {
-        return reinterpret_cast<const value_type_t *>(&val);
-    }
-    value_type_t *lookv_write() {
-        return reinterpret_cast<value_type_t *>(&val);
-    }
-
-    const btree_value_t *look() const {
+    const memcached_value_t *look() const {
         return &val;
     }
-    btree_value_t *look_write() {
+    memcached_value_t *look_write() {
         return &val;
     }
 private:
     union {
         char val_padding[MAX_BTREE_VALUE_SIZE];
-        btree_value_t val;
+        memcached_value_t val;
     };
 };
 
 class LeafNodeGrinder {
 public:
-    LeafNodeGrinder(int block_size) : sizer(block_size_t::unsafe_make(block_size)), bs(block_size_t::unsafe_make(block_size)), expected(), expected_frontmost_offset(bs.value()), expected_npairs(0), node_buf(new test_buf_t(bs, 1)), initialized(false) {
+    LeafNodeGrinder(transaction_t *txn) : sizer(txn->get_cache()->get_block_size()), bs(txn->get_cache()->get_block_size()), expected(), expected_frontmost_offset(bs.value()), expected_npairs(0), node_buf(txn->allocate()), initialized(false) {
         node = reinterpret_cast<leaf_node_t *>(node_buf->get_data_major_write());
     }
 
@@ -249,18 +240,18 @@ public:
 
     void init() {
         SCOPED_TRACE("init");
-        leaf::init(&sizer, *node_buf, fake_timestamp);
+        leaf::init(&sizer, reinterpret_cast<leaf_node_t *>(node_buf->get_data_major_write()), fake_timestamp);
         initialized = true;
         validate();
     }
 
     void insert_nocheck(const std::string& k, const Value& v) {
-        SCOPED_TRACE("insert_nocheck k='" + std::string(k) + "' v='" + format(v) + "'");
+        SCOPED_TRACE(testing::Message() << "insert_nocheck k='" << k << "' v='" << v << "'");
         do_insert(k, v);
     }
 
     void insert(const std::string& k, const Value& v) {
-        SCOPED_TRACE("insert k='" + k + "' v='" + format(v) + "'");
+        SCOPED_TRACE(testing::Message() << "insert k='" << k << "' v='" << v << "'");
         do_insert(k, v);
         validate();
     }
@@ -271,9 +262,9 @@ public:
         StackValue sval(v, bs);
 
         if (expected_space() < int((1 + k.size()) + v.full_size() + sizeof(*node->pair_offsets))) {
-            ASSERT_FALSE(leaf::insert(&sizer, *node_buf, skey.look(), sval.lookv(), fake_timestamp));
+            ASSERT_FALSE(leaf::insert<memcached_value_t>(&sizer, node_buf, skey.look(), sval.look(), fake_timestamp));
         } else {
-            ASSERT_TRUE(leaf::insert(&sizer, *node_buf, skey.look(), sval.lookv(), fake_timestamp));
+            ASSERT_TRUE(leaf::insert<memcached_value_t>(&sizer, node_buf, skey.look(), sval.look(), fake_timestamp));
 
             std::pair<expected_t::iterator, bool> res = expected.insert(std::make_pair(k, v));
             if (res.second) {
@@ -316,11 +307,11 @@ public:
         StackKey skey(k);
         StackValue sval;
 
-        ASSERT_TRUE(leaf::lookup(&sizer, node, skey.look(), sval.lookv_write()));
+        ASSERT_TRUE(leaf::lookup(&sizer, node, skey.look(), sval.look_write()));
 
         leaf::remove(&sizer, node, skey.look());
         expected.erase(p);
-        expected_frontmost_offset += (1 + k.size()) + sizer.size(sval.lookv());
+        expected_frontmost_offset += (1 + k.size()) + sizer.size(sval.look());
         -- expected_npairs;
     }
 
@@ -379,7 +370,7 @@ public:
             // in two mutually exclusive intervals.
 
             StackKey skey;
-            leaf::merge(&sizer, lnode.node, *node_buf, skey.look_write());
+            leaf::merge<memcached_value_t>(&sizer, lnode.node, node_buf, skey.look_write());
 
             for (expected_t::const_iterator p = lnode.expected.begin(), e = lnode.expected.end();
                  p != e;
@@ -408,7 +399,7 @@ public:
         int fo_sum = expected_frontmost_offset + sibling.expected_frontmost_offset;
         int npair_sum = expected_npairs + sibling.expected_npairs;
 
-        leaf::level(&sizer, *node_buf, *sibling.node_buf, key_to_replace.look_write(), replacement_key.look_write());
+        leaf::level<memcached_value_t>(&sizer, node_buf, sibling.node_buf, key_to_replace.look_write(), replacement_key.look_write());
 
         // Sanity check that npairs and frontmost_offset are in sane ranges.
 
@@ -481,7 +472,7 @@ public:
     expected_t expected;
     int expected_frontmost_offset;
     int expected_npairs;
-    test_buf_t *node_buf;
+    buf_t *node_buf;
     leaf_node_t *node;
     bool initialized;
 
@@ -489,7 +480,7 @@ private:
     void lookup(const std::string& k, const Value& expected) {
         StackKey skey(k);
         StackValue sval;
-        ASSERT_TRUE(leaf::lookup(&sizer, node, skey.look(), sval.lookv_write()));
+        ASSERT_TRUE(leaf::lookup(&sizer, node, skey.look(), sval.look_write()));
         ASSERT_EQ(expected, Value::Make(sval.look()));
     }
 
@@ -520,13 +511,13 @@ btree_key_t *malloc_key(const char *s) {
     return k;
 }
 
-btree_value_t *malloc_value(const char *s) {
+memcached_value_t *malloc_value(const char *s) {
     size_t origlen = strlen(s);
     EXPECT_LE(origlen, MAX_IN_NODE_VALUE_SIZE);
 
     size_t len = std::min<size_t>(origlen, MAX_IN_NODE_VALUE_SIZE);
 
-    btree_value_t *v = reinterpret_cast<btree_value_t *>(malloc(sizeof(btree_value_t) + 1 + len));
+    memcached_value_t *v = reinterpret_cast<memcached_value_t *>(malloc(sizeof(memcached_value_t) + 1 + len));
     v->metadata_flags.flags = 0;
     *reinterpret_cast<uint8_t *>(v->value_ref()) = len;
     memcpy(v->value_ref() + 1, s, len);
@@ -537,8 +528,8 @@ void fill_nonsense(LeafNodeGrinder& gr, const char *prefix, int max_space_filled
     std::string p(prefix);
     int i = 0;
     for (;;) {
-        std::string key = p + format(i);
-        Value value(format(i * i));
+        std::string key = p + strprintf("%d", i);
+        Value value(strprintf("%d", i * i));
         if (gr.expected_used() + value.full_size() + int(key.size()) + 1 > max_space_filled) {
             break;
         }
@@ -552,132 +543,107 @@ void fill_nonsense(LeafNodeGrinder& gr, const char *prefix) {
     fill_nonsense(gr, prefix, gr.expected_space());
 }
 
-TEST(LeafNodeTest, Initialization) {
-    LeafNodeGrinder gr(4096);
-
-    gr.init();
-}
-
-void InsertRemoveHelper(const std::string& key, const char *value) {
-    SCOPED_TRACE(std::string("InsertRemoveHelper(key='") + key + "' value='" + value + "'");
-
-    LeafNodeGrinder gr(4096);
-
-    gr.init();
-    gr.insert(key, Value(value));
-    gr.remove(key);
-}
-
-TEST(LeafNodeTest, InsertRemoveOnce) {
-    InsertRemoveHelper("the_key", "the_value");
-    InsertRemoveHelper("the_key", "");
-    InsertRemoveHelper("", "the_value");
-    InsertRemoveHelper("", "");
-}
-
-
-TEST(LeafNodeTest, Crazy) {
-    /*
-    LeafNodeGrinder gr(4096);
-    gr.init();
-
-    const int m = 500;
-
-    for (int i = 0; i < m; ++i) {
-        std::string s = format(i);
-
-        gr.insert_nocheck(format(i), format(i * i));
-    }
-    gr.validate();
-
-    for (int i = 0; i < m; i += 2) {
-        gr.try_remove(format(i));
+class leaf_node_tester_t : public server_test_helper_t {
+    void run_tests(cache_t *cache) {
+        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past);
+        test_initialization(&txn);
+        test_insert_remove(&txn);
+        test_merging(&txn);
+        test_leveling(&txn);
     }
 
-    for (int i = 0; i < m; i += 4) {
-        gr.insert_nocheck(format(i), format(i * i * i));
-    }
-    gr.validate();
+    void test_initialization(transaction_t *txn) {
+        LeafNodeGrinder gr(txn);
 
-    for (int i = 0; i < m; i += 8) {
-        gr.try_remove(format(i));
+        gr.init();
     }
 
-    for (int i = 0; i < m; ++i) {
-        gr.insert_nocheck(format(i), format(i * i + i));
+    void InsertRemoveHelper(transaction_t *txn, const std::string& key, const char *value) {
+        SCOPED_TRACE(std::string("InsertRemoveHelper(key='") + key + "' value='" + value + "'");
+
+        LeafNodeGrinder gr(txn);
+
+        gr.init();
+        gr.insert(key, Value(value));
+        gr.remove(key);
     }
-    gr.validate();
 
-    gr.remove_all();
-    */
+    void test_insert_remove(transaction_t *txn) {
+        InsertRemoveHelper(txn, "the_key", "the_value");
+        InsertRemoveHelper(txn, "the_key", "");
+        InsertRemoveHelper(txn, "", "the_value");
+        InsertRemoveHelper(txn, "", "");
+    }
+
+    void test_merging(transaction_t *txn) {
+
+        LeafNodeGrinder x(txn);
+        LeafNodeGrinder y(txn);
+
+        x.init();
+        y.init();
+
+        // Empty node merging.
+        x.merge(y);
+
+        fill_nonsense(x, "x");
+
+        // Merge nothing into something
+        x.merge(y);
+
+        // Merge something into nothing
+        y.merge(x);
+
+        // Merge two full things.
+        y.remove_all();
+        fill_nonsense(y, "y");
+
+        // TODO: This doesn't really try merging them.
+        x.merge(y);
+
+        x.remove_all();
+        y.remove_all();
+
+        fill_nonsense(x, "x", x.expected_space() / 3);
+        fill_nonsense(y, "y", y.expected_space() / 3);
+
+        y.merge(x);
+
+    }
+
+    void test_leveling(transaction_t *txn) {
+
+        LeafNodeGrinder x(txn);
+        LeafNodeGrinder y(txn);
+
+        x.init();
+        y.init();
+
+        // Empty node leveling.
+        x.level(y);
+
+        fill_nonsense(x, "x");
+
+        // Leveling nothing into something.
+        x.level(y);
+
+        // Leveling something into nothing.
+        y.level(x);
+
+        x.remove_all();
+        y.remove_all();
+
+        fill_nonsense(x, "x", x.expected_space() / 2);
+        fill_nonsense(y, "y", y.expected_space() / 2);
+
+        x.level(y);
+
+    }
+};
+
+TEST(LeafNodeTest, all_tests) {
+    leaf_node_tester_t().run();
 }
-
-TEST(LeafNodeTest, Merging) {
-    const int bs = 4096;
-
-    LeafNodeGrinder x(bs);
-    LeafNodeGrinder y(bs);
-
-    x.init();
-    y.init();
-
-    // Empty node merging.
-    x.merge(y);
-
-    fill_nonsense(x, "x");
-
-    // Merge nothing into something
-    x.merge(y);
-
-    // Merge something into nothing
-    y.merge(x);
-
-    // Merge two full things.
-    y.remove_all();
-    fill_nonsense(y, "y");
-
-    // TODO: This doesn't really try merging them.
-    x.merge(y);
-
-    x.remove_all();
-    y.remove_all();
-
-    fill_nonsense(x, "x", x.expected_space() / 3);
-    fill_nonsense(y, "y", y.expected_space() / 3);
-
-    y.merge(x);
-
-}
-
-TEST(LeafNodeTest, Leveling) {
-    const int bs = 4096;
-
-    LeafNodeGrinder x(bs);
-    LeafNodeGrinder y(bs);
-
-    x.init();
-    y.init();
-
-    // Empty node leveling.
-    x.level(y);
-
-    fill_nonsense(x, "x");
-
-    // Leveling nothing into something.
-    x.level(y);
-
-    // Leveling something into nothing.
-    y.level(x);
-
-    x.remove_all();
-    y.remove_all();
-
-    fill_nonsense(x, "x", x.expected_space() / 2);
-    fill_nonsense(y, "y", y.expected_space() / 2);
-
-    x.level(y);
-}
-
 
 
 }  // namespace unittest

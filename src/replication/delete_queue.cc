@@ -35,7 +35,7 @@ int keys_blob_ref_size(block_size_t block_size) {
 
 }  // namespace delete_queue
 
-void add_key_to_delete_queue(int64_t delete_queue_limit, transaction_t *txn, block_id_t queue_root_id, repli_timestamp timestamp, const store_key_t *key) {
+void add_key_to_delete_queue(int64_t delete_queue_limit, transaction_t *txn, block_id_t queue_root_id, repli_timestamp_t timestamp, const store_key_t *key) {
     // Beware: Right now, some aspects of correctness depend on the
     // fact that we hold the queue_root lock for the entire operation.
     buf_lock_t queue_root(txn, queue_root_id, rwi_write);
@@ -58,7 +58,7 @@ void add_key_to_delete_queue(int64_t delete_queue_limit, transaction_t *txn, blo
     bool will_want_to_dequeue = (keys_blob.valuesize() + 1 + int64_t(key->size) > delete_queue_limit);
     bool will_actually_dequeue = false;
 
-    delete_queue::t_and_o second_tao = { repli_timestamp::invalid, -1 };
+    delete_queue::t_and_o second_tao = { repli_timestamp_t::invalid, -1 };
 
     // Possibly update the (timestamp, offset) queue.  (This happens at most once per second.)
     {
@@ -117,7 +117,7 @@ void add_key_to_delete_queue(int64_t delete_queue_limit, transaction_t *txn, blo
                     blob_acq_t acqs;
                     buffer_group_t bg;
 
-                    t_o_blob.expose_region(txn, rwi_read, 0, 2 * sizeof(second_tao), &bg, &acqs);
+                    t_o_blob.expose_region(txn, rwi_read, sizeof(second_tao), sizeof(second_tao), &bg, &acqs);
                     buffer_group_t target;
                     target.add_buffer(sizeof(second_tao), &second_tao);
                     buffer_group_copy_data(&target, const_view(&bg));
@@ -157,7 +157,7 @@ void add_key_to_delete_queue(int64_t delete_queue_limit, transaction_t *txn, blo
     }
 }
 
-bool dump_keys_from_delete_queue(transaction_t *txn, block_id_t queue_root_id, repli_timestamp begin_timestamp, deletion_key_stream_receiver_t *recipient) {
+bool dump_keys_from_delete_queue(transaction_t *txn, block_id_t queue_root_id, repli_timestamp_t begin_timestamp, deletion_key_stream_receiver_t *recipient) {
     // Beware: Right now, some aspects of correctness depend on the
     // fact that we hold the queue_root lock for the entire operation.
     buf_lock_t queue_root(txn, queue_root_id, rwi_read);

@@ -1,18 +1,27 @@
+#include "server/server.hpp"
+
 #include <math.h>
-#include "server.hpp"
+
 #include "db_thread_info.hpp"
 #include "memcached/tcp_conn.hpp"
 #include "memcached/file.hpp"
-#include "diskinfo.hpp"
+#include "server/diskinfo.hpp"
 #include "concurrency/cond_var.hpp"
 #include "logger.hpp"
 #include "server/cmd_args.hpp"
 #include "replication/master.hpp"
 #include "replication/slave.hpp"
-#include "control.hpp"
+#include "server/control.hpp"
 #include "gated_store.hpp"
 #include "concurrency/promise.hpp"
 #include "arch/os_signal.hpp"
+#include "http/http.hpp"
+#include "riak/riak.hpp"
+#include "server/key_value_store.hpp"
+#include "server/metadata_store.hpp"
+#include "cmd_args.hpp"
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
 
 int run_server(int argc, char *argv[]) {
 
@@ -21,7 +30,7 @@ int run_server(int argc, char *argv[]) {
 
     // Open the log file, if necessary.
     if (config.log_file_name[0]) {
-        log_file = fopen(config.log_file_name, "a");
+        log_file = fopen(config.log_file_name.c_str(), "a");
     }
 
     // Initial thread message to start server
@@ -174,6 +183,12 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             logINF("Creating database...\n");
             btree_key_value_store_t::create(&cmd_config->store_dynamic_config,
                                             &cmd_config->store_static_config);
+            // TODO: Shouldn't do this... Setting up the metadata static config doesn't belong here
+            // and it's very hacky to build on the store_static_config.
+            btree_key_value_store_static_config_t metadata_static_config = cmd_config->store_static_config;
+            metadata_static_config.cache.n_patch_log_blocks = 0;
+            btree_metadata_store_t::create(&cmd_config->metadata_store_dynamic_config,
+                                            &metadata_static_config);
             logINF("Done creating.\n");
         }
 
@@ -181,7 +196,8 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
             /* Start key-value store */
             logINF("Loading database...\n");
-            btree_key_value_store_t store(&cmd_config->store_dynamic_config);
+            btree_metadata_store_t metadata_store(cmd_config->metadata_store_dynamic_config);
+            btree_key_value_store_t store(cmd_config->store_dynamic_config);
 
 #ifdef TIMEBOMB_DAYS
             /* This continuously checks to see if RethinkDB has expired */
@@ -190,9 +206,9 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             if (!cmd_config->import_config.file.empty()) {
                 store.set_replication_master_id(NOT_A_SLAVE);
                 std::vector<std::string>::iterator it;
-                for(it = cmd_config->import_config.file.begin(); it != cmd_config->import_config.file.end(); it++) {
+                for (it = cmd_config->import_config.file.begin(); it != cmd_config->import_config.file.end(); it++) {
                     logINF("Importing file %s...\n", it->c_str());
-                    import_memcache(*it, &store, &os_signal_cond);
+                    import_memcache(it->c_str(), &store, &os_signal_cond);
                     logINF("Done\n");
                 }
             } else {
@@ -211,9 +227,8 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
                     /* So that we call the appropriate user-defined callback on failure */
                     boost::scoped_ptr<failover_script_callback_t> failover_script;
-                    if (strlen(cmd_config->failover_config.failover_script_path) > 0) {
-                        failover_script.reset(new failover_script_callback_t(
-                            cmd_config->failover_config.failover_script_path));
+                    if (!cmd_config->failover_config.failover_script_path.empty()) {
+                        failover_script.reset(new failover_script_callback_t(cmd_config->failover_config.failover_script_path.c_str()));
                         failover.add_callback(failover_script.get());
                     }
 
@@ -263,8 +278,10 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                     /* Master destructor called here */
 
                 } else {
+                    store_manager_t<std::list<std::string> > *store_manager = new store_manager_t<std::list<std::string> >();
 
                     /* We aren't doing any sort of replication. */
+                    //riak::riak_server_t server(2222, store_manager);
 
                     /* Make it impossible for this database file to later be used as a slave, because
                     that would confuse the replication logic. */
@@ -288,6 +305,8 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                     logINF("Server will now permit memcached queries on port %d.\n", cmd_config->port);
 
                     wait_for_sigint();
+
+                    delete store_manager;
 
                     logINF("Waiting for running operations to finish...\n");
                 }

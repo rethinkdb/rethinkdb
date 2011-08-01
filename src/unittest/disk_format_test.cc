@@ -1,5 +1,6 @@
 #include "serializer/log/lba/disk_format.hpp"
 #include "serializer/log/log_serializer.hpp"
+#include "utils/align.hpp"
 
 #include "unittest/gtest.hpp"
 
@@ -10,35 +11,33 @@ TEST(DiskFormatTest, FlaggedOff64T) {
 
     for (size_t i = 0; i < sizeof(offs) / sizeof(*offs); ++i) {
         off64_t off = offs[i];
-        flagged_off64_t real = flagged_off64_t::real(off);
-        flagged_off64_t deleteblock = flagged_off64_t::deleteblock(off);
-        EXPECT_TRUE(flagged_off64_t::has_value(real));
-        EXPECT_TRUE(flagged_off64_t::has_value(deleteblock));
-        EXPECT_TRUE(flagged_off64_t::can_be_gced(real));
-        EXPECT_TRUE(flagged_off64_t::can_be_gced(deleteblock));
-        EXPECT_FALSE(flagged_off64_t::is_padding(real));
-        EXPECT_FALSE(flagged_off64_t::is_padding(deleteblock));
+        flagged_off64_t real = flagged_off64_t::unused();
+        real.set_value(off);
+        real.set_delete_bit(false);
+        flagged_off64_t deleteblock = flagged_off64_t::unused();
+        deleteblock.set_value(off);
+        deleteblock.set_delete_bit(true);
+        EXPECT_TRUE(real.has_value());
+        EXPECT_TRUE(deleteblock.has_value());
+        EXPECT_FALSE(real.is_padding());
+        EXPECT_FALSE(deleteblock.is_padding());
         EXPECT_FALSE(real.parts.is_delete);
         EXPECT_TRUE(deleteblock.parts.is_delete);
 
         real.parts.value = 73;
         deleteblock.parts.value = 95;
 
-        EXPECT_TRUE(flagged_off64_t::has_value(real));
-        EXPECT_TRUE(flagged_off64_t::has_value(deleteblock));
-        EXPECT_TRUE(flagged_off64_t::can_be_gced(real));
-        EXPECT_TRUE(flagged_off64_t::can_be_gced(deleteblock));
-        EXPECT_FALSE(flagged_off64_t::is_padding(real));
-        EXPECT_FALSE(flagged_off64_t::is_padding(deleteblock));
+        EXPECT_TRUE(real.has_value());
+        EXPECT_TRUE(deleteblock.has_value());
+        EXPECT_FALSE(real.is_padding());
+        EXPECT_FALSE(deleteblock.is_padding());
         EXPECT_FALSE(real.parts.is_delete);
         EXPECT_TRUE(deleteblock.parts.is_delete);
     }
 
 
-    EXPECT_FALSE(flagged_off64_t::has_value(flagged_off64_t::unused()));
-    EXPECT_FALSE(flagged_off64_t::has_value(flagged_off64_t::padding()));
-    EXPECT_FALSE(flagged_off64_t::can_be_gced(flagged_off64_t::unused()));
-    EXPECT_FALSE(flagged_off64_t::can_be_gced(flagged_off64_t::padding()));
+    EXPECT_FALSE(flagged_off64_t::unused().has_value());
+    EXPECT_FALSE(flagged_off64_t::padding().has_value());
 
     EXPECT_EQ(8, sizeof(flagged_off64_t));
 }
@@ -65,9 +64,15 @@ TEST(DiskFormatTest, LbaEntryT) {
 
     lba_entry_t ent = lba_entry_t::make_padding_entry();
     ASSERT_TRUE(lba_entry_t::is_padding(&ent));
-    ent = lba_entry_t::make(1, repli_timestamp::invalid, flagged_off64_t::real(1));
+    flagged_off64_t real = flagged_off64_t::unused();
+    real.set_value(1);
+    real.set_delete_bit(false);
+    ent = lba_entry_t::make(1, repli_timestamp_t::invalid, real);
     ASSERT_FALSE(lba_entry_t::is_padding(&ent));
-    ent = lba_entry_t::make(1, repli_timestamp::invalid, flagged_off64_t::deleteblock(1));
+    flagged_off64_t deleteblock = flagged_off64_t::unused();
+    deleteblock.set_value(1);
+    deleteblock.set_delete_bit(true);
+    ent = lba_entry_t::make(1, repli_timestamp_t::invalid, deleteblock);
     ASSERT_FALSE(lba_entry_t::is_padding(&ent));
 }
 
@@ -107,7 +112,7 @@ TEST(DiskFormatTest, ExtentManagerMetablockMixinT) {
 }
 
 TEST(DiskFormatTest, LogSerializerMetablockT) {
-    int n = 0;
+    size_t n = 0;
     EXPECT_EQ(n, offsetof(log_serializer_metablock_t, extent_manager_part));
 
     n += sizeof(extent_manager_t::metablock_mixin_t);
@@ -117,10 +122,10 @@ TEST(DiskFormatTest, LogSerializerMetablockT) {
     EXPECT_EQ(n, offsetof(log_serializer_metablock_t, data_block_manager_part));
 
     n += sizeof(data_block_manager_t::metablock_mixin_t);
-    EXPECT_EQ(n, offsetof(log_serializer_metablock_t, transaction_id));
+    EXPECT_EQ(n, offsetof(log_serializer_metablock_t, block_sequence_id));
 
-    EXPECT_EQ(8, sizeof(ser_transaction_id_t));
-    n += sizeof(ser_transaction_id_t);
+    EXPECT_EQ(8, sizeof(block_sequence_id_t));
+    n += sizeof(block_sequence_id_t);
     EXPECT_EQ(n, sizeof(log_serializer_metablock_t));
 
     EXPECT_EQ(1552, 8 + 512 + 1024 + 8);
@@ -128,21 +133,9 @@ TEST(DiskFormatTest, LogSerializerMetablockT) {
 }
 
 TEST(DiskFormatTest, LogSerializerStaticConfigT) {
-    EXPECT_EQ(0, offsetof(log_serializer_static_config_t, block_size_));
-    EXPECT_EQ(8, offsetof(log_serializer_static_config_t, extent_size_));
-    EXPECT_EQ(16, sizeof(log_serializer_static_config_t));
-}
-
-TEST(DiskFormatTest, BtreeConfigT) {
-    EXPECT_EQ(0, offsetof(btree_config_t, n_slices));
-    EXPECT_EQ(4, sizeof(btree_config_t));
-}
-
-TEST(DiskFormatTest, BtreeKeyValueStoreStaticConfigT) {
-    EXPECT_EQ(0, offsetof(btree_key_value_store_static_config_t, serializer));
-    EXPECT_EQ(16, offsetof(btree_key_value_store_static_config_t, btree));
-    EXPECT_EQ(20, offsetof(btree_key_value_store_static_config_t, cache));
-    EXPECT_EQ(24, sizeof(btree_key_value_store_static_config_t));
+    EXPECT_EQ(0, offsetof(log_serializer_on_disk_static_config_t, block_size_));
+    EXPECT_EQ(8, offsetof(log_serializer_on_disk_static_config_t, extent_size_));
+    EXPECT_EQ(16, sizeof(log_serializer_on_disk_static_config_t));
 }
 
 }  // namespace unittest

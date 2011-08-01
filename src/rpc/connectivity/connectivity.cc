@@ -70,26 +70,6 @@ void disconnect_watcher_t::on_disconnect(peer_id_t p) {
 
 /* connectivity_cluster_t */
 
-connectivity_cluster_t::connectivity_cluster_t(int port) :
-    me(peer_id_t(generate_uuid()))
-{
-    /* Put ourselves in the routing table */
-    routing_table[me] = peer_address_t(ip_address_t::us(), port);
-
-    /* Start listening for peers */
-    listener.reset(
-        new streamed_tcp_listener_t(
-            port,
-            boost::bind(&connectivity_cluster_t::on_new_connection, this, _1)
-        ));
-}
-
-connectivity_cluster_t::~connectivity_cluster_t() {
-    listener.reset();
-    shutdown_cond.pulse();
-    shutdown_semaphore.drain();
-}
-
 void connectivity_cluster_t::join(peer_address_t address) {
     assert_thread();
     drain_semaphore_t::lock_t drain_semaphore_lock(&shutdown_semaphore);
@@ -122,6 +102,26 @@ std::map<peer_id_t, peer_address_t> connectivity_cluster_t::get_everybody() {
         peers[(*it).first] = routing_table[(*it).first];
     }
     return peers;
+}
+
+connectivity_cluster_t::connectivity_cluster_t(int port) :
+    me(peer_id_t(generate_uuid()))
+{
+    /* Put ourselves in the routing table */
+    routing_table[me] = peer_address_t(ip_address_t::us(), port);
+
+    /* Start listening for peers */
+    listener.reset(
+        new streamed_tcp_listener_t(
+            port,
+            boost::bind(&connectivity_cluster_t::on_new_connection, this, _1)
+        ));
+}
+
+connectivity_cluster_t::~connectivity_cluster_t() {
+    listener.reset();
+    shutdown_cond.pulse();
+    shutdown_semaphore.drain();
 }
 
 void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(std::ostream&)> writer) {
@@ -203,6 +203,12 @@ intra-cluster TCP connection. It handles the handshake, exchanging node maps,
 sending out the connect-notification, receiving messages from the peer until it
 disconnects or we are shut down, and sending out the disconnect-notification. */
 
+static void close_conn(streamed_tcp_conn_t *c) {
+    if (c->is_read_open()) c->shutdown_read();
+    if (c->is_write_open()) c->shutdown_write();
+}
+
+
 void connectivity_cluster_t::handle(
         /* `conn` should remain valid until `connectivity_cluster_t::handle()` returns.
         `connectivity_cluster_t::handle()` does not take ownership of `conn`. */
@@ -212,28 +218,9 @@ void connectivity_cluster_t::handle(
 
     /* Make sure that if we're ordered to shut down, any pending read or write
     gets interrupted. */
-    struct connection_closer_t : public signal_t::waiter_t {
-        connection_closer_t(signal_t *s, streamed_tcp_conn_t *c) :
-            signal(s), conn_to_close(c)
-        {
-            signal->add_waiter(this);
-        }
-        ~connection_closer_t() {
-            if (!signal->is_pulsed()) {
-                signal->remove_waiter(this);
-            }
-        }
-        signal_t *signal;
-        streamed_tcp_conn_t *conn_to_close;
-        void on_signal_pulsed() {
-            if (conn_to_close->is_read_open()) {
-                conn_to_close->shutdown_read();
-            }
-            if (conn_to_close->is_write_open()) {
-                conn_to_close->shutdown_write();
-            }
-        }
-    } connection_closer(&shutdown_cond, conn);
+    signal_t::subscription_t conn_closer(boost::bind(&close_conn, conn));
+    if (shutdown_cond.is_pulsed()) close_conn(conn);
+    else conn_closer.resubscribe(&shutdown_cond);
 
     /* Each side sends their own ID and address, then receives the other side's.
     */

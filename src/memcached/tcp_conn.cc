@@ -1,8 +1,14 @@
 #include "memcached/tcp_conn.hpp"
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
+#include "arch/runtime/coroutines.hpp"
 #include "memcached/memcached.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "db_thread_info.hpp"
 #include "perfmon.hpp"
+#include "logger.hpp"
 
 struct tcp_conn_memcached_interface_t : public memcached_interface_t, public home_thread_mixin_t {
 
@@ -110,6 +116,30 @@ memcache_listener_t::~memcache_listener_t() {
     active_connection_drain_semaphore.drain();
 }
 
+class rethread_tcp_conn_t {
+public:
+    rethread_tcp_conn_t(tcp_conn_t *conn, int thread) : conn_(conn), old_thread_(conn->home_thread()), new_thread_(thread) {
+        conn->rethread(thread);
+        rassert(conn->home_thread() == thread);
+    }
+
+    ~rethread_tcp_conn_t() {
+        rassert(conn_->home_thread() == new_thread_);
+        conn_->rethread(old_thread_);
+        rassert(conn_->home_thread() == old_thread_);
+    }
+
+private:
+    tcp_conn_t *conn_;
+    int old_thread_, new_thread_;
+
+    DISABLE_COPYING(rethread_tcp_conn_t);
+};
+
+static void close_conn_if_open(tcp_conn_t *conn) {
+    if (conn->is_read_open()) conn->shutdown_read();
+}
+
 void memcache_listener_t::handle(boost::scoped_ptr<tcp_conn_t> &conn) {
     assert_thread();
 
@@ -128,26 +158,15 @@ void memcache_listener_t::handle(boost::scoped_ptr<tcp_conn_t> &conn) {
     /* Switch to the other thread. We use the `rethread_t` objects to unregister
     the conn with the event loop on this thread and to reregister it with the
     event loop on the new thread, then do the reverse when we switch back. */
-    home_thread_mixin_t::rethread_t unregister_conn(conn.get(), INVALID_THREAD);
+    rethread_tcp_conn_t unregister_conn(conn.get(), INVALID_THREAD);
     on_thread_t thread_switcher(chosen_thread);
-    home_thread_mixin_t::rethread_t reregister_conn(conn.get(), get_thread_id());
+    rethread_tcp_conn_t reregister_conn(conn.get(), get_thread_id());
 
     /* Set up an object that will close the network connection when a shutdown signal
     is delivered */
-    struct conn_closer_t : public signal_t::waiter_t {
-        tcp_conn_t *conn;
-        signal_t *signal;
-        conn_closer_t(tcp_conn_t *c, signal_t *s) : conn(c), signal(s) {
-            if (signal->is_pulsed()) on_signal_pulsed();
-            else signal->add_waiter(this);
-        }
-        void on_signal_pulsed() {
-            if (conn->is_read_open()) conn->shutdown_read();
-        }
-        ~conn_closer_t() {
-            if (!signal->is_pulsed()) signal->remove_waiter(this);
-        }
-    } conn_closer(conn.get(), &signal_transfer);
+    signal_t::subscription_t conn_closer(boost::bind(&close_conn_if_open, conn.get()));
+    if (signal_transfer.is_pulsed()) close_conn_if_open(conn.get());
+    else conn_closer.resubscribe(&signal_transfer);
 
     /* `serve_memcache()` will continuously serve memcache queries on the given conn
     until the connection is closed. */

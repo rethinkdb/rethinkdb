@@ -3,11 +3,12 @@
 
 #include <queue>
 
+#include "concurrency/side_coro.hpp"
 #include "replication/protocol.hpp"
 #include "server/cmd_args.hpp"
 #include "server/control.hpp"
 #include "store.hpp"
-#include "failover.hpp"
+#include "replication/failover.hpp"
 
 // The initial time we wait to reconnect to the master, upon failure.  In ms.
 #define INITIAL_TIMEOUT  (100)
@@ -108,7 +109,7 @@ private:
     replication_config_t replication_config_;
     failover_config_t failover_config_;
 
-    cond_weak_ptr_t pulse_to_reset_failover_;
+    cond_t *pulse_to_reset_failover_;
 
     side_coro_handler_t side_coro_handler_;
     void run(signal_t *shutdown_signal);

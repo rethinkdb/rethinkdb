@@ -4,7 +4,7 @@
 #include <string>
 
 #include "containers/intrusive_list.hpp"
-#include "gated_store.hpp"
+#include "server/gated_store.hpp"
 #include "utils.hpp"
 
 class failover_t;

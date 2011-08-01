@@ -2,8 +2,10 @@
 
 #include <algorithm>
 
-#include "arch/arch.hpp"
 #include "errors.hpp"
+#include <boost/bind.hpp>
+
+#include "arch/runtime/coroutines.hpp"
 #include "buffer_cache/co_functions.hpp"
 #include "btree/btree_data_provider.hpp"
 #include "btree/node.hpp"
@@ -14,6 +16,13 @@
 
 
 class btree_slice_t;
+
+class agnostic_backfill_callback_t : public replication::deletion_key_stream_receiver_t {
+public:
+    virtual void on_pair(transaction_t *txn, repli_timestamp_t recency, const btree_key_t *key, const opaque_value_t *value) = 0;
+    virtual void done_backfill() = 0;
+    virtual ~agnostic_backfill_callback_t() { }
+};
 
 struct backfill_traversal_helper_t : public btree_traversal_helper_t, public home_thread_mixin_t {
 
@@ -38,20 +47,11 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         for (int i = 0; i < npairs; ++i) {
             uint16_t offset = data->pair_offsets[i];
             memcached_value_sizer_t sizer(txn->get_cache()->get_block_size());
-            repli_timestamp recency = leaf::get_timestamp_value(&sizer, data, offset);
-            const btree_leaf_pair *pair = leaf::get_pair(data, offset);
+            repli_timestamp_t recency = leaf::get_timestamp_value<memcached_value_t>(&sizer, data, offset);
+            const btree_leaf_pair<memcached_value_t> *pair = leaf::get_pair<memcached_value_t>(data, offset);
 
             if (recency.time >= since_when_.time) {
-                const btree_value_t *value = reinterpret_cast<const btree_value_t *>(pair->value());
-                boost::shared_ptr<value_data_provider_t> data_provider(value_data_provider_t::create(value, txn));
-                backfill_atom_t atom;
-                atom.key.assign(pair->key.size, pair->key.contents);
-                atom.value = data_provider;
-                atom.flags = value->mcflags();
-                atom.exptime = value->exptime();
-                atom.recency = recency;
-                atom.cas_or_zero = value->has_cas() ? value->cas() : 0;
-                callback_->on_keyvalue(atom);
+                callback_->on_pair(txn, recency, &pair->key, reinterpret_cast<const opaque_value_t *>(pair->value()));
             }
         }
     }
@@ -72,8 +72,8 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         interesting_children_callback_t *cb;
         boost::scoped_array<block_id_t> block_ids;
         int num_block_ids;
-        boost::scoped_array<repli_timestamp> recencies;
-        repli_timestamp since_when;
+        boost::scoped_array<repli_timestamp_t> recencies;
+        repli_timestamp_t since_when;
 
         void got_subtree_recencies() {
             coro_t::spawn(boost::bind(&annoying_t::do_got_subtree_recencies, this));
@@ -105,20 +105,20 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         std::copy(block_ids, block_ids + num_block_ids, fsm->block_ids.get());
         fsm->num_block_ids = num_block_ids;
         fsm->since_when = since_when_;
-        fsm->recencies.reset(new repli_timestamp[num_block_ids]);
+        fsm->recencies.reset(new repli_timestamp_t[num_block_ids]);
 
         txn->get_subtree_recencies(fsm->block_ids.get(), num_block_ids, fsm->recencies.get(), fsm);
     }
 
-    backfill_callback_t *callback_;
-    repli_timestamp since_when_;
+    agnostic_backfill_callback_t *callback_;
+    repli_timestamp_t since_when_;
 
-    backfill_traversal_helper_t(backfill_callback_t *callback, repli_timestamp since_when)
+    backfill_traversal_helper_t(agnostic_backfill_callback_t *callback, repli_timestamp_t since_when)
         : callback_(callback), since_when_(since_when) { }
 };
 
 
-void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, boost::shared_ptr<cache_account_t> backfill_account, backfill_callback_t *callback, order_token_t token) {
+void agnostic_btree_backfill(btree_slice_t *slice, repli_timestamp_t since_when, boost::shared_ptr<cache_account_t> backfill_account, agnostic_backfill_callback_t *callback, order_token_t token) {
     {
         rassert(coro_t::self());
 
@@ -146,4 +146,49 @@ void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, boost::sha
     }
 
     callback->done_backfill();
+}
+
+
+
+class agnostic_memcached_backfill_callback_t : public agnostic_backfill_callback_t {
+public:
+    agnostic_memcached_backfill_callback_t(backfill_callback_t *cb) : cb_(cb) { }
+
+    void on_pair(transaction_t *txn, repli_timestamp_t recency, const btree_key_t *key, const opaque_value_t *val) {
+        const memcached_value_t *value = reinterpret_cast<const memcached_value_t *>(val);
+        boost::shared_ptr<value_data_provider_t> data_provider(value_data_provider_t::create(value, txn));
+        backfill_atom_t atom;
+        atom.key.assign(key->size, key->contents);
+        atom.value = data_provider;
+        atom.flags = value->mcflags();
+        atom.exptime = value->exptime();
+        atom.recency = recency;
+        atom.cas_or_zero = value->has_cas() ? value->cas() : 0;
+        cb_->on_keyvalue(atom);
+    }
+
+    void done_backfill() {
+        cb_->done_backfill();
+    }
+
+    bool should_send_deletion_keys(bool can_send_deletion_keys) {
+        return cb_->should_send_deletion_keys(can_send_deletion_keys);
+    }
+
+    void deletion_key(const btree_key_t *key) {
+        cb_->deletion_key(key);
+    }
+
+    void done_deletion_keys() {
+        cb_->done_deletion_keys();
+    }
+
+    backfill_callback_t *cb_;
+};
+
+
+void btree_backfill(btree_slice_t *slice, repli_timestamp_t since_when, boost::shared_ptr<cache_account_t> backfill_account, backfill_callback_t *callback, order_token_t token) {
+    agnostic_memcached_backfill_callback_t agnostic_cb(callback);
+
+    agnostic_btree_backfill(slice, since_when, backfill_account, &agnostic_cb, token);
 }

@@ -8,6 +8,7 @@
 #include "utils.hpp"
 #include "help.hpp"
 #include "migrate/migrate.hpp"
+#include "http/http.hpp"
 
 void print_version_message() {
     printf("rethinkdb " RETHINKDB_VERSION

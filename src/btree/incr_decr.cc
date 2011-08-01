@@ -1,15 +1,18 @@
-#include "incr_decr.hpp"
+#include "btree/incr_decr.hpp"
 
 #include "btree/modify_oper.hpp"
 #include "containers/buffer_group.hpp"
+#include "buffer_cache/buf_lock.hpp"
+#include "containers/scoped_malloc.hpp"
 
-struct btree_incr_decr_oper_t : public btree_modify_oper_t {
+
+struct btree_incr_decr_oper_t : public btree_modify_oper_t<memcached_value_t> {
 
     explicit btree_incr_decr_oper_t(bool increment, uint64_t delta)
         : increment(increment), delta(delta)
     { }
 
-    bool operate(transaction_t *txn, scoped_malloc<btree_value_t>& value) {
+    bool operate(transaction_t *txn, scoped_malloc<memcached_value_t>& value) {
         // If the key didn't exist before, we fail.
         if (!value) {
             result.res = incr_decr_result_t::idr_not_found;
@@ -63,21 +66,19 @@ struct btree_incr_decr_oper_t : public btree_modify_oper_t {
         result.res = incr_decr_result_t::idr_success;
         result.new_value = number;
 
-        scoped_malloc<btree_value_t> newvalue(MAX_BTREE_VALUE_SIZE);
-        valuecpy(txn->get_cache()->get_block_size(), newvalue.get(), value.get());
         char tmp[50];
         int chars_written = sprintf(tmp, "%llu", (long long unsigned)number);
         rassert(chars_written <= 49);
-        b.unappend_region(txn, 0);
+        b.unappend_region(txn, b.valuesize());
         b.append_region(txn, chars_written);
+        rassert(b.valuesize() == chars_written, "expecting %ld == %d", b.valuesize(), chars_written);
         buffer_group_t group;
         blob_acq_t acqs;
         b.expose_region(txn, rwi_write, 0, b.valuesize(), &group, &acqs);
         rassert(group.num_buffers() == 1);
-        rassert(group.get_buffer(0).size == chars_written);
+        rassert(group.get_buffer(0).size == chars_written, "expecting %zd == %d", group.get_buffer(0).size, chars_written);
         memcpy(group.get_buffer(0).data, tmp, chars_written);
 
-        value.swap(newvalue);
         return true;
     }
 

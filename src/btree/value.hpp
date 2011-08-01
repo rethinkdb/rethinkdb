@@ -1,6 +1,7 @@
 #ifndef __BTREE_VALUE_HPP__
 #define __BTREE_VALUE_HPP__
 
+#include "errors.hpp"
 #include "buffer_cache/blob.hpp"
 
 
@@ -45,14 +46,14 @@ char *metadata_write(metadata_flags_t *mf_out, char *to, mcflags_t mcflags, expt
 char *metadata_write(metadata_flags_t *mf_out, char *to, mcflags_t mcflags, exptime_t exptime, cas_t cas);
 void metadata_set_large_value_bit(metadata_flags_t *mf, bool bit);
 
-struct btree_value_t {
+struct memcached_value_t {
     metadata_flags_t metadata_flags;
     char contents[];
 
 public:
     int inline_size(block_size_t bs) const {
         int msize = metadata_size(metadata_flags);
-        return offsetof(btree_value_t, contents) + msize + blob::ref_size(bs, contents + msize, blob::btree_maxreflen);
+        return offsetof(memcached_value_t, contents) + msize + blob::ref_size(bs, contents + msize, blob::btree_maxreflen);
     }
 
     int64_t value_size() const {
@@ -77,9 +78,7 @@ public:
         return ret;
     }
 
-    bool expired() const {
-        return exptime() ? time(NULL) >= exptime() : false;
-    }
+    bool expired() const;
 
     // CAS is treated differently from the other fields. Values initially don't
     // have a CAS; once it's added, though, we assume it's there for good. An
@@ -96,7 +95,7 @@ public:
     }
 };
 
-bool btree_value_fits(block_size_t bs, int data_length, const btree_value_t *value);
+bool btree_value_fits(block_size_t bs, int data_length, const memcached_value_t *value);
 
 
 

@@ -1,22 +1,119 @@
 #ifndef __UTILS_HPP__
 #define __UTILS_HPP__
 
-#include <stdio.h>
-#include <ctype.h>
-#include <endian.h>
-#include <errno.h>
 #include <stdlib.h>
-#include <stdio.h>
+#include <stdint.h>
 
-#include <functional>
 #include <string>
-#include <vector>
 
 #include <boost/uuid/uuid.hpp>
-
+#include "config/args.hpp"
 #include "errors.hpp"
-#include "arch/core.hpp"
-#include "utils2.hpp"
+
+/* Note that repli_timestamp_t does NOT represent an actual timestamp; instead it's an arbitrary
+counter. */
+
+// for safety
+struct repli_timestamp_t {
+    uint32_t time;
+
+    bool operator==(repli_timestamp_t t) const {
+        return time == t.time;
+    }
+    bool operator<(repli_timestamp_t t) const {
+        return time < t.time;
+    }
+    bool operator>=(repli_timestamp_t t) const {
+        return time >= t.time;
+    }
+
+    repli_timestamp_t next() const {
+        repli_timestamp_t t;
+        t.time = time + 1;
+        return t;
+    }
+
+    static const repli_timestamp_t distant_past;
+    static const repli_timestamp_t invalid;
+};
+
+struct const_charslice {
+    const char *beg, *end;
+    const_charslice(const char *beg_, const char *end_) : beg(beg_), end(end_) { }
+    const_charslice() : beg(NULL), end(NULL) { }
+};
+
+typedef uint64_t microtime_t;
+
+microtime_t current_microtime();
+
+
+// Like std::max, except it's technically not associative.
+repli_timestamp_t repli_max(repli_timestamp_t x, repli_timestamp_t y);
+
+
+void *malloc_aligned(size_t size, size_t alignment = 64);
+
+template <class T1, class T2>
+T1 ceil_aligned(T1 value, T2 alignment) {
+    return value + alignment - (((value + alignment - 1) % alignment) + 1);
+}
+
+template <class T1, class T2>
+T1 ceil_divide(T1 dividend, T2 alignment) {
+    return (dividend + alignment - 1) / alignment;
+}
+
+template <class T1, class T2>
+T1 floor_aligned(T1 value, T2 alignment) {
+    return value - (value % alignment);
+}
+
+template <class T1, class T2>
+T1 ceil_modulo(T1 value, T2 alignment) {
+    T1 x = (value + alignment - 1) % alignment;
+    return value + alignment - ((x < 0 ? x + alignment : x) + 1);
+}
+
+typedef unsigned long long ticks_t;
+ticks_t secs_to_ticks(float secs);
+ticks_t get_ticks();
+long get_ticks_res();
+double ticks_to_secs(ticks_t ticks);
+
+// HEY: Maybe debugf and log_call and TRACEPOINT should be placed in
+// debug.hpp (and debug.cc).
+/* Debugging printing API (prints current thread in addition to message) */
+#ifndef NDEBUG
+void debugf(const char *msg, ...) __attribute__((format (printf, 1, 2)));
+#else
+#define debugf(...) ((void)0)
+#endif
+
+// Returns a random number in [0, n).  Is not perfectly uniform; the
+// bias tends to get worse when RAND_MAX is far from a multiple of n.
+int randint(int n);
+
+bool begins_with_minus(const char *string);
+// strtoul() and strtoull() will for some reason not fail if the input begins with a minus
+// sign. strtoul_strict() and strtoull_strict() do.
+long strtol_strict(const char *string, char **end, int base);
+unsigned long strtoul_strict(const char *string, char **end, int base);
+unsigned long long strtoull_strict(const char *string, char **end, int base);
+
+// This is inefficient, it calls vsnprintf twice and copies the
+// arglist and output buffer excessively.
+std::string strprintf(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
+
+/* `demangle_cpp_name()` attempts to de-mangle the given symbol name. If it
+succeeds, it returns the result as a `std::string`. If it fails, it throws
+`demangle_failed_exc_t`. */
+struct demangle_failed_exc_t : public std::exception {
+    const char *what() const throw () {
+        return "Could not demangle C++ name.";
+    }
+};
+std::string demangle_cpp_name(const char *mangled_name);
 
 // Precise time (time+nanoseconds) for logging, etc.
 
@@ -50,14 +147,11 @@ void print_hd(const void *buf, size_t offset, size_t length);
 
 int sized_strcmp(const char *str1, int len1, const char *str2, int len2);
 
-std::string strip_spaces(std::string); 
-
 
 /* The home thread mixin is a mixin for objects that can only be used
 on a single thread. Its thread ID is exposed as the `home_thread()`
-method. Some subclasses of `home_thread_mixin_t` can be moved to
-another thread; to do this, you can use the `rethread_t` type or the
-`rethread()` method. */
+method. Some subclasses of `home_thread_mixin_t` can move themselves to
+another thread, modifying the field real_home_thread. */
 
 #define INVALID_THREAD (-1)
 
@@ -65,23 +159,15 @@ class home_thread_mixin_t {
 public:
     int home_thread() const { return real_home_thread; }
 
-    void assert_thread() const {
-        rassert(home_thread() == get_thread_id());
-    }
-
-    virtual void rethread(int thread);
-
-    struct rethread_t {
-        rethread_t(home_thread_mixin_t *m, int thread);
-        ~rethread_t();
-    private:
-        home_thread_mixin_t *mixin;
-        int old_thread, new_thread;
-    };
+#ifndef NDEBUG
+    void assert_thread() const;
+#else
+    void assert_thread() const { }
+#endif  // NDEBUG
 
 protected:
     home_thread_mixin_t();
-    virtual ~home_thread_mixin_t() { }
+    ~home_thread_mixin_t() { }
 
     int real_home_thread;
 
@@ -104,26 +190,12 @@ back in its destructor. For example:
 */
 
 struct on_thread_t : public home_thread_mixin_t {
-    on_thread_t(int thread) {
-        coro_t::move_to_thread(thread);
-    }
-    ~on_thread_t() {
-        coro_t::move_to_thread(home_thread());
-    }
+    on_thread_t(int thread);
+    ~on_thread_t();
 };
 
 /* This does the same thing as `boost::uuids::random_generator()()`, except that
 Valgrind won't complain about it. */
 boost::uuids::uuid generate_uuid();
-
-/* API to allow a nicer way of performing jobs on other cores than subclassing
-from thread_message_t. Call do_on_thread() with an object and a method for that object.
-The method will be called on the other thread. If the thread to call the method on is
-the current thread, returns the method's return value. Otherwise, returns false. */
-
-template<class callable_t>
-void do_on_thread(int thread, const callable_t& callable);
-
-#include "utils.tcc"
 
 #endif // __UTILS_HPP__

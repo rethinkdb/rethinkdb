@@ -1,10 +1,10 @@
-
 #ifndef __BUFFER_CACHE_WRITEBACK_HPP__
 #define __BUFFER_CACHE_WRITEBACK_HPP__
 
 #include <set>
+
 #include "concurrency/rwi_lock.hpp"
-#include "flush_time_randomizer.hpp"
+#include "buffer_cache/mirrored/writeback/flush_time_randomizer.hpp"
 #include "utils.hpp"
 #include "serializer/serializer.hpp"
 #include "buffer_cache/buf_patch.hpp"
@@ -159,60 +159,22 @@ private:
 
     /* Internal variables used only during a flush operation. */
 
-    ticks_t start_time;
-
 public:
     // This just considers objections which writeback knows about Other subsystems
     // might have their own objections to accepting a read-ahead block...
     // (mc_cache_t::can_read_ahead_block_be_accepted() should consider everything)
     bool can_read_ahead_block_be_accepted(block_id_t block_id);
 
-    // A separate type to support concurrent flushes
-    class concurrent_flush_t :
-            public serializer_t::write_tid_callback_t,
-            public serializer_t::write_txn_callback_t,
-            public lock_available_callback_t {
+    // Concurrent flush helpers
+    struct buf_writer_t;      // public so that mc_buf_t can declare it a friend
 
-    protected:
-        friend class writeback_t;
-        // Please note: constructing triggers flushing
-        concurrent_flush_t(writeback_t* parent);
-
-    private:
-        virtual ~concurrent_flush_t() { }
-
-        /* Functions and callbacks for different phases of the writeback */
-        void start_and_acquire_lock();   // Called on cache thread
-        void prepare_patches(); // Called on cache thread
-        void do_writeback();  // Called on cache thread
-        virtual void on_lock_available();   // Called on cache thread
-        void acquire_bufs();   // Called on cache thread
-        bool do_write();       // Called on serializer thread
-        virtual void on_serializer_write_tid();   // Called on serializer thread
-        virtual void on_serializer_write_txn();   // Called on serializer thread
-        void update_transaction_ids();  // Called on cache thread
-        bool do_cleanup();   // Called on cache thread
-
-        bool transaction_ids_have_been_updated;
-        struct buf_writer_t;
-        std::vector<buf_writer_t *> buf_writers;
-
-        writeback_t* parent; // We need this for flush concurrency control (i.e. flush_lock, active_flushes etc.)
-
-        ticks_t start_time;
-
-        // Callbacks for the current sync
-        intrusive_list_t<sync_callback_t> current_sync_callbacks;
-
-        // Transaction that the writeback is using to grab buffers
-        transaction_t *transaction;
-
-        // Transaction to submit to the serializer
-        std::vector<serializer_t::write_t> serializer_writes;
-
-        // We need these to update the transaction ids after issuing a serializer write
-        std::vector<inner_buf_t*> serializer_inner_bufs;
-    };
+private:
+    struct flush_state_t;
+    void start_concurrent_flush();
+    void do_concurrent_flush();
+    void flush_prepare_patches();
+    void flush_acquire_bufs(transaction_t *transaction, flush_state_t &state);
+    void flush_update_block_sequence_ids(flush_state_t &state);
 };
 
 #endif // __BUFFER_CACHE_WRITEBACK_HPP__

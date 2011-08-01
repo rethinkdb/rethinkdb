@@ -24,9 +24,6 @@ private:
     DISABLE_COPYING(mailbox_t);
 
 public:
-    mailbox_t(mailbox_cluster_t *);
-    ~mailbox_t();
-
     struct address_t {
         /* Constructs a nil address */
         address_t();
@@ -54,6 +51,9 @@ public:
     };
 
 protected:
+    mailbox_t(mailbox_cluster_t *);
+    virtual ~mailbox_t();
+
     /* Called to when a message is sent to the mailbox over the network. Should
     deserialize the message, then call the second argument to indicate it is
     done deserializing, then act on the message. */

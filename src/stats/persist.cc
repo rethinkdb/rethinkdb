@@ -1,12 +1,16 @@
 #include "stats/persist.hpp"
+
+#include <vector>
+#include <sstream>
+
+#include <stdlib.h>
+
+#include <boost/numeric/conversion/cast.hpp>
+
 #include "stats/serialize.hpp"
 #include "utils.hpp"
 #include "concurrency/pmap.hpp"
 
-#include <stdlib.h>
-#include <sstream>
-
-#include <boost/numeric/conversion/cast.hpp>
 
 static intrusive_list_t<persistent_stat_t> &pstat_list() {
     /* Getter function so that we can be sure that var_list is initialized before it is needed,

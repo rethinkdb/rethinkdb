@@ -1,10 +1,12 @@
 #ifndef __CONCURRENCY_QUEUE_CROSS_THREAD_LIMITED_FIFO_HPP__
 #define __CONCURRENCY_QUEUE_CROSS_THREAD_LIMITED_FIFO_HPP__
 
+#include <list>
+
 #include "concurrency/queue/passive_producer.hpp"
 #include "concurrency/semaphore.hpp"
 #include "concurrency/drain_semaphore.hpp"
-#include <list>
+#include "do_on_thread.hpp"
 
 /* `cross_thread_limited_fifo_t` is like `limited_fifo_t`, except that it is
 efficient even when objects are being pushed onto the queue from a thread other
@@ -12,13 +14,13 @@ than the home thread. In the constructor, pass an extra parameter for the
 thread that you intend to push objects onto the queue from. Pushing objects
 onto the queue from that thread will be very efficient. */
 
-template<class value_t, class queue_t=std::list<value_t> >
+template <class value_t, class queue_t = std::list<value_t> >
 struct cross_thread_limited_fifo_t :
     public passive_producer_t<value_t>,
     public home_thread_mixin_t
 {
     cross_thread_limited_fifo_t(int st, int capacity, float trickle_fraction = 0.0) :
-        passive_producer_t<value_t>(&available_var),
+        passive_producer_t<value_t>(&available_control),
         source_thread(st),
         semaphore(capacity, trickle_fraction),
         in_destructor(false)
@@ -65,13 +67,13 @@ private:
     drain_semaphore_t drain_semaphore;
     bool in_destructor;
     queue_t queue;
-    watchable_var_t<bool> available_var;
+    availability_control_t available_control;
 
     void do_push(const value_t &value) {
         assert_thread();
         rassert(!in_destructor);
         queue.push_back(value);
-        available_var.set(!queue.empty());
+        available_control.set_available(!queue.empty());
     }
 
     void do_done() {
@@ -86,7 +88,7 @@ private:
         value_t v = queue.front();
         queue.pop_front();
         do_on_thread(source_thread, boost::bind(&cross_thread_limited_fifo_t<value_t, queue_t>::do_done, this));
-        available_var.set(!queue.empty());
+        available_control.set_available(!queue.empty());
         return v;
     }
 

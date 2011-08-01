@@ -2,7 +2,8 @@
 #define __BTREE_SLICE_HPP__
 
 #include "store.hpp"
-#include "buffer_cache/buffer_cache.hpp"
+#include "buffer_cache/types.hpp"
+#include "concurrency/fifo_checker.hpp"
 #include "serializer/serializer.hpp"
 
 class backfill_callback_t;
@@ -39,14 +40,14 @@ public:
 
     void delete_all_keys_for_backfill(order_token_t token);
 
-    void backfill(repli_timestamp since_when, backfill_callback_t *callback, order_token_t token);
+    void backfill(repli_timestamp_t since_when, backfill_callback_t *callback, order_token_t token);
 
     /* These store metadata for replication. There must be a better way to store this information,
     since it really doesn't belong on the btree_slice_t! TODO: Move them elsewhere. */
     void set_replication_clock(repli_timestamp_t t, order_token_t token);
-    repli_timestamp get_replication_clock();
+    repli_timestamp_t get_replication_clock();
     void set_last_sync(repli_timestamp_t t, order_token_t token);
-    repli_timestamp get_last_sync();
+    repli_timestamp_t get_last_sync();
     void set_replication_master_id(uint32_t t);
     uint32_t get_replication_master_id();
     void set_replication_slave_id(uint32_t t);
@@ -69,15 +70,11 @@ private:
     cache_t *cache_;
     int64_t delete_queue_limit_;
 
-    /* We serialize all `order_token_t`s through here. This way we can use `plain_sink_t` for
-    the order sinks on the individual blocks in the buffer cache. */
+    // We put all `order_token_t`s through this.
     order_checkpoint_t order_checkpoint_;
 
     // Cache account to be used when backfilling.
     boost::shared_ptr<cache_account_t> backfill_account;
-
-    // TODO: Check that we use this variable.
-    plain_sink_t order_sink_;
 
     DISABLE_COPYING(btree_slice_t);
 };

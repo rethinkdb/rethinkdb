@@ -1,5 +1,9 @@
 #include "btree/get_cas.hpp"
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
+#include "arch/runtime/coroutines.hpp"
 #include "btree/modify_oper.hpp"
 #include "concurrency/promise.hpp"
 #include "btree/btree_data_provider.hpp"
@@ -35,11 +39,11 @@ private:
 // hasn't been set, for instance), but depending on how CAS is used, that may
 // be unnecessary.
 
-struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mixin_t {
+struct btree_get_cas_oper_t : public btree_modify_oper_t<memcached_value_t>, public home_thread_mixin_t {
     btree_get_cas_oper_t(cas_t proposed_cas_, promise_t<get_result_t> *res_)
         : proposed_cas(proposed_cas_), res(res_) { }
 
-    bool operate(transaction_t *txn, scoped_malloc<btree_value_t>& value) {
+    bool operate(transaction_t *txn, scoped_malloc<memcached_value_t>& value) {
         if (!value) {
             // If not found, there's nothing to do.
             res->pulse(get_result_t());
@@ -79,7 +83,7 @@ void co_btree_get_cas(const store_key_t &key, castime_t castime, btree_slice_t *
                       promise_t<get_result_t> *res, order_token_t token) {
     btree_get_cas_oper_t oper(castime.proposed_cas, res);
     memcached_value_sizer_t sizer(slice->cache()->get_block_size());
-    run_btree_modify_oper(&sizer, &oper, slice, key, castime, token);
+    run_btree_modify_oper<memcached_value_t>(&sizer, &oper, slice, key, castime, token);
 }
 
 get_result_t btree_get_cas(const store_key_t &key, btree_slice_t *slice, castime_t castime, order_token_t token) {

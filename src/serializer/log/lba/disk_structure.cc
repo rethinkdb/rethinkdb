@@ -1,4 +1,4 @@
-#include "disk_structure.hpp"
+#include "serializer/log/lba/disk_structure.hpp"
 #include "containers/scoped_malloc.hpp"
 
 lba_disk_structure_t::lba_disk_structure_t(extent_manager_t *em, direct_file_t *file)
@@ -61,7 +61,7 @@ void lba_disk_structure_t::on_extent_read() {
     start_callback->on_lba_load();
 }
 
-void lba_disk_structure_t::add_entry(block_id_t block_id, repli_timestamp recency, flagged_off64_t offset, file_t::account_t *io_account) {
+void lba_disk_structure_t::add_entry(block_id_t block_id, repli_timestamp_t recency, flagged_off64_t offset, file_t::account_t *io_account) {
     if (last_extent && last_extent->full()) {
         /* We have filled up an extent. Transfer it to the superblock. */
 

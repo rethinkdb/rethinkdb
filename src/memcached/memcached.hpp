@@ -1,11 +1,9 @@
 #ifndef __MEMCACHED_MEMCACHED_HPP__
 #define __MEMCACHED_MEMCACHED_HPP__
 
-#include "arch/arch.hpp"
-#include "data_provider.hpp"
-#include "btree/value.hpp"
+#include <vector>
+
 #include "store.hpp"
-#include "concurrency/fifo_checker.hpp"
 
 /* `handle_memcache()` handles memcache queries from the given `memcached_interface_t`,
 sending the results to the same `memcached_interface_t`, until either SIGINT is sent to

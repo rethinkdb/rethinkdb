@@ -5,9 +5,9 @@
 
 #include "serializer/serializer.hpp"
 #include "serializer/log/extents/extent_manager.hpp"
-#include "disk_format.hpp"
-#include "in_memory_index.hpp"
-#include "disk_structure.hpp"
+#include "serializer/log/lba/disk_format.hpp"
+#include "serializer/log/lba/in_memory_index.hpp"
+#include "serializer/log/lba/disk_structure.hpp"
 
 class lba_start_fsm_t;
 class lba_syncer_t;
@@ -37,11 +37,11 @@ public:
     
 public:
     flagged_off64_t get_block_offset(block_id_t block);
-    repli_timestamp get_block_recency(block_id_t block);
+    repli_timestamp_t get_block_recency(block_id_t block);
     
     /* Returns a block ID such that all blocks that exist are guaranteed to have IDs less than
     that block ID. */
-    block_id_t max_block_id();
+    block_id_t end_block_id();
     
 #ifndef NDEBUG
     bool is_extent_referenced(off64_t offset);
@@ -50,8 +50,8 @@ public:
 #endif
     
 public:
-    void set_block_offset(block_id_t block, repli_timestamp recency,
-                          flagged_off64_t offset, file_t::account_t *io_account);
+    void set_block_info(block_id_t block, repli_timestamp_t recency,
+                        flagged_off64_t offset, file_t::account_t *io_account);
 
     struct sync_callback_t {
         virtual void on_lba_sync() = 0;

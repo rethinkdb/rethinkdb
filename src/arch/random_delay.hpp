@@ -3,6 +3,8 @@
 
 #include <stdlib.h>
 
+#include "errors.hpp"
+
 /* Functions to create random delays. Internally, they secretly use
 the IO layer, but are safe to include from within the IO
 layer. */

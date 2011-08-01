@@ -1,7 +1,12 @@
 #include "replication/protocol.hpp"
-#include "replication/debug.hpp"
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "concurrency/coro_fifo.hpp"
+#include "logger.hpp"
 #include "perfmon.hpp"
+#include "replication/debug_format.hpp"
 
 /* If `REPLICATION_DEBUG` is defined, then every time a network message is sent
 or received, the contents of the message will be printed to `stderr`. */
@@ -372,6 +377,16 @@ void repli_stream_t::send_hello(UNUSED const mutex_acquisition_t& evidence_of_ac
     msg.replication_protocol_version = 1;
 
     try_write(&msg, sizeof(msg));
+}
+
+void repli_stream_t::send_heartbeat() {
+    net_heartbeat_t msg;
+    msg.padding = 0;
+    send(msg);
+}
+void repli_stream_t::on_heartbeat_timeout() {
+    logINF("Terminating connection due to heartbeat timeout.\n");
+    shutdown();
 }
 
 perfmon_duration_sampler_t master_write("master_write", secs_to_ticks(1.0));

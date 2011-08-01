@@ -297,6 +297,25 @@ Possible options are ``native`` (the default), and ``pool`` - an
 alternative I/O backend designed to solve the issues associated with
 the native backend in legacy environments.
 
+~~~~~~~~~~~~~~
+I/O scheduling
+~~~~~~~~~~~~~~
+
+RethinkDB has an internal scheduler for disk operations. It tries
+to minimize I/O latencies for database queries, without starving
+background tasks like garbage collection or flushes.
+
+For drives that have high random seek times but fast sequential access, the overall
+disk throughput is improved by issuing I/O requests in sequential batches.
+This works at the expense of potentially increased query latencies.
+The size of the I/O scheduler batches can be adjusted as follows::
+
+  $ rethinkdb --io-batch-factor 8
+
+The default value of 8 provides a compromise between throughput and latency. A
+value of 1 can reduce I/O latencies on solid-state drives, while a value
+higher than 8 is useful for trading latency for throughput on rotational drives.
+
 ~~~~~~~~~~
 Read-ahead
 ~~~~~~~~~~
@@ -328,10 +347,11 @@ Memory
 ``````
 
 The amount of available main memory can drastically affect performance
-of a database system because main memory is used to cache data and delays the need to go to disk, which is orders of magnitude slower.
-By default, RethinkDB will use as much memory as necessary (and as the
-system has available) to operate efficiently. However, this number can
-be specified explicitly::
+of a database system because main memory is used to cache data and
+delays the need to go to disk, which is orders of magnitude slower.
+By default, RethinkDB will use up to half of the available system
+memory for its buffer cache. However, this number can be specified
+explicitly::
 
   $ rethinkdb --max-cache-size 8192
 

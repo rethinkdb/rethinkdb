@@ -1,10 +1,8 @@
 #ifndef __MEMCACHED_TCP_CONN_HPP__
 #define __MEMCACHED_TCP_CONN_HPP__
 
-#include <string>
-#include "arch/arch.hpp"
 #include "store.hpp"
-#include "concurrency/fifo_checker.hpp"
+#include "arch/arch.hpp"
 
 /* Serves memcache queries over the given TCP connection until the connection in question
 is closed. */

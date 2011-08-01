@@ -2,6 +2,7 @@
 #define __STORE_HPP__
 
 #include <string.h>
+#include <stdio.h>
 
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
@@ -25,6 +26,10 @@ struct store_key_t {
     store_key_t() { }
     store_key_t(int sz, const char *buf) {
         assign(sz, buf);
+    }
+
+    store_key_t(std::string const &s) {
+        assign(s.size(), s.data());
     }
 
     void assign(int sz, const char *buf) {
@@ -107,12 +112,12 @@ public:
 // at the top, the precise same information gets sent to the replicas.
 struct castime_t {
     cas_t proposed_cas;
-    repli_timestamp timestamp;
+    repli_timestamp_t timestamp;
 
-    castime_t(cas_t proposed_cas_, repli_timestamp timestamp_)
+    castime_t(cas_t proposed_cas_, repli_timestamp_t timestamp_)
         : proposed_cas(proposed_cas_), timestamp(timestamp_) { }
 
-    castime_t() : proposed_cas(0), timestamp(repli_timestamp::invalid) { }
+    castime_t() : proposed_cas(0), timestamp(repli_timestamp_t::invalid) { }
 };
 
 /* get_cas is a mutation instead of another method on get_store_t because it may need to

@@ -2,8 +2,7 @@
 #define __REPLICATION_MASTER_HPP__
 
 #include "store.hpp"
-#include "arch/arch.hpp"
-#include "gated_store.hpp"
+#include "server/gated_store.hpp"
 #include "replication/backfill_out.hpp"
 #include "replication/backfill_sender.hpp"
 #include "replication/backfill_receiver.hpp"
@@ -11,6 +10,7 @@
 #include "concurrency/mutex.hpp"
 #include "replication/net_structs.hpp"
 #include "replication/protocol.hpp"
+#include "server/cmd_args.hpp"
 
 class btree_key_value_store_t;
 
@@ -71,7 +71,7 @@ public:
     bool has_slave() { return stream_ != NULL; }
 
     // Listener callback functions
-    void on_conn(boost::scoped_ptr<linux_tcp_conn_t>& conn);
+    void on_conn(boost::scoped_ptr<tcp_conn_t>& conn);
 
     void hello(UNUSED net_hello_t message) { debugf("Received hello from slave.\n"); }
 
@@ -107,14 +107,16 @@ public:
         delete stream_copy;
 
         stream_exists_cond_.pulse();    // If anything was waiting for stream to close, signal it
-        interrupt_streaming_cond_.pulse_if_non_null();   // Will interrupt any running backfill/stream operation
+        if (interrupt_streaming_cond_ && !interrupt_streaming_cond_->is_pulsed()) {
+            interrupt_streaming_cond_->pulse();   // Will interrupt any running backfill/stream operation
+        }
 
         // TODO: This might fail for future versions of the order source, which
         // require a backfill to have begun before it can be done.
         order_source->backfill_done();
     }
 
-    void do_backfill_and_realtime_stream(repli_timestamp since_when);
+    void do_backfill_and_realtime_stream(repli_timestamp_t since_when);
 
 #ifndef NDEBUG
     static bool inside_backfill_done_or_backfill;
@@ -155,7 +157,7 @@ private:
     resettable_cond_t streaming_cond_;
 
     // Pulse this to interrupt a running backfill/realtime stream operation
-    cond_weak_ptr_t interrupt_streaming_cond_;
+    cond_t *interrupt_streaming_cond_;
 
     // TODO: Instead of having this, we should just remember if a slave was connected when we last
     // shut down.

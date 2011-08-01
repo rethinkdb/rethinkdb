@@ -1,7 +1,7 @@
 #ifndef __BUFFER_CACHE_MIRRORED_WRITEBACK_FLUSHTIMERANDOMIZER_HPP__
 #define __BUFFER_CACHE_MIRRORED_WRITEBACK_FLUSHTIMERANDOMIZER_HPP__
 
-#include "server/cmd_args.hpp"
+#include "buffer_cache/mirrored/config.hpp"
 
 // Provides flush intervals for us to use.
 class flush_time_randomizer_t {

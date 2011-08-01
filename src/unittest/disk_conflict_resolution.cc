@@ -1,6 +1,7 @@
 #include "unittest/gtest.hpp"
 
-#include "arch/linux/disk/conflict_resolving.hpp"
+#include "arch/io/disk/conflict_resolving.hpp"
+#include "arch/runtime/thread_pool.hpp"
 #include <list>
 #include <boost/scoped_array.hpp>
 #include <boost/bind.hpp>
@@ -33,11 +34,19 @@ struct test_driver_t {
 
     typedef conflict_resolving_diskmgr_t<core_action_t>::action_t action_t;
 
+    int old_thread_id;
     test_driver_t() {
+        /* Fake thread-context to make perfmons work. */
+        old_thread_id = linux_thread_pool_t::thread_id;
+        linux_thread_pool_t::thread_id = 0;
+
         conflict_resolver.submit_fun = boost::bind(
             &test_driver_t::submit_from_conflict_resolving_diskmgr, this, _1);
         conflict_resolver.done_fun = boost::bind(
             &test_driver_t::done_from_conflict_resolving_diskmgr, this, _1);
+    }
+    ~test_driver_t() {
+        linux_thread_pool_t::thread_id = old_thread_id;
     }
 
     void submit(action_t *a) {
@@ -52,13 +61,10 @@ struct test_driver_t {
 
         /* The conflict_resolving_diskmgr_t should not have sent us two potentially
         conflicting actions */
-        for (intrusive_list_t<core_action_t>::iterator it = running_actions.begin();
-             it != running_actions.end(); it++) {
-            if (!(a->is_read && (*it)->is_read)) {
-                /* They aren't both reads, so they should be non-overlapping. */
-                ASSERT_TRUE(
-                    (int)a->offset >= (int)((*it)->offset + (*it)->count) ||
-                    (int)(*it)->offset >= (int)(a->offset + a->count));
+        for (core_action_t *p = running_actions.head(); p; p = running_actions.next(p)) {
+            if (!(a->is_read && p->is_read)) {
+                ASSERT_TRUE((int)a->offset >= (int)(p->offset + p->count) ||
+                            (int)p->offset >= (int)(a->offset + a->count));
             }
         }
 

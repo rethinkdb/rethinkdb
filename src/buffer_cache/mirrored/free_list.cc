@@ -1,5 +1,6 @@
-#include "free_list.hpp"
+#include "buffer_cache/mirrored/free_list.hpp"
 #include "buffer_cache/stats.hpp"
+#include "perfmon.hpp"
 
 array_free_list_t::array_free_list_t(serializer_t *serializer)
     : serializer(serializer)
@@ -8,7 +9,7 @@ array_free_list_t::array_free_list_t(serializer_t *serializer)
     num_blocks_in_use = 0;
     next_new_block_id = serializer->max_block_id();
     for (block_id_t i = 0; i < next_new_block_id; i++) {
-        if (!serializer->block_in_use(i)) {
+        if (serializer->get_delete_bit(i)) {
             free_ids.push_back(i);
         } else {
             pm_n_blocks_total++;
