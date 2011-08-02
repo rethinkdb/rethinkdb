@@ -74,6 +74,8 @@ public:
         : store_manager(store_manager)
     { }
 
+private:
+
 public:
     // Bucket operations:
     // Get a bucket by name
@@ -128,7 +130,7 @@ public:
         return object_iterator_t(range_txn.it, range_txn.txn);
     };
 
-    const object_t get_object(std::string bucket, std::string key) {
+    const object_t get_object(std::string bucket, std::string key, std::pair<int,int> range = std::make_pair(-1, -1)) {
         std::list<std::string> sm_key;
         sm_key.push_back("riak"); sm_key.push_back(bucket);
         btree_slice_t *slice = get_slice(sm_key);
@@ -142,8 +144,9 @@ public:
 
         kv_location.value->print(slice->cache()->get_block_size());
 
-        return object_t(key, kv_location.value.get(), kv_location.txn.get());
+        return object_t(key, kv_location.value.get(), kv_location.txn.get(), range);
     }
+    
 
     std::pair<object_tree_iterator_t, object_tree_iterator_t> link_walk(std::string, std::string, std::vector<link_filter_t>) {
         crash("Not implemented");
@@ -218,9 +221,9 @@ public:
         crash("Not implemented");
     }
 
-    object_t get_luwak(std::string, int, int) {
-        crash("Not implemented");
-    }
+    /* object_t get_luwak(std::string key, std::pair<int, int> range) {
+        return internal_get_object("luwak", "luwak", key, range);
+    } */
 
     std::string gen_key() {
         crash("Not implementated");

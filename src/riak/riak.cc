@@ -3,10 +3,12 @@
 #include <sstream>
 #include <boost/algorithm/string/join.hpp>
 #include <boost/regex.hpp>
+#include <boost/xpressive/xpressive.hpp>
 #include "riak/riak_value.hpp"
 #include "store_manager.hpp"
 
-/* What's the deal with the "m"s in front of all the json_spirit types?
+/* "What's the deal with all the "m"s in front of all the json_spirit types?" - Jerry Seinfeld
+ *
  * Json_spirit provides 2 different json implementations, one in which the
  * dicts are represented as std::vectors, one in which they're represented as
  * std::maps the "m" indicates that you're using the map implementation (which
@@ -121,29 +123,6 @@ http_res_t riak_server_t::handle(const http_req_t &req) {
         }
     } else if (*it == "mapred") {
         return mapreduce(req);
-    } else if (*it == "luwak") {
-        it++;
-        
-        if (it == end) {
-            if (req.method == GET) {
-                return luwak_info(req);
-            } else if (req.method == POST) {
-                luwak_store(req);
-            } else { /* 404 */ }
-        } else {
-            std::string key = *it;
-            it++;
-
-            if (it == end) {
-                if (req.method == GET) {
-                    return luwak_fetch(req);
-                } else if (req.method == POST || req.method == PUT) {
-                    luwak_store(req);
-                } else if (req.method == DELETE) {
-                    luwak_delete(req);
-                } else { /* 404 */ }
-            } else { /* 404 */ }
-        }
     } else if (*it == "ping") {
         return ping(req);
     } else if (*it == "stats") {
@@ -356,16 +335,42 @@ http_res_t riak_server_t::fetch_object(const http_req_t &req) {
     rassert(url_it != url_end, "This function should only be called if there's a key specified in the url");
     std::string key = *url_it;
 
-    //needs some sort of indication if the object isn't found
-    object_t obj = riak_interface.get_object(bucket, key); //the object we're looking for
+    //get the object
+    object_t obj;
+    if (req.has_header_line("Range")) {
+        //Only a specific range of bytes has been requested
+        std::string range = req.find_header_line("Range");
+
+        boost::xpressive::sregex range_regex = boost::xpressive::sregex::compile("^bytes=(\\d+)-(\\d+)$");
+        boost::xpressive::smatch what;
+
+        if (!boost::xpressive::regex_match(range, what, range_regex)) {
+            http_res_t res;
+            res.code = 400;
+            return res;
+        }
+
+        obj = riak_interface.get_object(bucket, key, std::make_pair(atoi(what.str(1).c_str()), atoi(what.str(2).c_str())));
+    } else {
+        //get the whole value
+        obj = riak_interface.get_object(bucket, key); //the object we're looking for
+    }
 
     http_res_t res;
     res.set_body(obj.content_type, obj.content);
     res.add_header_line("ETag", strprintf("%d",  obj.ETag));
     res.add_last_modified(obj.last_written);
+    res.add_header_line("Accept-Ranges", "bytes"); 
+    //indicates that we accept range requests on the resources (we accept them on all riak resources)
+
+    if (obj.range.first != -1 && obj.range.second != -1) {
+        res.add_header_line("Content-Range", strprintf("bytes %d-%d/%zu", obj.range.first, obj.range.second, obj.total_value_len));
+        res.code = 206;
+    } else {
+        res.code = 200;
+    }
 
     if (!obj.links.empty()) {
-
         std::vector<std::string> links;
 
         for (std::vector<link_t>::iterator it = obj.links.begin(); it != obj.links.end(); it++) {
@@ -374,9 +379,6 @@ http_res_t riak_server_t::fetch_object(const http_req_t &req) {
 
         res.add_header_line("Link", boost::algorithm::join(links, ", "));
     }
-
-    res.code = 200;
-
     return res;
 }
 
@@ -537,76 +539,6 @@ ERROR_BAD_REQUEST:
 }
 
 http_res_t riak_server_t::mapreduce(const http_req_t &) {
-    not_implemented();
-    http_res_t res;
-    return res;
-}
-
-http_res_t riak_server_t::luwak_info(const http_req_t &req) {
-    http_res_t res; //the response we'll be sending back
-    json::mObject body;
-
-    if (req.find_query_param("props") != "false") {
-        body["props"] = json::mObject();
-        luwak_props_t props = riak_interface.luwak_props();
-
-
-        body["props"].get_obj()["o_bucket"] = props.root_bucket;
-        body["props"].get_obj()["n_bucket"] = props.segment_bucket;
-        body["props"].get_obj()["block_default"] = props.block_default;
-    }
-
-    if (req.find_query_param("keys") == "true" || req.find_query_param("keys") == "stream") {
-        body["keys"] = json::mArray();
-        object_iterator_t obj_it = riak_interface.objects(riak_interface.luwak_props().root_bucket);
-
-        boost::optional<object_t> cur;
-        while (cur = obj_it.next()) {
-            body["keys"].get_array().push_back(cur->key);
-        }
-    }
-
-    return res;
-}
-
-http_res_t riak_server_t::luwak_fetch(const http_req_t &req) {
-    boost::char_separator<char> sep("/");
-    tokenizer tokens(req.resource, sep);
-    tok_iterator url_it = tokens.begin(), url_end = tokens.end();
-
-    http_res_t res;
-
-    //rassert(url_it != url_end, "We should only call this function when we have a key");
-    //std::string key = *url_it;
-
-    //std::string range = req.find_header_line("Range");
-
-    //boost::regex range_regex("^bytes=(\\d+)-(\\d+)$");
-    //boost::smatch what;
-
-    //if (!boost::regex_match(range, what, range_regex, boost::match_extra)) {
-    //    res.code = 400;
-    //    return res;
-    //}
-    //rassert(what.size() == 1 && what.captures(0).size() == 2, "Since we've successfully parsed a bytes header we should have exactly one match with exactly 2 captures");
-
-    //object_t obj = riak_interface.get_luwak(key, what.captures(0)[0], what.captures(0)[1]);
-
-    //res.set_body(obj.content_type, obj.content);
-
-    return res;
-}
-
-http_res_t riak_server_t::luwak_store(const http_req_t &req) {
-    boost::char_separator<char> sep("/");
-    tokenizer tokens(req.resource, sep);
-    tok_iterator url_it = tokens.begin(), url_end = tokens.end();
-
-    http_res_t res;
-    return res;
-}
-
-http_res_t riak_server_t::luwak_delete(const http_req_t &) {
     not_implemented();
     http_res_t res;
     return res;

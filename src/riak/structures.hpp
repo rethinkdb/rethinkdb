@@ -80,33 +80,61 @@ struct object_t {
     int ETag;
     int last_written;
     std::vector<link_t> links;
+    std::pair<int, int> range;
+    size_t total_value_len; //this might not be equal to content.size() if what we have is a range
 
     object_t() { }
 
-    object_t(std::string const &key, riak_value_t *val, transaction_t *txn) 
-        : key(key)
+    object_t(std::string const &key, riak_value_t *val, transaction_t *txn, std::pair<int, int> range = std::make_pair(-1, -1))
+        : key(key), range(range), total_value_len(val->value_len)
     {
         last_written = val->mod_time;
         ETag = val->etag;
 
         blob_t blob(val->contents, blob::btree_maxreflen);
-        buffer_group_t buffer_group;
-        blob_acq_t acq;
-        blob.expose_all(txn, rwi_read, &buffer_group, &acq);
+        {
+            buffer_group_t buffer_group;
+            blob_acq_t acq;
+            blob.expose_region(txn, rwi_read, 0, val->content_type_len, &buffer_group, &acq);
 
-        const_buffer_group_t::iterator it = buffer_group.begin(), end = buffer_group.end(); 
+            const_buffer_group_t::iterator it = buffer_group.begin(), end = buffer_group.end(); 
 
-        /* grab the content type */
-        content_type.reserve(val->content_type_len);
-        for (unsigned i = 0; i < val->content_type_len; i++) {
-            content_type += *it;
-            it++;
+            /* grab the content type */
+            content_type.reserve(val->content_type_len);
+            for (unsigned i = 0; i < val->content_type_len; i++) {
+                content_type += *it;
+                it++;
+            }
         }
 
-        for (unsigned i = 0; i < val->value_len; i++) {
-            content += *it;
-            it++;
+        {
+            buffer_group_t buffer_group;
+            blob_acq_t acq;
+
+            if (range.first == -1) {
+                //getting the whole value
+                rassert(range.second == -1);
+                blob.expose_region(txn, rwi_read, val->content_type_len, val->value_len, &buffer_group, &acq);
+                const_buffer_group_t::iterator it = buffer_group.begin(), end = buffer_group.end(); 
+
+                for (unsigned i = 0; i < val->value_len; i++) {
+                    content += *it;
+                    it++;
+                }
+            } else {
+                //getting a range
+                rassert(0 <= range.first && range.first <= range.second && (unsigned) range.second < val->value_len, "Someone sent us an invalid range, this shouldn't be an assert but should return the error to the user");
+
+                blob.expose_region(txn, rwi_read, val->content_type_len + range.first, range.second - range.first, &buffer_group, &acq);
+                const_buffer_group_t::iterator it = buffer_group.begin(), end = buffer_group.end(); 
+
+                for (int i = 0; i < range.second - range.first; i++) {
+                    content += *it;
+                    it++;
+                }
+            }
         }
+
 
         //TODO links code goes here, when those are implemented in a sensible way
     }

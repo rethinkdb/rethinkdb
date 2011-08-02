@@ -8,6 +8,8 @@ std::string human_readable_status(int code) {
         return "OK";
     case 204:
         return "No Content";
+    case 206:
+        return "Partial Content";
     case 400:
         return "Bad Request";
     case 404:
@@ -211,7 +213,6 @@ void http_server_t::handle_conn(boost::scoped_ptr<tcp_conn_t> &conn) {
         req.body.append(slc.beg, content_length(req));
         conn->pop(content_length(req));
 
-        BREAKPOINT;
         http_res_t res = handle(req);
 
         if ((req.has_header_line("If-Unmodified-Since") && res.get_last_modified() != -1 && 
