@@ -1,5 +1,5 @@
-#ifndef __REPLICATION_DELETE_QUEUE_HPP__
-#define __REPLICATION_DELETE_QUEUE_HPP__
+#ifndef __BTREE_DELETE_QUEUE_HPP__
+#define __BTREE_DELETE_QUEUE_HPP__
 
 #include "buffer_cache/buffer_cache.hpp"
 
@@ -121,4 +121,4 @@ bool dump_keys_from_delete_queue(transaction_t *txn, block_id_t queue_root, repl
 
 }  // namespace replication
 
-#endif  // __REPLICATION_DELETE_QUEUE_HPP__
+#endif  // __BTREE_DELETE_QUEUE_HPP__

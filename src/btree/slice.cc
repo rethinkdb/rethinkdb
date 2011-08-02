@@ -12,8 +12,7 @@
 #include "btree/append_prepend.hpp"
 #include "btree/delete.hpp"
 #include "btree/get_cas.hpp"
-#include "replication/delete_queue.hpp"
-#include "replication/master.hpp"
+#include "btree/delete_queue.hpp"
 
 void btree_slice_t::create(cache_t *cache) {
 
