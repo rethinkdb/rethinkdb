@@ -301,6 +301,57 @@ private:
     const uint16_t *array_;
 };
 
+template <class V>
+void garbage_collect(value_sizer_t<V> *sizer, loof_t *node, int num_tstamped) {
+    uint16_t indices[node->num_pairs];
+
+    for (int i = 0; i < node->num_pairs; ++i) {
+        indices[i] = i;
+    }
+
+    std::sort(indices, indices + node->num_pairs, indirect_index_comparator_t(node->pair_offsets));
+
+    int mand_offset;
+    int cost = mandatory_cost(sizer, node, num_tstamped, &mand_offset);
+
+    int w = sizer->block_size().value();
+    int i = node->num_pairs - 1;
+    for (; i >= 0; --i) {
+        int offset = node->pair_offsets[indices[i]];
+
+        if (offset < mand_offset) {
+            break;
+        }
+
+        entry_t *ent = get_entry(node, offset);
+        int sz = entry_size(sizer, ent);
+        w -= sz;
+        memmove(get_at_offset(node, w), ent, sz);
+        node->pair_offsets[indices[i]] = w;
+    }
+
+    // Either i < 0 or node->pair_offsets[indices[i]] < mand_offset.
+
+    node->tstamp_cutpoint = w;
+
+    for (; i >= 0; --i) {
+        int offset = node->pair_offsets[indices[i]];
+
+        // Preserve the timestamp.
+        int sz = sizeof(repli_timestamp_t) + entry_size(sizer, get_entry(node, offset));
+
+        w -= sz;
+
+        memmove(get_at_offset(node, w), get_at_offset(node, offset), sz);
+        node->pair_offsets[indices[i]] = w;
+    }
+
+    node->frontmost = w;
+
+    // live_size and num_pairs didn't change.
+}
+
+
 // Moves entries with pair_offsets indices in the clopen range [beg,
 // end) from fro to tow.
 template <class V>
@@ -392,7 +443,7 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
         // Greater timestamps go first.
         if (fro_tstamp > tow_tstamp) {
             entry_t *ent = get_entry(fro, fro_offset);
-            int sz = sizeof(repli_timestamp_t) + entry_size(ent);
+            int sz = sizeof(repli_timestamp_t) + entry_size(sizer, ent);
             memmove(get_at_offset(tow, wri_offset), get_at_offset(fro, fro_offset), sz);
             clean_entry_with_timestamp(fro, fro_offset, sz);
 
@@ -408,7 +459,7 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
                 livesize += sz + sizeof(uint16_t);
             }
         } else {
-            int sz = sizeof(repli_timestamp_t) + entry_size(get_entry(tow, tow_offset));
+            int sz = sizeof(repli_timestamp_t) + entry_size(sizer, get_entry(tow, tow_offset));
             memmove(get_at_offset(tow, wri_offset), get_at_offset(tow, tow_offset), sz);
 
             // Update the pair offset of the entry we've moved.
@@ -434,7 +485,7 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
         int fro_offset = fro->pair_offsets[beg + tow->pair_offsets[fro_index]];
         entry_t *ent = get_entry(fro, fro_offset);
         if (entry_is_live(ent)) {
-            int sz = entry_size(ent);
+            int sz = entry_size(sizer, ent);
             memmove(get_at_offset(tow, wri_offset), get_at_offset(fro, fro_offset), sz);
             clean_entry_sans_timestamp(fro, fro_offset, sz);
             fro->pair_offsets[beg + tow->pair_offsets[fro_index]] = wri_offset;
@@ -453,7 +504,7 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
         rassert(wri_offset <= tow_offset);
 
         entry_t *ent = get_entry(tow, tow_offset);
-        int sz = entry_size(ent);
+        int sz = entry_size(sizer, ent);
         if (entry_is_live(ent)) {
             memmove(get_at_offset(tow, wri_offset), ent, sz);
 
@@ -498,7 +549,9 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
 
     tow->frontmost = new_frontmost;
 
-    tow->livesize = livesize;
+    tow->live_size = livesize;
+
+    // TODO: We need to update fro->live_size.
 }
 
 
