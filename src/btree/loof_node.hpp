@@ -1,6 +1,11 @@
 #ifndef BTREE_LOOF_NODE_HPP_
 #define BTREE_LOOF_NODE_HPP_
 
+#include "buffer_cache/types.hpp"
+#include "config/args.hpp"
+#include "errors.hpp"
+#include "node.hpp"
+
 // Eventually we'll rename loof to leaf, but right now I want the old code to look at.
 
 namespace loof {
@@ -64,7 +69,7 @@ inline
 bool entry_is_deletion(const entry_t *p) {
     uint8_t x = *reinterpret_cast<const uint8_t *>(p);
     rassert(x != 251);
-    return x == DELETE_PAIR_CODE;
+    return x == DELETE_ENTRY_CODE;
 }
 
 inline
@@ -78,6 +83,24 @@ bool entry_is_live(const entry_t *p) {
 inline
 bool entry_is_skip(const entry_t *p) {
     return !entry_is_deletion(p) && !entry_is_live(p);
+}
+
+inline
+const btree_key_t *entry_key(const entry_t *p) {
+    if (entry_is_deletion(p)) {
+        return reinterpret_cast<const btree_key_t *>(1 + reinterpret_cast<const char *>(p));
+    } else {
+        return reinterpret_cast<const btree_key_t *>(p);
+    }
+}
+
+template <class V>
+const V *entry_value(const entry_t *p) {
+    if (entry_is_deletion(p)) {
+        return NULL;
+    } else {
+        return reinterpret_cast<const V *>(reinterpret_cast<const char *>(p) + entry_key(p)->full_size());
+    }
 }
 
 template <class V>
@@ -102,24 +125,6 @@ bool entry_fits(value_sizer_t<V> *sizer, const entry_t *p, int size) {
     }
 }
 
-inline
-const btree_key_t *entry_key(const entry_t *p) {
-    if (entry_is_deletion(p)) {
-        return reinterpret_cast<const btree_key_t *>(1 + reinterpret_cast<const char *>(p));
-    } else {
-        return reinterpret_cast<const btree_key_t *>(p);
-    }
-}
-
-template <class V>
-const V *entry_value(const entry_t *p) {
-    if (entry_is_deletion(p)) {
-        return NULL;
-    } else {
-        return reinterpret_cast<const V *>(reinterpret_cast<const char *>(p) + entry_key(p)->full_size());
-    }
-}
-
 template <class V>
 int entry_size(value_sizer_t<V> *sizer, const entry_t *p) {
     uint8_t code = *reinterpret_cast<const uint8_t *>(p);
@@ -138,18 +143,22 @@ int entry_size(value_sizer_t<V> *sizer, const entry_t *p) {
     }
 }
 
+inline
 const entry_t *get_entry(const loof_t *node, int offset) {
     return reinterpret_cast<const entry_t *>(reinterpret_cast<const char *>(node) + offset + (offset < node->tstamp_cutpoint ? sizeof(repli_timestamp_t) : 0));
 }
 
+inline
 entry_t *get_entry(loof_t *node, int offset) {
     return reinterpret_cast<entry_t *>(reinterpret_cast<char *>(node) + offset + (offset < node->tstamp_cutpoint ? sizeof(repli_timestamp_t) : 0));
 }
 
+inline
 char *get_at_offset(loof_t *node, int offset) {
     return reinterpret_cast<char *>(node) + offset;
 }
 
+inline
 repli_timestamp_t get_timestamp(const loof_t *node, int offset) {
     return *reinterpret_cast<const repli_timestamp_t *>(reinterpret_cast<const char *>(node) + offset);
 }
@@ -161,9 +170,10 @@ struct entry_iter_t {
     void step(value_sizer_t<V> *sizer, const loof_t *node) {
 	rassert(!done(sizer));
 
-	offset += entry_size(get_entry(node, offset)) + (offset < node->tstamp_cutpoint ? sizeof(repli_timestamp_t) : 0);
+	offset += entry_size(sizer, get_entry(node, offset)) + (offset < node->tstamp_cutpoint ? sizeof(repli_timestamp_t) : 0);
     }
 
+    template <class V>
     bool done(value_sizer_t<V> *sizer) const {
 	rassert(offset <= sizer->block_size().value());
 	return offset >= sizer->block_size().value();
@@ -190,8 +200,8 @@ void validate(value_sizer_t<V> *sizer, const loof_t *node) {
     rassert(node->magic == sizer->btree_leaf_magic());
     rassert(node->frontmost >= offsetof(loof_t, pair_offsets) + node->num_pairs * sizeof(uint16_t));
     rassert(node->live_size <= sizer->block_size().value() - node->frontmost);
-    rassert(node->frontmost <= tstamp_cutpoint);
-    rassert(tstamp_cutpoint <= sizer->block_size().value());
+    rassert(node->frontmost <= node->tstamp_cutpoint);
+    rassert(node->tstamp_cutpoint <= sizer->block_size().value());
 
     // sizeof(offs) is guaranteed to be less than the block_size() thanks to assertions above.
     uint16_t offs[node->num_pairs];
@@ -241,9 +251,9 @@ void validate(value_sizer_t<V> *sizer, const loof_t *node) {
 
     const btree_key_t *last = NULL;
     for (int k = 0; k < node->num_pairs; ++k) {
-        const btree_key_t *k = entry_key(get_entry(node, node->pair_offsets[k]));
-        rassert(last == NULL || sized_strcmp(last->contents, last->size, k->contents, k->size) < 0);
-        last = k;
+        const btree_key_t *key = entry_key(get_entry(node, node->pair_offsets[k]));
+        rassert(last == NULL || sized_strcmp(last->contents, last->size, key->contents, key->size) < 0);
+        last = key;
     }
 
     // Okay.
@@ -287,7 +297,7 @@ int mandatory_cost(value_sizer_t<V> *sizer, const loof_t *node, int required_tim
                 break;
             }
 
-            int this_entry_cost = sizeof(uint16_t) + sizeof(repli_timestamp_t) + entry_size(ent);
+            int this_entry_cost = sizeof(uint16_t) + sizeof(repli_timestamp_t) + entry_size(sizer, ent);
             deletions_cost += this_entry_cost;
 	    size += this_entry_cost;
 	    ++count;
@@ -480,7 +490,7 @@ inline void clean_entry(void *p, int sz) {
 // end) from fro to tow.
 template <class V>
 void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int wpoint, loof_t *tow, int fro_copysize, repli_timestamp_t fro_earliest_mandatory, int fro_mand_offset) {
-    rassert(is_underfull(tow));
+    rassert(is_underfull(sizer, tow));
 
     int bs = sizer->block_size().value();
 
@@ -529,7 +539,7 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
     int num_adjustable_tow_offsets = 0;
 
     // We will gradually compute the live size.
-    int livesize = tow->livesize;
+    int livesize = tow->live_size;
 
     for (int i = 0; i < wpoint; ++i) {
         if (tow->pair_offsets[i] < tow->tstamp_cutpoint) {
@@ -565,9 +575,9 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
         repli_timestamp_t tow_tstamp = get_timestamp(tow, tow_offset);
 
         // Greater timestamps go first.
-        if (fro_tstamp > tow_tstamp) {
+        if (tow_tstamp < fro_tstamp) {
             entry_t *ent = get_entry(fro, fro_offset);
-            inte entsz = entry_size(sizer, ent);
+            int entsz = entry_size(sizer, ent);
             int sz = sizeof(repli_timestamp_t) + entsz;
             memmove(get_at_offset(tow, wri_offset), get_at_offset(fro, fro_offset), sz);
             clean_entry(ent, entsz);
@@ -778,8 +788,8 @@ bool level(value_sizer_t<V> *sizer, loof_t *node, loof_t *sibling, btree_key_t *
     rassert(node != sibling);
 
     // If sibling were underfull, we'd just merge the nodes.
-    rassert(is_underfull(node));
-    rassert(!is_underfull(sibling));
+    rassert(is_underfull(sizer, node));
+    rassert(!is_underfull(sizer, sibling));
 
     rassert(node->num_pairs > 0);
     rassert(sibling->num_pairs > 0);
@@ -793,7 +803,10 @@ bool level(value_sizer_t<V> *sizer, loof_t *node, loof_t *sibling, btree_key_t *
 
     rassert(node_weight < sibling_weight);
 
-    int nodecmp_result = nodecmp(node, sibling);
+    btree_key_t *nodecmp_left_key = entry_key(get_entry(node, node->pair_offsets[0]));
+    btree_key_t *nodecmp_right_key = entry_key(get_entry(sibling, sibling->pair_offsets[0]));
+    int nodecmp_result = sized_strcmp(nodecmp_left_key->contents, nodecmp_left_key->size,
+                                      nodecmp_right_key->contents, nodecmp_right_key->size);
     rassert(nodecmp_result != 0);
     if (nodecmp_result < 0) {
         // node is to the left of sibling, so we want to move elements
@@ -937,7 +950,7 @@ template <class V>
 void insert(value_sizer_t<V> *sizer, loof_t *node, const btree_key_t *key, const V *value, repli_timestamp_t tstamp) {
     rassert(!is_full(sizer, node, key, value));
 
-    if (offsetof(node, pair_offsets) + sizeof(uint16_t) * (node->num_pairs + 1) + sizeof(repli_timestamp_t) + key->full_size() + sizer->size(value) > node->frontmost) {
+    if (offsetof(loof_t, pair_offsets) + sizeof(uint16_t) * (node->num_pairs + 1) + sizeof(repli_timestamp_t) + key->full_size() + sizer->size(value) > node->frontmost) {
         garbage_collect(sizer, node, MANDATORY_TIMESTAMPS - 1);
     }
 
@@ -997,14 +1010,12 @@ void remove(value_sizer_t<V> *sizer, loof_t *node, const btree_key_t *key, repli
         rassert(entry_is_live(ent));
         if (entry_is_live(ent)) {
 
-            int live_size_adjustment = sizeof(uint16_t) + sz + (offset < node->tstamp_cutpoint ? sizeof(repli_timestamp_t) : 0);
             int sz = entry_size(sizer, ent);
-
-            node->live_size -= live_size_adjustment;
+            node->live_size -= sizeof(uint16_t) + sz + (offset < node->tstamp_cutpoint ? sizeof(repli_timestamp_t) : 0);
 
             clean_entry(ent, sz);
 
-            if (offsetof(node, pair_offsets) + sizeof(uint16_t) * node->num_pairs + sizeof(repli_timestamp_t) + 1 + key->full_size() > node->frontmost) {
+            if (offsetof(loof_t, pair_offsets) + sizeof(uint16_t) * node->num_pairs + sizeof(repli_timestamp_t) + 1 + key->full_size() > node->frontmost) {
                 memmove(node->pair_offsets + index, node->pair_offsets + index + 1, (node->num_pairs - (index + 1)) * sizeof(uint16_t));
                 node->num_pairs -= 1;
                 garbage_collect(sizer, node, MANDATORY_TIMESTAMPS - 1, &index);
@@ -1042,4 +1053,4 @@ void remove(value_sizer_t<V> *sizer, loof_t *node, const btree_key_t *key, repli
 }  // namespace loof
 
 
-#endif  BTREE_LOOF_NODE_HPP_
+#endif  // BTREE_LOOF_NODE_HPP_
