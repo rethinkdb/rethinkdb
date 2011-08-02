@@ -202,6 +202,7 @@ void print_entry(FILE *fp, value_sizer_t<V> *sizer, const entry_t *entry) {
     } else {
         fprintf(fp, "[code %d]", *reinterpret_cast<const uint8_t *>(entry));
     }
+    fflush(fp);
 }
 
 template <class V>
@@ -214,6 +215,7 @@ void print(FILE *fp, value_sizer_t<V> *sizer, const loof_t *node) {
         fprintf(fp, " %d", node->pair_offsets[i]);
     }
     fprintf(fp, "\n");
+    fflush(fp);
 
     fprintf(fp, "  By Key:");
     for (int i = 0; i < node->num_pairs; ++i) {
@@ -223,24 +225,28 @@ void print(FILE *fp, value_sizer_t<V> *sizer, const loof_t *node) {
     fprintf(fp, "\n");
 
     fprintf(fp, "  By Offset:");
+    fflush(fp);
 
     entry_iter_t iter = entry_iter_t::make(node);
-    while (fprintf(fp, " %d", iter.offset), !iter.done(sizer)) {
+    while (fprintf(fp, " %d", iter.offset), fflush(fp), !iter.done(sizer)) {
         fprintf(fp, ":");
+        fflush(fp);
         if (iter.offset < node->tstamp_cutpoint) {
             repli_timestamp_t tstamp = get_timestamp(node, iter.offset);
             fprintf(fp, "[t=%u]", tstamp.time);
+            fflush(fp);
         }
         print_entry(fp, sizer, get_entry(node, iter.offset));
         iter.step(sizer, node);
     }
     fprintf(fp, "\n");
+    fflush(fp);
 }
 
 template <class V>
 void validate(value_sizer_t<V> *sizer, const loof_t *node) {
 #ifndef NDEBUG
-    print(stdout, sizer, node);
+    //    print(stdout, sizer, node);
 
     // Check that all offsets are contiguous (with interspersed skip
     // entries), that they start with frontmost, that live_size is
@@ -534,7 +540,7 @@ inline void clean_entry(void *p, int sz) {
     } else if (sz > 2) {
         q[0] = SKIP_ENTRY_CODE_MANY;
         rassert(sz < 65536);
-        *reinterpret_cast<uint16_t *>(q + 1) = sz;
+        *reinterpret_cast<uint16_t *>(q + 1) = sz - 3;
 
         // Some  memset implementations are broken for nonzero values.
         for (int i = 3; i < sz; ++i) {

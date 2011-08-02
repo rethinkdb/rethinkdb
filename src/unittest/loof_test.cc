@@ -93,7 +93,7 @@ public:
     }
 
     void Print() {
-        loof::print(stdout, &sizer_, node_);
+        // loof::print(stdout, &sizer_, node_);
     }
 
 private:
@@ -126,7 +126,7 @@ TEST(LoofTest, Reinserts) {
     for (; v[0] <= 'z'; ++v[0]) {
         v[1] = 'a';
         for (; v[1] <= 'z'; ++v[1]) {
-            printf("inserting %s\n", v.c_str());
+            // printf("inserting %s\n", v.c_str());
             tracker.Insert(k, v);
         }
     }
