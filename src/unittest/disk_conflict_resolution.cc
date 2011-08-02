@@ -266,5 +266,5 @@ TEST(DiskConflictTest, MetaTest) {
     EXPECT_NONFATAL_FAILURE(cause_test_failure(), "Read returned wrong data.");
 };
 
-}
+}  // namespace unittest
 
