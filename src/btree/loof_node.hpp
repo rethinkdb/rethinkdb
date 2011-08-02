@@ -376,7 +376,7 @@ private:
 };
 
 template <class V>
-void garbage_collect(value_sizer_t<V> *sizer, loof_t *node, int num_tstamped) {
+void garbage_collect(value_sizer_t<V> *sizer, loof_t *node, int num_tstamped, int *preserved_index) {
     uint16_t indices[node->num_pairs];
 
     for (int i = 0; i < node->num_pairs; ++i) {
@@ -398,10 +398,14 @@ void garbage_collect(value_sizer_t<V> *sizer, loof_t *node, int num_tstamped) {
         }
 
         entry_t *ent = get_entry(node, offset);
-        int sz = entry_size(sizer, ent);
-        w -= sz;
-        memmove(get_at_offset(node, w), ent, sz);
-        node->pair_offsets[indices[i]] = w;
+        if (entry_is_live(ent)) {
+            int sz = entry_size(sizer, ent);
+            w -= sz;
+            memmove(get_at_offset(node, w), ent, sz);
+            node->pair_offsets[indices[i]] = w;
+        } else {
+            node->pair_offsets[indices[i]] = 0;
+        }
     }
 
     // Either i < 0 or node->pair_offsets[indices[i]] < mand_offset.
@@ -422,7 +426,28 @@ void garbage_collect(value_sizer_t<V> *sizer, loof_t *node, int num_tstamped) {
 
     node->frontmost = w;
 
-    // live_size and num_pairs didn't change.
+    // live_size didn't change.
+
+    // Now squash dead indices.
+    int j = 0, k = 0;
+    for (; k < node->num_pairs; ++k) {
+        if (node->pair_offsets[k] != 0) {
+            node->pair_offsets[j] = node->pair_offsets[k];
+            if (*preserved_index == k) {
+                *preserved_index = j;
+            }
+
+            j += 1;
+        }
+    }
+    node->num_pairs = j;
+}
+
+template <class V>
+void garbage_collect(value_sizer_t<V> *sizer, loof_t *node, int num_tstamped) {
+    int ignore = 0;
+    garbage_collect(sizer, node, num_tstamped, &ignore);
+    rassert(ignore == 0);
 }
 
 inline void clean_entry(void *p, int sz) {
@@ -907,7 +932,9 @@ template <class V>
 void insert(value_sizer_t<V> *sizer, loof_t *node, const btree_key_t *key, const V *value, repli_timestamp_t tstamp) {
     rassert(!is_full(sizer, node, key, value));
 
-    // TODO: Consider garbage collecting.
+    if (offsetof(node, pair_offsets) + sizeof(uint16_t) * (node->num_pairs + 1) + sizeof(repli_timestamp_t) + key->full_size() + sizer->size(value) > node->frontmost) {
+        garbage_collect(sizer, node, MANDATORY_TIMESTAMPS - 1);
+    }
 
     int index;
     bool found = find_key(sizer, node, key, &index);
@@ -964,11 +991,22 @@ void remove(value_sizer_t<V> *sizer, loof_t *node, const btree_key_t *key, repli
 
         rassert(entry_is_live(ent));
         if (entry_is_live(ent)) {
+
+            int live_size_adjustment = sizeof(uint16_t) + sz + (offset < node->tstamp_cutpoint ? sizeof(repli_timestamp_t) : 0);
             int sz = entry_size(sizer, ent);
 
-            int live_size_adjustment -= sizeof(uint16_t) + sz + (offset < node->tstamp_cutpoint ? sizeof(repli_timestamp_t) : 0);
+            node->live_size -= live_size_adjustment;
 
             clean_entry(ent, sz);
+
+            if (offsetof(node, pair_offsets) + sizeof(uint16_t) * node->num_pairs + sizeof(repli_timestamp_t) + 1 + key->full_size() > node->frontmost) {
+                memmove(node->pair_offsets + index, node->pair_offsets + index + 1, (node->num_pairs - (index + 1)) * sizeof(uint16_t));
+                node->num_pairs -= 1;
+                garbage_collect(sizer, node, MANDATORY_TIMESTAMPS - 1, &index);
+
+                memmove(node->pair_offsets + index + 1, node->pair_offsets + index, (node->num_pairs - index) * sizeof(uint16_t));
+                node->num_pairs += 1;
+            }
 
             int w = node->frontmost;
             w -= key->full_size();
@@ -976,7 +1014,6 @@ void remove(value_sizer_t<V> *sizer, loof_t *node, const btree_key_t *key, repli
             w -= sizeof(repli_timestamp_t);
             *reinterpret_cast<repli_timestamp_t *>(get_at_offset(node, w)) = tstamp;
 
-            node->live_size -= live_size_adjustment;
             node->frontmost = w;
 
             // TODO: Consider garbage collecting.
