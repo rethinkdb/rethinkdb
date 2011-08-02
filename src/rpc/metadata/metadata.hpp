@@ -19,7 +19,11 @@ cluster metadata. The type `metadata_t` must satisfy the following constraints:
 
     such that `metadata_t` is a semilattice and `semilattice_join(a, b)` sets
     `*a` to the semilattice-join of `*a` and `b`.
-*/
+
+`metadata_cluster_t` is currently not thread-safe at all. */
+
+template<class metadata_t>
+struct metadata_watcher_t;
 
 template<class metadata_t>
 class metadata_cluster_t :
@@ -41,15 +45,28 @@ public:
 private:
     /* There is one copy of the metadata per thread. This way, reads are very
     fast. */
-    std::vector<metadata_t> metadata;
+    metadata_t metadata;
 
     void join_metadata_locally(metadata_t);
-    void join_metadata_on_thread(int thread, const metadata_t *);
 
     static void write_metadata(std::ostream&, metadata_t);
     void on_utility_message(peer_id_t, std::istream&, boost::function<void()>&);
     void on_connect(peer_id_t);
     void on_disconnect(peer_id_t);
+
+    /* Infrastructure for notifying things when metadata changes */
+    friend class metadata_watcher_t<metadata_t>;
+    static void call(boost::function<void()>);
+    public_publisher_t<boost::function<void()> > change_publisher;
+};
+
+/* Use `metadata_watcher_t` to be notified when metadata changes. */
+template<class metadata_t>
+struct metadata_watcher_t {
+    metadata_watcher_t(boost::function<void()>, metadata_cluster_t<metadata_t> *);
+private:
+    publisher_t<boost::function<void()> >::subscription_t subs;
+    DISABLE_COPYING(metadata_watcher_t);
 };
 
 #include "rpc/metadata/metadata.tcc"

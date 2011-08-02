@@ -55,10 +55,6 @@ void run_single_metadata_test() {
     cluster.join_metadata(1);
 
     EXPECT_EQ(cluster.get_metadata(), 3);
-
-    /* Make sure other threads work properly */
-    on_thread_t thread_switcher(1);
-    EXPECT_EQ(cluster.get_metadata(), 3);
 }
 TEST(RPCMetadataTest, SingleMetadata) {
     run_in_thread_pool(&run_single_metadata_test, 2);
@@ -88,6 +84,29 @@ void run_metadata_exchange_test() {
 }
 TEST(RPCMetadataTest, MetadataExchange) {
     run_in_thread_pool(&run_metadata_exchange_test, 2);
+}
+
+/* `Watcher` makes sure that metadata watchers get notified when metadata
+changes. */
+
+template<class T>
+void assign(T *target, T value) {
+    *target = value;
+}
+
+void run_watcher_test() {
+    int port = 10000 + rand() % 20000;
+    metadata_cluster_t<uint64_t> cluster(port, 2);
+
+    bool have_been_notified = false;
+    metadata_watcher_t<uint64_t> watcher(boost::bind(&assign<bool>, &have_been_notified, true), &cluster);
+
+    cluster.join_metadata(1);
+
+    EXPECT_TRUE(have_been_notified);
+}
+TEST(RPCMetadataTest, Watcher) {
+    run_in_thread_pool(&run_watcher_test, 2);
 }
 
 }   /* namespace unittest */
