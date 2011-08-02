@@ -359,7 +359,9 @@ void repli_stream_t::send(net_heartbeat_t msg) {
     flush();
 }
 
-void repli_stream_t::send_hello(UNUSED const mutex_acquisition_t& evidence_of_acquisition) {
+void repli_stream_t::send_hello(const mutex_acquisition_t& evidence_of_acquisition) {
+
+    evidence_of_acquisition.assert_is_holding(&outgoing_mutex_);
 
     drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
 
