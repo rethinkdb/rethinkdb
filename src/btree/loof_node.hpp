@@ -896,6 +896,12 @@ bool lookup(value_sizer_t<V> *sizer, const loof_t *node, const btree_key_t *key,
     return false;
 }
 
+template <class V>
+bool is_mergable(value_sizer_t<V> *sizer, const loof_t *node, const loof_t *sibling) {
+    return is_underfull(sizer, node) && is_underfull(sizer, sibling);
+}
+
+
 
 
 
