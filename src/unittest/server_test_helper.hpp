@@ -8,6 +8,8 @@
 
 class translator_serializer_t;
 
+namespace unittest {
+
 class server_test_helper_t {
     thread_pool_t thread_pool;
 public:
@@ -50,5 +52,7 @@ private:
 private:
     void setup_server_and_run_tests();
 };
+
+}  // namespace unittest
 
 #endif //__UNITTEST_SERVER_TEST_HELPER__
