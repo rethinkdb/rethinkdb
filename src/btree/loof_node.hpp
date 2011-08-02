@@ -425,6 +425,26 @@ void garbage_collect(value_sizer_t<V> *sizer, loof_t *node, int num_tstamped) {
     // live_size and num_pairs didn't change.
 }
 
+inline void clean_entry(void *p, int sz) {
+    rassert(sz > 0);
+
+    uint8_t *q = reinterpret_cast<uint8_t *>(p);
+    if (sz == 1) {
+        q[0] = SKIP_ENTRY_CODE_ONE;
+    } else if (sz == 2) {
+        q[0] = SKIP_ENTRY_CODE_TWO;
+        q[1] = SKIP_ENTRY_RESERVED;
+    } else if (sz > 2) {
+        q[0] = SKIP_ENTRY_CODE_MANY;
+        rassert(sz < 65536);
+        *reinterpret_cast<uint16_t *>(q + 1) = sz;
+
+        // Some  memset implementations are broken for nonzero values.
+        for (int i = 3; i < sz; ++i) {
+            q[i] = SKIP_ENTRY_RESERVED;
+        }
+    }
+}
 
 // Moves entries with pair_offsets indices in the clopen range [beg,
 // end) from fro to tow.
@@ -517,9 +537,10 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
         // Greater timestamps go first.
         if (fro_tstamp > tow_tstamp) {
             entry_t *ent = get_entry(fro, fro_offset);
-            int sz = sizeof(repli_timestamp_t) + entry_size(sizer, ent);
+            inte entsz = entry_size(sizer, ent);
+            int sz = sizeof(repli_timestamp_t) + entsz;
             memmove(get_at_offset(tow, wri_offset), get_at_offset(fro, fro_offset), sz);
-            clean_entry_with_timestamp(fro, fro_offset, sz);
+            clean_entry(ent, entsz);
 
             // Update the pair offset in fro to be the offset in tow
             // -- we'll never use the old value again and we'll copy
@@ -561,7 +582,7 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
         if (entry_is_live(ent)) {
             int sz = entry_size(sizer, ent);
             memmove(get_at_offset(tow, wri_offset), get_at_offset(fro, fro_offset), sz);
-            clean_entry_sans_timestamp(fro, fro_offset, sz);
+            clean_entry(ent, sz);
             fro->pair_offsets[beg + tow->pair_offsets[fro_index]] = wri_offset;
             wri_offset += sz;
             livesize += sz + sizeof(uint16_t);
@@ -607,7 +628,7 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
     // If we needed to untimestamp any tow entries, we'll need a skip
     // entry for the open space.
     if (wri_offset < tow_offset) {
-        clean_entry_sans_timestamp(tow, wri_offset, tow_offset - wri_offset);
+        clean_entry(get_at_offset(tow, wri_offset), tow_offset - wri_offset);
     }
 
     // We don't need to do anything else for tow entries because we
@@ -874,6 +895,7 @@ bool lookup(value_sizer_t<V> *sizer, const loof_t *node, const btree_key_t *key,
 
     return false;
 }
+
 
 
 
