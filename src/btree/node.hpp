@@ -154,6 +154,17 @@ struct btree_key_buffer_t {
         btree_key.size = store_key.size;
         memcpy(btree_key.contents, store_key.contents, store_key.size);
     }
+    template <class iterator_type>
+    btree_key_buffer_t(iterator_type beg, iterator_type end) {
+        rassert(end - beg <= MAX_KEY_SIZE);
+        btree_key.size = end - beg;
+        int i = 0;
+        while (beg != end) {
+            btree_key.contents[i] = *beg;
+            ++beg;
+            ++i;
+        }
+    }
     btree_key_t *key() { return &btree_key; }
 private:
     union {

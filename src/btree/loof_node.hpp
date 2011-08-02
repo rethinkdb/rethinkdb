@@ -175,8 +175,9 @@ struct entry_iter_t {
 
     template <class V>
     bool done(value_sizer_t<V> *sizer) const {
-	rassert(offset <= sizer->block_size().value());
-	return offset >= sizer->block_size().value();
+        int bs = sizer->block_size().value();
+	rassert(offset <= bs);
+	return offset == bs;
     }
 
     static entry_iter_t make(const loof_t *node) {
@@ -267,6 +268,8 @@ void init(value_sizer_t<V> *sizer, loof_t *node) {
     node->live_size = 0;
     node->frontmost = sizer->block_size().value();
     node->tstamp_cutpoint = node->frontmost;
+
+    validate(sizer, node);
 }
 
 template <class V>
@@ -291,7 +294,7 @@ int mandatory_cost(value_sizer_t<V> *sizer, const loof_t *node, int required_tim
     int max_deletions_cost = free_space(sizer) / DELETION_RESERVE_FRACTION;
     while (!(count == required_timestamps || iter.done(sizer) || iter.offset >= node->tstamp_cutpoint)) {
 
-	entry_t *ent = get_entry(node, iter.offset);
+	const entry_t *ent = get_entry(node, iter.offset);
 	if (entry_is_deletion(ent)) {
             if (deletions_cost >= max_deletions_cost) {
                 break;
@@ -401,7 +404,7 @@ void garbage_collect(value_sizer_t<V> *sizer, loof_t *node, int num_tstamped, in
     std::sort(indices, indices + node->num_pairs, indirect_index_comparator_t(node->pair_offsets));
 
     int mand_offset;
-    int cost = mandatory_cost(sizer, node, num_tstamped, &mand_offset);
+    UNUSED int cost = mandatory_cost(sizer, node, num_tstamped, &mand_offset);
 
     int w = sizer->block_size().value();
     int i = node->num_pairs - 1;
@@ -456,6 +459,8 @@ void garbage_collect(value_sizer_t<V> *sizer, loof_t *node, int num_tstamped, in
         }
     }
     node->num_pairs = j;
+
+    validate(sizer, node);
 }
 
 template <class V>
@@ -490,6 +495,9 @@ inline void clean_entry(void *p, int sz) {
 // end) from fro to tow.
 template <class V>
 void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int wpoint, loof_t *tow, int fro_copysize, repli_timestamp_t fro_earliest_mandatory, int fro_mand_offset) {
+    validate(sizer, fro);
+    validate(sizer, tow);
+
     rassert(is_underfull(sizer, tow));
 
     int bs = sizer->block_size().value();
@@ -687,6 +695,9 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
     tow->live_size = livesize;
 
     // TODO: We need to update fro->live_size.
+
+    validate(sizer, fro);
+    validate(sizer, tow);
 }
 
 
@@ -761,8 +772,6 @@ void split(value_sizer_t<V> *sizer, loof_t *node, loof_t *rnode, btree_key_t *me
     init(sizer, rnode);
 
     move_elements(sizer, node, s, node->num_pairs, rnode);
-
-    node->num_pairs = s;
 
     keycpy(median_out, entry_key(get_entry(node, node->pair_offsets[s - 1])));
 }
@@ -893,8 +902,8 @@ bool is_mergable(value_sizer_t<V> *sizer, const loof_t *node, const loof_t *sibl
 // Sets *index_out to the index for the live entry or deletion entry
 // for the key, or to the index the key would have if it were
 // inserted.  Returns true if the key at said index is actually equal.
-template <class V>
-bool find_key(value_sizer_t<V> *sizer, const loof_t *node, const btree_key_t *key, int *index_out) {
+inline
+bool find_key(const loof_t *node, const btree_key_t *key, int *index_out) {
     int beg = 0;
     int end = node->num_pairs;
 
@@ -931,8 +940,10 @@ bool find_key(value_sizer_t<V> *sizer, const loof_t *node, const btree_key_t *ke
 
 template <class V>
 bool lookup(value_sizer_t<V> *sizer, const loof_t *node, const btree_key_t *key, V *value_out) {
+    validate(sizer, node);
+
     int index;
-    if (find_key(sizer, node, key, &index)) {
+    if (find_key(node, key, &index)) {
         entry_t *ent = get_entry(node, node->pair_offsets[index]);
         if (entry_is_live(ent)) {
             const V *val = entry_value<V>(ent);
@@ -948,6 +959,8 @@ bool lookup(value_sizer_t<V> *sizer, const loof_t *node, const btree_key_t *key,
 // cleaned up the old value, if there is one.
 template <class V>
 void insert(value_sizer_t<V> *sizer, loof_t *node, const btree_key_t *key, const V *value, repli_timestamp_t tstamp) {
+    validate(sizer, node);
+
     rassert(!is_full(sizer, node, key, value));
 
     if (offsetof(loof_t, pair_offsets) + sizeof(uint16_t) * (node->num_pairs + 1) + sizeof(repli_timestamp_t) + key->full_size() + sizer->size(value) > node->frontmost) {
@@ -955,7 +968,7 @@ void insert(value_sizer_t<V> *sizer, loof_t *node, const btree_key_t *key, const
     }
 
     int index;
-    bool found = find_key(sizer, node, key, &index);
+    bool found = find_key(node, key, &index);
 
     int live_size_adjustment = 0;
     int num_pairs_adjustment = 0;
@@ -994,13 +1007,17 @@ void insert(value_sizer_t<V> *sizer, loof_t *node, const btree_key_t *key, const
     node->pair_offsets[index] = w;
     node->live_size += live_size_adjustment;
     node->frontmost = w;
+
+    validate(sizer, node);
 }
 
 // This asserts that the key is in the node.
 template <class V>
 void remove(value_sizer_t<V> *sizer, loof_t *node, const btree_key_t *key, repli_timestamp_t tstamp) {
+    validate(sizer, node);
+
     int index;
-    bool found = find_key(sizer, node, key, &index);
+    bool found = find_key(node, key, &index);
 
     rassert(found);
     if (found) {
@@ -1031,11 +1048,10 @@ void remove(value_sizer_t<V> *sizer, loof_t *node, const btree_key_t *key, repli
             *reinterpret_cast<repli_timestamp_t *>(get_at_offset(node, w)) = tstamp;
 
             node->frontmost = w;
-
-            // TODO: Consider garbage collecting.
         }
     }
 
+    validate(sizer, node);
 }
 
 
