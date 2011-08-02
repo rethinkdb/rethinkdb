@@ -842,6 +842,11 @@ bool level(value_sizer_t<V> *sizer, loof_t *node, loof_t *sibling, btree_key_t *
     return true;
 }
 
+template <class V>
+bool is_mergable(value_sizer_t<V> *sizer, const loof_t *node, const loof_t *sibling) {
+    return is_underfull(sizer, node) && is_underfull(sizer, sibling);
+}
+
 // Sets *index_out to the index for the live entry or deletion entry
 // for the key, or to the index the key would have if it were
 // inserted.  Returns true if the key at said index is actually equal.
@@ -896,14 +901,45 @@ bool lookup(value_sizer_t<V> *sizer, const loof_t *node, const btree_key_t *key,
     return false;
 }
 
+// Inserts a value for a new key into the leaf node.  You must remove
+// the old key first.  (This prevents you from removing a key/value
+// pair without cleaning up the underlying value if it were a blob or
+// something.)
 template <class V>
-bool is_mergable(value_sizer_t<V> *sizer, const loof_t *node, const loof_t *sibling) {
-    return is_underfull(sizer, node) && is_underfull(sizer, sibling);
+void insert_new(value_sizer_t<V> *sizer, loof_t *node, const btree_key_t *key, const V *value, repli_timestamp_t tstamp) {
+    rassert(!is_full(sizer, node, key, value));
+
+    int index;
+    bool found = find_key(sizer, node, key, &index);
+
+    if (found) {
+        entry_t *ent = get_entry(node, node->pair_offsets[index]);
+        rassert(entry_is_deletion(ent));
+
+        clean_entry(ent, entry_size(sizer, ent));
+    } else {
+        memmove(node->pair_offsets + index + 1, node->pair_offsets + index, sizeof(uint16_t) * (node->num_pairs - index));
+    }
+
+    int sz = sizer->size(value);
+
+    int w = node->frontmost;
+    w -= sz;
+    memcpy(get_at_offset(node, w), value, sz);
+
+    w -= key->full_size();
+    memcpy(get_at_offset(node, w), key, key->full_size());
+
+    w -= sizeof(repli_timestamp_t);
+    *reinterpret_cast<repli_timestamp_t *>(get_at_offset(node, w)) = tstamp;
+
+    int live_size_adjustment = sizeof(uint16_t) + (node->frontmost - w);
+
+    node->num_pairs += 1;
+    node->pair_offsets[index] = w;
+    node->live_size += live_size_adjustment;
+    node->frontmost = w;
 }
-
-
-
-
 
 
 
