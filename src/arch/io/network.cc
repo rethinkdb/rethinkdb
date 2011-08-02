@@ -584,12 +584,12 @@ void linux_tcp_conn_t::on_event(int events) {
 
             The same can happen for reads, see next case. */
 
-            on_shutdown_write();
+            if (is_write_open()) on_shutdown_write();
         }
 
         if (reading) {
             /* See description for write case above */
-            on_shutdown_read();
+            if (is_read_open()) on_shutdown_read();
         }
 
         if (!reading && !writing) {
