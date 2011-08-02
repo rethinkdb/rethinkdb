@@ -63,6 +63,7 @@ public:
     LoofTracker() : bs_(block_size_t::unsafe_make(4096)), sizer_(bs_), node_(reinterpret_cast<loof_t *>(new char[bs_.value()])),
                     tstamp_counter_(0) {
         loof::init(&sizer_, node_);
+        Print();
     }
     ~LoofTracker() { delete[] node_; }
 
@@ -71,6 +72,7 @@ public:
         short_value_buffer_t v(value);
 
         if (loof::is_full(&sizer_, node_, k.key(), v.data())) {
+            Print();
             return false;
         }
 
@@ -79,6 +81,7 @@ public:
 
         kv_[key] = value;
 
+        Print();
         return true;
     }
 
@@ -87,6 +90,10 @@ public:
         repli_timestamp_t ret;
         ret.time = tstamp_counter_;
         return ret;
+    }
+
+    void Print() {
+        loof::print(stdout, &sizer_, node_);
     }
 
 private:
@@ -119,6 +126,7 @@ TEST(LoofTest, Reinserts) {
     for (; v[0] <= 'z'; ++v[0]) {
         v[1] = 'a';
         for (; v[1] <= 'z'; ++v[1]) {
+            printf("inserting %s\n", v.c_str());
             tracker.Insert(k, v);
         }
     }

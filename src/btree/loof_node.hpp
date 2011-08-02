@@ -176,7 +176,7 @@ struct entry_iter_t {
     template <class V>
     bool done(value_sizer_t<V> *sizer) const {
         int bs = sizer->block_size().value();
-	rassert(offset <= bs);
+	rassert(offset <= bs, "offset=%d, bs=%d", offset, bs);
 	return offset == bs;
     }
 
@@ -188,8 +188,60 @@ struct entry_iter_t {
 };
 
 template <class V>
+void print_entry(FILE *fp, value_sizer_t<V> *sizer, const entry_t *entry) {
+    if (entry_is_live(entry)) {
+        const btree_key_t *key = entry_key(entry);
+        fprintf(fp, "%.*s:", int(key->size), key->contents);
+        fprintf(fp, "[entry size=%d]", entry_size(sizer, entry));
+        fprintf(fp, "[value size=%d]", sizer->size(entry_value<V>(entry)));
+    } else if (entry_is_deletion(entry)) {
+        const btree_key_t *key = entry_key(entry);
+        fprintf(fp, "%.*s:", int(key->size), key->contents);
+    } else if (entry_is_skip(entry)) {
+        fprintf(fp, "[skip %d]", entry_size(sizer, entry));
+    } else {
+        fprintf(fp, "[code %d]", *reinterpret_cast<const uint8_t *>(entry));
+    }
+}
+
+template <class V>
+void print(FILE *fp, value_sizer_t<V> *sizer, const loof_t *node) {
+    fprintf(fp, "Loof(magic='%4.4s', num_pairs=%u, live_size=%u, frontmost=%u, tstamp_cutpoint=%u)\n",
+            node->magic.bytes, node->num_pairs, node->live_size, node->frontmost, node->tstamp_cutpoint);
+
+    fprintf(fp, "  Offsets:");
+    for (int i = 0; i < node->num_pairs; ++i) {
+        fprintf(fp, " %d", node->pair_offsets[i]);
+    }
+    fprintf(fp, "\n");
+
+    fprintf(fp, "  By Key:");
+    for (int i = 0; i < node->num_pairs; ++i) {
+        fprintf(fp, " %d:", node->pair_offsets[i]);
+        print_entry(fp, sizer, get_entry(node, node->pair_offsets[i]));
+    }
+    fprintf(fp, "\n");
+
+    fprintf(fp, "  By Offset:");
+
+    entry_iter_t iter = entry_iter_t::make(node);
+    while (fprintf(fp, " %d", iter.offset), !iter.done(sizer)) {
+        fprintf(fp, ":");
+        if (iter.offset < node->tstamp_cutpoint) {
+            repli_timestamp_t tstamp = get_timestamp(node, iter.offset);
+            fprintf(fp, "[t=%u]", tstamp.time);
+        }
+        print_entry(fp, sizer, get_entry(node, iter.offset));
+        iter.step(sizer, node);
+    }
+    fprintf(fp, "\n");
+}
+
+template <class V>
 void validate(value_sizer_t<V> *sizer, const loof_t *node) {
 #ifndef NDEBUG
+    print(stdout, sizer, node);
+
     // Check that all offsets are contiguous (with interspersed skip
     // entries), that they start with frontmost, that live_size is
     // correct, that we have correct magic, that the keys are in
@@ -200,7 +252,7 @@ void validate(value_sizer_t<V> *sizer, const loof_t *node) {
     // Basic sanity checks on fields' values.
     rassert(node->magic == sizer->btree_leaf_magic());
     rassert(node->frontmost >= offsetof(loof_t, pair_offsets) + node->num_pairs * sizeof(uint16_t));
-    rassert(node->live_size <= sizer->block_size().value() - node->frontmost);
+    rassert(node->live_size <= (sizer->block_size().value() - node->frontmost) + sizeof(uint16_t) * node->num_pairs);
     rassert(node->frontmost <= node->tstamp_cutpoint);
     rassert(node->tstamp_cutpoint <= sizer->block_size().value());
 
