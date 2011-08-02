@@ -177,6 +177,80 @@ struct entry_iter_t {
 };
 
 template <class V>
+void validate(value_sizer_t<V> *sizer, const loof_t *node) {
+#ifndef NDEBUG
+    // Check that all offsets are contiguous (with interspersed skip
+    // entries), that they start with frontmost, that live_size is
+    // correct, that we have correct magic, that the keys are in
+    // order, that there are no deletion entries after
+    // tstamp_cutpoint, that tstamp_cutpoint lies on an entry
+    // boundary.
+
+    // Basic sanity checks on fields' values.
+    rassert(node->magic == sizer->btree_leaf_magic());
+    rassert(node->frontmost >= offsetof(loof_t, pair_offsets) + node->num_pairs * sizeof(uint16_t));
+    rassert(node->live_size <= sizer->block_size().value() - node->frontmost);
+    rassert(node->frontmost <= tstamp_cutpoint);
+    rassert(tstamp_cutpoint <= sizer->block_size().value());
+
+    // sizeof(offs) is guaranteed to be less than the block_size() thanks to assertions above.
+    uint16_t offs[node->num_pairs];
+    memcpy(offs, node->pair_offsets, node->num_pairs * sizeof(uint16_t));
+
+    std::sort(offs, offs + node->num_pairs);
+
+    rassert(node->num_pairs == 0 || node->frontmost <= offs[0]);
+    rassert(node->num_pairs == 0 || offs[node->num_pairs - 1] < sizer->block_size().value());
+
+    entry_iter_t iter = entry_iter_t::make(node);
+
+    int observed_live_size = 0;
+
+    int i = 0;
+    bool seen_tstamp_cutpoint = false;
+    while (!iter.done(sizer)) {
+        int offset = iter.offset;
+
+        // tstamp_cutpoint is supposed to be on some entry's offset.
+        if (offset >= node->tstamp_cutpoint && !seen_tstamp_cutpoint) {
+            rassert(offset == node->tstamp_cutpoint);
+            seen_tstamp_cutpoint = true;
+        }
+
+        const entry_t *ent = get_entry(node, offset);
+        if (entry_is_live(ent)) {
+            observed_live_size += sizeof(uint16_t) + entry_size(sizer, ent) + (offset < node->tstamp_cutpoint ? sizeof(repli_timestamp_t) : 0);
+            rassert(i < node->num_pairs);
+            rassert(offset == offs[i]);
+            ++i;
+        } else if (entry_is_deletion(ent)) {
+            rassert(!seen_tstamp_cutpoint);
+            rassert(i < node->num_pairs);
+            rassert(offset == offs[i]);
+            ++i;
+        }
+
+        iter.step(sizer, node);
+    }
+
+    rassert(i == node->num_pairs);
+
+    rassert(node->live_size == observed_live_size);
+
+    // Entries look valid, check key ordering.
+
+    const btree_key_t *last = NULL;
+    for (int k = 0; k < node->num_pairs; ++k) {
+        const btree_key_t *k = entry_key(get_entry(node, node->pair_offsets[k]));
+        rassert(last == NULL || sized_strcmp(last->contents, last->size, k->contents, k->size) < 0);
+        last = k;
+    }
+
+    // Okay.
+#endif
+}
+
+template <class V>
 void init(value_sizer_t<V> *sizer, loof_t *node) {
     node->magic = sizer->btree_leaf_magic();
     node->num_pairs = 0;
