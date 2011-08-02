@@ -102,3 +102,20 @@ COMMAND_3(integer, setbit, string&, unsigned, unsigned)
 COMMAND_3(status, setex, string&, unsigned, string&)
 COMMAND_3(integer, setrange, string&, unsigned, string&)
 COMMAND_1(integer, Strlen, string&)
+
+//Hashes
+COMMAND_N(integer, hdel)
+COMMAND_2(integer, hexists, string&, string&)
+COMMAND_2(bulk, hget, string&, string&)
+COMMAND_1(multi_bulk, hgetall, string&)
+COMMAND_3(integer, hincrby, string&, string&, int)
+COMMAND_1(multi_bulk, hkeys, string&)
+COMMAND_1(integer, hlen, string&)
+COMMAND_N(multi_bulk, hmget)
+COMMAND_N(status, hmset)
+
+COMMAND_3(integer, hset, string&, string&, string&)
+
+COMMAND_3(integer, hsetnx, string&, string&, string&)
+COMMAND_1(multi_bulk, hvals, string&)
+

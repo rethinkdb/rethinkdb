@@ -106,6 +106,7 @@ namespace redis_utils {
         // Find the element
         ::find_keyvalue_location_for_write(&sizer, &got_superblock, btree_key->get(), ts, kv_location);
     }
+
     template<typename Value> void find_nested_keyvalue_location_for_read(block_size_t block_size, boost::shared_ptr<transaction_t> &transaction, const std::string &field, keyvalue_location_t<Value> *kv_location, const block_id_t nested_root) {
         boost::scoped_ptr<superblock_t> nested_btree_sb(new virtual_superblock_t(nested_root));
 

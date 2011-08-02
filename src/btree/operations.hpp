@@ -53,7 +53,7 @@ private:
  before accessing the nested tree, you can construct a virtual_superblock_t
  based on the nested_root value. Once write operations to the nested btree have
  finished, you should check whether the root_block_id has been changed,
- and if it has, ude get_root_block_id() to update the nested_root value in the
+ and if it has, use get_root_block_id() to update the nested_root value in the
  super block.
  */
 class virtual_superblock_t : public superblock_t {

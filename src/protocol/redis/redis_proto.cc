@@ -134,9 +134,25 @@ struct redis_grammar : qi::grammar<Iterator>, redis_interface_t {
             COMMAND_1(integer, Strlen, string)
         COMMANDS_END
 
+        //Hashes
+        BEGIN(hashes)
+            COMMAND_N(integer, hdel)
+            COMMAND_2(integer, hexists, string, string)
+            COMMAND_2(bulk, hget, string, string)
+            COMMAND_1(multi_bulk, hgetall, string)
+            COMMAND_3(integer, hincrby, string, string, int)
+            COMMAND_1(multi_bulk, hkeys, string)
+            COMMAND_1(integer, hlen, string)
+            COMMAND_N(multi_bulk, hmget)
+            COMMAND_N(status, hmset)
+            COMMAND_3(integer, hset, string, string, string)
+            COMMAND_3(integer, hsetnx, string, string, string)
+            COMMAND_1(multi_bulk, hvals, string)
+        COMMANDS_END
+
         //Because of the aformentioned tiny blocks problem we have to now or the blocks here
         //*sigh* and we were so close to requiring only one line to add a command
-        commands = keys | strings1 | strings2;
+        commands = keys | strings1 | strings2 | hashes;
         start = commands;
     }
 
@@ -167,6 +183,7 @@ private:
     qi::rule<Iterator> keys;
     qi::rule<Iterator> strings1;
     qi::rule<Iterator> strings2;
+    qi::rule<Iterator> hashes;
     qi::rule<Iterator> start;
 
     //Output functions
