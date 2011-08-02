@@ -325,6 +325,11 @@ int loof_epsilon(value_sizer_t<V> *sizer) {
     return key_cost + n + pair_offsets_cost + timestamp_cost;
 }
 
+inline bool is_empty(const loof_t *node) {
+    return node->num_pairs == 0;
+}
+
+
 template <class V>
 bool is_full(value_sizer_t<V> *sizer, const loof_t *node, const btree_key_t *key, const V *value) {
 
