@@ -78,6 +78,8 @@ public:
         loof::insert(&sizer_, node_, k.key(), v.data(), tstamp);
 
         kv_[key] = value;
+
+        return true;
     }
 
     repli_timestamp_t NextTimestamp() {
@@ -86,7 +88,6 @@ public:
         ret.time = tstamp_counter_;
         return ret;
     }
-
 
 private:
     block_size_t bs_;
@@ -109,6 +110,18 @@ TEST(LoofTest, Offsets) {
     ASSERT_EQ(10, offsetof(loof_t, tstamp_cutpoint));
     ASSERT_EQ(12, offsetof(loof_t, pair_offsets));
     ASSERT_EQ(12, sizeof(loof_t));
+}
+
+TEST(LoofTest, Reinserts) {
+    LoofTracker tracker;
+    std::string v = "aa";
+    std::string k = "key";
+    for (; v[0] <= 'z'; ++v[0]) {
+        v[1] = 'a';
+        for (; v[1] <= 'z'; ++v[1]) {
+            tracker.Insert(k, v);
+        }
+    }
 }
 
 
