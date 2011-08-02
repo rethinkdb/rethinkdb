@@ -901,24 +901,34 @@ bool lookup(value_sizer_t<V> *sizer, const loof_t *node, const btree_key_t *key,
     return false;
 }
 
-// Inserts a value for a new key into the leaf node.  You must remove
-// the old key first.  (This prevents you from removing a key/value
-// pair without cleaning up the underlying value if it were a blob or
-// something.)
+// Inserts a key/value pair into the node.  Hopefully you've already
+// cleaned up the old value, if there is one.
 template <class V>
-void insert_new(value_sizer_t<V> *sizer, loof_t *node, const btree_key_t *key, const V *value, repli_timestamp_t tstamp) {
+void insert(value_sizer_t<V> *sizer, loof_t *node, const btree_key_t *key, const V *value, repli_timestamp_t tstamp) {
     rassert(!is_full(sizer, node, key, value));
+
+    // TODO: Consider garbage collecting.
 
     int index;
     bool found = find_key(sizer, node, key, &index);
 
-    if (found) {
-        entry_t *ent = get_entry(node, node->pair_offsets[index]);
-        rassert(entry_is_deletion(ent));
+    int live_size_adjustment = 0;
+    int num_pairs_adjustment = 0;
 
-        clean_entry(ent, entry_size(sizer, ent));
+    if (found) {
+        int offset = node->pair_offsets[index];
+        entry_t *ent = get_entry(node, offset);
+
+        int sz = entry_size(sizer, ent);
+
+        if (entry_is_live(ent)) {
+            live_size_adjustment -= sizeof(uint16_t) + sz + (offset < node->tstamp_cutpoint ? sizeof(repli_timestamp_t) : 0);
+        }
+
+        clean_entry(ent, sz);
     } else {
         memmove(node->pair_offsets + index + 1, node->pair_offsets + index, sizeof(uint16_t) * (node->num_pairs - index));
+        num_pairs_adjustment = 1;
     }
 
     int sz = sizer->size(value);
@@ -933,14 +943,47 @@ void insert_new(value_sizer_t<V> *sizer, loof_t *node, const btree_key_t *key, c
     w -= sizeof(repli_timestamp_t);
     *reinterpret_cast<repli_timestamp_t *>(get_at_offset(node, w)) = tstamp;
 
-    int live_size_adjustment = sizeof(uint16_t) + (node->frontmost - w);
+    live_size_adjustment += sizeof(uint16_t) + (node->frontmost - w);
 
-    node->num_pairs += 1;
+    node->num_pairs += num_pairs_adjustment;
     node->pair_offsets[index] = w;
     node->live_size += live_size_adjustment;
     node->frontmost = w;
 }
 
+// This asserts that the key is in the node.
+template <class V>
+void remove(value_sizer_t<V> *sizer, loof_t *node, const btree_key_t *key, repli_timestamp_t tstamp) {
+    int index;
+    bool found = find_key(sizer, node, key, &index);
+
+    rassert(found);
+    if (found) {
+        int offset = node->pair_offsets[index];
+        entry_t *ent = get_entry(node, offset);
+
+        rassert(entry_is_live(ent));
+        if (entry_is_live(ent)) {
+            int sz = entry_size(sizer, ent);
+
+            int live_size_adjustment -= sizeof(uint16_t) + sz + (offset < node->tstamp_cutpoint ? sizeof(repli_timestamp_t) : 0);
+
+            clean_entry(ent, sz);
+
+            int w = node->frontmost;
+            w -= key->full_size();
+            memcpy(get_at_offset(node, w), key, key->full_size());
+            w -= sizeof(repli_timestamp_t);
+            *reinterpret_cast<repli_timestamp_t *>(get_at_offset(node, w)) = tstamp;
+
+            node->live_size -= live_size_adjustment;
+            node->frontmost = w;
+
+            // TODO: Consider garbage collecting.
+        }
+    }
+
+}
 
 
 
