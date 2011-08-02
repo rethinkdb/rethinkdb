@@ -10,7 +10,7 @@
 #include "btree/internal_node.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "fsck/raw_block.hpp"
-#include "replication/delete_queue.hpp"
+#include "btree/delete_queue.hpp"
 #include "server/key_value_store.hpp"
 
 namespace fsck {

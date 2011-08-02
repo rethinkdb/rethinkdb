@@ -1,4 +1,4 @@
-#include "replication/delete_queue.hpp"
+#include "btree/delete_queue.hpp"
 
 #include "unittest/gtest.hpp"
 
