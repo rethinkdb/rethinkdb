@@ -747,6 +747,61 @@ bool level(value_sizer_t<V> *sizer, loof_t *node, loof_t *sibling, btree_key_t *
     return true;
 }
 
+// Sets *index_out to the index for the live entry or deletion entry
+// for the key, or to the index the key would have if it were
+// inserted.  Returns true if the key at said index is actually equal.
+template <class V>
+bool find_key(value_sizer_t<V> *sizer, const loof_t *node, const btree_key_t *key, int *index_out) {
+    int beg = 0;
+    int end = node->num_pairs;
+
+    // beg == 0 or key > *(beg - 1).
+    // end == num_pairs or key < *end.
+
+    while (beg < end) {
+        // when (end - beg) > 0, (end - beg) / 2 is always less than (end - beg).  So beg <= test_point < end.
+        int test_point = beg + (end - beg) / 2;
+
+        const btree_key_t *ek = entry_key(get_entry(node, node->pair_offsets[test_point]));
+
+        int res = sized_strcmp(key->contents, key->size, ek->contents, ek->size);
+
+        if (res < 0) {
+            // key < *test_point.
+            end = test_point;
+        } else if (res > 0) {
+            // key > *test_point.  Since test_point < end, we have test_point + 1 <= end.
+            beg = test_point + 1;
+        } else {
+            // We found the key!
+            *index_out = test_point;
+            return true;
+        }
+    }
+
+    // (Since beg == end, then *(beg - 1) < key < *beg (with appropriate
+    // provisions for beg == 0 or beg == num_pairs) and index_out
+    // should be set to beg, and false should be returned.
+    *index_out = beg;
+    return false;
+}
+
+template <class V>
+bool lookup(value_sizer_t<V> *sizer, const loof_t *node, const btree_key_t *key, V *value_out) {
+    int index;
+    if (find_key(sizer, node, key, &index)) {
+        entry_t *ent = get_entry(node, node->pair_offsets[index]);
+        if (entry_is_live(ent)) {
+            const V *val = entry_value<V>(ent);
+            memcpy(value_out, val, sizer->size(val));
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
 
 
 
