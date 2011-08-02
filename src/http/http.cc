@@ -98,7 +98,7 @@ void write_http_msg(boost::scoped_ptr<tcp_conn_t> &conn, http_res_t const &res) 
         conn->writef("%s: %s\r\n", it->key.c_str(), it->val.c_str());
     }
     conn->writef("\r\n");
-    conn->writef("%s", res.body.c_str());
+    conn->write(res.body.c_str(), res.body.size());
 }
 
 void http_server_t::handle_conn(boost::scoped_ptr<tcp_conn_t> &conn) {

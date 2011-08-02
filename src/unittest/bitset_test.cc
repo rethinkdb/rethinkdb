@@ -65,4 +65,4 @@ TEST(BitsetTest, BoundsChecking) {
     b.verify();
 }
 
-}
+}  // namespace unittest
