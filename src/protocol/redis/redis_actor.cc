@@ -1026,7 +1026,26 @@ integer_result redis_actor_t::hset(std::string &key, std::string &field, std::st
     return integer_result(result);
 }
 
-COMMAND_3(integer, hsetnx, string&, string&, string&)
+//COMMAND_3(integer, hsetnx, string&, string&, string&)
+integer_result redis_actor_t::hsetnx(std::string &key, std::string &field, std::string &f_value) {
+    hash_set_oper_t oper(key, field, btree, 1234);
+    redis_nested_string_value_t *value = oper.nested_loc.value.get();
+    int result = 0;
+    if(value == NULL) {
+        scoped_malloc<redis_nested_string_value_t> smrsv(MAX_BTREE_VALUE_SIZE);
+        memset(smrsv.get(), 0, MAX_BTREE_VALUE_SIZE);
+        oper.nested_loc.value.swap(smrsv);
+        value = reinterpret_cast<redis_nested_string_value_t *>(oper.nested_loc.value.get());
+
+        blob_t blob(value->content, blob::btree_maxreflen);
+        blob.append_region(oper.location.txn.get(), f_value.size());
+        blob.write_from_string(f_value, oper.location.txn.get(),  0);
+
+        result = 1;
+    }    
+
+    return integer_result(result);
+}
 
 //COMMAND_1(multi_bulk, hvals, string&)
 multi_bulk_result redis_actor_t::hvals(std::string &key) {
