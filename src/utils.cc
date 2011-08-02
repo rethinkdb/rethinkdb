@@ -225,9 +225,20 @@ int randint(int n) {
     return rand() % n;
 }
 
+std::string rand_string(int len) {
+    std::string res;
 
+    int seed = rand();
 
+    while (len --> 0) {
+        res.push_back((seed % 26) + 'A');
+        seed ^= seed >> 17;
+        seed += seed << 11;
+        seed ^= seed >> 29;
+    }
 
+    return res;
+}
 
 bool begins_with_minus(const char *string) {
     while (isspace(*string)) string++;

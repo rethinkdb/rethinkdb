@@ -24,9 +24,9 @@ struct query_parameter_t {
 };
 
 BOOST_FUSION_ADAPT_STRUCT(
-        query_parameter_t,
-        (std::string, key)
-        (std::string, val)
+    query_parameter_t,
+    (std::string, key)
+    (std::string, val)
 )
 
 struct header_line_t {
@@ -87,17 +87,17 @@ public:
 };
 
 struct http_res_body_t {
-    virtual std::string content_type() = 0;
-    virtual size_t content_length() = 0;
-    virtual std::string content() = 0;
+    virtual std::string content_type() const = 0;
+    virtual size_t content_length() const = 0;
+    virtual std::string content() const = 0;
 
     virtual ~http_res_body_t() { }
 };
 
 struct http_res_simple_body_t : public http_res_body_t {
-    std::string content_type();
-    size_t content_length();
-    std::string content();
+    std::string content_type() const;
+    size_t content_length() const;
+    std::string content() const;
 
     http_res_simple_body_t(const std::string &, const std::string &);
 
@@ -107,13 +107,15 @@ private:
 };
 
 struct http_res_multipart_body_t : public http_res_body_t {
-    std::string content_type();
-    size_t content_length();
-    std::string content();
+    std::string content_type() const;
+    size_t content_length() const;
+    std::string content() const;
 
     http_res_multipart_body_t();
 private:
-    boost::ptr_vector<http_res_body_t> _content();
+    typedef boost::ptr_vector<http_res_body_t> body_ptr_vec_t;
+    body_ptr_vec_t _content;
+    std::string sep_string;
 
 public:
     //takes responsibility for the pointer

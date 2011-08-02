@@ -93,13 +93,47 @@ void http_res_header_t::add_last_modified(time_t secs) {
     add_header_line("Last-Modified", secs_to_http_date(secs));
 }
 
-std::string http_res_simple_body_t::content_type() { return _content_type; }
-size_t http_res_simple_body_t::content_length() { return _content.size(); }
-std::string http_res_simple_body_t::content() { return _content; }
+std::string http_res_simple_body_t::content_type() const { return _content_type; }
+size_t http_res_simple_body_t::content_length() const { return _content.size(); }
+std::string http_res_simple_body_t::content() const { return _content; }
 
 http_res_simple_body_t::http_res_simple_body_t(const std::string &_content_type, const std::string &_content) 
     : _content_type(_content_type), _content(_content)
 { }
+
+std::string http_res_multipart_body_t::content_type() const {
+    return "multipart/x-mixed-replace; boundary=\"" + sep_string + "\"";
+}
+
+size_t http_res_multipart_body_t::content_length() const {
+    size_t res = 0;
+    for (body_ptr_vec_t::const_iterator it = _content.begin(); it != _content.end(); it++) {
+        res += strlen("--") + sep_string.size() + strlen("\nContent-Type: ") + it->content_type().size() + strlen("\n") + it->content_length();
+    }
+    res += strlen("--") + sep_string.size() + strlen("--");
+
+    return res;
+}
+
+std::string http_res_multipart_body_t::content() const {
+    std::string res;
+    for (body_ptr_vec_t::const_iterator it = _content.begin(); it != _content.end(); it++) {
+        res += std::string("--") + sep_string + "\nContent-Type: " + it->content_type() + "\n" + it->content();
+    }
+
+    res += "--" + sep_string + "--";
+
+    return res;
+}
+
+
+http_res_multipart_body_t::http_res_multipart_body_t()
+    : sep_string(rand_string(30))
+{ }
+
+void http_res_multipart_body_t::add_content(http_res_body_t *content) {
+    _content.push_back(content);
+}
 
 void http_res_t::write_conn(boost::scoped_ptr<tcp_conn_t> &conn) {
     rassert(header_lines.find("Content-Length") == header_lines.end());
@@ -127,22 +161,6 @@ void http_res_t::set_body(std::string const &content_type, std::string const &co
     body.reset(new http_res_simple_body_t(content_type, content));
 }
 
-/* void http_res_t::set_body(std::string const &content_type, std::string const &content) {
-    for (std::vector<header_line_t>::iterator it = header_lines.begin(); it != header_lines.end(); it++) {
-        rassert(it->key != "Content-Type");
-        rassert(it->key != "Conent-Length");
-    }
-    rassert(body.size() == 0);
-
-    add_header_line("Content-Type", content_type);
-
-    std::ostringstream res;
-    res << content.size();
-    add_header_line("Content-Length", res.str());
-
-    body = content;
-} */
-
 typedef std::string::const_iterator str_iterator_type;
 typedef http_msg_parser_t<str_iterator_type> str_http_msg_parser_t;
 
@@ -168,15 +186,6 @@ void test_header_parser() {
 http_server_t::http_server_t(int port) {
     tcp_listener.reset(new tcp_listener_t(port, boost::bind(&http_server_t::handle_conn, this, _1)));
 }
-
-/* void write_http_msg(boost::scoped_ptr<tcp_conn_t> &conn, http_res_t const &res) {
-    conn->writef("HTTP/%s %d %s\r\n", res.version.c_str(), res.code, human_readable_status(res.code).c_str());
-    for (std::vector<header_line_t>::const_iterator it = res.header_lines.begin(); it != res.header_lines.end(); it++) {
-        conn->writef("%s: %s\r\n", it->key.c_str(), it->val.c_str());
-    }
-    conn->writef("\r\n");
-    conn->writef("%s", res.body.c_str());
-} */
 
 void http_server_t::handle_conn(boost::scoped_ptr<tcp_conn_t> &conn) {
     //BREAKPOINT;

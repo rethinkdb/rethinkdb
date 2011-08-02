@@ -95,6 +95,8 @@ void debugf(const char *msg, ...) __attribute__((format (printf, 1, 2)));
 // bias tends to get worse when RAND_MAX is far from a multiple of n.
 int randint(int n);
 
+std::string rand_string(int len);
+
 bool begins_with_minus(const char *string);
 // strtoul() and strtoull() will for some reason not fail if the input begins with a minus
 // sign. strtoul_strict() and strtoull_strict() do.
