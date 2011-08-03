@@ -246,7 +246,7 @@ void print(FILE *fp, value_sizer_t<V> *sizer, const loof_t *node) {
 template <class V>
 void validate(value_sizer_t<V> *sizer, const loof_t *node) {
 #ifndef NDEBUG
-    print(stdout, sizer, node);
+    // print(stdout, sizer, node);
 
     // Check that all offsets are contiguous (with interspersed skip
     // entries), that they start with frontmost, that live_size is
@@ -463,8 +463,6 @@ void garbage_collect(value_sizer_t<V> *sizer, loof_t *node, int num_tstamped, in
 
     std::sort(indices, indices + node->num_pairs, indirect_index_comparator_t(node->pair_offsets));
 
-    printf("A\n");
-
     int mand_offset;
     UNUSED int cost = mandatory_cost(sizer, node, num_tstamped, &mand_offset);
 
@@ -494,7 +492,6 @@ void garbage_collect(value_sizer_t<V> *sizer, loof_t *node, int num_tstamped, in
         }
     }
 
-    printf("B\n");
     // Either i < 0 or node->pair_offsets[indices[i]] < mand_offset.
 
     node->tstamp_cutpoint = w;
@@ -510,8 +507,6 @@ void garbage_collect(value_sizer_t<V> *sizer, loof_t *node, int num_tstamped, in
         memmove(get_at_offset(node, w), get_at_offset(node, offset), sz);
         node->pair_offsets[indices[i]] = w;
     }
-
-    printf("C\n");
 
     node->frontmost = w;
 
@@ -536,11 +531,7 @@ void garbage_collect(value_sizer_t<V> *sizer, loof_t *node, int num_tstamped, in
 
     node->num_pairs = j;
 
-    printf("D\n");
-
     validate(sizer, node);
-
-    printf("E\n");
 }
 
 template <class V>
@@ -1121,14 +1112,9 @@ void remove(value_sizer_t<V> *sizer, loof_t *node, const btree_key_t *key, repli
                 memmove(node->pair_offsets + index, node->pair_offsets + index + 1, (node->num_pairs - (index + 1)) * sizeof(uint16_t));
                 node->num_pairs -= 1;
 
-                printf("Z index=%d, num_pairs=%d\n", index, node->num_pairs);
                 garbage_collect(sizer, node, MANDATORY_TIMESTAMPS - 1, &index);
 
-                printf("F index=%d, num_pairs=%d\n", index, node->num_pairs);
-
                 memmove(node->pair_offsets + index + 1, node->pair_offsets + index, (node->num_pairs - index) * sizeof(uint16_t));
-
-                printf("G\n");
 
                 node->num_pairs += 1;
             }
@@ -1145,8 +1131,6 @@ void remove(value_sizer_t<V> *sizer, loof_t *node, const btree_key_t *key, repli
             node->frontmost = w;
         }
     }
-
-    printf("H\n");
 
     validate(sizer, node);
 }

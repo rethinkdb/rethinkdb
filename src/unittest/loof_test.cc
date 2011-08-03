@@ -68,7 +68,7 @@ public:
     ~LoofTracker() { delete[] node_; }
 
     bool Insert(const std::string& key, const std::string& value) {
-        printf("\n\nInserting %s\n\n", key.c_str());
+        // printf("\n\nInserting %s\n\n", key.c_str());
         btree_key_buffer_t k(key.begin(), key.end());
         short_value_buffer_t v(value);
 
@@ -91,7 +91,7 @@ public:
     }
 
     void Remove(const std::string& key) {
-        printf("\n\nRemoving %s\n\n", key.c_str());
+        // printf("\n\nRemoving %s\n\n", key.c_str());
         btree_key_buffer_t k(key.begin(), key.end());
 
         ASSERT_TRUE(ShouldHave(key));
