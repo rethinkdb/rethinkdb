@@ -10,13 +10,13 @@
 
 class linux_thread_t;
 
-/* coro_globals_t is borrowed from coroutines.hpp.  Please only
-construct one coro_globals_t per thread. Coroutines can only be used
-when a coro_globals_t exists. It exists to take advantage of RAII. */
+/* coro_runtime_t is borrowed from coroutines.hpp.  Please only
+construct one coro_runtime_t per thread. Coroutines can only be used
+when a coro_runtime_t exists. It exists to take advantage of RAII. */
 
-struct coro_globals_t {
-    coro_globals_t();
-    ~coro_globals_t();
+struct coro_runtime_t {
+    coro_runtime_t();
+    ~coro_runtime_t();
 };
 
 
@@ -86,7 +86,7 @@ public:
 
     /* Never accessed; its constructor and destructor set up and tear down thread-local variables
     for coroutines. */
-    coro_globals_t coro_globals;
+    coro_runtime_t coro_runtime;
 
     void pump();   // Called by the event queue
     bool should_shut_down();   // Called by the event queue
