@@ -83,6 +83,15 @@ public:
 private:
     std::vector<buffer_t> buffers_;
     DISABLE_COPYING(const_buffer_group_t);
+
+public:
+    void print() {
+        printf("Buffer group with %zu buffers\n", buffers_.size());
+        for (std::vector<buffer_t>::const_iterator it = buffers_.begin(); it != buffers_.end(); it++) {
+            fprintf(stderr, "--Buffer %d--\n", (int) (it - buffers_.begin()));
+            print_hd(it->data, 0, it->size);
+        }
+    }
 };
 
 class buffer_group_t {
@@ -122,6 +131,11 @@ public:
 private:
     const_buffer_group_t inner_;
     DISABLE_COPYING(buffer_group_t);
+
+public:
+    void print() {
+        inner_.print();
+    }
 };
 
 inline const const_buffer_group_t *const_view(const buffer_group_t *group) {

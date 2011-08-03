@@ -17,16 +17,9 @@ typedef uint32_t etag_t;
  * write if the support operations throught riak like appending to values.
  * Riak's api does not support appending. */
 #define MAX_LINK_SIZE 256
-struct link_t {
+struct link_hdr_t {
     uint8_t bucket_len, key_len, tag_len;
-    char contents[];
-
-    const char *bucket() { return contents; }
-    const char *key() { return contents + bucket_len; }
-    const char *tag() { return contents + bucket_len + tag_len; }
-
-    unsigned size() { return  bucket_len + key_len + tag_len; }
-};
+} __attribute__((__packed__));
 
 //notice this class does nothing to maintain its consistency
 class riak_value_t {
@@ -36,12 +29,13 @@ public:
     uint16_t content_type_len;
     uint32_t value_len;
     uint16_t n_links;
+    uint32_t links_length;
 
     //contents
     char contents[];
 
-    //contents is blob_t which has the follwing structure:
-    // contents = content_type content (link)* 
+    //contents is blob_t which has the following structure:
+    // contents = content_type content (link_hdr link)* 
 
     void print(block_size_t block_size) {
         print_hd(this, 0, offsetof(riak_value_t, contents) + blob::ref_size(block_size, contents, blob::btree_maxreflen));
@@ -55,11 +49,6 @@ class value_sizer_t<riak_value_t> {
 public:
     value_sizer_t(block_size_t bs) : block_size_(bs) { }
 
-    // The number of bytes the value takes up.  Reference implementation:
-    //
-    // for (int i = 0; i < INT_MAX; ++i) {
-    //    if (fits(value, i)) return i;
-    // }
     int size(const riak_value_t *value) {
         return offsetof(riak_value_t, contents) + blob::ref_size(block_size_, value->contents, blob::btree_maxreflen);
     }

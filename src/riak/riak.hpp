@@ -174,10 +174,14 @@ public:
         txn.value->etag = obj.ETag;
         txn.value->content_type_len = obj.content_type.size();
         txn.value->value_len = obj.content.size();
+        txn.value->n_links = obj.links.size();
+        txn.value->links_length = obj.on_disk_space_needed_for_links();
 
         blob_t blob(txn.value->contents, blob::btree_maxreflen);
         blob.clear(txn.get_txn());
-        blob.append_region(txn.get_txn(), obj.content_type.size() + obj.content.size());
+
+
+        blob.append_region(txn.get_txn(), obj.content_type.size() + obj.content.size() + txn.value->links_length);
 
         buffer_group_t dest;
         blob_acq_t acq;
@@ -187,6 +191,24 @@ public:
         buffer_group_t src;
         src.add_buffer(obj.content_type.size(), obj.content_type.data());
         src.add_buffer(obj.content.size(), obj.content.data());
+
+        //we really just need this to hold all the links and make sure they get destructed at the end
+        std::list<link_hdr_t> link_hdrs; 
+        for (std::vector<link_t>::const_iterator it = obj.links.begin(); it != obj.links.end(); it++) {
+            link_hdr_t link_hdr;
+            link_hdr.bucket_len = it->bucket.size();
+            link_hdr.key_len = it->key.size();
+            link_hdr.tag_len = it->tag.size();
+
+            link_hdrs.push_back(link_hdr);
+            src.add_buffer(sizeof(link_hdr_t), reinterpret_cast<const void *>(&link_hdrs.back()));
+            
+            src.add_buffer(it->bucket.size(), it->bucket.data());
+            src.add_buffer(it->key.size(), it->key.data());
+            src.add_buffer(it->tag.size(), it->tag.data());
+        }
+
+        src.print();
 
         buffer_group_copy_data(&dest, const_view(&src));
 

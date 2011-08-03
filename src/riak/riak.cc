@@ -21,11 +21,14 @@ namespace json = json_spirit;
 std::string link_t::as_string() {
     std::stringstream res;
 
+    res << "</riak/";
     res << bucket;
     if (key.size() > 0) {
         res << "/" << key;
     }
-    res << "; riaktag=" << "\"" << tag << "\"";
+
+    res <<">;";
+    res << " riaktag=" << "\"" << tag << "\"";
 
     return res.str();
 }

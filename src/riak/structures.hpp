@@ -45,6 +45,7 @@ struct bucket_t {
 };
 
 
+//methods implemented in riak.cc
 struct link_t {
     std::string bucket;
     std::string key;
@@ -135,10 +136,58 @@ struct object_t {
             }
         }
 
+        BREAKPOINT;
+        if (val->n_links > 0) {
+        /* grab the links */
+            buffer_group_t buffer_group;
+            blob_acq_t acq;
 
-        //TODO links code goes here, when those are implemented in a sensible way
+            blob.expose_region(txn, rwi_read, val->content_type_len + val->value_len, val->links_length, &buffer_group, &acq);
+
+            const_buffer_group_t::iterator it = buffer_group.begin(), end = buffer_group.end(); 
+            for (int i = 0; i < val->n_links; i++) {
+                link_hdr_t link_hdr;
+                link_t link;
+
+                link_hdr.bucket_len = *it; it++;
+                link_hdr.key_len = *it; it++;
+                link_hdr.tag_len = *it; it++;
+
+                link.bucket.reserve(link_hdr.bucket_len);
+                for (int j = 0; j < link_hdr.bucket_len; j++) {
+                    link.bucket.push_back(*it);
+                    it++;
+                }
+
+
+                link.key.reserve(link_hdr.key_len);
+                for (int j = 0; j < link_hdr.key_len; j++) {
+                    link.key.push_back(*it);
+                    it++;
+                }
+
+                link.key.reserve(link_hdr.tag_len);
+                for (int j = 0; j < link_hdr.tag_len; j++) {
+                    link.tag.push_back(*it);
+                    it++;
+                }
+
+                links.push_back(link);
+            }
+        }
     }
 
+    size_t on_disk_space_needed_for_links() {
+        size_t res = 0;
+        for (std::vector<link_t>::const_iterator it = links.begin(); it != links.end(); it++) {
+            res += sizeof(link_hdr_t);
+            res += it->bucket.size();
+            res += it->key.size();
+            res += it->tag.size();
+        }
+
+        return res;
+    }
 };
 
 class object_iterator_t : public transform_iterator_t<key_value_pair_t<riak_value_t>, object_t> {
