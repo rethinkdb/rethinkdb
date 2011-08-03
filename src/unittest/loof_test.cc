@@ -173,7 +173,7 @@ TEST(LoofTest, FiveInserts) {
                           "some_other_relatively_long_key_that_...whatever.",
                           "another relatively long key",
                           "a short key",
-                          "n" /* not an empty key */ };
+                          "" /* an empty string key */ };
 
     for (int i = 0; i < 26 * 26; ++i) {
         std::string v;
@@ -195,7 +195,7 @@ TEST(LoofTest, InsertRemove) {
                           "some_other_relatively_long_key_that_...whatever.",
                           "another relatively long key",
                           "a short key",
-                          "n" /* not an empty key */ };
+                          "" /* another empty empty key */ };
 
     for (int i = 0; i < 26 * 26; ++i) {
         std::string v;
