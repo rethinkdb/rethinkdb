@@ -847,7 +847,7 @@ void split(value_sizer_t<V> *sizer, loof_t *node, loof_t *rnode, btree_key_t *me
 
     init(sizer, rnode);
 
-    move_elements(sizer, node, s, node->num_pairs, rnode);
+    move_elements(sizer, node, s, node->num_pairs, 0, rnode, /* fro_copysize */, /* fro_earliest_mandatory */, /* fro_mand_offset */);
 
     keycpy(median_out, entry_key(get_entry(node, node->pair_offsets[s - 1])));
 }
@@ -861,7 +861,7 @@ void merge(value_sizer_t<V> *sizer, loof_t *left, loof_t *right, btree_key_t *ke
     rassert(left->num_pairs > 0);
     rassert(right->num_pairs > 0);
 
-    move_elements(sizer, left, 0, left->num_pairs, right);
+    move_elements(sizer, left, 0, left->num_pairs, 0, right, /* fro_copysize */, /* fro_earliest_mandatory */, /* fro_mand_offset */);
 
     rassert(right->num_pairs > 0);
     keycpy(key_to_remove_out, entry_key(get_entry(right, right->pair_offsets[0])));
@@ -954,7 +954,7 @@ bool level(value_sizer_t<V> *sizer, loof_t *node, loof_t *sibling, btree_key_t *
         return false;
     }
 
-    move_elements(sizer, sibling, beg, end + 1, node);
+    move_elements(sizer, sibling, beg, end + 1, nodecmp_result < 0 ? node->num_pairs : 0, node, /* fro_copysize */, /* fro_earliest_mandatory */, /* fro_mand_offset */);
 
     // key_to_replace_out is set to a key that is <= the key to
     // replace, but > any lesser key, and replacement_key_out is the

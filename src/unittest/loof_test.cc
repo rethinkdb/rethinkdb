@@ -106,6 +106,25 @@ public:
         Print();
     }
 
+    void Merge(LoofTracker& lnode) {
+        ASSERT_EQ(bs_.ser_value(), lnode.bs_.ser_value());
+
+        btree_key_buffer_t buf;
+        loof::merge(&sizer_, lnode.node_, node_, buf.key());
+
+        int old_kv_size = kv_.size();
+        for (std::map<std::string, std::string>::iterator p = lnode.kv_.begin(), e = lnode.kv_.end(); p != e; ++p) {
+            kv_[p->first] = kv_[p->second];
+        }
+
+        ASSERT_EQ(kv_.size(), old_kv_size + lnode.kv_.size());
+
+        lnode.kv_.clear();
+
+        Verify();
+        lnode.Verify();
+    }
+
     bool ShouldHave(const std::string& key) {
         return kv_.end() != kv_.find(key);
     }
@@ -117,6 +136,7 @@ public:
         return ret;
     }
 
+    // This only prints if we enable printing.
     void Print() {
         // loof::print(stdout, &sizer_, node_);
     }
