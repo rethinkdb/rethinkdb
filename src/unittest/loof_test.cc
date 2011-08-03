@@ -73,6 +73,8 @@ public:
 
         if (loof::is_full(&sizer_, node_, k.key(), v.data())) {
             Print();
+
+            Verify();
             return false;
         }
 
@@ -82,9 +84,24 @@ public:
         kv_[key] = value;
 
         Print();
-        return true;
 
         Verify();
+        return true;
+    }
+
+    void Remove(const std::string& key) {
+        btree_key_buffer_t k(key.begin(), key.end());
+
+        ASSERT_TRUE(kv_.end() != kv_.find(key));
+
+        kv_.erase(key);
+
+        repli_timestamp_t tstamp;
+        loof::remove(&sizer_, node_, k.key(), tstamp);
+
+        Verify();
+
+        Print();
     }
 
     repli_timestamp_t NextTimestamp() {
@@ -103,6 +120,7 @@ public:
             ASSERT_EQ(tstamp_counter_, reinterpret_cast<repli_timestamp_t *>(loof::get_at_offset(node_, node_->frontmost))->time);
         }
 
+        // Of course, this will fail with rassert, not a gtest assertion.
         loof::validate(&sizer_, node_);
     }
 
@@ -158,6 +176,32 @@ TEST(LoofTest, FiveInserts) {
 
         for (int j = 0; j < 5; ++j) {
             tracker.Insert(ks[j], v);
+        }
+    }
+}
+
+TEST(LoofTest, InsertRemove) {
+    LoofTracker tracker;
+
+    srand(12345);
+
+    std::string ks[5] = { "the_relatively_long_key_that_is_relatively_long,_eh?",
+                          "some_other_relatively_long_key_that_...whatever.",
+                          "another relatively long key",
+                          "a short key",
+                          "n" /* not an empty key */ };
+
+    for (int i = 0; i < 26 * 26; ++i) {
+        std::string v;
+        v += ('a' + (i / 26));
+        v += ('a' + (i % 26));
+
+        for (int j = 0; j < 5; ++j) {
+            if (rand() % 2 == 1) {
+                tracker.Insert(ks[j], v);
+            } else {
+                tracker.Remove(ks[j]);
+            }
         }
     }
 
