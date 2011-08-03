@@ -68,7 +68,7 @@ public:
     ~LoofTracker() { delete[] node_; }
 
     bool Insert(const std::string& key, const std::string& value) {
-        // printf("\n\nInserting %s\n\n", key.c_str());
+        printf("\n\nInserting %s\n\n", key.c_str());
         btree_key_buffer_t k(key.begin(), key.end());
         short_value_buffer_t v(value);
 
@@ -91,7 +91,7 @@ public:
     }
 
     void Remove(const std::string& key) {
-        // printf("\n\nRemoving %s\n\n", key.c_str());
+        printf("\n\nRemoving %s\n\n", key.c_str());
         btree_key_buffer_t k(key.begin(), key.end());
 
         ASSERT_TRUE(ShouldHave(key));
@@ -166,21 +166,29 @@ TEST(LoofTest, Reinserts) {
     }
 }
 
-TEST(LoofTest, FiveInserts) {
+TEST(LoofTest, TenInserts) {
     LoofTracker tracker;
 
-    std::string ks[5] = { "the_relatively_long_key_that_is_relatively_long,_eh?",
-                          "some_other_relatively_long_key_that_...whatever.",
-                          "another relatively long key",
-                          "a short key",
-                          "" /* an empty string key */ };
+    ASSERT_LT(loof::MANDATORY_TIMESTAMPS, 10);
+
+    const int num_keys = 10;
+    std::string ks[num_keys] = { "the_relatively_long_key_that_is_relatively_long,_eh?__or_even_longer",
+                           "some_other_relatively_long_key_that_...whatever.",
+                           "another_relatively_long_key",
+                           "a_short_key",
+                           "", /* an empty string key */
+                           "grohl",
+                           "cobain",
+                           "reznor",
+                           "marley",
+                           "domino" };
 
     for (int i = 0; i < 26 * 26; ++i) {
         std::string v;
         v += ('a' + (i / 26));
         v += ('a' + (i % 26));
 
-        for (int j = 0; j < 5; ++j) {
+        for (int j = 0; j < num_keys; ++j) {
             tracker.Insert(ks[j], v);
         }
     }
@@ -191,18 +199,27 @@ TEST(LoofTest, InsertRemove) {
 
     srand(12345);
 
-    std::string ks[5] = { "the_relatively_long_key_that_is_relatively_long,_eh?",
-                          "some_other_relatively_long_key_that_...whatever.",
-                          "another relatively long key",
-                          "a short key",
-                          "" /* another empty empty key */ };
+    const int num_keys = 6;
+    std::string ks[num_keys] = { "the_relatively_long_key_that_is_relatively_long,_eh?__or_even_longer",
+                           "some_other_relatively_long_key_that_...whatever.",
+                           "another_relatively_long_key",
+                           "a_short_key",
+                           "", /* an empty string key */
+                           "grohl",
+    };
+                               /*
+                           "cobain",
+                           "reznor",
+                           "marley",
+                           "domino" };
+    */
 
     for (int i = 0; i < 26 * 26; ++i) {
         std::string v;
         v += ('a' + (i / 26));
         v += ('a' + (i % 26));
 
-        for (int j = 0; j < 5; ++j) {
+        for (int j = 0; j < num_keys; ++j) {
             if (rand() % 2 == 1) {
                 tracker.Insert(ks[j], v);
             } else {

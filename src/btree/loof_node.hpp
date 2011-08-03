@@ -196,7 +196,7 @@ void print_entry(FILE *fp, value_sizer_t<V> *sizer, const entry_t *entry) {
         fprintf(fp, "[value size=%d]", sizer->size(entry_value<V>(entry)));
     } else if (entry_is_deletion(entry)) {
         const btree_key_t *key = entry_key(entry);
-        fprintf(fp, "%.*s:", int(key->size), key->contents);
+        fprintf(fp, "%.*s:[deletion]", int(key->size), key->contents);
     } else if (entry_is_skip(entry)) {
         fprintf(fp, "[skip %d]", entry_size(sizer, entry));
     } else {
@@ -246,7 +246,7 @@ void print(FILE *fp, value_sizer_t<V> *sizer, const loof_t *node) {
 template <class V>
 void validate(value_sizer_t<V> *sizer, const loof_t *node) {
 #ifndef NDEBUG
-    // print(stdout, sizer, node);
+    print(stdout, sizer, node);
 
     // Check that all offsets are contiguous (with interspersed skip
     // entries), that they start with frontmost, that live_size is
@@ -453,6 +453,8 @@ private:
 
 template <class V>
 void garbage_collect(value_sizer_t<V> *sizer, loof_t *node, int num_tstamped, int *preserved_index) {
+    validate(sizer, node);
+
     uint16_t indices[node->num_pairs];
 
     for (int i = 0; i < node->num_pairs; ++i) {
@@ -460,6 +462,8 @@ void garbage_collect(value_sizer_t<V> *sizer, loof_t *node, int num_tstamped, in
     }
 
     std::sort(indices, indices + node->num_pairs, indirect_index_comparator_t(node->pair_offsets));
+
+    printf("A\n");
 
     int mand_offset;
     UNUSED int cost = mandatory_cost(sizer, node, num_tstamped, &mand_offset);
@@ -490,6 +494,7 @@ void garbage_collect(value_sizer_t<V> *sizer, loof_t *node, int num_tstamped, in
         }
     }
 
+    printf("B\n");
     // Either i < 0 or node->pair_offsets[indices[i]] < mand_offset.
 
     node->tstamp_cutpoint = w;
@@ -506,6 +511,8 @@ void garbage_collect(value_sizer_t<V> *sizer, loof_t *node, int num_tstamped, in
         node->pair_offsets[indices[i]] = w;
     }
 
+    printf("C\n");
+
     node->frontmost = w;
 
     node->live_size += live_size_adjustment;
@@ -513,18 +520,27 @@ void garbage_collect(value_sizer_t<V> *sizer, loof_t *node, int num_tstamped, in
     // Now squash dead indices.
     int j = 0, k = 0;
     for (; k < node->num_pairs; ++k) {
+        if (*preserved_index == k) {
+            *preserved_index = j;
+        }
+
         if (node->pair_offsets[k] != 0) {
             node->pair_offsets[j] = node->pair_offsets[k];
-            if (*preserved_index == k) {
-                *preserved_index = j;
-            }
 
             j += 1;
         }
     }
+    if (*preserved_index == node->num_pairs) {
+        *preserved_index = j;
+    }
+
     node->num_pairs = j;
 
+    printf("D\n");
+
     validate(sizer, node);
+
+    printf("E\n");
 }
 
 template <class V>
@@ -1104,9 +1120,16 @@ void remove(value_sizer_t<V> *sizer, loof_t *node, const btree_key_t *key, repli
             if (offsetof(loof_t, pair_offsets) + sizeof(uint16_t) * node->num_pairs + sizeof(repli_timestamp_t) + 1 + key->full_size() > node->frontmost) {
                 memmove(node->pair_offsets + index, node->pair_offsets + index + 1, (node->num_pairs - (index + 1)) * sizeof(uint16_t));
                 node->num_pairs -= 1;
+
+                printf("Z index=%d, num_pairs=%d\n", index, node->num_pairs);
                 garbage_collect(sizer, node, MANDATORY_TIMESTAMPS - 1, &index);
 
+                printf("F index=%d, num_pairs=%d\n", index, node->num_pairs);
+
                 memmove(node->pair_offsets + index + 1, node->pair_offsets + index, (node->num_pairs - index) * sizeof(uint16_t));
+
+                printf("G\n");
+
                 node->num_pairs += 1;
             }
 
@@ -1122,6 +1145,8 @@ void remove(value_sizer_t<V> *sizer, loof_t *node, const btree_key_t *key, repli
             node->frontmost = w;
         }
     }
+
+    printf("H\n");
 
     validate(sizer, node);
 }
