@@ -83,6 +83,8 @@ public:
 
         Print();
         return true;
+
+        Verify();
     }
 
     repli_timestamp_t NextTimestamp() {
@@ -94,6 +96,14 @@ public:
 
     void Print() {
         // loof::print(stdout, &sizer_, node_);
+    }
+
+    void Verify() {
+        if (!kv_.empty()) {
+            ASSERT_EQ(tstamp_counter_, reinterpret_cast<repli_timestamp_t *>(loof::get_at_offset(node_, node_->frontmost))->time);
+        }
+
+        loof::validate(&sizer_, node_);
     }
 
 private:
@@ -132,6 +142,26 @@ TEST(LoofTest, Reinserts) {
     }
 }
 
+TEST(LoofTest, FiveInserts) {
+    LoofTracker tracker;
+
+    std::string ks[5] = { "the_relatively_long_key_that_is_relatively_long,_eh?",
+                          "some_other_relatively_long_key_that_...whatever.",
+                          "another relatively long key",
+                          "a short key",
+                          "n" /* not an empty key */ };
+
+    for (int i = 0; i < 26 * 26; ++i) {
+        std::string v;
+        v += ('a' + (i / 26));
+        v += ('a' + (i % 26));
+
+        for (int j = 0; j < 5; ++j) {
+            tracker.Insert(ks[j], v);
+        }
+    }
+
+}
 
 
 }  // namespace unittest
