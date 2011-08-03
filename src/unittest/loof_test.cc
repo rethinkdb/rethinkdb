@@ -68,6 +68,7 @@ public:
     ~LoofTracker() { delete[] node_; }
 
     bool Insert(const std::string& key, const std::string& value) {
+        // printf("\n\nInserting %s\n\n", key.c_str());
         btree_key_buffer_t k(key.begin(), key.end());
         short_value_buffer_t v(value);
 
@@ -90,9 +91,10 @@ public:
     }
 
     void Remove(const std::string& key) {
+        // printf("\n\nRemoving %s\n\n", key.c_str());
         btree_key_buffer_t k(key.begin(), key.end());
 
-        ASSERT_TRUE(kv_.end() != kv_.find(key));
+        ASSERT_TRUE(ShouldHave(key));
 
         kv_.erase(key);
 
@@ -102,6 +104,10 @@ public:
         Verify();
 
         Print();
+    }
+
+    bool ShouldHave(const std::string& key) {
+        return kv_.end() != kv_.find(key);
     }
 
     repli_timestamp_t NextTimestamp() {
@@ -200,7 +206,9 @@ TEST(LoofTest, InsertRemove) {
             if (rand() % 2 == 1) {
                 tracker.Insert(ks[j], v);
             } else {
-                tracker.Remove(ks[j]);
+                if (tracker.ShouldHave(ks[j])) {
+                    tracker.Remove(ks[j]);
+                }
             }
         }
     }
