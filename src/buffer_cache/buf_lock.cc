@@ -1,6 +1,6 @@
 #include "buffer_cache/buf_lock.hpp"
 
-#include "arch/core.hpp"
+#include "arch/runtime/runtime.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "buffer_cache/co_functions.hpp"
 #include "errors.hpp"

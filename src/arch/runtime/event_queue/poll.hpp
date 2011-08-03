@@ -7,7 +7,7 @@
 #include <poll.h>
 
 #include "arch/runtime/event_queue_types.hpp"
-#include "arch/runtime/linux_utils.hpp"
+#include "arch/runtime/runtime_utils.hpp"
 
 // Event queue structure
 struct poll_event_queue_t : public event_queue_base_t {

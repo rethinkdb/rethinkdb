@@ -8,7 +8,7 @@
 #include <unistd.h>
 
 #include "arch/runtime/event_queue.hpp"
-#include "arch/runtime/linux_utils.hpp"
+#include "arch/io/io_utils.hpp"
 #include "arch/io/timer_provider.hpp"
 #include "logger.hpp"
 

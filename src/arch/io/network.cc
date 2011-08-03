@@ -12,7 +12,7 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
-#include "arch/runtime/coroutines.hpp"
+#include "arch/runtime/runtime.hpp"
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/timing.hpp"
 #include "concurrency/side_coro.hpp"

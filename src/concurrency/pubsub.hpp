@@ -3,7 +3,7 @@
 
 #include "concurrency/mutex.hpp"
 #include "utils.hpp"
-#include "arch/runtime/coroutines.hpp"
+#include "arch/runtime/runtime.hpp"
 
 /* `publisher_t` is used to implement small-scale pub/sub architectures. It's
 useful whenever you need to broadcast notifications to some number of listeners.

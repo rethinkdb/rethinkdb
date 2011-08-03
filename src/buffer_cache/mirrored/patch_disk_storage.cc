@@ -3,7 +3,7 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
-#include "arch/runtime/coroutines.hpp"
+#include "arch/runtime/runtime.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"
 
 const block_magic_t mc_config_block_t::expected_magic = { { 'm','c','f','g' } };

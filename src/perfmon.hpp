@@ -13,7 +13,7 @@
 #include <limits>
 #include <string>
 
-#include "arch/core.hpp"
+#include "arch/runtime/runtime.hpp"
 #include "utils.hpp"
 #include "config/args.hpp"
 #include "containers/intrusive_list.hpp"

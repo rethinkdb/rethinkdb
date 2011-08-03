@@ -1,4 +1,4 @@
-#include "arch/runtime/linux_utils.hpp"
+#include "arch/io/io_utils.hpp"
 
 #include <sys/syscall.h>
 #include <unistd.h>
@@ -17,8 +17,4 @@ fd_t scoped_fd_t::reset(fd_t f2) {
     }
     fd = f2;
     return f2;
-}
-
-int get_cpu_count() {
-    return sysconf(_SC_NPROCESSORS_ONLN);
 }

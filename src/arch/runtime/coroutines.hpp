@@ -3,7 +3,7 @@
 
 #include "errors.hpp"
 #include <boost/function.hpp>
-#include "arch/runtime/linux_utils.hpp"
+#include "arch/runtime/runtime_utils.hpp"
 
 const size_t MAX_COROUTINE_STACK_SIZE = 8*1024*1024;
 
