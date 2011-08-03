@@ -78,7 +78,7 @@ public:
             return false;
         }
 
-        repli_timestamp_t tstamp;
+        repli_timestamp_t tstamp = NextTimestamp();
         loof::insert(&sizer_, node_, k.key(), v.data(), tstamp);
 
         kv_[key] = value;
@@ -96,7 +96,7 @@ public:
 
         kv_.erase(key);
 
-        repli_timestamp_t tstamp;
+        repli_timestamp_t tstamp = NextTimestamp();
         loof::remove(&sizer_, node_, k.key(), tstamp);
 
         Verify();
