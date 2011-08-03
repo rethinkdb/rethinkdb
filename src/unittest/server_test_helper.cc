@@ -8,6 +8,8 @@
 #include "serializer/translator.hpp"
 #include "btree/slice.hpp"
 
+namespace unittest {
+
 const int server_test_helper_t::init_value = 0x12345678;
 const int server_test_helper_t::changed_value = 0x87654321;
 
@@ -106,3 +108,5 @@ void server_test_helper_t::create_two_blocks(transaction_t *txn, block_id_t &blo
     buf_A->release();
     buf_B->release();
 }
+
+}  // namespace unittest

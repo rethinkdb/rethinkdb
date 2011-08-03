@@ -81,4 +81,4 @@ TEST(UtilsTest, SizedStrcmp)
     ASSERT_TRUE(0 != sized_strcmp(test3, 11, test1, 14));
 }
 
-}
+}  // namespace unittest

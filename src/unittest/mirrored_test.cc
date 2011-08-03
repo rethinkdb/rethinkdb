@@ -56,5 +56,5 @@ TEST(MirroredTest, all_tests) {
     mirrored_tester_t().run();
 }
 
-}
+}  // namespace unittest
 
