@@ -786,6 +786,8 @@ void split(value_sizer_t<V> *sizer, loof_t *node, loof_t *rnode, btree_key_t *me
 
     // We shall split the mandatory cost of this node as evenly as possible.
 
+    repli_timestamp_t earliest_mandatory = repli_timestamp_t::invalid;
+
     int i = node->num_pairs - 1;
     int prev_rcost = 0;
     int rcost = 0;
@@ -802,12 +804,20 @@ void split(value_sizer_t<V> *sizer, loof_t *node, loof_t *rnode, btree_key_t *me
         if (entry_is_live(ent)) {
             prev_rcost = rcost;
             rcost += entry_size(sizer, ent) + sizeof(uint16_t) + (offset < tstamp_back_offset ? sizeof(repli_timestamp_t) : 0);
+
+            if (offset < tstamp_back_offset && (earliest_mandatory == repli_timestamp_t::invalid || get_timestamp(node, offset) < earliest_mandatory)) {
+                earliest_mandatory = get_timestamp(node, offset);
+            }
         } else {
             rassert(entry_is_deletion(ent));
 
             if (offset < tstamp_back_offset) {
                 prev_rcost = rcost;
                 rcost += entry_size(sizer, ent) + sizeof(uint16_t) + sizeof(repli_timestamp_t);
+
+                if (earliest_mandatory == repli_timestamp_t::invalid || get_timestamp(node, offset) < earliest_mandatory) {
+                    earliest_mandatory = get_timestamp(node, offset);
+                }
             }
         }
 
@@ -842,7 +852,7 @@ void split(value_sizer_t<V> *sizer, loof_t *node, loof_t *rnode, btree_key_t *me
     init(sizer, rnode);
 
     int node_copysize = end_rcost - (node->num_pairs - s) * sizeof(uint16_t);
-    move_elements(sizer, node, s, node->num_pairs, 0, rnode, node_copysize, /* fro_earliest_mandatory */, /* fro_mand_offset */);
+    move_elements(sizer, node, s, node->num_pairs, 0, rnode, node_copysize, earliest_mandatory, tstamp_back_offset);
 
     keycpy(median_out, entry_key(get_entry(node, node->pair_offsets[s - 1])));
 }
