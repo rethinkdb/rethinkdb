@@ -786,10 +786,10 @@ void split(value_sizer_t<V> *sizer, loof_t *node, loof_t *rnode, btree_key_t *me
 
     // We shall split the mandatory cost of this node as evenly as possible.
 
-    int i = 0;
-    int prev_lcost = 0;
-    int lcost = 0;
-    while (i < node->num_pairs && 2 * lcost < mandatory) {
+    int i = node->num_pairs - 1;
+    int prev_rcost = 0;
+    int rcost = 0;
+    while (i >= 0 && 2 * rcost < mandatory) {
         int offset = node->pair_offsets[i];
         entry_t *ent = get_entry(node, offset);
 
@@ -800,54 +800,49 @@ void split(value_sizer_t<V> *sizer, loof_t *node, loof_t *rnode, btree_key_t *me
         // deletions that makes its mandatory_cost artificially small.
 
         if (entry_is_live(ent)) {
-            prev_lcost = lcost;
-            lcost += entry_size(sizer, ent) + sizeof(uint16_t) + (offset < tstamp_back_offset ? sizeof(repli_timestamp_t) : 0);
+            prev_rcost = rcost;
+            rcost += entry_size(sizer, ent) + sizeof(uint16_t) + (offset < tstamp_back_offset ? sizeof(repli_timestamp_t) : 0);
         } else {
             rassert(entry_is_deletion(ent));
 
             if (offset < tstamp_back_offset) {
-                prev_lcost = lcost;
-                lcost += entry_size(sizer, ent) + sizeof(uint16_t) + sizeof(repli_timestamp_t);
+                prev_rcost = rcost;
+                rcost += entry_size(sizer, ent) + sizeof(uint16_t) + sizeof(repli_timestamp_t);
             }
         }
 
-        ++i;
+        --i;
     }
 
     // Since the mandatory_cost is at least free_space - loof_epsilon there's no way i can equal num_pairs or zero.
     rassert(i < node->num_pairs);
     rassert(i > 0);
 
-    // Now prev_lcost and lcost envelope mandatory / 2.
-    rassert(prev_lcost <= mandatory / 2);
-    rassert(lcost > mandatory / 2);
+    // Now prev_rcost and rcost envelope mandatory / 2.
+    rassert(prev_rcost <= mandatory / 2);
+    rassert(rcost > mandatory / 2);
 
     int s;
-#ifndef NDEBUG
-    int end_lcost;
-#endif
-    if ((mandatory - prev_lcost) - prev_lcost < lcost - (mandatory - lcost)) {
-#ifndef NDEBUG
-        end_lcost = prev_lcost;
-#endif
-        s = i - 1;
+    int end_rcost;
+    if ((mandatory - prev_rcost) - prev_rcost < rcost - (mandatory - rcost)) {
+        end_rcost = prev_rcost;
+        s = i + 2;
     } else {
-#ifndef NDEBUG
-        end_lcost = lcost;
-#endif
-        s = i;
+        end_rcost = rcost;
+        s = i + 1;
     }
 
     // If our math was right, neither node can be underfull just
     // considering the split of the mandatory costs.
-    rassert(end_lcost >= free_space(sizer) / 2 - loof_epsilon(sizer));
-    rassert(mandatory - end_lcost >= free_space(sizer) / 2 - loof_epsilon(sizer));
+    rassert(end_rcost >= free_space(sizer) / 2 - loof_epsilon(sizer));
+    rassert(mandatory - end_rcost >= free_space(sizer) / 2 - loof_epsilon(sizer));
 
     // Now we wish to move the elements at indices [s, num_pairs) to rnode.
 
     init(sizer, rnode);
 
-    move_elements(sizer, node, s, node->num_pairs, 0, rnode, /* fro_copysize */, /* fro_earliest_mandatory */, /* fro_mand_offset */);
+    int node_copysize = end_rcost - (node->num_pairs - s) * sizeof(uint16_t);
+    move_elements(sizer, node, s, node->num_pairs, 0, rnode, node_copysize, /* fro_earliest_mandatory */, /* fro_mand_offset */);
 
     keycpy(median_out, entry_key(get_entry(node, node->pair_offsets[s - 1])));
 }
