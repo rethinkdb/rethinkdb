@@ -26,7 +26,10 @@ size_t coro_stack_size = COROUTINE_STACK_SIZE; //Default, setable by command-lin
 /* coro_context_t is only used internally within the coroutine logic. For performance reasons,
 we recycle stacks and ucontexts; the coro_context_t represents a stack and a ucontext. */
 
-struct coro_context_t : public intrusive_list_node_t<coro_context_t> {
+struct coro_context_t :
+    public intrusive_list_node_t<coro_context_t>,
+    public home_thread_mixin_t
+{
     coro_context_t();
 
     /* The run() function is at the bottom of every coro_context_t's call stack. It repeatedly
@@ -141,7 +144,6 @@ coro_context_t::~coro_context_t() {
 coro_t::coro_t(const boost::function<void()>& deed, int thread) :
     deed_(deed),
     current_thread_(thread),
-    original_free_contexts_thread_(linux_thread_pool_t::thread_id),
     notified_(false),
     waiting_(true)
 {
@@ -164,7 +166,7 @@ void return_context_to_free_contexts(coro_context_t *context) {
 
 coro_t::~coro_t() {
     /* Return the context to the free-contexts list we took it from. */
-    do_on_thread(original_free_contexts_thread_, boost::bind(return_context_to_free_contexts, context));
+    do_on_thread(context->home_thread(), boost::bind(return_context_to_free_contexts, context));
 
     pm_active_coroutines--;
 }
