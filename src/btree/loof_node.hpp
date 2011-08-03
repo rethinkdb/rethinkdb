@@ -629,6 +629,8 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
         }
     }
 
+    int fro_live_size_adjustment = 0;
+
     for (;;) {
         rassert(tow_offset <= tow->tstamp_cutpoint);
         if (tow_offset == tow->tstamp_cutpoint || fro_index == fro_index_end) {
@@ -653,6 +655,7 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
             int sz = sizeof(repli_timestamp_t) + entsz;
             memmove(get_at_offset(tow, wri_offset), get_at_offset(fro, fro_offset), sz);
             clean_entry(ent, entsz);
+            fro_live_size_adjustment -= sz + sizeof(uint16_t);
 
             // Update the pair offset in fro to be the offset in tow
             // -- we'll never use the old value again and we'll copy
@@ -695,6 +698,8 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
             int sz = entry_size(sizer, ent);
             memmove(get_at_offset(tow, wri_offset), get_at_offset(fro, fro_offset), sz);
             clean_entry(ent, sz);
+            fro_live_size_adjustment -= sz + sizeof(uint16_t) + (fro_offset < fro->tstamp_cutpoint ? sizeof(repli_timestamp_t) : 0);
+
             fro->pair_offsets[beg + tow->pair_offsets[fro_index]] = wri_offset;
             wri_offset += sz;
             livesize += sz + sizeof(uint16_t);
@@ -758,7 +763,7 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
 
     tow->live_size = livesize;
 
-    // TODO: We need to update fro->live_size.
+    fro->live_size += fro_live_size_adjustment;
 
     validate(sizer, fro);
     validate(sizer, tow);
