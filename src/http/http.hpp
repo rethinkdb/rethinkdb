@@ -5,6 +5,7 @@
 #include <boost/fusion/include/adapt_struct.hpp>
 #include <boost/fusion/include/io.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
+#include <boost/shared_array.hpp>
 
 enum http_method_t {
     HEAD = 0,
@@ -106,6 +107,20 @@ private:
     std::string _content;
 };
 
+//TODO this still has to make a copy of the data to return it as a std::string
+//from content() we could change this but it's probably not worth it
+struct http_res_simple_efficient_copy_body_t : public http_res_body_t {
+    std::string content_type() const;
+    size_t content_length() const;
+    std::string content() const;
+    http_res_simple_efficient_copy_body_t(const std::string &, const boost::shared_array<char> &, size_t size);
+
+private:
+    std::string _content_type;
+    boost::shared_array<char> _content;
+    size_t size;
+};
+
 struct http_res_multipart_body_t : public http_res_body_t {
     std::string content_type() const;
     size_t content_length() const;
@@ -130,6 +145,7 @@ public:
     // this is a convenience/legacy function that just sets up a
     // http_res_simple_body_t with this content-type and content
     void set_body(std::string const &, std::string const &);
+    void set_body(std::string const &, boost::shared_array<char> &, size_t);
 };
 
 /* struct http_res_t {

@@ -76,7 +76,8 @@ struct link_filter_t {
 //TODO TODO TODO make copying this structure more efficient
 struct object_t {
     std::string key;
-    std::string content;
+    size_t content_length;
+    boost::shared_array<char> content;
     std::string content_type;
     std::string meta_data;
     int ETag;
@@ -86,6 +87,11 @@ struct object_t {
     size_t total_value_len; //this might not be equal to content.size() if what we have is a range
 
     object_t() { }
+
+    void resize_content(int n) {
+        content_length = n;
+        content.reset(new char[n]);
+    }
 
     object_t(std::string const &key, riak_value_t *val, transaction_t *txn, std::pair<int, int> range = std::make_pair(-1, -1))
         : key(key), range(range), total_value_len(val->value_len)
@@ -119,8 +125,9 @@ struct object_t {
                 blob.expose_region(txn, rwi_read, val->content_type_len, val->value_len, &buffer_group, &acq);
                 const_buffer_group_t::iterator it = buffer_group.begin(), end = buffer_group.end(); 
 
-                for (unsigned i = 0; i < val->value_len; i++) {
-                    content += *it;
+                resize_content(val->value_len);
+                for (char *hd = content.get(); hd - content.get() < val->value_len; hd++) {
+                    *hd = *it;
                     it++;
                 }
             } else {
@@ -130,8 +137,9 @@ struct object_t {
                 blob.expose_region(txn, rwi_read, val->content_type_len + range.first, range.second - range.first, &buffer_group, &acq);
                 const_buffer_group_t::iterator it = buffer_group.begin(), end = buffer_group.end(); 
 
-                for (int i = 0; i < range.second - range.first; i++) {
-                    content += *it;
+                resize_content(range.second - range.first);
+                for (char *hd = content.get(); hd - content.get() < range.second - range.first; hd++) {
+                    *hd = *it;
                     it++;
                 }
             }

@@ -96,12 +96,22 @@ void http_res_header_t::add_last_modified(time_t secs) {
     add_header_line("Last-Modified", secs_to_http_date(secs));
 }
 
+//http_res_simple_body_t
 std::string http_res_simple_body_t::content_type() const { return _content_type; }
 size_t http_res_simple_body_t::content_length() const { return _content.size(); }
 std::string http_res_simple_body_t::content() const { return _content; }
 
 http_res_simple_body_t::http_res_simple_body_t(const std::string &_content_type, const std::string &_content) 
     : _content_type(_content_type), _content(_content)
+{ }
+
+//http_res_simple_efficient_copy_body_t
+std::string http_res_simple_efficient_copy_body_t::content_type() const { return _content_type; }
+size_t http_res_simple_efficient_copy_body_t::content_length() const { return size; }
+std::string http_res_simple_efficient_copy_body_t::content() const { return std::string(_content.get(), size); }
+
+http_res_simple_efficient_copy_body_t::http_res_simple_efficient_copy_body_t(const std::string &_content_type, const boost::shared_array<char> &_content, size_t size) 
+    : _content_type(_content_type), _content(_content), size(size)
 { }
 
 std::string http_res_multipart_body_t::content_type() const {
@@ -162,6 +172,10 @@ void http_res_t::write_conn(boost::scoped_ptr<tcp_conn_t> &conn) {
 
 void http_res_t::set_body(std::string const &content_type, std::string const &content) {
     body.reset(new http_res_simple_body_t(content_type, content));
+}
+
+void http_res_t::set_body(std::string const &content_type, boost::shared_array<char> &content, size_t size) {
+    body.reset(new http_res_simple_efficient_copy_body_t(content_type, content, size));
 }
 
 typedef std::string::const_iterator str_iterator_type;

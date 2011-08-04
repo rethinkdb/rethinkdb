@@ -173,7 +173,7 @@ public:
         txn.value->mod_time = obj.last_written;
         txn.value->etag = obj.ETag;
         txn.value->content_type_len = obj.content_type.size();
-        txn.value->value_len = obj.content.size();
+        txn.value->value_len = obj.content_length;
         txn.value->n_links = obj.links.size();
         txn.value->links_length = obj.on_disk_space_needed_for_links();
 
@@ -181,7 +181,7 @@ public:
         blob.clear(txn.get_txn());
 
 
-        blob.append_region(txn.get_txn(), obj.content_type.size() + obj.content.size() + txn.value->links_length);
+        blob.append_region(txn.get_txn(), obj.content_type.size() + obj.content_length + txn.value->links_length);
 
         buffer_group_t dest;
         blob_acq_t acq;
@@ -190,7 +190,7 @@ public:
 
         buffer_group_t src;
         src.add_buffer(obj.content_type.size(), obj.content_type.data());
-        src.add_buffer(obj.content.size(), obj.content.data());
+        src.add_buffer(obj.content_length, obj.content.get()); //this is invalidated by destroying the object
 
         //we really just need this to hold all the links and make sure they get destructed at the end
         std::list<link_hdr_t> link_hdrs; 

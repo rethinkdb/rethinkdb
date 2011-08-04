@@ -134,8 +134,8 @@ http_res_t riak_server_t::handle(const http_req_t &req) {
         return list_resources(req);
     }
 
-    unreachable();
     http_res_t res;
+    res.code = 400;
     return res;
 }
 
@@ -360,7 +360,7 @@ http_res_t riak_server_t::fetch_object(const http_req_t &req) {
     }
 
     http_res_t res;
-    res.set_body(obj.content_type, obj.content);
+    res.set_body(obj.content_type, obj.content, obj.content_length);
     res.add_header_line("ETag", strprintf("%d",  obj.ETag));
     res.add_last_modified(obj.last_written);
     res.add_header_line("Accept-Ranges", "bytes"); 
@@ -410,7 +410,10 @@ http_res_t riak_server_t::store_object(const http_req_t &req) {
         return res;
     }
 
-    obj.content = req.body;
+    obj.resize_content(req.body.size());
+    memcpy(obj.content.get(), req.body.data(), req.body.size());
+
+
     obj.content_type = req.find_header_line("Content-Type");
 
     if (obj.content_type == "") {
@@ -540,7 +543,7 @@ http_res_t riak_server_t::link_walk(const http_req_t &req) {
         //Add the first level to the multipart message
         http_res_multipart_body_t *level = new http_res_multipart_body_t();
         body->add_content(level);
-        level->add_content(new http_res_simple_body_t(current.front().content_type, current.front().content));
+        level->add_content(new http_res_simple_efficient_copy_body_t(current.front().content_type, current.front().content, current.front().content_length));
 
         for (std::vector<link_filter_t>::const_iterator lf_it = filters.begin(); lf_it != filters.end(); lf_it++) {
             http_res_multipart_body_t *level = new http_res_multipart_body_t();
@@ -554,7 +557,7 @@ http_res_t riak_server_t::link_walk(const http_req_t &req) {
                         next.push(child_obj);
 
                         if (lf_it->keep) {
-                            level->add_content(new http_res_simple_body_t(child_obj.content_type, child_obj.content));
+                            level->add_content(new http_res_simple_efficient_copy_body_t(child_obj.content_type, child_obj.content, child_obj.content_length));
                         }
                     }
                 }
@@ -583,8 +586,9 @@ http_res_t riak_server_t::mapreduce(const http_req_t &) {
 }
 
 http_res_t riak_server_t::ping(const http_req_t &) {
-    not_implemented();
     http_res_t res;
+    res.code = 200;
+    res.set_body("text/html", "OK");
     return res;
 }
 
