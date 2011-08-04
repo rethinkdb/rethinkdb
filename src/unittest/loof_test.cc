@@ -114,7 +114,7 @@ public:
 
         int old_kv_size = kv_.size();
         for (std::map<std::string, std::string>::iterator p = lnode.kv_.begin(), e = lnode.kv_.end(); p != e; ++p) {
-            kv_[p->first] = kv_[p->second];
+            kv_[p->first] = p->second;
         }
 
         ASSERT_EQ(kv_.size(), old_kv_size + lnode.kv_.size());

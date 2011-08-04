@@ -562,8 +562,8 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
     validate(sizer, fro);
     validate(sizer, tow);
 
-    printf("move_elements beg = %d, end = %d, wpoint = %d, fro_copysize = %d, fro_mand_offset = %d\n",
-           beg, end, wpoint, fro_copysize, fro_mand_offset);
+    // printf("move_elements beg = %d, end = %d, wpoint = %d, fro_copysize = %d, fro_mand_offset = %d\n",
+    //        beg, end, wpoint, fro_copysize, fro_mand_offset);
 
     rassert(is_underfull(sizer, tow));
 
@@ -633,7 +633,7 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
     int fro_live_size_adjustment = 0;
 
     for (;;) {
-        printf("fro_index = %d, tow_offset = %d, wri_offset = %d\n", fro_index, tow_offset, wri_offset);
+        // printf("fro_index = %d, tow_offset = %d, wri_offset = %d\n", fro_index, tow_offset, wri_offset);
         rassert(tow_offset <= tow->tstamp_cutpoint);
         if (tow_offset == tow->tstamp_cutpoint || fro_index == fro_index_end) {
             // We have no more timestamped information to push.
@@ -696,12 +696,13 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
 
     // Now we have some untimestamped entries to write.
     for (; fro_index < fro_index_end; ++fro_index) {
-        printf("fro_index = %d, wri_offset = %d\n", fro_index, wri_offset);
         int fro_offset = fro->pair_offsets[beg + tow->pair_offsets[fro_index]];
+        // printf("fro_index = %d, wri_offset = %d, with fro_offset = %d\n", fro_index, wri_offset, fro_offset);
         entry_t *ent = get_entry(fro, fro_offset);
         if (entry_is_live(ent)) {
+            // printf("entry size = %d\n", entry_size(sizer, ent));
             int sz = entry_size(sizer, ent);
-            memmove(get_at_offset(tow, wri_offset), get_at_offset(fro, fro_offset), sz);
+            memmove(get_at_offset(tow, wri_offset), ent, sz);
             clean_entry(ent, sz);
             fro_live_size_adjustment -= sz + sizeof(uint16_t);
 
@@ -744,7 +745,7 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
     // If we needed to untimestamp any tow entries, we'll need a skip
     // entry for the open space.
     if (wri_offset < tow_offset) {
-        printf("wri_offset = %d, tow_offset = %d\n", wri_offset, tow_offset);
+        // printf("wri_offset = %d, tow_offset = %d\n", wri_offset, tow_offset);
         clean_entry(get_at_offset(tow, wri_offset), tow_offset - wri_offset);
     }
 
@@ -767,9 +768,9 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
 
     fro->live_size += fro_live_size_adjustment;
 
-    printf("Validating fro\n");
+    // printf("Validating fro\n");
     validate(sizer, fro);
-    printf("Validating tow\n");
+    // printf("Validating tow\n");
     validate(sizer, tow);
 }
 
