@@ -777,34 +777,6 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
 }
 
 template <class V>
-void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int wpoint, loof_t *tow) {
-
-    int tstamp_back_offset;
-    UNUSED int mandatory = mandatory_cost(sizer, fro, MANDATORY_TIMESTAMPS, &tstamp_back_offset);
-
-    int copysize = 0;
-
-    for (int i = beg; i < end; ++i) {
-        int offset = fro->pair_offsets[i];
-        entry_t *ent = get_entry(fro, offset);
-
-        if (entry_is_live(ent)) {
-            copysize += entry_size(sizer, ent) + (offset < tstamp_back_offset ? sizeof(repli_timestamp_t) : 0);
-        } else {
-            rassert(entry_is_deletion(ent));
-
-            if (offset < tstamp_back_offset) {
-                copysize += entry_size(sizer, ent) + sizeof(repli_timestamp_t);
-            }
-        }
-    }
-
-    move_elements(sizer, fro, beg, end, wpoint, tow, copysize, tstamp_back_offset);
-}
-
-
-
-template <class V>
 void split(value_sizer_t<V> *sizer, loof_t *node, loof_t *rnode, btree_key_t *median_out) {
     int tstamp_back_offset;
     int mandatory = mandatory_cost(sizer, node, MANDATORY_TIMESTAMPS, &tstamp_back_offset);
@@ -889,7 +861,9 @@ void merge(value_sizer_t<V> *sizer, loof_t *left, loof_t *right, btree_key_t *ke
     rassert(left->num_pairs > 0);
     rassert(right->num_pairs > 0);
 
-    move_elements(sizer, left, 0, left->num_pairs, 0, right);
+    int tstamp_back_offset;
+    int mandatory = mandatory_cost(sizer, left, MANDATORY_TIMESTAMPS, &tstamp_back_offset);
+    move_elements(sizer, left, 0, left->num_pairs, 0, right, mandatory, tstamp_back_offset);
 
     rassert(right->num_pairs > 0);
     keycpy(key_to_remove_out, entry_key(get_entry(right, right->pair_offsets[0])));
