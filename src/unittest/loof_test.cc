@@ -219,20 +219,17 @@ TEST(LoofTest, InsertRemove) {
 
     srand(12345);
 
-    const int num_keys = 6;
+    const int num_keys = 10;
     std::string ks[num_keys] = { "the_relatively_long_key_that_is_relatively_long,_eh?__or_even_longer",
                            "some_other_relatively_long_key_that_...whatever.",
                            "another_relatively_long_key",
                            "a_short_key",
                            "", /* an empty string key */
                            "grohl",
-    };
-                               /*
                            "cobain",
                            "reznor",
                            "marley",
                            "domino" };
-    */
 
     for (int i = 0; i < 26 * 26; ++i) {
         std::string v;

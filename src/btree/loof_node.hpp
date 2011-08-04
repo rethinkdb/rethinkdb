@@ -246,7 +246,7 @@ void print(FILE *fp, value_sizer_t<V> *sizer, const loof_t *node) {
 template <class V>
 void validate(value_sizer_t<V> *sizer, const loof_t *node) {
 #ifndef NDEBUG
-    print(stdout, sizer, node);
+    // print(stdout, sizer, node);
 
     // Check that all offsets are contiguous (with interspersed skip
     // entries), that they start with frontmost, that live_size is
