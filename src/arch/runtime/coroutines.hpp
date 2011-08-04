@@ -43,8 +43,13 @@ public:
     coroutine. */
     static coro_t *self();
 
-    /* Transfers control immediately to the coroutine. Returns the next time the
-    coroutine calls `wait()`. */
+    /* Transfers control immediately to the coroutine. Returns when the
+    coroutine calls `wait()`.
+
+    Note: `notify_now()` may become deprecated eventually. The original purpose
+    was to provide better performance than could be achieved with
+    `notify_later_ordered()`, but `notify_sometime()` is now filling that role
+    instead. */
     void notify_now();
 
     /* Schedules the coroutine to be woken up eventually. Can be safely called

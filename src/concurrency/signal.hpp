@@ -61,7 +61,12 @@ public:
     }
 
     /* The coro that calls `wait_eagerly()` will be woken up immediately when
-    the signal is pulsed, before `pulse()` even returns. */
+    the signal is pulsed, before `pulse()` even returns.
+
+    Note: This is dangerous! It's easy to cause race conditions by e.g.
+    destroying the signal that's just been pulsed. You should probably use
+    `wait_lazily_unordered()` instead; its performance will be similar once we
+    optimize `notify_sometime()`. */
     void wait_eagerly() {
         if (!is_pulsed()) {
             subscription_t subs(
