@@ -703,8 +703,6 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
         }
     }
 
-    rassert(wri_offset == tow_offset);
-
     uint16_t new_tstamp_cutpoint = wri_offset;
 
     // tow may have some timestamped entries that need to become
