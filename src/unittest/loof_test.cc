@@ -249,13 +249,28 @@ TEST(LoofTest, InsertRemove) {
 }
 
 TEST(LoofTest, Merging) {
-    LoofTracker left;
-    LoofTracker right;
+    {
+        LoofTracker left;
+        LoofTracker right;
 
-    left.Insert("a", "A");
-    right.Insert("b", "B");
+        left.Insert("a", "A");
+        right.Insert("b", "B");
 
-    right.Merge(left);
+        right.Merge(left);
+    }
+
+    {
+        LoofTracker left;
+        LoofTracker right;
+
+        for (int i = 0; i < 2; ++i) {
+            left.Insert(strprintf("a%d", i), strprintf("A%d", i));
+            right.Insert(strprintf("b%d", i), strprintf("B%d", i));
+        }
+
+        right.Merge(left);
+    }
+
 }
 
 

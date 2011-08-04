@@ -246,7 +246,7 @@ void print(FILE *fp, value_sizer_t<V> *sizer, const loof_t *node) {
 template <class V>
 void validate(value_sizer_t<V> *sizer, const loof_t *node) {
 #ifndef NDEBUG
-    // print(stdout, sizer, node);
+    //    print(stdout, sizer, node);
 
     // Check that all offsets are contiguous (with interspersed skip
     // entries), that they start with frontmost, that live_size is
@@ -613,6 +613,7 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
 
     // We will gradually compute the live size.
     int livesize = tow->live_size;
+    //    printf("livesize at first %d\n", livesize);
 
     for (int i = 0; i < wpoint; ++i) {
         if (tow->pair_offsets[i] < tow->tstamp_cutpoint) {
@@ -633,7 +634,7 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
     int fro_live_size_adjustment = 0;
 
     for (;;) {
-        // printf("fro_index = %d, tow_offset = %d, wri_offset = %d\n", fro_index, tow_offset, wri_offset);
+        //        printf("fro_index = %d, tow_offset = %d, wri_offset = %d\n", fro_index, tow_offset, wri_offset);
         rassert(tow_offset <= tow->tstamp_cutpoint);
         if (tow_offset == tow->tstamp_cutpoint || fro_index == fro_index_end) {
             // We have no more timestamped information to push.
@@ -656,6 +657,11 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
             int entsz = entry_size(sizer, ent);
             int sz = sizeof(repli_timestamp_t) + entsz;
             memmove(get_at_offset(tow, wri_offset), get_at_offset(fro, fro_offset), sz);
+
+            if (entry_is_live(ent)) {
+                livesize += entsz + sizeof(uint16_t);
+            }
+
             clean_entry(ent, entsz);
             fro_live_size_adjustment -= entsz + sizeof(uint16_t);
 
@@ -667,9 +673,6 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
             wri_offset += sz;
             fro_index++;
 
-            if (entry_is_live(ent)) {
-                livesize += entsz + sizeof(uint16_t);
-            }
         } else {
             int sz = sizeof(repli_timestamp_t) + entry_size(sizer, get_entry(tow, tow_offset));
             memmove(get_at_offset(tow, wri_offset), get_at_offset(tow, tow_offset), sz);
@@ -709,6 +712,7 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
             fro->pair_offsets[beg + tow->pair_offsets[fro_index]] = wri_offset;
             wri_offset += sz;
             livesize += sz + sizeof(uint16_t);
+            //            printf("livesize now %d\n", livesize);
         }
     }
 
@@ -763,14 +767,15 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
     tow->frontmost = new_frontmost;
 
     tow->live_size = livesize;
+    //    printf("tow->live_size set to %d\n", livesize);
 
     tow->tstamp_cutpoint = new_tstamp_cutpoint;
 
     fro->live_size += fro_live_size_adjustment;
 
-    // printf("Validating fro\n");
+    //    printf("Validating fro\n");
     validate(sizer, fro);
-    // printf("Validating tow\n");
+    //    printf("Validating tow\n");
     validate(sizer, tow);
 }
 
