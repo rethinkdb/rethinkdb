@@ -150,7 +150,7 @@ public:
         loof::validate(&sizer_, node_);
     }
 
-private:
+public:
     block_size_t bs_;
     value_sizer_t<short_value_t> sizer_;
     loof_t *node_;
@@ -263,7 +263,25 @@ TEST(LoofTest, Merging) {
         LoofTracker left;
         LoofTracker right;
 
-        for (int i = 0; i < 2; ++i) {
+        // We use the largest value that will underflow.
+        //
+        // key_cost = 251, max_possible_size() = 256, sizeof(uint16_t) = 2, sizeof(repli_timestamp) = 4.
+        //
+        // 4084 - 12 = 4072.  4072 / 2 = 2036.  2036 - (251 + 256 + 2
+        // + 4) = 2036 - 513 = 1523.  So 1522 is the max possible
+        // mandatory_cost.  (See the is_underfull implementation.)
+        //
+        // With 5*4 mandatory timestamp bytes and 12 bytes per entry,
+        // that gives us 1502 / 12 as the loop boundary value that
+        // will underflow.  We get 12 byte entries if entries run from
+        // a000 to a999.  But if we allow two-digit entries, that
+        // frees up 2 bytes per entry, so add 200, giving 1702.  If we
+        // allow one-digit entries, that gives us 20 more bytes to
+        // use, giving 1722 / 12 as the loop boundary.  That's an odd
+        // way to look at the arithmetic, but if you don't like that,
+        // you can go cry to your mommy.
+
+        for (int i = 0; i < 1722 / 12; ++i) {
             left.Insert(strprintf("a%d", i), strprintf("A%d", i));
             right.Insert(strprintf("b%d", i), strprintf("B%d", i));
         }
