@@ -466,9 +466,6 @@ void garbage_collect(value_sizer_t<V> *sizer, loof_t *node, int num_tstamped, in
     int mand_offset;
     UNUSED int cost = mandatory_cost(sizer, node, num_tstamped, &mand_offset);
 
-    // We have to adjust for live entries that lose their timestamps.
-    int live_size_adjustment = 0;
-
     int w = sizer->block_size().value();
     int i = node->num_pairs - 1;
     for (; i >= 0; --i) {
@@ -484,9 +481,6 @@ void garbage_collect(value_sizer_t<V> *sizer, loof_t *node, int num_tstamped, in
             w -= sz;
             memmove(get_at_offset(node, w), ent, sz);
             node->pair_offsets[indices[i]] = w;
-            if (offset < node->tstamp_cutpoint) {
-                live_size_adjustment -= sizeof(repli_timestamp_t);
-            }
         } else {
             node->pair_offsets[indices[i]] = 0;
         }
@@ -509,8 +503,6 @@ void garbage_collect(value_sizer_t<V> *sizer, loof_t *node, int num_tstamped, in
     }
 
     node->frontmost = w;
-
-    node->live_size += live_size_adjustment;
 
     // Now squash dead indices.
     int j = 0, k = 0;
