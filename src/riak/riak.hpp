@@ -148,9 +148,9 @@ public:
     }
     
 
-    std::pair<object_tree_iterator_t, object_tree_iterator_t> link_walk(std::string, std::string, std::vector<link_filter_t>) {
-        crash("Not implemented");
-    }
+    //std::pair<object_tree_iterator_t, object_tree_iterator_t> link_walk(std::string, std::string, std::vector<link_filter_t>) {
+        //crash("Not implemented");
+    //}
 
     void store_object(std::string bucket, object_t obj) {
         std::list<std::string> sm_key;

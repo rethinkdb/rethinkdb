@@ -68,11 +68,12 @@ BOOST_FUSION_ADAPT_STRUCT(
 namespace riak {
 
 struct link_filter_t {
-    std::string bucket;
-    std::string tag;
+    boost::optional<std::string> bucket;
+    boost::optional<std::string> tag;
     bool keep;
 };
 
+//TODO TODO TODO make copying this structure more efficient
 struct object_t {
     std::string key;
     std::string content;
@@ -136,7 +137,6 @@ struct object_t {
             }
         }
 
-        BREAKPOINT;
         if (val->n_links > 0) {
         /* grab the links */
             buffer_group_t buffer_group;
@@ -206,20 +206,29 @@ public:
     { }
 };
 
-struct object_tree_iterator_t;
 
-struct object_tree_t : public object_t {
-    object_tree_iterator_t &children() { crash("Not implemented"); }
-    object_tree_iterator_t &children_end() { crash("Not implemented"); }
-};
+//TODO this could actually be a filter iterator
+struct link_iterator_t {
+    link_iterator_t(object_t const &object, link_filter_t filter)
+        : filter(filter), it(object.links.begin()), end(object.links.end())
+    { }
+    boost::optional<std::pair<std::string, std::string> > next_child() {
+        for (; it != end; it++) {
+            //check to see if the filter matches the link
+            if ((!filter.bucket || filter.bucket == it->bucket) && //make sure the bucket matches
+                (!filter.tag    || filter.tag    == it->tag)) {    //make sure the tag matches
 
-struct object_tree_iterator_t {
-    bool operator!=(object_tree_iterator_t const &) {crash("Not implemented");}
-    bool operator==(object_tree_iterator_t const &) {crash("Not implemented");}
-    object_tree_iterator_t operator++() {crash("Not implemented");}
-    object_tree_iterator_t operator++(int) {crash("Not implemented");}
-    object_tree_t operator*() {crash("Not implemented");}
-    object_tree_t *operator->() {crash("Not implemented");}
+                boost::optional<std::pair<std::string, std::string> > res(std::make_pair(it->bucket, it->key));
+                it++;
+                return res;
+            }
+        }
+        return boost::optional<std::pair<std::string, std::string> >();
+    }
+
+private:
+    link_filter_t filter;
+    std::vector<link_t>::const_iterator it, end;
 };
 
 struct luwak_props_t {

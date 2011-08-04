@@ -473,9 +473,12 @@ http_res_t riak_server_t::delete_object(const http_req_t &req) {
 }
 
 http_res_t riak_server_t::link_walk(const http_req_t &req) {
+    BREAKPOINT;
     boost::char_separator<char> sep("/");
     tokenizer tokens(req.resource, sep);
     tok_iterator url_it = tokens.begin(), url_end = tokens.end();
+
+    rassert(*url_it++ == "riak");
 
     //grab the bucket and the key
     rassert(url_it != url_end, "This should only be called if we have a bucket");
@@ -485,6 +488,11 @@ http_res_t riak_server_t::link_walk(const http_req_t &req) {
     std::string key = *url_it++;
 
     http_res_t res; //the response we'll be returning
+    http_res_multipart_body_t *body = new http_res_multipart_body_t();
+    res.body.reset(body);
+
+    // we need these 2 vectors to do a breadth first search in which we can tell the differ
+    std::queue<object_t> current, next;
 
     //parse the links
     std::vector<link_filter_t> filters;
@@ -496,10 +504,20 @@ http_res_t riak_server_t::link_walk(const http_req_t &req) {
         link_filter_t filter;
 
         if (lft_it == lf_end) { goto ERROR_BAD_REQUEST; }
-        filter.bucket = *lft_it++;
+        if (*lft_it == "_" ) {
+            filter.bucket = boost::optional<std::string>();
+            lft_it++;
+        } else {
+            filter.bucket = *lft_it++;
+        }
 
         if (lft_it == lf_end) { goto ERROR_BAD_REQUEST; }
-        filter.tag = *lft_it++;
+        if (*lft_it == "_" ) {
+            filter.tag = boost::optional<std::string>();
+            lft_it++;
+        } else {
+            filter.tag = *lft_it++;
+        }
 
         if (lft_it == lf_end) { goto ERROR_BAD_REQUEST; }
         if (*lft_it == "1") {
@@ -512,28 +530,46 @@ http_res_t riak_server_t::link_walk(const http_req_t &req) {
 
         filters.push_back(filter);
     }
+    {
 
-    //We need to do a breadth first traversal of the links, however the rub is
-    //that we need to keep track of which level we're on, to do this we use 2
-    //vectors
-    //
-    //current is the objects for the level we're currently on
-    //next is the objects for the level below
+        //TODO, this entails alot of copying, we need to make object_t efficiently
+        //copyable
 
-    /* std::vector<std::pair<object_tree_iterator_t, object_tree_iterator_t> > current, next;
-    typedef std::vector<std::pair<object_tree_iterator_t, object_tree_iterator_t> >::iterator oti_pair_t;
+        current.push(riak_interface.get_object(bucket, key));
 
-    current.push_back(riak_interface.link_walk(bucket, key, filters)); */
+        //Add the first level to the multipart message
+        http_res_multipart_body_t *level = new http_res_multipart_body_t();
+        body->add_content(level);
+        level->add_content(new http_res_simple_body_t(current.front().content_type, current.front().content));
 
-    /* for (std::vector<link_filter_t>::iterator lf_it = filters.begin(); lf_it != filters.end(); lf_it++) {
-    for (oti_pair cur_pair_it = current.begin(); cur_pair_it != current.end(); cur_pair_it++) {
-        for (object_tree_iterator_t cur_obj_it = 
+        for (std::vector<link_filter_t>::const_iterator lf_it = filters.begin(); lf_it != filters.end(); lf_it++) {
+            http_res_multipart_body_t *level = new http_res_multipart_body_t();
+            body->add_content(level);
+
+            while (!current.empty()) {
+                link_iterator_t ln_it(current.front(), *lf_it);
+
+                boost::optional<std::pair<std::string, std::string> > child;
+
+                while (child = ln_it.next_child()) {
+                    object_t child_obj = riak_interface.get_object(child->first, child->second);
+                    next.push(child_obj);
+
+                    if (lf_it->keep) {
+                        level->add_content(new http_res_simple_body_t(child_obj.content_type, child_obj.content));
+                    }
+                }
+                current.pop();
+            }
+            while (!next.empty()) {
+                current.push(next.front());
+                next.pop();
+            }
         }
-    } */
 
-    //object_tree_iterator_t obj_it = iters.first, obj_end = iters.second;
-
-    return res;
+        res.code = 200;
+        return res;
+    }
 
 ERROR_BAD_REQUEST:
     http_res_t err_res;
