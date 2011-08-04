@@ -786,6 +786,7 @@ void split(value_sizer_t<V> *sizer, loof_t *node, loof_t *rnode, btree_key_t *me
 
     // We shall split the mandatory cost of this node as evenly as possible.
 
+    repli_timestamp_t prev_earliest_mandatory = repli_timestamp_t::invalid;
     repli_timestamp_t earliest_mandatory = repli_timestamp_t::invalid;
 
     int num_mandatories = 0;
@@ -806,6 +807,7 @@ void split(value_sizer_t<V> *sizer, loof_t *node, loof_t *rnode, btree_key_t *me
             prev_rcost = rcost;
             rcost += entry_size(sizer, ent) + sizeof(uint16_t) + (offset < tstamp_back_offset ? sizeof(repli_timestamp_t) : 0);
 
+            prev_earliest_mandatory = earliest_mandatory;
             if (offset < tstamp_back_offset && (earliest_mandatory == repli_timestamp_t::invalid || get_timestamp(node, offset) < earliest_mandatory)) {
                 earliest_mandatory = get_timestamp(node, offset);
             }
@@ -818,6 +820,7 @@ void split(value_sizer_t<V> *sizer, loof_t *node, loof_t *rnode, btree_key_t *me
                 prev_rcost = rcost;
                 rcost += entry_size(sizer, ent) + sizeof(uint16_t) + sizeof(repli_timestamp_t);
 
+                prev_earliest_mandatory = earliest_mandatory;
                 if (earliest_mandatory == repli_timestamp_t::invalid || get_timestamp(node, offset) < earliest_mandatory) {
                     earliest_mandatory = get_timestamp(node, offset);
                 }
@@ -843,6 +846,7 @@ void split(value_sizer_t<V> *sizer, loof_t *node, loof_t *rnode, btree_key_t *me
         end_rcost = prev_rcost;
         s = i + 2;
         -- num_mandatories;
+        earliest_mandatory = prev_earliest_mandatory;
     } else {
         end_rcost = rcost;
         s = i + 1;
@@ -895,7 +899,7 @@ bool level(value_sizer_t<V> *sizer, loof_t *node, loof_t *sibling, btree_key_t *
 
     int node_weight = mandatory_cost(sizer, node, MANDATORY_TIMESTAMPS);
     int tstamp_back_offset;
-    int sibling_weight = mandatory_cost(sizer, node, MANDATORY_TIMESTAMPS, &tstamp_back_offset);
+    int sibling_weight = mandatory_cost(sizer, sibling, MANDATORY_TIMESTAMPS, &tstamp_back_offset);
 
     rassert(node_weight < sibling_weight);
 
@@ -924,6 +928,9 @@ bool level(value_sizer_t<V> *sizer, loof_t *node, loof_t *sibling, btree_key_t *
 
     rassert(end - beg != sibling->num_pairs - 1);
 
+    repli_timestamp_t prev_earliest_mandatory = repli_timestamp_t::invalid;
+    repli_timestamp_t earliest_mandatory = repli_timestamp_t::invalid;
+
     int prev_weight_movement = 0;
     int weight_movement = 0;
     int num_mandatories = 0;
@@ -940,6 +947,12 @@ bool level(value_sizer_t<V> *sizer, loof_t *node, loof_t *sibling, btree_key_t *
             weight_movement += sz;
             node_weight += sz;
             sibling_weight -= sz;
+
+            prev_earliest_mandatory = earliest_mandatory;
+            if (offset < tstamp_back_offset && (earliest_mandatory == repli_timestamp_t::invalid || get_timestamp(sibling, offset) < earliest_mandatory)) {
+                earliest_mandatory = get_timestamp(sibling, offset);
+            }
+
             ++ num_mandatories;
         } else {
             rassert(entry_is_deletion(ent));
@@ -951,6 +964,12 @@ bool level(value_sizer_t<V> *sizer, loof_t *node, loof_t *sibling, btree_key_t *
                 weight_movement += sz;
                 node_weight += sz;
                 sibling_weight -= sz;
+
+                prev_earliest_mandatory = earliest_mandatory;
+                if (earliest_mandatory == repli_timestamp_t::invalid || get_timestamp(sibling, offset) < earliest_mandatory) {
+                    earliest_mandatory = get_timestamp(sibling, offset);
+                }
+
                 ++ num_mandatories;
             }
         }
@@ -968,6 +987,7 @@ bool level(value_sizer_t<V> *sizer, loof_t *node, loof_t *sibling, btree_key_t *
         *w -= wstep;
         -- num_mandatories;
         weight_movement = prev_weight_movement;
+        earliest_mandatory = prev_earliest_mandatory;
     }
 
     if (end < beg) {
@@ -977,7 +997,7 @@ bool level(value_sizer_t<V> *sizer, loof_t *node, loof_t *sibling, btree_key_t *
     }
 
     int sib_copysize = weight_movement - num_mandatories * sizeof(uint16_t);
-    move_elements(sizer, sibling, beg, end + 1, nodecmp_result < 0 ? node->num_pairs : 0, node, sib_copysize, /* fro_earliest_mandatory */, /* fro_mand_offset */);
+    move_elements(sizer, sibling, beg, end + 1, nodecmp_result < 0 ? node->num_pairs : 0, node, sib_copysize, earliest_mandatory, /* fro_mand_offset */);
 
     // key_to_replace_out is set to a key that is <= the key to
     // replace, but > any lesser key, and replacement_key_out is the
