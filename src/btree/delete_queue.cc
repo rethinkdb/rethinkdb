@@ -6,7 +6,7 @@
 #include "containers/scoped_malloc.hpp"
 #include "data_provider.hpp"
 #include "logger.hpp"
-#include "store.hpp"
+#include "memcached/store.hpp"
 
 namespace replication {
 

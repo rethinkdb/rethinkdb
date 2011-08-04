@@ -1,7 +1,7 @@
 #ifndef __CLUSTERING_CLUSTER_STORE_HPP__
 #define __CLUSTERING_CLUSTER_STORE_HPP__
 
-#include "store.hpp"
+#include "memcached/store.hpp"
 #include "rpc/rpc.hpp"
 #include "rpc/serialize/serialize_macros.hpp"
 #include "rpc/serialize/others.hpp"

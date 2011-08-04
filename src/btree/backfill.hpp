@@ -2,7 +2,7 @@
 #define __BTREE_BACKFILL_HPP__
 
 #include "utils.hpp"
-#include "store.hpp"
+#include "memcached/store.hpp"
 #include "btree/delete_queue.hpp"
 
 // Run backfilling at a reduced priority

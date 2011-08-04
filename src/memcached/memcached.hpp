@@ -3,7 +3,7 @@
 
 #include <vector>
 
-#include "store.hpp"
+#include "memcached/store.hpp"
 
 /* `handle_memcache()` handles memcache queries from the given `memcached_interface_t`,
 sending the results to the same `memcached_interface_t`, until either SIGINT is sent to

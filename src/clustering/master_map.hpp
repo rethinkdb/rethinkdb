@@ -4,7 +4,7 @@
 #include "rpc/rpc.hpp"
 #include "concurrency/cond_var.hpp"
 #include <boost/bind.hpp>
-#include "store.hpp"
+#include "memcached/store.hpp"
 #include "rpc/serialize/serialize.hpp"
 #include "clustering/cluster_store.hpp"
 
