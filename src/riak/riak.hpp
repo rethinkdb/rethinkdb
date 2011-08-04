@@ -238,10 +238,11 @@ public:
         }
     }
 
+    /*
     //Luwak operations:
     luwak_props_t luwak_props() {
         crash("Not implemented");
-    }
+    } */
 
     /* object_t get_luwak(std::string key, std::pair<int, int> range) {
         return internal_get_object("luwak", "luwak", key, range);

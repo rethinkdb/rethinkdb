@@ -545,18 +545,17 @@ http_res_t riak_server_t::link_walk(const http_req_t &req) {
         for (std::vector<link_filter_t>::const_iterator lf_it = filters.begin(); lf_it != filters.end(); lf_it++) {
             http_res_multipart_body_t *level = new http_res_multipart_body_t();
             body->add_content(level);
-
             while (!current.empty()) {
-                link_iterator_t ln_it(current.front(), *lf_it);
+                for (std::vector<link_t>::const_iterator ln_it = current.front().links.begin(); ln_it != current.front().links.end(); ln_it++) {
+                    if ((!lf_it->bucket || lf_it->bucket == ln_it->bucket) && //make sure the bucket matches
+                            (!lf_it->tag    || lf_it->tag    == ln_it->tag)) {    //make sure the tag matches
 
-                boost::optional<std::pair<std::string, std::string> > child;
+                        object_t child_obj = riak_interface.get_object(ln_it->bucket, ln_it->key);
+                        next.push(child_obj);
 
-                while (child = ln_it.next_child()) {
-                    object_t child_obj = riak_interface.get_object(child->first, child->second);
-                    next.push(child_obj);
-
-                    if (lf_it->keep) {
-                        level->add_content(new http_res_simple_body_t(child_obj.content_type, child_obj.content));
+                        if (lf_it->keep) {
+                            level->add_content(new http_res_simple_body_t(child_obj.content_type, child_obj.content));
+                        }
                     }
                 }
                 current.pop();

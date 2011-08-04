@@ -206,7 +206,7 @@ public:
     { }
 };
 
-
+/*
 //TODO this could actually be a filter iterator
 struct link_iterator_t {
     link_iterator_t(object_t const &object, link_filter_t filter)
@@ -229,12 +229,14 @@ struct link_iterator_t {
 private:
     link_filter_t filter;
     std::vector<link_t>::const_iterator it, end;
-};
+}; */
 
+/* 
 struct luwak_props_t {
     std::string root_bucket, segment_bucket;
     int block_default;
 };
+*/
 
 } //namespace riak
 
