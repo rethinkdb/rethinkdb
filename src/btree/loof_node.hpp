@@ -1141,16 +1141,66 @@ void remove(value_sizer_t<V> *sizer, loof_t *node, const btree_key_t *key, repli
     validate(sizer, node);
 }
 
+template <class V>
+class entry_reception_callback_t {
+public:
+    // Says that the timestamp was too early, and we can't send accurate deletion history.
+    virtual void lost_deletions() = 0;
 
+    // Sends a deletion in the deletion history.
+    virtual void deletion(const btree_key_t *k, repli_timestamp_t tstamp) = 0;
 
+    // Sends a key/value pair in the leaf.
+    virtual void key_value(const btree_key_t *k, const V *value, repli_timestamp_t tstamp) = 0;
 
+protected:
+    virtual ~entry_reception_callback_t() { }
+};
 
+template <class V>
+void dump_entries_since_time(value_sizer_t<V> *sizer, const loof_t *node, repli_timestamp minimum_tstamp, entry_reception_callback_t<V> *cb) {
+    validate(sizer, node);
 
+    int stop_offset = 0;
 
+    {
+        repli_timestamp_t earliest = repli_timestamp_t::invalid;
 
+        entry_iter_t iter = entry_iter_t::make(node);
+        while (!iter.done() && iter.offset < node->tstamp_cutpoint) {
+            repli_timestamp_t new_earliest = get_timestamp(node, iter.offset);
+            rassert(new_earliest <= earliest);
+            earliest = new_earliest;
+            iter.step(sizer, node);
 
+            if (earliest < minimum_tstamp) {
+                stop_offset = iter.offset;
+                break;
+            }
+        }
+    }
 
+    bool include_deletions = true;
+    if (stop_offset == 0) {
+        stop_offset = sizer->block_size().value();
+        cb->lost_deletions();
+        include_deletions = false;
+    }
 
+    {
+        entry_iter_t iter = entry_iter_t::make(node);
+        while (iter.offset < stop_offset) {
+            repli_timestamp_t tstamp = get_timestamp(node, offset);
+            const entry_t *ent = get_entry(node, offset);
+
+            if (entry_is_live(ent)) {
+                cb->key_value(entry_key(ent), entry_value(ent), tstamp);
+            } else if (entry_is_deletion(ent) && include_deletions) {
+                cb->deletion(entry_key(ent), tstamp);
+            }
+        }
+    }
+}
 
 
 }  // namespace loof
