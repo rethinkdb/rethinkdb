@@ -924,6 +924,9 @@ bool level(value_sizer_t<V> *sizer, loof_t *node, loof_t *sibling, btree_key_t *
 
     rassert(end - beg != sibling->num_pairs - 1);
 
+    int prev_weight_movement = 0;
+    int weight_movement = 0;
+    int num_mandatories = 0;
     int prev_diff;
     for (;;) {
         int offset = sibling->pair_offsets[*w];
@@ -933,16 +936,22 @@ bool level(value_sizer_t<V> *sizer, loof_t *node, loof_t *sibling, btree_key_t *
         if (entry_is_live(ent)) {
             int sz = entry_size(sizer, ent) + sizeof(uint16_t) + (offset < tstamp_back_offset ? sizeof(repli_timestamp_t) : 0);
             prev_diff = sibling_weight - node_weight;
+            prev_weight_movement = weight_movement;
+            weight_movement += sz;
             node_weight += sz;
             sibling_weight -= sz;
+            ++ num_mandatories;
         } else {
             rassert(entry_is_deletion(ent));
 
             if (offset < tstamp_back_offset) {
                 int sz = entry_size(sizer, ent) + sizeof(uint16_t) + sizeof(repli_timestamp_t);
                 prev_diff = sibling_weight - node_weight;
+                prev_weight_movement = weight_movement;
+                weight_movement += sz;
                 node_weight += sz;
                 sibling_weight -= sz;
+                ++ num_mandatories;
             }
         }
 
@@ -957,6 +966,8 @@ bool level(value_sizer_t<V> *sizer, loof_t *node, loof_t *sibling, btree_key_t *
 
     if (prev_diff <= sibling_weight - node_weight) {
         *w -= wstep;
+        -- num_mandatories;
+        weight_movement = prev_weight_movement;
     }
 
     if (end < beg) {
@@ -965,7 +976,8 @@ bool level(value_sizer_t<V> *sizer, loof_t *node, loof_t *sibling, btree_key_t *
         return false;
     }
 
-    move_elements(sizer, sibling, beg, end + 1, nodecmp_result < 0 ? node->num_pairs : 0, node, /* fro_copysize */, /* fro_earliest_mandatory */, /* fro_mand_offset */);
+    int sib_copysize = weight_movement - num_mandatories * sizeof(uint16_t);
+    move_elements(sizer, sibling, beg, end + 1, nodecmp_result < 0 ? node->num_pairs : 0, node, sib_copysize, /* fro_earliest_mandatory */, /* fro_mand_offset */);
 
     // key_to_replace_out is set to a key that is <= the key to
     // replace, but > any lesser key, and replacement_key_out is the
