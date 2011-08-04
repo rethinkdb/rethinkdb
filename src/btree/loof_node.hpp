@@ -246,7 +246,7 @@ void print(FILE *fp, value_sizer_t<V> *sizer, const loof_t *node) {
 template <class V>
 void validate(value_sizer_t<V> *sizer, const loof_t *node) {
 #ifndef NDEBUG
-    // print(stdout, sizer, node);
+    print(stdout, sizer, node);
 
     // Check that all offsets are contiguous (with interspersed skip
     // entries), that they start with frontmost, that live_size is
@@ -268,7 +268,8 @@ void validate(value_sizer_t<V> *sizer, const loof_t *node) {
 
     std::sort(offs, offs + node->num_pairs);
 
-    rassert(node->num_pairs == 0 || node->frontmost <= offs[0]);
+    rassert(node->num_pairs == 0 || node->frontmost <= offs[0],
+            "num_pairs=%d, frontmost=%d, offs[0]?=%d", node->num_pairs, node->frontmost, node->num_pairs == 0 ? 0 : offs[0]);
     rassert(node->num_pairs == 0 || offs[node->num_pairs - 1] < sizer->block_size().value());
 
     entry_iter_t iter = entry_iter_t::make(node);
@@ -302,7 +303,7 @@ void validate(value_sizer_t<V> *sizer, const loof_t *node) {
         iter.step(sizer, node);
     }
 
-    rassert(i == node->num_pairs);
+    rassert(i == node->num_pairs, "i=%d, num_pairs=%d", i, node->num_pairs);
 
     rassert(node->live_size == observed_live_size);
 
@@ -561,6 +562,9 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
     validate(sizer, fro);
     validate(sizer, tow);
 
+    printf("move_elements beg = %d, end = %d, wpoint = %d, fro_copysize = %d, fro_mand_offset = %d\n",
+           beg, end, wpoint, fro_copysize, fro_mand_offset);
+
     rassert(is_underfull(sizer, tow));
 
 #ifndef NDEBUG
@@ -629,6 +633,7 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
     int fro_live_size_adjustment = 0;
 
     for (;;) {
+        printf("fro_index = %d, tow_offset = %d, wri_offset = %d\n", fro_index, tow_offset, wri_offset);
         rassert(tow_offset <= tow->tstamp_cutpoint);
         if (tow_offset == tow->tstamp_cutpoint || fro_index == fro_index_end) {
             // We have no more timestamped information to push.
@@ -687,8 +692,11 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
         }
     }
 
+    uint16_t new_tstamp_cutpoint = wri_offset;
+
     // Now we have some untimestamped entries to write.
     for (; fro_index < fro_index_end; ++fro_index) {
+        printf("fro_index = %d, wri_offset = %d\n", fro_index, wri_offset);
         int fro_offset = fro->pair_offsets[beg + tow->pair_offsets[fro_index]];
         entry_t *ent = get_entry(fro, fro_offset);
         if (entry_is_live(ent)) {
@@ -702,8 +710,6 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
             livesize += sz + sizeof(uint16_t);
         }
     }
-
-    uint16_t new_tstamp_cutpoint = wri_offset;
 
     // tow may have some timestamped entries that need to become
     // un-timestamped.
@@ -738,6 +744,7 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
     // If we needed to untimestamp any tow entries, we'll need a skip
     // entry for the open space.
     if (wri_offset < tow_offset) {
+        printf("wri_offset = %d, tow_offset = %d\n", wri_offset, tow_offset);
         clean_entry(get_at_offset(tow, wri_offset), tow_offset - wri_offset);
     }
 
@@ -750,7 +757,7 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
     memcpy(tow->pair_offsets + wpoint, fro->pair_offsets + beg,
            sizeof(uint16_t) * (end - beg));
     memmove(fro->pair_offsets + beg, fro->pair_offsets + end, sizeof(uint16_t) * (fro->num_pairs - end));
-    fro->num_pairs -= beg - end;
+    fro->num_pairs -= end - beg;
 
     tow->frontmost = new_frontmost;
 
@@ -760,7 +767,9 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
 
     fro->live_size += fro_live_size_adjustment;
 
+    printf("Validating fro\n");
     validate(sizer, fro);
+    printf("Validating tow\n");
     validate(sizer, tow);
 }
 
@@ -851,7 +860,7 @@ void merge(value_sizer_t<V> *sizer, loof_t *left, loof_t *right, btree_key_t *ke
 
     int tstamp_back_offset;
     int mandatory = mandatory_cost(sizer, left, MANDATORY_TIMESTAMPS, &tstamp_back_offset);
-    move_elements(sizer, left, 0, left->num_pairs, 0, right, mandatory, tstamp_back_offset);
+    move_elements(sizer, left, 0, left->num_pairs, 0, right, mandatory - left->num_pairs * sizeof(uint16_t), tstamp_back_offset);
 
     rassert(right->num_pairs > 0);
     keycpy(key_to_remove_out, entry_key(get_entry(right, right->pair_offsets[0])));
