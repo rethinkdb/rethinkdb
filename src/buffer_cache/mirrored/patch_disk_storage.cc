@@ -135,9 +135,11 @@ void patch_disk_storage_t::load_patches(patch_memory_storage_t &in_memory_storag
                 // Only store the patch if the corresponding block still exists
                 // (otherwise we'd get problems when flushing the log, as deleted blocks would cause an error)
                 rassert(get_thread_id() == cache.home_thread());
-                coro_t::move_to_thread(cache.serializer->home_thread());
-                bool block_in_use = !cache.serializer->get_delete_bit(patch->get_block_id());
-                coro_t::move_to_thread(cache.home_thread());
+                bool block_in_use;
+                {
+                    on_thread_t thread_switcher(cache.serializer->home_thread());
+                    block_in_use = !cache.serializer->get_delete_bit(patch->get_block_id());
+                }
                 if (block_in_use)
                     patch_map[patch->get_block_id()].push_back(patch);
                 else

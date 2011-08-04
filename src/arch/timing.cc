@@ -9,7 +9,7 @@
 void nap(int ms) {
     if (ms > 0) {
         signal_timer_t timer(ms);
-        timer.wait_lazily();
+        timer.wait_lazily_ordered();
     } else {
         coro_t::yield();
     }

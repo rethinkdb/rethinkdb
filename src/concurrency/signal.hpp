@@ -38,12 +38,23 @@ public:
         return state == state_pulsing || state == state_pulsed;
     }
 
-    /* The coro that calls `wait_lazily()` will be pushed onto the event queue
-    when the signal is pulsed, but will not wake up immediately. */
-    void wait_lazily() {
+    /* The coro that calls `wait_lazily_ordered()` will be pushed onto the event
+    queue when the signal is pulsed, but will not wake up immediately. */
+    void wait_lazily_ordered() {
         if (!is_pulsed()) {
             subscription_t subs(
-                boost::bind(&coro_t::notify_later, coro_t::self()),
+                boost::bind(&coro_t::notify_later_ordered, coro_t::self()),
+                this);
+            coro_t::wait();
+        }
+    }
+
+    /* The coro that calls `wait_lazily_unordered()` will be notified soon after
+    the signal has been pulsed, but not immediately. */
+    void wait_lazily_unordered() {
+        if (!is_pulsed()) {
+            subscription_t subs(
+                boost::bind(&coro_t::notify_sometime, coro_t::self()),
                 this);
             coro_t::wait();
         }
@@ -60,10 +71,9 @@ public:
         }
     }
 
-    /* `wait()` is a synonym for `wait_lazily()`, but it's better to explicitly
-    call `wait_lazily()` or `wait_eagerly()`. */
+    /* `wait()` is a deprecated synonym for `wait_lazily_ordered()`. */
     void wait() {
-        wait_lazily();
+        wait_lazily_ordered();
     }
 
 protected:

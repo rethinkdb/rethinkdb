@@ -227,7 +227,7 @@ void coro_t::wait() {   /* class method */
 
 void coro_t::yield() {  /* class method */
     rassert(self(), "Not in a coroutine context");
-    self()->notify_later();
+    self()->notify_later_ordered();
     self()->wait();
 }
 
@@ -273,15 +273,24 @@ void coro_t::notify_now() {
 #endif
 }
 
-void coro_t::notify_later() {
+void coro_t::notify_sometime() {
+    rassert(current_thread_ == linux_thread_pool_t::thread_id);
+
+    /* For now we just implement `notify_sometime()` as
+    `notify_later_ordered()`, but later we could eliminate the full trip around
+    the event loop. */
+    notify_later_ordered();
+}
+
+void coro_t::notify_later_ordered() {
     rassert(!notified_);
     notified_ = true;
 
-    /* notify_later() doesn't switch to the coroutine immediately; instead, it just pushes
-    the coroutine onto the event queue. */
+    /* `notify_later_ordered()` doesn't switch to the coroutine immediately;
+    instead, it just pushes the coroutine onto the event queue. */
 
-    /* current_thread is the thread that the coroutine lives on, which may or may not be the
-    same as get_thread_id(). */
+    /* `current_thread` is the thread that the coroutine lives on, which may or
+    may not be the same as `get_thread_id()`. */
     linux_thread_pool_t::thread->message_hub.store_message(current_thread_, this);
 }
 
@@ -294,7 +303,7 @@ void coro_t::move_to_thread(int thread) {   /* class method */
     rassert(coro_t::self(), "coro_t::move_to_thread() called when not in a coroutine, and the "
         "desired thread isn't the one we're already on.");
     self()->current_thread_ = thread;
-    self()->notify_later();
+    self()->notify_later_ordered();
     wait();
 }
 
@@ -321,16 +330,20 @@ bool is_coroutine_stack_overflow(void *addr) {
     return cglobals->current_coro && cglobals->current_coro->context->stack.address_is_stack_overflow(addr);
 }
 
-void coro_t::spawn_later(const boost::function<void()>& deed) {
-    spawn_on_thread(linux_thread_pool_t::thread_id, deed);
-}
-
 void coro_t::spawn_now(const boost::function<void()> &deed) {
     (new coro_t(deed, linux_thread_pool_t::thread_id))->notify_now();
 }
 
+void coro_t::spawn_sometime(const boost::function<void()> &deed) {
+    (new coro_t(deed, linux_thread_pool_t::thread_id))->notify_sometime();
+}
+
+void coro_t::spawn_later_ordered(const boost::function<void()>& deed) {
+    spawn_on_thread(linux_thread_pool_t::thread_id, deed);
+}
+
 void coro_t::spawn_on_thread(int thread, const boost::function<void()>& deed) {
-    (new coro_t(deed, thread))->notify_later();
+    (new coro_t(deed, thread))->notify_later_ordered();
 }
 
 #ifndef NDEBUG

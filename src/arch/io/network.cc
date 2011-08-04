@@ -144,17 +144,21 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
 
             /* Wait for something to happen.
 
-            We must wait lazily because if we wait eagerly, the `linux_tcp_conn_t` could be
-            immediately destroyed as a consequence of our being notified, which could screw up
-            the `linux_event_watcher_t`. See issue #322.
+            We must wait lazily because if we wait eagerly, the
+            `linux_tcp_conn_t` could be immediately destroyed as a consequence
+            of our being notified, which could screw up the
+            `linux_event_watcher_t`. See issue #322.
 
-            At one time it was believed that `wait_eagerly()` would provide better performance,
-            because `wait_lazily()` means an extra trip around the event loop when the connection
-            becomes readable. On 2011-05-12, Tim benchmarked `wait_eagerly()` against
-            `wait_lazily()` on electro with an all-get workload, no keys in the database, and
-            default stress-client and server parameters, and found that it had no significant
-            impact on performance. */
-            cond.wait_lazily();
+            At one time it was believed that `wait_eagerly()` would provide
+            better performance, because `wait_lazily_ordered()` means an extra
+            trip around the event loop when the connection becomes readable. On
+            2011-05-12, Tim benchmarked `wait_eagerly()` against
+            `wait_lazily_ordered()` on electro with an all-get workload, no keys
+            in the database, and default stress-client and server parameters,
+            and found that it had no significant impact on performance.
+
+            TODO: Consider using `wait_lazily_unordered()`. */
+            cond.wait_lazily_ordered();
 
             read_in_progress = false;
 
@@ -351,7 +355,7 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
             cond_link_t pulse_if_got_event(&watch, &cond);
 
             /* Wait for something to happen. */
-            cond.wait_lazily();
+            cond.wait_lazily_ordered();
 
             if (write_closed.is_pulsed()) {
                 /* We were closed for whatever reason. Whatever signalled us has already called
