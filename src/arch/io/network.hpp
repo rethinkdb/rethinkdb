@@ -6,7 +6,7 @@
 #include "utils.hpp"
 #include <boost/scoped_ptr.hpp>
 #include "arch/runtime/event_queue.hpp"
-#include "arch/runtime/linux_utils.hpp"
+#include "arch/io/io_utils.hpp"
 #include "arch/address.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/queue/unlimited_fifo.hpp"

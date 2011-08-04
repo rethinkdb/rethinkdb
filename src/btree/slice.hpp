@@ -1,7 +1,7 @@
 #ifndef __BTREE_SLICE_HPP__
 #define __BTREE_SLICE_HPP__
 
-#include "store.hpp"
+#include "memcached/store.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "serializer/serializer.hpp"

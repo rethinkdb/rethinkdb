@@ -9,7 +9,7 @@
 #include "btree/leaf_node.hpp"
 #include "btree/operations.hpp"
 #include "buffer_cache/buf_lock.hpp"
-#include "store.hpp"
+#include "memcached/store.hpp"
 
 get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, order_token_t token) {
     btree_key_buffer_t kbuffer(store_key);

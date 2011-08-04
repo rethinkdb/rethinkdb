@@ -8,7 +8,7 @@
 #include "rpc/serialize/serialize.hpp"
 #include "rpc/serialize/basic.hpp"
 #include "rpc/core/cluster.hpp"
-#include "store.hpp"
+#include "memcached/store.hpp"
 
 /* Serializing and unserializing std::vector of a serializable type */
 

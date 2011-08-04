@@ -1,5 +1,5 @@
-#ifndef __STORE_HPP__
-#define __STORE_HPP__
+#ifndef __MEMCACHED_STORE_HPP__
+#define __MEMCACHED_STORE_HPP__
 
 #include <string.h>
 #include <stdio.h>

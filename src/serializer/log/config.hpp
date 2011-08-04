@@ -1,8 +1,9 @@
 #ifndef __SERIALIZER_LOG_CONFIG_HPP__
-#define	__SERIALIZER_LOG_CONFIG_HPP__
+#define __SERIALIZER_LOG_CONFIG_HPP__
 
 #include "config/args.hpp"
 #include "serializer/types.hpp"
+#include "arch/io/io_utils.hpp"   /* for `io_backend_t` */
 
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/access.hpp>

@@ -1,7 +1,7 @@
 #ifndef __STATS_PERSIST_HPP__
 #define __STATS_PERSIST_HPP__
 
-#include "arch/core.hpp"
+#include "arch/runtime/runtime.hpp"
 #include "containers/intrusive_list.hpp"
 #include "perfmon.hpp"
 

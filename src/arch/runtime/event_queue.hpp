@@ -9,7 +9,7 @@
 #include <boost/scoped_ptr.hpp>
 
 #include "perfmon_types.hpp"
-#include "arch/runtime/linux_utils.hpp"
+#include "arch/runtime/runtime_utils.hpp"
 #include "arch/runtime/event_queue_types.hpp"
 
 const int poll_event_in = 1;

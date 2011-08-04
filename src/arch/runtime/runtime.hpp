@@ -1,14 +1,10 @@
-#ifndef __ARCH_CORE_HPP__
-#define __ARCH_CORE_HPP__
+#ifndef __ARCH_RUNTIME_RUNTIME_HPP__
+#define __ARCH_RUNTIME_RUNTIME_HPP__
 
-/* HACK. See Tim for more information. */
+#include "arch/runtime/runtime_utils.hpp"
+#include "arch/runtime/coroutines.hpp"
 
-#include "arch/runtime/linux_utils.hpp"
-
-class linux_thread_message_t;
 typedef linux_thread_message_t thread_message_t;
-
-typedef linux_io_backend_t io_backend_t;
 
 int get_thread_id();
 
@@ -46,4 +42,4 @@ continue processing immediately if we are already on the correct thread, but
 at the time it didn't seem worth rewriting it, so call_later_on_this_thread()
 was added to make it easy to simulate the old semantics. */
 
-#endif /* __ARCH_CORE_HPP__ */
+#endif /* __ARCH_RUNTIME_RUNTIME_HPP__ */

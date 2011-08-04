@@ -1,4 +1,4 @@
-#include "arch/runtime/coroutines.hpp"
+#include "arch/runtime/runtime.hpp"
 
 
 #include <stdio.h>
@@ -42,58 +42,71 @@ struct coro_context_t :
     artificial_stack_t stack;
 };
 
-/* The coroutine we're currently in, if any. NULL if we are in the main context. */
-static __thread coro_t *current_coro = NULL;
+/* `coro_globals_t` holds all of the thread-local variables that coroutines need
+to operate. There is one per thread; it is constructed by the constructor for
+`coro_runtime_t` and destroyed by the destructor. If one exists, you can find
+it in `cglobals`. */
 
-/* The main context. */
-static __thread context_ref_t *scheduler = NULL;
+struct coro_globals_t {
 
-/* The previous context. */
-static __thread coro_t *prev_coro = NULL;
+    /* The coroutine we're currently in, if any. NULL if we are in the main
+    context. */
+    coro_t *current_coro;
 
-/* A list of coro_context_t objects that are not in use. */
-static __thread intrusive_list_t<coro_context_t> *free_contexts = NULL;
+    /* The main context. */
+    context_ref_t scheduler;
+
+    /* The previous context. */
+    coro_t *prev_coro;
+
+    /* A list of coro_context_t objects that are not in use. */
+    intrusive_list_t<coro_context_t> free_contexts;
 
 #ifndef NDEBUG
 
-/* An integer counting the number of coros on this thread */
-static __thread int coro_context_count = 0;
+    /* An integer counting the number of coros on this thread */
+    int coro_context_count;
 
-/* These variables are used in the implementation of `ASSERT_NO_CORO_WAITING` and
-`ASSERT_FINITE_CORO_WAITING`. They record the number of things that are currently
-preventing us from `wait()`ing or `notify_now()`ing or whatever. */
-__thread int assert_no_coro_waiting_counter = 0;
-__thread int assert_finite_coro_waiting_counter = 0;
+    /* These variables are used in the implementation of
+    `ASSERT_NO_CORO_WAITING` and `ASSERT_FINITE_CORO_WAITING`. They record the
+    number of things that are currently preventing us from `wait()`ing or
+    `notify_now()`ing or whatever. */
+    int assert_no_coro_waiting_counter;
+    int assert_finite_coro_waiting_counter;
 
 #endif  // NDEBUG
 
-/* coro_globals_t */
+    coro_globals_t() :
+        current_coro(NULL), prev_coro(NULL),
+        coro_context_count(0),
+        assert_no_coro_waiting_counter(0),
+        assert_finite_coro_waiting_counter(0)
+        { }
 
-coro_globals_t::coro_globals_t() {
-    rassert(!current_coro);
+    ~coro_globals_t() {
+        /* We shouldn't be shutting down from within a coroutine */
+        rassert(!current_coro);
 
-    /* `context_ref_t` is not a POD type, so we have to allocate it and then
-    deallocate it later. */
-    rassert(!scheduler);
-    scheduler = new context_ref_t;
-
-    rassert(free_contexts == NULL);
-    free_contexts = new intrusive_list_t<coro_context_t>;
-}
-
-coro_globals_t::~coro_globals_t() {
-    rassert(!current_coro);
-
-    /* Destroy remaining coroutines */
-    while (coro_context_t *s = free_contexts->head()) {
-        free_contexts->remove(s);
-        delete s;
+        /* Destroy remaining coroutines */
+        while (coro_context_t *s = free_contexts.head()) {
+            free_contexts.remove(s);
+            delete s;
+        }
     }
 
-    delete free_contexts;
-    free_contexts = NULL;
+};
 
-    delete scheduler;
+static __thread coro_globals_t *cglobals = NULL;
+
+coro_runtime_t::coro_runtime_t() {
+    rassert(!cglobals, "coro runtime initialized twice on this thread");
+    cglobals = new coro_globals_t;
+}
+
+coro_runtime_t::~coro_runtime_t() {
+    rassert(cglobals);
+    delete cglobals;
+    cglobals = NULL;
 }
 
 /* coro_context_t */
@@ -104,15 +117,15 @@ coro_context_t::coro_context_t() :
     pm_allocated_coroutines++;
 
 #ifndef NDEBUG
-    coro_context_count++;
-    rassert(coro_context_count < MAX_COROS_PER_THREAD, "Too many coroutines "
-            "allocated on this thread. This is problem due to a misuse of the "
-            "coroutines\n");
+    cglobals->coro_context_count++;
+    rassert(cglobals->coro_context_count < MAX_COROS_PER_THREAD, "Too many "
+            "coroutines allocated on this thread. This is problem due to a "
+            "misuse of the coroutines\n");
 #endif
 }
 
 void coro_context_t::run() {
-    coro_context_t *self = current_coro->context;
+    coro_context_t *self = cglobals->current_coro->context;
 
     /* Make sure we're on the right stack. */
 #ifndef NDEBUG
@@ -121,19 +134,19 @@ void coro_context_t::run() {
 #endif
 
     while (true) {
-        current_coro->run();
+        cglobals->current_coro->run();
 
-        if (prev_coro) {
-            context_switch(&self->stack.context, &prev_coro->context->stack.context);
+        if (cglobals->prev_coro) {
+            context_switch(&self->stack.context, &cglobals->prev_coro->context->stack.context);
         } else {
-            context_switch(&self->stack.context, scheduler);
+            context_switch(&self->stack.context, &cglobals->scheduler);
         }
     }
 }
 
 coro_context_t::~coro_context_t() {
 #ifndef NDEBUG
-    coro_context_count--;
+    cglobals->coro_context_count--;
 #endif
     pm_allocated_coroutines--;
 }
@@ -152,16 +165,16 @@ coro_t::coro_t(const boost::function<void()>& deed, int thread) :
     pm_active_coroutines++;
 
     /* Find us a stack */
-    if (free_contexts->size() == 0) {
+    if (cglobals->free_contexts.size() == 0) {
         context = new coro_context_t();
     } else {
-        context = free_contexts->tail();
-        free_contexts->remove(context);
+        context = cglobals->free_contexts.tail();
+        cglobals->free_contexts.remove(context);
     }
 }
 
 void return_context_to_free_contexts(coro_context_t *context) {
-    free_contexts->push_back(context);
+    cglobals->free_contexts.push_back(context);
 }
 
 coro_t::~coro_t() {
@@ -172,7 +185,7 @@ coro_t::~coro_t() {
 }
 
 void coro_t::run() {
-    rassert(current_coro == this);
+    rassert(cglobals->current_coro == this);
     waiting_ = false;
 
     deed_();
@@ -181,13 +194,13 @@ void coro_t::run() {
 }
 
 coro_t *coro_t::self() {   /* class method */
-    return current_coro;
+    return cglobals->current_coro;
 }
 
 void coro_t::wait() {   /* class method */
     rassert(self(), "Not in a coroutine context");
-    rassert(assert_no_coro_waiting_counter == 0 &&
-            assert_finite_coro_waiting_counter == 0,
+    rassert(cglobals->assert_no_coro_waiting_counter == 0 &&
+            cglobals->assert_finite_coro_waiting_counter == 0,
         "This code path is not supposed to use coro_t::wait().");
 
 #ifndef NDEBUG
@@ -197,25 +210,24 @@ void coro_t::wait() {   /* class method */
     rassert(!abi::__cxa_current_exception_type());
 #endif
 
-    rassert(!current_coro->waiting_);
-    current_coro->waiting_ = true;
+    rassert(!self()->waiting_);
+    self()->waiting_ = true;
 
-    rassert(current_coro);
-    if (prev_coro) {
-        context_switch(&current_coro->context->stack.context, &prev_coro->context->stack.context);
+    if (cglobals->prev_coro) {
+        context_switch(&self()->context->stack.context, &cglobals->prev_coro->context->stack.context);
     } else {
-        context_switch(&current_coro->context->stack.context, scheduler);
+        context_switch(&self()->context->stack.context, &cglobals->scheduler);
     }
 
-    rassert(current_coro);
+    rassert(self());
 
-    rassert(current_coro->waiting_);
-    current_coro->waiting_ = false;
+    rassert(self()->waiting_);
+    self()->waiting_ = false;
 }
 
 void coro_t::yield() {  /* class method */
     rassert(self(), "Not in a coroutine context");
-    self()->notify_later();
+    self()->notify_later_ordered();
     self()->wait();
 }
 
@@ -225,14 +237,14 @@ void coro_t::notify_now() {
     rassert(current_thread_ == linux_thread_pool_t::thread_id);
 
 #ifndef NDEBUG
-    rassert(assert_no_coro_waiting_counter == 0,
+    rassert(cglobals->assert_no_coro_waiting_counter == 0,
         "This code path is not supposed to use notify_now() or spawn_now().");
 
     /* Record old value of `assert_finite_coro_waiting_counter`. It must be legal to call
     `coro_t::wait()` within the coro we are going to jump to, or else we would never jump
     back. */
-    int old_assert_finite_coro_waiting_counter = assert_finite_coro_waiting_counter;
-    assert_finite_coro_waiting_counter = 0;
+    int old_assert_finite_coro_waiting_counter = cglobals->assert_finite_coro_waiting_counter;
+    cglobals->assert_finite_coro_waiting_counter = 0;
 #endif
 
 #ifndef NDEBUG
@@ -241,35 +253,44 @@ void coro_t::notify_now() {
     rassert(!abi::__cxa_current_exception_type());
 #endif
 
-    coro_t *prev_prev_coro = prev_coro;
-    prev_coro = current_coro;
-    current_coro = this;
+    coro_t *prev_prev_coro = cglobals->prev_coro;
+    cglobals->prev_coro = cglobals->current_coro;
+    cglobals->current_coro = this;
 
-    if (prev_coro) {
-        context_switch(&prev_coro->context->stack.context, &this->context->stack.context);
+    if (cglobals->prev_coro) {
+        context_switch(&cglobals->prev_coro->context->stack.context, &this->context->stack.context);
     } else {
-        context_switch(scheduler, &this->context->stack.context);
+        context_switch(&cglobals->scheduler, &this->context->stack.context);
     }
 
-    rassert(current_coro == this);
-    current_coro = prev_coro;
-    prev_coro = prev_prev_coro;
+    rassert(cglobals->current_coro == this);
+    cglobals->current_coro = cglobals->prev_coro;
+    cglobals->prev_coro = prev_prev_coro;
 
 #ifndef NDEBUG
     /* Restore old value of `assert_finite_coro_waiting_counter`. */
-    assert_finite_coro_waiting_counter = old_assert_finite_coro_waiting_counter;
+    cglobals->assert_finite_coro_waiting_counter = old_assert_finite_coro_waiting_counter;
 #endif
 }
 
-void coro_t::notify_later() {
+void coro_t::notify_sometime() {
+    rassert(current_thread_ == linux_thread_pool_t::thread_id);
+
+    /* For now we just implement `notify_sometime()` as
+    `notify_later_ordered()`, but later we could eliminate the full trip around
+    the event loop. */
+    notify_later_ordered();
+}
+
+void coro_t::notify_later_ordered() {
     rassert(!notified_);
     notified_ = true;
 
-    /* notify_later() doesn't switch to the coroutine immediately; instead, it just pushes
-    the coroutine onto the event queue. */
+    /* `notify_later_ordered()` doesn't switch to the coroutine immediately;
+    instead, it just pushes the coroutine onto the event queue. */
 
-    /* current_thread is the thread that the coroutine lives on, which may or may not be the
-    same as get_thread_id(). */
+    /* `current_thread` is the thread that the coroutine lives on, which may or
+    may not be the same as `get_thread_id()`. */
     linux_thread_pool_t::thread->message_hub.store_message(current_thread_, this);
 }
 
@@ -282,7 +303,7 @@ void coro_t::move_to_thread(int thread) {   /* class method */
     rassert(coro_t::self(), "coro_t::move_to_thread() called when not in a coroutine, and the "
         "desired thread isn't the one we're already on.");
     self()->current_thread_ = thread;
-    self()->notify_later();
+    self()->notify_later_ordered();
     wait();
 }
 
@@ -306,19 +327,23 @@ stack. Could also in theory be used by a function to check if it's about to over
 the stack. */
 
 bool is_coroutine_stack_overflow(void *addr) {
-    return current_coro && current_coro->context->stack.address_is_stack_overflow(addr);
-}
-
-void coro_t::spawn_later(const boost::function<void()>& deed) {
-    spawn_on_thread(linux_thread_pool_t::thread_id, deed);
+    return cglobals->current_coro && cglobals->current_coro->context->stack.address_is_stack_overflow(addr);
 }
 
 void coro_t::spawn_now(const boost::function<void()> &deed) {
     (new coro_t(deed, linux_thread_pool_t::thread_id))->notify_now();
 }
 
+void coro_t::spawn_sometime(const boost::function<void()> &deed) {
+    (new coro_t(deed, linux_thread_pool_t::thread_id))->notify_sometime();
+}
+
+void coro_t::spawn_later_ordered(const boost::function<void()>& deed) {
+    spawn_on_thread(linux_thread_pool_t::thread_id, deed);
+}
+
 void coro_t::spawn_on_thread(int thread, const boost::function<void()>& deed) {
-    (new coro_t(deed, thread))->notify_later();
+    (new coro_t(deed, thread))->notify_later_ordered();
 }
 
 #ifndef NDEBUG
@@ -326,16 +351,16 @@ void coro_t::spawn_on_thread(int thread, const boost::function<void()>& deed) {
 /* These are used in the implementation of `ASSERT_NO_CORO_WAITING` and
 `ASSERT_FINITE_CORO_WAITING` */
 assert_no_coro_waiting_t::assert_no_coro_waiting_t() {
-    assert_no_coro_waiting_counter++;
+    cglobals->assert_no_coro_waiting_counter++;
 }
 assert_no_coro_waiting_t::~assert_no_coro_waiting_t() {
-    assert_no_coro_waiting_counter--;
+    cglobals->assert_no_coro_waiting_counter--;
 }
 assert_finite_coro_waiting_t::assert_finite_coro_waiting_t() {
-    assert_finite_coro_waiting_counter++;
+    cglobals->assert_finite_coro_waiting_counter++;
 }
 assert_finite_coro_waiting_t::~assert_finite_coro_waiting_t() {
-    assert_finite_coro_waiting_counter--;
+    cglobals->assert_finite_coro_waiting_counter--;
 }
 
 #endif /* NDEBUG */

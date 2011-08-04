@@ -3,7 +3,7 @@
 
 #include "errors.hpp"
 #include <boost/function.hpp>
-#include "arch/runtime/linux_utils.hpp"
+#include "arch/runtime/runtime_utils.hpp"
 
 const size_t MAX_COROUTINE_STACK_SIZE = 8*1024*1024;
 
@@ -22,27 +22,58 @@ public:
     friend class coro_context_t;
     friend bool is_coroutine_stack_overflow(void *);
 
-    static void spawn_later(const boost::function<void()> &deed);
     static void spawn_now(const boost::function<void()> &deed);
+    static void spawn_sometime(const boost::function<void()> &deed);
+    static void spawn_later_ordered(const boost::function<void()> &deed);
     static void spawn_on_thread(int thread, const boost::function<void()> &deed);
 
     // Use coro_t::spawn_*(boost::bind(...)) for spawning with parameters.
 
 public:
-    static void wait();         // Pauses the current coroutine until it's notified
-    static void yield();        // Pushes the current coroutine to the end of the notify queue and waits
-    static coro_t *self();      // Returns the current coroutine
-    void notify_now();          // Switches to a coroutine immediately (will switch back when it returns or wait()s)
-    void notify_later();        // Wakes up the coroutine, allowing the scheduler to trigger it to continue
-    static void move_to_thread(int thread); // Wait and notify self on the CPU (avoiding race conditions)
+    /* Pauses the current coroutine until it is notified */
+    static void wait();
 
-    // `spawn()` and `notify()` are synonyms for `spawn_later()` and `notify_later()`; their
-    // use is discouraged because they are ambiguous.
+    /* Gives another coroutine a chance to run, but schedules this coroutine to
+    be run at some point in the future. Might not preserve order; two calls to
+    `yield()` by different coroutines may return in a different order than they
+    began in. */
+    static void yield();
+
+    /* Returns a pointer to the current coroutine, or `NULL` if we are not in a
+    coroutine. */
+    static coro_t *self();
+
+    /* Transfers control immediately to the coroutine. Returns when the
+    coroutine calls `wait()`.
+
+    Note: `notify_now()` may become deprecated eventually. The original purpose
+    was to provide better performance than could be achieved with
+    `notify_later_ordered()`, but `notify_sometime()` is now filling that role
+    instead. */
+    void notify_now();
+
+    /* Schedules the coroutine to be woken up eventually. Can be safely called
+    from any thread. Returns immediately. Does not provide any ordering
+    guarantees. If you don't need the ordering guarantees that
+    `notify_later_ordered()` provides, use `notify_sometime()` instead. */
+    void notify_sometime();
+
+    /* Pushes the coroutine onto the event queue for the thread it's currently
+    on, such that it will be run. This can safely be called from any thread.
+    Returns immediately. If you call `notify_later_ordered()` on two coroutines
+    that are on the same thread, they will run in the same order you call
+    `notify_later_ordered()` in. */
+    void notify_later_ordered();
+
+public:
+    /* `spawn()` and `notify()` are aliases for `spawn_later_ordered()` and
+    `notify_later_ordered()`. They are deprecated and new code should not use
+    them. */
     static void spawn(const boost::function<void()> &deed) {
-        spawn_later(deed);
+        spawn_later_ordered(deed);
     }
     void notify() {
-        notify_later();
+        notify_later_ordered();
     }
 
 public:
@@ -51,6 +82,12 @@ public:
     artificial_stack_t* get_stack();
 
 private:
+    /* When called from within a coroutine, schedules the coroutine to be run on
+    the given thread and then suspends the coroutine until that other thread
+    picks it up again. Do not call this directly; use `on_thread_t` instead. */
+    friend class on_thread_t;
+    static void move_to_thread(int thread);
+
     /* Internally, we recycle ucontexts and stacks. So the real guts of the coroutine are in the
     coro_context_t object. */
     coro_context_t *context;

@@ -1,7 +1,7 @@
 #ifndef __MEMCACHED_TCP_CONN_HPP__
 #define __MEMCACHED_TCP_CONN_HPP__
 
-#include "store.hpp"
+#include "memcached/store.hpp"
 #include "arch/arch.hpp"
 
 /* Serves memcache queries over the given TCP connection until the connection in question

@@ -8,7 +8,7 @@
 #include "btree/value.hpp"
 #include "utils.hpp"
 #include "buffer_cache/types.hpp"
-#include "store.hpp"
+#include "memcached/store.hpp"
 
 /* opaque value is really just a stand in for void * it's used in some rare
  * cases where we don't actually need to know the type of the data we're

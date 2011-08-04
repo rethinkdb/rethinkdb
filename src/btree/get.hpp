@@ -1,7 +1,7 @@
 #ifndef __BTREE_GET_HPP__
 #define __BTREE_GET_HPP__
 
-#include "store.hpp"
+#include "memcached/store.hpp"
 
 class btree_slice_t;
 

@@ -15,7 +15,7 @@
 #include "arch/arch.hpp"
 #include "serializer/config.hpp"
 #include "serializer/translator.hpp"
-#include "store.hpp"
+#include "memcached/store.hpp"
 
 namespace replication {
     class backfill_and_streaming_manager_t;

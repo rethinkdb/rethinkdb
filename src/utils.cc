@@ -12,7 +12,7 @@
 
 #include <boost/scoped_array.hpp>
 
-#include "arch/runtime/coroutines.hpp"
+#include "arch/runtime/runtime.hpp"
 #include "db_thread_info.hpp"
 
 // fast non-null terminated string comparison

@@ -9,7 +9,7 @@
 #include <sys/types.h>
 
 #include "serializer/types.hpp"
-#include "arch/core.hpp"
+#include "arch/runtime/runtime.hpp"
 
 #include "serializer/log/config.hpp"
 #include "buffer_cache/mirrored/config.hpp"

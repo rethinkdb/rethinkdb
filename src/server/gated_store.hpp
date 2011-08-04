@@ -1,7 +1,7 @@
 #ifndef __SERVER_GATED_STORE_HPP__
 #define __SERVER_GATED_STORE_HPP__
 
-#include "store.hpp"
+#include "memcached/store.hpp"
 #include "concurrency/gate.hpp"
 
 struct gated_get_store_t : public get_store_t {

@@ -18,7 +18,7 @@
 #include "containers/iterators.hpp"
 #include "data_provider.hpp"
 #include "server/control.hpp"
-#include "store.hpp"
+#include "memcached/store.hpp"
 #include "logger.hpp"
 #include "arch/os_signal.hpp"
 #include "perfmon.hpp"
