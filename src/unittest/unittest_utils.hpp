@@ -16,6 +16,7 @@
 // TRACEPOINT is not defined in release, so that TRACEPOINTS do not linger in the code unnecessarily
 #endif
 
+namespace unittest {
 
 class temp_file_t {
     char * filename;
@@ -36,5 +37,7 @@ public:
         delete [] filename;
     }
 };
+
+}  // namespace unittest
 
 #endif // __UNITTEST_UTILS__

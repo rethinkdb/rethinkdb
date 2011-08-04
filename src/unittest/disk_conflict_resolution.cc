@@ -1,7 +1,7 @@
 #include "unittest/gtest.hpp"
 
-#include "arch/linux/disk/conflict_resolving.hpp"
-#include "arch/linux/thread_pool.hpp"
+#include "arch/io/disk/conflict_resolving.hpp"
+#include "arch/runtime/thread_pool.hpp"
 #include <list>
 #include <boost/scoped_array.hpp>
 #include <boost/bind.hpp>
@@ -266,5 +266,5 @@ TEST(DiskConflictTest, MetaTest) {
     EXPECT_NONFATAL_FAILURE(cause_test_failure(), "Read returned wrong data.");
 };
 
-}
+}  // namespace unittest
 

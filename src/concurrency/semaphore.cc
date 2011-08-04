@@ -1,6 +1,6 @@
 #include "concurrency/semaphore.hpp"
 
-#include "arch/coroutines.hpp"
+#include "arch/runtime/runtime.hpp"
 
 #include "concurrency/cond_var.hpp"
 

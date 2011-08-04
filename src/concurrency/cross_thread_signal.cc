@@ -4,18 +4,29 @@
 
 #include "do_on_thread.hpp"
 
-cross_thread_signal_t::cross_thread_signal_t(signal_t *source, int dest_thread)
-    : source(source), source_thread(get_thread_id()), dest_thread(dest_thread) {
+cross_thread_signal_t::cross_thread_signal_t(signal_t *source, int dest_thread) :
+    source_thread(get_thread_id()), dest_thread(dest_thread),
+    subs(boost::bind(&cross_thread_signal_t::on_signal_pulsed, this))
+{
     rassert(source->home_thread() == source_thread);
+
     signal_t::rethread(dest_thread);
+
     if (source->is_pulsed()) on_signal_pulsed();
-    else source->add_waiter(this);
+    else subs.resubscribe(source);
 }
 
 cross_thread_signal_t::~cross_thread_signal_t() {
     rassert(get_thread_id() == source_thread);
-    if (!source->is_pulsed()) source->remove_waiter(this);
+
+    /* Unsubscribe so we don't get a signal while we are draining the
+    `drain_semaphore`. */
+    subs.unsubscribe();
+
+    /* Drain the `drain_semaphore` so we don't shut down while there is still a
+    notification in flight to or from the other thread */
     drain_semaphore.drain();
+
     signal_t::rethread(source_thread);
 }
 

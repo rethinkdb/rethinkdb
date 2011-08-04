@@ -3,7 +3,7 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
-#include "arch/coroutines.hpp"
+#include "arch/runtime/runtime.hpp"
 #include "btree/modify_oper.hpp"
 
 class btree_delete_expired_oper_t : public btree_modify_oper_t<memcached_value_t>

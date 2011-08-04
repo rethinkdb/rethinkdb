@@ -1,7 +1,7 @@
 #ifndef __CLUSTERING_DISPATCHING_STORE_HPP__
 #define __CLUSTERING_DISPATCHING_STORE_HPP__
 
-#include "store.hpp"
+#include "memcached/store.hpp"
 #include "clustering/master_map.hpp"
 
 struct clustered_store_t : public set_store_t, public get_store_t {

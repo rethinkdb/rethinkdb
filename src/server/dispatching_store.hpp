@@ -1,7 +1,7 @@
 #ifndef __SERVER_DISPATCHING_STORE_HPP__
 #define __SERVER_DISPATCHING_STORE_HPP__
 
-#include "store.hpp"
+#include "memcached/store.hpp"
 #include "concurrency/fifo_checker.hpp"
 
 class btree_slice_t;

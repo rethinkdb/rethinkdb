@@ -15,7 +15,6 @@ void semantic_checking_serializer_t<inner_serializer_t>::
 update_block_info(block_id_t block_id, scs_block_info_t info) {
     blocks.set(block_id, info);
     scs_persisted_block_info_t buf;
-    memset(&buf, 0, sizeof(buf)); // make valgrind happy
     buf.block_id = block_id;
     buf.block_info = info;
     int res = write(semantic_fd, &buf, sizeof(buf));
@@ -276,6 +275,7 @@ get_recency(block_id_t id) { return inner_serializer.get_recency(id); }
 template<class inner_serializer_t>
 bool semantic_checking_serializer_t<inner_serializer_t>::
 get_delete_bit(block_id_t id) {
+    // FIXME: tests seems to indicate that this code is broken. I don't know why, but it is. @rntz
     bool bit = inner_serializer.get_delete_bit(id);
     scs_block_info_t::state_t state = blocks.get(id).state;
     // If we know what the state is, it should be consistent with the delete bit.

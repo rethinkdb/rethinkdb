@@ -4,7 +4,7 @@
 /* This file provides btree specific buffer patches */
 
 #include "buffer_cache/buf_patch.hpp"
-#include "store.hpp"
+#include "memcached/store.hpp"
 
 struct opaque_value_t;
 

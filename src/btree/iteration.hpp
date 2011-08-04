@@ -10,7 +10,7 @@
 #include "btree/leaf_node.hpp"
 #include "buffer_cache/buf_lock.hpp"
 #include "btree/slice.hpp"
-#include "store.hpp"
+#include "memcached/store.hpp"
 
 
 //TODO make this not store value as a char array

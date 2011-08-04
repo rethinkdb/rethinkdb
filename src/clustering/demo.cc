@@ -8,7 +8,7 @@
 #include "clustering/cluster_store.hpp"
 #include "clustering/dispatching_store.hpp"
 #include "server/cmd_args.hpp"
-#include "store.hpp"
+#include "memcached/store.hpp"
 #include "concurrency/cond_var.hpp"
 #include "memcached/tcp_conn.hpp"
 #include "logger.hpp"

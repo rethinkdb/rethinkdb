@@ -116,6 +116,7 @@ namespace json_spirit
                 }
                 break;
             }
+            default: unreachable(); break;
         }
     }
 
@@ -209,28 +210,28 @@ namespace json_spirit
         {
         }
 
-        void begin_obj( Char_type c )
+        void begin_obj( UNUSED Char_type c )
         {
             assert( c == '{' );
 
             begin_compound< Object_type >();
         }
 
-        void end_obj( Char_type c )
+        void end_obj( UNUSED Char_type c )
         {
             assert( c == '}' );
 
             end_compound();
         }
 
-        void begin_array( Char_type c )
+        void begin_array( UNUSED Char_type c )
         {
             assert( c == '[' );
      
             begin_compound< Array_type >();
         }
 
-        void end_array( Char_type c )
+        void end_array( UNUSED Char_type c )
         {
             assert( c == ']' );
 
@@ -249,21 +250,21 @@ namespace json_spirit
             add_to_current( get_str< String_type >( begin, end ) );
         }
 
-        void new_true( Iter_type begin, Iter_type end )
+        void new_true( UNUSED Iter_type begin,  UNUSED Iter_type end )
         {
             assert( is_eq( begin, end, "true" ) );
 
             add_to_current( true );
         }
 
-        void new_false( Iter_type begin, Iter_type end )
+        void new_false( UNUSED Iter_type begin, UNUSED Iter_type end )
         {
             assert( is_eq( begin, end, "false" ) );
 
             add_to_current( false );
         }
 
-        void new_null( Iter_type begin, Iter_type end )
+        void new_null( UNUSED Iter_type begin, UNUSED Iter_type end )
         {
             assert( is_eq( begin, end, "null" ) );
 

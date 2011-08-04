@@ -8,7 +8,7 @@
 #include <boost/make_shared.hpp>
 
 #include "arch/arch.hpp"
-#include "arch/coroutines.hpp"
+#include "arch/runtime/runtime.hpp"
 #include "concurrency/mutex.hpp"
 #include "rpc/core/protob.hpp"
 #include "logger.hpp"

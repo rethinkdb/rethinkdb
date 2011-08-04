@@ -2,7 +2,7 @@
 
 #include <boost/bind.hpp>
 
-#include "arch/core.hpp"
+#include "arch/runtime/runtime.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/signal.hpp"
 

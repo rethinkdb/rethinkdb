@@ -3,7 +3,7 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
-#include "arch/coroutines.hpp"
+#include "arch/runtime/runtime.hpp"
 #include "rpc/core/cluster.hpp"
 
 void mailbox_srvc_t::handle(cluster_peer_t *sndr) {

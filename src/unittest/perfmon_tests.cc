@@ -46,4 +46,4 @@ TEST(PerfmonTest, StddevComputation) {
     }
 }
 
-}
+}  // namespace unittest

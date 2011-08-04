@@ -1,6 +1,6 @@
 #include "unittest/gtest.hpp"
 
-#include "arch/linux/context_switching.hpp"
+#include "arch/runtime/context_switching.hpp"
 
 namespace unittest {
 
