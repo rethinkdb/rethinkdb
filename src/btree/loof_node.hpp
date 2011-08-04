@@ -571,8 +571,6 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
 
     rassert(is_underfull(sizer, tow));
 
-    int bs = sizer->block_size().value();
-
 #ifndef NDEBUG
     int verify_fro_mand_offset;
     int fro_cost = mandatory_cost(sizer, fro, MANDATORY_TIMESTAMPS, &verify_fro_mand_offset);
@@ -776,6 +774,42 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
     validate(sizer, tow);
 }
 
+template <class V>
+void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int wpoint, loof_t *tow) {
+
+    int tstamp_back_offset;
+    UNUSED int mandatory = mandatory_cost(sizer, fro, MANDATORY_TIMESTAMPS, &tstamp_back_offset);
+
+    int copysize = 0;
+    repli_timestamp_t earliest_mandatory = repli_timestamp_t::invalid;
+
+    for (int i = beg; i < end; ++i) {
+        int offset = fro->pair_offsets[i];
+        entry_t *ent = get_entry(fro, offset);
+
+        if (entry_is_live(ent)) {
+            copysize += entry_size(sizer, ent) + (offset < tstamp_back_offset ? sizeof(repli_timestamp_t) : 0);
+
+            if (offset < tstamp_back_offset && (earliest_mandatory == repli_timestamp_t::invalid || get_timestamp(fro, offset) < earliest_mandatory)) {
+                earliest_mandatory = get_timestamp(fro, offset);
+            }
+        } else {
+            rassert(entry_is_deletion(ent));
+
+            if (offset < tstamp_back_offset) {
+                copysize += entry_size(sizer, ent) + sizeof(repli_timestamp_t);
+
+                if (earliest_mandatory == repli_timestamp_t::invalid || get_timestamp(fro, offset) < earliest_mandatory) {
+                    earliest_mandatory = get_timestamp(fro, offset);
+                }
+            }
+        }
+    }
+
+    move_elements(sizer, fro, beg, end, wpoint, tow, copysize, earliest_mandatory, tstamp_back_offset);
+}
+
+
 
 template <class V>
 void split(value_sizer_t<V> *sizer, loof_t *node, loof_t *rnode, btree_key_t *median_out) {
@@ -876,7 +910,7 @@ void merge(value_sizer_t<V> *sizer, loof_t *left, loof_t *right, btree_key_t *ke
     rassert(left->num_pairs > 0);
     rassert(right->num_pairs > 0);
 
-    move_elements(sizer, left, 0, left->num_pairs, 0, right, /* fro_copysize */, /* fro_earliest_mandatory */, /* fro_mand_offset */);
+    move_elements(sizer, left, 0, left->num_pairs, 0, right);
 
     rassert(right->num_pairs > 0);
     keycpy(key_to_remove_out, entry_key(get_entry(right, right->pair_offsets[0])));
