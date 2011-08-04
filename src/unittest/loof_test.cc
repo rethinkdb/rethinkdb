@@ -249,7 +249,16 @@ TEST(LoofTest, InsertRemove) {
             }
         }
     }
+}
 
+TEST(LoofTest, Merging) {
+    LoofTracker left;
+    LoofTracker right;
+
+    left.Insert("a", "A");
+    right.Insert("b", "B");
+
+    right.Merge(left);
 }
 
 
