@@ -288,7 +288,7 @@ void validate(value_sizer_t<V> *sizer, const loof_t *node) {
 
         const entry_t *ent = get_entry(node, offset);
         if (entry_is_live(ent)) {
-            observed_live_size += sizeof(uint16_t) + entry_size(sizer, ent) + (offset < node->tstamp_cutpoint ? sizeof(repli_timestamp_t) : 0);
+            observed_live_size += sizeof(uint16_t) + entry_size(sizer, ent);
             rassert(i < node->num_pairs);
             rassert(offset == offs[i]);
             ++i;
@@ -660,7 +660,7 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
             int sz = sizeof(repli_timestamp_t) + entsz;
             memmove(get_at_offset(tow, wri_offset), get_at_offset(fro, fro_offset), sz);
             clean_entry(ent, entsz);
-            fro_live_size_adjustment -= sz + sizeof(uint16_t);
+            fro_live_size_adjustment -= entsz + sizeof(uint16_t);
 
             // Update the pair offset in fro to be the offset in tow
             // -- we'll never use the old value again and we'll copy
@@ -671,7 +671,7 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
             fro_index++;
 
             if (entry_is_live(ent)) {
-                livesize += sz + sizeof(uint16_t);
+                livesize += entsz + sizeof(uint16_t);
             }
         } else {
             int sz = sizeof(repli_timestamp_t) + entry_size(sizer, get_entry(tow, tow_offset));
@@ -703,7 +703,7 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
             int sz = entry_size(sizer, ent);
             memmove(get_at_offset(tow, wri_offset), get_at_offset(fro, fro_offset), sz);
             clean_entry(ent, sz);
-            fro_live_size_adjustment -= sz + sizeof(uint16_t) + (fro_offset < fro->tstamp_cutpoint ? sizeof(repli_timestamp_t) : 0);
+            fro_live_size_adjustment -= sz + sizeof(uint16_t);
 
             fro->pair_offsets[beg + tow->pair_offsets[fro_index]] = wri_offset;
             wri_offset += sz;
@@ -739,8 +739,6 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
             rassert(i != num_adjustable_tow_offsets);
 
             wri_offset += sz;
-
-            livesize -= sizeof(repli_timestamp_t);
         }
         tow_offset += sizeof(repli_timestamp_t) + sz;
     }
@@ -1072,7 +1070,7 @@ void insert(value_sizer_t<V> *sizer, loof_t *node, const btree_key_t *key, const
         int sz = entry_size(sizer, ent);
 
         if (entry_is_live(ent)) {
-            live_size_adjustment -= sizeof(uint16_t) + sz + (offset < node->tstamp_cutpoint ? sizeof(repli_timestamp_t) : 0);
+            live_size_adjustment -= sizeof(uint16_t) + sz;
         }
 
         clean_entry(ent, sz);
@@ -1090,10 +1088,10 @@ void insert(value_sizer_t<V> *sizer, loof_t *node, const btree_key_t *key, const
     w -= key->full_size();
     memcpy(get_at_offset(node, w), key, key->full_size());
 
+    live_size_adjustment += sizeof(uint16_t) + (node->frontmost - w);
+
     w -= sizeof(repli_timestamp_t);
     *reinterpret_cast<repli_timestamp_t *>(get_at_offset(node, w)) = tstamp;
-
-    live_size_adjustment += sizeof(uint16_t) + (node->frontmost - w);
 
     node->num_pairs += num_pairs_adjustment;
     node->pair_offsets[index] = w;
@@ -1120,7 +1118,7 @@ void remove(value_sizer_t<V> *sizer, loof_t *node, const btree_key_t *key, repli
         if (entry_is_live(ent)) {
 
             int sz = entry_size(sizer, ent);
-            node->live_size -= sizeof(uint16_t) + sz + (offset < node->tstamp_cutpoint ? sizeof(repli_timestamp_t) : 0);
+            node->live_size -= sizeof(uint16_t) + sz;
 
             clean_entry(ent, sz);
 
