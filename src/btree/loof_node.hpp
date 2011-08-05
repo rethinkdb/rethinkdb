@@ -6,6 +6,10 @@
 #include "errors.hpp"
 #include "node.hpp"
 
+// TODO: Soon we'll be rid of the buf_t functions, so this #include
+// directive should be removed.
+#include "buffer_cache/buffer_cache.hpp"
+
 // Eventually we'll rename loof to leaf, but right now I want the old code to look at.
 
 namespace loof {
@@ -1153,7 +1157,22 @@ void insert(value_sizer_t<V> *sizer, loof_t *node, const btree_key_t *key, const
     validate(sizer, node);
 }
 
-// This asserts that the key is in the node.
+// TODO: Make this function use buf patches.
+template <class V>
+bool insert(value_sizer_t<V> *sizer, buf_t *node_buf, const btree_key_t *key, const V *value, repli_timestamp_t tstamp) {
+    const loof_t *node = reinterpret_cast<const loof_t *>(node_buf->get_data_read());
+
+    if (is_full(sizer, node, key, value)) {
+        return false;
+    }
+
+    insert(sizer, reinterpret_cast<loof_t *>(node_buf->get_data_major_write()), key, value, tstamp);
+    return true;
+}
+
+// This asserts that the key is in the node.  TODO: This means we're
+// already sure the key is in the node, which means we're doing an
+// unnecessary binary search.
 template <class V>
 void remove(value_sizer_t<V> *sizer, loof_t *node, const btree_key_t *key, repli_timestamp_t tstamp) {
     validate(sizer, node);
@@ -1199,6 +1218,14 @@ void remove(value_sizer_t<V> *sizer, loof_t *node, const btree_key_t *key, repli
     }
 
     validate(sizer, node);
+}
+
+// TODO: Make this function use buf patches.
+template <class V>
+void remove(value_sizer_t<V> *sizer, buf_t *node_buf, const btree_key_t *key) {
+    loof_t *node = reinterpret_cast<loof_t *>(node_buf->get_data_major_write());
+
+    remove(sizer, node, key);
 }
 
 template <class V>
