@@ -6,6 +6,7 @@
 #include "containers/scoped_malloc.hpp"
 #include "containers/iterators.hpp"
 #include "btree/iteration.hpp"
+#include <boost/fusion/include/adapt_struct.hpp>
 
 namespace riak {
 
