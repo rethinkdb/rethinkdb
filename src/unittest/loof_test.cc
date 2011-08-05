@@ -377,4 +377,27 @@ TEST(LoofTest, MergingWithHugeEntries) {
     right.Merge(left);
 }
 
+TEST(LoofTest, LevelingLeftToRight) {
+    LoofTracker left;
+    LoofTracker right;
+
+    // 4084 - 12 = 4072.  This is the maximum mandatory cost before
+    // the node gets too big.  With 5*4 mandatory timestamp bytes and
+    // 12 bytes per entry, that gives us 4052 / 12 as the last loop
+    // boundary value that won't overflow.  We get 200 + 20 extra
+    // bytes if we allow 90 two-digit and 10 one-digit key/values.  So
+    // 4272 / 12 will be the last loop boundary value that won't
+    // overflow.
+
+    for (int i = 0; i < 4272 / 12; ++i) {
+        left.Insert(strprintf("a%d", i), strprintf("A%d", i));
+    }
+
+    right.Insert("b0", "B0");
+
+    bool could_level;
+    right.Level(left, &could_level);
+    ASSERT_TRUE(could_level);
+}
+
 }  // namespace unittest

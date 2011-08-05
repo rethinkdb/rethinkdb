@@ -570,10 +570,8 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
     rassert(is_underfull(sizer, tow));
 
 #ifndef NDEBUG
-    int verify_fro_mand_offset;
-    int fro_cost = mandatory_cost(sizer, fro, MANDATORY_TIMESTAMPS, &verify_fro_mand_offset);
-    rassert(fro_cost + mandatory_cost(sizer, tow, MANDATORY_TIMESTAMPS) <= free_space(sizer));
-    rassert(verify_fro_mand_offset == fro_mand_offset);
+    // This assertion is a bit loose.
+    rassert(fro_copysize + mandatory_cost(sizer, tow, MANDATORY_TIMESTAMPS) <= free_space(sizer));
 #endif
 
     // Make tow have a nice big region we can copy entries to.  Also,
