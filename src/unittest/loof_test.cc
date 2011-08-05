@@ -173,6 +173,9 @@ public:
         }
 
         *could_level_out = can_level;
+
+        Verify();
+        sibling.Verify();
     }
 
     bool ShouldHave(const std::string& key) {
@@ -192,10 +195,6 @@ public:
     }
 
     void Verify() {
-        if (!kv_.empty()) {
-            ASSERT_EQ(tstamp_counter_, reinterpret_cast<repli_timestamp_t *>(loof::get_at_offset(node_, node_->frontmost))->time);
-        }
-
         // Of course, this will fail with rassert, not a gtest assertion.
         loof::validate(&sizer_, node_);
     }
