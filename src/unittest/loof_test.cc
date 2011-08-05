@@ -45,7 +45,7 @@ namespace unittest {
 class short_value_buffer_t {
 public:
     short_value_buffer_t(const std::string& v) {
-        rassert(v.size() < 255);
+        rassert(v.size() <= 255);
         data_[0] = v.size();
         memcpy(data_ + 1, v.data(), v.size());
     }
@@ -293,7 +293,7 @@ TEST(LoofTest, MergingWithRemoves) {
     LoofTracker left;
     LoofTracker right;
 
-    for (int i = 0; i < 1000 / 12; ++i) {
+    for (int i = 0; i < (1722 * 5 / 6) / 12; ++i) {
         left.Insert(strprintf("a%d", i), strprintf("A%d", i));
         right.Insert(strprintf("b%d", i), strprintf("B%d", i));
         if (i % 5 == 0) {
@@ -305,5 +305,26 @@ TEST(LoofTest, MergingWithRemoves) {
     right.Merge(left);
 }
 
+TEST(LoofTest, MergingWithHugeEntries) {
+    LoofTracker left;
+    LoofTracker right;
+
+    ASSERT_EQ(10, loof::DELETION_RESERVE_FRACTION);
+
+    // This test overflows the deletion reserve fraction with three
+    // huge deletes.  One of them will not be merged.
+
+    for (int i = 0; i < 4; ++i) {
+        left.Insert(std::string(250, 'a' + i), std::string(255, 'A' + i));
+        right.Insert(std::string(250, 'n' + i), std::string(255, 'N' + i));
+    }
+
+    for (int i = 0; i < 3; ++i) {
+        left.Remove(std::string(250, 'a' + i));
+        right.Remove(std::string(250, 'n' + 1 + i));
+    }
+
+    right.Merge(left);
+}
 
 }  // namespace unittest
