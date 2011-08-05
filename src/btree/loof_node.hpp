@@ -1248,6 +1248,8 @@ void dump_entries_since_time(value_sizer_t<V> *sizer, const loof_t *node, repli_
             } else if (entry_is_deletion(ent) && include_deletions) {
                 cb->deletion(entry_key(ent), tstamp);
             }
+
+            iter.step(sizer, node);
         }
     }
 }

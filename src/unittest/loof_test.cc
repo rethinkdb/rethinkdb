@@ -44,7 +44,11 @@ namespace unittest {
 
 class short_value_buffer_t {
 public:
-    short_value_buffer_t(const std::string& v) {
+    explicit short_value_buffer_t(const short_value_t *v) {
+        memcpy(data_, v, reinterpret_cast<const uint8_t *>(v)[0] + 1);
+    }
+
+    explicit short_value_buffer_t(const std::string& v) {
         rassert(v.size() <= 255);
         data_[0] = v.size();
         memcpy(data_ + 1, v.data(), v.size());
@@ -52,6 +56,10 @@ public:
 
     short_value_t *data() {
         return reinterpret_cast<short_value_t *>(data_);
+    }
+
+    std::string as_str() const {
+        return std::string(data_ + 1, data_ + 1 + data_[0]);
     }
 
 private:
@@ -194,9 +202,46 @@ public:
         // loof::print(stdout, &sizer_, node_);
     }
 
+    class verify_receptor_t : public loof::entry_reception_callback_t<short_value_t> {
+    public:
+        verify_receptor_t() : got_lost_deletions_(false) { }
+
+        void lost_deletions() {
+            ASSERT_FALSE(got_lost_deletions_);
+            got_lost_deletions_ = true;
+        }
+
+        void deletion(UNUSED const btree_key_t *k, UNUSED repli_timestamp_t tstamp) {
+            ASSERT_TRUE(false);
+        }
+
+        void key_value(const btree_key_t *k, const short_value_t *value, UNUSED repli_timestamp_t tstamp) {
+            ASSERT_TRUE(got_lost_deletions_);
+
+            std::string k_str(k->contents, k->size);
+            short_value_buffer_t v_buf(value);
+            std::string v_str = v_buf.as_str();
+
+            ASSERT_TRUE(kv_map_.find(k_str) == kv_map_.end());
+            kv_map_[k_str] = v_str;
+        }
+
+        const std::map<std::string, std::string>& map() const { return kv_map_; }
+
+    private:
+        bool got_lost_deletions_;
+
+        std::map<std::string, std::string> kv_map_;
+    };
+
     void Verify() {
         // Of course, this will fail with rassert, not a gtest assertion.
         loof::validate(&sizer_, node_);
+
+        verify_receptor_t receptor;
+        loof::dump_entries_since_time(&sizer_, node_, repli_timestamp_t::distant_past, &receptor);
+
+        ASSERT_TRUE(receptor.map() == kv_);
     }
 
 public:
