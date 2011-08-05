@@ -615,7 +615,7 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
 
     // We will gradually compute the live size.
     int livesize = tow->live_size;
-    //    printf("livesize at first %d\n", livesize);
+    // printf("livesize at first %d\n", livesize);
 
     for (int i = 0; i < wpoint; ++i) {
         if (tow->pair_offsets[i] < tow->tstamp_cutpoint) {
@@ -718,7 +718,7 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
             wri_offset += sz;
             fro_copyage += sz;
             livesize += sz + sizeof(uint16_t);
-            //            printf("livesize now %d\n", livesize);
+            // printf("livesize now %d\n", livesize);
         } else {
             rassert(entry_is_deletion(ent));
 
@@ -784,7 +784,7 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
     tow->frontmost = new_frontmost;
 
     tow->live_size = livesize;
-    //    printf("tow->live_size set to %d\n", livesize);
+    // printf("tow->live_size set to %d\n", livesize);
 
     tow->tstamp_cutpoint = new_tstamp_cutpoint;
 
@@ -898,7 +898,7 @@ void merge(value_sizer_t<V> *sizer, loof_t *left, loof_t *right, btree_key_t *ke
     int mandatory = mandatory_cost(sizer, left, MANDATORY_TIMESTAMPS, &tstamp_back_offset);
 
     int left_copysize = mandatory;
-    // Uncount the uint16_t cost of mandatory entries.  Sigh.
+    // Uncount the uint16_t cost of mandatory  entries.  Sigh.
     for (int i = 0; i < left->num_pairs; ++i) {
         if (left->pair_offsets[i] < tstamp_back_offset || entry_is_deletion(get_entry(left, left->pair_offsets[i]))) {
             left_copysize -= sizeof(uint16_t);
