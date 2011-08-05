@@ -243,24 +243,27 @@ void print(FILE *fp, value_sizer_t<V> *sizer, const loof_t *node) {
     fflush(fp);
 }
 
-template <class V>
-void validate(value_sizer_t<V> *sizer, const loof_t *node) {
-#ifndef NDEBUG
-    // print(stdout, sizer, node);
+#define LOOF_FSCK_CHECK(test) do { if (!(test)) { *msg_out = #test; return false; } } while (0)
 
-    // Check that all offsets are contiguous (with interspersed skip
-    // entries), that they start with frontmost, that live_size is
-    // correct, that we have correct magic, that the keys are in
-    // order, that there are no deletion entries after
-    // tstamp_cutpoint, that tstamp_cutpoint lies on an entry
-    // boundary.
+// If this returns false, it sets msg_out to point to a statically allocated string
+template <class V>
+bool fsck(value_sizer_t<V> *sizer, const loof_t *node, const char **msg_out) {
+    *msg_out = NULL;
+
+    // We check that all offsets are contiguous (with interspersed
+    // skip entries) between frontmost and block_size, that frontmost
+    // is the smallest offset, that live_size is correct, that we have
+    // correct magic, that the keys are in order, that there are no
+    // deletion entries after tstamp_cutpoint, and that
+    // tstamp_cutpoint lies on an entry boundary, and that frontmost
+    // is not before the end of pair_offsets
 
     // Basic sanity checks on fields' values.
-    rassert(node->magic == sizer->btree_leaf_magic());
-    rassert(node->frontmost >= offsetof(loof_t, pair_offsets) + node->num_pairs * sizeof(uint16_t));
-    rassert(node->live_size <= (sizer->block_size().value() - node->frontmost) + sizeof(uint16_t) * node->num_pairs);
-    rassert(node->frontmost <= node->tstamp_cutpoint);
-    rassert(node->tstamp_cutpoint <= sizer->block_size().value());
+    LOOF_FSCK_CHECK(node->magic == sizer->btree_leaf_magic());
+    LOOF_FSCK_CHECK(node->frontmost >= offsetof(loof_t, pair_offsets) + node->num_pairs * sizeof(uint16_t));
+    LOOF_FSCK_CHECK(node->live_size <= (sizer->block_size().value() - node->frontmost) + sizeof(uint16_t) * node->num_pairs);
+    LOOF_FSCK_CHECK(node->frontmost <= node->tstamp_cutpoint);
+    LOOF_FSCK_CHECK(node->tstamp_cutpoint <= sizer->block_size().value());
 
     // sizeof(offs) is guaranteed to be less than the block_size() thanks to assertions above.
     uint16_t offs[node->num_pairs];
@@ -268,9 +271,8 @@ void validate(value_sizer_t<V> *sizer, const loof_t *node) {
 
     std::sort(offs, offs + node->num_pairs);
 
-    rassert(node->num_pairs == 0 || node->frontmost <= offs[0],
-            "num_pairs=%d, frontmost=%d, offs[0]?=%d", node->num_pairs, node->frontmost, node->num_pairs == 0 ? 0 : offs[0]);
-    rassert(node->num_pairs == 0 || offs[node->num_pairs - 1] < sizer->block_size().value());
+    LOOF_FSCK_CHECK(node->num_pairs == 0 || node->frontmost <= offs[0]);
+    LOOF_FSCK_CHECK(node->num_pairs == 0 || offs[node->num_pairs - 1] < sizer->block_size().value());
 
     entry_iter_t iter = entry_iter_t::make(node);
 
@@ -283,40 +285,48 @@ void validate(value_sizer_t<V> *sizer, const loof_t *node) {
 
         // tstamp_cutpoint is supposed to be on some entry's offset.
         if (offset >= node->tstamp_cutpoint && !seen_tstamp_cutpoint) {
-            rassert(offset == node->tstamp_cutpoint);
+            LOOF_FSCK_CHECK(offset == node->tstamp_cutpoint);
             seen_tstamp_cutpoint = true;
         }
 
         const entry_t *ent = get_entry(node, offset);
         if (entry_is_live(ent)) {
             observed_live_size += sizeof(uint16_t) + entry_size(sizer, ent);
-            rassert(i < node->num_pairs);
-            rassert(offset == offs[i], "offset=%d, offs[i]=%d, i=%d", offset, offs[i], i);
+            LOOF_FSCK_CHECK(i < node->num_pairs);
+            LOOF_FSCK_CHECK(offset == offs[i]);
             ++i;
         } else if (entry_is_deletion(ent)) {
-            rassert(!seen_tstamp_cutpoint);
-            rassert(i < node->num_pairs);
-            rassert(offset == offs[i]);
+            LOOF_FSCK_CHECK(!seen_tstamp_cutpoint);
+            LOOF_FSCK_CHECK(i < node->num_pairs);
+            LOOF_FSCK_CHECK(offset == offs[i]);
             ++i;
         }
 
         iter.step(sizer, node);
     }
 
-    rassert(i == node->num_pairs, "i=%d, num_pairs=%d", i, node->num_pairs);
+    LOOF_FSCK_CHECK(i == node->num_pairs);
 
-    rassert(node->live_size == observed_live_size);
+    LOOF_FSCK_CHECK(node->live_size == observed_live_size);
 
     // Entries look valid, check key ordering.
 
     const btree_key_t *last = NULL;
     for (int k = 0; k < node->num_pairs; ++k) {
         const btree_key_t *key = entry_key(get_entry(node, node->pair_offsets[k]));
-        rassert(last == NULL || sized_strcmp(last->contents, last->size, key->contents, key->size) < 0);
+        LOOF_FSCK_CHECK(last == NULL || sized_strcmp(last->contents, last->size, key->contents, key->size) < 0);
         last = key;
     }
 
-    // Okay.
+    return true;
+}
+
+template <class V>
+void validate(value_sizer_t<V> *sizer, const loof_t *node) {
+#ifndef NDEBUG
+    const char *msg;
+    bool fscked_successfully = fsck(sizer, node, &msg);
+    rassert(fscked_successfully, "msg = %s", msg);
 #endif
 }
 
