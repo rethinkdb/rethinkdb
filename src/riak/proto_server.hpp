@@ -18,9 +18,13 @@ namespace dummy_msgs {
         bool ParseFromArray(const char *, size_t size) { return size == 0; }
     };
     class RpbPingReq : public dummy_msg_t {};
+    class RpbPingResp : public dummy_msg_t {};
     class RpbGetClientIdReq : public dummy_msg_t {};
+    class RpbSetClientIdResp : public dummy_msg_t {};
     class RpbGetServerInfoReq : public dummy_msg_t {};
     class RpbListBucketsReq : public dummy_msg_t {};
+    class RpbDelResp : public dummy_msg_t {};
+    class RpbSetBucketResp : public dummy_msg_t {};
 
 } // namespace dummy_msgs
 
@@ -70,24 +74,64 @@ private:
         RpbMapRedResp = 24
     };
 
+    message_code code(::RpbErrorResp const &) { return RpbErrorResp; }
+    message_code code(dummy_msgs::RpbPingReq const &) {return  RpbPingReq; }
+    message_code code(dummy_msgs::RpbPingResp const &) { return RpbPingResp; }
+    message_code code(dummy_msgs::RpbGetClientIdReq const &)  { return RpbGetClientIdReq; } 
+    message_code code(::RpbGetClientIdResp const &) { return RpbGetClientIdResp; } 
+    message_code code(::RpbSetClientIdReq const &) { return RpbSetClientIdReq; } 
+    message_code code(dummy_msgs::RpbSetClientIdResp const &) { return RpbSetClientIdResp; } 
+    message_code code(dummy_msgs::RpbGetServerInfoReq const &) { return RpbGetServerInfoReq; } 
+    message_code code(::RpbGetServerInfoResp const &) { return RpbGetServerInfoResp; } 
+    message_code code(::RpbGetReq const &) { return RpbGetReq; } 
+    message_code code(::RpbGetResp const &) { return RpbGetResp; } 
+    message_code code(::RpbPutReq const &) { return RpbPutReq; } 
+    message_code code(::RpbPutResp const &) { return RpbPutResp; } 
+    message_code code(::RpbDelReq const &) { return RpbDelReq; } 
+    message_code code(dummy_msgs::RpbDelResp const &) { return RpbDelResp; } 
+    message_code code(dummy_msgs::RpbListBucketsReq const &) { return RpbListBucketsReq; } 
+    message_code code(::RpbListBucketsResp const &) { return RpbListBucketsResp; } 
+    message_code code(::RpbListKeysReq const &) { return RpbListKeysReq; } 
+    message_code code(::RpbListKeysResp const &) { return RpbListKeysResp; } 
+    message_code code(::RpbGetBucketReq const &) { return RpbGetBucketReq; } 
+    message_code code(::RpbGetBucketResp const &) { return RpbGetBucketResp; } 
+    message_code code(::RpbSetBucketReq const &) { return RpbSetBucketReq; } 
+    message_code code(dummy_msgs::RpbSetBucketResp const &) { return RpbSetBucketResp; } 
+    message_code code(::RpbMapRedReq const &) { return RpbMapRedReq; } 
+    message_code code(::RpbMapRedResp const &) { return RpbMapRedResp; } 
+
+    template <class T>
+    void write_to_conn(T const &t, boost::scoped_ptr<tcp_conn_t> &conn) {
+        message_size_t size = t.ByteSize();
+        message_code_t mc = code(t); 
+
+        conn->write(&size, sizeof(message_size_t));
+        conn->write(&mc, sizeof(message_code_t));
+        std::string str;
+        rassert(t.SerializeToString(&str));
+        rassert(str.size() == (size_t) t.ByteSize());
+
+        conn->write(str.data(), str.size());
+    }
+
 private:
     //parse a msg of a type T and call handle_buffer
     template <class T>
-    void handle(const_charslice &);
+    void handle(const_charslice &, boost::scoped_ptr<tcp_conn_t> &);
 
 private:
-    void handle_msg(dummy_msgs::RpbPingReq &);
-    void handle_msg(dummy_msgs::RpbGetClientIdReq &);
-    void handle_msg(::RpbSetClientIdReq &);
-    void handle_msg(dummy_msgs::RpbGetServerInfoReq &);
-    void handle_msg(::RpbGetReq &);
-    void handle_msg(::RpbPutReq &);
-    void handle_msg(::RpbDelReq &);
-    void handle_msg(dummy_msgs::RpbListBucketsReq &);
-    void handle_msg(::RpbListKeysReq &);
-    void handle_msg(::RpbGetBucketReq &);
-    void handle_msg(::RpbSetBucketReq &);
-    void handle_msg(::RpbMapRedReq &);
+    void handle_msg(dummy_msgs::RpbPingReq &, boost::scoped_ptr<tcp_conn_t> &);
+    void handle_msg(dummy_msgs::RpbGetClientIdReq &, boost::scoped_ptr<tcp_conn_t> &);
+    void handle_msg(::RpbSetClientIdReq &, boost::scoped_ptr<tcp_conn_t> &);
+    void handle_msg(dummy_msgs::RpbGetServerInfoReq &, boost::scoped_ptr<tcp_conn_t> &);
+    void handle_msg(::RpbGetReq &, boost::scoped_ptr<tcp_conn_t> &);
+    void handle_msg(::RpbPutReq &, boost::scoped_ptr<tcp_conn_t> &);
+    void handle_msg(::RpbDelReq &, boost::scoped_ptr<tcp_conn_t> &);
+    void handle_msg(dummy_msgs::RpbListBucketsReq &, boost::scoped_ptr<tcp_conn_t> &);
+    void handle_msg(::RpbListKeysReq &, boost::scoped_ptr<tcp_conn_t> &);
+    void handle_msg(::RpbGetBucketReq &, boost::scoped_ptr<tcp_conn_t> &);
+    void handle_msg(::RpbSetBucketReq &, boost::scoped_ptr<tcp_conn_t> &);
+    void handle_msg(::RpbMapRedReq &, boost::scoped_ptr<tcp_conn_t> &);
 };
 
 } //namespace riak
