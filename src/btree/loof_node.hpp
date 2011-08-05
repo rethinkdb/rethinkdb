@@ -246,7 +246,7 @@ void print(FILE *fp, value_sizer_t<V> *sizer, const loof_t *node) {
 template <class V>
 void validate(value_sizer_t<V> *sizer, const loof_t *node) {
 #ifndef NDEBUG
-    //    print(stdout, sizer, node);
+    // print(stdout, sizer, node);
 
     // Check that all offsets are contiguous (with interspersed skip
     // entries), that they start with frontmost, that live_size is
@@ -291,7 +291,7 @@ void validate(value_sizer_t<V> *sizer, const loof_t *node) {
         if (entry_is_live(ent)) {
             observed_live_size += sizeof(uint16_t) + entry_size(sizer, ent);
             rassert(i < node->num_pairs);
-            rassert(offset == offs[i]);
+            rassert(offset == offs[i], "offset=%d, offs[i]=%d, i=%d", offset, offs[i], i);
             ++i;
         } else if (entry_is_deletion(ent)) {
             rassert(!seen_tstamp_cutpoint);
@@ -559,7 +559,9 @@ inline void clean_entry(void *p, int sz) {
 // end) from fro to tow.
 template <class V>
 void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int wpoint, loof_t *tow, int fro_copysize, int fro_mand_offset) {
+    // printf("pre-validating fro\n");
     validate(sizer, fro);
+    // printf("pre-validating tow\n");
     validate(sizer, tow);
 
     // printf("move_elements beg = %d, end = %d, wpoint = %d, fro_copysize = %d, fro_mand_offset = %d\n",
@@ -576,7 +578,7 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
 
     // Make tow have a nice big region we can copy entries to.  Also,
     // this means we have no "skip" entries in tow.
-    garbage_collect(sizer, tow, MANDATORY_TIMESTAMPS);
+    garbage_collect(sizer, tow, MANDATORY_TIMESTAMPS, &wpoint);
 
     // Now resize and move tow's pair_offsets.
     memmove(tow->pair_offsets + wpoint + (end - beg), tow->pair_offsets + wpoint, sizeof(uint16_t) * (tow->num_pairs - wpoint));
@@ -634,7 +636,7 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
     int fro_live_size_adjustment = 0;
 
     for (;;) {
-        //        printf("fro_index = %d, tow_offset = %d, wri_offset = %d\n", fro_index, tow_offset, wri_offset);
+        // printf("fro_index = %d, tow_offset = %d, wri_offset = %d\n", fro_index, tow_offset, wri_offset);
         rassert(tow_offset <= tow->tstamp_cutpoint);
         if (tow_offset == tow->tstamp_cutpoint || fro_index == fro_index_end) {
             // We have no more timestamped information to push.
@@ -660,10 +662,10 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
 
             if (entry_is_live(ent)) {
                 livesize += entsz + sizeof(uint16_t);
+                fro_live_size_adjustment -= entsz + sizeof(uint16_t);
             }
 
             clean_entry(ent, entsz);
-            fro_live_size_adjustment -= entsz + sizeof(uint16_t);
 
             // Update the pair offset in fro to be the offset in tow
             // -- we'll never use the old value again and we'll copy
@@ -713,8 +715,18 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
             wri_offset += sz;
             livesize += sz + sizeof(uint16_t);
             //            printf("livesize now %d\n", livesize);
+        } else {
+            rassert(entry_is_deletion(ent));
+
+            // This is a dead entry.  We'll need to squash this dead entry later.
+            fro->pair_offsets[beg + tow->pair_offsets[fro_index]] = 0;
+
+            int sz = entry_size(sizer, ent);
+            clean_entry(ent, sz);
         }
     }
+
+    rassert(wri_offset <= tow_offset, "wri_offset = %d, tow_offset = %d", wri_offset, tow_offset);
 
     // tow may have some timestamped entries that need to become
     // un-timestamped.
@@ -773,9 +785,22 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
 
     fro->live_size += fro_live_size_adjustment;
 
-    //    printf("Validating fro\n");
+    {
+        // Squash dead entries that we copied pair_offsets from fro, for.
+        int j, k;
+        for (j = 0, k = 0; k < tow->num_pairs; ++k) {
+            if (tow->pair_offsets[k] != 0) {
+                tow->pair_offsets[j] = tow->pair_offsets[k];
+
+                j += 1;
+            }
+        }
+        tow->num_pairs = j;
+    }
+
+    // printf("Validating fro\n");
     validate(sizer, fro);
-    //    printf("Validating tow\n");
+    // printf("Validating tow\n");
     validate(sizer, tow);
 }
 

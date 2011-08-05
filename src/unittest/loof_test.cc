@@ -248,47 +248,61 @@ TEST(LoofTest, InsertRemove) {
     }
 }
 
-TEST(LoofTest, Merging) {
-    {
-        LoofTracker left;
-        LoofTracker right;
+TEST(LoofTest, MinimalMerging) {
+    LoofTracker left;
+    LoofTracker right;
 
-        left.Insert("a", "A");
-        right.Insert("b", "B");
+    left.Insert("a", "A");
+    right.Insert("b", "B");
 
-        right.Merge(left);
+    right.Merge(left);
+}
+
+TEST(LoofTest, SimpleMerging) {
+
+    LoofTracker left;
+    LoofTracker right;
+
+    // We use the largest value that will underflow.
+    //
+    // key_cost = 251, max_possible_size() = 256, sizeof(uint16_t) = 2, sizeof(repli_timestamp) = 4.
+    //
+    // 4084 - 12 = 4072.  4072 / 2 = 2036.  2036 - (251 + 256 + 2
+    // + 4) = 2036 - 513 = 1523.  So 1522 is the max possible
+    // mandatory_cost.  (See the is_underfull implementation.)
+    //
+    // With 5*4 mandatory timestamp bytes and 12 bytes per entry,
+    // that gives us 1502 / 12 as the loop boundary value that
+    // will underflow.  We get 12 byte entries if entries run from
+    // a000 to a999.  But if we allow two-digit entries, that
+    // frees up 2 bytes per entry, so add 200, giving 1702.  If we
+    // allow one-digit entries, that gives us 20 more bytes to
+    // use, giving 1722 / 12 as the loop boundary.  That's an odd
+    // way to look at the arithmetic, but if you don't like that,
+    // you can go cry to your mommy.
+
+    for (int i = 0; i < 1722 / 12; ++i) {
+        left.Insert(strprintf("a%d", i), strprintf("A%d", i));
+        right.Insert(strprintf("b%d", i), strprintf("B%d", i));
     }
 
-    {
-        LoofTracker left;
-        LoofTracker right;
+    right.Merge(left);
+}
 
-        // We use the largest value that will underflow.
-        //
-        // key_cost = 251, max_possible_size() = 256, sizeof(uint16_t) = 2, sizeof(repli_timestamp) = 4.
-        //
-        // 4084 - 12 = 4072.  4072 / 2 = 2036.  2036 - (251 + 256 + 2
-        // + 4) = 2036 - 513 = 1523.  So 1522 is the max possible
-        // mandatory_cost.  (See the is_underfull implementation.)
-        //
-        // With 5*4 mandatory timestamp bytes and 12 bytes per entry,
-        // that gives us 1502 / 12 as the loop boundary value that
-        // will underflow.  We get 12 byte entries if entries run from
-        // a000 to a999.  But if we allow two-digit entries, that
-        // frees up 2 bytes per entry, so add 200, giving 1702.  If we
-        // allow one-digit entries, that gives us 20 more bytes to
-        // use, giving 1722 / 12 as the loop boundary.  That's an odd
-        // way to look at the arithmetic, but if you don't like that,
-        // you can go cry to your mommy.
+TEST(LoofTest, MergingWithRemoves) {
+    LoofTracker left;
+    LoofTracker right;
 
-        for (int i = 0; i < 1722 / 12; ++i) {
-            left.Insert(strprintf("a%d", i), strprintf("A%d", i));
-            right.Insert(strprintf("b%d", i), strprintf("B%d", i));
+    for (int i = 0; i < 7/* 1000 / 12 */; ++i) {
+        left.Insert(strprintf("a%d", i), strprintf("A%d", i));
+        right.Insert(strprintf("b%d", i), strprintf("B%d", i));
+        if (i % 5 == 0) {
+            left.Remove(strprintf("a%d", i / 5));
+            right.Remove(strprintf("b%d", i / 5));
         }
-
-        right.Merge(left);
     }
 
+    right.Merge(left);
 }
 
 
