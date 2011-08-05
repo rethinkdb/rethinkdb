@@ -293,7 +293,7 @@ TEST(LoofTest, MergingWithRemoves) {
     LoofTracker left;
     LoofTracker right;
 
-    for (int i = 0; i < 21 /* 1000 / 12 */; ++i) {
+    for (int i = 0; i < 1000 / 12; ++i) {
         left.Insert(strprintf("a%d", i), strprintf("A%d", i));
         right.Insert(strprintf("b%d", i), strprintf("B%d", i));
         if (i % 5 == 0) {
