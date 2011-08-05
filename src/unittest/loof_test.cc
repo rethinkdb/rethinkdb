@@ -186,6 +186,12 @@ public:
         sibling.Verify();
     }
 
+    bool IsFull(const std::string& key, const std::string& value) {
+        btree_key_buffer_t key_buf(key.begin(), key.end());
+        short_value_buffer_t value_buf(value);
+        return loof::is_full(&sizer_, node_, key_buf.key(), value_buf.data());
+    }
+
     bool ShouldHave(const std::string& key) {
         return kv_.end() != kv_.find(key);
     }
@@ -456,6 +462,16 @@ TEST(LoofTest, LevelingRightToLeft) {
     bool could_level;
     left.Level(right, &could_level);
     ASSERT_TRUE(could_level);
+}
+
+TEST(LoofTest, Fullness) {
+    LoofTracker node;
+    int i;
+    for (i = 0; i < 4272 / 12; ++i) {
+        node.Insert(strprintf("a%d", i), strprintf("A%d", i));
+    }
+
+    ASSERT_TRUE(node.IsFull(strprintf("a%d", i), strprintf("A%d", i)));
 }
 
 }  // namespace unittest
