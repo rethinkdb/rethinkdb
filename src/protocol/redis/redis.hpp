@@ -2,6 +2,7 @@
 #define __PROTOCOL_REDIS_REDIS_HPP__
 
 #include "arch/arch.hpp"
+#include "protocol/redis/redis_types.hpp"
 #include "protocol/redis/redis_actor.hpp"
 #include <boost/shared_ptr.hpp>
 #include <vector>

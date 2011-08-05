@@ -3,33 +3,12 @@
 
 #include "arch/arch.hpp"
 #include "btree/operations.hpp"
+#include "protocol/redis/redis_types.hpp"
 #include <boost/shared_ptr.hpp>
 #include <boost/variant.hpp>
 #include <vector>
 #include <string>
 using std::string;
-
-//Redis result types. All redis commands return one of these types. Any redis parser
-//should know how to serialize these
-enum redis_status {
-    OK,
-    ERROR
-};
-
-struct status_result_struct {
-    redis_status status;
-    const char *msg;
-};
-
-typedef const boost::shared_ptr<status_result_struct> status_result;
-typedef const boost::variant<unsigned, status_result> integer_result;
-typedef const boost::variant<boost::shared_ptr<std::string>, status_result> bulk_result;
-typedef const boost::variant<boost::shared_ptr<std::vector<std::string> >, status_result> multi_bulk_result;
-
-//typedef const unsigned integer_result;
-//typedef const boost::shared_ptr<std::string> bulk_result;
-//typedef const boost::shared_ptr<std::vector<std::string> > multi_bulk_result;
-//typedef const boost::variant<status_result, integer_result, bulk_result, multi_bulk_result> redis_result;
 
 //These macros deliberately correspond to those in the redis parser. Though it may
 //seem a bit silly to turn a simple method declaration into a macro like this (it

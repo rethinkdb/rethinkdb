@@ -1,3 +1,4 @@
+#include "protocol/redis/redis_types.hpp"
 #include "protocol/redis/redis.hpp"
 #include "btree/slice.hpp"
 #include "import/import.hpp"
