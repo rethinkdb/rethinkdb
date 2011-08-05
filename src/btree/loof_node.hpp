@@ -634,6 +634,7 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
     }
 
     int fro_live_size_adjustment = 0;
+    int fro_copyage = 0;
 
     for (;;) {
         // printf("fro_index = %d, tow_offset = %d, wri_offset = %d\n", fro_index, tow_offset, wri_offset);
@@ -644,6 +645,7 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
         }
 
         int fro_offset = fro->pair_offsets[beg + tow->pair_offsets[fro_index]];
+        // printf("with fro_offset = %d\n", fro_offset);
 
         if (fro_offset >= fro_mand_offset) {
             // We have no more timestamped information to push.
@@ -672,6 +674,7 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
             // the newer values to tow later.
             fro->pair_offsets[beg + tow->pair_offsets[fro_index]] = wri_offset;
 
+            fro_copyage += sz;
             wri_offset += sz;
             fro_index++;
 
@@ -713,6 +716,7 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
 
             fro->pair_offsets[beg + tow->pair_offsets[fro_index]] = wri_offset;
             wri_offset += sz;
+            fro_copyage += sz;
             livesize += sz + sizeof(uint16_t);
             //            printf("livesize now %d\n", livesize);
         } else {
@@ -726,6 +730,7 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
         }
     }
 
+    // printf("fro_copyage = %d, fro_copysize was %d\n", fro_copyage, fro_copysize);
     rassert(wri_offset <= tow_offset, "wri_offset = %d, tow_offset = %d", wri_offset, tow_offset);
 
     // tow may have some timestamped entries that need to become
@@ -891,7 +896,16 @@ void merge(value_sizer_t<V> *sizer, loof_t *left, loof_t *right, btree_key_t *ke
 
     int tstamp_back_offset;
     int mandatory = mandatory_cost(sizer, left, MANDATORY_TIMESTAMPS, &tstamp_back_offset);
-    move_elements(sizer, left, 0, left->num_pairs, 0, right, mandatory - left->num_pairs * sizeof(uint16_t), tstamp_back_offset);
+
+    int left_copysize = mandatory;
+    // Uncount the uint16_t cost of mandatory entries.  Sigh.
+    for (int i = 0; i < left->num_pairs; ++i) {
+        if (left->pair_offsets[i] < tstamp_back_offset || entry_is_deletion(get_entry(left, left->pair_offsets[i]))) {
+            left_copysize -= sizeof(uint16_t);
+        }
+    }
+
+    move_elements(sizer, left, 0, left->num_pairs, 0, right, left_copysize, tstamp_back_offset);
 
     rassert(right->num_pairs > 0);
     keycpy(key_to_remove_out, entry_key(get_entry(right, right->pair_offsets[0])));
