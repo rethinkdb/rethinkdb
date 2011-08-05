@@ -150,9 +150,27 @@ struct redis_grammar : qi::grammar<Iterator>, redis_interface_t {
             COMMAND_1(multi_bulk, hvals, string)
         COMMANDS_END
 
+        //Sets
+        BEGIN(sets)
+           COMMAND_N(integer, sadd)
+           COMMAND_1(integer, scard, string)
+           COMMAND_N(multi_bulk, sdiff)
+           COMMAND_N(integer, sdiffstore)
+           COMMAND_N(multi_bulk, sinter)
+           COMMAND_N(integer, sinterstore)
+           COMMAND_2(integer, sismember, string, string)
+           COMMAND_1(multi_bulk, smembers, string)
+           COMMAND_3(integer, smove, string, string, string)
+           COMMAND_1(bulk, spop, string)
+           COMMAND_1(bulk, srandmember, string)
+           COMMAND_N(integer, srem)
+           COMMAND_N(multi_bulk, sunion)
+           COMMAND_N(integer, sunionstore)
+        COMMANDS_END
+
         //Because of the aformentioned tiny blocks problem we have to now or the blocks here
         //*sigh* and we were so close to requiring only one line to add a command
-        commands = keys | strings1 | strings2 | hashes;
+        commands = keys | strings1 | strings2 | hashes | sets;
         start = commands;
     }
 
@@ -185,6 +203,7 @@ private:
     qi::rule<Iterator> strings2;
     qi::rule<Iterator> hashes;
     qi::rule<Iterator> start;
+    qi::rule<Iterator> sets;
 
     //Output functions
     //These take the results of a redis_interface_t method and send them out on the wire.

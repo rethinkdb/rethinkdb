@@ -72,6 +72,23 @@ struct redis_interface_t {
     COMMAND_3(integer, hsetnx, string&, string&, string&)
     COMMAND_1(multi_bulk, hvals, string&)
 
+    // Sets
+    COMMAND_N(integer, sadd)
+    COMMAND_1(integer, scard, string&)
+    COMMAND_N(multi_bulk, sdiff)
+    COMMAND_N(integer, sdiffstore)
+    COMMAND_N(multi_bulk, sinter)
+    COMMAND_N(integer, sinterstore)
+    COMMAND_2(integer, sismember, string&, string&)
+    COMMAND_1(multi_bulk, smembers, string&)
+    COMMAND_3(integer, smove, string&, string&, string&)
+    COMMAND_1(bulk, spop, string&)
+    COMMAND_1(bulk, srandmember, string&)
+    COMMAND_N(integer, srem)
+    COMMAND_N(multi_bulk, sunion)
+    COMMAND_N(integer, sunionstore)
+
+
 protected:
     redis_actor_t *actor;
 
