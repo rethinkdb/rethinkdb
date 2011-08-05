@@ -125,6 +125,56 @@ public:
         lnode.Verify();
     }
 
+    void Level(LoofTracker& sibling, bool *could_level_out) {
+        // Assertions can cause us to exit the function early, so give
+        // the output parameter an initialized value.
+        *could_level_out = false;
+        ASSERT_EQ(bs_.ser_value(), sibling.bs_.ser_value());
+
+        ASSERT_TRUE(!kv_.empty());
+        ASSERT_TRUE(!sibling.kv_.empty());
+
+        btree_key_buffer_t to_replace;
+        btree_key_buffer_t replacement;
+        bool can_level = loof::level(&sizer_, node_, sibling.node_, to_replace.key(), replacement.key());
+
+        if (can_level) {
+            if (kv_.begin()->first < sibling.kv_.begin()->first) {
+                // Copy keys from front of sibling until and including replacement key.
+
+                std::string replacement_str(replacement.key()->contents, replacement.key()->size);
+                std::map<std::string, std::string>::iterator p = sibling.kv_.begin();
+                while (p->first < replacement_str && p != sibling.kv_.end()) {
+                    kv_[p->first] = p->second;
+                    std::map<std::string, std::string>::iterator prev = p;
+                    ++p;
+                    sibling.kv_.erase(prev);
+                }
+                ASSERT_TRUE(p != sibling.kv_.end());
+                ASSERT_EQ(p->first, replacement_str);
+                kv_[p->first] = p->second;
+                sibling.kv_.erase(p);
+            } else {
+                // Copy keys from end of sibling until but not including replacement key.
+
+                std::string replacement_str(replacement.key()->contents, replacement.key()->size);
+
+                std::map<std::string, std::string>::iterator p = sibling.kv_.end();
+                --p;
+                while (p->first > replacement_str && p != sibling.kv_.begin()) {
+                    kv_[p->first] = p->second;
+                    std::map<std::string, std::string>::iterator prev = p;
+                    --p;
+                    sibling.kv_.erase(prev);
+                }
+
+                ASSERT_EQ(p->first, replacement_str);
+            }
+        }
+
+        *could_level_out = can_level;
+    }
+
     bool ShouldHave(const std::string& key) {
         return kv_.end() != kv_.find(key);
     }

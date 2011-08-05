@@ -932,8 +932,8 @@ bool level(value_sizer_t<V> *sizer, loof_t *node, loof_t *sibling, btree_key_t *
 
     rassert(node_weight < sibling_weight);
 
-    btree_key_t *nodecmp_left_key = entry_key(get_entry(node, node->pair_offsets[0]));
-    btree_key_t *nodecmp_right_key = entry_key(get_entry(sibling, sibling->pair_offsets[0]));
+    const btree_key_t *nodecmp_left_key = entry_key(get_entry(node, node->pair_offsets[0]));
+    const btree_key_t *nodecmp_right_key = entry_key(get_entry(sibling, sibling->pair_offsets[0]));
     int nodecmp_result = sized_strcmp(nodecmp_left_key->contents, nodecmp_left_key->size,
                                       nodecmp_right_key->contents, nodecmp_right_key->size);
     rassert(nodecmp_result != 0);
