@@ -399,4 +399,18 @@ TEST(LoofTest, LevelingLeftToRight) {
     ASSERT_TRUE(could_level);
 }
 
+TEST(LoofTest, LevelingRightToLeft) {
+    LoofTracker left;
+    LoofTracker right;
+    for (int i = 0; i < 4272 / 12; ++i) {
+        right.Insert(strprintf("b%d", i), strprintf("B%d", i));
+    }
+
+    left.Insert("a0", "A0");
+
+    bool could_level;
+    left.Level(right, &could_level);
+    ASSERT_TRUE(could_level);
+}
+
 }  // namespace unittest
