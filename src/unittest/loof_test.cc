@@ -186,6 +186,28 @@ public:
         sibling.Verify();
     }
 
+    void Split(LoofTracker& right) {
+        ASSERT_EQ(bs_.ser_value(), right.bs_.ser_value());
+
+        ASSERT_TRUE(loof::is_empty(right.node_));
+
+        btree_key_buffer_t median;
+        loof::split(&sizer_, node_, right.node_, median.key());
+
+        std::string median_str(median.key()->contents, median.key()->size);
+
+        std::map<std::string, std::string>::iterator p = kv_.end();
+        --p;
+        while (p->first > median_str && p != kv_.begin()) {
+            right.kv_[p->first] = p->second;
+            std::map<std::string, std::string>::iterator prev = p;
+            --p;
+            kv_.erase(prev);
+        }
+
+        ASSERT_EQ(p->first, median_str);
+    }
+
     bool IsFull(const std::string& key, const std::string& value) {
         btree_key_buffer_t key_buf(key.begin(), key.end());
         short_value_buffer_t value_buf(value);
@@ -462,6 +484,17 @@ TEST(LoofTest, LevelingRightToLeft) {
     bool could_level;
     left.Level(right, &could_level);
     ASSERT_TRUE(could_level);
+}
+
+TEST(LoofTest, Splitting) {
+    LoofTracker left;
+    for (int i = 0; i < 4272 / 12; ++i) {
+        left.Insert(strprintf("a%d", i), strprintf("A%d", i));
+    }
+
+    LoofTracker right;
+
+    left.Split(right);
 }
 
 TEST(LoofTest, Fullness) {
