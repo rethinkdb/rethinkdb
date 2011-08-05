@@ -51,8 +51,6 @@ struct link_t {
     std::string bucket;
     std::string key;
     std::string tag;
-
-    std::string as_string();
 };
 } //namespace riak
 

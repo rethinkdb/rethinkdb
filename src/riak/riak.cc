@@ -18,21 +18,20 @@
 namespace riak {
 namespace json = json_spirit;
 
-std::string link_t::as_string() {
+std::string link_to_string(link_t const &link) {
     std::stringstream res;
 
     res << "</riak/";
-    res << bucket;
-    if (key.size() > 0) {
-        res << "/" << key;
+    res << link.bucket;
+    if (link.key.size() > 0) {
+        res << "/" << link.key;
     }
 
     res <<">;";
-    res << " riaktag=" << "\"" << tag << "\"";
+    res << " riaktag=" << "\"" << link.tag << "\"";
 
     return res.str();
 }
-
 
 riak_server_t::riak_server_t(int port, store_manager_t<std::list<std::string> > *store_manager)
     : http_server_t(port), riak_interface(store_manager)
@@ -336,7 +335,7 @@ http_res_t riak_server_t::fetch_object(const http_req_t &req) {
         std::vector<std::string> links;
 
         for (std::vector<link_t>::iterator it = obj.links.begin(); it != obj.links.end(); it++) {
-            links.push_back(it->as_string());
+            links.push_back(link_to_string(*it));
         }
 
         res.add_header_line("Link", boost::algorithm::join(links, ", "));
