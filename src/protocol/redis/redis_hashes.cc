@@ -4,10 +4,87 @@
 
 // Utility functions for hashes
 
+struct hash_read_oper_t : read_oper_t {
+    hash_read_oper_t(std::string &key, btree_slice_t *btr) :
+        read_oper_t(key, btr),
+        btree(btr)
+    {
+        redis_hash_value_t *value = reinterpret_cast<redis_hash_value_t *>(location.value.get());
+        if(!value) {
+            root = NULL_BLOCK_ID;
+        } else if(value->get_redis_type() != REDIS_HASH) {
+            //throw
+        } else {
+            root = value->get_root();
+        }
+    }
+
+    std::string *get(std::string &field) {
+        value_sizer_t<redis_nested_string_value_t> nested_sizer(btree->cache()->get_block_size());
+
+        got_superblock_t nested_superblock;
+        boost::scoped_ptr<superblock_t> nested_btree_sb(new virtual_superblock_t(root));
+        nested_superblock.sb.swap(nested_btree_sb);
+        nested_superblock.txn = location.txn;
+
+        btree_key_buffer_t nested_key(field);
+        keyvalue_location_t<redis_nested_string_value_t> nested_loc;
+
+        find_keyvalue_location_for_read(&nested_sizer, &nested_superblock, nested_key.key(), &nested_loc);
+
+        std::string *result = NULL;
+        redis_nested_string_value_t *value = nested_loc.value.get();
+        if(value != NULL) {
+            result = new std::string();
+            blob_t blob(value->content, blob::btree_maxreflen);
+            blob.read_to_string(*result, nested_loc.txn.get(), 0, blob.valuesize());
+        } // else result remains NULL
+
+        return result;
+    }
+
+    boost::shared_ptr<one_way_iterator_t<std::pair<std::string, std::string> > > iterator() {
+        boost::shared_ptr<value_sizer_t<redis_nested_string_value_t> >
+            sizer_ptr(new value_sizer_t<redis_nested_string_value_t>(btree->cache()->get_block_size()));
+
+        store_key_t none_key;
+        none_key.size = 0;
+
+        boost::scoped_ptr<superblock_t> nested_btree_sb(new virtual_superblock_t(root));
+
+        slice_keys_iterator_t<redis_nested_string_value_t> *tree_iter =
+                new slice_keys_iterator_t<redis_nested_string_value_t>(sizer_ptr, location.txn,
+                nested_btree_sb, btree->home_thread(), rget_bound_none, none_key, rget_bound_none, none_key);
+
+        boost::shared_ptr<one_way_iterator_t<std::pair<std::string, std::string> > > transform_iter(
+                new transform_iterator_t<key_value_pair_t<redis_nested_string_value_t>,
+                std::pair<std::string, std::string> >(
+                boost::bind(&hash_read_oper_t::transform_value, this, _1), tree_iter));
+
+        return transform_iter;
+    }
+
+    int hash_size() {
+        return reinterpret_cast<redis_hash_value_t *>(location.value.get())->get_sub_size();
+    }
+
+protected:
+    btree_slice_t *btree;
+    block_id_t root;
+
+    std::pair<std::string, std::string> transform_value(const key_value_pair_t<redis_nested_string_value_t> &pair) {
+        blob_t blob(pair.value.get(), blob::btree_maxreflen); 
+        std::string str;
+        blob.read_to_string(str, location.txn.get(), 0, blob.valuesize());
+
+        return std::pair<std::string, std::string>(pair.key, str);
+    }
+
+};
+
 struct hash_set_oper_t : set_oper_t {
-    hash_set_oper_t(std::string &key, std::string &field, btree_slice_t *btree, int64_t timestamp) :
+    hash_set_oper_t(std::string &key, btree_slice_t *btree, int64_t timestamp) :
         set_oper_t(key, btree, timestamp),
-        nested_key(field),
         nested_sizer(btree->cache()->get_block_size())
     {
         // set_oper_t constructor finds this hash, here we find the field in the nested btree
@@ -23,71 +100,99 @@ struct hash_set_oper_t : set_oper_t {
         } else if(value->get_redis_type() != REDIS_HASH) {
             // TODO in this case?
         }
-
-        boost::scoped_ptr<superblock_t> nested_btree_sb(new virtual_superblock_t(value->get_root()));
-        got_superblock_t nested_superblock;
-        nested_superblock.sb.swap(nested_btree_sb);
-        nested_superblock.txn = location.txn;
-
-        find_keyvalue_location_for_write(&nested_sizer, &nested_superblock, nested_key.key(), tstamp, &nested_loc);
+        
+        root = value->get_root();
     }
 
     ~hash_set_oper_t() {
-        // Apply change to sub tree
-        apply_keyvalue_change(&nested_sizer, &nested_loc, nested_key.key(), tstamp);
-        
+        // Reset root if changed
         redis_hash_value_t *value = reinterpret_cast<redis_hash_value_t *>(location.value.get());
-        virtual_superblock_t *sb = reinterpret_cast<virtual_superblock_t *>(nested_loc.sb.get());
-        value->get_root() = sb->get_root_block_id();
-        // Parent change will be applied by parent destructor
+        value->get_root() = root;
     }
 
-    keyvalue_location_t<redis_nested_string_value_t> nested_loc;
+    void increment_size(int by) {
+        reinterpret_cast<redis_set_value_t *>(location.value.get())->get_sub_size() += by;
+    }
+
+    int incr_field_by(std::string &field, int by) {
+        find_field f(this, field);
+        return f.incr(by);
+    }
+
+    bool del_field(std::string &field) {
+        find_field f(this, field);
+
+        if(f.loc.value.get() == NULL) {
+            return false;
+        }
+
+        scoped_malloc<redis_nested_string_value_t> null;
+        f.loc.value.swap(null);
+        f.apply_change();
+        return true;
+    }
+
+    bool set_field(std::string &field, std::string &value, bool clear_old = true) {
+        find_field f(this, field);
+        bool result = f.set(value, clear_old);
+        f.apply_change();
+        return result;
+    }
 
 protected:
-    btree_key_buffer_t nested_key;
+    struct find_field {
+        find_field(hash_set_oper_t *ths_ptr, std::string &member):
+            ths(ths_ptr),
+            nested_key(member)
+        {
+            boost::scoped_ptr<superblock_t> nested_btree_sb(new virtual_superblock_t(ths->root));
+            got_superblock_t nested_superblock;
+            nested_superblock.sb.swap(nested_btree_sb);
+            nested_superblock.txn = ths->location.txn;
+
+            find_keyvalue_location_for_write(&ths->nested_sizer, &nested_superblock, nested_key.key(), ths->tstamp, &loc);
+        }
+        
+        void apply_change() {
+            apply_keyvalue_change(&ths->nested_sizer, &loc, nested_key.key(), ths->tstamp);
+            virtual_superblock_t *sb = reinterpret_cast<virtual_superblock_t *>(loc.sb.get());
+            ths->root = sb->get_root_block_id();
+        }
+
+        int incr(int by) {
+           return incr_loc<redis_nested_string_value_t>(loc, by);
+        }
+
+        bool set(std::string &value, bool clear_old) {
+            redis_nested_string_value_t *nst_str = loc.value.get();
+            bool created = false;
+            if(nst_str == NULL) {
+                scoped_malloc<redis_nested_string_value_t> smrsv(MAX_BTREE_VALUE_SIZE);
+                memset(smrsv.get(), 0, MAX_BTREE_VALUE_SIZE);
+                loc.value.swap(smrsv);
+                nst_str = loc.value.get();
+                created = true;
+            } else if(!clear_old) {
+                return false;
+            }
+
+            blob_t blob(nst_str->content, blob::btree_maxreflen);
+
+            blob.clear(loc.txn.get());
+            blob.append_region(loc.txn.get(), value.size());
+            blob.write_from_string(value, loc.txn.get(), 0);
+
+            return created;
+        }
+
+        hash_set_oper_t *ths;
+        btree_key_buffer_t nested_key;
+        keyvalue_location_t<redis_nested_string_value_t> loc;
+    };
+
+    block_id_t root;
     value_sizer_t<redis_nested_string_value_t> nested_sizer;
 };
-
-std::string *redis_actor_t::hget_string(std::string &key, std::string &field) {
-    got_superblock_t superblock;
-    get_btree_superblock(btree, rwi_read, order_token_t::ignore, &superblock);
-
-    btree_key_buffer_t btree_key(key);
-
-    keyvalue_location_t<redis_value_t> location;
-    value_sizer_t<redis_value_t> sizer(btree->cache()->get_block_size());
-    find_keyvalue_location_for_read(&sizer, &superblock, btree_key.key(), &location);
-
-    redis_hash_value_t *value = reinterpret_cast<redis_hash_value_t *>(location.value.get());
-    std::string *result = NULL;
-    if(value == NULL) {
-        //Error key doesn't exist
-    } else if(value->get_redis_type() != REDIS_HASH) {
-        //Error key isn't a string
-    } else {
-        value_sizer_t<redis_nested_string_value_t> nested_sizer(btree->cache()->get_block_size());
-
-        got_superblock_t nested_superblock;
-        boost::scoped_ptr<superblock_t> nested_btree_sb(new virtual_superblock_t(value->get_root()));
-        nested_superblock.sb.swap(nested_btree_sb);
-        nested_superblock.txn = location.txn;
-
-        btree_key_buffer_t nested_key(field);
-        keyvalue_location_t<redis_nested_string_value_t> nested_loc;
-
-        find_keyvalue_location_for_read(&nested_sizer, &nested_superblock, nested_key.key(), &nested_loc);
-
-        redis_nested_string_value_t *value = nested_loc.value.get();
-        if(value != NULL) {
-            result = new std::string();
-            blob_t blob(value->content, blob::btree_maxreflen);
-            blob.read_to_string(*result, nested_loc.txn.get(), 0, blob.valuesize());
-        } // else result remains NULL
-    }
-
-    return result;
-}
 
 //Hash Operations
 
@@ -96,265 +201,98 @@ integer_result redis_actor_t::hdel(std::vector<std::string> &key_fields) {
     int deleted = 0;
 
     std::string key = key_fields[0];
-    set_oper_t oper(key, btree, 1234);
+    hash_set_oper_t oper(key, btree, 1234);
 
-    value_sizer_t<redis_nested_string_value_t> nested_sizer(btree->cache()->get_block_size());
-
-    if(oper.location.value.get() != NULL ||
-       oper.location.value->get_redis_type() == REDIS_HASH) {
-        
-        redis_hash_value_t *value = reinterpret_cast<redis_hash_value_t *>(oper.location.value.get());
-        block_id_t root = value->get_root();
-
-        for(std::vector<std::string>::iterator iter = key_fields.begin() + 1;
-                iter != key_fields.end(); ++iter) {
-            btree_key_buffer_t field(*iter);
-
-            // The nested superblock will be consumed for each field lookup
-            boost::scoped_ptr<superblock_t> nested_btree_sb(new virtual_superblock_t(root));
-            got_superblock_t nested_superblock;
-            nested_superblock.sb.swap(nested_btree_sb);
-            nested_superblock.txn = oper.location.txn;
-
-            keyvalue_location_t<redis_nested_string_value_t> loc;
-            find_keyvalue_location_for_write(&nested_sizer, &nested_superblock, field.key(), oper.tstamp, &loc);
-
-            redis_nested_string_value_t *nst_str = loc.value.get();
-            if(nst_str != NULL) {
-                // Delete the value
-                blob_t blob(nst_str->content, blob::btree_maxreflen);
-                blob.clear(oper.location.txn.get());
-
-                scoped_malloc<redis_nested_string_value_t> null;
-                loc.value.swap(null);
-
-                apply_keyvalue_change(&nested_sizer, &loc, field.key(), oper.tstamp);
-
-                // This delete may have changed the root which we need for the next operation
-                root = reinterpret_cast<virtual_superblock_t *>(loc.sb.get())->get_root_block_id();
-
-                deleted++;
-            }
+    for(std::vector<std::string>::iterator iter = key_fields.begin() + 1;
+            iter != key_fields.end(); ++iter) {
+        if(oper.del_field(*iter)) {
+            deleted++;
         }
-
-        // If any of the deletes change the root we now have to make that change in the hash value
-        value->get_root() = root;
     }
 
+    oper.increment_size(-deleted);
     return integer_result(deleted);
 }
 
 //COMMAND_2(integer, hexists, string&, string&)
 integer_result redis_actor_t::hexists(std::string &key, std::string &field) {
-    std::string *s = hget_string(key, field);
+    hash_read_oper_t oper(key, btree);
+    std::string *s = oper.get(field);
     if(s != NULL) delete s;
     return integer_result(!!s);
 }
 
 //COMMAND_2(bulk, hget, string&, string&)
 bulk_result redis_actor_t::hget(std::string &key, std::string &field) {
-    return bulk_result(boost::shared_ptr<std::string>(hget_string(key, field)));
+    hash_read_oper_t oper(key, btree);
+    return bulk_result(boost::shared_ptr<std::string>(oper.get(field)));
 }
 
 //COMMAND_1(multi_bulk, hgetall, string&)
 multi_bulk_result redis_actor_t::hgetall(std::string &key) {
-    boost::shared_ptr<std::vector<std::string> > vals(new std::vector<std::string>());
+    hash_read_oper_t oper(key, btree);
+    boost::shared_ptr<one_way_iterator_t<std::pair<std::string, std::string> > > iter = oper.iterator();
+    boost::shared_ptr<std::vector<std::string> > result(new std::vector<std::string>());
 
-    got_superblock_t superblock;
-    get_btree_superblock(btree, rwi_read, order_token_t::ignore, &superblock);
-
-    btree_key_buffer_t btree_key(key);
-
-    keyvalue_location_t<redis_value_t> location;
-    value_sizer_t<redis_value_t> sizer(btree->cache()->get_block_size());
-    find_keyvalue_location_for_read(&sizer, &superblock, btree_key.key(), &location);
-
-    redis_hash_value_t *value = reinterpret_cast<redis_hash_value_t *>(location.value.get());
-    if(value != NULL) {
-        block_id_t root = value->get_root();
-
-        boost::shared_ptr<value_sizer_t<redis_nested_string_value_t> >
-            nested_sizer(new value_sizer_t<redis_nested_string_value_t>(btree->cache()->get_block_size()));
-
-        store_key_t none_key;
-        none_key.size = 0;
-
-        boost::scoped_ptr<superblock_t> nested_btree_sb(new virtual_superblock_t(root));
-        slice_keys_iterator_t<redis_nested_string_value_t>
-            tree_iter(nested_sizer, location.txn, nested_btree_sb, btree->home_thread(),
-            rget_bound_none, none_key, rget_bound_none, none_key);
-
-        while (true) {
-            boost::optional<key_value_pair_t<redis_nested_string_value_t> > next = tree_iter.next();
-            if(next) {
-                std::string k = next.get().key;
-                vals->push_back(k);
-
-                boost::shared_array<char> val = next.get().value;
-                blob_t blob(val.get(), blob::btree_maxreflen);
-                std::string this_val(blob.valuesize(), '\0');
-                blob.read_to_string(this_val, location.txn.get(), 0, blob.valuesize());
-                vals->push_back(this_val);
-            } else {
-                break;
-            }
-        }
-    }
-
-    return multi_bulk_result(vals);
-
-}
-
-//COMMAND_3(integer, hincrby, string&, string&, int)
-integer_result redis_actor_t::hincrby(std::string &key, std::string &field, int by) {
-    hash_set_oper_t oper(key, field, btree, 1234);
-
-    int int_value = 0;
-    std::string int_string;
-    redis_nested_string_value_t *value = oper.nested_loc.value.get();
-    if(value == NULL) {
-        scoped_malloc<redis_nested_string_value_t> smrsv(MAX_BTREE_VALUE_SIZE);
-        memset(smrsv.get(), 0, MAX_BTREE_VALUE_SIZE);
-        oper.nested_loc.value.swap(smrsv);
-        value = reinterpret_cast<redis_nested_string_value_t *>(oper.nested_loc.value.get());
-    } else {
-        blob_t blob(value->content, blob::btree_maxreflen);
-        blob.read_to_string(int_string, oper.location.txn.get(), 0, blob.valuesize());
-        blob.clear(oper.location.txn.get());
-        try {
-            int_value = boost::lexical_cast<int64_t>(int_string);
-        } catch(boost::bad_lexical_cast &) {
-            return integer_result(redis_error("value is not an integer or out of range"));
-        }
-    }
-
-    int_value += by;
-    int_string = boost::lexical_cast<std::string>(int_value);
-
-    blob_t blob(value->content, blob::btree_maxreflen);
-    blob.append_region(oper.location.txn.get(), int_string.size());
-    blob.write_from_string(int_string, oper.location.txn.get(), 0);
-    
-    return integer_result(int_value);
-}
-
-//COMMAND_1(multi_bulk, hkeys, string&)
-multi_bulk_result redis_actor_t::hkeys(std::string &key) {
-    boost::shared_ptr<std::vector<std::string> > vals(new std::vector<std::string>());
-
-    got_superblock_t superblock;
-    get_btree_superblock(btree, rwi_read, order_token_t::ignore, &superblock);
-
-    btree_key_buffer_t btree_key(key);
-
-    keyvalue_location_t<redis_value_t> location;
-    value_sizer_t<redis_value_t> sizer(btree->cache()->get_block_size());
-    find_keyvalue_location_for_read(&sizer, &superblock, btree_key.key(), &location);
-
-    redis_hash_value_t *value = reinterpret_cast<redis_hash_value_t *>(location.value.get());
-    if(value != NULL) {
-        block_id_t root = value->get_root();
-
-        boost::shared_ptr<value_sizer_t<redis_nested_string_value_t> >
-            nested_sizer(new value_sizer_t<redis_nested_string_value_t>(btree->cache()->get_block_size()));
-
-        store_key_t none_key;
-        none_key.size = 0;
-
-        boost::scoped_ptr<superblock_t> nested_btree_sb(new virtual_superblock_t(root));
-        slice_keys_iterator_t<redis_nested_string_value_t>
-            tree_iter(nested_sizer, location.txn, nested_btree_sb, btree->home_thread(),
-            rget_bound_none, none_key, rget_bound_none, none_key);
-
-        while (true) {
-            boost::optional<key_value_pair_t<redis_nested_string_value_t> > next = tree_iter.next();
-            if(next) {
-                std::string k = next.get().key;
-                vals->push_back(k);
-            } else {
-                break;
-            }
-        }
-    }
-
-    return multi_bulk_result(vals);
-}
-
-//COMMAND_1(integer, hlen, string&)
-integer_result redis_actor_t::hlen(std::string &key) {
-    got_superblock_t superblock;
-    get_btree_superblock(btree, rwi_read, order_token_t::ignore, &superblock);
-
-    btree_key_buffer_t btree_key(key);
-
-    keyvalue_location_t<redis_value_t> location;
-    value_sizer_t<redis_value_t> sizer(btree->cache()->get_block_size());
-    find_keyvalue_location_for_read(&sizer, &superblock, btree_key.key(), &location);
-
-    redis_hash_value_t *value = reinterpret_cast<redis_hash_value_t *>(location.value.get());
-    block_id_t root = value->get_root();
-
-    boost::shared_ptr<value_sizer_t<redis_nested_string_value_t> > nested_sizer(new value_sizer_t<redis_nested_string_value_t>(btree->cache()->get_block_size()));
-
-    store_key_t none_key;
-    none_key.size = 0;
-
-    boost::scoped_ptr<superblock_t> nested_btree_sb(new virtual_superblock_t(root));
-    slice_keys_iterator_t<redis_nested_string_value_t> tree_iter(nested_sizer, location.txn, nested_btree_sb, btree->home_thread(), rget_bound_none, none_key, rget_bound_none, none_key);
-
-    int count = 0;
     while (true) {
-        boost::optional<key_value_pair_t<redis_nested_string_value_t> > next = tree_iter.next();
+        boost::optional<std::pair<std::string, std::string> > next = iter->next();
         if(next) {
-            count++;
+            result->push_back(next.get().first);
+            result->push_back(next.get().second);
         } else {
             break;
         }
     }
 
-    return integer_result(count);
+    return multi_bulk_result(result);
+}
+
+//COMMAND_3(integer, hincrby, string&, string&, int)
+integer_result redis_actor_t::hincrby(std::string &key, std::string &field, int by) {
+    hash_set_oper_t oper(key, btree, 1234);
+    int result = oper.incr_field_by(field, by);
+    return integer_result(result);
+}
+
+//COMMAND_1(multi_bulk, hkeys, string&)
+multi_bulk_result redis_actor_t::hkeys(std::string &key) {
+    hash_read_oper_t oper(key, btree);
+    boost::shared_ptr<one_way_iterator_t<std::pair<std::string, std::string> > > iter = oper.iterator();
+
+    boost::shared_ptr<std::vector<std::string> > keys(new std::vector<std::string>());
+
+    while (true) {
+        boost::optional<std::pair<std::string, std::string> > next = iter->next();
+        if(next) {
+            std::string k = next.get().first;
+            keys->push_back(k);
+        } else {
+            break;
+        }
+    }
+
+    return multi_bulk_result(keys);
+}
+
+//COMMAND_1(integer, hlen, string&)
+integer_result redis_actor_t::hlen(std::string &key) {
+    hash_read_oper_t oper(key, btree);
+    return integer_result(oper.hash_size());
 }
 
 //COMMAND_N(multi_bulk, hmget)
 multi_bulk_result redis_actor_t::hmget(std::vector<std::string> &key_fields) {
     std::string key = key_fields[0];
-    value_sizer_t<redis_nested_string_value_t> nested_sizer(btree->cache()->get_block_size());
+    hash_read_oper_t oper(key, btree);
+
     boost::shared_ptr<std::vector<std::string> > result(new std::vector<std::string>());
+    for(std::vector<std::string>::iterator iter = key_fields.begin() + 1;
+            iter != key_fields.end(); ++iter) {
+        std::string *val = oper.get(*iter);
 
-    got_superblock_t superblock;
-    get_btree_superblock(btree, rwi_read, order_token_t::ignore, &superblock);
-
-    btree_key_buffer_t btree_key(key);
-
-    keyvalue_location_t<redis_value_t> location;
-    value_sizer_t<redis_value_t> sizer(btree->cache()->get_block_size());
-    find_keyvalue_location_for_read(&sizer, &superblock, btree_key.key(), &location);
-
-    redis_hash_value_t *value = reinterpret_cast<redis_hash_value_t *>(location.value.get());
-    if((value != NULL) || (value->get_redis_type() == REDIS_HASH)) {
-        
-        block_id_t root = value->get_root();
-
-        for(std::vector<std::string>::iterator iter = key_fields.begin() + 1;
-                iter != key_fields.end(); ++iter) {
-            btree_key_buffer_t field(*iter);
-
-            // The nested superblock will be consumed for each field lookup
-            boost::scoped_ptr<superblock_t> nested_btree_sb(new virtual_superblock_t(root));
-            got_superblock_t nested_superblock;
-            nested_superblock.sb.swap(nested_btree_sb);
-            nested_superblock.txn = location.txn;
-
-            keyvalue_location_t<redis_nested_string_value_t> loc;
-            find_keyvalue_location_for_read(&nested_sizer, &nested_superblock, field.key(), &loc);
-
-            redis_nested_string_value_t *nst_str = loc.value.get();
-            if(nst_str != NULL) {
-                blob_t blob(nst_str->content, blob::btree_maxreflen);
-                std::string res(blob.valuesize(), '\0');
-                blob.read_to_string(res, location.txn.get(), 0, blob.valuesize());
-                result->push_back(res);
-            }
+        if(val != NULL) {
+            result->push_back(*val);
+            delete val;
         }
     }
 
@@ -364,62 +302,19 @@ multi_bulk_result redis_actor_t::hmget(std::vector<std::string> &key_fields) {
 //COMMAND_N(status, hmset)
 status_result redis_actor_t::hmset(std::vector<std::string> &key_fields_values) {
     std::string key = key_fields_values[0];
-    set_oper_t oper(key, btree, 1234);
+    hash_set_oper_t oper(key, btree, 1234);
 
-    value_sizer_t<redis_nested_string_value_t> nested_sizer(btree->cache()->get_block_size());
-
-    redis_hash_value_t *value = reinterpret_cast<redis_hash_value_t *>(oper.location.value.get());
-    if(value == NULL) {
-        scoped_malloc<redis_value_t> smrsv(MAX_BTREE_VALUE_SIZE);
-        oper.location.value.swap(smrsv);
-        value = reinterpret_cast<redis_hash_value_t *>(oper.location.value.get());
-        value->set_redis_type(REDIS_HASH);
-        value->get_root() = NULL_BLOCK_ID;
-    } else if(value->get_redis_type() != REDIS_HASH) {
-        return redis_error("Hash operation attempted against a non-hash key");
-    }
-    
-    block_id_t root = value->get_root();
-
+    int num_set = 0;
     for(std::vector<std::string>::iterator iter = key_fields_values.begin() + 1;
             iter != key_fields_values.end(); ++iter) {
-        btree_key_buffer_t field(*iter);
-
-        // The nested superblock will be consumed for each field lookup
-        boost::scoped_ptr<superblock_t> nested_btree_sb(new virtual_superblock_t(root));
-        got_superblock_t nested_superblock;
-        nested_superblock.sb.swap(nested_btree_sb);
-        nested_superblock.txn = oper.location.txn;
-
-        keyvalue_location_t<redis_nested_string_value_t> loc;
-        find_keyvalue_location_for_write(&nested_sizer, &nested_superblock, field.key(), oper.tstamp, &loc);
-
-        redis_nested_string_value_t *nst_str = loc.value.get();
-        if(nst_str == NULL) {
-            scoped_malloc<redis_nested_string_value_t> smrsv(MAX_BTREE_VALUE_SIZE);
-            memset(smrsv.get(), 0, MAX_BTREE_VALUE_SIZE);
-            loc.value.swap(smrsv);
-            nst_str = reinterpret_cast<redis_nested_string_value_t *>(loc.value.get());
-        }
-
-        blob_t blob(nst_str->content, blob::btree_maxreflen);
-
-        // Clear old value
-        blob.clear(loc.txn.get());
-        blob.append_region(loc.txn.get(), iter->size());
-
-        // Increment to the value of this field
+        std::string field = *iter;
         ++iter;
-        blob.write_from_string(*iter, loc.txn.get(), 0);
+        std::string value = *iter;
 
-        apply_keyvalue_change(&nested_sizer, &loc, field.key(), oper.tstamp);
-
-        // This delete may have changed the root which we need for the next operation
-        root = reinterpret_cast<virtual_superblock_t *>(loc.sb.get())->get_root_block_id();
+        if(oper.set_field(field, value)) {
+            num_set++; 
+        }
     }
-
-    // If any of the deletes change the root we now have to make that change in the hash value
-    value->get_root() = root;
 
     boost::shared_ptr<status_result_struct> result(new status_result_struct);
     result->status = OK;
@@ -429,86 +324,34 @@ status_result redis_actor_t::hmset(std::vector<std::string> &key_fields_values) 
 
 //COMMAND_3(integer, hset, string&, string&, string&)
 integer_result redis_actor_t::hset(std::string &key, std::string &field, std::string &f_value) {
-    hash_set_oper_t oper(key, field, btree, 1234);
-    redis_nested_string_value_t *value = oper.nested_loc.value.get();
-    int result = 0;
-    if(value == NULL) {
-        scoped_malloc<redis_nested_string_value_t> smrsv(MAX_BTREE_VALUE_SIZE);
-        memset(smrsv.get(), 0, MAX_BTREE_VALUE_SIZE);
-        oper.nested_loc.value.swap(smrsv);
-        value = reinterpret_cast<redis_nested_string_value_t *>(oper.nested_loc.value.get());
-        result = 1;
-    }    
-
-    blob_t blob(value->content, blob::btree_maxreflen);
-    blob.clear(oper.location.txn.get());
-
-    blob.append_region(oper.location.txn.get(), f_value.size());
-    blob.write_from_string(f_value, oper.location.txn.get(),  0);
+    hash_set_oper_t oper(key, btree, 1234);
+    bool result = oper.set_field(field, f_value);
 
     return integer_result(result);
 }
 
 //COMMAND_3(integer, hsetnx, string&, string&, string&)
 integer_result redis_actor_t::hsetnx(std::string &key, std::string &field, std::string &f_value) {
-    hash_set_oper_t oper(key, field, btree, 1234);
-    redis_nested_string_value_t *value = oper.nested_loc.value.get();
-    int result = 0;
-    if(value == NULL) {
-        scoped_malloc<redis_nested_string_value_t> smrsv(MAX_BTREE_VALUE_SIZE);
-        memset(smrsv.get(), 0, MAX_BTREE_VALUE_SIZE);
-        oper.nested_loc.value.swap(smrsv);
-        value = reinterpret_cast<redis_nested_string_value_t *>(oper.nested_loc.value.get());
-
-        blob_t blob(value->content, blob::btree_maxreflen);
-        blob.append_region(oper.location.txn.get(), f_value.size());
-        blob.write_from_string(f_value, oper.location.txn.get(),  0);
-
-        result = 1;
-    }    
+    hash_set_oper_t oper(key, btree, 1234);
+    bool result = oper.set_field(field, f_value, false);
 
     return integer_result(result);
 }
 
 //COMMAND_1(multi_bulk, hvals, string&)
 multi_bulk_result redis_actor_t::hvals(std::string &key) {
+    hash_read_oper_t oper(key, btree);
+    boost::shared_ptr<one_way_iterator_t<std::pair<std::string, std::string> > > iter = oper.iterator();
+
     boost::shared_ptr<std::vector<std::string> > vals(new std::vector<std::string>());
 
-    got_superblock_t superblock;
-    get_btree_superblock(btree, rwi_read, order_token_t::ignore, &superblock);
-
-    btree_key_buffer_t btree_key(key);
-
-    keyvalue_location_t<redis_value_t> location;
-    value_sizer_t<redis_value_t> sizer(btree->cache()->get_block_size());
-    find_keyvalue_location_for_read(&sizer, &superblock, btree_key.key(), &location);
-
-    redis_hash_value_t *value = reinterpret_cast<redis_hash_value_t *>(location.value.get());
-    if(value != NULL) {
-        block_id_t root = value->get_root();
-
-        boost::shared_ptr<value_sizer_t<redis_nested_string_value_t> >
-            nested_sizer(new value_sizer_t<redis_nested_string_value_t>(btree->cache()->get_block_size()));
-
-        store_key_t none_key;
-        none_key.size = 0;
-
-        boost::scoped_ptr<superblock_t> nested_btree_sb(new virtual_superblock_t(root));
-        slice_keys_iterator_t<redis_nested_string_value_t>
-            tree_iter(nested_sizer, location.txn, nested_btree_sb, btree->home_thread(),
-            rget_bound_none, none_key, rget_bound_none, none_key);
-
-        while (true) {
-            boost::optional<key_value_pair_t<redis_nested_string_value_t> > next = tree_iter.next();
-            if(next) {
-                boost::shared_array<char> val = next.get().value;
-                blob_t blob(val.get(), blob::btree_maxreflen);
-                std::string this_val(blob.valuesize(), '\0');
-                blob.read_to_string(this_val, location.txn.get(), 0, blob.valuesize());
-                vals->push_back(this_val);
-            } else {
-                break;
-            }
+    while (true) {
+        boost::optional<std::pair<std::string, std::string> > next = iter->next();
+        if(next) {
+            std::string k = next.get().second;
+            vals->push_back(k);
+        } else {
+            break;
         }
     }
 

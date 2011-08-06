@@ -3,6 +3,7 @@
 
 #include "protocol/redis/redis_types.hpp"
 #include "protocol/redis/redis_actor.hpp"
+#include <boost/lexical_cast.hpp>
 
 struct unimplemented_result {
     unimplemented_result() { }
@@ -30,7 +31,6 @@ struct unimplemented_result {
     }
 };
 
-status_result redis_error(const char *msg);
 
 //These macros deliberately match those in the header file. They simply define an "unimplemented
 //command" definition for the given command. When adding new commands we can simply copy and paste
@@ -119,5 +119,37 @@ protected:
     value_sizer_t<redis_value_t> sizer;
 };
 
+status_result redis_error(const char *msg);
+
+template <typename T>
+int incr_loc(keyvalue_location_t<T> &loc, int by) {
+    int int_value = 0;
+    std::string int_string;
+    T *value = loc.value.get();
+    if(value == NULL) {
+        scoped_malloc<T> smrsv(MAX_BTREE_VALUE_SIZE);
+        memset(smrsv.get(), 0, MAX_BTREE_VALUE_SIZE);
+        loc.value.swap(smrsv);
+        value = loc.value.get();
+    } else {
+        blob_t blob(value->get_content(), blob::btree_maxreflen);
+        blob.read_to_string(int_string, loc.txn.get(), 0, blob.valuesize());
+        blob.clear(loc.txn.get());
+        try {
+            int_value = boost::lexical_cast<int64_t>(int_string);
+        } catch(boost::bad_lexical_cast &) {
+            // TODO Error cond
+        }
+    }
+
+    int_value += by;
+    int_string = boost::lexical_cast<std::string>(int_value);
+
+    blob_t blob(value->get_content(), blob::btree_maxreflen);
+    blob.append_region(loc.txn.get(), int_string.size());
+    blob.write_from_string(int_string, loc.txn.get(), 0);
+
+    return int_value;
+}
 
 #endif /*__PROTOCOL_REDIS_UTIL_H__*/

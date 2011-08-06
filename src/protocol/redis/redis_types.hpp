@@ -214,6 +214,10 @@ protected:
 
 struct redis_nested_string_value_t {
     char content[0];
+
+    char *get_content() {
+        return const_cast<char *>(content);
+    }
 };
 
 template <>
