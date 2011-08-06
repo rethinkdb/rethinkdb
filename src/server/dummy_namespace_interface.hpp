@@ -126,12 +126,18 @@ class dummy_namespace_interface_t :
 public:
     static void create(std::string path, std::vector<typename protocol_t::region_t> shards, int repli_factor) {
 
-        log_serializer_t::public_static_config_t static_config;
-        log_serializer_t::dynamic_config_t dynamic_config;
-        log_serializer_t::private_dynamic_config_t private_config(path);
-        log_serializer_t::create(&dynamic_config, &private_config, &static_config);
+        log_serializer_t::create(
+            log_serializer_t::dynamic_config_t(),
+            log_serializer_t::private_dynamic_config_t(path),
+            log_serializer_t::static_config_t()
+            );
 
-        log_serializer_t serializer(&dynamic_config, &private_config);
+        log_serializer_t serializer(
+            /* Extra parentheses are necessary so C++ doesn't interpret this as
+            a declaration of a function called `serializer`. WTF, C++? */
+            (log_serializer_t::dynamic_config_t()),
+            log_serializer_t::private_dynamic_config_t(path)
+            );
 
         std::vector<serializer_t *> multiplexer_files;
         multiplexer_files.push_back(&serializer);
@@ -147,12 +153,12 @@ public:
         }
     }
 
-    dummy_namespace_interface_t(std::string path, std::vector<typename protocol_t::region_t> shards, int repli_factor) :
-        log_serializer_private_config(path)
-    {
+    dummy_namespace_interface_t(std::string path, std::vector<typename protocol_t::region_t> shards, int repli_factor) {
+
         serializer.reset(new log_serializer_t(
-            &log_serializer_dynamic_config,
-            &log_serializer_private_config));
+            log_serializer_t::dynamic_config_t(),
+            log_serializer_t::private_dynamic_config_t(path)
+            ));
 
         std::vector<serializer_t *> multiplexer_files;
         multiplexer_files.push_back(serializer.get());
@@ -197,8 +203,6 @@ public:
     }
 
 private:
-    log_serializer_t::dynamic_config_t log_serializer_dynamic_config;
-    log_serializer_t::private_dynamic_config_t log_serializer_private_config;
     boost::scoped_ptr<log_serializer_t> serializer;
     boost::scoped_ptr<serializer_multiplexer_t> multiplexer;
     boost::ptr_vector<typename protocol_t::store_t> stores;
