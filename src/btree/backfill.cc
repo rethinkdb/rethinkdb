@@ -110,7 +110,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
 };
 
 
-void agnostic_btree_backfill(btree_slice_t *slice, repli_timestamp_t since_when, boost::shared_ptr<cache_account_t> backfill_account, agnostic_backfill_callback_t *callback, order_token_t token) {
+void agnostic_btree_backfill(btree_slice_t *slice, repli_timestamp_t since_when, const boost::shared_ptr<cache_account_t>& backfill_account, agnostic_backfill_callback_t *callback, order_token_t token) {
     {
         rassert(coro_t::self());
 
@@ -175,7 +175,7 @@ public:
 };
 
 
-void btree_backfill(btree_slice_t *slice, repli_timestamp_t since_when, boost::shared_ptr<cache_account_t> backfill_account, backfill_callback_t *callback, order_token_t token) {
+void btree_backfill(btree_slice_t *slice, repli_timestamp_t since_when, const boost::shared_ptr<cache_account_t>& backfill_account, backfill_callback_t *callback, order_token_t token) {
     agnostic_memcached_backfill_callback_t agnostic_cb(callback);
 
     agnostic_btree_backfill(slice, since_when, backfill_account, &agnostic_cb, token);
