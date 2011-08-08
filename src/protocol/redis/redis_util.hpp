@@ -94,6 +94,29 @@ struct set_oper_t {
         apply_keyvalue_change(&sizer, &location, btree_key.key(), tstamp);
     }
 
+    bool del() {
+        if(location.value.get() == NULL) return false;
+
+        switch(location.value->get_redis_type()) {
+        case REDIS_STRING:
+            reinterpret_cast<redis_string_value_t *>(location.value.get())->clear(location.txn.get());
+            break;
+        // TODO other types
+        case REDIS_LIST:
+            break;
+        case REDIS_HASH:
+            break;
+        case REDIS_SET:
+            break;
+        case REDIS_SORTED_SET:
+            break;
+        }
+
+        scoped_malloc<redis_value_t> null;
+        location.value.swap(null);
+        return true;
+    }
+
     keyvalue_location_t<redis_value_t> location;
     repli_timestamp_t tstamp;
 
@@ -113,6 +136,10 @@ struct read_oper_t {
         find_keyvalue_location_for_read(&sizer, &superblock, btree_key.key(), &location);
     }
 
+    bool exists() {
+        return (location.value.get() != NULL);
+    }
+
     keyvalue_location_t<redis_value_t> location;
 
 protected:
@@ -120,6 +147,7 @@ protected:
 };
 
 status_result redis_error(const char *msg);
+status_result redis_ok();
 
 template <typename T>
 int incr_loc(keyvalue_location_t<T> &loc, int by) {
