@@ -1,3 +1,5 @@
+#if 0
+
 #include <algorithm>
 #include "logger.hpp"
 #include "btree/buf_patches.hpp"
@@ -667,3 +669,6 @@ int get_timestamp_offset(value_sizer_t<Value> *sizer, const leaf_node_t *node, u
 }  // namespace leaf::impl
 
 }  // namespace leaf
+
+
+#endif  // 0

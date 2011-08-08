@@ -195,15 +195,12 @@ inline bool is_leaf(const node_t *node) {
     // We assume that a node is a leaf whenever it's not internal.
     // Unfortunately we cannot check the magic directly, because it differs
     // for different value types.
-    // TODO: Maybe assert that the first character of the magic is 'l' or
-    // something like that?
     return !is_internal(node);
 }
 
 bool has_sensible_offsets(block_size_t block_size, const node_t *node);
-bool is_underfull(block_size_t block_size, const node_t *node);
-bool is_mergable(block_size_t block_size, const node_t *node, const node_t *sibling, const internal_node_t *parent);
-int nodecmp(const node_t *node1, const node_t *node2);
+// TODO: I don't think anybody uses this, so get rid of this commented out prototype.
+// int nodecmp(const node_t *node1, const node_t *node2);
 
 void print(const node_t *node);
 

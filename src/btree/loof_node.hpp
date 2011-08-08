@@ -325,6 +325,13 @@ bool fsck(value_sizer_t<V> *sizer, const loof_t *node, const char **msg_out) {
     return true;
 }
 
+// TODO: This function is stupid, and things that call it are stupid.  Get rid of it.
+inline
+bool has_sensible_offsets(block_size_t bs, const loof_t *node) {
+    return offsetof(loof_t, pair_offsets) + node->npairs * sizeof(uint16_t) <= node->frontmost && node->frontmost <= bs.value();
+}
+
+
 template <class V>
 void validate(value_sizer_t<V> *sizer, const loof_t *node) {
 #ifndef NDEBUG

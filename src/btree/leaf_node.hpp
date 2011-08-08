@@ -1,3 +1,5 @@
+#if 0
+
 #ifndef __BTREE_LEAF_NODE_HPP__
 #define __BTREE_LEAF_NODE_HPP__
 
@@ -206,4 +208,9 @@ struct btree_leaf_pair_less {
 
 #include "btree/leaf_node.tcc"
 
+*/
+
 #endif // __BTREE_LEAF_NODE_HPP__
+
+
+#endif  // 0
