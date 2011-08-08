@@ -7,7 +7,7 @@
 #include <boost/fusion/include/adapt_struct.hpp>
 #include <boost/fusion/include/io.hpp>
 #include <boost/ptr_container/ptr_map.hpp>
-#include "store_manager.hpp"
+#include "riak/store_manager.hpp"
 #include <stdarg.h>
 #include "riak/structures.hpp"
 #include "btree/slice.hpp"
