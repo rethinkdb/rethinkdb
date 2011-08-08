@@ -4,9 +4,10 @@
 #include "arch/arch.hpp"
 #include "riak/proto/riakclient.pb.h"
 
-class riak_interface_t;
 
 namespace riak {
+
+class riak_interface_t;
 
 namespace dummy_msgs {
     //Dummy "messages" that riak sends that are 0 length, unfortunately they

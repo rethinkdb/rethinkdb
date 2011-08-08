@@ -85,11 +85,18 @@ struct object_t {
     std::pair<int, int> range;
     size_t total_value_len; //this might not be equal to content.size() if what we have is a range
 
-    object_t() { }
+    object_t() :content_length(0) { }
 
-    void resize_content(int n) {
-        content_length = n;
-        content.reset(new char[n]);
+    void resize_content(size_t n) {
+        if (content_length != n) {
+            content_length = n;
+            content.reset(new char[n]);
+        }
+    }
+
+    void set_content(const char* c, size_t n) {
+        resize_content(n);
+        memcpy(content.get(), c, n);
     }
 
     object_t(std::string const &key, riak_value_t *val, transaction_t *txn, std::pair<int, int> range = std::make_pair(-1, -1))
