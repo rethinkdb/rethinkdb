@@ -1,7 +1,7 @@
 #ifndef __ARCH_ARCH_HPP__
 #define __ARCH_ARCH_HPP__
 
-#include "arch/core.hpp"
+#include "arch/runtime/runtime.hpp"
 
 /* The original plan was to have all Linux-specific code in the `linux`
 directory and to have corresponding directories for other OSes. This was a bad

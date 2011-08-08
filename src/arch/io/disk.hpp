@@ -5,7 +5,7 @@
 #include <boost/scoped_ptr.hpp>
 
 #include "config/args.hpp"
-#include "arch/runtime/linux_utils.hpp"
+#include "arch/io/io_utils.hpp"
 
 struct linux_iocallback_t {
     virtual ~linux_iocallback_t() {}

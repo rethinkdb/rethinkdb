@@ -1,7 +1,7 @@
 #ifndef __REPLICATION_MASTER_HPP__
 #define __REPLICATION_MASTER_HPP__
 
-#include "store.hpp"
+#include "memcached/store.hpp"
 #include "server/gated_store.hpp"
 #include "replication/backfill_out.hpp"
 #include "replication/backfill_sender.hpp"

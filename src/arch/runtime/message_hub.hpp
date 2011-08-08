@@ -8,7 +8,7 @@
 #include "utils.hpp"
 #include "config/args.hpp"
 #include "arch/runtime/event_queue.hpp"
-#include "arch/runtime/linux_utils.hpp"
+#include "arch/runtime/runtime_utils.hpp"
 
 class linux_thread_pool_t;
 

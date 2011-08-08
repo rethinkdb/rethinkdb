@@ -8,7 +8,7 @@
 #include <sys/epoll.h>
 
 #include "arch/runtime/event_queue_types.hpp"
-#include "arch/runtime/linux_utils.hpp"
+#include "arch/runtime/runtime_utils.hpp"
 #include "config/args.hpp"
 
 // Event queue structure

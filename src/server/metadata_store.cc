@@ -28,9 +28,9 @@ void btree_metadata_store_t::create(btree_key_value_store_dynamic_config_t *dyna
     guarantee(n_files == 1, "Metadata must only use a single file");
 
     /* Create, initialize, & shutdown metadata serializer */
-    standard_serializer_t::create(&dynamic_config->serializer,
-                                  &dynamic_config->serializer_private[0],
-                                  &static_config->serializer);
+    standard_serializer_t::create(dynamic_config->serializer,
+                                  dynamic_config->serializer_private[0],
+                                  static_config->serializer);
     standard_serializer_t *metadata_serializer;
     btree_store_helpers::create_existing_serializer(&metadata_serializer, n_files,
                                &dynamic_config->serializer, &dynamic_config->serializer_private[0]);

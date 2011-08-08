@@ -219,10 +219,10 @@ public:
         log_serializer_t::check_existing(config.private_dynamic_config.db_filename.c_str(), &existing_cb);
 
         if (!existing_cb.wait()) {
-            log_serializer_t::create(&(config.dynamic_config), &(config.private_dynamic_config), &(config.public_static_config));
+            log_serializer_t::create(config.dynamic_config, config.private_dynamic_config, config.static_config);
         }
         return store_object_t(boost::shared_ptr<standard_serializer_t>(
-                new standard_serializer_t(&(config.dynamic_config), &(config.private_dynamic_config))));
+                new standard_serializer_t(config.dynamic_config, config.private_dynamic_config)));
     }
 
     // Add implementations for other store_config types here...
