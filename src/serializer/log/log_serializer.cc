@@ -15,13 +15,13 @@ uint64_t block_size_t::value() const {
     return ser_bs_ - sizeof(ls_buf_data_t);
 }
 
-void log_serializer_t::create(dynamic_config_t *dynamic_config, private_dynamic_config_t *private_dynamic_config, public_static_config_t *public_static_config) {
+void log_serializer_t::create(dynamic_config_t dynamic_config, private_dynamic_config_t private_dynamic_config, static_config_t static_config) {
 
-    static_config_t *static_config = static_cast<static_config_t*>(public_static_config);
+    log_serializer_on_disk_static_config_t *on_disk_config = &static_config;
 
-    direct_file_t df(private_dynamic_config->db_filename.c_str(), file_t::mode_read | file_t::mode_write | file_t::mode_create, dynamic_config->io_backend, dynamic_config->io_batch_factor);
+    direct_file_t df(private_dynamic_config.db_filename.c_str(), file_t::mode_read | file_t::mode_write | file_t::mode_create, dynamic_config.io_backend, dynamic_config.io_batch_factor);
 
-    co_static_header_write(&df, static_config, sizeof(*static_config));
+    co_static_header_write(&df, on_disk_config, sizeof(*on_disk_config));
 
     metablock_t metablock;
     bzero(&metablock, sizeof(metablock));
@@ -36,7 +36,7 @@ void log_serializer_t::create(dynamic_config_t *dynamic_config, private_dynamic_
 
     metablock.block_sequence_id = NULL_BLOCK_SEQUENCE_ID;
 
-    mb_manager_t::create(&df, static_config->extent_size(), &metablock);
+    mb_manager_t::create(&df, static_config.extent_size(), &metablock);
 }
 
 /* The process of starting up the serializer is handled by the ls_start_*_fsm_t. This is not
@@ -61,7 +61,7 @@ struct ls_start_existing_fsm_t :
         rassert(ser->state == log_serializer_t::state_unstarted);
         ser->state = log_serializer_t::state_starting_up;
         
-        ser->dbfile = new direct_file_t(ser->db_path, file_t::mode_read | file_t::mode_write, ser->dynamic_config->io_backend, ser->dynamic_config->io_batch_factor);
+        ser->dbfile = new direct_file_t(ser->db_path, file_t::mode_read | file_t::mode_write, ser->dynamic_config.io_backend, ser->dynamic_config.io_batch_factor);
         if (!ser->dbfile->exists()) {
             crash("Database file \"%s\" does not exist.\n", ser->db_path);
         }
@@ -78,7 +78,10 @@ struct ls_start_existing_fsm_t :
     
     bool next_starting_up_step() {
         if (state == state_read_static_header) {
-            if (static_header_read(ser->dbfile, &ser->static_config, sizeof(ser->static_config), this)) {
+            if (static_header_read(ser->dbfile,
+                    (log_serializer_on_disk_static_config_t *)&ser->static_config,
+                    sizeof(log_serializer_on_disk_static_config_t),
+                    this)) {
                 state = state_find_metablock;
             } else {
                 state = state_waiting_for_static_header;
@@ -87,12 +90,12 @@ struct ls_start_existing_fsm_t :
         }
         
         if (state == state_find_metablock) {
-            ser->extent_manager = new extent_manager_t(ser->dbfile, &ser->static_config, ser->dynamic_config);
+            ser->extent_manager = new extent_manager_t(ser->dbfile, &ser->static_config, &ser->dynamic_config);
             ser->extent_manager->reserve_extent(0);   /* For static header */
             
             ser->metablock_manager = new mb_manager_t(ser->extent_manager);
             ser->lba_index = new lba_index_t(ser->extent_manager);
-            ser->data_block_manager = new data_block_manager_t(ser->dynamic_config, ser->extent_manager, ser, &ser->static_config);
+            ser->data_block_manager = new data_block_manager_t(&ser->dynamic_config, ser->extent_manager, ser, &ser->static_config);
             
             if (ser->metablock_manager->start_existing(ser->dbfile, &metablock_found, &metablock_buffer, this)) {
                 state = state_start_lba;
@@ -183,12 +186,12 @@ struct ls_start_existing_fsm_t :
     log_serializer_t::metablock_t metablock_buffer;
 };
 
-log_serializer_t::log_serializer_t(dynamic_config_t *config, private_dynamic_config_t *private_dynamic_config)
-    : dynamic_config(config),
-      private_config(private_dynamic_config),
+log_serializer_t::log_serializer_t(dynamic_config_t dynamic_config_, private_dynamic_config_t private_config_)
+    : dynamic_config(dynamic_config_),
+      private_config(private_config_),
       shutdown_callback(NULL),
       state(state_unstarted),
-      db_path(private_dynamic_config->db_filename.c_str()),
+      db_path(private_config.db_filename.c_str()),
       dbfile(NULL),
       extent_manager(NULL),
       metablock_manager(NULL),
@@ -695,6 +698,6 @@ bool log_serializer_t::offer_buf_to_read_ahead_callbacks(block_id_t block_id, vo
 
 bool log_serializer_t::should_perform_read_ahead() {
     assert_thread();
-    return dynamic_config->read_ahead && !read_ahead_callbacks.empty();
+    return dynamic_config.read_ahead && !read_ahead_callbacks.empty();
 }
 

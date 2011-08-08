@@ -65,16 +65,16 @@ void btree_store_helpers::prep_for_serializer(
         int i) {
     /* Prepare the file */
     standard_serializer_t::create(
-        &dynamic_config->serializer,
-        &dynamic_config->serializer_private[i],
-        &static_config->serializer);
+        dynamic_config->serializer,
+        dynamic_config->serializer_private[i],
+        static_config->serializer);
 }
 
 void btree_store_helpers::create_existing_serializer(standard_serializer_t **serializer, int i,
                                 log_serializer_dynamic_config_t *config,
                                 log_serializer_private_dynamic_config_t *privconfig) {
     on_thread_t switcher(i % get_num_db_threads());
-    *serializer = new standard_serializer_t(config, privconfig);
+    *serializer = new standard_serializer_t(*config, *privconfig);
 }
 
 void btree_store_helpers::create_existing_shard_serializer(

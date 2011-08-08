@@ -3,6 +3,7 @@
 
 #include <cstdlib>
 #include "errors.hpp"
+#include "arch/runtime/thread_pool.hpp"
 
 #ifndef NDEBUG
 #define trace_call(fn, args...) do {                                          \
@@ -39,5 +40,11 @@ public:
 };
 
 }  // namespace unittest
+
+/* `run_in_thread_pool()` starts a RethinkDB thread pool, runs the given
+function in a coroutine inside of it, waits for the function to return, and then
+shuts down the thread pool. */
+
+void run_in_thread_pool(boost::function<void()> fun);
 
 #endif // __UNITTEST_UTILS__
