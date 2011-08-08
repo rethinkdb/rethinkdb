@@ -5,7 +5,7 @@
 #include <boost/regex.hpp>
 #include <boost/xpressive/xpressive.hpp>
 #include "riak/riak_value.hpp"
-#include "store_manager.hpp"
+#include "riak/store_manager.hpp"
 
 /* "What's the deal with all the "m"s in front of all the json_spirit types?" - Jerry Seinfeld
  *

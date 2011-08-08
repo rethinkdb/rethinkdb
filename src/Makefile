@@ -221,6 +221,8 @@ ifeq ($(UNIT_TESTS),1)
 LDFLAGS+=-lgtest
 endif
 
+UNIT_TEST_FILTER?=*
+
 ##### Finding what to build
 
 DEP_DIR:=$(BUILD_DIR)/dep
@@ -276,7 +278,7 @@ endif
 
 unit:
 	$(MAKE) UNIT_TESTS=1
-	$(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
+	$(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) --gtest_filter=$(UNIT_TEST_FILTER)
 
 # Packaging
 ifeq ($(PACKAGING),1)

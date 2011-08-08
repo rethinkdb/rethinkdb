@@ -39,8 +39,8 @@ void server_test_helper_t::setup_server_and_run_tests() {
         log_serializer_private_dynamic_config_t ser_config;
         ser_config.db_filename = db_file.name();
 
-        log_serializer_t::create(&config.store_dynamic_config.serializer, &ser_config, &config.store_static_config.serializer);
-        log_serializer_t log_serializer(&config.store_dynamic_config.serializer, &ser_config);
+        log_serializer_t::create(config.store_dynamic_config.serializer, ser_config, config.store_static_config.serializer);
+        log_serializer_t log_serializer(config.store_dynamic_config.serializer, ser_config);
 
         std::vector<serializer_t *> serializers;
         serializers.push_back(&log_serializer);

@@ -4,6 +4,11 @@
 #include "http/http.hpp"
 #include <boost/tokenizer.hpp>
 #include "spirit/boost_parser.hpp"
+#include <boost/fusion/include/adapt_struct.hpp>
+#include <boost/fusion/include/io.hpp>
+#include <boost/ptr_container/ptr_map.hpp>
+#include "riak/store_manager.hpp"
+#include <stdarg.h>
 #include "riak/structures.hpp"
 #include "riak/riak_interface.hpp"
 

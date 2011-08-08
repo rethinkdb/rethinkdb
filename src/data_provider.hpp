@@ -61,6 +61,7 @@ class buffered_data_provider_t : public auto_copying_data_provider_t {
 public:
     explicit buffered_data_provider_t(boost::shared_ptr<data_provider_t> dp);   // Create with contents of another
     buffered_data_provider_t(const void *, size_t);   // Create by copying out of a buffer
+    buffered_data_provider_t(std::string);   // Create with contents of a string
     buffered_data_provider_t(size_t, void **);    // Allocate buffer, let creator fill it
     size_t get_size() const;
     const const_buffer_group_t *get_data_as_buffers();

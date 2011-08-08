@@ -56,6 +56,13 @@ buffered_data_provider_t::buffered_data_provider_t(const void *b, size_t s) :
     memcpy(buffer.get(), b, s);
 }
 
+buffered_data_provider_t::buffered_data_provider_t(std::string s) :
+    size(s.size()), buffer(new char[size])
+{
+    bg.add_buffer(size, buffer.get());
+    memcpy(buffer.get(), s.data(), size);
+}
+
 buffered_data_provider_t::buffered_data_provider_t(size_t s, void **b_out) :
     size(s), buffer(new char[size])
 {
