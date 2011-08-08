@@ -1,7 +1,7 @@
-#ifndef __SERVER_DUMMY_NAMESPACE_INTERFACE_HPP__
-#define __SERVER_DUMMY_NAMESPACE_INTERFACE_HPP__
+#ifndef __UNITTEST_DUMMY_NAMESPACE_INTERFACE_HPP__
+#define __UNITTEST_DUMMY_NAMESPACE_INTERFACE_HPP__
 
-#include "server/namespace_interface.hpp"
+#include "namespace_interface.hpp"
 #include "serializer/log/log_serializer.hpp"
 #include "serializer/translator.hpp"
 #include "utils.hpp"
@@ -211,4 +211,4 @@ private:
     boost::scoped_ptr<dummy_sharder_t<protocol_t> > sharder;
 };
 
-#endif /* __SERVER_DUMMY_NAMESPACE_INTERFACE_HPP__ */
+#endif /* __UNITTEST_DUMMY_NAMESPACE_INTERFACE_HPP__ */

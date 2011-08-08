@@ -1,7 +1,7 @@
 #ifndef __MEMCACHED_MEMCACHED_PROTOCOL_HPP__
 #define __MEMCACHED_MEMCACHED_PROTOCOL_HPP__
 
-#include "server/namespace_interface.hpp"
+#include "namespace_interface.hpp"
 #include "memcached/queries.hpp"
 #include <boost/variant.hpp>
 #include "serializer/serializer.hpp"
