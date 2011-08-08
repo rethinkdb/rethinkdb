@@ -5,6 +5,8 @@
 #include "store_manager.hpp"
 #include <boost/ptr_container/ptr_map.hpp>
 
+#define RIAK_LIST_KEYS_BATCH_FACTOR 10
+
 /* The riak_interface_t is class with all the functions needed to implement a
  * riak server, in most cases the calls are obviously isomorphic to requests
  * that can be sent to a server. A notable exception to this is link walking

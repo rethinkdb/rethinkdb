@@ -72,7 +72,6 @@ struct link_filter_t {
     bool keep;
 };
 
-//TODO TODO TODO make copying this structure more efficient
 struct object_t {
     std::string key;
     size_t content_length;

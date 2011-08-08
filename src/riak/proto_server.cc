@@ -144,19 +144,76 @@ void proto_server_t::handle_msg(::RpbPutReq &msg, boost::scoped_ptr<tcp_conn_t> 
     write_to_conn(res, conn);
 }
 
-void proto_server_t::handle_msg(::RpbDelReq &, boost::scoped_ptr<tcp_conn_t> &) {
+void proto_server_t::handle_msg(::RpbDelReq &msg, boost::scoped_ptr<tcp_conn_t> &conn) {
+    riak_interface->delete_object(msg.bucket(), msg.key());
+
+    message_size_t size = 0;
+    message_code_t mc = RpbDelResp;
+    conn->write(&size, sizeof(message_size_t));
+    conn->write(&mc, sizeof(message_code_t));
 }
 
-void proto_server_t::handle_msg(dummy_msgs::RpbListBucketsReq &, boost::scoped_ptr<tcp_conn_t> &) {
+void proto_server_t::handle_msg(dummy_msgs::RpbListBucketsReq &, boost::scoped_ptr<tcp_conn_t> &conn) {
+    std::pair<bucket_iterator_t, bucket_iterator_t> bucket_iters = riak_interface->buckets();
+    bucket_iterator_t it = bucket_iters.first, end = bucket_iters.second;
+
+    ::RpbListKeysResp res;
+    for (;it != end; it++) {
+        *res.add_keys() = it->name;
+    }
+    write_to_conn(res, conn);
 }
 
-void proto_server_t::handle_msg(::RpbListKeysReq &, boost::scoped_ptr<tcp_conn_t> &) {
+void proto_server_t::handle_msg(::RpbListKeysReq &msg, boost::scoped_ptr<tcp_conn_t> &conn) {
+    object_iterator_t obj_it = riak_interface->objects(msg.bucket());
+
+    int i = 0;
+    boost::optional<object_t> cur;
+    ::RpbListKeysResp res;
+    while(cur = obj_it.next()) {
+        *(res.add_keys()) = cur->key;
+        if (i++ == RIAK_LIST_KEYS_BATCH_FACTOR) {
+            res.set_done(false);
+            write_to_conn(res, conn);
+
+            res.Clear();
+            i = 0;
+        }
+    }
+    //XXX this has the potential to send an RpbListKeysResp that has no keys.
+    //There's nothing in the spec that says this isn't allowed... but who knows
+    //how clients implement it
+    res.set_done(true);
+    write_to_conn(res, conn);
 }
 
-void proto_server_t::handle_msg(::RpbGetBucketReq &, boost::scoped_ptr<tcp_conn_t> &) {
+void proto_server_t::handle_msg(::RpbGetBucketReq &msg, boost::scoped_ptr<tcp_conn_t> &conn) {
+    boost::optional<bucket_t> bucket = riak_interface->get_bucket(msg.bucket());
+    ::RpbGetBucketResp res;
+    if (bucket) {
+        res.mutable_props()->set_n_val(bucket->n_val);
+        res.mutable_props()->set_allow_mult(bucket->allow_mult);
+    }
+
+    write_to_conn(res, conn);
 }
 
-void proto_server_t::handle_msg(::RpbSetBucketReq &, boost::scoped_ptr<tcp_conn_t> &) {
+void proto_server_t::handle_msg(::RpbSetBucketReq &msg, boost::scoped_ptr<tcp_conn_t> &conn) {
+    bucket_t bucket;
+    if (msg.props().has_n_val()) {
+        bucket.n_val = msg.props().n_val();
+    }
+
+    if (msg.props().has_allow_mult()) {
+        bucket.allow_mult = msg.props().allow_mult();
+    }
+
+    riak_interface->set_bucket(msg.bucket(), bucket);
+
+    message_size_t size = 0;
+    message_code_t mc = RpbSetBucketResp;
+    conn->write(&size, sizeof(message_size_t));
+    conn->write(&mc, sizeof(message_code_t));
 }
 
 void proto_server_t::handle_msg(::RpbMapRedReq &, boost::scoped_ptr<tcp_conn_t> &) {
