@@ -1,8 +1,6 @@
 #include "memcached/protocol.hpp"
 #include "containers/iterators.hpp"
 
-/* `key_range_t` implementation */
-
 key_range_t::key_range_t() :
     left(""), right(""), right_unbounded(false) { }
 
