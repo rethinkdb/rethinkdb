@@ -6,6 +6,7 @@
 #include <boost/xpressive/xpressive.hpp>
 #include "riak/riak_value.hpp"
 #include "riak/store_manager.hpp"
+#include "perfmon.hpp"
 
 /* "What's the deal with all the "m"s in front of all the json_spirit types?" - Jerry Seinfeld
  *
@@ -551,8 +552,17 @@ http_res_t riak_server_t::ping(const http_req_t &) {
 }
 
 http_res_t riak_server_t::status(const http_req_t &) {
-    not_implemented();
+    perfmon_stats_t stats;
+    perfmon_get_stats(&stats, false);
+
+    json::mObject body;
+    for (perfmon_stats_t::const_iterator it = stats.begin(); it != stats.end(); it++) {
+        body[it->first] = it->second;
+    }
+
     http_res_t res;
+    res.code = 200;
+    res.set_body("application/json", json::write_string(json::mValue(body)));
     return res;
 }
 

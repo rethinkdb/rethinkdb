@@ -66,7 +66,7 @@ namespace json_spirit
             case '\n': s += to_str< String_type >( "\\n"  ); return true;
             case '\r': s += to_str< String_type >( "\\r"  ); return true;
             case '\t': s += to_str< String_type >( "\\t"  ); return true;
-            default: unreachable(); break;
+            default: break;
         }
 
         return false;

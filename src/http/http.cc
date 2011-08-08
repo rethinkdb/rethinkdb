@@ -166,7 +166,7 @@ void http_res_t::write_conn(boost::scoped_ptr<tcp_conn_t> &conn) {
     }
     conn->writef("\r\n");
     if (body) {
-        conn->writef("%s", body->content().c_str());
+        conn->write(body->content().data(), body->content().size());
     }
 }
 
