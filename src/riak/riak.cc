@@ -4,7 +4,7 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/regex.hpp>
 #include "riak/riak_value.hpp"
-#include "store_manager.hpp"
+#include "riak/store_manager.hpp"
 
 /* What's the deal with the "m"s in front of all the json_spirit types?
  * Json_spirit provides 2 different json implementations, one in which the
@@ -394,7 +394,8 @@ http_res_t riak_server_t::store_object(const http_req_t &req) {
 
     //Parse the links
     std::string links = req.find_header_line("Link");
-    if (!links.empty() && !parse(links.begin(), links.end(), link_parser_t<std::string::iterator>(), obj.links)) {
+    std::string::iterator links_iter = links.begin();
+    if (!links.empty() && !parse(links_iter, links.end(), link_parser_t<std::string::iterator>(), obj.links)) {
         // parsing the links failed
         res.code = 400; //Bad request
         return res;

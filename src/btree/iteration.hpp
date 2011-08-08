@@ -10,8 +10,8 @@
 #include "btree/leaf_node.hpp"
 #include "buffer_cache/buf_lock.hpp"
 #include "btree/operations.hpp"
-#include "store.hpp"
-
+#include "btree/slice.hpp"
+#include "memcached/store.hpp"
 
 template <class Value>
 struct key_value_pair_t {

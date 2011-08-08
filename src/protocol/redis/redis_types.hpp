@@ -151,6 +151,9 @@ public:
             break;
         case REDIS_SORTED_SET:
             break;
+        default:
+            assert(0);
+            break;
         }
         
         assert(NULL);    

@@ -3,13 +3,14 @@
 #include <math.h>
 
 #include "db_thread_info.hpp"
-#include "diskinfo.hpp"
+#include "memcached/tcp_conn.hpp"
+#include "server/diskinfo.hpp"
 #include "concurrency/cond_var.hpp"
 #include "logger.hpp"
 #include "server/cmd_args.hpp"
 #include "replication/master.hpp"
 #include "replication/slave.hpp"
-#include "server/control.hpp"
+#include "stats/control.hpp"
 #include "gated_store.hpp"
 #include "concurrency/promise.hpp"
 #include "arch/os_signal.hpp"

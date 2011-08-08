@@ -110,6 +110,9 @@ struct set_oper_t {
             break;
         case REDIS_SORTED_SET:
             break;
+        default:
+            assert(0);
+            break;
         }
 
         scoped_malloc<redis_value_t> null;

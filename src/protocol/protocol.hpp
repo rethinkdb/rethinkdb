@@ -2,7 +2,7 @@
 #define __PROTOCOL_HPP__
 
 #include "arch/arch.hpp"
-#include "store.hpp"
+#include "memcached/store.hpp"
 #include <iostream>
 
 struct protocol_listener_t;

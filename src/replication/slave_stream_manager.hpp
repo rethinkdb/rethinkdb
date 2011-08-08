@@ -18,8 +18,7 @@ the connection to the master. */
 
 struct slave_stream_manager_t :
     public backfill_receiver_t,
-    public home_thread_mixin_t,
-    public cond_t::waiter_t
+    public home_thread_mixin_t
 {
     // Give it a connection to the master, a pointer to the store to forward changes to, and a
     // cond. If the cond is pulsed, it will kill the connection. If the connection dies,
@@ -91,14 +90,15 @@ struct slave_stream_manager_t :
     // Overrides backfill_receiver_t::send(scoped_malloc<net_backfill_complete_t>&)
     void send(scoped_malloc<net_backfill_complete_t>& message) {
         backfill_receiver_t::send(message);
-        backfill_done_cond_.pulse_if_non_null();
+        backfill_done_cond_.pulse();
     }
 
     void send(scoped_malloc<net_timebarrier_t>& message) {
         timebarrier_helper(*message);
     }
 
-    cond_weak_ptr_t backfill_done_cond_;
+    /* Pulsed when the backfill is over */
+    cond_t backfill_done_cond_;
 
     void conn_closed();
 
@@ -111,6 +111,7 @@ struct slave_stream_manager_t :
     // If cond_ is pulsed, we drop our connection to the master. If the connection
     // to the master drops on its own, we pulse cond_.
     cond_t *cond_;
+    signal_t::subscription_t subs_;
 
     btree_key_value_store_t *kvs_;
 

@@ -219,4 +219,4 @@ TEST(MergeIteratorsTest, iterators_get_deleted) {
     EXPECT_TRUE(a_deleted && b_deleted) << "merge_ordered_data_iterator_t should delete the iterators on destruction, even when they have not been exhausted";
 }
 
-}
+}  // namespace unittest

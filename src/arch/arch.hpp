@@ -1,14 +1,14 @@
 #ifndef __ARCH_ARCH_HPP__
 #define __ARCH_ARCH_HPP__
 
-#include "arch/core.hpp"
+#include "arch/runtime/runtime.hpp"
 
 /* The original plan was to have all Linux-specific code in the `linux`
 directory and to have corresponding directories for other OSes. This was a bad
 idea because so much code is shared between OSes, so it was (incompletely)
 changed back. We'll sort this mess out when it's time to support another OS. */
 
-#include "arch/linux/arch.hpp"
+#include "arch/io/arch.hpp"
 
 typedef linux_thread_pool_t thread_pool_t;
 

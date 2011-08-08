@@ -152,11 +152,14 @@ private:
     // DEFAULT_DISK_ACCOUNT if snapshotted is false. TODO: this is ugly. find a cleaner interface.
     mc_buf_t(mc_inner_buf_t *inner, access_t mode, mc_inner_buf_t::version_id_t version_id, bool snapshotted,
              boost::function<void()> call_when_in_line, file_t::account_t *io_account = DEFAULT_DISK_ACCOUNT);
-    void acquire_block(mc_inner_buf_t::version_id_t version_to_access, bool snapshotted);
+    void acquire_block(mc_inner_buf_t::version_id_t version_to_access);
 
     ticks_t start_time;
 
     access_t mode;
+    bool snapshotted;
+    // non_locking_access is a hack for the sake of patch_disk_storage.cc. It would be nice if we
+    // could eliminate it.
     bool non_locking_access;
     mc_inner_buf_t *inner_buf;
     void *data; /* Usually the same as inner_buf->data. If a COW happens or this mc_buf_t is part of a snapshotted transaction, it reference a different buffer however. */

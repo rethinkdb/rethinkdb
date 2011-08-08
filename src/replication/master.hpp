@@ -1,8 +1,8 @@
 #ifndef __REPLICATION_MASTER_HPP__
 #define __REPLICATION_MASTER_HPP__
 
-#include "store.hpp"
-#include "gated_store.hpp"
+#include "memcached/store.hpp"
+#include "server/gated_store.hpp"
 #include "replication/backfill_out.hpp"
 #include "replication/backfill_sender.hpp"
 #include "replication/backfill_receiver.hpp"
@@ -107,7 +107,9 @@ public:
         delete stream_copy;
 
         stream_exists_cond_.pulse();    // If anything was waiting for stream to close, signal it
-        interrupt_streaming_cond_.pulse_if_non_null();   // Will interrupt any running backfill/stream operation
+        if (interrupt_streaming_cond_ && !interrupt_streaming_cond_->is_pulsed()) {
+            interrupt_streaming_cond_->pulse();   // Will interrupt any running backfill/stream operation
+        }
 
         // TODO: This might fail for future versions of the order source, which
         // require a backfill to have begun before it can be done.
@@ -155,7 +157,7 @@ private:
     resettable_cond_t streaming_cond_;
 
     // Pulse this to interrupt a running backfill/realtime stream operation
-    cond_weak_ptr_t interrupt_streaming_cond_;
+    cond_t *interrupt_streaming_cond_;
 
     // TODO: Instead of having this, we should just remember if a slave was connected when we last
     // shut down.

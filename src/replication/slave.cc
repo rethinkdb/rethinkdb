@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-#include "arch/coroutines.hpp"
+#include "arch/runtime/runtime.hpp"
 #include "logger.hpp"
 #include "replication/net_structs.hpp"
 #include "server/key_value_store.hpp"
@@ -31,7 +31,9 @@ void slave_t::failover_reset() {
     /* If there is an open connection to the master, this will kill it. If we gave up
     on connecting to the master, this will cause us to resume trying to connect. If we
     are in a timeout before retrying the connection, this will cut the timout short. */
-    pulse_to_reset_failover_.pulse_if_non_null();
+    if (pulse_to_reset_failover_ && !pulse_to_reset_failover_->is_pulsed()) {
+        pulse_to_reset_failover_->pulse();
+    }
 }
 
 void slave_t::new_master(std::string host, int port) {
@@ -112,7 +114,7 @@ void slave_t::run(signal_t *shutdown_signal) {
 
                 // This makes it so that if we get a reset command, the connection
                 // will get closed.
-                pulse_to_reset_failover_.watch(&slave_cond);
+                pulse_to_reset_failover_ = &slave_cond;
 
                 // This makes it so that if we get a shutdown command, the connection gets closed.
                 cond_link_t close_connection_on_shutdown(shutdown_signal, &slave_cond);
@@ -137,6 +139,8 @@ void slave_t::run(signal_t *shutdown_signal) {
                 debugf("slave_t: Waiting for things to fail...\n");
                 slave_cond.wait();
                 debugf("slave_t: Things failed.\n");
+
+                pulse_to_reset_failover_ = NULL;
             }
 
             if (shutdown_signal->is_pulsed()) {
@@ -173,9 +177,10 @@ void slave_t::run(signal_t *shutdown_signal) {
             cond_t c;
             signal_timer_t retry_timer(timeout);
             cond_link_t proceed_when_delay_is_over(&retry_timer, &c);
-            pulse_to_reset_failover_.watch(&c);
+            pulse_to_reset_failover_ = &c;
             cond_link_t abort_delay_on_shutdown(shutdown_signal, &c);
             c.wait();
+            pulse_to_reset_failover_ = NULL;
 
         } else {
             logINF("Master at %s:%d has failed %d times in the last %d seconds. "
@@ -186,9 +191,10 @@ void slave_t::run(signal_t *shutdown_signal) {
                    MAX_RECONNECTS_PER_N_SECONDS, N_SECONDS);
 
             cond_t c;
-            pulse_to_reset_failover_.watch(&c);
+            pulse_to_reset_failover_ = &c;
             cond_link_t abort_delay_on_shutdown(shutdown_signal, &c);
             c.wait();
+            pulse_to_reset_failover_ = NULL;
         }
     }
 }

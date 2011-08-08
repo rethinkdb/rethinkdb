@@ -91,10 +91,8 @@ else
 CXXFLAGS+=-DRETHINKDB_CACHE_PRODUCT
 endif
 
-ifeq ($(UNIT_TESTS),0)
 ifeq ($(CLANG),0)
 CXXFLAGS+=-Wswitch-default
-endif
 endif
 
 ifeq ($(AGRESSIVE_BUF_UNLOADING),1)
@@ -223,6 +221,8 @@ ifeq ($(UNIT_TESTS),1)
 LDFLAGS+=-lgtest
 endif
 
+UNIT_TEST_FILTER?=*
+
 ##### Finding what to build
 
 DEP_DIR:=$(BUILD_DIR)/dep
@@ -245,9 +245,9 @@ DEPS:=$(patsubst %,$(DEP_DIR)/%.d,$(NAMES))
 OBJS:=$(PROTO_OBJS) $(patsubst %,$(OBJ_DIR)/%.o,$(NAMES))
 
 
-SERVER_EXEC_OBJS:=$(PROTO_OBJS) $(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR)/unittest`"))
+SERVER_EXEC_OBJS:=$(PROTO_OBJS) $(patsubst %.cc,$(OBJ_DIR)/%.o,$(filter-out $(SOURCE_DIR)/unittest/%,$(SOURCES)))
 
-SERVER_NOMAIN_OBJS:=$(PROTO_OBJS) $(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR) -name 'main.cc'`"))
+SERVER_NOMAIN_OBJS:=$(PROTO_OBJS) $(patsubst %.cc,$(OBJ_DIR)/%.o,$(filter-out %/main.cc,$(SOURCES)))
 
 SERVER_UNIT_TEST_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/unittest/main.o
 
@@ -278,7 +278,7 @@ endif
 
 unit:
 	$(MAKE) UNIT_TESTS=1
-	$(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
+	$(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) --gtest_filter=$(UNIT_TEST_FILTER)
 
 # Packaging
 ifeq ($(PACKAGING),1)
@@ -516,6 +516,10 @@ ifeq ($(NO_TCMALLOC),0)
 endif
 	@echo "    Finished building RethinkDB key-value store server version '${RETHINKDB_VERSION}'"
 
+# The unittests use gtest, which uses macros that expand into switch statements which don't contain
+# default cases. So we have to remove the -Wswitch-default argument for them.
+$(OBJ_DIR)/unittest/%.o: CXXFLAGS:=$(filter-out -Wswitch-default,$(CXXFLAGS))
+
 $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME): $(OBJS) $(BUILD_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    LD $@"
@@ -594,7 +598,7 @@ depclean:
 ifeq ($(VERBOSE),0)
 	@echo "    RM -f $(BUILD_ROOT_DIR)/*.d"
 endif
-	$(QUIET) find $(BUILD_ROOT_DIR) -name '*.d' -exec rm {} \;
+	$(QUIET) if test -d $(BUILD_ROOT_DIR); then find $(BUILD_ROOT_DIR) -name '*.d' -exec rm {} \; ; fi
 
 clean:
 ifeq ($(VERBOSE),0)
