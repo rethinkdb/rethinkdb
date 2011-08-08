@@ -1,4 +1,4 @@
-#include "riak/riak.hpp"
+#include "riak/http_server.hpp"
 #include "http/json.hpp"
 #include <sstream>
 #include <boost/algorithm/string/join.hpp>

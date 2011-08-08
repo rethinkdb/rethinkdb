@@ -16,7 +16,7 @@
 #include "concurrency/promise.hpp"
 #include "arch/os_signal.hpp"
 #include "http/http.hpp"
-#include "riak/riak.hpp"
+#include "riak/http_server.hpp"
 #include "server/key_value_store.hpp"
 #include "server/metadata_store.hpp"
 #include "cmd_args.hpp"
