@@ -59,22 +59,23 @@ them into another key-value store.
 Usually, they are transmitted over the network between when they are extracted by
 backfill_and_realtime_stream() and when they are stored by backfill_storer_t. */
 
-struct backfill_storer_t : public backfill_and_realtime_streaming_callback_t {
-
+class backfill_storer_t : public backfill_and_realtime_streaming_callback_t {
+public:
     backfill_storer_t(btree_key_value_store_t *underlying);
     ~backfill_storer_t();
 
+    void backfill_delete_range(int hash_value, int hashmod, store_key_t low_key, store_key_t high_key);
     void backfill_deletion(store_key_t key, order_token_t token);
     void backfill_set(backfill_atom_t atom, order_token_t token);
     void backfill_done(repli_timestamp_t timestamp, order_token_t token);
 
     void realtime_get_cas(const store_key_t& key, castime_t castime, order_token_t token);
     void realtime_sarc(sarc_mutation_t& m, castime_t castime, order_token_t token);
-    void realtime_incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount,
+    void realtime_incr_decr(incr_decr_kind_t kind, const store_key_t& key, uint64_t amount,
                             castime_t castime, order_token_t token);
-    void realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key,
-                                 boost::shared_ptr<data_provider_t> data, castime_t castime, order_token_t token);
-    void realtime_delete_key(const store_key_t &key, repli_timestamp_t timestamp, order_token_t token);
+    void realtime_append_prepend(append_prepend_kind_t kind, const store_key_t& key,
+                                 const boost::shared_ptr<data_provider_t>& data, castime_t castime, order_token_t token);
+    void realtime_delete_key(const store_key_t& key, repli_timestamp_t timestamp, order_token_t token);
     void realtime_time_barrier(repli_timestamp_t timestamp, order_token_t token);
 
 private:

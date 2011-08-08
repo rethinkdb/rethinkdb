@@ -39,6 +39,10 @@ size_t objsize(const net_sarc_t *buf) { return sizeof(net_sarc_t) + buf->key_siz
 size_t objsize(const net_append_t *buf) { return sizeof(net_append_t) + buf->key_size + buf->value_size; }
 size_t objsize(const net_prepend_t *buf) { return sizeof(net_prepend_t) + buf->key_size + buf->value_size; }
 size_t objsize(const net_backfill_set_t *buf) { return sizeof(net_backfill_set_t) + buf->key_size + buf->value_size; }
+size_t objsize(const net_backfill_delete_range_t *buf) {
+    // low_key_size and high_key_size are uint8_t's, we be careful not to add them together first.
+    size_t ret = sizeof(net_backfill_delete_t) + buf->low_key_size;
+    return ret + buf->high_key_size; }
 size_t objsize(const net_backfill_delete_t *buf) { return sizeof(net_backfill_delete_t) + buf->key_size; }
 
 
@@ -97,7 +101,7 @@ void replication_stream_handler_t::stream_part(const char *buf, size_t size) {
     // (Note: this might be a no-op while watching the heartbeat is paused, depending
     // on the implementation of the heartbeat receiver. It certainly doesn't hurt though.)
     hb_receiver_->note_heartbeat();
-    
+
     if (!saw_first_part_) {
         uint8_t msgcode = *reinterpret_cast<const uint8_t *>(buf);
         ++buf;
@@ -340,6 +344,11 @@ void repli_stream_t::send(net_prepend_t *msg, const char *key, boost::shared_ptr
 void repli_stream_t::send(net_delete_t *msg) {
     drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(DELETE, msg);
+}
+
+void repli_stream_t::send(net_backfill_delete_range_t *msg) {
+    drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
+    sendobj(BACKFILL_DELETE_RANGE, msg);
 }
 
 void repli_stream_t::send(net_backfill_delete_t *msg) {

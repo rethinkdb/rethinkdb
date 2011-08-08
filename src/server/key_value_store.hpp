@@ -122,18 +122,16 @@ public:
     static void check_existing(const std::vector<std::string>& db_filenames, check_callback_t *cb);
 
 public:
-    /* get_store_t interface */
-
     get_result_t get(const store_key_t &key, order_token_t token);
     rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token);
 
-    /* set_store_interface_t interface */
-
     mutation_result_t change(const mutation_t &m, order_token_t order_token);
 
-    /* set_store_t interface */
-
     mutation_result_t change(const mutation_t &m, castime_t ct, order_token_t order_token);
+
+    // Deletes the keys in the inclusive range [low_key, high_key] for
+    // which hash(hash_value) % hashmod == slice.
+    void backfill_delete_range(int hash_value, int hashmod, store_key_t low_key, store_key_t high_key);
 
     /* The value passed to `set_timestampers()` is the value that will be used as the
     timestamp for all new operations. When the key-value store starts up, it is

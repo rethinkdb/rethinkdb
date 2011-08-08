@@ -107,6 +107,13 @@ std::string debug_format(const net_delete_t *msg) {
         msg->timestamp.time, debug_format(msg->key_size, msg->key).c_str());
 }
 
+std::string debug_format(const net_backfill_delete_range_t *msg) {
+    return strprintf("net_backfill_delete_range_t { hash_value = %u; hashmod = %u; low_key = %s; high_key = %s; }",
+                     msg->hash_value, msg->hashmod,
+                     debug_format(msg->low_key_size, msg->keys).c_str(),
+                     debug_format(msg->high_key_size, msg->keys + msg->low_key_size).c_str());
+}
+
 std::string debug_format(const net_backfill_delete_t *msg) {
     return strprintf("net_backfill_delete_t { key = %s; }",
         debug_format(msg->key_size, msg->key).c_str());

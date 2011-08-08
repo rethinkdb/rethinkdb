@@ -22,12 +22,30 @@ void backfill_sender_t::warn_about_expiration() {
     }
 }
 
-void backfill_sender_t::backfill_deletion(store_key_t key, order_token_t token) {
-    order_sink_before_send.check_out(token);
-    block_pm_duration set_timer(&master_bf_del);
-
-    size_t n = sizeof(net_backfill_delete_t) + key.size;
+void backfill_sender_t::backfill_delete_range(int hash_value, int hashmod, store_key_t low_key, store_key_t high_key) {
     if (*stream_) {
+        size_t n = sizeof(net_backfill_delete_range_t) + low_key.size + high_key.size;
+
+        scoped_malloc<net_backfill_delete_range_t> msg(n);
+        msg->hash_value = hash_value;
+        msg->hashmod = hashmod;
+        msg->low_key_size = low_key.size;
+        msg->high_key_size = high_key.size;
+        memcpy(msg->keys, low_key.contents, low_key.size);
+        memcpy(msg->keys + low_key.size, high_key.contents, high_key.size);
+
+        (*stream_)->send(msg.get());
+    }
+}
+
+void backfill_sender_t::backfill_deletion(store_key_t key, order_token_t token) {
+    block_pm_duration del_timer(&master_bf_del);
+
+    order_sink_before_send.check_out(token);
+
+    if (*stream_) {
+        size_t n = sizeof(net_backfill_delete_t) + key.size;
+
         scoped_malloc<net_backfill_delete_t> msg(n);
         msg->padding = 0;
         msg->key_size = key.size;
@@ -159,7 +177,7 @@ void backfill_sender_t::incr_decr_like(const store_key_t &key, uint64_t amount, 
     if (*stream_) (*stream_)->send(msg.get());
 }
 
-void backfill_sender_t::realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key, boost::shared_ptr<data_provider_t> data, castime_t castime, order_token_t token) {
+void backfill_sender_t::realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key, const boost::shared_ptr<data_provider_t>& data, castime_t castime, order_token_t token) {
     assert_thread();
     block_pm_duration set_timer(&master_rt_op);
     order_sink_before_send.check_out(token);
