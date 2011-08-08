@@ -175,20 +175,20 @@ public:
             realtime_job_queue.push(job);
         }
 
-        /* The store calls this when we need to backfill a deletion. */
-        void deletion_key(const btree_key_t *key) {
-            // This runs in the scheduler context.
-            rassert(get_thread_id() == shard_->home_thread());
-            rassert(backfilling_);
-            store_key_t tmp(key->size, key->contents);
-            backfill_job_queue.push(boost::bind(
-                &backfill_and_realtime_streaming_callback_t::backfill_deletion, parent_->handler_,
-                tmp, order_token_t::ignore));
+        void on_delete_range(UNUSED const store_key_t& low, UNUSED const store_key_t& high) {
+            // TODO LOOF: Implement this function.
+            crash("on_delete_range not implemented.");
         }
 
-        /* The store calls this when it finishes the first phase of backfilling. It's redundant
-        because we will get another callback when the second phase is done. */
-        void done_deletion_keys() {
+        void on_deletion(const store_key_t& key, UNUSED repli_timestamp_t recency) {
+            // TODO LOOF: We ignore recency.  Is this correct?
+
+            // This may run in the scheduler context.
+            rassert(get_thread_id() == shard_->home_thread());
+            rassert(backfilling_);
+            backfill_job_queue.push(boost::bind(&backfill_and_realtime_streaming_callback_t::backfill_deletion,
+                                                parent_->handler_,
+                                                key, order_token_t::ignore));
         }
 
         /* The store calls this when we need to backfill a key/value pair to the slave */

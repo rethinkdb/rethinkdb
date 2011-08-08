@@ -19,6 +19,8 @@ class btree_slice_t;
 
 class agnostic_backfill_callback_t {
 public:
+    virtual void on_delete_range(const store_key_t& low, const store_key_t& high) = 0;
+    virtual void on_deletion(const store_key_t& key, repli_timestamp_t recency) = 0;
     virtual void on_pair(transaction_t *txn, repli_timestamp_t recency, const btree_key_t *key, const opaque_value_t *value) = 0;
     virtual void done_backfill() = 0;
     virtual ~agnostic_backfill_callback_t() { }
@@ -143,6 +145,14 @@ void agnostic_btree_backfill(btree_slice_t *slice, repli_timestamp_t since_when,
 class agnostic_memcached_backfill_callback_t : public agnostic_backfill_callback_t {
 public:
     agnostic_memcached_backfill_callback_t(backfill_callback_t *cb) : cb_(cb) { }
+
+    void on_delete_range(const store_key_t& low, const store_key_t& high) {
+        cb_->on_delete_range(low, high);
+    }
+
+    void on_deletion(const store_key_t& key, repli_timestamp_t recency) {
+        cb_->on_deletion(key, recency);
+    }
 
     void on_pair(transaction_t *txn, repli_timestamp_t recency, const btree_key_t *key, const opaque_value_t *val) {
         const memcached_value_t *value = reinterpret_cast<const memcached_value_t *>(val);

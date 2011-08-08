@@ -20,10 +20,15 @@ struct backfill_atom_t {
     cas_t cas_or_zero;
 };
 
-// How to use this class: Send deletion_key calls first, then call
-// done_deletion_keys, then send on_keyvalues, then send done().
+// How to use this class: Send on_delete_range calls before
+// on_keyvalue calls for keys within that range.
+//
+// TODO: What's the point of done_backfill?  Doesn't the function
+// btree_backfill return?
 class backfill_callback_t {
 public:
+    virtual void on_delete_range(const store_key_t& low, const store_key_t& high) = 0;
+    virtual void on_deletion(const store_key_t& key, repli_timestamp_t recency) = 0;
     virtual void on_keyvalue(backfill_atom_t atom) = 0;
     virtual void done_backfill() = 0;
 protected:
