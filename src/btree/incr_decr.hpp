@@ -1,7 +1,7 @@
 #ifndef __BTREE_INCR_DECR_HPP__
 #define __BTREE_INCR_DECR_HPP__
 
-#include "store.hpp"
+#include "memcached/store.hpp"
 #include "btree/node.hpp"
 #include "btree/slice.hpp"
 

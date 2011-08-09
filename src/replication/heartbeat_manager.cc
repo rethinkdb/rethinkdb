@@ -4,7 +4,7 @@
 #include <boost/bind.hpp>
 
 #include "arch/arch.hpp"
-#include "arch/runtime/coroutines.hpp"
+#include "arch/runtime/runtime.hpp"
 #include "arch/timing.hpp"
 #include "logger.hpp"
 

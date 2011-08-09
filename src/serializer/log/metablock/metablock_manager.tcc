@@ -6,7 +6,7 @@
 #include <boost/bind.hpp>
 
 #include "arch/arch.hpp"
-#include "arch/runtime/coroutines.hpp"
+#include "arch/runtime/runtime.hpp"
 #include "concurrency/cond_var.hpp"
 
 

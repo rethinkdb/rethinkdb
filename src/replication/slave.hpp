@@ -6,8 +6,8 @@
 #include "concurrency/side_coro.hpp"
 #include "replication/protocol.hpp"
 #include "server/cmd_args.hpp"
-#include "server/control.hpp"
-#include "store.hpp"
+#include "stats/control.hpp"
+#include "memcached/store.hpp"
 #include "replication/failover.hpp"
 
 // The initial time we wait to reconnect to the master, upon failure.  In ms.

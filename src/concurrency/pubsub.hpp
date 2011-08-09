@@ -3,7 +3,7 @@
 
 #include "concurrency/mutex.hpp"
 #include "utils.hpp"
-#include "arch/runtime/coroutines.hpp"
+#include "arch/runtime/runtime.hpp"
 
 /* `publisher_t` is used to implement small-scale pub/sub architectures. It's
 useful whenever you need to broadcast notifications to some number of listeners.
@@ -100,7 +100,10 @@ protected:
 
         /* Lock the mutex so that if we're being run from within a call to
         `publish()`, we won't destroy the `publisher_t` until the call to
-        `publish` is done. */
+        `publish` is done.
+        
+        TODO: This is terrible and the only reason we have it is because of
+        `notify_now()`. `notify_now()` should go away. */
         co_lock_mutex(&lock);
     }
 
@@ -132,6 +135,30 @@ private:
 #endif
     mutex_t lock;
     intrusive_list_t<subscription_t> subscriptions;
+    DISABLE_COPYING(publisher_t);
+};
+
+/* One way to use `publisher_t` is to construct a concrete subclass of
+`publisher_t` but then pass around a pointer to the underlying `publisher_t`.
+Things that have the pointer to the `publisher_t` can subscribe to receive
+notifications, but cannot publish. `public_publisher_t` is a concrete subclass
+that makes `publish()` and the constructor and destructor public. */
+
+template<class subscriber_t>
+struct public_publisher_t :
+    public publisher_t<subscriber_t>
+{
+public:
+    public_publisher_t() { }
+    ~public_publisher_t() { }
+
+    template<class callable_t>
+    void publish(const callable_t &callable) {
+         publisher_t<subscriber_t>::publish(callable);
+    }
+
+private:
+    DISABLE_COPYING(public_publisher_t);
 };
 
 #endif /* __CONCURRENCY_PUBSUB_HPP__ */

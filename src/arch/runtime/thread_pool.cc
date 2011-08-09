@@ -5,7 +5,7 @@
 #include "arch/runtime/thread_pool.hpp"
 #include "errors.hpp"
 #include "arch/runtime/event_queue.hpp"
-#include "arch/runtime/coroutines.hpp"
+#include "arch/runtime/runtime.hpp"
 #include <signal.h>
 #include <fcntl.h>
 #include "logger.hpp"

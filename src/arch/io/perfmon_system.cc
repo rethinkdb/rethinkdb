@@ -10,7 +10,7 @@
 #include <iomanip>
 #include <stdarg.h>
 
-#include "arch/runtime/linux_utils.hpp"
+#include "arch/io/io_utils.hpp"
 #include "perfmon.hpp"
 #include "logger.hpp"
 #include "utils.hpp"

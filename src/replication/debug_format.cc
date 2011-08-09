@@ -1,6 +1,6 @@
 #include "replication/debug_format.hpp"
 #include "utils.hpp"
-#include "store.hpp"
+#include "memcached/store.hpp"
 
 namespace replication {
 

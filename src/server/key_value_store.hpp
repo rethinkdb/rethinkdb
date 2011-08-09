@@ -10,12 +10,12 @@
 #include "concurrency/access.hpp"
 #include "concurrency/signal.hpp"
 #include "server/key_value_store_config.hpp"
-#include "server/control.hpp"
+#include "stats/control.hpp"
 #include "server/dispatching_store.hpp"
 #include "arch/arch.hpp"
 #include "serializer/config.hpp"
 #include "serializer/translator.hpp"
-#include "store.hpp"
+#include "memcached/store.hpp"
 
 namespace replication {
     class backfill_and_streaming_manager_t;

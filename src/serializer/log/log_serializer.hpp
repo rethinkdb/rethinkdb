@@ -72,13 +72,12 @@ public:
     cannot be changed after that. */
     typedef log_serializer_private_dynamic_config_t private_dynamic_config_t;
     typedef log_serializer_dynamic_config_t dynamic_config_t;
-    typedef log_serializer_on_disk_static_config_t static_config_t;
-    typedef log_serializer_static_config_t public_static_config_t;
+    typedef log_serializer_static_config_t static_config_t;
 
     struct log_serializer_config_t {
         dynamic_config_t dynamic_config;
         private_dynamic_config_t private_dynamic_config;
-        public_static_config_t public_static_config;
+        static_config_t static_config;
 
         log_serializer_config_t(std::string file_name) 
             : private_dynamic_config(file_name)
@@ -88,23 +87,23 @@ public:
         template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
             ar & dynamic_config;
             ar & private_dynamic_config;
-            ar & public_static_config;
+            ar & static_config;
         }
     };
 
     typedef log_serializer_config_t config_t;
     
-    dynamic_config_t *dynamic_config;
-    private_dynamic_config_t *private_config;
+    dynamic_config_t dynamic_config;
+    private_dynamic_config_t private_config;
     static_config_t static_config;
 
 public:
 
     /* Blocks. Does not check for an existing database--use check_existing for that. */
-    static void create(dynamic_config_t *dynamic_config, private_dynamic_config_t *private_dynamic_config, public_static_config_t *public_static_config);
+    static void create(dynamic_config_t dynamic_config, private_dynamic_config_t private_dynamic_config, static_config_t static_config);
 
     /* Blocks. */
-    log_serializer_t(dynamic_config_t *dynamic_config, private_dynamic_config_t *private_dynamic_config);
+    log_serializer_t(dynamic_config_t dynamic_config, private_dynamic_config_t private_dynamic_config);
 
     /* Blocks. */
     virtual ~log_serializer_t();

@@ -90,7 +90,7 @@ void epoll_event_queue_t::run() {
 
         // TODO: instead of processing the events immediately, we
         // might want to queue them up and then process the queue in
-        // bursts. This might reduce response time but increase
+        // bursts. This might increase response time but increase
         // overall throughput because it will minimize cache faults
         // associated with instructions as well as data structures
         // (see section 7 [CPU scheduling] in B-tree Indexes and CPU

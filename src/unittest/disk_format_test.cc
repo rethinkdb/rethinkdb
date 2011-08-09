@@ -1,6 +1,5 @@
 #include "serializer/log/lba/disk_format.hpp"
 #include "serializer/log/log_serializer.hpp"
-#include "utils/align.hpp"
 
 #include "unittest/gtest.hpp"
 

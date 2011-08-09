@@ -1,7 +1,7 @@
 #include "btree/delete.hpp"
 #include "btree/modify_oper.hpp"
 
-#include "replication/delete_queue.hpp"
+#include "btree/delete_queue.hpp"
 
 struct btree_delete_oper_t : public btree_modify_oper_t<memcached_value_t> {
 

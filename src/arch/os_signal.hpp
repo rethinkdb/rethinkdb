@@ -2,7 +2,7 @@
 #define __OS_SIGNAL__
 
 #include "concurrency/cond_var.hpp"
-#include "arch/core.hpp"
+#include "arch/runtime/runtime.hpp"
 
 class os_signal_cond_t : public thread_message_t,
                          public cond_t
