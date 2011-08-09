@@ -24,7 +24,7 @@ void run_btree_modify_oper(value_sizer_t<Value> *sizer, btree_modify_oper_t<Valu
         get_btree_superblock(slice, rwi_write, oper->compute_expected_change_count(block_size), castime.timestamp, token, &got_superblock);
 
         keyvalue_location_t<Value> kv_location;
-        find_keyvalue_location_for_write(sizer, &got_superblock, key, castime.timestamp, &kv_location);
+        find_keyvalue_location_for_write(sizer, &got_superblock, key, &kv_location);
         transaction_t *txn = kv_location.txn.get();
         scoped_malloc<Value> the_value;
         the_value.reinterpret_swap(kv_location.value);

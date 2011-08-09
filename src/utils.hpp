@@ -19,6 +19,9 @@ struct repli_timestamp_t {
     bool operator==(repli_timestamp_t t) const {
         return time == t.time;
     }
+    bool operator!=(repli_timestamp_t t) const {
+        return time != t.time;
+    }
     bool operator<(repli_timestamp_t t) const {
         return time < t.time;
     }

@@ -1,8 +1,11 @@
 #ifndef BTREE_LOOF_NODE_HPP_
 #define BTREE_LOOF_NODE_HPP_
 
+#include <string>
+
 #include "buffer_cache/types.hpp"
 #include "config/args.hpp"
+#include "containers/scoped_malloc.hpp"
 #include "errors.hpp"
 #include "node.hpp"
 
@@ -247,12 +250,13 @@ void print(FILE *fp, value_sizer_t<V> *sizer, const loof_t *node) {
     fflush(fp);
 }
 
-#define LOOF_FSCK_CHECK(test) do { if (!(test)) { *msg_out = #test; return false; } } while (0)
+#define LOOF_FSCK_CHECK(test) do { if (!(test)) { *msg_out = strprintf("[%s] (line %d)", #test, __LINE__); return false; } } while (0)
+
+#define LOOF_FSCK_CHECKF(test, fmt, ...) do { if (!(test)) { *msg_out = strprintf("[%s] (line %d) " fmt, #test, __LINE__, ##__VA_ARGS__); return false; } } while (0)
 
 // If this returns false, it sets msg_out to point to a statically allocated string
 template <class V>
-bool fsck(value_sizer_t<V> *sizer, const loof_t *node, const char **msg_out) {
-    *msg_out = NULL;
+bool fsck(value_sizer_t<V> *sizer, const loof_t *node, std::string *msg_out) {
 
     // We check that all offsets are contiguous (with interspersed
     // skip entries) between frontmost and block_size, that frontmost
@@ -297,12 +301,12 @@ bool fsck(value_sizer_t<V> *sizer, const loof_t *node, const char **msg_out) {
         if (entry_is_live(ent)) {
             observed_live_size += sizeof(uint16_t) + entry_size(sizer, ent);
             LOOF_FSCK_CHECK(i < node->num_pairs);
-            LOOF_FSCK_CHECK(offset == offs[i]);
+            LOOF_FSCK_CHECKF(offset == offs[i], "offset = %d, offs[i] = %d, i = %d, num_pairs = %d", offset, offs[i], i, node->num_pairs);
             ++i;
         } else if (entry_is_deletion(ent)) {
             LOOF_FSCK_CHECK(!seen_tstamp_cutpoint);
             LOOF_FSCK_CHECK(i < node->num_pairs);
-            LOOF_FSCK_CHECK(offset == offs[i]);
+            LOOF_FSCK_CHECKF(offset == offs[i], "offset = %d, offs[i] = %d, i = %d, num_pairs = %d", offset, offs[i], i, node->num_pairs);
             ++i;
         }
 
@@ -328,16 +332,21 @@ bool fsck(value_sizer_t<V> *sizer, const loof_t *node, const char **msg_out) {
 // TODO: This function is stupid, and things that call it are stupid.  Get rid of it.
 inline
 bool has_sensible_offsets(block_size_t bs, const loof_t *node) {
-    return offsetof(loof_t, pair_offsets) + node->npairs * sizeof(uint16_t) <= node->frontmost && node->frontmost <= bs.value();
+    return offsetof(loof_t, pair_offsets) + node->num_pairs * sizeof(uint16_t) <= node->frontmost && node->frontmost <= bs.value();
 }
 
 
 template <class V>
 void validate(value_sizer_t<V> *sizer, const loof_t *node) {
 #ifndef NDEBUG
-    const char *msg;
+    // print(stdout, sizer, node);
+    std::string msg;
     bool fscked_successfully = fsck(sizer, node, &msg);
-    rassert(fscked_successfully, "msg = %s", msg);
+    if (!fscked_successfully) {
+        printf("Printing due to %s\n", msg.c_str());
+        print(stdout, sizer, node);
+    }
+    rassert(fscked_successfully, "%s", msg.c_str());
 #endif
 }
 
@@ -841,7 +850,7 @@ void split(value_sizer_t<V> *sizer, loof_t *node, loof_t *rnode, btree_key_t *me
     int i = node->num_pairs - 1;
     int prev_rcost = 0;
     int rcost = 0;
-    while (i >= 0 && 2 * rcost < mandatory) {
+    while (i >= 0 && rcost < mandatory / 2) {
         int offset = node->pair_offsets[i];
         entry_t *ent = get_entry(node, offset);
 
@@ -875,8 +884,8 @@ void split(value_sizer_t<V> *sizer, loof_t *node, loof_t *rnode, btree_key_t *me
     rassert(i > 0);
 
     // Now prev_rcost and rcost envelope mandatory / 2.
-    rassert(prev_rcost <= mandatory / 2);
-    rassert(rcost > mandatory / 2);
+    rassert(prev_rcost < mandatory / 2);
+    rassert(rcost >= mandatory / 2, "rcost = %d, mandatory / 2 = %d, i = %d", rcost, mandatory / 2, i);
 
     int s;
     int end_rcost;
@@ -905,26 +914,30 @@ void split(value_sizer_t<V> *sizer, loof_t *node, loof_t *rnode, btree_key_t *me
 }
 
 template <class V>
-void merge(value_sizer_t<V> *sizer, loof_t *left, loof_t *right, btree_key_t *key_to_remove_out) {
-    rassert(left != right);
-    rassert(is_underfull(sizer, left));
+void merge(value_sizer_t<V> *sizer, const loof_t *real_left, loof_t *right, btree_key_t *key_to_remove_out) {
+    rassert(real_left != right);
+
+    scoped_malloc<loof_t> left(sizer->block_size().value());
+    memcpy(left.get(), real_left, sizer->block_size().value());
+
+    rassert(is_underfull(sizer, left.get()));
     rassert(is_underfull(sizer, right));
 
     rassert(left->num_pairs > 0);
     rassert(right->num_pairs > 0);
 
     int tstamp_back_offset;
-    int mandatory = mandatory_cost(sizer, left, MANDATORY_TIMESTAMPS, &tstamp_back_offset);
+    int mandatory = mandatory_cost(sizer, left.get(), MANDATORY_TIMESTAMPS, &tstamp_back_offset);
 
     int left_copysize = mandatory;
     // Uncount the uint16_t cost of mandatory  entries.  Sigh.
     for (int i = 0; i < left->num_pairs; ++i) {
-        if (left->pair_offsets[i] < tstamp_back_offset || entry_is_deletion(get_entry(left, left->pair_offsets[i]))) {
+        if (left->pair_offsets[i] < tstamp_back_offset || entry_is_deletion(get_entry(left.get(), left->pair_offsets[i]))) {
             left_copysize -= sizeof(uint16_t);
         }
     }
 
-    move_elements(sizer, left, 0, left->num_pairs, 0, right, left_copysize, tstamp_back_offset);
+    move_elements(sizer, left.get(), 0, left->num_pairs, 0, right, left_copysize, tstamp_back_offset);
 
     rassert(right->num_pairs > 0);
     keycpy(key_to_remove_out, entry_key(get_entry(right, right->pair_offsets[0])));
@@ -1097,7 +1110,7 @@ bool lookup(value_sizer_t<V> *sizer, const loof_t *node, const btree_key_t *key,
 
     int index;
     if (find_key(node, key, &index)) {
-        entry_t *ent = get_entry(node, node->pair_offsets[index]);
+        const entry_t *ent = get_entry(node, node->pair_offsets[index]);
         if (entry_is_live(ent)) {
             const V *val = entry_value<V>(ent);
             memcpy(value_out, val, sizer->size(val));
@@ -1298,8 +1311,73 @@ void dump_entries_since_time(value_sizer_t<V> *sizer, const loof_t *node, repli_
     }
 }
 
+// We have to have an iterator and avoid exposing pair offset indexes
+// because people would use raw indexes incorrectly.
+class live_iter_t {
+public:
+    bool step(const loof_t *node) {
+        do {
+            ++index_;
+        } while (index_ < node->num_pairs && !entry_is_live(get_entry(node, node->pair_offsets[index_])));
+
+        return index_ < node->num_pairs;
+    }
+
+    const btree_key_t *get_key(const loof_t *node) const {
+        rassert(index_ <= node->num_pairs);
+        if (index_ == node->num_pairs) {
+            return NULL;
+        } else {
+            return entry_key(get_entry(node, node->pair_offsets[index_]));
+        }
+    }
+
+    template <class V>
+    const V *get_value(const loof_t *node) const {
+        // It's probably a mistake if users didn't check the result of
+        // get_key already, so fail if index_ == node->num_pairs.
+        rassert(index_ < node->num_pairs);
+
+        if (index_ == node->num_pairs) {
+            return NULL;
+        } else {
+            return entry_value<V>(get_entry(node, node->pair_offsets[index_]));
+        }
+    }
+
+private:
+    live_iter_t(int index) : index_(index) { }
+
+    friend live_iter_t iter_for_inclusive_lower_bound(const loof_t *node, const btree_key_t *key);
+    friend live_iter_t iter_for_whole_leaf(const loof_t *node);
+
+    int index_;
+};
+
+// Returns an iterator that starts at the first entry whose key is
+// greater than or equal to key.
+inline
+live_iter_t iter_for_inclusive_lower_bound(const loof_t *node, const btree_key_t *key) {
+    int index;
+    find_key(node, key, &index);
+    while (index < node->num_pairs && !entry_is_live(get_entry(node, node->pair_offsets[index]))) {
+        ++index;
+    }
+    return live_iter_t(index);
+}
+
+// Returns an iterator that starts at the smallest key.
+inline
+live_iter_t iter_for_whole_leaf(const loof_t *node) {
+    int index = 0;
+    while (index < node->num_pairs && !entry_is_live(get_entry(node, node->pair_offsets[index]))) {
+        ++index;
+    }
+    return live_iter_t(index);
+}
 
 }  // namespace loof
 
+using loof::loof_t;
 
 #endif  // BTREE_LOOF_NODE_HPP_

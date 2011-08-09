@@ -20,29 +20,54 @@ struct opaque_value_t;
 template <class Value>
 class value_sizer_t;
 
+// Class to hold common use case.
+template <>
+class value_sizer_t<void> {
+public:
+    value_sizer_t() { }
+    virtual int size(const void *value) const = 0;
+    virtual bool fits(const void *value, int length_available) const = 0;
+    virtual int max_possible_size() const = 0;
+    virtual block_magic_t btree_leaf_magic() const = 0;
+    virtual block_size_t block_size() const = 0;
+
+protected:
+    virtual ~value_sizer_t() { }
+private:
+    DISABLE_COPYING(value_sizer_t);
+};
+
 // This will eventually be moved to a memcached-specific part of the
 // project.
 
 template <>
-class value_sizer_t<memcached_value_t> {
+class value_sizer_t<memcached_value_t> : public value_sizer_t<void> {
 public:
     value_sizer_t<memcached_value_t>(block_size_t bs) : block_size_(bs) { }
 
-    int size(const memcached_value_t *value) const {
-        return value->inline_size(block_size_);
+    static const memcached_value_t *as_memcached(const void *p) {
+        return reinterpret_cast<const memcached_value_t *>(p);
     }
 
-    bool fits(const memcached_value_t *value, int length_available) const {
-        return btree_value_fits(block_size_, length_available, value);
+    int size(const void *value) const {
+        return as_memcached(value)->inline_size(block_size_);
+    }
+
+    bool fits(const void *value, int length_available) const {
+        return btree_value_fits(block_size_, length_available, as_memcached(value));
     }
 
     int max_possible_size() const {
         return MAX_BTREE_VALUE_SIZE;
     }
 
-    static block_magic_t btree_leaf_magic() {
+    static block_magic_t leaf_magic() {
         block_magic_t magic = { { 'l', 'e', 'a', 'f' } };
         return magic;
+    }
+
+    block_magic_t btree_leaf_magic() const {
+        return leaf_magic();
     }
 
     block_size_t block_size() const { return block_size_; }
@@ -62,16 +87,15 @@ typedef value_sizer_t<memcached_value_t> memcached_value_sizer_t;
 struct btree_superblock_t {
     block_magic_t magic;
     block_id_t root_block;
-
     /* These are used for replication. replication_clock is a value that is kept synchronized
     between the master and the slave, which is updated once per second. last_sync is the value that
     replication_clock had the last time that the slave was connected to master. If we are a slave,
     replication_master_id is the creation timestamp of the master we belong to; if we are
     not a slave, it is -1 so that we can't later become a slave. If we are a master,
     replication_slave_id is the creation timestamp of the last slave we saw.
-    
+
     At creation, all of them are set to 0.
-    
+
     These really don't belong here! */
     repli_timestamp_t replication_clock;
     repli_timestamp_t last_sync;

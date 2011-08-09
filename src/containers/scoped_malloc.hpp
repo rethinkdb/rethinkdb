@@ -1,6 +1,8 @@
 #ifndef __SCOPED_MALLOC_HPP__
 #define __SCOPED_MALLOC_HPP__
 
+#include "errors.hpp"
+
 // For dumb structs that get malloc/free for allocation.
 
 template <class T>

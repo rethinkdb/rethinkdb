@@ -1,13 +1,15 @@
-#include <map>
-
 #include "extract/filewalk.hpp"
 
+#include <map>
+
 #include "arch/arch.hpp"
+#include "buffer_cache/buf_patch.hpp"
 #include "btree/node.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/slice.hpp"
 #include "serializer/log/log_serializer.hpp"
 #include "serializer/log/lba/disk_format.hpp"
+#include "serializer/translator.hpp"
 #include "utils.hpp"
 #include "logger.hpp"
 
@@ -75,12 +77,14 @@ private:
     DISABLE_COPYING(dumper_t);
 };
 
-// TODO: Make this a local...
-static std::map<block_id_t, std::list<buf_patch_t*> > buf_patches;
+// TODO: Make this a local variable.
+static std::map<block_id_t, std::list<buf_patch_t *> > buf_patches;
 void clear_buf_patches() {
-    for (std::map<block_id_t, std::list<buf_patch_t*> >::iterator patches = buf_patches.begin(); patches != buf_patches.end(); ++patches)
-        for (std::list<buf_patch_t*>::iterator patch = patches->second.begin(); patch != patches->second.end(); ++patch)
+    for (std::map<block_id_t, std::list<buf_patch_t *> >::iterator patches = buf_patches.begin(); patches != buf_patches.end(); ++patches) {
+        for (std::list<buf_patch_t *>::iterator patch = patches->second.begin(); patch != patches->second.end(); ++patch) {
             delete *patch;
+        }
+    }
 
     buf_patches.clear();
 }
@@ -90,7 +94,8 @@ void observe_blocks(block_registry &registry, nondirect_file_t &file, const cfg_
 void load_diff_log(const std::map<size_t, off64_t>& offsets, nondirect_file_t& file, const cfg_t cfg, uint64_t filesize);
 void get_all_values(dumper_t& dumper, const std::map<size_t, off64_t>& offsets, nondirect_file_t& file, const cfg_t cfg, uint64_t filesize);
 bool check_config(const cfg_t& cfg);
-void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg, const std::map<size_t, off64_t>& offsets, const btree_leaf_pair<memcached_value_t> *pair, block_id_t this_block, int pair_size_limiter);
+// TODO LOOF: Remove this commented out prototype.
+// void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg, const std::map<size_t, off64_t>& offsets, const btree_leaf_pair<memcached_value_t> *pair, block_id_t this_block, int pair_size_limiter);
 void walkfile(dumper_t &dumper, const char *path);
 
 
@@ -261,7 +266,12 @@ void load_diff_log(const std::map<size_t, off64_t>& offsets, nondirect_file_t& f
  writeback acquires the flush lock (so all buffers are in a valid state) and then either
  flushes *only* patches, but does not touch the existing block, or applies *all*
  outstanding patches and only then writes the block to disk, so it's consistent again. */
-bool recover_basic_block_consistency(const cfg_t cfg, void *buf) {
+bool recover_basic_block_consistency(UNUSED const cfg_t cfg, UNUSED void *buf) {
+    // TODO LOOF: Get rid of the "UNUSED" ^ above.
+
+    // TODO LOOF: Somehow we have to handle one of many expected magics.
+
+#if 0
     leaf_node_t *leaf = reinterpret_cast<leaf_node_t *>(buf);
     if (leaf->magic == leaf_node_t::expected_magic) {
         // Check that the number of pairs is not too high and that the offsets are fine
@@ -306,9 +316,13 @@ bool recover_basic_block_consistency(const cfg_t cfg, void *buf) {
         // the block magic always finds its way to the on-disk version of the block.
         return false;
     }
+
+#endif  // 0
+    return false;  // TODO LOOF get rid of this line.
 }
 
-void get_all_values(dumper_t& dumper, const std::map<size_t, off64_t>& offsets, nondirect_file_t& file, const cfg_t cfg, UNUSED uint64_t filesize) {
+// TODO LOOF drop the unused dumper_t dumper soon enough..
+void get_all_values(UNUSED dumper_t& dumper, const std::map<size_t, off64_t>& offsets, nondirect_file_t& file, const cfg_t cfg, uint64_t filesize) {
     // If the database has been copied to a normal filesystem, it's
     // _way_ faster to rescan the file in order of offset than in
     // order of block id.  However, we still do some random access
@@ -358,6 +372,11 @@ void get_all_values(dumper_t& dumper, const std::map<size_t, off64_t>& offsets, 
                 int num_pairs = leaf->npairs;
                 logDBG("We have a leaf node with %d pairs.\n", num_pairs);
 
+                // TODO LOOF: Actually implement extraction of values
+                // from a leaf... when integrating this with the
+                // fsck/verify code.
+
+#if 0
                 int pair_offsets_back_offset = offsetof(leaf_node_t, pair_offsets) + sizeof(*leaf->pair_offsets) * num_pairs;
                 if (unsigned(pair_offsets_back_offset) < cfg.block_size().value()) {
 
@@ -369,6 +388,7 @@ void get_all_values(dumper_t& dumper, const std::map<size_t, off64_t>& offsets, 
                         }
                     }
                 }
+#endif  // 0
             }
         }
     }
@@ -447,7 +467,8 @@ bool get_blob_segments(const btree_key_t *key, nondirect_file_t& file, const cha
     }
 }
 
-
+// TODO LOOF: Implement this, but gee, why not have it called by the fsck/verify code?
+#if 0
 // Dumps the values for a given pair.
 void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg, const std::map<size_t, off64_t>& offsets, const btree_leaf_pair<memcached_value_t> *pair, block_id_t this_block, int pair_size_limiter) {
     memcached_value_sizer_t sizer(cfg.block_size());
@@ -514,6 +535,7 @@ void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg,
     dumper.dump(key, flags, exptime, pieces.data(), pieces.size());
 }
 
+#endif  // 0
 
 
 

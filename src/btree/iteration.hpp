@@ -7,7 +7,7 @@
 
 #include "containers/iterators.hpp"
 #include "btree/internal_node.hpp"
-#include "btree/leaf_node.hpp"
+#include "btree/loof_node.hpp"
 #include "buffer_cache/buf_lock.hpp"
 #include "btree/slice.hpp"
 #include "memcached/store.hpp"
@@ -32,17 +32,16 @@ struct key_value_pair_t {
  */
 template <class Value>
 struct leaf_iterator_t : public one_way_iterator_t<key_value_pair_t<Value> > {
-    leaf_iterator_t(const leaf_node_t *leaf, int index, buf_lock_t *lock, const boost::shared_ptr<value_sizer_t<Value> >& sizer, const boost::shared_ptr<transaction_t>& transaction);
+    leaf_iterator_t(const loof_t *leaf, loof::live_iter_t iter, buf_lock_t *lock, const boost::shared_ptr<value_sizer_t<Value> >& sizer, const boost::shared_ptr<transaction_t>& transaction);
 
     boost::optional<key_value_pair_t<Value> > next();
     void prefetch();
     virtual ~leaf_iterator_t();
 private:
     void done();
-    key_with_data_provider_t pair_to_key_with_data_provider(const btree_leaf_pair<Value>* pair);
 
-    const leaf_node_t *leaf;
-    int index;
+    const loof_t *leaf;
+    loof::live_iter_t iter;
     buf_lock_t *lock;
     boost::shared_ptr<value_sizer_t<Value> > sizer;
     boost::shared_ptr<transaction_t> transaction;

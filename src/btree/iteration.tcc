@@ -6,25 +6,25 @@ extern perfmon_counter_t
     slice_leaves_iterators;
 
 template <class Value>
-leaf_iterator_t<Value>::leaf_iterator_t(const leaf_node_t *_leaf, int _index, buf_lock_t *_lock, const boost::shared_ptr<value_sizer_t<Value> >& _sizer, const boost::shared_ptr<transaction_t>& _transaction) :
-    leaf(_leaf), index(_index), lock(_lock), sizer(_sizer), transaction(_transaction) {
+leaf_iterator_t<Value>::leaf_iterator_t(const loof_t *_leaf, loof::live_iter_t _iter, buf_lock_t *_lock, const boost::shared_ptr<value_sizer_t<Value> >& _sizer, const boost::shared_ptr<transaction_t>& _transaction) :
+    leaf(_leaf), iter(_iter), lock(_lock), sizer(_sizer), transaction(_transaction) {
 
     rassert(leaf != NULL);
     rassert(lock != NULL);
     leaf_iterators++;
 }
 
-template <class Value>
-boost::optional<key_value_pair_t<Value> > leaf_iterator_t<Value>::next() {
-    rassert(index >= 0);
-    const btree_leaf_pair<Value> *pair;
-    if (index >= leaf->npairs) {
+template <class V>
+boost::optional<key_value_pair_t<V> > leaf_iterator_t<V>::next() {
+    const btree_key_t *k = iter.get_key(leaf);
+
+    if (!k) {
         done();
         return boost::none;
     } else {
-        pair = leaf::get_pair_by_index<Value>(leaf, index++);
-
-        return boost::make_optional(key_value_pair_t<Value>(sizer.get(), key_to_str(&pair->key), pair->value()));
+        const V *value = iter.get_value<V>(leaf);
+        iter.step(leaf);
+        return boost::make_optional(key_value_pair_t<V>(sizer.get(), key_to_str(k), value));
     }
 }
 
@@ -141,11 +141,11 @@ boost::optional<leaf_iterator_t<Value>*> slice_leaves_iterator_t<Value>::get_fir
     rassert(node::is_leaf(node));
     rassert(buf_lock != NULL);
 
-    const leaf_node_t *l_node = reinterpret_cast<const leaf_node_t *>(node);
-    int index = leaf::get_offset_index(l_node, left_key);
+    const loof_t *l_node = reinterpret_cast<const loof_t *>(node);
+    loof::live_iter_t iter = loof::iter_for_inclusive_lower_bound(l_node, left_key);
 
-    if (index < l_node->npairs) {
-        return boost::make_optional(new leaf_iterator_t<Value>(l_node, index, buf_lock, sizer, transaction));
+    if (iter.get_key(l_node)) {
+        return boost::make_optional(new leaf_iterator_t<Value>(l_node, iter, buf_lock, sizer, transaction));
     } else {
         // there's nothing more in this leaf, we might as well move to the next leaf
         delete buf_lock;
@@ -200,8 +200,8 @@ boost::optional<leaf_iterator_t<Value>*> slice_leaves_iterator_t<Value>::get_lef
     rassert(node::is_leaf(node));
     rassert(buf_lock != NULL);
 
-    const leaf_node_t *l_node = reinterpret_cast<const leaf_node_t *>(node);
-    return boost::make_optional(new leaf_iterator_t<Value>(l_node, 0, buf_lock, sizer, transaction));
+    const loof_t *l_node = reinterpret_cast<const loof_t *>(node);
+    return boost::make_optional(new leaf_iterator_t<Value>(l_node, loof::iter_for_whole_leaf(l_node), buf_lock, sizer, transaction));
 }
 
 template <class Value>

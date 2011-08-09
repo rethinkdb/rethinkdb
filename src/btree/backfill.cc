@@ -10,7 +10,7 @@
 #include "btree/btree_data_provider.hpp"
 #include "btree/node.hpp"
 #include "btree/internal_node.hpp"
-#include "btree/leaf_node.hpp"
+#include "btree/loof_node.hpp"
 #include "btree/parallel_traversal.hpp"
 #include "btree/slice.hpp"
 
@@ -19,6 +19,7 @@ class btree_slice_t;
 
 class agnostic_backfill_callback_t {
 public:
+    // TODO LOOF why do some take store_key_t while others take btree_key_t.
     virtual void on_delete_range(const store_key_t& low, const store_key_t& high) = 0;
     virtual void on_deletion(const store_key_t& key, repli_timestamp_t recency) = 0;
     virtual void on_pair(transaction_t *txn, repli_timestamp_t recency, const btree_key_t *key, const opaque_value_t *value) = 0;
@@ -30,22 +31,30 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
 
     void process_a_leaf(transaction_t *txn, buf_t *leaf_node_buf) {
         assert_thread();
-        const leaf_node_t *data = reinterpret_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
+        const loof_t *data = reinterpret_cast<const loof_t *>(leaf_node_buf->get_data_read());
 
-        // Remember, we only want to process recent keys.
-
-        int npairs = data->npairs;
-
-        for (int i = 0; i < npairs; ++i) {
-            uint16_t offset = data->pair_offsets[i];
-            memcached_value_sizer_t sizer(txn->get_cache()->get_block_size());
-            repli_timestamp_t recency = leaf::get_timestamp_value<memcached_value_t>(&sizer, data, offset);
-            const btree_leaf_pair<memcached_value_t> *pair = leaf::get_pair<memcached_value_t>(data, offset);
-
-            if (recency.time >= since_when_.time) {
-                callback_->on_pair(txn, recency, &pair->key, reinterpret_cast<const opaque_value_t *>(pair->value()));
+        struct : public loof::entry_reception_callback_t<void> {
+            void lost_deletions() {
+                // TODO LOOF call on_delete_range with appropriate range.
             }
-        }
+
+            void deletion(const btree_key_t *k, repli_timestamp_t tstamp) {
+                // TODO LOOF this is just a stupid unnecessary copy.
+                store_key_t key(k->size, k->contents);
+                cb->on_deletion(key, tstamp);
+            }
+
+            void key_value(const btree_key_t *k, const void *value, repli_timestamp_t tstamp) {
+                cb->on_pair(txn, tstamp, k, reinterpret_cast<const opaque_value_t *>(value));
+            }
+
+            agnostic_backfill_callback_t *cb;
+            transaction_t *txn;
+        } x;
+        x.cb = callback_;
+        x.txn = txn;
+
+        loof::dump_entries_since_time(sizer_, data, since_when_, &x);
     }
 
     void postprocess_internal_node(UNUSED buf_t *internal_node_buf) {
@@ -104,17 +113,18 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
 
     agnostic_backfill_callback_t *callback_;
     repli_timestamp_t since_when_;
+    value_sizer_t<void> *sizer_;
 
-    backfill_traversal_helper_t(agnostic_backfill_callback_t *callback, repli_timestamp_t since_when)
-        : callback_(callback), since_when_(since_when) { }
+    backfill_traversal_helper_t(agnostic_backfill_callback_t *callback, repli_timestamp_t since_when, value_sizer_t<void> *sizer)
+        : callback_(callback), since_when_(since_when), sizer_(sizer) { }
 };
 
 
-void agnostic_btree_backfill(btree_slice_t *slice, repli_timestamp_t since_when, const boost::shared_ptr<cache_account_t>& backfill_account, agnostic_backfill_callback_t *callback, order_token_t token) {
+void agnostic_btree_backfill(value_sizer_t<void> *sizer, btree_slice_t *slice, repli_timestamp_t since_when, const boost::shared_ptr<cache_account_t>& backfill_account, agnostic_backfill_callback_t *callback, order_token_t token) {
     {
         rassert(coro_t::self());
 
-        backfill_traversal_helper_t helper(callback, since_when);
+        backfill_traversal_helper_t helper(callback, since_when, sizer);
 
         slice->pre_begin_transaction_sink_.check_out(token);
         order_token_t begin_transaction_token = slice->pre_begin_transaction_write_mode_source_.check_in(token.tag() + "+begin_transaction_token").with_read_mode();
@@ -178,5 +188,6 @@ public:
 void btree_backfill(btree_slice_t *slice, repli_timestamp_t since_when, const boost::shared_ptr<cache_account_t>& backfill_account, backfill_callback_t *callback, order_token_t token) {
     agnostic_memcached_backfill_callback_t agnostic_cb(callback);
 
-    agnostic_btree_backfill(slice, since_when, backfill_account, &agnostic_cb, token);
+    value_sizer_t<memcached_value_t> sizer(slice->cache()->get_block_size());
+    agnostic_btree_backfill(&sizer, slice, since_when, backfill_account, &agnostic_cb, token);
 }

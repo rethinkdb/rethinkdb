@@ -1,5 +1,5 @@
 #include "btree/node.hpp"
-#include "btree/leaf_node.hpp"
+#include "btree/loof_node.hpp"
 #include "btree/internal_node.hpp"
 
 const block_magic_t btree_superblock_t::expected_magic = { {'s','u','p','e'} };

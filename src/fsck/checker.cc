@@ -6,6 +6,7 @@
 #include "serializer/log/log_serializer.hpp"
 #include "btree/slice.hpp"
 #include "btree/node.hpp"
+#include "btree/node_functions.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/internal_node.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"
@@ -998,6 +999,9 @@ void check_value(UNUSED slicecx_t& cx, const memcached_value_t *value, value_err
     check_blob(cx, value->value_ref(), blob::btree_maxreflen, &errs->largebuf_errs);
 }
 
+// TODO LOOF: We'll put our fscking in loof.hpp.
+#if 0
+
 bool leaf_node_inspect_range(const slicecx_t& cx, const leaf_node_t *buf, uint16_t offset) {
     // There are some completely bad HACKs here.  We subtract 3 for
     // pair->key.size, pair->value()->size, pair->value()->metadata_flags.
@@ -1056,6 +1060,8 @@ void check_subtree_leaf_node(slicecx_t& cx, const leaf_node_t *buf, const btree_
 
     errs->out_of_order |= !(prev_key == NULL || hi == NULL || leaf_key_comp::compare(prev_key, hi) <= 0);
 }
+
+#endif // 0
 
 bool internal_node_begin_offset_in_range(const slicecx_t& cx, const internal_node_t *buf, uint16_t offset) {
     return (cx.block_size().value() - sizeof(btree_internal_pair)) >= offset && offset >= buf->frontmost_offset && offset + sizeof(btree_internal_pair) + reinterpret_cast<const btree_internal_pair *>(reinterpret_cast<const char *>(buf) + offset)->key.size <= cx.block_size().value();
@@ -1128,18 +1134,29 @@ void check_subtree(slicecx_t& cx, block_id_t id, const btree_key_t *lo, const bt
 
     node_error node_err(id);
 
+    // TODO LOOF: This is memcached-specific, and heh, that's bad.
+    value_sizer_t<memcached_value_t> sizer(cx.block_size());
+
     if (!node::has_sensible_offsets(cx.block_size(), reinterpret_cast<node_t *>(node.buf))) {
         node_err.value_out_of_buf = true;
     } else {
         if (lo != NULL && hi != NULL) {
             // (We're happy with an underfull root block.)
-            if (node::is_underfull(cx.block_size(), reinterpret_cast<node_t *>(node.buf))) {
+            // TODO: is is_underfull a safe function for fsck to call?
+            if (node::is_underfull(&sizer, reinterpret_cast<node_t *>(node.buf))) {
                 node_err.block_underfull = true;
             }
         }
 
-        if (reinterpret_cast<leaf_node_t *>(node.buf)->magic == leaf_node_t::expected_magic) {
-            check_subtree_leaf_node(cx, reinterpret_cast<leaf_node_t *>(node.buf), lo, hi, errs, &node_err);
+        if (reinterpret_cast<node_t *>(node.buf)->magic == sizer.btree_leaf_magic()) {
+
+            // TODO LOOF: Make loof::fsck capable of recursively
+            // fscking the node's values if they are blobs or some
+            // other sizer-specific thing.  Then actually call
+            // loof::fsck.
+
+            // We don't call this any more.
+            //            check_subtree_leaf_node(cx, reinterpret_cast<leaf_node_t *>(node.buf), lo, hi, errs, &node_err);
         } else if (reinterpret_cast<internal_node_t *>(node.buf)->magic == internal_node_t::expected_magic) {
             check_subtree_internal_node(cx, reinterpret_cast<internal_node_t *>(node.buf), lo, hi, errs, &node_err);
         } else {

@@ -115,6 +115,8 @@ public:
     }
 
     void Merge(LoofTracker& lnode) {
+        SCOPED_TRACE("Merge");
+
         ASSERT_EQ(bs_.ser_value(), lnode.bs_.ser_value());
 
         btree_key_buffer_t buf;
@@ -127,10 +129,16 @@ public:
 
         ASSERT_EQ(kv_.size(), old_kv_size + lnode.kv_.size());
 
-        lnode.kv_.clear();
+        // lnode.kv_.clear();
 
-        Verify();
-        lnode.Verify();
+        {
+            SCOPED_TRACE("mergee verify");
+            Verify();
+        }
+        {
+            SCOPED_TRACE("lnode verify");
+            lnode.Verify();
+        }
     }
 
     void Level(LoofTracker& sibling, bool *could_level_out) {
@@ -262,6 +270,14 @@ public:
         std::map<std::string, std::string> kv_map_;
     };
 
+    void printmap(const std::map<std::string, std::string>& m) {
+
+        for (std::map<std::string, std::string>::const_iterator p = m.begin(), q = m.end(); p != q; ++p) {
+            printf("%s: %s;", p->first.c_str(), p->second.c_str());
+        }
+    }
+
+
     void Verify() {
         // Of course, this will fail with rassert, not a gtest assertion.
         loof::validate(&sizer_, node_);
@@ -269,6 +285,13 @@ public:
         verify_receptor_t receptor;
         loof::dump_entries_since_time(&sizer_, node_, repli_timestamp_t::distant_past, &receptor);
 
+        if (receptor.map() != kv_) {
+            printf("receptor.map(): ");
+            printmap(receptor.map());
+            printf("\nkv_: ");
+            printmap(kv_);
+            printf("\n");
+        }
         ASSERT_TRUE(receptor.map() == kv_);
     }
 
