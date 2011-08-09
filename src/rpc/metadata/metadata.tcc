@@ -7,6 +7,7 @@ metadata_cluster_t<metadata_t>::metadata_cluster_t(int port, const metadata_t &i
     mailbox_cluster_t(port),
     /* Watch ourself for new peers connecting */
     event_watcher_t(this),
+    root_view(this),
     metadata(initial_metadata)
     { }
 
@@ -15,29 +16,43 @@ metadata_cluster_t<metadata_t>::~metadata_cluster_t() {
 }
 
 template<class metadata_t>
-metadata_t metadata_cluster_t<metadata_t>::get_metadata() {
+metadata_view_t<metadata_t> *metadata_cluster_t<metadata_t>::get_root_view() {
     assert_thread();
-    return metadata;
+    return &root_view;
 }
 
 template<class metadata_t>
-void metadata_cluster_t<metadata_t>::join_metadata(metadata_t added_metadata) {
-    assert_thread();
+metadata_cluster_t<metadata_t>::root_view_t::root_view_t(metadata_cluster_t *p) :
+    parent(p) { }
 
-    /* Make change on ourself */
-    join_metadata_locally(added_metadata);
+template<class metadata_t>
+metadata_t metadata_cluster_t<metadata_t>::root_view_t::get_metadata() {
+    parent->assert_thread();
+    return parent->metadata;
+}
+
+template<class metadata_t>
+void metadata_cluster_t<metadata_t>::root_view_t::join_metadata(metadata_t added_metadata) {
+    parent->assert_thread();
+    parent->join_metadata_locally(added_metadata);
 
     /* Distribute changes to all peers we can currently see. If we can't
     currently see a peer, that's OK; it will hear about the metadata change when
-    it reconnects, via our `on_connect()` handler. */
-    std::map<peer_id_t, peer_address_t> peers = get_everybody();
+    it reconnects, via the `metadata_cluster_t`'s `on_connect()` handler. */
+    std::map<peer_id_t, peer_address_t> peers = parent->get_everybody();
     for (std::map<peer_id_t, peer_address_t>::iterator it = peers.begin(); it != peers.end(); it++) {
         peer_id_t peer = (*it).first;
-        if (peer != get_me()) {
-            send_utility_message(peer,
+        if (peer != parent->get_me()) {
+            parent->send_utility_message(peer,
                 boost::bind(&metadata_cluster_t<metadata_t>::write_metadata, _1, added_metadata));
         }
     }
+}
+
+template<class metadata_t>
+publisher_t<boost::function<void()> > *metadata_cluster_t<metadata_t>::root_view_t::get_publisher() {
+    parent->assert_thread();
+    return &parent->change_publisher;
 }
 
 template<class metadata_t>
@@ -47,6 +62,11 @@ void metadata_cluster_t<metadata_t>::join_metadata_locally(metadata_t added_meta
     semilattice_join(&metadata, added_metadata);
 
     change_publisher.publish(&metadata_cluster_t<metadata_t>::call);
+}
+
+template<class metadata_t>
+void metadata_cluster_t<metadata_t>::call(boost::function<void()> fun) {
+    fun();
 }
 
 template<class metadata_t>
@@ -77,7 +97,7 @@ void metadata_cluster_t<metadata_t>::on_connect(peer_id_t peer) {
         this,
         peer,
         boost::function<void(std::ostream&)>(
-            boost::bind(&metadata_cluster_t<metadata_t>::write_metadata, _1, get_metadata())
+            boost::bind(&metadata_cluster_t<metadata_t>::write_metadata, _1, metadata)
             )
         ));
 }
@@ -88,11 +108,6 @@ void metadata_cluster_t<metadata_t>::on_disconnect(peer_id_t) {
 }
 
 template<class metadata_t>
-void metadata_cluster_t<metadata_t>::call(boost::function<void()> fun) {
-    fun();
-}
-
-template<class metadata_t>
-metadata_watcher_t<metadata_t>::metadata_watcher_t(boost::function<void()> cb, metadata_cluster_t<metadata_t> *cl) :
-    subs(cb, &cl->change_publisher) { }
+metadata_watcher_t<metadata_t>::metadata_watcher_t(boost::function<void()> cb, metadata_view_t<metadata_t> *view) :
+    subs(cb, view->get_publisher()) { }
 

@@ -49,12 +49,12 @@ void run_single_metadata_test() {
     metadata_cluster_t<uint64_t> cluster(port, 2);
 
     /* Make sure that metadata works properly when passed to the constructor */
-    EXPECT_EQ(cluster.get_metadata(), 2);
+    EXPECT_EQ(cluster.get_root_view()->get_metadata(), 2);
 
     /* Make sure `join_metadata()` works properly */
-    cluster.join_metadata(1);
+    cluster.get_root_view()->join_metadata(1);
 
-    EXPECT_EQ(cluster.get_metadata(), 3);
+    EXPECT_EQ(cluster.get_root_view()->get_metadata(), 3);
 }
 TEST(RPCMetadataTest, SingleMetadata) {
     run_in_thread_pool(&run_single_metadata_test, 2);
@@ -67,20 +67,20 @@ void run_metadata_exchange_test() {
     int port = 10000 + rand() % 20000;
     metadata_cluster_t<uint64_t> cluster1(port, 1), cluster2(port+1, 2);
 
-    EXPECT_EQ(cluster1.get_metadata(), 1);
-    EXPECT_EQ(cluster2.get_metadata(), 2);
+    EXPECT_EQ(cluster1.get_root_view()->get_metadata(), 1);
+    EXPECT_EQ(cluster2.get_root_view()->get_metadata(), 2);
 
     cluster1.join(cluster2.get_everybody()[cluster2.get_me()]);
     let_stuff_happen();
 
-    EXPECT_EQ(cluster1.get_metadata(), 3);
-    EXPECT_EQ(cluster2.get_metadata(), 3);
+    EXPECT_EQ(cluster1.get_root_view()->get_metadata(), 3);
+    EXPECT_EQ(cluster2.get_root_view()->get_metadata(), 3);
 
-    cluster1.join_metadata(4);
+    cluster1.get_root_view()->join_metadata(4);
     let_stuff_happen();
 
-    EXPECT_EQ(cluster1.get_metadata(), 7);
-    EXPECT_EQ(cluster2.get_metadata(), 7);
+    EXPECT_EQ(cluster1.get_root_view()->get_metadata(), 7);
+    EXPECT_EQ(cluster2.get_root_view()->get_metadata(), 7);
 }
 TEST(RPCMetadataTest, MetadataExchange) {
     run_in_thread_pool(&run_metadata_exchange_test, 2);
@@ -99,9 +99,11 @@ void run_watcher_test() {
     metadata_cluster_t<uint64_t> cluster(port, 2);
 
     bool have_been_notified = false;
-    metadata_watcher_t<uint64_t> watcher(boost::bind(&assign<bool>, &have_been_notified, true), &cluster);
+    metadata_watcher_t<uint64_t> watcher(
+        boost::bind(&assign<bool>, &have_been_notified, true),
+        cluster.get_root_view());
 
-    cluster.join_metadata(1);
+    cluster.get_root_view()->join_metadata(1);
 
     EXPECT_TRUE(have_been_notified);
 }
