@@ -1,7 +1,7 @@
 #include <sys/resource.h>
 #include <google/protobuf/stubs/common.h>   // for `ShutdownProtobufLibrary()`
 
-#include "server/control.hpp"
+#include "stats/control.hpp"
 #include "server/server.hpp"
 #include "fsck/fsck.hpp"
 #include "extract/extract.hpp"

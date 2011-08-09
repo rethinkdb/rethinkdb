@@ -1,5 +1,5 @@
-#ifndef __SERVER_NAMESPACE_INTERFACE_HPP__
-#define __SERVER_NAMESPACE_INTERFACE_HPP__
+#ifndef __NAMESPACE_INTERFACE_HPP__
+#define __NAMESPACE_INTERFACE_HPP__
 
 #include "concurrency/fifo_checker.hpp"
 
@@ -15,4 +15,4 @@ protected:
     virtual ~namespace_interface_t() { }
 };
 
-#endif /* __SERVER_NAMESPACE_INTERFACE_HPP__ */
+#endif /* __NAMESPACE_INTERFACE_HPP__ */

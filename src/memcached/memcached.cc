@@ -17,7 +17,7 @@
 #include "containers/buffer_group.hpp"
 #include "containers/iterators.hpp"
 #include "data_provider.hpp"
-#include "server/control.hpp"
+#include "stats/control.hpp"
 #include "memcached/store.hpp"
 #include "logger.hpp"
 #include "arch/os_signal.hpp"

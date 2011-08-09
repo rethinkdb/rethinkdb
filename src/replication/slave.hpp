@@ -6,7 +6,7 @@
 #include "concurrency/side_coro.hpp"
 #include "replication/protocol.hpp"
 #include "server/cmd_args.hpp"
-#include "server/control.hpp"
+#include "stats/control.hpp"
 #include "memcached/store.hpp"
 #include "replication/failover.hpp"
 

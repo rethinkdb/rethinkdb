@@ -13,6 +13,8 @@ std::string human_readable_status(int code) {
         return "Partial Content";
     case 400:
         return "Bad Request";
+    case 403:
+        return "Forbidden";
     case 404:
         return "Not Found";
     case 412:
