@@ -3,7 +3,6 @@
 #include "buffer_cache/buffer_cache.hpp"
 #include "unittest/server_test_helper.hpp"
 #include "unittest/unittest_utils.hpp"
-#include "server/cmd_args.hpp"
 #include "serializer/log/log_serializer.hpp"
 #include "serializer/translator.hpp"
 #include "btree/slice.hpp"
@@ -29,18 +28,15 @@ void server_test_helper_t::setup_server_and_run_tests() {
     temp_file_t db_file("/tmp/rdb_unittest.XXXXXX");
 
     {
-        cmd_config_t config;
-        config.store_dynamic_config.cache.max_dirty_size = config.store_dynamic_config.cache.max_size / 10;
-
-        // Set ridiculously high flush_* values, so that flush lock doesn't block the txn creation
-        config.store_dynamic_config.cache.flush_timer_ms = 1000000;
-        config.store_dynamic_config.cache.flush_dirty_size = 1000000000;
-
-        log_serializer_private_dynamic_config_t ser_config;
-        ser_config.db_filename = db_file.name();
-
-        log_serializer_t::create(config.store_dynamic_config.serializer, ser_config, config.store_static_config.serializer);
-        log_serializer_t log_serializer(config.store_dynamic_config.serializer, ser_config);
+        log_serializer_t::create(
+            log_serializer_t::dynamic_config_t(),
+            log_serializer_t::private_dynamic_config_t(db_file.name()),
+            log_serializer_t::static_config_t()
+            );
+        log_serializer_t log_serializer(
+            log_serializer_t::dynamic_config_t(),
+            log_serializer_t::private_dynamic_config_t(db_file.name())
+            );
 
         std::vector<serializer_t *> serializers;
         serializers.push_back(&log_serializer);
@@ -48,8 +44,14 @@ void server_test_helper_t::setup_server_and_run_tests() {
         serializer_multiplexer_t multiplexer(serializers);
 
         this->serializer = multiplexer.proxies[0];
-        cache_t::create(this->serializer, &config.store_static_config.cache);
-        cache_t cache(this->serializer, &config.store_dynamic_config.cache);
+
+        mirrored_cache_static_config_t cache_static_cfg;
+        cache_t::create(this->serializer, &cache_static_cfg);
+        mirrored_cache_config_t cache_cfg;
+        cache_cfg.flush_timer_ms = 1000000;
+        cache_cfg.flush_dirty_size = 1000000000;
+        cache_cfg.max_size = GIGABYTE;
+        cache_t cache(this->serializer, &cache_cfg);
 
         nap(200);   // to let patch_disk_storage do writeback.sync();
 
