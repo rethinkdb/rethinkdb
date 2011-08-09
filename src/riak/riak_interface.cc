@@ -198,6 +198,10 @@ bool riak_interface_t::delete_object(std::string bucket, std::string key) {
     }
 }
 
+json::mObject riak_interface_t::mapreduce(json::mValue &) {
+    crash("Not implemented");
+}
+
 std::string riak_interface_t::gen_key() {
     crash("Not implementated");
 }

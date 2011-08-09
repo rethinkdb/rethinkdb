@@ -4,6 +4,7 @@
 #include "riak/structures.hpp"
 #include "store_manager.hpp"
 #include <boost/ptr_container/ptr_map.hpp>
+#include "http/json.hpp"
 
 #define RIAK_LIST_KEYS_BATCH_FACTOR 10
 
@@ -13,6 +14,8 @@
  * which will make multiple calls to the interface. */
 
 namespace riak {
+
+namespace json = json_spirit;
 
 class bucket_iterator_t {
 private:
@@ -72,8 +75,12 @@ public:
     // Delete an object
     bool delete_object(std::string, std::string);
 
+    //run a mapreduce job
+    json::mObject mapreduce(json::mValue &);
+
     //make a key (which is guarunteed to be unique)
     std::string gen_key();
+
 
 };
 
