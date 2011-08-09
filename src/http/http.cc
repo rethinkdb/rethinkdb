@@ -85,6 +85,8 @@ std::string human_readable_status(int code) {
         return "No Content";
     case 400:
         return "Bad Request";
+    case 403:
+        return "Forbidden";
     case 404:
         return "Not Found";
     default:
