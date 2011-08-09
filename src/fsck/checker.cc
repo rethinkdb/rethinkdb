@@ -11,7 +11,6 @@
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "fsck/raw_block.hpp"
 #include "btree/delete_queue.hpp"
-#include "server/key_value_store.hpp"
 
 namespace fsck {
 
@@ -239,7 +238,8 @@ struct multiplexed_slicecx_t : public slicecx_t {
         store_key_t store_key;
         store_key.size = key.size;
         memcpy(store_key.contents, key.contents, key.size);
-        return btree_key_value_store_t::hash(store_key) % knog->config_block->n_proxies == (unsigned) global_slice_id;
+        crash("FSCK is broken because it hasn't been kept up to date with clustering");
+        // return btree_key_value_store_t::hash(store_key) % knog->config_block->n_proxies == (unsigned) global_slice_id;
     }
 };
 

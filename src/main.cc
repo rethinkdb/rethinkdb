@@ -2,7 +2,7 @@
 #include <google/protobuf/stubs/common.h>   // for `ShutdownProtobufLibrary()`
 
 #include "stats/control.hpp"
-#include "server/server.hpp"
+#include "clustering/clustering.hpp"
 #include "fsck/fsck.hpp"
 #include "extract/extract.hpp"
 #include "utils.hpp"
@@ -64,7 +64,7 @@ int dispatch_on_args(std::vector<char *> args) {
     if (args.size() == 1) args.push_back(const_cast<char *>("serve"));
 
     /* Switch based on subcommand, then dispatch to the appropriate function */
-    if (!strcmp(args[1], "serve") || !strcmp(args[1], "create") || !strcmp(args[1], "import")) {
+    if (!strcmp(args[1], "serve")) {
         return run_server(args.size() - 1, args.data() + 1);
 
     } else if (!strcmp(args[1], "extract")) {
@@ -79,11 +79,7 @@ int dispatch_on_args(std::vector<char *> args) {
     } else if (!strcmp(args[1], "help") || !strcmp(args[1], "-h") || !strcmp(args[1], "--help")) {
         if (args.size() >= 3) {
             if (!strcmp(args[2], "serve")) {
-                usage_serve();
-            } else if (!strcmp(args[2], "create")) {
-                usage_create();
-            } else if (!strcmp(args[2], "import")) {
-                usage_import();
+                // usage_serve();
             } else if (!strcmp(args[2], "extract")) {
                 extract::usage(args[1]);
             } else if (!strcmp(args[2], "fsck")) {
