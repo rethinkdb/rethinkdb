@@ -72,9 +72,6 @@ public:
     static void spawn(const boost::function<void()> &deed) {
         spawn_later_ordered(deed);
     }
-    void notify() {
-        notify_later_ordered();
-    }
 
 public:
     static void set_coroutine_stack_size(size_t size);
