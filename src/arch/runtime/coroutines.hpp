@@ -24,6 +24,10 @@ public:
 
     static void spawn_now(const boost::function<void()> &deed);
     static void spawn_sometime(const boost::function<void()> &deed);
+
+    // TODO: spawn_later_ordered is usually what naive people want,
+    // but it's such a long and onerous name.  It should have the
+    // shortest name.
     static void spawn_later_ordered(const boost::function<void()> &deed);
     static void spawn_on_thread(int thread, const boost::function<void()> &deed);
 
@@ -57,6 +61,10 @@ public:
     guarantees. If you don't need the ordering guarantees that
     `notify_later_ordered()` provides, use `notify_sometime()` instead. */
     void notify_sometime();
+
+    // TODO: notify_later_ordered is usually what naive people want
+    // and should get, but it's such a long and onerous name.  It
+    // should have the shortest name.
 
     /* Pushes the coroutine onto the event queue for the thread it's currently
     on, such that it will be run. This can safely be called from any thread.
