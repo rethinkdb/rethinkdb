@@ -1,4 +1,4 @@
-#include "server/control.hpp"
+#include "stats/control.hpp"
 
 #include <map>
 

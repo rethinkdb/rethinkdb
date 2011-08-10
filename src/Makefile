@@ -60,6 +60,7 @@ TIMEBOMB?=0
 # Choose our directories
 # This makefile is meant to be run from the 'src' directory.
 SOURCE_DIR:=.
+EXTERNAL_SOURCE_DIR:=/usr/src/rethinkdb_lib_external
 BUILD_ROOT_DIR:=../build
 ifeq (${DEBUG},1)
 BUILD_DIR:=$(BUILD_ROOT_DIR)/debug
@@ -82,7 +83,7 @@ STATIC_LIBRARIES:=protoc protobuf boost_serialization
 
 CXXFLAGS?=
 
-CXXFLAGS+=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wswitch-enum -Werror -Wnon-virtual-dtor
+CXXFLAGS+=-I$(SOURCE_DIR) -I/usr/include/qt4 -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source/JavaScriptCore/ForwardingHeaders -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source/JavaScriptCore -Wall -Wextra -Wformat=2 -Wswitch-enum -Werror -Wnon-virtual-dtor
 CXXFLAGS+="-DPRODUCT_NAME=\"$(PRODUCT_NAME)\""
 
 ifeq ($(SOLO),1)
@@ -207,7 +208,7 @@ STATIC_LIBRARIES+=tcmalloc_minimal
 endif
 
 # look for the static library in the same directory as the .so file
-STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))
+STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }')) $(EXTERNAL_SOURCE_DIR)/WebKit/WebKitBuild/Release/JavaScriptCore/release/libjscore.a /usr/share/qt4/lib/libQtCore.so
 
 # Should makefile be noisy?
 ifeq ($(VERBOSE),1)

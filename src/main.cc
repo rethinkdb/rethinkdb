@@ -1,11 +1,10 @@
 #include <sys/resource.h>
 #include <google/protobuf/stubs/common.h>   // for `ShutdownProtobufLibrary()`
 
-#include "server/control.hpp"
+#include "stats/control.hpp"
 #include "server/server.hpp"
 #include "fsck/fsck.hpp"
 #include "extract/extract.hpp"
-#include "clustering/demo.hpp"
 #include "utils.hpp"
 #include "help.hpp"
 #include "migrate/migrate.hpp"
@@ -76,9 +75,6 @@ int dispatch_on_args(std::vector<char *> args) {
 
     } else if (!strcmp(args[1], "migrate")) {
         return run_migrate(args.size(), args.data()); //migrate requires the exec path
-
-    } else if (!strcmp(args[1], "cluster")) {
-        return run_cluster(args.size() - 1, args.data() + 1);
 
     } else if (!strcmp(args[1], "help") || !strcmp(args[1], "-h") || !strcmp(args[1], "--help")) {
         if (args.size() >= 3) {

@@ -28,10 +28,10 @@ structures into a metadata file or metadata_store of some kind.
 #include <boost/serialization/map.hpp>
 #include <boost/serialization/variant.hpp>
 #include "errors.hpp"
-#include "server/key_value_store.hpp"
 #include "riak/structures.hpp"
 #include "concurrency/promise.hpp"
 #include "serializer/log/log_serializer.hpp"
+#include "serializer/config.hpp"
 
 
 /* class store_id_t {
@@ -143,8 +143,6 @@ ______HOW TO ADD NEW STORES (let's say you're implementing a new protocol)______
 ________________________________________________________________________________
 */
 
-#include "server/cmd_args.hpp" // TODO: Move the btree key value store configuration from server/cmd_args.hpp to a different place
-
 // TODO: memcached_store_metadata_t is just a demo thing. It should not remain here...
 struct memcached_store_metadata_t {
     int tcp_port;
@@ -196,20 +194,15 @@ typedef int invalid_variant_t;
 typedef boost::variant<invalid_variant_t, memcached_store_metadata_t, riak_store_metadata_t> store_metadata_t;
 
 // Add your store_config types here... (these must be serialized)
-typedef boost::variant<invalid_variant_t, btree_key_value_store_dynamic_config_t, standard_serializer_t::config_t> store_config_t;
+typedef boost::variant<invalid_variant_t, standard_serializer_t::config_t> store_config_t;
 
 // Add your underlying store types here... (these must be creatable based on the information of the corresponding store_config)
 // The store types (i.e. what's inside the pointer) must provide RTTI (have a virtual member)
-typedef boost::variant<boost::shared_ptr<invalid_variant_t>, boost::shared_ptr<btree_key_value_store_t> , boost::shared_ptr<standard_serializer_t> > store_object_t;
+typedef boost::variant<boost::shared_ptr<invalid_variant_t>, boost::shared_ptr<standard_serializer_t> > store_object_t;
 
 // This visitor must be extended if new types of store configs are added
 class store_loader_t : public boost::static_visitor<store_object_t> {
 public:
-    store_object_t operator()(const btree_key_value_store_dynamic_config_t &config) const {
-        return store_object_t(boost::shared_ptr<btree_key_value_store_t>(
-                new btree_key_value_store_t(config)));
-    }
-
     store_object_t operator()(standard_serializer_t::config_t &config) const {
         struct : public promise_t<bool>, 
                  public log_serializer_t::check_callback_t

@@ -1,7 +1,7 @@
 #include "unittest/gtest.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "memcached/protocol.hpp"
-#include "server/dummy_namespace_interface.hpp"
+#include "unittest/dummy_namespace_interface.hpp"
 #include "data_provider.hpp"
 #include <boost/make_shared.hpp>
 

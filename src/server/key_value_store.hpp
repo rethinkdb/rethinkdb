@@ -10,7 +10,7 @@
 #include "concurrency/access.hpp"
 #include "concurrency/signal.hpp"
 #include "server/key_value_store_config.hpp"
-#include "server/control.hpp"
+#include "stats/control.hpp"
 #include "server/dispatching_store.hpp"
 #include "arch/arch.hpp"
 #include "serializer/config.hpp"
