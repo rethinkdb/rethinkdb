@@ -2,6 +2,11 @@
 
 #include <math.h>
 
+#include "errors.hpp"
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
+
+
 #include "db_thread_info.hpp"
 #include "memcached/tcp_conn.hpp"
 #include "memcached/file.hpp"
@@ -12,16 +17,13 @@
 #include "replication/master.hpp"
 #include "replication/slave.hpp"
 #include "stats/control.hpp"
-#include "gated_store.hpp"
+#include "server/gated_store.hpp"
 #include "concurrency/promise.hpp"
 #include "arch/os_signal.hpp"
 #include "http/http.hpp"
 #include "riak/riak.hpp"
 #include "server/key_value_store.hpp"
 #include "server/metadata_store.hpp"
-#include "cmd_args.hpp"
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/archive/text_oarchive.hpp>
 
 int run_server(int argc, char *argv[]) {
 
