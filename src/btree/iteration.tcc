@@ -6,7 +6,7 @@ extern perfmon_counter_t
     slice_leaves_iterators;
 
 template <class Value>
-leaf_iterator_t<Value>::leaf_iterator_t(const loof_t *_leaf, loof::live_iter_t _iter, buf_lock_t *_lock, const boost::shared_ptr<value_sizer_t<Value> >& _sizer, const boost::shared_ptr<transaction_t>& _transaction) :
+leaf_iterator_t<Value>::leaf_iterator_t(const leaf_node_t *_leaf, leaf::live_iter_t _iter, buf_lock_t *_lock, const boost::shared_ptr<value_sizer_t<Value> >& _sizer, const boost::shared_ptr<transaction_t>& _transaction) :
     leaf(_leaf), iter(_iter), lock(_lock), sizer(_sizer), transaction(_transaction) {
 
     rassert(leaf != NULL);
@@ -141,8 +141,8 @@ boost::optional<leaf_iterator_t<Value>*> slice_leaves_iterator_t<Value>::get_fir
     rassert(node::is_leaf(node));
     rassert(buf_lock != NULL);
 
-    const loof_t *l_node = reinterpret_cast<const loof_t *>(node);
-    loof::live_iter_t iter = loof::iter_for_inclusive_lower_bound(l_node, left_key);
+    const leaf_node_t *l_node = reinterpret_cast<const leaf_node_t *>(node);
+    leaf::live_iter_t iter = leaf::iter_for_inclusive_lower_bound(l_node, left_key);
 
     if (iter.get_key(l_node)) {
         return boost::make_optional(new leaf_iterator_t<Value>(l_node, iter, buf_lock, sizer, transaction));
@@ -200,8 +200,8 @@ boost::optional<leaf_iterator_t<Value>*> slice_leaves_iterator_t<Value>::get_lef
     rassert(node::is_leaf(node));
     rassert(buf_lock != NULL);
 
-    const loof_t *l_node = reinterpret_cast<const loof_t *>(node);
-    return boost::make_optional(new leaf_iterator_t<Value>(l_node, loof::iter_for_whole_leaf(l_node), buf_lock, sizer, transaction));
+    const leaf_node_t *l_node = reinterpret_cast<const leaf_node_t *>(node);
+    return boost::make_optional(new leaf_iterator_t<Value>(l_node, leaf::iter_for_whole_leaf(l_node), buf_lock, sizer, transaction));
 }
 
 template <class Value>

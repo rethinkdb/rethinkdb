@@ -182,7 +182,7 @@ void walk_extents(dumper_t &dumper, nondirect_file_t &file, cfg_t cfg) {
 }
 
 bool check_all_known_magic(block_magic_t magic) {
-    return magic == leaf_node_t::expected_magic
+    return magic == value_sizer_t<memcached_value_t>::leaf_magic()
         || magic == internal_node_t::expected_magic
         || magic == btree_superblock_t::expected_magic
         || magic == blob::internal_node_magic
@@ -360,7 +360,7 @@ void get_all_values(UNUSED dumper_t& dumper, const std::map<size_t, off64_t>& of
                 } else {
                     const leaf_node_t *leaf = reinterpret_cast<const leaf_node_t *>(b.buf);
                     // If the block is not considered consistent, but still is a leaf, something is wrong with the block.
-                    if (leaf->magic == leaf_node_t::expected_magic) {
+                    if (leaf->magic == value_sizer_t<memcached_value_t>::leaf_magic()) {
                         logERR("Not replaying patches for block %u. The block seems to be corrupted.\n", block_id);
                     }
                 }
@@ -368,8 +368,8 @@ void get_all_values(UNUSED dumper_t& dumper, const std::map<size_t, off64_t>& of
 
             const leaf_node_t *leaf = reinterpret_cast<const leaf_node_t *>(b.buf);
 
-            if (leaf->magic == leaf_node_t::expected_magic) {
-                int num_pairs = leaf->npairs;
+            if (leaf->magic == value_sizer_t<memcached_value_t>::leaf_magic()) {
+                int num_pairs = leaf->num_pairs;
                 logDBG("We have a leaf node with %d pairs.\n", num_pairs);
 
                 // TODO LOOF: Actually implement extraction of values

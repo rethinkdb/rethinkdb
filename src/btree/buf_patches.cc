@@ -1,6 +1,6 @@
 #include "btree/buf_patches.hpp"
 
-#include "btree/loof_node.hpp"
+#include "btree/leaf_node.hpp"
 #include "riak/riak_value.hpp"
 #include "btree/detemplatizer.hpp"
 
@@ -85,8 +85,8 @@ size_t leaf_insert_patch_t::get_affected_data_size() const {
 }
 
 void leaf_insert_patch_t::apply_to_buf(char *buf_data, block_size_t bs) {
-    loof_t *leaf_node = reinterpret_cast<loof_t *>(buf_data);
-    DETEMPLATIZE_LEAF_NODE_OP(loof::insert, leaf_node, bs, reinterpret_cast<loof_t *>(buf_data), reinterpret_cast<btree_key_t *>(key_buf), value_buf, insertion_time);
+    leaf_node_t *leaf_node = reinterpret_cast<leaf_node_t *>(buf_data);
+    DETEMPLATIZE_LEAF_NODE_OP(leaf::insert, leaf_node, bs, reinterpret_cast<leaf_node_t *>(buf_data), reinterpret_cast<btree_key_t *>(key_buf), value_buf, insertion_time);
 }
 
 
@@ -159,7 +159,7 @@ size_t leaf_remove_patch_t::get_affected_data_size() const {
 }
 
 void leaf_remove_patch_t::apply_to_buf(char* buf_data, block_size_t bs) {
-    loof_t *leaf_node = reinterpret_cast<loof_t *>(buf_data);
-    DETEMPLATIZE_LEAF_NODE_OP(loof::remove, leaf_node, bs, reinterpret_cast<loof_t *>(buf_data), reinterpret_cast<btree_key_t *>(key_buf), timestamp);
+    leaf_node_t *leaf_node = reinterpret_cast<leaf_node_t *>(buf_data);
+    DETEMPLATIZE_LEAF_NODE_OP(leaf::remove, leaf_node, bs, reinterpret_cast<leaf_node_t *>(buf_data), reinterpret_cast<btree_key_t *>(key_buf), timestamp);
  }
 

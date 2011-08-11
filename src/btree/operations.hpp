@@ -41,6 +41,15 @@ public:
     // value, otherwise NULL.
     scoped_malloc<Value> value;
 
+    void swap(keyvalue_location_t& other) {
+        txn.swap(other.txn);
+        sb_buf.swap(other.sb_buf);
+        last_buf.swap(other.last_buf);
+        buf.swap(other.buf);
+        std::swap(there_originally_was_value, other.there_originally_was_value);
+        value.swap(other.value);
+    }
+
 private:
     DISABLE_COPYING(keyvalue_location_t);
 };
@@ -48,17 +57,19 @@ private:
 template <class Value>
 class value_txn_t {
 public:
-    value_txn_t(btree_key_t *, boost::scoped_ptr<got_superblock_t> &, boost::scoped_ptr<value_sizer_t<Value> > &, boost::scoped_ptr<keyvalue_location_t<Value> > &, repli_timestamp_t);
-    value_txn_t(const value_txn_t &);
+    value_txn_t(btree_key_t *, keyvalue_location_t<Value>&, repli_timestamp_t);
+
+    // TODO: Where is this copy constructor implemented and how could
+    // this possibly be implemented?
+    value_txn_t(const value_txn_t&);
+
     ~value_txn_t();
     scoped_malloc<Value> value;
 
     transaction_t *get_txn();
 private:
     btree_key_t *key;
-    boost::scoped_ptr<got_superblock_t> got_superblock;
-    boost::scoped_ptr<value_sizer_t<Value> > sizer;
-    boost::scoped_ptr<keyvalue_location_t<Value> > kv_location;
+    keyvalue_location_t<Value> kv_location;
     repli_timestamp_t tstamp;
 };
 

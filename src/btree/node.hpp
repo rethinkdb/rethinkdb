@@ -117,38 +117,6 @@ struct internal_node_t {
 };
 
 
-// Here's how we represent the modification history of the leaf node.
-// The last_modified time gives the modification time of the most
-// recently modified key of the node.  Then, last_modified -
-// earlier[0] gives the timestamp for the
-// second-most-recently modified KV of the node.  In general,
-// last_modified - earlier[i] gives the timestamp for the
-// (i+2)th-most-recently modified KV.
-//
-// These values could be lies.  It is harmless to say that a key is
-// newer than it really is.  So when earlier[i] overflows,
-// we pin it to 0xFFFF.
-struct leaf_timestamps_t {
-    repli_timestamp_t last_modified;
-    uint16_t earlier[NUM_LEAF_NODE_EARLIER_TIMES];
-};
-
-// Note: This struct is stored directly on disk.  Changing it invalidates old data.
-// Offsets tested in leaf_node_test.cc
-struct leaf_node_t {
-    block_magic_t magic;
-    leaf_timestamps_t times;
-    uint16_t npairs;
-
-    // The smallest offset in pair_offsets
-    uint16_t frontmost_offset;
-    uint16_t pair_offsets[0];
-
-    // TODO: Remove this field, the magic value used in leaf nodes is
-    // protocol-specific.
-    static const block_magic_t expected_magic;
-};
-
 // Note: Changing this struct changes the format of the data stored on disk.
 // If you change this struct, previous stored data will be misinterpreted.
 struct btree_key_t {

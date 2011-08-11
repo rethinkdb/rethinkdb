@@ -10,7 +10,7 @@
 #include "btree/btree_data_provider.hpp"
 #include "btree/node.hpp"
 #include "btree/internal_node.hpp"
-#include "btree/loof_node.hpp"
+#include "btree/leaf_node.hpp"
 #include "btree/parallel_traversal.hpp"
 #include "btree/slice.hpp"
 
@@ -31,9 +31,9 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
 
     void process_a_leaf(transaction_t *txn, buf_t *leaf_node_buf) {
         assert_thread();
-        const loof_t *data = reinterpret_cast<const loof_t *>(leaf_node_buf->get_data_read());
+        const leaf_node_t *data = reinterpret_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
 
-        struct : public loof::entry_reception_callback_t<void> {
+        struct : public leaf::entry_reception_callback_t<void> {
             void lost_deletions() {
                 // TODO LOOF call on_delete_range with appropriate range.
             }
@@ -54,7 +54,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         x.cb = callback_;
         x.txn = txn;
 
-        loof::dump_entries_since_time(sizer_, data, since_when_, &x);
+        leaf::dump_entries_since_time(sizer_, data, since_when_, &x);
     }
 
     void postprocess_internal_node(UNUSED buf_t *internal_node_buf) {
