@@ -7,7 +7,8 @@
 #include "config/args.hpp"
 #include "containers/scoped_malloc.hpp"
 #include "errors.hpp"
-#include "node.hpp"
+#include "btree/node.hpp"
+#include "scoped_error_logging.hpp"
 
 // TODO: Soon we'll be rid of the buf_t functions, so this #include
 // directive should be removed.
@@ -68,6 +69,7 @@ struct loof_t {
     // The pair offsets.
     uint16_t pair_offsets[];
 };
+
 
 struct entry_t;
 struct value_t;
@@ -193,6 +195,58 @@ struct entry_iter_t {
 	return ret;
     }
 };
+
+
+template <class V>
+void strprint_entry(std::string& out, value_sizer_t<V> *sizer, const entry_t *entry) {
+    if (entry_is_live(entry)) {
+        const btree_key_t *key = entry_key(entry);
+        out += strprintf("%.*s:", int(key->size), key->contents);
+        out += strprintf("[entry size=%d]", entry_size(sizer, entry));
+        out += strprintf("[value size=%d]", sizer->size(entry_value<V>(entry)));
+    } else if (entry_is_deletion(entry)) {
+        const btree_key_t *key = entry_key(entry);
+        out += strprintf("%.*s:[deletion]", int(key->size), key->contents);
+    } else if (entry_is_skip(entry)) {
+        out += strprintf("[skip %d]", entry_size(sizer, entry));
+    } else {
+        out += strprintf("[code %d]", *reinterpret_cast<const uint8_t *>(entry));
+    }
+}
+
+template <class V>
+void strprint(std::string& out, value_sizer_t<V> *sizer, const loof_t *node) {
+    out += strprintf("Loof(magic='%4.4s', num_pairs=%u, live_size=%u, frontmost=%u, tstamp_cutpoint=%u)\n",
+            node->magic.bytes, node->num_pairs, node->live_size, node->frontmost, node->tstamp_cutpoint);
+
+    out += strprintf("  Offsets:");
+    for (int i = 0; i < node->num_pairs; ++i) {
+        out += strprintf(" %d", node->pair_offsets[i]);
+    }
+    out += strprintf("\n");
+
+    out += strprintf("  By Key:");
+    for (int i = 0; i < node->num_pairs; ++i) {
+        out += strprintf(" %d:", node->pair_offsets[i]);
+        strprint_entry(out, sizer, get_entry(node, node->pair_offsets[i]));
+    }
+    out += strprintf("\n");
+
+    out += strprintf("  By Offset:");
+
+    entry_iter_t iter = entry_iter_t::make(node);
+    while (out += strprintf(" %d", iter.offset), !iter.done(sizer)) {
+        out += strprintf(":");
+        if (iter.offset < node->tstamp_cutpoint) {
+            repli_timestamp_t tstamp = get_timestamp(node, iter.offset);
+            out += strprintf("[t=%u]", tstamp.time);
+        }
+        strprint_entry(out, sizer, get_entry(node, iter.offset));
+        iter.step(sizer, node);
+    }
+    out += strprintf("\n");
+}
+
 
 template <class V>
 void print_entry(FILE *fp, value_sizer_t<V> *sizer, const entry_t *entry) {
@@ -335,18 +389,21 @@ bool has_sensible_offsets(block_size_t bs, const loof_t *node) {
     return offsetof(loof_t, pair_offsets) + node->num_pairs * sizeof(uint16_t) <= node->frontmost && node->frontmost <= bs.value();
 }
 
+template <class V>
+void validate(scoped_error_log_t& log, value_sizer_t<V> *sizer, const loof_t *node) {
+#ifndef NDEBUG
+    strprint(log.expose_logtext(), sizer, node);
+    std::string msg;
+    bool fscked_successfully = fsck(sizer, node, &msg);
+    scoped_error_rassert(log, fscked_successfully, "%s", msg.c_str());
+#endif
+}
 
 template <class V>
 void validate(value_sizer_t<V> *sizer, const loof_t *node) {
 #ifndef NDEBUG
-    // print(stdout, sizer, node);
-    std::string msg;
-    bool fscked_successfully = fsck(sizer, node, &msg);
-    if (!fscked_successfully) {
-        printf("Printing due to %s\n", msg.c_str());
-        print(stdout, sizer, node);
-    }
-    rassert(fscked_successfully, "%s", msg.c_str());
+    scoped_error_log_t log;
+    validate(log, sizer, node);
 #endif
 }
 
@@ -585,24 +642,27 @@ inline void clean_entry(void *p, int sz) {
     }
 }
 
+// Turned off because it's probably too expensive for valgrind.
+#undef scoped_error_record
+#define scoped_error_record(...) do { } while (0)
+
 // Moves entries with pair_offsets indices in the clopen range [beg,
 // end) from fro to tow.
 template <class V>
 void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int wpoint, loof_t *tow, int fro_copysize, int fro_mand_offset) {
-    // printf("pre-validating fro\n");
-    validate(sizer, fro);
-    // printf("pre-validating tow\n");
-    validate(sizer, tow);
+    scoped_error_log_t log;
+    scoped_error_record(log, "pre-validating fro\n");
+    validate(log, sizer, fro);
+    scoped_error_record(log, "pre-validating tow\n");
+    validate(log, sizer, tow);
 
-    // printf("move_elements beg = %d, end = %d, wpoint = %d, fro_copysize = %d, fro_mand_offset = %d\n",
-    //        beg, end, wpoint, fro_copysize, fro_mand_offset);
+    scoped_error_record(log, "move_elements beg = %d, end = %d, wpoint = %d, fro_copysize = %d, fro_mand_offset = %d\n",
+                        beg, end, wpoint, fro_copysize, fro_mand_offset);
 
-    rassert(is_underfull(sizer, tow));
+    scoped_error_rassert(log, is_underfull(sizer, tow));
 
-#ifndef NDEBUG
     // This assertion is a bit loose.
-    rassert(fro_copysize + mandatory_cost(sizer, tow, MANDATORY_TIMESTAMPS) <= free_space(sizer));
-#endif
+    scoped_error_rassert(log, fro_copysize + mandatory_cost(sizer, tow, MANDATORY_TIMESTAMPS) <= free_space(sizer));
 
     // Make tow have a nice big region we can copy entries to.  Also,
     // this means we have no "skip" entries in tow.
@@ -612,6 +672,8 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
     memmove(tow->pair_offsets + wpoint + (end - beg), tow->pair_offsets + wpoint, sizeof(uint16_t) * (tow->num_pairs - wpoint));
 
     tow->num_pairs += end - beg;
+
+    // pos a
 
     // Now we're going to do something crazy.  Fill the new hole in
     // the pair offsets with the numbers in [0, end - beg).
@@ -624,7 +686,6 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
     // increasing offset.
     std::sort(tow->pair_offsets + wpoint, tow->pair_offsets + wpoint + (end - beg), indirect_index_comparator_t(fro->pair_offsets + beg));
 
-    // The offset we read from, in tow.
     int tow_offset = tow->frontmost;
 
     // The offset we read from (indirectly pointing to fro's [beg,
@@ -632,10 +693,8 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
     int fro_index = wpoint;
     int fro_index_end = wpoint + (end - beg);
 
-    // The new frontmost offset.
     const int new_frontmost = tow->frontmost - fro_copysize;
 
-    // The offset at which we write the next entry.
     int wri_offset = new_frontmost;
 
     int adjustable_tow_offsets[MANDATORY_TIMESTAMPS];
@@ -643,11 +702,11 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
 
     // We will gradually compute the live size.
     int livesize = tow->live_size;
-    // printf("livesize at first %d\n", livesize);
+    scoped_error_record(log, "livesize at first %d\n", livesize);
 
     for (int i = 0; i < wpoint; ++i) {
         if (tow->pair_offsets[i] < tow->tstamp_cutpoint) {
-            rassert(num_adjustable_tow_offsets < MANDATORY_TIMESTAMPS);
+            scoped_error_rassert(log, num_adjustable_tow_offsets < MANDATORY_TIMESTAMPS);
             adjustable_tow_offsets[num_adjustable_tow_offsets] = i;
             num_adjustable_tow_offsets ++;
         }
@@ -655,27 +714,30 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
 
     for (int i = wpoint + (end - beg); i < tow->num_pairs; ++i) {
         if (tow->pair_offsets[i] < tow->tstamp_cutpoint) {
-            rassert(num_adjustable_tow_offsets < MANDATORY_TIMESTAMPS);
+            scoped_error_rassert(log, num_adjustable_tow_offsets < MANDATORY_TIMESTAMPS);
             adjustable_tow_offsets[num_adjustable_tow_offsets] = i;
             num_adjustable_tow_offsets ++;
         }
     }
 
+    scoped_error_record(log, "num_adjustable_tow_offsets = %d\n", num_adjustable_tow_offsets);
+
     int fro_live_size_adjustment = 0;
     int fro_copyage = 0;
 
     for (;;) {
-        // printf("fro_index = %d, tow_offset = %d, wri_offset = %d\n", fro_index, tow_offset, wri_offset);
-        rassert(tow_offset <= tow->tstamp_cutpoint);
+        scoped_error_record(log, "fro_index = %d, tow_offset = %d, wri_offset = %d\n", fro_index, tow_offset, wri_offset);
+        scoped_error_rassert(log, tow_offset <= tow->tstamp_cutpoint);
         if (tow_offset == tow->tstamp_cutpoint || fro_index == fro_index_end) {
             // We have no more timestamped information to push.
             break;
         }
 
         int fro_offset = fro->pair_offsets[beg + tow->pair_offsets[fro_index]];
-        // printf("with fro_offset = %d\n", fro_offset);
+        scoped_error_record(log, "with fro_offset = %d\n", fro_offset);
 
         if (fro_offset >= fro_mand_offset) {
+            scoped_error_record(log, "fro_offset >= fro_mand_offset = %d\n", fro_mand_offset);
             // We have no more timestamped information to push.
             break;
         }
@@ -685,6 +747,7 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
 
         // Greater timestamps go first.
         if (tow_tstamp < fro_tstamp) {
+            scoped_error_record(log, "fro going first\n");
             entry_t *ent = get_entry(fro, fro_offset);
             int entsz = entry_size(sizer, ent);
             int sz = sizeof(repli_timestamp_t) + entsz;
@@ -708,6 +771,7 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
 
         } else {
             int sz = sizeof(repli_timestamp_t) + entry_size(sizer, get_entry(tow, tow_offset));
+            scoped_error_record(log, "tow going first with sz = %d\n", sz);
             memmove(get_at_offset(tow, wri_offset), get_at_offset(tow, tow_offset), sz);
 
             // Update the pair offset of the entry we've moved.
@@ -721,7 +785,7 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
             }
 
             // Make sure we updated something.
-            rassert(i != num_adjustable_tow_offsets);
+            scoped_error_rassert(log, i != num_adjustable_tow_offsets);
 
             wri_offset += sz;
             tow_offset += sz;
@@ -733,10 +797,10 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
     // Now we have some untimestamped entries to write.
     for (; fro_index < fro_index_end; ++fro_index) {
         int fro_offset = fro->pair_offsets[beg + tow->pair_offsets[fro_index]];
-        // printf("fro_index = %d, wri_offset = %d, with fro_offset = %d\n", fro_index, wri_offset, fro_offset);
+        scoped_error_record(log, "fro_index = %d, wri_offset = %d, with fro_offset = %d\n", fro_index, wri_offset, fro_offset);
         entry_t *ent = get_entry(fro, fro_offset);
         if (entry_is_live(ent)) {
-            // printf("entry size = %d\n", entry_size(sizer, ent));
+            scoped_error_record(log, "entry size = %d\n", entry_size(sizer, ent));
             int sz = entry_size(sizer, ent);
             memmove(get_at_offset(tow, wri_offset), ent, sz);
             clean_entry(ent, sz);
@@ -746,9 +810,9 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
             wri_offset += sz;
             fro_copyage += sz;
             livesize += sz + sizeof(uint16_t);
-            // printf("livesize now %d\n", livesize);
+            scoped_error_record(log, "livesize now %d\n", livesize);
         } else {
-            rassert(entry_is_deletion(ent));
+            scoped_error_rassert(log, entry_is_deletion(ent));
 
             // This is a dead entry.  We'll need to squash this dead entry later.
             fro->pair_offsets[beg + tow->pair_offsets[fro_index]] = 0;
@@ -758,17 +822,20 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
         }
     }
 
-    // printf("fro_copyage = %d, fro_copysize was %d\n", fro_copyage, fro_copysize);
-    rassert(wri_offset <= tow_offset, "wri_offset = %d, tow_offset = %d", wri_offset, tow_offset);
+    scoped_error_record(log, "fro_copyage = %d, fro_copysize was %d\n", fro_copyage, fro_copysize);
+    scoped_error_record(log, "wri_offset = %d, tow_offset = %d\n", wri_offset, tow_offset);
+    scoped_error_rassert(log, wri_offset <= tow_offset);
 
     // tow may have some timestamped entries that need to become
     // un-timestamped.
     while (tow_offset < tow->tstamp_cutpoint) {
-        rassert(wri_offset <= tow_offset);
+        scoped_error_record(log, "untimestamping tow.. wri_offset = %d, tow_offset = %d, tow->tstamp_cutpoint = %d\n", wri_offset, tow_offset, tow->tstamp_cutpoint);
+        scoped_error_rassert(log, wri_offset <= tow_offset);
 
         entry_t *ent = get_entry(tow, tow_offset);
         int sz = entry_size(sizer, ent);
         if (entry_is_live(ent)) {
+            scoped_error_record(log, "live entry, moving sz = %d\n", sz);
             memmove(get_at_offset(tow, wri_offset), ent, sz);
 
             // Update the pair offset of the entry we've moved.
@@ -782,14 +849,27 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
             }
 
             // Make sure we updated something.
-            rassert(i != num_adjustable_tow_offsets);
+            scoped_error_rassert(log, i != num_adjustable_tow_offsets);
 
             wri_offset += sz;
+        } else {
+            scoped_error_record(log, "deletion entry, moving tow_offset 4 + sz = %d\n", sz);
+
+            // Update the pair offset of the entry we've deleted, so
+            // that it gets squashed later.
+            int i;
+            for (i = 0; i < num_adjustable_tow_offsets; ++i) {
+                int j = adjustable_tow_offsets[i];
+                if (tow->pair_offsets[j] == tow_offset) {
+                    tow->pair_offsets[j] = 0;
+                }
+            }
         }
         tow_offset += sizeof(repli_timestamp_t) + sz;
+        scoped_error_record(log, "now wri_offset = %d, tow_offset = %d\n", wri_offset, tow_offset);
     }
 
-    rassert(wri_offset <= tow_offset);
+    scoped_error_rassert(log, wri_offset <= tow_offset);
 
     // If we needed to untimestamp any tow entries, we'll need a skip
     // entry for the open space.
@@ -812,14 +892,15 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
     tow->frontmost = new_frontmost;
 
     tow->live_size = livesize;
-    // printf("tow->live_size set to %d\n", livesize);
+    scoped_error_record(log, "tow->live_size set to %d\n", livesize);
 
     tow->tstamp_cutpoint = new_tstamp_cutpoint;
 
     fro->live_size += fro_live_size_adjustment;
 
     {
-        // Squash dead entries that we copied pair_offsets from fro, for.
+        // Squash dead entries that we copied pair_offsets from fro,
+        // for, and that we removed from tow, as well.
         int j, k;
         for (j = 0, k = 0; k < tow->num_pairs; ++k) {
             if (tow->pair_offsets[k] != 0) {
@@ -831,10 +912,10 @@ void move_elements(value_sizer_t<V> *sizer, loof_t *fro, int beg, int end, int w
         tow->num_pairs = j;
     }
 
-    // printf("Validating fro\n");
-    validate(sizer, fro);
-    // printf("Validating tow\n");
-    validate(sizer, tow);
+    scoped_error_record(log, "Validating fro\n");
+    validate(log, sizer, fro);
+    scoped_error_record(log, "Validating tow\n");
+    validate(log, sizer, tow);
 }
 
 template <class V>

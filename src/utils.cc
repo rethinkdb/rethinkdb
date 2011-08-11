@@ -291,21 +291,18 @@ double ticks_to_secs(ticks_t ticks) {
     return ticks / 1000000000.0;
 }
 
-std::string strprintf(const char *format, ...) {
-    va_list ap;
-
+std::string vstrprintf(const char *format, va_list ap) {
     boost::scoped_array<char> arr;
+    int size;
 
-    va_start(ap, format);
     va_list aq;
     va_copy(aq, ap);
-
 
     // the snprintfs return the number of characters they _would_ have
     // written, not including the '\0', so we use that number to
     // allocate an appropriately sized array.
     char buf[1];
-    int size = vsnprintf(buf, sizeof(buf), format, ap);
+    size = vsnprintf(buf, sizeof(buf), format, ap);
 
     guarantee_err(size >= 0, "vsnprintf failed, bad format string?");
 
@@ -313,10 +310,23 @@ std::string strprintf(const char *format, ...) {
 
     int newsize = vsnprintf(arr.get(), size + 1, format, aq);
     (void)newsize;
-    assert(newsize == size);
+    rassert(newsize == size);
 
     va_end(aq);
-    va_end(ap);
 
     return std::string(arr.get(), arr.get() + size);
+}
+
+std::string strprintf(const char *format, ...) {
+    va_list ap;
+
+    std::string ret;
+
+    va_start(ap, format);
+
+    ret = vstrprintf(format, ap);
+
+    va_end(ap);
+
+    return ret;
 }
