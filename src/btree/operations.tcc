@@ -326,13 +326,10 @@ value_txn_t<Value>::value_txn_t(btree_key_t *_key,
     : key(_key), tstamp(_tstamp)
 {
     kv_location.swap(_kv_location);
-    // TODO: Why the fuck are we swapping the value out of kv_location.
-    value.swap(kv_location.value);
 }
 
 template <class Value>
 value_txn_t<Value>::~value_txn_t() {
-    kv_location.value.swap(value);
     apply_keyvalue_change(&kv_location, key, tstamp);
 }
 
@@ -349,6 +346,11 @@ value_txn_t<Value> get_value_write(btree_slice_t *slice, btree_key_t *key, const
     value_txn_t<Value> value_txn(key, kv_location, tstamp);
 
     return value_txn;
+}
+
+template <class Value>
+scoped_malloc<Value>& value_txn_t<Value>::value() {
+    return kv_location.value;
 }
 
 template <class Value>

@@ -64,7 +64,8 @@ public:
     value_txn_t(const value_txn_t&);
 
     ~value_txn_t();
-    scoped_malloc<Value> value;
+
+    scoped_malloc<Value>& value();
 
     transaction_t *get_txn();
 private:
