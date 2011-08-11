@@ -6,6 +6,7 @@
 #include "btree/node.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/internal_node.hpp"
+#include "buffer_cache/buffer_cache.hpp"
 
 namespace node {
 

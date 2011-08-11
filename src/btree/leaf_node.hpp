@@ -10,10 +10,6 @@
 #include "btree/node.hpp"
 #include "scoped_error_logging.hpp"
 
-// TODO: Soon we'll be rid of the buf_t functions, so this #include
-// directive should be removed.
-#include "buffer_cache/buffer_cache.hpp"
-
 namespace leaf {
 
 // These codes can appear as the first byte of a leaf node entry
@@ -1253,19 +1249,6 @@ void insert(value_sizer_t<V> *sizer, leaf_node_t *node, const btree_key_t *key, 
     validate(sizer, node);
 }
 
-// TODO: Make this function use buf patches.
-template <class V>
-bool insert(value_sizer_t<V> *sizer, buf_t *node_buf, const btree_key_t *key, const V *value, repli_timestamp_t tstamp) {
-    const leaf_node_t *node = reinterpret_cast<const leaf_node_t *>(node_buf->get_data_read());
-
-    if (is_full(sizer, node, key, value)) {
-        return false;
-    }
-
-    insert(sizer, reinterpret_cast<leaf_node_t *>(node_buf->get_data_major_write()), key, value, tstamp);
-    return true;
-}
-
 // This asserts that the key is in the node.  TODO: This means we're
 // already sure the key is in the node, which means we're doing an
 // unnecessary binary search.
@@ -1314,14 +1297,6 @@ void remove(value_sizer_t<V> *sizer, leaf_node_t *node, const btree_key_t *key, 
     }
 
     validate(sizer, node);
-}
-
-// TODO: Make this function use buf patches.
-template <class V>
-void remove(value_sizer_t<V> *sizer, buf_t *node_buf, const btree_key_t *key) {
-    leaf_node_t *node = reinterpret_cast<leaf_node_t *>(node_buf->get_data_major_write());
-
-    remove(sizer, node, key);
 }
 
 template <class V>

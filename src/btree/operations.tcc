@@ -3,6 +3,7 @@
 #include "btree/node_functions.hpp"
 #include "btree/slice.hpp"
 #include "btree/buf_patches.hpp"
+#include "buffer_cache/buffer_cache.hpp"
 
 
 // TODO: consider B#/B* trees to improve space efficiency
