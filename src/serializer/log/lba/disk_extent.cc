@@ -22,7 +22,7 @@ lba_disk_extent_t::lba_disk_extent_t(extent_manager_t *_em, direct_file_t *file,
 }
 
 lba_disk_extent_t::lba_disk_extent_t(extent_manager_t *_em, direct_file_t *file, off64_t _offset, int _count)
-    : em(_em), data(new extent_t(em, file, offset, offsetof(lba_extent_t, entries[0]) + sizeof(lba_entry_t)*count)), offset(_offset), count(_count)
+    : em(_em), data(new extent_t(em, file, _offset, offsetof(lba_extent_t, entries[0]) + sizeof(lba_entry_t) * _count)), offset(_offset), count(_count)
 {
 }
 
