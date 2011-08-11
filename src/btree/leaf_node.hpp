@@ -298,13 +298,43 @@ void print(FILE *fp, value_sizer_t<V> *sizer, const leaf_node_t *node) {
     fflush(fp);
 }
 
-#define LEAF_FSCK_CHECK(test) do { if (!(test)) { *msg_out = strprintf("[%s] (line %d)", #test, __LINE__); return false; } } while (0)
+#define RETHINKDB_BTREE_LEAF_FSCK_CHECK(test) do { if (!(test)) { *msg_out = strprintf("[%s] (line %d)", #test, __LINE__); return false; } } while (0)
 
-#define LEAF_FSCK_CHECKF(test, fmt, ...) do { if (!(test)) { *msg_out = strprintf("[%s] (line %d) " fmt, #test, __LINE__, ##__VA_ARGS__); return false; } } while (0)
+#define RETHINKDB_BTREE_LEAF_FSCK_CHECKF(test, fmt, ...) do { if (!(test)) { *msg_out = strprintf("[%s] (line %d) " fmt, #test, __LINE__, ##__VA_ARGS__); return false; } } while (0)
 
-// If this returns false, it sets msg_out to point to a statically allocated string
 template <class V>
-bool fsck(value_sizer_t<V> *sizer, const leaf_node_t *node, std::string *msg_out) {
+class value_fscker_t {
+public:
+    value_fscker_t() { }
+
+    // Returns true if there are no problems.
+    virtual bool fsck(value_sizer_t<V> *sizer, const V *value, int length_available, std::string *msg_out) = 0;
+
+protected:
+    virtual ~value_fscker_t() { }
+
+    DISABLE_COPYING(value_fscker_t);
+};
+
+template <class V>
+class value_fits_fscker_t : public value_fscker_t<V> {
+    bool fsck(value_sizer_t<V> *sizer, const V *value, int length_available, std::string *msg_out) {
+        if (sizer->fits(value, length_available)) {
+            return true;
+        } else {
+            *msg_out = strprintf("value does not fit in %d", length_available);
+            return false;
+        }
+    }
+};
+
+// TODO LOOF: This isn't really a safe fsck function, it works
+// properly when the value is valid but could segfault when it is not.
+
+// If this returns false, it sets msg_out to point to a statically
+// allocated string
+template <class V>
+bool fsck(value_sizer_t<V> *sizer, const leaf_node_t *node, value_fscker_t<V> *fscker, std::string *msg_out) {
 
     // We check that all offsets are contiguous (with interspersed
     // skip entries) between frontmost and block_size, that frontmost
@@ -315,11 +345,11 @@ bool fsck(value_sizer_t<V> *sizer, const leaf_node_t *node, std::string *msg_out
     // is not before the end of pair_offsets
 
     // Basic sanity checks on fields' values.
-    LEAF_FSCK_CHECK(node->magic == sizer->btree_leaf_magic());
-    LEAF_FSCK_CHECK(node->frontmost >= offsetof(leaf_node_t, pair_offsets) + node->num_pairs * sizeof(uint16_t));
-    LEAF_FSCK_CHECK(node->live_size <= (sizer->block_size().value() - node->frontmost) + sizeof(uint16_t) * node->num_pairs);
-    LEAF_FSCK_CHECK(node->frontmost <= node->tstamp_cutpoint);
-    LEAF_FSCK_CHECK(node->tstamp_cutpoint <= sizer->block_size().value());
+    RETHINKDB_BTREE_LEAF_FSCK_CHECK(node->magic == sizer->btree_leaf_magic());
+    RETHINKDB_BTREE_LEAF_FSCK_CHECK(node->frontmost >= offsetof(leaf_node_t, pair_offsets) + node->num_pairs * sizeof(uint16_t));
+    RETHINKDB_BTREE_LEAF_FSCK_CHECK(node->live_size <= (sizer->block_size().value() - node->frontmost) + sizeof(uint16_t) * node->num_pairs);
+    RETHINKDB_BTREE_LEAF_FSCK_CHECK(node->frontmost <= node->tstamp_cutpoint);
+    RETHINKDB_BTREE_LEAF_FSCK_CHECK(node->tstamp_cutpoint <= sizer->block_size().value());
 
     // sizeof(offs) is guaranteed to be less than the block_size() thanks to assertions above.
     uint16_t offs[node->num_pairs];
@@ -327,8 +357,8 @@ bool fsck(value_sizer_t<V> *sizer, const leaf_node_t *node, std::string *msg_out
 
     std::sort(offs, offs + node->num_pairs);
 
-    LEAF_FSCK_CHECK(node->num_pairs == 0 || node->frontmost <= offs[0]);
-    LEAF_FSCK_CHECK(node->num_pairs == 0 || offs[node->num_pairs - 1] < sizer->block_size().value());
+    RETHINKDB_BTREE_LEAF_FSCK_CHECK(node->num_pairs == 0 || node->frontmost <= offs[0]);
+    RETHINKDB_BTREE_LEAF_FSCK_CHECK(node->num_pairs == 0 || offs[node->num_pairs - 1] < sizer->block_size().value());
 
     entry_iter_t iter = entry_iter_t::make(node);
 
@@ -341,36 +371,43 @@ bool fsck(value_sizer_t<V> *sizer, const leaf_node_t *node, std::string *msg_out
 
         // tstamp_cutpoint is supposed to be on some entry's offset.
         if (offset >= node->tstamp_cutpoint && !seen_tstamp_cutpoint) {
-            LEAF_FSCK_CHECK(offset == node->tstamp_cutpoint);
+            RETHINKDB_BTREE_LEAF_FSCK_CHECK(offset == node->tstamp_cutpoint);
             seen_tstamp_cutpoint = true;
         }
 
         const entry_t *ent = get_entry(node, offset);
         if (entry_is_live(ent)) {
+            const V *value = entry_value<V>(ent);
+            std::string fscker_msg;
+            if (!fscker->fsck(sizer, value, sizer->block_size().value() - (reinterpret_cast<const char *>(value) - reinterpret_cast<const char *>(node)), &fscker_msg)) {
+                *msg_out = strprintf("Problem with key %.*s: %s\n", entry_key(ent)->size, entry_key(ent)->contents, fscker_msg.c_str());
+                return false;
+            }
+
             observed_live_size += sizeof(uint16_t) + entry_size(sizer, ent);
-            LEAF_FSCK_CHECK(i < node->num_pairs);
-            LEAF_FSCK_CHECKF(offset == offs[i], "offset = %d, offs[i] = %d, i = %d, num_pairs = %d", offset, offs[i], i, node->num_pairs);
+            RETHINKDB_BTREE_LEAF_FSCK_CHECK(i < node->num_pairs);
+            RETHINKDB_BTREE_LEAF_FSCK_CHECKF(offset == offs[i], "offset = %d, offs[i] = %d, i = %d, num_pairs = %d", offset, offs[i], i, node->num_pairs);
             ++i;
         } else if (entry_is_deletion(ent)) {
-            LEAF_FSCK_CHECK(!seen_tstamp_cutpoint);
-            LEAF_FSCK_CHECK(i < node->num_pairs);
-            LEAF_FSCK_CHECKF(offset == offs[i], "offset = %d, offs[i] = %d, i = %d, num_pairs = %d", offset, offs[i], i, node->num_pairs);
+            RETHINKDB_BTREE_LEAF_FSCK_CHECK(!seen_tstamp_cutpoint);
+            RETHINKDB_BTREE_LEAF_FSCK_CHECK(i < node->num_pairs);
+            RETHINKDB_BTREE_LEAF_FSCK_CHECKF(offset == offs[i], "offset = %d, offs[i] = %d, i = %d, num_pairs = %d", offset, offs[i], i, node->num_pairs);
             ++i;
         }
 
         iter.step(sizer, node);
     }
 
-    LEAF_FSCK_CHECK(i == node->num_pairs);
+    RETHINKDB_BTREE_LEAF_FSCK_CHECK(i == node->num_pairs);
 
-    LEAF_FSCK_CHECK(node->live_size == observed_live_size);
+    RETHINKDB_BTREE_LEAF_FSCK_CHECK(node->live_size == observed_live_size);
 
     // Entries look valid, check key ordering.
 
     const btree_key_t *last = NULL;
     for (int k = 0; k < node->num_pairs; ++k) {
         const btree_key_t *key = entry_key(get_entry(node, node->pair_offsets[k]));
-        LEAF_FSCK_CHECK(last == NULL || sized_strcmp(last->contents, last->size, key->contents, key->size) < 0);
+        RETHINKDB_BTREE_LEAF_FSCK_CHECK(last == NULL || sized_strcmp(last->contents, last->size, key->contents, key->size) < 0);
         last = key;
     }
 
@@ -387,8 +424,9 @@ template <class V>
 void validate(scoped_error_log_t& log, value_sizer_t<V> *sizer, const leaf_node_t *node) {
 #ifndef NDEBUG
     strprint(log.expose_logtext(), sizer, node);
+    value_fits_fscker_t<V> fits;
     std::string msg;
-    bool fscked_successfully = fsck(sizer, node, &msg);
+    bool fscked_successfully = fsck(sizer, node, &fits, &msg);
     scoped_error_rassert(log, fscked_successfully, "%s", msg.c_str());
 #endif
 }

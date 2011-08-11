@@ -1022,6 +1022,16 @@ bool leaf_node_inspect_range(const slicecx_t& cx, const leaf_node_t *buf, uint16
 }
 
 void check_subtree_leaf_node(slicecx_t& cx, const leaf_node_t *buf, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *tree_errs, node_error *errs) {
+    boost::scoped_ptr< value_sizer_t<void> > sizer;
+    construct_sizer_from_magic(sizer, buf->magic);
+
+    std::string msg;
+    if (!leaf::fsck(sizer.get(), buf, &msg)) {
+        // TODO LOOF: Handle error but first add a value fscker.
+
+    }
+
+
     {
         std::vector<uint16_t> sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
         std::sort(sorted_offsets.begin(), sorted_offsets.end());
