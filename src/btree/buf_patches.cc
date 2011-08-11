@@ -7,7 +7,7 @@
 
 
 
-leaf_insert_patch_t::leaf_insert_patch_t(block_id_t block_id, patch_counter_t patch_counter, uint16_t value_size, const opaque_value_t *value, uint8_t key_size, const char *key_contents, repli_timestamp_t insertion_time) :
+leaf_insert_patch_t::leaf_insert_patch_t(block_id_t block_id, patch_counter_t patch_counter, uint16_t value_size, const void *value, uint8_t key_size, const char *key_contents, repli_timestamp_t insertion_time) :
             buf_patch_t(block_id, patch_counter, buf_patch_t::OPER_LEAF_INSERT),
             value_size(value_size),
             insertion_time(insertion_time) {
@@ -56,7 +56,7 @@ void leaf_insert_patch_t::serialize_data(char* destination) const {
     memcpy(destination, &insertion_time, sizeof(insertion_time));
     destination += sizeof(insertion_time);
 
-    const opaque_value_t *value = reinterpret_cast<opaque_value_t *>(value_buf);
+    const void *value = reinterpret_cast<void *>(value_buf);
     const btree_key_t *key = reinterpret_cast<btree_key_t *>(key_buf);
 
     memcpy(destination, value, value_size);

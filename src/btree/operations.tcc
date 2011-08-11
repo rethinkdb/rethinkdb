@@ -2,6 +2,7 @@
 #include "btree/leaf_node.hpp"
 #include "btree/node_functions.hpp"
 #include "btree/slice.hpp"
+#include "btree/buf_patches.hpp"
 
 
 // TODO: consider B#/B* trees to improve space efficiency
@@ -295,12 +296,10 @@ void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc, btree_key_t *key,
 
         check_and_handle_split(sizer, kv_loc->txn.get(), kv_loc->buf, kv_loc->last_buf, kv_loc->sb_buf, key, kv_loc->value.get());
 
-        guarantee(!leaf::is_full(sizer, reinterpret_cast<const leaf_node_t *>(kv_loc->buf->get_data_read()),
-                                 key, kv_loc->value.get()));
+        rassert(!leaf::is_full(sizer, reinterpret_cast<const leaf_node_t *>(kv_loc->buf->get_data_read()),
+                               key, kv_loc->value.get()));
 
-        // TODO LOOF: Apply a buf patch here instead.
-        leaf_node_t *node = reinterpret_cast<leaf_node_t *>(kv_loc->buf->get_data_major_write());
-        leaf::insert(sizer, node, key, kv_loc->value.get(), tstamp);
+        kv_loc->buf->apply_patch(new leaf_insert_patch_t(kv_loc->buf->get_block_id(), kv_loc->buf->get_next_patch_counter(), sizer->size(kv_loc->value.get()), kv_loc->value.get(), key->size, key->contents, tstamp));
 
     } else {
         // Delete the value if it's there.
@@ -308,9 +307,7 @@ void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc, btree_key_t *key,
 
             rassert(tstamp != repli_timestamp_t::invalid, "Deletes need a valid timestamp now.");
 
-            // TODO LOOF: Apply a buf patch here instead.
-            leaf_node_t *node = reinterpret_cast<leaf_node_t *>(kv_loc->buf->get_data_major_write());
-            leaf::remove(sizer, node, key, tstamp);
+            kv_loc->buf->apply_patch(new leaf_remove_patch_t(kv_loc->buf->get_block_id(), kv_loc->buf->get_next_patch_counter(), kv_loc->txn->get_cache()->get_block_size(), tstamp, key->size, key->contents));
         }
     }
 
