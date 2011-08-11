@@ -1,6 +1,8 @@
 #ifndef __BTREE_ITERATION_HPP__
 #define __BTREE_ITERATION_HPP__
 
+#include <list>
+
 #include "errors.hpp"
 #include <boost/shared_array.hpp>
 #include <boost/shared_ptr.hpp>
@@ -59,8 +61,8 @@ private:
 template <class Value>
 class slice_leaves_iterator_t : public one_way_iterator_t<leaf_iterator_t<Value>*> {
     struct internal_node_state {
-        internal_node_state(const internal_node_t *node, int index, buf_lock_t *lock)
-            : node(node), index(index), lock(lock) { }
+        internal_node_state(const internal_node_t *_node, int _index, buf_lock_t *_lock)
+            : node(_node), index(_index), lock(_lock) { }
 
         const internal_node_t *node;
         int index;

@@ -2,6 +2,8 @@
 #define __BTREE_OPERATIONS_HPP__
 
 #include "utils.hpp"
+#include <boost/scoped_ptr.hpp>
+
 #include "buffer_cache/buf_lock.hpp"
 #include "containers/scoped_malloc.hpp"
 #include "btree/node.hpp"
