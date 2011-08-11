@@ -336,6 +336,15 @@ class value_fits_fscker_t : public value_fscker_t<V> {
 template <class V>
 bool fsck(value_sizer_t<V> *sizer, const leaf_node_t *node, value_fscker_t<V> *fscker, std::string *msg_out) {
 
+    struct {
+        std::string *msg_out;
+        bool operator()(bool test, const char *msg) {
+            if (!test) *msg_out = msg;
+            return !test;
+        }
+    } failed;
+    failed.msg_out = msg_out;
+
     // We check that all offsets are contiguous (with interspersed
     // skip entries) between frontmost and block_size, that frontmost
     // is the smallest offset, that live_size is correct, that we have
@@ -345,11 +354,19 @@ bool fsck(value_sizer_t<V> *sizer, const leaf_node_t *node, value_fscker_t<V> *f
     // is not before the end of pair_offsets
 
     // Basic sanity checks on fields' values.
-    RETHINKDB_BTREE_LEAF_FSCK_CHECK(node->magic == sizer->btree_leaf_magic());
-    RETHINKDB_BTREE_LEAF_FSCK_CHECK(node->frontmost >= offsetof(leaf_node_t, pair_offsets) + node->num_pairs * sizeof(uint16_t));
-    RETHINKDB_BTREE_LEAF_FSCK_CHECK(node->live_size <= (sizer->block_size().value() - node->frontmost) + sizeof(uint16_t) * node->num_pairs);
-    RETHINKDB_BTREE_LEAF_FSCK_CHECK(node->frontmost <= node->tstamp_cutpoint);
-    RETHINKDB_BTREE_LEAF_FSCK_CHECK(node->tstamp_cutpoint <= sizer->block_size().value());
+    if (failed(node->magic == sizer->btree_leaf_magic(),
+               "bad leaf magic")
+        || failed(node->frontmost >= offsetof(leaf_node_t, pair_offsets) + node->num_pairs * sizeof(uint16_t),
+                  "frontmost offset is before the end of pair_offsets")
+        || failed(node->live_size > (sizer->block_size().value() - node->frontmost) + sizeof(uint16_t) * node->num_pairs,
+                  "live_size is impossibly large")
+        || failed(node->tstamp_cutpoint >= node->frontmost,
+                  "timestamp cut offset below frontmost offset")
+        || failed(node->tstamp_cutpoint <= sizer->block_size().value(),
+                  "timestamp cut offset larger than block size")
+        ) {
+        return false;
+    }
 
     // sizeof(offs) is guaranteed to be less than the block_size() thanks to assertions above.
     uint16_t offs[node->num_pairs];
@@ -357,8 +374,13 @@ bool fsck(value_sizer_t<V> *sizer, const leaf_node_t *node, value_fscker_t<V> *f
 
     std::sort(offs, offs + node->num_pairs);
 
-    RETHINKDB_BTREE_LEAF_FSCK_CHECK(node->num_pairs == 0 || node->frontmost <= offs[0]);
-    RETHINKDB_BTREE_LEAF_FSCK_CHECK(node->num_pairs == 0 || offs[node->num_pairs - 1] < sizer->block_size().value());
+    if (failed(node->num_pairs == 0 || node->frontmost <= offs[0],
+               "smallest pair offset is before frontmost offset")
+        || failed(node->num_pairs == 0 || offs[node->num_pairs - 1] < sizer->block_size().value(),
+                  "largest pair offset is larger than block size")
+        ) {
+        return false;
+    }
 
     entry_iter_t iter = entry_iter_t::make(node);
 
