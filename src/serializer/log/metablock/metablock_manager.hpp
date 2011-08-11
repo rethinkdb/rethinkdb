@@ -5,7 +5,7 @@
 #include "serializer/log/extents/extent_manager.hpp"
 #include "arch/arch.hpp"
 #include <boost/crc.hpp>
-#include <cstddef>
+#include <stddef.h>
 #include <deque>
 #include "serializer/log/static_header.hpp"
 #include "concurrency/mutex.hpp"

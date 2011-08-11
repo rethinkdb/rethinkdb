@@ -1,7 +1,7 @@
 #ifndef __UNITTEST_UNITTEST_UTILS_HPP__
 #define __UNITTEST_UNITTEST_UTILS_HPP__
 
-#include <cstdlib>
+#include <stdlib.h>
 #include "errors.hpp"
 #include "arch/runtime/thread_pool.hpp"
 
