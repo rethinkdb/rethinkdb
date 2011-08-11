@@ -31,7 +31,7 @@ when the timer "rings". */
 
 struct repeating_timer_t {
 
-    repeating_timer_t(int frequency_ms, boost::function<void(void)> ring);
+    repeating_timer_t(int frequency_ms, const boost::function<void(void)>& ring);
     ~repeating_timer_t();
 
 private:

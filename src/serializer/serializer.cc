@@ -2,7 +2,11 @@
 #include <boost/variant.hpp>
 
 #include "serializer/serializer.hpp"
-#include "arch/runtime/runtime.hpp"
+#include "arch/arch.hpp"
+
+file_account_t *serializer_t::make_io_account(int priority) {
+    return make_io_account(priority, UNLIMITED_OUTSTANDING_REQUESTS);
+}
 
 serializer_t::index_write_op_t::index_write_op_t(
         block_id_t block_id,
@@ -11,14 +15,14 @@ serializer_t::index_write_op_t::index_write_op_t(
         boost::optional<bool> delete_bit)
     : block_id(block_id), token(token), recency(recency), delete_bit(delete_bit) {}
 
-void serializer_t::index_write(const index_write_op_t &op, file_t::account_t *io_account) {
+void serializer_t::index_write(const index_write_op_t &op, file_account_t *io_account) {
     std::vector<index_write_op_t> ops;
     ops.push_back(op);
     return index_write(ops, io_account);
 }
 
 // Blocking block_read implementation
-void serializer_t::block_read(boost::shared_ptr<block_token_t> token, void *buf, file_t::account_t *io_account) {
+void serializer_t::block_read(boost::shared_ptr<block_token_t> token, void *buf, file_account_t *io_account) {
     struct : public cond_t, public iocallback_t {
         void on_io_complete() { pulse(); }
     } cb;
@@ -28,7 +32,7 @@ void serializer_t::block_read(boost::shared_ptr<block_token_t> token, void *buf,
 
 // Blocking block_write implementation
 boost::shared_ptr<serializer_t::block_token_t>
-serializer_t::block_write(const void *buf, file_t::account_t *io_account) {
+serializer_t::block_write(const void *buf, file_account_t *io_account) {
     // Default implementation: Wrap around non-blocking variant
     struct : public cond_t, public iocallback_t {
         void on_io_complete() { pulse(); }
@@ -39,7 +43,7 @@ serializer_t::block_write(const void *buf, file_t::account_t *io_account) {
 }
 
 boost::shared_ptr<serializer_t::block_token_t>
-serializer_t::block_write(const void *buf, block_id_t block_id, file_t::account_t *io_account) {
+serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account) {
     // Default implementation: Wrap around non-blocking variant
     struct : public cond_t, public iocallback_t {
         void on_io_complete() { pulse(); }
@@ -50,7 +54,7 @@ serializer_t::block_write(const void *buf, block_id_t block_id, file_t::account_
 }
 
 boost::shared_ptr<serializer_t::block_token_t>
-serializer_t::block_write(const void *buf, file_t::account_t *io_account, iocallback_t *cb) {
+serializer_t::block_write(const void *buf, file_account_t *io_account, iocallback_t *cb) {
     return block_write(buf, NULL_BLOCK_ID, io_account, cb);
 }
 
@@ -91,11 +95,11 @@ struct write_cond_t : public cond_t, public iocallback_t {
 
 struct write_performer_t : public boost::static_visitor<void> {
     serializer_t *serializer;
-    file_t::account_t *io_account;
+    file_account_t *io_account;
     void *zerobuf;
     std::vector<write_cond_t*> *block_write_conds;
     serializer_t::index_write_op_t *op;
-    write_performer_t(serializer_t *ser, file_t::account_t *acct, void *zerobuf,
+    write_performer_t(serializer_t *ser, file_account_t *acct, void *zerobuf,
                       std::vector<write_cond_t*> *conds, serializer_t::index_write_op_t *op)
         : serializer(ser), io_account(acct), zerobuf(zerobuf), block_write_conds(conds), op(op) {}
 
@@ -123,7 +127,7 @@ struct write_performer_t : public boost::static_visitor<void> {
     }
 };
 
-void serializer_t::do_write(std::vector<write_t> writes, file_t::account_t *io_account) {
+void serializer_t::do_write(std::vector<write_t> writes, file_account_t *io_account) {
     std::vector<write_cond_t*> block_write_conds;
     std::vector<serializer_t::index_write_op_t> index_write_ops;
     block_write_conds.reserve(writes.size());

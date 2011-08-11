@@ -1,11 +1,11 @@
-#include <boost/smart_ptr/shared_ptr.hpp>
+#include <boost/shared_ptr.hpp>
 
 #include "buffer_cache/mirrored/mirrored.hpp"
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
-#include "arch/runtime/runtime.hpp"
+#include "arch/arch.hpp"
 #include "buffer_cache/stats.hpp"
 #include "do_on_thread.hpp"
 #include "stats/persist.hpp"
@@ -48,7 +48,7 @@ struct mc_inner_buf_t::buf_snapshot_t : evictable_t, intrusive_list_node_t<mc_in
             cache->serializer->free(data);
     }
 
-    void *acquire_data(file_t::account_t *io_account) {
+    void *acquire_data(file_account_t *io_account) {
         cache->assert_thread();
         ++active_refcount;
         if (data) return data;  // Fast path.
@@ -104,7 +104,7 @@ struct mc_inner_buf_t::buf_snapshot_t : evictable_t, intrusive_list_node_t<mc_in
 };
 
 // This loads a block from the serializer and stores it into buf.
-void mc_inner_buf_t::load_inner_buf(bool should_lock, file_t::account_t *io_account) {
+void mc_inner_buf_t::load_inner_buf(bool should_lock, file_account_t *io_account) {
     if (should_lock) {
         bool locked UNUSED = lock.lock(rwi_write, NULL);
         rassert(locked);
@@ -133,7 +133,7 @@ void mc_inner_buf_t::load_inner_buf(bool should_lock, file_t::account_t *io_acco
 }
 
 // This form of the buf constructor is used when the block exists on disk and needs to be loaded
-mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_load, file_t::account_t *io_account)
+mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_load, file_account_t *io_account)
     : evictable_t(cache),
       block_id(block_id),
       subtree_recency(repli_timestamp_t::invalid),  // Gets initialized by load_inner_buf
@@ -363,7 +363,7 @@ bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version) {
     return true;
 }
 
-void *mc_inner_buf_t::acquire_snapshot_data(version_id_t version_to_access, file_t::account_t *io_account) {
+void *mc_inner_buf_t::acquire_snapshot_data(version_id_t version_to_access, file_account_t *io_account) {
     rassert(version_to_access != mc_inner_buf_t::faux_version_id);
     for (buf_snapshot_t *snap = snapshots.head(); snap; snap = snapshots.next(snap)) {
         if (snap->snapshotted_version <= version_to_access) {
@@ -418,7 +418,7 @@ perfmon_duration_sampler_t
     pm_bufs_held("bufs_held", secs_to_ticks(1));
 
 mc_buf_t::mc_buf_t(mc_inner_buf_t *inner_buf, access_t mode, mc_inner_buf_t::version_id_t version_to_access, bool snapshotted,
-                   boost::function<void()> call_when_in_line, file_t::account_t *io_account)
+                   boost::function<void()> call_when_in_line, file_account_t *io_account)
     : mode(mode), snapshotted(snapshotted), non_locking_access(snapshotted), inner_buf(inner_buf), data(NULL)
 {
     inner_buf->cache->assert_thread();
@@ -917,7 +917,7 @@ void mc_transaction_t::set_account(const boost::shared_ptr<mc_cache_account_t>& 
     cache_account_ = cache_account;
 }
 
-file_t::account_t *mc_transaction_t::get_io_account() const {
+file_account_t *mc_transaction_t::get_io_account() const {
     return (cache_account_.get() == NULL ? cache->reads_io_account.get() : cache_account_->io_account_.get());
 }
 
@@ -1133,7 +1133,7 @@ boost::shared_ptr<mc_cache_account_t> mc_cache_t::create_account(int priority) {
     // TODO: This is a heuristic. While it might not be evil, it's not really optimal either.
     int outstanding_requests_limit = std::max(1, 16 * priority / 100);
 
-    boost::shared_ptr<file_t::account_t> io_account(serializer->make_io_account(io_priority, outstanding_requests_limit));
+    boost::shared_ptr<file_account_t> io_account(serializer->make_io_account(io_priority, outstanding_requests_limit));
 
     return boost::shared_ptr<cache_account_t>(new cache_account_t(io_account));
 }

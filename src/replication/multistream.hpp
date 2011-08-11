@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include "arch/arch.hpp"
+#include "arch/types.hpp"
 
 // TODO: We include this for net_hello_t, and it is in the wrong place or this is.
 #include "replication/net_structs.hpp"

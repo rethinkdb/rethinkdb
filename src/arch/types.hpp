@@ -1,11 +1,23 @@
 #ifndef ARCH_TYPES_HPP_
 #define ARCH_TYPES_HPP_
 
+#define DEFAULT_DISK_ACCOUNT ((linux_file_account_t *)NULL)
+#define UNLIMITED_OUTSTANDING_REQUESTS (-1)
+
+class linux_iocallback_t {
+public:
+    virtual ~linux_iocallback_t() {}
+    virtual void on_io_complete() = 0;
+};
+
 class linux_thread_pool_t;
 typedef linux_thread_pool_t thread_pool_t;
 
 class linux_file_t;
 typedef linux_file_t file_t;
+
+class linux_file_account_t;
+typedef linux_file_account_t file_account_t;
 
 class linux_direct_file_t;
 typedef linux_direct_file_t direct_file_t;

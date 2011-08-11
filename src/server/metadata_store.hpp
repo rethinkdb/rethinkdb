@@ -5,6 +5,8 @@
 #include "stats/persist.hpp"
 #include "server/key_value_store.hpp"
 
+class side_coro_handler_t;
+
 class btree_metadata_store_t : public metadata_store_t {
 public:
     // Blocks

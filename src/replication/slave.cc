@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-#include "arch/runtime/runtime.hpp"
+#include "arch/arch.hpp"
 #include "logger.hpp"
 #include "replication/net_structs.hpp"
 #include "server/key_value_store.hpp"

@@ -2,7 +2,7 @@
 #define __SERIALIZER_LOG_LBA_EXTENT_HPP__
 
 #include "serializer/log/extents/extent_manager.hpp"
-#include "arch/arch.hpp"
+#include "arch/types.hpp"
 
 struct extent_block_t;
 
@@ -26,7 +26,7 @@ public:
     };
     void read(size_t pos, size_t length, void *buffer, read_callback_t *);
     
-    void append(void *buffer, size_t length, file_t::account_t *io_account);
+    void append(void *buffer, size_t length, file_account_t *io_account);
     
     struct sync_callback_t {
         virtual void on_extent_sync() = 0;

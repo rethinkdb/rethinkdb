@@ -61,7 +61,7 @@ void lba_disk_structure_t::on_extent_read() {
     start_callback->on_lba_load();
 }
 
-void lba_disk_structure_t::add_entry(block_id_t block_id, repli_timestamp_t recency, flagged_off64_t offset, file_t::account_t *io_account) {
+void lba_disk_structure_t::add_entry(block_id_t block_id, repli_timestamp_t recency, flagged_off64_t offset, file_account_t *io_account) {
     if (last_extent && last_extent->full()) {
         /* We have filled up an extent. Transfer it to the superblock. */
 
@@ -134,7 +134,7 @@ public:
     }
 };
 
-void lba_disk_structure_t::sync(file_t::account_t *io_account, sync_callback_t *cb) {
+void lba_disk_structure_t::sync(file_account_t *io_account, sync_callback_t *cb) {
     lba_writer_t *writer = new lba_writer_t(cb);
     
     /* Count how many things need to be synced */

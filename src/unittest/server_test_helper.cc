@@ -1,5 +1,6 @@
 #include <boost/bind.hpp>
 
+#include "arch/arch.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "unittest/server_test_helper.hpp"
 #include "unittest/unittest_utils.hpp"

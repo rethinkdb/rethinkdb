@@ -14,8 +14,8 @@ typedef linux_io_backend_t io_backend_t;
 
 #include "arch/types.hpp"
 
-void co_read(direct_file_t *file, size_t offset, size_t length, void *buf, direct_file_t::account_t *account);
-void co_write(direct_file_t *file, size_t offset, size_t length, void *buf, direct_file_t::account_t *account);
+void co_read(direct_file_t *file, size_t offset, size_t length, void *buf, file_account_t *account);
+void co_write(direct_file_t *file, size_t offset, size_t length, void *buf, file_account_t *account);
 
 #include "arch/spinlock.hpp"
 #include "arch/timing.hpp"

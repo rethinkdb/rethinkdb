@@ -3,7 +3,7 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
-#include "arch/runtime/runtime.hpp"
+#include "arch/arch.hpp"
 #include "containers/scoped_malloc.hpp"
 #include "containers/thick_list.hpp"
 #include "logger.hpp"
