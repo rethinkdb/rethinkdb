@@ -25,14 +25,15 @@ template <>
 class value_sizer_t<void> {
 public:
     value_sizer_t() { }
+    virtual ~value_sizer_t() { }
+
     virtual int size(const void *value) const = 0;
     virtual bool fits(const void *value, int length_available) const = 0;
+    virtual bool deep_fsck(const void *value, int length_available, std::string *msg_out) const = 0;
     virtual int max_possible_size() const = 0;
     virtual block_magic_t btree_leaf_magic() const = 0;
     virtual block_size_t block_size() const = 0;
 
-protected:
-    virtual ~value_sizer_t() { }
 private:
     DISABLE_COPYING(value_sizer_t);
 };
@@ -55,6 +56,11 @@ public:
 
     bool fits(const void *value, int length_available) const {
         return btree_value_fits(block_size_, length_available, as_memcached(value));
+    }
+
+    bool deep_fsck(UNUSED const void *value, UNUSED int length_available, UNUSED std::string *msg_out) const {
+        // TODO LOOF: Add a non-bogus implementation.
+        return true;
     }
 
     int max_possible_size() const {

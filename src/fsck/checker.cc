@@ -12,6 +12,7 @@
 #include "btree/internal_node.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "fsck/raw_block.hpp"
+#include "riak/riak_value.hpp"
 #include "server/key_value_store.hpp"
 
 namespace fsck {
@@ -874,6 +875,7 @@ struct largebuf_error {
     }
 };
 
+// TODO LOOF: I tihnk this is obsolete.
 struct value_error {
     block_id_t block_id;
     std::string key;
@@ -890,6 +892,8 @@ struct value_error {
     }
 };
 
+// TODO LOOF: Most of these fields are not used any more?  Or they
+// should be used.
 struct node_error {
     block_id_t block_id;
     btree_block_t::error block_not_found_error;  // must be none
@@ -902,6 +906,7 @@ struct node_error {
     bool out_of_order : 1;  // should be false
     bool value_errors_exist : 1;  // should be false
     bool last_internal_node_key_nonempty : 1;  // should be false
+    std::string msg;
 
     explicit node_error(block_id_t block_id) : block_id(block_id), block_not_found_error(btree_block_t::none),
                                                block_underfull(false), bad_magic(false),
@@ -913,7 +918,7 @@ struct node_error {
     bool is_bad() const {
         return block_not_found_error != btree_block_t::none || block_underfull || bad_magic
             || noncontiguous_offsets || value_out_of_buf || keys_too_big || keys_in_wrong_slice
-            || out_of_order || value_errors_exist;
+            || out_of_order || value_errors_exist || !msg.empty();
     }
 };
 
@@ -1000,82 +1005,48 @@ void check_value(UNUSED slicecx_t& cx, const memcached_value_t *value, value_err
     check_blob(cx, value->value_ref(), blob::btree_maxreflen, &errs->largebuf_errs);
 }
 
-// TODO LOOF: We'll put our fscking in loof.hpp.
-#if 0
-
-bool leaf_node_inspect_range(const slicecx_t& cx, const leaf_node_t *buf, uint16_t offset) {
-    // There are some completely bad HACKs here.  We subtract 3 for
-    // pair->key.size, pair->value()->size, pair->value()->metadata_flags.
-    if (cx.block_size().value() - 3 >= offset
-        && offset >= buf->frontmost_offset) {
-        const btree_leaf_pair<memcached_value_t> *pair = 
-            leaf::get_pair<memcached_value_t>(buf, offset);
-        const memcached_value_t *value = (pair->value());
-        uint32_t value_offset = (reinterpret_cast<const char *>(value) - reinterpret_cast<const char *>(pair)) + offset;
-        // The other HACK: We subtract 2 for value->size, value->metadata_flags.
-        if (value_offset <= cx.block_size().value() - 2) {
-            uint32_t tot_offset = value_offset + value->inline_size(cx.block_size());
-            return (cx.block_size().value() >= tot_offset);
-        }
+template <class V>
+class value_sizer_fscker_t : public leaf::value_fscker_t<V> {
+    bool fsck(value_sizer_t<V> *sizer, const V *value, int length_available, std::string *msg_out) {
+        return sizer->deep_fsck(value, length_available, msg_out);
     }
-    return false;
+};
+
+bool construct_sizer_from_magic(block_size_t bs, boost::scoped_ptr< value_sizer_t<void> >& sizer, block_magic_t magic) {
+    if (magic == value_sizer_t<riak_value_t>::leaf_magic()) {
+        sizer.reset(new value_sizer_t<riak_value_t>(bs));
+        return true;
+    } else if (magic == value_sizer_t<memcached_value_t>::leaf_magic()) {
+        sizer.reset(new value_sizer_t<memcached_value_t>(bs));
+        return true;
+    } else {
+        return false;
+    }
 }
 
-void check_subtree_leaf_node(slicecx_t& cx, const leaf_node_t *buf, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *tree_errs, node_error *errs) {
+// TODO LOOF: We aren't comparing the keys of the leaf node against lo
+// and hi.  And what was subtree_errs used for?
+void check_subtree_leaf_node(slicecx_t& cx, const leaf_node_t *buf,
+                             UNUSED const btree_key_t *lo, UNUSED const btree_key_t *hi,
+                             UNUSED subtree_errors *tree_errs, node_error *errs) {
     boost::scoped_ptr< value_sizer_t<void> > sizer;
-    construct_sizer_from_magic(sizer, buf->magic);
+    if (!construct_sizer_from_magic(cx.block_size(), sizer, buf->magic)) {
+        errs->msg = "Unrecognized magic value for leaf node.";
+    }
 
+    value_sizer_fscker_t<void> fscker;
     std::string msg;
-    if (!leaf::fsck(sizer.get(), buf, &msg)) {
-        // TODO LOOF: Handle error but first add a value fscker.
-
+    if (!leaf::fsck(sizer.get(), buf, &fscker, &msg)) {
+        errs->msg = msg;
     }
-
-
-    {
-        std::vector<uint16_t> sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
-        std::sort(sorted_offsets.begin(), sorted_offsets.end());
-        uint16_t expected_offset = buf->frontmost_offset;
-
-        for (int i = 0, n = sorted_offsets.size(); i < n; ++i) {
-            errs->noncontiguous_offsets |= (sorted_offsets[i] != expected_offset);
-            if (!leaf_node_inspect_range(cx, buf, expected_offset)) {
-                errs->value_out_of_buf = true;
-                return;
-            }
-            expected_offset += leaf::pair_size<memcached_value_t>(cx.mc_sizer(), leaf::get_pair<memcached_value_t>(buf, sorted_offsets[i]));
-        }
-        errs->noncontiguous_offsets |= (expected_offset != cx.block_size().value());
-
-    }
-
-    const btree_key_t *prev_key = lo;
-    for (uint16_t i = 0; i < buf->npairs; ++i) {
-        uint16_t offset = buf->pair_offsets[i];
-        const btree_leaf_pair<memcached_value_t> *pair = leaf::get_pair<memcached_value_t>(buf, offset);
-
-        errs->keys_too_big |= (pair->key.size > MAX_KEY_SIZE);
-        errs->keys_in_wrong_slice |= !cx.is_valid_key(pair->key);
-        errs->out_of_order |= !(prev_key == NULL || leaf_key_comp::compare(prev_key, &pair->key) < 0);
-
-        value_error valerr(errs->block_id);
-        check_value(cx, reinterpret_cast<const memcached_value_t *>(pair->value()), &valerr);
-
-        if (valerr.is_bad()) {
-            valerr.key = std::string(pair->key.contents, pair->key.contents + pair->key.size);
-            tree_errs->add_error(valerr);
-        }
-
-        prev_key = &pair->key;
-    }
-
-    errs->out_of_order |= !(prev_key == NULL || hi == NULL || leaf_key_comp::compare(prev_key, hi) <= 0);
 }
 
-#endif // 0
+
 
 bool internal_node_begin_offset_in_range(const slicecx_t& cx, const internal_node_t *buf, uint16_t offset) {
-    return (cx.block_size().value() - sizeof(btree_internal_pair)) >= offset && offset >= buf->frontmost_offset && offset + sizeof(btree_internal_pair) + reinterpret_cast<const btree_internal_pair *>(reinterpret_cast<const char *>(buf) + offset)->key.size <= cx.block_size().value();
+    return (cx.block_size().value() - sizeof(btree_internal_pair)) >= offset &&
+        offset >= buf->frontmost_offset &&
+        offset + sizeof(btree_internal_pair) + reinterpret_cast<const btree_internal_pair *>(reinterpret_cast<const char *>(buf) + offset)->key.size <= cx.block_size().value();
 }
 
 void check_subtree(slicecx_t& cx, block_id_t id, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *errs);

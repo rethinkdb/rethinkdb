@@ -76,6 +76,11 @@ public:
         return size(as_riak(value)) < length_available;
     }
 
+    bool deep_fsck(UNUSED const void *value, UNUSED int length_available, UNUSED std::string *msg_out) const {
+        // TODO: Add a real implementation here.
+        return true;
+    }
+
     int max_possible_size() const {
         return offsetof(riak_value_t, contents) + blob::btree_maxreflen;
     }
