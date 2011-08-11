@@ -212,9 +212,10 @@ std::string riak_interface_t::mapreduce(json::mValue &val) {
         inputs.push_back(get_object(it->get_array()[0].get_str(), it->get_array()[1].get_str()));
     }
 
+    js_ctx_t js_ctx;
 
-    JSContextGroupRef m_ctxGroup = JSContextGroupCreate();
-    JSGlobalContextRef m_ctx = JSGlobalContextCreateInGroup(m_ctxGroup, NULL);
+    JSContextGroupRef m_ctxGroup = js_ctx.get_ctx_group();
+    JSGlobalContextRef m_ctx = js_ctx.get_ctx();
 
     JSSetStackBounds(m_ctxGroup,
                      coro_t::self()->get_stack()->get_stack_base(),
@@ -228,6 +229,7 @@ std::string riak_interface_t::mapreduce(json::mValue &val) {
 
     json::mArray::iterator query_it = val.get_obj()["query"].get_array().begin();
     json::mArray::iterator query_end = val.get_obj()["query"].get_array().end();
+
 
     std::string res;
 
@@ -266,14 +268,7 @@ std::string riak_interface_t::mapreduce(json::mValue &val) {
         }
     }
 
-    JSGlobalContextRelease(m_ctx);
-    JSContextGroupRelease(m_ctxGroup);
-
     return res;
-
-
-    crash("Not implemented");
-
 MALFORMED_REQUEST:
     crash("Not implemented");
 }

@@ -20,9 +20,21 @@
 
 namespace riak {
 namespace json = json_spirit;
-    JSValueRef object_to_jsvalue(JSContextRef, object_t &);
+JSValueRef object_to_jsvalue(JSContextRef, object_t &);
 
-    std::string js_obj_to_string(JSStringRef);
+std::string js_obj_to_string(JSStringRef);
+
+class js_ctx_t {
+private:
+    JSContextGroupRef m_ctxGroup;
+    JSGlobalContextRef m_ctx;
+public:
+    js_ctx_t();
+    ~js_ctx_t();
+
+    JSContextGroupRef get_ctx_group();
+    JSGlobalContextRef get_ctx();
+};
 
 } //namespace riak
 

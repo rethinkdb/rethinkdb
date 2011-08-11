@@ -18,4 +18,21 @@ namespace riak {
         JSStringGetUTF8CString(str, result_buf, sizeof(result_buf));
         return std::string(result_buf);
     }
+
+    js_ctx_t::js_ctx_t() 
+        : m_ctxGroup(JSContextGroupCreate()), m_ctx(JSGlobalContextCreateInGroup(m_ctxGroup, NULL))
+    { }
+
+    js_ctx_t::~js_ctx_t() {
+        JSGlobalContextRelease(m_ctx);
+        JSContextGroupRelease(m_ctxGroup);
+    }
+
+    JSContextGroupRef js_ctx_t::get_ctx_group() {
+        return m_ctxGroup;
+    }
+
+    JSGlobalContextRef js_ctx_t::get_ctx() {
+        return m_ctx;
+    }
 } //namespace riak 
