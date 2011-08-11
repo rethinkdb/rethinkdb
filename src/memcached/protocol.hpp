@@ -48,8 +48,8 @@ struct memcached_protocol_t {
         std::vector<read_t> parallelize(int optimal_factor);
 
         read_t() { }
-        read_t(const read_t &r) : query(r.query) { }
-        template<class T> read_t(const T &q) : query(q) { }
+        read_t(const read_t& r) : query(r.query) { }
+        template<class T> read_t(const T& q) : query(q) { }
 
         boost::variant<get_query_t, rget_query_t> query;
     };
@@ -59,8 +59,8 @@ struct memcached_protocol_t {
         static read_response_t unparallelize(std::vector<read_response_t> responses);
 
         read_response_t() { }
-        read_response_t(const read_response_t &r) : result(r.result) { }
-        template<class T> read_response_t(const T &r) : result(r) { }
+        read_response_t(const read_response_t& r) : result(r.result) { }
+        template<class T> read_response_t(const T& r) : result(r) { }
 
         boost::variant<get_result_t, rget_result_t> result;
     };
@@ -70,8 +70,8 @@ struct memcached_protocol_t {
         std::vector<write_t> shard(std::vector<region_t> regions);
 
         write_t() { }
-        write_t(const write_t &w) : mutation(w.mutation), proposed_cas(w.proposed_cas) { }
-        template<class T> write_t(const T &m, cas_t pc) : mutation(m), proposed_cas(pc) { }
+        write_t(const write_t& w) : mutation(w.mutation), proposed_cas(w.proposed_cas) { }
+        template<class T> write_t(const T& m, cas_t pc) : mutation(m), proposed_cas(pc) { }
 
         boost::variant<
             get_cas_mutation_t,
@@ -87,8 +87,8 @@ struct memcached_protocol_t {
         static write_response_t unshard(std::vector<write_response_t> responses);
 
         write_response_t() { }
-        write_response_t(const write_response_t &w) : result(w.result) { }
-        template<class T> write_response_t(const T &r) : result(r) { }
+        write_response_t(const write_response_t& w) : result(w.result) { }
+        template<class T> write_response_t(const T& r) : result(r) { }
 
         boost::variant<
             get_result_t,   // for `gets` operations
