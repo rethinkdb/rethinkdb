@@ -10,6 +10,8 @@ changed back. We'll sort this mess out when it's time to support another OS. */
 
 #include "arch/io/arch.hpp"
 
+typedef linux_io_backend_t io_backend_t;
+
 #include "arch/types.hpp"
 
 void co_read(direct_file_t *file, size_t offset, size_t length, void *buf, direct_file_t::account_t *account);

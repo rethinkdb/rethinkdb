@@ -16,9 +16,6 @@ typedef linux_nondirect_file_t nondirect_file_t;
 class linux_iocallback_t;
 typedef linux_iocallback_t iocallback_t;
 
-enum linux_io_backend_t;
-typedef linux_io_backend_t io_backend_t;
-
 class linux_tcp_listener_t;
 typedef linux_tcp_listener_t tcp_listener_t;
 
