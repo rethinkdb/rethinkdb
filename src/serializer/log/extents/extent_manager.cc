@@ -1,3 +1,4 @@
+#include "arch/arch.hpp"
 #include "serializer/log/extents/extent_manager.hpp"
 #include "perfmon.hpp"
 
@@ -152,17 +153,28 @@ extent_manager_t::extent_manager_t(direct_file_t *file, log_serializer_on_disk_s
         zones[0] = new extent_zone_t(0, TERABYTE * 1024, extent_size);
         num_zones = 1;
     }
-    
+
     next_zone = 0;
 }
 
 extent_manager_t::~extent_manager_t() {
     rassert(state == state_reserving_extents || state == state_shut_down);
-    
+
     for (unsigned int i = 0; i < num_zones; i++) {
         delete zones[i];
     }
 }
+
+extent_zone_t *extent_manager_t::zone_for_offset(off64_t offset) {
+    if (dbfile->is_block_device() || dynamic_config->file_size > 0) {
+        size_t zone_size = ceil_aligned(dynamic_config->file_zone_size, extent_size);
+        return zones[offset / zone_size];
+    } else {
+        /* There is only one zone on a non-block device */
+        return zones[0];
+    }
+}
+
 
 void extent_manager_t::reserve_extent(off64_t extent) {
 #ifdef DEBUG_EXTENTS

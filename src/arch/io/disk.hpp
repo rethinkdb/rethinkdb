@@ -7,34 +7,35 @@
 #include "config/args.hpp"
 #include "arch/io/io_utils.hpp"
 
-struct linux_iocallback_t {
-    virtual ~linux_iocallback_t() {}
-    virtual void on_io_complete() = 0;
-};
+#include "arch/types.hpp"
 
+class linux_iocallback_t;
 struct linux_disk_manager_t;
 
-#define DEFAULT_DISK_ACCOUNT ((linux_file_t::account_t*) NULL)
-#define UNLIMITED_OUTSTANDING_REQUESTS (-1)
+class linux_file_t;
+
+class linux_file_account_t {
+public:
+    linux_file_account_t(linux_file_t *f, int p, int outstanding_requests_limit = UNLIMITED_OUTSTANDING_REQUESTS);
+    ~linux_file_account_t();
+private:
+    friend class linux_file_t;
+    linux_file_t *parent;
+    /* account is internally a pointer to a accounting_diskmgr_t::account_t object. It has to be
+       a void* because accounting_diskmgr_t is a template, so its actual type depends on what
+       IO backend is chosen. */
+    // Maybe accounting_diskmgr_t shouldn't be a templated class then.
+    void *account;
+};
 
 class linux_file_t {
 public:
+    friend class linux_file_account_t;
+
     enum mode_t {
         mode_read = 1 << 0,
         mode_write = 1 << 1,
         mode_create = 1 << 2
-    };
-
-    struct account_t {
-        account_t(linux_file_t *f, int p, int outstanding_requests_limit = UNLIMITED_OUTSTANDING_REQUESTS);
-        ~account_t();
-    private:
-        friend class linux_file_t;
-        linux_file_t *parent;
-        /* account is internally a pointer to a accounting_diskmgr_t::account_t object. It has to be
-        a void* because accounting_diskmgr_t is a template, so its actual type depends on what
-        IO backend is chosen. */
-        void *account;
     };
 
     linux_file_t(const char *path, int mode, bool is_really_direct, const linux_io_backend_t io_backend, const int batch_factor);
@@ -47,8 +48,8 @@ public:
 
     /* These always return 'false'; the reason they return bool instead of void
     is for consistency with other asynchronous-callback methods */
-    bool read_async(size_t offset, size_t length, void *buf, account_t *account, linux_iocallback_t *cb);
-    bool write_async(size_t offset, size_t length, const void *buf, account_t *account, linux_iocallback_t *cb);
+    bool read_async(size_t offset, size_t length, void *buf, linux_file_account_t *account, linux_iocallback_t *cb);
+    bool write_async(size_t offset, size_t length, const void *buf, linux_file_account_t *account, linux_iocallback_t *cb);
 
     void read_blocking(size_t offset, size_t length, void *buf);
     void write_blocking(size_t offset, size_t length, const void *buf);
@@ -66,7 +67,7 @@ private:
     boost::scoped_ptr<linux_disk_manager_t> diskmgr;
 
     /* In a scoped_ptr so we can initialize it after "diskmgr" */
-    boost::scoped_ptr<account_t> default_account;
+    boost::scoped_ptr<linux_file_account_t> default_account;
 
     DISABLE_COPYING(linux_file_t);
 };

@@ -124,7 +124,7 @@ struct read_shard_visitor_t : public boost::static_visitor<std::vector<memcached
         vec.push_back(get);
         return vec;
     }
-    std::vector<memcached_protocol_t::read_t> operator()(rget_query_t original_rget) {
+    std::vector<memcached_protocol_t::read_t> operator()(UNUSED rget_query_t original_rget) {
         std::vector<memcached_protocol_t::read_t> subreads;
         for (int i = 0; i < (int)regions.size(); i++) {
             rassert(regions[i].overlaps(
@@ -204,7 +204,7 @@ key_range_t memcached_protocol_t::write_t::get_region() {
 
 /* `memcached_protocol_t::write_t::shard()` */
 
-std::vector<memcached_protocol_t::write_t> memcached_protocol_t::write_t::shard(std::vector<key_range_t> regions) {
+std::vector<memcached_protocol_t::write_t> memcached_protocol_t::write_t::shard(UNUSED std::vector<key_range_t> regions) {
     rassert(regions.size() == 1);
     std::vector<memcached_protocol_t::write_t> vec;
     vec.push_back(*this);

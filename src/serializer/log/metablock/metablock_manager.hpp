@@ -1,14 +1,15 @@
-
 #ifndef __SERIALIZER_LOG_METABLOCK_METABLOCK_MANAGER_HPP__
 #define __SERIALIZER_LOG_METABLOCK_METABLOCK_MANAGER_HPP__
 
-#include "serializer/log/extents/extent_manager.hpp"
-#include "arch/arch.hpp"
+#include <vector>
+
 #include <boost/crc.hpp>
-#include <cstddef>
-#include <deque>
-#include "serializer/log/static_header.hpp"
+#include <stddef.h>
+
+#include "arch/types.hpp"
 #include "concurrency/mutex.hpp"
+#include "serializer/log/extents/extent_manager.hpp"
+#include "serializer/log/static_header.hpp"
 
 
 
@@ -113,11 +114,11 @@ public:
         virtual void on_metablock_write() = 0;
         virtual ~metablock_write_callback_t() {}
     };
-    bool write_metablock(metablock_t *mb, file_t::account_t *io_account, metablock_write_callback_t *cb);
+    bool write_metablock(metablock_t *mb, file_account_t *io_account, metablock_write_callback_t *cb);
 private:
-    void write_metablock_callback(metablock_t *mb, file_t::account_t *io_account, metablock_write_callback_t *cb);
+    void write_metablock_callback(metablock_t *mb, file_account_t *io_account, metablock_write_callback_t *cb);
 public:
-    void co_write_metablock(metablock_t *mb, file_t::account_t *io_account);
+    void co_write_metablock(metablock_t *mb, file_account_t *io_account);
 
 private:
     mutex_t write_lock;
@@ -161,7 +162,5 @@ private:
     
     direct_file_t *dbfile;
 };
-
-#include "serializer/log/metablock/metablock_manager.tcc"
 
 #endif /* __SERIALIZER_LOG_METABLOCK_METABLOCK_MANAGER_HPP__ */

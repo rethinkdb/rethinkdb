@@ -12,7 +12,6 @@
 #include "server/key_value_store_config.hpp"
 #include "stats/control.hpp"
 #include "server/dispatching_store.hpp"
-#include "arch/arch.hpp"
 #include "serializer/config.hpp"
 #include "serializer/translator.hpp"
 #include "memcached/store.hpp"

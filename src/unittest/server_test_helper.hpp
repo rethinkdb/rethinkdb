@@ -1,7 +1,7 @@
 #ifndef __UNITTEST_SERVER_TEST_HELPER__
 #define __UNITTEST_SERVER_TEST_HELPER__
 
-#include "arch/arch.hpp"
+#include "arch/types.hpp"
 #include "utils.hpp"
 #include "buffer_cache/types.hpp"
 #include "buffer_cache/co_functions.hpp"
@@ -11,10 +11,9 @@ class translator_serializer_t;
 namespace unittest {
 
 class server_test_helper_t {
-    thread_pool_t thread_pool;
 public:
-    server_test_helper_t() : thread_pool(1), serializer(NULL) { }
-    virtual ~server_test_helper_t() { }
+    server_test_helper_t();
+    virtual ~server_test_helper_t();
     void run();
 
 protected:
@@ -36,6 +35,8 @@ protected:
     translator_serializer_t *serializer;
 
 private:
+    thread_pool_t *thread_pool;
+
     struct acquiring_coro_t {
         buf_t *result;
         bool signaled;

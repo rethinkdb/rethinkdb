@@ -1,14 +1,15 @@
 #include "buffer_cache/mirrored/writeback/writeback.hpp"
-#include "arch/runtime/runtime.hpp"
-#include "buffer_cache/mirrored/mirrored.hpp"
-#include "do_on_thread.hpp"
-#include "perfmon.hpp"
-#include "errors.hpp"
 
 #include <math.h>
 
+#include "errors.hpp"
 #include <boost/bind.hpp>
 #include <boost/variant/get.hpp>
+
+#include "arch/arch.hpp"
+#include "buffer_cache/mirrored/mirrored.hpp"
+#include "do_on_thread.hpp"
+#include "perfmon.hpp"
 
 // TODO: We added a writeback->possibly_unthrottle_transactions() call
 // in the begin_transaction_fsm_t(..) constructor, where did that get

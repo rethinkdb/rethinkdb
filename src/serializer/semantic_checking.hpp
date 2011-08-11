@@ -1,16 +1,18 @@
 #ifndef __SERIALIZER_SEMANTIC_CHECKING_HPP__
 #define __SERIALIZER_SEMANTIC_CHECKING_HPP__
 
-#include "errors.hpp"
 #include <string>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+
+#include "errors.hpp"
 #include <boost/crc.hpp>
-#include "arch/arch.hpp"
+
+#include "arch/types.hpp"
 #include "config/args.hpp"
-#include "serializer/serializer.hpp"
 #include "containers/two_level_array.hpp"
+#include "serializer/serializer.hpp"
 
 /* This is a thin wrapper around the log serializer that makes sure that the
 serializer has the correct semantics. It must have exactly the same API as

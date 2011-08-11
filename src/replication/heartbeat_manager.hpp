@@ -1,7 +1,7 @@
 #ifndef __REPLICATION_HEARTBEAT_MANAGER_HPP__
 #define	__REPLICATION_HEARTBEAT_MANAGER_HPP__
 
-#include "arch/timing.hpp"
+class timer_token_t;
 
 /* The heartbeat sender periodically calls an on_heartbeat_send method once activated.
  Tt behaves very much like a repeating_timer_t, except that you can turn it on

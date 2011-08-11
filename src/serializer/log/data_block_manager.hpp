@@ -1,12 +1,10 @@
-
 #ifndef __SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP__
 #define __SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP__
 
-#include <functional>
-#include <queue>
-#include <utility>
+#include "utils.hpp"
+#include <boost/scoped_ptr.hpp>
 
-#include "arch/arch.hpp"
+#include "arch/types.hpp"
 #include "serializer/log/config.hpp"
 #include "containers/priority_queue.hpp"
 #include "containers/two_level_array.hpp"
@@ -16,7 +14,6 @@
 #include "serializer/serializer.hpp"
 #include "serializer/types.hpp"
 #include "perfmon.hpp"
-#include "utils.hpp"
 
 class log_serializer_t;
 
@@ -27,11 +24,7 @@ extern perfmon_counter_t
     pm_serializer_old_garbage_blocks,
     pm_serializer_old_total_blocks;
 
-//extern perfmon_function_t
-//    pm_serializer_garbage_ratio;
-
-class data_block_manager_t
-{
+class data_block_manager_t {
 
     friend class dbm_read_ahead_fsm_t;
 
@@ -54,21 +47,8 @@ private:
     };
 
 public:
-    data_block_manager_t(const log_serializer_dynamic_config_t *dynamic_config, extent_manager_t *em, log_serializer_t *serializer, const log_serializer_on_disk_static_config_t *static_config)
-        : shutdown_callback(NULL), state(state_unstarted), 
-          dynamic_config(dynamic_config), static_config(static_config), extent_manager(em), serializer(serializer),
-          next_active_extent(0),
-          gc_state(extent_manager->extent_size)//,
-//          garbage_ratio_reporter(this)
-    {
-        rassert(dynamic_config);
-        rassert(static_config);
-        rassert(extent_manager);
-        rassert(serializer);
-    }
-    ~data_block_manager_t() {
-        rassert(state == state_unstarted || state == state_shut_down);
-    }
+    data_block_manager_t(const log_serializer_dynamic_config_t *dynamic_config, extent_manager_t *em, log_serializer_t *serializer, const log_serializer_on_disk_static_config_t *static_config);
+    ~data_block_manager_t();
 
 public:
     struct metablock_mixin_t {
@@ -84,11 +64,11 @@ public:
     void start_existing(direct_file_t *dbfile, metablock_mixin_t *last_metablock);
 
 public:
-    bool read(off64_t off_in, void *buf_out, file_t::account_t *io_account, iocallback_t *cb);
+    bool read(off64_t off_in, void *buf_out, file_account_t *io_account, iocallback_t *cb);
 
     /* Returns the offset to which the block will be written */
     off64_t write(const void *buf_in, block_id_t block_id, bool assign_new_block_sequence_id,
-                  file_t::account_t *io_account, iocallback_t *cb);
+                  file_account_t *io_account, iocallback_t *cb);
 
 public:
     /* exposed gc api */
@@ -163,9 +143,9 @@ private:
     log_serializer_t *serializer;
 
     direct_file_t* dbfile;
-    boost::scoped_ptr<file_t::account_t> gc_io_account_nice;
-    boost::scoped_ptr<file_t::account_t> gc_io_account_high;
-    file_t::account_t *choose_gc_io_account();
+    boost::scoped_ptr<file_account_t> gc_io_account_nice;
+    boost::scoped_ptr<file_account_t> gc_io_account_high;
+    file_account_t *choose_gc_io_account();
 
     off64_t gimme_a_new_offset();
 
@@ -399,24 +379,6 @@ public:
      */
     float garbage_ratio() const;
 
-    /* \brief perfmon to output the garbage ratio
-     */
-    
-/*    class garbage_ratio_reporter_t :
-        public perfmon_function_t::internal_function_t
-    {
-    private: 
-        data_block_manager_t *data_block_manager;
-    public:
-        explicit garbage_ratio_reporter_t(data_block_manager_t *data_block_manager)
-            : perfmon_function_t::internal_function_t(&pm_serializer_garbage_ratio),
-              data_block_manager(data_block_manager) {}
-        ~garbage_ratio_reporter_t() {}
-        std::string compute_stat() {
-            return format(data_block_manager->garbage_ratio());
-        }
-    } garbage_ratio_reporter;
-*/
     int64_t garbage_ratio_total_blocks() const { return gc_stats.old_garbage_blocks.get(); }
     int64_t garbage_ratio_garbage_blocks() const { return gc_stats.old_garbage_blocks.get(); }
 
