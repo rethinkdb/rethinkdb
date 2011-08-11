@@ -76,7 +76,7 @@ public:
     bool delete_object(std::string, std::string);
 
     //run a mapreduce job
-    json::mObject mapreduce(json::mValue &);
+    std::string mapreduce(json::mValue &);
 
     //make a key (which is guarunteed to be unique)
     std::string gen_key();

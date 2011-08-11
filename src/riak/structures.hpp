@@ -87,10 +87,10 @@ struct object_t {
     object_t() :content_length(0) { }
 
     void resize_content(size_t n) {
-        if (content_length != n) {
-            content_length = n;
-            content.reset(new char[n]);
-        }
+        //if (content_length != n) {
+        content_length = n;
+        content.reset(new char[n]);
+        //}
     }
 
     void set_content(const char* c, size_t n) {

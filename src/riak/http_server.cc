@@ -539,13 +539,17 @@ ERROR_BAD_REQUEST:
 }
 
 http_res_t riak_server_t::mapreduce(const http_req_t &req) {
+    BREAKPOINT;
     json::mValue job; //job to parse the json in to
 
-    if (req.find_header_line("Content-Type") != "application/json") {
+    //this really should be checked... but unfortunately riak's python client
+    //doesn't conform to this so it can't be
+
+    /* if (req.find_header_line("Content-Type") != "application/json") {
         http_res_t res;
         res.code = 400;
         return res;
-    }
+    } */
 
     if (!json::read_string(req.body, job)) {
         http_res_t res;
@@ -555,10 +559,11 @@ http_res_t riak_server_t::mapreduce(const http_req_t &req) {
 
     http_res_t res;
 
-    json::mValue res_val = riak_interface.mapreduce(job);
+    std::string res_val = riak_interface.mapreduce(job);
+    fprintf(stderr, "Map-Red result: %s\n", res_val.c_str());
 
     res.code = 200;
-    res.set_body("application/json", json::write_string(json::mValue(res_val)));
+    res.set_body("application/json", res_val);
 
     return res;
 }

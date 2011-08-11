@@ -9,6 +9,7 @@
 #include "config/args.hpp"
 #include "errors.hpp"
 #include <list>
+#include <map>
 
 /* Note that repli_timestamp_t does NOT represent an actual timestamp; instead it's an arbitrary
 counter. */
@@ -213,6 +214,11 @@ T const &nth(std::list<T> const &l, unsigned n) {
     }
 
     return *it;
+}
+
+template <class K, class V>
+bool std_map_contains (std::map<K,V> &map, K const & key) {
+    return map.find(key) != map.end();
 }
 
 #endif // __UTILS_HPP__

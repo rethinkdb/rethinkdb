@@ -3,6 +3,11 @@
 #include "riak/riak_value.hpp"
 #include "containers/buffer_group.hpp"
 #include <boost/algorithm/string/join.hpp>
+#include "JavaScriptCore/JavaScript.h"
+#include "API/JSContextRefPrivate.h"
+#include "arch/runtime/context_switching.hpp"
+#include "riak/javascript.hpp"
+#include "utils.hpp"
 
 namespace riak {
 
@@ -198,7 +203,78 @@ bool riak_interface_t::delete_object(std::string bucket, std::string key) {
     }
 }
 
-json::mObject riak_interface_t::mapreduce(json::mValue &) {
+std::string riak_interface_t::mapreduce(json::mValue &val) {
+    std::vector<object_t> inputs;
+    json::mArray::iterator it  = val.get_obj()["inputs"].get_array().begin();
+    json::mArray::iterator end = val.get_obj()["inputs"].get_array().end();
+
+    for (; it != end; it++) {
+        inputs.push_back(get_object(it->get_array()[0].get_str(), it->get_array()[1].get_str()));
+    }
+
+
+    JSContextGroupRef m_ctxGroup = JSContextGroupCreate();
+    JSGlobalContextRef m_ctx = JSGlobalContextCreateInGroup(m_ctxGroup, NULL);
+
+    JSSetStackBounds(m_ctxGroup,
+                     coro_t::self()->get_stack()->get_stack_base(),
+                     coro_t::self()->get_stack()->get_stack_bound());
+
+    // convert the values to js_values
+    std::vector<JSValueRef> js_values;
+    for (std::vector<object_t>::iterator it = inputs.begin(); it != inputs.end(); it++) {
+        js_values.push_back(object_to_jsvalue(m_ctx, *it));
+    }
+
+    json::mArray::iterator query_it = val.get_obj()["query"].get_array().begin();
+    json::mArray::iterator query_end = val.get_obj()["query"].get_array().end();
+
+    std::string res;
+
+    for (; query_it != query_end; query_it++) {
+        if (std_map_contains(query_it->get_obj(), std::string("map"))) {
+            if (query_it->get_obj()["map"].get_obj()["language"].get_str() != "javascript") { goto MALFORMED_REQUEST; }
+
+            // create the function
+            std::string source = "(" + query_it->get_obj()["map"].get_obj()["source"].get_str() + ")";
+            fprintf(stderr, "Map phase with: %s\n", source.c_str());
+
+            JSStringRef scriptJS = JSStringCreateWithUTF8CString(source.c_str());
+            JSObjectRef fn = JSValueToObject(m_ctx, JSEvaluateScript(m_ctx, scriptJS, NULL, NULL, 0, NULL), NULL);
+
+            for (std::vector<JSValueRef>::iterator jsval_it = js_values.begin(); jsval_it != js_values.end(); jsval_it++) {
+                *jsval_it = JSObjectCallAsFunction(m_ctx, fn, NULL, 1, &(*jsval_it), NULL);
+            }
+        } else if (std_map_contains(query_it->get_obj(), std::string("reduce"))) {
+            if (query_it->get_obj()["reduce"].get_obj()["language"].get_str() != "javascript") { goto MALFORMED_REQUEST; }
+
+            // create the data to be given to the script
+            JSObjectRef data_list = JSObjectMakeArray(m_ctx, js_values.size(), js_values.data(), NULL);
+
+            // create the function
+            std::string source = "(" + query_it->get_obj()["reduce"].get_obj()["source"].get_str() + ")";
+            fprintf(stderr, "Reduce phase with: %s\n", source.c_str());
+
+            JSStringRef scriptJS = JSStringCreateWithUTF8CString(source.c_str());
+            JSObjectRef fn = JSValueToObject(m_ctx, JSEvaluateScript(m_ctx, scriptJS, NULL, NULL, 0, NULL), NULL);
+
+            //evaluate the function on the data
+            JSValueRef value = JSObjectCallAsFunction(m_ctx, fn, NULL, 1, &data_list, NULL);
+            res = js_obj_to_string(JSValueCreateJSONString(m_ctx, value, 0, NULL));
+        } else {
+            goto MALFORMED_REQUEST;
+        }
+    }
+
+    JSGlobalContextRelease(m_ctx);
+    JSContextGroupRelease(m_ctxGroup);
+
+    return res;
+
+
+    crash("Not implemented");
+
+MALFORMED_REQUEST:
     crash("Not implemented");
 }
 
