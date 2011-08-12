@@ -6,7 +6,7 @@
 #include <boost/uuids/uuid.hpp>
 
 template<class protocol_t>
-struct registration_metadata_t {
+struct registrar_metadata_t {
 
     typedef async_mailbox_t<void(
         typename protocol_t::write_t,
@@ -27,6 +27,8 @@ struct registration_metadata_t {
         )> read_mailbox_t;
 
     typedef boost::uuids::uuid registration_id_t;
+
+    bool is_alive;
 
     typedef async_mailbox_t<void(
         registration_id_t,

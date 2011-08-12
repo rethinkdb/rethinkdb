@@ -35,7 +35,7 @@ struct registrant_t {
             mailbox_cluster_t *cl,
 
             /* Which branch to register with */
-            metadata_view_t<registration_metadata_t<protocol_t> > *bmd,
+            metadata_view_t<registrar_metadata_t<protocol_t> > *registar_md,
 
             /* Whenever a write operation is received, this function will be
             called in a separate coroutine. Calling the final argument will send
@@ -51,7 +51,7 @@ struct registrant_t {
             signal_t *interruptor) :
 
         cluster(cl),
-        branch_metadata(bmd),
+        registrar(registar_md),
 
         registration_id(generate_uuid()),
 
@@ -68,7 +68,7 @@ struct registrant_t {
 
         /* Start monitoring the master we're joining. */
 
-        master_is_offline.reset(new branch_death_watcher_t<protocol_t>(branch_metadata));
+        master_is_offline.reset(new death_watcher_t<registrar_metadata_t<protocol_t> >(registrar));
         fail_if_master_is_offline.reset(new cond_link_t(master_is_offline.get(), &failed_cond));
 
         if (failed_cond.is_pulsed()) return;
@@ -200,22 +200,22 @@ private:
 
     mailbox_cluster_t *cluster;
 
-    metadata_view_t<branch_metadata_t<protocol_t> > *branch_metadata;
+    metadata_view_t<registrar_metadata_t<protocol_t> > *registrar;
 
     cond_t failed_cond;
 
-    boost::scoped_ptr<branch_death_watcher_t<protocol_t> > master_is_offline;
+    boost::scoped_ptr<death_watcher_t<registrar_metadata_t<protocol_t> > > master_is_offline;
     boost::scoped_ptr<cond_link_t> fail_if_master_is_offline;
     boost::scoped_ptr<disconnect_watcher_t> master_is_dead;
     boost::scoped_ptr<cond_link_t> fail_if_master_is_dead;
 
-    realtime_registration_id_t registration_id;
+    registrar_metadata_t<protocol_t>::registration_id_t registration_id;
 
     bool is_upgraded;
 
-    registration_metadata_t<protocol_t>::write_mailbox_t write_mailbox;
-    registration_metadata_t<protocol_t>::writeread_mailbox_t writeread_mailbox;
-    registration_metadata_t<protocol_t>::read_mailbox_t read_mailbox;
+    registrar_metadata_t<protocol_t>::write_mailbox_t write_mailbox;
+    registrar_metadata_t<protocol_t>::writeread_mailbox_t writeread_mailbox;
+    registrar_metadata_t<protocol_t>::read_mailbox_t read_mailbox;
 
     boost::function<void(
         typename protocol_t::write_t,
