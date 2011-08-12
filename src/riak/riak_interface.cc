@@ -204,6 +204,7 @@ bool riak_interface_t::delete_object(std::string bucket, std::string key) {
 }
 
 std::string riak_interface_t::mapreduce(json::mValue &val) {
+    //BREAKPOINT;
     std::vector<object_t> inputs;
     json::mArray::iterator it  = val.get_obj()["inputs"].get_array().begin();
     json::mArray::iterator end = val.get_obj()["inputs"].get_array().end();
@@ -212,6 +213,30 @@ std::string riak_interface_t::mapreduce(json::mValue &val) {
         inputs.push_back(get_object(it->get_array()[0].get_str(), it->get_array()[1].get_str()));
     }
 
+    json::mArray::iterator query_it = val.get_obj()["query"].get_array().begin();
+    json::mArray::iterator query_end = val.get_obj()["query"].get_array().end();
+
+    //do linking phases
+    for (; query_it != query_end; query_it++) {
+        if (std_map_contains(query_it->get_obj(), std::string("link"))) {
+            json::mObject *link = &(query_it->get_obj()["link"].get_obj());
+            link_filter_t link_filter((*link)["bucket"].get_str(), (*link)["tag"].get_str(), (*link)["keep"].get_bool());
+
+            std::vector<object_t> new_inputs;
+            for (std::vector<object_t>::iterator it = inputs.begin(); it != inputs.end(); it++) {
+                for (std::vector<link_t>::iterator lk_it = it->links.begin(); lk_it != it->links.end(); lk_it++) {
+                    if (match(link_filter, *lk_it)) {
+                        new_inputs.push_back(get_object(lk_it->bucket, lk_it->key));
+                    }
+                }
+            }
+            inputs = new_inputs;
+        } else {
+            break;
+        }
+    }
+
+    //startup the javascript contexts
     js_ctx_t js_ctx;
 
     JSContextGroupRef m_ctxGroup = js_ctx.get_ctx_group();
@@ -227,14 +252,11 @@ std::string riak_interface_t::mapreduce(json::mValue &val) {
         js_values.push_back(object_to_jsvalue(m_ctx, *it));
     }
 
-    json::mArray::iterator query_it = val.get_obj()["query"].get_array().begin();
-    json::mArray::iterator query_end = val.get_obj()["query"].get_array().end();
-
-
     std::string res;
-
     for (; query_it != query_end; query_it++) {
-        if (std_map_contains(query_it->get_obj(), std::string("map"))) {
+        if (std_map_contains(query_it->get_obj(), std::string("link"))) {
+            //Do nothing
+        } else if (std_map_contains(query_it->get_obj(), std::string("map"))) {
             if (query_it->get_obj()["map"].get_obj()["language"].get_str() != "javascript") { goto MALFORMED_REQUEST; }
 
             // create the function
@@ -267,6 +289,7 @@ std::string riak_interface_t::mapreduce(json::mValue &val) {
             JSValueRef value = JSObjectCallAsFunction(m_ctx, fn, NULL, 1, &collapsed_data, NULL);
             res = js_obj_to_string(JSValueCreateJSONString(m_ctx, value, 0, NULL));
         } else {
+            fprintf(stderr, "Don't know how to handle: %s\n", json::write_string(json::mValue(query_it->get_obj())).c_str());
             goto MALFORMED_REQUEST;
         }
     }

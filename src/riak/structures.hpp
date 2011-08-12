@@ -46,7 +46,6 @@ struct bucket_t {
 };
 
 
-//methods implemented in riak.cc
 struct link_t {
     std::string bucket;
     std::string key;
@@ -70,7 +69,10 @@ struct link_filter_t {
     boost::optional<std::string> bucket;
     boost::optional<std::string> tag;
     bool keep;
+    link_filter_t(std::string bucket, std::string tag, bool keep);
 };
+
+bool match(link_filter_t const &, link_t const &);
 
 struct object_t {
     std::string key;

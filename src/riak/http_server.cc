@@ -463,34 +463,24 @@ http_res_t riak_server_t::link_walk(const http_req_t &req) {
         tokenizer lf_tokens(*url_it, sep);
         tok_iterator lft_it = lf_tokens.begin(), lf_end = tokens.end();
 
-        link_filter_t filter;
+        //get the values from the iterator
+        std::string bucket, tag, keep;
 
         if (lft_it == lf_end) { goto ERROR_BAD_REQUEST; }
-        if (*lft_it == "_" ) {
-            filter.bucket = boost::optional<std::string>();
-            lft_it++;
-        } else {
-            filter.bucket = *lft_it++;
-        }
+        bucket = *lft_it; lft_it++;
 
         if (lft_it == lf_end) { goto ERROR_BAD_REQUEST; }
-        if (*lft_it == "_" ) {
-            filter.tag = boost::optional<std::string>();
-            lft_it++;
-        } else {
-            filter.tag = *lft_it++;
-        }
+        tag = *lft_it; lft_it++;
 
         if (lft_it == lf_end) { goto ERROR_BAD_REQUEST; }
-        if (*lft_it == "1") {
-            filter.keep = true;
-        } else if (*lft_it == "0") {
-            filter.keep = false;
-        } else {
-            goto ERROR_BAD_REQUEST;
-        }
+        keep = *lft_it;
 
-        filters.push_back(filter);
+        bool keep_bool;
+        if (keep == "1") { keep_bool = true; }
+        else if (keep == "0") { keep_bool = false; }
+        else { goto ERROR_BAD_REQUEST; }
+
+        filters.push_back(link_filter_t(bucket, tag, keep_bool));
     }
     {
 
@@ -539,7 +529,7 @@ ERROR_BAD_REQUEST:
 }
 
 http_res_t riak_server_t::mapreduce(const http_req_t &req) {
-    BREAKPOINT;
+    //BREAKPOINT;
     json::mValue job; //job to parse the json in to
 
     //this really should be checked... but unfortunately riak's python client
