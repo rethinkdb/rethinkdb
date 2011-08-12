@@ -252,6 +252,9 @@ std::string riak_interface_t::mapreduce(json::mValue &val) {
 
             // create the data to be given to the script
             JSObjectRef data_list = JSObjectMakeArray(m_ctx, js_values.size(), js_values.data(), NULL);
+            JSStringRef collapse_script= JSStringCreateWithUTF8CString("(function(x) { return x.reduce(function(a, b) { return a.concat(b); }, []); })");
+            JSObjectRef collapse_fn = JSValueToObject(m_ctx, JSEvaluateScript(m_ctx, collapse_script, NULL, NULL, 0, NULL), NULL);
+            JSValueRef collapsed_data = JSObjectCallAsFunction(m_ctx, collapse_fn, NULL, 1, &data_list, NULL);
 
             // create the function
             std::string source = "(" + query_it->get_obj()["reduce"].get_obj()["source"].get_str() + ")";
@@ -261,7 +264,7 @@ std::string riak_interface_t::mapreduce(json::mValue &val) {
             JSObjectRef fn = JSValueToObject(m_ctx, JSEvaluateScript(m_ctx, scriptJS, NULL, NULL, 0, NULL), NULL);
 
             //evaluate the function on the data
-            JSValueRef value = JSObjectCallAsFunction(m_ctx, fn, NULL, 1, &data_list, NULL);
+            JSValueRef value = JSObjectCallAsFunction(m_ctx, fn, NULL, 1, &collapsed_data, NULL);
             res = js_obj_to_string(JSValueCreateJSONString(m_ctx, value, 0, NULL));
         } else {
             goto MALFORMED_REQUEST;
