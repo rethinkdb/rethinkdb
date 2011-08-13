@@ -250,11 +250,12 @@ void writeback_t::flush_timer_callback(void *ctx) {
     }
 }
 
-struct writeback_t::buf_writer_t :
+class writeback_t::buf_writer_t :
     public iocallback_t,
     public thread_message_t,
     public cond_t               // note: inherits from home_thread_mixin_t
 {
+public:
     struct launch_callback_t :
         public serializer_t::write_launched_callback_t,
         public thread_message_t,

@@ -72,6 +72,8 @@ PACKAGES_DIR:=$(BUILD_ROOT_DIR)/packages
 RPM_PACKAGE_DIR:=$(PACKAGES_DIR)/rpm
 DEB_PACKAGE_DIR:=$(PACKAGES_DIR)/deb
 
+CXXDEP:=g++
+
 # Define configuration variables
 ifeq (${CLANG},1)
 CXX:=clang
@@ -640,7 +642,7 @@ ifeq ($(VERBOSE),0)
 	@echo "    DEP $@"
 endif
 	$(QUIET) mkdir -p $(dir $@)
-	$(QUIET) $(CXX) $(CXXFLAGS) -M -MQ $(OBJ_DIR)/$*.o -MQ $@ $< > $@
+	$(QUIET) $(CXXDEP) $(CXXFLAGS) -M -MQ $(OBJ_DIR)/$*.o -MQ $@ $< > $@
 
 # Without this, the proto headers get generated to build the .d files, then are removed as
 # intermediate files; then the .d files are read in, and some depend on the proto headers, so they
