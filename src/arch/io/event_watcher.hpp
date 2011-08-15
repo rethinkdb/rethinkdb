@@ -5,10 +5,11 @@
 #include "utils.hpp"
 #include "concurrency/signal.hpp"
 
-struct linux_event_watcher_t :
+class linux_event_watcher_t :
     public home_thread_mixin_t,
     private linux_event_callback_t
 {
+public:
     linux_event_watcher_t(fd_t f, linux_event_callback_t *eh);
     ~linux_event_watcher_t();
 

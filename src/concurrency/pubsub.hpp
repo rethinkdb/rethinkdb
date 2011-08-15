@@ -20,7 +20,7 @@ publisher from inside the `publish()` callback, your call will block until
 `publish()` is done. */
 
 template<class subscriber_t>
-struct publisher_t :
+class publisher_t :
     public home_thread_mixin_t
 {
 public:

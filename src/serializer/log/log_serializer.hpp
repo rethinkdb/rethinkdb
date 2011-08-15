@@ -63,7 +63,7 @@ class log_serializer_t :
     friend struct ls_read_fsm_t;
     friend struct ls_start_new_fsm_t;
     friend struct ls_start_existing_fsm_t;
-    friend struct data_block_manager_t;
+    friend class data_block_manager_t;
     friend struct dbm_read_ahead_fsm_t;
 
 public:

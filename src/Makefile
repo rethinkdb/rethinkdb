@@ -72,6 +72,8 @@ PACKAGES_DIR:=$(BUILD_ROOT_DIR)/packages
 RPM_PACKAGE_DIR:=$(PACKAGES_DIR)/rpm
 DEB_PACKAGE_DIR:=$(PACKAGES_DIR)/deb
 
+CXXDEP:=g++
+
 # Define configuration variables
 ifeq (${CLANG},1)
 CXX:=clang
@@ -208,7 +210,7 @@ STATIC_LIBRARIES+=tcmalloc_minimal
 endif
 
 # look for the static library in the same directory as the .so file
-STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }')) $(EXTERNAL_SOURCE_DIR)/WebKit/WebKitBuild/Release/JavaScriptCore/release/libjscore.a /usr/share/qt4/lib/libQtCore.so
+STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }')) $(EXTERNAL_SOURCE_DIR)/WebKit/WebKitBuild/Release/JavaScriptCore/release/libjscore.a /usr/lib/libQtCore.so
 
 # Should makefile be noisy?
 ifeq ($(VERBOSE),1)
@@ -640,7 +642,7 @@ ifeq ($(VERBOSE),0)
 	@echo "    DEP $@"
 endif
 	$(QUIET) mkdir -p $(dir $@)
-	$(QUIET) $(CXX) $(CXXFLAGS) -M -MQ $(OBJ_DIR)/$*.o -MQ $@ $< > $@
+	$(QUIET) $(CXXDEP) $(CXXFLAGS) -M -MQ $(OBJ_DIR)/$*.o -MQ $@ $< > $@
 
 # Without this, the proto headers get generated to build the .d files, then are removed as
 # intermediate files; then the .d files are read in, and some depend on the proto headers, so they

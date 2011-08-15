@@ -168,7 +168,7 @@ public:
     bool can_read_ahead_block_be_accepted(block_id_t block_id);
 
     // Concurrent flush helpers
-    struct buf_writer_t;      // public so that mc_buf_t can declare it a friend
+    class buf_writer_t;      // public so that mc_buf_t can declare it a friend
 
 private:
     struct flush_state_t;

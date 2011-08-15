@@ -26,12 +26,11 @@ the unpulsed state after being pulsed, and some things may depend on that
 property. If you want something like that, maybe you should look at something
 other than `signal_t`; have you tried `resettable_cond_t`? */
 
-struct signal_t :
+class signal_t :
     /* This is less-than-ideal because it allows subclasses of `signal_t` to
     access `publish()`. They should be calling `pulse()` instead of calling
     `publish()` directly. */
-    public publisher_t<boost::function<void()> >
-{
+    public publisher_t<boost::function<void()> > {
 public:
     /* True if somebody has called `pulse()`. */
     bool is_pulsed() const {

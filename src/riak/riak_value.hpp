@@ -73,11 +73,13 @@ public:
     // Does not read any bytes outside of [value, value +
     // length_available).
     bool fits(const void *value, int length_available) const {
-        return size(as_riak(value)) < length_available;
+        if (length_available < 0) { return false; }
+        if ((unsigned) length_available < offsetof(riak_value_t, contents)) { return false; }
+        else { return blob::ref_fits(block_size_, length_available - offsetof(riak_value_t, contents), as_riak(value)->contents, blob::btree_maxreflen); }
     }
 
     bool deep_fsck(UNUSED const void *value, UNUSED int length_available, UNUSED std::string *msg_out) const {
-        // TODO: Add a real implementation here.
+        // TODO LOOF: Add a real implementation here.
         return true;
     }
 

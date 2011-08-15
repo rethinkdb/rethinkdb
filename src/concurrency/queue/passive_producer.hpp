@@ -23,7 +23,8 @@ before it, and when `availability_t` is a separate object they can all share the
 same `availability_t`. `availability_control_t` is a concrete subclass of
 `availability_t` that can actually be instantiated. */
 
-struct availability_t {
+class availability_t {
+public:
     bool get() { return available; }
     void set_callback(boost::function<void()> fun) {
         rassert(!callback);
@@ -40,7 +41,8 @@ private:
     boost::function<void()> callback;
 };
 
-struct availability_control_t : public availability_t {
+class availability_control_t : public availability_t {
+public:
     availability_control_t() {
         available = false;
     }
