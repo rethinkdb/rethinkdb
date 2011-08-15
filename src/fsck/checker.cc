@@ -1157,14 +1157,7 @@ void check_subtree(slicecx_t& cx, block_id_t id, const btree_key_t *lo, const bt
         }
 
         if (reinterpret_cast<node_t *>(node.buf)->magic == sizer.btree_leaf_magic()) {
-
-            // TODO LOOF: Make leaf::fsck capable of recursively
-            // fscking the node's values if they are blobs or some
-            // other sizer-specific thing.  Then actually call
-            // leaf::fsck.
-
-            // We don't call this any more.
-            //            check_subtree_leaf_node(cx, reinterpret_cast<leaf_node_t *>(node.buf), lo, hi, errs, &node_err);
+            check_subtree_leaf_node(cx, reinterpret_cast<leaf_node_t *>(node.buf), lo, hi, errs, &node_err);
         } else if (reinterpret_cast<internal_node_t *>(node.buf)->magic == internal_node_t::expected_magic) {
             check_subtree_internal_node(cx, reinterpret_cast<internal_node_t *>(node.buf), lo, hi, errs, &node_err);
         } else {
