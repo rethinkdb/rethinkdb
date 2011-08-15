@@ -1060,7 +1060,6 @@ void check_subtree_leaf_node(slicecx_t& cx, const leaf_node_t *buf,
     } getter;
     getter.cx = &cx;
 
-
     value_sizer_fscker_t<void> fscker(&getter);
     std::string msg;
     if (!leaf::fsck(sizer.get(), buf, &fscker, &msg)) {
