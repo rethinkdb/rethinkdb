@@ -26,6 +26,10 @@ namespace riak {
     js_ctx_t::~js_ctx_t() {
         JSGlobalContextRelease(m_ctx);
         JSContextGroupRelease(m_ctxGroup);
+
+    JSSetStackBounds(m_ctxGroup,
+                     coro_t::self()->get_stack()->get_stack_base(),
+                     coro_t::self()->get_stack()->get_stack_bound());
     }
 
     JSContextGroupRef js_ctx_t::get_ctx_group() {

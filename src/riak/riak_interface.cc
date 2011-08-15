@@ -239,12 +239,7 @@ std::string riak_interface_t::mapreduce(json::mValue &val) {
     //startup the javascript contexts
     js_ctx_t js_ctx;
 
-    JSContextGroupRef m_ctxGroup = js_ctx.get_ctx_group();
     JSGlobalContextRef m_ctx = js_ctx.get_ctx();
-
-    JSSetStackBounds(m_ctxGroup,
-                     coro_t::self()->get_stack()->get_stack_base(),
-                     coro_t::self()->get_stack()->get_stack_bound());
 
     // convert the values to js_values
     std::vector<JSValueRef> js_values;
@@ -255,7 +250,7 @@ std::string riak_interface_t::mapreduce(json::mValue &val) {
     std::string res;
     for (; query_it != query_end; query_it++) {
         if (std_map_contains(query_it->get_obj(), std::string("link"))) {
-            //Do nothing
+            { goto MALFORMED_REQUEST; }
         } else if (std_map_contains(query_it->get_obj(), std::string("map"))) {
             if (query_it->get_obj()["map"].get_obj()["language"].get_str() != "javascript") { goto MALFORMED_REQUEST; }
 
