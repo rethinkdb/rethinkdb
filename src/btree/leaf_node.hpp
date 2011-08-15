@@ -319,9 +319,6 @@ class do_nothing_fscker_t : public value_fscker_t<V> {
     }
 };
 
-// TODO LOOF: This isn't really a safe fsck function, it works
-// properly when the value is valid but could segfault when it is not.
-
 // If this returns false, it sets msg_out to point to a statically
 // allocated string
 template <class V>
@@ -449,7 +446,7 @@ bool fsck(value_sizer_t<V> *sizer, const leaf_node_t *node, value_fscker_t<V> *f
     return true;
 }
 
-// TODO: This function is stupid, and things that call it are stupid.  Get rid of it.
+// TODO LOOF: This function is stupid, and things that call it are stupid.  Get rid of it.
 inline
 bool has_sensible_offsets(block_size_t bs, const leaf_node_t *node) {
     return offsetof(leaf_node_t, pair_offsets) + node->num_pairs * sizeof(uint16_t) <= node->frontmost && node->frontmost <= bs.value();
