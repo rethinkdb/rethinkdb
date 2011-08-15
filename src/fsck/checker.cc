@@ -1007,8 +1007,8 @@ void check_value(UNUSED slicecx_t& cx, const memcached_value_t *value, value_err
 
 template <class V>
 class value_sizer_fscker_t : public leaf::value_fscker_t<V> {
-    bool fsck(value_sizer_t<V> *sizer, const V *value, int length_available, std::string *msg_out) {
-        return sizer->deep_fsck(value, length_available, msg_out);
+    bool fsck(value_sizer_t<V> *sizer, const V *value, std::string *msg_out) {
+        return sizer->deep_fsck(value, sizer->size(value), msg_out);
     }
 };
 

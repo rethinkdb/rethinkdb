@@ -298,17 +298,13 @@ void print(FILE *fp, value_sizer_t<V> *sizer, const leaf_node_t *node) {
     fflush(fp);
 }
 
-#define RETHINKDB_BTREE_LEAF_FSCK_CHECK(test) do { if (!(test)) { *msg_out = strprintf("[%s] (line %d)", #test, __LINE__); return false; } } while (0)
-
-#define RETHINKDB_BTREE_LEAF_FSCK_CHECKF(test, fmt, ...) do { if (!(test)) { *msg_out = strprintf("[%s] (line %d) " fmt, #test, __LINE__, ##__VA_ARGS__); return false; } } while (0)
-
 template <class V>
 class value_fscker_t {
 public:
     value_fscker_t() { }
 
     // Returns true if there are no problems.
-    virtual bool fsck(value_sizer_t<V> *sizer, const V *value, int length_available, std::string *msg_out) = 0;
+    virtual bool fsck(value_sizer_t<V> *sizer, const V *value, std::string *msg_out) = 0;
 
 protected:
     virtual ~value_fscker_t() { }
@@ -317,14 +313,9 @@ protected:
 };
 
 template <class V>
-class value_fits_fscker_t : public value_fscker_t<V> {
-    bool fsck(value_sizer_t<V> *sizer, const V *value, int length_available, std::string *msg_out) {
-        if (sizer->fits(value, length_available)) {
-            return true;
-        } else {
-            *msg_out = strprintf("value does not fit in %d", length_available);
-            return false;
-        }
+class do_nothing_fscker_t : public value_fscker_t<V> {
+    bool fsck(UNUSED value_sizer_t<V> *sizer, UNUSED const V *value, UNUSED std::string *msg_out) {
+        return true;
     }
 };
 
@@ -393,43 +384,65 @@ bool fsck(value_sizer_t<V> *sizer, const leaf_node_t *node, value_fscker_t<V> *f
 
         // tstamp_cutpoint is supposed to be on some entry's offset.
         if (offset >= node->tstamp_cutpoint && !seen_tstamp_cutpoint) {
-            RETHINKDB_BTREE_LEAF_FSCK_CHECK(offset == node->tstamp_cutpoint);
+            if (failed(offset == node->tstamp_cutpoint, "misaligned tstamp_cutpoint")) {
+                return false;
+            }
             seen_tstamp_cutpoint = true;
+        }
+
+        if (failed(offset + (offset < node->tstamp_cutpoint ? sizeof(repli_timestamp_t) : 0) < sizer->block_size().value(),
+                   "offset would be past block size after accounting for the timestamp")) {
+            return false;
         }
 
         const entry_t *ent = get_entry(node, offset);
         if (entry_is_live(ent)) {
             const V *value = entry_value<V>(ent);
+            int space = sizer->block_size().value() - (reinterpret_cast<const char *>(value) - reinterpret_cast<const char *>(node));
+            if (!sizer->fits(value, space)) {
+                *msg_out = strprintf("problem with key %.*s: value does not fit\n", entry_key(ent)->size, entry_key(ent)->contents);
+                return false;
+            }
+
             std::string fscker_msg;
-            if (!fscker->fsck(sizer, value, sizer->block_size().value() - (reinterpret_cast<const char *>(value) - reinterpret_cast<const char *>(node)), &fscker_msg)) {
+            if (!fscker->fsck(sizer, value, &fscker_msg)) {
                 *msg_out = strprintf("Problem with key %.*s: %s\n", entry_key(ent)->size, entry_key(ent)->contents, fscker_msg.c_str());
                 return false;
             }
 
             observed_live_size += sizeof(uint16_t) + entry_size(sizer, ent);
-            RETHINKDB_BTREE_LEAF_FSCK_CHECK(i < node->num_pairs);
-            RETHINKDB_BTREE_LEAF_FSCK_CHECKF(offset == offs[i], "offset = %d, offs[i] = %d, i = %d, num_pairs = %d", offset, offs[i], i, node->num_pairs);
+            if (failed(i < node->num_pairs, "missing entry offsets")
+                || failed(offset == offs[i], "missing live entries or entry offsets"))
+
             ++i;
         } else if (entry_is_deletion(ent)) {
-            RETHINKDB_BTREE_LEAF_FSCK_CHECK(!seen_tstamp_cutpoint);
-            RETHINKDB_BTREE_LEAF_FSCK_CHECK(i < node->num_pairs);
-            RETHINKDB_BTREE_LEAF_FSCK_CHECKF(offset == offs[i], "offset = %d, offs[i] = %d, i = %d, num_pairs = %d", offset, offs[i], i, node->num_pairs);
+            if (failed(!seen_tstamp_cutpoint, "deletion entry after tstamp_cutpoint")
+                || failed(i < node->num_pairs, "missing entry offsets")
+                || failed(offset == offs[i], "missing deletion entries or entry offsets")) {
+                return false;
+            }
             ++i;
         }
 
+        // It's safe to step (because we just checked that the entry
+        // is valid).
         iter.step(sizer, node);
     }
 
-    RETHINKDB_BTREE_LEAF_FSCK_CHECK(i == node->num_pairs);
-
-    RETHINKDB_BTREE_LEAF_FSCK_CHECK(node->live_size == observed_live_size);
+    if (failed(i == node->num_pairs, "missing entries")
+        || failed(node->live_size == observed_live_size, "incorrect live_size recorded")) {
+        return false;
+    }
 
     // Entries look valid, check key ordering.
 
     const btree_key_t *last = NULL;
     for (int k = 0; k < node->num_pairs; ++k) {
         const btree_key_t *key = entry_key(get_entry(node, node->pair_offsets[k]));
-        RETHINKDB_BTREE_LEAF_FSCK_CHECK(last == NULL || sized_strcmp(last->contents, last->size, key->contents, key->size) < 0);
+        if (failed(last == NULL || sized_strcmp(last->contents, last->size, key->contents, key->size) < 0,
+                   "keys out of order")) {
+            return false;
+        }
         last = key;
     }
 
@@ -446,7 +459,7 @@ template <class V>
 void validate(scoped_error_log_t& log, value_sizer_t<V> *sizer, const leaf_node_t *node) {
 #ifndef NDEBUG
     strprint(log.expose_logtext(), sizer, node);
-    value_fits_fscker_t<V> fits;
+    do_nothing_fscker_t<V> fits;
     std::string msg;
     bool fscked_successfully = fsck(sizer, node, &fits, &msg);
     scoped_error_rassert(log, fscked_successfully, "%s", msg.c_str());
