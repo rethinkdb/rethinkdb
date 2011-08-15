@@ -78,7 +78,8 @@ public:
         else { return blob::ref_fits(block_size_, length_available - offsetof(riak_value_t, contents), as_riak(value)->contents, blob::btree_maxreflen); }
     }
 
-    bool deep_fsck(UNUSED const void *value, UNUSED int length_available, UNUSED std::string *msg_out) const {
+    bool deep_fsck(UNUSED block_getter_t *getter, UNUSED const void *value,
+                   UNUSED int length_available, UNUSED std::string *msg_out) const {
         // TODO LOOF: Add a real implementation here.
         return true;
     }

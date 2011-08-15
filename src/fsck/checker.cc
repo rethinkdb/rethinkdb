@@ -1007,9 +1007,17 @@ void check_value(UNUSED slicecx_t& cx, const memcached_value_t *value, value_err
 
 template <class V>
 class value_sizer_fscker_t : public leaf::value_fscker_t<V> {
+public:
+    value_sizer_fscker_t(block_getter_t *getter) : getter_(getter) { }
+
     bool fsck(value_sizer_t<V> *sizer, const V *value, std::string *msg_out) {
-        return sizer->deep_fsck(value, sizer->size(value), msg_out);
+        return sizer->deep_fsck(getter_, value, sizer->size(value), msg_out);
     }
+
+private:
+    block_getter_t *getter_;
+
+    DISABLE_COPYING(value_sizer_fscker_t);
 };
 
 bool construct_sizer_from_magic(block_size_t bs, boost::scoped_ptr< value_sizer_t<void> >& sizer, block_magic_t magic) {
@@ -1034,7 +1042,26 @@ void check_subtree_leaf_node(slicecx_t& cx, const leaf_node_t *buf,
         errs->msg = "Unrecognized magic value for leaf node.";
     }
 
-    value_sizer_fscker_t<void> fscker;
+    struct : public block_getter_t {
+        bool get_block(block_id_t id, scoped_malloc<char>& buf_out) {
+            btree_block_t b;
+            if (b.init(cx->file, cx->knog, id)) {
+                // TODO: This copies the block, and there's no reason
+                // we really have to do that.
+                scoped_malloc<char> tmp(reinterpret_cast<char *>(b.buf), reinterpret_cast<char *>(b.buf) + cx->block_size().value());
+                buf_out.swap(tmp);
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        slicecx_t *cx;
+    } getter;
+    getter.cx = &cx;
+
+
+    value_sizer_fscker_t<void> fscker(&getter);
     std::string msg;
     if (!leaf::fsck(sizer.get(), buf, &fscker, &msg)) {
         errs->msg = msg;
