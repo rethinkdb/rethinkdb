@@ -34,7 +34,7 @@ private:
 /* Remove a key/value pair from a leaf node */
 class leaf_remove_patch_t : public buf_patch_t {
 public:
-    leaf_remove_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const block_size_t block_size, repli_timestamp_t tstamp, const uint8_t key_size, const char *key_contents);
+    leaf_remove_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, repli_timestamp_t tstamp, const uint8_t key_size, const char *key_contents);
     leaf_remove_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const char* data, const uint16_t data_length);
 
     virtual ~leaf_remove_patch_t();
@@ -48,7 +48,6 @@ protected:
     virtual uint16_t get_data_size() const;
 
 private:
-    block_size_t block_size;
     repli_timestamp_t timestamp;
     char *key_buf;
 };

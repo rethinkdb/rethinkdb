@@ -308,7 +308,7 @@ void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc, btree_key_t *key,
 
             rassert(tstamp != repli_timestamp_t::invalid, "Deletes need a valid timestamp now.");
 
-            kv_loc->buf->apply_patch(new leaf_remove_patch_t(kv_loc->buf->get_block_id(), kv_loc->buf->get_next_patch_counter(), kv_loc->txn->get_cache()->get_block_size(), tstamp, key->size, key->contents));
+            kv_loc->buf->apply_patch(new leaf_remove_patch_t(kv_loc->buf->get_block_id(), kv_loc->buf->get_next_patch_counter(), tstamp, key->size, key->contents));
         }
     }
 

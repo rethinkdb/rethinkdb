@@ -90,9 +90,8 @@ void leaf_insert_patch_t::apply_to_buf(char *buf_data, block_size_t bs) {
 }
 
 
-leaf_remove_patch_t::leaf_remove_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const block_size_t block_size, repli_timestamp_t tstamp, const uint8_t key_size, const char *key_contents) :
+leaf_remove_patch_t::leaf_remove_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, repli_timestamp_t tstamp, const uint8_t key_size, const char *key_contents) :
             buf_patch_t(block_id, patch_counter, buf_patch_t::OPER_LEAF_REMOVE),
-            block_size(block_size),
             timestamp(tstamp) {
     key_buf = new char[sizeof(btree_key_t) + key_size];
     btree_key_t *key = reinterpret_cast<btree_key_t *>(key_buf);
@@ -102,12 +101,8 @@ leaf_remove_patch_t::leaf_remove_patch_t(const block_id_t block_id, const patch_
 
 leaf_remove_patch_t::leaf_remove_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const char* data, const uint16_t data_length) :
             buf_patch_t(block_id, patch_counter, buf_patch_t::OPER_LEAF_REMOVE),
-            block_size(block_size_t::unsafe_make(0)),
             timestamp(repli_timestamp_t::invalid) {
-    guarantee_patch_format(data_length >= sizeof(block_size) + sizeof(repli_timestamp_t) + sizeof(uint8_t));
-    // TODO: Why are we serializing and deserializing the block size?
-    block_size = *(reinterpret_cast<const block_size_t *>(data));
-    data += sizeof(block_size);
+    guarantee_patch_format(data_length >= sizeof(repli_timestamp_t) + sizeof(uint8_t));
 
     timestamp = *reinterpret_cast<const repli_timestamp_t *>(data);
     data += sizeof(timestamp);
@@ -118,7 +113,7 @@ leaf_remove_patch_t::leaf_remove_patch_t(const block_id_t block_id, const patch_
     try {
         btree_key_t *key = reinterpret_cast<btree_key_t *>(key_buf);
         key->size = key_size;
-        guarantee_patch_format(data_length >= sizeof(block_size) + sizeof(repli_timestamp_t) + sizeof(uint8_t) + key->size);
+        guarantee_patch_format(data_length >= sizeof(repli_timestamp_t) + sizeof(uint8_t) + key->size);
         memcpy(key->contents, data, key->size);
         data += key->size;
     } catch (patch_deserialization_error_t &e) {
@@ -128,10 +123,6 @@ leaf_remove_patch_t::leaf_remove_patch_t(const block_id_t block_id, const patch_
 }
 
 void leaf_remove_patch_t::serialize_data(char* destination) const {
-    // TODO: Why are we serializing and deserializing the block size?
-    memcpy(destination, &block_size, sizeof(block_size));
-    destination += sizeof(block_size);
-
     memcpy(destination, &timestamp, sizeof(timestamp));
     destination += sizeof(timestamp);
 
@@ -146,7 +137,7 @@ void leaf_remove_patch_t::serialize_data(char* destination) const {
 uint16_t leaf_remove_patch_t::get_data_size() const {
     const btree_key_t *key = reinterpret_cast<const btree_key_t *>(key_buf);
 
-    return sizeof(block_size) + sizeof(uint8_t) + key->size;
+    return sizeof(timestamp) + sizeof(uint8_t) + key->size;
 }
 
 leaf_remove_patch_t::~leaf_remove_patch_t() {
