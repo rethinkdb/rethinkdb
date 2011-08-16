@@ -1,16 +1,16 @@
+#include "protocol/redis/redis.hpp"
 #include "protocol/redis/redis_util.hpp"
-#include <iostream>
 
 struct string_set_oper_t : set_oper_t {
-    string_set_oper_t(std::string &key, btree_slice_t *btree, int64_t timestamp) :
-        set_oper_t(key, btree, timestamp)
+    string_set_oper_t(std::string &key, btree_slice_t *btree, timestamp_t timestamp, order_token_t otok) :
+        set_oper_t(key, btree, timestamp, otok)
     {
         if(location.value.get() == NULL) {
             scoped_malloc<redis_value_t> smrsv(MAX_BTREE_VALUE_SIZE);
             location.value.swap(smrsv);
             location.value->set_redis_type(REDIS_STRING);
         } else if(location.value->get_redis_type() != REDIS_STRING) {
-            // Throw error
+            throw "Operation against key holding wrong kind of value";
         }
 
         value = reinterpret_cast<redis_string_value_t *>(location.value.get());
@@ -84,13 +84,13 @@ protected:
 };
 
 struct string_read_oper_t : read_oper_t {
-    string_read_oper_t(std::string &key, btree_slice_t *btree) :
-        read_oper_t(key, btree)
+    string_read_oper_t(std::string &key, btree_slice_t *btree, order_token_t otok) :
+        read_oper_t(key, btree, otok)
     {
         if(location.value.get() == NULL) {
             // Throw error 
         } else if(location.value->get_redis_type() != REDIS_STRING) {
-            // Throw error
+            throw "Operation against key holding wrong kind of value";
         }
 
         value = reinterpret_cast<redis_string_value_t *>(location.value.get());
@@ -117,105 +117,147 @@ protected:
 
 //Strings Operations
 
-//COMMAND_2(integer, append, string&, string&)
-integer_result redis_actor_t::append(std::string &key, std::string &toappend) {
-    string_set_oper_t oper(key, btree, 1234);
-    int new_size = oper.append(toappend);
+//WRITE(append)
+KEYS(append)
+SHARD_W(append)
+
+EXECUTE_W(append) {
+    string_set_oper_t oper(one, btree, timestamp, otok);
+    int new_size = oper.append(two);
     
-    return integer_result(new_size);
+    return int_response(new_size);
 }
 
-//COMMAND_1(integer, decr, string&)
-integer_result redis_actor_t::decr(std::string &key) {
-    string_set_oper_t oper(key, btree, 1234);
-    return integer_result(oper.crement(-1));
+//WRITE(decr)
+KEYS(decr)
+SHARD_W(decr)
+
+EXECUTE_W(decr) {
+    string_set_oper_t oper(one, btree, timestamp, otok);
+    return int_response(oper.crement(-1));
 }
 
-//COMMAND_2(integer, decrby, string&, int)
-integer_result redis_actor_t::decrby(std::string &key, int by) {
-    string_set_oper_t oper(key, btree, 1234);
-    return integer_result(oper.crement(-by));
+//WRITE(decrby)
+KEYS(decrby)
+SHARD_W(decrby)
+
+EXECUTE_W(decrby) {
+    string_set_oper_t oper(one, btree, timestamp, otok);
+    return int_response(oper.crement(-two));
 }
 
-//COMMAND_1(bulk, get, string&)
-bulk_result redis_actor_t::get(string &key) {
-    string_read_oper_t oper(key, btree);
-    std::string *result = new std::string();
-    oper.get_string(*result);
-    boost::shared_ptr<std::string> res(result);
-    return bulk_result(res);
+//READ(get)
+KEYS(get)
+SHARD_R(get)
+PARALLEL(get)
+
+EXECUTE_R(get) {
+    string_read_oper_t oper(one, btree, otok);
+    std::string result;
+    oper.get_string(result);
+
+    return read_response_t(new bulk_result_t(result));
 }
 
-//COMMAND_2(integer, getbit, string&, unsigned)
-integer_result redis_actor_t::getbit(string &key, unsigned bit) {
-    string_read_oper_t oper(key, btree);
+//READ(getbit)
+KEYS(getbit)
+SHARD_R(getbit)
+PARALLEL(getbit)
+
+EXECUTE_R(getbit) {
+    string_read_oper_t oper(one, btree, otok);
     std::string str;
     oper.get_string(str);
-    char byte = str.at(bit / 8);
+    char byte = str.at(two / 8);
     // TODO check that this is the right bit ordering
-    return !!(byte & (1 << (bit % 8)));
+    return int_response(!!(byte & (1 << (two % 8))));
 }
 
-//COMMAND_3(bulk, getrange, string&, int, int)
-bulk_result redis_actor_t::getrange(string &key, int start, int end) {
-    string_read_oper_t oper(key, btree);
-    std::string *str = new std::string();
-    oper.get_range(*str, start, end);
-    boost::shared_ptr<std::string> res(str);
-    return bulk_result(res);
+//READ(getrange)
+KEYS(getrange)
+SHARD_R(getrange)
+PARALLEL(getrange)
+
+EXECUTE_R(getrange) {
+    string_read_oper_t oper(one, btree, otok);
+    std::string str;
+    oper.get_range(str, two, three);
+    return read_response_t(new bulk_result_t(str));
 }
 
-//COMMAND_2(bulk, getset, string&, string&)
-bulk_result redis_actor_t::getset(std::string &key, std::string &new_val) {
-    string_set_oper_t oper(key, btree, 1234);
+//WRITE(getset)
+KEYS(getset)
+SHARD_W(getset)
 
-    std::string *old_val = new std::string();
-    oper.get_string(*old_val);
-    oper.set(new_val);
+EXECUTE_W(getset) {
+    string_set_oper_t oper(one, btree, timestamp, otok);
 
-    return bulk_result(boost::shared_ptr<std::string>(old_val));
+    std::string old_val;
+    oper.get_string(old_val);
+    oper.set(two);
+
+    return write_response_t(new bulk_result_t(two));
 }
 
-//COMMAND_1(integer, incr, string&)
-integer_result redis_actor_t::incr(std::string &key) {
-    string_set_oper_t oper(key, btree, 1234);
-    return integer_result(oper.crement(1));
+//WRITE(incr)
+KEYS(incr)
+SHARD_W(incr)
+
+EXECUTE_W(incr) {
+    string_set_oper_t oper(one, btree, timestamp, otok);
+    return int_response(oper.crement(1));
 }
 
-//COMMAND_2(integer, incrby, string&, int)
-integer_result redis_actor_t::incrby(std::string &key, int by) {
-    string_set_oper_t oper(key, btree, 1234);
-    return integer_result(oper.crement(by));
+//WRITE(incrby)
+KEYS(incrby)
+SHARD_W(incrby)
+
+EXECUTE_W(incrby) {
+    string_set_oper_t oper(one, btree, timestamp, otok);
+    return int_response(oper.crement(two));
 }
 
-COMMAND_N(multi_bulk, mget)
-COMMAND_N(status, mset)
-COMMAND_N(integer, msetnx)
+READ(mget)
+WRITE(mset)
+WRITE(msetnx)
 
-//COMMAND_2(status, set, string&, string&)
-status_result redis_actor_t::set(string &key, string &val) {
-    string_set_oper_t oper(key, btree, 1234);
-    oper.set(val);
+//WRITE(set)
+KEYS(set)
+SHARD_W(set)
 
-    return redis_ok();
+EXECUTE_W(set) {
+    string_set_oper_t oper(one, btree, timestamp, otok);
+    oper.set(two);
+
+    return write_response_t(new ok_result_t());
 }
 
-//COMMAND_3(integer, setbit, string&, unsigned, unsigned)
-integer_result redis_actor_t::setbit(std::string &key, unsigned bit_index, unsigned bit_val) {
-    string_set_oper_t oper(key, btree, 1234);
-    return integer_result(oper.setbit(bit_index, bit_val));
+//WRITE(setbit)
+KEYS(setbit)
+SHARD_W(setbit)
+
+EXECUTE_W(setbit) {
+    string_set_oper_t oper(one, btree, timestamp, otok);
+    return int_response(oper.setbit(two, three));
 }
 
-COMMAND_3(status, setex, string&, unsigned, string&)
+WRITE(setex)
 
-//COMMAND_3(integer, setrange, string&, unsigned, string&)
-integer_result redis_actor_t::setrange(std::string &key, unsigned offset, std::string &val) {
-    string_set_oper_t oper(key, btree, 1234);
-    return integer_result(oper.set_range(val, offset));
+//WRITE(setrange)
+KEYS(setrange)
+SHARD_W(setrange)
+
+EXECUTE_W(setrange) {
+    string_set_oper_t oper(one, btree, timestamp, otok);
+    return int_response(oper.set_range(three, two));
 }
 
-//COMMAND_1(integer, Strlen, string&)
-integer_result redis_actor_t::Strlen(std::string &key) {
-    string_read_oper_t oper(key, btree);
-    return integer_result(oper.get_length());
+//READ(Strlen)
+KEYS(Strlen)
+SHARD_R(Strlen)
+PARALLEL(Strlen)
+
+EXECUTE_R(Strlen) {
+    string_read_oper_t oper(one, btree, otok);
+    return int_response(oper.get_length());
 }

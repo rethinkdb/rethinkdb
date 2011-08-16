@@ -1,52 +1,71 @@
 #include "protocol/redis/redis_util.hpp"
-#include <boost/lexical_cast.hpp>
-#include <iostream>
-
-// These need to be implemented somewhere...
-redis_actor_t::redis_actor_t(btree_slice_t *btree) :
-    btree(btree)
-{ }
-
-redis_actor_t::~redis_actor_t() {}
+#include "protocol/redis/redis.hpp"
 
 // KEYS commands
 
-//COMMAND_N(integer, del)
-integer_result redis_actor_t::del(std::vector<std::string> &keys) {
+//WRITE(del)
+KEYS(del)
+
+std::vector<redis_protocol_t::write_t>
+        redis_protocol_t::del::shard(std::vector<redis_protocol_t::region_t> &regions) {
+    (void)regions;
+    std::vector<boost::shared_ptr<redis_protocol_t::write_operation_t> > result;
+    for(std::vector<std::string>::iterator iter = one.begin(); iter != one.end(); ++iter) {
+        std::vector<std::string> keys;
+        keys.push_back(*iter);
+        boost::shared_ptr<redis_protocol_t::write_operation_t> d(new del(keys));
+        result.push_back(d);
+    }
+
+    return result;
+}
+
+EXECUTE_W(del) {
     int count = 0;
-    for(std::vector<std::string>::iterator iter = keys.begin(); iter != keys.end(); ++iter) {
-        set_oper_t oper(*iter, btree, 1234);
+    for(std::vector<std::string>::iterator iter = one.begin(); iter != one.end(); ++iter) {
+        set_oper_t oper(*iter, btree, timestamp, otok);
         if(oper.del()) count++;
     }
 
-    return integer_result(count);
+    return write_response_t(new sum_integer_t(count));
 }
 
-//COMMAND_1(integer, exists, string&)
-integer_result redis_actor_t::exists(std::string &key) {
-    read_oper_t oper(key, btree);
+//READ(exists)
+KEYS(exists)
+SHARD_R(exists)
+PARALLEL(exists)
+
+EXECUTE_R(exists) {
+    read_oper_t oper(one, btree, otok);
 
     if(oper.exists()) {
-        return integer_result(1);
+        return int_response(1);
     } else {
-        return integer_result(0);
+        return int_response(0);
     }
 }
 
-//COMMAND_2(integer, expire, string&, unsigned)
-integer_result redis_actor_t::expire(std::string &key, unsigned timeout) {
+//WRITE(expire)
+KEYS(expire)
+SHARD_W(expire)
+
+EXECUTE_W(expire) {
     // TODO real expire time from the timestamp
-    uint32_t expire_time = time(NULL) + timeout;
-    return expireat(key, expire_time);
+    uint32_t expire_time = time(NULL) + two;
+    expireat expr(one, expire_time);
+    return expr.execute(btree, timestamp, otok);
 }
 
-//COMMAND_2(integer, expireat, string&, unsigned)
-integer_result redis_actor_t::expireat(std::string &key, unsigned time) {
-    set_oper_t oper(key, btree, 1234);
+//WRITE(expireat)
+KEYS(expireat)
+SHARD_W(expireat)
+
+EXECUTE_W(expireat) {
+    set_oper_t oper(one, btree, timestamp, otok);
     redis_value_t *value = oper.location.value.get();
     if(value == NULL) {
         // Key not found, return 0
-        return integer_result(0);
+        return int_response(0);
     }
 
     if(!value->expiration_set()) {
@@ -56,20 +75,23 @@ integer_result redis_actor_t::expireat(std::string &key, unsigned time) {
         memmove(value->get_content() + sizeof(uint32_t), value->get_content(), data_size);
     }
 
-    oper.location.value->set_expiration(time);
+    oper.location.value->set_expiration(two);
 
-    return integer_result(1);
+    return int_response(1);
 }
 
-COMMAND_1(multi_bulk, keys, string&)
-COMMAND_2(integer, move, string&, string&)
+READ(keys)
+WRITE(move)
 
-//COMMAND_1(integer, persist, string&)
-integer_result redis_actor_t::persist(std::string &key) {
-    set_oper_t oper(key, btree, 1234);
+//WRITE(persist)
+KEYS(persist)
+SHARD_W(persist)
+
+EXECUTE_W(persist) {
+    set_oper_t oper(one, btree, timestamp, otok);
     redis_value_t *value = oper.location.value.get();
     if(value == NULL || !value->expiration_set()) {
-        return integer_result(0);
+        return int_response(0);
     }
 
     value_sizer_t<redis_value_t> sizer(btree->cache()->get_block_size());
@@ -78,20 +100,24 @@ integer_result redis_actor_t::persist(std::string &key) {
     value->void_expiration();
     memmove(value->get_content(), value->get_content() + sizeof(uint32_t), data_size);
 
-    return integer_result(1);
+    return int_response(1);
 }
 
-COMMAND_0(bulk, randomkey)
-COMMAND_2(status, rename, string&, string&)
-COMMAND_2(integer, renamenx, string&, string&)
+READ(randomkey)
+WRITE(rename)
+WRITE(renamenx)
 
-//COMMAND_1(integer, ttl, string&)
-integer_result redis_actor_t::ttl(std::string &key) {
-    read_oper_t oper(key, btree);
+//READ(ttl)
+KEYS(ttl)
+SHARD_R(ttl)
+PARALLEL(ttl)
+
+EXECUTE_R(ttl) {
+    read_oper_t oper(one, btree, otok);
 
     redis_value_t *value = oper.location.value.get();
     if(value == NULL || !value->expiration_set()) {
-        return integer_result(-1);
+        return int_response(-1);
     }
 
     // TODO get correct current time
@@ -99,11 +125,24 @@ integer_result redis_actor_t::ttl(std::string &key) {
     if(ttl < 0) {
         // Then this key has technically expired
         // TODO figure out a way to check and delete expired keys
-        return integer_result(-1);
+        return int_response(-1);
     }
     
-    return integer_result(ttl);
+    return int_response(ttl);
 }
+
+READ(type)
+
+/*
+COMMAND_1(multi_bulk, keys, string&)
+COMMAND_2(integer, move, string&, string&)
+
+COMMAND_0(bulk, randomkey)
+COMMAND_2(status, rename, string&, string&)
+COMMAND_2(integer, renamenx, string&, string&)
+
+//COMMAND_1(integer, ttl, string&)
+
 
 //COMMAND_1(status, type, string&)
 status_result redis_actor_t::type(std::string &key) {
@@ -136,3 +175,4 @@ status_result redis_actor_t::type(std::string &key) {
     
     return result;
 }
+*/

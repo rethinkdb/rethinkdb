@@ -16,7 +16,7 @@ public:
         children(children), random_step(0) { }
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t read, order_token_t tok) {
-        std::vector<typename protocol_t::read_t> reads = read.parallelize(children.size());
+        std::vector<typename protocol_t::read_t> reads = read->parallelize(children.size());
         std::vector<typename protocol_t::read_response_t> responses(reads.size());
         pmap(reads.size(), boost::bind(&dummy_parallelizer_t::read_one, this, random_step, tok, &reads, _1, &responses));
         return protocol_t::read_response_t::unparallelize(responses);
@@ -81,16 +81,16 @@ public:
         std::vector<typename protocol_t::region_t> regions;
         std::vector<int> destinations;
         for (int i = 0; i < (int)timestampers.size(); i++) {
-            if (timestampers[i].region.overlaps(read.get_region())) {
-                regions.push_back(timestampers[i].region.intersection(read.get_region()));
+            if (timestampers[i].region.overlaps(read->get_region())) {
+                regions.push_back(timestampers[i].region.intersection(read->get_region()));
                 destinations.push_back(i);
             }
         }
-        std::vector<typename protocol_t::read_t> subreads = read.shard(regions);
+        std::vector<typename protocol_t::read_t> subreads = read->shard(regions);
         rassert(subreads.size() == regions.size());
         std::vector<typename protocol_t::read_response_t> responses;
         for (int i = 0; i < (int)regions.size(); i++) {
-            rassert(regions[i].contains(subreads[i].get_region()));
+            rassert(regions[i].contains(subreads[i]->get_region()));
             responses.push_back(timestampers[destinations[i]].timestamper->read(subreads[i], tok));
         }
         return protocol_t::read_response_t::unshard(responses);
@@ -99,17 +99,18 @@ public:
     typename protocol_t::write_response_t write(typename protocol_t::write_t write, order_token_t tok) {
         std::vector<typename protocol_t::region_t> regions;
         std::vector<int> destinations;
+        typename protocol_t::region_t write_region = write->get_region();
         for (int i = 0; i < (int)timestampers.size(); i++) {
-            if (timestampers[i].region.overlaps(write.get_region())) {
+            if (timestampers[i].region.overlaps(write_region)) {
                 regions.push_back(timestampers[i].region);
                 destinations.push_back(i);
             }
         }
-        std::vector<typename protocol_t::write_t> subwrites = write.shard(regions);
+        std::vector<typename protocol_t::write_t> subwrites = write->shard(regions);
         rassert(subwrites.size() == regions.size());
         std::vector<typename protocol_t::write_response_t> responses;
         for (int i = 0; i < (int)regions.size(); i++) {
-            rassert(regions[i].contains(subwrites[i].get_region()));
+            rassert(regions[i].contains(subwrites[i]->get_region()));
             responses.push_back(timestampers[destinations[i]].timestamper->write(subwrites[i], tok));
         }
         return protocol_t::write_response_t::unshard(responses);

@@ -3,95 +3,95 @@
 
 #include "protocol/redis/redis_types.hpp"
 #include "protocol/redis/redis_actor.hpp"
+#include "protocol/redis/redis.hpp"
 #include <boost/lexical_cast.hpp>
 
-struct unimplemented_result {
-    unimplemented_result() { }
-    operator status_result () {
-        return get_unimplemented_error();
-    }
-
-    operator integer_result () {
-        return integer_result(get_unimplemented_error());
-    }
-
-    operator bulk_result () {
-        return bulk_result(get_unimplemented_error());
-    }
-
-    operator multi_bulk_result () {
-        return multi_bulk_result(get_unimplemented_error());
-    }
-
-    status_result get_unimplemented_error() {
-        boost::shared_ptr<status_result_struct> result(new status_result_struct);
-        result->status = ERROR;
-        result->msg = (const char *)("Unimplemented");
-        return result;
-    }
-};
-
+typedef repli_timestamp_t timestamp_t;
 
 //These macros deliberately match those in the header file. They simply define an "unimplemented
 //command" definition for the given command. When adding new commands we can simply copy and paste
 //declaration from the header file to get a default implementation. Gradually these will go away
 //as we actually define real implementations of the various redis commands.
-#define COMMAND_0(RETURN, CNAME) RETURN##_result \
-redis_actor_t::CNAME() \
-{ \
-    std::cout << "Redis command \"" << #CNAME << "\" has not been implemented" << std::endl; \
-    return unimplemented_result(); \
+
+#define WRITE(CNAME)\
+redis_protocol_t::indicated_key_t redis_protocol_t::CNAME::get_keys() {return std::string("");}\
+ \
+std::vector<redis_protocol_t::write_t> redis_protocol_t::CNAME::shard(std::vector<redis_protocol_t::region_t> &regions) { \
+    (void)regions; \
+    return std::vector<write_t>(1, boost::shared_ptr<write_operation_t>(new CNAME(*this))); \
+} \
+ \
+redis_protocol_t::write_response_t redis_protocol_t::CNAME::execute(btree_slice_t *btree, timestamp_t timestamp, order_token_t otok) { \
+    (void)btree; \
+    (void)timestamp; \
+    (void)otok; \
+    throw "Redis command " #CNAME " not yet implemented"; \
 }
 
-#define COMMAND_1(RETURN, CNAME, ARG_TYPE_ONE) RETURN##_result \
-redis_actor_t::CNAME(ARG_TYPE_ONE one) \
-{ \
-    (void)one; \
-    std::cout << "Redis command \"" << #CNAME << "\" has not been implemented" << std::endl; \
-    return unimplemented_result(); \
+#define READ(CNAME)\
+redis_protocol_t::indicated_key_t redis_protocol_t::CNAME::get_keys() {return std::string("");}\
+ \
+std::vector<redis_protocol_t::read_t> redis_protocol_t::CNAME::shard(std::vector<redis_protocol_t::region_t> &regions) { \
+    (void)regions; \
+    return std::vector<read_t>(1, boost::shared_ptr<read_operation_t>(new CNAME(*this))); \
+} \
+ \
+std::vector<redis_protocol_t::read_t> redis_protocol_t::CNAME::parallelize(int optimal_factor) { \
+    (void)optimal_factor; \
+    return std::vector<read_t>(1, boost::shared_ptr<read_operation_t>(new CNAME(*this))); \
+} \
+ \
+redis_protocol_t::read_response_t redis_protocol_t::CNAME::execute(btree_slice_t *btree, order_token_t otok) { \
+    (void)btree; \
+    (void)otok; \
+    throw "Redis command " #CNAME " not yet implemented"; \
 }
 
-#define COMMAND_2(RETURN, CNAME, ARG_TYPE_ONE, ARG_TYPE_TWO) RETURN##_result \
-redis_actor_t::CNAME(ARG_TYPE_ONE one, ARG_TYPE_TWO two) \
-{ \
-    (void)one; \
-    (void)two; \
-    std::cout << "Redis command \"" << #CNAME << "\" has not been implemented" << std::endl; \
-    return unimplemented_result(); \
+// Macros to make some of these implementations a little less tedius
+
+// Assumes the key (or keys) is simply the first argument to the command. This is true for almost all commands
+#define KEYS(CNAME) redis_protocol_t::indicated_key_t redis_protocol_t::CNAME::get_keys() { \
+    return one; \
 }
 
-#define COMMAND_3(RETURN, CNAME, ARG_TYPE_ONE, ARG_TYPE_TWO, ARG_TYPE_THREE) RETURN##_result \
-redis_actor_t::CNAME(ARG_TYPE_ONE one, ARG_TYPE_TWO two, ARG_TYPE_THREE three) \
-{ \
-    (void)one; \
-    (void)two; \
-    (void)three; \
-    std::cout << "Redis command \"" << #CNAME << "\" has not been implemented" << std::endl; \
-    return unimplemented_result(); \
+// Simple shard behavior that merely returns one copy of this operation. Useful when the operation will only
+// touch one key (and thus touch only one shard) which is most of them
+#define SHARD_W(CNAME) std::vector<redis_protocol_t::write_t> \
+        redis_protocol_t::CNAME::shard(std::vector<redis_protocol_t::region_t> &regions) { \
+    (void)regions; \
+    return std::vector<write_t>(1, boost::shared_ptr<write_operation_t>(new CNAME(*this))); \
 }
 
-#define COMMAND_N(RETURN, CNAME) RETURN##_result \
-redis_actor_t::CNAME(std::vector<std::string> &one) \
-{ \
-    (void)one; \
-    std::cout << "Redis command \"" << #CNAME << "\" has not been implemented" << std::endl; \
-    return unimplemented_result(); \
+#define SHARD_R(CNAME) std::vector<redis_protocol_t::read_t> \
+        redis_protocol_t::CNAME::shard(std::vector<redis_protocol_t::region_t> &regions) { \
+    (void)regions; \
+    return std::vector<read_t>(1, boost::shared_ptr<read_operation_t>(new CNAME(*this))); \
 }
+
+// Similar for parallelize
+#define PARALLEL(CNAME) std::vector<redis_protocol_t::read_t> \
+        redis_protocol_t::CNAME::parallelize(int optimal_factor) { \
+    (void)optimal_factor; \
+    return std::vector<read_t>(1, boost::shared_ptr<read_operation_t>(new CNAME(*this))); \
+} 
+
+#define EXECUTE_R(CNAME) redis_protocol_t::read_response_t redis_protocol_t::CNAME::execute(btree_slice_t *btree, order_token_t otok)
+
+#define EXECUTE_W(CNAME) redis_protocol_t::write_response_t redis_protocol_t::CNAME::execute(btree_slice_t *btree, timestamp_t timestamp, order_token_t otok)
 
 struct set_oper_t {
-    set_oper_t(std::string &key, btree_slice_t *btree, int64_t timestamp) :
+    set_oper_t(std::string &key, btree_slice_t *btree, timestamp_t timestamp_, order_token_t otok) :
         sizer(btree->cache()->get_block_size()),
-        btree_key(key)
+        btree_key(key),
+        timestamp(timestamp_)
     {
-        tstamp.time = timestamp;
-
         // Get the superblock that represents our write transaction
-        get_btree_superblock(btree, rwi_write, 1, tstamp, order_token_t::ignore, &superblock);
-        find_keyvalue_location_for_write(&sizer, &superblock, btree_key.key(), tstamp, &location);
+        get_btree_superblock(btree, rwi_write, 1, timestamp, otok, &superblock);
+        find_keyvalue_location_for_write(&sizer, &superblock, btree_key.key(), timestamp, &location);
     }
 
     ~set_oper_t() {
-        apply_keyvalue_change(&sizer, &location, btree_key.key(), tstamp);
+        apply_keyvalue_change(&sizer, &location, btree_key.key(), timestamp);
     }
 
     bool del() {
@@ -121,20 +121,20 @@ struct set_oper_t {
     }
 
     keyvalue_location_t<redis_value_t> location;
-    repli_timestamp_t tstamp;
 
 protected:
     got_superblock_t superblock;
     value_sizer_t<redis_value_t> sizer;
     btree_key_buffer_t btree_key;
+    timestamp_t timestamp;
 };
 
 struct read_oper_t {
-    read_oper_t(std::string &key, btree_slice_t *btree) :
+    read_oper_t(std::string &key, btree_slice_t *btree, order_token_t otok) :
         sizer(btree->cache()->get_block_size())
     {
         got_superblock_t superblock;
-        get_btree_superblock(btree, rwi_read, order_token_t::ignore, &superblock);
+        get_btree_superblock(btree, rwi_read, otok, &superblock);
         btree_key_buffer_t btree_key(key);
         find_keyvalue_location_for_read(&sizer, &superblock, btree_key.key(), &location);
     }
@@ -149,8 +149,6 @@ protected:
     value_sizer_t<redis_value_t> sizer;
 };
 
-status_result redis_error(const char *msg);
-status_result redis_ok();
 
 template <typename T>
 int incr_loc(keyvalue_location_t<T> &loc, int by) {
@@ -182,5 +180,27 @@ int incr_loc(keyvalue_location_t<T> &loc, int by) {
 
     return int_value;
 }
+
+status_result redis_error(const char *msg);
+status_result redis_ok();
+
+// What is this crazy contraption? Well origionally it was supposed to be a simple convienience function to
+// return an integer result wrapped in a write_t or read_t. But I didn't want to have to create two versions
+// (one for read_t and one for write_t) so this is what I had to do instead, create a functor with overloaded
+// cast operators
+struct int_response {
+    int_response(int val_) : val(val_) { }
+
+    operator redis_protocol_t::read_response_t () {
+        return redis_protocol_t::read_response_t(new redis_protocol_t::integer_result_t(val));
+    }
+
+    operator redis_protocol_t::write_response_t () {
+        return redis_protocol_t::write_response_t(new redis_protocol_t::integer_result_t(val));
+    }
+
+private:
+    int val;
+};
 
 #endif /*__PROTOCOL_REDIS_UTIL_H__*/

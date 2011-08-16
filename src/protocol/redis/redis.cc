@@ -1,75 +1,113 @@
 #include "protocol/redis/redis_types.hpp"
 #include "protocol/redis/redis.hpp"
 #include "btree/slice.hpp"
-#include "import/import.hpp"
 #include <iostream>
 #include <string>
 #include <vector>
 
-#include "serializer/log/log_serializer.hpp"
+struct keys_to_region : boost::static_visitor<redis_protocol_t::region_t> {
+    redis_protocol_t::region_t operator()(std::vector<std::string> &keys) const {
+        (void) keys;
+        // TODO implement this based on region
+        return redis_protocol_t::region_t();
+    }
 
-redis_interface_t::redis_interface_t() {
-    //DUMMY stack
-    cmd_config_t config;
-    config.store_dynamic_config.cache.max_dirty_size = config.store_dynamic_config.cache.max_size / 10;
-    char filename[200];
-    snprintf(filename, sizeof(filename), "rethinkdb_data_%d", 0);
-    log_serializer_private_dynamic_config_t ser_config;
-    ser_config.db_filename = filename;
+    redis_protocol_t::region_t operator()(std::string key) const {
+        store_key_t s_key(key);
+        redis_protocol_t::region_t r(key_range_t::open, s_key, key_range_t::closed, s_key);
+        return r;
+    }
+};
 
-    log_serializer_t::create(config.store_dynamic_config.serializer, ser_config, config.store_static_config.serializer);
-    log_serializer_t *serializer = new log_serializer_t(config.store_dynamic_config.serializer, ser_config);
-
-    std::vector<serializer_t *> *serializers = new std::vector<serializer_t *>();
-    serializers->push_back(serializer);
-    serializer_multiplexer_t::create(*serializers, 1);
-    serializer_multiplexer_t *multiplexer = new serializer_multiplexer_t(*serializers);
-
-    cache_t::create(multiplexer->proxies[0], &config.store_static_config.cache);
-    cache_t *cache = new cache_t(multiplexer->proxies[0], &config.store_dynamic_config.cache);
-
-    btree_slice_t::create(cache);
-    slice = new btree_slice_t(cache, 1000);
-
-    actor = new redis_actor_t(slice);
+redis_protocol_t::region_t redis_protocol_t::read_operation_t::get_region() {
+    boost::variant<std::vector<std::string>, std::string> keys = get_keys();
+    return boost::apply_visitor(keys_to_region(), keys);
 }
 
-redis_interface_t::~redis_interface_t() {}
-
-#define COMMAND_0(RETURN, CNAME) RETURN##_result \
-redis_interface_t::CNAME() \
-{ \
-    on_thread_t thread_switcher(slice->home_thread()); \
-    return actor->CNAME(); \
+redis_protocol_t::region_t redis_protocol_t::write_operation_t::get_region() {
+    boost::variant<std::vector<std::string>, std::string> keys = get_keys();
+    return boost::apply_visitor(keys_to_region(), keys);
 }
 
-#define COMMAND_1(RETURN, CNAME, ARG_TYPE_ONE) RETURN##_result \
-redis_interface_t::CNAME(ARG_TYPE_ONE one) \
-{ \
-    on_thread_t thread_switcher(slice->home_thread()); \
-    return actor->CNAME(one); \
+redis_protocol_t::read_response_t redis_protocol_t::read_response_t::unshard(
+        std::vector<redis_protocol_t::read_response_t> &responses) {
+    read_response_t result(responses[0]);
+    for(std::vector<read_response_t>::iterator iter = responses.begin() + 1; iter != responses.end(); ++iter) {
+        result->deshard(iter->get());
+    }
+
+    return result;
 }
 
-#define COMMAND_2(RETURN, CNAME, ARG_TYPE_ONE, ARG_TYPE_TWO) RETURN##_result \
-redis_interface_t::CNAME(ARG_TYPE_ONE one, ARG_TYPE_TWO two) \
-{ \
-    on_thread_t thread_switcher(slice->home_thread()); \
-    return actor->CNAME(one, two); \
+redis_protocol_t::read_response_t redis_protocol_t::read_response_t::unparallelize(
+        std::vector<redis_protocol_t::read_response_t> &responses) {
+    read_response_t result(responses[0]);
+    for(std::vector<read_response_t>::iterator iter = responses.begin() + 1; iter != responses.end(); ++iter) {
+        result->deparallelize(iter->get());
+    }
+
+    return result;
 }
 
-#define COMMAND_3(RETURN, CNAME, ARG_TYPE_ONE, ARG_TYPE_TWO, ARG_TYPE_THREE) RETURN##_result \
-redis_interface_t::CNAME(ARG_TYPE_ONE one, ARG_TYPE_TWO two, ARG_TYPE_THREE three) \
-{ \
-    on_thread_t thread_switcher(slice->home_thread()); \
-    return actor->CNAME(one, two, three); \
+redis_protocol_t::write_response_t
+        redis_protocol_t::write_response_t::unshard(std::vector<write_response_t> &responses) {
+    write_response_t result(responses[0]);
+    for(std::vector<write_response_t>::iterator iter = responses.begin() + 1; iter != responses.end(); ++iter) {
+        result->deshard(iter->get());
+    }
+
+    return result;
 }
 
-#define COMMAND_N(RETURN, CNAME) RETURN##_result \
-redis_interface_t::CNAME(std::vector<std::string> &one) \
-{ \
-    on_thread_t thread_switcher(slice->home_thread()); \
-    return actor->CNAME(one); \
+
+// redis_protocol_t::store_t
+
+void redis_protocol_t::store_t::create(serializer_t *ser, redis_protocol_t::region_t region) {
+    (void)region;
+
+    mirrored_cache_static_config_t cache_static_config;
+    cache_t::create(ser, &cache_static_config);
+    mirrored_cache_config_t cache_dynamic_config;
+    cache_t cache(ser, &cache_dynamic_config);
+    btree_slice_t::create(&cache);
 }
+
+redis_protocol_t::store_t::store_t(serializer_t *ser, redis_protocol_t::region_t region_) :
+    cache(ser, &cache_config),
+    btree(&cache, 1000),
+    region(region_)
+    { }
+
+redis_protocol_t::store_t::~store_t() {
+
+}
+
+redis_protocol_t::region_t redis_protocol_t::store_t::get_region() {
+    return region;
+}
+
+redis_protocol_t::read_response_t redis_protocol_t::store_t::read(redis_protocol_t::read_t read, order_token_t otok) {
+    try {
+        read_response_t response = read->execute(&btree, otok);
+        return response;
+    } catch(const char *msg) {
+        return read_response_t(new error_result_t(msg));
+    }
+}
+
+redis_protocol_t::write_response_t redis_protocol_t::store_t::write(redis_protocol_t::write_t write, redis_protocol_t::timestamp_t timestamp, order_token_t otok) {
+    try {
+        write_response_t response = write->execute(&btree, timestamp, otok);
+        return response;
+    } catch(const char *msg) {
+        return write_response_t(new error_result_t(msg));
+    }
+}
+
+
+// Individual commands are implemented in their respective files: keys, strings, etc.
+
+/*
 
 //KEYS
 COMMAND_N(integer, del)
@@ -133,3 +171,5 @@ COMMAND_1(bulk, srandmember, string&)
 COMMAND_N(integer, srem)
 COMMAND_N(multi_bulk, sunion)
 COMMAND_N(integer, sunionstore)
+
+*/

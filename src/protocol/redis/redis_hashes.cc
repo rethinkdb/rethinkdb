@@ -5,15 +5,15 @@
 // Utility functions for hashes
 
 struct hash_read_oper_t : read_oper_t {
-    hash_read_oper_t(std::string &key, btree_slice_t *btr) :
-        read_oper_t(key, btr),
+    hash_read_oper_t(std::string &key, btree_slice_t *btr, order_token_t otok) :
+        read_oper_t(key, btr, otok),
         btree(btr)
     {
         redis_hash_value_t *value = reinterpret_cast<redis_hash_value_t *>(location.value.get());
         if(!value) {
             root = NULL_BLOCK_ID;
         } else if(value->get_redis_type() != REDIS_HASH) {
-            //throw
+            throw "Operation against key holding the wrong kind of value";
         } else {
             root = value->get_root();
         }
@@ -83,8 +83,8 @@ protected:
 };
 
 struct hash_set_oper_t : set_oper_t {
-    hash_set_oper_t(std::string &key, btree_slice_t *btree, int64_t timestamp) :
-        set_oper_t(key, btree, timestamp),
+    hash_set_oper_t(std::string &key, btree_slice_t *btree, timestamp_t timestamp, order_token_t otok) :
+        set_oper_t(key, btree, timestamp, otok),
         nested_sizer(btree->cache()->get_block_size())
     {
         // set_oper_t constructor finds this hash, here we find the field in the nested btree
@@ -98,7 +98,7 @@ struct hash_set_oper_t : set_oper_t {
             value = reinterpret_cast<redis_hash_value_t *>(location.value.get());
             value->get_root() = NULL_BLOCK_ID;
         } else if(value->get_redis_type() != REDIS_HASH) {
-            // TODO in this case?
+            throw "Operation against key holding the wrong kind of value";
         }
         
         root = value->get_root();
@@ -150,11 +150,11 @@ protected:
             nested_superblock.sb.swap(nested_btree_sb);
             nested_superblock.txn = ths->location.txn;
 
-            find_keyvalue_location_for_write(&ths->nested_sizer, &nested_superblock, nested_key.key(), ths->tstamp, &loc);
+            find_keyvalue_location_for_write(&ths->nested_sizer, &nested_superblock, nested_key.key(), ths->timestamp, &loc);
         }
         
         void apply_change() {
-            apply_keyvalue_change(&ths->nested_sizer, &loc, nested_key.key(), ths->tstamp);
+            apply_keyvalue_change(&ths->nested_sizer, &loc, nested_key.key(), ths->timestamp);
             virtual_superblock_t *sb = reinterpret_cast<virtual_superblock_t *>(loc.sb.get());
             ths->root = sb->get_root_block_id();
         }
@@ -196,117 +196,159 @@ protected:
 
 //Hash Operations
 
-//COMMAND_N(integer, hdel)
-integer_result redis_actor_t::hdel(std::vector<std::string> &key_fields) {
+//WRITE(hdel)
+redis_protocol_t::indicated_key_t redis_protocol_t::hdel::get_keys() {
+    return one[0];
+}
+
+SHARD_W(hdel)
+
+EXECUTE_W(hdel) {
     int deleted = 0;
 
-    std::string key = key_fields[0];
-    hash_set_oper_t oper(key, btree, 1234);
+    std::string key = one[0];
+    hash_set_oper_t oper(key, btree, timestamp, otok);
 
-    for(std::vector<std::string>::iterator iter = key_fields.begin() + 1;
-            iter != key_fields.end(); ++iter) {
+    for(std::vector<std::string>::iterator iter = one.begin() + 1;
+            iter != one.end(); ++iter) {
         if(oper.del_field(*iter)) {
             deleted++;
         }
     }
 
     oper.increment_size(-deleted);
-    return integer_result(deleted);
+    return int_response(deleted);
 }
 
-//COMMAND_2(integer, hexists, string&, string&)
-integer_result redis_actor_t::hexists(std::string &key, std::string &field) {
-    hash_read_oper_t oper(key, btree);
-    std::string *s = oper.get(field);
+//READ(hexists)
+KEYS(hexists)
+SHARD_R(hexists)
+PARALLEL(hexists)
+
+EXECUTE_R(hexists) {
+    hash_read_oper_t oper(one, btree, otok);
+    std::string *s = oper.get(two);
     if(s != NULL) delete s;
-    return integer_result(!!s);
+    return int_response(!!s);
 }
 
-//COMMAND_2(bulk, hget, string&, string&)
-bulk_result redis_actor_t::hget(std::string &key, std::string &field) {
-    hash_read_oper_t oper(key, btree);
-    return bulk_result(boost::shared_ptr<std::string>(oper.get(field)));
+//READ(hget)
+KEYS(hget)
+SHARD_R(hget)
+PARALLEL(hget)
+
+EXECUTE_R(hget) {
+    hash_read_oper_t oper(one, btree, otok);
+    return read_response_t(new bulk_result_t(*oper.get(two)));
 }
 
-//COMMAND_1(multi_bulk, hgetall, string&)
-multi_bulk_result redis_actor_t::hgetall(std::string &key) {
-    hash_read_oper_t oper(key, btree);
+//READ(hgetall)
+KEYS(hgetall)
+SHARD_R(hgetall)
+PARALLEL(hgetall)
+
+EXECUTE_R(hgetall) {
+    hash_read_oper_t oper(one, btree, otok);
     boost::shared_ptr<one_way_iterator_t<std::pair<std::string, std::string> > > iter = oper.iterator();
-    boost::shared_ptr<std::vector<std::string> > result(new std::vector<std::string>());
+    std::vector<std::string> result;
 
     while (true) {
         boost::optional<std::pair<std::string, std::string> > next = iter->next();
         if(next) {
-            result->push_back(next.get().first);
-            result->push_back(next.get().second);
+            result.push_back(next.get().first);
+            result.push_back(next.get().second);
         } else {
             break;
         }
     }
 
-    return multi_bulk_result(result);
+    return read_response_t(new multi_bulk_result_t(result));
 }
 
-//COMMAND_3(integer, hincrby, string&, string&, int)
-integer_result redis_actor_t::hincrby(std::string &key, std::string &field, int by) {
-    hash_set_oper_t oper(key, btree, 1234);
-    int result = oper.incr_field_by(field, by);
-    return integer_result(result);
+//WRITE(hincrby)
+KEYS(hincrby)
+SHARD_W(hincrby)
+
+EXECUTE_W(hincrby) {
+    hash_set_oper_t oper(one, btree, timestamp, otok);
+    int result = oper.incr_field_by(two, three);
+    return int_response(result);
 }
 
-//COMMAND_1(multi_bulk, hkeys, string&)
-multi_bulk_result redis_actor_t::hkeys(std::string &key) {
-    hash_read_oper_t oper(key, btree);
+//READ(hkeys)
+KEYS(hkeys)
+SHARD_R(hkeys)
+PARALLEL(hkeys)
+
+EXECUTE_R(hkeys) {
+    hash_read_oper_t oper(one, btree, otok);
     boost::shared_ptr<one_way_iterator_t<std::pair<std::string, std::string> > > iter = oper.iterator();
 
-    boost::shared_ptr<std::vector<std::string> > keys(new std::vector<std::string>());
+    std::vector<std::string> keys;
 
     while (true) {
         boost::optional<std::pair<std::string, std::string> > next = iter->next();
         if(next) {
             std::string k = next.get().first;
-            keys->push_back(k);
+            keys.push_back(k);
         } else {
             break;
         }
     }
 
-    return multi_bulk_result(keys);
+    return read_response_t(new multi_bulk_result_t(keys));
 }
 
-//COMMAND_1(integer, hlen, string&)
-integer_result redis_actor_t::hlen(std::string &key) {
-    hash_read_oper_t oper(key, btree);
-    return integer_result(oper.hash_size());
+//READ(hlen)
+KEYS(hlen)
+SHARD_R(hlen)
+PARALLEL(hlen)
+
+EXECUTE_R(hlen) {
+    hash_read_oper_t oper(one, btree, otok);
+    return int_response(oper.hash_size());
 }
 
-//COMMAND_N(multi_bulk, hmget)
-multi_bulk_result redis_actor_t::hmget(std::vector<std::string> &key_fields) {
-    std::string key = key_fields[0];
-    hash_read_oper_t oper(key, btree);
+//READ(hmget)
+redis_protocol_t::indicated_key_t redis_protocol_t::hmget::get_keys() {
+    return one[0];
+}
 
-    boost::shared_ptr<std::vector<std::string> > result(new std::vector<std::string>());
-    for(std::vector<std::string>::iterator iter = key_fields.begin() + 1;
-            iter != key_fields.end(); ++iter) {
+SHARD_R(hmget)
+PARALLEL(hmget)
+
+EXECUTE_R(hmget) {
+    std::string key = one[0];
+    hash_read_oper_t oper(key, btree, otok);
+
+    std::vector<std::string> result;
+    for(std::vector<std::string>::iterator iter = one.begin() + 1;
+            iter != one.end(); ++iter) {
         std::string *val = oper.get(*iter);
 
         if(val != NULL) {
-            result->push_back(*val);
+            result.push_back(*val);
             delete val;
         }
     }
 
-    return multi_bulk_result(result);
+    return read_response_t(new multi_bulk_result_t(result));
 }
 
-//COMMAND_N(status, hmset)
-status_result redis_actor_t::hmset(std::vector<std::string> &key_fields_values) {
-    std::string key = key_fields_values[0];
-    hash_set_oper_t oper(key, btree, 1234);
+//WRITE(hmset)
+redis_protocol_t::indicated_key_t redis_protocol_t::hmset::get_keys() {
+    return one[0];
+}
+
+SHARD_W(hmset)
+
+EXECUTE_W(hmset) {
+    std::string key = one[0];
+    hash_set_oper_t oper(key, btree, timestamp, otok);
 
     int num_set = 0;
-    for(std::vector<std::string>::iterator iter = key_fields_values.begin() + 1;
-            iter != key_fields_values.end(); ++iter) {
+    for(std::vector<std::string>::iterator iter = one.begin() + 1;
+            iter != one.end(); ++iter) {
         std::string field = *iter;
         ++iter;
         std::string value = *iter;
@@ -316,44 +358,51 @@ status_result redis_actor_t::hmset(std::vector<std::string> &key_fields_values) 
         }
     }
 
-    boost::shared_ptr<status_result_struct> result(new status_result_struct);
-    result->status = OK;
-    result->msg = "OK";
-    return result;
+    return write_response_t(new ok_result_t());
 }
 
-//COMMAND_3(integer, hset, string&, string&, string&)
-integer_result redis_actor_t::hset(std::string &key, std::string &field, std::string &f_value) {
-    hash_set_oper_t oper(key, btree, 1234);
-    bool result = oper.set_field(field, f_value);
+//WRITE(hset)
+KEYS(hset)
+SHARD_W(hset)
 
-    return integer_result(result);
+EXECUTE_W(hset) {
+    hash_set_oper_t oper(one, btree, timestamp, otok);
+    bool result = oper.set_field(two, three);
+
+    return int_response(result);
 }
 
-//COMMAND_3(integer, hsetnx, string&, string&, string&)
-integer_result redis_actor_t::hsetnx(std::string &key, std::string &field, std::string &f_value) {
-    hash_set_oper_t oper(key, btree, 1234);
-    bool result = oper.set_field(field, f_value, false);
+//WRITE(hsetnx)
+KEYS(hsetnx)
+SHARD_W(hsetnx)
 
-    return integer_result(result);
+EXECUTE_W(hsetnx) {
+    hash_set_oper_t oper(one, btree, timestamp, otok);
+    bool result = oper.set_field(two, three, false);
+
+    return int_response(result);
 }
 
-//COMMAND_1(multi_bulk, hvals, string&)
-multi_bulk_result redis_actor_t::hvals(std::string &key) {
-    hash_read_oper_t oper(key, btree);
+//READ(hvals)
+KEYS(hvals)
+SHARD_R(hvals)
+PARALLEL(hvals)
+
+EXECUTE_R(hvals) {
+    hash_read_oper_t oper(one, btree, otok);
     boost::shared_ptr<one_way_iterator_t<std::pair<std::string, std::string> > > iter = oper.iterator();
 
-    boost::shared_ptr<std::vector<std::string> > vals(new std::vector<std::string>());
+    std::vector<std::string> vals;
 
     while (true) {
         boost::optional<std::pair<std::string, std::string> > next = iter->next();
         if(next) {
             std::string k = next.get().second;
-            vals->push_back(k);
+            vals.push_back(k);
         } else {
             break;
         }
     }
 
-    return multi_bulk_result(vals);
+    return read_response_t(new multi_bulk_result_t(vals));
 }

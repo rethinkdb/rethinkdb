@@ -4,8 +4,8 @@
 
 // Set utilities
 struct set_set_oper_t : set_oper_t {
-    set_set_oper_t(std::string &key, btree_slice_t *btree, int64_t timestamp) :
-        set_oper_t(key, btree, timestamp),
+    set_set_oper_t(std::string &key, btree_slice_t *btree, timestamp_t timestamp, order_token_t otok) :
+        set_oper_t(key, btree, timestamp, otok),
         nested_sizer(btree->cache()->get_block_size())
     { 
         redis_set_value_t *value = reinterpret_cast<redis_set_value_t *>(location.value.get());
@@ -17,7 +17,7 @@ struct set_set_oper_t : set_oper_t {
             value->get_root() = NULL_BLOCK_ID;
             value->get_sub_size() = 0;
         } else if(value->get_redis_type() != REDIS_SET) {
-            // TODO in this case?
+            throw "Operation against key holding the wrong kind of value";
         }
 
         root = value->get_root();
@@ -70,11 +70,11 @@ protected:
             nested_superblock.sb.swap(nested_btree_sb);
             nested_superblock.txn = ths->location.txn;
 
-            find_keyvalue_location_for_write(&ths->nested_sizer, &nested_superblock, nested_key.key(), ths->tstamp, &loc);
+            find_keyvalue_location_for_write(&ths->nested_sizer, &nested_superblock, nested_key.key(), ths->timestamp, &loc);
         }
         
         void apply_change() {
-            apply_keyvalue_change(&ths->nested_sizer, &loc, nested_key.key(), ths->tstamp);
+            apply_keyvalue_change(&ths->nested_sizer, &loc, nested_key.key(), ths->timestamp);
             virtual_superblock_t *sb = reinterpret_cast<virtual_superblock_t *>(loc.sb.get());
             ths->root = sb->get_root_block_id();
         }
@@ -89,15 +89,15 @@ protected:
 };
 
 struct set_read_oper_t : read_oper_t {
-    set_read_oper_t(std::string &key, btree_slice_t *btr) :
-        read_oper_t(key, btr),
+    set_read_oper_t(std::string &key, btree_slice_t *btr, order_token_t otok) :
+        read_oper_t(key, btr, otok),
         btree(btr)
     {
         value = reinterpret_cast<redis_set_value_t *>(location.value.get());
         if(!value) {
             root = NULL_BLOCK_ID;
         } else if(value->get_redis_type() != REDIS_SET) {
-
+            throw "Operation against key holding the wrong kind of value";
         } else {
             root = value->get_root();
         }
@@ -150,41 +150,57 @@ private:
 
 // Set operations
 
-//COMMAND_N(integer, sadd)
-integer_result redis_actor_t::sadd(std::vector<std::string> &key_mems) {
+//WRITE(sadd)
+redis_protocol_t::indicated_key_t redis_protocol_t::sadd::get_keys() {
+    return one[0];
+}
+
+SHARD_W(sadd)
+EXECUTE_W(sadd) {
     int count = 0;
-    set_set_oper_t oper(key_mems[0], btree, 1234);
-    for(std::vector<std::string>::iterator iter = key_mems.begin() + 1; iter != key_mems.end(); ++iter) {
+    set_set_oper_t oper(one[0], btree, timestamp, otok);
+    for(std::vector<std::string>::iterator iter = one.begin() + 1; iter != one.end(); ++iter) {
         if(oper.add_member(*iter)) {
             count++;
         }
     }
 
     oper.increment_size(count);
-    return count;
+    return int_response(count);
 }
 
-//COMMAND_1(integer, scard, string&)
-integer_result redis_actor_t::scard(std::string &key) {
-    set_read_oper_t oper(key, btree);
+//READ(scard)
+KEYS(scard)
+SHARD_R(scard)
+PARALLEL(scard)
+
+EXECUTE_R(scard) {
+    set_read_oper_t oper(one, btree, otok);
     redis_set_value_t *value = reinterpret_cast<redis_set_value_t *>(oper.location.value.get());
-    if(value == NULL) return 0;
-    return value->get_sub_size();
+    if(value == NULL) return int_response(0);
+    return int_response(value->get_sub_size());
 }
 
-//COMMAND_N(multi_bulk, sdiff)
-multi_bulk_result redis_actor_t::sdiff(std::vector<std::string> &keys) {
+//READ(sdiff)
+redis_protocol_t::indicated_key_t redis_protocol_t::sdiff::get_keys() {
+    return one[0];
+}
+
+SHARD_R(sdiff)
+PARALLEL(sdiff)
+
+EXECUTE_R(sdiff) {
     merge_ordered_data_iterator_t<std::string> *right =
         new merge_ordered_data_iterator_t<std::string>();
 
     // Add each set iterator to the merged data iterator
-    for(std::vector<std::string>::iterator iter = keys.begin() + 1; iter != keys.end(); ++iter) {
-        set_read_oper_t oper(*iter, btree);
+    for(std::vector<std::string>::iterator iter = one.begin() + 1; iter != one.end(); ++iter) {
+        set_read_oper_t oper(*iter, btree, otok);
         boost::shared_ptr<one_way_iterator_t<std::string> > set_iter = oper.iterator();
         right->add_mergee(set_iter);
     }
 
-    set_read_oper_t oper(keys[0], btree);
+    set_read_oper_t oper(one[0], btree, otok);
 
     // Why put this into a merged data iterator first? Because the memory for the iterator returned
     // by oper.iterator is managed by a shared ptr it doesn't play well with the diff_filter_iterator
@@ -195,100 +211,124 @@ multi_bulk_result redis_actor_t::sdiff(std::vector<std::string> &keys) {
     
     diff_filter_iterator_t<std::string> filter(left, right);
 
-    boost::shared_ptr<std::vector<std::string> > result(new std::vector<std::string>());
+    std::vector<std::string> result;
     while(true) {
         boost::optional<std::string> next = filter.next();
         if(!next) break;
 
-        result->push_back(next.get());
+        result.push_back(next.get());
     }
 
-    return multi_bulk_result(result);
-
+    return read_response_t(new multi_bulk_result_t(result));
 }
 
-COMMAND_N(integer, sdiffstore)
+WRITE(sdiffstore)
 
-//COMMAND_N(multi_bulk, sinter)
-multi_bulk_result redis_actor_t::sinter(std::vector<std::string> &keys) {
+//READ(sinter)
+redis_protocol_t::indicated_key_t redis_protocol_t::sinter::get_keys() {
+    return one[0];
+}
+
+SHARD_R(sinter)
+PARALLEL(sinter)
+
+EXECUTE_R(sinter) {
     merge_ordered_data_iterator_t<std::string> *merged =
         new merge_ordered_data_iterator_t<std::string>();
 
     // Add each set iterator to the merged data iterator
-    for(std::vector<std::string>::iterator iter = keys.begin(); iter != keys.end(); ++iter) {
-        set_read_oper_t oper(*iter, btree);
+    for(std::vector<std::string>::iterator iter = one.begin(); iter != one.end(); ++iter) {
+        set_read_oper_t oper(*iter, btree, otok);
         boost::shared_ptr<one_way_iterator_t<std::string> > set_iter = oper.iterator();
         merged->add_mergee(set_iter);
     }
     
     // Use the repetition filter to get only results common to all keys
-    repetition_filter_iterator_t<std::string> filter(merged, keys.size());
+    repetition_filter_iterator_t<std::string> filter(merged, one.size());
 
-    boost::shared_ptr<std::vector<std::string> > result(new std::vector<std::string>());
+    std::vector<std::string> result;
     while(true) {
         boost::optional<std::string> next = filter.next();
         if(!next) break;
 
-        result->push_back(next.get());
+        result.push_back(next.get());
     }
 
-    return multi_bulk_result(result);
+    return read_response_t(new multi_bulk_result_t(result));
 }
 
-COMMAND_N(integer, sinterstore)
+WRITE(sinterstore)
 
-//COMMAND_2(integer, sismember, string&, string&)
-integer_result redis_actor_t::sismember(std::string &key, std::string &member) {
-    set_read_oper_t oper(key, btree);
-    return integer_result(oper.contains_member(member));
+//READ(sismember)
+KEYS(sismember)
+SHARD_R(sismember)
+PARALLEL(sismember)
+
+EXECUTE_R(sismember) {
+    set_read_oper_t oper(one, btree, otok);
+    return int_response(oper.contains_member(two));
 }
 
-//COMMAND_1(multi_bulk, smembers, string&)
-multi_bulk_result redis_actor_t::smembers(std::string &key) {
-    set_read_oper_t oper(key, btree);
+//READ(smembers)
+KEYS(smembers)
+SHARD_R(smembers)
+PARALLEL(smembers)
 
-    boost::shared_ptr<std::vector<std::string> > result(new std::vector<std::string>);
+EXECUTE_R(smembers) {
+    set_read_oper_t oper(one, btree, otok);
+
+    std::vector<std::string> result;
     boost::shared_ptr<one_way_iterator_t<std::string> > iter = oper.iterator();
     while(true) {
         boost::optional<std::string> mem = iter->next();
         if(mem) {
-            std::string bob = mem.get();
-            result->push_back(bob);
+            std::string mem_str = mem.get();
+            result.push_back(mem_str);
         } else break;
     }
 
-    return multi_bulk_result(result);
+    return read_response_t(new multi_bulk_result_t(result));
 }
 
-COMMAND_3(integer, smove, string&, string&, string&)
-COMMAND_1(bulk, spop, string&)
-COMMAND_1(bulk, srandmember, string&)
+WRITE(smove)
+WRITE(spop)
+READ(srandmember)
 
-//COMMAND_N(integer, srem)
-integer_result redis_actor_t::srem(std::vector<std::string> &key_members) {
-    set_set_oper_t oper(key_members[0], btree, 1234);
+//WRITE(srem)
+redis_protocol_t::indicated_key_t redis_protocol_t::srem::get_keys() {
+    return one[0];
+}
+
+SHARD_W(srem)
+
+EXECUTE_W(srem) {
+    set_set_oper_t oper(one[0], btree, timestamp, otok);
 
     int count = 0;
-    for(std::vector<std::string>::iterator iter = key_members.begin() + 1; iter != key_members.end(); ++iter) {
+    for(std::vector<std::string>::iterator iter = one.begin() + 1; iter != one.end(); ++iter) {
         if(oper.remove_member(*iter))
             ++count;
     }
 
     oper.increment_size(-count);
-    return integer_result(count);
+    return int_response(count);
 }
 
-//COMMAND_N(multi_bulk, sunion)
-multi_bulk_result redis_actor_t::sunion(std::vector<std::string> &keys) {
-    // We can't declare this as a local variable because the reptition filter iterator
-    // will try to delete it it it's destructor. It can't delete something that wasn't
-    // malloched. What a waste. I hope there is a good reason for this elsewhere.
+//READ(sunion)
+redis_protocol_t::indicated_key_t redis_protocol_t::sunion::get_keys() {
+    return one[0];
+}
+
+SHARD_R(sunion)
+PARALLEL(sunion)
+
+EXECUTE_R(sunion) {
     merge_ordered_data_iterator_t<std::string> *merged =
         new merge_ordered_data_iterator_t<std::string>();
 
     // Add each set iterator to the merged data iterator
-    for(std::vector<std::string>::iterator iter = keys.begin(); iter != keys.end(); ++iter) {
-        set_read_oper_t oper(*iter, btree);
+    for(std::vector<std::string>::iterator iter = one.begin(); iter != one.end(); ++iter) {
+        set_read_oper_t oper(*iter, btree, otok);
         boost::shared_ptr<one_way_iterator_t<std::string> > set_iter = oper.iterator();
         merged->add_mergee(set_iter);
     }
@@ -296,15 +336,15 @@ multi_bulk_result redis_actor_t::sunion(std::vector<std::string> &keys) {
     // Use the unique filter to eliminate duplicates
     unique_filter_iterator_t<std::string> filter(merged);
 
-    boost::shared_ptr<std::vector<std::string> > result(new std::vector<std::string>());
+    std::vector<std::string> result;
     while(true) {
         boost::optional<std::string> next = filter.next();
         if(!next) break;
 
-        result->push_back(next.get());
+        result.push_back(next.get());
     }
 
-    return multi_bulk_result(result);
+    return read_response_t(new multi_bulk_result_t(result));
 }
 
-COMMAND_N(integer, sunionstore)
+WRITE(sunionstore)
