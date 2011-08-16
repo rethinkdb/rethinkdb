@@ -369,7 +369,7 @@ void get_all_values(UNUSED dumper_t& dumper, const std::map<size_t, off64_t>& of
             const leaf_node_t *leaf = reinterpret_cast<const leaf_node_t *>(b.buf);
 
             if (leaf->magic == value_sizer_t<memcached_value_t>::leaf_magic()) {
-                int num_pairs = leaf->num_pairs;
+                UNUSED int num_pairs = leaf->num_pairs;
                 logDBG("We have a leaf node with %d pairs.\n", num_pairs);
 
                 // TODO LOOF: Actually implement extraction of values

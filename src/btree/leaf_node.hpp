@@ -453,7 +453,7 @@ bool has_sensible_offsets(block_size_t bs, const leaf_node_t *node) {
 }
 
 template <class V>
-void validate(scoped_error_log_t& log, value_sizer_t<V> *sizer, const leaf_node_t *node) {
+void validate(UNUSED scoped_error_log_t& log, UNUSED value_sizer_t<V> *sizer, UNUSED const leaf_node_t *node) {
 #ifndef NDEBUG
     strprint(log.expose_logtext(), sizer, node);
     do_nothing_fscker_t<V> fits;
@@ -464,7 +464,7 @@ void validate(scoped_error_log_t& log, value_sizer_t<V> *sizer, const leaf_node_
 }
 
 template <class V>
-void validate(value_sizer_t<V> *sizer, const leaf_node_t *node) {
+void validate(UNUSED value_sizer_t<V> *sizer, UNUSED const leaf_node_t *node) {
 #ifndef NDEBUG
     scoped_error_log_t log;
     validate(log, sizer, node);
@@ -1134,7 +1134,7 @@ bool level(value_sizer_t<V> *sizer, leaf_node_t *node, leaf_node_t *sibling, btr
     int prev_weight_movement = 0;
     int weight_movement = 0;
     int num_mandatories = 0;
-    int prev_diff;
+    int prev_diff = sizer->block_size().value();  // some impossibly large value
     for (;;) {
         int offset = sibling->pair_offsets[*w];
         entry_t *ent = get_entry(sibling, offset);
