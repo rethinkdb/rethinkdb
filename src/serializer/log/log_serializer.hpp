@@ -63,7 +63,7 @@ class log_serializer_t :
     friend struct ls_read_fsm_t;
     friend struct ls_start_new_fsm_t;
     friend struct ls_start_existing_fsm_t;
-    friend struct data_block_manager_t;
+    friend class data_block_manager_t;
     friend struct dbm_read_ahead_fsm_t;
 
 public:
@@ -137,7 +137,7 @@ public:
     void *clone(void*); // clones a buf
     void free(void*);
 
-    file_t::account_t *make_io_account(int priority, int outstanding_requests_limit = UNLIMITED_OUTSTANDING_REQUESTS);
+    file_account_t *make_io_account(int priority, int outstanding_requests_limit);
 
     void register_read_ahead_cb(read_ahead_callback_t *cb);
     void unregister_read_ahead_cb(read_ahead_callback_t *cb);
@@ -148,12 +148,12 @@ public:
     boost::shared_ptr<block_token_t> index_read(block_id_t block_id);
 
     using serializer_t::block_read; // hack to make block_read overloading work properly
-    void block_read(boost::shared_ptr<block_token_t> token, void *buf, file_t::account_t *io_account, iocallback_t *cb);
+    void block_read(boost::shared_ptr<block_token_t> token, void *buf, file_account_t *io_account, iocallback_t *cb);
 
-    void index_write(const std::vector<index_write_op_t>& write_ops, file_t::account_t *io_account);
+    void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account);
 
     using serializer_t::block_write; // hack to make block_write overloading work properly
-    boost::shared_ptr<block_token_t> block_write(const void *buf, block_id_t block_id, file_t::account_t *io_account, iocallback_t *cb);
+    boost::shared_ptr<block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb);
 
     block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf);
 
@@ -177,9 +177,9 @@ private:
         cond_t *next_metablock_write;
     };
     /* Starts a new transaction, updates perfmons etc. */
-    void index_write_prepare(index_write_context_t &context, file_t::account_t *io_account);
+    void index_write_prepare(index_write_context_t &context, file_account_t *io_account);
     /* Finishes a write transaction */
-    void index_write_finish(index_write_context_t &context, file_t::account_t *io_account);
+    void index_write_finish(index_write_context_t &context, file_account_t *io_account);
 
     /* This mess is because the serializer is still mostly FSM-based */
     bool shutdown(cond_t *cb);

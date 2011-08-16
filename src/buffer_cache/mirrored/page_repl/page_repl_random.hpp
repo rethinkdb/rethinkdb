@@ -22,7 +22,8 @@ done in constant time.
 
 class mc_cache_t;
 
-struct evictable_t {
+class evictable_t {
+public:
     explicit evictable_t(mc_cache_t *cache, bool loaded = true);
     virtual ~evictable_t();    // removes us from the page repl if necessary; does not call unload()
 

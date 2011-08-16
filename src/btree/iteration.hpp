@@ -1,6 +1,8 @@
 #ifndef __BTREE_ITERATION_HPP__
 #define __BTREE_ITERATION_HPP__
 
+#include <list>
+
 #include "errors.hpp"
 #include <boost/shared_array.hpp>
 #include <boost/shared_ptr.hpp>

@@ -196,7 +196,7 @@ bool metablock_manager_t<metablock_t>::start_existing(direct_file_t *file, bool 
     return false;
 }
 template<class metablock_t>
-void metablock_manager_t<metablock_t>::co_write_metablock(metablock_t *mb, file_t::account_t *io_account) {
+void metablock_manager_t<metablock_t>::co_write_metablock(metablock_t *mb, file_account_t *io_account) {
     mutex_acquisition_t hold(&write_lock);
 
     rassert(state == state_ready);
@@ -217,13 +217,13 @@ void metablock_manager_t<metablock_t>::co_write_metablock(metablock_t *mb, file_
 }
 
 template<class metablock_t>
-void metablock_manager_t<metablock_t>::write_metablock_callback(metablock_t *mb, file_t::account_t *io_account, metablock_write_callback_t *cb) {
+void metablock_manager_t<metablock_t>::write_metablock_callback(metablock_t *mb, file_account_t *io_account, metablock_write_callback_t *cb) {
     co_write_metablock(mb, io_account);
     cb->on_metablock_write();
 }
 
 template<class metablock_t>
-bool metablock_manager_t<metablock_t>::write_metablock(metablock_t *mb, file_t::account_t *io_account, metablock_write_callback_t *cb) {
+bool metablock_manager_t<metablock_t>::write_metablock(metablock_t *mb, file_account_t *io_account, metablock_write_callback_t *cb) {
     coro_t::spawn(boost::bind(&metablock_manager_t<metablock_t>::write_metablock_callback, this, mb, io_account, cb));
     return false;
 }

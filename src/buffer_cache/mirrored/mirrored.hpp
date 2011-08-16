@@ -5,10 +5,10 @@
 #include <map>
 
 #include "errors.hpp"
-#include <boost/crc.hpp>
+#include <boost/scoped_ptr.hpp>
 #include <boost/shared_ptr.hpp>
 
-#include "arch/arch.hpp"
+#include "arch/types.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
 #include "concurrency/coro_fifo.hpp"
@@ -95,7 +95,7 @@ class mc_inner_buf_t : public home_thread_mixin_t, public evictable_t {
     void unload();
 
     // Load an existing buf from disk
-    mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_load, file_t::account_t *io_account);
+    mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_load, file_account_t *io_account);
 
     // Load an existing buf but use the provided data buffer (for read ahead)
     mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp);
@@ -106,7 +106,7 @@ class mc_inner_buf_t : public home_thread_mixin_t, public evictable_t {
     ~mc_inner_buf_t();
 
     // Loads data from the serializer
-    void load_inner_buf(bool should_lock, file_t::account_t *io_account);
+    void load_inner_buf(bool should_lock, file_account_t *io_account);
 
     // Informs us that a certain data buffer (whether the current one or one used by a
     // buf_snapshot_t) has been written back to disk; used by writeback
@@ -125,7 +125,7 @@ class mc_inner_buf_t : public home_thread_mixin_t, public evictable_t {
     void release_snapshot(buf_snapshot_t *snapshot);
     // acquires the snapshot data buffer, loading from disk if necessary; must be matched by a call
     // to release_snapshot_data to keep track of when data buffer is in use
-    void *acquire_snapshot_data(version_id_t version_to_access, file_t::account_t *io_account);
+    void *acquire_snapshot_data(version_id_t version_to_access, file_account_t *io_account);
     void release_snapshot_data(void *data);
 
 private:
@@ -151,7 +151,7 @@ private:
     // io_account is only used if a snapshot needs to be read from disk. it may safely be
     // DEFAULT_DISK_ACCOUNT if snapshotted is false. TODO: this is ugly. find a cleaner interface.
     mc_buf_t(mc_inner_buf_t *inner, access_t mode, mc_inner_buf_t::version_id_t version_id, bool snapshotted,
-             boost::function<void()> call_when_in_line, file_t::account_t *io_account = DEFAULT_DISK_ACCOUNT);
+             boost::function<void()> call_when_in_line, file_account_t *io_account = DEFAULT_DISK_ACCOUNT);
     void acquire_block(mc_inner_buf_t::version_id_t version_to_access);
 
     ticks_t start_time;
@@ -291,7 +291,7 @@ private:
     typedef std::vector<std::pair<mc_inner_buf_t*, mc_inner_buf_t::buf_snapshot_t*> > owned_snapshots_list_t;
     owned_snapshots_list_t owned_buf_snapshots;
 
-    file_t::account_t *get_io_account() const;
+    file_account_t *get_io_account() const;
 
     DISABLE_COPYING(mc_transaction_t);
 };
@@ -302,11 +302,11 @@ class mc_cache_account_t {
     friend class mc_cache_t;
     friend class mc_transaction_t;
 
-    mc_cache_account_t(boost::shared_ptr<file_t::account_t> io_account) :
+    mc_cache_account_t(boost::shared_ptr<file_account_t> io_account) :
             io_account_(io_account) {
     }
 
-    boost::shared_ptr<file_t::account_t> io_account_;
+    boost::shared_ptr<file_account_t> io_account_;
 
     DISABLE_COPYING(mc_cache_account_t);
 };
@@ -347,8 +347,8 @@ private:
     // We use a separate IO account for reads and writes, so reads can pass ahead
     // of active writebacks. Otherwise writebacks could badly block out readers,
     // thereby blocking user queries.
-    boost::scoped_ptr<file_t::account_t> reads_io_account;
-    boost::scoped_ptr<file_t::account_t> writes_io_account;
+    boost::scoped_ptr<file_account_t> reads_io_account;
+    boost::scoped_ptr<file_account_t> writes_io_account;
 
     page_map_t page_map;
     page_repl_t page_repl;

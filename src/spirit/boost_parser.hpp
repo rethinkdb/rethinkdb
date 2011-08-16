@@ -3,7 +3,7 @@
 
 #define BOOST_SPIRIT_DEBUG_PRINT_SOME 1
 
-#include "arch/arch.hpp"
+#include "errors.hpp"
 #include <boost/config/warning_disable.hpp>
 #include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/include/classic_debug.hpp>
@@ -13,6 +13,7 @@
 #include <boost/spirit/include/phoenix_fusion.hpp>
 #include <boost/spirit/include/phoenix_bind.hpp>
 
+#include "arch/types.hpp"
 
 namespace qi = boost::spirit::qi;
 namespace phoenix = boost::phoenix;
