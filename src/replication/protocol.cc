@@ -3,6 +3,7 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
+#include "arch/arch.hpp"
 #include "concurrency/coro_fifo.hpp"
 #include "logger.hpp"
 #include "perfmon.hpp"
@@ -189,6 +190,23 @@ repli_stream_t::~repli_stream_t() {
 
     debugf("Closing repli_stream_t()\n");
 }
+
+void repli_stream_t::shutdown() {
+    drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
+    unwatch_heartbeat();
+    stop_sending_heartbeats();
+    try {
+        mutex_acquisition_t ak(&outgoing_mutex_); // flush_buffer() would interfere with active writes
+        conn_->flush_buffer();
+    } catch (tcp_conn_t::write_closed_exc_t &e) {
+        (void)e;
+        // Ignore
+    }
+    if (conn_->is_read_open()) {
+        conn_->shutdown_read();
+    }
+}
+
 
 template <class net_struct_type>
 void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {

@@ -6,7 +6,7 @@
 #include "JavaScriptCore/JavaScript.h"
 #include "API/JSContextRefPrivate.h"
 #include "arch/runtime/context_switching.hpp"
-#include "riak/javascript.hpp"
+//#include "riak/javascript.hpp"
 #include "utils.hpp"
 
 namespace riak {

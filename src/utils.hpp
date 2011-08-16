@@ -15,7 +15,8 @@
 counter. */
 
 // for safety
-struct repli_timestamp_t {
+class repli_timestamp_t {
+public:
     uint32_t time;
 
     bool operator==(repli_timestamp_t t) const {
@@ -193,7 +194,8 @@ back in its destructor. For example:
 
 */
 
-struct on_thread_t : public home_thread_mixin_t {
+class on_thread_t : public home_thread_mixin_t {
+public:
     on_thread_t(int thread);
     ~on_thread_t();
 };

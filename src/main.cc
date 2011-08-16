@@ -9,7 +9,6 @@
 #include "help.hpp"
 #include "migrate/migrate.hpp"
 #include "http/http.hpp"
-#include "riak/javascript.hpp"
 
 void print_version_message() {
     printf("rethinkdb " RETHINKDB_VERSION

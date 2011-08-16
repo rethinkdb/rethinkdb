@@ -1,4 +1,8 @@
 #include "serializer/log/lba/extent.hpp"
+
+#include <vector>
+
+#include "arch/arch.hpp"
 #include "perfmon.hpp"
 
 struct extent_block_t :
@@ -20,7 +24,7 @@ struct extent_block_t :
         free(data);
     }
     
-    void write(file_t::account_t *io_account) {
+    void write(file_account_t *io_account) {
         waiting_for_prev = true;
         have_finished_sync = false;
         
@@ -96,7 +100,7 @@ void extent_t::read(size_t pos, size_t length, void *buffer, read_callback_t *cb
     file->read_async(offset + pos, length, buffer, DEFAULT_DISK_ACCOUNT, cb);
 }
 
-void extent_t::append(void *buffer, size_t length, file_t::account_t *io_account) {
+void extent_t::append(void *buffer, size_t length, file_account_t *io_account) {
     rassert(amount_filled + length <= em->extent_size);
     
     while (length > 0) {

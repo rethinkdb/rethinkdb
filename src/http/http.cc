@@ -1,6 +1,8 @@
 #include "http/http.hpp"
 #include <iostream>
+#include "errors.hpp"
 #include <boost/bind.hpp>
+#include "arch/arch.hpp"
 #include "logger.hpp"
 
 std::string human_readable_status(int code) {
@@ -205,6 +207,8 @@ void test_header_parser() {
 http_server_t::http_server_t(int port) {
     tcp_listener.reset(new tcp_listener_t(port, boost::bind(&http_server_t::handle_conn, this, _1)));
 }
+
+http_server_t::~http_server_t() { }
 
 void http_server_t::handle_conn(boost::scoped_ptr<tcp_conn_t> &conn) {
     //BREAKPOINT;

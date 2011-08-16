@@ -1,15 +1,15 @@
-
 #ifndef __SERIALIZER_LOG_EXTENT_MANAGER_HPP__
 #define __SERIALIZER_LOG_EXTENT_MANAGER_HPP__
 
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <set>
 #include <deque>
+
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
-#include <list>
+
 #include "utils.hpp"
-#include "arch/arch.hpp"
+#include "arch/types.hpp"
 #include "config/args.hpp"
 #include "serializer/log/config.hpp"
 #include "containers/segmented_vector.hpp"
@@ -56,21 +56,12 @@ private:
     unsigned int num_zones;
     extent_zone_t *zones[MAX_FILE_ZONES];
     int next_zone;    /* Which zone to give the next extent from */
-    
-    extent_zone_t *zone_for_offset(off64_t offset) {
-        if (dbfile->is_block_device() || dynamic_config->file_size > 0) {
-            size_t zone_size = ceil_aligned(dynamic_config->file_zone_size, extent_size);
-            return zones[offset / zone_size];
-        } else {
-            /* There is only one zone on a non-block device */
-            return zones[0];
-        }
-    }
-    
+
+    extent_zone_t *zone_for_offset(off64_t offset);
 public:
     /* When we load a database, we use reserve_extent() to inform the extent manager
     which extents were already in use */
-    
+
     void reserve_extent(off64_t extent);
 
 public:

@@ -4,11 +4,13 @@
 #include <set>
 
 #include "concurrency/rwi_lock.hpp"
+#include "concurrency/semaphore.hpp"
 #include "buffer_cache/mirrored/writeback/flush_time_randomizer.hpp"
 #include "utils.hpp"
 #include "serializer/serializer.hpp"
 #include "buffer_cache/buf_patch.hpp"
 
+class timer_token_t;
 class mc_cache_t;
 class mc_buf_t;
 class mc_inner_buf_t;
@@ -166,7 +168,7 @@ public:
     bool can_read_ahead_block_be_accepted(block_id_t block_id);
 
     // Concurrent flush helpers
-    struct buf_writer_t;      // public so that mc_buf_t can declare it a friend
+    class buf_writer_t;      // public so that mc_buf_t can declare it a friend
 
 private:
     struct flush_state_t;

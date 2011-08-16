@@ -3,10 +3,11 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <boost/smart_ptr/shared_ptr.hpp>
+#include <boost/shared_ptr.hpp>
 #include <boost/variant/static_visitor.hpp>
 #include <boost/variant/apply_visitor.hpp>
 
+#include "arch/arch.hpp"
 #include "buffer_cache/types.hpp"
 #include "do_on_thread.hpp"
 
@@ -264,9 +265,9 @@ void log_serializer_t::free(void *ptr) {
     ::free(reinterpret_cast<void *>(data));
 }
 
-file_t::account_t *log_serializer_t::make_io_account(int priority, int outstanding_requests_limit) {
+file_account_t *log_serializer_t::make_io_account(int priority, int outstanding_requests_limit) {
     rassert(dbfile);
-    return new file_t::account_t(dbfile, priority, outstanding_requests_limit);
+    return new file_account_t(dbfile, priority, outstanding_requests_limit);
 }
 
 perfmon_duration_sampler_t pm_serializer_block_reads("serializer_block_reads", secs_to_ticks(1));
@@ -277,7 +278,7 @@ perfmon_counter_t pm_serializer_block_writes("serializer_block_writes");
 perfmon_duration_sampler_t pm_serializer_index_writes("serializer_index_writes", secs_to_ticks(1));
 perfmon_sampler_t pm_serializer_index_writes_size("serializer_index_writes_size", secs_to_ticks(1));
 
-void log_serializer_t::block_read(boost::shared_ptr<block_token_t> token, void *buf, file_t::account_t *io_account, iocallback_t *cb) {
+void log_serializer_t::block_read(boost::shared_ptr<block_token_t> token, void *buf, file_account_t *io_account, iocallback_t *cb) {
     struct my_cb_t : public iocallback_t {
         void on_io_complete() {
             pm_serializer_block_reads.end(&pm_time);
@@ -302,7 +303,7 @@ void log_serializer_t::block_read(boost::shared_ptr<block_token_t> token, void *
     if (data_block_manager->read(offset, buf, io_account, readcb)) readcb->on_io_complete();
 }
 
-void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_ops, file_t::account_t *io_account) {
+void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account) {
     ticks_t pm_time;
     pm_serializer_index_writes.begin(&pm_time);
     pm_serializer_index_writes_size.record(write_ops.size());
@@ -352,7 +353,7 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
     pm_serializer_index_writes.end(&pm_time);
 }
 
-void log_serializer_t::index_write_prepare(index_write_context_t &context, file_t::account_t *io_account) {
+void log_serializer_t::index_write_prepare(index_write_context_t &context, file_account_t *io_account) {
     active_write_count++;
 
     /* Start an extent manager transaction so we can allocate and release extents */
@@ -362,7 +363,7 @@ void log_serializer_t::index_write_prepare(index_write_context_t &context, file_
     lba_index->consider_gc(io_account);
 }
 
-void log_serializer_t::index_write_finish(index_write_context_t &context, file_t::account_t *io_account) {
+void log_serializer_t::index_write_finish(index_write_context_t &context, file_account_t *io_account) {
     metablock_t mb_buffer;
 
     /* Sync the LBA */
@@ -434,7 +435,7 @@ boost::shared_ptr<serializer_t::block_token_t> log_serializer_t::generate_block_
 }
 
 boost::shared_ptr<serializer_t::block_token_t>
-log_serializer_t::block_write(const void *buf, block_id_t block_id, file_t::account_t *io_account, iocallback_t *cb) {
+log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) {
     // TODO: Implement a duration sampler perfmon for this
     pm_serializer_block_writes++;
 
@@ -486,16 +487,20 @@ void log_serializer_t::remap_block_to_new_offset(off64_t current_offset, off64_t
     rassert(new_offset != current_offset);
     bool have_to_update_gc = false;
 
-    for (std::multimap<off64_t, ls_block_token_t*>::iterator offset_token_it = offset_tokens.find(current_offset);
-            offset_token_it != offset_tokens.end() && offset_token_it->first == current_offset;
-            ++offset_token_it) {
-        
-        have_to_update_gc = true;
+    {
+        std::multimap<off64_t, ls_block_token_t*>::iterator offset_token_it = offset_tokens.find(current_offset);
+        while (offset_token_it != offset_tokens.end() && offset_token_it->first == current_offset) {
 
-        rassert(token_offsets[offset_token_it->second] == current_offset);
-        token_offsets[offset_token_it->second] = new_offset;
-        offset_tokens.insert(std::pair<off64_t, ls_block_token_t*>(new_offset, offset_token_it->second));
-        offset_tokens.erase(offset_token_it);
+            have_to_update_gc = true;
+
+            rassert(token_offsets[offset_token_it->second] == current_offset);
+            token_offsets[offset_token_it->second] = new_offset;
+            offset_tokens.insert(std::pair<off64_t, ls_block_token_t*>(new_offset, offset_token_it->second));
+
+            std::multimap<off64_t, ls_block_token_t*>::iterator prev = offset_token_it;
+            ++ offset_token_it;
+            offset_tokens.erase(prev);
+        }
     }
 
     if (have_to_update_gc) {

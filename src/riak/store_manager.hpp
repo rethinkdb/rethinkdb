@@ -143,8 +143,6 @@ ______HOW TO ADD NEW STORES (let's say you're implementing a new protocol)______
 ________________________________________________________________________________
 */
 
-#include "server/cmd_args.hpp" // TODO: Move the btree key value store configuration from server/cmd_args.hpp to a different place
-
 // TODO: memcached_store_metadata_t is just a demo thing. It should not remain here...
 struct memcached_store_metadata_t {
     int tcp_port;

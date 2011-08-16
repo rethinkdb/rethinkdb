@@ -118,13 +118,13 @@ public:
     void free(void *ptr);
 
     /* Allocates a new io account for the underlying file */
-    file_t::account_t *make_io_account(int priority, int outstanding_requests_limit = UNLIMITED_OUTSTANDING_REQUESTS);
+    file_account_t *make_io_account(int priority, int outstanding_requests_limit);
 
-    void index_write(const std::vector<index_write_op_t>& write_ops, file_t::account_t *io_account);
+    void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account);
 
     /* Non-blocking variant */
-    boost::shared_ptr<block_token_t> block_write(const void *buf, block_id_t block_id, file_t::account_t *io_account, iocallback_t *cb);
-    boost::shared_ptr<block_token_t> block_write(const void *buf, file_t::account_t *io_account, iocallback_t *cb);
+    boost::shared_ptr<block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb);
+    boost::shared_ptr<block_token_t> block_write(const void *buf, file_account_t *io_account, iocallback_t *cb);
 
     block_size_t get_block_size();
 
@@ -139,8 +139,8 @@ public:
     bool get_delete_bit(block_id_t id);
     block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf);
 
-    void block_read(boost::shared_ptr<block_token_t> token, void *buf, file_t::account_t *io_account, iocallback_t *cb);
-    void block_read(boost::shared_ptr<block_token_t> token, void *buf, file_t::account_t *io_account);
+    void block_read(boost::shared_ptr<block_token_t> token, void *buf, file_account_t *io_account, iocallback_t *cb);
+    void block_read(boost::shared_ptr<block_token_t> token, void *buf, file_account_t *io_account);
     boost::shared_ptr<block_token_t> index_read(block_id_t block_id);
 
 public:

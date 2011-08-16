@@ -18,7 +18,7 @@ void multi_cond_t::pulse() {
     rassert(!ready);
     ready = true;
     for (waiter_t *w = waiters.head(); w; w = waiters.next(w)) {
-        w->coro->notify();
+        w->coro->notify_later_ordered();
     }
     waiters.clear();
 }
