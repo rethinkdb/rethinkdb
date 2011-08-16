@@ -1,6 +1,8 @@
 #ifndef __CONTAINERS_BITSET_HPP__
 #define __CONTAINERS_BITSET_HPP__
 
+#include <vector>
+
 #include <stdint.h>
 
 #include "utils.hpp"

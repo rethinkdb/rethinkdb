@@ -1,5 +1,6 @@
 #include <boost/bind.hpp>
 
+#include "arch/arch.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "unittest/server_test_helper.hpp"
 #include "unittest/unittest_utils.hpp"
@@ -12,6 +13,12 @@ namespace unittest {
 const int server_test_helper_t::init_value = 0x12345678;
 const int server_test_helper_t::changed_value = 0x87654321;
 
+server_test_helper_t::server_test_helper_t()
+    : serializer(NULL), thread_pool(new thread_pool_t(1)) { }
+server_test_helper_t::~server_test_helper_t() {
+    delete thread_pool;
+}
+
 void server_test_helper_t::run() {
     struct starter_t : public thread_message_t {
         server_test_helper_t *server_test;
@@ -21,7 +28,7 @@ void server_test_helper_t::run() {
         }
     } starter(this);
 
-    thread_pool.run(&starter);
+    thread_pool->run(&starter);
 }
 
 void server_test_helper_t::setup_server_and_run_tests() {
@@ -57,7 +64,7 @@ void server_test_helper_t::setup_server_and_run_tests() {
 
         run_tests(&cache);
     }
-    trace_call(thread_pool.shutdown);
+    trace_call(thread_pool->shutdown);
 }
 
 // Static helper functions

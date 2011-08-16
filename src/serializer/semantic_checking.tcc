@@ -53,10 +53,10 @@ semantic_checking_serializer_t(dynamic_config_t config, private_dynamic_config_t
       last_index_write_started(0), last_index_write_finished(0),
       semantic_fd(-1)
 {
-    semantic_fd = open(private_config->semantic_filename.c_str(),
+    semantic_fd = open(private_config.semantic_filename.c_str(),
         O_RDWR | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO);
     if (semantic_fd == INVALID_FD)
-        fail_due_to_user_error("Inaccessible semantic checking file: \"%s\": %s", private_config->semantic_filename.c_str(), strerror(errno));
+        fail_due_to_user_error("Inaccessible semantic checking file: \"%s\": %s", private_config.semantic_filename.c_str(), strerror(errno));
 
     // fill up the blocks from the semantic checking file
     int res = -1;

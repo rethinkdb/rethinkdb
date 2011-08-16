@@ -26,8 +26,21 @@ perfmon_counter_t
     pm_serializer_old_garbage_blocks("serializer_old_garbage_blocks"),
     pm_serializer_old_total_blocks("serializer_old_total_blocks");
 
-//perfmon_function_t
-//    pm_serializer_garbage_ratio("serializer_garbage_ratio");
+data_block_manager_t::data_block_manager_t(const log_serializer_dynamic_config_t *_dynamic_config, extent_manager_t *em, log_serializer_t *_serializer, const log_serializer_on_disk_static_config_t *_static_config)
+    : shutdown_callback(NULL), state(state_unstarted),
+      dynamic_config(_dynamic_config), static_config(_static_config), extent_manager(em), serializer(_serializer),
+      next_active_extent(0),
+      gc_state(extent_manager->extent_size)
+{
+    rassert(dynamic_config);
+    rassert(static_config);
+    rassert(extent_manager);
+    rassert(serializer);
+}
+
+data_block_manager_t::~data_block_manager_t() {
+    rassert(state == state_unstarted || state == state_shut_down);
+}
 
 void data_block_manager_t::prepare_initial_metablock(metablock_mixin_t *mb) {
 
@@ -71,8 +84,8 @@ void data_block_manager_t::end_reconstruct() {
 void data_block_manager_t::start_existing(direct_file_t *file, metablock_mixin_t *last_metablock) {
     rassert(state == state_unstarted);
     dbfile = file;
-    gc_io_account_nice.reset(new file_t::account_t(file, GC_IO_PRIORITY_NICE));
-    gc_io_account_high.reset(new file_t::account_t(file, GC_IO_PRIORITY_HIGH));
+    gc_io_account_nice.reset(new file_account_t(file, GC_IO_PRIORITY_NICE));
+    gc_io_account_high.reset(new file_account_t(file, GC_IO_PRIORITY_HIGH));
     
     /* Reconstruct the active data block extents from the metablock. */
     
@@ -135,7 +148,7 @@ public:
     off64_t off_in;
     void *buf_out;
 
-    dbm_read_ahead_fsm_t(data_block_manager_t *p, off64_t off_in, void *buf_out, file_t::account_t *io_account, iocallback_t *cb)
+    dbm_read_ahead_fsm_t(data_block_manager_t *p, off64_t off_in, void *buf_out, file_account_t *io_account, iocallback_t *cb)
         : parent(p), callback(cb), read_ahead_buf(NULL), off_in(off_in), buf_out(buf_out)
     {
         extent = floor_aligned(off_in, parent->static_config->extent_size());
@@ -216,7 +229,7 @@ bool data_block_manager_t::should_perform_read_ahead(off64_t offset) {
     return !entry->was_written && serializer->should_perform_read_ahead();
 }
 
-bool data_block_manager_t::read(off64_t off_in, void *buf_out, file_t::account_t *io_account, iocallback_t *cb) {
+bool data_block_manager_t::read(off64_t off_in, void *buf_out, file_account_t *io_account, iocallback_t *cb) {
     rassert(state == state_ready);
 
     if (should_perform_read_ahead(off_in)) {
@@ -240,7 +253,7 @@ bool data_block_manager_t::read(off64_t off_in, void *buf_out, file_t::account_t
  set block_sequence_id immediately.
  */
 off64_t data_block_manager_t::write(const void *buf_in, block_id_t block_id, bool assign_new_block_sequence_id,
-                                    file_t::account_t *io_account, iocallback_t *cb) {
+                                    file_account_t *io_account, iocallback_t *cb) {
     // Either we're ready to write, or we're shutting down and just
     // finished reading blocks for gc and called do_write.
     rassert(state == state_ready
@@ -308,7 +321,7 @@ void data_block_manager_t::check_and_handle_empty_extent(unsigned int extent_id)
     }
 }
 
-file_t::account_t *data_block_manager_t::choose_gc_io_account() {
+file_account_t *data_block_manager_t::choose_gc_io_account() {
     // Start going into high priority as soon as the garbage ratio is more than
     // 2% above the configured goal.
     // The idea is that we use the nice i/o account whenever possible, except

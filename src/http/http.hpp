@@ -1,10 +1,13 @@
 #ifndef __HTPP_HTPP_HPP__
 #define __HTPP_HTPP_HPP__
 
-#include "spirit/boost_parser.hpp"
+#include "errors.hpp"
 #include <boost/fusion/include/adapt_struct.hpp>
 #include <boost/fusion/include/io.hpp>
+#include <boost/scoped_ptr.hpp>
 
+#include "arch/types.hpp"
+#include "spirit/boost_parser.hpp"
 
 enum http_method_t {
     HEAD = 0,
@@ -144,7 +147,7 @@ private:
     boost::scoped_ptr<tcp_listener_t> tcp_listener;
 public:
     http_server_t(int);
-    virtual ~http_server_t() {}
+    virtual ~http_server_t();
 private:
     virtual http_res_t handle(const http_req_t &) = 0;
 protected:

@@ -1,13 +1,16 @@
 #ifndef __SERIALIZER_HPP__
 #define __SERIALIZER_HPP__
 
-#include "arch/arch.hpp"
+#include <vector>
+
+#include "utils.hpp"
+#include <boost/optional.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/variant/variant.hpp>
+
+#include "arch/types.hpp"
 #include "serializer/types.hpp"
 
-#include <boost/optional.hpp>
-#include <boost/smart_ptr.hpp>
-#include <boost/variant/variant.hpp>
-#include "utils.hpp"
 #include "concurrency/cond_var.hpp"
 
 /* serializer_t is an abstract interface that describes how each serializer should
@@ -31,7 +34,8 @@ struct serializer_t :
 
     /* Allocates a new io account for the underlying file.
     Use delete to free it. */
-    virtual file_t::account_t *make_io_account(int priority, int outstanding_requests_limit = UNLIMITED_OUTSTANDING_REQUESTS) = 0;
+    file_account_t *make_io_account(int priority);
+    virtual file_account_t *make_io_account(int priority, int outstanding_requests_limit) = 0;
 
     /* Some serializer implementations support read-ahead to speed up cache warmup.
     This is supported through a read_ahead_callback_t which gets called whenever the serializer has read-ahead some buf.
@@ -53,10 +57,10 @@ struct serializer_t :
 
     /* Reading a block from the serializer */
     // Non-blocking variant
-    virtual void block_read(boost::shared_ptr<block_token_t> token, void *buf, file_t::account_t *io_account, iocallback_t *cb) = 0;
+    virtual void block_read(boost::shared_ptr<block_token_t> token, void *buf, file_account_t *io_account, iocallback_t *cb) = 0;
 
     // Blocking variant (requires coroutine context). Has default implementation.
-    virtual void block_read(boost::shared_ptr<block_token_t> token, void *buf, file_t::account_t *io_account);
+    virtual void block_read(boost::shared_ptr<block_token_t> token, void *buf, file_account_t *io_account);
 
     /* The index stores three pieces of information for each ID:
      * 1. A pointer to a data block on disk (which may be NULL)
@@ -95,20 +99,20 @@ struct serializer_t :
     };
 
     /* index_write() applies all given index operations in an atomic way */
-    virtual void index_write(const std::vector<index_write_op_t>& write_ops, file_t::account_t *io_account) = 0;
+    virtual void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account) = 0;
     // convenience wrapper for a single index_write_op_t
-    void index_write(const index_write_op_t &op, file_t::account_t *io_account);
+    void index_write(const index_write_op_t &op, file_account_t *io_account);
 
     /* Non-blocking variants */
-    virtual boost::shared_ptr<block_token_t> block_write(const void *buf, block_id_t block_id, file_t::account_t *io_account, iocallback_t *cb) = 0;
+    virtual boost::shared_ptr<block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) = 0;
     // `block_write(buf, acct, cb)` must behave identically to `block_write(buf, NULL_BLOCK_ID, acct, cb)`
     // a default implementation is provided using this
-    virtual boost::shared_ptr<block_token_t> block_write(const void *buf, file_t::account_t *io_account, iocallback_t *cb);
+    virtual boost::shared_ptr<block_token_t> block_write(const void *buf, file_account_t *io_account, iocallback_t *cb);
 
     /* Blocking variants (use in coroutine context) with and without known block_id */
     // these have default implementations in serializer.cc in terms of the non-blocking variants above
-    virtual boost::shared_ptr<block_token_t> block_write(const void *buf, file_t::account_t *io_account);
-    virtual boost::shared_ptr<block_token_t> block_write(const void *buf, block_id_t block_id, file_t::account_t *io_account);
+    virtual boost::shared_ptr<block_token_t> block_write(const void *buf, file_account_t *io_account);
+    virtual boost::shared_ptr<block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account);
 
     virtual block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf) = 0;
 
@@ -145,7 +149,7 @@ struct serializer_t :
      * Note that this is not virtual. It is implemented in terms of block_write() and index_write(),
      * and not meant to be overridden in subclasses.
      */
-    void do_write(std::vector<write_t> writes, file_t::account_t *io_account);
+    void do_write(std::vector<write_t> writes, file_account_t *io_account);
 
     /* The size, in bytes, of each serializer block */
 

@@ -1,5 +1,7 @@
 #include "fsck/raw_block.hpp"
 
+#include "arch/arch.hpp"
+
 namespace fsck {
 
 const char *raw_block_t::error_name(error code) {

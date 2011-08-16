@@ -2,40 +2,7 @@
 #define __RPC_METADATA_METADATA_HPP__
 
 #include "rpc/mailbox/mailbox.hpp"
-
-/* Forward declarations */
-
-template<class metadata_t>
-struct metadata_watcher_t;
-
-template<class metadata_t>
-struct metadata_view_t;
-
-/* `metadata_view_t` is a reference to some subset of the metadata for a
-cluster. Components that need to interact with metadata should take a
-`metadata_view_t<metadata_t> *`, where `metadata_t` is the type of the piece of
-metadata that they need to use. That way, the individual components don't need
-to know the type of the overall cluster-wide metadata. */
-
-template<class metadata_t>
-class metadata_view_t {
-
-public:
-    /* Get the current metadata. TODO: This makes a copy. We could replace
-    `get_metadata()` with some sort of COW-based solution if this becomes a
-    performance issue. */
-    virtual metadata_t get_metadata() = 0;
-
-    /* Join the given metadata with the current metadata. */
-    virtual void join_metadata(metadata_t) = 0;
-
-protected:
-    virtual ~metadata_view_t() { }
-
-private:
-    friend class metadata_watcher_t<metadata_t>;
-    virtual publisher_t<boost::function<void()> > *get_publisher() = 0;
-};
+#include "rpc/metadata/view.hpp"
 
 /* `metadata_cluster_t` is a `mailbox_cluster_t` that uses the utility message
 system to synchronize a value, called the "cluster metadata", between all of the
@@ -73,8 +40,8 @@ private:
     struct root_view_t : public metadata_view_t<metadata_t> {
         root_view_t(metadata_cluster_t *);
         metadata_cluster_t *parent;
-        metadata_t get_metadata();
-        void join_metadata(metadata_t);
+        metadata_t get();
+        void join(const metadata_t &);
         publisher_t<boost::function<void()> > *get_publisher();
     } root_view;
 
@@ -83,22 +50,14 @@ private:
     void join_metadata_locally(metadata_t);
 
     /* Infrastructure for notifying things when metadata changes */
+    mutex_t change_mutex;
     static void call(boost::function<void()>);
-    public_publisher_t<boost::function<void()> > change_publisher;
+    publisher_controller_t<boost::function<void()> > change_publisher;
 
     static void write_metadata(std::ostream&, metadata_t);
     void on_utility_message(peer_id_t, std::istream&, boost::function<void()>&);
     void on_connect(peer_id_t);
     void on_disconnect(peer_id_t);
-};
-
-/* Use `metadata_watcher_t` to be notified when metadata changes. */
-template<class metadata_t>
-struct metadata_watcher_t {
-    metadata_watcher_t(boost::function<void()>, metadata_view_t<metadata_t> *);
-private:
-    publisher_t<boost::function<void()> >::subscription_t subs;
-    DISABLE_COPYING(metadata_watcher_t);
 };
 
 #include "rpc/metadata/metadata.tcc"

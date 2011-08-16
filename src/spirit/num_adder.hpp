@@ -2,7 +2,7 @@
 #define __SPIRIT_NUM_ADDER_HPP__
 
 #include "spirit/boost_parser.hpp"
-#include "arch/arch.hpp"
+#include "arch/types.hpp"
 
 //struct adder_t : gi::grammar<tcp_conn_t::iterator>
 //{
