@@ -5,6 +5,7 @@
 #include "store_manager.hpp"
 #include <boost/ptr_container/ptr_map.hpp>
 #include "http/json.hpp"
+#include "javascript/javascript.hpp"
 
 #define RIAK_LIST_KEYS_BATCH_FACTOR 10
 
@@ -81,8 +82,26 @@ public:
     //make a key (which is guarunteed to be unique)
     std::string gen_key();
 
-
+private:
+    JS::ctx_group_t ctx_group;
 };
+
+//A few convenience functions for dealing with the javascript engine.
+
+/* We need to hand the object_t to the javascript function is the following format:
+ *
+ * struct value_t {
+ *     string data;
+ * };
+ *
+ * struct input_t {
+ *     [value_t] values;
+ * };
+ */
+
+JSValueRef object_to_jsvalue(JSContextRef, object_t &);
+
+std::string js_obj_to_string(JSStringRef);
 
 } //namespace riak
 

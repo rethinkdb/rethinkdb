@@ -237,14 +237,12 @@ std::string riak_interface_t::mapreduce(json::mValue &val) {
     }
 
     //startup the javascript contexts
-    js_ctx_t js_ctx;
-
-    JSGlobalContextRef m_ctx = js_ctx.get_ctx();
+    JS::ctx_t ctx = ctx_group.new_ctx();
 
     // convert the values to js_values
     std::vector<JSValueRef> js_values;
     for (std::vector<object_t>::iterator it = inputs.begin(); it != inputs.end(); it++) {
-        js_values.push_back(object_to_jsvalue(m_ctx, *it));
+        js_values.push_back(object_to_jsvalue(ctx.get(), *it));
     }
 
     std::string res;
@@ -259,30 +257,30 @@ std::string riak_interface_t::mapreduce(json::mValue &val) {
             fprintf(stderr, "Map phase with: %s\n", source.c_str());
 
             JSStringRef scriptJS = JSStringCreateWithUTF8CString(source.c_str());
-            JSObjectRef fn = JSValueToObject(m_ctx, JSEvaluateScript(m_ctx, scriptJS, NULL, NULL, 0, NULL), NULL);
+            JSObjectRef fn = JSValueToObject(ctx.get(), JSEvaluateScript(ctx.get(), scriptJS, NULL, NULL, 0, NULL), NULL);
 
             for (std::vector<JSValueRef>::iterator jsval_it = js_values.begin(); jsval_it != js_values.end(); jsval_it++) {
-                *jsval_it = JSObjectCallAsFunction(m_ctx, fn, NULL, 1, &(*jsval_it), NULL);
+                *jsval_it = JSObjectCallAsFunction(ctx.get(), fn, NULL, 1, &(*jsval_it), NULL);
             }
         } else if (std_map_contains(query_it->get_obj(), std::string("reduce"))) {
             if (query_it->get_obj()["reduce"].get_obj()["language"].get_str() != "javascript") { goto MALFORMED_REQUEST; }
 
             // create the data to be given to the script
-            JSObjectRef data_list = JSObjectMakeArray(m_ctx, js_values.size(), js_values.data(), NULL);
+            JSObjectRef data_list = JSObjectMakeArray(ctx.get(), js_values.size(), js_values.data(), NULL);
             JSStringRef collapse_script= JSStringCreateWithUTF8CString("(function(x) { return x.reduce(function(a, b) { return a.concat(b); }, []); })");
-            JSObjectRef collapse_fn = JSValueToObject(m_ctx, JSEvaluateScript(m_ctx, collapse_script, NULL, NULL, 0, NULL), NULL);
-            JSValueRef collapsed_data = JSObjectCallAsFunction(m_ctx, collapse_fn, NULL, 1, &data_list, NULL);
+            JSObjectRef collapse_fn = JSValueToObject(ctx.get(), JSEvaluateScript(ctx.get(), collapse_script, NULL, NULL, 0, NULL), NULL);
+            JSValueRef collapsed_data = JSObjectCallAsFunction(ctx.get(), collapse_fn, NULL, 1, &data_list, NULL);
 
             // create the function
             std::string source = "(" + query_it->get_obj()["reduce"].get_obj()["source"].get_str() + ")";
             fprintf(stderr, "Reduce phase with: %s\n", source.c_str());
 
             JSStringRef scriptJS = JSStringCreateWithUTF8CString(source.c_str());
-            JSObjectRef fn = JSValueToObject(m_ctx, JSEvaluateScript(m_ctx, scriptJS, NULL, NULL, 0, NULL), NULL);
+            JSObjectRef fn = JSValueToObject(ctx.get(), JSEvaluateScript(ctx.get(), scriptJS, NULL, NULL, 0, NULL), NULL);
 
             //evaluate the function on the data
-            JSValueRef value = JSObjectCallAsFunction(m_ctx, fn, NULL, 1, &collapsed_data, NULL);
-            res = js_obj_to_string(JSValueCreateJSONString(m_ctx, value, 0, NULL));
+            JSValueRef value = JSObjectCallAsFunction(ctx.get(), fn, NULL, 1, &collapsed_data, NULL);
+            res = js_obj_to_string(JSValueCreateJSONString(ctx.get(), value, 0, NULL));
         } else {
             fprintf(stderr, "Don't know how to handle: %s\n", json::write_string(json::mValue(query_it->get_obj())).c_str());
             goto MALFORMED_REQUEST;
@@ -296,5 +294,22 @@ MALFORMED_REQUEST:
 
 std::string riak_interface_t::gen_key() {
     crash("Not implementated");
+}
+
+JSValueRef object_to_jsvalue(JSContextRef ctx, object_t &obj) {
+    json::mObject js_obj;
+
+    js_obj["key"] = obj.key;
+
+    js_obj["values"] = json::mArray();
+    js_obj["values"].get_array().push_back(json::mObject());
+    js_obj["values"].get_array()[0].get_obj()["data"] = std::string(obj.content.get(), obj.content_length); //extra copy
+    return JSValueMakeFromJSONString(ctx, JSStringCreateWithUTF8CString(json::write_string(json::mValue(js_obj)).c_str()));
+}
+
+std::string js_obj_to_string(JSStringRef str) {
+    char result_buf[1024];
+    JSStringGetUTF8CString(str, result_buf, sizeof(result_buf));
+    return std::string(result_buf);
 }
 } //namespace riak
