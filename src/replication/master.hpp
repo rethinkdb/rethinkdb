@@ -22,51 +22,9 @@ class master_t :
     public backfill_sender_t,
     public backfill_receiver_t {
 public:
-    master_t(int port, btree_key_value_store_t *kv_store, replication_config_t replication_config, gated_get_store_t *get_gate, gated_set_store_interface_t *set_gate, backfill_receiver_order_source_t *master_order_source) :
-        backfill_sender_t(&stream_),
-        backfill_receiver_t(&backfill_storer_, master_order_source),
-        stream_(NULL),
-        listener_port_(port),
-        kvs_(kv_store),
-        replication_config_(replication_config),
-        get_gate_(get_gate),
-        set_gate_(set_gate),
-        backfill_storer_(kv_store),
-        dont_wait_for_slave_control(this)
-    {
-        logINF("Waiting for initial slave to connect on port %d...\n", listener_port_);
-        logINF("If no slave was connected when the master last shut down, send "
-            "\"rethinkdb dont-wait-for-slave\" to the server over telnet to go ahead "
-            "without waiting for the slave to connect.\n");
-        listener_.reset(new tcp_listener_t(listener_port_, boost::bind(&master_t::on_conn, this, _1)));
+    master_t(int port, btree_key_value_store_t *kv_store, replication_config_t replication_config, gated_get_store_t *get_gate, gated_set_store_interface_t *set_gate, backfill_receiver_order_source_t *master_order_source);
 
-        // Because stream_ is initially NULL
-        stream_exists_cond_.pulse();
-
-        // Because there is initially no backfill operation
-        streaming_cond_.pulse();
-
-        /* Initially, we don't allow either gets or sets, because no slave has connected yet so
-        we don't know how out-of-date our data might be. */
-        get_gate_->set_message("haven't gotten initial slave connection yet; data might be out of date.");
-        set_gate_->set_message("haven't gotten initial slave connection yet; data might be out of date.");
-    }
-
-    ~master_t() {
-
-        // Stop listening for new connections
-        listener_.reset();
-
-        // Drain operations. It isn't really necessary to drain gets here, but we must drain sets
-        // before we destroy the slave connection so that the user can be guaranteed that all
-        // operations will make it to the slave after sending SIGINT.
-        set_gate_->set_message("server is shutting down.");
-        get_gate_->set_message("server is shutting down.");
-        set_permission_.reset();
-        get_permission_.reset();
-
-        destroy_existing_slave_conn_if_it_exists();
-    }
+    ~master_t();
 
     bool has_slave() { return stream_ != NULL; }
 

@@ -69,7 +69,9 @@ public:
     // Does not read any bytes outside of [value, value +
     // length_available).
     bool fits(const riak_value_t *value, int length_available) {
-        return size(value) < length_available;
+        if (length_available < 0) { return false; }
+        if ((unsigned) length_available < offsetof(riak_value_t, contents)) { return false; }
+        else { return blob::ref_fits(block_size_, length_available - offsetof(riak_value_t, contents), value->contents, blob::btree_maxreflen); }
     }
 
     int max_possible_size() {

@@ -76,11 +76,14 @@ struct coro_globals_t {
 
 #endif  // NDEBUG
 
-    coro_globals_t() :
-        current_coro(NULL), prev_coro(NULL),
-        coro_context_count(0),
-        assert_no_coro_waiting_counter(0),
-        assert_finite_coro_waiting_counter(0)
+    coro_globals_t()
+        : current_coro(NULL)
+        , prev_coro(NULL)
+#ifndef NDEBUG
+        , coro_context_count(0)
+        , assert_no_coro_waiting_counter(0)
+        , assert_finite_coro_waiting_counter(0)
+#endif
         { }
 
     ~coro_globals_t() {

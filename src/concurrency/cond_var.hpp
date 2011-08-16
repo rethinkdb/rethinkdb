@@ -12,7 +12,8 @@ use resettable_cond_t. */
 
 class coro_t;
 
-struct cond_t : public signal_t {
+class cond_t : public signal_t {
+public:
     cond_t() { }
     void pulse();
 private:
@@ -43,11 +44,14 @@ private:
     };
 
     intrusive_list_t<waiter_t> waiters;
+
+    DISABLE_COPYING(multi_cond_t);
 };
 
 /* cond_link_t pulses a given cond_t if a given signal_t is pulsed. */
 
-struct cond_link_t {
+class cond_link_t {
+public:
     cond_link_t(signal_t *s, cond_t *d) :
         subs(boost::bind(&cond_link_t::go, this)),
         dest(d)

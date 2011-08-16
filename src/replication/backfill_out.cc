@@ -1,3 +1,4 @@
+#include "arch/timing.hpp"
 #include "btree/node.hpp"
 #include "replication/backfill_out.hpp"
 #include "concurrency/drain_semaphore.hpp"

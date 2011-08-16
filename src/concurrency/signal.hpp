@@ -26,7 +26,7 @@ the unpulsed state after being pulsed, and some things may depend on that
 property. If you want something like that, maybe you should look at something
 other than `signal_t`; have you tried `resettable_cond_t`? */
 
-struct signal_t :
+class signal_t :
     public home_thread_mixin_t
 {
 public:

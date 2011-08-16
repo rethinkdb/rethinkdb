@@ -2,6 +2,11 @@
 
 #include <math.h>
 
+#include "errors.hpp"
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
+
+#include "arch/arch.hpp"
 #include "db_thread_info.hpp"
 #include "memcached/tcp_conn.hpp"
 #include "memcached/file.hpp"
@@ -12,16 +17,13 @@
 #include "replication/master.hpp"
 #include "replication/slave.hpp"
 #include "stats/control.hpp"
-#include "gated_store.hpp"
+#include "server/gated_store.hpp"
 #include "concurrency/promise.hpp"
 #include "arch/os_signal.hpp"
 #include "http/http.hpp"
 #include "riak/riak.hpp"
 #include "server/key_value_store.hpp"
 #include "server/metadata_store.hpp"
-#include "cmd_args.hpp"
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/archive/text_oarchive.hpp>
 
 int run_server(int argc, char *argv[]) {
 
@@ -99,7 +101,7 @@ struct periodic_checker_t {
         no_more_checking = true;
         if (timer_token) {
             cancel_timer(const_cast<timer_token_t*>(timer_token));
-        } 
+        }
     }
 
     static void check(periodic_checker_t *timebomb_checker) {
@@ -354,28 +356,3 @@ struct shutdown_control_t : public control_t
 };
 
 shutdown_control_t shutdown_control(std::string("shutdown"));
-
-struct malloc_control_t : public control_t {
-    malloc_control_t(std::string key)
-        : control_t(key, "tcmalloc-testing control.", true) { }
-
-    std::string call(UNUSED int argc, UNUSED char **argv) {
-        std::vector<void *> ptrs;
-        ptrs.reserve(100000);
-        std::string ret("HundredThousandComplete\r\n");
-        for (int i = 0; i < 100000; ++i) {
-            void *ptr;
-            int res = posix_memalign(&ptr, 4096, 131072);
-            if (res != 0) {
-                ret = strprintf("Failed at i = %d\r\n", i);
-                break;
-            }
-        }
-
-        for (int j = 0; j < int(ptrs.size()); ++j) {
-            free(ptrs[j]);
-        }
-
-        return ret;
-    }
-} malloc_control("malloc_control");

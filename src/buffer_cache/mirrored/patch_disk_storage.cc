@@ -377,8 +377,9 @@ void patch_disk_storage_t::clear_block(const block_id_t log_block_id, coro_t* no
     block_is_empty[log_block_id - first_block] = true;
 
     --waiting_for_clear;
-    if (waiting_for_clear == 0)
-        notify_coro->notify();
+    if (waiting_for_clear == 0) {
+        notify_coro->notify_later_ordered();
+    }
 }
 
 void patch_disk_storage_t::set_active_log_block(const block_id_t log_block_id) {

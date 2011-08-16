@@ -9,7 +9,7 @@ groups (more about these later). None of the automated scripts require these
 credentials though.
 
 Current login data for the EC2 console:
-e-mail: daniel@rethinkdb.com
+e-mail: slava@rethinkdb.com
 password: 
 
 Automated access by scripts on the other hand is based on an access key. Access

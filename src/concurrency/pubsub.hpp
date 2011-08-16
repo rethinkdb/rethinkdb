@@ -19,7 +19,7 @@ it is possible to unassociate a subscription or to move it from one publisher to
 another. */
 
 template<class subscriber_t>
-struct publisher_t :
+class publisher_t :
     public home_thread_mixin_t
 {
 public:

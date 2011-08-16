@@ -1,14 +1,15 @@
 #include "buffer_cache/mirrored/writeback/writeback.hpp"
-#include "arch/runtime/runtime.hpp"
-#include "buffer_cache/mirrored/mirrored.hpp"
-#include "do_on_thread.hpp"
-#include "perfmon.hpp"
-#include "errors.hpp"
 
 #include <math.h>
 
+#include "errors.hpp"
 #include <boost/bind.hpp>
 #include <boost/variant/get.hpp>
+
+#include "arch/arch.hpp"
+#include "buffer_cache/mirrored/mirrored.hpp"
+#include "do_on_thread.hpp"
+#include "perfmon.hpp"
 
 // TODO: We added a writeback->possibly_unthrottle_transactions() call
 // in the begin_transaction_fsm_t(..) constructor, where did that get
@@ -249,11 +250,12 @@ void writeback_t::flush_timer_callback(void *ctx) {
     }
 }
 
-struct writeback_t::buf_writer_t :
+class writeback_t::buf_writer_t :
     public iocallback_t,
     public thread_message_t,
     public cond_t               // note: inherits from home_thread_mixin_t
 {
+public:
     struct launch_callback_t :
         public serializer_t::write_launched_callback_t,
         public thread_message_t,

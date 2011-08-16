@@ -1,12 +1,12 @@
 #include "serializer/log/static_header.hpp"
 
-#include "errors.hpp"
+#include "utils.hpp"
 #include <boost/bind.hpp>
 
-#include "arch/runtime/runtime.hpp"
+#include "arch/arch.hpp"
 #include "config/args.hpp"
-#include "utils.hpp"
-    
+
+
 bool static_header_check(direct_file_t *file) {
     if (!file->exists() || file->get_size() < DEVICE_BLOCK_SIZE) {
         return false;

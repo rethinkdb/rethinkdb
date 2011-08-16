@@ -1,7 +1,7 @@
 #ifndef __SERIALIZER_LOG_LBA_DISK_STRUCTURE__
 #define __SERIALIZER_LOG_LBA_DISK_STRUCTURE__
 
-#include "arch/arch.hpp"
+#include "arch/types.hpp"
 #include "serializer/log/extents/extent_manager.hpp"
 #include "serializer/log/lba/disk_format.hpp"
 #include "serializer/log/lba/disk_extent.hpp"
@@ -29,13 +29,13 @@ public:
 
     // Put entries in an LBA and then call sync() to write to disk
     void add_entry(block_id_t block_id, repli_timestamp_t recency,
-                   flagged_off64_t offset, file_t::account_t *io_account);
+                   flagged_off64_t offset, file_account_t *io_account);
     struct sync_callback_t {
         virtual void on_lba_sync() = 0;
         virtual ~sync_callback_t() {}
     };
-    void sync(file_t::account_t *io_account, sync_callback_t *cb);
-    
+    void sync(file_account_t *io_account, sync_callback_t *cb);
+
     // If you call read(), then the in_memory_index_t will be populated and then the read_callback_t
     // will be called when it is done.
     struct read_callback_t {
@@ -43,9 +43,9 @@ public:
         virtual ~read_callback_t() {}
     };
     void read(in_memory_index_t *index, read_callback_t *cb);
-    
+
     void prepare_metablock(lba_shard_metablock_t *mb_out);
-    
+
     void destroy();   // Delete both in memory and on disk
     void shutdown();   // Delete just in memory
 
