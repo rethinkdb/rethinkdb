@@ -154,8 +154,7 @@ with type. */
 struct btree_key_buffer_t {
     btree_key_buffer_t() { }
     btree_key_buffer_t(const btree_key_t *k) {
-        btree_key.size = k->size;
-        memcpy(btree_key.contents, k->contents, k->size);
+        assign(k);
     }
     btree_key_buffer_t(const store_key_t &store_key) {
         btree_key.size = store_key.size;
@@ -171,6 +170,10 @@ struct btree_key_buffer_t {
             ++beg;
             ++i;
         }
+    }
+    void assign(const btree_key_t *k) {
+        btree_key.size = k->size;
+        memcpy(btree_key.contents, k->contents, k->size);
     }
     btree_key_t *key() { return &btree_key; }
 private:

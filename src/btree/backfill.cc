@@ -29,7 +29,8 @@ public:
 
 struct backfill_traversal_helper_t : public btree_traversal_helper_t, public home_thread_mixin_t {
 
-    void process_a_leaf(transaction_t *txn, buf_t *leaf_node_buf) {
+    // TODO LOOF: Use these btree_keys.
+    void process_a_leaf(transaction_t *txn, buf_t *leaf_node_buf, UNUSED btree_key_t *left_exclusive_or_null, UNUSED btree_key_t *right_inclusive_or_null) {
         assert_thread();
         const leaf_node_t *data = reinterpret_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
 
@@ -84,17 +85,15 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
             rassert(coro_t::self());
             boost::scoped_array<block_id_t> local_block_ids;
             local_block_ids.swap(block_ids);
-            int j = 0;
             for (int i = 0; i < num_block_ids; ++i) {
-                if (recencies[i].time >= since_when.time) {
-                    local_block_ids[j] = local_block_ids[i];
-                    ++j;
+                if (recencies[i].time < since_when.time) {
+                    local_block_ids[i] = NULL_BLOCK_ID;
                 }
             }
-            int num_surviving_block_ids = j;
+            int local_num_block_ids = num_block_ids;
             interesting_children_callback_t *local_cb = cb;
             delete this;
-            local_cb->receive_interesting_children(local_block_ids, num_surviving_block_ids);
+            local_cb->receive_interesting_children(local_block_ids, local_num_block_ids);
         }
     };
 

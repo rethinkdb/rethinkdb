@@ -6,11 +6,14 @@
 
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
+#include "containers/scoped_malloc.hpp"
 
 struct btree_superblock_t;
 class traversal_state_t;
 class parent_releaser_t;
 class btree_slice_t;
+struct btree_key_t;
+struct internal_node_t;
 
 struct acquisition_start_callback_t {
     virtual void on_started_acquisition() = 0;
@@ -27,20 +30,31 @@ public:
     void on_started_acquisition();
     void decr_acquisition_countdown();
 
-    interesting_children_callback_t(traversal_state_t *_state, parent_releaser_t *_releaser, int _level)
-        : state(_state), releaser(_releaser), level(_level) { }
+    interesting_children_callback_t(traversal_state_t *_state, parent_releaser_t *_releaser, int _level, scoped_malloc<internal_node_t>& _keyrange_source, btree_key_t *_left_exclusive_or_null, btree_key_t *_right_inclusive_or_null)
+        : state(_state), releaser(_releaser), level(_level),
+          left_exclusive_or_null(_left_exclusive_or_null),
+          right_inclusive_or_null(_right_inclusive_or_null) {
+        keyrange_source.swap(_keyrange_source);
+    }
 
 private:
     traversal_state_t *state;
     parent_releaser_t *releaser;
     int level;
     int acquisition_countdown;
+    scoped_malloc<internal_node_t> keyrange_source;
+    btree_key_t *left_exclusive_or_null;
+    btree_key_t *right_inclusive_or_null;
+
+    DISABLE_COPYING(interesting_children_callback_t);
 };
 
 
 struct btree_traversal_helper_t {
     // This is free to call mark_deleted.
-    virtual void process_a_leaf(transaction_t *txn, buf_t *leaf_node_buf) = 0;
+    virtual void process_a_leaf(transaction_t *txn, buf_t *leaf_node_buf,
+                                btree_key_t *left_exclusive_or_null,
+                                btree_key_t *right_inclusive_or_null) = 0;
 
     virtual void postprocess_internal_node(buf_t *internal_node_buf) = 0;
 
