@@ -10,7 +10,7 @@ struct backfill_and_realtime_streaming_callback_t {
 
     // Says to delete keys in the inclusive range [low_key, high_key],
     // such that the key hashes to hash_value, modulo hashmod.
-    // TODO: Consider adding an order_token_t parameter.
+    // TODO LOOF: Consider adding an order_token_t parameter.
     virtual void backfill_delete_range(int hash_value, int hashmod, store_key_t low_key, store_key_t high_key) = 0;
     virtual void backfill_deletion(store_key_t key, order_token_t token) = 0;
     virtual void backfill_set(backfill_atom_t atom, order_token_t token) = 0;

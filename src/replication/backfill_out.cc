@@ -26,13 +26,14 @@ public:
     struct slice_manager_t :
         public backfill_callback_t
     {
-        slice_manager_t(backfill_and_streaming_manager_t *parent, shard_store_t *shard, repli_timestamp_t backfill_from, repli_timestamp_t new_timestamp) :
+        slice_manager_t(backfill_and_streaming_manager_t *parent, shard_store_t *shard, repli_timestamp_t backfill_from, repli_timestamp_t new_timestamp, int slice_num, int n_slices) :
             parent_(parent), shard_(shard),
             max_backfill_timestamp_(new_timestamp), min_realtime_timestamp_(new_timestamp),
             backfill_job_queue(shard_->home_thread(), REPLICATION_JOB_QUEUE_DEPTH),
             realtime_job_queue(shard_->home_thread(), REPLICATION_JOB_QUEUE_DEPTH),
             backfill_job_account(&parent->backfill_job_queue, &backfill_job_queue, 1),
-            realtime_job_account(&parent->realtime_job_queue, &realtime_job_queue, 1)
+            realtime_job_account(&parent->realtime_job_queue, &realtime_job_queue, 1),
+            slice_num_(slice_num), n_slices_(n_slices)
         {
             on_thread_t thread_switcher(shard_->home_thread());
 
@@ -95,6 +96,9 @@ public:
         accounting_queue_t<boost::function<void()> >::account_t backfill_job_account, realtime_job_account;
 
         drain_semaphore_t realtime_mutation_drain_semaphore;
+
+        int slice_num_;
+        int n_slices_;
 
         /* Functor for replicating changes */
 
@@ -177,8 +181,13 @@ public:
         }
 
         void on_delete_range(UNUSED const btree_key_t *low, UNUSED const btree_key_t *high) {
-            // TODO LOOF: Implement this function.
-            crash("on_delete_range not implemented.");
+            rassert(get_thread_id() == shard_->home_thread());
+            rassert(backfilling_);
+            backfill_job_queue.push(boost::bind(&backfill_and_realtime_streaming_callback_t::backfill_delete_range,
+                                                parent_->handler_,
+                                                slice_num_, n_slices_,
+                                                store_key_t(low->size, low->contents),
+                                                store_key_t(high->size, high->contents)));
         }
 
         void on_deletion(const btree_key_t *key, UNUSED repli_timestamp_t recency) {
@@ -328,7 +337,7 @@ public:
 
         pmap(internal_store_->btree_static_config.n_slices,
              boost::bind(&backfill_and_streaming_manager_t::register_on_slice, this,
-                         _1, backfill_from, replication_clock_));
+                         _1, internal_store_->btree_static_config.n_slices, backfill_from, replication_clock_));
 
         /* Start the timer that will repeatedly increment the replication clock */
         replication_clock_timer_.reset(new repeating_timer_t(1000,
@@ -337,8 +346,8 @@ public:
                 drain_semaphore_t::lock_t(&replication_clock_drain_semaphore_))));
     }
 
-    void register_on_slice(int i, repli_timestamp_t backfill_from, repli_timestamp_t new_timestamp) {
-        slice_managers[i] = new slice_manager_t(this, internal_store_->shards[i], backfill_from, new_timestamp);
+    void register_on_slice(int i, int nslices, repli_timestamp_t backfill_from, repli_timestamp_t new_timestamp) {
+        slice_managers[i] = new slice_manager_t(this, internal_store_->shards[i], backfill_from, new_timestamp, i, nslices);
     }
 
     ~backfill_and_streaming_manager_t() {
