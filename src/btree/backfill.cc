@@ -6,7 +6,7 @@
 #include <boost/bind.hpp>
 
 #include "arch/runtime/runtime.hpp"
-#include "buffer_cache/co_functions.hpp"
+#include "buffer_cache/buffer_cache.hpp"
 #include "btree/btree_data_provider.hpp"
 #include "btree/node.hpp"
 #include "btree/internal_node.hpp"

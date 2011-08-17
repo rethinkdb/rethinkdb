@@ -4,8 +4,7 @@
 #include "utils.hpp"
 #include "memcached/store.hpp"
 
-// TODO LOOF: buffer_cache/types.hpp?
-#include "buffer_cache/buffer_cache.hpp"
+#include "buffer_cache/types.hpp"
 
 // Run backfilling at a reduced priority
 #define BACKFILL_CACHE_PRIORITY 10

@@ -2,6 +2,7 @@
 #include "btree/backfill.hpp"
 #include "btree/slice.hpp"
 #include "btree/node.hpp"
+#include "buffer_cache/buffer_cache.hpp"
 #include "buffer_cache/buf_lock.hpp"
 #include "concurrency/cond_var.hpp"
 #include "btree/get.hpp"
