@@ -257,13 +257,13 @@ public:
 
     btree_block_t() : raw_block_t() { }
 
-    // Uses and modifies knog->block_info[cx.to_ser_block_id(block_id)].
-    bool init(slicecx_t &cx, block_id_t block_id) {
+    // Uses and modifies knog->block_info[cx->to_ser_block_id(block_id)].
+    bool init(slicecx_t *cx, block_id_t block_id) {
         std::list<buf_patch_t*> *patches_list = NULL;
-        if (!cx.cfg->ignore_diff_log && cx.patch_map.find(block_id) != cx.patch_map.end()) {
-            patches_list = &cx.patch_map.find(block_id)->second;
+        if (!cx->cfg->ignore_diff_log && cx->patch_map.find(block_id) != cx->patch_map.end()) {
+            patches_list = &cx->patch_map.find(block_id)->second;
         }
-        return init(cx.file, cx.knog, cx.to_ser_block_id(block_id), patches_list);
+        return init(cx->file, cx->knog, cx->to_ser_block_id(block_id), patches_list);
     }
 
     // Modifies knog->block_info[ser_block_id].
@@ -779,17 +779,17 @@ struct diff_log_errors {
 };
 
 static char LOG_BLOCK_MAGIC[] = {'L','O','G','B','0','0'};
-void check_and_load_diff_log(slicecx_t& cx, diff_log_errors *errs) {
-    cx.clear_buf_patches();
+void check_and_load_diff_log(slicecx_t *cx, diff_log_errors *errs) {
+    cx->clear_buf_patches();
 
-    const unsigned int log_size = cx.knog->mc_config_block->cache.n_patch_log_blocks;
+    const unsigned int log_size = cx->knog->mc_config_block->cache.n_patch_log_blocks;
 
     for (block_id_t block_id = MC_CONFIGBLOCK_ID + 1; block_id < MC_CONFIGBLOCK_ID + 1 + log_size; ++block_id) {
-        block_id_t ser_block_id = cx.to_ser_block_id(block_id);
+        block_id_t ser_block_id = cx->to_ser_block_id(block_id);
 
         block_knowledge_t info;
         {
-            read_locker_t locker(cx.knog);
+            read_locker_t locker(cx->knog);
             if (ser_block_id >= locker.block_info().get_size()) {
                 ++errs->missing_log_block_count;
                 continue;
@@ -799,9 +799,9 @@ void check_and_load_diff_log(slicecx_t& cx, diff_log_errors *errs) {
 
         if (!info.offset.parts.is_delete) {
             block_t b;
-            b.init(cx.block_size(), cx.file, info.offset.parts.value, ser_block_id);
+            b.init(cx->block_size(), cx->file, info.offset.parts.value, ser_block_id);
             {
-                write_locker_t locker(cx.knog);
+                write_locker_t locker(cx->knog);
                 locker.block_info()[ser_block_id].block_sequence_id = b.realbuf->block_sequence_id;
             }
 
@@ -809,10 +809,10 @@ void check_and_load_diff_log(slicecx_t& cx, diff_log_errors *errs) {
 
             if (strncmp((char*)buf_data, LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0) {
                 uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
-                while (current_offset + buf_patch_t::get_min_serialized_size() < cx.block_size().value()) {
+                while (current_offset + buf_patch_t::get_min_serialized_size() < cx->block_size().value()) {
                     buf_patch_t *patch;
                     try {
-                        patch = buf_patch_t::load_patch(cx.block_size(), reinterpret_cast<const char *>(buf_data) + current_offset);
+                        patch = buf_patch_t::load_patch(cx->block_size(), reinterpret_cast<const char *>(buf_data) + current_offset);
                     } catch (patch_deserialization_error_t &e) {
 			(void)e;
                         ++errs->corrupted_patch_blocks;
@@ -823,7 +823,7 @@ void check_and_load_diff_log(slicecx_t& cx, diff_log_errors *errs) {
                     }
                     else {
                         current_offset += patch->get_serialized_size();
-                        cx.patch_map[patch->get_block_id()].push_back(patch);
+                        cx->patch_map[patch->get_block_id()].push_back(patch);
                     }
                 }
             } else {
@@ -836,7 +836,7 @@ void check_and_load_diff_log(slicecx_t& cx, diff_log_errors *errs) {
     }
 
 
-    for (std::map<block_id_t, std::list<buf_patch_t*> >::iterator patch_list = cx.patch_map.begin(); patch_list != cx.patch_map.end(); ++patch_list) {
+    for (std::map<block_id_t, std::list<buf_patch_t*> >::iterator patch_list = cx->patch_map.begin(); patch_list != cx->patch_map.end(); ++patch_list) {
         // Sort the list to get patches in the right order
         patch_list->second.sort(dereferencing_buf_patch_compare_t());
 
@@ -947,11 +947,11 @@ bool construct_sizer_from_magic(block_size_t bs, boost::scoped_ptr< value_sizer_
     }
 }
 
-void check_subtree_leaf_node(slicecx_t& cx, const leaf_node_t *buf,
+void check_subtree_leaf_node(slicecx_t *cx, const leaf_node_t *buf,
                              const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null,
                              node_error *errs) {
     boost::scoped_ptr< value_sizer_t<void> > sizer;
-    if (!construct_sizer_from_magic(cx.block_size(), sizer, buf->magic)) {
+    if (!construct_sizer_from_magic(cx->block_size(), sizer, buf->magic)) {
         errs->msg = "Unrecognized magic value for leaf node.";
     }
 
@@ -971,23 +971,23 @@ void check_subtree_leaf_node(slicecx_t& cx, const leaf_node_t *buf,
 
         slicecx_t *cx;
     } getter;
-    getter.cx = &cx;
+    getter.cx = cx;
 
-    value_sizer_fscker_t<void> fscker(&getter, &cx);
+    value_sizer_fscker_t<void> fscker(&getter, cx);
     leaf::fsck(sizer.get(), left_exclusive_or_null, right_inclusive_or_null, buf, &fscker, &errs->msg);
 }
 
 
 
-bool internal_node_begin_offset_in_range(const slicecx_t& cx, const internal_node_t *buf, uint16_t offset) {
-    return (cx.block_size().value() - sizeof(btree_internal_pair)) >= offset &&
+bool internal_node_begin_offset_in_range(const slicecx_t *cx, const internal_node_t *buf, uint16_t offset) {
+    return (cx->block_size().value() - sizeof(btree_internal_pair)) >= offset &&
         offset >= buf->frontmost_offset &&
-        offset + sizeof(btree_internal_pair) + reinterpret_cast<const btree_internal_pair *>(reinterpret_cast<const char *>(buf) + offset)->key.size <= cx.block_size().value();
+        offset + sizeof(btree_internal_pair) + reinterpret_cast<const btree_internal_pair *>(reinterpret_cast<const char *>(buf) + offset)->key.size <= cx->block_size().value();
 }
 
-void check_subtree(slicecx_t& cx, block_id_t id, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *errs);
+void check_subtree(slicecx_t *cx, block_id_t id, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *errs);
 
-void check_subtree_internal_node(slicecx_t& cx, const internal_node_t *buf, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *tree_errs, node_error *errs) {
+void check_subtree_internal_node(slicecx_t *cx, const internal_node_t *buf, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *tree_errs, node_error *errs) {
     {
         std::vector<uint16_t> sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
         std::sort(sorted_offsets.begin(), sorted_offsets.end());
@@ -1001,7 +1001,7 @@ void check_subtree_internal_node(slicecx_t& cx, const internal_node_t *buf, cons
             }
             expected_offset += internal_node::pair_size(internal_node::get_pair(buf, sorted_offsets[i]));
         }
-        errs->noncontiguous_offsets |= (expected_offset != cx.block_size().value());
+        errs->noncontiguous_offsets |= (expected_offset != cx->block_size().value());
     }
 
     // Now check other things.
@@ -1039,7 +1039,7 @@ void check_subtree_internal_node(slicecx_t& cx, const internal_node_t *buf, cons
     }
 }
 
-void check_subtree(slicecx_t& cx, block_id_t id, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *errs) {
+void check_subtree(slicecx_t *cx, block_id_t id, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *errs) {
     /* Walk tree */
 
     btree_block_t node;
@@ -1052,7 +1052,7 @@ void check_subtree(slicecx_t& cx, block_id_t id, const btree_key_t *lo, const bt
 
     node_error node_err(id);
 
-    if (reinterpret_cast<node_t *>(node.buf)->magic == cx.get_sizer()->btree_leaf_magic()) {
+    if (reinterpret_cast<node_t *>(node.buf)->magic == cx->get_sizer()->btree_leaf_magic()) {
         check_subtree_leaf_node(cx, reinterpret_cast<leaf_node_t *>(node.buf), lo, hi, &node_err);
     } else if (reinterpret_cast<internal_node_t *>(node.buf)->magic == internal_node_t::expected_magic) {
         check_subtree_internal_node(cx, reinterpret_cast<internal_node_t *>(node.buf), lo, hi, errs, &node_err);
@@ -1084,21 +1084,21 @@ private:
     DISABLE_COPYING(other_block_errors);
 };
 
-void check_slice_other_blocks(slicecx_t& cx, other_block_errors *errs) {
+void check_slice_other_blocks(slicecx_t *cx, other_block_errors *errs) {
     block_id_t end;
     {
-        read_locker_t locker(cx.knog);
+        read_locker_t locker(cx->knog);
         end = locker.block_info().get_size();
     }
 
     block_id_t first_valueless_block = NULL_BLOCK_ID;
 
-    for (block_id_t id_iter = 0, id = cx.to_ser_block_id(0);
+    for (block_id_t id_iter = 0, id = cx->to_ser_block_id(0);
          id < end;
-         id = cx.to_ser_block_id(++id_iter)) {
+         id = cx->to_ser_block_id(++id_iter)) {
         block_knowledge_t info;
         {
-            read_locker_t locker(cx.knog);
+            read_locker_t locker(cx->knog);
             info = locker.block_info()[id];
         }
         if (info.offset.get_delete_bit()) {
@@ -1118,7 +1118,7 @@ void check_slice_other_blocks(slicecx_t& cx, other_block_errors *errs) {
                 desc.block_id = id;
 
                 btree_block_t b;
-                if (!b.init(cx.file, cx.knog, id)) {
+                if (!b.init(cx->file, cx->knog, id)) {
                     desc.loading_error = b.err;
                 } else {
                     desc.magic = *reinterpret_cast<block_magic_t *>(b.buf);
@@ -1131,7 +1131,7 @@ void check_slice_other_blocks(slicecx_t& cx, other_block_errors *errs) {
                 desc.block_id = id;
 
                 btree_block_t zeroblock;
-                if (!zeroblock.init(cx.file, cx.knog, id)) {
+                if (!zeroblock.init(cx->file, cx->knog, id)) {
                     desc.loading_error = zeroblock.err;
                     errs->allegedly_deleted_blocks.push_back(desc);
                 } else {
@@ -1166,7 +1166,7 @@ struct slice_errors {
 };
 
 //nondirect_file_t *file, file_knowledge_t *knog, int global_slice_number, slice_errors *errs, const config_t *cfg) {
-void check_slice(slicecx_t &cx, slice_errors *errs) {
+void check_slice(slicecx_t *cx, slice_errors *errs) {
     check_and_load_diff_log(cx, &errs->diff_log_errs);
 
     block_id_t root_block_id;
@@ -1190,7 +1190,7 @@ void check_slice(slicecx_t &cx, slice_errors *errs) {
 
     check_slice_other_blocks(cx, &errs->other_block_errs);
 
-    cx.clear_buf_patches();
+    cx->clear_buf_patches();
 }
 
 struct check_to_config_block_errors {
@@ -1269,7 +1269,7 @@ struct slice_parameter_t {
 
 void *do_check_slice(void *slice_param) {
     slice_parameter_t *p = reinterpret_cast<slice_parameter_t *>(slice_param);
-    check_slice(*p->cx, p->errs);
+    check_slice(p->cx, p->errs);
     delete p->cx;
     delete p;
     return NULL;
