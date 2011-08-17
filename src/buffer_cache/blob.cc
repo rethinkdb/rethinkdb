@@ -574,7 +574,13 @@ void traverse_recursively(transaction_t *txn, int levels, block_id_t *block_ids,
     // Really, we should require that old_size be greater than zero.
 }
 
-}  // namespace
+bool deep_fsck(UNUSED block_getter_t *getter, UNUSED const char *ref, UNUSED std::string *msg_out) {
+    // TODO LOOF: Implement this.
+    return true;
+}
+
+
+}  // namespace blob
 
 bool blob_t::traverse_to_dimensions(transaction_t *txn, int levels, int64_t old_offset, int64_t old_size, int64_t new_offset, int64_t new_size, blob::traverse_helper_t *helper) {
     UNUSED int64_t old_end = old_offset + old_size;

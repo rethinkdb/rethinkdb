@@ -28,7 +28,6 @@ public:
 
 struct backfill_traversal_helper_t : public btree_traversal_helper_t, public home_thread_mixin_t {
 
-    // TODO LOOF: Use these btree_keys.
     void process_a_leaf(transaction_t *txn, buf_t *leaf_node_buf, btree_key_t *left_exclusive_or_null, btree_key_t *right_inclusive_or_null) {
         assert_thread();
         const leaf_node_t *data = reinterpret_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());

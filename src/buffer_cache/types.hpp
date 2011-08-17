@@ -35,6 +35,16 @@ protected:
     virtual ~get_subtree_recencies_callback_t() { }
 };
 
+template <class T> class scoped_malloc;
+
+// HEY: This is kind of fsck-specific, maybe it belongs somewhere else.
+class block_getter_t {
+public:
+    virtual bool get_block(block_id_t, scoped_malloc<char>& block_out) = 0;
+protected:
+    virtual ~block_getter_t() { }
+};
+
 
 // This line is hereby labeled BLAH.
 

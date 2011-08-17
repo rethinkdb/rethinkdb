@@ -8,7 +8,6 @@
 
 #include "btree/value.hpp"
 #include "buffer_cache/types.hpp"
-#include "containers/scoped_malloc.hpp"
 #include "memcached/store.hpp"
 #include "utils.hpp"
 
@@ -22,12 +21,6 @@ struct opaque_value_t;
 template <class Value>
 class value_sizer_t;
 
-class block_getter_t {
-public:
-    virtual bool get_block(block_id_t, scoped_malloc<char>& block_out) = 0;
-protected:
-    virtual ~block_getter_t() { }
-};
 
 // Class to hold common use case.
 template <>
@@ -68,8 +61,12 @@ public:
     }
 
     bool deep_fsck(UNUSED block_getter_t *getter, UNUSED const void *value, UNUSED int length_available, UNUSED std::string *msg_out) const {
-        // TODO LOOF: Add a non-bogus implementation.
-        return true;
+        if (!fits(value, length_available)) {
+            *msg_out = "value does not fit in length_available";
+            return false;
+        }
+
+        return blob::deep_fsck(getter, as_memcached(value)->value_ref(), msg_out);
     }
 
     int max_possible_size() const {

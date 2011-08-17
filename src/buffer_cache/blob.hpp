@@ -1,6 +1,7 @@
 #ifndef __BUFFER_CACHE_BLOB_HPP__
 #define __BUFFER_CACHE_BLOB_HPP__
 
+#include <string>
 #include <vector>
 
 #include <stdint.h>
@@ -51,6 +52,7 @@ write_blob_ref_to_something(tmp, blob::ref_size(bs, ref, mrl));
 typedef uint32_t block_id_t;
 
 class buffer_group_t;
+class block_getter_t;
 
 // Represents an acquisition of buffers owned by the blob.
 class blob_acq_t {
@@ -123,6 +125,8 @@ const char *leaf_node_data(const void *buf);
 int64_t ref_value_offset(const char *ref, int maxreflen);
 extern block_magic_t internal_node_magic;
 extern block_magic_t leaf_node_magic;
+
+bool deep_fsck(block_getter_t *getter, const char *ref, std::string *msg_out);
 }  // namespace blob
 
 class blob_t {
