@@ -856,6 +856,7 @@ void check_and_load_diff_log(slicecx_t& cx, diff_log_errors *errs) {
     }
 }
 
+// TODO LOOF: I think this is obsolete too.
 struct largebuf_error {
     bool not_left_shifted;
     bool bogus_ref;
@@ -875,7 +876,7 @@ struct largebuf_error {
     }
 };
 
-// TODO LOOF: I tihnk this is obsolete.
+// TODO LOOF: I think this is obsolete.
 struct value_error {
     block_id_t block_id;
     std::string key;
@@ -944,66 +945,6 @@ private:
     DISABLE_COPYING(subtree_errors);
 };
 
-void check_blob_children(slicecx_t& cx, int levels, const block_id_t *ids, int64_t offset, int64_t size, largebuf_error *errs) {
-    int64_t step = blob::stepsize(cx.block_size(), levels);
-
-    for (int64_t i = offset / step, e = ceil_divide(offset + size, step); i < e; ++i) {
-        int64_t suboffset, subsize;
-        blob::shrink(cx.block_size(), levels, offset, size, i, &suboffset, &subsize);
-
-        btree_block_t b;
-        if (!b.init(cx, ids[i])) {
-            largebuf_error::segment_error err;
-            err.block_id = ids[i];
-            err.block_code = b.err;
-            err.bad_magic = false;
-            errs->segment_errors.push_back(err);
-        } else {
-            if (!(*reinterpret_cast<block_magic_t *>(b.buf) == (levels == 1 ? blob::leaf_node_magic : blob::internal_node_magic))) {
-                largebuf_error::segment_error err;
-                err.block_id = ids[i];
-                err.block_code = btree_block_t::none;
-                err.bad_magic = true;
-                errs->segment_errors.push_back(err);
-                break;
-            }
-
-            if (levels > 1) {
-                check_blob_children(cx, levels - 1, blob::internal_node_block_ids(b.buf), suboffset, subsize, errs);
-            }
-        }
-    }
-}
-
-void check_blob(slicecx_t& cx, const char *ref, int maxreflen, largebuf_error *errs) {
-    int64_t value_size = blob::value_size(ref, maxreflen);
-    if (value_size >= 0) {
-        if (value_size < maxreflen - (maxreflen > 255)) {
-            // It's just a small value.
-            return;
-        }
-
-        int64_t offset = blob::ref_value_offset(ref, maxreflen);
-
-        // Ensure no overflow for ceil_aligned division.
-        if (offset >= 0 && std::numeric_limits<int64_t>::max() / 4 - offset > value_size) {
-            int levels = blob::ref_info(cx.block_size(), ref, maxreflen).levels;
-
-            check_blob_children(cx, levels, blob::block_ids(ref, maxreflen), offset, value_size, errs);
-
-            return;
-        }
-    }
-
-    errs->bogus_ref = true;
-
-}
-
-void check_value(UNUSED slicecx_t& cx, const memcached_value_t *value, value_error *errs) {
-    errs->bad_metadata_flags = !!(value->metadata_flags.flags & ~(MEMCACHED_FLAGS | MEMCACHED_CAS | MEMCACHED_EXPTIME));
-
-    check_blob(cx, value->value_ref(), blob::btree_maxreflen, &errs->largebuf_errs);
-}
 
 template <class V>
 class value_sizer_fscker_t : public leaf::value_fscker_t<V> {

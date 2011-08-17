@@ -616,12 +616,25 @@ bool deep_fsck(block_getter_t *getter, block_size_t bs, const char *ref, int max
         return true;
     }
 
+    int64_t offset = big_offset(ref, maxreflen);
+    int64_t size = big_size(ref, maxreflen);
+
+    // The (max() / 4 - offset <= size) check is enough to ensure no
+    // overflow for ceil_aligned division.
+    if (offset < 0 || size < maxreflen - (maxreflen > 255)
+        || std::numeric_limits<int64_t>::max() / 4 - offset <= size) {
+        *msg_out = "In blob: bad offset or size";
+        return false;
+    }
+
     ref_info_t info = ref_info(bs, ref, maxreflen);
     std::string tmp_msg;
     bool ret = deep_fsck_region(getter, bs, info.levels, big_offset(ref, maxreflen), big_size(ref, maxreflen), block_ids(ref, maxreflen), &tmp_msg);
+
     if (!ret) {
         *msg_out = "In blob: " + tmp_msg;
     }
+
     return ret;
 }
 
