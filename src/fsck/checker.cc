@@ -861,7 +861,6 @@ void check_and_load_diff_log(slicecx_t& cx, diff_log_errors *errs) {
 struct node_error {
     block_id_t block_id;
     btree_block_t::error block_not_found_error;  // must be none
-    bool block_underfull : 1;  // should be false
     bool bad_magic : 1;  // should be false
     bool noncontiguous_offsets : 1;  // should be false
     bool value_out_of_buf : 1;  // must be false
@@ -873,14 +872,14 @@ struct node_error {
     std::string msg;
 
     explicit node_error(block_id_t block_id) : block_id(block_id), block_not_found_error(btree_block_t::none),
-                                               block_underfull(false), bad_magic(false),
+                                               bad_magic(false),
                                                noncontiguous_offsets(false), value_out_of_buf(false),
                                                keys_too_big(false), keys_in_wrong_slice(false),
                                                out_of_order(false), value_errors_exist(false),
                                                last_internal_node_key_nonempty(false) { }
 
     bool is_bad() const {
-        return block_not_found_error != btree_block_t::none || block_underfull || bad_magic
+        return block_not_found_error != btree_block_t::none || bad_magic
             || noncontiguous_offsets || value_out_of_buf || keys_too_big || keys_in_wrong_slice
             || out_of_order || value_errors_exist || !msg.empty();
     }
@@ -1042,14 +1041,6 @@ void check_subtree(slicecx_t& cx, block_id_t id, const btree_key_t *lo, const bt
 
     // TODO LOOF: This is memcached-specific, and heh, that's bad.
     value_sizer_t<memcached_value_t> sizer(cx.block_size());
-
-    if (lo != NULL && hi != NULL) {
-        // (We're happy with an underfull root block.)
-        // TODO LOOF: is is_underfull a safe function for fsck to call?
-        if (node::is_underfull(&sizer, reinterpret_cast<node_t *>(node.buf))) {
-            node_err.block_underfull = true;
-        }
-    }
 
     if (reinterpret_cast<node_t *>(node.buf)->magic == sizer.btree_leaf_magic()) {
         check_subtree_leaf_node(cx, reinterpret_cast<leaf_node_t *>(node.buf), lo, hi, errs, &node_err);
@@ -1420,8 +1411,7 @@ bool report_subtree_errors(const subtree_errors *errs) {
             if (e.block_not_found_error != btree_block_t::none) {
                 printf(" block not found: %s\n", btree_block_t::error_name(e.block_not_found_error));
             } else {
-                printf("%s%s%s%s%s%s%s%s%s%s\n",
-                       e.block_underfull ? " block_underfull" : "",
+                printf("%s%s%s%s%s%s%s%s%s\n",
                        e.bad_magic ? " bad_magic" : "",
                        e.noncontiguous_offsets ? " noncontiguous_offsets" : "",
                        e.value_out_of_buf ? " value_out_of_buf" : "",
