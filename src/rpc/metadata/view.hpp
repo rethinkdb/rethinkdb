@@ -2,27 +2,30 @@
 #define __RPC_METADATA_VIEW_HPP__
 
 #include "concurrency/pubsub.hpp"
-#include "concurrency/watchable.hpp"
 
-/* A `metadata_view_t` represents some sub-region of metadata. You can read it,
-join new values with it, and monitor it for changes. The purpose is to make it
-easier to write composable components that interact with metadata; because of
-`metadata_view_t`, each component that uses metadata only needs to know about
-the part that it interacts with directly. */
+/* A `metadata_read_view_t` represents some sub-region of metadata. You can read
+it and monitor it for changes. The purpose is to make it easier to make metadata
+composable; because of `metadata_read_view_t`, each component that interacts
+with the metadata only needs to know about its own little part of the metadata.
+
+Note that `metadata_read_view_t` doesn't necessarily correspond to an actual
+location in the metadata of a real cluster. It's also sometimes used in the
+other direction: some components create and expose their own
+`metadata_read_view_t`, and expect their users to link their
+`metadata_read_view_t` to some location in the cluster's metadata. */
 
 template<class metadata_t>
-class metadata_view_t {
+class metadata_read_view_t {
 
 public:
     virtual metadata_t get() = 0;
-    virtual void join(const metadata_t &) = 0;
 
     class subscription_t {
     public:
         subscription_t(boost::function<void()> cb) : subs(cb) { }
-        subscription_t(boost::function<void()> cb, metadata_view_t *v) :
+        subscription_t(boost::function<void()> cb, metadata_read_view_t *v) :
             subs(cb, v->get_publisher()) { }
-        void resubscribe(metadata_view_t *v) {
+        void resubscribe(metadata_read_view_t *v) {
             subs.resubscribe(v->get_publisher());
         }
         void unsubscribe() {
@@ -32,41 +35,20 @@ public:
         publisher_t<boost::function<void()> >::subscription_t subs;
     };
 
-protected:
-    virtual ~metadata_view_t() { }
-
-private:
     virtual publisher_t<boost::function<void()> > *get_publisher() = 0;
+
+protected:
+    virtual ~metadata_read_view_t() { }
 };
 
-/* `metadata_field_view_t` is a `metadata_view_t` that corresponds to some
-sub-field of another `metadata_view_t`. Pass the field to the constructor as a
-member pointer. */
+/* A `metadata_readwrite_view_t` is like a `metadata_read_view_t` except that
+you can join new metadata with it as well as read from it. */
 
-template<class outer_t, class inner_t>
-class metadata_field_view_t : public metadata_view_t<inner_t> {
+template<class metadata_t>
+class metadata_readwrite_view_t : public metadata_read_view_t<metadata_t> {
 
 public:
-    metadata_field_view_t(inner_t outer_t::*f, metadata_view_t<outer_t> *o) :
-        field(f), outer(o) { }
-
-    inner_t get() {
-        return ((outer->get()).*field);
-    }
-
-    void join(const inner_t &new_inner) {
-        outer_t value = outer->get();
-        semilattice_join(&(value.*field), new_inner);
-        outer->join(value);
-    }
-
-private:
-    publisher_t<boost::function<void()> > *get_publisher() {
-        return outer->get_publisher();
-    }
-
-    inner_t outer_t::*field;
-    metadata_view_t<outer_t> *outer;
+    virtual void join(const metadata_t &) = 0;
 };
 
 #endif /* __RPC_METADATA_VIEW_HPP__ */
