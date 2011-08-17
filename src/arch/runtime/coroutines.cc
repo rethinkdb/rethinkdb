@@ -366,4 +366,12 @@ assert_finite_coro_waiting_t::~assert_finite_coro_waiting_t() {
     cglobals->assert_finite_coro_waiting_counter--;
 }
 
+home_coro_mixin_t::home_coro_mixin_t() 
+    : home_coro(coro_t::self())
+{ }
+
+void home_coro_mixin_t::assert_coro() {
+    rassert(home_coro == coro_t::self());
+}
+
 #endif /* NDEBUG */

@@ -76,9 +76,17 @@ public:
     // Delete an object
     bool delete_object(std::string, std::string);
 
+    // Mapreduce operations:
+
     //run a mapreduce job
     std::string mapreduce(json::mValue &);
+private:
+    //supporting cast for mapreduce just to make this code a bit more readable
+    static std::vector<JS::scoped_js_value_t> js_map(JS::ctx_t &, std::string src, std::vector<JS::scoped_js_value_t>);
 
+    static JS::scoped_js_value_t js_reduce(JS::ctx_t &, std::string src, std::vector<JS::scoped_js_value_t>);
+
+public:
     //make a key (which is guarunteed to be unique)
     std::string gen_key();
 
@@ -99,7 +107,7 @@ private:
  * };
  */
 
-JSValueRef object_to_jsvalue(JSContextRef, object_t &);
+JS::scoped_js_value_t object_to_jsvalue(JS::ctx_t &, object_t &);
 
 std::string js_obj_to_string(JSStringRef);
 
