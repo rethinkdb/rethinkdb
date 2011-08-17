@@ -338,7 +338,7 @@ uint32_t btree_key_value_store_t::get_replication_slave_id() {
 */
 #define get16bits(d) (uint32_t(*reinterpret_cast<const uint16_t *>(d)))
 
-uint32_t btree_key_value_store_t::hash(const store_key_t &key) {
+uint32_t btree_key_value_store_t::hash(const store_key_t& key) {
     const char *data = key.contents;
     int len = key.size;
     uint32_t hash = len, tmp;

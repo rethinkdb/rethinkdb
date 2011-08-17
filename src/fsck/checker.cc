@@ -204,7 +204,7 @@ struct slicecx_t {
     value_sizer_t<void> *get_sizer() { return &sizer; }
 
     virtual block_id_t to_ser_block_id(block_id_t id) const = 0;
-    virtual bool is_valid_key(const btree_key_t &key) const = 0;
+    virtual bool is_valid_key(const btree_key_t *key) const = 0;
 
     slicecx_t(nondirect_file_t *_file, file_knowledge_t *_knog, const config_t *_cfg)
         : file(_file), knog(_knog), cfg(_cfg), sizer(knog->static_config->block_size()) { }
@@ -219,7 +219,7 @@ struct slicecx_t {
 struct raw_slicecx_t : public slicecx_t {
     raw_slicecx_t(nondirect_file_t *_file, file_knowledge_t *_knog, const config_t *_cfg) : slicecx_t(_file, _knog, _cfg) { }
     block_id_t to_ser_block_id(block_id_t id) const { return id; }
-    bool is_valid_key(UNUSED const btree_key_t &key) const { return true; }
+    bool is_valid_key(UNUSED const btree_key_t *key) const { return true; }
 };
 
 // A slice which is part of a multiplexed set of slices via serializer_multipler_t
@@ -238,11 +238,9 @@ struct multiplexed_slicecx_t : public slicecx_t {
         return translator_serializer_t::translate_block_id(id, mod_count, local_slice_id, CONFIG_BLOCK_ID);
     }
 
-    bool is_valid_key(const btree_key_t &key) const {
-        store_key_t store_key;
-        store_key.size = key.size;
-        memcpy(store_key.contents, key.contents, key.size);
-        return btree_key_value_store_t::hash(store_key) % knog->config_block->n_proxies == (unsigned) global_slice_id;
+    bool is_valid_key(const btree_key_t *key) const {
+        store_key_t store_key(key->size, key->contents);
+        return int(btree_key_value_store_t::hash(store_key) % knog->config_block->n_proxies) == global_slice_id;
     }
 };
 
@@ -904,16 +902,35 @@ private:
 
 
 template <class V>
-class value_sizer_fscker_t : public leaf::value_fscker_t<V> {
+class value_sizer_fscker_t : public leaf::key_value_fscker_t<V> {
 public:
-    value_sizer_fscker_t(block_getter_t *getter) : getter_(getter) { }
+    value_sizer_fscker_t(block_getter_t *getter, slicecx_t *cx) : getter_(getter), cx_(cx) { }
 
-    bool fsck(value_sizer_t<V> *sizer, const V *value, std::string *msg_out) {
-        return sizer->deep_fsck(getter_, value, sizer->size(value), msg_out);
+    bool fsck(value_sizer_t<V> *sizer, const btree_key_t *key, const V *value, std::string *msg_out) {
+
+        bool hash_problem = !cx_->is_valid_key(key);
+
+        std::string tmp_msg;
+        bool fsck_problem = !sizer->deep_fsck(getter_, value, sizer->size(value), &tmp_msg);
+
+        if (hash_problem) {
+            *msg_out = "key has bad hash value";
+            if (fsck_problem) {
+                *msg_out += ", ";
+                *msg_out += tmp_msg;
+            }
+        } else {
+            if (fsck_problem) {
+                *msg_out = tmp_msg;
+            }
+        }
+
+        return !(hash_problem || fsck_problem);
     }
 
 private:
     block_getter_t *getter_;
+    slicecx_t *cx_;
 
     DISABLE_COPYING(value_sizer_fscker_t);
 };
@@ -956,7 +973,7 @@ void check_subtree_leaf_node(slicecx_t& cx, const leaf_node_t *buf,
     } getter;
     getter.cx = &cx;
 
-    value_sizer_fscker_t<void> fscker(&getter);
+    value_sizer_fscker_t<void> fscker(&getter, &cx);
     leaf::fsck(sizer.get(), left_exclusive_or_null, right_inclusive_or_null, buf, &fscker, &errs->msg);
 }
 

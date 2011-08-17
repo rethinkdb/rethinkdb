@@ -150,7 +150,7 @@ public:
     void set_replication_slave_id(uint32_t ts);
     uint32_t get_replication_slave_id();
 
-    static uint32_t hash(const store_key_t &key);
+    static uint32_t hash(const store_key_t& key);
 
     creation_timestamp_t get_creation_timestamp() const { return multiplexer->creation_timestamp; }
 

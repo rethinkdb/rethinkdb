@@ -299,33 +299,32 @@ void print(FILE *fp, value_sizer_t<V> *sizer, const leaf_node_t *node) {
 }
 
 template <class V>
-class value_fscker_t {
+class key_value_fscker_t {
 public:
-    value_fscker_t() { }
+    key_value_fscker_t() { }
 
     // Returns true if there are no problems.
-    virtual bool fsck(value_sizer_t<V> *sizer, const V *value, std::string *msg_out) = 0;
+    virtual bool fsck(value_sizer_t<V> *sizer, const btree_key_t *key,
+                      const V *value, std::string *msg_out) = 0;
 
 protected:
-    virtual ~value_fscker_t() { }
+    virtual ~key_value_fscker_t() { }
 
-    DISABLE_COPYING(value_fscker_t);
+    DISABLE_COPYING(key_value_fscker_t);
 };
 
 template <class V>
-class do_nothing_fscker_t : public value_fscker_t<V> {
-    bool fsck(UNUSED value_sizer_t<V> *sizer, UNUSED const V *value, UNUSED std::string *msg_out) {
+class do_nothing_fscker_t : public key_value_fscker_t<V> {
+    bool fsck(UNUSED value_sizer_t<V> *sizer, UNUSED const btree_key_t *key,
+              UNUSED const V *value, UNUSED std::string *msg_out) {
         return true;
     }
 };
 
-// TODO LOOF: fsck doesn't check whether the keys are in the wrong
-// slice by looking at how they hash.
-
 // If this returns false, it sets msg_out to point to a statically
 // allocated string
 template <class V>
-bool fsck(value_sizer_t<V> *sizer, const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null, const leaf_node_t *node, value_fscker_t<V> *fscker, std::string *msg_out) {
+bool fsck(value_sizer_t<V> *sizer, const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null, const leaf_node_t *node, key_value_fscker_t<V> *fscker, std::string *msg_out) {
 
     struct {
         std::string *msg_out;
@@ -405,7 +404,7 @@ bool fsck(value_sizer_t<V> *sizer, const btree_key_t *left_exclusive_or_null, co
             }
 
             std::string fscker_msg;
-            if (!fscker->fsck(sizer, value, &fscker_msg)) {
+            if (!fscker->fsck(sizer, entry_key(ent), value, &fscker_msg)) {
                 *msg_out = strprintf("Problem with key %.*s: %s\n", entry_key(ent)->size, entry_key(ent)->contents, fscker_msg.c_str());
                 return false;
             }
