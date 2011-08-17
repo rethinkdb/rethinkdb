@@ -187,7 +187,8 @@ public:
                                                 parent_->handler_,
                                                 slice_num_, n_slices_,
                                                 store_key_t(low->size, low->contents),
-                                                store_key_t(high->size, high->contents)));
+                                                store_key_t(high->size, high->contents),
+                                                order_token_t::ignore));
         }
 
         void on_deletion(const btree_key_t *key, UNUSED repli_timestamp_t recency) {

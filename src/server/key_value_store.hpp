@@ -130,7 +130,7 @@ public:
 
     // Deletes the keys in the inclusive range [low_key, high_key] for
     // which hash(hash_value) % hashmod == slice.
-    void backfill_delete_range(int hash_value, int hashmod, store_key_t low_key, store_key_t high_key);
+    void backfill_delete_range(int hash_value, int hashmod, store_key_t low_key, store_key_t high_key, order_token_t token);
 
     /* The value passed to `set_timestampers()` is the value that will be used as the
     timestamp for all new operations. When the key-value store starts up, it is

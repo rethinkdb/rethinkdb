@@ -74,12 +74,12 @@ void backfill_storer_t::ensure_backfilling() {
     backfilling_ = true;
 }
 
-void backfill_storer_t::backfill_delete_range(int hash_value, int hashmod, store_key_t low_key, store_key_t high_key) {
+void backfill_storer_t::backfill_delete_range(int hash_value, int hashmod, store_key_t low_key, store_key_t high_key, order_token_t token) {
     print_backfill_warning_ = true;
     ensure_backfilling();
 
     block_pm_duration timer(&pm_replication_slave_backfill_enqueue);
-    backfill_queue_.push(boost::bind(&btree_key_value_store_t::backfill_delete_range, kvs_, hash_value, hashmod, low_key, high_key));
+    backfill_queue_.push(boost::bind(&btree_key_value_store_t::backfill_delete_range, kvs_, hash_value, hashmod, low_key, high_key, token));
 }
 
 void backfill_storer_t::backfill_deletion(store_key_t key, order_token_t token) {

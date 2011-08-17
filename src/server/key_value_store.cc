@@ -425,6 +425,7 @@ mutation_result_t btree_key_value_store_t::change(const mutation_t &m, castime_t
 
 
 
-void btree_key_value_store_t::backfill_delete_range(UNUSED int hash_value, UNUSED int hashmod, UNUSED store_key_t low_key, UNUSED store_key_t high_key) {
+void btree_key_value_store_t::backfill_delete_range(UNUSED int hash_value, UNUSED int hashmod, UNUSED store_key_t low_key, UNUSED store_key_t high_key, UNUSED order_token_t token) {
+    // TODO LOOF: Implement btree_key_value_store_t::backfill_delete_range
     crash("backfill_delete_range unimplemented.");
 }

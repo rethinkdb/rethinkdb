@@ -22,7 +22,9 @@ void backfill_sender_t::warn_about_expiration() {
     }
 }
 
-void backfill_sender_t::backfill_delete_range(int hash_value, int hashmod, store_key_t low_key, store_key_t high_key) {
+void backfill_sender_t::backfill_delete_range(int hash_value, int hashmod, store_key_t low_key, store_key_t high_key, order_token_t token) {
+    order_sink_before_send.check_out(token);
+
     if (*stream_) {
         size_t n = sizeof(net_backfill_delete_range_t) + low_key.size + high_key.size;
 
@@ -36,6 +38,8 @@ void backfill_sender_t::backfill_delete_range(int hash_value, int hashmod, store
 
         (*stream_)->send(msg.get());
     }
+
+    order_sink_after_send.check_out(token);
 }
 
 void backfill_sender_t::backfill_deletion(store_key_t key, order_token_t token) {

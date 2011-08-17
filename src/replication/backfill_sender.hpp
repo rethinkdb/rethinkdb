@@ -20,7 +20,7 @@ public:
 
     /* backfill_and_realtime_streaming_callback_t interface */
 
-    void backfill_delete_range(int hash_value, int hashmod, store_key_t low_key, store_key_t high_key);
+    void backfill_delete_range(int hash_value, int hashmod, store_key_t low_key, store_key_t high_key, order_token_t token);
     void backfill_deletion(store_key_t key, order_token_t token);
     void backfill_set(backfill_atom_t atom, order_token_t token);
     void backfill_done(repli_timestamp_t timestamp_when_backfill_began, order_token_t token);
