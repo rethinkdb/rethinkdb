@@ -856,43 +856,6 @@ void check_and_load_diff_log(slicecx_t& cx, diff_log_errors *errs) {
     }
 }
 
-// TODO LOOF: I think this is obsolete too.
-struct largebuf_error {
-    bool not_left_shifted;
-    bool bogus_ref;
-
-    struct segment_error {
-        block_id_t block_id;
-        btree_block_t::error block_code;
-        bool bad_magic;
-    };
-
-    std::vector<segment_error> segment_errors;
-
-    largebuf_error() : not_left_shifted(false), bogus_ref(false) { }
-
-    bool is_bad() const {
-        return not_left_shifted || bogus_ref || !segment_errors.empty();
-    }
-};
-
-// TODO LOOF: I think this is obsolete.
-struct value_error {
-    block_id_t block_id;
-    std::string key;
-    bool bad_metadata_flags;
-    bool too_big;
-    bool lv_too_small;
-    largebuf_error largebuf_errs;
-
-    explicit value_error(block_id_t block_id) : block_id(block_id), bad_metadata_flags(false),
-                                                too_big(false), lv_too_small(false) { }
-
-    bool is_bad() const {
-        return bad_metadata_flags || too_big || lv_too_small || largebuf_errs.is_bad();
-    }
-};
-
 // TODO LOOF: Most of these fields are not used any more?  Or they
 // should be used.
 struct node_error {
@@ -925,20 +888,15 @@ struct node_error {
 
 struct subtree_errors {
     std::vector<node_error> node_errors;
-    std::vector<value_error> value_errors;
 
     subtree_errors() { }
 
     bool is_bad() const {
-        return !(node_errors.empty() && value_errors.empty());
+        return !node_errors.empty();
     }
 
     void add_error(const node_error& error) {
         node_errors.push_back(error);
-    }
-
-    void add_error(const value_error& error) {
-        value_errors.push_back(error);
     }
 
 private:
@@ -1453,25 +1411,6 @@ void report_interfile_errors(const interfile_errors &errs) {
     }
 }
 
-void report_any_largebuf_errors(const char *name, const largebuf_error *errs) {
-    if (errs->is_bad()) {
-        // TODO: This duplicates some code with
-        // report_subtree_errors' large buf error reporting.
-        printf("ERROR %s %s errors: %s%s", state, name,
-               errs->not_left_shifted ? " not_left_shifted" : "",
-               errs->bogus_ref ? " bogus_ref" : "");
-
-        for (int j = 0, m = errs->segment_errors.size(); j < m; ++j) {
-            const largebuf_error::segment_error se = errs->segment_errors[j];
-
-            printf(" segment_error(%u, %s)", se.block_id,
-                   se.block_code == btree_block_t::none ? "bad magic" : btree_block_t::error_name(se.block_code));
-        }
-
-        printf("\n");
-    }
-}
-
 bool report_subtree_errors(const subtree_errors *errs) {
     if (!errs->node_errors.empty()) {
         printf("ERROR %s subtree node errors found...\n", state);
@@ -1481,7 +1420,7 @@ bool report_subtree_errors(const subtree_errors *errs) {
             if (e.block_not_found_error != btree_block_t::none) {
                 printf(" block not found: %s\n", btree_block_t::error_name(e.block_not_found_error));
             } else {
-                printf("%s%s%s%s%s%s%s%s%s\n",
+                printf("%s%s%s%s%s%s%s%s%s%s\n",
                        e.block_underfull ? " block_underfull" : "",
                        e.bad_magic ? " bad_magic" : "",
                        e.noncontiguous_offsets ? " noncontiguous_offsets" : "",
@@ -1490,38 +1429,14 @@ bool report_subtree_errors(const subtree_errors *errs) {
                        e.keys_in_wrong_slice ? " keys_in_wrong_slice" : "",
                        e.out_of_order ? " out_of_order" : "",
                        e.value_errors_exist ? " value_errors_exist" : "",
-                       e.last_internal_node_key_nonempty ? " last_internal_node_key_nonempty" : "");
+                       e.last_internal_node_key_nonempty ? " last_internal_node_key_nonempty" : "",
+                       e.msg.c_str());
 
             }
         }
     }
 
-    if (!errs->value_errors.empty()) {
-        // TODO: This duplicates some code with
-        // report_any_largebuf_errors' large buf error reporting.
-
-        printf("ERROR %s subtree value errors found...\n", state);
-        for (int i = 0, n = errs->value_errors.size(); i < n; ++i) {
-            const value_error& e = errs->value_errors[i];
-            printf("          %u/'%s' :", e.block_id, e.key.c_str());
-            printf("%s%s%s%s%s",
-                   e.bad_metadata_flags ? " bad_metadata_flags" : "",
-                   e.too_big ? " too_big" : "",
-                   e.lv_too_small ? " lv_too_small" : "",
-                   e.largebuf_errs.not_left_shifted ? " largebuf_errs.not_left_shifted" : "",
-                   e.largebuf_errs.bogus_ref ? " largebuf_errs.bogus_ref" : "");
-            for (int j = 0, m = e.largebuf_errs.segment_errors.size(); j < m; ++j) {
-                const largebuf_error::segment_error se = e.largebuf_errs.segment_errors[j];
-
-                printf(" segment_error(%u, %s)", se.block_id,
-                       se.block_code == btree_block_t::none ? "bad magic" : btree_block_t::error_name(se.block_code));
-            }
-
-            printf("\n");
-        }
-    }
-
-    return errs->node_errors.empty() && errs->value_errors.empty();
+    return errs->node_errors.empty();
 }
 
 void report_rogue_block_description(const char *title, const rogue_block_description& desc) {
