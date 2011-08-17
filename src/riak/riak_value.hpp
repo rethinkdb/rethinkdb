@@ -78,10 +78,14 @@ public:
         else { return blob::ref_fits(block_size_, length_available - offsetof(riak_value_t, contents), as_riak(value)->contents, blob::btree_maxreflen); }
     }
 
-    bool deep_fsck(UNUSED block_getter_t *getter, UNUSED const void *value,
-                   UNUSED int length_available, UNUSED std::string *msg_out) const {
-        // TODO LOOF: Add a real implementation here.
-        return true;
+    bool deep_fsck(block_getter_t *getter, const void *value,
+                   int length_available, std::string *msg_out) const {
+        if (!fits(value, length_available)) {
+            *msg_out = "value does not fit in length_available";
+            return false;
+        }
+
+        return blob::deep_fsck(getter, block_size_, as_riak(value)->contents, blob::btree_maxreflen, msg_out);
     }
 
     int max_possible_size() const {
