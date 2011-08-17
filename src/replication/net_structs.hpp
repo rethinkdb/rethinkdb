@@ -155,11 +155,15 @@ struct net_backfill_delete_t {
     char key[];
 } __attribute__((__packed__));
 
+// Says to delete the keys who hash to hash_value (mod hashmod) in the
+// interval [low_key, high_key), with an exclusive upper bound, where
+// if low_key_size is 255 that means -infinity and if high_key_size is
+// 255 that means +infinity.
 struct net_backfill_delete_range_t {
     uint16_t hash_value;
     uint16_t hashmod;
-    uint8_t low_key_size;
-    uint8_t high_key_size;
+    uint8_t low_key_size;  // may be 255
+    uint8_t high_key_size;  // may be 255
     char keys[];
 } __attribute__((__packed__));
 
