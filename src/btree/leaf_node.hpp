@@ -319,6 +319,9 @@ class do_nothing_fscker_t : public value_fscker_t<V> {
     }
 };
 
+// TODO LOOF: fsck doesn't check whether the keys are in the wrong
+// slice by looking at how they hash.
+
 // If this returns false, it sets msg_out to point to a statically
 // allocated string
 template <class V>

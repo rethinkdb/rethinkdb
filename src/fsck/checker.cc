@@ -867,7 +867,6 @@ struct node_error {
     bool keys_too_big : 1;  // should be false
     bool keys_in_wrong_slice : 1;  // should be false
     bool out_of_order : 1;  // should be false
-    bool value_errors_exist : 1;  // should be false
     bool last_internal_node_key_nonempty : 1;  // should be false
     std::string msg;
 
@@ -875,13 +874,13 @@ struct node_error {
                                                bad_magic(false),
                                                noncontiguous_offsets(false), value_out_of_buf(false),
                                                keys_too_big(false), keys_in_wrong_slice(false),
-                                               out_of_order(false), value_errors_exist(false),
+                                               out_of_order(false),
                                                last_internal_node_key_nonempty(false) { }
 
     bool is_bad() const {
         return block_not_found_error != btree_block_t::none || bad_magic
             || noncontiguous_offsets || value_out_of_buf || keys_too_big || keys_in_wrong_slice
-            || out_of_order || value_errors_exist || !msg.empty();
+            || out_of_order || !msg.empty();
     }
 };
 
@@ -1411,14 +1410,13 @@ bool report_subtree_errors(const subtree_errors *errs) {
             if (e.block_not_found_error != btree_block_t::none) {
                 printf(" block not found: %s\n", btree_block_t::error_name(e.block_not_found_error));
             } else {
-                printf("%s%s%s%s%s%s%s%s%s\n",
+                printf("%s%s%s%s%s%s%s%s\n",
                        e.bad_magic ? " bad_magic" : "",
                        e.noncontiguous_offsets ? " noncontiguous_offsets" : "",
                        e.value_out_of_buf ? " value_out_of_buf" : "",
                        e.keys_too_big ? " keys_too_big" : "",
                        e.keys_in_wrong_slice ? " keys_in_wrong_slice" : "",
                        e.out_of_order ? " out_of_order" : "",
-                       e.value_errors_exist ? " value_errors_exist" : "",
                        e.last_internal_node_key_nonempty ? " last_internal_node_key_nonempty" : "",
                        e.msg.c_str());
 
