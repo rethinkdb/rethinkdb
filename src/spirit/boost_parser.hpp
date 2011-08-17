@@ -1,7 +1,7 @@
 #ifndef BOOST_PARSER_HPP
 #define BOOST_PARSER_HPP
 
-#define BOOST_SPIRIT_DEBUG_PRINT_SOME 1
+//#define BOOST_SPIRIT_DEBUG_PRINT_SOME 1
 
 #include "errors.hpp"
 #include <boost/config/warning_disable.hpp>

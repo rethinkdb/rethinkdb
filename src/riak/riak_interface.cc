@@ -10,6 +10,7 @@
 
 namespace riak {
 
+
 btree_slice_t *riak_interface_t::get_slice(std::list<std::string> key) {
     if (slice_map.find(key) != slice_map.end()) {
         return &slice_map.at(key);
@@ -96,7 +97,7 @@ object_iterator_t riak_interface_t::objects(std::string bucket) {
         get_range<riak_value_t>(slice, order_token_t::ignore, rget_bound_none, store_key_t(), rget_bound_none, store_key_t());
 
 
-    return object_iterator_t(range_txn.it, range_txn.txn);
+    return object_iterator_t(bucket, range_txn.it, range_txn.txn);
 };
 
 const object_t riak_interface_t::get_object(std::string bucket, std::string key, std::pair<int,int> range) {
@@ -113,7 +114,7 @@ const object_t riak_interface_t::get_object(std::string bucket, std::string key,
 
     kv_location.value->print(slice->cache()->get_block_size());
 
-    return object_t(key, kv_location.value.get(), kv_location.txn.get(), range);
+    return object_t(key, bucket, kv_location.value.get(), kv_location.txn.get(), range);
 }
 
 void riak_interface_t::store_object(std::string bucket, object_t obj) {
@@ -202,8 +203,25 @@ bool riak_interface_t::delete_object(std::string bucket, std::string key) {
     }
 }
 
+//this is actually identical to HTTP_DATE_FORMAT, riak insists on having HTTP
+//style dates in their JSON results from mapreduce jobs which is seriosuly
+//annoying.
+#define RIAK_DATE_FORMAT "%a, %d %b %Y %X %Z"
+
+std::string secs_to_riak_date(time_t secs) {
+    struct tm *time = gmtime(&secs);
+    char buffer[100]; 
+
+    size_t res = strftime(buffer, 100, RIAK_DATE_FORMAT, time);
+    rassert(res != 0, "Not enough space for the date time");
+
+    return std::string(buffer);
+    free(time);
+}
+
 std::string riak_interface_t::mapreduce(json::mValue &val) {
     std::vector<object_t> inputs;
+
     json::mArray::iterator it  = val.get_obj()["inputs"].get_array().begin();
     json::mArray::iterator end = val.get_obj()["inputs"].get_array().end();
 
@@ -220,15 +238,7 @@ std::string riak_interface_t::mapreduce(json::mValue &val) {
             json::mObject *link = &(query_it->get_obj()["link"].get_obj());
             link_filter_t link_filter((*link)["bucket"].get_str(), (*link)["tag"].get_str(), (*link)["keep"].get_bool());
 
-            std::vector<object_t> new_inputs;
-            for (std::vector<object_t>::iterator it = inputs.begin(); it != inputs.end(); it++) {
-                for (std::vector<link_t>::iterator lk_it = it->links.begin(); lk_it != it->links.end(); lk_it++) {
-                    if (match(link_filter, *lk_it)) {
-                        new_inputs.push_back(get_object(lk_it->bucket, lk_it->key));
-                    }
-                }
-            }
-            inputs = new_inputs;
+            inputs = follow_links(inputs, link_filter);
         } else {
             break;
         }
@@ -274,6 +284,18 @@ MALFORMED_REQUEST:
     crash("Not implemented");
 }
 
+std::vector<object_t> riak_interface_t::follow_links(std::vector<object_t> const &starting_objects, link_filter_t const &link_filter) {
+    std::vector<object_t> res;
+    for (std::vector<object_t>::const_iterator it = starting_objects.begin(); it != starting_objects.end(); it++) {
+        for (std::vector<link_t>::const_iterator lk_it = it->links.begin(); lk_it != it->links.end(); lk_it++) {
+            if (match(link_filter, *lk_it)) {
+                res.push_back(get_object(lk_it->bucket, lk_it->key));
+            }
+        }
+    }
+    return res;
+}
+
 std::vector<JS::scoped_js_value_t> riak_interface_t::js_map(JS::ctx_t &ctx, std::string src, std::vector<JS::scoped_js_value_t> values) {
     JSStringRef scriptJS = JSStringCreateWithUTF8CString(("(" + src + ")").c_str());
     JSObjectRef fn = JSValueToObject(ctx.get(), JSEvaluateScript(ctx.get(), scriptJS, NULL, NULL, 0, NULL), NULL);
@@ -310,10 +332,27 @@ JS::scoped_js_value_t object_to_jsvalue(JS::ctx_t &ctx, object_t &obj) {
     json::mObject js_obj;
 
     js_obj["key"] = obj.key;
+    js_obj["bucket"] = obj.bucket;
 
     js_obj["values"] = json::mArray();
     js_obj["values"].get_array().push_back(json::mObject());
     js_obj["values"].get_array()[0].get_obj()["data"] = std::string(obj.content.get(), obj.content_length); //extra copy
+
+    /* add meta data to the object */
+    js_obj["values"].get_array()[0].get_obj()["metadata"] = json::mObject();
+    json::mObject &meta_data_obj = js_obj["values"].get_array()[0].get_obj()["metadata"].get_obj();
+    meta_data_obj["X-Riak-Last-Modified"] = secs_to_riak_date(obj.last_written);
+    meta_data_obj["content-type"] = obj.content_type;
+    meta_data_obj["Links"] = json::mArray();
+
+    for (std::vector<link_t>::const_iterator it = obj.links.begin(); it != obj.links.end(); it++) {
+        json::mArray link;
+        link.push_back(it->bucket);
+        link.push_back(it->key);
+        link.push_back(it->tag);
+        meta_data_obj["Links"].get_array().push_back(link);
+    }
+
     return JS::scoped_js_value_t(&ctx, JSValueMakeFromJSONString(ctx.get(), JSStringCreateWithUTF8CString(json::write_string(json::mValue(js_obj)).c_str())));
 }
 

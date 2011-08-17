@@ -76,6 +76,7 @@ bool match(link_filter_t const &, link_t const &);
 
 struct object_t {
     std::string key;
+    std::string bucket;
     size_t content_length;
     boost::shared_array<char> content;
     std::string content_type;
@@ -100,8 +101,8 @@ struct object_t {
         memcpy(content.get(), c, n);
     }
 
-    object_t(std::string const &key, riak_value_t *val, transaction_t *txn, std::pair<int, int> range = std::make_pair(-1, -1))
-        : key(key), range(range), total_value_len(val->value_len)
+    object_t(std::string const &key, std::string const &bucket, riak_value_t *val, transaction_t *txn, std::pair<int, int> range = std::make_pair(-1, -1))
+        : key(key), bucket(bucket), range(range), total_value_len(val->value_len)
     {
         last_written = val->mod_time;
         ETag = val->etag;
@@ -208,16 +209,17 @@ struct object_t {
 class object_iterator_t : public transform_iterator_t<key_value_pair_t<riak_value_t>, object_t> {
 private:
     object_t make_object(key_value_pair_t<riak_value_t> val) {
-        return object_t(val.key, reinterpret_cast<riak_value_t *>(val.value.get()), txn.get());
+        return object_t(val.key, bucket, reinterpret_cast<riak_value_t *>(val.value.get()), txn.get());
     }
 
     boost::shared_ptr<transaction_t> txn;
+    std::string bucket;
     //boost::shared_ptr<slice_keys_iterator_t<riak_value_t> > it;
 
 public:
-    object_iterator_t(slice_keys_iterator_t<riak_value_t> *it, boost::shared_ptr<transaction_t> &txn)
+    object_iterator_t(std::string bucket, slice_keys_iterator_t<riak_value_t> *it, boost::shared_ptr<transaction_t> &txn)
         : transform_iterator_t<key_value_pair_t<riak_value_t>, object_t>(boost::bind(&object_iterator_t::make_object, this, _1), it), 
-          txn(txn)
+          txn(txn), bucket(bucket)
     { }
 };
 
