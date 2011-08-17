@@ -32,12 +32,13 @@ public:
     metadata_cluster_t(int port, const metadata_t &initial_metadata);
     ~metadata_cluster_t();
 
-    metadata_view_t<metadata_t> *get_root_view();
+    metadata_readwrite_view_t<metadata_t> *get_root_view();
 
 private:
     /* `get_root_view()` returns a pointer to this. It just exists to implement
-    `metadata_view_t` for us. */
-    struct root_view_t : public metadata_view_t<metadata_t> {
+    `metadata_readwrite_view_t` for us. */
+    class root_view_t : public metadata_readwrite_view_t<metadata_t> {
+    public:
         root_view_t(metadata_cluster_t *);
         metadata_cluster_t *parent;
         metadata_t get();

@@ -17,7 +17,7 @@ metadata_cluster_t<metadata_t>::~metadata_cluster_t() {
 }
 
 template<class metadata_t>
-metadata_view_t<metadata_t> *metadata_cluster_t<metadata_t>::get_root_view() {
+metadata_readwrite_view_t<metadata_t> *metadata_cluster_t<metadata_t>::get_root_view() {
     assert_thread();
     return &root_view;
 }

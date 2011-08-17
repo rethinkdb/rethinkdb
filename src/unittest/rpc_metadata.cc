@@ -1,13 +1,25 @@
 #include "unittest/gtest.hpp"
 
 #include "rpc/metadata/metadata.hpp"
+#include "rpc/metadata/view/field.hpp"
+#include "rpc/metadata/view/controller.hpp"
 
-/* For these tests, we use `uint64_t` as our semilattice. Semilattice-join is
-defined as the bitwise `|` of the operands. It's defined out here because
-`metadata_cluster_t` will look for it in the global namespace. */
+/* These are defined out here because the metadata code expects to find them in
+the global namespace. */
 
 void semilattice_join(uint64_t *a, uint64_t b) {
     *a |= b;
+}
+
+class semilattice_test_t {
+public:
+    semilattice_test_t(uint64_t x_, uint64_t y_) : x(x_), y(y_) { }
+    uint64_t x, y;
+};
+
+void semilattice_join(semilattice_test_t *a, semilattice_test_t b) {
+    semilattice_join(&a->x, b.x);
+    semilattice_join(&a->y, b.y);
 }
 
 namespace unittest {
@@ -17,7 +29,8 @@ namespace {
 /* `run_in_thread_pool()` starts a RethinkDB IO layer thread pool and calls the
 given function within a coroutine inside of it. */
 
-struct starter_t : public thread_message_t {
+class starter_t : public thread_message_t {
+public:
     thread_pool_t *tp;
     boost::function<void()> fun;
     starter_t(thread_pool_t *tp, boost::function<void()> fun) : tp(tp), fun(fun) { }
@@ -38,6 +51,11 @@ void run_in_thread_pool(boost::function<void()> fun, int nthreads = 1) {
 /* `let_stuff_happen()` delays for some time to let events occur */
 void let_stuff_happen() {
     nap(1000);
+}
+
+template<class T>
+void assign(T *target, T value) {
+    *target = value;
 }
 
 }   /* anonymous namespace */
@@ -89,17 +107,12 @@ TEST(RPCMetadataTest, MetadataExchange) {
 /* `Watcher` makes sure that metadata watchers get notified when metadata
 changes. */
 
-template<class T>
-void assign(T *target, T value) {
-    *target = value;
-}
-
 void run_watcher_test() {
     int port = 10000 + rand() % 20000;
     metadata_cluster_t<uint64_t> cluster(port, 2);
 
     bool have_been_notified = false;
-    metadata_view_t<uint64_t>::subscription_t watcher(
+    metadata_read_view_t<uint64_t>::subscription_t watcher(
         boost::bind(&assign<bool>, &have_been_notified, true),
         cluster.get_root_view());
 
@@ -109,6 +122,58 @@ void run_watcher_test() {
 }
 TEST(RPCMetadataTest, Watcher) {
     run_in_thread_pool(&run_watcher_test, 2);
+}
+
+/* `ViewController` tests `metadata_read_view_controller_t`. */
+
+void run_view_controller_test() {
+
+    metadata_read_view_controller_t<uint64_t> controller(16);
+    EXPECT_EQ(controller.get_view()->get(), 16);
+
+    controller.join(2);
+    EXPECT_EQ(controller.get_view()->get(), 18);
+
+    bool have_been_notified = false;
+    metadata_read_view_t<uint64_t>::subscription_t watcher(
+        boost::bind(&assign<bool>, &have_been_notified, true),
+        controller.get_view());
+
+    EXPECT_FALSE(have_been_notified);
+
+    controller.join(1);
+    EXPECT_EQ(controller.get_view()->get(), 19);
+
+    EXPECT_TRUE(have_been_notified);
+}
+TEST(RPCMetadataTest, ViewController) {
+    run_in_thread_pool(&run_view_controller_test);
+}
+
+/* `FieldView` tests `metadata_field_read_view_t`. */
+
+void run_field_view_test() {
+
+    metadata_read_view_controller_t<semilattice_test_t> controller(
+        semilattice_test_t(8, 4));
+    metadata_field_read_view_t<semilattice_test_t, uint64_t> x_view(
+        &semilattice_test_t::x, controller.get_view());
+
+    EXPECT_EQ(x_view.get(), 8);
+
+    bool have_been_notified = false;
+    metadata_read_view_t<uint64_t>::subscription_t watcher(
+        boost::bind(&assign<bool>, &have_been_notified, true),
+        &x_view);
+
+    EXPECT_FALSE(have_been_notified);
+    controller.join(semilattice_test_t(1, 0));
+    EXPECT_TRUE(have_been_notified);
+
+    EXPECT_EQ(x_view.get(), 9);
+}
+TEST(RPCMetadataTest, FieldView) {
+    run_in_thread_pool(&run_field_view_test);
 }
 
 }   /* namespace unittest */
