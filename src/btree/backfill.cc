@@ -36,7 +36,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
 
         struct : public leaf::entry_reception_callback_t<void> {
             void lost_deletions() {
-                // TODO LOOF call on_delete_range with appropriate range.
+                // TODO LOOF: Call on_delete_range, but hey, we need to support infinities!
             }
 
             void deletion(const btree_key_t *k, repli_timestamp_t tstamp) {
@@ -51,9 +51,12 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
 
             agnostic_backfill_callback_t *cb;
             transaction_t *txn;
+            btree_key_t *left_exclusive_or_null, *right_inclusive_or_null;
         } x;
         x.cb = callback_;
         x.txn = txn;
+        x.left_exclusive_or_null = left_exclusive_or_null;
+        x.right_inclusive_or_null = right_inclusive_or_null;
 
         leaf::dump_entries_since_time(sizer_, data, since_when_, &x);
     }
