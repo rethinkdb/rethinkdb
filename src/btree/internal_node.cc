@@ -328,10 +328,6 @@ void validate(UNUSED block_size_t block_size, UNUSED const internal_node_t *node
 #endif
 }
 
-bool has_sensible_offsets(block_size_t block_size, const internal_node_t *node) {
-    return offsetof(internal_node_t, pair_offsets) + node->npairs * sizeof(*node->pair_offsets) <= node->frontmost_offset && node->frontmost_offset <= block_size.value();
-}
-
 bool is_underfull(block_size_t block_size, const internal_node_t *node) {
     return (sizeof(internal_node_t) + 1) / 2 +
         node->npairs*sizeof(*node->pair_offsets) +

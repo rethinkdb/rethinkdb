@@ -446,12 +446,6 @@ bool fsck(value_sizer_t<V> *sizer, const leaf_node_t *node, value_fscker_t<V> *f
     return true;
 }
 
-// TODO LOOF: This function is stupid, and things that call it are stupid.  Get rid of it.
-inline
-bool has_sensible_offsets(block_size_t bs, const leaf_node_t *node) {
-    return offsetof(leaf_node_t, pair_offsets) + node->num_pairs * sizeof(uint16_t) <= node->frontmost && node->frontmost <= bs.value();
-}
-
 template <class V>
 void validate(UNUSED scoped_error_log_t& log, UNUSED value_sizer_t<V> *sizer, UNUSED const leaf_node_t *node) {
 #ifndef NDEBUG

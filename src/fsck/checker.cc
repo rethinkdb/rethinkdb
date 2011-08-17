@@ -1145,25 +1145,22 @@ void check_subtree(slicecx_t& cx, block_id_t id, const btree_key_t *lo, const bt
     // TODO LOOF: This is memcached-specific, and heh, that's bad.
     value_sizer_t<memcached_value_t> sizer(cx.block_size());
 
-    if (!node::has_sensible_offsets(cx.block_size(), reinterpret_cast<node_t *>(node.buf))) {
-        node_err.value_out_of_buf = true;
-    } else {
-        if (lo != NULL && hi != NULL) {
-            // (We're happy with an underfull root block.)
-            // TODO: is is_underfull a safe function for fsck to call?
-            if (node::is_underfull(&sizer, reinterpret_cast<node_t *>(node.buf))) {
-                node_err.block_underfull = true;
-            }
-        }
-
-        if (reinterpret_cast<node_t *>(node.buf)->magic == sizer.btree_leaf_magic()) {
-            check_subtree_leaf_node(cx, reinterpret_cast<leaf_node_t *>(node.buf), lo, hi, errs, &node_err);
-        } else if (reinterpret_cast<internal_node_t *>(node.buf)->magic == internal_node_t::expected_magic) {
-            check_subtree_internal_node(cx, reinterpret_cast<internal_node_t *>(node.buf), lo, hi, errs, &node_err);
-        } else {
-            node_err.bad_magic = true;
+    if (lo != NULL && hi != NULL) {
+        // (We're happy with an underfull root block.)
+        // TODO LOOF: is is_underfull a safe function for fsck to call?
+        if (node::is_underfull(&sizer, reinterpret_cast<node_t *>(node.buf))) {
+            node_err.block_underfull = true;
         }
     }
+
+    if (reinterpret_cast<node_t *>(node.buf)->magic == sizer.btree_leaf_magic()) {
+        check_subtree_leaf_node(cx, reinterpret_cast<leaf_node_t *>(node.buf), lo, hi, errs, &node_err);
+    } else if (reinterpret_cast<internal_node_t *>(node.buf)->magic == internal_node_t::expected_magic) {
+        check_subtree_internal_node(cx, reinterpret_cast<internal_node_t *>(node.buf), lo, hi, errs, &node_err);
+    } else {
+        node_err.bad_magic = true;
+    }
+
     if (node_err.is_bad()) {
         errs->add_error(node_err);
     }

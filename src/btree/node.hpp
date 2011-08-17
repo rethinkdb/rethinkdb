@@ -208,10 +208,6 @@ inline bool is_leaf(const node_t *node) {
     return !is_internal(node);
 }
 
-bool has_sensible_offsets(block_size_t block_size, const node_t *node);
-// TODO: I don't think anybody uses this, so get rid of this commented out prototype.
-// int nodecmp(const node_t *node1, const node_t *node2);
-
 void print(const node_t *node);
 
 }  // namespace node
