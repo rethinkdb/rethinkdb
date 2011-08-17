@@ -30,7 +30,7 @@ struct store_key_t {
         assign(sz, buf);
     }
 
-    store_key_t(std::string const &s) {
+    store_key_t(const std::string& s) {
         assign(s.size(), s.data());
     }
 
@@ -60,7 +60,7 @@ struct store_key_t {
             size++;
             return true;
         }
-        while (size > 0 && ((uint8_t*)contents)[size-1] == 255) {
+        while (size > 0 && (reinterpret_cast<uint8_t *>(contents))[size-1] == 255) {
             size--;
         }
         if (size == 0) {
@@ -69,7 +69,7 @@ struct store_key_t {
             *this = store_key_t::max();
             return false;
         }
-        ((uint8_t*)contents)[size-1]++;
+        (reinterpret_cast<uint8_t *>(contents))[size-1]++;
         return true;
     }
 
@@ -77,8 +77,8 @@ struct store_key_t {
         if (size == 0) {
             return false;
         }
-        if (((uint8_t*)contents)[size-1] > 0) {
-            ((uint8_t*)contents)[size-1]--;
+        if ((reinterpret_cast<uint8_t *>(contents))[size-1] > 0) {
+            (reinterpret_cast<uint8_t *>(contents))[size-1]--;
             return true;
         }
         size--;

@@ -176,12 +176,12 @@ public:
             realtime_job_queue.push(job);
         }
 
-        void on_delete_range(UNUSED const store_key_t& low, UNUSED const store_key_t& high) {
+        void on_delete_range(UNUSED const btree_key_t *low, UNUSED const btree_key_t *high) {
             // TODO LOOF: Implement this function.
             crash("on_delete_range not implemented.");
         }
 
-        void on_deletion(const store_key_t& key, UNUSED repli_timestamp_t recency) {
+        void on_deletion(const btree_key_t *key, UNUSED repli_timestamp_t recency) {
             // TODO LOOF: We ignore recency.  Is this correct?
 
             // This may run in the scheduler context.
@@ -189,7 +189,7 @@ public:
             rassert(backfilling_);
             backfill_job_queue.push(boost::bind(&backfill_and_realtime_streaming_callback_t::backfill_deletion,
                                                 parent_->handler_,
-                                                key, order_token_t::ignore));
+                                                store_key_t(key->size, key->contents), order_token_t::ignore));
         }
 
         /* The store calls this when we need to backfill a key/value pair to the slave */

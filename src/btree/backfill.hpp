@@ -4,12 +4,14 @@
 #include "utils.hpp"
 #include "memcached/store.hpp"
 
+// TODO LOOF: buffer_cache/types.hpp?
 #include "buffer_cache/buffer_cache.hpp"
 
 // Run backfilling at a reduced priority
 #define BACKFILL_CACHE_PRIORITY 10
 
 class btree_slice_t;
+class btree_key_t;
 
 struct backfill_atom_t {
     store_key_t key;
@@ -27,8 +29,8 @@ struct backfill_atom_t {
 // btree_backfill return?
 class backfill_callback_t {
 public:
-    virtual void on_delete_range(const store_key_t& low, const store_key_t& high) = 0;
-    virtual void on_deletion(const store_key_t& key, repli_timestamp_t recency) = 0;
+    virtual void on_delete_range(const btree_key_t *low, const btree_key_t *high) = 0;
+    virtual void on_deletion(const btree_key_t *key, repli_timestamp_t recency) = 0;
     virtual void on_keyvalue(backfill_atom_t atom) = 0;
     virtual void done_backfill() = 0;
 protected:

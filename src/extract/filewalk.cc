@@ -335,7 +335,7 @@ void get_all_values(UNUSED dumper_t& dumper, const std::map<size_t, off64_t>& of
         if (!b.init(cfg.block_size().ser_value(), &file, offset)) {
             continue;
         }
-        
+
         block_id_t block_id = b.buf_data().block_id;
 
         if (offsets.find(block_id) != offsets.end() && offsets.find(block_id)->second == offset) {

@@ -19,9 +19,8 @@ class btree_slice_t;
 
 class agnostic_backfill_callback_t {
 public:
-    // TODO LOOF why do some take store_key_t while others take btree_key_t.
-    virtual void on_delete_range(const store_key_t& low, const store_key_t& high) = 0;
-    virtual void on_deletion(const store_key_t& key, repli_timestamp_t recency) = 0;
+    virtual void on_delete_range(const btree_key_t *low, const btree_key_t *high) = 0;
+    virtual void on_deletion(const btree_key_t *key, repli_timestamp_t recency) = 0;
     virtual void on_pair(transaction_t *txn, repli_timestamp_t recency, const btree_key_t *key, const opaque_value_t *value) = 0;
     virtual void done_backfill() = 0;
     virtual ~agnostic_backfill_callback_t() { }
@@ -30,19 +29,17 @@ public:
 struct backfill_traversal_helper_t : public btree_traversal_helper_t, public home_thread_mixin_t {
 
     // TODO LOOF: Use these btree_keys.
-    void process_a_leaf(transaction_t *txn, buf_t *leaf_node_buf, UNUSED btree_key_t *left_exclusive_or_null, UNUSED btree_key_t *right_inclusive_or_null) {
+    void process_a_leaf(transaction_t *txn, buf_t *leaf_node_buf, btree_key_t *left_exclusive_or_null, btree_key_t *right_inclusive_or_null) {
         assert_thread();
         const leaf_node_t *data = reinterpret_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
 
         struct : public leaf::entry_reception_callback_t<void> {
             void lost_deletions() {
-                // TODO LOOF: Call on_delete_range, but hey, we need to support infinities!
+                cb->on_delete_range(left_exclusive_or_null, right_inclusive_or_null);
             }
 
             void deletion(const btree_key_t *k, repli_timestamp_t tstamp) {
-                // TODO LOOF this is just a stupid unnecessary copy.
-                store_key_t key(k->size, k->contents);
-                cb->on_deletion(key, tstamp);
+                cb->on_deletion(k, tstamp);
             }
 
             void key_value(const btree_key_t *k, const void *value, repli_timestamp_t tstamp) {
@@ -158,11 +155,11 @@ class agnostic_memcached_backfill_callback_t : public agnostic_backfill_callback
 public:
     agnostic_memcached_backfill_callback_t(backfill_callback_t *cb) : cb_(cb) { }
 
-    void on_delete_range(const store_key_t& low, const store_key_t& high) {
+    void on_delete_range(const btree_key_t *low, const btree_key_t *high) {
         cb_->on_delete_range(low, high);
     }
 
-    void on_deletion(const store_key_t& key, repli_timestamp_t recency) {
+    void on_deletion(const btree_key_t *key, repli_timestamp_t recency) {
         cb_->on_deletion(key, recency);
     }
 
