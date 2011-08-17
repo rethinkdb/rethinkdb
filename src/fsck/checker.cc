@@ -1032,10 +1032,9 @@ bool construct_sizer_from_magic(block_size_t bs, boost::scoped_ptr< value_sizer_
     }
 }
 
-// TODO LOOF: We aren't comparing the keys of the leaf node against lo
-// and hi.  And what was subtree_errs used for?
+// TODO LOOF: What was subtree_errs used for?
 void check_subtree_leaf_node(slicecx_t& cx, const leaf_node_t *buf,
-                             UNUSED const btree_key_t *lo, UNUSED const btree_key_t *hi,
+                             const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null,
                              UNUSED subtree_errors *tree_errs, node_error *errs) {
     boost::scoped_ptr< value_sizer_t<void> > sizer;
     if (!construct_sizer_from_magic(cx.block_size(), sizer, buf->magic)) {
@@ -1062,7 +1061,7 @@ void check_subtree_leaf_node(slicecx_t& cx, const leaf_node_t *buf,
 
     value_sizer_fscker_t<void> fscker(&getter);
     std::string msg;
-    if (!leaf::fsck(sizer.get(), buf, &fscker, &msg)) {
+    if (!leaf::fsck(sizer.get(), left_exclusive_or_null, right_inclusive_or_null, buf, &fscker, &msg)) {
         errs->msg = msg;
     }
 }

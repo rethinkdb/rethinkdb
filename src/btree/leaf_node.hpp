@@ -322,7 +322,7 @@ class do_nothing_fscker_t : public value_fscker_t<V> {
 // If this returns false, it sets msg_out to point to a statically
 // allocated string
 template <class V>
-bool fsck(value_sizer_t<V> *sizer, const leaf_node_t *node, value_fscker_t<V> *fscker, std::string *msg_out) {
+bool fsck(value_sizer_t<V> *sizer, const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null, const leaf_node_t *node, value_fscker_t<V> *fscker, std::string *msg_out) {
 
     struct {
         std::string *msg_out;
@@ -433,7 +433,7 @@ bool fsck(value_sizer_t<V> *sizer, const leaf_node_t *node, value_fscker_t<V> *f
 
     // Entries look valid, check key ordering.
 
-    const btree_key_t *last = NULL;
+    const btree_key_t *last = left_exclusive_or_null;
     for (int k = 0; k < node->num_pairs; ++k) {
         const btree_key_t *key = entry_key(get_entry(node, node->pair_offsets[k]));
         if (failed(last == NULL || sized_strcmp(last->contents, last->size, key->contents, key->size) < 0,
@@ -441,6 +441,13 @@ bool fsck(value_sizer_t<V> *sizer, const leaf_node_t *node, value_fscker_t<V> *f
             return false;
         }
         last = key;
+    }
+
+    if (failed(last == NULL || right_inclusive_or_null == NULL
+               || sized_strcmp(last->contents, last->size,
+                               right_inclusive_or_null->contents, right_inclusive_or_null->size) <= 0,
+               "keys out of order (with right_inclusive key)")) {
+        return false;
     }
 
     return true;
@@ -452,7 +459,7 @@ void validate(UNUSED scoped_error_log_t& log, UNUSED value_sizer_t<V> *sizer, UN
     strprint(log.expose_logtext(), sizer, node);
     do_nothing_fscker_t<V> fits;
     std::string msg;
-    bool fscked_successfully = fsck(sizer, node, &fits, &msg);
+    bool fscked_successfully = fsck(sizer, NULL, NULL, node, &fits, &msg);
     scoped_error_rassert(log, fscked_successfully, "%s", msg.c_str());
 #endif
 }
