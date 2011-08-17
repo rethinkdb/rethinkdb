@@ -186,7 +186,7 @@ struct slicecx_t {
     file_knowledge_t *knog;
     std::map<block_id_t, std::list<buf_patch_t*> > patch_map;
     const config_t *cfg;
-    memcached_value_sizer_t sizer;
+    value_sizer_t<memcached_value_t> sizer;
 
     void clear_buf_patches() {
         for (std::map<block_id_t, std::list<buf_patch_t*> >::iterator patches = patch_map.begin(); patches != patch_map.end(); ++patches)
@@ -200,7 +200,7 @@ struct slicecx_t {
         return knog->static_config->block_size();
     }
 
-    memcached_value_sizer_t *mc_sizer() { return &sizer; }
+    value_sizer_t<void> *get_sizer() { return &sizer; }
 
     virtual block_id_t to_ser_block_id(block_id_t id) const = 0;
     virtual bool is_valid_key(const btree_key_t &key) const = 0;
@@ -1034,10 +1034,7 @@ void check_subtree(slicecx_t& cx, block_id_t id, const btree_key_t *lo, const bt
 
     node_error node_err(id);
 
-    // TODO LOOF: This is memcached-specific, and heh, that's bad.
-    value_sizer_t<memcached_value_t> sizer(cx.block_size());
-
-    if (reinterpret_cast<node_t *>(node.buf)->magic == sizer.btree_leaf_magic()) {
+    if (reinterpret_cast<node_t *>(node.buf)->magic == cx.get_sizer()->btree_leaf_magic()) {
         check_subtree_leaf_node(cx, reinterpret_cast<leaf_node_t *>(node.buf), lo, hi, &node_err);
     } else if (reinterpret_cast<internal_node_t *>(node.buf)->magic == internal_node_t::expected_magic) {
         check_subtree_internal_node(cx, reinterpret_cast<internal_node_t *>(node.buf), lo, hi, errs, &node_err);
