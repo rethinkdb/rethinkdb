@@ -856,8 +856,8 @@ void check_and_load_diff_log(slicecx_t& cx, diff_log_errors *errs) {
     }
 }
 
-// TODO LOOF: Most of these fields are not used any more?  Or they
-// should be used.
+// All the boolean fields are used by internal nodes, and msg is used
+// by leaf nodes, for the time being.
 struct node_error {
     block_id_t block_id;
     btree_block_t::error block_not_found_error;  // must be none
@@ -929,10 +929,9 @@ bool construct_sizer_from_magic(block_size_t bs, boost::scoped_ptr< value_sizer_
     }
 }
 
-// TODO LOOF: What was subtree_errs used for?
 void check_subtree_leaf_node(slicecx_t& cx, const leaf_node_t *buf,
                              const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null,
-                             UNUSED subtree_errors *tree_errs, node_error *errs) {
+                             node_error *errs) {
     boost::scoped_ptr< value_sizer_t<void> > sizer;
     if (!construct_sizer_from_magic(cx.block_size(), sizer, buf->magic)) {
         errs->msg = "Unrecognized magic value for leaf node.";
@@ -957,10 +956,7 @@ void check_subtree_leaf_node(slicecx_t& cx, const leaf_node_t *buf,
     getter.cx = &cx;
 
     value_sizer_fscker_t<void> fscker(&getter);
-    std::string msg;
-    if (!leaf::fsck(sizer.get(), left_exclusive_or_null, right_inclusive_or_null, buf, &fscker, &msg)) {
-        errs->msg = msg;
-    }
+    leaf::fsck(sizer.get(), left_exclusive_or_null, right_inclusive_or_null, buf, &fscker, &errs->msg);
 }
 
 
@@ -1042,7 +1038,7 @@ void check_subtree(slicecx_t& cx, block_id_t id, const btree_key_t *lo, const bt
     value_sizer_t<memcached_value_t> sizer(cx.block_size());
 
     if (reinterpret_cast<node_t *>(node.buf)->magic == sizer.btree_leaf_magic()) {
-        check_subtree_leaf_node(cx, reinterpret_cast<leaf_node_t *>(node.buf), lo, hi, errs, &node_err);
+        check_subtree_leaf_node(cx, reinterpret_cast<leaf_node_t *>(node.buf), lo, hi, &node_err);
     } else if (reinterpret_cast<internal_node_t *>(node.buf)->magic == internal_node_t::expected_magic) {
         check_subtree_internal_node(cx, reinterpret_cast<internal_node_t *>(node.buf), lo, hi, errs, &node_err);
     } else {
