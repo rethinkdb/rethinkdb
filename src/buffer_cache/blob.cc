@@ -5,6 +5,7 @@
 #include "serializer/types.hpp"
 #include "concurrency/pmap.hpp"
 #include "containers/buffer_group.hpp"
+#include "containers/scoped_malloc.hpp"
 
 blob_acq_t::~blob_acq_t() {
     for (int i = 0, e = bufs_.size(); i < e; ++i) {
@@ -574,9 +575,54 @@ void traverse_recursively(transaction_t *txn, int levels, block_id_t *block_ids,
     // Really, we should require that old_size be greater than zero.
 }
 
-bool deep_fsck(UNUSED block_getter_t *getter, UNUSED const char *ref, UNUSED std::string *msg_out) {
-    // TODO LOOF: Implement this.
+bool deep_fsck_region(block_getter_t *getter, block_size_t bs, int levels, int64_t offset, int64_t size, const block_id_t *ids, std::string *msg_out) {
+    int lo, hi;
+    blob::compute_acquisition_offsets(bs, levels, offset, size, &lo, &hi);
+
+    for (int i = lo; i < hi; ++i) {
+        int64_t suboffset, subsize;
+        blob::shrink(bs, levels, offset, size, i, &suboffset, &subsize);
+        scoped_malloc<char> block;
+        if (!getter->get_block(ids[i], block)) {
+            *msg_out = strprintf("could not read block %u", ids[i]);
+            return false;
+        }
+
+        block_magic_t m = *reinterpret_cast<block_magic_t *>(block.get());
+        if (levels > 1) {
+            if (m != leaf_node_magic) {
+                *msg_out = strprintf("in block %u: bad leaf magic: '%.*s'", ids[i], int(sizeof(block_magic_t)), m.bytes);
+                return false;
+            }
+        } else {
+            if (m != internal_node_magic) {
+                *msg_out = strprintf("in block %u: bad internal magic: '%.*s'", ids[i], int(sizeof(block_magic_t)), m.bytes);
+                return false;
+            }
+
+            std::string tmp_msg;
+            if (!deep_fsck_region(getter, bs, levels - 1, suboffset, subsize, internal_node_block_ids(block.get()), &tmp_msg)) {
+                *msg_out = strprintf("in block %u: %s", ids[i], tmp_msg.c_str());
+                return false;
+            }
+        }
+    }
+
     return true;
+}
+
+bool deep_fsck(block_getter_t *getter, block_size_t bs, const char *ref, int maxreflen, std::string *msg_out) {
+    if (is_small(ref, maxreflen)) {
+        return true;
+    }
+
+    ref_info_t info = ref_info(bs, ref, maxreflen);
+    std::string tmp_msg;
+    bool ret = deep_fsck_region(getter, bs, info.levels, big_offset(ref, maxreflen), big_size(ref, maxreflen), block_ids(ref, maxreflen), &tmp_msg);
+    if (!ret) {
+        *msg_out = "In blob: " + tmp_msg;
+    }
+    return ret;
 }
 
 

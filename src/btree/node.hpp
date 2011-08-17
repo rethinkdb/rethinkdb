@@ -60,13 +60,13 @@ public:
         return btree_value_fits(block_size_, length_available, as_memcached(value));
     }
 
-    bool deep_fsck(UNUSED block_getter_t *getter, UNUSED const void *value, UNUSED int length_available, UNUSED std::string *msg_out) const {
+    bool deep_fsck(block_getter_t *getter, const void *value, int length_available, std::string *msg_out) const {
         if (!fits(value, length_available)) {
             *msg_out = "value does not fit in length_available";
             return false;
         }
 
-        return blob::deep_fsck(getter, as_memcached(value)->value_ref(), msg_out);
+        return blob::deep_fsck(getter, block_size_, as_memcached(value)->value_ref(), blob::btree_maxreflen, msg_out);
     }
 
     int max_possible_size() const {
