@@ -57,7 +57,16 @@ public:
 
             drain_semaphore_t::lock_t dsem_lock(&drain_semaphore);
 
-            promise_t<
+            promise_t<typename protocol_t::write_response_t> response_cond;
+            async_mailbox_t<boost::function<void(typename protocol_t::write_response_t)> > response_mailbox(
+                registrar->cluster, boost::bind(&promise_t<typename protocol_t::write_response_t>::pulse, &response_cond));
+
+            send(registrar->cluster, writeread_mailbox,
+                write, timestamp, tok, &response_mailbox);
+
+            cond_t c;
+            cond_link_t continue_if_acked(response_cond.get_signal(), c);
+            cond_link_t continue_if_interrupted
         }
 
         typename protocol_t::read_response_t read(typename protocol_t::read_t read, order_token_t tok, signal_t *interruptor) {
