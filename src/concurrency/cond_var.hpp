@@ -24,50 +24,6 @@ private:
     DISABLE_COPYING(cond_t);
 };
 
-/* A multi_cond is a condition variable that can be waited on by multiple
- * things. Pulse will unlock everything that was waiting on it.
- * It is NOT threadsafe. */
-class multi_cond_t {
-public:
-    multi_cond_t() : ready(false) {}
-    void pulse();
-
-    void wait();
-
-private:
-    bool ready;
-    struct waiter_t
-         : public intrusive_list_node_t<waiter_t> 
-    {
-        waiter_t(coro_t *coro) : coro(coro) {}
-        coro_t *coro;
-    };
-
-    intrusive_list_t<waiter_t> waiters;
-
-    DISABLE_COPYING(multi_cond_t);
-};
-
-/* cond_link_t pulses a given cond_t if a given signal_t is pulsed. */
-
-class cond_link_t {
-public:
-    cond_link_t(signal_t *s, cond_t *d) :
-        subs(boost::bind(&cond_link_t::go, this)),
-        dest(d)
-    {
-        if (s->is_pulsed()) go();
-        else subs.resubscribe(s);
-    }
-private:
-    void go() {
-        if (!dest->is_pulsed()) dest->pulse();
-    }
-    signal_t::subscription_t subs;
-    cond_t *dest;
-    DISABLE_COPYING(cond_link_t);
-};
-
 class one_waiter_cond_t {
 public:
     one_waiter_cond_t() : pulsed_(false), waiter_(NULL) { }

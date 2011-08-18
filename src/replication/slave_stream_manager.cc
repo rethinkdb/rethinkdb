@@ -1,6 +1,7 @@
 #include "replication/slave_stream_manager.hpp"
 #include "replication/backfill_sender.hpp"
 #include "replication/backfill_out.hpp"
+#include "concurrency/wait_any.hpp"
 
 namespace replication {
 
@@ -45,9 +46,8 @@ void slave_stream_manager_t::backfill(repli_timestamp_t since_when) {
     bf.timestamp = since_when;
     if (stream_) stream_->send(&bf);
 
-    cond_link_t return_when_backfill_done(&backfill_done_cond_, &c);   // Stop when the backfill finishes
-    cond_link_t abort_if_connection_closed(&shutdown_cond_, &c);   // Stop if the connection is closed
-    c.wait();
+    /* Stop when the backfill finishes or the connection is closed */
+    wait_any_lazily_unordered(&backfill_done_cond_, &shutdown_cond_);
 }
 
 void slave_stream_manager_t::reverse_side_backfill(repli_timestamp_t since_when) {
