@@ -14,25 +14,6 @@ void cond_t::do_pulse() {
     signal_t::pulse();
 }
 
-void multi_cond_t::pulse() {
-    rassert(!ready);
-    ready = true;
-    for (waiter_t *w = waiters.head(); w; w = waiters.next(w)) {
-        w->coro->notify_later_ordered();
-    }
-    waiters.clear();
-}
-
-void multi_cond_t::wait() {
-    if (!ready) {
-        waiter_t waiter(coro_t::self());
-        waiters.push_back(&waiter);
-        coro_t::wait();
-    }
-    /* It's not safe to assert ready here because the multi_cond_t may have been
-       destroyed by now. */
-}
-
 void one_waiter_cond_t::pulse() {
     rassert(!pulsed_);
     pulsed_ = true;
