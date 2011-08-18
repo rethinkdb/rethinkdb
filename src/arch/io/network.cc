@@ -16,6 +16,7 @@
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/timing.hpp"
 #include "concurrency/side_coro.hpp"
+#include "concurrency/wait_any.hpp"
 #include "logger.hpp"
 #include "perfmon.hpp"
 
@@ -131,34 +132,10 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
             read_in_progress = true;
 
             /* There's no data available right now, so we must wait for a notification from the
-            epoll queue. `cond` will be pulsed when the socket is closed or when there is data
-            available. */
-            cond_t cond;
+            epoll queue, or for an order to shut down. */
 
-            /* Set up the cond so it gets pulsed when the socket is closed */
-            cond_link_t pulse_if_shut_down(&read_closed, &cond);
-
-            /* Set up the cond so it gets pulsed if an event comes */
             linux_event_watcher_t::watch_t watch(event_watcher, poll_event_in);
-            cond_link_t pulse_if_got_event(&watch, &cond);
-
-            /* Wait for something to happen.
-
-            We must wait lazily because if we wait eagerly, the
-            `linux_tcp_conn_t` could be immediately destroyed as a consequence
-            of our being notified, which could screw up the
-            `linux_event_watcher_t`. See issue #322.
-
-            At one time it was believed that `wait_eagerly()` would provide
-            better performance, because `wait_lazily_ordered()` means an extra
-            trip around the event loop when the connection becomes readable. On
-            2011-05-12, Tim benchmarked `wait_eagerly()` against
-            `wait_lazily_ordered()` on electro with an all-get workload, no keys
-            in the database, and default stress-client and server parameters,
-            and found that it had no significant impact on performance.
-
-            TODO: Consider using `wait_lazily_unordered()`. */
-            cond.wait_lazily_ordered();
+            wait_any_lazily_unordered(&watch, &read_closed);
 
             read_in_progress = false;
 
@@ -344,18 +321,10 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
 
         if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
 
-            /* Wait for a notification from the event queue */
-            cond_t cond;
-
-            /* Set up the cond so it gets pulsed when the socket is closed */
-            cond_link_t pulse_if_shut_down(&write_closed, &cond);
-
-            /* Set up the cond so it gets pulsed if an event comes */
+            /* Wait for a notification from the event queue, or for an order to
+            shut down */
             linux_event_watcher_t::watch_t watch(event_watcher, poll_event_out);
-            cond_link_t pulse_if_got_event(&watch, &cond);
-
-            /* Wait for something to happen. */
-            cond.wait_lazily_ordered();
+            wait_any_lazily_unordered(&watch, &write_closed);
 
             if (write_closed.is_pulsed()) {
                 /* We were closed for whatever reason. Whatever signalled us has already called
@@ -779,14 +748,8 @@ void linux_tcp_listener_t::accept_loop(signal_t *shutdown_signal) {
         } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
             /* Wait for a notification from the event loop, or for a command to shut down,
             before continuing */
-            cond_t c;
-
-            cond_link_t interrupt_wait_on_shutdown(shutdown_signal, &c);
-
             linux_event_watcher_t::watch_t watch(&event_watcher, poll_event_in);
-            cond_link_t interrupt_wait_on_event(&watch, &c);
-
-            c.wait();
+            wait_any_lazily_unordered(&watch, shutdown_signal);
 
         } else if (errno == EINTR) {
             /* Harmless error; just try again. */
@@ -801,11 +764,8 @@ void linux_tcp_listener_t::accept_loop(signal_t *shutdown_signal) {
 
             /* Delay before retrying. We use pulse_after_time() instead of nap() so that we will
             be interrupted immediately if something wants to shut us down. */
-            cond_t c;
-            cond_link_t interrupt_wait_on_shutdown(shutdown_signal, &c);
             signal_timer_t backoff_delay_timer(backoff_delay_ms);
-            cond_link_t interrupt_wait_on_timer(&backoff_delay_timer, &c);
-            c.wait();
+            wait_any_lazily_unordered(&backoff_delay_timer, shutdown_signal);
 
             /* Exponentially increase backoff time */
             if (backoff_delay_ms < max_backoff_delay_ms) backoff_delay_ms *= 2;
