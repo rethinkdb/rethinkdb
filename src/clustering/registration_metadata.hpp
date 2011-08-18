@@ -28,8 +28,6 @@ struct registrar_metadata_t {
 
     typedef boost::uuids::uuid registration_id_t;
 
-    bool is_alive;
-
     typedef async_mailbox_t<void(
         registration_id_t,
         write_mailbox_t::address_t

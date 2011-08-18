@@ -2,9 +2,7 @@
 #define __CLUSTERING_BACKFILL_METADATA_HPP__
 
 template<class protocol_t>
-struct backfill_metadata_t {
-
-    bool is_alive;
+struct backfiller_metadata_t {
 
     typedef boost::uuids::uuid backfill_session_id_t;
 

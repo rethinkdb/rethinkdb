@@ -22,7 +22,8 @@ The write operations that are received will be passed to the function that you
 pass to the `registrant_t` constructor.
 
 Call `upgrade_to_reads()` to inform the master that you're ready to handle reads
-as well as writes.
+as well as writes. It will always return immediately and will not throw an
+exception.
 
 To stop receiving write operations, call `~registrant_t()`. This will send a
 message to the master to deregister and then return immediately. */
@@ -35,7 +36,7 @@ struct registrant_t {
             mailbox_cluster_t *cl,
 
             /* Which branch to register with */
-            metadata_view_t<registrar_metadata_t<protocol_t> > *registar_md,
+            metadata_read_view_t<resource_metadata_t<registrar_metadata_t<protocol_t> > > *registar_md,
 
             /* Whenever a write operation is received, this function will be
             called in a separate coroutine. Calling the final argument will send
@@ -51,7 +52,7 @@ struct registrant_t {
             signal_t *interruptor) :
 
         cluster(cl),
-        registrar(registar_md),
+        registrar(cluster, registar_md),
 
         registration_id(generate_uuid()),
 
@@ -62,54 +63,47 @@ struct registrant_t {
         read_mailbox(cluster, boost::bind(&registration_t::on_read, this, _1, _2, _3))
 
     {
-        write_callback = write_cb;
-
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
-        /* Start monitoring the master we're joining. */
+        try {
+            write_callback = write_cb;
 
-        master_is_offline.reset(new death_watcher_t<registrar_metadata_t<protocol_t> >(registrar));
-        fail_if_master_is_offline.reset(new cond_link_t(master_is_offline.get(), &failed_cond));
+            /* Set up a mailbox to receive the master's acknowledgement */
+            cond_t master_has_noticed_us;
+            realtime_registration_t<protocol_t>::greet_mailbox_t greet_mailbox(
+                cluster,
+                boost::bind(&cond_t::pulse, &master_has_noticed_us));
 
-        if (failed_cond.is_pulsed()) return;
+            /* Send a message to the master to register us */
+            send(cluster, registrar.access().write_register_mailbox,
+                registration_id, &greet_mailbox, &write_mailbox);
 
-        master_is_dead.reset(new disconnect_watcher_t<protocol_t>(
-            branch_metadata->get_metadata().read_mailbox.get_peer()));
-        fail_if_master_is_dead.reset(new cond_link_t(master_is_dead.get(), &failed_cond));
+            /* Wait for the master to acknowledge us, or for something to go
+            wrong */
+            cond_t c;
+            cond_link_t continue_when_master_notices_us(&master_has_noticed_us, &c);
+            cond_link_t continue_when_master_fails(registrar.get_failed_signal(), &c);
+            cond_link_t continue_when_interrupted(interruptor, &c);
+            c.wait_lazily_unordered();
 
-        if (failed_cond.is_pulsed()) return;
+            /* This will throw an exception if the registrar is down */
+            registrar.access();
 
-        /* Set up a mailbox to receive the master's acknowledgement */
-        cond_t master_has_noticed_us;
-        realtime_registration_t<protocol_t>::greet_mailbox_t greet_mailbox(
-            cluster,
-            boost::bind(&cond_t::pulse, &master_has_noticed_us));
+            if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
-        /* Check before we send because if the master is offline, `join_mailbox`
-        will have been set to nil and we'll crash. */
-        if (failed_cond.is_pulsed()) return;
+            rassert(master_has_noticed_us.is_pulsed());
 
-        /* Send a message to the master to register us */
-        send(cluster, branch_metadata->get_metadata().write_register_mailbox,
-            registration_id, &greet_mailbox, &write_mailbox);
-
-        /* Wait for the master to acknowledge us, or for something to go wrong
-        */
-
-        cond_t c;
-        cond_link_t continue_when_master_notices_us(&master_has_noticed_us, &c);
-        cond_link_t continue_when_master_fails(&failed_cond, &c);
-        cond_link_t continue_when_interrupted(interruptor, &c);
-        c.wait_lazily_unordered();
-
-        if (interruptor->is_pulsed()) throw interrupted_exc_t();
-
-        if (failed_cond.is_pulsed()) return;
-        rassert(master_has_noticed_us.is_pulsed());
+        } catch (resource_lost_exc_t) {
+            /* We get here if we lost contact with the registrar before the
+            registration process completed. We're not supposed to throw an
+            exception from the constructor, even if we didn't register
+            properly, so we just return. */
+            return;
+        }
     }
 
     signal_t *get_failed_signal() {
-        return &failed_cond;
+        return registrar.get_failed_signal();
     }
 
     void upgrade_to_reads(
@@ -134,35 +128,38 @@ struct registrant_t {
                 )> read_cb
         )
     {
-
         rassert(!is_upgraded);
         is_upgraded = true;
 
-        /* If the master went offline or we lost contact, there's nothing we can
-        do. */
-        if (failed_cond.is_pulsed()) return;
-
-        writeread_callback = writeread_cb;
-        read_callback = read_cb;
-
-        /* Send the master a message to sign us up for writereads and reads. */
-        send(cluster,
-            branch_metadata->get_metadata().upgrade_mailbox,
-            registration_id,
-            &writeread_mailbox,
-            &read_mailbox);
+        try {
+            writeread_callback = writeread_cb;
+            read_callback = read_cb;
+            /* Send the master a message to sign us up for writereads and reads.
+            */
+            send(cluster,
+                branch_metadata->get_metadata().upgrade_mailbox,
+                registration_id,
+                &writeread_mailbox,
+                &read_mailbox);
+        } catch (resource_lost_exc_t) {
+            /* The registrar is dead. Ignore it, since that's what we're
+            supposed to do. The user will find out by checking
+            `get_failed_signal()`. */
+        }
     }
 
     ~registrant_t() {
 
-        /* If the master went offline or we lost contact, then the master won't
-        be sending us any more writes anyway. */
-        if (failed_cond.is_pulsed()) return;
-
-        /* Send the master a message saying we no longer want writes. */
-        send(cluster,
-            branch_metadata->get_metadata().deregister_mailbox,
-            registration_id);
+        try {
+            /* Send the master a message saying we no longer want writes. */
+            send(cluster,
+                registrar.access().deregister_mailbox,
+                registration_id);
+        } catch (resource_lost_exc_t) {
+            /* There's no need to deregister since the registrar is dead
+            anyway */
+            return;
+        }
     }
 
 private:
@@ -200,14 +197,7 @@ private:
 
     mailbox_cluster_t *cluster;
 
-    metadata_view_t<registrar_metadata_t<protocol_t> > *registrar;
-
-    cond_t failed_cond;
-
-    boost::scoped_ptr<death_watcher_t<registrar_metadata_t<protocol_t> > > master_is_offline;
-    boost::scoped_ptr<cond_link_t> fail_if_master_is_offline;
-    boost::scoped_ptr<disconnect_watcher_t> master_is_dead;
-    boost::scoped_ptr<cond_link_t> fail_if_master_is_dead;
+    resource_access_t<registrar_metadata_t<protocol_t> > registrar;
 
     registrar_metadata_t<protocol_t>::registration_id_t registration_id;
 

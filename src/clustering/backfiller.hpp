@@ -4,39 +4,36 @@
 #include "clustering/backfill_metadata.hpp"
 
 template<class protocol_t>
-struct backfiller_t {
+struct backfiller_t :
+    public home_thread_mixin_t
+{
 
-    backfiller_t(
-            mailbox_cluster_t *c,
-            typename protocol_t::store_t *s,
-            metadata_view_t<boost::optional<backfiller_metadata_t<protocol_t> > > *md) :
-        cluster(c),
-        store(s),
-        metadata(md)
+    backfiller_t(mailbox_cluster_t *c, typename protocol_t::store_t *s) :
+        cluster(c), store(s)
     {
-        /* Set up mailboxes */
+        /* Set up mailboxes, in scoped pointers so we can deconstruct them when
+        it's convenient */
         backfill_mailbox.reset(new backfiller_metadata_t<protocol_t>::backfill_mailbox_t(
             cluster, boost::bind(&backfiller_t::on_backfill, this, _1, _2, _3, _4)));
         cancel_backfill_mailbox.reset(new backfiller_metadata_t<protocol_t>::cancel_backfill_mailbox_t(
             cluster, boost::bind(&backfiller_t::on_cancel_backfill, this, _1)));
+    }
 
-        /* Tell everybody we're open for business */
-        backfiller_metadata_t<protocol_t> our_business_card;
-        our_business_card.is_alive = true;
-        our_business_card.backfill_mailbox = &backfill_mailbox;
-        our_business_card.cancel_backfill_mailbox = &cancel_backfill_mailbox;
-        metadata->join_metadata(boost::make_optional(our_business_card));
+    backfiller_metadata_t<protocol_t> get_business_card() {
+        assert_thread();
+        backfiller_metadata_t<protocol_t> business_card;
+        business_card.backfill_mailbox = &backfill_mailbox;
+        business_card.cancel_backfill_mailbox = &cancel_backfill_mailbox;
+        return business_card;
     }
 
     ~backfiller_t() {
 
-        /* Tell everybody we're no longer open for business */
-        backfiller_metadata_t<protocol_t> our_business_card;
-        our_business_card.is_alive = false;
-        metadata->join_metadata(boost::make_optional(our_business_card));
-
-        /* Tear backfill down mailbox so no new backfills can begin */
+        /* Tear down mailboxes so no new backfills can begin. It doesn't matter
+        if we receive further messages in our `cancel_backfill_mailbox` at this
+        point, but we tear it down anyway for no reason. */
         backfill_mailbox.reset();
+        cancel_backfill_mailbox.reset();
 
         /* Cancel all existing backfills */
         global_interruptor.pulse();
@@ -53,6 +50,8 @@ private:
         typename protocol_t::backfill_request_t request,
         async_mailbox_t<void(typename protocol_t::backfill_chunk_t)>::address_t chunk_cont,
         async_mailbox_t<void()>::address_t end_cont) {
+
+        assert_thread();
 
         /* Acquire the drain semaphore so that the backfiller doesn't shut down
         while we're still running. */
@@ -92,6 +91,8 @@ private:
     }
 
     void on_cancel_backfill(session_id_t session_id) {
+
+        assert_thread();
 
         std::map<session_id_t, cond_t *>::iterator it =
             local_interruptors.find(session_id);
