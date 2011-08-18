@@ -348,7 +348,7 @@ bool fsck(value_sizer_t<V> *sizer, const btree_key_t *left_exclusive_or_null, co
                "bad leaf magic")
         || failed(node->frontmost >= offsetof(leaf_node_t, pair_offsets) + node->num_pairs * sizeof(uint16_t),
                   "frontmost offset is before the end of pair_offsets")
-        || failed(node->live_size > (sizer->block_size().value() - node->frontmost) + sizeof(uint16_t) * node->num_pairs,
+        || failed(node->live_size <= (sizer->block_size().value() - node->frontmost) + sizeof(uint16_t) * node->num_pairs,
                   "live_size is impossibly large")
         || failed(node->tstamp_cutpoint >= node->frontmost,
                   "timestamp cut offset below frontmost offset")
@@ -411,7 +411,9 @@ bool fsck(value_sizer_t<V> *sizer, const btree_key_t *left_exclusive_or_null, co
 
             observed_live_size += sizeof(uint16_t) + entry_size(sizer, ent);
             if (failed(i < node->num_pairs, "missing entry offsets")
-                || failed(offset == offs[i], "missing live entries or entry offsets"))
+                || failed(offset == offs[i], "missing live entries or entry offsets")) {
+                return false;
+            }
 
             ++i;
         } else if (entry_is_deletion(ent)) {
@@ -428,6 +430,9 @@ bool fsck(value_sizer_t<V> *sizer, const btree_key_t *left_exclusive_or_null, co
         iter.step(sizer, node);
     }
 
+    if (i != node->num_pairs) {
+        debugf("i is %d, node->num_pairs is %d\n", i, node->num_pairs);
+    }
     if (failed(i == node->num_pairs, "missing entries")
         || failed(node->live_size == observed_live_size, "incorrect live_size recorded")) {
         return false;
