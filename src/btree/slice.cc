@@ -13,6 +13,7 @@
 #include "btree/append_prepend.hpp"
 #include "btree/delete.hpp"
 #include "btree/get_cas.hpp"
+#include "server/key_value_store.hpp"
 
 void btree_slice_t::create(cache_t *cache) {
 
@@ -94,6 +95,21 @@ mutation_result_t btree_slice_t::change(const mutation_t &m, castime_t castime, 
     return boost::apply_visitor(functor, m.mutation);
 }
 
+class hash_key_tester_t : public key_tester_t {
+public:
+    hash_key_tester_t(int hash_value, int hashmod) : hash_value_(hash_value), hashmod_(hashmod) {
+        rassert(hashmod > 0);
+        rassert(hash_value >= 0 && hash_value < hashmod);
+    }
+
+    bool key_should_be_erased(const btree_key_t *key) {
+        return int(btree_key_value_store_t::hash(key->contents, key->size) % hashmod_) == hash_value_;
+    }
+
+private:
+    int hash_value_, hashmod_;
+};
+
 void btree_slice_t::backfill_delete_range(int hash_value, int hashmod,
                                           bool left_key_supplied, const store_key_t& left_key_exclusive,
                                           bool right_key_supplied, const store_key_t& right_key_inclusive,
@@ -102,7 +118,9 @@ void btree_slice_t::backfill_delete_range(int hash_value, int hashmod,
 
     token = order_checkpoint_.check_through(token);
 
-    btree_erase_range(this, hash_value, hashmod,
+    hash_key_tester_t tester(hash_value, hashmod);
+
+    btree_erase_range(this, &tester,
                       left_key_supplied, left_key_exclusive,
                       right_key_supplied, right_key_inclusive,
                       token);

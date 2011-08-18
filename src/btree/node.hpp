@@ -159,6 +159,14 @@ struct btree_key_buffer_t {
     }
     template <class iterator_type>
     btree_key_buffer_t(iterator_type beg, iterator_type end) {
+        assign<iterator_type>(beg, end);
+    }
+    void assign(const btree_key_t *k) {
+        btree_key.size = k->size;
+        memcpy(btree_key.contents, k->contents, k->size);
+    }
+    template <class iterator_type>
+    void assign(iterator_type beg, iterator_type end) {
         rassert(end - beg <= MAX_KEY_SIZE);
         btree_key.size = end - beg;
         int i = 0;
@@ -168,10 +176,7 @@ struct btree_key_buffer_t {
             ++i;
         }
     }
-    void assign(const btree_key_t *k) {
-        btree_key.size = k->size;
-        memcpy(btree_key.contents, k->contents, k->size);
-    }
+
     btree_key_t *key() { return &btree_key; }
 private:
     union {
