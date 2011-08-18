@@ -24,7 +24,7 @@ struct store_key_t {
     uint8_t size;
     char contents[MAX_KEY_SIZE];
 
-    store_key_t() { }
+    store_key_t() : size(0) { }
 
     store_key_t(int sz, const char *buf) {
         assign(sz, buf);

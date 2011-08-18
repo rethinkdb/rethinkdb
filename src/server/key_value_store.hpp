@@ -42,6 +42,7 @@ struct shard_store_t :
     rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token);
     mutation_result_t change(const mutation_t &m, order_token_t token);
     mutation_result_t change(const mutation_t &m, castime_t ct, order_token_t token);
+    void backfill_delete_range(int hash_value, int hashmode, bool left_key_supplied, const store_key_t& left_key_exclusive, bool right_key_supplied, const store_key_t& right_key_inclusive, order_token_t token);
     void set_replication_clock(repli_timestamp_t t, order_token_t token);
 
     cache_t cache;
@@ -128,9 +129,9 @@ public:
 
     mutation_result_t change(const mutation_t &m, castime_t ct, order_token_t order_token);
 
-    // Deletes the keys in the inclusive range [low_key, high_key] for
-    // which hash(hash_value) % hashmod == slice.
-    void backfill_delete_range(int hash_value, int hashmod, store_key_t low_key, store_key_t high_key, order_token_t token);
+    // Deletes the keys in the range (left_key_exclusive, right_key_inclusive] for
+    // which hash(hash_value) % hashmod == slice.  Keys can be null, representing infinity.
+    void backfill_delete_range(int hash_value, int hashmod, bool left_key_supplied, const store_key_t& left_key_exclusive, bool right_key_supplied, const store_key_t& right_key_inclusive, order_token_t token);
 
     /* The value passed to `set_timestampers()` is the value that will be used as the
     timestamp for all new operations. When the key-value store starts up, it is

@@ -180,14 +180,16 @@ public:
             realtime_job_queue.push(job);
         }
 
-        void on_delete_range(UNUSED const btree_key_t *low, UNUSED const btree_key_t *high) {
+        void on_delete_range(const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null) {
             rassert(get_thread_id() == shard_->home_thread());
             rassert(backfilling_);
             backfill_job_queue.push(boost::bind(&backfill_and_realtime_streaming_callback_t::backfill_delete_range,
                                                 parent_->handler_,
                                                 slice_num_, n_slices_,
-                                                store_key_t(low->size, low->contents),
-                                                store_key_t(high->size, high->contents),
+                                                left_exclusive_or_null != NULL,
+                                                left_exclusive_or_null ? store_key_t(left_exclusive_or_null->size, left_exclusive_or_null->contents) : store_key_t(),
+                                                right_inclusive_or_null != NULL,
+                                                right_inclusive_or_null ? store_key_t(right_inclusive_or_null->size, right_inclusive_or_null->contents) : store_key_t(),
                                                 order_token_t::ignore));
         }
 

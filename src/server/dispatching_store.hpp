@@ -5,7 +5,7 @@
 #include "concurrency/fifo_checker.hpp"
 
 class btree_slice_t;
-
+struct btree_key_t;
 
 class dispatching_store_t : public set_store_t, public home_thread_mixin_t {
 public:
@@ -15,6 +15,10 @@ public:
     mutation_result_t change(const mutation_t& m, castime_t castime, order_token_t token);
     get_result_t get(const store_key_t &key, order_token_t token);
     rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token);
+    void backfill_delete_range(int hash_value, int hashmod,
+                               bool left_key_supplied, const store_key_t& left_key_exclusive,
+                               bool right_key_supplied, const store_key_t& right_key_inclusive,
+                               order_token_t token);
     void set_replication_clock(repli_timestamp_t t, order_token_t token);
 
 private:

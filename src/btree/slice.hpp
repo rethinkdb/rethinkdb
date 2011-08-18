@@ -38,6 +38,11 @@ public:
 
     /* btree_slice_t interface */
 
+    void backfill_delete_range(int hash_value, int hashmod,
+                               bool left_key_supplied, const store_key_t& left_key_exclusive,
+                               bool right_key_supplied, const store_key_t& right_key_inclusive,
+                               order_token_t token);
+
     void backfill(repli_timestamp_t since_when, backfill_callback_t *callback, order_token_t token);
 
     /* These store metadata for replication. There must be a better way to store this information,

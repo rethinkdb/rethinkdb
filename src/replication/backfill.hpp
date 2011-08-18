@@ -8,9 +8,10 @@ namespace replication {
 
 struct backfill_and_realtime_streaming_callback_t {
 
-    // Says to delete keys in the inclusive range [low_key, high_key],
+    // Says to delete keys in the range (left_key_exclusive,
+    // right_key_inclusive] or using infinities for keys not supplied,
     // such that the key hashes to hash_value, modulo hashmod.
-    virtual void backfill_delete_range(int hash_value, int hashmod, store_key_t low_key, store_key_t high_key, order_token_t token) = 0;
+    virtual void backfill_delete_range(int hash_value, int hashmod, bool left_key_supplied, const store_key_t& left_key_exclusive, bool right_key_supplied, const store_key_t& right_key_inclusive, order_token_t token) = 0;
     virtual void backfill_deletion(store_key_t key, order_token_t token) = 0;
     virtual void backfill_set(backfill_atom_t atom, order_token_t token) = 0;
 

@@ -1,5 +1,6 @@
 #include "errors.hpp"
 #include "btree/backfill.hpp"
+#include "btree/erase_range.hpp"
 #include "btree/slice.hpp"
 #include "btree/node.hpp"
 #include "buffer_cache/buffer_cache.hpp"
@@ -92,6 +93,21 @@ mutation_result_t btree_slice_t::change(const mutation_t &m, castime_t castime, 
     btree_slice_change_visitor_t functor(this, castime, token);
     return boost::apply_visitor(functor, m.mutation);
 }
+
+void btree_slice_t::backfill_delete_range(int hash_value, int hashmod,
+                                          bool left_key_supplied, const store_key_t& left_key_exclusive,
+                                          bool right_key_supplied, const store_key_t& right_key_inclusive,
+                                          order_token_t token) {
+    assert_thread();
+
+    token = order_checkpoint_.check_through(token);
+
+    btree_erase_range(this, hash_value, hashmod,
+                      left_key_supplied, left_key_exclusive,
+                      right_key_supplied, right_key_inclusive,
+                      token);
+}
+
 
 void btree_slice_t::backfill(repli_timestamp_t since_when, backfill_callback_t *callback, order_token_t token) {
     assert_thread();

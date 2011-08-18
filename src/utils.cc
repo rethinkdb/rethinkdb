@@ -269,6 +269,19 @@ unsigned long long strtoull_strict(const char *string, char **end, int base) {
     return result;
 }
 
+int gcd(int x, int y) {
+    rassert(x >= 0);
+    rassert(y >= 0);
+
+    while (y != 0) {
+        int tmp = y;
+        y = x % y;
+        x = tmp;
+    }
+
+    return x;
+}
+
 ticks_t secs_to_ticks(float secs) {
     // The timespec struct used in clock_gettime has a tv_nsec field.
     // That's why we use a billion.

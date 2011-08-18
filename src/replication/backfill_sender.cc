@@ -22,19 +22,29 @@ void backfill_sender_t::warn_about_expiration() {
     }
 }
 
-void backfill_sender_t::backfill_delete_range(int hash_value, int hashmod, store_key_t low_key, store_key_t high_key, order_token_t token) {
+void backfill_sender_t::backfill_delete_range(int hash_value, int hashmod,
+                                              bool left_key_supplied, const store_key_t& left_key_exclusive,
+                                              bool right_key_supplied, const store_key_t& right_key_inclusive,
+                                              order_token_t token) {
     order_sink_before_send.check_out(token);
 
     if (*stream_) {
-        size_t n = sizeof(net_backfill_delete_range_t) + low_key.size + high_key.size;
+        int left_offseter = (left_key_supplied ? left_key_exclusive.size : 0);
+        size_t n = sizeof(net_backfill_delete_range_t)
+            + left_offseter
+            + (right_key_supplied ? right_key_inclusive.size : 0);
 
         scoped_malloc<net_backfill_delete_range_t> msg(n);
         msg->hash_value = hash_value;
         msg->hashmod = hashmod;
-        msg->low_key_size = low_key.size;
-        msg->high_key_size = high_key.size;
-        memcpy(msg->keys, low_key.contents, low_key.size);
-        memcpy(msg->keys + low_key.size, high_key.contents, high_key.size);
+        msg->low_key_size = left_key_supplied ? left_key_exclusive.size : net_backfill_delete_range_t::infinity_key_size;
+        msg->high_key_size = right_key_supplied ? right_key_inclusive.size : net_backfill_delete_range_t::infinity_key_size;
+        if (left_key_supplied) {
+            memcpy(msg->keys, left_key_exclusive.contents, left_key_exclusive.size);
+        }
+        if (right_key_supplied) {
+            memcpy(msg->keys + left_offseter, right_key_inclusive.contents, right_key_inclusive.size);
+        }
 
         (*stream_)->send(msg.get());
     }

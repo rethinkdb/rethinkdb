@@ -85,9 +85,18 @@ void backfill_receiver_t::send(scoped_malloc<net_delete_t>& msg) {
 void backfill_receiver_t::send(scoped_malloc<net_backfill_delete_range_t>& msg) {
     block_pm_duration timer(&pm_replication_slave_handling_2);
     order_token_t token = order_source->check_in_backfill_operation("net_backfill_delete_range_t");
-    store_key_t low_key(msg->low_key_size, msg->keys);
-    store_key_t high_key(msg->high_key_size, msg->keys + msg->low_key_size);
-    cb->backfill_delete_range(msg->hash_value, msg->hashmod, low_key, high_key, token);
+    store_key_t left, right;
+    bool left_supplied = false, right_supplied = false;
+
+    if (msg->low_key_size != 255) {
+        left.assign(msg->low_key_size, msg->keys);
+        left_supplied = true;
+    }
+    if (msg->high_key_size != 255) {
+        right.assign(msg->high_key_size, msg->keys + msg->low_key_size);
+        right_supplied = true;
+    }
+    cb->backfill_delete_range(msg->hash_value, msg->hashmod, left_supplied, left, right_supplied, right, token);
 }
 
 void backfill_receiver_t::send(scoped_malloc<net_backfill_delete_t>& msg) {

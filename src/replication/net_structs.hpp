@@ -165,6 +165,8 @@ struct net_backfill_delete_range_t {
     uint8_t low_key_size;  // may be 255
     uint8_t high_key_size;  // may be 255
     char keys[];
+
+    static const int infinity_key_size = 255;
 } __attribute__((__packed__));
 
 }  // namespace replication

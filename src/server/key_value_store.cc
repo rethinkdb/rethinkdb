@@ -53,6 +53,15 @@ mutation_result_t shard_store_t::change(const mutation_t &m, castime_t ct, order
     return dispatching_store.change(m, ct, token);
 }
 
+void shard_store_t::backfill_delete_range(int hash_value, int hashmod,
+                                          bool left_key_supplied, const store_key_t& left_key_exclusive,
+                                          bool right_key_supplied, const store_key_t& right_key_inclusive,
+                                          order_token_t token) {
+    on_thread_t th(home_thread());
+    return dispatching_store.backfill_delete_range(hash_value, hashmod, left_key_supplied, left_key_exclusive, right_key_supplied, right_key_inclusive, token);
+
+}
+
 void shard_store_t::set_replication_clock(repli_timestamp_t t, order_token_t token) {
     on_thread_t th(home_thread());
     dispatching_store.set_replication_clock(t, token);
@@ -425,7 +434,17 @@ mutation_result_t btree_key_value_store_t::change(const mutation_t &m, castime_t
 
 
 
-void btree_key_value_store_t::backfill_delete_range(UNUSED int hash_value, UNUSED int hashmod, UNUSED store_key_t low_key, UNUSED store_key_t high_key, UNUSED order_token_t token) {
-    // TODO LOOF: Implement btree_key_value_store_t::backfill_delete_range
-    crash("backfill_delete_range unimplemented.");
+void btree_key_value_store_t::backfill_delete_range(int hash_value, int hashmod, bool left_key_supplied, const store_key_t& left_key_exclusive, bool right_key_supplied, const store_key_t& right_key_inclusive, order_token_t token) {
+    // This has to be a bit fancy because we only want to call the
+    // change function on shards where hash(key) % hashmod ==
+    // hash_value is possible.  Visit slices where hash(slice_num) is
+    // congruent to hash_value, modulo gcd(hashmod, n_slices).
+
+    int g = gcd(hashmod, btree_static_config.n_slices);
+
+    int h = hash_value % g;
+
+    for (int i = h; i < btree_static_config.n_slices; i += g) {
+        shards[i]->backfill_delete_range(hash_value, hashmod, left_key_supplied, left_key_exclusive, right_key_supplied, right_key_inclusive, token);
+    }
 }
