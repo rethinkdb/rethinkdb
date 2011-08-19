@@ -39,10 +39,6 @@ buf_patch_t *buf_patch_t::load_patch(UNUSED block_size_t bs, const char *source)
                 result = new memcpy_patch_t(block_id, patch_counter, source, remaining_length); break;
             case (OPER_MEMMOVE):
                 result = new memmove_patch_t(block_id, patch_counter, source, remaining_length); break;
-            case (OPER_LEAF_SHIFT_PAIRS):
-                result = new leaf_shift_pairs_patch_t(block_id, patch_counter, source, remaining_length); break;
-            case (OPER_LEAF_INSERT_PAIR):
-                result = new leaf_insert_pair_patch_t(block_id, patch_counter, source, remaining_length); break;
             case (OPER_LEAF_INSERT):
                 result = new leaf_insert_patch_t(block_id, patch_counter, source, remaining_length); break;
             case (OPER_LEAF_REMOVE):

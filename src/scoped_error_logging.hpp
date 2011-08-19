@@ -11,20 +11,21 @@ public:
         messages_ += file;
         messages_ += strprintf(":%d: ", line);
         messages_ += msg;
-        messages_ += "\n";
     }
+
+    std::string& expose_logtext() { return messages_; }
 
     const std::string& logtext() const { return messages_; }
 private:
     std::string messages_;
 };
 
-#define scoped_error_record(log, fmt, ...) do { log.add_msg(strprintf((fmt), ##__VA_ARGS__), (file), (line)); } while (0)
+#define scoped_error_record(log, fmt, ...) do { log.add_msg(strprintf((fmt), ##__VA_ARGS__), __FILE__, __LINE__); } while (0)
 
 #define scoped_error_rassert(log, cond, ...) do {                       \
         if (!(cond)) {                                                  \
             fprintf(stderr, "Assertion failed.  Log:  \n%s\n", (log).logtext().c_str()); \
-            crash_or_trap(format_assert_message("Assertion", cond) msg); \
+            crash_or_trap(format_assert_message("Assertion", cond) __VA_ARGS__); \
         }                                                               \
     } while (0)
 

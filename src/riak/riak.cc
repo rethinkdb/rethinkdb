@@ -37,7 +37,7 @@ btree_slice_t *riak_interface_t::get_slice(std::list<std::string> key) {
         standard_serializer_t *serializer = store_manager->get_store(key)->get_store_interface<standard_serializer_t>();
 
         mirrored_cache_config_t config;
-        slice_map.insert(key, new btree_slice_t(new cache_t(serializer, &config), 0));
+        slice_map.insert(key, new btree_slice_t(new cache_t(serializer, &config)));
 
         return &slice_map.at(key);
     } else {
@@ -62,7 +62,7 @@ btree_slice_t *riak_interface_t::create_slice(std::list<std::string> key) {
     cache_t *cache = new cache_t(serializer, &mc_config);
 
     btree_slice_t::create(cache);
-    slice_map.insert(key, new btree_slice_t(cache, 0));
+    slice_map.insert(key, new btree_slice_t(cache));
 
     return get_slice(key);
 }

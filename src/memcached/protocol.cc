@@ -243,7 +243,7 @@ void memcached_protocol_t::store_t::create(serializer_t *ser, key_range_t) {
 
 memcached_protocol_t::store_t::store_t(serializer_t *ser, key_range_t r) :
     cache(ser, &cache_config),
-    btree(&cache, 1000),
+    btree(&cache),
     region(r)
     { }
 

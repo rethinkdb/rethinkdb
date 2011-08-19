@@ -135,7 +135,8 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
             epoll queue, or for an order to shut down. */
 
             linux_event_watcher_t::watch_t watch(event_watcher, poll_event_in);
-            wait_any_lazily_unordered(&watch, &read_closed);
+            wait_any_t waiter(&watch, &read_closed);
+            waiter.wait_lazily_unordered();
 
             read_in_progress = false;
 
@@ -324,7 +325,8 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
             /* Wait for a notification from the event queue, or for an order to
             shut down */
             linux_event_watcher_t::watch_t watch(event_watcher, poll_event_out);
-            wait_any_lazily_unordered(&watch, &write_closed);
+            wait_any_t waiter(&watch, &write_closed);
+            waiter.wait_lazily_unordered();
 
             if (write_closed.is_pulsed()) {
                 /* We were closed for whatever reason. Whatever signalled us has already called
@@ -749,7 +751,8 @@ void linux_tcp_listener_t::accept_loop(signal_t *shutdown_signal) {
             /* Wait for a notification from the event loop, or for a command to shut down,
             before continuing */
             linux_event_watcher_t::watch_t watch(&event_watcher, poll_event_in);
-            wait_any_lazily_unordered(&watch, shutdown_signal);
+            wait_any_t waiter(&watch, shutdown_signal);
+            waiter.wait_lazily_unordered();
 
         } else if (errno == EINTR) {
             /* Harmless error; just try again. */
@@ -765,7 +768,8 @@ void linux_tcp_listener_t::accept_loop(signal_t *shutdown_signal) {
             /* Delay before retrying. We use pulse_after_time() instead of nap() so that we will
             be interrupted immediately if something wants to shut us down. */
             signal_timer_t backoff_delay_timer(backoff_delay_ms);
-            wait_any_lazily_unordered(&backoff_delay_timer, shutdown_signal);
+            wait_any_t waiter(&backoff_delay_timer, shutdown_signal);
+            waiter.wait_lazily_unordered();
 
             /* Exponentially increase backoff time */
             if (backoff_delay_ms < max_backoff_delay_ms) backoff_delay_ms *= 2;
