@@ -19,7 +19,9 @@ public:
     ~scoped_malloc() { free(ptr_); ptr_ = NULL; }
 
     T *get() { return ptr_; }
+    const T *get() const { return ptr_; }
     T *operator->() { return ptr_; }
+    const T *operator->() const { return ptr_; }
     T& operator*() { return *ptr_; }
 
     void reset() {

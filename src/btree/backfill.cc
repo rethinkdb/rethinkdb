@@ -28,7 +28,7 @@ public:
 
 struct backfill_traversal_helper_t : public btree_traversal_helper_t, public home_thread_mixin_t {
 
-    void process_a_leaf(transaction_t *txn, buf_t *leaf_node_buf, btree_key_t *left_exclusive_or_null, btree_key_t *right_inclusive_or_null) {
+    void process_a_leaf(transaction_t *txn, buf_t *leaf_node_buf, const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null) {
         assert_thread();
         const leaf_node_t *data = reinterpret_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
 
@@ -47,7 +47,8 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
 
             agnostic_backfill_callback_t *cb;
             transaction_t *txn;
-            btree_key_t *left_exclusive_or_null, *right_inclusive_or_null;
+            const btree_key_t *left_exclusive_or_null;
+            const btree_key_t *right_inclusive_or_null;
         } x;
         x.cb = callback_;
         x.txn = txn;
@@ -72,7 +73,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
     struct annoying_t : public get_subtree_recencies_callback_t {
         interesting_children_callback_t *cb;
         boost::scoped_array<block_id_t> block_ids;
-        int num_block_ids;
+        ranged_block_ids_t *ids_source;
         boost::scoped_array<repli_timestamp_t> recencies;
         repli_timestamp_t since_when;
 
@@ -82,27 +83,31 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
 
         void do_got_subtree_recencies() {
             rassert(coro_t::self());
-            boost::scoped_array<block_id_t> local_block_ids;
-            local_block_ids.swap(block_ids);
-            for (int i = 0; i < num_block_ids; ++i) {
-                if (recencies[i].time < since_when.time) {
-                    local_block_ids[i] = NULL_BLOCK_ID;
+
+            for (int i = 0, e = ids_source->num_block_ids(); i < e; ++i) {
+                if (recencies[i].time >= since_when.time) {
+                    cb->receive_interesting_child(i);
                 }
             }
-            int local_num_block_ids = num_block_ids;
+
             interesting_children_callback_t *local_cb = cb;
             delete this;
-            local_cb->receive_interesting_children(local_block_ids, local_num_block_ids);
+            local_cb->no_more_interesting_children();
         }
     };
 
-    void filter_interesting_children(transaction_t *txn, const block_id_t *block_ids, int num_block_ids, interesting_children_callback_t *cb) {
+    void filter_interesting_children(transaction_t *txn, ranged_block_ids_t *ids_source, interesting_children_callback_t *cb) {
         assert_thread();
         annoying_t *fsm = new annoying_t;
-        fsm->cb = cb;
+        int num_block_ids = ids_source->num_block_ids();
         fsm->block_ids.reset(new block_id_t[num_block_ids]);
-        std::copy(block_ids, block_ids + num_block_ids, fsm->block_ids.get());
-        fsm->num_block_ids = num_block_ids;
+        for (int i = 0; i < num_block_ids; ++i) {
+            const btree_key_t *ignore_left, *ignore_right;
+            ids_source->get_block_id_and_bounding_interval(i, &fsm->block_ids[i], &ignore_left, &ignore_right);
+        }
+
+        fsm->cb = cb;
+        fsm->ids_source = ids_source;
         fsm->since_when = since_when_;
         fsm->recencies.reset(new repli_timestamp_t[num_block_ids]);
 

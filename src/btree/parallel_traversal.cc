@@ -188,15 +188,15 @@ private:
     DISABLE_COPYING(traversal_state_t);
 };
 
-void subtrees_traverse(traversal_state_t *state, parent_releaser_t *releaser, int level, scoped_malloc<internal_node_t>& keyrange_source, boost::scoped_array<block_id_t>& param_block_ids, int num_block_ids, btree_key_t *left_exclusive_or_null, btree_key_t *right_inclusive_or_null);
+void subtrees_traverse(traversal_state_t *state, parent_releaser_t *releaser, int level, boost::shared_ptr<ranged_block_ids_t>& ids_source);
 void do_a_subtree_traversal(traversal_state_t *state, int level, block_id_t block_id, btree_key_t *left_exclusive_or_null, btree_key_t *right_inclusive_or_null, acquisition_start_callback_t *acq_start_cb);
 
 void process_a_leaf_node(traversal_state_t *state, buf_t *buf, int level,
-                         btree_key_t *left_exclusive_or_null,
-                         btree_key_t *right_inclusive_or_null);
+                         const btree_key_t *left_exclusive_or_null,
+                         const btree_key_t *right_inclusive_or_null);
 void process_a_internal_node(traversal_state_t *state, buf_t *buf, int level,
-                             btree_key_t *left_exclusive_or_null,
-                             btree_key_t *right_inclusive_or_null);
+                             const btree_key_t *left_exclusive_or_null,
+                             const btree_key_t *right_inclusive_or_null);
 
 struct node_ready_callback_t {
     virtual void on_node_ready(buf_t *buf) = 0;
@@ -284,28 +284,26 @@ void btree_parallel_traversal(transaction_t *txn, btree_slice_t *slice, btree_tr
         superblock_releaser.release();
         // No root, so no keys in this entire shard.
     } else {
-        boost::scoped_array<block_id_t> roots(new block_id_t[1]);
-        scoped_malloc<internal_node_t> untouched_keyrange_source;
-        roots[0] = root_id;
         state.level_count(0) += 1;
         state.acquisition_waiter_stacks.resize(1);
-        subtrees_traverse(&state, &superblock_releaser, 1, untouched_keyrange_source, roots, 1, NULL, NULL);
+        boost::shared_ptr<ranged_block_ids_t> ids_source(new ranged_block_ids_t(root_id, NULL, NULL));
+        subtrees_traverse(&state, &superblock_releaser, 1, ids_source);
         state.wait();
     }
 }
 
 
-void subtrees_traverse(traversal_state_t *state, parent_releaser_t *releaser, int level, scoped_malloc<internal_node_t>& keyrange_source, boost::scoped_array<block_id_t>& param_block_ids, int num_block_ids, btree_key_t *left_exclusive_or_null, btree_key_t *right_inclusive_or_null) {
+void subtrees_traverse(traversal_state_t *state, parent_releaser_t *releaser, int level, boost::shared_ptr<ranged_block_ids_t>& ids_source) {
     rassert(coro_t::self());
-    interesting_children_callback_t *fsm = new interesting_children_callback_t(state, releaser, level, keyrange_source, left_exclusive_or_null, right_inclusive_or_null);
-    state->helper->filter_interesting_children(state->transaction_ptr, param_block_ids.get(), num_block_ids, fsm);
+    interesting_children_callback_t *fsm = new interesting_children_callback_t(state, releaser, level, ids_source);
+    state->helper->filter_interesting_children(state->transaction_ptr, ids_source.get(), fsm);
 }
 
 struct do_a_subtree_traversal_fsm_t : public node_ready_callback_t {
     traversal_state_t *state;
     int level;
-    btree_key_t *left_exclusive_or_null;
-    btree_key_t *right_inclusive_or_null;
+    const btree_key_t *left_exclusive_or_null;
+    const btree_key_t *right_inclusive_or_null;
 
     void on_node_ready(buf_t *buf) {
         rassert(coro_t::self());
@@ -326,7 +324,7 @@ struct do_a_subtree_traversal_fsm_t : public node_ready_callback_t {
     }
 };
 
-void do_a_subtree_traversal(traversal_state_t *state, int level, block_id_t block_id, btree_key_t *left_exclusive_or_null, btree_key_t *right_inclusive_or_null,  acquisition_start_callback_t *acq_start_cb) {
+void do_a_subtree_traversal(traversal_state_t *state, int level, block_id_t block_id, const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null,  acquisition_start_callback_t *acq_start_cb) {
     do_a_subtree_traversal_fsm_t *fsm = new do_a_subtree_traversal_fsm_t;
     fsm->state = state;
     fsm->level = level;
@@ -337,22 +335,17 @@ void do_a_subtree_traversal(traversal_state_t *state, int level, block_id_t bloc
 }
 
 // This releases its buf_t parameter.
-void process_a_internal_node(traversal_state_t *state, buf_t *buf, int level, btree_key_t *left_exclusive_or_null, btree_key_t *right_inclusive_or_null) {
+void process_a_internal_node(traversal_state_t *state, buf_t *buf, int level, const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null) {
     const internal_node_t *node = reinterpret_cast<const internal_node_t *>(buf->get_data_read());
 
-    boost::scoped_array<block_id_t> children;
-    size_t num_children;
-    internal_node::get_children_ids(node, children, &num_children);
+    boost::shared_ptr<ranged_block_ids_t> ids_source(new ranged_block_ids_t(state->slice->cache()->get_block_size(), node, left_exclusive_or_null, right_inclusive_or_null));
 
-    scoped_malloc<internal_node_t> node_copy(state->slice->cache()->get_block_size().value());
-    memcpy(node_copy.get(), node, state->slice->cache()->get_block_size().value());
-
-    subtrees_traverse(state, new internal_node_releaser_t(buf, state), level + 1, node_copy, children, num_children, left_exclusive_or_null, right_inclusive_or_null);
+    subtrees_traverse(state, new internal_node_releaser_t(buf, state), level + 1, ids_source);
 }
 
 // This releases its buf_t parameter.
 void process_a_leaf_node(traversal_state_t *state, buf_t *buf, int level,
-                         btree_key_t *left_exclusive_or_null, btree_key_t *right_inclusive_or_null) {
+                         const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null) {
     // This can be run in the scheduler thread.
     state->helper->process_a_leaf(state->transaction_ptr, buf, left_exclusive_or_null, right_inclusive_or_null);
     buf->release();
@@ -360,40 +353,23 @@ void process_a_leaf_node(traversal_state_t *state, buf_t *buf, int level,
     state->consider_pulsing();
 }
 
+void interesting_children_callback_t::receive_interesting_child(int child_index) {
+    rassert(child_index >= 0 && child_index < ids_source->num_block_ids());
 
-void interesting_children_callback_t::receive_interesting_children(boost::scoped_array<block_id_t>& block_ids, int num_block_ids) {
-    acquisition_countdown = num_block_ids + 1;
+    block_id_t block_id;
+    const btree_key_t *left_excl_or_null;
+    const btree_key_t *right_incl_or_null;
+    ids_source->get_block_id_and_bounding_interval(child_index, &block_id, &left_excl_or_null, &right_incl_or_null);
 
-    for (int i = 0; i < num_block_ids; ++i) {
-        if (block_ids[i] != NULL_BLOCK_ID) {
-            btree_key_buffer_t left_buf;
-            btree_key_t *left;
-            if (i == 0) {
-                left = left_exclusive_or_null;
-            } else {
-                left_buf.assign(&internal_node::get_pair_by_index(keyrange_source.get(), i - 1)->key);
-                left = left_buf.key();
-            }
+    ++ acquisition_countdown;
+    do_a_subtree_traversal(state, level, block_id, left_excl_or_null, right_incl_or_null, this);
+}
 
-            btree_key_buffer_t right_buf;
-            btree_key_t *right;
-            if (i == num_block_ids - 1) {
-                right = right_inclusive_or_null;
-            } else {
-                right_buf.assign(&internal_node::get_pair_by_index(keyrange_source.get(), i)->key);
-                right = right_buf.key();
-            }
-
-            do_a_subtree_traversal(state, level, block_ids[i], left, right, this);
-        }
-    }
-
+void interesting_children_callback_t::no_more_interesting_children() {
     decr_acquisition_countdown();
 }
 
-
 void interesting_children_callback_t::on_started_acquisition() {
-    rassert(coro_t::self());
     decr_acquisition_countdown();
 }
 
@@ -410,3 +386,35 @@ void interesting_children_callback_t::decr_acquisition_countdown() {
 }
 
 
+int ranged_block_ids_t::num_block_ids() const {
+    if (node_) {
+        return node_->npairs;
+    } else {
+        return 1;
+    }
+}
+
+void ranged_block_ids_t::get_block_id_and_bounding_interval(int index,
+                                                            block_id_t *block_id_out,
+                                                            const btree_key_t **left_excl_bound_out,
+                                                            const btree_key_t **right_incl_bound_out) const {
+    if (node_) {
+        rassert(index >= 0);
+        rassert(index < node_->npairs);
+
+        const btree_internal_pair *pair = internal_node::get_pair_by_index(node_.get(), index);
+        *block_id_out = pair->lnode;
+        *right_incl_bound_out = (index == node_->npairs - 1 ? right_inclusive_or_null_ : &pair->key);
+
+        if (index == 0) {
+            *left_excl_bound_out = left_exclusive_or_null_;
+        } else {
+            const btree_internal_pair *left_neighbor = internal_node::get_pair_by_index(node_.get(), index - 1);
+            *left_excl_bound_out = &left_neighbor->key;
+        }
+    } else {
+        *block_id_out = forced_block_id_;
+        *left_excl_bound_out = left_exclusive_or_null_;
+        *right_incl_bound_out = right_inclusive_or_null_;
+    }
+}
