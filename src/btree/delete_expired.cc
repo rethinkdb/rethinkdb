@@ -33,13 +33,11 @@ public:
 void co_btree_delete_expired(const store_key_t &key, btree_slice_t *slice) {
     btree_delete_expired_oper_t oper;
 
-    memcached_value_sizer_t sizer(slice->cache()->get_block_size());
-
     // TODO: Something is wrong with our abstraction since we are
     // passing a completely meaningless proposed cas and because we
     // should not really be passing a recency timestamp.
     // It's okay to use repli_timestamp_t::invalid here.
-    run_btree_modify_oper<memcached_value_t>(&sizer, &oper, slice, key, castime_t(BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS, repli_timestamp_t::invalid), order_token_t::ignore);
+    run_btree_modify_oper<memcached_value_t>(&oper, slice, key, castime_t(BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS, repli_timestamp_t::invalid), order_token_t::ignore);
 }
 
 void btree_delete_expired(const store_key_t &key, btree_slice_t *slice) {

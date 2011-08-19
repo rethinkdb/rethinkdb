@@ -67,7 +67,7 @@ public:
     virtual void send(scoped_malloc<net_introduce_t>& message) = 0;
     virtual void send(scoped_malloc<net_backfill_t>& message) = 0;
     virtual void send(scoped_malloc<net_backfill_complete_t>& message) = 0;
-    virtual void send(scoped_malloc<net_backfill_delete_everything_t>& message) = 0;
+    virtual void send(scoped_malloc<net_backfill_delete_range_t>& message) = 0;
     virtual void send(scoped_malloc<net_backfill_delete_t>& message) = 0;
     virtual void send(stream_pair<net_backfill_set_t>& message) = 0;
     virtual void send(scoped_malloc<net_get_cas_t>& message) = 0;
@@ -135,7 +135,7 @@ public:
     void send(net_introduce_t *msg);
     void send(net_backfill_t *msg);
     void send(net_backfill_complete_t *msg);
-    void send(net_backfill_delete_everything_t msg);
+    void send(net_backfill_delete_range_t *msg);
     void send(net_backfill_delete_t *msg);
     void send(net_backfill_set_t *msg, const char *key, boost::shared_ptr<data_provider_t> value);
     void send(net_get_cas_t *msg);

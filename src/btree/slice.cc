@@ -1,8 +1,9 @@
 #include "errors.hpp"
 #include "btree/backfill.hpp"
-#include "btree/delete_all_keys.hpp"
+#include "btree/erase_range.hpp"
 #include "btree/slice.hpp"
 #include "btree/node.hpp"
+#include "buffer_cache/buffer_cache.hpp"
 #include "buffer_cache/buf_lock.hpp"
 #include "concurrency/cond_var.hpp"
 #include "btree/get.hpp"
@@ -12,7 +13,7 @@
 #include "btree/append_prepend.hpp"
 #include "btree/delete.hpp"
 #include "btree/get_cas.hpp"
-#include "btree/delete_queue.hpp"
+#include "server/key_value_store.hpp"
 
 void btree_slice_t::create(cache_t *cache) {
 
@@ -31,20 +32,12 @@ void btree_slice_t::create(cache_t *cache) {
     sb->magic = btree_superblock_t::expected_magic;
     sb->root_block = NULL_BLOCK_ID;
 
-    // Allocate sb->delete_queue_block like an ordinary block.
-    buf_lock_t delete_queue_block;
-    delete_queue_block.allocate(&txn);
-    replication::delete_queue_block_t *dqb = reinterpret_cast<replication::delete_queue_block_t *>(delete_queue_block->get_data_major_write());
-    initialize_empty_delete_queue(&txn, dqb, cache->get_block_size());
-    sb->delete_queue_block = delete_queue_block->get_block_id();
-
     sb->replication_clock = sb->last_sync = repli_timestamp_t::distant_past;
     sb->replication_master_id = sb->replication_slave_id = 0;
 }
 
-btree_slice_t::btree_slice_t(cache_t *c, int64_t delete_queue_limit)
-    : cache_(c), delete_queue_limit_(delete_queue_limit),
-        backfill_account(cache()->create_account(BACKFILL_CACHE_PRIORITY)) {
+btree_slice_t::btree_slice_t(cache_t *c)
+    : cache_(c), backfill_account(cache()->create_account(BACKFILL_CACHE_PRIORITY)) {
     order_checkpoint_.set_tagappend("slice");
     post_begin_transaction_checkpoint_.set_tagappend("post");
 }
@@ -79,8 +72,7 @@ struct btree_slice_change_visitor_t : public boost::static_visitor<mutation_resu
         return btree_append_prepend(m.key, parent, m.data, (m.kind == append_prepend_APPEND), ct, order_token);
     }
     mutation_result_t operator()(const delete_mutation_t &m) {
-        memcached_value_sizer_t sizer(parent->cache()->get_block_size());
-        return btree_delete(&sizer, m.key, m.dont_put_in_delete_queue, parent, ct.timestamp, order_token);
+        return btree_delete(m.key, m.dont_put_in_delete_queue, parent, ct.timestamp, order_token);
     }
 
     btree_slice_change_visitor_t(btree_slice_t *_parent, castime_t _ct, order_token_t _order_token)
@@ -103,13 +95,37 @@ mutation_result_t btree_slice_t::change(const mutation_t &m, castime_t castime, 
     return boost::apply_visitor(functor, m.mutation);
 }
 
-void btree_slice_t::delete_all_keys_for_backfill(order_token_t token) {
+class hash_key_tester_t : public key_tester_t {
+public:
+    hash_key_tester_t(int hash_value, int hashmod) : hash_value_(hash_value), hashmod_(hashmod) {
+        rassert(hashmod > 0);
+        rassert(hash_value >= 0 && hash_value < hashmod);
+    }
+
+    bool key_should_be_erased(const btree_key_t *key) {
+        return int(btree_key_value_store_t::hash(key->contents, key->size) % hashmod_) == hash_value_;
+    }
+
+private:
+    int hash_value_, hashmod_;
+};
+
+void btree_slice_t::backfill_delete_range(int hash_value, int hashmod,
+                                          bool left_key_supplied, const store_key_t& left_key_exclusive,
+                                          bool right_key_supplied, const store_key_t& right_key_inclusive,
+                                          order_token_t token) {
     assert_thread();
 
     token = order_checkpoint_.check_through(token);
 
-    btree_delete_all_keys_for_backfill(this, token);
+    hash_key_tester_t tester(hash_value, hashmod);
+
+    btree_erase_range(this, &tester,
+                      left_key_supplied, left_key_exclusive,
+                      right_key_supplied, right_key_inclusive,
+                      token);
 }
+
 
 void btree_slice_t::backfill(repli_timestamp_t since_when, backfill_callback_t *callback, order_token_t token) {
     assert_thread();

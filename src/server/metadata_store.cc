@@ -55,7 +55,7 @@ btree_metadata_store_t::btree_metadata_store_t(const btree_key_value_store_dynam
                                &store_dynamic_config.serializer,
                                &store_dynamic_config.serializer_private[0]); // TODO! Clean up configuration (metadata_store should have its own configuration types)
     btree_store_helpers::create_existing_shard(&metadata_shard, btree_static_config.n_slices,
-                          metadata_serializer, &store_dynamic_config.cache, store_dynamic_config.total_delete_queue_limit);
+                                               metadata_serializer, &store_dynamic_config.cache);
 
     // Unpersist stats & create the stat persistence coro
     // TODO (rntz) should this really be in the constructor? what if it errors?

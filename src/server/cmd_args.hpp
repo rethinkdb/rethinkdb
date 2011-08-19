@@ -127,7 +127,6 @@ public:
     void set_master_listen_port(const char *value);
     void set_master_addr(const char *value);
     void set_heartbeat_timeout(const char *value);
-    void set_total_delete_queue_limit(const char *value);
     void set_failover_file(const char* value);
     void set_io_backend(const char* value);
     void set_io_batch_factor(const char* value);
