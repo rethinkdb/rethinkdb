@@ -1094,7 +1094,7 @@ void merge(value_sizer_t<V> *sizer, leaf_node_t *left, leaf_node_t *right, btree
 
 // We move keys out of sibling and into node.
 template <class V>
-bool level(value_sizer_t<V> *sizer, leaf_node_t *node, leaf_node_t *sibling, btree_key_t *key_to_replace_out, btree_key_t *replacement_key_out) {
+bool level(value_sizer_t<V> *sizer, int nodecmp_node_with_sib, leaf_node_t *node, leaf_node_t *sibling, btree_key_t *key_to_replace_out, btree_key_t *replacement_key_out) {
     rassert(node != sibling);
 
     // If sibling were underfull, we'd just merge the nodes.
@@ -1111,14 +1111,7 @@ bool level(value_sizer_t<V> *sizer, leaf_node_t *node, leaf_node_t *sibling, btr
 
     rassert(node_weight < sibling_weight);
 
-    // TODO LOOF: We can no longer trust nodecmp_result, we need to
-    // pass which way we're leveling into the function from above.
-    const btree_key_t *nodecmp_left_key = entry_key(get_entry(node, node->pair_offsets[0] /* TODO LOOF num_pairs can be 0*/));
-    const btree_key_t *nodecmp_right_key = entry_key(get_entry(sibling, sibling->pair_offsets[0] /* TODO LOOF num_pairs can be 0 */));
-    int nodecmp_result = sized_strcmp(nodecmp_left_key->contents, nodecmp_left_key->size,
-                                      nodecmp_right_key->contents, nodecmp_right_key->size);
-    rassert(nodecmp_result != 0);
-    if (nodecmp_result < 0) {
+    if (nodecmp_node_with_sib < 0) {
         // node is to the left of sibling, so we want to move elements
         // [0, k) from sibling.
 
@@ -1193,14 +1186,14 @@ bool level(value_sizer_t<V> *sizer, leaf_node_t *node, leaf_node_t *sibling, btr
     }
 
     int sib_copysize = weight_movement - num_mandatories * sizeof(uint16_t);
-    move_elements(sizer, sibling, beg, end + 1, nodecmp_result < 0 ? node->num_pairs : 0, node, sib_copysize, tstamp_back_offset);
+    move_elements(sizer, sibling, beg, end + 1, nodecmp_node_with_sib < 0 ? node->num_pairs : 0, node, sib_copysize, tstamp_back_offset);
 
     // TODO LOOF: What if num_pairs is zero?  Look at node->pair_offset and sibling->pair_offsets.
 
     // key_to_replace_out is set to a key that is <= the key to
     // replace, but > any lesser key, and replacement_key_out is the
     // actual replacement key.
-    if (nodecmp_result < 0) {
+    if (nodecmp_node_with_sib < 0) {
         keycpy(key_to_replace_out, entry_key(get_entry(node, node->pair_offsets[0])));
         keycpy(replacement_key_out, entry_key(get_entry(node, node->pair_offsets[node->num_pairs - 1])));
     } else {

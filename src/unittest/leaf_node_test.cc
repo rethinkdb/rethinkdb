@@ -156,9 +156,11 @@ public:
         ASSERT_TRUE(!kv_.empty());
         ASSERT_TRUE(!sibling.kv_.empty());
 
+        int cmp = (kv_.begin()->first < sibling.kv_.begin()->first) * 2 - 1;
+
         btree_key_buffer_t to_replace;
         btree_key_buffer_t replacement;
-        bool can_level = leaf::level(&sizer_, node_, sibling.node_, to_replace.key(), replacement.key());
+        bool can_level = leaf::level(&sizer_, cmp, node_, sibling.node_, to_replace.key(), replacement.key());
 
         if (can_level) {
             if (kv_.begin()->first < sibling.kv_.begin()->first) {

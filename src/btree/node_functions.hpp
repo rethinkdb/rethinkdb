@@ -52,9 +52,9 @@ void merge(value_sizer_t<V> *sizer, node_t *node, buf_t *rnode_buf, btree_key_t 
 }
 
 template <class V>
-bool level(value_sizer_t<V> *sizer, buf_t *node_buf, buf_t *rnode_buf, btree_key_t *key_to_replace, btree_key_t *replacement_key, const internal_node_t *parent) {
+bool level(value_sizer_t<V> *sizer, int nodecmp_node_with_sib, buf_t *node_buf, buf_t *rnode_buf, btree_key_t *key_to_replace, btree_key_t *replacement_key, const internal_node_t *parent) {
     if (is_leaf(reinterpret_cast<const node_t *>(node_buf->get_data_read()))) {
-        return leaf::level(sizer, reinterpret_cast<leaf_node_t *>(node_buf->get_data_major_write()), reinterpret_cast<leaf_node_t *>(rnode_buf->get_data_major_write()), key_to_replace, replacement_key);
+        return leaf::level(sizer, nodecmp_node_with_sib, reinterpret_cast<leaf_node_t *>(node_buf->get_data_major_write()), reinterpret_cast<leaf_node_t *>(rnode_buf->get_data_major_write()), key_to_replace, replacement_key);
     } else {
         return internal_node::level(sizer->block_size(), node_buf, rnode_buf, key_to_replace, replacement_key, parent);
     }
