@@ -1,3 +1,7 @@
+/* NOTE: In this document, for a type to "act like a data type" means that it
+is default-constructible, copy-constructible, copy-assignable, and destructible.
+If it allocates heap memory, it must manage it on its own. */
+
 namespace clustering {
 
 /* `namespace_interface_t` is the main entry point that protocol parsers use to
@@ -63,6 +67,10 @@ struct ?_protocol_t {
         and `x`. */
         region_t intersection(region_t x);
 
+        /* Other requirements: `region_t` must be serializable. The "==" and
+        "!=" operators must work on `region_t`. `region_t` must act like a data
+        type. */
+
     private:
         ?
     };
@@ -85,10 +93,13 @@ struct ?_protocol_t {
         /* Breaks the read into several sub-reads that will be run in parallel
         on different machines. `read_t` may choose how many sub-reads to create,
         but creating more than `optimal_factor` sub-reads won't help performance
-        and may hurt it. */
+        and may hurt it.
         [Postcondition] read.parallelize()[i].get_region() <= read.get_region()
         */
         std::vector<read_t> parallelize(int optimal_factor);
+
+        /* Other requirements: `read_t` must be serializable. `read_t` must act
+        like a data type. */
 
     private:
         ?
@@ -104,6 +115,9 @@ struct ?_protocol_t {
         `read_t::parallelize()`. */
         static read_response_t unparallelize(std::vector<read_response_t> responses);
 
+        /* Other requirements: `read_response_t` must be serializable.
+        `read_response_t` must act like a data type. */
+
     private:
         ?
     };
@@ -118,6 +132,9 @@ struct ?_protocol_t {
         */
         std::vector<write_t> shard(std::vector<region_t> regions);
 
+        /* Other requirements: `write_t` must be serializable. `write_t` must
+        act like a data type. */
+
     private:
         ?
     };
@@ -127,6 +144,9 @@ struct ?_protocol_t {
         /* Recombines the responses to a group of writes created by
         `write_t::shard()`. */
         static write_response_t unshard(std::vector<write_response_t> responses);
+
+        /* Other requirements: `write_response_t` must be serializable.
+        `write_response_t` must act like a data type. */
 
     private:
         ?
@@ -194,13 +214,30 @@ struct ?_protocol_t {
             method. */
             repli_timestamp_t get_timestamp();
 
+            /* Other requirements: `backfill_request_t` must be serializable.
+            `backfill_request_t` must act like a data type. */
+
         private:
             ?
         };
 
-        struct backfill_chunk_t { ? };
+        struct backfill_chunk_t {
 
-        struct backfill_end_t { ? };
+            /* Other requirements: `backfill_chunk_t` must be serializable.
+            `backfill_chunk_t` must act like a data type. */
+
+        private:
+            ?
+        };
+
+        struct backfill_end_t {
+
+            /* Other requirements: `backfill_end_t` must be serializable.
+            `backfill_end_t` must act like a data type. */
+
+        private:
+            ?
+        };
 
         /* Prepares the store for a backfill. Returns a `backfill_request_t`
         which expresses what information the store needs backfilled.
@@ -273,41 +310,27 @@ struct ?_protocol_t {
         ?
     };
 
-    /* `store_manager_t` is used for creating, destroying, merging, and
-    splitting stores. */
+    /* Stores will be created and destroyed via some yet-unspecified mechanism.
+    I don't know exactly what it will be yet. */
 
-    struct store_manager_t {
-
-        /* NOTE: The exact interface for `store_manager_t` has not been
-        finalized yet. This is just an incomplete sketch. */
-
-        /* Creates a new empty store in the given region.
-        [Postcondition] store_manager.create(region).get_region() == region
-        [Postcondition] store_manager.create(region).get_timestamp() == repli_timestamp_t::distant_past
-        [May block] */
-        store_t *create(region_t region);
-
-        /* Destroys the given store.
-        [May block] */
-        void destroy(store_t *victim);
-
-        /* Creates a set of stores which contain the same data as `recyclees`,
-        but whose regions are `goals`. Each store in `recyclees` must either be
-        destroyed or re-used as part of the return value.
-        [Precondition] The regions of the stores in `recyclees` must not overlap.
-        [Precondition] The regions in `goals` must not overlap.
-        [Precondition] The union of the regions in `recyclees` must be the same
-            as the union of the regions in `goals`.
-        [Postcondition] store_manager.rebalance(recyclees, goals)[i].get_region() == goals[i]
-        [Postcondition] store_manager.rebalance(recyclees, goals).size() == goals.size()
-        [May block] */
-        std::vector<store_t *> rebalance(
-            std::vector<store_t *> recyclees,
-            std::vector<region_t> goals);
-
-    private:
-        ?
-    };
+    /* NOTE: I don't know what form the `rebalance()` function will take in the
+    finished product. I'm including it here because I know something like it
+    will eventually be necessary. But it probably won't be a stand-alone
+    function, and its type signature might be different.
+    
+    Creates a set of stores which contain the same data as `recyclees`, but
+    whose regions are `goals`. Each store in `recyclees` must either be
+    destroyed or re-used as part of the return value.
+    [Precondition] The regions of the stores in `recyclees` must not overlap.
+    [Precondition] The regions in `goals` must not overlap.
+    [Precondition] The union of the regions in `recyclees` must be the same
+        as the union of the regions in `goals`.
+    [Postcondition] store_manager.rebalance(recyclees, goals)[i].get_region() == goals[i]
+    [Postcondition] store_manager.rebalance(recyclees, goals).size() == goals.size()
+    [May block] */
+    static std::vector<store_t *> rebalance(
+        std::vector<store_t *> recyclees,
+        std::vector<region_t> goals);
 };
 
 }   /* namespace ? */

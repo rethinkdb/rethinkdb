@@ -33,6 +33,9 @@ struct key_range_t {
     bool right_unbounded;
 };
 
+bool operator==(key_range_t, key_range_t);
+bool operator!=(key_range_t, key_range_t);
+
 /* `memcached_protocol_t` is a container struct. It's never actually
 instantiated; it just exists to pass around all the memcached-related types and
 functions that the query-routing logic needs to know about. */
@@ -99,29 +102,27 @@ struct memcached_protocol_t {
             > result;
     };
 
-    /* Backfilling not implemented
-
-    struct backfill_chunk_t { ... }; */
+    /* Backfilling not implemented */
 
     struct store_t {
 
+        /* `create()` and `store_t` are not part of the protocol interface
+        specification. */
         static void create(serializer_t *ser, region_t region);
         store_t(serializer_t *ser, region_t region);
+
         region_t get_region();
+        bool is_coherent() { return true; }
+
+        /* `get_timestamp()` is not implemented. (I figure it will be
+        implemented when backfilling is implemented.) */
 
         read_response_t read(read_t read, order_token_t tok);
         write_response_t write(write_t write, repli_timestamp_t timestamp, order_token_t tok);
 
-        /* Backfilling not implemented
+        bool is_backfilling() { return false; }
 
-        repli_timestamp_t get_timestamp();
-        void send_backfill(
-            region_t region,
-            repli_timestamp_t timestamp,
-            boost::function<void(backfill_chunk_t)> sender
-            );
-        void recv_backfill_chunk(backfill_chunk_t chunk);
-        void recv_backfill_end(repli_timestamp_t timestamp); */
+        /* Backfilling not implemented */
 
     private:
         mirrored_cache_config_t cache_config;
