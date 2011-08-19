@@ -125,23 +125,19 @@ void check_and_handle_underfull(value_sizer_t<Value> *sizer, transaction_t *txn,
 
         if (node::is_mergable(sizer, node, sib_node, parent_node)) { // Merge.
 
-            // This is the key that we remove.
-            btree_key_buffer_t key_to_remove_buffer;
-            btree_key_t *key_to_remove = key_to_remove_buffer.key();
-
             if (nodecmp_node_with_sib < 0) { // Nodes must be passed to merge in ascending order.
-                node::merge(sizer, const_cast<node_t *>(node), sib_buf.buf(), key_to_remove, parent_node);
+                node::merge(sizer, const_cast<node_t *>(node), sib_buf.buf(), parent_node);
                 buf->mark_deleted();
                 buf.swap(sib_buf);
             } else {
-                node::merge(sizer, const_cast<node_t *>(sib_node), buf.buf(), key_to_remove, parent_node);
+                node::merge(sizer, const_cast<node_t *>(sib_node), buf.buf(), parent_node);
                 sib_buf->mark_deleted();
             }
 
             sib_buf.release();
 
             if (!internal_node::is_singleton(parent_node)) {
-                internal_node::remove(sizer->block_size(), last_buf.buf(), key_to_remove);
+                internal_node::remove(sizer->block_size(), last_buf.buf(), key_in_middle.key());
             } else {
                 // The parent has only 1 key after the merge (which means that
                 // it's the root and our node is its only child). Insert our

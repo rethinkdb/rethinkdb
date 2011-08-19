@@ -149,7 +149,7 @@ void split(block_size_t block_size, buf_t *node_buf, internal_node_t *rnode, btr
     validate(block_size, rnode);
 }
 
-void merge(block_size_t block_size, const internal_node_t *node, buf_t *rnode_buf, btree_key_t *key_to_remove, const internal_node_t *parent) {
+void merge(block_size_t block_size, const internal_node_t *node, buf_t *rnode_buf, const internal_node_t *parent) {
     const internal_node_t *rnode = reinterpret_cast<const internal_node_t *>(rnode_buf->get_data_read());
 
     validate(block_size, node);
@@ -173,8 +173,6 @@ void merge(block_size_t block_size, const internal_node_t *node, buf_t *rnode_bu
 
     uint16_t new_npairs = rnode->npairs + node->npairs;
     rnode_buf->set_data(const_cast<uint16_t *>(&rnode->npairs), &new_npairs, sizeof(new_npairs));
-
-    keycpy(key_to_remove, &get_pair_by_index(rnode, 0)->key);
 
     validate(block_size, rnode);
 }

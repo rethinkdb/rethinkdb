@@ -1067,7 +1067,7 @@ void split(value_sizer_t<V> *sizer, leaf_node_t *node, leaf_node_t *rnode, btree
 }
 
 template <class V>
-void merge(value_sizer_t<V> *sizer, leaf_node_t *left, leaf_node_t *right, btree_key_t *key_to_remove_out) {
+void merge(value_sizer_t<V> *sizer, leaf_node_t *left, leaf_node_t *right) {
     rassert(left != right);
 
     rassert(is_underfull(sizer, left));
@@ -1085,8 +1085,6 @@ void merge(value_sizer_t<V> *sizer, leaf_node_t *left, leaf_node_t *right, btree
     }
 
     move_elements(sizer, left, 0, left->num_pairs, 0, right, left_copysize, tstamp_back_offset);
-
-    keycpy(key_to_remove_out, entry_key(get_entry(right, right->pair_offsets[0])));
 }
 
 // We move keys out of sibling and into node.
@@ -1097,7 +1095,6 @@ bool level(value_sizer_t<V> *sizer, int nodecmp_node_with_sib, leaf_node_t *node
     // If sibling were underfull, we'd just merge the nodes.
     rassert(is_underfull(sizer, node));
     rassert(!is_underfull(sizer, sibling));
-
 
     // First figure out the inclusive range [beg, end] of elements we want to move from sibling.
     int beg, end, *w, wstep;

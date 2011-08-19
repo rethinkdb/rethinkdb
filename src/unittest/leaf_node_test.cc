@@ -125,8 +125,7 @@ public:
 
         ASSERT_EQ(bs_.ser_value(), lnode.bs_.ser_value());
 
-        btree_key_buffer_t buf;
-        leaf::merge(&sizer_, lnode.node_, node_, buf.key());
+        leaf::merge(&sizer_, lnode.node_, node_);
 
         int old_kv_size = kv_.size();
         for (std::map<std::string, std::string>::iterator p = lnode.kv_.begin(), e = lnode.kv_.end(); p != e; ++p) {
@@ -147,27 +146,23 @@ public:
         }
     }
 
-    void Level(LeafNodeTracker& sibling, bool *could_level_out) {
+    void Level(int nodecmp_value, LeafNodeTracker& sibling, bool *could_level_out) {
         // Assertions can cause us to exit the function early, so give
         // the output parameter an initialized value.
         *could_level_out = false;
         ASSERT_EQ(bs_.ser_value(), sibling.bs_.ser_value());
 
-        ASSERT_TRUE(!kv_.empty());
-        ASSERT_TRUE(!sibling.kv_.empty());
-
-        int cmp = (kv_.begin()->first < sibling.kv_.begin()->first) * 2 - 1;
-
         btree_key_buffer_t replacement;
-        bool can_level = leaf::level(&sizer_, cmp, node_, sibling.node_, replacement.key());
+        bool can_level = leaf::level(&sizer_, nodecmp_value, node_, sibling.node_, replacement.key());
 
         if (can_level) {
-            if (kv_.begin()->first < sibling.kv_.begin()->first) {
+            ASSERT_TRUE(!sibling.kv_.empty());
+            if (nodecmp_value < 0) {
                 // Copy keys from front of sibling until and including replacement key.
 
                 std::string replacement_str(replacement.key()->contents, replacement.key()->size);
                 std::map<std::string, std::string>::iterator p = sibling.kv_.begin();
-                while (p->first < replacement_str && p != sibling.kv_.end()) {
+                while (p != sibling.kv_.end() && p->first < replacement_str) {
                     kv_[p->first] = p->second;
                     std::map<std::string, std::string>::iterator prev = p;
                     ++p;
@@ -184,7 +179,7 @@ public:
 
                 std::map<std::string, std::string>::iterator p = sibling.kv_.end();
                 --p;
-                while (p->first > replacement_str && p != sibling.kv_.begin()) {
+                while (p != sibling.kv_.begin() && p->first > replacement_str) {
                     kv_[p->first] = p->second;
                     std::map<std::string, std::string>::iterator prev = p;
                     --p;
@@ -400,7 +395,33 @@ TEST(LeafNodeTest, InsertRemove) {
     }
 }
 
-TEST(LeafNodeTest, MinimalMerging) {
+TEST(LeafNodeTest, ZeroZeroMerging) {
+    LeafNodeTracker left;
+    LeafNodeTracker right;
+
+    right.Merge(left);
+}
+
+TEST(LeafNodeTest, ZeroOneMerging) {
+    LeafNodeTracker left;
+    LeafNodeTracker right;
+
+    right.Insert("b", "B");
+
+    right.Merge(left);
+}
+
+TEST(LeafNodeTest, OneZeroMerging) {
+    LeafNodeTracker left;
+    LeafNodeTracker right;
+
+    left.Insert("a", "A");
+
+    right.Merge(left);
+}
+
+
+TEST(LeafNodeTest, OneOneMerging) {
     LeafNodeTracker left;
     LeafNodeTracker right;
 
@@ -479,6 +500,7 @@ TEST(LeafNodeTest, MergingWithHugeEntries) {
     right.Merge(left);
 }
 
+
 TEST(LeafNodeTest, LevelingLeftToRight) {
     LeafNodeTracker left;
     LeafNodeTracker right;
@@ -498,7 +520,20 @@ TEST(LeafNodeTest, LevelingLeftToRight) {
     right.Insert("b0", "B0");
 
     bool could_level;
-    right.Level(left, &could_level);
+    right.Level(1, left, &could_level);
+    ASSERT_TRUE(could_level);
+}
+
+TEST(LeafNodeTest, LevelingLeftToZero) {
+    LeafNodeTracker left;
+    LeafNodeTracker right;
+
+    for (int i = 0; i < 4272 / 12; ++i) {
+        left.Insert(strprintf("a%d", i), strprintf("A%d", i));
+    }
+
+    bool could_level;
+    right.Level(1, left, &could_level);
     ASSERT_TRUE(could_level);
 }
 
@@ -512,7 +547,20 @@ TEST(LeafNodeTest, LevelingRightToLeft) {
     left.Insert("a0", "A0");
 
     bool could_level;
-    left.Level(right, &could_level);
+    left.Level(-1, right, &could_level);
+    ASSERT_TRUE(could_level);
+}
+
+
+TEST(LeafNodeTest, LevelingRightToZero) {
+    LeafNodeTracker left;
+    LeafNodeTracker right;
+    for (int i = 0; i < 4272 / 12; ++i) {
+        right.Insert(strprintf("b%d", i), strprintf("B%d", i));
+    }
+
+    bool could_level;
+    left.Level(-1, right, &could_level);
     ASSERT_TRUE(could_level);
 }
 

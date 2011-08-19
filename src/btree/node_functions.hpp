@@ -41,13 +41,13 @@ void split(value_sizer_t<V> *sizer, buf_t *node_buf, node_t *rnode, btree_key_t 
 }
 
 template <class V>
-void merge(value_sizer_t<V> *sizer, node_t *node, buf_t *rnode_buf, btree_key_t *key_to_remove, const internal_node_t *parent) {
+void merge(value_sizer_t<V> *sizer, node_t *node, buf_t *rnode_buf, const internal_node_t *parent) {
     if (is_leaf(node)) {
-        leaf::merge(sizer, reinterpret_cast<leaf_node_t *>(node), reinterpret_cast<leaf_node_t *>(rnode_buf->get_data_major_write()), key_to_remove);
+        leaf::merge(sizer, reinterpret_cast<leaf_node_t *>(node), reinterpret_cast<leaf_node_t *>(rnode_buf->get_data_major_write()));
     } else {
         // TODO: internal_node::merge should not take a buf_t, just
         // have it take an internal_node_t *rnode.
-        internal_node::merge(sizer->block_size(), reinterpret_cast<const internal_node_t *>(node), rnode_buf, key_to_remove, parent);
+        internal_node::merge(sizer->block_size(), reinterpret_cast<const internal_node_t *>(node), rnode_buf, parent);
     }
 }
 
