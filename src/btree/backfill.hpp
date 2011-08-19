@@ -3,12 +3,14 @@
 
 #include "utils.hpp"
 #include "memcached/store.hpp"
-#include "btree/delete_queue.hpp"
+
+#include "buffer_cache/types.hpp"
 
 // Run backfilling at a reduced priority
 #define BACKFILL_CACHE_PRIORITY 10
 
 class btree_slice_t;
+class btree_key_t;
 
 struct backfill_atom_t {
     store_key_t key;
@@ -19,10 +21,15 @@ struct backfill_atom_t {
     cas_t cas_or_zero;
 };
 
-// How to use this class: Send deletion_key calls first, then call
-// done_deletion_keys, then send on_keyvalues, then send done().
-class backfill_callback_t : public replication::deletion_key_stream_receiver_t {
+// How to use this class: Send on_delete_range calls before
+// on_keyvalue calls for keys within that range.
+//
+// TODO: What's the point of done_backfill?  Doesn't the function
+// btree_backfill return?
+class backfill_callback_t {
 public:
+    virtual void on_delete_range(const btree_key_t *low, const btree_key_t *high) = 0;
+    virtual void on_deletion(const btree_key_t *key, repli_timestamp_t recency) = 0;
     virtual void on_keyvalue(backfill_atom_t atom) = 0;
     virtual void done_backfill() = 0;
 protected:
@@ -33,7 +40,7 @@ protected:
 or equal than `since_when` but which reached the tree before `btree_backfill()` was called.
 It may also find changes that happened before `since_when`. */
 
-void btree_backfill(btree_slice_t *slice, repli_timestamp_t since_when, boost::shared_ptr<cache_account_t> backfill_account, backfill_callback_t *callback, order_token_t token);
+void btree_backfill(btree_slice_t *slice, repli_timestamp_t since_when, const boost::shared_ptr<cache_account_t>& backfill_account, backfill_callback_t *callback, order_token_t token);
 
 
 #endif  // __BTREE_BACKFILL_HPP__

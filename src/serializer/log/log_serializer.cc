@@ -486,7 +486,6 @@ void log_serializer_t::unregister_block_token(ls_block_token_t *token) {
 void log_serializer_t::remap_block_to_new_offset(off64_t current_offset, off64_t new_offset) {
     rassert(new_offset != current_offset);
     bool have_to_update_gc = false;
-
     {
         std::multimap<off64_t, ls_block_token_t*>::iterator offset_token_it = offset_tokens.find(current_offset);
         while (offset_token_it != offset_tokens.end() && offset_token_it->first == current_offset) {

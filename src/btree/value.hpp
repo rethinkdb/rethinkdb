@@ -53,7 +53,7 @@ struct memcached_value_t {
 public:
     int inline_size(block_size_t bs) const {
         int msize = metadata_size(metadata_flags);
-        return 1 /* (CLANG) offsetof(memcached_value_t, contents) */ + msize + blob::ref_size(bs, contents + msize, blob::btree_maxreflen);
+        return offsetof(memcached_value_t, contents) + msize + blob::ref_size(bs, contents + msize, blob::btree_maxreflen);
     }
 
     int64_t value_size() const {

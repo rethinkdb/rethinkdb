@@ -31,13 +31,12 @@ block_id_t lookup(const internal_node_t *node, const btree_key_t *key);
 bool insert(block_size_t block_size, buf_t *node_buf, const btree_key_t *key, block_id_t lnode, block_id_t rnode);
 bool remove(block_size_t block_size, buf_t *node_buf, const btree_key_t *key);
 void split(block_size_t block_size, buf_t *node_buf, internal_node_t *rnode, btree_key_t *median);
-void merge(block_size_t block_size, const internal_node_t *node, buf_t *rnode_buf, btree_key_t *key_to_remove, const internal_node_t *parent);
-bool level(block_size_t block_size, buf_t *node_buf, buf_t *rnode_buf, btree_key_t *key_to_replace, btree_key_t *replacement_key, const internal_node_t *parent);
-int sibling(const internal_node_t *node, const btree_key_t *key, block_id_t *sib_id);
+void merge(block_size_t block_size, const internal_node_t *node, buf_t *rnode_buf, const internal_node_t *parent);
+bool level(block_size_t block_size, buf_t *node_buf, buf_t *rnode_buf, btree_key_t *replacement_key, const internal_node_t *parent);
+int sibling(const internal_node_t *node, const btree_key_t *key, block_id_t *sib_id, btree_key_buffer_t *key_in_middle_out);
 void update_key(buf_t *node_buf, const btree_key_t *key_to_replace, const btree_key_t *replacement_key);
 int nodecmp(const internal_node_t *node1, const internal_node_t *node2);
 bool is_full(const internal_node_t *node);
-bool has_sensible_offsets(block_size_t block_size, const internal_node_t *node);
 bool is_underfull(block_size_t block_size, const internal_node_t *node);
 bool change_unsafe(const internal_node_t *node);
 bool is_mergable(block_size_t block_size, const internal_node_t *node, const internal_node_t *sibling, const internal_node_t *parent);
@@ -94,5 +93,7 @@ public:
             return sized_strcmp(key1->contents, key1->size, key2->contents, key2->size);
     }
 };
+
+
 
 #endif // __BTREE_INTERNAL_NODE_HPP__

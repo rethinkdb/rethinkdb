@@ -224,7 +224,7 @@
 
 // How many timestamps we store in a leaf node.  We store the
 // NUM_LEAF_NODE_EARLIER_TIMES+1 most-recent timestamps.
-#define NUM_LEAF_NODE_EARLIER_TIMES               2
+#define NUM_LEAF_NODE_EARLIER_TIMES               4
 
 // Perform allocator GC every N milliseconds (the resolution is limited to TIMER_TICKS_IN_MS)
 #define ALLOC_GC_INTERVAL_MS                      3000

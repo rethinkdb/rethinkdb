@@ -34,17 +34,16 @@ struct key_value_pair_t {
  */
 template <class Value>
 struct leaf_iterator_t : public one_way_iterator_t<key_value_pair_t<Value> > {
-    leaf_iterator_t(const leaf_node_t *leaf, int index, buf_lock_t *lock, const boost::shared_ptr<value_sizer_t<Value> >& sizer, const boost::shared_ptr<transaction_t>& transaction);
+    leaf_iterator_t(const leaf_node_t *leaf, leaf::live_iter_t iter, buf_lock_t *lock, const boost::shared_ptr<value_sizer_t<Value> >& sizer, const boost::shared_ptr<transaction_t>& transaction);
 
     boost::optional<key_value_pair_t<Value> > next();
     void prefetch();
     virtual ~leaf_iterator_t();
 private:
     void done();
-    key_with_data_provider_t pair_to_key_with_data_provider(const btree_leaf_pair<Value>* pair);
 
     const leaf_node_t *leaf;
-    int index;
+    leaf::live_iter_t iter;
     buf_lock_t *lock;
     boost::shared_ptr<value_sizer_t<Value> > sizer;
     boost::shared_ptr<transaction_t> transaction;
@@ -62,8 +61,8 @@ private:
 template <class Value>
 class slice_leaves_iterator_t : public one_way_iterator_t<leaf_iterator_t<Value>*> {
     struct internal_node_state {
-        internal_node_state(const internal_node_t *node, int index, buf_lock_t *lock)
-            : node(node), index(index), lock(lock) { }
+        internal_node_state(const internal_node_t *_node, int _index, buf_lock_t *_lock)
+            : node(_node), index(_index), lock(_lock) { }
 
         const internal_node_t *node;
         int index;

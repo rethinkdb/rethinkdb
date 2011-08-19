@@ -20,9 +20,8 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, order
     got_superblock_t got;
     get_btree_superblock(slice, rwi_read, token, &got);
 
-    memcached_value_sizer_t sizer(slice->cache()->get_block_size());
     keyvalue_location_t<memcached_value_t> kv_location;
-    find_keyvalue_location_for_read(&sizer, &got, key, &kv_location);
+    find_keyvalue_location_for_read(&got, key, &kv_location);
 
     if (!kv_location.value) {
         return get_result_t();
