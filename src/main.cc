@@ -4,7 +4,6 @@
 #include "stats/control.hpp"
 #include "server/server.hpp"
 #include "fsck/fsck.hpp"
-#include "extract/extract.hpp"
 #include "utils.hpp"
 #include "help.hpp"
 #include "migrate/migrate.hpp"
@@ -29,7 +28,6 @@ void usage() {
                 "    serve       Serve an existing database.\n"
                 "\n"
                 "Administrating databases:\n"
-                "    extract     Extract as much data as possible from a corrupted database.\n"
                 "    import      Import data from raw memcached commands.\n"
                 "    fsck        Check a database for corruption.\n"
                 "    migrate     Convert between file versions.\n"
@@ -67,9 +65,6 @@ int dispatch_on_args(std::vector<char *> args) {
     if (!strcmp(args[1], "serve") || !strcmp(args[1], "create") || !strcmp(args[1], "import")) {
         return run_server(args.size() - 1, args.data() + 1);
 
-    } else if (!strcmp(args[1], "extract")) {
-        return run_extract(args.size() - 1, args.data() + 1);
-
     } else if (!strcmp(args[1], "fsck")) {
         return run_fsck(args.size() - 1, args.data() + 1);
 
@@ -84,8 +79,6 @@ int dispatch_on_args(std::vector<char *> args) {
                 usage_create();
             } else if (!strcmp(args[2], "import")) {
                 usage_import();
-            } else if (!strcmp(args[2], "extract")) {
-                extract::usage(args[1]);
             } else if (!strcmp(args[2], "fsck")) {
                 fsck::usage(args[1]);
             } else if (!strcmp(args[2], "migrate")) {
