@@ -7,15 +7,14 @@ template<class protocol_t>
 struct backfiller_t :
     public home_thread_mixin_t
 {
-
     backfiller_t(mailbox_cluster_t *c, typename protocol_t::store_t *s) :
         cluster(c), store(s)
     {
         /* Set up mailboxes, in scoped pointers so we can deconstruct them when
         it's convenient */
-        backfill_mailbox.reset(new backfiller_metadata_t<protocol_t>::backfill_mailbox_t(
+        backfill_mailbox.reset(new typename backfiller_metadata_t<protocol_t>::backfill_mailbox_t(
             cluster, boost::bind(&backfiller_t::on_backfill, this, _1, _2, _3, _4)));
-        cancel_backfill_mailbox.reset(new backfiller_metadata_t<protocol_t>::cancel_backfill_mailbox_t(
+        cancel_backfill_mailbox.reset(new typename backfiller_metadata_t<protocol_t>::cancel_backfill_mailbox_t(
             cluster, boost::bind(&backfiller_t::on_cancel_backfill, this, _1)));
     }
 
@@ -43,12 +42,12 @@ struct backfiller_t :
     }
 
 private:
-    typedef backfiller_metadata_t<protocol_t>::backfill_session_id_t session_id_t;
+    typedef typename backfiller_metadata_t<protocol_t>::backfill_session_id_t session_id_t;
 
     void on_backfill(
         session_id_t session_id,
         typename protocol_t::backfill_request_t request,
-        async_mailbox_t<void(typename protocol_t::backfill_chunk_t)>::address_t chunk_cont,
+        typename async_mailbox_t<void(typename protocol_t::backfill_chunk_t)>::address_t chunk_cont,
         async_mailbox_t<void()>::address_t end_cont) {
 
         assert_thread();
@@ -103,10 +102,9 @@ private:
 
     mailbox_cluster_t *cluster;
     typename protocol_t::store_t *store;
-    metadata_view_t<boost::optional<backfiller_metadata_t<protocol_t> > > *metadata;
 
-    boost::scoped_ptr<backfiller_metadata_t<protocol_t>::backfill_mailbox_t> backfill_mailbox;
-    boost::scoped_ptr<backfiller_metadata_t<protocol_t>::cancel_backfill_mailbox_t> cancel_backfill_mailbox;
+    boost::scoped_ptr<typename backfiller_metadata_t<protocol_t>::backfill_mailbox_t> backfill_mailbox;
+    boost::scoped_ptr<typename backfiller_metadata_t<protocol_t>::cancel_backfill_mailbox_t> cancel_backfill_mailbox;
 
     drain_semaphore_t drain_semaphore;
     cond_t global_interruptor;
