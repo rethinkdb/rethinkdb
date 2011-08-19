@@ -12,9 +12,6 @@
 
 namespace leaf {
 
-// TODO LOOF: Make sure all leaf node operations support empty leaf
-// nodes.  Shouldn't be hard, since move_elements supports that.
-
 // These codes can appear as the first byte of a leaf node entry
 // (values 250 or smaller are just key sizes for key/value pairs).
 
