@@ -240,7 +240,7 @@ void run_with_dummy_namespace_interface(
 
     /* Set up namespace interface */
 
-    dummy_namespace_interface_t<memcached_protocol_t> nsi(shards, repli_factor, stores);
+    dummy_namespace_interface_t<protocol_t> nsi(shards, repli_factor, stores);
 
     fun(&nsi);
 }
