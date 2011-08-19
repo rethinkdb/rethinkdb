@@ -47,7 +47,8 @@ void slave_stream_manager_t::backfill(repli_timestamp_t since_when) {
     if (stream_) stream_->send(&bf);
 
     /* Stop when the backfill finishes or the connection is closed */
-    wait_any_lazily_unordered(&backfill_done_cond_, &shutdown_cond_);
+    wait_any_t waiter(&backfill_done_cond_, &shutdown_cond_);
+    waiter.wait_lazily_unordered();
 }
 
 void slave_stream_manager_t::reverse_side_backfill(repli_timestamp_t since_when) {

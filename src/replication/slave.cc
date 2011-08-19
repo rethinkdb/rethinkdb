@@ -184,7 +184,8 @@ void slave_t::run(signal_t *shutdown_signal) {
             cond_t failover_reset;
             pulse_to_reset_failover_ = &failover_reset;
             signal_timer_t retry_timer(timeout);
-            wait_any_lazily_unordered(shutdown_signal, &retry_timer, &failover_reset);
+            wait_any_t waiter(shutdown_signal, &retry_timer, &failover_reset);
+            waiter.wait_lazily_unordered();
             pulse_to_reset_failover_ = NULL;
 
         } else {
@@ -197,7 +198,8 @@ void slave_t::run(signal_t *shutdown_signal) {
 
             cond_t failover_reset;
             pulse_to_reset_failover_ = &failover_reset;
-            wait_any_lazily_unordered(shutdown_signal, &failover_reset);
+            wait_any_t waiter(shutdown_signal, &failover_reset);
+            waiter.wait_lazily_unordered();
             pulse_to_reset_failover_ = NULL;
         }
     }

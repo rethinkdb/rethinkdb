@@ -133,7 +133,8 @@ void btree_metadata_store_t::set_meta(const std::string &key, const std::string 
 static void co_persist_stats(btree_metadata_store_t *store, signal_t *shutdown) {
     while (!shutdown->is_pulsed()) {
         signal_timer_t timer(STAT_PERSIST_FREQUENCY_MS);
-        wait_any_lazily_unordered(shutdown, &timer);
+        wait_any_t waiter(shutdown, &timer);
+        waiter.wait_lazily_unordered();
 
         // Persist stats
         persistent_stat_t::persist_all(store);
