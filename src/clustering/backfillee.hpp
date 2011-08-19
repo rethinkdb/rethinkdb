@@ -62,11 +62,10 @@ void backfill(
 
     /* Wait until either the backfill is over or something goes wrong */
 
-    cond_t c;
-    cond_link_t continue_when_backfill_done(&backfill_is_done, &c);
-    cond_link_t continue_when_backfiller_dies(backfiller.get_failed_signal(), &c);
-    cond_link_t continue_when_interrupted(interruptor, &c);
-    c.wait_lazily_unordered();
+    wait_any_lazily_unordered(
+        &backfill_is_done,
+        backfiller.get_failed_signal(),
+        interruptor);
 
     /* If the we broke out because of the backfiller becoming inaccessible, this
     will throw an exception. */

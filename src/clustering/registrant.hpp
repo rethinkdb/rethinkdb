@@ -80,11 +80,8 @@ struct registrant_t {
 
             /* Wait for the master to acknowledge us, or for something to go
             wrong */
-            cond_t c;
-            cond_link_t continue_when_master_notices_us(&master_has_noticed_us, &c);
-            cond_link_t continue_when_master_fails(registrar.get_failed_signal(), &c);
-            cond_link_t continue_when_interrupted(interruptor, &c);
-            c.wait_lazily_unordered();
+            wait_any_lazily_unordered(&master_has_noticed_us,
+                registrar.get_failed_signal(), interruptor);
 
             /* This will throw an exception if the registrar is down */
             registrar.access();
