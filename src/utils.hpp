@@ -17,15 +17,12 @@ class repli_timestamp_t {
 public:
     uint32_t time;
 
-    bool operator==(repli_timestamp_t t) const {
-        return time == t.time;
-    }
-    bool operator<(repli_timestamp_t t) const {
-        return time < t.time;
-    }
-    bool operator>=(repli_timestamp_t t) const {
-        return time >= t.time;
-    }
+    bool operator==(repli_timestamp_t t) const { return time == t.time; }
+    bool operator!=(repli_timestamp_t t) const { return time != t.time; }
+    bool operator<(repli_timestamp_t t) const { return time < t.time; }
+    bool operator>(repli_timestamp_t t) const { return time > t.time; }
+    bool operator<=(repli_timestamp_t t) const { return time <= t.time; }
+    bool operator>=(repli_timestamp_t t) const { return time >= t.time; }
 
     repli_timestamp_t next() const {
         repli_timestamp_t t;
@@ -47,6 +44,14 @@ typedef uint64_t microtime_t;
 
 microtime_t current_microtime();
 
+/* General exception to be thrown when some process is interrupted. It's in
+`utils.hpp` because I can't think where else to put it */
+class interrupted_exc_t : public std::exception {
+public:
+    const char *what() const throw () {
+        return "interrupted";
+    }
+};
 
 // Like std::max, except it's technically not associative.
 repli_timestamp_t repli_max(repli_timestamp_t x, repli_timestamp_t y);
