@@ -111,8 +111,9 @@ void check_and_handle_underfull(value_sizer_t<Value> *sizer, transaction_t *txn,
         const internal_node_t *parent_node = reinterpret_cast<const internal_node_t *>(last_buf->get_data_read());
 
         // Acquire a sibling to merge or level with.
+        btree_key_buffer_t key_in_middle;
         block_id_t sib_node_id;
-        int nodecmp_node_with_sib = internal_node::sibling(parent_node, key, &sib_node_id);
+        int nodecmp_node_with_sib = internal_node::sibling(parent_node, key, &sib_node_id, &key_in_middle);
 
         // Now decide whether to merge or level.
         buf_lock_t sib_buf(txn, sib_node_id, rwi_write);
@@ -149,14 +150,13 @@ void check_and_handle_underfull(value_sizer_t<Value> *sizer, transaction_t *txn,
                 insert_root(buf->get_block_id(), sb_buf);
             }
         } else { // Level
-            btree_key_buffer_t key_to_replace_buffer, replacement_key_buffer;
-            btree_key_t *key_to_replace = key_to_replace_buffer.key();
+            btree_key_buffer_t replacement_key_buffer;
             btree_key_t *replacement_key = replacement_key_buffer.key();
 
-            bool leveled = node::level(sizer, nodecmp_node_with_sib, buf.buf(), sib_buf.buf(), key_to_replace, replacement_key, parent_node);
+            bool leveled = node::level(sizer, nodecmp_node_with_sib, buf.buf(), sib_buf.buf(), replacement_key, parent_node);
 
             if (leveled) {
-                internal_node::update_key(last_buf.buf(), key_to_replace, replacement_key);
+                internal_node::update_key(last_buf.buf(), key_in_middle.key(), replacement_key);
             }
         }
     }

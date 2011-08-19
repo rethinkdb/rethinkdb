@@ -158,9 +158,8 @@ public:
 
         int cmp = (kv_.begin()->first < sibling.kv_.begin()->first) * 2 - 1;
 
-        btree_key_buffer_t to_replace;
         btree_key_buffer_t replacement;
-        bool can_level = leaf::level(&sizer_, cmp, node_, sibling.node_, to_replace.key(), replacement.key());
+        bool can_level = leaf::level(&sizer_, cmp, node_, sibling.node_, replacement.key());
 
         if (can_level) {
             if (kv_.begin()->first < sibling.kv_.begin()->first) {

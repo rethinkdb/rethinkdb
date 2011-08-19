@@ -179,7 +179,7 @@ void merge(block_size_t block_size, const internal_node_t *node, buf_t *rnode_bu
     validate(block_size, rnode);
 }
 
-bool level(block_size_t block_size, buf_t *node_buf, buf_t *sibling_buf, btree_key_t *key_to_replace, btree_key_t *replacement_key, const internal_node_t *parent) {
+bool level(block_size_t block_size, buf_t *node_buf, buf_t *sibling_buf, btree_key_t *replacement_key, const internal_node_t *parent) {
     const internal_node_t *node = reinterpret_cast<const internal_node_t *>(node_buf->get_data_read());
     const internal_node_t *sibling = reinterpret_cast<const internal_node_t *>(sibling_buf->get_data_read());
 
@@ -218,7 +218,6 @@ bool level(block_size_t block_size, buf_t *node_buf, buf_t *sibling_buf, btree_k
         const btree_internal_pair *special_pair = get_pair(node, special_pair_offset);
         node_buf->set_data(const_cast<block_id_t *>(&special_pair->lnode), &pair_for_parent->lnode, sizeof(pair_for_parent->lnode));
 
-        keycpy(key_to_replace, &get_pair_by_index(node, 0)->key);
         keycpy(replacement_key, &pair_for_parent->key);
 
         delete_pair(sibling_buf, sibling->pair_offsets[0]);
@@ -248,7 +247,6 @@ bool level(block_size_t block_size, buf_t *node_buf, buf_t *sibling_buf, btree_k
             delete_offset(sibling_buf, sibling->npairs-1);
         }
 
-        keycpy(key_to_replace, &get_pair_by_index(sibling, 0)->key);
         keycpy(replacement_key, &get_pair_by_index(sibling, sibling->npairs-1)->key);
 
         make_last_pair_special(sibling_buf);
@@ -260,15 +258,17 @@ bool level(block_size_t block_size, buf_t *node_buf, buf_t *sibling_buf, btree_k
     return true;
 }
 
-int sibling(const internal_node_t *node, const btree_key_t *key, block_id_t *sib_id) {
+int sibling(const internal_node_t *node, const btree_key_t *key, block_id_t *sib_id, btree_key_buffer_t *key_in_middle_out) {
     int index = get_offset_index(node, key);
     const btree_internal_pair *sib_pair;
     int cmp;
     if (index > 0) {
         sib_pair = get_pair_by_index(node, index-1);
+        key_in_middle_out->assign(&sib_pair->key);
         cmp = 1;
     } else {
         sib_pair = get_pair_by_index(node, index+1);
+        key_in_middle_out->assign(&get_pair_by_index(node, index)->key);
         cmp = -1;
     }
 
