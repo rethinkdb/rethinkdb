@@ -8,6 +8,7 @@
 #include "concurrency/signal.hpp"
 #include "concurrency/side_coro.hpp"
 #include "concurrency/pmap.hpp"
+#include "concurrency/wait_any.hpp"
 #include "containers/iterators.hpp"
 #include "db_thread_info.hpp"
 #include "replication/backfill.hpp"
@@ -132,10 +133,7 @@ void btree_metadata_store_t::set_meta(const std::string &key, const std::string 
 static void co_persist_stats(btree_metadata_store_t *store, signal_t *shutdown) {
     while (!shutdown->is_pulsed()) {
         signal_timer_t timer(STAT_PERSIST_FREQUENCY_MS);
-        cond_t wakeup;
-        cond_link_t link_shutdown(shutdown, &wakeup);
-        cond_link_t link_timer(&timer, &wakeup);
-        wakeup.wait();
+        wait_any_lazily_unordered(shutdown, &timer);
 
         // Persist stats
         persistent_stat_t::persist_all(store);
