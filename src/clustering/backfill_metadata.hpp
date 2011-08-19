@@ -11,9 +11,9 @@ struct backfiller_metadata_t {
 
     typedef async_mailbox_t<void(
         backfill_session_id_t,
-        typename protocol_t::backfill_request_t,
-        typename async_mailbox_t<void(typename protocol_t::backfill_chunk_t)>::address_t,
-        async_mailbox_t<void(void)>::address_t
+        typename protocol_t::store_t::backfill_request_t,
+        typename async_mailbox_t<void(typename protocol_t::store_t::backfill_chunk_t)>::address_t,
+        typename async_mailbox_t<void(typename protocol_t::store_t::backfill_end_t)>::address_t
         )> backfill_mailbox_t;
     typename backfill_mailbox_t::address_t backfill_mailbox;
 

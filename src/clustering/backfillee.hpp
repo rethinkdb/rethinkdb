@@ -2,6 +2,9 @@
 #define __CLUSTERING_BACKFILLEE_HPP__
 
 #include "clustering/backfill_metadata.hpp"
+#include "rpc/metadata/view.hpp"
+#include "clustering/resource.hpp"
+#include "concurrency/promise.hpp"
 
 template<class protocol_t>
 void backfill(
@@ -20,28 +23,30 @@ void backfill(
 
     /* Pick a unique ID to identify this backfill session to the backfiller */
 
-    backfiller_metadata_t<protocol_t>::backfill_session_id_t backfill_session_id = generate_uuid();
+    typename backfiller_metadata_t<protocol_t>::backfill_session_id_t backfill_session_id = generate_uuid();
 
     /* Begin the backfill. Once we call `begin_backfill()`, we have an
     obligation to call either `end_backfill()` or `cancel_backfill()`; the
     purpose of `backfill_cancel_notifier` is to make sure that
     `cancel_backfill()` gets called in the case of an exception. */
 
+    typename protocol_t::store_t::backfill_request_t request = store->backfillee_begin();
+
     death_runner_t backfill_cancel_notifier;
-    backfill_cancel_notifier.fun = boost::bind(&protocol_t::store_t::cancel_backfill, store);
-    typename protocol_t::backfill_request_t request = store->begin_backfill();
+    backfill_cancel_notifier.fun = boost::bind(&protocol_t::store_t::backfillee_cancel, store);
 
     /* Set up mailboxes and send off the backfill request */
 
-    async_mailbox_t<void(typename protocol_t::backfill_chunk_t)> backfill_mailbox(
+    async_mailbox_t<void(typename protocol_t::store_t::backfill_chunk_t)> backfill_mailbox(
         cluster,
-        /* TODO: `backfill_chunk()` has an inconsistent name. */
-        boost::bind(&protocol_t::store_t::backfill_chunk, store, _1)
+        boost::bind(&protocol_t::store_t::backfillee_chunk, store, _1)
         );
 
-    cond_t backfill_is_done;
-    async_mailbox_t<void()> backfill_done_mailbox(cluster,
-        boost::bind(&cond_t::pulse, &backfill_is_done));
+    promise_t<typename protocol_t::store_t::backfill_end_t> backfill_is_done;
+    async_mailbox_t<void(typename protocol_t::store_t::backfill_end_t)> backfill_done_mailbox(
+        cluster,
+        boost::bind(&promise_t<typename protocol_t::store_t::backfill_end_t>::pulse, &backfill_is_done, _1)
+        );
 
     send(cluster,
         backfiller.access().backfill_mailbox,
@@ -62,32 +67,26 @@ void backfill(
 
     /* Wait until either the backfill is over or something goes wrong */
 
-    wait_any_lazily_unordered(
-        &backfill_is_done,
-        backfiller.get_failed_signal(),
-        interruptor);
+    wait_any_t waiter(backfill_is_done.get_signal(), backfiller.get_failed_signal(), interruptor);
+    waiter.wait_lazily_unordered();
 
     /* If the we broke out because of the backfiller becoming inaccessible, this
     will throw an exception. */
     backfiller.access();
 
-    if (interruptor->is_pulsed())
-        throw interrupted_exc_t();
-
-    rassert(backfill_is_done.is_pulsed());
+    if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
     /* Everything went well, so don't send a cancel message to the backfiller.
     */
 
     backfiller_notifier.fun = 0;
 
-    /* TODO: Make `end_backfill()` take an argument. */
-
-    /* End the backfill. Since we'll be calling `end_backfill()`, we don't want
-    to call `cancel_backfill()`, so reset `backfill_cancel_notifier`. */
+    /* End the backfill. Since we'll be calling `backfillee_end()`, we don't
+    want to call `backfillee_cancel()`, so reset `backfill_cancel_notifier`. */
 
     backfill_cancel_notifier.fun = 0;
-    store->end_backfill();
+
+    store->backfillee_end(backfill_is_done.get_value());
 }
 
 #endif /* __CLUSTERING_BACKFILLEE_HPP__ */

@@ -2,6 +2,8 @@
 #define __CLUSTERING_BACKFILLER_HPP__
 
 #include "clustering/backfill_metadata.hpp"
+#include "concurrency/wait_any.hpp"
+#include <map>
 
 template<class protocol_t>
 struct backfiller_t :
@@ -46,9 +48,9 @@ private:
 
     void on_backfill(
         session_id_t session_id,
-        typename protocol_t::backfill_request_t request,
-        typename async_mailbox_t<void(typename protocol_t::backfill_chunk_t)>::address_t chunk_cont,
-        async_mailbox_t<void()>::address_t end_cont) {
+        typename protocol_t::store_t::backfill_request_t request,
+        typename async_mailbox_t<void(typename protocol_t::store_t::backfill_chunk_t)>::address_t chunk_cont,
+        typename async_mailbox_t<void(typename protocol_t::store_t::backfill_end_t)>::address_t end_cont) {
 
         assert_thread();
 
@@ -62,27 +64,25 @@ private:
         local_interruptors[session_id] = &local_interruptor;
 
         /* Set up a cond that gets pulsed if we're interrupted either way */
-        cond_t any_interruption;
-        cond_link_t listen_for_local_interrupts(&local_interruptor, &any_interruption);
-        cond_link_t listen_for_global_interrupts(&global_interruptor, &any_interruption);
+        wait_any_t interrupted(&local_interruptor, &global_interruptor);
 
         /* Perform the backfill */
         bool success;
+        typename protocol_t::store_t::backfill_end_t end;
         try {
-            store->send_backfill(
+            end = store->send_backfill(
                 request,
                 boost::bind(&send, cluster, chunk_cont, _1),
-                &any_interruption
-                );
+                &interrupted);
             success = true;
         } catch (interrupted_exc_t) {
-            rassert(any_interruption.is_pulsed());
+            rassert(interrupted.is_pulsed());
             success = false;
         }
 
         /* Send the confirmation */
         if (success) {
-            send(cluster, end_cont);
+            send(cluster, end_cont, end);
         }
 
         /* Get rid of our local interruptor */
@@ -93,7 +93,7 @@ private:
 
         assert_thread();
 
-        std::map<session_id_t, cond_t *>::iterator it =
+        typename std::map<session_id_t, cond_t *>::iterator it =
             local_interruptors.find(session_id);
         if (it != local_interruptors.end()) {
             (*it).second->pulse();

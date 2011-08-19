@@ -32,22 +32,44 @@ public:
     /* Starts monitoring the resource. Throws `resource_lost_exc_t` if the
     resource is inaccessible. */
     resource_access_t(
-        mailbox_cluster_t *cluster,
-        metadata_read_view_t<resource_metadata_t<business_card_t> > *view)
-    {
-        ...
-    }
+            mailbox_cluster_t *cluster,
+            metadata_read_view_t<resource_metadata_t<business_card_t> > *view) :
+        view(view),
+        subs(boost::bind(&resource_access_t::check_dead), this),
+        disconnect_watcher(cluster, view->get().peer),
+        either_failed(&resource_went_offline, &disconnect_watcher)
+        { }
 
     /* Returns a `signal_t *` that will be pulsed when access to the resource is
     lost. */
-    signal_t *get_signal();
+    signal_t *get_signal() {
+        return &either_failed;
+    }
 
     /* Returns the resource contact info if the resource is accessible. Throws
     `resource_lost_exc_t` if it's not. */
-    business_card_t access();
+    business_card_t access() {
+        if (either_failed.is_pulsed()) throw resource_lost_exc_t();
+        return view->get().contact_info;
+    }
 
 private:
-    ...
+    void check_dead() {
+        if (!view->get().is_alive) {
+            if (!resource_went_offline.is_pulsed()) {
+                resource_went_offline.pulse();
+            }
+        }
+    }
+
+    metadata_read_view_t<resource_metadata_t<business_card_t> > *view;
+
+    typename metadata_read_view_t<resource_metadata_t<business_card_t> >::subscription_t subs;
+    cond_t resource_went_offline;
+
+    disconnect_watcher_t disconnect_watcher;
+
+    wait_any_t either_failed;
 };
 
 #endif /* __CLUSTERING_RESOURCE_HPP__ */

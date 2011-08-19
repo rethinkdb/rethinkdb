@@ -2,6 +2,8 @@
 #include "clustering/backfiller.hpp"
 #include "clustering/backfillee.hpp"
 #include "unittest/dummy_protocol.hpp"
+#include "rpc/metadata/view/controller.hpp"
+#include "unittest/unittest_utils.hpp"
 
 namespace unittest {
 
@@ -10,7 +12,7 @@ void run_backfill_test() {
     /* Set up two stores */
 
     dummy_protocol_t::region_t region;
-    for (char c = 'a'; c <= 'z'; c++) region.keys.insert(std::string(&c, 1));
+    for (char c = 'a'; c <= 'z'; c++) region.keys.insert(std::string(1, c));
 
     dummy_protocol_t::store_t backfiller_store(region), backfillee_store(region);
 
@@ -20,17 +22,19 @@ void run_backfill_test() {
     repli_timestamp_t ts = repli_timestamp_t::distant_past;
     for (int i = 0; i < 20; i++) {
         dummy_protocol_t::write_t w;
-        std::string key = std::string('a' + rand() % 26);
+        std::string key = std::string(1, 'a' + rand() % 26);
         w.values[key] = strprintf("%d", i);
-        backfiller_store.write(w, ts, order_token_t::invalid());
-        if (i < 10) backfillee_store.write(w, ts, order_token_t::invalid());
+        backfiller_store.write(w, ts, order_token_t::ignore);
+        if (i < 10) backfillee_store.write(w, ts, order_token_t::ignore);
         ts = ts.next();
     }
 
     /* Set up a cluster so mailboxes can be created */
 
     class dummy_cluster_t : public mailbox_cluster_t {
+    public:
         dummy_cluster_t(int port) : mailbox_cluster_t(port) { }
+    private:
         void on_utility_message(peer_id_t, std::istream&, boost::function<void()>&) {
             ADD_FAILURE() << "no utility messages should be sent. WTF?";
         }
@@ -50,7 +54,7 @@ void run_backfill_test() {
     /* Make sure everything got transferred properly */
 
     for (char c = 'a'; c <= 'z'; c++) {
-        std::string key(&c, 1);
+        std::string key(1, c);
         EXPECT_EQ(backfiller_store.values[key], backfillee_store.values[key]);
         EXPECT_EQ(backfiller_store.timestamps[key], backfillee_store.timestamps[key]);
     }

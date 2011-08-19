@@ -6,9 +6,10 @@
 
 #include <string>
 
-#include <boost/uuid/uuid.hpp>
 #include "config/args.hpp"
 #include "errors.hpp"
+#include <boost/uuid/uuid.hpp>
+#include <boost/function.hpp>
 
 /* Note that repli_timestamp_t does NOT represent an actual timestamp; instead it's an arbitrary
 counter. */
@@ -52,6 +53,17 @@ public:
     const char *what() const throw () {
         return "interrupted";
     }
+};
+
+/* `death_runner_t` runs an arbitrary function in its destructor */
+class death_runner_t {
+public:
+    death_runner_t() { }
+    death_runner_t(const boost::function<void()> &f) : fun(f) { }
+    ~death_runner_t() {
+        if (!fun.empty()) fun();
+    }
+    boost::function<void()> fun;
 };
 
 // Like std::max, except it's technically not associative.
