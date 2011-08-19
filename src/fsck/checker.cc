@@ -186,7 +186,7 @@ struct slicecx_t {
     file_knowledge_t *knog;
     std::map<block_id_t, std::list<buf_patch_t*> > patch_map;
     const config_t *cfg;
-    // TODO LOOF: this is not a generic sizer.
+    // TODO: this is not a generic sizer.
     value_sizer_t<memcached_value_t> sizer;
 
     void clear_buf_patches() {

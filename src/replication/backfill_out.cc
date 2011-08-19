@@ -194,7 +194,7 @@ public:
         }
 
         void on_deletion(const btree_key_t *key, UNUSED repli_timestamp_t recency) {
-            // TODO LOOF: We ignore recency.  Is this correct?
+            // TODO:  We ignore recency.  Is this correct?
 
             // This may run in the scheduler context.
             rassert(get_thread_id() == shard_->home_thread());

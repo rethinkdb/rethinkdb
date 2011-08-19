@@ -94,7 +94,7 @@ void observe_blocks(block_registry &registry, nondirect_file_t &file, const cfg_
 void load_diff_log(const std::map<size_t, off64_t>& offsets, nondirect_file_t& file, const cfg_t cfg, uint64_t filesize);
 void get_all_values(dumper_t& dumper, const std::map<size_t, off64_t>& offsets, nondirect_file_t& file, const cfg_t cfg, uint64_t filesize);
 bool check_config(const cfg_t& cfg);
-// TODO LOOF: Remove this commented out prototype.
+// TODO: Remove this commented out prototype.
 // void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg, const std::map<size_t, off64_t>& offsets, const btree_leaf_pair<memcached_value_t> *pair, block_id_t this_block, int pair_size_limiter);
 void walkfile(dumper_t &dumper, const char *path);
 
@@ -267,9 +267,9 @@ void load_diff_log(const std::map<size_t, off64_t>& offsets, nondirect_file_t& f
  flushes *only* patches, but does not touch the existing block, or applies *all*
  outstanding patches and only then writes the block to disk, so it's consistent again. */
 bool recover_basic_block_consistency(UNUSED const cfg_t cfg, UNUSED void *buf) {
-    // TODO LOOF: Get rid of the "UNUSED" ^ above.
+    // TODO: Get rid of the "UNUSED" ^ above.
 
-    // TODO LOOF: Somehow we have to handle one of many expected magics.
+    // TODO: Somehow we have to handle one of many expected magics.
 
 #if 0
     leaf_node_t *leaf = reinterpret_cast<leaf_node_t *>(buf);
@@ -318,10 +318,10 @@ bool recover_basic_block_consistency(UNUSED const cfg_t cfg, UNUSED void *buf) {
     }
 
 #endif  // 0
-    return false;  // TODO LOOF get rid of this line.
+    return false;  // TODO get rid of this line.
 }
 
-// TODO LOOF drop the unused dumper_t dumper soon enough..
+// TODO drop the unused dumper_t dumper soon enough..
 void get_all_values(UNUSED dumper_t& dumper, const std::map<size_t, off64_t>& offsets, nondirect_file_t& file, const cfg_t cfg, uint64_t filesize) {
     // If the database has been copied to a normal filesystem, it's
     // _way_ faster to rescan the file in order of offset than in
@@ -372,7 +372,7 @@ void get_all_values(UNUSED dumper_t& dumper, const std::map<size_t, off64_t>& of
                 UNUSED int num_pairs = leaf->num_pairs;
                 logDBG("We have a leaf node with %d pairs.\n", num_pairs);
 
-                // TODO LOOF: Actually implement extraction of values
+                // TODO: Actually implement extraction of values
                 // from a leaf... when integrating this with the
                 // fsck/verify code.
 
@@ -467,7 +467,7 @@ bool get_blob_segments(const btree_key_t *key, nondirect_file_t& file, const cha
     }
 }
 
-// TODO LOOF: Implement this, but gee, why not have it called by the fsck/verify code?
+// TODO: Implement this, but gee, why not have it called by the fsck/verify code?
 #if 0
 // Dumps the values for a given pair.
 void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg, const std::map<size_t, off64_t>& offsets, const btree_leaf_pair<memcached_value_t> *pair, block_id_t this_block, int pair_size_limiter) {
