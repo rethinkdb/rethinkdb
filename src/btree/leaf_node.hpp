@@ -12,6 +12,9 @@
 
 namespace leaf {
 
+// TODO LOOF: Make sure all leaf node operations support empty leaf
+// nodes.  Shouldn't be hard, since move_elements supports that.
+
 // These codes can appear as the first byte of a leaf node entry
 // (values 250 or smaller are just key sizes for key/value pairs).
 
@@ -1073,9 +1076,6 @@ void merge(value_sizer_t<V> *sizer, leaf_node_t *left, leaf_node_t *right, btree
     rassert(is_underfull(sizer, left));
     rassert(is_underfull(sizer, right));
 
-    rassert(left->num_pairs > 0);
-    rassert(right->num_pairs > 0);
-
     int tstamp_back_offset;
     int mandatory = mandatory_cost(sizer, left, MANDATORY_TIMESTAMPS, &tstamp_back_offset);
 
@@ -1089,7 +1089,6 @@ void merge(value_sizer_t<V> *sizer, leaf_node_t *left, leaf_node_t *right, btree
 
     move_elements(sizer, left, 0, left->num_pairs, 0, right, left_copysize, tstamp_back_offset);
 
-    rassert(right->num_pairs > 0);
     keycpy(key_to_remove_out, entry_key(get_entry(right, right->pair_offsets[0])));
 }
 
@@ -1102,8 +1101,6 @@ bool level(value_sizer_t<V> *sizer, leaf_node_t *node, leaf_node_t *sibling, btr
     rassert(is_underfull(sizer, node));
     rassert(!is_underfull(sizer, sibling));
 
-    rassert(node->num_pairs > 0);
-    rassert(sibling->num_pairs > 0);
 
     // First figure out the inclusive range [beg, end] of elements we want to move from sibling.
     int beg, end, *w, wstep;
@@ -1114,8 +1111,10 @@ bool level(value_sizer_t<V> *sizer, leaf_node_t *node, leaf_node_t *sibling, btr
 
     rassert(node_weight < sibling_weight);
 
-    const btree_key_t *nodecmp_left_key = entry_key(get_entry(node, node->pair_offsets[0]));
-    const btree_key_t *nodecmp_right_key = entry_key(get_entry(sibling, sibling->pair_offsets[0]));
+    // TODO LOOF: We can no longer trust nodecmp_result, we need to
+    // pass which way we're leveling into the function from above.
+    const btree_key_t *nodecmp_left_key = entry_key(get_entry(node, node->pair_offsets[0] /* TODO LOOF num_pairs can be 0*/));
+    const btree_key_t *nodecmp_right_key = entry_key(get_entry(sibling, sibling->pair_offsets[0] /* TODO LOOF num_pairs can be 0 */));
     int nodecmp_result = sized_strcmp(nodecmp_left_key->contents, nodecmp_left_key->size,
                                       nodecmp_right_key->contents, nodecmp_right_key->size);
     rassert(nodecmp_result != 0);
@@ -1195,6 +1194,8 @@ bool level(value_sizer_t<V> *sizer, leaf_node_t *node, leaf_node_t *sibling, btr
 
     int sib_copysize = weight_movement - num_mandatories * sizeof(uint16_t);
     move_elements(sizer, sibling, beg, end + 1, nodecmp_result < 0 ? node->num_pairs : 0, node, sib_copysize, tstamp_back_offset);
+
+    // TODO LOOF: What if num_pairs is zero?  Look at node->pair_offset and sibling->pair_offsets.
 
     // key_to_replace_out is set to a key that is <= the key to
     // replace, but > any lesser key, and replacement_key_out is the
@@ -1373,6 +1374,34 @@ void remove(value_sizer_t<V> *sizer, leaf_node_t *node, const btree_key_t *key, 
             node->frontmost = w;
         }
     }
+
+    validate(sizer, node);
+}
+
+// Erases the entry for the given key, leaving behind no trace.
+template <class V>
+void erase_presence(value_sizer_t<V> *sizer, leaf_node_t *node, const btree_key_t *key) {
+    validate(sizer, node);
+
+    int index;
+    bool found = find_key(node, key, &index);
+
+    rassert(found);
+    if (found) {
+        int offset = node->pair_offsets[index];
+        entry_t *ent = get_entry(node, offset);
+
+        int sz = entry_size(sizer, ent);
+        if (entry_is_live(ent)) {
+            node->live_size -= sizeof(uint16_t) + sz;
+        }
+
+        clean_entry(ent, sz);
+
+        memmove(node->pair_offsets + index, node->pair_offsets + index + 1, (node->num_pairs - (index + 1)) * sizeof(uint16_t));
+        node->num_pairs -= 1;
+    }
+
 
     validate(sizer, node);
 }
