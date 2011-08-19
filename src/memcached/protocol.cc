@@ -82,6 +82,17 @@ key_range_t key_range_t::intersection(key_range_t range) {
     return ixn;
 }
 
+bool operator==(key_range_t a, key_range_t b) {
+    if (a.right_unbounded != b.right_unbounded) return false;
+    if (a.left != b.left) return false;
+    if (!a.right_unbounded && a.right != b.right) return false;
+    return true;
+}
+
+bool operator!=(key_range_t a, key_range_t b) {
+    return !(a == b);
+}
+
 /* `memcached_protocol_t::read_t::get_region()` */
 
 static key_range_t::bound_t convert_bound_mode(rget_bound_mode_t rbm) {
