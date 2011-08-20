@@ -23,15 +23,16 @@ structures into a metadata file or metadata_store of some kind.
 #include <string>
 #include <map>
 #include <vector>
+
+#include "errors.hpp"
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/map.hpp>
 #include <boost/serialization/variant.hpp>
-#include "errors.hpp"
+
 #include "riak/structures.hpp"
 #include "concurrency/promise.hpp"
-#include "serializer/log/log_serializer.hpp"
-#include "serializer/types.hpp"
+#include "serializer/config.hpp"
 
 
 /* class store_id_t {

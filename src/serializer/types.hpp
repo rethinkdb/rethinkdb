@@ -57,6 +57,8 @@ public:
     virtual bool offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp) = 0;
 };
 
+class log_serializer_t;
+
 #ifdef SEMANTIC_SERIALIZER_CHECK
 
 template <class T>
@@ -66,7 +68,6 @@ typedef semantic_checking_serializer_t<log_serializer_t> standard_serializer_t;
 
 #else
 
-class log_serializer_t;
 typedef log_serializer_t standard_serializer_t;
 
 #endif
