@@ -11,11 +11,11 @@ class serializer_multiplexer_t {
 public:
     /* Blocking call. Assumes the given serializers are empty; initializes them such that they can
     be treated as 'n_proxies' proxy-serializers. */
-    static void create(const std::vector<serializer_t *> &underlying, int n_proxies);
+    static void create(const std::vector<standard_serializer_t *>& underlying, int n_proxies);
 
     /* Blocking call. Must give the same set of underlying serializers you gave to create(). (It
     will abort if this is not the case.) */
-    serializer_multiplexer_t(const std::vector<serializer_t *> &underlying);
+    serializer_multiplexer_t(const std::vector<standard_serializer_t *>& underlying);
 
     /* proxies.size() is the same as 'n_proxies' you passed to create(). Please do not mutate
     'proxies'. */

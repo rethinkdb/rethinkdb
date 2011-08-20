@@ -2,7 +2,7 @@
 #define __UNITTEST_DUMMY_NAMESPACE_INTERFACE_HPP__
 
 #include "namespace_interface.hpp"
-#include "serializer/log/log_serializer.hpp"
+#include "serializer/config.hpp"
 #include "serializer/translator.hpp"
 #include "utils.hpp"
 #include <boost/ptr_container/ptr_vector.hpp>
@@ -196,22 +196,22 @@ void run_with_dummy_namespace_interface(
 
     /* Set up serializer */
 
-    log_serializer_t::create(
-        log_serializer_t::dynamic_config_t(),
-        log_serializer_t::private_dynamic_config_t(db_file.name()),
-        log_serializer_t::static_config_t()
+    standard_serializer_t::create(
+        standard_serializer_t::dynamic_config_t(),
+        standard_serializer_t::private_dynamic_config_t(db_file.name()),
+        standard_serializer_t::static_config_t()
         );
 
-    log_serializer_t serializer(
+    standard_serializer_t serializer(
         /* Extra parentheses are necessary so C++ doesn't interpret this as
         a declaration of a function called `serializer`. WTF, C++? */
-        (log_serializer_t::dynamic_config_t()),
-        log_serializer_t::private_dynamic_config_t(db_file.name())
+        (standard_serializer_t::dynamic_config_t()),
+        standard_serializer_t::private_dynamic_config_t(db_file.name())
         );
 
     /* Set up multiplexer */
 
-    std::vector<serializer_t *> multiplexer_files;
+    std::vector<standard_serializer_t *> multiplexer_files;
     multiplexer_files.push_back(&serializer);
 
     serializer_multiplexer_t::create(multiplexer_files, shards.size() * repli_factor);

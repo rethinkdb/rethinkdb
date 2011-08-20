@@ -185,8 +185,10 @@ void btree_key_value_store_t::create(btree_key_value_store_dynamic_config_t *dyn
                               dynamic_config, serializers.data(), _1));
     {
         /* Prepare serializers for multiplexing */
-        std::vector<serializer_t *> serializers_for_multiplexer(n_files);
-        for (int i = 0; i < n_files; i++) serializers_for_multiplexer[i] = serializers[i];
+        std::vector<standard_serializer_t *> serializers_for_multiplexer(n_files);
+        for (int i = 0; i < n_files; i++) {
+	    serializers_for_multiplexer[i] = serializers[i];
+	}
         serializer_multiplexer_t::create(serializers_for_multiplexer, static_config->btree.n_slices);
 
         /* Create pseudoserializers */
@@ -228,8 +230,10 @@ btree_key_value_store_t::btree_key_value_store_t(const btree_key_value_store_dyn
     for (int i = 0; i < n_files; i++) rassert(serializers[i]);
 
     /* Multiplex serializers so we have enough proxy-serializers for our slices */
-    std::vector<serializer_t *> serializers_for_multiplexer(n_files);
-    for (int i = 0; i < n_files; i++) serializers_for_multiplexer[i] = serializers[i];
+    std::vector<standard_serializer_t *> serializers_for_multiplexer(n_files);
+    for (int i = 0; i < n_files; i++) {
+	serializers_for_multiplexer[i] = serializers[i];
+    }
     multiplexer = new serializer_multiplexer_t(serializers_for_multiplexer);
 
     btree_static_config.n_slices = multiplexer->proxies.size();
