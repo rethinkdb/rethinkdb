@@ -24,7 +24,7 @@ update_block_info(block_id_t block_id, scs_block_info_t info) {
 template<class inner_serializer_t>
 boost::shared_ptr<serializer_block_token_t> semantic_checking_serializer_t<inner_serializer_t>::
 wrap_token(block_id_t block_id, scs_block_info_t info, boost::shared_ptr<serializer_block_token_t> inner_token) {
-    return boost::shared_ptr<serializer_block_token_t>(new scs_block_token_t<inner_serializer_t>(this, block_id, info, inner_token));
+    return boost::shared_ptr<serializer_block_token_t>(new scs_block_token_t<inner_serializer_t>(block_id, info, inner_token));
 }
 
 template<class inner_serializer_t>
@@ -129,14 +129,15 @@ read_check_state(scs_block_token_t<inner_serializer_t> *token, const void *buf) 
 
 template<class inner_serializer_t>
 struct semantic_checking_serializer_t<inner_serializer_t>::reader_t : public iocallback_t {
+    semantic_checking_serializer_t<inner_serializer_t> *serializer;
     scs_block_token_t<inner_serializer_t> *token;
     void *buf;
     iocallback_t *callback;
 
-    reader_t(scs_block_token_t<inner_serializer_t> *token, void *buf, iocallback_t *cb) : token(token), buf(buf), callback(cb) {}
+    reader_t(semantic_checking_serializer_t<inner_serializer_t> *_serializer, scs_block_token_t<inner_serializer_t> *_token, void *_buf, iocallback_t *cb) : serializer(_serializer), token(_token), buf(_buf), callback(cb) {}
 
     void on_io_complete() {
-        token->serializer->read_check_state(token, buf);
+        serializer->read_check_state(token, buf);
         if (callback) callback->on_io_complete();
         delete this;
     }
@@ -150,7 +151,7 @@ block_read(const boost::shared_ptr<serializer_block_token_t>& token_, void *buf,
 #ifdef SERIALIZER_DEBUG_PRINT
     printf("Reading %u\n", token->block_id);
 #endif
-    reader_t *reader = new reader_t(token, buf, callback);
+    reader_t *reader = new reader_t(this, token, buf, callback);
     inner_serializer.block_read(token->inner_token, buf, io_account, reader);
 }
 

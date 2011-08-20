@@ -109,12 +109,12 @@ struct scs_block_info_t {
 
 template <class inner_serializer_t>
 struct scs_block_token_t : public serializer_block_token_t {
-    scs_block_token_t(semantic_checking_serializer_t<inner_serializer_t> *ser, block_id_t block_id, const scs_block_info_t &info,
+    scs_block_token_t(block_id_t block_id, const scs_block_info_t &info,
                       boost::shared_ptr<serializer_block_token_t> tok)
-        : serializer(ser), block_id(block_id), info(info), inner_token(tok) {
+        : block_id(block_id), info(info), inner_token(tok) {
         rassert(inner_token, "scs_block_token wrapping null token");
     }
-    semantic_checking_serializer_t<inner_serializer_t> *serializer;
+
     block_id_t block_id;    // NULL_BLOCK_ID if not associated with a block id
     scs_block_info_t info;      // invariant: info.state != scs_block_info_t::state_deleted
     boost::shared_ptr<serializer_block_token_t> inner_token;
