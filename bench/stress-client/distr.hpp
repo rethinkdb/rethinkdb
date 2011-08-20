@@ -1,6 +1,5 @@
-
-#ifndef __DISTR_HPP__
-#define __DISTR_HPP__
+#ifndef __STRESS_CLIENT_DISTR_HPP__
+#define __STRESS_CLIENT_DISTR_HPP__
 
 #include <stdio.h>
 #include <string>
@@ -115,5 +114,5 @@ public:
     int min, max;
 };
 
-#endif // __DISTR_HPP__
+#endif  // __STRESS_CLIENT_DISTR_HPP__
 

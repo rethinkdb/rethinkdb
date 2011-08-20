@@ -1,6 +1,5 @@
-
-#ifndef __CLIENT_HPP__
-#define __CLIENT_HPP__
+#ifndef __STRESS_CLIENT_CLIENT_HPP__
+#define __STRESS_CLIENT_CLIENT_HPP__
 
 #include <pthread.h>
 #include <stdint.h>
@@ -101,5 +100,5 @@ private:
     }
 };
 
-#endif // __CLIENT_HPP__
+#endif  // __STRESS_CLIENT_CLIENT_HPP__
 

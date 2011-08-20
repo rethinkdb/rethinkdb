@@ -2,7 +2,6 @@
 #include "errors.hpp"
 #include "serializer/log/log_serializer.hpp"
 
-#undef __UTILS_HPP__   /* Hack because both RethinkDB and stress-client have a utils.hpp */
 namespace stress {
     #include "../stress-client/utils.hpp"
     #include "../stress-client/utils.cc"

@@ -1,6 +1,5 @@
-
-#ifndef __PROTOCOL_HPP__
-#define __PROTOCOL_HPP__
+#ifndef __STRESS_CLIENT_PROTOCOL_HPP__
+#define __STRESS_CLIENT_PROTOCOL_HPP__
 
 #include <exception>
 #include <string>
@@ -112,5 +111,5 @@ struct server_t {
     char host[MAX_HOST];
 };
 
-#endif // __PROTOCOL_HPP__
+#endif // __STRESS_CLIENT_PROTOCOL_HPP__
 
