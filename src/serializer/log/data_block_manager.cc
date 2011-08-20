@@ -1,11 +1,10 @@
 #include "serializer/log/data_block_manager.hpp"
 
-#include <boost/smart_ptr/scoped_ptr.hpp>
-
+#include "arch/arch.hpp"
+#include "concurrency/mutex.hpp"
+#include "perfmon.hpp"
 #include "serializer/log/log_serializer.hpp"
 #include "utils.hpp"
-#include "concurrency/mutex.hpp"
-#include "arch/arch.hpp"
 
 /* TODO: Right now we perform garbage collection via the do_write() interface on the
 log_serializer_t. This leads to bugs in a couple of ways:
@@ -729,6 +728,66 @@ void data_block_manager_t::remove_last_unyoung_entry() {
 }
 
 
+data_block_manager_t::gc_entry::gc_entry(data_block_manager_t *_parent)
+    : parent(_parent),
+      offset(parent->extent_manager->gen_extent()),
+      g_array(parent->static_config->blocks_per_extent()),
+      t_array(parent->static_config->blocks_per_extent()),
+      i_array(parent->static_config->blocks_per_extent()),
+      timestamp(current_microtime()),
+      was_written(false)
+{
+    rassert(parent->entries.get(offset / parent->extent_manager->extent_size) == NULL);
+    parent->entries.set(offset / parent->extent_manager->extent_size, this);
+    g_array.set();
+
+    pm_serializer_data_extents++;
+}
+
+data_block_manager_t::gc_entry::gc_entry(data_block_manager_t *_parent, off64_t _offset)
+    : parent(_parent),
+      offset(_offset),
+      g_array(parent->static_config->blocks_per_extent()),
+      t_array(parent->static_config->blocks_per_extent()),
+      i_array(parent->static_config->blocks_per_extent()),
+      timestamp(current_microtime()),
+      was_written(false)
+{
+    parent->extent_manager->reserve_extent(offset);
+    rassert(parent->entries.get(offset / parent->extent_manager->extent_size) == NULL);
+    parent->entries.set(offset / parent->extent_manager->extent_size, this);
+    g_array.set();
+
+    pm_serializer_data_extents++;
+}
+
+data_block_manager_t::gc_entry::~gc_entry() {
+    rassert(parent->entries.get(offset / parent->extent_manager->extent_size) == this);
+    parent->entries.set(offset / parent->extent_manager->extent_size, NULL);
+
+    pm_serializer_data_extents--;
+}
+
+void data_block_manager_t::gc_entry::destroy() {
+    parent->extent_manager->release_extent(offset);
+    delete this;
+}
+
+#ifndef NDEBUG
+void data_block_manager_t::gc_entry::print() {
+    debugf("gc_entry:\n");
+    debugf("offset: %ld\n", offset);
+    for (unsigned int i = 0; i < g_array.size(); i++)
+        debugf("%.8x:\t%d\n", (unsigned int) (offset + (i * DEVICE_BLOCK_SIZE)), g_array.test(i));
+    debugf("\n");
+    debugf("\n");
+}
+#endif
+
+
+
+
+
 /* functions for gc structures */
 
 // Answers the following question: We're in the middle of gc'ing, and
@@ -781,3 +840,15 @@ bool data_block_manager_t::disable_gc(gc_disable_callback_t *cb) {
 void data_block_manager_t::enable_gc() {
     gc_state.should_be_stopped = false;
 }
+
+
+void data_block_manager_t::gc_stat_t::operator++(int) { val++; (*perfmon)++;}
+
+void data_block_manager_t::gc_stat_t::operator+=(int64_t num) { val += num; *perfmon += num; }
+
+void data_block_manager_t::gc_stat_t::operator--(int) { val--; perfmon--;}
+
+void data_block_manager_t::gc_stat_t::operator-=(int64_t num) { val -= num; *perfmon -= num; }
+
+data_block_manager_t::gc_stats_t::gc_stats_t()
+    : old_total_blocks(&pm_serializer_old_total_blocks), old_garbage_blocks(&pm_serializer_old_garbage_blocks) { }

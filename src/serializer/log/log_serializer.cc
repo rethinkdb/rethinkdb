@@ -10,6 +10,7 @@
 #include "arch/arch.hpp"
 #include "buffer_cache/types.hpp"
 #include "do_on_thread.hpp"
+#include "perfmon.hpp"
 
 // TODO: This is just kind of a hack. See types.hpp for more information
 uint64_t block_size_t::value() const {

@@ -13,16 +13,11 @@
 #include "serializer/log/extents/extent_manager.hpp"
 #include "serializer/serializer.hpp"
 #include "serializer/types.hpp"
-#include "perfmon.hpp"
+#include "perfmon_types.hpp"
 
 class log_serializer_t;
 
 // Stats
-
-extern perfmon_counter_t
-    pm_serializer_data_extents,
-    pm_serializer_old_garbage_blocks,
-    pm_serializer_old_total_blocks;
 
 class data_block_manager_t {
 
@@ -158,9 +153,9 @@ private:
     void check_and_handle_outstanding_empty_extents();
 
 private:
-    
-    struct gc_entry;
-    
+
+    class gc_entry;
+
     struct Less {
         bool operator() (const gc_entry *x, const gc_entry *y);
     };
@@ -168,12 +163,12 @@ private:
     // Identifies an extent, the time we started writing to the
     // extent, whether it's the extent we're currently writing to, and
     // describes blocks are garbage.
-    struct gc_entry :
+    class gc_entry :
         public intrusive_list_node_t<gc_entry>
     {
     public:
         data_block_manager_t *parent;
-        
+
         off64_t offset; /* !< the offset that this extent starts at */
         bitset_t g_array; /* !< bit array for whether or not each block is garbage */
         bitset_t t_array; /* !< bit array for whether or not each block is referenced by some token */
@@ -185,7 +180,7 @@ private:
         microtime_t timestamp; /* !< when we started writing to the extent */
         priority_queue_t<gc_entry*, Less>::entry_t *our_pq_entry; /* !< The PQ entry pointing to us */
         bool was_written; /* true iff the extent has been written to after starting up the serializer */
-        
+
         enum state_t {
             // It has been, or is being, reconstructed from data on disk.
             state_reconstructing,
@@ -198,69 +193,23 @@ private:
             // Currently being GCed. It is equal to gc_state.current_entry.
             state_in_gc,
         } state;
-        
+
     public:
-        
         /* This constructor is for starting a new extent. */
-        explicit gc_entry(data_block_manager_t *parent)
-            : parent(parent),
-              offset(parent->extent_manager->gen_extent()),
-              g_array(parent->static_config->blocks_per_extent()),
-              t_array(parent->static_config->blocks_per_extent()),
-              i_array(parent->static_config->blocks_per_extent()),
-              timestamp(current_microtime()),
-              was_written(false)
-        {
-            rassert(parent->entries.get(offset / parent->extent_manager->extent_size) == NULL);
-            parent->entries.set(offset / parent->extent_manager->extent_size, this);
-            g_array.set();
-            
-            pm_serializer_data_extents++;
-        }
-        
+        explicit gc_entry(data_block_manager_t *parent);
+
         /* This constructor is for reconstructing extents that the LBA tells us contained
         data blocks. */
-        explicit gc_entry(data_block_manager_t *parent, off64_t offset)
-            : parent(parent),
-              offset(offset),
-              g_array(parent->static_config->blocks_per_extent()),
-              t_array(parent->static_config->blocks_per_extent()),
-              i_array(parent->static_config->blocks_per_extent()),
-              timestamp(current_microtime()),
-              was_written(false)
-        {
-            parent->extent_manager->reserve_extent(offset);
-            rassert(parent->entries.get(offset / parent->extent_manager->extent_size) == NULL);
-            parent->entries.set(offset / parent->extent_manager->extent_size, this);
-            g_array.set();
-            
-            pm_serializer_data_extents++;
-        }
-        
-        void destroy() {
-            parent->extent_manager->release_extent(offset);
-            delete this;
-        }
-        
-        ~gc_entry() {
-            rassert(parent->entries.get(offset / parent->extent_manager->extent_size) == this);
-            parent->entries.set(offset / parent->extent_manager->extent_size, NULL);
-            
-            pm_serializer_data_extents--;
-        }
-        
-        void print() {
+        explicit gc_entry(data_block_manager_t *parent, off64_t offset);
+
+        void destroy();
+        ~gc_entry();
+
 #ifndef NDEBUG
-            debugf("gc_entry:\n");
-            debugf("offset: %ld\n", offset);
-            for (unsigned int i = 0; i < g_array.size(); i++)
-                debugf("%.8x:\t%d\n", (unsigned int) (offset + (i * DEVICE_BLOCK_SIZE)), g_array.test(i));
-            debugf("\n");
-            debugf("\n");
+        void print();
 #endif
-        }
     };
-    
+
     /* Contains a pointer to every gc_entry, regardless of what its current state is */
     two_level_array_t<gc_entry*, MAX_DATA_EXTENTS> entries;
     
@@ -352,26 +301,23 @@ private:
     /* \brief structure to keep track of global stats about the data blocks
      */
     class gc_stat_t {
-        private: 
-            int val;
-            perfmon_counter_t &perfmon;
-        public:
-            explicit gc_stat_t(perfmon_counter_t &perfmon)
-                : val(0), perfmon(perfmon)
-            {}
-            void operator++(int) { val++; perfmon++;}
-            void operator+=(int64_t num) { val += num; perfmon += num; }
-            void operator--(int) { val--; perfmon--;}
-            void operator-=(int64_t num) { val -= num; perfmon -= num;}
-            int get() const {return val;}
+    private:
+        int val;
+        perfmon_counter_t *perfmon;
+    public:
+        explicit gc_stat_t(perfmon_counter_t *_perfmon)
+            : val(0), perfmon(_perfmon) { }
+        void operator++(int);
+        void operator+=(int64_t num);
+        void operator--(int);
+        void operator-=(int64_t num);
+        int get() const { return val; }
     };
 
     struct gc_stats_t {
         gc_stat_t old_total_blocks;
         gc_stat_t old_garbage_blocks;
-        gc_stats_t()
-            : old_total_blocks(pm_serializer_old_total_blocks), old_garbage_blocks(pm_serializer_old_garbage_blocks)
-        {}
+        gc_stats_t();
     } gc_stats;
 
 public:
