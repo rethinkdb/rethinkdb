@@ -20,11 +20,11 @@ void patch_disk_storage_t::create(serializer_t *serializer, block_id_t start_id,
     /* Write it to the serializer */
     on_thread_t switcher(serializer->home_thread());
 
-    serializer_t::index_write_op_t op(start_id);
+    index_write_op_t op(start_id);
     op.token = serializer->block_write(c, start_id, DEFAULT_DISK_ACCOUNT);
     op.recency = repli_timestamp_t::invalid;
     op.delete_bit = false;
-    serializer->index_write(op, DEFAULT_DISK_ACCOUNT);
+    serializer_index_write(serializer, op, DEFAULT_DISK_ACCOUNT);
 
     serializer->free(c);
 }

@@ -47,11 +47,6 @@ private:
     uint64_t ser_bs_;
 };
 
-class serializer_block_token_t {
-public:
-    virtual ~serializer_block_token_t() { }
-};
-
 class repli_timestamp_t;
 
 class serializer_read_ahead_callback_t {
@@ -65,7 +60,7 @@ template <class serializer_type> struct serializer_traits_t;
 
 class log_serializer_t;
 
-class ls_block_token_t : public serializer_block_token_t {
+class ls_block_token_t {
     friend class log_serializer_t;
 
     ls_block_token_t(log_serializer_t *serializer, off64_t initial_offset);
@@ -108,16 +103,16 @@ struct scs_block_info_t {
 };
 
 template <class inner_serializer_t>
-struct scs_block_token_t : public serializer_block_token_t {
+struct scs_block_token_t {
     scs_block_token_t(block_id_t block_id, const scs_block_info_t &info,
-                      boost::shared_ptr<serializer_block_token_t> tok)
+                      const boost::shared_ptr<typename serializer_traits_t<inner_serializer_t>::block_token_type>& tok)
         : block_id(block_id), info(info), inner_token(tok) {
         rassert(inner_token, "scs_block_token wrapping null token");
     }
 
     block_id_t block_id;    // NULL_BLOCK_ID if not associated with a block id
     scs_block_info_t info;      // invariant: info.state != scs_block_info_t::state_deleted
-    boost::shared_ptr<serializer_block_token_t> inner_token;
+    boost::shared_ptr<typename serializer_traits_t<inner_serializer_t>::block_token_type> inner_token;
 };
 
 
@@ -127,13 +122,35 @@ struct serializer_traits_t<semantic_checking_serializer_t<inner_serializer_type>
     typedef scs_block_token_t<inner_serializer_type> block_token_type;
 };
 
-
+// God this is such a hack (Part 1 of 2)
+inline
+boost::shared_ptr< scs_block_token_t<log_serializer_t> >
+to_standard_block_token(block_id_t block_id, const boost::shared_ptr<ls_block_token_t>& tok) {
+    boost::shared_ptr< scs_block_token_t<log_serializer_t> > ret(new scs_block_token_t<log_serializer_t>(block_id, scs_block_info_t(), tok));
+    return ret;
+}
 
 #else
 
 typedef log_serializer_t standard_serializer_t;
 
+// God this is such a hack (Part 2 of 2)
+inline
+boost::shared_ptr<ls_block_token_t>
+to_standard_block_token(UNUSED block_id_t block_id, const boost::shared_ptr<ls_block_token_t>& tok) {
+    return tok;
+}
+
 #endif
+
+typedef serializer_traits_t<standard_serializer_t>::block_token_type standard_block_token_t;
+
+struct serializer_t;
+
+template <>
+struct serializer_traits_t<serializer_t> {
+    typedef standard_block_token_t block_token_type;
+};
 
 // TODO: time_t is disgusting.
 typedef time_t creation_timestamp_t;

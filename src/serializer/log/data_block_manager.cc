@@ -421,7 +421,7 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
     std::vector<block_write_cond_t*> block_write_conds;
     block_write_conds.reserve(num_writes);
 
-    std::vector<serializer_t::index_write_op_t> index_write_ops;
+    std::vector<index_write_op_t> index_write_ops;
 
     extent_manager_t::transaction_t *em_trx = parent->serializer->extent_manager->begin_transaction();
     // Step 1: Write buffers to disk and assemble index operations
@@ -430,11 +430,11 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
         // the "false" argument indicates that we do not with to assign a new block sequence id
         const off64_t offset = parent->write(writes[i].buf, writes[i].block_id, false, parent->choose_gc_io_account(), block_write_conds.back());
         writes[i].new_offset = offset;
-        boost::shared_ptr<serializer_block_token_t> token = parent->serializer->generate_block_token(offset);
+        boost::shared_ptr<ls_block_token_t> token = parent->serializer->generate_block_token(offset);
 
         // ... also generate the corresponding index op
         if (writes[i].block_id != NULL_BLOCK_ID) {
-            index_write_ops.push_back(serializer_t::index_write_op_t(writes[i].block_id, token));
+            index_write_ops.push_back(index_write_op_t(writes[i].block_id, to_standard_block_token(writes[i].block_id, token)));
         }
         // (if we don't have a block id, the block is referenced by tokens only. These get remapped later)
     }

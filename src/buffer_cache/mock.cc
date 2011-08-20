@@ -184,11 +184,11 @@ void mock_cache_t::create(serializer_t *serializer, UNUSED mirrored_cache_static
     void *superblock = serializer->malloc();
     bzero(superblock, serializer->get_block_size().value());
 
-    serializer_t::index_write_op_t op(SUPERBLOCK_ID);
+    index_write_op_t op(SUPERBLOCK_ID);
     op.token = serializer->block_write(superblock, SUPERBLOCK_ID, DEFAULT_DISK_ACCOUNT);
     op.recency = repli_timestamp_t::invalid;
     op.delete_bit = false;
-    serializer->index_write(op, DEFAULT_DISK_ACCOUNT);
+    serializer_index_write(serializer, op, DEFAULT_DISK_ACCOUNT);
 
     serializer->free(superblock);
 }

@@ -38,11 +38,11 @@ void prep_serializer(
     c->this_serializer = i;
     c->n_proxies = n_proxies;
 
-    standard_serializer_t::index_write_op_t op(CONFIG_BLOCK_ID.ser_id);
+    index_write_op_t op(CONFIG_BLOCK_ID.ser_id);
     op.token = ser->block_write(c, CONFIG_BLOCK_ID.ser_id, DEFAULT_DISK_ACCOUNT);
     op.recency = repli_timestamp_t::invalid;
     op.delete_bit = false;
-    ser->index_write(op, DEFAULT_DISK_ACCOUNT);
+    serializer_index_write(ser, op, DEFAULT_DISK_ACCOUNT);
 
     ser->free(c);
 }
@@ -217,7 +217,7 @@ void translator_serializer_t::index_write(const std::vector<index_write_op_t>& w
     inner->index_write(translated_ops, io_account);
 }
 
-boost::shared_ptr<serializer_block_token_t>
+boost::shared_ptr<standard_block_token_t>
 translator_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) {
     // NULL_BLOCK_ID is special: it indicates no block id specified.
     if (block_id != NULL_BLOCK_ID)
@@ -225,20 +225,20 @@ translator_serializer_t::block_write(const void *buf, block_id_t block_id, file_
     return inner->block_write(buf, block_id, io_account, cb);
 }
 
-boost::shared_ptr<serializer_block_token_t>
+boost::shared_ptr<standard_block_token_t>
 translator_serializer_t::block_write(const void *buf, file_account_t *io_account, iocallback_t *cb) {
     return inner->block_write(buf, io_account, cb);
 }
 
-void translator_serializer_t::block_read(const boost::shared_ptr<serializer_block_token_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) {
+void translator_serializer_t::block_read(const boost::shared_ptr<standard_block_token_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) {
     return inner->block_read(token, buf, io_account, cb);
 }
 
-void translator_serializer_t::block_read(const boost::shared_ptr<serializer_block_token_t>& token, void *buf, file_account_t *io_account) {
+void translator_serializer_t::block_read(const boost::shared_ptr<standard_block_token_t>& token, void *buf, file_account_t *io_account) {
     return inner->block_read(token, buf, io_account);
 }
 
-boost::shared_ptr<serializer_block_token_t> translator_serializer_t::index_read(block_id_t block_id) {
+boost::shared_ptr<standard_block_token_t> translator_serializer_t::index_read(block_id_t block_id) {
     return inner->index_read(translate_block_id(block_id));
 }
 
