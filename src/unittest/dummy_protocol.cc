@@ -210,7 +210,7 @@ dummy_protocol_t::store_t::backfill_end_t dummy_protocol_t::store_t::backfiller(
 
     for (std::map<std::string, std::string>::iterator it = values.begin();
             it != values.end(); it++) {
-        if (timestamps[(*it).first] <= request.earliest) {
+        if (timestamps[(*it).first] >= request.earliest) {
             backfill_chunk_t chunk;
             chunk.key = (*it).first;
             chunk.value = (*it).second;

@@ -8,6 +8,7 @@
 #include "utils.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "rpc/serialize_macros.hpp"
+#include <boost/serialization/set.hpp>
 
 struct signal_t;
 
