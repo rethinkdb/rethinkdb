@@ -29,34 +29,12 @@ void btree_metadata_store_t::create(btree_key_value_store_dynamic_config_t *dyna
     rassert(n_files <= MAX_SERIALIZERS);
     guarantee(n_files == 1, "Metadata must only use a single file");
 
-    /* Create, initialize, & shutdown metadata serializer */
-    standard_serializer_t::create(dynamic_config->serializer,
-                                  dynamic_config->serializer_private[0],
-                                  static_config->serializer);
-    standard_serializer_t *metadata_serializer;
-    btree_store_helpers::create_existing_serializer(&metadata_serializer, n_files,
-                               &dynamic_config->serializer, &dynamic_config->serializer_private[0]);
-    btree_store_helpers::prep_serializer(metadata_serializer, &static_config->cache, n_files);
-    btree_store_helpers::destroy_serializer(metadata_serializer);
+    btree_key_value_store_t::create(dynamic_config, static_config);
 }
 
-btree_metadata_store_t::btree_metadata_store_t(const btree_key_value_store_dynamic_config_t &dynamic_config) {
-
-    /* Keep a local copy of the dynamic configuration */
-    store_dynamic_config = dynamic_config;
-
-    /* Start data shard serializer */
-    int n_files = store_dynamic_config.serializer_private.size();
-    guarantee(n_files == 1, "Metadata must only use a single file");
-
-    btree_static_config.n_slices = 1;
-
-    /* Start metadata serializer & load its btree */
-    btree_store_helpers::create_existing_serializer(&metadata_serializer, n_files,
-                               &store_dynamic_config.serializer,
-                               &store_dynamic_config.serializer_private[0]); // TODO! Clean up configuration (metadata_store should have its own configuration types)
-    btree_store_helpers::create_existing_shard(&metadata_shard, btree_static_config.n_slices,
-                                               metadata_serializer, &store_dynamic_config.cache);
+btree_metadata_store_t::btree_metadata_store_t(const btree_key_value_store_dynamic_config_t& dynamic_config)
+    : store_((({ guarantee(dynamic_config.serializer_private.size() == 1, "Metadata must only use a single file"); }), dynamic_config)),
+      stat_persistence_side_coro_ptr(NULL) {
 
     // Unpersist stats & create the stat persistence coro
     // TODO (rntz) should this really be in the constructor? what if it errors?
@@ -69,36 +47,26 @@ btree_metadata_store_t::btree_metadata_store_t(const btree_key_value_store_dynam
 btree_metadata_store_t::~btree_metadata_store_t() {
     // make sure side coro finishes so we're done with the metadata shard
     delete stat_persistence_side_coro_ptr;
-
-    /* Shut down btree */
-    {
-        on_thread_t thread_switcher(metadata_shard->home_thread());
-        delete metadata_shard;
-    }
-
-    /* Shut down serializer */
-    btree_store_helpers::destroy_serializer(metadata_serializer);
 }
 
-// metadata interface
-static store_key_t key_from_string(const std::string &key) {
+static store_key_t key_from_string(const std::string& key) {
     guarantee(key.size() <= MAX_KEY_SIZE);
-    store_key_t sk;
-    bool b = str_to_key(key.data(), &sk);
-    rassert(b, "str_to_key on key of length < MAX_KEY_SIZE failed");
-    return sk;
-    (void) b;                   // avoid unused variable warning on release build
+    return store_key_t(key);
 }
 
 bool btree_metadata_store_t::get_meta(const std::string &key, std::string *out) {
     store_key_t sk = key_from_string(key);
-    // TODO (rntz) should we be worrying about order tokens?
-    get_result_t res = metadata_shard->get(sk, order_token_t::ignore);
+
+    get_result_t res = store_.get(sk, order_token_t::ignore);
+
     // This should only be tripped if a gated store was involved, which it wasn't.
     guarantee(!res.is_not_allowed);
-    if (!res.value) return false;
 
-    // Get the data & copy it into the outstring
+    if (!res.value) {
+	return false;
+    }
+
+    // Get the data and copy it into *out.
     const const_buffer_group_t *bufs = res.value->get_data_as_buffers();
     out->assign("");
     out->reserve(bufs->get_size());
@@ -116,14 +84,12 @@ void btree_metadata_store_t::set_meta(const std::string &key, const std::string 
         datap(new buffered_data_provider_t(value.data(), value.size()));
 
     // TODO (rntz) code dup with run_storage_command :/
-    mcflags_t mcflags = 0;      // default, no flags
-    // TODO (rntz) what if it's a large value, and needs the LARGE_VALUE flag? how do we determine this?
-    exptime_t exptime = 0;      // indicates never expiring
+    mcflags_t mcflags = 0;
+    exptime_t exptime = 0;
 
-    set_result_t res = metadata_shard->sarc(sk, datap, mcflags, exptime,
-        add_policy_yes, replace_policy_yes, // "set" semantics: insert if not present, overwrite if present
-        NO_CAS_SUPPLIED, // not a CAS operation
-        // TODO (rntz) do we need to worry about ordering?
+    set_result_t res = store_.sarc(sk, datap, mcflags, exptime,
+        add_policy_yes, replace_policy_yes,
+        NO_CAS_SUPPLIED,
         order_token_t::ignore);
 
     // TODO (rntz) consider error conditions more thoroughly

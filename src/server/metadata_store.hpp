@@ -32,11 +32,8 @@ public:
     void set_meta(const std::string &key, const std::string &value);
 
 private:
-    btree_config_t btree_static_config;
-    btree_key_value_store_dynamic_config_t store_dynamic_config;
+    btree_key_value_store_t store_;
 
-    standard_serializer_t *metadata_serializer;
-    shard_store_t *metadata_shard;
     // Used for persisting stats; see stats/persist.hpp
     side_coro_handler_t *stat_persistence_side_coro_ptr;
 };
