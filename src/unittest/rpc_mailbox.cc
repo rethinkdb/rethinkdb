@@ -140,7 +140,7 @@ void run_mailbox_message_test() {
 
     /* Create a mailbox and send it three messages */
     dummy_mailbox_t mbox(&cluster1);
-    mailbox_t::address_t address(&mbox);
+    mailbox_t::address_t address = mbox.get_address();
 
     send(&cluster1, address, 88555);
     send(&cluster2, address, 3131);
@@ -167,7 +167,7 @@ void run_dead_mailbox_test() {
     mailbox_t::address_t address;
     {
         dummy_mailbox_t mbox(&cluster1);
-        address = mailbox_t::address_t(&mbox);
+        address = mbox.get_address();
     }
 
     send(&cluster1, address, 12345);
@@ -191,7 +191,7 @@ void run_mailbox_address_semantics_test() {
     dummy_cluster_t cluster(port);
 
     dummy_mailbox_t mbox(&cluster);
-    mailbox_t::address_t mbox_addr(&mbox);
+    mailbox_t::address_t mbox_addr = mbox.get_address();
     EXPECT_FALSE(mbox_addr.is_nil());
     EXPECT_TRUE(mbox_addr.get_peer() == cluster.get_me());
 }
@@ -209,7 +209,7 @@ void run_typed_mailbox_test() {
     std::vector<std::string> inbox;
     async_mailbox_t<void(std::string)> mbox(&cluster, boost::bind(&std::vector<std::string>::push_back, &inbox, _1));
 
-    async_mailbox_t<void(std::string)>::address_t addr(&mbox);
+    async_mailbox_t<void(std::string)>::address_t addr = mbox.get_address();
 
     send(&cluster, addr, std::string("foo"));
     send(&cluster, addr, std::string("bar"));

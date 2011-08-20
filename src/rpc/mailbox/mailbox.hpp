@@ -25,10 +25,11 @@ private:
 
 public:
     struct address_t {
+
         /* Constructs a nil address */
         address_t();
+
         address_t(const address_t&);
-        explicit address_t(mailbox_t *mailbox);
 
         /* Tests if the address is nil */
         bool is_nil() const;
@@ -39,6 +40,7 @@ public:
 
     private:
         friend void send(mailbox_cluster_t *, mailbox_t::address_t, boost::function<void(std::ostream&)>);
+        friend class mailbox_t;
 
         /* The peer on which the mailbox is located */
         peer_id_t peer;
@@ -49,6 +51,8 @@ public:
         /* The ID of the mailbox */
         id_t mailbox_id;
     };
+
+    address_t get_address();
 
 protected:
     mailbox_t(mailbox_cluster_t *);
