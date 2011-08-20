@@ -4,8 +4,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <boost/shared_ptr.hpp>
-#include <boost/variant/static_visitor.hpp>
-#include <boost/variant/apply_visitor.hpp>
 
 #include "arch/arch.hpp"
 #include "buffer_cache/types.hpp"
