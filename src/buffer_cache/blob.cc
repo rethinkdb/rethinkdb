@@ -576,6 +576,8 @@ void traverse_recursively(transaction_t *txn, int levels, block_id_t *block_ids,
 }
 
 bool deep_fsck_region(block_getter_t *getter, block_size_t bs, int levels, int64_t offset, int64_t size, const block_id_t *ids, std::string *msg_out) {
+    rassert(levels >= 1);
+
     int lo, hi;
     blob::compute_acquisition_offsets(bs, levels, offset, size, &lo, &hi);
 
@@ -589,7 +591,7 @@ bool deep_fsck_region(block_getter_t *getter, block_size_t bs, int levels, int64
         }
 
         block_magic_t m = *reinterpret_cast<block_magic_t *>(block.get());
-        if (levels > 1) {
+        if (levels == 1) {
             if (m != leaf_node_magic) {
                 *msg_out = strprintf("in block %u: bad leaf magic: '%.*s'", ids[i], int(sizeof(block_magic_t)), m.bytes);
                 return false;
