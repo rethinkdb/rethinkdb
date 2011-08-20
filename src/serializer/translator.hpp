@@ -83,9 +83,9 @@ public:
 
     void register_read_ahead_cb(serializer_read_ahead_callback_t *cb);
     void unregister_read_ahead_cb(serializer_read_ahead_callback_t *cb);
-    
+
 private:
-    serializer_t *inner;
+    standard_serializer_t *inner;
     int mod_count, mod_id;
     config_block_id_t cfgid;
 
@@ -107,9 +107,9 @@ public:
 
 public:
     /* The translator serializer will only use block IDs on the inner serializer that
-    are greater than or equal to 'min' and such that ((id - min) % mod_count) == mod_id. */ 
-    translator_serializer_t(serializer_t *inner, int mod_count, int mod_id, config_block_id_t cfgid);
-    
+    are greater than or equal to 'min' and such that ((id - min) % mod_count) == mod_id. */
+    translator_serializer_t(standard_serializer_t *inner, int mod_count, int mod_id, config_block_id_t cfgid);
+
     void *malloc();
     void *clone(void*);
     void free(void *ptr);

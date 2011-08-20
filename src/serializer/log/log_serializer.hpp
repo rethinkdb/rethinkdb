@@ -134,9 +134,10 @@ public:
     using serializer_t::block_read;
     void block_read(const boost::shared_ptr<serializer_block_token_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb);
 
+    using serializer_t::index_write;
     void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account);
 
-    using serializer_t::block_write; // hack to make block_write overloading work properly
+    using serializer_t::block_write;
     boost::shared_ptr<serializer_block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb);
 
     block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf);
