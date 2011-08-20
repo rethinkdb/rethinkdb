@@ -7,8 +7,6 @@
 #ifndef __PERFMON_HPP__
 #define __PERFMON_HPP__
 
-#include <stdarg.h>
-
 #include <map>
 #include <limits>
 #include <string>
