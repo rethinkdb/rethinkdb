@@ -1,9 +1,11 @@
 #ifndef __SERVER_METADATA_STORE_HPP__
 #define	__SERVER_METADATA_STORE_HPP__
 
+#include "errors.hpp"
+#include <boost/scoped_ptr.hpp>
+
 #include "server/key_value_store.hpp"
 #include "stats/persist.hpp"
-#include "server/key_value_store.hpp"
 
 class side_coro_handler_t;
 
@@ -13,7 +15,7 @@ public:
     static void create(btree_key_value_store_dynamic_config_t *dynamic_config,
                        btree_key_value_store_static_config_t *static_config);
     // Blocks
-    btree_metadata_store_t(const btree_key_value_store_dynamic_config_t &dynamic_config);
+    btree_metadata_store_t(const btree_key_value_store_dynamic_config_t& dynamic_config);
     // Blocks
     ~btree_metadata_store_t();
 
@@ -28,11 +30,11 @@ public:
 public:
     /* metadata_store_t interface */
     // NOTE: key cannot be longer than MAX_KEY_SIZE. currently enforced by guarantee().
-    bool get_meta(const std::string &key, std::string *out);
-    void set_meta(const std::string &key, const std::string &value);
+    bool get_meta(const std::string& key, std::string *out);
+    void set_meta(const std::string& key, const std::string& value);
 
 private:
-    btree_key_value_store_t store_;
+    boost::scoped_ptr<btree_key_value_store_t> store_;
 
     // Used for persisting stats; see stats/persist.hpp
     side_coro_handler_t *stat_persistence_side_coro_ptr;

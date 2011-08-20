@@ -22,7 +22,7 @@
 static void co_persist_stats(btree_metadata_store_t *store, signal_t *shutdown);
 
 void btree_metadata_store_t::create(btree_key_value_store_dynamic_config_t *dynamic_config,
-                                     btree_key_value_store_static_config_t *static_config) {
+				    btree_key_value_store_static_config_t *static_config) {
 
     int n_files = dynamic_config->serializer_private.size();
     rassert(n_files > 0);
@@ -33,8 +33,11 @@ void btree_metadata_store_t::create(btree_key_value_store_dynamic_config_t *dyna
 }
 
 btree_metadata_store_t::btree_metadata_store_t(const btree_key_value_store_dynamic_config_t& dynamic_config)
-    : store_((({ guarantee(dynamic_config.serializer_private.size() == 1, "Metadata must only use a single file"); }), dynamic_config)),
-      stat_persistence_side_coro_ptr(NULL) {
+    : stat_persistence_side_coro_ptr(NULL) {
+
+    guarantee(dynamic_config.serializer_private.size() == 1, "Metadata must only use a single file");
+
+    store_.reset(new btree_key_value_store_t(dynamic_config));
 
     // Unpersist stats & create the stat persistence coro
     // TODO (rntz) should this really be in the constructor? what if it errors?
@@ -57,7 +60,7 @@ static store_key_t key_from_string(const std::string& key) {
 bool btree_metadata_store_t::get_meta(const std::string &key, std::string *out) {
     store_key_t sk = key_from_string(key);
 
-    get_result_t res = store_.get(sk, order_token_t::ignore);
+    get_result_t res = store_->get(sk, order_token_t::ignore);
 
     // This should only be tripped if a gated store was involved, which it wasn't.
     guarantee(!res.is_not_allowed);
@@ -78,7 +81,7 @@ bool btree_metadata_store_t::get_meta(const std::string &key, std::string *out) 
     return true;
 }
 
-void btree_metadata_store_t::set_meta(const std::string &key, const std::string &value) {
+void btree_metadata_store_t::set_meta(const std::string& key, const std::string& value) {
     store_key_t sk = key_from_string(key);
     boost::shared_ptr<buffered_data_provider_t>
         datap(new buffered_data_provider_t(value.data(), value.size()));
@@ -87,7 +90,7 @@ void btree_metadata_store_t::set_meta(const std::string &key, const std::string 
     mcflags_t mcflags = 0;
     exptime_t exptime = 0;
 
-    set_result_t res = store_.sarc(sk, datap, mcflags, exptime,
+    set_result_t res = store_->sarc(sk, datap, mcflags, exptime,
         add_policy_yes, replace_policy_yes,
         NO_CAS_SUPPLIED,
         order_token_t::ignore);
