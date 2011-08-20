@@ -22,22 +22,9 @@ update_block_info(block_id_t block_id, scs_block_info_t info) {
 }
 
 template<class inner_serializer_t>
-struct semantic_checking_serializer_t<inner_serializer_t>::scs_block_token_t : public serializer_block_token_t {
-    scs_block_token_t(semantic_checking_serializer_t *ser, block_id_t block_id, const scs_block_info_t &info,
-                      boost::shared_ptr<serializer_block_token_t> tok)
-        : serializer(ser), block_id(block_id), info(info), inner_token(tok) {
-        rassert(inner_token, "scs_block_token wrapping null token");
-    }
-    semantic_checking_serializer_t *serializer;
-    block_id_t block_id;    // NULL_BLOCK_ID if not associated with a block id
-    scs_block_info_t info;      // invariant: info.state != scs_block_info_t::state_deleted
-    boost::shared_ptr<serializer_block_token_t> inner_token;
-};
-
-template<class inner_serializer_t>
 boost::shared_ptr<serializer_block_token_t> semantic_checking_serializer_t<inner_serializer_t>::
 wrap_token(block_id_t block_id, scs_block_info_t info, boost::shared_ptr<serializer_block_token_t> inner_token) {
-    return boost::shared_ptr<serializer_block_token_t>(new scs_block_token_t(this, block_id, info, inner_token));
+    return boost::shared_ptr<serializer_block_token_t>(new scs_block_token_t<inner_serializer_t>(this, block_id, info, inner_token));
 }
 
 template<class inner_serializer_t>
@@ -115,7 +102,7 @@ consistent with what was last written there. */
 
 template<class inner_serializer_t>
 void semantic_checking_serializer_t<inner_serializer_t>::
-read_check_state(scs_block_token_t *token, const void *buf) {
+read_check_state(scs_block_token_t<inner_serializer_t> *token, const void *buf) {
     uint32_t actual_crc = compute_crc(buf);
     scs_block_info_t &expected = token->info;
 
@@ -142,11 +129,11 @@ read_check_state(scs_block_token_t *token, const void *buf) {
 
 template<class inner_serializer_t>
 struct semantic_checking_serializer_t<inner_serializer_t>::reader_t : public iocallback_t {
-    scs_block_token_t *token;
+    scs_block_token_t<inner_serializer_t> *token;
     void *buf;
     iocallback_t *callback;
 
-    reader_t(scs_block_token_t *token, void *buf, iocallback_t *cb) : token(token), buf(buf), callback(cb) {}
+    reader_t(scs_block_token_t<inner_serializer_t> *token, void *buf, iocallback_t *cb) : token(token), buf(buf), callback(cb) {}
 
     void on_io_complete() {
         token->serializer->read_check_state(token, buf);
@@ -158,7 +145,7 @@ struct semantic_checking_serializer_t<inner_serializer_t>::reader_t : public ioc
 template<class inner_serializer_t>
 void semantic_checking_serializer_t<inner_serializer_t>::
 block_read(const boost::shared_ptr<serializer_block_token_t>& token_, void *buf, file_account_t *io_account, iocallback_t *callback) {
-    scs_block_token_t *token = static_cast<scs_block_token_t *>(token_.get());
+    scs_block_token_t<inner_serializer_t> *token = static_cast<scs_block_token_t<inner_serializer_t> *>(token_.get());
     guarantee(token, "bad token");
 #ifdef SERIALIZER_DEBUG_PRINT
     printf("Reading %u\n", token->block_id);
@@ -170,7 +157,7 @@ block_read(const boost::shared_ptr<serializer_block_token_t>& token_, void *buf,
 template<class inner_serializer_t>
 void semantic_checking_serializer_t<inner_serializer_t>::
 block_read(const boost::shared_ptr<serializer_block_token_t>& token_, void *buf, file_account_t *io_account) {
-    scs_block_token_t *token = static_cast<scs_block_token_t *>(token_.get());
+    scs_block_token_t<inner_serializer_t> *token = static_cast<scs_block_token_t<inner_serializer_t> *>(token_.get());
     guarantee(token, "bad token");
 #ifdef SERIALIZER_DEBUG_PRINT
     printf("Reading %u\n", token->block_id);
@@ -198,7 +185,7 @@ index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_a
         if (op.token) {
             boost::shared_ptr<serializer_block_token_t> tok = op.token.get();
             if (tok) {
-                scs_block_token_t *token = dynamic_cast<scs_block_token_t*>(tok.get());
+                scs_block_token_t<inner_serializer_t> *token = dynamic_cast<scs_block_token_t<inner_serializer_t> *>(tok.get());
                 // Fix the op to point at the inner serializer's block token.
                 op.token = token->inner_token;
                 info = token->info;

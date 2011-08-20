@@ -64,6 +64,7 @@ class log_serializer_t :
     friend struct ls_start_existing_fsm_t;
     friend class data_block_manager_t;
     friend struct dbm_read_ahead_fsm_t;
+    friend class ls_block_token_t;
 
 public:
     /* Serializer configuration. dynamic_config_t is everything that can be changed from run
@@ -115,22 +116,6 @@ public:
     static void check_existing(const char *filename, check_callback_t *cb);
 
 public:
-    class ls_block_token_t : public serializer_block_token_t {
-        friend class log_serializer_t;
-
-        ls_block_token_t(log_serializer_t *serializer, off64_t initial_offset) : serializer(serializer) {
-            serializer->assert_thread();
-            serializer->register_block_token(this, initial_offset);
-        }
-        log_serializer_t *serializer;
-
-    public:
-        virtual ~ls_block_token_t() {
-            on_thread_t switcher(serializer->home_thread());
-            serializer->unregister_block_token(this);
-        }
-    };
-
     /* Implementation of the serializer_t API */
     void *malloc();
     void *clone(void*); // clones a buf

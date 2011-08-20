@@ -4,6 +4,10 @@
 #include <stdint.h>
 #include <time.h>
 
+// Sigh.
+#include "errors.hpp"
+#include <boost/shared_ptr.hpp>
+
 // A relatively "lightweight" header file (we wish), in a sense.
 
 typedef uint32_t block_id_t;
@@ -57,7 +61,25 @@ public:
     virtual bool offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp) = 0;
 };
 
+template <class serializer_type> struct serializer_traits_t;
+
 class log_serializer_t;
+
+class ls_block_token_t : public serializer_block_token_t {
+    friend class log_serializer_t;
+
+    ls_block_token_t(log_serializer_t *serializer, off64_t initial_offset);
+    log_serializer_t *serializer;
+
+public:
+    virtual ~ls_block_token_t();
+};
+
+
+template <>
+struct serializer_traits_t<log_serializer_t> {
+    typedef ls_block_token_t block_token_type;
+};
 
 #ifdef SEMANTIC_SERIALIZER_CHECK
 
@@ -65,6 +87,47 @@ template <class T>
 class semantic_checking_serializer_t;
 
 typedef semantic_checking_serializer_t<log_serializer_t> standard_serializer_t;
+
+struct scs_block_info_t {
+    enum state_t {
+        state_unknown,
+        state_deleted,
+        state_have_crc
+    } state;
+    uint32_t crc;
+
+    scs_block_info_t(uint32_t crc) : state(state_have_crc), crc(crc) {}
+
+    // TODO (sam): We write semantic serializer check information to disk?
+
+    // For compatibility with two_level_array_t. We initialize crc to 0 to avoid having
+    // uninitialized memory lying around, which annoys valgrind when we try to write
+    // persisted_block_info_ts to disk.
+    scs_block_info_t() : state(state_unknown), crc(0) {}
+    operator bool() { return state != state_unknown; }
+};
+
+template <class inner_serializer_t>
+struct scs_block_token_t : public serializer_block_token_t {
+    scs_block_token_t(semantic_checking_serializer_t<inner_serializer_t> *ser, block_id_t block_id, const scs_block_info_t &info,
+                      boost::shared_ptr<serializer_block_token_t> tok)
+        : serializer(ser), block_id(block_id), info(info), inner_token(tok) {
+        rassert(inner_token, "scs_block_token wrapping null token");
+    }
+    semantic_checking_serializer_t<inner_serializer_t> *serializer;
+    block_id_t block_id;    // NULL_BLOCK_ID if not associated with a block id
+    scs_block_info_t info;      // invariant: info.state != scs_block_info_t::state_deleted
+    boost::shared_ptr<serializer_block_token_t> inner_token;
+};
+
+
+template <>
+template <class inner_serializer_type>
+struct serializer_traits_t<semantic_checking_serializer_t<inner_serializer_type> > {
+    typedef scs_block_token_t<inner_serializer_type> block_token_type;
+};
+
+
 
 #else
 

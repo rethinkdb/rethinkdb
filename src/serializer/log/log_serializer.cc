@@ -706,3 +706,12 @@ bool log_serializer_t::should_perform_read_ahead() {
     return dynamic_config.read_ahead && !read_ahead_callbacks.empty();
 }
 
+ls_block_token_t::ls_block_token_t(log_serializer_t *serializer, off64_t initial_offset) : serializer(serializer) {
+    serializer->assert_thread();
+    serializer->register_block_token(this, initial_offset);
+}
+
+ls_block_token_t::~ls_block_token_t() {
+    on_thread_t switcher(serializer->home_thread());
+    serializer->unregister_block_token(this);
+}

@@ -31,7 +31,6 @@ class semantic_checking_serializer_t :
     public serializer_t
 {
 private:
-    struct scs_block_token_t;
     struct reader_t;
 
     inner_serializer_t inner_serializer;
@@ -44,7 +43,7 @@ private:
     void update_block_info(block_id_t block_id, scs_block_info_t info);
     boost::shared_ptr<serializer_block_token_t> wrap_token(block_id_t block_id, scs_block_info_t info, boost::shared_ptr<serializer_block_token_t> inner_token);
     boost::shared_ptr<serializer_block_token_t> wrap_buf_token(block_id_t block_id, const void *buf, boost::shared_ptr<serializer_block_token_t> inner_token);
-    void read_check_state(scs_block_token_t *token, const void *buf);
+    void read_check_state(scs_block_token_t<inner_serializer_t> *token, const void *buf);
 
 public:
     typedef typename inner_serializer_t::private_dynamic_config_t private_dynamic_config_t;
