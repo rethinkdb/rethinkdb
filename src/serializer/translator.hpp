@@ -136,8 +136,8 @@ public:
     bool get_delete_bit(block_id_t id);
     block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf);
 
-    void block_read(boost::shared_ptr<serializer_block_token_t> token, void *buf, file_account_t *io_account, iocallback_t *cb);
-    void block_read(boost::shared_ptr<serializer_block_token_t> token, void *buf, file_account_t *io_account);
+    void block_read(const boost::shared_ptr<serializer_block_token_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb);
+    void block_read(const boost::shared_ptr<serializer_block_token_t>& token, void *buf, file_account_t *io_account);
     boost::shared_ptr<serializer_block_token_t> index_read(block_id_t block_id);
 
 public:

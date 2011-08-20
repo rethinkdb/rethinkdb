@@ -277,22 +277,24 @@ perfmon_counter_t pm_serializer_block_writes("serializer_block_writes");
 perfmon_duration_sampler_t pm_serializer_index_writes("serializer_index_writes", secs_to_ticks(1));
 perfmon_sampler_t pm_serializer_index_writes_size("serializer_index_writes_size", secs_to_ticks(1));
 
-void log_serializer_t::block_read(boost::shared_ptr<serializer_block_token_t> token, void *buf, file_account_t *io_account, iocallback_t *cb) {
+void log_serializer_t::block_read(const boost::shared_ptr<serializer_block_token_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) {
     struct my_cb_t : public iocallback_t {
         void on_io_complete() {
             pm_serializer_block_reads.end(&pm_time);
             if (cb) cb->on_io_complete();
             delete this;
         }
-        my_cb_t(iocallback_t *cb, boost::shared_ptr<serializer_block_token_t> tok) : cb(cb), tok(tok) {}
+        my_cb_t(iocallback_t *_cb, const boost::shared_ptr<serializer_block_token_t>& _tok) : cb(_cb), tok(_tok) {}
         iocallback_t *cb;
         boost::shared_ptr<serializer_block_token_t> tok; // needed to keep it alive for appropriate period of time
         ticks_t pm_time;
-    } *readcb = new my_cb_t(cb, token);
+    };
+
+    my_cb_t *readcb = new my_cb_t(cb, token);
 
     pm_serializer_block_reads.begin(&readcb->pm_time);
 
-    ls_block_token_t *ls_token = dynamic_cast<ls_block_token_t*>(token.get());
+    ls_block_token_t *ls_token = static_cast<ls_block_token_t *>(token.get());
     rassert(ls_token);
     assert_thread();
     rassert(state == state_ready);
@@ -327,7 +329,7 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
 
             // Write new token to index, or remove from index as appropriate.
             if (token) {
-                ls_block_token_t *ls_token = dynamic_cast<ls_block_token_t*>(token.get());
+                ls_block_token_t *ls_token = static_cast<ls_block_token_t *>(token.get());
                 rassert(ls_token);
                 rassert(token_offsets.find(ls_token) != token_offsets.end());
                 offset.set_value(token_offsets[ls_token]);
@@ -456,14 +458,14 @@ void log_serializer_t::register_block_token(ls_block_token_t *token, off64_t off
         data_block_manager->mark_token_live(offset);
     }
 
-    offset_tokens.insert(std::pair<off64_t, ls_block_token_t*>(offset, token));
+    offset_tokens.insert(std::pair<off64_t, ls_block_token_t *>(offset, token));
 }
 
 void log_serializer_t::unregister_block_token(ls_block_token_t *token) {    
-    std::map<ls_block_token_t*, off64_t>::iterator token_offset_it = token_offsets.find(token);
+    std::map<ls_block_token_t *, off64_t>::iterator token_offset_it = token_offsets.find(token);
     rassert(token_offset_it != token_offsets.end());
 
-    for (std::multimap<off64_t, ls_block_token_t*>::iterator offset_token_it = offset_tokens.find(token_offset_it->second);
+    for (std::multimap<off64_t, ls_block_token_t *>::iterator offset_token_it = offset_tokens.find(token_offset_it->second);
             offset_token_it != offset_tokens.end() && offset_token_it->first == token_offset_it->second;
             ++offset_token_it) {
 
@@ -486,16 +488,16 @@ void log_serializer_t::remap_block_to_new_offset(off64_t current_offset, off64_t
     rassert(new_offset != current_offset);
     bool have_to_update_gc = false;
     {
-        std::multimap<off64_t, ls_block_token_t*>::iterator offset_token_it = offset_tokens.find(current_offset);
+        std::multimap<off64_t, ls_block_token_t *>::iterator offset_token_it = offset_tokens.find(current_offset);
         while (offset_token_it != offset_tokens.end() && offset_token_it->first == current_offset) {
 
             have_to_update_gc = true;
 
             rassert(token_offsets[offset_token_it->second] == current_offset);
             token_offsets[offset_token_it->second] = new_offset;
-            offset_tokens.insert(std::pair<off64_t, ls_block_token_t*>(new_offset, offset_token_it->second));
+            offset_tokens.insert(std::pair<off64_t, ls_block_token_t *>(new_offset, offset_token_it->second));
 
-            std::multimap<off64_t, ls_block_token_t*>::iterator prev = offset_token_it;
+            std::multimap<off64_t, ls_block_token_t *>::iterator prev = offset_token_it;
             ++ offset_token_it;
             offset_tokens.erase(prev);
         }

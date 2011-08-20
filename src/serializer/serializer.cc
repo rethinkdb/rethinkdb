@@ -22,7 +22,7 @@ void serializer_t::index_write(const index_write_op_t &op, file_account_t *io_ac
 }
 
 // Blocking block_read implementation
-void serializer_t::block_read(boost::shared_ptr<serializer_block_token_t> token, void *buf, file_account_t *io_account) {
+void serializer_t::block_read(const boost::shared_ptr<serializer_block_token_t>& token, void *buf, file_account_t *io_account) {
     struct : public cond_t, public iocallback_t {
         void on_io_complete() { pulse(); }
     } cb;

@@ -157,8 +157,8 @@ struct semantic_checking_serializer_t<inner_serializer_t>::reader_t : public ioc
 
 template<class inner_serializer_t>
 void semantic_checking_serializer_t<inner_serializer_t>::
-block_read(boost::shared_ptr<block_token_t> token_, void *buf, file_t::account_t *io_account, iocallback_t *callback) {
-    scs_block_token_t *token = dynamic_cast<scs_block_token_t*>(token_.get());
+block_read(const boost::shared_ptr<block_token_t>& token_, void *buf, file_t::account_t *io_account, iocallback_t *callback) {
+    scs_block_token_t *token = static_cast<scs_block_token_t *>(token_.get());
     guarantee(token, "bad token");
 #ifdef SERIALIZER_DEBUG_PRINT
     printf("Reading %u\n", token->block_id);
@@ -169,8 +169,8 @@ block_read(boost::shared_ptr<block_token_t> token_, void *buf, file_t::account_t
 
 template<class inner_serializer_t>
 void semantic_checking_serializer_t<inner_serializer_t>::
-block_read(boost::shared_ptr<block_token_t> token_, void *buf, file_t::account_t *io_account) {
-    scs_block_token_t *token = dynamic_cast<scs_block_token_t*>(token_.get());
+block_read(const boost::shared_ptr<block_token_t>& token_, void *buf, file_t::account_t *io_account) {
+    scs_block_token_t *token = static_cast<scs_block_token_t *>(token_.get());
     guarantee(token, "bad token");
 #ifdef SERIALIZER_DEBUG_PRINT
     printf("Reading %u\n", token->block_id);

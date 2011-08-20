@@ -23,7 +23,7 @@ struct serializer_t :
     public home_thread_mixin_t
 {
     serializer_t() { }
-    virtual ~serializer_t() {}
+    virtual ~serializer_t() { }
 
     /* The buffers that are used with do_read() and do_write() must be allocated using
     these functions. They can be safely called from any thread. */
@@ -46,10 +46,10 @@ struct serializer_t :
 
     /* Reading a block from the serializer */
     // Non-blocking variant
-    virtual void block_read(boost::shared_ptr<serializer_block_token_t> token, void *buf, file_account_t *io_account, iocallback_t *cb) = 0;
+    virtual void block_read(const boost::shared_ptr<serializer_block_token_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) = 0;
 
     // Blocking variant (requires coroutine context). Has default implementation.
-    virtual void block_read(boost::shared_ptr<serializer_block_token_t> token, void *buf, file_account_t *io_account);
+    virtual void block_read(const boost::shared_ptr<serializer_block_token_t>& token, void *buf, file_account_t *io_account);
 
     /* The index stores three pieces of information for each ID:
      * 1. A pointer to a data block on disk (which may be NULL)

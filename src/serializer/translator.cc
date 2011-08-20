@@ -227,11 +227,11 @@ translator_serializer_t::block_write(const void *buf, file_account_t *io_account
     return inner->block_write(buf, io_account, cb);
 }
 
-void translator_serializer_t::block_read(boost::shared_ptr<serializer_block_token_t> token, void *buf, file_account_t *io_account, iocallback_t *cb) {
+void translator_serializer_t::block_read(const boost::shared_ptr<serializer_block_token_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) {
     return inner->block_read(token, buf, io_account, cb);
 }
 
-void translator_serializer_t::block_read(boost::shared_ptr<serializer_block_token_t> token, void *buf, file_account_t *io_account) {
+void translator_serializer_t::block_read(const boost::shared_ptr<serializer_block_token_t>& token, void *buf, file_account_t *io_account) {
     return inner->block_read(token, buf, io_account);
 }
 

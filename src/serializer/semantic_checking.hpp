@@ -66,8 +66,8 @@ public:
     file_t::account_t *make_io_account(int priority, int outstanding_requests_limit = UNLIMITED_OUTSTANDING_REQUESTS);
     boost::shared_ptr<block_token_t> index_read(block_id_t block_id);
 
-    void block_read(boost::shared_ptr<block_token_t> token_, void *buf, file_t::account_t *io_account, iocallback_t *callback);
-    void block_read(boost::shared_ptr<block_token_t> token_, void *buf, file_t::account_t *io_account);
+    void block_read(const boost::shared_ptr<block_token_t>& token_, void *buf, file_t::account_t *io_account, iocallback_t *callback);
+    void block_read(const boost::shared_ptr<block_token_t>& token_, void *buf, file_t::account_t *io_account);
 
     block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf);
 
