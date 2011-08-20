@@ -42,6 +42,13 @@ public:
         friend void send(mailbox_cluster_t *, mailbox_t::address_t, boost::function<void(std::ostream&)>);
         friend class mailbox_t;
 
+        friend class ::boost::serialization::access;
+        template<class Archive> void serialize(Archive & ar, UNUSED const unsigned int version) {
+            ar & peer;
+            ar & thread;
+            ar & mailbox_id;
+        }
+
         /* The peer on which the mailbox is located */
         peer_id_t peer;
 
