@@ -9,6 +9,7 @@
 #include "buffer_cache/stats.hpp"
 #include "do_on_thread.hpp"
 #include "stats/persist.hpp"
+#include "serializer/serializer.hpp"
 
 /**
  * Buffer implementation.
@@ -44,8 +45,9 @@ struct mc_inner_buf_t::buf_snapshot_t : evictable_t, intrusive_list_node_t<mc_in
     ~buf_snapshot_t() {
         rassert(!snapshot_refcount && !active_refcount);
         parent->snapshots.remove(this);
-        if (data)
+        if (data) {
             cache->serializer->free(data);
+        }
     }
 
     void *acquire_data(file_account_t *io_account) {

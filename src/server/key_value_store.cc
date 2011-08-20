@@ -1,22 +1,24 @@
 #include "server/key_value_store.hpp"
 
+#include <math.h>
+
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
+#include "arch/timing.hpp"
 #include "btree/rget.hpp"
 #include "concurrency/cond_var.hpp"
+#include "concurrency/pmap.hpp"
 #include "concurrency/signal.hpp"
 #include "concurrency/side_coro.hpp"
-#include "concurrency/pmap.hpp"
 #include "containers/iterators.hpp"
 #include "db_thread_info.hpp"
 #include "replication/backfill.hpp"
 #include "replication/master.hpp"
+#include "serializer/config.hpp"
+#include "serializer/translator.hpp"
 #include "server/cmd_args.hpp"
-#include "arch/timing.hpp"
 #include "stats/persist.hpp"
-
-#include <math.h>
 
 /* shard_store_t */
 
@@ -393,6 +395,10 @@ uint32_t btree_key_value_store_t::hash(const char *data, int len) {
     hash += hash >> 6;
 
     return hash;
+}
+
+creation_timestamp_t btree_key_value_store_t::get_creation_timestamp() const {
+    return multiplexer->creation_timestamp;
 }
 
 uint32_t btree_key_value_store_t::slice_num(const store_key_t &key) {

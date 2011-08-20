@@ -31,7 +31,7 @@ structures into a metadata file or metadata_store of some kind.
 #include "riak/structures.hpp"
 #include "concurrency/promise.hpp"
 #include "serializer/log/log_serializer.hpp"
-#include "serializer/config.hpp"
+#include "serializer/types.hpp"
 
 
 /* class store_id_t {

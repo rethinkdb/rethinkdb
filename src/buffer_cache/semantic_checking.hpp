@@ -7,7 +7,6 @@
 #include "buffer_cache/types.hpp"
 #include "containers/two_level_array.hpp"
 #include "buffer_cache/buf_patch.hpp"
-#include "serializer/serializer.hpp"
 
 // TODO: Have the semantic checking cache make sure that the
 // repli_timestamp_ts are correct.
@@ -20,6 +19,8 @@ template<class inner_cache_t> class scc_transaction_t;
 template<class inner_cache_t> class scc_cache_t;
 
 typedef uint32_t crc_t;
+
+class serializer_t;
 
 /* Buf */
 

@@ -3,11 +3,12 @@
 
 #include "buffer_cache/buf_patch.hpp"
 #include "buffer_cache/mirrored/patch_memory_storage.hpp"
-#include "serializer/translator.hpp"
 #include "buffer_cache/mirrored/config.hpp"
 
 class mc_cache_t;
 class mc_buf_t;
+class serializer_t;
+class coro_t;
 
 // Whenever the on-disk format of the patches changes, please increase the version number (currently 00)
 static char LOG_BLOCK_MAGIC[] __attribute__((unused)) = {'L','O','G','B','0','0'};

@@ -14,6 +14,7 @@
 #include "fsck/raw_block.hpp"
 #include "riak/riak_value.hpp"
 #include "server/key_value_store.hpp"
+#include "serializer/translator.hpp"
 
 namespace fsck {
 

@@ -3,6 +3,7 @@
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
+#include "arch/timing.hpp"
 #include "btree/rget.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/signal.hpp"
@@ -14,7 +15,7 @@
 #include "replication/backfill.hpp"
 #include "replication/master.hpp"
 #include "server/cmd_args.hpp"
-#include "arch/timing.hpp"
+#include "serializer/config.hpp"
 #include "stats/persist.hpp"
 
 

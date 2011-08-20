@@ -1,4 +1,3 @@
-
 #ifndef __SERIALIZER_TRANSLATOR_HPP__
 #define __SERIALIZER_TRANSLATOR_HPP__
 
@@ -6,8 +5,6 @@
 #include "buffer_cache/types.hpp"
 
 /* Facilities for treating N serializers as M serializers. */
-typedef time_t creation_timestamp_t;
-
 class translator_serializer_t;
 
 class serializer_multiplexer_t {

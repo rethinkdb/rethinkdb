@@ -17,11 +17,6 @@
 behave. It is implemented by log_serializer_t, semantic_checking_serializer_t, and
 others. */
 
-class serializer_block_token_t {
-public:
-    virtual ~serializer_block_token_t() { }
-};
-
 struct serializer_t :
     /* Except as otherwise noted, the serializer's methods should only be called from the
     thread it was created on, and it should be destroyed on that same thread. */

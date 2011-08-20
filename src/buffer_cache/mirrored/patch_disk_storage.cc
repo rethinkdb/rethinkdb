@@ -5,6 +5,7 @@
 
 #include "arch/runtime/runtime.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"
+#include "serializer/serializer.hpp"
 
 const block_magic_t mc_config_block_t::expected_magic = { { 'm','c','f','g' } };
 

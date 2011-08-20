@@ -2,6 +2,7 @@
 #define __SERIALIZER_TYPES_HPP__
 
 #include <stdint.h>
+#include <time.h>
 
 // A relatively "lightweight" header file (we wish), in a sense.
 
@@ -42,6 +43,11 @@ private:
     uint64_t ser_bs_;
 };
 
+class serializer_block_token_t {
+public:
+    virtual ~serializer_block_token_t() { }
+};
+
 class repli_timestamp_t;
 
 class serializer_read_ahead_callback_t {
@@ -50,5 +56,22 @@ public:
     /* If the callee returns true, it is responsible to free buf by calling free(buf) in the corresponding serializer. */
     virtual bool offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp) = 0;
 };
+
+#ifdef SEMANTIC_SERIALIZER_CHECK
+
+template <class T>
+class semantic_checking_serializer_t;
+
+typedef semantic_checking_serializer_t<log_serializer_t> standard_serializer_t;
+
+#else
+
+class log_serializer_t;
+typedef log_serializer_t standard_serializer_t;
+
+#endif
+
+// TODO: time_t is disgusting.
+typedef time_t creation_timestamp_t;
 
 #endif  // __SERIALIZER_TYPES_HPP__

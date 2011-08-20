@@ -8,6 +8,7 @@
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/queue/cross_thread_limited_fifo.hpp"
 #include "concurrency/queue/accounting.hpp"
+#include "perfmon.hpp"
 
 perfmon_duration_sampler_t
     pm_replication_master_dispatch_cost("replication_master_dispatch_cost", secs_to_ticks(1.0)),
