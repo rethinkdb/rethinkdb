@@ -431,7 +431,7 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
         // the "false" argument indicates that we do not with to assign a new block sequence id
         const off64_t offset = parent->write(writes[i].buf, writes[i].block_id, false, parent->choose_gc_io_account(), block_write_conds.back());
         writes[i].new_offset = offset;
-        boost::shared_ptr<serializer_t::block_token_t> token = parent->serializer->generate_block_token(offset);
+        boost::shared_ptr<serializer_block_token_t> token = parent->serializer->generate_block_token(offset);
 
         // ... also generate the corresponding index op
         if (writes[i].block_id != NULL_BLOCK_ID) {

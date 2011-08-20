@@ -17,6 +17,11 @@
 behave. It is implemented by log_serializer_t, semantic_checking_serializer_t, and
 others. */
 
+class serializer_block_token_t {
+public:
+    virtual ~serializer_block_token_t() { }
+};
+
 struct serializer_t :
     /* Except as otherwise noted, the serializer's methods should only be called from the
     thread it was created on, and it should be destroyed on that same thread. */
@@ -50,17 +55,12 @@ struct serializer_t :
     virtual void register_read_ahead_cb(read_ahead_callback_t *cb) = 0;
     virtual void unregister_read_ahead_cb(read_ahead_callback_t *cb) = 0;
 
-    class block_token_t {
-    public:
-        virtual ~block_token_t() { }
-    };
-
     /* Reading a block from the serializer */
     // Non-blocking variant
-    virtual void block_read(boost::shared_ptr<block_token_t> token, void *buf, file_account_t *io_account, iocallback_t *cb) = 0;
+    virtual void block_read(boost::shared_ptr<serializer_block_token_t> token, void *buf, file_account_t *io_account, iocallback_t *cb) = 0;
 
     // Blocking variant (requires coroutine context). Has default implementation.
-    virtual void block_read(boost::shared_ptr<block_token_t> token, void *buf, file_account_t *io_account);
+    virtual void block_read(boost::shared_ptr<serializer_block_token_t> token, void *buf, file_account_t *io_account);
 
     /* The index stores three pieces of information for each ID:
      * 1. A pointer to a data block on disk (which may be NULL)
@@ -83,17 +83,17 @@ struct serializer_t :
     virtual bool get_delete_bit(block_id_t id) = 0;
 
     /* Reads the block's actual data */
-    virtual boost::shared_ptr<block_token_t> index_read(block_id_t block_id) = 0;
+    virtual boost::shared_ptr<serializer_block_token_t> index_read(block_id_t block_id) = 0;
 
     struct index_write_op_t {
         block_id_t block_id;
         // Buf to write. None if not to be modified. Initialized but a null ptr if to be removed from lba.
-        boost::optional<boost::shared_ptr<block_token_t> > token;
+        boost::optional<boost::shared_ptr<serializer_block_token_t> > token;
         boost::optional<repli_timestamp_t> recency; // Recency, if it should be modified.
         boost::optional<bool> delete_bit;           // Delete bit, if it should be modified.
 
         index_write_op_t(block_id_t block_id,
-                         boost::optional<boost::shared_ptr<block_token_t> > token = boost::none,
+                         boost::optional<boost::shared_ptr<serializer_block_token_t> > token = boost::none,
                          boost::optional<repli_timestamp_t> recency = boost::none,
                          boost::optional<bool> delete_bit = boost::none);
     };
@@ -104,21 +104,21 @@ struct serializer_t :
     void index_write(const index_write_op_t &op, file_account_t *io_account);
 
     /* Non-blocking variants */
-    virtual boost::shared_ptr<block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) = 0;
+    virtual boost::shared_ptr<serializer_block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) = 0;
     // `block_write(buf, acct, cb)` must behave identically to `block_write(buf, NULL_BLOCK_ID, acct, cb)`
     // a default implementation is provided using this
-    virtual boost::shared_ptr<block_token_t> block_write(const void *buf, file_account_t *io_account, iocallback_t *cb);
+    virtual boost::shared_ptr<serializer_block_token_t> block_write(const void *buf, file_account_t *io_account, iocallback_t *cb);
 
     /* Blocking variants (use in coroutine context) with and without known block_id */
     // these have default implementations in serializer.cc in terms of the non-blocking variants above
-    virtual boost::shared_ptr<block_token_t> block_write(const void *buf, file_account_t *io_account);
-    virtual boost::shared_ptr<block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account);
+    virtual boost::shared_ptr<serializer_block_token_t> block_write(const void *buf, file_account_t *io_account);
+    virtual boost::shared_ptr<serializer_block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account);
 
     virtual block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf) = 0;
 
     // New do_write interface
     struct write_launched_callback_t {
-        virtual void on_write_launched(boost::shared_ptr<block_token_t> token) = 0;
+        virtual void on_write_launched(boost::shared_ptr<serializer_block_token_t> token) = 0;
         virtual ~write_launched_callback_t() {}
     };
     struct write_t {

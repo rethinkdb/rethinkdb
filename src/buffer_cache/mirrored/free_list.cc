@@ -1,6 +1,8 @@
 #include "buffer_cache/mirrored/free_list.hpp"
+
 #include "buffer_cache/stats.hpp"
 #include "perfmon.hpp"
+#include "serializer/serializer.hpp"
 
 array_free_list_t::array_free_list_t(serializer_t *serializer)
     : serializer(serializer)

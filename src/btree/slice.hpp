@@ -4,7 +4,6 @@
 #include "memcached/store.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/fifo_checker.hpp"
-#include "serializer/serializer.hpp"
 
 class backfill_callback_t;
 class key_tester_t;

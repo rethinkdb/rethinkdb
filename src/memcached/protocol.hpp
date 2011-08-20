@@ -1,12 +1,12 @@
 #ifndef __MEMCACHED_MEMCACHED_PROTOCOL_HPP__
 #define __MEMCACHED_MEMCACHED_PROTOCOL_HPP__
 
-#include "namespace_interface.hpp"
-#include "memcached/queries.hpp"
 #include <boost/variant.hpp>
-#include "serializer/serializer.hpp"
-#include "buffer_cache/buffer_cache.hpp"
+
 #include "btree/slice.hpp"
+#include "buffer_cache/buffer_cache.hpp"
+#include "memcached/queries.hpp"
+#include "namespace_interface.hpp"
 
 /* `key_range_t` represents a contiguous set of keys. */
 

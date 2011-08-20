@@ -10,7 +10,7 @@ file_account_t *serializer_t::make_io_account(int priority) {
 
 serializer_t::index_write_op_t::index_write_op_t(
         block_id_t block_id,
-        boost::optional<boost::shared_ptr<block_token_t> > token,
+        boost::optional<boost::shared_ptr<serializer_block_token_t> > token,
         boost::optional<repli_timestamp_t> recency,
         boost::optional<bool> delete_bit)
     : block_id(block_id), token(token), recency(recency), delete_bit(delete_bit) {}
@@ -22,7 +22,7 @@ void serializer_t::index_write(const index_write_op_t &op, file_account_t *io_ac
 }
 
 // Blocking block_read implementation
-void serializer_t::block_read(boost::shared_ptr<block_token_t> token, void *buf, file_account_t *io_account) {
+void serializer_t::block_read(boost::shared_ptr<serializer_block_token_t> token, void *buf, file_account_t *io_account) {
     struct : public cond_t, public iocallback_t {
         void on_io_complete() { pulse(); }
     } cb;
@@ -31,29 +31,29 @@ void serializer_t::block_read(boost::shared_ptr<block_token_t> token, void *buf,
 }
 
 // Blocking block_write implementation
-boost::shared_ptr<serializer_t::block_token_t>
+boost::shared_ptr<serializer_block_token_t>
 serializer_t::block_write(const void *buf, file_account_t *io_account) {
     // Default implementation: Wrap around non-blocking variant
     struct : public cond_t, public iocallback_t {
         void on_io_complete() { pulse(); }
     } cb;
-    boost::shared_ptr<block_token_t> result = block_write(buf, io_account, &cb);
+    boost::shared_ptr<serializer_block_token_t> result = block_write(buf, io_account, &cb);
     cb.wait();
     return result;
 }
 
-boost::shared_ptr<serializer_t::block_token_t>
+boost::shared_ptr<serializer_block_token_t>
 serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account) {
     // Default implementation: Wrap around non-blocking variant
     struct : public cond_t, public iocallback_t {
         void on_io_complete() { pulse(); }
     } cb;
-    boost::shared_ptr<block_token_t> result = block_write(buf, block_id, io_account, &cb);
+    boost::shared_ptr<serializer_block_token_t> result = block_write(buf, block_id, io_account, &cb);
     cb.wait();
     return result;
 }
 
-boost::shared_ptr<serializer_t::block_token_t>
+boost::shared_ptr<serializer_block_token_t>
 serializer_t::block_write(const void *buf, file_account_t *io_account, iocallback_t *cb) {
     return block_write(buf, NULL_BLOCK_ID, io_account, cb);
 }
@@ -113,7 +113,7 @@ struct write_performer_t : public boost::static_visitor<void> {
     }
 
     void operator()(const serializer_t::write_t::delete_t &del) {
-        op->token = boost::shared_ptr<serializer_t::block_token_t>();
+        op->token = boost::shared_ptr<serializer_block_token_t>();
         op->delete_bit = true;
         op->recency = repli_timestamp_t::invalid;
         if (del.write_zero_block) {

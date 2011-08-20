@@ -2,7 +2,6 @@
 #define __SERIALIZER_TYPES_HPP__
 
 #include <stdint.h>
-#include <string>
 
 // A relatively "lightweight" header file (we wish), in a sense.
 

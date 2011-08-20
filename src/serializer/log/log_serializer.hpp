@@ -1,4 +1,3 @@
-
 #ifndef __LOG_SERIALIZER_HPP__
 #define __LOG_SERIALIZER_HPP__
 
@@ -116,7 +115,7 @@ public:
     static void check_existing(const char *filename, check_callback_t *cb);
 
 public:
-    class ls_block_token_t : public serializer_t::block_token_t {
+    class ls_block_token_t : public serializer_block_token_t {
         friend class log_serializer_t;
 
         ls_block_token_t(log_serializer_t *serializer, off64_t initial_offset) : serializer(serializer) {
@@ -145,15 +144,15 @@ public:
     repli_timestamp_t get_recency(block_id_t id);
 
     bool get_delete_bit(block_id_t id);
-    boost::shared_ptr<block_token_t> index_read(block_id_t block_id);
+    boost::shared_ptr<serializer_block_token_t> index_read(block_id_t block_id);
 
     using serializer_t::block_read; // hack to make block_read overloading work properly
-    void block_read(boost::shared_ptr<block_token_t> token, void *buf, file_account_t *io_account, iocallback_t *cb);
+    void block_read(boost::shared_ptr<serializer_block_token_t> token, void *buf, file_account_t *io_account, iocallback_t *cb);
 
     void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account);
 
     using serializer_t::block_write; // hack to make block_write overloading work properly
-    boost::shared_ptr<block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb);
+    boost::shared_ptr<serializer_block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb);
 
     block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf);
 
@@ -165,7 +164,7 @@ private:
     void register_block_token(ls_block_token_t *token, off64_t offset);
     void unregister_block_token(ls_block_token_t *token);
     void remap_block_to_new_offset(off64_t current_offset, off64_t new_offset);
-    boost::shared_ptr<block_token_t> generate_block_token(off64_t offset);
+    boost::shared_ptr<serializer_block_token_t> generate_block_token(off64_t offset);
 
     std::vector<read_ahead_callback_t*> read_ahead_callbacks;
     bool offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp);

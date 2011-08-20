@@ -22,7 +22,7 @@ update_block_info(block_id_t block_id, scs_block_info_t info) {
 }
 
 template<class inner_serializer_t>
-struct semantic_checking_serializer_t<inner_serializer_t>::scs_block_token_t : public serializer_t::block_token_t {
+struct semantic_checking_serializer_t<inner_serializer_t>::scs_block_token_t : public serializer_block_token_t {
     scs_block_token_t(semantic_checking_serializer_t *ser, block_id_t block_id, const scs_block_info_t &info,
                       boost::shared_ptr<block_token_t> tok)
         : serializer(ser), block_id(block_id), info(info), inner_token(tok) {
@@ -35,7 +35,7 @@ struct semantic_checking_serializer_t<inner_serializer_t>::scs_block_token_t : p
 };
 
 template<class inner_serializer_t>
-boost::shared_ptr<serializer_t::block_token_t> semantic_checking_serializer_t<inner_serializer_t>::
+boost::shared_ptr<serializer_block_token_t> semantic_checking_serializer_t<inner_serializer_t>::
 wrap_token(block_id_t block_id, scs_block_info_t info, boost::shared_ptr<block_token_t> inner_token) {
     return boost::shared_ptr<block_token_t>(new scs_block_token_t(this, block_id, info, inner_token));
 }
@@ -101,7 +101,7 @@ make_io_account(int priority, int outstanding_requests_limit) {
 }
 
 template<class inner_serializer_t>
-boost::shared_ptr<serializer_t::block_token_t> semantic_checking_serializer_t<inner_serializer_t>::
+boost::shared_ptr<serializer_block_token_t> semantic_checking_serializer_t<inner_serializer_t>::
 index_read(block_id_t block_id) {
     scs_block_info_t info = blocks.get(block_id);
     boost::shared_ptr<block_token_t> result = inner_serializer.index_read(block_id);
@@ -231,31 +231,31 @@ index_write(const std::vector<index_write_op_t>& write_ops, file_t::account_t *i
 }
 
 template<class inner_serializer_t>
-boost::shared_ptr<serializer_t::block_token_t> semantic_checking_serializer_t<inner_serializer_t>::
+boost::shared_ptr<serializer_block_token_t> semantic_checking_serializer_t<inner_serializer_t>::
 wrap_buf_token(block_id_t block_id, const void *buf, boost::shared_ptr<block_token_t> inner_token) {
     return wrap_token(block_id, scs_block_info_t(compute_crc(buf)), inner_token);
 }
 
 template<class inner_serializer_t>
-boost::shared_ptr<serializer_t::block_token_t> semantic_checking_serializer_t<inner_serializer_t>::
+boost::shared_ptr<serializer_block_token_t> semantic_checking_serializer_t<inner_serializer_t>::
 block_write(const void *buf, block_id_t block_id, file_t::account_t *io_account, iocallback_t *cb) {
     return wrap_buf_token(block_id, buf, inner_serializer.block_write(buf, block_id, io_account, cb));
 }
 
 template<class inner_serializer_t>
-boost::shared_ptr<serializer_t::block_token_t> semantic_checking_serializer_t<inner_serializer_t>::
+boost::shared_ptr<serializer_block_token_t> semantic_checking_serializer_t<inner_serializer_t>::
 block_write(const void *buf, file_t::account_t *io_account, iocallback_t *cb) {
     return wrap_buf_token(NULL_BLOCK_ID, buf, inner_serializer.block_write(buf, io_account, cb));
 }
 
 template<class inner_serializer_t>
-boost::shared_ptr<serializer_t::block_token_t> semantic_checking_serializer_t<inner_serializer_t>::
+boost::shared_ptr<serializer_block_token_t> semantic_checking_serializer_t<inner_serializer_t>::
 block_write(const void *buf, block_id_t block_id, file_t::account_t *io_account) {
     return wrap_buf_token(block_id, buf, inner_serializer.block_write(buf, block_id, io_account));
 }
 
 template<class inner_serializer_t>
-boost::shared_ptr<serializer_t::block_token_t> semantic_checking_serializer_t<inner_serializer_t>::
+boost::shared_ptr<serializer_block_token_t> semantic_checking_serializer_t<inner_serializer_t>::
 block_write(const void *buf, file_t::account_t *io_account) {
     return wrap_buf_token(NULL_BLOCK_ID, buf, inner_serializer.block_write(buf, io_account));
 }

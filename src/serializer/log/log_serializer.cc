@@ -278,16 +278,16 @@ perfmon_counter_t pm_serializer_block_writes("serializer_block_writes");
 perfmon_duration_sampler_t pm_serializer_index_writes("serializer_index_writes", secs_to_ticks(1));
 perfmon_sampler_t pm_serializer_index_writes_size("serializer_index_writes_size", secs_to_ticks(1));
 
-void log_serializer_t::block_read(boost::shared_ptr<block_token_t> token, void *buf, file_account_t *io_account, iocallback_t *cb) {
+void log_serializer_t::block_read(boost::shared_ptr<serializer_block_token_t> token, void *buf, file_account_t *io_account, iocallback_t *cb) {
     struct my_cb_t : public iocallback_t {
         void on_io_complete() {
             pm_serializer_block_reads.end(&pm_time);
             if (cb) cb->on_io_complete();
             delete this;
         }
-        my_cb_t(iocallback_t *cb, boost::shared_ptr<block_token_t> tok) : cb(cb), tok(tok) {}
+        my_cb_t(iocallback_t *cb, boost::shared_ptr<serializer_block_token_t> tok) : cb(cb), tok(tok) {}
         iocallback_t *cb;
-        boost::shared_ptr<block_token_t> tok; // needed to keep it alive for appropriate period of time
+        boost::shared_ptr<serializer_block_token_t> tok; // needed to keep it alive for appropriate period of time
         ticks_t pm_time;
     } *readcb = new my_cb_t(cb, token);
 
@@ -320,7 +320,7 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
 
         if (op.token) {
             // Update the offset pointed to, and mark garbage/liveness as necessary.
-            boost::shared_ptr<block_token_t> token = op.token.get();
+            boost::shared_ptr<serializer_block_token_t> token = op.token.get();
 
             // Mark old offset as garbage
             if (offset.has_value())
@@ -430,11 +430,11 @@ void log_serializer_t::index_write_finish(index_write_context_t &context, file_a
     }
 }
 
-boost::shared_ptr<serializer_t::block_token_t> log_serializer_t::generate_block_token(off64_t offset) {
-    return boost::shared_ptr<block_token_t>(new ls_block_token_t(this, offset));
+boost::shared_ptr<serializer_block_token_t> log_serializer_t::generate_block_token(off64_t offset) {
+    return boost::shared_ptr<serializer_block_token_t>(new ls_block_token_t(this, offset));
 }
 
-boost::shared_ptr<serializer_t::block_token_t>
+boost::shared_ptr<serializer_block_token_t>
 log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) {
     // TODO: Implement a duration sampler perfmon for this
     pm_serializer_block_writes++;
@@ -530,21 +530,21 @@ block_id_t log_serializer_t::max_block_id() {
     return lba_index->end_block_id();
 }
     
-boost::shared_ptr<serializer_t::block_token_t> log_serializer_t::index_read(block_id_t block_id) {
+boost::shared_ptr<serializer_block_token_t> log_serializer_t::index_read(block_id_t block_id) {
     pm_serializer_index_reads++;
 
     assert_thread();
     rassert(state == state_ready);
 
     if (block_id >= lba_index->end_block_id()) {
-        return boost::shared_ptr<serializer_t::block_token_t>();
+        return boost::shared_ptr<serializer_block_token_t>();
     }
 
     flagged_off64_t offset = lba_index->get_block_offset(block_id);
     if (offset.has_value()) {
-        return boost::shared_ptr<block_token_t>(new ls_block_token_t(this, offset.get_value()));
+        return boost::shared_ptr<serializer_block_token_t>(new ls_block_token_t(this, offset.get_value()));
     } else {
-        return boost::shared_ptr<serializer_t::block_token_t>();
+        return boost::shared_ptr<serializer_block_token_t>();
     }
 }
 
