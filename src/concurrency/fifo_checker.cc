@@ -22,15 +22,15 @@ const order_token_t order_token_t::ignore;
 
 #ifndef NDEBUG
 
-bool operator==(const order_bucket_t &a, const order_bucket_t &b) {
+bool operator==(const order_bucket_t& a, const order_bucket_t& b) {
     return a.thread_ == b.thread_ && a.number_ == b.number_;
 }
 
-bool operator!=(const order_bucket_t &a, const order_bucket_t &b) {
+bool operator!=(const order_bucket_t& a, const order_bucket_t& b) {
     return !(a == b);
 }
 
-bool operator<(const order_bucket_t &a, const order_bucket_t &b) {
+bool operator<(const order_bucket_t& a, const order_bucket_t& b) {
     if (a.thread_ < b.thread_) {
         return true;
     } else if (a.thread_ == b.thread_) {
@@ -188,7 +188,7 @@ void order_sink_t::check_out(order_token_t token) {
         Either way, `last_seen` will be a pointer to the `std::pair`
         that ends up in the map. */
         last_seens_map_t::iterator it = last_seens_.insert(last_seens_map_t::value_type(token.bucket_, std::pair<tagged_seen_t, tagged_seen_t>(tagged_seen_t(0, "0"), tagged_seen_t(0, "0")))).first;
-        std::pair<tagged_seen_t, tagged_seen_t> *last_seen = &(*it).second;
+        std::pair<tagged_seen_t, tagged_seen_t> *last_seen = &it->second;
         verify_token_value_and_update(token, last_seen);
     }
 }
