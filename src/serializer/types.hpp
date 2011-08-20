@@ -91,7 +91,7 @@ struct scs_block_info_t {
     } state;
     uint32_t crc;
 
-    scs_block_info_t(uint32_t crc) : state(state_have_crc), crc(crc) {}
+    scs_block_info_t(uint32_t _crc) : state(state_have_crc), crc(_crc) {}
 
     // TODO (sam): We write semantic serializer check information to disk?
 
@@ -104,9 +104,9 @@ struct scs_block_info_t {
 
 template <class inner_serializer_t>
 struct scs_block_token_t {
-    scs_block_token_t(block_id_t block_id, const scs_block_info_t &info,
+    scs_block_token_t(block_id_t _block_id, const scs_block_info_t& _info,
                       const boost::shared_ptr<typename serializer_traits_t<inner_serializer_t>::block_token_type>& tok)
-        : block_id(block_id), info(info), inner_token(tok) {
+        : block_id(_block_id), info(_info), inner_token(tok) {
         rassert(inner_token, "scs_block_token wrapping null token");
     }
 

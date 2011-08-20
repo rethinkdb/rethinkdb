@@ -147,8 +147,8 @@ public:
     off64_t off_in;
     void *buf_out;
 
-    dbm_read_ahead_fsm_t(data_block_manager_t *p, off64_t off_in, void *buf_out, file_account_t *io_account, iocallback_t *cb)
-        : parent(p), callback(cb), read_ahead_buf(NULL), off_in(off_in), buf_out(buf_out)
+    dbm_read_ahead_fsm_t(data_block_manager_t *p, off64_t _off_in, void *_buf_out, file_account_t *io_account, iocallback_t *cb)
+        : parent(p), callback(cb), read_ahead_buf(NULL), off_in(_off_in), buf_out(_buf_out)
     {
         extent = floor_aligned(off_in, parent->static_config->extent_size());
 
@@ -406,7 +406,8 @@ void data_block_manager_t::start_gc() {
     if (gc_state.step() == gc_ready) run_gc();
 }
 
-data_block_manager_t::gc_writer_t::gc_writer_t(gc_write_t *writes, int num_writes, data_block_manager_t *parent) : done(num_writes == 0), parent(parent) {
+data_block_manager_t::gc_writer_t::gc_writer_t(gc_write_t *writes, int num_writes, data_block_manager_t *_parent)
+    : done(num_writes == 0), parent(_parent) {
     if (!done) {
         coro_t::spawn(boost::bind(&data_block_manager_t::gc_writer_t::write_gcs, this, writes, num_writes));
     }

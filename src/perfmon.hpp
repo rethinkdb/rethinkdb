@@ -281,10 +281,10 @@ private:
     perfmon_sampler_t recent;
     bool ignore_global_full_perfmon;
 public:
-    perfmon_duration_sampler_t(std::string name, ticks_t length, bool internal = true, bool ignore_global_full_perfmon = false) 
+    perfmon_duration_sampler_t(std::string name, ticks_t length, bool internal = true, bool _ignore_global_full_perfmon = false)
         : control_t(std::string("pm_") + name + "_toggle", name + " toggle on and off", true),
-          active(name + "_active_count", internal), total(name + "_total", internal), 
-          recent(name, length, true, internal), ignore_global_full_perfmon(ignore_global_full_perfmon)
+          active(name + "_active_count", internal), total(name + "_total", internal),
+          recent(name, length, true, internal), ignore_global_full_perfmon(_ignore_global_full_perfmon)
         { }
     void begin(ticks_t *v) {
         active++;
@@ -336,8 +336,8 @@ private:
     intrusive_list_t<internal_function_t> funs[MAX_THREADS];
 
 public:
-    perfmon_function_t(std::string name, bool internal = true)
-        : perfmon_t(internal), name(name) {}
+    perfmon_function_t(std::string _name, bool internal = true)
+        : perfmon_t(internal), name(_name) {}
     ~perfmon_function_t() {}
 
     void *begin_stats();
@@ -349,8 +349,8 @@ struct block_pm_duration {
     ticks_t time;
     bool ended;
     perfmon_duration_sampler_t *pm;
-    block_pm_duration(perfmon_duration_sampler_t *pm)
-        : ended(false), pm(pm)
+    block_pm_duration(perfmon_duration_sampler_t *_pm)
+        : ended(false), pm(_pm)
     {
         pm->begin(&time);
     }

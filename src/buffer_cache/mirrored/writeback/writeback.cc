@@ -30,26 +30,26 @@ perfmon_sampler_t
     pm_flushes_diff_storage_failures("flushes_diff_storage_failures", secs_to_ticks(30), true);
 
 writeback_t::writeback_t(
-        cache_t *cache,
-        bool wait_for_flush,
-        unsigned int flush_timer_ms,
-        unsigned int flush_threshold,
-        unsigned int max_dirty_blocks,
-        unsigned int flush_waiting_threshold,
-        unsigned int max_concurrent_flushes
+        cache_t *_cache,
+        bool _wait_for_flush,
+        unsigned int _flush_timer_ms,
+        unsigned int _flush_threshold,
+        unsigned int _max_dirty_blocks,
+        unsigned int _flush_waiting_threshold,
+        unsigned int _max_concurrent_flushes
         ) :
-    wait_for_flush(wait_for_flush),
-    flush_waiting_threshold(flush_waiting_threshold),
-    max_concurrent_flushes(max_concurrent_flushes),
-    max_dirty_blocks(max_dirty_blocks),
-    flush_time_randomizer(flush_timer_ms),
-    flush_threshold(flush_threshold),
+    wait_for_flush(_wait_for_flush),
+    flush_waiting_threshold(_flush_waiting_threshold),
+    max_concurrent_flushes(_max_concurrent_flushes),
+    max_dirty_blocks(_max_dirty_blocks),
+    flush_time_randomizer(_flush_timer_ms),
+    flush_threshold(_flush_threshold),
     flush_timer(NULL),
     writeback_in_progress(false),
     active_flushes(0),
-    dirty_block_semaphore(max_dirty_blocks),
+    dirty_block_semaphore(_max_dirty_blocks),
     force_patch_storage_flush(false),
-    cache(cache),
+    cache(_cache),
     start_next_sync_immediately(false) {
 
     rassert(max_dirty_blocks >= 10); // sanity check: you really don't want to have less than this.

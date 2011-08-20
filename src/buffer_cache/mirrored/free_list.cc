@@ -4,9 +4,9 @@
 #include "perfmon.hpp"
 #include "serializer/serializer.hpp"
 
-array_free_list_t::array_free_list_t(serializer_t *serializer)
-    : serializer(serializer)
-{
+array_free_list_t::array_free_list_t(serializer_t *_serializer)
+    : serializer(_serializer) {
+
     on_thread_t switcher(serializer->home_thread());
     num_blocks_in_use = 0;
     next_new_block_id = serializer->max_block_id();

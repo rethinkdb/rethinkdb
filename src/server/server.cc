@@ -91,7 +91,7 @@ static spinlock_t timer_token_lock;
 static volatile bool no_more_checking;
 
 struct periodic_checker_t {
-    periodic_checker_t(creation_timestamp_t creation_timestamp) : creation_timestamp(creation_timestamp), timer_token(NULL) {
+    periodic_checker_t(creation_timestamp_t _creation_timestamp) : creation_timestamp(_creation_timestamp), timer_token(NULL) {
         no_more_checking = false;
         check(this);
     }

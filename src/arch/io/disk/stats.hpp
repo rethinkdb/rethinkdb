@@ -54,10 +54,10 @@ struct stats_diskmgr_2_t :
     stats_diskmgr_2_t(
             perfmon_duration_sampler_t *rs,
             perfmon_duration_sampler_t *ws,
-            passive_producer_t<action_t *> *source) :
+            passive_producer_t<action_t *> *_source) :
         passive_producer_t<payload_t *>(source->available),
         producer(this),
-        source(source),
+        source(_source),
         read_sampler(rs), write_sampler(ws)
         { }
     boost::function<void (action_t *)> done_fun;

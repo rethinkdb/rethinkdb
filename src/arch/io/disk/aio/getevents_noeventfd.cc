@@ -67,8 +67,8 @@ void* linux_aio_getevents_noeventfd_t::io_event_loop(void *arg) {
 }
 
 /* Async IO scheduler - the poll/epoll part */
-linux_aio_getevents_noeventfd_t::linux_aio_getevents_noeventfd_t(linux_diskmgr_aio_t *parent)
-    : parent(parent), shutting_down(false)
+linux_aio_getevents_noeventfd_t::linux_aio_getevents_noeventfd_t(linux_diskmgr_aio_t *_parent)
+    : parent(_parent), shutting_down(false)
 {
     int res;
 

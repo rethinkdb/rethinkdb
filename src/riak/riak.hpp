@@ -52,8 +52,8 @@ private:
     btree_slice_t *get_slice(std::list<std::string>);
     btree_slice_t *create_slice(std::list<std::string>);
 public:
-    riak_interface_t(store_manager_t<std::list<std::string> > *store_manager)
-        : store_manager(store_manager)
+    riak_interface_t(store_manager_t<std::list<std::string> > *_store_manager)
+        : store_manager(_store_manager)
     { }
 
 public:

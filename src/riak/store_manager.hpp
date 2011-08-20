@@ -48,7 +48,7 @@ public:
     }
 private:
     //friend class store_manager_t;
-    store_id_t(int raw_id) : raw_id(raw_id) {
+    store_id_t(int _raw_id) : raw_id(_raw_id) {
     }
     int raw_id;
 

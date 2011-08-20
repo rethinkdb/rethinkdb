@@ -28,8 +28,8 @@ struct partition_info_t {
 void get_partition_map(std::vector<partition_info_t> *partitions);
 
 
-partition_info_t::partition_info_t(int nmajor, int nminor, int nblocks, std::string name)
-    : nmajor(nmajor), nminor(nminor), nblocks(nblocks), name(name) { }
+partition_info_t::partition_info_t(int _nmajor, int _nminor, int _nblocks, std::string _name)
+    : nmajor(_nmajor), nminor(_nminor), nblocks(_nblocks), name(_name) { }
 
 partition_info_t::partition_info_t() {}
 

@@ -43,7 +43,10 @@ private:
         transaction_t *txn;
         block_id_t block_id;
         access_t mode;
-        acquiring_coro_t(transaction_t *txn, block_id_t block_id, access_t mode) : result(NULL), signaled(false), txn(txn), block_id(block_id), mode(mode) { }
+
+        acquiring_coro_t(transaction_t *_txn, block_id_t _block_id, access_t _mode)
+	    : result(NULL), signaled(false), txn(_txn), block_id(_block_id), mode(_mode) { }
+
         void run() {
             result = acq(txn, block_id, mode);
             signaled = true;

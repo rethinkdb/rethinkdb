@@ -192,8 +192,8 @@ private:
         public control_t
     {
     public:
-        hash_control_t(btree_key_value_store_t *btkvs)
-            : control_t("hash", std::string("Get hash, slice, and thread of a key. Syntax: rdb hash key"), true), btkvs(btkvs)
+        hash_control_t(btree_key_value_store_t *_btkvs)
+            : control_t("hash", std::string("Get hash, slice, and thread of a key. Syntax: rdb hash key"), true), btkvs(_btkvs)
         {}
         virtual ~hash_control_t() {};
 

@@ -7,10 +7,10 @@
 
 
 
-leaf_insert_patch_t::leaf_insert_patch_t(block_id_t block_id, patch_counter_t patch_counter, uint16_t value_size, const void *value, uint8_t key_size, const char *key_contents, repli_timestamp_t insertion_time) :
+leaf_insert_patch_t::leaf_insert_patch_t(block_id_t block_id, patch_counter_t patch_counter, uint16_t _value_size, const void *value, uint8_t key_size, const char *key_contents, repli_timestamp_t _insertion_time) :
             buf_patch_t(block_id, patch_counter, buf_patch_t::OPER_LEAF_INSERT),
-            value_size(value_size),
-            insertion_time(insertion_time) {
+            value_size(_value_size),
+            insertion_time(_insertion_time) {
     value_buf = new char[value_size];
     memcpy(value_buf, value, value_size);
 

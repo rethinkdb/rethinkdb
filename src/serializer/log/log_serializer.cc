@@ -740,7 +740,8 @@ bool log_serializer_t::should_perform_read_ahead() {
     return dynamic_config.read_ahead && !read_ahead_callbacks.empty();
 }
 
-ls_block_token_t::ls_block_token_t(log_serializer_t *serializer, off64_t initial_offset) : serializer(serializer) {
+ls_block_token_t::ls_block_token_t(log_serializer_t *_serializer, off64_t initial_offset)
+    : serializer(_serializer) {
     serializer->assert_thread();
     serializer->register_block_token(this, initial_offset);
 }

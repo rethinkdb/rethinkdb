@@ -15,8 +15,8 @@ template<class protocol_t>
 struct dummy_parallelizer_t {
 
 public:
-    dummy_parallelizer_t(std::vector<typename protocol_t::store_t *> children) :
-        children(children), random_step(0) { }
+    dummy_parallelizer_t(std::vector<typename protocol_t::store_t *> _children) :
+        children(_children), random_step(0) { }
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t read, order_token_t tok) {
         std::vector<typename protocol_t::read_t> reads = read.parallelize(children.size());
@@ -49,7 +49,8 @@ template<class protocol_t>
 struct dummy_timestamper_t {
 
 public:
-    dummy_timestamper_t(dummy_parallelizer_t<protocol_t> *next) : next(next), timestamp(repli_timestamp_t::distant_past) { }
+    dummy_timestamper_t(dummy_parallelizer_t<protocol_t> *_next)
+	: next(_next), timestamp(repli_timestamp_t::distant_past) { }
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t read, order_token_t tok) {
         return next->read(read, tok);
@@ -77,8 +78,8 @@ public:
         typename protocol_t::region_t region;
     };
 
-    dummy_sharder_t(std::vector<timestamper_and_region_t> timestampers) :
-        timestampers(timestampers) { }
+    dummy_sharder_t(std::vector<timestamper_and_region_t> _timestampers)
+	: timestampers(_timestampers) { }
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t read, order_token_t tok) {
         std::vector<typename protocol_t::region_t> regions;

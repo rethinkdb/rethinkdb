@@ -62,8 +62,8 @@ public:
         friend class concurrent_flush_t;
         
     public:
-        explicit local_buf_t(inner_buf_t *gbuf)
-            : needs_flush(false), last_patch_materialized(0), gbuf(gbuf), dirty(false), recency_dirty(false) {}
+        explicit local_buf_t(inner_buf_t *_gbuf)
+            : needs_flush(false), last_patch_materialized(0), gbuf(_gbuf), dirty(false), recency_dirty(false) {}
         
         void set_dirty(bool _dirty = true);
         void set_recency_dirty(bool _recency_dirty = true);

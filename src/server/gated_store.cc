@@ -4,7 +4,7 @@
 
 // gated_get_store_t
 
-gated_get_store_t::gated_get_store_t(get_store_t *internal) : internal(internal) { }
+gated_get_store_t::gated_get_store_t(get_store_t *_internal) : internal(_internal) { }
 
 get_result_t gated_get_store_t::get(const store_key_t &key, order_token_t token) {
     if (gate.is_open()) {
@@ -29,8 +29,8 @@ rget_result_t gated_get_store_t::rget(rget_bound_mode_t left_mode, const store_k
 
 // gated_set_store_interface_t
 
-gated_set_store_interface_t::gated_set_store_interface_t(set_store_interface_t *internal) :
-    internal(internal) { }
+gated_set_store_interface_t::gated_set_store_interface_t(set_store_interface_t *_internal)
+    : internal(_internal) { }
 
 // This visitor constructs a "not allowed" response of the correct type
 struct not_allowed_visitor_t : public boost::static_visitor<mutation_result_t> {

@@ -22,13 +22,13 @@ class accounting_queue_t :
     public home_thread_mixin_t
 {
 public:
-    accounting_queue_t(int batch_factor) :
+    accounting_queue_t(int _batch_factor) :
         passive_producer_t<value_t>(&available_control),
         total_shares(0),
         selector(0),
-        batch_factor(batch_factor) {
+        batch_factor(_batch_factor) {
 
-            rassert(batch_factor > 0);
+	rassert(batch_factor > 0);
     }
 
     ~accounting_queue_t() {
@@ -40,9 +40,8 @@ public:
         public intrusive_list_node_t<account_t>
     {
     public:
-        account_t(accounting_queue_t *p, passive_producer_t<value_t> *s, int shares) :
-            parent(p), source(s), shares(shares), active(false)
-        {
+        account_t(accounting_queue_t *p, passive_producer_t<value_t> *s, int _shares)
+	    : parent(p), source(s), shares(_shares), active(false) {
             on_thread_t thread_switcher(parent->home_thread());
             rassert(shares > 0);
             if (source->available->get()) activate();

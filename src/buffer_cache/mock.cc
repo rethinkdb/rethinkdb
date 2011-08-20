@@ -96,9 +96,8 @@ bool mock_buf_t::is_deleted() {
     return deleted;
 }
 
-mock_buf_t::mock_buf_t(internal_buf_t *internal_buf, access_t access)
-    : internal_buf(internal_buf), access(access), dirty(false), deleted(false) {
-}
+mock_buf_t::mock_buf_t(internal_buf_t *_internal_buf, access_t _access)
+    : internal_buf(_internal_buf), access(_access), dirty(false), deleted(false) { }
 
 /* Transaction */
 
@@ -195,8 +194,8 @@ void mock_cache_t::create(serializer_t *serializer, UNUSED mirrored_cache_static
 
 // dynamic_config is unused because this is a mock cache and the
 // configuration parameters don't apply.
-mock_cache_t::mock_cache_t( serializer_t *serializer, UNUSED mirrored_cache_config_t *dynamic_config)
-    : serializer(serializer), block_size(serializer->get_block_size())
+mock_cache_t::mock_cache_t( serializer_t *_serializer, UNUSED mirrored_cache_config_t *dynamic_config)
+    : serializer(_serializer), block_size(_serializer->get_block_size())
 {
     on_thread_t switcher(serializer->home_thread());
 

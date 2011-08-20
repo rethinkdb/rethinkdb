@@ -1,13 +1,13 @@
 #include "serializer/log/lba/disk_structure.hpp"
 #include "containers/scoped_malloc.hpp"
 
-lba_disk_structure_t::lba_disk_structure_t(extent_manager_t *em, direct_file_t *file)
-    : em(em), file(file), superblock_extent(NULL), last_extent(NULL)
+lba_disk_structure_t::lba_disk_structure_t(extent_manager_t *_em, direct_file_t *_file)
+    : em(_em), file(_file), superblock_extent(NULL), last_extent(NULL)
 {
 }
 
-lba_disk_structure_t::lba_disk_structure_t(extent_manager_t *em, direct_file_t *file, lba_shard_metablock_t *metablock)
-    : em(em), file(file)
+lba_disk_structure_t::lba_disk_structure_t(extent_manager_t *_em, direct_file_t *_file, lba_shard_metablock_t *metablock)
+    : em(_em), file(_file)
 {
     if (metablock->last_lba_extent_offset != NULL_OFFSET) {
         last_extent = new lba_disk_extent_t(em, file, metablock->last_lba_extent_offset, metablock->last_lba_extent_entries_count);
@@ -221,8 +221,8 @@ struct reader_t
     // reading process so that we stay under LBA_READ_BUFFER_SIZE.
     int active_readers;
 
-    reader_t(lba_disk_structure_t *ds, in_memory_index_t *index, lba_disk_structure_t::read_callback_t *cb)
-        : ds(ds), index(index), rcb(cb)
+    reader_t(lba_disk_structure_t *_ds, in_memory_index_t *_index, lba_disk_structure_t::read_callback_t *cb)
+        : ds(_ds), index(_index), rcb(cb)
     {
         for (lba_disk_extent_t *e = ds->extents_in_superblock.head(); e; e = ds->extents_in_superblock.next(e)) {
             new extent_reader_t(this, e);

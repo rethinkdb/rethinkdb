@@ -66,8 +66,8 @@ void perfmon_get_stats(perfmon_stats_t *dest, bool include_internal) {
 
 /* Constructor and destructor register and deregister the perfmon. */
 
-perfmon_t::perfmon_t(bool internal)
-    : internal(internal)
+perfmon_t::perfmon_t(bool _internal)
+    : internal(_internal)
 {
     spinlock_acq_t acq(&get_var_lock());
     get_var_list().push_back(this);
@@ -82,8 +82,8 @@ bool global_full_perfmon = false;
 
 /* perfmon_counter_t */
 
-perfmon_counter_t::perfmon_counter_t(std::string name, bool internal)
-    : perfmon_perthread_t<cache_line_padded_t<int64_t>, int64_t> (internal), name(name)
+perfmon_counter_t::perfmon_counter_t(std::string _name, bool internal)
+    : perfmon_perthread_t<cache_line_padded_t<int64_t>, int64_t> (internal), name(_name)
 {
     for (int i = 0; i < MAX_THREADS; i++) thread_data[i].value = 0;
 }
@@ -109,8 +109,8 @@ void perfmon_counter_t::output_stat(const int64_t &stat, perfmon_stats_t *dest) 
 
 /* perfmon_sampler_t */
 
-perfmon_sampler_t::perfmon_sampler_t(std::string name, ticks_t length, bool include_rate, bool internal)
-    : perfmon_perthread_t<stats_t>(internal), name(name), length(length), include_rate(include_rate)
+perfmon_sampler_t::perfmon_sampler_t(std::string _name, ticks_t _length, bool _include_rate, bool internal)
+    : perfmon_perthread_t<stats_t>(internal), name(_name), length(_length), include_rate(_include_rate)
 {
     for (int i = 0; i < MAX_THREADS; i++) {
         thread_data[i].current_interval = get_ticks() / length;
@@ -240,8 +240,8 @@ stddev_t stddev_t::combine(size_t nelts, stddev_t *data) {
 }
 
 
-perfmon_stddev_t::perfmon_stddev_t(std::string name, bool internal)
-    : perfmon_perthread_t<stddev_t>(internal), name(name) { }
+perfmon_stddev_t::perfmon_stddev_t(std::string _name, bool internal)
+    : perfmon_perthread_t<stddev_t>(internal), name(_name) { }
 
 void perfmon_stddev_t::get_thread_stat(stddev_t *stat) {
     rassert(get_thread_id() >= 0);
@@ -271,8 +271,8 @@ void perfmon_stddev_t::record(float value) {
 
 /* perfmon_rate_monitor_t */
 
-perfmon_rate_monitor_t::perfmon_rate_monitor_t(std::string name, ticks_t length, bool internal)
-    : perfmon_perthread_t<double>(internal), name(name), length(length)
+perfmon_rate_monitor_t::perfmon_rate_monitor_t(std::string _name, ticks_t _length, bool internal)
+    : perfmon_perthread_t<double>(internal), name(_name), length(_length)
 {
     for (int i = 0; i < MAX_THREADS; i++) {
         thread_data[i].current_interval = get_ticks() / length;

@@ -20,11 +20,11 @@ struct index_write_op_t {
     boost::optional<repli_timestamp_t> recency; // Recency, if it should be modified.
     boost::optional<bool> delete_bit;           // Delete bit, if it should be modified.
 
-    index_write_op_t(block_id_t block_id,
-		     boost::optional<boost::shared_ptr<standard_block_token_t> > token = boost::none,
-		     boost::optional<repli_timestamp_t> recency = boost::none,
-		     boost::optional<bool> delete_bit = boost::none)
-	: block_id(block_id), token(token), recency(recency), delete_bit(delete_bit) {}
+    index_write_op_t(block_id_t _block_id,
+		     boost::optional<boost::shared_ptr<standard_block_token_t> > _token = boost::none,
+		     boost::optional<repli_timestamp_t> _recency = boost::none,
+		     boost::optional<bool> _delete_bit = boost::none)
+	: block_id(_block_id), token(_token), recency(_recency), delete_bit(_delete_bit) {}
 };
 
 /* serializer_t is an abstract interface that describes how each serializer should

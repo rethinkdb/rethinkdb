@@ -34,7 +34,8 @@ serializer_t::block_write(const void *buf, file_account_t *io_account, iocallbac
 }
 
 // do_write implementation
-serializer_t::write_t::write_t(block_id_t block_id, action_t action) : block_id(block_id), action(action) {}
+serializer_t::write_t::write_t(block_id_t _block_id, action_t _action)
+    : block_id(_block_id), action(_action) { }
 
 serializer_t::write_t serializer_t::write_t::make_touch(block_id_t block_id, repli_timestamp_t recency) {
     touch_t touch;
@@ -74,9 +75,9 @@ struct write_performer_t : public boost::static_visitor<void> {
     void *zerobuf;
     std::vector<write_cond_t*> *block_write_conds;
     index_write_op_t *op;
-    write_performer_t(serializer_t *ser, file_account_t *acct, void *zerobuf,
-                      std::vector<write_cond_t*> *conds, index_write_op_t *op)
-        : serializer(ser), io_account(acct), zerobuf(zerobuf), block_write_conds(conds), op(op) {}
+    write_performer_t(serializer_t *ser, file_account_t *acct, void *_zerobuf,
+                      std::vector<write_cond_t*> *conds, index_write_op_t *_op)
+        : serializer(ser), io_account(acct), zerobuf(_zerobuf), block_write_conds(conds), op(_op) {}
 
     void operator()(const serializer_t::write_t::update_t &update) {
         block_write_conds->push_back(new write_cond_t(update.io_callback));

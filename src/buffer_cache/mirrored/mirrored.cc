@@ -31,13 +31,12 @@ perfmon_persistent_counter_t pm_cache_hits("cache_hits"), pm_cache_misses("cache
 // flushed to disk during writeback, sans block id, to allow them to be unloaded if necessary.
 struct mc_inner_buf_t::buf_snapshot_t : evictable_t, intrusive_list_node_t<mc_inner_buf_t::buf_snapshot_t> {
     buf_snapshot_t(mc_inner_buf_t *buf, version_id_t version,
-                   size_t snapshot_refcount, size_t active_refcount,
-                   void *data, boost::shared_ptr<standard_block_token_t> token)
-        : evictable_t(buf->cache, data ? true : false),
+                   size_t _snapshot_refcount, size_t _active_refcount,
+                   void *_data, const boost::shared_ptr<standard_block_token_t>& _token)
+        : evictable_t(buf->cache, _data ? true : false),
           parent(buf), snapshotted_version(version),
-          data(data), token(token),
-          snapshot_refcount(snapshot_refcount), active_refcount(active_refcount)
-    {
+          data(_data), token(_token),
+          snapshot_refcount(_snapshot_refcount), active_refcount(_active_refcount) {
         rassert(data || token, "creating buf snapshot without data or block token");
         rassert(snapshot_refcount + active_refcount, "creating buf snapshot with 0 refcount");
     }
@@ -135,12 +134,12 @@ void mc_inner_buf_t::load_inner_buf(bool should_lock, file_account_t *io_account
 }
 
 // This form of the buf constructor is used when the block exists on disk and needs to be loaded
-mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_load, file_account_t *io_account)
-    : evictable_t(cache),
-      block_id(block_id),
+mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, bool _should_load, file_account_t *_io_account)
+    : evictable_t(_cache),
+      block_id(_block_id),
       subtree_recency(repli_timestamp_t::invalid),  // Gets initialized by load_inner_buf
-      data(should_load ? cache->serializer->malloc() : NULL),
-      version_id(cache->get_min_snapshot_version(cache->get_current_version_id())),
+      data(_should_load ? _cache->serializer->malloc() : NULL),
+      version_id(_cache->get_min_snapshot_version(_cache->get_current_version_id())),
       next_patch_counter(1),
       refcount(0),
       do_delete(false),
@@ -153,30 +152,30 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_
 
     rassert(version_id != faux_version_id);
 
-    if (should_load) {
+    if (_should_load) {
         // Some things expect us to return immediately (as of 5/12/2011), so we do the loading in a
         // separate coro. We have to make sure that load_inner_buf() acquires the lock first
         // however, so we use spawn_now().
-        coro_t::spawn_now(boost::bind(&mc_inner_buf_t::load_inner_buf, this, true, io_account));
+        coro_t::spawn_now(boost::bind(&mc_inner_buf_t::load_inner_buf, this, true, _io_account));
     }
 
     // TODO: only increment pm_n_blocks_in_memory when we actually load the block into memory.
     pm_n_blocks_in_memory++;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
 
-    cache->page_repl.make_space();
-    cache->maybe_unregister_read_ahead_callback();
+    _cache->page_repl.make_space();
+    _cache->maybe_unregister_read_ahead_callback();
 
     refcount--;
 }
 
 // This form of the buf constructor is used when the block exists on disks but has been loaded into buf already
-mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp)
-    : evictable_t(cache),
-      block_id(block_id),
-      subtree_recency(recency_timestamp),
-      data(buf),
-      version_id(cache->get_min_snapshot_version(cache->get_current_version_id())),
+mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, void *_buf, repli_timestamp_t _recency_timestamp)
+    : evictable_t(_cache),
+      block_id(_block_id),
+      subtree_recency(_recency_timestamp),
+      data(_buf),
+      version_id(_cache->get_min_snapshot_version(_cache->get_current_version_id())),
       refcount(0),
       do_delete(false),
       write_empty_deleted_block(false),
@@ -190,12 +189,12 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, r
 
     pm_n_blocks_in_memory++;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
-    cache->page_repl.make_space();
-    cache->maybe_unregister_read_ahead_callback();
+    _cache->page_repl.make_space();
+    _cache->maybe_unregister_read_ahead_callback();
     refcount--;
 
     // Read the block sequence id
-    block_sequence_id = cache->serializer->get_block_sequence_id(block_id, data);
+    block_sequence_id = _cache->serializer->get_block_sequence_id(_block_id, data);
 
     replay_patches();
 
@@ -245,12 +244,12 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache, version_id_t snapshot_v
 // Used by mc_inner_buf_t::allocate() and by the patch log.
 // If you update this constructor, please don't forget to update mc_inner_buf_t::allocate
 // accordingly.
-mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, version_id_t snapshot_version, repli_timestamp_t recency_timestamp)
-    : evictable_t(cache),
-      block_id(block_id),
-      subtree_recency(recency_timestamp),
-      data(cache->serializer->malloc()),
-      version_id(snapshot_version),
+mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, version_id_t _snapshot_version, repli_timestamp_t _recency_timestamp)
+    : evictable_t(_cache),
+      block_id(_block_id),
+      subtree_recency(_recency_timestamp),
+      data(_cache->serializer->malloc()),
+      version_id(_snapshot_version),
       next_patch_counter(1),
       refcount(0),
       do_delete(false),
@@ -259,22 +258,22 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, version_id_t
       snap_refcount(0),
       writeback_buf(this),
       page_map_buf(this),
-      block_sequence_id(NULL_BLOCK_SEQUENCE_ID)
-{
+      block_sequence_id(NULL_BLOCK_SEQUENCE_ID) {
+
     rassert(version_id != faux_version_id);
-    cache->assert_thread();
+    _cache->assert_thread();
 
 #if !defined(NDEBUG) || defined(VALGRIND)
     // The memory allocator already filled this with 0xBD, but it's nice to be able to distinguish
     // between problems with uninitialized memory and problems with uninitialized blocks
-    memset(data, 0xCD, cache->serializer->get_block_size().value());
+    memset(data, 0xCD, _cache->serializer->get_block_size().value());
 #endif
 
     pm_n_blocks_in_memory++;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
 
-    cache->page_repl.make_space();
-    cache->maybe_unregister_read_ahead_callback();
+    _cache->page_repl.make_space();
+    _cache->maybe_unregister_read_ahead_callback();
 
     refcount--;
 }
@@ -419,15 +418,16 @@ perfmon_duration_sampler_t
     pm_bufs_acquiring("bufs_acquiring", secs_to_ticks(1)),
     pm_bufs_held("bufs_held", secs_to_ticks(1));
 
-mc_buf_t::mc_buf_t(mc_inner_buf_t *inner_buf, access_t mode, mc_inner_buf_t::version_id_t version_to_access, bool snapshotted,
+mc_buf_t::mc_buf_t(mc_inner_buf_t *_inner_buf, access_t _mode, mc_inner_buf_t::version_id_t version_to_access, bool _snapshotted,
                    boost::function<void()> call_when_in_line, file_account_t *io_account)
-    : mode(mode), snapshotted(snapshotted), non_locking_access(snapshotted), inner_buf(inner_buf), data(NULL)
-{
+    : mode(_mode), snapshotted(_snapshotted), non_locking_access(_snapshotted), inner_buf(_inner_buf), data(NULL) {
     inner_buf->cache->assert_thread();
     inner_buf->refcount++;
     patches_affected_data_size_at_start = -1;
 
-    if (snapshotted) rassert(is_read_mode(mode), "Only read access is allowed to block snapshots");
+    if (snapshotted) {
+	rassert(is_read_mode(mode), "Only read access is allowed to block snapshots");
+    }
 
     // If the top version is less or equal to version_to_access, then we need to acquire
     // a read lock first (otherwise we may get the data of the unfinished write on top).
@@ -981,34 +981,34 @@ void mc_cache_t::create(serializer_t *serializer, mirrored_cache_static_config_t
 }
 
 mc_cache_t::mc_cache_t(
-            serializer_t *serializer,
+            serializer_t *_serializer,
             mirrored_cache_config_t *dynamic_config) :
 
     dynamic_config(*dynamic_config),
-    serializer(serializer),
-    reads_io_account(serializer->make_io_account(dynamic_config->io_priority_reads)),
-    writes_io_account(serializer->make_io_account(dynamic_config->io_priority_writes)),
+    serializer(_serializer),
+    reads_io_account(_serializer->make_io_account(dynamic_config->io_priority_reads)),
+    writes_io_account(_serializer->make_io_account(dynamic_config->io_priority_writes)),
     page_repl(
         // Launch page replacement if the user-specified maximum number of blocks is reached
-        dynamic_config->max_size / serializer->get_block_size().ser_value(),
+        dynamic_config->max_size / _serializer->get_block_size().ser_value(),
         this),
     writeback(
         this,
         dynamic_config->wait_for_flush,
         dynamic_config->flush_timer_ms,
-        dynamic_config->flush_dirty_size / serializer->get_block_size().ser_value(),
-        dynamic_config->max_dirty_size / serializer->get_block_size().ser_value(),
+        dynamic_config->flush_dirty_size / _serializer->get_block_size().ser_value(),
+        dynamic_config->max_dirty_size / _serializer->get_block_size().ser_value(),
         dynamic_config->flush_waiting_threshold,
         dynamic_config->max_concurrent_flushes),
     /* Build list of free blocks (the free_list constructor blocks) */
-    free_list(serializer),
+    free_list(_serializer),
     shutting_down(false),
     num_live_transactions(0),
     to_pulse_when_last_transaction_commits(NULL),
     max_patches_size_ratio((dynamic_config->wait_for_flush || dynamic_config->flush_timer_ms == 0) ? MAX_PATCHES_SIZE_RATIO_DURABILITY : MAX_PATCHES_SIZE_RATIO_MIN),
     read_ahead_registered(false),
-    next_snapshot_version(mc_inner_buf_t::faux_version_id+1)
-{
+    next_snapshot_version(mc_inner_buf_t::faux_version_id+1) {
+
 #ifndef NDEBUG
     writebacks_allowed = false;
 #endif
