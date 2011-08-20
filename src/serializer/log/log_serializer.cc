@@ -302,7 +302,7 @@ void log_serializer_t::block_read(const boost::shared_ptr<ls_block_token_t>& tok
 
     pm_serializer_block_reads.begin(&readcb->pm_time);
 
-    ls_block_token_t *ls_token = static_cast<ls_block_token_t *>(token.get());
+    ls_block_token_t *ls_token = token.get();
     rassert(ls_token);
     assert_thread();
     rassert(state == state_ready);
