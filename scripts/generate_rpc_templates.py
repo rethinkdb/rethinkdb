@@ -24,13 +24,13 @@ def generate_async_message_template(nargs):
     print "    async_mailbox_t(mailbox_cluster_t *cluster, const boost::function< void(" + csep("arg#_t") + ") > &fun) :"
     print "        mailbox_t(cluster), callback(fun) { }"
     print
-    print "    struct address_t {"
-    print "        address_t() { }"
-    print "        address_t(const address_t &other) : addr(other.addr) { }"
-    print "        address_t(async_mailbox_t *mb) : addr(mb) { }"
+    print "    class address_t {"
+    print "    public:"
     print "        bool is_nil() { return addr.is_nil(); }"
+    print "        peer_id_t get_peer() { return addr.get_peer(); }"
     print "        RDB_MAKE_ME_SERIALIZABLE_1(addr)"
     print "    private:"
+    print "        friend class async_mailbox_t;"
     if nargs == 0:
         print "        friend void send(mailbox_cluster_t*, address_t);"
     else:
@@ -39,6 +39,12 @@ def generate_async_message_template(nargs):
     print "        mailbox_t::address_t addr;"
     print "    };"
     print "    friend class address_t;"
+    print
+    print "    address_t get_address() {"
+    print "        address_t a;"
+    print "        a.addr = mailbox_t::get_address();"
+    print "        return a;"
+    print "    }"
     print
     print "private:"
     if nargs == 0:

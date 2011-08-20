@@ -7,12 +7,6 @@ mailbox_t::address_t::address_t() :
 
 mailbox_t::address_t::address_t(const address_t &a) :
     peer(a.peer), thread(a.thread), mailbox_id(a.mailbox_id) { }
-    
-mailbox_t::address_t::address_t(mailbox_t *mailbox) :
-    peer(mailbox->cluster->get_me()),
-    thread(mailbox->home_thread()),
-    mailbox_id(mailbox->mailbox_id)
-    { }
 
 bool mailbox_t::address_t::is_nil() const {
     return peer.is_nil();
@@ -21,6 +15,14 @@ bool mailbox_t::address_t::is_nil() const {
 peer_id_t mailbox_t::address_t::get_peer() const {
     rassert(!is_nil(), "A nil address has no peer");
     return peer;
+}
+
+mailbox_t::address_t mailbox_t::get_address() {
+    address_t a;
+    a.peer = cluster->get_me();
+    a.thread = home_thread();
+    a.mailbox_id = mailbox_id;
+    return a;
 }
 
 mailbox_t::mailbox_t(mailbox_cluster_t *cluster) :
