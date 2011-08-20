@@ -1,4 +1,7 @@
 #include "replication/backfill_in.hpp"
+
+#include "logger.hpp"
+
 #ifndef NDEBUG
 // We really shouldn't include this from here (the dependencies are
 // backwards), but we need it for

@@ -1,6 +1,9 @@
 #ifndef __MEMCACHED_MEMCACHED_PROTOCOL_HPP__
 #define __MEMCACHED_MEMCACHED_PROTOCOL_HPP__
 
+#include <vector>
+
+#include "errors.hpp"
 #include <boost/variant.hpp>
 
 #include "btree/slice.hpp"

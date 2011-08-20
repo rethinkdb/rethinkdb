@@ -1,16 +1,17 @@
 #ifndef __REPLICATION_MASTER_HPP__
 #define __REPLICATION_MASTER_HPP__
 
-#include "memcached/store.hpp"
-#include "server/gated_store.hpp"
-#include "replication/backfill_out.hpp"
-#include "replication/backfill_sender.hpp"
-#include "replication/backfill_receiver.hpp"
-#include "replication/backfill_in.hpp"
 #include "concurrency/mutex.hpp"
+#include "logger.hpp"
+#include "memcached/store.hpp"
+#include "replication/backfill_in.hpp"
+#include "replication/backfill_out.hpp"
+#include "replication/backfill_receiver.hpp"
+#include "replication/backfill_sender.hpp"
 #include "replication/net_structs.hpp"
 #include "replication/protocol.hpp"
 #include "server/cmd_args.hpp"
+#include "server/gated_store.hpp"
 
 class btree_key_value_store_t;
 
