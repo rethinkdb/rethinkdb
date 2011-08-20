@@ -3,7 +3,7 @@
 
 #include <stdlib.h>
 #include <stdint.h>
-
+#include <iostream>
 #include <string>
 
 #include "config/args.hpp"
@@ -34,7 +34,18 @@ public:
 
     static const repli_timestamp_t distant_past;
     static const repli_timestamp_t invalid;
+
+    /* Make `repli_timestamp_t` serializable using `boost::serialization` */
+    template<class Archive>
+    void serialize(Archive & ar, UNUSED unsigned int version) {
+        ar & time;
+    }
 };
+
+inline std::ostream &operator<<(std::ostream &os, repli_timestamp_t ts) {
+    os << ts.time;
+    return os;
+}
 
 struct const_charslice {
     const char *beg, *end;
