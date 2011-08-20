@@ -287,13 +287,13 @@ get_delete_bit(block_id_t id) {
 
 template<class inner_serializer_t>
 void semantic_checking_serializer_t<inner_serializer_t>::
-register_read_ahead_cb(UNUSED read_ahead_callback_t *cb) {
+register_read_ahead_cb(UNUSED serializer_read_ahead_callback_t *cb) {
     // Ignore this, it might make the checking ineffective...
 }
 
 template<class inner_serializer_t>
 void semantic_checking_serializer_t<inner_serializer_t>::
-unregister_read_ahead_cb(UNUSED read_ahead_callback_t *cb) { }
+unregister_read_ahead_cb(UNUSED serializer_read_ahead_callback_t *cb) { }
 
 template<class inner_serializer_t>
 bool semantic_checking_serializer_t<inner_serializer_t>::

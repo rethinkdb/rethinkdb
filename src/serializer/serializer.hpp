@@ -22,6 +22,13 @@ public:
     virtual ~serializer_block_token_t() { }
 };
 
+class serializer_read_ahead_callback_t {
+public:
+    virtual ~serializer_read_ahead_callback_t() { }
+    /* If the callee returns true, it is responsible to free buf by calling free(buf) in the corresponding serializer. */
+    virtual bool offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp) = 0;
+};
+
 struct serializer_t :
     /* Except as otherwise noted, the serializer's methods should only be called from the
     thread it was created on, and it should be destroyed on that same thread. */
@@ -43,17 +50,11 @@ struct serializer_t :
     virtual file_account_t *make_io_account(int priority, int outstanding_requests_limit) = 0;
 
     /* Some serializer implementations support read-ahead to speed up cache warmup.
-    This is supported through a read_ahead_callback_t which gets called whenever the serializer has read-ahead some buf.
+    This is supported through a serializer_read_ahead_callback_t which gets called whenever the serializer has read-ahead some buf.
     The callee can then decide whether it wants to use the offered buffer of discard it.
     */
-    class read_ahead_callback_t {
-    public:
-        virtual ~read_ahead_callback_t() { }
-        /* If the callee returns true, it is responsible to free buf by calling free(buf) in the corresponding serializer. */
-        virtual bool offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp) = 0;
-    };
-    virtual void register_read_ahead_cb(read_ahead_callback_t *cb) = 0;
-    virtual void unregister_read_ahead_cb(read_ahead_callback_t *cb) = 0;
+    virtual void register_read_ahead_cb(serializer_read_ahead_callback_t *cb) = 0;
+    virtual void unregister_read_ahead_cb(serializer_read_ahead_callback_t *cb) = 0;
 
     /* Reading a block from the serializer */
     // Non-blocking variant

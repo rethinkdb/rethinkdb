@@ -297,14 +297,14 @@ bool translator_serializer_t::offer_read_ahead_buf(block_id_t block_id, void *bu
     return true;
 }
 
-void translator_serializer_t::register_read_ahead_cb(translator_serializer_t::read_ahead_callback_t *cb) {
+void translator_serializer_t::register_read_ahead_cb(serializer_read_ahead_callback_t *cb) {
     on_thread_t t(inner->home_thread());
 
     rassert(!read_ahead_callback);
     inner->register_read_ahead_cb(this);
     read_ahead_callback = cb;
 }
-void translator_serializer_t::unregister_read_ahead_cb(UNUSED translator_serializer_t::read_ahead_callback_t *cb) {
+void translator_serializer_t::unregister_read_ahead_cb(UNUSED serializer_read_ahead_callback_t *cb) {
     on_thread_t t(inner->home_thread());
 
     rassert(read_ahead_callback == NULL || cb == read_ahead_callback);

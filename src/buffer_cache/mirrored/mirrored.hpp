@@ -18,7 +18,6 @@
 #include "concurrency/mutex.hpp"
 #include "containers/intrusive_list.hpp"
 #include "containers/two_level_array.hpp"
-#include "serializer/serializer.hpp"
 #include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/stats.hpp"
 #include "buffer_cache/buf_patch.hpp"
@@ -313,7 +312,7 @@ class mc_cache_account_t {
 
 
 
-class mc_cache_t : public home_thread_mixin_t, public serializer_t::read_ahead_callback_t {
+class mc_cache_t : public home_thread_mixin_t, public serializer_read_ahead_callback_t {
     friend class mc_buf_t;
     friend class mc_inner_buf_t;
     friend class mc_transaction_t;

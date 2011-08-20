@@ -3,6 +3,7 @@
 
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
+
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
 #include "concurrency/coro_fifo.hpp"
@@ -11,7 +12,7 @@
 #include "containers/segmented_vector.hpp"
 #include "utils.hpp"
 #include "serializer/serializer.hpp"
-#include "serializer/translator.hpp"
+// #include "serializer/translator.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/buf_patch.hpp"
@@ -95,7 +96,7 @@ class mock_cache_account_t {
     DISABLE_COPYING(mock_cache_account_t);
 };
 
-class mock_cache_t : public home_thread_mixin_t, public serializer_t::read_ahead_callback_t {
+class mock_cache_t : public home_thread_mixin_t, public serializer_read_ahead_callback_t {
 public:
     typedef mock_buf_t buf_t;
     typedef mock_transaction_t transaction_t;

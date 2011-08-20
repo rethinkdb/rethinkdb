@@ -100,7 +100,7 @@ private:
 /* Cache */
 
 template<class inner_cache_t>
-class scc_cache_t : public home_thread_mixin_t, public serializer_t::read_ahead_callback_t {
+class scc_cache_t : public home_thread_mixin_t, public serializer_read_ahead_callback_t {
 public:
     typedef scc_buf_t<inner_cache_t> buf_t;
     typedef scc_transaction_t<inner_cache_t> transaction_t;

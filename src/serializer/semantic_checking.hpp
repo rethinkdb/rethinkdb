@@ -85,8 +85,8 @@ public:
     repli_timestamp_t get_recency(block_id_t id);
     bool get_delete_bit(block_id_t id);
 
-    void register_read_ahead_cb(UNUSED read_ahead_callback_t *cb);
-    void unregister_read_ahead_cb(UNUSED read_ahead_callback_t *cb);
+    void register_read_ahead_cb(UNUSED serializer_read_ahead_callback_t *cb);
+    void unregister_read_ahead_cb(UNUSED serializer_read_ahead_callback_t *cb);
 
 public:
     typedef typename inner_serializer_t::gc_disable_callback_t gc_disable_callback_t;

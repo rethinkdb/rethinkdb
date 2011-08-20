@@ -80,19 +80,19 @@ of the block IDs available on the inner serializer, but presents the illusion of
 serializer. It is used for splitting one serializer among several buffer caches on different
 threads. */
 
-class translator_serializer_t : public serializer_t, public serializer_t::read_ahead_callback_t {
+class translator_serializer_t : public serializer_t, public serializer_read_ahead_callback_t {
 public:
-    typedef serializer_t::read_ahead_callback_t read_ahead_callback_t;
+    typedef serializer_read_ahead_callback_t serializer_read_ahead_callback_t;
 
-    void register_read_ahead_cb(read_ahead_callback_t *cb);
-    void unregister_read_ahead_cb(read_ahead_callback_t *cb);
+    void register_read_ahead_cb(serializer_read_ahead_callback_t *cb);
+    void unregister_read_ahead_cb(serializer_read_ahead_callback_t *cb);
     
 private:
     serializer_t *inner;
     int mod_count, mod_id;
     config_block_id_t cfgid;
 
-    read_ahead_callback_t *read_ahead_callback;
+    serializer_read_ahead_callback_t *read_ahead_callback;
 
 public:
     virtual ~translator_serializer_t() {}

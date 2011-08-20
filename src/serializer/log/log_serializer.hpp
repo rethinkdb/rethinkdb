@@ -138,8 +138,8 @@ public:
 
     file_account_t *make_io_account(int priority, int outstanding_requests_limit);
 
-    void register_read_ahead_cb(read_ahead_callback_t *cb);
-    void unregister_read_ahead_cb(read_ahead_callback_t *cb);
+    void register_read_ahead_cb(serializer_read_ahead_callback_t *cb);
+    void unregister_read_ahead_cb(serializer_read_ahead_callback_t *cb);
     block_id_t max_block_id();
     repli_timestamp_t get_recency(block_id_t id);
 
@@ -166,7 +166,7 @@ private:
     void remap_block_to_new_offset(off64_t current_offset, off64_t new_offset);
     boost::shared_ptr<serializer_block_token_t> generate_block_token(off64_t offset);
 
-    std::vector<read_ahead_callback_t*> read_ahead_callbacks;
+    std::vector<serializer_read_ahead_callback_t*> read_ahead_callbacks;
     bool offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp);
     bool should_perform_read_ahead();
 
