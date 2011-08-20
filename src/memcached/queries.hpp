@@ -8,6 +8,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/variant.hpp>
 
+#include "config/args.hpp"
 #include "utils.hpp"
 
 typedef uint32_t mcflags_t;

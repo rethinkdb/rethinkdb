@@ -6,6 +6,8 @@
 
 #include "errors.hpp"
 #include <boost/function.hpp>
+
+#include "config/args.hpp"
 #include "containers/bitset.hpp"
 
 /* The purpose of the conflict-resolving disk manager is to deal with the case
