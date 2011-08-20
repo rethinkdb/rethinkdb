@@ -15,10 +15,6 @@
 #include "buffer_cache/mirrored/config.hpp"
 #include "server/key_value_store_config.hpp"
 
-#include <boost/serialization/serialization.hpp>
-#include <boost/serialization/access.hpp>
-#include <boost/serialization/vector.hpp>
-
 /* Configuration for replication */
 struct replication_config_t {
     std::string hostname;
