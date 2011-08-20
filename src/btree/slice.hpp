@@ -7,6 +7,7 @@
 #include "serializer/serializer.hpp"
 
 class backfill_callback_t;
+class key_tester_t;
 
 /* btree_slice_t is a thin wrapper around cache_t that handles initializing the buffer
 cache for the purpose of storing a btree. There are many btree_slice_ts per
@@ -38,7 +39,7 @@ public:
 
     /* btree_slice_t interface */
 
-    void backfill_delete_range(int hash_value, int hashmod,
+    void backfill_delete_range(key_tester_t *tester,
                                bool left_key_supplied, const store_key_t& left_key_exclusive,
                                bool right_key_supplied, const store_key_t& right_key_inclusive,
                                order_token_t token);
