@@ -13,12 +13,15 @@
 #include <limits>
 #include <string>
 
-#include "arch/runtime/runtime.hpp"
 #include "utils.hpp"
 #include "config/args.hpp"
 #include "containers/intrusive_list.hpp"
 #include "stats/control.hpp"
 #include "perfmon_types.hpp"
+
+// Some arch/runtime declarations.
+int get_num_threads();
+int get_thread_id();
 
 // Pad a value to the size of a cache line to avoid false sharing.
 // TODO: This is implemented as a struct with subtraction rather than a union
@@ -77,7 +80,6 @@ calculations, which might take longer but will produce more informative performa
 stats. The command-line flag `--full-perfmon` sets `global_full_perfmon` to true. */
 
 extern bool global_full_perfmon;
-
 
 // Abstract perfmon subclass that implements perfmon tracking by combining per-thread values.
 template<typename thread_stat_t, typename combined_stat_t = thread_stat_t>
