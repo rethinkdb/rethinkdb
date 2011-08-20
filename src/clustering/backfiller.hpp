@@ -23,8 +23,8 @@ struct backfiller_t :
     backfiller_metadata_t<protocol_t> get_business_card() {
         assert_thread();
         backfiller_metadata_t<protocol_t> business_card;
-        business_card.backfill_mailbox = &backfill_mailbox;
-        business_card.cancel_backfill_mailbox = &cancel_backfill_mailbox;
+        business_card.backfill_mailbox = backfill_mailbox->get_address();
+        business_card.cancel_backfill_mailbox = cancel_backfill_mailbox->get_address();
         return business_card;
     }
 
@@ -66,13 +66,23 @@ private:
         /* Set up a cond that gets pulsed if we're interrupted either way */
         wait_any_t interrupted(&local_interruptor, &global_interruptor);
 
+        /* Calling `send_chunk()` will send a chunk to the backfillee. We need
+        to cast `send()` to the correct type before calling `boost::bind()` so
+        that C++ will find the correct overload. */
+        void (*send_cast_to_correct_type)(
+            mailbox_cluster_t *,
+            typename async_mailbox_t<void(typename protocol_t::store_t::backfill_chunk_t)>::address_t,
+            const typename protocol_t::store_t::backfill_chunk_t &) = &send;
+        boost::function<void(typename protocol_t::store_t::backfill_chunk_t)> send_fun =
+            boost::bind(send_cast_to_correct_type, cluster, chunk_cont, _1);
+
         /* Perform the backfill */
         bool success;
         typename protocol_t::store_t::backfill_end_t end;
         try {
-            end = store->send_backfill(
+            end = store->backfiller(
                 request,
-                boost::bind(&send, cluster, chunk_cont, _1),
+                send_fun,
                 &interrupted);
             success = true;
         } catch (interrupted_exc_t) {

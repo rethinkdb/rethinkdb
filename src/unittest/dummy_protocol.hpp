@@ -7,6 +7,7 @@
 #include <map>
 #include "utils.hpp"
 #include "concurrency/fifo_checker.hpp"
+#include "rpc/serialize_macros.hpp"
 
 struct signal_t;
 
@@ -23,6 +24,8 @@ public:
         bool overlaps(const region_t &r);
         region_t intersection(const region_t &r);
 
+        RDB_MAKE_ME_SERIALIZABLE_1(keys);
+
         std::set<std::string> keys;
     };
 
@@ -33,6 +36,8 @@ public:
         std::vector<read_t> shard(std::vector<region_t> regions);
         std::vector<read_t> parallelize(int optimal_factor);
 
+        RDB_MAKE_ME_SERIALIZABLE_1(keys);
+
         region_t keys;
     };
 
@@ -41,6 +46,8 @@ public:
     public:
         static read_response_t unshard(std::vector<read_response_t> resps);
         static read_response_t unparallelize(std::vector<read_response_t> resps);
+
+        RDB_MAKE_ME_SERIALIZABLE_1(values);
 
         std::map<std::string, std::string> values;
     };
@@ -51,6 +58,8 @@ public:
         region_t get_region();
         std::vector<write_t> shard(std::vector<region_t> regions);
 
+        RDB_MAKE_ME_SERIALIZABLE_1(values);
+
         std::map<std::string, std::string> values;
     };
 
@@ -58,6 +67,8 @@ public:
 
     public:
         static write_response_t unshard(std::vector<write_response_t> resps);
+
+        RDB_MAKE_ME_SERIALIZABLE_1(old_values);
 
         std::map<std::string, std::string> old_values;
     };
@@ -77,15 +88,18 @@ public:
         struct backfill_request_t {
             region_t region;
             repli_timestamp_t earliest, latest;
+            RDB_MAKE_ME_SERIALIZABLE_3(region, earliest, latest);
         };
 
         struct backfill_chunk_t {
             std::string key, value;
             repli_timestamp_t timestamp;
+            RDB_MAKE_ME_SERIALIZABLE_3(key, value, timestamp);
         };
 
         struct backfill_end_t {
             repli_timestamp_t timestamp;
+            RDB_MAKE_ME_SERIALIZABLE_1(timestamp);
         };
 
         backfill_request_t backfillee_begin();

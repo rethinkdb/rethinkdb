@@ -35,14 +35,14 @@ public:
             mailbox_cluster_t *cluster,
             metadata_read_view_t<resource_metadata_t<business_card_t> > *view) :
         view(view),
-        subs(boost::bind(&resource_access_t::check_dead), this),
+        subs(boost::bind(&resource_access_t::check_dead, this), view),
         disconnect_watcher(cluster, view->get().peer),
         either_failed(&resource_went_offline, &disconnect_watcher)
         { }
 
     /* Returns a `signal_t *` that will be pulsed when access to the resource is
     lost. */
-    signal_t *get_signal() {
+    signal_t *get_failed_signal() {
         return &either_failed;
     }
 

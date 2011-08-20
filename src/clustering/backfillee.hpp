@@ -52,22 +52,30 @@ void backfill(
         backfiller.access().backfill_mailbox,
         backfill_session_id,
         request,
-        &backfill_mailbox,
-        &backfill_done_mailbox);
+        backfill_mailbox.get_address(),
+        backfill_done_mailbox.get_address());
 
     /* If something goes wrong, we'd like to inform the backfiller that it has
     gone wrong. `backfiller_notifier` notifies the backfiller in its destructor.
     If everything goes right, we'll explicitly disarm it. */
 
     death_runner_t backfiller_notifier;
-    backfiller_notifier.fun = boost::bind(
-        &send, cluster,
-        backfiller.access().cancel_backfill_mailbox,
-        backfill_session_id);
+    {
+        /* We have to cast `send()` to the correct type before we pass it to
+        `boost::bind()`, or else C++ can't figure out which overload to use. */
+        void (*send_cast_to_correct_type)(
+            mailbox_cluster_t *,
+            typename backfiller_metadata_t<protocol_t>::cancel_backfill_mailbox_t::address_t,
+            const typename backfiller_metadata_t<protocol_t>::backfill_session_id_t &) = &send;
+        backfiller_notifier.fun = boost::bind(
+            send_cast_to_correct_type, cluster,
+            backfiller.access().cancel_backfill_mailbox,
+            backfill_session_id);
+    }
 
     /* Wait until either the backfill is over or something goes wrong */
 
-    wait_any_t waiter(backfill_is_done.get_signal(), backfiller.get_failed_signal(), interruptor);
+    wait_any_t waiter(backfill_is_done.get_ready_signal(), backfiller.get_failed_signal(), interruptor);
     waiter.wait_lazily_unordered();
 
     /* If the we broke out because of the backfiller becoming inaccessible, this
