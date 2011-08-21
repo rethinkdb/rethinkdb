@@ -67,7 +67,7 @@ class mc_inner_buf_t : public home_thread_mixin_t, public evictable_t {
     void *data;
     version_id_t version_id;
     /* As long as data has not been changed since the last serializer write, data_token contains a token to the on-serializer block */
-    boost::shared_ptr<standard_block_token_t> data_token;
+    boost::intrusive_ptr<standard_block_token_t> data_token;
 
     rwi_lock_t lock;
     patch_counter_t next_patch_counter;
@@ -109,7 +109,7 @@ class mc_inner_buf_t : public home_thread_mixin_t, public evictable_t {
 
     // Informs us that a certain data buffer (whether the current one or one used by a
     // buf_snapshot_t) has been written back to disk; used by writeback
-    void update_data_token(const void *data, boost::shared_ptr<standard_block_token_t> token);
+    void update_data_token(const void *data, const boost::intrusive_ptr<standard_block_token_t>& token);
 
     block_sequence_id_t block_sequence_id;
 

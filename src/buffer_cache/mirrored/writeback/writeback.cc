@@ -265,8 +265,8 @@ public:
     {
         writeback_t *parent;
         mc_buf_t *buf;
-        boost::shared_ptr<standard_block_token_t> token;
-        void on_write_launched(boost::shared_ptr<standard_block_token_t> tok) {
+        boost::intrusive_ptr<standard_block_token_t> token;
+        void on_write_launched(const boost::intrusive_ptr<standard_block_token_t>& tok) {
             token = tok;        // XXX does this work?
             if (continue_on_thread(home_thread(), this)) on_thread_switch();
         }

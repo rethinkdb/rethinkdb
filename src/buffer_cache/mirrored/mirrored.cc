@@ -1,5 +1,3 @@
-#include <boost/shared_ptr.hpp>
-
 #include "buffer_cache/mirrored/mirrored.hpp"
 
 #include "errors.hpp"
@@ -32,7 +30,7 @@ perfmon_persistent_counter_t pm_cache_hits("cache_hits"), pm_cache_misses("cache
 struct mc_inner_buf_t::buf_snapshot_t : evictable_t, intrusive_list_node_t<mc_inner_buf_t::buf_snapshot_t> {
     buf_snapshot_t(mc_inner_buf_t *buf, version_id_t version,
                    size_t _snapshot_refcount, size_t _active_refcount,
-                   void *_data, const boost::shared_ptr<standard_block_token_t>& _token)
+                   void *_data, const boost::intrusive_ptr<standard_block_token_t>& _token)
         : evictable_t(buf->cache, _data ? true : false),
           parent(buf), snapshotted_version(version),
           data(_data), token(_token),
@@ -96,7 +94,7 @@ struct mc_inner_buf_t::buf_snapshot_t : evictable_t, intrusive_list_node_t<mc_in
     version_id_t snapshotted_version;
     mutable mutex_t data_mutex;
     void *data;
-    boost::shared_ptr<standard_block_token_t> token;
+    boost::intrusive_ptr<standard_block_token_t> token;
     // snapshot_refcount is the number of snapshots that could potentially use this buf_snapshot_t.
     size_t snapshot_refcount;
     // active_refcount is the number of mc_buf_ts currently using this buf_snapshot_t. As long as
@@ -398,7 +396,7 @@ bool mc_inner_buf_t::safe_to_unload() {
     return !lock.locked() && writeback_buf.safe_to_unload() && refcount == 0 && cow_refcount == 0 && snapshots.empty();
 }
 
-void mc_inner_buf_t::update_data_token(const void *data, boost::shared_ptr<standard_block_token_t> token) {
+void mc_inner_buf_t::update_data_token(const void *data, const boost::intrusive_ptr<standard_block_token_t>& token) {
     cache->assert_thread();
     if (data == this->data) {
         rassert(!data_token, "data token already up-to-date");

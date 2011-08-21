@@ -9,7 +9,7 @@ file_account_t *serializer_t::make_io_account(int priority) {
 }
 
 // Blocking block_read implementation
-void serializer_t::block_read(const boost::shared_ptr<standard_block_token_t>& token, void *buf, file_account_t *io_account) {
+void serializer_t::block_read(const boost::intrusive_ptr<standard_block_token_t>& token, void *buf, file_account_t *io_account) {
     struct : public cond_t, public iocallback_t {
         void on_io_complete() { pulse(); }
     } cb;
@@ -18,17 +18,17 @@ void serializer_t::block_read(const boost::shared_ptr<standard_block_token_t>& t
 }
 
 // Blocking block_write implementation
-boost::shared_ptr<standard_block_token_t>
+boost::intrusive_ptr<standard_block_token_t>
 serializer_t::block_write(const void *buf, file_account_t *io_account) {
     return serializer_block_write(this, buf, io_account);
 }
 
-boost::shared_ptr<standard_block_token_t>
+boost::intrusive_ptr<standard_block_token_t>
 serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account) {
     return serializer_block_write(this, buf, block_id, io_account);
 }
 
-boost::shared_ptr<standard_block_token_t>
+boost::intrusive_ptr<standard_block_token_t>
 serializer_t::block_write(const void *buf, file_account_t *io_account, iocallback_t *cb) {
     return serializer_block_write(this, buf, io_account, cb);
 }
@@ -89,7 +89,7 @@ struct write_performer_t : public boost::static_visitor<void> {
     }
 
     void operator()(const serializer_t::write_t::delete_t &del) {
-        op->token = boost::shared_ptr<standard_block_token_t>();
+        op->token = boost::intrusive_ptr<standard_block_token_t>();
         op->delete_bit = true;
         op->recency = repli_timestamp_t::invalid;
         if (del.write_zero_block) {
