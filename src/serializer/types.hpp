@@ -67,7 +67,7 @@ class ls_block_token_t {
     log_serializer_t *serializer;
 
 public:
-    virtual ~ls_block_token_t();
+    ~ls_block_token_t();
 };
 
 
