@@ -152,7 +152,7 @@ struct serializer_traits_t<serializer_t> {
     typedef standard_block_token_t block_token_type;
 };
 
-// TODO: time_t is disgusting.
+// TODO: time_t's size is system-dependent.
 typedef time_t creation_timestamp_t;
 
 #endif  // __SERIALIZER_TYPES_HPP__
