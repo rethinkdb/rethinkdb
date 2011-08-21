@@ -60,20 +60,20 @@ template <class serializer_type> struct serializer_traits_t;
 
 class log_serializer_t;
 
-class ls_block_token_t {
+class ls_block_token_pointee_t {
     friend class log_serializer_t;
 
-    ls_block_token_t(log_serializer_t *serializer, off64_t initial_offset);
+    ls_block_token_pointee_t(log_serializer_t *serializer, off64_t initial_offset);
     log_serializer_t *serializer;
 
 public:
-    ~ls_block_token_t();
+    ~ls_block_token_pointee_t();
 };
 
 
 template <>
 struct serializer_traits_t<log_serializer_t> {
-    typedef ls_block_token_t block_token_type;
+    typedef ls_block_token_pointee_t block_token_type;
 };
 
 #ifdef SEMANTIC_SERIALIZER_CHECK
@@ -125,7 +125,7 @@ struct serializer_traits_t<semantic_checking_serializer_t<inner_serializer_type>
 // God this is such a hack (Part 1 of 2)
 inline
 boost::shared_ptr< scs_block_token_t<log_serializer_t> >
-to_standard_block_token(block_id_t block_id, const boost::shared_ptr<ls_block_token_t>& tok) {
+to_standard_block_token(block_id_t block_id, const boost::shared_ptr<ls_block_token_pointee_t>& tok) {
     boost::shared_ptr< scs_block_token_t<log_serializer_t> > ret(new scs_block_token_t<log_serializer_t>(block_id, scs_block_info_t(), tok));
     return ret;
 }
@@ -136,8 +136,8 @@ typedef log_serializer_t standard_serializer_t;
 
 // God this is such a hack (Part 2 of 2)
 inline
-boost::shared_ptr<ls_block_token_t>
-to_standard_block_token(UNUSED block_id_t block_id, const boost::shared_ptr<ls_block_token_t>& tok) {
+boost::shared_ptr<ls_block_token_pointee_t>
+to_standard_block_token(UNUSED block_id_t block_id, const boost::shared_ptr<ls_block_token_pointee_t>& tok) {
     return tok;
 }
 
