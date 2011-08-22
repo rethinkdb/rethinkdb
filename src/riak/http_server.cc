@@ -549,11 +549,17 @@ http_res_t riak_server_t::mapreduce(const http_req_t &req) {
 
     http_res_t res;
 
-    std::string res_val = riak_interface.mapreduce(job);
-    fprintf(stderr, "Map-Red result: %s\n", res_val.c_str());
-
-    res.code = 200;
-    res.set_body("application/json", res_val);
+    try {
+        std::string res_val = riak_interface.mapreduce(job);
+        res.code = 200;
+        res.set_body("application/json", res_val);
+    } catch (JS::engine_exception exc) {
+        res.code = 500;
+        json::mObject exception_report;
+        exception_report["message"] = exc.what();
+        res.set_body("application/json", json::write_string(json::mValue(exception_report)));
+        return res;
+    }
 
     return res;
 }

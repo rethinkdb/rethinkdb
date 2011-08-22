@@ -79,7 +79,7 @@ public:
     // Mapreduce operations:
 
     //run a mapreduce job
-    std::string mapreduce(json::mValue &);
+    std::string mapreduce(json::mValue &) throw(JS::engine_exception);
 private:
     //supporting cast for mapreduce just to make this code a bit more readable
     
@@ -97,6 +97,10 @@ public:
 
 private:
     JS::ctx_group_t ctx_group;
+
+    //used to initialize the field ctx_group with riaks built in mapred
+    //functions.
+    static void initialize_riak_ctx(JS::ctx_t &);
 };
 
 //A few convenience functions for dealing with the javascript engine.
@@ -114,7 +118,6 @@ private:
 
 JS::scoped_js_value_t object_to_jsvalue(JS::ctx_t &, object_t &);
 
-std::string js_obj_to_string(JSStringRef);
 
 } //namespace riak
 

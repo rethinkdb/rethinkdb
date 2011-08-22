@@ -8,6 +8,13 @@
 #include "arch/runtime/context_switching.hpp"
 #include "utils.hpp"
 
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <string>
+
+
+
 namespace riak {
 
 
@@ -219,7 +226,7 @@ std::string secs_to_riak_date(time_t secs) {
     free(time);
 }
 
-std::string riak_interface_t::mapreduce(json::mValue &val) {
+std::string riak_interface_t::mapreduce(json::mValue &val) throw(JS::engine_exception){
     std::vector<object_t> inputs;
 
     json::mArray::iterator it  = val.get_obj()["inputs"].get_array().begin();
@@ -245,7 +252,9 @@ std::string riak_interface_t::mapreduce(json::mValue &val) {
     }
 
     //startup the javascript contexts
-    JS::ctx_t ctx = ctx_group.new_ctx();
+    JS::ctx_t ctx(&ctx_group);
+    //put the riak built in functions in the ctx
+    initialize_riak_ctx(ctx);
 
     // convert the values to js_values
     std::vector<JS::scoped_js_value_t> js_values;
@@ -270,7 +279,7 @@ std::string riak_interface_t::mapreduce(json::mValue &val) {
             }
 
             JS::scoped_js_value_t value = js_reduce(ctx, query_it->get_obj()["reduce"].get_obj()["source"].get_str(), js_values);
-            res = js_obj_to_string(JSValueCreateJSONString(ctx.get(), value.get(), 0, NULL));
+            res = JS::js_obj_to_string(ctx.JSValueCreateJSONString(value, 0));
         } else {
             fprintf(stderr, "Don't know how to handle: %s\n", json::write_string(json::mValue(query_it->get_obj())).c_str());
             goto MALFORMED_REQUEST;
@@ -280,7 +289,6 @@ std::string riak_interface_t::mapreduce(json::mValue &val) {
     return res;
 
 MALFORMED_REQUEST:
-    fprintf(stderr, "About to crash\n");
     crash("Not implemented");
 }
 
@@ -297,12 +305,12 @@ std::vector<object_t> riak_interface_t::follow_links(std::vector<object_t> const
 }
 
 std::vector<JS::scoped_js_value_t> riak_interface_t::js_map(JS::ctx_t &ctx, std::string src, std::vector<JS::scoped_js_value_t> values) {
-    JSStringRef scriptJS = JSStringCreateWithUTF8CString(("(" + src + ")").c_str());
-    JSObjectRef fn = JSValueToObject(ctx.get(), JSEvaluateScript(ctx.get(), scriptJS, NULL, NULL, 0, NULL), NULL);
+    JS::scoped_js_string_t scriptJS(JSStringCreateWithUTF8CString(("(" + src + ")").c_str()));
+    JS::scoped_js_object_t fn(ctx.JSValueToObject(ctx.JSEvaluateScript(scriptJS, NULL, NULL, 0)));
 
     std::vector<JS::scoped_js_value_t> res;
     for (std::vector<JS::scoped_js_value_t>::iterator jsval_it = values.begin(); jsval_it != values.end(); jsval_it++) {
-        res.push_back(JS::scoped_js_value_t(&ctx, JSObjectCallAsFunction(ctx.get(), fn, NULL, 1, jsval_it->get_ptr(), NULL)));
+        res.push_back(ctx.JSObjectCallAsFunction(fn, NULL, *jsval_it));
     }
 
     return res;
@@ -311,21 +319,38 @@ std::vector<JS::scoped_js_value_t> riak_interface_t::js_map(JS::ctx_t &ctx, std:
 JS::scoped_js_value_t riak_interface_t::js_reduce(JS::ctx_t &ctx, std::string src, std::vector<JS::scoped_js_value_t> values) {
     // create the data to be given to the script
     JS::scoped_js_value_array_t array_args(&ctx, values);
-    JSObjectRef data_list = JSObjectMakeArray(ctx.get(), array_args.size(), array_args.data(), NULL);
-    JSStringRef collapse_script= JSStringCreateWithUTF8CString("(function(x) { return x.reduce(function(a, b) { return a.concat(b); }, []); })");
-    JSObjectRef collapse_fn = JSValueToObject(ctx.get(), JSEvaluateScript(ctx.get(), collapse_script, NULL, NULL, 0, NULL), NULL);
-    JS::scoped_js_value_t collapsed_data(&ctx, JSObjectCallAsFunction(ctx.get(), collapse_fn, NULL, 1, &data_list, NULL));
+    JS::scoped_js_object_t data_list = ctx.JSObjectMakeArray(array_args);
+
+    JS::scoped_js_string_t collapse_script(JSStringCreateWithUTF8CString("(function(x) { return x.reduce(function(a, b) { return a.concat(b); }, []); })"));
+    JS::scoped_js_object_t collapse_fn = ctx.JSValueToObject(ctx.JSEvaluateScript(collapse_script.get(), NULL, NULL, 0));
+    JS::scoped_js_value_t collapsed_data = ctx.JSObjectCallAsFunction(collapse_fn, NULL, data_list);
 
     // create the function
-    JSStringRef scriptJS = JSStringCreateWithUTF8CString(("(" + src + ")").c_str());
-    JSObjectRef fn = JSValueToObject(ctx.get(), JSEvaluateScript(ctx.get(), scriptJS, NULL, NULL, 0, NULL), NULL);
+    JS::scoped_js_string_t scriptJS(JSStringCreateWithUTF8CString(("(" + src + ")").c_str()));
+    JS::scoped_js_object_t fn = ctx.JSValueToObject(ctx.JSEvaluateScript(scriptJS.get(), NULL, NULL, 0));
 
     //evaluate the function on the data
-    return JS::scoped_js_value_t(&ctx, JSObjectCallAsFunction(ctx.get(), fn, NULL, 1, collapsed_data.get_ptr(), NULL));
+    JS::scoped_js_value_t res = ctx.JSObjectCallAsFunction(fn, NULL, collapsed_data);
+    return res;
+
+    //return ctx.JSObjectCallAsFunction(fn, NULL, collapsed_data);
 }
 
 std::string riak_interface_t::gen_key() {
     crash("Not implementated");
+}
+
+void riak_interface_t::initialize_riak_ctx(JS::ctx_t &ctx) {
+    std::ifstream ifs("../assets/riak/mapred_builtins.js");
+    rassert(ifs);
+    std::stringstream oss;
+    oss << ifs.rdbuf();
+    rassert(ifs || ifs.eof());
+    std::string script(oss.str());
+
+
+    JS::scoped_js_string_t scriptJS(JSStringCreateWithUTF8CString(script.c_str()));
+    ctx.JSEvaluateScript(scriptJS, NULL, NULL, 0);
 }
 
 JS::scoped_js_value_t object_to_jsvalue(JS::ctx_t &ctx, object_t &obj) {
@@ -353,12 +378,7 @@ JS::scoped_js_value_t object_to_jsvalue(JS::ctx_t &ctx, object_t &obj) {
         meta_data_obj["Links"].get_array().push_back(link);
     }
 
-    return JS::scoped_js_value_t(&ctx, JSValueMakeFromJSONString(ctx.get(), JSStringCreateWithUTF8CString(json::write_string(json::mValue(js_obj)).c_str())));
+    return ctx.JSValueMakeFromJSONString(json::write_string(json::mValue(js_obj)));
 }
 
-std::string js_obj_to_string(JSStringRef str) {
-    char result_buf[1024];
-    JSStringGetUTF8CString(str, result_buf, sizeof(result_buf));
-    return std::string(result_buf);
-}
 } //namespace riak

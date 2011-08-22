@@ -21,6 +21,10 @@ std::string human_readable_status(int code) {
         return "Not Found";
     case 412:
         return "Precondition Failed";
+    case 500:
+        return "Internal Server Error";
+    case 503:
+        return "Service Unavailable";
     default:
         unreachable();
     }
