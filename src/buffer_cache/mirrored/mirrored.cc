@@ -27,7 +27,7 @@ perfmon_persistent_counter_t pm_cache_hits("cache_hits"), pm_cache_misses("cache
 
 // TODO (rntz): it should be possible for us to cause snapshots which were not cow-referenced to be
 // flushed to disk during writeback, sans block id, to allow them to be unloaded if necessary.
-struct mc_inner_buf_t::buf_snapshot_t : evictable_t, intrusive_list_node_t<mc_inner_buf_t::buf_snapshot_t> {
+struct mc_inner_buf_t::buf_snapshot_t : private evictable_t, public intrusive_list_node_t<mc_inner_buf_t::buf_snapshot_t> {
     buf_snapshot_t(mc_inner_buf_t *buf, version_id_t version,
                    size_t _snapshot_refcount, size_t _active_refcount,
                    void *_data, const boost::intrusive_ptr<standard_block_token_t>& _token)
