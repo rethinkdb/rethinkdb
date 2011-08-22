@@ -2,6 +2,8 @@
 #define __CLUSTERING_BACKFILLER_HPP__
 
 #include "clustering/backfill_metadata.hpp"
+#include "rpc/metadata/view.hpp"
+#include "clustering/resource.hpp"
 #include "concurrency/wait_any.hpp"
 #include <map>
 
@@ -9,7 +11,10 @@ template<class protocol_t>
 struct backfiller_t :
     public home_thread_mixin_t
 {
-    backfiller_t(mailbox_cluster_t *c, typename protocol_t::store_t *s) :
+    backfiller_t(
+            mailbox_cluster_t *c,
+            typename protocol_t::store_t *s,
+            metadata_readwrite_view_t<resource_metadata_t<backfiller_metadata_t<protocol_t> > > *md_view) :
         cluster(c), store(s)
     {
         /* Set up mailboxes, in scoped pointers so we can deconstruct them when
@@ -18,17 +23,18 @@ struct backfiller_t :
             cluster, boost::bind(&backfiller_t::on_backfill, this, _1, _2, _3, _4)));
         cancel_backfill_mailbox.reset(new typename backfiller_metadata_t<protocol_t>::cancel_backfill_mailbox_t(
             cluster, boost::bind(&backfiller_t::on_cancel_backfill, this, _1)));
-    }
 
-    backfiller_metadata_t<protocol_t> get_business_card() {
-        assert_thread();
+        /* Advertise our existence */
         backfiller_metadata_t<protocol_t> business_card;
         business_card.backfill_mailbox = backfill_mailbox->get_address();
         business_card.cancel_backfill_mailbox = cancel_backfill_mailbox->get_address();
-        return business_card;
+        advertisement.reset(new resource_advertisement_t<backfiller_metadata_t<protocol_t> >(cluster, md_view, business_card));
     }
 
     ~backfiller_t() {
+
+        /* Stop advertising our existence */
+        advertisement.reset();
 
         /* Tear down mailboxes so no new backfills can begin. It doesn't matter
         if we receive further messages in our `cancel_backfill_mailbox` at this
@@ -113,12 +119,14 @@ private:
     mailbox_cluster_t *cluster;
     typename protocol_t::store_t *store;
 
-    boost::scoped_ptr<typename backfiller_metadata_t<protocol_t>::backfill_mailbox_t> backfill_mailbox;
-    boost::scoped_ptr<typename backfiller_metadata_t<protocol_t>::cancel_backfill_mailbox_t> cancel_backfill_mailbox;
-
     drain_semaphore_t drain_semaphore;
     cond_t global_interruptor;
     std::map<session_id_t, cond_t *> local_interruptors;
+
+    boost::scoped_ptr<typename backfiller_metadata_t<protocol_t>::backfill_mailbox_t> backfill_mailbox;
+    boost::scoped_ptr<typename backfiller_metadata_t<protocol_t>::cancel_backfill_mailbox_t> cancel_backfill_mailbox;
+
+    boost::scoped_ptr<resource_advertisement_t<backfiller_metadata_t<protocol_t> > > advertisement;
 };
 
 #endif /* __CLUSTERING_BACKFILLER_HPP__ */

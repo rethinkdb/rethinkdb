@@ -3,42 +3,41 @@
 
 #include "rpc/metadata/view.hpp"
 
-/* `metadata_read_view_controller_t` exposes a `metadata_read_view_t` (via the
-`get_view()` method), the value of which can be changed by calling the `join()`
-method on the controller. */
+/* `metadata_view_controller_t` exposes a `metadata_readwrite_view_t` (via the
+`get_view()` method) which isn't hooked up to any other nodes in the cluster.
+It's mostly useful for testing purposes. */
 
 template<class metadata_t>
-class metadata_read_view_controller_t {
+class metadata_view_controller_t {
 
 public:
-    metadata_read_view_controller_t(const metadata_t &m) :
+    metadata_view_controller_t(const metadata_t &m) :
         view(this),
         metadata(m),
         change_publisher(&change_lock) { }
 
-    metadata_read_view_t<metadata_t> *get_view() {
+    metadata_readwrite_view_t<metadata_t> *get_view() {
         return &view;
     }
 
-    void join(const metadata_t &new_metadata) {
-        mutex_acquisition_t change_acq(&change_lock);
-        semilattice_join(&metadata, new_metadata);
-        change_publisher.publish(&call, &change_acq);
-    }
-
 private:
-    class view_t : public metadata_read_view_t<metadata_t> {
+    class view_t : public metadata_readwrite_view_t<metadata_t> {
     public:
         metadata_t get() {
             return controller->metadata;
         }
+        void join(const metadata_t &new_metadata) {
+            mutex_acquisition_t change_acq(&controller->change_lock);
+            semilattice_join(&controller->metadata, new_metadata);
+            controller->change_publisher.publish(&metadata_view_controller_t::call, &change_acq);
+        }
     private:
-        friend class metadata_read_view_controller_t;
+        friend class metadata_view_controller_t;
         publisher_t<boost::function<void()> > *get_publisher() {
             return controller->change_publisher.get_publisher();
         }
-        view_t(metadata_read_view_controller_t *c) : controller(c) { }
-        metadata_read_view_controller_t *controller;
+        view_t(metadata_view_controller_t *c) : controller(c) { }
+        metadata_view_controller_t *controller;
     } view;
 
     metadata_t metadata;

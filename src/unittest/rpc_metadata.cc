@@ -124,14 +124,14 @@ TEST(RPCMetadataTest, Watcher) {
     run_in_thread_pool(&run_watcher_test, 2);
 }
 
-/* `ViewController` tests `metadata_read_view_controller_t`. */
+/* `ViewController` tests `metadata_view_controller_t`. */
 
 void run_view_controller_test() {
 
-    metadata_read_view_controller_t<uint64_t> controller(16);
+    metadata_view_controller_t<uint64_t> controller(16);
     EXPECT_EQ(controller.get_view()->get(), 16);
 
-    controller.join(2);
+    controller.get_view()->join(2);
     EXPECT_EQ(controller.get_view()->get(), 18);
 
     bool have_been_notified = false;
@@ -141,7 +141,7 @@ void run_view_controller_test() {
 
     EXPECT_FALSE(have_been_notified);
 
-    controller.join(1);
+    controller.get_view()->join(1);
     EXPECT_EQ(controller.get_view()->get(), 19);
 
     EXPECT_TRUE(have_been_notified);
@@ -154,7 +154,7 @@ TEST(RPCMetadataTest, ViewController) {
 
 void run_field_view_test() {
 
-    metadata_read_view_controller_t<semilattice_test_t> controller(
+    metadata_view_controller_t<semilattice_test_t> controller(
         semilattice_test_t(8, 4));
     metadata_field_read_view_t<semilattice_test_t, uint64_t> x_view(
         &semilattice_test_t::x, controller.get_view());
@@ -167,7 +167,7 @@ void run_field_view_test() {
         &x_view);
 
     EXPECT_FALSE(have_been_notified);
-    controller.join(semilattice_test_t(1, 0));
+    controller.get_view()->join(semilattice_test_t(1, 0));
     EXPECT_TRUE(have_been_notified);
 
     EXPECT_EQ(x_view.get(), 9);

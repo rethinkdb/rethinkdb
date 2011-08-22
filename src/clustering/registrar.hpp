@@ -103,7 +103,8 @@ public:
         }
 
         void on_disconnect() {
-            mutex_
+            drain_semaphore_t::lock_t keepalive(&drain_semaphore);
+            coro_t::spawn(boost::bind(&registrar_t::on_deregister, this, keepalive));
         }
 
         ~registrant_t() {
@@ -152,43 +153,4 @@ public:
         business_card.deregister_mailbox = &deregister_mailbox;
         return business_card;
     }
-
-private:
-    mailbox_cluster_t *cluster;
-
-    callback_t *callback;
-
-    mutex_t registrants_lock;
-
-    /* `registrants` must be deconstructed after the mailboxes are
-    deconstructed, or else a message might try to access a registrant as
-    `registrants` was being destroyed. */
-    boost::ptr_map<registration_id_t, registrant_t> registrants;
-
-    registrar_metadata_t<protocol_t>::register_mailbox_t register_mailbox;
-    registrar_metadata_t<protocol_t>::upgrade_mailbox_t upgrade_mailbox;
-    registrar_metadata_t<protocol_t>::deregister_mailbox_t deregister_mailbox;
-
-    void on_register(registration_id_t rid, registrar_metadata_t<protocol_t>::write_mailbox_t::address_t waddr) {
-        mutex_acquisition_t acq(&registrants_lock);
-        registrant_t *registrant = new registrant_t(this, rid, waddr);
-        registrants[rid] = registrant;
-        callback->on_register(registrant);
-    }
-
-    void on_upgrade(registrant_id_t rid, registrar_metadata_t<protocol_t>::writeread_mailbox_t::address_t wraddr, registrar_metadata_t<protocol_t>::read_mailbox_t::address_t raddr) {
-        mutex_acquisition_t acq(&registrants_lock);
-        registrant_t *registrant = registrants[rid];
-        registrant->upgrade(wraddr, raddr);
-        callback->on_upgrade(registrant);
-    }
-
-    void on_deregister(registrant_id_t rid) {
-        mutex_acquisition_t acq(&registrants_lock);
-        registrant_t *registrant = registrants[rid];
-        callback->on_deregister(registrant);
-        registrants.erase(rid);
-    }
-};
-
-#endif /* __CLUSTERING_REGISTRAR_HPP__ */
+a

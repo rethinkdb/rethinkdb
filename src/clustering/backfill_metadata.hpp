@@ -23,4 +23,9 @@ struct backfiller_metadata_t {
     cancel_backfill_mailbox_t::address_t cancel_backfill_mailbox;
 };
 
+template<class protocol_t>
+void semilattice_join(UNUSED backfiller_metadata_t<protocol_t> *a, UNUSED const backfiller_metadata_t<protocol_t> &b) {
+    /* They should be equal, but we don't bother testing that */
+}
+
 #endif /* __CLUSTERING_BACKFILL_METADATA_HPP__ */

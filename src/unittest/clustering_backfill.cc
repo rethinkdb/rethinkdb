@@ -42,9 +42,13 @@ void run_backfill_test() {
 
     /* Expose the backfiller to the cluster */
 
-    backfiller_t<dummy_protocol_t> backfiller(&cluster, &backfiller_store);
-    metadata_read_view_controller_t<resource_metadata_t<backfiller_metadata_t<dummy_protocol_t> > > backfiller_md_controller(
-        resource_metadata_t<backfiller_metadata_t<dummy_protocol_t> >(&cluster, backfiller.get_business_card()));
+    metadata_view_controller_t<resource_metadata_t<backfiller_metadata_t<dummy_protocol_t> > > backfiller_md_controller(
+        (resource_metadata_t<backfiller_metadata_t<dummy_protocol_t> >()));
+
+    backfiller_t<dummy_protocol_t> backfiller(
+        &cluster,
+        &backfiller_store,
+        backfiller_md_controller.get_view());
 
     /* Run a backfill */
 
