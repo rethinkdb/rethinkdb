@@ -207,6 +207,9 @@ private:
 #ifndef NDEBUG
         void print();
 #endif
+
+    private:
+        DISABLE_COPYING(gc_entry);
     };
 
     /* Contains a pointer to every gc_entry, regardless of what its current state is */
