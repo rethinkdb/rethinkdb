@@ -255,8 +255,9 @@ void writeback_t::flush_timer_callback(void *ctx) {
 class writeback_t::buf_writer_t :
     public iocallback_t,
     public thread_message_t,
-    public cond_t               // note: inherits from home_thread_mixin_t
-{
+    public home_thread_mixin_t {
+    cond_t self_cond_;
+
 public:
     struct launch_callback_t :
         public serializer_t::write_launched_callback_t,
@@ -313,11 +314,14 @@ public:
         // destroyed, which requires being in coroutine context to switch back to the serializer
         // thread and unregister it. So, we cannot do that here.
         // TODO: fix this^ somehow.
-        pulse();
+        self_cond_.pulse();
+    }
+    void wait_for_finish() {
+        self_cond_.wait();
     }
     ~buf_writer_t() {
         assert_thread();
-        rassert(is_pulsed());
+        rassert(self_cond_.is_pulsed());
         rassert(launch_cb.finished_.is_pulsed());
         launch_cb.buf->release();
     }
@@ -440,7 +444,7 @@ void writeback_t::do_concurrent_flush() {
 
     // Wait for the buf_writers to finish running their io callbacks
     for (size_t i = 0; i < state.buf_writers.size(); ++i) {
-        state.buf_writers[i]->wait();
+        state.buf_writers[i]->wait_for_finish();
         delete state.buf_writers[i];
     }
     state.buf_writers.clear();
