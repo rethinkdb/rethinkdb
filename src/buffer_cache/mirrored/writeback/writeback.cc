@@ -261,13 +261,18 @@ public:
     struct launch_callback_t :
         public serializer_t::write_launched_callback_t,
         public thread_message_t,
-        public cond_t
-    {
+        public home_thread_mixin_t {
         writeback_t *parent;
         mc_buf_t *buf;
         boost::intrusive_ptr<standard_block_token_t> token;
+
+    private:
+        friend class buf_writer_t;
+        cond_t finished_;
+
+    public:
         void on_write_launched(const boost::intrusive_ptr<standard_block_token_t>& tok) {
-            token = tok;        // XXX does this work?
+            token = tok;
             if (continue_on_thread(home_thread(), this)) on_thread_switch();
         }
         void on_thread_switch() {
@@ -279,7 +284,10 @@ public:
             buf->inner_buf->block_sequence_id = parent->cache->serializer->get_block_sequence_id(
                 buf->get_block_id(), buf->get_data_read());
             // We're done here.
-            pulse();
+            finished_.pulse();
+        }
+        void wait_until_sequence_ids_updated() {
+            finished_.wait();
         }
     } launch_cb;
 
@@ -310,7 +318,7 @@ public:
     ~buf_writer_t() {
         assert_thread();
         rassert(is_pulsed());
-        rassert(launch_cb.is_pulsed());
+        rassert(launch_cb.finished_.is_pulsed());
         launch_cb.buf->release();
     }
 };
@@ -419,7 +427,7 @@ void writeback_t::do_concurrent_flush() {
 
     // Wait for block sequence ids to be updated.
     for (size_t i = 0; i < state.buf_writers.size(); ++i)
-        state.buf_writers[i]->launch_cb.wait();
+        state.buf_writers[i]->launch_cb.wait_until_sequence_ids_updated();
 
     // Allow new concurrent flushes to start from now on
     writeback_in_progress = false;
