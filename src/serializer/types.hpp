@@ -76,15 +76,15 @@ public:
 
 inline
 void intrusive_ptr_add_ref(ls_block_token_pointee_t *p) {
-    rassert(p->ref_count_ >= 0);
-    ++ p->ref_count_;
+    int64_t res = __sync_add_and_fetch(&p->ref_count_, 1);
+    rassert(res > 0);
 }
 
 inline
 void intrusive_ptr_release(ls_block_token_pointee_t *p) {
-    rassert(p->ref_count_ > 0);
-    -- p->ref_count_;
-    if (p->ref_count_ == 0) {
+    int64_t res = __sync_sub_and_fetch(&p->ref_count_, 1);
+    rassert(res >= 0);
+    if (res == 0) {
 	delete p;
     }
 }
@@ -138,15 +138,15 @@ private:
 
 template <class inner_serializer_t>
 void intrusive_ptr_add_ref(scs_block_token_t<inner_serializer_t> *p) {
-    rassert(p->ref_count_ >= 0);
-    ++ p->ref_count_;
+    uint64_t res = __sync_add_and_fetch(&p->ref_count_, 1);
+    rassert(res > 0);
 }
 
 template <class inner_serializer_t>
 void intrusive_ptr_release(scs_block_token_t<inner_serializer_t> *p) {
-    rassert(p->ref_count_ > 0);
-    -- p->ref_count_;
-    if (p->ref_count_ == 0) {
+    uint64_t res = __sync_sub_and_fetch(&p->ref_count_, 1);
+    rassert(res >= 0);
+    if (res == 0) {
 	delete p;
     }
 }
