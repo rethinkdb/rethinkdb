@@ -76,7 +76,7 @@ public:
 
 inline
 void intrusive_ptr_add_ref(ls_block_token_pointee_t *p) {
-    int64_t res = __sync_add_and_fetch(&p->ref_count_, 1);
+    UNUSED int64_t res = __sync_add_and_fetch(&p->ref_count_, 1);
     rassert(res > 0);
 }
 
