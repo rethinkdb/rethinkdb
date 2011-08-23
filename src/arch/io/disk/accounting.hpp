@@ -15,7 +15,7 @@ template<class input_t, class output_t>
 struct casting_passive_producer_t : public passive_producer_t<output_t> {
 
     casting_passive_producer_t(passive_producer_t<input_t> *_source) :
-        passive_producer_t<output_t>(source->available), source(_source) { }
+        passive_producer_t<output_t>(_source->available), source(_source) { }
 
     output_t produce_next_value() {
         /* Implicit cast from `input_t` to `output_t` in return */
