@@ -157,6 +157,7 @@ void writeback_t::on_transaction_commit(transaction_t *txn) {
 }
 
 void writeback_t::local_buf_t::set_dirty(bool _dirty) {
+    inner_buf_t *gbuf = static_cast<inner_buf_t *>(this);
     if (!dirty && _dirty) {
         // Mark block as dirty if it hasn't been already
         dirty = true;
@@ -179,6 +180,7 @@ void writeback_t::local_buf_t::set_dirty(bool _dirty) {
 }
 
 void writeback_t::local_buf_t::set_recency_dirty(bool _recency_dirty) {
+    inner_buf_t *gbuf = static_cast<inner_buf_t *>(this);
     if (!recency_dirty && _recency_dirty) {
         // Mark block as recency_dirty if it hasn't been already.
         recency_dirty = true;
@@ -200,6 +202,7 @@ void writeback_t::local_buf_t::set_recency_dirty(bool _recency_dirty) {
 
 // Add block_id to deleted_blocks list.
 void writeback_t::local_buf_t::mark_block_id_deleted() {
+    inner_buf_t *gbuf = static_cast<inner_buf_t *>(this);
     writeback_t::deleted_block_t deleted_block;
     deleted_block.block_id = gbuf->block_id;
     deleted_block.write_empty_block = gbuf->write_empty_deleted_block;
@@ -473,7 +476,7 @@ void writeback_t::flush_prepare_patches() {
     bool patch_storage_failure = false;
     unsigned int patches_stored = 0;
     for (local_buf_t *lbuf = dirty_bufs.head(); lbuf; lbuf = dirty_bufs.next(lbuf)) {
-        inner_buf_t *inner_buf = lbuf->gbuf;
+        inner_buf_t *inner_buf = static_cast<inner_buf_t *>(lbuf);
 
         // If the patch storage failed before (which usually happens if it ran out of space),
         // we don't even try to write patches for this buffer. Instead we set needs_flush,
@@ -575,7 +578,7 @@ void writeback_t::flush_acquire_bufs(transaction_t *transaction, flush_state_t &
     unsigned int really_dirty = 0;
 
     while (local_buf_t *lbuf = dirty_bufs.head()) {
-        inner_buf_t *inner_buf = lbuf->gbuf;
+        inner_buf_t *inner_buf = static_cast<inner_buf_t *>(lbuf);
 
         bool buf_needs_flush = lbuf->needs_flush;
         //bool buf_dirty = lbuf->dirty;

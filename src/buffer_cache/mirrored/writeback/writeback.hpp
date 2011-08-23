@@ -62,8 +62,8 @@ public:
         friend class concurrent_flush_t;
         
     public:
-        explicit local_buf_t(inner_buf_t *_gbuf)
-            : needs_flush(false), last_patch_materialized(0), gbuf(_gbuf), dirty(false), recency_dirty(false) {}
+        explicit local_buf_t()
+            : needs_flush(false), last_patch_materialized(0), dirty(false), recency_dirty(false) {}
         
         void set_dirty(bool _dirty = true);
         void set_recency_dirty(bool _recency_dirty = true);
@@ -78,11 +78,12 @@ public:
         /* All patches <= last_patch_materialized are in the on-disk log storage */
         patch_counter_t last_patch_materialized;
 
-    private:
-        inner_buf_t *gbuf;
     public: //TODO make this private again @jdoliner
         bool dirty;
         bool recency_dirty;
+
+    private:
+	DISABLE_COPYING(local_buf_t);
     };
     
     /* User-controlled settings. */

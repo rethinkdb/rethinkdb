@@ -45,7 +45,7 @@ class mc_cache_account_t;
 // To change this requires some tricky rewriting/refactoring, and I was unable to get around to it.
 // -rntz
 
-class mc_inner_buf_t : public home_thread_mixin_t, public evictable_t {
+class mc_inner_buf_t : private writeback_t::local_buf_t, public home_thread_mixin_t, public evictable_t {
     friend class mc_cache_t;
     friend class mc_transaction_t;
     friend class mc_buf_t;
@@ -87,7 +87,7 @@ class mc_inner_buf_t : public home_thread_mixin_t, public evictable_t {
     size_t snap_refcount;
 
     // Each of these local buf types holds a redundant pointer to the inner_buf that they are a part of
-    writeback_t::local_buf_t writeback_buf;
+    writeback_t::local_buf_t& writeback_buf() { return *this; }
     page_map_t::local_buf_t page_map_buf;
 
     bool safe_to_unload();
@@ -211,7 +211,7 @@ public:
             // TODO: use some slice-specific timestamp that gets updated
             // every epoll call.
             inner_buf->subtree_recency = timestamp;
-            inner_buf->writeback_buf.set_recency_dirty();
+            inner_buf->writeback_buf().set_recency_dirty();
         }
     }
 

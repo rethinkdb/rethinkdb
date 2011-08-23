@@ -133,7 +133,8 @@ void mc_inner_buf_t::load_inner_buf(bool should_lock, file_account_t *io_account
 
 // This form of the buf constructor is used when the block exists on disk and needs to be loaded
 mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, bool _should_load, file_account_t *_io_account)
-    : evictable_t(_cache),
+    : writeback_t::local_buf_t(),
+      evictable_t(_cache),
       block_id(_block_id),
       subtree_recency(repli_timestamp_t::invalid),  // Gets initialized by load_inner_buf
       data(_should_load ? _cache->serializer->malloc() : NULL),
@@ -144,7 +145,6 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, bool _shou
       write_empty_deleted_block(false),
       cow_refcount(0),
       snap_refcount(0),
-      writeback_buf(this),
       page_map_buf(this),
       block_sequence_id(NULL_BLOCK_SEQUENCE_ID) {
 
@@ -169,7 +169,8 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, bool _shou
 
 // This form of the buf constructor is used when the block exists on disks but has been loaded into buf already
 mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, void *_buf, repli_timestamp_t _recency_timestamp)
-    : evictable_t(_cache),
+    : writeback_t::local_buf_t(),
+      evictable_t(_cache),
       block_id(_block_id),
       subtree_recency(_recency_timestamp),
       data(_buf),
@@ -179,7 +180,6 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, void *_buf
       write_empty_deleted_block(false),
       cow_refcount(0),
       snap_refcount(0),
-      writeback_buf(this),
       page_map_buf(this),
       block_sequence_id(NULL_BLOCK_SEQUENCE_ID) {
 
@@ -243,7 +243,8 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache, version_id_t snapshot_v
 // If you update this constructor, please don't forget to update mc_inner_buf_t::allocate
 // accordingly.
 mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, version_id_t _snapshot_version, repli_timestamp_t _recency_timestamp)
-    : evictable_t(_cache),
+    : writeback_t::local_buf_t(),
+      evictable_t(_cache),
       block_id(_block_id),
       subtree_recency(_recency_timestamp),
       data(_cache->serializer->malloc()),
@@ -254,7 +255,6 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, version_id
       write_empty_deleted_block(false),
       cow_refcount(0),
       snap_refcount(0),
-      writeback_buf(this),
       page_map_buf(this),
       block_sequence_id(NULL_BLOCK_SEQUENCE_ID) {
 
@@ -307,7 +307,7 @@ void mc_inner_buf_t::replay_patches() {
         cache->patch_memory_storage.filter_applied_patches(block_id, block_sequence_id);
     }
     // All patches that currently exist must have been materialized out of core...
-    writeback_buf.last_patch_materialized = cache->patch_memory_storage.last_patch_materialized_or_zero(block_id);
+    writeback_buf().last_patch_materialized = cache->patch_memory_storage.last_patch_materialized_or_zero(block_id);
 
     // Apply outstanding patches
     cache->patch_memory_storage.apply_patches(block_id, reinterpret_cast<char *>(data), cache->get_block_size());
@@ -393,7 +393,7 @@ void mc_inner_buf_t::release_snapshot(buf_snapshot_t *snapshot) {
 }
 
 bool mc_inner_buf_t::safe_to_unload() {
-    return !lock.locked() && writeback_buf.safe_to_unload() && refcount == 0 && cow_refcount == 0 && snapshots.empty();
+    return !lock.locked() && writeback_buf().safe_to_unload() && refcount == 0 && cow_refcount == 0 && snapshots.empty();
 }
 
 void mc_inner_buf_t::update_data_token(const void *data, const boost::intrusive_ptr<standard_block_token_t>& token) {
@@ -490,7 +490,7 @@ void mc_buf_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access) {
             // so we cannot assert data here unfortunately!
             //rassert(data != NULL);
 
-            if (!inner_buf->writeback_buf.needs_flush &&
+            if (!inner_buf->writeback_buf().needs_flush &&
                     patches_affected_data_size_at_start == -1 &&
                     global_full_perfmon) {
                 patches_affected_data_size_at_start =
@@ -519,7 +519,7 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
     rassert(patch->get_block_id() == inner_buf->block_id);
 
     patch->apply_to_buf(reinterpret_cast<char *>(data), inner_buf->cache->get_block_size());
-    inner_buf->writeback_buf.set_dirty();
+    inner_buf->writeback_buf().set_dirty();
     // Invalidate the token
     inner_buf->data_token.reset();
 
@@ -528,7 +528,7 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
         ensure_flush();
     }
 
-    if (!inner_buf->writeback_buf.needs_flush) {
+    if (!inner_buf->writeback_buf().needs_flush) {
         // Check if we want to disable patching for this block and flush it directly instead
         const size_t MAX_PATCHES_SIZE = inner_buf->cache->serializer->get_block_size().value() / inner_buf->cache->max_patches_size_ratio;
         if (patch->get_affected_data_size() + inner_buf->cache->patch_memory_storage.get_affected_data_size(inner_buf->block_id) > MAX_PATCHES_SIZE) {
@@ -568,13 +568,13 @@ void *mc_buf_t::get_data_major_write() {
 
 void mc_buf_t::ensure_flush() {
     rassert(data == inner_buf->data);
-    if (!inner_buf->writeback_buf.needs_flush) {
+    if (!inner_buf->writeback_buf().needs_flush) {
         // We bypass the patching system, make sure this buffer gets flushed.
-        inner_buf->writeback_buf.needs_flush = true;
+        inner_buf->writeback_buf().needs_flush = true;
         // ... we can also get rid of existing patches at this point.
         inner_buf->cache->patch_memory_storage.drop_patches(inner_buf->block_id);
         // Make sure that the buf is marked as dirty
-        inner_buf->writeback_buf.set_dirty();
+        inner_buf->writeback_buf().set_dirty();
     }
 }
 
@@ -622,7 +622,7 @@ void mc_buf_t::set_data(void *dest, const void *src, size_t n) {
     }
     rassert(range_inside_of_byte_range(dest, n, data, inner_buf->cache->get_block_size().value()));
 
-    if (inner_buf->writeback_buf.needs_flush) {
+    if (inner_buf->writeback_buf().needs_flush) {
         // Save the allocation / construction of a patch object
         get_data_major_write();
         memcpy(dest, src, n);
@@ -642,7 +642,7 @@ void mc_buf_t::move_data(void *dest, const void *src, const size_t n) {
     rassert(range_inside_of_byte_range(src, n, data, inner_buf->cache->get_block_size().value()));
     rassert(range_inside_of_byte_range(dest, n, data, inner_buf->cache->get_block_size().value()));
 
-    if (inner_buf->writeback_buf.needs_flush) {
+    if (inner_buf->writeback_buf().needs_flush) {
         // Save the allocation / construction of a patch object
         get_data_major_write();
         memmove(dest, src, n);
@@ -660,7 +660,7 @@ void mc_buf_t::release() {
     inner_buf->cache->assert_thread();
     pm_bufs_held.end(&start_time);
 
-    if (mode == rwi_write && !inner_buf->writeback_buf.needs_flush && patches_affected_data_size_at_start >= 0) {
+    if (mode == rwi_write && !inner_buf->writeback_buf().needs_flush && patches_affected_data_size_at_start >= 0) {
         if (inner_buf->cache->patch_memory_storage.get_affected_data_size(inner_buf->block_id) > (size_t)patches_affected_data_size_at_start)
             pm_patches_size_per_write.record(inner_buf->cache->patch_memory_storage.get_affected_data_size(inner_buf->block_id) - patches_affected_data_size_at_start);
     }
@@ -703,9 +703,9 @@ void mc_buf_t::release() {
     // empty block).
     if (inner_buf->do_delete) {
         if (mode == rwi_write) {
-            inner_buf->writeback_buf.mark_block_id_deleted();
-            inner_buf->writeback_buf.set_dirty(false);
-            inner_buf->writeback_buf.set_recency_dirty(false); // TODO: Do we need to handle recency in master in some other way?
+            inner_buf->writeback_buf().mark_block_id_deleted();
+            inner_buf->writeback_buf().set_dirty(false);
+            inner_buf->writeback_buf().set_recency_dirty(false); // TODO: Do we need to handle recency in master in some other way?
         }
         if (inner_buf->safe_to_unload()) {
             delete inner_buf;
