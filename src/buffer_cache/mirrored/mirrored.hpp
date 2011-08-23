@@ -45,7 +45,11 @@ class mc_cache_account_t;
 // To change this requires some tricky rewriting/refactoring, and I was unable to get around to it.
 // -rntz
 
-class mc_inner_buf_t : private writeback_t::local_buf_t, public home_thread_mixin_t, public evictable_t {
+// evictable_t must go before page_map_t::local_buf_t, which
+// references evictable_t's cache field.
+class mc_inner_buf_t : public evictable_t,
+		       private writeback_t::local_buf_t,
+		       public home_thread_mixin_t {
     friend class mc_cache_t;
     friend class mc_transaction_t;
     friend class mc_buf_t;
@@ -53,7 +57,6 @@ class mc_inner_buf_t : private writeback_t::local_buf_t, public home_thread_mixi
     friend class writeback_t::local_buf_t;
     friend class page_repl_random_t;
     friend class array_map_t;
-    friend class array_map_t::local_buf_t;
     friend class patch_disk_storage_t;
 
     typedef mc_cache_t cache_t;
@@ -88,7 +91,6 @@ class mc_inner_buf_t : private writeback_t::local_buf_t, public home_thread_mixi
 
     // Each of these local buf types holds a redundant pointer to the inner_buf that they are a part of
     writeback_t::local_buf_t& writeback_buf() { return *this; }
-    page_map_t::local_buf_t page_map_buf;
 
     bool safe_to_unload();
     void unload();
@@ -321,7 +323,6 @@ class mc_cache_t : public home_thread_mixin_t, public serializer_read_ahead_call
     friend class page_repl_random_t;
     friend class evictable_t;
     friend class array_map_t;
-    friend class array_map_t::local_buf_t;
     friend class patch_disk_storage_t;
 
 public:

@@ -133,8 +133,8 @@ void mc_inner_buf_t::load_inner_buf(bool should_lock, file_account_t *io_account
 
 // This form of the buf constructor is used when the block exists on disk and needs to be loaded
 mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, bool _should_load, file_account_t *_io_account)
-    : writeback_t::local_buf_t(),
-      evictable_t(_cache),
+    : evictable_t(_cache),
+      writeback_t::local_buf_t(),
       block_id(_block_id),
       subtree_recency(repli_timestamp_t::invalid),  // Gets initialized by load_inner_buf
       data(_should_load ? _cache->serializer->malloc() : NULL),
@@ -145,10 +145,11 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, bool _shou
       write_empty_deleted_block(false),
       cow_refcount(0),
       snap_refcount(0),
-      page_map_buf(this),
       block_sequence_id(NULL_BLOCK_SEQUENCE_ID) {
 
     rassert(version_id != faux_version_id);
+
+    array_map_t::constructing_inner_buf(this);
 
     if (_should_load) {
         // Some things expect us to return immediately (as of 5/12/2011), so we do the loading in a
@@ -169,8 +170,8 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, bool _shou
 
 // This form of the buf constructor is used when the block exists on disks but has been loaded into buf already
 mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, void *_buf, repli_timestamp_t _recency_timestamp)
-    : writeback_t::local_buf_t(),
-      evictable_t(_cache),
+    : evictable_t(_cache),
+      writeback_t::local_buf_t(),
       block_id(_block_id),
       subtree_recency(_recency_timestamp),
       data(_buf),
@@ -180,10 +181,11 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, void *_buf
       write_empty_deleted_block(false),
       cow_refcount(0),
       snap_refcount(0),
-      page_map_buf(this),
       block_sequence_id(NULL_BLOCK_SEQUENCE_ID) {
 
     rassert(version_id != faux_version_id);
+
+    array_map_t::constructing_inner_buf(this);
 
     pm_n_blocks_in_memory++;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
@@ -243,8 +245,8 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache, version_id_t snapshot_v
 // If you update this constructor, please don't forget to update mc_inner_buf_t::allocate
 // accordingly.
 mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, version_id_t _snapshot_version, repli_timestamp_t _recency_timestamp)
-    : writeback_t::local_buf_t(),
-      evictable_t(_cache),
+    : evictable_t(_cache),
+      writeback_t::local_buf_t(),
       block_id(_block_id),
       subtree_recency(_recency_timestamp),
       data(_cache->serializer->malloc()),
@@ -255,7 +257,6 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, version_id
       write_empty_deleted_block(false),
       cow_refcount(0),
       snap_refcount(0),
-      page_map_buf(this),
       block_sequence_id(NULL_BLOCK_SEQUENCE_ID) {
 
     rassert(version_id != faux_version_id);
@@ -266,6 +267,8 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, version_id
     // between problems with uninitialized memory and problems with uninitialized blocks
     memset(data, 0xCD, _cache->serializer->get_block_size().value());
 #endif
+
+    array_map_t::constructing_inner_buf(this);
 
     pm_n_blocks_in_memory++;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
@@ -290,6 +293,8 @@ mc_inner_buf_t::~mc_inner_buf_t() {
     if (data)
         memset(data, 0xDD, cache->serializer->get_block_size().value());
 #endif
+
+    array_map_t::destroying_inner_buf(this);
 
     rassert(safe_to_unload());
     if (data)
