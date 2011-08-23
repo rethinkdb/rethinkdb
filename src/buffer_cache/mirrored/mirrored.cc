@@ -27,7 +27,8 @@ perfmon_persistent_counter_t pm_cache_hits("cache_hits"), pm_cache_misses("cache
 
 // TODO (rntz): it should be possible for us to cause snapshots which were not cow-referenced to be
 // flushed to disk during writeback, sans block id, to allow them to be unloaded if necessary.
-struct mc_inner_buf_t::buf_snapshot_t : private evictable_t, public intrusive_list_node_t<mc_inner_buf_t::buf_snapshot_t> {
+class mc_inner_buf_t::buf_snapshot_t : private evictable_t, public intrusive_list_node_t<mc_inner_buf_t::buf_snapshot_t> {
+public:
     buf_snapshot_t(mc_inner_buf_t *buf, version_id_t version,
                    size_t _snapshot_refcount, size_t _active_refcount,
                    void *_data, const boost::intrusive_ptr<standard_block_token_t>& _token)
@@ -90,16 +91,33 @@ struct mc_inner_buf_t::buf_snapshot_t : private evictable_t, public intrusive_li
         data = NULL;
     }
 
+private:
+    friend class mc_inner_buf_t;
+
+    // I guess we know what this means.  TODO (sam): Figure out our
+    // relationship with our parent.
     mc_inner_buf_t *parent;
+
+    // Some kind of snapshotted version.  :/
     version_id_t snapshotted_version;
+
+    // TODO (sam): Figure out wtf this is.
     mutable mutex_t data_mutex;
+
+    // The buffer of the snapshot we hold.  TODO (sam): Presumably we _own_ this buffer, but double check.
     void *data;
+
+    // Our block token to the serializer.
     boost::intrusive_ptr<standard_block_token_t> token;
+
     // snapshot_refcount is the number of snapshots that could potentially use this buf_snapshot_t.
     size_t snapshot_refcount;
+
     // active_refcount is the number of mc_buf_ts currently using this buf_snapshot_t. As long as
     // >0, we cannot be unloaded.
     size_t active_refcount;
+
+    DISABLE_COPYING(buf_snapshot_t);
 };
 
 // This loads a block from the serializer and stores it into buf.
