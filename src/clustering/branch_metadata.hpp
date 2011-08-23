@@ -31,10 +31,10 @@ struct branch_metadata_t {
     /* These are the mirrors that the branch has. */
 
     typedef boost::uuids::uuid mirror_id_t;
-    std::map<mirror_id_t, backfiller_metadata_t<protocol_t> > mirrors;
+    std::map<mirror_id_t, resource_metadata_t<backfiller_metadata_t<protocol_t> > > mirrors;
 
     /* This is how mirrors get in touch with the master when they start up */
 
-    registrar_metadata_t<protocol_t> registrar;
+    resource_metadata_t<registrar_metadata_t<protocol_t> > registrar;
 };
 
