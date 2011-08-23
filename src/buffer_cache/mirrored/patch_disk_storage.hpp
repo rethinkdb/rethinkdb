@@ -45,7 +45,7 @@ struct mc_config_block_t {
 class patch_disk_storage_t {
 public:
     static void create(serializer_t *serializer, block_id_t start_id, mirrored_cache_static_config_t *config);
-    patch_disk_storage_t(mc_cache_t &cache, block_id_t start_id);
+    patch_disk_storage_t(mc_cache_t *cache, block_id_t start_id);
     ~patch_disk_storage_t();
 
     void shutdown();
@@ -86,7 +86,7 @@ private:
     unsigned int waiting_for_clear;
 
     // TODO: A reference?  This can confuse readers.
-    mc_cache_t& cache;
+    mc_cache_t *cache;
     block_id_t first_block;
     block_id_t number_of_blocks;
     std::vector<bool> block_is_empty;
