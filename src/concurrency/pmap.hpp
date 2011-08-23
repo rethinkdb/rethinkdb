@@ -9,7 +9,7 @@
 #include "concurrency/cond_var.hpp"
 #include "utils.hpp"
 
-template<typename callable_t, typename value_t>
+template <class callable_t, class value_t>
 void pmap_runner_one_arg(value_t i, const callable_t *c, int *outstanding, cond_t *to_signal) {
     (*c)(i);
     (*outstanding)--;
@@ -18,13 +18,12 @@ void pmap_runner_one_arg(value_t i, const callable_t *c, int *outstanding, cond_
     }
 }
 
-
-template<typename callable_t, typename value_t>
+template <class callable_t, class value_t>
 void spawn_pmap_runner_one_arg(value_t i, const callable_t *c, int *outstanding, cond_t *to_signal) {
     coro_t::spawn_now(boost::bind(&pmap_runner_one_arg<callable_t, value_t>, i, c, outstanding, to_signal));
 }
 
-template<typename callable_t>
+template <class callable_t>
 void pmap(int count, const callable_t &c) {
     if (count == 0) {
 	return;
@@ -44,7 +43,7 @@ void pmap(int count, const callable_t &c) {
 }
 
 // TODO: Passing end by reference seems very questionable to me.
-template<typename callable_t, typename iterator_t>
+template <class callable_t, class iterator_t>
 void pmap(iterator_t start, const iterator_t &end, const callable_t &c) {
     cond_t cond;
     int outstanding = 1;
@@ -59,7 +58,7 @@ void pmap(iterator_t start, const iterator_t &end, const callable_t &c) {
     }
 }
 
-template<typename callable_t, typename value1_t, typename value2_t>
+template <class callable_t, class value1_t, class value2_t>
 void pmap_runner_two_arg(value1_t i, value2_t i2, const callable_t *c, int *outstanding, cond_t *to_signal) {
     (*c)(i, i2);
     (*outstanding)--;
@@ -68,12 +67,12 @@ void pmap_runner_two_arg(value1_t i, value2_t i2, const callable_t *c, int *outs
     }
 }
 
-template<typename callable_t, typename value1_t, typename value2_t>
+template <class callable_t, class value1_t, class value2_t>
 void spawn_pmap_runner_two_arg(value1_t i, value2_t i2, const callable_t *c, int *outstanding, cond_t *to_signal) {
     coro_t::spawn_now(boost::bind(&pmap_runner_two_arg<callable_t, value1_t, value2_t>, i, i2, c, outstanding, to_signal));
 }
 
-template<typename callable_t, typename iterator_t>
+template <class callable_t, class iterator_t>
 void pimap(iterator_t start, const iterator_t &end, const callable_t &c) {
     cond_t cond;
     int outstanding = 1;
