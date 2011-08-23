@@ -3,7 +3,6 @@
 #include <boost/shared_ptr.hpp>
 
 #include "buffer_cache/buf_lock.hpp"
-#include "buffer_cache/co_functions.hpp"
 #include "btree/internal_node.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/operations.hpp"
