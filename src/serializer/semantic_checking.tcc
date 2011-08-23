@@ -190,7 +190,7 @@ index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_a
         if (op.token) {
             boost::intrusive_ptr< scs_block_token_t<inner_serializer_t> > tok = op.token.get();
             if (tok) {
-                scs_block_token_t<inner_serializer_t> *token = dynamic_cast<scs_block_token_t<inner_serializer_t> *>(tok.get());
+                scs_block_token_t<inner_serializer_t> *token = tok.get();
                 // Fix the op to point at the inner serializer's block token.  (No.)
                 //   op.token = token->inner_token;
 		// (We don't actually do this now.  Instead the inner serializer strips the outer token.)
