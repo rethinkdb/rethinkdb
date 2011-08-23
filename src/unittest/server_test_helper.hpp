@@ -4,7 +4,7 @@
 #include "arch/types.hpp"
 #include "utils.hpp"
 #include "buffer_cache/types.hpp"
-#include "buffer_cache/co_functions.hpp"
+#include "concurrency/access.hpp"
 
 class translator_serializer_t;
 
