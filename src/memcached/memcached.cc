@@ -5,6 +5,7 @@
 #include <unistd.h>
 
 #include "errors.hpp"
+#include <boost/bind.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/optional.hpp>
 

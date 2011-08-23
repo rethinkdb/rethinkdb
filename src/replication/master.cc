@@ -1,5 +1,7 @@
 #include "replication/master.hpp"
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
 #include <boost/scoped_ptr.hpp>
 
 #include "arch/arch.hpp"
@@ -98,6 +100,9 @@ void master_t::on_conn(boost::scoped_ptr<linux_tcp_conn_t>& conn) {
     // magic to handle case where slave is already connected.
 
     // TODO: Receive hello handshake before sending other messages.
+}
+void master_t::send(scoped_malloc<net_backfill_t>& message) {
+    coro_t::spawn_now(boost::bind(&master_t::do_backfill_and_realtime_stream, this, message->timestamp));
 }
 
 void master_t::destroy_existing_slave_conn_if_it_exists() {

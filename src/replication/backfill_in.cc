@@ -1,5 +1,8 @@
 #include "replication/backfill_in.hpp"
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "logger.hpp"
 
 #ifndef NDEBUG

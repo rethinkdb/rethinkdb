@@ -5,9 +5,11 @@
 
 #include <sstream>
 
+#include "utils.hpp"
+#include <boost/bind.hpp>
+
 #include "concurrency/pmap.hpp"
 #include "arch/arch.hpp"
-#include "utils.hpp"
 
 /* The var list keeps track of all of the perfmon_t objects. */
 

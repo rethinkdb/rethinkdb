@@ -1,4 +1,8 @@
 #include "serializer/translator.hpp"
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "concurrency/pmap.hpp"
 #include "serializer/types.hpp"
 #include "serializer/config.hpp"

@@ -1,4 +1,8 @@
 #include "replication/slave_stream_manager.hpp"
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "replication/backfill_sender.hpp"
 #include "replication/backfill_out.hpp"
 #include "concurrency/wait_any.hpp"

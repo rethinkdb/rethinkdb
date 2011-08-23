@@ -1,10 +1,12 @@
 #include "serializer/log/data_block_manager.hpp"
 
+#include "utils.hpp"
+#include <boost/bind.hpp>
+
 #include "arch/arch.hpp"
 #include "concurrency/mutex.hpp"
 #include "perfmon.hpp"
 #include "serializer/log/log_serializer.hpp"
-#include "utils.hpp"
 
 /* TODO: Right now we perform garbage collection via the do_write() interface on the
 log_serializer_t. This leads to bugs in a couple of ways:

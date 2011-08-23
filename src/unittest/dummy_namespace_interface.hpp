@@ -1,11 +1,13 @@
 #ifndef __UNITTEST_DUMMY_NAMESPACE_INTERFACE_HPP__
 #define __UNITTEST_DUMMY_NAMESPACE_INTERFACE_HPP__
 
+#include "utils.hpp"
+#include <boost/bind.hpp>
+#include <boost/ptr_container/ptr_vector.hpp>
+
 #include "namespace_interface.hpp"
 #include "serializer/config.hpp"
 #include "serializer/translator.hpp"
-#include "utils.hpp"
-#include <boost/ptr_container/ptr_vector.hpp>
 #include "concurrency/pmap.hpp"
 #include "unittest/unittest_utils.hpp"
 

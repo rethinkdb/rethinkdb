@@ -4,6 +4,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "arch/arch.hpp"
 #include "buffer_cache/types.hpp"
 #include "do_on_thread.hpp"

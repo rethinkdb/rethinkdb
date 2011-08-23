@@ -1,6 +1,10 @@
+#include "replication/backfill_out.hpp"
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "arch/timing.hpp"
 #include "btree/node.hpp"
-#include "replication/backfill_out.hpp"
 #include "concurrency/drain_semaphore.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/count_down_latch.hpp"

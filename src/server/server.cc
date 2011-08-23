@@ -3,6 +3,7 @@
 #include <math.h>
 
 #include "errors.hpp"
+#include <boost/bind.hpp>
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
 
