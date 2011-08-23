@@ -1,5 +1,7 @@
-#include "arch/arch.hpp"
 #include "errors.hpp"
+#include <boost/bind.hpp>
+
+#include "arch/arch.hpp"
 #include "serializer/log/log_serializer.hpp"
 
 namespace stress {
