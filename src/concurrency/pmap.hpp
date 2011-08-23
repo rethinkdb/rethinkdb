@@ -42,9 +42,8 @@ void pmap(int count, const callable_t &c) {
     cond.wait();
 }
 
-// TODO: Passing end by reference seems very questionable to me.
 template <class callable_t, class iterator_t>
-void pmap(iterator_t start, const iterator_t &end, const callable_t &c) {
+void pmap(iterator_t start, iterator_t end, const callable_t &c) {
     cond_t cond;
     int outstanding = 1;
     while (start != end) {
@@ -73,7 +72,7 @@ void spawn_pmap_runner_two_arg(value1_t i, value2_t i2, const callable_t *c, int
 }
 
 template <class callable_t, class iterator_t>
-void pimap(iterator_t start, const iterator_t &end, const callable_t &c) {
+void pimap(iterator_t start, iterator_t end, const callable_t &c) {
     cond_t cond;
     int outstanding = 1;
     int i = 0;
