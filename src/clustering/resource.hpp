@@ -2,6 +2,7 @@
 #define __CLUSTERING_RESOURCE_HPP__
 
 #include "concurrency/wait_any.hpp"
+#include "rpc/metadata/view.hpp"
 
 /* It's a common paradigm to have some resource that you find out about through
 metadata, and need to monitor in case it goes offline. These types facilitate

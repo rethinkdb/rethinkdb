@@ -1,7 +1,7 @@
 #ifndef __CLUSTERING_REGISTRANT_HPP__
 #define __CLUSTERING_REGISTRANT_HPP__
 
-#include "clustering/registration.hpp"
+#include "clustering/registration_metadata.hpp"
 #include "rpc/metadata/metadata.hpp"
 #include "rpc/mailbox/typed.hpp"
 
@@ -29,8 +29,12 @@ To stop receiving write operations, call `~registrant_t()`. This will send a
 message to the master to deregister and then return immediately. */
 
 template<class protocol_t>
-struct registrant_t {
+class registrant_t {
 
+private:
+    typedef typename registrar_metadata_t<protocol_t>::registration_id_t registration_id_t;
+
+public:
     registrant_t(
 
             mailbox_cluster_t *cl,
@@ -39,13 +43,13 @@ struct registrant_t {
             metadata_read_view_t<resource_metadata_t<registrar_metadata_t<protocol_t> > > *registar_md,
 
             /* Whenever a write operation is received, this function will be
-            called in a separate coroutine. Calling the final argument will send
-            a response back to the master. */
+            called in a separate coroutine. When it returns, an ack will be sent
+            to the master. If it throws `interrupted_exc_t`, nothing will be
+            sent. */
             boost::function<void(
                 typename protocol_t::write_t,
                 repli_timestamp_t,
-                order_token_t,
-                boost::function<void()>
+                order_token_t
                 )> write_cb,
 
             /* If this is pulsed, cancel the registration process */
@@ -58,9 +62,9 @@ struct registrant_t {
 
         is_upgraded(false),
 
-        write_mailbox(cluster, boost::bind(&registration_t::on_write, this, _1, _2, _3, _4)),
-        writeread_mailbox(cluster, boost::bind(&registration_t::on_writeread, this, _1, _2, _3, _4)),
-        read_mailbox(cluster, boost::bind(&registration_t::on_read, this, _1, _2, _3))
+        write_mailbox(cluster, boost::bind(&registrant_t::on_write, this, _1, _2, _3, _4)),
+        writeread_mailbox(cluster, boost::bind(&registrant_t::on_writeread, this, _1, _2, _3, _4)),
+        read_mailbox(cluster, boost::bind(&registrant_t::on_read, this, _1, _2, _3))
 
     {
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
@@ -70,18 +74,19 @@ struct registrant_t {
 
             /* Set up a mailbox to receive the master's acknowledgement */
             cond_t master_has_noticed_us;
-            realtime_registration_t<protocol_t>::greet_mailbox_t greet_mailbox(
-                cluster,
+            async_mailbox_t<void()> greet_mailbox(cluster,
                 boost::bind(&cond_t::pulse, &master_has_noticed_us));
 
             /* Send a message to the master to register us */
-            send(cluster, registrar.access().write_register_mailbox,
-                registration_id, &greet_mailbox, &write_mailbox);
+            send(cluster, registrar.access().register_mailbox,
+                registration_id,
+                greet_mailbox.get_address(),
+                write_mailbox.get_address());
 
             /* Wait for the master to acknowledge us, or for something to go
             wrong */
-            wait_any_lazily_unordered(&master_has_noticed_us,
-                registrar.get_failed_signal(), interruptor);
+            wait_any_t waiter(&master_has_noticed_us, registrar.get_failed_signal(), interruptor);
+            waiter.wait();
 
             /* This will throw an exception if the registrar is down */
             registrar.access();
@@ -107,21 +112,19 @@ struct registrant_t {
 
             /* Whenever a write operation is received that the master wants us
             to compute the reply to, this function will be called in a separate
-            coroutine. Calling the final argument will send a response back to
-            the master. */
-            boost::function<void(
+            coroutine. The return value will be sent to the master. If it throws
+            `interrupted_exc_t`, nothing will be sent. */
+            boost::function<typename protocol_t::write_response_t(
                 typename protocol_t::write_t,
-                repli_timestamp_t, order_token_t,
-                boost::function<void(typename protocol_t::write_response_t)>
+                repli_timestamp_t, order_token_t
                 )> writeread_cb,
 
             /* Whenever a read operation is received, this function will be
-            called in a separate coroutine. Calling the final argument will send
-            a response back to the master. */
-            boost::function<void(
+            called in a separate coroutine. The return value will be sent to the
+            master. If it throws `interrupted_exc_t`, nothing will be sent. */
+            boost::function<typename protocol_t::read_response_t(
                 typename protocol_t::read_t,
-                order_token_t,
-                boost::function<void(typename protocol_t::read_response_t)>
+                order_token_t
                 )> read_cb
         )
     {
@@ -134,10 +137,10 @@ struct registrant_t {
             /* Send the master a message to sign us up for writereads and reads.
             */
             send(cluster,
-                branch_metadata->get_metadata().upgrade_mailbox,
+                registrar.access().upgrade_mailbox,
                 registration_id,
-                &writeread_mailbox,
-                &read_mailbox);
+                writeread_mailbox.get_address(),
+                read_mailbox.get_address());
         } catch (resource_lost_exc_t) {
             /* The registrar is dead. Ignore it, since that's what we're
             supposed to do. The user will find out by checking
@@ -167,59 +170,56 @@ private:
         async_mailbox_t<void()>::address_t cont
         )
     {
-        write_callback(write, timestamp, otok,
-            boost::bind(&send, cluster, cont));
+        write_callback(write, timestamp, otok);
+        send(cluster, cont);
     }
 
     void on_writeread(
         typename protocol_t::write_t write,
         repli_timestamp_t timestamp,
         order_token_t otok,
-        async_mailbox_t<void(typename protocol_t::write_response_t)>::address_t cont
+        typename async_mailbox_t<void(typename protocol_t::write_response_t)>::address_t cont
         )
     {
-        writeread_callback(write, timestamp, otok,
-            boost::bind(&send, cluster, cont, _1));
+        typename protocol_t::write_response_t resp = writeread_callback(write, timestamp, otok);
+        send(cluster, cont, resp);
     }
 
     void on_read(
         typename protocol_t::read_t read,
         order_token_t otok,
-        async_mailbox_t<void(typename protocol_t::read_response_t)>::address_t cont
+        typename async_mailbox_t<void(typename protocol_t::read_response_t)>::address_t cont
         )
     {
-        read_callback(read, otok,
-            boost::bind(&send, cluster, cont, _1));
+        typename protocol_t::read_response_t resp = read_callback(read, otok);
+        send(cluster, cont, resp);
     }
 
     mailbox_cluster_t *cluster;
 
     resource_access_t<registrar_metadata_t<protocol_t> > registrar;
 
-    registrar_metadata_t<protocol_t>::registration_id_t registration_id;
+    typename registrar_metadata_t<protocol_t>::registration_id_t registration_id;
 
     bool is_upgraded;
 
-    registrar_metadata_t<protocol_t>::write_mailbox_t write_mailbox;
-    registrar_metadata_t<protocol_t>::writeread_mailbox_t writeread_mailbox;
-    registrar_metadata_t<protocol_t>::read_mailbox_t read_mailbox;
+    typename registrar_metadata_t<protocol_t>::write_mailbox_t write_mailbox;
+    typename registrar_metadata_t<protocol_t>::writeread_mailbox_t writeread_mailbox;
+    typename registrar_metadata_t<protocol_t>::read_mailbox_t read_mailbox;
 
     boost::function<void(
         typename protocol_t::write_t,
         repli_timestamp_t,
-        order_token_t,
-        boost::function<void()>
+        order_token_t
         )> write_callback;
-    boost::function<void(
+    boost::function<typename protocol_t::write_response_t(
         typename protocol_t::write_t,
         repli_timestamp_t,
-        order_token_t,
-        boost::function<void(typename protocol_t::write_response_t)>
+        order_token_t
         )> writeread_callback;
-    boost::function<void(
+    boost::function<typename protocol_t::read_response_t(
         typename protocol_t::read_t,
-        order_token_t,
-        boost::function<void(typename protocol_t::read_response_t)>
+        order_token_t
         )> read_callback;
 };
 
