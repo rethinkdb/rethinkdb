@@ -90,7 +90,7 @@ void leaf_insert_patch_t::apply_to_buf(char *buf_data, block_size_t bs) {
 }
 
 
-leaf_remove_patch_t::leaf_remove_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, repli_timestamp_t tstamp, const uint8_t key_size, const char *key_contents) :
+leaf_remove_patch_t::leaf_remove_patch_t(block_id_t block_id, patch_counter_t patch_counter, repli_timestamp_t tstamp, uint8_t key_size, const char *key_contents) :
             buf_patch_t(block_id, patch_counter, buf_patch_t::OPER_LEAF_REMOVE),
             timestamp(tstamp) {
     key_buf = new char[sizeof(btree_key_t) + key_size];
@@ -99,7 +99,7 @@ leaf_remove_patch_t::leaf_remove_patch_t(const block_id_t block_id, const patch_
     memcpy(key->contents, key_contents, key_size);
 }
 
-leaf_remove_patch_t::leaf_remove_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const char* data, const uint16_t data_length) :
+leaf_remove_patch_t::leaf_remove_patch_t(block_id_t block_id, patch_counter_t patch_counter, const char* data, uint16_t data_length) :
             buf_patch_t(block_id, patch_counter, buf_patch_t::OPER_LEAF_REMOVE),
             timestamp(repli_timestamp_t::invalid) {
     guarantee_patch_format(data_length >= sizeof(repli_timestamp_t) + sizeof(uint8_t));
