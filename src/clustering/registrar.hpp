@@ -7,208 +7,33 @@
 #include "concurrency/wait_any.hpp"
 #include "concurrency/promise.hpp"
 
-/* Each master constructs a `registrar_t` which is responsible for keeping track
-of the mirrors associated with that branch. */
-
-template<class protocol_t>
+template<class data_t, class controller_t, class registrant_t>
 class registrar_t {
 
 private:
-    typedef typename registrar_metadata_t<protocol_t>::registration_id_t registration_id_t;
+    typedef typename registrar_metadata_t<data_t>::registration_id_t registration_id_t;
 
 public:
-    /* `registrant_t` represents a mirror that's registered with the branch. */
-    class registrant_t {
-
-    public:
-        /* To send messages to the mirror, call `write()`, `writeread()`, or
-        `read()`. It's illegal to call `writeread()` or `read()` if the mirror
-        has not yet upgraded to reads. These operations all block until the
-        mirror responds. If contact with the mirror is lost, or the mirror
-        deregisters instead of responding, the operation will throw a
-        `lost_exc_t`. */
-
-        class lost_exc_t : public std::exception {
-            const char *what() const throw () {
-                return "registrant went offline before acking operation";
-            }
-        };
-
-        void write(typename protocol_t::write_t write, repli_timestamp_t timestamp, order_token_t tok, signal_t *interruptor) {
-
-            /* Lock the drain semaphore to avoid weird race conditions if we are
-            deregistered mid-operation */
-            drain_semaphore_t::lock_t dsem_lock(&drain_semaphore);
-
-            /* Set up a mailbox to receive the mirror's acknowledgement */
-            cond_t ack_cond;
-            async_mailbox_t<void()> ack_mailbox(
-                registrar->cluster, boost::bind(&cond_t::pulse, &ack_cond));
-
-            /* Send the write to the mirror */
-            send(registrar->cluster, write_mailbox,
-                write, timestamp, tok, ack_mailbox.get_address());
-
-            /* Wait for the mirror to reply or for us to be interrupted */
-            wait_any_t waiter(&ack_cond, interruptor, &shutdown_cond);
-            waiter.wait_lazily_unordered();
-
-            if (interruptor->is_pulsed()) throw interrupted_exc_t();
-            if (shutdown_cond.is_pulsed()) throw lost_exc_t();
-        }
-
-        typename protocol_t::write_response_t writeread(typename protocol_t::write_t write, repli_timestamp_t timestamp, order_token_t tok, signal_t *interruptor) {
-
-            drain_semaphore_t::lock_t dsem_lock(&drain_semaphore);
-
-            promise_t<typename protocol_t::write_response_t> response_cond;
-            async_mailbox_t<void(typename protocol_t::write_response_t)> response_mailbox(
-                registrar->cluster, boost::bind(&promise_t<typename protocol_t::write_response_t>::pulse, &response_cond, _1));
-
-            send(registrar->cluster, writeread_mailbox,
-                write, timestamp, tok, response_mailbox.get_address());
-
-            wait_any_t waiter(response_cond.get_ready_signal(), interruptor, &shutdown_cond);
-            waiter.wait_lazily_unordered();
-
-            if (interruptor->is_pulsed()) throw interrupted_exc_t();
-            if (shutdown_cond.is_pulsed()) throw lost_exc_t();
-
-            return response_cond.get_value();
-        }
-
-        typename protocol_t::read_response_t read(typename protocol_t::read_t read, order_token_t tok, signal_t *interruptor) {
-
-            drain_semaphore_t::lock_t dsem_lock(&drain_semaphore);
-
-            promise_t<typename protocol_t::read_response_t> response_cond;
-            async_mailbox_t<void(typename protocol_t::read_response_t)> response_mailbox(
-                registrar->cluster, boost::bind(&promise_t<typename protocol_t::read_response_t>::pulse, &response_cond, _1));
-
-            send(registrar->cluster, read_mailbox,
-                read, tok, response_mailbox.get_address());
-
-            wait_any_t waiter(response_cond.get_ready_signal(), interruptor, &shutdown_cond);
-            waiter.wait_lazily_unordered();
-
-            if (interruptor->is_pulsed()) throw interrupted_exc_t();
-            if (shutdown_cond.is_pulsed()) throw lost_exc_t();
-
-            return response_cond.get_value();
-        }
-
-    private:
-        friend class registrar_t;
-
-        registrant_t(registrar_t *r, registrar_t::registration_id_t id,
-                typename registrar_metadata_t<protocol_t>::write_mailbox_t::address_t waddr) :
-            registrar(r), rid(id),
-            peer_monitor(registrar->cluster, waddr.get_peer()),
-            peer_monitor_subs(boost::bind(&registrant_t::destroy, this)),
-            parent_dead_subs(boost::bind(&registrant_t::destroy, this)),
-            write_mailbox(waddr), handles_reads(false)
-        {
-            registrar->registrants[rid] = this;
-            peer_monitor_subs.resubscribe(&peer_monitor);
-            parent_dead_subs.resubscribe(&registrar->shutdown_cond),
-            registrar->callback->on_register(this);
-        }
-
-        void upgrade(
-            typename registrar_metadata_t<protocol_t>::writeread_mailbox_t::address_t wraddr,
-            typename registrar_metadata_t<protocol_t>::read_mailbox_t::address_t raddr)
-        {
-            /* If we're shutting down, ignore the `upgrade()` because we don't
-            want to send an `on_upgrade()` event if we've already sent an
-            `on_deregister()` event. */
-            if (shutdown_cond.is_pulsed()) return;
-
-            rassert(!handles_reads);
-            handles_reads = true;
-            writeread_mailbox = wraddr;
-            read_mailbox = raddr;
-
-            registrar->callback->on_upgrade_to_reads(this);
-        }
-
-        void destroy() {
-            /* There are several different reasons that `destroy()` might be
-            called. To avoid race conditions, the first thing to call
-            `destroy()` pulses `shutdown_cond` and every subsequent thing aborts
-            if `shutdown_cond` is already pulsed. */
-            if (!shutdown_cond.is_pulsed()) {
-                shutdown_cond.pulse();
-                delete this;
-            }
-        }
-
-        ~registrant_t() {
-            /* We should only be called from `destroy()`. */
-            rassert(shutdown_cond.is_pulsed());
-
-            /* Unregister anything that might try to call `destroy()` again or
-            to start a new operation. */
-            registrar->callback->on_deregister(this);
-            parent_dead_subs.unsubscribe();
-            peer_monitor_subs.unsubscribe();
-            registrar->registrants.erase(rid);
-
-            /* Wait for any existing read/write operations to notice that
-            `shutdown_cond` has been pulsed and to stop */
-            drain_semaphore.drain();
-        }
-
-        registrar_t *registrar;
-        registrar_t::registration_id_t rid;
-
-        /* Watch to see if we lose touch with the registrant */
-        disconnect_watcher_t peer_monitor;
-        signal_t::subscription_t peer_monitor_subs;
-
-        /* Watch to see if the registrar starts shutting down */
-        signal_t::subscription_t parent_dead_subs;
-
-        typename registrar_metadata_t<protocol_t>::write_mailbox_t::address_t write_mailbox;
-
-        bool handles_reads;
-        typename registrar_metadata_t<protocol_t>::writeread_mailbox_t::address_t writeread_mailbox;
-        typename registrar_metadata_t<protocol_t>::read_mailbox_t::address_t read_mailbox;
-
-        cond_t shutdown_cond;   /* pulsed when we start shutting down */
-        drain_semaphore_t drain_semaphore;
-    };
-
-    /* To find out what's registering or deregistering, create a `callback_t`
-    and pass it to the `registrar_t` constructor. */
-
-    class callback_t {
-    public:
-        virtual void on_register(registrant_t *) = 0;
-        virtual void on_upgrade_to_reads(registrant_t *) = 0;
-        virtual void on_deregister(registrant_t *) = 0;
-    protected:
-        virtual ~callback_t() { }
-    };
-
     registrar_t(
-            mailbox_cluster_t *c,
-            callback_t *cb,
-            metadata_readwrite_view_t<resource_metadata_t<registrar_metadata_t<protocol_t> > > *metadata_view
+            mailbox_cluster_t *cl,
+            controller_t co,
+            metadata_readwrite_view_t<resource_metadata_t<registrar_metadata_t<data_t> > > *metadata_view
             ) :
-        cluster(c),
-        callback(cb),
-        register_mailbox(new typename registrar_metadata_t<protocol_t>::register_mailbox_t(
-            cluster, boost::bind(&registrar_t::on_register, this, _1, _2, _3))),
-        upgrade_mailbox(new typename registrar_metadata_t<protocol_t>::upgrade_mailbox_t(
-            cluster, boost::bind(&registrar_t::on_upgrade, this, _1, _2, _3))),
-        deregister_mailbox(new typename registrar_metadata_t<protocol_t>::deregister_mailbox_t(
-            cluster, boost::bind(&registrar_t::on_deregister, this, _1)))
+        cluster(cl), controller(co)
     {
-        registrar_metadata_t<protocol_t> business_card;
-        business_card.register_mailbox = register_mailbox->get_address();
-        business_card.upgrade_mailbox = upgrade_mailbox->get_address();
-        business_card.deregister_mailbox = deregister_mailbox->get_address();
-        advertisement.reset(new resource_advertisement_t<registrar_metadata_t<protocol_t> >(
+        drain_semaphore_t::lock_t keepalive(&drain_semaphore);
+        create_mailbox.reset(new typename registrar_metadata_t<data_t>::create_mailbox_t(
+            cluster, boost::bind(&registrar_t::on_create, this, _1, _2, _3, _4, keepalive)));
+        update_mailbox.reset(new typename registrar_metadata_t<data_t>::update_mailbox_t(
+            cluster, boost::bind(&registrar_t::on_update, this, _1, _2, _3, keepalive)));
+        delete_mailbox.reset(new typename registrar_metadata_t<data_t>::delete_mailbox_t(
+            cluster, boost::bind(&registrar_t::on_delete, this, _1, _2, keepalive)));
+
+        registrar_metadata_t<data_t> business_card;
+        business_card.create_mailbox = create_mailbox->get_address();
+        business_card.update_mailbox = update_mailbox->get_address();
+        business_card.delete_mailbox = delete_mailbox->get_address();
+        advertisement.reset(new resource_advertisement_t<registrar_metadata_t<data_t> >(
             cluster, metadata_view, business_card));
     }
 
@@ -219,51 +44,184 @@ public:
 
         /* Don't allow further registration/deregistration operations to begin
         */
-        register_mailbox.reset();
-        upgrade_mailbox.reset();
-        deregister_mailbox.reset();
+        create_mailbox.reset();
+        update_mailbox.reset();
+        delete_mailbox.reset();
 
         /* Start stopping existing registrations */
         shutdown_cond.pulse();
 
         /* Wait for existing registrations to stop completely */
         drain_semaphore.drain();
-        rassert(registrants.empty());
+
+        rassert(registrations.empty());
     }
 
 private:
-    mailbox_cluster_t *cluster;
+    void on_create(registration_id_t rid, async_mailbox_t<void()>::address_t ack_addr, peer_id_t peer, data_t data, UNUSED drain_semaphore_t::lock_t keepalive) {
 
-    callback_t *callback;
+        /* Grab the mutex to avoid race conditions if a message arrives at the
+        update mailbox or the delete mailbox while we're working. We must not
+        block between when `on_create()` begins and when `mutex_acq` is
+        constructed. */
+        mutex_acquisition_t mutex_acq(&mutex);
+
+        /* `registration` is the interface that we expose to the `on_update()`
+        and `on_delete()` handlers. */
+        registration_t registration;
+        cond_t deletion_cond;
+        registration.deleter = &deletion_cond;
+
+        {
+            /* Construct a `registrant_t` to tell the controller that something has
+            now registered. */
+            registrant_t registrant(controller, data);
+            registration.updater = boost::bind(&registrant_t::update, &registrant, _1);
+
+            /* Expose `registrant` so that `on_update()` and `on_delete()` can
+            find it. */
+            map_insertion_sentry_t<registration_id_t, registration_t *> registration_map_sentry(
+                &registrations, rid, &registration);
+
+            /* Begin monitoring the peer so we can disconnect when necessary. */
+            disconnect_watcher_t peer_monitor(cluster, peer);
+
+            /* Release the mutex, since we're done with our initial setup phase
+            */
+            {
+                mutex_acquisition_t doomed;
+                swap(mutex_acq, doomed);
+            }
+
+            /* Send an ack if one was requested */
+            if (!ack_addr.is_nil()) {
+                send(cluster, ack_addr);
+            }
+
+            /* Wait till it's time to shut down */
+            wait_any_t waiter(&deletion_cond, &peer_monitor, &shutdown_cond);
+            waiter.wait_lazily_unordered();
+
+            /* Reacquire the mutex, to avoid race conditions when we're
+            deregistering from `updaters` and `deleters`. I'm not sure if there
+            are any such race conditions, but better safe than sorry. */
+            {
+                mutex_acquisition_t reacquisition(&mutex);
+                swap(mutex_acq, reacquisition);
+            }
+
+            /* `registration_map_sentry` destructor run here; `deletion_cond`
+            cannot be pulsed after this, and `updater` cannot be called. */
+
+            /* `registrant` destructor run here; this will tell the controller
+            that the registration is dead and gone. */
+        }
+
+        /* If the thing that deregistered us requested an ack, it will have set
+        `registration.on_deleted_callback` to a non-nil function. We must wait
+        until after `registrant` has been destroyed to do this. */
+        if (registration.on_deleted_callback) {
+            rassert(deletion_cond.is_pulsed(), "Something set the "
+                "`on_deleted_callback` but didn't tell us to delete ourself");
+            registration.on_deleted_callback();
+        }
+
+        /* `mutex_acq` destructor run here; it's safe to release the mutex
+        because we're no longer touching `updaters` or `deleters`. */
+    }
+
+    void on_update(registration_id_t rid, async_mailbox_t<void()>::address_t ack_addr, data_t new_value, UNUSED drain_semaphore_t::lock_t keepalive) {
+
+        {
+            /* Acquire the mutex so we don't race with `on_create()`. */
+            mutex_acquisition_t mutex_acq(&mutex);
+
+            /* Deliver our notification */
+            typename std::map<registration_id_t, registration_t *>::iterator it =
+                registrations.find(rid);
+            if (it != registrations.end()) {
+                registration_t *reg = (*it).second;
+                reg->updater(new_value);
+            }
+
+            /* Mutex is released here */
+        }
+
+        /* Deliver an ack if one was requested */
+        if (!ack_addr.is_nil()) {
+            send(cluster, ack_addr);
+        }
+    }
+
+    void on_delete(registration_id_t rid, async_mailbox_t<void()>::address_t ack_addr, UNUSED drain_semaphore_t::lock_t keepalive) {
+
+        if (ack_addr.is_nil()) {
+
+            /* No acknowledgement has been requested */
+
+            /* Acquire the mutex so we don't race with `on_create()`. */
+            mutex_acquisition_t mutex_acq(&mutex);
+
+            /* Deliver our notification */
+            typename std::map<registration_id_t, registration_t *>::iterator it =
+                registrations.find(rid);
+            if (it != registrations.end()) {
+                registration_t *reg = (*it).second;
+                rassert(!reg->deleter->is_pulsed());
+                reg->deleter->pulse();
+            }
+
+        } else {
+
+            /* An acknowledgement has been requested; we need some extra
+            machinery to wait until the registrant has been shut down completely
+            before sending the ack. */
+
+            cond_t deletion_complete_cond;
+
+            {
+                /* Acquire the mutex so we don't race with `on_create()`. */
+                mutex_acquisition_t mutex_acq(&mutex);
+
+                /* Deliver our notification */
+                typename std::map<registration_id_t, registration_t *>::iterator it =
+                    registrations.find(rid);
+                if (it != registrations.end()) {
+                    registration_t *reg = (*it).second;
+                    reg->on_deleted_callback = boost::bind(&cond_t::pulse, &deletion_complete_cond);
+                    rassert(!reg->deleter->is_pulsed());
+                    reg->deleter->pulse();
+                }
+            }
+
+            /* Wait until after the `registrant_t` destructor has actually been
+            run */
+            deletion_complete_cond.wait_lazily_unordered();
+
+            send(cluster, ack_addr);
+        }
+    }
+
+    mailbox_cluster_t *cluster;
+    controller_t controller;
+
+    boost::scoped_ptr<typename registrar_metadata_t<data_t>::create_mailbox_t> create_mailbox;
+    boost::scoped_ptr<typename registrar_metadata_t<data_t>::update_mailbox_t> update_mailbox;
+    boost::scoped_ptr<typename registrar_metadata_t<data_t>::delete_mailbox_t> delete_mailbox;
+
+    boost::scoped_ptr<resource_advertisement_t<registrar_metadata_t<data_t> > > advertisement;
 
     cond_t shutdown_cond;
     drain_semaphore_t drain_semaphore;
-    std::map<registration_id_t, registrant_t *> registrants;
 
-    boost::scoped_ptr<typename registrar_metadata_t<protocol_t>::register_mailbox_t> register_mailbox;
-    boost::scoped_ptr<typename registrar_metadata_t<protocol_t>::upgrade_mailbox_t> upgrade_mailbox;
-    boost::scoped_ptr<typename registrar_metadata_t<protocol_t>::deregister_mailbox_t> deregister_mailbox;
-
-    void on_register(registration_id_t rid, async_mailbox_t<void()>::address_t ack_addr, typename registrar_metadata_t<protocol_t>::write_mailbox_t::address_t waddr) {
-        registrants[rid] = new registrant_t(this, rid, waddr);
-        send(cluster, ack_addr);
-    }
-
-    void on_upgrade(registration_id_t rid, typename registrar_metadata_t<protocol_t>::writeread_mailbox_t::address_t wraddr, typename registrar_metadata_t<protocol_t>::read_mailbox_t::address_t raddr) {
-        typename std::map<registration_id_t, registrant_t *>::iterator it = registrants.find(rid);
-        if (it != registrants.end()) {
-            (*it).second->upgrade(wraddr, raddr);
-        }
-    }
-
-    void on_deregister(registration_id_t rid) {
-        typename std::map<registration_id_t, registrant_t *>::iterator it = registrants.find(rid);
-        if (it != registrants.end()) {
-            (*it).second->destroy();
-        }
-    }
-
-    boost::scoped_ptr<resource_advertisement_t<registrar_metadata_t<protocol_t> > > advertisement;
+    mutex_t mutex;
+    class registration_t {
+    public:
+        boost::function<void(data_t)> updater;
+        cond_t *deleter;
+        boost::function<void()> on_deleted_callback;
+    };
+    std::map<registration_id_t, registration_t *> registrations;
 };
 
 #endif /* __CLUSTERING_REGISTRAR_HPP__ */

@@ -5,222 +5,218 @@
 #include "rpc/metadata/metadata.hpp"
 #include "rpc/mailbox/typed.hpp"
 
-/* `registrant_t` represents registering to receive write operations from a
-master.
-
-Construct a `registrant_t` to start receiving write operations from a master.
-The constructor will block while it tries to contact the master. If you
-interrupt it, it will throw an `interrupted_exc_t`; otherwise, it will return
-normally even if it failed to contact the master.
-
-To find out if you are currently receiving write operations from the master,
-check the status of the `signal_t*` returned by `get_failed_signal()`. This is
-implemented as a `signal_t*` rather than an exception thrown by the constructor
-because something may go wrong after the constructor is done.
-
-The write operations that are received will be passed to the function that you
-pass to the `registrant_t` constructor.
-
-Call `upgrade_to_reads()` to inform the master that you're ready to handle reads
-as well as writes. It will always return immediately and will not throw an
-exception.
-
-To stop receiving write operations, call `~registrant_t()`. This will send a
-message to the master to deregister and then return immediately. */
-
-template<class protocol_t>
+template<class data_t>
 class registrant_t {
 
-private:
-    typedef typename registrar_metadata_t<protocol_t>::registration_id_t registration_id_t;
-
 public:
+    /* This constructor registers with the given registrant. If the registrant
+    is inaccessible, it throws an exception. Otherwise, it returns immediately.
+    */
     registrant_t(
-
             mailbox_cluster_t *cl,
-
-            /* Which branch to register with */
-            metadata_read_view_t<resource_metadata_t<registrar_metadata_t<protocol_t> > > *registar_md,
-
-            /* Whenever a write operation is received, this function will be
-            called in a separate coroutine. When it returns, an ack will be sent
-            to the master. If it throws `interrupted_exc_t`, nothing will be
-            sent. */
-            boost::function<void(
-                typename protocol_t::write_t,
-                repli_timestamp_t,
-                order_token_t
-                )> write_cb,
-
-            /* If this is pulsed, cancel the registration process */
-            signal_t *interruptor) :
-
+            metadata_read_view_t<resource_metadata_t<registrar_metadata_t<data_t> > > *registrar_md,
+            data_t initial_value) :
         cluster(cl),
-        registrar(cluster, registar_md),
-
+        registrar(cluster, registrar_md),
         registration_id(generate_uuid()),
-
-        is_upgraded(false),
-
-        write_mailbox(cluster, boost::bind(&registrant_t::on_write, this, _1, _2, _3, _4)),
-        writeread_mailbox(cluster, boost::bind(&registrant_t::on_writeread, this, _1, _2, _3, _4)),
-        read_mailbox(cluster, boost::bind(&registrant_t::on_read, this, _1, _2, _3))
-
+        manually_deregistered(false)
     {
+        /* This will make it so that we get deregistered in our destructor. */
+        deregisterer.fun = boost::bind(&registrant_t::send_deregister_message,
+            cluster,
+            registrar.access().deregister_mailbox,
+            registration_id);
+
+        /* Send a message to register us */
+        send(cluster, registrar.access().create_mailbox,
+            registration_id,
+            async_mailbox_t<void()>::address_t(),
+            cluster->get_me(),
+            initial_value);
+    }
+
+    /* This constructor registers with the given registrant. If the registrant
+    is inaccessible or something goes wrong in registration, it throws an
+    exception. If `interruptor` is pulsed, it throws `interrupted_exc_t`. If all
+    goes well, it blocks until the registrant acknowledges it and then returns
+    normally. */
+    registrant_t(
+            mailbox_cluster_t *cl,
+            metadata_read_view_t<resource_metadata_t<registrar_metadata_t<data_t> > > *registrar_md,
+            data_t initial_value,
+            signal_t *interruptor) :
+        cluster(cl),
+        registrar(cluster, registrar_md),
+        registration_id(generate_uuid()),
+        manually_deregistered(false)
+    {
+        /* Create a mailbox to listen for acks */
+        cond_t ack_cond;
+        async_mailbox_t<void()> mbox(cluster, boost::bind(&cond_t::pulse, &ack_cond));
+
+        /* Set up deregisterer. The reason it's a separate object is so that if
+        something goes wrong in the constructor, we'll still get deregistered.
+        */
+        deregisterer.fun = boost::bind(&registrant_t::send_deregister_message,
+            cluster,
+            registrar.access().delete_mailbox,
+            registration_id);
+
+        /* Send a message to register us */
+        send(cluster, registrar.access().create_mailbox,
+            registration_id,
+            mbox.get_address(),
+            cluster->get_me(),
+            initial_value);
+
+        /* Wait for reply or interruption */
+        wait_any_t waiter(
+            interruptor,
+            &ack_cond,
+            registrar.get_failed_signal());
+        waiter.wait_lazily_unordered();
+
+        /* If we got interrupted, throw an exception */
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
-        try {
-            write_callback = write_cb;
+        /* If the registrar went offline, throw an exception */
+        registrar.access();
 
-            /* Set up a mailbox to receive the master's acknowledgement */
-            cond_t master_has_noticed_us;
-            async_mailbox_t<void()> greet_mailbox(cluster,
-                boost::bind(&cond_t::pulse, &master_has_noticed_us));
-
-            /* Send a message to the master to register us */
-            send(cluster, registrar.access().register_mailbox,
-                registration_id,
-                greet_mailbox.get_address(),
-                write_mailbox.get_address());
-
-            /* Wait for the master to acknowledge us, or for something to go
-            wrong */
-            wait_any_t waiter(&master_has_noticed_us, registrar.get_failed_signal(), interruptor);
-            waiter.wait();
-
-            /* This will throw an exception if the registrar is down */
-            registrar.access();
-
-            if (interruptor->is_pulsed()) throw interrupted_exc_t();
-
-            rassert(master_has_noticed_us.is_pulsed());
-
-        } catch (resource_lost_exc_t) {
-            /* We get here if we lost contact with the registrar before the
-            registration process completed. We're not supposed to throw an
-            exception from the constructor, even if we didn't register
-            properly, so we just return. */
-            return;
-        }
+        /* It wasn't an interruption, so it must have been a reply */
+        rassert(ack_cond.is_pulsed());
     }
 
     signal_t *get_failed_signal() {
+        rassert(!manually_deregistered);
         return registrar.get_failed_signal();
     }
 
-    void upgrade_to_reads(
+    /* `update()` changes the registration data. It throws an exception if the
+    registration is bad. Otherwise, this version of `update()` returns
+    immediately. */
+    void update(data_t new_data) {
 
-            /* Whenever a write operation is received that the master wants us
-            to compute the reply to, this function will be called in a separate
-            coroutine. The return value will be sent to the master. If it throws
-            `interrupted_exc_t`, nothing will be sent. */
-            boost::function<typename protocol_t::write_response_t(
-                typename protocol_t::write_t,
-                repli_timestamp_t, order_token_t
-                )> writeread_cb,
+        rassert(!manually_deregistered);
 
-            /* Whenever a read operation is received, this function will be
-            called in a separate coroutine. The return value will be sent to the
-            master. If it throws `interrupted_exc_t`, nothing will be sent. */
-            boost::function<typename protocol_t::read_response_t(
-                typename protocol_t::read_t,
-                order_token_t
-                )> read_cb
-        )
-    {
-        rassert(!is_upgraded);
-        is_upgraded = true;
-
-        try {
-            writeread_callback = writeread_cb;
-            read_callback = read_cb;
-            /* Send the master a message to sign us up for writereads and reads.
-            */
-            send(cluster,
-                registrar.access().upgrade_mailbox,
-                registration_id,
-                writeread_mailbox.get_address(),
-                read_mailbox.get_address());
-        } catch (resource_lost_exc_t) {
-            /* The registrar is dead. Ignore it, since that's what we're
-            supposed to do. The user will find out by checking
-            `get_failed_signal()`. */
-        }
+        /* Send a message to change registration */
+        send(cluster, registrar.access().update_mailbox,
+            registration_id,
+            async_mailbox_t<void()>::address_t(),
+            new_data);
     }
 
+    /* This version of `update()` is like the previous version except that it
+    blocks until either the registrant acknowledges the update or the signal is
+    pulsed. If the signal is pulsed, it throws `interrupted_exc_t`. */
+    void update(data_t new_data, signal_t *interruptor) {
+
+        rassert(!manually_deregistered);
+
+        /* Set up a mailbox to listen for acks */
+        cond_t ack_cond;
+        async_mailbox_t<void()> mbox(cluster, boost::bind(&cond_t::pulse, &ack_cond));
+
+        /* Send a message to register us */
+        send(cluster, registrar.access().update_mailbox,
+            registration_id,
+            mbox.get_address(),
+            new_data);
+
+        /* Wait for reply or interruption */
+        wait_any_t waiter(
+            interruptor,
+            &ack_cond,
+            registrar.get_failed_signal());
+        waiter.wait_lazily_unordered();
+
+        /* If we got interrupted, throw an exception */
+        if (interruptor->is_pulsed()) throw interrupted_exc_t();
+
+        /* If the registrar went offline, throw an exception */
+        registrar.access();
+
+        /* It wasn't an interruption, so it must have been a reply */
+        rassert(ack_cond.is_pulsed());
+    }
+
+    /* The destructor deregisters us and returns immediately. It never throws
+    any exceptions. If we've already been deregistered via `deregister()`, then
+    it does nothing. */
     ~registrant_t() {
 
+        /* Most of the work is done by the destructor for `deregisterer` */
+    }
+
+    /* `deregister()` deregisters us. If `interruptor` is pulsed, it throws
+    `interrupted_exc_t`; otherwise, it blocks until the deregistration is
+    complete. It never throws any other exceptions. After you call
+    `deregister()`, it's illegal to call any other method. The only reason it
+    exists is that you can't overload C++ destructors... */
+    void deregister(signal_t *interruptor) {
+
+        /* Setting `manually_deregistered` to `true` makes it so that any other
+        method calls will fail. */
+        rassert(!manually_deregistered);
+        manually_deregistered = true;
+
+        /* Disable `deregisterer` so we don't send a redundant deregistration */
+        deregisterer.fun.clear();
+
         try {
-            /* Send the master a message saying we no longer want writes. */
-            send(cluster,
-                registrar.access().deregister_mailbox,
-                registration_id);
+            /* Set up a mailbox to listen for the ack */
+            cond_t ack_cond;
+            async_mailbox_t<void()> mbox(cluster, boost::bind(&cond_t::pulse, &ack_cond));
+
+            /* Send a message to deregister us */
+            send(cluster, registrar.access().delete_mailbox,
+                registration_id,
+                mbox.get_address());
+
+            /* Wait for a reply or interruption */
+            wait_any_t waiter(
+                interruptor,
+                &ack_cond,
+                registrar.get_failed_signal());
+            waiter.wait_lazily_unordered();
+
+            /* If we got interrupted, throw an exception */
+            if (interruptor->is_pulsed()) throw interrupted_exc_t();
+
+            /* If the registrar went offline, throw an exception. (This is just
+            for consistency's sake; we'll catch the exception in just a moment.)
+            */
+            registrar.access();
+
+            /* If there wasn't an exception, there must have been a reply. */
+            rassert(ack_cond.is_pulsed());
+
         } catch (resource_lost_exc_t) {
-            /* There's no need to deregister since the registrar is dead
-            anyway */
-            return;
+            /* Ignore it. We're not supposed to throw any exceptions unless we
+            were interrupted. Besides, we're not gonna get any more messages
+            anyway. */
         }
     }
 
 private:
-    void on_write(
-        typename protocol_t::write_t write,
-        repli_timestamp_t timestamp,
-        order_token_t otok,
-        async_mailbox_t<void()>::address_t cont
-        )
-    {
-        write_callback(write, timestamp, otok);
-        send(cluster, cont);
-    }
+    typedef typename registrar_metadata_t<data_t>::registration_id_t registration_id_t;
 
-    void on_writeread(
-        typename protocol_t::write_t write,
-        repli_timestamp_t timestamp,
-        order_token_t otok,
-        typename async_mailbox_t<void(typename protocol_t::write_response_t)>::address_t cont
-        )
-    {
-        typename protocol_t::write_response_t resp = writeread_callback(write, timestamp, otok);
-        send(cluster, cont, resp);
+    /* We can't deregister in our destructor because then we wouldn't get
+    deregistered if we died mid-constructor. Instead, the deregistration must be
+    done by a separate subcomponent. `deregisterer` is that subcomponent. The
+    constructor sets `deregisterer.fun` to a `boost::bind()` of
+    `send_deregister_message()`, and that deregisters things as necessary. */
+    static void send_deregister_message(
+            mailbox_cluster_t *cluster,
+            typename registrar_metadata_t<data_t>::delete_mailbox_t::address_t addr,
+            registration_id_t rid) {
+        send(cluster, addr, rid, async_mailbox_t<void()>::address_t());
     }
-
-    void on_read(
-        typename protocol_t::read_t read,
-        order_token_t otok,
-        typename async_mailbox_t<void(typename protocol_t::read_response_t)>::address_t cont
-        )
-    {
-        typename protocol_t::read_response_t resp = read_callback(read, otok);
-        send(cluster, cont, resp);
-    }
+    death_runner_t deregisterer;
 
     mailbox_cluster_t *cluster;
-
-    resource_access_t<registrar_metadata_t<protocol_t> > registrar;
-
-    typename registrar_metadata_t<protocol_t>::registration_id_t registration_id;
-
-    bool is_upgraded;
-
-    typename registrar_metadata_t<protocol_t>::write_mailbox_t write_mailbox;
-    typename registrar_metadata_t<protocol_t>::writeread_mailbox_t writeread_mailbox;
-    typename registrar_metadata_t<protocol_t>::read_mailbox_t read_mailbox;
-
-    boost::function<void(
-        typename protocol_t::write_t,
-        repli_timestamp_t,
-        order_token_t
-        )> write_callback;
-    boost::function<typename protocol_t::write_response_t(
-        typename protocol_t::write_t,
-        repli_timestamp_t,
-        order_token_t
-        )> writeread_callback;
-    boost::function<typename protocol_t::read_response_t(
-        typename protocol_t::read_t,
-        order_token_t
-        )> read_callback;
+    resource_access_t<registrar_metadata_t<data_t> > registrar;
+    registration_id_t registration_id;
+    bool manually_deregistered;
 };
 
 #endif /* __CLUSTERING_REGISTRANT_HPP__ */

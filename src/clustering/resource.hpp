@@ -9,20 +9,45 @@ metadata, and need to monitor in case it goes offline. These types facilitate
 that. */
 
 template<class business_card_t>
+class resource_metadata_t;
+
+template<class business_card_t>
+void semilattice_join(resource_metadata_t<business_card_t> *, const resource_metadata_t<business_card_t>);
+
+template<class business_card_t>
+class resource_advertisement_t;
+
+template<class business_card_t>
+class resource_access_t;
+
+/* `resource_metadata_t` is the type that you put in the metadata.
+`business_card_t` is a type that contains information about the resource in
+particular. Initially, you should set the resource's state to `unconstructed`.
+*/
+
+template<class business_card_t>
 class resource_metadata_t {
+
 public:
+    resource_metadata_t() : state(unconstructed) { }
+
+private:
+    friend void semilattice_join<>(resource_metadata_t<business_card_t> *, const resource_metadata_t<business_card_t>);
+    friend class resource_advertisement_t<business_card_t>;
+    friend class resource_access_t<business_card_t>;
+
     enum state_t {
         unconstructed = 0,
         alive = 1,
         destroyed = 2
-    } state;
-    peer_id_t peer;
-    business_card_t contact_info;
-
-    resource_metadata_t() : state(unconstructed) { }
+    };
 
     resource_metadata_t(mailbox_cluster_t *cluster, const business_card_t &ci) :
         state(destroyed), peer(cluster->get_me()), contact_info(ci) { }
+
+    state_t state;
+    peer_id_t peer;
+    business_card_t contact_info;
 };
 
 template<class business_card_t>
@@ -36,7 +61,9 @@ void semilattice_join(resource_metadata_t<business_card_t> *a, const resource_me
 }
 
 /* A resource constructs a `resource_advertisement_t` to tell everybody that it
-exists. */
+exists. The constructor changes the state of the resource from `unconstructed`
+to `alive`, and populates the `contact_info` field. The destructor changes the
+state from `alive` to `destroyed`. */
 
 template<class business_card_t>
 class resource_advertisement_t {
@@ -69,6 +96,11 @@ private:
     metadata_readwrite_view_t<resource_metadata_t<business_card_t> > *metadata_view;
 };
 
+/* A resource-user constructs a `resource_access_t` when it wants to start using
+the resource. The `resource_access_t` will give it access to the resource's
+contact info, but also ensure safety by watching to see if the resource goes
+down. */
+
 class resource_lost_exc_t : public std::exception {
 public:
     resource_lost_exc_t() { }
@@ -76,10 +108,6 @@ public:
         return "access to resource interrupted";
     }
 };
-
-/* A resource-user constructs a `resource_access_t` when it wants to start using
-the resource. The `resource_access_t` will allow it to use the resource but
-ensure safety by throwing an exception if the resource dies. */
 
 template<class business_card_t>
 class resource_access_t {
@@ -97,7 +125,7 @@ public:
     {
         check_dead();
         subs.resubscribe(view);
-        access();   // To crash if something is already wrong
+        access();   /* Throw an exception if something's gone wrong already */
     }
 
     /* Returns a `signal_t *` that will be pulsed when access to the resource is

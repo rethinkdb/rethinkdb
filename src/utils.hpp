@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <iostream>
 #include <string>
+#include <map>
 
 #include "config/args.hpp"
 #include "errors.hpp"
@@ -75,6 +76,31 @@ public:
         if (!fun.empty()) fun();
     }
     boost::function<void()> fun;
+};
+
+/* `map_insertion_sentry_t` inserts a value into a map on construction, and
+removes it in the destructor. */
+template<class key_t, class value_t>
+class map_insertion_sentry_t {
+
+public:
+    map_insertion_sentry_t(std::map<key_t, value_t> *m, const key_t &key, const value_t &value) :
+        map(m)
+    {
+        std::pair<typename std::map<key_t, value_t>::iterator, bool> iterator_and_is_new =
+            map->insert(std::make_pair(key, value));
+        rassert(iterator_and_is_new.second, "value to be inserted already "
+            "exists. don't do that.");
+        it = iterator_and_is_new.first;
+    }
+
+    ~map_insertion_sentry_t() {
+        map->erase(it);
+    }
+
+private:
+    std::map<key_t, value_t> *map;
+    typename std::map<key_t, value_t>::iterator it;
 };
 
 // Like std::max, except it's technically not associative.
