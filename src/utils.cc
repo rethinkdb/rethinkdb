@@ -337,3 +337,7 @@ std::string strprintf(const char *format, ...) {
 
     return std::string(arr.get(), arr.get() + size);
 }
+
+bool notf(bool x) { 
+    return !x; 
+}

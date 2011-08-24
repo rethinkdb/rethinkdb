@@ -241,7 +241,7 @@ std::string riak_interface_t::mapreduce(json::mValue &val) throw(JS::engine_exce
 
     //do linking phases
     for (; query_it != query_end; query_it++) {
-        if (std_map_contains(query_it->get_obj(), std::string("link"))) {
+        if (std_contains(query_it->get_obj(), std::string("link"))) {
             json::mObject *link = &(query_it->get_obj()["link"].get_obj());
             link_filter_t link_filter((*link)["bucket"].get_str(), (*link)["tag"].get_str(), (*link)["keep"].get_bool());
 
@@ -265,15 +265,15 @@ std::string riak_interface_t::mapreduce(json::mValue &val) throw(JS::engine_exce
     std::string res;
 
     for (; query_it != query_end; query_it++) {
-        if (std_map_contains(query_it->get_obj(), std::string("link"))) {
+        if (std_contains(query_it->get_obj(), std::string("link"))) {
             goto MALFORMED_REQUEST;
-        } else if (std_map_contains(query_it->get_obj(), std::string("map"))) {
+        } else if (std_contains(query_it->get_obj(), std::string("map"))) {
             if (query_it->get_obj()["map"].get_obj()["language"].get_str() != "javascript") { 
                 goto MALFORMED_REQUEST; 
             }
 
             js_values = js_map(ctx, query_it->get_obj()["map"].get_obj()["source"].get_str(), js_values);
-        } else if (std_map_contains(query_it->get_obj(), std::string("reduce"))) {
+        } else if (std_contains(query_it->get_obj(), std::string("reduce"))) {
             if (query_it->get_obj()["reduce"].get_obj()["language"].get_str() != "javascript") { 
                 goto MALFORMED_REQUEST; 
             }

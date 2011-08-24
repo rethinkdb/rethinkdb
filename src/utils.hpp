@@ -218,9 +218,30 @@ T const &nth(std::list<T> const &l, unsigned n) {
     return *it;
 }
 
-template <class K, class V>
-bool std_map_contains (std::map<K,V> &map, K const & key) {
-    return map.find(key) != map.end();
+//TODO change this things name
+template <class T, class K>
+bool std_contains(const T &target, K const & key) {
+    return target.find(key) != target.end();
 }
+template <class T, class K>
+bool std_does_not_contain(const T &target, K const & key) {
+    return !std_contains(target, key);
+}
+
+template <class InputIterator, class UnaryPredicate>
+bool all_match_predicate(InputIterator begin, InputIterator end, UnaryPredicate f) {
+    bool res = true;
+    for (; begin != end; begin++) {
+        res &= f(*begin);
+    }
+    return res;
+}
+
+template <class T, class UnaryPredicate>
+bool all_in_container_match_predicate (const T &container, UnaryPredicate f) {
+    return all_match_predicate(container.begin(), container.end(), f);
+}
+
+bool notf(bool x);
 
 #endif // __UTILS_HPP__
