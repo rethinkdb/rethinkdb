@@ -14,7 +14,7 @@ class buf_patch_t;
 #include "serializer/types.hpp"
 
 typedef uint32_t patch_counter_t;
-typedef char patch_operation_code_t;
+typedef int8_t patch_operation_code_t;
 
 /*
  * As the buf_patch code is used in both extract and server, it should not crash
@@ -64,7 +64,7 @@ public:
     void serialize(char* destination) const;
 
     inline uint16_t get_serialized_size() const {
-        return sizeof(uint16_t) + sizeof(block_id) + sizeof(patch_counter_t) + sizeof(block_sequence_id_t) + sizeof(patch_operation_code_t) + get_data_size();
+        return sizeof(uint16_t) + sizeof(block_id_t) + sizeof(patch_counter_t) + sizeof(block_sequence_id_t) + sizeof(patch_operation_code_t) + get_data_size();
     }
     inline static uint16_t get_min_serialized_size() {
         return sizeof(uint16_t) + sizeof(block_id_t) + sizeof(patch_counter_t) + sizeof(block_sequence_id_t) + sizeof(patch_operation_code_t);
@@ -76,7 +76,7 @@ public:
     inline block_sequence_id_t get_block_sequence_id() const {
         return applies_to_block_sequence_id;
     }
-    inline void set_block_sequence_id(const block_sequence_id_t block_sequence_id) {
+    inline void set_block_sequence_id(block_sequence_id_t block_sequence_id) {
         applies_to_block_sequence_id = block_sequence_id;
     }
     inline block_id_t get_block_id() const {
@@ -92,8 +92,8 @@ public:
     
 protected:    
     // These are for usage in subclasses
-    buf_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const patch_operation_code_t operation_code);
-    virtual void serialize_data(char* destination) const = 0;
+    buf_patch_t(block_id_t block_id, patch_counter_t patch_counter, patch_operation_code_t operation_code);
+    virtual void serialize_data(char *destination) const = 0;
     virtual uint16_t get_data_size() const = 0;
 
     static const patch_operation_code_t OPER_MEMCPY = 0;
@@ -102,6 +102,7 @@ protected:
     static const patch_operation_code_t OPER_LEAF_INSERT_PAIR = 3;
     static const patch_operation_code_t OPER_LEAF_INSERT = 4;
     static const patch_operation_code_t OPER_LEAF_REMOVE = 5;
+    static const patch_operation_code_t OPER_LEAF_ERASE_PRESENCE = 6;
     /* Assign an operation id to new subtypes here */
     /* Please note: you also have to "register" new operations in buf_patch_t::load_patch() */
 
@@ -113,6 +114,7 @@ private:
 };
 
 struct dereferencing_buf_patch_compare_t {
+    // TODO: Why are we passing these pointers by const reference?
     bool operator()(buf_patch_t *const& x, buf_patch_t *const& y) const {
         return *x < *y;
     }
@@ -123,8 +125,8 @@ struct dereferencing_buf_patch_compare_t {
 /* memcpy_patch_t copies n bytes from src to the offset dest_offset of a buffer */
 class memcpy_patch_t : public buf_patch_t {
 public:
-    memcpy_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const uint16_t dest_offset, const char *src, const uint16_t n);
-    memcpy_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const char* data, const uint16_t data_length);
+    memcpy_patch_t(block_id_t block_id, patch_counter_t patch_counter, uint16_t dest_offset, const char *src, uint16_t n);
+    memcpy_patch_t(block_id_t block_id, patch_counter_t patch_counter, const char* data, uint16_t data_length);
 
     virtual ~memcpy_patch_t();
 
@@ -145,8 +147,8 @@ private:
 /* memove_patch_t moves data from src_offset to dest_offset within a single buffer (with semantics equivalent to memmove()) */
 class memmove_patch_t : public buf_patch_t {
 public:
-    memmove_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const uint16_t dest_offset, const uint16_t src_offset, const uint16_t n);
-    memmove_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const char* data, const uint16_t data_length);
+    memmove_patch_t(block_id_t block_id, patch_counter_t patch_counter, uint16_t dest_offset, uint16_t src_offset, uint16_t n);
+    memmove_patch_t(block_id_t block_id, patch_counter_t patch_counter, const char* data, uint16_t data_length);
 
     virtual void apply_to_buf(char* buf_data, block_size_t bs);
 
