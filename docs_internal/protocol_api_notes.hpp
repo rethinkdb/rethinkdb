@@ -84,6 +84,7 @@ struct ?_protocol_t {
 
         /* Breaks the read into several sub-reads for individual regions.
         [Precondition] union(regions) == read.get_region()
+        [Precondition] forall x,y in regions, x does not overlap y
         [Postcondition] read.shard(regions).size() == regions.size()
         [Postcondition] read.shard(regions)[i].get_region() IsSubsetOf regions[i]
         */
