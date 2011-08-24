@@ -52,8 +52,7 @@ struct ?_protocol_t {
     implemented as a range of keys, although it could be something weirder, like
     the set of all keys whose hashes fall into a certain range.
 
-    In this document, we talk about regions using set notation. We say that
-    `region1 <= region2` when `region1` is a non-strict subset of `region2`.
+    In this document, we talk about regions using set notation. 
     `union(regions)` refers to the union of multiple regions. And so on. */
 
     struct region_t {
@@ -86,7 +85,7 @@ struct ?_protocol_t {
         /* Breaks the read into several sub-reads for individual regions.
         [Precondition] union(regions) == read.get_region()
         [Postcondition] read.shard(regions).size() == regions.size()
-        [Postcondition] read.shard(regions)[i].get_region() <= regions[i]
+        [Postcondition] read.shard(regions)[i].get_region() IsSubsetOf regions[i]
         */
         std::vector<read_t> shard(std::vector<region_t> regions);
 
@@ -94,7 +93,7 @@ struct ?_protocol_t {
         on different machines. `read_t` may choose how many sub-reads to create,
         but creating more than `optimal_factor` sub-reads won't help performance
         and may hurt it.
-        [Postcondition] read.parallelize()[i].get_region() <= read.get_region()
+        [Postcondition] read.parallelize()[i].get_region() IsSubsetOf read.get_region()
         */
         std::vector<read_t> parallelize(int optimal_factor);
 
@@ -177,7 +176,7 @@ struct ?_protocol_t {
 
         /* Performs a read operation on the store. May not modify the store's
         state in any way.
-        [Precondition] read.get_region() <= store.get_region()
+        [Precondition] read.get_region() IsSubsetOf store.get_region()
         [Precondition] store.is_coherent()
         [Precondition] !store.is_backfilling()
         [May block]
@@ -188,7 +187,7 @@ struct ?_protocol_t {
         state must be deterministic; if I have two `store_t`s in the same state
         and I call `write()` on both with the same parameters, then they must
         both transition to the same state.
-        [Precondition] write.get_region() <= store.get_region()
+        [Precondition] write.get_region() IsSubsetOf store.get_region()
         [Precondition] store.is_coherent()
         [Precondition] !store.is_backfilling()
         [Precondition] timestamp >= store.get_timestamp()
