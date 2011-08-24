@@ -2,8 +2,8 @@
 #define __PROTOCOL_REDIS_UTIL_H__
 
 #include "protocol/redis/redis_types.hpp"
-#include "protocol/redis/redis_actor.hpp"
 #include "protocol/redis/redis.hpp"
+#include "btree/operations.hpp"
 #include <boost/lexical_cast.hpp>
 
 typedef repli_timestamp_t timestamp_t;
@@ -180,9 +180,6 @@ int incr_loc(keyvalue_location_t<T> &loc, int by) {
 
     return int_value;
 }
-
-status_result redis_error(const char *msg);
-status_result redis_ok();
 
 // What is this crazy contraption? Well origionally it was supposed to be a simple convienience function to
 // return an integer result wrapped in a write_t or read_t. But I didn't want to have to create two versions

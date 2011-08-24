@@ -71,6 +71,12 @@ namespace px = boost::phoenix;
          px::construct<redis_protocol_t::write_t>( \
          px::new_<redis_protocol_t::CNAME>(qi::_1, qi::_2, qi::_3)))]
 
+#define WRITE_4(CNAME, ARG_TYPE_ONE, ARG_TYPE_TWO, ARG_TYPE_THREE, ARG_TYPE_FOUR)\
+        | command(5, std::string(#CNAME)) >> (ARG_TYPE_ONE##_arg >> ARG_TYPE_TWO##_arg >> ARG_TYPE_THREE##_arg >> ARG_TYPE_FOUR##_arg)\
+        [px::bind(&redis_grammar::execute_write, this, \
+         px::construct<redis_protocol_t::write_t>( \
+         px::new_<redis_protocol_t::CNAME>(qi::_1, qi::_2, qi::_3, qi::_4)))]
+
 #define READ__0(CNAME)\
         | command(1, std::string(#CNAME))\
         [px::bind(&redis_grammar::execute_read, this, \
@@ -219,9 +225,31 @@ struct redis_grammar : qi::grammar<Iterator> {
            WRITE_N(sunionstore)
         COMMANDS_END
 
+        BEGIN(lists1)
+            WRITE_N(blpop)
+            WRITE_N(brpop)
+            WRITE_N(brpoplpush)
+            READ__2(lindex, string, int)
+            WRITE_4(linsert, string, string, string, string)
+            READ__1(llen, string)
+            WRITE_1(lpop, string)
+            WRITE_N(lpush)
+            WRITE_2(lpushx, string, string)
+        COMMANDS_END
+        BEGIN(lists2)
+            READ__3(lrange, string, int, int)
+            WRITE_3(lrem, string, int, string)
+            WRITE_3(lset, string, int, string)
+            WRITE_3(ltrim, string, int, int)
+            WRITE_1(rpop, string)
+            WRITE_2(rpoplpush, string, string)
+            WRITE_N(rpush)
+            WRITE_2(rpushx, string, string)
+        COMMANDS_END
+
         //Because of the aformentioned tiny blocks problem we have to now or the blocks here
         //*sigh* and we were so close to requiring only one line to add a command
-        commands = keys1 | keys2 | strings1 | strings2 | hashes1 | hashes2 | sets1 | sets2;
+        commands = keys1 | keys2 | strings1 | strings2 | hashes1 | hashes2 | sets1 | sets2 | lists1 | lists2;
         start = commands;
     }
 
@@ -259,6 +287,8 @@ private:
     qi::rule<Iterator> start;
     qi::rule<Iterator> sets1;
     qi::rule<Iterator> sets2;
+    qi::rule<Iterator> lists1;
+    qi::rule<Iterator> lists2;
 
     // The call function
 

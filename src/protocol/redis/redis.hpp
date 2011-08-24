@@ -233,6 +233,19 @@ struct redis_protocol_t {
         ARG_TYPE_TWO two; \
         ARG_TYPE_THREE three; \
     };
+
+    #define WRITE_4(CNAME, ARG_TYPE_ONE, ARG_TYPE_TWO, ARG_TYPE_THREE, ARG_TYPE_FOUR)\
+    struct CNAME : write_operation_t { \
+        CNAME(ARG_TYPE_ONE one_, ARG_TYPE_TWO two_, ARG_TYPE_THREE three_, ARG_TYPE_FOUR four_) : one(one_), two(two_), three(three_), four(four_) { } \
+        virtual indicated_key_t get_keys(); \
+        virtual std::vector<write_t> shard(std::vector<region_t> &regions); \
+        virtual redis_protocol_t::write_response_t execute(btree_slice_t *btree, timestamp_t timestamp, order_token_t otok); \
+    private: \
+        ARG_TYPE_ONE one; \
+        ARG_TYPE_TWO two; \
+        ARG_TYPE_THREE three; \
+        ARG_TYPE_FOUR four; \
+    };
     
     #define READ__0(CNAME)\
     struct CNAME : read_operation_t { \
@@ -362,11 +375,31 @@ struct redis_protocol_t {
     WRITE_N(srem)
     READ__N(sunion)
     WRITE_N(sunionstore)
+
+    // Lists
+    WRITE_N(blpop)
+    WRITE_N(brpop)
+    WRITE_N(brpoplpush)
+    READ__2(lindex, string&, int)
+    WRITE_4(linsert, string&, string&, string&, string&)
+    READ__1(llen, string&)
+    WRITE_1(lpop, string&)
+    WRITE_N(lpush)
+    WRITE_2(lpushx, string&, string&)
+    READ__3(lrange, string&, int, int)
+    WRITE_3(lrem, string&, int, string&)
+    WRITE_3(lset, string&, int, string&)
+    WRITE_3(ltrim, string&, int, int)
+    WRITE_1(rpop, string&)
+    WRITE_2(rpoplpush, string&, string&)
+    WRITE_N(rpush)
+    WRITE_2(rpushx, string&, string&)
     
     #undef WRITE_0
     #undef WRITE_1
     #undef WRITE_2
     #undef WRITE_3
+    #undef WRITE_4
     #undef READ__0
     #undef READ__1
     #undef READ__2

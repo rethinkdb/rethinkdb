@@ -10,28 +10,6 @@
 #include <vector>
 #include <inttypes.h>
 
-//Redis result types. All redis commands return one of these types. Any redis parser
-//should know how to serialize these
-enum redis_status {
-    OK,
-    ERROR
-};
-
-struct status_result_struct {
-    redis_status status;
-    const char *msg;
-};
-
-typedef const boost::shared_ptr<status_result_struct> status_result;
-typedef const boost::variant<unsigned, status_result> integer_result;
-typedef const boost::variant<boost::shared_ptr<std::string>, status_result> bulk_result;
-typedef const boost::variant<boost::shared_ptr<std::vector<std::string> >, status_result> multi_bulk_result;
-
-//typedef const unsigned integer_result;
-//typedef const boost::shared_ptr<std::string> bulk_result;
-//typedef const boost::shared_ptr<std::vector<std::string> > multi_bulk_result;
-//typedef const boost::variant<status_result, integer_result, bulk_result, multi_bulk_result> redis_result;
-
 enum redis_value_type {
     REDIS_STRING,
     REDIS_LIST,
@@ -131,6 +109,23 @@ struct redis_hash_value_t : redis_value_t {
 // The value support is identical at this point 
 typedef redis_hash_value_t redis_set_value_t;
 
+// Yes this is coppied from counted.hpp
+struct sub_ref_t {
+    uint32_t count; // the size of this sub tree
+    block_id_t node_id; // The root block of the sub tree
+} __attribute__((__packed__));
+
+
+struct redis_list_value_t : redis_value_t {
+    int size() const {
+        return get_metadata_size() + sizeof(sub_ref_t);
+    }
+
+    sub_ref_t *get_ref() {
+        return reinterpret_cast<sub_ref_t *>(get_content());
+    }
+} __attribute__((__packed__));
+
 template <>
 class value_sizer_t<redis_value_t> {
 public:
@@ -142,6 +137,7 @@ public:
             return reinterpret_cast<const redis_string_value_t *>(this)->size(block_size_);
             break;
         case REDIS_LIST:
+            return reinterpret_cast<const redis_list_value_t *>(this)->size();
             break;
         case REDIS_HASH:
             return reinterpret_cast<const redis_hash_value_t *>(this)->size();
