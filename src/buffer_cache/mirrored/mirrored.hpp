@@ -29,10 +29,8 @@
 typedef page_repl_random_t page_repl_t;
 
 #include "buffer_cache/mirrored/free_list.hpp"
-typedef array_free_list_t free_list_t;
 
 #include "buffer_cache/mirrored/page_map.hpp"
-typedef array_map_t page_map_t;
 
 
 class mc_cache_account_t;
@@ -44,7 +42,7 @@ class mc_cache_account_t;
 // To change this requires some tricky rewriting/refactoring, and I was unable to get around to it.
 // -rntz
 
-// evictable_t must go before page_map_t::local_buf_t, which
+// evictable_t must go before array_map_t::local_buf_t, which
 // references evictable_t's cache field.
 class mc_inner_buf_t : public evictable_t,
 		       private writeback_t::local_buf_t, /* This local_buf_t has state used by the writeback. */
@@ -438,10 +436,10 @@ private:
     boost::scoped_ptr<file_account_t> reads_io_account;
     boost::scoped_ptr<file_account_t> writes_io_account;
 
-    page_map_t page_map;
+    array_map_t page_map;
     page_repl_t page_repl;
     writeback_t writeback;
-    free_list_t free_list;
+    array_free_list_t free_list;
 
     // More fields
     bool shutting_down;
