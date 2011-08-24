@@ -83,7 +83,7 @@ public:
         private_dynamic_config_t private_dynamic_config;
         static_config_t static_config;
 
-        log_serializer_config_t(std::string file_name) 
+        log_serializer_config_t(std::string file_name)
             : private_dynamic_config(file_name)
         { }
 
@@ -96,10 +96,6 @@ public:
     };
 
     typedef log_serializer_config_t config_t;
-    
-    dynamic_config_t dynamic_config;
-    private_dynamic_config_t private_config;
-    static_config_t static_config;
 
 public:
 
@@ -175,15 +171,6 @@ private:
     /* This mess is because the serializer is still mostly FSM-based */
     bool shutdown(cond_t *cb);
     bool next_shutdown_step();
-    cond_t *shutdown_callback;
-
-    enum shutdown_state_t {
-        shutdown_begin,
-        shutdown_waiting_on_serializer,
-        shutdown_waiting_on_datablock_manager,
-        shutdown_waiting_on_lba
-    } shutdown_state;
-    bool shutdown_in_one_shot;
 
     virtual void on_datablock_manager_shutdown();
     virtual void on_lba_shutdown();
@@ -209,6 +196,20 @@ private:
     void prepare_metablock(metablock_t *mb_buffer);
 
     void consider_start_gc();
+
+    dynamic_config_t dynamic_config;
+    private_dynamic_config_t private_config;
+    static_config_t static_config;
+
+    cond_t *shutdown_callback;
+
+    enum shutdown_state_t {
+        shutdown_begin,
+        shutdown_waiting_on_serializer,
+        shutdown_waiting_on_datablock_manager,
+        shutdown_waiting_on_lba
+    } shutdown_state;
+    bool shutdown_in_one_shot;
 
     enum state_t {
         state_unstarted,
