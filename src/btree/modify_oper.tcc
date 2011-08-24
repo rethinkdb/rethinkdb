@@ -51,7 +51,7 @@ void run_btree_modify_oper(btree_modify_oper_t<Value> *oper, btree_slice_t *slic
         // Actually update the leaf, if needed.
         if (update_needed) {
             kv_location.value.reinterpret_swap(the_value);
-            apply_keyvalue_change(&kv_location, key, castime.timestamp);
+            apply_keyvalue_change(&kv_location, key, castime.timestamp, expired);
         }
     }
 }

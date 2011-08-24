@@ -81,6 +81,8 @@ private:
     btree_slice_t *parent;
     castime_t ct;
     order_token_t order_token;
+
+    DISABLE_COPYING(btree_slice_change_visitor_t);
 };
 
 mutation_result_t btree_slice_t::change(const mutation_t &m, castime_t castime, order_token_t token) {
