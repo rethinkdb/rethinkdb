@@ -1,7 +1,6 @@
 #ifndef __MIRRORED_CACHE_HPP__
 #define __MIRRORED_CACHE_HPP__
 
-#include <list>
 #include <map>
 
 #include "errors.hpp"
