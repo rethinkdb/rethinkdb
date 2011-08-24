@@ -14,7 +14,7 @@ class buf_patch_t;
 #include "serializer/types.hpp"
 
 typedef uint32_t patch_counter_t;
-typedef char patch_operation_code_t;
+typedef int8_t patch_operation_code_t;
 
 /*
  * As the buf_patch code is used in both extract and server, it should not crash
@@ -102,6 +102,7 @@ protected:
     static const patch_operation_code_t OPER_LEAF_INSERT_PAIR = 3;
     static const patch_operation_code_t OPER_LEAF_INSERT = 4;
     static const patch_operation_code_t OPER_LEAF_REMOVE = 5;
+    static const patch_operation_code_t OPER_LEAF_ERASE_PRESENCE = 6;
     /* Assign an operation id to new subtypes here */
     /* Please note: you also have to "register" new operations in buf_patch_t::load_patch() */
 

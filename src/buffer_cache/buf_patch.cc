@@ -35,17 +35,19 @@ buf_patch_t *buf_patch_t::load_patch(UNUSED block_size_t bs, const char *source)
 
         buf_patch_t* result = NULL;
         switch (operation_code) {
-            case (OPER_MEMCPY):
-                result = new memcpy_patch_t(block_id, patch_counter, source, remaining_length); break;
-            case (OPER_MEMMOVE):
-                result = new memmove_patch_t(block_id, patch_counter, source, remaining_length); break;
-            case (OPER_LEAF_INSERT):
-                result = new leaf_insert_patch_t(block_id, patch_counter, source, remaining_length); break;
-            case (OPER_LEAF_REMOVE):
-                result = new leaf_remove_patch_t(block_id, patch_counter, source, remaining_length); break;
-            default:
-                guarantee_patch_format(false, "Unsupported patch operation code");
-                return NULL;
+	case OPER_MEMCPY:
+	    result = new memcpy_patch_t(block_id, patch_counter, source, remaining_length); break;
+	case OPER_MEMMOVE:
+	    result = new memmove_patch_t(block_id, patch_counter, source, remaining_length); break;
+	case OPER_LEAF_INSERT:
+	    result = new leaf_insert_patch_t(block_id, patch_counter, source, remaining_length); break;
+	case OPER_LEAF_REMOVE:
+	    result = new leaf_remove_patch_t(block_id, patch_counter, source, remaining_length); break;
+	case OPER_LEAF_ERASE_PRESENCE:
+	    result = new leaf_erase_presence_patch_t(block_id, patch_counter, source, remaining_length); break;
+	default:
+	    guarantee_patch_format(false, "Unsupported patch operation code");
+	    return NULL;
         }
         result->set_block_sequence_id(applies_to_block_sequence_id);
         return result;
