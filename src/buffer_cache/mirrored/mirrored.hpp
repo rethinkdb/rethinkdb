@@ -60,9 +60,56 @@ class mc_inner_buf_t : public evictable_t,
     friend class patch_disk_storage_t;
 
     typedef mc_cache_t cache_t;
-    
+
     typedef uint64_t version_id_t;
+
+
+
+    struct buf_snapshot_t;
+
+
+
     static const version_id_t faux_version_id = 0;  // this version id must be smaller than any valid version id
+
+    // writeback_t::local_buf_t used to be a field, not a privately
+    // inherited superclass, so this is the proper way to access its
+    // fields.
+    writeback_t::local_buf_t& writeback_buf() { return *this; }
+
+    // Functions of the evictable_t interface.  TODO (sam): Investigate these.
+    bool safe_to_unload();
+    void unload();
+
+    // Load an existing buf from disk
+    mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_load, file_account_t *io_account);
+
+    // Load an existing buf but use the provided data buffer (for read ahead)
+    mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp);
+
+    // Create an entirely new buf
+    static mc_inner_buf_t *allocate(cache_t *cache, version_id_t snapshot_version, repli_timestamp_t recency_timestamp);
+    mc_inner_buf_t(cache_t *cache, block_id_t block_id, version_id_t snapshot_version, repli_timestamp_t recency_timestamp);
+    ~mc_inner_buf_t();
+
+    // Loads data from the serializer.  TODO (sam): Investigate who uses this.
+    void load_inner_buf(bool should_lock, file_account_t *io_account);
+
+    // Informs us that a certain data buffer (whether the current one or one used by a
+    // buf_snapshot_t) has been written back to disk; used by writeback
+    void update_data_token(const void *data, const boost::intrusive_ptr<standard_block_token_t>& token);
+
+    // If required, make a snapshot of the data before being overwritten with new_version
+    bool snapshot_if_needed(version_id_t new_version);
+    // releases a buffer snapshot used by a transaction snapshot
+    void release_snapshot(buf_snapshot_t *snapshot);
+    // acquires the snapshot data buffer, loading from disk if necessary; must be matched by a call
+    // to release_snapshot_data to keep track of when data buffer is in use
+    void *acquire_snapshot_data(version_id_t version_to_access, file_account_t *io_account);
+    void release_snapshot_data(void *data);
+
+private:
+    // Helper function for inner_buf construction from an existing block
+    void replay_patches();
 
     // Our block's block id.
     block_id_t block_id;
@@ -103,54 +150,13 @@ class mc_inner_buf_t : public evictable_t,
     // snapshot. this is ugly, but necessary to correctly initialize buf_snapshot_t refcounts.
     size_t snap_refcount;
 
-    // writeback_t::local_buf_t used to be a field, not a privately
-    // inherited superclass, so this is the proper way to access its
-    // fields.
-    writeback_t::local_buf_t& writeback_buf() { return *this; }
-
-    // Functions of the evictable_t interface.  TODO (sam): Investigate these.
-    bool safe_to_unload();
-    void unload();
-
-    // Load an existing buf from disk
-    mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_load, file_account_t *io_account);
-
-    // Load an existing buf but use the provided data buffer (for read ahead)
-    mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp);
-
-    // Create an entirely new buf
-    static mc_inner_buf_t *allocate(cache_t *cache, version_id_t snapshot_version, repli_timestamp_t recency_timestamp);
-    mc_inner_buf_t(cache_t *cache, block_id_t block_id, version_id_t snapshot_version, repli_timestamp_t recency_timestamp);
-    ~mc_inner_buf_t();
-
-    // Loads data from the serializer.  TODO (sam): Investigate who uses this.
-    void load_inner_buf(bool should_lock, file_account_t *io_account);
-
-    // Informs us that a certain data buffer (whether the current one or one used by a
-    // buf_snapshot_t) has been written back to disk; used by writeback
-    void update_data_token(const void *data, const boost::intrusive_ptr<standard_block_token_t>& token);
-
     // TODO (sam): Figure out what this is, and how it is different from version_id.
     block_sequence_id_t block_sequence_id;
 
     // snapshot types' implementations are internal and deferred to mirrored.cc
-    struct buf_snapshot_t;
     typedef intrusive_list_t<buf_snapshot_t> snapshot_data_list_t;
     // TODO (sam): Learn about this.
     snapshot_data_list_t snapshots;
-
-    // If required, make a snapshot of the data before being overwritten with new_version
-    bool snapshot_if_needed(version_id_t new_version);
-    // releases a buffer snapshot used by a transaction snapshot
-    void release_snapshot(buf_snapshot_t *snapshot);
-    // acquires the snapshot data buffer, loading from disk if necessary; must be matched by a call
-    // to release_snapshot_data to keep track of when data buffer is in use
-    void *acquire_snapshot_data(version_id_t version_to_access, file_account_t *io_account);
-    void release_snapshot_data(void *data);
-
-private:
-    // Helper function for inner_buf construction from an existing block
-    void replay_patches();
 
     DISABLE_COPYING(mc_inner_buf_t);
 };
@@ -174,30 +180,8 @@ private:
              boost::function<void()> call_when_in_line, file_account_t *io_account = DEFAULT_DISK_ACCOUNT);
     void acquire_block(mc_inner_buf_t::version_id_t version_to_access);
 
-    // TODO (sam): WTF is this?
-    ticks_t start_time;
-
-    // Presumably, the mode with which this mc_buf_t holds the inner buf.
-    access_t mode;
-
-    // True if this is an mc_buf_t for a snapshotted view of the buf.
-    bool snapshotted;
-
-    // non_locking_access is a hack for the sake of patch_disk_storage.cc. It would be nice if we
-    // could eliminate it.  TODO (sam): Figure out wtf this is.
-    bool non_locking_access;
-
-    // Our pointer to an inner_buf -- we have a bunch of mc_buf_t's
-    // all pointing at an inner buf.
-    mc_inner_buf_t *inner_buf;
-    void *data; /* Usually the same as inner_buf->data. If a COW happens or this mc_buf_t is part of a snapshotted transaction, it reference a different buffer however. */
-
     ~mc_buf_t();
 
-    /* For performance monitoring */
-    // TODO (sam): Replace "long int" with int32_t or int64_t, there's
-    // a specific size this needs to be.
-    long int patches_affected_data_size_at_start;
 
 public:
     void release();
@@ -255,6 +239,30 @@ public:
     }
 
 private:
+
+    // TODO (sam): WTF is this?
+    ticks_t start_time;
+
+    // Presumably, the mode with which this mc_buf_t holds the inner buf.
+    access_t mode;
+
+    // True if this is an mc_buf_t for a snapshotted view of the buf.
+    bool snapshotted;
+
+    // non_locking_access is a hack for the sake of patch_disk_storage.cc. It would be nice if we
+    // could eliminate it.  TODO (sam): Figure out wtf this is.
+    bool non_locking_access;
+
+    // Our pointer to an inner_buf -- we have a bunch of mc_buf_t's
+    // all pointing at an inner buf.
+    mc_inner_buf_t *inner_buf;
+    void *data; /* Usually the same as inner_buf->data. If a COW happens or this mc_buf_t is part of a snapshotted transaction, it reference a different buffer however. */
+
+    /* For performance monitoring */
+    // TODO (sam): Replace "long int" with int32_t or int64_t, there's
+    // a specific size this needs to be.
+    long int patches_affected_data_size_at_start;
+
     DISABLE_COPYING(mc_buf_t);
 };
 
@@ -302,10 +310,15 @@ public:
     // Order tokens are only actually stored by semantic checking and mock caches.
     void set_token(UNUSED order_token_t token) { }
 
-    cache_t *cache;
-
 private:
     void register_buf_snapshot(mc_inner_buf_t *inner_buf, mc_inner_buf_t::buf_snapshot_t *snap);
+
+    // If not done before, sets snapshot_version, if in snapshotted mode also registers the snapshot
+    void maybe_finalize_version();
+
+    file_account_t *get_io_account() const;
+
+    cache_t *cache;
 
     ticks_t start_time;
     const int expected_change_count;
@@ -315,13 +328,8 @@ private:
     bool snapshotted;
     boost::shared_ptr<cache_account_t> cache_account_;
 
-    // If not done before, sets snapshot_version, if in snapshotted mode also registers the snapshot
-    void maybe_finalize_version();
-
     typedef std::vector<std::pair<mc_inner_buf_t*, mc_inner_buf_t::buf_snapshot_t*> > owned_snapshots_list_t;
     owned_snapshots_list_t owned_buf_snapshots;
-
-    file_account_t *get_io_account() const;
 
     DISABLE_COPYING(mc_transaction_t);
 };
@@ -360,36 +368,11 @@ public:
     typedef mc_transaction_t transaction_t;
     typedef mc_cache_account_t cache_account_t;
 
-private:
-    mirrored_cache_config_t dynamic_config; // Local copy of our initial configuration
-    
-    // TODO: how do we design communication between cache policies?
-    // Should they all have access to the cache, or should they only
-    // be given access to each other as necessary? The first is more
-    // flexible as anyone can access anyone else, but encourages too
-    // many dependencies. The second is more strict, but might not be
-    // extensible when some policy implementation requires access to
-    // components it wasn't originally given.
 
-    serializer_t *serializer;
-
-    // We use a separate IO account for reads and writes, so reads can pass ahead
-    // of active writebacks. Otherwise writebacks could badly block out readers,
-    // thereby blocking user queries.
-    boost::scoped_ptr<file_account_t> reads_io_account;
-    boost::scoped_ptr<file_account_t> writes_io_account;
-
-    page_map_t page_map;
-    page_repl_t page_repl;
-    writeback_t writeback;
-    free_list_t free_list;
-
-public:
     static void create(serializer_t *serializer, mirrored_cache_static_config_t *config);
     mc_cache_t(serializer_t *serializer, mirrored_cache_config_t *dynamic_config);
     ~mc_cache_t();
 
-public:
     block_size_t get_block_size();
 
     // TODO: Come up with a consistent priority scheme, i.e. define a "default" priority etc.
@@ -397,7 +380,7 @@ public:
     boost::shared_ptr<cache_account_t> create_account(int priority);
 
     bool contains_block(block_id_t block_id);
-public:
+
     mc_inner_buf_t::version_id_t get_current_version_id() { return next_snapshot_version; }
 
     // must be O(1)
@@ -423,6 +406,45 @@ private:
     inner_buf_t *find_buf(block_id_t block_id);
     void on_transaction_commit(transaction_t *txn);
 
+
+
+public:
+    bool offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp);
+
+private:
+    bool offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp);
+    bool can_read_ahead_block_be_accepted(block_id_t block_id);
+    void maybe_unregister_read_ahead_callback();
+
+public:
+    coro_fifo_t& co_begin_coro_fifo() { return co_begin_coro_fifo_; }
+
+private:
+
+    mirrored_cache_config_t dynamic_config; // Local copy of our initial configuration
+
+    // TODO: how do we design communication between cache policies?
+    // Should they all have access to the cache, or should they only
+    // be given access to each other as necessary? The first is more
+    // flexible as anyone can access anyone else, but encourages too
+    // many dependencies. The second is more strict, but might not be
+    // extensible when some policy implementation requires access to
+    // components it wasn't originally given.
+
+    serializer_t *serializer;
+
+    // We use a separate IO account for reads and writes, so reads can pass ahead
+    // of active writebacks. Otherwise writebacks could badly block out readers,
+    // thereby blocking user queries.
+    boost::scoped_ptr<file_account_t> reads_io_account;
+    boost::scoped_ptr<file_account_t> writes_io_account;
+
+    page_map_t page_map;
+    page_repl_t page_repl;
+    writeback_t writeback;
+    free_list_t free_list;
+
+    // More fields
     bool shutting_down;
 #ifndef NDEBUG
     bool writebacks_allowed;
@@ -433,7 +455,6 @@ private:
     int num_live_transactions;
     cond_t *to_pulse_when_last_transaction_commits;
 
-private:
     patch_memory_storage_t patch_memory_storage;
 
     // Pointer, not member, because we need to call its destructor explicitly in our destructor
@@ -441,21 +462,12 @@ private:
 
     unsigned int max_patches_size_ratio;
 
-public:
-    bool offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp);
-private:
-    bool offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp);
-    bool can_read_ahead_block_be_accepted(block_id_t block_id);
-    void maybe_unregister_read_ahead_callback();
     bool read_ahead_registered;
 
     typedef std::map<mc_inner_buf_t::version_id_t, mc_transaction_t*> snapshots_map_t;
     snapshots_map_t active_snapshots;
     mc_inner_buf_t::version_id_t next_snapshot_version;
 
-public:
-    coro_fifo_t& co_begin_coro_fifo() { return co_begin_coro_fifo_; }
-private:
     coro_fifo_t co_begin_coro_fifo_;
 
     DISABLE_COPYING(mc_cache_t);
