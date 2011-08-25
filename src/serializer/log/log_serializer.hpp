@@ -40,11 +40,6 @@ struct log_serializer_metablock_t {
 
 //  Data to be serialized to disk with each block.  Changing this changes the disk format!
 // TODO: This header data should maybe go to the cache
-struct ls_buf_data_t {
-    block_id_t block_id;
-    block_sequence_id_t block_sequence_id;
-} __attribute__((__packed__));
-
 typedef metablock_manager_t<log_serializer_metablock_t> mb_manager_t;
 
 // Used internally

@@ -12,11 +12,6 @@
 #include "do_on_thread.hpp"
 #include "perfmon.hpp"
 
-// TODO: This is just kind of a hack. See types.hpp for more information
-uint64_t block_size_t::value() const {
-    return ser_bs_ - sizeof(ls_buf_data_t);
-}
-
 void log_serializer_t::create(dynamic_config_t dynamic_config, private_dynamic_config_t private_dynamic_config, static_config_t static_config) {
 
     log_serializer_on_disk_static_config_t *on_disk_config = &static_config;

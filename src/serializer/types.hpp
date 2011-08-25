@@ -18,8 +18,12 @@ typedef uint64_t block_sequence_id_t;
 #define NULL_BLOCK_SEQUENCE_ID  (block_sequence_id_t(0))
 #define FIRST_BLOCK_SEQUENCE_ID (block_sequence_id_t(1))
 
-/* TODO: block_size_t depends on the serializer implementation details, so it doesn't
-belong in this file. */
+// A struct that
+struct ls_buf_data_t {
+    block_id_t block_id;
+    block_sequence_id_t block_sequence_id;
+} __attribute__((__packed__));
+
 
 //  block_size_t is serialized as part of some patches.  Changing this changes the disk format!
 class block_size_t {
@@ -28,10 +32,7 @@ public:
     // things could call value() instead of ser_value() or vice versa.
 
     // The "block size" used by things above the serializer.
-    // TODO: As a hack, the implementation of this is currently in log_serializer.cc
-    //  as ut depends on ls_buf_data_t.
-    //  In the long-term, we will want to refactor block_size_t.
-    uint64_t value() const;
+    uint64_t value() const { return ser_bs_ - sizeof(ls_buf_data_t); }
 
     // The "block size" used by things in the serializer.
     uint64_t ser_value() const { return ser_bs_; }
