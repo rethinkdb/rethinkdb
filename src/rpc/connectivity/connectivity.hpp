@@ -16,6 +16,7 @@
 #include "utils.hpp"
 #include "concurrency/signal.hpp"
 #include "concurrency/mutex.hpp"
+#include "concurrency/auto_drainer.hpp"
 
 struct peer_address_t {
     peer_address_t(ip_address_t i, int p) : ip(i), port(p) { }
@@ -146,11 +147,14 @@ private:
     boost::scoped_ptr<streamed_tcp_listener_t> listener;
     void on_new_connection(boost::scoped_ptr<streamed_tcp_conn_t> &);
 
-    void join_blocking(peer_address_t address, boost::optional<peer_id_t>, drain_semaphore_t::lock_t);
+    void join_blocking(peer_address_t address, boost::optional<peer_id_t>, auto_drainer_t::lock_t);
 
+    /* `handle()` takes an `auto_drainer_t::lock_t` so that we never shut down
+    while there are still running instances of `handle()`. */
     void handle(streamed_tcp_conn_t *c,
         boost::optional<peer_id_t> expected_id,
-        boost::optional<peer_address_t> expected_address);
+        boost::optional<peer_address_t> expected_address,
+        auto_drainer_t::lock_t);
 
     /* `me` is our `peer_id_t`. `routing_table` is all the peers we can
     currently access and their addresses. Peers that are in the process of
@@ -178,10 +182,8 @@ private:
     intrusive_list_t<event_watcher_t> watchers;
     mutex_t watchers_mutex;
 
-    /* These monitors are for use in the shutdown process. When we want to shut
-    down, we signal `shutdown_cond` then drain `drain_semaphore`. */
-    cond_t shutdown_cond;
-    drain_semaphore_t shutdown_semaphore;
+    /* This makes sure all the connections are dead before we shut down */
+    auto_drainer_t drainer;
 
     DISABLE_COPYING(connectivity_cluster_t);
 };
