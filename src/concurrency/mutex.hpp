@@ -1,9 +1,8 @@
-
 #ifndef __CONCURRENCY_MUTEX_HPP__
 #define __CONCURRENCY_MUTEX_HPP__
 
 #include "concurrency/rwi_lock.hpp"   // For lock_available_callback_t
-#include "arch/runtime/runtime.hpp"
+#include "arch/runtime/runtime_utils.hpp"
 
 class mutex_t {
     struct lock_request_t :
@@ -34,16 +33,7 @@ public:
         }
     }
 
-    void unlock(bool eager = false) {
-        rassert(locked);
-        if (lock_request_t *h = waiters.head()) {
-            waiters.remove(h);
-            if (eager) h->on_thread_switch();
-            else call_later_on_this_thread(h);
-        } else {
-            locked = false;
-        }
-    }
+    void unlock(bool eager = false);
 
     void lock_now() {
         rassert(!locked);

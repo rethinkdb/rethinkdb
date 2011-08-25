@@ -8,6 +8,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/variant.hpp>
 
+#include "config/args.hpp"
 #include "utils.hpp"
 
 typedef uint32_t mcflags_t;
@@ -168,8 +169,8 @@ struct key_with_data_provider_t {
     mcflags_t mcflags;
     boost::shared_ptr<data_provider_t> value_provider;
 
-    key_with_data_provider_t(const std::string &key, mcflags_t mcflags, boost::shared_ptr<data_provider_t> value_provider) :
-        key(key), mcflags(mcflags), value_provider(value_provider) { }
+    key_with_data_provider_t(const std::string& _key, mcflags_t _mcflags, const boost::shared_ptr<data_provider_t>& _value_provider)
+	: key(_key), mcflags(_mcflags), value_provider(_value_provider) { }
 
     struct less {
         bool operator()(const key_with_data_provider_t &pair1, const key_with_data_provider_t &pair2) {

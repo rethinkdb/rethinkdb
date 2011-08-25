@@ -25,8 +25,9 @@ same `availability_t`. `availability_control_t` is a concrete subclass of
 
 class availability_t {
 public:
+    availability_t() : available(false) { }
     bool get() { return available; }
-    void set_callback(boost::function<void()> fun) {
+    void set_callback(const boost::function<void()>& fun) {
         rassert(!callback);
         rassert(fun);
         callback = fun;
@@ -39,19 +40,24 @@ private:
     friend class availability_control_t;
     bool available;
     boost::function<void()> callback;
+
+    DISABLE_COPYING(availability_t);
 };
 
 class availability_control_t : public availability_t {
 public:
-    availability_control_t() {
-        available = false;
-    }
+    availability_control_t() { }
     void set_available(bool a) {
         if (available != a) {
             available = a;
-            if (callback) callback();
+            if (callback) {
+		callback();
+	    }
         }
     }
+
+private:
+    DISABLE_COPYING(availability_control_t);
 };
 
 template<class value_t>
@@ -59,7 +65,7 @@ struct passive_producer_t {
 
     /* true if any data is available. `available` is const so that nobody
     screws around with it. */
-    availability_t * const available;
+    availability_t *const available;
 
     /* `pop()` removes a value from the producer and returns it. It is
     an error to call `pop()` when `available->get()` is `false`. */

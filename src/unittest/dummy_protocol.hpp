@@ -5,8 +5,12 @@
 #include <set>
 #include <string>
 #include <map>
+
 #include "utils.hpp"
+#include <boost/function.hpp>
+
 #include "concurrency/fifo_checker.hpp"
+
 
 struct signal_t;
 

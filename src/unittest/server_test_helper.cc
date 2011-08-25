@@ -4,6 +4,7 @@
 #include "buffer_cache/buffer_cache.hpp"
 #include "unittest/server_test_helper.hpp"
 #include "unittest/unittest_utils.hpp"
+#include "serializer/config.hpp"
 #include "serializer/log/log_serializer.hpp"
 #include "serializer/translator.hpp"
 #include "btree/slice.hpp"
@@ -22,7 +23,7 @@ server_test_helper_t::~server_test_helper_t() {
 void server_test_helper_t::run() {
     struct starter_t : public thread_message_t {
         server_test_helper_t *server_test;
-        starter_t(server_test_helper_t *server_test) : server_test(server_test) { }
+        starter_t(server_test_helper_t *_server_test) : server_test(_server_test) { }
         void on_thread_switch() {
             coro_t::spawn(boost::bind(&server_test_helper_t::setup_server_and_run_tests, server_test));
         }
@@ -32,20 +33,21 @@ void server_test_helper_t::run() {
 }
 
 void server_test_helper_t::setup_server_and_run_tests() {
+
     temp_file_t db_file("/tmp/rdb_unittest.XXXXXX");
 
     {
-        log_serializer_t::create(
-            log_serializer_t::dynamic_config_t(),
-            log_serializer_t::private_dynamic_config_t(db_file.name()),
-            log_serializer_t::static_config_t()
+        standard_serializer_t::create(
+            standard_serializer_t::dynamic_config_t(),
+            standard_serializer_t::private_dynamic_config_t(db_file.name()),
+            standard_serializer_t::static_config_t()
             );
-        log_serializer_t log_serializer(
-            log_serializer_t::dynamic_config_t(),
-            log_serializer_t::private_dynamic_config_t(db_file.name())
+        standard_serializer_t log_serializer(
+            standard_serializer_t::dynamic_config_t(),
+            standard_serializer_t::private_dynamic_config_t(db_file.name())
             );
 
-        std::vector<serializer_t *> serializers;
+        std::vector<standard_serializer_t *> serializers;
         serializers.push_back(&log_serializer);
         serializer_multiplexer_t::create(serializers, 1);
         serializer_multiplexer_t multiplexer(serializers);
@@ -64,6 +66,7 @@ void server_test_helper_t::setup_server_and_run_tests() {
 
         run_tests(&cache);
     }
+
     trace_call(thread_pool->shutdown);
 }
 

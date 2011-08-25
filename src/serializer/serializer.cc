@@ -8,21 +8,8 @@ file_account_t *serializer_t::make_io_account(int priority) {
     return make_io_account(priority, UNLIMITED_OUTSTANDING_REQUESTS);
 }
 
-serializer_t::index_write_op_t::index_write_op_t(
-        block_id_t block_id,
-        boost::optional<boost::shared_ptr<block_token_t> > token,
-        boost::optional<repli_timestamp_t> recency,
-        boost::optional<bool> delete_bit)
-    : block_id(block_id), token(token), recency(recency), delete_bit(delete_bit) {}
-
-void serializer_t::index_write(const index_write_op_t &op, file_account_t *io_account) {
-    std::vector<index_write_op_t> ops;
-    ops.push_back(op);
-    return index_write(ops, io_account);
-}
-
 // Blocking block_read implementation
-void serializer_t::block_read(boost::shared_ptr<block_token_t> token, void *buf, file_account_t *io_account) {
+void serializer_t::block_read(const boost::intrusive_ptr<standard_block_token_t>& token, void *buf, file_account_t *io_account) {
     struct : public cond_t, public iocallback_t {
         void on_io_complete() { pulse(); }
     } cb;
@@ -31,35 +18,24 @@ void serializer_t::block_read(boost::shared_ptr<block_token_t> token, void *buf,
 }
 
 // Blocking block_write implementation
-boost::shared_ptr<serializer_t::block_token_t>
+boost::intrusive_ptr<standard_block_token_t>
 serializer_t::block_write(const void *buf, file_account_t *io_account) {
-    // Default implementation: Wrap around non-blocking variant
-    struct : public cond_t, public iocallback_t {
-        void on_io_complete() { pulse(); }
-    } cb;
-    boost::shared_ptr<block_token_t> result = block_write(buf, io_account, &cb);
-    cb.wait();
-    return result;
+    return serializer_block_write(this, buf, io_account);
 }
 
-boost::shared_ptr<serializer_t::block_token_t>
+boost::intrusive_ptr<standard_block_token_t>
 serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account) {
-    // Default implementation: Wrap around non-blocking variant
-    struct : public cond_t, public iocallback_t {
-        void on_io_complete() { pulse(); }
-    } cb;
-    boost::shared_ptr<block_token_t> result = block_write(buf, block_id, io_account, &cb);
-    cb.wait();
-    return result;
+    return serializer_block_write(this, buf, block_id, io_account);
 }
 
-boost::shared_ptr<serializer_t::block_token_t>
+boost::intrusive_ptr<standard_block_token_t>
 serializer_t::block_write(const void *buf, file_account_t *io_account, iocallback_t *cb) {
-    return block_write(buf, NULL_BLOCK_ID, io_account, cb);
+    return serializer_block_write(this, buf, io_account, cb);
 }
 
 // do_write implementation
-serializer_t::write_t::write_t(block_id_t block_id, action_t action) : block_id(block_id), action(action) {}
+serializer_t::write_t::write_t(block_id_t _block_id, action_t _action)
+    : block_id(_block_id), action(_action) { }
 
 serializer_t::write_t serializer_t::write_t::make_touch(block_id_t block_id, repli_timestamp_t recency) {
     touch_t touch;
@@ -98,10 +74,10 @@ struct write_performer_t : public boost::static_visitor<void> {
     file_account_t *io_account;
     void *zerobuf;
     std::vector<write_cond_t*> *block_write_conds;
-    serializer_t::index_write_op_t *op;
-    write_performer_t(serializer_t *ser, file_account_t *acct, void *zerobuf,
-                      std::vector<write_cond_t*> *conds, serializer_t::index_write_op_t *op)
-        : serializer(ser), io_account(acct), zerobuf(zerobuf), block_write_conds(conds), op(op) {}
+    index_write_op_t *op;
+    write_performer_t(serializer_t *ser, file_account_t *acct, void *_zerobuf,
+                      std::vector<write_cond_t*> *conds, index_write_op_t *_op)
+        : serializer(ser), io_account(acct), zerobuf(_zerobuf), block_write_conds(conds), op(_op) {}
 
     void operator()(const serializer_t::write_t::update_t &update) {
         block_write_conds->push_back(new write_cond_t(update.io_callback));
@@ -113,7 +89,7 @@ struct write_performer_t : public boost::static_visitor<void> {
     }
 
     void operator()(const serializer_t::write_t::delete_t &del) {
-        op->token = boost::shared_ptr<serializer_t::block_token_t>();
+        op->token = boost::intrusive_ptr<standard_block_token_t>();
         op->delete_bit = true;
         op->recency = repli_timestamp_t::invalid;
         if (del.write_zero_block) {
@@ -127,9 +103,9 @@ struct write_performer_t : public boost::static_visitor<void> {
     }
 };
 
-void serializer_t::do_write(std::vector<write_t> writes, file_account_t *io_account) {
+void serializer_t::do_write(const std::vector<write_t>& writes, file_account_t *io_account) {
     std::vector<write_cond_t*> block_write_conds;
-    std::vector<serializer_t::index_write_op_t> index_write_ops;
+    std::vector<index_write_op_t> index_write_ops;
     block_write_conds.reserve(writes.size());
     index_write_ops.reserve(writes.size());
 
@@ -141,7 +117,7 @@ void serializer_t::do_write(std::vector<write_t> writes, file_account_t *io_acco
     // Step 1: Write buffers to disk and assemble index operations
     for (size_t i = 0; i < writes.size(); ++i) {
         const serializer_t::write_t& write = writes[i];
-        serializer_t::index_write_op_t op(write.block_id);
+        index_write_op_t op(write.block_id);
         write_performer_t performer(this, io_account, zerobuf, &block_write_conds, &op);
         boost::apply_visitor(performer, write.action);
         index_write_ops.push_back(op);

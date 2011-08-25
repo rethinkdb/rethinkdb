@@ -14,6 +14,7 @@
 #include "fsck/raw_block.hpp"
 #include "riak/riak_value.hpp"
 #include "server/key_value_store.hpp"
+#include "serializer/translator.hpp"
 
 namespace fsck {
 
@@ -82,7 +83,7 @@ struct file_knowledge_t {
     // The block from MC_CONFIGBLOCK_ID
     learned_t<mc_config_block_t> mc_config_block;
 
-    explicit file_knowledge_t(const std::string filename) : filename(filename) {
+    explicit file_knowledge_t(const std::string _filename) : filename(_filename) {
         guarantee_err(!pthread_rwlock_init(&block_info_lock_, NULL), "pthread_rwlock_init failed");
     }
 
@@ -869,7 +870,7 @@ struct node_error {
     bool last_internal_node_key_nonempty : 1;  // should be false
     std::string msg;
 
-    explicit node_error(block_id_t block_id) : block_id(block_id), block_not_found_error(btree_block_t::none),
+    explicit node_error(block_id_t _block_id) : block_id(_block_id), block_not_found_error(btree_block_t::none),
                                                bad_magic(false),
                                                noncontiguous_offsets(false), value_out_of_buf(false),
                                                keys_too_big(false), keys_in_wrong_slice(false),
@@ -958,7 +959,7 @@ void check_subtree_leaf_node(slicecx_t *cx, const leaf_node_t *buf,
     struct : public block_getter_t {
         bool get_block(block_id_t id, scoped_malloc<char>& buf_out) {
             btree_block_t b;
-            if (b.init(cx->file, cx->knog, id)) {
+            if (b.init(cx, id)) {
                 // TODO: This copies the block, and there's no reason
                 // we really have to do that.
                 scoped_malloc<char> tmp(reinterpret_cast<char *>(b.buf), reinterpret_cast<char *>(b.buf) + cx->block_size().value());

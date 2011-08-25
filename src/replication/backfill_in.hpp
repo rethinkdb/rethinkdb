@@ -22,6 +22,13 @@ public:
     ~selective_passive_producer_t() {
         set_source(NULL);
     }
+
+    struct recompute_caller_t {
+	selective_passive_producer_t *parent_;
+	recompute_caller_t(selective_passive_producer_t *parent) : parent_(parent) { }
+	void operator()() { parent_->recompute(); }
+    };
+
     void set_source(passive_producer_t<value_t> *selectee) {
         if (the_producer) {
             the_producer->available->unset_callback();
@@ -29,7 +36,7 @@ public:
         }
         if (selectee != NULL) {
             the_producer = selectee;
-            the_producer->available->set_callback(boost::bind(&selective_passive_producer_t<value_t>::recompute, this));
+            the_producer->available->set_callback(recompute_caller_t(this));
         }
         recompute();
     }

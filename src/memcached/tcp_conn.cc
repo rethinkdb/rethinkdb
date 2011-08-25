@@ -96,13 +96,12 @@ void serve_memcache(tcp_conn_t *conn, get_store_t *get_store, set_store_interfac
 
 perfmon_duration_sampler_t pm_conns("conns", secs_to_ticks(600), false);
 
-memcache_listener_t::memcache_listener_t(int port, get_store_t *get_store, set_store_interface_t *set_store) :
-    get_store(get_store), set_store(set_store),
+memcache_listener_t::memcache_listener_t(int port, get_store_t *_get_store, set_store_interface_t *_set_store) :
+    get_store(_get_store), set_store(_set_store),
     next_thread(0),
     tcp_listener(port, boost::bind(&memcache_listener_t::handle,
         this, auto_drainer_t::lock_t(&drainer), _1))
-{
-}
+    { }
 
 class rethread_tcp_conn_t {
 public:
@@ -141,9 +140,10 @@ void memcache_listener_t::handle(auto_drainer_t::lock_t keepalive, boost::scoped
     when a shutdown command is delivered on the main thread. */
     cross_thread_signal_t signal_transfer(keepalive.get_drain_signal(), chosen_thread);
 
-    /* Switch to the other thread. We use the `rethread_t` objects to unregister
-    the conn with the event loop on this thread and to reregister it with the
-    event loop on the new thread, then do the reverse when we switch back. */
+    /* Switch to the other thread. We use the `rethread_tcp_conn_t` objects to
+    unregister the conn with the event loop on this thread and to reregister it
+    with the event loop on the new thread, then do the reverse when we switch
+    back. */
     rethread_tcp_conn_t unregister_conn(conn.get(), INVALID_THREAD);
     on_thread_t thread_switcher(chosen_thread);
     rethread_tcp_conn_t reregister_conn(conn.get(), get_thread_id());

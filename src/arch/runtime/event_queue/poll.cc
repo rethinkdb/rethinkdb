@@ -43,9 +43,8 @@ int poll_to_user(int mode) {
     return out_mode;
 }
 
-poll_event_queue_t::poll_event_queue_t(linux_queue_parent_t *parent)
-    : parent(parent)
-{
+poll_event_queue_t::poll_event_queue_t(linux_queue_parent_t *_parent)
+    : parent(_parent) {
 }
 
 void poll_event_queue_t::run() {

@@ -3,7 +3,6 @@
 
 #include "btree/set.hpp"
 #include "btree/modify_oper.hpp"
-#include "buffer_cache/co_functions.hpp"
 #include "data_provider.hpp"
 
 struct btree_set_oper_t : public btree_modify_oper_t<memcached_value_t> {

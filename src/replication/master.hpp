@@ -1,16 +1,17 @@
 #ifndef __REPLICATION_MASTER_HPP__
 #define __REPLICATION_MASTER_HPP__
 
-#include "memcached/store.hpp"
-#include "server/gated_store.hpp"
-#include "replication/backfill_out.hpp"
-#include "replication/backfill_sender.hpp"
-#include "replication/backfill_receiver.hpp"
-#include "replication/backfill_in.hpp"
 #include "concurrency/mutex.hpp"
+#include "logger.hpp"
+#include "memcached/store.hpp"
+#include "replication/backfill_in.hpp"
+#include "replication/backfill_out.hpp"
+#include "replication/backfill_receiver.hpp"
+#include "replication/backfill_sender.hpp"
 #include "replication/net_structs.hpp"
 #include "replication/protocol.hpp"
 #include "server/cmd_args.hpp"
+#include "server/gated_store.hpp"
 
 class btree_key_value_store_t;
 
@@ -43,9 +44,7 @@ public:
         kvs_->set_replication_slave_id(message->database_creation_timestamp);
     }
 
-    void send(scoped_malloc<net_backfill_t>& message) {
-        coro_t::spawn_now(boost::bind(&master_t::do_backfill_and_realtime_stream, this, message->timestamp));
-    }
+    void send(scoped_malloc<net_backfill_t>& message);
 
     void send(scoped_malloc<net_timebarrier_t>& message) {
         timebarrier_helper(*message);

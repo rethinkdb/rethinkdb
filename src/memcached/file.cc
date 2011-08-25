@@ -14,10 +14,10 @@ private:
     signal_t *interrupt;
 
 public:
-    file_memcached_interface_t(const char *filename, signal_t *interrupt) :
+    file_memcached_interface_t(const char *filename, signal_t *_interrupt) :
         file(fopen(filename, "r")),
         progress_bar(std::string("Import"), file),
-        interrupt(interrupt)
+        interrupt(_interrupt)
     { }
     ~file_memcached_interface_t() {
         fclose(file);

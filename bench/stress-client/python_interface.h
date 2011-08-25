@@ -1,3 +1,6 @@
+#ifndef STRESS_CLIENT_PYTHON_INTERFACE_H_
+#define STRESS_CLIENT_PYTHON_INTERFACE_H_
+
 extern "C" {
 
     struct protocol_t;
@@ -58,3 +61,5 @@ extern "C" {
 
     void py_initialize_mysql_table(const char *server_str, int max_key, int max_value);
 }
+
+#endif  /* STRESS_CLIENT_PYTHON_INTERFACE_H_ */

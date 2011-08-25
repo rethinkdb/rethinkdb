@@ -12,13 +12,15 @@
 #include "server/key_value_store_config.hpp"
 #include "stats/control.hpp"
 #include "server/dispatching_store.hpp"
-#include "serializer/config.hpp"
-#include "serializer/translator.hpp"
+#include "serializer/types.hpp"
 #include "memcached/store.hpp"
 
 namespace replication {
     class backfill_and_streaming_manager_t;
 }  // namespace replication
+
+class translator_serializer_t;
+class serializer_multiplexer_t;
 
 // If the database is not a slave, then get_replication_creation_timestamp() is NOT_A_SLAVE.
 // If the database is a slave, then get_replication_creation_timestamp() returns the creation
@@ -154,7 +156,7 @@ public:
     static uint32_t hash(const char *data, int len);
     static uint32_t hash(const store_key_t& key);
 
-    creation_timestamp_t get_creation_timestamp() const { return multiplexer->creation_timestamp; }
+    creation_timestamp_t get_creation_timestamp() const;
 
 private:
     friend class replication::backfill_and_streaming_manager_t;
@@ -190,8 +192,8 @@ private:
         public control_t
     {
     public:
-        hash_control_t(btree_key_value_store_t *btkvs)
-            : control_t("hash", std::string("Get hash, slice, and thread of a key. Syntax: rdb hash key"), true), btkvs(btkvs)
+        hash_control_t(btree_key_value_store_t *_btkvs)
+            : control_t("hash", std::string("Get hash, slice, and thread of a key. Syntax: rdb hash key"), true), btkvs(_btkvs)
         {}
         virtual ~hash_control_t() {};
 

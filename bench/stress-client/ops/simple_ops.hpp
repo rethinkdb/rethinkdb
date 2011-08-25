@@ -1,5 +1,5 @@
-#ifndef __SIMPLE_OPS_HPP__
-#define __SIMPLE_OPS_HPP__
+#ifndef __STRESS_CLIENT_OPS_SIMPLE_OPS_HPP__
+#define __STRESS_CLIENT_OPS_SIMPLE_OPS_HPP__
 
 #include "ops/seed_chooser.hpp"
 #include "ops/watcher_and_tracker.hpp"
@@ -159,4 +159,4 @@ struct append_prepend_op_t : public simple_mutation_op_t {
     }
 };
 
-#endif /* __SIMPLE_OPS_HPP__ */
+#endif /* __STRESS_CLIENT_OPS_SIMPLE_OPS_HPP__ */

@@ -1,6 +1,10 @@
+#include "replication/backfill_out.hpp"
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "arch/timing.hpp"
 #include "btree/node.hpp"
-#include "replication/backfill_out.hpp"
 #include "concurrency/drain_semaphore.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/count_down_latch.hpp"
@@ -8,6 +12,7 @@
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/queue/cross_thread_limited_fifo.hpp"
 #include "concurrency/queue/accounting.hpp"
+#include "perfmon.hpp"
 
 perfmon_duration_sampler_t
     pm_replication_master_dispatch_cost("replication_master_dispatch_cost", secs_to_ticks(1.0)),

@@ -15,28 +15,22 @@
 #include "utils.hpp"
 #include "logger.hpp"
 
-linux_aio_getevents_eventfd_t::linux_aio_getevents_eventfd_t(linux_diskmgr_aio_t *parent)
-    : parent(parent)
-{
-    int res;
-
+linux_aio_getevents_eventfd_t::linux_aio_getevents_eventfd_t(linux_diskmgr_aio_t *_parent)
+    : parent(_parent) {
     // Create aio notify fd
     aio_notify_fd = eventfd(0, 0);
     guarantee_err(aio_notify_fd != -1, "Could not create aio notification fd");
 
-    res = fcntl(aio_notify_fd, F_SETFL, O_NONBLOCK);
+    int res = fcntl(aio_notify_fd, F_SETFL, O_NONBLOCK);
     guarantee_err(res == 0, "Could not make aio notify fd non-blocking");
 
     parent->queue->watch_resource(aio_notify_fd, poll_event_in, this);
 }
 
-linux_aio_getevents_eventfd_t::~linux_aio_getevents_eventfd_t()
-{
-    int res;
-
+linux_aio_getevents_eventfd_t::~linux_aio_getevents_eventfd_t() {
     parent->queue->forget_resource(aio_notify_fd, this);
 
-    res = close(aio_notify_fd);
+    int res = close(aio_notify_fd);
     guarantee_err(res == 0, "Could not close aio_notify_fd");
 }
 

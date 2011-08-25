@@ -280,7 +280,7 @@ void find_keyvalue_location_for_read(got_superblock_t *got_superblock, btree_key
 }
 
 template <class Value>
-void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc, btree_key_t *key, repli_timestamp_t tstamp) {
+void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc, btree_key_t *key, repli_timestamp_t tstamp, bool expired) {
     value_sizer_t<Value> v_sizer(kv_loc->txn->get_cache()->get_block_size());
     value_sizer_t<void> *sizer = &v_sizer;
 
@@ -302,9 +302,15 @@ void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc, btree_key_t *key,
         // Delete the value if it's there.
         if (kv_loc->there_originally_was_value) {
 
-            rassert(tstamp != repli_timestamp_t::invalid, "Deletes need a valid timestamp now.");
+            if (!expired) {
+                rassert(tstamp != repli_timestamp_t::invalid, "Deletes need a valid timestamp now.");
 
-            kv_loc->buf->apply_patch(new leaf_remove_patch_t(kv_loc->buf->get_block_id(), kv_loc->buf->get_next_patch_counter(), tstamp, key->size, key->contents));
+                kv_loc->buf->apply_patch(new leaf_remove_patch_t(kv_loc->buf->get_block_id(), kv_loc->buf->get_next_patch_counter(), tstamp, key->size, key->contents));
+            } else {
+                // Expirations do an erase, not a delete.
+                // TODO (sam): Add a buf patch type for erase_presence.
+                leaf::erase_presence(sizer, reinterpret_cast<leaf_node_t *>(kv_loc->buf->get_data_major_write()), key);
+            }
         }
     }
 
@@ -312,6 +318,12 @@ void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc, btree_key_t *key,
     // size or a deletion, and merge/level if it is.
     check_and_handle_underfull(sizer, kv_loc->txn.get(), kv_loc->buf, kv_loc->last_buf, kv_loc->sb_buf, key);
 }
+
+template <class Value>
+void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc, btree_key_t *key, repli_timestamp_t tstamp) {
+    apply_keyvalue_change(kv_loc, key, tstamp, false);
+}
+
 
 template <class Value>
 value_txn_t<Value>::value_txn_t(btree_key_t *_key,
@@ -324,7 +336,7 @@ value_txn_t<Value>::value_txn_t(btree_key_t *_key,
 
 template <class Value>
 value_txn_t<Value>::~value_txn_t() {
-    apply_keyvalue_change(&kv_location, key, tstamp);
+    apply_keyvalue_change(&kv_location, key, tstamp, false);
 }
 
 // TODO: WTF is this, you can't copy a value_txn_t.

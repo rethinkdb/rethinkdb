@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 #include "btree/value.hpp"
-#include "serializer/translator.hpp"
+#include "utils.hpp"
 
 namespace replication {
 

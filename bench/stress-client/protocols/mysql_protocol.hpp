@@ -1,10 +1,9 @@
-
 #ifndef USE_MYSQL
 #error "This file shouldn't be included if USE_MYSQL is not set."
 #endif
 
-#ifndef __MYSQL_PROTOCOL_HPP__
-#define __MYSQL_PROTOCOL_HPP__
+#ifndef __STRESS_CLIENT_PROTOCOLS_MYSQL_PROTOCOL_HPP__
+#define __STRESS_CLIENT_PROTOCOLS_MYSQL_PROTOCOL_HPP__
 
 #include <stdlib.h>
 #include <mysql/mysql.h>
@@ -485,5 +484,4 @@ inline void initialize_mysql_table(const char *conn_str, int key_size, int value
     mysql_close(&mysql);
 }
 
-#endif // __MYSQL_PROTOCOL_HPP__
-
+#endif // __STRESS_CLIENT_PROTOCOLS_MYSQL_PROTOCOL_HPP__

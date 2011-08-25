@@ -1,6 +1,9 @@
 #ifndef __SERVER_DISPATCHING_STORE_HPP__
 #define __SERVER_DISPATCHING_STORE_HPP__
 
+#include "errors.hpp"
+#include <boost/function.hpp>
+
 #include "memcached/store.hpp"
 #include "concurrency/fifo_checker.hpp"
 

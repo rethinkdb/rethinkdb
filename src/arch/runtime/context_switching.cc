@@ -22,9 +22,8 @@ bool context_ref_t::is_nil() {
     return pointer == NULL;
 }
 
-artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t stack_size) :
-    stack_size(stack_size)
-{
+artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_size)
+    : stack_size(_stack_size) {
     /* Allocate the stack */
     stack = malloc_aligned(stack_size, getpagesize());
 

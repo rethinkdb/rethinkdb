@@ -1,9 +1,10 @@
 #ifndef __REPLICATION_SLAVE_STREAM_MANAGER_HPP__
 #define __REPLICATION_SLAVE_STREAM_MANAGER_HPP__
 
-#include "replication/protocol.hpp"
-#include "replication/backfill_receiver.hpp"
+#include "logger.hpp"
 #include "replication/backfill_in.hpp"
+#include "replication/backfill_receiver.hpp"
+#include "replication/protocol.hpp"
 #include "server/key_value_store.hpp"
 
 namespace replication {

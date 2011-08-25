@@ -1,22 +1,25 @@
 #include "server/key_value_store.hpp"
 
+#include <math.h>
+
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
+#include <boost/bind.hpp>
 
+#include "arch/timing.hpp"
 #include "btree/rget.hpp"
 #include "concurrency/cond_var.hpp"
+#include "concurrency/pmap.hpp"
 #include "concurrency/signal.hpp"
 #include "concurrency/side_coro.hpp"
-#include "concurrency/pmap.hpp"
 #include "containers/iterators.hpp"
 #include "db_thread_info.hpp"
 #include "replication/backfill.hpp"
 #include "replication/master.hpp"
+#include "serializer/config.hpp"
+#include "serializer/translator.hpp"
 #include "server/cmd_args.hpp"
-#include "arch/timing.hpp"
 #include "stats/persist.hpp"
-
-#include <math.h>
 
 /* shard_store_t */
 
@@ -183,8 +186,10 @@ void btree_key_value_store_t::create(btree_key_value_store_dynamic_config_t *dyn
                               dynamic_config, serializers.data(), _1));
     {
         /* Prepare serializers for multiplexing */
-        std::vector<serializer_t *> serializers_for_multiplexer(n_files);
-        for (int i = 0; i < n_files; i++) serializers_for_multiplexer[i] = serializers[i];
+        std::vector<standard_serializer_t *> serializers_for_multiplexer(n_files);
+        for (int i = 0; i < n_files; i++) {
+	    serializers_for_multiplexer[i] = serializers[i];
+	}
         serializer_multiplexer_t::create(serializers_for_multiplexer, static_config->btree.n_slices);
 
         /* Create pseudoserializers */
@@ -226,8 +231,10 @@ btree_key_value_store_t::btree_key_value_store_t(const btree_key_value_store_dyn
     for (int i = 0; i < n_files; i++) rassert(serializers[i]);
 
     /* Multiplex serializers so we have enough proxy-serializers for our slices */
-    std::vector<serializer_t *> serializers_for_multiplexer(n_files);
-    for (int i = 0; i < n_files; i++) serializers_for_multiplexer[i] = serializers[i];
+    std::vector<standard_serializer_t *> serializers_for_multiplexer(n_files);
+    for (int i = 0; i < n_files; i++) {
+	serializers_for_multiplexer[i] = serializers[i];
+    }
     multiplexer = new serializer_multiplexer_t(serializers_for_multiplexer);
 
     btree_static_config.n_slices = multiplexer->proxies.size();
@@ -393,6 +400,10 @@ uint32_t btree_key_value_store_t::hash(const char *data, int len) {
     hash += hash >> 6;
 
     return hash;
+}
+
+creation_timestamp_t btree_key_value_store_t::get_creation_timestamp() const {
+    return multiplexer->creation_timestamp;
 }
 
 uint32_t btree_key_value_store_t::slice_num(const store_key_t &key) {

@@ -47,13 +47,15 @@ class extent_zone_t {
     
     off64_t free_list_head;
 private:
-    int _held_extents;
+    int held_extents_;
 public:
-    int held_extents() {return _held_extents;}
-    
+    int held_extents() {
+	return held_extents_;
+    }
+
 public:
-    extent_zone_t(off64_t start, off64_t end, size_t extent_size)
-        : start(start), end(end), extent_size(extent_size), _held_extents(0)
+    extent_zone_t(off64_t _start, off64_t _end, size_t _extent_size)
+        : start(_start), end(_end), extent_size(_extent_size), held_extents_(0)
     {
 #ifndef NDEBUG
         bool start_aligned = start % extent_size == 0;
@@ -84,7 +86,7 @@ public:
                 extents[offset_to_id(extent)].state = extent_info_t::state_free;
                 extents[offset_to_id(extent)].next_in_free_list = free_list_head;
                 free_list_head = extent;
-                _held_extents++;
+                held_extents_++;
             }
         }
     }
@@ -100,7 +102,7 @@ public:
         } else {
             extent = free_list_head;
             free_list_head = extents[offset_to_id(free_list_head)].next_in_free_list;
-            _held_extents--;
+            held_extents_--;
         }
         
         extents[offset_to_id(extent)].state = extent_info_t::state_in_use;
@@ -114,12 +116,12 @@ public:
         info->state = extent_info_t::state_free;
         info->next_in_free_list = free_list_head;
         free_list_head = extent;
-        _held_extents++;
+        held_extents_++;
     } 
 };
 
-extent_manager_t::extent_manager_t(direct_file_t *file, log_serializer_on_disk_static_config_t *static_config, log_serializer_dynamic_config_t *dynamic_config)
-    : static_config(static_config), dynamic_config(dynamic_config), extent_size(static_config->extent_size()), dbfile(file), state(state_reserving_extents), n_extents_in_use(0)
+extent_manager_t::extent_manager_t(direct_file_t *file, log_serializer_on_disk_static_config_t *_static_config, log_serializer_dynamic_config_t *_dynamic_config)
+    : static_config(_static_config), dynamic_config(_dynamic_config), extent_size(_static_config->extent_size()), dbfile(file), state(state_reserving_extents), n_extents_in_use(0)
 {
 #ifndef NDEBUG
     bool modcmp = extent_size % DEVICE_BLOCK_SIZE == 0;

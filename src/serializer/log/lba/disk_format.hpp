@@ -1,11 +1,10 @@
-
 #ifndef __SERIALIZER_LOG_LBA_DISK_FORMAT__
 #define __SERIALIZER_LOG_LBA_DISK_FORMAT__
-
 
 #include <limits.h>
 
 #include "serializer/serializer.hpp"
+#include "config/args.hpp"
 
 
 

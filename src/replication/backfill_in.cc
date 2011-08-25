@@ -1,4 +1,10 @@
 #include "replication/backfill_in.hpp"
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
+#include "logger.hpp"
+
 #ifndef NDEBUG
 // We really shouldn't include this from here (the dependencies are
 // backwards), but we need it for

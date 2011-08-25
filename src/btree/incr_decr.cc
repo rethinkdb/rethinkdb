@@ -8,8 +8,8 @@
 
 struct btree_incr_decr_oper_t : public btree_modify_oper_t<memcached_value_t> {
 
-    explicit btree_incr_decr_oper_t(bool increment, uint64_t delta)
-        : increment(increment), delta(delta)
+    explicit btree_incr_decr_oper_t(bool _increment, uint64_t _delta)
+        : increment(_increment), delta(_delta)
     { }
 
     bool operate(transaction_t *txn, scoped_malloc<memcached_value_t>& value) {

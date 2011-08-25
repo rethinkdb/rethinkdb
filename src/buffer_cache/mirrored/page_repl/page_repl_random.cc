@@ -3,9 +3,10 @@
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "perfmon.hpp"
 
-evictable_t::evictable_t(mc_cache_t *cache, bool loaded) : cache(cache), page_repl_index(-1) {
-    if (loaded)
+evictable_t::evictable_t(mc_cache_t *_cache, bool loaded) : cache(_cache), page_repl_index(-1) {
+    if (loaded) {
         insert_into_page_repl();
+    }
 }
 
 evictable_t::~evictable_t() {
