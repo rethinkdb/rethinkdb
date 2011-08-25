@@ -95,6 +95,10 @@ struct ?_protocol_t {
         but creating more than `optimal_factor` sub-reads won't help performance
         and may hurt it.
         [Postcondition] read.parallelize()[i].get_region() IsSubsetOf read.get_region()
+        
+        Notice that parallelize need not return reads with disjoint regions, in fact in
+        many reasonable cases the regions will not be disjoint. Such as in the case of
+        a riak bucket dump.
         */
         std::vector<read_t> parallelize(int optimal_factor);
 
