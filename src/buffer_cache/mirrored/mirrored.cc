@@ -449,6 +449,12 @@ mc_buf_t::mc_buf_t(mc_inner_buf_t *_inner_buf, access_t _mode, mc_inner_buf_t::v
 
     if (snapshotted) {
 	rassert(is_read_mode(mode), "Only read access is allowed to block snapshots");
+
+        // Our snapshotting-specific code can't handle weird read modes, unfortunately.
+        // TODO: Make snapshotting code work properly with weird read modes.
+        if (mode == rwi_read_outdated_ok || mode == rwi_read_sync) {
+            mode = rwi_read;
+        }
     }
 
     // If the top version is less or equal to version_to_access, then we need to acquire
