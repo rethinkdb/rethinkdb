@@ -3,7 +3,6 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
-#include "arch/arch.hpp"
 #include "memcached/memcached.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "db_thread_info.hpp"
@@ -99,21 +98,10 @@ perfmon_duration_sampler_t pm_conns("conns", secs_to_ticks(600), false);
 
 memcache_listener_t::memcache_listener_t(int port, get_store_t *get_store, set_store_interface_t *set_store) :
     get_store(get_store), set_store(set_store),
-    next_thread(0)
+    next_thread(0),
+    tcp_listener(port, boost::bind(&memcache_listener_t::handle,
+        this, auto_drainer_t::lock_t(&drainer), _1))
 {
-    tcp_listener.reset(new tcp_listener_t(port, boost::bind(&memcache_listener_t::handle, this, _1)));
-}
-
-memcache_listener_t::~memcache_listener_t() {
-
-    // Stop accepting new connections
-    tcp_listener.reset();
-
-    // Interrupt existing connections
-    pulse_to_begin_shutdown.pulse();
-
-    // Wait for existing connections to finish shutting down
-    active_connection_drain_semaphore.drain();
 }
 
 class rethread_tcp_conn_t {
@@ -140,10 +128,8 @@ static void close_conn_if_open(tcp_conn_t *conn) {
     if (conn->is_read_open()) conn->shutdown_read();
 }
 
-void memcache_listener_t::handle(boost::scoped_ptr<tcp_conn_t> &conn) {
+void memcache_listener_t::handle(auto_drainer_t::lock_t keepalive, boost::scoped_ptr<tcp_conn_t> &conn) {
     assert_thread();
-
-    drain_semaphore_t::lock_t dont_shut_down_yet(&active_connection_drain_semaphore);
 
     block_pm_duration conn_timer(&pm_conns);
 
@@ -153,7 +139,7 @@ void memcache_listener_t::handle(boost::scoped_ptr<tcp_conn_t> &conn) {
 
     /* Construct a cross-thread watcher so we will get notified on `chosen_thread`
     when a shutdown command is delivered on the main thread. */
-    cross_thread_signal_t signal_transfer(&pulse_to_begin_shutdown, chosen_thread);
+    cross_thread_signal_t signal_transfer(keepalive.get_drain_signal(), chosen_thread);
 
     /* Switch to the other thread. We use the `rethread_t` objects to unregister
     the conn with the event loop on this thread and to reregister it with the
