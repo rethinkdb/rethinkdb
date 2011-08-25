@@ -105,7 +105,9 @@ struct periodic_checker_t {
         }
     }
 
-    static void check(periodic_checker_t *timebomb_checker) {
+    static void check(void *void_timebomb_checker) {
+        periodic_checker_t *timebomb_checker = static_cast<periodic_checker_t *>(void_timebomb_checker);
+
         spinlock_acq_t lock(&timer_token_lock);
         if (!no_more_checking) {
             bool exploded = false;
@@ -136,7 +138,7 @@ struct periodic_checker_t {
                 // schedule next check
                 long seconds_left = ceil(double(TIMEBOMB_DAYS)*seconds_in_a_day - seconds_since_created) + 1;
                 long seconds_till_check = seconds_left < timebomb_check_period_in_sec ? seconds_left : timebomb_check_period_in_sec;
-                timebomb_checker->timer_token = fire_timer_once(seconds_till_check * 1000, (void (*)(void*)) &check, timebomb_checker);
+                timebomb_checker->timer_token = fire_timer_once(seconds_till_check * 1000, &check, timebomb_checker);
             }
         }
     }

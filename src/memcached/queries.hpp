@@ -51,8 +51,10 @@ struct store_key_t {
 
     static store_key_t max() {
         uint8_t buf[MAX_KEY_SIZE];
-        for (int i = 0; i < MAX_KEY_SIZE; i++) buf[i] = 255;
-        return store_key_t(MAX_KEY_SIZE, (char *)buf);
+        for (int i = 0; i < MAX_KEY_SIZE; i++) {
+            buf[i] = 255;
+        }
+        return store_key_t(MAX_KEY_SIZE, reinterpret_cast<char *>(buf));
     }
 
     bool increment() {
