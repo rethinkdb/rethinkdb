@@ -9,33 +9,26 @@ private:
 
 public:
     mirror_t(
-            typename protocol_t::store_t *store,
-            mailbox_cluster_t *cluster,
+            typename protocol_t::store_t *s,
+            mailbox_cluster_t *c,
             metadata_readwrite_view_t<branch_metadata_t<protocol_t> > *branch_metadata,
             mirror_id_t backfill_provider,
             signal_t *interruptor) :
 
-        write_mailbox(cluster, boost::bind(&mirror_t::on_write, this, _1, _2, _3, _4)),
-        writeread_mailbox(cluster, boost::bind(&mirror_t::on_writeread, this, _1, _2, _3, _4)),
-        read_mailbox(cluster, boost::bind(&mirror_t::on_read, this, _1, _2, _3)),
+        store(s),
+        cluster(c),
+
+        write_mailbox(cluster, boost::bind(&mirror_t::on_write, this,
+            auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4)),
+        writeread_mailbox(cluster, boost::bind(&mirror_t::on_writeread, this,
+            auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4)),
+        read_mailbox(cluster, boost::bind(&mirror_t::on_read, this,
+            auto_drainer_t::lock_t(&drainer), _1, _2, _3)),
 
         registrar_view(&branch_metadata_t<protocol_t>::registrar, branch_metadata),
         mirror_map_view(&branch_metadata_t<protocol_t>::mirror_map, branch_metadata),
     {
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
-
-        /* Make sure that `shutdown_cond` gets pulsed if `interruptor` gets
-        pulsed. This is  */
-        signal_t::subscription_t shutdown_cond_pulser(
-            boost::bind(&cond_t::pulse, &shutdown_cond),
-            interruptor);
-
-        /* Every write operation enters, then exits, `operation_order_manager`
-        before it touches the store. By creating and holding a
-        `coro_fifo_acq_t`, we can stop write operations from happening. We put
-        it in a `boost::scoped_ptr` so we can release it at any time. */
-        boost::scoped_ptr<coro_fifo_acq_t> backfill_coro_fifo_acq(
-            new coro_fifo_acq_t(&operation_order_manager_t));
 
         /* Register for writes */
         try {
@@ -59,7 +52,7 @@ public:
         }
 
         /* Allow write operations to proceed */
-        backfill_coro_fifo_acq.reset();
+        backfill_is_done.pulse();
 
         /* Register for writereads and reads */
         if (registrant) {
@@ -92,37 +85,92 @@ public:
             cluster, store, backfiller_view.get()));
     }
 
+    ~mirror_t() {
+
+        /* Here's what happens when the `mirror_t` is destroyed:
+
+        `backfiller`'s destructor is run. We stop providing backfills to other
+        nodes and interrupt any existing backfills. We also change the metadata
+        to reflect that we're no longer backfilling.
+
+        `registrant`'s destructor is run. We tell the master that we're no
+        longer handling queries.
+
+        `write_mailbox`, `writeread_mailbox`, and `read_mailbox` are the next to
+        go. Any queries from the master that were en route when we destroyed
+        `registrant` will be shut out if they haven't arrived yet.
+
+        Finally, `drainer`'s destructor is run. It pulses `get_drain_signal()`,
+        which interrupts any running queries. Then it blocks until all running
+        queries have stopped. */
+    }
+
 private:
-    void on_write(
-            typename protocol_t::write_t write,
-            repli_timestamp_t ts,
-            order_token_t tok,
+    void on_write(auto_drainer_t::lock_t keepalive,
+            typename protocol_t::write_t write, repli_timestamp_t ts, order_token_t tok,
             async_mailbox_t<void()>::address_t ack_addr) {
-        
+
+        try {
+            {
+                /* Wait until writes are allowed */
+                coro_fifo_acq_t order_preserver(&operation_order_manager);
+                wait_any_t waiter(&backfill_is_done, keepalive.get_drain_signal());
+                waiter.wait_lazily_unordered();
+            }
+            if (keepalive.get_drain_signal()->is_pulsed()) throw interrupted_exc_t();
+
+            store->write(write, ts, tok, keepalive.get_drain_signal());
+            send(cluster, ack_addr);
+
+        } catch (interrupted_exc_t) {
+            /* Ignore; it means we're shutting down, so we don't need to respond
+            to the query. */
+        }
     }
 
-    void on_writeread(
-            typename protocol_t::write_t write,
-            repli_timestamp_t ts,
-            order_token_t tok,
+    void on_writeread(auto_drainer_t::lock_t keepalive,
+            typename protocol_t::write_t write, repli_timestamp_t ts, order_token_t tok,
             async_mailbox_t<void(typename protocol_t::write_response_t)>::address_t resp_addr) {
-        
+
+        try {
+            rassert(backfill_is_done.is_pulsed());
+            if (keepalive.get_drain_signal()->is_pulsed()) throw interrupted_exc_t();
+
+            typename protocol_t::write_response_t resp = store->write(write, ts, tok, keepalive.get_drain_signal());
+            send(cluster, resp_addr, resp);
+
+        } catch (interrupted_exc_t) {
+            /* Ignore */
+        }
     }
 
-    void on_read(
-            typename protocol_t::read_t read,
-            order_token_t tok,
+    void on_read(auto_drainer_t::lock_t keepalive,
+            typename protocol_t::read_t read, order_token_t tok,
             async_mailbox_t<void(typename protocol_t::read_response_t)>::address_t resp_addr) {
-        
+
+        try {
+            rassert(backfill_is_done.is_pulsed());
+            if (keepalive.get_drain_signal()->is_pulsed()) throw interrupted_exc_t();
+
+            typename protocol_t::read_response_t resp = store->read(read, tok, keepalive.get_drain_signal());
+            send(cluster, resp_addr, resp);
+
+        } catch (interrupted_exc_t) {
+            /* Ignore */
+        }
     }
 
-    cond_t shutdown_cond;
-    drain_semaphore_t drain_semaphore;
+    typename protocol_t::store_t *store;
+    mailbox_cluster_t *cluster;
 
     /* This `coro_fifo_t` is responsible for making sure that operations are
     run in the same order that they arrive. We also use it to make the
     writes wait until the backfill is done. */
     coro_fifo_t operation_order_manager;
+
+    cond_t backfill_is_done;
+
+    auto_drainer_t drainer;
 
     typename mirror_data_t::write_mailbox_t write_mailbox;
     typename mirror_data_t::writeread_mailbox_t writeread_mailbox;
