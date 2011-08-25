@@ -8,11 +8,6 @@ struct branch_metadata_t {
 
     std::vector<std::pair<typename protocol_t::region_t, version_t> > parents;
 
-    /* If `alive` is `false`, then the branch is defunct, the master no longer
-    exists, and all the master-mailboxes are nil. */
-
-    bool is_alive;
-
     /* These are the mailboxes to send reads and writes to if you want to
     operate on the branch. */
 
