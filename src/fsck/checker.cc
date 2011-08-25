@@ -217,13 +217,6 @@ struct slicecx_t {
     DISABLE_COPYING(slicecx_t);
 };
 
-// A slice all by its lonesome in a file.
-struct raw_slicecx_t : public slicecx_t {
-    raw_slicecx_t(nondirect_file_t *_file, file_knowledge_t *_knog, const config_t *_cfg) : slicecx_t(_file, _knog, _cfg) { }
-    block_id_t to_ser_block_id(block_id_t id) const { return id; }
-    bool is_valid_key(UNUSED const btree_key_t *key) const { return true; }
-};
-
 // A slice which is part of a multiplexed set of slices via serializer_multipler_t
 struct multiplexed_slicecx_t : public slicecx_t {
     int global_slice_id;
@@ -722,6 +715,7 @@ check_mc_config_block(nondirect_file_t *file, file_knowledge_t *knog, config_blo
 
     const mc_config_block_t *buf = reinterpret_cast<mc_config_block_t *>(block->buf);
     if (buf->magic != mc_config_block_t::expected_magic) {
+        debugf("mc_bad_magic happened.  Magic is %.*s\n", int(sizeof(buf->magic)), reinterpret_cast<const char *>(&buf->magic));
         errs->mc_bad_magic = true;
         return NULL;
     }
@@ -745,7 +739,6 @@ bool check_multiplexed_config_block(nondirect_file_t *file, file_knowledge_t *kn
 
     // Load all cache config blocks and check them for consistency
     const int mod_count = serializer_multiplexer_t::compute_mod_count(knog->config_block->this_serializer, knog->config_block->n_files, knog->config_block->n_proxies);
-    debugf("COMPUTING mod_count=%d, n_files=%d, n_proxies=%d, this_serializer=%d\n", mod_count, knog->config_block->n_files, knog->config_block->n_proxies, knog->config_block->this_serializer);
     for (int slice_id = 0; slice_id < mod_count; ++slice_id) {
         block_id_t config_block_ser_id = translator_serializer_t::translate_block_id(MC_CONFIGBLOCK_ID, mod_count, slice_id, CONFIG_BLOCK_ID);
         btree_block_t mc_config_block;
@@ -1581,7 +1574,7 @@ bool check_files(const config_t *cfg) {
         success &= check_and_report_to_config_block(knog.files[i], knog.file_knog[i], cfg, true);
 
     if (knog.metadata_file)
-        success &= check_and_report_to_config_block(knog.metadata_file, knog.metadata_file_knog, cfg, false);
+        success &= check_and_report_to_config_block(knog.metadata_file, knog.metadata_file_knog, cfg, true);
 
     if (!success) return false;
 
@@ -1614,9 +1607,10 @@ bool check_files(const config_t *cfg) {
     }
 
     // ... and one for the metadata slice
-    if (knog.metadata_file)
-        launch_check_slice(threads, new raw_slicecx_t(knog.metadata_file, knog.metadata_file_knog, cfg),
+    if (knog.metadata_file) {
+        launch_check_slice(threads, new multiplexed_slicecx_t(knog.metadata_file, knog.metadata_file_knog, 0, cfg),
                            slices_errs.metadata_slice);
+    }
 
     // Wait for all threads to finish.
     for (unsigned i = 0; i < threads.size(); ++i) {
