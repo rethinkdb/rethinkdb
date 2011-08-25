@@ -1,9 +1,13 @@
+#include "logger.hpp"
+
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#include "logger.hpp"
 #include <string.h>
+
 #include "utils.hpp"
+#include <boost/bind.hpp>
+
 #include "arch/arch.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "concurrency/pmap.hpp"

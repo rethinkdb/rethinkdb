@@ -1,12 +1,16 @@
 #include "errors.hpp"
+#include <boost/bind.hpp>
+
+#include "arch/arch.hpp"
 #include "serializer/log/log_serializer.hpp"
 
-#undef __UTILS_HPP__   /* Hack because both RethinkDB and stress-client have a utils.hpp */
 namespace stress {
     #include "../stress-client/utils.hpp"
     #include "../stress-client/utils.cc"
     #include "../stress-client/random.cc"
 }
+
+class timer_token_t;
 
 struct txn_info_t {
     ticks_t start, end;
@@ -133,10 +137,10 @@ struct tester_t :
         }
 
         fprintf(stderr, "Creating a database...\n");
-        log_serializer_t::create(&config->ser_dynamic_config, &config->ser_private_dynamic_config, &config->ser_static_config);
+        log_serializer_t::create(config->ser_dynamic_config, config->ser_private_dynamic_config, config->ser_static_config);
         
         fprintf(stderr, "Starting serializer...\n");
-        ser = new log_serializer_t(&config->ser_dynamic_config, &config->ser_private_dynamic_config);
+        ser = new log_serializer_t(config->ser_dynamic_config, config->ser_private_dynamic_config);
         on_serializer_ready(ser);
     }
     

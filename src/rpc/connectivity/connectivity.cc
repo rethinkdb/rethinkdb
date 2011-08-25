@@ -72,14 +72,13 @@ void disconnect_watcher_t::on_disconnect(peer_id_t p) {
 
 void connectivity_cluster_t::join(peer_address_t address) {
     assert_thread();
-    drain_semaphore_t::lock_t drain_semaphore_lock(&shutdown_semaphore);
     coro_t::spawn_now(boost::bind(
         &connectivity_cluster_t::join_blocking,
         this,
         address,
         /* We don't know what `peer_id_t` the peer has until we connect to it */
         boost::none,
-        drain_semaphore_lock
+        auto_drainer_t::lock_t(&drainer)
         ));
 }
 
@@ -120,8 +119,9 @@ connectivity_cluster_t::connectivity_cluster_t(int port) :
 
 connectivity_cluster_t::~connectivity_cluster_t() {
     listener.reset();
-    shutdown_cond.pulse();
-    shutdown_semaphore.drain();
+
+    /* The destructor for `drainer` takes care of making sure that all the
+    coroutines we spawned shut down. */
 }
 
 void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(std::ostream&)> writer) {
@@ -178,21 +178,22 @@ void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(s
 }
 
 void connectivity_cluster_t::on_new_connection(boost::scoped_ptr<streamed_tcp_conn_t> &conn) {
-    drain_semaphore_t::lock_t drain_semaphore_lock(&shutdown_semaphore);
-    handle(conn.get(), boost::none, boost::none);
+    handle(conn.get(), boost::none, boost::none,
+        auto_drainer_t::lock_t(&drainer));
 }
 
 /* `connectivity_cluster_t::join_blocking()` is spawned in a new coroutine by
-`connectivity_cluster_t::join()`. It's also run by `connectivity_cluster_t::handle()` when we hear about
-a new peer from a peer we are connected to. */
+`connectivity_cluster_t::join()`. It's also run by
+`connectivity_cluster_t::handle()` when we hear about a new peer from a peer we
+are connected to. */
 
 void connectivity_cluster_t::join_blocking(
         peer_address_t address,
         boost::optional<peer_id_t> expected_id,
-        UNUSED drain_semaphore_t::lock_t lock) {
+        auto_drainer_t::lock_t drainer_lock) {
     try {
         streamed_tcp_conn_t conn(address.ip, address.port);
-        handle(&conn, expected_id, boost::optional<peer_address_t>(address));
+        handle(&conn, expected_id, boost::optional<peer_address_t>(address), drainer_lock);
     } catch (tcp_conn_t::connect_failed_exc_t) {
         /* Ignore */
     }
@@ -210,17 +211,19 @@ static void close_conn(streamed_tcp_conn_t *c) {
 
 
 void connectivity_cluster_t::handle(
-        /* `conn` should remain valid until `connectivity_cluster_t::handle()` returns.
-        `connectivity_cluster_t::handle()` does not take ownership of `conn`. */
+        /* `conn` should remain valid until `connectivity_cluster_t::handle()`
+        returns. `connectivity_cluster_t::handle()` does not take ownership of
+        `conn`. */
         streamed_tcp_conn_t *conn,
         boost::optional<peer_id_t> expected_id,
-        boost::optional<peer_address_t> expected_address) {
+        boost::optional<peer_address_t> expected_address,
+        auto_drainer_t::lock_t drainer_lock) {
 
     /* Make sure that if we're ordered to shut down, any pending read or write
     gets interrupted. */
     signal_t::subscription_t conn_closer(boost::bind(&close_conn, conn));
-    if (shutdown_cond.is_pulsed()) close_conn(conn);
-    else conn_closer.resubscribe(&shutdown_cond);
+    if (drainer_lock.get_drain_signal()->is_pulsed()) close_conn(conn);
+    else conn_closer.resubscribe(drainer_lock.get_drain_signal());
 
     /* Each side sends their own ID and address, then receives the other side's.
     */
@@ -368,13 +371,7 @@ void connectivity_cluster_t::handle(
     /* For each peer that our new friend told us about that we don't already
     know about, start a new connection. If the cluster is shutting down, skip
     this step. */
-    if (!shutdown_cond.is_pulsed()) {
-        /* Acquire the drain semaphore so we can pass a
-        `drain_semaphore_t::lock_t` to the coroutine we spawn. That way, the
-        `connectivity_cluster_t` won't shut down while there coroutine is still
-        active. */
-        drain_semaphore_t::lock_t drain_semaphore_lock(&shutdown_semaphore);
-
+    if (!drainer_lock.get_drain_signal()->is_pulsed()) {
         for (std::map<peer_id_t, peer_address_t>::iterator it = other_routing_table.begin();
              it != other_routing_table.end(); it++) {
             if (routing_table.find((*it).first) == routing_table.end()) {
@@ -384,7 +381,7 @@ void connectivity_cluster_t::handle(
                     &connectivity_cluster_t::join_blocking, this,
                     (*it).second,
                     boost::optional<peer_id_t>((*it).first),
-                    drain_semaphore_lock));
+                    drainer_lock));
             }
         }
     }

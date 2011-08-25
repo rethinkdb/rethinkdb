@@ -35,17 +35,19 @@ buf_patch_t *buf_patch_t::load_patch(UNUSED block_size_t bs, const char *source)
 
         buf_patch_t* result = NULL;
         switch (operation_code) {
-            case (OPER_MEMCPY):
-                result = new memcpy_patch_t(block_id, patch_counter, source, remaining_length); break;
-            case (OPER_MEMMOVE):
-                result = new memmove_patch_t(block_id, patch_counter, source, remaining_length); break;
-            case (OPER_LEAF_INSERT):
-                result = new leaf_insert_patch_t(block_id, patch_counter, source, remaining_length); break;
-            case (OPER_LEAF_REMOVE):
-                result = new leaf_remove_patch_t(block_id, patch_counter, source, remaining_length); break;
-            default:
-                guarantee_patch_format(false, "Unsupported patch operation code");
-                return NULL;
+	case OPER_MEMCPY:
+	    result = new memcpy_patch_t(block_id, patch_counter, source, remaining_length); break;
+	case OPER_MEMMOVE:
+	    result = new memmove_patch_t(block_id, patch_counter, source, remaining_length); break;
+	case OPER_LEAF_INSERT:
+	    result = new leaf_insert_patch_t(block_id, patch_counter, source, remaining_length); break;
+	case OPER_LEAF_REMOVE:
+	    result = new leaf_remove_patch_t(block_id, patch_counter, source, remaining_length); break;
+	case OPER_LEAF_ERASE_PRESENCE:
+	    result = new leaf_erase_presence_patch_t(block_id, patch_counter, source, remaining_length); break;
+	default:
+	    guarantee_patch_format(false, "Unsupported patch operation code");
+	    return NULL;
         }
         result->set_block_sequence_id(applies_to_block_sequence_id);
         return result;
@@ -70,11 +72,11 @@ void buf_patch_t::serialize(char* destination) const {
     serialize_data(destination);
 }
 
-buf_patch_t::buf_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const patch_operation_code_t operation_code) :
-            block_id(block_id),
-            patch_counter(patch_counter),
+buf_patch_t::buf_patch_t(const block_id_t _block_id, const patch_counter_t _patch_counter, const patch_operation_code_t _operation_code) :
+            block_id(_block_id),
+            patch_counter(_patch_counter),
             applies_to_block_sequence_id(NULL_BLOCK_SEQUENCE_ID),
-            operation_code(operation_code) {
+            operation_code(_operation_code) {
 }
 
 bool buf_patch_t::operator<(const buf_patch_t& p) const {
@@ -85,10 +87,10 @@ bool buf_patch_t::operator<(const buf_patch_t& p) const {
 
 
 
-memcpy_patch_t::memcpy_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const uint16_t dest_offset, const char* src, const uint16_t n) :
+memcpy_patch_t::memcpy_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const uint16_t _dest_offset, const char* src, const uint16_t _n) :
             buf_patch_t(block_id, patch_counter, buf_patch_t::OPER_MEMCPY),
-            dest_offset(dest_offset),
-            n(n) {
+            dest_offset(_dest_offset),
+            n(_n) {
     src_buf = new char[n];
     memcpy(src_buf, src, n);
 }
@@ -129,12 +131,12 @@ void memcpy_patch_t::apply_to_buf(char* buf_data, UNUSED block_size_t bs) {
     memcpy(buf_data + dest_offset, src_buf, n);
 }
 
-memmove_patch_t::memmove_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const uint16_t dest_offset, const uint16_t src_offset, const uint16_t n) :
+memmove_patch_t::memmove_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const uint16_t _dest_offset, const uint16_t _src_offset, const uint16_t _n) :
             buf_patch_t(block_id, patch_counter, buf_patch_t::OPER_MEMMOVE),
-            dest_offset(dest_offset),
-            src_offset(src_offset),
-            n(n) {
-}
+            dest_offset(_dest_offset),
+            src_offset(_src_offset),
+            n(_n) { }
+
 memmove_patch_t::memmove_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const char* data, const uint16_t data_length)  :
             buf_patch_t(block_id, patch_counter, buf_patch_t::OPER_MEMMOVE) {
     guarantee_patch_format(data_length == get_data_size());

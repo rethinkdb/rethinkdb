@@ -1,6 +1,8 @@
 #include "buffer_cache/mock.hpp"
+
 #include "arch/arch.hpp"
 #include "arch/random_delay.hpp"
+#include "serializer/serializer.hpp"
 
 /* Internal buf object */
 
@@ -94,9 +96,8 @@ bool mock_buf_t::is_deleted() {
     return deleted;
 }
 
-mock_buf_t::mock_buf_t(internal_buf_t *internal_buf, access_t access)
-    : internal_buf(internal_buf), access(access), dirty(false), deleted(false) {
-}
+mock_buf_t::mock_buf_t(internal_buf_t *_internal_buf, access_t _access)
+    : internal_buf(_internal_buf), access(_access), dirty(false), deleted(false) { }
 
 /* Transaction */
 
@@ -182,19 +183,19 @@ void mock_cache_t::create(serializer_t *serializer, UNUSED mirrored_cache_static
     void *superblock = serializer->malloc();
     bzero(superblock, serializer->get_block_size().value());
 
-    serializer_t::index_write_op_t op(SUPERBLOCK_ID);
+    index_write_op_t op(SUPERBLOCK_ID);
     op.token = serializer->block_write(superblock, SUPERBLOCK_ID, DEFAULT_DISK_ACCOUNT);
     op.recency = repli_timestamp_t::invalid;
     op.delete_bit = false;
-    serializer->index_write(op, DEFAULT_DISK_ACCOUNT);
+    serializer_index_write(serializer, op, DEFAULT_DISK_ACCOUNT);
 
     serializer->free(superblock);
 }
 
 // dynamic_config is unused because this is a mock cache and the
 // configuration parameters don't apply.
-mock_cache_t::mock_cache_t( serializer_t *serializer, UNUSED mirrored_cache_config_t *dynamic_config)
-    : serializer(serializer), block_size(serializer->get_block_size())
+mock_cache_t::mock_cache_t( serializer_t *_serializer, UNUSED mirrored_cache_config_t *dynamic_config)
+    : serializer(_serializer), block_size(_serializer->get_block_size())
 {
     on_thread_t switcher(serializer->home_thread());
 

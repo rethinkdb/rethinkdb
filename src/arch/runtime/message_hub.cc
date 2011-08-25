@@ -8,9 +8,8 @@
 #include "arch/runtime/thread_pool.hpp"
 #include "logger.hpp"
 
-linux_message_hub_t::linux_message_hub_t(linux_event_queue_t *queue, linux_thread_pool_t *thread_pool, int current_thread)
-    : queue(queue), thread_pool(thread_pool), current_thread(current_thread) {
-    int res;
+linux_message_hub_t::linux_message_hub_t(linux_event_queue_t *_queue, linux_thread_pool_t *_thread_pool, int _current_thread)
+    : queue(_queue), thread_pool(_thread_pool), current_thread(_current_thread) {
 
     // We have to do this through dynamically, otherwise we might
     // allocate far too many file descriptors since this is what the
@@ -19,7 +18,7 @@ linux_message_hub_t::linux_message_hub_t(linux_event_queue_t *queue, linux_threa
     notify = new notify_t[thread_pool->n_threads];
     
     for (int i = 0; i < thread_pool->n_threads; i++) {
-        res = pthread_spin_init(&queues[i].lock, PTHREAD_PROCESS_PRIVATE);
+        int res = pthread_spin_init(&queues[i].lock, PTHREAD_PROCESS_PRIVATE);
         guarantee(res == 0, "Could not initialize spin lock");
 
         // Create notify fd for other cores that send work to us

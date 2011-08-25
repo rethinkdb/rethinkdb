@@ -1,5 +1,6 @@
 #include "clustering/clustering.hpp"
 #include "arch/arch.hpp"
+#include <boost/bind.hpp>
 
 struct server_starter_t : public thread_message_t {
     boost::function<void()> fun;

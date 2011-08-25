@@ -12,8 +12,9 @@
 
 struct death_signalling_data_provider_t : public data_provider_t {
 
-    death_signalling_data_provider_t(boost::shared_ptr<data_provider_t> dp, cond_t *c) :
-        dp(dp), pulse_on_death(c) { }
+    death_signalling_data_provider_t(boost::shared_ptr<data_provider_t> _dp, cond_t *c)
+	: dp(_dp), pulse_on_death(c) { }
+
     ~death_signalling_data_provider_t() {
         pulse_on_death->pulse();
     }

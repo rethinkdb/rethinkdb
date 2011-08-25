@@ -631,12 +631,13 @@ linux_tcp_conn_t::iterator::iterator() {
     not_implemented();
 }
 
-linux_tcp_conn_t::iterator::iterator(linux_tcp_conn_t *source, size_t pos)
-    : source(source), end(false), pos(pos)
+linux_tcp_conn_t::iterator::iterator(linux_tcp_conn_t *_source, size_t _pos)
+    : source(_source), end(false), pos(_pos)
 { }
 
-linux_tcp_conn_t::iterator::iterator(linux_tcp_conn_t *source, bool)
-    : source(source), end(true), pos(-1)
+// TODO: Wtf, why does this take an unused bool parameter?
+linux_tcp_conn_t::iterator::iterator(linux_tcp_conn_t *_source, bool)
+    : source(_source), end(true), pos(-1)
 { }
 
 linux_tcp_conn_t::iterator::iterator(iterator const& other) 

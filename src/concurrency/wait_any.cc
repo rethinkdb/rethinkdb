@@ -1,5 +1,8 @@
 #include "concurrency/wait_any.hpp"
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 wait_any_t::wait_any_t() {
 }
 

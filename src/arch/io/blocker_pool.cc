@@ -58,8 +58,8 @@ void* blocker_pool_t::event_loop(void *arg) {
     }
 }
 
-blocker_pool_t::blocker_pool_t(int nthreads, linux_event_queue_t *queue)
-    : threads(nthreads), shutting_down(false), queue(queue)
+blocker_pool_t::blocker_pool_t(int nthreads, linux_event_queue_t *_queue)
+    : threads(nthreads), shutting_down(false), queue(_queue)
 {
     // Start the worker threads
     for (int i = 0; i < (int)threads.size(); i++) {

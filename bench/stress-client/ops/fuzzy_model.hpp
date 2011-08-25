@@ -1,5 +1,5 @@
-#ifndef __FUZZY_MODEL_HPP__
-#define __FUZZY_MODEL_HPP__
+#ifndef __STRESS_CLIENT_OPS_FUZZY_MODEL_HPP__
+#define __STRESS_CLIENT_OPS_FUZZY_MODEL_HPP__
 
 #include "ops/seed_chooser.hpp"
 #include "utils.hpp"
@@ -35,4 +35,4 @@ private:
     int size;
 };
 
-#endif /* __FUZZY_MODEL_HPP__ */
+#endif /* __STRESS_CLIENT_OPS_FUZZY_MODEL_HPP__ */

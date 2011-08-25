@@ -2,13 +2,13 @@
 #define __BUFFER_CACHE_WRITEBACK_HPP__
 
 #include <set>
+#include <vector>
 
 #include "concurrency/rwi_lock.hpp"
 #include "concurrency/semaphore.hpp"
+#include "buffer_cache/buf_patch.hpp"
 #include "buffer_cache/mirrored/writeback/flush_time_randomizer.hpp"
 #include "utils.hpp"
-#include "serializer/serializer.hpp"
-#include "buffer_cache/buf_patch.hpp"
 
 class timer_token_t;
 class mc_cache_t;
@@ -62,8 +62,8 @@ public:
         friend class concurrent_flush_t;
         
     public:
-        explicit local_buf_t(inner_buf_t *gbuf)
-            : needs_flush(false), last_patch_materialized(0), gbuf(gbuf), dirty(false), recency_dirty(false) {}
+        explicit local_buf_t()
+            : needs_flush(false), last_patch_materialized(0), dirty(false), recency_dirty(false) {}
         
         void set_dirty(bool _dirty = true);
         void set_recency_dirty(bool _recency_dirty = true);
@@ -78,11 +78,12 @@ public:
         /* All patches <= last_patch_materialized are in the on-disk log storage */
         patch_counter_t last_patch_materialized;
 
-    private:
-        inner_buf_t *gbuf;
     public: //TODO make this private again @jdoliner
         bool dirty;
         bool recency_dirty;
+
+    private:
+	DISABLE_COPYING(local_buf_t);
     };
     
     /* User-controlled settings. */

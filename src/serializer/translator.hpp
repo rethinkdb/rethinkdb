@@ -1,4 +1,3 @@
-
 #ifndef __SERIALIZER_TRANSLATOR_HPP__
 #define __SERIALIZER_TRANSLATOR_HPP__
 
@@ -6,19 +5,17 @@
 #include "buffer_cache/types.hpp"
 
 /* Facilities for treating N serializers as M serializers. */
-typedef time_t creation_timestamp_t;
-
 class translator_serializer_t;
 
 class serializer_multiplexer_t {
 public:
     /* Blocking call. Assumes the given serializers are empty; initializes them such that they can
     be treated as 'n_proxies' proxy-serializers. */
-    static void create(const std::vector<serializer_t *> &underlying, int n_proxies);
+    static void create(const std::vector<standard_serializer_t *>& underlying, int n_proxies);
 
     /* Blocking call. Must give the same set of underlying serializers you gave to create(). (It
     will abort if this is not the case.) */
-    serializer_multiplexer_t(const std::vector<serializer_t *> &underlying);
+    serializer_multiplexer_t(const std::vector<standard_serializer_t *>& underlying);
 
     /* proxies.size() is the same as 'n_proxies' you passed to create(). Please do not mutate
     'proxies'. */
@@ -80,19 +77,19 @@ of the block IDs available on the inner serializer, but presents the illusion of
 serializer. It is used for splitting one serializer among several buffer caches on different
 threads. */
 
-class translator_serializer_t : public serializer_t, public serializer_t::read_ahead_callback_t {
+class translator_serializer_t : public serializer_t, public serializer_read_ahead_callback_t {
 public:
-    typedef serializer_t::read_ahead_callback_t read_ahead_callback_t;
+    typedef serializer_read_ahead_callback_t serializer_read_ahead_callback_t;
 
-    void register_read_ahead_cb(read_ahead_callback_t *cb);
-    void unregister_read_ahead_cb(read_ahead_callback_t *cb);
-    
+    void register_read_ahead_cb(serializer_read_ahead_callback_t *cb);
+    void unregister_read_ahead_cb(serializer_read_ahead_callback_t *cb);
+
 private:
-    serializer_t *inner;
+    standard_serializer_t *inner;
     int mod_count, mod_id;
     config_block_id_t cfgid;
 
-    read_ahead_callback_t *read_ahead_callback;
+    serializer_read_ahead_callback_t *read_ahead_callback;
 
 public:
     virtual ~translator_serializer_t() {}
@@ -110,9 +107,9 @@ public:
 
 public:
     /* The translator serializer will only use block IDs on the inner serializer that
-    are greater than or equal to 'min' and such that ((id - min) % mod_count) == mod_id. */ 
-    translator_serializer_t(serializer_t *inner, int mod_count, int mod_id, config_block_id_t cfgid);
-    
+    are greater than or equal to 'min' and such that ((id - min) % mod_count) == mod_id. */
+    translator_serializer_t(standard_serializer_t *inner, int mod_count, int mod_id, config_block_id_t cfgid);
+
     void *malloc();
     void *clone(void*);
     void free(void *ptr);
@@ -123,8 +120,8 @@ public:
     void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account);
 
     /* Non-blocking variant */
-    boost::shared_ptr<block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb);
-    boost::shared_ptr<block_token_t> block_write(const void *buf, file_account_t *io_account, iocallback_t *cb);
+    boost::intrusive_ptr<standard_block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb);
+    boost::intrusive_ptr<standard_block_token_t> block_write(const void *buf, file_account_t *io_account, iocallback_t *cb);
 
     block_size_t get_block_size();
 
@@ -139,9 +136,9 @@ public:
     bool get_delete_bit(block_id_t id);
     block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf);
 
-    void block_read(boost::shared_ptr<block_token_t> token, void *buf, file_account_t *io_account, iocallback_t *cb);
-    void block_read(boost::shared_ptr<block_token_t> token, void *buf, file_account_t *io_account);
-    boost::shared_ptr<block_token_t> index_read(block_id_t block_id);
+    void block_read(const boost::intrusive_ptr<standard_block_token_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb);
+    void block_read(const boost::intrusive_ptr<standard_block_token_t>& token, void *buf, file_account_t *io_account);
+    boost::intrusive_ptr<standard_block_token_t> index_read(block_id_t block_id);
 
 public:
     bool offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp);

@@ -31,13 +31,12 @@ linux_aio_context_t::~linux_aio_context_t() {
 /* linux_diskmgr_aio_t */
 
 linux_diskmgr_aio_t::linux_diskmgr_aio_t(
-        linux_event_queue_t *queue,
-        passive_producer_t<action_t *> *source) :
-    passive_producer_t<iocb *>(source->available),
-    queue(queue),
-    source(source),
-    aio_context(MAX_CONCURRENT_IO_REQUESTS)
-{
+        linux_event_queue_t *_queue,
+        passive_producer_t<action_t *> *_source)
+    : passive_producer_t<iocb *>(_source->available),
+      queue(_queue),
+      source(_source),
+      aio_context(MAX_CONCURRENT_IO_REQUESTS) {
     submitter.reset(new linux_aio_submit_sync_t(
         &aio_context,
         static_cast<passive_producer_t<iocb *>*>(this)

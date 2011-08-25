@@ -3,8 +3,8 @@
 #include <boost/bind.hpp>
 
 linux_aio_submit_sync_t::linux_aio_submit_sync_t(
-        linux_aio_context_t *context, passive_producer_t<iocb *> *source) :
-    context(context), source(source), n_pending(0)
+        linux_aio_context_t *_context, passive_producer_t<iocb *> *_source) :
+    context(_context), source(_source), n_pending(0)
 {
     /* If there are already operations waiting to go, start processing them. */
     if (source->available->get()) pump();

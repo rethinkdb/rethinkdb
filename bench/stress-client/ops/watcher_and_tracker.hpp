@@ -1,5 +1,5 @@
-#ifndef __WATCHER_AND_TRACKER_HPP__
-#define __WATCHER_AND_TRACKER_HPP__
+#ifndef __STRESS_CLIENT_OPS_WATCHER_AND_TRACKER_HPP__
+#define __STRESS_CLIENT_OPS_WATCHER_AND_TRACKER_HPP__
 
 #include "ops/seed_key_generator.hpp"
 
@@ -68,5 +68,5 @@ struct value_tracker_t : public existence_tracker_t {
     /* Note that the implementation of value_tracker_t must define key_count(). */
 };
 
-#endif /* __WATCHER_AND_TRACKER_HPP__ */
+#endif /* __STRESS_CLIENT_OPS_WATCHER_AND_TRACKER_HPP__ */
 
