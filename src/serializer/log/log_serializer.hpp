@@ -231,6 +231,8 @@ private:
     int active_write_count;
 
     block_sequence_id_t latest_block_sequence_id;
+
+    DISABLE_COPYING(log_serializer_t);
 };
 
 #endif /* __LOG_SERIALIZER_HPP__ */

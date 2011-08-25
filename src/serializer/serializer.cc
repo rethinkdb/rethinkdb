@@ -103,7 +103,7 @@ struct write_performer_t : public boost::static_visitor<void> {
     }
 };
 
-void serializer_t::do_write(std::vector<write_t> writes, file_account_t *io_account) {
+void serializer_t::do_write(const std::vector<write_t>& writes, file_account_t *io_account) {
     std::vector<write_cond_t*> block_write_conds;
     std::vector<index_write_op_t> index_write_ops;
     block_write_conds.reserve(writes.size());

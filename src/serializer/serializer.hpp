@@ -138,7 +138,7 @@ struct serializer_t :
      * Note that this is not virtual. It is implemented in terms of block_write() and index_write(),
      * and not meant to be overridden in subclasses.
      */
-    void do_write(std::vector<write_t> writes, file_account_t *io_account);
+    void do_write(const std::vector<write_t>& writes, file_account_t *io_account);
 
     /* The size, in bytes, of each serializer block */
 
