@@ -131,15 +131,17 @@ struct scs_block_token_t {
     scs_block_info_t info;      // invariant: info.state != scs_block_info_t::state_deleted
     boost::intrusive_ptr<typename serializer_traits_t<inner_serializer_t>::block_token_type> inner_token;
 
-    friend template <class T> void intrusive_ptr_add_ref(scs_block_token_t<T> *p);
-    friend template <class T> void intrusive_ptr_release(scs_block_token_t<T> *p);
+    template <class T>
+    friend void intrusive_ptr_add_ref(scs_block_token_t<T> *p);
+    template <class T>
+    friend void intrusive_ptr_release(scs_block_token_t<T> *p);
 private:
     int ref_count_;
 };
 
 template <class inner_serializer_t>
 void intrusive_ptr_add_ref(scs_block_token_t<inner_serializer_t> *p) {
-    uint64_t res = __sync_add_and_fetch(&p->ref_count_, 1);
+    UNUSED uint64_t res = __sync_add_and_fetch(&p->ref_count_, 1);
     rassert(res > 0);
 }
 
