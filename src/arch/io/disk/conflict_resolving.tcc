@@ -95,8 +95,8 @@ void conflict_resolving_diskmgr_t<payload_t>::submit(action_t *action) {
 
             /* We can use the data from latest_write to fulfil the read immediately. */
             memcpy(action->get_buf(),
-                (const char*)latest_write->get_buf() + action->get_offset() - latest_write->get_offset(),
-                action->get_count());
+                   reinterpret_cast<const char*>(latest_write->get_buf()) + action->get_offset() - latest_write->get_offset(),
+                   action->get_count());
 
             done_fun(action);
             return;
@@ -182,7 +182,7 @@ void conflict_resolving_diskmgr_t<payload_t>::done(payload_t *payload) {
                         waiter->get_offset() + waiter->get_count() <= action->get_offset() + action->get_count() ) {
 
                     memcpy(waiter->get_buf(),
-                           (const char*)action->get_buf() + waiter->get_offset() - action->get_offset(),
+                           reinterpret_cast<const char*>(action->get_buf()) + waiter->get_offset() - action->get_offset(),
                            waiter->get_count());
 
                     /* Recursively calling done() is safe. "waiter" must end at or before

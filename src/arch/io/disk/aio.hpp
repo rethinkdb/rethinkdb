@@ -39,6 +39,7 @@ public:
     `action_t` and then `static_cast<>()` up from `action_t*` to your subclass
     in `done_fun()`. */
 
+    // TODO: What the fuck are we subclassing iocb for?
     struct action_t : private iocb {
         void make_write(fd_t fd, const void *buf, size_t count, off_t offset) {
             io_prep_pwrite(this, fd, const_cast<void*>(buf), count, offset);

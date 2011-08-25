@@ -808,7 +808,7 @@ void check_and_load_diff_log(slicecx_t *cx, diff_log_errors *errs) {
 
             const void *buf_data = b.buf;
 
-            if (strncmp((char*)buf_data, LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0) {
+            if (strncmp(reinterpret_cast<const char *>(buf_data), LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0) {
                 uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
                 while (current_offset + buf_patch_t::get_min_serialized_size() < cx->block_size().value()) {
                     buf_patch_t *patch;
