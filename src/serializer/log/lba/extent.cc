@@ -15,9 +15,8 @@ struct extent_block_t :
     std::vector< extent_t::sync_callback_t* > sync_cbs;
     bool waiting_for_prev, have_finished_sync, is_last_block;
     
-    extent_block_t(extent_t *parent, size_t offset)
-        : parent(parent), offset(offset)
-    {
+    extent_block_t(extent_t *_parent, size_t _offset)
+        : parent(_parent), offset(_offset) {
         data = reinterpret_cast<char *>(malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE));
     }
     ~extent_block_t() {
@@ -63,14 +62,14 @@ struct extent_block_t :
 
 perfmon_counter_t pm_serializer_lba_extents("serializer_lba_extents");
 
-extent_t::extent_t(extent_manager_t *em, direct_file_t *file)
-    : offset(em->gen_extent()), amount_filled(0), em(em), file(file), last_block(NULL), current_block(NULL)
+extent_t::extent_t(extent_manager_t *_em, direct_file_t *_file)
+    : offset(_em->gen_extent()), amount_filled(0), em(_em), file(_file), last_block(NULL), current_block(NULL)
 {
     pm_serializer_lba_extents++;
 }
 
-extent_t::extent_t(extent_manager_t *em, direct_file_t *file, off64_t loc, size_t size)
-    : offset(loc), amount_filled(size), em(em), file(file), last_block(NULL), current_block(NULL)
+extent_t::extent_t(extent_manager_t *_em, direct_file_t *_file, off64_t loc, size_t size)
+    : offset(loc), amount_filled(size), em(_em), file(_file), last_block(NULL), current_block(NULL)
 {
     em->reserve_extent(offset);
 #ifndef NDEBUG

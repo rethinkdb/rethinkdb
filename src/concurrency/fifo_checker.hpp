@@ -2,7 +2,6 @@
 #define __CONCURRENCY_FIFO_CHECKER_HPP__
 
 #include "utils.hpp"
-#include <boost/function.hpp>
 
 #ifndef NDEBUG
 #include <map>
@@ -19,9 +18,9 @@ struct order_bucket_t {
     bool valid();
 };
 
-bool operator==(const order_bucket_t &a, const order_bucket_t &b);
-bool operator!=(const order_bucket_t &a, const order_bucket_t &b);
-bool operator<(const order_bucket_t &a, const order_bucket_t &b);
+bool operator==(const order_bucket_t& a, const order_bucket_t& b);
+bool operator!=(const order_bucket_t& a, const order_bucket_t& b);
+bool operator<(const order_bucket_t& a, const order_bucket_t& b);
 
 
 /* Order tokens of the same bucket need to arrive at order sinks in a

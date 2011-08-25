@@ -1,6 +1,5 @@
-
-#ifndef __ARGS_HPP__
-#define __ARGS_HPP__
+#ifndef __STRESS_CLIENT_ARGS_HPP__
+#define __STRESS_CLIENT_ARGS_HPP__
 #include <getopt.h>
 
 #include "protocol.hpp"
@@ -445,5 +444,5 @@ void parse(config_t *config, int argc, char *argv[]) {
     }
 }
 
-#endif // __ARGS_HPP__
+#endif  // __STRESS_CLIENT_ARGS_HPP__
 

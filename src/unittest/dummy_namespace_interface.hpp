@@ -1,11 +1,13 @@
 #ifndef __UNITTEST_DUMMY_NAMESPACE_INTERFACE_HPP__
 #define __UNITTEST_DUMMY_NAMESPACE_INTERFACE_HPP__
 
-#include "namespace_interface.hpp"
-#include "serializer/log/log_serializer.hpp"
-#include "serializer/translator.hpp"
 #include "utils.hpp"
+#include <boost/bind.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
+
+#include "namespace_interface.hpp"
+#include "serializer/config.hpp"
+#include "serializer/translator.hpp"
 #include "concurrency/pmap.hpp"
 #include "unittest/unittest_utils.hpp"
 
@@ -15,8 +17,8 @@ template<class protocol_t>
 struct dummy_parallelizer_t {
 
 public:
-    dummy_parallelizer_t(std::vector<typename protocol_t::store_t *> children) :
-        children(children), random_step(0) { }
+    dummy_parallelizer_t(std::vector<typename protocol_t::store_t *> _children) :
+        children(_children), random_step(0) { }
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t read, order_token_t tok) {
         std::vector<typename protocol_t::read_t> reads = read.parallelize(children.size());
@@ -49,7 +51,8 @@ template<class protocol_t>
 struct dummy_timestamper_t {
 
 public:
-    dummy_timestamper_t(dummy_parallelizer_t<protocol_t> *next) : next(next), timestamp(repli_timestamp_t::distant_past) { }
+    dummy_timestamper_t(dummy_parallelizer_t<protocol_t> *_next)
+	: next(_next), timestamp(repli_timestamp_t::distant_past) { }
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t read, order_token_t tok) {
         return next->read(read, tok);
@@ -77,8 +80,8 @@ public:
         typename protocol_t::region_t region;
     };
 
-    dummy_sharder_t(std::vector<timestamper_and_region_t> timestampers) :
-        timestampers(timestampers) { }
+    dummy_sharder_t(std::vector<timestamper_and_region_t> _timestampers)
+	: timestampers(_timestampers) { }
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t read, order_token_t tok) {
         std::vector<typename protocol_t::region_t> regions;
@@ -196,22 +199,22 @@ void run_with_dummy_namespace_interface(
 
     /* Set up serializer */
 
-    log_serializer_t::create(
-        log_serializer_t::dynamic_config_t(),
-        log_serializer_t::private_dynamic_config_t(db_file.name()),
-        log_serializer_t::static_config_t()
+    standard_serializer_t::create(
+        standard_serializer_t::dynamic_config_t(),
+        standard_serializer_t::private_dynamic_config_t(db_file.name()),
+        standard_serializer_t::static_config_t()
         );
 
-    log_serializer_t serializer(
+    standard_serializer_t serializer(
         /* Extra parentheses are necessary so C++ doesn't interpret this as
         a declaration of a function called `serializer`. WTF, C++? */
-        (log_serializer_t::dynamic_config_t()),
-        log_serializer_t::private_dynamic_config_t(db_file.name())
+        (standard_serializer_t::dynamic_config_t()),
+        standard_serializer_t::private_dynamic_config_t(db_file.name())
         );
 
     /* Set up multiplexer */
 
-    std::vector<serializer_t *> multiplexer_files;
+    std::vector<standard_serializer_t *> multiplexer_files;
     multiplexer_files.push_back(&serializer);
 
     serializer_multiplexer_t::create(multiplexer_files, shards.size() * repli_factor);

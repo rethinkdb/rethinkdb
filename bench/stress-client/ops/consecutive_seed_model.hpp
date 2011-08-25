@@ -1,5 +1,5 @@
-#ifndef __CONSECUTIVE_SEED_MODEL_HPP__
-#define __CONSECUTIVE_SEED_MODEL_HPP__
+#ifndef __STRESS_CLIENT_OPS_CONSECUTIVE_SEED_MODEL_HPP__
+#define __STRESS_CLIENT_OPS_CONSECUTIVE_SEED_MODEL_HPP__
 
 #include "ops/seed_key_generator.hpp"
 #include "ops/watcher_and_tracker.hpp"
@@ -162,4 +162,4 @@ public:
     };
 };
 
-#endif /* __CONSECUTIVE_SEED_MODEL_HPP__ */
+#endif /* __STRESS_CLIENT_OPS_CONSECUTIVE_SEED_MODEL_HPP__ */

@@ -1,5 +1,5 @@
-#ifndef __SQLITE_MIRROR_HPP__
-#define __SQLITE_MIRROR_HPP__
+#ifndef __STRESS_CLIENT_OPS_SQLITE_MIRROR_HPP__
+#define __STRESS_CLIENT_OPS_SQLITE_MIRROR_HPP__
 
 #include "ops/seed_key_generator.hpp"
 #include "ops/watcher_and_tracker.hpp"
@@ -87,4 +87,4 @@ struct sqlite_mirror_verify_op_t : public op_t {
     }
 };
 
-#endif /* __SQLITE_MIRROR_HPP__ */
+#endif /* __STRESS_CLIENT_OPS_SQLITE_MIRROR_HPP__ */

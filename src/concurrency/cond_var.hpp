@@ -19,8 +19,6 @@ public:
 private:
     void do_pulse();
 
-    bool ready;
-    coro_t *waiter;
     DISABLE_COPYING(cond_t);
 };
 

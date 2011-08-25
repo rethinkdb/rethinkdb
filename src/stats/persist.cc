@@ -5,10 +5,11 @@
 
 #include <stdlib.h>
 
+#include "utils.hpp"
 #include <boost/numeric/conversion/cast.hpp>
+#include <boost/bind.hpp>
 
 #include "stats/serialize.hpp"
-#include "utils.hpp"
 #include "concurrency/pmap.hpp"
 
 

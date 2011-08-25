@@ -1,5 +1,3 @@
-#include <boost/shared_ptr.hpp>
-
 #include "buffer_cache/mirrored/mirrored.hpp"
 
 #include "errors.hpp"
@@ -9,6 +7,7 @@
 #include "buffer_cache/stats.hpp"
 #include "do_on_thread.hpp"
 #include "stats/persist.hpp"
+#include "serializer/serializer.hpp"
 
 /**
  * Buffer implementation.
@@ -28,15 +27,15 @@ perfmon_persistent_counter_t pm_cache_hits("cache_hits"), pm_cache_misses("cache
 
 // TODO (rntz): it should be possible for us to cause snapshots which were not cow-referenced to be
 // flushed to disk during writeback, sans block id, to allow them to be unloaded if necessary.
-struct mc_inner_buf_t::buf_snapshot_t : evictable_t, intrusive_list_node_t<mc_inner_buf_t::buf_snapshot_t> {
+class mc_inner_buf_t::buf_snapshot_t : private evictable_t, public intrusive_list_node_t<mc_inner_buf_t::buf_snapshot_t> {
+public:
     buf_snapshot_t(mc_inner_buf_t *buf, version_id_t version,
-                   size_t snapshot_refcount, size_t active_refcount,
-                   void *data, boost::shared_ptr<serializer_t::block_token_t> token)
-        : evictable_t(buf->cache, data ? true : false),
+                   size_t _snapshot_refcount, size_t _active_refcount,
+                   void *_data, const boost::intrusive_ptr<standard_block_token_t>& _token)
+        : evictable_t(buf->cache, _data ? true : false),
           parent(buf), snapshotted_version(version),
-          data(data), token(token),
-          snapshot_refcount(snapshot_refcount), active_refcount(active_refcount)
-    {
+          data(_data), token(_token),
+          snapshot_refcount(_snapshot_refcount), active_refcount(_active_refcount) {
         rassert(data || token, "creating buf snapshot without data or block token");
         rassert(snapshot_refcount + active_refcount, "creating buf snapshot with 0 refcount");
     }
@@ -44,8 +43,9 @@ struct mc_inner_buf_t::buf_snapshot_t : evictable_t, intrusive_list_node_t<mc_in
     ~buf_snapshot_t() {
         rassert(!snapshot_refcount && !active_refcount);
         parent->snapshots.remove(this);
-        if (data)
+        if (data) {
             cache->serializer->free(data);
+        }
     }
 
     void *acquire_data(file_account_t *io_account) {
@@ -91,16 +91,33 @@ struct mc_inner_buf_t::buf_snapshot_t : evictable_t, intrusive_list_node_t<mc_in
         data = NULL;
     }
 
+private:
+    friend class mc_inner_buf_t;
+
+    // I guess we know what this means.  TODO (sam): Figure out our
+    // relationship with our parent.
     mc_inner_buf_t *parent;
+
+    // Some kind of snapshotted version.  :/
     version_id_t snapshotted_version;
+
+    // TODO (sam): Figure out wtf this is.
     mutable mutex_t data_mutex;
+
+    // The buffer of the snapshot we hold.  TODO (sam): Presumably we _own_ this buffer, but double check.
     void *data;
-    boost::shared_ptr<serializer_t::block_token_t> token;
+
+    // Our block token to the serializer.
+    boost::intrusive_ptr<standard_block_token_t> token;
+
     // snapshot_refcount is the number of snapshots that could potentially use this buf_snapshot_t.
     size_t snapshot_refcount;
+
     // active_refcount is the number of mc_buf_ts currently using this buf_snapshot_t. As long as
     // >0, we cannot be unloaded.
     size_t active_refcount;
+
+    DISABLE_COPYING(buf_snapshot_t);
 };
 
 // This loads a block from the serializer and stores it into buf.
@@ -133,67 +150,70 @@ void mc_inner_buf_t::load_inner_buf(bool should_lock, file_account_t *io_account
 }
 
 // This form of the buf constructor is used when the block exists on disk and needs to be loaded
-mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_load, file_account_t *io_account)
-    : evictable_t(cache),
-      block_id(block_id),
+mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, bool _should_load, file_account_t *_io_account)
+    : evictable_t(_cache),
+      writeback_t::local_buf_t(),
+      block_id(_block_id),
       subtree_recency(repli_timestamp_t::invalid),  // Gets initialized by load_inner_buf
-      data(should_load ? cache->serializer->malloc() : NULL),
-      version_id(cache->get_min_snapshot_version(cache->get_current_version_id())),
+      data(_should_load ? _cache->serializer->malloc() : NULL),
+      version_id(_cache->get_min_snapshot_version(_cache->get_current_version_id())),
       next_patch_counter(1),
       refcount(0),
       do_delete(false),
       write_empty_deleted_block(false),
       cow_refcount(0),
       snap_refcount(0),
-      writeback_buf(this),
-      page_map_buf(this),
       block_sequence_id(NULL_BLOCK_SEQUENCE_ID) {
 
     rassert(version_id != faux_version_id);
 
-    if (should_load) {
+    array_map_t::constructing_inner_buf(this);
+
+    if (_should_load) {
         // Some things expect us to return immediately (as of 5/12/2011), so we do the loading in a
         // separate coro. We have to make sure that load_inner_buf() acquires the lock first
         // however, so we use spawn_now().
-        coro_t::spawn_now(boost::bind(&mc_inner_buf_t::load_inner_buf, this, true, io_account));
+        coro_t::spawn_now(boost::bind(&mc_inner_buf_t::load_inner_buf, this, true, _io_account));
     }
 
+    // TODO (sam): Figure out wtf this todo is talking about.
     // TODO: only increment pm_n_blocks_in_memory when we actually load the block into memory.
     pm_n_blocks_in_memory++;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
 
-    cache->page_repl.make_space();
-    cache->maybe_unregister_read_ahead_callback();
+    _cache->page_repl.make_space();
+    _cache->maybe_unregister_read_ahead_callback();
 
     refcount--;
 }
 
 // This form of the buf constructor is used when the block exists on disks but has been loaded into buf already
-mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp)
-    : evictable_t(cache),
-      block_id(block_id),
-      subtree_recency(recency_timestamp),
-      data(buf),
-      version_id(cache->get_min_snapshot_version(cache->get_current_version_id())),
+mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, void *_buf, repli_timestamp_t _recency_timestamp)
+    : evictable_t(_cache),
+      writeback_t::local_buf_t(),
+      block_id(_block_id),
+      subtree_recency(_recency_timestamp),
+      data(_buf),
+      version_id(_cache->get_min_snapshot_version(_cache->get_current_version_id())),
       refcount(0),
       do_delete(false),
       write_empty_deleted_block(false),
       cow_refcount(0),
       snap_refcount(0),
-      writeback_buf(this),
-      page_map_buf(this),
       block_sequence_id(NULL_BLOCK_SEQUENCE_ID) {
 
     rassert(version_id != faux_version_id);
 
+    array_map_t::constructing_inner_buf(this);
+
     pm_n_blocks_in_memory++;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
-    cache->page_repl.make_space();
-    cache->maybe_unregister_read_ahead_callback();
+    _cache->page_repl.make_space();
+    _cache->maybe_unregister_read_ahead_callback();
     refcount--;
 
     // Read the block sequence id
-    block_sequence_id = cache->serializer->get_block_sequence_id(block_id, data);
+    block_sequence_id = _cache->serializer->get_block_sequence_id(_block_id, data);
 
     replay_patches();
 
@@ -243,36 +263,37 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache, version_id_t snapshot_v
 // Used by mc_inner_buf_t::allocate() and by the patch log.
 // If you update this constructor, please don't forget to update mc_inner_buf_t::allocate
 // accordingly.
-mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, version_id_t snapshot_version, repli_timestamp_t recency_timestamp)
-    : evictable_t(cache),
-      block_id(block_id),
-      subtree_recency(recency_timestamp),
-      data(cache->serializer->malloc()),
-      version_id(snapshot_version),
+mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, version_id_t _snapshot_version, repli_timestamp_t _recency_timestamp)
+    : evictable_t(_cache),
+      writeback_t::local_buf_t(),
+      block_id(_block_id),
+      subtree_recency(_recency_timestamp),
+      data(_cache->serializer->malloc()),
+      version_id(_snapshot_version),
       next_patch_counter(1),
       refcount(0),
       do_delete(false),
       write_empty_deleted_block(false),
       cow_refcount(0),
       snap_refcount(0),
-      writeback_buf(this),
-      page_map_buf(this),
-      block_sequence_id(NULL_BLOCK_SEQUENCE_ID)
-{
+      block_sequence_id(NULL_BLOCK_SEQUENCE_ID) {
+
     rassert(version_id != faux_version_id);
-    cache->assert_thread();
+    _cache->assert_thread();
 
 #if !defined(NDEBUG) || defined(VALGRIND)
     // The memory allocator already filled this with 0xBD, but it's nice to be able to distinguish
     // between problems with uninitialized memory and problems with uninitialized blocks
-    memset(data, 0xCD, cache->serializer->get_block_size().value());
+    memset(data, 0xCD, _cache->serializer->get_block_size().value());
 #endif
+
+    array_map_t::constructing_inner_buf(this);
 
     pm_n_blocks_in_memory++;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
 
-    cache->page_repl.make_space();
-    cache->maybe_unregister_read_ahead_callback();
+    _cache->page_repl.make_space();
+    _cache->maybe_unregister_read_ahead_callback();
 
     refcount--;
 }
@@ -292,6 +313,8 @@ mc_inner_buf_t::~mc_inner_buf_t() {
         memset(data, 0xDD, cache->serializer->get_block_size().value());
 #endif
 
+    array_map_t::destroying_inner_buf(this);
+
     rassert(safe_to_unload());
     if (data)
         cache->serializer->free(data);
@@ -308,7 +331,7 @@ void mc_inner_buf_t::replay_patches() {
         cache->patch_memory_storage.filter_applied_patches(block_id, block_sequence_id);
     }
     // All patches that currently exist must have been materialized out of core...
-    writeback_buf.last_patch_materialized = cache->patch_memory_storage.last_patch_materialized_or_zero(block_id);
+    writeback_buf().last_patch_materialized = cache->patch_memory_storage.last_patch_materialized_or_zero(block_id);
 
     // Apply outstanding patches
     cache->patch_memory_storage.apply_patches(block_id, reinterpret_cast<char *>(data), cache->get_block_size());
@@ -394,10 +417,10 @@ void mc_inner_buf_t::release_snapshot(buf_snapshot_t *snapshot) {
 }
 
 bool mc_inner_buf_t::safe_to_unload() {
-    return !lock.locked() && writeback_buf.safe_to_unload() && refcount == 0 && cow_refcount == 0 && snapshots.empty();
+    return !lock.locked() && writeback_buf().safe_to_unload() && refcount == 0 && cow_refcount == 0 && snapshots.empty();
 }
 
-void mc_inner_buf_t::update_data_token(const void *data, boost::shared_ptr<serializer_t::block_token_t> token) {
+void mc_inner_buf_t::update_data_token(const void *data, const boost::intrusive_ptr<standard_block_token_t>& token) {
     cache->assert_thread();
     if (data == this->data) {
         rassert(!data_token, "data token already up-to-date");
@@ -417,15 +440,22 @@ perfmon_duration_sampler_t
     pm_bufs_acquiring("bufs_acquiring", secs_to_ticks(1)),
     pm_bufs_held("bufs_held", secs_to_ticks(1));
 
-mc_buf_t::mc_buf_t(mc_inner_buf_t *inner_buf, access_t mode, mc_inner_buf_t::version_id_t version_to_access, bool snapshotted,
+mc_buf_t::mc_buf_t(mc_inner_buf_t *_inner_buf, access_t _mode, mc_inner_buf_t::version_id_t version_to_access, bool _snapshotted,
                    boost::function<void()> call_when_in_line, file_account_t *io_account)
-    : mode(mode), snapshotted(snapshotted), non_locking_access(snapshotted), inner_buf(inner_buf), data(NULL)
-{
+    : mode(_mode), snapshotted(_snapshotted), non_locking_access(_snapshotted), inner_buf(_inner_buf), data(NULL) {
     inner_buf->cache->assert_thread();
     inner_buf->refcount++;
     patches_affected_data_size_at_start = -1;
 
-    if (snapshotted) rassert(is_read_mode(mode), "Only read access is allowed to block snapshots");
+    if (snapshotted) {
+	rassert(is_read_mode(mode), "Only read access is allowed to block snapshots");
+
+        // Our snapshotting-specific code can't handle weird read modes, unfortunately.
+        // TODO: Make snapshotting code work properly with weird read modes.
+        if (mode == rwi_read_outdated_ok || mode == rwi_read_sync) {
+            mode = rwi_read;
+        }
+    }
 
     // If the top version is less or equal to version_to_access, then we need to acquire
     // a read lock first (otherwise we may get the data of the unfinished write on top).
@@ -490,7 +520,7 @@ void mc_buf_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access) {
             // so we cannot assert data here unfortunately!
             //rassert(data != NULL);
 
-            if (!inner_buf->writeback_buf.needs_flush &&
+            if (!inner_buf->writeback_buf().needs_flush &&
                     patches_affected_data_size_at_start == -1 &&
                     global_full_perfmon) {
                 patches_affected_data_size_at_start =
@@ -519,7 +549,7 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
     rassert(patch->get_block_id() == inner_buf->block_id);
 
     patch->apply_to_buf(reinterpret_cast<char *>(data), inner_buf->cache->get_block_size());
-    inner_buf->writeback_buf.set_dirty();
+    inner_buf->writeback_buf().set_dirty();
     // Invalidate the token
     inner_buf->data_token.reset();
 
@@ -528,7 +558,7 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
         ensure_flush();
     }
 
-    if (!inner_buf->writeback_buf.needs_flush) {
+    if (!inner_buf->writeback_buf().needs_flush) {
         // Check if we want to disable patching for this block and flush it directly instead
         const size_t MAX_PATCHES_SIZE = inner_buf->cache->serializer->get_block_size().value() / inner_buf->cache->max_patches_size_ratio;
         if (patch->get_affected_data_size() + inner_buf->cache->patch_memory_storage.get_affected_data_size(inner_buf->block_id) > MAX_PATCHES_SIZE) {
@@ -568,13 +598,13 @@ void *mc_buf_t::get_data_major_write() {
 
 void mc_buf_t::ensure_flush() {
     rassert(data == inner_buf->data);
-    if (!inner_buf->writeback_buf.needs_flush) {
+    if (!inner_buf->writeback_buf().needs_flush) {
         // We bypass the patching system, make sure this buffer gets flushed.
-        inner_buf->writeback_buf.needs_flush = true;
+        inner_buf->writeback_buf().needs_flush = true;
         // ... we can also get rid of existing patches at this point.
         inner_buf->cache->patch_memory_storage.drop_patches(inner_buf->block_id);
         // Make sure that the buf is marked as dirty
-        inner_buf->writeback_buf.set_dirty();
+        inner_buf->writeback_buf().set_dirty();
     }
 }
 
@@ -622,7 +652,7 @@ void mc_buf_t::set_data(void *dest, const void *src, size_t n) {
     }
     rassert(range_inside_of_byte_range(dest, n, data, inner_buf->cache->get_block_size().value()));
 
-    if (inner_buf->writeback_buf.needs_flush) {
+    if (inner_buf->writeback_buf().needs_flush) {
         // Save the allocation / construction of a patch object
         get_data_major_write();
         memcpy(dest, src, n);
@@ -642,7 +672,7 @@ void mc_buf_t::move_data(void *dest, const void *src, const size_t n) {
     rassert(range_inside_of_byte_range(src, n, data, inner_buf->cache->get_block_size().value()));
     rassert(range_inside_of_byte_range(dest, n, data, inner_buf->cache->get_block_size().value()));
 
-    if (inner_buf->writeback_buf.needs_flush) {
+    if (inner_buf->writeback_buf().needs_flush) {
         // Save the allocation / construction of a patch object
         get_data_major_write();
         memmove(dest, src, n);
@@ -660,7 +690,7 @@ void mc_buf_t::release() {
     inner_buf->cache->assert_thread();
     pm_bufs_held.end(&start_time);
 
-    if (mode == rwi_write && !inner_buf->writeback_buf.needs_flush && patches_affected_data_size_at_start >= 0) {
+    if (mode == rwi_write && !inner_buf->writeback_buf().needs_flush && patches_affected_data_size_at_start >= 0) {
         if (inner_buf->cache->patch_memory_storage.get_affected_data_size(inner_buf->block_id) > (size_t)patches_affected_data_size_at_start)
             pm_patches_size_per_write.record(inner_buf->cache->patch_memory_storage.get_affected_data_size(inner_buf->block_id) - patches_affected_data_size_at_start);
     }
@@ -703,9 +733,9 @@ void mc_buf_t::release() {
     // empty block).
     if (inner_buf->do_delete) {
         if (mode == rwi_write) {
-            inner_buf->writeback_buf.mark_block_id_deleted();
-            inner_buf->writeback_buf.set_dirty(false);
-            inner_buf->writeback_buf.set_recency_dirty(false); // TODO: Do we need to handle recency in master in some other way?
+            inner_buf->writeback_buf().mark_block_id_deleted();
+            inner_buf->writeback_buf().set_dirty(false);
+            inner_buf->writeback_buf().set_recency_dirty(false); // TODO: Do we need to handle recency in master in some other way?
         }
         if (inner_buf->safe_to_unload()) {
             delete inner_buf;
@@ -969,50 +999,50 @@ void mc_cache_t::create(serializer_t *serializer, mirrored_cache_static_config_t
     void *superblock = serializer->malloc();
     bzero(superblock, serializer->get_block_size().value());
 
-    serializer_t::index_write_op_t op(SUPERBLOCK_ID);
+    index_write_op_t op(SUPERBLOCK_ID);
     op.token = serializer->block_write(superblock, SUPERBLOCK_ID, DEFAULT_DISK_ACCOUNT);
     op.recency = repli_timestamp_t::invalid;
     op.delete_bit = false;      // I'm not sure why this is necessary, but it is. XXX DO NOT COMMIT
-    serializer->index_write(op, DEFAULT_DISK_ACCOUNT);
+    serializer_index_write(serializer, op, DEFAULT_DISK_ACCOUNT);
 
     serializer->free(superblock);
 }
 
 mc_cache_t::mc_cache_t(
-            serializer_t *serializer,
+            serializer_t *_serializer,
             mirrored_cache_config_t *dynamic_config) :
 
     dynamic_config(*dynamic_config),
-    serializer(serializer),
-    reads_io_account(serializer->make_io_account(dynamic_config->io_priority_reads)),
-    writes_io_account(serializer->make_io_account(dynamic_config->io_priority_writes)),
+    serializer(_serializer),
+    reads_io_account(_serializer->make_io_account(dynamic_config->io_priority_reads)),
+    writes_io_account(_serializer->make_io_account(dynamic_config->io_priority_writes)),
     page_repl(
         // Launch page replacement if the user-specified maximum number of blocks is reached
-        dynamic_config->max_size / serializer->get_block_size().ser_value(),
+        dynamic_config->max_size / _serializer->get_block_size().ser_value(),
         this),
     writeback(
         this,
         dynamic_config->wait_for_flush,
         dynamic_config->flush_timer_ms,
-        dynamic_config->flush_dirty_size / serializer->get_block_size().ser_value(),
-        dynamic_config->max_dirty_size / serializer->get_block_size().ser_value(),
+        dynamic_config->flush_dirty_size / _serializer->get_block_size().ser_value(),
+        dynamic_config->max_dirty_size / _serializer->get_block_size().ser_value(),
         dynamic_config->flush_waiting_threshold,
         dynamic_config->max_concurrent_flushes),
     /* Build list of free blocks (the free_list constructor blocks) */
-    free_list(serializer),
+    free_list(_serializer),
     shutting_down(false),
     num_live_transactions(0),
     to_pulse_when_last_transaction_commits(NULL),
     max_patches_size_ratio((dynamic_config->wait_for_flush || dynamic_config->flush_timer_ms == 0) ? MAX_PATCHES_SIZE_RATIO_DURABILITY : MAX_PATCHES_SIZE_RATIO_MIN),
     read_ahead_registered(false),
-    next_snapshot_version(mc_inner_buf_t::faux_version_id+1)
-{
+    next_snapshot_version(mc_inner_buf_t::faux_version_id+1) {
+
 #ifndef NDEBUG
     writebacks_allowed = false;
 #endif
 
     /* Load differential log from disk */
-    patch_disk_storage.reset(new patch_disk_storage_t(*this, MC_CONFIGBLOCK_ID));
+    patch_disk_storage.reset(new patch_disk_storage_t(this, MC_CONFIGBLOCK_ID));
     patch_disk_storage->load_patches(patch_memory_storage);
 
     /* Please note: writebacks must *not* happen prior to this point! */

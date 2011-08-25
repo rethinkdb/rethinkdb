@@ -12,8 +12,25 @@
 
 namespace leaf {
 
-// These codes can appear as the first byte of a leaf node entry
-// (values 250 or smaller are just key sizes for key/value pairs).
+// A leaf node is a set of key/value, key/value/modification_time, and
+// key/deletion_time tuples with distinct keys, where modification
+// time or deletion time is omitted for sufficiently old entries.  A
+// key/deletion_time entry says that the key was recently deleted.
+//
+// In particular, all the modification times and deletions after a
+// certain time are recorded, and those before a certain time are
+// omitted.  You'll note that we don't have deletion entries that omit
+// a timestamp.
+
+// Leaf nodes support efficient key lookup and efficient key-order
+// iteration, and efficient iteration in order of descending
+// modification time.  The details of implementation are described
+// later.
+
+
+// These codes can appear as the first byte of a leaf node entry (see
+// below) (values 250 or smaller are just key sizes for key/value
+// pairs).
 
 // Means we have a deletion entry.
 const int DELETE_ENTRY_CODE = 255;
@@ -31,27 +48,30 @@ const int SKIP_ENTRY_CODE_MANY = 252;
 const int SKIP_ENTRY_RESERVED = 251;
 
 // We must maintain timestamps and deletion entries as best we can,
-// with the following limitations.  The timestamps stored need not be
-// more than the most `MANDATORY_TIMESTAMPS` recent timestamps.  The
-// deletions stored need not be any more than what is necessary to
-// fill `(block_size - offsetof(leaf_node_t, pair_offsets)) /
-// DELETION_RESERVE_FRACTION` bytes.  For example, with a 4084 block
-// size, if the five most recent operations were deletions of 250-byte
-// keys, we would only be required to store the 2 most recent
-// deletions and the 2 most recent timestamps.
+// with the following limitations.  The number of timestamps stored
+// need not be more than the most `MANDATORY_TIMESTAMPS` recent
+// timestamps.  The deletions stored need not be any more than what is
+// necessary to fill `(block_size - offsetof(leaf_node_t,
+// pair_offsets)) / DELETION_RESERVE_FRACTION` bytes.  For example,
+// with a 4084 block size, if the five most recent operations were
+// deletions of 250-byte keys, we would only be required to store the
+// 2 most recent deletions and the 2 most recent timestamps.
 
 const int MANDATORY_TIMESTAMPS = 5;
 const int DELETION_RESERVE_FRACTION = 10;
 
+// The leaf node begins with the following struct layout.
 struct leaf_node_t {
-    // The value-type-specific magic value.
+    // The value-type-specific magic value.  It's a bit of a hack, but
+    // it's possible to construct a value_sizer_t based on this value.
     block_magic_t magic;
 
     // The size of pair_offsets.
     uint16_t num_pairs;
 
     // The total size (in bytes) of the live entries and their 2-byte
-    // pair offsets in pair_offsets.
+    // pair offsets in pair_offsets.  (Does not include the size of
+    // the live entries' timestamps.)
     uint16_t live_size;
 
     // The frontmost offset.
@@ -63,6 +83,26 @@ struct leaf_node_t {
     // The pair offsets.
     uint16_t pair_offsets[];
 };
+
+// Entries are contiguously connected to the end of a btree
+// block. Here's what a full leaf node looks like.
+//
+// [magic][num_pairs][live_size][frontmost][tstamp_cutpoint][off0][off1][off2]...[offN-1]........[tstamp][entry][tstamp][entry][tstamp][entry][tstamp][entry][entry][entry][entry][entry][entry][entry]
+//                                                          \___________________________/        ^                                                           ^                                         ^
+//                                                                  N = num_pairs            frontmost                                                tstamp_cutpoint                            (block size)
+//
+// Here's what an "[entry]" may look like:
+//
+//   [btree key][btree value]                       -- a live entry
+//   [255][btree key]                               -- a deletion entry
+//   [254]                                          -- a skip entry of size one
+//   [253][byte]                                    -- a skip entry of size two
+//   [252][uint16_t sz][byte][byte]...[byte]      -- a skip entry of size "sz + 3"
+//                     \___________________/
+//                           sz bytes
+
+
+
 
 
 struct entry_t;

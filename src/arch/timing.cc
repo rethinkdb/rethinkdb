@@ -34,7 +34,7 @@ void signal_timer_t::on_timer_ring(void *v_timer) {
 
 // repeating_timer_t
 
-repeating_timer_t::repeating_timer_t(int frequency_ms, const boost::function<void(void)>& _ring) :
+repeating_timer_t::repeating_timer_t(int frequency_ms, const boost::function<void()>& _ring) :
     ring(_ring) {
     rassert(frequency_ms > 0);
     timer = add_timer(frequency_ms, &repeating_timer_t::on_timer_ring, this);

@@ -256,7 +256,7 @@ key_range_t memcached_protocol_t::store_t::get_region() {
 /* `memcached_protocol_t::store_t::read()` */
 
 struct read_perform_visitor_t : public boost::static_visitor<memcached_protocol_t::read_response_t> {
-    read_perform_visitor_t(btree_slice_t *btree, order_token_t tok) : btree(btree), tok(tok) { }
+    read_perform_visitor_t(btree_slice_t *_btree, order_token_t _tok) : btree(_btree), tok(_tok) { }
     btree_slice_t *btree;
     order_token_t tok;
     memcached_protocol_t::read_response_t operator()(get_query_t get) {
@@ -293,7 +293,8 @@ struct convert_response_visitor_t : public boost::static_visitor<memcached_proto
 };
 
 struct write_perform_visitor_t : public boost::static_visitor<memcached_protocol_t::write_response_t> {
-    write_perform_visitor_t(btree_slice_t *btree, castime_t castime, order_token_t tok) : btree(btree), castime(castime), tok(tok) { }
+    write_perform_visitor_t(btree_slice_t *_btree, castime_t _castime, order_token_t _tok)
+	: btree(_btree), castime(_castime), tok(_tok) { }
     btree_slice_t *btree;
     castime_t castime;
     order_token_t tok;

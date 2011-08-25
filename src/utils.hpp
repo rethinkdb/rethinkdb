@@ -7,7 +7,7 @@
 #include <string>
 
 #include <boost/uuid/uuid.hpp>
-#include "config/args.hpp"
+// #include "config/args.hpp"
 #include "errors.hpp"
 
 /* Note that repli_timestamp_t does NOT represent an actual timestamp; instead it's an arbitrary
