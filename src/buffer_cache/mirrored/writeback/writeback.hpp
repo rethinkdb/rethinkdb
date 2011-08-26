@@ -151,7 +151,6 @@ private:
     // List of block_ids that have been deleted
     struct deleted_block_t {
         block_id_t block_id;
-        bool write_empty_block;
     };
     std::vector<deleted_block_t> deleted_blocks;
 

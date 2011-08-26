@@ -133,8 +133,6 @@ private:
     //
     // TODO (sam): Do we need this any more, with coroutines?  (Probably?)
     bool do_delete;
-    // true if... something.  TODO (sam): Figure out wtf this is.
-    bool write_empty_deleted_block;
 
     // number of references from mc_buf_t buffers, which hold a
     // pointer to the data in read_outdated_ok mode.

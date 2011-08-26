@@ -160,7 +160,6 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, bool _shou
       next_patch_counter(1),
       refcount(0),
       do_delete(false),
-      write_empty_deleted_block(false),
       cow_refcount(0),
       snap_refcount(0),
       block_sequence_id(NULL_BLOCK_SEQUENCE_ID) {
@@ -197,7 +196,6 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, void *_buf
       version_id(_cache->get_min_snapshot_version(_cache->get_current_version_id())),
       refcount(0),
       do_delete(false),
-      write_empty_deleted_block(false),
       cow_refcount(0),
       snap_refcount(0),
       block_sequence_id(NULL_BLOCK_SEQUENCE_ID) {
@@ -249,7 +247,6 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache, version_id_t snapshot_v
         inner_buf->version_id = snapshot_version;
         inner_buf->do_delete = false;
         inner_buf->next_patch_counter = 1;
-        inner_buf->write_empty_deleted_block = false;
         inner_buf->cow_refcount = 0;
         inner_buf->snap_refcount = 0;
         inner_buf->block_sequence_id = NULL_BLOCK_SEQUENCE_ID;
@@ -273,7 +270,6 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, version_id
       next_patch_counter(1),
       refcount(0),
       do_delete(false),
-      write_empty_deleted_block(false),
       cow_refcount(0),
       snap_refcount(0),
       block_sequence_id(NULL_BLOCK_SEQUENCE_ID) {
@@ -620,7 +616,6 @@ void mc_buf_t::mark_deleted() {
     data = inner_buf->data = NULL;
 
     inner_buf->do_delete = true;
-    inner_buf->write_empty_deleted_block = true;
     ensure_flush(); // Disable patch log system for the buffer
 }
 
