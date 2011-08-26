@@ -997,7 +997,6 @@ void mc_cache_t::create(serializer_t *serializer, mirrored_cache_static_config_t
     index_write_op_t op(SUPERBLOCK_ID);
     op.token = serializer->block_write(superblock, SUPERBLOCK_ID, DEFAULT_DISK_ACCOUNT);
     op.recency = repli_timestamp_t::invalid;
-    op.delete_bit = false;      // I'm not sure why this is necessary, but it is. XXX DO NOT COMMIT
     serializer_index_write(serializer, op, DEFAULT_DISK_ACCOUNT);
 
     serializer->free(superblock);

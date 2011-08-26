@@ -765,7 +765,7 @@ void check_and_load_diff_log(slicecx_t *cx, diff_log_errors *errs) {
             info = locker.block_info()[ser_block_id];
         }
 
-        if (!info.offset.parts.is_delete) {
+        if (!info.offset.get_delete_bit()) {
             block_t b;
             b.init(cx->block_size(), cx->file, info.offset.parts.value, ser_block_id);
             {
@@ -1075,6 +1075,7 @@ void check_slice_other_blocks(slicecx_t *cx, other_block_errors *errs) {
             read_locker_t locker(cx->knog);
             info = locker.block_info()[id];
         }
+        // TODO (sam): Fix this up for the simpler flagged_off64_t.
         if (info.offset.get_delete_bit()) {
             // Do nothing.
         } else if (!info.offset.has_value()) {
@@ -1086,7 +1087,7 @@ void check_slice_other_blocks(slicecx_t *cx, other_block_errors *errs) {
                 errs->contiguity_failure = first_valueless_block;
             }
 
-            if (!info.offset.parts.is_delete && info.block_sequence_id == NULL_BLOCK_SEQUENCE_ID) {
+            if (info.block_sequence_id == NULL_BLOCK_SEQUENCE_ID) {
                 // Aha!  We have an orphan block!  Crap.
                 rogue_block_description desc;
                 desc.block_id = id;
@@ -1099,10 +1100,6 @@ void check_slice_other_blocks(slicecx_t *cx, other_block_errors *errs) {
                 }
 
                 errs->orphan_blocks.push_back(desc);
-            } else if (info.offset.parts.is_delete) {
-                rassert(info.block_sequence_id == NULL_BLOCK_SEQUENCE_ID);
-                rogue_block_description desc;
-                desc.block_id = id;
             }
         }
     }

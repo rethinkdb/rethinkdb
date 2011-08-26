@@ -354,12 +354,11 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
                 /* mark the life */
                 data_block_manager->mark_live(offset.get_value());
             }
-            else
+            else {
                 offset.remove_value();
+            }
         }
 
-        // Update block info (delete bit, recency)
-        if (op.delete_bit) offset.set_delete_bit(op.delete_bit.get());
         repli_timestamp_t recency = op.recency ? op.recency.get()
                                   : lba_index->get_block_recency(op.block_id);
 

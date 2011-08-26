@@ -82,13 +82,11 @@ struct write_performer_t : public boost::static_visitor<void> {
         op->token = serializer->block_write(update.buf, op->block_id, io_account, block_write_conds->back());
         if (update.launch_callback)
             update.launch_callback->on_write_launched(op->token.get());
-        op->delete_bit = false;
         op->recency = update.recency;
     }
 
     void operator()(UNUSED const serializer_t::write_t::delete_t &del) {
         op->token = boost::intrusive_ptr<standard_block_token_t>();
-        op->delete_bit = true;
         op->recency = repli_timestamp_t::invalid;
     }
 

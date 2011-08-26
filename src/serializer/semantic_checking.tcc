@@ -198,18 +198,9 @@ index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_a
                 info = token->info;
                 guarantee(token->block_id == op.block_id,
                           "indexing token with block id %u under block id %u", token->block_id, op.block_id);
+            } else {
+                info.state = scs_block_info_t::state_deleted;
             }
-        }
-
-        if (op.delete_bit && op.delete_bit.get()) {
-            info.state = scs_block_info_t::state_deleted;
-#ifdef SERIALIZER_DEBUG_PRINT
-            printf("Setting delete bit for %u\n", op.block_id);
-#endif
-        } else if (info.state == scs_block_info_t::state_have_crc) {
-#ifdef SERIALIZER_DEBUG_PRINT
-            printf("Indexing under block id %u: %u\n", op.block_id, info.crc);
-#endif
         }
 
         // Update the info and add it to the semantic checker file.

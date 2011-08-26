@@ -16,12 +16,7 @@ union flagged_off64_t {
     off64_t whole_value;
     struct {
         // The actual offset into the file.
-        off64_t value : 63;
-
-        // TODO (sam): Remove is_delete.
-        // This block id was deleted, and the offset points to a zeroed
-        // out buffer.
-        int is_delete : 1;
+        off64_t value;
     } parts;
 
     void set_value(off64_t o) {
@@ -40,14 +35,9 @@ union flagged_off64_t {
         return parts.value;
     }
 
-    void set_delete_bit(bool b) {
-        rassert(!is_padding());
-        if (b) parts.is_delete = 1;
-        else parts.is_delete = 0;
-    }
     bool get_delete_bit() const {
         rassert(!is_padding());
-        return parts.is_delete != 0;
+        return parts.value < 0;
     }
 
     static inline flagged_off64_t padding() {
@@ -62,7 +52,6 @@ union flagged_off64_t {
     static inline flagged_off64_t unused() {
         flagged_off64_t ret;
         ret.whole_value = 0;
-        ret.set_delete_bit(true);
         ret.remove_value();
         return ret;
     }

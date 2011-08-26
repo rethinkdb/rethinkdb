@@ -12,16 +12,12 @@ TEST(DiskFormatTest, FlaggedOff64T) {
         off64_t off = offs[i];
         flagged_off64_t real = flagged_off64_t::unused();
         real.set_value(off);
-        real.set_delete_bit(false);
         flagged_off64_t deleteblock = flagged_off64_t::unused();
         deleteblock.set_value(off);
-        deleteblock.set_delete_bit(true);
         EXPECT_TRUE(real.has_value());
         EXPECT_TRUE(deleteblock.has_value());
         EXPECT_FALSE(real.is_padding());
         EXPECT_FALSE(deleteblock.is_padding());
-        EXPECT_FALSE(real.parts.is_delete);
-        EXPECT_TRUE(deleteblock.parts.is_delete);
 
         real.parts.value = 73;
         deleteblock.parts.value = 95;
@@ -30,8 +26,6 @@ TEST(DiskFormatTest, FlaggedOff64T) {
         EXPECT_TRUE(deleteblock.has_value());
         EXPECT_FALSE(real.is_padding());
         EXPECT_FALSE(deleteblock.is_padding());
-        EXPECT_FALSE(real.parts.is_delete);
-        EXPECT_TRUE(deleteblock.parts.is_delete);
     }
 
 
@@ -65,12 +59,10 @@ TEST(DiskFormatTest, LbaEntryT) {
     ASSERT_TRUE(lba_entry_t::is_padding(&ent));
     flagged_off64_t real = flagged_off64_t::unused();
     real.set_value(1);
-    real.set_delete_bit(false);
     ent = lba_entry_t::make(1, repli_timestamp_t::invalid, real);
     ASSERT_FALSE(lba_entry_t::is_padding(&ent));
     flagged_off64_t deleteblock = flagged_off64_t::unused();
     deleteblock.set_value(1);
-    deleteblock.set_delete_bit(true);
     ent = lba_entry_t::make(1, repli_timestamp_t::invalid, deleteblock);
     ASSERT_FALSE(lba_entry_t::is_padding(&ent));
 }
