@@ -203,9 +203,7 @@ void writeback_t::local_buf_t::set_recency_dirty(bool _recency_dirty) {
 // Add block_id to deleted_blocks list.
 void writeback_t::local_buf_t::mark_block_id_deleted() {
     inner_buf_t *gbuf = static_cast<inner_buf_t *>(this);
-    writeback_t::deleted_block_t deleted_block;
-    deleted_block.block_id = gbuf->block_id;
-    gbuf->cache->writeback.deleted_blocks.push_back(deleted_block);
+    gbuf->cache->writeback.deleted_blocks.push_back(gbuf->block_id);
 
     // As the block has been deleted, we must not accept any versions of it offered
     // by a read-ahead operation
@@ -568,7 +566,7 @@ void writeback_t::flush_acquire_bufs(transaction_t *transaction, flush_state_t &
 
     // Write deleted block_ids.
     for (size_t i = 0; i < deleted_blocks.size(); i++) {
-        state.serializer_writes.push_back(serializer_t::write_t::make_delete(deleted_blocks[i].block_id, true /* TODO (sam) get rid of this parameter */));
+        state.serializer_writes.push_back(serializer_t::write_t::make_delete(deleted_blocks[i], true /* TODO (sam) get rid of this parameter */));
     }
     deleted_blocks.clear();
 
