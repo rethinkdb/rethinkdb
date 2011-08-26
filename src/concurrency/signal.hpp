@@ -87,7 +87,7 @@ protected:
     signal_t() : pulsed(false), publisher_controller(&mutex) { }
     ~signal_t() { }
 
-    void pulse() {
+    void pulse() THROWS_NOTHING {
         mutex_acquisition_t acq(&mutex, false);
         rassert(!is_pulsed());
         pulsed = true;
@@ -95,7 +95,7 @@ protected:
     }
 
 private:
-    static void call(boost::function<void()>& fun) {
+    static void call(boost::function<void()>& fun) THROWS_NOTHING {
         fun();
     }
 

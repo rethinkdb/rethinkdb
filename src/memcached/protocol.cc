@@ -165,37 +165,29 @@ std::vector<memcached_protocol_t::read_t> memcached_protocol_t::read_t::shard(st
     return boost::apply_visitor(v, query);
 }
 
-/* `memcached_protocol_t::read_t::parallelize()` */
-
-std::vector<memcached_protocol_t::read_t> memcached_protocol_t::read_t::parallelize(UNUSED int optimal_factor) {
-    /* TODO: Parallelize range gets. */
-    std::vector<memcached_protocol_t::read_t> vec;
-    vec.push_back(*this);
-    return vec;
-}
-
-/* `memcached_protocol_t::read_response_t::unshard()` */
+/* `memcached_protocol_t::read_t::unshard()` */
 
 typedef merge_ordered_data_iterator_t<key_with_data_buffer_t, key_with_data_buffer_t::less> merged_results_iterator_t;
 
-memcached_protocol_t::read_response_t memcached_protocol_t::read_response_t::unshard(std::vector<read_response_t> responses) {
-    if (get_result_t *result = boost::get<get_result_t>(&responses[0].result)) {
-        rassert(responses.size() == 1);
-        return *result;
-    } else {
+struct read_unshard_visitor_t : public boost::static_visitor<memcached_protocol_t::read_response_t> {
+    read_unshard_visitor_t(std::vector<memcached_protocol_t::read_response_t> &b) : bits(b) { }
+    std::vector<memcached_protocol_t::read_response_t> &bits;
+    memcached_protocol_t::read_response_t operator()(UNUSED get_query_t get) {
+        rassert(bits.size() == 1);
+        return boost::get<get_result_t>(bits[0].result);
+    }
+    memcached_protocol_t::read_response_t operator()(UNUSED rget_query_t rget) {
         boost::shared_ptr<merged_results_iterator_t> merge_iterator(new merged_results_iterator_t());
-        for (int i = 0; i < (int)responses.size(); i++) {
-            merge_iterator->add_mergee(boost::get<rget_result_t>(responses[i].result));
+        for (int i = 0; i < (int)bits.size(); i++) {
+            merge_iterator->add_mergee(boost::get<rget_result_t>(bits[i].result));
         }
         return merge_iterator;
     }
-}
+};
 
-/* `memcached_protocol_t::read_response_t::unparallelize()` */
-
-memcached_protocol_t::read_response_t memcached_protocol_t::read_response_t::unparallelize(std::vector<read_response_t> responses) {
-    rassert(responses.size() == 1);
-    return responses[0];
+memcached_protocol_t::read_response_t memcached_protocol_t::read_t::unshard(std::vector<read_response_t> responses, UNUSED temporary_cache_t *cache) {
+    read_unshard_visitor_t v(responses);
+    return boost::apply_visitor(v, query);
 }
 
 /* `memcached_protocol_t::write_t::get_region()` */
@@ -224,7 +216,8 @@ std::vector<memcached_protocol_t::write_t> memcached_protocol_t::write_t::shard(
 
 /* `memcached_protocol_t::write_response_t::unshard()` */
 
-memcached_protocol_t::write_response_t memcached_protocol_t::write_response_t::unshard(std::vector<memcached_protocol_t::write_response_t> responses) {
+memcached_protocol_t::write_response_t memcached_protocol_t::write_t::unshard(std::vector<memcached_protocol_t::write_response_t> responses, UNUSED temporary_cache_t *cache) {
+    /* TODO: Make sure the request type matches the response type */
     rassert(responses.size() == 1);
     return responses[0];
 }
@@ -273,7 +266,7 @@ struct read_perform_visitor_t : public boost::static_visitor<memcached_protocol_
     }
 };
 
-memcached_protocol_t::read_response_t memcached_protocol_t::store_t::read(memcached_protocol_t::read_t read, order_token_t tok) {
+memcached_protocol_t::read_response_t memcached_protocol_t::store_t::read(memcached_protocol_t::read_t read, order_token_t tok, UNUSED signal_t *interruptor) {
     read_perform_visitor_t v(&btree, tok);
     return boost::apply_visitor(v, read.query);
 }
@@ -294,7 +287,7 @@ struct convert_response_visitor_t : public boost::static_visitor<memcached_proto
 
 struct write_perform_visitor_t : public boost::static_visitor<memcached_protocol_t::write_response_t> {
     write_perform_visitor_t(btree_slice_t *_btree, castime_t _castime, order_token_t _tok)
-	: btree(_btree), castime(_castime), tok(_tok) { }
+        : btree(_btree), castime(_castime), tok(_tok) { }
     btree_slice_t *btree;
     castime_t castime;
     order_token_t tok;
@@ -307,7 +300,7 @@ struct write_perform_visitor_t : public boost::static_visitor<memcached_protocol
     }
 };
 
-memcached_protocol_t::write_response_t memcached_protocol_t::store_t::write(memcached_protocol_t::write_t write, repli_timestamp_t timestamp, order_token_t tok) {
+memcached_protocol_t::write_response_t memcached_protocol_t::store_t::write(memcached_protocol_t::write_t write, repli_timestamp_t timestamp, order_token_t tok, UNUSED signal_t *interruptor) {
     write_perform_visitor_t v(&btree, castime_t(write.proposed_cas, timestamp), tok);
     return boost::apply_visitor(v, write.mutation);
 }

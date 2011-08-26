@@ -13,8 +13,9 @@
 
 /* `key_range_t` represents a contiguous set of keys. */
 
-struct key_range_t {
+class key_range_t {
 
+public:
     enum bound_t {
         open,
         closed,
@@ -43,15 +44,30 @@ bool operator!=(key_range_t, key_range_t);
 instantiated; it just exists to pass around all the memcached-related types and
 functions that the query-routing logic needs to know about. */
 
-struct memcached_protocol_t {
+class memcached_protocol_t {
 
+public:
     typedef key_range_t region_t;
 
-    struct read_t {
+    class temporary_cache_t {
+    };
 
+    class read_response_t {
+
+    public:
+        read_response_t() { }
+        read_response_t(const read_response_t& r) : result(r.result) { }
+        template<class T> read_response_t(const T& r) : result(r) { }
+
+        boost::variant<get_result_t, rget_result_t> result;
+    };
+
+    class read_t {
+
+    public:
         region_t get_region();
         std::vector<read_t> shard(std::vector<region_t> regions);
-        std::vector<read_t> parallelize(int optimal_factor);
+        read_response_t unshard(std::vector<read_response_t> responses, temporary_cache_t *cache);
 
         read_t() { }
         read_t(const read_t& r) : query(r.query) { }
@@ -60,20 +76,28 @@ struct memcached_protocol_t {
         boost::variant<get_query_t, rget_query_t> query;
     };
 
-    struct read_response_t {
-        static read_response_t unshard(std::vector<read_response_t> responses);
-        static read_response_t unparallelize(std::vector<read_response_t> responses);
+    class write_response_t {
 
-        read_response_t() { }
-        read_response_t(const read_response_t& r) : result(r.result) { }
-        template<class T> read_response_t(const T& r) : result(r) { }
+    public:
+        write_response_t() { }
+        write_response_t(const write_response_t& w) : result(w.result) { }
+        template<class T> write_response_t(const T& r) : result(r) { }
 
-        boost::variant<get_result_t, rget_result_t> result;
+        boost::variant<
+            get_result_t,   // for `gets` operations
+            set_result_t,
+            delete_result_t,
+            incr_decr_result_t,
+            append_prepend_result_t
+            > result;
     };
 
-    struct write_t {
+    class write_t {
+
+    public:
         region_t get_region();
         std::vector<write_t> shard(std::vector<region_t> regions);
+        write_response_t unshard(std::vector<write_response_t> responses, temporary_cache_t *cache);
 
         write_t() { }
         write_t(const write_t& w) : mutation(w.mutation), proposed_cas(w.proposed_cas) { }
@@ -89,26 +113,11 @@ struct memcached_protocol_t {
         cas_t proposed_cas;
     };
 
-    struct write_response_t {
-        static write_response_t unshard(std::vector<write_response_t> responses);
-
-        write_response_t() { }
-        write_response_t(const write_response_t& w) : result(w.result) { }
-        template<class T> write_response_t(const T& r) : result(r) { }
-
-        boost::variant<
-            get_result_t,   // for `gets` operations
-            set_result_t,
-            delete_result_t,
-            incr_decr_result_t,
-            append_prepend_result_t
-            > result;
-    };
-
     /* Backfilling not implemented */
 
-    struct store_t {
+    class store_t {
 
+    public:
         /* `create()` and `store_t` are not part of the protocol interface
         specification. */
         static void create(serializer_t *ser, region_t region);
@@ -120,8 +129,8 @@ struct memcached_protocol_t {
         /* `get_timestamp()` is not implemented. (I figure it will be
         implemented when backfilling is implemented.) */
 
-        read_response_t read(read_t read, order_token_t tok);
-        write_response_t write(write_t write, repli_timestamp_t timestamp, order_token_t tok);
+        read_response_t read(read_t read, order_token_t tok, signal_t *interruptor);
+        write_response_t write(write_t write, repli_timestamp_t timestamp, order_token_t tok, signal_t *interruptor);
 
         bool is_backfilling() { return false; }
 
