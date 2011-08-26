@@ -74,8 +74,7 @@ void mock_buf_t::move_data(void *dest, const void *src, const size_t n) {
     apply_patch(new memmove_patch_t(internal_buf->block_id, get_next_patch_counter(), dest_offset, src_offset, n));
 }
 
-void mock_buf_t::mark_deleted(UNUSED bool write_null) {
-    // write_null is ignored for the mock cache.
+void mock_buf_t::mark_deleted() {
     rassert(access == rwi_write);
     deleted = true;
 }

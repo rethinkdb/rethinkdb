@@ -608,7 +608,7 @@ void mc_buf_t::ensure_flush() {
     }
 }
 
-void mc_buf_t::mark_deleted(bool write_null) {
+void mc_buf_t::mark_deleted() {
     rassert(mode == rwi_write);
     rassert(!inner_buf->safe_to_unload());
     rassert(data == inner_buf->data);
@@ -620,7 +620,7 @@ void mc_buf_t::mark_deleted(bool write_null) {
     data = inner_buf->data = NULL;
 
     inner_buf->do_delete = true;
-    inner_buf->write_empty_deleted_block = write_null;
+    inner_buf->write_empty_deleted_block = true;
     ensure_flush(); // Disable patch log system for the buffer
 }
 

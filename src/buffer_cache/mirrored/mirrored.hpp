@@ -205,7 +205,7 @@ public:
         return inner_buf->block_id;
     }
 
-    void mark_deleted(bool write_null = true);
+    void mark_deleted();
 
     void touch_recency(repli_timestamp_t timestamp) {
         // Some operations acquire in write mode but should not
