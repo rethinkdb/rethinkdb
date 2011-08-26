@@ -19,8 +19,8 @@ TEST(DiskFormatTest, FlaggedOff64T) {
         EXPECT_FALSE(real.is_padding());
         EXPECT_FALSE(deleteblock.is_padding());
 
-        real.parts.value = 73;
-        deleteblock.parts.value = 95;
+        real.set_value(73);
+        deleteblock.set_value(95);
 
         EXPECT_TRUE(real.has_value());
         EXPECT_TRUE(deleteblock.has_value());

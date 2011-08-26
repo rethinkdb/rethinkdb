@@ -264,7 +264,7 @@ public:
             return false;
         }
 
-        if (!raw_block_t::init(knog->static_config->block_size(), file, info.offset.parts.value, ser_block_id)) {
+        if (!raw_block_t::init(knog->static_config->block_size(), file, info.offset.get_value(), ser_block_id)) {
             return false;
         }
 
@@ -506,7 +506,7 @@ bool is_valid_extent(file_knowledge_t *knog, off64_t offset) {
 }
 
 bool is_valid_btree_offset(file_knowledge_t *knog, flagged_off64_t offset) {
-    return is_valid_offset(knog, offset.parts.value, knog->static_config->block_size().ser_value());
+    return offset.has_value() && is_valid_offset(knog, offset.get_value(), knog->static_config->block_size().ser_value());
 }
 
 bool is_valid_device_block(file_knowledge_t *knog, off64_t offset) {
@@ -766,7 +766,7 @@ void check_and_load_diff_log(slicecx_t *cx, diff_log_errors *errs) {
 
         if (info.offset.has_value()) {
             block_t b;
-            b.init(cx->block_size(), cx->file, info.offset.parts.value, ser_block_id);
+            b.init(cx->block_size(), cx->file, info.offset.get_value(), ser_block_id);
             {
                 write_locker_t locker(cx->knog);
                 locker.block_info()[ser_block_id].block_sequence_id = b.realbuf->block_sequence_id;

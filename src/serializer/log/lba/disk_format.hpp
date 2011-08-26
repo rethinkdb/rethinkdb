@@ -13,40 +13,36 @@
 // (except that the off64_t is only 63 bits)
 
 union flagged_off64_t {
-    off64_t whole_value;
-    struct {
-        // The actual offset into the file.
-        off64_t value;
-    } parts;
+    off64_t the_value_;
 
     void set_value(off64_t o) {
         rassert(!is_padding());
-        parts.value = o;
+        the_value_ = o;
     }
     void remove_value() {
         rassert(!is_padding());
-        parts.value = -2;
+        the_value_ = -2;
     }
     bool has_value() const {
-        return parts.value >= 0;
+        return the_value_ >= 0;
     }
     off64_t get_value() const {
         rassert(has_value());
-        return parts.value;
+        return the_value_;
     }
 
-    static inline flagged_off64_t padding() {
+    static flagged_off64_t padding() {
         flagged_off64_t ret;
-        ret.whole_value = -1;
+        ret.the_value_ = -1;
         return ret;
     }
     bool is_padding() const {
-        return whole_value == -1;
+        return the_value_ == -1;
     }
 
-    static inline flagged_off64_t unused() {
+    static flagged_off64_t unused() {
         flagged_off64_t ret;
-        ret.whole_value = 0;
+        ret.the_value_ = 0;
         ret.remove_value();
         return ret;
     }

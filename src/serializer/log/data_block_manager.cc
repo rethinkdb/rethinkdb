@@ -191,7 +191,7 @@ public:
                 bool block_is_live = block_id != 0;
                 // Do this by checking the LBA
                 const flagged_off64_t flagged_lba_offset = parent->serializer->lba_index->get_block_offset(block_id);
-                block_is_live = block_is_live && flagged_lba_offset.has_value() && (off64_t)current_offset == flagged_lba_offset.parts.value;
+                block_is_live = block_is_live && flagged_lba_offset.has_value() && (off64_t)current_offset == flagged_lba_offset.get_value();
 
                 if (!block_is_live) {
                     continue;
