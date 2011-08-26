@@ -2,7 +2,6 @@
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
-#include <boost/shared_ptr.hpp>
 
 #include "arch/timing.hpp"
 #include "btree/rget.hpp"

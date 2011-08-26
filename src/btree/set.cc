@@ -1,6 +1,3 @@
-#include "errors.hpp"
-#include <boost/shared_ptr.hpp>
-
 #include "btree/set.hpp"
 #include "btree/modify_oper.hpp"
 #include "containers/buffer_group.hpp"

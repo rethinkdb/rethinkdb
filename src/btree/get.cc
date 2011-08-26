@@ -1,8 +1,5 @@
 #include "btree/get.hpp"
 
-#include "errors.hpp"
-#include <boost/shared_ptr.hpp>
-
 #include "btree/delete_expired.hpp"
 #include "btree/btree_data_provider.hpp"
 #include "btree/internal_node.hpp"
