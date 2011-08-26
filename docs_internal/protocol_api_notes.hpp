@@ -11,27 +11,11 @@ template<class protocol_t>
 class namespace_interface_t {
 
 public:
-    /* This document doesn't deal with the details of how to find namespaces.
-    Tim's plan is that each protocol will keep its own directory of namespaces
-    organized in a protocol-specific way. Riak could have a map from strings
-    to namespaces, along with a way to synchronize the creation of namespaces.
-    Memcached could have a set of (namespace, port) pairs. Redis could...
-    do whatever makes sense for Redis. */
-    namespace_interface_t(
-        mailbox_cluster_t *cluster,
-        metadata_view_t<namespace_metadata_t<protocol_t> > *namespace_metadata
-        );
-    ~namespace_interface_t();
-
     /* Performs the given read query on the namespace. [May block] */
-    protocol_t::read_response_t read(protocol_t::read_t query);
+    virtual protocol_t::read_response_t read(protocol_t::read_t query) THROWS_ONLY(...) = 0;
 
     /* Performs the given write query on the namespace. [May block] */
-    protocol_t::write_response_t write(protocol_t::write_t query);
-
-    /* Reads and writes configuration information for the namespace, such as the
-    replication factor. */
-    ... configure(...);
+    virtual protocol_t::write_response_t write(protocol_t::write_t query) THROWS_ONLY(...) = 0;
 
 private:
     ...
@@ -61,14 +45,14 @@ public:
 
     public:
         /* Returns true if this `region_t` is a superset of `x`. */
-        bool contains(region_t x);
+        bool contains(region_t x) THROWS_NOTHING;
 
         /* Returns true if this `region_t` overlaps `x`. */
-        bool overlaps(region_t x);
+        bool overlaps(region_t x) THROWS_NOTHING;
 
         /* Returns the `region_t` containing all keys both in this `region_t`
         and `x`. */
-        region_t intersection(region_t x);
+        region_t intersection(region_t x) THROWS_NOTHING;
 
         /* Other requirements: `region_t` must be serializable. The "==" and
         "!=" operators must work on `region_t`. `region_t` must act like a data
@@ -96,8 +80,8 @@ public:
     class temporary_cache_t {
 
     public:
-        temporary_cache_t();
-        ~temporary_cache_t();
+        temporary_cache_t() THROWS_NOTHING;
+        ~temporary_cache_t() THROWS_NOTHING;
 
     private:
         ?
@@ -110,7 +94,7 @@ public:
 
     public:
         /* Indicates which keys the read depends on. */
-        region_t get_region();
+        region_t get_region() THROWS_NOTHING;
 
         /* Breaks the read into several sub-reads for individual regions.
         [Precondition] union(regions) == read.get_region()
@@ -118,13 +102,13 @@ public:
         [Postcondition] read.shard(regions).size() == regions.size()
         [Postcondition] read.shard(regions)[i].get_region() IsSubsetOf regions[i]
         */
-        std::vector<read_t> shard(std::vector<region_t> regions);
+        std::vector<read_t> shard(std::vector<region_t> regions) THROWS_NOTHING;
 
         /* Recombines the responses to a group of reads created by
         `read_t::shard()`.
         [Precondition] responses[i] == store->read(read.shard(regions)[i], ...)
         */
-        read_response_t unshard(std::vector<read_response_t> responses, temporary_cache_t *cache);
+        read_response_t unshard(std::vector<read_response_t> responses, temporary_cache_t *cache) THROWS_NOTHING;
 
         /* Other requirements: `read_t` must be serializable. `read_t` must act
         like a data type. */
@@ -146,18 +130,18 @@ public:
 
     public:
         /* Indicates which keys the write depends on or will modify. */
-        region_t get_region();
+        region_t get_region() THROWS_NOTHING;
 
         /* Breaks the write into several sub-writes for individual regions.
         Preconditions and postconditions are the same as for `read_t::shard()`.
         */
-        std::vector<write_t> shard(std::vector<region_t> regions);
+        std::vector<write_t> shard(std::vector<region_t> regions) THROWS_NOTHING;
 
         /* Recombines the responses to a group of reads created by
         `write_t::shard()`.
         [Precondition] responses[i] == store->write(write.shard(regions)[i], ...)
         */
-        write_response_t unshard(std::vector<write_response_t> responses, temporary_cache_t *cache);
+        write_response_t unshard(std::vector<write_response_t> responses, temporary_cache_t *cache) THROWS_NOTHING;
 
         /* Other requirements: `write_t` must be serializable. `write_t` must
         act like a data type. */
@@ -187,17 +171,17 @@ public:
 
     public:
         /* Returns the same region that was passed to the constructor. */
-        region_t get_region();
+        region_t get_region() THROWS_NOTHING;
 
         /* A store can be either coherent or incoherent. Roughly, "incoherent"
         means you're in the middle of a backfill. The coherence of a store must
         be persisted to disk.
         [Precondition] !store.is_backfilling() */
-        bool is_coherent();
+        bool is_coherent() THROWS_NOTHING;
 
         /* Returns the store's current timestamp.
         [Precondition] !store.is_backfilling() */
-        repli_timestamp_t get_timestamp();
+        repli_timestamp_t get_timestamp() THROWS_NOTHING;
 
         /* Performs a read operation on the store. May not modify the store's
         state in any way. If `interruptor` is pulsed, then `read()` must either
@@ -207,7 +191,7 @@ public:
         [Precondition] !store.is_backfilling()
         [May block]
         */
-        read_response_t read(read_t read, order_token_t otok, signal_t *interruptor);
+        read_response_t read(read_t read, order_token_t otok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
         /* Performs a write operation on the store. The effect on the stored
         state must be deterministic; if I have two `store_t`s in the same state
@@ -224,7 +208,7 @@ public:
         [Postcondition] store.get_timestamp() == timestamp
         [May block]
         */
-        write_response_t write(write_t write, repli_timestamp_t timestamp, order_token_t otok, signal_t *interruptor);
+        write_response_t write(write_t write, repli_timestamp_t timestamp, order_token_t otok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
         /* Returns `true` if the store is in the middle of a backfill. */
         bool is_backfilling();
@@ -238,11 +222,11 @@ public:
 
             /* Returns the same value as the backfillee's `get_region()` method.
             */
-            region_t get_region();
+            region_t get_region() THROWS_NOTHING;
 
             /* Returns the same value as the backfillee's `get_timestamp()`
             method. */
-            repli_timestamp_t get_timestamp();
+            repli_timestamp_t get_timestamp() THROWS_NOTHING;
 
             /* Other requirements: `backfill_request_t` must be serializable.
             `backfill_request_t` must act like a data type. */
@@ -276,19 +260,19 @@ public:
         [Postcondition] store.backfillee_begin().get_region() == store.get_region()
         [Postcondition] store.get_timestamp() == store.backfillee_begin().get_timestamp()
         [May block] */
-        backfill_request_t backfillee_begin();
+        backfill_request_t backfillee_begin() THROWS_NOTHING;
 
         /* Delivers a chunk of a running backfill.
         [Precondition] store.is_backfilling()
         [May block] */
-        void backfillee_chunk(backfill_chunk_t);
+        void backfillee_chunk(backfill_chunk_t) THROWS_NOTHING;
 
         /* Notifies that the backfill is over.
         [Precondition] store.is_backfilling()
         [Postcondition] !store.is_backfilling()
         [Postcondition] store.is_coherent()
         [May block] */
-        void backfillee_end(backfill_end_t);
+        void backfillee_end(backfill_end_t) THROWS_NOTHING;
 
         /* Notifies that the backfill won't be finished because something went
         wrong.
@@ -296,7 +280,7 @@ public:
         [Postcondition] !store.is_backfilling()
         [Postcondition] !store.is_coherent()
         [May block] */
-        void backfillee_cancel();
+        void backfillee_cancel() THROWS_NOTHING;
 
         /* Sends a backfill to another store. `request` should be the return
         value of the backfillee's `backfillee_begin()` method. `backfiller()`
@@ -315,7 +299,8 @@ public:
         backfill_end_t backfiller(
             backfill_request_t request,
             boost::function<void(backfill_chunk_t)> chunk_fun,
-            signal_t *interruptor);
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
 
         /* Here's an example of how to use the backfill API. `backfill()` will
         copy data from `backfiller` to `backfillee` unless `interruptor` is

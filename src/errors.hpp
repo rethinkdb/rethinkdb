@@ -132,4 +132,18 @@ void print_backtrace(FILE *out = stderr, bool use_addr2line = true);
     void operator=(const T&)
 
 
+/* Put these after functions to indicate what they throw. In release mode, they
+turn into noops so that the compiler doesn't have to generate exception-checking
+code everywhere. If you need to add an exception specification for compatibility
+with e.g. a virtual method, don't use these, or your code won't compile in
+release mode. */
+#ifdef NDEBUG
+#define THROWS_NOTHING
+#define THROWS_ONLY(...)
+#else
+#define THROWS_NOTHING throw ()
+#define THROWS_ONLY(...) throw (__VA_ARGS__)
+#endif
+
+
 #endif /* __ERRORS_HPP__ */

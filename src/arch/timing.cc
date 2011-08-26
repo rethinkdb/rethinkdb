@@ -6,14 +6,14 @@
 
 // nap()
 
-void nap(int ms) {
+void nap(int ms) THROWS_NOTHING {
     if (ms > 0) {
         signal_timer_t timer(ms);
         timer.wait_lazily_ordered();
     }
 }
 
-void nap(int ms, signal_t *interruptor) {
+void nap(int ms, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     if (interruptor->is_pulsed()) throw interrupted_exc_t();
     if (ms > 0) {
         signal_timer_t timer(ms);
