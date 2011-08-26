@@ -21,7 +21,7 @@ get_result_t set_store_interface_t::get_cas(const store_key_t &key, order_token_
     return boost::get<get_result_t>(change(mut, token).result);
 }
 
-set_result_t set_store_interface_t::sarc(const store_key_t &key, boost::shared_ptr<data_provider_t> data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas, order_token_t token) {
+set_result_t set_store_interface_t::sarc(const store_key_t &key, boost::intrusive_ptr<data_buffer_t> data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas, order_token_t token) {
     sarc_mutation_t mut;
     mut.key = key;
     mut.data = data;
@@ -42,7 +42,7 @@ incr_decr_result_t set_store_interface_t::incr_decr(incr_decr_kind_t kind, const
     return boost::get<incr_decr_result_t>(change(mut, token).result);
 }
 
-append_prepend_result_t set_store_interface_t::append_prepend(append_prepend_kind_t kind, const store_key_t &key, boost::shared_ptr<data_provider_t> data, order_token_t token) {
+append_prepend_result_t set_store_interface_t::append_prepend(append_prepend_kind_t kind, const store_key_t &key, boost::intrusive_ptr<data_buffer_t> data, order_token_t token) {
     append_prepend_mutation_t mut;
     mut.kind = kind;
     mut.key = key;

@@ -168,7 +168,7 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, co
     // Determine if it is a block device
 
     struct stat64 file_stat;
-    bzero((void*)&file_stat, sizeof(file_stat)); // make valgrind happy
+    memset(&file_stat, 0, sizeof(file_stat));  // make valgrind happy
     int res = stat64(path, &file_stat);
     guarantee_err(res == 0 || errno == ENOENT, "Could not stat file '%s'", path);
 

@@ -38,3 +38,9 @@ void buffer_group_copy_data(const buffer_group_t *dest, const const_buffer_group
         (dest_buf == (int)dest->num_buffers()     && dest_off == 0) ||
         (dest_buf == (int)dest->num_buffers() - 1 && dest_off == dest->get_buffer(dest_buf).size));
 }
+
+void buffer_group_copy_data(const buffer_group_t *out, const char *in, int64_t size) {
+    buffer_group_t group;
+    group.add_buffer(size, in);
+    buffer_group_copy_data(out, const_view(&group));
+}

@@ -2,26 +2,16 @@
 #define __BTREE_BTREE_DATA_PROVIDER_HPP__
 
 #include "errors.hpp"
-#include <boost/shared_ptr.hpp>
-#include <boost/scoped_array.hpp>
+#include <boost/intrusive_ptr.hpp>
 
-#include "btree/value.hpp"
-#include "data_provider.hpp"
-#include "buffer_cache/blob.hpp"
+#include "buffer_cache/types.hpp"
 
-class value_data_provider_t : public auto_copying_data_provider_t {
-    value_data_provider_t(transaction_t *txn, const memcached_value_t *value);
-    buffer_group_t buffers;
-    boost::scoped_array<char> buf;
-public:
-    size_t get_size() const;
-    const const_buffer_group_t *get_data_as_buffers();
+class memcached_value_t;
+struct data_buffer_t;
 
-    /* When create() returns, it is safe for the caller to invalidate "value" and it is
-    safe for the caller to release the leaf node that "value" came from. */
-    // TODO: Make this return a `boost::shared_ptr`.
-    static value_data_provider_t *create(const memcached_value_t *value, transaction_t *transaction);
-};
+boost::intrusive_ptr<data_buffer_t> value_to_data_buffer(const memcached_value_t *value, transaction_t *transaction);
+
+
 
 
 #endif // __BTREE_BTREE_DATA_PROVIDER_HPP__

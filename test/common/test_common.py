@@ -250,12 +250,6 @@ class DataFiles(object):
             flags.extend(["-f", file])
         return flags + ["--metadata-file", self.metadata_file]
 
-    def rethinkdb_extract_flags(self):
-        flags = []
-        for file in self.files:
-            flags.extend(["-f", file])
-        return flags
-
     def fsck(self):
         run_executable(
             [get_executable_path(self.opts, "rethinkdb"), "fsck"] + self.rethinkdb_serve_flags(),

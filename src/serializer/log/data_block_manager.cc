@@ -155,7 +155,7 @@ public:
         extent = floor_aligned(off_in, parent->static_config->extent_size());
 
         // Read up to MAX_READ_AHEAD_BLOCKS blocks
-        read_ahead_size = std::min(parent->static_config->extent_size(), MAX_READ_AHEAD_BLOCKS * parent->static_config->block_size().ser_value());
+        read_ahead_size = std::min(parent->static_config->extent_size(), MAX_READ_AHEAD_BLOCKS * uint64_t(parent->static_config->block_size().ser_value()));
         // We divide the extent into chunks of size read_ahead_size, then select the one which contains off_in
         read_ahead_offset = extent + (off_in - extent) / read_ahead_size * read_ahead_size;
         read_ahead_buf = malloc_aligned(read_ahead_size, DEVICE_BLOCK_SIZE);

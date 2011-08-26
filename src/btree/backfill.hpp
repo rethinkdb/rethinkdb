@@ -14,7 +14,7 @@ class btree_key_t;
 
 struct backfill_atom_t {
     store_key_t key;
-    boost::shared_ptr<data_provider_t> value;
+    boost::intrusive_ptr<data_buffer_t> value;
     mcflags_t flags;
     exptime_t exptime;
     repli_timestamp_t recency;
