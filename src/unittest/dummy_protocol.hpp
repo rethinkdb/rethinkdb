@@ -10,6 +10,7 @@
 #include <boost/function.hpp>
 
 #include "concurrency/fifo_checker.hpp"
+#include "rpc/serialize_macros.hpp"
 
 
 struct signal_t;
@@ -27,6 +28,8 @@ public:
         bool overlaps(const region_t &r);
         region_t intersection(const region_t &r);
 
+        RDB_MAKE_ME_SERIALIZABLE_1(keys);
+
         std::set<std::string> keys;
     };
 
@@ -37,6 +40,8 @@ public:
     class read_response_t {
 
     public:
+        RDB_MAKE_ME_SERIALIZABLE_1(values);
+
         std::map<std::string, std::string> values;
     };
 
@@ -47,12 +52,16 @@ public:
         std::vector<read_t> shard(std::vector<region_t> regions);
         read_response_t unshard(std::vector<read_response_t> resps, temporary_cache_t *cache);
 
+        RDB_MAKE_ME_SERIALIZABLE_1(keys);
+
         region_t keys;
     };
 
     class write_response_t {
 
     public:
+        RDB_MAKE_ME_SERIALIZABLE_1(old_values);
+
         std::map<std::string, std::string> old_values;
     };
 
@@ -62,6 +71,8 @@ public:
         region_t get_region();
         std::vector<write_t> shard(std::vector<region_t> regions);
         write_response_t unshard(std::vector<write_response_t> resps, temporary_cache_t *cache);
+
+        RDB_MAKE_ME_SERIALIZABLE_1(values);
 
         std::map<std::string, std::string> values;
     };
