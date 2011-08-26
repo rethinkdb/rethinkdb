@@ -28,16 +28,11 @@ union flagged_off64_t {
         parts.value = -2;
     }
     bool has_value() const {
-        return !is_padding() && parts.value >= 0;
+        return parts.value >= 0;
     }
     off64_t get_value() const {
         rassert(has_value());
         return parts.value;
-    }
-
-    bool get_delete_bit() const {
-        rassert(!is_padding());
-        return parts.value < 0;
     }
 
     static inline flagged_off64_t padding() {

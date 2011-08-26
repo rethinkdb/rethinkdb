@@ -176,6 +176,7 @@ public:
         for (uint64_t current_block = 0; current_block * parent->static_config->block_size().ser_value() < read_ahead_size; ++current_block) {
 
             const char *current_buf = reinterpret_cast<char *>(read_ahead_buf) + (current_block * parent->static_config->block_size().ser_value());
+            // TODO (sam): Why is current_offset a size_t?
             const size_t current_offset = read_ahead_offset + (current_block * parent->static_config->block_size().ser_value());
 
             // Copy either into buf_out or create a new buffer for read ahead
@@ -190,9 +191,7 @@ public:
                 bool block_is_live = block_id != 0;
                 // Do this by checking the LBA
                 const flagged_off64_t flagged_lba_offset = parent->serializer->lba_index->get_block_offset(block_id);
-                block_is_live = block_is_live && !flagged_lba_offset.get_delete_bit() && flagged_lba_offset.has_value();
-                // As a last sanity check, verify that the offsets match
-                block_is_live = block_is_live && (off64_t)current_offset == flagged_lba_offset.parts.value;
+                block_is_live = block_is_live && flagged_lba_offset.has_value() && (off64_t)current_offset == flagged_lba_offset.parts.value;
 
                 if (!block_is_live) {
                     continue;

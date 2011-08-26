@@ -506,8 +506,7 @@ bool is_valid_extent(file_knowledge_t *knog, off64_t offset) {
 }
 
 bool is_valid_btree_offset(file_knowledge_t *knog, flagged_off64_t offset) {
-    return is_valid_offset(knog, offset.parts.value, knog->static_config->block_size().ser_value())
-        || offset.get_delete_bit();
+    return is_valid_offset(knog, offset.parts.value, knog->static_config->block_size().ser_value());
 }
 
 bool is_valid_device_block(file_knowledge_t *knog, off64_t offset) {
@@ -765,7 +764,7 @@ void check_and_load_diff_log(slicecx_t *cx, diff_log_errors *errs) {
             info = locker.block_info()[ser_block_id];
         }
 
-        if (!info.offset.get_delete_bit()) {
+        if (info.offset.has_value()) {
             block_t b;
             b.init(cx->block_size(), cx->file, info.offset.parts.value, ser_block_id);
             {
@@ -1065,8 +1064,6 @@ void check_slice_other_blocks(slicecx_t *cx, other_block_errors *errs) {
         end = locker.block_info().get_size();
     }
 
-    block_id_t first_valueless_block = NULL_BLOCK_ID;
-
     for (block_id_t id_iter = 0, id = cx->to_ser_block_id(0);
          id < end;
          id = cx->to_ser_block_id(++id_iter)) {
@@ -1076,16 +1073,9 @@ void check_slice_other_blocks(slicecx_t *cx, other_block_errors *errs) {
             info = locker.block_info()[id];
         }
         // TODO (sam): Fix this up for the simpler flagged_off64_t.
-        if (info.offset.get_delete_bit()) {
+        if (!info.offset.has_value()) {
             // Do nothing.
-        } else if (!info.offset.has_value()) {
-            if (first_valueless_block == NULL_BLOCK_ID) {
-                first_valueless_block = id;
-            }
         } else {
-            if (first_valueless_block != NULL_BLOCK_ID) {
-                errs->contiguity_failure = first_valueless_block;
-            }
 
             if (info.block_sequence_id == NULL_BLOCK_SEQUENCE_ID) {
                 // Aha!  We have an orphan block!  Crap.

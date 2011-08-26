@@ -584,7 +584,7 @@ bool log_serializer_t::get_delete_bit(block_id_t id) {
     rassert(state == state_ready);
 
     flagged_off64_t offset = lba_index->get_block_offset(id);
-    return offset.get_delete_bit();
+    return !offset.has_value();
 }
 
 repli_timestamp_t log_serializer_t::get_recency(block_id_t id) {
