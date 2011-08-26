@@ -1,5 +1,5 @@
-#ifndef __RANGE_READ_OPS_HPP__
-#define __RANGE_READ_OPS_HPP__
+#ifndef __STRESS_CLIENT_OPS_RANGE_READ_OPS_HPP__
+#define __STRESS_CLIENT_OPS_RANGE_READ_OPS_HPP__
 
 #include "ops/seed_key_generator.hpp"
 #include "ops/watcher_and_tracker.hpp"
@@ -141,4 +141,4 @@ struct calibrated_range_read_op_t : public base_range_read_op_t {
     }
 };
 
-#endif /* __RANGE_READ_OPS_HPP__ */
+#endif /* __STRESS_CLIENT_OPS_RANGE_READ_OPS_HPP__ */

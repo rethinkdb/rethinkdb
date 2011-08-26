@@ -8,6 +8,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/variant.hpp>
 
+#include "config/args.hpp"
 #include "utils.hpp"
 
 typedef uint32_t mcflags_t;
@@ -24,13 +25,13 @@ struct store_key_t {
     uint8_t size;
     char contents[MAX_KEY_SIZE];
 
-    store_key_t() { }
+    store_key_t() : size(0) { }
 
     store_key_t(int sz, const char *buf) {
         assign(sz, buf);
     }
 
-    store_key_t(std::string const &s) {
+    store_key_t(const std::string& s) {
         assign(s.size(), s.data());
     }
 
@@ -60,7 +61,7 @@ struct store_key_t {
             size++;
             return true;
         }
-        while (size > 0 && ((uint8_t*)contents)[size-1] == 255) {
+        while (size > 0 && (reinterpret_cast<uint8_t *>(contents))[size-1] == 255) {
             size--;
         }
         if (size == 0) {
@@ -69,7 +70,7 @@ struct store_key_t {
             *this = store_key_t::max();
             return false;
         }
-        ((uint8_t*)contents)[size-1]++;
+        (reinterpret_cast<uint8_t *>(contents))[size-1]++;
         return true;
     }
 
@@ -77,8 +78,8 @@ struct store_key_t {
         if (size == 0) {
             return false;
         }
-        if (((uint8_t*)contents)[size-1] > 0) {
-            ((uint8_t*)contents)[size-1]--;
+        if ((reinterpret_cast<uint8_t *>(contents))[size-1] > 0) {
+            (reinterpret_cast<uint8_t *>(contents))[size-1]--;
             return true;
         }
         size--;
@@ -168,8 +169,8 @@ struct key_with_data_provider_t {
     mcflags_t mcflags;
     boost::shared_ptr<data_provider_t> value_provider;
 
-    key_with_data_provider_t(const std::string &key, mcflags_t mcflags, boost::shared_ptr<data_provider_t> value_provider) :
-        key(key), mcflags(mcflags), value_provider(value_provider) { }
+    key_with_data_provider_t(const std::string& _key, mcflags_t _mcflags, const boost::shared_ptr<data_provider_t>& _value_provider)
+	: key(_key), mcflags(_mcflags), value_provider(_value_provider) { }
 
     struct less {
         bool operator()(const key_with_data_provider_t &pair1, const key_with_data_provider_t &pair2) {

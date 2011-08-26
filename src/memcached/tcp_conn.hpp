@@ -1,8 +1,10 @@
 #ifndef __MEMCACHED_TCP_CONN_HPP__
 #define __MEMCACHED_TCP_CONN_HPP__
 
+#include "arch/types.hpp"
+#include "concurrency/cond_var.hpp"
+#include "concurrency/drain_semaphore.hpp"
 #include "memcached/store.hpp"
-#include "arch/arch.hpp"
 
 /* Serves memcache queries over the given TCP connection until the connection in question
 is closed. */
@@ -24,7 +26,7 @@ private:
     drain_semaphore_t active_connection_drain_semaphore;
     int next_thread;
     boost::scoped_ptr<tcp_listener_t> tcp_listener;
-    void handle(boost::scoped_ptr<tcp_conn_t> &conn);
+    void handle(boost::scoped_ptr<tcp_conn_t>& conn);
 };
 
 #endif /* __MEMCACHED_TCP_CONN_HPP__ */

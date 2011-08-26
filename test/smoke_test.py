@@ -19,8 +19,8 @@ do_test("cd ../src/; nice make -j 9",
 do_test("cd ../src/; nice make -j 9",
         { "DEBUG"            : 0,
           "NO_EPOLL"         : 1,
-          "MOCK_IO_LAYER"    : 1,
           "MOCK_CACHE_CHECK" : 1,
+          "SEMANTIC_SERIALIZER_CHECK" : 1,
           "UNIT_TESTS" : 1 },
         cmd_format="make", timeout=180)
 

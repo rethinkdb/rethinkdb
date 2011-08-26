@@ -3,7 +3,7 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
-#include "arch/runtime/runtime.hpp"
+#include "arch/arch.hpp"
 #include "memcached/memcached.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "db_thread_info.hpp"
@@ -97,10 +97,8 @@ void serve_memcache(tcp_conn_t *conn, get_store_t *get_store, set_store_interfac
 
 perfmon_duration_sampler_t pm_conns("conns", secs_to_ticks(600), false);
 
-memcache_listener_t::memcache_listener_t(int port, get_store_t *get_store, set_store_interface_t *set_store) :
-    get_store(get_store), set_store(set_store),
-    next_thread(0)
-{
+memcache_listener_t::memcache_listener_t(int port, get_store_t *_get_store, set_store_interface_t *_set_store) :
+    get_store(_get_store), set_store(_set_store), next_thread(0) {
     tcp_listener.reset(new tcp_listener_t(port, boost::bind(&memcache_listener_t::handle, this, _1)));
 }
 

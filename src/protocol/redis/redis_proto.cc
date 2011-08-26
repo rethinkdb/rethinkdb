@@ -366,29 +366,10 @@ private:
 
 };
 
-// This is obvisously not the right way to do this
-namespace_interface_t<redis_protocol_t> *intface;
-
 #include "unittest/unittest_utils.hpp"
-#include "server/dummy_namespace_interface.hpp"
+#include "unittest/dummy_namespace_interface.hpp"
 
-//The entry point for the parser. The only requirement for a parser is that it implement this function.
-void serve_redis(tcp_conn_t *conn, get_store_t *get_store, set_store_interface_t *set_store) {
-    (void)get_store;
-    (void)set_store;
-
-    if(!intface) {
-        unittest::temp_file_t db_file("/tmp/redis_test.XXXXXX");
-
-        const int repli_factor = 3;
-        std::vector<key_range_t> shards;
-        shards.push_back(key_range_t(key_range_t::none,   store_key_t(""),  key_range_t::open, store_key_t("n")));
-        shards.push_back(key_range_t(key_range_t::closed, store_key_t("n"), key_range_t::none, store_key_t("") ));
-
-        dummy_namespace_interface_t<redis_protocol_t>::create(db_file.name(), shards, repli_factor);
-        intface = new dummy_namespace_interface_t<redis_protocol_t>(db_file.name(), shards, repli_factor);
-    }
-
+void start_serving(tcp_conn_t *conn, namespace_interface_t<redis_protocol_t> *intface) {
     redis_grammar<tcp_conn_t::iterator> redis(conn, intface, NULL);
     try {
         while(true) {
@@ -400,6 +381,19 @@ void serve_redis(tcp_conn_t *conn, get_store_t *get_store, set_store_interface_t
             //}
         }
     } catch(tcp_conn_t::read_closed_exc_t) {}
+}
+
+//The entry point for the parser. The only requirement for a parser is that it implement this function.
+void serve_redis(tcp_conn_t *conn, get_store_t *get_store, set_store_interface_t *set_store) {
+    (void)get_store;
+    (void)set_store;
+
+    const int repli_factor = 1;
+    std::vector<redis_protocol_t::region_t> shards;
+    key_range_t key_range(key_range_t::none, store_key_t(""),  key_range_t::open, store_key_t(""));
+    shards.push_back(key_range);
+
+    unittest::run_with_dummy_namespace_interface<redis_protocol_t>(shards, repli_factor, boost::bind(start_serving, conn, _1));
 }
 
 /*

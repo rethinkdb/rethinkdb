@@ -2,7 +2,11 @@
 #define __SERIALIZER_TYPES_HPP__
 
 #include <stdint.h>
-#include <string>
+#include <time.h>
+
+// Sigh.
+#include "errors.hpp"
+#include <boost/intrusive_ptr.hpp>
 
 // A relatively "lightweight" header file (we wish), in a sense.
 
@@ -43,5 +47,149 @@ private:
     uint64_t ser_bs_;
 };
 
+class repli_timestamp_t;
+
+class serializer_read_ahead_callback_t {
+public:
+    virtual ~serializer_read_ahead_callback_t() { }
+    /* If the callee returns true, it is responsible to free buf by calling free(buf) in the corresponding serializer. */
+    virtual bool offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp) = 0;
+};
+
+template <class serializer_type> struct serializer_traits_t;
+
+class log_serializer_t;
+
+class ls_block_token_pointee_t {
+    friend class log_serializer_t;
+    friend void intrusive_ptr_add_ref(ls_block_token_pointee_t *p);
+    friend void intrusive_ptr_release(ls_block_token_pointee_t *p);
+
+    ls_block_token_pointee_t(log_serializer_t *serializer, off64_t initial_offset);
+
+    log_serializer_t *serializer_;
+    int64_t ref_count_;
+
+public:
+    ~ls_block_token_pointee_t();
+};
+
+inline
+void intrusive_ptr_add_ref(ls_block_token_pointee_t *p) {
+    UNUSED int64_t res = __sync_add_and_fetch(&p->ref_count_, 1);
+    rassert(res > 0);
+}
+
+inline
+void intrusive_ptr_release(ls_block_token_pointee_t *p) {
+    int64_t res = __sync_sub_and_fetch(&p->ref_count_, 1);
+    rassert(res >= 0);
+    if (res == 0) {
+	delete p;
+    }
+}
+
+template <>
+struct serializer_traits_t<log_serializer_t> {
+    typedef ls_block_token_pointee_t block_token_type;
+};
+
+#ifdef SEMANTIC_SERIALIZER_CHECK
+
+template <class T>
+class semantic_checking_serializer_t;
+
+typedef semantic_checking_serializer_t<log_serializer_t> standard_serializer_t;
+
+struct scs_block_info_t {
+    enum state_t {
+        state_unknown,
+        state_deleted,
+        state_have_crc
+    } state;
+    uint32_t crc;
+
+    scs_block_info_t(uint32_t _crc) : state(state_have_crc), crc(_crc) {}
+
+    // For compatibility with two_level_array_t. We initialize crc to 0 to avoid having
+    // uninitialized memory lying around, which annoys valgrind when we try to write
+    // persisted_block_info_ts to disk.
+    scs_block_info_t() : state(state_unknown), crc(0) {}
+    operator bool() { return state != state_unknown; }
+};
+
+template <class inner_serializer_t>
+struct scs_block_token_t {
+    scs_block_token_t(block_id_t _block_id, const scs_block_info_t& _info,
+                      const boost::intrusive_ptr<typename serializer_traits_t<inner_serializer_t>::block_token_type>& tok)
+        : block_id(_block_id), info(_info), inner_token(tok), ref_count_(0) {
+        rassert(inner_token, "scs_block_token wrapping null token");
+    }
+
+    block_id_t block_id;    // NULL_BLOCK_ID if not associated with a block id
+    scs_block_info_t info;      // invariant: info.state != scs_block_info_t::state_deleted
+    boost::intrusive_ptr<typename serializer_traits_t<inner_serializer_t>::block_token_type> inner_token;
+
+    friend template <class T> void intrusive_ptr_add_ref(scs_block_token_t<T> *p);
+    friend template <class T> void intrusive_ptr_release(scs_block_token_t<T> *p);
+private:
+    int ref_count_;
+};
+
+template <class inner_serializer_t>
+void intrusive_ptr_add_ref(scs_block_token_t<inner_serializer_t> *p) {
+    uint64_t res = __sync_add_and_fetch(&p->ref_count_, 1);
+    rassert(res > 0);
+}
+
+template <class inner_serializer_t>
+void intrusive_ptr_release(scs_block_token_t<inner_serializer_t> *p) {
+    uint64_t res = __sync_sub_and_fetch(&p->ref_count_, 1);
+    rassert(res >= 0);
+    if (res == 0) {
+	delete p;
+    }
+}
+
+
+
+template <>
+template <class inner_serializer_type>
+struct serializer_traits_t<semantic_checking_serializer_t<inner_serializer_type> > {
+    typedef scs_block_token_t<inner_serializer_type> block_token_type;
+};
+
+// God this is such a hack (Part 1 of 2)
+inline
+boost::intrusive_ptr< scs_block_token_t<log_serializer_t> >
+to_standard_block_token(block_id_t block_id, const boost::intrusive_ptr<ls_block_token_pointee_t>& tok) {
+    boost::intrusive_ptr< scs_block_token_t<log_serializer_t> > ret(new scs_block_token_t<log_serializer_t>(block_id, scs_block_info_t(), tok));
+    return ret;
+}
+
+#else
+
+typedef log_serializer_t standard_serializer_t;
+
+// God this is such a hack (Part 2 of 2)
+inline
+boost::intrusive_ptr<ls_block_token_pointee_t>
+to_standard_block_token(UNUSED block_id_t block_id, const boost::intrusive_ptr<ls_block_token_pointee_t>& tok) {
+    return tok;
+}
+
+#endif
+
+typedef serializer_traits_t<standard_serializer_t>::block_token_type standard_block_token_t;
+
+struct serializer_t;
+
+template <>
+struct serializer_traits_t<serializer_t> {
+    typedef standard_block_token_t block_token_type;
+};
+
+// TODO: time_t's size is system-dependent.
+typedef time_t creation_timestamp_t;
 
 #endif  // __SERIALIZER_TYPES_HPP__

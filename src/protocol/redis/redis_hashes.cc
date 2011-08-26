@@ -1,6 +1,7 @@
 #include "protocol/redis/redis_util.hpp"
 #include "btree/iteration.hpp"
 #include <boost/lexical_cast.hpp>
+#include <boost/bind.hpp>
 
 // Utility functions for hashes
 
@@ -20,8 +21,6 @@ struct hash_read_oper_t : read_oper_t {
     }
 
     std::string *get(std::string &field) {
-        value_sizer_t<redis_nested_string_value_t> nested_sizer(btree->cache()->get_block_size());
-
         got_superblock_t nested_superblock;
         boost::scoped_ptr<superblock_t> nested_btree_sb(new virtual_superblock_t(root));
         nested_superblock.sb.swap(nested_btree_sb);
@@ -30,7 +29,7 @@ struct hash_read_oper_t : read_oper_t {
         btree_key_buffer_t nested_key(field);
         keyvalue_location_t<redis_nested_string_value_t> nested_loc;
 
-        find_keyvalue_location_for_read(&nested_sizer, &nested_superblock, nested_key.key(), &nested_loc);
+        find_keyvalue_location_for_read(&nested_superblock, nested_key.key(), &nested_loc);
 
         std::string *result = NULL;
         redis_nested_string_value_t *value = nested_loc.value.get();
@@ -84,8 +83,7 @@ protected:
 
 struct hash_set_oper_t : set_oper_t {
     hash_set_oper_t(std::string &key, btree_slice_t *btree, timestamp_t timestamp, order_token_t otok) :
-        set_oper_t(key, btree, timestamp, otok),
-        nested_sizer(btree->cache()->get_block_size())
+        set_oper_t(key, btree, timestamp, otok)
     {
         // set_oper_t constructor finds this hash, here we find the field in the nested btree
 
@@ -150,11 +148,11 @@ protected:
             nested_superblock.sb.swap(nested_btree_sb);
             nested_superblock.txn = ths->location.txn;
 
-            find_keyvalue_location_for_write(&ths->nested_sizer, &nested_superblock, nested_key.key(), ths->timestamp, &loc);
+            find_keyvalue_location_for_write(&nested_superblock, nested_key.key(), &loc);
         }
         
         void apply_change() {
-            apply_keyvalue_change(&ths->nested_sizer, &loc, nested_key.key(), ths->timestamp);
+            apply_keyvalue_change(&loc, nested_key.key(), ths->timestamp);
             virtual_superblock_t *sb = reinterpret_cast<virtual_superblock_t *>(loc.sb.get());
             ths->root = sb->get_root_block_id();
         }
@@ -191,7 +189,6 @@ protected:
     };
 
     block_id_t root;
-    value_sizer_t<redis_nested_string_value_t> nested_sizer;
 };
 
 //Hash Operations

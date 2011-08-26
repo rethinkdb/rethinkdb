@@ -23,14 +23,15 @@ structures into a metadata file or metadata_store of some kind.
 #include <string>
 #include <map>
 #include <vector>
+
+#include "errors.hpp"
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/map.hpp>
 #include <boost/serialization/variant.hpp>
-#include "errors.hpp"
+
 #include "riak/structures.hpp"
 #include "concurrency/promise.hpp"
-#include "serializer/log/log_serializer.hpp"
 #include "serializer/config.hpp"
 
 
@@ -47,7 +48,7 @@ public:
     }
 private:
     //friend class store_manager_t;
-    store_id_t(int raw_id) : raw_id(raw_id) {
+    store_id_t(int _raw_id) : raw_id(_raw_id) {
     }
     int raw_id;
 
@@ -142,8 +143,6 @@ ______HOW TO ADD NEW STORES (let's say you're implementing a new protocol)______
    its store config object.
 ________________________________________________________________________________
 */
-
-#include "server/cmd_args.hpp" // TODO: Move the btree key value store configuration from server/cmd_args.hpp to a different place
 
 // TODO: memcached_store_metadata_t is just a demo thing. It should not remain here...
 struct memcached_store_metadata_t {

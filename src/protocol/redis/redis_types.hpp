@@ -127,11 +127,13 @@ struct redis_list_value_t : redis_value_t {
 } __attribute__((__packed__));
 
 template <>
-class value_sizer_t<redis_value_t> {
+class value_sizer_t<redis_value_t> : public value_sizer_t<void> {
 public:
     value_sizer_t(block_size_t bs) : block_size_(bs) { }
+    ~value_sizer_t() {;}
 
-    int size(const redis_value_t *value) const {
+    int size(const void *void_value) const {
+        const redis_value_t *value = reinterpret_cast<const redis_value_t *>(void_value);
         switch(value->get_redis_type()) {
         case REDIS_STRING:
             return reinterpret_cast<const redis_string_value_t *>(this)->size(block_size_);
@@ -156,16 +158,31 @@ public:
         return 0;
     }
 
-    bool fits(const redis_value_t *value, int length_available) const {
+    bool fits(const void *void_value, int length_available) const {
+        const redis_value_t *value = reinterpret_cast<const redis_value_t *>(void_value);
         int value_size = size(value);
         return value_size <= length_available;
+    }
+
+    bool deep_fsck(block_getter_t *getter, const void *value, int length_available, std::string *msg_out) const {
+        (void)getter;
+        (void)value;
+        (void)length_available;
+        (void)msg_out;
+
+        //TODO real implementation
+        return true;
     }
 
     int max_possible_size() const {
         return MAX_BTREE_VALUE_SIZE;
     }
 
-    static block_magic_t btree_leaf_magic() {
+    block_magic_t btree_leaf_magic() const {
+        return value_sizer_t<redis_value_t>::btree_leaf_magic();
+    }
+
+    static block_magic_t leaf_magic() {
         block_magic_t magic = { { 'r', 'd', 'i', 's' } };
         return magic;
     }
@@ -181,16 +198,17 @@ struct redis_nested_set_value_t {
 };
 
 template <>
-class value_sizer_t<redis_nested_set_value_t> {
+class value_sizer_t<redis_nested_set_value_t> : public value_sizer_t<void> {
 public:
     value_sizer_t(block_size_t bs) : block_size_(bs) { }
+    ~value_sizer_t() {;}
 
-    int size(const redis_nested_set_value_t *value) const {
+    int size(const void *value) const {
         (void) value;
         return 0;
     }
 
-    bool fits(const redis_value_t *value, int length_available) const {
+    bool fits(const void *value, int length_available) const {
         (void) value;
         (void) length_available;
         return true;
@@ -200,7 +218,21 @@ public:
         return MAX_BTREE_VALUE_SIZE;
     }
 
-    static block_magic_t btree_leaf_magic() {
+    bool deep_fsck(block_getter_t *getter, const void *value, int length_available, std::string *msg_out) const {
+        (void)getter;
+        (void)value;
+        (void)length_available;
+        (void)msg_out;
+
+        //TODO real implementation
+        return true;
+    }
+
+    block_magic_t btree_leaf_magic() const {
+        return value_sizer_t<redis_nested_set_value_t>::btree_leaf_magic();
+    }
+
+    static block_magic_t leaf_magic() {
         block_magic_t magic = { { 'n', 's', 't', 's' } };
         return magic;
     }
@@ -220,28 +252,47 @@ struct redis_nested_string_value_t {
 };
 
 template <>
-class value_sizer_t<redis_nested_string_value_t> {
+class value_sizer_t<redis_nested_string_value_t> : public value_sizer_t<void> {
 public:
     value_sizer_t(block_size_t bs) : block_size_(bs) { }
+    ~value_sizer_t() {;}
 
-    int size(const redis_nested_string_value_t *value) const {
-        blob_t blob(const_cast<char *>(value->content), blob::btree_maxreflen);
+    int size(const void *value) const {
+        const redis_nested_string_value_t *actual_value = reinterpret_cast<const redis_nested_string_value_t *>(value); 
+        blob_t blob(const_cast<char *>(actual_value->content), blob::btree_maxreflen);
         return blob.refsize(block_size_);
     }
 
-    bool fits(const redis_nested_string_value_t *value, int length_available) const {
-        int value_size = size(value);
+    bool fits(const void *value, int length_available) const {
+        const redis_nested_string_value_t *actual_value = reinterpret_cast<const redis_nested_string_value_t *>(value); 
+        int value_size = size(actual_value);
         return value_size <= length_available;
+    }
+
+
+    bool deep_fsck(block_getter_t *getter, const void *value, int length_available, std::string *msg_out) const {
+        (void)getter;
+        (void)value;
+        (void)length_available;
+        (void)msg_out;
+
+        //TODO real implementation
+        return true;
     }
 
     int max_possible_size() const {
         return MAX_BTREE_VALUE_SIZE;
     }
 
-    static block_magic_t btree_leaf_magic() {
+    block_magic_t btree_leaf_magic() const {
+        return value_sizer_t<redis_nested_string_value_t>::btree_leaf_magic();
+    }
+
+    static block_magic_t leaf_magic() {
         block_magic_t magic = { { 'n', 'e', 's', 't' } };
         return magic;
     }
+
 
     block_size_t block_size() const { return block_size_; }
 

@@ -1,37 +1,23 @@
-
 #ifndef __SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP__
 #define __SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP__
 
-#include <functional>
-#include <queue>
-#include <utility>
+#include "utils.hpp"
+#include <boost/scoped_ptr.hpp>
 
-#include "arch/arch.hpp"
+#include "arch/types.hpp"
 #include "serializer/log/config.hpp"
 #include "containers/priority_queue.hpp"
 #include "containers/two_level_array.hpp"
 #include "containers/bitset.hpp"
-#include "concurrency/mutex.hpp"
 #include "serializer/log/extents/extent_manager.hpp"
-#include "serializer/serializer.hpp"
 #include "serializer/types.hpp"
-#include "perfmon.hpp"
-#include "utils.hpp"
+#include "perfmon_types.hpp"
 
 class log_serializer_t;
 
 // Stats
 
-extern perfmon_counter_t
-    pm_serializer_data_extents,
-    pm_serializer_old_garbage_blocks,
-    pm_serializer_old_total_blocks;
-
-//extern perfmon_function_t
-//    pm_serializer_garbage_ratio;
-
-class data_block_manager_t
-{
+class data_block_manager_t {
 
     friend class dbm_read_ahead_fsm_t;
 
@@ -41,7 +27,8 @@ private:
         const void *buf;
         off64_t old_offset;
         off64_t new_offset;
-        gc_write_t(block_id_t i, const void *b, off64_t old_offset) : block_id(i), buf(b), old_offset(old_offset), new_offset(0) { }
+        gc_write_t(block_id_t i, const void *b, off64_t _old_offset)
+	    : block_id(i), buf(b), old_offset(_old_offset), new_offset(0) { }
     };
 
     struct gc_writer_t {
@@ -54,21 +41,8 @@ private:
     };
 
 public:
-    data_block_manager_t(const log_serializer_dynamic_config_t *dynamic_config, extent_manager_t *em, log_serializer_t *serializer, const log_serializer_on_disk_static_config_t *static_config)
-        : shutdown_callback(NULL), state(state_unstarted), 
-          dynamic_config(dynamic_config), static_config(static_config), extent_manager(em), serializer(serializer),
-          next_active_extent(0),
-          gc_state(extent_manager->extent_size)//,
-//          garbage_ratio_reporter(this)
-    {
-        rassert(dynamic_config);
-        rassert(static_config);
-        rassert(extent_manager);
-        rassert(serializer);
-    }
-    ~data_block_manager_t() {
-        rassert(state == state_unstarted || state == state_shut_down);
-    }
+    data_block_manager_t(const log_serializer_dynamic_config_t *dynamic_config, extent_manager_t *em, log_serializer_t *serializer, const log_serializer_on_disk_static_config_t *static_config);
+    ~data_block_manager_t();
 
 public:
     struct metablock_mixin_t {
@@ -84,11 +58,11 @@ public:
     void start_existing(direct_file_t *dbfile, metablock_mixin_t *last_metablock);
 
 public:
-    bool read(off64_t off_in, void *buf_out, file_t::account_t *io_account, iocallback_t *cb);
+    bool read(off64_t off_in, void *buf_out, file_account_t *io_account, iocallback_t *cb);
 
     /* Returns the offset to which the block will be written */
     off64_t write(const void *buf_in, block_id_t block_id, bool assign_new_block_sequence_id,
-                  file_t::account_t *io_account, iocallback_t *cb);
+                  file_account_t *io_account, iocallback_t *cb);
 
 public:
     /* exposed gc api */
@@ -163,9 +137,9 @@ private:
     log_serializer_t *serializer;
 
     direct_file_t* dbfile;
-    boost::scoped_ptr<file_t::account_t> gc_io_account_nice;
-    boost::scoped_ptr<file_t::account_t> gc_io_account_high;
-    file_t::account_t *choose_gc_io_account();
+    boost::scoped_ptr<file_account_t> gc_io_account_nice;
+    boost::scoped_ptr<file_account_t> gc_io_account_high;
+    file_account_t *choose_gc_io_account();
 
     off64_t gimme_a_new_offset();
 
@@ -178,9 +152,9 @@ private:
     void check_and_handle_outstanding_empty_extents();
 
 private:
-    
-    struct gc_entry;
-    
+
+    class gc_entry;
+
     struct Less {
         bool operator() (const gc_entry *x, const gc_entry *y);
     };
@@ -188,12 +162,12 @@ private:
     // Identifies an extent, the time we started writing to the
     // extent, whether it's the extent we're currently writing to, and
     // describes blocks are garbage.
-    struct gc_entry :
+    class gc_entry :
         public intrusive_list_node_t<gc_entry>
     {
     public:
         data_block_manager_t *parent;
-        
+
         off64_t offset; /* !< the offset that this extent starts at */
         bitset_t g_array; /* !< bit array for whether or not each block is garbage */
         bitset_t t_array; /* !< bit array for whether or not each block is referenced by some token */
@@ -205,7 +179,7 @@ private:
         microtime_t timestamp; /* !< when we started writing to the extent */
         priority_queue_t<gc_entry*, Less>::entry_t *our_pq_entry; /* !< The PQ entry pointing to us */
         bool was_written; /* true iff the extent has been written to after starting up the serializer */
-        
+
         enum state_t {
             // It has been, or is being, reconstructed from data on disk.
             state_reconstructing,
@@ -218,69 +192,26 @@ private:
             // Currently being GCed. It is equal to gc_state.current_entry.
             state_in_gc,
         } state;
-        
+
     public:
-        
         /* This constructor is for starting a new extent. */
-        explicit gc_entry(data_block_manager_t *parent)
-            : parent(parent),
-              offset(parent->extent_manager->gen_extent()),
-              g_array(parent->static_config->blocks_per_extent()),
-              t_array(parent->static_config->blocks_per_extent()),
-              i_array(parent->static_config->blocks_per_extent()),
-              timestamp(current_microtime()),
-              was_written(false)
-        {
-            rassert(parent->entries.get(offset / parent->extent_manager->extent_size) == NULL);
-            parent->entries.set(offset / parent->extent_manager->extent_size, this);
-            g_array.set();
-            
-            pm_serializer_data_extents++;
-        }
-        
+        explicit gc_entry(data_block_manager_t *parent);
+
         /* This constructor is for reconstructing extents that the LBA tells us contained
         data blocks. */
-        explicit gc_entry(data_block_manager_t *parent, off64_t offset)
-            : parent(parent),
-              offset(offset),
-              g_array(parent->static_config->blocks_per_extent()),
-              t_array(parent->static_config->blocks_per_extent()),
-              i_array(parent->static_config->blocks_per_extent()),
-              timestamp(current_microtime()),
-              was_written(false)
-        {
-            parent->extent_manager->reserve_extent(offset);
-            rassert(parent->entries.get(offset / parent->extent_manager->extent_size) == NULL);
-            parent->entries.set(offset / parent->extent_manager->extent_size, this);
-            g_array.set();
-            
-            pm_serializer_data_extents++;
-        }
-        
-        void destroy() {
-            parent->extent_manager->release_extent(offset);
-            delete this;
-        }
-        
-        ~gc_entry() {
-            rassert(parent->entries.get(offset / parent->extent_manager->extent_size) == this);
-            parent->entries.set(offset / parent->extent_manager->extent_size, NULL);
-            
-            pm_serializer_data_extents--;
-        }
-        
-        void print() {
+        explicit gc_entry(data_block_manager_t *parent, off64_t offset);
+
+        void destroy();
+        ~gc_entry();
+
 #ifndef NDEBUG
-            debugf("gc_entry:\n");
-            debugf("offset: %ld\n", offset);
-            for (unsigned int i = 0; i < g_array.size(); i++)
-                debugf("%.8x:\t%d\n", (unsigned int) (offset + (i * DEVICE_BLOCK_SIZE)), g_array.test(i));
-            debugf("\n");
-            debugf("\n");
+        void print();
 #endif
-        }
+
+    private:
+        DISABLE_COPYING(gc_entry);
     };
-    
+
     /* Contains a pointer to every gc_entry, regardless of what its current state is */
     two_level_array_t<gc_entry*, MAX_DATA_EXTENTS> entries;
     
@@ -372,26 +303,23 @@ private:
     /* \brief structure to keep track of global stats about the data blocks
      */
     class gc_stat_t {
-        private: 
-            int val;
-            perfmon_counter_t &perfmon;
-        public:
-            explicit gc_stat_t(perfmon_counter_t &perfmon)
-                : val(0), perfmon(perfmon)
-            {}
-            void operator++(int) { val++; perfmon++;}
-            void operator+=(int64_t num) { val += num; perfmon += num; }
-            void operator--(int) { val--; perfmon--;}
-            void operator-=(int64_t num) { val -= num; perfmon -= num;}
-            int get() const {return val;}
+    private:
+        int val;
+        perfmon_counter_t *perfmon;
+    public:
+        explicit gc_stat_t(perfmon_counter_t *_perfmon)
+            : val(0), perfmon(_perfmon) { }
+        void operator++(int);
+        void operator+=(int64_t num);
+        void operator--(int);
+        void operator-=(int64_t num);
+        int get() const { return val; }
     };
 
     struct gc_stats_t {
         gc_stat_t old_total_blocks;
         gc_stat_t old_garbage_blocks;
-        gc_stats_t()
-            : old_total_blocks(pm_serializer_old_total_blocks), old_garbage_blocks(pm_serializer_old_garbage_blocks)
-        {}
+        gc_stats_t();
     } gc_stats;
 
 public:
@@ -399,24 +327,6 @@ public:
      */
     float garbage_ratio() const;
 
-    /* \brief perfmon to output the garbage ratio
-     */
-    
-/*    class garbage_ratio_reporter_t :
-        public perfmon_function_t::internal_function_t
-    {
-    private: 
-        data_block_manager_t *data_block_manager;
-    public:
-        explicit garbage_ratio_reporter_t(data_block_manager_t *data_block_manager)
-            : perfmon_function_t::internal_function_t(&pm_serializer_garbage_ratio),
-              data_block_manager(data_block_manager) {}
-        ~garbage_ratio_reporter_t() {}
-        std::string compute_stat() {
-            return format(data_block_manager->garbage_ratio());
-        }
-    } garbage_ratio_reporter;
-*/
     int64_t garbage_ratio_total_blocks() const { return gc_stats.old_garbage_blocks.get(); }
     int64_t garbage_ratio_garbage_blocks() const { return gc_stats.old_garbage_blocks.get(); }
 

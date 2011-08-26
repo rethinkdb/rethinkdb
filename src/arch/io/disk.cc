@@ -12,6 +12,7 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
+#include "arch/types.hpp"
 #include "arch/runtime/system_event/eventfd.hpp"
 #include "arch/io/arch.hpp"
 #include "config/args.hpp"
@@ -151,11 +152,11 @@ private:
 
 /* Disk account object */
 
-linux_file_t::account_t::account_t(linux_file_t *par, int pri, int outstanding_requests_limit) :
+linux_file_account_t::linux_file_account_t(linux_file_t *par, int pri, int outstanding_requests_limit) :
     parent(par), account(parent->diskmgr->create_account(pri, outstanding_requests_limit))
     { }
 
-linux_file_t::account_t::~account_t() {
+linux_file_account_t::~linux_file_account_t() {
     parent->diskmgr->destroy_account(account);
 }
 
@@ -252,7 +253,7 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, co
             diskmgr.reset(new linux_templated_disk_manager_t<pool_diskmgr_t>(queue, batch_factor));
         }
 
-        default_account.reset(new account_t(this, 1, UNLIMITED_OUTSTANDING_REQUESTS));
+        default_account.reset(new linux_file_account_t(this, 1, UNLIMITED_OUTSTANDING_REQUESTS));
     }
 }
 
@@ -291,7 +292,7 @@ void linux_file_t::set_size_at_least(size_t size) {
     }
 }
 
-bool linux_file_t::read_async(size_t offset, size_t length, void *buf, account_t *account, linux_iocallback_t *callback) {
+bool linux_file_t::read_async(size_t offset, size_t length, void *buf, linux_file_account_t *account, linux_iocallback_t *callback) {
     rassert(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");
 
     verify(offset, length, buf);
@@ -302,7 +303,7 @@ bool linux_file_t::read_async(size_t offset, size_t length, void *buf, account_t
     return false;
 }
 
-bool linux_file_t::write_async(size_t offset, size_t length, const void *buf, account_t *account, linux_iocallback_t *callback) {
+bool linux_file_t::write_async(size_t offset, size_t length, const void *buf, linux_file_account_t *account, linux_iocallback_t *callback) {
     rassert(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");
 
 #ifdef DEBUG_DUMP_WRITES

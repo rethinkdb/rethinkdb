@@ -4,8 +4,8 @@
 
 #include "do_on_thread.hpp"
 
-cross_thread_signal_t::cross_thread_signal_t(signal_t *source, int dest_thread) :
-    source_thread(get_thread_id()), dest_thread(dest_thread),
+cross_thread_signal_t::cross_thread_signal_t(signal_t *source, int _dest_thread) :
+    source_thread(get_thread_id()), dest_thread(_dest_thread),
     subs(boost::bind(&cross_thread_signal_t::on_signal_pulsed, this))
 {
     rassert(source->home_thread() == source_thread);

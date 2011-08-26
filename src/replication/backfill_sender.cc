@@ -22,24 +22,44 @@ void backfill_sender_t::warn_about_expiration() {
     }
 }
 
-void backfill_sender_t::backfill_delete_everything(order_token_t token) {
+void backfill_sender_t::backfill_delete_range(int hash_value, int hashmod,
+                                              bool left_key_supplied, const store_key_t& left_key_exclusive,
+                                              bool right_key_supplied, const store_key_t& right_key_inclusive,
+                                              order_token_t token) {
     order_sink_before_send.check_out(token);
 
     if (*stream_) {
-        net_backfill_delete_everything_t msg;
-        msg.padding = 0;
-        (*stream_)->send(msg);
+        int left_offseter = (left_key_supplied ? left_key_exclusive.size : 0);
+        size_t n = sizeof(net_backfill_delete_range_t)
+            + left_offseter
+            + (right_key_supplied ? right_key_inclusive.size : 0);
+
+        scoped_malloc<net_backfill_delete_range_t> msg(n);
+        msg->hash_value = hash_value;
+        msg->hashmod = hashmod;
+        msg->low_key_size = left_key_supplied ? left_key_exclusive.size : net_backfill_delete_range_t::infinity_key_size;
+        msg->high_key_size = right_key_supplied ? right_key_inclusive.size : net_backfill_delete_range_t::infinity_key_size;
+        if (left_key_supplied) {
+            memcpy(msg->keys, left_key_exclusive.contents, left_key_exclusive.size);
+        }
+        if (right_key_supplied) {
+            memcpy(msg->keys + left_offseter, right_key_inclusive.contents, right_key_inclusive.size);
+        }
+
+        (*stream_)->send(msg.get());
     }
 
     order_sink_after_send.check_out(token);
 }
 
 void backfill_sender_t::backfill_deletion(store_key_t key, order_token_t token) {
-    order_sink_before_send.check_out(token);
-    block_pm_duration set_timer(&master_bf_del);
+    block_pm_duration del_timer(&master_bf_del);
 
-    size_t n = sizeof(net_backfill_delete_t) + key.size;
+    order_sink_before_send.check_out(token);
+
     if (*stream_) {
+        size_t n = sizeof(net_backfill_delete_t) + key.size;
+
         scoped_malloc<net_backfill_delete_t> msg(n);
         msg->padding = 0;
         msg->key_size = key.size;
@@ -171,7 +191,7 @@ void backfill_sender_t::incr_decr_like(const store_key_t &key, uint64_t amount, 
     if (*stream_) (*stream_)->send(msg.get());
 }
 
-void backfill_sender_t::realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key, boost::shared_ptr<data_provider_t> data, castime_t castime, order_token_t token) {
+void backfill_sender_t::realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key, const boost::shared_ptr<data_provider_t>& data, castime_t castime, order_token_t token) {
     assert_thread();
     block_pm_duration set_timer(&master_rt_op);
     order_sink_before_send.check_out(token);

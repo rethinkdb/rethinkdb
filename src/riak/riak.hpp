@@ -52,8 +52,8 @@ private:
     btree_slice_t *get_slice(std::list<std::string>);
     btree_slice_t *create_slice(std::list<std::string>);
 public:
-    riak_interface_t(store_manager_t<std::list<std::string> > *store_manager)
-        : store_manager(store_manager)
+    riak_interface_t(store_manager_t<std::list<std::string> > *_store_manager)
+        : store_manager(_store_manager)
     { }
 
 public:
@@ -157,18 +157,18 @@ public:
 
         value_txn_t<riak_value_t> txn = get_value_write<riak_value_t>(slice, btree_key_buffer_t(obj.key).key(), repli_timestamp_t::invalid, order_token_t::ignore);
 
-        if (!txn.value) {
+        if (!txn.value()) {
             scoped_malloc<riak_value_t> tmp(MAX_RIAK_VALUE_SIZE);
-            txn.value.swap(tmp);
-            memset(txn.value.get(), 0, MAX_RIAK_VALUE_SIZE);
+            txn.value().swap(tmp);
+            memset(txn.value().get(), 0, MAX_RIAK_VALUE_SIZE);
         }
 
-        txn.value->mod_time = obj.last_written;
-        txn.value->etag = obj.ETag;
-        txn.value->content_type_len = obj.content_type.size();
-        txn.value->value_len = obj.content.size();
+        txn.value()->mod_time = obj.last_written;
+        txn.value()->etag = obj.ETag;
+        txn.value()->content_type_len = obj.content_type.size();
+        txn.value()->value_len = obj.content.size();
 
-        blob_t blob(txn.value->contents, blob::btree_maxreflen);
+        blob_t blob(txn.value()->contents, blob::btree_maxreflen);
         blob.clear(txn.get_txn());
         blob.append_region(txn.get_txn(), obj.content_type.size() + obj.content.size());
 
@@ -183,7 +183,7 @@ public:
 
         buffer_group_copy_data(&dest, const_view(&src));
 
-        txn.value->print(slice->cache()->get_block_size());
+        txn.value()->print(slice->cache()->get_block_size());
     }
 
     bool delete_object(std::string, std::string) {

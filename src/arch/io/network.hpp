@@ -23,13 +23,12 @@ class side_coro_handler_t;
 
 /* linux_tcp_conn_t provides a nice wrapper around a TCP network connection. */
 
-struct linux_tcp_conn_t :
+class linux_tcp_conn_t :
     public home_thread_mixin_t,
-    private linux_event_callback_t
-{
+    private linux_event_callback_t {
+public:
     friend class linux_tcp_listener_t;
 
-public:
     struct connect_failed_exc_t : public std::exception {
         const char *what() throw () {
             return "Could not make connection";

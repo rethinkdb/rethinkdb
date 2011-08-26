@@ -1,5 +1,5 @@
-#ifndef __OP_HPP__
-#define __OP_HPP__
+#ifndef __STRESS_CLIENT_OP_HPP__
+#define __STRESS_CLIENT_OP_HPP__
 
 #include "utils.hpp"
 
@@ -44,4 +44,4 @@ struct op_t {
     virtual void run() = 0;
 };
 
-#endif /* __OP_HPP__ */
+#endif /* __STRESS_CLIENT_OP_HPP__ */

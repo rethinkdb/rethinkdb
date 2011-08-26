@@ -5,22 +5,21 @@
 #include "utils.hpp"
 #include "arch/runtime/runtime.hpp"
 
+/* Forward declaration */
+
+template<class subscriber_t>
+class publisher_controller_t;
+
 /* `publisher_t` is used to implement small-scale pub/sub architectures. It's
 useful whenever you need to broadcast notifications to some number of listeners.
 
 Each publisher has zero or more subscriptions. Each subscription is associated
 with a subscriber. A subscription is usually associated with one publisher, but
 it is possible to unassociate a subscription or to move it from one publisher to
-another.
-
-Broadcast a message to subscribers using `publisher_t::publish()`. `publish()`
-takes a function, which will be called once for each subscription. The function
-must not block. If you try to add or remove a subscription or delete the
-publisher from inside the `publish()` callback, your call will block until
-`publish()` is done. */
+another. */
 
 template<class subscriber_t>
-struct publisher_t :
+class publisher_t :
     public home_thread_mixin_t
 {
 public:
@@ -31,44 +30,24 @@ public:
     public:
         /* Construct a `subscription_t` that is not subscribed to any publisher.
         */
-        subscription_t(subscriber_t sub) :
-            subscriber(sub), publisher(NULL) { }
+        subscription_t(subscriber_t sub);
 
         /* Construct a `subscription_t` and subscribe to the given publisher. */
-        subscription_t(subscriber_t sub, publisher_t *pub) :
-            subscriber(sub), publisher(NULL) {
-            resubscribe(pub);
-        }
+        subscription_t(subscriber_t sub, publisher_t *pub);
 
         /* Subscribe to the given publisher. It's only legal to call
         `resubscribe()` if you are not subscribed to a publisher. */
-        void resubscribe(publisher_t *pub) {
-            assert_thread();
-            rassert(!publisher);
-            rassert(pub);
-            pub->assert_thread();
-            publisher = pub;
-            rassert(!publisher->shutting_down);
-            mutex_acquisition_t acq(&publisher->lock);
-            publisher->subscriptions.push_back(this);
-        }
+        void resubscribe(publisher_t *pub);
 
         /* Unsubscribe from the publisher you are subscribed to. */
-        void unsubscribe() {
-            assert_thread();
-            rassert(publisher);
-            rassert(!publisher->shutting_down);
-            mutex_acquisition_t acq(&publisher->lock);
-            publisher->subscriptions.remove(this);
-            publisher = NULL;
-        }
+        void unsubscribe();
 
-        ~subscription_t() {
-            if (publisher) unsubscribe();
-        }
+        /* Unsubscribe from the publisher you are subscribed to, if there is
+        such a publisher. */
+        ~subscription_t();
 
     private:
-        friend class publisher_t;
+        friend class publisher_controller_t<subscriber_t>;
 
         subscriber_t subscriber;
         publisher_t *publisher;
@@ -76,89 +55,138 @@ public:
         DISABLE_COPYING(subscription_t);
     };
 
-    void rethread(int new_thread) {
+private:
+    friend class subscription_t;
+    friend class publisher_controller_t<subscriber_t>;
 
-        rassert(subscriptions.empty(), "Cannot rethread a `publisher_t` that "
-            "has subscribers.");
+    publisher_t(publisher_controller_t<subscriber_t> *p) : parent(p) { }
 
-        real_home_thread = new_thread;
-    }
+    publisher_controller_t<subscriber_t> *parent;
 
-protected:
-    publisher_t() {
-        DEBUG_ONLY(shutting_down = false);
-    }
+    DISABLE_COPYING(publisher_t);
+};
 
-    ~publisher_t() {
+/* To create a publisher, create a `publisher_controller_t` and call its
+`get_publisher()` method. `publisher_t` is split from `publisher_controller_t`
+so that you can pass a `publisher_t *` to things; they will be able to listen
+for events, but not publish events themselves.
+
+To publish things, call `publish()` on the `publisher_controller_t` you
+created. `publish()` takes a function, which will be called once for each
+subscription. The function must not block.
+
+When you construct a `publisher_controller_t`, you must pass the address of a
+`mutex_t` you created. You must acquire this mutex before you call `publish()`.
+If you try to subscribe or unsubscribe while the mutex is acquired, it blocks.
+The purpose of having a mutex is to prevent races between publishing things and
+adding/removing subscribers. */
+
+template<class subscriber_t>
+struct publisher_controller_t :
+    public home_thread_mixin_t
+{
+public:
+    publisher_controller_t(mutex_t *m) :
+        publisher(this),
+        mutex(m),
+        publishing(false) { }
+
+    ~publisher_controller_t() {
         /* User is responsible for unsubscribing everything before destroying
         the publisher. */
         rassert(subscriptions.empty());
 
-        /* Set `shutting_down` to `true` so that nothing gets in line behind us
-        for the mutex, only to be confused when we destroy the mutex. */
-        DEBUG_ONLY(shutting_down = true);
+        /* We shouldn't be destroyed from within a publisher callback; that's
+        dangerous. */
+        rassert(!publishing);
+    }
 
-        /* Lock the mutex so that if we're being run from within a call to
-        `publish()`, we won't destroy the `publisher_t` until the call to
-        `publish` is done.
-        
-        TODO: This is terrible and the only reason we have it is because of
-        `notify_now()`. `notify_now()` should go away. */
-        co_lock_mutex(&lock);
+    publisher_t<subscriber_t> *get_publisher() {
+        return &publisher;
     }
 
     template<class callable_t>
-    void publish(const callable_t &callable) {
-        rassert(!shutting_down);
+    void publish(const callable_t &callable, mutex_acquisition_t *proof) {
 
-        /* Acquire the mutex so that attempts to add new subscriptions, publish
-        other events, or destroy the publisher will block until we're done. */
-        mutex_acquisition_t acq(&lock, true);
+        proof->assert_is_holding(mutex);
+        mutex_acquisition_t temp;
+        swap(*proof, temp);
 
-        /* Broadcast to each subscription */
-        for (subscription_t *sub = subscriptions.head(); sub;
+        rassert(!publishing);
+        publishing = true;
+
+        for (typename publisher_t<subscriber_t>::subscription_t *sub = subscriptions.head();
+             sub;
              sub = subscriptions.next(sub)) {
             /* `callable()` should not block */
             ASSERT_FINITE_CORO_WAITING;
             callable(sub->subscriber);
         }
 
-        /* `acq` destructor called here. After `acq` destructor returns, we
-        may not access any local variables because the `publisher_t` may have
-        been destroyed by something that took the mutex after us. */
+        rassert(publishing);
+        publishing = false;
+
+        swap(*proof, temp);
+    }
+
+    void rethread(int new_thread) {
+
+        rassert(subscriptions.empty(), "Cannot rethread a `publisher_t` that "
+            "has subscribers.");
+
+        real_home_thread = new_thread;
+        publisher.real_home_thread = new_thread;
     }
 
 private:
-    friend class subscription_t;
-#ifndef NDEBUG
-    bool shutting_down;
-#endif
-    mutex_t lock;
-    intrusive_list_t<subscription_t> subscriptions;
-    DISABLE_COPYING(publisher_t);
+    friend class publisher_t<subscriber_t>::subscription_t;
+
+    publisher_t<subscriber_t> publisher;
+
+    intrusive_list_t<typename publisher_t<subscriber_t>::subscription_t> subscriptions;
+
+    mutex_t *mutex;
+    bool publishing;
+
+    DISABLE_COPYING(publisher_controller_t);
 };
 
-/* One way to use `publisher_t` is to construct a concrete subclass of
-`publisher_t` but then pass around a pointer to the underlying `publisher_t`.
-Things that have the pointer to the `publisher_t` can subscribe to receive
-notifications, but cannot publish. `public_publisher_t` is a concrete subclass
-that makes `publish()` and the constructor and destructor public. */
+/* `publisher_t<subscriber_t>::subscription_t` is implemented down here because
+it needs to know about `publisher_controller_t`. */
 
 template<class subscriber_t>
-struct public_publisher_t :
-    public publisher_t<subscriber_t>
-{
-public:
-    public_publisher_t() { }
-    ~public_publisher_t() { }
+publisher_t<subscriber_t>::subscription_t::subscription_t(subscriber_t sub) :
+    subscriber(sub), publisher(NULL) { }
 
-    template<class callable_t>
-    void publish(const callable_t &callable) {
-         publisher_t<subscriber_t>::publish(callable);
-    }
+template<class subscriber_t>
+publisher_t<subscriber_t>::subscription_t::subscription_t(subscriber_t sub, publisher_t *pub) :
+    subscriber(sub), publisher(NULL) {
+    resubscribe(pub);
+}
 
-private:
-    DISABLE_COPYING(public_publisher_t);
-};
+template<class subscriber_t>
+void publisher_t<subscriber_t>::subscription_t::resubscribe(publisher_t *pub) {
+    assert_thread();
+    rassert(!publisher);
+    rassert(pub);
+    pub->assert_thread();
+    publisher = pub;
+    mutex_acquisition_t acq(publisher->parent->mutex);
+    publisher->parent->subscriptions.push_back(this);
+}
+
+template<class subscriber_t>
+void publisher_t<subscriber_t>::subscription_t::unsubscribe() {
+    assert_thread();
+    rassert(publisher);
+    mutex_acquisition_t acq(publisher->parent->mutex);
+    publisher->parent->subscriptions.remove(this);
+    publisher = NULL;
+}
+
+template<class subscriber_t>
+publisher_t<subscriber_t>::subscription_t::~subscription_t() {
+    if (publisher) unsubscribe();
+}
 
 #endif /* __CONCURRENCY_PUBSUB_HPP__ */

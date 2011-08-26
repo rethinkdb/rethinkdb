@@ -5,6 +5,7 @@
 #include <unistd.h>
 
 #include "errors.hpp"
+#include <boost/bind.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/optional.hpp>
 
@@ -31,9 +32,9 @@ static const char *crlf = "\r\n";
 
 struct txt_memcached_handler_t : public home_thread_mixin_t {
 
-    txt_memcached_handler_t(memcached_interface_t *interface, get_store_t *get_store,
-            set_store_interface_t *set_store, int max_concurrent_queries_per_connection)
-        : interface(interface), get_store(get_store), set_store(set_store), requests_out_sem(max_concurrent_queries_per_connection)
+    txt_memcached_handler_t(memcached_interface_t *_interface, get_store_t *_get_store,
+            set_store_interface_t *_set_store, int max_concurrent_queries_per_connection)
+        : interface(_interface), get_store(_get_store), set_store(_set_store), requests_out_sem(max_concurrent_queries_per_connection)
     { }
 
     memcached_interface_t *interface;

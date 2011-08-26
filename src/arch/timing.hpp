@@ -31,13 +31,13 @@ when the timer "rings". */
 
 struct repeating_timer_t {
 
-    repeating_timer_t(int frequency_ms, boost::function<void(void)> ring);
+    repeating_timer_t(int frequency_ms, const boost::function<void()>& ring);
     ~repeating_timer_t();
 
 private:
     static void on_timer_ring(void *v_timer);
     timer_token_t *timer;
-    boost::function<void(void)> ring;
+    boost::function<void()> ring;
 };
 
 #endif /* __ARCH_TIMING_HPP__ */

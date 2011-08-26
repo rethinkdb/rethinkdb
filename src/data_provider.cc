@@ -2,7 +2,6 @@
 
 #include <string.h>
 
-#include "buffer_cache/co_functions.hpp"
 #include "utils.hpp"
 
 /* auto_buffering_data_provider_t */

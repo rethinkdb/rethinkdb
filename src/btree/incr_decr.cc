@@ -8,8 +8,8 @@
 
 struct btree_incr_decr_oper_t : public btree_modify_oper_t<memcached_value_t> {
 
-    explicit btree_incr_decr_oper_t(bool increment, uint64_t delta)
-        : increment(increment), delta(delta)
+    explicit btree_incr_decr_oper_t(bool _increment, uint64_t _delta)
+        : increment(_increment), delta(_delta)
     { }
 
     bool operate(transaction_t *txn, scoped_malloc<memcached_value_t>& value) {
@@ -94,7 +94,6 @@ struct btree_incr_decr_oper_t : public btree_modify_oper_t<memcached_value_t> {
 
 incr_decr_result_t btree_incr_decr(const store_key_t &key, btree_slice_t *slice, bool increment, uint64_t delta, castime_t castime, order_token_t token) {
     btree_incr_decr_oper_t oper(increment, delta);
-    memcached_value_sizer_t sizer(slice->cache()->get_block_size());
-    run_btree_modify_oper(&sizer, &oper, slice, key, castime, token);
+    run_btree_modify_oper(&oper, slice, key, castime, token);
     return oper.result;
 }

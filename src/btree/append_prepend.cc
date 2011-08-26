@@ -57,7 +57,6 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t<memcached_value_
 
 append_prepend_result_t btree_append_prepend(const store_key_t &key, btree_slice_t *slice, boost::shared_ptr<data_provider_t> data, bool append, castime_t castime, order_token_t token) {
     btree_append_prepend_oper_t oper(data, append);
-    memcached_value_sizer_t sizer(slice->cache()->get_block_size());
-    run_btree_modify_oper<memcached_value_t>(&sizer, &oper, slice, key, castime, token);
+    run_btree_modify_oper<memcached_value_t>(&oper, slice, key, castime, token);
     return oper.result;
 }

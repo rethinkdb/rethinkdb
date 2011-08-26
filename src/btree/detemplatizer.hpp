@@ -17,19 +17,19 @@
  */
 #define DETEMPLATIZE_LEAF_NODE_OP(op_name, leaf_node, sizer_argument, ...) \
     do { \
-        if (leaf_node->magic == value_sizer_t<memcached_value_t>::btree_leaf_magic()) { \
+        if (leaf_node->magic == value_sizer_t<memcached_value_t>::leaf_magic()) { \
             value_sizer_t<memcached_value_t> sizer(sizer_argument); \
             op_name<memcached_value_t>(&sizer, __VA_ARGS__); \
-        } else if (leaf_node->magic == value_sizer_t<riak_value_t>::btree_leaf_magic()) { \
+        } else if (leaf_node->magic == value_sizer_t<riak_value_t>::leaf_magic()) { \
             value_sizer_t<riak_value_t> sizer(sizer_argument); \
             op_name<riak_value_t>(&sizer, __VA_ARGS__); \
-        } else if (leaf_node->magic == value_sizer_t<redis_nested_string_value_t>::btree_leaf_magic()) { \
+        } else if (leaf_node->magic == value_sizer_t<redis_nested_string_value_t>::leaf_magic()) { \
             value_sizer_t<redis_nested_string_value_t> sizer(sizer_argument); \
             op_name<redis_nested_string_value_t>(&sizer, __VA_ARGS__); \
-        } else if (leaf_node->magic == value_sizer_t<redis_value_t>::btree_leaf_magic()) { \
+        } else if (leaf_node->magic == value_sizer_t<redis_value_t>::leaf_magic()) { \
             value_sizer_t<redis_value_t> sizer(sizer_argument); \
             op_name<redis_value_t>(&sizer, __VA_ARGS__); \
-        } else if (leaf_node->magic == value_sizer_t<redis_nested_set_value_t>::btree_leaf_magic()) { \
+        } else if (leaf_node->magic == value_sizer_t<redis_nested_set_value_t>::leaf_magic()) { \
             value_sizer_t<redis_nested_set_value_t> sizer(sizer_argument); \
             op_name<redis_nested_set_value_t>(&sizer, __VA_ARGS__); \
         } else \

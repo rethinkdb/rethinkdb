@@ -2,16 +2,19 @@
 
 #include <algorithm>
 
+#include "arch/arch.hpp"
 #include "containers/segmented_vector.hpp"
 #include "serializer/log/log_serializer.hpp"
 #include "btree/slice.hpp"
 #include "btree/node.hpp"
+#include "btree/node_functions.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/internal_node.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "fsck/raw_block.hpp"
-#include "btree/delete_queue.hpp"
+#include "riak/riak_value.hpp"
 #include "server/key_value_store.hpp"
+#include "serializer/translator.hpp"
 
 namespace fsck {
 
@@ -80,7 +83,7 @@ struct file_knowledge_t {
     // The block from MC_CONFIGBLOCK_ID
     learned_t<mc_config_block_t> mc_config_block;
 
-    explicit file_knowledge_t(const std::string filename) : filename(filename) {
+    explicit file_knowledge_t(const std::string _filename) : filename(_filename) {
         guarantee_err(!pthread_rwlock_init(&block_info_lock_, NULL), "pthread_rwlock_init failed");
     }
 
@@ -184,7 +187,8 @@ struct slicecx_t {
     file_knowledge_t *knog;
     std::map<block_id_t, std::list<buf_patch_t*> > patch_map;
     const config_t *cfg;
-    memcached_value_sizer_t sizer;
+    // TODO: this is not a generic sizer.
+    value_sizer_t<memcached_value_t> sizer;
 
     void clear_buf_patches() {
         for (std::map<block_id_t, std::list<buf_patch_t*> >::iterator patches = patch_map.begin(); patches != patch_map.end(); ++patches)
@@ -198,10 +202,10 @@ struct slicecx_t {
         return knog->static_config->block_size();
     }
 
-    memcached_value_sizer_t *mc_sizer() { return &sizer; }
+    value_sizer_t<void> *get_sizer() { return &sizer; }
 
     virtual block_id_t to_ser_block_id(block_id_t id) const = 0;
-    virtual bool is_valid_key(const btree_key_t &key) const = 0;
+    virtual bool is_valid_key(const btree_key_t *key) const = 0;
 
     slicecx_t(nondirect_file_t *_file, file_knowledge_t *_knog, const config_t *_cfg)
         : file(_file), knog(_knog), cfg(_cfg), sizer(knog->static_config->block_size()) { }
@@ -216,7 +220,7 @@ struct slicecx_t {
 struct raw_slicecx_t : public slicecx_t {
     raw_slicecx_t(nondirect_file_t *_file, file_knowledge_t *_knog, const config_t *_cfg) : slicecx_t(_file, _knog, _cfg) { }
     block_id_t to_ser_block_id(block_id_t id) const { return id; }
-    bool is_valid_key(UNUSED const btree_key_t &key) const { return true; }
+    bool is_valid_key(UNUSED const btree_key_t *key) const { return true; }
 };
 
 // A slice which is part of a multiplexed set of slices via serializer_multipler_t
@@ -235,11 +239,9 @@ struct multiplexed_slicecx_t : public slicecx_t {
         return translator_serializer_t::translate_block_id(id, mod_count, local_slice_id, CONFIG_BLOCK_ID);
     }
 
-    bool is_valid_key(const btree_key_t &key) const {
-        store_key_t store_key;
-        store_key.size = key.size;
-        memcpy(store_key.contents, key.contents, key.size);
-        return btree_key_value_store_t::hash(store_key) % knog->config_block->n_proxies == (unsigned) global_slice_id;
+    bool is_valid_key(const btree_key_t *key) const {
+        store_key_t store_key(key->size, key->contents);
+        return int(btree_key_value_store_t::hash(store_key) % knog->config_block->n_proxies) == global_slice_id;
     }
 };
 
@@ -256,13 +258,13 @@ public:
 
     btree_block_t() : raw_block_t() { }
 
-    // Uses and modifies knog->block_info[cx.to_ser_block_id(block_id)].
-    bool init(slicecx_t &cx, block_id_t block_id) {
+    // Uses and modifies knog->block_info[cx->to_ser_block_id(block_id)].
+    bool init(slicecx_t *cx, block_id_t block_id) {
         std::list<buf_patch_t*> *patches_list = NULL;
-        if (!cx.cfg->ignore_diff_log && cx.patch_map.find(block_id) != cx.patch_map.end()) {
-            patches_list = &cx.patch_map.find(block_id)->second;
+        if (!cx->cfg->ignore_diff_log && cx->patch_map.find(block_id) != cx->patch_map.end()) {
+            patches_list = &cx->patch_map.find(block_id)->second;
         }
-        return init(cx.file, cx.knog, cx.to_ser_block_id(block_id), patches_list);
+        return init(cx->file, cx->knog, cx->to_ser_block_id(block_id), patches_list);
     }
 
     // Modifies knog->block_info[ser_block_id].
@@ -778,17 +780,17 @@ struct diff_log_errors {
 };
 
 static char LOG_BLOCK_MAGIC[] = {'L','O','G','B','0','0'};
-void check_and_load_diff_log(slicecx_t& cx, diff_log_errors *errs) {
-    cx.clear_buf_patches();
+void check_and_load_diff_log(slicecx_t *cx, diff_log_errors *errs) {
+    cx->clear_buf_patches();
 
-    const unsigned int log_size = cx.knog->mc_config_block->cache.n_patch_log_blocks;
+    const unsigned int log_size = cx->knog->mc_config_block->cache.n_patch_log_blocks;
 
     for (block_id_t block_id = MC_CONFIGBLOCK_ID + 1; block_id < MC_CONFIGBLOCK_ID + 1 + log_size; ++block_id) {
-        block_id_t ser_block_id = cx.to_ser_block_id(block_id);
+        block_id_t ser_block_id = cx->to_ser_block_id(block_id);
 
         block_knowledge_t info;
         {
-            read_locker_t locker(cx.knog);
+            read_locker_t locker(cx->knog);
             if (ser_block_id >= locker.block_info().get_size()) {
                 ++errs->missing_log_block_count;
                 continue;
@@ -798,9 +800,9 @@ void check_and_load_diff_log(slicecx_t& cx, diff_log_errors *errs) {
 
         if (!info.offset.parts.is_delete) {
             block_t b;
-            b.init(cx.block_size(), cx.file, info.offset.parts.value, ser_block_id);
+            b.init(cx->block_size(), cx->file, info.offset.parts.value, ser_block_id);
             {
-                write_locker_t locker(cx.knog);
+                write_locker_t locker(cx->knog);
                 locker.block_info()[ser_block_id].block_sequence_id = b.realbuf->block_sequence_id;
             }
 
@@ -808,10 +810,10 @@ void check_and_load_diff_log(slicecx_t& cx, diff_log_errors *errs) {
 
             if (strncmp((char*)buf_data, LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0) {
                 uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
-                while (current_offset + buf_patch_t::get_min_serialized_size() < cx.block_size().value()) {
+                while (current_offset + buf_patch_t::get_min_serialized_size() < cx->block_size().value()) {
                     buf_patch_t *patch;
                     try {
-                        patch = buf_patch_t::load_patch(cx.block_size(), reinterpret_cast<const char *>(buf_data) + current_offset);
+                        patch = buf_patch_t::load_patch(cx->block_size(), reinterpret_cast<const char *>(buf_data) + current_offset);
                     } catch (patch_deserialization_error_t &e) {
 			(void)e;
                         ++errs->corrupted_patch_blocks;
@@ -822,7 +824,7 @@ void check_and_load_diff_log(slicecx_t& cx, diff_log_errors *errs) {
                     }
                     else {
                         current_offset += patch->get_serialized_size();
-                        cx.patch_map[patch->get_block_id()].push_back(patch);
+                        cx->patch_map[patch->get_block_id()].push_back(patch);
                     }
                 }
             } else {
@@ -835,7 +837,7 @@ void check_and_load_diff_log(slicecx_t& cx, diff_log_errors *errs) {
     }
 
 
-    for (std::map<block_id_t, std::list<buf_patch_t*> >::iterator patch_list = cx.patch_map.begin(); patch_list != cx.patch_map.end(); ++patch_list) {
+    for (std::map<block_id_t, std::list<buf_patch_t*> >::iterator patch_list = cx->patch_map.begin(); patch_list != cx->patch_map.end(); ++patch_list) {
         // Sort the list to get patches in the right order
         patch_list->second.sort(dereferencing_buf_patch_compare_t());
 
@@ -854,217 +856,139 @@ void check_and_load_diff_log(slicecx_t& cx, diff_log_errors *errs) {
     }
 }
 
-struct largebuf_error {
-    bool not_left_shifted;
-    bool bogus_ref;
-
-    struct segment_error {
-        block_id_t block_id;
-        btree_block_t::error block_code;
-        bool bad_magic;
-    };
-
-    std::vector<segment_error> segment_errors;
-
-    largebuf_error() : not_left_shifted(false), bogus_ref(false) { }
-
-    bool is_bad() const {
-        return not_left_shifted || bogus_ref || !segment_errors.empty();
-    }
-};
-
-struct value_error {
-    block_id_t block_id;
-    std::string key;
-    bool bad_metadata_flags;
-    bool too_big;
-    bool lv_too_small;
-    largebuf_error largebuf_errs;
-
-    explicit value_error(block_id_t block_id) : block_id(block_id), bad_metadata_flags(false),
-                                                too_big(false), lv_too_small(false) { }
-
-    bool is_bad() const {
-        return bad_metadata_flags || too_big || lv_too_small || largebuf_errs.is_bad();
-    }
-};
-
+// All the boolean fields are used by internal nodes, and msg is used
+// by leaf nodes, for the time being.
 struct node_error {
     block_id_t block_id;
     btree_block_t::error block_not_found_error;  // must be none
-    bool block_underfull : 1;  // should be false
     bool bad_magic : 1;  // should be false
     bool noncontiguous_offsets : 1;  // should be false
     bool value_out_of_buf : 1;  // must be false
     bool keys_too_big : 1;  // should be false
     bool keys_in_wrong_slice : 1;  // should be false
     bool out_of_order : 1;  // should be false
-    bool value_errors_exist : 1;  // should be false
     bool last_internal_node_key_nonempty : 1;  // should be false
+    std::string msg;
 
-    explicit node_error(block_id_t block_id) : block_id(block_id), block_not_found_error(btree_block_t::none),
-                                               block_underfull(false), bad_magic(false),
+    explicit node_error(block_id_t _block_id) : block_id(_block_id), block_not_found_error(btree_block_t::none),
+                                               bad_magic(false),
                                                noncontiguous_offsets(false), value_out_of_buf(false),
                                                keys_too_big(false), keys_in_wrong_slice(false),
-                                               out_of_order(false), value_errors_exist(false),
+                                               out_of_order(false),
                                                last_internal_node_key_nonempty(false) { }
 
     bool is_bad() const {
-        return block_not_found_error != btree_block_t::none || block_underfull || bad_magic
+        return block_not_found_error != btree_block_t::none || bad_magic
             || noncontiguous_offsets || value_out_of_buf || keys_too_big || keys_in_wrong_slice
-            || out_of_order || value_errors_exist;
+            || out_of_order || !msg.empty();
     }
 };
 
 struct subtree_errors {
     std::vector<node_error> node_errors;
-    std::vector<value_error> value_errors;
 
     subtree_errors() { }
 
     bool is_bad() const {
-        return !(node_errors.empty() && value_errors.empty());
+        return !node_errors.empty();
     }
 
     void add_error(const node_error& error) {
         node_errors.push_back(error);
     }
 
-    void add_error(const value_error& error) {
-        value_errors.push_back(error);
-    }
-
 private:
     DISABLE_COPYING(subtree_errors);
 };
 
-void check_blob_children(slicecx_t& cx, int levels, const block_id_t *ids, int64_t offset, int64_t size, largebuf_error *errs) {
-    int64_t step = blob::stepsize(cx.block_size(), levels);
 
-    for (int64_t i = offset / step, e = ceil_divide(offset + size, step); i < e; ++i) {
-        int64_t suboffset, subsize;
-        blob::shrink(cx.block_size(), levels, offset, size, i, &suboffset, &subsize);
+template <class V>
+class value_sizer_fscker_t : public leaf::key_value_fscker_t<V> {
+public:
+    value_sizer_fscker_t(block_getter_t *getter, slicecx_t *cx) : getter_(getter), cx_(cx) { }
 
-        btree_block_t b;
-        if (!b.init(cx, ids[i])) {
-            largebuf_error::segment_error err;
-            err.block_id = ids[i];
-            err.block_code = b.err;
-            err.bad_magic = false;
-            errs->segment_errors.push_back(err);
+    bool fsck(value_sizer_t<V> *sizer, const btree_key_t *key, const V *value, std::string *msg_out) {
+
+        bool hash_problem = !cx_->is_valid_key(key);
+
+        std::string tmp_msg;
+        bool fsck_problem = !sizer->deep_fsck(getter_, value, sizer->size(value), &tmp_msg);
+
+        if (hash_problem) {
+            *msg_out = "key has bad hash value";
+            if (fsck_problem) {
+                *msg_out += ", ";
+                *msg_out += tmp_msg;
+            }
         } else {
-            if (!(*reinterpret_cast<block_magic_t *>(b.buf) == (levels == 1 ? blob::leaf_node_magic : blob::internal_node_magic))) {
-                largebuf_error::segment_error err;
-                err.block_id = ids[i];
-                err.block_code = btree_block_t::none;
-                err.bad_magic = true;
-                errs->segment_errors.push_back(err);
-                break;
-            }
-
-            if (levels > 1) {
-                check_blob_children(cx, levels - 1, blob::internal_node_block_ids(b.buf), suboffset, subsize, errs);
+            if (fsck_problem) {
+                *msg_out = tmp_msg;
             }
         }
+
+        return !(hash_problem || fsck_problem);
+    }
+
+private:
+    block_getter_t *getter_;
+    slicecx_t *cx_;
+
+    DISABLE_COPYING(value_sizer_fscker_t);
+};
+
+bool construct_sizer_from_magic(block_size_t bs, boost::scoped_ptr< value_sizer_t<void> >& sizer, block_magic_t magic) {
+    if (magic == value_sizer_t<riak_value_t>::leaf_magic()) {
+        sizer.reset(new value_sizer_t<riak_value_t>(bs));
+        return true;
+    } else if (magic == value_sizer_t<memcached_value_t>::leaf_magic()) {
+        sizer.reset(new value_sizer_t<memcached_value_t>(bs));
+        return true;
+    } else {
+        return false;
     }
 }
 
-void check_blob(slicecx_t& cx, const char *ref, int maxreflen, largebuf_error *errs) {
-    int64_t value_size = blob::value_size(ref, maxreflen);
-    if (value_size >= 0) {
-        if (value_size < maxreflen - (maxreflen > 255)) {
-            // It's just a small value.
-            return;
-        }
-
-        int64_t offset = blob::ref_value_offset(ref, maxreflen);
-
-        // Ensure no overflow for ceil_aligned division.
-        if (offset >= 0 && std::numeric_limits<int64_t>::max() / 4 - offset > value_size) {
-            int levels = blob::ref_info(cx.block_size(), ref, maxreflen).levels;
-
-            check_blob_children(cx, levels, blob::block_ids(ref, maxreflen), offset, value_size, errs);
-
-            return;
-        }
+void check_subtree_leaf_node(slicecx_t *cx, const leaf_node_t *buf,
+                             const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null,
+                             node_error *errs) {
+    boost::scoped_ptr< value_sizer_t<void> > sizer;
+    if (!construct_sizer_from_magic(cx->block_size(), sizer, buf->magic)) {
+        errs->msg = "Unrecognized magic value for leaf node.";
     }
 
-    errs->bogus_ref = true;
-
-}
-
-void check_value(UNUSED slicecx_t& cx, const memcached_value_t *value, value_error *errs) {
-    errs->bad_metadata_flags = !!(value->metadata_flags.flags & ~(MEMCACHED_FLAGS | MEMCACHED_CAS | MEMCACHED_EXPTIME));
-
-    check_blob(cx, value->value_ref(), blob::btree_maxreflen, &errs->largebuf_errs);
-}
-
-bool leaf_node_inspect_range(const slicecx_t& cx, const leaf_node_t *buf, uint16_t offset) {
-    // There are some completely bad HACKs here.  We subtract 3 for
-    // pair->key.size, pair->value()->size, pair->value()->metadata_flags.
-    if (cx.block_size().value() - 3 >= offset
-        && offset >= buf->frontmost_offset) {
-        const btree_leaf_pair<memcached_value_t> *pair = 
-            leaf::get_pair<memcached_value_t>(buf, offset);
-        const memcached_value_t *value = (pair->value());
-        uint32_t value_offset = (reinterpret_cast<const char *>(value) - reinterpret_cast<const char *>(pair)) + offset;
-        // The other HACK: We subtract 2 for value->size, value->metadata_flags.
-        if (value_offset <= cx.block_size().value() - 2) {
-            uint32_t tot_offset = value_offset + value->inline_size(cx.block_size());
-            return (cx.block_size().value() >= tot_offset);
-        }
-    }
-    return false;
-}
-
-void check_subtree_leaf_node(slicecx_t& cx, const leaf_node_t *buf, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *tree_errs, node_error *errs) {
-    {
-        std::vector<uint16_t> sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
-        std::sort(sorted_offsets.begin(), sorted_offsets.end());
-        uint16_t expected_offset = buf->frontmost_offset;
-
-        for (int i = 0, n = sorted_offsets.size(); i < n; ++i) {
-            errs->noncontiguous_offsets |= (sorted_offsets[i] != expected_offset);
-            if (!leaf_node_inspect_range(cx, buf, expected_offset)) {
-                errs->value_out_of_buf = true;
-                return;
+    struct : public block_getter_t {
+        bool get_block(block_id_t id, scoped_malloc<char>& buf_out) {
+            btree_block_t b;
+            if (b.init(cx, id)) {
+                // TODO: This copies the block, and there's no reason
+                // we really have to do that.
+                scoped_malloc<char> tmp(reinterpret_cast<char *>(b.buf), reinterpret_cast<char *>(b.buf) + cx->block_size().value());
+                buf_out.swap(tmp);
+                return true;
+            } else {
+                return false;
             }
-            expected_offset += leaf::pair_size<memcached_value_t>(cx.mc_sizer(), leaf::get_pair<memcached_value_t>(buf, sorted_offsets[i]));
-        }
-        errs->noncontiguous_offsets |= (expected_offset != cx.block_size().value());
-
-    }
-
-    const btree_key_t *prev_key = lo;
-    for (uint16_t i = 0; i < buf->npairs; ++i) {
-        uint16_t offset = buf->pair_offsets[i];
-        const btree_leaf_pair<memcached_value_t> *pair = leaf::get_pair<memcached_value_t>(buf, offset);
-
-        errs->keys_too_big |= (pair->key.size > MAX_KEY_SIZE);
-        errs->keys_in_wrong_slice |= !cx.is_valid_key(pair->key);
-        errs->out_of_order |= !(prev_key == NULL || leaf_key_comp::compare(prev_key, &pair->key) < 0);
-
-        value_error valerr(errs->block_id);
-        check_value(cx, reinterpret_cast<const memcached_value_t *>(pair->value()), &valerr);
-
-        if (valerr.is_bad()) {
-            valerr.key = std::string(pair->key.contents, pair->key.contents + pair->key.size);
-            tree_errs->add_error(valerr);
         }
 
-        prev_key = &pair->key;
-    }
+        slicecx_t *cx;
+    } getter;
+    getter.cx = cx;
 
-    errs->out_of_order |= !(prev_key == NULL || hi == NULL || leaf_key_comp::compare(prev_key, hi) <= 0);
+    value_sizer_fscker_t<void> fscker(&getter, cx);
+    leaf::fsck(sizer.get(), left_exclusive_or_null, right_inclusive_or_null, buf, &fscker, &errs->msg);
 }
 
-bool internal_node_begin_offset_in_range(const slicecx_t& cx, const internal_node_t *buf, uint16_t offset) {
-    return (cx.block_size().value() - sizeof(btree_internal_pair)) >= offset && offset >= buf->frontmost_offset && offset + sizeof(btree_internal_pair) + reinterpret_cast<const btree_internal_pair *>(reinterpret_cast<const char *>(buf) + offset)->key.size <= cx.block_size().value();
+
+
+bool internal_node_begin_offset_in_range(const slicecx_t *cx, const internal_node_t *buf, uint16_t offset) {
+    return (cx->block_size().value() - sizeof(btree_internal_pair)) >= offset &&
+        offset >= buf->frontmost_offset &&
+        offset + sizeof(btree_internal_pair) + reinterpret_cast<const btree_internal_pair *>(reinterpret_cast<const char *>(buf) + offset)->key.size <= cx->block_size().value();
 }
 
-void check_subtree(slicecx_t& cx, block_id_t id, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *errs);
+void check_subtree(slicecx_t *cx, block_id_t id, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *errs);
 
-void check_subtree_internal_node(slicecx_t& cx, const internal_node_t *buf, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *tree_errs, node_error *errs) {
+void check_subtree_internal_node(slicecx_t *cx, const internal_node_t *buf, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *tree_errs, node_error *errs) {
     {
         std::vector<uint16_t> sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
         std::sort(sorted_offsets.begin(), sorted_offsets.end());
@@ -1078,7 +1002,7 @@ void check_subtree_internal_node(slicecx_t& cx, const internal_node_t *buf, cons
             }
             expected_offset += internal_node::pair_size(internal_node::get_pair(buf, sorted_offsets[i]));
         }
-        errs->noncontiguous_offsets |= (expected_offset != cx.block_size().value());
+        errs->noncontiguous_offsets |= (expected_offset != cx->block_size().value());
     }
 
     // Now check other things.
@@ -1116,7 +1040,7 @@ void check_subtree_internal_node(slicecx_t& cx, const internal_node_t *buf, cons
     }
 }
 
-void check_subtree(slicecx_t& cx, block_id_t id, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *errs) {
+void check_subtree(slicecx_t *cx, block_id_t id, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *errs) {
     /* Walk tree */
 
     btree_block_t node;
@@ -1129,24 +1053,14 @@ void check_subtree(slicecx_t& cx, block_id_t id, const btree_key_t *lo, const bt
 
     node_error node_err(id);
 
-    if (!node::has_sensible_offsets(cx.block_size(), reinterpret_cast<node_t *>(node.buf))) {
-        node_err.value_out_of_buf = true;
+    if (reinterpret_cast<node_t *>(node.buf)->magic == cx->get_sizer()->btree_leaf_magic()) {
+        check_subtree_leaf_node(cx, reinterpret_cast<leaf_node_t *>(node.buf), lo, hi, &node_err);
+    } else if (reinterpret_cast<internal_node_t *>(node.buf)->magic == internal_node_t::expected_magic) {
+        check_subtree_internal_node(cx, reinterpret_cast<internal_node_t *>(node.buf), lo, hi, errs, &node_err);
     } else {
-        if (lo != NULL && hi != NULL) {
-            // (We're happy with an underfull root block.)
-            if (node::is_underfull(cx.block_size(), reinterpret_cast<node_t *>(node.buf))) {
-                node_err.block_underfull = true;
-            }
-        }
-
-        if (reinterpret_cast<leaf_node_t *>(node.buf)->magic == leaf_node_t::expected_magic) {
-            check_subtree_leaf_node(cx, reinterpret_cast<leaf_node_t *>(node.buf), lo, hi, errs, &node_err);
-        } else if (reinterpret_cast<internal_node_t *>(node.buf)->magic == internal_node_t::expected_magic) {
-            check_subtree_internal_node(cx, reinterpret_cast<internal_node_t *>(node.buf), lo, hi, errs, &node_err);
-        } else {
-            node_err.bad_magic = true;
-        }
+        node_err.bad_magic = true;
     }
+
     if (node_err.is_bad()) {
         errs->add_error(node_err);
     }
@@ -1171,21 +1085,21 @@ private:
     DISABLE_COPYING(other_block_errors);
 };
 
-void check_slice_other_blocks(slicecx_t& cx, other_block_errors *errs) {
+void check_slice_other_blocks(slicecx_t *cx, other_block_errors *errs) {
     block_id_t end;
     {
-        read_locker_t locker(cx.knog);
+        read_locker_t locker(cx->knog);
         end = locker.block_info().get_size();
     }
 
     block_id_t first_valueless_block = NULL_BLOCK_ID;
 
-    for (block_id_t id_iter = 0, id = cx.to_ser_block_id(0);
+    for (block_id_t id_iter = 0, id = cx->to_ser_block_id(0);
          id < end;
-         id = cx.to_ser_block_id(++id_iter)) {
+         id = cx->to_ser_block_id(++id_iter)) {
         block_knowledge_t info;
         {
-            read_locker_t locker(cx.knog);
+            read_locker_t locker(cx->knog);
             info = locker.block_info()[id];
         }
         if (info.offset.get_delete_bit()) {
@@ -1205,7 +1119,7 @@ void check_slice_other_blocks(slicecx_t& cx, other_block_errors *errs) {
                 desc.block_id = id;
 
                 btree_block_t b;
-                if (!b.init(cx.file, cx.knog, id)) {
+                if (!b.init(cx->file, cx->knog, id)) {
                     desc.loading_error = b.err;
                 } else {
                     desc.magic = *reinterpret_cast<block_magic_t *>(b.buf);
@@ -1218,7 +1132,7 @@ void check_slice_other_blocks(slicecx_t& cx, other_block_errors *errs) {
                 desc.block_id = id;
 
                 btree_block_t zeroblock;
-                if (!zeroblock.init(cx.file, cx.knog, id)) {
+                if (!zeroblock.init(cx->file, cx->knog, id)) {
                     desc.loading_error = zeroblock.err;
                     errs->allegedly_deleted_blocks.push_back(desc);
                 } else {
@@ -1233,62 +1147,12 @@ void check_slice_other_blocks(slicecx_t& cx, other_block_errors *errs) {
     }
 }
 
-struct delete_queue_errors {
-    btree_block_t::error dq_block_code;
-    bool dq_block_bad_magic;
-    largebuf_error timestamp_buf;
-    largebuf_error keys_buf;
-
-    // TODO: We don't do the timestamp key alignment checks below.
-    // The timestamps' offsets (after subtracting the primal_offset)
-    // must be aligned to key boundaries.  These next two variables
-    // are unused.
-    std::vector<repli_timestamp_t> timestamp_key_alignment;
-    int64_t bad_keysize_offset;
-    int64_t primal_offset;    // Just for the fyi.
-
-    delete_queue_errors() : dq_block_code(btree_block_t::none), dq_block_bad_magic(false), bad_keysize_offset(-1), primal_offset(-1) { }
-
-    bool is_bad() const {
-        return dq_block_code != btree_block_t::none || dq_block_bad_magic
-            || timestamp_buf.is_bad() || keys_buf.is_bad()
-            || !timestamp_key_alignment.empty() || bad_keysize_offset != -1;
-    }
-};
-
-void check_delete_queue(UNUSED slicecx_t& cx, UNUSED block_id_t block_id, UNUSED delete_queue_errors *errs) {
-    btree_block_t dq_block;
-    if (!dq_block.init(cx, block_id)) {
-        errs->dq_block_code = dq_block.err;
-        return;
-    }
-
-    replication::delete_queue_block_t *buf = const_cast<replication::delete_queue_block_t *>(reinterpret_cast<const replication::delete_queue_block_t *>(dq_block.buf));
-
-    if (buf->magic != replication::delete_queue_block_t::expected_magic) {
-        errs->dq_block_bad_magic = true;
-        return;
-    }
-
-    errs->primal_offset = *replication::delete_queue::primal_offset(buf);
-    char *t_o_ref = replication::delete_queue::timestamps_and_offsets_blob_ref(buf);
-    char *keys_ref = replication::delete_queue::keys_blob_ref(buf);
-    int keys_ref_size = replication::delete_queue::keys_blob_ref_size(cx.block_size());
-
-    check_blob(cx, t_o_ref, replication::delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE, &errs->timestamp_buf);
-    check_blob(cx, keys_ref, keys_ref_size, &errs->keys_buf);
-
-    // TODO: Analyze key alignment and make sure keys have valid sizes (> 0 and <= MAX_KEY_SIZE).
-}
-
-
 struct slice_errors {
     int global_slice_number;
     std::string home_filename;
     btree_block_t::error superblock_code;
     bool superblock_bad_magic;
 
-    delete_queue_errors delete_queue_errs;
     diff_log_errors diff_log_errs;
     subtree_errors tree_errs;
     other_block_errors other_block_errs;
@@ -1303,11 +1167,10 @@ struct slice_errors {
 };
 
 //nondirect_file_t *file, file_knowledge_t *knog, int global_slice_number, slice_errors *errs, const config_t *cfg) {
-void check_slice(slicecx_t &cx, slice_errors *errs) {
+void check_slice(slicecx_t *cx, slice_errors *errs) {
     check_and_load_diff_log(cx, &errs->diff_log_errs);
 
     block_id_t root_block_id;
-    block_id_t delete_queue_block_id;
     {
         btree_block_t btree_superblock;
         if (!btree_superblock.init(cx, SUPERBLOCK_ID)) {
@@ -1320,10 +1183,7 @@ void check_slice(slicecx_t &cx, slice_errors *errs) {
             return;
         }
         root_block_id = buf->root_block;
-        delete_queue_block_id = buf->delete_queue_block;
     }
-
-    check_delete_queue(cx, delete_queue_block_id, &errs->delete_queue_errs);
 
     if (root_block_id != NULL_BLOCK_ID) {
         check_subtree(cx, root_block_id, NULL, NULL, &errs->tree_errs);
@@ -1331,7 +1191,7 @@ void check_slice(slicecx_t &cx, slice_errors *errs) {
 
     check_slice_other_blocks(cx, &errs->other_block_errs);
 
-    cx.clear_buf_patches();
+    cx->clear_buf_patches();
 }
 
 struct check_to_config_block_errors {
@@ -1410,7 +1270,7 @@ struct slice_parameter_t {
 
 void *do_check_slice(void *slice_param) {
     slice_parameter_t *p = reinterpret_cast<slice_parameter_t *>(slice_param);
-    check_slice(*p->cx, p->errs);
+    check_slice(p->cx, p->errs);
     delete p->cx;
     delete p;
     return NULL;
@@ -1553,42 +1413,6 @@ void report_interfile_errors(const interfile_errors &errs) {
     }
 }
 
-void report_any_largebuf_errors(const char *name, const largebuf_error *errs) {
-    if (errs->is_bad()) {
-        // TODO: This duplicates some code with
-        // report_subtree_errors' large buf error reporting.
-        printf("ERROR %s %s errors: %s%s", state, name,
-               errs->not_left_shifted ? " not_left_shifted" : "",
-               errs->bogus_ref ? " bogus_ref" : "");
-
-        for (int j = 0, m = errs->segment_errors.size(); j < m; ++j) {
-            const largebuf_error::segment_error se = errs->segment_errors[j];
-
-            printf(" segment_error(%u, %s)", se.block_id,
-                   se.block_code == btree_block_t::none ? "bad magic" : btree_block_t::error_name(se.block_code));
-        }
-
-        printf("\n");
-    }
-}
-
-bool report_delete_queue_errors(const delete_queue_errors *errs) {
-    if (errs->is_bad()) {
-        if (errs->dq_block_code != btree_block_t::none) {
-            printf("ERROR %s could not find delete queue block: %s\n", state, btree_block_t::error_name(errs->dq_block_code));
-        }
-
-        if (errs->dq_block_bad_magic) {
-            printf("ERROR %s delete queue block had bad magic\n", state);
-        }
-
-        report_any_largebuf_errors("delete queue timestamp buffer", &errs->timestamp_buf);
-        report_any_largebuf_errors("delete queue keys buffer", &errs->keys_buf);
-
-    }
-    return !errs->is_bad();
-}
-
 bool report_subtree_errors(const subtree_errors *errs) {
     if (!errs->node_errors.empty()) {
         printf("ERROR %s subtree node errors found...\n", state);
@@ -1598,47 +1422,21 @@ bool report_subtree_errors(const subtree_errors *errs) {
             if (e.block_not_found_error != btree_block_t::none) {
                 printf(" block not found: %s\n", btree_block_t::error_name(e.block_not_found_error));
             } else {
-                printf("%s%s%s%s%s%s%s%s%s\n",
-                       e.block_underfull ? " block_underfull" : "",
+                printf("%s%s%s%s%s%s%s%s\n",
                        e.bad_magic ? " bad_magic" : "",
                        e.noncontiguous_offsets ? " noncontiguous_offsets" : "",
                        e.value_out_of_buf ? " value_out_of_buf" : "",
                        e.keys_too_big ? " keys_too_big" : "",
                        e.keys_in_wrong_slice ? " keys_in_wrong_slice" : "",
                        e.out_of_order ? " out_of_order" : "",
-                       e.value_errors_exist ? " value_errors_exist" : "",
-                       e.last_internal_node_key_nonempty ? " last_internal_node_key_nonempty" : "");
+                       e.last_internal_node_key_nonempty ? " last_internal_node_key_nonempty" : "",
+                       e.msg.c_str());
 
             }
         }
     }
 
-    if (!errs->value_errors.empty()) {
-        // TODO: This duplicates some code with
-        // report_any_largebuf_errors' large buf error reporting.
-
-        printf("ERROR %s subtree value errors found...\n", state);
-        for (int i = 0, n = errs->value_errors.size(); i < n; ++i) {
-            const value_error& e = errs->value_errors[i];
-            printf("          %u/'%s' :", e.block_id, e.key.c_str());
-            printf("%s%s%s%s%s",
-                   e.bad_metadata_flags ? " bad_metadata_flags" : "",
-                   e.too_big ? " too_big" : "",
-                   e.lv_too_small ? " lv_too_small" : "",
-                   e.largebuf_errs.not_left_shifted ? " largebuf_errs.not_left_shifted" : "",
-                   e.largebuf_errs.bogus_ref ? " largebuf_errs.bogus_ref" : "");
-            for (int j = 0, m = e.largebuf_errs.segment_errors.size(); j < m; ++j) {
-                const largebuf_error::segment_error se = e.largebuf_errs.segment_errors[j];
-
-                printf(" segment_error(%u, %s)", se.block_id,
-                       se.block_code == btree_block_t::none ? "bad magic" : btree_block_t::error_name(se.block_code));
-            }
-
-            printf("\n");
-        }
-    }
-
-    return errs->node_errors.empty() && errs->value_errors.empty();
+    return errs->node_errors.empty();
 }
 
 void report_rogue_block_description(const char *title, const rogue_block_description& desc) {
@@ -1700,11 +1498,10 @@ bool report_slice_errors(const std::string &slice_name, const slice_errors *errs
         printf("ERROR %s btree superblock had bad magic\n", state);
         return false;
     }
-    bool no_delete_queue_errors = report_delete_queue_errors(&errs->delete_queue_errs);
     bool no_diff_log_errors = report_diff_log_errors(&errs->diff_log_errs);
     bool no_subtree_errors = report_subtree_errors(&errs->tree_errs);
     bool no_other_block_errors = report_other_block_errors(&errs->other_block_errs);
-    return no_delete_queue_errors && no_diff_log_errors && no_subtree_errors && no_other_block_errors;
+    return no_diff_log_errors && no_subtree_errors && no_other_block_errors;
 }
 
 bool report_post_config_block_errors(const all_slices_errors& slices_errs) {

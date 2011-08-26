@@ -82,6 +82,17 @@ key_range_t key_range_t::intersection(key_range_t range) {
     return ixn;
 }
 
+bool operator==(key_range_t a, key_range_t b) {
+    if (a.right_unbounded != b.right_unbounded) return false;
+    if (a.left != b.left) return false;
+    if (!a.right_unbounded && a.right != b.right) return false;
+    return true;
+}
+
+bool operator!=(key_range_t a, key_range_t b) {
+    return !(a == b);
+}
+
 /* `memcached_protocol_t::read_t::get_region()` */
 
 static key_range_t::bound_t convert_bound_mode(rget_bound_mode_t rbm) {
@@ -124,7 +135,7 @@ struct read_shard_visitor_t : public boost::static_visitor<std::vector<memcached
         vec.push_back(get);
         return vec;
     }
-    std::vector<memcached_protocol_t::read_t> operator()(rget_query_t original_rget) {
+    std::vector<memcached_protocol_t::read_t> operator()(UNUSED rget_query_t original_rget) {
         std::vector<memcached_protocol_t::read_t> subreads;
         for (int i = 0; i < (int)regions.size(); i++) {
             rassert(regions[i].overlaps(
@@ -204,7 +215,7 @@ key_range_t memcached_protocol_t::write_t::get_region() {
 
 /* `memcached_protocol_t::write_t::shard()` */
 
-std::vector<memcached_protocol_t::write_t> memcached_protocol_t::write_t::shard(std::vector<key_range_t> regions) {
+std::vector<memcached_protocol_t::write_t> memcached_protocol_t::write_t::shard(UNUSED std::vector<key_range_t> regions) {
     rassert(regions.size() == 1);
     std::vector<memcached_protocol_t::write_t> vec;
     vec.push_back(*this);
@@ -232,7 +243,7 @@ void memcached_protocol_t::store_t::create(serializer_t *ser, key_range_t) {
 
 memcached_protocol_t::store_t::store_t(serializer_t *ser, key_range_t r) :
     cache(ser, &cache_config),
-    btree(&cache, 1000),
+    btree(&cache),
     region(r)
     { }
 
@@ -245,7 +256,7 @@ key_range_t memcached_protocol_t::store_t::get_region() {
 /* `memcached_protocol_t::store_t::read()` */
 
 struct read_perform_visitor_t : public boost::static_visitor<memcached_protocol_t::read_response_t> {
-    read_perform_visitor_t(btree_slice_t *btree, order_token_t tok) : btree(btree), tok(tok) { }
+    read_perform_visitor_t(btree_slice_t *_btree, order_token_t _tok) : btree(_btree), tok(_tok) { }
     btree_slice_t *btree;
     order_token_t tok;
     memcached_protocol_t::read_response_t operator()(get_query_t get) {
@@ -282,7 +293,8 @@ struct convert_response_visitor_t : public boost::static_visitor<memcached_proto
 };
 
 struct write_perform_visitor_t : public boost::static_visitor<memcached_protocol_t::write_response_t> {
-    write_perform_visitor_t(btree_slice_t *btree, castime_t castime, order_token_t tok) : btree(btree), castime(castime), tok(tok) { }
+    write_perform_visitor_t(btree_slice_t *_btree, castime_t _castime, order_token_t _tok)
+	: btree(_btree), castime(_castime), tok(_tok) { }
     btree_slice_t *btree;
     castime_t castime;
     order_token_t tok;

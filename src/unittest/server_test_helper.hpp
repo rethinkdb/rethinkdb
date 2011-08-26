@@ -1,20 +1,19 @@
 #ifndef __UNITTEST_SERVER_TEST_HELPER__
 #define __UNITTEST_SERVER_TEST_HELPER__
 
-#include "arch/arch.hpp"
+#include "arch/types.hpp"
 #include "utils.hpp"
 #include "buffer_cache/types.hpp"
-#include "buffer_cache/co_functions.hpp"
+#include "concurrency/access.hpp"
 
 class translator_serializer_t;
 
 namespace unittest {
 
 class server_test_helper_t {
-    thread_pool_t thread_pool;
 public:
-    server_test_helper_t() : thread_pool(1), serializer(NULL) { }
-    virtual ~server_test_helper_t() { }
+    server_test_helper_t();
+    virtual ~server_test_helper_t();
     void run();
 
 protected:
@@ -36,13 +35,18 @@ protected:
     translator_serializer_t *serializer;
 
 private:
+    thread_pool_t *thread_pool;
+
     struct acquiring_coro_t {
         buf_t *result;
         bool signaled;
         transaction_t *txn;
         block_id_t block_id;
         access_t mode;
-        acquiring_coro_t(transaction_t *txn, block_id_t block_id, access_t mode) : result(NULL), signaled(false), txn(txn), block_id(block_id), mode(mode) { }
+
+        acquiring_coro_t(transaction_t *_txn, block_id_t _block_id, access_t _mode)
+	    : result(NULL), signaled(false), txn(_txn), block_id(_block_id), mode(_mode) { }
+
         void run() {
             result = acq(txn, block_id, mode);
             signaled = true;

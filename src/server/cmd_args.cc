@@ -215,7 +215,6 @@ enum {
     flush_concurrency,
     flush_threshold,
     full_perfmon,
-    total_delete_queue_limit,
     memcache_file,
     metadata_file,
     verbose,
@@ -297,7 +296,6 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"heartbeat-timeout",    required_argument, 0, heartbeat_timeout},
                 {"no-rogue",             no_argument, 0, no_rogue},
                 {"full-perfmon",         no_argument, &do_full_perfmon, 1},
-                {"total-delete-queue-limit", required_argument, 0, total_delete_queue_limit},
                 {"memcached-file", required_argument, 0, memcache_file},
                 {0, 0, 0, 0}
             };
@@ -387,8 +385,6 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 config.set_failover_file(optarg); break;
             case full_perfmon:
                 global_full_perfmon = true; break;
-            case total_delete_queue_limit:
-                config.set_total_delete_queue_limit(optarg); break;
             case memcache_file:
                 config.import_config.add_import_file(optarg); break;
             case verbose:
@@ -800,14 +796,6 @@ void parsing_cmd_config_t::set_heartbeat_timeout(const char* value) {
     target *= 1000; // Convert to milliseconds
 }
 
-void parsing_cmd_config_t::set_total_delete_queue_limit(const char *value) {
-    int64_t target = parse_longlong(value);
-    if (parsing_failed || target < 0)
-        fail_due_to_user_error("Total delete queue limit must be non-negative\n");
-
-    store_dynamic_config.total_delete_queue_limit = target;
-}
-
 void parsing_cmd_config_t::set_failover_file(const char* value) {
     if (strlen(value) > MAX_PATH_LEN)
         fail_due_to_user_error("Failover script path is too long");
@@ -980,7 +968,6 @@ cmd_config_t::cmd_config_t() {
     // TODO: This is hacky. It also doesn't belong here. Probably the metadata
     // store should really have a configuration structure of its own.
     metadata_store_dynamic_config = store_dynamic_config;
-    metadata_store_dynamic_config.total_delete_queue_limit = 0;
     metadata_store_dynamic_config.cache.max_size = 8 * MEGABYTE;
     metadata_store_dynamic_config.cache.max_dirty_size = 4 * MEGABYTE;
     metadata_store_dynamic_config.cache.flush_dirty_size = 2 * MEGABYTE;

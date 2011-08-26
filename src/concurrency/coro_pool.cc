@@ -5,8 +5,8 @@
 #include "arch/runtime/runtime.hpp"
 #include "concurrency/queue/passive_producer.hpp"
 
-coro_pool_t::coro_pool_t(size_t worker_count_, passive_producer_t<boost::function<void()> > *source) :
-    source(source),
+coro_pool_t::coro_pool_t(size_t worker_count_, passive_producer_t<boost::function<void()> > *_source) :
+    source(_source),
     max_worker_count(worker_count_),
     active_worker_count(0)
 {

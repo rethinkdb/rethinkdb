@@ -74,7 +74,7 @@ void redis_protocol_t::store_t::create(serializer_t *ser, redis_protocol_t::regi
 
 redis_protocol_t::store_t::store_t(serializer_t *ser, redis_protocol_t::region_t region_) :
     cache(ser, &cache_config),
-    btree(&cache, 1000),
+    btree(&cache),
     region(region_)
     { }
 

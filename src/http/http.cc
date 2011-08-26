@@ -1,6 +1,11 @@
 #include "http/http.hpp"
+
 #include <iostream>
+
+#include "errors.hpp"
 #include <boost/bind.hpp>
+
+#include "arch/arch.hpp"
 #include "logger.hpp"
 
 std::string http_req_t::find_query_param(std::string key) const {
@@ -77,6 +82,8 @@ http_server_t::http_server_t(int port) {
     tcp_listener.reset(new tcp_listener_t(port, boost::bind(&http_server_t::handle_conn, this, _1)));
 }
 
+http_server_t::~http_server_t() { }
+
 std::string human_readable_status(int code) {
     switch(code) {
     case 200:
@@ -85,6 +92,8 @@ std::string human_readable_status(int code) {
         return "No Content";
     case 400:
         return "Bad Request";
+    case 403:
+        return "Forbidden";
     case 404:
         return "Not Found";
     default:

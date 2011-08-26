@@ -1,19 +1,24 @@
-#ifndef __SERVER_DUMMY_NAMESPACE_INTERFACE_HPP__
-#define __SERVER_DUMMY_NAMESPACE_INTERFACE_HPP__
+#ifndef __UNITTEST_DUMMY_NAMESPACE_INTERFACE_HPP__
+#define __UNITTEST_DUMMY_NAMESPACE_INTERFACE_HPP__
 
-#include "server/namespace_interface.hpp"
-#include "serializer/log/log_serializer.hpp"
-#include "serializer/translator.hpp"
 #include "utils.hpp"
+#include <boost/bind.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
+
+#include "namespace_interface.hpp"
+#include "serializer/config.hpp"
+#include "serializer/translator.hpp"
 #include "concurrency/pmap.hpp"
+#include "unittest/unittest_utils.hpp"
+
+namespace unittest {
 
 template<class protocol_t>
 struct dummy_parallelizer_t {
 
 public:
-    dummy_parallelizer_t(std::vector<typename protocol_t::store_t *> children) :
-        children(children), random_step(0) { }
+    dummy_parallelizer_t(std::vector<typename protocol_t::store_t *> _children) :
+        children(_children), random_step(0) { }
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t read, order_token_t tok) {
         std::vector<typename protocol_t::read_t> reads = read->parallelize(children.size());
@@ -46,7 +51,8 @@ template<class protocol_t>
 struct dummy_timestamper_t {
 
 public:
-    dummy_timestamper_t(dummy_parallelizer_t<protocol_t> *next) : next(next), timestamp(repli_timestamp_t::distant_past) { }
+    dummy_timestamper_t(dummy_parallelizer_t<protocol_t> *_next)
+	: next(_next), timestamp(repli_timestamp_t::distant_past) { }
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t read, order_token_t tok) {
         return next->read(read, tok);
@@ -74,8 +80,8 @@ public:
         typename protocol_t::region_t region;
     };
 
-    dummy_sharder_t(std::vector<timestamper_and_region_t> timestampers) :
-        timestampers(timestampers) { }
+    dummy_sharder_t(std::vector<timestamper_and_region_t> _timestampers)
+	: timestampers(_timestampers) { }
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t read, order_token_t tok) {
         std::vector<typename protocol_t::region_t> regions;
@@ -125,46 +131,9 @@ class dummy_namespace_interface_t :
     public namespace_interface_t<protocol_t>
 {
 public:
-    static void create(std::string path, std::vector<typename protocol_t::region_t> shards, int repli_factor) {
+    dummy_namespace_interface_t(std::vector<typename protocol_t::region_t> shards, int repli_factor, std::vector<typename protocol_t::store_t *> stores) {
 
-        log_serializer_t::create(
-            log_serializer_t::dynamic_config_t(),
-            log_serializer_t::private_dynamic_config_t(path),
-            log_serializer_t::static_config_t()
-            );
-
-        log_serializer_t serializer(
-            /* Extra parentheses are necessary so C++ doesn't interpret this as
-            a declaration of a function called `serializer`. WTF, C++? */
-            (log_serializer_t::dynamic_config_t()),
-            log_serializer_t::private_dynamic_config_t(path)
-            );
-
-        std::vector<serializer_t *> multiplexer_files;
-        multiplexer_files.push_back(&serializer);
-
-        serializer_multiplexer_t::create(multiplexer_files, shards.size() * repli_factor);
-
-        serializer_multiplexer_t multiplexer(multiplexer_files);
-
-        for (int i = 0; i < (int)shards.size(); i++) {
-            for (int j = 0; j < repli_factor; j++) {
-                protocol_t::store_t::create(multiplexer.proxies[i*repli_factor+j], shards[i]);
-            }
-        }
-    }
-
-    dummy_namespace_interface_t(std::string path, std::vector<typename protocol_t::region_t> shards, int repli_factor) {
-
-        serializer.reset(new log_serializer_t(
-            log_serializer_t::dynamic_config_t(),
-            log_serializer_t::private_dynamic_config_t(path)
-            ));
-
-        std::vector<serializer_t *> multiplexer_files;
-        multiplexer_files.push_back(serializer.get());
-
-        multiplexer.reset(new serializer_multiplexer_t(multiplexer_files));
+        rassert(stores.size() == repli_factor * shards.size());
 
         std::vector<typename dummy_sharder_t<protocol_t>::timestamper_and_region_t> shards_of_this_db;
 
@@ -173,9 +142,9 @@ public:
             std::vector<typename protocol_t::store_t *> mirrors_of_this_shard;
 
             for (int j = 0; j < repli_factor; j++) {
-                typename protocol_t::store_t *store =
-                    new typename protocol_t::store_t(multiplexer->proxies[i*repli_factor+j], shards[i]);
-                stores.push_back(store);
+
+                typename protocol_t::store_t *store = stores[i*repli_factor + j];
+                rassert(store->get_region() == shards[i]);
                 mirrors_of_this_shard.push_back(store);
             }
 
@@ -204,12 +173,102 @@ public:
     }
 
 private:
-    boost::scoped_ptr<log_serializer_t> serializer;
-    boost::scoped_ptr<serializer_multiplexer_t> multiplexer;
-    boost::ptr_vector<typename protocol_t::store_t> stores;
     boost::ptr_vector<dummy_parallelizer_t<protocol_t> > parallelizers;
     boost::ptr_vector<dummy_timestamper_t<protocol_t> > timestampers;
     boost::scoped_ptr<dummy_sharder_t<protocol_t> > sharder;
 };
 
-#endif /* __SERVER_DUMMY_NAMESPACE_INTERFACE_HPP__ */
+/* Currently, the protocol interface doesn't specify how `store_t`s get created.
+`run_with_dummy_namespace_interface` is to make it easier to test new protocols;
+it assumes that `protocol_t::store_t` supports the following API:
+
+    static void create(serializer_t *, region_t);
+    store_t(serializer_t *, region_t);
+    ~store_t();
+
+If your `protocol_t` doesn't match that interface, you'll have to construct a
+`dummy_namespace_interface_t` manually instead of using
+`run_with_dummy_namespace_interface`. */
+
+class bob_bob_t {
+    char *filename;
+public:
+    bob_bob_t(const char *tmpl) {
+        size_t len = strlen(tmpl);
+        filename = new char[len+1];
+        memcpy(filename, tmpl, len+1);
+        int fd = mkstemp(filename);
+        guarantee_err(fd != -1, "Couldn't create a temporary file");
+        close(fd);
+    }
+
+    const char *name() { return filename; }
+
+    ~bob_bob_t() {
+        unlink(filename);
+        delete [] filename;
+    }
+};
+
+template<class protocol_t>
+void run_with_dummy_namespace_interface(
+        std::vector<typename protocol_t::region_t> shards,
+        int repli_factor,
+        boost::function<void(namespace_interface_t<protocol_t> *)> fun) {
+
+    bob_bob_t db_file("/tmp/rdb_unittest.XXXXXX");
+
+    /* Set up serializer */
+
+    standard_serializer_t::create(
+        standard_serializer_t::dynamic_config_t(),
+        standard_serializer_t::private_dynamic_config_t(db_file.name()),
+        standard_serializer_t::static_config_t()
+        );
+
+    standard_serializer_t serializer(
+        /* Extra parentheses are necessary so C++ doesn't interpret this as
+        a declaration of a function called `serializer`. WTF, C++? */
+        (standard_serializer_t::dynamic_config_t()),
+        standard_serializer_t::private_dynamic_config_t(db_file.name())
+        );
+
+    /* Set up multiplexer */
+
+    std::vector<standard_serializer_t *> multiplexer_files;
+    multiplexer_files.push_back(&serializer);
+
+    serializer_multiplexer_t::create(multiplexer_files, shards.size() * repli_factor);
+
+    serializer_multiplexer_t multiplexer(multiplexer_files);
+    rassert(multiplexer.proxies.size() == shards.size() * repli_factor);
+
+    /* Set up stores */
+
+    boost::ptr_vector<typename protocol_t::store_t> store_storage;   // to call destructors
+    std::vector<typename protocol_t::store_t *> stores;
+
+    for (int i = 0; i < (int)shards.size(); i++) {
+        for (int j = 0; j < repli_factor; j++) {
+
+            serializer_t *serializer = multiplexer.proxies[i*repli_factor+j];
+
+            protocol_t::store_t::create(serializer, shards[i]);
+
+            typename protocol_t::store_t *store =
+                new typename protocol_t::store_t(serializer, shards[i]);
+            store_storage.push_back(store);
+            stores.push_back(store);
+        }
+    }
+
+    /* Set up namespace interface */
+
+    dummy_namespace_interface_t<protocol_t> nsi(shards, repli_factor, stores);
+
+    fun(&nsi);
+}
+
+}   /* namespace unittest */
+
+#endif /* __UNITTEST_DUMMY_NAMESPACE_INTERFACE_HPP__ */

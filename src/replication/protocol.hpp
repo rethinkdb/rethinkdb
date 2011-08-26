@@ -4,7 +4,6 @@
 #include "errors.hpp"
 #include <boost/function.hpp>
 
-#include "arch/arch.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/drain_semaphore.hpp"
 #include "concurrency/mutex.hpp"
@@ -68,7 +67,7 @@ public:
     virtual void send(scoped_malloc<net_introduce_t>& message) = 0;
     virtual void send(scoped_malloc<net_backfill_t>& message) = 0;
     virtual void send(scoped_malloc<net_backfill_complete_t>& message) = 0;
-    virtual void send(scoped_malloc<net_backfill_delete_everything_t>& message) = 0;
+    virtual void send(scoped_malloc<net_backfill_delete_range_t>& message) = 0;
     virtual void send(scoped_malloc<net_backfill_delete_t>& message) = 0;
     virtual void send(stream_pair<net_backfill_set_t>& message) = 0;
     virtual void send(scoped_malloc<net_get_cas_t>& message) = 0;
@@ -131,26 +130,12 @@ public:
 
     // Call shutdown() when you want the repli_stream to stop. shutdown() causes
     // the connection to be closed and conn_closed() to be called.
-    void shutdown() {
-        drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
-        unwatch_heartbeat();
-        stop_sending_heartbeats();
-        try {
-            mutex_acquisition_t ak(&outgoing_mutex_); // flush_buffer() would interfere with active writes
-            conn_->flush_buffer();
-        } catch (tcp_conn_t::write_closed_exc_t &e) {
-	    (void)e;
-            // Ignore
-        }
-        if (conn_->is_read_open()) {
-            conn_->shutdown_read();
-        }
-    }
+    void shutdown();
 
     void send(net_introduce_t *msg);
     void send(net_backfill_t *msg);
     void send(net_backfill_complete_t *msg);
-    void send(net_backfill_delete_everything_t msg);
+    void send(net_backfill_delete_range_t *msg);
     void send(net_backfill_delete_t *msg);
     void send(net_backfill_set_t *msg, const char *key, boost::shared_ptr<data_provider_t> value);
     void send(net_get_cas_t *msg);

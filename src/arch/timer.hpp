@@ -8,7 +8,7 @@
 // logic with a different OS then we would have to make this more generic.
 
 /* Timer token */
-struct timer_token_t;
+class timer_token_t;
 
 /* This timer class uses the underlying OS timer provider to set up a
  * timer interval. It then manages a list of application timers based

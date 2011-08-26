@@ -14,7 +14,6 @@ std::string debug_format(const net_hello_t *msg);
 std::string debug_format(const net_introduce_t *msg);
 std::string debug_format(const net_backfill_t *msg);
 std::string debug_format(const net_backfill_complete_t *msg);
-std::string debug_format(const net_backfill_delete_everything_t *msg);
 std::string debug_format(const net_timebarrier_t *msg);
 std::string debug_format(const net_heartbeat_t *msg);
 std::string debug_format(const net_get_cas_t *msg);
@@ -25,6 +24,7 @@ std::string debug_format(const net_decr_t *msg);
 std::string debug_format(const net_append_t *msg, const void *real_data = NULL);
 std::string debug_format(const net_prepend_t *msg, const void *real_data = NULL);
 std::string debug_format(const net_delete_t *msg);
+std::string debug_format(const net_backfill_delete_range_t *msg);
 std::string debug_format(const net_backfill_delete_t *msg);
 
 }   // namespace replication

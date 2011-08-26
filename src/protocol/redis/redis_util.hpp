@@ -87,11 +87,11 @@ struct set_oper_t {
     {
         // Get the superblock that represents our write transaction
         get_btree_superblock(btree, rwi_write, 1, timestamp, otok, &superblock);
-        find_keyvalue_location_for_write(&sizer, &superblock, btree_key.key(), timestamp, &location);
+        find_keyvalue_location_for_write(&superblock, btree_key.key(), &location);
     }
 
     ~set_oper_t() {
-        apply_keyvalue_change(&sizer, &location, btree_key.key(), timestamp);
+        apply_keyvalue_change(&location, btree_key.key(), timestamp);
     }
 
     bool del() {
@@ -136,7 +136,7 @@ struct read_oper_t {
         got_superblock_t superblock;
         get_btree_superblock(btree, rwi_read, otok, &superblock);
         btree_key_buffer_t btree_key(key);
-        find_keyvalue_location_for_read(&sizer, &superblock, btree_key.key(), &location);
+        find_keyvalue_location_for_read(&superblock, btree_key.key(), &location);
     }
 
     bool exists() {

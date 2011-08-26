@@ -1,12 +1,12 @@
 #include "protocol/redis/redis_util.hpp"
 #include "btree/iteration.hpp"
+#include <boost/bind.hpp>
 #include <iostream>
 
 // Set utilities
 struct set_set_oper_t : set_oper_t {
     set_set_oper_t(std::string &key, btree_slice_t *btree, timestamp_t timestamp, order_token_t otok) :
-        set_oper_t(key, btree, timestamp, otok),
-        nested_sizer(btree->cache()->get_block_size())
+        set_oper_t(key, btree, timestamp, otok)
     { 
         redis_set_value_t *value = reinterpret_cast<redis_set_value_t *>(location.value.get());
         if(value == NULL) {
@@ -70,11 +70,11 @@ protected:
             nested_superblock.sb.swap(nested_btree_sb);
             nested_superblock.txn = ths->location.txn;
 
-            find_keyvalue_location_for_write(&ths->nested_sizer, &nested_superblock, nested_key.key(), ths->timestamp, &loc);
+            find_keyvalue_location_for_write(&nested_superblock, nested_key.key(), &loc);
         }
         
         void apply_change() {
-            apply_keyvalue_change(&ths->nested_sizer, &loc, nested_key.key(), ths->timestamp);
+            apply_keyvalue_change(&loc, nested_key.key(), ths->timestamp);
             virtual_superblock_t *sb = reinterpret_cast<virtual_superblock_t *>(loc.sb.get());
             ths->root = sb->get_root_block_id();
         }
@@ -85,7 +85,6 @@ protected:
     };
 
     block_id_t root;
-    value_sizer_t<redis_nested_set_value_t> nested_sizer;
 };
 
 struct set_read_oper_t : read_oper_t {
@@ -109,10 +108,9 @@ struct set_read_oper_t : read_oper_t {
         nested_superblock.sb.swap(nested_btree_sb);
         nested_superblock.txn = location.txn;
 
-        value_sizer_t<redis_nested_set_value_t> nested_sizer(sizer.block_size());
         btree_key_buffer_t nested_key(member);
         keyvalue_location_t<redis_nested_set_value_t> loc;
-        find_keyvalue_location_for_read(&nested_sizer, &nested_superblock, nested_key.key(), &loc);
+        find_keyvalue_location_for_read(&nested_superblock, nested_key.key(), &loc);
         return (loc.value.get() != NULL);
     }
 

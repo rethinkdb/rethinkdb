@@ -7,12 +7,11 @@
 #include <set>
 #include <vector>
 
-#include "errors.hpp"
+#include "utils.hpp"
 #include <boost/function.hpp>
 #include <boost/optional.hpp>
 #include <boost/shared_ptr.hpp>
 
-#include "utils.hpp"
 
 template <typename T>
 struct one_way_iterator_t {

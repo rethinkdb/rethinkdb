@@ -1,6 +1,6 @@
 #include "serializer/log/lba/in_memory_index.hpp"
-#include "disk_format.hpp"
-#include "in_memory_index.hpp"
+#include "serializer/log/lba/disk_format.hpp"
+#include "serializer/log/lba/in_memory_index.hpp"
 
 in_memory_index_t::in_memory_index_t() { }
 

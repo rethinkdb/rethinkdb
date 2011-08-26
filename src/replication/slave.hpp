@@ -58,9 +58,9 @@ private:
 
     class failover_reset_control_t : public control_t {
     public:
-        failover_reset_control_t(slave_t *slave)
-            : control_t("failover-reset", "Reset the failover module to the state at startup. This will force a reconnection to the master."), slave(slave)
-            { }
+        failover_reset_control_t(slave_t *_slave)
+            : control_t("failover-reset", "Reset the failover module to the state at startup. This will force a reconnection to the master."), slave(_slave) { }
+
         std::string call(int argc, UNUSED char **argv) {
             if (argc == 1) {
                 slave->failover_reset();
@@ -78,9 +78,10 @@ private:
 
     class new_master_control_t : public control_t {
     public:
-        new_master_control_t(slave_t *slave)
-            : control_t("new-master", "Set a new master for replication. The slave will disconnect and immediately reconnect to the new server. Syntax: \"rethinkdb new-master host port\""), slave(slave)
-            { }
+        new_master_control_t(slave_t *_slave)
+            : control_t("new-master", "Set a new master for replication. The slave will disconnect and immediately reconnect to the new server. Syntax: \"rethinkdb new-master host port\""),
+	      slave(_slave) { }
+
         std::string call(int argc, char **argv) {
             if (argc != 3) return "Syntax: \"rethinkdb new-master host port\"\r\n";
             std::string host = argv[1];

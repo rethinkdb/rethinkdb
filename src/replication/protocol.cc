@@ -3,6 +3,7 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
+#include "arch/arch.hpp"
 #include "concurrency/coro_fifo.hpp"
 #include "logger.hpp"
 #include "perfmon.hpp"
@@ -29,7 +30,6 @@ template <> struct stream_type<net_backfill_set_t> { typedef stream_pair<net_bac
 size_t objsize(UNUSED const net_introduce_t *buf) { return sizeof(net_introduce_t); }
 size_t objsize(UNUSED const net_backfill_t *buf) { return sizeof(net_backfill_t); }
 size_t objsize(UNUSED const net_backfill_complete_t *buf) { return sizeof(net_backfill_complete_t); }
-size_t objsize(UNUSED const net_backfill_delete_everything_t *buf) { return sizeof(net_backfill_delete_everything_t); }
 size_t objsize(UNUSED const net_timebarrier_t *buf) { return sizeof(net_timebarrier_t); }
 size_t objsize(UNUSED const net_heartbeat_t *buf) { return sizeof(net_heartbeat_t); }
 size_t objsize(const net_get_cas_t *buf) { return sizeof(net_get_cas_t) + buf->key_size; }
@@ -40,6 +40,13 @@ size_t objsize(const net_sarc_t *buf) { return sizeof(net_sarc_t) + buf->key_siz
 size_t objsize(const net_append_t *buf) { return sizeof(net_append_t) + buf->key_size + buf->value_size; }
 size_t objsize(const net_prepend_t *buf) { return sizeof(net_prepend_t) + buf->key_size + buf->value_size; }
 size_t objsize(const net_backfill_set_t *buf) { return sizeof(net_backfill_set_t) + buf->key_size + buf->value_size; }
+size_t objsize(const net_backfill_delete_range_t *buf) {
+    // low_key_size and high_key_size are uint8_t's, we be careful not to add them together first.
+    size_t ret = sizeof(net_backfill_delete_range_t);
+    ret += (buf->low_key_size == net_backfill_delete_range_t::infinity_key_size ? 0 : buf->low_key_size);
+    ret += (buf->high_key_size == net_backfill_delete_range_t::infinity_key_size ? 0 : buf->high_key_size);
+    return ret;
+}
 size_t objsize(const net_backfill_delete_t *buf) { return sizeof(net_backfill_delete_t) + buf->key_size; }
 
 
@@ -98,7 +105,7 @@ void replication_stream_handler_t::stream_part(const char *buf, size_t size) {
     // (Note: this might be a no-op while watching the heartbeat is paused, depending
     // on the implementation of the heartbeat receiver. It certainly doesn't hurt though.)
     hb_receiver_->note_heartbeat();
-    
+
     if (!saw_first_part_) {
         uint8_t msgcode = *reinterpret_cast<const uint8_t *>(buf);
         ++buf;
@@ -108,7 +115,6 @@ void replication_stream_handler_t::stream_part(const char *buf, size_t size) {
         case INTRODUCE: check_pass<net_introduce_t>(receiver_, buf, size); break;
         case BACKFILL: check_pass<net_backfill_t>(receiver_, buf, size); break;
         case BACKFILL_COMPLETE: check_pass<net_backfill_complete_t>(receiver_, buf, size); break;
-        case BACKFILL_DELETE_EVERYTHING: check_pass<net_backfill_delete_everything_t>(receiver_, buf, size); break;
         case TIMEBARRIER: check_pass<net_timebarrier_t>(receiver_, buf, size); break;
         case HEARTBEAT: check_pass<net_heartbeat_t>(receiver_, buf, size); break;
         case GET_CAS: check_pass<net_get_cas_t>(receiver_, buf, size); break;
@@ -189,6 +195,23 @@ repli_stream_t::~repli_stream_t() {
 
     debugf("Closing repli_stream_t()\n");
 }
+
+void repli_stream_t::shutdown() {
+    drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
+    unwatch_heartbeat();
+    stop_sending_heartbeats();
+    try {
+        mutex_acquisition_t ak(&outgoing_mutex_); // flush_buffer() would interfere with active writes
+        conn_->flush_buffer();
+    } catch (tcp_conn_t::write_closed_exc_t &e) {
+        (void)e;
+        // Ignore
+    }
+    if (conn_->is_read_open()) {
+        conn_->shutdown_read();
+    }
+}
+
 
 template <class net_struct_type>
 void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
@@ -304,11 +327,6 @@ void repli_stream_t::send(net_backfill_complete_t *msg) {
     flush();
 }
 
-void repli_stream_t::send(net_backfill_delete_everything_t msg) {
-    drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
-    sendobj(BACKFILL_DELETE_EVERYTHING, &msg);
-}
-
 void repli_stream_t::send(net_get_cas_t *msg) {
     drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(GET_CAS, msg);
@@ -347,6 +365,11 @@ void repli_stream_t::send(net_prepend_t *msg, const char *key, boost::shared_ptr
 void repli_stream_t::send(net_delete_t *msg) {
     drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(DELETE, msg);
+}
+
+void repli_stream_t::send(net_backfill_delete_range_t *msg) {
+    drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
+    sendobj(BACKFILL_DELETE_RANGE, msg);
 }
 
 void repli_stream_t::send(net_backfill_delete_t *msg) {
