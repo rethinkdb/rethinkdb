@@ -6,7 +6,7 @@
 #include "btree/slice.hpp"
 
 set_result_t btree_set(const store_key_t &key, btree_slice_t *slice,
-                       boost::shared_ptr<data_provider_t> data, mcflags_t mcflags, exptime_t exptime,
+                       const boost::intrusive_ptr<data_buffer_t>& data, mcflags_t mcflags, exptime_t exptime,
                        add_policy_t add_policy, replace_policy_t replace_policy, cas_t req_cas,
                        castime_t castime, order_token_t token);
 

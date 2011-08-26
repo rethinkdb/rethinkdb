@@ -24,8 +24,9 @@ void run_backfill_test() {
         dummy_protocol_t::write_t w;
         std::string key = std::string(1, 'a' + rand() % 26);
         w.values[key] = strprintf("%d", i);
-        backfiller_store.write(w, ts, order_token_t::ignore);
-        if (i < 10) backfillee_store.write(w, ts, order_token_t::ignore);
+        cond_t interruptor;
+        backfiller_store.write(w, ts, order_token_t::ignore, &interruptor);
+        if (i < 10) backfillee_store.write(w, ts, order_token_t::ignore, &interruptor);
         ts = ts.next();
     }
 

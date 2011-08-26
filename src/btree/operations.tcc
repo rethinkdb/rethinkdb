@@ -308,8 +308,8 @@ void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc, btree_key_t *key,
                 kv_loc->buf->apply_patch(new leaf_remove_patch_t(kv_loc->buf->get_block_id(), kv_loc->buf->get_next_patch_counter(), tstamp, key->size, key->contents));
             } else {
                 // Expirations do an erase, not a delete.
-                // TODO (sam): Add a buf patch type for erase_presence.
-                leaf::erase_presence(sizer, reinterpret_cast<leaf_node_t *>(kv_loc->buf->get_data_major_write()), key);
+
+                kv_loc->buf->apply_patch(new leaf_erase_presence_patch_t(kv_loc->buf->get_block_id(), kv_loc->buf->get_next_patch_counter(), key->size, key->contents));
             }
         }
     }

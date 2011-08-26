@@ -399,7 +399,7 @@ void linux_tcp_conn_t::write_buffered(const void *vbuf, size_t size) {
     write_in_progress = true;
 
     /* Convert to `char` for ease of pointer arithmetic */
-    const char *buf = reinterpret_cast<const char*>(vbuf);
+    const char *buf = reinterpret_cast<const char *>(vbuf);
 
     while (size > 0) {
         /* Insert the largest chunk that fits in this block */
@@ -700,11 +700,11 @@ linux_tcp_listener_t::linux_tcp_listener_t(
 
     // Bind the socket
     sockaddr_in serv_addr;
-    bzero((char*)&serv_addr, sizeof(serv_addr));
+    memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(port);
     serv_addr.sin_addr.s_addr = INADDR_ANY;
-    res = bind(sock.get(), (sockaddr*)&serv_addr, sizeof(serv_addr));
+    res = bind(sock.get(), reinterpret_cast<sockaddr *>(&serv_addr), sizeof(serv_addr));
     if (res != 0) {
         if (errno == EADDRINUSE) {
             throw address_in_use_exc_t();

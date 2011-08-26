@@ -63,13 +63,13 @@ void linux_aio_getevents_eventfd_t::on_event(int event_mask) {
         // to the way the kernel is structured. Better avoid this
         // complexity (hence std::min below).
         int nevents = io_getevents(parent->aio_context.id, 0,
-                               std::min((int)nevents_total, MAX_IO_EVENT_PROCESSING_BATCH_SIZE),
-                               events, NULL);
+                                   std::min(int(nevents_total), MAX_IO_EVENT_PROCESSING_BATCH_SIZE),
+                                   events, NULL);
         guarantee_xerr(nevents >= 1, -nevents, "Waiting for AIO event failed");
 
         // Process the events
         for(int i = 0; i < nevents; i++) {
-            parent->aio_notify((iocb*)events[i].obj, events[i].res);
+            parent->aio_notify(reinterpret_cast<iocb *>(events[i].obj), events[i].res);
         }
         nevents_total -= nevents;
 

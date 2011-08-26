@@ -457,24 +457,6 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "slices"      : slices },
                   repeat=5)
 
-    do_test_cloud("integration/extraction.py",
-                  { "auto"        : True,
-                    "mode"        : mode,
-                    "no-valgrind" : not checker,
-                    "protocol"    : protocol,
-                    "cores"       : cores,
-                    "slices"      : slices },
-                  repeat=5)
-
-    do_test_cloud("integration/negative_extraction.py",
-                  { "auto"        : True,
-                    "mode"        : mode,
-                    "no-valgrind" : not checker,
-                    "protocol"    : protocol,
-                    "cores"       : cores,
-                    "slices"      : slices },
-                  repeat=5, timeout = 120 * ec2)
-
     do_test_cloud("integration/fuzz.py",
                   { "auto"        : True,
                     "mode"        : mode,

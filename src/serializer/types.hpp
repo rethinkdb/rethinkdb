@@ -25,27 +25,26 @@ struct ls_buf_data_t {
 } __attribute__((__packed__));
 
 
-//  block_size_t is serialized as part of some patches.  Changing this changes the disk format!
 class block_size_t {
 public:
     // This is a bit ugly in that things could use the wrong method:
     // things could call value() instead of ser_value() or vice versa.
 
     // The "block size" used by things above the serializer.
-    uint64_t value() const { return ser_bs_ - sizeof(ls_buf_data_t); }
+    uint32_t value() const { return ser_bs_ - sizeof(ls_buf_data_t); }
 
     // The "block size" used by things in the serializer.
-    uint64_t ser_value() const { return ser_bs_; }
+    uint32_t ser_value() const { return ser_bs_; }
 
     // Avoid using this function.  We want there to be a small
     // number of uses so that we can be sure it's impossible to pass
     // the wrong value as a block_size_t.
-    static block_size_t unsafe_make(uint64_t ser_bs) {
+    static block_size_t unsafe_make(uint32_t ser_bs) {
         return block_size_t(ser_bs);
     }
 private:
-    explicit block_size_t(uint64_t ser_bs) : ser_bs_(ser_bs) { }
-    uint64_t ser_bs_;
+    explicit block_size_t(uint32_t ser_bs) : ser_bs_(ser_bs) { }
+    uint32_t ser_bs_;
 };
 
 class repli_timestamp_t;
@@ -131,21 +130,23 @@ struct scs_block_token_t {
     scs_block_info_t info;      // invariant: info.state != scs_block_info_t::state_deleted
     boost::intrusive_ptr<typename serializer_traits_t<inner_serializer_t>::block_token_type> inner_token;
 
-    friend template <class T> void intrusive_ptr_add_ref(scs_block_token_t<T> *p);
-    friend template <class T> void intrusive_ptr_release(scs_block_token_t<T> *p);
+    template <class T>
+    friend void intrusive_ptr_add_ref(scs_block_token_t<T> *p);
+    template <class T>
+    friend void intrusive_ptr_release(scs_block_token_t<T> *p);
 private:
     int ref_count_;
 };
 
 template <class inner_serializer_t>
 void intrusive_ptr_add_ref(scs_block_token_t<inner_serializer_t> *p) {
-    uint64_t res = __sync_add_and_fetch(&p->ref_count_, 1);
+    UNUSED int64_t res = __sync_add_and_fetch(&p->ref_count_, 1);
     rassert(res > 0);
 }
 
 template <class inner_serializer_t>
 void intrusive_ptr_release(scs_block_token_t<inner_serializer_t> *p) {
-    uint64_t res = __sync_sub_and_fetch(&p->ref_count_, 1);
+    int64_t res = __sync_sub_and_fetch(&p->ref_count_, 1);
     rassert(res >= 0);
     if (res == 0) {
 	delete p;

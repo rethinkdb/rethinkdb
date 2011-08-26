@@ -34,27 +34,36 @@ public:
         std::set<std::string> keys;
     };
 
+    class temporary_cache_t {
+        /* Dummy protocol doesn't need to cache anything */
+    };
+
+    class read_response_t {
+
+    public:
+        RDB_MAKE_ME_SERIALIZABLE_1(values);
+
+        std::map<std::string, std::string> values;
+    };
+
     class read_t {
 
     public:
         region_t get_region();
         std::vector<read_t> shard(std::vector<region_t> regions);
-        std::vector<read_t> parallelize(int optimal_factor);
+        read_response_t unshard(std::vector<read_response_t> resps, temporary_cache_t *cache);
 
         RDB_MAKE_ME_SERIALIZABLE_1(keys);
 
         region_t keys;
     };
 
-    class read_response_t {
+    class write_response_t {
 
     public:
-        static read_response_t unshard(std::vector<read_response_t> resps);
-        static read_response_t unparallelize(std::vector<read_response_t> resps);
+        RDB_MAKE_ME_SERIALIZABLE_1(old_values);
 
-        RDB_MAKE_ME_SERIALIZABLE_1(values);
-
-        std::map<std::string, std::string> values;
+        std::map<std::string, std::string> old_values;
     };
 
     class write_t {
@@ -62,20 +71,11 @@ public:
     public:
         region_t get_region();
         std::vector<write_t> shard(std::vector<region_t> regions);
+        write_response_t unshard(std::vector<write_response_t> resps, temporary_cache_t *cache);
 
         RDB_MAKE_ME_SERIALIZABLE_1(values);
 
         std::map<std::string, std::string> values;
-    };
-
-    class write_response_t {
-
-    public:
-        static write_response_t unshard(std::vector<write_response_t> resps);
-
-        RDB_MAKE_ME_SERIALIZABLE_1(old_values);
-
-        std::map<std::string, std::string> old_values;
     };
 
     class store_t {
@@ -85,8 +85,8 @@ public:
         bool is_coherent();
         repli_timestamp_t get_timestamp();
 
-        read_response_t read(read_t read, order_token_t otok);
-        write_response_t write(write_t write, repli_timestamp_t timestamp, order_token_t otok);
+        read_response_t read(read_t read, order_token_t otok, signal_t *interruptor);
+        write_response_t write(write_t write, repli_timestamp_t timestamp, order_token_t otok, signal_t *interruptor);
 
         bool is_backfilling();
 

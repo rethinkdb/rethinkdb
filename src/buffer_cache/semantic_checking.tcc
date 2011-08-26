@@ -42,9 +42,9 @@ patch_counter_t scc_buf_t<inner_cache_t>::get_next_patch_counter() {
 }
 
 template<class inner_cache_t>
-void scc_buf_t<inner_cache_t>::mark_deleted(bool write_null) {
+void scc_buf_t<inner_cache_t>::mark_deleted() {
     rassert(inner_buf);
-    inner_buf->mark_deleted(write_null);
+    inner_buf->mark_deleted();
 }
 
 template<class inner_cache_t>
