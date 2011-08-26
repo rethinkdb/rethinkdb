@@ -149,11 +149,7 @@ private:
     intrusive_list_t<local_buf_t> dirty_bufs;
 
     // List of block_ids that have been deleted
-    struct deleted_block_t {
-        block_id_t block_id;
-        bool write_empty_block;
-    };
-    std::vector<deleted_block_t> deleted_blocks;
+    std::vector<block_id_t> deleted_blocks;
 
     // List of block ids which have to be rejected when offered as part of read ahead.
     // Specifically, blocks which have been deleted but which deletion has not been
