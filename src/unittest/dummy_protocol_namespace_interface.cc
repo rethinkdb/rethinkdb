@@ -21,19 +21,15 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<dum
     for (char c = 'n'; c <= 'z'; c++) region2.keys.insert(std::string(&c, 1));
     shards.push_back(region2);
 
-    const int repli_factor = 3;
-
     boost::ptr_vector<dummy_protocol_t::store_t> store_storage;
     std::vector<dummy_protocol_t::store_t *> stores;
     for (int i = 0; i < (int)shards.size(); i++) {
-        for (int j = 0; j < repli_factor; j++) {
-            dummy_protocol_t::store_t *store = new dummy_protocol_t::store_t(shards[i]);
-            store_storage.push_back(store);
-            stores.push_back(store);
-        }
+        dummy_protocol_t::store_t *store = new dummy_protocol_t::store_t(shards[i]);
+        store_storage.push_back(store);
+        stores.push_back(store);
     }
 
-    dummy_namespace_interface_t<dummy_protocol_t> nsi(shards, repli_factor, stores);
+    dummy_namespace_interface_t<dummy_protocol_t> nsi(shards, stores);
 
     fun(&nsi);
 }

@@ -13,9 +13,8 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
     std::vector<key_range_t> shards;
     shards.push_back(key_range_t(key_range_t::none,   store_key_t(""),  key_range_t::open, store_key_t("n")));
     shards.push_back(key_range_t(key_range_t::closed, store_key_t("n"), key_range_t::none, store_key_t("") ));
-    const int repli_factor = 3;
 
-    run_with_dummy_namespace_interface<memcached_protocol_t>(shards, repli_factor, fun);
+    run_with_dummy_namespace_interface<memcached_protocol_t>(shards, fun);
 }
 
 void run_in_thread_pool_with_namespace_interface(boost::function<void(namespace_interface_t<memcached_protocol_t> *)> fun) {

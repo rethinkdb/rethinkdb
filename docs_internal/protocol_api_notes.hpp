@@ -10,6 +10,7 @@ holds all the types specific to that protocol. */
 template<class protocol_t>
 class namespace_interface_t {
 
+public:
     /* This document doesn't deal with the details of how to find namespaces.
     Tim's plan is that each protocol will keep its own directory of namespaces
     organized in a protocol-specific way. Riak could have a map from strings
@@ -45,8 +46,9 @@ to work with that protocol. */
 
 namespace ? {
 
-struct ?_protocol_t {
+class ?_protocol_t {
 
+public:
     /* `region_t` is like a set (in the mathematical sense) of keys, although
     not all sets can be expressed as `region_t`s. Protocols will probably be
     implemented as a range of keys, although it could be something weirder, like
@@ -55,7 +57,9 @@ struct ?_protocol_t {
     In this document, we talk about regions using set notation. 
     `union(regions)` refers to the union of multiple regions. And so on. */
 
-    struct region_t {
+    class region_t {
+
+    public:
         /* Returns true if this `region_t` is a superset of `x`. */
         bool contains(region_t x);
 
@@ -74,33 +78,53 @@ struct ?_protocol_t {
         ?
     };
 
+    /* Every call to `unshard()` will get a `temporary_cache_t *`. The
+    `temporary_cache_t` will be constructed by the routing logic. A
+    `temporary_cache_t` may be used for only one call to `unshard()`, or it may
+    be reused repeatedly with different `unshard()` calls, and `unshard()`
+    should behave the same in either case. The `temporary_cache_t` may be
+    constructed on any thread and used on any thread or threads at the same
+    time.
+
+    The intended use case is to construct interpreter contexts for protocols
+    that include embedded Javascript or Lua. In theory a new interpreter could
+    be created for each call, but that would be expensive; the
+    `temporary_cache_t` can be used to hold a cached interpreter to improve
+    performance. In practice, the `temporary_cache_t` will probably be used many
+    times, so this will be a significant performance improvement. */
+
+    class temporary_cache_t {
+
+    public:
+        temporary_cache_t();
+        ~temporary_cache_t();
+
+    private:
+        ?
+    };
+
     /* `read_t`, `read_response_t`, `write_t`, `write_response_t`, and
     `backfill_chunk_t` must all be serializable. */
 
-    struct read_t {
+    class read_t {
 
+    public:
         /* Indicates which keys the read depends on. */
         region_t get_region();
 
         /* Breaks the read into several sub-reads for individual regions.
         [Precondition] union(regions) == read.get_region()
-        [Precondition] forall x,y in regions, x does not overlap y
+        [Precondition] forall x,y in regions: !x.overlaps(y)
         [Postcondition] read.shard(regions).size() == regions.size()
         [Postcondition] read.shard(regions)[i].get_region() IsSubsetOf regions[i]
         */
         std::vector<read_t> shard(std::vector<region_t> regions);
 
-        /* Breaks the read into several sub-reads that will be run in parallel
-        on different machines. `read_t` may choose how many sub-reads to create,
-        but creating more than `optimal_factor` sub-reads won't help performance
-        and may hurt it.
-        [Postcondition] read.parallelize()[i].get_region() IsSubsetOf read.get_region()
-        
-        Notice that parallelize need not return reads with disjoint regions, in fact in
-        many reasonable cases the regions will not be disjoint. Such as in the case of
-        a riak bucket dump.
+        /* Recombines the responses to a group of reads created by
+        `read_t::shard()`.
+        [Precondition] responses[i] == store->read(read.shard(regions)[i], ...)
         */
-        std::vector<read_t> parallelize(int optimal_factor);
+        read_response_t unshard(std::vector<read_response_t> responses, temporary_cache_t *cache);
 
         /* Other requirements: `read_t` must be serializable. `read_t` must act
         like a data type. */
@@ -109,15 +133,7 @@ struct ?_protocol_t {
         ?
     };
 
-    struct read_response_t {
-
-        /* Recombines the responses to a group of reads created by
-        `read_t::shard()`. */
-        static read_response_t unshard(std::vector<read_response_t> responses);
-
-        /* Recombines the responses to a group of reads created by
-        `read_t::parallelize()`. */
-        static read_response_t unparallelize(std::vector<read_response_t> responses);
+    class read_response_t {
 
         /* Other requirements: `read_response_t` must be serializable.
         `read_response_t` must act like a data type. */
@@ -126,8 +142,9 @@ struct ?_protocol_t {
         ?
     };
 
-    struct write_t {
+    class write_t {
 
+    public:
         /* Indicates which keys the write depends on or will modify. */
         region_t get_region();
 
@@ -136,6 +153,12 @@ struct ?_protocol_t {
         */
         std::vector<write_t> shard(std::vector<region_t> regions);
 
+        /* Recombines the responses to a group of reads created by
+        `write_t::shard()`.
+        [Precondition] responses[i] == store->write(write.shard(regions)[i], ...)
+        */
+        write_response_t unshard(std::vector<write_response_t> responses, temporary_cache_t *cache);
+
         /* Other requirements: `write_t` must be serializable. `write_t` must
         act like a data type. */
 
@@ -143,11 +166,7 @@ struct ?_protocol_t {
         ?
     };
 
-    struct write_response_t {
-
-        /* Recombines the responses to a group of writes created by
-        `write_t::shard()`. */
-        static write_response_t unshard(std::vector<write_response_t> responses);
+    class write_response_t {
 
         /* Other requirements: `write_response_t` must be serializable.
         `write_response_t` must act like a data type. */
@@ -164,8 +183,9 @@ struct ?_protocol_t {
     the store receives a write and then immediately receives a read before the
     write is done, the read should see the effects of the write. */
 
-    struct store_t {
+    class store_t {
 
+    public:
         /* Returns the same region that was passed to the constructor. */
         region_t get_region();
 
@@ -180,18 +200,23 @@ struct ?_protocol_t {
         repli_timestamp_t get_timestamp();
 
         /* Performs a read operation on the store. May not modify the store's
-        state in any way.
+        state in any way. If `interruptor` is pulsed, then `read()` must either
+        return or throw `interrupted_exc_t` within a constant amount of time.
         [Precondition] read.get_region() IsSubsetOf store.get_region()
         [Precondition] store.is_coherent()
         [Precondition] !store.is_backfilling()
         [May block]
         */
-        read_response_t read(read_t read, order_token_t otok);
+        read_response_t read(read_t read, order_token_t otok, signal_t *interruptor);
 
         /* Performs a write operation on the store. The effect on the stored
         state must be deterministic; if I have two `store_t`s in the same state
         and I call `write()` on both with the same parameters, then they must
-        both transition to the same state.
+        both transition to the same state. If `interruptor` is pulsed, then
+        `write()` must either return or throw `interrupted_exc_t` within a
+        constant amount of time. If `interrupted_exc_t` is thrown, the write may
+        or may not have been completed, but it must not be left in an
+        intermediate state.
         [Precondition] write.get_region() IsSubsetOf store.get_region()
         [Precondition] store.is_coherent()
         [Precondition] !store.is_backfilling()
@@ -199,13 +224,14 @@ struct ?_protocol_t {
         [Postcondition] store.get_timestamp() == timestamp
         [May block]
         */
-        write_response_t write(write_t write, repli_timestamp_t timestamp, order_token_t otok);
+        write_response_t write(write_t write, repli_timestamp_t timestamp, order_token_t otok, signal_t *interruptor);
 
         /* Returns `true` if the store is in the middle of a backfill. */
         bool is_backfilling();
 
-        struct backfill_request_t {
+        class backfill_request_t {
 
+        public:
             /* You don't have to actually implement `get_region()` and
             `get_timestamp()`; they're only here to make it easier to describe
             preconditions and postconditions. */
@@ -225,7 +251,7 @@ struct ?_protocol_t {
             ?
         };
 
-        struct backfill_chunk_t {
+        class backfill_chunk_t {
 
             /* Other requirements: `backfill_chunk_t` must be serializable.
             `backfill_chunk_t` must act like a data type. */
@@ -234,7 +260,7 @@ struct ?_protocol_t {
             ?
         };
 
-        struct backfill_end_t {
+        class backfill_end_t {
 
             /* Other requirements: `backfill_end_t` must be serializable.
             `backfill_end_t` must act like a data type. */
@@ -278,8 +304,9 @@ struct ?_protocol_t {
         backfillee's `backfillee_chunk()` method. `backfiller()` should block
         until the backfill is done, and then return a `backfill_end_t` to be
         passed to the backfillee's `backfillee_end()` method. If `interruptor`
-        is pulsed before the backfill is over, then `backfiller()` should stop
-        the backfill and throw an `interrupted_exc_t` as soon as possible.
+        is pulsed before the backfill is over, then `backfiller()` must either
+        return or throw `interrupted_exc_t` within a constant amount of time. If
+        it throws `interrupted_exc_t`, the backfill may be left incomplete.
         [Precondition] request.get_region() == store.get_region()
         [Precondition] request.get_timestamp() <= store.get_timestamp()
         [Precondition] !store.is_backfilling()
@@ -321,7 +348,9 @@ struct ?_protocol_t {
     finished product. I'm including it here because I know something like it
     will eventually be necessary. But it probably won't be a stand-alone
     function, and its type signature might be different.
-    
+
+    TODO: `rebalance()` should probably also be interruptible.
+
     Creates a set of stores which contain the same data as `recyclees`, but
     whose regions are `goals`. Each store in `recyclees` must either be
     destroyed or re-used as part of the return value.

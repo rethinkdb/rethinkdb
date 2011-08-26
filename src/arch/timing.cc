@@ -2,7 +2,7 @@
 
 #include "arch/arch.hpp"
 #include "arch/runtime/runtime.hpp"
-
+#include "concurrency/wait_any.hpp"
 
 // nap()
 
@@ -10,8 +10,16 @@ void nap(int ms) {
     if (ms > 0) {
         signal_timer_t timer(ms);
         timer.wait_lazily_ordered();
-    } else {
-        coro_t::yield();
+    }
+}
+
+void nap(int ms, signal_t *interruptor) {
+    if (interruptor->is_pulsed()) throw interrupted_exc_t();
+    if (ms > 0) {
+        signal_timer_t timer(ms);
+        wait_any_t waiter(&timer, interruptor);
+        waiter.wait_lazily_unordered();
+        if (interruptor->is_pulsed()) throw interrupted_exc_t();
     }
 }
 

@@ -10,6 +10,11 @@
 
 void nap(int ms);
 
+/* This variant takes an interruptor, and throws `interrupted_exc_t` if the
+interruptor is pulsed before the timeout is up */
+
+void nap(int ms, signal_t *interruptor);
+
 class timer_token_t;
 
 /* Construct a `signal_timer_t` to start a one-shot timer. When the timer "rings",
