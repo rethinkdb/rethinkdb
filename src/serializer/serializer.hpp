@@ -118,7 +118,7 @@ struct serializer_t :
             iocallback_t *io_callback;
             write_launched_callback_t *launch_callback;
         };
-        struct delete_t { bool write_zero_block; };
+        struct delete_t { char __unused_field; };
         struct touch_t { repli_timestamp_t recency; };
         // if none, indicates just a recency update.
         typedef boost::variant<update_t, delete_t, touch_t> action_t;
@@ -128,7 +128,7 @@ struct serializer_t :
         static write_t make_update(block_id_t block_id, repli_timestamp_t recency, const void *buf,
                                    iocallback_t *io_callback = NULL,
                                    write_launched_callback_t *launch_callback = NULL);
-        static write_t make_delete(block_id_t block_id, bool write_zero_block = true);
+        static write_t make_delete(block_id_t block_id);
         write_t(block_id_t block_id, action_t action);
     };
 

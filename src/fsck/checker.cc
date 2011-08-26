@@ -19,8 +19,6 @@
 
 namespace fsck {
 
-static block_magic_t zerobuf_magic = { { 'z', 'e', 'r', 'o' } }; // TODO: Refactor
-
 static const char *state = NULL;
 
 // Knowledge that we contain for every block id.
@@ -1105,18 +1103,6 @@ void check_slice_other_blocks(slicecx_t *cx, other_block_errors *errs) {
                 rassert(info.block_sequence_id == NULL_BLOCK_SEQUENCE_ID);
                 rogue_block_description desc;
                 desc.block_id = id;
-
-                btree_block_t zeroblock;
-                if (!zeroblock.init(cx->file, cx->knog, id)) {
-                    desc.loading_error = zeroblock.err;
-                    errs->allegedly_deleted_blocks.push_back(desc);
-                } else {
-                    block_magic_t magic = *reinterpret_cast<block_magic_t *>(zeroblock.buf);
-                    if (!(zerobuf_magic == magic)) {
-                        desc.magic = magic;
-                        errs->allegedly_deleted_blocks.push_back(desc);
-                    }
-                }
             }
         }
     }

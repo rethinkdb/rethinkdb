@@ -18,6 +18,7 @@ union flagged_off64_t {
         // The actual offset into the file.
         off64_t value : 63;
 
+        // TODO (sam): Remove is_delete.
         // This block id was deleted, and the offset points to a zeroed
         // out buffer.
         int is_delete : 1;
