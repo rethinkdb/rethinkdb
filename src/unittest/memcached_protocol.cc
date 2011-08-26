@@ -1,7 +1,6 @@
 #include "unittest/gtest.hpp"
 #include "memcached/protocol.hpp"
 #include "unittest/dummy_namespace_interface.hpp"
-#include "data_provider.hpp"
 #include <boost/make_shared.hpp>
 
 namespace unittest {
@@ -43,7 +42,8 @@ void run_get_set_test(namespace_interface_t<memcached_protocol_t> *nsi) {
     {
         sarc_mutation_t set;
         set.key = store_key_t("a");
-        set.data = boost::make_shared<buffered_data_provider_t>("A");
+        set.data = data_buffer_t::create(1);
+        set.data->buf()[0] = 'A';
         set.flags = 123;
         set.exptime = 0;
         set.add_policy = add_policy_yes;
@@ -69,15 +69,11 @@ void run_get_set_test(namespace_interface_t<memcached_protocol_t> *nsi) {
         if (get_result_t *maybe_get_result = boost::get<get_result_t>(&result.result)) {
             EXPECT_FALSE(maybe_get_result->is_not_allowed);
             EXPECT_TRUE(maybe_get_result->value.get() != NULL);
-            EXPECT_EQ(maybe_get_result->value->get_size(), 1);
-            if (maybe_get_result->value->get_size() == 1) {
-                char buf;
-                buffer_group_t bg;
-                bg.add_buffer(1, &buf);
-                maybe_get_result->value->get_data_into_buffers(&bg);
-                EXPECT_EQ(buf, 'A');
+            EXPECT_EQ(1, maybe_get_result->value->size());
+            if (maybe_get_result->value->size() == 1) {
+                EXPECT_EQ('A', maybe_get_result->value->buf()[0]);
             }
-            EXPECT_EQ(maybe_get_result->flags, 123);
+            EXPECT_EQ(123, maybe_get_result->flags);
         } else {
             ADD_FAILURE() << "got wrong type of result back";
         }

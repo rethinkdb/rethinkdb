@@ -170,7 +170,7 @@ public:
 
     void on_pair(transaction_t *txn, repli_timestamp_t recency, const btree_key_t *key, const opaque_value_t *val) {
         const memcached_value_t *value = reinterpret_cast<const memcached_value_t *>(val);
-        boost::shared_ptr<value_data_provider_t> data_provider(value_data_provider_t::create(value, txn));
+        boost::intrusive_ptr<data_buffer_t> data_provider = value_to_data_buffer(value, txn);
         backfill_atom_t atom;
         atom.key.assign(key->size, key->contents);
         atom.value = data_provider;

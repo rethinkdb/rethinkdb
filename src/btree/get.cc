@@ -34,7 +34,7 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, order
         return get_result_t();
     }
 
-    boost::shared_ptr<value_data_provider_t> dp(value_data_provider_t::create(value, kv_location.txn.get()));
+    boost::intrusive_ptr<data_buffer_t> dp = value_to_data_buffer(value, kv_location.txn.get());
 
     return get_result_t(dp, value->mcflags(), 0);
 }

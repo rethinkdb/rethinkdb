@@ -33,7 +33,7 @@ public:
     void realtime_incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount,
         castime_t castime, order_token_t token);
     void realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key,
-        const boost::shared_ptr<data_provider_t>& data, castime_t castime, order_token_t token);
+        const boost::intrusive_ptr<data_buffer_t>& data, castime_t castime, order_token_t token);
     void realtime_delete_key(const store_key_t &key, repli_timestamp_t timestamp, order_token_t token);
     void realtime_time_barrier(repli_timestamp_t timestamp, order_token_t token);
 

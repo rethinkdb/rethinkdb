@@ -5,6 +5,7 @@
 
 #include "arch/arch.hpp"
 #include "concurrency/coro_fifo.hpp"
+#include "containers/buffer_group.hpp"
 #include "logger.hpp"
 #include "perfmon.hpp"
 #include "replication/debug_format.hpp"
@@ -70,7 +71,7 @@ void check_pass(message_callback_t *receiver, const char *buf, size_t realsize) 
 template <class T>
 void print_and_pass_message(message_callback_t *receiver, stream_pair<T> &spair) {
 #ifdef REPLICATION_DEBUG
-    debugf("recv %s\n", debug_format(spair.data, spair.stream->peek()).c_str());
+    debugf("recv %s\n", debug_format(spair.data, spair.stream->buf()).c_str());
 #endif
     receiver->send(spair);
 }
@@ -83,7 +84,7 @@ tracker_obj_t *check_value_streamer(message_callback_t *receiver, const char *bu
         stream_pair<T> spair(buf, buf + size, reinterpret_cast<const T *>(buf)->value_size);
         size_t m = size - sizeof(T) - reinterpret_cast<const T *>(buf)->key_size;
 
-        char *p = spair.stream->peek() + m;
+        char *p = spair.stream->buf() + m;
 
         return new tracker_obj_t(
             boost::bind(&print_and_pass_message<T>, receiver, spair),
@@ -288,8 +289,8 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
 }
 
 template <class net_struct_type>
-void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg, const char *key, boost::shared_ptr<data_provider_t> data) {
-    rassert(msg->value_size == data->get_size());
+void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg, const char *key, const boost::intrusive_ptr<data_buffer_t>& data) {
+    rassert(msg->value_size == data->size());
 
     size_t bufsize = objsize(msg);
     scoped_malloc<char> buf(bufsize);
@@ -297,14 +298,14 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg, const char *
     memcpy(buf.get() + sizeof(net_struct_type), key, msg->key_size);
 
     buffer_group_t group;
-    group.add_buffer(data->get_size(), buf.get() + sizeof(net_struct_type) + msg->key_size);
+    group.add_buffer(data->size(), buf.get() + sizeof(net_struct_type) + msg->key_size);
 
     // This could theoretically block and that could cause reordering
     // of sets, for real time operations.  The fact that it doesn't
     // block is just a function of whatever data provider which we
     // happen to use.  (It definitely blocks for backfilling
     // operations but we don't care.)
-    data->get_data_into_buffers(&group);
+    buffer_group_copy_data(&group, data->buf(), data->size());
 
     sendobj(msgcode, reinterpret_cast<net_struct_type *>(buf.get()));
 }
@@ -332,12 +333,12 @@ void repli_stream_t::send(net_get_cas_t *msg) {
     sendobj(GET_CAS, msg);
 }
 
-void repli_stream_t::send(net_sarc_t *msg, const char *key, boost::shared_ptr<data_provider_t> value) {
+void repli_stream_t::send(net_sarc_t *msg, const char *key, const boost::intrusive_ptr<data_buffer_t>& value) {
     drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(SARC, msg, key, value);
 }
 
-void repli_stream_t::send(net_backfill_set_t *msg, const char *key, boost::shared_ptr<data_provider_t> value) {
+void repli_stream_t::send(net_backfill_set_t *msg, const char *key, const boost::intrusive_ptr<data_buffer_t>& value) {
     drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(BACKFILL_SET, msg, key, value);
 }
@@ -352,12 +353,12 @@ void repli_stream_t::send(net_decr_t *msg) {
     sendobj(DECR, msg);
 }
 
-void repli_stream_t::send(net_append_t *msg, const char *key, boost::shared_ptr<data_provider_t> value) {
+void repli_stream_t::send(net_append_t *msg, const char *key, const boost::intrusive_ptr<data_buffer_t>& value) {
     drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(APPEND, msg, key, value);
 }
 
-void repli_stream_t::send(net_prepend_t *msg, const char *key, boost::shared_ptr<data_provider_t> value) {
+void repli_stream_t::send(net_prepend_t *msg, const char *key, const boost::intrusive_ptr<data_buffer_t>& value) {
     drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(PREPEND, msg, key, value);
 }

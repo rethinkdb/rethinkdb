@@ -176,7 +176,7 @@ std::vector<memcached_protocol_t::read_t> memcached_protocol_t::read_t::parallel
 
 /* `memcached_protocol_t::read_response_t::unshard()` */
 
-typedef merge_ordered_data_iterator_t<key_with_data_provider_t,key_with_data_provider_t::less> merged_results_iterator_t;
+typedef merge_ordered_data_iterator_t<key_with_data_buffer_t, key_with_data_buffer_t::less> merged_results_iterator_t;
 
 memcached_protocol_t::read_response_t memcached_protocol_t::read_response_t::unshard(std::vector<read_response_t> responses) {
     if (get_result_t *result = boost::get<get_result_t>(&responses[0].result)) {

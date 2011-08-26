@@ -8,7 +8,7 @@
 
 class metadata_store_t {
 public:
-    // TODO (rntz) should this use key_store_t and data_provider_t, etc?
+    // TODO (rntz) should this use key_store_t and data_buffer_t, etc?
     virtual bool get_meta(const std::string &key, std::string *out) = 0;
     virtual void set_meta(const std::string &key, const std::string &value) = 0;
     virtual ~metadata_store_t() { }
