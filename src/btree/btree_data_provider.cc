@@ -1,32 +1,26 @@
 #include "btree/btree_data_provider.hpp"
-#include "buffer_cache/buffer_cache.hpp"
 
-value_data_provider_t::value_data_provider_t(transaction_t *txn, const memcached_value_t *value) {
+#include "btree/value.hpp"
+#include "buffer_cache/blob.hpp"
+#include "buffer_cache/buffer_cache.hpp"
+#include "containers/buffer_group.hpp"
+#include "containers/data_buffer.hpp"
+
+boost::intrusive_ptr<data_buffer_t> value_to_data_buffer(const memcached_value_t *value, transaction_t *txn) {
+    txn->assert_thread();
+
     blob_t blob(const_cast<memcached_value_t *>(value)->value_ref(), blob::btree_maxreflen);
+
     buffer_group_t group;
     blob_acq_t acqs;
     blob.expose_region(txn, rwi_read_outdated_ok, 0, blob.valuesize(), &group, &acqs);
     size_t sz = group.get_size();
-    buf.reset(new char[sz]);
-    buffers.add_buffer(sz, buf.get());
-    buffer_group_copy_data(&buffers, const_view(&group));
-}
+    boost::intrusive_ptr<data_buffer_t> ret = data_buffer_t::create(sz);
+    buffer_group_t tmp;
+    tmp.add_buffer(sz, ret->buf());
+    buffer_group_copy_data(&tmp, const_view(&group));
 
-size_t value_data_provider_t::get_size() const {
-    return buffers.get_size();
-}
-
-const const_buffer_group_t *value_data_provider_t::get_data_as_buffers() {
-    return const_view(&buffers);
-}
-
-
-
-/* Choose the appropriate specialization */
-
-value_data_provider_t *value_data_provider_t::create(const memcached_value_t *value, transaction_t *transaction) {
-    transaction->assert_thread();
-    return new value_data_provider_t(transaction, value);
+    return ret;
 }
 
 

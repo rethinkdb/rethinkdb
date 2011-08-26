@@ -167,7 +167,7 @@ std::vector<memcached_protocol_t::read_t> memcached_protocol_t::read_t::shard(st
 
 /* `memcached_protocol_t::read_t::unshard()` */
 
-typedef merge_ordered_data_iterator_t<key_with_data_provider_t,key_with_data_provider_t::less> merged_results_iterator_t;
+typedef merge_ordered_data_iterator_t<key_with_data_buffer_t, key_with_data_buffer_t::less> merged_results_iterator_t;
 
 struct read_unshard_visitor_t : public boost::static_visitor<memcached_protocol_t::read_response_t> {
     read_unshard_visitor_t(std::vector<memcached_protocol_t::read_response_t> &b) : bits(b) { }

@@ -89,7 +89,7 @@ void backfill_sender_t::backfill_set(backfill_atom_t atom, order_token_t token) 
         msg.exptime = atom.exptime;
         msg.cas_or_zero = atom.cas_or_zero;
         msg.key_size = atom.key.size;
-        msg.value_size = atom.value->get_size();
+        msg.value_size = atom.value->size();
         (*stream_)->send(&msg, atom.key.contents, atom.value);
     }
 
@@ -146,7 +146,7 @@ void backfill_sender_t::realtime_sarc(sarc_mutation_t& m, castime_t castime, ord
         stru.flags = m.flags;
         stru.exptime = m.exptime;
         stru.key_size = m.key.size;
-        stru.value_size = m.data->get_size();
+        stru.value_size = m.data->size();
         stru.add_policy = m.add_policy;
         stru.replace_policy = m.replace_policy;
         stru.old_cas = m.old_cas;
@@ -191,7 +191,7 @@ void backfill_sender_t::incr_decr_like(const store_key_t &key, uint64_t amount, 
     if (*stream_) (*stream_)->send(msg.get());
 }
 
-void backfill_sender_t::realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key, const boost::shared_ptr<data_provider_t>& data, castime_t castime, order_token_t token) {
+void backfill_sender_t::realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key, const boost::intrusive_ptr<data_buffer_t>& data, castime_t castime, order_token_t token) {
     assert_thread();
     block_pm_duration set_timer(&master_rt_op);
     order_sink_before_send.check_out(token);
@@ -202,7 +202,7 @@ void backfill_sender_t::realtime_append_prepend(append_prepend_kind_t kind, cons
             appendstruct.timestamp = castime.timestamp;
             appendstruct.proposed_cas = castime.proposed_cas;
             appendstruct.key_size = key.size;
-            appendstruct.value_size = data->get_size();
+            appendstruct.value_size = data->size();
 
             if (*stream_) (*stream_)->send(&appendstruct, key.contents, data);
         } else {
@@ -212,7 +212,7 @@ void backfill_sender_t::realtime_append_prepend(append_prepend_kind_t kind, cons
             prependstruct.timestamp = castime.timestamp;
             prependstruct.proposed_cas = castime.proposed_cas;
             prependstruct.key_size = key.size;
-            prependstruct.value_size = data->get_size();
+            prependstruct.value_size = data->size();
 
             if (*stream_) (*stream_)->send(&prependstruct, key.contents, data);
         }

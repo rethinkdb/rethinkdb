@@ -8,32 +8,6 @@
 #include "concurrency/promise.hpp"
 #include "btree/btree_data_provider.hpp"
 
-// TODO: Use a shared_ptr to the transaction instead of a death_signalling_data_provider_t.
-
-struct death_signalling_data_provider_t : public data_provider_t {
-
-    death_signalling_data_provider_t(boost::shared_ptr<data_provider_t> _dp, cond_t *c)
-	: dp(_dp), pulse_on_death(c) { }
-
-    ~death_signalling_data_provider_t() {
-        pulse_on_death->pulse();
-    }
-
-    size_t get_size() const {
-        return dp->get_size();
-    }
-    const const_buffer_group_t *get_data_as_buffers() {
-        return dp->get_data_as_buffers();
-    }
-    void get_data_into_buffers(const buffer_group_t *bg) {
-        dp->get_data_into_buffers(bg);
-    }
-
-private:
-    boost::shared_ptr<data_provider_t> dp;
-    cond_t *pulse_on_death;
-};
-
 // This function is like get(), except that it sets a CAS value if there isn't
 // one already, so it has to be a btree_modify_oper_t. Potentially we can use a
 // regular get() for this (that replaces itself with this one if a CAS value
@@ -64,7 +38,7 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t<memcached_value_t>, pub
         }
 
         // Deliver the value to the client via the promise_t we got.
-        boost::shared_ptr<value_data_provider_t> dp(value_data_provider_t::create(value.get(), txn));
+        boost::intrusive_ptr<data_buffer_t> dp = value_to_data_buffer(value.get(), txn);
         res->pulse(get_result_t(dp, value->mcflags(), cas_to_report));
 
         // Return whether we made a change to the value.

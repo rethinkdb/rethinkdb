@@ -221,7 +221,7 @@ void backfill_storer_t::realtime_incr_decr(incr_decr_kind_t kind, const store_ke
 }
 
 void backfill_storer_t::realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key,
-                                                const boost::shared_ptr<data_provider_t>& data, castime_t castime, order_token_t token) {
+                                                const boost::intrusive_ptr<data_buffer_t>& data, castime_t castime, order_token_t token) {
     append_prepend_mutation_t mut;
     mut.key = key;
     mut.data = data;

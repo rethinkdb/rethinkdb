@@ -2,7 +2,6 @@
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
-#include <boost/shared_ptr.hpp>
 
 #include "arch/timing.hpp"
 #include "btree/rget.hpp"
@@ -71,21 +70,14 @@ bool btree_metadata_store_t::get_meta(const std::string &key, std::string *out) 
     }
 
     // Get the data and copy it into *out.
-    const const_buffer_group_t *bufs = res.value->get_data_as_buffers();
-    out->assign("");
-    out->reserve(bufs->get_size());
-    size_t nbufs = bufs->num_buffers();
-    for (unsigned i = 0; i < nbufs; ++i) {
-        const_buffer_group_t::buffer_t buf = bufs->get_buffer(i);
-        out->append(reinterpret_cast<const char *>(buf.data), buf.size);
-    }
+    out->assign(res.value->buf(), res.value->size());
     return true;
 }
 
 void btree_metadata_store_t::set_meta(const std::string& key, const std::string& value) {
     store_key_t sk = key_from_string(key);
-    boost::shared_ptr<buffered_data_provider_t>
-        datap(new buffered_data_provider_t(value.data(), value.size()));
+    boost::intrusive_ptr<data_buffer_t> datap = data_buffer_t::create(value.size());
+    memcpy(datap->buf(), value.data(), datap->size());
 
     // TODO (rntz) code dup with run_storage_command :/
     mcflags_t mcflags = 0;

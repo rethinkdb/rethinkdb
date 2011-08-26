@@ -29,7 +29,7 @@ void* linux_aio_getevents_noeventfd_t::io_event_loop(void *arg) {
     res = pthread_sigmask(SIG_UNBLOCK, &sigmask, NULL);
     guarantee_err(res == 0, "Could not block signal");
 
-    linux_aio_getevents_noeventfd_t *parent = (linux_aio_getevents_noeventfd_t*)arg;
+    linux_aio_getevents_noeventfd_t *parent = static_cast<linux_aio_getevents_noeventfd_t *>(arg);
 
     io_event events[MAX_IO_EVENT_PROCESSING_BATCH_SIZE];
 
@@ -89,7 +89,7 @@ linux_aio_getevents_noeventfd_t::~linux_aio_getevents_noeventfd_t()
     int res;
     
     struct sigaction sa;
-    bzero((char*)&sa, sizeof(struct sigaction));
+    memset(&sa, 0, sizeof(sa));
     sa.sa_sigaction = &shutdown_signal_handler;
     sa.sa_flags = SA_SIGINFO;
     res = sigaction(IO_SHUTDOWN_NOTIFY_SIGNAL, &sa, NULL);
@@ -128,7 +128,7 @@ void linux_aio_getevents_noeventfd_t::on_event(int event_mask) {
     guarantee(res == 0, "Could not lock io mutex");
 
     for(unsigned int i = 0; i < io_events.size(); i++) {
-        parent->aio_notify((iocb*)io_events[i].obj, io_events[i].res);
+        parent->aio_notify(reinterpret_cast<iocb *>(io_events[i].obj), io_events[i].res);
     }
     io_events.clear();
 

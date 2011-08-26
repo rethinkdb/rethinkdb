@@ -1,8 +1,5 @@
 #include "btree/get.hpp"
 
-#include "errors.hpp"
-#include <boost/shared_ptr.hpp>
-
 #include "btree/delete_expired.hpp"
 #include "btree/btree_data_provider.hpp"
 #include "btree/internal_node.hpp"
@@ -34,7 +31,7 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, order
         return get_result_t();
     }
 
-    boost::shared_ptr<value_data_provider_t> dp(value_data_provider_t::create(value, kv_location.txn.get()));
+    boost::intrusive_ptr<data_buffer_t> dp = value_to_data_buffer(value, kv_location.txn.get());
 
     return get_result_t(dp, value->mcflags(), 0);
 }

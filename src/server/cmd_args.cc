@@ -476,7 +476,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     }
     
     if (config.store_static_config.serializer.extent_size() % config.store_static_config.serializer.block_size().ser_value() != 0) {
-        fail_due_to_user_error("Extent size (%lu) is not a multiple of block size (%lu).",
+        fail_due_to_user_error("Extent size (%lu) is not a multiple of block size (%u).",
              config.store_static_config.serializer.extent_size(),
              config.store_static_config.serializer.block_size().ser_value());
     }
