@@ -15,20 +15,19 @@
 union flagged_off64_t {
     off64_t the_value_;
 
-    void set_value(off64_t o) {
-        rassert(!is_padding());
-        the_value_ = o;
-    }
-    void remove_value() {
-        rassert(!is_padding());
-        the_value_ = -2;
-    }
     bool has_value() const {
         return the_value_ >= 0;
     }
     off64_t get_value() const {
         rassert(has_value());
         return the_value_;
+    }
+
+    static flagged_off64_t make(off64_t off) {
+        rassert(off >= 0);
+        flagged_off64_t ret;
+        ret.the_value_ = off;
+        return ret;
     }
 
     static flagged_off64_t padding() {
@@ -42,8 +41,7 @@ union flagged_off64_t {
 
     static flagged_off64_t unused() {
         flagged_off64_t ret;
-        ret.the_value_ = 0;
-        ret.remove_value();
+        ret.the_value_ = -2;
         return ret;
     }
 };

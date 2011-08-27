@@ -349,13 +349,13 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
                 ls_block_token_pointee_t *ls_token = token.get();
                 rassert(ls_token);
                 rassert(token_offsets.find(ls_token) != token_offsets.end());
-                offset.set_value(token_offsets[ls_token]);
+                offset = flagged_off64_t::make(token_offsets[ls_token]);
 
                 /* mark the life */
                 data_block_manager->mark_live(offset.get_value());
             }
             else {
-                offset.remove_value();
+                offset = flagged_off64_t::unused();
             }
         }
 
