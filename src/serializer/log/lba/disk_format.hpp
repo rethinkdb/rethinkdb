@@ -8,9 +8,8 @@
 
 
 
-// In Haskell terms, this can be written as:
-// data flagged_off64_t = Padding | RealThing (Maybe off64_t) Bool
-// (except that the off64_t is only 63 bits)
+// Contains an off64_t, or a "padding" value, or a "unused" value.  I
+// don't think we really need separate padding and unused values.
 
 union flagged_off64_t {
     off64_t the_value_;
