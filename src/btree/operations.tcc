@@ -163,6 +163,9 @@ inline void get_btree_superblock(btree_slice_t *slice, access_t access, int expe
 
     slice->pre_begin_transaction_sink_.check_out(token);
     order_token_t begin_transaction_token = (is_read_mode(access) ? slice->pre_begin_transaction_read_mode_source_ : slice->pre_begin_transaction_write_mode_source_).check_in(token.tag() + "+begin_transaction_token");
+    if (is_read_mode(access)) {
+        begin_transaction_token = begin_transaction_token.with_read_mode();
+    }
     got_superblock_out->txn.reset(new transaction_t(slice->cache(), access, expected_change_count, tstamp));
     got_superblock_out->txn->set_token(slice->post_begin_transaction_checkpoint_.check_through(begin_transaction_token));
 

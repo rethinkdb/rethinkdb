@@ -40,7 +40,7 @@ union flagged_off64_t {
 
     static flagged_off64_t unused() {
         flagged_off64_t ret;
-        ret.the_value_ = -2;
+        ret.the_value_ = -1;
         return ret;
     }
 };
