@@ -65,8 +65,6 @@ public:
     // this possibly be implemented?
     //value_txn_t(const value_txn_t&);
 
-    void swap(value_txn_t);
-
     ~value_txn_t();
 
     scoped_malloc<Value>& value();
