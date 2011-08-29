@@ -155,7 +155,7 @@ public:
             slice = create_slice(sm_key);
         }
 
-        value_txn_t<riak_value_t> txn = get_value_write<riak_value_t>(slice, btree_key_buffer_t(obj.key).key(), repli_timestamp_t::invalid, order_token_t::ignore);
+        value_txn_t<riak_value_t> txn(slice, btree_key_buffer_t(obj.key).key(), repli_timestamp_t::invalid, order_token_t::ignore);
 
         if (!txn.value()) {
             scoped_malloc<riak_value_t> tmp(MAX_RIAK_VALUE_SIZE);

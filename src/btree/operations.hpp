@@ -57,11 +57,15 @@ private:
 template <class Value>
 class value_txn_t {
 public:
+    value_txn_t();
     value_txn_t(btree_key_t *, keyvalue_location_t<Value>&, repli_timestamp_t);
+    value_txn_t(btree_slice_t *slice, btree_key_t *key, const repli_timestamp_t tstamp, const order_token_t token);
 
     // TODO: Where is this copy constructor implemented and how could
     // this possibly be implemented?
-    value_txn_t(const value_txn_t&);
+    //value_txn_t(const value_txn_t&);
+
+    void swap(value_txn_t);
 
     ~value_txn_t();
 
@@ -72,6 +76,8 @@ private:
     btree_key_t *key;
     keyvalue_location_t<Value> kv_location;
     repli_timestamp_t tstamp;
+
+    DISABLE_COPYING(value_txn_t<Value>);
 };
 
 #include "btree/operations.tcc"
