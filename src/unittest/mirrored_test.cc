@@ -3,6 +3,7 @@
 #include "unittest/server_test_helper.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "serializer/log/log_serializer.hpp" // for ls_buf_data_t
+#include "serializer/translator.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 
 namespace unittest {
@@ -36,7 +37,7 @@ private:
         transaction_t t1(cache, rwi_write, 0, repli_timestamp_t::distant_past);
 
         buf_t *buf1_A = acq(&t1, block_A, rwi_write);
-        buf1_A->mark_deleted(false);
+        buf1_A->mark_deleted();
         buf1_A->release();
 
         // create a fake buffer (be careful with populating it with data

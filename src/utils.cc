@@ -19,8 +19,9 @@
 int sized_strcmp(const char *str1, int len1, const char *str2, int len2) {
     int min_len = std::min(len1, len2);
     int res = memcmp(str1, str2, min_len);
-    if (res == 0)
-        res = len1-len2;
+    if (res == 0) {
+        res = len1 - len2;
+    }
     return res;
 }
 
@@ -280,6 +281,19 @@ unsigned long long strtoull_strict(const char *string, char **end, int base) {
     return result;
 }
 
+int gcd(int x, int y) {
+    rassert(x >= 0);
+    rassert(y >= 0);
+
+    while (y != 0) {
+        int tmp = y;
+        y = x % y;
+        x = tmp;
+    }
+
+    return x;
+}
+
 ticks_t secs_to_ticks(float secs) {
     // The timespec struct used in clock_gettime has a tv_nsec field.
     // That's why we use a billion.
@@ -308,21 +322,18 @@ double ticks_to_secs(ticks_t ticks) {
     return ticks / 1000000000.0;
 }
 
-std::string strprintf(const char *format, ...) {
-    va_list ap;
-
+std::string vstrprintf(const char *format, va_list ap) {
     boost::scoped_array<char> arr;
+    int size;
 
-    va_start(ap, format);
     va_list aq;
     va_copy(aq, ap);
-
 
     // the snprintfs return the number of characters they _would_ have
     // written, not including the '\0', so we use that number to
     // allocate an appropriately sized array.
     char buf[1];
-    int size = vsnprintf(buf, sizeof(buf), format, ap);
+    size = vsnprintf(buf, sizeof(buf), format, ap);
 
     guarantee_err(size >= 0, "vsnprintf failed, bad format string?");
 
@@ -330,14 +341,27 @@ std::string strprintf(const char *format, ...) {
 
     int newsize = vsnprintf(arr.get(), size + 1, format, aq);
     (void)newsize;
-    assert(newsize == size);
+    rassert(newsize == size);
 
     va_end(aq);
-    va_end(ap);
 
     return std::string(arr.get(), arr.get() + size);
 }
 
 bool notf(bool x) { 
     return !x; 
+}
+
+std::string strprintf(const char *format, ...) {
+    va_list ap;
+
+    std::string ret;
+
+    va_start(ap, format);
+
+    ret = vstrprintf(format, ap);
+
+    va_end(ap);
+
+    return ret;
 }

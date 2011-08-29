@@ -4,18 +4,19 @@
 #include <stdint.h>
 
 #include "btree/value.hpp"
-#include "serializer/translator.hpp"
+#include "utils.hpp"
 
 namespace replication {
 
 enum multipart_aspect { SMALL = 0x81, FIRST = 0x82, MIDDLE = 0x83, LAST = 0x84 };
 
 enum message_code { MSGCODE_NIL = 0, INTRODUCE = 1,
-                    BACKFILL = 2, BACKFILL_COMPLETE = 3, BACKFILL_DELETE_EVERYTHING = 4,
+                    BACKFILL = 2, BACKFILL_COMPLETE = 3, /* BACKFILL_DELETE_EVERYTHING = 4, */
                     BACKFILL_SET = 5, BACKFILL_DELETE = 6,
 
                     GET_CAS = 7, SARC = 8, INCR = 9, DECR = 10, APPEND = 11, PREPEND = 12,
-                    DELETE = 13, TIMEBARRIER = 14, HEARTBEAT = 15 };
+                    DELETE = 13, TIMEBARRIER = 14, HEARTBEAT = 15,
+                    BACKFILL_DELETE_RANGE = 16 };
 
 struct net_castime_t {
     cas_t proposed_cas;
@@ -59,11 +60,6 @@ struct net_backfill_t {
 
 struct net_backfill_complete_t {
     repli_timestamp_t time_barrier_timestamp;
-} __attribute__((__packed__));
-
-struct net_backfill_delete_everything_t {
-    // Unnecessary padding.
-    uint32_t padding;
 } __attribute__((__packed__));
 
 struct net_heartbeat_t {
@@ -157,6 +153,20 @@ struct net_backfill_delete_t {
     uint16_t padding;
     uint16_t key_size;
     char key[];
+} __attribute__((__packed__));
+
+// Says to delete the keys who hash to hash_value (mod hashmod) in the
+// interval [low_key, high_key), with an exclusive upper bound, where
+// if low_key_size is 255 that means -infinity and if high_key_size is
+// 255 that means +infinity.
+struct net_backfill_delete_range_t {
+    uint16_t hash_value;
+    uint16_t hashmod;
+    uint8_t low_key_size;  // may be 255
+    uint8_t high_key_size;  // may be 255
+    char keys[];
+
+    static const int infinity_key_size = 255;
 } __attribute__((__packed__));
 
 }  // namespace replication

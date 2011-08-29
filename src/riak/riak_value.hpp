@@ -45,32 +45,55 @@ public:
 #define MAX_RIAK_VALUE_SIZE (offsetof(riak_value_t, contents) + blob::btree_maxreflen)
 
 template <>
-class value_sizer_t<riak_value_t> {
+class value_sizer_t<riak_value_t> : public value_sizer_t<void> {
 public:
     value_sizer_t(block_size_t bs) : block_size_(bs) { }
 
-    int size(const riak_value_t *value) {
-        return offsetof(riak_value_t, contents) + blob::ref_size(block_size_, value->contents, blob::btree_maxreflen);
+    static const riak_value_t *as_riak(const void *v) {
+        return reinterpret_cast<const riak_value_t *>(v);
+    }
+
+    // The number of bytes the value takes up.  Reference implementation:
+    //
+    // for (int i = 0; i < INT_MAX; ++i) {
+    //    if (fits(value, i)) return i;
+    // }
+    int size(const void *value) const {
+        return offsetof(riak_value_t, contents) + blob::ref_size(block_size_, as_riak(value)->contents, blob::btree_maxreflen);
     }
 
     // True if size(value) would return no more than length_available.
     // Does not read any bytes outside of [value, value +
     // length_available).
-    bool fits(const riak_value_t *value, int length_available) {
+    bool fits(const void *value, int length_available) const {
         if (length_available < 0) { return false; }
         if ((unsigned) length_available < offsetof(riak_value_t, contents)) { return false; }
-        else { return blob::ref_fits(block_size_, length_available - offsetof(riak_value_t, contents), value->contents, blob::btree_maxreflen); }
+        else { return blob::ref_fits(block_size_, length_available - offsetof(riak_value_t, contents), as_riak(value)->contents, blob::btree_maxreflen); }
     }
 
-    int max_possible_size() {
+    bool deep_fsck(block_getter_t *getter, const void *value,
+                   int length_available, std::string *msg_out) const {
+        if (!fits(value, length_available)) {
+            *msg_out = "value does not fit in length_available";
+            return false;
+        }
+
+        return blob::deep_fsck(getter, block_size_, as_riak(value)->contents, blob::btree_maxreflen, msg_out);
+    }
+
+    int max_possible_size() const {
         return offsetof(riak_value_t, contents) + blob::btree_maxreflen;
+    }
+
+    static block_magic_t leaf_magic() {
+        block_magic_t magic = { { 'r', 'i', 'a', 'k'} };
+        return magic;
     }
 
     // The magic that should be used for btree leaf nodes (or general
     // nodes) with this kind of value.
-    static block_magic_t btree_leaf_magic() {
-        block_magic_t magic = { { 'r', 'i', 'a', 'k'} };
-        return magic;
+    block_magic_t btree_leaf_magic() const {
+        return leaf_magic();
     }
 
     block_size_t block_size() const { return block_size_; }

@@ -15,28 +15,22 @@
 #include "utils.hpp"
 #include "logger.hpp"
 
-linux_aio_getevents_eventfd_t::linux_aio_getevents_eventfd_t(linux_diskmgr_aio_t *parent)
-    : parent(parent)
-{
-    int res;
-
+linux_aio_getevents_eventfd_t::linux_aio_getevents_eventfd_t(linux_diskmgr_aio_t *_parent)
+    : parent(_parent) {
     // Create aio notify fd
     aio_notify_fd = eventfd(0, 0);
     guarantee_err(aio_notify_fd != -1, "Could not create aio notification fd");
 
-    res = fcntl(aio_notify_fd, F_SETFL, O_NONBLOCK);
+    int res = fcntl(aio_notify_fd, F_SETFL, O_NONBLOCK);
     guarantee_err(res == 0, "Could not make aio notify fd non-blocking");
 
     parent->queue->watch_resource(aio_notify_fd, poll_event_in, this);
 }
 
-linux_aio_getevents_eventfd_t::~linux_aio_getevents_eventfd_t()
-{
-    int res;
-
+linux_aio_getevents_eventfd_t::~linux_aio_getevents_eventfd_t() {
     parent->queue->forget_resource(aio_notify_fd, this);
 
-    res = close(aio_notify_fd);
+    int res = close(aio_notify_fd);
     guarantee_err(res == 0, "Could not close aio_notify_fd");
 }
 
@@ -69,13 +63,13 @@ void linux_aio_getevents_eventfd_t::on_event(int event_mask) {
         // to the way the kernel is structured. Better avoid this
         // complexity (hence std::min below).
         int nevents = io_getevents(parent->aio_context.id, 0,
-                               std::min((int)nevents_total, MAX_IO_EVENT_PROCESSING_BATCH_SIZE),
-                               events, NULL);
+                                   std::min(int(nevents_total), MAX_IO_EVENT_PROCESSING_BATCH_SIZE),
+                                   events, NULL);
         guarantee_xerr(nevents >= 1, -nevents, "Waiting for AIO event failed");
 
         // Process the events
         for(int i = 0; i < nevents; i++) {
-            parent->aio_notify((iocb*)events[i].obj, events[i].res);
+            parent->aio_notify(reinterpret_cast<iocb *>(events[i].obj), events[i].res);
         }
         nevents_total -= nevents;
 

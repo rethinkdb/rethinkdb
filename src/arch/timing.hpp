@@ -8,7 +8,12 @@
 
 /* Coroutine function that delays for some number of milliseconds. */
 
-void nap(int ms);
+void nap(int ms) THROWS_NOTHING;
+
+/* This variant takes an interruptor, and throws `interrupted_exc_t` if the
+interruptor is pulsed before the timeout is up */
+
+void nap(int ms, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
 class timer_token_t;
 
@@ -31,13 +36,13 @@ when the timer "rings". */
 
 struct repeating_timer_t {
 
-    repeating_timer_t(int frequency_ms, const boost::function<void(void)>& ring);
+    repeating_timer_t(int frequency_ms, const boost::function<void()>& ring);
     ~repeating_timer_t();
 
 private:
     static void on_timer_ring(void *v_timer);
     timer_token_t *timer;
-    boost::function<void(void)> ring;
+    boost::function<void()> ring;
 };
 
 #endif /* __ARCH_TIMING_HPP__ */

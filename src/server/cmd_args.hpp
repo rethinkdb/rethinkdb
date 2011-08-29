@@ -9,15 +9,10 @@
 #include <sys/types.h>
 
 #include "serializer/types.hpp"
-#include "arch/runtime/runtime.hpp"
 
 #include "serializer/log/config.hpp"
 #include "buffer_cache/mirrored/config.hpp"
 #include "server/key_value_store_config.hpp"
-
-#include <boost/serialization/serialization.hpp>
-#include <boost/serialization/access.hpp>
-#include <boost/serialization/vector.hpp>
 
 /* Configuration for replication */
 struct replication_config_t {
@@ -127,7 +122,6 @@ public:
     void set_master_listen_port(const char *value);
     void set_master_addr(const char *value);
     void set_heartbeat_timeout(const char *value);
-    void set_total_delete_queue_limit(const char *value);
     void set_failover_file(const char* value);
     void set_io_backend(const char* value);
     void set_io_batch_factor(const char* value);

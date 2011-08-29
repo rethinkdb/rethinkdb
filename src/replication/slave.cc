@@ -2,12 +2,16 @@
 
 #include <stdint.h>
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "arch/arch.hpp"
 #include "logger.hpp"
 #include "replication/net_structs.hpp"
 #include "server/key_value_store.hpp"
 #include "replication/backfill.hpp"
 #include "replication/slave_stream_manager.hpp"
+#include "concurrency/wait_any.hpp"
 
 namespace replication {
 
@@ -70,6 +74,10 @@ void slave_t::give_up_t::limit_to(unsigned int limit) {
         successful_reconnects.pop();
 }
 
+static void pulse_if_not_already_pulsed(cond_t *c) {
+    if (!c->is_pulsed()) c->pulse();
+}
+
 void slave_t::run(signal_t *shutdown_signal) {
 
     /* Determine if we were connected to the master at the time that we last shut down. We figure
@@ -117,7 +125,9 @@ void slave_t::run(signal_t *shutdown_signal) {
                 pulse_to_reset_failover_ = &slave_cond;
 
                 // This makes it so that if we get a shutdown command, the connection gets closed.
-                cond_link_t close_connection_on_shutdown(shutdown_signal, &slave_cond);
+                signal_t::subscription_t(
+                    boost::bind(&pulse_if_not_already_pulsed, &slave_cond),
+                    shutdown_signal);
 
                 // last_sync is the latest timestamp that we didn't get all the master's changes for
                 repli_timestamp_t last_sync = internal_store_->get_last_sync();
@@ -159,7 +169,7 @@ void slave_t::run(signal_t *shutdown_signal) {
             were_connected_before = false;
 
         } catch (tcp_conn_t::connect_failed_exc_t& e) {
-	    (void)e;
+            (void)e;
             // If the master was down when we last shut down, it's not so remarkable that it
             // would still be down when we come back up. But if that's not the case and it's
             // our first time connecting, we blame the failure to connect on user error.
@@ -174,12 +184,11 @@ void slave_t::run(signal_t *shutdown_signal) {
             int timeout = timeout_;
             timeout_ = std::min(timeout_ * TIMEOUT_GROWTH_FACTOR, (long)TIMEOUT_CAP);
 
-            cond_t c;
+            cond_t failover_reset;
+            pulse_to_reset_failover_ = &failover_reset;
             signal_timer_t retry_timer(timeout);
-            cond_link_t proceed_when_delay_is_over(&retry_timer, &c);
-            pulse_to_reset_failover_ = &c;
-            cond_link_t abort_delay_on_shutdown(shutdown_signal, &c);
-            c.wait();
+            wait_any_t waiter(shutdown_signal, &retry_timer, &failover_reset);
+            waiter.wait_lazily_unordered();
             pulse_to_reset_failover_ = NULL;
 
         } else {
@@ -190,10 +199,10 @@ void slave_t::run(signal_t *shutdown_signal) {
                    replication_config_.hostname.c_str(), replication_config_.port,
                    MAX_RECONNECTS_PER_N_SECONDS, N_SECONDS);
 
-            cond_t c;
-            pulse_to_reset_failover_ = &c;
-            cond_link_t abort_delay_on_shutdown(shutdown_signal, &c);
-            c.wait();
+            cond_t failover_reset;
+            pulse_to_reset_failover_ = &failover_reset;
+            wait_any_t waiter(shutdown_signal, &failover_reset);
+            waiter.wait_lazily_unordered();
             pulse_to_reset_failover_ = NULL;
         }
     }

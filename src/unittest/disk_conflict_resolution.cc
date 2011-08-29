@@ -93,8 +93,8 @@ struct test_driver_t {
 
 struct read_test_t {
 
-    read_test_t(test_driver_t *driver, off_t o, std::string e) :
-        driver(driver),
+    read_test_t(test_driver_t *_driver, off_t o, std::string e) :
+        driver(_driver),
         offset(o),
         expected(e),
         buffer(new char[expected.size()])
@@ -130,8 +130,8 @@ struct read_test_t {
 
 struct write_test_t {
 
-    write_test_t(test_driver_t *driver, off_t o, std::string d) :
-        driver(driver),
+    write_test_t(test_driver_t *_driver, off_t o, std::string d) :
+        driver(_driver),
         offset(o),
         data(d)
     {

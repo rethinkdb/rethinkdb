@@ -7,7 +7,6 @@
 #include "buffer_cache/types.hpp"
 #include "containers/two_level_array.hpp"
 #include "buffer_cache/buf_patch.hpp"
-#include "serializer/serializer.hpp"
 
 // TODO: Have the semantic checking cache make sure that the
 // repli_timestamp_ts are correct.
@@ -20,6 +19,8 @@ template<class inner_cache_t> class scc_transaction_t;
 template<class inner_cache_t> class scc_cache_t;
 
 typedef uint32_t crc_t;
+
+class serializer_t;
 
 /* Buf */
 
@@ -36,7 +37,7 @@ public:
     void move_data(void* dest, const void* src, const size_t n);
     void apply_patch(buf_patch_t *patch); // This might delete the supplied patch, do not use patch after its application
     patch_counter_t get_next_patch_counter();
-    void mark_deleted(bool write_null = true);
+    void mark_deleted();
     void touch_recency(repli_timestamp_t timestamp);
     void release();
 
@@ -100,7 +101,7 @@ private:
 /* Cache */
 
 template<class inner_cache_t>
-class scc_cache_t : public home_thread_mixin_t, public serializer_t::read_ahead_callback_t {
+class scc_cache_t : public home_thread_mixin_t, public serializer_read_ahead_callback_t {
 public:
     typedef scc_buf_t<inner_cache_t> buf_t;
     typedef scc_transaction_t<inner_cache_t> transaction_t;

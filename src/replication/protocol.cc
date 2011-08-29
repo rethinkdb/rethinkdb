@@ -5,6 +5,7 @@
 
 #include "arch/arch.hpp"
 #include "concurrency/coro_fifo.hpp"
+#include "containers/buffer_group.hpp"
 #include "logger.hpp"
 #include "perfmon.hpp"
 #include "replication/debug_format.hpp"
@@ -30,7 +31,6 @@ template <> struct stream_type<net_backfill_set_t> { typedef stream_pair<net_bac
 size_t objsize(UNUSED const net_introduce_t *buf) { return sizeof(net_introduce_t); }
 size_t objsize(UNUSED const net_backfill_t *buf) { return sizeof(net_backfill_t); }
 size_t objsize(UNUSED const net_backfill_complete_t *buf) { return sizeof(net_backfill_complete_t); }
-size_t objsize(UNUSED const net_backfill_delete_everything_t *buf) { return sizeof(net_backfill_delete_everything_t); }
 size_t objsize(UNUSED const net_timebarrier_t *buf) { return sizeof(net_timebarrier_t); }
 size_t objsize(UNUSED const net_heartbeat_t *buf) { return sizeof(net_heartbeat_t); }
 size_t objsize(const net_get_cas_t *buf) { return sizeof(net_get_cas_t) + buf->key_size; }
@@ -41,6 +41,13 @@ size_t objsize(const net_sarc_t *buf) { return sizeof(net_sarc_t) + buf->key_siz
 size_t objsize(const net_append_t *buf) { return sizeof(net_append_t) + buf->key_size + buf->value_size; }
 size_t objsize(const net_prepend_t *buf) { return sizeof(net_prepend_t) + buf->key_size + buf->value_size; }
 size_t objsize(const net_backfill_set_t *buf) { return sizeof(net_backfill_set_t) + buf->key_size + buf->value_size; }
+size_t objsize(const net_backfill_delete_range_t *buf) {
+    // low_key_size and high_key_size are uint8_t's, we be careful not to add them together first.
+    size_t ret = sizeof(net_backfill_delete_range_t);
+    ret += (buf->low_key_size == net_backfill_delete_range_t::infinity_key_size ? 0 : buf->low_key_size);
+    ret += (buf->high_key_size == net_backfill_delete_range_t::infinity_key_size ? 0 : buf->high_key_size);
+    return ret;
+}
 size_t objsize(const net_backfill_delete_t *buf) { return sizeof(net_backfill_delete_t) + buf->key_size; }
 
 
@@ -64,7 +71,7 @@ void check_pass(message_callback_t *receiver, const char *buf, size_t realsize) 
 template <class T>
 void print_and_pass_message(message_callback_t *receiver, stream_pair<T> &spair) {
 #ifdef REPLICATION_DEBUG
-    debugf("recv %s\n", debug_format(spair.data, spair.stream->peek()).c_str());
+    debugf("recv %s\n", debug_format(spair.data, spair.stream->buf()).c_str());
 #endif
     receiver->send(spair);
 }
@@ -77,7 +84,7 @@ tracker_obj_t *check_value_streamer(message_callback_t *receiver, const char *bu
         stream_pair<T> spair(buf, buf + size, reinterpret_cast<const T *>(buf)->value_size);
         size_t m = size - sizeof(T) - reinterpret_cast<const T *>(buf)->key_size;
 
-        char *p = spair.stream->peek() + m;
+        char *p = spair.stream->buf() + m;
 
         return new tracker_obj_t(
             boost::bind(&print_and_pass_message<T>, receiver, spair),
@@ -99,7 +106,7 @@ void replication_stream_handler_t::stream_part(const char *buf, size_t size) {
     // (Note: this might be a no-op while watching the heartbeat is paused, depending
     // on the implementation of the heartbeat receiver. It certainly doesn't hurt though.)
     hb_receiver_->note_heartbeat();
-    
+
     if (!saw_first_part_) {
         uint8_t msgcode = *reinterpret_cast<const uint8_t *>(buf);
         ++buf;
@@ -109,7 +116,6 @@ void replication_stream_handler_t::stream_part(const char *buf, size_t size) {
         case INTRODUCE: check_pass<net_introduce_t>(receiver_, buf, size); break;
         case BACKFILL: check_pass<net_backfill_t>(receiver_, buf, size); break;
         case BACKFILL_COMPLETE: check_pass<net_backfill_complete_t>(receiver_, buf, size); break;
-        case BACKFILL_DELETE_EVERYTHING: check_pass<net_backfill_delete_everything_t>(receiver_, buf, size); break;
         case TIMEBARRIER: check_pass<net_timebarrier_t>(receiver_, buf, size); break;
         case HEARTBEAT: check_pass<net_heartbeat_t>(receiver_, buf, size); break;
         case GET_CAS: check_pass<net_get_cas_t>(receiver_, buf, size); break;
@@ -283,8 +289,8 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
 }
 
 template <class net_struct_type>
-void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg, const char *key, boost::shared_ptr<data_provider_t> data) {
-    rassert(msg->value_size == data->get_size());
+void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg, const char *key, const boost::intrusive_ptr<data_buffer_t>& data) {
+    rassert(msg->value_size == data->size());
 
     size_t bufsize = objsize(msg);
     scoped_malloc<char> buf(bufsize);
@@ -292,14 +298,14 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg, const char *
     memcpy(buf.get() + sizeof(net_struct_type), key, msg->key_size);
 
     buffer_group_t group;
-    group.add_buffer(data->get_size(), buf.get() + sizeof(net_struct_type) + msg->key_size);
+    group.add_buffer(data->size(), buf.get() + sizeof(net_struct_type) + msg->key_size);
 
     // This could theoretically block and that could cause reordering
     // of sets, for real time operations.  The fact that it doesn't
     // block is just a function of whatever data provider which we
     // happen to use.  (It definitely blocks for backfilling
     // operations but we don't care.)
-    data->get_data_into_buffers(&group);
+    buffer_group_copy_data(&group, data->buf(), data->size());
 
     sendobj(msgcode, reinterpret_cast<net_struct_type *>(buf.get()));
 }
@@ -322,22 +328,17 @@ void repli_stream_t::send(net_backfill_complete_t *msg) {
     flush();
 }
 
-void repli_stream_t::send(net_backfill_delete_everything_t msg) {
-    drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
-    sendobj(BACKFILL_DELETE_EVERYTHING, &msg);
-}
-
 void repli_stream_t::send(net_get_cas_t *msg) {
     drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(GET_CAS, msg);
 }
 
-void repli_stream_t::send(net_sarc_t *msg, const char *key, boost::shared_ptr<data_provider_t> value) {
+void repli_stream_t::send(net_sarc_t *msg, const char *key, const boost::intrusive_ptr<data_buffer_t>& value) {
     drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(SARC, msg, key, value);
 }
 
-void repli_stream_t::send(net_backfill_set_t *msg, const char *key, boost::shared_ptr<data_provider_t> value) {
+void repli_stream_t::send(net_backfill_set_t *msg, const char *key, const boost::intrusive_ptr<data_buffer_t>& value) {
     drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(BACKFILL_SET, msg, key, value);
 }
@@ -352,12 +353,12 @@ void repli_stream_t::send(net_decr_t *msg) {
     sendobj(DECR, msg);
 }
 
-void repli_stream_t::send(net_append_t *msg, const char *key, boost::shared_ptr<data_provider_t> value) {
+void repli_stream_t::send(net_append_t *msg, const char *key, const boost::intrusive_ptr<data_buffer_t>& value) {
     drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(APPEND, msg, key, value);
 }
 
-void repli_stream_t::send(net_prepend_t *msg, const char *key, boost::shared_ptr<data_provider_t> value) {
+void repli_stream_t::send(net_prepend_t *msg, const char *key, const boost::intrusive_ptr<data_buffer_t>& value) {
     drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(PREPEND, msg, key, value);
 }
@@ -365,6 +366,11 @@ void repli_stream_t::send(net_prepend_t *msg, const char *key, boost::shared_ptr
 void repli_stream_t::send(net_delete_t *msg) {
     drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(DELETE, msg);
+}
+
+void repli_stream_t::send(net_backfill_delete_range_t *msg) {
+    drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
+    sendobj(BACKFILL_DELETE_RANGE, msg);
 }
 
 void repli_stream_t::send(net_backfill_delete_t *msg) {

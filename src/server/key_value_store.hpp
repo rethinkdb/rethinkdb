@@ -12,13 +12,15 @@
 #include "server/key_value_store_config.hpp"
 #include "stats/control.hpp"
 #include "server/dispatching_store.hpp"
-#include "serializer/config.hpp"
-#include "serializer/translator.hpp"
+#include "serializer/types.hpp"
 #include "memcached/store.hpp"
 
 namespace replication {
     class backfill_and_streaming_manager_t;
 }  // namespace replication
+
+class translator_serializer_t;
+class serializer_multiplexer_t;
 
 // If the database is not a slave, then get_replication_creation_timestamp() is NOT_A_SLAVE.
 // If the database is a slave, then get_replication_creation_timestamp() returns the creation
@@ -36,14 +38,13 @@ struct shard_store_t :
 {
     shard_store_t(
         serializer_t *serializer,
-        mirrored_cache_config_t *dynamic_config,
-        int64_t delete_queue_limit);
+        mirrored_cache_config_t *dynamic_config);
 
     get_result_t get(const store_key_t &key, order_token_t token);
     rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token);
     mutation_result_t change(const mutation_t &m, order_token_t token);
     mutation_result_t change(const mutation_t &m, castime_t ct, order_token_t token);
-    void delete_all_keys_for_backfill(order_token_t token);
+    void backfill_delete_range(int hash_value, int hashmode, bool left_key_supplied, const store_key_t& left_key_exclusive, bool right_key_supplied, const store_key_t& right_key_inclusive, order_token_t token);
     void set_replication_clock(repli_timestamp_t t, order_token_t token);
 
     cache_t cache;
@@ -59,8 +60,7 @@ namespace btree_store_helpers {
         shard_store_t **shard,
         int i,
         serializer_t *serializer,
-        mirrored_cache_config_t *dynamic_config,
-        int64_t delete_queue_limit);
+        mirrored_cache_config_t *dynamic_config);
 
     void create_existing_serializer(standard_serializer_t **serializer, int i,
         log_serializer_dynamic_config_t *config,
@@ -90,8 +90,7 @@ namespace btree_store_helpers {
         shard_store_t **shards,
         int i,
         translator_serializer_t **pseudoserializers,
-        mirrored_cache_config_t *dynamic_config,
-        int64_t delete_queue_limit);
+        mirrored_cache_config_t *dynamic_config);
 
     void destroy_serializer(standard_serializer_t *serializer);
 
@@ -125,22 +124,16 @@ public:
     static void check_existing(const std::vector<std::string>& db_filenames, check_callback_t *cb);
 
 public:
-    /* get_store_t interface */
-
     get_result_t get(const store_key_t &key, order_token_t token);
     rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token);
 
-    /* set_store_interface_t interface */
-
     mutation_result_t change(const mutation_t &m, order_token_t order_token);
-
-    /* set_store_t interface */
 
     mutation_result_t change(const mutation_t &m, castime_t ct, order_token_t order_token);
 
-    /* btree_key_value_store_t interface */
-
-    void delete_all_keys_for_backfill(order_token_t token);
+    // Deletes the keys in the range (left_key_exclusive, right_key_inclusive] for
+    // which hash(hash_value) % hashmod == slice.  Keys can be null, representing infinity.
+    void backfill_delete_range(int hash_value, int hashmod, bool left_key_supplied, const store_key_t& left_key_exclusive, bool right_key_supplied, const store_key_t& right_key_inclusive, order_token_t token);
 
     /* The value passed to `set_timestampers()` is the value that will be used as the
     timestamp for all new operations. When the key-value store starts up, it is
@@ -160,9 +153,10 @@ public:
     void set_replication_slave_id(uint32_t ts);
     uint32_t get_replication_slave_id();
 
-    static uint32_t hash(const store_key_t &key);
+    static uint32_t hash(const char *data, int len);
+    static uint32_t hash(const store_key_t& key);
 
-    creation_timestamp_t get_creation_timestamp() const { return multiplexer->creation_timestamp; }
+    creation_timestamp_t get_creation_timestamp() const;
 
 private:
     friend class replication::backfill_and_streaming_manager_t;
@@ -198,8 +192,8 @@ private:
         public control_t
     {
     public:
-        hash_control_t(btree_key_value_store_t *btkvs)
-            : control_t("hash", std::string("Get hash, slice, and thread of a key. Syntax: rdb hash key"), true), btkvs(btkvs)
+        hash_control_t(btree_key_value_store_t *_btkvs)
+            : control_t("hash", std::string("Get hash, slice, and thread of a key. Syntax: rdb hash key"), true), btkvs(_btkvs)
         {}
         virtual ~hash_control_t() {};
 

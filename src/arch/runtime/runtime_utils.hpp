@@ -1,7 +1,6 @@
 #ifndef __ARCH_RUNTIME_RUNTIME_UTILS_HPP__
 #define __ARCH_RUNTIME_RUNTIME_UTILS_HPP__
 
-#include "errors.hpp"
 #include "containers/intrusive_list.hpp"
 
 typedef int fd_t;
@@ -15,6 +14,8 @@ public:
 protected:
     virtual ~linux_thread_message_t() {}
 };
+
+typedef linux_thread_message_t thread_message_t;
 
 int get_cpu_count();
 

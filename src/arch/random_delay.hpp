@@ -10,7 +10,7 @@ the IO layer, but are safe to include from within the IO
 layer. */
 
 
-void random_delay(void (*)(void*), void*);
+void random_delay(void (*)(void *), void *);
 
 template<class cb_t>
 void random_delay(cb_t *cb, void (cb_t::*method)());
@@ -33,7 +33,7 @@ struct no_arg_caller_t
     cb_t *cb;
     void (cb_t::*method)();
     static void on_timer(void *ctx) {
-        no_arg_caller_t *self = (no_arg_caller_t*)ctx;
+        no_arg_caller_t *self = static_cast<no_arg_caller_t *>(ctx);
         ((self->cb)->*(self->method))();
         delete self;
     }
@@ -42,12 +42,12 @@ struct no_arg_caller_t
 template<class cb_t>
 void random_delay(cb_t *cb, void (cb_t::*method)()) {
     rassert(cb);
-    
+
     no_arg_caller_t<cb_t> *c = new no_arg_caller_t<cb_t>;
     c->cb = cb;
     c->method = method;
-    
-    random_delay(&no_arg_caller_t<cb_t>::on_timer, (void*)c);
+
+    random_delay(&no_arg_caller_t<cb_t>::on_timer, c);
 }
 
 template<class cb_t, class arg1_t>
@@ -57,7 +57,7 @@ struct one_arg_caller_t
     void (cb_t::*method)(arg1_t);
     arg1_t arg;
     static void on_timer(void *ctx) {
-        one_arg_caller_t *self = (one_arg_caller_t*)ctx;
+        one_arg_caller_t *self = static_cast<one_arg_caller_t *>(ctx);
         ((self->cb)->*(self->method))(self->arg);
         delete self;
     }
@@ -66,13 +66,13 @@ struct one_arg_caller_t
 template<class cb_t, class arg1_t>
 void random_delay(cb_t *cb, void (cb_t::*method)(arg1_t), arg1_t arg) {
     rassert(cb);
-    
+
     one_arg_caller_t<cb_t, arg1_t> *c = new one_arg_caller_t<cb_t, arg1_t>;
     c->cb = cb;
     c->method = method;
     c->arg = arg;
-    
-    random_delay(&one_arg_caller_t<cb_t, arg1_t>::on_timer, (void*)c);
+
+    random_delay(&one_arg_caller_t<cb_t, arg1_t>::on_timer, c);
 }
 
 template<class cb_t>

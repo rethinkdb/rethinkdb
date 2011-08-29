@@ -2,6 +2,9 @@
 
 #include <stdlib.h>
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "arch/arch.hpp"
 
 namespace unittest {

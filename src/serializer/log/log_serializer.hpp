@@ -1,4 +1,3 @@
-
 #ifndef __LOG_SERIALIZER_HPP__
 #define __LOG_SERIALIZER_HPP__
 
@@ -41,11 +40,6 @@ struct log_serializer_metablock_t {
 
 //  Data to be serialized to disk with each block.  Changing this changes the disk format!
 // TODO: This header data should maybe go to the cache
-struct ls_buf_data_t {
-    block_id_t block_id;
-    block_sequence_id_t block_sequence_id;
-} __attribute__((__packed__));
-
 typedef metablock_manager_t<log_serializer_metablock_t> mb_manager_t;
 
 // Used internally
@@ -55,7 +49,11 @@ struct ls_start_new_fsm_t;
 struct ls_start_existing_fsm_t;
 
 class log_serializer_t :
+#ifndef SEMANTIC_SERIALIZER_CHECK
     public serializer_t,
+#else
+    public home_thread_mixin_t,
+#endif  // SEMANTIC_SERIALIZER_CHECK
     private data_block_manager_t::shutdown_callback_t,
     private lba_index_t::shutdown_callback_t
 {
@@ -65,6 +63,7 @@ class log_serializer_t :
     friend struct ls_start_existing_fsm_t;
     friend class data_block_manager_t;
     friend struct dbm_read_ahead_fsm_t;
+    friend class ls_block_token_pointee_t;
 
 public:
     /* Serializer configuration. dynamic_config_t is everything that can be changed from run
@@ -79,7 +78,7 @@ public:
         private_dynamic_config_t private_dynamic_config;
         static_config_t static_config;
 
-        log_serializer_config_t(std::string file_name) 
+        log_serializer_config_t(std::string file_name)
             : private_dynamic_config(file_name)
         { }
 
@@ -92,10 +91,6 @@ public:
     };
 
     typedef log_serializer_config_t config_t;
-    
-    dynamic_config_t dynamic_config;
-    private_dynamic_config_t private_config;
-    static_config_t static_config;
 
 public:
 
@@ -116,22 +111,6 @@ public:
     static void check_existing(const char *filename, check_callback_t *cb);
 
 public:
-    class ls_block_token_t : public serializer_t::block_token_t {
-        friend class log_serializer_t;
-
-        ls_block_token_t(log_serializer_t *serializer, off64_t initial_offset) : serializer(serializer) {
-            serializer->assert_thread();
-            serializer->register_block_token(this, initial_offset);
-        }
-        log_serializer_t *serializer;
-
-    public:
-        virtual ~ls_block_token_t() {
-            on_thread_t switcher(serializer->home_thread());
-            serializer->unregister_block_token(this);
-        }
-    };
-
     /* Implementation of the serializer_t API */
     void *malloc();
     void *clone(void*); // clones a buf
@@ -139,35 +118,38 @@ public:
 
     file_account_t *make_io_account(int priority, int outstanding_requests_limit);
 
-    void register_read_ahead_cb(read_ahead_callback_t *cb);
-    void unregister_read_ahead_cb(read_ahead_callback_t *cb);
+    void register_read_ahead_cb(serializer_read_ahead_callback_t *cb);
+    void unregister_read_ahead_cb(serializer_read_ahead_callback_t *cb);
     block_id_t max_block_id();
     repli_timestamp_t get_recency(block_id_t id);
 
     bool get_delete_bit(block_id_t id);
-    boost::shared_ptr<block_token_t> index_read(block_id_t block_id);
+    boost::intrusive_ptr<ls_block_token_pointee_t> index_read(block_id_t block_id);
 
-    using serializer_t::block_read; // hack to make block_read overloading work properly
-    void block_read(boost::shared_ptr<block_token_t> token, void *buf, file_account_t *io_account, iocallback_t *cb);
+    void block_read(const boost::intrusive_ptr<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb);
+
+    void block_read(const boost::intrusive_ptr<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account);
 
     void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account);
 
-    using serializer_t::block_write; // hack to make block_write overloading work properly
-    boost::shared_ptr<block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb);
+    boost::intrusive_ptr<ls_block_token_pointee_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb);
+    boost::intrusive_ptr<ls_block_token_pointee_t> block_write(const void *buf, file_account_t *io_account, iocallback_t *cb);
+    boost::intrusive_ptr<ls_block_token_pointee_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account);
+    boost::intrusive_ptr<ls_block_token_pointee_t> block_write(const void *buf, file_account_t *io_account);
 
     block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf);
 
     block_size_t get_block_size();
 
 private:
-    std::map<ls_block_token_t*, off64_t> token_offsets;
-    std::multimap<off64_t, ls_block_token_t*> offset_tokens;
-    void register_block_token(ls_block_token_t *token, off64_t offset);
-    void unregister_block_token(ls_block_token_t *token);
+    std::map<ls_block_token_pointee_t*, off64_t> token_offsets;
+    std::multimap<off64_t, ls_block_token_pointee_t*> offset_tokens;
+    void register_block_token(ls_block_token_pointee_t *token, off64_t offset);
+    void unregister_block_token(ls_block_token_pointee_t *token);
     void remap_block_to_new_offset(off64_t current_offset, off64_t new_offset);
-    boost::shared_ptr<block_token_t> generate_block_token(off64_t offset);
+    boost::intrusive_ptr<ls_block_token_pointee_t> generate_block_token(off64_t offset);
 
-    std::vector<read_ahead_callback_t*> read_ahead_callbacks;
+    std::vector<serializer_read_ahead_callback_t*> read_ahead_callbacks;
     bool offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp);
     bool should_perform_read_ahead();
 
@@ -184,15 +166,6 @@ private:
     /* This mess is because the serializer is still mostly FSM-based */
     bool shutdown(cond_t *cb);
     bool next_shutdown_step();
-    cond_t *shutdown_callback;
-
-    enum shutdown_state_t {
-        shutdown_begin,
-        shutdown_waiting_on_serializer,
-        shutdown_waiting_on_datablock_manager,
-        shutdown_waiting_on_lba
-    } shutdown_state;
-    bool shutdown_in_one_shot;
 
     virtual void on_datablock_manager_shutdown();
     virtual void on_lba_shutdown();
@@ -219,6 +192,20 @@ private:
 
     void consider_start_gc();
 
+    dynamic_config_t dynamic_config;
+    private_dynamic_config_t private_config;
+    static_config_t static_config;
+
+    cond_t *shutdown_callback;
+
+    enum shutdown_state_t {
+        shutdown_begin,
+        shutdown_waiting_on_serializer,
+        shutdown_waiting_on_datablock_manager,
+        shutdown_waiting_on_lba
+    } shutdown_state;
+    bool shutdown_in_one_shot;
+
     enum state_t {
         state_unstarted,
         state_starting_up,
@@ -244,6 +231,8 @@ private:
     int active_write_count;
 
     block_sequence_id_t latest_block_sequence_id;
+
+    DISABLE_COPYING(log_serializer_t);
 };
 
 #endif /* __LOG_SERIALIZER_HPP__ */

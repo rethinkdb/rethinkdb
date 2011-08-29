@@ -3,10 +3,10 @@
 
 #include <deque>
 
-#include "serializer/serializer.hpp"
 #include "buffer_cache/types.hpp"
 #include "utils.hpp"
 
+class serializer_t;
 /* TODO We could implement a free list in the unused cells of the page map, saving a little bit
 of memory. */
 

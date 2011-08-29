@@ -30,7 +30,6 @@ std::string link_to_string(link_t const &link) {
 
     res <<">;";
     res << " riaktag=" << "\"" << link.tag << "\"";
-
     return res.str();
 }
 

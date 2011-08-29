@@ -42,9 +42,9 @@ public:
         std::vector<buffer_t>::iterator it;
         ssize_t offset;
 
-    friend class const_buffer_group_t;
-        iterator(std::vector<buffer_t>::iterator it, ssize_t offset) 
-            : it(it), offset(offset)
+	friend class const_buffer_group_t;
+        iterator(std::vector<buffer_t>::iterator _it, ssize_t _offset) 
+            : it(_it), offset(_offset)
         { }
 
     public:
@@ -144,5 +144,7 @@ inline const const_buffer_group_t *const_view(const buffer_group_t *group) {
 
 /* Copies all the bytes from "in" to "out". "in" and "out" must be the same size. */
 void buffer_group_copy_data(const buffer_group_t *out, const const_buffer_group_t *in);
+
+void buffer_group_copy_data(const buffer_group_t *out, const char *in, int64_t size);
 
 #endif  // __CONTAINERS_BUFFER_GROUP_HPP__

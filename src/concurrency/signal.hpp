@@ -3,7 +3,6 @@
 
 #include "concurrency/pubsub.hpp"
 #include "utils.hpp"
-#include <boost/bind.hpp>
 
 /* A `signal_t` is a boolean variable, combined with a way to be notified if
 that boolean variable becomes true. Typically you will construct a concrete
@@ -59,25 +58,11 @@ public:
 
     /* The coro that calls `wait_lazily_ordered()` will be pushed onto the event
     queue when the signal is pulsed, but will not wake up immediately. */
-    void wait_lazily_ordered() {
-        if (!is_pulsed()) {
-            subscription_t subs(
-                boost::bind(&coro_t::notify_later_ordered, coro_t::self()),
-                this);
-            coro_t::wait();
-        }
-    }
+    void wait_lazily_ordered();
 
     /* The coro that calls `wait_lazily_unordered()` will be notified soon after
     the signal has been pulsed, but not immediately. */
-    void wait_lazily_unordered() {
-        if (!is_pulsed()) {
-            subscription_t subs(
-                boost::bind(&coro_t::notify_sometime, coro_t::self()),
-                this);
-            coro_t::wait();
-        }
-    }
+    void wait_lazily_unordered();
 
     /* The coro that calls `wait_eagerly()` will be woken up immediately when
     the signal is pulsed, before `pulse()` even returns.
@@ -86,14 +71,7 @@ public:
     destroying the signal that's just been pulsed. You should probably use
     `wait_lazily_unordered()` instead; its performance will be similar once we
     optimize `notify_sometime()`. */
-    void wait_eagerly() {
-        if (!is_pulsed()) {
-            subscription_t subs(
-                boost::bind(&coro_t::notify_now, coro_t::self()),
-                this);
-            coro_t::wait();
-        }
-    }
+    void wait_eagerly();
 
     /* `wait()` is a deprecated synonym for `wait_lazily_ordered()`. */
     void wait() {
@@ -109,7 +87,7 @@ protected:
     signal_t() : pulsed(false), publisher_controller(&mutex) { }
     ~signal_t() { }
 
-    void pulse() {
+    void pulse() THROWS_NOTHING {
         mutex_acquisition_t acq(&mutex, false);
         rassert(!is_pulsed());
         pulsed = true;
@@ -117,7 +95,7 @@ protected:
     }
 
 private:
-    static void call(boost::function<void()> &fun) {
+    static void call(boost::function<void()>& fun) THROWS_NOTHING {
         fun();
     }
 

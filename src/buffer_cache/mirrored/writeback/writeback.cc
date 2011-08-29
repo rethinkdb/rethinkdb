@@ -7,9 +7,11 @@
 #include <boost/variant/get.hpp>
 
 #include "arch/arch.hpp"
+
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "do_on_thread.hpp"
 #include "perfmon.hpp"
+#include "serializer/serializer.hpp"
 
 // TODO: We added a writeback->possibly_unthrottle_transactions() call
 // in the begin_transaction_fsm_t(..) constructor, where did that get
@@ -28,26 +30,26 @@ perfmon_sampler_t
     pm_flushes_diff_storage_failures("flushes_diff_storage_failures", secs_to_ticks(30), true);
 
 writeback_t::writeback_t(
-        cache_t *cache,
-        bool wait_for_flush,
-        unsigned int flush_timer_ms,
-        unsigned int flush_threshold,
-        unsigned int max_dirty_blocks,
-        unsigned int flush_waiting_threshold,
-        unsigned int max_concurrent_flushes
+        cache_t *_cache,
+        bool _wait_for_flush,
+        unsigned int _flush_timer_ms,
+        unsigned int _flush_threshold,
+        unsigned int _max_dirty_blocks,
+        unsigned int _flush_waiting_threshold,
+        unsigned int _max_concurrent_flushes
         ) :
-    wait_for_flush(wait_for_flush),
-    flush_waiting_threshold(flush_waiting_threshold),
-    max_concurrent_flushes(max_concurrent_flushes),
-    max_dirty_blocks(max_dirty_blocks),
-    flush_time_randomizer(flush_timer_ms),
-    flush_threshold(flush_threshold),
+    wait_for_flush(_wait_for_flush),
+    flush_waiting_threshold(_flush_waiting_threshold),
+    max_concurrent_flushes(_max_concurrent_flushes),
+    max_dirty_blocks(_max_dirty_blocks),
+    flush_time_randomizer(_flush_timer_ms),
+    flush_threshold(_flush_threshold),
     flush_timer(NULL),
     writeback_in_progress(false),
     active_flushes(0),
-    dirty_block_semaphore(max_dirty_blocks),
+    dirty_block_semaphore(_max_dirty_blocks),
     force_patch_storage_flush(false),
-    cache(cache),
+    cache(_cache),
     start_next_sync_immediately(false) {
 
     rassert(max_dirty_blocks >= 10); // sanity check: you really don't want to have less than this.
@@ -155,6 +157,7 @@ void writeback_t::on_transaction_commit(transaction_t *txn) {
 }
 
 void writeback_t::local_buf_t::set_dirty(bool _dirty) {
+    inner_buf_t *gbuf = static_cast<inner_buf_t *>(this);
     if (!dirty && _dirty) {
         // Mark block as dirty if it hasn't been already
         dirty = true;
@@ -177,6 +180,7 @@ void writeback_t::local_buf_t::set_dirty(bool _dirty) {
 }
 
 void writeback_t::local_buf_t::set_recency_dirty(bool _recency_dirty) {
+    inner_buf_t *gbuf = static_cast<inner_buf_t *>(this);
     if (!recency_dirty && _recency_dirty) {
         // Mark block as recency_dirty if it hasn't been already.
         recency_dirty = true;
@@ -198,10 +202,8 @@ void writeback_t::local_buf_t::set_recency_dirty(bool _recency_dirty) {
 
 // Add block_id to deleted_blocks list.
 void writeback_t::local_buf_t::mark_block_id_deleted() {
-    writeback_t::deleted_block_t deleted_block;
-    deleted_block.block_id = gbuf->block_id;
-    deleted_block.write_empty_block = gbuf->write_empty_deleted_block;
-    gbuf->cache->writeback.deleted_blocks.push_back(deleted_block);
+    inner_buf_t *gbuf = static_cast<inner_buf_t *>(this);
+    gbuf->cache->writeback.deleted_blocks.push_back(gbuf->block_id);
 
     // As the block has been deleted, we must not accept any versions of it offered
     // by a read-ahead operation
@@ -253,19 +255,25 @@ void writeback_t::flush_timer_callback(void *ctx) {
 class writeback_t::buf_writer_t :
     public iocallback_t,
     public thread_message_t,
-    public cond_t               // note: inherits from home_thread_mixin_t
-{
+    public home_thread_mixin_t {
+    cond_t self_cond_;
+
 public:
     struct launch_callback_t :
         public serializer_t::write_launched_callback_t,
         public thread_message_t,
-        public cond_t
-    {
+        public home_thread_mixin_t {
         writeback_t *parent;
         mc_buf_t *buf;
-        boost::shared_ptr<serializer_t::block_token_t> token;
-        void on_write_launched(boost::shared_ptr<serializer_t::block_token_t> tok) {
-            token = tok;        // XXX does this work?
+        boost::intrusive_ptr<standard_block_token_t> token;
+
+    private:
+        friend class buf_writer_t;
+        cond_t finished_;
+
+    public:
+        void on_write_launched(const boost::intrusive_ptr<standard_block_token_t>& tok) {
+            token = tok;
             if (continue_on_thread(home_thread(), this)) on_thread_switch();
         }
         void on_thread_switch() {
@@ -277,7 +285,10 @@ public:
             buf->inner_buf->block_sequence_id = parent->cache->serializer->get_block_sequence_id(
                 buf->get_block_id(), buf->get_data_read());
             // We're done here.
-            pulse();
+            finished_.pulse();
+        }
+        void wait_until_sequence_ids_updated() {
+            finished_.wait();
         }
     } launch_cb;
 
@@ -303,12 +314,15 @@ public:
         // destroyed, which requires being in coroutine context to switch back to the serializer
         // thread and unregister it. So, we cannot do that here.
         // TODO: fix this^ somehow.
-        pulse();
+        self_cond_.pulse();
+    }
+    void wait_for_finish() {
+        self_cond_.wait();
     }
     ~buf_writer_t() {
         assert_thread();
-        rassert(is_pulsed());
-        rassert(launch_cb.is_pulsed());
+        rassert(self_cond_.is_pulsed());
+        rassert(launch_cb.finished_.is_pulsed());
         launch_cb.buf->release();
     }
 };
@@ -417,7 +431,7 @@ void writeback_t::do_concurrent_flush() {
 
     // Wait for block sequence ids to be updated.
     for (size_t i = 0; i < state.buf_writers.size(); ++i)
-        state.buf_writers[i]->launch_cb.wait();
+        state.buf_writers[i]->launch_cb.wait_until_sequence_ids_updated();
 
     // Allow new concurrent flushes to start from now on
     writeback_in_progress = false;
@@ -430,7 +444,7 @@ void writeback_t::do_concurrent_flush() {
 
     // Wait for the buf_writers to finish running their io callbacks
     for (size_t i = 0; i < state.buf_writers.size(); ++i) {
-        state.buf_writers[i]->wait();
+        state.buf_writers[i]->wait_for_finish();
         delete state.buf_writers[i];
     }
     state.buf_writers.clear();
@@ -459,7 +473,7 @@ void writeback_t::flush_prepare_patches() {
     bool patch_storage_failure = false;
     unsigned int patches_stored = 0;
     for (local_buf_t *lbuf = dirty_bufs.head(); lbuf; lbuf = dirty_bufs.next(lbuf)) {
-        inner_buf_t *inner_buf = lbuf->gbuf;
+        inner_buf_t *inner_buf = static_cast<inner_buf_t *>(lbuf);
 
         // If the patch storage failed before (which usually happens if it ran out of space),
         // we don't even try to write patches for this buffer. Instead we set needs_flush,
@@ -552,16 +566,14 @@ void writeback_t::flush_acquire_bufs(transaction_t *transaction, flush_state_t &
 
     // Write deleted block_ids.
     for (size_t i = 0; i < deleted_blocks.size(); i++) {
-        state.serializer_writes.push_back(
-            serializer_t::write_t::make_delete(deleted_blocks[i].block_id,
-                                               deleted_blocks[i].write_empty_block));
+        state.serializer_writes.push_back(serializer_t::write_t::make_delete(deleted_blocks[i]));
     }
     deleted_blocks.clear();
 
     unsigned int really_dirty = 0;
 
     while (local_buf_t *lbuf = dirty_bufs.head()) {
-        inner_buf_t *inner_buf = lbuf->gbuf;
+        inner_buf_t *inner_buf = static_cast<inner_buf_t *>(lbuf);
 
         bool buf_needs_flush = lbuf->needs_flush;
         //bool buf_dirty = lbuf->dirty;

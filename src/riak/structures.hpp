@@ -7,6 +7,7 @@
 #include "containers/iterators.hpp"
 #include "btree/iteration.hpp"
 #include <boost/fusion/include/adapt_struct.hpp>
+#include <boost/bind.hpp>
 
 namespace riak {
 

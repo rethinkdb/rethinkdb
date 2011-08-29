@@ -36,10 +36,6 @@ std::string debug_format(const net_backfill_complete_t *msg) {
         msg->time_barrier_timestamp.time);
 }
 
-std::string debug_format(UNUSED const net_backfill_delete_everything_t *msg) {
-    return strprintf("net_backfill_delete_everything_t { }");
-}
-
 std::string debug_format(const net_timebarrier_t *msg) {
     return strprintf("net_timebarrier_t { timestamp = %u; }",
         msg->timestamp.time);
@@ -109,6 +105,13 @@ std::string debug_format(const net_prepend_t *msg, const void *real_data) {
 std::string debug_format(const net_delete_t *msg) {
     return strprintf("net_delete_t { timestamp = %u; key = %s; }",
         msg->timestamp.time, debug_format(msg->key_size, msg->key).c_str());
+}
+
+std::string debug_format(const net_backfill_delete_range_t *msg) {
+    return strprintf("net_backfill_delete_range_t { hash_value = %u; hashmod = %u; low_key = %s; high_key = %s; }",
+                     msg->hash_value, msg->hashmod,
+                     debug_format(msg->low_key_size, msg->keys).c_str(),
+                     debug_format(msg->high_key_size, msg->keys + msg->low_key_size).c_str());
 }
 
 std::string debug_format(const net_backfill_delete_t *msg) {

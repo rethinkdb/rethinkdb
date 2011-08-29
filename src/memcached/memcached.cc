@@ -5,6 +5,7 @@
 #include <unistd.h>
 
 #include "errors.hpp"
+#include <boost/bind.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/optional.hpp>
 
@@ -16,7 +17,6 @@
 #include "concurrency/promise.hpp"
 #include "containers/buffer_group.hpp"
 #include "containers/iterators.hpp"
-#include "data_provider.hpp"
 #include "stats/control.hpp"
 #include "memcached/store.hpp"
 #include "logger.hpp"
@@ -88,18 +88,11 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
         interface->write_unbuffered(buffer, bytes);
     }
 
-    void write_from_data_provider(data_provider_t *dp) {
-        /* Write the value itself. If the value is small, write it into the send buffer;
-        otherwise, stream it. */
-        const const_buffer_group_t *bg = dp->get_data_as_buffers();
-
-        for (size_t i = 0; i < bg->num_buffers(); i++) {
-            const_buffer_group_t::buffer_t b = bg->get_buffer(i);
-            if (dp->get_size() < MAX_BUFFERED_GET_SIZE) {
-                write(reinterpret_cast<const char *>(b.data), b.size);
-            } else {
-                write_unbuffered(reinterpret_cast<const char *>(b.data), b.size);
-            }
+    void write_from_data_provider(data_buffer_t *dp) {
+        if (dp->size() < MAX_BUFFERED_GET_SIZE) {
+            write(dp->buf(), dp->size());
+        } else {
+            write_unbuffered(dp->buf(), dp->size());
         }
     }
 
@@ -270,10 +263,10 @@ void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv, o
 
                 /* Write the "VALUE ..." header */
                 if (with_cas) {
-                    rh->write_value_header(key.contents, key.size, res.flags, res.value->get_size(), res.cas);
+                    rh->write_value_header(key.contents, key.size, res.flags, res.value->size(), res.cas);
                 } else {
                     rassert(res.cas == 0);
-                    rh->write_value_header(key.contents, key.size, res.flags, res.value->get_size());
+                    rh->write_value_header(key.contents, key.size, res.flags, res.value->size());
                 }
 
                 rh->write_from_data_provider(res.value.get());
@@ -353,17 +346,17 @@ void do_rget(txt_memcached_handler_t *rh, int argc, char **argv, order_token_t t
         return;
     }
 
-    boost::optional<key_with_data_provider_t> pair;
+    boost::optional<key_with_data_buffer_t> pair;
     uint64_t count = 0;
     ticks_t next_time;
     while (++count <= max_items && (rget_iteration_next.begin(&next_time), pair = results_iterator->next())) {
         rget_iteration_next.end(&next_time);
-        const key_with_data_provider_t& kv = pair.get();
+        const key_with_data_buffer_t& kv = pair.get();
 
         const std::string& key = kv.key;
-        const boost::shared_ptr<data_provider_t>& dp = kv.value_provider;
+        const boost::intrusive_ptr<data_buffer_t>& dp = kv.value_provider;
 
-        rh->write_value_header(key.c_str(), key.length(), kv.mcflags, dp->get_size());
+        rh->write_value_header(key.c_str(), key.length(), kv.mcflags, dp->size());
         rh->write_from_data_provider(dp.get());
         rh->write_crlf();
     }
@@ -392,7 +385,7 @@ struct storage_metadata_t {
 void run_storage_command(txt_memcached_handler_t *rh,
                          storage_command_t sc,
                          store_key_t key,
-                         boost::shared_ptr<data_provider_t> data,
+                         const boost::intrusive_ptr<data_buffer_t>& data,
                          storage_metadata_t metadata,
                          bool noreply,
                          order_token_t token) {
@@ -476,10 +469,6 @@ void run_storage_command(txt_memcached_handler_t *rh,
     }
 
     rh->end_write_command();
-
-    /* If the key-value store never read our value for whatever reason, then the
-    memcached_data_provider_t's destructor will read it off the socket and signal
-    read_value_promise here */
 }
 
 void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, char **argv, order_token_t token) {
@@ -567,13 +556,11 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
     }
 
     /* Read the data off the socket. For now we always read the data into a buffer. In the
-    future we may want to be able to stream the data to its destination, but that would require
-    major changes to `data_provider_t`, and it's not necessary for performance yet. */
-    void *buffer;
-    boost::shared_ptr<data_provider_t> dp = boost::make_shared<buffered_data_provider_t>(value_size, &buffer);
+       future we may want to be able to stream the data to its destination. */
+    boost::intrusive_ptr<data_buffer_t> dp = data_buffer_t::create(value_size);
     char crlf_buf[2];
     try {
-        rh->read(buffer, value_size);
+        rh->read(dp->buf(), value_size);
         rh->read(crlf_buf, 2);
     } catch (memcached_interface_t::no_more_data_exc_t) {
         rh->client_error("bad data chunk\r\n");
@@ -799,7 +786,8 @@ void do_quickset(txt_memcached_handler_t *rh, std::vector<char*> args) {
             rh->writef("CLIENT_ERROR Invalid key %s\r\n", args[i]);
             return;
         }
-        boost::shared_ptr<buffered_data_provider_t> value(new buffered_data_provider_t(args[i + 1], strlen(args[i + 1])));
+        boost::intrusive_ptr<data_buffer_t> value = data_buffer_t::create(strlen(args[i + 1]));
+        memcpy(value->buf(), args[i + 1], value->size());
 
         set_result_t res = rh->set_store->sarc(key, value, 0, 0, add_policy_yes, replace_policy_yes, 0, order_token_t::ignore);
 

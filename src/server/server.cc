@@ -3,6 +3,7 @@
 #include <math.h>
 
 #include "errors.hpp"
+#include <boost/bind.hpp>
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
 
@@ -91,7 +92,7 @@ static spinlock_t timer_token_lock;
 static volatile bool no_more_checking;
 
 struct periodic_checker_t {
-    periodic_checker_t(creation_timestamp_t creation_timestamp) : creation_timestamp(creation_timestamp), timer_token(NULL) {
+    periodic_checker_t(creation_timestamp_t _creation_timestamp) : creation_timestamp(_creation_timestamp), timer_token(NULL) {
         no_more_checking = false;
         check(this);
     }
@@ -104,7 +105,9 @@ struct periodic_checker_t {
         }
     }
 
-    static void check(periodic_checker_t *timebomb_checker) {
+    static void check(void *void_timebomb_checker) {
+        periodic_checker_t *timebomb_checker = static_cast<periodic_checker_t *>(void_timebomb_checker);
+
         spinlock_acq_t lock(&timer_token_lock);
         if (!no_more_checking) {
             bool exploded = false;
@@ -135,7 +138,7 @@ struct periodic_checker_t {
                 // schedule next check
                 long seconds_left = ceil(double(TIMEBOMB_DAYS)*seconds_in_a_day - seconds_since_created) + 1;
                 long seconds_till_check = seconds_left < timebomb_check_period_in_sec ? seconds_left : timebomb_check_period_in_sec;
-                timebomb_checker->timer_token = fire_timer_once(seconds_till_check * 1000, (void (*)(void*)) &check, timebomb_checker);
+                timebomb_checker->timer_token = fire_timer_once(seconds_till_check * 1000, &check, timebomb_checker);
             }
         }
     }

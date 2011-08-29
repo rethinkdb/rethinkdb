@@ -1,7 +1,7 @@
 #ifndef ARCH_TYPES_HPP_
 #define ARCH_TYPES_HPP_
 
-#define DEFAULT_DISK_ACCOUNT ((linux_file_account_t *)NULL)
+#define DEFAULT_DISK_ACCOUNT (static_cast<linux_file_account_t *>(0))
 #define UNLIMITED_OUTSTANDING_REQUESTS (-1)
 
 class linux_iocallback_t {

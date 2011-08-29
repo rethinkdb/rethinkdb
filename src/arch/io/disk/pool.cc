@@ -5,11 +5,10 @@
 #define BLOCKER_POOL_QUEUE_DEPTH (MAX_CONCURRENT_IO_REQUESTS * 2)
 
 pool_diskmgr_t::pool_diskmgr_t(
-        linux_event_queue_t *queue, passive_producer_t<action_t *> *source) :
-    source(source),
-    blocker_pool(MAX_CONCURRENT_IO_REQUESTS, queue),
-    n_pending(0)
-{
+        linux_event_queue_t *queue, passive_producer_t<action_t *> *_source)
+    : source(_source),
+      blocker_pool(MAX_CONCURRENT_IO_REQUESTS, queue),
+      n_pending(0) {
     if (source->available->get()) pump();
     source->available->set_callback(boost::bind(&pool_diskmgr_t::on_source_availability_changed, this));
 }

@@ -3,11 +3,12 @@
 
 #include "buffer_cache/buf_patch.hpp"
 #include "buffer_cache/mirrored/patch_memory_storage.hpp"
-#include "serializer/translator.hpp"
 #include "buffer_cache/mirrored/config.hpp"
 
 class mc_cache_t;
 class mc_buf_t;
+class serializer_t;
+class coro_t;
 
 // Whenever the on-disk format of the patches changes, please increase the version number (currently 00)
 static char LOG_BLOCK_MAGIC[] __attribute__((unused)) = {'L','O','G','B','0','0'};
@@ -44,7 +45,7 @@ struct mc_config_block_t {
 class patch_disk_storage_t {
 public:
     static void create(serializer_t *serializer, block_id_t start_id, mirrored_cache_static_config_t *config);
-    patch_disk_storage_t(mc_cache_t &cache, block_id_t start_id);
+    patch_disk_storage_t(mc_cache_t *cache, block_id_t start_id);
     ~patch_disk_storage_t();
 
     void shutdown();
@@ -85,7 +86,7 @@ private:
     unsigned int waiting_for_clear;
 
     // TODO: A reference?  This can confuse readers.
-    mc_cache_t& cache;
+    mc_cache_t *cache;
     block_id_t first_block;
     block_id_t number_of_blocks;
     std::vector<bool> block_is_empty;

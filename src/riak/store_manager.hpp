@@ -23,14 +23,15 @@ structures into a metadata file or metadata_store of some kind.
 #include <string>
 #include <map>
 #include <vector>
+
+#include "errors.hpp"
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/map.hpp>
 #include <boost/serialization/variant.hpp>
-#include "errors.hpp"
+
 #include "riak/structures.hpp"
 #include "concurrency/promise.hpp"
-#include "serializer/log/log_serializer.hpp"
 #include "serializer/config.hpp"
 
 
@@ -47,7 +48,7 @@ public:
     }
 private:
     //friend class store_manager_t;
-    store_id_t(int raw_id) : raw_id(raw_id) {
+    store_id_t(int _raw_id) : raw_id(_raw_id) {
     }
     int raw_id;
 

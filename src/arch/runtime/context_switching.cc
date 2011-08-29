@@ -22,9 +22,8 @@ bool context_ref_t::is_nil() {
     return pointer == NULL;
 }
 
-artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t stack_size) :
-    stack_size(stack_size)
-{
+artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_size)
+    : stack_size(_stack_size) {
     /* Allocate the stack */
     stack = malloc_aligned(stack_size, getpagesize());
 
@@ -43,12 +42,12 @@ artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t stack_s
     uint64_t *sp; /* A pointer into the stack. */
 
     /* Start at the beginning. */
-    sp = (uint64_t *) ((uintptr_t) stack + stack_size);
+    sp = reinterpret_cast<uint64_t *>(uintptr_t(stack) + stack_size);
 
     /* Align stack. The x86-64 ABI requires the stack pointer to always be
     16-byte-aligned at function calls. That is, "(%rsp - 8) is always a multiple
     of 16 when control is transferred to the function entry point". */
-    sp = (uint64_t *) (((uintptr_t) sp) & -16L);
+    sp = reinterpret_cast<uint64_t *>(uintptr_t(sp) & -16L);
 
     // Currently sp is 16-byte aligned.
 
@@ -105,7 +104,7 @@ bool artificial_stack_t::address_in_stack(void *addr) {
 }
 
 bool artificial_stack_t::address_is_stack_overflow(void *addr) {
-    void *base = (void *)floor_aligned((uintptr_t)addr, getpagesize());
+    void *base = reinterpret_cast<void *>(floor_aligned(uintptr_t(addr), getpagesize()));
     return stack == base;
 }
 
@@ -122,7 +121,7 @@ void context_switch(context_ref_t *current_context_out, context_ref_t *dest_cont
     /* `lightweight_swapcontext()` won't set `dest_context_in->pointer` to NULL,
     so we have to do that ourselves. */
     void *dest_pointer = dest_context_in->pointer;
-    dest_context_in->pointer = NULL;   
+    dest_context_in->pointer = NULL;
 
     lightweight_swapcontext(&current_context_out->pointer, dest_pointer);
 }

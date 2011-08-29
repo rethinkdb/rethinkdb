@@ -58,9 +58,9 @@ class set_store_interface_t {
 public:
     /* These NON-VIRTUAL methods all construct a mutation_t and then call change(). */
     get_result_t get_cas(const store_key_t &key, order_token_t token);
-    set_result_t sarc(const store_key_t &key, boost::shared_ptr<data_provider_t> data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas, order_token_t token);
+    set_result_t sarc(const store_key_t &key, boost::intrusive_ptr<data_buffer_t> data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas, order_token_t token);
     incr_decr_result_t incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount, order_token_t token);
-    append_prepend_result_t append_prepend(append_prepend_kind_t kind, const store_key_t &key, boost::shared_ptr<data_provider_t> data, order_token_t token);
+    append_prepend_result_t append_prepend(append_prepend_kind_t kind, const store_key_t &key, boost::intrusive_ptr<data_buffer_t> data, order_token_t token);
     delete_result_t delete_key(const store_key_t &key, order_token_t token, bool dont_store_in_delete_queue=false);
 
     virtual mutation_result_t change(const mutation_t&, order_token_t) = 0;

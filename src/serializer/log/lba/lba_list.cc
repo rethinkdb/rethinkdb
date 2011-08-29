@@ -125,8 +125,8 @@ public:
     int structures_unsynced;
     lba_list_t::sync_callback_t *callback;
     
-    explicit lba_syncer_t(lba_list_t *owner, file_account_t *io_account)
-        : owner(owner), done(false), should_delete_self(false), callback(NULL)
+    explicit lba_syncer_t(lba_list_t *_owner, file_account_t *io_account)
+        : owner(_owner), done(false), should_delete_self(false), callback(NULL)
     {
         structures_unsynced = LBA_SHARD_FACTOR;
         for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
@@ -177,15 +177,14 @@ class gc_fsm_t :
 public:
     lba_list_t *owner;
     int i;
-    
-    gc_fsm_t(lba_list_t *owner, int i, file_account_t *io_account)
-        : owner(owner), i(i)
-        {
-            pm_serializer_lba_gcs++;
-            owner->gc_count++;
-            do_replace_disk_structure(io_account);
-        }
-    
+
+    gc_fsm_t(lba_list_t *_owner, int _i, file_account_t *io_account)
+        : owner(_owner), i(_i) {
+	pm_serializer_lba_gcs++;
+	owner->gc_count++;
+	do_replace_disk_structure(io_account);
+    }
+
     void do_replace_disk_structure(file_account_t *io_account) {
         /* Replace the LBA with a new empty LBA */
         

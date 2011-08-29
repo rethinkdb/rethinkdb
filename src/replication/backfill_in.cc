@@ -1,4 +1,10 @@
 #include "replication/backfill_in.hpp"
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
+#include "logger.hpp"
+
 #ifndef NDEBUG
 // We really shouldn't include this from here (the dependencies are
 // backwards), but we need it for
@@ -74,11 +80,12 @@ void backfill_storer_t::ensure_backfilling() {
     backfilling_ = true;
 }
 
-void backfill_storer_t::backfill_delete_everything(order_token_t token) {
+void backfill_storer_t::backfill_delete_range(int hash_value, int hashmod, bool left_key_supplied, const store_key_t& left_key_exclusive, bool right_key_supplied, const store_key_t& right_key_inclusive, order_token_t token) {
     print_backfill_warning_ = true;
     ensure_backfilling();
+
     block_pm_duration timer(&pm_replication_slave_backfill_enqueue);
-    backfill_queue_.push(boost::bind(&btree_key_value_store_t::delete_all_keys_for_backfill, kvs_, token));
+    backfill_queue_.push(boost::bind(&btree_key_value_store_t::backfill_delete_range, kvs_, hash_value, hashmod, left_key_supplied, left_key_exclusive, right_key_supplied, right_key_inclusive, token));
 }
 
 void backfill_storer_t::backfill_deletion(store_key_t key, order_token_t token) {
@@ -214,7 +221,7 @@ void backfill_storer_t::realtime_incr_decr(incr_decr_kind_t kind, const store_ke
 }
 
 void backfill_storer_t::realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key,
-                                                boost::shared_ptr<data_provider_t> data, castime_t castime, order_token_t token) {
+                                                const boost::intrusive_ptr<data_buffer_t>& data, castime_t castime, order_token_t token) {
     append_prepend_mutation_t mut;
     mut.key = key;
     mut.data = data;

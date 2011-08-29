@@ -27,7 +27,7 @@ btree_slice_t *riak_interface_t::get_slice(std::list<std::string> key) {
         standard_serializer_t *serializer = store_manager->get_store(key)->get_store_interface<standard_serializer_t>();
 
         mirrored_cache_config_t config;
-        slice_map.insert(key, new btree_slice_t(new cache_t(serializer, &config), 0));
+        slice_map.insert(key, new btree_slice_t(new cache_t(serializer, &config)));
 
         return &slice_map.at(key);
     } else {
@@ -55,7 +55,7 @@ btree_slice_t *riak_interface_t::create_slice(std::list<std::string> key) {
     cache_t *cache = new cache_t(serializer, &mc_config);
 
     btree_slice_t::create(cache);
-    slice_map.insert(key, new btree_slice_t(cache, 0));
+    slice_map.insert(key, new btree_slice_t(cache));
 
     return get_slice(key);
 }
@@ -136,24 +136,24 @@ void riak_interface_t::store_object(std::string bucket, object_t obj) {
 
     value_txn_t<riak_value_t> txn = get_value_write<riak_value_t>(slice, btree_key_buffer_t(obj.key).key(), repli_timestamp_t::invalid, order_token_t::ignore);
 
-    if (!txn.value) {
+    if (!txn.value()) {
         scoped_malloc<riak_value_t> tmp(MAX_RIAK_VALUE_SIZE);
-        txn.value.swap(tmp);
-        memset(txn.value.get(), 0, MAX_RIAK_VALUE_SIZE);
+        txn.value().swap(tmp);
+        memset(txn.value().get(), 0, MAX_RIAK_VALUE_SIZE);
     }
 
-    txn.value->mod_time = obj.last_written;
-    txn.value->etag = obj.ETag;
-    txn.value->content_type_len = obj.content_type.size();
-    txn.value->value_len = obj.content_length;
-    txn.value->n_links = obj.links.size();
-    txn.value->links_length = obj.on_disk_space_needed_for_links();
+    txn.value()->mod_time = obj.last_written;
+    txn.value()->etag = obj.ETag;
+    txn.value()->content_type_len = obj.content_type.size();
+    txn.value()->value_len = obj.content_length;
+    txn.value()->n_links = obj.links.size();
+    txn.value()->links_length = obj.on_disk_space_needed_for_links();
 
-    blob_t blob(txn.value->contents, blob::btree_maxreflen);
+    blob_t blob(txn.value()->contents, blob::btree_maxreflen);
     blob.clear(txn.get_txn());
 
 
-    blob.append_region(txn.get_txn(), obj.content_type.size() + obj.content_length + txn.value->links_length);
+    blob.append_region(txn.get_txn(), obj.content_type.size() + obj.content_length + txn.value()->links_length);
 
     buffer_group_t dest;
     blob_acq_t acq;
@@ -184,7 +184,7 @@ void riak_interface_t::store_object(std::string bucket, object_t obj) {
 
     buffer_group_copy_data(&dest, const_view(&src));
 
-    txn.value->print(slice->cache()->get_block_size());
+    txn.value()->print(slice->cache()->get_block_size());
 }
 
 bool riak_interface_t::delete_object(std::string bucket, std::string key) {
@@ -199,11 +199,11 @@ bool riak_interface_t::delete_object(std::string bucket, std::string key) {
 
     value_txn_t<riak_value_t> txn = get_value_write<riak_value_t>(slice, btree_key_buffer_t(key).key(), repli_timestamp_t::invalid, order_token_t::ignore);
 
-    blob_t blob(txn.value->contents, blob::btree_maxreflen);
+    blob_t blob(txn.value()->contents, blob::btree_maxreflen);
     blob.clear(txn.get_txn());
 
-    if (txn.value) {
-        txn.value.reset();
+    if (txn.value()) {
+        txn.value().reset();
         return true;
     } else {
         return false;

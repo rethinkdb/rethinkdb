@@ -1,31 +1,33 @@
 #include "server/key_value_store.hpp"
 
+#include <math.h>
+
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
+#include <boost/bind.hpp>
 
+#include "arch/timing.hpp"
 #include "btree/rget.hpp"
 #include "concurrency/cond_var.hpp"
+#include "concurrency/pmap.hpp"
 #include "concurrency/signal.hpp"
 #include "concurrency/side_coro.hpp"
-#include "concurrency/pmap.hpp"
 #include "containers/iterators.hpp"
 #include "db_thread_info.hpp"
 #include "replication/backfill.hpp"
 #include "replication/master.hpp"
+#include "serializer/config.hpp"
+#include "serializer/translator.hpp"
 #include "server/cmd_args.hpp"
-#include "arch/timing.hpp"
 #include "stats/persist.hpp"
-
-#include <math.h>
 
 /* shard_store_t */
 
 shard_store_t::shard_store_t(
     serializer_t *serializer,
-    mirrored_cache_config_t *dynamic_config,
-    int64_t delete_queue_limit) :
+    mirrored_cache_config_t *dynamic_config) :
     cache(serializer, dynamic_config),
-    btree(&cache, delete_queue_limit),
+    btree(&cache),
     dispatching_store(&btree),
     timestamper(&dispatching_store)
     { }
@@ -54,9 +56,13 @@ mutation_result_t shard_store_t::change(const mutation_t &m, castime_t ct, order
     return dispatching_store.change(m, ct, token);
 }
 
-void shard_store_t::delete_all_keys_for_backfill(order_token_t token) {
+void shard_store_t::backfill_delete_range(int hash_value, int hashmod,
+                                          bool left_key_supplied, const store_key_t& left_key_exclusive,
+                                          bool right_key_supplied, const store_key_t& right_key_inclusive,
+                                          order_token_t token) {
     on_thread_t th(home_thread());
-    dispatching_store.delete_all_keys_for_backfill(token);
+    return dispatching_store.backfill_delete_range(hash_value, hashmod, left_key_supplied, left_key_exclusive, right_key_supplied, right_key_inclusive, token);
+
 }
 
 void shard_store_t::set_replication_clock(repli_timestamp_t t, order_token_t token) {
@@ -145,23 +151,21 @@ void btree_store_helpers::create_existing_shard(
         shard_store_t **shard,
         int i,
         serializer_t *serializer,
-        mirrored_cache_config_t *dynamic_config,
-        int64_t delete_queue_limit)
+        mirrored_cache_config_t *dynamic_config)
 {
     on_thread_t thread_switcher(i % get_num_db_threads());
-    *shard = new shard_store_t(serializer, dynamic_config, delete_queue_limit);
+    *shard = new shard_store_t(serializer, dynamic_config);
 }
 
 void btree_store_helpers::create_existing_data_shard(
         shard_store_t **shards,
         int i,
         translator_serializer_t **pseudoserializers,
-        mirrored_cache_config_t *dynamic_config,
-        int64_t delete_queue_limit)
+        mirrored_cache_config_t *dynamic_config)
 {
     // TODO try to align slices with serializers so that when possible, a slice is on the
     // same thread as its serializer
-    btree_store_helpers::create_existing_shard(&shards[i], i, pseudoserializers[i], dynamic_config, delete_queue_limit);
+    btree_store_helpers::create_existing_shard(&shards[i], i, pseudoserializers[i], dynamic_config);
 }
 
 /* btree_key_value_store_t */
@@ -182,8 +186,10 @@ void btree_key_value_store_t::create(btree_key_value_store_dynamic_config_t *dyn
                               dynamic_config, serializers.data(), _1));
     {
         /* Prepare serializers for multiplexing */
-        std::vector<serializer_t *> serializers_for_multiplexer(n_files);
-        for (int i = 0; i < n_files; i++) serializers_for_multiplexer[i] = serializers[i];
+        std::vector<standard_serializer_t *> serializers_for_multiplexer(n_files);
+        for (int i = 0; i < n_files; i++) {
+	    serializers_for_multiplexer[i] = serializers[i];
+	}
         serializer_multiplexer_t::create(serializers_for_multiplexer, static_config->btree.n_slices);
 
         /* Create pseudoserializers */
@@ -225,8 +231,10 @@ btree_key_value_store_t::btree_key_value_store_t(const btree_key_value_store_dyn
     for (int i = 0; i < n_files; i++) rassert(serializers[i]);
 
     /* Multiplex serializers so we have enough proxy-serializers for our slices */
-    std::vector<serializer_t *> serializers_for_multiplexer(n_files);
-    for (int i = 0; i < n_files; i++) serializers_for_multiplexer[i] = serializers[i];
+    std::vector<standard_serializer_t *> serializers_for_multiplexer(n_files);
+    for (int i = 0; i < n_files; i++) {
+	serializers_for_multiplexer[i] = serializers[i];
+    }
     multiplexer = new serializer_multiplexer_t(serializers_for_multiplexer);
 
     btree_static_config.n_slices = multiplexer->proxies.size();
@@ -236,13 +244,12 @@ btree_key_value_store_t::btree_key_value_store_t(const btree_key_value_store_dyn
 
     /* Divide resources among the several slices */
     mirrored_cache_config_t per_slice_config = partition_cache_config(store_dynamic_config.cache, shard_share);
-    int64_t per_slice_delete_queue_limit = store_dynamic_config.total_delete_queue_limit * shard_share;
 
     /* Load btrees */
     translator_serializer_t **pseudoserializers = multiplexer->proxies.data();
     pmap(btree_static_config.n_slices,
          boost::bind(&btree_store_helpers::create_existing_data_shard, shards, _1,
-                     pseudoserializers, &per_slice_config, per_slice_delete_queue_limit));
+                     pseudoserializers, &per_slice_config));
 
     /* Initialize the timestampers to the timestamp value on disk */
     repli_timestamp_t t = get_replication_clock();
@@ -347,9 +354,11 @@ uint32_t btree_key_value_store_t::get_replication_slave_id() {
 */
 #define get16bits(d) (uint32_t(*reinterpret_cast<const uint16_t *>(d)))
 
-uint32_t btree_key_value_store_t::hash(const store_key_t &key) {
-    const char *data = key.contents;
-    int len = key.size;
+uint32_t btree_key_value_store_t::hash(const store_key_t& key) {
+    return hash(key.contents, key.size);
+}
+
+uint32_t btree_key_value_store_t::hash(const char *data, int len) {
     uint32_t hash = len, tmp;
     int rem;
     if (len <= 0 || data == NULL) return 0;
@@ -393,6 +402,10 @@ uint32_t btree_key_value_store_t::hash(const store_key_t &key) {
     return hash;
 }
 
+creation_timestamp_t btree_key_value_store_t::get_creation_timestamp() const {
+    return multiplexer->creation_timestamp;
+}
+
 uint32_t btree_key_value_store_t::slice_num(const store_key_t &key) {
     return hash(key) % btree_static_config.n_slices;
 }
@@ -401,7 +414,7 @@ get_result_t btree_key_value_store_t::get(const store_key_t &key, order_token_t 
     return shards[slice_num(key)]->get(key, token);
 }
 
-typedef merge_ordered_data_iterator_t<key_with_data_provider_t,key_with_data_provider_t::less> merged_results_iterator_t;
+typedef merge_ordered_data_iterator_t<key_with_data_buffer_t,key_with_data_buffer_t::less> merged_results_iterator_t;
 
 rget_result_t btree_key_value_store_t::rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token) {
 
@@ -430,10 +443,21 @@ mutation_result_t btree_key_value_store_t::change(const mutation_t &m, castime_t
     return shards[slice_num(m.get_key())]->change(m, ct, token);
 }
 
-/* btree_key_value_store_t interface */
 
-void btree_key_value_store_t::delete_all_keys_for_backfill(order_token_t token) {
-    for (int i = 0; i < btree_static_config.n_slices; ++i) {
-        coro_t::spawn_now(boost::bind(&shard_store_t::delete_all_keys_for_backfill, shards[i], token));
+
+
+
+void btree_key_value_store_t::backfill_delete_range(int hash_value, int hashmod, bool left_key_supplied, const store_key_t& left_key_exclusive, bool right_key_supplied, const store_key_t& right_key_inclusive, order_token_t token) {
+    // This has to be a bit fancy because we only want to call the
+    // change function on shards where hash(key) % hashmod ==
+    // hash_value is possible.  Visit slices where hash(slice_num) is
+    // congruent to hash_value, modulo gcd(hashmod, n_slices).
+
+    int g = gcd(hashmod, btree_static_config.n_slices);
+
+    int h = hash_value % g;
+
+    for (int i = h; i < btree_static_config.n_slices; i += g) {
+        shards[i]->backfill_delete_range(hash_value, hashmod, left_key_supplied, left_key_exclusive, right_key_supplied, right_key_inclusive, token);
     }
 }
