@@ -1072,25 +1072,19 @@ void check_slice_other_blocks(slicecx_t *cx, other_block_errors *errs) {
             read_locker_t locker(cx->knog);
             info = locker.block_info()[id];
         }
-        // TODO (sam): Fix this up for the simpler flagged_off64_t.
-        if (!info.offset.has_value()) {
-            // Do nothing.
-        } else {
+        if (info.offset.has_value() && info.block_sequence_id == NULL_BLOCK_SEQUENCE_ID) {
+            // Aha!  We have an orphan block!  Crap.
+            rogue_block_description desc;
+            desc.block_id = id;
 
-            if (info.block_sequence_id == NULL_BLOCK_SEQUENCE_ID) {
-                // Aha!  We have an orphan block!  Crap.
-                rogue_block_description desc;
-                desc.block_id = id;
-
-                btree_block_t b;
-                if (!b.init(cx->file, cx->knog, id)) {
-                    desc.loading_error = b.err;
-                } else {
-                    desc.magic = *reinterpret_cast<block_magic_t *>(b.buf);
-                }
-
-                errs->orphan_blocks.push_back(desc);
+            btree_block_t b;
+            if (!b.init(cx->file, cx->knog, id)) {
+                desc.loading_error = b.err;
+            } else {
+                desc.magic = *reinterpret_cast<block_magic_t *>(b.buf);
             }
+
+            errs->orphan_blocks.push_back(desc);
         }
     }
 }
