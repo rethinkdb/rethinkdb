@@ -134,7 +134,7 @@ void riak_interface_t::store_object(std::string bucket, object_t obj) {
         slice = create_slice(sm_key);
     }
 
-    value_txn_t<riak_value_t> txn = get_value_write<riak_value_t>(slice, btree_key_buffer_t(obj.key).key(), repli_timestamp_t::invalid, order_token_t::ignore);
+    value_txn_t<riak_value_t> txn(slice, btree_key_buffer_t(obj.key).key(), repli_timestamp_t::invalid, order_token_t::ignore);
 
     if (!txn.value()) {
         scoped_malloc<riak_value_t> tmp(MAX_RIAK_VALUE_SIZE);
@@ -197,7 +197,7 @@ bool riak_interface_t::delete_object(std::string bucket, std::string key) {
         slice = create_slice(sm_key);
     }
 
-    value_txn_t<riak_value_t> txn = get_value_write<riak_value_t>(slice, btree_key_buffer_t(key).key(), repli_timestamp_t::invalid, order_token_t::ignore);
+    value_txn_t<riak_value_t> txn(slice, btree_key_buffer_t(key).key(), repli_timestamp_t::invalid, order_token_t::ignore);
 
     blob_t blob(txn.value()->contents, blob::btree_maxreflen);
     blob.clear(txn.get_txn());
