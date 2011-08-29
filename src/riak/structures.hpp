@@ -51,6 +51,7 @@ struct link_t {
     std::string key;
     std::string tag;
 };
+
 } //namespace riak
 
 // this really sucks, but we can't do a BOOST_FUSION_ADAPT_STRUCT within a
@@ -73,6 +74,23 @@ struct link_filter_t {
 };
 
 bool match(link_filter_t const &, link_t const &);
+
+/* cond specs are used for conditional writes */
+struct etag_cond_spec_t {
+    enum {
+        MATCH,
+        NOT_MATCH
+    } mode;
+    int etag;
+};
+
+struct time_cond_spec_t {
+    enum {
+        MODIFIED_SINCE,
+        UNMODIFIED_SINCE
+    } mode;
+    int time;
+};
 
 struct object_t {
     std::string key;
@@ -256,5 +274,28 @@ struct luwak_props_t {
 */
 
 } //namespace riak
+
+/* For the purposes of clustering many of the riak data structures will need to
+ * be serialized. They're all done down here to make them less intrusive */
+
+/* namespace boost {
+namespace serialization {
+
+template <class Archive>
+void serialize(Archive & ar, riak::link_t & link, const unsigned int) {
+    ar & link.bucket;
+    ar & link.key;
+    ar & link.tag;
+}
+
+template <class Archive>
+void serialize(Archive & ar, riak::object_t & object, const unsigned int) {
+    ar & object.ETag;
+    ar & object.bucket;
+    ar & object.content;
+}
+
+} //namespace serialization
+} //namespace boost */
 
 #endif

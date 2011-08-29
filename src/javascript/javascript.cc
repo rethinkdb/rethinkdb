@@ -22,6 +22,7 @@ ctx_group_t::~ctx_group_t() {
 
 void ctx_group_t::ensure_ctx_group() {
     if (!ctx_groups.get()) {
+        //FIXME turns out the first call to this function can't race but this allows it to
         ctx_groups.get() = JSContextGroupCreate();
     }
 }

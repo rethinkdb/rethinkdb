@@ -95,4 +95,131 @@ bool region_t::overlaps(region_t &other) {
 region_t region_t::intersection(region_t &other) {
     return region_t(boost::apply_visitor(intersection_functor(), key_spec, other.key_spec));
 }
+
+point_read_t::point_read_t(std::string _key) 
+    : key(_key)
+{ }
+
+region_t point_read_t::get_region() {
+    region_t::finite_t set;
+    set.insert(key);
+    return region_t(set);
+}
+
+std::vector<read_t> point_read_t::shard(std::vector<region_t> regions) {
+    rassert(regions.size() == 1);
+    region_t region = get_region();
+    rassert(regions[0].overlaps(region));
+
+    std::vector<read_t> res;
+    res.push_back(*this);
+    return res;
+}
+
+region_t bucket_read_t::get_region() {
+    return region_limit;
+}
+
+std::vector<read_t> bucket_read_t::shard(std::vector<region_t> regions) {
+    std::vector<read_t> res;
+
+    for (std::vector<region_t>::iterator it = regions.begin(); it != regions.end(); it++) {
+        res.push_back(read_t(bucket_read_t(*it)));
+    }
+
+    return res;
+}
+
+bucket_read_response_t bucket_read_response_t::unshard(std::vector<bucket_read_response_t> responses) {
+    bucket_read_response_t res;
+    for (std::vector<bucket_read_response_t>::iterator it = responses.begin(); it != responses.end(); it++) {
+        res.result.insert(res.result.end(), it->result.begin(), it->result.end());
+    }
+
+    return res;
+}
+
+region_t mapred_read_t::get_region() {
+    return region;
+}
+
+std::vector<read_t> mapred_read_t::shard(std::vector<region_t> regions) {
+    std::vector<read_t> res;
+    for (std::vector<region_t>::iterator it = regions.begin(); it != regions.end(); it++) {
+        res.push_back(read_t(mapred_read_t(it->intersection(region))));
+    }
+    return res;
+}
+
+mapred_read_response_t mapred_read_response_t::unshard(std::vector<mapred_read_response_t>, unshard_ctx_t *) {
+    crash("Not implemented");
+}
+
+read_response_t read_enactor_vistor_t::operator()(point_read_t , riak_interface_t *) {
+    crash("Not implemented");
+}
+
+read_response_t read_enactor_vistor_t::operator()(bucket_read_t, riak_interface_t *) {
+    crash("Not implemented");
+}
+
+read_response_t read_enactor_vistor_t::operator()(mapred_read_t, riak_interface_t *) {
+    crash("Not implemented");
+}
+
+region_t write_t::get_region() {
+    std::set<std::string> res;
+    res.insert(key);
+    return region_t(res);
+}
+
+std::vector<write_t> write_t::shard(std::vector<region_t> regions) {
+    rassert(regions.size() == 1);
+    rassert(get_region().overlaps(regions[0]));
+
+    std::vector<write_t> res;
+    res.push_back(*this);
+    return res;
+}
+
+write_response_t write_response_t::unshard(std::vector<write_response_t> responses) {
+    rassert(responses.size() == 1);
+
+    return responses[0];
+}
+
+store_t::store_t(region_t _region, riak_interface_t *_interface)
+    : region(_region), interface(_interface), backfilling(false)
+{ }
+
+region_t store_t::get_region() {
+    return region;
+}
+
+bool store_t::is_coherent() {
+    return !backfilling;
+}
+
+repli_timestamp_t store_t::get_timestamp() {
+    crash("Not implemented");
+}
+
+read_response_t store_t::read(read_t , order_token_t ) {
+    crash("Not implemented");
+}
+
+write_response_t store_t::write(write_t, repli_timestamp_t, order_token_t) {
+    crash("Not implemented");
+}
+
+/* bool store_t::is_backfilling() {
+    return backfilling;
+}
+
+void backfillee_chunk(backfill_chunk_t);
+
+void backfillee_end(backfill_end_t);
+
+void backfillee_cancel(); */
+
 } //namespace riak 
