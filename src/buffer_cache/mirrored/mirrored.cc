@@ -25,6 +25,8 @@ perfmon_persistent_counter_t pm_cache_hits("cache_hits"), pm_cache_misses("cache
 // get_data() returns or get_data_if_available() returns non-NULL, get_data_if_available() will
 // return the same (non-NULL) value.
 
+// TODO (sam): What is a buf_snapshot_t, really?
+
 // TODO (rntz): it should be possible for us to cause snapshots which were not cow-referenced to be
 // flushed to disk during writeback, sans block id, to allow them to be unloaded if necessary.
 class mc_inner_buf_t::buf_snapshot_t : private evictable_t, public intrusive_list_node_t<mc_inner_buf_t::buf_snapshot_t> {
@@ -98,8 +100,7 @@ public:
 private:
     friend class mc_inner_buf_t;
 
-    // I guess we know what this means.  TODO (sam): Figure out our
-    // relationship with our parent.
+    // I guess we know what this means.
     mc_inner_buf_t *parent;
 
     // Some kind of snapshotted version.  :/
