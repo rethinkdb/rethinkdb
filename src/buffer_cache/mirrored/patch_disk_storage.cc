@@ -306,7 +306,7 @@ void patch_disk_storage_t::compress_block(const block_id_t log_block_id) {
 
         // We want to preserve this patch iff it is >= the oldest patch that we have in the in-core storage
         if (cache->patch_memory_storage.has_patches_for_block(patch->get_block_id())
-            && !(*patch < *cache->patch_memory_storage.first_patch(patch->get_block_id()))) {
+            && !patch->applies_before(cache->patch_memory_storage.first_patch(patch->get_block_id()))) {
             live_patches.push_back(patch);
         } else {
             delete patch;

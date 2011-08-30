@@ -86,7 +86,7 @@ public:
     // This is called from buf_t
     virtual void apply_to_buf(char* buf_data, block_size_t block_size) = 0;
 
-    bool operator<(const buf_patch_t& p) const;
+    bool applies_before(const buf_patch_t *p) const;
 
 protected:
     virtual uint16_t get_data_size() const = 0;
@@ -114,7 +114,7 @@ private:
 
 struct dereferencing_buf_patch_compare_t {
     bool operator()(buf_patch_t *x, buf_patch_t *y) const {
-        return *x < *y;
+        return x->applies_before(y);
     }
 };
 
