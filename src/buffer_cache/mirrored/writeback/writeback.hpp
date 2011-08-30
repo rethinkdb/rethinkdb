@@ -85,14 +85,14 @@ public:
     private:
 	DISABLE_COPYING(local_buf_t);
     };
-    
+
     /* User-controlled settings. */
-    
-    bool wait_for_flush;
-    unsigned int flush_waiting_threshold;
-    unsigned int max_concurrent_flushes;
-    unsigned int max_dirty_blocks;
-    
+
+    const bool wait_for_flush;
+    const unsigned int flush_waiting_threshold;
+    const unsigned int max_concurrent_flushes;
+    const unsigned int max_dirty_blocks;
+
 private:
     flush_time_randomizer_t flush_time_randomizer;
     unsigned int flush_threshold;   // Number of blocks, not percentage
