@@ -12,7 +12,7 @@ patch_deserialization_error_t::patch_deserialization_error_t(const char *file, i
                             msg[0] ? ": " : "", msg, file, line);
 }
 
-buf_patch_t *buf_patch_t::load_patch(UNUSED block_size_t bs, const char *source) {
+buf_patch_t *buf_patch_t::load_patch(const char *source) {
     try {
         uint16_t remaining_length = *reinterpret_cast<const uint16_t *>(source);
         source += sizeof(remaining_length);
