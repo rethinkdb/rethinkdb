@@ -38,6 +38,7 @@ public:
           parent(buf), snapshotted_version(version),
           data(_data), token(_token),
           snapshot_refcount(_snapshot_refcount), active_refcount(_active_refcount) {
+
         rassert(data || token, "creating buf snapshot without data or block token");
         rassert(snapshot_refcount + active_refcount, "creating buf snapshot with 0 refcount");
     }
@@ -317,16 +318,18 @@ mc_inner_buf_t::~mc_inner_buf_t() {
     // We're about to free the data, let's set it to a recognizable
     // value to make sure we don't depend on accessing things that may
     // be flushed out of the cache.
-    if (data)
+    if (data) {
         memset(data, 0xDD, cache->serializer->get_block_size().value());
+    }
 #endif
 #endif
 
     array_map_t::destroying_inner_buf(this);
 
     rassert(safe_to_unload());
-    if (data)
+    if (data) {
         cache->serializer->free(data);
+    }
 
     pm_n_blocks_in_memory--;
 }

@@ -64,26 +64,36 @@ semantic_checking_serializer_t<inner_serializer_t>::
 }
 
 template<class inner_serializer_t>
-void semantic_checking_serializer_t<inner_serializer_t>::
-check_existing(const char *db_path, check_callback_t *cb) {
+void semantic_checking_serializer_t<inner_serializer_t>::check_existing(const char *db_path, check_callback_t *cb) {
     inner_serializer_t::check_existing(db_path, cb);
 }
 
 template<class inner_serializer_t>
-void *semantic_checking_serializer_t<inner_serializer_t>::
-malloc() { return inner_serializer.malloc(); }
+void *semantic_checking_serializer_t<inner_serializer_t>::malloc() {
+    void *p = inner_serializer.malloc();
+    rassert(malloced_bufs.find(p) == malloced_bufs.end());
+    malloced_bufs.insert(p);
+    return p;
+}
 
 template<class inner_serializer_t>
-void *semantic_checking_serializer_t<inner_serializer_t>::
-clone(void *data) { return inner_serializer.clone(data); }
+void *semantic_checking_serializer_t<inner_serializer_t>::clone(void *data) {
+    void *p = inner_serializer.clone(data);
+    rassert(malloced_bufs.find(p) == malloced_bufs.end());
+    malloced_bufs.insert(p);
+    return p;
+}
 
 template<class inner_serializer_t>
-void semantic_checking_serializer_t<inner_serializer_t>::
-free(void *ptr) { inner_serializer.free(ptr); }
+void semantic_checking_serializer_t<inner_serializer_t>::free(void *ptr) {
+    std::set<const void *>::iterator it = malloced_bufs.find(ptr);
+    rassert(it != malloced_bufs.end());
+    malloced_bufs.erase(it);
+    inner_serializer.free(ptr);
+}
 
 template<class inner_serializer_t>
-file_account_t *semantic_checking_serializer_t<inner_serializer_t>::
-make_io_account(int priority, int outstanding_requests_limit) {
+file_account_t *semantic_checking_serializer_t<inner_serializer_t>::make_io_account(int priority, int outstanding_requests_limit) {
     return inner_serializer.make_io_account(priority, outstanding_requests_limit);
 }
 

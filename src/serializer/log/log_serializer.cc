@@ -316,7 +316,11 @@ boost::intrusive_ptr<ls_block_token_pointee_t> get_ls_block_token(const boost::i
 }
 #else
 boost::intrusive_ptr<ls_block_token_pointee_t> get_ls_block_token(const boost::intrusive_ptr<scs_block_token_t<log_serializer_t> >& tok) {
-    return tok->inner_token;
+    if (tok) {
+        return tok->inner_token;
+    } else {
+        return boost::intrusive_ptr<ls_block_token_pointee_t>();
+    }
 }
 #endif  // SEMANTIC_SERIALIZER_CHECK
 
