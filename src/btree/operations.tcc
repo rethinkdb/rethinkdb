@@ -352,13 +352,6 @@ value_txn_t<Value>::value_txn_t(btree_slice_t *slice, btree_key_t *_key, const r
 }
 
 template <class Value>
-void value_txn_t<Value>::swap(value_txn_t<Value> other) {
-    key = other.key;
-    tstamp = other.tstamp;
-    kv_location.swap(other.kv_location);
-}
-
-template <class Value>
 value_txn_t<Value>::~value_txn_t() {
     apply_keyvalue_change(&kv_location, key, tstamp, false);
 }
