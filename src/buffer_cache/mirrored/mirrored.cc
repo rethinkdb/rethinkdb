@@ -722,15 +722,19 @@ void mc_buf_t::release() {
         case rwi_read_sync:
         case rwi_read:
         case rwi_write: {
-            if (!non_locking_access)
+            if (!non_locking_access) {
                 inner_buf->lock.unlock();
+            }
             if (snapshotted) {
-                if (data == inner_buf->data)
+                if (data == inner_buf->data) {
                     --inner_buf->snap_refcount;
-                else
+                }
+                else {
                     inner_buf->release_snapshot_data(data);
-            } else
+                }
+            } else {
                 rassert(data == inner_buf->data);
+            }
             break;
         }
         case rwi_read_outdated_ok: {
