@@ -225,6 +225,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, void *_buf
 
     replay_patches();
 
+    // TODO (sam): Look at this.
     // TODO (rntz): This should initialize data_token at some point. That however requires switching
     // to the serializer thread and we cannot afford that here, except if we lock. Maybe read ahead
     // should pass the token through to here.
@@ -312,11 +313,13 @@ mc_inner_buf_t::~mc_inner_buf_t() {
     cache->assert_thread();
 
 #ifndef NDEBUG
+#ifndef VALGRIND
     // We're about to free the data, let's set it to a recognizable
     // value to make sure we don't depend on accessing things that may
     // be flushed out of the cache.
     if (data)
         memset(data, 0xDD, cache->serializer->get_block_size().value());
+#endif
 #endif
 
     array_map_t::destroying_inner_buf(this);
