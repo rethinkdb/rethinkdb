@@ -53,18 +53,20 @@ public:
     void *acquire_data(file_account_t *io_account) {
         cache->assert_thread();
         ++active_refcount;
-        if (data) return data;  // Fast path.
 
-        // Slow path: data not present, need to load it from disk.
-        rassert(token, "buffer snapshot lacks both token and data");
         mutex_acquisition_t m(&data_mutex);
-        if (data) return data;  // Somebody might have loaded the data in the meantime.
+        // The buffer might have already been loaded.
+        if (data) {
+            return data;
+        }
+        rassert(token, "buffer snapshot lacks both token and data");
 
         // Use a temporary to avoid putting our data member in an allocated-but-uninitialized state.
         void *tmp = cache->serializer->malloc();
         cache->serializer->block_read(token, tmp, io_account);
         rassert(!data, "data changed while holding mutex");
-        data = tmp;             // Swap in the initialized buffer.
+        data = tmp;
+
         return data;
     }
 
@@ -106,7 +108,6 @@ private:
     // Some kind of snapshotted version.  :/
     version_id_t snapshotted_version;
 
-    // TODO (sam): Figure out wtf this is.
     mutable mutex_t data_mutex;
 
     // The buffer of the snapshot we hold.  TODO (sam): Presumably we _own_ this buffer, but double check.
