@@ -83,6 +83,9 @@ public:
         return block_id;
     }
 
+    // The "size" of the information in a node affected by a given
+    // patch.  It's hard to see why this value should be relevant at
+    // all.  Sometimes it's impossible to compute.
     virtual size_t get_affected_data_size() const = 0;
 
     // This is called from buf_t

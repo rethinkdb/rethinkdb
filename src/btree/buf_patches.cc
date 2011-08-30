@@ -183,8 +183,6 @@ void leaf_erase_presence_patch_t::apply_to_buf(char *buf_data, block_size_t bs) 
     DETEMPLATIZE_LEAF_NODE_OP(leaf::erase_presence, leaf_node, bs, leaf_node, reinterpret_cast<btree_key_t *>(key_buf));
 }
 
-// TODO (sam): We have get_data_size and get_affected_data_size, idk
-// what get_affected_data_size really means.
 size_t leaf_erase_presence_patch_t::get_affected_data_size() const {
     return reinterpret_cast<const btree_key_t *>(key_buf)->size + 1;
 }
