@@ -109,6 +109,7 @@ patch_memory_storage_t::block_patch_list_t::block_patch_list_t() {
 
 // Deletes all stored patches
 patch_memory_storage_t::block_patch_list_t::~block_patch_list_t() {
+    rassert(affected_data_size_ >= 0);
     for (std::vector<buf_patch_t *>::iterator p = patches_.begin(), e = patches_.end(); p != e; ++p) {
         delete *p;
     }
@@ -116,6 +117,7 @@ patch_memory_storage_t::block_patch_list_t::~block_patch_list_t() {
 
 void patch_memory_storage_t::block_patch_list_t::add_patch(buf_patch_t *patch) {
     patches_.push_back(patch);
+    rassert(affected_data_size_ >= 0);
     affected_data_size_ += patch->get_affected_data_size();
 }
 
@@ -131,6 +133,8 @@ void patch_memory_storage_t::block_patch_list_t::filter_before_block_sequence(bl
         }
     }
     patches_.erase(patches_.begin(), first_patch_to_keep);
+
+    rassert(affected_data_size_ >= 0);
 }
 
 #ifndef NDEBUG
@@ -150,5 +154,6 @@ void patch_memory_storage_t::block_patch_list_t::verify_patches_list(block_seque
         ++previous_patch_counter;
         previous_block_sequence = (*p)->get_block_sequence_id();
     }
+    guarantee(affected_data_size_ >= 0);
 }
 #endif

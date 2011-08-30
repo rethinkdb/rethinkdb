@@ -47,10 +47,7 @@ class patch_memory_storage_t {
         void verify_patches_list(block_sequence_id_t) const;
 #endif
     private:
-        // TODO: Why is this unsigned?  Provide a rationale for this
-        // (other than the wrong rationale that the value should never
-        // be negative) or make it signed.
-        size_t affected_data_size_;
+        int64_t affected_data_size_;
 
         // This owns the pointers it contains and they get deleted when we're done.
         std::vector<buf_patch_t *> patches_;
