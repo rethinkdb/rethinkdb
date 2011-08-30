@@ -167,8 +167,8 @@ void proto_server_t::handle_msg(dummy_msgs::RpbListBucketsReq &, boost::scoped_p
     crash("Not implemented");
 }
 
-void proto_server_t::handle_msg(::RpbListKeysReq &msg, boost::scoped_ptr<tcp_conn_t> &conn) {
-    object_iterator_t obj_it = riak_interface->objects(msg.bucket());
+void proto_server_t::handle_msg(::RpbListKeysReq &, boost::scoped_ptr<tcp_conn_t> &) {
+    /* object_iterator_t obj_it = riak_interface->objects(msg.bucket());
 
     int i = 0;
     boost::optional<object_t> cur;
@@ -187,7 +187,8 @@ void proto_server_t::handle_msg(::RpbListKeysReq &msg, boost::scoped_ptr<tcp_con
     //There's nothing in the spec that says this isn't allowed... but who knows
     //how clients implement it
     res.set_done(true);
-    write_to_conn(res, conn);
+    write_to_conn(res, conn); */
+    crash("Not implemented");
 }
 
 void proto_server_t::handle_msg(::RpbGetBucketReq &, boost::scoped_ptr<tcp_conn_t> &) {
@@ -199,6 +200,7 @@ void proto_server_t::handle_msg(::RpbGetBucketReq &, boost::scoped_ptr<tcp_conn_
     }
 
     write_to_conn(res, conn); */
+    crash("Not implemented");
 }
 
 void proto_server_t::handle_msg(::RpbSetBucketReq &, boost::scoped_ptr<tcp_conn_t> &) {

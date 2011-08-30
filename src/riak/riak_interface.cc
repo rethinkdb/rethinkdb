@@ -91,18 +91,9 @@ void riak_interface_t::set_bucket(std::string name, bucket_t bucket) {
     return std::make_pair(bucket_iterator_t(store_manager->begin()), bucket_iterator_t(store_manager->end()));
 }; */
 
-object_iterator_t riak_interface_t::objects(std::string bucket) { 
-    /* std::list<std::string> sm_key;
-    sm_key.push_back("riak"); sm_key.push_back(bucket);
-    btree_slice_t *slice = get_slice(sm_key);
-
-    if (!slice) {
-        //no value
-    } */
-
+object_iterator_t riak_interface_t::objects() { 
     range_txn_t<riak_value_t> range_txn = 
         get_range<riak_value_t>(slice, order_token_t::ignore, rget_bound_none, store_key_t(), rget_bound_none, store_key_t());
-
 
     return object_iterator_t(bucket, range_txn.it, range_txn.txn);
 };

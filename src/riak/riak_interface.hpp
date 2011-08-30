@@ -70,7 +70,7 @@ public:
     // Object operations:
     
     // Get all the keys in a bucket
-    object_iterator_t objects(std::string);
+    object_iterator_t objects();
     // Get a single object
     const object_t get_object(std::string, std::pair<int,int> range = std::make_pair(-1, -1));
     // Store an object

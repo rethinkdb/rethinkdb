@@ -100,6 +100,10 @@ point_read_t::point_read_t(std::string _key)
     : key(_key)
 { }
 
+point_read_t::point_read_t(std::string _key, std::pair<int, int> _range)
+    : key(_key), range(_range)
+{ }
+
 region_t point_read_t::get_region() {
     region_t::finite_t set;
     set.insert(key);
@@ -133,7 +137,7 @@ std::vector<read_t> bucket_read_t::shard(std::vector<region_t> regions) {
 bucket_read_response_t bucket_read_response_t::unshard(std::vector<bucket_read_response_t> responses) {
     bucket_read_response_t res;
     for (std::vector<bucket_read_response_t>::iterator it = responses.begin(); it != responses.end(); it++) {
-        res.result.insert(res.result.end(), it->result.begin(), it->result.end());
+        res.keys.insert(res.keys.end(), it->keys.begin(), it->keys.end());
     }
 
     return res;
@@ -155,12 +159,16 @@ mapred_read_response_t mapred_read_response_t::unshard(std::vector<mapred_read_r
     crash("Not implemented");
 }
 
-read_response_t read_enactor_vistor_t::operator()(point_read_t , riak_interface_t *) {
-    crash("Not implemented");
+read_response_t read_enactor_vistor_t::operator()(point_read_t read, riak_interface_t *riak) {
+    if (read.range) {
+        return read_response_t(point_read_response_t(riak->get_object(read.key, *(read.range))));
+    } else {
+        return read_response_t(point_read_response_t(riak->get_object(read.key)));
+    }
 }
 
-read_response_t read_enactor_vistor_t::operator()(bucket_read_t, riak_interface_t *) {
-    crash("Not implemented");
+read_response_t read_enactor_vistor_t::operator()(bucket_read_t, riak_interface_t *riak) {
+    return read_response_t(bucket_read_response_t(riak->objects()));
 }
 
 read_response_t read_enactor_vistor_t::operator()(mapred_read_t, riak_interface_t *) {
