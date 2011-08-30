@@ -1,17 +1,19 @@
 #ifndef __CLUSTERING_MIRROR_HPP__
 #define __CLUSTERING_MIRROR_HPP__
 
+#include "clustering/mirror_metadata.hpp"
+
 template<class protocol_t>
 class mirror_t {
 
 private:
-    typedef branch_metadata_t<protocol_t>::mirror_data_t mirror_data_t;
+    typedef mirror_dispatcher_metadata_t<protocol_t>::mirror_data_t mirror_data_t;
 
 public:
     mirror_t(
             typename protocol_t::store_t *s,
             mailbox_cluster_t *c,
-            metadata_readwrite_view_t<branch_metadata_t<protocol_t> > *branch_metadata,
+            metadata_readwrite_view_t<mirror_dispatcher_metadata_t<protocol_t> > *dispatcher,
             mirror_id_t backfill_provider,
             signal_t *interruptor) :
 
@@ -25,8 +27,8 @@ public:
         read_mailbox(cluster, boost::bind(&mirror_t::on_read, this,
             auto_drainer_t::lock_t(&drainer), _1, _2, _3)),
 
-        registrar_view(&branch_metadata_t<protocol_t>::registrar, branch_metadata),
-        mirror_map_view(&branch_metadata_t<protocol_t>::mirror_map, branch_metadata),
+        registrar_view(&mirror_dispatcher_metadata_t<protocol_t>::registrar, dispatcher),
+        mirror_map_view(&mirror_dispatcher_metadata_t<protocol_t>::mirror_map, dispatcher),
     {
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
 

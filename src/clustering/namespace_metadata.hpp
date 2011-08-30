@@ -3,6 +3,9 @@
 
 template<class protocol_t>
 struct namespace_metadata_t {
+
+    typedef boost::uuid::uuid branch_id_t;
+
     std::map<branch_id_t, branch_metadata_t> branches;
 };
 
