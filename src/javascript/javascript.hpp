@@ -191,8 +191,6 @@ private:
             rassert(ctx);
             ctx->JSValueProtect(value_ref);
             ctx->incr_refcount();
-        } else {
-            rassert(!ctx);
         }
     }
 
@@ -201,8 +199,6 @@ private:
             rassert(ctx);
             ctx->JSValueUnprotect(value_ref);
             ctx->decr_refcount();
-        } else {
-            rassert(!ctx);
         }
     }
 

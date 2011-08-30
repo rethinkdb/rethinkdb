@@ -205,13 +205,16 @@ JSValueRef *scoped_js_value_array_t::data() { return value_refs.data(); }
 int scoped_js_value_array_t::size() { return (int) value_refs.size(); }
 
 engine_exception::engine_exception(ctx_t &ctx, scoped_js_value_t &js_exception) {
-   scoped_js_string_t str = ctx.JSValueToStringCopy(js_exception);
-    if (!str.get()) {
-        value = "Unable to convert js value to string.";
+    if (!js_exception.get()) {
+        value = "Unknown js exception";
     } else {
-        value = js_obj_to_string(str);
+        scoped_js_string_t str = ctx.JSValueToStringCopy(js_exception);
+        if (!str.get()) {
+            value = "Unable to convert js value to string.";
+        } else {
+            value = js_obj_to_string(str);
+        }
     }
-    //value += js_obj_to_string(ctx.JSContextCreateBacktrace(20));
 }
 
 engine_exception::engine_exception(std::string custom_val) 
