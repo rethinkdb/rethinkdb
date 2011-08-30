@@ -431,15 +431,17 @@ bool mc_inner_buf_t::safe_to_unload() {
     return !lock.locked() && writeback_buf().safe_to_unload() && refcount == 0 && cow_refcount == 0 && snapshots.empty();
 }
 
-void mc_inner_buf_t::update_data_token(const void *data, const boost::intrusive_ptr<standard_block_token_t>& token) {
+void mc_inner_buf_t::update_data_token(const void *the_data, const boost::intrusive_ptr<standard_block_token_t>& token) {
     cache->assert_thread();
-    if (data == this->data) {
+    if (the_data == data) {
         rassert(!data_token, "data token already up-to-date");
         data_token = token;
         return;
     }
     for (buf_snapshot_t *snap = snapshots.head(); snap; snap = snapshots.next(snap)) {
-        if (snap->data != data) continue;
+        if (snap->data != the_data) {
+            continue;
+        }
         rassert(!snap->token, "snapshot data token already up-to-date");
         snap->token = token;
         return;
