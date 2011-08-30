@@ -8,6 +8,7 @@
 #include "containers/scoped_malloc.hpp"
 
 /* Btree leaf node logical patches */
+struct btree_key_t;
 
 /* Insert and/or replace a key/value pair in a leaf node */
 class leaf_insert_patch_t : public buf_patch_t {
@@ -24,7 +25,7 @@ protected:
 private:
     uint16_t value_size;
     scoped_malloc<char> value_buf;
-    scoped_malloc<char> key_buf;
+    scoped_malloc<btree_key_t> key_buf;
     repli_timestamp_t insertion_time;
 };
 
@@ -42,7 +43,7 @@ protected:
 
 private:
     repli_timestamp_t timestamp;
-    scoped_malloc<char> key_buf;
+    scoped_malloc<btree_key_t> key_buf;
 };
 
 /* Erase a key/value pair from a leaf node, when this is an idempotent
@@ -59,7 +60,7 @@ protected:
     virtual uint16_t get_data_size() const;
 
 private:
-    scoped_malloc<char> key_buf;
+    scoped_malloc<btree_key_t> key_buf;
 };
 
 #endif	/* __BTREE_BUF_PATCHES_HPP__ */
