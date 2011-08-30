@@ -36,7 +36,7 @@ class patch_memory_storage_t {
         // Grabs ownership of the patch.
         void add_patch(buf_patch_t *patch);
 
-        size_t patches_serialized_size() const { return patches_serialized_size_; }
+        int32_t patches_serialized_size() const { return patches_serialized_size_; }
 
         bool empty() const { return patches_.empty(); }
 
@@ -47,7 +47,7 @@ class patch_memory_storage_t {
         void verify_patches_list(block_sequence_id_t) const;
 #endif
     private:
-        int64_t patches_serialized_size_;
+        int32_t patches_serialized_size_;
 
         // This owns the pointers it contains and they get deleted when we're done.
         std::vector<buf_patch_t *> patches_;
@@ -79,7 +79,7 @@ public:
 
     std::pair<const_patch_iterator, const_patch_iterator> patches_for_block(block_id_t block_id) const;
 
-    inline size_t get_patches_serialized_size(block_id_t block_id) const  {
+    inline int32_t get_patches_serialized_size(block_id_t block_id) const  {
         patch_map_t::const_iterator map_entry = patch_map.find(block_id);
         if (map_entry == patch_map.end()) {
             return 0;

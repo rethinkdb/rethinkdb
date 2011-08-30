@@ -248,15 +248,14 @@ private:
     // could eliminate it.  TODO (sam): Figure out wtf this is.
     bool non_locking_access;
 
+    // Used for perfmon, measuring how much the patches' serialized
+    // size changed.  TODO: Maybe this could be a uint16_t.
+    int32_t patches_serialized_size_at_start;
+
     // Our pointer to an inner_buf -- we have a bunch of mc_buf_t's
     // all pointing at an inner buf.
     mc_inner_buf_t *inner_buf;
     void *data; /* Usually the same as inner_buf->data. If a COW happens or this mc_buf_t is part of a snapshotted transaction, it reference a different buffer however. */
-
-    /* For performance monitoring */
-    // TODO (sam): Replace "long int" with int32_t or int64_t, there's
-    // a specific size this needs to be.
-    long int patches_serialized_size_at_start;
 
     DISABLE_COPYING(mc_buf_t);
 };

@@ -579,7 +579,7 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
 
     if (!inner_buf->writeback_buf().needs_flush) {
         // Check if we want to disable patching for this block and flush it directly instead
-        const size_t max_patches_size = inner_buf->cache->serializer->get_block_size().value() / inner_buf->cache->max_patches_size_ratio;
+        const int32_t max_patches_size = inner_buf->cache->serializer->get_block_size().value() / inner_buf->cache->max_patches_size_ratio;
         if (patch->get_serialized_size() + inner_buf->cache->patch_memory_storage.get_patches_serialized_size(inner_buf->block_id) > max_patches_size) {
             ensure_flush();
             delete patch;
@@ -713,7 +713,7 @@ void mc_buf_t::release() {
     pm_bufs_held.end(&start_time);
 
     if (mode == rwi_write && !inner_buf->writeback_buf().needs_flush && patches_serialized_size_at_start >= 0) {
-        if (inner_buf->cache->patch_memory_storage.get_patches_serialized_size(inner_buf->block_id) > size_t(patches_serialized_size_at_start)) {
+        if (inner_buf->cache->patch_memory_storage.get_patches_serialized_size(inner_buf->block_id) > patches_serialized_size_at_start) {
             pm_patches_size_per_write.record(inner_buf->cache->patch_memory_storage.get_patches_serialized_size(inner_buf->block_id) - patches_serialized_size_at_start);
         }
     }
