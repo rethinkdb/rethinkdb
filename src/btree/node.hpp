@@ -11,13 +11,6 @@
 #include "memcached/store.hpp"
 #include "utils.hpp"
 
-/* opaque value is really just a stand in for void * it's used in some rare
- * cases where we don't actually need to know the type of the data we're
- * working with. This basically only happens in patches where we pass in the
- * value size ahead of time and can just copy the data as raw data. Still it's
- * a little be legacy and should maybe be removed */
-struct opaque_value_t;
-
 template <class Value>
 class value_sizer_t;
 

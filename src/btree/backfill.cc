@@ -15,17 +15,6 @@
 #include "btree/slice.hpp"
 
 
-class btree_slice_t;
-
-class agnostic_backfill_callback_t {
-public:
-    virtual void on_delete_range(const btree_key_t *low, const btree_key_t *high) = 0;
-    virtual void on_deletion(const btree_key_t *key, repli_timestamp_t recency) = 0;
-    virtual void on_pair(transaction_t *txn, repli_timestamp_t recency, const btree_key_t *key, const opaque_value_t *value) = 0;
-    virtual void done_backfill() = 0;
-    virtual ~agnostic_backfill_callback_t() { }
-};
-
 struct backfill_traversal_helper_t : public btree_traversal_helper_t, public home_thread_mixin_t {
 
     void process_a_leaf(transaction_t *txn, buf_t *leaf_node_buf, const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null) {
@@ -42,7 +31,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
             }
 
             void key_value(const btree_key_t *k, const void *value, repli_timestamp_t tstamp) {
-                cb->on_pair(txn, tstamp, k, reinterpret_cast<const opaque_value_t *>(value));
+                cb->on_pair(txn, tstamp, k, value);
             }
 
             agnostic_backfill_callback_t *cb;
@@ -123,35 +112,31 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
 };
 
 
-void agnostic_btree_backfill(value_sizer_t<void> *sizer, btree_slice_t *slice, repli_timestamp_t since_when, const boost::shared_ptr<cache_account_t>& backfill_account, agnostic_backfill_callback_t *callback, order_token_t token) {
-    {
-        rassert(coro_t::self());
+void do_agnostic_btree_backfill(value_sizer_t<void> *sizer, btree_slice_t *slice, repli_timestamp_t since_when, const boost::shared_ptr<cache_account_t>& backfill_account, agnostic_backfill_callback_t *callback, order_token_t token) {
+    rassert(coro_t::self());
 
-        backfill_traversal_helper_t helper(callback, since_when, sizer);
+    backfill_traversal_helper_t helper(callback, since_when, sizer);
 
-        slice->pre_begin_transaction_sink_.check_out(token);
-        // TODO: Why are we using a write_mode source here?  There must be a reason...
-        order_token_t begin_transaction_token = slice->pre_begin_transaction_write_mode_source_.check_in(token.tag() + "+begin_transaction_token").with_read_mode();
+    slice->pre_begin_transaction_sink_.check_out(token);
+    // TODO: Why are we using a write_mode source here?  There must be a reason...
+    order_token_t begin_transaction_token = slice->pre_begin_transaction_write_mode_source_.check_in(token.tag() + "+begin_transaction_token").with_read_mode();
 
-        transaction_t txn(slice->cache(), rwi_read_sync);
+    transaction_t txn(slice->cache(), rwi_read_sync);
 
-	txn.set_token(slice->post_begin_transaction_checkpoint_.check_through(begin_transaction_token));
-
-#ifndef NDEBUG
-        boost::scoped_ptr<assert_no_coro_waiting_t> no_coro_waiting(new assert_no_coro_waiting_t());
-#endif
-
-        txn.set_account(backfill_account);
-        txn.snapshot();
+    txn.set_token(slice->post_begin_transaction_checkpoint_.check_through(begin_transaction_token));
 
 #ifndef NDEBUG
-        no_coro_waiting.reset();
+    boost::scoped_ptr<assert_no_coro_waiting_t> no_coro_waiting(new assert_no_coro_waiting_t());
 #endif
 
-        btree_parallel_traversal(&txn, slice, &helper);
-    }
+    txn.set_account(backfill_account);
+    txn.snapshot();
 
-    callback->done_backfill();
+#ifndef NDEBUG
+    no_coro_waiting.reset();
+#endif
+
+    btree_parallel_traversal(&txn, slice, &helper);
 }
 
 
@@ -168,8 +153,8 @@ public:
         cb_->on_deletion(key, recency);
     }
 
-    void on_pair(transaction_t *txn, repli_timestamp_t recency, const btree_key_t *key, const opaque_value_t *val) {
-        const memcached_value_t *value = reinterpret_cast<const memcached_value_t *>(val);
+    void on_pair(transaction_t *txn, repli_timestamp_t recency, const btree_key_t *key, const void *val) {
+        const memcached_value_t *value = static_cast<const memcached_value_t *>(val);
         boost::intrusive_ptr<data_buffer_t> data_provider = value_to_data_buffer(value, txn);
         backfill_atom_t atom;
         atom.key.assign(key->size, key->contents);
@@ -181,10 +166,6 @@ public:
         cb_->on_keyvalue(atom);
     }
 
-    void done_backfill() {
-        cb_->done_backfill();
-    }
-
     backfill_callback_t *cb_;
 };
 
@@ -193,5 +174,5 @@ void btree_backfill(btree_slice_t *slice, repli_timestamp_t since_when, const bo
     agnostic_memcached_backfill_callback_t agnostic_cb(callback);
 
     value_sizer_t<memcached_value_t> sizer(slice->cache()->get_block_size());
-    agnostic_btree_backfill(&sizer, slice, since_when, backfill_account, &agnostic_cb, token);
+    do_agnostic_btree_backfill(&sizer, slice, since_when, backfill_account, &agnostic_cb, token);
 }

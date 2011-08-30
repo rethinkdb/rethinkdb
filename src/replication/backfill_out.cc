@@ -70,7 +70,22 @@ public:
 
                 backfilling_ = true;
             }
-            coro_t::spawn_now(boost::bind(&btree_slice_t::backfill, &shard->btree, backfill_from, this, shard->dispatching_store.substore_order_source.check_in("slice_manager_t").with_read_mode()));
+
+            order_token_t token = shard->dispatching_store.substore_order_source.check_in("slice_manager_t").with_read_mode();
+            coro_t::spawn_now(boost::bind(&slice_manager_t::run_backfill, this, &shard->btree, backfill_from, this, token));
+        }
+
+        void run_backfill(btree_slice_t *slice, repli_timestamp_t since_when, backfill_callback_t *callback, order_token_t token) {
+            rassert(get_thread_id() == shard_->home_thread());
+
+            slice->backfill(since_when, callback, token);
+
+            // We're done backfill, so say so.
+            rassert(backfilling_);
+            backfilling_ = false;
+            boost::function<void()> fun = boost::bind(&backfill_and_streaming_manager_t::backfill_done, parent_);
+            coro_t::spawn_now(boost::bind(
+                &cross_thread_limited_fifo_t<boost::function<void()> >::push, &backfill_job_queue, fun));
         }
 
         ~slice_manager_t() {
@@ -218,22 +233,6 @@ public:
             backfill_job_queue.push(boost::bind(
                 &backfill_and_realtime_streaming_callback_t::backfill_set, parent_->handler_,
                 atom, order_token_t::ignore));
-        }
-
-        /* When we are finally done with the backfill, the store calls `done()`. */
-        void done_backfill() {
-            // This runs in the scheduler context. Since `push()` can block, we spawn a coroutine.
-            // It is essential that we push it through the backfill job queue so that it it not
-            // reordered relative to the actual backfill sets. Note that `boost::bind()` assigns
-            // a special meaning to `boost::bind()` called with a `boost::bind()` as one of its
-            // parameters, so we need to wrap it in a `boost::function` to get the behavior we
-            // want.
-            rassert(get_thread_id() == shard_->home_thread());
-            rassert(backfilling_);
-            backfilling_ = false;
-            boost::function<void()> fun = boost::bind(&backfill_and_streaming_manager_t::backfill_done, parent_);
-            coro_t::spawn_now(boost::bind(
-                &cross_thread_limited_fifo_t<boost::function<void()> >::push, &backfill_job_queue, fun));
         }
     };
 

@@ -1,10 +1,13 @@
 #ifndef __BTREE_BACKFILL_HPP__
 #define __BTREE_BACKFILL_HPP__
 
-#include "utils.hpp"
-#include "memcached/store.hpp"
-
+#include "btree/node.hpp"
+#include "btree/slice.hpp"
+#include "buffer_cache/buffer_cache.hpp"
 #include "buffer_cache/types.hpp"
+#include "concurrency/fifo_checker.hpp"
+#include "memcached/store.hpp"
+#include "utils.hpp"
 
 // Run backfilling at a reduced priority
 #define BACKFILL_CACHE_PRIORITY 10
@@ -23,15 +26,11 @@ struct backfill_atom_t {
 
 // How to use this class: Send on_delete_range calls before
 // on_keyvalue calls for keys within that range.
-//
-// TODO: What's the point of done_backfill?  Doesn't the function
-// btree_backfill return?
 class backfill_callback_t {
 public:
     virtual void on_delete_range(const btree_key_t *low, const btree_key_t *high) = 0;
     virtual void on_deletion(const btree_key_t *key, repli_timestamp_t recency) = 0;
     virtual void on_keyvalue(backfill_atom_t atom) = 0;
-    virtual void done_backfill() = 0;
 protected:
     virtual ~backfill_callback_t() { }
 };
@@ -41,6 +40,26 @@ or equal than `since_when` but which reached the tree before `btree_backfill()` 
 It may also find changes that happened before `since_when`. */
 
 void btree_backfill(btree_slice_t *slice, repli_timestamp_t since_when, const boost::shared_ptr<cache_account_t>& backfill_account, backfill_callback_t *callback, order_token_t token);
+
+
+
+class agnostic_backfill_callback_t {
+public:
+    virtual void on_delete_range(const btree_key_t *low, const btree_key_t *high) = 0;
+    virtual void on_deletion(const btree_key_t *key, repli_timestamp_t recency) = 0;
+    virtual void on_pair(transaction_t *txn, repli_timestamp_t recency, const btree_key_t *key, const void *value) = 0;
+    virtual ~agnostic_backfill_callback_t() { }
+};
+
+
+void do_agnostic_btree_backfill(value_sizer_t<void> *sizer, btree_slice_t *slice, repli_timestamp_t since_when, const boost::shared_ptr<cache_account_t>& backfill_account, agnostic_backfill_callback_t *callback, order_token_t token);
+
+
+template <class V>
+void agnostic_btree_backfill(btree_slice_t *slice, repli_timestamp_t since_when, const boost::shared_ptr<cache_account_t>& backfill_account, agnostic_backfill_callback_t *callback, order_token_t token) {
+    value_sizer_t<V> sizer(slice->cache()->get_block_size());
+    do_agnostic_btree_backfill(&sizer, slice, since_when, backfill_account, callback, token);
+}
 
 
 #endif  // __BTREE_BACKFILL_HPP__
