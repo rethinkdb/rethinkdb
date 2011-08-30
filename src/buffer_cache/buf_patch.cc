@@ -21,6 +21,8 @@ buf_patch_t *buf_patch_t::load_patch(const char *source) {
         }
         remaining_length -= sizeof(remaining_length);
         guarantee_patch_format(remaining_length >= sizeof(block_id_t) + sizeof(patch_counter_t) + sizeof(patch_operation_code_t));
+
+        // TODO: Put these fields in a POD struct and do a single memcpy.
         block_id_t block_id = *reinterpret_cast<const block_id_t *>(source);
         source += sizeof(block_id_t);
         remaining_length -= sizeof(block_id_t);
@@ -60,6 +62,8 @@ buf_patch_t *buf_patch_t::load_patch(const char *source) {
 
 void buf_patch_t::serialize(char* destination) const {
     uint16_t length = get_serialized_size();
+
+    // TODO: Put these fields in a POD struct and do a single memcpy.
     memcpy(destination, &length, sizeof(length));
     destination += sizeof(length);
     memcpy(destination, &block_id, sizeof(block_id));
