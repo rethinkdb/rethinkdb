@@ -73,7 +73,7 @@ class mc_inner_buf_t : public evictable_t,
     // fields.
     writeback_t::local_buf_t& writeback_buf() { return *this; }
 
-    // Functions of the evictable_t interface.  TODO (sam): Investigate these.
+    // Functions of the evictable_t interface.
     bool safe_to_unload();
     void unload();
 
@@ -88,7 +88,7 @@ class mc_inner_buf_t : public evictable_t,
     mc_inner_buf_t(cache_t *cache, block_id_t block_id, version_id_t snapshot_version, repli_timestamp_t recency_timestamp);
     ~mc_inner_buf_t();
 
-    // Loads data from the serializer.  TODO (sam): Investigate who uses this.
+    // Loads data from the serializer.
     void load_inner_buf(bool should_lock, file_account_t *io_account);
 
     // Informs us that a certain data buffer (whether the current one or one used by a
@@ -114,7 +114,7 @@ private:
     // The subtree recency value associated with our block.
     repli_timestamp_t subtree_recency;
 
-    // The data for the block.. I think.  TODO (sam): Figure out exactly what data is.
+    // The data for the block.
     void *data;
     // The snapshot version id of the block.  TODO (sam): Figure out exactly how we use this.
     version_id_t version_id;
@@ -129,9 +129,7 @@ private:
     // The number of mc_buf_ts that exist for this mc_inner_buf_t.
     unsigned int refcount;
 
-    // true if we are being deleted.
-    //
-    // TODO (sam): Do we need this any more, with coroutines?  (Probably?)
+    // true if this block is to be deleted.
     bool do_delete;
 
     // number of references from mc_buf_t buffers, which hold a
@@ -145,11 +143,12 @@ private:
     // snapshot. this is ugly, but necessary to correctly initialize buf_snapshot_t refcounts.
     size_t snap_refcount;
 
-    // TODO (sam): Figure out what this is, and how it is different from version_id.
+    // TODO (sam): Figure out what we use this for.
     block_sequence_id_t block_sequence_id;
 
     // snapshot types' implementations are internal and deferred to mirrored.cc
     typedef intrusive_list_t<buf_snapshot_t> snapshot_data_list_t;
+
     // TODO (sam): Learn about this.
     snapshot_data_list_t snapshots;
 
