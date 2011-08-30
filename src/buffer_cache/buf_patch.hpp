@@ -110,6 +110,8 @@ private:
     patch_counter_t patch_counter;
     block_sequence_id_t applies_to_block_sequence_id;
     patch_operation_code_t operation_code;
+
+    DISABLE_COPYING(buf_patch_t);
 };
 
 struct dereferencing_buf_patch_compare_t {
