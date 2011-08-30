@@ -242,7 +242,7 @@ private:
     access_t mode;
 
     // True if this is an mc_buf_t for a snapshotted view of the buf.
-    bool snapshotted;
+    const bool snapshotted;
 
     // non_locking_access is a hack for the sake of patch_disk_storage.cc. It would be nice if we
     // could eliminate it.  TODO (sam): Figure out wtf this is.

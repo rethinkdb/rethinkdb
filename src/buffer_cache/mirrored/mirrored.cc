@@ -528,8 +528,9 @@ void mc_buf_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access) {
             rassert(inner_buf->version_id <= version_to_access);
 
             bool snapshotted = inner_buf->snapshot_if_needed(version_to_access);
-            if (snapshotted)
+            if (snapshotted) {
                 inner_buf->data = inner_buf->cache->serializer->clone(inner_buf->data);
+            }
 
             inner_buf->version_id = version_to_access;
             data = inner_buf->data;
@@ -553,8 +554,9 @@ void mc_buf_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access) {
             unreachable();
     }
 
-    if (snapshotted)
+    if (snapshotted) {
         inner_buf->lock.unlock();
+    }
 }
 
 void mc_buf_t::apply_patch(buf_patch_t *patch) {
@@ -633,9 +635,10 @@ void mc_buf_t::mark_deleted() {
     rassert(!inner_buf->safe_to_unload());
     rassert(data == inner_buf->data);
 
-    bool snapshotted = inner_buf->snapshot_if_needed(inner_buf->version_id);
-    if (!snapshotted && data)
+    bool we_snapshotted = inner_buf->snapshot_if_needed(inner_buf->version_id);
+    if (!we_snapshotted && data) {
         inner_buf->cache->serializer->free(data);
+    }
 
     data = inner_buf->data = NULL;
 
