@@ -16,8 +16,9 @@ buf_patch_t *buf_patch_t::load_patch(const char *source) {
     try {
         uint16_t remaining_length = *reinterpret_cast<const uint16_t *>(source);
         source += sizeof(remaining_length);
-        if (remaining_length == 0)
+        if (remaining_length == 0) {
             return NULL;
+        }
         remaining_length -= sizeof(remaining_length);
         guarantee_patch_format(remaining_length >= sizeof(block_id_t) + sizeof(patch_counter_t) + sizeof(patch_operation_code_t));
         block_id_t block_id = *reinterpret_cast<const block_id_t *>(source);
