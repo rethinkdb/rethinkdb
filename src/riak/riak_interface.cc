@@ -107,7 +107,7 @@ object_iterator_t riak_interface_t::objects(std::string bucket) {
     return object_iterator_t(bucket, range_txn.it, range_txn.txn);
 };
 
-const object_t riak_interface_t::get_object(std::string bucket, std::string key, std::pair<int,int> range) {
+const object_t riak_interface_t::get_object(std::string key, std::pair<int,int> range) {
     /* std::list<std::string> sm_key;
     sm_key.push_back("riak"); sm_key.push_back(bucket);
     btree_slice_t *slice = get_slice(sm_key);
@@ -124,7 +124,7 @@ const object_t riak_interface_t::get_object(std::string bucket, std::string key,
     return object_t(key, bucket, kv_location.value.get(), kv_location.txn.get(), range);
 }
 
-void riak_interface_t::store_object(std::string, object_t obj) {
+void riak_interface_t::store_object(object_t obj) {
     /* std::list<std::string> sm_key;
     sm_key.push_back("riak"); sm_key.push_back(bucket);
     btree_slice_t *slice = get_slice(sm_key);
@@ -187,7 +187,7 @@ void riak_interface_t::store_object(std::string, object_t obj) {
     txn.value()->print(slice->cache()->get_block_size());
 }
 
-bool riak_interface_t::delete_object(std::string, std::string key) {
+bool riak_interface_t::delete_object(std::string key) {
     /* std::list<std::string> sm_key;
     sm_key.push_back("riak"); sm_key.push_back(bucket);
     btree_slice_t *slice = get_slice(sm_key);
@@ -226,7 +226,7 @@ std::string secs_to_riak_date(time_t secs) {
     free(time);
 }
 
-std::string riak_interface_t::mapreduce(json::mValue &val) throw(JS::engine_exception){
+/* std::string riak_interface_t::mapreduce(json::mValue &val) throw(JS::engine_exception){
     std::vector<object_t> inputs;
 
     json::mArray::iterator it  = val.get_obj()["inputs"].get_array().begin();
@@ -290,10 +290,10 @@ std::string riak_interface_t::mapreduce(json::mValue &val) throw(JS::engine_exce
 
 MALFORMED_REQUEST:
     crash("Not implemented");
-}
+} */
 
-std::vector<object_t> riak_interface_t::follow_links(std::vector<object_t> const &starting_objects, link_filter_t const &link_filter) {
-    std::vector<object_t> res;
+std::vector<object_t> riak_interface_t::follow_links(std::vector<object_t> const &, link_filter_t const &) {
+    /* std::vector<object_t> res;
     for (std::vector<object_t>::const_iterator it = starting_objects.begin(); it != starting_objects.end(); it++) {
         for (std::vector<link_t>::const_iterator lk_it = it->links.begin(); lk_it != it->links.end(); lk_it++) {
             if (match(link_filter, *lk_it)) {
@@ -301,7 +301,8 @@ std::vector<object_t> riak_interface_t::follow_links(std::vector<object_t> const
             }
         }
     }
-    return res;
+    return res; */
+    crash("Not implemented");
 }
 
 std::vector<JS::scoped_js_value_t> riak_interface_t::js_map(JS::ctx_t &ctx, std::string src, std::vector<JS::scoped_js_value_t> values) {

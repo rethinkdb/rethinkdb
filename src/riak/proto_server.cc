@@ -100,8 +100,8 @@ void proto_server_t::handle_msg(::RpbSetClientIdReq &, boost::scoped_ptr<tcp_con
 void proto_server_t::handle_msg(dummy_msgs::RpbGetServerInfoReq &, boost::scoped_ptr<tcp_conn_t> &) {
 }
 
-void proto_server_t::handle_msg(::RpbGetReq &msg, boost::scoped_ptr<tcp_conn_t> &conn) {
-    ::RpbGetResp res;
+void proto_server_t::handle_msg(::RpbGetReq &, boost::scoped_ptr<tcp_conn_t> &) {
+    /* ::RpbGetResp res;
     ::RpbContent *content = res.add_content();
 
     object_t obj = riak_interface->get_object(msg.bucket(), msg.key());
@@ -117,11 +117,11 @@ void proto_server_t::handle_msg(::RpbGetReq &msg, boost::scoped_ptr<tcp_conn_t> 
 
     content->set_last_mod(obj.last_written);
 
-    write_to_conn(res, conn);
+    write_to_conn(res, conn); */
 }
 
-void proto_server_t::handle_msg(::RpbPutReq &msg, boost::scoped_ptr<tcp_conn_t> &conn) {
-    object_t obj;
+void proto_server_t::handle_msg(::RpbPutReq &, boost::scoped_ptr<tcp_conn_t> &) {
+    /* object_t obj;
 
     obj.key = msg.key();
     RpbContent content = msg.content();
@@ -141,16 +141,18 @@ void proto_server_t::handle_msg(::RpbPutReq &msg, boost::scoped_ptr<tcp_conn_t> 
         //TODO maybe we should set the last modified time here ???
     }
 
-    write_to_conn(res, conn);
+    write_to_conn(res, conn); */
+    crash("Not implemented");
 }
 
-void proto_server_t::handle_msg(::RpbDelReq &msg, boost::scoped_ptr<tcp_conn_t> &conn) {
-    riak_interface->delete_object(msg.bucket(), msg.key());
+void proto_server_t::handle_msg(::RpbDelReq &, boost::scoped_ptr<tcp_conn_t> &) {
+    /* riak_interface->delete_object(msg.bucket(), msg.key());
 
     message_size_t size = 0;
     message_code_t mc = RpbDelResp;
     conn->write(&size, sizeof(message_size_t));
-    conn->write(&mc, sizeof(message_code_t));
+    conn->write(&mc, sizeof(message_code_t)); */
+    crash("Not implemented");
 }
 
 void proto_server_t::handle_msg(dummy_msgs::RpbListBucketsReq &, boost::scoped_ptr<tcp_conn_t> &) {
@@ -162,6 +164,7 @@ void proto_server_t::handle_msg(dummy_msgs::RpbListBucketsReq &, boost::scoped_p
         *res.add_keys() = it->name;
     }
     write_to_conn(res, conn); */
+    crash("Not implemented");
 }
 
 void proto_server_t::handle_msg(::RpbListKeysReq &msg, boost::scoped_ptr<tcp_conn_t> &conn) {

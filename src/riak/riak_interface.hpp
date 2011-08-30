@@ -47,6 +47,7 @@ private:
     //btree_slice_t *get_slice(std::list<std::string>);
     //btree_slice_t *create_slice(std::list<std::string>);
     btree_slice_t *slice;
+    std::string bucket; //TODO we may not need this
 public:
     riak_interface_t(btree_slice_t *_slice)
         : slice(_slice)
@@ -71,16 +72,16 @@ public:
     // Get all the keys in a bucket
     object_iterator_t objects(std::string);
     // Get a single object
-    const object_t get_object(std::string, std::string, std::pair<int,int> range = std::make_pair(-1, -1));
+    const object_t get_object(std::string, std::pair<int,int> range = std::make_pair(-1, -1));
     // Store an object
-    void store_object(std::string, object_t);
+    void store_object(object_t);
     // Delete an object
-    bool delete_object(std::string, std::string);
+    bool delete_object(std::string);
 
     // Mapreduce operations:
 
     //run a mapreduce job
-    std::string mapreduce(json::mValue &) throw(JS::engine_exception);
+    //std::string mapreduce(json::mValue &) throw(JS::engine_exception);
 private:
     //supporting cast for mapreduce just to make this code a bit more readable
     
