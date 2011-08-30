@@ -35,7 +35,7 @@ typedef page_repl_random_t page_repl_t;
 
 class mc_cache_account_t;
 
-// TODO: It should be possible to unload the data of an mc_inner_buf_t from the cache even when
+// TODO (sam): It should be possible to unload the data of an mc_inner_buf_t from the cache even when
 // there are still snapshots of it around - there is no reason why the data shouldn't be able to
 // leave the cache, even if we still need the object around to keep track of snapshots. With the way
 // this is currently set up, this is not possible; unloading an mc_inner_buf_t requires deleting it.
@@ -121,7 +121,7 @@ private:
     /* As long as data has not been changed since the last serializer write, data_token contains a token to the on-serializer block */
     boost::intrusive_ptr<standard_block_token_t> data_token;
 
-    // A lock for asserting ownership of the block.
+    // A lock for loading the block.
     rwi_lock_t lock;
     // A patch counter that belongs to this block.  TODO (sam): Why do we need these?
     patch_counter_t next_patch_counter;

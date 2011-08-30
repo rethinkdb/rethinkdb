@@ -110,7 +110,9 @@ private:
 
     mutable mutex_t data_mutex;
 
-    // The buffer of the snapshot we hold.  TODO (sam): Presumably we _own_ this buffer, but double check.
+    // The buffer of the snapshot we hold.  TODO (sam): We own this
+    // buffer but the mc_inner_buf_t does too?  Uh...  Also add
+    // testing for this problem.
     void *data;
 
     // Our block token to the serializer.
@@ -357,6 +359,9 @@ bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version) {
             // with should_load == false), but now a snapshot of that non-existing data is needed.
             // That in turn means that we have to acquire the data now, before we can proceed...
             data = cache->serializer->malloc();
+
+            // TODO (sam): "Hopefully"?
+
             // Our callee (hopefully!!!) already has a lock at this point, so there's no need
             // to acquire another one inside of load_inner_buf (and of course it would dead-lock).
             load_inner_buf(false, cache->reads_io_account.get());
@@ -377,6 +382,10 @@ bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version) {
     // Initially actively referencing the snapshotted buf are mc_buf_t's in rwi_read_outdated_ok
     // mode, corresponding to cow_refcount; and mc_buf_t's in snapshotted rwi_read mode, indicated
     // by snap_refcount.
+
+    // TODO (sam): Now buf_snapshot_t owns this inner buf's data field
+    // and will free it!
+
     buf_snapshot_t *snap = new buf_snapshot_t(this, version_id, num_snapshots_affected, cow_refcount + snap_refcount, data, data_token);
     cow_refcount = 0;
     snap_refcount = 0;
@@ -569,7 +578,9 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
         } else {
             // Store the patch if the buffer does not have to be flushed anyway
             if (patch->get_patch_counter() == 1) {
-                // TODO (sam): This line makes me uncomfortable.
+                // TODO (sam): This line makes me uncomfortable.  Why
+                // are there patches that need to be cleaned up?
+
                 // Clean up any left-over patches
                 inner_buf->cache->patch_memory_storage.drop_patches(inner_buf->block_id);
             }
