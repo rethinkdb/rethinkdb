@@ -42,6 +42,7 @@ public:
         rassert(snapshot_refcount + active_refcount, "creating buf snapshot with 0 refcount");
     }
 
+private:
     ~buf_snapshot_t() {
         rassert(!snapshot_refcount && !active_refcount);
         parent->snapshots.remove(this);
@@ -50,6 +51,7 @@ public:
         }
     }
 
+public:
     void *acquire_data(file_account_t *io_account) {
         cache->assert_thread();
         ++active_refcount;

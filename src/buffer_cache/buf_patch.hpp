@@ -113,8 +113,7 @@ private:
 };
 
 struct dereferencing_buf_patch_compare_t {
-    // TODO: Why are we passing these pointers by const reference?
-    bool operator()(buf_patch_t *const& x, buf_patch_t *const& y) const {
+    bool operator()(buf_patch_t *x, buf_patch_t *y) const {
         return *x < *y;
     }
 };
