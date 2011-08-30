@@ -256,7 +256,7 @@ private:
     /* For performance monitoring */
     // TODO (sam): Replace "long int" with int32_t or int64_t, there's
     // a specific size this needs to be.
-    long int patches_affected_data_size_at_start;
+    long int patches_serialized_size_at_start;
 
     DISABLE_COPYING(mc_buf_t);
 };

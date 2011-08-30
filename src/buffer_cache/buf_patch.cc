@@ -123,10 +123,6 @@ memcpy_patch_t::~memcpy_patch_t() {
     delete[] src_buf;
 }
 
-size_t memcpy_patch_t::get_affected_data_size() const {
-    return n;
-}
-
 void memcpy_patch_t::apply_to_buf(char* buf_data, UNUSED block_size_t bs) {
     memcpy(buf_data + dest_offset, src_buf, n);
 }
@@ -158,10 +154,6 @@ void memmove_patch_t::serialize_data(char* destination) const {
 }
 uint16_t memmove_patch_t::get_data_size() const {
     return sizeof(dest_offset) + sizeof(src_offset) + sizeof(n);
-}
-
-size_t memmove_patch_t::get_affected_data_size() const {
-    return n;
 }
 
 void memmove_patch_t::apply_to_buf(char* buf_data, UNUSED block_size_t bs) {

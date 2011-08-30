@@ -18,8 +18,6 @@ public:
 
     virtual void apply_to_buf(char* buf_data, block_size_t bs);
 
-    virtual size_t get_affected_data_size() const;
-
 protected:
     virtual void serialize_data(char* destination) const;
     virtual uint16_t get_data_size() const;
@@ -41,8 +39,6 @@ public:
 
     virtual void apply_to_buf(char* buf_data, block_size_t bs);
 
-    virtual size_t get_affected_data_size() const;
-
 protected:
     virtual void serialize_data(char* destination) const;
     virtual uint16_t get_data_size() const;
@@ -62,8 +58,6 @@ public:
     virtual ~leaf_erase_presence_patch_t();
 
     virtual void apply_to_buf(char *buf_data, block_size_t bs);
-
-    virtual size_t get_affected_data_size() const;
 
 protected:
     virtual void serialize_data(char *destination) const;

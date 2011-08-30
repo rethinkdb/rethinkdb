@@ -441,7 +441,7 @@ mc_buf_t::mc_buf_t(mc_inner_buf_t *_inner_buf, access_t _mode, mc_inner_buf_t::v
     : mode(_mode), snapshotted(_snapshotted), non_locking_access(_snapshotted), inner_buf(_inner_buf), data(NULL) {
     inner_buf->cache->assert_thread();
     inner_buf->refcount++;
-    patches_affected_data_size_at_start = -1;
+    patches_serialized_size_at_start = -1;
 
     if (snapshotted) {
 	rassert(is_read_mode(mode), "Only read access is allowed to block snapshots");
@@ -517,10 +517,10 @@ void mc_buf_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access) {
             //rassert(data != NULL);
 
             if (!inner_buf->writeback_buf().needs_flush &&
-                    patches_affected_data_size_at_start == -1 &&
+                    patches_serialized_size_at_start == -1 &&
                     global_full_perfmon) {
-                patches_affected_data_size_at_start =
-                    inner_buf->cache->patch_memory_storage.get_affected_data_size(inner_buf->block_id);
+                patches_serialized_size_at_start =
+                    inner_buf->cache->patch_memory_storage.get_patches_serialized_size(inner_buf->block_id);
             }
 
             break;
@@ -557,7 +557,7 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
     if (!inner_buf->writeback_buf().needs_flush) {
         // Check if we want to disable patching for this block and flush it directly instead
         const size_t max_patches_size = inner_buf->cache->serializer->get_block_size().value() / inner_buf->cache->max_patches_size_ratio;
-        if (patch->get_affected_data_size() + inner_buf->cache->patch_memory_storage.get_affected_data_size(inner_buf->block_id) > max_patches_size) {
+        if (patch->get_serialized_size() + inner_buf->cache->patch_memory_storage.get_patches_serialized_size(inner_buf->block_id) > max_patches_size) {
             ensure_flush();
             delete patch;
         } else {
@@ -686,9 +686,10 @@ void mc_buf_t::release() {
     inner_buf->cache->assert_thread();
     pm_bufs_held.end(&start_time);
 
-    if (mode == rwi_write && !inner_buf->writeback_buf().needs_flush && patches_affected_data_size_at_start >= 0) {
-        if (inner_buf->cache->patch_memory_storage.get_affected_data_size(inner_buf->block_id) > (size_t)patches_affected_data_size_at_start)
-            pm_patches_size_per_write.record(inner_buf->cache->patch_memory_storage.get_affected_data_size(inner_buf->block_id) - patches_affected_data_size_at_start);
+    if (mode == rwi_write && !inner_buf->writeback_buf().needs_flush && patches_serialized_size_at_start >= 0) {
+        if (inner_buf->cache->patch_memory_storage.get_patches_serialized_size(inner_buf->block_id) > size_t(patches_serialized_size_at_start)) {
+            pm_patches_size_per_write.record(inner_buf->cache->patch_memory_storage.get_patches_serialized_size(inner_buf->block_id) - patches_serialized_size_at_start);
+        }
     }
 
     rassert(inner_buf->refcount > 0);

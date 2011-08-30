@@ -83,21 +83,17 @@ public:
         return block_id;
     }
 
-    // The "size" of the information in a node affected by a given
-    // patch.  It's hard to see why this value should be relevant at
-    // all.  Sometimes it's impossible to compute.
-    virtual size_t get_affected_data_size() const = 0;
-
     // This is called from buf_t
     virtual void apply_to_buf(char* buf_data, block_size_t block_size) = 0;
 
     bool operator<(const buf_patch_t& p) const;
-    
-protected:    
+
+protected:
+    virtual uint16_t get_data_size() const = 0;
+
     // These are for usage in subclasses
     buf_patch_t(block_id_t block_id, patch_counter_t patch_counter, patch_operation_code_t operation_code);
     virtual void serialize_data(char *destination) const = 0;
-    virtual uint16_t get_data_size() const = 0;
 
     static const patch_operation_code_t OPER_MEMCPY = 0;
     static const patch_operation_code_t OPER_MEMMOVE = 1;
@@ -135,8 +131,6 @@ public:
 
     virtual void apply_to_buf(char* buf_data, block_size_t bs);
 
-    virtual size_t get_affected_data_size() const;
-
 protected:
     virtual void serialize_data(char* destination) const;
     virtual uint16_t get_data_size() const;
@@ -155,11 +149,10 @@ public:
 
     virtual void apply_to_buf(char* buf_data, block_size_t bs);
 
-    virtual size_t get_affected_data_size() const;
+    virtual uint16_t get_data_size() const;
 
 protected:
     virtual void serialize_data(char* destination) const;
-    virtual uint16_t get_data_size() const;
 
 private:
     uint16_t dest_offset;

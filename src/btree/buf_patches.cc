@@ -79,11 +79,6 @@ leaf_insert_patch_t::~leaf_insert_patch_t() {
     delete[] key_buf;
 }
 
-size_t leaf_insert_patch_t::get_affected_data_size() const {
-    const btree_key_t *key = reinterpret_cast<btree_key_t *>(key_buf);
-    return value_size + sizeof(uint8_t) + key->size + sizeof(insertion_time);
-}
-
 void leaf_insert_patch_t::apply_to_buf(char *buf_data, block_size_t bs) {
     leaf_node_t *leaf_node = reinterpret_cast<leaf_node_t *>(buf_data);
     DETEMPLATIZE_LEAF_NODE_OP(leaf::insert, leaf_node, bs, leaf_node, reinterpret_cast<btree_key_t *>(key_buf), value_buf, insertion_time);
@@ -144,11 +139,6 @@ leaf_remove_patch_t::~leaf_remove_patch_t() {
     delete[] key_buf;
 }
 
-size_t leaf_remove_patch_t::get_affected_data_size() const {
-    const btree_key_t *key = reinterpret_cast<const btree_key_t *>(key_buf);
-    return key->size + sizeof(key->size);
-}
-
 void leaf_remove_patch_t::apply_to_buf(char* buf_data, block_size_t bs) {
     leaf_node_t *leaf_node = reinterpret_cast<leaf_node_t *>(buf_data);
     DETEMPLATIZE_LEAF_NODE_OP(leaf::remove, leaf_node, bs, reinterpret_cast<leaf_node_t *>(buf_data), reinterpret_cast<btree_key_t *>(key_buf), timestamp);
@@ -181,10 +171,6 @@ leaf_erase_presence_patch_t::~leaf_erase_presence_patch_t() {
 void leaf_erase_presence_patch_t::apply_to_buf(char *buf_data, block_size_t bs) {
     leaf_node_t *leaf_node = reinterpret_cast<leaf_node_t *>(buf_data);
     DETEMPLATIZE_LEAF_NODE_OP(leaf::erase_presence, leaf_node, bs, leaf_node, reinterpret_cast<btree_key_t *>(key_buf));
-}
-
-size_t leaf_erase_presence_patch_t::get_affected_data_size() const {
-    return reinterpret_cast<const btree_key_t *>(key_buf)->size + 1;
 }
 
 void leaf_erase_presence_patch_t::serialize_data(char *destination) const {
