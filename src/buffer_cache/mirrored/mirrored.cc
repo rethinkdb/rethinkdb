@@ -462,9 +462,12 @@ mc_buf_t::mc_buf_t(mc_inner_buf_t *_inner_buf, access_t _mode, mc_inner_buf_t::v
 
     if (snapshotted) {
 	rassert(is_read_mode(mode), "Only read access is allowed to block snapshots");
+        // Our snapshotting-specific code can't handle weird read
+        // modes, unfortunately.
 
-        // Our snapshotting-specific code can't handle weird read modes, unfortunately.
-        // TODO: Make snapshotting code work properly with weird read modes.
+        // TODO: Make snapshotting code work properly with weird read
+        // modes.  (Or maybe don't do that, just keep what we have
+        // here.)
         if (mode == rwi_read_outdated_ok || mode == rwi_read_sync) {
             mode = rwi_read;
         }
@@ -481,10 +484,11 @@ mc_buf_t::mc_buf_t(mc_inner_buf_t *_inner_buf, access_t _mode, mc_inner_buf_t::v
         if (call_when_in_line) call_when_in_line();
 
     } else {
+        ticks_t lock_start_time;
         // the top version is the right one for us; acquire a lock of the appropriate type first
-        pm_bufs_acquiring.begin(&start_time);
+        pm_bufs_acquiring.begin(&lock_start_time);
         inner_buf->lock.co_lock(mode == rwi_read_outdated_ok ? rwi_read : mode, call_when_in_line);
-        pm_bufs_acquiring.end(&start_time);
+        pm_bufs_acquiring.end(&lock_start_time);
 
         acquire_block(version_to_access);
     }

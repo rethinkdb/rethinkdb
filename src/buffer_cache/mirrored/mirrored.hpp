@@ -151,7 +151,6 @@ private:
     // snapshot types' implementations are internal and deferred to mirrored.cc
     typedef intrusive_list_t<buf_snapshot_t> snapshot_data_list_t;
 
-    // TODO (sam): Learn about this.
     snapshot_data_list_t snapshots;
 
     DISABLE_COPYING(mc_inner_buf_t);
@@ -236,7 +235,7 @@ public:
 
 private:
 
-    // TODO (sam): WTF is this?
+    // Used for the pm_bufs_held perfmon.
     ticks_t start_time;
 
     // Presumably, the mode with which this mc_buf_t holds the inner buf.
