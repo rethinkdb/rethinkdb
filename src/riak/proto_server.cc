@@ -153,15 +153,15 @@ void proto_server_t::handle_msg(::RpbDelReq &msg, boost::scoped_ptr<tcp_conn_t> 
     conn->write(&mc, sizeof(message_code_t));
 }
 
-void proto_server_t::handle_msg(dummy_msgs::RpbListBucketsReq &, boost::scoped_ptr<tcp_conn_t> &conn) {
-    std::pair<bucket_iterator_t, bucket_iterator_t> bucket_iters = riak_interface->buckets();
+void proto_server_t::handle_msg(dummy_msgs::RpbListBucketsReq &, boost::scoped_ptr<tcp_conn_t> &) {
+    /* std::pair<bucket_iterator_t, bucket_iterator_t> bucket_iters = riak_interface->buckets();
     bucket_iterator_t it = bucket_iters.first, end = bucket_iters.second;
 
     ::RpbListKeysResp res;
     for (;it != end; it++) {
         *res.add_keys() = it->name;
     }
-    write_to_conn(res, conn);
+    write_to_conn(res, conn); */
 }
 
 void proto_server_t::handle_msg(::RpbListKeysReq &msg, boost::scoped_ptr<tcp_conn_t> &conn) {
@@ -187,19 +187,19 @@ void proto_server_t::handle_msg(::RpbListKeysReq &msg, boost::scoped_ptr<tcp_con
     write_to_conn(res, conn);
 }
 
-void proto_server_t::handle_msg(::RpbGetBucketReq &msg, boost::scoped_ptr<tcp_conn_t> &conn) {
-    boost::optional<bucket_t> bucket = riak_interface->get_bucket(msg.bucket());
+void proto_server_t::handle_msg(::RpbGetBucketReq &, boost::scoped_ptr<tcp_conn_t> &) {
+    /* boost::optional<bucket_t> bucket = riak_interface->get_bucket(msg.bucket());
     ::RpbGetBucketResp res;
     if (bucket) {
         res.mutable_props()->set_n_val(bucket->n_val);
         res.mutable_props()->set_allow_mult(bucket->allow_mult);
     }
 
-    write_to_conn(res, conn);
+    write_to_conn(res, conn); */
 }
 
-void proto_server_t::handle_msg(::RpbSetBucketReq &msg, boost::scoped_ptr<tcp_conn_t> &conn) {
-    bucket_t bucket;
+void proto_server_t::handle_msg(::RpbSetBucketReq &, boost::scoped_ptr<tcp_conn_t> &) {
+    /* bucket_t bucket;
     if (msg.props().has_n_val()) {
         bucket.n_val = msg.props().n_val();
     }
@@ -213,7 +213,7 @@ void proto_server_t::handle_msg(::RpbSetBucketReq &msg, boost::scoped_ptr<tcp_co
     message_size_t size = 0;
     message_code_t mc = RpbSetBucketResp;
     conn->write(&size, sizeof(message_size_t));
-    conn->write(&mc, sizeof(message_code_t));
+    conn->write(&mc, sizeof(message_code_t)); */
 }
 
 void proto_server_t::handle_msg(::RpbMapRedReq &, boost::scoped_ptr<tcp_conn_t> &) {

@@ -38,17 +38,18 @@ public:
 
 class riak_interface_t {
 private:
-    store_manager_t<std::list<std::string> > *store_manager;
+    //store_manager_t<std::list<std::string> > *store_manager;
 
-    typedef boost::ptr_map<std::list<std::string>, btree_slice_t> slice_map_t;
+    //typedef boost::ptr_map<std::list<std::string>, btree_slice_t> slice_map_t;
 
-    slice_map_t slice_map;
+    //slice_map_t slice_map;
 
-    btree_slice_t *get_slice(std::list<std::string>);
-    btree_slice_t *create_slice(std::list<std::string>);
+    //btree_slice_t *get_slice(std::list<std::string>);
+    //btree_slice_t *create_slice(std::list<std::string>);
+    btree_slice_t *slice;
 public:
-    riak_interface_t(store_manager_t<std::list<std::string> > *store_manager)
-        : store_manager(store_manager)
+    riak_interface_t(btree_slice_t *_slice)
+        : slice(_slice)
     { }
 
 private:
@@ -57,11 +58,11 @@ public:
     // Bucket operations:
 
     // Get a bucket by name
-    boost::optional<bucket_t> get_bucket(std::string);
+    //boost::optional<bucket_t> get_bucket(std::string);
     // Set the properties of a bucket
-    void set_bucket(std::string, bucket_t);
+    //void set_bucket(std::string, bucket_t);
     // Get all the buckets
-    std::pair<bucket_iterator_t, bucket_iterator_t> buckets();
+    //std::pair<bucket_iterator_t, bucket_iterator_t> buckets();
 
 
 

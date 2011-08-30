@@ -18,7 +18,7 @@
 namespace riak {
 
 
-btree_slice_t *riak_interface_t::get_slice(std::list<std::string> key) {
+/* btree_slice_t *riak_interface_t::get_slice(std::list<std::string> key) {
     if (slice_map.find(key) != slice_map.end()) {
         return &slice_map.at(key);
     } else if (store_manager->get_store(key) != NULL) {
@@ -58,9 +58,9 @@ btree_slice_t *riak_interface_t::create_slice(std::list<std::string> key) {
     slice_map.insert(key, new btree_slice_t(cache));
 
     return get_slice(key);
-}
+} */
 
-boost::optional<bucket_t> riak_interface_t::get_bucket(std::string s) {
+/* boost::optional<bucket_t> riak_interface_t::get_bucket(std::string s) {
     std::list<std::string> key;
     key.push_back("riak"); key.push_back(s);
     store_t *store = store_manager->get_store(key);
@@ -85,20 +85,20 @@ void riak_interface_t::set_bucket(std::string name, bucket_t bucket) {
     rassert(store != NULL, "We just created this it better not be null");
 
     store->store_metadata = bucket;
-}
+} */
 
-std::pair<bucket_iterator_t, bucket_iterator_t> riak_interface_t::buckets() { 
+/* std::pair<bucket_iterator_t, bucket_iterator_t> riak_interface_t::buckets() { 
     return std::make_pair(bucket_iterator_t(store_manager->begin()), bucket_iterator_t(store_manager->end()));
-};
+}; */
 
 object_iterator_t riak_interface_t::objects(std::string bucket) { 
-    std::list<std::string> sm_key;
+    /* std::list<std::string> sm_key;
     sm_key.push_back("riak"); sm_key.push_back(bucket);
     btree_slice_t *slice = get_slice(sm_key);
 
     if (!slice) {
         //no value
-    }
+    } */
 
     range_txn_t<riak_value_t> range_txn = 
         get_range<riak_value_t>(slice, order_token_t::ignore, rget_bound_none, store_key_t(), rget_bound_none, store_key_t());
@@ -108,13 +108,13 @@ object_iterator_t riak_interface_t::objects(std::string bucket) {
 };
 
 const object_t riak_interface_t::get_object(std::string bucket, std::string key, std::pair<int,int> range) {
-    std::list<std::string> sm_key;
+    /* std::list<std::string> sm_key;
     sm_key.push_back("riak"); sm_key.push_back(bucket);
     btree_slice_t *slice = get_slice(sm_key);
 
     if (!slice) {
         //no value
-    }
+    } */
 
     keyvalue_location_t<riak_value_t> kv_location;
     get_value_read(slice, btree_key_buffer_t(key).key(), order_token_t::ignore, &kv_location);
@@ -124,15 +124,15 @@ const object_t riak_interface_t::get_object(std::string bucket, std::string key,
     return object_t(key, bucket, kv_location.value.get(), kv_location.txn.get(), range);
 }
 
-void riak_interface_t::store_object(std::string bucket, object_t obj) {
-    std::list<std::string> sm_key;
+void riak_interface_t::store_object(std::string, object_t obj) {
+    /* std::list<std::string> sm_key;
     sm_key.push_back("riak"); sm_key.push_back(bucket);
     btree_slice_t *slice = get_slice(sm_key);
 
     if (!slice) {
         // if we're doing a set we need to create the slice
         slice = create_slice(sm_key);
-    }
+    } */
 
     value_txn_t<riak_value_t> txn(slice, btree_key_buffer_t(obj.key).key(), repli_timestamp_t::invalid, order_token_t::ignore);
 
@@ -187,15 +187,15 @@ void riak_interface_t::store_object(std::string bucket, object_t obj) {
     txn.value()->print(slice->cache()->get_block_size());
 }
 
-bool riak_interface_t::delete_object(std::string bucket, std::string key) {
-    std::list<std::string> sm_key;
+bool riak_interface_t::delete_object(std::string, std::string key) {
+    /* std::list<std::string> sm_key;
     sm_key.push_back("riak"); sm_key.push_back(bucket);
     btree_slice_t *slice = get_slice(sm_key);
 
     if (!slice) {
         // if we're doing a set we need to create the slice
         slice = create_slice(sm_key);
-    }
+    } */
 
     value_txn_t<riak_value_t> txn(slice, btree_key_buffer_t(key).key(), repli_timestamp_t::invalid, order_token_t::ignore);
 
