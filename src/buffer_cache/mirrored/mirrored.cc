@@ -68,14 +68,18 @@ public:
 
     void release_data() {
         rassert(active_refcount, "releasing snapshot data with no active references");
-        if (0 == --active_refcount + snapshot_refcount)
+        --active_refcount;
+        if (0 == active_refcount + snapshot_refcount) {
             delete this;
+        }
     }
 
     void release() {
         rassert(snapshot_refcount, "releasing snapshot with no references");
-        if (0 == --snapshot_refcount + active_refcount)
+        --snapshot_refcount;
+        if (0 == snapshot_refcount + active_refcount) {
             delete this;
+        }
     }
 
     // We are safe to unload if we are saved to disk and have no mc_buf_ts actively referencing us.
