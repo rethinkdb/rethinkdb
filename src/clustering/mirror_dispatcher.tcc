@@ -1,8 +1,9 @@
+#include "concurrency/coro_fifo.hpp"
 
 /* Functions to send a read or write to a mirror and wait for a response. */
 
 template<class protocol_t>
-void mirror_data_write(mailbox_cluster_t *cluster, const mirror_data_t &mirror, typename protocol_t::write_t w, repli_timestamp_t ts, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+void mirror_data_write(mailbox_cluster_t *cluster, const typename mirror_dispatcher_metadata_t<protocol_t>::mirror_data_t &mirror, typename protocol_t::write_t w, repli_timestamp_t ts, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
 
     cond_t ack_cond;
     async_mailbox_t<void()> ack_mailbox(
@@ -14,12 +15,12 @@ void mirror_data_write(mailbox_cluster_t *cluster, const mirror_data_t &mirror, 
     wait_any_t waiter(&ack_cond, interruptor);
     waiter.wait_lazily_unordered();
 
-    if (interruptor->is_pulsed()) throw mirror_lost_exc_t();
+    if (interruptor->is_pulsed()) throw interrupted_exc_t();
     rassert(ack_cond.is_pulsed());
 }
 
 template<class protocol_t>
-typename protocol_t::write_response_t mirror_data_writeread(mailbox_cluster_t *cluster, const mirror_data_t &mirror, typename protocol_t::write_t w, repli_timestamp_t ts, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+typename protocol_t::write_response_t mirror_data_writeread(mailbox_cluster_t *cluster, const typename mirror_dispatcher_metadata_t<protocol_t>::mirror_data_t &mirror, typename protocol_t::write_t w, repli_timestamp_t ts, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
 
     promise_t<typename protocol_t::write_response_t> resp_cond;
     async_mailbox_t<void(typename protocol_t::response_t)> resp_mailbox(
@@ -36,7 +37,7 @@ typename protocol_t::write_response_t mirror_data_writeread(mailbox_cluster_t *c
 }
 
 template<class protocol_t>
-typename protocol_t::read_response_t read(mailbox_cluster_t *cluster, const mirror_data_t &mirror, typename protocol_t::read_t r, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+typename protocol_t::read_response_t read(mailbox_cluster_t *cluster, const typename mirror_dispatcher_metadata_t<protocol_t>::mirror_data_t &mirror, typename protocol_t::read_t r, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
 
     promise_t<typename protocol_t::read_response_t> resp_cond;
     async_mailbox_t<void(typename protocol_t::response_t)> resp_mailbox(
@@ -62,11 +63,11 @@ typename protocol_t::read_response_t mirror_dispatcher_t<protocol_t>::read(typen
 }
 
 template<class protocol_t>
-typename protocol_t::write_response_t mirror_dispatcher_t<protocol_t>::write(typename protocol_t::write_t w, repli_timestamp_t ts, order_token_t tok) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t); {
+typename protocol_t::write_response_t mirror_dispatcher_t<protocol_t>::write(typename protocol_t::write_t w, repli_timestamp_t ts, order_token_t tok) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t) {
 
     /* `write_ref` is to keep `write` from freeing itself before we're done
     with it */
-    queued_write_t::ref_t write_ref;
+    typename queued_write_t::ref_t write_ref;
     queued_write_t *write;
 
     dispatchee_t *writereader;
@@ -93,7 +94,7 @@ typename protocol_t::write_response_t mirror_dispatcher_t<protocol_t>::write(typ
             w, ts, tok,
             target_ack_count, &done_promise);
 
-        for (std::map<dispatchee_t *, auto_drainer_t::lock_t>::iterator it = dispatchees.begin();
+        for (typename std::map<dispatchee_t *, auto_drainer_t::lock_t>::iterator it = dispatchees.begin();
                 it != dispatchees.end(); it++) {
             dispatchee_t *writer = (*it).first;
             auto_drainer_t::lock_t writer_lock = (*it).second;
@@ -117,13 +118,6 @@ typename protocol_t::write_response_t mirror_dispatcher_t<protocol_t>::write(typ
     return resp;
 }
 
-private:
-    /* The `registrar_t` constructs a `dispatchee_t` for every mirror that
-    connects to us. */
-
-    class dispatchee_t : public intrusive_list_node_t<dispatchee_t> {
-
-    public:
 template<class protocol_t>
 mirror_dispatcher_t<protocol_t>::dispatchee_t::dispatchee_t(mirror_dispatcher_t *c, mirror_data_t d) THROWS_NOTHING :
     controller(c), is_readable(false)
@@ -167,7 +161,7 @@ void mirror_dispatcher_t<protocol_t>::dispatchee_t::update(mirror_data_t d) THRO
 }
 
 template<class protocol_t>
-typename protocol_t::write_response_t mirror_dispatcher_t<protocol_t>::dispatchee_t::writeread(queued_write_t *write, queued_write_t::ref_t write_ref, auto_drainer_t::lock_t keepalive) THROWS_ONLY(mirror_lost_exc_t) {
+typename protocol_t::write_response_t mirror_dispatcher_t<protocol_t>::dispatchee_t::writeread(queued_write_t *write, typename queued_write_t::ref_t write_ref, auto_drainer_t::lock_t keepalive) THROWS_ONLY(mirror_lost_exc_t) {
     typename protocol_t::write_response_t resp;
     try {
         resp = mirror_data_writeread(controller->cluster, data,
@@ -192,17 +186,19 @@ typename protocol_t::read_response_t mirror_dispatcher_t<protocol_t>::dispatchee
 }
 
 template<class protocol_t>
-void mirror_dispatcher_t<protocol_t>::dispatchee_t::begin_write_in_background(queued_write_t *write, queued_write_t::ref_t write_ref, auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
+void mirror_dispatcher_t<protocol_t>::dispatchee_t::begin_write_in_background(queued_write_t *write, typename queued_write_t::ref_t write_ref, auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
     /* It's safe to allocate this directly on the heap because
     `coro_t::spawn_sometime()` should always succeed, and
     `write_in_background()` will free `our_place_in_line`. */
-    coro_fifo_acq_t *our_place_in_line = new coro_fifo_acq_t(&background_write_fifo);
+    coro_fifo_acq_t *our_place_in_line = new coro_fifo_acq_t;
+    our_place_in_line->enter(&background_write_fifo);
     coro_t::spawn_sometime(boost::bind(&dispatchee_t::write_in_background, write, write_ref, keepalive, our_place_in_line));
 }
 
 template<class protocol_t>
-void mirror_dispatcher_t<protocol_t>::dispatchee_t::write_in_background(queued_write_t *write, queued_write_t::ref_t write_ref, auto_drainer_t::lock_t keepalive, coro_fifo_acq_t *our_place_in_line) THROWS_NOTHING {
-    delete spot_in_line;
+void mirror_dispatcher_t<protocol_t>::dispatchee_t::write_in_background(queued_write_t *write, typename queued_write_t::ref_t write_ref, auto_drainer_t::lock_t keepalive, coro_fifo_acq_t *our_place_in_line) THROWS_NOTHING {
+    our_place_in_line->leave();
+    delete our_place_in_line;
     try {
         mirror_data_write(controller->cluster, data,
             write->write, write->timestamp, write->order_token,
@@ -214,7 +210,7 @@ void mirror_dispatcher_t<protocol_t>::dispatchee_t::write_in_background(queued_w
 }
 
 template<class protocol_t>
-void mirror_dispatcher_t<protocol_t>::dispatchee_t::pick_a_readable_dispatchee(dispatchee_t **dispatchee_out, auto_drainer_t::lock_t *lock_out) THROWS_ONLY(insufficient_mirrors_exc_t) {
+void mirror_dispatcher_t<protocol_t>::pick_a_readable_dispatchee(dispatchee_t **dispatchee_out, auto_drainer_t::lock_t *lock_out) THROWS_ONLY(insufficient_mirrors_exc_t) {
 
     ASSERT_FINITE_CORO_WAITING;
 

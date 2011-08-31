@@ -48,7 +48,7 @@ public:
                 "mirrors, or because there aren't any readable mirrors. The "
                 "operation may or may not have been completed.";
         }
-    }
+    };
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t r, order_token_t tok) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t);
 
@@ -137,6 +137,8 @@ private:
         int ref_count;
     };
 
+    typedef typename mirror_dispatcher_metadata_t<protocol_t>::mirror_data_t mirror_data_t;
+
     /* The `registrar_t` constructs a `dispatchee_t` for every mirror that
     connects to us. */
 
@@ -147,12 +149,12 @@ private:
         ~dispatchee_t() THROWS_NOTHING;
         void update(mirror_data_t d) THROWS_NOTHING;
 
-        typename protocol_t::write_response_t writeread(queued_write_t *write, queued_write_t::ref_t write_ref, auto_drainer_t::lock_t keepalive) THROWS_ONLY(mirror_lost_exc_t);
+        typename protocol_t::write_response_t writeread(queued_write_t *write, typename queued_write_t::ref_t write_ref, auto_drainer_t::lock_t keepalive) THROWS_ONLY(mirror_lost_exc_t);
         typename protocol_t::read_response_t read(typename protocol_t::read_t read, order_token_t order_token, auto_drainer_t::lock_t keepalive) THROWS_ONLY(mirror_lost_exc_t);
-        void begin_write_in_background(queued_write_t *write, queued_write_t::ref_t write_ref, auto_drainer_t::lock_t keepalive) THROWS_NOTHING;
+        void begin_write_in_background(queued_write_t *write, typename queued_write_t::ref_t write_ref, auto_drainer_t::lock_t keepalive) THROWS_NOTHING;
 
     private:
-        void write_in_background(queued_write_t *write, queued_write_t::ref_t write_ref, auto_drainer_t::lock_t keepalive, coro_fifo_acq_t *our_place_in_line) THROWS_NOTHING;
+        void write_in_background(queued_write_t *write, typename queued_write_t::ref_t write_ref, auto_drainer_t::lock_t keepalive, coro_fifo_acq_t *our_place_in_line) THROWS_NOTHING;
 
         mirror_dispatcher_t *controller;
 
@@ -178,15 +180,9 @@ private:
 
     metadata_field_readwrite_view_t<
         mirror_dispatcher_metadata_t<protocol_t>,
-        resource_metadata_t<registrar_metadata_t<
-            mirror_metadata_t<protocol_t>::mirror_data_t
-            > >
+        resource_metadata_t<registrar_metadata_t<mirror_data_t> >
         > registrar_view;
-    registrar_t<
-        mirror_metadata_t<protocol_t>::mirror_data_t,
-        mirror_dispatcher_t *,
-        dispatchee_t
-        > registrar;
+    registrar_t<mirror_data_t, mirror_dispatcher_t *, dispatchee_t> registrar;
 };
 
 #include "clustering/mirror_dispatcher.tcc"

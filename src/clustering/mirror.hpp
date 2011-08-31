@@ -1,13 +1,19 @@
 #ifndef __CLUSTERING_MIRROR_HPP__
 #define __CLUSTERING_MIRROR_HPP__
 
+#include "clustering/backfiller.hpp"
 #include "clustering/mirror_metadata.hpp"
+#include "clustering/registrant.hpp"
+#include "concurrency/coro_fifo.hpp"
+#include "rpc/metadata/view/field.hpp"
+#include "rpc/metadata/view/member.hpp"
 
 template<class protocol_t>
 class mirror_t {
 
 private:
-    typedef mirror_dispatcher_metadata_t<protocol_t>::mirror_data_t mirror_data_t;
+    typedef typename mirror_dispatcher_metadata_t<protocol_t>::mirror_data_t mirror_data_t;
+    typedef typename mirror_dispatcher_metadata_t<protocol_t>::mirror_id_t mirror_id_t;
 
 public:
     /* This version of the `mirror_t` constructor is used when we are joining
@@ -31,7 +37,7 @@ public:
             auto_drainer_t::lock_t(&drainer), _1, _2, _3)),
 
         registrar_view(&mirror_dispatcher_metadata_t<protocol_t>::registrar, dispatcher),
-        mirror_map_view(&mirror_dispatcher_metadata_t<protocol_t>::mirror_map, dispatcher),
+        mirror_map_view(&mirror_dispatcher_metadata_t<protocol_t>::mirrors, dispatcher)
     {
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
@@ -95,7 +101,7 @@ public:
             auto_drainer_t::lock_t(&drainer), _1, _2, _3)),
 
         registrar_view(&mirror_dispatcher_metadata_t<protocol_t>::registrar, dispatcher),
-        mirror_map_view(&mirror_dispatcher_metadata_t<protocol_t>::mirror_map, dispatcher),
+        mirror_map_view(&mirror_dispatcher_metadata_t<protocol_t>::mirrors, dispatcher)
     {
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
@@ -139,6 +145,10 @@ public:
         Finally, `drainer`'s destructor is run. It pulses `get_drain_signal()`,
         which interrupts any running queries. Then it blocks until all running
         queries have stopped. */
+    }
+
+    mirror_id_t get_mirror_id() {
+        return mirror_id;
     }
 
 private:
@@ -194,7 +204,7 @@ private:
 
     void on_writeread(auto_drainer_t::lock_t keepalive,
             typename protocol_t::write_t write, repli_timestamp_t ts, order_token_t tok,
-            async_mailbox_t<void(typename protocol_t::write_response_t)>::address_t resp_addr) {
+            typename async_mailbox_t<void(typename protocol_t::write_response_t)>::address_t resp_addr) {
 
         try {
             rassert(backfill_is_done.is_pulsed());
@@ -210,7 +220,7 @@ private:
 
     void on_read(auto_drainer_t::lock_t keepalive,
             typename protocol_t::read_t read, order_token_t tok,
-            async_mailbox_t<void(typename protocol_t::read_response_t)>::address_t resp_addr) {
+            typename async_mailbox_t<void(typename protocol_t::read_response_t)>::address_t resp_addr) {
 
         try {
             rassert(backfill_is_done.is_pulsed());
@@ -241,17 +251,17 @@ private:
     typename mirror_data_t::read_mailbox_t read_mailbox;
 
     metadata_field_read_view_t<
-        branch_metadata_t<protocol_t>,
+        mirror_dispatcher_metadata_t<protocol_t>,
         resource_metadata_t<registrar_metadata_t<mirror_data_t> >
         > registrar_view;
     metadata_field_readwrite_view_t<
-        branch_metadata_t<protocol_t>,
+        mirror_dispatcher_metadata_t<protocol_t>,
         std::map<mirror_id_t, resource_metadata_t<backfiller_metadata_t<protocol_t> > >
         > mirror_map_view;
 
     boost::scoped_ptr<registrant_t<mirror_data_t> > registrant;
 
-    typename branch_metadata_t<protocol_t>::mirror_id_t mirror_id;
+    mirror_id_t mirror_id;
     boost::scoped_ptr<metadata_member_readwrite_view_t<
         mirror_id_t,
         resource_metadata_t<backfiller_metadata_t<protocol_t> >
