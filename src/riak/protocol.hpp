@@ -75,15 +75,11 @@ public:
     static region_t null();
 };
 
+class temporary_cache_t;
+
 class read_t;
+class read_response_t;
 
-class abstract_read_t {
-public:
-    virtual region_t get_region() const = 0;
-    virtual std::vector<read_t> shard(std::vector<region_t> regions) = 0;
-
-    virtual ~abstract_read_t() { };
-};
 
 class point_read_t;
 class point_read_response_t;
@@ -96,7 +92,7 @@ class mapred_read_response_t;
 
 
 /* a point read represents reading a single key from the database */
-class point_read_t : public abstract_read_t {
+class point_read_t {
 private:
     friend class read_enactor_vistor_t;
     std::string key;
@@ -112,14 +108,13 @@ public:
 
 class point_read_response_t {
 public:
-    static point_read_response_t unshard(std::vector<point_read_response_t>);
     point_read_response_t(object_t _result) : result(_result) { }
 private:
     object_t result;
 };
 
 /* bucket read represents reading all of the data from a bucket */
-class bucket_read_t : public abstract_read_t {
+class bucket_read_t {
 private:
     region_t region_limit;
 public:
@@ -128,12 +123,11 @@ public:
 public:
     region_t get_region() const;
     std::vector<read_t> shard(std::vector<region_t>);
+    bucket_read_response_t combine(const bucket_read_response_t &, const bucket_read_response_t &) const;
 };
 
 class bucket_read_response_t {
 public:
-    static bucket_read_response_t unshard(std::vector<bucket_read_response_t>);
-
     bucket_read_response_t() { }
 
     bucket_read_response_t(object_iterator_t obj_it) {
@@ -141,13 +135,17 @@ public:
             keys.push_back(cur->key);
         }
     }
+    bucket_read_response_t(const bucket_read_response_t &x, const bucket_read_response_t &y) {
+        keys.insert(keys.end(), x.keys.begin(), x.keys.end());
+        keys.insert(keys.end(), y.keys.begin(), y.keys.end());
+    }
 private:
     std::vector<std::string> keys;
 };
 
 /* mapred reads read a subset of the data */
 
-class mapred_read_t : public abstract_read_t {
+class mapred_read_t {
 private:
     region_t region;
 public:
@@ -162,6 +160,12 @@ typedef JS::ctx_group_t unshard_ctx_t;
 class mapred_read_response_t {
 public:
     static mapred_read_response_t unshard(std::vector<mapred_read_response_t> response, unshard_ctx_t *);
+    mapred_read_response_t(std::string _json_result)
+        : json_result(_json_result)
+    { }
+    /* mapred_read_response_t(const mapred_read_response_t &, const mapred_read_respone_t &) {
+        crash("Not implemented");
+    } */
 private:
     std::string json_result;
 };
@@ -169,7 +173,7 @@ private:
 typedef boost::variant<point_read_t, bucket_read_t, mapred_read_t> read_variant_t;
 typedef boost::variant<point_read_response_t, bucket_read_response_t, mapred_read_response_t> read_response_variant_t;
 
-class read_t : abstract_read_t {
+class read_t {
 public:
     read_variant_t internal;
 public:
@@ -178,7 +182,8 @@ public:
     read_t(mapred_read_t r) : internal(r) {}
 public:
     region_t get_region() const;
-    std::vector<read_t> shard(std::vector<region_t> regions);
+    std::vector<read_t> shard(std::vector<region_t>);
+    read_response_t unshard(std::vector<read_response_t>);
 };
 
 

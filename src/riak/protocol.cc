@@ -134,15 +134,6 @@ std::vector<read_t> bucket_read_t::shard(std::vector<region_t> regions) {
     return res;
 }
 
-bucket_read_response_t bucket_read_response_t::unshard(std::vector<bucket_read_response_t> responses) {
-    bucket_read_response_t res;
-    for (std::vector<bucket_read_response_t>::iterator it = responses.begin(); it != responses.end(); it++) {
-        res.keys.insert(res.keys.end(), it->keys.begin(), it->keys.end());
-    }
-
-    return res;
-}
-
 region_t mapred_read_t::get_region() const {
     return region;
 }
@@ -180,6 +171,33 @@ struct read_shard_functor : public boost::static_visitor<std::vector<read_t> > {
 std::vector<read_t> read_t::shard(std::vector<region_t> regions) {
     boost::variant<std::vector<region_t> > _regions(regions);
     return boost::apply_visitor(read_shard_functor(), internal, _regions);
+}
+
+struct read_response_unshard_functor : public boost::static_visitor<read_response_t> {
+    read_response_t operator()(const point_read_response_t &, const point_read_response_t &) const { unreachable(); }
+    read_response_t operator()(const point_read_response_t &, const bucket_read_response_t &) const { unreachable(); }
+    read_response_t operator()(const point_read_response_t &, const mapred_read_response_t &) const { unreachable(); }
+    read_response_t operator()(const bucket_read_response_t &, const point_read_response_t &) const { unreachable(); }
+    read_response_t operator()(const bucket_read_response_t &x, const bucket_read_response_t &y) const { return bucket_read_response_t (x, y); }
+    read_response_t operator()(const bucket_read_response_t &, const mapred_read_response_t &) const { unreachable(); }
+    read_response_t operator()(const mapred_read_response_t &, const point_read_response_t &) const { unreachable(); }
+    read_response_t operator()(const mapred_read_response_t &, const bucket_read_response_t &) const { unreachable(); }
+    read_response_t operator()(const mapred_read_response_t &, const mapred_read_response_t &) const { crash("Not implemented"); }
+};
+
+read_response_t read_t::unshard(std::vector<read_response_t> responses) {
+    rassert(!responses.empty());
+    while (responses.size() != 1) {
+        //notice if copy constructors for these read responses are expensive this could become kind of slow
+        read_response_t combined = boost::apply_visitor(read_response_unshard_functor(), responses.rend()->internal, (responses.rend() + 1)->internal);
+
+        responses.pop_back();
+        responses.pop_back();
+
+        responses.push_back(combined);
+    }
+
+    return responses.front();
 }
 
 mapred_read_response_t mapred_read_response_t::unshard(std::vector<mapred_read_response_t>, unshard_ctx_t *) {
