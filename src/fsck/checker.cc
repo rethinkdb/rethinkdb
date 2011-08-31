@@ -506,7 +506,7 @@ bool is_valid_extent(file_knowledge_t *knog, off64_t offset) {
 }
 
 bool is_valid_btree_offset(file_knowledge_t *knog, flagged_off64_t offset) {
-    return offset.has_value() && is_valid_offset(knog, offset.get_value(), knog->static_config->block_size().ser_value());
+    return !offset.has_value() || is_valid_offset(knog, offset.get_value(), knog->static_config->block_size().ser_value());
 }
 
 bool is_valid_device_block(file_knowledge_t *knog, off64_t offset) {
@@ -561,6 +561,7 @@ bool check_lba_extent(nondirect_file_t *file, file_knowledge_t *knog, unsigned i
         } else if (entry.block_id % LBA_SHARD_FACTOR != shard_number) {
             errs->wrong_shard_count++;
         } else if (!is_valid_btree_offset(knog, entry.offset)) {
+            debugf("Bad offset with value %lld\n", (long long)entry.offset.the_value_);
             errs->bad_offset_count++;
         } else {
             write_locker_t locker(knog);
@@ -1287,7 +1288,7 @@ void report_pre_config_block_errors(const check_to_config_block_errors& errs) {
                        : "was specified invalidly");
             } else if (sherr->extent_errors.bad_block_id_count > 0 || sherr->extent_errors.wrong_shard_count > 0 || sherr->extent_errors.bad_offset_count > 0) {
                 printf("ERROR %s lba shard %d had bad lba entries: %d bad block ids, %d in wrong shard, %d with bad offset, of %d total\n",
-                       state, i, sherr->extent_errors.bad_block_id_count, 
+                       state, i, sherr->extent_errors.bad_block_id_count,
                        sherr->extent_errors.wrong_shard_count, sherr->extent_errors.bad_offset_count,
                        sherr->extent_errors.total_count);
             }

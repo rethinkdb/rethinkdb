@@ -11,6 +11,8 @@
 // Contains an off64_t, or a "padding" value, or a "unused" value.  I
 // don't think we really need separate padding and unused values.
 
+// There used to be some flag bits on the value but now there's only
+// one special sentinel value for deletion entries or padding entries.
 union flagged_off64_t {
     off64_t the_value_;
 
