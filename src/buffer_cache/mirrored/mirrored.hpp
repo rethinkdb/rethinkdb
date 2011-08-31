@@ -35,7 +35,7 @@ typedef page_repl_random_t page_repl_t;
 
 class mc_cache_account_t;
 
-// TODO (sam): It should be possible to unload the data of an mc_inner_buf_t from the cache even when
+// TODO: It should be possible to unload the data of an mc_inner_buf_t from the cache even when
 // there are still snapshots of it around - there is no reason why the data shouldn't be able to
 // leave the cache, even if we still need the object around to keep track of snapshots. With the way
 // this is currently set up, this is not possible; unloading an mc_inner_buf_t requires deleting it.
@@ -116,14 +116,14 @@ private:
 
     // The data for the block.
     void *data;
-    // The snapshot version id of the block.  TODO (sam): Figure out exactly how we use this.
+    // The snapshot version id of the block.
     version_id_t version_id;
     /* As long as data has not been changed since the last serializer write, data_token contains a token to the on-serializer block */
     boost::intrusive_ptr<standard_block_token_t> data_token;
 
     // A lock for loading the block.
     rwi_lock_t lock;
-    // A patch counter that belongs to this block.  TODO (sam): Why do we need these?
+    // A patch counter that belongs to this block.
     patch_counter_t next_patch_counter;
 
     // The number of mc_buf_ts that exist for this mc_inner_buf_t.
@@ -134,9 +134,6 @@ private:
 
     // number of references from mc_buf_t buffers, which hold a
     // pointer to the data in read_outdated_ok mode.
-    //
-    // TODO (sam): Presumably cow_refcount <= refcount, prove this is
-    // the case.
     size_t cow_refcount;
 
     // number of references from mc_buf_t buffers which point to the current version of `data` as a
@@ -144,8 +141,7 @@ private:
     size_t snap_refcount;
 
     // This is used to figure out what patches still need to be
-    // applied.  TODO (sam): Why aren't obsolete patches _already_
-    // removed from diff storage?
+    // applied.
     block_sequence_id_t block_sequence_id;
 
     // snapshot types' implementations are internal and deferred to mirrored.cc
@@ -245,7 +241,7 @@ private:
     const bool snapshotted;
 
     // non_locking_access is a hack for the sake of patch_disk_storage.cc. It would be nice if we
-    // could eliminate it.  TODO (sam): Figure out wtf this is.
+    // could eliminate it.
     bool non_locking_access;
 
     // Used for perfmon, measuring how much the patches' serialized
