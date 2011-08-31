@@ -513,7 +513,6 @@ void mc_buf_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access) {
         case rwi_read: {
             if (snapshotted) {
                 rassert(version_to_access == mc_inner_buf_t::faux_version_id || inner_buf->version_id <= version_to_access);
-                // FIXME: need to decrement in deconstructor!
                 ++inner_buf->snap_refcount;
             }
             data = inner_buf->data;
