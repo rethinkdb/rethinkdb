@@ -62,7 +62,7 @@ typename protocol_t::read_response_t mirror_dispatcher_t<protocol_t>::read(typen
 }
 
 template<class protocol_t>
-typename protocol_t::write_response_t mirror_dispatcher_t<protocol_t>::write(typename protocol_t::write_t w, repli_timestamp_t ts, order_token_t tok) {
+typename protocol_t::write_response_t mirror_dispatcher_t<protocol_t>::write(typename protocol_t::write_t w, repli_timestamp_t ts, order_token_t tok) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t); {
 
     /* `write_ref` is to keep `write` from freeing itself before we're done
     with it */
@@ -130,6 +130,8 @@ mirror_dispatcher_t<protocol_t>::dispatchee_t::dispatchee_t(mirror_dispatcher_t 
 {
     ASSERT_FINITE_CORO_WAITING;
 
+    controller->assert_thread();
+
     controller->dispatchees[this] = auto_drainer_t::lock_t(&drainer);
     update(d);
 
@@ -142,12 +144,15 @@ mirror_dispatcher_t<protocol_t>::dispatchee_t::dispatchee_t(mirror_dispatcher_t 
 
 template<class protocol_t>
 mirror_dispatcher_t<protocol_t>::dispatchee_t::~dispatchee_t() THROWS_NOTHING {
+    ASSERT_FINITE_CORO_WAITING;
     if (is_readable) controller->readable_dispatchees.remove(this);
     controller->dispatchees.erase(this);
+    controller->assert_thread();
 }
 
 template<class protocol_t>
 void mirror_dispatcher_t<protocol_t>::dispatchee_t::update(mirror_data_t d) THROWS_NOTHING {
+    ASSERT_FINITE_CORO_WAITING;
     data = d;
     if (is_readable) {
         /* It's illegal to become unreadable after becoming readable */
@@ -171,7 +176,7 @@ typename protocol_t::write_response_t mirror_dispatcher_t<protocol_t>::dispatche
     } catch (interrupted_exc_t) {
         throw mirror_lost_exc_t();
     }
-    /* TODO: Inform `write` that it's safely on a mirror */
+    write->notify_acked();
     return resp;
 }
 
@@ -205,7 +210,7 @@ void mirror_dispatcher_t<protocol_t>::dispatchee_t::write_in_background(queued_w
     } catch (interrupted_exc_t) {
         return;
     }
-    /* TODO: Inform `write` that it's safely on a mirror */
+    write->notify_acked();
 }
 
 template<class protocol_t>

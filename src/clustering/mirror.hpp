@@ -10,6 +10,9 @@ private:
     typedef mirror_dispatcher_metadata_t<protocol_t>::mirror_data_t mirror_data_t;
 
 public:
+    /* This version of the `mirror_t` constructor is used when we are joining
+    an existing branch. */
+
     mirror_t(
             typename protocol_t::store_t *s,
             mailbox_cluster_t *c,
@@ -69,22 +72,53 @@ public:
             }
         }
 
-        /* Start serving backfills */
-        mirror_id = generate_uuid();
-        {
-            /* Make a space for us in the mirror map */
-            std::map<mirror_id_t, resource_metadata_t<backfiller_metadata_t<protocol_t> > > new_mirror;
-            new_mirror[mirror_id] = resource_metadata_t<backfiller_metadata_t<protocol_t> >();
-            mirror_map_view.join(new_mirror);
+        start_serving_backfills();
+    }
+
+    /* This version of the `mirror_t` constructor is used when we are becoming
+    the first mirror of a new branch. */
+
+    mirror_t(
+            typename protocol_t::store_t *s,
+            mailbox_cluster_t *c,
+            metadata_readwrite_view_t<mirror_dispatcher_metadata_t<protocol_t> > *dispatcher,
+            signal_t *interruptor) :
+
+        store(s),
+        cluster(c),
+
+        write_mailbox(cluster, boost::bind(&mirror_t::on_write, this,
+            auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4)),
+        writeread_mailbox(cluster, boost::bind(&mirror_t::on_writeread, this,
+            auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4)),
+        read_mailbox(cluster, boost::bind(&mirror_t::on_read, this,
+            auto_drainer_t::lock_t(&drainer), _1, _2, _3)),
+
+        registrar_view(&mirror_dispatcher_metadata_t<protocol_t>::registrar, dispatcher),
+        mirror_map_view(&mirror_dispatcher_metadata_t<protocol_t>::mirror_map, dispatcher),
+    {
+        if (interruptor->is_pulsed()) throw interrupted_exc_t();
+
+        /* Since we're not doing a backfill, there's no reason for write
+        operations to wait for any amount of time */
+        backfill_is_done.pulse();
+
+        /* Register for writes, writereads, and reads */
+        try {
+            registrant.reset(new registrant_t<mirror_data_t>(
+                cluster,
+                &registrar_view,
+                mirror_data_t(
+                    write_mailbox.get_address(),
+                    writeread_mailbox.get_address(),
+                    read_mailbox.get_address()),
+                interruptor));
+        } catch (resource_lost_exc_t) {
+            /* Ignore the error; we can still meaningfully serve read-outdated
+            queries */
         }
-        /* Set up a view pointing at our space in the mirror map */
-        backfiller_view.reset(new metadata_member_readwrite_view_t<
-            mirror_id_t,
-            resource_metadata_t<backfiller_metadata_t<protocol_t> >
-            >(mirror_id, &mirror_map_view));
-        /* Set up the actual backfiller */
-        backfiller.reset(new backfiller_t<protocol_t>(
-            cluster, store, backfiller_view.get()));
+
+        start_serving_backfills();
     }
 
     ~mirror_t() {
@@ -108,6 +142,34 @@ public:
     }
 
 private:
+    /* `start_serving_backfills()` is called from within the constructors. It
+    only exists to factor out some code shared between the constructors. */
+    void start_serving_backfills() {
+
+        rassert(backfiller_view.get() == NULL);
+        rassert(backfiller.get() == NULL);
+
+        /* Pick a mirror ID */
+        mirror_id = generate_uuid();
+
+        {
+            /* Make a space for us in the mirror map */
+            std::map<mirror_id_t, resource_metadata_t<backfiller_metadata_t<protocol_t> > > new_mirror;
+            new_mirror[mirror_id] = resource_metadata_t<backfiller_metadata_t<protocol_t> >();
+            mirror_map_view.join(new_mirror);
+        }
+
+        /* Set up a view pointing at our space in the mirror map */
+        backfiller_view.reset(new metadata_member_readwrite_view_t<
+            mirror_id_t,
+            resource_metadata_t<backfiller_metadata_t<protocol_t> >
+            >(mirror_id, &mirror_map_view));
+
+        /* Set up the actual backfiller */
+        backfiller.reset(new backfiller_t<protocol_t>(
+            cluster, store, backfiller_view.get()));
+    }
+
     void on_write(auto_drainer_t::lock_t keepalive,
             typename protocol_t::write_t write, repli_timestamp_t ts, order_token_t tok,
             async_mailbox_t<void()>::address_t ack_addr) {
