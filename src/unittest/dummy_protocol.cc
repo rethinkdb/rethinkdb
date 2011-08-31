@@ -46,7 +46,7 @@ std::vector<dummy_protocol_t::read_t> dummy_protocol_t::read_t::shard(std::vecto
     return results;
 }
 
-dummy_protocol_t::read_response_t dummy_protocol_t::read_t::unshard(std::vector<read_response_t> resps, temporary_cache_t *cache) {
+dummy_protocol_t::read_response_t dummy_protocol_t::read_t::unshard(std::vector<read_response_t> resps, UNUSED temporary_cache_t *cache) {
     rassert(cache != NULL);
     read_response_t combined;
     for (int i = 0; i < (int)resps.size(); i++) {
@@ -84,7 +84,7 @@ std::vector<dummy_protocol_t::write_t> dummy_protocol_t::write_t::shard(std::vec
     return results;
 }
 
-dummy_protocol_t::write_response_t dummy_protocol_t::write_t::unshard(std::vector<write_response_t> resps, temporary_cache_t *cache) {
+dummy_protocol_t::write_response_t dummy_protocol_t::write_t::unshard(std::vector<write_response_t> resps, UNUSED temporary_cache_t *cache) {
     rassert(cache != NULL);
     write_response_t combined;
     for (int i = 0; i < (int)resps.size(); i++) {
