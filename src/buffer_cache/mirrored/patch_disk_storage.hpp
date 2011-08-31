@@ -84,7 +84,6 @@ private:
 
     unsigned int waiting_for_clear;
 
-    // TODO: A reference?  This can confuse readers.
     mc_cache_t *cache;
     block_id_t first_block;
     block_id_t number_of_blocks;
