@@ -221,7 +221,6 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, void *_buf
 
     replay_patches();
 
-    // TODO (sam): Look at this.
     // TODO (rntz): This should initialize data_token at some point. That however requires switching
     // to the serializer thread and we cannot afford that here, except if we lock. Maybe read ahead
     // should pass the token through to here.
