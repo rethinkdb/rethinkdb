@@ -79,7 +79,7 @@ class read_t;
 
 class abstract_read_t {
 public:
-    virtual region_t get_region() = 0;
+    virtual region_t get_region() const = 0;
     virtual std::vector<read_t> shard(std::vector<region_t> regions) = 0;
 
     virtual ~abstract_read_t() { };
@@ -106,7 +106,7 @@ public:
     point_read_t(std::string);
     point_read_t(std::string, std::pair<int, int>);
 public:
-    region_t get_region();
+    region_t get_region() const;
     std::vector<read_t> shard(std::vector<region_t>);
 };
 
@@ -126,7 +126,7 @@ public:
     bucket_read_t() : region_limit(region_t::universe()) { crash("Not implemented"); }
     bucket_read_t(region_t _region_limit) : region_limit(_region_limit) { crash("Not implemented"); }
 public:
-    region_t get_region();
+    region_t get_region() const;
     std::vector<read_t> shard(std::vector<region_t>);
 };
 
@@ -153,7 +153,7 @@ private:
 public:
     mapred_read_t(region_t _region) : region(_region) {}
 public:
-    region_t get_region();
+    region_t get_region() const;
     std::vector<read_t> shard(std::vector<region_t> regions);
 };
 
@@ -169,13 +169,16 @@ private:
 typedef boost::variant<point_read_t, bucket_read_t, mapred_read_t> read_variant_t;
 typedef boost::variant<point_read_response_t, bucket_read_response_t, mapred_read_response_t> read_response_variant_t;
 
-class read_t {
+class read_t : abstract_read_t {
 public:
-    read_variant_t _internal;
+    read_variant_t internal;
 public:
-    read_t(point_read_t r) : _internal(r) {}
-    read_t(bucket_read_t r) : _internal(r) {}
-    read_t(mapred_read_t r) : _internal(r) {}
+    read_t(point_read_t r) : internal(r) {}
+    read_t(bucket_read_t r) : internal(r) {}
+    read_t(mapred_read_t r) : internal(r) {}
+public:
+    region_t get_region() const;
+    std::vector<read_t> shard(std::vector<region_t> regions);
 };
 
 

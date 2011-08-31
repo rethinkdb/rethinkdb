@@ -104,7 +104,7 @@ point_read_t::point_read_t(std::string _key, std::pair<int, int> _range)
     : key(_key), range(_range)
 { }
 
-region_t point_read_t::get_region() {
+region_t point_read_t::get_region() const {
     region_t::finite_t set;
     set.insert(key);
     return region_t(set);
@@ -120,7 +120,7 @@ std::vector<read_t> point_read_t::shard(std::vector<region_t> regions) {
     return res;
 }
 
-region_t bucket_read_t::get_region() {
+region_t bucket_read_t::get_region() const {
     return region_limit;
 }
 
@@ -143,7 +143,7 @@ bucket_read_response_t bucket_read_response_t::unshard(std::vector<bucket_read_r
     return res;
 }
 
-region_t mapred_read_t::get_region() {
+region_t mapred_read_t::get_region() const {
     return region;
 }
 
@@ -153,6 +153,33 @@ std::vector<read_t> mapred_read_t::shard(std::vector<region_t> regions) {
         res.push_back(read_t(mapred_read_t(it->intersection(region))));
     }
     return res;
+}
+
+struct read_get_region_functor : public boost::static_visitor<region_t> {
+    region_t operator()(const point_read_t &read) const { return read.get_region(); }
+    region_t operator()(const bucket_read_t &read) const { return read.get_region(); }
+    region_t operator()(const mapred_read_t &read) const { return read.get_region(); }
+};
+
+region_t read_t::get_region() const {
+    return boost::apply_visitor(read_get_region_functor(), internal);
+}
+
+struct read_shard_functor : public boost::static_visitor<std::vector<read_t> > {
+    std::vector<read_t>  operator()(point_read_t read, std::vector<region_t> regions) const { 
+        return read.shard(regions); 
+    }
+    std::vector<read_t>  operator()(bucket_read_t read, std::vector<region_t> regions) const {
+        return read.shard(regions); 
+    }
+    std::vector<read_t>  operator()(mapred_read_t read, std::vector<region_t> regions) const {
+        return read.shard(regions); 
+    }
+};
+
+std::vector<read_t> read_t::shard(std::vector<region_t> regions) {
+    boost::variant<std::vector<region_t> > _regions(regions);
+    return boost::apply_visitor(read_shard_functor(), internal, _regions);
 }
 
 mapred_read_response_t mapred_read_response_t::unshard(std::vector<mapred_read_response_t>, unshard_ctx_t *) {
