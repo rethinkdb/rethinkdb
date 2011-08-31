@@ -78,6 +78,10 @@ private:
                 if (parent) parent->decref();
                 parent = r->parent;
             }
+            queued_write_t *get() {
+                rassert(parent);
+                return parent;
+            }
             ~ref_t() {
                 if (parent) parent->decref();
             }
@@ -85,21 +89,12 @@ private:
             queued_write_t *parent;
         };
 
-        queued_write_t(intrusive_list_t<queued_write_t> *q, ref_t *first_ref_out,
+        static ref_t spawn(intrusive_list_t<queued_write_t> *q,
                 typename protocol_t::write_t w, repli_timestamp_t ts, order_token_t otok,
-                int target_ack_count_, promise_t<bool> *done_promise_) :
-            queue(q), write(w), timestamp(ts), order_token(otok),
-            ack_count(0), target_ack_count(target_ack_count_), done_promise(done_promise_),
-            ref_count(0)
-        {
+                int target_ack_count, promise_t<bool> *done_promise) THROWS_NOTHING {
             ASSERT_FINITE_CORO_WAITING;
-            queue->push_back(this);
-            *first_ref_out = ref_t(this);
-        }
-
-        ~queued_write_t() {
-            queue->remove(this);
-            if (done_promise) done_promise->pulse(false);
+            queued_write_t *write = new queued_write_t(q, w, ts, otok, target_ack_count, done_promise);
+            return ref_t(write);
         }
 
         void notify_acked() {
@@ -115,6 +110,22 @@ private:
         order_token_t order_token;
 
     private:
+        queued_write_t(intrusive_list_t<queued_write_t> *q,
+                typename protocol_t::write_t w, repli_timestamp_t ts, order_token_t otok,
+                int target_ack_count_, promise_t<bool> *done_promise_) :
+            write(w), timestamp(ts), order_token(otok),
+            queue(q), ref_count(0),
+            ack_count(0), target_ack_count(target_ack_count_), done_promise(done_promise_)
+        {
+            ASSERT_FINITE_CORO_WAITING;
+            queue->push_back(this);
+        }
+
+        ~queued_write_t() {
+            queue->remove(this);
+            if (done_promise) done_promise->pulse(false);
+        }
+
         void incref() {
             assert_thread();
             ref_count++;
@@ -128,13 +139,13 @@ private:
 
         intrusive_list_t<queued_write_t> *queue;
 
-        int ack_count, target_ack_count;
-        promise_t<bool> *done_promise;
-
         /* While `ref_count` is greater than zero, the write must remain in the
         `write_queue` so that any new mirrors that come up will be sure to get
         it. */
         int ref_count;
+
+        int ack_count, target_ack_count;
+        promise_t<bool> *done_promise;
     };
 
     typedef typename mirror_dispatcher_metadata_t<protocol_t>::mirror_data_t mirror_data_t;
@@ -149,12 +160,12 @@ private:
         ~dispatchee_t() THROWS_NOTHING;
         void update(mirror_data_t d) THROWS_NOTHING;
 
-        typename protocol_t::write_response_t writeread(queued_write_t *write, typename queued_write_t::ref_t write_ref, auto_drainer_t::lock_t keepalive) THROWS_ONLY(mirror_lost_exc_t);
+        typename protocol_t::write_response_t writeread(typename queued_write_t::ref_t write_ref, auto_drainer_t::lock_t keepalive) THROWS_ONLY(mirror_lost_exc_t);
         typename protocol_t::read_response_t read(typename protocol_t::read_t read, order_token_t order_token, auto_drainer_t::lock_t keepalive) THROWS_ONLY(mirror_lost_exc_t);
-        void begin_write_in_background(queued_write_t *write, typename queued_write_t::ref_t write_ref, auto_drainer_t::lock_t keepalive) THROWS_NOTHING;
+        void begin_write_in_background(typename queued_write_t::ref_t write_ref, auto_drainer_t::lock_t keepalive) THROWS_NOTHING;
 
     private:
-        void write_in_background(queued_write_t *write, typename queued_write_t::ref_t write_ref, auto_drainer_t::lock_t keepalive, coro_fifo_acq_t *our_place_in_line) THROWS_NOTHING;
+        void write_in_background(typename queued_write_t::ref_t write_ref, auto_drainer_t::lock_t keepalive, coro_fifo_acq_t *our_place_in_line) THROWS_NOTHING;
 
         mirror_dispatcher_t *controller;
 

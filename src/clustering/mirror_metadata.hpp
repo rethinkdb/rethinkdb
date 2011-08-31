@@ -7,8 +7,10 @@
 #include "concurrency/fifo_checker.hpp"
 #include "errors.hpp"
 #include "rpc/mailbox/typed.hpp"
+#include "rpc/metadata/semilattice/map.hpp"
 
 #include <boost/uuid/uuid.hpp>
+#include <boost/serialization/map.hpp>
 
 /* `mirror_dispatcher_metadata_t` is the metadata that the master exposes to the
 mirrors. */
@@ -36,7 +38,7 @@ public:
         typename write_mailbox_t::address_t write_mailbox;
 
         typedef async_mailbox_t<void(
-            typename protocol_t::write_t, order_token_t,
+            typename protocol_t::write_t, repli_timestamp_t, order_token_t,
             typename async_mailbox_t<void(typename protocol_t::write_response_t)>::address_t
             )> writeread_mailbox_t;
         typename writeread_mailbox_t::address_t writeread_mailbox;
@@ -52,9 +54,19 @@ public:
             write_mailbox(wm) { }
         mirror_data_t(const typename write_mailbox_t::address_t &wm, const typename writeread_mailbox_t::address_t &wrm, const typename read_mailbox_t::address_t &rm) :
             write_mailbox(wm), writeread_mailbox(wrm), read_mailbox(rm) { }
+
+        RDB_MAKE_ME_SERIALIZABLE_3(write_mailbox, writeread_mailbox, read_mailbox);
     };
 
     resource_metadata_t<registrar_metadata_t<mirror_data_t> > registrar;
+
+    RDB_MAKE_ME_SERIALIZABLE_2(mirrors, registrar);
 };
+
+template<class protocol_t>
+void semilattice_join(mirror_dispatcher_metadata_t<protocol_t> *a, const mirror_dispatcher_metadata_t<protocol_t> &b) {
+    semilattice_join(&a->mirrors, b.mirrors);
+    semilattice_join(&a->registrar, b.registrar);
+}
 
 #endif /* __CLUSTERING_MIRROR_METADATA_HPP__ */

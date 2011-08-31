@@ -23,8 +23,8 @@ template<class protocol_t>
 typename protocol_t::write_response_t mirror_data_writeread(mailbox_cluster_t *cluster, const typename mirror_dispatcher_metadata_t<protocol_t>::mirror_data_t &mirror, typename protocol_t::write_t w, repli_timestamp_t ts, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
 
     promise_t<typename protocol_t::write_response_t> resp_cond;
-    async_mailbox_t<void(typename protocol_t::response_t)> resp_mailbox(
-        cluster, boost::bind(&promise_t<typename protocol_t::write_response_t>::pulse, &resp_cond));
+    async_mailbox_t<void(typename protocol_t::write_response_t)> resp_mailbox(
+        cluster, boost::bind(&promise_t<typename protocol_t::write_response_t>::pulse, &resp_cond, _1));
 
     send(cluster, mirror.writeread_mailbox,
         w, ts, tok, resp_mailbox.get_address());
@@ -33,15 +33,15 @@ typename protocol_t::write_response_t mirror_data_writeread(mailbox_cluster_t *c
     waiter.wait_lazily_unordered();
 
     if (interruptor->is_pulsed()) throw interrupted_exc_t();
-    return resp_cond.get();
+    return resp_cond.get_value();
 }
 
 template<class protocol_t>
-typename protocol_t::read_response_t read(mailbox_cluster_t *cluster, const typename mirror_dispatcher_metadata_t<protocol_t>::mirror_data_t &mirror, typename protocol_t::read_t r, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+typename protocol_t::read_response_t mirror_data_read(mailbox_cluster_t *cluster, const typename mirror_dispatcher_metadata_t<protocol_t>::mirror_data_t &mirror, typename protocol_t::read_t r, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
 
     promise_t<typename protocol_t::read_response_t> resp_cond;
-    async_mailbox_t<void(typename protocol_t::response_t)> resp_mailbox(
-        cluster, boost::bind(&promise_t<typename protocol_t::read_response_t>::pulse, &resp_cond));
+    async_mailbox_t<void(typename protocol_t::read_response_t)> resp_mailbox(
+        cluster, boost::bind(&promise_t<typename protocol_t::read_response_t>::pulse, &resp_cond, _1));
 
     send(cluster, mirror.read_mailbox,
         r, tok, resp_mailbox.get_address());
@@ -50,7 +50,7 @@ typename protocol_t::read_response_t read(mailbox_cluster_t *cluster, const type
     waiter.wait_lazily_unordered();
 
     if (interruptor->is_pulsed()) throw interrupted_exc_t();
-    return resp_cond.get();
+    return resp_cond.get_value();
 }
 
 template<class protocol_t>
@@ -65,52 +65,43 @@ typename protocol_t::read_response_t mirror_dispatcher_t<protocol_t>::read(typen
 template<class protocol_t>
 typename protocol_t::write_response_t mirror_dispatcher_t<protocol_t>::write(typename protocol_t::write_t w, repli_timestamp_t ts, order_token_t tok) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t) {
 
-    /* `write_ref` is to keep `write` from freeing itself before we're done
-    with it */
-    typename queued_write_t::ref_t write_ref;
-    queued_write_t *write;
-
-    dispatchee_t *writereader;
-    auto_drainer_t::lock_t writereader_lock;
-
     /* TODO: Make `target_ack_count` configurable */
     int target_ack_count = 1;
     promise_t<bool> done_promise;
 
+    typename protocol_t::write_response_t resp;
+
     {
-        /* We want to make sure that we send the write to every dispatchee
-        and put it into the write queue atomically, so that every dispatchee
-        either gets it directly or gets it off the write queue. Putting a
-        critical section here makes sure that everything but the call to
-        `writeread()` gets done atomically. Unfortunately, there's nothing
-        we can do to enforce that nothing else happens between the insertion
-        into `write_queue` and the call to `writeread`. */
-        ASSERT_FINITE_CORO_WAITING;
+        /* We must put the write on the queue and dispatch it to every
+        dispatchee atomically, so that no new dispatchee is created between when
+        we put it on the queue and when we send it to the dispatchees. Nothing
+        in this scope is supposed to block except for the final call to
+        `writeread()`. */
 
+        /* `write_ref` is to keep the write from freeing itself before we're
+        done with it. We put it in an inner scope so that we don't hold onto it
+        any longer than we need to. */
+        typename queued_write_t::ref_t write_ref =
+            queued_write_t::spawn(&write_queue,
+                w, ts, tok,
+                target_ack_count, &done_promise);
+
+        dispatchee_t *writereader;
+        auto_drainer_t::lock_t writereader_lock;
         pick_a_readable_dispatchee(&writereader, &writereader_lock);
-
-        write = new queued_write_t(
-            &write_queue, &write_ref,
-            w, ts, tok,
-            target_ack_count, &done_promise);
 
         for (typename std::map<dispatchee_t *, auto_drainer_t::lock_t>::iterator it = dispatchees.begin();
                 it != dispatchees.end(); it++) {
             dispatchee_t *writer = (*it).first;
             auto_drainer_t::lock_t writer_lock = (*it).second;
-            /* Make sure not to send a duplicate operation to `writereader`
-            */
+            /* Make sure not to send a duplicate operation to `writereader` */
             if (writer != writereader) {
-                writer->begin_write_in_background(write, queued_write_t::ref_t(write), writer_lock);
+                writer->begin_write_in_background(write_ref, writer_lock);
             }
         }
+
+        resp = writereader->writeread(write_ref, writereader_lock);
     }
-
-    typename protocol_t::write_response_t resp = writereader->writeread(write, queued_write_t::ref_t(write), writereader_lock);
-
-    /* Release our reference to `write` so that it can go away if everything
-    else is done with it too. */
-    write_ref = queued_write_t::ref_t();
 
     bool success = done_promise.wait();
     if (!success) throw insufficient_mirrors_exc_t();
@@ -131,7 +122,8 @@ mirror_dispatcher_t<protocol_t>::dispatchee_t::dispatchee_t(mirror_dispatcher_t 
 
     for (queued_write_t *write = controller->write_queue.tail();
             write; write = controller->write_queue.next(write)) {
-        begin_write_in_background(write, queued_write_t::ref_t(write),
+        begin_write_in_background(
+            typename queued_write_t::ref_t(write),
             auto_drainer_t::lock_t(&drainer));
     }
 }
@@ -161,23 +153,25 @@ void mirror_dispatcher_t<protocol_t>::dispatchee_t::update(mirror_data_t d) THRO
 }
 
 template<class protocol_t>
-typename protocol_t::write_response_t mirror_dispatcher_t<protocol_t>::dispatchee_t::writeread(queued_write_t *write, typename queued_write_t::ref_t write_ref, auto_drainer_t::lock_t keepalive) THROWS_ONLY(mirror_lost_exc_t) {
+typename protocol_t::write_response_t mirror_dispatcher_t<protocol_t>::dispatchee_t::writeread(typename queued_write_t::ref_t write_ref, auto_drainer_t::lock_t keepalive) THROWS_ONLY(mirror_lost_exc_t) {
+    keepalive.assert_is_holding(&drainer);
     typename protocol_t::write_response_t resp;
     try {
-        resp = mirror_data_writeread(controller->cluster, data,
-            write->write, write->timestamp, write->order_token,
+        resp = mirror_data_writeread<protocol_t>(controller->cluster, data,
+            write_ref.get()->write, write_ref.get()->timestamp, write_ref.get()->order_token,
             keepalive.get_drain_signal());
     } catch (interrupted_exc_t) {
         throw mirror_lost_exc_t();
     }
-    write->notify_acked();
+    write_ref.get()->notify_acked();
     return resp;
 }
 
 template<class protocol_t>
 typename protocol_t::read_response_t mirror_dispatcher_t<protocol_t>::dispatchee_t::read(typename protocol_t::read_t read, order_token_t order_token, auto_drainer_t::lock_t keepalive) THROWS_ONLY(mirror_lost_exc_t) {
+    keepalive.assert_is_holding(&drainer);
     try {
-        return mirror_data_read(controller->cluster, data,
+        return mirror_data_read<protocol_t>(controller->cluster, data,
             read, order_token,
             keepalive.get_drain_signal());
     } catch (interrupted_exc_t) {
@@ -186,27 +180,28 @@ typename protocol_t::read_response_t mirror_dispatcher_t<protocol_t>::dispatchee
 }
 
 template<class protocol_t>
-void mirror_dispatcher_t<protocol_t>::dispatchee_t::begin_write_in_background(queued_write_t *write, typename queued_write_t::ref_t write_ref, auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
+void mirror_dispatcher_t<protocol_t>::dispatchee_t::begin_write_in_background(typename queued_write_t::ref_t write_ref, auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
+    keepalive.assert_is_holding(&drainer);
     /* It's safe to allocate this directly on the heap because
     `coro_t::spawn_sometime()` should always succeed, and
     `write_in_background()` will free `our_place_in_line`. */
     coro_fifo_acq_t *our_place_in_line = new coro_fifo_acq_t;
     our_place_in_line->enter(&background_write_fifo);
-    coro_t::spawn_sometime(boost::bind(&dispatchee_t::write_in_background, write, write_ref, keepalive, our_place_in_line));
+    coro_t::spawn_sometime(boost::bind(&dispatchee_t::write_in_background, this, write_ref, keepalive, our_place_in_line));
 }
 
 template<class protocol_t>
-void mirror_dispatcher_t<protocol_t>::dispatchee_t::write_in_background(queued_write_t *write, typename queued_write_t::ref_t write_ref, auto_drainer_t::lock_t keepalive, coro_fifo_acq_t *our_place_in_line) THROWS_NOTHING {
+void mirror_dispatcher_t<protocol_t>::dispatchee_t::write_in_background(typename queued_write_t::ref_t write_ref, auto_drainer_t::lock_t keepalive, coro_fifo_acq_t *our_place_in_line) THROWS_NOTHING {
     our_place_in_line->leave();
     delete our_place_in_line;
     try {
-        mirror_data_write(controller->cluster, data,
-            write->write, write->timestamp, write->order_token,
+        mirror_data_write<protocol_t>(controller->cluster, data,
+            write_ref.get()->write, write_ref.get()->timestamp, write_ref.get()->order_token,
             keepalive.get_drain_signal());
     } catch (interrupted_exc_t) {
         return;
     }
-    write->notify_acked();
+    write_ref.get()->notify_acked();
 }
 
 template<class protocol_t>

@@ -8,6 +8,9 @@
 #include "rpc/metadata/view/field.hpp"
 #include "rpc/metadata/view/member.hpp"
 
+/* TODO: Filter out writes that we got both via a backfill and from the master.
+*/
+
 template<class protocol_t>
 class mirror_t {
 
@@ -187,9 +190,11 @@ private:
         try {
             {
                 /* Wait until writes are allowed */
-                coro_fifo_acq_t order_preserver(&operation_order_manager);
+                coro_fifo_acq_t order_preserver;
+                order_preserver.enter(&operation_order_manager);
                 wait_any_t waiter(&backfill_is_done, keepalive.get_drain_signal());
                 waiter.wait_lazily_unordered();
+                order_preserver.leave();
             }
             if (keepalive.get_drain_signal()->is_pulsed()) throw interrupted_exc_t();
 
