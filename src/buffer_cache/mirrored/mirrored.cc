@@ -25,8 +25,6 @@ perfmon_persistent_counter_t pm_cache_hits("cache_hits"), pm_cache_misses("cache
 // get_data() returns or get_data_if_available() returns non-NULL, get_data_if_available() will
 // return the same (non-NULL) value.
 
-// TODO (sam): What is a buf_snapshot_t, really?
-
 // TODO (rntz): it should be possible for us to cause snapshots which were not cow-referenced to be
 // flushed to disk during writeback, sans block id, to allow them to be unloaded if necessary.
 class mc_inner_buf_t::buf_snapshot_t : private evictable_t, public intrusive_list_node_t<mc_inner_buf_t::buf_snapshot_t> {
@@ -113,9 +111,7 @@ private:
 
     mutable mutex_t data_mutex;
 
-    // The buffer of the snapshot we hold.  TODO (sam): We own this
-    // buffer but the mc_inner_buf_t does too?  Uh...  Also add
-    // testing for this problem.
+    // The buffer of the snapshot we hold.
     void *data;
 
     // Our block token to the serializer.
@@ -186,7 +182,6 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, bool _shou
         coro_t::spawn_now(boost::bind(&mc_inner_buf_t::load_inner_buf, this, true, _io_account));
     }
 
-    // TODO (sam): Figure out wtf this todo is talking about.
     // TODO: only increment pm_n_blocks_in_memory when we actually load the block into memory.
     pm_n_blocks_in_memory++;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
@@ -368,8 +363,6 @@ bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version) {
             // That in turn means that we have to acquire the data now, before we can proceed...
             data = cache->serializer->malloc();
 
-            // TODO (sam): "Hopefully"?
-
             // Our callee (hopefully!!!) already has a lock at this point, so there's no need
             // to acquire another one inside of load_inner_buf (and of course it would dead-lock).
             load_inner_buf(false, cache->reads_io_account.get());
@@ -390,9 +383,6 @@ bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version) {
     // Initially actively referencing the snapshotted buf are mc_buf_t's in rwi_read_outdated_ok
     // mode, corresponding to cow_refcount; and mc_buf_t's in snapshotted rwi_read mode, indicated
     // by snap_refcount.
-
-    // TODO (sam): Now buf_snapshot_t owns this inner buf's data field
-    // and will free it!
 
     buf_snapshot_t *snap = new buf_snapshot_t(this, version_id, num_snapshots_affected, cow_refcount + snap_refcount, data, data_token);
     cow_refcount = 0;
@@ -593,9 +583,6 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
         } else {
             // Store the patch if the buffer does not have to be flushed anyway
             if (patch->get_patch_counter() == 1) {
-                // TODO (sam): This line makes me uncomfortable.  Why
-                // are there patches that need to be cleaned up?
-
                 // Clean up any left-over patches
                 inner_buf->cache->patch_memory_storage.drop_patches(inner_buf->block_id);
             }
