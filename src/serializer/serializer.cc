@@ -53,9 +53,8 @@ serializer_t::write_t serializer_t::write_t::make_update(
     return write_t(block_id, update);
 }
 
-serializer_t::write_t serializer_t::write_t::make_delete(block_id_t block_id, bool write_zero_block) {
+serializer_t::write_t serializer_t::write_t::make_delete(block_id_t block_id) {
     delete_t del;
-    del.write_zero_block = write_zero_block;
     return write_t(block_id, del);
 }
 
@@ -72,30 +71,23 @@ struct write_cond_t : public cond_t, public iocallback_t {
 struct write_performer_t : public boost::static_visitor<void> {
     serializer_t *serializer;
     file_account_t *io_account;
-    void *zerobuf;
     std::vector<write_cond_t*> *block_write_conds;
     index_write_op_t *op;
-    write_performer_t(serializer_t *ser, file_account_t *acct, void *_zerobuf,
+    write_performer_t(serializer_t *ser, file_account_t *acct,
                       std::vector<write_cond_t*> *conds, index_write_op_t *_op)
-        : serializer(ser), io_account(acct), zerobuf(_zerobuf), block_write_conds(conds), op(_op) {}
+        : serializer(ser), io_account(acct), block_write_conds(conds), op(_op) {}
 
     void operator()(const serializer_t::write_t::update_t &update) {
         block_write_conds->push_back(new write_cond_t(update.io_callback));
         op->token = serializer->block_write(update.buf, op->block_id, io_account, block_write_conds->back());
         if (update.launch_callback)
             update.launch_callback->on_write_launched(op->token.get());
-        op->delete_bit = false;
         op->recency = update.recency;
     }
 
-    void operator()(const serializer_t::write_t::delete_t &del) {
+    void operator()(UNUSED const serializer_t::write_t::delete_t &del) {
         op->token = boost::intrusive_ptr<standard_block_token_t>();
-        op->delete_bit = true;
         op->recency = repli_timestamp_t::invalid;
-        if (del.write_zero_block) {
-            block_write_conds->push_back(new write_cond_t(NULL));
-            op->token = serializer->block_write(zerobuf, op->block_id, io_account, block_write_conds->back());
-        }
     }
 
     void operator()(const serializer_t::write_t::touch_t &touch) {
@@ -109,16 +101,11 @@ void serializer_t::do_write(const std::vector<write_t>& writes, file_account_t *
     block_write_conds.reserve(writes.size());
     index_write_ops.reserve(writes.size());
 
-    // Prepare a zero buf for deletions.
-    void *zerobuf = malloc();
-    bzero(zerobuf, get_block_size().value());
-    memcpy(zerobuf, "zero", 4); // TODO: This constant should be part of the serializer implementation or something like that or we should get rid of zero blocks completely...
-
     // Step 1: Write buffers to disk and assemble index operations
     for (size_t i = 0; i < writes.size(); ++i) {
         const serializer_t::write_t& write = writes[i];
         index_write_op_t op(write.block_id);
-        write_performer_t performer(this, io_account, zerobuf, &block_write_conds, &op);
+        write_performer_t performer(this, io_account, &block_write_conds, &op);
         boost::apply_visitor(performer, write.action);
         index_write_ops.push_back(op);
     }
@@ -129,7 +116,6 @@ void serializer_t::do_write(const std::vector<write_t>& writes, file_account_t *
         delete block_write_conds[i];
     }
     block_write_conds.clear();
-    free(zerobuf);
 
     // Step 3: Commit the transaction to the serializer
     index_write(index_write_ops, io_account);

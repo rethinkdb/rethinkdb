@@ -163,6 +163,9 @@ inline void get_btree_superblock(btree_slice_t *slice, access_t access, int expe
 
     slice->pre_begin_transaction_sink_.check_out(token);
     order_token_t begin_transaction_token = (is_read_mode(access) ? slice->pre_begin_transaction_read_mode_source_ : slice->pre_begin_transaction_write_mode_source_).check_in(token.tag() + "+begin_transaction_token");
+    if (is_read_mode(access)) {
+        begin_transaction_token = begin_transaction_token.with_read_mode();
+    }
     got_superblock_out->txn.reset(new transaction_t(slice->cache(), access, expected_change_count, tstamp));
     got_superblock_out->txn->set_token(slice->post_begin_transaction_checkpoint_.check_through(begin_transaction_token));
 
@@ -335,23 +338,22 @@ value_txn_t<Value>::value_txn_t(btree_key_t *_key,
 }
 
 template <class Value>
-value_txn_t<Value>::~value_txn_t() {
-    apply_keyvalue_change(&kv_location, key, tstamp, false);
-}
-
-// TODO: WTF is this, you can't copy a value_txn_t.
-template <class Value>
-value_txn_t<Value> get_value_write(btree_slice_t *slice, btree_key_t *key, const repli_timestamp_t tstamp, const order_token_t token) {
+value_txn_t<Value>::value_txn_t(btree_slice_t *slice, btree_key_t *_key, const repli_timestamp_t _tstamp, const order_token_t token) 
+    : key(_key), tstamp(_tstamp)
+{
     got_superblock_t can_haz_superblock;
 
     get_btree_superblock(slice, rwi_write, 1, tstamp, token, &can_haz_superblock);
 
-    keyvalue_location_t<Value> kv_location;
-    find_keyvalue_location_for_write(&can_haz_superblock, key, &kv_location);
+    keyvalue_location_t<Value> _kv_location;
+    find_keyvalue_location_for_write(&can_haz_superblock, key, &_kv_location);
 
-    value_txn_t<Value> value_txn(key, kv_location, tstamp);
+    kv_location.swap(_kv_location);
+}
 
-    return value_txn;
+template <class Value>
+value_txn_t<Value>::~value_txn_t() {
+    apply_keyvalue_change(&kv_location, key, tstamp, false);
 }
 
 template <class Value>

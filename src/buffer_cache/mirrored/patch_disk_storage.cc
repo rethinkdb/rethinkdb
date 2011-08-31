@@ -7,6 +7,8 @@
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "serializer/serializer.hpp"
 
+const block_magic_t log_block_magic = { { 'l', 'o', 'g', 'b' } };
+
 const block_magic_t mc_config_block_t::expected_magic = { { 'm','c','f','g' } };
 
 void patch_disk_storage_t::create(serializer_t *serializer, block_id_t start_id, mirrored_cache_static_config_t *config) {
@@ -23,7 +25,6 @@ void patch_disk_storage_t::create(serializer_t *serializer, block_id_t start_id,
     index_write_op_t op(start_id);
     op.token = serializer->block_write(c, start_id, DEFAULT_DISK_ACCOUNT);
     op.recency = repli_timestamp_t::invalid;
-    op.delete_bit = false;
     serializer_index_write(serializer, op, DEFAULT_DISK_ACCOUNT);
 
     serializer->free(c);
@@ -97,7 +98,7 @@ patch_disk_storage_t::patch_disk_storage_t(mc_cache_t *_cache, block_id_t start_
             // Check that this is a valid log block
             mc_buf_t *log_buf = log_block_bufs[current_block - first_block];
             const void *buf_data = log_buf->get_data_read();
-            guarantee(strncmp(reinterpret_cast<const char *>(buf_data), LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0);
+            guarantee(*reinterpret_cast<const block_magic_t *>(buf_data) == log_block_magic);
         }
     }
     rassert(log_block_bufs.size() == number_of_blocks);
@@ -124,10 +125,10 @@ void patch_disk_storage_t::load_patches(patch_memory_storage_t &in_memory_storag
     for (block_id_t current_block = first_block; current_block < first_block + number_of_blocks; ++current_block) {
         mc_buf_t *log_buf = log_block_bufs[current_block - first_block];
         const void *buf_data = log_buf->get_data_read();
-        guarantee(strncmp(reinterpret_cast<const char *>(buf_data), LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0);
-        uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
+        guarantee(*reinterpret_cast<const block_magic_t *>(buf_data) == log_block_magic);
+        uint16_t current_offset = sizeof(log_block_magic);
         while (current_offset + buf_patch_t::get_min_serialized_size() < cache->get_block_size().value()) {
-            buf_patch_t *patch = buf_patch_t::load_patch(cache->get_block_size(), reinterpret_cast<const char *>(buf_data) + current_offset);
+            buf_patch_t *patch = buf_patch_t::load_patch(reinterpret_cast<const char *>(buf_data) + current_offset);
             if (!patch) {
                 break;
             }
@@ -294,11 +295,11 @@ void patch_disk_storage_t::compress_block(const block_id_t log_block_id) {
     // Scan over the block and save patches that we want to preserve
     mc_buf_t *log_buf = log_block_bufs[log_block_id - first_block];
     void *buf_data = log_buf->get_data_major_write();
-    guarantee(strncmp(reinterpret_cast<char *>(buf_data), LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0);
-    uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
+    guarantee(*reinterpret_cast<const block_magic_t *>(buf_data) == log_block_magic);
+    uint16_t current_offset = sizeof(log_block_magic);
     bool log_block_changed = false;
     while (current_offset + buf_patch_t::get_min_serialized_size() < cache->get_block_size().value()) {
-        buf_patch_t *patch = buf_patch_t::load_patch(cache->get_block_size(), reinterpret_cast<char *>(buf_data) + current_offset);
+        buf_patch_t *patch = buf_patch_t::load_patch(reinterpret_cast<char *>(buf_data) + current_offset);
         if (!patch) {
             break;
         }
@@ -307,7 +308,7 @@ void patch_disk_storage_t::compress_block(const block_id_t log_block_id) {
 
         // We want to preserve this patch iff it is >= the oldest patch that we have in the in-core storage
         if (cache->patch_memory_storage.has_patches_for_block(patch->get_block_id())
-            && !(*patch < *cache->patch_memory_storage.first_patch(patch->get_block_id()))) {
+            && !patch->applies_before(cache->patch_memory_storage.first_patch(patch->get_block_id()))) {
             live_patches.push_back(patch);
         } else {
             delete patch;
@@ -323,8 +324,8 @@ void patch_disk_storage_t::compress_block(const block_id_t log_block_id) {
         rassert(log_buf);
         buf_data = log_buf->get_data_major_write();
 
-        guarantee(strncmp(reinterpret_cast<char *>(buf_data), LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0);
-        current_offset = sizeof(LOG_BLOCK_MAGIC);
+        guarantee(*reinterpret_cast<const block_magic_t *>(buf_data) == log_block_magic);
+        current_offset = sizeof(log_block_magic);
         for (std::vector<buf_patch_t*>::iterator patch = live_patches.begin(); patch != live_patches.end(); ++patch) {
             (*patch)->serialize(reinterpret_cast<char *>(buf_data) + current_offset);
             current_offset += (*patch)->get_serialized_size();
@@ -343,10 +344,11 @@ void patch_disk_storage_t::clear_block(const block_id_t log_block_id, coro_t* no
     // Scan over the block
     mc_buf_t *log_buf = log_block_bufs[log_block_id - first_block];
     const void *buf_data = log_buf->get_data_read();
-    guarantee(strncmp(reinterpret_cast<const char *>(buf_data), LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0);
-    uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
+
+    guarantee(*reinterpret_cast<const block_magic_t *>(buf_data) == log_block_magic);
+    uint16_t current_offset = sizeof(log_block_magic);
     while (current_offset + buf_patch_t::get_min_serialized_size() < cache->get_block_size().value()) {
-        buf_patch_t *patch = buf_patch_t::load_patch(cache->get_block_size(), reinterpret_cast<const char *>(buf_data) + current_offset);
+        buf_patch_t *patch = buf_patch_t::load_patch(reinterpret_cast<const char *>(buf_data) + current_offset);
         if (!patch) {
             break;
         }
@@ -391,8 +393,8 @@ void patch_disk_storage_t::set_active_log_block(const block_id_t log_block_id) {
         // Scan through the block to determine next_patch_offset
         mc_buf_t *log_buf = log_block_bufs[active_log_block - first_block];
         const void *buf_data = log_buf->get_data_read();
-        rassert(strncmp(reinterpret_cast<const char *>(buf_data), LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0);
-        uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
+        rassert(*reinterpret_cast<const block_magic_t *>(buf_data) == log_block_magic);
+        uint16_t current_offset = sizeof(log_block_magic);
 
         while (current_offset + buf_patch_t::get_min_serialized_size() < cache->get_block_size().value()) {
             uint16_t length = *reinterpret_cast<const uint16_t *>(reinterpret_cast<const char *>(buf_data) + current_offset);
@@ -407,7 +409,7 @@ void patch_disk_storage_t::set_active_log_block(const block_id_t log_block_id) {
         next_patch_offset = current_offset;
     }
     else {
-        next_patch_offset = sizeof(LOG_BLOCK_MAGIC);
+        next_patch_offset = sizeof(log_block_magic);
     }
 }
 
@@ -415,8 +417,8 @@ void patch_disk_storage_t::init_log_block(const block_id_t log_block_id) {
     mc_buf_t *log_buf = log_block_bufs[log_block_id - first_block];
     void *buf_data = log_buf->get_data_major_write();
 
-    memcpy(buf_data, LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC));
-    bzero(reinterpret_cast<char *>(buf_data) + sizeof(LOG_BLOCK_MAGIC), cache->serializer->get_block_size().value() - sizeof(LOG_BLOCK_MAGIC));
+    *reinterpret_cast<block_magic_t *>(buf_data) = log_block_magic;
+    bzero(reinterpret_cast<char *>(buf_data) + sizeof(log_block_magic), cache->serializer->get_block_size().value() - sizeof(log_block_magic));
 }
 
 mc_buf_t *patch_disk_storage_t::acquire_block_no_locking(const block_id_t block_id) {

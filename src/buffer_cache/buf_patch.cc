@@ -12,14 +12,17 @@ patch_deserialization_error_t::patch_deserialization_error_t(const char *file, i
                             msg[0] ? ": " : "", msg, file, line);
 }
 
-buf_patch_t *buf_patch_t::load_patch(UNUSED block_size_t bs, const char *source) {
+buf_patch_t *buf_patch_t::load_patch(const char *source) {
     try {
         uint16_t remaining_length = *reinterpret_cast<const uint16_t *>(source);
         source += sizeof(remaining_length);
-        if (remaining_length == 0)
+        if (remaining_length == 0) {
             return NULL;
+        }
         remaining_length -= sizeof(remaining_length);
         guarantee_patch_format(remaining_length >= sizeof(block_id_t) + sizeof(patch_counter_t) + sizeof(patch_operation_code_t));
+
+        // TODO: Put these fields in a POD struct and do a single memcpy.
         block_id_t block_id = *reinterpret_cast<const block_id_t *>(source);
         source += sizeof(block_id_t);
         remaining_length -= sizeof(block_id_t);
@@ -59,6 +62,8 @@ buf_patch_t *buf_patch_t::load_patch(UNUSED block_size_t bs, const char *source)
 
 void buf_patch_t::serialize(char* destination) const {
     uint16_t length = get_serialized_size();
+
+    // TODO: Put these fields in a POD struct and do a single memcpy.
     memcpy(destination, &length, sizeof(length));
     destination += sizeof(length);
     memcpy(destination, &block_id, sizeof(block_id));
@@ -79,9 +84,10 @@ buf_patch_t::buf_patch_t(const block_id_t _block_id, const patch_counter_t _patc
             operation_code(_operation_code) {
 }
 
-bool buf_patch_t::operator<(const buf_patch_t& p) const {
-    rassert(block_id == p.block_id, "Tried to compare incomparable patches");
-    return applies_to_block_sequence_id < p.applies_to_block_sequence_id || (applies_to_block_sequence_id == p.applies_to_block_sequence_id && patch_counter < p.patch_counter);
+bool buf_patch_t::applies_before(const buf_patch_t *p) const {
+    rassert(block_id == p->block_id, "Tried to compare incomparable patches");
+    return applies_to_block_sequence_id < p->applies_to_block_sequence_id
+        || (applies_to_block_sequence_id == p->applies_to_block_sequence_id && patch_counter < p->patch_counter);
 }
 
 
@@ -123,10 +129,6 @@ memcpy_patch_t::~memcpy_patch_t() {
     delete[] src_buf;
 }
 
-size_t memcpy_patch_t::get_affected_data_size() const {
-    return n;
-}
-
 void memcpy_patch_t::apply_to_buf(char* buf_data, UNUSED block_size_t bs) {
     memcpy(buf_data + dest_offset, src_buf, n);
 }
@@ -158,10 +160,6 @@ void memmove_patch_t::serialize_data(char* destination) const {
 }
 uint16_t memmove_patch_t::get_data_size() const {
     return sizeof(dest_offset) + sizeof(src_offset) + sizeof(n);
-}
-
-size_t memmove_patch_t::get_affected_data_size() const {
-    return n;
 }
 
 void memmove_patch_t::apply_to_buf(char* buf_data, UNUSED block_size_t bs) {

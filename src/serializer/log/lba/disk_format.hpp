@@ -8,61 +8,41 @@
 
 
 
-// In Haskell terms, this can be written as:
-// data flagged_off64_t = Padding | RealThing (Maybe off64_t) Bool
-// (except that the off64_t is only 63 bits)
+// Contains an off64_t, or a "padding" value, or a "unused" value.  I
+// don't think we really need separate padding and unused values.
 
+// There used to be some flag bits on the value but now there's only
+// one special sentinel value for deletion entries or padding entries.
 union flagged_off64_t {
-    off64_t whole_value;
-    struct {
-        // The actual offset into the file.
-        off64_t value : 63;
+    off64_t the_value_;
 
-        // This block id was deleted, and the offset points to a zeroed
-        // out buffer.
-        int is_delete : 1;
-    } parts;
-
-    void set_value(off64_t o) {
-        rassert(!is_padding());
-        parts.value = o;
-    }
-    void remove_value() {
-        rassert(!is_padding());
-        parts.value = -2;
-    }
     bool has_value() const {
-        return !is_padding() && parts.value >= 0;
+        return the_value_ >= 0;
     }
     off64_t get_value() const {
         rassert(has_value());
-        return parts.value;
+        return the_value_;
     }
 
-    void set_delete_bit(bool b) {
-        rassert(!is_padding());
-        if (b) parts.is_delete = 1;
-        else parts.is_delete = 0;
-    }
-    bool get_delete_bit() const {
-        rassert(!is_padding());
-        return parts.is_delete != 0;
-    }
-
-    static inline flagged_off64_t padding() {
+    static flagged_off64_t make(off64_t off) {
+        rassert(off >= 0);
         flagged_off64_t ret;
-        ret.whole_value = -1;
+        ret.the_value_ = off;
+        return ret;
+    }
+
+    static flagged_off64_t padding() {
+        flagged_off64_t ret;
+        ret.the_value_ = -1;
         return ret;
     }
     bool is_padding() const {
-        return whole_value == -1;
+        return the_value_ == -1;
     }
 
-    static inline flagged_off64_t unused() {
+    static flagged_off64_t unused() {
         flagged_off64_t ret;
-        ret.whole_value = 0;
-        ret.set_delete_bit(true);
-        ret.remove_value();
+        ret.the_value_ = -1;
         return ret;
     }
 };

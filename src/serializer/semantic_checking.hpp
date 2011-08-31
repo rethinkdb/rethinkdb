@@ -37,6 +37,7 @@ private:
     two_level_array_t<scs_block_info_t, MAX_BLOCK_ID> blocks;
     int last_index_write_started, last_index_write_finished;
     int semantic_fd;
+    std::set<const void *> malloced_bufs;
 
     // Helper functions
     uint32_t compute_crc(const void *buf);

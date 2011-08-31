@@ -33,7 +33,7 @@ void in_memory_index_t::set_block_info(block_id_t id, repli_timestamp_t recency,
 void in_memory_index_t::print() {
     printf("LBA:\n");
     for (unsigned int i = 0; i < blocks.get_size(); i++) {
-        printf("%d %.8lx\n", i, (unsigned long int)blocks[i].whole_value);
+        printf("%d %lld\n", i, (long long)blocks[i].the_value_);
     }
 }
 #endif

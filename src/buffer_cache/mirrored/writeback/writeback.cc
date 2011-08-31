@@ -566,7 +566,7 @@ void writeback_t::flush_acquire_bufs(transaction_t *transaction, flush_state_t &
 
     // Write deleted block_ids.
     for (size_t i = 0; i < deleted_blocks.size(); i++) {
-        state.serializer_writes.push_back(serializer_t::write_t::make_delete(deleted_blocks[i], true /* TODO (sam) get rid of this parameter */));
+        state.serializer_writes.push_back(serializer_t::write_t::make_delete(deleted_blocks[i]));
     }
     deleted_blocks.clear();
 

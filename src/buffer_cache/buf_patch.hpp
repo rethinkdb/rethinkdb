@@ -58,7 +58,7 @@ public:
     // If *(uint16_t*)source is 0, it returns NULL
     //
     // TODO: This allocates a patch, which you have to manually delete it.  Fix it.
-    static buf_patch_t* load_patch(block_size_t bs, const char* source);
+    static buf_patch_t* load_patch(const char* source);
 
     // Serializes the patch to the given destination address
     void serialize(char* destination) const;
@@ -83,18 +83,17 @@ public:
         return block_id;
     }
 
-    virtual size_t get_affected_data_size() const = 0;
-
     // This is called from buf_t
     virtual void apply_to_buf(char* buf_data, block_size_t block_size) = 0;
 
-    bool operator<(const buf_patch_t& p) const;
-    
-protected:    
+    bool applies_before(const buf_patch_t *p) const;
+
+protected:
+    virtual uint16_t get_data_size() const = 0;
+
     // These are for usage in subclasses
     buf_patch_t(block_id_t block_id, patch_counter_t patch_counter, patch_operation_code_t operation_code);
     virtual void serialize_data(char *destination) const = 0;
-    virtual uint16_t get_data_size() const = 0;
 
     static const patch_operation_code_t OPER_MEMCPY = 0;
     static const patch_operation_code_t OPER_MEMMOVE = 1;
@@ -111,12 +110,13 @@ private:
     patch_counter_t patch_counter;
     block_sequence_id_t applies_to_block_sequence_id;
     patch_operation_code_t operation_code;
+
+    DISABLE_COPYING(buf_patch_t);
 };
 
 struct dereferencing_buf_patch_compare_t {
-    // TODO: Why are we passing these pointers by const reference?
-    bool operator()(buf_patch_t *const& x, buf_patch_t *const& y) const {
-        return *x < *y;
+    bool operator()(buf_patch_t *x, buf_patch_t *y) const {
+        return x->applies_before(y);
     }
 };
 
@@ -131,8 +131,6 @@ public:
     virtual ~memcpy_patch_t();
 
     virtual void apply_to_buf(char* buf_data, block_size_t bs);
-
-    virtual size_t get_affected_data_size() const;
 
 protected:
     virtual void serialize_data(char* destination) const;
@@ -152,11 +150,10 @@ public:
 
     virtual void apply_to_buf(char* buf_data, block_size_t bs);
 
-    virtual size_t get_affected_data_size() const;
+    virtual uint16_t get_data_size() const;
 
 protected:
     virtual void serialize_data(char* destination) const;
-    virtual uint16_t get_data_size() const;
 
 private:
     uint16_t dest_offset;

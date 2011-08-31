@@ -36,10 +36,12 @@ public:
           parent(buf), snapshotted_version(version),
           data(_data), token(_token),
           snapshot_refcount(_snapshot_refcount), active_refcount(_active_refcount) {
+
         rassert(data || token, "creating buf snapshot without data or block token");
         rassert(snapshot_refcount + active_refcount, "creating buf snapshot with 0 refcount");
     }
 
+private:
     ~buf_snapshot_t() {
         rassert(!snapshot_refcount && !active_refcount);
         parent->snapshots.remove(this);
@@ -48,34 +50,41 @@ public:
         }
     }
 
+public:
     void *acquire_data(file_account_t *io_account) {
         cache->assert_thread();
         ++active_refcount;
-        if (data) return data;  // Fast path.
 
-        // Slow path: data not present, need to load it from disk.
-        rassert(token, "buffer snapshot lacks both token and data");
         mutex_acquisition_t m(&data_mutex);
-        if (data) return data;  // Somebody might have loaded the data in the meantime.
+        // The buffer might have already been loaded.
+        if (data) {
+            return data;
+        }
+        rassert(token, "buffer snapshot lacks both token and data");
 
         // Use a temporary to avoid putting our data member in an allocated-but-uninitialized state.
         void *tmp = cache->serializer->malloc();
         cache->serializer->block_read(token, tmp, io_account);
         rassert(!data, "data changed while holding mutex");
-        data = tmp;             // Swap in the initialized buffer.
+        data = tmp;
+
         return data;
     }
 
     void release_data() {
         rassert(active_refcount, "releasing snapshot data with no active references");
-        if (0 == --active_refcount + snapshot_refcount)
+        --active_refcount;
+        if (0 == active_refcount + snapshot_refcount) {
             delete this;
+        }
     }
 
     void release() {
         rassert(snapshot_refcount, "releasing snapshot with no references");
-        if (0 == --snapshot_refcount + active_refcount)
+        --snapshot_refcount;
+        if (0 == snapshot_refcount + active_refcount) {
             delete this;
+        }
     }
 
     // We are safe to unload if we are saved to disk and have no mc_buf_ts actively referencing us.
@@ -94,17 +103,15 @@ public:
 private:
     friend class mc_inner_buf_t;
 
-    // I guess we know what this means.  TODO (sam): Figure out our
-    // relationship with our parent.
+    // I guess we know what this means.
     mc_inner_buf_t *parent;
 
     // Some kind of snapshotted version.  :/
     version_id_t snapshotted_version;
 
-    // TODO (sam): Figure out wtf this is.
     mutable mutex_t data_mutex;
 
-    // The buffer of the snapshot we hold.  TODO (sam): Presumably we _own_ this buffer, but double check.
+    // The buffer of the snapshot we hold.
     void *data;
 
     // Our block token to the serializer.
@@ -175,7 +182,6 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, bool _shou
         coro_t::spawn_now(boost::bind(&mc_inner_buf_t::load_inner_buf, this, true, _io_account));
     }
 
-    // TODO (sam): Figure out wtf this todo is talking about.
     // TODO: only increment pm_n_blocks_in_memory when we actually load the block into memory.
     pm_n_blocks_in_memory++;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
@@ -302,18 +308,22 @@ mc_inner_buf_t::~mc_inner_buf_t() {
     cache->assert_thread();
 
 #ifndef NDEBUG
+#ifndef VALGRIND
     // We're about to free the data, let's set it to a recognizable
     // value to make sure we don't depend on accessing things that may
     // be flushed out of the cache.
-    if (data)
+    if (data) {
         memset(data, 0xDD, cache->serializer->get_block_size().value());
+    }
+#endif
 #endif
 
     array_map_t::destroying_inner_buf(this);
 
     rassert(safe_to_unload());
-    if (data)
+    if (data) {
         cache->serializer->free(data);
+    }
 
     pm_n_blocks_in_memory--;
 }
@@ -351,6 +361,7 @@ bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version) {
             // with should_load == false), but now a snapshot of that non-existing data is needed.
             // That in turn means that we have to acquire the data now, before we can proceed...
             data = cache->serializer->malloc();
+
             // Our callee (hopefully!!!) already has a lock at this point, so there's no need
             // to acquire another one inside of load_inner_buf (and of course it would dead-lock).
             load_inner_buf(false, cache->reads_io_account.get());
@@ -371,6 +382,7 @@ bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version) {
     // Initially actively referencing the snapshotted buf are mc_buf_t's in rwi_read_outdated_ok
     // mode, corresponding to cow_refcount; and mc_buf_t's in snapshotted rwi_read mode, indicated
     // by snap_refcount.
+
     buf_snapshot_t *snap = new buf_snapshot_t(this, version_id, num_snapshots_affected, cow_refcount + snap_refcount, data, data_token);
     cow_refcount = 0;
     snap_refcount = 0;
@@ -416,15 +428,17 @@ bool mc_inner_buf_t::safe_to_unload() {
     return !lock.locked() && writeback_buf().safe_to_unload() && refcount == 0 && cow_refcount == 0 && snapshots.empty();
 }
 
-void mc_inner_buf_t::update_data_token(const void *data, const boost::intrusive_ptr<standard_block_token_t>& token) {
+void mc_inner_buf_t::update_data_token(const void *the_data, const boost::intrusive_ptr<standard_block_token_t>& token) {
     cache->assert_thread();
-    if (data == this->data) {
+    if (the_data == data) {
         rassert(!data_token, "data token already up-to-date");
         data_token = token;
         return;
     }
     for (buf_snapshot_t *snap = snapshots.head(); snap; snap = snapshots.next(snap)) {
-        if (snap->data != data) continue;
+        if (snap->data != the_data) {
+            continue;
+        }
         rassert(!snap->token, "snapshot data token already up-to-date");
         snap->token = token;
         return;
@@ -441,13 +455,16 @@ mc_buf_t::mc_buf_t(mc_inner_buf_t *_inner_buf, access_t _mode, mc_inner_buf_t::v
     : mode(_mode), snapshotted(_snapshotted), non_locking_access(_snapshotted), inner_buf(_inner_buf), data(NULL) {
     inner_buf->cache->assert_thread();
     inner_buf->refcount++;
-    patches_affected_data_size_at_start = -1;
+    patches_serialized_size_at_start = -1;
 
     if (snapshotted) {
 	rassert(is_read_mode(mode), "Only read access is allowed to block snapshots");
+        // Our snapshotting-specific code can't handle weird read
+        // modes, unfortunately.
 
-        // Our snapshotting-specific code can't handle weird read modes, unfortunately.
-        // TODO: Make snapshotting code work properly with weird read modes.
+        // TODO: Make snapshotting code work properly with weird read
+        // modes.  (Or maybe don't do that, just keep what we have
+        // here.)
         if (mode == rwi_read_outdated_ok || mode == rwi_read_sync) {
             mode = rwi_read;
         }
@@ -464,10 +481,11 @@ mc_buf_t::mc_buf_t(mc_inner_buf_t *_inner_buf, access_t _mode, mc_inner_buf_t::v
         if (call_when_in_line) call_when_in_line();
 
     } else {
+        ticks_t lock_start_time;
         // the top version is the right one for us; acquire a lock of the appropriate type first
-        pm_bufs_acquiring.begin(&start_time);
+        pm_bufs_acquiring.begin(&lock_start_time);
         inner_buf->lock.co_lock(mode == rwi_read_outdated_ok ? rwi_read : mode, call_when_in_line);
-        pm_bufs_acquiring.end(&start_time);
+        pm_bufs_acquiring.end(&lock_start_time);
 
         acquire_block(version_to_access);
     }
@@ -484,7 +502,6 @@ void mc_buf_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access) {
         case rwi_read: {
             if (snapshotted) {
                 rassert(version_to_access == mc_inner_buf_t::faux_version_id || inner_buf->version_id <= version_to_access);
-                // FIXME: need to decrement in deconstructor!
                 ++inner_buf->snap_refcount;
             }
             data = inner_buf->data;
@@ -507,8 +524,9 @@ void mc_buf_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access) {
             rassert(inner_buf->version_id <= version_to_access);
 
             bool snapshotted = inner_buf->snapshot_if_needed(version_to_access);
-            if (snapshotted)
+            if (snapshotted) {
                 inner_buf->data = inner_buf->cache->serializer->clone(inner_buf->data);
+            }
 
             inner_buf->version_id = version_to_access;
             data = inner_buf->data;
@@ -517,10 +535,10 @@ void mc_buf_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access) {
             //rassert(data != NULL);
 
             if (!inner_buf->writeback_buf().needs_flush &&
-                    patches_affected_data_size_at_start == -1 &&
+                    patches_serialized_size_at_start == -1 &&
                     global_full_perfmon) {
-                patches_affected_data_size_at_start =
-                    inner_buf->cache->patch_memory_storage.get_affected_data_size(inner_buf->block_id);
+                patches_serialized_size_at_start =
+                    inner_buf->cache->patch_memory_storage.get_patches_serialized_size(inner_buf->block_id);
             }
 
             break;
@@ -532,8 +550,9 @@ void mc_buf_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access) {
             unreachable();
     }
 
-    if (snapshotted)
+    if (snapshotted) {
         inner_buf->lock.unlock();
+    }
 }
 
 void mc_buf_t::apply_patch(buf_patch_t *patch) {
@@ -556,8 +575,8 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
 
     if (!inner_buf->writeback_buf().needs_flush) {
         // Check if we want to disable patching for this block and flush it directly instead
-        const size_t MAX_PATCHES_SIZE = inner_buf->cache->serializer->get_block_size().value() / inner_buf->cache->max_patches_size_ratio;
-        if (patch->get_affected_data_size() + inner_buf->cache->patch_memory_storage.get_affected_data_size(inner_buf->block_id) > MAX_PATCHES_SIZE) {
+        const int32_t max_patches_size = inner_buf->cache->serializer->get_block_size().value() / inner_buf->cache->max_patches_size_ratio;
+        if (patch->get_serialized_size() + inner_buf->cache->patch_memory_storage.get_patches_serialized_size(inner_buf->block_id) > max_patches_size) {
             ensure_flush();
             delete patch;
         } else {
@@ -609,9 +628,10 @@ void mc_buf_t::mark_deleted() {
     rassert(!inner_buf->safe_to_unload());
     rassert(data == inner_buf->data);
 
-    bool snapshotted = inner_buf->snapshot_if_needed(inner_buf->version_id);
-    if (!snapshotted && data)
+    bool we_snapshotted = inner_buf->snapshot_if_needed(inner_buf->version_id);
+    if (!we_snapshotted && data) {
         inner_buf->cache->serializer->free(data);
+    }
 
     data = inner_buf->data = NULL;
 
@@ -685,9 +705,10 @@ void mc_buf_t::release() {
     inner_buf->cache->assert_thread();
     pm_bufs_held.end(&start_time);
 
-    if (mode == rwi_write && !inner_buf->writeback_buf().needs_flush && patches_affected_data_size_at_start >= 0) {
-        if (inner_buf->cache->patch_memory_storage.get_affected_data_size(inner_buf->block_id) > (size_t)patches_affected_data_size_at_start)
-            pm_patches_size_per_write.record(inner_buf->cache->patch_memory_storage.get_affected_data_size(inner_buf->block_id) - patches_affected_data_size_at_start);
+    if (mode == rwi_write && !inner_buf->writeback_buf().needs_flush && patches_serialized_size_at_start >= 0) {
+        if (inner_buf->cache->patch_memory_storage.get_patches_serialized_size(inner_buf->block_id) > patches_serialized_size_at_start) {
+            pm_patches_size_per_write.record(inner_buf->cache->patch_memory_storage.get_patches_serialized_size(inner_buf->block_id) - patches_serialized_size_at_start);
+        }
     }
 
     rassert(inner_buf->refcount > 0);
@@ -697,15 +718,19 @@ void mc_buf_t::release() {
         case rwi_read_sync:
         case rwi_read:
         case rwi_write: {
-            if (!non_locking_access)
+            if (!non_locking_access) {
                 inner_buf->lock.unlock();
+            }
             if (snapshotted) {
-                if (data == inner_buf->data)
+                if (data == inner_buf->data) {
                     --inner_buf->snap_refcount;
-                else
+                }
+                else {
                     inner_buf->release_snapshot_data(data);
-            } else
+                }
+            } else {
                 rassert(data == inner_buf->data);
+            }
             break;
         }
         case rwi_read_outdated_ok: {
@@ -997,7 +1022,6 @@ void mc_cache_t::create(serializer_t *serializer, mirrored_cache_static_config_t
     index_write_op_t op(SUPERBLOCK_ID);
     op.token = serializer->block_write(superblock, SUPERBLOCK_ID, DEFAULT_DISK_ACCOUNT);
     op.recency = repli_timestamp_t::invalid;
-    op.delete_bit = false;      // I'm not sure why this is necessary, but it is. XXX DO NOT COMMIT
     serializer_index_write(serializer, op, DEFAULT_DISK_ACCOUNT);
 
     serializer->free(superblock);
