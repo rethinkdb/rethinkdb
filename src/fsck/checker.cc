@@ -745,7 +745,6 @@ struct diff_log_errors {
     diff_log_errors() : missing_log_block_count(0), deleted_log_block_count(0), non_sequential_logs(0), corrupted_patch_blocks(0) { }
 };
 
-static char LOG_BLOCK_MAGIC[] = {'L','O','G','B','0','0'};
 void check_and_load_diff_log(slicecx_t *cx, diff_log_errors *errs) {
     cx->clear_buf_patches();
 
@@ -774,8 +773,8 @@ void check_and_load_diff_log(slicecx_t *cx, diff_log_errors *errs) {
 
             const void *buf_data = b.buf;
 
-            if (strncmp(reinterpret_cast<const char *>(buf_data), LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0) {
-                uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
+            if (*reinterpret_cast<const block_magic_t *>(buf_data) == log_block_magic) {
+                uint16_t current_offset = sizeof(log_block_magic);
                 while (current_offset + buf_patch_t::get_min_serialized_size() < cx->block_size().value()) {
                     buf_patch_t *patch;
                     try {

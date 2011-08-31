@@ -10,8 +10,7 @@ class mc_buf_t;
 class serializer_t;
 class coro_t;
 
-// Whenever the on-disk format of the patches changes, please increase the version number (currently 00)
-static char LOG_BLOCK_MAGIC[] __attribute__((unused)) = {'L','O','G','B','0','0'};
+extern const block_magic_t log_block_magic;
 
 struct mc_config_block_t {
     block_magic_t magic;
