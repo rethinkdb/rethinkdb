@@ -316,7 +316,11 @@ boost::intrusive_ptr<ls_block_token_pointee_t> get_ls_block_token(const boost::i
 }
 #else
 boost::intrusive_ptr<ls_block_token_pointee_t> get_ls_block_token(const boost::intrusive_ptr<scs_block_token_t<log_serializer_t> >& tok) {
-    return tok->inner_token;
+    if (tok) {
+        return tok->inner_token;
+    } else {
+        return boost::intrusive_ptr<ls_block_token_pointee_t>();
+    }
 }
 #endif  // SEMANTIC_SERIALIZER_CHECK
 
@@ -349,17 +353,16 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
                 ls_block_token_pointee_t *ls_token = token.get();
                 rassert(ls_token);
                 rassert(token_offsets.find(ls_token) != token_offsets.end());
-                offset.set_value(token_offsets[ls_token]);
+                offset = flagged_off64_t::make(token_offsets[ls_token]);
 
                 /* mark the life */
                 data_block_manager->mark_live(offset.get_value());
             }
-            else
-                offset.remove_value();
+            else {
+                offset = flagged_off64_t::unused();
+            }
         }
 
-        // Update block info (delete bit, recency)
-        if (op.delete_bit) offset.set_delete_bit(op.delete_bit.get());
         repli_timestamp_t recency = op.recency ? op.recency.get()
                                   : lba_index->get_block_recency(op.block_id);
 
@@ -585,7 +588,7 @@ bool log_serializer_t::get_delete_bit(block_id_t id) {
     rassert(state == state_ready);
 
     flagged_off64_t offset = lba_index->get_block_offset(id);
-    return offset.get_delete_bit();
+    return !offset.has_value();
 }
 
 repli_timestamp_t log_serializer_t::get_recency(block_id_t id) {

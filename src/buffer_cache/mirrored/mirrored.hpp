@@ -73,7 +73,7 @@ class mc_inner_buf_t : public evictable_t,
     // fields.
     writeback_t::local_buf_t& writeback_buf() { return *this; }
 
-    // Functions of the evictable_t interface.  TODO (sam): Investigate these.
+    // Functions of the evictable_t interface.
     bool safe_to_unload();
     void unload();
 
@@ -88,7 +88,7 @@ class mc_inner_buf_t : public evictable_t,
     mc_inner_buf_t(cache_t *cache, block_id_t block_id, version_id_t snapshot_version, repli_timestamp_t recency_timestamp);
     ~mc_inner_buf_t();
 
-    // Loads data from the serializer.  TODO (sam): Investigate who uses this.
+    // Loads data from the serializer.
     void load_inner_buf(bool should_lock, file_account_t *io_account);
 
     // Informs us that a certain data buffer (whether the current one or one used by a
@@ -114,43 +114,39 @@ private:
     // The subtree recency value associated with our block.
     repli_timestamp_t subtree_recency;
 
-    // The data for the block.. I think.  TODO (sam): Figure out exactly what data is.
+    // The data for the block.
     void *data;
-    // The snapshot version id of the block.  TODO (sam): Figure out exactly how we use this.
+    // The snapshot version id of the block.
     version_id_t version_id;
     /* As long as data has not been changed since the last serializer write, data_token contains a token to the on-serializer block */
     boost::intrusive_ptr<standard_block_token_t> data_token;
 
-    // A lock for asserting ownership of the block.
+    // A lock for loading the block.
     rwi_lock_t lock;
-    // A patch counter that belongs to this block.  TODO (sam): Why do we need these?
+    // A patch counter that belongs to this block.
     patch_counter_t next_patch_counter;
 
     // The number of mc_buf_ts that exist for this mc_inner_buf_t.
     unsigned int refcount;
 
-    // true if we are being deleted.
-    //
-    // TODO (sam): Do we need this any more, with coroutines?  (Probably?)
+    // true if this block is to be deleted.
     bool do_delete;
 
     // number of references from mc_buf_t buffers, which hold a
     // pointer to the data in read_outdated_ok mode.
-    //
-    // TODO (sam): Presumably cow_refcount <= refcount, prove this is
-    // the case.
     size_t cow_refcount;
 
     // number of references from mc_buf_t buffers which point to the current version of `data` as a
     // snapshot. this is ugly, but necessary to correctly initialize buf_snapshot_t refcounts.
     size_t snap_refcount;
 
-    // TODO (sam): Figure out what this is, and how it is different from version_id.
+    // This is used to figure out what patches still need to be
+    // applied.
     block_sequence_id_t block_sequence_id;
 
     // snapshot types' implementations are internal and deferred to mirrored.cc
     typedef intrusive_list_t<buf_snapshot_t> snapshot_data_list_t;
-    // TODO (sam): Learn about this.
+
     snapshot_data_list_t snapshots;
 
     DISABLE_COPYING(mc_inner_buf_t);
@@ -235,28 +231,27 @@ public:
 
 private:
 
-    // TODO (sam): WTF is this?
+    // Used for the pm_bufs_held perfmon.
     ticks_t start_time;
 
     // Presumably, the mode with which this mc_buf_t holds the inner buf.
     access_t mode;
 
     // True if this is an mc_buf_t for a snapshotted view of the buf.
-    bool snapshotted;
+    const bool snapshotted;
 
     // non_locking_access is a hack for the sake of patch_disk_storage.cc. It would be nice if we
-    // could eliminate it.  TODO (sam): Figure out wtf this is.
+    // could eliminate it.
     bool non_locking_access;
+
+    // Used for perfmon, measuring how much the patches' serialized
+    // size changed.  TODO: Maybe this could be a uint16_t.
+    int32_t patches_serialized_size_at_start;
 
     // Our pointer to an inner_buf -- we have a bunch of mc_buf_t's
     // all pointing at an inner buf.
     mc_inner_buf_t *inner_buf;
     void *data; /* Usually the same as inner_buf->data. If a COW happens or this mc_buf_t is part of a snapshotted transaction, it reference a different buffer however. */
-
-    /* For performance monitoring */
-    // TODO (sam): Replace "long int" with int32_t or int64_t, there's
-    // a specific size this needs to be.
-    long int patches_affected_data_size_at_start;
 
     DISABLE_COPYING(mc_buf_t);
 };

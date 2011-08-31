@@ -45,7 +45,6 @@ void prep_serializer(
     index_write_op_t op(CONFIG_BLOCK_ID.ser_id);
     op.token = ser->block_write(c, CONFIG_BLOCK_ID.ser_id, DEFAULT_DISK_ACCOUNT);
     op.recency = repli_timestamp_t::invalid;
-    op.delete_bit = false;
     serializer_index_write(ser, op, DEFAULT_DISK_ACCOUNT);
 
     ser->free(c);

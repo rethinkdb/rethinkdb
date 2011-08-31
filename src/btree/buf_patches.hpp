@@ -5,8 +5,10 @@
 
 #include "buffer_cache/buf_patch.hpp"
 #include "memcached/store.hpp"
+#include "containers/scoped_malloc.hpp"
 
 /* Btree leaf node logical patches */
+struct btree_key_t;
 
 /* Insert and/or replace a key/value pair in a leaf node */
 class leaf_insert_patch_t : public buf_patch_t {
@@ -14,11 +16,7 @@ public:
     leaf_insert_patch_t(block_id_t block_id, patch_counter_t patch_counter, uint16_t value_size, const void *value, uint8_t key_size, const char *key_contents, repli_timestamp_t insertion_time);
     leaf_insert_patch_t(block_id_t block_id, patch_counter_t patch_counter, const char* data, uint16_t data_length);
 
-    virtual ~leaf_insert_patch_t();
-
     virtual void apply_to_buf(char* buf_data, block_size_t bs);
-
-    virtual size_t get_affected_data_size() const;
 
 protected:
     virtual void serialize_data(char* destination) const;
@@ -26,8 +24,8 @@ protected:
 
 private:
     uint16_t value_size;
-    char *value_buf;
-    char *key_buf;
+    scoped_malloc<char> value_buf;
+    scoped_malloc<btree_key_t> key_buf;
     repli_timestamp_t insertion_time;
 };
 
@@ -37,11 +35,7 @@ public:
     leaf_remove_patch_t(block_id_t block_id, patch_counter_t patch_counter, repli_timestamp_t tstamp, uint8_t key_size, const char *key_contents);
     leaf_remove_patch_t(const block_id_t block_id, patch_counter_t patch_counter, const char* data, uint16_t data_length);
 
-    virtual ~leaf_remove_patch_t();
-
     virtual void apply_to_buf(char* buf_data, block_size_t bs);
-
-    virtual size_t get_affected_data_size() const;
 
 protected:
     virtual void serialize_data(char* destination) const;
@@ -49,7 +43,7 @@ protected:
 
 private:
     repli_timestamp_t timestamp;
-    char *key_buf;
+    scoped_malloc<btree_key_t> key_buf;
 };
 
 /* Erase a key/value pair from a leaf node, when this is an idempotent
@@ -59,18 +53,14 @@ public:
     leaf_erase_presence_patch_t(block_id_t block_id, patch_counter_t patch_counter, uint8_t key_size, const char *key_contents);
     leaf_erase_presence_patch_t(block_id_t block_id, patch_counter_t patch_counter, const char *data, uint16_t data_length);
 
-    virtual ~leaf_erase_presence_patch_t();
-
     virtual void apply_to_buf(char *buf_data, block_size_t bs);
-
-    virtual size_t get_affected_data_size() const;
 
 protected:
     virtual void serialize_data(char *destination) const;
     virtual uint16_t get_data_size() const;
 
 private:
-    char *key_buf;
+    scoped_malloc<btree_key_t> key_buf;
 };
 
 #endif	/* __BTREE_BUF_PATCHES_HPP__ */

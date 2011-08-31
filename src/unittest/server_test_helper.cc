@@ -92,16 +92,16 @@ uint32_t server_test_helper_t::get_value(buf_t *buf) {
     return *reinterpret_cast<const uint32_t *>(buf->get_data_read());
 }
 
-buf_t *server_test_helper_t::acq_check_if_blocks_until_buf_released(transaction_t *txn, buf_t *already_acquired_block, access_t acquire_mode, bool do_release, bool &blocked) {
+buf_t *server_test_helper_t::acq_check_if_blocks_until_buf_released(transaction_t *txn, buf_t *already_acquired_block, access_t acquire_mode, bool do_release, bool *blocked) {
     acquiring_coro_t acq_coro(txn, already_acquired_block->get_block_id(), acquire_mode);
 
     coro_t::spawn(boost::bind(&acquiring_coro_t::run, &acq_coro));
     nap(500);
-    blocked = !acq_coro.signaled;
+    *blocked = !acq_coro.signaled;
 
     if (do_release) {
         already_acquired_block->release();
-        if (blocked) {
+        if (*blocked) {
             nap(500);
             rassert(acq_coro.signaled, "Buf release must have unblocked the coroutine trying to acquire the buf. May be a bug in the test.");
         }
@@ -110,11 +110,11 @@ buf_t *server_test_helper_t::acq_check_if_blocks_until_buf_released(transaction_
     return acq_coro.result;
 }
 
-void server_test_helper_t::create_two_blocks(transaction_t *txn, block_id_t &block_A, block_id_t &block_B) {
+void server_test_helper_t::create_two_blocks(transaction_t *txn, block_id_t *block_A, block_id_t *block_B) {
     buf_t *buf_A = create(txn);
     buf_t *buf_B = create(txn);
-    block_A = buf_A->get_block_id();
-    block_B = buf_B->get_block_id();
+    *block_A = buf_A->get_block_id();
+    *block_B = buf_B->get_block_id();
     change_value(buf_A, init_value);
     change_value(buf_B, init_value);
     buf_A->release();

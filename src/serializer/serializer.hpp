@@ -17,13 +17,11 @@ struct index_write_op_t {
     // Buf to write. None if not to be modified. Initialized but a null ptr if to be removed from lba.
     boost::optional<boost::intrusive_ptr<standard_block_token_t> > token;
     boost::optional<repli_timestamp_t> recency; // Recency, if it should be modified.
-    boost::optional<bool> delete_bit;           // Delete bit, if it should be modified.
 
     index_write_op_t(block_id_t _block_id,
 		     boost::optional<boost::intrusive_ptr<standard_block_token_t> > _token = boost::none,
-		     boost::optional<repli_timestamp_t> _recency = boost::none,
-		     boost::optional<bool> _delete_bit = boost::none)
-	: block_id(_block_id), token(_token), recency(_recency), delete_bit(_delete_bit) {}
+		     boost::optional<repli_timestamp_t> _recency = boost::none)
+	: block_id(_block_id), token(_token), recency(_recency) { }
 };
 
 /* serializer_t is an abstract interface that describes how each serializer should
@@ -118,7 +116,7 @@ struct serializer_t :
             iocallback_t *io_callback;
             write_launched_callback_t *launch_callback;
         };
-        struct delete_t { bool write_zero_block; };
+        struct delete_t { char __unused_field; };
         struct touch_t { repli_timestamp_t recency; };
         // if none, indicates just a recency update.
         typedef boost::variant<update_t, delete_t, touch_t> action_t;
@@ -128,7 +126,7 @@ struct serializer_t :
         static write_t make_update(block_id_t block_id, repli_timestamp_t recency, const void *buf,
                                    iocallback_t *io_callback = NULL,
                                    write_launched_callback_t *launch_callback = NULL);
-        static write_t make_delete(block_id_t block_id, bool write_zero_block = true);
+        static write_t make_delete(block_id_t block_id);
         write_t(block_id_t block_id, action_t action);
     };
 

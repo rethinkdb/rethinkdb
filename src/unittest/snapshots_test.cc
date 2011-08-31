@@ -30,7 +30,7 @@ private:
         buf_t *buf0 = create(&t0);
         snap(&t1);
         bool blocked = false;
-        buf_t *buf1 = acq_check_if_blocks_until_buf_released(&t1, buf0, rwi_read, true, blocked);
+        buf_t *buf1 = acq_check_if_blocks_until_buf_released(&t1, buf0, rwi_read, true, &blocked);
         EXPECT_TRUE(blocked);
         EXPECT_TRUE(buf1 != NULL);
         if (buf1)
@@ -42,7 +42,7 @@ private:
         transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past);
 
         block_id_t block_A, block_B;
-        create_two_blocks(&t0, block_A, block_B);
+        create_two_blocks(&t0, &block_A, &block_B);
 
         transaction_t t1(cache, rwi_read, 0, repli_timestamp_t::invalid);
         transaction_t t2(cache, rwi_write, 0, repli_timestamp_t::distant_past);
@@ -61,7 +61,7 @@ private:
         change_value(buf2_B, changed_value);
 
         bool blocked = false;
-        buf_t *buf1_B = acq_check_if_blocks_until_buf_released(&t2, buf2_B, rwi_read, true, blocked);
+        buf_t *buf1_B = acq_check_if_blocks_until_buf_released(&t2, buf2_B, rwi_read, true, &blocked);
         EXPECT_TRUE(blocked);
         EXPECT_EQ(changed_value, get_value(buf1_B));
         buf1_B->release();
@@ -72,7 +72,7 @@ private:
         transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past);
 
         block_id_t block_A, block_B;
-        create_two_blocks(&t0, block_A, block_B);
+        create_two_blocks(&t0, &block_A, &block_B);
 
         transaction_t t1(cache, rwi_read, 0, repli_timestamp_t::invalid);
         transaction_t t2(cache, rwi_write, 0, repli_timestamp_t::distant_past);
@@ -82,13 +82,13 @@ private:
         buf_t *buf1 = acq(&t1, block_A, rwi_read);
 
         bool blocked = true;
-        buf_t *buf2 = acq_check_if_blocks_until_buf_released(&t2, buf1, rwi_write, false, blocked);
+        buf_t *buf2 = acq_check_if_blocks_until_buf_released(&t2, buf1, rwi_write, false, &blocked);
         EXPECT_FALSE(blocked);
 
         change_value(buf2, changed_value);
 
         snap(&t3);
-        buf_t *buf3 = acq_check_if_blocks_until_buf_released(&t2, buf2, rwi_read, true, blocked);
+        buf_t *buf3 = acq_check_if_blocks_until_buf_released(&t2, buf2, rwi_read, true, &blocked);
         EXPECT_TRUE(blocked);
 
         EXPECT_EQ(init_value, get_value(buf1));
@@ -102,7 +102,7 @@ private:
         transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past);
 
         block_id_t block_A, UNUSED block_B;
-        create_two_blocks(&t0, block_A, block_B);
+        create_two_blocks(&t0, &block_A, &block_B);
 
         transaction_t t1(cache, rwi_read, 0, repli_timestamp_t::invalid);
         transaction_t t2(cache, rwi_write, 0, repli_timestamp_t::distant_past);
@@ -111,12 +111,12 @@ private:
         buf_t *buf1_A = acq(&t1, block_A, rwi_read);
 
         bool blocked = true;
-        buf_t *buf2_A = acq_check_if_blocks_until_buf_released(&t2, buf1_A, rwi_write, false, blocked);
+        buf_t *buf2_A = acq_check_if_blocks_until_buf_released(&t2, buf1_A, rwi_write, false, &blocked);
         EXPECT_FALSE(blocked);
 
         buf_t *buf2_B = acq(&t2, block_B, rwi_write);
 
-        buf_t *buf1_B = acq_check_if_blocks_until_buf_released(&t1, buf2_B, rwi_read, false, blocked);
+        buf_t *buf1_B = acq_check_if_blocks_until_buf_released(&t1, buf2_B, rwi_read, false, &blocked);
         EXPECT_FALSE(blocked);
 
         buf1_A->release();
@@ -130,7 +130,7 @@ private:
         transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past);
 
         block_id_t block_A, block_B;
-        create_two_blocks(&t0, block_A, block_B);
+        create_two_blocks(&t0, &block_A, &block_B);
 
         transaction_t t1(cache, rwi_write, 0, repli_timestamp_t::distant_past);
         transaction_t t2(cache, rwi_read, 0, repli_timestamp_t::invalid);
@@ -147,7 +147,7 @@ private:
 
         buf2_A->release();
         bool blocked = false;
-        buf_t *buf2_B = acq_check_if_blocks_until_buf_released(&t2, buf1_B, rwi_read, true, blocked);
+        buf_t *buf2_B = acq_check_if_blocks_until_buf_released(&t2, buf1_B, rwi_read, true, &blocked);
         EXPECT_TRUE(blocked);
         EXPECT_EQ(changed_value, get_value(buf2_B));
         buf2_B->release();
@@ -160,7 +160,7 @@ private:
         transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past);
 
         block_id_t block_A, block_B;
-        create_two_blocks(&t0, block_A, block_B);
+        create_two_blocks(&t0, &block_A, &block_B);
 
         transaction_t t1(cache, rwi_write, 0, repli_timestamp_t::distant_past);
         transaction_t t2(cache, rwi_write, 0, repli_timestamp_t::distant_past);
@@ -173,7 +173,7 @@ private:
         snap(&t3);
 
         bool blocked = false;
-        buf_t *buf3_A = acq_check_if_blocks_until_buf_released(&t3, buf2_A, rwi_read, true, blocked);
+        buf_t *buf3_A = acq_check_if_blocks_until_buf_released(&t3, buf2_A, rwi_read, true, &blocked);
         EXPECT_TRUE(blocked);
 
         buf_t *buf1_B = acq(&t1, block_B, rwi_write);
@@ -185,7 +185,7 @@ private:
 
         change_value(buf2_B, changed_value);
 
-        buf_t *buf3_B = acq_check_if_blocks_until_buf_released(&t3, buf2_B, rwi_read, true, blocked);
+        buf_t *buf3_B = acq_check_if_blocks_until_buf_released(&t3, buf2_B, rwi_read, true, &blocked);
         EXPECT_TRUE(blocked);
         buf3_B->release();
     }
@@ -195,7 +195,7 @@ private:
         transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past);
 
         block_id_t block_A, block_B;
-        create_two_blocks(&t0, block_A, block_B);
+        create_two_blocks(&t0, &block_A, &block_B);
 
         transaction_t t1(cache, rwi_write, 0, repli_timestamp_t::distant_past);
         transaction_t t2(cache, rwi_write, 0, repli_timestamp_t::distant_past);
@@ -205,12 +205,12 @@ private:
         uint32_t old_value = get_value(buf3_A);
 
         bool blocked = true;
-        buf_t *buf1_A = acq_check_if_blocks_until_buf_released(&t1, buf3_A, rwi_write, false, blocked);
+        buf_t *buf1_A = acq_check_if_blocks_until_buf_released(&t1, buf3_A, rwi_write, false, &blocked);
         EXPECT_FALSE(blocked);
         change_value(buf1_A, changed_value);
         buf1_A->release();
 
-        acq_check_if_blocks_until_buf_released(&t2, buf3_A, rwi_write, false, blocked)->release();
+        acq_check_if_blocks_until_buf_released(&t2, buf3_A, rwi_write, false, &blocked)->release();
         EXPECT_FALSE(blocked);
 
         EXPECT_EQ(old_value, get_value(buf3_A));
@@ -222,7 +222,7 @@ private:
         transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past);
 
         block_id_t block_A, block_B;
-        create_two_blocks(&t0, block_A, block_B);
+        create_two_blocks(&t0, &block_A, &block_B);
 
         transaction_t t1(cache, rwi_read, 0, repli_timestamp_t::invalid);
         transaction_t t2(cache, rwi_read, 0, repli_timestamp_t::invalid);
@@ -239,7 +239,7 @@ private:
         transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past);
 
         block_id_t block_A, block_B;
-        create_two_blocks(&t0, block_A, block_B);
+        create_two_blocks(&t0, &block_A, &block_B);
 
         transaction_t t1(cache, rwi_read, 0, repli_timestamp_t::invalid);
         transaction_t t2(cache, rwi_read, 0, repli_timestamp_t::invalid);
@@ -252,7 +252,7 @@ private:
         EXPECT_EQ(old_value, get_value(buf2_A));
 
         bool blocked = true;
-        buf_t *buf3_A = acq_check_if_blocks_until_buf_released(&t3, buf1_A, rwi_write, false, blocked);
+        buf_t *buf3_A = acq_check_if_blocks_until_buf_released(&t3, buf1_A, rwi_write, false, &blocked);
         EXPECT_FALSE(blocked);
 
         change_value(buf3_A, changed_value);

@@ -18,8 +18,6 @@
 
 namespace fsck {
 
-static block_magic_t zerobuf_magic = { { 'z', 'e', 'r', 'o' } }; // TODO: Refactor
-
 static const char *state = NULL;
 
 // Knowledge that we contain for every block id.
@@ -266,7 +264,7 @@ public:
             return false;
         }
 
-        if (!raw_block_t::init(knog->static_config->block_size(), file, info.offset.parts.value, ser_block_id)) {
+        if (!raw_block_t::init(knog->static_config->block_size(), file, info.offset.get_value(), ser_block_id)) {
             return false;
         }
 
@@ -508,8 +506,7 @@ bool is_valid_extent(file_knowledge_t *knog, off64_t offset) {
 }
 
 bool is_valid_btree_offset(file_knowledge_t *knog, flagged_off64_t offset) {
-    return is_valid_offset(knog, offset.parts.value, knog->static_config->block_size().ser_value())
-        || offset.get_delete_bit();
+    return !offset.has_value() || is_valid_offset(knog, offset.get_value(), knog->static_config->block_size().ser_value());
 }
 
 bool is_valid_device_block(file_knowledge_t *knog, off64_t offset) {
@@ -564,6 +561,7 @@ bool check_lba_extent(nondirect_file_t *file, file_knowledge_t *knog, unsigned i
         } else if (entry.block_id % LBA_SHARD_FACTOR != shard_number) {
             errs->wrong_shard_count++;
         } else if (!is_valid_btree_offset(knog, entry.offset)) {
+            debugf("Bad offset with value %lld\n", (long long)entry.offset.the_value_);
             errs->bad_offset_count++;
         } else {
             write_locker_t locker(knog);
@@ -748,7 +746,6 @@ struct diff_log_errors {
     diff_log_errors() : missing_log_block_count(0), deleted_log_block_count(0), non_sequential_logs(0), corrupted_patch_blocks(0) { }
 };
 
-static char LOG_BLOCK_MAGIC[] = {'L','O','G','B','0','0'};
 void check_and_load_diff_log(slicecx_t *cx, diff_log_errors *errs) {
     cx->clear_buf_patches();
 
@@ -767,9 +764,9 @@ void check_and_load_diff_log(slicecx_t *cx, diff_log_errors *errs) {
             info = locker.block_info()[ser_block_id];
         }
 
-        if (!info.offset.parts.is_delete) {
+        if (info.offset.has_value()) {
             block_t b;
-            b.init(cx->block_size(), cx->file, info.offset.parts.value, ser_block_id);
+            b.init(cx->block_size(), cx->file, info.offset.get_value(), ser_block_id);
             {
                 write_locker_t locker(cx->knog);
                 locker.block_info()[ser_block_id].block_sequence_id = b.realbuf->block_sequence_id;
@@ -777,12 +774,12 @@ void check_and_load_diff_log(slicecx_t *cx, diff_log_errors *errs) {
 
             const void *buf_data = b.buf;
 
-            if (strncmp(reinterpret_cast<const char *>(buf_data), LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0) {
-                uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
+            if (*reinterpret_cast<const block_magic_t *>(buf_data) == log_block_magic) {
+                uint16_t current_offset = sizeof(log_block_magic);
                 while (current_offset + buf_patch_t::get_min_serialized_size() < cx->block_size().value()) {
                     buf_patch_t *patch;
                     try {
-                        patch = buf_patch_t::load_patch(cx->block_size(), reinterpret_cast<const char *>(buf_data) + current_offset);
+                        patch = buf_patch_t::load_patch(reinterpret_cast<const char *>(buf_data) + current_offset);
                     } catch (patch_deserialization_error_t &e) {
 			(void)e;
                         ++errs->corrupted_patch_blocks;
@@ -1067,8 +1064,6 @@ void check_slice_other_blocks(slicecx_t *cx, other_block_errors *errs) {
         end = locker.block_info().get_size();
     }
 
-    block_id_t first_valueless_block = NULL_BLOCK_ID;
-
     for (block_id_t id_iter = 0, id = cx->to_ser_block_id(0);
          id < end;
          id = cx->to_ser_block_id(++id_iter)) {
@@ -1077,47 +1072,19 @@ void check_slice_other_blocks(slicecx_t *cx, other_block_errors *errs) {
             read_locker_t locker(cx->knog);
             info = locker.block_info()[id];
         }
-        if (info.offset.get_delete_bit()) {
-            // Do nothing.
-        } else if (!info.offset.has_value()) {
-            if (first_valueless_block == NULL_BLOCK_ID) {
-                first_valueless_block = id;
+        if (info.offset.has_value() && info.block_sequence_id == NULL_BLOCK_SEQUENCE_ID) {
+            // Aha!  We have an orphan block!  Crap.
+            rogue_block_description desc;
+            desc.block_id = id;
+
+            btree_block_t b;
+            if (!b.init(cx->file, cx->knog, id)) {
+                desc.loading_error = b.err;
+            } else {
+                desc.magic = *reinterpret_cast<block_magic_t *>(b.buf);
             }
-        } else {
-            if (first_valueless_block != NULL_BLOCK_ID) {
-                errs->contiguity_failure = first_valueless_block;
-            }
 
-            if (!info.offset.parts.is_delete && info.block_sequence_id == NULL_BLOCK_SEQUENCE_ID) {
-                // Aha!  We have an orphan block!  Crap.
-                rogue_block_description desc;
-                desc.block_id = id;
-
-                btree_block_t b;
-                if (!b.init(cx->file, cx->knog, id)) {
-                    desc.loading_error = b.err;
-                } else {
-                    desc.magic = *reinterpret_cast<block_magic_t *>(b.buf);
-                }
-
-                errs->orphan_blocks.push_back(desc);
-            } else if (info.offset.parts.is_delete) {
-                rassert(info.block_sequence_id == NULL_BLOCK_SEQUENCE_ID);
-                rogue_block_description desc;
-                desc.block_id = id;
-
-                btree_block_t zeroblock;
-                if (!zeroblock.init(cx->file, cx->knog, id)) {
-                    desc.loading_error = zeroblock.err;
-                    errs->allegedly_deleted_blocks.push_back(desc);
-                } else {
-                    block_magic_t magic = *reinterpret_cast<block_magic_t *>(zeroblock.buf);
-                    if (!(zerobuf_magic == magic)) {
-                        desc.magic = magic;
-                        errs->allegedly_deleted_blocks.push_back(desc);
-                    }
-                }
-            }
+            errs->orphan_blocks.push_back(desc);
         }
     }
 }
@@ -1321,7 +1288,7 @@ void report_pre_config_block_errors(const check_to_config_block_errors& errs) {
                        : "was specified invalidly");
             } else if (sherr->extent_errors.bad_block_id_count > 0 || sherr->extent_errors.wrong_shard_count > 0 || sherr->extent_errors.bad_offset_count > 0) {
                 printf("ERROR %s lba shard %d had bad lba entries: %d bad block ids, %d in wrong shard, %d with bad offset, of %d total\n",
-                       state, i, sherr->extent_errors.bad_block_id_count, 
+                       state, i, sherr->extent_errors.bad_block_id_count,
                        sherr->extent_errors.wrong_shard_count, sherr->extent_errors.bad_offset_count,
                        sherr->extent_errors.total_count);
             }
