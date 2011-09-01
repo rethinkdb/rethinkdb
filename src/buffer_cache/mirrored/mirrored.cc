@@ -62,9 +62,14 @@ public:
         }
         rassert(token, "buffer snapshot lacks both token and data");
 
+
         // Use a temporary to avoid putting our data member in an allocated-but-uninitialized state.
-        void *tmp = cache->serializer->malloc();
-        cache->serializer->block_read(token, tmp, io_account);
+        void *tmp;
+        {
+            on_thread_t th(cache->serializer->home_thread());
+            tmp = cache->serializer->malloc();
+            cache->serializer->block_read(token, tmp, io_account);
+        }
         rassert(!data, "data changed while holding mutex");
         data = tmp;
 
@@ -1144,7 +1149,10 @@ void mc_cache_t::unregister_snapshot(mc_transaction_t *txn) {
 size_t mc_cache_t::calculate_snapshots_affected(mc_inner_buf_t::version_id_t snapshotted_version, mc_inner_buf_t::version_id_t new_version) {
     rassert(snapshotted_version <= new_version);    // on equals we'll get 0 snapshots affected
     size_t num_snapshots_affected = 0;
-    for (snapshots_map_t::iterator it = active_snapshots.lower_bound(snapshotted_version); it != active_snapshots.lower_bound(new_version); it++) {
+    for (snapshots_map_t::iterator it = active_snapshots.lower_bound(snapshotted_version),
+             itend = active_snapshots.lower_bound(new_version);
+         it != itend;
+         it++) {
         num_snapshots_affected++;
     }
     return num_snapshots_affected;
@@ -1153,7 +1161,10 @@ size_t mc_cache_t::calculate_snapshots_affected(mc_inner_buf_t::version_id_t sna
 size_t mc_cache_t::register_buf_snapshot(mc_inner_buf_t *inner_buf, mc_inner_buf_t::buf_snapshot_t *snap, mc_inner_buf_t::version_id_t snapshotted_version, mc_inner_buf_t::version_id_t new_version) {
     rassert(snapshotted_version <= new_version);    // on equals we'll get 0 snapshots affected
     size_t num_snapshots_affected = 0;
-    for (snapshots_map_t::iterator it = active_snapshots.lower_bound(snapshotted_version); it != active_snapshots.lower_bound(new_version); it++) {
+    for (snapshots_map_t::iterator it = active_snapshots.lower_bound(snapshotted_version),
+             itend = active_snapshots.lower_bound(new_version);
+         it != itend;
+         it++) {
         (*it).second->register_buf_snapshot(inner_buf, snap);
         num_snapshots_affected++;
     }

@@ -1,11 +1,12 @@
 #include "unittest/dummy_protocol.hpp"
-#include "concurrency/signal.hpp"
+
 #include "arch/timing.hpp"
+#include "concurrency/signal.hpp"
 
 namespace unittest {
 
-bool dummy_protocol_t::region_t::contains(const region_t &r) {
-    for (std::set<std::string>::iterator it = r.keys.begin(); it != r.keys.end(); it++) {
+bool dummy_protocol_t::region_t::contains(const region_t &r) const {
+    for (std::set<std::string>::const_iterator it = r.keys.begin(); it != r.keys.end(); it++) {
         if (keys.count(*it) == 0) {
             return false;
         }
@@ -13,8 +14,8 @@ bool dummy_protocol_t::region_t::contains(const region_t &r) {
     return true;
 }
 
-bool dummy_protocol_t::region_t::overlaps(const region_t &r) {
-    for (std::set<std::string>::iterator it = r.keys.begin(); it != r.keys.end(); it++) {
+bool dummy_protocol_t::region_t::overlaps(const region_t &r) const {
+    for (std::set<std::string>::const_iterator it = r.keys.begin(); it != r.keys.end(); it++) {
         if (keys.count(*it) != 0) {
             return true;
         }
@@ -22,9 +23,9 @@ bool dummy_protocol_t::region_t::overlaps(const region_t &r) {
     return false;
 }
 
-dummy_protocol_t::region_t dummy_protocol_t::region_t::intersection(const region_t &r) {
+dummy_protocol_t::region_t dummy_protocol_t::region_t::intersection(const region_t &r) const {
     region_t i;
-    for (std::set<std::string>::iterator it = r.keys.begin(); it != r.keys.end(); it++) {
+    for (std::set<std::string>::const_iterator it = r.keys.begin(); it != r.keys.end(); it++) {
         if (keys.count(*it) != 0) {
             i.keys.insert(*it);
         }
@@ -32,11 +33,11 @@ dummy_protocol_t::region_t dummy_protocol_t::region_t::intersection(const region
     return i;
 }
 
-dummy_protocol_t::region_t dummy_protocol_t::read_t::get_region() {
+dummy_protocol_t::region_t dummy_protocol_t::read_t::get_region() const {
     return keys;
 }
 
-std::vector<dummy_protocol_t::read_t> dummy_protocol_t::read_t::shard(std::vector<region_t> regions) {
+std::vector<dummy_protocol_t::read_t> dummy_protocol_t::read_t::shard(std::vector<region_t> regions) const {
     std::vector<read_t> results;
     for (int i = 0; i < (int)regions.size(); i++) {
         read_t r;
@@ -46,11 +47,11 @@ std::vector<dummy_protocol_t::read_t> dummy_protocol_t::read_t::shard(std::vecto
     return results;
 }
 
-dummy_protocol_t::read_response_t dummy_protocol_t::read_t::unshard(std::vector<read_response_t> resps, UNUSED temporary_cache_t *cache) {
+dummy_protocol_t::read_response_t dummy_protocol_t::read_t::unshard(std::vector<read_response_t> resps, UNUSED temporary_cache_t *cache) const {
     rassert(cache != NULL);
     read_response_t combined;
     for (int i = 0; i < (int)resps.size(); i++) {
-        for (std::map<std::string, std::string>::iterator it = resps[i].values.begin();
+        for (std::map<std::string, std::string>::const_iterator it = resps[i].values.begin();
                 it != resps[i].values.end(); it++) {
             rassert(keys.keys.count((*it).first) != 0);
             rassert(combined.values.count((*it).first) == 0);
@@ -60,20 +61,20 @@ dummy_protocol_t::read_response_t dummy_protocol_t::read_t::unshard(std::vector<
     return combined;
 }
 
-dummy_protocol_t::region_t dummy_protocol_t::write_t::get_region() {
+dummy_protocol_t::region_t dummy_protocol_t::write_t::get_region() const {
     region_t region;
-    for (std::map<std::string, std::string>::iterator it = values.begin();
+    for (std::map<std::string, std::string>::const_iterator it = values.begin();
             it != values.end(); it++) {
         region.keys.insert((*it).first);
     }
     return region;
 }
 
-std::vector<dummy_protocol_t::write_t> dummy_protocol_t::write_t::shard(std::vector<region_t> regions) {
+std::vector<dummy_protocol_t::write_t> dummy_protocol_t::write_t::shard(std::vector<region_t> regions) const {
     std::vector<write_t> results;
     for (int i = 0; i < (int)regions.size(); i++) {
         write_t w;
-        for (std::map<std::string, std::string>::iterator it = values.begin();
+        for (std::map<std::string, std::string>::const_iterator it = values.begin();
                 it != values.end(); it++) {
             if (regions[i].keys.count((*it).first) != 0) {
                 w.values[(*it).first] = (*it).second;
@@ -84,11 +85,11 @@ std::vector<dummy_protocol_t::write_t> dummy_protocol_t::write_t::shard(std::vec
     return results;
 }
 
-dummy_protocol_t::write_response_t dummy_protocol_t::write_t::unshard(std::vector<write_response_t> resps, UNUSED temporary_cache_t *cache) {
+dummy_protocol_t::write_response_t dummy_protocol_t::write_t::unshard(std::vector<write_response_t> resps, UNUSED temporary_cache_t *cache) const {
     rassert(cache != NULL);
     write_response_t combined;
     for (int i = 0; i < (int)resps.size(); i++) {
-        for (std::map<std::string, std::string>::iterator it = resps[i].old_values.begin();
+        for (std::map<std::string, std::string>::const_iterator it = resps[i].old_values.begin();
                 it != resps[i].old_values.end(); it++) {
             rassert(values.find((*it).first) != values.end());
             rassert(combined.old_values.count((*it).first) == 0);
@@ -107,9 +108,9 @@ bool dummy_protocol_t::store_t::is_coherent() {
     return coherent;
 }
 
-repli_timestamp_t dummy_protocol_t::store_t::get_timestamp() {
+state_timestamp_t dummy_protocol_t::store_t::get_timestamp() {
     rassert(!backfilling);
-    return latest;
+    return latest_timestamp;
 }
 
 dummy_protocol_t::read_response_t dummy_protocol_t::store_t::read(read_t read, order_token_t otok, signal_t *interruptor) {
@@ -132,26 +133,24 @@ dummy_protocol_t::read_response_t dummy_protocol_t::store_t::read(read_t read, o
     return resp;
 }
 
-dummy_protocol_t::write_response_t dummy_protocol_t::store_t::write(write_t write, repli_timestamp_t timestamp, order_token_t otok, signal_t *interruptor) {
+dummy_protocol_t::write_response_t dummy_protocol_t::store_t::write(write_t write, transition_timestamp_t timestamp, order_token_t otok, signal_t *interruptor) {
 
     rassert(!backfilling);
     rassert(coherent);
-    rassert(timestamp >= latest);
-    rassert(earliest == latest);
+    rassert(earliest_timestamp == latest_timestamp);
+    rassert(timestamp.timestamp_before() == latest_timestamp);
     order_sink.check_out(otok);
 
     if (interruptor->is_pulsed() && rand() % 2) throw interrupted_exc_t();
 
-    earliest = latest = timestamp;
-
-    if (interruptor->is_pulsed() && rand() % 2) throw interrupted_exc_t();
+    earliest_timestamp = latest_timestamp = timestamp.timestamp_after();
 
     write_response_t resp;
     for (std::map<std::string, std::string>::iterator it = write.values.begin();
             it != write.values.end(); it++) {
         resp.old_values[(*it).first] = values[(*it).first];
         values[(*it).first] = (*it).second;
-        timestamps[(*it).first] = timestamp;
+        timestamps[(*it).first] = timestamp.timestamp_after();
     }
 
     if (rand() % 2 == 0) nap(rand() % 10, interruptor);
@@ -163,13 +162,21 @@ bool dummy_protocol_t::store_t::is_backfilling() {
     return backfilling;
 }
 
+dummy_protocol_t::region_t dummy_protocol_t::store_t::backfill_request_t::get_region() const {
+    return region;
+}
+
+state_timestamp_t dummy_protocol_t::store_t::backfill_request_t::get_timestamp() const {
+    return latest_timestamp;
+}
+
 dummy_protocol_t::store_t::backfill_request_t dummy_protocol_t::store_t::backfillee_begin() {
     rassert(!backfilling);
     backfilling = true;
     backfill_request_t bfr;
     bfr.region = region;
-    bfr.earliest = earliest;
-    bfr.latest = latest;
+    bfr.earliest_timestamp = earliest_timestamp;
+    bfr.latest_timestamp = latest_timestamp;
     return bfr;
 }
 
@@ -178,13 +185,13 @@ void dummy_protocol_t::store_t::backfillee_chunk(backfill_chunk_t chunk) {
     rassert(region.keys.count(chunk.key) != 0);
     values[chunk.key] = chunk.value;
     timestamps[chunk.key] = chunk.timestamp;
-    latest = chunk.timestamp;
+    if (chunk.timestamp > latest_timestamp) latest_timestamp = chunk.timestamp;
 }
 
-void dummy_protocol_t::store_t::backfillee_end(backfill_end_t end) {
+void dummy_protocol_t::store_t::backfillee_end(state_timestamp_t end) {
     rassert(backfilling);
     coherent = true;
-    earliest = latest = end.timestamp;
+    earliest_timestamp = latest_timestamp = end;
     backfilling = false;
 }
 
@@ -194,44 +201,45 @@ void dummy_protocol_t::store_t::backfillee_cancel() {
     backfilling = false;
 }
 
-dummy_protocol_t::store_t::backfill_end_t dummy_protocol_t::store_t::backfiller(backfill_request_t request,
+state_timestamp_t dummy_protocol_t::store_t::backfiller(backfill_request_t request,
     boost::function<void(backfill_chunk_t)> chunk_fun,
     signal_t *interruptor)
 {
     rassert(!backfilling);
     rassert(coherent);
     rassert(request.region == region);
-    rassert(request.latest <= latest);
+    rassert(request.latest_timestamp <= latest_timestamp);
+    rassert(latest_timestamp == earliest_timestamp);
 
     /* Make a copy so we can sleep and still have the correct semantics */
-    std::map<std::string, std::string> snapshot = values;
+    std::map<std::string, std::string> values_snapshot = values;
+    std::map<std::string, state_timestamp_t> timestamps_snapshot = timestamps;
+    state_timestamp_t latest_timestamp_snapshot = latest_timestamp;
 
     if (rand() % 2 == 0) nap(rand() % 10, interruptor);
 
-    for (std::map<std::string, std::string>::iterator it = snapshot.begin();
-            it != snapshot.end(); it++) {
-        if (timestamps[(*it).first] >= request.earliest) {
+    for (std::map<std::string, std::string>::iterator it = values_snapshot.begin();
+            it != values_snapshot.end(); it++) {
+        if (timestamps_snapshot[(*it).first] >= request.earliest_timestamp) {
             backfill_chunk_t chunk;
             chunk.key = (*it).first;
             chunk.value = (*it).second;
-            chunk.timestamp = timestamps[(*it).first];
+            chunk.timestamp = timestamps_snapshot[(*it).first];
             chunk_fun(chunk);
         }
         if (rand() % 2 == 0) nap(rand() % 10, interruptor);
     }
 
-    backfill_end_t end;
-    end.timestamp = latest;
-    return end;
+    return latest_timestamp_snapshot;
 }
 
 dummy_protocol_t::store_t::store_t(region_t r) : region(r), coherent(true), backfilling(false),
-    earliest(repli_timestamp_t::distant_past), latest(earliest)
+    earliest_timestamp(state_timestamp_t::zero()), latest_timestamp(earliest_timestamp)
 {
     for (std::set<std::string>::iterator it = region.keys.begin();
             it != region.keys.end(); it++) {
         values[*it] = "";
-        timestamps[*it] = repli_timestamp_t::distant_past;
+        timestamps[*it] = state_timestamp_t::zero();
     }
 }
 

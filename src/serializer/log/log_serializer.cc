@@ -223,8 +223,6 @@ void log_serializer_t::check_existing(const char *filename, check_callback_t *cb
 }
 
 void *log_serializer_t::malloc() {
-    rassert(state == state_ready || state == state_shutting_down);
-    
     // TODO: we shouldn't use malloc_aligned here, we should use our
     // custom allocation system instead (and use corresponding
     // free). This is tough because serializer object may not be on
@@ -240,8 +238,6 @@ void *log_serializer_t::malloc() {
 }
 
 void *log_serializer_t::clone(void *_data) {
-    rassert(state == state_ready || state == state_shutting_down);
-    
     // TODO: we shouldn't use malloc_aligned here, we should use our
     // custom allocation system instead (and use corresponding
     // free). This is tough because serializer object may not be on
@@ -254,8 +250,6 @@ void *log_serializer_t::clone(void *_data) {
 }
 
 void log_serializer_t::free(void *ptr) {
-    rassert(state == state_ready || state == state_shutting_down);
-
     char *data = reinterpret_cast<char *>(ptr);
     data -= sizeof(ls_buf_data_t);
     ::free(reinterpret_cast<void *>(data));
