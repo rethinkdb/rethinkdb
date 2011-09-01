@@ -62,9 +62,14 @@ public:
         }
         rassert(token, "buffer snapshot lacks both token and data");
 
+
         // Use a temporary to avoid putting our data member in an allocated-but-uninitialized state.
-        void *tmp = cache->serializer->malloc();
-        cache->serializer->block_read(token, tmp, io_account);
+        void *tmp;
+        {
+            on_thread_t th(cache->serializer->home_thread());
+            tmp = cache->serializer->malloc();
+            cache->serializer->block_read(token, tmp, io_account);
+        }
         rassert(!data, "data changed while holding mutex");
         data = tmp;
 

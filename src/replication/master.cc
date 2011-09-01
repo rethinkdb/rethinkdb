@@ -24,6 +24,7 @@ master_t::master_t(int port, btree_key_value_store_t *kv_store, replication_conf
     get_gate_(get_gate),
     set_gate_(set_gate),
     backfill_storer_(kv_store),
+    interrupt_streaming_cond_(NULL),
     dont_wait_for_slave_control(this)
 {
     logINF("Waiting for initial slave to connect on port %d...\n", listener_port_);
