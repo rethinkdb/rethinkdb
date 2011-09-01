@@ -45,14 +45,14 @@ public:
 
     public:
         /* Returns true if this `region_t` is a superset of `x`. */
-        bool contains(region_t x) THROWS_NOTHING;
+        bool contains(region_t x) const THROWS_NOTHING;
 
         /* Returns true if this `region_t` overlaps `x`. */
-        bool overlaps(region_t x) THROWS_NOTHING;
+        bool overlaps(region_t x) const THROWS_NOTHING;
 
         /* Returns the `region_t` containing all keys both in this `region_t`
         and `x`. */
-        region_t intersection(region_t x) THROWS_NOTHING;
+        region_t intersection(region_t x) const THROWS_NOTHING;
 
         /* Other requirements: `region_t` must be serializable. The "==" and
         "!=" operators must work on `region_t`. `region_t` must act like a data
@@ -94,7 +94,7 @@ public:
 
     public:
         /* Indicates which keys the read depends on. */
-        region_t get_region() THROWS_NOTHING;
+        region_t get_region() const THROWS_NOTHING;
 
         /* Breaks the read into several sub-reads for individual regions.
         [Precondition] union(regions) == read.get_region()
@@ -102,13 +102,13 @@ public:
         [Postcondition] read.shard(regions).size() == regions.size()
         [Postcondition] read.shard(regions)[i].get_region() IsSubsetOf regions[i]
         */
-        std::vector<read_t> shard(std::vector<region_t> regions) THROWS_NOTHING;
+        std::vector<read_t> shard(std::vector<region_t> regions) const THROWS_NOTHING;
 
         /* Recombines the responses to a group of reads created by
         `read_t::shard()`.
         [Precondition] responses[i] == store->read(read.shard(regions)[i], ...)
         */
-        read_response_t unshard(std::vector<read_response_t> responses, temporary_cache_t *cache) THROWS_NOTHING;
+        read_response_t unshard(std::vector<read_response_t> responses, temporary_cache_t *cache) const THROWS_NOTHING;
 
         /* Other requirements: `read_t` must be serializable. `read_t` must act
         like a data type. */
@@ -130,18 +130,18 @@ public:
 
     public:
         /* Indicates which keys the write depends on or will modify. */
-        region_t get_region() THROWS_NOTHING;
+        region_t get_region() const THROWS_NOTHING;
 
         /* Breaks the write into several sub-writes for individual regions.
         Preconditions and postconditions are the same as for `read_t::shard()`.
         */
-        std::vector<write_t> shard(std::vector<region_t> regions) THROWS_NOTHING;
+        std::vector<write_t> shard(std::vector<region_t> regions) const THROWS_NOTHING;
 
         /* Recombines the responses to a group of reads created by
         `write_t::shard()`.
         [Precondition] responses[i] == store->write(write.shard(regions)[i], ...)
         */
-        write_response_t unshard(std::vector<write_response_t> responses, temporary_cache_t *cache) THROWS_NOTHING;
+        write_response_t unshard(std::vector<write_response_t> responses, temporary_cache_t *cache) const THROWS_NOTHING;
 
         /* Other requirements: `write_t` must be serializable. `write_t` must
         act like a data type. */
@@ -218,11 +218,11 @@ public:
         public:
             /* Returns the same value as the backfillee's `get_region()` method.
             */
-            region_t get_region() THROWS_NOTHING;
+            region_t get_region() const THROWS_NOTHING;
 
             /* Returns the same value as the backfillee's `get_timestamp()`
             method. */
-            state_timestamp_t get_timestamp() THROWS_NOTHING;
+            state_timestamp_t get_timestamp() const THROWS_NOTHING;
 
             /* Other requirements: `backfill_request_t` must be serializable.
             `backfill_request_t` must act like a data type. */
@@ -335,8 +335,8 @@ public:
     [Precondition] The regions in `goals` must not overlap.
     [Precondition] The union of the regions in `recyclees` must be the same
         as the union of the regions in `goals`.
-    [Postcondition] store_manager.rebalance(recyclees, goals)[i].get_region() == goals[i]
-    [Postcondition] store_manager.rebalance(recyclees, goals).size() == goals.size()
+    [Postcondition] rebalance(recyclees, goals).size() == goals.size()
+    [Postcondition] rebalance(recyclees, goals)[i].get_region() == goals[i]
     [May block] */
     static std::vector<store_t *> rebalance(
         std::vector<store_t *> recyclees,

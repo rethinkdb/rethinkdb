@@ -26,9 +26,9 @@ public:
     key_range_t();   /* creates a range containing all keys */
     key_range_t(bound_t, store_key_t, bound_t, store_key_t);
 
-    bool contains(key_range_t range);
-    bool overlaps(key_range_t range);
-    key_range_t intersection(key_range_t range);
+    bool contains(key_range_t range) const;
+    bool overlaps(key_range_t range) const;
+    key_range_t intersection(key_range_t range) const;
 
     /* If `!right_unbounded`, the range contains all keys which are greater than
     or equal to `left` and less than `right`. If `right_unbounded`, it contains
@@ -66,9 +66,9 @@ public:
     class read_t {
 
     public:
-        region_t get_region();
-        std::vector<read_t> shard(std::vector<region_t> regions);
-        read_response_t unshard(std::vector<read_response_t> responses, temporary_cache_t *cache);
+        region_t get_region() const;
+        std::vector<read_t> shard(std::vector<region_t> regions) const;
+        read_response_t unshard(std::vector<read_response_t> responses, temporary_cache_t *cache) const;
 
         read_t() { }
         read_t(const read_t& r) : query(r.query) { }
@@ -96,9 +96,9 @@ public:
     class write_t {
 
     public:
-        region_t get_region();
-        std::vector<write_t> shard(std::vector<region_t> regions);
-        write_response_t unshard(std::vector<write_response_t> responses, temporary_cache_t *cache);
+        region_t get_region() const;
+        std::vector<write_t> shard(std::vector<region_t> regions) const;
+        write_response_t unshard(std::vector<write_response_t> responses, temporary_cache_t *cache) const;
 
         write_t() { }
         write_t(const write_t& w) : mutation(w.mutation), proposed_cas(w.proposed_cas) { }

@@ -23,9 +23,9 @@ public:
     class region_t {
 
     public:
-        bool contains(const region_t &r);
-        bool overlaps(const region_t &r);
-        region_t intersection(const region_t &r);
+        bool contains(const region_t &r) const;
+        bool overlaps(const region_t &r) const;
+        region_t intersection(const region_t &r) const;
 
         std::set<std::string> keys;
     };
@@ -43,9 +43,9 @@ public:
     class read_t {
 
     public:
-        region_t get_region();
-        std::vector<read_t> shard(std::vector<region_t> regions);
-        read_response_t unshard(std::vector<read_response_t> resps, temporary_cache_t *cache);
+        region_t get_region() const;
+        std::vector<read_t> shard(std::vector<region_t> regions) const;
+        read_response_t unshard(std::vector<read_response_t> resps, temporary_cache_t *cache) const;
 
         region_t keys;
     };
@@ -59,9 +59,9 @@ public:
     class write_t {
 
     public:
-        region_t get_region();
-        std::vector<write_t> shard(std::vector<region_t> regions);
-        write_response_t unshard(std::vector<write_response_t> resps, temporary_cache_t *cache);
+        region_t get_region() const;
+        std::vector<write_t> shard(std::vector<region_t> regions) const;
+        write_response_t unshard(std::vector<write_response_t> resps, temporary_cache_t *cache) const;
 
         std::map<std::string, std::string> values;
     };
@@ -81,8 +81,8 @@ public:
         class backfill_request_t {
 
         public:
-            region_t get_region();
-            state_timestamp_t get_timestamp();
+            region_t get_region() const;
+            state_timestamp_t get_timestamp() const;
 
             region_t region;
             state_timestamp_t earliest_timestamp, latest_timestamp;
