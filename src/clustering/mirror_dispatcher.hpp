@@ -8,6 +8,7 @@
 #include "rpc/metadata/view.hpp"
 #include "rpc/metadata/view/field.hpp"
 #include "utils.hpp"
+#include "timestamps.hpp"
 
 /* The implementation of `mirror_dispatcher_t` is a mess, but the interface is
 very clean. */
@@ -52,7 +53,7 @@ public:
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t r, order_token_t tok) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t);
 
-    typename protocol_t::write_response_t write(typename protocol_t::write_t w, repli_timestamp_t ts, order_token_t tok) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t);
+    typename protocol_t::write_response_t write(typename protocol_t::write_t w, transition_timestamp_t ts, order_token_t tok) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t);
 
 private:
     /* `queued_write_t` represents a write that has been sent to some nodes but
@@ -90,7 +91,7 @@ private:
         };
 
         static ref_t spawn(intrusive_list_t<queued_write_t> *q,
-                typename protocol_t::write_t w, repli_timestamp_t ts, order_token_t otok,
+                typename protocol_t::write_t w, transition_timestamp_t ts, order_token_t otok,
                 int target_ack_count, promise_t<bool> *done_promise) THROWS_NOTHING {
             ASSERT_FINITE_CORO_WAITING;
             queued_write_t *write = new queued_write_t(q, w, ts, otok, target_ack_count, done_promise);
@@ -106,12 +107,12 @@ private:
         }
 
         typename protocol_t::write_t write;
-        repli_timestamp_t timestamp;
+        transition_timestamp_t timestamp;
         order_token_t order_token;
 
     private:
         queued_write_t(intrusive_list_t<queued_write_t> *q,
-                typename protocol_t::write_t w, repli_timestamp_t ts, order_token_t otok,
+                typename protocol_t::write_t w, transition_timestamp_t ts, order_token_t otok,
                 int target_ack_count_, promise_t<bool> *done_promise_) :
             write(w), timestamp(ts), order_token(otok),
             queue(q), ref_count(0),

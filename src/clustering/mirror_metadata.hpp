@@ -1,16 +1,17 @@
 #ifndef __CLUSTERING_MIRROR_METADATA_HPP__
 #define __CLUSTERING_MIRROR_METADATA_HPP__
 
+#include "errors.hpp"
+#include <boost/uuid/uuid.hpp>
+#include <boost/serialization/map.hpp>
+
 #include "clustering/backfill_metadata.hpp"
 #include "clustering/registration_metadata.hpp"
 #include "clustering/resource.hpp"
 #include "concurrency/fifo_checker.hpp"
-#include "errors.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/metadata/semilattice/map.hpp"
-
-#include <boost/uuid/uuid.hpp>
-#include <boost/serialization/map.hpp>
+#include "timestamps.hpp"
 
 /* `mirror_dispatcher_metadata_t` is the metadata that the master exposes to the
 mirrors. */
@@ -32,13 +33,13 @@ public:
 
     public:
         typedef async_mailbox_t<void(
-            typename protocol_t::write_t, repli_timestamp_t, order_token_t,
+            typename protocol_t::write_t, transition_timestamp_t, order_token_t,
             async_mailbox_t<void()>::address_t
             )> write_mailbox_t;
         typename write_mailbox_t::address_t write_mailbox;
 
         typedef async_mailbox_t<void(
-            typename protocol_t::write_t, repli_timestamp_t, order_token_t,
+            typename protocol_t::write_t, transition_timestamp_t, order_token_t,
             typename async_mailbox_t<void(typename protocol_t::write_response_t)>::address_t
             )> writeread_mailbox_t;
         typename writeread_mailbox_t::address_t writeread_mailbox;

@@ -46,7 +46,7 @@ void run_read_write_test(mailbox_cluster_t *cluster,
         metadata_readwrite_view_t<mirror_dispatcher_metadata_t<dummy_protocol_t> > *metadata_view,
         mirror_dispatcher_t<dummy_protocol_t> *dispatcher)
 {
-    repli_timestamp_t next_timestamp = repli_timestamp_t::distant_past;
+    transition_timestamp_t next_timestamp = transition_timestamp_t::first();
 
     order_source_t order_source;
 
@@ -69,6 +69,7 @@ void run_read_write_test(mailbox_cluster_t *cluster,
         std::string key = std::string(1, 'a' + rand() % 26);
         w.values[key] = values_inserted[key] = strprintf("%d", i);
         dispatcher->write(w, next_timestamp, order_source.check_in("unittest"));
+        next_timestamp = next_timestamp.next();
     }
 
     /* Now send some reads */

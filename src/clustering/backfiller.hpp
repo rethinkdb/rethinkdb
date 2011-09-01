@@ -1,11 +1,13 @@
 #ifndef __CLUSTERING_BACKFILLER_HPP__
 #define __CLUSTERING_BACKFILLER_HPP__
 
+#include <map>
+
 #include "clustering/backfill_metadata.hpp"
-#include "rpc/metadata/view.hpp"
 #include "clustering/resource.hpp"
 #include "concurrency/wait_any.hpp"
-#include <map>
+#include "rpc/metadata/view.hpp"
+#include "timestamps.hpp"
 
 template<class protocol_t>
 struct backfiller_t :
@@ -56,7 +58,7 @@ private:
         session_id_t session_id,
         typename protocol_t::store_t::backfill_request_t request,
         typename async_mailbox_t<void(typename protocol_t::store_t::backfill_chunk_t)>::address_t chunk_cont,
-        typename async_mailbox_t<void(typename protocol_t::store_t::backfill_end_t)>::address_t end_cont) {
+        typename async_mailbox_t<void(state_timestamp_t)>::address_t end_cont) {
 
         assert_thread();
 
@@ -84,7 +86,7 @@ private:
 
         /* Perform the backfill */
         bool success;
-        typename protocol_t::store_t::backfill_end_t end;
+        state_timestamp_t end;
         try {
             end = store->backfiller(
                 request,

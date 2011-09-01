@@ -7,6 +7,7 @@
 #include "concurrency/coro_fifo.hpp"
 #include "rpc/metadata/view/field.hpp"
 #include "rpc/metadata/view/member.hpp"
+#include "timestamps.hpp"
 
 /* TODO: Filter out writes that we got both via a backfill and from the master.
 */
@@ -184,7 +185,7 @@ private:
     }
 
     void on_write(auto_drainer_t::lock_t keepalive,
-            typename protocol_t::write_t write, repli_timestamp_t ts, order_token_t tok,
+            typename protocol_t::write_t write, transition_timestamp_t ts, order_token_t tok,
             async_mailbox_t<void()>::address_t ack_addr) {
 
         try {
@@ -208,7 +209,7 @@ private:
     }
 
     void on_writeread(auto_drainer_t::lock_t keepalive,
-            typename protocol_t::write_t write, repli_timestamp_t ts, order_token_t tok,
+            typename protocol_t::write_t write, transition_timestamp_t ts, order_token_t tok,
             typename async_mailbox_t<void(typename protocol_t::write_response_t)>::address_t resp_addr) {
 
         try {

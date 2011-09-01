@@ -3,7 +3,7 @@
 /* Functions to send a read or write to a mirror and wait for a response. */
 
 template<class protocol_t>
-void mirror_data_write(mailbox_cluster_t *cluster, const typename mirror_dispatcher_metadata_t<protocol_t>::mirror_data_t &mirror, typename protocol_t::write_t w, repli_timestamp_t ts, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+void mirror_data_write(mailbox_cluster_t *cluster, const typename mirror_dispatcher_metadata_t<protocol_t>::mirror_data_t &mirror, typename protocol_t::write_t w, transition_timestamp_t ts, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
 
     cond_t ack_cond;
     async_mailbox_t<void()> ack_mailbox(
@@ -20,7 +20,7 @@ void mirror_data_write(mailbox_cluster_t *cluster, const typename mirror_dispatc
 }
 
 template<class protocol_t>
-typename protocol_t::write_response_t mirror_data_writeread(mailbox_cluster_t *cluster, const typename mirror_dispatcher_metadata_t<protocol_t>::mirror_data_t &mirror, typename protocol_t::write_t w, repli_timestamp_t ts, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+typename protocol_t::write_response_t mirror_data_writeread(mailbox_cluster_t *cluster, const typename mirror_dispatcher_metadata_t<protocol_t>::mirror_data_t &mirror, typename protocol_t::write_t w, transition_timestamp_t ts, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
 
     promise_t<typename protocol_t::write_response_t> resp_cond;
     async_mailbox_t<void(typename protocol_t::write_response_t)> resp_mailbox(
@@ -63,7 +63,7 @@ typename protocol_t::read_response_t mirror_dispatcher_t<protocol_t>::read(typen
 }
 
 template<class protocol_t>
-typename protocol_t::write_response_t mirror_dispatcher_t<protocol_t>::write(typename protocol_t::write_t w, repli_timestamp_t ts, order_token_t tok) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t) {
+typename protocol_t::write_response_t mirror_dispatcher_t<protocol_t>::write(typename protocol_t::write_t w, transition_timestamp_t ts, order_token_t tok) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t) {
 
     /* TODO: Make `target_ack_count` configurable */
     int target_ack_count = 1;

@@ -19,7 +19,7 @@ void run_backfill_test() {
     /* Insert 10 values into both stores, then another 10 into only
     `backfiller_store` and not `backfillee_store` */
 
-    repli_timestamp_t ts = repli_timestamp_t::distant_past;
+    transition_timestamp_t ts = transition_timestamp_t::first();
     for (int i = 0; i < 20; i++) {
         dummy_protocol_t::write_t w;
         std::string key = std::string(1, 'a' + rand() % 26);
@@ -61,10 +61,10 @@ void run_backfill_test() {
     for (char c = 'a'; c <= 'z'; c++) {
         std::string key(1, c);
         EXPECT_EQ(backfiller_store.values[key], backfillee_store.values[key]);
-        EXPECT_EQ(backfiller_store.timestamps[key], backfillee_store.timestamps[key]);
+        EXPECT_TRUE(backfiller_store.timestamps[key] == backfillee_store.timestamps[key]);
     }
 
-    EXPECT_EQ(backfiller_store.get_timestamp(), backfillee_store.get_timestamp());
+    EXPECT_TRUE(backfiller_store.get_timestamp() == backfillee_store.get_timestamp());
     EXPECT_TRUE(backfiller_store.is_coherent());
     EXPECT_TRUE(backfillee_store.is_coherent());
     EXPECT_FALSE(backfiller_store.is_backfilling());

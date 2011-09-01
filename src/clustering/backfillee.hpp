@@ -38,15 +38,11 @@ void backfill(
     /* Set up mailboxes and send off the backfill request */
 
     async_mailbox_t<void(typename protocol_t::store_t::backfill_chunk_t)> backfill_mailbox(
-        cluster,
-        boost::bind(&protocol_t::store_t::backfillee_chunk, store, _1)
-        );
+        cluster, boost::bind(&protocol_t::store_t::backfillee_chunk, store, _1));
 
-    promise_t<typename protocol_t::store_t::backfill_end_t> backfill_is_done;
-    async_mailbox_t<void(typename protocol_t::store_t::backfill_end_t)> backfill_done_mailbox(
-        cluster,
-        boost::bind(&promise_t<typename protocol_t::store_t::backfill_end_t>::pulse, &backfill_is_done, _1)
-        );
+    promise_t<state_timestamp_t> backfill_is_done;
+    async_mailbox_t<void(state_timestamp_t)> backfill_done_mailbox(
+        cluster, boost::bind(&promise_t<state_timestamp_t>::pulse, &backfill_is_done, _1));
 
     send(cluster,
         backfiller.access().backfill_mailbox,

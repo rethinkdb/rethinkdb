@@ -98,7 +98,7 @@ public:
 
             region_t region;
             state_timestamp_t earliest_timestamp, latest_timestamp;
-            RDB_MAKE_ME_SERIALIZABLE_3(region, earliest, latest);
+            RDB_MAKE_ME_SERIALIZABLE_3(region, earliest_timestamp, latest_timestamp);
         };
 
         class backfill_chunk_t {

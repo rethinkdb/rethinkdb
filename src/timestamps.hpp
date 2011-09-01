@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#include "rpc/serialize_macros.hpp"
+
 /* These are the timestamp types used by the clustering code.
 `repli_timestamp_t`, which is used internally within the btree code, is defined
 elsewhere. */
@@ -31,6 +33,7 @@ public:
 private:
     friend class transition_timestamp_t;
     uint64_t num;
+    RDB_MAKE_ME_SERIALIZABLE_1(num);
 };
 
 class transition_timestamp_t {
@@ -66,6 +69,7 @@ public:
 
 private:
     state_timestamp_t before;
+    RDB_MAKE_ME_SERIALIZABLE_1(before);
 };
 
 #endif /* __TIMESTAMPS_HPP__ */
