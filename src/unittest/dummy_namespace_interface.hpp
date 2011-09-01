@@ -5,10 +5,11 @@
 #include <boost/bind.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
 
+#include "concurrency/pmap.hpp"
 #include "namespace_interface.hpp"
 #include "serializer/config.hpp"
 #include "serializer/translator.hpp"
-#include "concurrency/pmap.hpp"
+#include "timestamps.hpp"
 #include "unittest/unittest_utils.hpp"
 
 namespace unittest {
@@ -18,7 +19,7 @@ struct dummy_timestamper_t {
 
 public:
     dummy_timestamper_t(typename protocol_t::store_t *_next)
-        : next(_next), timestamp(repli_timestamp_t::distant_past) { }
+        : next(_next), timestamp(transition_timestamp_t::first()) { }
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t read, order_token_t tok) {
         cond_t interruptor;
@@ -27,14 +28,14 @@ public:
 
     typename protocol_t::write_response_t write(typename protocol_t::write_t write, order_token_t tok) {
         cond_t interruptor;
-        repli_timestamp_t ts = timestamp;
+        transition_timestamp_t ts = timestamp;
         timestamp = timestamp.next();
         return next->write(write, ts, tok, &interruptor);
     }
 
 private:
     typename protocol_t::store_t *next;
-    repli_timestamp_t timestamp;
+    transition_timestamp_t timestamp;
 };
 
 template<class protocol_t>
