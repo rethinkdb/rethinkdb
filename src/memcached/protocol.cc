@@ -50,7 +50,7 @@ key_range_t::key_range_t(bound_t lm, store_key_t l, bound_t rm, store_key_t r) {
     }
 }
 
-bool key_range_t::contains(key_range_t range) {
+bool key_range_t::contains(key_range_t range) const {
     if (range.left < left) return false;
     if (!right_unbounded) {
         if (range.right_unbounded) return false;
@@ -59,13 +59,13 @@ bool key_range_t::contains(key_range_t range) {
     return true;
 }
 
-bool key_range_t::overlaps(key_range_t range) {
+bool key_range_t::overlaps(key_range_t range) const {
     if (!      right_unbounded && range.left >=       right) return false;
     if (!range.right_unbounded &&       left >= range.right) return false;
     return true;
 }
 
-key_range_t key_range_t::intersection(key_range_t range) {
+key_range_t key_range_t::intersection(key_range_t range) const {
     if (!overlaps(range)) return key_range_t();
     key_range_t ixn;
     ixn.left = left < range.left ? range.left : left;
@@ -118,7 +118,7 @@ struct read_get_region_visitor_t : public boost::static_visitor<key_range_t> {
     }
 };
 
-key_range_t memcached_protocol_t::read_t::get_region() {
+key_range_t memcached_protocol_t::read_t::get_region() const {
     read_get_region_visitor_t v;
     return boost::apply_visitor(v, query);
 }
@@ -160,7 +160,7 @@ struct read_shard_visitor_t : public boost::static_visitor<std::vector<memcached
     }
 };
 
-std::vector<memcached_protocol_t::read_t> memcached_protocol_t::read_t::shard(std::vector<key_range_t> regions) {
+std::vector<memcached_protocol_t::read_t> memcached_protocol_t::read_t::shard(std::vector<key_range_t> regions) const {
     read_shard_visitor_t v(regions);
     return boost::apply_visitor(v, query);
 }
@@ -185,7 +185,7 @@ struct read_unshard_visitor_t : public boost::static_visitor<memcached_protocol_
     }
 };
 
-memcached_protocol_t::read_response_t memcached_protocol_t::read_t::unshard(std::vector<read_response_t> responses, UNUSED temporary_cache_t *cache) {
+memcached_protocol_t::read_response_t memcached_protocol_t::read_t::unshard(std::vector<read_response_t> responses, UNUSED temporary_cache_t *cache) const {
     read_unshard_visitor_t v(responses);
     return boost::apply_visitor(v, query);
 }
@@ -200,14 +200,14 @@ struct write_get_region_visitor_t : public boost::static_visitor<key_range_t> {
     }
 };
 
-key_range_t memcached_protocol_t::write_t::get_region() {
+key_range_t memcached_protocol_t::write_t::get_region() const {
     write_get_region_visitor_t v;
     return apply_visitor(v, mutation);
 }
 
 /* `memcached_protocol_t::write_t::shard()` */
 
-std::vector<memcached_protocol_t::write_t> memcached_protocol_t::write_t::shard(UNUSED std::vector<key_range_t> regions) {
+std::vector<memcached_protocol_t::write_t> memcached_protocol_t::write_t::shard(UNUSED std::vector<key_range_t> regions) const {
     rassert(regions.size() == 1);
     std::vector<memcached_protocol_t::write_t> vec;
     vec.push_back(*this);
@@ -216,7 +216,7 @@ std::vector<memcached_protocol_t::write_t> memcached_protocol_t::write_t::shard(
 
 /* `memcached_protocol_t::write_response_t::unshard()` */
 
-memcached_protocol_t::write_response_t memcached_protocol_t::write_t::unshard(std::vector<memcached_protocol_t::write_response_t> responses, UNUSED temporary_cache_t *cache) {
+memcached_protocol_t::write_response_t memcached_protocol_t::write_t::unshard(std::vector<memcached_protocol_t::write_response_t> responses, UNUSED temporary_cache_t *cache) const {
     /* TODO: Make sure the request type matches the response type */
     rassert(responses.size() == 1);
     return responses[0];
@@ -300,7 +300,8 @@ struct write_perform_visitor_t : public boost::static_visitor<memcached_protocol
     }
 };
 
-memcached_protocol_t::write_response_t memcached_protocol_t::store_t::write(memcached_protocol_t::write_t write, repli_timestamp_t timestamp, order_token_t tok, UNUSED signal_t *interruptor) {
-    write_perform_visitor_t v(&btree, castime_t(write.proposed_cas, timestamp), tok);
+memcached_protocol_t::write_response_t memcached_protocol_t::store_t::write(memcached_protocol_t::write_t write, UNUSED transition_timestamp_t timestamp, order_token_t tok, UNUSED signal_t *interruptor) {
+    // TODO: Hook up timestamp
+    write_perform_visitor_t v(&btree, castime_t(write.proposed_cas, repli_timestamp_t::invalid), tok);
     return boost::apply_visitor(v, write.mutation);
 }
