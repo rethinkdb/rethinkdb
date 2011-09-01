@@ -181,7 +181,7 @@ public:
 
         /* Returns the store's current timestamp.
         [Precondition] !store.is_backfilling() */
-        repli_timestamp_t get_timestamp() THROWS_NOTHING;
+        state_timestamp_t get_timestamp() THROWS_NOTHING;
 
         /* Performs a read operation on the store. May not modify the store's
         state in any way. If `interruptor` is pulsed, then `read()` must either
@@ -204,11 +204,11 @@ public:
         [Precondition] write.get_region() IsSubsetOf store.get_region()
         [Precondition] store.is_coherent()
         [Precondition] !store.is_backfilling()
-        [Precondition] timestamp >= store.get_timestamp()
-        [Postcondition] store.get_timestamp() == timestamp
+        [Precondition] store.get_timestamp() == timestamp.timestamp_before()
+        [Postcondition] store.get_timestamp() == timestamp.timestamp_after()
         [May block]
         */
-        write_response_t write(write_t write, repli_timestamp_t timestamp, order_token_t otok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+        write_response_t write(write_t write, transition_timestamp_t timestamp, order_token_t otok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
         /* Returns `true` if the store is in the middle of a backfill. */
         bool is_backfilling();
@@ -216,17 +216,13 @@ public:
         class backfill_request_t {
 
         public:
-            /* You don't have to actually implement `get_region()` and
-            `get_timestamp()`; they're only here to make it easier to describe
-            preconditions and postconditions. */
-
             /* Returns the same value as the backfillee's `get_region()` method.
             */
             region_t get_region() THROWS_NOTHING;
 
             /* Returns the same value as the backfillee's `get_timestamp()`
             method. */
-            repli_timestamp_t get_timestamp() THROWS_NOTHING;
+            state_timestamp_t get_timestamp() THROWS_NOTHING;
 
             /* Other requirements: `backfill_request_t` must be serializable.
             `backfill_request_t` must act like a data type. */
@@ -239,15 +235,6 @@ public:
 
             /* Other requirements: `backfill_chunk_t` must be serializable.
             `backfill_chunk_t` must act like a data type. */
-
-        private:
-            ?
-        };
-
-        class backfill_end_t {
-
-            /* Other requirements: `backfill_end_t` must be serializable.
-            `backfill_end_t` must act like a data type. */
 
         private:
             ?
@@ -271,8 +258,9 @@ public:
         [Precondition] store.is_backfilling()
         [Postcondition] !store.is_backfilling()
         [Postcondition] store.is_coherent()
+        [Postcondition] store.get_timestamp() == timestamp
         [May block] */
-        void backfillee_end(backfill_end_t) THROWS_NOTHING;
+        void backfillee_end(state_timestamp_t timestamp) THROWS_NOTHING;
 
         /* Notifies that the backfill won't be finished because something went
         wrong.
@@ -286,7 +274,7 @@ public:
         value of the backfillee's `backfillee_begin()` method. `backfiller()`
         should call `chunk_fun` with `backfill_chunk_t`s to be passed to the
         backfillee's `backfillee_chunk()` method. `backfiller()` should block
-        until the backfill is done, and then return a `backfill_end_t` to be
+        until the backfill is done, and then return a `state_timestamp_t` to be
         passed to the backfillee's `backfillee_end()` method. If `interruptor`
         is pulsed before the backfill is over, then `backfiller()` must either
         return or throw `interrupted_exc_t` within a constant amount of time. If
@@ -295,8 +283,12 @@ public:
         [Precondition] request.get_timestamp() <= store.get_timestamp()
         [Precondition] !store.is_backfilling()
         [Precondition] store.is_coherent()
+        [Postcondition]
+            state_timestamp_t begin_timestamp = store.get_timestamp();
+            state_timestamp_t end = store.backfiller(request, chunk_fun, interruptor);
+            assert(end == begin_timestamp);
         [May block] */
-        backfill_end_t backfiller(
+        state_timestamp_t backfiller(
             backfill_request_t request,
             boost::function<void(backfill_chunk_t)> chunk_fun,
             signal_t *interruptor)
@@ -308,7 +300,7 @@ public:
 
         void backfill(store_t *backfillee, store_t *backfiller, signal_t *interruptor) {
             backfill_request_t req = backfillee->backfillee_begin();
-            backfill_end_t end;
+            state_timestamp_t end;
             try {
                 end = backfiller->backfiller(
                     req,

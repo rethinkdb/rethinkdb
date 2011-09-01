@@ -300,7 +300,8 @@ struct write_perform_visitor_t : public boost::static_visitor<memcached_protocol
     }
 };
 
-memcached_protocol_t::write_response_t memcached_protocol_t::store_t::write(memcached_protocol_t::write_t write, repli_timestamp_t timestamp, order_token_t tok, UNUSED signal_t *interruptor) {
-    write_perform_visitor_t v(&btree, castime_t(write.proposed_cas, timestamp), tok);
+memcached_protocol_t::write_response_t memcached_protocol_t::store_t::write(memcached_protocol_t::write_t write, UNUSED transition_timestamp_t timestamp, order_token_t tok, UNUSED signal_t *interruptor) {
+    // TODO: Hook up timestamp
+    write_perform_visitor_t v(&btree, castime_t(write.proposed_cas, repli_timestamp_t::invalid), tok);
     return boost::apply_visitor(v, write.mutation);
 }

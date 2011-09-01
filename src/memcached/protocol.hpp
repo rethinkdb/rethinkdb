@@ -10,6 +10,7 @@
 #include "buffer_cache/buffer_cache.hpp"
 #include "memcached/queries.hpp"
 #include "namespace_interface.hpp"
+#include "timestamps.hpp"
 
 /* `key_range_t` represents a contiguous set of keys. */
 
@@ -130,7 +131,7 @@ public:
         implemented when backfilling is implemented.) */
 
         read_response_t read(read_t read, order_token_t tok, signal_t *interruptor);
-        write_response_t write(write_t write, repli_timestamp_t timestamp, order_token_t tok, signal_t *interruptor);
+        write_response_t write(write_t write, transition_timestamp_t timestamp, order_token_t tok, signal_t *interruptor);
 
         bool is_backfilling() { return false; }
 
