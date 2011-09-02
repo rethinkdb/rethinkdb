@@ -25,7 +25,7 @@ class mapred_read_response_t;
 /* a point read represents reading a single key from the database */
 class point_read_t {
 private:
-    friend class read_enactor_vistor_t;
+    friend class read_functor;
     std::string key;
     boost::optional<std::pair<int, int> > range;
 public:

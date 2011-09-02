@@ -17,13 +17,6 @@
 namespace riak {
 class temporary_cache_t;
 
-/* this class is used to actually enact a read_t */
-class read_enactor_vistor_t : public boost::static_visitor<read_response_t> {
-    read_response_t operator()(point_read_t, riak_interface_t *);
-    read_response_t operator()(bucket_read_t, riak_interface_t *);
-    read_response_t operator()(mapred_read_t, riak_interface_t *);
-};
-
 
 /* Riak store */
 

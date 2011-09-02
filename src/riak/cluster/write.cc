@@ -44,4 +44,26 @@ std::vector<write_t> write_t::shard(std::vector<region_t> regions) {
     return boost::apply_visitor(write_shard_functor(), internal, regions_variant);
 }
 
+struct write_response_unshard_functor : public boost::static_visitor<write_response_t> {
+    write_response_t operator()(set_write_response_t, set_write_response_t) const { unreachable(); }
+    write_response_t operator()(set_write_response_t, delete_write_response_t) const { unreachable(); }
+    write_response_t operator()(delete_write_response_t, set_write_response_t) const { unreachable(); }
+    write_response_t operator()(delete_write_response_t, delete_write_response_t) const { unreachable(); }
+};
+
+write_response_t unshard(std::vector<write_response_t> responses, temporary_cache_t *) {
+    rassert(!responses.empty());
+    while (responses.size() != 1) {
+        //notice if copy constructors for these read responses are expensive this could become kind of slow
+        write_response_t combined = boost::apply_visitor(write_response_unshard_functor(), *(responses.rend()), *(responses.rend() + 1));
+
+        responses.pop_back();
+        responses.pop_back();
+
+        responses.push_back(combined);
+    }
+
+    return responses.front();
+}
+
 } //namespace riak 

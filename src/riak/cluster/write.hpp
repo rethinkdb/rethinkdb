@@ -12,6 +12,7 @@ class write_t;
 
 class set_write_t {
 private:
+    friend class write_functor;
     object_t object;
     boost::optional<etag_cond_spec_t> etag_cond_spec;
     boost::optional<time_cond_spec_t> time_cond_spec;
@@ -32,6 +33,7 @@ class set_write_response_t {
 
 class delete_write_t {
 private:
+    friend class write_functor;
     std::string key;
 public:
     region_t get_region();
@@ -49,7 +51,7 @@ typedef boost::variant<set_write_response_t, delete_write_response_t> write_resp
 typedef write_response_variant_t write_response_t;
 
 class write_t {
-private:
+public:
     write_variant_t internal;
 public:
     write_t(set_write_t _internal) : internal(_internal) { }

@@ -1,4 +1,5 @@
 #include "riak/cluster/read.hpp"
+#include "riak/cluster/utils.hpp"
 
 namespace riak {
 point_read_t::point_read_t(std::string _key) 
@@ -20,9 +21,7 @@ std::vector<read_t> point_read_t::shard(std::vector<region_t> regions) {
     region_t region = get_region();
     rassert(regions[0].overlaps(region));
 
-    std::vector<read_t> res;
-    res.push_back(*this);
-    return res;
+    return utils::singleton_vector(read_t(*this));
 }
 
 region_t bucket_read_t::get_region() const {
