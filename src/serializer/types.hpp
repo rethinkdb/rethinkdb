@@ -194,4 +194,38 @@ struct serializer_traits_t<serializer_t> {
 // TODO: time_t's size is system-dependent.
 typedef time_t creation_timestamp_t;
 
+
+class serializer_data_ptr_t {
+public:
+    serializer_data_ptr_t() : ptr_(0) { }
+    // TODO: Get rid of this constructor.
+    explicit serializer_data_ptr_t(void *ptr) : ptr_(ptr) { }
+    ~serializer_data_ptr_t() {
+        rassert(!ptr_);
+    }
+
+    void free(serializer_t *ser);
+    void init_malloc(serializer_t *ser);
+    void init_clone(serializer_t *ser, serializer_data_ptr_t& other);
+
+    void swap(serializer_data_ptr_t& other) {
+        void *tmp = ptr_;
+        ptr_ = other.ptr_;
+        other.ptr_ = tmp;
+    }
+
+    bool has() const {
+        return ptr_;
+    }
+
+    void *get() const {
+        rassert(ptr_);
+        return ptr_;
+    }
+
+private:
+    void *ptr_;
+    DISABLE_COPYING(serializer_data_ptr_t);
+};
+
 #endif  // __SERIALIZER_TYPES_HPP__

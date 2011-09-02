@@ -96,7 +96,7 @@ class mc_inner_buf_t : public evictable_t,
     void update_data_token(const void *data, const boost::intrusive_ptr<standard_block_token_t>& token);
 
     // If required, make a snapshot of the data before being overwritten with new_version
-    bool snapshot_if_needed(version_id_t new_version);
+    bool snapshot_if_needed(version_id_t new_version, bool leave_clone);
     // releases a buffer snapshot used by a transaction snapshot
     void release_snapshot(buf_snapshot_t *snapshot);
     // acquires the snapshot data buffer, loading from disk if necessary; must be matched by a call
@@ -115,7 +115,7 @@ private:
     repli_timestamp_t subtree_recency;
 
     // The data for the block.
-    void *data;
+    serializer_data_ptr_t data;
     // The snapshot version id of the block.
     version_id_t version_id;
     /* As long as data has not been changed since the last serializer write, data_token contains a token to the on-serializer block */
