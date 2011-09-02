@@ -2,6 +2,24 @@
 #include "utils.hpp"
 
 namespace riak {
+
+namespace utils {
+/* takes a class C that has an insert method and puts an E in your C */
+template <class E>
+std::set<E> singleton_set(E e) {
+    std::set<E> res;
+    res.insert(e);
+    return res;
+}
+
+template <class E>
+std::vector<E> singleton_vector(E e) {
+    std::vector<E> res;
+    res.push_back(e);
+    return res;
+}
+
+} //namespace utils 
 region_t::region_t(key_spec_t _key_spec) 
     : key_spec(_key_spec)
 { }
@@ -220,25 +238,47 @@ read_response_t read_enactor_vistor_t::operator()(mapred_read_t, riak_interface_
     crash("Not implemented");
 }
 
-region_t write_t::get_region() {
-    std::set<std::string> res;
-    res.insert(key);
-    return region_t(res);
+// implementation of writes
+// set write
+region_t set_write_t::get_region() {
+    return region_t(utils::singleton_set<std::string>(object.key));
 }
+
+std::vector<write_t> set_write_t::shard(std::vector<region_t> regions) {
+    rassert(regions.size() == 1);
+    return utils::singleton_vector<write_t>(write_t(*this));
+}
+
+region_t delete_write_t::get_region() {
+    return region_t(utils::singleton_set<std::string>(key));
+}
+
+std::vector<write_t> delete_write_t::shard(std::vector<region_t> regions) {
+    rassert(regions.size() == 1);
+    return utils::singleton_vector<write_t>(write_t(*this));
+}
+
+struct write_get_region_functor : public boost::static_visitor<region_t> {
+    region_t operator()(set_write_t w) const { return w.get_region(); }
+    region_t operator()(delete_write_t w) const { return w.get_region(); }
+};
+
+region_t write_t::get_region() {
+    return boost::apply_visitor(write_get_region_functor(), internal);
+}
+
+struct write_shard_functor : public boost::static_visitor<std::vector<write_t> > {
+    std::vector<write_t> operator()(set_write_t w, std::vector<region_t> regions) const {
+        return w.shard(regions);
+    }
+    std::vector<write_t> operator()(delete_write_t w, std::vector<region_t> regions) const {
+        return w.shard(regions);
+    }
+};
 
 std::vector<write_t> write_t::shard(std::vector<region_t> regions) {
-    rassert(regions.size() == 1);
-    rassert(get_region().overlaps(regions[0]));
-
-    std::vector<write_t> res;
-    res.push_back(*this);
-    return res;
-}
-
-write_response_t write_response_t::unshard(std::vector<write_response_t> responses) {
-    rassert(responses.size() == 1);
-
-    return responses[0];
+    boost::variant<std::vector<region_t> > regions_variant(regions);
+    return boost::apply_visitor(write_shard_functor(), internal, regions_variant);
 }
 
 store_t::store_t(region_t _region, riak_interface_t *_interface)

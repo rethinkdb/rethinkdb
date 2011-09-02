@@ -187,6 +187,7 @@ public:
 };
 
 
+//XXX this can just be a type deffing of the variant now
 class read_response_t {
 public:
     read_response_variant_t internal;
@@ -203,32 +204,56 @@ class read_enactor_vistor_t : public boost::static_visitor<read_response_t> {
     read_response_t operator()(mapred_read_t, riak_interface_t *);
 };
 
-class write_t {
+class write_t;
+
+class set_write_t {
 private:
-    std::string key;
+    object_t object;
     boost::optional<etag_cond_spec_t> etag_cond_spec;
     boost::optional<time_cond_spec_t> time_cond_spec;
-
-    std::string val;
 
 public:
     region_t get_region();
     std::vector<write_t> shard(std::vector<region_t> regions);
 };
 
-class write_response_t {
-private:
-    boost::optional<std::string> created_key; //only present if no key was given
+class set_write_response_t {
+    //if a set is done without a key then we need to pick the key ourselves.
+    //and tell them what we picked.
+    boost::optional<std::string> key_if_created;
 
-    enum {
-        BAD_REQUEST,
-        PRECONDITION
-    } error;
-
-public:
-    static write_response_t unshard(std::vector<write_response_t> responses);
+    //sometimes a set will ask that the object be sent back with the response. the object
+    boost::optional<object_t> object;
 };
 
+class delete_write_t {
+private:
+    std::string key;
+public:
+    region_t get_region();
+    std::vector<write_t> shard(std::vector<region_t> regions);
+};
+
+class delete_write_response_t {
+    /* whether or not we actually found the write */
+    bool found;
+};
+
+typedef boost::variant<set_write_t, delete_write_t> write_variant_t;
+typedef boost::variant<set_write_response_t, delete_write_response_t> write_response_variant_t;
+typedef write_response_variant_t write_response_t;
+
+class write_t {
+private:
+    write_variant_t internal;
+public:
+    write_t(set_write_t _internal) : internal(_internal) { }
+    write_t(delete_write_t  _internal) : internal(_internal) { }
+public:
+    region_t get_region();
+    std::vector<write_t> shard(std::vector<region_t>);
+    write_response_t unshard(std::vector<write_response_t>, temporary_cache_t);
+};
 
 /* Riak store */
 
