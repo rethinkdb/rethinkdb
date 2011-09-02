@@ -308,6 +308,8 @@ private:
 
     file_account_t *get_io_account() const;
 
+    // Note: Make sure that no automatic destructors do anything
+    // interesting, they could get run on the WRONG THREAD!
     cache_t *cache;
 
     ticks_t start_time;
@@ -316,6 +318,8 @@ private:
     repli_timestamp_t recency_timestamp;
     mc_inner_buf_t::version_id_t snapshot_version;
     bool snapshotted;
+
+    // This is manually reset() in the destructor.
     boost::shared_ptr<cache_account_t> cache_account_;
 
     typedef std::vector<std::pair<mc_inner_buf_t*, mc_inner_buf_t::buf_snapshot_t*> > owned_snapshots_list_t;
