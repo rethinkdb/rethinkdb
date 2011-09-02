@@ -417,6 +417,7 @@ void *mc_inner_buf_t::acquire_snapshot_data(version_id_t version_to_access, file
     return NULL;
 }
 
+// TODO (sam): Look at who's passing this void pointer.
 void mc_inner_buf_t::release_snapshot_data(void *data) {
     // This should never be called in non-coroutine context, since it could release the last
     // reference to a block_token_t, whose destructor switches to the serializer thread.
@@ -424,7 +425,8 @@ void mc_inner_buf_t::release_snapshot_data(void *data) {
     cache->assert_thread();
     rassert(data, "tried to release NULL snapshot data");
     for (buf_snapshot_t *snap = snapshots.head(); snap; snap = snapshots.next(snap)) {
-        if (snap->data == data) {
+        // TODO (sam): Obviously this comparison is disgusting.
+        if (snap->data.get() == data) {
             snap->release_data();
             return;
         }
@@ -441,15 +443,18 @@ bool mc_inner_buf_t::safe_to_unload() {
     return !lock.locked() && writeback_buf().safe_to_unload() && refcount == 0 && cow_refcount == 0 && snapshots.empty();
 }
 
+// TODO (sam): Look at who's passing this void pointer.
 void mc_inner_buf_t::update_data_token(const void *the_data, const boost::intrusive_ptr<standard_block_token_t>& token) {
     cache->assert_thread();
-    if (the_data == data) {
+    // TODO (sam): Obviously this comparison is disgusting.
+    if (the_data == data.get()) {
         rassert(!data_token, "data token already up-to-date");
         data_token = token;
         return;
     }
     for (buf_snapshot_t *snap = snapshots.head(); snap; snap = snapshots.next(snap)) {
-        if (snap->data != the_data) {
+        // TODO (sam): Obviously this comparison is disgusting.
+        if (snap->data.get() != the_data) {
             continue;
         }
         rassert(!snap->token, "snapshot data token already up-to-date");
@@ -517,13 +522,15 @@ void mc_buf_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access) {
                 rassert(version_to_access == mc_inner_buf_t::faux_version_id || inner_buf->version_id <= version_to_access);
                 ++inner_buf->snap_refcount;
             }
-            data = inner_buf->data;
+            // TODO (sam): Obviously something's f'd up about this.
+            data = inner_buf->data.get();
             rassert(data != NULL);
             break;
         }
         case rwi_read_outdated_ok: {
             ++inner_buf->cow_refcount;
-            data = inner_buf->data;
+            // TODO (sam): Obviously something's f'd up about this.
+            data = inner_buf->data.get();
             rassert(data != NULL);
             // unlock the buffer now that we have established a COW reference to it so that
             // writers can overwrite it. we know we have locked the buffer because !snapshotted,
@@ -539,7 +546,8 @@ void mc_buf_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access) {
             inner_buf->snapshot_if_needed(version_to_access, true);
 
             inner_buf->version_id = version_to_access;
-            data = inner_buf->data;
+            // TODO (sam): Obviously something's f'd up about this.
+            data = inner_buf->data.get();
             // The inner_buf could just have been acquired with should_load == false,
             // so we cannot assert data here unfortunately!
             //rassert(data != NULL);
@@ -569,7 +577,8 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
     rassert(!inner_buf->safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
     rassert(!inner_buf->do_delete);
     rassert(mode == rwi_write);
-    rassert(data == inner_buf->data);
+    // TODO (sam): Obviously something's f'd up about this.
+    rassert(data == inner_buf->data.get());
     rassert(data, "Probably tried to write to a buffer acquired with !should_load.");
     rassert(patch->get_block_id() == inner_buf->block_id);
 
@@ -608,7 +617,8 @@ void *mc_buf_t::get_data_major_write() {
     rassert(!inner_buf->safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
     rassert(!inner_buf->do_delete);
     rassert(mode == rwi_write);
-    rassert(data == inner_buf->data);
+    // TODO (sam): f'd up
+    rassert(data == inner_buf->data.get());
     rassert(data, "Probably tried to write to a buffer acquired with !should_load.");
 
     inner_buf->assert_thread();
@@ -622,7 +632,8 @@ void *mc_buf_t::get_data_major_write() {
 }
 
 void mc_buf_t::ensure_flush() {
-    rassert(data == inner_buf->data);
+    // TODO (sam): f'd up
+    rassert(data == inner_buf->data.get());
     if (!inner_buf->writeback_buf().needs_flush) {
         // We bypass the patching system, make sure this buffer gets flushed.
         inner_buf->writeback_buf().needs_flush = true;
@@ -636,14 +647,21 @@ void mc_buf_t::ensure_flush() {
 void mc_buf_t::mark_deleted() {
     rassert(mode == rwi_write);
     rassert(!inner_buf->safe_to_unload());
-    rassert(data == inner_buf->data);
+    // TODO (sam): f'd up
+    rassert(data == inner_buf->data.get());
 
     bool we_snapshotted = inner_buf->snapshot_if_needed(inner_buf->version_id, false);
     if (!we_snapshotted && data) {
-        inner_buf->cache->serializer->free(data);
+        // We already asserted above that data ==
+        // inner_buf->data.get(), and snapshot_if_needed would not
+        // change that if it returned false.
+        inner_buf->data.free(inner_buf->cache->serializer);
+    } else {
+        rassert(!inner_buf->data.has(), "We snapshotted with deletion in mind but inner_buf still has a live data.");
     }
 
-    data = inner_buf->data = NULL;
+    rassert(!inner_buf->data.has());
+    data = NULL;
 
     inner_buf->do_delete = true;
     ensure_flush(); // Disable patch log system for the buffer
@@ -652,7 +670,8 @@ void mc_buf_t::mark_deleted() {
 patch_counter_t mc_buf_t::get_next_patch_counter() {
     rassert(!inner_buf->do_delete);
     rassert(mode == rwi_write);
-    rassert(data == inner_buf->data);
+    // TODO (sam): f'd up
+    rassert(data == inner_buf->data.get());
     return inner_buf->next_patch_counter++;
 }
 
@@ -670,8 +689,11 @@ bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range
 
 // Personally I'd be happier if these functions took offsets.  That's
 // a sort of long-term TODO, though.
+//
+// ^ Who are you?  A ghost in the github...
 void mc_buf_t::set_data(void *dest, const void *src, size_t n) {
-    rassert(data == inner_buf->data);
+    // TODO (sam): f'd up.
+    rassert(data == inner_buf->data.get());
     if (n == 0) {
         return;
     }
@@ -689,7 +711,8 @@ void mc_buf_t::set_data(void *dest, const void *src, size_t n) {
 }
 
 void mc_buf_t::move_data(void *dest, const void *src, const size_t n) {
-    rassert(data == inner_buf->data);
+    // TODO (sam): f'd up.
+    rassert(data == inner_buf->data.get());
     if (n == 0) {
         return;
     }
@@ -732,19 +755,22 @@ void mc_buf_t::release() {
                 inner_buf->lock.unlock();
             }
             if (snapshotted) {
-                if (data == inner_buf->data) {
+                // TODO (sam): f'd up.
+                if (data == inner_buf->data.get()) {
                     --inner_buf->snap_refcount;
                 }
                 else {
                     inner_buf->release_snapshot_data(data);
                 }
             } else {
-                rassert(data == inner_buf->data);
+                // TODO (sam): f'd up.
+                rassert(data == inner_buf->data.get());
             }
             break;
         }
         case rwi_read_outdated_ok: {
-            if (data == inner_buf->data) {
+            // TODO (sam): f'd up.
+            if (data == inner_buf->data.get()) {
                 rassert(inner_buf->cow_refcount > 0);
                 --inner_buf->cow_refcount;
             } else {
@@ -930,13 +956,13 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
         rassert(!inner_buf->do_delete || snapshotted);
 
         // ensures inner_buf->data is loaded if should_load is true and we're using the top version
-        if (!inner_buf->data && !inner_buf->do_delete && should_load &&
+        if (!inner_buf->data.has() && !inner_buf->do_delete && should_load &&
             // if we're accessing a snapshot rather than the top version, no need to load it here
             !(snapshotted && snapshot_version != mc_inner_buf_t::faux_version_id && snapshot_version < inner_buf->version_id))
         {
             // The inner_buf doesn't have any data currently. We need the data though,
             // so load it!
-            inner_buf->data = cache->serializer->malloc();
+            inner_buf->data.init_malloc(cache->serializer);
 
             // Please keep in mind that this is blocking...
             inner_buf->load_inner_buf(true, get_io_account());
