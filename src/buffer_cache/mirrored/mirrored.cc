@@ -875,6 +875,8 @@ mc_transaction_t::~mc_transaction_t() {
 
     pm_snapshots_per_transaction.record(owned_buf_snapshots.size());
     pm_registered_snapshot_blocks -= owned_buf_snapshots.size();
+
+    cache_account_.reset();
 }
 
 mc_buf_t *mc_transaction_t::allocate() {
