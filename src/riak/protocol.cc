@@ -207,7 +207,7 @@ read_response_t read_t::unshard(std::vector<read_response_t> responses) {
     rassert(!responses.empty());
     while (responses.size() != 1) {
         //notice if copy constructors for these read responses are expensive this could become kind of slow
-        read_response_t combined = boost::apply_visitor(read_response_unshard_functor(), responses.rend()->internal, (responses.rend() + 1)->internal);
+        read_response_t combined = boost::apply_visitor(read_response_unshard_functor(), *(responses.rend()), *(responses.rend() + 1));
 
         responses.pop_back();
         responses.pop_back();

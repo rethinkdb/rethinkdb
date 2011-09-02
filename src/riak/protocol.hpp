@@ -78,7 +78,7 @@ public:
 class temporary_cache_t;
 
 class read_t;
-class read_response_t;
+//class read_response_t;
 
 
 class point_read_t;
@@ -173,6 +173,8 @@ private:
 typedef boost::variant<point_read_t, bucket_read_t, mapred_read_t> read_variant_t;
 typedef boost::variant<point_read_response_t, bucket_read_response_t, mapred_read_response_t> read_response_variant_t;
 
+typedef read_response_variant_t read_response_t;
+
 class read_t {
 public:
     read_variant_t internal;
@@ -188,14 +190,14 @@ public:
 
 
 //XXX this can just be a type deffing of the variant now
-class read_response_t {
+/* class read_response_t {
 public:
     read_response_variant_t internal;
 public:
     read_response_t(point_read_response_t _internal) : internal(_internal) { crash("Not implemented"); }
     read_response_t(bucket_read_response_t _internal) : internal(_internal) { crash("Not implemented"); }
     read_response_t(mapred_read_response_t _internal) : internal(_internal) { crash("Not implemented"); }
-};
+}; */
 
 /* this class is used to actually enact a read_t */
 class read_enactor_vistor_t : public boost::static_visitor<read_response_t> {
@@ -241,6 +243,7 @@ class delete_write_response_t {
 
 typedef boost::variant<set_write_t, delete_write_t> write_variant_t;
 typedef boost::variant<set_write_response_t, delete_write_response_t> write_response_variant_t;
+
 typedef write_response_variant_t write_response_t;
 
 class write_t {
