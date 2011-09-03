@@ -36,6 +36,7 @@ public:
           parent(buf), snapshotted_version(version),
           token(_token),
           snapshot_refcount(_snapshot_refcount), active_refcount(_active_refcount) {
+        cache->assert_thread();
 
         if (leave_clone) {
             if (_data.has()) {
@@ -52,6 +53,7 @@ public:
 
 private:
     ~buf_snapshot_t() {
+        cache->assert_thread();
         rassert(!snapshot_refcount && !active_refcount);
         parent->snapshots.remove(this);
         if (data.has()) {
@@ -86,6 +88,8 @@ public:
     }
 
     void release_data() {
+        ASSERT_NO_CORO_WAITING;
+        cache->assert_thread();
         rassert(active_refcount, "releasing snapshot data with no active references");
         --active_refcount;
         if (0 == active_refcount + snapshot_refcount) {
@@ -94,6 +98,8 @@ public:
     }
 
     void release() {
+        ASSERT_NO_CORO_WAITING;
+        cache->assert_thread();
         rassert(snapshot_refcount, "releasing snapshot with no references");
         --snapshot_refcount;
         if (0 == snapshot_refcount + active_refcount) {
@@ -103,10 +109,13 @@ public:
 
     // We are safe to unload if we are saved to disk and have no mc_buf_ts actively referencing us.
     bool safe_to_unload() {
+        cache->assert_thread();
         return bool(token) && !active_refcount;
     }
 
     void unload() {
+        ASSERT_NO_CORO_WAITING;
+        cache->assert_thread();
         // Acquiring the mutex isn't necessary here because active_refcount == 0.
         rassert(safe_to_unload());
         rassert(data.has());

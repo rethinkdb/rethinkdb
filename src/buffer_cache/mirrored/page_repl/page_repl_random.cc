@@ -4,12 +4,14 @@
 #include "perfmon.hpp"
 
 evictable_t::evictable_t(mc_cache_t *_cache, bool loaded) : cache(_cache), page_repl_index(-1) {
+    cache->assert_thread();
     if (loaded) {
         insert_into_page_repl();
     }
 }
 
 evictable_t::~evictable_t() {
+    cache->assert_thread();
     if (in_page_repl())
         remove_from_page_repl();
 }
@@ -54,6 +56,7 @@ perfmon_counter_t pm_n_blocks_evicted("blocks_evicted");
 // make_space tries to make sure that the number of blocks currently in memory is at least
 // 'space_needed' less than the user-specified memory limit.
 void page_repl_random_t::make_space(unsigned int space_needed) {
+    ASSERT_NO_CORO_WAITING;
     cache->assert_thread();
     unsigned int target;
     // TODO (rntz): why, if more space is needed than unload_threshold, do we set the target number
