@@ -454,7 +454,7 @@ void mc_inner_buf_t::update_data_token(const void *the_data, const boost::intrus
     }
     for (buf_snapshot_t *snap = snapshots.head(); snap; snap = snapshots.next(snap)) {
         // TODO (sam): Obviously this comparison is disgusting.
-        if (snap->data.equals(the_data)) {
+        if (!snap->data.equals(the_data)) {
             continue;
         }
         rassert(!snap->token, "snapshot data token already up-to-date");
