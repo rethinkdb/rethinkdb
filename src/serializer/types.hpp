@@ -223,6 +223,11 @@ public:
         return ptr_;
     }
 
+    // TODO (sam): All uses of this function are disgusting.
+    bool equals(const void *buf) const {
+        return ptr_ == buf;
+    }
+
 private:
     void *ptr_;
     DISABLE_COPYING(serializer_data_ptr_t);

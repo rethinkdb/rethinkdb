@@ -426,7 +426,7 @@ void mc_inner_buf_t::release_snapshot_data(void *data) {
     rassert(data, "tried to release NULL snapshot data");
     for (buf_snapshot_t *snap = snapshots.head(); snap; snap = snapshots.next(snap)) {
         // TODO (sam): Obviously this comparison is disgusting.
-        if (snap->data.get() == data) {
+        if (snap->data.equals(data)) {
             snap->release_data();
             return;
         }
@@ -447,14 +447,14 @@ bool mc_inner_buf_t::safe_to_unload() {
 void mc_inner_buf_t::update_data_token(const void *the_data, const boost::intrusive_ptr<standard_block_token_t>& token) {
     cache->assert_thread();
     // TODO (sam): Obviously this comparison is disgusting.
-    if (the_data == data.get()) {
+    if (data.equals(the_data)) {
         rassert(!data_token, "data token already up-to-date");
         data_token = token;
         return;
     }
     for (buf_snapshot_t *snap = snapshots.head(); snap; snap = snapshots.next(snap)) {
         // TODO (sam): Obviously this comparison is disgusting.
-        if (snap->data.get() != the_data) {
+        if (snap->data.equals(the_data)) {
             continue;
         }
         rassert(!snap->token, "snapshot data token already up-to-date");
@@ -547,7 +547,7 @@ void mc_buf_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access) {
 
             inner_buf->version_id = version_to_access;
             // TODO (sam): Obviously something's f'd up about this.
-            data = inner_buf->data.get();
+            data = inner_buf->data.has() ? inner_buf->data.get() : 0;
             // The inner_buf could just have been acquired with should_load == false,
             // so we cannot assert data here unfortunately!
             //rassert(data != NULL);
@@ -578,7 +578,7 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
     rassert(!inner_buf->do_delete);
     rassert(mode == rwi_write);
     // TODO (sam): Obviously something's f'd up about this.
-    rassert(data == inner_buf->data.get());
+    rassert(inner_buf->data.equals(data));
     rassert(data, "Probably tried to write to a buffer acquired with !should_load.");
     rassert(patch->get_block_id() == inner_buf->block_id);
 
@@ -618,7 +618,7 @@ void *mc_buf_t::get_data_major_write() {
     rassert(!inner_buf->do_delete);
     rassert(mode == rwi_write);
     // TODO (sam): f'd up
-    rassert(data == inner_buf->data.get());
+    rassert(inner_buf->data.equals(data));
     rassert(data, "Probably tried to write to a buffer acquired with !should_load.");
 
     inner_buf->assert_thread();
@@ -633,7 +633,7 @@ void *mc_buf_t::get_data_major_write() {
 
 void mc_buf_t::ensure_flush() {
     // TODO (sam): f'd up
-    rassert(data == inner_buf->data.get());
+    rassert(inner_buf->data.equals(data));
     if (!inner_buf->writeback_buf().needs_flush) {
         // We bypass the patching system, make sure this buffer gets flushed.
         inner_buf->writeback_buf().needs_flush = true;
@@ -648,7 +648,7 @@ void mc_buf_t::mark_deleted() {
     rassert(mode == rwi_write);
     rassert(!inner_buf->safe_to_unload());
     // TODO (sam): f'd up
-    rassert(data == inner_buf->data.get());
+    rassert(inner_buf->data.equals(data));
 
     bool we_snapshotted = inner_buf->snapshot_if_needed(inner_buf->version_id, false);
     if (!we_snapshotted && data) {
@@ -671,7 +671,7 @@ patch_counter_t mc_buf_t::get_next_patch_counter() {
     rassert(!inner_buf->do_delete);
     rassert(mode == rwi_write);
     // TODO (sam): f'd up
-    rassert(data == inner_buf->data.get());
+    rassert(inner_buf->data.equals(data));
     return inner_buf->next_patch_counter++;
 }
 
@@ -693,7 +693,7 @@ bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range
 // ^ Who are you?  A ghost in the github...
 void mc_buf_t::set_data(void *dest, const void *src, size_t n) {
     // TODO (sam): f'd up.
-    rassert(data == inner_buf->data.get());
+    rassert(inner_buf->data.equals(data));
     if (n == 0) {
         return;
     }
@@ -712,7 +712,7 @@ void mc_buf_t::set_data(void *dest, const void *src, size_t n) {
 
 void mc_buf_t::move_data(void *dest, const void *src, const size_t n) {
     // TODO (sam): f'd up.
-    rassert(data == inner_buf->data.get());
+    rassert(inner_buf->data.equals(data));
     if (n == 0) {
         return;
     }
@@ -756,7 +756,7 @@ void mc_buf_t::release() {
             }
             if (snapshotted) {
                 // TODO (sam): f'd up.
-                if (data == inner_buf->data.get()) {
+                if (inner_buf->data.equals(data)) {
                     --inner_buf->snap_refcount;
                 }
                 else {
@@ -764,13 +764,13 @@ void mc_buf_t::release() {
                 }
             } else {
                 // TODO (sam): f'd up.
-                rassert(data == inner_buf->data.get());
+                rassert(inner_buf->data.equals(data));
             }
             break;
         }
         case rwi_read_outdated_ok: {
             // TODO (sam): f'd up.
-            if (data == inner_buf->data.get()) {
+            if (inner_buf->data.equals(data)) {
                 rassert(inner_buf->cow_refcount > 0);
                 --inner_buf->cow_refcount;
             } else {
