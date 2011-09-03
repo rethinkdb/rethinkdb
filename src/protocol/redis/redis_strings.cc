@@ -156,7 +156,7 @@ EXECUTE_R(get) {
     std::string result;
     oper.get_string(result);
 
-    return read_response_t(new bulk_result_t(result));
+    return bulk_response(result);
 }
 
 //READ(getbit)
@@ -182,7 +182,7 @@ EXECUTE_R(getrange) {
     string_read_oper_t oper(one, btree, otok);
     std::string str;
     oper.get_range(str, two, three);
-    return read_response_t(new bulk_result_t(str));
+    return bulk_response(str);
 }
 
 //WRITE(getset)
@@ -196,7 +196,7 @@ EXECUTE_W(getset) {
     oper.get_string(old_val);
     oper.set(two);
 
-    return write_response_t(new bulk_result_t(two));
+    return bulk_response(two);
 }
 
 //WRITE(incr)

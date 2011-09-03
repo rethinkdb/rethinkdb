@@ -102,7 +102,7 @@ struct redis_hash_value_t : redis_value_t {
     }
 
     uint32_t &get_sub_size() {
-        return *reinterpret_cast<block_id_t *>(get_content() + sizeof(block_id_t));
+        return *reinterpret_cast<uint32_t *>(get_content() + sizeof(block_id_t));
     }
 } __attribute__((__packed__));
 
@@ -124,6 +124,28 @@ struct redis_list_value_t : redis_value_t {
     sub_ref_t *get_ref() {
         return reinterpret_cast<sub_ref_t *>(get_content());
     }
+} __attribute__((__packed__));
+
+struct redis_sorted_set_value_t : redis_value_t {
+    // The sorted set value consists of three root blocks, one for each of the three indicies
+    // They are, in order, the index by member name, the index by score, and the index by rank
+
+    int size() const {
+        return get_metadata_size() + 2 * sizeof(block_id_t);
+    }
+
+    uint32_t &get_sub_size() {
+        return *reinterpret_cast<uint32_t *>(get_content());
+    }
+
+    block_id_t &get_member_index_root() {
+        return *reinterpret_cast<block_id_t *>(get_content() + sizeof(uint32_t));
+    }
+
+    block_id_t &get_score_index_root() {
+        return *reinterpret_cast<block_id_t *>(get_content() + sizeof(uint32_t) + sizeof(block_id_t));
+    }
+
 } __attribute__((__packed__));
 
 template <>
@@ -148,6 +170,7 @@ public:
             return reinterpret_cast<const redis_set_value_t *>(this)->size();
             break;
         case REDIS_SORTED_SET:
+            return reinterpret_cast<const redis_set_value_t *>(this)->size();
             break;
         default:
             assert(0);
@@ -179,7 +202,7 @@ public:
     }
 
     block_magic_t btree_leaf_magic() const {
-        return value_sizer_t<redis_value_t>::btree_leaf_magic();
+        return value_sizer_t<redis_value_t>::leaf_magic();
     }
 
     static block_magic_t leaf_magic() {
@@ -229,7 +252,7 @@ public:
     }
 
     block_magic_t btree_leaf_magic() const {
-        return value_sizer_t<redis_nested_set_value_t>::btree_leaf_magic();
+        return value_sizer_t<redis_nested_set_value_t>::leaf_magic();
     }
 
     static block_magic_t leaf_magic() {
@@ -285,7 +308,7 @@ public:
     }
 
     block_magic_t btree_leaf_magic() const {
-        return value_sizer_t<redis_nested_string_value_t>::btree_leaf_magic();
+        return value_sizer_t<redis_nested_string_value_t>::leaf_magic();
     }
 
     static block_magic_t leaf_magic() {
@@ -299,6 +322,58 @@ public:
 protected:
     block_size_t block_size_;
 };
+
+struct redis_nested_sorted_set_value_t {
+    float score;
+    char content[0];
+};
+
+template <>
+class value_sizer_t<redis_nested_sorted_set_value_t> : public value_sizer_t<void> {
+public:
+    value_sizer_t(block_size_t bs) : block_size_(bs) { }
+    ~value_sizer_t() {;}
+
+    int size(const void *void_value) const {
+        const redis_nested_sorted_set_value_t *value = reinterpret_cast<const redis_nested_sorted_set_value_t *>(void_value); 
+        blob_t blob(const_cast<char *>(value->content), blob::btree_maxreflen);
+        return sizeof(redis_nested_sorted_set_value_t) + blob.refsize(block_size_);
+    }
+
+    bool fits(const void *value, int length_available) const {
+        int value_size = size(value);
+        return value_size <= length_available;
+    }
+
+    bool deep_fsck(block_getter_t *getter, const void *value, int length_available, std::string *msg_out) const {
+        (void)getter;
+        (void)value;
+        (void)length_available;
+        (void)msg_out;
+
+        //TODO real implementation
+        return true;
+    }
+
+    int max_possible_size() const {
+        return blob::btree_maxreflen + sizeof(redis_nested_sorted_set_value_t);
+    }
+
+    block_magic_t btree_leaf_magic() const {
+        return value_sizer_t<redis_nested_sorted_set_value_t>::leaf_magic();
+    }
+
+    static block_magic_t leaf_magic() {
+        block_magic_t magic = { { 'n', 's', 's', 'v' } };
+        return magic;
+    }
+
+    block_size_t block_size() const { return block_size_; }
+
+protected:
+    block_size_t block_size_;
+};
+
 
 #endif /*__PROTOCOL_REDIS_TYPES_H__*/
 

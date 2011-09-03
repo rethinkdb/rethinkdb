@@ -200,4 +200,25 @@ private:
     int val;
 };
 
+struct bulk_response {
+    bulk_response(std::string &val_) {
+        val = new redis_protocol_t::bulk_result_t(val_);
+    }
+
+    bulk_response(float val_) {
+        val = new redis_protocol_t::bulk_result_t(val_);
+    }
+
+    operator redis_protocol_t::read_response_t() {
+        return redis_protocol_t::read_response_t(val);
+    }
+
+    operator redis_protocol_t::write_response_t() {
+        return redis_protocol_t::write_response_t(val);
+    }
+
+private:
+    redis_protocol_t::bulk_result_t *val;
+};
+
 #endif /*__PROTOCOL_REDIS_UTIL_H__*/

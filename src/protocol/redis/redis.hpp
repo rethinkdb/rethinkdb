@@ -5,6 +5,7 @@
 #include "utils.hpp"
 #include "protocol/redis/redis_types.hpp"
 #include <boost/shared_ptr.hpp>
+#include <boost/lexical_cast.hpp>
 #include <vector>
 #include <string>
 using std::string;
@@ -48,12 +49,16 @@ struct redis_protocol_t {
         error_result(const char *msg_) : msg(msg_) {;}
         const char *msg;
     };
-    
-    typedef boost::variant<status_result, error_result, int, std::string, std::vector<std::string> >
-        redis_return_type;
 
-    typedef boost::variant<std::vector<std::string>, std::string> indicated_key_t;
+    struct nil_result {
+        // Empty
+    };
+
+    typedef boost::variant<status_result, error_result, int, std::string, nil_result, std::vector<std::string> >
+        redis_return_type;
     
+    typedef boost::variant<std::vector<std::string>, std::string> indicated_key_t;
+
     // Base class for redis read operations
     struct read_operation_t {
         virtual ~read_operation_t(){};
@@ -153,6 +158,14 @@ struct redis_protocol_t {
     // Bulk response base class
     struct bulk_result_t : read_result_t, write_result_t {
         bulk_result_t(std::string &val) : value(val) {;}
+        // Create a result string from a float value
+        bulk_result_t(float val) {
+            try {
+                value = boost::lexical_cast<std::string>(val);
+            } catch(boost::bad_lexical_cast &) {
+                assert(0);
+            }
+        }
         virtual void deshard(const void *other) {(void)other;}
         virtual void deparallelize(const void *other) {(void)other;}
         virtual redis_return_type get_result() { return value; }
@@ -163,6 +176,7 @@ struct redis_protocol_t {
     // Multi-bulk response base class
     struct multi_bulk_result_t : read_result_t, write_result_t {
         multi_bulk_result_t(std::vector<std::string> &val) : value(val) {;}
+        multi_bulk_result_t(std::deque<std::string> &val) : value(val.begin(), val.end()) {;}
         virtual void deshard(const void *other) {(void)other;}
         virtual void deparallelize(const void *other) {(void)other;}
         virtual redis_return_type get_result() { return value; }
@@ -292,6 +306,21 @@ struct redis_protocol_t {
         ARG_TYPE_THREE three; \
     };
 
+    #define READ__4(CNAME, ARG_TYPE_ONE, ARG_TYPE_TWO, ARG_TYPE_THREE, ARG_TYPE_FOUR)\
+    struct CNAME : read_operation_t { \
+        CNAME(ARG_TYPE_ONE one_, ARG_TYPE_TWO two_, ARG_TYPE_THREE three_, ARG_TYPE_FOUR four_) : one(one_), two(two_), three(three_), four(four_) { } \
+        virtual indicated_key_t get_keys(); \
+        virtual std::vector<read_t> shard(std::vector<region_t> &regions); \
+        virtual std::vector<read_t> parallelize(int optimal_factor); \
+        virtual redis_protocol_t::read_response_t execute(btree_slice_t *btree, order_token_t otok); \
+    private: \
+        ARG_TYPE_ONE one; \
+        ARG_TYPE_TWO two; \
+        ARG_TYPE_THREE three; \
+        ARG_TYPE_FOUR four; \
+    };
+
+
     #define WRITE_N(CNAME) \
     struct CNAME : write_operation_t { \
         CNAME(std::vector<std::string> &one_) : one(one_) { } \
@@ -394,6 +423,69 @@ struct redis_protocol_t {
     WRITE_2(rpoplpush, string&, string&)
     WRITE_N(rpush)
     WRITE_2(rpushx, string&, string&)
+
+    // Sorted Sets
+    WRITE_N(zadd)
+    READ__1(zcard, string)
+    READ__3(zcount, string, float, float)
+    WRITE_3(zincrby, string, float, string)
+    WRITE_N(zinterstore)
+
+    struct zrange : read_operation_t {
+        zrange(std::string one_, int two_, int three_, bool four_, bool five_) : key(one_), start(two_), stop(three_), with_scores(four_), reverse(five_) { }
+        virtual indicated_key_t get_keys();
+        virtual std::vector<read_t> shard(std::vector<region_t> &regions);
+        virtual std::vector<read_t> parallelize(int optimal_factor);
+        virtual redis_protocol_t::read_response_t execute(btree_slice_t *btree, order_token_t otok);
+    private:
+        std::string key;
+        int start;
+        int stop;
+        bool with_scores;
+        bool reverse;
+    };
+
+    struct zrangebyscore : read_operation_t {
+        zrangebyscore(std::string one_, std::string two_, std::string three_, bool four_,
+                bool five_, unsigned six_, unsigned seven_, bool eight_)
+        : key(one_), min(two_), max(three_), with_scores(four_), limit(five_),
+          offset(six_), count(seven_), reverse(eight_)
+        { }
+        virtual indicated_key_t get_keys();
+        virtual std::vector<read_t> shard(std::vector<region_t> &regions);
+        virtual std::vector<read_t> parallelize(int optimal_factor);
+        virtual redis_protocol_t::read_response_t execute(btree_slice_t *btree, order_token_t otok);
+    private:
+        std::string key;
+        std::string min;
+        std::string max;
+        bool with_scores;
+        bool limit;
+        unsigned offset;
+        unsigned count;
+        bool reverse;
+    };
+
+    struct zrank : read_operation_t {
+        zrank(std::string one_, std::string two_, bool three_) : key(one_), member(two_), reverse(three_) {;}
+        virtual indicated_key_t get_keys();
+        virtual std::vector<read_t> shard(std::vector<region_t> &regions);
+        virtual std::vector<read_t> parallelize(int optimal_factor);
+        virtual redis_protocol_t::read_response_t execute(btree_slice_t *btree, order_token_t otok);
+
+    private:
+        std::string key;
+        std::string member;
+        bool reverse;
+    };
+
+    WRITE_N(zrem)
+    WRITE_3(zremrangebyrank, string, int, int)
+    WRITE_3(zremrangebyscore, string, float, float)
+    READ__N(zrevrangebyscore)
+    READ__2(zrevrank, string, string)
+    READ__2(zscore, string, string)
+    WRITE_N(zunionstore)
     
     #undef WRITE_0
     #undef WRITE_1

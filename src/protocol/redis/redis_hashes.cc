@@ -236,7 +236,7 @@ PARALLEL(hget)
 
 EXECUTE_R(hget) {
     hash_read_oper_t oper(one, btree, otok);
-    return read_response_t(new bulk_result_t(*oper.get(two)));
+    return bulk_response(*oper.get(two));
 }
 
 //READ(hgetall)

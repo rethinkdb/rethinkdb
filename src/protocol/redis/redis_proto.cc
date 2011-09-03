@@ -1,5 +1,6 @@
 #include "protocol/redis/redis_proto.hpp"
 #include "protocol/redis/redis.hpp"
+#include "protocol/redis/redis_ext.hpp"
 
 #include <boost/variant.hpp>
 
@@ -15,6 +16,7 @@
 #include <boost/spirit/home/qi/nonterminal/grammar.hpp>
 #include <boost/spirit/home/qi/numeric/uint.hpp>
 #include <boost/spirit/home/qi/numeric/int.hpp>
+#include <boost/spirit/home/qi/numeric/real.hpp>
 #include <boost/spirit/home/qi/operator/sequence.hpp>
 #include <boost/spirit/home/qi/operator/alternative.hpp>
 #include <boost/spirit/home/qi/operator/kleene.hpp>
@@ -47,81 +49,64 @@ namespace px = boost::phoenix;
 #define BEGIN(RULE) RULE = (!qi::eps)
 
 //Alas! there is no macro overloading or a sufficiently robust variatic macro for our purposes here.
-#define WRITE_0(CNAME)\
+#define CMD_0(CNAME)\
         | command(1, std::string(#CNAME))\
-        [px::bind(&redis_grammar::execute_write, this, \
-         px::construct<redis_protocol_t::write_t>( \
-         px::new_<redis_protocol_t::CNAME>()))] \
+        [px::bind(&redis_grammar::output_response, this, \
+         px::bind(&redis_ext::CNAME, this \
+         ))]
 
-#define WRITE_1(CNAME, ARG_TYPE_ONE)\
+#define CMD_1(CNAME, ARG_TYPE_ONE)\
         | command(2, std::string(#CNAME)) >> (ARG_TYPE_ONE##_arg)\
-        [px::bind(&redis_grammar::execute_write, this, \
-         px::construct<redis_protocol_t::write_t>( \
-         px::new_<redis_protocol_t::CNAME>(qi::_1)))] \
+        [px::bind(&redis_grammar::output_response, this, \
+         px::bind(&redis_ext::CNAME, this, qi::_1 \
+         ))]
 
-#define WRITE_2(CNAME, ARG_TYPE_ONE, ARG_TYPE_TWO)\
+#define CMD_2(CNAME, ARG_TYPE_ONE, ARG_TYPE_TWO)\
         | command(3, std::string(#CNAME)) >> (ARG_TYPE_ONE##_arg >> ARG_TYPE_TWO##_arg)\
-        [px::bind(&redis_grammar::execute_write, this, \
-         px::construct<redis_protocol_t::write_t>( \
-         px::new_<redis_protocol_t::CNAME>(qi::_1, qi::_2)))]
+        [px::bind(&redis_grammar::output_response, this, \
+         px::bind(&redis_ext::CNAME, this, qi::_1, qi::_2 \
+         ))]
 
-#define WRITE_3(CNAME, ARG_TYPE_ONE, ARG_TYPE_TWO, ARG_TYPE_THREE)\
+#define CMD_3(CNAME, ARG_TYPE_ONE, ARG_TYPE_TWO, ARG_TYPE_THREE)\
         | command(4, std::string(#CNAME)) >> (ARG_TYPE_ONE##_arg >> ARG_TYPE_TWO##_arg >> ARG_TYPE_THREE##_arg)\
-        [px::bind(&redis_grammar::execute_write, this, \
-         px::construct<redis_protocol_t::write_t>( \
-         px::new_<redis_protocol_t::CNAME>(qi::_1, qi::_2, qi::_3)))]
+        [px::bind(&redis_grammar::output_response, this, \
+         px::bind(&redis_ext::CNAME, this, qi::_1, qi::_2, qi::_3 \
+         ))]
 
-#define WRITE_4(CNAME, ARG_TYPE_ONE, ARG_TYPE_TWO, ARG_TYPE_THREE, ARG_TYPE_FOUR)\
+#define CMD_4(CNAME, ARG_TYPE_ONE, ARG_TYPE_TWO, ARG_TYPE_THREE, ARG_TYPE_FOUR)\
         | command(5, std::string(#CNAME)) >> (ARG_TYPE_ONE##_arg >> ARG_TYPE_TWO##_arg >> ARG_TYPE_THREE##_arg >> ARG_TYPE_FOUR##_arg)\
-        [px::bind(&redis_grammar::execute_write, this, \
-         px::construct<redis_protocol_t::write_t>( \
-         px::new_<redis_protocol_t::CNAME>(qi::_1, qi::_2, qi::_3, qi::_4)))]
+        [px::bind(&redis_grammar::output_response, this, \
+         px::bind(&redis_ext::CNAME, this, qi::_1, qi::_2, qi::_3, qi::_4 \
+         ))]
 
-#define READ__0(CNAME)\
-        | command(1, std::string(#CNAME))\
-        [px::bind(&redis_grammar::execute_read, this, \
-         px::construct<redis_protocol_t::read_t>( \
-         px::new_<redis_protocol_t::CNAME>()))] \
+#define CMD_6(CNAME, ARG_TYPE_ONE, ARG_TYPE_TWO, ARG_TYPE_THREE, ARG_TYPE_FOUR, ARG_TYPE_FIVE, ARG_TYPE_SIX)\
+        | command(7, std::string(#CNAME)) >> (ARG_TYPE_ONE##_arg >> ARG_TYPE_TWO##_arg >> ARG_TYPE_THREE##_arg >> ARG_TYPE_FOUR##_arg >> ARG_TYPE_FIVE##_arg >> ARG_TYPE_SIX##_arg)\
+        [px::bind(&redis_grammar::output_response, this, \
+         px::bind(&redis_ext::CNAME, this, qi::_1, qi::_2, qi::_3, qi::_4, qi::_5, qi::_6 \
+         ))]
 
-#define READ__1(CNAME, ARG_TYPE_ONE)\
-        | command(2, std::string(#CNAME)) >> (ARG_TYPE_ONE##_arg)\
-        [px::bind(&redis_grammar::execute_read, this, \
-         px::construct<redis_protocol_t::read_t>( \
-         px::new_<redis_protocol_t::CNAME>(qi::_1)))] \
+#define CMD_7(CNAME, ARG_TYPE_ONE, ARG_TYPE_TWO, ARG_TYPE_THREE, ARG_TYPE_FOUR, ARG_TYPE_FIVE, ARG_TYPE_SIX, ARG_TYPE_SEVEN)\
+        | command(8, std::string(#CNAME)) >> (ARG_TYPE_ONE##_arg >> ARG_TYPE_TWO##_arg >> ARG_TYPE_THREE##_arg >> ARG_TYPE_FOUR##_arg >> ARG_TYPE_FIVE##_arg >> ARG_TYPE_SIX##_arg >> ARG_TYPE_SEVEN##_arg)\
+        [px::bind(&redis_grammar::output_response, this, \
+         px::bind(&redis_ext::CNAME, this, qi::_1, qi::_2, qi::_3, qi::_4, qi::_5, qi::_6, qi::_7 \
+         ))]
 
-#define READ__2(CNAME, ARG_TYPE_ONE, ARG_TYPE_TWO)\
-        | command(3, std::string(#CNAME)) >> (ARG_TYPE_ONE##_arg >> ARG_TYPE_TWO##_arg)\
-        [px::bind(&redis_grammar::execute_read, this, \
-         px::construct<redis_protocol_t::read_t>( \
-         px::new_<redis_protocol_t::CNAME>(qi::_1, qi::_2)))]
-
-#define READ__3(CNAME, ARG_TYPE_ONE, ARG_TYPE_TWO, ARG_TYPE_THREE)\
-        | command(4, std::string(#CNAME)) >> (ARG_TYPE_ONE##_arg >> ARG_TYPE_TWO##_arg >> ARG_TYPE_THREE##_arg)\
-        [px::bind(&redis_grammar::execute_read, this, \
-         px::construct<redis_protocol_t::read_t>( \
-         px::new_<redis_protocol_t::CNAME>(qi::_1, qi::_2, qi::_3)))]
 
 //Some commands take an unsecified number of arguments. These are parsed into a vector of strings. (sorry no other types)
-#define WRITE_N(CNAME)\
+#define CMD_N(CNAME)\
         | command_n(std::string(#CNAME))\
-        [px::bind(&redis_grammar::execute_write, this, \
-         px::construct<redis_protocol_t::write_t>( \
-         px::new_<redis_protocol_t::CNAME>(qi::_1)))]
-
-#define READ__N(CNAME)\
-        | command_n(std::string(#CNAME))\
-        [px::bind(&redis_grammar::execute_read, this, \
-         px::construct<redis_protocol_t::read_t>( \
-         px::new_<redis_protocol_t::CNAME>(qi::_1)))]
+        [px::bind(&redis_grammar::output_response, this, \
+         px::bind(&redis_ext::CNAME, this, qi::_1 \
+         ))]
 
 #define COMMANDS_END ;
 
 template <typename Iterator>
-struct redis_grammar : qi::grammar<Iterator> {
+struct redis_grammar : qi::grammar<Iterator>, redis_ext {
     redis_grammar(tcp_conn_t *conn, namespace_interface_t<redis_protocol_t> *intface, std::iostream *redis_stream) :
         redis_grammar::base_type(start),
+        redis_ext(intface),
         out_stream(redis_stream),
-        namespace_interface(intface),
         out_conn(conn)
     {
         eol = qi::lit("\r\n");
@@ -136,6 +121,8 @@ struct redis_grammar : qi::grammar<Iterator> {
         unsigned_arg = arg_bytes >> unsigned_data[qi::_val = qi::_1] >> eol;
         int_data %= qi::int_;
         int_arg = arg_bytes >> int_data[qi::_val = qi::_1] >> eol;
+        float_data %= qi::int_; //TODO figure out how to get the real number parser working
+        float_arg = arg_bytes >> float_data[qi::_val = qi::_1] >> eol;
 
         command = args(qi::_r1) >> cname(qi::_r2);
         command_n = args_n[qi::_a = qi::_1] >> cname(qi::_r1) >> (qi::repeat(qi::_a - 1)[string_arg])[qi::_val = qi::_1];
@@ -148,108 +135,140 @@ struct redis_grammar : qi::grammar<Iterator> {
 
         //KEYS (commands from the 'keys' section of the redis documentation)
         BEGIN(keys1)
-            WRITE_N(del)
-            READ__1(exists, string)
-            WRITE_2(expire, string, unsigned)
-            WRITE_2(expireat, string, unsigned)
-            READ__1(keys, string)
-            WRITE_2(move, string, string)
+            CMD_N(del)
+            CMD_1(exists, string)
+            CMD_2(expire, string, unsigned)
+            CMD_2(expireat, string, unsigned)
+            CMD_1(keys, string)
+            CMD_2(move, string, string)
         COMMANDS_END
         BEGIN(keys2)
-            WRITE_1(persist, string)
-            READ__0(randomkey)
-            WRITE_2(rename, string, string)
-            WRITE_2(renamenx, string, string)
-            READ__1(ttl, string)
-            READ__1(type, string)
+            CMD_1(persist, string)
+            CMD_0(randomkey)
+            CMD_2(rename, string, string)
+            CMD_2(renamenx, string, string)
+            CMD_1(ttl, string)
+            CMD_1(type, string)
         COMMANDS_END
 
         //STRINGS
         BEGIN(strings1)
-            WRITE_2(append, string, string)
-            WRITE_1(decr, string)
-            WRITE_2(decrby, string, int)
-            READ__1(get, string)
-            READ__2(getbit, string, unsigned)
-            READ__3(getrange, string, int, int)
-            WRITE_2(getset, string, string)
-            WRITE_1(incr, string)
-            WRITE_2(incrby, string, int)
+            CMD_2(append, string, string)
+            CMD_1(decr, string)
+            CMD_2(decrby, string, int)
+            CMD_1(get, string)
+            CMD_2(getbit, string, unsigned)
+            CMD_3(getrange, string, int, int)
+            CMD_2(getset, string, string)
+            CMD_1(incr, string)
+            CMD_2(incrby, string, int)
         COMMANDS_END
         BEGIN(strings2)
-            READ__N(mget)
-            WRITE_N(mset)
-            WRITE_N(msetnx)
-            WRITE_2(set, string, string)
-            WRITE_3(setbit, string, unsigned, unsigned)
-            WRITE_3(setex, string, unsigned, string)
-            WRITE_3(setrange, string, unsigned, string)
-            READ__1(Strlen, string)
+            CMD_N(mget)
+            CMD_N(mset)
+            CMD_N(msetnx)
+            CMD_2(set, string, string)
+            CMD_3(setbit, string, unsigned, unsigned)
+            CMD_3(setex, string, unsigned, string)
+            CMD_3(setrange, string, unsigned, string)
+            CMD_1(Strlen, string)
         COMMANDS_END
 
         //Hashes
         BEGIN(hashes1)
-            WRITE_N(hdel)
-            READ__2(hexists, string, string)
-            READ__2(hget, string, string)
-            READ__1(hgetall, string)
-            WRITE_3(hincrby, string, string, int)
-            READ__1(hkeys, string)
+            CMD_N(hdel)
+            CMD_2(hexists, string, string)
+            CMD_2(hget, string, string)
+            CMD_1(hgetall, string)
+            CMD_3(hincrby, string, string, int)
+            CMD_1(hkeys, string)
         COMMANDS_END
         BEGIN(hashes2)
-            READ__1(hlen, string)
-            READ__N(hmget)
-            WRITE_N(hmset)
-            WRITE_3(hset, string, string, string)
-            WRITE_3(hsetnx, string, string, string)
-            READ__1(hvals, string)
+            CMD_1(hlen, string)
+            CMD_N(hmget)
+            CMD_N(hmset)
+            CMD_3(hset, string, string, string)
+            CMD_3(hsetnx, string, string, string)
+            CMD_1(hvals, string)
         COMMANDS_END
 
         //Sets
         BEGIN(sets1)
-           WRITE_N(sadd)
-           READ__1(scard, string)
-           READ__N(sdiff)
-           WRITE_N(sdiffstore)
-           READ__N(sinter)
-           WRITE_N(sinterstore)
-           READ__2(sismember, string, string)
+           CMD_N(sadd)
+           CMD_1(scard, string)
+           CMD_N(sdiff)
+           CMD_N(sdiffstore)
+           CMD_N(sinter)
+           CMD_N(sinterstore)
+           CMD_2(sismember, string, string)
         COMMANDS_END
         BEGIN(sets2)
-           READ__1(smembers, string)
-           WRITE_3(smove, string, string, string)
-           WRITE_1(spop, string)
-           READ__1(srandmember, string)
-           WRITE_N(srem)
-           READ__N(sunion)
-           WRITE_N(sunionstore)
+           CMD_1(smembers, string)
+           CMD_3(smove, string, string, string)
+           CMD_1(spop, string)
+           CMD_1(srandmember, string)
+           CMD_N(srem)
+           CMD_N(sunion)
+           CMD_N(sunionstore)
         COMMANDS_END
 
         BEGIN(lists1)
-            WRITE_N(blpop)
-            WRITE_N(brpop)
-            WRITE_N(brpoplpush)
-            READ__2(lindex, string, int)
-            WRITE_4(linsert, string, string, string, string)
-            READ__1(llen, string)
-            WRITE_1(lpop, string)
-            WRITE_N(lpush)
-            WRITE_2(lpushx, string, string)
+            CMD_N(blpop)
+            CMD_N(brpop)
+            CMD_N(brpoplpush)
+            CMD_2(lindex, string, int)
+            CMD_4(linsert, string, string, string, string)
+            CMD_1(llen, string)
+            CMD_1(lpop, string)
+            CMD_N(lpush)
+            CMD_2(lpushx, string, string)
         COMMANDS_END
         BEGIN(lists2)
-            READ__3(lrange, string, int, int)
-            WRITE_3(lrem, string, int, string)
-            WRITE_3(lset, string, int, string)
-            WRITE_3(ltrim, string, int, int)
-            WRITE_1(rpop, string)
-            WRITE_2(rpoplpush, string, string)
-            WRITE_N(rpush)
-            WRITE_2(rpushx, string, string)
+            CMD_3(lrange, string, int, int)
+            CMD_3(lrem, string, int, string)
+            CMD_3(lset, string, int, string)
+            CMD_3(ltrim, string, int, int)
+            CMD_1(rpop, string)
+            CMD_2(rpoplpush, string, string)
+            CMD_N(rpush)
+            CMD_2(rpushx, string, string)
+        COMMANDS_END
+
+        BEGIN(sortedsets1)
+            CMD_N(zadd)
+            CMD_1(zcard, string)
+            CMD_3(zcount, string, float, float)
+            CMD_3(zincrby, string, float, string)
+            CMD_N(zinterstore)
+            CMD_3(zrange, string, int, int)
+            CMD_4(zrange, string, int, int, string)
+            CMD_3(zrangebyscore, string, string, string)
+            CMD_4(zrangebyscore, string, string, string, string)
+        COMMANDS_END
+        BEGIN(sortedsets2)
+            CMD_6(zrangebyscore, string, string, string, string, unsigned, unsigned)
+            CMD_7(zrangebyscore, string, string, string, string, string, unsigned, unsigned)
+            CMD_2(zrank, string, string)
+            CMD_N(zrem)
+            CMD_3(zremrangebyrank, string, int, int)
+            CMD_3(zremrangebyscore, string, float, float)
+            CMD_3(zrevrange, string, int, int)
+            CMD_4(zrevrange, string, int, int, string)
+        COMMANDS_END
+        BEGIN(sortedsets3)
+            CMD_3(zrevrangebyscore, string, string, string)
+            CMD_4(zrevrangebyscore, string, string, string, string)
+            CMD_6(zrevrangebyscore, string, string, string, string, unsigned, unsigned)
+            CMD_7(zrevrangebyscore, string, string, string, string, string, unsigned, unsigned)
+            CMD_2(zrevrank, string, string)
+            CMD_2(zscore, string, string)
+            CMD_N(zunionstore)
         COMMANDS_END
 
         //Because of the aformentioned tiny blocks problem we have to now or the blocks here
         //*sigh* and we were so close to requiring only one line to add a command
-        commands = keys1 | keys2 | strings1 | strings2 | hashes1 | hashes2 | sets1 | sets2 | lists1 | lists2;
+        commands = keys1 | keys2 | strings1 | strings2 | hashes1 | hashes2 | sets1 |
+                   sets2 | lists1 | lists2 | sortedsets1 | sortedsets2 | sortedsets3;
         start = commands;
     }
 
@@ -257,7 +276,6 @@ struct redis_grammar : qi::grammar<Iterator> {
 
 private:
     std::ostream *out_stream;
-    namespace_interface_t<redis_protocol_t> *namespace_interface;
     tcp_conn_t *out_conn;
 
     //Support rules
@@ -272,6 +290,8 @@ private:
     qi::rule<Iterator, unsigned()> unsigned_arg;
     qi::rule<Iterator, int()> int_data;
     qi::rule<Iterator, int()> int_arg;
+    qi::rule<Iterator, float()> float_data;
+    qi::rule<Iterator, float()> float_arg;
 
     qi::rule<Iterator, void(unsigned, std::string)> command;
     qi::rule<Iterator, std::vector<std::string>(std::string), qi::locals<unsigned> > command_n;
@@ -289,27 +309,18 @@ private:
     qi::rule<Iterator> sets2;
     qi::rule<Iterator> lists1;
     qi::rule<Iterator> lists2;
-
-    // The call function
-
-    void execute_write(redis_protocol_t::write_t query) {
-        redis_protocol_t::write_response_t result =
-            namespace_interface->write(query, order_token_t::ignore);
-        redis_protocol_t::redis_return_type res = result->get_result();
-        boost::apply_visitor(output_visitor(out_conn), res);
-    }
-
-    void execute_read(redis_protocol_t::read_t query) {
-        redis_protocol_t::read_response_t result =
-            namespace_interface->read(query, order_token_t::ignore);
-        redis_protocol_t::redis_return_type res = result->get_result();
-        boost::apply_visitor(output_visitor(out_conn), res);
-    }
+    qi::rule<Iterator> sortedsets1;
+    qi::rule<Iterator> sortedsets2;
+    qi::rule<Iterator> sortedsets3;
 
     //Output functions
     //These take the results of a redis_interface_t method and send them out on the wire.
     //Handling both input and output here means that this class is solely responsible for
     //translating the redis protocol.
+
+    void output_response(redis_protocol_t::redis_return_type response) {
+        boost::apply_visitor(output_visitor(out_conn), response);
+    }
 
     struct output_visitor : boost::static_visitor<void> {
         output_visitor(tcp_conn_t *conn) : out_conn(conn) {;}
@@ -351,6 +362,10 @@ private:
             bulk_result(res);
         }
 
+        void operator()(redis_protocol_t::nil_result) const {
+            out_conn->write("$-1\r\n", 5);
+        }
+
         void operator()(std::vector<std::string> &res) const {
             char buff[20];
             sprintf(buff, "%d", (int)res.size());
@@ -390,8 +405,11 @@ void serve_redis(tcp_conn_t *conn, get_store_t *get_store, set_store_interface_t
 
     const int repli_factor = 1;
     std::vector<redis_protocol_t::region_t> shards;
-    key_range_t key_range(key_range_t::none, store_key_t(""),  key_range_t::open, store_key_t(""));
-    shards.push_back(key_range);
+    key_range_t key_range1(key_range_t::none, store_key_t(""),  key_range_t::open, store_key_t("n"));
+    key_range_t key_range2(key_range_t::none, store_key_t("n"),  key_range_t::open, store_key_t(""));
+    shards.push_back(key_range1);
+    shards.push_back(key_range2);
+
 
     unittest::run_with_dummy_namespace_interface<redis_protocol_t>(shards, repli_factor, boost::bind(start_serving, conn, _1));
 }

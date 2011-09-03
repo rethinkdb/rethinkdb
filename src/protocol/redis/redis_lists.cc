@@ -137,7 +137,7 @@ EXECUTE_R(lindex) {
     list_read_oper_t oper(one, btree, otok);
     std::string value;
     if(oper.get_element(two, value)) {
-        return read_response_t(new bulk_result_t(value));
+        return bulk_response(value);
     } else {
         return read_response_t(NULL);
     }
@@ -195,11 +195,16 @@ SHARD_W(lpop)
 
 EXECUTE_W(lpop) {
     list_set_oper_t oper(one, btree, timestamp, otok);
+    if(oper.get_size() <= 0) {
+        // list is empty, nothing to pop
+        return write_response_t(NULL);
+    }
+
     std::string first_elem;
     oper.get_element(0, first_elem);
     oper.remove(0);
 
-    return write_response_t(new bulk_result_t(first_elem));
+    return bulk_response(first_elem);
 }
 
 //WRITE(lpush)
@@ -349,7 +354,7 @@ EXECUTE_W(rpop) {
     oper.get_element(last_index, last_element);
     oper.remove(last_index);
 
-    return write_response_t(new bulk_result_t(last_element));
+    return bulk_response(last_element);
 }
 
 WRITE(rpoplpush)
@@ -384,5 +389,3 @@ EXECUTE_W(rpushx) {
     oper.insert(oper.get_size(), two);
     return int_response(oper.get_size());
 }
-
-

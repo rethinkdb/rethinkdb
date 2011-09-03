@@ -206,7 +206,7 @@ bool counted_btree_t::internal_insert(buf_lock_t &blk, unsigned index, std::stri
 
         // Set new reference
         (*insertee)->set_data(const_cast<block_id_t *>(&(node->refs[insert_index + 1].node_id)), &new_block_id, sizeof(new_block_id));
-        (*insertee)->set_data(const_cast<block_id_t *>(&(node->refs[insert_index + 1].count)), &new_sub_size, sizeof(new_sub_size));
+        (*insertee)->set_data(const_cast<uint32_t *>(&(node->refs[insert_index + 1].count)), &new_sub_size, sizeof(new_sub_size));
 
         // Fix count on old reference
         uint32_t modified_old_sub_size = node->refs[insert_index].count - new_sub_size;
@@ -244,7 +244,7 @@ bool counted_btree_t::leaf_insert(buf_lock_t &blk, unsigned index, std::string &
     // Count the additional allocated space in the block
     int toshift = 0;
     while(i < node->n_refs) {
-        blob_t b(const_cast<char *>(node->refs + offset), blob::btree_maxreflen);
+        blob_t b(const_cast<char *>(node->refs + offset + toshift), blob::btree_maxreflen);
         toshift += b.refsize(blksize);
         i++;
     }
@@ -315,7 +315,7 @@ void counted_btree_t::remove_recur(buf_lock_t &blk, unsigned index) {
     if(node->magic == internal_counted_node_t::expected_magic()) {
         internal_remove(blk, index);
     } else if(node->magic == leaf_counted_node_t::expected_magic()) {
-        internal_remove(blk, index);
+        leaf_remove(blk, index);
     }
 }
 
