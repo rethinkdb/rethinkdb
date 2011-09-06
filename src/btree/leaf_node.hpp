@@ -642,8 +642,6 @@ private:
 
 template <class V>
 void garbage_collect(value_sizer_t<V> *sizer, leaf_node_t *node, int num_tstamped, int *preserved_index) {
-    validate(sizer, node);
-
     uint16_t indices[node->num_pairs];
 
     for (int i = 0; i < node->num_pairs; ++i) {
@@ -747,9 +745,6 @@ inline void clean_entry(void *p, int sz) {
 // end) from fro to tow.
 template <class V>
 void move_elements(value_sizer_t<V> *sizer, leaf_node_t *fro, int beg, int end, int wpoint, leaf_node_t *tow, int fro_copysize, int fro_mand_offset) {
-    validate(sizer, fro);
-    validate(sizer, tow);
-
     rassert(is_underfull(sizer, tow));
 
     // This assertion is a bit loose.
@@ -1239,8 +1234,6 @@ bool find_key(const leaf_node_t *node, const btree_key_t *key, int *index_out) {
 
 template <class V>
 bool lookup(value_sizer_t<V> *sizer, const leaf_node_t *node, const btree_key_t *key, void *value_out) {
-    validate(sizer, node);
-
     int index;
     if (find_key(node, key, &index)) {
         const entry_t *ent = get_entry(node, node->pair_offsets[index]);
@@ -1258,8 +1251,6 @@ bool lookup(value_sizer_t<V> *sizer, const leaf_node_t *node, const btree_key_t 
 // cleaned up the old value, if there is one.
 template <class V>
 void insert(value_sizer_t<V> *sizer, leaf_node_t *node, const btree_key_t *key, const void *value, repli_timestamp_t tstamp) {
-    validate(sizer, node);
-
     rassert(!is_full(sizer, node, key, value));
 
     if (offsetof(leaf_node_t, pair_offsets) + sizeof(uint16_t) * (node->num_pairs + 1) + sizeof(repli_timestamp_t) + key->full_size() + sizer->size(value) > node->frontmost) {
@@ -1315,8 +1306,6 @@ void insert(value_sizer_t<V> *sizer, leaf_node_t *node, const btree_key_t *key, 
 // unnecessary binary search.
 template <class V>
 void remove(value_sizer_t<V> *sizer, leaf_node_t *node, const btree_key_t *key, repli_timestamp_t tstamp) {
-    validate(sizer, node);
-
     int index;
     bool found = find_key(node, key, &index);
 
@@ -1363,8 +1352,6 @@ void remove(value_sizer_t<V> *sizer, leaf_node_t *node, const btree_key_t *key, 
 // Erases the entry for the given key, leaving behind no trace.
 template <class V>
 void erase_presence(value_sizer_t<V> *sizer, leaf_node_t *node, const btree_key_t *key) {
-    validate(sizer, node);
-
     int index;
     bool found = find_key(node, key, &index);
 
@@ -1406,8 +1393,6 @@ protected:
 
 template <class V>
 void dump_entries_since_time(value_sizer_t<V> *sizer, const leaf_node_t *node, repli_timestamp_t minimum_tstamp, entry_reception_callback_t<V> *cb) {
-    validate(sizer, node);
-
     int stop_offset = 0;
 
     {
