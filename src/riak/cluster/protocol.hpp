@@ -13,6 +13,7 @@
 #include "riak/cluster/region.hpp"
 #include "riak/cluster/read.hpp"
 #include "riak/cluster/write.hpp"
+#include "javascript/javascript.hpp"
 
 namespace riak {
 class temporary_cache_t;
@@ -164,6 +165,10 @@ public:
        */
 
     private:
+};
+
+class protocol_t {
+    typedef riak::region_t region_t;
 };
 
 } //namespace riak 

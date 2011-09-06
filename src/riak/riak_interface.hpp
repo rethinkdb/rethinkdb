@@ -31,6 +31,7 @@ public:
     bucket_t *operator->() { return &boost::get<riak_store_metadata_t>(it->second->store_metadata); };
 };
 
+
 /* The riak_interface_t is class with all the functions needed to implement a
  * riak server, in most cases the calls are obviously isomorphic to requests
  * that can be sent to a server. A notable exception to this is link walking
@@ -38,14 +39,6 @@ public:
 
 class riak_interface_t {
 private:
-    //store_manager_t<std::list<std::string> > *store_manager;
-
-    //typedef boost::ptr_map<std::list<std::string>, btree_slice_t> slice_map_t;
-
-    //slice_map_t slice_map;
-
-    //btree_slice_t *get_slice(std::list<std::string>);
-    //btree_slice_t *create_slice(std::list<std::string>);
     btree_slice_t *slice;
     std::string bucket; //TODO we may not need this
 public:
@@ -74,7 +67,12 @@ public:
     // Get a single object
     const object_t get_object(std::string, std::pair<int,int> range = std::make_pair(-1, -1));
     // Store an object
-    void store_object(object_t);
+    enum set_result_t {
+        CREATED,
+        NORMAL,
+        PRECONDITION_FAILURE
+    };
+    set_result_t store_object(object_t);
     // Delete an object
     bool delete_object(std::string);
 

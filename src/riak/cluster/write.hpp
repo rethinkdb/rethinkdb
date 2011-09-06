@@ -3,6 +3,7 @@
 
 #include "riak/structures.hpp"
 #include "riak/cluster/region.hpp"
+#include "riak/riak_interface.hpp"
 
 namespace riak {
 
@@ -16,19 +17,21 @@ private:
     object_t object;
     boost::optional<etag_cond_spec_t> etag_cond_spec;
     boost::optional<time_cond_spec_t> time_cond_spec;
+    bool return_body;
 
 public:
     region_t get_region();
     std::vector<write_t> shard(std::vector<region_t> regions);
 };
 
-class set_write_response_t {
+struct set_write_response_t {
+    riak_interface_t::set_result_t result;
     //if a set is done without a key then we need to pick the key ourselves.
     //and tell them what we picked.
     boost::optional<std::string> key_if_created;
 
     //sometimes a set will ask that the object be sent back with the response. the object
-    boost::optional<object_t> object;
+    boost::optional<object_t> object_if_requested;
 };
 
 class delete_write_t {
@@ -40,9 +43,10 @@ public:
     std::vector<write_t> shard(std::vector<region_t> regions);
 };
 
-class delete_write_response_t {
+struct delete_write_response_t {
     /* whether or not we actually found the write */
     bool found;
+    delete_write_response_t(bool _found) : found(_found) { }
 };
 
 typedef boost::variant<set_write_t, delete_write_t> write_variant_t;

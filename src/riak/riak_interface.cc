@@ -115,7 +115,7 @@ const object_t riak_interface_t::get_object(std::string key, std::pair<int,int> 
     return object_t(key, bucket, kv_location.value.get(), kv_location.txn.get(), range);
 }
 
-void riak_interface_t::store_object(object_t obj) {
+riak_interface_t::set_result_t riak_interface_t::store_object(object_t obj) {
     /* std::list<std::string> sm_key;
     sm_key.push_back("riak"); sm_key.push_back(bucket);
     btree_slice_t *slice = get_slice(sm_key);
@@ -176,6 +176,8 @@ void riak_interface_t::store_object(object_t obj) {
     buffer_group_copy_data(&dest, const_view(&src));
 
     txn.value()->print(slice->cache()->get_block_size());
+
+    crash("Not implemented");
 }
 
 bool riak_interface_t::delete_object(std::string key) {

@@ -44,12 +44,23 @@ read_response_t store_t::read(read_t read, order_token_t) {
 
 struct write_functor : public boost::static_visitor<write_response_t> {
     write_response_t operator()(set_write_t write, riak_interface_t *riak) const {
-        riak->store_object(write.object);
-        crash("Not implemented");
+        set_write_response_t res;
+
+        riak_interface_t::set_result_t set_result = riak->store_object(write.object);
+
+        res.result = set_result;
+        if (set_result == riak_interface_t::CREATED) {
+            res.key_if_created = write.object.key;
+        }
+
+        if (write.return_body) {
+            res.object_if_requested = write.object;
+        }
+
+        return res;
     }
     write_response_t operator()(delete_write_t write, riak_interface_t *riak) const {
-        riak->delete_object(write.key);
-        crash("Not implemente");
+        return delete_write_response_t(riak->delete_object(write.key));
     }
 };
 
@@ -58,14 +69,20 @@ write_response_t store_t::write(write_t write, repli_timestamp_t, order_token_t)
     return boost::apply_visitor(write_functor(), write.internal, interface_variant);
 }
 
-/* bool store_t::is_backfilling() {
+bool store_t::is_backfilling() {
     return backfilling;
 }
 
-void backfillee_chunk(backfill_chunk_t);
+void store_t::backfillee_chunk(backfill_chunk_t) {
+    crash("Not implemented");
+}
 
-void backfillee_end(backfill_end_t);
+void store_t::backfillee_end(backfill_end_t) {
+    crash("Not implemented");
+}
 
-void backfillee_cancel(); */
+void store_t::backfillee_cancel() {
+    crash("Not implemented");
+}
 
 } //namespace riak 
