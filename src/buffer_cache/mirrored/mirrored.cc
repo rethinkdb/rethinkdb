@@ -59,6 +59,10 @@ private:
         if (data.has()) {
             data.free(cache->serializer);
         }
+
+        if (in_page_repl()) {
+            remove_from_page_repl();
+        }
     }
 
 public:
@@ -88,7 +92,6 @@ public:
     }
 
     void release_data() {
-        ASSERT_NO_CORO_WAITING;
         cache->assert_thread();
         rassert(active_refcount, "releasing snapshot data with no active references");
         --active_refcount;
@@ -98,7 +101,6 @@ public:
     }
 
     void release() {
-        ASSERT_NO_CORO_WAITING;
         cache->assert_thread();
         rassert(snapshot_refcount, "releasing snapshot with no references");
         --snapshot_refcount;
@@ -114,7 +116,6 @@ public:
     }
 
     void unload() {
-        ASSERT_NO_CORO_WAITING;
         cache->assert_thread();
         // Acquiring the mutex isn't necessary here because active_refcount == 0.
         rassert(safe_to_unload());
@@ -345,6 +346,10 @@ mc_inner_buf_t::~mc_inner_buf_t() {
     rassert(safe_to_unload());
     if (data.has()) {
         data.free(cache->serializer);
+    }
+
+    if (in_page_repl()) {
+        remove_from_page_repl();
     }
 
     pm_n_blocks_in_memory--;
