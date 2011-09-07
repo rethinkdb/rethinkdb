@@ -72,6 +72,8 @@ class ls_block_token_pointee_t {
 
 public:
     ~ls_block_token_pointee_t();
+
+    DISABLE_COPYING(ls_block_token_pointee_t);
 };
 
 inline
