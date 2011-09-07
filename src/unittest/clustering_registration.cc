@@ -31,9 +31,6 @@ public:
             parent->has_registrant = true;
             parent->registrant_data = data;
         }
-        void update(std::string data) {
-            parent->registrant_data = data;
-        }
         ~registrant_t() {
             EXPECT_TRUE(parent->has_registrant);
             parent->has_registrant = false;
@@ -71,26 +68,18 @@ void run_register_test() {
 
     EXPECT_FALSE(controller.has_registrant);
 
-    cond_t registration_interruptor;
-    registrant_t<std::string> registrant(
-        &cluster,
-        metadata_controller.get_view(),
-        "hello",
-        &registration_interruptor);
+    {
+        registrant_t<std::string> registrant(
+            &cluster,
+            metadata_controller.get_view(),
+            "hello");
+        let_stuff_happen();
 
-    EXPECT_FALSE(registrant.get_failed_signal()->is_pulsed());
-    EXPECT_TRUE(controller.has_registrant);
-    EXPECT_EQ("hello", controller.registrant_data);
-
-    cond_t update_interruptor;
-    registrant.update("updated", &update_interruptor);
-
-    EXPECT_FALSE(registrant.get_failed_signal()->is_pulsed());
-    EXPECT_TRUE(controller.has_registrant);
-    EXPECT_EQ("updated", controller.registrant_data);
-
-    cond_t deregister_interruptor;
-    registrant.deregister(&deregister_interruptor);
+        EXPECT_FALSE(registrant.get_failed_signal()->is_pulsed());
+        EXPECT_TRUE(controller.has_registrant);
+        EXPECT_EQ("hello", controller.registrant_data);
+    }
+    let_stuff_happen();
 
     EXPECT_FALSE(controller.has_registrant);
 }
@@ -121,12 +110,11 @@ void run_registrar_death_test() {
 
     EXPECT_FALSE(controller.has_registrant);
 
-    cond_t registration_interruptor;
     registrant_t<std::string> registrant(
         &cluster,
         metadata_controller.get_view(),
-        "hello",
-        &registration_interruptor);
+        "hello");
+    let_stuff_happen();
 
     EXPECT_FALSE(registrant.get_failed_signal()->is_pulsed());
     EXPECT_TRUE(controller.has_registrant);

@@ -9,9 +9,6 @@
 #include "rpc/metadata/view/member.hpp"
 #include "timestamps.hpp"
 
-/* TODO: Filter out writes that we got both via a backfill and from the master.
-*/
-
 template<class protocol_t>
 class mirror_t {
 
@@ -28,7 +25,8 @@ public:
             mailbox_cluster_t *c,
             metadata_readwrite_view_t<mirror_dispatcher_metadata_t<protocol_t> > *dispatcher,
             mirror_id_t backfill_provider,
-            signal_t *interruptor) :
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t) :
 
         store(s),
         cluster(c),
@@ -38,26 +36,24 @@ public:
         writeread_mailbox(cluster, boost::bind(&mirror_t::on_writeread, this,
             auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4)),
         read_mailbox(cluster, boost::bind(&mirror_t::on_read, this,
-            auto_drainer_t::lock_t(&drainer), _1, _2, _3)),
+            auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4)),
 
         registrar_view(&mirror_dispatcher_metadata_t<protocol_t>::registrar, dispatcher),
         mirror_map_view(&mirror_dispatcher_metadata_t<protocol_t>::mirrors, dispatcher)
     {
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
-        /* Register for writes */
+        /* Attempt to register for reads and writes */
+        state_timestamp_t initial_timestamp;
+        typename mirror_data_t::upgrade_mailbox_t upgrade_mailbox;
         try {
-            registrant.reset(new registrant_t<mirror_data_t>(
-                cluster,
-                &registrar_view,
-                mirror_data_t(write_mailbox.get_address()),
-                interruptor));
+            start_receiving_writes(interruptor, &initial_timestamp, &upgrade_mailbox);
         } catch (resource_lost_exc_t) {
-            /* Ignore the error; we can still backfill from another node and
-            meaningfully serve read-outdated queries */
+            rassert(!registrant || registrant->get_failed_signal()->is_pulsed());
         }
 
-        /* Get a backfill */
+        /* Get a backfill. This can throw `resource_lost_exc_t` or
+        `interrupted_exc_t`; we don't pass both on. */
         {
             metadata_member_read_view_t<
                 mirror_id_t,
@@ -66,20 +62,23 @@ public:
             backfill(store, cluster, &backfiller_view, interruptor);
         }
 
-        /* Allow write operations to proceed */
-        backfill_is_done.pulse();
+        if (registrant && !registrant->get_failed_signal()->is_pulsed() && initial_timestamp > store->get_timestamp()) {
+            /* The node we got our backfill from was outdated, so we're
+            outdated too. Disconnect from the master. */
+            registrant.reset();
+        }
 
-        /* Register for writereads and reads */
-        if (registrant) {
-            try {
-                registrant->update(mirror_data_t(
-                    write_mailbox.get_address(),
-                    writeread_mailbox.get_address(),
-                    read_mailbox.get_address()));
-            } catch (resource_lost_exc_t) {
-                /* The master is down. Ignore the error because there's still value
-                in responding to backfill requests and read-outdated queries. */
-            }
+        if (registrant && !registrant->get_failed_signal()->is_pulsed()) {
+            /* Allow write operations to proceed */
+            allow_writes_cond.pulse(store->get_timestamp());
+
+            /* Register for writereads and reads */
+            send(cluster, upgrade_mailbox,
+                writeread_mailbox.get_address(), read_mailbox.get_address());
+
+        } else {
+            /* Cancel any write operations that tried to start */
+            cancel_writes_cond.pulse();
         }
 
         start_serving_backfills();
@@ -92,7 +91,8 @@ public:
             typename protocol_t::store_t *s,
             mailbox_cluster_t *c,
             metadata_readwrite_view_t<mirror_dispatcher_metadata_t<protocol_t> > *dispatcher,
-            signal_t *interruptor) :
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t) :
 
         store(s),
         cluster(c),
@@ -102,30 +102,29 @@ public:
         writeread_mailbox(cluster, boost::bind(&mirror_t::on_writeread, this,
             auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4)),
         read_mailbox(cluster, boost::bind(&mirror_t::on_read, this,
-            auto_drainer_t::lock_t(&drainer), _1, _2, _3)),
+            auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4)),
 
         registrar_view(&mirror_dispatcher_metadata_t<protocol_t>::registrar, dispatcher),
         mirror_map_view(&mirror_dispatcher_metadata_t<protocol_t>::mirrors, dispatcher)
     {
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
-        /* Since we're not doing a backfill, there's no reason for write
-        operations to wait for any amount of time */
-        backfill_is_done.pulse();
-
-        /* Register for writes, writereads, and reads */
+        state_timestamp_t initial_timestamp;
+        typename mirror_data_t::upgrade_mailbox_t upgrade_mailbox;
         try {
-            registrant.reset(new registrant_t<mirror_data_t>(
-                cluster,
-                &registrar_view,
-                mirror_data_t(
-                    write_mailbox.get_address(),
-                    writeread_mailbox.get_address(),
-                    read_mailbox.get_address()),
-                interruptor));
+            start_receiving_writes(interruptor, &initial_timestamp, &upgrade_mailbox);
         } catch (resource_lost_exc_t) {
-            /* Ignore the error; we can still meaningfully serve read-outdated
-            queries */
+            rassert(!registrant || registrant->get_failed_cond()->is_pulsed());
+        }
+
+        if (registrant && !registrant->get_failed_cond()->is_pulsed()) {
+            rassert(initial_timestamp == state_timestamp_t::zero());
+            allow_writes_cond.pulse(state_timestamp_t::zero());
+            /* Register for writereads and reads */
+            send(cluster, upgrade_mailbox,
+                writeread_mailbox.get_address(), read_mailbox.get_address());
+        } else {
+            cancel_writes_cond.pulse();
         }
 
         start_serving_backfills();
@@ -155,10 +154,57 @@ public:
         return mirror_id;
     }
 
+    /* Returns a signal that is pulsed if the mirror is not in contact with the
+    master. */
+    signal_t *get_outdated_signal() {
+        if (registrant) {
+            return registrant->get_failed_signal();
+        } else {
+            return &always_pulsed_signal;
+        }
+    }
+
 private:
+    /* `start_receiving_writes()` is called from within the constructors. It
+    throws `resource_lost_exc_t` if we can't register with the master, or
+    `interrupted_exc_t` if `interruptor` is pulsed. If all goes well, it fills
+    `*upgrade_mailbox_out` with the address of the upgrade mailbox that the
+    master gave us. */
+    void start_receiving_writes(signal_t *interruptor, state_timestamp_t *intiail_timestamp_out, typename mirror_data_t::upgrade_mailbox_t::address_t *upgrade_mailbox_out)
+            THROWS_ONLY(resource_lost_exc_t, interrupted_exc_t)
+    {
+        class intro_receiver_t : public signal_t {
+        public:
+            state_timestamp_t initial_timestamp;
+            typename mirror_data_t::upgrade_mailbox_t::address_t upgrade_mailbox;
+            void fill(state_timestamp_t its, typename mirror_data_t::upgrade_mailbox_t::address_t um) {
+                rassert(!is_pulsed());
+                initial_timestamp = its;
+                upgrade_mailbox = um;
+                pulse();
+            }
+        } intro_receiver;
+        typename mirror_data_t::intro_mailbox_t intro_mailbox(cluster, boost::bind(&intro_receiver_t::fill, &intro_receiver));
+
+        registrant.reset(new registrant_t<mirror_data_t>(
+            cluster,
+            &registrar_view,
+            mirror_data_t(intro_mailbox.get_address(), write_mailbox.get_address())
+            ));
+
+        wait_any_t waiter(&intro_receiver, interruptor, registrant.get_failed_signal());
+        waiter.wait_lazily_unordered();
+        if (interruptor->is_pulsed()) throw interrupted_exc_t;
+        if (registrant.get_failed_signal()->is_pulsed()) throw resource_lost_exc_t;
+        rassert(intro_receiver.is_pulsed());
+
+        *initial_timestamp_out = intro_receiver.initial_timestamp;
+        *upgrade_mailbox_out = intro_receiver.upgrade_mailbox;
+    }
+
     /* `start_serving_backfills()` is called from within the constructors. It
     only exists to factor out some code shared between the constructors. */
-    void start_serving_backfills() {
+    void start_serving_backfills() THROWS_NOTHING {
 
         rassert(backfiller_view.get() == NULL);
         rassert(backfiller.get() == NULL);
@@ -186,20 +232,33 @@ private:
 
     void on_write(auto_drainer_t::lock_t keepalive,
             typename protocol_t::write_t write, transition_timestamp_t ts, order_token_t tok,
-            async_mailbox_t<void()>::address_t ack_addr) {
-
+            async_mailbox_t<void()>::address_t ack_addr)
+            THROWS_NOTHING
+    {
         try {
             {
                 /* Wait until writes are allowed */
                 coro_fifo_acq_t order_preserver;
                 order_preserver.enter(&operation_order_manager);
-                wait_any_t waiter(&backfill_is_done, keepalive.get_drain_signal());
+                wait_any_t waiter(allow_writes_cond.get_ready_signal(), &cancel_writes_cond, keepalive.get_drain_signal());
                 waiter.wait_lazily_unordered();
                 order_preserver.leave();
             }
             if (keepalive.get_drain_signal()->is_pulsed()) throw interrupted_exc_t();
+            if (cancel_writes_cond.is_pulsed()) {
+                /* Something went wrong; we changed our mind about accepting
+                writes. */
+            }
 
-            store->write(write, ts, tok, keepalive.get_drain_signal());
+            /* Compare with the backfill cutoff so that we don't double-perform
+            operations that we get from both the backfiller and the master */
+            if (ts.timestamp_before() >= allow_writes_cond.get_value()) {
+                rassert(ts.timestamp_before() == store->get_timestamp(), "write "
+                    "got reordered w.r.t. write.");
+
+                store->write(write, ts, tok, keepalive.get_drain_signal());
+            }
+
             send(cluster, ack_addr);
 
         } catch (interrupted_exc_t) {
@@ -210,11 +269,15 @@ private:
 
     void on_writeread(auto_drainer_t::lock_t keepalive,
             typename protocol_t::write_t write, transition_timestamp_t ts, order_token_t tok,
-            typename async_mailbox_t<void(typename protocol_t::write_response_t)>::address_t resp_addr) {
-
+            typename async_mailbox_t<void(typename protocol_t::write_response_t)>::address_t resp_addr)
+            THROWS_NOTHING
+    {
         try {
-            rassert(backfill_is_done.is_pulsed());
+            rassert(allow_writes_cond.get_ready_signal().is_pulsed());
             if (keepalive.get_drain_signal()->is_pulsed()) throw interrupted_exc_t();
+
+            rassert(ts.timestamp_before() == store->get_timestamp(), "write "
+                "got reordered w.r.t. write.");
 
             typename protocol_t::write_response_t resp = store->write(write, ts, tok, keepalive.get_drain_signal());
             send(cluster, resp_addr, resp);
@@ -225,12 +288,16 @@ private:
     }
 
     void on_read(auto_drainer_t::lock_t keepalive,
-            typename protocol_t::read_t read, order_token_t tok,
-            typename async_mailbox_t<void(typename protocol_t::read_response_t)>::address_t resp_addr) {
-
+            typename protocol_t::read_t read, state_timestamp_t ts, order_token_t tok,
+            typename async_mailbox_t<void(typename protocol_t::read_response_t)>::address_t resp_addr)
+            THROWS_NOTHING
+    {
         try {
-            rassert(backfill_is_done.is_pulsed());
+            rassert(allow_writes_cond.get_ready_signal().is_pulsed());
             if (keepalive.get_drain_signal()->is_pulsed()) throw interrupted_exc_t();
+
+            rassert(ts == store->get_timestamp(), "read got reordered w.r.t. "
+                "write.");
 
             typename protocol_t::read_response_t resp = store->read(read, tok, keepalive.get_drain_signal());
             send(cluster, resp_addr, resp);
@@ -248,7 +315,8 @@ private:
     writes wait until the backfill is done. */
     coro_fifo_t operation_order_manager;
 
-    cond_t backfill_is_done;
+    promise_t<state_timestamp_t> allow_writes_cond;
+    cond_t cancel_writes_cond;
 
     auto_drainer_t drainer;
 
@@ -266,6 +334,12 @@ private:
         > mirror_map_view;
 
     boost::scoped_ptr<registrant_t<mirror_data_t> > registrant;
+
+    /* If we never successfully registered, then `get_outdated_signal()` returns
+    `&always_pulsed_signal`. */
+    struct always_pulsed_signal_t : public signal_t {
+        always_pulsed_signal_t() { pulse(); }
+    } always_pulsed_signal;
 
     mirror_id_t mirror_id;
     boost::scoped_ptr<metadata_member_readwrite_view_t<

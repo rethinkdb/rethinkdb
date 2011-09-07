@@ -19,9 +19,11 @@ class mirror_dispatcher_t : public home_thread_mixin_t {
 public:
     mirror_dispatcher_t(
             mailbox_cluster_t *c,
-            metadata_readwrite_view_t<mirror_dispatcher_metadata_t<protocol_t> > *metadata
+            metadata_readwrite_view_t<mirror_dispatcher_metadata_t<protocol_t> > *metadata,
+            state_timestamp_t initial_timestamp
             ) THROWS_NOTHING :
         cluster(c),
+        current_state_timestamp(initial_timestamp),
         registrar_view(&mirror_dispatcher_metadata_t<protocol_t>::registrar, metadata),
         registrar(cluster, this, &registrar_view)
         { }
@@ -53,56 +55,36 @@ public:
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t r, order_token_t tok) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t);
 
-    typename protocol_t::write_response_t write(typename protocol_t::write_t w, transition_timestamp_t ts, order_token_t tok) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t);
+    typename protocol_t::write_response_t write(typename protocol_t::write_t w, order_token_t tok) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t);
 
 private:
-    /* `queued_write_t` represents a write that has been sent to some nodes but
-    not completed yet. In its constructor, it puts itself into `write_queue`; in
-    its destructor, it removes itself. */
+    /* `incomplete_write_t` represents a write that has been sent to some nodes
+    but not completed yet. */
 
-    class queued_write_t :
-        public intrusive_list_node_t<queued_write_t>,
+    class incomplete_write_t :
         public home_thread_mixin_t
     {
     public:
-        class ref_t {
-        public:
-            ref_t() : parent(NULL) { }
-            ref_t(queued_write_t *w) : parent(w) {
-                parent->incref();
-            }
-            ref_t(const ref_t &r) : parent(r.parent) {
-                parent->incref();
-            }
-            ref_t &operator=(const ref_t &r) {
-                if (r.parent) r.parent->incref();
-                if (parent) parent->decref();
-                parent = r->parent;
-            }
-            queued_write_t *get() {
-                rassert(parent);
-                return parent;
-            }
-            ~ref_t() {
-                if (parent) parent->decref();
-            }
-        private:
-            queued_write_t *parent;
-        };
-
-        static ref_t spawn(intrusive_list_t<queued_write_t> *q,
-                typename protocol_t::write_t w, transition_timestamp_t ts, order_token_t otok,
-                int target_ack_count, promise_t<bool> *done_promise) THROWS_NOTHING {
-            ASSERT_FINITE_CORO_WAITING;
-            queued_write_t *write = new queued_write_t(q, w, ts, otok, target_ack_count, done_promise);
-            return ref_t(write);
+        incomplete_write_t(mirror_dispatcher_t *p,
+                typename protocol_t::write_t w, order_token_t otok,
+                int target_ack_count_) :
+            write(w), order_token(otok),
+            parent(p),
+            ack_count(0), target_ack_count(target_ack_count_)
+        {
+            rassert(target_ack_count > 0);
         }
 
         void notify_acked() {
             ack_count++;
             if (ack_count == target_ack_count) {
-                done_promise->pulse(true);
-                done_promise = NULL;
+                done_promise.pulse(true);
+            }
+        }
+
+        void notify_no_more_acks() {
+            if (ack_count < target_ack_count) {
+                done_promise.pulse(false);
             }
         }
 
@@ -111,42 +93,54 @@ private:
         order_token_t order_token;
 
     private:
-        queued_write_t(intrusive_list_t<queued_write_t> *q,
-                typename protocol_t::write_t w, transition_timestamp_t ts, order_token_t otok,
-                int target_ack_count_, promise_t<bool> *done_promise_) :
-            write(w), timestamp(ts), order_token(otok),
-            queue(q), ref_count(0),
-            ack_count(0), target_ack_count(target_ack_count_), done_promise(done_promise_)
-        {
-            ASSERT_FINITE_CORO_WAITING;
-            queue->push_back(this);
-        }
+        mirror_dispatcher_t *parent;
 
-        ~queued_write_t() {
-            queue->remove(this);
-            if (done_promise) done_promise->pulse(false);
-        }
-
-        void incref() {
-            assert_thread();
-            ref_count++;
-        }
-
-        void decref() {
-            assert_thread();
-            ref_count--;
-            if (ref_count == 0) delete this;
-        }
-
-        intrusive_list_t<queued_write_t> *queue;
-
-        /* While `ref_count` is greater than zero, the write must remain in the
-        `write_queue` so that any new mirrors that come up will be sure to get
-        it. */
-        int ref_count;
+        int incomplete_count;
 
         int ack_count, target_ack_count;
-        promise_t<bool> *done_promise;
+
+        /* `done_promise` gets pulsed with `true` when `target_ack_count` is
+        reached, or pulsed with `false` if it will never be reached. */
+        promise_t<bool> done_promise;
+    };
+
+    /* We keep track of which `incomplete_write_t`s have been acked by all the
+    nodes using `incomplete_write_ref_t`. When there are zero
+    `incomplete_write_ref_t`s for a given `incomplete_write_t`, then it is no
+    longer incomplete. */
+
+    class incomplete_write_ref_t {
+    public:
+        incomplete_write_ref_t() : write(NULL) {
+        }
+        incomplete_write_ref_t(const boost::shared_ptr<incomplete_write_t> &w) : write(w) {
+            rassert(w);
+            w->incomplete_count++;
+        }
+        incomplete_write_ref_t(const incomplete_write_ref_t &r) : write(NULL) {
+            *this = r;
+        }
+        ~incomplete_write_ref_t() {
+            *this = incomplete_write_ref_t();
+        }
+        incomplete_write_ref_t &operator=(const incomplete_write_ref_t &r) {
+            if (r.write) {
+                r.write->incomplete_count++;
+            }
+            if (write) {
+                write->incomplete_count--;
+                if (write->incomplete_count == 0) {
+                    write->parent->end_write(write);
+                }
+            }
+            write = r.write;
+            return *this;
+        }
+        boost::shared_ptr<incomplete_write_t> get() {
+            return write;
+        }
+    private:
+        boost::shared_ptr<incomplete_write_t> write;
     };
 
     typedef typename mirror_dispatcher_metadata_t<protocol_t>::mirror_data_t mirror_data_t;
@@ -159,23 +153,22 @@ private:
     public:
         dispatchee_t(mirror_dispatcher_t *c, mirror_data_t d) THROWS_NOTHING;
         ~dispatchee_t() THROWS_NOTHING;
-        void update(mirror_data_t d) THROWS_NOTHING;
 
-        typename protocol_t::write_response_t writeread(typename queued_write_t::ref_t write_ref, auto_drainer_t::lock_t keepalive) THROWS_ONLY(mirror_lost_exc_t);
-        typename protocol_t::read_response_t read(typename protocol_t::read_t read, order_token_t order_token, auto_drainer_t::lock_t keepalive) THROWS_ONLY(mirror_lost_exc_t);
-        void begin_write_in_background(typename queued_write_t::ref_t write_ref, auto_drainer_t::lock_t keepalive) THROWS_NOTHING;
+        typename mirror_data_t::write_mailbox_t::address_t write_mailbox;
+        bool is_readable;
+        typename mirror_data_t::writeread_mailbox_t::address_t writeread_mailbox;
+        typename mirror_data_t::read_mailbox_t::address_t read_mailbox;
 
     private:
-        void write_in_background(typename queued_write_t::ref_t write_ref, auto_drainer_t::lock_t keepalive, coro_fifo_acq_t *our_place_in_line) THROWS_NOTHING;
+        void upgrade(
+            typename mirror_data_t::writeread_mailbox_t::address_t,
+            typename mirror_data_t::read_mailbox_t::address_t,
+            auto_drainer_t::lock_t);
 
         mirror_dispatcher_t *controller;
-
-        mirror_data_t data;
-        bool is_readable;
-
-        coro_fifo_t background_write_fifo;
-
         auto_drainer_t drainer;
+
+        typename mirror_data_t::upgrade_mailbox_t upgrade_mailbox;
     };
 
     /* Reads need to pick a single readable mirror to perform the operation.
@@ -183,11 +176,45 @@ private:
     `pick_a_readable_dispatchee()` to do the picking. */
     void pick_a_readable_dispatchee(dispatchee_t **dispatchee_out, auto_drainer_t::lock_t *lock_out) THROWS_ONLY(insufficient_mirrors_exc_t);
 
+    void background_write(dispatchee_t *, auto_drainer_t::lock_t, incomplete_write_ref_t) THROWS_NOTHING;
+    void end_write(boost::shared_ptr<incomplete_write_t> write) THROWS_NOTHING;
+
+    /* This function sanity-checks `incomplete_writes`, `current_timestamp`,
+    and `newest_complete_timestamp`. It mostly exists as a form of executable
+    documentation. */
+    void sanity_check(mutex_acquisition_t *mutex_acq) {
+#ifndef NDEBUG
+        mutex_acq->assert_is_holding(&operation_mutex);
+        state_timestamp_t ts = newest_complete_timestamp;
+        for (std::list<boost::shared_ptr<incomplete_write_t> >::iterator it = incomplete_writes.begin();
+                it != incomplete_writes.end(); it++) {
+            rassert(ts == w->timestamp.timestamp_before());
+            ts = w->timestamp.timestamp_after();
+        }
+        rassert(ts == current_timestamp);
+#endif
+    }
+
     mailbox_cluster_t *cluster;
 
-    intrusive_list_t<queued_write_t> write_queue;
+    /* This mutex is held when an operation is starting or a new dispatchee is
+    connecting. It protects `current_state_timestamp`,
+    `newest_complete_timestamp`, `incomplete_writes`, `dispatchees`, and
+    `order_checkpoint`. */
+    mutex_t operation_mutex;
+
+    order_checkpoint_t order_checkpoint;
+
+    /* If a write has begun, but some mirror might not have completed it yet,
+    then it goes in `incomplete_writes`. The idea is that a new mirror that
+    connects will use the union of a backfill and `incomplete_writes` as its
+    data, and that will guarantee it gets at least one copy of every write. */
+
+    std::list<boost::shared_ptr<incomplete_write_t> > incomplete_writes;
+    state_timestamp_t current_timestamp, newest_complete_timestamp;
 
     std::map<dispatchee_t *, auto_drainer_t::lock_t> dispatchees;
+
     intrusive_list_t<dispatchee_t> readable_dispatchees;
 
     metadata_field_readwrite_view_t<

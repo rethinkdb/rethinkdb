@@ -19,7 +19,7 @@ struct dummy_timestamper_t {
 
 public:
     dummy_timestamper_t(typename protocol_t::store_t *_next)
-        : next(_next), timestamp(transition_timestamp_t::first()) { }
+        : next(_next), timestamp(state_timestamp_t::zero()) { }
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t read, order_token_t tok) {
         cond_t interruptor;
@@ -28,14 +28,14 @@ public:
 
     typename protocol_t::write_response_t write(typename protocol_t::write_t write, order_token_t tok) {
         cond_t interruptor;
-        transition_timestamp_t ts = timestamp;
-        timestamp = timestamp.next();
+        transition_timestamp_t ts = transition_timestamp_t::starting_from(timestamp);
+        timestamp = ts.timestamp_after();
         return next->write(write, ts, tok, &interruptor);
     }
 
 private:
     typename protocol_t::store_t *next;
-    transition_timestamp_t timestamp;
+    state_timestamp_t timestamp;
 };
 
 template<class protocol_t>

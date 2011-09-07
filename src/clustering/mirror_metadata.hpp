@@ -26,40 +26,51 @@ public:
 
     std::map<mirror_id_t, resource_metadata_t<backfiller_metadata_t<protocol_t> > > mirrors;
 
-    /* When mirrors start up, they construct a `mirror_data_t` and send it to
-    the master via `registrar`. */
+    /* When mirrors start up, they construct a `mirror_registration_t` and send
+    it to the master via `registrar`. */
 
     class mirror_data_t {
 
     public:
+        /* These are the types of mailboxes that the master uses to communicate with
+        the mirrors. */
+
         typedef async_mailbox_t<void(
             typename protocol_t::write_t, transition_timestamp_t, order_token_t,
             async_mailbox_t<void()>::address_t
             )> write_mailbox_t;
-        typename write_mailbox_t::address_t write_mailbox;
 
         typedef async_mailbox_t<void(
             typename protocol_t::write_t, transition_timestamp_t, order_token_t,
             typename async_mailbox_t<void(typename protocol_t::write_response_t)>::address_t
             )> writeread_mailbox_t;
-        typename writeread_mailbox_t::address_t writeread_mailbox;
 
         typedef async_mailbox_t<void(
-            typename protocol_t::read_t, order_token_t,
+            typename protocol_t::read_t, state_timestamp_t, order_token_t,
             typename async_mailbox_t<void(typename protocol_t::read_response_t)>::address_t
             )> read_mailbox_t;
-        typename read_mailbox_t::address_t read_mailbox;
 
-        mirror_data_t() { }
-        mirror_data_t(const typename write_mailbox_t::address_t &wm) :
-            write_mailbox(wm) { }
-        mirror_data_t(const typename write_mailbox_t::address_t &wm, const typename writeread_mailbox_t::address_t &wrm, const typename read_mailbox_t::address_t &rm) :
-            write_mailbox(wm), writeread_mailbox(wrm), read_mailbox(rm) { }
+        /* The master sends a single message to `intro_mailbox` at the very
+        beginning. This tells the mirror what timestamp it's at, and also tells
+        it where to send an upgrade message. */
 
-        RDB_MAKE_ME_SERIALIZABLE_3(write_mailbox, writeread_mailbox, read_mailbox);
+        typedef async_mailbox_t<void(
+            typename mirror_writeread_mailbox_t::address_t,
+            typename mirror_read_mailbox_t::address_t
+            )> upgrade_mailbox_t;
+
+        typedef async_mailbox_t<void(
+            state_timestamp_t,
+            typename async_mailbox_t<void(upgrade_mailbox_t::address_t)>::address_t
+            )> intro_mailbox_t;
+        intro_mailbox_t::address_t intro_mailbox;
+
+        typename write_mailbox_t::address_t write_mailbox;
+
+        RDB_MAKE_ME_SERIALIZABLE_2(intro_mailbox, write_mailbox);
     };
 
-    resource_metadata_t<registrar_metadata_t<mirror_data_t> > registrar;
+    resource_metadata_t<registrar_metadata_t<mirror_registration_t> > registrar;
 
     RDB_MAKE_ME_SERIALIZABLE_2(mirrors, registrar);
 };

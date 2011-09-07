@@ -3,13 +3,18 @@
 /* Functions to send a read or write to a mirror and wait for a response. */
 
 template<class protocol_t>
-void mirror_data_write(mailbox_cluster_t *cluster, const typename mirror_dispatcher_metadata_t<protocol_t>::mirror_data_t &mirror, typename protocol_t::write_t w, transition_timestamp_t ts, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-
+void mirror_data_write(
+        mailbox_cluster_t *cluster,
+        const typename mirror_dispatcher_metadata_t<protocol_t>::mirror_data_t::write_mailbox_t &write_mailbox,
+        typename protocol_t::write_t w, transition_timestamp_t ts, order_token_t tok,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t)
+{
     cond_t ack_cond;
     async_mailbox_t<void()> ack_mailbox(
         cluster, boost::bind(&cond_t::pulse, &ack_cond));
 
-    send(cluster, mirror.write_mailbox,
+    send(cluster, write_mailbox,
         w, ts, tok, ack_mailbox.get_address());
 
     wait_any_t waiter(&ack_cond, interruptor);
@@ -20,13 +25,18 @@ void mirror_data_write(mailbox_cluster_t *cluster, const typename mirror_dispatc
 }
 
 template<class protocol_t>
-typename protocol_t::write_response_t mirror_data_writeread(mailbox_cluster_t *cluster, const typename mirror_dispatcher_metadata_t<protocol_t>::mirror_data_t &mirror, typename protocol_t::write_t w, transition_timestamp_t ts, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-
+typename protocol_t::write_response_t mirror_data_writeread(
+        mailbox_cluster_t *cluster,
+        const typename mirror_dispatcher_metadata_t<protocol_t>::mirror_data_t::writeread_mailbox_t &writeread_mailbox,
+        typename protocol_t::write_t w, transition_timestamp_t ts, order_token_t tok,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t)
+{
     promise_t<typename protocol_t::write_response_t> resp_cond;
     async_mailbox_t<void(typename protocol_t::write_response_t)> resp_mailbox(
         cluster, boost::bind(&promise_t<typename protocol_t::write_response_t>::pulse, &resp_cond, _1));
 
-    send(cluster, mirror.writeread_mailbox,
+    send(cluster, writeread_mailbox,
         w, ts, tok, resp_mailbox.get_address());
 
     wait_any_t waiter(resp_cond.get_ready_signal(), interruptor);
@@ -37,14 +47,19 @@ typename protocol_t::write_response_t mirror_data_writeread(mailbox_cluster_t *c
 }
 
 template<class protocol_t>
-typename protocol_t::read_response_t mirror_data_read(mailbox_cluster_t *cluster, const typename mirror_dispatcher_metadata_t<protocol_t>::mirror_data_t &mirror, typename protocol_t::read_t r, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-
+typename protocol_t::read_response_t mirror_data_read(
+        mailbox_cluster_t *cluster,
+        const typename mirror_dispatcher_metadata_t<protocol_t>::mirror_data_t::read_mailbox_t &read_mailbox,
+        typename protocol_t::read_t r, state_timestamp_t ts, order_token_t tok,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t)
+{
     promise_t<typename protocol_t::read_response_t> resp_cond;
     async_mailbox_t<void(typename protocol_t::read_response_t)> resp_mailbox(
         cluster, boost::bind(&promise_t<typename protocol_t::read_response_t>::pulse, &resp_cond, _1));
 
-    send(cluster, mirror.read_mailbox,
-        r, tok, resp_mailbox.get_address());
+    send(cluster, read_mailbox,
+        r, ts, tok, resp_mailbox.get_address());
 
     wait_any_t waiter(resp_cond.get_ready_signal(), interruptor);
     waiter.wait_lazily_unordered();
@@ -58,52 +73,94 @@ typename protocol_t::read_response_t mirror_dispatcher_t<protocol_t>::read(typen
 
     dispatchee_t *reader;
     auto_drainer_t::lock_t reader_lock;
-    pick_a_readable_dispatchee(&reader, &reader_lock);
-    return reader->read(r, tok, reader_lock);
+    state_timestamp_t timestamp;
+
+    {
+        mutex_acquisition_t mutex_acq(&operation_mutex);
+        pick_a_readable_dispatchee(&reader, &reader_lock);
+        timestamp = current_timestamp;
+    }
+
+    try {
+        return mirror_data_read<protocol_t>(cluster, reader->read_mailbox,
+            read, timestamp, order_token,
+            reader_lock.get_drain_signal());
+    } catch (interrupted_exc_t) {
+        throw mirror_lost_exc_t();
+    }
 }
 
 template<class protocol_t>
-typename protocol_t::write_response_t mirror_dispatcher_t<protocol_t>::write(typename protocol_t::write_t w, transition_timestamp_t ts, order_token_t tok) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t) {
+typename protocol_t::write_response_t mirror_dispatcher_t<protocol_t>::write(typename protocol_t::write_t w, order_token_t tok) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t) {
 
     /* TODO: Make `target_ack_count` configurable */
     int target_ack_count = 1;
-    promise_t<bool> done_promise;
+
+    /* We'll fill `write` with the write that we start; we hold it in a shared
+    pointer so that it stays alive while we check its `done_promise`. */
+    boost::shared_ptr<incomplete_write_t> write;
 
     typename protocol_t::write_response_t resp;
 
     {
-        /* We must put the write on the queue and dispatch it to every
-        dispatchee atomically, so that no new dispatchee is created between when
-        we put it on the queue and when we send it to the dispatchees. Nothing
-        in this scope is supposed to block except for the final call to
-        `writeread()`. */
+        incomplete_write_ref_t write_ref;
 
-        /* `write_ref` is to keep the write from freeing itself before we're
-        done with it. We put it in an inner scope so that we don't hold onto it
-        any longer than we need to. */
-        typename queued_write_t::ref_t write_ref =
-            queued_write_t::spawn(&write_queue,
-                w, ts, tok,
-                target_ack_count, &done_promise);
-
+        std::map<dispatchee_t *, auto_drainer_t::lock_t> writers;
         dispatchee_t *writereader;
         auto_drainer_t::lock_t writereader_lock;
-        pick_a_readable_dispatchee(&writereader, &writereader_lock);
 
-        for (typename std::map<dispatchee_t *, auto_drainer_t::lock_t>::iterator it = dispatchees.begin();
-                it != dispatchees.end(); it++) {
-            dispatchee_t *writer = (*it).first;
-            auto_drainer_t::lock_t writer_lock = (*it).second;
-            /* Make sure not to send a duplicate operation to `writereader` */
-            if (writer != writereader) {
-                writer->begin_write_in_background(write_ref, writer_lock);
-            }
+        /* Set up the write */
+        {
+            /* We must hold the mutex while we are accessing
+            `current_state_timestamp`, `incomplete_queue`, `dispatchees`, and
+            `order_checkpoint`. */
+            mutex_acquisition_t mutex_acq(&operation_mutex);
+
+            transition_timestamp_t timestamp = transition_timestamp_t::starting_from(current_timestamp);
+            current_timestamp = timestamp.timestamp_after(); 
+
+            tok = order_checkpoint.check_through(tok);
+
+            write = boost::make_shared<incomplete_write_t>(
+                this, w, timestamp, tok, target_ack_count);
+            incomplete_writes.push_back(write);
+
+            /* Create a reference so that `write` doesn't declare itself
+            complete before we've even started */
+            write_ref = incomplete_write_ref_t(write);
+
+            sanity_check(&mutex_acq);
+
+            /* As long as we hold the lock, choose our writereader and take a
+            snapshot of the dispatchee map */
+            pick_a_readable_dispatchee(&writereader, &writereader_lock);
+            writers = dispatchees;
         }
 
-        resp = writereader->writeread(write_ref, writereader_lock);
+        /* Dispatch the write to all the dispatchees */
+
+        /* First dispatch it to all the non-writereaders... */
+        for (typename std::map<dispatchee_t *, auto_drainer_t::lock_t>::iterator it = writers.begin(); it != writers.end(); it++) {
+            /* Make sure not to send a duplicate operation to `writereader` */
+            if ((*it).first == writereader) continue;
+            coro_t::spawn_sometime(boost::bind(&mirror_dispatcher_t::background_write, this,
+                (*it).first, (*it).second, write_ref));
+        }
+
+        /* ... then dispatch it to the writereader */
+        try {
+            resp = mirror_data_writeread<protocol_t>(cluster, writereader->writeread_mailbox,
+                write_ref.get()->write, write_ref.get()->timestamp, write_ref.get()->order_token,
+                writereader_lock.get_drain_signal());
+        } catch (interrupted_exc_t) {
+            throw mirror_lost_exc_t();
+        }
+        write_ref.get()->notify_acked();
     }
 
-    bool success = done_promise.wait();
+    /* Wait until `target_ack_count` has been reached, or until the write is
+    declared impossible because there are too few mirrors. */
+    bool success = write->done_promise.wait();
     if (!success) throw insufficient_mirrors_exc_t();
 
     return resp;
@@ -111,20 +168,25 @@ typename protocol_t::write_response_t mirror_dispatcher_t<protocol_t>::write(typ
 
 template<class protocol_t>
 mirror_dispatcher_t<protocol_t>::dispatchee_t::dispatchee_t(mirror_dispatcher_t *c, mirror_data_t d) THROWS_NOTHING :
-    controller(c), is_readable(false)
+    write_mailbox(d.write_mailbox), is_readable(false), controller(c),
+    upgrade_mailbox(controller->cluster,
+        boost::bind(&dispatchee_t::upgrade, this, _1, _2, auto_drainer_t::lock_t(&drainer)))
 {
-    ASSERT_FINITE_CORO_WAITING;
-
     controller->assert_thread();
 
-    controller->dispatchees[this] = auto_drainer_t::lock_t(&drainer);
-    update(d);
+    /* Grab mutex so no new writes start while we're setting ourselves up. */
+    mutex_acquisition_t mutex_acq(&controller->operations_mutex);
 
-    for (queued_write_t *write = controller->write_queue.tail();
-            write; write = controller->write_queue.next(write)) {
-        begin_write_in_background(
-            typename queued_write_t::ref_t(write),
-            auto_drainer_t::lock_t(&drainer));
+    controller->dispatchees[this] = auto_drainer_t::lock_t(&drainer);
+
+    send(controller->cluster, data.intro_mailbox,
+        controller->newest_complete_timestamp,
+        upgrade_mailbox.get_address());
+
+    for (std::list<boost::shared_ptr<incomplete_write_t> >::iterator it = controller->incomplete_writes.begin();
+            it != controller->incomplete_writes.end(); it++) {
+        coro_t::spawn_sometime(boost::bind(&mirror_dispatcher_t::background_write, controller,
+            this, auto_drainer_t::lock_t(&drainer), incomplete_write_ref_t(*it)));
     }
 }
 
@@ -137,71 +199,18 @@ mirror_dispatcher_t<protocol_t>::dispatchee_t::~dispatchee_t() THROWS_NOTHING {
 }
 
 template<class protocol_t>
-void mirror_dispatcher_t<protocol_t>::dispatchee_t::update(mirror_data_t d) THROWS_NOTHING {
+void mirror_dispatcher_t<protocol_t>::dispatchee_t::upgrade(
+        typename mirror_data_t::writeread_mailbox_t::address_t wrm,
+        typename mirror_data_t::read_mailbox_t::address_t rm,
+        auto_drainer_t::lock_t)
+        THROWS_NOTHING
+{
     ASSERT_FINITE_CORO_WAITING;
-    data = d;
-    if (is_readable) {
-        /* It's illegal to become unreadable after becoming readable */
-        rassert(!data.writeread_mailbox.is_nil());
-        rassert(!data.read_mailbox.is_nil());
-    } else if (!is_readable && !d.read_mailbox.is_nil()) {
-        /* We're upgrading to be readable */
-        rassert(!d.writeread_mailbox.is_nil());
-        is_readable = true;
-        controller->readable_dispatchees.push_back(this);
-    }
-}
-
-template<class protocol_t>
-typename protocol_t::write_response_t mirror_dispatcher_t<protocol_t>::dispatchee_t::writeread(typename queued_write_t::ref_t write_ref, auto_drainer_t::lock_t keepalive) THROWS_ONLY(mirror_lost_exc_t) {
-    keepalive.assert_is_holding(&drainer);
-    typename protocol_t::write_response_t resp;
-    try {
-        resp = mirror_data_writeread<protocol_t>(controller->cluster, data,
-            write_ref.get()->write, write_ref.get()->timestamp, write_ref.get()->order_token,
-            keepalive.get_drain_signal());
-    } catch (interrupted_exc_t) {
-        throw mirror_lost_exc_t();
-    }
-    write_ref.get()->notify_acked();
-    return resp;
-}
-
-template<class protocol_t>
-typename protocol_t::read_response_t mirror_dispatcher_t<protocol_t>::dispatchee_t::read(typename protocol_t::read_t read, order_token_t order_token, auto_drainer_t::lock_t keepalive) THROWS_ONLY(mirror_lost_exc_t) {
-    keepalive.assert_is_holding(&drainer);
-    try {
-        return mirror_data_read<protocol_t>(controller->cluster, data,
-            read, order_token,
-            keepalive.get_drain_signal());
-    } catch (interrupted_exc_t) {
-        throw mirror_lost_exc_t();
-    }
-}
-
-template<class protocol_t>
-void mirror_dispatcher_t<protocol_t>::dispatchee_t::begin_write_in_background(typename queued_write_t::ref_t write_ref, auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
-    keepalive.assert_is_holding(&drainer);
-    /* It's safe to allocate this directly on the heap because
-    `coro_t::spawn_sometime()` should always succeed, and
-    `write_in_background()` will free `our_place_in_line`. */
-    coro_fifo_acq_t *our_place_in_line = new coro_fifo_acq_t;
-    our_place_in_line->enter(&background_write_fifo);
-    coro_t::spawn_sometime(boost::bind(&dispatchee_t::write_in_background, this, write_ref, keepalive, our_place_in_line));
-}
-
-template<class protocol_t>
-void mirror_dispatcher_t<protocol_t>::dispatchee_t::write_in_background(typename queued_write_t::ref_t write_ref, auto_drainer_t::lock_t keepalive, coro_fifo_acq_t *our_place_in_line) THROWS_NOTHING {
-    our_place_in_line->leave();
-    delete our_place_in_line;
-    try {
-        mirror_data_write<protocol_t>(controller->cluster, data,
-            write_ref.get()->write, write_ref.get()->timestamp, write_ref.get()->order_token,
-            keepalive.get_drain_signal());
-    } catch (interrupted_exc_t) {
-        return;
-    }
-    write_ref.get()->notify_acked();
+    rassert(!is_readable);
+    is_readable = true;
+    writeread_mailbox = wrm;
+    read_mailbox = rm;
+    controller->readable_dispatchees.push_back(this);
 }
 
 template<class protocol_t>
@@ -218,4 +227,38 @@ void mirror_dispatcher_t<protocol_t>::pick_a_readable_dispatchee(dispatchee_t **
     readable_dispatchees.push_back(*dispatchee_out);
 
     *lock_out = dispatchees[*dispatchee_out];
+}
+
+template<class protocol_t>
+void mirror_dispatcher_t<protocol_t>::background_write(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref) THROWS_NOTHING {
+    try {
+        mirror_data_write<protocol_t>(cluster, mirror->write_mailbox,
+            write_ref.get()->write, write_ref.get()->timestamp, write_ref.get()->order_token,
+            mirror_lock.get_drain_signal());
+    } catch (interrupted_exc_t) {
+        return;
+    }
+    write_ref.get()->notify_acked();
+}
+
+template<class protocol_t>
+void mirror_dispatcher_t<protocol_t>::end_write(boost::shared_ptr<incomplete_write_t> write) THROWS_NOTHING {
+    ASSERT_FINITE_CORO_WAITING;
+    mutex_acquisition_t mutex_acq(&operation_mutex);
+    /* It's safe to remove a write from the queue once it has acquired the root
+    of every mirror's btree. We aren't notified when it acquires the root; we're
+    notified when it completes, which happens some unspecified amount of time
+    after it acquires the root. When a given write has finished on every mirror,
+    then we know that it and every write before it have acquired the root, even
+    though some of the writes before it might not have finished yet. So when a
+    write is finished on every mirror, we remove it and every write before it
+    from the queue. */
+    while (newest_complete_timestamp < write->timestamp.timestamp_after()) {
+        boost::shared_ptr<incomplete_write_t> removed_write = incomplete_writes.front();
+        incomplete_writes.pop_front();
+        rassert(newest_complete_timestamp == removed_write->timestamp.timestamp_before());
+        newest_complete_timestamp = removed_writes->timestamp.timestamp_after();
+    }
+    write->notify_no_more_acks();
+    sanity_check(&mutex_acq);
 }

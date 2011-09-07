@@ -11,8 +11,9 @@ void backfill(
     typename protocol_t::store_t *store,
     mailbox_cluster_t *cluster,
     metadata_read_view_t<resource_metadata_t<backfiller_metadata_t<protocol_t> > > *backfiller_md,
-    signal_t *interruptor) {
-
+    signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t)
+{
     if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
     /* Start watching to see if the backfill provider dies or goes offline at

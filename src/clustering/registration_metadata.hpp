@@ -5,30 +5,30 @@
 #include <boost/uuid/uuid.hpp>
 
 template<class data_t>
-struct registrar_metadata_t {
+class registrar_metadata_t {
 
+public:
     typedef boost::uuids::uuid registration_id_t;
 
     typedef async_mailbox_t<void(
         registration_id_t,
-        async_mailbox_t<void()>::address_t,
         peer_id_t,
         data_t
         )> create_mailbox_t;
     typename create_mailbox_t::address_t create_mailbox;
 
     typedef async_mailbox_t<void(
-        registration_id_t,
-        async_mailbox_t<void()>::address_t,
-        data_t
-        )> update_mailbox_t;
-    typename update_mailbox_t::address_t update_mailbox;
-
-    typedef async_mailbox_t<void(
-        registration_id_t,
-        async_mailbox_t<void()>::address_t
+        registration_id_t
         )> delete_mailbox_t;
     typename delete_mailbox_t::address_t delete_mailbox;
+
+    registrar_metadata_t() { }
+
+    registrar_metadata_t(
+            typename create_mailbox_t::address_t &cm,
+            typename delete_mailbox_t::address_t &dm) :
+        create_mailbox(cm), delete_mailbox(dm)
+        { }
 };
 
 template<class data_t>

@@ -19,15 +19,20 @@ void run_backfill_test() {
     /* Insert 10 values into both stores, then another 10 into only
     `backfiller_store` and not `backfillee_store` */
 
-    transition_timestamp_t ts = transition_timestamp_t::first();
+    state_timestamp_t timestamp = state_timestamp_t::zero();
     for (int i = 0; i < 20; i++) {
+
         dummy_protocol_t::write_t w;
         std::string key = std::string(1, 'a' + rand() % 26);
         w.values[key] = strprintf("%d", i);
+
+        transition_timestamp_t ts = transition_timestamp_t::starting_from(timestamp);
+        timestamp = ts.timestamp_after();
+
         cond_t interruptor;
         backfiller_store.write(w, ts, order_token_t::ignore, &interruptor);
+
         if (i < 10) backfillee_store.write(w, ts, order_token_t::ignore, &interruptor);
-        ts = ts.next();
     }
 
     /* Set up a cluster so mailboxes can be created */

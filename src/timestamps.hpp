@@ -46,16 +46,9 @@ public:
     bool operator<=(transition_timestamp_t t) const { return before <= t.before; }
     bool operator>=(transition_timestamp_t t) const { return before >= t.before; }
 
-    static transition_timestamp_t first() {
+    static transition_timestamp_t starting_from(state_timestamp_t before) {
         transition_timestamp_t t;
-        t.before = state_timestamp_t::zero();
-        return t;
-    }
-
-    transition_timestamp_t next() {
-        transition_timestamp_t t;
-        t.before.num = before.num + 1;
-        guarantee(t.before > before, "timestamp counter overflowed");
+        t.before = before;
         return t;
     }
 
@@ -64,7 +57,10 @@ public:
     }
 
     state_timestamp_t timestamp_after() {
-        return next().before;
+        state_timestamp_t after;
+        after.num = before.num + 1;
+        guarantee(after > before, "timestamp counter overflowed");
+        return after;
     }
 
 private:
