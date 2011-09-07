@@ -515,8 +515,6 @@ void init(value_sizer_t<V> *sizer, leaf_node_t *node) {
     node->live_size = 0;
     node->frontmost = sizer->block_size().value();
     node->tstamp_cutpoint = node->frontmost;
-
-    validate(sizer, node);
 }
 
 template <class V>
