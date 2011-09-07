@@ -882,15 +882,14 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access) :
 }
 
 void mc_transaction_t::register_buf_snapshot(mc_inner_buf_t *inner_buf, mc_inner_buf_t::buf_snapshot_t *snap) {
+    assert_thread();
     pm_registered_snapshot_blocks++;
     owned_buf_snapshots.push_back(std::make_pair(inner_buf, snap));
 }
 
 mc_transaction_t::~mc_transaction_t() {
 
-    /* For the benefit of some things that carry around `boost::shared_ptr<transaction_t>`. */
-    // TODO: this is horrible.
-    on_thread_t thread_switcher(home_thread());
+    assert_thread();
 
     pm_transactions_active.end(&start_time);
 
@@ -1036,6 +1035,7 @@ void get_subtree_recencies_helper(int slice_home_thread, serializer_t *serialize
 }
 
 void mc_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp_t *recencies_out, get_subtree_recencies_callback_t *cb) {
+    assert_thread();
     bool need_second_loop = false;
     for (size_t i = 0; i < num_block_ids; ++i) {
         inner_buf_t *inner_buf = cache->find_buf(block_ids[i]);

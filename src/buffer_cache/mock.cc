@@ -166,7 +166,7 @@ mock_transaction_t::mock_transaction_t(mock_cache_t *_cache, access_t _access)
 }
 
 mock_transaction_t::~mock_transaction_t() {
-    on_thread_t thread_switcher(home_thread());
+    assert_thread();
     if (access == rwi_write) nap(5);   // TODO: Nap for a random amount of time.
     cache->transaction_counter.release();
 }

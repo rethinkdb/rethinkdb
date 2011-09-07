@@ -8,7 +8,7 @@ extern perfmon_counter_t
     slice_leaves_iterators;
 
 template <class Value>
-leaf_iterator_t<Value>::leaf_iterator_t(const leaf_node_t *_leaf, leaf::live_iter_t _iter, buf_lock_t *_lock, const boost::shared_ptr<value_sizer_t<Value> >& _sizer, const boost::shared_ptr<transaction_t>& _transaction) :
+leaf_iterator_t<Value>::leaf_iterator_t(const leaf_node_t *_leaf, leaf::live_iter_t _iter, buf_lock_t *_lock, const boost::shared_ptr<value_sizer_t<Value> >& _sizer, transaction_t *_transaction) :
     leaf(_leaf), iter(_iter), lock(_lock), sizer(_sizer), transaction(_transaction) {
 
     rassert(leaf != NULL);
@@ -38,10 +38,7 @@ void leaf_iterator_t<Value>::prefetch() {
 template <class Value>
 leaf_iterator_t<Value>::~leaf_iterator_t() {
     leaf_iterators--;
-    on_thread_t th(transaction->home_thread());
     done();
-    // Reset the transaction pointer while we're on its thread.
-    transaction.reset();
 }
 
 template <class Value>
@@ -54,7 +51,7 @@ void leaf_iterator_t<Value>::done() {
 }
 
 template <class Value>
-slice_leaves_iterator_t<Value>::slice_leaves_iterator_t(const boost::shared_ptr<value_sizer_t<Value> >& _sizer, const boost::shared_ptr<transaction_t>& _transaction, btree_slice_t *_slice,
+slice_leaves_iterator_t<Value>::slice_leaves_iterator_t(const boost::shared_ptr<value_sizer_t<Value> >& _sizer, transaction_t *_transaction, btree_slice_t *_slice,
     rget_bound_mode_t _left_mode, const btree_key_t *_left_key, rget_bound_mode_t _right_mode, const btree_key_t *_right_key) :
     sizer(_sizer), transaction(_transaction), slice(_slice),
     left_mode(_left_mode), left_key(_left_key), right_mode(_right_mode), right_key(_right_key),
@@ -81,11 +78,7 @@ void slice_leaves_iterator_t<Value>::prefetch() {
 template <class Value>
 slice_leaves_iterator_t<Value>::~slice_leaves_iterator_t() {
     slice_leaves_iterators--;
-    on_thread_t th(transaction->home_thread());
     done();
-    // Reset the transaction pointer so that the transaction
-    // destructor gets called on the right thread.
-    transaction.reset();
 }
 
 template <class Value>
@@ -104,7 +97,7 @@ boost::optional<leaf_iterator_t<Value>*> slice_leaves_iterator_t<Value>::get_fir
 
     started = true;
     // TODO: Why is this a buf_lock_t pointer?  That's not how buf_lock_t should be used.
-    buf_lock_t *buf_lock = new buf_lock_t(transaction.get(), block_id_t(SUPERBLOCK_ID), rwi_read);
+    buf_lock_t *buf_lock = new buf_lock_t(transaction, block_id_t(SUPERBLOCK_ID), rwi_read);
     block_id_t root_id = reinterpret_cast<const btree_superblock_t *>(buf_lock->buf()->get_data_read())->root_block;
     rassert(root_id != SUPERBLOCK_ID);
 
@@ -120,7 +113,7 @@ boost::optional<leaf_iterator_t<Value>*> slice_leaves_iterator_t<Value>::get_fir
     }
 
     {
-        buf_lock_t tmp(transaction.get(), root_id, rwi_read);
+        buf_lock_t tmp(transaction, root_id, rwi_read);
         buf_lock->swap(tmp);
     }
 
@@ -143,7 +136,7 @@ boost::optional<leaf_iterator_t<Value>*> slice_leaves_iterator_t<Value>::get_fir
 
         block_id_t child_id = get_child_id(i_node, index);
 
-        buf_lock = new buf_lock_t(transaction.get(), child_id, rwi_read);
+        buf_lock = new buf_lock_t(transaction, child_id, rwi_read);
         node = reinterpret_cast<const node_t *>(buf_lock->buf()->get_data_read());
     }
 
@@ -191,7 +184,7 @@ boost::optional<leaf_iterator_t<Value>*> slice_leaves_iterator_t<Value>::get_lef
 
     // TODO: Why is there a buf_lock_t pointer?  This is not how
     // buf_lock_t works.  Just use a buf_t pointer then.
-    buf_lock_t *buf_lock = new buf_lock_t(transaction.get(), node_id, rwi_read);
+    buf_lock_t *buf_lock = new buf_lock_t(transaction, node_id, rwi_read);
     const node_t *node = reinterpret_cast<const node_t *>(buf_lock->buf()->get_data_read());
 
     while (node::is_internal(node)) {
@@ -204,7 +197,7 @@ boost::optional<leaf_iterator_t<Value>*> slice_leaves_iterator_t<Value>::get_lef
 
         block_id_t child_id = get_child_id(i_node, leftmost_child_index);
 
-        buf_lock = new buf_lock_t(transaction.get(), child_id, rwi_read);
+        buf_lock = new buf_lock_t(transaction, child_id, rwi_read);
         node = reinterpret_cast<const node_t *>(buf_lock->buf()->get_data_read());
     }
     rassert(node != NULL);
@@ -225,7 +218,7 @@ block_id_t slice_leaves_iterator_t<Value>::get_child_id(const internal_node_t *i
 }
 
 template <class Value>
-slice_keys_iterator_t<Value>::slice_keys_iterator_t(const boost::shared_ptr<value_sizer_t<Value> >& _sizer, const boost::shared_ptr<transaction_t>& _transaction, btree_slice_t *_slice,
+slice_keys_iterator_t<Value>::slice_keys_iterator_t(const boost::shared_ptr<value_sizer_t<Value> >& _sizer, transaction_t *_transaction, btree_slice_t *_slice,
         rget_bound_mode_t _left_mode, const store_key_t &_left_key, rget_bound_mode_t _right_mode, const store_key_t &_right_key) :
     sizer(_sizer), transaction(_transaction), slice(_slice),
     left_mode(_left_mode), left_key(_left_key), right_mode(_right_mode), right_key(_right_key),
@@ -234,12 +227,7 @@ slice_keys_iterator_t<Value>::slice_keys_iterator_t(const boost::shared_ptr<valu
 
 template <class Value>
 slice_keys_iterator_t<Value>::~slice_keys_iterator_t() {
-    on_thread_t th(transaction->home_thread());
     done();
-
-    // Reset the transaction pointer now so that the transaction_t
-    // destructor gets called on the transaction's thread.
-    transaction.reset();
 }
 
 template <class Value>
