@@ -38,7 +38,10 @@ void leaf_iterator_t<Value>::prefetch() {
 template <class Value>
 leaf_iterator_t<Value>::~leaf_iterator_t() {
     leaf_iterators--;
+    on_thread_t th(transaction->home_thread());
     done();
+    // Reset the transaction pointer while we're on its thread.
+    transaction.reset();
 }
 
 template <class Value>
@@ -78,16 +81,18 @@ void slice_leaves_iterator_t<Value>::prefetch() {
 template <class Value>
 slice_leaves_iterator_t<Value>::~slice_leaves_iterator_t() {
     slice_leaves_iterators--;
+    on_thread_t th(transaction->home_thread());
     done();
+    // Reset the transaction pointer so that the transaction
+    // destructor gets called on the right thread.
+    transaction.reset();
 }
 
 template <class Value>
 void slice_leaves_iterator_t<Value>::done() {
+    on_thread_t th(transaction->home_thread());
     while (!traversal_state.empty()) {
-        {
-            on_thread_t th(transaction->home_thread());
-            delete traversal_state.back().lock;
-        }
+        delete traversal_state.back().lock;
         traversal_state.pop_back();
     }
     nevermore = true;
@@ -228,7 +233,12 @@ slice_keys_iterator_t<Value>::slice_keys_iterator_t(const boost::shared_ptr<valu
 
 template <class Value>
 slice_keys_iterator_t<Value>::~slice_keys_iterator_t() {
+    on_thread_t th(transaction->home_thread());
     done();
+
+    // Reset the transaction pointer now so that the transaction_t
+    // destructor gets called on the transaction's thread.
+    transaction.reset();
 }
 
 template <class Value>
