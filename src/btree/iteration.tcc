@@ -84,7 +84,10 @@ slice_leaves_iterator_t<Value>::~slice_leaves_iterator_t() {
 template <class Value>
 void slice_leaves_iterator_t<Value>::done() {
     while (!traversal_state.empty()) {
-        delete traversal_state.back().lock;
+        {
+            on_thread_t th(transaction->home_thread());
+            delete traversal_state.back().lock;
+        }
         traversal_state.pop_back();
     }
     nevermore = true;
