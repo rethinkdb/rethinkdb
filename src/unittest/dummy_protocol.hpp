@@ -110,6 +110,8 @@ public:
         explicit store_t(region_t r);
         ~store_t();
 
+        rng_t rng;
+
         region_t region;
 
         bool coherent, backfilling;

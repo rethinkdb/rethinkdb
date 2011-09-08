@@ -363,8 +363,6 @@ TEST(LeafNodeTest, TenInserts) {
 TEST(LeafNodeTest, InsertRemove) {
     LeafNodeTracker tracker;
 
-    srand(12345);
-
     const int num_keys = 10;
     std::string ks[num_keys] = { "the_relatively_long_key_that_is_relatively_long,_eh?__or_even_longer",
                            "some_other_relatively_long_key_that_...whatever.",
@@ -377,13 +375,14 @@ TEST(LeafNodeTest, InsertRemove) {
                            "marley",
                            "domino" };
 
+    rng_t rng;
     for (int i = 0; i < 26 * 26; ++i) {
         std::string v;
         v += ('a' + (i / 26));
         v += ('a' + (i % 26));
 
         for (int j = 0; j < num_keys; ++j) {
-            if (rand() % 2 == 1) {
+            if (rng.randint(2) == 1) {
                 tracker.Insert(ks[j], v);
             } else {
                 if (tracker.ShouldHave(ks[j])) {
