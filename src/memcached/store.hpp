@@ -30,12 +30,11 @@ struct mutation_t {
     typedef boost::variant<get_cas_mutation_t, sarc_mutation_t, delete_mutation_t, incr_decr_mutation_t, append_prepend_mutation_t> mutation_variant_t;
     mutation_variant_t mutation;
 
-    mutation_t() { 
+    mutation_t() {
     }
 
-    // implicit
     template<class T>
-    mutation_t(const T &m) : mutation(m) { }
+    /* implicit */ mutation_t(const T &m) : mutation(m) { }
 
     /* get_key() extracts the "key" field from whichever sub-mutation we actually are */
     store_key_t get_key() const;
@@ -61,7 +60,7 @@ public:
     set_result_t sarc(const store_key_t &key, boost::intrusive_ptr<data_buffer_t> data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas, order_token_t token);
     incr_decr_result_t incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount, order_token_t token);
     append_prepend_result_t append_prepend(append_prepend_kind_t kind, const store_key_t &key, boost::intrusive_ptr<data_buffer_t> data, order_token_t token);
-    delete_result_t delete_key(const store_key_t &key, order_token_t token, bool dont_store_in_delete_queue=false);
+    delete_result_t delete_key(const store_key_t &key, order_token_t token, bool dont_store_in_delete_queue = false);
 
     virtual mutation_result_t change(const mutation_t&, order_token_t) = 0;
 
@@ -91,11 +90,9 @@ a translator between set_store_interface_t and set_store_t. */
 
 class timestamping_set_store_interface_t :
     public set_store_interface_t,
-    public home_thread_mixin_t
-{
-
+    public home_thread_mixin_t {
 public:
-    timestamping_set_store_interface_t(set_store_t *target);
+    explicit timestamping_set_store_interface_t(set_store_t *target);
 
     mutation_result_t change(const mutation_t&, order_token_t);
 

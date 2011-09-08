@@ -66,8 +66,11 @@ static bool run_addr2line(char *executable, char *address, char *line, int line_
     pclose(fline);
     if (count == 0) return false;
 
-    if (line[count-1] == '\n') line[count-1] = '\0';
-    else line[count] = '\0';
+    if (line[count-1] == '\n') {
+        line[count-1] = '\0';
+    } else {
+        line[count] = '\0';
+    }
 
     if (strcmp(line, "??:0") == 0) return false;
 

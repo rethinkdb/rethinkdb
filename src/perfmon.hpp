@@ -60,7 +60,7 @@ class perfmon_t :
 public:
     bool internal;
 public:
-    perfmon_t(bool internal = true);
+    explicit perfmon_t(bool internal = true);
     virtual ~perfmon_t();
     
     /* To get a value from a given perfmon: Call begin_stats(). On each core, call the visit_stats()
@@ -84,7 +84,7 @@ template<typename thread_stat_t, typename combined_stat_t = thread_stat_t>
 struct perfmon_perthread_t
     : public perfmon_t
 {
-    perfmon_perthread_t(bool internal = true) : perfmon_t(internal) {};
+    explicit perfmon_perthread_t(bool internal = true) : perfmon_t(internal) { }
 
     void *begin_stats() {
         return new thread_stat_t[get_num_threads()];
@@ -289,12 +289,17 @@ public:
     void begin(ticks_t *v) {
         active++;
         total++;
-        if (global_full_perfmon || ignore_global_full_perfmon) *v = get_ticks();
-        else *v = 0;
+        if (global_full_perfmon || ignore_global_full_perfmon) {
+            *v = get_ticks();
+        } else {
+            *v = 0;
+        }
     }
     void end(ticks_t *v) {
         active--;
-        if (*v != 0) recent.record(ticks_to_secs(get_ticks() - *v));
+        if (*v != 0) {
+            recent.record(ticks_to_secs(get_ticks() - *v));
+        }
     }
 
 //Control interface used for enabling and disabling duration samplers at run time
@@ -303,8 +308,7 @@ public:
         ignore_global_full_perfmon = !ignore_global_full_perfmon;
         if (ignore_global_full_perfmon) {
             return "Enabled\n";
-        }
-        else {
+        } else {
             return "Disabled\n";
         }
     }
@@ -323,7 +327,7 @@ public:
         public intrusive_list_node_t<internal_function_t>
     {
     public:
-        internal_function_t(perfmon_function_t *p);
+        explicit internal_function_t(perfmon_function_t *p);
         virtual ~internal_function_t();
         virtual std::string compute_stat() = 0;
     private:
@@ -349,9 +353,8 @@ struct block_pm_duration {
     ticks_t time;
     bool ended;
     perfmon_duration_sampler_t *pm;
-    block_pm_duration(perfmon_duration_sampler_t *_pm)
-        : ended(false), pm(_pm)
-    {
+    explicit block_pm_duration(perfmon_duration_sampler_t *_pm)
+        : ended(false), pm(_pm) {
         pm->begin(&time);
     }
     void end() {

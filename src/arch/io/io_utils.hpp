@@ -16,7 +16,7 @@ int _gettid();
 class scoped_fd_t {
 public:
     scoped_fd_t() : fd(INVALID_FD) { }
-    scoped_fd_t(fd_t f) : fd(f) { }
+    explicit scoped_fd_t(fd_t f) : fd(f) { }
     ~scoped_fd_t() {
         reset(INVALID_FD);
     }

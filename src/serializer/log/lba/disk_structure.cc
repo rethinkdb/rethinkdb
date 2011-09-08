@@ -208,8 +208,11 @@ struct reader_t
             extent->read_step_2(&read_info, parent->index);
             parent->active_readers--;
             parent->start_more_readers();
-            if (index == (int)parent->readers.size() - 1) parent->done();
-            else parent->readers[index+1]->on_prev_done();
+            if (index == (int)parent->readers.size() - 1) {
+                parent->done();
+            } else {
+                parent->readers[index+1]->on_prev_done();
+            }
             delete this;
         }
     };

@@ -48,14 +48,20 @@ void print_hd(const void *vbuf, size_t offset, size_t ulength) {
         } else {
             fprintf(stderr, "%.8x  ", (unsigned int)offset);
             for (int i = 0; i < 16; i++) {
-                if (i < (int)length) fprintf(stderr, "%.2hhx ", buf[i]);
-                else fprintf(stderr, "   ");
+                if (i < (int)length) {
+                    fprintf(stderr, "%.2hhx ", buf[i]);
+                } else {
+                    fprintf(stderr, "   ");
+                }
             }
             fprintf(stderr, "| ");
             for (int i = 0; i < 16; i++) {
                 if (i < (int)length) {
-                    if (isprint(buf[i])) fputc(buf[i], stderr);
-                    else fputc('.', stderr);
+                    if (isprint(buf[i])) {
+                        fputc(buf[i], stderr);
+                    } else {
+                        fputc('.', stderr);
+                    }
                 } else {
                     fputc(' ', stderr);
                 }

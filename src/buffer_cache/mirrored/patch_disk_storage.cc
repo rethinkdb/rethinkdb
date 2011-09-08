@@ -9,7 +9,7 @@
 
 const block_magic_t log_block_magic = { { 'l', 'o', 'g', 'b' } };
 
-const block_magic_t mc_config_block_t::expected_magic = { { 'm','c','f','g' } };
+const block_magic_t mc_config_block_t::expected_magic = { { 'm', 'c', 'f', 'g' } };
 
 void patch_disk_storage_t::create(serializer_t *serializer, block_id_t start_id, mirrored_cache_static_config_t *config) {
 
@@ -131,8 +131,7 @@ void patch_disk_storage_t::load_patches(patch_memory_storage_t &in_memory_storag
             buf_patch_t *patch = buf_patch_t::load_patch(reinterpret_cast<const char *>(buf_data) + current_offset);
             if (!patch) {
                 break;
-            }
-            else {
+            } else {
                 current_offset += patch->get_serialized_size();
                 // Only store the patch if the corresponding block still exists
                 // (otherwise we'd get problems when flushing the log, as deleted blocks would cause an error)
@@ -351,8 +350,7 @@ void patch_disk_storage_t::clear_block(const block_id_t log_block_id, coro_t* no
         buf_patch_t *patch = buf_patch_t::load_patch(reinterpret_cast<const char *>(buf_data) + current_offset);
         if (!patch) {
             break;
-        }
-        else {
+        } else {
             current_offset += patch->get_serialized_size();
 
             // For each patch, acquire the affected block and call ensure_flush()
@@ -400,15 +398,13 @@ void patch_disk_storage_t::set_active_log_block(const block_id_t log_block_id) {
             uint16_t length = *reinterpret_cast<const uint16_t *>(reinterpret_cast<const char *>(buf_data) + current_offset);
             if (length == 0) {
                 break;
-            }
-            else {
+            } else {
                 current_offset += length;
             }
         }
 
         next_patch_offset = current_offset;
-    }
-    else {
+    } else {
         next_patch_offset = sizeof(log_block_magic);
     }
 }

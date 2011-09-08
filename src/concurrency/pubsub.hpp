@@ -30,7 +30,7 @@ public:
     public:
         /* Construct a `subscription_t` that is not subscribed to any publisher.
         */
-        subscription_t(subscriber_t sub);
+        explicit subscription_t(subscriber_t sub);
 
         /* Construct a `subscription_t` and subscribe to the given publisher. */
         subscription_t(subscriber_t sub, publisher_t *pub);
@@ -59,7 +59,7 @@ private:
     friend class subscription_t;
     friend class publisher_controller_t<subscriber_t>;
 
-    publisher_t(publisher_controller_t<subscriber_t> *p) : parent(p) { }
+    explicit publisher_t(publisher_controller_t<subscriber_t> *p) : parent(p) { }
 
     publisher_controller_t<subscriber_t> *parent;
 
@@ -86,7 +86,7 @@ struct publisher_controller_t :
     public home_thread_mixin_t
 {
 public:
-    publisher_controller_t(mutex_t *m) :
+    explicit publisher_controller_t(mutex_t *m) :
         publisher(this),
         mutex(m),
         publishing(false) { }

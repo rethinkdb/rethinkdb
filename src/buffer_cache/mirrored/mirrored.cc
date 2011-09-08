@@ -772,8 +772,7 @@ void mc_buf_t::release() {
                 // TODO (sam): f'd up.
                 if (inner_buf->data.equals(data)) {
                     --inner_buf->snap_refcount;
-                }
-                else {
+                } else {
                     inner_buf->release_snapshot_data(data);
                 }
             } else {
@@ -1220,8 +1219,11 @@ size_t mc_cache_t::register_buf_snapshot(mc_inner_buf_t *inner_buf, mc_inner_buf
 
 mc_cache_t::inner_buf_t *mc_cache_t::find_buf(block_id_t block_id) {
     inner_buf_t *buf = page_map.find(block_id);
-    if (buf) pm_cache_hits++;
-    else pm_cache_misses++;
+    if (buf) {
+        pm_cache_hits++;
+    } else {
+        pm_cache_misses++;
+    }
     return buf;
 }
 

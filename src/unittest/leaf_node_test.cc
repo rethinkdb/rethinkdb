@@ -229,7 +229,7 @@ public:
     }
 
     repli_timestamp_t NextTimestamp() {
-        tstamp_counter_ ++;
+        ++tstamp_counter_;
         repli_timestamp_t ret;
         ret.time = tstamp_counter_;
         return ret;
@@ -273,7 +273,6 @@ public:
     };
 
     void printmap(const std::map<std::string, std::string>& m) {
-
         for (std::map<std::string, std::string>::const_iterator p = m.begin(), q = m.end(); p != q; ++p) {
             printf("%s: %s;", p->first.c_str(), p->second.c_str());
         }
@@ -432,7 +431,6 @@ TEST(LeafNodeTest, OneOneMerging) {
 }
 
 TEST(LeafNodeTest, SimpleMerging) {
-
     LeafNodeTracker left;
     LeafNodeTracker right;
 

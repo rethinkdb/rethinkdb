@@ -334,9 +334,8 @@ class mc_cache_account_t {
     friend class mc_cache_t;
     friend class mc_transaction_t;
 
-    mc_cache_account_t(boost::shared_ptr<file_account_t> io_account) :
-            io_account_(io_account) {
-    }
+    explicit mc_cache_account_t(boost::shared_ptr<file_account_t> io_account)
+        : io_account_(io_account) { }
 
     boost::shared_ptr<file_account_t> io_account_;
 

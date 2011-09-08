@@ -22,8 +22,10 @@ key_range_t::key_range_t(bound_t lm, store_key_t l, bound_t rm, store_key_t r) {
         case none:
             left = store_key_t("");
             break;
-        default: unreachable();
+        default:
+            unreachable();
     }
+
     switch (rm) {
         case closed:
             right = r;
@@ -46,7 +48,8 @@ key_range_t::key_range_t(bound_t lm, store_key_t l, bound_t rm, store_key_t r) {
             right_unbounded = true;
             right = store_key_t("");
             break;
-        default: unreachable();
+        default:
+            unreachable();
     }
 }
 
@@ -60,8 +63,8 @@ bool key_range_t::contains(key_range_t range) const {
 }
 
 bool key_range_t::overlaps(key_range_t range) const {
-    if (!      right_unbounded && range.left >=       right) return false;
-    if (!range.right_unbounded &&       left >= range.right) return false;
+    if (!right_unbounded && range.left >= right) return false;
+    if (!range.right_unbounded && left >= range.right) return false;
     return true;
 }
 
@@ -126,7 +129,7 @@ key_range_t memcached_protocol_t::read_t::get_region() const {
 /* `memcached_protocol_t::read_t::shard()` */
 
 struct read_shard_visitor_t : public boost::static_visitor<std::vector<memcached_protocol_t::read_t> > {
-    read_shard_visitor_t(std::vector<key_range_t> &r) : regions(r) { }
+    explicit read_shard_visitor_t(std::vector<key_range_t> &r) : regions(r) { }
     std::vector<key_range_t> &regions;
     std::vector<memcached_protocol_t::read_t> operator()(get_query_t get) {
         rassert(regions.size() == 1);
@@ -170,7 +173,7 @@ std::vector<memcached_protocol_t::read_t> memcached_protocol_t::read_t::shard(st
 typedef merge_ordered_data_iterator_t<key_with_data_buffer_t, key_with_data_buffer_t::less> merged_results_iterator_t;
 
 struct read_unshard_visitor_t : public boost::static_visitor<memcached_protocol_t::read_response_t> {
-    read_unshard_visitor_t(std::vector<memcached_protocol_t::read_response_t> &b) : bits(b) { }
+    explicit read_unshard_visitor_t(std::vector<memcached_protocol_t::read_response_t> &b) : bits(b) { }
     std::vector<memcached_protocol_t::read_response_t> &bits;
     memcached_protocol_t::read_response_t operator()(UNUSED get_query_t get) {
         rassert(bits.size() == 1);

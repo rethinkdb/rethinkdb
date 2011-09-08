@@ -92,7 +92,7 @@ static spinlock_t timer_token_lock;
 static volatile bool no_more_checking;
 
 struct periodic_checker_t {
-    periodic_checker_t(creation_timestamp_t _creation_timestamp) : creation_timestamp(_creation_timestamp), timer_token(NULL) {
+    explicit periodic_checker_t(creation_timestamp_t _creation_timestamp) : creation_timestamp(_creation_timestamp), timer_token(NULL) {
         no_more_checking = false;
         check(this);
     }
@@ -348,7 +348,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 /* Install the shutdown control for thread pool */
 struct shutdown_control_t : public control_t
 {
-    shutdown_control_t(std::string key)
+    explicit shutdown_control_t(std::string key)
         : control_t(key, "Shut down the server.")
     {}
     std::string call(UNUSED int argc, UNUSED char **argv) {

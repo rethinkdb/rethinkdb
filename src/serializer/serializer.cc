@@ -59,7 +59,7 @@ serializer_write_t serializer_write_t::make_delete(block_id_t block_id) {
 }
 
 struct write_cond_t : public cond_t, public iocallback_t {
-    write_cond_t(iocallback_t *cb) : callback(cb) { }
+    explicit write_cond_t(iocallback_t *cb) : callback(cb) { }
     void on_io_complete() {
         if (callback)
             callback->on_io_complete();

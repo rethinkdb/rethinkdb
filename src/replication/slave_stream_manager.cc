@@ -69,7 +69,7 @@ void slave_stream_manager_t::reverse_side_backfill(repli_timestamp_t since_when)
     backfill_and_realtime_stream(kvs_, since_when, &sender, &mc);
 }
 
- /* message_callback_t interface */
+/* message_callback_t interface */
 void slave_stream_manager_t::hello(UNUSED net_hello_t message) {
     debugf("hello message received.\n");
 }

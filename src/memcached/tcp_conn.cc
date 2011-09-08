@@ -11,7 +11,7 @@
 
 struct tcp_conn_memcached_interface_t : public memcached_interface_t, public home_thread_mixin_t {
 
-    tcp_conn_memcached_interface_t(tcp_conn_t *c) : conn(c) { }
+    explicit tcp_conn_memcached_interface_t(tcp_conn_t *c) : conn(c) { }
 
     tcp_conn_t *conn;
 
@@ -151,8 +151,11 @@ void memcache_listener_t::handle(auto_drainer_t::lock_t keepalive, boost::scoped
     /* Set up an object that will close the network connection when a shutdown signal
     is delivered */
     signal_t::subscription_t conn_closer(boost::bind(&close_conn_if_open, conn.get()));
-    if (signal_transfer.is_pulsed()) close_conn_if_open(conn.get());
-    else conn_closer.resubscribe(&signal_transfer);
+    if (signal_transfer.is_pulsed()) {
+        close_conn_if_open(conn.get());
+    } else {
+        conn_closer.resubscribe(&signal_transfer);
+    }
 
     /* `serve_memcache()` will continuously serve memcache queries on the given conn
     until the connection is closed. */

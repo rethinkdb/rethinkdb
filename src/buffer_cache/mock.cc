@@ -215,7 +215,9 @@ mock_cache_t::mock_cache_t( serializer_t *_serializer, UNUSED mirrored_cache_con
     read_cb.drain();
 }
 
-struct mock_cb_t : public iocallback_t, public cond_t { void on_io_complete() { pulse(); } };
+struct mock_cb_t : public iocallback_t, public cond_t {
+    void on_io_complete() { pulse(); }
+};
 
 mock_cache_t::~mock_cache_t() {
     /* Wait for all transactions to complete */

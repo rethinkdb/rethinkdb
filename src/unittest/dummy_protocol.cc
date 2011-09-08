@@ -114,7 +114,6 @@ state_timestamp_t dummy_protocol_t::store_t::get_timestamp() {
 }
 
 dummy_protocol_t::read_response_t dummy_protocol_t::store_t::read(read_t read, order_token_t otok, signal_t *interruptor) {
-
     rassert(!backfilling);
     rassert(coherent);
     order_sink.check_out(otok);
@@ -134,7 +133,6 @@ dummy_protocol_t::read_response_t dummy_protocol_t::store_t::read(read_t read, o
 }
 
 dummy_protocol_t::write_response_t dummy_protocol_t::store_t::write(write_t write, transition_timestamp_t timestamp, order_token_t otok, signal_t *interruptor) {
-
     rassert(!backfilling);
     rassert(coherent);
     rassert(earliest_timestamp == latest_timestamp);

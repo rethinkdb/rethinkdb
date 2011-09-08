@@ -9,7 +9,7 @@ namespace unittest {
 
 struct test_iterator : one_way_iterator_t<int> {
     typedef std::list<std::list<int> > data_blocks_t;
-    test_iterator(data_blocks_t& _data_blocks) : prefetches_count(0), blocked_without_prefetch(0), data_blocks(_data_blocks) {
+    explicit test_iterator(data_blocks_t& _data_blocks) : prefetches_count(0), blocked_without_prefetch(0), data_blocks(_data_blocks) {
         // remove empty blocks
         data_blocks.remove_if(std::mem_fun_ref(&data_blocks_t::value_type::empty));
         // add first empty block (so that we could check prefetch of the first block

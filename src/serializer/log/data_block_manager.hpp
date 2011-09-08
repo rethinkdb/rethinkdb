@@ -266,14 +266,22 @@ private:
 
     struct gc_state_t {
     private:
-        gc_step step_;               /* !< which step we're on.  See set_step.  */
+        // Which step we're on.  See set_step.
+        gc_step step_;
+
     public:
-        bool should_be_stopped;      /* !< whether gc is/should be
-                                       stopped, and how many people
-                                       think so */
-        int refcount;               /* !< outstanding io reqs */
-        char *gc_blocks;            /* !< buffer for blocks we're transferring */
-        gc_entry *current_entry;    /* !< entry we're currently GCing */
+        // Whether gc is/should be stopped.
+        bool should_be_stopped;
+
+        // Outstanding io requests
+        int refcount;
+
+        // A buffer for blocks we're transferring.
+        char *gc_blocks;
+
+        // The entry we're currently GCing.
+        gc_entry *current_entry;
+
         data_block_manager_t::gc_read_callback_t gc_read_callback;
         data_block_manager_t::gc_disable_callback_t *gc_disable_callback;
 
@@ -282,9 +290,11 @@ private:
             /* TODO this is excessive as soon as we have a bound on how much space we need we should allocate less */
             gc_blocks = reinterpret_cast<char *>(malloc_aligned(extent_size, DEVICE_BLOCK_SIZE));
         }
+
         ~gc_state_t() {
             free(gc_blocks);
         }
+
         inline gc_step step() const { return step_; }
 
         // Sets step_, and calls gc_disable_callback if relevant.

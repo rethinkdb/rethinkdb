@@ -22,11 +22,21 @@ namespace replication {
 // 13 is the length of the text.
 const char STANDARD_HELLO_MAGIC[16] = "13rethinkdbrepl";
 
-template <class T> struct stream_type { typedef scoped_malloc<T> type; };
-template <> struct stream_type<net_sarc_t> { typedef stream_pair<net_sarc_t> type; };
-template <> struct stream_type<net_append_t> { typedef stream_pair<net_append_t> type; };
-template <> struct stream_type<net_prepend_t> { typedef stream_pair<net_prepend_t> type; };
-template <> struct stream_type<net_backfill_set_t> { typedef stream_pair<net_backfill_set_t> type; };
+template <class T> struct stream_type {
+    typedef scoped_malloc<T> type;
+};
+template <> struct stream_type<net_sarc_t> {
+    typedef stream_pair<net_sarc_t> type;
+};
+template <> struct stream_type<net_append_t> {
+    typedef stream_pair<net_append_t> type;
+};
+template <> struct stream_type<net_prepend_t> {
+    typedef stream_pair<net_prepend_t> type;
+};
+template <> struct stream_type<net_backfill_set_t> {
+    typedef stream_pair<net_backfill_set_t> type;
+};
 
 size_t objsize(UNUSED const net_introduce_t *buf) { return sizeof(net_introduce_t); }
 size_t objsize(UNUSED const net_backfill_t *buf) { return sizeof(net_backfill_t); }

@@ -91,7 +91,7 @@ private:
     friend class dont_wait_for_slave_control_t;
     struct dont_wait_for_slave_control_t : public control_t {
         master_t *master;
-        dont_wait_for_slave_control_t(master_t *m) :
+        explicit dont_wait_for_slave_control_t(master_t *m) :
             control_t("dont-wait-for-slave", "Go ahead and accept operations even though no slave "
                 "has connected yet. Only use this if no slave was connected to the master at the "
                 "time the master was last shut down. If you abuse this, the server could lose data "

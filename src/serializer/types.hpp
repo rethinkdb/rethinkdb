@@ -111,7 +111,7 @@ struct scs_block_info_t {
     } state;
     uint32_t crc;
 
-    scs_block_info_t(uint32_t _crc) : state(state_have_crc), crc(_crc) {}
+    explicit scs_block_info_t(uint32_t _crc) : state(state_have_crc), crc(_crc) {}
 
     // For compatibility with two_level_array_t. We initialize crc to 0 to avoid having
     // uninitialized memory lying around, which annoys valgrind when we try to write

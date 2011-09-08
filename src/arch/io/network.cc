@@ -495,7 +495,7 @@ linux_tcp_conn_t::~linux_tcp_conn_t() {
 }
 
 linux_tcp_conn_t::iterator linux_tcp_conn_t::begin() {
-    return iterator(this, (size_t) 0);
+    return iterator(this, size_t(0));
 }
 
 linux_tcp_conn_t::iterator linux_tcp_conn_t::end() {

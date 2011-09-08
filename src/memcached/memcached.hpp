@@ -25,7 +25,7 @@ struct memcached_interface_t {
             return "No more data available from txt_memcached handler.";
         }
     };
-    virtual void read(void *,size_t) = 0;
+    virtual void read(void *, size_t) = 0;
     virtual void read_line(std::vector<char> *) = 0;
 
     virtual ~memcached_interface_t() { }

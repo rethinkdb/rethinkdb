@@ -101,7 +101,7 @@ private:
 
 class read_locker_t {
 public:
-    read_locker_t(file_knowledge_t *knog) : knog_(knog) {
+    explicit read_locker_t(file_knowledge_t *knog) : knog_(knog) {
         guarantee_err(!pthread_rwlock_rdlock(&knog->block_info_lock_), "pthread_rwlock_rdlock failed");
     }
     const segmented_vector_t<block_knowledge_t, MAX_BLOCK_ID>& block_info() const {
@@ -116,7 +116,7 @@ private:
 
 class write_locker_t {
 public:
-    write_locker_t(file_knowledge_t *knog) : knog_(knog) {
+    explicit write_locker_t(file_knowledge_t *knog) : knog_(knog) {
         guarantee_err(!pthread_rwlock_wrlock(&knog->block_info_lock_), "pthread_rwlock_wrlock failed");
     }
     segmented_vector_t<block_knowledge_t, MAX_BLOCK_ID>& block_info() {
@@ -287,8 +287,7 @@ public:
                 if ((*patch)->get_block_sequence_id() >= realbuf->block_sequence_id) {
                     if (first_matching_id == NULL_BLOCK_SEQUENCE_ID) {
                         first_matching_id = (*patch)->get_block_sequence_id();
-                    }
-                    else if (first_matching_id != (*patch)->get_block_sequence_id()) {
+                    } else if (first_matching_id != (*patch)->get_block_sequence_id()) {
                         err = patch_block_sequence_id_mismatch;
                         return false;
                     }
@@ -785,10 +784,10 @@ void check_and_load_diff_log(slicecx_t *cx, diff_log_errors *errs) {
                         ++errs->corrupted_patch_blocks;
                         break;
                     }
+
                     if (!patch) {
                         break;
-                    }
-                    else {
+                    } else {
                         current_offset += patch->get_serialized_size();
                         cx->patch_map[patch->get_block_id()].push_back(patch);
                     }
@@ -1202,7 +1201,10 @@ struct all_slices_errors {
         metadata_slice = has_metadata_file ? new slice_errors : NULL;
     }
 
-    ~all_slices_errors() { delete[] slice; if (metadata_slice) delete metadata_slice; }
+    ~all_slices_errors() {
+        delete[] slice;
+        delete metadata_slice;
+    }
 };
 
 struct slice_parameter_t {

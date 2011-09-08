@@ -27,7 +27,7 @@ public:
     class lock_t {
     public:
         lock_t();
-        lock_t(auto_drainer_t *);
+        explicit lock_t(auto_drainer_t *);
         lock_t(const lock_t &);
         lock_t &operator=(const lock_t &);
         signal_t *get_drain_signal();

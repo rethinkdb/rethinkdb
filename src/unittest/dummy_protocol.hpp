@@ -107,7 +107,7 @@ public:
         /* This stuff isn't part of the protocol interface, but it's public for
         the convenience of the people using `dummy_protocol_t`. */
 
-        store_t(region_t r);
+        explicit store_t(region_t r);
         ~store_t();
 
         region_t region;

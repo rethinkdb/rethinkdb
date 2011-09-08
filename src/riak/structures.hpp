@@ -31,12 +31,30 @@ class bucket_iterator_t {
 private:
     bucket_t bucket;
 public:
-    bool operator!=(bucket_iterator_t const &) {not_implemented(); return true;}
-    bool operator==(bucket_iterator_t const &) {not_implemented(); return true;}
-    bucket_iterator_t operator++() {not_implemented(); return *this;}
-    bucket_iterator_t operator++(int) {not_implemented(); return *this;}
-    bucket_t operator*() {not_implemented(); return bucket_t(); }
-    bucket_t *operator->() {not_implemented(); return &bucket;};
+    bool operator!=(bucket_iterator_t const &) {
+        not_implemented();
+        return true;
+    }
+    bool operator==(bucket_iterator_t const &) {
+        not_implemented();
+        return true;
+    }
+    bucket_iterator_t operator++() {
+        not_implemented();
+        return *this;
+    }
+    bucket_iterator_t operator++(int) {
+        not_implemented();
+        return *this;
+    }
+    bucket_t operator*() {
+        not_implemented();
+        return bucket_t();
+    }
+    bucket_t *operator->() {
+        not_implemented();
+        return &bucket;
+    }
 };
 
 struct link_t {
@@ -82,12 +100,30 @@ class object_iterator_t {
 private:
     object_t object;
 public:
-    bool operator!=(object_iterator_t const &) {not_implemented(); return true;}
-    bool operator==(object_iterator_t const &) {not_implemented(); return true;}
-    object_iterator_t operator++() {not_implemented(); return *this;}
-    object_iterator_t operator++(int) {not_implemented(); return *this;}
-    object_t operator*() {not_implemented(); return object_t(); }
-    object_t *operator->() {not_implemented(); return &object;};
+    bool operator!=(object_iterator_t const &) {
+        not_implemented();
+        return true;
+    }
+    bool operator==(object_iterator_t const &) {
+        not_implemented();
+        return true;
+    }
+    object_iterator_t operator++() {
+        not_implemented();
+        return *this;
+    }
+    object_iterator_t operator++(int) {
+        not_implemented();
+        return *this;
+    }
+    object_t operator*() {
+        not_implemented();
+        return object_t();
+    }
+    object_t *operator->() {
+        not_implemented();
+        return &object;
+    }
 };
 
 struct object_tree_iterator_t;

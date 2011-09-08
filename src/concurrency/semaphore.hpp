@@ -27,7 +27,7 @@ class semaphore_t {
     bool in_callback;
 
 public:
-    semaphore_t(int cap) : capacity(cap), current(0)
+    explicit semaphore_t(int cap) : capacity(cap), current(0)
 #ifndef NDEBUG
                          , in_callback(false)
 #endif

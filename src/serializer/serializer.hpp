@@ -121,14 +121,22 @@ struct serializer_write_launched_callback_t {
 };
 struct serializer_write_t {
     block_id_t block_id;
+
     struct update_t {
         const void *buf;
         repli_timestamp_t recency;
         iocallback_t *io_callback;
         serializer_write_launched_callback_t *launch_callback;
     };
-    struct delete_t { char __unused_field; };
-    struct touch_t { repli_timestamp_t recency; };
+
+    struct delete_t {
+        char __unused_field;
+    };
+
+    struct touch_t {
+        repli_timestamp_t recency;
+    };
+
     // if none, indicates just a recency update.
     typedef boost::variant<update_t, delete_t, touch_t> action_t;
     action_t action;

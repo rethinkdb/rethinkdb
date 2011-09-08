@@ -198,7 +198,7 @@ back in its destructor. For example:
 
 class on_thread_t : public home_thread_mixin_t {
 public:
-    on_thread_t(int thread);
+    explicit on_thread_t(int thread);
     ~on_thread_t();
 };
 

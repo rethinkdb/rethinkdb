@@ -39,7 +39,7 @@ private:
 template <>
 class value_sizer_t<memcached_value_t> : public value_sizer_t<void> {
 public:
-    value_sizer_t<memcached_value_t>(block_size_t bs) : block_size_(bs) { }
+    explicit value_sizer_t<memcached_value_t>(block_size_t bs) : block_size_(bs) { }
 
     static const memcached_value_t *as_memcached(const void *p) {
         return reinterpret_cast<const memcached_value_t *>(p);
@@ -143,10 +143,10 @@ to represent the fact that its size may vary on disk. A btree_key_buffer_t is a 
 with type. */
 struct btree_key_buffer_t {
     btree_key_buffer_t() { }
-    btree_key_buffer_t(const btree_key_t *k) {
+    explicit btree_key_buffer_t(const btree_key_t *k) {
         assign(k);
     }
-    btree_key_buffer_t(const store_key_t &store_key) {
+    explicit btree_key_buffer_t(const store_key_t &store_key) {
         btree_key.size = store_key.size;
         memcpy(btree_key.contents, store_key.contents, store_key.size);
     }

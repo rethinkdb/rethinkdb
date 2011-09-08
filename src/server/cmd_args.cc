@@ -61,8 +61,7 @@ void usage_serve() {
                 "                        ");
     if (DEFAULT_UNSAVED_DATA_LIMIT == 0) {
         help->pagef("Defaults to %1.1f times the max cache size.\n", MAX_UNSAVED_DATA_LIMIT_FRACTION);
-    }
-    else {
+    } else {
         help->pagef("Defaults to %ld MB.\n", DEFAULT_UNSAVED_DATA_LIMIT / MEGABYTE);
     }
     help->pagef("\n"
@@ -322,75 +321,107 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
             case 0:
                 break;
             case 'v':
-                config.verbose = true; break;
+                config.verbose = true;
+                break;
             case 'p':
-                config.set_port(optarg); break;
+                config.set_port(optarg);
+                break;
             case 'l':
-                config.set_log_file(optarg); break;
+                config.set_log_file(optarg);
+                break;
             case 'c':
-                config.set_cores(optarg); break;
+                config.set_cores(optarg);
+                break;
             case 's':
                 slices_set_by_user = true;
                 config.set_slices(optarg);
                 break;
             case 'f':
-                config.push_private_config(optarg); break;
+                config.push_private_config(optarg);
+                break;
 #ifdef SEMANTIC_SERIALIZER_CHECK
             case 'S':
-                config.set_last_semantic_file(optarg); break;
+                config.set_last_semantic_file(optarg);
+                break;
 #endif
             case 'm':
-                config.set_max_cache_size(optarg); break;
+                config.set_max_cache_size(optarg);
+                break;
             case metadata_file:
-                config.set_metadata_file(optarg); break;
+                config.set_metadata_file(optarg);
+                break;
             case wait_for_flush:
-                config.set_wait_for_flush(optarg); break;
+                config.set_wait_for_flush(optarg);
+                break;
             case flush_timer:
-                config.set_flush_timer(optarg); break;
+                config.set_flush_timer(optarg);
+                break;
             case flush_threshold:
-                config.set_flush_waiting_threshold(optarg); break;
+                config.set_flush_waiting_threshold(optarg);
+                break;
             case flush_concurrency:
-                config.set_max_concurrent_flushes(optarg); break;
+                config.set_max_concurrent_flushes(optarg);
+                break;
             case unsaved_data_limit:
-                config.set_unsaved_data_limit(optarg); break;
+                config.set_unsaved_data_limit(optarg);
+                break;
             case gc_range:
-                config.set_gc_range(optarg); break;
-            case active_data_extents: 
-                config.set_active_data_extents(optarg); break;
+                config.set_gc_range(optarg);
+                break;
+            case active_data_extents:
+                config.set_active_data_extents(optarg);
+                break;
             case io_backend:
-                config.set_io_backend(optarg); break;
+                config.set_io_backend(optarg);
+                break;
             case io_batch_factor:
-                config.set_io_batch_factor(optarg); break;
+                config.set_io_batch_factor(optarg);
+                break;
             case block_size:
-                config.set_block_size(optarg); break;
+                config.set_block_size(optarg);
+                break;
             case extent_size:
-                config.set_extent_size(optarg); break;
+                config.set_extent_size(optarg);
+                break;
             case read_ahead:
-                config.set_read_ahead(optarg); break;
+                config.set_read_ahead(optarg);
+                break;
             case diff_log_size:
-                override_diff_log_size = config.parse_diff_log_size(optarg); break;
+                override_diff_log_size = config.parse_diff_log_size(optarg);
+                break;
             case coroutine_stack_size:
-                config.set_coroutine_stack_size(optarg); break;
+                config.set_coroutine_stack_size(optarg);
+                break;
             case force_create:
-                config.force_create = true; break;
+                config.force_create = true;
+                break;
             case force_unslavify:
-                config.force_unslavify = true; break;
+                config.force_unslavify = true;
+                break;
             case master_port:
-                config.set_master_listen_port(optarg); break;
+                config.set_master_listen_port(optarg);
+                break;
             case slave_of:
-                config.set_master_addr(optarg); break;
+                config.set_master_addr(optarg);
+                break;
             case heartbeat_timeout:
-                config.set_heartbeat_timeout(optarg); break;
+                config.set_heartbeat_timeout(optarg);
+                break;
             case failover_script:
-                config.set_failover_file(optarg); break;
+                config.set_failover_file(optarg);
+                break;
             case full_perfmon:
-                global_full_perfmon = true; break;
+                global_full_perfmon = true;
+                break;
             case memcache_file:
-                config.import_config.add_import_file(optarg); break;
+                config.import_config.add_import_file(optarg);
+                break;
             case verbose:
-                config.verbose = true; break;
+                config.verbose = true;
+                break;
             case no_rogue:
-                config.failover_config.no_rogue = true; break;
+                config.failover_config.no_rogue = true;
+                break;
             case 'h':
             default:
                 /* getopt_long already printed an error message. */
@@ -493,9 +524,9 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
 
     //slices divisable by the number of files
     if ((config.store_static_config.btree.n_slices % config.store_dynamic_config.serializer_private.size()) != 0) {
-        if (slices_set_by_user)
+        if (slices_set_by_user) {
             fail_due_to_user_error("Slices must be divisable by the number of files\n");
-        else {
+        } else {
             config.store_static_config.btree.n_slices -= config.store_static_config.btree.n_slices % config.store_dynamic_config.serializer_private.size();
             if (config.store_static_config.btree.n_slices <= 0)
                 fail_due_to_user_error("Failed to set number of slices automatically. Please specify it manually by using the -s option.\n");
@@ -572,9 +603,9 @@ void parsing_cmd_config_t::set_last_semantic_file(const char* value) {
 void parsing_cmd_config_t::set_flush_timer(const char* value) {
     int& target = store_dynamic_config.cache.flush_timer_ms;
     
-    if (strcmp(value, "disable") == 0)
+    if (strcmp(value, "disable") == 0) {
         target = NEVER_FLUSH;
-    else {
+    } else {
         target = parse_int(value);
         if (parsing_failed || !is_at_least(target, 0))
             fail_due_to_user_error("flush timer should not be negative; use 'disable' to allow changes to sit in memory indefinitely.");
