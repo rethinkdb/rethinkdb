@@ -117,15 +117,24 @@ public:
     resource is inaccessible. */
     resource_access_t(
             mailbox_cluster_t *cluster,
-            metadata_read_view_t<resource_metadata_t<business_card_t> > *view) :
-        view(view),
-        subs(boost::bind(&resource_access_t::check_dead, this)),
-        disconnect_watcher(cluster, view->get().peer),
-        either_failed(&resource_went_offline, &disconnect_watcher)
+            metadata_read_view_t<resource_metadata_t<business_card_t> > *v) :
+        view(v),
+        subs(boost::bind(&resource_access_t::check_dead, this))
     {
+        /* If the resource sets its state to offline, then it's lost */
         check_dead();
         subs.resubscribe(view);
-        access();   /* Throw an exception if something's gone wrong already */
+        either_failed.add(&resource_went_offline);
+
+        /* If the node that the resource is on ceases to be visible, then it's
+        lost */
+        if (view->get().state != resource_metadata_t<business_card_t>::destroyed) {
+            disconnect_watcher.reset(new disconnect_watcher_t(cluster, view->get().peer));
+            either_failed.add(disconnect_watcher.get());
+        }
+
+        /* Throw an exception if something's gone wrong already */
+        access();
     }
 
     /* Returns a `signal_t *` that will be pulsed when access to the resource is
@@ -163,7 +172,7 @@ private:
     typename metadata_read_view_t<resource_metadata_t<business_card_t> >::subscription_t subs;
     cond_t resource_went_offline;
 
-    disconnect_watcher_t disconnect_watcher;
+    boost::scoped_ptr<disconnect_watcher_t> disconnect_watcher;
 
     wait_any_t either_failed;
 };
