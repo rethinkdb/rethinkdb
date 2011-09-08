@@ -799,14 +799,15 @@ void parsing_cmd_config_t::set_master_listen_port(const char *value) {
 
 void parsing_cmd_config_t::set_master_addr(const char *value) {
     std::vector<char> copy(value, value + 1 + strlen(value));
-    char *token = strtok(copy.data(), ":");
+    char *saveptr;
+    char *token = strtok_r(copy.data(), ":", &saveptr);
     if (token == NULL || strlen(token) > MAX_HOSTNAME_LEN - 1) {
         fail_due_to_user_error("Invalid master address, address should be of the form hostname:port");
     }
 
     replication_config.hostname = token;
 
-    token = strtok(NULL, ":");
+    token = strtok_r(NULL, ":", &saveptr);
     if (token == NULL) {
         fail_due_to_user_error("Invalid master address, address should be of the form hostname:port");
     }
