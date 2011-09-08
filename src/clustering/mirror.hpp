@@ -16,7 +16,6 @@ class mirror_t {
 
 private:
     typedef typename mirror_dispatcher_metadata_t<protocol_t>::mirror_data_t mirror_data_t;
-    typedef typename mirror_dispatcher_metadata_t<protocol_t>::mirror_id_t mirror_id_t;
 
 public:
     /* This version of the `mirror_t` constructor is used when we are joining

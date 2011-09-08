@@ -16,13 +16,13 @@
 /* `mirror_dispatcher_metadata_t` is the metadata that the master exposes to the
 mirrors. */
 
+typedef boost::uuids::uuid mirror_id_t;
+
 template<class protocol_t>
 class mirror_dispatcher_metadata_t {
 
 public:
     /* The mirrors that the branch has are contained in `mirrors`. */
-
-    typedef boost::uuids::uuid mirror_id_t;
 
     std::map<mirror_id_t, resource_metadata_t<backfiller_metadata_t<protocol_t> > > mirrors;
 

@@ -27,10 +27,13 @@ public:
             state_timestamp_t initial_timestamp
             ) THROWS_NOTHING :
         cluster(c),
-        current_timestamp(initial_timestamp),
+        current_timestamp(initial_timestamp), newest_complete_timestamp(current_timestamp),
         registrar_view(&mirror_dispatcher_metadata_t<protocol_t>::registrar, metadata),
         registrar(cluster, this, &registrar_view)
-        { }
+    {
+        mutex_acquisition_t mutex_acq(&mutex);
+        sanity_check(&mutex_acq);
+    }
 
     /* TODO: These exceptions ought to be a bit more specific. Either there
     should be more exception classes or each one should give more information.
