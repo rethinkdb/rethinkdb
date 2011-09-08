@@ -34,7 +34,7 @@ struct mutation_t {
     }
 
     template<class T>
-    /* implicit */ mutation_t(const T &m) : mutation(m) { }
+    mutation_t(const T &m) : mutation(m) { }  // NOLINT (runtime/explicit)
 
     /* get_key() extracts the "key" field from whichever sub-mutation we actually are */
     store_key_t get_key() const;
@@ -47,9 +47,8 @@ struct mutation_result_t {
 
     mutation_result_t() { }
 
-    // implicit
     template<class T>
-    mutation_result_t(const T &r) : result(r) { }
+    mutation_result_t(const T &r) : result(r) { }  // NOLINT(runtime/explicit)
 };
 
 class set_store_interface_t {
