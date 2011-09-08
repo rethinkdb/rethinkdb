@@ -31,7 +31,8 @@ void run_with_dispatcher(boost::function<void(mailbox_cluster_t *, metadata_read
 
     mirror_dispatcher_t<dummy_protocol_t> dispatcher(
         &cluster,
-        metadata_controller.get_view());
+        metadata_controller.get_view(),
+        state_timestamp_t::zero());
 
     fun(&cluster, metadata_controller.get_view(), &dispatcher);
 }
@@ -46,8 +47,6 @@ void run_read_write_test(mailbox_cluster_t *cluster,
         metadata_readwrite_view_t<mirror_dispatcher_metadata_t<dummy_protocol_t> > *metadata_view,
         mirror_dispatcher_t<dummy_protocol_t> *dispatcher)
 {
-    transition_timestamp_t next_timestamp = transition_timestamp_t::first();
-
     order_source_t order_source;
 
     /* Set up a mirror */
@@ -65,11 +64,12 @@ void run_read_write_test(mailbox_cluster_t *cluster,
     std::map<std::string, std::string> values_inserted;
 
     for (int i = 0; i < 10; i++) {
+
         dummy_protocol_t::write_t w;
         std::string key = std::string(1, 'a' + rand() % 26);
         w.values[key] = values_inserted[key] = strprintf("%d", i);
-        dispatcher->write(w, next_timestamp, order_source.check_in("unittest"));
-        next_timestamp = next_timestamp.next();
+
+        dispatcher->write(w, order_source.check_in("unittest"));
     }
 
     /* Now send some reads */

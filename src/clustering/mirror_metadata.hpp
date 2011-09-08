@@ -55,22 +55,28 @@ public:
         it where to send an upgrade message. */
 
         typedef async_mailbox_t<void(
-            typename mirror_writeread_mailbox_t::address_t,
-            typename mirror_read_mailbox_t::address_t
+            typename writeread_mailbox_t::address_t,
+            typename read_mailbox_t::address_t
             )> upgrade_mailbox_t;
 
         typedef async_mailbox_t<void(
             state_timestamp_t,
-            typename async_mailbox_t<void(upgrade_mailbox_t::address_t)>::address_t
+            typename upgrade_mailbox_t::address_t
             )> intro_mailbox_t;
-        intro_mailbox_t::address_t intro_mailbox;
+        typename intro_mailbox_t::address_t intro_mailbox;
 
         typename write_mailbox_t::address_t write_mailbox;
+
+        mirror_data_t() { }
+        mirror_data_t(
+                const typename intro_mailbox_t::address_t &im,
+                const typename write_mailbox_t::address_t &wm) :
+            intro_mailbox(im), write_mailbox(wm) { }
 
         RDB_MAKE_ME_SERIALIZABLE_2(intro_mailbox, write_mailbox);
     };
 
-    resource_metadata_t<registrar_metadata_t<mirror_registration_t> > registrar;
+    resource_metadata_t<registrar_metadata_t<mirror_data_t> > registrar;
 
     RDB_MAKE_ME_SERIALIZABLE_2(mirrors, registrar);
 };

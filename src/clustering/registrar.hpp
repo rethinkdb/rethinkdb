@@ -56,7 +56,7 @@ private:
         }
 
         /* Wait till it's time to shut down */
-        wait_any_t waiter(&deletion_cond, &peer_monitor, keepalive.get_drain_cond());
+        wait_any_t waiter(&deletion_cond, &peer_monitor, keepalive.get_drain_signal());
         waiter.wait_lazily_unordered();
 
         /* Reacquire the mutex, to avoid race conditions when we're

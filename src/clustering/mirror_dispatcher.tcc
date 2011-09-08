@@ -5,7 +5,7 @@
 template<class protocol_t>
 void mirror_data_write(
         mailbox_cluster_t *cluster,
-        const typename mirror_dispatcher_metadata_t<protocol_t>::mirror_data_t::write_mailbox_t &write_mailbox,
+        const typename mirror_dispatcher_metadata_t<protocol_t>::mirror_data_t::write_mailbox_t::address_t &write_mailbox,
         typename protocol_t::write_t w, transition_timestamp_t ts, order_token_t tok,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
@@ -27,7 +27,7 @@ void mirror_data_write(
 template<class protocol_t>
 typename protocol_t::write_response_t mirror_data_writeread(
         mailbox_cluster_t *cluster,
-        const typename mirror_dispatcher_metadata_t<protocol_t>::mirror_data_t::writeread_mailbox_t &writeread_mailbox,
+        const typename mirror_dispatcher_metadata_t<protocol_t>::mirror_data_t::writeread_mailbox_t::address_t &writeread_mailbox,
         typename protocol_t::write_t w, transition_timestamp_t ts, order_token_t tok,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
@@ -49,7 +49,7 @@ typename protocol_t::write_response_t mirror_data_writeread(
 template<class protocol_t>
 typename protocol_t::read_response_t mirror_data_read(
         mailbox_cluster_t *cluster,
-        const typename mirror_dispatcher_metadata_t<protocol_t>::mirror_data_t::read_mailbox_t &read_mailbox,
+        const typename mirror_dispatcher_metadata_t<protocol_t>::mirror_data_t::read_mailbox_t::address_t &read_mailbox,
         typename protocol_t::read_t r, state_timestamp_t ts, order_token_t tok,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
@@ -69,14 +69,14 @@ typename protocol_t::read_response_t mirror_data_read(
 }
 
 template<class protocol_t>
-typename protocol_t::read_response_t mirror_dispatcher_t<protocol_t>::read(typename protocol_t::read_t r, order_token_t tok) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t) {
+typename protocol_t::read_response_t mirror_dispatcher_t<protocol_t>::read(typename protocol_t::read_t read, order_token_t order_token) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t) {
 
     dispatchee_t *reader;
     auto_drainer_t::lock_t reader_lock;
     state_timestamp_t timestamp;
 
     {
-        mutex_acquisition_t mutex_acq(&operation_mutex);
+        mutex_acquisition_t mutex_acq(&mutex);
         pick_a_readable_dispatchee(&reader, &reader_lock);
         timestamp = current_timestamp;
     }
@@ -114,7 +114,7 @@ typename protocol_t::write_response_t mirror_dispatcher_t<protocol_t>::write(typ
             /* We must hold the mutex while we are accessing
             `current_state_timestamp`, `incomplete_queue`, `dispatchees`, and
             `order_checkpoint`. */
-            mutex_acquisition_t mutex_acq(&operation_mutex);
+            mutex_acquisition_t mutex_acq(&mutex);
 
             transition_timestamp_t timestamp = transition_timestamp_t::starting_from(current_timestamp);
             current_timestamp = timestamp.timestamp_after(); 
@@ -175,15 +175,15 @@ mirror_dispatcher_t<protocol_t>::dispatchee_t::dispatchee_t(mirror_dispatcher_t 
     controller->assert_thread();
 
     /* Grab mutex so no new writes start while we're setting ourselves up. */
-    mutex_acquisition_t mutex_acq(&controller->operations_mutex);
+    mutex_acquisition_t mutex_acq(&controller->mutex);
 
     controller->dispatchees[this] = auto_drainer_t::lock_t(&drainer);
 
-    send(controller->cluster, data.intro_mailbox,
+    send(controller->cluster, d.intro_mailbox,
         controller->newest_complete_timestamp,
         upgrade_mailbox.get_address());
 
-    for (std::list<boost::shared_ptr<incomplete_write_t> >::iterator it = controller->incomplete_writes.begin();
+    for (typename std::list<boost::shared_ptr<incomplete_write_t> >::iterator it = controller->incomplete_writes.begin();
             it != controller->incomplete_writes.end(); it++) {
         coro_t::spawn_sometime(boost::bind(&mirror_dispatcher_t::background_write, controller,
             this, auto_drainer_t::lock_t(&drainer), incomplete_write_ref_t(*it)));
@@ -196,21 +196,6 @@ mirror_dispatcher_t<protocol_t>::dispatchee_t::~dispatchee_t() THROWS_NOTHING {
     if (is_readable) controller->readable_dispatchees.remove(this);
     controller->dispatchees.erase(this);
     controller->assert_thread();
-}
-
-template<class protocol_t>
-void mirror_dispatcher_t<protocol_t>::dispatchee_t::upgrade(
-        typename mirror_data_t::writeread_mailbox_t::address_t wrm,
-        typename mirror_data_t::read_mailbox_t::address_t rm,
-        auto_drainer_t::lock_t)
-        THROWS_NOTHING
-{
-    ASSERT_FINITE_CORO_WAITING;
-    rassert(!is_readable);
-    is_readable = true;
-    writeread_mailbox = wrm;
-    read_mailbox = rm;
-    controller->readable_dispatchees.push_back(this);
 }
 
 template<class protocol_t>
@@ -244,7 +229,7 @@ void mirror_dispatcher_t<protocol_t>::background_write(dispatchee_t *mirror, aut
 template<class protocol_t>
 void mirror_dispatcher_t<protocol_t>::end_write(boost::shared_ptr<incomplete_write_t> write) THROWS_NOTHING {
     ASSERT_FINITE_CORO_WAITING;
-    mutex_acquisition_t mutex_acq(&operation_mutex);
+    mutex_acquisition_t mutex_acq(&mutex);
     /* It's safe to remove a write from the queue once it has acquired the root
     of every mirror's btree. We aren't notified when it acquires the root; we're
     notified when it completes, which happens some unspecified amount of time
@@ -257,7 +242,7 @@ void mirror_dispatcher_t<protocol_t>::end_write(boost::shared_ptr<incomplete_wri
         boost::shared_ptr<incomplete_write_t> removed_write = incomplete_writes.front();
         incomplete_writes.pop_front();
         rassert(newest_complete_timestamp == removed_write->timestamp.timestamp_before());
-        newest_complete_timestamp = removed_writes->timestamp.timestamp_after();
+        newest_complete_timestamp = removed_write->timestamp.timestamp_after();
     }
     write->notify_no_more_acks();
     sanity_check(&mutex_acq);

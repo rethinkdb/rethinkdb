@@ -5,6 +5,7 @@
 #include "clustering/mirror_metadata.hpp"
 #include "clustering/registrant.hpp"
 #include "concurrency/coro_fifo.hpp"
+#include "concurrency/promise.hpp"
 #include "rpc/metadata/view/field.hpp"
 #include "rpc/metadata/view/member.hpp"
 #include "timestamps.hpp"
@@ -110,16 +111,16 @@ public:
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
         state_timestamp_t initial_timestamp;
-        typename mirror_data_t::upgrade_mailbox_t upgrade_mailbox;
+        typename mirror_data_t::upgrade_mailbox_t::address_t upgrade_mailbox;
         try {
             start_receiving_writes(interruptor, &initial_timestamp, &upgrade_mailbox);
         } catch (resource_lost_exc_t) {
-            rassert(!registrant || registrant->get_failed_cond()->is_pulsed());
+            rassert(!registrant || registrant->get_failed_signal()->is_pulsed());
         }
 
-        if (registrant && !registrant->get_failed_cond()->is_pulsed()) {
-            rassert(initial_timestamp == state_timestamp_t::zero());
-            allow_writes_cond.pulse(state_timestamp_t::zero());
+        if (registrant && !registrant->get_failed_signal()->is_pulsed()) {
+            rassert(initial_timestamp == store->get_timestamp());
+            allow_writes_cond.pulse(store->get_timestamp());
             /* Register for writereads and reads */
             send(cluster, upgrade_mailbox,
                 writeread_mailbox.get_address(), read_mailbox.get_address());
@@ -165,26 +166,31 @@ public:
     }
 
 private:
+    /* Support class for `start_receiving_writes()`. It's defined out here, as
+    opposed to locally in `start_receiving_writes()`, so that we can
+    `boost::bind()` to it. */
+    class intro_receiver_t : public signal_t {
+    public:
+        state_timestamp_t initial_timestamp;
+        typename mirror_data_t::upgrade_mailbox_t::address_t upgrade_mailbox;
+        void fill(state_timestamp_t its, typename mirror_data_t::upgrade_mailbox_t::address_t um) {
+            rassert(!is_pulsed());
+            initial_timestamp = its;
+            upgrade_mailbox = um;
+            pulse();
+        }
+    };
+
     /* `start_receiving_writes()` is called from within the constructors. It
     throws `resource_lost_exc_t` if we can't register with the master, or
     `interrupted_exc_t` if `interruptor` is pulsed. If all goes well, it fills
     `*upgrade_mailbox_out` with the address of the upgrade mailbox that the
     master gave us. */
-    void start_receiving_writes(signal_t *interruptor, state_timestamp_t *intiail_timestamp_out, typename mirror_data_t::upgrade_mailbox_t::address_t *upgrade_mailbox_out)
+    void start_receiving_writes(signal_t *interruptor, state_timestamp_t *initial_timestamp_out, typename mirror_data_t::upgrade_mailbox_t::address_t *upgrade_mailbox_out)
             THROWS_ONLY(resource_lost_exc_t, interrupted_exc_t)
     {
-        class intro_receiver_t : public signal_t {
-        public:
-            state_timestamp_t initial_timestamp;
-            typename mirror_data_t::upgrade_mailbox_t::address_t upgrade_mailbox;
-            void fill(state_timestamp_t its, typename mirror_data_t::upgrade_mailbox_t::address_t um) {
-                rassert(!is_pulsed());
-                initial_timestamp = its;
-                upgrade_mailbox = um;
-                pulse();
-            }
-        } intro_receiver;
-        typename mirror_data_t::intro_mailbox_t intro_mailbox(cluster, boost::bind(&intro_receiver_t::fill, &intro_receiver));
+        intro_receiver_t intro_receiver;
+        typename mirror_data_t::intro_mailbox_t intro_mailbox(cluster, boost::bind(&intro_receiver_t::fill, &intro_receiver, _1, _2));
 
         registrant.reset(new registrant_t<mirror_data_t>(
             cluster,
@@ -192,10 +198,10 @@ private:
             mirror_data_t(intro_mailbox.get_address(), write_mailbox.get_address())
             ));
 
-        wait_any_t waiter(&intro_receiver, interruptor, registrant.get_failed_signal());
+        wait_any_t waiter(&intro_receiver, interruptor, registrant->get_failed_signal());
         waiter.wait_lazily_unordered();
-        if (interruptor->is_pulsed()) throw interrupted_exc_t;
-        if (registrant.get_failed_signal()->is_pulsed()) throw resource_lost_exc_t;
+        if (interruptor->is_pulsed()) throw interrupted_exc_t();
+        if (registrant->get_failed_signal()->is_pulsed()) throw resource_lost_exc_t();
         rassert(intro_receiver.is_pulsed());
 
         *initial_timestamp_out = intro_receiver.initial_timestamp;
@@ -273,7 +279,7 @@ private:
             THROWS_NOTHING
     {
         try {
-            rassert(allow_writes_cond.get_ready_signal().is_pulsed());
+            rassert(allow_writes_cond.get_ready_signal()->is_pulsed());
             if (keepalive.get_drain_signal()->is_pulsed()) throw interrupted_exc_t();
 
             rassert(ts.timestamp_before() == store->get_timestamp(), "write "
@@ -293,7 +299,7 @@ private:
             THROWS_NOTHING
     {
         try {
-            rassert(allow_writes_cond.get_ready_signal().is_pulsed());
+            rassert(allow_writes_cond.get_ready_signal()->is_pulsed());
             if (keepalive.get_drain_signal()->is_pulsed()) throw interrupted_exc_t();
 
             rassert(ts == store->get_timestamp(), "read got reordered w.r.t. "

@@ -25,8 +25,8 @@ public:
     registrar_metadata_t() { }
 
     registrar_metadata_t(
-            typename create_mailbox_t::address_t &cm,
-            typename delete_mailbox_t::address_t &dm) :
+            const typename create_mailbox_t::address_t &cm,
+            const typename delete_mailbox_t::address_t &dm) :
         create_mailbox(cm), delete_mailbox(dm)
         { }
 };

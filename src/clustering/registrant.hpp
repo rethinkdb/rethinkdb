@@ -24,7 +24,7 @@ public:
         /* This will make it so that we get deregistered in our destructor. */
         deregisterer.fun = boost::bind(&registrant_t::send_deregister_message,
             cluster,
-            registrar.access().deregister_mailbox,
+            registrar.access().delete_mailbox,
             registration_id);
 
         /* Send a message to register us */

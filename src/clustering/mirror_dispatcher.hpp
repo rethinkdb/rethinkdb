@@ -1,6 +1,10 @@
 #ifndef __CLUSTERING_MIRROR_DISPATCHER_HPP__
 #define __CLUSTERING_MIRROR_DISPATCHER_HPP__
 
+#include "errors.hpp"
+#include <boost/shared_ptr.hpp>
+#include <boost/make_shared.hpp>
+
 #include "clustering/mirror_metadata.hpp"
 #include "clustering/registrar.hpp"
 #include "rpc/mailbox/mailbox.hpp"
@@ -23,7 +27,7 @@ public:
             state_timestamp_t initial_timestamp
             ) THROWS_NOTHING :
         cluster(c),
-        current_state_timestamp(initial_timestamp),
+        current_timestamp(initial_timestamp),
         registrar_view(&mirror_dispatcher_metadata_t<protocol_t>::registrar, metadata),
         registrar(cluster, this, &registrar_view)
         { }
@@ -58,6 +62,8 @@ public:
     typename protocol_t::write_response_t write(typename protocol_t::write_t w, order_token_t tok) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t);
 
 private:
+    class incomplete_write_ref_t;
+
     /* `incomplete_write_t` represents a write that has been sent to some nodes
     but not completed yet. */
 
@@ -66,9 +72,9 @@ private:
     {
     public:
         incomplete_write_t(mirror_dispatcher_t *p,
-                typename protocol_t::write_t w, order_token_t otok,
+                typename protocol_t::write_t w, transition_timestamp_t ts, order_token_t otok,
                 int target_ack_count_) :
-            write(w), order_token(otok),
+            write(w), timestamp(ts), order_token(otok),
             parent(p),
             ack_count(0), target_ack_count(target_ack_count_)
         {
@@ -92,16 +98,16 @@ private:
         transition_timestamp_t timestamp;
         order_token_t order_token;
 
-    private:
-        mirror_dispatcher_t *parent;
-
-        int incomplete_count;
-
-        int ack_count, target_ack_count;
-
         /* `done_promise` gets pulsed with `true` when `target_ack_count` is
         reached, or pulsed with `false` if it will never be reached. */
         promise_t<bool> done_promise;
+
+    private:
+        friend class incomplete_write_ref_t;
+
+        mirror_dispatcher_t *parent;
+        int incomplete_count;
+        int ack_count, target_ack_count;
     };
 
     /* We keep track of which `incomplete_write_t`s have been acked by all the
@@ -111,13 +117,12 @@ private:
 
     class incomplete_write_ref_t {
     public:
-        incomplete_write_ref_t() : write(NULL) {
-        }
+        incomplete_write_ref_t() { }
         incomplete_write_ref_t(const boost::shared_ptr<incomplete_write_t> &w) : write(w) {
             rassert(w);
             w->incomplete_count++;
         }
-        incomplete_write_ref_t(const incomplete_write_ref_t &r) : write(NULL) {
+        incomplete_write_ref_t(const incomplete_write_ref_t &r) {
             *this = r;
         }
         ~incomplete_write_ref_t() {
@@ -184,12 +189,12 @@ private:
     documentation. */
     void sanity_check(mutex_acquisition_t *mutex_acq) {
 #ifndef NDEBUG
-        mutex_acq->assert_is_holding(&operation_mutex);
+        mutex_acq->assert_is_holding(&mutex);
         state_timestamp_t ts = newest_complete_timestamp;
-        for (std::list<boost::shared_ptr<incomplete_write_t> >::iterator it = incomplete_writes.begin();
+        for (typename std::list<boost::shared_ptr<incomplete_write_t> >::iterator it = incomplete_writes.begin();
                 it != incomplete_writes.end(); it++) {
-            rassert(ts == w->timestamp.timestamp_before());
-            ts = w->timestamp.timestamp_after();
+            rassert(ts == (*it)->timestamp.timestamp_before());
+            ts = (*it)->timestamp.timestamp_after();
         }
         rassert(ts == current_timestamp);
 #endif
@@ -198,10 +203,9 @@ private:
     mailbox_cluster_t *cluster;
 
     /* This mutex is held when an operation is starting or a new dispatchee is
-    connecting. It protects `current_state_timestamp`,
-    `newest_complete_timestamp`, `incomplete_writes`, `dispatchees`, and
-    `order_checkpoint`. */
-    mutex_t operation_mutex;
+    connecting. It protects `current_timestamp`, `newest_complete_timestamp`,
+    `incomplete_writes`, `dispatchees`, and `order_checkpoint`. */
+    mutex_t mutex;
 
     order_checkpoint_t order_checkpoint;
 
