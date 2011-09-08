@@ -199,6 +199,21 @@ mirror_dispatcher_t<protocol_t>::dispatchee_t::~dispatchee_t() THROWS_NOTHING {
 }
 
 template<class protocol_t>
+void mirror_dispatcher_t<protocol_t>::dispatchee_t::upgrade(
+        typename mirror_data_t::writeread_mailbox_t::address_t wrm,
+        typename mirror_data_t::read_mailbox_t::address_t rm,
+        auto_drainer_t::lock_t)
+        THROWS_NOTHING
+{
+    ASSERT_FINITE_CORO_WAITING;
+    rassert(!is_readable);
+    is_readable = true;
+    writeread_mailbox = wrm;
+    read_mailbox = rm;
+    controller->readable_dispatchees.push_back(this);
+}
+
+template<class protocol_t>
 void mirror_dispatcher_t<protocol_t>::pick_a_readable_dispatchee(dispatchee_t **dispatchee_out, auto_drainer_t::lock_t *lock_out) THROWS_ONLY(insufficient_mirrors_exc_t) {
 
     ASSERT_FINITE_CORO_WAITING;

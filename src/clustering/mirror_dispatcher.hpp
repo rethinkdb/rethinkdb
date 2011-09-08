@@ -122,11 +122,18 @@ private:
             rassert(w);
             w->incomplete_count++;
         }
-        incomplete_write_ref_t(const incomplete_write_ref_t &r) {
-            *this = r;
+        incomplete_write_ref_t(const incomplete_write_ref_t &r) : write(r.write) {
+            if (r.write) {
+                r.write->incomplete_count++;
+            }
         }
         ~incomplete_write_ref_t() {
-            *this = incomplete_write_ref_t();
+            if (write) {
+                write->incomplete_count--;
+                if (write->incomplete_count == 0) {
+                    write->parent->end_write(write);
+                }
+            }
         }
         incomplete_write_ref_t &operator=(const incomplete_write_ref_t &r) {
             if (r.write) {
@@ -168,7 +175,8 @@ private:
         void upgrade(
             typename mirror_data_t::writeread_mailbox_t::address_t,
             typename mirror_data_t::read_mailbox_t::address_t,
-            auto_drainer_t::lock_t);
+            auto_drainer_t::lock_t)
+            THROWS_NOTHING;
 
         mirror_dispatcher_t *controller;
         auto_drainer_t drainer;
