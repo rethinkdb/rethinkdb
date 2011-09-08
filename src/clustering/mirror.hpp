@@ -1,6 +1,7 @@
 #ifndef __CLUSTERING_MIRROR_HPP__
 #define __CLUSTERING_MIRROR_HPP__
 
+#include "clustering/backfillee.hpp"
 #include "clustering/backfiller.hpp"
 #include "clustering/mirror_metadata.hpp"
 #include "clustering/registrant.hpp"
@@ -46,7 +47,7 @@ public:
 
         /* Attempt to register for reads and writes */
         state_timestamp_t initial_timestamp;
-        typename mirror_data_t::upgrade_mailbox_t upgrade_mailbox;
+        typename mirror_data_t::upgrade_mailbox_t::address_t upgrade_mailbox;
         try {
             start_receiving_writes(interruptor, &initial_timestamp, &upgrade_mailbox);
         } catch (resource_lost_exc_t) {
