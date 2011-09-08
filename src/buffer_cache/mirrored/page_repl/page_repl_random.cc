@@ -1,6 +1,7 @@
 #include "buffer_cache/mirrored/page_repl/page_repl_random.hpp"
 
 #include "buffer_cache/mirrored/mirrored.hpp"
+#include "logger.hpp"
 #include "perfmon.hpp"
 
 evictable_t::evictable_t(mc_cache_t *_cache, bool loaded) : cache(_cache), page_repl_index(-1) {

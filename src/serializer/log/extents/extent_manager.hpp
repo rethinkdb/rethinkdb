@@ -13,7 +13,6 @@
 #include "config/args.hpp"
 #include "serializer/log/config.hpp"
 #include "containers/segmented_vector.hpp"
-#include "logger.hpp"
 
 #define NULL_OFFSET off64_t(-1)
 

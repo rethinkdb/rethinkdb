@@ -13,7 +13,6 @@
 #include "arch/io/arch.hpp"
 #include "config/args.hpp"
 #include "utils.hpp"
-#include "logger.hpp"
 
 /* linux_aio_context_t */
 

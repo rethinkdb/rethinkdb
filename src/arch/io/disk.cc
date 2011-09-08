@@ -18,7 +18,6 @@
 #include "config/args.hpp"
 #include "utils.hpp"
 #include "arch/runtime/runtime.hpp"
-#include "logger.hpp"
 #include "arch/io/disk/aio.hpp"
 #include "arch/io/disk/pool.hpp"
 #include "arch/io/disk/conflict_resolving.hpp"
