@@ -97,9 +97,15 @@ void debugf(const char *msg, ...) __attribute__((format (printf, 1, 2)));
 #define debugf(...) ((void)0)
 #endif
 
-// Returns a random number in [0, n).  Is not perfectly uniform; the
-// bias tends to get worse when RAND_MAX is far from a multiple of n.
-int randint(int n);
+class rng_t {
+public:
+    int randint(int n);
+    rng_t();
+private:
+    struct drand48_data buffer_;
+    DISABLE_COPYING(rng_t);
+};
+
 
 bool begins_with_minus(const char *string);
 // strtoul() and strtoull() will for some reason not fail if the input begins with a minus

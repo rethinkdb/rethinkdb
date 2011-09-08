@@ -227,11 +227,17 @@ struct rand_initter_t {
     }
 } rand_initter;
 
-int randint(int n) {
-    rassert(n > 0 && n < RAND_MAX);
-    return rand() % n;
+rng_t::rng_t() {
+    memset(&buffer_, 0, sizeof(buffer_));
+    srand48_r(314159, &buffer_);
 }
 
+int rng_t::randint(int n) {
+    long int x;
+    lrand48_r(&buffer_, &x);
+
+    return x % n;
+}
 
 
 
