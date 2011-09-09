@@ -69,6 +69,13 @@ Actions (initiated by the user):
                     reach the namespace and get the data). However with
                     some changes in distribution this would extinct the
                     namespace in which case we can't do it.
+    Namespace multitenancy:
+        - set_cache_quota :: (namespace_id, Int) -> Maybe cluster_error
+            Fails:
+                - Namespace unreachable.
+        - set_disk_quota :: (namespace_id, Int) -> Maybe cluster_error
+            Fails:
+                - Namespace unreachable.
     Bring machines, namespaces, and datacenters up / down
         - bring_down_machine :: (machine_id, bool force) -> Maybe cluster_error
             Fails:
@@ -81,7 +88,7 @@ Actions (initiated by the user):
 
         - bring_down_datacenter :: (datacenter_id, bool force) -> Maybe cluster_error
             Fails:
-                - Cannot read datacenter.
+                - Cannot reach datacenter.
                 - Would make namespace unreachable (Can be overriden by force)
 
     Create / delete namespace
