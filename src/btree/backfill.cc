@@ -143,7 +143,7 @@ void do_agnostic_btree_backfill(value_sizer_t<void> *sizer, btree_slice_t *slice
 
 class agnostic_memcached_backfill_callback_t : public agnostic_backfill_callback_t {
 public:
-    agnostic_memcached_backfill_callback_t(backfill_callback_t *cb) : cb_(cb) { }
+    explicit agnostic_memcached_backfill_callback_t(backfill_callback_t *cb) : cb_(cb) { }
 
     void on_delete_range(const btree_key_t *low, const btree_key_t *high) {
         cb_->on_delete_range(low, high);

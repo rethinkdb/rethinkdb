@@ -12,7 +12,7 @@ whatever it is you want to do. */
 
 class count_down_latch_t : public signal_t {
 public:
-    count_down_latch_t(size_t _count) : count(_count) { }
+    explicit count_down_latch_t(size_t _count) : count(_count) { }
 
     void count_down();
 private:

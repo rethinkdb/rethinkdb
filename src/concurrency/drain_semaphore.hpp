@@ -25,7 +25,7 @@ struct drain_semaphore_t : public home_thread_mixin_t {
     void release();
 
     struct lock_t {
-        lock_t(drain_semaphore_t *p);
+        explicit lock_t(drain_semaphore_t *p);
         lock_t(const lock_t& copy_me);
         lock_t &operator=(const lock_t &copy_me);
         ~lock_t();

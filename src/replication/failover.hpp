@@ -62,7 +62,7 @@ class failover_script_callback_t :
     public failover_callback_t
 {
 public:
-    failover_script_callback_t(const char *);
+    explicit failover_script_callback_t(const char *);
     ~failover_script_callback_t();
     void on_failure();
     void on_resume();

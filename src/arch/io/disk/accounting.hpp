@@ -13,8 +13,7 @@ be cast to `Y`. */
 
 template<class input_t, class output_t>
 struct casting_passive_producer_t : public passive_producer_t<output_t> {
-
-    casting_passive_producer_t(passive_producer_t<input_t> *_source) :
+    explicit casting_passive_producer_t(passive_producer_t<input_t> *_source) :
         passive_producer_t<output_t>(_source->available), source(_source) { }
 
     output_t produce_next_value() {
@@ -32,11 +31,10 @@ number of different "accounts". */
 template<class payload_t>
 struct accounting_diskmgr_t {
 
-    accounting_diskmgr_t(int batch_factor) :
-        producer(&caster),
-        queue(batch_factor),
-        caster(&queue)
-        { }
+    explicit accounting_diskmgr_t(int batch_factor)
+        : producer(&caster),
+          queue(batch_factor),
+          caster(&queue) { }
 
     struct account_t;
 

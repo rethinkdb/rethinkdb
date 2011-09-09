@@ -78,7 +78,7 @@ public:
         private_dynamic_config_t private_dynamic_config;
         static_config_t static_config;
 
-        log_serializer_config_t(std::string file_name)
+        explicit log_serializer_config_t(const std::string& file_name)
             : private_dynamic_config(file_name)
         { }
 

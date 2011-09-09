@@ -16,7 +16,7 @@ class backfill_sender_t :
 public:
     /* We take a pointer to a pointer to a stream; if *stream is set to NULL, then we
     stop sending things. */
-    backfill_sender_t(repli_stream_t **stream);
+    explicit backfill_sender_t(repli_stream_t **stream);
 
     /* backfill_and_realtime_streaming_callback_t interface */
 

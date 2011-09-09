@@ -18,7 +18,6 @@
 #include "config/args.hpp"
 #include "utils.hpp"
 #include "arch/runtime/runtime.hpp"
-#include "logger.hpp"
 #include "arch/io/disk/aio.hpp"
 #include "arch/io/disk/pool.hpp"
 #include "arch/io/disk/conflict_resolving.hpp"
@@ -186,10 +185,15 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, co
 
     int flags = O_CREAT | (is_really_direct ? O_DIRECT : 0) | O_LARGEFILE;
 
-    if ((mode & mode_write) && (mode & mode_read)) flags |= O_RDWR;
-    else if (mode & mode_write) flags |= O_WRONLY;
-    else if (mode & mode_read) flags |= O_RDONLY;
-    else crash("Bad file access mode.");
+    if ((mode & mode_write) && (mode & mode_read)) {
+        flags |= O_RDWR;
+    } else if (mode & mode_write) {
+        flags |= O_WRONLY;
+    } else if (mode & mode_read) {
+        flags |= O_RDONLY;
+    } else {
+        crash("Bad file access mode.");
+    }
 
 
     // O_NOATIME requires owner or root privileges. This is a bit of a hack; we assume that

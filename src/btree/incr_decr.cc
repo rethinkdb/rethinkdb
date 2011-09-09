@@ -67,7 +67,7 @@ struct btree_incr_decr_oper_t : public btree_modify_oper_t<memcached_value_t> {
         result.new_value = number;
 
         char tmp[50];
-        int chars_written = sprintf(tmp, "%llu", (long long unsigned)number);
+        int chars_written = snprintf(tmp, sizeof(tmp), "%llu", (long long unsigned)number);
         rassert(chars_written <= 49);
         b.unappend_region(txn, b.valuesize());
         b.append_region(txn, chars_written);

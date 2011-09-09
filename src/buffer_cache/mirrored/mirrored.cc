@@ -772,8 +772,7 @@ void mc_buf_t::release() {
                 // TODO (sam): f'd up.
                 if (inner_buf->data.equals(data)) {
                     --inner_buf->snap_refcount;
-                }
-                else {
+                } else {
                     inner_buf->release_snapshot_data(data);
                 }
             } else {
@@ -882,15 +881,14 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access) :
 }
 
 void mc_transaction_t::register_buf_snapshot(mc_inner_buf_t *inner_buf, mc_inner_buf_t::buf_snapshot_t *snap) {
+    assert_thread();
     pm_registered_snapshot_blocks++;
     owned_buf_snapshots.push_back(std::make_pair(inner_buf, snap));
 }
 
 mc_transaction_t::~mc_transaction_t() {
 
-    /* For the benefit of some things that carry around `boost::shared_ptr<transaction_t>`. */
-    // TODO: this is horrible.
-    on_thread_t thread_switcher(home_thread());
+    assert_thread();
 
     pm_transactions_active.end(&start_time);
 
@@ -1036,6 +1034,7 @@ void get_subtree_recencies_helper(int slice_home_thread, serializer_t *serialize
 }
 
 void mc_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp_t *recencies_out, get_subtree_recencies_callback_t *cb) {
+    assert_thread();
     bool need_second_loop = false;
     for (size_t i = 0; i < num_block_ids; ++i) {
         inner_buf_t *inner_buf = cache->find_buf(block_ids[i]);
@@ -1220,8 +1219,11 @@ size_t mc_cache_t::register_buf_snapshot(mc_inner_buf_t *inner_buf, mc_inner_buf
 
 mc_cache_t::inner_buf_t *mc_cache_t::find_buf(block_id_t block_id) {
     inner_buf_t *buf = page_map.find(block_id);
-    if (buf) pm_cache_hits++;
-    else pm_cache_misses++;
+    if (buf) {
+        pm_cache_hits++;
+    } else {
+        pm_cache_misses++;
+    }
     return buf;
 }
 

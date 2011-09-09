@@ -112,7 +112,7 @@ public:
                        btree_key_value_store_static_config_t *static_config);
 
     // Blocks
-    btree_key_value_store_t(const btree_key_value_store_dynamic_config_t &dynamic_config);
+    explicit btree_key_value_store_t(const btree_key_value_store_dynamic_config_t &dynamic_config);
 
     // Blocks
     ~btree_key_value_store_t();
@@ -192,10 +192,10 @@ private:
         public control_t
     {
     public:
-        hash_control_t(btree_key_value_store_t *_btkvs)
+        explicit hash_control_t(btree_key_value_store_t *_btkvs)
             : control_t("hash", std::string("Get hash, slice, and thread of a key. Syntax: rdb hash key"), true), btkvs(_btkvs)
         {}
-        virtual ~hash_control_t() {};
+        virtual ~hash_control_t() { }
 
     private:
         btree_key_value_store_t *btkvs;

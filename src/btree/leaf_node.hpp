@@ -515,8 +515,6 @@ void init(value_sizer_t<V> *sizer, leaf_node_t *node) {
     node->live_size = 0;
     node->frontmost = sizer->block_size().value();
     node->tstamp_cutpoint = node->frontmost;
-
-    validate(sizer, node);
 }
 
 template <class V>
@@ -630,7 +628,7 @@ bool is_underfull(value_sizer_t<V> *sizer, const leaf_node_t *node) {
 // Compares indices by looking at values in another array.
 class indirect_index_comparator_t {
 public:
-    indirect_index_comparator_t(const uint16_t *array) : array_(array) { }
+    explicit indirect_index_comparator_t(const uint16_t *array) : array_(array) { }
 
     bool operator()(uint16_t x, uint16_t y) {
         return array_[x] < array_[y];
@@ -793,7 +791,7 @@ void move_elements(value_sizer_t<V> *sizer, leaf_node_t *fro, int beg, int end, 
         if (tow->pair_offsets[i] < tow->tstamp_cutpoint) {
             rassert(num_adjustable_tow_offsets < MANDATORY_TIMESTAMPS);
             adjustable_tow_offsets[num_adjustable_tow_offsets] = i;
-            num_adjustable_tow_offsets ++;
+            ++num_adjustable_tow_offsets;
         }
     }
 
@@ -801,7 +799,7 @@ void move_elements(value_sizer_t<V> *sizer, leaf_node_t *fro, int beg, int end, 
         if (tow->pair_offsets[i] < tow->tstamp_cutpoint) {
             rassert(num_adjustable_tow_offsets < MANDATORY_TIMESTAMPS);
             adjustable_tow_offsets[num_adjustable_tow_offsets] = i;
-            num_adjustable_tow_offsets ++;
+            ++num_adjustable_tow_offsets;
         }
     }
 
@@ -1011,7 +1009,7 @@ void split(value_sizer_t<V> *sizer, leaf_node_t *node, leaf_node_t *rnode, btree
             prev_rcost = rcost;
             rcost += entry_size(sizer, ent) + sizeof(uint16_t) + (offset < tstamp_back_offset ? sizeof(repli_timestamp_t) : 0);
 
-            ++ num_mandatories;
+            ++num_mandatories;
         } else {
             rassert(entry_is_deletion(ent));
 
@@ -1019,7 +1017,7 @@ void split(value_sizer_t<V> *sizer, leaf_node_t *node, leaf_node_t *rnode, btree
                 prev_rcost = rcost;
                 rcost += entry_size(sizer, ent) + sizeof(uint16_t) + sizeof(repli_timestamp_t);
 
-                ++ num_mandatories;
+                ++num_mandatories;
             }
         }
 
@@ -1039,7 +1037,7 @@ void split(value_sizer_t<V> *sizer, leaf_node_t *node, leaf_node_t *rnode, btree
     if ((mandatory - prev_rcost) - prev_rcost < rcost - (mandatory - rcost)) {
         end_rcost = prev_rcost;
         s = i + 2;
-        -- num_mandatories;
+        --num_mandatories;
     } else {
         end_rcost = rcost;
         s = i + 1;
@@ -1136,7 +1134,7 @@ bool level(value_sizer_t<V> *sizer, int nodecmp_node_with_sib, leaf_node_t *node
             node_weight += sz;
             sibling_weight -= sz;
 
-            ++ num_mandatories;
+            ++num_mandatories;
         } else {
             rassert(entry_is_deletion(ent));
 
@@ -1148,7 +1146,7 @@ bool level(value_sizer_t<V> *sizer, int nodecmp_node_with_sib, leaf_node_t *node
                 node_weight += sz;
                 sibling_weight -= sz;
 
-                ++ num_mandatories;
+                ++num_mandatories;
             }
         }
 
@@ -1163,7 +1161,7 @@ bool level(value_sizer_t<V> *sizer, int nodecmp_node_with_sib, leaf_node_t *node
 
     if (prev_diff <= sibling_weight - node_weight) {
         *w -= wstep;
-        -- num_mandatories;
+        --num_mandatories;
         weight_movement = prev_weight_movement;
     }
 
@@ -1401,7 +1399,7 @@ void dump_entries_since_time(value_sizer_t<V> *sizer, const leaf_node_t *node, r
         entry_iter_t iter = entry_iter_t::make(node);
         while (!iter.done(sizer) && iter.offset < node->tstamp_cutpoint) {
             repli_timestamp_t new_earliest = get_timestamp(node, iter.offset);
-            rassert(! (earliest < new_earliest));
+            rassert(earliest >= new_earliest);
             earliest = new_earliest;
             iter.step(sizer, node);
 
@@ -1471,7 +1469,7 @@ public:
     }
 
 private:
-    live_iter_t(int index) : index_(index) { }
+    explicit live_iter_t(int index) : index_(index) { }
 
     friend live_iter_t iter_for_inclusive_lower_bound(const leaf_node_t *node, const btree_key_t *key);
     friend live_iter_t iter_for_whole_leaf(const leaf_node_t *node);

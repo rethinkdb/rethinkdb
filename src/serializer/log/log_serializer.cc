@@ -351,8 +351,7 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
 
                 /* mark the life */
                 data_block_manager->mark_live(offset.get_value());
-            }
-            else {
+            } else {
                 offset = flagged_off64_t::unused();
             }
         }
@@ -526,7 +525,7 @@ void log_serializer_t::remap_block_to_new_offset(off64_t current_offset, off64_t
             offset_tokens.insert(std::pair<off64_t, ls_block_token_pointee_t *>(new_offset, offset_token_it->second));
 
             std::multimap<off64_t, ls_block_token_pointee_t *>::iterator prev = offset_token_it;
-            ++ offset_token_it;
+            ++offset_token_it;
             offset_tokens.erase(prev);
         }
     }

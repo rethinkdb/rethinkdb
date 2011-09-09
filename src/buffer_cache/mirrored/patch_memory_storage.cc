@@ -41,12 +41,11 @@ void patch_memory_storage_t::filter_applied_patches(block_id_t block_id, block_s
     map_entry->second.filter_before_block_sequence(block_sequence_id);
     if (map_entry->second.empty()) {
         patch_map.erase(map_entry);
-    }
+    } else {
 #ifndef NDEBUG
-    else {
         map_entry->second.verify_patches_list(block_sequence_id);
-    }
 #endif
+    }
 }
 
 // Returns true iff any changes have been made to the buf

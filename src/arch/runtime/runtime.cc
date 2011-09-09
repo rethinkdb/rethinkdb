@@ -10,6 +10,10 @@ int get_num_threads() {
     return linux_thread_pool_t::thread_pool->n_threads;
 }
 
+int thread_local_randint(int n) {
+    return linux_thread_pool_t::thread->thread_local_rng.randint(n);
+}
+
 #ifndef NDEBUG
 void assert_good_thread_id(int thread) {
     rassert(thread >= 0, "(thread = %d)", thread);

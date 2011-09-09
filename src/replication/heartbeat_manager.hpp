@@ -11,7 +11,7 @@ class timer_token_t;
 
 class heartbeat_sender_t {
 protected:
-    heartbeat_sender_t(int heartbeat_frequency_ms);
+    explicit heartbeat_sender_t(int heartbeat_frequency_ms);
     virtual ~heartbeat_sender_t();
 
     virtual void send_heartbeat() = 0;
@@ -48,7 +48,7 @@ public:
         static void release_parent(heartbeat_receiver_t *parent);
 
         friend class heartbeat_receiver_t;
-        pause_watching_heartbeat_t(heartbeat_receiver_t *parent);
+        explicit pause_watching_heartbeat_t(heartbeat_receiver_t *parent);
         heartbeat_receiver_t *parent_;
     };
     /* As long as the returned pause_watching_heartbeat_t object (or one of its
@@ -59,7 +59,7 @@ public:
     pause_watching_heartbeat_t pause_watching_heartbeat();
     
 protected:
-    heartbeat_receiver_t(int heartbeat_timeout_ms);
+    explicit heartbeat_receiver_t(int heartbeat_timeout_ms);
     virtual ~heartbeat_receiver_t();
 
     void watch_heartbeat();

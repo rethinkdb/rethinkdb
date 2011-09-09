@@ -265,7 +265,6 @@ private:
         EXPECT_EQ(old_value, get_value(buf2_A));
         buf2_A->release();
     }
-
 };
 
 TEST(SnapshotsTest, all_tests) {

@@ -94,7 +94,7 @@ private:
 
     struct do_done_caller_t {
 	cross_thread_limited_fifo_t *parent_;
-	do_done_caller_t(cross_thread_limited_fifo_t *parent) : parent_(parent) { }
+	explicit do_done_caller_t(cross_thread_limited_fifo_t *parent) : parent_(parent) { }
 	void operator()() { parent_->do_done(); }
     };
 

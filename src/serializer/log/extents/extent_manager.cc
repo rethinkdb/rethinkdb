@@ -1,5 +1,7 @@
-#include "arch/arch.hpp"
 #include "serializer/log/extents/extent_manager.hpp"
+
+#include "arch/arch.hpp"
+#include "logger.hpp"
 #include "perfmon.hpp"
 
 #define EXTENT_UNRESERVED (off64_t(-2))

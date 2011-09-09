@@ -20,10 +20,13 @@ public:
     // returns flush_timer_ms == 0, meaning we flush immediately.
     inline bool is_zero() const { return flush_timer_ms == 0; }
 private:
+    rng_t rng;
+
     const int flush_timer_ms;
     const int first_time_interval;
     bool done_first_time_interval;
 
+    DISABLE_COPYING(flush_time_randomizer_t);
 };
 
 

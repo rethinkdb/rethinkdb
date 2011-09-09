@@ -338,19 +338,6 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                         "failover"    : True},
                               repeat=5, timeout=800)
 
-    # Replication with small delete queue
-    do_test_cloud("integration/serial_mix.py",
-                  { "auto"        : True,
-                    "mode"        : mode,
-                    "no-valgrind" : not checker,
-                    "protocol"    : protocol,
-                    "cores"       : cores,
-                    "slices"      : slices,
-                    "duration"    : 340,
-                    "failover"    : True,
-                    "serve-flags": "--total-delete-queue-limit %d" % (15 * slices)},
-                          repeat=10, timeout=800)
-    
     # Replication with large values
     do_test_cloud("integration/serial_mix.py",
                   { "auto"        : True,

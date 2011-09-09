@@ -10,7 +10,6 @@
 #include "arch/runtime/event_queue.hpp"
 #include "arch/io/io_utils.hpp"
 #include "arch/io/timer_provider.hpp"
-#include "logger.hpp"
 
 // This *should* be a member of sigevent exposed by glibc, who the
 // heck knows why it isn't...

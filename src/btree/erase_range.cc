@@ -8,21 +8,32 @@
 #include "concurrency/fifo_checker.hpp"
 #include "errors.hpp"
 
+class value_deleter_t {
+public:
+    value_deleter_t() { }
+    virtual void delete_value(transaction_t *txn, void *value) = 0;
+
+protected:
+    virtual ~value_deleter_t() { }
+
+    DISABLE_COPYING(value_deleter_t);
+};
+
 class erase_range_helper_t : public btree_traversal_helper_t {
 public:
     erase_range_helper_t(value_sizer_t<void> *sizer, key_tester_t *tester,
+                         value_deleter_t *deleter,
                          const btree_key_t *left_exclusive_or_null,
                          const btree_key_t *right_inclusive_or_null)
-        : sizer_(sizer), tester_(tester),
+        : sizer_(sizer), tester_(tester), deleter_(deleter),
           left_exclusive_or_null_(left_exclusive_or_null), right_inclusive_or_null_(right_inclusive_or_null) { }
 
-    void process_a_leaf(UNUSED transaction_t *txn, buf_t *leaf_node_buf,
+    void process_a_leaf(transaction_t *txn, buf_t *leaf_node_buf,
                         UNUSED const btree_key_t *l_excl,
                         UNUSED const btree_key_t *r_incl) {
         leaf_node_t *node = reinterpret_cast<leaf_node_t *>(leaf_node_buf->get_data_major_write());
 
         std::vector<btree_key_buffer_t> keys_to_delete;
-
 
         for (leaf::live_iter_t iter = leaf::iter_for_whole_leaf(node); /* no test */; iter.step(node)) {
             const btree_key_t *k = iter.get_key(node);
@@ -39,7 +50,12 @@ public:
             }
         }
 
+        scoped_malloc<char> value(sizer_->max_possible_size());
+
         for (int i = 0, e = keys_to_delete.size(); i < e; ++i) {
+            if (leaf::lookup(sizer_, node, keys_to_delete[i].key(), value.get())) {
+                deleter_->delete_value(txn, value.get());
+            }
             leaf::erase_presence(sizer_, node, keys_to_delete[i].key());
         }
     }
@@ -91,6 +107,7 @@ public:
 private:
     value_sizer_t<void> *sizer_;
     key_tester_t *tester_;
+    value_deleter_t *deleter_;
     const btree_key_t *left_exclusive_or_null_;
     const btree_key_t *right_inclusive_or_null_;
 
@@ -100,6 +117,7 @@ private:
 
 void btree_erase_range_generic(value_sizer_t<void> *sizer, btree_slice_t *slice,
                                key_tester_t *tester,
+                               value_deleter_t *deleter,
                                const btree_key_t *left_exclusive_or_null,
                                const btree_key_t *right_inclusive_or_null,
                                order_token_t token) {
@@ -116,7 +134,7 @@ void btree_erase_range_generic(value_sizer_t<void> *sizer, btree_slice_t *slice,
     transaction_t txn(slice->cache(), rwi_write, 2, repli_timestamp_t::invalid);
     txn.set_token(slice->post_begin_transaction_checkpoint_.check_through(begin_transaction_token));
 
-    erase_range_helper_t helper(sizer, tester, left_exclusive_or_null, right_inclusive_or_null);
+    erase_range_helper_t helper(sizer, tester, deleter, left_exclusive_or_null, right_inclusive_or_null);
 
     btree_parallel_traversal(&txn, slice, &helper);
 }
@@ -127,6 +145,13 @@ void btree_erase_range(btree_slice_t *slice, key_tester_t *tester,
                        order_token_t token) {
     value_sizer_t<memcached_value_t> mc_sizer(slice->cache()->get_block_size());
     value_sizer_t<void> *sizer = &mc_sizer;
+
+    struct : public value_deleter_t {
+        void delete_value(transaction_t *txn, void *value) {
+            blob_t blob(static_cast<memcached_value_t *>(value)->value_ref(), blob::btree_maxreflen);
+            blob.clear(txn);
+        }
+    } deleter;
 
     // TODO: Sigh, stupid wasteful copies.
     btree_key_buffer_t left, right;
@@ -141,5 +166,5 @@ void btree_erase_range(btree_slice_t *slice, key_tester_t *tester,
         rk = right.key();
     }
 
-    btree_erase_range_generic(sizer, slice, tester, lk, rk, token);
+    btree_erase_range_generic(sizer, slice, tester, &deleter, lk, rk, token);
 }

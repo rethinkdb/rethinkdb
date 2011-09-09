@@ -10,7 +10,6 @@ and passive producer. */
 
 template<class payload_t>
 struct stats_diskmgr_t {
-
     stats_diskmgr_t(perfmon_duration_sampler_t *rs, perfmon_duration_sampler_t *ws) :
         read_sampler(rs), write_sampler(ws) { }
 
@@ -19,8 +18,11 @@ struct stats_diskmgr_t {
     };
 
     void submit(action_t *a) {
-        if (a->get_is_read()) read_sampler->begin(&a->start_time);
-        else write_sampler->begin(&a->start_time);
+        if (a->get_is_read()) {
+            read_sampler->begin(&a->start_time);
+        } else {
+            write_sampler->begin(&a->start_time);
+        }
         submit_fun(a);
     }
 
@@ -30,8 +32,11 @@ struct stats_diskmgr_t {
 
     void done(payload_t *p) {
         action_t *a = static_cast<action_t *>(p);
-        if (a->get_is_read()) read_sampler->end(&a->start_time);
-        else write_sampler->end(&a->start_time);
+        if (a->get_is_read()) {
+            read_sampler->end(&a->start_time);
+        } else {
+            write_sampler->end(&a->start_time);
+        }
         done_fun(a);
     }
 
@@ -65,16 +70,22 @@ struct stats_diskmgr_2_t :
     passive_producer_t<payload_t *> * const producer;
     void done(payload_t *p) {
         action_t *a = static_cast<action_t *>(p);
-        if (a->get_is_read()) read_sampler->end(&a->start_time);
-        else write_sampler->end(&a->start_time);
+        if (a->get_is_read()) {
+            read_sampler->end(&a->start_time);
+        } else {
+            write_sampler->end(&a->start_time);
+        }
         done_fun(a);
     }
 
 private:
     payload_t *produce_next_value() {
         action_t *a = source->pop();
-        if (a->get_is_read()) read_sampler->begin(&a->start_time);
-        else write_sampler->begin(&a->start_time);
+        if (a->get_is_read()) {
+            read_sampler->begin(&a->start_time);
+        } else {
+            write_sampler->begin(&a->start_time);
+        }
         return a;
     }
     passive_producer_t<action_t *> *source;

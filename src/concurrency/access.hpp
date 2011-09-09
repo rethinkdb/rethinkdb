@@ -32,8 +32,12 @@ enum access_t {
     rwi_upgrade
 };
 
-bool is_read_mode(access_t mode);
-bool is_write_mode(access_t mode);
+inline bool is_read_mode(access_t mode) {
+    return mode == rwi_read_sync || mode == rwi_read || mode == rwi_read_outdated_ok;
+}
+inline bool is_write_mode(access_t mode) {
+    return !is_read_mode(mode);
+}
 
 #endif // __ACCESS_HPP__
 

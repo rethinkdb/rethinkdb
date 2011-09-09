@@ -1,6 +1,7 @@
 #include "buffer_cache/mirrored/page_repl/page_repl_random.hpp"
 
 #include "buffer_cache/mirrored/mirrored.hpp"
+#include "logger.hpp"
 #include "perfmon.hpp"
 
 evictable_t::evictable_t(mc_cache_t *_cache, bool loaded) : cache(_cache), page_repl_index(-1) {
@@ -63,8 +64,11 @@ void page_repl_random_t::make_space(unsigned int space_needed) {
     unsigned int target;
     // TODO (rntz): why, if more space is needed than unload_threshold, do we set the target number
     // of pages in cache to unload_threshold rather than 0? (note: git blames this on tim)
-    if (space_needed > unload_threshold) target = unload_threshold;
-    else target = unload_threshold - space_needed;
+    if (space_needed > unload_threshold) {
+        target = unload_threshold;
+    } else {
+        target = unload_threshold - space_needed;
+    }
 
     while (array.size() > target) {
         // Try to find a block we can unload. Blocks are ineligible to be unloaded if they are
