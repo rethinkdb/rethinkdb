@@ -28,15 +28,24 @@ public:
         /* Pick a branch ID */
         branch_id = generate_uuid();
 
+        boost::shared_ptr<metadata_readwrite_view_t<mirror_dispatcher_metadata_t<protocol_t> > > mirror_dispatcher_view =
+            metadata_new_member(branch_id, metadata_field(&namespace_metadata_t<protocol_t>::dispatchers, namespace_view));
+
         /* Set up the mirror dispatcher */
         mirror_dispatcher.reset(new mirror_dispatcher_t<protocol_t>(
             cluster,
-            metadata_new_member(branch_id, metadata_field(&namespace_metadata_t<protocol_t>::dispatchers, namespace_view)),
+            mirror_dispatcher_view,
             initial_store->get_timestamp()));
 
         /* Set up the first mirror */
         *initial_mirror_out = new mirror_t<protocol_t>(
-            cluster, initial_store, 
+            cluster, initial_store, mirror_dispatcher_view, interruptor);
+
+        /* Set up the advertisement */
+        advertisement.reset(new resource_advertisement_t<master_metadata_t<protocol_t> >(
+            cluster,
+            master_metadata_t<protocol_t>(initial_store->get_region(), read_mailbox.get_address(), write_mailbox.get_address()),
+            metadata_new_member(branch_id, metadata_field(&namespace_metadata_t<protocol_t>::masters, namespace_view)));
     }
 
 private:
