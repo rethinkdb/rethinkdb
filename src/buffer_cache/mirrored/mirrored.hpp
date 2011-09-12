@@ -384,15 +384,16 @@ public:
     mc_inner_buf_t::version_id_t get_max_snapshot_version(mc_inner_buf_t::version_id_t default_version) const {
         return no_active_snapshots() ? default_version : (*active_snapshots.rbegin()).first;
     }
-    bool no_active_snapshots() const { return active_snapshots.empty(); }
-    bool no_active_snapshots(mc_inner_buf_t::version_id_t from_version, mc_inner_buf_t::version_id_t to_version) const {
-        return active_snapshots.lower_bound(from_version) == active_snapshots.upper_bound(to_version);
-    }
 
     void register_snapshot(mc_transaction_t *txn);
     void unregister_snapshot(mc_transaction_t *txn);
 
 private:
+    bool no_active_snapshots() const { return active_snapshots.empty(); }
+    bool no_active_snapshots(mc_inner_buf_t::version_id_t from_version, mc_inner_buf_t::version_id_t to_version) const {
+        return active_snapshots.lower_bound(from_version) == active_snapshots.upper_bound(to_version);
+    }
+
     size_t register_buf_snapshot(mc_inner_buf_t *inner_buf, mc_inner_buf_t::buf_snapshot_t *snap, mc_inner_buf_t::version_id_t snapshotted_version, mc_inner_buf_t::version_id_t new_version);
     size_t calculate_snapshots_affected(mc_inner_buf_t::version_id_t snapshotted_version, mc_inner_buf_t::version_id_t new_version);
 
