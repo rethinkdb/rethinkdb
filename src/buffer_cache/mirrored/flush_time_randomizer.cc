@@ -1,4 +1,4 @@
-#include "buffer_cache/mirrored/writeback/flush_time_randomizer.hpp"
+#include "buffer_cache/mirrored/flush_time_randomizer.hpp"
 
 #include <stdlib.h>
 
