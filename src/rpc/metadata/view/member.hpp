@@ -1,64 +1,35 @@
 #ifndef __RPC_METADATA_VIEW_MEMBER_HPP__
 #define __RPC_METADATA_VIEW_MEMBER_HPP__
 
-#include "rpc/metadata/view.hpp"
 #include <map>
 
-/* `metadata_member_read_view_t` and `metadata_member_readwrite_view_t`
-correspond to some values of a `std::map` contained in another metadata view. */
+#include "errors.hpp"
+#include <boost/shared_ptr.hpp>
+
+#include "rpc/metadata/view.hpp"
+
+/* `metadata_member` is used to construct a metadata view that points to some
+member of a `std::map` in another metadata view. */
 
 template<class key_t, class value_t>
-class metadata_member_read_view_t : public metadata_read_view_t<value_t> {
-
-public:
-    metadata_member_read_view_t(key_t k, metadata_read_view_t<std::map<key_t, value_t> > *sv) :
-        key(k), superview(sv)
-    {
-        rassert(superview->get().count(key) != 0);
-    }
-
-    value_t get() {
-        return superview->get()[key];
-    }
-
-    publisher_t<boost::function<void()> > *get_publisher() {
-        return superview->get_publisher();
-    }
-
-private:
-    key_t key;
-    metadata_read_view_t<std::map<key_t, value_t> > *superview;
-    DISABLE_COPYING(metadata_member_read_view_t);
-};
+boost::shared_ptr<metadata_read_view_t<value_t> > metadata_member(
+    key_t,
+    boost::shared_ptr<metadata_read_view_t<std::map<key_t, value_t> > >);
 
 template<class key_t, class value_t>
-class metadata_member_readwrite_view_t : public metadata_readwrite_view_t<value_t> {
+boost::shared_ptr<metadata_readwrite_view_t<value_t> > metadata_member(
+    key_t,
+    boost::shared_ptr<metadata_readwrite_view_t<std::map<key_t, value_t> > >);
 
-public:
-    metadata_member_readwrite_view_t(key_t k, metadata_readwrite_view_t<std::map<key_t, value_t> > *sv) :
-        key(k), superview(sv)
-    {
-        rassert(superview->get().count(key) != 0);
-    }
+/* `metadata_new_member` inserts a new default-constructed `value_t` into the
+given view under the given key, and returns a view pointing to the newly-
+inserted object. */
 
-    value_t get() {
-        return superview->get()[key];
-    }
+template<class key_t, class value_t>
+boost::shared_ptr<metadata_readwrite_view_t<value_t> > metadata_new_member(
+    key_t,
+    boost::shared_ptr<metadata_readwrite_view_t<std::map<key_t, value_t> > >);
 
-    void join(const value_t &v) {
-        std::map<key_t, value_t> map = superview->get();
-        semilattice_join(&map[key], v);
-        superview->join(map);
-    }
-
-    publisher_t<boost::function<void()> > *get_publisher() {
-        return superview->get_publisher();
-    }
-
-private:
-    key_t key;
-    metadata_readwrite_view_t<std::map<key_t, value_t> > *superview;
-    DISABLE_COPYING(metadata_member_readwrite_view_t);
-};
+#include "rpc/metadata/view/member.tcc"
 
 #endif /* __RPC_METADATA_VIEW_MEMBER_HPP__ */

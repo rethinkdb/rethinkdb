@@ -1,59 +1,35 @@
 #ifndef __RPC_METADATA_VIEW_FIELD_HPP__
 #define __RPC_METADATA_VIEW_FIELD_HPP__
 
+#include "errors.hpp"
+#include <boost/shared_ptr.hpp>
+
 #include "rpc/metadata/view.hpp"
 
-/* `metadata_field_read_view_t` is a `metadata_read_view_t` that corresponds to
-some sub-field of another `metadata_read_view_t`. Pass the field to the
-constructor as a member pointer. */
+/* `metadata_field()` can be used to construct metadata views that point to some
+field on another metadata view. Example:
+
+    class point_t {
+    public:
+        double x, y;
+    };
+
+    boost::shared_ptr<metadata_readwrite_view_t<point_t> > point_view =
+        get_a_view_from_somewhere();
+    boost::shared_ptr<metadata_readwrite_view_t<double> > x_view =
+        metadata_field(&point_t::x, point_view);
+*/
 
 template<class outer_t, class inner_t>
-class metadata_field_read_view_t : public metadata_read_view_t<inner_t> {
-
-public:
-    metadata_field_read_view_t(inner_t outer_t::*f, metadata_read_view_t<outer_t> *o) :
-        field(f), outer(o) { }
-
-    inner_t get() {
-        return ((outer->get()).*field);
-    }
-
-    publisher_t<boost::function<void()> > *get_publisher() {
-        return outer->get_publisher();
-    }
-
-private:
-    inner_t outer_t::*field;
-    metadata_read_view_t<outer_t> *outer;
-};
-
-/* A `metadata_field_readwrite_view_t` is like a `metadata_field_read_view_t`
-except that it also supports joining. */
+boost::shared_ptr<metadata_read_view_t<inner_t> > metadata_field(
+        inner_t outer_t::*field,
+        boost::shared_ptr<metadata_read_view_t<outer_t> > outer);
 
 template<class outer_t, class inner_t>
-class metadata_field_readwrite_view_t : public metadata_readwrite_view_t<inner_t> {
+boost::shared_ptr<metadata_readwrite_view_t<inner_t> > metadata_field(
+        inner_t outer_t::*field,
+        boost::shared_ptr<metadata_readwrite_view_t<outer_t> > outer);
 
-public:
-    metadata_field_readwrite_view_t(inner_t outer_t::*f, metadata_readwrite_view_t<outer_t> *o) :
-        field(f), outer(o) { }
-
-    inner_t get() {
-        return ((outer->get()).*field);
-    }
-
-    void join(const inner_t &new_inner) {
-        outer_t value = outer->get();
-        semilattice_join(&(value.*field), new_inner);
-        outer->join(value);
-    }
-
-    publisher_t<boost::function<void()> > *get_publisher() {
-        return outer->get_publisher();
-    }
-
-private:
-    inner_t outer_t::*field;
-    metadata_readwrite_view_t<outer_t> *outer;
-};
+#include "rpc/metadata/view/field.tcc"
 
 #endif /* __RPC_METADATA_READWRITE_VIEW_HPP__ */

@@ -1,5 +1,8 @@
+#include "errors.hpp"
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
+#include <boost/make_shared.hpp>
+
 #include "concurrency/pmap.hpp"
 
 template<class metadata_t>
@@ -7,19 +10,20 @@ metadata_cluster_t<metadata_t>::metadata_cluster_t(int port, const metadata_t &i
     mailbox_cluster_t(port),
     /* Watch ourself for new peers connecting */
     event_watcher_t(this),
-    root_view(this),
+    root_view(boost::make_shared<root_view_t>(this)),
     metadata(initial_metadata),
     change_publisher(&change_mutex)
     { }
 
 template<class metadata_t>
 metadata_cluster_t<metadata_t>::~metadata_cluster_t() {
+    root_view->parent = NULL;
 }
 
 template<class metadata_t>
-metadata_readwrite_view_t<metadata_t> *metadata_cluster_t<metadata_t>::get_root_view() {
+boost::shared_ptr<metadata_readwrite_view_t<metadata_t> > metadata_cluster_t<metadata_t>::get_root_view() {
     assert_thread();
-    return &root_view;
+    return root_view;
 }
 
 template<class metadata_t>
@@ -28,13 +32,18 @@ metadata_cluster_t<metadata_t>::root_view_t::root_view_t(metadata_cluster_t *p) 
 
 template<class metadata_t>
 metadata_t metadata_cluster_t<metadata_t>::root_view_t::get() {
+    rassert(parent, "accessing `metadata_cluster_t` root view when cluster no "
+        "longer exists");
     parent->assert_thread();
     return parent->metadata;
 }
 
 template<class metadata_t>
 void metadata_cluster_t<metadata_t>::root_view_t::join(const metadata_t &added_metadata) {
+    rassert(parent, "accessing `metadata_cluster_t` root view when cluster no "
+        "longer exists");
     parent->assert_thread();
+
     parent->join_metadata_locally(added_metadata);
 
     /* Distribute changes to all peers we can currently see. If we can't
@@ -52,6 +61,8 @@ void metadata_cluster_t<metadata_t>::root_view_t::join(const metadata_t &added_m
 
 template<class metadata_t>
 publisher_t<boost::function<void()> > *metadata_cluster_t<metadata_t>::root_view_t::get_publisher() {
+    rassert(parent, "accessing `metadata_cluster_t` root view when cluster no "
+        "longer exists");
     parent->assert_thread();
     return parent->change_publisher.get_publisher();
 }

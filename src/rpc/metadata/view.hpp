@@ -7,12 +7,7 @@
 it and monitor it for changes. The purpose is to make it easier to make metadata
 composable; because of `metadata_read_view_t`, each component that interacts
 with the metadata only needs to know about its own little part of the metadata.
-
-Note that `metadata_read_view_t` doesn't necessarily correspond to an actual
-location in the metadata of a real cluster. It's also sometimes used in the
-other direction: some components create and expose their own
-`metadata_read_view_t`, and expect their users to link their
-`metadata_read_view_t` to some location in the cluster's metadata. */
+*/
 
 template<class metadata_t>
 class metadata_read_view_t {
@@ -23,15 +18,20 @@ public:
     class subscription_t {
     public:
         subscription_t(boost::function<void()> cb) : subs(cb) { }
-        subscription_t(boost::function<void()> cb, metadata_read_view_t *v) :
-            subs(cb, v->get_publisher()) { }
-        void resubscribe(metadata_read_view_t *v) {
-            subs.resubscribe(v->get_publisher());
+        subscription_t(boost::function<void()> cb, boost::shared_ptr<metadata_read_view_t> v) :
+            view(v), subs(cb, view->get_publisher()) { }
+        void resubscribe(boost::shared_ptr<metadata_read_view_t> v) {
+            view = v;
+            subs.resubscribe(view->get_publisher());
         }
         void unsubscribe() {
             subs.unsubscribe();
+            view.reset();
         }
     private:
+        /* Hold a pointer to the `metadata_read_view_t` so it doesn't die while
+        we are subscribed to it */
+        boost::shared_ptr<metadata_read_view_t> view;
         publisher_t<boost::function<void()> >::subscription_t subs;
     };
 

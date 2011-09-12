@@ -16,7 +16,7 @@ struct backfiller_t :
     backfiller_t(
             mailbox_cluster_t *c,
             typename protocol_t::store_t *s,
-            metadata_readwrite_view_t<resource_metadata_t<backfiller_metadata_t<protocol_t> > > *md_view) :
+            boost::shared_ptr<metadata_readwrite_view_t<resource_metadata_t<backfiller_metadata_t<protocol_t> > > > md_view) :
         cluster(c), store(s)
     {
         /* Set up mailboxes, in scoped pointers so we can deconstruct them when
@@ -121,6 +121,7 @@ private:
     mailbox_cluster_t *cluster;
     typename protocol_t::store_t *store;
 
+    /* TODO: Use an auto_drainer_t */
     drain_semaphore_t drain_semaphore;
     cond_t global_interruptor;
     std::map<session_id_t, cond_t *> local_interruptors;

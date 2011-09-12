@@ -24,7 +24,7 @@ public:
     mirror_t(
             typename protocol_t::store_t *s,
             mailbox_cluster_t *c,
-            metadata_readwrite_view_t<mirror_dispatcher_metadata_t<protocol_t> > *dispatcher,
+            boost::shared_ptr<metadata_readwrite_view_t<mirror_dispatcher_metadata_t<protocol_t> > > dispatcher,
             mirror_id_t backfill_provider,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t) :
@@ -37,10 +37,7 @@ public:
         writeread_mailbox(cluster, boost::bind(&mirror_t::on_writeread, this,
             auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4)),
         read_mailbox(cluster, boost::bind(&mirror_t::on_read, this,
-            auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4)),
-
-        registrar_view(&mirror_dispatcher_metadata_t<protocol_t>::registrar, dispatcher),
-        mirror_map_view(&mirror_dispatcher_metadata_t<protocol_t>::mirrors, dispatcher)
+            auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4))
     {
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
@@ -48,20 +45,17 @@ public:
         state_timestamp_t initial_timestamp;
         typename mirror_data_t::upgrade_mailbox_t::address_t upgrade_mailbox;
         try {
-            start_receiving_writes(interruptor, &initial_timestamp, &upgrade_mailbox);
+            start_receiving_writes(dispatcher, interruptor, &initial_timestamp, &upgrade_mailbox);
         } catch (resource_lost_exc_t) {
             rassert(!registrant || registrant->get_failed_signal()->is_pulsed());
         }
 
         /* Get a backfill. This can throw `resource_lost_exc_t` or
-        `interrupted_exc_t`; we don't pass both on. */
-        {
-            metadata_member_read_view_t<
-                mirror_id_t,
-                resource_metadata_t<backfiller_metadata_t<protocol_t> >
-                > backfiller_view(backfill_provider, &mirror_map_view);
-            backfill(store, cluster, &backfiller_view, interruptor);
-        }
+        `interrupted_exc_t`; we pass both on. */
+        backfill<protocol_t>(
+            store, cluster,
+            metadata_member(backfill_provider, metadata_field(&mirror_dispatcher_metadata_t<protocol_t>::mirrors, dispatcher)),
+            interruptor);
 
         if (registrant && !registrant->get_failed_signal()->is_pulsed() && initial_timestamp > store->get_timestamp()) {
             /* The node we got our backfill from was outdated, so we're
@@ -82,7 +76,7 @@ public:
             cancel_writes_cond.pulse();
         }
 
-        start_serving_backfills();
+        start_serving_backfills(dispatcher);
     }
 
     /* This version of the `mirror_t` constructor is used when we are becoming
@@ -91,7 +85,7 @@ public:
     mirror_t(
             typename protocol_t::store_t *s,
             mailbox_cluster_t *c,
-            metadata_readwrite_view_t<mirror_dispatcher_metadata_t<protocol_t> > *dispatcher,
+            boost::shared_ptr<metadata_readwrite_view_t<mirror_dispatcher_metadata_t<protocol_t> > > dispatcher,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) :
 
@@ -103,17 +97,14 @@ public:
         writeread_mailbox(cluster, boost::bind(&mirror_t::on_writeread, this,
             auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4)),
         read_mailbox(cluster, boost::bind(&mirror_t::on_read, this,
-            auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4)),
-
-        registrar_view(&mirror_dispatcher_metadata_t<protocol_t>::registrar, dispatcher),
-        mirror_map_view(&mirror_dispatcher_metadata_t<protocol_t>::mirrors, dispatcher)
+            auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4))
     {
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
         state_timestamp_t initial_timestamp;
         typename mirror_data_t::upgrade_mailbox_t::address_t upgrade_mailbox;
         try {
-            start_receiving_writes(interruptor, &initial_timestamp, &upgrade_mailbox);
+            start_receiving_writes(dispatcher, interruptor, &initial_timestamp, &upgrade_mailbox);
         } catch (resource_lost_exc_t) {
             rassert(!registrant || registrant->get_failed_signal()->is_pulsed());
         }
@@ -128,7 +119,7 @@ public:
             cancel_writes_cond.pulse();
         }
 
-        start_serving_backfills();
+        start_serving_backfills(dispatcher);
     }
 
     ~mirror_t() {
@@ -186,7 +177,10 @@ private:
     `interrupted_exc_t` if `interruptor` is pulsed. If all goes well, it fills
     `*upgrade_mailbox_out` with the address of the upgrade mailbox that the
     master gave us. */
-    void start_receiving_writes(signal_t *interruptor, state_timestamp_t *initial_timestamp_out, typename mirror_data_t::upgrade_mailbox_t::address_t *upgrade_mailbox_out)
+    void start_receiving_writes(
+            boost::shared_ptr<metadata_readwrite_view_t<mirror_dispatcher_metadata_t<protocol_t> > > dispatcher,
+            signal_t *interruptor,
+            state_timestamp_t *initial_timestamp_out, typename mirror_data_t::upgrade_mailbox_t::address_t *upgrade_mailbox_out)
             THROWS_ONLY(resource_lost_exc_t, interrupted_exc_t)
     {
         intro_receiver_t intro_receiver;
@@ -194,7 +188,7 @@ private:
 
         registrant.reset(new registrant_t<mirror_data_t>(
             cluster,
-            &registrar_view,
+            metadata_field(&mirror_dispatcher_metadata_t<protocol_t>::registrar, dispatcher),
             mirror_data_t(intro_mailbox.get_address(), write_mailbox.get_address())
             ));
 
@@ -210,30 +204,21 @@ private:
 
     /* `start_serving_backfills()` is called from within the constructors. It
     only exists to factor out some code shared between the constructors. */
-    void start_serving_backfills() THROWS_NOTHING {
-
-        rassert(backfiller_view.get() == NULL);
+    void start_serving_backfills(
+            boost::shared_ptr<metadata_readwrite_view_t<mirror_dispatcher_metadata_t<protocol_t> > > dispatcher)
+            THROWS_NOTHING
+    {
         rassert(backfiller.get() == NULL);
 
         /* Pick a mirror ID */
         mirror_id = generate_uuid();
 
-        {
-            /* Make a space for us in the mirror map */
-            std::map<mirror_id_t, resource_metadata_t<backfiller_metadata_t<protocol_t> > > new_mirror;
-            new_mirror[mirror_id] = resource_metadata_t<backfiller_metadata_t<protocol_t> >();
-            mirror_map_view.join(new_mirror);
-        }
-
-        /* Set up a view pointing at our space in the mirror map */
-        backfiller_view.reset(new metadata_member_readwrite_view_t<
-            mirror_id_t,
-            resource_metadata_t<backfiller_metadata_t<protocol_t> >
-            >(mirror_id, &mirror_map_view));
-
         /* Set up the actual backfiller */
         backfiller.reset(new backfiller_t<protocol_t>(
-            cluster, store, backfiller_view.get()));
+            cluster,
+            store,
+            metadata_new_member(mirror_id, metadata_field(&mirror_dispatcher_metadata_t<protocol_t>::mirrors, dispatcher))
+            ));
     }
 
     void on_write(auto_drainer_t::lock_t keepalive,
@@ -330,15 +315,6 @@ private:
     typename mirror_data_t::writeread_mailbox_t writeread_mailbox;
     typename mirror_data_t::read_mailbox_t read_mailbox;
 
-    metadata_field_read_view_t<
-        mirror_dispatcher_metadata_t<protocol_t>,
-        resource_metadata_t<registrar_metadata_t<mirror_data_t> >
-        > registrar_view;
-    metadata_field_readwrite_view_t<
-        mirror_dispatcher_metadata_t<protocol_t>,
-        std::map<mirror_id_t, resource_metadata_t<backfiller_metadata_t<protocol_t> > >
-        > mirror_map_view;
-
     boost::scoped_ptr<registrant_t<mirror_data_t> > registrant;
 
     /* If we never successfully registered, then `get_outdated_signal()` returns
@@ -348,10 +324,6 @@ private:
     } always_pulsed_signal;
 
     mirror_id_t mirror_id;
-    boost::scoped_ptr<metadata_member_readwrite_view_t<
-        mirror_id_t,
-        resource_metadata_t<backfiller_metadata_t<protocol_t> >
-        > > backfiller_view;
     boost::scoped_ptr<backfiller_t<protocol_t> > backfiller;
 };
 

@@ -6,6 +6,8 @@
 /* We join `std::map`s by taking their union and resolving conflicts by doing a
 semilattice join on the values. */
 
+namespace std {
+
 template<class key_t, class value_t>
 void semilattice_join(std::map<key_t, value_t> *a, const std::map<key_t, value_t> &b) {
     for (typename std::map<key_t, value_t>::const_iterator it = b.begin(); it != b.end(); it++) {
@@ -17,5 +19,7 @@ void semilattice_join(std::map<key_t, value_t> *a, const std::map<key_t, value_t
         }
     }
 }
+
+}   /* namespace std */
 
 #endif /* __RPC_METADATA_SEMILATTICE_MAP_HPP__ */

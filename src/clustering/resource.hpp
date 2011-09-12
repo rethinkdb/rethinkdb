@@ -71,7 +71,7 @@ class resource_advertisement_t {
 public:
     resource_advertisement_t(
             mailbox_cluster_t *cluster,
-            metadata_readwrite_view_t<resource_metadata_t<business_card_t> > *md_view,
+            boost::shared_ptr<metadata_readwrite_view_t<resource_metadata_t<business_card_t> > > md_view,
             const business_card_t &initial) :
         metadata_view(md_view)
     {
@@ -93,7 +93,7 @@ public:
     }
 
 private:
-    metadata_readwrite_view_t<resource_metadata_t<business_card_t> > *metadata_view;
+    boost::shared_ptr<metadata_readwrite_view_t<resource_metadata_t<business_card_t> > > metadata_view;
 };
 
 /* A resource-user constructs a `resource_access_t` when it wants to start using
@@ -117,7 +117,7 @@ public:
     resource is inaccessible. */
     resource_access_t(
             mailbox_cluster_t *cluster,
-            metadata_read_view_t<resource_metadata_t<business_card_t> > *v) :
+            boost::shared_ptr<metadata_read_view_t<resource_metadata_t<business_card_t> > > v) :
         view(v),
         subs(boost::bind(&resource_access_t::check_dead, this))
     {
@@ -167,7 +167,7 @@ private:
         }
     }
 
-    metadata_read_view_t<resource_metadata_t<business_card_t> > *view;
+    boost::shared_ptr<metadata_read_view_t<resource_metadata_t<business_card_t> > > view;
 
     typename metadata_read_view_t<resource_metadata_t<business_card_t> >::subscription_t subs;
     cond_t resource_went_offline;

@@ -32,7 +32,7 @@ public:
     metadata_cluster_t(int port, const metadata_t &initial_metadata);
     ~metadata_cluster_t();
 
-    metadata_readwrite_view_t<metadata_t> *get_root_view();
+    boost::shared_ptr<metadata_readwrite_view_t<metadata_t> > get_root_view();
 
 private:
     /* `get_root_view()` returns a pointer to this. It just exists to implement
@@ -44,7 +44,8 @@ private:
         metadata_t get();
         void join(const metadata_t &);
         publisher_t<boost::function<void()> > *get_publisher();
-    } root_view;
+    };
+    boost::shared_ptr<root_view_t> root_view;
 
     metadata_t metadata;
 

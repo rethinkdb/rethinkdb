@@ -9,7 +9,7 @@ namespace unittest {
 
 namespace {
 
-void run_with_dispatcher(boost::function<void(mailbox_cluster_t *, metadata_readwrite_view_t<mirror_dispatcher_metadata_t<dummy_protocol_t> > *, boost::scoped_ptr<mirror_dispatcher_t<dummy_protocol_t> > *)> fun) {
+void run_with_dispatcher(boost::function<void(mailbox_cluster_t *, boost::shared_ptr<metadata_readwrite_view_t<mirror_dispatcher_metadata_t<dummy_protocol_t> > >, boost::scoped_ptr<mirror_dispatcher_t<dummy_protocol_t> > *)> fun) {
 
     /* Set up a cluster so mailboxes can be created */
 
@@ -39,7 +39,7 @@ void run_with_dispatcher(boost::function<void(mailbox_cluster_t *, metadata_read
     fun(&cluster, metadata_controller.get_view(), &dispatcher);
 }
 
-void run_in_thread_pool_with_dispatcher(boost::function<void(mailbox_cluster_t *, metadata_readwrite_view_t<mirror_dispatcher_metadata_t<dummy_protocol_t> > *, boost::scoped_ptr<mirror_dispatcher_t<dummy_protocol_t> > *)> fun) {
+void run_in_thread_pool_with_dispatcher(boost::function<void(mailbox_cluster_t *, boost::shared_ptr<metadata_readwrite_view_t<mirror_dispatcher_metadata_t<dummy_protocol_t> > >, boost::scoped_ptr<mirror_dispatcher_t<dummy_protocol_t> > *)> fun) {
     run_in_thread_pool(boost::bind(&run_with_dispatcher, fun));
 }
 
@@ -90,7 +90,7 @@ private:
 single mirror. */
 
 void run_read_write_test(mailbox_cluster_t *cluster,
-        metadata_readwrite_view_t<mirror_dispatcher_metadata_t<dummy_protocol_t> > *metadata_view,
+        boost::shared_ptr<metadata_readwrite_view_t<mirror_dispatcher_metadata_t<dummy_protocol_t> > > metadata_view,
         boost::scoped_ptr<mirror_dispatcher_t<dummy_protocol_t> > *dispatcher)
 {
     order_source_t order_source;
@@ -138,7 +138,7 @@ TEST(ClusteringMirror, ReadWrite) {
 then adds another mirror. */
 
 void run_backfill_test(mailbox_cluster_t *cluster,
-        metadata_readwrite_view_t<mirror_dispatcher_metadata_t<dummy_protocol_t> > *metadata_view,
+        boost::shared_ptr<metadata_readwrite_view_t<mirror_dispatcher_metadata_t<dummy_protocol_t> > > metadata_view,
         boost::scoped_ptr<mirror_dispatcher_t<dummy_protocol_t> > *dispatcher)
 {
     order_source_t order_source;
@@ -193,7 +193,7 @@ TEST(ClusteringMirror, Backfill) {
 is lost. */
 
 void run_outdated_test(mailbox_cluster_t *cluster,
-        metadata_readwrite_view_t<mirror_dispatcher_metadata_t<dummy_protocol_t> > *metadata_view,
+        boost::shared_ptr<metadata_readwrite_view_t<mirror_dispatcher_metadata_t<dummy_protocol_t> > > metadata_view,
         boost::scoped_ptr<mirror_dispatcher_t<dummy_protocol_t> > *dispatcher)
 {
     order_source_t order_source;
@@ -250,7 +250,7 @@ void kill_mirror_eventually(boost::scoped_ptr<mirror_t<dummy_protocol_t> > *to_d
 }
 
 void run_backfiller_lost_test(mailbox_cluster_t *cluster,
-        metadata_readwrite_view_t<mirror_dispatcher_metadata_t<dummy_protocol_t> > *metadata_view,
+        boost::shared_ptr<metadata_readwrite_view_t<mirror_dispatcher_metadata_t<dummy_protocol_t> > > metadata_view,
         boost::scoped_ptr<mirror_dispatcher_t<dummy_protocol_t> > *dispatcher)
 {
     order_source_t order_source;

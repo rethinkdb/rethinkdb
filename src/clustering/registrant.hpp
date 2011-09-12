@@ -14,7 +14,7 @@ public:
     */
     registrant_t(
             mailbox_cluster_t *cl,
-            metadata_read_view_t<resource_metadata_t<registrar_metadata_t<data_t> > > *registrar_md,
+            boost::shared_ptr<metadata_read_view_t<resource_metadata_t<registrar_metadata_t<data_t> > > > registrar_md,
             data_t initial_value)
             THROWS_ONLY(resource_lost_exc_t) :
         cluster(cl),

@@ -59,7 +59,7 @@ void run_backfill_test() {
     /* Run a backfill */
 
     cond_t interruptor;
-    backfill(&backfillee_store, &cluster, backfiller_md_controller.get_view(), &interruptor);
+    backfill<dummy_protocol_t>(&backfillee_store, &cluster, backfiller_md_controller.get_view(), &interruptor);
 
     /* Make sure everything got transferred properly */
 

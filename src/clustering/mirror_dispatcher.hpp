@@ -23,13 +23,13 @@ class mirror_dispatcher_t : public home_thread_mixin_t {
 public:
     mirror_dispatcher_t(
             mailbox_cluster_t *c,
-            metadata_readwrite_view_t<mirror_dispatcher_metadata_t<protocol_t> > *metadata,
+            boost::shared_ptr<metadata_readwrite_view_t<mirror_dispatcher_metadata_t<protocol_t> > > metadata_view,
             state_timestamp_t initial_timestamp
             ) THROWS_NOTHING :
         cluster(c),
         current_timestamp(initial_timestamp), newest_complete_timestamp(current_timestamp),
-        registrar_view(&mirror_dispatcher_metadata_t<protocol_t>::registrar, metadata),
-        registrar(cluster, this, &registrar_view)
+        registrar(cluster, this,
+            metadata_field(&mirror_dispatcher_metadata_t<protocol_t>::registrar, metadata_view))
     {
         mutex_acquisition_t mutex_acq(&mutex);
         sanity_check(&mutex_acq);
@@ -232,10 +232,6 @@ private:
 
     intrusive_list_t<dispatchee_t> readable_dispatchees;
 
-    metadata_field_readwrite_view_t<
-        mirror_dispatcher_metadata_t<protocol_t>,
-        resource_metadata_t<registrar_metadata_t<mirror_data_t> >
-        > registrar_view;
     registrar_t<mirror_data_t, mirror_dispatcher_t *, dispatchee_t> registrar;
 };
 

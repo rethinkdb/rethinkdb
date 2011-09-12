@@ -10,7 +10,7 @@ template<class protocol_t>
 void backfill(
     typename protocol_t::store_t *store,
     mailbox_cluster_t *cluster,
-    metadata_read_view_t<resource_metadata_t<backfiller_metadata_t<protocol_t> > > *backfiller_md,
+    boost::shared_ptr<metadata_read_view_t<resource_metadata_t<backfiller_metadata_t<protocol_t> > > > backfiller_md,
     signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t)
 {
