@@ -1,4 +1,4 @@
-#include "serializer/log/extents/extent_manager.hpp"
+#include "serializer/log/extent_manager.hpp"
 
 #include "arch/arch.hpp"
 #include "logger.hpp"

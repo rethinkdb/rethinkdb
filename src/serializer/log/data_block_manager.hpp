@@ -9,7 +9,7 @@
 #include "containers/priority_queue.hpp"
 #include "containers/two_level_array.hpp"
 #include "containers/bitset.hpp"
-#include "serializer/log/extents/extent_manager.hpp"
+#include "serializer/log/extent_manager.hpp"
 #include "serializer/types.hpp"
 #include "perfmon_types.hpp"
 

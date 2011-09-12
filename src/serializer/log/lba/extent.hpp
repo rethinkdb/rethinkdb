@@ -1,7 +1,7 @@
 #ifndef __SERIALIZER_LOG_LBA_EXTENT_HPP__
 #define __SERIALIZER_LOG_LBA_EXTENT_HPP__
 
-#include "serializer/log/extents/extent_manager.hpp"
+#include "serializer/log/extent_manager.hpp"
 #include "arch/types.hpp"
 
 struct extent_block_t;

@@ -16,8 +16,8 @@
 
 class log_serializer_t;
 
-#include "serializer/log/metablock/metablock_manager.hpp"
-#include "serializer/log/extents/extent_manager.hpp"
+#include "serializer/log/metablock_manager.hpp"
+#include "serializer/log/extent_manager.hpp"
 #include "serializer/log/lba/lba_list.hpp"
 #include "serializer/log/data_block_manager.hpp"
 
