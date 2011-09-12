@@ -193,8 +193,8 @@ void mock_cache_t::create(serializer_t *serializer, UNUSED mirrored_cache_static
 // dynamic_config is unused because this is a mock cache and the
 // configuration parameters don't apply.
 mock_cache_t::mock_cache_t( serializer_t *_serializer, UNUSED mirrored_cache_config_t *dynamic_config)
-    : serializer(_serializer), block_size(_serializer->get_block_size())
-{
+    : serializer(_serializer), block_size(_serializer->get_block_size()) {
+
     on_thread_t switcher(serializer->home_thread());
 
     struct : public iocallback_t, public drain_semaphore_t {
@@ -207,7 +207,7 @@ mock_cache_t::mock_cache_t( serializer_t *_serializer, UNUSED mirrored_cache_con
         if (!serializer->get_delete_bit(i)) {
             internal_buf_t *internal_buf = bufs[i] = new internal_buf_t(this, i, serializer->get_recency(i));
             read_cb.acquire();
-            serializer->block_read(serializer->index_read(i), internal_buf, DEFAULT_DISK_ACCOUNT, &read_cb);
+            serializer->block_read(serializer->index_read(i), internal_buf->data, DEFAULT_DISK_ACCOUNT, &read_cb);
         }
     }
 
