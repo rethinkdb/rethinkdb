@@ -25,7 +25,7 @@
 
 #include "buffer_cache/mirrored/writeback/writeback.hpp"
 
-#include "buffer_cache/mirrored/page_repl/page_repl_random.hpp"
+#include "buffer_cache/mirrored/page_repl_random.hpp"
 typedef page_repl_random_t page_repl_t;
 
 #include "buffer_cache/mirrored/free_list.hpp"

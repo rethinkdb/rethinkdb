@@ -1,4 +1,4 @@
-#include "buffer_cache/mirrored/page_repl/page_repl_random.hpp"
+#include "buffer_cache/mirrored/page_repl_random.hpp"
 
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "logger.hpp"
