@@ -164,12 +164,7 @@ public:
     void on_io_complete() {
         rassert(off_in >= read_ahead_offset);
         rassert(off_in < read_ahead_offset + read_ahead_size);
-#ifndef NDEBUG
-        {
-            bool modcmp = (off_in - read_ahead_offset) % parent->static_config->block_size().ser_value() == 0;
-            rassert(modcmp);
-        }
-#endif
+        rassert(divides(parent->static_config->block_size().ser_value(), off_in - read_ahead_offset));
 
         // Walk over the read ahead buffer and copy stuff...
         for (int64_t current_block = 0; current_block * parent->static_config->block_size().ser_value() < read_ahead_size; ++current_block) {

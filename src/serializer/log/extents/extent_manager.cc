@@ -125,11 +125,8 @@ public:
 extent_manager_t::extent_manager_t(direct_file_t *file, log_serializer_on_disk_static_config_t *_static_config, log_serializer_dynamic_config_t *_dynamic_config)
     : static_config(_static_config), dynamic_config(_dynamic_config), extent_size(_static_config->extent_size()), dbfile(file), state(state_reserving_extents), n_extents_in_use(0)
 {
-#ifndef NDEBUG
-    bool modcmp = extent_size % DEVICE_BLOCK_SIZE == 0;
-    rassert(modcmp);
-#endif
-    
+    rassert(divides(DEVICE_BLOCK_SIZE, extent_size));
+
     if (file->is_block_device() || dynamic_config->file_size > 0) {
         /* If we are given a fixed file size, we pretend to be on a block device. */
         if (!file->is_block_device()) {
@@ -140,7 +137,7 @@ extent_manager_t::extent_manager_t(direct_file_t *file, log_serializer_on_disk_s
                     "risk of smashing database, ignoring file size specification.");
             }
         }
-        
+
         /* On a block device, chop the block device up into equal-sized zones, the number of
         which is determined by a configuration parameter. */
         size_t zone_size = ceil_aligned(dynamic_config->file_zone_size, extent_size);
