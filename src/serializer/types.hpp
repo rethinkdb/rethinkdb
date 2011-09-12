@@ -67,11 +67,12 @@ class ls_block_token_pointee_t {
 
     ls_block_token_pointee_t(log_serializer_t *serializer, off64_t initial_offset);
 
+    void destroy();
+
     log_serializer_t *serializer_;
     int64_t ref_count_;
 
-public:
-    ~ls_block_token_pointee_t();
+    void do_destroy();
 
     DISABLE_COPYING(ls_block_token_pointee_t);
 };
@@ -87,7 +88,7 @@ void intrusive_ptr_release(ls_block_token_pointee_t *p) {
     int64_t res = __sync_sub_and_fetch(&p->ref_count_, 1);
     rassert(res >= 0);
     if (res == 0) {
-	delete p;
+        p->destroy();
     }
 }
 

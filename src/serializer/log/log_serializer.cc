@@ -739,8 +739,13 @@ ls_block_token_pointee_t::ls_block_token_pointee_t(log_serializer_t *serializer,
     serializer_->register_block_token(this, initial_offset);
 }
 
-ls_block_token_pointee_t::~ls_block_token_pointee_t() {
-    on_thread_t switcher(serializer_->home_thread());
+void ls_block_token_pointee_t::destroy() {
+    coro_t::spawn_on_thread(serializer_->home_thread(), boost::bind(&ls_block_token_pointee_t::do_destroy, this));
+}
+
+void ls_block_token_pointee_t::do_destroy() {
+    serializer_->assert_thread();
     rassert(ref_count_ == 0);
     serializer_->unregister_block_token(this);
+    delete this;
 }
