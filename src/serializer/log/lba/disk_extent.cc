@@ -25,8 +25,8 @@ lba_disk_extent_t::lba_disk_extent_t(extent_manager_t *_em, direct_file_t *file,
 void lba_disk_extent_t::add_entry(lba_entry_t entry, file_account_t *io_account) {
     // Make sure that entries will align with DEVICE_BLOCK_SIZE
 
-    // TODO: This could just be a unit test.
-    rassert(divides(DEVICE_BLOCK_SIZE, sizeof(lba_entry_t)));
+    // TODO(sam): This could just be a unit test.
+    rassert(divides(sizeof(lba_entry_t), DEVICE_BLOCK_SIZE));
 
     // Make sure that there is room
     rassert(data->amount_filled + sizeof(lba_entry_t) <= em->extent_size);
