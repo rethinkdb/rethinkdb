@@ -1,7 +1,6 @@
 #ifndef __SERIALIZER_LOG_EXTENT_MANAGER_HPP__
 #define __SERIALIZER_LOG_EXTENT_MANAGER_HPP__
 
-#include <set>
 #include <deque>
 
 #include <sys/types.h>
@@ -30,7 +29,6 @@ public:
     };
 
 private:
-    typedef std::set<off64_t> reserved_extent_set_t;
     typedef std::deque<off64_t> free_queue_t;
     
     log_serializer_on_disk_static_config_t *static_config;
