@@ -33,7 +33,7 @@ private:
 
 class spinlock_acq_t {
 public:
-    spinlock_acq_t(spinlock_t *the_lock) : the_lock_(the_lock) {
+    explicit spinlock_acq_t(spinlock_t *the_lock) : the_lock_(the_lock) {
         the_lock_->lock();
     }
     ~spinlock_acq_t() {

@@ -38,7 +38,7 @@ void* linux_aio_getevents_noeventfd_t::io_event_loop(void *arg) {
          * terrible race condition (Issue #377). The problem is that we rely on
          * the signal to get us out of io_getevents call so if we get it before
          * we make the call nothing gets us out. */
-        timespec timeout = {1,0}; //a 1 second timeout
+        timespec timeout = { 1, 0 };  // A 1 second timeout
         int nevents = io_getevents(parent->parent->aio_context.id, 1, MAX_IO_EVENT_PROCESSING_BATCH_SIZE,
                                    events, &timeout);
         if (nevents == -EINTR || nevents == 0) {

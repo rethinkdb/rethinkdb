@@ -355,8 +355,11 @@ void perfmon_function_t::visit_stats(void *data) {
 }
 
 void perfmon_function_t::end_stats(void *data, perfmon_stats_t *dest) {
-    std::string *string = reinterpret_cast<std::string*>(data);
-    if (string->size()) (*dest)[name] = *string;
-    else (*dest)[name] = "N/A";
+    std::string *string = reinterpret_cast<std::string *>(data);
+    if (!string->empty()) {
+        (*dest)[name] = *string;
+    } else {
+        (*dest)[name] = "N/A";
+    }
     delete string;
 }

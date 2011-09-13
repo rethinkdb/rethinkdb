@@ -69,8 +69,7 @@ void test_header_parser() {
         "Date: Fri, 31 Dec 1999 23:59:59 GMT\r\n"
         "Content-Type: text/html\r\n"
         "Content-Length: 0\r\n"
-        "\r\n"
-        ;
+        "\r\n";
     std::string::const_iterator iter = header.begin();
     std::string::const_iterator end = header.end();
     bool success = parse(iter, end, http_msg_parser, res);

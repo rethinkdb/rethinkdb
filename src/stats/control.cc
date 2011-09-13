@@ -5,7 +5,6 @@
 #include "arch/spinlock.hpp"
 
 #include "utils.hpp"
-#include "logger.hpp"
 #include "errors.hpp"
 
 typedef std::map<std::string, control_t *> control_map_t;

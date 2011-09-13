@@ -81,7 +81,7 @@ struct order_source_pigeoncoop_t {
         ASSERT_NO_CORO_WAITING;
         if (free_buckets_.empty()) {
             int ret = least_unregistered_bucket_;
-            ++ least_unregistered_bucket_;
+            ++least_unregistered_bucket_;
             return std::pair<int, int64_t>(ret, 0);
         } else {
             std::pair<int, int64_t> ret = free_buckets_.back();

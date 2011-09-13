@@ -164,12 +164,7 @@ public:
     void on_io_complete() {
         rassert(off_in >= read_ahead_offset);
         rassert(off_in < read_ahead_offset + read_ahead_size);
-#ifndef NDEBUG
-        {
-            bool modcmp = (off_in - read_ahead_offset) % parent->static_config->block_size().ser_value() == 0;
-            rassert(modcmp);
-        }
-#endif
+        rassert(divides(parent->static_config->block_size().ser_value(), off_in - read_ahead_offset));
 
         // Walk over the read ahead buffer and copy stuff...
         for (int64_t current_block = 0; current_block * parent->static_config->block_size().ser_value() < read_ahead_size; ++current_block) {
@@ -234,8 +229,7 @@ bool data_block_manager_t::read(off64_t off_in, void *buf_out, file_account_t *i
     if (should_perform_read_ahead(off_in)) {
         // We still need an fsm for read ahead as additional work has to be done on io complete...
         new dbm_read_ahead_fsm_t(this, off_in, buf_out, io_account, cb);
-    }
-    else {
+    } else {
         ls_buf_data_t *data = reinterpret_cast<ls_buf_data_t *>(buf_out);
         data--;
         dbfile->read_async(off_in, static_config->block_size().ser_value(), data, io_account, cb);
@@ -548,7 +542,7 @@ void data_block_manager_t::run_gc() {
                     block_id_t id;
                     // The block is either referenced by an index or by a token (or both)
                     if (gc_state.current_entry->i_array[i]) {
-                        id = (reinterpret_cast<ls_buf_data_t *>(block))->block_id;;
+                        id = (reinterpret_cast<ls_buf_data_t *>(block))->block_id;
                         rassert(id != NULL_BLOCK_ID);
                     } else {
                         id = NULL_BLOCK_ID;
@@ -843,13 +837,25 @@ void data_block_manager_t::enable_gc() {
 }
 
 
-void data_block_manager_t::gc_stat_t::operator++(int) { val++; (*perfmon)++;}
+void data_block_manager_t::gc_stat_t::operator++(int) {
+    val++;
+    (*perfmon)++;
+}
 
-void data_block_manager_t::gc_stat_t::operator+=(int64_t num) { val += num; *perfmon += num; }
+void data_block_manager_t::gc_stat_t::operator+=(int64_t num) {
+    val += num;
+    *perfmon += num;
+}
 
-void data_block_manager_t::gc_stat_t::operator--(int) { val--; perfmon--;}
+void data_block_manager_t::gc_stat_t::operator--(int) {
+    val--;
+    perfmon--;
+}
 
-void data_block_manager_t::gc_stat_t::operator-=(int64_t num) { val -= num; *perfmon -= num; }
+void data_block_manager_t::gc_stat_t::operator-=(int64_t num) {
+    val -= num;
+    *perfmon -= num;
+}
 
 data_block_manager_t::gc_stats_t::gc_stats_t()
     : old_total_blocks(&pm_serializer_old_total_blocks), old_garbage_blocks(&pm_serializer_old_garbage_blocks) { }

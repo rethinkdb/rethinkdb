@@ -67,11 +67,14 @@ class ls_block_token_pointee_t {
 
     ls_block_token_pointee_t(log_serializer_t *serializer, off64_t initial_offset);
 
+    void destroy();
+
     log_serializer_t *serializer_;
     int64_t ref_count_;
 
-public:
-    ~ls_block_token_pointee_t();
+    void do_destroy();
+
+    DISABLE_COPYING(ls_block_token_pointee_t);
 };
 
 inline
@@ -85,7 +88,7 @@ void intrusive_ptr_release(ls_block_token_pointee_t *p) {
     int64_t res = __sync_sub_and_fetch(&p->ref_count_, 1);
     rassert(res >= 0);
     if (res == 0) {
-	delete p;
+        p->destroy();
     }
 }
 
@@ -109,7 +112,7 @@ struct scs_block_info_t {
     } state;
     uint32_t crc;
 
-    scs_block_info_t(uint32_t _crc) : state(state_have_crc), crc(_crc) {}
+    explicit scs_block_info_t(uint32_t _crc) : state(state_have_crc), crc(_crc) {}
 
     // For compatibility with two_level_array_t. We initialize crc to 0 to avoid having
     // uninitialized memory lying around, which annoys valgrind when we try to write
@@ -193,5 +196,44 @@ struct serializer_traits_t<serializer_t> {
 
 // TODO: time_t's size is system-dependent.
 typedef time_t creation_timestamp_t;
+
+
+class serializer_data_ptr_t {
+public:
+    serializer_data_ptr_t() : ptr_(0) { }
+    // TODO: Get rid of this constructor.
+    explicit serializer_data_ptr_t(void *ptr) : ptr_(ptr) { }
+    ~serializer_data_ptr_t() {
+        rassert(!ptr_);
+    }
+
+    void free(serializer_t *ser);
+    void init_malloc(serializer_t *ser);
+    void init_clone(serializer_t *ser, serializer_data_ptr_t& other);
+
+    void swap(serializer_data_ptr_t& other) {
+        void *tmp = ptr_;
+        ptr_ = other.ptr_;
+        other.ptr_ = tmp;
+    }
+
+    bool has() const {
+        return ptr_;
+    }
+
+    void *get() const {
+        rassert(ptr_);
+        return ptr_;
+    }
+
+    // TODO (sam): All uses of this function are disgusting.
+    bool equals(const void *buf) const {
+        return ptr_ == buf;
+    }
+
+private:
+    void *ptr_;
+    DISABLE_COPYING(serializer_data_ptr_t);
+};
 
 #endif  // __SERIALIZER_TYPES_HPP__

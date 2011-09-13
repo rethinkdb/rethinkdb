@@ -1,5 +1,5 @@
 #include "arch/io/disk/aio/submit_sync.hpp"
-#include "logger.hpp"
+
 #include <boost/bind.hpp>
 
 linux_aio_submit_sync_t::linux_aio_submit_sync_t(

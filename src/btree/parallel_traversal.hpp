@@ -38,7 +38,7 @@ public:
     ranged_block_ids_t(block_id_t forced_block_id,
                        const btree_key_t *left_exclusive_or_null,
                        const btree_key_t *right_inclusive_or_null)
-        : node_(NULL),
+        : node_(),
           forced_block_id_(forced_block_id),
           left_exclusive_or_null_(left_exclusive_or_null),
           right_inclusive_or_null_(right_inclusive_or_null) { }

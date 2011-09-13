@@ -166,7 +166,7 @@ mock_transaction_t::mock_transaction_t(mock_cache_t *_cache, access_t _access)
 }
 
 mock_transaction_t::~mock_transaction_t() {
-    on_thread_t thread_switcher(home_thread());
+    assert_thread();
     if (access == rwi_write) nap(5);   // TODO: Nap for a random amount of time.
     cache->transaction_counter.release();
 }
@@ -193,8 +193,8 @@ void mock_cache_t::create(serializer_t *serializer, UNUSED mirrored_cache_static
 // dynamic_config is unused because this is a mock cache and the
 // configuration parameters don't apply.
 mock_cache_t::mock_cache_t( serializer_t *_serializer, UNUSED mirrored_cache_config_t *dynamic_config)
-    : serializer(_serializer), block_size(_serializer->get_block_size())
-{
+    : serializer(_serializer), block_size(_serializer->get_block_size()) {
+
     on_thread_t switcher(serializer->home_thread());
 
     struct : public iocallback_t, public drain_semaphore_t {
@@ -207,7 +207,7 @@ mock_cache_t::mock_cache_t( serializer_t *_serializer, UNUSED mirrored_cache_con
         if (!serializer->get_delete_bit(i)) {
             internal_buf_t *internal_buf = bufs[i] = new internal_buf_t(this, i, serializer->get_recency(i));
             read_cb.acquire();
-            serializer->block_read(serializer->index_read(i), internal_buf, DEFAULT_DISK_ACCOUNT, &read_cb);
+            serializer->block_read(serializer->index_read(i), internal_buf->data, DEFAULT_DISK_ACCOUNT, &read_cb);
         }
     }
 
@@ -215,7 +215,9 @@ mock_cache_t::mock_cache_t( serializer_t *_serializer, UNUSED mirrored_cache_con
     read_cb.drain();
 }
 
-struct mock_cb_t : public iocallback_t, public cond_t { void on_io_complete() { pulse(); } };
+struct mock_cb_t : public iocallback_t, public cond_t {
+    void on_io_complete() { pulse(); }
+};
 
 mock_cache_t::~mock_cache_t() {
     /* Wait for all transactions to complete */
@@ -223,13 +225,13 @@ mock_cache_t::~mock_cache_t() {
 
     {
         on_thread_t thread_switcher(serializer->home_thread());
-        std::vector<serializer_t::write_t> writes;
+        std::vector<serializer_write_t> writes;
         for (block_id_t i = 0; i < bufs.get_size(); i++)
             writes.push_back(
                 bufs[i]
-                ? serializer_t::write_t::make_update(i, bufs[i]->subtree_recency, bufs[i]->data)
-                : serializer_t::write_t::make_delete(i));
-        serializer->do_write(writes, DEFAULT_DISK_ACCOUNT);
+                ? serializer_write_t::make_update(i, bufs[i]->subtree_recency, bufs[i]->data)
+                : serializer_write_t::make_delete(i));
+        do_writes(serializer, writes, DEFAULT_DISK_ACCOUNT);
     }
 
     for (block_id_t i = 0; i < bufs.get_size(); i++) {

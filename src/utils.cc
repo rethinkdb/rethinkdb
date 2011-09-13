@@ -54,14 +54,20 @@ void print_hd(const void *vbuf, size_t offset, size_t ulength) {
         } else {
             fprintf(stderr, "%.8x  ", (unsigned int)offset);
             for (int i = 0; i < 16; i++) {
-                if (i < (int)length) fprintf(stderr, "%.2hhx ", buf[i]);
-                else fprintf(stderr, "   ");
+                if (i < (int)length) {
+                    fprintf(stderr, "%.2hhx ", buf[i]);
+                } else {
+                    fprintf(stderr, "   ");
+                }
             }
             fprintf(stderr, "| ");
             for (int i = 0; i < 16; i++) {
                 if (i < (int)length) {
-                    if (isprint(buf[i])) fputc(buf[i], stderr);
-                    else fputc('.', stderr);
+                    if (isprint(buf[i])) {
+                        fputc(buf[i], stderr);
+                    } else {
+                        fputc('.', stderr);
+                    }
                 } else {
                     fputc(' ', stderr);
                 }
@@ -240,11 +246,17 @@ struct rand_initter_t {
     }
 } rand_initter;
 
-int randint(int n) {
-    rassert(n > 0 && n < RAND_MAX);
-    return rand() % n;
+rng_t::rng_t() {
+    memset(&buffer_, 0, sizeof(buffer_));
+    srand48_r(314159, &buffer_);
 }
 
+int rng_t::randint(int n) {
+    long int x;
+    lrand48_r(&buffer_, &x);
+
+    return x % n;
+}
 
 
 

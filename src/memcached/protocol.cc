@@ -1,8 +1,32 @@
 #include "memcached/protocol.hpp"
 #include "containers/iterators.hpp"
 
+/* Comparison operators for `key_range_t::right_bound_t` are declared in here
+because nothing else ever needs them. */
+
+bool operator==(const key_range_t::right_bound_t &a, const key_range_t::right_bound_t &b) {
+    return a.unbounded == b.unbounded && a.key == b.key;
+}
+bool operator!=(const key_range_t::right_bound_t &a, const key_range_t::right_bound_t &b) {
+    return !(a == b);
+}
+bool operator<(const key_range_t::right_bound_t &a, const key_range_t::right_bound_t &b) {
+    if (a.unbounded) return false;
+    if (b.unbounded) return true;
+    return a.key < b.key;
+}
+bool operator<=(const key_range_t::right_bound_t &a, const key_range_t::right_bound_t &b) {
+    return a == b || a < b;
+}
+bool operator>(const key_range_t::right_bound_t &a, const key_range_t::right_bound_t &b) {
+    return b < a;
+}
+bool operator>=(const key_range_t::right_bound_t &a, const key_range_t::right_bound_t &b) {
+    return b <= a;
+}
+
 key_range_t::key_range_t() :
-    left(""), right(""), right_unbounded(false) { }
+    left(""), right(store_key_t("")) { }
 
 key_range_t::key_range_t(bound_t lm, store_key_t l, bound_t rm, store_key_t r) {
     switch (lm) {
@@ -22,71 +46,69 @@ key_range_t::key_range_t(bound_t lm, store_key_t l, bound_t rm, store_key_t r) {
         case none:
             left = store_key_t("");
             break;
-        default: unreachable();
+        default:
+            unreachable();
     }
+
     switch (rm) {
         case closed:
-            right = r;
-            if (right.increment()) {
-                right_unbounded = false;
+            if (r.increment()) {
+                right = right_bound_t(r);
                 break;
             } else {
                 /* Our right bound is the largest possible key, and we are
                 closed on the right-hand side. The only way to express this is
-                to set `right_unbounded` to `true`. */
-                right_unbounded = true;
-                right = store_key_t("");
+                to set `right` to `right_bound_t()`. */
+                right = right_bound_t();
                 break;
             }
         case open:
-            right = r;
-            right_unbounded = false;
+            right = right_bound_t(r);
             break;
         case none:
-            right_unbounded = true;
-            right = store_key_t("");
+            right = right_bound_t();
             break;
-        default: unreachable();
+        default:
+            unreachable();
     }
 }
 
 bool key_range_t::contains(key_range_t range) const {
     if (range.left < left) return false;
-    if (!right_unbounded) {
-        if (range.right_unbounded) return false;
-        if (range.right > right) return false;
-    }
+    if (range.right > right) return false;
     return true;
 }
 
 bool key_range_t::overlaps(key_range_t range) const {
-    if (!      right_unbounded && range.left >=       right) return false;
-    if (!range.right_unbounded &&       left >= range.right) return false;
-    return true;
+    return (range.left < right && left < range.right);
 }
 
 key_range_t key_range_t::intersection(key_range_t range) const {
     if (!overlaps(range)) return key_range_t();
     key_range_t ixn;
     ixn.left = left < range.left ? range.left : left;
-    if (right_unbounded && range.right_unbounded) {
-        ixn.right_unbounded = true;
-        ixn.right = store_key_t("");
-    } else {
-        ixn.right_unbounded = false;
-        ixn.right =
-                  right_unbounded ? range.right :
-            range.right_unbounded ?       right :
-            right > range.right   ? range.right : right;
-    }
+    ixn.right = right > range.right ? range.right : right;
     return ixn;
 }
 
-bool operator==(key_range_t a, key_range_t b) {
-    if (a.right_unbounded != b.right_unbounded) return false;
-    if (a.left != b.left) return false;
-    if (!a.right_unbounded && a.right != b.right) return false;
+bool key_range_t::covered_by(std::vector<key_range_t> ranges) const {
+    right_bound_t cursor = left;
+    while (cursor < right) {
+        bool moved = false;
+        for (std::vector<key_range_t>::iterator it = ranges.begin(); it != ranges.end(); it++) {
+            if (cursor >= (*it).left && cursor < (*it).right) {
+                cursor = (*it).right;
+                moved = true;
+                break;
+            }
+        }
+        if (!moved) return false;
+    }
     return true;
+}
+
+bool operator==(key_range_t a, key_range_t b) {
+    return a.left == b.left && a.right == b.right;
 }
 
 bool operator!=(key_range_t a, key_range_t b) {
@@ -126,7 +148,7 @@ key_range_t memcached_protocol_t::read_t::get_region() const {
 /* `memcached_protocol_t::read_t::shard()` */
 
 struct read_shard_visitor_t : public boost::static_visitor<std::vector<memcached_protocol_t::read_t> > {
-    read_shard_visitor_t(std::vector<key_range_t> &r) : regions(r) { }
+    explicit read_shard_visitor_t(std::vector<key_range_t> &r) : regions(r) { }
     std::vector<key_range_t> &regions;
     std::vector<memcached_protocol_t::read_t> operator()(get_query_t get) {
         rassert(regions.size() == 1);
@@ -148,11 +170,11 @@ struct read_shard_visitor_t : public boost::static_visitor<std::vector<memcached
             rget_query_t sub_rget;
             sub_rget.left_mode = rget_bound_closed;
             sub_rget.left_key = regions[i].left;
-            if (regions[i].right_unbounded) {
+            if (regions[i].right.unbounded) {
                 sub_rget.right_mode = rget_bound_none;
             } else {
                 sub_rget.right_mode = rget_bound_open;
-                sub_rget.right_key = regions[i].right;
+                sub_rget.right_key = regions[i].right.key;
             }
             subreads.push_back(sub_rget);
         }
@@ -170,7 +192,7 @@ std::vector<memcached_protocol_t::read_t> memcached_protocol_t::read_t::shard(st
 typedef merge_ordered_data_iterator_t<key_with_data_buffer_t, key_with_data_buffer_t::less> merged_results_iterator_t;
 
 struct read_unshard_visitor_t : public boost::static_visitor<memcached_protocol_t::read_response_t> {
-    read_unshard_visitor_t(std::vector<memcached_protocol_t::read_response_t> &b) : bits(b) { }
+    explicit read_unshard_visitor_t(std::vector<memcached_protocol_t::read_response_t> &b) : bits(b) { }
     std::vector<memcached_protocol_t::read_response_t> &bits;
     memcached_protocol_t::read_response_t operator()(UNUSED get_query_t get) {
         rassert(bits.size() == 1);

@@ -17,7 +17,7 @@
     (proxy_id / n_files))).
 */
 
-const block_magic_t multiplexer_config_block_t::expected_magic = { { 'c','f','g','_' } };
+const block_magic_t multiplexer_config_block_t::expected_magic = { { 'c', 'f', 'g', '_' } };
 
 void prep_serializer(
         const std::vector<standard_serializer_t *>& serializers,
