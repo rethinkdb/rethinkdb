@@ -29,10 +29,15 @@ void progress_bar_t::draw_bar(float progress,  int eta) {
     printf("%s: ", activity.c_str());
     printf("[");
     for (int i = 1; i < 49; i++) {
-        if (i % 5 == 0) printf("%d", 2 * i);
-        else if (i == percent_done / 2) printf(">");
-        else if (i < percent_done / 2) printf("=");
-        else printf(" ");
+        if (i % 5 == 0) {
+            printf("%d", 2 * i);
+        } else if (i == percent_done / 2) {
+            printf(">");
+        } else if (i < percent_done / 2) {
+            printf("=");
+        } else {
+            printf(" ");
+        }
     }
     printf("] ");
 
@@ -41,8 +46,11 @@ void progress_bar_t::draw_bar(float progress,  int eta) {
         eta = int(((1.0f / progress) - 1) * ticks_to_secs(get_ticks() - start_time));
     }
 
-    if (eta == -1) printf("ETA: -");
-    else printf("ETA: %01d:%02d:%02d", (eta / 3600), (eta / 60) % 60, eta % 60);
+    if (eta == -1) {
+        printf("ETA: -");
+    } else {
+        printf("ETA: %01d:%02d:%02d", (eta / 3600), (eta / 60) % 60, eta % 60);
+    }
 
     printf("                 "); //make sure we don't leave an characters behind
     fflush(stdout);

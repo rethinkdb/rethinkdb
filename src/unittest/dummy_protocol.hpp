@@ -28,6 +28,7 @@ public:
         bool contains(const region_t &r) const;
         bool overlaps(const region_t &r) const;
         region_t intersection(const region_t &r) const;
+        bool covered_by(std::vector<region_t> regions) const;
 
         RDB_MAKE_ME_SERIALIZABLE_1(keys);
 
@@ -121,8 +122,10 @@ public:
         /* This stuff isn't part of the protocol interface, but it's public for
         the convenience of the people using `dummy_protocol_t`. */
 
-        store_t(region_t r);
+        explicit store_t(region_t r);
         ~store_t();
+
+        rng_t rng;
 
         region_t region;
 

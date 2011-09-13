@@ -515,8 +515,6 @@ void init(value_sizer_t<V> *sizer, leaf_node_t *node) {
     node->live_size = 0;
     node->frontmost = sizer->block_size().value();
     node->tstamp_cutpoint = node->frontmost;
-
-    validate(sizer, node);
 }
 
 template <class V>
@@ -630,7 +628,7 @@ bool is_underfull(value_sizer_t<V> *sizer, const leaf_node_t *node) {
 // Compares indices by looking at values in another array.
 class indirect_index_comparator_t {
 public:
-    indirect_index_comparator_t(const uint16_t *array) : array_(array) { }
+    explicit indirect_index_comparator_t(const uint16_t *array) : array_(array) { }
 
     bool operator()(uint16_t x, uint16_t y) {
         return array_[x] < array_[y];
@@ -642,8 +640,6 @@ private:
 
 template <class V>
 void garbage_collect(value_sizer_t<V> *sizer, leaf_node_t *node, int num_tstamped, int *preserved_index) {
-    validate(sizer, node);
-
     uint16_t indices[node->num_pairs];
 
     for (int i = 0; i < node->num_pairs; ++i) {
@@ -747,9 +743,6 @@ inline void clean_entry(void *p, int sz) {
 // end) from fro to tow.
 template <class V>
 void move_elements(value_sizer_t<V> *sizer, leaf_node_t *fro, int beg, int end, int wpoint, leaf_node_t *tow, int fro_copysize, int fro_mand_offset) {
-    validate(sizer, fro);
-    validate(sizer, tow);
-
     rassert(is_underfull(sizer, tow));
 
     // This assertion is a bit loose.
@@ -798,7 +791,7 @@ void move_elements(value_sizer_t<V> *sizer, leaf_node_t *fro, int beg, int end, 
         if (tow->pair_offsets[i] < tow->tstamp_cutpoint) {
             rassert(num_adjustable_tow_offsets < MANDATORY_TIMESTAMPS);
             adjustable_tow_offsets[num_adjustable_tow_offsets] = i;
-            num_adjustable_tow_offsets ++;
+            ++num_adjustable_tow_offsets;
         }
     }
 
@@ -806,7 +799,7 @@ void move_elements(value_sizer_t<V> *sizer, leaf_node_t *fro, int beg, int end, 
         if (tow->pair_offsets[i] < tow->tstamp_cutpoint) {
             rassert(num_adjustable_tow_offsets < MANDATORY_TIMESTAMPS);
             adjustable_tow_offsets[num_adjustable_tow_offsets] = i;
-            num_adjustable_tow_offsets ++;
+            ++num_adjustable_tow_offsets;
         }
     }
 
@@ -1016,7 +1009,7 @@ void split(value_sizer_t<V> *sizer, leaf_node_t *node, leaf_node_t *rnode, btree
             prev_rcost = rcost;
             rcost += entry_size(sizer, ent) + sizeof(uint16_t) + (offset < tstamp_back_offset ? sizeof(repli_timestamp_t) : 0);
 
-            ++ num_mandatories;
+            ++num_mandatories;
         } else {
             rassert(entry_is_deletion(ent));
 
@@ -1024,7 +1017,7 @@ void split(value_sizer_t<V> *sizer, leaf_node_t *node, leaf_node_t *rnode, btree
                 prev_rcost = rcost;
                 rcost += entry_size(sizer, ent) + sizeof(uint16_t) + sizeof(repli_timestamp_t);
 
-                ++ num_mandatories;
+                ++num_mandatories;
             }
         }
 
@@ -1044,7 +1037,7 @@ void split(value_sizer_t<V> *sizer, leaf_node_t *node, leaf_node_t *rnode, btree
     if ((mandatory - prev_rcost) - prev_rcost < rcost - (mandatory - rcost)) {
         end_rcost = prev_rcost;
         s = i + 2;
-        -- num_mandatories;
+        --num_mandatories;
     } else {
         end_rcost = rcost;
         s = i + 1;
@@ -1141,7 +1134,7 @@ bool level(value_sizer_t<V> *sizer, int nodecmp_node_with_sib, leaf_node_t *node
             node_weight += sz;
             sibling_weight -= sz;
 
-            ++ num_mandatories;
+            ++num_mandatories;
         } else {
             rassert(entry_is_deletion(ent));
 
@@ -1153,7 +1146,7 @@ bool level(value_sizer_t<V> *sizer, int nodecmp_node_with_sib, leaf_node_t *node
                 node_weight += sz;
                 sibling_weight -= sz;
 
-                ++ num_mandatories;
+                ++num_mandatories;
             }
         }
 
@@ -1168,7 +1161,7 @@ bool level(value_sizer_t<V> *sizer, int nodecmp_node_with_sib, leaf_node_t *node
 
     if (prev_diff <= sibling_weight - node_weight) {
         *w -= wstep;
-        -- num_mandatories;
+        --num_mandatories;
         weight_movement = prev_weight_movement;
     }
 
@@ -1239,8 +1232,6 @@ bool find_key(const leaf_node_t *node, const btree_key_t *key, int *index_out) {
 
 template <class V>
 bool lookup(value_sizer_t<V> *sizer, const leaf_node_t *node, const btree_key_t *key, void *value_out) {
-    validate(sizer, node);
-
     int index;
     if (find_key(node, key, &index)) {
         const entry_t *ent = get_entry(node, node->pair_offsets[index]);
@@ -1258,8 +1249,6 @@ bool lookup(value_sizer_t<V> *sizer, const leaf_node_t *node, const btree_key_t 
 // cleaned up the old value, if there is one.
 template <class V>
 void insert(value_sizer_t<V> *sizer, leaf_node_t *node, const btree_key_t *key, const void *value, repli_timestamp_t tstamp) {
-    validate(sizer, node);
-
     rassert(!is_full(sizer, node, key, value));
 
     if (offsetof(leaf_node_t, pair_offsets) + sizeof(uint16_t) * (node->num_pairs + 1) + sizeof(repli_timestamp_t) + key->full_size() + sizer->size(value) > node->frontmost) {
@@ -1315,8 +1304,6 @@ void insert(value_sizer_t<V> *sizer, leaf_node_t *node, const btree_key_t *key, 
 // unnecessary binary search.
 template <class V>
 void remove(value_sizer_t<V> *sizer, leaf_node_t *node, const btree_key_t *key, repli_timestamp_t tstamp) {
-    validate(sizer, node);
-
     int index;
     bool found = find_key(node, key, &index);
 
@@ -1363,8 +1350,6 @@ void remove(value_sizer_t<V> *sizer, leaf_node_t *node, const btree_key_t *key, 
 // Erases the entry for the given key, leaving behind no trace.
 template <class V>
 void erase_presence(value_sizer_t<V> *sizer, leaf_node_t *node, const btree_key_t *key) {
-    validate(sizer, node);
-
     int index;
     bool found = find_key(node, key, &index);
 
@@ -1406,8 +1391,6 @@ protected:
 
 template <class V>
 void dump_entries_since_time(value_sizer_t<V> *sizer, const leaf_node_t *node, repli_timestamp_t minimum_tstamp, entry_reception_callback_t<V> *cb) {
-    validate(sizer, node);
-
     int stop_offset = 0;
 
     {
@@ -1416,7 +1399,7 @@ void dump_entries_since_time(value_sizer_t<V> *sizer, const leaf_node_t *node, r
         entry_iter_t iter = entry_iter_t::make(node);
         while (!iter.done(sizer) && iter.offset < node->tstamp_cutpoint) {
             repli_timestamp_t new_earliest = get_timestamp(node, iter.offset);
-            rassert(! (earliest < new_earliest));
+            rassert(earliest >= new_earliest);
             earliest = new_earliest;
             iter.step(sizer, node);
 
@@ -1486,7 +1469,7 @@ public:
     }
 
 private:
-    live_iter_t(int index) : index_(index) { }
+    explicit live_iter_t(int index) : index_(index) { }
 
     friend live_iter_t iter_for_inclusive_lower_bound(const leaf_node_t *node, const btree_key_t *key);
     friend live_iter_t iter_for_whole_leaf(const leaf_node_t *node);

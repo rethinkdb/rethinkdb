@@ -428,14 +428,22 @@ void run_storage_command(txt_memcached_handler_t *rh,
                 rh->writef("STORED\r\n");
                 break;
             case sr_didnt_add:
-                if (sc == replace_command) rh->writef("NOT_STORED\r\n");
-                else if (sc == cas_command) rh->writef("NOT_FOUND\r\n");
-                else unreachable();
+                if (sc == replace_command) {
+                    rh->writef("NOT_STORED\r\n");
+                } else if (sc == cas_command) {
+                    rh->writef("NOT_FOUND\r\n");
+                } else {
+                    unreachable();
+                }
                 break;
             case sr_didnt_replace:
-                if (sc == add_command) rh->writef("NOT_STORED\r\n");
-                else if (sc == cas_command) rh->writef("EXISTS\r\n");
-                else unreachable();
+                if (sc == add_command) {
+                    rh->writef("NOT_STORED\r\n");
+                } else if (sc == cas_command) {
+                    rh->writef("EXISTS\r\n");
+                } else {
+                    unreachable();
+                }
                 break;
             case sr_too_large:
                 rh->server_error_object_too_large_for_cache();

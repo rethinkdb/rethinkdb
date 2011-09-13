@@ -33,7 +33,7 @@ struct store_key_t {
         assign(sz, buf);
     }
 
-    store_key_t(const std::string& s) {
+    explicit store_key_t(const std::string& s) {
         assign(s.size(), s.data());
     }
 

@@ -361,7 +361,7 @@ void interesting_children_callback_t::receive_interesting_child(int child_index)
     const btree_key_t *right_incl_or_null;
     ids_source->get_block_id_and_bounding_interval(child_index, &block_id, &left_excl_or_null, &right_incl_or_null);
 
-    ++ acquisition_countdown;
+    ++acquisition_countdown;
     do_a_subtree_traversal(state, level, block_id, left_excl_or_null, right_incl_or_null, this);
 }
 
@@ -376,7 +376,7 @@ void interesting_children_callback_t::on_started_acquisition() {
 void interesting_children_callback_t::decr_acquisition_countdown() {
     rassert(coro_t::self());
     rassert(acquisition_countdown > 0);
-    -- acquisition_countdown;
+    --acquisition_countdown;
     if (acquisition_countdown == 0) {
         releaser->release();
         state->level_count(level - 1) -= 1;

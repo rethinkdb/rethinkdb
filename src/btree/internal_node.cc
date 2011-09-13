@@ -21,7 +21,7 @@ private:
 
 class buf_ibuf_t : public ibuf_t {
 public:
-    buf_ibuf_t(buf_t *buf) : buf_(buf) { }
+    explicit buf_ibuf_t(buf_t *buf) : buf_(buf) { }
     void set_data(void *dest, const void *src, size_t n) {
         buf_->set_data(dest, src, n);
     }
@@ -35,7 +35,7 @@ private:
 
 class raw_ibuf_t : public ibuf_t {
 public:
-    raw_ibuf_t(internal_node_t *node) : node_(node) { }
+    explicit raw_ibuf_t(internal_node_t *node) : node_(node) { }
     void set_data(void *dest, const void *src, size_t n) {
         memcpy(dest, src, n);
     }

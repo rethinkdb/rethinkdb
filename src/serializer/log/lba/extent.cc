@@ -72,10 +72,8 @@ extent_t::extent_t(extent_manager_t *_em, direct_file_t *_file, off64_t loc, siz
     : offset(loc), amount_filled(size), em(_em), file(_file), last_block(NULL), current_block(NULL)
 {
     em->reserve_extent(offset);
-#ifndef NDEBUG
-    bool modcmp = amount_filled % DEVICE_BLOCK_SIZE == 0;
-    rassert(modcmp);
-#endif
+
+    rassert(divides(DEVICE_BLOCK_SIZE, amount_filled));
     pm_serializer_lba_extents++;
 }
 
@@ -129,10 +127,7 @@ void extent_t::append(void *buffer, size_t length, file_account_t *io_account) {
 }
 
 void extent_t::sync(sync_callback_t *cb) {
-#ifndef NDEBUG
-    bool modcmp = amount_filled % DEVICE_BLOCK_SIZE == 0;
-    rassert(modcmp);
-#endif
+    rassert(divides(DEVICE_BLOCK_SIZE, amount_filled));
     rassert(!current_block);
     if (last_block) {
         last_block->sync_cbs.push_back(cb);

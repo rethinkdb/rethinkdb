@@ -23,7 +23,7 @@ timer "rings". */
 
 struct signal_timer_t : public signal_t {
 
-    signal_timer_t(int ms);
+    explicit signal_timer_t(int ms);
     ~signal_timer_t();
 
 private:

@@ -10,8 +10,8 @@
 /* ip_address_t represents an IPv4 address. */
 struct ip_address_t {
     ip_address_t() { }
-    ip_address_t(const char *);   // Address with hostname or IP
-    ip_address_t(uint32_t);
+    explicit ip_address_t(const char *);   // Address with hostname or IP
+    explicit ip_address_t(uint32_t);
     static ip_address_t us();
 
     bool operator==(const ip_address_t &x) const;   // Compare addresses

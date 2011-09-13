@@ -23,7 +23,7 @@ server_test_helper_t::~server_test_helper_t() {
 void server_test_helper_t::run() {
     struct starter_t : public thread_message_t {
         server_test_helper_t *server_test;
-        starter_t(server_test_helper_t *_server_test) : server_test(_server_test) { }
+        explicit starter_t(server_test_helper_t *_server_test) : server_test(_server_test) { }
         void on_thread_switch() {
             coro_t::spawn(boost::bind(&server_test_helper_t::setup_server_and_run_tests, server_test));
         }
@@ -33,7 +33,6 @@ void server_test_helper_t::run() {
 }
 
 void server_test_helper_t::setup_server_and_run_tests() {
-
     temp_file_t db_file("/tmp/rdb_unittest.XXXXXX");
 
     {

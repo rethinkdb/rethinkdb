@@ -16,7 +16,7 @@
 /* Simple wrapper around io_context_t that handles creation and destruction */
 
 struct linux_aio_context_t {
-    linux_aio_context_t(int max_concurrent);
+    explicit linux_aio_context_t(int max_concurrent);
     ~linux_aio_context_t();
     io_context_t id;
 };

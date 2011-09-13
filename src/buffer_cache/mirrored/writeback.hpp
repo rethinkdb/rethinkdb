@@ -7,7 +7,7 @@
 #include "concurrency/rwi_lock.hpp"
 #include "concurrency/semaphore.hpp"
 #include "buffer_cache/buf_patch.hpp"
-#include "buffer_cache/mirrored/writeback/flush_time_randomizer.hpp"
+#include "buffer_cache/mirrored/flush_time_randomizer.hpp"
 #include "utils.hpp"
 
 class timer_token_t;

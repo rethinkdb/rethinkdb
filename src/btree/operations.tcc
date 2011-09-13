@@ -21,7 +21,7 @@
 
 inline void insert_root(block_id_t root_id, buf_lock_t& sb_buf) {
     rassert(sb_buf.is_acquired());
-    sb_buf->set_data(const_cast<block_id_t *>(&reinterpret_cast<const btree_superblock_t *>(sb_buf->get_data_read())->root_block), &root_id, sizeof(root_id));
+    sb_buf->set_data(const_cast<block_id_t *>(&(reinterpret_cast<const btree_superblock_t *>(sb_buf->get_data_read())->root_block)), &root_id, sizeof(root_id));
 
     sb_buf.release();
 }

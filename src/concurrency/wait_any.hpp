@@ -10,7 +10,7 @@ pulsed. */
 class wait_any_t : public signal_t {
 public:
     wait_any_t();
-    wait_any_t(signal_t *s1);
+    explicit wait_any_t(signal_t *s1);
     wait_any_t(signal_t *s1, signal_t *s2);
     wait_any_t(signal_t *s1, signal_t *s2, signal_t *s3);
     wait_any_t(signal_t *s1, signal_t *s2, signal_t *s3, signal_t *s4);

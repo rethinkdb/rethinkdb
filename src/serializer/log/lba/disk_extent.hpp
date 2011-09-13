@@ -5,7 +5,7 @@
 #include "containers/intrusive_list.hpp"
 #include "arch/types.hpp"
 #include "serializer/log/lba/extent.hpp"
-#include "serializer/log/extents/extent_manager.hpp"
+#include "serializer/log/extent_manager.hpp"
 #include "serializer/log/lba/disk_format.hpp"
 #include "serializer/log/lba/in_memory_index.hpp"
 

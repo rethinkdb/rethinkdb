@@ -16,8 +16,8 @@
 
 class log_serializer_t;
 
-#include "serializer/log/metablock/metablock_manager.hpp"
-#include "serializer/log/extents/extent_manager.hpp"
+#include "serializer/log/metablock_manager.hpp"
+#include "serializer/log/extent_manager.hpp"
 #include "serializer/log/lba/lba_list.hpp"
 #include "serializer/log/data_block_manager.hpp"
 
@@ -78,7 +78,7 @@ public:
         private_dynamic_config_t private_dynamic_config;
         static_config_t static_config;
 
-        log_serializer_config_t(std::string file_name)
+        explicit log_serializer_config_t(const std::string& file_name)
             : private_dynamic_config(file_name)
         { }
 

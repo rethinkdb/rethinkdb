@@ -8,7 +8,7 @@
 
 #include "arch/types.hpp"
 #include "concurrency/mutex.hpp"
-#include "serializer/log/extents/extent_manager.hpp"
+#include "serializer/log/extent_manager.hpp"
 #include "serializer/log/static_header.hpp"
 
 

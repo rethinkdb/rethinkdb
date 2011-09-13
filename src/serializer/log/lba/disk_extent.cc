@@ -7,12 +7,7 @@ lba_disk_extent_t::lba_disk_extent_t(extent_manager_t *_em, direct_file_t *file,
 {
     // Make sure that the size of the header is a multiple of the size of one entry, so that the
     // header doesn't prevent the entries from aligning with DEVICE_BLOCK_SIZE.
-#ifndef NDEBUG
-    {
-        bool modcmp = offsetof(lba_extent_t, entries[0]) % sizeof(lba_entry_t) == 0;
-        rassert(modcmp);
-    }
-#endif
+    rassert(divides(sizeof(lba_entry_t), offsetof(lba_extent_t, entries[0])));
     rassert(offsetof(lba_extent_t, entries[0]) == sizeof(lba_extent_t::header_t));
 
     lba_extent_t::header_t header;
@@ -29,12 +24,9 @@ lba_disk_extent_t::lba_disk_extent_t(extent_manager_t *_em, direct_file_t *file,
 
 void lba_disk_extent_t::add_entry(lba_entry_t entry, file_account_t *io_account) {
     // Make sure that entries will align with DEVICE_BLOCK_SIZE
-#ifndef NDEBUG
-    {
-        bool modcmp = DEVICE_BLOCK_SIZE % sizeof(lba_entry_t) == 0;
-        rassert(modcmp);
-    }
-#endif
+
+    // TODO(sam): This could just be a unit test.
+    rassert(divides(sizeof(lba_entry_t), DEVICE_BLOCK_SIZE));
 
     // Make sure that there is room
     rassert(data->amount_filled + sizeof(lba_entry_t) <= em->extent_size);

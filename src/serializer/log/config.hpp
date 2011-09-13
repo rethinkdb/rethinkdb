@@ -18,7 +18,7 @@ struct log_serializer_private_dynamic_config_t {
 
     log_serializer_private_dynamic_config_t() { }
 
-    log_serializer_private_dynamic_config_t(std::string _db_filename)
+    explicit log_serializer_private_dynamic_config_t(const std::string& _db_filename)
         : db_filename(_db_filename)
 #ifdef SEMANTIC_SERIALIZER_CHECK
           , semantic_filename(db_filename + "_semantic")
