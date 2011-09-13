@@ -101,7 +101,7 @@ private:
 
 class read_locker_t {
 public:
-    read_locker_t(file_knowledge_t *knog) : knog_(knog) {
+    explicit read_locker_t(file_knowledge_t *knog) : knog_(knog) {
         guarantee_err(!pthread_rwlock_rdlock(&knog->block_info_lock_), "pthread_rwlock_rdlock failed");
     }
     const segmented_vector_t<block_knowledge_t, MAX_BLOCK_ID>& block_info() const {
@@ -116,7 +116,7 @@ private:
 
 class write_locker_t {
 public:
-    write_locker_t(file_knowledge_t *knog) : knog_(knog) {
+    explicit write_locker_t(file_knowledge_t *knog) : knog_(knog) {
         guarantee_err(!pthread_rwlock_wrlock(&knog->block_info_lock_), "pthread_rwlock_wrlock failed");
     }
     segmented_vector_t<block_knowledge_t, MAX_BLOCK_ID>& block_info() {
@@ -287,8 +287,7 @@ public:
                 if ((*patch)->get_block_sequence_id() >= realbuf->block_sequence_id) {
                     if (first_matching_id == NULL_BLOCK_SEQUENCE_ID) {
                         first_matching_id = (*patch)->get_block_sequence_id();
-                    }
-                    else if (first_matching_id != (*patch)->get_block_sequence_id()) {
+                    } else if (first_matching_id != (*patch)->get_block_sequence_id()) {
                         err = patch_block_sequence_id_mismatch;
                         return false;
                     }
@@ -785,10 +784,10 @@ void check_and_load_diff_log(slicecx_t *cx, diff_log_errors *errs) {
                         ++errs->corrupted_patch_blocks;
                         break;
                     }
+
                     if (!patch) {
                         break;
-                    }
-                    else {
+                    } else {
                         current_offset += patch->get_serialized_size();
                         cx->patch_map[patch->get_block_id()].push_back(patch);
                     }
@@ -1202,7 +1201,10 @@ struct all_slices_errors {
         metadata_slice = has_metadata_file ? new slice_errors : NULL;
     }
 
-    ~all_slices_errors() { delete[] slice; if (metadata_slice) delete metadata_slice; }
+    ~all_slices_errors() {
+        delete[] slice;
+        delete metadata_slice;
+    }
 };
 
 struct slice_parameter_t {
@@ -1447,9 +1449,7 @@ bool report_slice_errors(const std::string &slice_name, const slice_errors *errs
 bool report_post_config_block_errors(const all_slices_errors& slices_errs) {
     bool ok = true;
     for (int i = 0; i < slices_errs.n_slices; ++i) {
-        char buf[100] = { 0 };
-        snprintf(buf, 99, "%d", i);
-        ok &= report_slice_errors(std::string("slice ") + buf, &slices_errs.slice[i]);
+        ok &= report_slice_errors(strprintf("slice %d", i), &slices_errs.slice[i]);
     }
 
     // report errors in metadata file
@@ -1467,9 +1467,7 @@ void print_interfile_summary(const multiplexer_config_block_t& c, const mc_confi
 }
 
 std::string extract_slices_flags(const multiplexer_config_block_t& c) {
-    char flags[100];
-    snprintf(flags, 100, " -s %d", c.n_proxies);
-    return std::string(flags);
+    return strprintf(" -s %d", c.n_proxies);
 }
 
 std::string extract_cache_flags(nondirect_file_t *file, const multiplexer_config_block_t& c, const mc_config_block_t& mcc) {
@@ -1483,13 +1481,11 @@ std::string extract_cache_flags(nondirect_file_t *file, const multiplexer_config
     block_size_t block_size = static_cfg->block_size();
 
 
-    char flags[100];
     // Convert total number of log blocks to MB
     long long int diff_log_size = mcc.cache.n_patch_log_blocks * c.n_proxies * block_size.ser_value();
     int diff_log_size_mb = ceil_divide(diff_log_size, MEGABYTE);
 
-    snprintf(flags, 100, " --diff-log-size %d", diff_log_size_mb);
-    return std::string(flags);
+    return strprintf(" --diff-log-size %d", diff_log_size_mb);
 }
 
 bool check_files(const config_t *cfg) {

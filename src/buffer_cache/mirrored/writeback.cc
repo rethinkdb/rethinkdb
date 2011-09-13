@@ -1,4 +1,4 @@
-#include "buffer_cache/mirrored/writeback/writeback.hpp"
+#include "buffer_cache/mirrored/writeback.hpp"
 
 #include <math.h>
 
@@ -260,7 +260,7 @@ class writeback_t::buf_writer_t :
 
 public:
     struct launch_callback_t :
-        public serializer_t::write_launched_callback_t,
+        public serializer_write_launched_callback_t,
         public thread_message_t,
         public home_thread_mixin_t {
         writeback_t *parent;
@@ -331,7 +331,7 @@ struct writeback_t::flush_state_t {
     bool block_sequence_ids_have_been_updated;
     std::vector<buf_writer_t *> buf_writers;
     // Writes to submit to the serializer
-    std::vector<serializer_t::write_t> serializer_writes;
+    std::vector<serializer_write_t> serializer_writes;
     flush_state_t() : block_sequence_ids_have_been_updated(false) {}
 };
 
@@ -410,13 +410,13 @@ void writeback_t::do_concurrent_flush() {
     // Now that preparations are complete, send the writes to the serializer
     if (!state.serializer_writes.empty()) {
         on_thread_t switcher(cache->serializer->home_thread());
-        cache->serializer->do_write(state.serializer_writes, cache->writes_io_account.get());
+        do_writes(cache->serializer, state.serializer_writes, cache->writes_io_account.get());
     }
 
     // Once transaction has completed, perform cleanup.
     for (size_t i = 0; i < state.serializer_writes.size(); ++i) {
-        const serializer_t::write_t &write = state.serializer_writes[i];
-        const serializer_t::write_t::delete_t *del = boost::get<serializer_t::write_t::delete_t>(&write.action);
+        const serializer_write_t &write = state.serializer_writes[i];
+        const serializer_write_t::delete_t *del = boost::get<serializer_write_t::delete_t>(&write.action);
         if (!del) break;
 
         // All deleted blocks are now reflected in the serializer's LBA and will not get offered as
@@ -566,7 +566,7 @@ void writeback_t::flush_acquire_bufs(transaction_t *transaction, flush_state_t &
 
     // Write deleted block_ids.
     for (size_t i = 0; i < deleted_blocks.size(); i++) {
-        state.serializer_writes.push_back(serializer_t::write_t::make_delete(deleted_blocks[i]));
+        state.serializer_writes.push_back(serializer_write_t::make_delete(deleted_blocks[i]));
     }
     deleted_blocks.clear();
 
@@ -603,14 +603,14 @@ void writeback_t::flush_acquire_bufs(transaction_t *transaction, flush_state_t &
             buf_writer_t *buf_writer = new buf_writer_t(this, buf);
             state.buf_writers.push_back(buf_writer);
             state.serializer_writes.push_back(
-                serializer_t::write_t::make_update(inner_buf->block_id,
-                                                   inner_buf->subtree_recency,
-                                                   buf->get_data_read(),
-                                                   buf_writer,
-                                                   &buf_writer->launch_cb));
+                serializer_write_t::make_update(inner_buf->block_id,
+                                                inner_buf->subtree_recency,
+                                                buf->get_data_read(),
+                                                buf_writer,
+                                                &buf_writer->launch_cb));
         } else if (recency_dirty) {
             // No need to acquire the block, since we're only writing its recency & don't need its contents.
-            state.serializer_writes.push_back(serializer_t::write_t::make_touch(inner_buf->block_id, inner_buf->subtree_recency));
+            state.serializer_writes.push_back(serializer_write_t::make_touch(inner_buf->block_id, inner_buf->subtree_recency));
         }
 
     }

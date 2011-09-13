@@ -17,7 +17,7 @@ private:
         if (value) {
             bits[place / 64] |= (uint64_t(1) << (place % 64));
         } else {
-            bits[place / 64] &= ~ (uint64_t(1) << (place % 64));
+            bits[place / 64] &= ~(uint64_t(1) << (place % 64));
         }
     }
 

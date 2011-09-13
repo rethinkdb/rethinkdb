@@ -1,4 +1,4 @@
-#include "serializer/log/metablock/metablock_manager.hpp"
+#include "serializer/log/metablock_manager.hpp"
 #include "serializer/log/log_serializer.hpp"
 
 void initialize_metablock_offsets(off64_t extent_size, std::vector<off64_t> *offsets) {
@@ -18,6 +18,6 @@ void initialize_metablock_offsets(off64_t extent_size, std::vector<off64_t> *off
     }
 }
 
-#include "serializer/log/metablock/metablock_manager.tcc"
+#include "serializer/log/metablock_manager.tcc"
 
 template class metablock_manager_t<log_serializer_metablock_t>;

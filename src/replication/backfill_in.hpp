@@ -14,7 +14,7 @@ first one is empty, it tries the next one. */
 template <class value_t>
 class selective_passive_producer_t : public passive_producer_t<value_t> {
 public:
-    selective_passive_producer_t(passive_producer_t<value_t> *selectee) :
+    explicit selective_passive_producer_t(passive_producer_t<value_t> *selectee) :
         passive_producer_t<value_t>(&available_control),
         the_producer(NULL) {
         set_source(selectee);
@@ -25,7 +25,7 @@ public:
 
     struct recompute_caller_t {
 	selective_passive_producer_t *parent_;
-	recompute_caller_t(selective_passive_producer_t *parent) : parent_(parent) { }
+	explicit recompute_caller_t(selective_passive_producer_t *parent) : parent_(parent) { }
 	void operator()() { parent_->recompute(); }
     };
 
@@ -68,7 +68,7 @@ backfill_and_realtime_stream() and when they are stored by backfill_storer_t. */
 
 class backfill_storer_t : public backfill_and_realtime_streaming_callback_t {
 public:
-    backfill_storer_t(btree_key_value_store_t *underlying);
+    explicit backfill_storer_t(btree_key_value_store_t *underlying);
     ~backfill_storer_t();
 
     void backfill_delete_range(int hash_value, int hashmod, bool left_key_supplied, const store_key_t& left_key_exclusive, bool right_key_supplied, const store_key_t& right_key_inclusive, order_token_t token);

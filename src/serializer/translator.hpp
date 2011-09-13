@@ -15,7 +15,7 @@ public:
 
     /* Blocking call. Must give the same set of underlying serializers you gave to create(). (It
     will abort if this is not the case.) */
-    serializer_multiplexer_t(const std::vector<standard_serializer_t *>& underlying);
+    explicit serializer_multiplexer_t(const std::vector<standard_serializer_t *>& underlying);
 
     /* proxies.size() is the same as 'n_proxies' you passed to create(). Please do not mutate
     'proxies'. */

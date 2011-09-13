@@ -26,7 +26,7 @@ struct gate_t {
 
     /* Sentry that represents using the resource that the gate protects */
     struct entry_t : public home_thread_mixin_t {
-        entry_t(gate_t *g);
+        explicit entry_t(gate_t *g);
         ~entry_t();
     private:
         DISABLE_COPYING(entry_t);
@@ -35,7 +35,7 @@ struct gate_t {
 
     /* Sentry that opens and then closes gate */
     struct open_t : public home_thread_mixin_t {
-        open_t(gate_t *g);
+        explicit open_t(gate_t *g);
         ~open_t();
     private:
         DISABLE_COPYING(open_t);
@@ -67,7 +67,7 @@ struct threadsafe_gate_t {
 
     /* Sentry that represents using the resource that the gate protects */
     struct entry_t {
-        entry_t(threadsafe_gate_t *g);
+        explicit entry_t(threadsafe_gate_t *g);
     private:
         gate_t::entry_t subentry;
 
@@ -76,7 +76,7 @@ struct threadsafe_gate_t {
 
     /* Sentry that opens and then closes gate */
     struct open_t {
-        open_t(threadsafe_gate_t *g);
+        explicit open_t(threadsafe_gate_t *g);
         ~open_t();
     private:
         void do_open(int thread);

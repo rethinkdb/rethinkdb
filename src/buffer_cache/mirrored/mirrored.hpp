@@ -23,9 +23,9 @@
 #include "buffer_cache/mirrored/patch_memory_storage.hpp"
 #include "buffer_cache/mirrored/patch_disk_storage.hpp"
 
-#include "buffer_cache/mirrored/writeback/writeback.hpp"
+#include "buffer_cache/mirrored/writeback.hpp"
 
-#include "buffer_cache/mirrored/page_repl/page_repl_random.hpp"
+#include "buffer_cache/mirrored/page_repl_random.hpp"
 typedef page_repl_random_t page_repl_t;
 
 #include "buffer_cache/mirrored/free_list.hpp"
@@ -96,7 +96,7 @@ class mc_inner_buf_t : public evictable_t,
     void update_data_token(const void *data, const boost::intrusive_ptr<standard_block_token_t>& token);
 
     // If required, make a snapshot of the data before being overwritten with new_version
-    bool snapshot_if_needed(version_id_t new_version);
+    bool snapshot_if_needed(version_id_t new_version, bool leave_clone);
     // releases a buffer snapshot used by a transaction snapshot
     void release_snapshot(buf_snapshot_t *snapshot);
     // acquires the snapshot data buffer, loading from disk if necessary; must be matched by a call
@@ -115,7 +115,7 @@ private:
     repli_timestamp_t subtree_recency;
 
     // The data for the block.
-    void *data;
+    serializer_data_ptr_t data;
     // The snapshot version id of the block.
     version_id_t version_id;
     /* As long as data has not been changed since the last serializer write, data_token contains a token to the on-serializer block */
@@ -308,6 +308,8 @@ private:
 
     file_account_t *get_io_account() const;
 
+    // Note: Make sure that no automatic destructors do anything
+    // interesting, they could get run on the WRONG THREAD!
     cache_t *cache;
 
     ticks_t start_time;
@@ -316,6 +318,8 @@ private:
     repli_timestamp_t recency_timestamp;
     mc_inner_buf_t::version_id_t snapshot_version;
     bool snapshotted;
+
+    // This is manually reset() in the destructor.
     boost::shared_ptr<cache_account_t> cache_account_;
 
     typedef std::vector<std::pair<mc_inner_buf_t*, mc_inner_buf_t::buf_snapshot_t*> > owned_snapshots_list_t;
@@ -330,9 +334,8 @@ class mc_cache_account_t {
     friend class mc_cache_t;
     friend class mc_transaction_t;
 
-    mc_cache_account_t(boost::shared_ptr<file_account_t> io_account) :
-            io_account_(io_account) {
-    }
+    explicit mc_cache_account_t(boost::shared_ptr<file_account_t> io_account)
+        : io_account_(io_account) { }
 
     boost::shared_ptr<file_account_t> io_account_;
 
@@ -381,15 +384,16 @@ public:
     mc_inner_buf_t::version_id_t get_max_snapshot_version(mc_inner_buf_t::version_id_t default_version) const {
         return no_active_snapshots() ? default_version : (*active_snapshots.rbegin()).first;
     }
-    bool no_active_snapshots() const { return active_snapshots.empty(); }
-    bool no_active_snapshots(mc_inner_buf_t::version_id_t from_version, mc_inner_buf_t::version_id_t to_version) const {
-        return active_snapshots.lower_bound(from_version) == active_snapshots.upper_bound(to_version);
-    }
 
     void register_snapshot(mc_transaction_t *txn);
     void unregister_snapshot(mc_transaction_t *txn);
 
 private:
+    bool no_active_snapshots() const { return active_snapshots.empty(); }
+    bool no_active_snapshots(mc_inner_buf_t::version_id_t from_version, mc_inner_buf_t::version_id_t to_version) const {
+        return active_snapshots.lower_bound(from_version) == active_snapshots.upper_bound(to_version);
+    }
+
     size_t register_buf_snapshot(mc_inner_buf_t *inner_buf, mc_inner_buf_t::buf_snapshot_t *snap, mc_inner_buf_t::version_id_t snapshotted_version, mc_inner_buf_t::version_id_t new_version);
     size_t calculate_snapshots_affected(mc_inner_buf_t::version_id_t snapshotted_version, mc_inner_buf_t::version_id_t new_version);
 

@@ -10,7 +10,7 @@ void count_down_latch_t::count_down() {
 
 void count_down_latch_t::do_count_down() {
     rassert(count > 0);
-    -- count;
+    --count;
     if (count == 0) {
         pulse();
     }

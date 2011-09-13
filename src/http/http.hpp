@@ -146,7 +146,7 @@ class http_server_t {
 private:
     boost::scoped_ptr<tcp_listener_t> tcp_listener;
 public:
-    http_server_t(int);
+    explicit http_server_t(int);
     virtual ~http_server_t();
 private:
     virtual http_res_t handle(const http_req_t &) = 0;
@@ -156,7 +156,7 @@ protected:
 
 class test_server_t : public http_server_t {
 public:
-    test_server_t(int);
+    explicit test_server_t(int);
 private:
     http_res_t handle(const http_req_t &);
 };

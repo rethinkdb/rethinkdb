@@ -22,7 +22,7 @@ public:
     static void create(cache_t *cache);
 
     // Blocks
-    btree_slice_t(cache_t *cache);
+    explicit btree_slice_t(cache_t *cache);
 
     // Blocks
     ~btree_slice_t();

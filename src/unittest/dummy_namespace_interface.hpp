@@ -18,7 +18,7 @@ template<class protocol_t>
 struct dummy_timestamper_t {
 
 public:
-    dummy_timestamper_t(typename protocol_t::store_t *_next)
+    explicit dummy_timestamper_t(typename protocol_t::store_t *_next)
         : next(_next), timestamp(transition_timestamp_t::first()) { }
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t read, order_token_t tok) {
@@ -49,7 +49,7 @@ public:
         typename protocol_t::region_t region;
     };
 
-    dummy_sharder_t(std::vector<timestamper_and_region_t> _timestampers)
+    explicit dummy_sharder_t(std::vector<timestamper_and_region_t> _timestampers)
         : timestampers(_timestampers) { }
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t read, order_token_t tok) {

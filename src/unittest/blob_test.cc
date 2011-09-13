@@ -15,7 +15,7 @@ public:
         return ret;
     }
 
-    blob_tracker_t(size_t maxreflen)
+    explicit blob_tracker_t(size_t maxreflen)
         : buf_(alloc_emptybuf(maxreflen)), blob_(buf_, maxreflen) { }
 
     ~blob_tracker_t() {

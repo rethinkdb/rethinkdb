@@ -18,7 +18,7 @@ extern const uint32_t MAX_MESSAGE_SIZE;
 // exceptions and replication protocol exceptions.
 class protocol_exc_t : public std::exception {
 public:
-    protocol_exc_t(const std::string& msg) : msg_(msg) { }
+    explicit protocol_exc_t(const std::string& msg) : msg_(msg) { }
     ~protocol_exc_t() throw () { }
     const char *what() const throw() { return msg_.c_str(); }
 private:

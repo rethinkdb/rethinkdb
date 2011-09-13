@@ -71,25 +71,37 @@ void semantic_checking_serializer_t<inner_serializer_t>::check_existing(const ch
 template<class inner_serializer_t>
 void *semantic_checking_serializer_t<inner_serializer_t>::malloc() {
     void *p = inner_serializer.malloc();
-    rassert(malloced_bufs.find(p) == malloced_bufs.end());
-    malloced_bufs.insert(p);
+
+    // This can be called from any thread, so we can't do these checks.
+    // TODO: Enable these checks.
+
+    // rassert(malloced_bufs.find(p) == malloced_bufs.end());
+    // malloced_bufs.insert(p);
     return p;
 }
 
 template<class inner_serializer_t>
 void *semantic_checking_serializer_t<inner_serializer_t>::clone(void *data) {
     void *p = inner_serializer.clone(data);
-    rassert(malloced_bufs.find(p) == malloced_bufs.end());
-    malloced_bufs.insert(p);
+
+    // This can be called from any thread, so we can't do these checks.
+
+    // rassert(malloced_bufs.find(p) == malloced_bufs.end());
+    // malloced_bufs.insert(p);
     return p;
 }
 
 template<class inner_serializer_t>
 void semantic_checking_serializer_t<inner_serializer_t>::free(void *ptr) {
-    std::set<const void *>::iterator it = malloced_bufs.find(ptr);
-    rassert(it != malloced_bufs.end());
-    malloced_bufs.erase(it);
     inner_serializer.free(ptr);
+
+    // This can be called from any thread, so we can't do these checks.
+
+    // std::set<const void *>::iterator it = malloced_bufs.find(ptr);
+    // rassert(it != malloced_bufs.end());
+    // malloced_bufs.erase(it);
+    // inner_serializer.free(ptr);
+
 }
 
 template<class inner_serializer_t>

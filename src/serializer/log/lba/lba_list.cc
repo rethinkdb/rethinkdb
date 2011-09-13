@@ -3,7 +3,6 @@
 #include "utils.hpp"
 #include "serializer/log/lba/disk_format.hpp"
 #include "arch/arch.hpp"
-#include "logger.hpp"
 #include "perfmon.hpp"
 
 perfmon_counter_t pm_serializer_lba_gcs("serializer_lba_gcs");

@@ -287,7 +287,7 @@ private:
 
     template<typename store_interface_t> class retrieve_store_interface_t : public boost::static_visitor<store_interface_t *> {
     public:
-        // TODO! Make sure the specialized invalid_variant_t methods has precedence over the templated more general one
+        // TODO: Make sure the specialized invalid_variant_t methods has precedence over the templated more general one
         // (otherwise we might not catch some errors at the right place (i.e. accessing an uninitialized store), and just
         // blindly apply dynamic_cast to an int or whatever invalid_variant_t is.)
         store_interface_t *operator()(UNUSED boost::shared_ptr<invalid_variant_t> store) const {

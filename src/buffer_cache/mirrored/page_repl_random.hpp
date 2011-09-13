@@ -3,7 +3,6 @@
 #define __PAGE_REPL_RANDOM_HPP__
 
 #include "config/args.hpp"
-#include "logger.hpp"
 #include "containers/two_level_array.hpp"
 
 // TODO: We should use mlock (or mlockall or related) to make sure the

@@ -58,7 +58,7 @@ private:
 
     class failover_reset_control_t : public control_t {
     public:
-        failover_reset_control_t(slave_t *_slave)
+        explicit failover_reset_control_t(slave_t *_slave)
             : control_t("failover-reset", "Reset the failover module to the state at startup. This will force a reconnection to the master."), slave(_slave) { }
 
         std::string call(int argc, UNUSED char **argv) {
@@ -78,7 +78,7 @@ private:
 
     class new_master_control_t : public control_t {
     public:
-        new_master_control_t(slave_t *_slave)
+        explicit new_master_control_t(slave_t *_slave)
             : control_t("new-master", "Set a new master for replication. The slave will disconnect and immediately reconnect to the new server. Syntax: \"rethinkdb new-master host port\""),
 	      slave(_slave) { }
 

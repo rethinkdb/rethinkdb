@@ -24,7 +24,7 @@ struct txn_callback_t {
 
 void transact(serializer_t *ser, log_t *log, unsigned inserts, unsigned updates, txn_callback_t *cb) {
     /* If there aren't enough blocks to update, then convert the updates into inserts */
-    std::vector<serializer_t::write_t> writes;
+    std::vector<serializer_write_t> writes;
 
     if (updates > ser->max_block_id()) {
         inserts += updates;
@@ -47,17 +47,17 @@ void transact(serializer_t *ser, log_t *log, unsigned inserts, unsigned updates,
     // We just need some value for this.
     repli_timestamp_t tstamp = repli_timestamp_t::distant_past;
     for (unsigned i = 0; i < updates; i++) {
-        writes.push_back(serializer_t::write_t::make_update(begin + i, tstamp, dummy_buf));
+        writes.push_back(serializer_write_t::make_update(begin + i, tstamp, dummy_buf));
     }
 
     /* Generate new IDs to insert by simply taking (highest ID + 1) */
     for (unsigned i = 0; i < inserts; i++) {
-        writes.push_back(serializer_t::write_t::make_update(ser->max_block_id() + i, tstamp, dummy_buf));
+        writes.push_back(serializer_write_t::make_update(ser->max_block_id() + i, tstamp, dummy_buf));
     }
 
     ticks_t start_time = get_ticks();
 
-    ser->do_write(writes, DEFAULT_DISK_ACCOUNT);
+    do_writes(ser, writes, DEFAULT_DISK_ACCOUNT);
 
     ticks_t end_time = get_ticks();
     if (log) {
