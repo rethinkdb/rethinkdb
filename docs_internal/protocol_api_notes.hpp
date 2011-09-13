@@ -54,6 +54,10 @@ public:
         and `x`. */
         region_t intersection(region_t x) const THROWS_NOTHING;
 
+        /* Returns `true` if the union of `regions` is a superset of this
+        `region_t`. */
+        bool covered_by(std::vector<region_t> regions) const THROWS_NOTHING;
+
         /* Other requirements: `region_t` must be serializable. The "==" and
         "!=" operators must work on `region_t`. `region_t` must act like a data
         type. */
