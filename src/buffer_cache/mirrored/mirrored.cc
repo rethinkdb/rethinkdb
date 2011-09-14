@@ -1266,8 +1266,7 @@ bool mc_cache_t::offer_read_ahead_buf(block_id_t block_id, void *buf, repli_time
     return true;
 }
 
-// TODO (rntz) why does this return a bool? no-one will ever see it!
-bool mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp) {
+void mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp) {
     assert_thread();
 
     // Check that the offered block is allowed to be accepted at the current time
@@ -1277,8 +1276,6 @@ bool mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf
     } else {
         serializer->free(buf);
     }
-
-    return true;
 }
 
 bool mc_cache_t::can_read_ahead_block_be_accepted(block_id_t block_id) {
