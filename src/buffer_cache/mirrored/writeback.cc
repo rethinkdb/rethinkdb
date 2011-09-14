@@ -369,17 +369,12 @@ void writeback_t::do_concurrent_flush() {
     /* Start a read transaction so we can request bufs. */
     transaction_t *transaction;
     {
-        // There _must_ not be waiting in the begin_transaction call
-        // because then we could have a race condition with
-        // shutting_down.
+        // This was originally for some hack where we change the value
+        // of shutting_down, but I don't care to remove it.
         ASSERT_NO_CORO_WAITING;
 
-        bool saved_shutting_down = cache->shutting_down;
-        cache->shutting_down = false;   // Backdoor around "no new transactions" assert.
-
         // It's a read transaction, that's why we use repli_timestamp_t::invalid.
-        transaction = new mc_transaction_t(cache, rwi_read);
-        cache->shutting_down = saved_shutting_down;
+        transaction = new mc_transaction_t(cache, rwi_read, true);
     }
 
     flush_state_t state;
