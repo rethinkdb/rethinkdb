@@ -293,9 +293,10 @@ bool translator_serializer_t::offer_read_ahead_buf(block_id_t block_id, void *bu
 
     if (read_ahead_callback) {
         const block_id_t inner_block_id = untranslate_block_id_to_id(block_id, mod_count, mod_id, cfgid);
-        if (!read_ahead_callback->offer_read_ahead_buf(inner_block_id, buf, recency_timestamp))
+        if (!read_ahead_callback->offer_read_ahead_buf(inner_block_id, buf, recency_timestamp)) {
             // They aren't going to free the buffer, so we do.
             inner->free(buf);
+        }
     } else {
         // Discard the buffer
         inner->free(buf);
