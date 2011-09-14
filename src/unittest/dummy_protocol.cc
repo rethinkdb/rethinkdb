@@ -33,6 +33,15 @@ dummy_protocol_t::region_t dummy_protocol_t::region_t::intersection(const region
     return i;
 }
 
+bool dummy_protocol_t::region_t::covered_by(std::vector<region_t> regions) const {
+    for (std::vector<region_t>::iterator it = regions.begin(); it != regions.end(); it++) {
+        for (std::set<std::string>::iterator it2 = (*it).keys.begin(); it2 != (*it).keys.end(); it2++) {
+            if (keys.count(*it2) == 0) return false;
+        }
+    }
+    return true;
+}
+
 dummy_protocol_t::region_t dummy_protocol_t::read_t::get_region() const {
     return keys;
 }

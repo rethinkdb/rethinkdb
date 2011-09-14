@@ -29,13 +29,19 @@ public:
     bool contains(key_range_t range) const;
     bool overlaps(key_range_t range) const;
     key_range_t intersection(key_range_t range) const;
+    bool covered_by(std::vector<key_range_t> ranges) const;
 
-    /* If `!right_unbounded`, the range contains all keys which are greater than
-    or equal to `left` and less than `right`. If `right_unbounded`, it contains
-    all keys greater than or equal to `left`. `right_unbounded` is the only way
-    to represent ranges that contain the largest possible key. */
-    store_key_t left, right;
-    bool right_unbounded;
+    /* If `right.unbounded`, then the range contains all keys greater than or
+    equal to `left`. If `right.bounded`, then the range contains all keys
+    greater than or equal to `left` and less than `right.key`. */
+    struct right_bound_t {
+        right_bound_t() : unbounded(true) { }
+        right_bound_t(store_key_t k) : unbounded(false), key(k) { }
+        bool unbounded;
+        store_key_t key;
+    };
+    store_key_t left;
+    right_bound_t right;
 };
 
 bool operator==(key_range_t, key_range_t);

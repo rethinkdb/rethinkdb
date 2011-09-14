@@ -61,6 +61,7 @@ public:
                 destinations.push_back(i);
             }
         }
+        rassert(read.get_region().covered_by(regions));
         std::vector<typename protocol_t::read_t> subreads = read.shard(regions);
         rassert(subreads.size() == regions.size());
         std::vector<typename protocol_t::read_response_t> responses;
@@ -77,10 +78,11 @@ public:
         std::vector<int> destinations;
         for (int i = 0; i < (int)timestampers.size(); i++) {
             if (timestampers[i].region.overlaps(write.get_region())) {
-                regions.push_back(timestampers[i].region);
+                regions.push_back(timestampers[i].region.intersection(write.get_region()));
                 destinations.push_back(i);
             }
         }
+        rassert(write.get_region().covered_by(regions));
         std::vector<typename protocol_t::write_t> subwrites = write.shard(regions);
         rassert(subwrites.size() == regions.size());
         std::vector<typename protocol_t::write_response_t> responses;
@@ -108,6 +110,12 @@ public:
         std::vector<typename dummy_sharder_t<protocol_t>::timestamper_and_region_t> shards_of_this_db;
 
         for (int i = 0; i < (int)shards.size(); i++) {
+
+            for (int j = 0; j < (int)shards.size(); j++) {
+                if (i > j) {
+                    rassert(!shards[i].overlaps(shards[j]));
+                }
+            }
 
             dummy_timestamper_t<protocol_t> *timestamper =
                 new dummy_timestamper_t<protocol_t>(stores[i]);

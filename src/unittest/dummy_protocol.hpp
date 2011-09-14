@@ -26,6 +26,7 @@ public:
         bool contains(const region_t &r) const;
         bool overlaps(const region_t &r) const;
         region_t intersection(const region_t &r) const;
+        bool covered_by(std::vector<region_t> regions) const;
 
         std::set<std::string> keys;
     };
