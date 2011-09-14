@@ -145,6 +145,15 @@ public:
         return &either_failed;
     }
 
+    /* Returns a string that describes why `get_failed_signal()` is pulsed. */
+    std::string get_failed_reason() {
+        if (resource_went_offline.is_pulsed()) {
+            return "The resource was destroyed.";
+        } else {
+            return "We lost contact with the machine hosting the resource.";
+        }
+    }
+
     /* Returns the resource contact info if the resource is accessible. Throws
     `resource_lost_exc_t` if it's not. */
     business_card_t access() {

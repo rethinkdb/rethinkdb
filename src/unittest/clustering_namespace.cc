@@ -95,7 +95,7 @@ static void run_read_write_test() {
     EXPECT_TRUE(mirror_raw_pointer != NULL);
     boost::scoped_ptr<mirror_t<dummy_protocol_t> > mirror(mirror_raw_pointer);
 
-    EXPECT_FALSE(mirror->get_outdated_signal());
+    EXPECT_FALSE(mirror->get_outdated_signal()->is_pulsed());
 
     /* Set up a namespace dispatcher */
 

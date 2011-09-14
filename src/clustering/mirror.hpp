@@ -46,8 +46,9 @@ public:
         typename mirror_data_t::upgrade_mailbox_t::address_t upgrade_mailbox;
         try {
             start_receiving_writes(dispatcher, interruptor, &initial_timestamp, &upgrade_mailbox);
-        } catch (resource_lost_exc_t) {
+        } catch (resource_lost_exc_t e) {
             rassert(!registrant || registrant->get_failed_signal()->is_pulsed());
+            registrant_failed_reason = e.what();
         }
 
         /* Get a backfill. This can throw `resource_lost_exc_t` or
@@ -153,6 +154,15 @@ public:
             return registrant->get_failed_signal();
         } else {
             return &always_pulsed_signal;
+        }
+    }
+
+    std::string get_outdated_reason() {
+        rassert(get_outdated_signal()->is_pulsed());
+        if (registrant) {
+            return registrant->get_failed_reason();
+        } else {
+            return registrant_failed_reason;
         }
     }
 
@@ -316,6 +326,7 @@ private:
     typename mirror_data_t::read_mailbox_t read_mailbox;
 
     boost::scoped_ptr<registrant_t<mirror_data_t> > registrant;
+    std::string registrant_failed_reason;
 
     /* If we never successfully registered, then `get_outdated_signal()` returns
     `&always_pulsed_signal`. */

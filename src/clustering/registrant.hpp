@@ -34,15 +34,20 @@ public:
             initial_value);
     }
 
-    signal_t *get_failed_signal() THROWS_NOTHING {
-        return registrar.get_failed_signal();
-    }
-
     /* The destructor deregisters us and returns immediately. It never throws
     any exceptions. */
     ~registrant_t() THROWS_NOTHING {
 
         /* Most of the work is done by the destructor for `deregisterer` */
+    }
+
+    signal_t *get_failed_signal() THROWS_NOTHING {
+        return registrar.get_failed_signal();
+    }
+
+    std::string get_failed_reason() THROWS_NOTHING {
+        rassert(get_failed_signal()->is_pulsed());
+        return registrar.get_failed_reason();
     }
 
 private:
