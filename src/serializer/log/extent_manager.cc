@@ -123,7 +123,7 @@ public:
 };
 
 extent_manager_t::extent_manager_t(direct_file_t *file, log_serializer_on_disk_static_config_t *_static_config, log_serializer_dynamic_config_t *_dynamic_config)
-    : static_config(_static_config), dynamic_config(_dynamic_config), extent_size(_static_config->extent_size()), dbfile(file), state(state_reserving_extents), n_extents_in_use(0)
+    : static_config(_static_config), dynamic_config(_dynamic_config), extent_size(_static_config->extent_size()), dbfile(file), state(state_reserving_extents)
 {
     rassert(divides(DEVICE_BLOCK_SIZE, extent_size));
 
@@ -183,14 +183,13 @@ void extent_manager_t::reserve_extent(off64_t extent) {
     print_backtrace(stderr, false);
 #endif
     rassert(state == state_reserving_extents);
-    n_extents_in_use++;
     pm_extents_in_use++;
     pm_bytes_in_use += extent_size;
     zone_for_offset(extent)->reserve_extent(extent);
 }
 
-void extent_manager_t::prepare_initial_metablock(metablock_mixin_t *mb, int extents_in_use) {
-    mb->debug_extents_in_use = extents_in_use;
+void extent_manager_t::prepare_initial_metablock(metablock_mixin_t *mb) {
+    mb->padding = 0;
 }
 
 void extent_manager_t::start_existing(UNUSED metablock_mixin_t *last_metablock) {
@@ -211,8 +210,6 @@ void extent_manager_t::start_existing(UNUSED metablock_mixin_t *last_metablock) 
     }
     fprintf(stderr, "\n");
 #endif
-
-    rassert(n_extents_in_use == last_metablock->debug_extents_in_use);
 }
 
 void extent_manager_t::prepare_metablock(metablock_mixin_t *metablock) {
@@ -226,7 +223,7 @@ void extent_manager_t::prepare_metablock(metablock_mixin_t *metablock) {
     fprintf(stderr, "\n");
 #endif
     rassert(state == state_running);
-    metablock->debug_extents_in_use = n_extents_in_use;
+    metablock->padding = 0;
 }
 
 void extent_manager_t::shutdown() {
@@ -254,7 +251,6 @@ extent_manager_t::transaction_t *extent_manager_t::begin_transaction() {
 off64_t extent_manager_t::gen_extent() {
     rassert(state == state_running);
     rassert(current_transaction);
-    n_extents_in_use++;
     pm_extents_in_use++;
     pm_bytes_in_use += extent_size;
     
@@ -290,7 +286,6 @@ void extent_manager_t::release_extent(off64_t extent) {
 #endif
     rassert(state == state_running);
     rassert(current_transaction);
-    n_extents_in_use--;
     pm_extents_in_use--;
     pm_bytes_in_use -= extent_size;
     current_transaction->free_queue.push_back(extent);

@@ -23,10 +23,7 @@ void log_serializer_t::create(dynamic_config_t dynamic_config, private_dynamic_c
     metablock_t metablock;
     bzero(&metablock, sizeof(metablock));
 
-    /* The extent manager's portion of the metablock includes a number indicating how many extents
-    are in use. We have to initialize that to the actual number of extents in use for an empty
-    database, which is the same as the number of metablock extents. */
-    extent_manager_t::prepare_initial_metablock(&metablock.extent_manager_part, MB_NEXTENTS);
+    extent_manager_t::prepare_initial_metablock(&metablock.extent_manager_part);
 
     data_block_manager_t::prepare_initial_metablock(&metablock.data_block_manager_part);
     lba_index_t::prepare_initial_metablock(&metablock.lba_index_part);

@@ -20,12 +20,7 @@ class extent_zone_t;
 class extent_manager_t {
 public:
     struct metablock_mixin_t {
-        /* When we shut down, we store the number of extents in use in the metablock.
-        When we start back up and reconstruct the free list, we assert that it is the same.
-        I would wrap this in #ifndef NDEBUG except that I don't want the format to change
-        between debug and release mode. */
-        int32_t debug_extents_in_use;
-        int32_t padding;
+        int64_t padding;
     };
 
 private:
@@ -62,7 +57,7 @@ public:
     void reserve_extent(off64_t extent);
 
 public:
-    static void prepare_initial_metablock(metablock_mixin_t *mb, int extents_in_use);
+    static void prepare_initial_metablock(metablock_mixin_t *mb);
     void start_existing(metablock_mixin_t *last_metablock);
     void prepare_metablock(metablock_mixin_t *metablock);
     void shutdown();
@@ -99,9 +94,7 @@ private:
         state_running,
         state_shut_down
     } state;
-    
-    int n_extents_in_use;
-    
+
     transaction_t *current_transaction;
 };
 #endif /* __SERIALIZER_LOG_EXTENT_MANAGER_HPP__ */
