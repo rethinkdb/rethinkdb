@@ -273,7 +273,7 @@ class mc_transaction_t :
     
 public:
     mc_transaction_t(cache_t *cache, access_t access, int expected_change_count, repli_timestamp_t recency_timestamp);
-    mc_transaction_t(cache_t *cache, access_t access);   // Not for use with write transactions
+    mc_transaction_t(cache_t *cache, access_t access, bool dont_assert_about_shutting_down = false);   // Not for use with write transactions
     ~mc_transaction_t();
 
     cache_t *get_cache() const { return cache; }

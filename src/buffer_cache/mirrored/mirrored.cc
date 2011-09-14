@@ -863,7 +863,7 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, int _expec
 }
 
 /* This version is only for read transactions. */
-mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access) :
+mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, UNUSED bool dont_assert_about_shutting_down) :
     cache(_cache),
     expected_change_count(0),
     access(_access),
@@ -874,7 +874,7 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access) :
     block_pm_duration start_timer(&pm_transactions_starting);
     rassert(access == rwi_read || access == rwi_read_sync);
     cache->assert_thread();
-    rassert(!cache->shutting_down);
+    rassert(dont_assert_about_shutting_down || !cache->shutting_down);
     cache->num_live_transactions++;
     cache->writeback.begin_transaction(this);
     pm_transactions_active.begin(&start_time);
