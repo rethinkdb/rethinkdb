@@ -11,16 +11,15 @@
 #include "serializer/serializer.hpp"
 #include "serializer/log/config.hpp"
 #include "utils.hpp"
-#include "concurrency/cond_var.hpp"
 #include "concurrency/mutex.hpp"
-
-class log_serializer_t;
 
 #include "serializer/log/metablock_manager.hpp"
 #include "serializer/log/extent_manager.hpp"
 #include "serializer/log/lba/lba_list.hpp"
 #include "serializer/log/data_block_manager.hpp"
 
+class log_serializer_t;
+class cond_t;
 struct block_magic_t;
 
 /**
