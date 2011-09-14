@@ -95,7 +95,7 @@ public:
 
 private:
     flush_time_randomizer_t flush_time_randomizer;
-    unsigned int flush_threshold;   // Number of blocks, not percentage
+    const unsigned int flush_threshold;   // Number of blocks, not percentage
     
 private:
     friend class buf_writer_t;

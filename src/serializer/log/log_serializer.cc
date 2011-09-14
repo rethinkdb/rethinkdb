@@ -694,19 +694,13 @@ void log_serializer_t::enable_gc() {
 }
 
 void log_serializer_t::register_read_ahead_cb(serializer_read_ahead_callback_t *cb) {
-    if (get_thread_id() != home_thread()) {
-        do_on_thread(home_thread(), boost::bind(&log_serializer_t::register_read_ahead_cb, this, cb));
-        return;
-    }
+    assert_thread();
 
     read_ahead_callbacks.push_back(cb);
 }
 
 void log_serializer_t::unregister_read_ahead_cb(serializer_read_ahead_callback_t *cb) {
-    if (get_thread_id() != home_thread()) {
-        do_on_thread(home_thread(), boost::bind(&log_serializer_t::unregister_read_ahead_cb, this, cb));
-        return;
-    }
+    assert_thread();
 
     for (std::vector<serializer_read_ahead_callback_t*>::iterator cb_it = read_ahead_callbacks.begin(); cb_it != read_ahead_callbacks.end(); ++cb_it) {
         if (*cb_it == cb) {
