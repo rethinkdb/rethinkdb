@@ -216,57 +216,57 @@ void run_with_dummy_namespace_interface(
         int repli_factor,
         boost::function<void(namespace_interface_t<protocol_t> *)> fun) {
 
-    bob_bob_t db_file("/tmp/rdb_unittest.XXXXXX");
+    bob_bob_t *db_file = new bob_bob_t("/tmp/rdb_unittest.XXXXXX");
 
     /* Set up serializer */
 
     standard_serializer_t::create(
         standard_serializer_t::dynamic_config_t(),
-        standard_serializer_t::private_dynamic_config_t(db_file.name()),
+        standard_serializer_t::private_dynamic_config_t(db_file->name()),
         standard_serializer_t::static_config_t()
         );
 
-    standard_serializer_t serializer(
+    standard_serializer_t *serializer = new standard_serializer_t(
         /* Extra parentheses are necessary so C++ doesn't interpret this as
         a declaration of a function called `serializer`. WTF, C++? */
         (standard_serializer_t::dynamic_config_t()),
-        standard_serializer_t::private_dynamic_config_t(db_file.name())
+        standard_serializer_t::private_dynamic_config_t(db_file->name())
         );
 
     /* Set up multiplexer */
 
     std::vector<standard_serializer_t *> multiplexer_files;
-    multiplexer_files.push_back(&serializer);
+    multiplexer_files.push_back(serializer);
 
     serializer_multiplexer_t::create(multiplexer_files, shards.size() * repli_factor);
 
-    serializer_multiplexer_t multiplexer(multiplexer_files);
-    rassert(multiplexer.proxies.size() == shards.size() * repli_factor);
+    serializer_multiplexer_t *multiplexer = new serializer_multiplexer_t(multiplexer_files);
+    rassert(multiplexer->proxies.size() == shards.size() * repli_factor);
 
     /* Set up stores */
 
-    boost::ptr_vector<typename protocol_t::store_t> store_storage;   // to call destructors
+    //boost::ptr_vector<typename protocol_t::store_t> store_storage;   // to call destructors
     std::vector<typename protocol_t::store_t *> stores;
 
     for (int i = 0; i < (int)shards.size(); i++) {
         for (int j = 0; j < repli_factor; j++) {
 
-            serializer_t *serializer = multiplexer.proxies[i*repli_factor+j];
+            serializer_t *serializer = multiplexer->proxies[i*repli_factor+j];
 
             protocol_t::store_t::create(serializer, shards[i]);
 
             typename protocol_t::store_t *store =
                 new typename protocol_t::store_t(serializer, shards[i]);
-            store_storage.push_back(store);
+            //store_storage.push_back(store);
             stores.push_back(store);
         }
     }
 
     /* Set up namespace interface */
 
-    dummy_namespace_interface_t<protocol_t> nsi(shards, repli_factor, stores);
+    dummy_namespace_interface_t<protocol_t> *nsi = new dummy_namespace_interface_t<protocol_t>(shards, repli_factor, stores);
 
-    fun(&nsi);
+    fun(nsi);
 }
 
 }   /* namespace unittest */

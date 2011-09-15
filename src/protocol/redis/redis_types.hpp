@@ -93,7 +93,8 @@ struct redis_hash_value_t : redis_value_t {
         return get_metadata_size() + sizeof(block_id_t) + sizeof(uint32_t);
     }
 
-    void clear() {
+    void clear(transaction_t *txn) {
+        (void)txn;
         // TODO Tricky, involves clearing the entire sub-btree
     }
 
@@ -124,11 +125,13 @@ struct redis_list_value_t : redis_value_t {
     sub_ref_t *get_ref() {
         return reinterpret_cast<sub_ref_t *>(get_content());
     }
+
+    void clear(transaction_t *txn);
 } __attribute__((__packed__));
 
 struct redis_sorted_set_value_t : redis_value_t {
-    // The sorted set value consists of three root blocks, one for each of the three indicies
-    // They are, in order, the index by member name, the index by score, and the index by rank
+    // The sorted set value consists of two root blocks, one for each of the two indicies
+    // They are, in order, the index by member name, and the index by score
 
     int size() const {
         return get_metadata_size() + 2 * sizeof(block_id_t);
@@ -146,6 +149,7 @@ struct redis_sorted_set_value_t : redis_value_t {
         return *reinterpret_cast<block_id_t *>(get_content() + sizeof(uint32_t) + sizeof(block_id_t));
     }
 
+    void clear(transaction_t *txn);
 } __attribute__((__packed__));
 
 template <>

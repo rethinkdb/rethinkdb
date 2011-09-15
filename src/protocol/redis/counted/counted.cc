@@ -64,6 +64,50 @@ void counted_btree_t::remove(unsigned index) {
     }
 }
 
+void counted_btree_t::clear() {
+    buf_lock_t blk(txn, root->node_id, rwi_write);
+    clear_recur(blk);
+    
+    // Deallocate root block
+    blk->mark_deleted();
+    root->node_id = NULL_BLOCK_ID;
+    root->count = 0;
+}
+
+void counted_btree_t::clear_recur(buf_lock_t &blk) {
+    const counted_node_t *node = reinterpret_cast<const counted_node_t *>(blk->get_data_read());
+    if(node->magic == internal_counted_node_t::expected_magic()) {
+        internal_clear(blk);    
+    } else if(node->magic == leaf_counted_node_t::expected_magic()) {
+        leaf_clear(blk);
+    }
+}
+
+void counted_btree_t::internal_clear(buf_lock_t &blk) {
+    const internal_counted_node_t *i_node = reinterpret_cast<const internal_counted_node_t *>(blk->get_data_read());
+    for(int i = 0; i < i_node->n_refs; i++) {
+        sub_ref_t sub_ref = i_node->refs[i];
+        buf_lock_t sub_tree(txn, sub_ref.node_id, rwi_write);
+
+        // Clear first
+        clear_recur(sub_tree);
+
+        // And deallocate
+        sub_tree->mark_deleted();
+    }
+}
+
+void counted_btree_t::leaf_clear(buf_lock_t &blk) {
+    const leaf_counted_node_t *l_node = reinterpret_cast<const leaf_counted_node_t *>(blk->get_data_read());
+
+    unsigned offset = 0;
+    for(unsigned i = 0; i < l_node->n_refs; i++) {
+        blob_t b(const_cast<char *>(l_node->refs + offset), blob::btree_maxreflen);
+        offset += b.refsize(blksize);
+        b.clear(txn);
+    }
+}
+
 const char *counted_btree_t::at_recur(buf_lock_t &buf, unsigned index) {
     if(index >= root->count) return NULL;
 

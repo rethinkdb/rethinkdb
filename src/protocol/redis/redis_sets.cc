@@ -220,8 +220,6 @@ EXECUTE_R(sdiff) {
     return read_response_t(new multi_bulk_result_t(result));
 }
 
-WRITE(sdiffstore)
-
 //READ(sinter)
 redis_protocol_t::indicated_key_t redis_protocol_t::sinter::get_keys() {
     return one[0];
@@ -255,8 +253,6 @@ EXECUTE_R(sinter) {
     return read_response_t(new multi_bulk_result_t(result));
 }
 
-WRITE(sinterstore)
-
 //READ(sismember)
 KEYS(sismember)
 SHARD_R(sismember)
@@ -288,7 +284,6 @@ EXECUTE_R(smembers) {
     return read_response_t(new multi_bulk_result_t(result));
 }
 
-WRITE(smove)
 WRITE(spop)
 READ(srandmember)
 

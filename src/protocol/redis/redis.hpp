@@ -193,6 +193,7 @@ struct redis_protocol_t {
 
     struct ok_result_t : msg_result_t {
         ok_result_t() : value("OK") {;}
+        ok_result_t(const char *msg) : value(msg) {;}
         virtual redis_return_type get_result() {return value;}
 
         status_result value;
@@ -351,8 +352,7 @@ struct redis_protocol_t {
     WRITE_2(move, string&, string&)
     WRITE_1(persist, string&)
     READ__0(randomkey)
-    WRITE_2(rename, string&, string&)
-    WRITE_2(renamenx, string&, string&)
+    READ__1(rename_get_type, string&)
     READ__1(ttl, string&)
     READ__1(type, string&)
 
@@ -372,6 +372,7 @@ struct redis_protocol_t {
     WRITE_2(set, string&, string&)
     WRITE_3(setbit, string&, unsigned, unsigned)
     WRITE_3(setex, string&, unsigned, string&)
+    WRITE_2(setnx, string&, string&)
     WRITE_3(setrange, string&, unsigned, string&)
     READ__1(Strlen, string&)
 
@@ -393,12 +394,9 @@ struct redis_protocol_t {
     WRITE_N(sadd)
     READ__1(scard, string&)
     READ__N(sdiff)
-    WRITE_N(sdiffstore)
     READ__N(sinter)
-    WRITE_N(sinterstore)
     READ__2(sismember, string&, string&)
     READ__1(smembers, string&)
-    WRITE_3(smove, string, string&, string&)
     WRITE_1(spop, string&)
     READ__1(srandmember, string&)
     WRITE_N(srem)
@@ -420,7 +418,6 @@ struct redis_protocol_t {
     WRITE_3(lset, string&, int, string&)
     WRITE_3(ltrim, string&, int, int)
     WRITE_1(rpop, string&)
-    WRITE_2(rpoplpush, string&, string&)
     WRITE_N(rpush)
     WRITE_2(rpushx, string&, string&)
 

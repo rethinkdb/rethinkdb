@@ -62,21 +62,12 @@ SHARD_W(expireat)
 
 EXECUTE_W(expireat) {
     set_oper_t oper(one, btree, timestamp, otok);
-    redis_value_t *value = oper.location.value.get();
-    if(value == NULL) {
+    if(oper.location.value.get() == NULL) {
         // Key not found, return 0
         return int_response(0);
     }
 
-    if(!value->expiration_set()) {
-        // We must clear space for the new metadata first
-        value_sizer_t<redis_value_t> sizer(btree->cache()->get_block_size());
-        int data_size = sizer.size(value) - value->get_metadata_size();
-        memmove(value->get_content() + sizeof(uint32_t), value->get_content(), data_size);
-    }
-
-    oper.location.value->set_expiration(two);
-
+    oper.expire_at(two);
     return int_response(1);
 }
 
@@ -104,8 +95,21 @@ EXECUTE_W(persist) {
 }
 
 READ(randomkey)
-WRITE(rename)
-WRITE(renamenx)
+
+//READ(rename_get_type)
+KEYS(rename_get_type)
+SHARD_R(rename_get_type)
+PARALLEL(rename_get_type)
+
+EXECUTE_R(rename_get_type) {
+    read_oper_t oper(one, btree, otok);
+    redis_value_t *value = oper.location.value.get();
+    if(!value) {
+        return read_response_t(NULL);
+    } else {
+        return int_response(value->get_redis_type());
+    }
+}
 
 //READ(ttl)
 KEYS(ttl)
@@ -131,48 +135,41 @@ EXECUTE_R(ttl) {
     return int_response(ttl);
 }
 
-READ(type)
+//READ(type)
+KEYS(type)
+SHARD_R(type)
+PARALLEL(type)
 
-/*
-COMMAND_1(multi_bulk, keys, string&)
-COMMAND_2(integer, move, string&, string&)
-
-COMMAND_0(bulk, randomkey)
-COMMAND_2(status, rename, string&, string&)
-COMMAND_2(integer, renamenx, string&, string&)
-
-//COMMAND_1(integer, ttl, string&)
-
-
-//COMMAND_1(status, type, string&)
-status_result redis_actor_t::type(std::string &key) {
-    read_oper_t oper(key, btree);
-    
+EXECUTE_R(type) {
+    read_oper_t oper(one, btree, otok);
     redis_value_t *value = oper.location.value.get();
 
-    boost::shared_ptr<status_result_struct> result(new status_result_struct);
-    result->status = OK;
-    switch(value->get_redis_type()) {
-    case REDIS_STRING:
-        result->msg = (const char *)("string");
-        break;
-    case REDIS_LIST:
-        result->msg = (const char *)("list");
-        break;
-    case REDIS_HASH:
-        result->msg = (const char *)("hash");
-        break;
-    case REDIS_SET:
-        result->msg = (const char *)("set");
-        break;
-    case REDIS_SORTED_SET:
-        result->msg = (const char *)("zset");
-        break;
-    default:
-        assert(0);
-        break;
+    ok_result_t *result;
+
+    if(!value) {
+        result = new ok_result_t("none");
+    } else {
+        switch(value->get_redis_type()) {
+        case REDIS_STRING:
+            result = new ok_result_t("string");
+            break;
+        case REDIS_LIST:
+            result = new ok_result_t("list");
+            break;
+        case REDIS_HASH:
+            result = new ok_result_t("hash");
+            break;
+        case REDIS_SET:
+            result = new ok_result_t("set");
+            break;
+        case REDIS_SORTED_SET:
+            result = new ok_result_t("zset");
+            break;
+        default:
+            assert(0);
+            break;
+        }
     }
     
-    return result;
+    return read_response_t(result);
 }
-*/

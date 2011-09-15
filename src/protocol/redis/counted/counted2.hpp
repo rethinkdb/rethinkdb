@@ -1,5 +1,5 @@
-#ifndef __COUNTED_HPP__
-#define __COUNTED_HPP__
+#ifndef __COUNTED2_HPP__
+#define __COUNTED2_HPP__
 
 #include "buffer_cache/blob.hpp"
 #include "buffer_cache/buf_lock.hpp"
@@ -64,6 +64,7 @@ struct counted_btree2_t {
     const counted2_value_t *at(unsigned index);
     void insert(float score, std::string &value);
     void remove(unsigned index);
+    void clear();
 
     struct iterator_t {
         iterator_t(block_id_t root, transaction_t *txn, block_size_t &blksize, float score_min, float score_max);
@@ -109,14 +110,17 @@ protected:
             block_id_t *new_blk_out, unsigned *new_size_out, float *split_score_out);
     bool leaf_insert(buf_lock_t &blk, float score, std::string &value,
             block_id_t *new_blk_out, unsigned *new_size_out, float *split_score_out);
-
     void remove_recur(buf_lock_t &blk, unsigned index);
     void internal_remove(buf_lock_t &blk, unsigned index);
     void leaf_remove(buf_lock_t &blk, unsigned index);
+    void clear_recur(buf_lock_t &blk);
+    void internal_clear(buf_lock_t &blk);
+    void leaf_clear(buf_lock_t &blk);
+
 
     sub_ref2_t *root;
     block_size_t blksize;
     transaction_t *txn;
 };
 
-#endif /* __COUNTED_HPP__ */
+#endif /* __COUNTED2_HPP__ */

@@ -1,6 +1,7 @@
 #include "protocol/redis/redis_proto.hpp"
 #include "protocol/redis/redis.hpp"
 #include "protocol/redis/redis_ext.hpp"
+#include "protocol/redis/pubsub.hpp"
 
 #include <boost/variant.hpp>
 
@@ -102,12 +103,13 @@ namespace px = boost::phoenix;
 #define COMMANDS_END ;
 
 template <typename Iterator>
-struct redis_grammar : qi::grammar<Iterator>, redis_ext {
-    redis_grammar(tcp_conn_t *conn, namespace_interface_t<redis_protocol_t> *intface, std::iostream *redis_stream) :
+struct redis_grammar : qi::grammar<Iterator>, redis_output_writer, redis_ext {
+    redis_grammar(tcp_conn_t *conn, namespace_interface_t<redis_protocol_t> *intface, std::iostream *redis_stream, pubsub_runtime_t *runtime_) :
         redis_grammar::base_type(start),
+        redis_output_writer(conn),
         redis_ext(intface),
         out_stream(redis_stream),
-        out_conn(conn)
+        runtime(runtime_)
     {
         eol = qi::lit("\r\n");
         args = '*' >> qi::uint_(qi::_r1) >> eol;
@@ -126,6 +128,7 @@ struct redis_grammar : qi::grammar<Iterator>, redis_ext {
 
         command = args(qi::_r1) >> cname(qi::_r2);
         command_n = args_n[qi::_a = qi::_1] >> cname(qi::_r1) >> (qi::repeat(qi::_a - 1)[string_arg])[qi::_val = qi::_1];
+        arbitrary_command = args_n[qi::_a = qi::_1] >> qi::repeat(qi::_a)[string_arg];
 
         //Commands
 
@@ -170,6 +173,7 @@ struct redis_grammar : qi::grammar<Iterator>, redis_ext {
             CMD_2(set, string, string)
             CMD_3(setbit, string, unsigned, unsigned)
             CMD_3(setex, string, unsigned, string)
+            CMD_2(setnx, string, string)
             CMD_3(setrange, string, unsigned, string)
             CMD_1(Strlen, string)
         COMMANDS_END
@@ -265,18 +269,38 @@ struct redis_grammar : qi::grammar<Iterator>, redis_ext {
             CMD_N(zunionstore)
         COMMANDS_END
 
+        // Pub/sub
+        BEGIN(pubsub_ext)
+            | command_n(std::string("psubscribe"))[px::bind(&redis_grammar::first_subscribe, this, qi::_1, true)]
+            | command(3, std::string("publish")) >> (string_arg >> string_arg)
+                        [px::bind(&redis_grammar::publish, this, qi::_1, qi::_2)]
+            | command_n(std::string("subscribe"))[px::bind(&redis_grammar::first_subscribe, this, qi::_1, false)]
+        COMMANDS_END
+
+        BEGIN(pubsub)
+            | command_n(std::string("psubscribe"))[px::bind(&redis_grammar::subscribe, this, qi::_1, true)]
+            | command_n(std::string("punsubscribe"))[px::bind(&redis_grammar::unsubscribe, this, qi::_1, true)]
+            | command_n(std::string("subscribe"))[px::bind(&redis_grammar::subscribe, this, qi::_1, false)]
+            | command_n(std::string("unsubscribe"))[px::bind(&redis_grammar::unsubscribe, this, qi::_1, false)]
+            | arbitrary_command[px::bind(&redis_grammar::pubsub_error, this)]
+        COMMANDS_END
+
+        // TODO better than this
+        srand(time(NULL));
+        connection_id = rand();
+        subscribed_channels = 0;
+
         //Because of the aformentioned tiny blocks problem we have to now or the blocks here
         //*sigh* and we were so close to requiring only one line to add a command
         commands = keys1 | keys2 | strings1 | strings2 | hashes1 | hashes2 | sets1 |
                    sets2 | lists1 | lists2 | sortedsets1 | sortedsets2 | sortedsets3;
-        start = commands;
+        start = commands | pubsub_ext;
     }
 
     
-
 private:
     std::ostream *out_stream;
-    tcp_conn_t *out_conn;
+    pubsub_runtime_t *runtime;
 
     //Support rules
     qi::rule<Iterator> eol;
@@ -295,6 +319,7 @@ private:
 
     qi::rule<Iterator, void(unsigned, std::string)> command;
     qi::rule<Iterator, std::vector<std::string>(std::string), qi::locals<unsigned> > command_n;
+    qi::rule<Iterator, void(), qi::locals<unsigned> > arbitrary_command;
 
     //Command blocks
     qi::rule<Iterator> commands;
@@ -312,106 +337,111 @@ private:
     qi::rule<Iterator> sortedsets1;
     qi::rule<Iterator> sortedsets2;
     qi::rule<Iterator> sortedsets3;
+    qi::rule<Iterator> pubsub_ext;
+    qi::rule<Iterator> pubsub;
 
-    //Output functions
-    //These take the results of a redis_interface_t method and send them out on the wire.
-    //Handling both input and output here means that this class is solely responsible for
-    //translating the redis protocol.
+    
+    // Pub/sub support
 
-    void output_response(redis_protocol_t::redis_return_type response) {
-        boost::apply_visitor(output_visitor(out_conn), response);
+    // Randomly generated (and so hopefully unique) id for this connection. Used to identify this connection
+    // when subscribing and unscribing from channels
+    uint64_t connection_id;
+    uint64_t subscribed_channels;
+
+    void first_subscribe(std::vector<std::string> &channels, bool patterned) {
+        subscribe(channels, patterned);
+
+        // After subscription we only accept pub/sub commands until unsubscribe
+        parse_pubsub();
     }
 
-    struct output_visitor : boost::static_visitor<void> {
-        output_visitor(tcp_conn_t *conn) : out_conn(conn) {;}
-        tcp_conn_t *out_conn;
-        
-        void operator()(redis_protocol_t::status_result res) const {
-            out_conn->write("+", 1);
-            out_conn->write(res.msg, strlen(res.msg));
-            out_conn->write("\r\n", 2);
+    void subscribe(std::vector<std::string> &channels, bool patterned) {
+        for(std::vector<std::string>::iterator iter = channels.begin(); iter != channels.end(); iter++) {
+            // Add our subscription
+            if(patterned) subscribed_channels += runtime->subscribe_pattern(*iter, connection_id, this);
+            else          subscribed_channels += runtime->subscribe(*iter, connection_id, this);
+            
+            // Output the successful subscription message
+            std::vector<std::string> subscription_message;
+            subscription_message.push_back(std::string("subscribe"));
+            subscription_message.push_back(*iter);
+            subscription_message.push_back(boost::lexical_cast<std::string>(subscribed_channels));
+            output_response(redis_protocol_t::redis_return_type(subscription_message));
         }
+    }
 
-        void operator()(redis_protocol_t::error_result res) const {
-            out_conn->write("-", 1);
-            out_conn->write(res.msg, strlen(res.msg));
-            out_conn->write("\r\n", 2);
+    void unsubscribe(std::vector<std::string> &channels, bool patterned) {
+        for(std::vector<std::string>::iterator iter = channels.begin(); iter != channels.end(); iter++) {
+            // Add our subscription
+            if(patterned) subscribed_channels -= runtime->unsubscribe_pattern(*iter, connection_id);
+            else          subscribed_channels -= runtime->unsubscribe(*iter, connection_id);
+
+            // Output the sucessful unsubscription message
+            std::vector<std::string> unsubscription_message;
+            unsubscription_message.push_back(std::string("unsubscribe"));
+            unsubscription_message.push_back(*iter);
+            unsubscription_message.push_back(boost::lexical_cast<std::string>(subscribed_channels));
+            output_response(redis_protocol_t::redis_return_type(unsubscription_message));
         }
+    }
 
-        void operator()(int res) const {
-            char buff[20]; //Max size of a base 10 representation of a 64 bit number
-            sprintf(buff, "%d", res);
-            out_conn->write(":", 1);
-            out_conn->write(buff, strlen(buff));
-            out_conn->write("\r\n", 2);
-        }
+    void publish(std::string &channel, std::string &message) {
+        // This behaves like a normal command. No special states associated here
+        int clients_recieved = runtime->publish(channel, message);
+        output_response(redis_protocol_t::redis_return_type(clients_recieved));
+    }
 
-        void bulk_result(std::string &res) const {
-            char buff[20];
-            sprintf(buff, "%d", (int)res.size());
+    void parse_pubsub() {
+        // loop on parse. Parse just pub/sub commands
 
-            out_conn->write("$", 1);
-            out_conn->write(buff, strlen(buff));
-            out_conn->write("\r\n", 2);
-            out_conn->write((char *)(&res.at(0)), res.size());
-            out_conn->write("\r\n", 2);
+        while(true) {
+            // Clear data read from the connection
+            const_charslice res = out_conn->peek();
+            size_t len = res.end - res.beg;
+            out_conn->pop(len);
 
-        }
+            // parse pub/sub commands
+            qi::parse(out_conn->begin(), out_conn->end(), pubsub);
 
-        void operator()(std::string &res) const {
-            bulk_result(res);
-        }
-
-        void operator()(redis_protocol_t::nil_result) const {
-            out_conn->write("$-1\r\n", 5);
-        }
-
-        void operator()(std::vector<std::string> &res) const {
-            char buff[20];
-            sprintf(buff, "%d", (int)res.size());
-
-            out_conn->write("*", 1);
-            out_conn->write(buff, strlen(buff));
-            out_conn->write("\r\n", 2);
-            for(std::vector<std::string>::iterator iter = res.begin(); iter != res.end(); ++iter) {
-                bulk_result(*iter);
+            if(subscribed_channels == 0) {
+                // We've unsubscribed from all our channels. Leave pub/sub mode.
+                break;
             }
         }
-    };
+    }
+
+    void pubsub_error() {
+        output_response(redis_protocol_t::error_result(
+            "ERR only (P)SUBSCRIBE / (P)UNSUBSCRIBE / QUIT allowed in this contex"
+        ));
+    }
 
 };
 
-#include "unittest/unittest_utils.hpp"
-#include "unittest/dummy_namespace_interface.hpp"
 
-void start_serving(tcp_conn_t *conn, namespace_interface_t<redis_protocol_t> *intface) {
-    redis_grammar<tcp_conn_t::iterator> redis(conn, intface, NULL);
+void start_serving(tcp_conn_t *conn, namespace_interface_t<redis_protocol_t> *intface, pubsub_runtime_t *runtime) {
+    redis_grammar<tcp_conn_t::iterator> redis(conn, intface, NULL, runtime);
     try {
         while(true) {
             qi::parse(conn->begin(), conn->end(), redis);
-            //if(!r) {
-                const_charslice res = conn->peek();
-                size_t len = res.end - res.beg;
-                conn->pop(len);
-            //}
+
+            // Clear data read from the connection
+            const_charslice res = conn->peek();
+            size_t len = res.end - res.beg;
+            conn->pop(len);
         }
     } catch(tcp_conn_t::read_closed_exc_t) {}
+
 }
 
+pubsub_runtime_t pubsub_runtime;
+
 //The entry point for the parser. The only requirement for a parser is that it implement this function.
-void serve_redis(tcp_conn_t *conn, get_store_t *get_store, set_store_interface_t *set_store) {
+void serve_redis(tcp_conn_t *conn, get_store_t *get_store, set_store_interface_t *set_store, namespace_interface_t<redis_protocol_t> *redis_intf) {
     (void)get_store;
     (void)set_store;
 
-    const int repli_factor = 1;
-    std::vector<redis_protocol_t::region_t> shards;
-    key_range_t key_range1(key_range_t::none, store_key_t(""),  key_range_t::open, store_key_t("n"));
-    key_range_t key_range2(key_range_t::none, store_key_t("n"),  key_range_t::open, store_key_t(""));
-    shards.push_back(key_range1);
-    shards.push_back(key_range2);
-
-
-    unittest::run_with_dummy_namespace_interface<redis_protocol_t>(shards, repli_factor, boost::bind(start_serving, conn, _1));
+    start_serving(conn, redis_intf, &pubsub_runtime);
 }
 
 /*
@@ -450,3 +480,69 @@ void serve_redis(std::iostream &redis_stream, get_store_t *get_store, set_store_
     }
 }
 */
+
+//Output functions
+//These take the results of a redis_interface_t method and send them out on the wire.
+//Handling both input and output here means that this class is solely responsible for
+//translating the redis protocol.
+
+struct output_visitor : boost::static_visitor<void> {
+    output_visitor(tcp_conn_t *conn) : out_conn(conn) {;}
+    tcp_conn_t *out_conn;
+    
+    void operator()(redis_protocol_t::status_result res) const {
+        out_conn->write("+", 1);
+        out_conn->write(res.msg, strlen(res.msg));
+        out_conn->write("\r\n", 2);
+    }
+
+    void operator()(redis_protocol_t::error_result res) const {
+        out_conn->write("-", 1);
+        out_conn->write(res.msg, strlen(res.msg));
+        out_conn->write("\r\n", 2);
+    }
+
+    void operator()(int res) const {
+        char buff[20]; //Max size of a base 10 representation of a 64 bit number
+        sprintf(buff, "%d", res);
+        out_conn->write(":", 1);
+        out_conn->write(buff, strlen(buff));
+        out_conn->write("\r\n", 2);
+    }
+
+    void bulk_result(std::string &res) const {
+        char buff[20];
+        sprintf(buff, "%d", (int)res.size());
+
+        out_conn->write("$", 1);
+        out_conn->write(buff, strlen(buff));
+        out_conn->write("\r\n", 2);
+        out_conn->write((char *)(&res.at(0)), res.size());
+        out_conn->write("\r\n", 2);
+
+    }
+
+    void operator()(std::string &res) const {
+        bulk_result(res);
+    }
+
+    void operator()(redis_protocol_t::nil_result) const {
+        out_conn->write("$-1\r\n", 5);
+    }
+
+    void operator()(std::vector<std::string> &res) const {
+        char buff[20];
+        sprintf(buff, "%d", (int)res.size());
+
+        out_conn->write("*", 1);
+        out_conn->write(buff, strlen(buff));
+        out_conn->write("\r\n", 2);
+        for(std::vector<std::string>::iterator iter = res.begin(); iter != res.end(); ++iter) {
+            bulk_result(*iter);
+        }
+    }
+};
+
+void redis_output_writer::output_response(redis_protocol_t::redis_return_type response) {
+    boost::apply_visitor(output_visitor(out_conn), response);
+}

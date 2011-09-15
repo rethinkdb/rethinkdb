@@ -54,6 +54,7 @@ struct counted_btree_t {
     const char *at(unsigned index);
     void insert(unsigned index, std::string &value);
     void remove(unsigned index);
+    void clear();
 
 protected:
     const char *at_recur(buf_lock_t &buf, unsigned index);
@@ -63,6 +64,9 @@ protected:
     void remove_recur(buf_lock_t &blk, unsigned index);
     void internal_remove(buf_lock_t &blk, unsigned index);
     void leaf_remove(buf_lock_t &blk, unsigned index);
+    void clear_recur(buf_lock_t &blk);
+    void internal_clear(buf_lock_t &blk);
+    void leaf_clear(buf_lock_t &blk);
 
     sub_ref_t *root;
     block_size_t blksize;

@@ -2,10 +2,10 @@
 #include "protocol/redis/redis_util.hpp"
 
 struct string_set_oper_t : set_oper_t {
-    string_set_oper_t(std::string &key, btree_slice_t *btree, timestamp_t timestamp, order_token_t otok) :
+    string_set_oper_t(std::string &key, btree_slice_t *btree, timestamp_t timestamp, order_token_t otok, bool nx = false) :
         set_oper_t(key, btree, timestamp, otok)
     {
-        if(location.value.get() == NULL) {
+        if(location.value.get() == NULL && !nx) {
             scoped_malloc<redis_value_t> smrsv(MAX_BTREE_VALUE_SIZE);
             location.value.swap(smrsv);
             location.value->set_redis_type(REDIS_STRING);
@@ -88,7 +88,7 @@ struct string_read_oper_t : read_oper_t {
         read_oper_t(key, btree, otok)
     {
         if(location.value.get() == NULL) {
-            // Throw error 
+            //throw "Key does not exist";
         } else if(location.value->get_redis_type() != REDIS_STRING) {
             throw "Operation against key holding wrong kind of value";
         }
@@ -153,6 +153,10 @@ PARALLEL(get)
 
 EXECUTE_R(get) {
     string_read_oper_t oper(one, btree, otok);
+    if(oper.location.value.get() == NULL) {
+        return redis_protocol_t::read_response_t(NULL);
+    }
+
     std::string result;
     oper.get_string(result);
 
@@ -241,7 +245,33 @@ EXECUTE_W(setbit) {
     return int_response(oper.setbit(two, three));
 }
 
-WRITE(setex)
+//WRITE(setex)
+KEYS(setex)
+SHARD_W(setex)
+
+EXECUTE_W(setex) {
+    string_set_oper_t oper(one, btree, timestamp, otok);
+    oper.set(three);
+
+    uint32_t expire_time = time(NULL) + two;
+    oper.expire_at(expire_time);
+
+    return write_response_t(new ok_result_t());
+}
+
+//WRITE(setnx)
+KEYS(setnx)
+SHARD_W(setnx)
+
+EXECUTE_W(setnx) {
+    string_set_oper_t oper(one, btree, timestamp, otok, true);
+    if(oper.location.value.get() != NULL) {
+        oper.set(two);
+        return int_response(1);
+    } else {
+        return int_response(0);
+    }
+}
 
 //WRITE(setrange)
 KEYS(setrange)

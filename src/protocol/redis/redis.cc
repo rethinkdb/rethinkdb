@@ -79,9 +79,7 @@ redis_protocol_t::store_t::store_t(serializer_t *ser, redis_protocol_t::region_t
     region(region_)
     { }
 
-redis_protocol_t::store_t::~store_t() {
-
-}
+redis_protocol_t::store_t::~store_t() { }
 
 redis_protocol_t::region_t redis_protocol_t::store_t::get_region() {
     return region;

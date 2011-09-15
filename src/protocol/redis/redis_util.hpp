@@ -83,11 +83,19 @@ struct set_oper_t {
     set_oper_t(std::string &key, btree_slice_t *btree, timestamp_t timestamp_, order_token_t otok) :
         sizer(btree->cache()->get_block_size()),
         btree_key(key),
-        timestamp(timestamp_)
+        timestamp(timestamp_),
+        on_thread(btree->home_thread())
     {
         // Get the superblock that represents our write transaction
         get_btree_superblock(btree, rwi_write, 1, timestamp, otok, &superblock);
         find_keyvalue_location_for_write(&superblock, btree_key.key(), &location);
+
+        // Check for expiration
+        redis_value_t *value = location.value.get();
+        if(value && value->expiration_set() && (value->get_expiration() > time(NULL))) {
+            // Then this key is expired and technically doesn't exist
+            del();
+        }
     }
 
     ~set_oper_t() {
@@ -101,14 +109,17 @@ struct set_oper_t {
         case REDIS_STRING:
             reinterpret_cast<redis_string_value_t *>(location.value.get())->clear(location.txn.get());
             break;
-        // TODO other types
         case REDIS_LIST:
+            reinterpret_cast<redis_list_value_t *>(location.value.get())->clear(location.txn.get());
             break;
         case REDIS_HASH:
+            reinterpret_cast<redis_hash_value_t *>(location.value.get())->clear(location.txn.get());
             break;
         case REDIS_SET:
+            reinterpret_cast<redis_set_value_t *>(location.value.get())->clear(location.txn.get());
             break;
         case REDIS_SORTED_SET:
+            reinterpret_cast<redis_sorted_set_value_t *>(location.value.get())->clear(location.txn.get());
             break;
         default:
             assert(0);
@@ -120,6 +131,18 @@ struct set_oper_t {
         return true;
     }
 
+    void expire_at(uint32_t at_time) {
+        redis_value_t *value = location.value.get();
+        if(!value->expiration_set()) {
+            // We must clear space for the new metadata first
+            int data_size = sizer.size(value) - value->get_metadata_size();
+            memmove(value->get_content() + sizeof(uint32_t), value->get_content(), data_size);
+        }
+
+        value->set_expiration(at_time);
+
+    }
+
     keyvalue_location_t<redis_value_t> location;
 
 protected:
@@ -127,16 +150,35 @@ protected:
     value_sizer_t<redis_value_t> sizer;
     btree_key_buffer_t btree_key;
     timestamp_t timestamp;
+    on_thread_t on_thread;
 };
 
 struct read_oper_t {
     read_oper_t(std::string &key, btree_slice_t *btree, order_token_t otok) :
-        sizer(btree->cache()->get_block_size())
+        sizer(btree->cache()->get_block_size()),
+        storing_expired_value(false),
+        on_thread(btree->home_thread())
     {
         got_superblock_t superblock;
         get_btree_superblock(btree, rwi_read, otok, &superblock);
         btree_key_buffer_t btree_key(key);
         find_keyvalue_location_for_read(&superblock, btree_key.key(), &location);
+
+        // Check for expiration
+        redis_value_t *value = location.value.get();
+        if(value && value->expiration_set() && (value->get_expiration() > time(NULL))) {
+            // Then this key is expired and technically doesn't exist
+            // We only acquired this key for read so we can't delete it. We'll trick our
+            // subclass into thinking that it was deleted and let the next write clean up
+            expired_value.swap(location.value);
+            storing_expired_value = true;
+        }
+    }
+
+    ~read_oper_t() {
+        if(storing_expired_value) {
+            location.value.swap(expired_value);
+        }
     }
 
     bool exists() {
@@ -147,6 +189,10 @@ struct read_oper_t {
 
 protected:
     value_sizer_t<redis_value_t> sizer;
+private:
+    bool storing_expired_value;
+    scoped_malloc<redis_value_t> expired_value;
+    on_thread_t on_thread;
 };
 
 

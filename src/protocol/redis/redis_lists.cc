@@ -357,8 +357,6 @@ EXECUTE_W(rpop) {
     return bulk_response(last_element);
 }
 
-WRITE(rpoplpush)
-
 //WRITE(rpush)
 redis_protocol_t::indicated_key_t redis_protocol_t::rpush::get_keys() {
     return one[0];
