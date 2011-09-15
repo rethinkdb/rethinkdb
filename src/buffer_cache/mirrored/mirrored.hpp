@@ -36,7 +36,6 @@ typedef page_repl_random_t page_repl_t;
 class mc_cache_account_t;
 
 
-
 // evictable_t must go before array_map_t::local_buf_t, which
 // references evictable_t's cache field.
 class mc_inner_buf_t : public evictable_t,

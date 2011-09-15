@@ -983,7 +983,7 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
 
     buf_t *buf = new buf_t(inner_buf, mode, snapshot_version, snapshotted, call_when_in_line, get_io_account());
 
-    if (!(mode == rwi_read || mode == rwi_read_outdated_ok)) {
+    if (is_write_mode(mode)) {
         buf->touch_recency(recency_timestamp);
     }
 
