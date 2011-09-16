@@ -35,12 +35,7 @@ typedef page_repl_random_t page_repl_t;
 
 class mc_cache_account_t;
 
-// TODO: It should be possible to unload the data of an mc_inner_buf_t from the cache even when
-// there are still snapshots of it around - there is no reason why the data shouldn't be able to
-// leave the cache, even if we still need the object around to keep track of snapshots. With the way
-// this is currently set up, this is not possible; unloading an mc_inner_buf_t requires deleting it.
-// To change this requires some tricky rewriting/refactoring, and I was unable to get around to it.
-// -rntz
+
 
 // evictable_t must go before array_map_t::local_buf_t, which
 // references evictable_t's cache field.
@@ -269,11 +264,10 @@ class mc_transaction_t :
 
     friend class mc_cache_t;
     friend class writeback_t;
-    friend struct acquire_lock_callback_t;
-    
+
 public:
     mc_transaction_t(cache_t *cache, access_t access, int expected_change_count, repli_timestamp_t recency_timestamp);
-    mc_transaction_t(cache_t *cache, access_t access);   // Not for use with write transactions
+    mc_transaction_t(cache_t *cache, access_t access, bool dont_assert_about_shutting_down = false);   // Not for use with write transactions
     ~mc_transaction_t();
 
     cache_t *get_cache() const { return cache; }
@@ -406,7 +400,7 @@ public:
     bool offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp);
 
 private:
-    bool offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp);
+    void offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp);
     bool can_read_ahead_block_be_accepted(block_id_t block_id);
     void maybe_unregister_read_ahead_callback();
 
