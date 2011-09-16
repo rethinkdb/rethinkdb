@@ -48,7 +48,8 @@ private:
                 std::string key = std::string(1, 'a' + rand() % 26);
                 w.values[key] = values_inserted[key] = strprintf("%d", i);
 
-                interface->write(w, osource->check_in("unittest"));
+                cond_t interruptor;
+                interface->write(w, osource->check_in("unittest"), &interruptor);
 
                 nap(10, keepalive.get_drain_signal());
             }
@@ -115,7 +116,8 @@ static void run_read_write_test() {
             it != inserter.values_inserted.end(); it++) {
         dummy_protocol_t::read_t r;
         r.keys.keys.insert((*it).first);
-        dummy_protocol_t::read_response_t resp = namespace_interface.read(r, order_source.check_in("unittest"));
+        cond_t interruptor;
+        dummy_protocol_t::read_response_t resp = namespace_interface.read(r, order_source.check_in("unittest"), &interruptor);
         EXPECT_EQ((*it).second, resp.values[(*it).first]);
     }
 }

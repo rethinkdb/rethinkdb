@@ -41,19 +41,16 @@ public:
         masters_view(metadata_field(&namespace_metadata_t<protocol_t>::masters, masters))
         { }
 
-    typename protocol_t::read_response_t read(typename protocol_t::read_t r, order_token_t order_token) {
-        /* TODO: Hook up interruptors. */
-        cond_t interruptor;
+    typename protocol_t::read_response_t read(typename protocol_t::read_t r, order_token_t order_token, signal_t *interruptor) {
         return generic_dispatch<typename protocol_t::read_t, typename protocol_t::read_response_t>(
             &master_metadata_t<protocol_t>::read_mailbox,
-            r, order_token, &interruptor);
+            r, order_token, interruptor);
     }
 
-    typename protocol_t::write_response_t write(typename protocol_t::write_t w, order_token_t order_token) {
-        cond_t interruptor;
+    typename protocol_t::write_response_t write(typename protocol_t::write_t w, order_token_t order_token, signal_t *interruptor) {
         return generic_dispatch<typename protocol_t::write_t, typename protocol_t::write_response_t>(
             &master_metadata_t<protocol_t>::write_mailbox,
-            w, order_token, &interruptor);
+            w, order_token, interruptor);
     }
 
 private:
