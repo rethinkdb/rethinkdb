@@ -12,10 +12,10 @@ class namespace_interface_t {
 
 public:
     /* Performs the given read query on the namespace. [May block] */
-    virtual protocol_t::read_response_t read(protocol_t::read_t query) THROWS_ONLY(...) = 0;
+    virtual protocol_t::read_response_t read(protocol_t::read_t query, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(...) = 0;
 
     /* Performs the given write query on the namespace. [May block] */
-    virtual protocol_t::write_response_t write(protocol_t::write_t query) THROWS_ONLY(...) = 0;
+    virtual protocol_t::write_response_t write(protocol_t::write_t query, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(...) = 0;
 
 private:
     ...
@@ -104,7 +104,7 @@ public:
         [Precondition] union(regions) == read.get_region()
         [Precondition] forall x,y in regions: !x.overlaps(y)
         [Postcondition] read.shard(regions).size() == regions.size()
-        [Postcondition] read.shard(regions)[i].get_region() IsSubsetOf regions[i]
+        [Postcondition] regions[i].contains(read.shard(regions)[i].get_region()) 
         */
         std::vector<read_t> shard(std::vector<region_t> regions) const THROWS_NOTHING;
 
@@ -190,7 +190,7 @@ public:
         /* Performs a read operation on the store. May not modify the store's
         state in any way. If `interruptor` is pulsed, then `read()` must either
         return or throw `interrupted_exc_t` within a constant amount of time.
-        [Precondition] read.get_region() IsSubsetOf store.get_region()
+        [Precondition] store.get_region().contains(read.get_region())
         [Precondition] store.is_coherent()
         [Precondition] !store.is_backfilling()
         [May block]
@@ -205,7 +205,7 @@ public:
         constant amount of time. If `interrupted_exc_t` is thrown, the write may
         or may not have been completed, but it must not be left in an
         intermediate state.
-        [Precondition] write.get_region() IsSubsetOf store.get_region()
+        [Precondition] store.get_region().contains(write.get_region())
         [Precondition] store.is_coherent()
         [Precondition] !store.is_backfilling()
         [Precondition] store.get_timestamp() == timestamp.timestamp_before()

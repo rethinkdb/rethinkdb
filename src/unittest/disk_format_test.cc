@@ -98,7 +98,7 @@ TEST(DiskFormatTest, DataBlockManagerMetablockMixinT) {
 }
 
 TEST(DiskFormatTest, ExtentManagerMetablockMixinT) {
-    EXPECT_EQ(0, offsetof(extent_manager_t::metablock_mixin_t, debug_extents_in_use));
+    EXPECT_EQ(0, offsetof(extent_manager_t::metablock_mixin_t, padding));
     EXPECT_EQ(8, sizeof(extent_manager_t::metablock_mixin_t));
 }
 
