@@ -43,7 +43,7 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
                     "duration"    : 420,
                     "sigint-timeout" : sigint_timeout },
                   repeat=5, timeout = 480 + sigint_timeout)
-    
+
     do_test_cloud("integration/multi_serial_mix.py",
                   { "auto"        : True,
                     "mode"        : mode,
@@ -57,7 +57,7 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
                     "duration"    : 420,
                     "sigint-timeout" : sigint_timeout },
                   repeat=5, timeout = 540 + sigint_timeout)
-    
+
     do_test_cloud("integration/big_values.py",
                   { "auto"        : True,
                     "mode"        : mode,
@@ -67,7 +67,7 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
                     "slices"      : slices,
                     "sigint-timeout" : sigint_timeout },
                   repeat=3, timeout = 320 + sigint_timeout)
-    
+
     do_test_cloud("integration/pipeline.py",
                   { "auto"        : True,
                     "mode"        : mode,
@@ -79,7 +79,7 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
                     "num-ints"    : 1000000 if (mode == "release" and not checker) else 1000,
                     "sigint-timeout" : sigint_timeout },
                   repeat=3, timeout = 180 * ec2)
-    
+
     # Don't run the corruption test in mockcache mode because in that modes
     # we don't flush to disk at all until the server is shut down, so obviously the
     # corruption test will fail.
@@ -110,7 +110,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "slices"      : slices,
                     "num-keys"    : 50000},
                   repeat=3, timeout=1200)
-    
+
     # Run a canonical workload for half hour
     do_test_cloud("integration/stress_load.py",
                   { "auto"        : True,
@@ -170,7 +170,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "nrgets"      : 1,
                     "fsck"        : False},
                   repeat=2, timeout=2400 * ec2)
-                  
+
     # Run a canonical + rget workload for twenty minutes under memory pressure
     do_test_cloud("integration/stress_load.py",
                   { "auto"        : True,
@@ -212,7 +212,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "slices"      : slices,
                     "duration"    : 340 },
                   repeat=5, timeout=460 * ec2)
-    
+
     do_test_cloud("integration/serial_mix.py",
                   { "auto"        : True,
                     "mode"        : mode,
@@ -250,7 +250,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "num-testers" : 128,
                     "duration"    : 420 },
                   repeat=3, timeout = 480)
-    
+
     # TODO: This should really only be run under one environment...
     do_test_cloud("regression/gc_verification.py",
                   { "auto"        : True,
@@ -261,7 +261,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "slices"      : slices,
                     "duration"    : 400 },
                   repeat=3, timeout=600)
-    
+
     # Run the serial mix test also with drd
     if checker == "valgrind":
         for valgrind_tool in ["drd"]:
@@ -277,7 +277,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                             "slices"      : slices,
                             "duration"    : 300 },
                           repeat=3, timeout=400)
-            
+
     do_test_cloud("integration/serial_mix.py",
                   { "auto"        : True,
                     "mode"        : mode,
@@ -288,7 +288,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "duration"    : 340,
                     "restart-server-prob" : "0.0005"},
                           repeat=5, timeout=600)
-    
+
     # Replication
     do_test_cloud("integration/serial_mix.py",
                   { "auto"        : True,
@@ -352,7 +352,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "kill-failover-server-prob": 0.1,
                     "resurrect-failover-server-prob": 0.1},
                           repeat=5, timeout=800)
-    
+
     # Replication with CAS
     do_test_cloud("integration/cas.py",
                   { "auto"        : True,
@@ -366,7 +366,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "resurrect-failover-server-prob": 0.1,
                     "timeout"     : 800},
                           repeat=5, timeout=800)
-    
+
     # Replication with flags
     do_test_cloud("integration/flags.py",
                   { "auto"        : True,
@@ -380,7 +380,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "resurrect-failover-server-prob": 0.1,
                     "timeout"     : 240},
                           repeat=5, timeout=800)
-    
+
     do_test_cloud("integration/append_prepend.py",
                   { "auto"        : True,
                     "mode"        : mode,
@@ -398,7 +398,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "cores"       : cores,
                     "slices"      : slices },
                   repeat=3, timeout=90)
-    
+
     do_test_cloud("integration/cas.py",
                   { "auto"        : True,
                     "mode"        : mode,
@@ -407,7 +407,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "cores"       : cores,
                     "slices"      : slices },
                   repeat=3)
-    
+
     do_test_cloud("integration/flags.py",
                   { "auto"        : True,
                     "mode"        : mode,
@@ -584,7 +584,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                         "sigint-timeout" : 560,
                         "suite-test"  : suite_test},
                       repeat=3, timeout=540)
-                      
+
     # Test different command line configurations (defaults less thoroughly)
     do_test_cloud("integration/serial_mix.py",
                   { "auto"        : True,
@@ -707,6 +707,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "diff-log-size" : 0,
                     "fsck"        : False},
                   repeat=3, timeout=300 * ec2)
+
     do_test_cloud("integration/failover_script.py",
                   { "auto"        : True,
                     "mode"        : mode,
@@ -720,9 +721,9 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "failover-script" : "assets/failover_script_test.py"
                     },
                   repeat=1, timeout=300 * ec2)
-                  
-    
-                
+
+
+
     # Canonical tests are included in all tests
     run_canonical_tests(mode, checker, protocol, cores, slices)
 
@@ -774,14 +775,14 @@ try:
     for (mode, checker) in [
             ("debug", "valgrind"),
             ("release", "valgrind"),
-            ("release", None),
+            ("release", none),
             ("debug-mockcache", "valgrind"),
             ("debug-noepoll", "valgrind")]:
         for protocol in ["text"]: # ["text", "binary"]:
             for (cores, slices) in [(1, 1), (2, 8)]:
                 # RUN CANONICAL TESTS
                 run_canonical_tests(mode, checker, protocol, cores, slices)
-                
+
     # Report the results
     report_cloud()
 

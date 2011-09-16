@@ -1,0 +1,16 @@
+(mode, checker) = ("debug", "valgrind")
+for protocol in ["text"]:
+    for (cores, slices) in [(2, 8)]:
+        for valgrind_tool in ["drd"]:
+            do_test_fog("integration/serial_mix.py",
+                        { "auto"        : True,
+                          "mode"        : mode,
+                          "no-valgrind" : not checker,
+                          "valgrind-tool" : valgrind_tool,
+                          "protocol"    : protocol,
+                          "cores"       : cores,
+                          "slices"      : slices,
+                          "duration"    : 300 },
+                        repeat=3, timeout=400)
+
+
