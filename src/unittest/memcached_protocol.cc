@@ -49,7 +49,8 @@ void run_get_set_test(namespace_interface_t<memcached_protocol_t> *nsi) {
         set.replace_policy = replace_policy_yes;
         memcached_protocol_t::write_t write(set, 12345);
 
-        memcached_protocol_t::write_response_t result = nsi->write(write, osource.check_in("unittest"));
+        cond_t interruptor;
+        memcached_protocol_t::write_response_t result = nsi->write(write, osource.check_in("unittest"), &interruptor);
 
         if (set_result_t *maybe_set_result = boost::get<set_result_t>(&result.result)) {
             EXPECT_EQ(*maybe_set_result, sr_stored);
@@ -63,7 +64,8 @@ void run_get_set_test(namespace_interface_t<memcached_protocol_t> *nsi) {
         get.key = store_key_t("a");
         memcached_protocol_t::read_t read(get);
 
-        memcached_protocol_t::read_response_t result = nsi->read(read, osource.check_in("unittest"));
+        cond_t interruptor;
+        memcached_protocol_t::read_response_t result = nsi->read(read, osource.check_in("unittest"), &interruptor);
 
         if (get_result_t *maybe_get_result = boost::get<get_result_t>(&result.result)) {
             EXPECT_FALSE(maybe_get_result->is_not_allowed);

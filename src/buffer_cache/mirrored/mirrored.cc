@@ -863,7 +863,7 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, int _expec
 }
 
 /* This version is only for read transactions. */
-mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access) :
+mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, UNUSED bool dont_assert_about_shutting_down) :
     cache(_cache),
     expected_change_count(0),
     access(_access),
@@ -874,7 +874,7 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access) :
     block_pm_duration start_timer(&pm_transactions_starting);
     rassert(access == rwi_read || access == rwi_read_sync);
     cache->assert_thread();
-    rassert(!cache->shutting_down);
+    rassert(dont_assert_about_shutting_down || !cache->shutting_down);
     cache->num_live_transactions++;
     cache->writeback.begin_transaction(this);
     pm_transactions_active.begin(&start_time);
@@ -1133,16 +1133,6 @@ mc_cache_t::mc_cache_t(
 mc_cache_t::~mc_cache_t() {
     shutting_down = true;
     serializer->unregister_read_ahead_cb(this);
-    /* When unregister_read_ahead_cb returns, it is guaranteed that our
-     offer_read_ahead_buf() method does not get called anymore.
-     However, if offer_read_ahead_buf() got called during the execution of
-     unregister_read_ahead_cb(), it might have placed a message for
-     unregister_read_ahead_cb_home_thread() on the message queue. We must make
-     sure that this message gets processed before we continue destructing
-     ourselves, thus the yield here. */
-
-    // TODO: Use a semaphore.
-    coro_t::yield();
 
     /* Wait for all transactions to commit before shutting down */
     if (num_live_transactions > 0) {
@@ -1266,8 +1256,7 @@ bool mc_cache_t::offer_read_ahead_buf(block_id_t block_id, void *buf, repli_time
     return true;
 }
 
-// TODO (rntz) why does this return a bool? no-one will ever see it!
-bool mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp) {
+void mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp) {
     assert_thread();
 
     // Check that the offered block is allowed to be accepted at the current time
@@ -1277,8 +1266,6 @@ bool mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf
     } else {
         serializer->free(buf);
     }
-
-    return true;
 }
 
 bool mc_cache_t::can_read_ahead_block_be_accepted(block_id_t block_id) {

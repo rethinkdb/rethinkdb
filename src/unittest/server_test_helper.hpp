@@ -31,6 +31,7 @@ protected:
 
 protected:
     virtual void run_tests(cache_t *cache) = 0;
+    virtual void run_serializer_tests();
 
     translator_serializer_t *serializer;
 

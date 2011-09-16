@@ -52,7 +52,8 @@ public:
     explicit dummy_sharder_t(std::vector<timestamper_and_region_t> _timestampers)
         : timestampers(_timestampers) { }
 
-    typename protocol_t::read_response_t read(typename protocol_t::read_t read, order_token_t tok) {
+    typename protocol_t::read_response_t read(typename protocol_t::read_t read, order_token_t tok, signal_t *interruptor) {
+        if (interruptor->is_pulsed()) throw interrupted_exc_t();
         std::vector<typename protocol_t::region_t> regions;
         std::vector<int> destinations;
         for (int i = 0; i < (int)timestampers.size(); i++) {
@@ -68,12 +69,14 @@ public:
         for (int i = 0; i < (int)regions.size(); i++) {
             rassert(regions[i].contains(subreads[i].get_region()));
             responses.push_back(timestampers[destinations[i]].timestamper->read(subreads[i], tok));
+            if (interruptor->is_pulsed()) throw interrupted_exc_t();
         }
         typename protocol_t::temporary_cache_t cache;
         return read.unshard(responses, &cache);
     }
 
-    typename protocol_t::write_response_t write(typename protocol_t::write_t write, order_token_t tok) {
+    typename protocol_t::write_response_t write(typename protocol_t::write_t write, order_token_t tok, signal_t *interruptor) {
+        if (interruptor->is_pulsed()) throw interrupted_exc_t();
         std::vector<typename protocol_t::region_t> regions;
         std::vector<int> destinations;
         for (int i = 0; i < (int)timestampers.size(); i++) {
@@ -89,6 +92,7 @@ public:
         for (int i = 0; i < (int)regions.size(); i++) {
             rassert(regions[i].contains(subwrites[i].get_region()));
             responses.push_back(timestampers[destinations[i]].timestamper->write(subwrites[i], tok));
+            if (interruptor->is_pulsed()) throw interrupted_exc_t();
         }
         typename protocol_t::temporary_cache_t cache;
         return write.unshard(responses, &cache);
@@ -129,12 +133,12 @@ public:
         sharder.reset(new dummy_sharder_t<protocol_t>(shards_of_this_db));
     }
 
-    typename protocol_t::read_response_t read(typename protocol_t::read_t read, order_token_t tok) {
-        return sharder->read(read, tok);
+    typename protocol_t::read_response_t read(typename protocol_t::read_t read, order_token_t tok, signal_t *interruptor) {
+        return sharder->read(read, tok, interruptor);
     }
 
-    typename protocol_t::write_response_t write(typename protocol_t::write_t write, order_token_t tok) {
-        return sharder->write(write, tok);
+    typename protocol_t::write_response_t write(typename protocol_t::write_t write, order_token_t tok, signal_t *interruptor) {
+        return sharder->write(write, tok, interruptor);
     }
 
 private:
