@@ -1,4 +1,4 @@
-#include "protocol/redis/pubsub.hpp"
+#include "redis/pubsub.hpp"
 
 bool pubsub_runtime_t::subscribe(std::string &channel, uint64_t connection_id, redis_output_writer *out) {
     subs_lock.co_lock(rwi_write);

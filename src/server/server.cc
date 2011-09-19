@@ -10,6 +10,7 @@
 #include "arch/arch.hpp"
 #include "db_thread_info.hpp"
 #include "memcached/tcp_conn.hpp"
+#include "memcached/file.hpp"
 #include "server/diskinfo.hpp"
 #include "concurrency/cond_var.hpp"
 #include "logger.hpp"
@@ -20,7 +21,6 @@
 #include "server/gated_store.hpp"
 #include "concurrency/promise.hpp"
 #include "arch/os_signal.hpp"
-#include "protocol/protocol.hpp"
 #include "http/http.hpp"
 #include "riak/riak.hpp"
 #include "server/key_value_store.hpp"
@@ -213,8 +213,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 std::vector<std::string>::iterator it;
                 for (it = cmd_config->import_config.file.begin(); it != cmd_config->import_config.file.end(); it++) {
                     logINF("Importing file %s...\n", it->c_str());
-                    // TODO REDIS: Conditional import based on protocol
-                    //import_memcache(it->c_str(), &store, &os_signal_cond);
+                    import_memcache(it->c_str(), &store, &os_signal_cond);
                     logINF("Done\n");
                 }
             } else {
@@ -225,8 +224,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
                 if (cmd_config->replication_config.active) {
 
-                    // TODO REDIS: Protocol based listener or just protocol_listener. Based on port number?
-                    protocol_listener_t conn_acceptor(cmd_config->port, &gated_get_store, &gated_set_store);
+                    memcache_listener_t conn_acceptor(cmd_config->port, &gated_get_store, &gated_set_store);
 
                     /* Failover callbacks. It's not safe to add or remove them when the slave is
                     running, so we have to set them all up now. */
@@ -261,8 +259,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
                 } else if (cmd_config->replication_master_active) {
 
-                    // TODO REDIS: same, factor this code out of the else if chain?
-                    protocol_listener_t conn_acceptor(cmd_config->port, &gated_get_store, &gated_set_store);
+                    memcache_listener_t conn_acceptor(cmd_config->port, &gated_get_store, &gated_set_store);
 
                     /* Make it impossible for this database file to later be used as a slave, because
                     that would confuse the replication logic. */
@@ -308,8 +305,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                     gated_get_store_t::open_t permit_gets(&gated_get_store);
                     gated_set_store_interface_t::open_t permit_sets(&gated_set_store);
 
-                    // TODO REDIS: Same, factor out?
-                    protocol_listener_t conn_acceptor(cmd_config->port, &gated_get_store, &gated_set_store);
+                    memcache_listener_t conn_acceptor(cmd_config->port, &gated_get_store, &gated_set_store);
 
                     logINF("Server will now permit queries on port %d.\n", cmd_config->port);
 

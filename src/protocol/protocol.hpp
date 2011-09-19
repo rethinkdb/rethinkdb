@@ -11,10 +11,10 @@ typedef void (*tcp_serve_func)(tcp_conn_t*, get_store_t*, set_store_interface_t*
 //typedef void (*tcp_serve_func)(std::iostream &, get_store_t*, set_store_interface_t*);
 
 // Just for this dummy namespace interface thing until clustering is better prepared
-#include "protocol/redis/redis.hpp"
+#include "redis/redis.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "unittest/dummy_namespace_interface.hpp"
-#include "protocol/redis/redis_proto.hpp"
+#include "redis/redis_proto.hpp"
 
 /* Listens for TCP connections on the given port. Handles connections with appropriate protocol */
 struct protocol_listener_t : public home_thread_mixin_t {

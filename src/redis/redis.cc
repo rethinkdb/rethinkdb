@@ -1,5 +1,5 @@
-#include "protocol/redis/redis_types.hpp"
-#include "protocol/redis/redis.hpp"
+#include "redis/redis_types.hpp"
+#include "redis/redis.hpp"
 #include "btree/slice.hpp"
 #include <iostream>
 #include <string>

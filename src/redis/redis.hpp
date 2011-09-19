@@ -3,7 +3,7 @@
 
 #include "arch/arch.hpp"
 #include "utils.hpp"
-#include "protocol/redis/redis_types.hpp"
+#include "redis/redis_types.hpp"
 #include <boost/shared_ptr.hpp>
 #include <boost/lexical_cast.hpp>
 #include <vector>

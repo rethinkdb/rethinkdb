@@ -3,7 +3,7 @@
 
 #include "buffer_cache/blob.hpp"
 #include "buffer_cache/buf_lock.hpp"
-#include "protocol/redis/redis_types.hpp"
+#include "redis/redis_types.hpp"
 #include "containers/iterators.hpp"
 #include <stack>
 

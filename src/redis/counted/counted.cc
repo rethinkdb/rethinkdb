@@ -1,4 +1,4 @@
-#include "protocol/redis/counted/counted.hpp"
+#include "redis/counted/counted.hpp"
 
 const char *counted_btree_t::at(unsigned index) {
     buf_lock_t blk(txn, root->node_id, rwi_read);

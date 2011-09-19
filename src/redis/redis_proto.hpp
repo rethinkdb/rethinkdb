@@ -5,7 +5,7 @@
 #include "arch/arch.hpp"
 #include "memcached/store.hpp"
 
-#include "protocol/redis/redis.hpp"
+#include "redis/redis.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "unittest/dummy_namespace_interface.hpp"
 

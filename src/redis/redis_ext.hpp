@@ -1,4 +1,4 @@
-#include "protocol/redis/redis.hpp"
+#include "redis/redis.hpp"
 #include "arch/runtime/coroutines.hpp"
 #include "concurrency/wait_any.hpp"
 #include <boost/lexical_cast.hpp>
@@ -380,7 +380,8 @@ private:
     
     redis_protocol_t::redis_return_type exec(redis_protocol_t::write_operation_t *oper) {
         redis_protocol_t::write_t write(oper);
-        redis_protocol_t::write_response_t response = namespace_interface->write(write, order_token_t::ignore);
+        // TODO give interruptor
+        redis_protocol_t::write_response_t response = namespace_interface->write(write, order_token_t::ignore, NULL);
         if(response.get() == NULL) {
             return redis_protocol_t::nil_result();
         } else {
@@ -390,7 +391,8 @@ private:
 
     redis_protocol_t::redis_return_type exec(redis_protocol_t::read_operation_t *oper) {
         redis_protocol_t::read_t read(oper);
-        redis_protocol_t::read_response_t response = namespace_interface->read(read, order_token_t::ignore);
+        // TODO give interruptor
+        redis_protocol_t::read_response_t response = namespace_interface->read(read, order_token_t::ignore, NULL);
         if(response.get() == NULL) {
             return redis_protocol_t::nil_result();
         } else {
@@ -406,7 +408,8 @@ private:
         // We need to retrieve the old value. How we do this is actually depenedent upon the type of
         // the key. Setting the new value is also dependent on the type of key.
         redis_protocol_t::read_t oper(new redis_protocol_t::rename_get_type(key));
-        redis_protocol_t::read_response_t response = namespace_interface->read(oper, order_token_t::ignore);
+        // TODO give interruptor
+        redis_protocol_t::read_response_t response = namespace_interface->read(oper, order_token_t::ignore, NULL);
 
         if(response.get() == NULL) {
             return redis_protocol_t::error_result("Key does not exist");

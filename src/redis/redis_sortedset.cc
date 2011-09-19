@@ -1,6 +1,6 @@
-#include "protocol/redis/redis.hpp"
-#include "protocol/redis/redis_util.hpp"
-#include "protocol/redis/counted/counted2.hpp"
+#include "redis/redis.hpp"
+#include "redis/redis_util.hpp"
+#include "redis/counted/counted2.hpp"
 #include <boost/lexical_cast.hpp>
 #include <deque>
 #include <float.h>

@@ -1,4 +1,4 @@
-#include "protocol/redis/redis_util.hpp"
+#include "redis/redis_util.hpp"
 #include "btree/iteration.hpp"
 #include <boost/bind.hpp>
 #include <iostream>

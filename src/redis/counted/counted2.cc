@@ -1,4 +1,4 @@
-#include "protocol/redis/counted/counted2.hpp"
+#include "redis/counted/counted2.hpp"
 #include <float.h>
 
 const counted2_value_t *counted_btree2_t::at(unsigned index) {

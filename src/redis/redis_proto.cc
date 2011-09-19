@@ -1,7 +1,7 @@
-#include "protocol/redis/redis_proto.hpp"
-#include "protocol/redis/redis.hpp"
-#include "protocol/redis/redis_ext.hpp"
-#include "protocol/redis/pubsub.hpp"
+#include "redis/redis_proto.hpp"
+#include "redis/redis.hpp"
+#include "redis/redis_ext.hpp"
+#include "redis/pubsub.hpp"
 
 #include <boost/variant.hpp>
 

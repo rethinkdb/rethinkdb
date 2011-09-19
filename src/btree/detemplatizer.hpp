@@ -5,7 +5,7 @@
 // files from non-btree directories here
 //#include "server/nested_demo/redis_utils.hpp"
 //#include "server/nested_demo/redis_sortedset_values.hpp"
-#include "protocol/redis/redis_types.hpp"
+#include "redis/redis_types.hpp"
 
 /*
  op_name is the name of a template function to call, arguments are the function

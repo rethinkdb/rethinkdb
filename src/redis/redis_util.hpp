@@ -1,8 +1,8 @@
 #ifndef __PROTOCOL_REDIS_UTIL_H__
 #define __PROTOCOL_REDIS_UTIL_H__
 
-#include "protocol/redis/redis_types.hpp"
-#include "protocol/redis/redis.hpp"
+#include "redis/redis_types.hpp"
+#include "redis/redis.hpp"
 #include "btree/operations.hpp"
 #include <boost/lexical_cast.hpp>
 

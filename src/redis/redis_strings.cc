@@ -1,5 +1,5 @@
-#include "protocol/redis/redis.hpp"
-#include "protocol/redis/redis_util.hpp"
+#include "redis/redis.hpp"
+#include "redis/redis_util.hpp"
 
 struct string_set_oper_t : set_oper_t {
     string_set_oper_t(std::string &key, btree_slice_t *btree, timestamp_t timestamp, order_token_t otok, bool nx = false) :

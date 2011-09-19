@@ -3,7 +3,7 @@
 
 #include "concurrency/rwi_lock.hpp"
 #include "arch/arch.hpp"
-#include "protocol/redis/redis_proto.hpp"
+#include "redis/redis_proto.hpp"
 #include <map>
 #include <list>
 

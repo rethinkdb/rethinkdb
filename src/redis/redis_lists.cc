@@ -1,5 +1,5 @@
-#include "protocol/redis/redis_util.hpp"
-#include "protocol/redis/counted/counted.hpp"
+#include "redis/redis_util.hpp"
+#include "redis/counted/counted.hpp"
 
 // Lists utilities
 struct list_set_oper_t : set_oper_t {

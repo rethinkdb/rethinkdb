@@ -1,6 +1,6 @@
-#include "protocol/redis/redis_types.hpp" 
-#include "protocol/redis/counted/counted.hpp"
-#include "protocol/redis/counted/counted2.hpp"
+#include "redis/redis_types.hpp" 
+#include "redis/counted/counted.hpp"
+#include "redis/counted/counted2.hpp"
 
 void redis_list_value_t::clear(transaction_t *txn) {
     counted_btree_t bt(get_ref(), txn->get_cache()->get_block_size(), txn);

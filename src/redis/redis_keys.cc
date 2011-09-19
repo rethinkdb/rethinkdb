@@ -1,5 +1,5 @@
-#include "protocol/redis/redis_util.hpp"
-#include "protocol/redis/redis.hpp"
+#include "redis/redis_util.hpp"
+#include "redis/redis.hpp"
 
 // KEYS commands
 
