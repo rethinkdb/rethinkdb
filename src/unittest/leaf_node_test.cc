@@ -229,7 +229,7 @@ public:
     }
 
     repli_timestamp_t NextTimestamp() {
-        tstamp_counter_ ++;
+        ++tstamp_counter_;
         repli_timestamp_t ret;
         ret.time = tstamp_counter_;
         return ret;
@@ -273,7 +273,6 @@ public:
     };
 
     void printmap(const std::map<std::string, std::string>& m) {
-
         for (std::map<std::string, std::string>::const_iterator p = m.begin(), q = m.end(); p != q; ++p) {
             printf("%s: %s;", p->first.c_str(), p->second.c_str());
         }
@@ -364,8 +363,6 @@ TEST(LeafNodeTest, TenInserts) {
 TEST(LeafNodeTest, InsertRemove) {
     LeafNodeTracker tracker;
 
-    srand(12345);
-
     const int num_keys = 10;
     std::string ks[num_keys] = { "the_relatively_long_key_that_is_relatively_long,_eh?__or_even_longer",
                            "some_other_relatively_long_key_that_...whatever.",
@@ -378,13 +375,14 @@ TEST(LeafNodeTest, InsertRemove) {
                            "marley",
                            "domino" };
 
+    rng_t rng;
     for (int i = 0; i < 26 * 26; ++i) {
         std::string v;
         v += ('a' + (i / 26));
         v += ('a' + (i % 26));
 
         for (int j = 0; j < num_keys; ++j) {
-            if (rand() % 2 == 1) {
+            if (rng.randint(2) == 1) {
                 tracker.Insert(ks[j], v);
             } else {
                 if (tracker.ShouldHave(ks[j])) {
@@ -432,7 +430,6 @@ TEST(LeafNodeTest, OneOneMerging) {
 }
 
 TEST(LeafNodeTest, SimpleMerging) {
-
     LeafNodeTracker left;
     LeafNodeTracker right;
 

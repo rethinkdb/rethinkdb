@@ -11,16 +11,15 @@
 #include "serializer/serializer.hpp"
 #include "serializer/log/config.hpp"
 #include "utils.hpp"
-#include "concurrency/cond_var.hpp"
 #include "concurrency/mutex.hpp"
 
-class log_serializer_t;
-
-#include "serializer/log/metablock/metablock_manager.hpp"
-#include "serializer/log/extents/extent_manager.hpp"
+#include "serializer/log/metablock_manager.hpp"
+#include "serializer/log/extent_manager.hpp"
 #include "serializer/log/lba/lba_list.hpp"
 #include "serializer/log/data_block_manager.hpp"
 
+class log_serializer_t;
+class cond_t;
 struct block_magic_t;
 
 /**
@@ -40,11 +39,6 @@ struct log_serializer_metablock_t {
 
 //  Data to be serialized to disk with each block.  Changing this changes the disk format!
 // TODO: This header data should maybe go to the cache
-struct ls_buf_data_t {
-    block_id_t block_id;
-    block_sequence_id_t block_sequence_id;
-} __attribute__((__packed__));
-
 typedef metablock_manager_t<log_serializer_metablock_t> mb_manager_t;
 
 // Used internally
@@ -83,7 +77,7 @@ public:
         private_dynamic_config_t private_dynamic_config;
         static_config_t static_config;
 
-        log_serializer_config_t(std::string file_name) 
+        explicit log_serializer_config_t(const std::string& file_name)
             : private_dynamic_config(file_name)
         { }
 
@@ -96,10 +90,6 @@ public:
     };
 
     typedef log_serializer_config_t config_t;
-    
-    dynamic_config_t dynamic_config;
-    private_dynamic_config_t private_config;
-    static_config_t static_config;
 
 public:
 
@@ -175,15 +165,6 @@ private:
     /* This mess is because the serializer is still mostly FSM-based */
     bool shutdown(cond_t *cb);
     bool next_shutdown_step();
-    cond_t *shutdown_callback;
-
-    enum shutdown_state_t {
-        shutdown_begin,
-        shutdown_waiting_on_serializer,
-        shutdown_waiting_on_datablock_manager,
-        shutdown_waiting_on_lba
-    } shutdown_state;
-    bool shutdown_in_one_shot;
 
     virtual void on_datablock_manager_shutdown();
     virtual void on_lba_shutdown();
@@ -210,6 +191,20 @@ private:
 
     void consider_start_gc();
 
+    dynamic_config_t dynamic_config;
+    private_dynamic_config_t private_config;
+    static_config_t static_config;
+
+    cond_t *shutdown_callback;
+
+    enum shutdown_state_t {
+        shutdown_begin,
+        shutdown_waiting_on_serializer,
+        shutdown_waiting_on_datablock_manager,
+        shutdown_waiting_on_lba
+    } shutdown_state;
+    bool shutdown_in_one_shot;
+
     enum state_t {
         state_unstarted,
         state_starting_up,
@@ -235,6 +230,8 @@ private:
     int active_write_count;
 
     block_sequence_id_t latest_block_sequence_id;
+
+    DISABLE_COPYING(log_serializer_t);
 };
 
 #endif /* __LOG_SERIALIZER_HPP__ */

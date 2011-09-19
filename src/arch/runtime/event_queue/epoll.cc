@@ -16,7 +16,6 @@
 #include "utils.hpp"
 #include "arch/runtime/event_queue.hpp"
 #include "arch/runtime/thread_pool.hpp"
-#include "logger.hpp"
 #include "perfmon.hpp"
 
 int user_to_epoll(int mode) {
@@ -81,7 +80,7 @@ void epoll_event_queue_t::run() {
         /* Sanity check: Make sure epoll() didn't give us any events we didn't ask for */
         for (int i = 0; i < nevents; i++) {
             int events_gotten = epoll_to_user(events[i].events);
-            int events_wanted = events_requested[(linux_event_callback_t*)events[i].data.ptr];
+            int events_wanted = events_requested[reinterpret_cast<linux_event_callback_t *>(events[i].data.ptr)];
             if (events_gotten & poll_event_in) rassert(events_wanted & poll_event_in);
             if (events_gotten & poll_event_out) rassert(events_wanted & poll_event_out);
         }
@@ -104,7 +103,7 @@ void epoll_event_queue_t::run() {
                 // notifying us to skip it.
                 continue;
             } else {
-                linux_event_callback_t *cb = (linux_event_callback_t*)events[i].data.ptr;
+                linux_event_callback_t *cb = reinterpret_cast<linux_event_callback_t *>(events[i].data.ptr);
                 int events_gotten = epoll_to_user(events[i].events);
 #ifndef NDEBUG
                 int events_wanted = events_requested[cb];
@@ -133,7 +132,7 @@ void epoll_event_queue_t::watch_resource(fd_t resource, int watch_mode, linux_ev
     epoll_event event;
     
     event.events = EPOLLET | user_to_epoll(watch_mode);
-    event.data.ptr = (void*)cb;
+    event.data.ptr = cb;
     
     int res = epoll_ctl(epoll_fd, EPOLL_CTL_ADD, resource, &event);
     guarantee_err(res == 0, "Could not watch resource\n");
@@ -146,7 +145,7 @@ void epoll_event_queue_t::adjust_resource(fd_t resource, int watch_mode, linux_e
     epoll_event event;
     
     event.events = EPOLLET | user_to_epoll(watch_mode);
-    event.data.ptr = (void*)cb;
+    event.data.ptr = cb;
     
     int res = epoll_ctl(epoll_fd, EPOLL_CTL_MOD, resource, &event);
     guarantee_err(res == 0, "Could not adjust resource");
@@ -154,7 +153,7 @@ void epoll_event_queue_t::adjust_resource(fd_t resource, int watch_mode, linux_e
     // Go through the queue of messages in the current poll cycle and if any are referring
     // to the resource we are adjusting, remove any events that we are no longer requesting.
     for (int i = 0; i < nevents; i++) {
-        if (events[i].data.ptr == (void*)cb) {
+        if (events[i].data.ptr == cb) {
             events[i].events &= EPOLLET | user_to_epoll(watch_mode);
         }
     }
@@ -177,7 +176,7 @@ void epoll_event_queue_t::forget_resource(fd_t resource, linux_event_callback_t 
     // clean out the ones that are referencing the resource we're
     // being asked to forget.
     for (int i = 0; i < nevents; i++) {
-        if (events[i].data.ptr == (void*)cb) {
+        if (events[i].data.ptr == cb) {
             events[i].data.ptr = NULL;
         }
     }

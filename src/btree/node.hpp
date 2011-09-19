@@ -11,13 +11,6 @@
 #include "memcached/store.hpp"
 #include "utils.hpp"
 
-/* opaque value is really just a stand in for void * it's used in some rare
- * cases where we don't actually need to know the type of the data we're
- * working with. This basically only happens in patches where we pass in the
- * value size ahead of time and can just copy the data as raw data. Still it's
- * a little be legacy and should maybe be removed */
-struct opaque_value_t;
-
 template <class Value>
 class value_sizer_t;
 
@@ -46,7 +39,7 @@ private:
 template <>
 class value_sizer_t<memcached_value_t> : public value_sizer_t<void> {
 public:
-    value_sizer_t<memcached_value_t>(block_size_t bs) : block_size_(bs) { }
+    explicit value_sizer_t<memcached_value_t>(block_size_t bs) : block_size_(bs) { }
 
     static const memcached_value_t *as_memcached(const void *p) {
         return reinterpret_cast<const memcached_value_t *>(p);
@@ -150,10 +143,10 @@ to represent the fact that its size may vary on disk. A btree_key_buffer_t is a 
 with type. */
 struct btree_key_buffer_t {
     btree_key_buffer_t() { }
-    btree_key_buffer_t(const btree_key_t *k) {
+    explicit btree_key_buffer_t(const btree_key_t *k) {
         assign(k);
     }
-    btree_key_buffer_t(const store_key_t &store_key) {
+    explicit btree_key_buffer_t(const store_key_t &store_key) {
         btree_key.size = store_key.size;
         memcpy(btree_key.contents, store_key.contents, store_key.size);
     }

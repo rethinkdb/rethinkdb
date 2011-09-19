@@ -66,8 +66,11 @@ static bool run_addr2line(char *executable, char *address, char *line, int line_
     pclose(fline);
     if (count == 0) return false;
 
-    if (line[count-1] == '\n') line[count-1] = '\0';
-    else line[count] = '\0';
+    if (line[count-1] == '\n') {
+        line[count-1] = '\0';
+    } else {
+        line[count] = '\0';
+    }
 
     if (strcmp(line, "??:0") == 0) return false;
 
@@ -84,8 +87,7 @@ void print_backtrace(FILE *out, bool use_addr2line) {
     if (symbols) {
         for (int i = 0; i < size; i ++) {
             // Parse each line of the backtrace
-	    scoped_malloc<char> line(strlen(symbols[i])+1);
-            strcpy(line.get(), symbols[i]);
+	    scoped_malloc<char> line(symbols[i], symbols[i] + (strlen(symbols[i]) + 1));
             char *executable, *function, *offset, *address;
 
             fprintf(out, "%d: ", i+1);

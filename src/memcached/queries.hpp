@@ -5,17 +5,19 @@
 #include <stdio.h>
 
 #include "errors.hpp"
+#include <boost/intrusive_ptr.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/variant.hpp>
 
 #include "config/args.hpp"
+#include "containers/data_buffer.hpp"
 #include "utils.hpp"
 
 typedef uint32_t mcflags_t;
 typedef uint32_t exptime_t;
 typedef uint64_t cas_t;
 
-class data_provider_t;
+class data_buffer_t;
 
 template <typename T> struct one_way_iterator_t;
 
@@ -31,7 +33,7 @@ struct store_key_t {
         assign(sz, buf);
     }
 
-    store_key_t(const std::string& s) {
+    explicit store_key_t(const std::string& s) {
         assign(s.size(), s.data());
     }
 
@@ -51,8 +53,10 @@ struct store_key_t {
 
     static store_key_t max() {
         uint8_t buf[MAX_KEY_SIZE];
-        for (int i = 0; i < MAX_KEY_SIZE; i++) buf[i] = 255;
-        return store_key_t(MAX_KEY_SIZE, (char *)buf);
+        for (int i = 0; i < MAX_KEY_SIZE; i++) {
+            buf[i] = 255;
+        }
+        return store_key_t(MAX_KEY_SIZE, reinterpret_cast<char *>(buf));
     }
 
     bool increment() {
@@ -133,7 +137,7 @@ struct get_query_t {
 };
 
 struct get_result_t {
-    get_result_t(boost::shared_ptr<data_provider_t> v, mcflags_t f, cas_t c) :
+    get_result_t(const boost::intrusive_ptr<data_buffer_t>& v, mcflags_t f, cas_t c) :
         is_not_allowed(false), value(v), flags(f), cas(c) { }
     get_result_t() :
         is_not_allowed(false), value(), flags(0), cas(0) { }
@@ -141,9 +145,8 @@ struct get_result_t {
     /* If true, then all other fields should be ignored. */
     bool is_not_allowed;
 
-    // NULL means not found. Parts of the store may wait for the data_provider_t's destructor,
-    // so don't hold on to it forever.
-    boost::shared_ptr<data_provider_t> value;
+    // NULL means not found.
+    boost::intrusive_ptr<data_buffer_t> value;
 
     mcflags_t flags;
     cas_t cas;
@@ -164,23 +167,23 @@ struct rget_query_t {
     store_key_t right_key;
 };
 
-struct key_with_data_provider_t {
+struct key_with_data_buffer_t {
     std::string key;
     mcflags_t mcflags;
-    boost::shared_ptr<data_provider_t> value_provider;
+    boost::intrusive_ptr<data_buffer_t> value_provider;
 
-    key_with_data_provider_t(const std::string& _key, mcflags_t _mcflags, const boost::shared_ptr<data_provider_t>& _value_provider)
+    key_with_data_buffer_t(const std::string& _key, mcflags_t _mcflags, const boost::intrusive_ptr<data_buffer_t>& _value_provider)
 	: key(_key), mcflags(_mcflags), value_provider(_value_provider) { }
 
     struct less {
-        bool operator()(const key_with_data_provider_t &pair1, const key_with_data_provider_t &pair2) {
+        bool operator()(const key_with_data_buffer_t& pair1, const key_with_data_buffer_t& pair2) {
             return pair1.key < pair2.key;
         }
     };
 };
 
 // A NULL unique pointer means not allowed
-typedef boost::shared_ptr<one_way_iterator_t<key_with_data_provider_t> > rget_result_t;
+typedef boost::shared_ptr<one_way_iterator_t<key_with_data_buffer_t> > rget_result_t;
 
 /* `gets` */
 
@@ -210,7 +213,7 @@ struct sarc_mutation_t {
 
     /* The value to give the key; must not be NULL.
     TODO: Should NULL mean a deletion? */
-    boost::shared_ptr<data_provider_t> data;
+    boost::intrusive_ptr<data_buffer_t> data;
 
     /* The flags to store with the value */
     mcflags_t flags;
@@ -294,7 +297,7 @@ enum append_prepend_kind_t { append_prepend_APPEND, append_prepend_PREPEND };
 struct append_prepend_mutation_t {
     append_prepend_kind_t kind;
     store_key_t key;
-    boost::shared_ptr<data_provider_t> data;
+    boost::intrusive_ptr<data_buffer_t> data;
 };
 
 enum append_prepend_result_t {

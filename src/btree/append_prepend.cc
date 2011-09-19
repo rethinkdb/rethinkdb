@@ -1,11 +1,11 @@
 #include "btree/append_prepend.hpp"
 
 #include "btree/modify_oper.hpp"
-#include "data_provider.hpp"
+#include "containers/buffer_group.hpp"
 
 struct btree_append_prepend_oper_t : public btree_modify_oper_t<memcached_value_t> {
 
-    btree_append_prepend_oper_t(boost::shared_ptr<data_provider_t> _data, bool _append)
+    btree_append_prepend_oper_t(boost::intrusive_ptr<data_buffer_t> _data, bool _append)
         : data(_data), append(_append)
     { }
 
@@ -15,7 +15,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t<memcached_value_
             return false;
         }
 
-        size_t new_size = value->value_size() + data->get_size();
+        size_t new_size = value->value_size() + data->size();
         if (new_size > MAX_VALUE_SIZE) {
             result = apr_too_large;
             return false;
@@ -27,23 +27,23 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t<memcached_value_
 
         size_t old_size = b.valuesize();
         if (append) {
-            b.append_region(txn, data->get_size());
-            b.expose_region(txn, rwi_write, old_size, data->get_size(), &buffer_group, &acqs);
+            b.append_region(txn, data->size());
+            b.expose_region(txn, rwi_write, old_size, data->size(), &buffer_group, &acqs);
         } else {
-            b.prepend_region(txn, data->get_size());
-            b.expose_region(txn, rwi_write, 0, data->get_size(), &buffer_group, &acqs);
+            b.prepend_region(txn, data->size());
+            b.expose_region(txn, rwi_write, 0, data->size(), &buffer_group, &acqs);
         }
 
-        data->get_data_into_buffers(&buffer_group);
+        buffer_group_copy_data(&buffer_group, data->buf(), data->size());
         result = apr_success;
         return true;
     }
 
     int compute_expected_change_count(block_size_t block_size) {
-        if (data->get_size() < MAX_IN_NODE_VALUE_SIZE) {
+        if (data->size() < MAX_IN_NODE_VALUE_SIZE) {
             return 1;
         } else {
-            size_t size = ceil_aligned(data->get_size(), block_size.value());
+            size_t size = ceil_aligned(data->size(), block_size.value());
             // one for the leaf node plus the number of blocks required to hold the large value
             return 1 + size / block_size.value();
         }
@@ -51,11 +51,11 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t<memcached_value_
 
     append_prepend_result_t result;
 
-    boost::shared_ptr<data_provider_t> data;
+    boost::intrusive_ptr<data_buffer_t> data;
     bool append;   // true = append, false = prepend
 };
 
-append_prepend_result_t btree_append_prepend(const store_key_t &key, btree_slice_t *slice, boost::shared_ptr<data_provider_t> data, bool append, castime_t castime, order_token_t token) {
+append_prepend_result_t btree_append_prepend(const store_key_t &key, btree_slice_t *slice, const boost::intrusive_ptr<data_buffer_t>& data, bool append, castime_t castime, order_token_t token) {
     btree_append_prepend_oper_t oper(data, append);
     run_btree_modify_oper<memcached_value_t>(&oper, slice, key, castime, token);
     return oper.result;

@@ -173,6 +173,7 @@ boost::optional<leaf_iterator_t<Value>*> slice_leaves_iterator_t<Value>::get_nex
             block_id_t child_id = get_child_id(state.node, state.index);
             return get_leftmost_leaf(child_id);
         } else {
+            on_thread_t th(slice_home_thread);
             delete state.lock;  // this also releases the memory used by state.node
         }
     }

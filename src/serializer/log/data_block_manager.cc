@@ -135,7 +135,6 @@ void data_block_manager_t::start_existing(direct_file_t *file, metablock_mixin_t
     state = state_ready;
 }
 
-/* TODO: Read ahead should be refactored such that it becomes less dependent on the serializer implementation  */
 struct dbm_read_ahead_fsm_t :
     public iocallback_t
 {
@@ -144,8 +143,8 @@ public:
     iocallback_t *callback;
     off64_t extent;
     void *read_ahead_buf;
-    size_t read_ahead_size;
-    size_t read_ahead_offset;
+    off64_t read_ahead_size;
+    off64_t read_ahead_offset;
     off64_t off_in;
     void *buf_out;
 
@@ -155,7 +154,7 @@ public:
         extent = floor_aligned(off_in, parent->static_config->extent_size());
 
         // Read up to MAX_READ_AHEAD_BLOCKS blocks
-        read_ahead_size = std::min(parent->static_config->extent_size(), MAX_READ_AHEAD_BLOCKS * parent->static_config->block_size().ser_value());
+        read_ahead_size = std::min<int64_t>(parent->static_config->extent_size(), MAX_READ_AHEAD_BLOCKS * int64_t(parent->static_config->block_size().ser_value()));
         // We divide the extent into chunks of size read_ahead_size, then select the one which contains off_in
         read_ahead_offset = extent + (off_in - extent) / read_ahead_size * read_ahead_size;
         read_ahead_buf = malloc_aligned(read_ahead_size, DEVICE_BLOCK_SIZE);
@@ -163,23 +162,19 @@ public:
     }
 
     void on_io_complete() {
-        rassert(off_in >= (off64_t)read_ahead_offset);
-        rassert(off_in < (off64_t)read_ahead_offset + (off64_t)read_ahead_size);
-#ifndef NDEBUG
-        {
-            bool modcmp = (off_in - (off64_t)read_ahead_offset) % parent->static_config->block_size().ser_value() == 0;
-            rassert(modcmp);
-        }
-#endif
+        rassert(off_in >= read_ahead_offset);
+        rassert(off_in < read_ahead_offset + read_ahead_size);
+        rassert(divides(parent->static_config->block_size().ser_value(), off_in - read_ahead_offset));
 
         // Walk over the read ahead buffer and copy stuff...
-        for (uint64_t current_block = 0; current_block * parent->static_config->block_size().ser_value() < read_ahead_size; ++current_block) {
+        for (int64_t current_block = 0; current_block * parent->static_config->block_size().ser_value() < read_ahead_size; ++current_block) {
 
             const char *current_buf = reinterpret_cast<char *>(read_ahead_buf) + (current_block * parent->static_config->block_size().ser_value());
-            const size_t current_offset = read_ahead_offset + (current_block * parent->static_config->block_size().ser_value());
+
+            const off64_t current_offset = read_ahead_offset + (current_block * parent->static_config->block_size().ser_value());
 
             // Copy either into buf_out or create a new buffer for read ahead
-            if ((off64_t)current_offset == off_in) {
+            if (current_offset == off_in) {
                 ls_buf_data_t *data = reinterpret_cast<ls_buf_data_t *>(buf_out);
                 --data;
                 memcpy(data, current_buf, parent->static_config->block_size().ser_value());
@@ -190,9 +185,7 @@ public:
                 bool block_is_live = block_id != 0;
                 // Do this by checking the LBA
                 const flagged_off64_t flagged_lba_offset = parent->serializer->lba_index->get_block_offset(block_id);
-                block_is_live = block_is_live && !flagged_lba_offset.get_delete_bit() && flagged_lba_offset.has_value();
-                // As a last sanity check, verify that the offsets match
-                block_is_live = block_is_live && (off64_t)current_offset == flagged_lba_offset.parts.value;
+                block_is_live = block_is_live && flagged_lba_offset.has_value() && current_offset == flagged_lba_offset.get_value();
 
                 if (!block_is_live) {
                     continue;
@@ -236,8 +229,7 @@ bool data_block_manager_t::read(off64_t off_in, void *buf_out, file_account_t *i
     if (should_perform_read_ahead(off_in)) {
         // We still need an fsm for read ahead as additional work has to be done on io complete...
         new dbm_read_ahead_fsm_t(this, off_in, buf_out, io_account, cb);
-    }
-    else {
+    } else {
         ls_buf_data_t *data = reinterpret_cast<ls_buf_data_t *>(buf_out);
         data--;
         dbfile->read_async(off_in, static_config->block_size().ser_value(), data, io_account, cb);
@@ -550,7 +542,7 @@ void data_block_manager_t::run_gc() {
                     block_id_t id;
                     // The block is either referenced by an index or by a token (or both)
                     if (gc_state.current_entry->i_array[i]) {
-                        id = (reinterpret_cast<ls_buf_data_t *>(block))->block_id;;
+                        id = (reinterpret_cast<ls_buf_data_t *>(block))->block_id;
                         rassert(id != NULL_BLOCK_ID);
                     } else {
                         id = NULL_BLOCK_ID;
@@ -845,13 +837,25 @@ void data_block_manager_t::enable_gc() {
 }
 
 
-void data_block_manager_t::gc_stat_t::operator++(int) { val++; (*perfmon)++;}
+void data_block_manager_t::gc_stat_t::operator++(int) {
+    val++;
+    (*perfmon)++;
+}
 
-void data_block_manager_t::gc_stat_t::operator+=(int64_t num) { val += num; *perfmon += num; }
+void data_block_manager_t::gc_stat_t::operator+=(int64_t num) {
+    val += num;
+    *perfmon += num;
+}
 
-void data_block_manager_t::gc_stat_t::operator--(int) { val--; perfmon--;}
+void data_block_manager_t::gc_stat_t::operator--(int) {
+    val--;
+    perfmon--;
+}
 
-void data_block_manager_t::gc_stat_t::operator-=(int64_t num) { val -= num; *perfmon -= num; }
+void data_block_manager_t::gc_stat_t::operator-=(int64_t num) {
+    val -= num;
+    *perfmon -= num;
+}
 
 data_block_manager_t::gc_stats_t::gc_stats_t()
     : old_total_blocks(&pm_serializer_old_total_blocks), old_garbage_blocks(&pm_serializer_old_garbage_blocks) { }

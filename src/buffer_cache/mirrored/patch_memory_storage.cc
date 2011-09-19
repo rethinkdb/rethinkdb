@@ -41,12 +41,11 @@ void patch_memory_storage_t::filter_applied_patches(block_id_t block_id, block_s
     map_entry->second.filter_before_block_sequence(block_sequence_id);
     if (map_entry->second.empty()) {
         patch_map.erase(map_entry);
-    }
+    } else {
 #ifndef NDEBUG
-    else {
         map_entry->second.verify_patches_list(block_sequence_id);
-    }
 #endif
+    }
 }
 
 // Returns true iff any changes have been made to the buf
@@ -104,11 +103,12 @@ void patch_memory_storage_t::drop_patches(block_id_t block_id) {
 
 patch_memory_storage_t::block_patch_list_t::block_patch_list_t() {
     patches_.reserve(32);
-    affected_data_size_ = 0;
+    patches_serialized_size_ = 0;
 }
 
 // Deletes all stored patches
 patch_memory_storage_t::block_patch_list_t::~block_patch_list_t() {
+    rassert(patches_serialized_size_ >= 0);
     for (std::vector<buf_patch_t *>::iterator p = patches_.begin(), e = patches_.end(); p != e; ++p) {
         delete *p;
     }
@@ -116,14 +116,15 @@ patch_memory_storage_t::block_patch_list_t::~block_patch_list_t() {
 
 void patch_memory_storage_t::block_patch_list_t::add_patch(buf_patch_t *patch) {
     patches_.push_back(patch);
-    affected_data_size_ += patch->get_affected_data_size();
+    rassert(patches_serialized_size_ >= 0);
+    patches_serialized_size_ += patch->get_serialized_size();
 }
 
 void patch_memory_storage_t::block_patch_list_t::filter_before_block_sequence(block_sequence_id_t block_sequence_id) {
     std::vector<buf_patch_t *>::iterator first_patch_to_keep = patches_.end();
     for (std::vector<buf_patch_t *>::iterator p = patches_.begin(), e = patches_.end(); p != e; ++p) {
         if ((*p)->get_block_sequence_id() < block_sequence_id) {
-            affected_data_size_ -= (*p)->get_affected_data_size();
+            patches_serialized_size_ -= (*p)->get_serialized_size();
             delete *p;
         } else {
             first_patch_to_keep = p;
@@ -131,6 +132,8 @@ void patch_memory_storage_t::block_patch_list_t::filter_before_block_sequence(bl
         }
     }
     patches_.erase(patches_.begin(), first_patch_to_keep);
+
+    rassert(patches_serialized_size_ >= 0);
 }
 
 #ifndef NDEBUG
@@ -150,5 +153,6 @@ void patch_memory_storage_t::block_patch_list_t::verify_patches_list(block_seque
         ++previous_patch_counter;
         previous_block_sequence = (*p)->get_block_sequence_id();
     }
+    guarantee(patches_serialized_size_ >= 0);
 }
 #endif

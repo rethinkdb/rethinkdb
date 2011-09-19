@@ -81,9 +81,9 @@ protected:
     `produce_next_value()`; `produce_next_value()` will only be called when the
     `watchable_value_t<bool>` is true, but it must never fail or block. */
 
-    passive_producer_t(availability_t *a) : available(a) { }
+    explicit passive_producer_t(availability_t *a) : available(a) { }
     virtual value_t produce_next_value() = 0;
-    virtual ~passive_producer_t() { };
+    virtual ~passive_producer_t() { }
 
 private:
     DISABLE_COPYING(passive_producer_t);

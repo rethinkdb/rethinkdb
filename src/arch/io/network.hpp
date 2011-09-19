@@ -141,7 +141,7 @@ public:
      * impetus for this class comes from wanting to use network connection's with
      * Boost's spirit parser */
 
-    class iterator 
+    class iterator
         : public boost::iterator_facade<iterator, const char, boost::forward_traversal_tag>
     {
     friend class linux_tcp_conn_t;
@@ -160,14 +160,14 @@ public:
         iterator();
         iterator(linux_tcp_conn_t *, size_t);
         iterator(linux_tcp_conn_t *, bool);
-        iterator(iterator const& );
+        iterator(const iterator&);
         ~iterator();
         char operator*();
         void operator++();
         void operator++(int);
-        bool operator==(iterator const &);
-        bool operator!=(iterator const &);
-        bool operator<(iterator const &);
+        bool operator==(const iterator&);
+        bool operator!=(const iterator&);
+        bool operator<(const iterator&);
     };
 
 public:

@@ -7,8 +7,8 @@
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/drain_semaphore.hpp"
 #include "concurrency/mutex.hpp"
+#include "containers/data_buffer.hpp"
 #include "containers/scoped_malloc.hpp"
-#include "data_provider.hpp"
 #include "replication/multistream.hpp"
 #include "replication/net_structs.hpp"
 #include "replication/heartbeat_manager.hpp"
@@ -18,7 +18,7 @@ namespace replication {
 
 template <class T>
 struct stream_pair {
-    boost::shared_ptr<buffered_data_provider_t> stream;
+    boost::intrusive_ptr<data_buffer_t> stream;
     T *data;
 
     /* The `stream_pair()` constructor takes a buffer that contains the beginning of a multipart
@@ -27,16 +27,14 @@ struct stream_pair {
     fill in the rest of the value. */
     // This uses key_size, which is completely crap.
     stream_pair(const char *beg, const char *end, ssize_t size = 0) : stream(), data(NULL) {
-        void *p;
         size_t m = sizeof(T) + reinterpret_cast<const T *>(beg)->key_size;
 
         const char *cutpoint = beg + m;
         data = reinterpret_cast<T *>(malloc(m));
         memcpy(data, beg, m);
 
-        stream.reset(new buffered_data_provider_t(size == 0 ? end - cutpoint : size, &p));
-
-        memcpy(p, cutpoint, end - cutpoint);
+        stream = data_buffer_t::create(size == 0 ? end - cutpoint : size);
+        memcpy(stream->buf(), cutpoint, end - cutpoint);
     }
 
     stream_pair(const stream_pair& other) : data(NULL) {
@@ -137,13 +135,13 @@ public:
     void send(net_backfill_complete_t *msg);
     void send(net_backfill_delete_range_t *msg);
     void send(net_backfill_delete_t *msg);
-    void send(net_backfill_set_t *msg, const char *key, boost::shared_ptr<data_provider_t> value);
+    void send(net_backfill_set_t *msg, const char *key, const boost::intrusive_ptr<data_buffer_t>& value);
     void send(net_get_cas_t *msg);
-    void send(net_sarc_t *msg, const char *key, boost::shared_ptr<data_provider_t> value);
+    void send(net_sarc_t *msg, const char *key, const boost::intrusive_ptr<data_buffer_t>& value);
     void send(net_incr_t *msg);
     void send(net_decr_t *msg);
-    void send(net_append_t *msg, const char *key, boost::shared_ptr<data_provider_t> value);
-    void send(net_prepend_t *msg, const char *key, boost::shared_ptr<data_provider_t> value);
+    void send(net_append_t *msg, const char *key, const boost::intrusive_ptr<data_buffer_t>& value);
+    void send(net_prepend_t *msg, const char *key, const boost::intrusive_ptr<data_buffer_t>& value);
     void send(net_delete_t *msg);
     void send(net_timebarrier_t msg);
     void send(net_heartbeat_t msg);
@@ -160,7 +158,7 @@ private:
     void sendobj(uint8_t msgcode, net_struct_type *msg);
 
     template <class net_struct_type>
-    void sendobj(uint8_t msgcode, net_struct_type *msg, const char *key, boost::shared_ptr<data_provider_t> data);
+    void sendobj(uint8_t msgcode, net_struct_type *msg, const char *key, const boost::intrusive_ptr<data_buffer_t>& data);
 
     void send_hello(const mutex_acquisition_t& proof_of_acquisition);
 

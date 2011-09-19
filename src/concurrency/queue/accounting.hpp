@@ -22,7 +22,7 @@ class accounting_queue_t :
     public home_thread_mixin_t
 {
 public:
-    accounting_queue_t(int _batch_factor) :
+    explicit accounting_queue_t(int _batch_factor) :
         passive_producer_t<value_t>(&available_control),
         total_shares(0),
         selector(0),
@@ -42,7 +42,7 @@ public:
     {
 	struct calls_on_availability_changed_t {
 	    account_t *parent_;
-	    calls_on_availability_changed_t(account_t *parent) : parent_(parent) { }
+	    explicit calls_on_availability_changed_t(account_t *parent) : parent_(parent) { }
 	    void operator()() { parent_->on_availability_changed(); }
 	};
 
@@ -63,8 +63,11 @@ public:
             on_thread_t thread_switcher(parent->home_thread());
             parent->assert_thread();
             source->available->unset_callback();
-            if (active) deactivate();
-            else parent->inactive_accounts.remove(this);
+            if (active) {
+                deactivate();
+            } else {
+                parent->inactive_accounts.remove(this);
+            }
             parent->available_control.set_available(!parent->active_accounts.empty());
         }
 

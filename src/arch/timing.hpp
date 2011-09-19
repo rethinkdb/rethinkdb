@@ -8,7 +8,12 @@
 
 /* Coroutine function that delays for some number of milliseconds. */
 
-void nap(int ms);
+void nap(int ms) THROWS_NOTHING;
+
+/* This variant takes an interruptor, and throws `interrupted_exc_t` if the
+interruptor is pulsed before the timeout is up */
+
+void nap(int ms, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
 class timer_token_t;
 
@@ -18,7 +23,7 @@ timer "rings". */
 
 struct signal_timer_t : public signal_t {
 
-    signal_timer_t(int ms);
+    explicit signal_timer_t(int ms);
     ~signal_timer_t();
 
 private:

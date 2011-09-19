@@ -208,8 +208,11 @@ struct reader_t
             extent->read_step_2(&read_info, parent->index);
             parent->active_readers--;
             parent->start_more_readers();
-            if (index == (int)parent->readers.size() - 1) parent->done();
-            else parent->readers[index+1]->on_prev_done();
+            if (index == (int)parent->readers.size() - 1) {
+                parent->done();
+            } else {
+                parent->readers[index+1]->on_prev_done();
+            }
             delete this;
         }
     };
@@ -264,18 +267,13 @@ void lba_disk_structure_t::prepare_metablock(lba_shard_metablock_t *mb_out) {
         mb_out->last_lba_extent_offset = last_extent->offset;
         mb_out->last_lba_extent_entries_count = last_extent->count;
 
-#ifndef NDEBUG
-        {
-            bool modcmp = (offsetof(lba_extent_t, entries[0]) + sizeof(lba_entry_t) * mb_out->last_lba_extent_entries_count)
-                % DEVICE_BLOCK_SIZE == 0;
-            rassert(modcmp);
-        }
-#endif
+        rassert(divides(DEVICE_BLOCK_SIZE, offsetof(lba_extent_t, entries[0]) + sizeof(lba_entry_t) * mb_out->last_lba_extent_entries_count));
+
     } else {
         mb_out->last_lba_extent_offset = NULL_OFFSET;
         mb_out->last_lba_extent_entries_count = 0;
     }
-    
+
     if (extents_in_superblock.size()) {
         mb_out->lba_superblock_offset = superblock_offset;
         mb_out->lba_superblock_entries_count = extents_in_superblock.size();

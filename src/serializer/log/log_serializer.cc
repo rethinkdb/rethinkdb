@@ -12,11 +12,6 @@
 #include "do_on_thread.hpp"
 #include "perfmon.hpp"
 
-// TODO: This is just kind of a hack. See types.hpp for more information
-uint64_t block_size_t::value() const {
-    return ser_bs_ - sizeof(ls_buf_data_t);
-}
-
 void log_serializer_t::create(dynamic_config_t dynamic_config, private_dynamic_config_t private_dynamic_config, static_config_t static_config) {
 
     log_serializer_on_disk_static_config_t *on_disk_config = &static_config;
@@ -28,10 +23,7 @@ void log_serializer_t::create(dynamic_config_t dynamic_config, private_dynamic_c
     metablock_t metablock;
     bzero(&metablock, sizeof(metablock));
 
-    /* The extent manager's portion of the metablock includes a number indicating how many extents
-    are in use. We have to initialize that to the actual number of extents in use for an empty
-    database, which is the same as the number of metablock extents. */
-    extent_manager_t::prepare_initial_metablock(&metablock.extent_manager_part, MB_NEXTENTS);
+    extent_manager_t::prepare_initial_metablock(&metablock.extent_manager_part);
 
     data_block_manager_t::prepare_initial_metablock(&metablock.data_block_manager_part);
     lba_index_t::prepare_initial_metablock(&metablock.lba_index_part);
@@ -228,8 +220,6 @@ void log_serializer_t::check_existing(const char *filename, check_callback_t *cb
 }
 
 void *log_serializer_t::malloc() {
-    rassert(state == state_ready || state == state_shutting_down);
-    
     // TODO: we shouldn't use malloc_aligned here, we should use our
     // custom allocation system instead (and use corresponding
     // free). This is tough because serializer object may not be on
@@ -245,8 +235,6 @@ void *log_serializer_t::malloc() {
 }
 
 void *log_serializer_t::clone(void *_data) {
-    rassert(state == state_ready || state == state_shutting_down);
-    
     // TODO: we shouldn't use malloc_aligned here, we should use our
     // custom allocation system instead (and use corresponding
     // free). This is tough because serializer object may not be on
@@ -259,8 +247,6 @@ void *log_serializer_t::clone(void *_data) {
 }
 
 void log_serializer_t::free(void *ptr) {
-    rassert(state == state_ready || state == state_shutting_down);
-
     char *data = reinterpret_cast<char *>(ptr);
     data -= sizeof(ls_buf_data_t);
     ::free(reinterpret_cast<void *>(data));
@@ -321,7 +307,11 @@ boost::intrusive_ptr<ls_block_token_pointee_t> get_ls_block_token(const boost::i
 }
 #else
 boost::intrusive_ptr<ls_block_token_pointee_t> get_ls_block_token(const boost::intrusive_ptr<scs_block_token_t<log_serializer_t> >& tok) {
-    return tok->inner_token;
+    if (tok) {
+        return tok->inner_token;
+    } else {
+        return boost::intrusive_ptr<ls_block_token_pointee_t>();
+    }
 }
 #endif  // SEMANTIC_SERIALIZER_CHECK
 
@@ -354,17 +344,15 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
                 ls_block_token_pointee_t *ls_token = token.get();
                 rassert(ls_token);
                 rassert(token_offsets.find(ls_token) != token_offsets.end());
-                offset.set_value(token_offsets[ls_token]);
+                offset = flagged_off64_t::make(token_offsets[ls_token]);
 
                 /* mark the life */
                 data_block_manager->mark_live(offset.get_value());
+            } else {
+                offset = flagged_off64_t::unused();
             }
-            else
-                offset.remove_value();
         }
 
-        // Update block info (delete bit, recency)
-        if (op.delete_bit) offset.set_delete_bit(op.delete_bit.get());
         repli_timestamp_t recency = op.recency ? op.recency.get()
                                   : lba_index->get_block_recency(op.block_id);
 
@@ -534,7 +522,7 @@ void log_serializer_t::remap_block_to_new_offset(off64_t current_offset, off64_t
             offset_tokens.insert(std::pair<off64_t, ls_block_token_pointee_t *>(new_offset, offset_token_it->second));
 
             std::multimap<off64_t, ls_block_token_pointee_t *>::iterator prev = offset_token_it;
-            ++ offset_token_it;
+            ++offset_token_it;
             offset_tokens.erase(prev);
         }
     }
@@ -590,7 +578,7 @@ bool log_serializer_t::get_delete_bit(block_id_t id) {
     rassert(state == state_ready);
 
     flagged_off64_t offset = lba_index->get_block_offset(id);
-    return offset.get_delete_bit();
+    return !offset.has_value();
 }
 
 repli_timestamp_t log_serializer_t::get_recency(block_id_t id) {
@@ -706,19 +694,13 @@ void log_serializer_t::enable_gc() {
 }
 
 void log_serializer_t::register_read_ahead_cb(serializer_read_ahead_callback_t *cb) {
-    if (get_thread_id() != home_thread()) {
-        do_on_thread(home_thread(), boost::bind(&log_serializer_t::register_read_ahead_cb, this, cb));
-        return;
-    }
+    assert_thread();
 
     read_ahead_callbacks.push_back(cb);
 }
 
 void log_serializer_t::unregister_read_ahead_cb(serializer_read_ahead_callback_t *cb) {
-    if (get_thread_id() != home_thread()) {
-        do_on_thread(home_thread(), boost::bind(&log_serializer_t::unregister_read_ahead_cb, this, cb));
-        return;
-    }
+    assert_thread();
 
     for (std::vector<serializer_read_ahead_callback_t*>::iterator cb_it = read_ahead_callbacks.begin(); cb_it != read_ahead_callbacks.end(); ++cb_it) {
         if (*cb_it == cb) {
@@ -748,8 +730,13 @@ ls_block_token_pointee_t::ls_block_token_pointee_t(log_serializer_t *serializer,
     serializer_->register_block_token(this, initial_offset);
 }
 
-ls_block_token_pointee_t::~ls_block_token_pointee_t() {
-    on_thread_t switcher(serializer_->home_thread());
+void ls_block_token_pointee_t::destroy() {
+    coro_t::spawn_on_thread(serializer_->home_thread(), boost::bind(&ls_block_token_pointee_t::do_destroy, this));
+}
+
+void ls_block_token_pointee_t::do_destroy() {
+    serializer_->assert_thread();
     rassert(ref_count_ == 0);
     serializer_->unregister_block_token(this);
+    delete this;
 }

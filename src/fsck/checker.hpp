@@ -21,8 +21,6 @@ namespace fsck {
 
   - that there are no disconnected nodes.  (connectedness check)
 
-  - that deleted blocks have proper zerobufs.  (zeroblock check)
-
   - that large bufs have all the proper blocks.  (large buffer check)
 
   - that keys and small values are no longer than MAX_KEY_SIZE and

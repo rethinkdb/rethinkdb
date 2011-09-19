@@ -4,11 +4,16 @@
 #include "concurrency/resettable_cond_var.hpp"
 #include "utils.hpp"
 
-/* A common paradigm is to have some resource and some number of processes using that
-resource, and to wait for all the processes to complete before destroying the resource
-but not to allow new processes to start. `drain_semaphore_t` encapsulates that.
+/* A common paradigm is to have some resource and some number of processes using
+that resource, and to wait for all the processes to complete before destroying
+the resource but not to allow new processes to start. `drain_semaphore_t`
+encapsulates that.
 
-If you want the same thing except reusable, look at `gate_t`. */
+If you want the same thing except reusable, look at `gate_t`.
+
+WARNING: You should probably use `auto_drainer_t` instead of
+`drain_semaphore_t`. They serve similar purposes, but `auto_drainer_t` is better
+and it would be nice to get rid of `drain_semaphore_t` completely. */
 
 struct drain_semaphore_t : public home_thread_mixin_t {
 
@@ -20,7 +25,7 @@ struct drain_semaphore_t : public home_thread_mixin_t {
     void release();
 
     struct lock_t {
-        lock_t(drain_semaphore_t *p);
+        explicit lock_t(drain_semaphore_t *p);
         lock_t(const lock_t& copy_me);
         lock_t &operator=(const lock_t &copy_me);
         ~lock_t();

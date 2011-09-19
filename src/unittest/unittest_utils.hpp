@@ -21,7 +21,7 @@ namespace unittest {
 class temp_file_t {
     char *filename;
 public:
-    temp_file_t(const char *tmpl);
+    explicit temp_file_t(const char *tmpl);
     const char *name() { return filename; }
     ~temp_file_t();
 };

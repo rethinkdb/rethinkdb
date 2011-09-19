@@ -54,7 +54,7 @@ public:
 template <>
 class value_sizer_t<riak_value_t> : public value_sizer_t<void> {
 public:
-    value_sizer_t(block_size_t bs) : block_size_(bs) { }
+    explicit value_sizer_t(block_size_t bs) : block_size_(bs) { }
 
     static const riak_value_t *as_riak(const void *v) {
         return reinterpret_cast<const riak_value_t *>(v);
@@ -74,8 +74,12 @@ public:
     // length_available).
     bool fits(const void *value, int length_available) const {
         if (length_available < 0) { return false; }
-        if ((unsigned) length_available < offsetof(riak_value_t, contents)) { return false; }
-        else { return blob::ref_fits(block_size_, length_available - offsetof(riak_value_t, contents), as_riak(value)->contents, blob::btree_maxreflen); }
+
+        if (unsigned(length_available) < offsetof(riak_value_t, contents)) {
+            return false;
+        } else {
+            return blob::ref_fits(block_size_, length_available - offsetof(riak_value_t, contents), as_riak(value)->contents, blob::btree_maxreflen);
+        }
     }
 
     bool deep_fsck(block_getter_t *getter, const void *value,

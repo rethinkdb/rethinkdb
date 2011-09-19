@@ -52,7 +52,7 @@ private:
     btree_slice_t *get_slice(std::list<std::string>);
     btree_slice_t *create_slice(std::list<std::string>);
 public:
-    riak_interface_t(store_manager_t<std::list<std::string> > *_store_manager)
+    explicit riak_interface_t(store_manager_t<std::list<std::string> > *_store_manager)
         : store_manager(_store_manager)
     { }
 
@@ -61,9 +61,10 @@ public:
     // Get a bucket by name
     boost::optional<bucket_t> get_bucket(std::string s) {
         std::list<std::string> key;
-        key.push_back("riak"); key.push_back(s);
+        key.push_back("riak");
+        key.push_back(s);
         store_t *store = store_manager->get_store(key);
-        
+
         if (store) {
             return boost::optional<bucket_t>(boost::get<bucket_t>(store->store_metadata));
         } else {
@@ -73,7 +74,8 @@ public:
 
     void set_bucket(std::string name, bucket_t bucket) {
         std::list<std::string> key;
-        key.push_back("riak"); key.push_back(name);
+        key.push_back("riak");
+        key.push_back(name);
 
         if (!store_manager->get_store(key)) {
             //among other things, creates the store
@@ -100,7 +102,8 @@ public:
 
     const object_t get_object(std::string bucket, std::string key) {
         std::list<std::string> sm_key;
-        sm_key.push_back("riak"); sm_key.push_back(bucket);
+        sm_key.push_back("riak");
+        sm_key.push_back(bucket);
         btree_slice_t *slice = get_slice(sm_key);
 
         if (!slice) {
@@ -108,7 +111,7 @@ public:
         }
 
         keyvalue_location_t<riak_value_t> kv_location;
-        get_value_read(slice, btree_key_buffer_t(key).key(), order_token_t::ignore, &kv_location);
+        get_value_read(slice, btree_key_buffer_t(key.begin(), key.end()).key(), order_token_t::ignore, &kv_location);
 
         kv_location.value->print(slice->cache()->get_block_size());
 
@@ -147,7 +150,8 @@ public:
 
     void store_object(std::string bucket, object_t obj) {
         std::list<std::string> sm_key;
-        sm_key.push_back("riak"); sm_key.push_back(bucket);
+        sm_key.push_back("riak");
+        sm_key.push_back(bucket);
         btree_slice_t *slice = get_slice(sm_key);
 
         if (!slice) {
@@ -155,7 +159,7 @@ public:
             slice = create_slice(sm_key);
         }
 
-        value_txn_t<riak_value_t> txn = get_value_write<riak_value_t>(slice, btree_key_buffer_t(obj.key).key(), repli_timestamp_t::invalid, order_token_t::ignore);
+        value_txn_t<riak_value_t> txn(slice, btree_key_buffer_t(obj.key.begin(), obj.key.end()).key(), repli_timestamp_t::invalid, order_token_t::ignore);
 
         if (!txn.value()) {
             scoped_malloc<riak_value_t> tmp(MAX_RIAK_VALUE_SIZE);

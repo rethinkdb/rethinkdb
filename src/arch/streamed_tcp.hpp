@@ -95,7 +95,7 @@ private:
      */
     class tcp_conn_streambuf_in_t : public std::basic_streambuf<char, std::char_traits<char> > {
     public:
-        tcp_conn_streambuf_in_t(tcp_conn_t *_conn) : conn(_conn) {
+        explicit tcp_conn_streambuf_in_t(tcp_conn_t *_conn) : conn(_conn) {
             // Initialize basic_streambuf, with gets being buffered and puts being unbuffered
             setg(&get_buf[0], &get_buf[0], &get_buf[0]);
             setp(0, 0);
@@ -141,7 +141,7 @@ private:
 
     class tcp_conn_streambuf_out_t : public std::basic_streambuf<char, std::char_traits<char> > {
     public:
-        tcp_conn_streambuf_out_t(tcp_conn_t *_conn) : conn(_conn) {
+        explicit tcp_conn_streambuf_out_t(tcp_conn_t *_conn) : conn(_conn) {
             setg(0, 0, 0);
             setp(&put_buf[0], &put_buf[PUT_BUF_LENGTH]);
             we_are_syncing = false;

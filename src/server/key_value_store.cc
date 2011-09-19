@@ -414,7 +414,7 @@ get_result_t btree_key_value_store_t::get(const store_key_t &key, order_token_t 
     return shards[slice_num(key)]->get(key, token);
 }
 
-typedef merge_ordered_data_iterator_t<key_with_data_provider_t,key_with_data_provider_t::less> merged_results_iterator_t;
+typedef merge_ordered_data_iterator_t<key_with_data_buffer_t, key_with_data_buffer_t::less> merged_results_iterator_t;
 
 rget_result_t btree_key_value_store_t::rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token) {
 

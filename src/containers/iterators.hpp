@@ -80,7 +80,7 @@ template <typename F, typename S, typename Cmp = std::less<F> >
 struct first_greater {
     typedef F first_argument_type;
     typedef S second_argument_type;
-    bool operator()(std::pair<F,S> l, std::pair<F,S> r) {
+    bool operator()(std::pair<F, S> l, std::pair<F, S> r) {
         return Cmp()(r.first, l.first);
     }
 };

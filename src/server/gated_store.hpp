@@ -6,7 +6,7 @@
 
 struct gated_get_store_t : public get_store_t {
 
-    gated_get_store_t(get_store_t *internal);
+    explicit gated_get_store_t(get_store_t *internal);
 
     get_result_t get(const store_key_t &key, order_token_t token);
     rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key,
@@ -15,7 +15,7 @@ struct gated_get_store_t : public get_store_t {
     // open_t is a sentry object that opens the gate on its constructor and closes
     // the gate on its destructor
     struct open_t {
-        open_t(gated_get_store_t *s) : open(&s->gate) { }
+        explicit open_t(gated_get_store_t *s) : open(&s->gate) { }
     private:
         threadsafe_gate_t::open_t open;
     };
@@ -33,12 +33,12 @@ private:
 
 struct gated_set_store_interface_t : public set_store_interface_t {
 
-    gated_set_store_interface_t(set_store_interface_t *internal);
+    explicit gated_set_store_interface_t(set_store_interface_t *internal);
 
     mutation_result_t change(const mutation_t&, order_token_t);
 
     struct open_t {
-        open_t(gated_set_store_interface_t *s) : open(&s->gate) { }
+        explicit open_t(gated_set_store_interface_t *s) : open(&s->gate) { }
     private:
         threadsafe_gate_t::open_t open;
     };

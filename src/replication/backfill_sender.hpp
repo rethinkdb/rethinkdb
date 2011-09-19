@@ -16,7 +16,7 @@ class backfill_sender_t :
 public:
     /* We take a pointer to a pointer to a stream; if *stream is set to NULL, then we
     stop sending things. */
-    backfill_sender_t(repli_stream_t **stream);
+    explicit backfill_sender_t(repli_stream_t **stream);
 
     /* backfill_and_realtime_streaming_callback_t interface */
 
@@ -33,7 +33,7 @@ public:
     void realtime_incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount,
         castime_t castime, order_token_t token);
     void realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key,
-        const boost::shared_ptr<data_provider_t>& data, castime_t castime, order_token_t token);
+        const boost::intrusive_ptr<data_buffer_t>& data, castime_t castime, order_token_t token);
     void realtime_delete_key(const store_key_t &key, repli_timestamp_t timestamp, order_token_t token);
     void realtime_time_barrier(repli_timestamp_t timestamp, order_token_t token);
 

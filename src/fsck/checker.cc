@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "arch/arch.hpp"
+#include "containers/scoped_malloc.hpp"
 #include "containers/segmented_vector.hpp"
 #include "serializer/log/log_serializer.hpp"
 #include "btree/slice.hpp"
@@ -17,8 +18,6 @@
 #include "serializer/translator.hpp"
 
 namespace fsck {
-
-static block_magic_t zerobuf_magic = { { 'z', 'e', 'r', 'o' } }; // TODO: Refactor
 
 static const char *state = NULL;
 
@@ -102,7 +101,7 @@ private:
 
 class read_locker_t {
 public:
-    read_locker_t(file_knowledge_t *knog) : knog_(knog) {
+    explicit read_locker_t(file_knowledge_t *knog) : knog_(knog) {
         guarantee_err(!pthread_rwlock_rdlock(&knog->block_info_lock_), "pthread_rwlock_rdlock failed");
     }
     const segmented_vector_t<block_knowledge_t, MAX_BLOCK_ID>& block_info() const {
@@ -117,7 +116,7 @@ private:
 
 class write_locker_t {
 public:
-    write_locker_t(file_knowledge_t *knog) : knog_(knog) {
+    explicit write_locker_t(file_knowledge_t *knog) : knog_(knog) {
         guarantee_err(!pthread_rwlock_wrlock(&knog->block_info_lock_), "pthread_rwlock_wrlock failed");
     }
     segmented_vector_t<block_knowledge_t, MAX_BLOCK_ID>& block_info() {
@@ -187,8 +186,10 @@ struct slicecx_t {
     file_knowledge_t *knog;
     std::map<block_id_t, std::list<buf_patch_t*> > patch_map;
     const config_t *cfg;
-    // TODO: this is not a generic sizer.
-    value_sizer_t<memcached_value_t> sizer;
+
+    int global_slice_id;
+    int local_slice_id;
+    int mod_count;
 
     void clear_buf_patches() {
         for (std::map<block_id_t, std::list<buf_patch_t*> >::iterator patches = patch_map.begin(); patches != patch_map.end(); ++patches)
@@ -202,39 +203,6 @@ struct slicecx_t {
         return knog->static_config->block_size();
     }
 
-    value_sizer_t<void> *get_sizer() { return &sizer; }
-
-    virtual block_id_t to_ser_block_id(block_id_t id) const = 0;
-    virtual bool is_valid_key(const btree_key_t *key) const = 0;
-
-    slicecx_t(nondirect_file_t *_file, file_knowledge_t *_knog, const config_t *_cfg)
-        : file(_file), knog(_knog), cfg(_cfg), sizer(knog->static_config->block_size()) { }
-
-    virtual ~slicecx_t() { }
-
-  private:
-    DISABLE_COPYING(slicecx_t);
-};
-
-// A slice all by its lonesome in a file.
-struct raw_slicecx_t : public slicecx_t {
-    raw_slicecx_t(nondirect_file_t *_file, file_knowledge_t *_knog, const config_t *_cfg) : slicecx_t(_file, _knog, _cfg) { }
-    block_id_t to_ser_block_id(block_id_t id) const { return id; }
-    bool is_valid_key(UNUSED const btree_key_t *key) const { return true; }
-};
-
-// A slice which is part of a multiplexed set of slices via serializer_multipler_t
-struct multiplexed_slicecx_t : public slicecx_t {
-    int global_slice_id;
-    int local_slice_id;
-    int mod_count;
-
-    multiplexed_slicecx_t(nondirect_file_t *_file, file_knowledge_t *_knog, int _global_slice_id, const config_t *_cfg)
-        : slicecx_t(_file, _knog, _cfg)
-        , global_slice_id(_global_slice_id), local_slice_id(global_slice_id / knog->config_block->n_files)
-        , mod_count(serializer_multiplexer_t::compute_mod_count(knog->config_block->this_serializer, knog->config_block->n_files, knog->config_block->n_proxies))
-        { }
-
     block_id_t to_ser_block_id(block_id_t id) const {
         return translator_serializer_t::translate_block_id(id, mod_count, local_slice_id, CONFIG_BLOCK_ID);
     }
@@ -243,6 +211,15 @@ struct multiplexed_slicecx_t : public slicecx_t {
         store_key_t store_key(key->size, key->contents);
         return int(btree_key_value_store_t::hash(store_key) % knog->config_block->n_proxies) == global_slice_id;
     }
+
+    slicecx_t(nondirect_file_t *_file, file_knowledge_t *_knog, int _global_slice_id, const config_t *_cfg)
+        : file(_file), knog(_knog), cfg(_cfg),
+          global_slice_id(_global_slice_id),
+          local_slice_id(global_slice_id / knog->config_block->n_files),
+          mod_count(serializer_multiplexer_t::compute_mod_count(knog->config_block->this_serializer, knog->config_block->n_files, knog->config_block->n_proxies)) { }
+
+private:
+    DISABLE_COPYING(slicecx_t);
 };
 
 // A loader/destroyer of btree blocks, which performs all the
@@ -287,7 +264,7 @@ public:
             return false;
         }
 
-        if (!raw_block_t::init(knog->static_config->block_size(), file, info.offset.parts.value, ser_block_id)) {
+        if (!raw_block_t::init(knog->static_config->block_size(), file, info.offset.get_value(), ser_block_id)) {
             return false;
         }
 
@@ -310,8 +287,7 @@ public:
                 if ((*patch)->get_block_sequence_id() >= realbuf->block_sequence_id) {
                     if (first_matching_id == NULL_BLOCK_SEQUENCE_ID) {
                         first_matching_id = (*patch)->get_block_sequence_id();
-                    }
-                    else if (first_matching_id != (*patch)->get_block_sequence_id()) {
+                    } else if (first_matching_id != (*patch)->get_block_sequence_id()) {
                         err = patch_block_sequence_id_mismatch;
                         return false;
                     }
@@ -358,7 +334,7 @@ bool check_static_config(nondirect_file_t *file, file_knowledge_t *knog, static_
     printf("static_header software_name: %.*s\n", int(sizeof(SOFTWARE_NAME_STRING)), buf->software_name);
     printf("static_header version: %.*s\n", int(sizeof(VERSION_STRING)), buf->version);
     printf("              DEVICE_BLOCK_SIZE: %lu\n", DEVICE_BLOCK_SIZE);
-    printf("static_header block_size: %lu\n", block_size.ser_value());
+    printf("static_header block_size: %u\n", block_size.ser_value());
     printf("static_header extent_size: %lu\n", extent_size);
     printf("              file_size: %lu\n", file_size);
 
@@ -409,10 +385,8 @@ std::string extract_static_config_flags(nondirect_file_t *file, UNUSED file_know
     uint64_t extent_size = static_cfg->extent_size();
 
 
-    char flags[100];
-    snprintf(flags, 100, " --block-size %lu --extent-size %lu", block_size.ser_value(), extent_size);
 
-    return std::string(flags);
+    return strprintf(" --block-size %u --extent-size %lu", block_size.ser_value(), extent_size);
 }
 
 struct metablock_errors {
@@ -475,9 +449,9 @@ bool check_metablock(nondirect_file_t *file, file_knowledge_t *knog, metablock_e
 
             if (version == MB_BAD_VERSION || version < MB_START_VERSION ||
                 seqid == NULL_BLOCK_SEQUENCE_ID || seqid < FIRST_BLOCK_SEQUENCE_ID)
-            {
-                errs->bad_content_count++;
-            } else {
+                {
+                    errs->bad_content_count++;
+                } else {
                 if (high_version < version) {
                     high_version = version;
                     high_version_index = i;
@@ -531,8 +505,7 @@ bool is_valid_extent(file_knowledge_t *knog, off64_t offset) {
 }
 
 bool is_valid_btree_offset(file_knowledge_t *knog, flagged_off64_t offset) {
-    return is_valid_offset(knog, offset.parts.value, knog->static_config->block_size().ser_value())
-        || offset.get_delete_bit();
+    return !offset.has_value() || is_valid_offset(knog, offset.get_value(), knog->static_config->block_size().ser_value());
 }
 
 bool is_valid_device_block(file_knowledge_t *knog, off64_t offset) {
@@ -587,6 +560,7 @@ bool check_lba_extent(nondirect_file_t *file, file_knowledge_t *knog, unsigned i
         } else if (entry.block_id % LBA_SHARD_FACTOR != shard_number) {
             errs->wrong_shard_count++;
         } else if (!is_valid_btree_offset(knog, entry.offset)) {
+            debugf("Bad offset with value %lld\n", (long long)entry.offset.the_value_);
             errs->bad_offset_count++;
         } else {
             write_locker_t locker(knog);
@@ -721,6 +695,7 @@ check_mc_config_block(nondirect_file_t *file, file_knowledge_t *knog, config_blo
 
     const mc_config_block_t *buf = reinterpret_cast<mc_config_block_t *>(block->buf);
     if (buf->magic != mc_config_block_t::expected_magic) {
+        debugf("mc_bad_magic happened.  Magic is %.*s\n", int(sizeof(buf->magic)), reinterpret_cast<const char *>(&buf->magic));
         errs->mc_bad_magic = true;
         return NULL;
     }
@@ -744,7 +719,6 @@ bool check_multiplexed_config_block(nondirect_file_t *file, file_knowledge_t *kn
 
     // Load all cache config blocks and check them for consistency
     const int mod_count = serializer_multiplexer_t::compute_mod_count(knog->config_block->this_serializer, knog->config_block->n_files, knog->config_block->n_proxies);
-    debugf("COMPUTING mod_count=%d, n_files=%d, n_proxies=%d, this_serializer=%d\n", mod_count, knog->config_block->n_files, knog->config_block->n_proxies, knog->config_block->this_serializer);
     for (int slice_id = 0; slice_id < mod_count; ++slice_id) {
         block_id_t config_block_ser_id = translator_serializer_t::translate_block_id(MC_CONFIGBLOCK_ID, mod_count, slice_id, CONFIG_BLOCK_ID);
         btree_block_t mc_config_block;
@@ -762,14 +736,6 @@ bool check_multiplexed_config_block(nondirect_file_t *file, file_knowledge_t *kn
     return true;
 }
 
-bool check_raw_config_block(nondirect_file_t *file, file_knowledge_t *knog, config_block_errors *errs) {
-    btree_block_t mc_config_block;
-    const mc_config_block_t *mc_buf = check_mc_config_block(file, knog, errs, MC_CONFIGBLOCK_ID, &mc_config_block);
-    if (mc_buf == NULL) return false;
-    knog->mc_config_block = *mc_buf;
-    return true;
-}
-
 struct diff_log_errors {
     int missing_log_block_count; // must be 0
     int deleted_log_block_count; // must be 0
@@ -779,7 +745,6 @@ struct diff_log_errors {
     diff_log_errors() : missing_log_block_count(0), deleted_log_block_count(0), non_sequential_logs(0), corrupted_patch_blocks(0) { }
 };
 
-static char LOG_BLOCK_MAGIC[] = {'L','O','G','B','0','0'};
 void check_and_load_diff_log(slicecx_t *cx, diff_log_errors *errs) {
     cx->clear_buf_patches();
 
@@ -798,9 +763,9 @@ void check_and_load_diff_log(slicecx_t *cx, diff_log_errors *errs) {
             info = locker.block_info()[ser_block_id];
         }
 
-        if (!info.offset.parts.is_delete) {
+        if (info.offset.has_value()) {
             block_t b;
-            b.init(cx->block_size(), cx->file, info.offset.parts.value, ser_block_id);
+            b.init(cx->block_size(), cx->file, info.offset.get_value(), ser_block_id);
             {
                 write_locker_t locker(cx->knog);
                 locker.block_info()[ser_block_id].block_sequence_id = b.realbuf->block_sequence_id;
@@ -808,21 +773,21 @@ void check_and_load_diff_log(slicecx_t *cx, diff_log_errors *errs) {
 
             const void *buf_data = b.buf;
 
-            if (strncmp((char*)buf_data, LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0) {
-                uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
+            if (*reinterpret_cast<const block_magic_t *>(buf_data) == log_block_magic) {
+                uint16_t current_offset = sizeof(log_block_magic);
                 while (current_offset + buf_patch_t::get_min_serialized_size() < cx->block_size().value()) {
                     buf_patch_t *patch;
                     try {
-                        patch = buf_patch_t::load_patch(cx->block_size(), reinterpret_cast<const char *>(buf_data) + current_offset);
+                        patch = buf_patch_t::load_patch(reinterpret_cast<const char *>(buf_data) + current_offset);
                     } catch (patch_deserialization_error_t &e) {
 			(void)e;
                         ++errs->corrupted_patch_blocks;
                         break;
                     }
+
                     if (!patch) {
                         break;
-                    }
-                    else {
+                    } else {
                         current_offset += patch->get_serialized_size();
                         cx->patch_map[patch->get_block_id()].push_back(patch);
                     }
@@ -871,11 +836,11 @@ struct node_error {
     std::string msg;
 
     explicit node_error(block_id_t _block_id) : block_id(_block_id), block_not_found_error(btree_block_t::none),
-                                               bad_magic(false),
-                                               noncontiguous_offsets(false), value_out_of_buf(false),
-                                               keys_too_big(false), keys_in_wrong_slice(false),
-                                               out_of_order(false),
-                                               last_internal_node_key_nonempty(false) { }
+                                                bad_magic(false),
+                                                noncontiguous_offsets(false), value_out_of_buf(false),
+                                                keys_too_big(false), keys_in_wrong_slice(false),
+                                                out_of_order(false),
+                                                last_internal_node_key_nonempty(false) { }
 
     bool is_bad() const {
         return block_not_found_error != btree_block_t::none || bad_magic
@@ -1053,12 +1018,18 @@ void check_subtree(slicecx_t *cx, block_id_t id, const btree_key_t *lo, const bt
 
     node_error node_err(id);
 
-    if (reinterpret_cast<node_t *>(node.buf)->magic == cx->get_sizer()->btree_leaf_magic()) {
-        check_subtree_leaf_node(cx, reinterpret_cast<leaf_node_t *>(node.buf), lo, hi, &node_err);
-    } else if (reinterpret_cast<internal_node_t *>(node.buf)->magic == internal_node_t::expected_magic) {
+    if (reinterpret_cast<internal_node_t *>(node.buf)->magic == internal_node_t::expected_magic) {
         check_subtree_internal_node(cx, reinterpret_cast<internal_node_t *>(node.buf), lo, hi, errs, &node_err);
     } else {
-        node_err.bad_magic = true;
+
+        boost::scoped_ptr< value_sizer_t<void> > sizer_ignore;
+        if (construct_sizer_from_magic(cx->block_size(), sizer_ignore, reinterpret_cast<node_t *>(node.buf)->magic)) {
+            sizer_ignore.reset();
+            check_subtree_leaf_node(cx, reinterpret_cast<leaf_node_t *>(node.buf), lo, hi, &node_err);
+        } else {
+            node_err.bad_magic = true;
+        }
+
     }
 
     if (node_err.is_bad()) {
@@ -1092,8 +1063,6 @@ void check_slice_other_blocks(slicecx_t *cx, other_block_errors *errs) {
         end = locker.block_info().get_size();
     }
 
-    block_id_t first_valueless_block = NULL_BLOCK_ID;
-
     for (block_id_t id_iter = 0, id = cx->to_ser_block_id(0);
          id < end;
          id = cx->to_ser_block_id(++id_iter)) {
@@ -1102,47 +1071,19 @@ void check_slice_other_blocks(slicecx_t *cx, other_block_errors *errs) {
             read_locker_t locker(cx->knog);
             info = locker.block_info()[id];
         }
-        if (info.offset.get_delete_bit()) {
-            // Do nothing.
-        } else if (!info.offset.has_value()) {
-            if (first_valueless_block == NULL_BLOCK_ID) {
-                first_valueless_block = id;
+        if (info.offset.has_value() && info.block_sequence_id == NULL_BLOCK_SEQUENCE_ID) {
+            // Aha!  We have an orphan block!  Crap.
+            rogue_block_description desc;
+            desc.block_id = id;
+
+            btree_block_t b;
+            if (!b.init(cx->file, cx->knog, id)) {
+                desc.loading_error = b.err;
+            } else {
+                desc.magic = *reinterpret_cast<block_magic_t *>(b.buf);
             }
-        } else {
-            if (first_valueless_block != NULL_BLOCK_ID) {
-                errs->contiguity_failure = first_valueless_block;
-            }
 
-            if (!info.offset.parts.is_delete && info.block_sequence_id == NULL_BLOCK_SEQUENCE_ID) {
-                // Aha!  We have an orphan block!  Crap.
-                rogue_block_description desc;
-                desc.block_id = id;
-
-                btree_block_t b;
-                if (!b.init(cx->file, cx->knog, id)) {
-                    desc.loading_error = b.err;
-                } else {
-                    desc.magic = *reinterpret_cast<block_magic_t *>(b.buf);
-                }
-
-                errs->orphan_blocks.push_back(desc);
-            } else if (info.offset.parts.is_delete) {
-                rassert(info.block_sequence_id == NULL_BLOCK_SEQUENCE_ID);
-                rogue_block_description desc;
-                desc.block_id = id;
-
-                btree_block_t zeroblock;
-                if (!zeroblock.init(cx->file, cx->knog, id)) {
-                    desc.loading_error = zeroblock.err;
-                    errs->allegedly_deleted_blocks.push_back(desc);
-                } else {
-                    block_magic_t magic = *reinterpret_cast<block_magic_t *>(zeroblock.buf);
-                    if (!(zerobuf_magic == magic)) {
-                        desc.magic = magic;
-                        errs->allegedly_deleted_blocks.push_back(desc);
-                    }
-                }
-            }
+            errs->orphan_blocks.push_back(desc);
         }
     }
 }
@@ -1260,7 +1201,10 @@ struct all_slices_errors {
         metadata_slice = has_metadata_file ? new slice_errors : NULL;
     }
 
-    ~all_slices_errors() { delete[] slice; if (metadata_slice) delete metadata_slice; }
+    ~all_slices_errors() {
+        delete[] slice;
+        delete metadata_slice;
+    }
 };
 
 struct slice_parameter_t {
@@ -1290,7 +1234,7 @@ void launch_check_after_config_block(nondirect_file_t *file, std::vector<pthread
     for (int i = knog->config_block->this_serializer; i < errs->n_slices; i += step) {
         errs->slice[i].global_slice_number = i;
         errs->slice[i].home_filename = knog->filename;
-        launch_check_slice(threads, new multiplexed_slicecx_t(file, knog, i, cfg), &errs->slice[i]);
+        launch_check_slice(threads, new slicecx_t(file, knog, i, cfg), &errs->slice[i]);
     }
 }
 
@@ -1346,7 +1290,7 @@ void report_pre_config_block_errors(const check_to_config_block_errors& errs) {
                        : "was specified invalidly");
             } else if (sherr->extent_errors.bad_block_id_count > 0 || sherr->extent_errors.wrong_shard_count > 0 || sherr->extent_errors.bad_offset_count > 0) {
                 printf("ERROR %s lba shard %d had bad lba entries: %d bad block ids, %d in wrong shard, %d with bad offset, of %d total\n",
-                       state, i, sherr->extent_errors.bad_block_id_count, 
+                       state, i, sherr->extent_errors.bad_block_id_count,
                        sherr->extent_errors.wrong_shard_count, sherr->extent_errors.bad_offset_count,
                        sherr->extent_errors.total_count);
             }
@@ -1370,15 +1314,13 @@ void report_pre_config_block_errors(const check_to_config_block_errors& errs) {
     }
 }
 
-bool check_and_report_to_config_block(nondirect_file_t *file, file_knowledge_t *knog, const config_t *cfg,
-                                      bool multiplexed) {
+bool check_and_report_to_config_block(nondirect_file_t *file, file_knowledge_t *knog, const config_t *cfg) {
     check_to_config_block_errors errs;
     check_filesize(file, knog);
     bool success = check_static_config(file, knog, &errs.static_config_err.use(), cfg)
         && check_metablock(file, knog, &errs.metablock_errs.use())
         && check_lba(file, knog, &errs.lba_errs.use())
-        && (multiplexed ? check_multiplexed_config_block(file, knog, &errs.config_block_errs.use())
-            : check_raw_config_block(file, knog, &errs.config_block_errs.use()));
+        && check_multiplexed_config_block(file, knog, &errs.config_block_errs.use());
     if (!success) {
         std::string s = std::string("(in file '") + knog->filename + "')";
         state = s.c_str();
@@ -1507,9 +1449,7 @@ bool report_slice_errors(const std::string &slice_name, const slice_errors *errs
 bool report_post_config_block_errors(const all_slices_errors& slices_errs) {
     bool ok = true;
     for (int i = 0; i < slices_errs.n_slices; ++i) {
-        char buf[100] = { 0 };
-        snprintf(buf, 99, "%d", i);
-        ok &= report_slice_errors(std::string("slice ") + buf, &slices_errs.slice[i]);
+        ok &= report_slice_errors(strprintf("slice %d", i), &slices_errs.slice[i]);
     }
 
     // report errors in metadata file
@@ -1527,9 +1467,7 @@ void print_interfile_summary(const multiplexer_config_block_t& c, const mc_confi
 }
 
 std::string extract_slices_flags(const multiplexer_config_block_t& c) {
-    char flags[100];
-    snprintf(flags, 100, " -s %d", c.n_proxies);
-    return std::string(flags);
+    return strprintf(" -s %d", c.n_proxies);
 }
 
 std::string extract_cache_flags(nondirect_file_t *file, const multiplexer_config_block_t& c, const mc_config_block_t& mcc) {
@@ -1543,13 +1481,11 @@ std::string extract_cache_flags(nondirect_file_t *file, const multiplexer_config
     block_size_t block_size = static_cfg->block_size();
 
 
-    char flags[100];
     // Convert total number of log blocks to MB
     long long int diff_log_size = mcc.cache.n_patch_log_blocks * c.n_proxies * block_size.ser_value();
     int diff_log_size_mb = ceil_divide(diff_log_size, MEGABYTE);
 
-    snprintf(flags, 100, " --diff-log-size %d", diff_log_size_mb);
-    return std::string(flags);
+    return strprintf(" --diff-log-size %d", diff_log_size_mb);
 }
 
 bool check_files(const config_t *cfg) {
@@ -1577,10 +1513,10 @@ bool check_files(const config_t *cfg) {
 
     bool success = true;
     for (int i = 0; i < num_files; ++i)
-        success &= check_and_report_to_config_block(knog.files[i], knog.file_knog[i], cfg, true);
+        success &= check_and_report_to_config_block(knog.files[i], knog.file_knog[i], cfg);
 
     if (knog.metadata_file)
-        success &= check_and_report_to_config_block(knog.metadata_file, knog.metadata_file_knog, cfg, false);
+        success &= check_and_report_to_config_block(knog.metadata_file, knog.metadata_file_knog, cfg);
 
     if (!success) return false;
 
@@ -1613,9 +1549,10 @@ bool check_files(const config_t *cfg) {
     }
 
     // ... and one for the metadata slice
-    if (knog.metadata_file)
-        launch_check_slice(threads, new raw_slicecx_t(knog.metadata_file, knog.metadata_file_knog, cfg),
+    if (knog.metadata_file) {
+        launch_check_slice(threads, new slicecx_t(knog.metadata_file, knog.metadata_file_knog, 0, cfg),
                            slices_errs.metadata_slice);
+    }
 
     // Wait for all threads to finish.
     for (unsigned i = 0; i < threads.size(); ++i) {

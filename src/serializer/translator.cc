@@ -17,7 +17,7 @@
     (proxy_id / n_files))).
 */
 
-const block_magic_t multiplexer_config_block_t::expected_magic = { { 'c','f','g','_' } };
+const block_magic_t multiplexer_config_block_t::expected_magic = { { 'c', 'f', 'g', '_' } };
 
 void prep_serializer(
         const std::vector<standard_serializer_t *>& serializers,
@@ -45,7 +45,6 @@ void prep_serializer(
     index_write_op_t op(CONFIG_BLOCK_ID.ser_id);
     op.token = ser->block_write(c, CONFIG_BLOCK_ID.ser_id, DEFAULT_DISK_ACCOUNT);
     op.recency = repli_timestamp_t::invalid;
-    op.delete_bit = false;
     serializer_index_write(ser, op, DEFAULT_DISK_ACCOUNT);
 
     ser->free(c);
@@ -294,9 +293,10 @@ bool translator_serializer_t::offer_read_ahead_buf(block_id_t block_id, void *bu
 
     if (read_ahead_callback) {
         const block_id_t inner_block_id = untranslate_block_id_to_id(block_id, mod_count, mod_id, cfgid);
-        if (!read_ahead_callback->offer_read_ahead_buf(inner_block_id, buf, recency_timestamp))
+        if (!read_ahead_callback->offer_read_ahead_buf(inner_block_id, buf, recency_timestamp)) {
             // They aren't going to free the buffer, so we do.
             inner->free(buf);
+        }
     } else {
         // Discard the buffer
         inner->free(buf);

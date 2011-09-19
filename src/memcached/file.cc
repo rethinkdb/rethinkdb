@@ -43,8 +43,11 @@ public:
         const char *head = "\r\n";
         while ((*head) && ((c = getc(file)) != EOF) && (limit--) > 0) {
             dest->push_back(c);
-            if (c == *head) head++;
-            else head = "\r\n";
+            if (c == *head) {
+                head++;
+            } else {
+                head = "\r\n";
+            }
         }
         //we didn't every find a crlf unleash the exception 
         if (*head) throw no_more_data_exc_t();

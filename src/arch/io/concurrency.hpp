@@ -20,7 +20,7 @@ public:
     class lock_t {
         system_mutex_t *parent;
     public:
-        lock_t(system_mutex_t *p) : parent(p) {
+        explicit lock_t(system_mutex_t *p) : parent(p) {
             int res = pthread_mutex_lock(&parent->m);
             guarantee(res == 0, "Could not acquire pthread mutex.");
         }

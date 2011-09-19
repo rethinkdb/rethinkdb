@@ -93,6 +93,8 @@ public:
     void initiate_shut_down(); // Can be called from any thread
     void on_event(int events);
 
+    rng_t thread_local_rng;
+
 private:
     volatile bool do_shutdown;
     pthread_mutex_t do_shutdown_mutex;

@@ -31,6 +31,7 @@ protocol_listener_t::protocol_listener_t(int port, get_store_t *get_store, set_s
     }
     */
 
+/*
     const int repli_factor = 1;
     std::vector<redis_protocol_t::region_t> shards;
     key_range_t key_range1(key_range_t::none, store_key_t(""),  key_range_t::open, store_key_t("n"));
@@ -41,6 +42,7 @@ protocol_listener_t::protocol_listener_t(int port, get_store_t *get_store, set_s
 
     // Stupid hack to set up the namespace interface for redis
     unittest::run_with_dummy_namespace_interface<redis_protocol_t>(shards, repli_factor, boost::bind(set_interface_from_dummy, this, _1));
+*/
     
     tcp_listener.reset(new tcp_listener_t(port, boost::bind(&protocol_listener_t::handle, this, _1)));
 }

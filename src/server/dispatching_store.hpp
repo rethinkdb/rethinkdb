@@ -12,7 +12,7 @@ struct btree_key_t;
 
 class dispatching_store_t : public set_store_t, public home_thread_mixin_t {
 public:
-    dispatching_store_t(btree_slice_t *substore);
+    explicit dispatching_store_t(btree_slice_t *substore);
     void set_dispatcher(boost::function<mutation_t(const mutation_t &, castime_t, order_token_t)> disp);
 
     mutation_result_t change(const mutation_t& m, castime_t castime, order_token_t token);

@@ -6,8 +6,8 @@ namespace unittest {
 
 TEST(BitsetTest, ClearedAtStart) {
     bitset_t b(100);
-    ASSERT_TRUE(100 == b.size());
-    ASSERT_TRUE(0 == b.count());
+    ASSERT_EQ(100, b.size());
+    ASSERT_EQ(0, b.count());
     for (int i = 0; i < 100; i++) {
         ASSERT_FALSE(b.test(i));
     }
@@ -27,18 +27,17 @@ TEST(BitsetTest, SetsGets) {
     ASSERT_TRUE(b[99]);
     ASSERT_FALSE(b.test(50));
 
-    ASSERT_TRUE(3 == b.count());
+    ASSERT_EQ(3, b.count());
 
     b.set();
 
-    ASSERT_TRUE(100 == b.count());
+    ASSERT_EQ(100, b.count());
     ASSERT_TRUE(b[80]);
 
     b.verify();
 }
 
 TEST(BitsetTest, Resize) {
-
     bitset_t b(100);
     b.set(98, true);
     b.set(99, true);

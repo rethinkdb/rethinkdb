@@ -17,13 +17,11 @@ struct index_write_op_t {
     // Buf to write. None if not to be modified. Initialized but a null ptr if to be removed from lba.
     boost::optional<boost::intrusive_ptr<standard_block_token_t> > token;
     boost::optional<repli_timestamp_t> recency; // Recency, if it should be modified.
-    boost::optional<bool> delete_bit;           // Delete bit, if it should be modified.
 
     index_write_op_t(block_id_t _block_id,
 		     boost::optional<boost::intrusive_ptr<standard_block_token_t> > _token = boost::none,
-		     boost::optional<repli_timestamp_t> _recency = boost::none,
-		     boost::optional<bool> _delete_bit = boost::none)
-	: block_id(_block_id), token(_token), recency(_recency), delete_bit(_delete_bit) {}
+		     boost::optional<repli_timestamp_t> _recency = boost::none)
+	: block_id(_block_id), token(_token), recency(_recency) { }
 };
 
 /* serializer_t is an abstract interface that describes how each serializer should
@@ -105,40 +103,6 @@ struct serializer_t :
 
     virtual block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf) = 0;
 
-    // New do_write interface
-    struct write_launched_callback_t {
-        virtual void on_write_launched(const boost::intrusive_ptr<standard_block_token_t>& token) = 0;
-        virtual ~write_launched_callback_t() {}
-    };
-    struct write_t {
-        block_id_t block_id;
-        struct update_t {
-            const void *buf;
-            repli_timestamp_t recency;
-            iocallback_t *io_callback;
-            write_launched_callback_t *launch_callback;
-        };
-        struct delete_t { bool write_zero_block; };
-        struct touch_t { repli_timestamp_t recency; };
-        // if none, indicates just a recency update.
-        typedef boost::variant<update_t, delete_t, touch_t> action_t;
-        action_t action;
-
-        static write_t make_touch(block_id_t block_id, repli_timestamp_t recency);
-        static write_t make_update(block_id_t block_id, repli_timestamp_t recency, const void *buf,
-                                   iocallback_t *io_callback = NULL,
-                                   write_launched_callback_t *launch_callback = NULL);
-        static write_t make_delete(block_id_t block_id, bool write_zero_block = true);
-        write_t(block_id_t block_id, action_t action);
-    };
-
-    /* Performs a group of writes. Must be called from coroutine context. Returns when all writes
-     * are finished and the LBA has been updated.
-     *
-     * Note that this is not virtual. It is implemented in terms of block_write() and index_write(),
-     * and not meant to be overridden in subclasses.
-     */
-    void do_write(std::vector<write_t> writes, file_account_t *io_account);
 
     /* The size, in bytes, of each serializer block */
 
@@ -147,6 +111,47 @@ struct serializer_t :
 private:
     DISABLE_COPYING(serializer_t);
 };
+
+
+// The do_write interface is now obvious helper functions
+
+struct serializer_write_launched_callback_t {
+    virtual void on_write_launched(const boost::intrusive_ptr<standard_block_token_t>& token) = 0;
+    virtual ~serializer_write_launched_callback_t() {}
+};
+struct serializer_write_t {
+    block_id_t block_id;
+
+    struct update_t {
+        const void *buf;
+        repli_timestamp_t recency;
+        iocallback_t *io_callback;
+        serializer_write_launched_callback_t *launch_callback;
+    };
+
+    struct delete_t {
+        char __unused_field;
+    };
+
+    struct touch_t {
+        repli_timestamp_t recency;
+    };
+
+    // if none, indicates just a recency update.
+    typedef boost::variant<update_t, delete_t, touch_t> action_t;
+    action_t action;
+
+    static serializer_write_t make_touch(block_id_t block_id, repli_timestamp_t recency);
+    static serializer_write_t make_update(block_id_t block_id, repli_timestamp_t recency, const void *buf,
+                                          iocallback_t *io_callback = NULL,
+                                          serializer_write_launched_callback_t *launch_callback = NULL);
+    static serializer_write_t make_delete(block_id_t block_id);
+    serializer_write_t(block_id_t block_id, action_t action);
+};
+
+/* A bad wrapper for doing block writes and index writes.
+ */
+void do_writes(serializer_t *ser, const std::vector<serializer_write_t>& writes, file_account_t *io_account);
 
 
 // Helpers for default implementations that can be used on log_serializer_t.

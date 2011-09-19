@@ -98,7 +98,7 @@ void backfill_storer_t::backfill_deletion(store_key_t key, order_token_t token) 
     block_pm_duration timer(&pm_replication_slave_backfill_enqueue);
     backfill_queue_.push(boost::bind(
         &btree_key_value_store_t::change, kvs_,
-        mut,
+        mutation_t(mut),
         // NO_CAS_SUPPLIED is not used in any way for deletions, and the
         // timestamp is part of the "->change" interface in a way not
         // relevant to slaves -- it's used when putting deletions into the
@@ -221,7 +221,7 @@ void backfill_storer_t::realtime_incr_decr(incr_decr_kind_t kind, const store_ke
 }
 
 void backfill_storer_t::realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key,
-                                                const boost::shared_ptr<data_provider_t>& data, castime_t castime, order_token_t token) {
+                                                const boost::intrusive_ptr<data_buffer_t>& data, castime_t castime, order_token_t token) {
     append_prepend_mutation_t mut;
     mut.key = key;
     mut.data = data;

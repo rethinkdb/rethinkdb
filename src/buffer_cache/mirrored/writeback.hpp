@@ -7,7 +7,7 @@
 #include "concurrency/rwi_lock.hpp"
 #include "concurrency/semaphore.hpp"
 #include "buffer_cache/buf_patch.hpp"
-#include "buffer_cache/mirrored/writeback/flush_time_randomizer.hpp"
+#include "buffer_cache/mirrored/flush_time_randomizer.hpp"
 #include "utils.hpp"
 
 class timer_token_t;
@@ -85,17 +85,17 @@ public:
     private:
 	DISABLE_COPYING(local_buf_t);
     };
-    
+
     /* User-controlled settings. */
-    
-    bool wait_for_flush;
-    unsigned int flush_waiting_threshold;
-    unsigned int max_concurrent_flushes;
-    unsigned int max_dirty_blocks;
-    
+
+    const bool wait_for_flush;
+    const unsigned int flush_waiting_threshold;
+    const unsigned int max_concurrent_flushes;
+    const unsigned int max_dirty_blocks;
+
 private:
     flush_time_randomizer_t flush_time_randomizer;
-    unsigned int flush_threshold;   // Number of blocks, not percentage
+    const unsigned int flush_threshold;   // Number of blocks, not percentage
     
 private:
     friend class buf_writer_t;
@@ -149,11 +149,7 @@ private:
     intrusive_list_t<local_buf_t> dirty_bufs;
 
     // List of block_ids that have been deleted
-    struct deleted_block_t {
-        block_id_t block_id;
-        bool write_empty_block;
-    };
-    std::vector<deleted_block_t> deleted_blocks;
+    std::vector<block_id_t> deleted_blocks;
 
     // List of block ids which have to be rejected when offered as part of read ahead.
     // Specifically, blocks which have been deleted but which deletion has not been

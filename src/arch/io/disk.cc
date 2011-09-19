@@ -18,7 +18,6 @@
 #include "config/args.hpp"
 #include "utils.hpp"
 #include "arch/runtime/runtime.hpp"
-#include "logger.hpp"
 #include "arch/io/disk/aio.hpp"
 #include "arch/io/disk/pool.hpp"
 #include "arch/io/disk/conflict_resolving.hpp"
@@ -168,7 +167,7 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, co
     // Determine if it is a block device
 
     struct stat64 file_stat;
-    bzero((void*)&file_stat, sizeof(file_stat)); // make valgrind happy
+    memset(&file_stat, 0, sizeof(file_stat));  // make valgrind happy
     int res = stat64(path, &file_stat);
     guarantee_err(res == 0 || errno == ENOENT, "Could not stat file '%s'", path);
 
@@ -186,10 +185,15 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, co
 
     int flags = O_CREAT | (is_really_direct ? O_DIRECT : 0) | O_LARGEFILE;
 
-    if ((mode & mode_write) && (mode & mode_read)) flags |= O_RDWR;
-    else if (mode & mode_write) flags |= O_WRONLY;
-    else if (mode & mode_read) flags |= O_RDONLY;
-    else crash("Bad file access mode.");
+    if ((mode & mode_write) && (mode & mode_read)) {
+        flags |= O_RDWR;
+    } else if (mode & mode_write) {
+        flags |= O_WRONLY;
+    } else if (mode & mode_read) {
+        flags |= O_RDONLY;
+    } else {
+        crash("Bad file access mode.");
+    }
 
 
     // O_NOATIME requires owner or root privileges. This is a bit of a hack; we assume that
@@ -351,12 +355,7 @@ linux_file_t::~linux_file_t() {
 void linux_file_t::verify(UNUSED size_t offset, UNUSED size_t length, UNUSED const void *buf) {
     rassert(buf);
     rassert(offset + length <= file_size);
-#ifndef NDEBUG
-    bool bufmod = (intptr_t)buf % DEVICE_BLOCK_SIZE == 0;
-    rassert(bufmod);
-    bool offmod = offset % DEVICE_BLOCK_SIZE == 0;
-    rassert(offmod);
-    bool lengthmod = length % DEVICE_BLOCK_SIZE == 0;
-    rassert(lengthmod);
-#endif
+    rassert(divides(DEVICE_BLOCK_SIZE, intptr_t(buf)));
+    rassert(divides(DEVICE_BLOCK_SIZE, offset));
+    rassert(divides(DEVICE_BLOCK_SIZE, length));
 }

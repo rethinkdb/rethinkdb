@@ -15,7 +15,7 @@ public:
     static void create(btree_key_value_store_dynamic_config_t *dynamic_config,
                        btree_key_value_store_static_config_t *static_config);
     // Blocks
-    btree_metadata_store_t(const btree_key_value_store_dynamic_config_t& dynamic_config);
+    explicit btree_metadata_store_t(const btree_key_value_store_dynamic_config_t& dynamic_config);
     // Blocks
     ~btree_metadata_store_t();
 

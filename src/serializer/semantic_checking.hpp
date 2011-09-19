@@ -37,13 +37,14 @@ private:
     two_level_array_t<scs_block_info_t, MAX_BLOCK_ID> blocks;
     int last_index_write_started, last_index_write_finished;
     int semantic_fd;
+    std::set<const void *> malloced_bufs;
 
     // Helper functions
     uint32_t compute_crc(const void *buf);
     void update_block_info(block_id_t block_id, scs_block_info_t info);
 
-    static boost::intrusive_ptr< scs_block_token_t<inner_serializer_t> > wrap_token(block_id_t block_id, scs_block_info_t info, boost::intrusive_ptr<typename serializer_traits_t<inner_serializer_t>::block_token_type> inner_token);
-    static boost::intrusive_ptr< scs_block_token_t<inner_serializer_t> > wrap_buf_token(block_id_t block_id, const void *buf, boost::intrusive_ptr<typename serializer_traits_t<inner_serializer_t>::block_token_type> inner_token);
+    boost::intrusive_ptr< scs_block_token_t<inner_serializer_t> > wrap_token(block_id_t block_id, scs_block_info_t info, boost::intrusive_ptr<typename serializer_traits_t<inner_serializer_t>::block_token_type> inner_token);
+    boost::intrusive_ptr< scs_block_token_t<inner_serializer_t> > wrap_buf_token(block_id_t block_id, const void *buf, boost::intrusive_ptr<typename serializer_traits_t<inner_serializer_t>::block_token_type> inner_token);
 
     void read_check_state(scs_block_token_t<inner_serializer_t> *token, const void *buf);
 

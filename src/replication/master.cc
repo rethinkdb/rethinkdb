@@ -24,6 +24,7 @@ master_t::master_t(int port, btree_key_value_store_t *kv_store, replication_conf
     get_gate_(get_gate),
     set_gate_(set_gate),
     backfill_storer_(kv_store),
+    interrupt_streaming_cond_(NULL),
     dont_wait_for_slave_control(this)
 {
     logINF("Waiting for initial slave to connect on port %d...\n", listener_port_);
@@ -101,9 +102,44 @@ void master_t::on_conn(boost::scoped_ptr<linux_tcp_conn_t>& conn) {
 
     // TODO: Receive hello handshake before sending other messages.
 }
+
+void master_t::send(scoped_malloc<net_introduce_t>& message) {
+    uint32_t previous_slave = kvs_->get_replication_slave_id();
+    if (previous_slave != 0) {
+        rassert(message->database_creation_timestamp != previous_slave);
+        logWRN("The slave that was previously associated with this master is now being "
+               "forgotten; you will not be able to reconnect it later.\n");
+    }
+    kvs_->set_replication_slave_id(message->database_creation_timestamp);
+}
+
 void master_t::send(scoped_malloc<net_backfill_t>& message) {
     coro_t::spawn_now(boost::bind(&master_t::do_backfill_and_realtime_stream, this, message->timestamp));
 }
+
+void master_t::conn_closed() {
+    logINF("Connection to slave was closed.\n");
+
+    assert_thread();
+    mutex_acquisition_t ak(&stream_setup_teardown_);
+
+    /* The stream destructor may block, so we set stream_ to NULL before calling the stream
+       destructor. */
+    rassert(stream_);
+    repli_stream_t *stream_copy = stream_;
+    stream_ = NULL;
+    delete stream_copy;
+
+    stream_exists_cond_.pulse();    // If anything was waiting for stream to close, signal it
+    if (interrupt_streaming_cond_ && !interrupt_streaming_cond_->is_pulsed()) {
+        interrupt_streaming_cond_->pulse();   // Will interrupt any running backfill/stream operation
+    }
+
+    // TODO: This might fail for future versions of the order source, which
+    // require a backfill to have begun before it can be done.
+    order_source->backfill_done();
+}
+
 
 void master_t::destroy_existing_slave_conn_if_it_exists() {
     assert_thread();
@@ -185,6 +221,29 @@ void master_t::do_backfill_and_realtime_stream(repli_timestamp_t since_when) {
 #ifndef NDEBUG
 bool master_t::inside_backfill_done_or_backfill = false;
 #endif
+
+std::string master_t::dont_wait_for_slave_control_t::call(int argc, UNUSED char **argv) {
+    if (argc != 1) {
+        return "\"dont-wait-for-slave\" doesn't expect any arguments.\r\n";
+    }
+    if (!master->get_permission_) {
+        if (!master->stream_) {
+            master->get_permission_.reset(new gated_get_store_t::open_t(master->get_gate_));
+            master->set_permission_.reset(new gated_set_store_interface_t::open_t(master->set_gate_));
+            logINF("Now accepting operations even though no slave connected because "
+                   "\"rethinkdb dont-wait-for-slave\" was run.\n");
+            return "Master will now accept operations even though no slave has connected yet.\r\n";
+        } else {
+            return "The master cannot accept operations because it is reverse-backfilling from "
+                "the slave right now, so its data is in an inconsistent state. The master will "
+                "accept operations once it is done reverse-backfilling.\r\n";
+        }
+    } else {
+        return "The master is already accepting operations.\r\n";
+    }
+}
+
+
 
 }  // namespace replication
 

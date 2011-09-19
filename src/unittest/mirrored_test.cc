@@ -32,12 +32,12 @@ private:
         // test (although I'm definitely not proud of doing so).
         transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past);
         block_id_t block_A, block_B;
-        create_two_blocks(&t0, block_A, block_B);
+        create_two_blocks(&t0, &block_A, &block_B);
 
         transaction_t t1(cache, rwi_write, 0, repli_timestamp_t::distant_past);
 
         buf_t *buf1_A = acq(&t1, block_A, rwi_write);
-        buf1_A->mark_deleted(false);
+        buf1_A->mark_deleted();
         buf1_A->release();
 
         // create a fake buffer (be careful with populating it with data

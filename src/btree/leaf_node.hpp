@@ -5,10 +5,8 @@
 
 #include "buffer_cache/types.hpp"
 #include "config/args.hpp"
-#include "containers/scoped_malloc.hpp"
 #include "errors.hpp"
 #include "btree/node.hpp"
-#include "scoped_error_logging.hpp"
 
 namespace leaf {
 
@@ -501,21 +499,12 @@ bool fsck(value_sizer_t<V> *sizer, const btree_key_t *left_exclusive_or_null, co
 }
 
 template <class V>
-void validate(UNUSED scoped_error_log_t& log, UNUSED value_sizer_t<V> *sizer, UNUSED const leaf_node_t *node) {
+void validate(UNUSED value_sizer_t<V> *sizer, UNUSED const leaf_node_t *node) {
 #ifndef NDEBUG
-    strprint(log.expose_logtext(), sizer, node);
     do_nothing_fscker_t<V> fits;
     std::string msg;
     bool fscked_successfully = fsck(sizer, NULL, NULL, node, &fits, &msg);
-    scoped_error_rassert(log, fscked_successfully, "%s", msg.c_str());
-#endif
-}
-
-template <class V>
-void validate(UNUSED value_sizer_t<V> *sizer, UNUSED const leaf_node_t *node) {
-#ifndef NDEBUG
-    scoped_error_log_t log;
-    validate(log, sizer, node);
+    rassert(fscked_successfully, "%s", msg.c_str());
 #endif
 }
 
@@ -526,8 +515,6 @@ void init(value_sizer_t<V> *sizer, leaf_node_t *node) {
     node->live_size = 0;
     node->frontmost = sizer->block_size().value();
     node->tstamp_cutpoint = node->frontmost;
-
-    validate(sizer, node);
 }
 
 template <class V>
@@ -641,7 +628,7 @@ bool is_underfull(value_sizer_t<V> *sizer, const leaf_node_t *node) {
 // Compares indices by looking at values in another array.
 class indirect_index_comparator_t {
 public:
-    indirect_index_comparator_t(const uint16_t *array) : array_(array) { }
+    explicit indirect_index_comparator_t(const uint16_t *array) : array_(array) { }
 
     bool operator()(uint16_t x, uint16_t y) {
         return array_[x] < array_[y];
@@ -653,8 +640,6 @@ private:
 
 template <class V>
 void garbage_collect(value_sizer_t<V> *sizer, leaf_node_t *node, int num_tstamped, int *preserved_index) {
-    validate(sizer, node);
-
     uint16_t indices[node->num_pairs];
 
     for (int i = 0; i < node->num_pairs; ++i) {
@@ -754,27 +739,14 @@ inline void clean_entry(void *p, int sz) {
     }
 }
 
-// Turned off because it's probably too expensive for valgrind.
-#undef scoped_error_record
-#define scoped_error_record(...) do { } while (0)
-
 // Moves entries with pair_offsets indices in the clopen range [beg,
 // end) from fro to tow.
 template <class V>
 void move_elements(value_sizer_t<V> *sizer, leaf_node_t *fro, int beg, int end, int wpoint, leaf_node_t *tow, int fro_copysize, int fro_mand_offset) {
-    scoped_error_log_t log;
-    scoped_error_record(log, "pre-validating fro\n");
-    validate(log, sizer, fro);
-    scoped_error_record(log, "pre-validating tow\n");
-    validate(log, sizer, tow);
-
-    scoped_error_record(log, "move_elements beg = %d, end = %d, wpoint = %d, fro_copysize = %d, fro_mand_offset = %d\n",
-                        beg, end, wpoint, fro_copysize, fro_mand_offset);
-
-    scoped_error_rassert(log, is_underfull(sizer, tow));
+    rassert(is_underfull(sizer, tow));
 
     // This assertion is a bit loose.
-    scoped_error_rassert(log, fro_copysize + mandatory_cost(sizer, tow, MANDATORY_TIMESTAMPS) <= free_space(sizer));
+    rassert(fro_copysize + mandatory_cost(sizer, tow, MANDATORY_TIMESTAMPS) <= free_space(sizer));
 
     // Make tow have a nice big region we can copy entries to.  Also,
     // this means we have no "skip" entries in tow.
@@ -814,42 +786,36 @@ void move_elements(value_sizer_t<V> *sizer, leaf_node_t *fro, int beg, int end, 
 
     // We will gradually compute the live size.
     int livesize = tow->live_size;
-    scoped_error_record(log, "livesize at first %d\n", livesize);
 
     for (int i = 0; i < wpoint; ++i) {
         if (tow->pair_offsets[i] < tow->tstamp_cutpoint) {
-            scoped_error_rassert(log, num_adjustable_tow_offsets < MANDATORY_TIMESTAMPS);
+            rassert(num_adjustable_tow_offsets < MANDATORY_TIMESTAMPS);
             adjustable_tow_offsets[num_adjustable_tow_offsets] = i;
-            num_adjustable_tow_offsets ++;
+            ++num_adjustable_tow_offsets;
         }
     }
 
     for (int i = wpoint + (end - beg); i < tow->num_pairs; ++i) {
         if (tow->pair_offsets[i] < tow->tstamp_cutpoint) {
-            scoped_error_rassert(log, num_adjustable_tow_offsets < MANDATORY_TIMESTAMPS);
+            rassert(num_adjustable_tow_offsets < MANDATORY_TIMESTAMPS);
             adjustable_tow_offsets[num_adjustable_tow_offsets] = i;
-            num_adjustable_tow_offsets ++;
+            ++num_adjustable_tow_offsets;
         }
     }
-
-    scoped_error_record(log, "num_adjustable_tow_offsets = %d\n", num_adjustable_tow_offsets);
 
     int fro_live_size_adjustment = 0;
     int fro_copyage = 0;
 
     for (;;) {
-        scoped_error_record(log, "fro_index = %d, tow_offset = %d, wri_offset = %d\n", fro_index, tow_offset, wri_offset);
-        scoped_error_rassert(log, tow_offset <= tow->tstamp_cutpoint);
+        rassert(tow_offset <= tow->tstamp_cutpoint);
         if (tow_offset == tow->tstamp_cutpoint || fro_index == fro_index_end) {
             // We have no more timestamped information to push.
             break;
         }
 
         int fro_offset = fro->pair_offsets[beg + tow->pair_offsets[fro_index]];
-        scoped_error_record(log, "with fro_offset = %d\n", fro_offset);
 
         if (fro_offset >= fro_mand_offset) {
-            scoped_error_record(log, "fro_offset >= fro_mand_offset = %d\n", fro_mand_offset);
             // We have no more timestamped information to push.
             break;
         }
@@ -859,7 +825,6 @@ void move_elements(value_sizer_t<V> *sizer, leaf_node_t *fro, int beg, int end, 
 
         // Greater timestamps go first.
         if (tow_tstamp < fro_tstamp) {
-            scoped_error_record(log, "fro going first\n");
             entry_t *ent = get_entry(fro, fro_offset);
             int entsz = entry_size(sizer, ent);
             int sz = sizeof(repli_timestamp_t) + entsz;
@@ -883,7 +848,6 @@ void move_elements(value_sizer_t<V> *sizer, leaf_node_t *fro, int beg, int end, 
 
         } else {
             int sz = sizeof(repli_timestamp_t) + entry_size(sizer, get_entry(tow, tow_offset));
-            scoped_error_record(log, "tow going first with sz = %d\n", sz);
             memmove(get_at_offset(tow, wri_offset), get_at_offset(tow, tow_offset), sz);
 
             // Update the pair offset of the entry we've moved.
@@ -897,7 +861,7 @@ void move_elements(value_sizer_t<V> *sizer, leaf_node_t *fro, int beg, int end, 
             }
 
             // Make sure we updated something.
-            scoped_error_rassert(log, i != num_adjustable_tow_offsets);
+            rassert(i != num_adjustable_tow_offsets);
 
             wri_offset += sz;
             tow_offset += sz;
@@ -909,10 +873,8 @@ void move_elements(value_sizer_t<V> *sizer, leaf_node_t *fro, int beg, int end, 
     // Now we have some untimestamped entries to write.
     for (; fro_index < fro_index_end; ++fro_index) {
         int fro_offset = fro->pair_offsets[beg + tow->pair_offsets[fro_index]];
-        scoped_error_record(log, "fro_index = %d, wri_offset = %d, with fro_offset = %d\n", fro_index, wri_offset, fro_offset);
         entry_t *ent = get_entry(fro, fro_offset);
         if (entry_is_live(ent)) {
-            scoped_error_record(log, "entry size = %d\n", entry_size(sizer, ent));
             int sz = entry_size(sizer, ent);
             memmove(get_at_offset(tow, wri_offset), ent, sz);
             clean_entry(ent, sz);
@@ -922,9 +884,8 @@ void move_elements(value_sizer_t<V> *sizer, leaf_node_t *fro, int beg, int end, 
             wri_offset += sz;
             fro_copyage += sz;
             livesize += sz + sizeof(uint16_t);
-            scoped_error_record(log, "livesize now %d\n", livesize);
         } else {
-            scoped_error_rassert(log, entry_is_deletion(ent));
+            rassert(entry_is_deletion(ent));
 
             // This is a dead entry.  We'll need to squash this dead entry later.
             fro->pair_offsets[beg + tow->pair_offsets[fro_index]] = 0;
@@ -934,20 +895,16 @@ void move_elements(value_sizer_t<V> *sizer, leaf_node_t *fro, int beg, int end, 
         }
     }
 
-    scoped_error_record(log, "fro_copyage = %d, fro_copysize was %d\n", fro_copyage, fro_copysize);
-    scoped_error_record(log, "wri_offset = %d, tow_offset = %d\n", wri_offset, tow_offset);
-    scoped_error_rassert(log, wri_offset <= tow_offset);
+    rassert(wri_offset <= tow_offset);
 
     // tow may have some timestamped entries that need to become
     // un-timestamped.
     while (tow_offset < tow->tstamp_cutpoint) {
-        scoped_error_record(log, "untimestamping tow.. wri_offset = %d, tow_offset = %d, tow->tstamp_cutpoint = %d\n", wri_offset, tow_offset, tow->tstamp_cutpoint);
-        scoped_error_rassert(log, wri_offset <= tow_offset);
+        rassert(wri_offset <= tow_offset);
 
         entry_t *ent = get_entry(tow, tow_offset);
         int sz = entry_size(sizer, ent);
         if (entry_is_live(ent)) {
-            scoped_error_record(log, "live entry, moving sz = %d\n", sz);
             memmove(get_at_offset(tow, wri_offset), ent, sz);
 
             // Update the pair offset of the entry we've moved.
@@ -961,11 +918,10 @@ void move_elements(value_sizer_t<V> *sizer, leaf_node_t *fro, int beg, int end, 
             }
 
             // Make sure we updated something.
-            scoped_error_rassert(log, i != num_adjustable_tow_offsets);
+            rassert(i != num_adjustable_tow_offsets);
 
             wri_offset += sz;
         } else {
-            scoped_error_record(log, "deletion entry, moving tow_offset 4 + sz = %d\n", sz);
 
             // Update the pair offset of the entry we've deleted, so
             // that it gets squashed later.
@@ -978,10 +934,9 @@ void move_elements(value_sizer_t<V> *sizer, leaf_node_t *fro, int beg, int end, 
             }
         }
         tow_offset += sizeof(repli_timestamp_t) + sz;
-        scoped_error_record(log, "now wri_offset = %d, tow_offset = %d\n", wri_offset, tow_offset);
     }
 
-    scoped_error_rassert(log, wri_offset <= tow_offset);
+    rassert(wri_offset <= tow_offset);
 
     // If we needed to untimestamp any tow entries, we'll need a skip
     // entry for the open space.
@@ -1004,7 +959,6 @@ void move_elements(value_sizer_t<V> *sizer, leaf_node_t *fro, int beg, int end, 
     tow->frontmost = new_frontmost;
 
     tow->live_size = livesize;
-    scoped_error_record(log, "tow->live_size set to %d\n", livesize);
 
     tow->tstamp_cutpoint = new_tstamp_cutpoint;
 
@@ -1024,10 +978,8 @@ void move_elements(value_sizer_t<V> *sizer, leaf_node_t *fro, int beg, int end, 
         tow->num_pairs = j;
     }
 
-    scoped_error_record(log, "Validating fro\n");
-    validate(log, sizer, fro);
-    scoped_error_record(log, "Validating tow\n");
-    validate(log, sizer, tow);
+    validate(sizer, fro);
+    validate(sizer, tow);
 }
 
 template <class V>
@@ -1057,7 +1009,7 @@ void split(value_sizer_t<V> *sizer, leaf_node_t *node, leaf_node_t *rnode, btree
             prev_rcost = rcost;
             rcost += entry_size(sizer, ent) + sizeof(uint16_t) + (offset < tstamp_back_offset ? sizeof(repli_timestamp_t) : 0);
 
-            ++ num_mandatories;
+            ++num_mandatories;
         } else {
             rassert(entry_is_deletion(ent));
 
@@ -1065,7 +1017,7 @@ void split(value_sizer_t<V> *sizer, leaf_node_t *node, leaf_node_t *rnode, btree
                 prev_rcost = rcost;
                 rcost += entry_size(sizer, ent) + sizeof(uint16_t) + sizeof(repli_timestamp_t);
 
-                ++ num_mandatories;
+                ++num_mandatories;
             }
         }
 
@@ -1085,7 +1037,7 @@ void split(value_sizer_t<V> *sizer, leaf_node_t *node, leaf_node_t *rnode, btree
     if ((mandatory - prev_rcost) - prev_rcost < rcost - (mandatory - rcost)) {
         end_rcost = prev_rcost;
         s = i + 2;
-        -- num_mandatories;
+        --num_mandatories;
     } else {
         end_rcost = rcost;
         s = i + 1;
@@ -1182,7 +1134,7 @@ bool level(value_sizer_t<V> *sizer, int nodecmp_node_with_sib, leaf_node_t *node
             node_weight += sz;
             sibling_weight -= sz;
 
-            ++ num_mandatories;
+            ++num_mandatories;
         } else {
             rassert(entry_is_deletion(ent));
 
@@ -1194,7 +1146,7 @@ bool level(value_sizer_t<V> *sizer, int nodecmp_node_with_sib, leaf_node_t *node
                 node_weight += sz;
                 sibling_weight -= sz;
 
-                ++ num_mandatories;
+                ++num_mandatories;
             }
         }
 
@@ -1209,7 +1161,7 @@ bool level(value_sizer_t<V> *sizer, int nodecmp_node_with_sib, leaf_node_t *node
 
     if (prev_diff <= sibling_weight - node_weight) {
         *w -= wstep;
-        -- num_mandatories;
+        --num_mandatories;
         weight_movement = prev_weight_movement;
     }
 
@@ -1280,8 +1232,6 @@ bool find_key(const leaf_node_t *node, const btree_key_t *key, int *index_out) {
 
 template <class V>
 bool lookup(value_sizer_t<V> *sizer, const leaf_node_t *node, const btree_key_t *key, void *value_out) {
-    validate(sizer, node);
-
     int index;
     if (find_key(node, key, &index)) {
         const entry_t *ent = get_entry(node, node->pair_offsets[index]);
@@ -1299,8 +1249,6 @@ bool lookup(value_sizer_t<V> *sizer, const leaf_node_t *node, const btree_key_t 
 // cleaned up the old value, if there is one.
 template <class V>
 void insert(value_sizer_t<V> *sizer, leaf_node_t *node, const btree_key_t *key, const void *value, repli_timestamp_t tstamp) {
-    validate(sizer, node);
-
     rassert(!is_full(sizer, node, key, value));
 
     if (offsetof(leaf_node_t, pair_offsets) + sizeof(uint16_t) * (node->num_pairs + 1) + sizeof(repli_timestamp_t) + key->full_size() + sizer->size(value) > node->frontmost) {
@@ -1356,8 +1304,6 @@ void insert(value_sizer_t<V> *sizer, leaf_node_t *node, const btree_key_t *key, 
 // unnecessary binary search.
 template <class V>
 void remove(value_sizer_t<V> *sizer, leaf_node_t *node, const btree_key_t *key, repli_timestamp_t tstamp) {
-    validate(sizer, node);
-
     int index;
     bool found = find_key(node, key, &index);
 
@@ -1404,8 +1350,6 @@ void remove(value_sizer_t<V> *sizer, leaf_node_t *node, const btree_key_t *key, 
 // Erases the entry for the given key, leaving behind no trace.
 template <class V>
 void erase_presence(value_sizer_t<V> *sizer, leaf_node_t *node, const btree_key_t *key) {
-    validate(sizer, node);
-
     int index;
     bool found = find_key(node, key, &index);
 
@@ -1447,8 +1391,6 @@ protected:
 
 template <class V>
 void dump_entries_since_time(value_sizer_t<V> *sizer, const leaf_node_t *node, repli_timestamp_t minimum_tstamp, entry_reception_callback_t<V> *cb) {
-    validate(sizer, node);
-
     int stop_offset = 0;
 
     {
@@ -1457,7 +1399,7 @@ void dump_entries_since_time(value_sizer_t<V> *sizer, const leaf_node_t *node, r
         entry_iter_t iter = entry_iter_t::make(node);
         while (!iter.done(sizer) && iter.offset < node->tstamp_cutpoint) {
             repli_timestamp_t new_earliest = get_timestamp(node, iter.offset);
-            rassert(! (earliest < new_earliest));
+            rassert(earliest >= new_earliest);
             earliest = new_earliest;
             iter.step(sizer, node);
 
@@ -1527,7 +1469,7 @@ public:
     }
 
 private:
-    live_iter_t(int index) : index_(index) { }
+    explicit live_iter_t(int index) : index_(index) { }
 
     friend live_iter_t iter_for_inclusive_lower_bound(const leaf_node_t *node, const btree_key_t *key);
     friend live_iter_t iter_for_whole_leaf(const leaf_node_t *node);

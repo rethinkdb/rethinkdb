@@ -37,19 +37,19 @@ struct not_allowed_visitor_t : public boost::static_visitor<mutation_result_t> {
     mutation_result_t operator()(UNUSED const get_cas_mutation_t& m) const {
         get_result_t r;
         r.is_not_allowed = true;
-        return r;
+        return mutation_result_t(r);
     }
     mutation_result_t operator()(UNUSED const sarc_mutation_t& m) const {
-        return sr_not_allowed;
+        return mutation_result_t(sr_not_allowed);
     }
     mutation_result_t operator()(UNUSED const incr_decr_mutation_t& m) const {
-        return incr_decr_result_t(incr_decr_result_t::idr_not_allowed);
+        return mutation_result_t(incr_decr_result_t(incr_decr_result_t::idr_not_allowed));
     }
     mutation_result_t operator()(UNUSED const append_prepend_mutation_t& m) const {
-        return apr_not_allowed;
+        return mutation_result_t(apr_not_allowed);
     }
     mutation_result_t operator()(UNUSED const delete_mutation_t& m) const {
-        return dr_not_allowed;
+        return mutation_result_t(dr_not_allowed);
     }
 };
 
