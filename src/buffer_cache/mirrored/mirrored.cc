@@ -1153,6 +1153,15 @@ mc_cache_t::~mc_cache_t() {
         cond.wait();
         to_pulse_when_last_transaction_commits = NULL; // writeback is going to start another transaction, we don't want to get notified again (which would fail)
     }
+
+    if (writeback.has_active_flushes()) {
+        cond_t cond;
+        writeback.to_pulse_when_last_active_flush_finishes = &cond;
+        cond.wait();
+        writeback.to_pulse_when_last_active_flush_finishes = NULL;
+    }
+
+    rassert(!writeback.has_active_flushes());
     rassert(num_live_transactions == 0, "num_live_transactions = %d", num_live_transactions);
 
     /* Perform a final sync */
