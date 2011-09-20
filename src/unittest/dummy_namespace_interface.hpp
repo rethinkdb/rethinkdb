@@ -57,45 +57,46 @@ public:
         std::vector<typename protocol_t::region_t> regions;
         std::vector<int> destinations;
         for (int i = 0; i < (int)timestampers.size(); i++) {
-            if (timestampers[i].region.overlaps(read.get_region())) {
-                regions.push_back(timestampers[i].region.intersection(read.get_region()));
+            if (timestampers[i].region.overlaps(read->get_region())) {
+                regions.push_back(timestampers[i].region.intersection(read->get_region()));
                 destinations.push_back(i);
             }
         }
-        rassert(read.get_region().covered_by(regions));
-        std::vector<typename protocol_t::read_t> subreads = read.shard(regions);
+        rassert(read->get_region().covered_by(regions));
+        std::vector<typename protocol_t::read_t> subreads = read->shard(regions);
         rassert(subreads.size() == regions.size());
         std::vector<typename protocol_t::read_response_t> responses;
         for (int i = 0; i < (int)regions.size(); i++) {
-            rassert(regions[i].contains(subreads[i].get_region()));
+            rassert(regions[i].contains(subreads[i]->get_region()));
             responses.push_back(timestampers[destinations[i]].timestamper->read(subreads[i], tok));
             if (interruptor->is_pulsed()) throw interrupted_exc_t();
         }
         typename protocol_t::temporary_cache_t cache;
-        return read.unshard(responses, &cache);
+        return read->unshard(responses, &cache);
     }
 
     typename protocol_t::write_response_t write(typename protocol_t::write_t write, order_token_t tok, signal_t *interruptor) {
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
         std::vector<typename protocol_t::region_t> regions;
         std::vector<int> destinations;
+        typename protocol_t::region_t write_region = write->get_region();
         for (int i = 0; i < (int)timestampers.size(); i++) {
-            if (timestampers[i].region.overlaps(write.get_region())) {
-                regions.push_back(timestampers[i].region.intersection(write.get_region()));
+            if (timestampers[i].region.overlaps(write->get_region())) {
+                regions.push_back(timestampers[i].region.intersection(write->get_region()));
                 destinations.push_back(i);
             }
         }
-        rassert(write.get_region().covered_by(regions));
-        std::vector<typename protocol_t::write_t> subwrites = write.shard(regions);
+        rassert(write->get_region().covered_by(regions));
+        std::vector<typename protocol_t::write_t> subwrites = write->shard(regions);
         rassert(subwrites.size() == regions.size());
         std::vector<typename protocol_t::write_response_t> responses;
         for (int i = 0; i < (int)regions.size(); i++) {
-            rassert(regions[i].contains(subwrites[i].get_region()));
+            rassert(regions[i].contains(subwrites[i]->get_region()));
             responses.push_back(timestampers[destinations[i]].timestamper->write(subwrites[i], tok));
             if (interruptor->is_pulsed()) throw interrupted_exc_t();
         }
         typename protocol_t::temporary_cache_t cache;
-        return write.unshard(responses, &cache);
+        return write->unshard(responses, &cache);
     }
 
 private:

@@ -1,6 +1,9 @@
 #ifndef __BTREE_OPERATIONS_HPP__
 #define __BTREE_OPERATIONS_HPP__
 
+
+#include <boost/scoped_ptr.hpp>
+#include <boost/shared_ptr.hpp>
 #include "utils.hpp"
 #include <boost/scoped_ptr.hpp>
 
@@ -10,13 +13,80 @@
 
 class btree_slice_t;
 
+/* An abstract superblock provides the starting point for performing btree operations */
+class superblock_t {
+public:
+    superblock_t() { }
+    virtual ~superblock_t() { }
+    // Release the superblock if possible (otherwise do nothing)
+    virtual void release() = 0;
+    // If we hold a lock on a super block, swap it into swapee
+    // (might swap in an empty buf_lock_t if we don't have an actual superblock)
+    virtual void swap_buf(buf_lock_t &swapee) = 0;
+    virtual block_id_t get_root_block_id() const = 0;
+    virtual void set_root_block_id(const block_id_t new_root_block) = 0;
+
+private:
+    DISABLE_COPYING(superblock_t);
+};
+
+/* real_superblock_t implements superblock_t in terms of an actual on-disk block
+   structure. */
+class real_superblock_t : public superblock_t {
+public:
+    real_superblock_t(buf_lock_t &sb_buf);
+
+    void release();
+    void swap_buf(buf_lock_t &swapee);
+    block_id_t get_root_block_id() const;
+    void set_root_block_id(const block_id_t new_root_block);
+    block_id_t get_delete_queue_block() const;
+
+private:
+    buf_lock_t sb_buf_;
+};
+
+/* This is for nested btrees, where the "superblock" is really more like a super value.
+ It provides an in-memory superblock replacement.
+
+ Note for use for nested btrees: If you want to nest a tree into some super value,
+ you would probably have a block_id_t nested_root value in the super value. Then,
+ before accessing the nested tree, you can construct a virtual_superblock_t
+ based on the nested_root value. Once write operations to the nested btree have
+ finished, you should check whether the root_block_id has been changed,
+ and if it has, use get_root_block_id() to update the nested_root value in the
+ super block.
+ */
+class virtual_superblock_t : public superblock_t {
+public:
+    virtual_superblock_t(block_id_t root_block_id = NULL_BLOCK_ID) : root_block_id_(root_block_id) { }
+
+    void release() { }
+    void swap_buf(buf_lock_t &swapee) {
+        // Swap with empty buf_lock
+        buf_lock_t tmp;
+        tmp.swap(swapee);
+    }
+    block_id_t get_root_block_id() const {
+        return root_block_id_;
+    }
+    void set_root_block_id(const block_id_t new_root_block) {
+        root_block_id_ = new_root_block;
+    }
+    block_id_t get_delete_queue_block() const {
+        return NULL_BLOCK_ID;
+    }
+
+private:
+    block_id_t root_block_id_;
+};
+
 class got_superblock_t {
 public:
     got_superblock_t() { }
 
-    boost::scoped_ptr<transaction_t> txn;
-
-    buf_lock_t sb_buf;
+    boost::shared_ptr<transaction_t> txn;
+    boost::scoped_ptr<superblock_t> sb;
 
 private:
     DISABLE_COPYING(got_superblock_t);
@@ -27,8 +97,8 @@ class keyvalue_location_t {
 public:
     keyvalue_location_t() : there_originally_was_value(false) { }
 
-    boost::scoped_ptr<transaction_t> txn;
-    buf_lock_t sb_buf;
+    boost::shared_ptr<transaction_t> txn;
+    boost::scoped_ptr<superblock_t> sb;
 
     // The parent buf of buf, if buf is not the root node.  This is hacky.
     buf_lock_t last_buf;
@@ -43,7 +113,7 @@ public:
 
     void swap(keyvalue_location_t& other) {
         txn.swap(other.txn);
-        sb_buf.swap(other.sb_buf);
+        sb.swap(other.sb);
         last_buf.swap(other.last_buf);
         buf.swap(other.buf);
         std::swap(there_originally_was_value, other.there_originally_was_value);

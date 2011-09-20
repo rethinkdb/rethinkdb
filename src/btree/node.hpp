@@ -150,6 +150,12 @@ struct btree_key_buffer_t {
         btree_key.size = store_key.size;
         memcpy(btree_key.contents, store_key.contents, store_key.size);
     }
+
+    btree_key_buffer_t(std::string &key_string) {
+        btree_key.size = key_string.size();
+        memcpy(btree_key.contents, &key_string.at(0), btree_key.size);
+    }
+
     template <class iterator_type>
     btree_key_buffer_t(iterator_type beg, iterator_type end) {
         assign<iterator_type>(beg, end);

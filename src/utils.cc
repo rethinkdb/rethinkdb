@@ -157,7 +157,14 @@ std::string format_precise_time(const precise_time_t& time) {
 }
 
 #ifndef NDEBUG
+
+#include <iostream>
+
 void home_thread_mixin_t::assert_thread() const {
+    if(home_thread() != get_thread_id()) {
+        std::cout << home_thread() << " " << get_thread_id() << std::endl;
+        BREAKPOINT;
+    }
     rassert(home_thread() == get_thread_id());
 }
 #endif
