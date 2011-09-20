@@ -16,7 +16,10 @@ using std::string;
 
 struct redis_protocol_t {
 
-    typedef repli_timestamp_t timestamp_t;
+    // Dummy namespace_interface_t expects a temporary cache object. Why?
+    struct temporary_cache_t {};
+
+    typedef transition_timestamp_t timestamp_t;
 
     struct read_operation_t;
     struct write_operation_t;
@@ -67,6 +70,12 @@ struct redis_protocol_t {
         virtual std::vector<read_t> shard(std::vector<region_t> &regions) = 0;
         virtual std::vector<read_t> parallelize(int optimal_factor) = 0;
         virtual read_response_t execute(btree_slice_t *btree, order_token_t otok) = 0;
+
+        // TODO Why does dummy namespace_interface_t now expect an unshard here?
+        read_response_t unshard(std::vector<read_response_t> &responses, temporary_cache_t *cache) {
+            (void)cache;
+            return responses[0];
+        }
     };
 
     // Base class for redis write operations
@@ -76,6 +85,12 @@ struct redis_protocol_t {
         virtual indicated_key_t get_keys() = 0;
         virtual std::vector<write_t> shard(std::vector<region_t> &regions) = 0;
         virtual write_response_t execute(btree_slice_t *btree, timestamp_t timestamp, order_token_t otok) = 0;
+
+        // TODO Why does dummy namespace_interface_t now expect an unshard here?
+        write_response_t unshard(std::vector<write_response_t> &responses, temporary_cache_t *cache) {
+            (void)cache;
+            return responses[0];
+        }
     };
 
     struct read_result_t {
@@ -105,8 +120,8 @@ struct redis_protocol_t {
         store_t(serializer_t *ser, region_t region);
         ~store_t();
         region_t get_region();
-        read_response_t read(read_t read, order_token_t otok);
-        write_response_t write(write_t write, timestamp_t timestamp, order_token_t otok);
+        read_response_t read(read_t &read, order_token_t otok, signal_t *interruptor);
+        write_response_t write(write_t &write, timestamp_t timestamp, order_token_t otok, signal_t *interruptor);
         // TODO plus others...
 
     private:

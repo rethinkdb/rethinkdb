@@ -104,11 +104,10 @@ namespace px = boost::phoenix;
 
 template <typename Iterator>
 struct redis_grammar : qi::grammar<Iterator>, redis_output_writer, redis_ext {
-    redis_grammar(tcp_conn_t *conn, namespace_interface_t<redis_protocol_t> *intface, std::iostream *redis_stream, pubsub_runtime_t *runtime_) :
+    redis_grammar(tcp_conn_t *conn, namespace_interface_t<redis_protocol_t> *intface, pubsub_runtime_t *runtime_) :
         redis_grammar::base_type(start),
         redis_output_writer(conn),
         redis_ext(intface),
-        out_stream(redis_stream),
         runtime(runtime_)
     {
         eol = qi::lit("\r\n");
@@ -299,7 +298,6 @@ struct redis_grammar : qi::grammar<Iterator>, redis_output_writer, redis_ext {
 
     
 private:
-    std::ostream *out_stream;
     pubsub_runtime_t *runtime;
 
     //Support rules
@@ -420,7 +418,7 @@ private:
 
 
 void start_serving(tcp_conn_t *conn, namespace_interface_t<redis_protocol_t> *intface, pubsub_runtime_t *runtime) {
-    redis_grammar<tcp_conn_t::iterator> redis(conn, intface, NULL, runtime);
+    redis_grammar<tcp_conn_t::iterator> redis(conn, intface, runtime);
     try {
         while(true) {
             qi::parse(conn->begin(), conn->end(), redis);
@@ -434,52 +432,13 @@ void start_serving(tcp_conn_t *conn, namespace_interface_t<redis_protocol_t> *in
 
 }
 
+// TODO permanent solution
 pubsub_runtime_t pubsub_runtime;
 
 //The entry point for the parser. The only requirement for a parser is that it implement this function.
-void serve_redis(tcp_conn_t *conn, get_store_t *get_store, set_store_interface_t *set_store, namespace_interface_t<redis_protocol_t> *redis_intf) {
-    (void)get_store;
-    (void)set_store;
-
+void serve_redis(tcp_conn_t *conn, namespace_interface_t<redis_protocol_t> *redis_intf) {
     start_serving(conn, redis_intf, &pubsub_runtime);
 }
-
-/*
-void serve_redis(std::iostream &redis_stream, get_store_t *get_store, set_store_interface_t *set_store) {
-    redis_stream.unsetf(std::ios::skipws);
-    redis_grammar<boost::spirit::basic_istream_iterator<char> > redis(NULL, &redis_stream, get_store, set_store);
-    boost::spirit::istream_iterator begin(redis_stream);
-    boost::spirit::istream_iterator end;
-    while(true) {
-        bool r = qi::parse(begin, end, redis);
-        if(!r) std::cout << "Bad parse, will I have to now extract the bad data?" << std::endl;
-        while(begin != end) begin++;
-    }
-
-}
-*/
-
-/*
-void serve_redis(std::iostream &redis_stream, get_store_t *get_store, set_store_interface_t *set_store) {
-    qi::rule<boost::spirit::basic_istream_iterator<char> > junk = *(qi::char_ >> "\r\n")[printj];
-
-    redis_grammar<boost::spirit::basic_istream_iterator<char> > redis(NULL, &redis_stream, get_store, set_store);
-    //qi::detail::match_manip<redis_grammar<boost::spirit::basic_istream_iterator<char, std::char_traits<char> > >,
-    //    mpl_::bool_<false>, mpl_::bool_<false>, boost::spirit::unused_type, const boost::spirit::unused_type>
-    //    match = qi::match(redis);
-    qi::rule<boost::spirit::basic_istream_iterator<char> > valid = *(qi::lit('*')) >> "\r\n";//'*' << qi::uint_ << "\r\n";
-    while(redis_stream.good()) {
-                        //TODO construct the manipulator outside of the loop?
-        //redis_stream >> qi::match(redis);
-        redis_stream >> qi::match(valid);
-        if(redis_stream.fail()) {
-            std::cout << "Bad parse, will I have to now extract the bad data?" << std::endl;
-            //redis_stream >> qi::match(junk);
-            redis_stream.clear();
-        }
-    }
-}
-*/
 
 //Output functions
 //These take the results of a redis_interface_t method and send them out on the wire.
@@ -517,7 +476,7 @@ struct output_visitor : boost::static_visitor<void> {
         out_conn->write("$", 1);
         out_conn->write(buff, strlen(buff));
         out_conn->write("\r\n", 2);
-        out_conn->write((char *)(&res.at(0)), res.size());
+        out_conn->write(res.c_str(), res.size());
         out_conn->write("\r\n", 2);
 
     }

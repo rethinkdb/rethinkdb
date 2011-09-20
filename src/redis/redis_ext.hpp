@@ -381,7 +381,8 @@ private:
     redis_protocol_t::redis_return_type exec(redis_protocol_t::write_operation_t *oper) {
         redis_protocol_t::write_t write(oper);
         // TODO give interruptor
-        redis_protocol_t::write_response_t response = namespace_interface->write(write, order_token_t::ignore, NULL);
+        cond_t signal;
+        redis_protocol_t::write_response_t response = namespace_interface->write(write, order_token_t::ignore, &signal);
         if(response.get() == NULL) {
             return redis_protocol_t::nil_result();
         } else {
@@ -392,7 +393,8 @@ private:
     redis_protocol_t::redis_return_type exec(redis_protocol_t::read_operation_t *oper) {
         redis_protocol_t::read_t read(oper);
         // TODO give interruptor
-        redis_protocol_t::read_response_t response = namespace_interface->read(read, order_token_t::ignore, NULL);
+        cond_t signal;
+        redis_protocol_t::read_response_t response = namespace_interface->read(read, order_token_t::ignore, &signal);
         if(response.get() == NULL) {
             return redis_protocol_t::nil_result();
         } else {

@@ -6,7 +6,7 @@
 #include "btree/operations.hpp"
 #include <boost/lexical_cast.hpp>
 
-typedef repli_timestamp_t timestamp_t;
+typedef redis_protocol_t::timestamp_t timestamp_t;
 
 //These macros deliberately match those in the header file. They simply define an "unimplemented
 //command" definition for the given command. When adding new commands we can simply copy and paste
@@ -83,11 +83,13 @@ struct set_oper_t {
     set_oper_t(std::string &key, btree_slice_t *btree, timestamp_t timestamp_, order_token_t otok) :
         sizer(btree->cache()->get_block_size()),
         btree_key(key),
-        timestamp(timestamp_),
-        on_thread(btree->home_thread())
+        timestamp(timestamp_)
     {
+
+        // TODO hook-up timestamp after Tim figures out what to do with it
+        
         // Get the superblock that represents our write transaction
-        get_btree_superblock(btree, rwi_write, 1, timestamp, otok, &superblock);
+        get_btree_superblock(btree, rwi_write, 1, repli_timestamp_t::invalid, otok, &superblock);
         find_keyvalue_location_for_write(&superblock, btree_key.key(), &location);
 
         // Check for expiration
@@ -99,7 +101,7 @@ struct set_oper_t {
     }
 
     ~set_oper_t() {
-        apply_keyvalue_change(&location, btree_key.key(), timestamp);
+        apply_keyvalue_change(&location, btree_key.key(), repli_timestamp_t::invalid);
     }
 
     bool del() {
@@ -150,14 +152,12 @@ protected:
     value_sizer_t<redis_value_t> sizer;
     btree_key_buffer_t btree_key;
     timestamp_t timestamp;
-    on_thread_t on_thread;
 };
 
 struct read_oper_t {
     read_oper_t(std::string &key, btree_slice_t *btree, order_token_t otok) :
         sizer(btree->cache()->get_block_size()),
-        storing_expired_value(false),
-        on_thread(btree->home_thread())
+        storing_expired_value(false)
     {
         got_superblock_t superblock;
         get_btree_superblock(btree, rwi_read, otok, &superblock);
@@ -192,7 +192,6 @@ protected:
 private:
     bool storing_expired_value;
     scoped_malloc<redis_value_t> expired_value;
-    on_thread_t on_thread;
 };
 
 

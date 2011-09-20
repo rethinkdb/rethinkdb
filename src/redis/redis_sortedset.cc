@@ -186,7 +186,8 @@ private:
         }
         
         void apply_change() {
-            apply_keyvalue_change(&loc, nested_key.key(), ths->timestamp);
+            // TODO hook up timestamp once Tim figures out what to do with the timestamp
+            apply_keyvalue_change(&loc, nested_key.key(), repli_timestamp_t::invalid /*ths->timestamp*/);
             virtual_superblock_t *sb = reinterpret_cast<virtual_superblock_t *>(loc.sb.get());
             ths->member_index_root = sb->get_root_block_id();
         }

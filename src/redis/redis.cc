@@ -85,7 +85,8 @@ redis_protocol_t::region_t redis_protocol_t::store_t::get_region() {
     return region;
 }
 
-redis_protocol_t::read_response_t redis_protocol_t::store_t::read(redis_protocol_t::read_t read, order_token_t otok) {
+redis_protocol_t::read_response_t redis_protocol_t::store_t::read(redis_protocol_t::read_t &read, order_token_t otok, signal_t *interruptor) {
+    (void)interruptor;
     try {
         read_response_t response = read->execute(&btree, otok);
         return response;
@@ -94,7 +95,8 @@ redis_protocol_t::read_response_t redis_protocol_t::store_t::read(redis_protocol
     }
 }
 
-redis_protocol_t::write_response_t redis_protocol_t::store_t::write(redis_protocol_t::write_t write, redis_protocol_t::timestamp_t timestamp, order_token_t otok) {
+redis_protocol_t::write_response_t redis_protocol_t::store_t::write(redis_protocol_t::write_t &write, timestamp_t timestamp, order_token_t otok, signal_t *interruptor) {
+    (void)interruptor;
     try {
         write_response_t response = write->execute(&btree, timestamp, otok);
         return response;

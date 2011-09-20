@@ -72,7 +72,7 @@ public:
             if (interruptor->is_pulsed()) throw interrupted_exc_t();
         }
         typename protocol_t::temporary_cache_t cache;
-        return read.unshard(responses, &cache);
+        return read->unshard(responses, &cache);
     }
 
     typename protocol_t::write_response_t write(typename protocol_t::write_t write, order_token_t tok, signal_t *interruptor) {
@@ -96,7 +96,7 @@ public:
             if (interruptor->is_pulsed()) throw interrupted_exc_t();
         }
         typename protocol_t::temporary_cache_t cache;
-        return write.unshard(responses, &cache);
+        return write->unshard(responses, &cache);
     }
 
 private:
@@ -159,38 +159,18 @@ If your `protocol_t` doesn't match that interface, you'll have to construct a
 `dummy_namespace_interface_t` manually instead of using
 `run_with_dummy_namespace_interface`. */
 
-class bob_bob_t {
-    char *filename;
-public:
-    bob_bob_t(const char *tmpl) {
-        size_t len = strlen(tmpl);
-        filename = new char[len+1];
-        memcpy(filename, tmpl, len+1);
-        int fd = mkstemp(filename);
-        guarantee_err(fd != -1, "Couldn't create a temporary file");
-        close(fd);
-    }
-
-    const char *name() { return filename; }
-
-    ~bob_bob_t() {
-        unlink(filename);
-        delete [] filename;
-    }
-};
-
 template<class protocol_t>
 void run_with_dummy_namespace_interface(
         std::vector<typename protocol_t::region_t> shards,
         boost::function<void(namespace_interface_t<protocol_t> *)> fun) {
 
-    bob_bob_t *db_file = new bob_bob_t("/tmp/rdb_unittest.XXXXXX");
+    temp_file_t db_file("/tmp/rdb_unittest.XXXXXX");
 
     /* Set up serializer */
 
     standard_serializer_t::create(
         standard_serializer_t::dynamic_config_t(),
-        standard_serializer_t::private_dynamic_config_t(db_file->name()),
+        standard_serializer_t::private_dynamic_config_t(db_file.name()),
         standard_serializer_t::static_config_t()
         );
 
@@ -198,7 +178,7 @@ void run_with_dummy_namespace_interface(
         /* Extra parentheses are necessary so C++ doesn't interpret this as
         a declaration of a function called `serializer`. WTF, C++? */
         (standard_serializer_t::dynamic_config_t()),
-        standard_serializer_t::private_dynamic_config_t(db_file->name())
+        standard_serializer_t::private_dynamic_config_t(db_file.name())
         );
 
     /* Set up multiplexer */
