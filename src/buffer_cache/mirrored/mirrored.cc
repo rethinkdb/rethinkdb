@@ -915,7 +915,11 @@ mc_transaction_t::~mc_transaction_t() {
         struct : public writeback_t::sync_callback_t, public cond_t {
             void on_sync() { pulse(); }
         } sync_callback;
-        if (cache->writeback.sync_patiently(&sync_callback)) sync_callback.pulse();
+
+        if (cache->writeback.sync_patiently(&sync_callback)) {
+            sync_callback.pulse();
+        }
+
         cache->on_transaction_commit(this);
         sync_callback.wait();
 
