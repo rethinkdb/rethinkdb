@@ -35,6 +35,7 @@ public:
         : evictable_t(buf->cache, /* TODO: we can load the data later and we never get added to the page map */ buf->data.has() ? true : false),
           parent(buf), snapshotted_version(buf->version_id),
           token(buf->data_token),
+          subtree_recency(buf->subtree_recency),
           snapshot_refcount(_snapshot_refcount), active_refcount(_active_refcount) {
         cache->assert_thread();
 
@@ -139,6 +140,9 @@ private:
 
     // Our block token to the serializer.
     boost::intrusive_ptr<standard_block_token_t> token;
+
+    // The recency of the snapshot we hold.
+    repli_timestamp_t subtree_recency;
 
     // snapshot_refcount is the number of snapshots that could potentially use this buf_snapshot_t.
     size_t snapshot_refcount;
@@ -422,10 +426,11 @@ bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version, bool leave_clo
     return true;
 }
 
-void *mc_inner_buf_t::acquire_snapshot_data(version_id_t version_to_access, file_account_t *io_account) {
+void *mc_inner_buf_t::acquire_snapshot_data(version_id_t version_to_access, file_account_t *io_account, repli_timestamp_t *subtree_recency_out) {
     rassert(version_to_access != mc_inner_buf_t::faux_version_id);
     for (buf_snapshot_t *snap = snapshots.head(); snap; snap = snapshots.next(snap)) {
         if (snap->snapshotted_version <= version_to_access) {
+            *subtree_recency_out = snap->subtree_recency;
             return snap->acquire_data(io_account);
         }
     }
@@ -485,7 +490,7 @@ perfmon_duration_sampler_t
 
 mc_buf_t::mc_buf_t(mc_inner_buf_t *_inner_buf, access_t _mode, mc_inner_buf_t::version_id_t version_to_access, bool _snapshotted,
                    boost::function<void()> call_when_in_line, file_account_t *io_account)
-    : mode(_mode), snapshotted(_snapshotted), non_locking_access(_snapshotted), inner_buf(_inner_buf), data(NULL) {
+    : mode(_mode), snapshotted(_snapshotted), non_locking_access(_snapshotted), inner_buf(_inner_buf), data(NULL), subtree_recency(repli_timestamp_t::invalid) {
     inner_buf->cache->assert_thread();
     inner_buf->refcount++;
     patches_serialized_size_at_start = -1;
@@ -507,7 +512,7 @@ mc_buf_t::mc_buf_t(mc_inner_buf_t *_inner_buf, access_t _mode, mc_inner_buf_t::v
     // a read lock first (otherwise we may get the data of the unfinished write on top).
     if (snapshotted && version_to_access != mc_inner_buf_t::faux_version_id && version_to_access < inner_buf->version_id) {
         // acquire the snapshotted block; no need to lock
-        data = inner_buf->acquire_snapshot_data(version_to_access, io_account);
+        data = inner_buf->acquire_snapshot_data(version_to_access, io_account, &subtree_recency);
         guarantee(data != NULL);
 
         // we never needed to get in line, so just call the function straight-up to ensure it gets called.
@@ -529,6 +534,8 @@ mc_buf_t::mc_buf_t(mc_inner_buf_t *_inner_buf, access_t _mode, mc_inner_buf_t::v
 void mc_buf_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access) {
     inner_buf->cache->assert_thread();
     rassert(!inner_buf->do_delete);
+
+    subtree_recency = inner_buf->subtree_recency;
 
     switch (mode) {
         case rwi_read_sync:
