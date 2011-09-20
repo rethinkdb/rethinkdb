@@ -1149,7 +1149,7 @@ mc_cache_t::~mc_cache_t() {
         cond.wait();
         to_pulse_when_last_transaction_commits = NULL; // writeback is going to start another transaction, we don't want to get notified again (which would fail)
     }
-    rassert(num_live_transactions == 0);
+    rassert(num_live_transactions == 0, "num_live_transactions = %d", num_live_transactions);
 
     /* Perform a final sync */
     struct : public writeback_t::sync_callback_t, public cond_t {

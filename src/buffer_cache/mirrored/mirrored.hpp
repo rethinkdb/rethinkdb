@@ -194,6 +194,8 @@ public:
     void mark_deleted();
 
     void touch_recency(repli_timestamp_t timestamp) {
+        rassert(mode == rwi_write);
+
         // Some operations acquire in write mode but should not
         // actually affect subtree recency.  For example, delete
         // operations, and delete_expired operations -- the subtree
@@ -203,12 +205,13 @@ public:
         // repli_timestamp_t invalid as a magic constant that indicates
         // this fact, instead of using something robust.  We are so
         // prone to using that value as a placeholder.)
-        if (timestamp.time != repli_timestamp_t::invalid.time) {
+        if (timestamp != repli_timestamp_t::invalid) {
             // TODO: Add rassert(inner_buf->subtree_recency <= timestamp)
 
             // TODO: use some slice-specific timestamp that gets updated
             // every epoll call.
             inner_buf->subtree_recency = timestamp;
+            subtree_recency = timestamp;
             inner_buf->writeback_buf().set_recency_dirty();
         }
     }
@@ -218,7 +221,7 @@ public:
         // acquiring the buf.  The recency should be locked with a
         // lock that sits "above" buffer acquisition.  Or the recency
         // simply should be set _before_ trying to acquire the buf.
-        return inner_buf->subtree_recency;
+        return subtree_recency;
     }
 
 private:
