@@ -29,22 +29,23 @@ perfmon_persistent_counter_t pm_cache_hits("cache_hits"), pm_cache_misses("cache
 // flushed to disk during writeback, sans block id, to allow them to be unloaded if necessary.
 class mc_inner_buf_t::buf_snapshot_t : private evictable_t, public intrusive_list_node_t<mc_inner_buf_t::buf_snapshot_t> {
 public:
-    buf_snapshot_t(mc_inner_buf_t *buf, version_id_t version,
+    buf_snapshot_t(mc_inner_buf_t *buf,
                    size_t _snapshot_refcount, size_t _active_refcount,
-                   serializer_data_ptr_t& _data, bool leave_clone, const boost::intrusive_ptr<standard_block_token_t>& _token)
-        : evictable_t(buf->cache, /* TODO: we can load the data later and we never get added to the page map */ _data.has() ? true : false),
-          parent(buf), snapshotted_version(version),
-          token(_token),
+                   bool leave_clone)
+        : evictable_t(buf->cache, /* TODO: we can load the data later and we never get added to the page map */ buf->data.has() ? true : false),
+          parent(buf), snapshotted_version(buf->version_id),
+          token(buf->data_token),
+          subtree_recency(buf->subtree_recency),
           snapshot_refcount(_snapshot_refcount), active_refcount(_active_refcount) {
         cache->assert_thread();
 
         if (leave_clone) {
-            if (_data.has()) {
-                data.swap(_data);
-                _data.init_clone(buf->cache->serializer, data);
+            if (buf->data.has()) {
+                data.swap(buf->data);
+                buf->data.init_clone(buf->cache->serializer, data);
             }
         } else {
-            data.swap(_data);
+            data.swap(buf->data);
         }
 
         rassert(data.has() || token, "creating buf snapshot without data or block token");
@@ -140,6 +141,9 @@ private:
     // Our block token to the serializer.
     boost::intrusive_ptr<standard_block_token_t> token;
 
+    // The recency of the snapshot we hold.
+    repli_timestamp_t subtree_recency;
+
     // snapshot_refcount is the number of snapshots that could potentially use this buf_snapshot_t.
     size_t snapshot_refcount;
 
@@ -216,13 +220,14 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, bool _shou
 }
 
 // This form of the buf constructor is used when the block exists on disks but has been loaded into buf already
-mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, void *_buf, repli_timestamp_t _recency_timestamp)
+mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, void *_buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t _recency_timestamp)
     : evictable_t(_cache),
       writeback_t::local_buf_t(),
       block_id(_block_id),
       subtree_recency(_recency_timestamp),
       data(_buf),
       version_id(_cache->get_min_snapshot_version(_cache->get_current_version_id())),
+      data_token(token),
       refcount(0),
       do_delete(false),
       cow_refcount(0),
@@ -410,7 +415,7 @@ bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version, bool leave_clo
     // mode, corresponding to cow_refcount; and mc_buf_t's in snapshotted rwi_read mode, indicated
     // by snap_refcount.
 
-    buf_snapshot_t *snap = new buf_snapshot_t(this, version_id, num_snapshots_affected, cow_refcount + snap_refcount, data, leave_clone, data_token);
+    buf_snapshot_t *snap = new buf_snapshot_t(this, num_snapshots_affected, cow_refcount + snap_refcount, leave_clone);
     cow_refcount = 0;
     snap_refcount = 0;
 
@@ -421,10 +426,11 @@ bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version, bool leave_clo
     return true;
 }
 
-void *mc_inner_buf_t::acquire_snapshot_data(version_id_t version_to_access, file_account_t *io_account) {
+void *mc_inner_buf_t::acquire_snapshot_data(version_id_t version_to_access, file_account_t *io_account, repli_timestamp_t *subtree_recency_out) {
     rassert(version_to_access != mc_inner_buf_t::faux_version_id);
     for (buf_snapshot_t *snap = snapshots.head(); snap; snap = snapshots.next(snap)) {
         if (snap->snapshotted_version <= version_to_access) {
+            *subtree_recency_out = snap->subtree_recency;
             return snap->acquire_data(io_account);
         }
     }
@@ -484,7 +490,7 @@ perfmon_duration_sampler_t
 
 mc_buf_t::mc_buf_t(mc_inner_buf_t *_inner_buf, access_t _mode, mc_inner_buf_t::version_id_t version_to_access, bool _snapshotted,
                    boost::function<void()> call_when_in_line, file_account_t *io_account)
-    : mode(_mode), snapshotted(_snapshotted), non_locking_access(_snapshotted), inner_buf(_inner_buf), data(NULL) {
+    : mode(_mode), snapshotted(_snapshotted), non_locking_access(_snapshotted), inner_buf(_inner_buf), data(NULL), subtree_recency(repli_timestamp_t::invalid) {
     inner_buf->cache->assert_thread();
     inner_buf->refcount++;
     patches_serialized_size_at_start = -1;
@@ -506,7 +512,7 @@ mc_buf_t::mc_buf_t(mc_inner_buf_t *_inner_buf, access_t _mode, mc_inner_buf_t::v
     // a read lock first (otherwise we may get the data of the unfinished write on top).
     if (snapshotted && version_to_access != mc_inner_buf_t::faux_version_id && version_to_access < inner_buf->version_id) {
         // acquire the snapshotted block; no need to lock
-        data = inner_buf->acquire_snapshot_data(version_to_access, io_account);
+        data = inner_buf->acquire_snapshot_data(version_to_access, io_account, &subtree_recency);
         guarantee(data != NULL);
 
         // we never needed to get in line, so just call the function straight-up to ensure it gets called.
@@ -528,6 +534,8 @@ mc_buf_t::mc_buf_t(mc_inner_buf_t *_inner_buf, access_t _mode, mc_inner_buf_t::v
 void mc_buf_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access) {
     inner_buf->cache->assert_thread();
     rassert(!inner_buf->do_delete);
+
+    subtree_recency = inner_buf->subtree_recency;
 
     switch (mode) {
         case rwi_read_sync:
@@ -907,7 +915,11 @@ mc_transaction_t::~mc_transaction_t() {
         struct : public writeback_t::sync_callback_t, public cond_t {
             void on_sync() { pulse(); }
         } sync_callback;
-        if (cache->writeback.sync_patiently(&sync_callback)) sync_callback.pulse();
+
+        if (cache->writeback.sync_patiently(&sync_callback)) {
+            sync_callback.pulse();
+        }
+
         cache->on_transaction_commit(this);
         sync_callback.wait();
 
@@ -983,7 +995,7 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
 
     buf_t *buf = new buf_t(inner_buf, mode, snapshot_version, snapshotted, call_when_in_line, get_io_account());
 
-    if (!(mode == rwi_read || mode == rwi_read_outdated_ok)) {
+    if (is_write_mode(mode)) {
         buf->touch_recency(recency_timestamp);
     }
 
@@ -1141,7 +1153,7 @@ mc_cache_t::~mc_cache_t() {
         cond.wait();
         to_pulse_when_last_transaction_commits = NULL; // writeback is going to start another transaction, we don't want to get notified again (which would fail)
     }
-    rassert(num_live_transactions == 0);
+    rassert(num_live_transactions == 0, "num_live_transactions = %d", num_live_transactions);
 
     /* Perform a final sync */
     struct : public writeback_t::sync_callback_t, public cond_t {
@@ -1250,19 +1262,19 @@ void mc_cache_t::on_transaction_commit(transaction_t *txn) {
     }
 }
 
-bool mc_cache_t::offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp) {
+bool mc_cache_t::offer_read_ahead_buf(block_id_t block_id, void *buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
     // Note that the offered block might get deleted between the point where the serializer offers it and the message gets delivered!
-    do_on_thread(home_thread(), boost::bind(&mc_cache_t::offer_read_ahead_buf_home_thread, this, block_id, buf, recency_timestamp));
+    do_on_thread(home_thread(), boost::bind(&mc_cache_t::offer_read_ahead_buf_home_thread, this, block_id, buf, token, recency_timestamp));
     return true;
 }
 
-void mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp) {
+void mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
     assert_thread();
 
     // Check that the offered block is allowed to be accepted at the current time
     // (e.g. that we don't have a more recent version already nor that it got deleted in the meantime)
     if (can_read_ahead_block_be_accepted(block_id)) {
-        new mc_inner_buf_t(this, block_id, buf, recency_timestamp);
+        new mc_inner_buf_t(this, block_id, buf, token, recency_timestamp);
     } else {
         serializer->free(buf);
     }

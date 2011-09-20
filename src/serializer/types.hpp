@@ -49,19 +49,14 @@ private:
 
 class repli_timestamp_t;
 
-class serializer_read_ahead_callback_t {
-public:
-    virtual ~serializer_read_ahead_callback_t() { }
-    /* If the callee returns true, it is responsible to free buf by calling free(buf) in the corresponding serializer. */
-    virtual bool offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp) = 0;
-};
-
 template <class serializer_type> struct serializer_traits_t;
 
 class log_serializer_t;
 
 class ls_block_token_pointee_t {
     friend class log_serializer_t;
+    friend class dbm_read_ahead_fsm_t;  // For read-ahead tokens.
+
     friend void intrusive_ptr_add_ref(ls_block_token_pointee_t *p);
     friend void intrusive_ptr_release(ls_block_token_pointee_t *p);
 
@@ -234,6 +229,14 @@ public:
 private:
     void *ptr_;
     DISABLE_COPYING(serializer_data_ptr_t);
+};
+
+
+class serializer_read_ahead_callback_t {
+public:
+    virtual ~serializer_read_ahead_callback_t() { }
+    /* If the callee returns true, it is responsible to free buf by calling free(buf) in the corresponding serializer. */
+    virtual bool offer_read_ahead_buf(block_id_t block_id, void *buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) = 0;
 };
 
 #endif  // __SERIALIZER_TYPES_HPP__

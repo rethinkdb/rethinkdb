@@ -48,7 +48,7 @@ private:
         ser_data->block_sequence_id = 1;
 
         EXPECT_FALSE(cache->contains_block(block_A));
-        cache->offer_read_ahead_buf(block_A, ser_data + 1, repli_timestamp_t::distant_past);
+        cache->offer_read_ahead_buf(block_A, ser_data + 1, boost::intrusive_ptr<standard_block_token_t>(), repli_timestamp_t::distant_past);
         EXPECT_FALSE(cache->contains_block(block_A));
     }
 };
