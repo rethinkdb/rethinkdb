@@ -139,9 +139,7 @@ private:
     block_sequence_id_t block_sequence_id;
 
     // snapshot types' implementations are internal and deferred to mirrored.cc
-    typedef intrusive_list_t<buf_snapshot_t> snapshot_data_list_t;
-
-    snapshot_data_list_t snapshots;
+    intrusive_list_t<buf_snapshot_t> snapshots;
 
     DISABLE_COPYING(mc_inner_buf_t);
 };
