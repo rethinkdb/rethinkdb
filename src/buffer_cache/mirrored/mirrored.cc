@@ -29,22 +29,22 @@ perfmon_persistent_counter_t pm_cache_hits("cache_hits"), pm_cache_misses("cache
 // flushed to disk during writeback, sans block id, to allow them to be unloaded if necessary.
 class mc_inner_buf_t::buf_snapshot_t : private evictable_t, public intrusive_list_node_t<mc_inner_buf_t::buf_snapshot_t> {
 public:
-    buf_snapshot_t(mc_inner_buf_t *buf, version_id_t version,
+    buf_snapshot_t(mc_inner_buf_t *buf,
                    size_t _snapshot_refcount, size_t _active_refcount,
-                   serializer_data_ptr_t& _data, bool leave_clone, const boost::intrusive_ptr<standard_block_token_t>& _token)
-        : evictable_t(buf->cache, /* TODO: we can load the data later and we never get added to the page map */ _data.has() ? true : false),
-          parent(buf), snapshotted_version(version),
-          token(_token),
+                   bool leave_clone)
+        : evictable_t(buf->cache, /* TODO: we can load the data later and we never get added to the page map */ buf->data.has() ? true : false),
+          parent(buf), snapshotted_version(buf->version_id),
+          token(buf->data_token),
           snapshot_refcount(_snapshot_refcount), active_refcount(_active_refcount) {
         cache->assert_thread();
 
         if (leave_clone) {
-            if (_data.has()) {
-                data.swap(_data);
-                _data.init_clone(buf->cache->serializer, data);
+            if (buf->data.has()) {
+                data.swap(buf->data);
+                buf->data.init_clone(buf->cache->serializer, data);
             }
         } else {
-            data.swap(_data);
+            data.swap(buf->data);
         }
 
         rassert(data.has() || token, "creating buf snapshot without data or block token");
@@ -216,13 +216,14 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, bool _shou
 }
 
 // This form of the buf constructor is used when the block exists on disks but has been loaded into buf already
-mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, void *_buf, repli_timestamp_t _recency_timestamp)
+mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, void *_buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t _recency_timestamp)
     : evictable_t(_cache),
       writeback_t::local_buf_t(),
       block_id(_block_id),
       subtree_recency(_recency_timestamp),
       data(_buf),
       version_id(_cache->get_min_snapshot_version(_cache->get_current_version_id())),
+      data_token(token),
       refcount(0),
       do_delete(false),
       cow_refcount(0),
@@ -410,7 +411,7 @@ bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version, bool leave_clo
     // mode, corresponding to cow_refcount; and mc_buf_t's in snapshotted rwi_read mode, indicated
     // by snap_refcount.
 
-    buf_snapshot_t *snap = new buf_snapshot_t(this, version_id, num_snapshots_affected, cow_refcount + snap_refcount, data, leave_clone, data_token);
+    buf_snapshot_t *snap = new buf_snapshot_t(this, num_snapshots_affected, cow_refcount + snap_refcount, leave_clone);
     cow_refcount = 0;
     snap_refcount = 0;
 
@@ -1250,19 +1251,19 @@ void mc_cache_t::on_transaction_commit(transaction_t *txn) {
     }
 }
 
-bool mc_cache_t::offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp) {
+bool mc_cache_t::offer_read_ahead_buf(block_id_t block_id, void *buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
     // Note that the offered block might get deleted between the point where the serializer offers it and the message gets delivered!
-    do_on_thread(home_thread(), boost::bind(&mc_cache_t::offer_read_ahead_buf_home_thread, this, block_id, buf, recency_timestamp));
+    do_on_thread(home_thread(), boost::bind(&mc_cache_t::offer_read_ahead_buf_home_thread, this, block_id, buf, token, recency_timestamp));
     return true;
 }
 
-void mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp) {
+void mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
     assert_thread();
 
     // Check that the offered block is allowed to be accepted at the current time
     // (e.g. that we don't have a more recent version already nor that it got deleted in the meantime)
     if (can_read_ahead_block_be_accepted(block_id)) {
-        new mc_inner_buf_t(this, block_id, buf, recency_timestamp);
+        new mc_inner_buf_t(this, block_id, buf, token, recency_timestamp);
     } else {
         serializer->free(buf);
     }
