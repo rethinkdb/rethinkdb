@@ -2,7 +2,7 @@
 #include "containers/iterators.hpp"
 
 /* Comparison operators for `key_range_t::right_bound_t` are declared in here
-because nothing else ever needs them. */
+because nothing outside of this file ever needs them. */
 
 bool operator==(const key_range_t::right_bound_t &a, const key_range_t::right_bound_t &b) {
     return a.unbounded == b.unbounded && a.key == b.key;
@@ -40,7 +40,7 @@ key_range_t::key_range_t(bound_t lm, store_key_t l, bound_t rm, store_key_t r) {
             } else {
                 /* Our left bound is the largest possible key, and we are open
                 on the left-hand side. So we are empty. */
-                *this = key_range_t();
+                *this = key_range_t::empty();
                 return;
             }
         case none:
@@ -73,45 +73,68 @@ key_range_t::key_range_t(bound_t lm, store_key_t l, bound_t rm, store_key_t r) {
     }
 }
 
-bool key_range_t::contains(key_range_t range) const {
-    if (range.left < left) return false;
-    if (range.right > right) return false;
+bool region_is_superset(const key_range_t &potential_superset, const key_range_t &potential_subset) THROWS_NOTHING {
+
+    /* Special-case empty ranges */
+    if (potential_subset.left == potential_subset.right) return true;
+
+    if (potential_superset.left > potential_subset.left) return false;
+    if (potential_superset.right < potential_subset.right) return false;
+
     return true;
 }
 
-bool key_range_t::overlaps(key_range_t range) const {
-    return (range.left < right && left < range.right);
-}
-
-key_range_t key_range_t::intersection(key_range_t range) const {
-    if (!overlaps(range)) return key_range_t();
+key_range_t region_intersection(const key_range_t &r1, const key_range_t &r2) THROWS_NOTHING {
+    if (!region_overlaps(r1, r2)) {
+        return key_range_t::empty();
+    }
     key_range_t ixn;
-    ixn.left = left < range.left ? range.left : left;
-    ixn.right = right > range.right ? range.right : right;
+    ixn.left = r1.left < r2.left ? r2.left : r1.left;
+    ixn.right = r1.right > r2.right ? r2.right : r1.right;
     return ixn;
 }
 
-bool key_range_t::covered_by(std::vector<key_range_t> ranges) const {
-    right_bound_t cursor = left;
-    while (cursor < right) {
-        bool moved = false;
-        for (std::vector<key_range_t>::iterator it = ranges.begin(); it != ranges.end(); it++) {
-            if (cursor >= (*it).left && cursor < (*it).right) {
-                cursor = (*it).right;
-                moved = true;
-                break;
-            }
-        }
-        if (!moved) return false;
-    }
-    return true;
+static bool compare_range_by_left(const key_range_t &r1, const key_range_t &r2) {
+    return r1.left < r2.left;
 }
 
-bool operator==(key_range_t a, key_range_t b) {
+key_range_t region_join(const std::vector<key_range_t> &vec) THROWS_ONLY(bad_join_exc_t, bad_region_exc_t) {
+    if (vec.empty()) {
+        return key_range_t::empty();
+    } else {
+        std::vector<key_range_t> sorted = vec;
+        std::sort(sorted.begin(), sorted.end(), &compare_range_by_left);
+        key_range_t::right_bound_t cursor = sorted[0].left;
+        for (int i = 0; i < (int)sorted.size(); i++) {
+            if (cursor < sorted[i].left) {
+                /* There's a gap between this region and the region on its left,
+                so their union isn't a `key_range_t`. */
+                throw bad_region_exc_t();
+            } else if (cursor > sorted[i].left) {
+                /* This region overlaps with the region on its left, so the join
+                is bad. */
+                throw bad_join_exc_t();
+            } else {
+                /* The regions match exactly; move on to the next one. */
+                cursor = sorted[i].right;
+            }
+        }
+        key_range_t union_;
+        union_.left = sorted[0].left;
+        union_.right = cursor;
+        return union_;
+    }
+}
+
+bool region_overlaps(const key_range_t &r1, const key_range_t &r2) THROWS_NOTHING {
+    return (r1.left < r2.right && r2.left < r1.right);
+}
+
+bool operator==(key_range_t a, key_range_t b) THROWS_NOTHING {
     return a.left == b.left && a.right == b.right;
 }
 
-bool operator!=(key_range_t a, key_range_t b) {
+bool operator!=(key_range_t a, key_range_t b) THROWS_NOTHING {
     return !(a == b);
 }
 
@@ -140,50 +163,45 @@ struct read_get_region_visitor_t : public boost::static_visitor<key_range_t> {
     }
 };
 
-key_range_t memcached_protocol_t::read_t::get_region() const {
+key_range_t memcached_protocol_t::read_t::get_region() const THROWS_NOTHING {
     read_get_region_visitor_t v;
     return boost::apply_visitor(v, query);
 }
 
 /* `memcached_protocol_t::read_t::shard()` */
 
-struct read_shard_visitor_t : public boost::static_visitor<std::vector<memcached_protocol_t::read_t> > {
-    explicit read_shard_visitor_t(std::vector<key_range_t> &r) : regions(r) { }
-    std::vector<key_range_t> &regions;
-    std::vector<memcached_protocol_t::read_t> operator()(get_query_t get) {
-        rassert(regions.size() == 1);
-        rassert(regions[0].contains(key_range_t(key_range_t::closed, get.key, key_range_t::closed, get.key)));
-        std::vector<memcached_protocol_t::read_t> vec;
-        vec.push_back(get);
-        return vec;
+struct read_shard_visitor_t : public boost::static_visitor<memcached_protocol_t::read_t> {
+    explicit read_shard_visitor_t(const key_range_t &r) : region(r) { }
+    const key_range_t &region;
+    memcached_protocol_t::read_t operator()(get_query_t get) {
+        rassert(region == key_range_t(key_range_t::closed, get.key, key_range_t::closed, get.key));
+        return get;
     }
-    std::vector<memcached_protocol_t::read_t> operator()(UNUSED rget_query_t original_rget) {
-        std::vector<memcached_protocol_t::read_t> subreads;
-        for (int i = 0; i < (int)regions.size(); i++) {
-            rassert(regions[i].overlaps(
-                key_range_t(
-                    convert_bound_mode(original_rget.left_mode),
-                    original_rget.left_key,
-                    convert_bound_mode(original_rget.right_mode),
-                    original_rget.right_key
-                    )));
-            rget_query_t sub_rget;
-            sub_rget.left_mode = rget_bound_closed;
-            sub_rget.left_key = regions[i].left;
-            if (regions[i].right.unbounded) {
-                sub_rget.right_mode = rget_bound_none;
-            } else {
-                sub_rget.right_mode = rget_bound_open;
-                sub_rget.right_key = regions[i].right.key;
-            }
-            subreads.push_back(sub_rget);
+    memcached_protocol_t::read_t operator()(UNUSED rget_query_t original_rget) {
+        rassert(region_is_superset(
+            key_range_t(
+                convert_bound_mode(original_rget.left_mode),
+                original_rget.left_key,
+                convert_bound_mode(original_rget.right_mode),
+                original_rget.right_key
+                ),
+            region
+            ));
+        rget_query_t sub_rget;
+        sub_rget.left_mode = rget_bound_closed;
+        sub_rget.left_key = region.left;
+        if (region.right.unbounded) {
+            sub_rget.right_mode = rget_bound_none;
+        } else {
+            sub_rget.right_mode = rget_bound_open;
+            sub_rget.right_key = region.right.key;
         }
-        return subreads;
+        return sub_rget;
     }
 };
 
-std::vector<memcached_protocol_t::read_t> memcached_protocol_t::read_t::shard(std::vector<key_range_t> regions) const {
-    read_shard_visitor_t v(regions);
+memcached_protocol_t::read_t memcached_protocol_t::read_t::shard(const key_range_t &r) const THROWS_NOTHING {
+    read_shard_visitor_t v(r);
     return boost::apply_visitor(v, query);
 }
 
@@ -207,7 +225,7 @@ struct read_unshard_visitor_t : public boost::static_visitor<memcached_protocol_
     }
 };
 
-memcached_protocol_t::read_response_t memcached_protocol_t::read_t::unshard(std::vector<read_response_t> responses, UNUSED temporary_cache_t *cache) const {
+memcached_protocol_t::read_response_t memcached_protocol_t::read_t::unshard(std::vector<read_response_t> responses, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
     read_unshard_visitor_t v(responses);
     return boost::apply_visitor(v, query);
 }
@@ -222,53 +240,32 @@ struct write_get_region_visitor_t : public boost::static_visitor<key_range_t> {
     }
 };
 
-key_range_t memcached_protocol_t::write_t::get_region() const {
+key_range_t memcached_protocol_t::write_t::get_region() const THROWS_NOTHING {
     write_get_region_visitor_t v;
     return apply_visitor(v, mutation);
 }
 
 /* `memcached_protocol_t::write_t::shard()` */
 
-std::vector<memcached_protocol_t::write_t> memcached_protocol_t::write_t::shard(UNUSED std::vector<key_range_t> regions) const {
-    rassert(regions.size() == 1);
-    std::vector<memcached_protocol_t::write_t> vec;
-    vec.push_back(*this);
-    return vec;
+memcached_protocol_t::write_t memcached_protocol_t::write_t::shard(UNUSED key_range_t region) const THROWS_NOTHING {
+    rassert(region == get_region());
+    return *this;
 }
 
 /* `memcached_protocol_t::write_response_t::unshard()` */
 
-memcached_protocol_t::write_response_t memcached_protocol_t::write_t::unshard(std::vector<memcached_protocol_t::write_response_t> responses, UNUSED temporary_cache_t *cache) const {
+memcached_protocol_t::write_response_t memcached_protocol_t::write_t::unshard(std::vector<memcached_protocol_t::write_response_t> responses, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
     /* TODO: Make sure the request type matches the response type */
     rassert(responses.size() == 1);
     return responses[0];
 }
 
-/* `memcached_protocol_t::store_t::create()` */
+/* `dummy_memcached_ready_store_view_t::dummy_memcached_ready_store_view_t()` */
 
-void memcached_protocol_t::store_t::create(serializer_t *ser, key_range_t) {
-    mirrored_cache_static_config_t cache_static_config;
-    cache_t::create(ser, &cache_static_config);
-    mirrored_cache_config_t cache_dynamic_config;
-    cache_t cache(ser, &cache_dynamic_config);
-    btree_slice_t::create(&cache);
-}
+dummy_memcached_ready_store_view_t::dummy_memcached_ready_store_view_t(key_range_t region, btree_slice_t *b) :
+    ready_store_view_t<memcached_protocol_t>(region, state_timestamp_t::zero()), btree(b) { }
 
-/* `memcached_protocol_t::store_t::store_t()` */
-
-memcached_protocol_t::store_t::store_t(serializer_t *ser, key_range_t r) :
-    cache(ser, &cache_config),
-    btree(&cache),
-    region(r)
-    { }
-
-/* `memcached_protocol_t::store_t::get_region()` */
-
-key_range_t memcached_protocol_t::store_t::get_region() {
-    return region;
-}
-
-/* `memcached_protocol_t::store_t::read()` */
+/* `dummy_memcached_ready_store_view_t::do_read()` */
 
 struct read_perform_visitor_t : public boost::static_visitor<memcached_protocol_t::read_response_t> {
     read_perform_visitor_t(btree_slice_t *_btree, order_token_t _tok) : btree(_btree), tok(_tok) { }
@@ -288,12 +285,13 @@ struct read_perform_visitor_t : public boost::static_visitor<memcached_protocol_
     }
 };
 
-memcached_protocol_t::read_response_t memcached_protocol_t::store_t::read(memcached_protocol_t::read_t read, order_token_t tok, UNUSED signal_t *interruptor) {
-    read_perform_visitor_t v(&btree, tok);
-    return boost::apply_visitor(v, read.query);
+memcached_protocol_t::read_response_t dummy_memcached_ready_store_view_t::do_read(const memcached_protocol_t::read_t &r, UNUSED state_timestamp_t t, order_token_t otok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    if (interruptor) throw interrupted_exc_t();
+    read_perform_visitor_t v(btree, otok);
+    return boost::apply_visitor(v, r.query);
 }
 
-/* `memcached_protocol_t::store_t::write()` */
+/* `dummy_memcached_ready_store_view_t::write()` */
 
 /* The return type of `set_store_t::change()` is `mutation_result_t`, which is
 equivalent but not identical to `memcached_protocol_t::write_response_t`. This
@@ -322,8 +320,9 @@ struct write_perform_visitor_t : public boost::static_visitor<memcached_protocol
     }
 };
 
-memcached_protocol_t::write_response_t memcached_protocol_t::store_t::write(memcached_protocol_t::write_t write, UNUSED transition_timestamp_t timestamp, order_token_t tok, UNUSED signal_t *interruptor) {
+memcached_protocol_t::write_response_t dummy_memcached_ready_store_view_t::do_write(const memcached_protocol_t::write_t &w, UNUSED transition_timestamp_t t, order_token_t otok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    if (interruptor) throw interrupted_exc_t();
     // TODO: Hook up timestamp
-    write_perform_visitor_t v(&btree, castime_t(write.proposed_cas, repli_timestamp_t::invalid), tok);
-    return boost::apply_visitor(v, write.mutation);
+    write_perform_visitor_t v(btree, castime_t(w.proposed_cas, repli_timestamp_t::invalid), otok);
+    return boost::apply_visitor(v, w.mutation);
 }

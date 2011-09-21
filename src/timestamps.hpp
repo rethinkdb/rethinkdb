@@ -43,6 +43,12 @@ public:
     bool operator<=(transition_timestamp_t t) const { return before <= t.before; }
     bool operator>=(transition_timestamp_t t) const { return before >= t.before; }
 
+    static transition_timestamp_t starting_from(state_timestamp_t before) {
+        transition_timestamp_t t;
+        t.before = before;
+        return t;
+    }
+
     static transition_timestamp_t first() {
         transition_timestamp_t t;
         t.before = state_timestamp_t::zero();
