@@ -20,7 +20,7 @@ struct hash_read_oper_t : read_oper_t {
         }
     }
 
-    std::string *get(std::string &field) {
+    bool get(std::string &field, std::string *str_out) {
         got_superblock_t nested_superblock;
         boost::scoped_ptr<superblock_t> nested_btree_sb(new virtual_superblock_t(root));
         nested_superblock.sb.swap(nested_btree_sb);
@@ -31,15 +31,14 @@ struct hash_read_oper_t : read_oper_t {
 
         find_keyvalue_location_for_read(&nested_superblock, nested_key.key(), &nested_loc);
 
-        std::string *result = NULL;
         redis_nested_string_value_t *value = nested_loc.value.get();
         if(value != NULL) {
-            result = new std::string();
             blob_t blob(value->content, blob::btree_maxreflen);
-            blob.read_to_string(*result, nested_loc.txn.get(), 0, blob.valuesize());
-        } // else result remains NULL
+            blob.read_to_string(*str_out, nested_loc.txn.get(), 0, blob.valuesize());
+            return true;
+        } 
 
-        return result;
+        return false;
     }
 
     boost::shared_ptr<one_way_iterator_t<std::pair<std::string, std::string> > > iterator() {
@@ -225,9 +224,10 @@ PARALLEL(hexists)
 
 EXECUTE_R(hexists) {
     hash_read_oper_t oper(one, btree, otok);
-    std::string *s = oper.get(two);
-    if(s != NULL) delete s;
-    return int_response(!!s);
+    std::string s;
+    if(oper.get(two, &s))
+        return int_response(1);
+    return int_response(0);
 }
 
 //READ(hget)
@@ -237,7 +237,10 @@ PARALLEL(hget)
 
 EXECUTE_R(hget) {
     hash_read_oper_t oper(one, btree, otok);
-    return bulk_response(*oper.get(two));
+    std::string s;
+    if(oper.get(two, &s))
+        return bulk_response(s);
+    return read_response_t(NULL);
 }
 
 //READ(hgetall)
@@ -322,11 +325,9 @@ EXECUTE_R(hmget) {
     std::vector<std::string> result;
     for(std::vector<std::string>::iterator iter = one.begin() + 1;
             iter != one.end(); ++iter) {
-        std::string *val = oper.get(*iter);
-
-        if(val != NULL) {
-            result.push_back(*val);
-            delete val;
+        std::string val;
+        if(oper.get(*iter, &val)) {
+            result.push_back(val);
         }
     }
 
