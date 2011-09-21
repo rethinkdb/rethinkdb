@@ -303,27 +303,23 @@ EXECUTE_W(ltrim) {
 
     int size = oper.get_size();
 
-    unsigned start;
-    if(two > size) {
+    int start = two;
+    if(start > size) {
         start = size;
-    } else if(two < 0) {
-        two += size;
-        if(two < 0) {
+    } else if(start < 0) {
+        start += size;
+        if(start < 0) {
             start = 0;
-        } else {
-            start = two;
         }
     }
 
-    unsigned end;
-    if(three > size) {
+    int end = three;
+    if(end > size) {
         end = size;
-    } else if(three < 0) {
-        three += size;
-        if(three < 0) {
+    } else if(end < 0) {
+        end += size;
+        if(end < 0) {
             end = 0;
-        } else {
-            end = three;
         }
     }
 
@@ -332,7 +328,7 @@ EXECUTE_W(ltrim) {
     }
 
     // Clear the end of the list first (so we don't have to rethink our bounds)
-    for(unsigned i = size - 1; i > end; i--) {
+    for(int i = size - 1; i > end; i--) {
         oper.remove(i);
     }
 

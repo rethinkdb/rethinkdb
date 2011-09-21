@@ -144,7 +144,7 @@ EXECUTE_R(type) {
     read_oper_t oper(one, btree, otok);
     redis_value_t *value = oper.location.value.get();
 
-    ok_result_t *result;
+    ok_result_t *result = NULL;
 
     if(!value) {
         result = new ok_result_t("none");

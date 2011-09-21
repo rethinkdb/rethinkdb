@@ -152,7 +152,7 @@ const counted2_value_t *counted_btree2_t::at_recur(buf_lock_t &buf, unsigned ind
     }
     
     assert(0);
-
+    return NULL;
 }
 
 bool counted_btree2_t::insert_recur(buf_lock_t &blk, float score, std::string &value,
@@ -165,6 +165,7 @@ bool counted_btree2_t::insert_recur(buf_lock_t &blk, float score, std::string &v
     }
 
     assert(0);
+    return false;
 }
 
 bool counted_btree2_t::internal_insert(buf_lock_t &blk, float score, std::string &value, block_id_t *new_blk_out, unsigned *new_size_out, float *split_score_out) {

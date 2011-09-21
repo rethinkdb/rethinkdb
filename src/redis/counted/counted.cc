@@ -149,7 +149,7 @@ const char *counted_btree_t::at_recur(buf_lock_t &buf, unsigned index) {
     }
     
     assert(0);
-
+    return NULL;
 }
 
 bool counted_btree_t::insert_recur(buf_lock_t &blk, unsigned index, std::string &value, block_id_t *new_blk_out, unsigned *new_size_out) {
@@ -161,6 +161,7 @@ bool counted_btree_t::insert_recur(buf_lock_t &blk, unsigned index, std::string 
     }
 
     assert(0);
+    return false;
 }
 
 bool counted_btree_t::internal_insert(buf_lock_t &blk, unsigned index, std::string &value, block_id_t *new_blk_out, unsigned *new_size_out) {

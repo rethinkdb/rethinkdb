@@ -115,7 +115,7 @@ struct sorted_set_set_oper_t : set_oper_t {
 
     int remove_score_range(float score_min, float score_max) {
         int removed = 0;
-        int index;
+        int index = 0;
         for(counted_btree2_t::iterator_t iter = score_index.score_iterator(score_min, score_max); iter.is_valid(); iter.next()) {
             if(removed == 0) index = iter.rank();
 
@@ -576,7 +576,7 @@ PARALLEL(zscore)
 
 EXECUTE_R(zscore) {
     sorted_set_read_oper_t oper(one, btree, otok);
-    float score;
+    float score = 0.0;
     if(oper.score(two, &score)) {
         return bulk_response(score);
     }
