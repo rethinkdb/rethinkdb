@@ -18,7 +18,7 @@ struct string_set_oper_t : set_oper_t {
 
     void clear() {
         blob_t blob(value->get_content(), blob::btree_maxreflen);
-        blob.clear(location.txn.get());
+        blob.clear(txn.get());
     }
 
     int set_range(std::string &val, int offset) {
@@ -28,11 +28,11 @@ struct string_set_oper_t : set_oper_t {
         // Append region we're writing (if necessary)
         uint64_t new_size = offset + val.size();
         if(new_size > old_size) {
-            blob.append_region(location.txn.get(), new_size - old_size);
+            blob.append_region(txn.get(), new_size - old_size);
         }
 
         // Write string
-        blob.write_from_string(val, location.txn.get(), offset);
+        blob.write_from_string(val, txn.get(), offset);
 
         return blob.valuesize();
     }
@@ -48,19 +48,19 @@ struct string_set_oper_t : set_oper_t {
     }
 
     int crement(int by) {
-        return incr_loc<redis_value_t>(location, by);
+        return incr_loc<redis_value_t>(txn.get(), location, by);
     }
 
     int setbit(unsigned bit_index, unsigned bit_val) {
         blob_t blob(value->get_content(), blob::btree_maxreflen);
         int64_t difference = (bit_index / 8 + 1) - blob.valuesize();
         if(difference > 0) {
-            blob.append_region(location.txn.get(), difference);
+            blob.append_region(txn.get(), difference);
         }
 
         buffer_group_t dest;
         boost::scoped_ptr<blob_acq_t> acq(new blob_acq_t);
-        blob.expose_region(location.txn.get(), rwi_write, bit_index / 8, 1, &dest, acq.get());
+        blob.expose_region(txn.get(), rwi_write, bit_index / 8, 1, &dest, acq.get());
 
         buffer_group_t::buffer_t buff =  dest.get_buffer(0);
         int old_val = !!(reinterpret_cast<uint8_t *>(buff.data)[0] & (1 << (bit_index % 8)));
@@ -72,7 +72,7 @@ struct string_set_oper_t : set_oper_t {
 
     void get_string(std::string &out) {
         blob_t blob(value->get_content(), blob::btree_maxreflen);
-        blob.read_to_string(out, location.txn.get(), 0, blob.valuesize());
+        blob.read_to_string(out, txn.get(), 0, blob.valuesize());
     }
 
     ~string_set_oper_t() {
@@ -103,12 +103,12 @@ struct string_read_oper_t : read_oper_t {
 
     void get_range(std::string &out, unsigned offset, unsigned len) {
         blob_t blob(value->get_content(), blob::btree_maxreflen);
-        blob.read_to_string(out, location.txn.get(), offset, len);
+        blob.read_to_string(out, txn.get(), offset, len);
     }
 
     void get_string(std::string &out) {
         blob_t blob(value->get_content(), blob::btree_maxreflen);
-        blob.read_to_string(out, location.txn.get(), 0, blob.valuesize());
+        blob.read_to_string(out, txn.get(), 0, blob.valuesize());
     }
     
 protected:
