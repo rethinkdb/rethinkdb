@@ -124,7 +124,7 @@ struct set_oper_t {
             reinterpret_cast<redis_sorted_set_value_t *>(location.value.get())->clear(location.txn.get());
             break;
         default:
-            assert(0);
+            unreachable();
             break;
         }
 

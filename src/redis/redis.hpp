@@ -178,7 +178,7 @@ struct redis_protocol_t {
             try {
                 value = boost::lexical_cast<std::string>(val);
             } catch(boost::bad_lexical_cast &) {
-                assert(0);
+                unreachable();
             }
         }
         virtual void deshard(const void *other) {(void)other;}

@@ -131,7 +131,7 @@ const char *counted_btree_t::at_recur(buf_lock_t &buf, unsigned index) {
         }
         
         // TODO proper error
-        assert(0);
+        crash("Index not found though it should have been");
 
     } else if(node->magic == leaf_counted_node_t::expected_magic()) {
         const leaf_counted_node_t *l_node = reinterpret_cast<const leaf_counted_node_t *>(node);
@@ -148,8 +148,7 @@ const char *counted_btree_t::at_recur(buf_lock_t &buf, unsigned index) {
         return l_node->refs + offset;
     }
     
-    assert(0);
-    return NULL;
+    unreachable();
 }
 
 bool counted_btree_t::insert_recur(buf_lock_t &blk, unsigned index, std::string &value, block_id_t *new_blk_out, unsigned *new_size_out) {
@@ -160,8 +159,7 @@ bool counted_btree_t::insert_recur(buf_lock_t &blk, unsigned index, std::string 
         return leaf_insert(blk, index, value, new_blk_out, new_size_out); 
     }
 
-    assert(0);
-    return false;
+    unreachable();
 }
 
 bool counted_btree_t::internal_insert(buf_lock_t &blk, unsigned index, std::string &value, block_id_t *new_blk_out, unsigned *new_size_out) {

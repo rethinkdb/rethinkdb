@@ -134,7 +134,7 @@ const counted2_value_t *counted_btree2_t::at_recur(buf_lock_t &buf, unsigned ind
         }
         
         // TODO proper error
-        assert(0);
+        crash("Index not found though it should have been");
 
     } else if(node->magic == leaf_counted2_node_t::expected_magic()) {
         const leaf_counted2_node_t *l_node = reinterpret_cast<const leaf_counted2_node_t *>(node);
@@ -151,8 +151,7 @@ const counted2_value_t *counted_btree2_t::at_recur(buf_lock_t &buf, unsigned ind
         return reinterpret_cast<const counted2_value_t *>(l_node->refs + offset);
     }
     
-    assert(0);
-    return NULL;
+    unreachable();
 }
 
 bool counted_btree2_t::insert_recur(buf_lock_t &blk, float score, std::string &value,
@@ -164,8 +163,7 @@ bool counted_btree2_t::insert_recur(buf_lock_t &blk, float score, std::string &v
         return leaf_insert(blk, score, value, new_blk_out, new_size_out, split_score_out); 
     }
 
-    assert(0);
-    return false;
+    unreachable();
 }
 
 bool counted_btree2_t::internal_insert(buf_lock_t &blk, float score, std::string &value, block_id_t *new_blk_out, unsigned *new_size_out, float *split_score_out) {
@@ -521,7 +519,7 @@ counted_btree2_t::iterator_t::iterator_t(block_id_t root, transaction_t *txn_, b
             // We've found it
             break;
         } else {
-            assert(0);
+            unreachable();
         }
     }
 

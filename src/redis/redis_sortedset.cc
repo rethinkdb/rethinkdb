@@ -404,7 +404,7 @@ EXECUTE_R(zrange) {
         try {
             str_score = boost::lexical_cast<std::string>(f_score);
         } catch(boost::bad_lexical_cast &) {
-            assert(0);
+            unreachable();
         }
 
         if(with_scores && reverse) {
@@ -490,7 +490,7 @@ EXECUTE_R(zrangebyscore) {
         try {
             str_score = boost::lexical_cast<std::string>(f_score);
         } catch(boost::bad_lexical_cast &) {
-            assert(0);
+            unreachable();
         }
 
         if(with_scores && reverse) {

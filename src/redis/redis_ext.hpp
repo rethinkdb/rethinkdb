@@ -441,7 +441,7 @@ private:
         case REDIS_SORTED_SET:
             return redis_protocol_t::error_result("Cannot rename non-string keys");
         default:
-            assert(0);
+            unreachable();
             break;
         }
 

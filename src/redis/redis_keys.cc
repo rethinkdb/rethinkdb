@@ -166,7 +166,7 @@ EXECUTE_R(type) {
             result = new ok_result_t("zset");
             break;
         default:
-            assert(0);
+            unreachable();
             break;
         }
     }

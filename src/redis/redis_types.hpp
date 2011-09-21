@@ -177,7 +177,7 @@ public:
             return reinterpret_cast<const redis_set_value_t *>(this)->size();
             break;
         default:
-            assert(0);
+            unreachable();
             break;
         }
         
