@@ -89,39 +89,39 @@ struct set_oper_t {
         // TODO hook-up timestamp after Tim figures out what to do with it
         
         // Get the superblock that represents our write transaction
-        get_btree_superblock(btree, rwi_write, 1, repli_timestamp_t::invalid, otok, &superblock);
-        find_keyvalue_location_for_write(&superblock, btree_key.key(), &location);
+        get_btree_superblock(btree, rwi_write, 1, repli_timestamp_t::invalid, otok, &superblock, txn);
+        find_keyvalue_location_for_write(txn.get(), &superblock, btree_key.key(), &location);
 
         // Check for expiration
         redis_value_t *value = location.value.get();
-        if(value && value->expiration_set() && (value->get_expiration() > time(NULL))) {
+        if (value && value->expiration_set() && (value->get_expiration() > time(NULL))) {
             // Then this key is expired and technically doesn't exist
             del();
         }
     }
 
     ~set_oper_t() {
-        apply_keyvalue_change(&location, btree_key.key(), repli_timestamp_t::invalid);
+        apply_keyvalue_change(txn.get(), &location, btree_key.key(), repli_timestamp_t::invalid);
     }
 
     bool del() {
-        if(location.value.get() == NULL) return false;
+        if (location.value.get() == NULL) return false;
 
-        switch(location.value->get_redis_type()) {
+        switch (location.value->get_redis_type()) {
         case REDIS_STRING:
-            reinterpret_cast<redis_string_value_t *>(location.value.get())->clear(location.txn.get());
+            reinterpret_cast<redis_string_value_t *>(location.value.get())->clear(txn.get());
             break;
         case REDIS_LIST:
-            reinterpret_cast<redis_list_value_t *>(location.value.get())->clear(location.txn.get());
+            reinterpret_cast<redis_list_value_t *>(location.value.get())->clear(txn.get());
             break;
         case REDIS_HASH:
-            reinterpret_cast<redis_hash_value_t *>(location.value.get())->clear(location.txn.get());
+            reinterpret_cast<redis_hash_value_t *>(location.value.get())->clear(txn.get());
             break;
         case REDIS_SET:
-            reinterpret_cast<redis_set_value_t *>(location.value.get())->clear(location.txn.get());
+            reinterpret_cast<redis_set_value_t *>(location.value.get())->clear(txn.get());
             break;
         case REDIS_SORTED_SET:
-            reinterpret_cast<redis_sorted_set_value_t *>(location.value.get())->clear(location.txn.get());
+            reinterpret_cast<redis_sorted_set_value_t *>(location.value.get())->clear(txn.get());
             break;
         default:
             unreachable();
@@ -135,7 +135,7 @@ struct set_oper_t {
 
     void expire_at(uint32_t at_time) {
         redis_value_t *value = location.value.get();
-        if(!value->expiration_set()) {
+        if (!value->expiration_set()) {
             // We must clear space for the new metadata first
             int data_size = sizer.size(value) - value->get_metadata_size();
             memmove(value->get_content() + sizeof(uint32_t), value->get_content(), data_size);
@@ -145,6 +145,7 @@ struct set_oper_t {
 
     }
 
+    boost::scoped_ptr<transaction_t> txn;
     keyvalue_location_t<redis_value_t> location;
 
 protected:
@@ -160,13 +161,13 @@ struct read_oper_t {
         storing_expired_value(false)
     {
         got_superblock_t superblock;
-        get_btree_superblock(btree, rwi_read, otok, &superblock);
+        get_btree_superblock(btree, rwi_read, otok, &superblock, txn);
         btree_key_buffer_t btree_key(key);
-        find_keyvalue_location_for_read(&superblock, btree_key.key(), &location);
+        find_keyvalue_location_for_read(txn.get(), &superblock, btree_key.key(), &location);
 
         // Check for expiration
         redis_value_t *value = location.value.get();
-        if(value && value->expiration_set() && (value->get_expiration() > time(NULL))) {
+        if (value && value->expiration_set() && (value->get_expiration() > time(NULL))) {
             // Then this key is expired and technically doesn't exist
             // We only acquired this key for read so we can't delete it. We'll trick our
             // subclass into thinking that it was deleted and let the next write clean up
@@ -176,7 +177,7 @@ struct read_oper_t {
     }
 
     ~read_oper_t() {
-        if(storing_expired_value) {
+        if (storing_expired_value) {
             location.value.swap(expired_value);
         }
     }
@@ -185,6 +186,7 @@ struct read_oper_t {
         return (location.value.get() != NULL);
     }
 
+    boost::scoped_ptr<transaction_t> txn;
     keyvalue_location_t<redis_value_t> location;
 
 protected:
@@ -196,19 +198,19 @@ private:
 
 
 template <typename T>
-int incr_loc(keyvalue_location_t<T> &loc, int by) {
+int incr_loc(transaction_t *txn, keyvalue_location_t<T> &loc, int by) {
     int int_value = 0;
     std::string int_string;
     T *value = loc.value.get();
-    if(value == NULL) {
+    if (value == NULL) {
         scoped_malloc<T> smrsv(MAX_BTREE_VALUE_SIZE);
         memset(smrsv.get(), 0, MAX_BTREE_VALUE_SIZE);
         loc.value.swap(smrsv);
         value = loc.value.get();
     } else {
         blob_t blob(value->get_content(), blob::btree_maxreflen);
-        blob.read_to_string(int_string, loc.txn.get(), 0, blob.valuesize());
-        blob.clear(loc.txn.get());
+        blob.read_to_string(int_string, txn, 0, blob.valuesize());
+        blob.clear(txn);
         try {
             int_value = boost::lexical_cast<int64_t>(int_string);
         } catch(boost::bad_lexical_cast &) {
@@ -220,8 +222,8 @@ int incr_loc(keyvalue_location_t<T> &loc, int by) {
     int_string = boost::lexical_cast<std::string>(int_value);
 
     blob_t blob(value->get_content(), blob::btree_maxreflen);
-    blob.append_region(loc.txn.get(), int_string.size());
-    blob.write_from_string(int_string, loc.txn.get(), 0);
+    blob.append_region(txn, int_string.size());
+    blob.write_from_string(int_string, txn, 0);
 
     return int_value;
 }

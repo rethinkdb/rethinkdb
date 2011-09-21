@@ -5,7 +5,7 @@
 
 // Utility functions for hashes
 
-struct hash_read_oper_t : read_oper_t {
+struct hash_read_oper_t : public read_oper_t {
     hash_read_oper_t(std::string &key, btree_slice_t *btr, order_token_t otok) :
         read_oper_t(key, btr, otok),
         btree(btr)
@@ -22,19 +22,17 @@ struct hash_read_oper_t : read_oper_t {
 
     bool get(std::string &field, std::string *str_out) {
         got_superblock_t nested_superblock;
-        boost::scoped_ptr<superblock_t> nested_btree_sb(new virtual_superblock_t(root));
-        nested_superblock.sb.swap(nested_btree_sb);
-        nested_superblock.txn = location.txn;
+        nested_superblock.sb.reset(new virtual_superblock_t(root));
 
         btree_key_buffer_t nested_key(field);
         keyvalue_location_t<redis_nested_string_value_t> nested_loc;
 
-        find_keyvalue_location_for_read(&nested_superblock, nested_key.key(), &nested_loc);
+        find_keyvalue_location_for_read(txn.get(), &nested_superblock, nested_key.key(), &nested_loc);
 
         redis_nested_string_value_t *value = nested_loc.value.get();
         if(value != NULL) {
             blob_t blob(value->content, blob::btree_maxreflen);
-            blob.read_to_string(*str_out, nested_loc.txn.get(), 0, blob.valuesize());
+            blob.read_to_string(*str_out, txn.get(), 0, blob.valuesize());
             return true;
         } 
 
@@ -51,7 +49,7 @@ struct hash_read_oper_t : read_oper_t {
         boost::scoped_ptr<superblock_t> nested_btree_sb(new virtual_superblock_t(root));
 
         slice_keys_iterator_t<redis_nested_string_value_t> *tree_iter =
-                new slice_keys_iterator_t<redis_nested_string_value_t>(sizer_ptr, location.txn,
+            new slice_keys_iterator_t<redis_nested_string_value_t>(sizer_ptr, txn.get(),
                 nested_btree_sb, btree->home_thread(), rget_bound_none, none_key, rget_bound_none, none_key);
 
         boost::shared_ptr<one_way_iterator_t<std::pair<std::string, std::string> > > transform_iter(
@@ -73,7 +71,7 @@ protected:
     std::pair<std::string, std::string> transform_value(const key_value_pair_t<redis_nested_string_value_t> &pair) {
         blob_t blob(pair.value.get(), blob::btree_maxreflen); 
         std::string str;
-        blob.read_to_string(str, location.txn.get(), 0, blob.valuesize());
+        blob.read_to_string(str, txn.get(), 0, blob.valuesize());
 
         return std::pair<std::string, std::string>(pair.key, str);
     }
@@ -145,20 +143,19 @@ protected:
             boost::scoped_ptr<superblock_t> nested_btree_sb(new virtual_superblock_t(ths->root));
             got_superblock_t nested_superblock;
             nested_superblock.sb.swap(nested_btree_sb);
-            nested_superblock.txn = ths->location.txn;
 
-            find_keyvalue_location_for_write(&nested_superblock, nested_key.key(), &loc);
+            find_keyvalue_location_for_write(ths->txn.get(), &nested_superblock, nested_key.key(), &loc);
         }
-        
+
         void apply_change() {
             // TODO hook up timestamp once Tim figures out what to do with the timestamp
-            apply_keyvalue_change(&loc, nested_key.key(), repli_timestamp_t::invalid /*ths->timestamp*/);
+            apply_keyvalue_change(ths->txn.get(), &loc, nested_key.key(), repli_timestamp_t::invalid /*ths->timestamp*/);
             virtual_superblock_t *sb = reinterpret_cast<virtual_superblock_t *>(loc.sb.get());
             ths->root = sb->get_root_block_id();
         }
 
         int incr(int by) {
-           return incr_loc<redis_nested_string_value_t>(loc, by);
+            return incr_loc<redis_nested_string_value_t>(ths->txn.get(), loc, by);
         }
 
         bool set(std::string &value, bool clear_old) {
@@ -176,9 +173,9 @@ protected:
 
             blob_t blob(nst_str->content, blob::btree_maxreflen);
 
-            blob.clear(loc.txn.get());
-            blob.append_region(loc.txn.get(), value.size());
-            blob.write_from_string(value, loc.txn.get(), 0);
+            blob.clear(ths->txn.get());
+            blob.append_region(ths->txn.get(), value.size());
+            blob.write_from_string(value, ths->txn.get(), 0);
 
             return created;
         }

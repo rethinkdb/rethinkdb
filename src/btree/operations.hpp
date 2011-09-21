@@ -85,7 +85,6 @@ class got_superblock_t {
 public:
     got_superblock_t() { }
 
-    boost::shared_ptr<transaction_t> txn;
     boost::scoped_ptr<superblock_t> sb;
 
 private:
@@ -97,7 +96,6 @@ class keyvalue_location_t {
 public:
     keyvalue_location_t() : there_originally_was_value(false) { }
 
-    boost::shared_ptr<transaction_t> txn;
     boost::scoped_ptr<superblock_t> sb;
 
     // The parent buf of buf, if buf is not the root node.  This is hacky.
@@ -112,7 +110,6 @@ public:
     scoped_malloc<Value> value;
 
     void swap(keyvalue_location_t& other) {
-        txn.swap(other.txn);
         sb.swap(other.sb);
         last_buf.swap(other.last_buf);
         buf.swap(other.buf);
@@ -140,8 +137,10 @@ public:
     scoped_malloc<Value>& value();
 
     transaction_t *get_txn();
+
 private:
     btree_key_t *key;
+    boost::scoped_ptr<transaction_t> txn;
     keyvalue_location_t<Value> kv_location;
     repli_timestamp_t tstamp;
 

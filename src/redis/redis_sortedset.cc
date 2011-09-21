@@ -30,7 +30,7 @@ struct sorted_set_set_oper_t : set_oper_t {
         member_index_root = value->get_member_index_root();
         counted_ref.count = value->get_sub_size();
         counted_ref.node_id = value->get_score_index_root();
-        score_index = counted_btree2_t(&counted_ref, btree->cache()->get_block_size(), location.txn.get());
+        score_index = counted_btree2_t(&counted_ref, btree->cache()->get_block_size(), txn.get());
     }
 
     ~sorted_set_set_oper_t() {
@@ -44,12 +44,12 @@ struct sorted_set_set_oper_t : set_oper_t {
     bool add_or_update(std::string &member, float score) {
         bool found;
 
-        find_member mem(this, member);
+        find_member mem(txn.get(), this, member);
         if(mem.loc.value.get() == NULL) {
             // This memeber doesn't exist. Add it.
-            mem.create(member, score);
-            mem.apply_change();
-            
+            mem.create(txn.get(), member, score);
+            mem.apply_change(txn.get());
+
             found = false;
         } else {
             // Update the score for this member. Remove from score index.
@@ -70,11 +70,11 @@ struct sorted_set_set_oper_t : set_oper_t {
 
     bool remove(std::string &member) {
         // Look up member in member index to get it's score (and remove it)
-        find_member mem(this, member);
+        find_member mem(txn.get(), this, member);
 
-        if(mem.loc.value.get()) {
+        if (mem.loc.value.get()) {
             float score = mem.loc.value->score;
-            
+
             // Delete it
             scoped_malloc<redis_nested_sorted_set_value_t> null;
             mem.loc.value.swap(null);
@@ -92,17 +92,18 @@ struct sorted_set_set_oper_t : set_oper_t {
         unsigned u_end = convert_index(end);
 
         int removed = 0;
+        // TODO(wmrowan): Fix this for loop.
         for(unsigned i = u_end; i >= u_start; i--) {
             // Find the member name to remove from member index
             const counted2_value_t *val = score_index.at(i);
             std::string member;
             blob_t blob(const_cast<char *>(val->blb), blob::btree_maxreflen);
-            blob.read_to_string(member, location.txn.get(), 0, blob.valuesize());
+            blob.read_to_string(member, txn.get(), 0, blob.valuesize());
 
             // Remove from indicies
             score_index.remove(i);
 
-            find_member mem(this, member);
+            find_member mem(txn.get(), this, member);
             assert(mem.loc.value.get());
             scoped_malloc<redis_nested_sorted_set_value_t> null;
             mem.loc.value.swap(null);
@@ -120,7 +121,7 @@ struct sorted_set_set_oper_t : set_oper_t {
             if(removed == 0) index = iter.rank();
 
             std::string member = iter.member();
-            find_member mem(this, member);
+            find_member mem(txn.get(), this, member);
             assert(mem.loc.value.get());
             scoped_malloc<redis_nested_sorted_set_value_t> null;
             mem.loc.value.swap(null);
@@ -141,7 +142,7 @@ struct sorted_set_set_oper_t : set_oper_t {
     }
 
     float increment_score(std::string &member, float by) {
-        find_member mem(this, member);
+        find_member mem(txn.get(), this, member);
         float old_score = 0;
         float new_score = by;
         if(mem.loc.value.get()) {
@@ -151,7 +152,7 @@ struct sorted_set_set_oper_t : set_oper_t {
 
             remove_from_score_index(member, old_score);
         } else {
-            mem.create(member, new_score);
+            mem.create(txn.get(), member, new_score);
         }
 
         score_index.insert(new_score, member);
@@ -161,19 +162,18 @@ struct sorted_set_set_oper_t : set_oper_t {
 
 private:
     struct find_member {
-        find_member(sorted_set_set_oper_t *ths_ptr, std::string &member):
+        find_member(transaction_t *txn, sorted_set_set_oper_t *ths_ptr, std::string &member):
             ths(ths_ptr),
             nested_key(member)
         {
             boost::scoped_ptr<superblock_t> nested_btree_sb(new virtual_superblock_t(ths->member_index_root));
             got_superblock_t nested_superblock;
             nested_superblock.sb.swap(nested_btree_sb);
-            nested_superblock.txn = ths->location.txn;
 
-            find_keyvalue_location_for_write(&nested_superblock, nested_key.key(), &loc);
+            find_keyvalue_location_for_write(txn, &nested_superblock, nested_key.key(), &loc);
         }
 
-        void create(std::string &member, float score) {
+        void create(transaction_t *txn, std::string &member, float score) {
             scoped_malloc<redis_nested_sorted_set_value_t>
                     smrsv(blob::btree_maxreflen + sizeof(redis_nested_sorted_set_value_t));
             loc.value.swap(smrsv);
@@ -181,13 +181,13 @@ private:
             redis_nested_sorted_set_value_t *value = loc.value.get();
             value->score = score;
             blob_t b(value->content, blob::btree_maxreflen);
-            b.append_region(loc.txn.get(), member.size());
-            b.write_from_string(member, loc.txn.get(), 0);
+            b.append_region(txn, member.size());
+            b.write_from_string(member, txn, 0);
         }
-        
-        void apply_change() {
+
+        void apply_change(transaction_t *txn) {
             // TODO hook up timestamp once Tim figures out what to do with the timestamp
-            apply_keyvalue_change(&loc, nested_key.key(), repli_timestamp_t::invalid /*ths->timestamp*/);
+            apply_keyvalue_change(txn, &loc, nested_key.key(), repli_timestamp_t::invalid /*ths->timestamp*/);
             virtual_superblock_t *sb = reinterpret_cast<virtual_superblock_t *>(loc.sb.get());
             ths->member_index_root = sb->get_root_block_id();
         }
@@ -252,7 +252,7 @@ struct sorted_set_read_oper_t : read_oper_t {
         score_index_root = value->get_score_index_root();
         counted_ref.count = value->get_sub_size();
         counted_ref.node_id = value->get_score_index_root();
-        rank_index = counted_btree2_t(&counted_ref, btree->cache()->get_block_size(), location.txn.get());
+        rank_index = counted_btree2_t(&counted_ref, btree->cache()->get_block_size(), txn.get());
     }
 
     int get_size() {
@@ -303,11 +303,10 @@ private:
             boost::scoped_ptr<superblock_t> nested_btree_sb(new virtual_superblock_t(ths->member_index_root));
             got_superblock_t nested_superblock;
             nested_superblock.sb.swap(nested_btree_sb);
-            nested_superblock.txn = ths->location.txn;
 
-            find_keyvalue_location_for_read(&nested_superblock, nested_key.key(), &loc);
+            find_keyvalue_location_for_read(ths->txn.get(), &nested_superblock, nested_key.key(), &loc);
         }
-        
+
         sorted_set_read_oper_t *ths;
         btree_key_buffer_t nested_key;
         keyvalue_location_t<redis_nested_sorted_set_value_t> loc;

@@ -23,7 +23,7 @@ struct list_set_oper_t : set_oper_t {
 
         if(value) {
             ref = value->get_ref();
-            tree = counted_btree_t(ref, btree->cache()->get_block_size(), location.txn.get());
+            tree = counted_btree_t(ref, btree->cache()->get_block_size(), txn.get());
         }
     }
 
@@ -57,7 +57,7 @@ struct list_set_oper_t : set_oper_t {
 
     bool get_element(unsigned index, std::string &str_out) {
         blob_t b(const_cast<char *>(tree.at(index)), blob::btree_maxreflen);
-        b.read_to_string(str_out, location.txn.get(), 0, b.valuesize());
+        b.read_to_string(str_out, txn.get(), 0, b.valuesize());
 
         return true;
     }
@@ -94,7 +94,7 @@ struct list_read_oper_t : read_oper_t {
         }
 
         ref = value->get_ref();
-        tree = counted_btree_t(ref, btree->cache()->get_block_size(), location.txn.get());
+        tree = counted_btree_t(ref, btree->cache()->get_block_size(), txn.get());
     }
 
    unsigned get_size() {
@@ -111,7 +111,7 @@ struct list_read_oper_t : read_oper_t {
         if(index < 0 || index >= size) return false;
 
         blob_t b(const_cast<char *>(tree.at(index)), blob::btree_maxreflen);
-        b.read_to_string(str_out, location.txn.get(), 0, b.valuesize());
+        b.read_to_string(str_out, txn.get(), 0, b.valuesize());
 
         return true;
    }

@@ -68,14 +68,13 @@ protected:
             boost::scoped_ptr<superblock_t> nested_btree_sb(new virtual_superblock_t(ths->root));
             got_superblock_t nested_superblock;
             nested_superblock.sb.swap(nested_btree_sb);
-            nested_superblock.txn = ths->location.txn;
 
-            find_keyvalue_location_for_write(&nested_superblock, nested_key.key(), &loc);
+            find_keyvalue_location_for_write(ths->txn.get(), &nested_superblock, nested_key.key(), &loc);
         }
-        
+
         void apply_change() {
             // TODO hook up timestamp once Tim figures out what to do with the timestamp
-            apply_keyvalue_change(&loc, nested_key.key(), repli_timestamp_t::invalid /*ths->timestamp*/);
+            apply_keyvalue_change(ths->txn.get(), &loc, nested_key.key(), repli_timestamp_t::invalid /*ths->timestamp*/);
             virtual_superblock_t *sb = reinterpret_cast<virtual_superblock_t *>(loc.sb.get());
             ths->root = sb->get_root_block_id();
         }
@@ -107,11 +106,10 @@ struct set_read_oper_t : read_oper_t {
         boost::scoped_ptr<superblock_t> nested_btree_sb(new virtual_superblock_t(root));
         got_superblock_t nested_superblock;
         nested_superblock.sb.swap(nested_btree_sb);
-        nested_superblock.txn = location.txn;
 
         btree_key_buffer_t nested_key(member);
         keyvalue_location_t<redis_nested_set_value_t> loc;
-        find_keyvalue_location_for_read(&nested_superblock, nested_key.key(), &loc);
+        find_keyvalue_location_for_read(txn.get(), &nested_superblock, nested_key.key(), &loc);
         return (loc.value.get() != NULL);
     }
 
@@ -126,7 +124,7 @@ struct set_read_oper_t : read_oper_t {
         boost::scoped_ptr<superblock_t> nested_btree_sb(new virtual_superblock_t(root));
 
         slice_keys_iterator_t<redis_nested_set_value_t> *tree_iter =
-                new slice_keys_iterator_t<redis_nested_set_value_t>(sizer_ptr, location.txn,
+            new slice_keys_iterator_t<redis_nested_set_value_t>(sizer_ptr, txn.get(),
                 nested_btree_sb, btree->home_thread(), rget_bound_none, none_key, rget_bound_none, none_key);
 
         boost::shared_ptr<one_way_iterator_t<std::string > > transform_iter(
