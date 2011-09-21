@@ -58,6 +58,7 @@ def make_option_parser():
     o["resurrect_failover_server_prob"] = FloatFlag("--resurrect-failover-server-prob", .002)
     o["failover-script"] = StringFlag("--failover-script", "")
     o["timeout"] = IntFlag("--timeout", None)
+    o["server-path"] = StringFlag("--server-path", None)
     return o
 
 # Choose a random port at which to start searching to reduce the probability of collisions
@@ -193,11 +194,18 @@ def rdb_stats(port=8080, host="localhost"):
     sock.close()
     return stats
 
-def get_executable_path(opts, name):
-    executable_path = os.path.join(os.path.dirname(__file__), "../../build")
-    executable_path = os.path.join(executable_path, opts["mode"])
+def build_rethinkdb_executable_path(build_dir_path, opts, exec_name='rethinkdb'):
+    executable_path = os.path.join(build_dir_path, opts["mode"])
     if opts["valgrind"]: executable_path += "-valgrind"
-    executable_path = os.path.join(executable_path, name)
+    executable_path = os.path.join(executable_path, exec_name)
+    return executable_path
+
+def get_executable_path(opts, name):
+    if opts['server-path']:
+        executable_path = opts['server-path']
+    else:
+        build_dir_path = os.path.join(os.path.dirname(__file__), "../../build")
+        executable_path = build_rethinkdb_executable_path(build_dir_path, opts, name)
             
     if not os.path.exists(executable_path):
         raise ValueError(name + " has not been built; it should be at %r." % executable_path)
