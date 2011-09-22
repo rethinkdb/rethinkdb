@@ -7,8 +7,8 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#include "buffer_cache/types.hpp"
-#include "concurrency/access.hpp"
+#include "buffer_cache/buffer_cache.hpp"
+#include "containers/buffer_group.hpp"
 
 /* An explanation of blobs.
 
@@ -131,6 +131,26 @@ bool deep_fsck(block_getter_t *getter, block_size_t bs, const char *ref, int max
 
 class blob_t {
 public:
+    //Used to iterate over an exposed region of a blob
+    class iterator {
+    public:
+        iterator(boost::shared_ptr<buffer_group_t>, boost::shared_ptr<blob_acq_t>);
+        iterator(const iterator &);
+        char& operator*();
+        void operator++();
+        bool at_end();
+        
+    private:
+        void increment_buffer();
+
+        boost::shared_ptr<buffer_group_t> bg;
+        boost::shared_ptr<blob_acq_t> acq;
+
+        buffer_group_t::buffer_t current_buffer;
+        unsigned cur_buffer_index;
+        unsigned next_buffer;
+    };
+
     // maxreflen must be less than the block size minus 4 bytes.
     blob_t(char *ref, int maxreflen);
 
@@ -152,6 +172,9 @@ public:
     void expose_all(transaction_t *txn, access_t mode, buffer_group_t *buffer_group_out, blob_acq_t *acq_group_out);
 
 
+    // Alternate interface that returns an iterator to the exposed region.
+    iterator expose_region(transaction_t *txn, access_t mode, int64_t offset, int64_t size);
+
     // Appends size bytes of garbage data to the blob.
     void append_region(transaction_t *txn, int64_t size);
 
@@ -171,6 +194,14 @@ public:
     // valuesize()).  In particular, you can be sure that the blob
     // holds no internal blocks, once it has been cleared.
     void clear(transaction_t *txn);
+
+    // Writes over the portion of the blob, starting at offset, with
+    // the contents of the string val. Caller is responsible for making
+    // sure this portion of the blob exists
+    void write_from_string(const std::string &val, transaction_t *txn, int64_t offset);
+
+    // Reads from the region of the blob from offset to offset + length into the string s_out
+    void read_to_string(std::string &s_out, transaction_t *txn, int64_t offset, int64_t length);
 
 private:
     bool traverse_to_dimensions(transaction_t *txn, int levels, int64_t old_offset, int64_t old_size, int64_t new_offset, int64_t new_size, blob::traverse_helper_t *helper);

@@ -243,7 +243,7 @@ block_size_t mock_cache_t::get_block_size() {
     return block_size;
 }
 
-bool mock_cache_t::offer_read_ahead_buf(UNUSED block_id_t block_id, UNUSED void *buf, UNUSED repli_timestamp_t recency_timestamp) {
+bool mock_cache_t::offer_read_ahead_buf(UNUSED block_id_t block_id, UNUSED void *buf, UNUSED const boost::intrusive_ptr<standard_block_token_t>& token, UNUSED repli_timestamp_t recency_timestamp) {
     // We never use read-ahead.
     return false;
 }

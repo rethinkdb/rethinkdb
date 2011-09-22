@@ -149,7 +149,7 @@ private:
     boost::intrusive_ptr<ls_block_token_pointee_t> generate_block_token(off64_t offset);
 
     std::vector<serializer_read_ahead_callback_t*> read_ahead_callbacks;
-    bool offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp);
+    bool offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
     bool should_perform_read_ahead();
 
     struct index_write_context_t {

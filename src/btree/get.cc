@@ -14,11 +14,12 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, order
 
     slice->assert_thread();
 
+    boost::scoped_ptr<transaction_t> txn;
     got_superblock_t got;
-    get_btree_superblock(slice, rwi_read, token, &got);
+    get_btree_superblock(slice, rwi_read, token, &got, txn);
 
     keyvalue_location_t<memcached_value_t> kv_location;
-    find_keyvalue_location_for_read(&got, key, &kv_location);
+    find_keyvalue_location_for_read(txn.get(), &got, key, &kv_location);
 
     if (!kv_location.value) {
         return get_result_t();
@@ -31,7 +32,7 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, order
         return get_result_t();
     }
 
-    boost::intrusive_ptr<data_buffer_t> dp = value_to_data_buffer(value, kv_location.txn.get());
+    boost::intrusive_ptr<data_buffer_t> dp = value_to_data_buffer(value, txn.get());
 
     return get_result_t(dp, value->mcflags(), 0);
 }

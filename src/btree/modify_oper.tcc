@@ -15,13 +15,13 @@ void run_btree_modify_oper(btree_modify_oper_t<Value> *oper, btree_slice_t *slic
     block_size_t block_size = slice->cache()->get_block_size();
 
     {
+        boost::scoped_ptr<transaction_t> txn;
         got_superblock_t got_superblock;
 
-        get_btree_superblock(slice, rwi_write, oper->compute_expected_change_count(block_size), castime.timestamp, token, &got_superblock);
+        get_btree_superblock(slice, rwi_write, oper->compute_expected_change_count(block_size), castime.timestamp, token, &got_superblock, txn);
 
         keyvalue_location_t<Value> kv_location;
-        find_keyvalue_location_for_write(&got_superblock, key, &kv_location);
-        transaction_t *txn = kv_location.txn.get();
+        find_keyvalue_location_for_write(txn.get(), &got_superblock, key, &kv_location);
         scoped_malloc<Value> the_value;
         the_value.reinterpret_swap(kv_location.value);
 
@@ -30,11 +30,11 @@ void run_btree_modify_oper(btree_modify_oper_t<Value> *oper, btree_slice_t *slic
         // If the value's expired, delete it.
         if (expired) {
             blob_t b(the_value->value_ref(), blob::btree_maxreflen);
-            b.unappend_region(txn, b.valuesize());
+            b.unappend_region(txn.get(), b.valuesize());
             the_value.reset();
         }
 
-        bool update_needed = oper->operate(txn, the_value);
+        bool update_needed = oper->operate(txn.get(), the_value);
         update_needed = update_needed || expired;
 
         // Add a CAS to the value if necessary
@@ -48,7 +48,7 @@ void run_btree_modify_oper(btree_modify_oper_t<Value> *oper, btree_slice_t *slic
         // Actually update the leaf, if needed.
         if (update_needed) {
             kv_location.value.reinterpret_swap(the_value);
-            apply_keyvalue_change(&kv_location, key, castime.timestamp, expired);
+            apply_keyvalue_change(txn.get(), &kv_location, key, castime.timestamp, expired);
         }
     }
 }

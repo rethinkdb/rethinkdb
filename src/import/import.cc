@@ -2,7 +2,6 @@
 #include "import/import.hpp"
 #include <math.h>
 #include "db_thread_info.hpp"
-#include "memcached/memcached.hpp"
 #include "server/diskinfo.hpp"
 #include "concurrency/cond_var.hpp"
 #include "logger.hpp"
