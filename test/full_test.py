@@ -775,7 +775,7 @@ try:
     for (mode, checker) in [
             ("debug", "valgrind"),
             ("release", "valgrind"),
-            ("release", none),
+            ("release", None),
             ("debug-mockcache", "valgrind"),
             ("debug-noepoll", "valgrind")]:
         for protocol in ["text"]: # ["text", "binary"]:
