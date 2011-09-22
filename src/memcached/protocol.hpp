@@ -80,10 +80,6 @@ public:
         read_t shard(const key_range_t &region) const THROWS_NOTHING;
         read_response_t unshard(std::vector<read_response_t> responses, temporary_cache_t *cache) const THROWS_NOTHING;
 
-        read_t *operator->() {
-            return this;
-        }
-
         read_t() { }
         read_t(const read_t& r) : query(r.query) { }
         template<class T> read_t(const T& q) : query(q) { }
@@ -117,10 +113,6 @@ public:
         write_t() { }
         write_t(const write_t& w) : mutation(w.mutation), proposed_cas(w.proposed_cas) { }
         template<class T> write_t(const T& m, cas_t pc) : mutation(m), proposed_cas(pc) { }
-
-        write_t *operator->() {
-            return this;
-        }
 
         boost::variant<
             get_cas_mutation_t,
