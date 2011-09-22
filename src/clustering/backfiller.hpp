@@ -15,13 +15,21 @@ struct backfiller_t :
 {
     backfiller_t(
             mailbox_cluster_t *c,
-            typename protocol_t::store_t *s,
+            boost::shared_ptr<metadata_read_view_t<branch_history_t<protocol_t> > > bh,
+            boost::shared_ptr<ready_store_t<protocol_t> > s,
+            branch_id_t sb,
             boost::shared_ptr<metadata_readwrite_view_t<resource_metadata_t<backfiller_metadata_t<protocol_t> > > > md_view) :
-        cluster(c), store(s),
+        cluster(c), branch_history(bh),
+        store(s), store_branch(sb),
         backfill_mailbox(cluster, boost::bind(&backfiller_t::on_backfill, this, _1, _2, _3, _4, auto_drainer_t::lock_t(&drainer))),
         cancel_backfill_mailbox(cluster, boost::bind(&backfiller_t::on_cancel_backfill, this, _1, auto_drainer_t::lock_t(&drainer))),
         advertisement(cluster, md_view, backfiller_metadata_t<protocol_t>(backfill_mailbox.get_address(), cancel_backfill_mailbox.get_address()))
-        { }
+    {
+        /* The store's region must match the branch it's supposedly on, and its
+        current timestamp shouldn't be before when the branch was created. */
+        rassert(store->get_region() == branch_find(branch_history, store_branch).region);
+        rassert(store->get_timestamp() >= branch_find(branch_history, store_branch).initial_timestamp);
+    }
 
 private:
     typedef typename backfiller_metadata_t<protocol_t>::backfill_session_id_t session_id_t;
@@ -85,7 +93,10 @@ private:
     }
 
     mailbox_cluster_t *cluster;
-    typename protocol_t::store_t *store;
+    boost::shared_ptr<metadata_read_view_t<branch_history_t<protocol_t> > > branch_history;
+
+    boost::shared_ptr<ready_store_t<protocol_t> > store;
+    branch_id_t store_branch;
 
     auto_drainer_t drainer;
     std::map<session_id_t, cond_t *> local_interruptors;

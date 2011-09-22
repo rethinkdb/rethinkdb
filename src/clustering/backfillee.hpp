@@ -7,9 +7,10 @@
 #include "concurrency/promise.hpp"
 
 template<class protocol_t>
-void backfill(
-    typename protocol_t::store_t *store,
+boost::shared_ptr<ready_store_view_t<protocol_t> > backfill(
     mailbox_cluster_t *cluster,
+    boost::shared_ptr<outdated_store_view_t<protocol_t> > store,
+    std::vector<std::pair<typename protocol_t::region_t, version_t> > start_point,
     boost::shared_ptr<metadata_read_view_t<resource_metadata_t<backfiller_metadata_t<protocol_t> > > > backfiller_md,
     signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t)
@@ -26,20 +27,10 @@ void backfill(
 
     typename backfiller_metadata_t<protocol_t>::backfill_session_id_t backfill_session_id = generate_uuid();
 
-    /* Begin the backfill. Once we call `begin_backfill()`, we have an
-    obligation to call either `end_backfill()` or `cancel_backfill()`; the
-    purpose of `backfill_cancel_notifier` is to make sure that
-    `cancel_backfill()` gets called in the case of an exception. */
-
-    typename protocol_t::store_t::backfill_request_t request = store->backfillee_begin();
-
-    death_runner_t backfill_cancel_notifier;
-    backfill_cancel_notifier.fun = boost::bind(&protocol_t::store_t::backfillee_cancel, store);
-
     /* Set up mailboxes and send off the backfill request */
 
-    async_mailbox_t<void(typename protocol_t::store_t::backfill_chunk_t)> backfill_mailbox(
-        cluster, boost::bind(&protocol_t::store_t::backfillee_chunk, store, _1));
+    async_mailbox_t<void(typename protocol_t::backfill_chunk_t)> backfill_mailbox(
+        cluster, boost::bind(&outdated_store_view_t<protocol_t>::receive_backfill_chunk, store, _1));
 
     promise_t<state_timestamp_t> backfill_is_done;
     async_mailbox_t<void(state_timestamp_t)> backfill_done_mailbox(
@@ -48,7 +39,7 @@ void backfill(
     send(cluster,
         backfiller.access().backfill_mailbox,
         backfill_session_id,
-        request,
+        start_point,
         backfill_mailbox.get_address(),
         backfill_done_mailbox.get_address());
 
@@ -86,12 +77,9 @@ void backfill(
 
     backfiller_notifier.fun = 0;
 
-    /* End the backfill. Since we'll be calling `backfillee_end()`, we don't
-    want to call `backfillee_cancel()`, so reset `backfill_cancel_notifier`. */
+    /* End the backfill. */
 
-    backfill_cancel_notifier.fun = 0;
-
-    store->backfillee_end(backfill_is_done.get_value());
+    return store->done(backfill_is_done.get_value());
 }
 
 #endif /* __CLUSTERING_BACKFILLEE_HPP__ */
