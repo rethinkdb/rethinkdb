@@ -50,7 +50,8 @@ writeback_t::writeback_t(
     dirty_block_semaphore(_max_dirty_blocks),
     force_patch_storage_flush(false),
     cache(_cache),
-    start_next_sync_immediately(false) {
+    start_next_sync_immediately(false),
+    to_pulse_when_last_active_flush_finishes(NULL) {
 
     rassert(max_dirty_blocks >= 10); // sanity check: you really don't want to have less than this.
                                      // 10 is rather arbitrary.
@@ -453,6 +454,12 @@ void writeback_t::do_concurrent_flush() {
 
     pm_flushes_writing.end(&start_time);
     --active_flushes;
+
+    if (active_flushes == 0) {
+        if (to_pulse_when_last_active_flush_finishes) {
+            to_pulse_when_last_active_flush_finishes->pulse();
+        }
+    }
 }
 
 void writeback_t::flush_prepare_patches() {

@@ -133,7 +133,6 @@ private:
     const log_serializer_on_disk_static_config_t* const static_config;
 
     extent_manager_t* const extent_manager;
-    /* TODO: This pointer should not be required */
     log_serializer_t *serializer;
 
     direct_file_t* dbfile;

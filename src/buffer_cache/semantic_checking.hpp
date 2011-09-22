@@ -117,7 +117,7 @@ public:
     block_size_t get_block_size();
     boost::shared_ptr<cache_account_t> create_account(int priority);
 
-    bool offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp);
+    bool offer_read_ahead_buf(block_id_t block_id, void *buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
     bool contains_block(block_id_t block_id);
 
     coro_fifo_t& co_begin_coro_fifo() { return inner_cache.co_begin_coro_fifo(); }

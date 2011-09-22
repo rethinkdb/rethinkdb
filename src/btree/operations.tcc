@@ -18,20 +18,17 @@
 // relevant.
 
 
-
-inline void insert_root(block_id_t root_id, buf_lock_t& sb_buf) {
-    rassert(sb_buf.is_acquired());
-    sb_buf->set_data(const_cast<block_id_t *>(&(reinterpret_cast<const btree_superblock_t *>(sb_buf->get_data_read())->root_block)), &root_id, sizeof(root_id));
-
-    sb_buf.release();
+inline void insert_root(block_id_t root_id, superblock_t* sb) {
+    sb->set_root_block_id(root_id);
+    sb->release();
 }
 
 // Get a root block given a superblock, or make a new root if there isn't one.
 template <class Value>
-void get_root(value_sizer_t<Value> *sizer, transaction_t *txn, buf_lock_t& sb_buf, buf_lock_t *buf_out) {
+void get_root(value_sizer_t<Value> *sizer, transaction_t *txn, superblock_t* sb, buf_lock_t *buf_out) {
     rassert(!buf_out->is_acquired());
 
-    block_id_t node_id = reinterpret_cast<const btree_superblock_t*>(sb_buf->get_data_read())->root_block;
+    block_id_t node_id = sb->get_root_block_id();
 
     if (node_id != NULL_BLOCK_ID) {
         buf_lock_t tmp(txn, node_id, rwi_write);
@@ -39,7 +36,7 @@ void get_root(value_sizer_t<Value> *sizer, transaction_t *txn, buf_lock_t& sb_bu
     } else {
         buf_out->allocate(txn);
         leaf::init(sizer, reinterpret_cast<leaf_node_t *>(buf_out->buf()->get_data_major_write()));
-        insert_root(buf_out->buf()->get_block_id(), sb_buf);
+        insert_root(buf_out->buf()->get_block_id(), sb);
     }
 }
 
@@ -48,7 +45,7 @@ void get_root(value_sizer_t<Value> *sizer, transaction_t *txn, buf_lock_t& sb_bu
 // value that will be inserted; if it's an internal node, provide NULL (we
 // split internal nodes proactively).
 template <class Value>
-void check_and_handle_split(value_sizer_t<Value> *sizer, transaction_t *txn, buf_lock_t& buf, buf_lock_t& last_buf, buf_lock_t& sb_buf,
+void check_and_handle_split(value_sizer_t<Value> *sizer, transaction_t *txn, buf_lock_t& buf, buf_lock_t& last_buf, superblock_t *sb,
                             const btree_key_t *key, void *new_value) {
     txn->assert_thread();
 
@@ -82,7 +79,7 @@ void check_and_handle_split(value_sizer_t<Value> *sizer, transaction_t *txn, buf
         last_buf.allocate(txn);
         internal_node::init(sizer->block_size(), reinterpret_cast<internal_node_t *>(last_buf->get_data_major_write()));
 
-        insert_root(last_buf->get_block_id(), sb_buf);
+        insert_root(last_buf->get_block_id(), sb);
     }
 
     bool success __attribute__((unused)) = internal_node::insert(sizer->block_size(), last_buf.buf(), median, buf->get_block_id(), rbuf->get_block_id());
@@ -103,7 +100,7 @@ void check_and_handle_split(value_sizer_t<Value> *sizer, transaction_t *txn, buf
 // Merge or level the node if necessary.
 template <class Value>
 void check_and_handle_underfull(value_sizer_t<Value> *sizer, transaction_t *txn,
-                                buf_lock_t& buf, buf_lock_t& last_buf, buf_lock_t& sb_buf,
+                                buf_lock_t& buf, buf_lock_t& last_buf, superblock_t *sb,
                                 const btree_key_t *key) {
     const node_t *node = reinterpret_cast<const node_t *>(buf->get_data_read());
     if (last_buf.is_acquired() && node::is_underfull(sizer, node)) { // The root node is never underfull.
@@ -143,7 +140,7 @@ void check_and_handle_underfull(value_sizer_t<Value> *sizer, transaction_t *txn,
                 // it's the root and our node is its only child). Insert our
                 // node as the new root.
                 last_buf->mark_deleted();
-                insert_root(buf->get_block_id(), sb_buf);
+                insert_root(buf->get_block_id(), sb);
             }
         } else { // Level
             btree_key_buffer_t replacement_key_buffer;
@@ -158,7 +155,7 @@ void check_and_handle_underfull(value_sizer_t<Value> *sizer, transaction_t *txn,
     }
 }
 
-inline void get_btree_superblock(btree_slice_t *slice, access_t access, int expected_change_count, repli_timestamp_t tstamp, order_token_t token, got_superblock_t *got_superblock_out) {
+inline void get_btree_superblock(btree_slice_t *slice, access_t access, int expected_change_count, repli_timestamp_t tstamp, order_token_t token, got_superblock_t *got_superblock_out, boost::scoped_ptr<transaction_t>& txn_out) {
     slice->assert_thread();
 
     slice->pre_begin_transaction_sink_.check_out(token);
@@ -166,42 +163,43 @@ inline void get_btree_superblock(btree_slice_t *slice, access_t access, int expe
     if (is_read_mode(access)) {
         begin_transaction_token = begin_transaction_token.with_read_mode();
     }
-    got_superblock_out->txn.reset(new transaction_t(slice->cache(), access, expected_change_count, tstamp));
-    got_superblock_out->txn->set_token(slice->post_begin_transaction_checkpoint_.check_through(begin_transaction_token));
+    txn_out.reset(new transaction_t(slice->cache(), access, expected_change_count, tstamp));
+    txn_out->set_token(slice->post_begin_transaction_checkpoint_.check_through(begin_transaction_token));
 
-    buf_lock_t tmp(got_superblock_out->txn.get(), SUPERBLOCK_ID, access);
-    got_superblock_out->sb_buf.swap(tmp);
+    buf_lock_t tmp_buf(txn_out.get(), SUPERBLOCK_ID, access);
+    boost::scoped_ptr<superblock_t> tmp_sb(new real_superblock_t(tmp_buf));
+    got_superblock_out->sb.swap(tmp_sb);
 }
 
-inline void get_btree_superblock(btree_slice_t *slice, access_t access, order_token_t token, got_superblock_t *got_superblock_out) {
+inline void get_btree_superblock(btree_slice_t *slice, access_t access, order_token_t token, got_superblock_t *got_superblock_out, boost::scoped_ptr<transaction_t>& txn_out) {
     rassert(is_read_mode(access));
-    get_btree_superblock(slice, access, 0, repli_timestamp_t::distant_past, token, got_superblock_out);
+    get_btree_superblock(slice, access, 0, repli_timestamp_t::distant_past, token, got_superblock_out, txn_out);
 }
 
 template <class Value>
-void find_keyvalue_location_for_write(got_superblock_t *got_superblock, btree_key_t *key, keyvalue_location_t<Value> *keyvalue_location_out) {
-    keyvalue_location_out->sb_buf.swap(got_superblock->sb_buf);
-    keyvalue_location_out->txn.swap(got_superblock->txn);
-    value_sizer_t<Value> v_sizer(keyvalue_location_out->txn->get_cache()->get_block_size());
+void find_keyvalue_location_for_write(transaction_t *txn, got_superblock_t *got_superblock, btree_key_t *key, keyvalue_location_t<Value> *keyvalue_location_out) {
+    keyvalue_location_out->sb.swap(got_superblock->sb);
+    value_sizer_t<Value> v_sizer(txn->get_cache()->get_block_size());
     value_sizer_t<void> *sizer = &v_sizer;
 
     buf_lock_t last_buf;
     buf_lock_t buf;
-    get_root(sizer, keyvalue_location_out->txn.get(), keyvalue_location_out->sb_buf, &buf);
+    get_root(sizer, txn, keyvalue_location_out->sb.get(), &buf);
 
     // Walk down the tree to the leaf.
     while (node::is_internal(reinterpret_cast<const node_t *>(buf->get_data_read()))) {
         // Check if the node is overfull and proactively split it if it is (since this is an internal node).
-        check_and_handle_split(sizer, keyvalue_location_out->txn.get(), buf, last_buf, keyvalue_location_out->sb_buf, key, reinterpret_cast<Value *>(NULL));
+        check_and_handle_split(sizer, txn, buf, last_buf, keyvalue_location_out->sb.get(), key, reinterpret_cast<Value *>(NULL));
+
         // Check if the node is underfull, and merge/level if it is.
-        check_and_handle_underfull(sizer, keyvalue_location_out->txn.get(), buf, last_buf, keyvalue_location_out->sb_buf, key);
+        check_and_handle_underfull(sizer, txn, buf, last_buf, keyvalue_location_out->sb.get(), key);
 
         // Release the superblock, if we've gone past the root (and haven't
         // already released it). If we're still at the root or at one of
         // its direct children, we might still want to replace the root, so
         // we can't release the superblock yet.
-        if (keyvalue_location_out->sb_buf.is_acquired() && last_buf.is_acquired()) {
-            keyvalue_location_out->sb_buf.release();
+        if (last_buf.is_acquired()) {
+            keyvalue_location_out->sb->release();
         }
 
         // Release the old previous node (unless we're at the root), and set
@@ -211,7 +209,7 @@ void find_keyvalue_location_for_write(got_superblock_t *got_superblock, btree_ke
         block_id_t node_id = internal_node::lookup(reinterpret_cast<const internal_node_t *>(buf->get_data_read()), key);
         rassert(node_id != NULL_BLOCK_ID && node_id != SUPERBLOCK_ID);
 
-        buf_lock_t tmp(keyvalue_location_out->txn.get(), node_id, rwi_write);
+        buf_lock_t tmp(txn, node_id, rwi_write);
         last_buf.swap(tmp);
         buf.swap(last_buf);
     }
@@ -233,16 +231,15 @@ void find_keyvalue_location_for_write(got_superblock_t *got_superblock, btree_ke
 }
 
 template <class Value>
-void find_keyvalue_location_for_read(got_superblock_t *got_superblock, btree_key_t *key, keyvalue_location_t<Value> *keyvalue_location_out) {
+void find_keyvalue_location_for_read(transaction_t *txn, got_superblock_t *got_superblock, btree_key_t *key, keyvalue_location_t<Value> *keyvalue_location_out) {
+    block_id_t node_id = got_superblock->sb->get_root_block_id();
+    rassert(node_id != SUPERBLOCK_ID);
+
     buf_lock_t buf;
-    buf.swap(got_superblock->sb_buf);
-    keyvalue_location_out->txn.swap(got_superblock->txn);
-    transaction_t *txn = keyvalue_location_out->txn.get();
+    got_superblock->sb->swap_buf(buf);
+
     value_sizer_t<Value> v_sizer(txn->get_cache()->get_block_size());
     value_sizer_t<void> *sizer = &v_sizer;
-
-    block_id_t node_id = reinterpret_cast<const btree_superblock_t *>(buf->get_data_read())->root_block;
-    rassert(node_id != SUPERBLOCK_ID);
 
     if (node_id == NULL_BLOCK_ID) {
         // There is no root, so the tree is empty.
@@ -275,7 +272,7 @@ void find_keyvalue_location_for_read(got_superblock_t *got_superblock, btree_key
     // Got down to the leaf, now probe it.
     const leaf_node_t *leaf = reinterpret_cast<const leaf_node_t *>(buf->get_data_read());
     scoped_malloc<Value> value(sizer->max_possible_size());
-    if (leaf::lookup(sizer, leaf, key, value.get())) {
+    if(leaf::lookup(sizer, leaf, key, value.get())) {
         keyvalue_location_out->buf.swap(buf);
         keyvalue_location_out->there_originally_was_value = true;
         keyvalue_location_out->value.swap(value);
@@ -283,8 +280,8 @@ void find_keyvalue_location_for_read(got_superblock_t *got_superblock, btree_key
 }
 
 template <class Value>
-void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc, btree_key_t *key, repli_timestamp_t tstamp, bool expired) {
-    value_sizer_t<Value> v_sizer(kv_loc->txn->get_cache()->get_block_size());
+void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_loc, btree_key_t *key, repli_timestamp_t tstamp, bool expired) {
+    value_sizer_t<Value> v_sizer(txn->get_cache()->get_block_size());
     value_sizer_t<void> *sizer = &v_sizer;
 
     if (kv_loc->value) {
@@ -294,24 +291,22 @@ void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc, btree_key_t *key,
         // for the value.  Not necessary when deleting, because the
         // node won't grow.
 
-        check_and_handle_split(sizer, kv_loc->txn.get(), kv_loc->buf, kv_loc->last_buf, kv_loc->sb_buf, key, kv_loc->value.get());
+        check_and_handle_split(sizer, txn, kv_loc->buf, kv_loc->last_buf, kv_loc->sb.get(), key, kv_loc->value.get());
 
         rassert(!leaf::is_full(sizer, reinterpret_cast<const leaf_node_t *>(kv_loc->buf->get_data_read()),
-                               key, kv_loc->value.get()));
+                key, kv_loc->value.get()));
 
-        kv_loc->buf->apply_patch(new leaf_insert_patch_t(kv_loc->buf->get_block_id(), kv_loc->buf->get_next_patch_counter(), sizer->size(kv_loc->value.get()), kv_loc->value.get(), key->size, key->contents, tstamp));
+        kv_loc->buf->apply_patch(new leaf_insert_patch_t(kv_loc->buf->get_block_id(), kv_loc->buf->get_next_patch_counter(),
+                sizer->size(kv_loc->value.get()), kv_loc->value.get(), key->size, key->contents, tstamp));
 
     } else {
         // Delete the value if it's there.
         if (kv_loc->there_originally_was_value) {
-
-            if (!expired) {
+            if(!expired) {
                 rassert(tstamp != repli_timestamp_t::invalid, "Deletes need a valid timestamp now.");
-
                 kv_loc->buf->apply_patch(new leaf_remove_patch_t(kv_loc->buf->get_block_id(), kv_loc->buf->get_next_patch_counter(), tstamp, key->size, key->contents));
             } else {
                 // Expirations do an erase, not a delete.
-
                 kv_loc->buf->apply_patch(new leaf_erase_presence_patch_t(kv_loc->buf->get_block_id(), kv_loc->buf->get_next_patch_counter(), key->size, key->contents));
             }
         }
@@ -319,14 +314,13 @@ void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc, btree_key_t *key,
 
     // Check to see if the leaf is underfull (following a change in
     // size or a deletion, and merge/level if it is.
-    check_and_handle_underfull(sizer, kv_loc->txn.get(), kv_loc->buf, kv_loc->last_buf, kv_loc->sb_buf, key);
+    check_and_handle_underfull(sizer, txn, kv_loc->buf, kv_loc->last_buf, kv_loc->sb.get(), key);
 }
 
 template <class Value>
-void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc, btree_key_t *key, repli_timestamp_t tstamp) {
-    apply_keyvalue_change(kv_loc, key, tstamp, false);
+void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_loc, btree_key_t *key, repli_timestamp_t tstamp) {
+    apply_keyvalue_change(txn, kv_loc, key, tstamp, false);
 }
-
 
 template <class Value>
 value_txn_t<Value>::value_txn_t(btree_key_t *_key,
@@ -338,22 +332,22 @@ value_txn_t<Value>::value_txn_t(btree_key_t *_key,
 }
 
 template <class Value>
-value_txn_t<Value>::value_txn_t(btree_slice_t *slice, btree_key_t *_key, const repli_timestamp_t _tstamp, const order_token_t token) 
+value_txn_t<Value>::value_txn_t(btree_slice_t *slice, btree_key_t *_key, const repli_timestamp_t _tstamp, const order_token_t token)
     : key(_key), tstamp(_tstamp)
 {
     got_superblock_t can_haz_superblock;
 
-    get_btree_superblock(slice, rwi_write, 1, tstamp, token, &can_haz_superblock);
+    get_btree_superblock(slice, rwi_write, 1, tstamp, token, &can_haz_superblock, txn);
 
     keyvalue_location_t<Value> _kv_location;
-    find_keyvalue_location_for_write(&can_haz_superblock, key, &_kv_location);
+    find_keyvalue_location_for_write(txn.get(), &can_haz_superblock, key, &_kv_location);
 
     kv_location.swap(_kv_location);
 }
 
 template <class Value>
 value_txn_t<Value>::~value_txn_t() {
-    apply_keyvalue_change(&kv_location, key, tstamp, false);
+    apply_keyvalue_change(txn.get(), &kv_location, key, tstamp, false);
 }
 
 template <class Value>
@@ -363,13 +357,13 @@ scoped_malloc<Value>& value_txn_t<Value>::value() {
 
 template <class Value>
 transaction_t *value_txn_t<Value>::get_txn() {
-    return kv_location.txn.get();
+    return txn.get();
 }
 
 template <class Value>
-void get_value_read(btree_slice_t *slice, btree_key_t *key, order_token_t token, keyvalue_location_t<Value> *kv_location_out) {
+void get_value_read(btree_slice_t *slice, btree_key_t *key, order_token_t token, keyvalue_location_t<Value> *kv_location_out, boost::scoped_ptr<transaction_t>& txn_out) {
     got_superblock_t got_superblock;
-    get_btree_superblock(slice, rwi_read, token, &got_superblock);
+    get_btree_superblock(slice, rwi_read, token, &got_superblock, txn_out);
 
-    find_keyvalue_location_for_read(&got_superblock, key, kv_location_out);
+    find_keyvalue_location_for_read(txn_out.get(), &got_superblock, key, kv_location_out);
 }

@@ -1,5 +1,5 @@
-#ifndef __MEMCACHED_MEMCACHED_PROTOCOL_HPP__
-#define __MEMCACHED_MEMCACHED_PROTOCOL_HPP__
+#ifndef __MEMCACHED_PROTOCOL_HPP__
+#define __MEMCACHED_PROTOCOL_HPP__
 
 #include <vector>
 
@@ -9,7 +9,7 @@
 #include "btree/slice.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "memcached/queries.hpp"
-#include "namespace_interface.hpp"
+#include "protocol_api.hpp"
 #include "timestamps.hpp"
 
 /* `key_range_t` represents a contiguous set of keys. */
@@ -23,13 +23,12 @@ public:
         none
     };
 
-    key_range_t();   /* creates a range containing all keys */
+    key_range_t();   /* creates a range containing no keys */
     key_range_t(bound_t, store_key_t, bound_t, store_key_t);
 
-    bool contains(key_range_t range) const;
-    bool overlaps(key_range_t range) const;
-    key_range_t intersection(key_range_t range) const;
-    bool covered_by(std::vector<key_range_t> ranges) const;
+    static key_range_t empty() THROWS_NOTHING {
+        return key_range_t();
+    }
 
     /* If `right.unbounded`, then the range contains all keys greater than or
     equal to `left`. If `right.bounded`, then the range contains all keys
@@ -44,8 +43,13 @@ public:
     right_bound_t right;
 };
 
-bool operator==(key_range_t, key_range_t);
-bool operator!=(key_range_t, key_range_t);
+bool region_is_superset(const key_range_t &potential_superset, const key_range_t &potential_subset) THROWS_NOTHING;
+key_range_t region_intersection(const key_range_t &r1, const key_range_t &r2) THROWS_NOTHING;
+key_range_t region_join(const std::vector<key_range_t> &vec) THROWS_ONLY(bad_join_exc_t, bad_region_exc_t);
+bool region_overlaps(const key_range_t &r1, const key_range_t &r2) THROWS_NOTHING;
+
+bool operator==(key_range_t, key_range_t) THROWS_NOTHING;
+bool operator!=(key_range_t, key_range_t) THROWS_NOTHING;
 
 /* `memcached_protocol_t` is a container struct. It's never actually
 instantiated; it just exists to pass around all the memcached-related types and
@@ -72,9 +76,9 @@ public:
     class read_t {
 
     public:
-        region_t get_region() const;
-        std::vector<read_t> shard(std::vector<region_t> regions) const;
-        read_response_t unshard(std::vector<read_response_t> responses, temporary_cache_t *cache) const;
+        key_range_t get_region() const THROWS_NOTHING;
+        read_t shard(const key_range_t &region) const THROWS_NOTHING;
+        read_response_t unshard(std::vector<read_response_t> responses, temporary_cache_t *cache) const THROWS_NOTHING;
 
         read_t() { }
         read_t(const read_t& r) : query(r.query) { }
@@ -102,9 +106,9 @@ public:
     class write_t {
 
     public:
-        region_t get_region() const;
-        std::vector<write_t> shard(std::vector<region_t> regions) const;
-        write_response_t unshard(std::vector<write_response_t> responses, temporary_cache_t *cache) const;
+        key_range_t get_region() const THROWS_NOTHING;
+        write_t shard(key_range_t region) const THROWS_NOTHING;
+        write_response_t unshard(std::vector<write_response_t> responses, temporary_cache_t *cache) const THROWS_NOTHING;
 
         write_t() { }
         write_t(const write_t& w) : mutation(w.mutation), proposed_cas(w.proposed_cas) { }
@@ -120,35 +124,39 @@ public:
         cas_t proposed_cas;
     };
 
-    /* Backfilling not implemented */
+    class backfill_chunk_t {
 
-    class store_t {
-
-    public:
-        /* `create()` and `store_t` are not part of the protocol interface
-        specification. */
-        static void create(serializer_t *ser, region_t region);
-        store_t(serializer_t *ser, region_t region);
-
-        region_t get_region();
-        bool is_coherent() { return true; }
-
-        /* `get_timestamp()` is not implemented. (I figure it will be
-        implemented when backfilling is implemented.) */
-
-        read_response_t read(read_t read, order_token_t tok, signal_t *interruptor);
-        write_response_t write(write_t write, transition_timestamp_t timestamp, order_token_t tok, signal_t *interruptor);
-
-        bool is_backfilling() { return false; }
-
-        /* Backfilling not implemented */
-
-    private:
-        mirrored_cache_config_t cache_config;
-        cache_t cache;
-        btree_slice_t btree;
-        region_t region;
+        /* stub */
     };
 };
 
-#endif /* __MEMCACHED_MEMCACHED_PROTOCOL_HPP__ */
+/* `dummy_memcached_ready_store_view_t` is a `ready_store_view_t<memcached_protocol_t>`
+that forwards its operations to a `btree_slice_t`. Its initial timestamp is
+hardcoded at zero, and it doesn't persist the timestamp anywhere in the btree.
+*/
+
+class dummy_memcached_ready_store_view_t : public ready_store_view_t<memcached_protocol_t> {
+
+public:
+    dummy_memcached_ready_store_view_t(key_range_t, btree_slice_t *);
+
+protected:
+    /* `ready_store_view_t` interface: */
+
+    memcached_protocol_t::read_response_t do_read(const memcached_protocol_t::read_t &r, state_timestamp_t t, order_token_t otok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+    memcached_protocol_t::write_response_t do_write(const memcached_protocol_t::write_t &w, transition_timestamp_t t, order_token_t otok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+
+    state_timestamp_t do_send_backfill(
+        UNUSED std::vector<std::pair<key_range_t, state_timestamp_t> > start_point,
+        UNUSED boost::function<void(memcached_protocol_t::backfill_chunk_t)> chunk_sender,
+        UNUSED signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t)
+    {
+        crash("stub");
+    }
+
+private:
+    btree_slice_t *btree;
+};
+
+#endif /* __MEMCACHED_PROTOCOL_HPP__ */

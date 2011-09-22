@@ -111,7 +111,8 @@ public:
         }
 
         keyvalue_location_t<riak_value_t> kv_location;
-        get_value_read(slice, btree_key_buffer_t(key.begin(), key.end()).key(), order_token_t::ignore, &kv_location);
+        boost::scoped_ptr<transaction_t> txn;
+        get_value_read(slice, btree_key_buffer_t(key.begin(), key.end()).key(), order_token_t::ignore, &kv_location, txn);
 
         kv_location.value->print(slice->cache()->get_block_size());
 
@@ -123,7 +124,7 @@ public:
         blob_t blob(kv_location.value->contents, blob::btree_maxreflen);
         buffer_group_t buffer_group;
         blob_acq_t acq;
-        blob.expose_all(kv_location.txn.get(), rwi_read, &buffer_group, &acq);
+        blob.expose_all(txn.get(), rwi_read, &buffer_group, &acq);
 
         const_buffer_group_t::iterator it = buffer_group.begin(), end = buffer_group.end(); 
 

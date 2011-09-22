@@ -52,6 +52,11 @@ public:
         return buf_;
     }
 
+    const buf_t *const_buf() const {
+        assert_thread();
+        return buf_;
+    }
+
     buf_t *operator->() {
         assert_thread();
         return buf_;

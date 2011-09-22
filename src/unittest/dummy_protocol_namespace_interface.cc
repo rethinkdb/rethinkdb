@@ -1,4 +1,8 @@
 #include "unittest/gtest.hpp"
+
+#include "errors.hpp"
+#include <boost/make_shared.hpp>
+
 #include "unittest/dummy_namespace_interface.hpp"
 #include "unittest/dummy_protocol.hpp"
 
@@ -21,12 +25,14 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<dum
     for (char c = 'n'; c <= 'z'; c++) region2.keys.insert(std::string(&c, 1));
     shards.push_back(region2);
 
-    boost::ptr_vector<dummy_protocol_t::store_t> store_storage;
-    std::vector<dummy_protocol_t::store_t *> stores;
+    boost::ptr_vector<dummy_underlying_store_t> underlying_stores;
+    std::vector<boost::shared_ptr<ready_store_view_t<dummy_protocol_t> > > stores;
     for (int i = 0; i < (int)shards.size(); i++) {
-        dummy_protocol_t::store_t *store = new dummy_protocol_t::store_t(shards[i]);
-        store_storage.push_back(store);
-        stores.push_back(store);
+        underlying_stores.push_back(new dummy_underlying_store_t(shards[i]));
+        stores.push_back(boost::make_shared<dummy_ready_store_view_t>(
+            &underlying_stores[i],
+            shards[i],
+            state_timestamp_t::zero()));
     }
 
     dummy_namespace_interface_t<dummy_protocol_t> nsi(shards, stores);
