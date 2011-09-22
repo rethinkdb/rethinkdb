@@ -221,7 +221,7 @@ void writeback_t::flush_timer_callback(void *ctx) {
 
     self->cache->assert_thread();
 
-    pm_patches_size_ratio.record(self->cache->max_patches_size_ratio);
+    pm_patches_size_ratio.record(self->cache->get_max_patches_size_ratio());
 
     /*
      * Update the max_patches_size_ratio. If we detect that the previous writeback
@@ -237,13 +237,15 @@ void writeback_t::flush_timer_callback(void *ctx) {
     if (self->active_flushes < self->max_concurrent_flushes || self->num_dirty_blocks() < (float)self->max_dirty_blocks * RAISE_PATCHES_RATIO_AT_FRACTION_OF_UNSAVED_DATA_LIMIT) {
         /* The currently running writeback probably finished on-time. (of we have enough headroom left before hitting the unsaved data limit)
         Adjust max_patches_size_ratio to trade i/o efficiency for CPU cycles */
-        if (!self->wait_for_flush)
-            self->cache->max_patches_size_ratio = (unsigned int)(0.9f * (float)self->cache->max_patches_size_ratio + 0.1f * (float)MAX_PATCHES_SIZE_RATIO_MIN);
+        if (!self->wait_for_flush) {
+            self->cache->adjust_max_patches_size_ratio_toward_minimum();
+        }
     } else {
         /* The currently running writeback apparently takes too long.
         try to reduce that bottleneck by adjusting max_patches_size_ratio */
-        if (!self->wait_for_flush)
-            self->cache->max_patches_size_ratio = (unsigned int)(0.9f * (float)self->cache->max_patches_size_ratio + 0.1f * (float)MAX_PATCHES_SIZE_RATIO_MAX);
+        if (!self->wait_for_flush) {
+            self->cache->adjust_max_patches_size_ratio_toward_maximum();
+        }
     }
 
     /* Don't sync if we're in the shutdown process, because if we do that we'll trip an rassert() on

@@ -616,7 +616,7 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
 
     if (!inner_buf->writeback_buf().needs_flush) {
         // Check if we want to disable patching for this block and flush it directly instead
-        const int32_t max_patches_size = inner_buf->cache->serializer->get_block_size().value() / inner_buf->cache->max_patches_size_ratio;
+        const int32_t max_patches_size = inner_buf->cache->serializer->get_block_size().value() / inner_buf->cache->get_max_patches_size_ratio();
         if (patch->get_serialized_size() + inner_buf->cache->patch_memory_storage.get_patches_serialized_size(inner_buf->block_id) > max_patches_size) {
             ensure_flush();
             delete patch;
@@ -1309,4 +1309,17 @@ void mc_cache_t::maybe_unregister_read_ahead_callback() {
         // unregister_read_ahead_cb requires a coro context, but we might not be in any
         coro_t::spawn_now(boost::bind(&serializer_t::unregister_read_ahead_cb, serializer, this));
     }
+}
+
+void mc_cache_t::adjust_max_patches_size_ratio_toward_minimum() {
+    max_patches_size_ratio = (unsigned int)(0.9f * float(max_patches_size_ratio) + 0.1f * float(MAX_PATCHES_SIZE_RATIO_MIN));
+    rassert(max_patches_size_ratio >= MAX_PATCHES_SIZE_RATIO_MIN);
+    rassert(max_patches_size_ratio <= MAX_PATCHES_SIZE_RATIO_MAX);
+}
+
+void mc_cache_t::adjust_max_patches_size_ratio_toward_maximum() {
+    // TODO(sam): This normally creates quite a large adjustment toward the maximum.
+    max_patches_size_ratio = (unsigned int)(0.9f * float(max_patches_size_ratio) + 0.1f * float(MAX_PATCHES_SIZE_RATIO_MAX));
+    rassert(max_patches_size_ratio >= MAX_PATCHES_SIZE_RATIO_MIN);
+    rassert(max_patches_size_ratio <= MAX_PATCHES_SIZE_RATIO_MAX);
 }
