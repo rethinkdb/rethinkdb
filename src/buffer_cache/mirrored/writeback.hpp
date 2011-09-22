@@ -10,6 +10,7 @@
 #include "buffer_cache/mirrored/flush_time_randomizer.hpp"
 #include "utils.hpp"
 
+class cond_t;
 class timer_token_t;
 class mc_cache_t;
 class mc_buf_t;
@@ -93,6 +94,8 @@ public:
     const unsigned int max_concurrent_flushes;
     const unsigned int max_dirty_blocks;
 
+    bool has_active_flushes() { return active_flushes > 0; }
+
 private:
     flush_time_randomizer_t flush_time_randomizer;
     const unsigned int flush_threshold;   // Number of blocks, not percentage
@@ -156,7 +159,8 @@ private:
     // passed on to the serializer yet are listed here.
     std::set<block_id_t> reject_read_ahead_blocks;
 
-    /* Internal variables used only during a flush operation. */
+public:
+    cond_t *to_pulse_when_last_active_flush_finishes;
 
 public:
     // This just considers objections which writeback knows about Other subsystems

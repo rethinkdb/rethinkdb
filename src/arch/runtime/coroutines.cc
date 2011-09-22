@@ -157,14 +157,12 @@ coro_context_t::~coro_context_t() {
 /* coro_t */
 
 
-coro_t::coro_t(const boost::function<void()>& deed, int thread) :
+coro_t::coro_t(const boost::function<void()>& deed) :
     deed_(deed),
-    current_thread_(thread),
+    current_thread_(linux_thread_pool_t::thread_id),
     notified_(false),
     waiting_(true)
 {
-    assert_good_thread_id(thread);
-
     pm_active_coroutines++;
 
     /* Find us a stack */
@@ -297,7 +295,7 @@ void coro_t::notify_later_ordered() {
     linux_thread_pool_t::thread->message_hub.store_message(current_thread_, this);
 }
 
-void coro_t::move_to_thread(int thread) {   /* class method */
+void coro_t::move_to_thread(int thread) {
     assert_good_thread_id(thread);
     if (thread == linux_thread_pool_t::thread_id) {
         // If we're trying to switch to the thread we're currently on, do nothing.
@@ -334,19 +332,19 @@ bool is_coroutine_stack_overflow(void *addr) {
 }
 
 void coro_t::spawn_now(const boost::function<void()> &deed) {
-    (new coro_t(deed, linux_thread_pool_t::thread_id))->notify_now();
+    (new coro_t(deed))->notify_now();
 }
 
 void coro_t::spawn_sometime(const boost::function<void()> &deed) {
-    (new coro_t(deed, linux_thread_pool_t::thread_id))->notify_sometime();
+    (new coro_t(deed))->notify_sometime();
 }
 
 void coro_t::spawn_later_ordered(const boost::function<void()>& deed) {
-    spawn_on_thread(linux_thread_pool_t::thread_id, deed);
+    (new coro_t(deed))->notify_later_ordered();
 }
 
 void coro_t::spawn_on_thread(int thread, const boost::function<void()>& deed) {
-    (new coro_t(deed, thread))->notify_later_ordered();
+    do_on_thread(thread, boost::bind(&coro_t::spawn_now, deed));
 }
 
 #ifndef NDEBUG

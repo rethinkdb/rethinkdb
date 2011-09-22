@@ -36,7 +36,6 @@ typedef page_repl_random_t page_repl_t;
 class mc_cache_account_t;
 
 
-
 // evictable_t must go before array_map_t::local_buf_t, which
 // references evictable_t's cache field.
 class mc_inner_buf_t : public evictable_t,
@@ -76,7 +75,7 @@ class mc_inner_buf_t : public evictable_t,
     mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_load, file_account_t *io_account);
 
     // Load an existing buf but use the provided data buffer (for read ahead)
-    mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp);
+    mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
 
     // Create an entirely new buf
     static mc_inner_buf_t *allocate(cache_t *cache, version_id_t snapshot_version, repli_timestamp_t recency_timestamp);
@@ -96,7 +95,7 @@ class mc_inner_buf_t : public evictable_t,
     void release_snapshot(buf_snapshot_t *snapshot);
     // acquires the snapshot data buffer, loading from disk if necessary; must be matched by a call
     // to release_snapshot_data to keep track of when data buffer is in use
-    void *acquire_snapshot_data(version_id_t version_to_access, file_account_t *io_account);
+    void *acquire_snapshot_data(version_id_t version_to_access, file_account_t *io_account, repli_timestamp_t *recency_out);
     void release_snapshot_data(void *data);
 
 private:
@@ -140,9 +139,7 @@ private:
     block_sequence_id_t block_sequence_id;
 
     // snapshot types' implementations are internal and deferred to mirrored.cc
-    typedef intrusive_list_t<buf_snapshot_t> snapshot_data_list_t;
-
-    snapshot_data_list_t snapshots;
+    intrusive_list_t<buf_snapshot_t> snapshots;
 
     DISABLE_COPYING(mc_inner_buf_t);
 };
@@ -197,6 +194,8 @@ public:
     void mark_deleted();
 
     void touch_recency(repli_timestamp_t timestamp) {
+        rassert(mode == rwi_write);
+
         // Some operations acquire in write mode but should not
         // actually affect subtree recency.  For example, delete
         // operations, and delete_expired operations -- the subtree
@@ -206,12 +205,13 @@ public:
         // repli_timestamp_t invalid as a magic constant that indicates
         // this fact, instead of using something robust.  We are so
         // prone to using that value as a placeholder.)
-        if (timestamp.time != repli_timestamp_t::invalid.time) {
+        if (timestamp != repli_timestamp_t::invalid) {
             // TODO: Add rassert(inner_buf->subtree_recency <= timestamp)
 
             // TODO: use some slice-specific timestamp that gets updated
             // every epoll call.
             inner_buf->subtree_recency = timestamp;
+            subtree_recency = timestamp;
             inner_buf->writeback_buf().set_recency_dirty();
         }
     }
@@ -221,7 +221,7 @@ public:
         // acquiring the buf.  The recency should be locked with a
         // lock that sits "above" buffer acquisition.  Or the recency
         // simply should be set _before_ trying to acquire the buf.
-        return inner_buf->subtree_recency;
+        return subtree_recency;
     }
 
 private:
@@ -246,7 +246,16 @@ private:
     // Our pointer to an inner_buf -- we have a bunch of mc_buf_t's
     // all pointing at an inner buf.
     mc_inner_buf_t *inner_buf;
-    void *data; /* Usually the same as inner_buf->data. If a COW happens or this mc_buf_t is part of a snapshotted transaction, it reference a different buffer however. */
+
+    // Usually the same as inner_buf->data. If a COW happens or this
+    // mc_buf_t is part of a snapshotted transaction, it reference a
+    // different buffer however.
+    void *data;
+
+    // Similarly, usually the same as inner_buf->subtree_recency.  If
+    // a COW happens or this mc_buf_t is part of a snapshotted
+    // transaction, it may have a different value.
+    repli_timestamp_t subtree_recency;
 
     DISABLE_COPYING(mc_buf_t);
 };
@@ -397,10 +406,10 @@ private:
 
 
 public:
-    bool offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp);
+    bool offer_read_ahead_buf(block_id_t block_id, void *buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
 
 private:
-    void offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, repli_timestamp_t recency_timestamp);
+    void offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
     bool can_read_ahead_block_be_accepted(block_id_t block_id);
     void maybe_unregister_read_ahead_callback();
 

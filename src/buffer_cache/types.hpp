@@ -68,7 +68,7 @@ typedef scc_buf_t<mc_cache_t> buf_t;
 typedef scc_transaction_t<mc_cache_t> transaction_t;
 typedef mc_cache_account_t cache_account_t;
 
-#else
+#else  // !defined(VALGRIND) && !defined(NDEBUG)
 
 // scc_cache_t is way too slow under valgrind and makes automated
 // tests run forever.
@@ -81,6 +81,8 @@ typedef mc_cache_account_t cache_account_t;
 
 #else
 
+#if !defined(VALGRIND)
+
 class mock_cache_t;
 template <class inner_cache_type> class scc_cache_t;
 template <class inner_cache_type> class scc_buf_t;
@@ -91,6 +93,15 @@ typedef scc_cache_t<mock_cache_t> cache_t;
 typedef scc_buf_t<mock_cache_t> buf_t;
 typedef scc_transaction_t<mock_cache_t> transaction_t;
 typedef mock_cache_account_t cache_account_t;
+
+#else  // !defined(VALGRIND)
+
+class mock_cache_t;
+typedef mock_buf_t buf_t;
+typedef mock_transaction_t transaction_t;
+typedef mock_cache_account_t cache_account_t;
+
+#endif  // !defined(VALGRIND)
 
 #endif // MOCK_CACHE_CHECK
 

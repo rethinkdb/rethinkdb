@@ -1,0 +1,17 @@
+for (mode, checker) in [
+        ("debug", "valgrind"),
+        ("release", None)]:
+    for protocol in ["text"]:
+        for (cores, slices) in [(2, 8)]:
+            # TODO (added by Tim, he doesn't remember why): This should really only be run under one environment...
+            # Maybe we can remove the release configuration from it
+            do_test_fog("regression/gc_verification.py",
+                        { "auto"        : True,
+                          "mode"        : mode,
+                          "no-valgrind" : not checker,
+                          "protocol"    : protocol,
+                          "cores"       : cores,
+                          "slices"      : slices,
+                          "duration"    : 400 },
+                        repeat=3, timeout=600)
+

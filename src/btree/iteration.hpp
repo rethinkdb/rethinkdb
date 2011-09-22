@@ -11,9 +11,9 @@
 #include "btree/internal_node.hpp"
 #include "btree/leaf_node.hpp"
 #include "buffer_cache/buf_lock.hpp"
+#include "btree/operations.hpp"
 #include "btree/slice.hpp"
 #include "memcached/store.hpp"
-
 
 template <class Value>
 struct key_value_pair_t {
@@ -69,7 +69,7 @@ class slice_leaves_iterator_t : public one_way_iterator_t<leaf_iterator_t<Value>
         buf_lock_t *lock;
     };
 public:
-    slice_leaves_iterator_t(const boost::shared_ptr<value_sizer_t<Value> >& sizer, transaction_t *transaction, btree_slice_t *slice, rget_bound_mode_t left_mode, const btree_key_t *left_key, rget_bound_mode_t right_mode, const btree_key_t *right_key);
+    slice_leaves_iterator_t(const boost::shared_ptr<value_sizer_t<Value> >& sizer, transaction_t *transaction, boost::scoped_ptr<superblock_t> &superblock, int slice_home_thread, rget_bound_mode_t left_mode, const btree_key_t *left_key, rget_bound_mode_t right_mode, const btree_key_t *right_key);
 
     boost::optional<leaf_iterator_t<Value>*> next();
     void prefetch();
@@ -84,7 +84,8 @@ private:
 
     boost::shared_ptr<value_sizer_t<Value> > sizer;
     transaction_t *transaction;
-    btree_slice_t *slice;
+    boost::scoped_ptr<superblock_t> superblock;
+    int slice_home_thread;
     rget_bound_mode_t left_mode;
     const btree_key_t *left_key;
     rget_bound_mode_t right_mode;
@@ -105,7 +106,7 @@ template <class Value>
 class slice_keys_iterator_t : public one_way_iterator_t<key_value_pair_t<Value> > {
 public:
     /* Cannot assume that 'start' and 'end' will remain valid after the constructor returns! */
-    slice_keys_iterator_t(const boost::shared_ptr<value_sizer_t<Value> >& sizer, transaction_t *transaction, btree_slice_t *slice, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key);
+    slice_keys_iterator_t(const boost::shared_ptr<value_sizer_t<Value> >& sizer, transaction_t *transaction, boost::scoped_ptr<superblock_t> &superblock, int slice_home_thread, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key);
     virtual ~slice_keys_iterator_t();
 
     boost::optional<key_value_pair_t<Value> > next();
@@ -120,7 +121,8 @@ private:
 
     boost::shared_ptr<value_sizer_t<Value> > sizer;
     transaction_t *transaction;
-    btree_slice_t *slice;
+    boost::scoped_ptr<superblock_t> superblock;
+    int slice_home_thread;
     rget_bound_mode_t left_mode;
     btree_key_buffer_t left_key;
     rget_bound_mode_t right_mode;

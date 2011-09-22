@@ -9,11 +9,61 @@ namespace {
 
 void run_with_namespace_interface(boost::function<void(namespace_interface_t<memcached_protocol_t> *)> fun) {
 
+    /* Pick shards */
+
     std::vector<key_range_t> shards;
     shards.push_back(key_range_t(key_range_t::none,   store_key_t(""),  key_range_t::open, store_key_t("n")));
     shards.push_back(key_range_t(key_range_t::closed, store_key_t("n"), key_range_t::none, store_key_t("") ));
 
-    run_with_dummy_namespace_interface<memcached_protocol_t>(shards, fun);
+    /* Create temporary file */
+
+    temp_file_t db_file("/tmp/rdb_unittest.XXXXXX");
+
+    /* Set up serializer */
+
+    standard_serializer_t::create(
+        standard_serializer_t::dynamic_config_t(),
+        standard_serializer_t::private_dynamic_config_t(db_file.name()),
+        standard_serializer_t::static_config_t()
+        );
+
+    standard_serializer_t serializer(
+        /* Extra parentheses are necessary so C++ doesn't interpret this as
+        a declaration of a function called `serializer`. WTF, C++? */
+        (standard_serializer_t::dynamic_config_t()),
+        standard_serializer_t::private_dynamic_config_t(db_file.name())
+        );
+
+    /* Set up multiplexer */
+
+    std::vector<standard_serializer_t *> multiplexer_files;
+    multiplexer_files.push_back(&serializer);
+
+    serializer_multiplexer_t::create(multiplexer_files, shards.size());
+
+    serializer_multiplexer_t multiplexer(multiplexer_files);
+    rassert(multiplexer.proxies.size() == shards.size());
+
+    /* Set up caches, btrees, and stores */
+
+    mirrored_cache_config_t cache_dynamic_config;
+    boost::ptr_vector<cache_t> caches;
+    boost::ptr_vector<btree_slice_t> btrees;
+    std::vector<boost::shared_ptr<ready_store_view_t<memcached_protocol_t> > > stores;
+    for (int i = 0; i < (int)shards.size(); i++) {
+        mirrored_cache_static_config_t cache_static_config;
+        cache_t::create(multiplexer.proxies[i], &cache_static_config);
+        caches.push_back(new cache_t(multiplexer.proxies[i], &cache_dynamic_config));
+        btree_slice_t::create(&caches[i]);
+        btrees.push_back(new btree_slice_t(&caches[i]));
+        stores.push_back(boost::make_shared<dummy_memcached_ready_store_view_t>(shards[i], &btrees[i]));
+    }
+
+    /* Set up namespace interface */
+
+    dummy_namespace_interface_t<memcached_protocol_t> nsi(shards, stores);
+
+    fun(&nsi);
 }
 
 void run_in_thread_pool_with_namespace_interface(boost::function<void(namespace_interface_t<memcached_protocol_t> *)> fun) {

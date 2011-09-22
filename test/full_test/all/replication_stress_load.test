@@ -1,0 +1,22 @@
+for (mode, checker) in [
+        ("debug", "valgrind"),
+        ("release", None)]:
+    for protocol in ["text"]:
+        for (cores, slices) in [(2, 8)]:
+            do_test_fog("integration/replication_stress_load.py",
+                        { "auto"        : True,
+                          "mode"        : mode,
+                          "no-valgrind" : not checker,
+                          "protocol"    : protocol,
+                          "cores"       : cores,
+                          "slices"      : slices,
+                          "duration"    : 1800,
+                          "ndeletes"    : 0,
+                          "nupdates"    : 0,
+                          "ninserts"    : 1,
+                          "nreads"      : 0,
+                          "fsck"        : False,
+                          #"min-qps"     : 20 # a very reasonable limit #this is temporarily disabled because cmd_set_persec isn't available on servers
+                          },
+                        repeat=3, timeout=2400)
+

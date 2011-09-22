@@ -15,7 +15,6 @@
 #include "perfmon_types.hpp"
 #include "arch/io/event_watcher.hpp"
 #include <boost/iterator/iterator_facade.hpp>
-
 #include <stdexcept>
 #include <stdarg.h>
 #include <unistd.h>
