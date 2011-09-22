@@ -19,7 +19,7 @@ for mode in ["debug", "release"]:
                           "VALGRIND"         : 1 if checker == "valgrind" else 0,
                           "MOCK_CACHE_CHECK" : 1 if mock_cache            else 0,
                           "NO_EPOLL"         : 1 if poll_mode == "poll"   else 0 },
-                        cmd_format="make", timeout=180)
+                        cmd_format="make", timeout=300)
 
 # Make sure auxillary tools compile
 do_test("cd ../bench/stress-client/; make clean; make -j 9 MYSQL=0 LIBMEMCACHED=0 LIBGSL=0 stress libstress.so",
