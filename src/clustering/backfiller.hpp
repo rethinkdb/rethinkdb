@@ -17,39 +17,11 @@ struct backfiller_t :
             mailbox_cluster_t *c,
             typename protocol_t::store_t *s,
             boost::shared_ptr<metadata_readwrite_view_t<resource_metadata_t<backfiller_metadata_t<protocol_t> > > > md_view) :
-        cluster(c), store(s)
-    {
-        /* Set up mailboxes, in scoped pointers so we can deconstruct them when
-        it's convenient */
-        backfill_mailbox.reset(new typename backfiller_metadata_t<protocol_t>::backfill_mailbox_t(
-            cluster, boost::bind(&backfiller_t::on_backfill, this, _1, _2, _3, _4)));
-        cancel_backfill_mailbox.reset(new typename backfiller_metadata_t<protocol_t>::cancel_backfill_mailbox_t(
-            cluster, boost::bind(&backfiller_t::on_cancel_backfill, this, _1)));
-
-        /* Advertise our existence */
-        backfiller_metadata_t<protocol_t> business_card;
-        business_card.backfill_mailbox = backfill_mailbox->get_address();
-        business_card.cancel_backfill_mailbox = cancel_backfill_mailbox->get_address();
-        advertisement.reset(new resource_advertisement_t<backfiller_metadata_t<protocol_t> >(cluster, md_view, business_card));
-    }
-
-    ~backfiller_t() {
-
-        /* Stop advertising our existence */
-        advertisement.reset();
-
-        /* Tear down mailboxes so no new backfills can begin. It doesn't matter
-        if we receive further messages in our `cancel_backfill_mailbox` at this
-        point, but we tear it down anyway for no reason. */
-        backfill_mailbox.reset();
-        cancel_backfill_mailbox.reset();
-
-        /* Cancel all existing backfills */
-        global_interruptor.pulse();
-
-        /* Wait for cancellation to take effect */
-        drain_semaphore.drain();
-    }
+        cluster(c), store(s),
+        backfill_mailbox(cluster, boost::bind(&backfiller_t::on_backfill, this, _1, _2, _3, _4, auto_drainer_t::lock_t(&drainer))),
+        cancel_backfill_mailbox(cluster, boost::bind(&backfiller_t::on_cancel_backfill, this, _1, auto_drainer_t::lock_t(&drainer))),
+        advertisement(cluster, md_view, backfiller_metadata_t<protocol_t>(backfill_mailbox.get_address(), cancel_backfill_mailbox.get_address()))
+        { }
 
 private:
     typedef typename backfiller_metadata_t<protocol_t>::backfill_session_id_t session_id_t;
@@ -58,21 +30,18 @@ private:
         session_id_t session_id,
         typename protocol_t::store_t::backfill_request_t request,
         typename async_mailbox_t<void(typename protocol_t::store_t::backfill_chunk_t)>::address_t chunk_cont,
-        typename async_mailbox_t<void(state_timestamp_t)>::address_t end_cont) {
+        typename async_mailbox_t<void(state_timestamp_t)>::address_t end_cont,
+        auto_drainer_t::lock_t keepalive) {
 
         assert_thread();
-
-        /* Acquire the drain semaphore so that the backfiller doesn't shut down
-        while we're still running. */
-        drain_semaphore_t::lock_t lock(&drain_semaphore);
 
         /* Set up a local interruptor cond and put it in the map so that this
         session can be interrupted if the backfillee decides to abort */
         cond_t local_interruptor;
-        local_interruptors[session_id] = &local_interruptor;
+        map_insertion_sentry_t<session_id_t, cond_t *> be_interruptible(&local_interruptors, session_id, &local_interruptor);
 
         /* Set up a cond that gets pulsed if we're interrupted either way */
-        wait_any_t interrupted(&local_interruptor, &global_interruptor);
+        wait_any_t interrupted(&local_interruptor, keepalive.get_drain_signal());
 
         /* Calling `send_chunk()` will send a chunk to the backfillee. We need
         to cast `send()` to the correct type before calling `boost::bind()` so
@@ -102,12 +71,9 @@ private:
         if (success) {
             send(cluster, end_cont, end);
         }
-
-        /* Get rid of our local interruptor */
-        local_interruptors.erase(session_id);
     }
 
-    void on_cancel_backfill(session_id_t session_id) {
+    void on_cancel_backfill(session_id_t session_id, UNUSED auto_drainer_t::lock_t) {
 
         assert_thread();
 
@@ -121,15 +87,13 @@ private:
     mailbox_cluster_t *cluster;
     typename protocol_t::store_t *store;
 
-    /* TODO: Use an auto_drainer_t */
-    drain_semaphore_t drain_semaphore;
-    cond_t global_interruptor;
+    auto_drainer_t drainer;
     std::map<session_id_t, cond_t *> local_interruptors;
 
-    boost::scoped_ptr<typename backfiller_metadata_t<protocol_t>::backfill_mailbox_t> backfill_mailbox;
-    boost::scoped_ptr<typename backfiller_metadata_t<protocol_t>::cancel_backfill_mailbox_t> cancel_backfill_mailbox;
+    typename backfiller_metadata_t<protocol_t>::backfill_mailbox_t backfill_mailbox;
+    typename backfiller_metadata_t<protocol_t>::cancel_backfill_mailbox_t cancel_backfill_mailbox;
 
-    boost::scoped_ptr<resource_advertisement_t<backfiller_metadata_t<protocol_t> > > advertisement;
+    resource_advertisement_t<backfiller_metadata_t<protocol_t> > advertisement;
 };
 
 #endif /* __CLUSTERING_BACKFILLER_HPP__ */
