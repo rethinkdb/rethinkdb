@@ -344,7 +344,11 @@ void coro_t::spawn_later_ordered(const boost::function<void()>& deed) {
 }
 
 void coro_t::spawn_on_thread(int thread, const boost::function<void()>& deed) {
-    do_on_thread(thread, boost::bind(&coro_t::spawn_now, deed));
+    if (get_thread_id() == thread) {
+        coro_t::spawn_later_ordered(deed);
+    } else {
+        do_on_thread(thread, boost::bind(&coro_t::spawn_now, deed));
+    }
 }
 
 #ifndef NDEBUG
