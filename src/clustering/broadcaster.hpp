@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_MIRROR_DISPATCHER_HPP__
-#define __CLUSTERING_MIRROR_DISPATCHER_HPP__
+#ifndef __CLUSTERING_BROADCASTER_HPP__
+#define __CLUSTERING_BROADCASTER_HPP__
 
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
@@ -14,22 +14,22 @@
 #include "utils.hpp"
 #include "timestamps.hpp"
 
-/* The implementation of `mirror_dispatcher_t` is a mess, but the interface is
+/* The implementation of `broadcaster_t` is a mess, but the interface is
 very clean. */
 
 template<class protocol_t>
-class mirror_dispatcher_t : public home_thread_mixin_t {
+class broadcaster_t : public home_thread_mixin_t {
 
 public:
-    mirror_dispatcher_t(
+    broadcaster_t(
             mailbox_cluster_t *c,
-            boost::shared_ptr<metadata_readwrite_view_t<mirror_dispatcher_metadata_t<protocol_t> > > metadata_view,
+            boost::shared_ptr<metadata_readwrite_view_t<branch_metadata_t<protocol_t> > > metadata_view,
             state_timestamp_t initial_timestamp
             ) THROWS_NOTHING :
         cluster(c),
         current_timestamp(initial_timestamp), newest_complete_timestamp(current_timestamp),
         registrar(cluster, this,
-            metadata_field(&mirror_dispatcher_metadata_t<protocol_t>::registrar, metadata_view))
+            metadata_field(&branch_metadata_t<protocol_t>::broadcaster_registrar, metadata_view))
     {
         mutex_acquisition_t mutex_acq(&mutex);
         sanity_check(&mutex_acq);
@@ -44,7 +44,7 @@ public:
         const char *what() const throw () {
             return "We lost contact with the mirror. Maybe the mirror was "
                 "destroyed, maybe the network went down, or maybe the "
-                "`mirror_dispatcher_t` is being destroyed. The operation may "
+                "`broadcaster_t` is being destroyed. The operation may "
                 "or may not have been performed. You might be able to re-try "
                 "the operation.";
         }
@@ -74,7 +74,7 @@ private:
         public home_thread_mixin_t
     {
     public:
-        incomplete_write_t(mirror_dispatcher_t *p,
+        incomplete_write_t(broadcaster_t *p,
                 typename protocol_t::write_t w, transition_timestamp_t ts, order_token_t otok,
                 int target_ack_count_) :
             write(w), timestamp(ts), order_token(otok),
@@ -108,7 +108,7 @@ private:
     private:
         friend class incomplete_write_ref_t;
 
-        mirror_dispatcher_t *parent;
+        broadcaster_t *parent;
         int incomplete_count;
         int ack_count, target_ack_count;
     };
@@ -158,33 +158,36 @@ private:
         boost::shared_ptr<incomplete_write_t> write;
     };
 
-    typedef typename mirror_dispatcher_metadata_t<protocol_t>::mirror_data_t mirror_data_t;
-
     /* The `registrar_t` constructs a `dispatchee_t` for every mirror that
     connects to us. */
 
     class dispatchee_t : public intrusive_list_node_t<dispatchee_t> {
 
     public:
-        dispatchee_t(mirror_dispatcher_t *c, mirror_data_t d) THROWS_NOTHING;
+        dispatchee_t(broadcaster_t *c, listener_data_t d) THROWS_NOTHING;
         ~dispatchee_t() THROWS_NOTHING;
 
-        typename mirror_data_t::write_mailbox_t::address_t write_mailbox;
+        typename listener_data_t::write_mailbox_t::address_t write_mailbox;
         bool is_readable;
-        typename mirror_data_t::writeread_mailbox_t::address_t writeread_mailbox;
-        typename mirror_data_t::read_mailbox_t::address_t read_mailbox;
+        typename listener_data_t::writeread_mailbox_t::address_t writeread_mailbox;
+        typename listener_data_t::read_mailbox_t::address_t read_mailbox;
 
     private:
         void upgrade(
-            typename mirror_data_t::writeread_mailbox_t::address_t,
-            typename mirror_data_t::read_mailbox_t::address_t,
+            typename listener_data_t::writeread_mailbox_t::address_t,
+            typename listener_data_t::read_mailbox_t::address_t,
+            auto_drainer_t::lock_t)
+            THROWS_NOTHING;
+        void downgrade(
+            async_mailbox_t<void()>::address_t,
             auto_drainer_t::lock_t)
             THROWS_NOTHING;
 
-        mirror_dispatcher_t *controller;
+        broadcaster_t *controller;
         auto_drainer_t drainer;
 
-        typename mirror_data_t::upgrade_mailbox_t upgrade_mailbox;
+        typename listener_data_t<protocol_t>::upgrade_mailbox_t upgrade_mailbox;
+        listener_data_t<protocol_t>::downgrade_mailbox_t downgrade_mailbox;
     };
 
     /* Reads need to pick a single readable mirror to perform the operation.
@@ -232,9 +235,9 @@ private:
 
     intrusive_list_t<dispatchee_t> readable_dispatchees;
 
-    registrar_t<mirror_data_t, mirror_dispatcher_t *, dispatchee_t> registrar;
+    registrar_t<listener_data_t, broadcaster_t *, dispatchee_t> registrar;
 };
 
-#include "clustering/mirror_dispatcher.tcc"
+#include "clustering/broadcaster.tcc"
 
-#endif /* __CLUSTERING_MIRROR_DISPATCHER_HPP__ */
+#endif /* __CLUSTERING_BROADCASTER_HPP__ */

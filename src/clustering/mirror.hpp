@@ -1,23 +1,14 @@
 #ifndef __CLUSTERING_MIRROR_HPP__
 #define __CLUSTERING_MIRROR_HPP__
 
-#include "clustering/backfillee.hpp"
-#include "clustering/backfiller.hpp"
-#include "clustering/mirror_metadata.hpp"
-#include "clustering/registrant.hpp"
-#include "concurrency/coro_fifo.hpp"
-#include "concurrency/promise.hpp"
-#include "rpc/metadata/view/field.hpp"
-#include "rpc/metadata/view/member.hpp"
-#include "timestamps.hpp"
+#include "clustering/listener.hpp"
 
 template<class protocol_t>
 class mirror_t {
 
-private:
-    typedef typename mirror_dispatcher_metadata_t<protocol_t>::mirror_data_t mirror_data_t;
-
 public:
+
+
     /* This version of the `mirror_t` constructor is used when we are joining
     an existing branch. */
 

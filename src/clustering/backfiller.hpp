@@ -3,18 +3,18 @@
 
 #include <map>
 
-#include "clustering/backfill_metadata.hpp"
-#include "clustering/resource.hpp"
-#include "concurrency/wait_any.hpp"
-#include "rpc/metadata/view.hpp"
-#include "timestamps.hpp"
+#include "clustering/listener.hpp"
 
+/* If you construct a `backfiller_t` for a given listener, then the listener
+will announce its existence in the metadata so that newly created listeners can
+backfill from it. */
 template<class protocol_t>
 struct backfiller_t :
     public home_thread_mixin_t
 {
     backfiller_t(
             mailbox_cluster_t *c,
+            listener_t *l
             boost::shared_ptr<metadata_read_view_t<branch_history_t<protocol_t> > > bh,
             boost::shared_ptr<ready_store_t<protocol_t> > s,
             branch_id_t sb,
