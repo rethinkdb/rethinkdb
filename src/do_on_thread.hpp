@@ -71,13 +71,13 @@ void do_on_thread(int thread, const callable_t &callable) {
 
 
 template <class callable_t>
-class later_doer_t : public thread_message_t {
+class one_way_doer_t : public thread_message_t {
 public:
-    later_doer_t(const callable_t& callable, int thread) : callable_(callable), thread_(thread) { }
+    one_way_doer_t(const callable_t& callable, int thread) : callable_(callable), thread_(thread) { }
 
     void run() {
         if (continue_on_thread(thread_, this)) {
-            call_later_on_this_thread(this);
+            on_thread_switch();
         }
     }
 
@@ -91,13 +91,15 @@ private:
     callable_t callable_;
     int thread_;
 
-    DISABLE_COPYING(later_doer_t);
+    DISABLE_COPYING(one_way_doer_t);
 };
 
-// Like do_on_thread, but if it's the current thread, does it later instead of now.
+// Like do_on_thread, but if it's the current thread, does it later
+// instead of now.  With this, a copy of the callable_t object will
+// get destroyed on the target thread.
 template <class callable_t>
-void do_later_on_thread(int thread, const callable_t& callable) {
-    (new later_doer_t<callable_t>(callable, thread))->run();
+void one_way_do_on_thread(int thread, const callable_t& callable) {
+    (new one_way_doer_t<callable_t>(callable, thread))->run();
 }
 
 

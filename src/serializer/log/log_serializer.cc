@@ -768,7 +768,7 @@ void ls_block_token_pointee_t::destroy() {
     // calling doesn't need to run in a coroutine (AND NEVER WILL!) so
     // this is not a problem.
 
-    do_later_on_thread(serializer_->home_thread(), boost::bind(&ls_block_token_pointee_t::do_destroy, this));
+    one_way_do_on_thread(serializer_->home_thread(), boost::bind(&ls_block_token_pointee_t::do_destroy, this));
 }
 
 void ls_block_token_pointee_t::do_destroy() {
