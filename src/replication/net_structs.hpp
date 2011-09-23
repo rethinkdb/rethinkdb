@@ -148,9 +148,7 @@ struct net_delete_t {
 } __attribute__((__packed__));
 
 struct net_backfill_delete_t {
-    // We need at least 4 bytes so that we do not get a msgsize
-    // smaller than sizeof(net_multipart_header_t).
-    uint16_t padding;
+    repli_timestamp_t timestamp;
     uint16_t key_size;
     char key[];
 } __attribute__((__packed__));

@@ -103,7 +103,7 @@ void backfill_receiver_t::send(scoped_malloc<net_backfill_delete_t>& msg) {
     block_pm_duration timer(&pm_replication_slave_handling_2);
     order_token_t token = order_source->check_in_backfill_operation("net_backfill_delete_t");
     store_key_t key(msg->key_size, msg->key);
-    cb->backfill_deletion(key, token);
+    cb->backfill_deletion(key, msg->timestamp, token);
 }
 
 void backfill_receiver_t::send(UNUSED scoped_malloc<net_heartbeat_t>& msg) {

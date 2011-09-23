@@ -88,7 +88,7 @@ void backfill_storer_t::backfill_delete_range(int hash_value, int hashmod, bool 
     backfill_queue_.push(boost::bind(&btree_key_value_store_t::backfill_delete_range, kvs_, hash_value, hashmod, left_key_supplied, left_key_exclusive, right_key_supplied, right_key_inclusive, token));
 }
 
-void backfill_storer_t::backfill_deletion(store_key_t key, order_token_t token) {
+void backfill_storer_t::backfill_deletion(store_key_t key, repli_timestamp_t timestamp, order_token_t token) {
     print_backfill_warning_ = true;
     ensure_backfilling();
 
@@ -103,7 +103,7 @@ void backfill_storer_t::backfill_deletion(store_key_t key, order_token_t token) 
         // timestamp is part of the "->change" interface in a way not
         // relevant to slaves -- it's used when putting deletions into the
         // delete queue.
-        castime_t(NO_CAS_SUPPLIED, repli_timestamp_t::invalid), token
+        castime_t(NO_CAS_SUPPLIED, timestamp), token
         ));
 }
 

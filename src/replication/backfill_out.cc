@@ -213,7 +213,7 @@ public:
                                                 order_token_t::ignore));
         }
 
-        void on_deletion(const btree_key_t *key, UNUSED repli_timestamp_t recency) {
+        void on_deletion(const btree_key_t *key, repli_timestamp_t recency) {
             // TODO:  We ignore recency.  Is this correct?
 
             // This may run in the scheduler context.
@@ -221,7 +221,7 @@ public:
             rassert(backfilling_);
             backfill_job_queue.push(boost::bind(&backfill_and_realtime_streaming_callback_t::backfill_deletion,
                                                 parent_->handler_,
-                                                store_key_t(key->size, key->contents), order_token_t::ignore));
+                                                store_key_t(key->size, key->contents), recency, order_token_t::ignore));
         }
 
         /* The store calls this when we need to backfill a key/value pair to the slave */

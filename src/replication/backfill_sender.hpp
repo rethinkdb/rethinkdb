@@ -24,7 +24,7 @@ public:
                                bool left_key_supplied, const store_key_t& left_key_exclusive,
                                bool right_key_supplied, const store_key_t& right_key_inclusive,
                                order_token_t token);
-    void backfill_deletion(store_key_t key, order_token_t token);
+    void backfill_deletion(store_key_t key, repli_timestamp_t timestamp, order_token_t token);
     void backfill_set(backfill_atom_t atom, order_token_t token);
     void backfill_done(repli_timestamp_t timestamp_when_backfill_began, order_token_t token);
 

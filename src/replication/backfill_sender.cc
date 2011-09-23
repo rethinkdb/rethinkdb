@@ -52,7 +52,7 @@ void backfill_sender_t::backfill_delete_range(int hash_value, int hashmod,
     order_sink_after_send.check_out(token);
 }
 
-void backfill_sender_t::backfill_deletion(store_key_t key, order_token_t token) {
+void backfill_sender_t::backfill_deletion(store_key_t key, repli_timestamp_t timestamp, order_token_t token) {
     block_pm_duration del_timer(&master_bf_del);
 
     order_sink_before_send.check_out(token);
@@ -61,7 +61,7 @@ void backfill_sender_t::backfill_deletion(store_key_t key, order_token_t token) 
         size_t n = sizeof(net_backfill_delete_t) + key.size;
 
         scoped_malloc<net_backfill_delete_t> msg(n);
-        msg->padding = 0;
+        msg->timestamp = timestamp;
         msg->key_size = key.size;
         memcpy(msg->key, key.contents, key.size);
 

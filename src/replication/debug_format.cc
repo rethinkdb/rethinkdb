@@ -115,8 +115,8 @@ std::string debug_format(const net_backfill_delete_range_t *msg) {
 }
 
 std::string debug_format(const net_backfill_delete_t *msg) {
-    return strprintf("net_backfill_delete_t { key = %s; }",
-        debug_format(msg->key_size, msg->key).c_str());
+    return strprintf("net_backfill_delete_t { timestamp = %u; key = %s; }",
+                     msg->timestamp.time, debug_format(msg->key_size, msg->key).c_str());
 }
 
 }   // namespace replication
