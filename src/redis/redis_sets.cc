@@ -169,7 +169,6 @@ EXECUTE_W(sadd) {
 //READ(scard)
 KEYS(scard)
 SHARD_R(scard)
-PARALLEL(scard)
 
 EXECUTE_R(scard) {
     set_read_oper_t oper(one, btree, otok);
@@ -184,7 +183,6 @@ redis_protocol_t::indicated_key_t redis_protocol_t::sdiff::get_keys() {
 }
 
 SHARD_R(sdiff)
-PARALLEL(sdiff)
 
 EXECUTE_R(sdiff) {
     merge_ordered_data_iterator_t<std::string> *right =
@@ -225,7 +223,6 @@ redis_protocol_t::indicated_key_t redis_protocol_t::sinter::get_keys() {
 }
 
 SHARD_R(sinter)
-PARALLEL(sinter)
 
 EXECUTE_R(sinter) {
     merge_ordered_data_iterator_t<std::string> *merged =
@@ -255,7 +252,6 @@ EXECUTE_R(sinter) {
 //READ(sismember)
 KEYS(sismember)
 SHARD_R(sismember)
-PARALLEL(sismember)
 
 EXECUTE_R(sismember) {
     set_read_oper_t oper(one, btree, otok);
@@ -265,7 +261,6 @@ EXECUTE_R(sismember) {
 //READ(smembers)
 KEYS(smembers)
 SHARD_R(smembers)
-PARALLEL(smembers)
 
 EXECUTE_R(smembers) {
     set_read_oper_t oper(one, btree, otok);
@@ -312,7 +307,6 @@ redis_protocol_t::indicated_key_t redis_protocol_t::sunion::get_keys() {
 }
 
 SHARD_R(sunion)
-PARALLEL(sunion)
 
 EXECUTE_R(sunion) {
     merge_ordered_data_iterator_t<std::string> *merged =

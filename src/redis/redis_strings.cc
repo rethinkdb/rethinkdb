@@ -149,7 +149,6 @@ EXECUTE_W(decrby) {
 //READ(get)
 KEYS(get)
 SHARD_R(get)
-PARALLEL(get)
 
 EXECUTE_R(get) {
     string_read_oper_t oper(one, btree, otok);
@@ -166,7 +165,6 @@ EXECUTE_R(get) {
 //READ(getbit)
 KEYS(getbit)
 SHARD_R(getbit)
-PARALLEL(getbit)
 
 EXECUTE_R(getbit) {
     string_read_oper_t oper(one, btree, otok);
@@ -180,7 +178,6 @@ EXECUTE_R(getbit) {
 //READ(getrange)
 KEYS(getrange)
 SHARD_R(getrange)
-PARALLEL(getrange)
 
 EXECUTE_R(getrange) {
     string_read_oper_t oper(one, btree, otok);
@@ -285,7 +282,6 @@ EXECUTE_W(setrange) {
 //READ(Strlen)
 KEYS(Strlen)
 SHARD_R(Strlen)
-PARALLEL(Strlen)
 
 EXECUTE_R(Strlen) {
     string_read_oper_t oper(one, btree, otok);

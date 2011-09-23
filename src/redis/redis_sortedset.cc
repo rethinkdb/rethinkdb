@@ -356,7 +356,6 @@ EXECUTE_W(zadd) {
 //READ(zcard)
 KEYS(zcard)
 SHARD_R(zcard)
-PARALLEL(zcard)
 
 EXECUTE_R(zcard) {
     sorted_set_read_oper_t oper(one, btree, otok);
@@ -366,7 +365,6 @@ EXECUTE_R(zcard) {
 //READ(zcount)
 KEYS(zcount)
 SHARD_R(zcount)
-PARALLEL(zcount)
 
 EXECUTE_R(zcount) {
     sorted_set_read_oper_t oper(one, btree, otok);
@@ -391,7 +389,6 @@ redis_protocol_t::indicated_key_t redis_protocol_t::zrange::get_keys() {
 }
 
 SHARD_R(zrange)
-PARALLEL(zrange)
 
 EXECUTE_R(zrange) {
     sorted_set_read_oper_t oper(key, btree, otok);
@@ -428,7 +425,6 @@ redis_protocol_t::indicated_key_t redis_protocol_t::zrangebyscore::get_keys() {
 }
 
 SHARD_R(zrangebyscore)
-PARALLEL(zrangebyscore)
 
 float parse_limit(std::string &str, bool *open) {
     if(str == std::string("+inf")) {
@@ -514,7 +510,6 @@ redis_protocol_t::indicated_key_t redis_protocol_t::zrank::get_keys() {
 }
 
 SHARD_R(zrank)
-PARALLEL(zrank)
 
 EXECUTE_R(zrank) {
     sorted_set_read_oper_t oper(key, btree, otok);
@@ -571,7 +566,6 @@ EXECUTE_W(zremrangebyscore) {
 //READ(zscore)
 KEYS(zscore)
 SHARD_R(zscore)
-PARALLEL(zscore)
 
 EXECUTE_R(zscore) {
     sorted_set_read_oper_t oper(one, btree, otok);

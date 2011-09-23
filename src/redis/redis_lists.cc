@@ -131,7 +131,6 @@ WRITE(brpoplpush)
 //READ(lindex)
 KEYS(lindex)
 SHARD_R(lindex)
-PARALLEL(lindex)
 
 EXECUTE_R(lindex) {
     list_read_oper_t oper(one, btree, otok);
@@ -182,7 +181,6 @@ EXECUTE_W(linsert) {
 //READ(llen)
 KEYS(llen)
 SHARD_R(llen)
-PARALLEL(llen)
 
 EXECUTE_R(llen) {
     list_read_oper_t oper(one, btree, otok);
@@ -241,7 +239,6 @@ EXECUTE_W(lpushx) {
 //READ(lrange)
 KEYS(lrange)
 SHARD_R(lrange)
-PARALLEL(lrange)
 
 EXECUTE_R(lrange) {
     list_read_oper_t oper(one, btree, otok);

@@ -217,7 +217,6 @@ EXECUTE_W(hdel) {
 //READ(hexists)
 KEYS(hexists)
 SHARD_R(hexists)
-PARALLEL(hexists)
 
 EXECUTE_R(hexists) {
     hash_read_oper_t oper(one, btree, otok);
@@ -230,7 +229,6 @@ EXECUTE_R(hexists) {
 //READ(hget)
 KEYS(hget)
 SHARD_R(hget)
-PARALLEL(hget)
 
 EXECUTE_R(hget) {
     hash_read_oper_t oper(one, btree, otok);
@@ -243,7 +241,6 @@ EXECUTE_R(hget) {
 //READ(hgetall)
 KEYS(hgetall)
 SHARD_R(hgetall)
-PARALLEL(hgetall)
 
 EXECUTE_R(hgetall) {
     hash_read_oper_t oper(one, btree, otok);
@@ -276,7 +273,6 @@ EXECUTE_W(hincrby) {
 //READ(hkeys)
 KEYS(hkeys)
 SHARD_R(hkeys)
-PARALLEL(hkeys)
 
 EXECUTE_R(hkeys) {
     hash_read_oper_t oper(one, btree, otok);
@@ -300,7 +296,6 @@ EXECUTE_R(hkeys) {
 //READ(hlen)
 KEYS(hlen)
 SHARD_R(hlen)
-PARALLEL(hlen)
 
 EXECUTE_R(hlen) {
     hash_read_oper_t oper(one, btree, otok);
@@ -313,7 +308,6 @@ redis_protocol_t::indicated_key_t redis_protocol_t::hmget::get_keys() {
 }
 
 SHARD_R(hmget)
-PARALLEL(hmget)
 
 EXECUTE_R(hmget) {
     std::string key = one[0];
@@ -382,7 +376,6 @@ EXECUTE_W(hsetnx) {
 //READ(hvals)
 KEYS(hvals)
 SHARD_R(hvals)
-PARALLEL(hvals)
 
 EXECUTE_R(hvals) {
     hash_read_oper_t oper(one, btree, otok);

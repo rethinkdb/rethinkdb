@@ -275,9 +275,9 @@ struct redis_ext {
 
     // Sorted Sets
     CMD_N(zadd)
-    CMD_1(zcard, string)
-    CMD_3(zcount, string, float, float)
-    CMD_3(zincrby, string, float, string)
+    CMD_1(zcard, std::string)
+    CMD_3(zcount, std::string, float, float)
+    CMD_3(zincrby, std::string, float, std::string)
     CMD_N(zinterstore)
 
     redis_protocol_t::redis_return_type zrange(std::string &key, int start, int stop) {
@@ -322,8 +322,8 @@ struct redis_ext {
     }
 
     CMD_N(zrem)
-    CMD_3(zremrangebyrank, string, int, int)
-    CMD_3(zremrangebyscore, string, float, float)
+    CMD_3(zremrangebyrank, std::string, int, int)
+    CMD_3(zremrangebyscore, std::string, float, float)
 
     redis_protocol_t::redis_return_type zrevrange(std::string &key, int start, int stop) {
         return exec(new redis_protocol_t::zrange(key, start, stop, false, true));
@@ -366,7 +366,7 @@ struct redis_ext {
         return exec(new redis_protocol_t::zrank(key, member, true));
     }
 
-    CMD_2(zscore, string, string)
+    CMD_2(zscore, std::string, std::string)
     CMD_N(zunionstore)
 
     // Pub/sub

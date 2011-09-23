@@ -34,10 +34,6 @@ redis_protocol_t::read_t redis_protocol_t::CNAME::shard(UNUSED redis_protocol_t:
     return redis_protocol_t::read_t(new CNAME(*this)); \
 } \
  \
-std::vector<redis_protocol_t::read_t> redis_protocol_t::CNAME::parallelize(UNUSED int optimal_factor) { \
-    crash("no more parallelization"); \
-} \
- \
 redis_protocol_t::read_response_t redis_protocol_t::CNAME::execute(btree_slice_t *btree, order_token_t otok) { \
     (void)btree; \
     (void)otok; \
@@ -62,12 +58,6 @@ redis_protocol_t::read_response_t redis_protocol_t::CNAME::execute(btree_slice_t
         redis_protocol_t::CNAME::shard(UNUSED redis_protocol_t::region_t mask) { \
     return redis_protocol_t::read_t(new CNAME(*this)); \
 }
-
-// Similar for parallelize
-#define PARALLEL(CNAME) std::vector<redis_protocol_t::read_t> \
-        redis_protocol_t::CNAME::parallelize(UNUSED int optimal_factor) { \
-    crash("no more parallelization"); \
-} 
 
 #define EXECUTE_R(CNAME) redis_protocol_t::read_response_t redis_protocol_t::CNAME::execute(btree_slice_t *btree, order_token_t otok)
 
