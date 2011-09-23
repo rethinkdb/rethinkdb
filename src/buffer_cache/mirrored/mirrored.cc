@@ -369,7 +369,7 @@ void mc_inner_buf_t::replay_patches() {
         cache->patch_memory_storage.filter_applied_patches(block_id, block_sequence_id);
     }
     // All patches that currently exist must have been materialized out of core...
-    writeback_buf().last_patch_materialized = cache->patch_memory_storage.last_patch_materialized_or_zero(block_id);
+    writeback_buf().set_last_patch_materialized(cache->patch_memory_storage.last_patch_materialized_or_zero(block_id));
 
     // Apply outstanding patches
     cache->patch_memory_storage.apply_patches(block_id, reinterpret_cast<char *>(data.get()), cache->get_block_size());
@@ -574,7 +574,7 @@ void mc_buf_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access) {
             // so we cannot assert data here unfortunately!
             //rassert(data != NULL);
 
-            if (!inner_buf->writeback_buf().needs_flush &&
+            if (!inner_buf->writeback_buf().needs_flush() &&
                     patches_serialized_size_at_start == -1 &&
                     global_full_perfmon) {
                 patches_serialized_size_at_start =
@@ -614,7 +614,7 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
         ensure_flush();
     }
 
-    if (!inner_buf->writeback_buf().needs_flush) {
+    if (!inner_buf->writeback_buf().needs_flush()) {
         // Check if we want to disable patching for this block and flush it directly instead
         const int32_t max_patches_size = inner_buf->cache->serializer->get_block_size().value() / inner_buf->cache->get_max_patches_size_ratio();
         if (patch->get_serialized_size() + inner_buf->cache->patch_memory_storage.get_patches_serialized_size(inner_buf->block_id) > max_patches_size) {
@@ -656,9 +656,9 @@ void *mc_buf_t::get_data_major_write() {
 void mc_buf_t::ensure_flush() {
     // TODO (sam): f'd up
     rassert(inner_buf->data.equals(data));
-    if (!inner_buf->writeback_buf().needs_flush) {
+    if (!inner_buf->writeback_buf().needs_flush()) {
         // We bypass the patching system, make sure this buffer gets flushed.
-        inner_buf->writeback_buf().needs_flush = true;
+        inner_buf->writeback_buf().set_needs_flush(true);
         // ... we can also get rid of existing patches at this point.
         inner_buf->cache->patch_memory_storage.drop_patches(inner_buf->block_id);
         // Make sure that the buf is marked as dirty
@@ -721,7 +721,7 @@ void mc_buf_t::set_data(void *dest, const void *src, size_t n) {
     }
     rassert(range_inside_of_byte_range(dest, n, data, inner_buf->cache->get_block_size().value()));
 
-    if (inner_buf->writeback_buf().needs_flush) {
+    if (inner_buf->writeback_buf().needs_flush()) {
         // Save the allocation / construction of a patch object
         get_data_major_write();
         memcpy(dest, src, n);
@@ -742,7 +742,7 @@ void mc_buf_t::move_data(void *dest, const void *src, const size_t n) {
     rassert(range_inside_of_byte_range(src, n, data, inner_buf->cache->get_block_size().value()));
     rassert(range_inside_of_byte_range(dest, n, data, inner_buf->cache->get_block_size().value()));
 
-    if (inner_buf->writeback_buf().needs_flush) {
+    if (inner_buf->writeback_buf().needs_flush()) {
         // Save the allocation / construction of a patch object
         get_data_major_write();
         memmove(dest, src, n);
@@ -760,7 +760,7 @@ void mc_buf_t::release() {
     inner_buf->cache->assert_thread();
     pm_bufs_held.end(&start_time);
 
-    if (mode == rwi_write && !inner_buf->writeback_buf().needs_flush && patches_serialized_size_at_start >= 0) {
+    if (mode == rwi_write && !inner_buf->writeback_buf().needs_flush() && patches_serialized_size_at_start >= 0) {
         if (inner_buf->cache->patch_memory_storage.get_patches_serialized_size(inner_buf->block_id) > patches_serialized_size_at_start) {
             pm_patches_size_per_write.record(inner_buf->cache->patch_memory_storage.get_patches_serialized_size(inner_buf->block_id) - patches_serialized_size_at_start);
         }
