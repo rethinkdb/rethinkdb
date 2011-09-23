@@ -760,7 +760,15 @@ ls_block_token_pointee_t::ls_block_token_pointee_t(log_serializer_t *serializer,
 }
 
 void ls_block_token_pointee_t::destroy() {
-    coro_t::spawn_on_thread(serializer_->home_thread(), boost::bind(&ls_block_token_pointee_t::do_destroy, this));
+    // We used to call do_destroy with coro_t::spawn_on_thread, but
+    // that turned out to be too expensive.  It spawned too many
+    // coroutines in one big non-blocking glomp, probably when
+    // deleting a bunch of patch storage tokens (50MB is just enough
+    // to break 10000 coroutines if we do this).  The function we're
+    // calling doesn't need to run in a coroutine (AND NEVER WILL!) so
+    // this is not a problem.
+
+    do_later_on_thread(serializer_->home_thread(), boost::bind(&ls_block_token_pointee_t::do_destroy, this));
 }
 
 void ls_block_token_pointee_t::do_destroy() {

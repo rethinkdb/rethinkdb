@@ -70,5 +70,36 @@ void do_on_thread(int thread, const callable_t &callable) {
 }
 
 
+template <class callable_t>
+class later_doer_t : public thread_message_t {
+public:
+    later_doer_t(const callable_t& callable, int thread) : callable_(callable), thread_(thread) { }
+
+    void run() {
+        if (continue_on_thread(thread_, this)) {
+            call_later_on_this_thread(this);
+        }
+    }
+
+private:
+    void on_thread_switch() {
+        rassert(thread_ == get_thread_id());
+        callable_();
+        delete this;
+    }
+
+    callable_t callable_;
+    int thread_;
+
+    DISABLE_COPYING(later_doer_t);
+};
+
+// Like do_on_thread, but if it's the current thread, does it later instead of now.
+template <class callable_t>
+void do_later_on_thread(int thread, const callable_t& callable) {
+    (new later_doer_t<callable_t>(callable, thread))->run();
+}
+
+
 
 #endif  // __DO_ON_THREAD_HPP__
