@@ -636,6 +636,8 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
 }
 
 void *mc_buf_t::get_data_major_write() {
+    ASSERT_NO_CORO_WAITING;
+
     rassert(!inner_buf->safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
     rassert(!inner_buf->do_delete);
     rassert(mode == rwi_write);
@@ -647,13 +649,14 @@ void *mc_buf_t::get_data_major_write() {
 
     // Invalidate the token
     inner_buf->data_token.reset();
-
     ensure_flush();
 
     return data;
 }
 
 void mc_buf_t::ensure_flush() {
+    ASSERT_NO_CORO_WAITING;
+
     // TODO (sam): f'd up
     rassert(inner_buf->data.equals(data));
     if (!inner_buf->writeback_buf().needs_flush()) {
@@ -663,6 +666,7 @@ void mc_buf_t::ensure_flush() {
         inner_buf->cache->patch_memory_storage.drop_patches(inner_buf->block_id);
         // Make sure that the buf is marked as dirty
         inner_buf->writeback_buf().set_dirty();
+        inner_buf->data_token.reset();
     }
 }
 
@@ -810,6 +814,7 @@ void mc_buf_t::release() {
     // empty block).
     if (inner_buf->do_delete) {
         if (mode == rwi_write) {
+            // TODO(sam): Shouldn't these already be set somehow?  What about the data token?
             inner_buf->writeback_buf().mark_block_id_deleted();
             inner_buf->writeback_buf().set_dirty(false);
             inner_buf->writeback_buf().set_recency_dirty(false); // TODO: Do we need to handle recency in master in some other way?
