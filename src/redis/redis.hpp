@@ -6,6 +6,7 @@
 #include "redis/redis_types.hpp"
 #include <boost/shared_ptr.hpp>
 #include <boost/lexical_cast.hpp>
+#include <deque>
 #include <vector>
 #include <string>
 using std::string;

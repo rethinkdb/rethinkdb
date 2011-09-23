@@ -35,7 +35,6 @@ typedef page_repl_random_t page_repl_t;
 
 class mc_cache_account_t;
 
-
 // evictable_t must go before array_map_t::local_buf_t, which
 // references evictable_t's cache field.
 class mc_inner_buf_t : public evictable_t,
@@ -462,6 +461,7 @@ private:
     // the whole block and drop the patch history.
     unsigned int max_patches_size_ratio;
 
+    unsigned int get_max_patches_size_ratio() const { return max_patches_size_ratio; }
     // Functions that adjust this ratio up and down, between
     // MAX_PATCHES_SIZE_RATIO_MIN and MAX_PATCHES_SIZE_RATIO_MAX, for
     // use based on whether we are bottlenecking on I/O.  Note that

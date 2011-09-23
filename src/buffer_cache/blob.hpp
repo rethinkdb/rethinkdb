@@ -7,7 +7,11 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#include "buffer_cache/buffer_cache.hpp"
+#include "errors.hpp"
+#include <boost/shared_ptr.hpp>
+
+#include "buffer_cache/types.hpp"
+#include "concurrency/access.hpp"
 #include "containers/buffer_group.hpp"
 
 /* An explanation of blobs.

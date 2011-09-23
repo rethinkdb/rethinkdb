@@ -1,12 +1,17 @@
 #include "redis/server.hpp"
+
+#include <iostream>
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
+#include <boost/make_shared.hpp>
+
+#include "buffer_cache/buffer_cache.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "db_thread_info.hpp"
 #include "perfmon.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "unittest/dummy_namespace_interface.hpp"
-#include <boost/bind.hpp>
-#include <boost/make_shared.hpp>
-#include <iostream>
 
 // unittests::temp_file_t is only defined in the unitest binary so can't be used here,
 // thus this hack, justifiable only because we can expect the dummy_namespace_interface_t

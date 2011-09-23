@@ -1,7 +1,10 @@
-#include "unittest/gtest.hpp"
-#include "memcached/protocol.hpp"
-#include "unittest/dummy_namespace_interface.hpp"
+#include "errors.hpp"
 #include <boost/make_shared.hpp>
+
+#include "buffer_cache/buffer_cache.hpp"
+#include "memcached/protocol.hpp"
+#include "unittest/gtest.hpp"
+#include "unittest/dummy_namespace_interface.hpp"
 
 namespace unittest {
 

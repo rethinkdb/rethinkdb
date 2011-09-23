@@ -2,7 +2,7 @@
 #define __PROTOCOL_REDIS_PROTO_HPP__
 
 #include <iostream>
-#include "arch/arch.hpp"
+#include "arch/types.hpp"
 
 #include "redis/redis.hpp"
 #include "unittest/dummy_namespace_interface.hpp"

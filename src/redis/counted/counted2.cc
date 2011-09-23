@@ -1,5 +1,7 @@
 #include "redis/counted/counted2.hpp"
+
 #include <float.h>
+#include "buffer_cache/buffer_cache.hpp"
 
 const counted2_value_t *counted_btree2_t::at(unsigned index) {
     buf_lock_t blk(txn, root->node_id, rwi_read);
@@ -52,7 +54,7 @@ void counted_btree2_t::insert(float score, std::string &value) {
 }
 
 void counted_btree2_t::remove(unsigned index) {
-    assert(index <= root->count);
+    rassert(index <= root->count);
 
     // remove from root
     buf_lock_t blk(txn, root->node_id, rwi_write);
@@ -142,7 +144,7 @@ const counted2_value_t *counted_btree2_t::at_recur(buf_lock_t &buf, unsigned ind
         // Find the value, this involves a linear search through the blobs in this node
         unsigned offset = 0;
         for(unsigned i = 0; i < index; i++) {
-            assert(i != l_node->n_refs);
+            rassert(i != l_node->n_refs);
 
             blob_t b(const_cast<char *>(l_node->refs + offset), blob::btree_maxreflen);
             offset += b.refsize(blksize);
@@ -177,7 +179,7 @@ bool counted_btree2_t::internal_insert(buf_lock_t &blk, float score, std::string
     while(sub_ref->greatest_score < score) {
         insert_index++;
         sub_ref = node->refs + insert_index;
-        assert(insert_index < node->n_refs);
+        rassert(insert_index < node->n_refs);
     }
 
     // Pre-emptively increment the count of this sub-tree
@@ -290,7 +292,7 @@ bool counted_btree2_t::leaf_insert(buf_lock_t &blk, float score, std::string &va
         val_ref = reinterpret_cast<const counted2_value_t *>(node->refs + offset);
         i++;
 
-        assert(i < node->n_refs);
+        rassert(i < node->n_refs);
     }
 
     // Count the additional allocated space in the block
@@ -388,7 +390,7 @@ void counted_btree2_t::internal_remove(buf_lock_t &blk, unsigned index) {
         remove_index++;
         sub_ref = node->refs + index;
 
-        assert(remove_index != node->n_refs);
+        rassert(remove_index != node->n_refs);
     }
 
     // Remove from sub-tree
@@ -423,7 +425,7 @@ void counted_btree2_t::leaf_remove(buf_lock_t &blk, unsigned index) {
     unsigned offset = 0;
     unsigned remove_index = 0;
     while(remove_index < index) {
-        assert(remove_index < node->n_refs);
+        rassert(remove_index < node->n_refs);
         blob_t b(const_cast<char *>(node->refs + offset), blob::btree_maxreflen);
         offset += b.refsize(blksize);
         remove_index++;
@@ -486,7 +488,7 @@ counted_btree2_t::iterator_t::iterator_t(block_id_t root, transaction_t *txn_, b
             const sub_ref2_t *ref = internal_node->refs;
             while(score_min < ref->greatest_score) {
                 current_frame->index++;
-                assert(current_frame->index < internal_node->n_refs);
+                rassert(current_frame->index < internal_node->n_refs);
                 ref = internal_node->refs + current_frame->index;
                 
                 // We keep track of where we are rank wise
@@ -509,7 +511,7 @@ counted_btree2_t::iterator_t::iterator_t(block_id_t root, transaction_t *txn_, b
             current_offset = 0;
             current_val = reinterpret_cast<const counted2_value_t *>(leaf_node->refs);
             while(score_min < current_val->score) {
-                assert(current_frame->index < leaf_node->n_refs);
+                rassert(current_frame->index < leaf_node->n_refs);
                 current_offset += current_val->size(blksize);
                 current_val = reinterpret_cast<const counted2_value_t *>(leaf_node->refs + current_offset);
                 current_rank++;
@@ -543,7 +545,7 @@ void counted_btree2_t::iterator_t::next() {
     
     const leaf_counted2_node_t *leaf_node =
             reinterpret_cast<const leaf_counted2_node_t *>(current_frame->blk->get_data_read());
-    assert(leaf_node->magic == leaf_counted2_node_t::expected_magic());
+    rassert(leaf_node->magic == leaf_counted2_node_t::expected_magic());
 
     current_frame->index++;
     if(current_frame->index >= leaf_node->n_refs) {
