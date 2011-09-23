@@ -248,10 +248,6 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, void *_buf
     block_sequence_id = _cache->serializer->get_block_sequence_id(_block_id, data.get());
 
     replay_patches();
-
-    // TODO (rntz): This should initialize data_token at some point. That however requires switching
-    // to the serializer thread and we cannot afford that here, except if we lock. Maybe read ahead
-    // should pass the token through to here.
 }
 
 mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache, version_id_t snapshot_version, repli_timestamp_t recency_timestamp) {
