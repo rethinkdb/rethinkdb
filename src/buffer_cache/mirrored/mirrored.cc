@@ -1313,14 +1313,21 @@ void mc_cache_t::maybe_unregister_read_ahead_callback() {
 }
 
 void mc_cache_t::adjust_max_patches_size_ratio_toward_minimum() {
+    rassert(MAX_PATCHES_SIZE_RATIO_MAX <= MAX_PATCHES_SIZE_RATIO_MIN);  // just to make things clear.
     max_patches_size_ratio = (unsigned int)(0.9f * float(max_patches_size_ratio) + 0.1f * float(MAX_PATCHES_SIZE_RATIO_MIN));
-    rassert(max_patches_size_ratio >= MAX_PATCHES_SIZE_RATIO_MIN);
-    rassert(max_patches_size_ratio <= MAX_PATCHES_SIZE_RATIO_MAX);
+    rassert(max_patches_size_ratio <= MAX_PATCHES_SIZE_RATIO_MIN);
+    rassert(max_patches_size_ratio >= MAX_PATCHES_SIZE_RATIO_MAX);
 }
 
 void mc_cache_t::adjust_max_patches_size_ratio_toward_maximum() {
-    // TODO(sam): This normally creates quite a large adjustment toward the maximum.
+    rassert(MAX_PATCHES_SIZE_RATIO_MAX <= MAX_PATCHES_SIZE_RATIO_MIN);  // just to make things clear.
+    // We should be paranoid that if max_patches_size_ratio ==
+    // MAX_PATCHES_SIZE_RATIO_MAX, (i.e. that 2 == 2) then 0.9f * 2 +
+    // 0.1f * 2 will be less than 2 (and then round down to 1).
     max_patches_size_ratio = (unsigned int)(0.9f * float(max_patches_size_ratio) + 0.1f * float(MAX_PATCHES_SIZE_RATIO_MAX));
-    rassert(max_patches_size_ratio >= MAX_PATCHES_SIZE_RATIO_MIN);
-    rassert(max_patches_size_ratio <= MAX_PATCHES_SIZE_RATIO_MAX);
+    if (max_patches_size_ratio < MAX_PATCHES_SIZE_RATIO_MAX) {
+        max_patches_size_ratio = MAX_PATCHES_SIZE_RATIO_MAX;
+    }
+    rassert(max_patches_size_ratio <= MAX_PATCHES_SIZE_RATIO_MIN);
+    rassert(max_patches_size_ratio >= MAX_PATCHES_SIZE_RATIO_MAX);
 }
