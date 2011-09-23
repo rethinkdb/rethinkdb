@@ -79,7 +79,7 @@ public:
         /* All patches <= last_patch_materialized are in the on-disk log storage */
         patch_counter_t last_patch_materialized;
 
-    public: //TODO make this private again @jdoliner
+    private:
         bool dirty;
         bool recency_dirty;
 
