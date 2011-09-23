@@ -70,5 +70,38 @@ void do_on_thread(int thread, const callable_t &callable) {
 }
 
 
+template <class callable_t>
+class one_way_doer_t : public thread_message_t {
+public:
+    one_way_doer_t(const callable_t& callable, int thread) : callable_(callable), thread_(thread) { }
+
+    void run() {
+        if (continue_on_thread(thread_, this)) {
+            on_thread_switch();
+        }
+    }
+
+private:
+    void on_thread_switch() {
+        rassert(thread_ == get_thread_id());
+        callable_();
+        delete this;
+    }
+
+    callable_t callable_;
+    int thread_;
+
+    DISABLE_COPYING(one_way_doer_t);
+};
+
+// Like do_on_thread, but if it's the current thread, does it later
+// instead of now.  With this, a copy of the callable_t object will
+// get destroyed on the target thread.
+template <class callable_t>
+void one_way_do_on_thread(int thread, const callable_t& callable) {
+    (new one_way_doer_t<callable_t>(callable, thread))->run();
+}
+
+
 
 #endif  // __DO_ON_THREAD_HPP__

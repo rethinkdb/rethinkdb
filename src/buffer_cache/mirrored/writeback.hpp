@@ -49,7 +49,7 @@ public:
     bool sync_patiently(sync_callback_t *callback);
 
     /* `begin_transaction()` will block if the transaction is a write transaction and
-    it ought to be throttled */
+    it ought to be throttled. */
     void begin_transaction(transaction_t *txn);
 
     void on_transaction_commit(transaction_t *txn);

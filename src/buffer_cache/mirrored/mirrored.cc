@@ -248,10 +248,6 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, void *_buf
     block_sequence_id = _cache->serializer->get_block_sequence_id(_block_id, data.get());
 
     replay_patches();
-
-    // TODO (rntz): This should initialize data_token at some point. That however requires switching
-    // to the serializer thread and we cannot afford that here, except if we lock. Maybe read ahead
-    // should pass the token through to here.
 }
 
 mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache, version_id_t snapshot_version, repli_timestamp_t recency_timestamp) {
@@ -636,6 +632,8 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
 }
 
 void *mc_buf_t::get_data_major_write() {
+    ASSERT_NO_CORO_WAITING;
+
     rassert(!inner_buf->safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
     rassert(!inner_buf->do_delete);
     rassert(mode == rwi_write);
@@ -647,13 +645,14 @@ void *mc_buf_t::get_data_major_write() {
 
     // Invalidate the token
     inner_buf->data_token.reset();
-
     ensure_flush();
 
     return data;
 }
 
 void mc_buf_t::ensure_flush() {
+    ASSERT_NO_CORO_WAITING;
+
     // TODO (sam): f'd up
     rassert(inner_buf->data.equals(data));
     if (!inner_buf->writeback_buf().needs_flush()) {
@@ -663,6 +662,7 @@ void mc_buf_t::ensure_flush() {
         inner_buf->cache->patch_memory_storage.drop_patches(inner_buf->block_id);
         // Make sure that the buf is marked as dirty
         inner_buf->writeback_buf().set_dirty();
+        inner_buf->data_token.reset();
     }
 }
 
@@ -810,6 +810,7 @@ void mc_buf_t::release() {
     // empty block).
     if (inner_buf->do_delete) {
         if (mode == rwi_write) {
+            // TODO(sam): Shouldn't these already be set somehow?  What about the data token?
             inner_buf->writeback_buf().mark_block_id_deleted();
             inner_buf->writeback_buf().set_dirty(false);
             inner_buf->writeback_buf().set_recency_dirty(false); // TODO: Do we need to handle recency in master in some other way?
@@ -1312,14 +1313,21 @@ void mc_cache_t::maybe_unregister_read_ahead_callback() {
 }
 
 void mc_cache_t::adjust_max_patches_size_ratio_toward_minimum() {
+    rassert(MAX_PATCHES_SIZE_RATIO_MAX <= MAX_PATCHES_SIZE_RATIO_MIN);  // just to make things clear.
     max_patches_size_ratio = (unsigned int)(0.9f * float(max_patches_size_ratio) + 0.1f * float(MAX_PATCHES_SIZE_RATIO_MIN));
-    rassert(max_patches_size_ratio >= MAX_PATCHES_SIZE_RATIO_MIN);
-    rassert(max_patches_size_ratio <= MAX_PATCHES_SIZE_RATIO_MAX);
+    rassert(max_patches_size_ratio <= MAX_PATCHES_SIZE_RATIO_MIN);
+    rassert(max_patches_size_ratio >= MAX_PATCHES_SIZE_RATIO_MAX);
 }
 
 void mc_cache_t::adjust_max_patches_size_ratio_toward_maximum() {
-    // TODO(sam): This normally creates quite a large adjustment toward the maximum.
+    rassert(MAX_PATCHES_SIZE_RATIO_MAX <= MAX_PATCHES_SIZE_RATIO_MIN);  // just to make things clear.
+    // We should be paranoid that if max_patches_size_ratio ==
+    // MAX_PATCHES_SIZE_RATIO_MAX, (i.e. that 2 == 2) then 0.9f * 2 +
+    // 0.1f * 2 will be less than 2 (and then round down to 1).
     max_patches_size_ratio = (unsigned int)(0.9f * float(max_patches_size_ratio) + 0.1f * float(MAX_PATCHES_SIZE_RATIO_MAX));
-    rassert(max_patches_size_ratio >= MAX_PATCHES_SIZE_RATIO_MIN);
-    rassert(max_patches_size_ratio <= MAX_PATCHES_SIZE_RATIO_MAX);
+    if (max_patches_size_ratio < MAX_PATCHES_SIZE_RATIO_MAX) {
+        max_patches_size_ratio = MAX_PATCHES_SIZE_RATIO_MAX;
+    }
+    rassert(max_patches_size_ratio <= MAX_PATCHES_SIZE_RATIO_MIN);
+    rassert(max_patches_size_ratio >= MAX_PATCHES_SIZE_RATIO_MAX);
 }
