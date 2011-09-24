@@ -16,8 +16,9 @@ class listener_t {
 public:
     listener_t(
             mailbox_cluster_t *c,
-            boost::shared_ptr<outdated_store_view_t<protocol_t> > outdated_store,
-            std::vector<std::pair<typename protocol_t::region_t, version_t> > store_state,
+            typename protocol_t::region_t r,
+            store_view_t<protocol_t> *s,
+            version_map_view_t<protocol_t> *svm,
             boost::shared_ptr<metadata_read_view_t<std::map<branch_id_t, branch_metadata_t<protocol_t> > > > branches_metadata,
             branch_id_t bid,
             mirror_id_t backfiller_id,
@@ -25,6 +26,8 @@ public:
             THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t) :
 
         cluster(c),
+
+        region(r), store(s), store_version_map(svm),
 
         write_mailbox(cluster, boost::bind(&listener_t::on_write, this,
             auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4)),
@@ -35,6 +38,12 @@ public:
 
         branch_id(bid)
     {
+        /* Validate input */
+        rassert(region_is_superset(store_version_map->get_region(), region));
+        rassert(region_is_superset(store->get_region(), region));
+        rassert(branches_metadata->get().count(branch_id) > 0);
+        rassert(region_is_superset(branches_metadata->get()[branch_id].region, region));
+
         if (interruptor->is_pulsed()) {
             throw interrupted_exc_t();
         }
@@ -42,13 +51,13 @@ public:
         /* Attempt to register for reads and writes */
         boost::shared_ptr<metadata_read_view_t<branch_metadata_t<protocol_t> > > branch_metadata =
             metadata_member(branch_id, branches_metadata);
-        try_start_receiving_writes(target_branch_metadata, interruptor);
+        try_start_receiving_writes(branch_metadata, interruptor);
 
         /* Backfill */
         {
             resource_access_t<mirror_metadata_t<protocol_t> > backfiller(
                 cluster,
-                metadata_member(backfiller_id, metadata_field(&branch_metadata_t<protocol_t>::mirrors, target_branch_metadata))
+                metadata_member(backfiller_id, metadata_field(&branch_metadata_t<protocol_t>::mirrors, branch_metadata))
                 );
 
             /* Pick a unique ID to identify this backfill session to the
@@ -66,7 +75,7 @@ public:
             send(cluster,
                 backfiller.access().backfill_mailbox,
                 backfill_session_id,
-                start_point,
+                store_version_map->read(region),
                 backfill_mailbox.get_address(),
                 backfill_done_mailbox.get_address());
 
@@ -383,6 +392,10 @@ private:
     }
 
     mailbox_cluster_t *cluster;
+
+    typename protocol_t::region_t region;
+    store_view_t<protocol_t> *store;
+    version_map_view_t<protocol_t> *store_version_map;
 
     /* `upgrade_mailbox` and `broadcaster_begin_timestamp` are valid only if we
     successfully registered with the broadcaster at some point. As a sanity
