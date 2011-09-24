@@ -84,7 +84,7 @@ class mirror_metadata_t {
     typedef async_mailbox_t<void(
         backfill_session_id_t,
         std::vector<std::pair<typename protocol_t::region_t, version_range_t> >,
-        typename async_mailbox_t<void(std::vector<std::pair<typename protocol_t::region_t, version_range_t> >)>::address_t,
+        typename async_mailbox_t<void(version_map_t<protocol_t>)>::address_t,
         typename async_mailbox_t<void(typename protocol_t::store_t::backfill_chunk_t)>::address_t,
         typename async_mailbox_t<void(state_timestamp_t)>::address_t
         )> backfill_mailbox_t;

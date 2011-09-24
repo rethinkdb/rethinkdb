@@ -54,76 +54,7 @@ public:
         try_start_receiving_writes(branch_metadata, interruptor);
 
         /* Backfill */
-        {
-            resource_access_t<mirror_metadata_t<protocol_t> > backfiller(
-                cluster,
-                metadata_member(backfiller_id, metadata_field(&branch_metadata_t<protocol_t>::mirrors, branch_metadata))
-                );
-
-            /* Pick a unique ID to identify this backfill session to the
-            backfiller */
-            typename mirror_metadata_t<protocol_t>::backfill_session_id_t backfill_session_id = generate_uuid();
-
-            /* Set up mailboxes */
-            async_mailbox_t<void(typename protocol_t::backfill_chunk_t)> backfill_mailbox(
-                cluster, boost::bind(&outdated_store_view_t<protocol_t>::receive_backfill_chunk, store, _1));
-            promise_t<state_timestamp_t> backfill_is_done;
-            async_mailbox_t<void(state_timestamp_t)> backfill_done_mailbox(
-                cluster, boost::bind(&promise_t<state_timestamp_t>::pulse, &backfill_is_done, _1));
-
-            /* Send off the backfill request */
-            send(cluster,
-                backfiller.access().backfill_mailbox,
-                backfill_session_id,
-                store_version_map->read(region),
-                backfill_mailbox.get_address(),
-                backfill_done_mailbox.get_address());
-
-            /* If something goes wrong, we'd like to inform the backfiller that
-            it has gone wrong. `backfiller_notifier` notifies the backfiller in
-            its destructor. If everything goes right, we'll explicitly disarm
-            it. */
-            death_runner_t backfiller_notifier;
-            {
-                /* We have to cast `send()` to the correct type before we pass
-                it to `boost::bind()`, or else C++ can't figure out which
-                overload to use. */
-                void (*send_cast_to_correct_type)(
-                    mailbox_cluster_t *,
-                    typename mirror_metadata_t<protocol_t>::cancel_backfill_mailbox_t::address_t,
-                    const typename mirror_metadata_t<protocol_t>::backfill_session_id_t &) = &send;
-                backfiller_notifier.fun = boost::bind(
-                    send_cast_to_correct_type, cluster,
-                    backfiller.access().cancel_backfill_mailbox,
-                    backfill_session_id);
-            }
-
-            /* Wait until either the backfill is over or something goes wrong */
-            wait_any_t waiter(backfill_is_done.get_ready_signal(), backfiller.get_failed_signal(), interruptor);
-            waiter.wait_lazily_unordered();
-
-            /* If we broke out because of the backfiller becoming inaccessible,
-            this will throw an exception. */
-            backfiller.access();
-
-            if (interruptor->is_pulsed()) {
-                throw interrupted_exc_t();
-            }
-
-            /* Everything went well, so don't send a cancel message to the
-            backfiller. */
-            backfiller_notifier.fun = 0;
-
-            /* End the backfill. */
-            boost::shared_ptr<ready_store_view_t<protocol_t> > ready_store =
-                outdated_store->done(backfill_is_done.get_value());
-
-            /* Make a record of the fact that the backfill succeeded */
-            backfill_succeeded_t success_record;
-            success_record.backfill_end_timestamp = backfill_is_done.get_value();
-            success_record.ready_store = ready_store;
-            backfill_done_cond.pulse(success_record);
-        }
+        
 
         /* If there was a data gap, update the outdated-signal accordingly. */
         if (registration_result_cond.get_value() &&
@@ -248,6 +179,33 @@ private:
 
         /* If we lose contact with the master, mark ourselves outdated */
         outdated_signal.add(registrant->get_failed_signal()->is_pulsed());
+    }
+
+    void on_backfill_chunk(
+            auto_drainer_t::lock_t listener_keepalive,
+            UNUSED auto_drainer_t::lock_t backfill_keepalive,
+            signal_t *ready_to_begin,
+            typename protocol_t::backfill_chunk_t chunk)
+            THROWS_NOTHING
+    {
+        /* Block on `ready_to_begin` until it gets pulsed. (This is so that no
+        backfill chunks are applied before the version map has been updated to
+        reflect the fact that the backfill is happening.) */
+        {
+            wait_any_t waiter(ready_to_begin, listener_keepalive.get_drain_signal());
+            waiter.wait_lazily_unordered();
+            if (listener_keepalive.get_drain_signal()->is_pulsed()) {
+                return;
+            }
+        }
+
+        try {
+            store->receive_backfill(chunk, listener_keepalive.get_drain_signal());
+        } catch (interrupted_exc_t) {
+            return;
+        }
+
+        /* We hold `backfill_keepalive` until we're done applying the chunk */
     }
 
     void on_write(auto_drainer_t::lock_t keepalive,
