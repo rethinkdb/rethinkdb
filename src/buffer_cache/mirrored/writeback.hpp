@@ -49,7 +49,7 @@ public:
     bool sync_patiently(sync_callback_t *callback);
 
     /* `begin_transaction()` will block if the transaction is a write transaction and
-    it ought to be throttled */
+    it ought to be throttled. */
     void begin_transaction(transaction_t *txn);
 
     void on_transaction_commit(transaction_t *txn);
@@ -59,27 +59,30 @@ public:
     }
 
     class local_buf_t : public intrusive_list_node_t<local_buf_t> {
-        friend class writeback_t;
-        friend class concurrent_flush_t;
-        
     public:
         explicit local_buf_t()
-            : needs_flush(false), last_patch_materialized(0), dirty(false), recency_dirty(false) {}
-        
+            : last_patch_materialized_(0), needs_flush_(false), dirty(false), recency_dirty(false) {}
+
         void set_dirty(bool _dirty = true);
+        bool get_dirty() const { return dirty; }
         void set_recency_dirty(bool _recency_dirty = true);
+        bool get_recency_dirty() const { return recency_dirty; }
+        void set_needs_flush(bool does_need_flush) { needs_flush_ = does_need_flush; }
+        bool needs_flush() const { return needs_flush_; }
+        void set_last_patch_materialized(patch_counter_t value) { last_patch_materialized_ = value; }
+        patch_counter_t last_patch_materialized() const { return last_patch_materialized_; }
         void mark_block_id_deleted();
-        
+
         bool safe_to_unload() const { return !dirty && !recency_dirty; }
+
+    private:
+        /* All patches <= last_patch_materialized are in the on-disk log storage */
+        patch_counter_t last_patch_materialized_;
 
         /* true if we have to flush the block instead of just flushing patches. */
         /* Specifically, this is the case if we modified the block while bypassing the patching system */
-        bool needs_flush;
+        bool needs_flush_;
 
-        /* All patches <= last_patch_materialized are in the on-disk log storage */
-        patch_counter_t last_patch_materialized;
-
-    public: //TODO make this private again @jdoliner
         bool dirty;
         bool recency_dirty;
 

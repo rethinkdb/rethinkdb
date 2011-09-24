@@ -81,13 +81,14 @@ typedef mc_cache_account_t cache_account_t;
 
 #else
 
+class mock_cache_t;
+class mock_cache_account_t;
+
 #if !defined(VALGRIND)
 
-class mock_cache_t;
 template <class inner_cache_type> class scc_cache_t;
 template <class inner_cache_type> class scc_buf_t;
 template <class inner_cache_type> class scc_transaction_t;
-class mock_cache_account_t;
 
 typedef scc_cache_t<mock_cache_t> cache_t;
 typedef scc_buf_t<mock_cache_t> buf_t;
@@ -96,7 +97,11 @@ typedef mock_cache_account_t cache_account_t;
 
 #else  // !defined(VALGRIND)
 
-class mock_cache_t;
+class mock_buf_t;
+class mock_transaction_t;
+class mock_cache_account_t;
+
+typedef mock_cache_t cache_t;
 typedef mock_buf_t buf_t;
 typedef mock_transaction_t transaction_t;
 typedef mock_cache_account_t cache_account_t;

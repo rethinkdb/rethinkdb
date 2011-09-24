@@ -1,4 +1,6 @@
-#include "redis/redis_types.hpp" 
+#include "redis/redis_types.hpp"
+
+#include "buffer_cache/buffer_cache.hpp"
 #include "redis/counted/counted.hpp"
 #include "redis/counted/counted2.hpp"
 

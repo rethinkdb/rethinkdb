@@ -99,40 +99,29 @@ public:
     dummy_protocol_t::region_t region;
     std::map<std::string, std::string> values;
     std::map<std::string, state_timestamp_t> timestamps;
+
+    order_sink_t order_sink;
 };
 
-class dummy_ready_store_view_t : public ready_store_view_t<dummy_protocol_t> {
+class dummy_store_view_t : public store_view_t<dummy_protocol_t> {
 
 public:
-    dummy_ready_store_view_t(dummy_underlying_store_t *parent, dummy_protocol_t::region_t region, state_timestamp_t initial_timestamp);
+    dummy_store_view_t(dummy_underlying_store_t *parent, dummy_protocol_t::region_t region);
 
 protected:
     dummy_protocol_t::read_response_t do_read(const dummy_protocol_t::read_t &read, state_timestamp_t timestamp, order_token_t otok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
     dummy_protocol_t::write_response_t do_write(const dummy_protocol_t::write_t &write, transition_timestamp_t timestamp, order_token_t otok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
-    state_timestamp_t do_send_backfill(
+    void do_send_backfill(
         std::vector<std::pair<dummy_protocol_t::region_t, state_timestamp_t> > start_point,
         boost::function<void(dummy_protocol_t::backfill_chunk_t)> chunk_sender,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
-private:
-    dummy_underlying_store_t *parent;
-
-    order_sink_t order_sink;
-
-    /* For random timeouts */
-    rng_t rng;
-};
-
-class dummy_outdated_store_view_t : public outdated_store_view_t<dummy_protocol_t> {
-
-public:
-    dummy_outdated_store_view_t(dummy_underlying_store_t *parent, dummy_protocol_t::region_t r);
-
-protected:
-    void do_receive_backfill_chunk(dummy_protocol_t::backfill_chunk_t, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
-    boost::shared_ptr<ready_store_view_t<dummy_protocol_t> > do_done(state_timestamp_t) THROWS_NOTHING;
+    void do_receive_backfill(
+        dummy_protocol_t::backfill_chunk_t chunk,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t);
 
 private:
     dummy_underlying_store_t *parent;

@@ -248,10 +248,6 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, void *_buf
     block_sequence_id = _cache->serializer->get_block_sequence_id(_block_id, data.get());
 
     replay_patches();
-
-    // TODO (rntz): This should initialize data_token at some point. That however requires switching
-    // to the serializer thread and we cannot afford that here, except if we lock. Maybe read ahead
-    // should pass the token through to here.
 }
 
 mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache, version_id_t snapshot_version, repli_timestamp_t recency_timestamp) {
@@ -369,7 +365,7 @@ void mc_inner_buf_t::replay_patches() {
         cache->patch_memory_storage.filter_applied_patches(block_id, block_sequence_id);
     }
     // All patches that currently exist must have been materialized out of core...
-    writeback_buf().last_patch_materialized = cache->patch_memory_storage.last_patch_materialized_or_zero(block_id);
+    writeback_buf().set_last_patch_materialized(cache->patch_memory_storage.last_patch_materialized_or_zero(block_id));
 
     // Apply outstanding patches
     cache->patch_memory_storage.apply_patches(block_id, reinterpret_cast<char *>(data.get()), cache->get_block_size());
@@ -574,7 +570,7 @@ void mc_buf_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access) {
             // so we cannot assert data here unfortunately!
             //rassert(data != NULL);
 
-            if (!inner_buf->writeback_buf().needs_flush &&
+            if (!inner_buf->writeback_buf().needs_flush() &&
                     patches_serialized_size_at_start == -1 &&
                     global_full_perfmon) {
                 patches_serialized_size_at_start =
@@ -614,9 +610,9 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
         ensure_flush();
     }
 
-    if (!inner_buf->writeback_buf().needs_flush) {
+    if (!inner_buf->writeback_buf().needs_flush()) {
         // Check if we want to disable patching for this block and flush it directly instead
-        const int32_t max_patches_size = inner_buf->cache->serializer->get_block_size().value() / inner_buf->cache->max_patches_size_ratio;
+        const int32_t max_patches_size = inner_buf->cache->serializer->get_block_size().value() / inner_buf->cache->get_max_patches_size_ratio();
         if (patch->get_serialized_size() + inner_buf->cache->patch_memory_storage.get_patches_serialized_size(inner_buf->block_id) > max_patches_size) {
             ensure_flush();
             delete patch;
@@ -636,6 +632,8 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
 }
 
 void *mc_buf_t::get_data_major_write() {
+    ASSERT_NO_CORO_WAITING;
+
     rassert(!inner_buf->safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
     rassert(!inner_buf->do_delete);
     rassert(mode == rwi_write);
@@ -647,22 +645,24 @@ void *mc_buf_t::get_data_major_write() {
 
     // Invalidate the token
     inner_buf->data_token.reset();
-
     ensure_flush();
 
     return data;
 }
 
 void mc_buf_t::ensure_flush() {
+    ASSERT_NO_CORO_WAITING;
+
     // TODO (sam): f'd up
     rassert(inner_buf->data.equals(data));
-    if (!inner_buf->writeback_buf().needs_flush) {
+    if (!inner_buf->writeback_buf().needs_flush()) {
         // We bypass the patching system, make sure this buffer gets flushed.
-        inner_buf->writeback_buf().needs_flush = true;
+        inner_buf->writeback_buf().set_needs_flush(true);
         // ... we can also get rid of existing patches at this point.
         inner_buf->cache->patch_memory_storage.drop_patches(inner_buf->block_id);
         // Make sure that the buf is marked as dirty
         inner_buf->writeback_buf().set_dirty();
+        inner_buf->data_token.reset();
     }
 }
 
@@ -721,7 +721,7 @@ void mc_buf_t::set_data(void *dest, const void *src, size_t n) {
     }
     rassert(range_inside_of_byte_range(dest, n, data, inner_buf->cache->get_block_size().value()));
 
-    if (inner_buf->writeback_buf().needs_flush) {
+    if (inner_buf->writeback_buf().needs_flush()) {
         // Save the allocation / construction of a patch object
         get_data_major_write();
         memcpy(dest, src, n);
@@ -742,7 +742,7 @@ void mc_buf_t::move_data(void *dest, const void *src, const size_t n) {
     rassert(range_inside_of_byte_range(src, n, data, inner_buf->cache->get_block_size().value()));
     rassert(range_inside_of_byte_range(dest, n, data, inner_buf->cache->get_block_size().value()));
 
-    if (inner_buf->writeback_buf().needs_flush) {
+    if (inner_buf->writeback_buf().needs_flush()) {
         // Save the allocation / construction of a patch object
         get_data_major_write();
         memmove(dest, src, n);
@@ -760,7 +760,7 @@ void mc_buf_t::release() {
     inner_buf->cache->assert_thread();
     pm_bufs_held.end(&start_time);
 
-    if (mode == rwi_write && !inner_buf->writeback_buf().needs_flush && patches_serialized_size_at_start >= 0) {
+    if (mode == rwi_write && !inner_buf->writeback_buf().needs_flush() && patches_serialized_size_at_start >= 0) {
         if (inner_buf->cache->patch_memory_storage.get_patches_serialized_size(inner_buf->block_id) > patches_serialized_size_at_start) {
             pm_patches_size_per_write.record(inner_buf->cache->patch_memory_storage.get_patches_serialized_size(inner_buf->block_id) - patches_serialized_size_at_start);
         }
@@ -810,6 +810,7 @@ void mc_buf_t::release() {
     // empty block).
     if (inner_buf->do_delete) {
         if (mode == rwi_write) {
+            // TODO(sam): Shouldn't these already be set somehow?  What about the data token?
             inner_buf->writeback_buf().mark_block_id_deleted();
             inner_buf->writeback_buf().set_dirty(false);
             inner_buf->writeback_buf().set_recency_dirty(false); // TODO: Do we need to handle recency in master in some other way?
@@ -1309,4 +1310,24 @@ void mc_cache_t::maybe_unregister_read_ahead_callback() {
         // unregister_read_ahead_cb requires a coro context, but we might not be in any
         coro_t::spawn_now(boost::bind(&serializer_t::unregister_read_ahead_cb, serializer, this));
     }
+}
+
+void mc_cache_t::adjust_max_patches_size_ratio_toward_minimum() {
+    rassert(MAX_PATCHES_SIZE_RATIO_MAX <= MAX_PATCHES_SIZE_RATIO_MIN);  // just to make things clear.
+    max_patches_size_ratio = (unsigned int)(0.9f * float(max_patches_size_ratio) + 0.1f * float(MAX_PATCHES_SIZE_RATIO_MIN));
+    rassert(max_patches_size_ratio <= MAX_PATCHES_SIZE_RATIO_MIN);
+    rassert(max_patches_size_ratio >= MAX_PATCHES_SIZE_RATIO_MAX);
+}
+
+void mc_cache_t::adjust_max_patches_size_ratio_toward_maximum() {
+    rassert(MAX_PATCHES_SIZE_RATIO_MAX <= MAX_PATCHES_SIZE_RATIO_MIN);  // just to make things clear.
+    // We should be paranoid that if max_patches_size_ratio ==
+    // MAX_PATCHES_SIZE_RATIO_MAX, (i.e. that 2 == 2) then 0.9f * 2 +
+    // 0.1f * 2 will be less than 2 (and then round down to 1).
+    max_patches_size_ratio = (unsigned int)(0.9f * float(max_patches_size_ratio) + 0.1f * float(MAX_PATCHES_SIZE_RATIO_MAX));
+    if (max_patches_size_ratio < MAX_PATCHES_SIZE_RATIO_MAX) {
+        max_patches_size_ratio = MAX_PATCHES_SIZE_RATIO_MAX;
+    }
+    rassert(max_patches_size_ratio <= MAX_PATCHES_SIZE_RATIO_MIN);
+    rassert(max_patches_size_ratio >= MAX_PATCHES_SIZE_RATIO_MAX);
 }

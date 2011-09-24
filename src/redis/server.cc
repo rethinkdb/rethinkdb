@@ -1,12 +1,17 @@
 #include "redis/server.hpp"
+
+#include <iostream>
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
+#include <boost/make_shared.hpp>
+
+#include "buffer_cache/buffer_cache.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "db_thread_info.hpp"
 #include "perfmon.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "unittest/dummy_namespace_interface.hpp"
-#include <boost/bind.hpp>
-#include <boost/make_shared.hpp>
-#include <iostream>
 
 // unittests::temp_file_t is only defined in the unitest binary so can't be used here,
 // thus this hack, justifiable only because we can expect the dummy_namespace_interface_t
@@ -72,14 +77,14 @@ redis_listener_t::redis_listener_t(int port) :
     /* Set up caches, btrees, and stores */
 
     mirrored_cache_config_t *cache_dynamic_config = new mirrored_cache_config_t;
-    std::vector<boost::shared_ptr<ready_store_view_t<redis_protocol_t> > > stores;
+    std::vector<boost::shared_ptr<store_view_t<redis_protocol_t> > > stores;
     for (int i = 0; i < (int)shards.size(); i++) {
         mirrored_cache_static_config_t cache_static_config;
         cache_t::create(multiplexer->proxies[i], &cache_static_config);
         cache_t *cache = new cache_t(multiplexer->proxies[i], cache_dynamic_config);
         btree_slice_t::create(cache);
         btree_slice_t *btree = new btree_slice_t(cache);
-        stores.push_back(boost::make_shared<dummy_redis_ready_store_view_t>(shards[i], btree));
+        stores.push_back(boost::make_shared<dummy_redis_store_view_t>(shards[i], btree));
     }
 
     /* Set up namespace interface */

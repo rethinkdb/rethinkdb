@@ -1,12 +1,14 @@
 #include "redis/counted/counted.hpp"
 
+#include "buffer_cache/buffer_cache.hpp"
+
 const char *counted_btree_t::at(unsigned index) {
     buf_lock_t blk(txn, root->node_id, rwi_read);
     return at_recur(blk, index);
 }
 
 void counted_btree_t::insert(unsigned index, std::string &value) {
-    assert(index <= root->count);
+    rassert(index <= root->count);
 
     if(root->count == 0) {
         // Allocate the root block
@@ -49,7 +51,7 @@ void counted_btree_t::insert(unsigned index, std::string &value) {
 }
 
 void counted_btree_t::remove(unsigned index) {
-    assert(index <= root->count);
+    rassert(index <= root->count);
 
     // remove from root
     buf_lock_t blk(txn, root->node_id, rwi_write);
@@ -139,7 +141,7 @@ const char *counted_btree_t::at_recur(buf_lock_t &buf, unsigned index) {
         // Find the value, this involves a linear search through the blobs in this node
         unsigned offset = 0;
         for(unsigned i = 0; i < index; i++) {
-            assert(i != l_node->n_refs);
+            rassert(i != l_node->n_refs);
 
             blob_t b(const_cast<char *>(l_node->refs + offset), blob::btree_maxreflen);
             offset += b.refsize(blksize);
@@ -176,7 +178,7 @@ bool counted_btree_t::internal_insert(buf_lock_t &blk, unsigned index, std::stri
         insert_index++;
         sub_ref = node->refs + insert_index;
 
-        assert(insert_index != node->n_refs); // We must be inserting to an index passed the end of the list
+        rassert(insert_index != node->n_refs); // We must be inserting to an index passed the end of the list
     }
 
     // Pre-emptively increment the count of this sub-tree
@@ -278,7 +280,7 @@ bool counted_btree_t::leaf_insert(buf_lock_t &blk, unsigned index, std::string &
     unsigned offset = 0;
     unsigned i = 0;
     while(i < index) {
-        assert(i <= node->n_refs);
+        rassert(i <= node->n_refs);
         blob_t b(const_cast<char *>(node->refs + offset), blob::btree_maxreflen);
         offset += b.refsize(blksize);
         i++;
@@ -374,7 +376,7 @@ void counted_btree_t::internal_remove(buf_lock_t &blk, unsigned index) {
         remove_index++;
         sub_ref = node->refs + index;
 
-        assert(remove_index != node->n_refs);
+        rassert(remove_index != node->n_refs);
     }
 
     // Remove from sub-tree
@@ -409,7 +411,7 @@ void counted_btree_t::leaf_remove(buf_lock_t &blk, unsigned index) {
     unsigned offset = 0;
     unsigned remove_index = 0;
     while(remove_index < index) {
-        assert(remove_index < node->n_refs);
+        rassert(remove_index < node->n_refs);
         blob_t b(const_cast<char *>(node->refs + offset), blob::btree_maxreflen);
         offset += b.refsize(blksize);
         remove_index++;
