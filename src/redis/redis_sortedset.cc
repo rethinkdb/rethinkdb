@@ -104,7 +104,7 @@ struct sorted_set_set_oper_t : set_oper_t {
             score_index.remove(i);
 
             find_member mem(txn.get(), this, member);
-            assert(mem.loc.value.get());
+            rassert(mem.loc.value.get());
             scoped_malloc<redis_nested_sorted_set_value_t> null;
             mem.loc.value.swap(null);
 
@@ -122,7 +122,7 @@ struct sorted_set_set_oper_t : set_oper_t {
 
             std::string member = iter.member();
             find_member mem(txn.get(), this, member);
-            assert(mem.loc.value.get());
+            rassert(mem.loc.value.get());
             scoped_malloc<redis_nested_sorted_set_value_t> null;
             mem.loc.value.swap(null);
             
@@ -211,7 +211,7 @@ private:
             }
         }
 
-        assert(index_to_remove >= 0);
+        rassert(index_to_remove >= 0);
         score_index.remove(index_to_remove);
     }
 

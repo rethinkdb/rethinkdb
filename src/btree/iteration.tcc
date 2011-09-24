@@ -331,6 +331,11 @@ void slice_keys_iterator_t<Value>::done() {
         delete leaves_iterator;
         leaves_iterator = NULL;
     }
+    {
+        on_thread_t th(transaction->home_thread());
+        superblock.reset();
+    }
+
     no_more_data = true;
 }
 

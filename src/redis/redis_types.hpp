@@ -2,7 +2,6 @@
 #define __PROTOCOL_REDIS_TYPES_H__
 
 #include "serializer/types.hpp"
-#include "buffer_cache/mirrored/mirrored.hpp"
 #include "buffer_cache/blob.hpp"
 #include "btree/node.hpp"
 #include "boost/shared_ptr.hpp"
@@ -52,7 +51,7 @@ struct redis_value_t {
 
     // Warning, the caller is responsible for ensuring that the expiration time is valid
     uint32_t get_expiration() const {
-        assert(expiration_set());
+        rassert(expiration_set());
         return metadata_values[0];
     }
 
@@ -181,7 +180,7 @@ public:
             break;
         }
         
-        assert(NULL);    
+        rassert(NULL);    
         return 0;
     }
 

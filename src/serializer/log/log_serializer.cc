@@ -181,7 +181,11 @@ struct ls_start_existing_fsm_t :
 };
 
 log_serializer_t::log_serializer_t(dynamic_config_t dynamic_config_, private_dynamic_config_t private_config_)
-    : dynamic_config(dynamic_config_),
+    : no_tokens_cond(NULL),
+#ifndef NDEBUG
+      expecting_no_more_tokens(false),
+#endif
+      dynamic_config(dynamic_config_),
       private_config(private_config_),
       shutdown_callback(NULL),
       state(state_unstarted),
@@ -486,6 +490,7 @@ void log_serializer_t::register_block_token(ls_block_token_pointee_t *token, off
 }
 
 void log_serializer_t::unregister_block_token(ls_block_token_pointee_t *token) {
+    rassert(!expecting_no_more_tokens);
     std::map<ls_block_token_pointee_t *, off64_t>::iterator token_offset_it = token_offsets.find(token);
     rassert(token_offset_it != token_offsets.end());
 
@@ -504,8 +509,16 @@ void log_serializer_t::unregister_block_token(ls_block_token_pointee_t *token) {
         // Mark offset garbage in GC
         data_block_manager->mark_token_garbage(token_offset_it->second);
     }
-    
+
     token_offsets.erase(token_offset_it);
+
+    rassert(!(token_offsets.empty() ^ offset_tokens.empty()));
+    if (token_offsets.empty() && offset_tokens.empty() && no_tokens_cond) {
+        no_tokens_cond->pulse();
+#ifndef NDEBUG
+        expecting_no_more_tokens = true;
+#endif
+    }
 }
 
 void log_serializer_t::remap_block_to_new_offset(off64_t current_offset, off64_t new_offset) {
@@ -586,6 +599,8 @@ repli_timestamp_t log_serializer_t::get_recency(block_id_t id) {
 }
 
 bool log_serializer_t::shutdown(cond_t *cb) {
+    rassert(coro_t::self());
+
     rassert(cb);
     rassert(state == state_ready);
     assert_thread();
@@ -593,7 +608,21 @@ bool log_serializer_t::shutdown(cond_t *cb) {
 
     shutdown_state = shutdown_begin;
     shutdown_in_one_shot = true;
-    
+
+    rassert(!(token_offsets.empty() ^ offset_tokens.empty()));
+    if (!(token_offsets.empty() && offset_tokens.empty())) {
+        cond_t no_tokens_remain;
+        no_tokens_cond = &no_tokens_remain;
+        no_tokens_remain.wait();
+        no_tokens_cond = NULL;
+    } else {
+#ifndef NDEBUG
+        expecting_no_more_tokens = true;
+#endif
+    }
+    rassert(expecting_no_more_tokens);
+    rassert(token_offsets.empty() && offset_tokens.empty());
+
     return next_shutdown_step();
 }
 
@@ -731,7 +760,15 @@ ls_block_token_pointee_t::ls_block_token_pointee_t(log_serializer_t *serializer,
 }
 
 void ls_block_token_pointee_t::destroy() {
-    coro_t::spawn_on_thread(serializer_->home_thread(), boost::bind(&ls_block_token_pointee_t::do_destroy, this));
+    // We used to call do_destroy with coro_t::spawn_on_thread, but
+    // that turned out to be too expensive.  It spawned too many
+    // coroutines in one big non-blocking glomp, probably when
+    // deleting a bunch of patch storage tokens (50MB is just enough
+    // to break 10000 coroutines if we do this).  The function we're
+    // calling doesn't need to run in a coroutine (AND NEVER WILL!) so
+    // this is not a problem.
+
+    one_way_do_on_thread(serializer_->home_thread(), boost::bind(&ls_block_token_pointee_t::do_destroy, this));
 }
 
 void ls_block_token_pointee_t::do_destroy() {

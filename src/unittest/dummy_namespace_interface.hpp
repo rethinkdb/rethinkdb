@@ -18,8 +18,8 @@ template<class protocol_t>
 struct dummy_timestamper_t {
 
 public:
-    explicit dummy_timestamper_t(boost::shared_ptr<ready_store_view_t<protocol_t> > next_)
-        : next(next_), timestamp(next_->get_timestamp()) { }
+    explicit dummy_timestamper_t(boost::shared_ptr<store_view_t<protocol_t> > next_)
+        : next(next_), timestamp(state_timestamp_t::zero()) { }
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t read, order_token_t tok) {
         cond_t interruptor;
@@ -34,7 +34,7 @@ public:
     }
 
 private:
-    boost::shared_ptr<ready_store_view_t<protocol_t> > next;
+    boost::shared_ptr<store_view_t<protocol_t> > next;
     state_timestamp_t timestamp;
 };
 
@@ -93,7 +93,7 @@ class dummy_namespace_interface_t :
     public namespace_interface_t<protocol_t>
 {
 public:
-    dummy_namespace_interface_t(std::vector<typename protocol_t::region_t> shards, std::vector<boost::shared_ptr<ready_store_view_t<protocol_t> > > stores) {
+    dummy_namespace_interface_t(std::vector<typename protocol_t::region_t> shards, std::vector<boost::shared_ptr<store_view_t<protocol_t> > > stores) {
 
         rassert(stores.size() == shards.size());
 
