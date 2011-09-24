@@ -77,14 +77,14 @@ redis_listener_t::redis_listener_t(int port) :
     /* Set up caches, btrees, and stores */
 
     mirrored_cache_config_t *cache_dynamic_config = new mirrored_cache_config_t;
-    std::vector<boost::shared_ptr<ready_store_view_t<redis_protocol_t> > > stores;
+    std::vector<boost::shared_ptr<store_view_t<redis_protocol_t> > > stores;
     for (int i = 0; i < (int)shards.size(); i++) {
         mirrored_cache_static_config_t cache_static_config;
         cache_t::create(multiplexer->proxies[i], &cache_static_config);
         cache_t *cache = new cache_t(multiplexer->proxies[i], cache_dynamic_config);
         btree_slice_t::create(cache);
         btree_slice_t *btree = new btree_slice_t(cache);
-        stores.push_back(boost::make_shared<dummy_redis_ready_store_view_t>(shards[i], btree));
+        stores.push_back(boost::make_shared<dummy_redis_store_view_t>(shards[i], btree));
     }
 
     /* Set up namespace interface */
