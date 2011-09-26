@@ -144,10 +144,8 @@ dummy_protocol_t::read_response_t dummy_store_view_t::do_read(const dummy_protoc
     return resp;
 }
 
-dummy_protocol_t::write_response_t dummy_store_view_t::do_write(const dummy_protocol_t::write_t &write, UNUSED transition_timestamp_t timestamp, order_token_t otok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+dummy_protocol_t::write_response_t dummy_store_view_t::do_write(const dummy_protocol_t::write_t &write, UNUSED transition_timestamp_t timestamp, order_token_t otok) THROWS_NOTHING {
     parent->order_sink.check_out(otok);
-
-    if (interruptor->is_pulsed() && rng.randint(2)) throw interrupted_exc_t();
 
     dummy_protocol_t::write_response_t resp;
     for (std::map<std::string, std::string>::const_iterator it = write.values.begin();
@@ -156,8 +154,6 @@ dummy_protocol_t::write_response_t dummy_store_view_t::do_write(const dummy_prot
         parent->values[(*it).first] = (*it).second;
         parent->timestamps[(*it).first] = timestamp.timestamp_after();
     }
-
-    if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
 
     return resp;
 }

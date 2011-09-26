@@ -78,10 +78,10 @@ public:
         return do_read(r, t, otok, interruptor);
     }
 
-    typename protocol_t::write_response_t write(typename protocol_t::write_t w, transition_timestamp_t t, order_token_t otok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    typename protocol_t::write_response_t write(typename protocol_t::write_t w, transition_timestamp_t t, order_token_t otok) THROWS_NOTHING {
         rassert(region_is_superset(region, w.get_region()));
         otok = order_checkpoint.check_through(otok);
-        return do_write(w, t, otok, interruptor);
+        return do_write(w, t, otok);
     }
 
     void send_backfill(
@@ -118,9 +118,8 @@ protected:
     virtual typename protocol_t::write_response_t do_write(
         const typename protocol_t::write_t &w,
         transition_timestamp_t t,
-        order_token_t otok,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t) = 0;
+        order_token_t otok)
+        THROWS_NOTHING = 0;
 
     virtual void do_send_backfill(
         std::vector<std::pair<typename protocol_t::region_t, state_timestamp_t> > start_point,

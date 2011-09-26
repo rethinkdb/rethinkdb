@@ -22,10 +22,8 @@ class dummy_protocol_t {
 public:
 
     class region_t {
-
     public:
         static region_t empty() THROWS_NOTHING;
-
         std::set<std::string> keys;
     };
 
@@ -34,39 +32,32 @@ public:
     };
 
     class read_response_t {
-
     public:
         std::map<std::string, std::string> values;
     };
 
     class read_t {
-
     public:
         region_t get_region() const;
         read_t shard(region_t region) const;
         read_response_t unshard(std::vector<read_response_t> resps, temporary_cache_t *cache) const;
-
         region_t keys;
     };
 
     class write_response_t {
-
     public:
         std::map<std::string, std::string> old_values;
     };
 
     class write_t {
-
     public:
         region_t get_region() const;
         write_t shard(region_t region) const;
         write_response_t unshard(std::vector<write_response_t> resps, temporary_cache_t *cache) const;
-
         std::map<std::string, std::string> values;
     };
 
     class backfill_chunk_t {
-
     public:
         std::string key, value;
         state_timestamp_t timestamp;
@@ -99,7 +90,7 @@ public:
 
 protected:
     dummy_protocol_t::read_response_t do_read(const dummy_protocol_t::read_t &read, state_timestamp_t timestamp, order_token_t otok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
-    dummy_protocol_t::write_response_t do_write(const dummy_protocol_t::write_t &write, transition_timestamp_t timestamp, order_token_t otok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+    dummy_protocol_t::write_response_t do_write(const dummy_protocol_t::write_t &write, transition_timestamp_t timestamp, order_token_t otok) THROWS_NOTHING;
 
     void do_send_backfill(
         std::vector<std::pair<dummy_protocol_t::region_t, state_timestamp_t> > start_point,

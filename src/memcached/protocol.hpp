@@ -144,7 +144,7 @@ protected:
     /* `store_view_t` interface: */
 
     memcached_protocol_t::read_response_t do_read(const memcached_protocol_t::read_t &r, state_timestamp_t t, order_token_t otok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
-    memcached_protocol_t::write_response_t do_write(const memcached_protocol_t::write_t &w, transition_timestamp_t t, order_token_t otok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+    memcached_protocol_t::write_response_t do_write(const memcached_protocol_t::write_t &w, transition_timestamp_t t, order_token_t otok) THROWS_NOTHING;
 
     void do_send_backfill(
         UNUSED std::vector<std::pair<key_range_t, state_timestamp_t> > start_point,
