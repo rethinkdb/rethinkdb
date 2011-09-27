@@ -350,8 +350,8 @@ void data_block_manager_t::mark_garbage(off64_t offset) {
     unsigned int block_id = static_config->block_index(offset);
     
     gc_entry *entry = entries.get(extent_id);
-    rassert(entry->g_array[block_id] == 0);
-    rassert(entry->i_array[block_id] == 1);
+    rassert(entry->i_array[block_id] == 1, "with block_id = %u", block_id);
+    rassert(entry->g_array[block_id] == 0, "with block_id = %u", block_id);
     entry->i_array.set(block_id, 0);
     entry->update_g_array(block_id);
     

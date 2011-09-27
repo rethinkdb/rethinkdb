@@ -18,23 +18,21 @@ template<class protocol_t>
 struct dummy_timestamper_t {
 
 public:
-    explicit dummy_timestamper_t(boost::shared_ptr<ready_store_view_t<protocol_t> > next_)
-        : next(next_), timestamp(next_->get_timestamp()) { }
+    explicit dummy_timestamper_t(boost::shared_ptr<store_view_t<protocol_t> > next_)
+        : next(next_), timestamp(state_timestamp_t::zero()) { }
 
-    typename protocol_t::read_response_t read(typename protocol_t::read_t read, order_token_t tok) {
-        cond_t interruptor;
-        return next->read(read, timestamp, tok, &interruptor);
+    typename protocol_t::read_response_t read(typename protocol_t::read_t read, order_token_t tok, signal_t *interruptor) {
+        return next->read(read, timestamp, tok, interruptor);
     }
 
     typename protocol_t::write_response_t write(typename protocol_t::write_t write, order_token_t tok) {
-        cond_t interruptor;
         transition_timestamp_t ts = transition_timestamp_t::starting_from(timestamp);
         timestamp = ts.timestamp_after();
-        return next->write(write, ts, tok, &interruptor);
+        return next->write(write, ts, tok);
     }
 
 private:
-    boost::shared_ptr<ready_store_view_t<protocol_t> > next;
+    boost::shared_ptr<store_view_t<protocol_t> > next;
     state_timestamp_t timestamp;
 };
 
@@ -59,7 +57,7 @@ public:
             typename protocol_t::region_t ixn = region_intersection(timestampers[i].region, read.get_region());
             if (!region_is_empty(ixn)) {
                 typename protocol_t::read_t subread = read.shard(ixn);
-                typename protocol_t::read_response_t subresponse = timestampers[i].timestamper->read(subread, tok);
+                typename protocol_t::read_response_t subresponse = timestampers[i].timestamper->read(subread, tok, interruptor);
                 responses.push_back(subresponse);
                 if (interruptor->is_pulsed()) throw interrupted_exc_t();
             }
@@ -93,7 +91,7 @@ class dummy_namespace_interface_t :
     public namespace_interface_t<protocol_t>
 {
 public:
-    dummy_namespace_interface_t(std::vector<typename protocol_t::region_t> shards, std::vector<boost::shared_ptr<ready_store_view_t<protocol_t> > > stores) {
+    dummy_namespace_interface_t(std::vector<typename protocol_t::region_t> shards, std::vector<boost::shared_ptr<store_view_t<protocol_t> > > stores) {
 
         rassert(stores.size() == shards.size());
 

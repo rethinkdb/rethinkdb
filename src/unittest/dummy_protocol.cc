@@ -120,16 +120,14 @@ dummy_underlying_store_t::dummy_underlying_store_t(dummy_protocol_t::region_t r)
     }
 }
 
-dummy_ready_store_view_t::dummy_ready_store_view_t(dummy_underlying_store_t *p, dummy_protocol_t::region_t region, state_timestamp_t initial_timestamp) :
-    ready_store_view_t<dummy_protocol_t>(region, initial_timestamp), parent(p)
+dummy_store_view_t::dummy_store_view_t(dummy_underlying_store_t *p, dummy_protocol_t::region_t region) :
+    store_view_t<dummy_protocol_t>(region), parent(p)
 {
-    for (std::set<std::string>::iterator it = region.keys.begin(); it != region.keys.end(); it++) {
-        rassert(parent->timestamps[*it] <= initial_timestamp);
-    }
+    rassert(region_is_superset(parent->region, region));
 }
 
-dummy_protocol_t::read_response_t dummy_ready_store_view_t::do_read(const dummy_protocol_t::read_t &read, state_timestamp_t timestamp, order_token_t otok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    order_sink.check_out(otok);
+dummy_protocol_t::read_response_t dummy_store_view_t::do_read(const dummy_protocol_t::read_t &read, state_timestamp_t timestamp, order_token_t otok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    parent->order_sink.check_out(otok);
 
     if (interruptor->is_pulsed() && rng.randint(2)) throw interrupted_exc_t();
 
@@ -146,10 +144,8 @@ dummy_protocol_t::read_response_t dummy_ready_store_view_t::do_read(const dummy_
     return resp;
 }
 
-dummy_protocol_t::write_response_t dummy_ready_store_view_t::do_write(const dummy_protocol_t::write_t &write, UNUSED transition_timestamp_t timestamp, order_token_t otok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    order_sink.check_out(otok);
-
-    if (interruptor->is_pulsed() && rng.randint(2)) throw interrupted_exc_t();
+dummy_protocol_t::write_response_t dummy_store_view_t::do_write(const dummy_protocol_t::write_t &write, UNUSED transition_timestamp_t timestamp, order_token_t otok) THROWS_NOTHING {
+    parent->order_sink.check_out(otok);
 
     dummy_protocol_t::write_response_t resp;
     for (std::map<std::string, std::string>::const_iterator it = write.values.begin();
@@ -159,12 +155,10 @@ dummy_protocol_t::write_response_t dummy_ready_store_view_t::do_write(const dumm
         parent->timestamps[(*it).first] = timestamp.timestamp_after();
     }
 
-    if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
-
     return resp;
 }
 
-state_timestamp_t dummy_ready_store_view_t::do_send_backfill(
+void dummy_store_view_t::do_send_backfill(
     std::vector<std::pair<dummy_protocol_t::region_t, state_timestamp_t> > start_point,
     boost::function<void(dummy_protocol_t::backfill_chunk_t)> chunk_sender,
     signal_t *interruptor)
@@ -173,7 +167,6 @@ state_timestamp_t dummy_ready_store_view_t::do_send_backfill(
     /* Make a copy so we can sleep and still have the correct semantics */
     std::map<std::string, std::string> values_snapshot = parent->values;
     std::map<std::string, state_timestamp_t> timestamps_snapshot = parent->timestamps;
-    state_timestamp_t timestamp_snapshot = get_timestamp();
 
     if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
 
@@ -190,23 +183,18 @@ state_timestamp_t dummy_ready_store_view_t::do_send_backfill(
             if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
         }
     }
-
-    return timestamp_snapshot;
 }
 
-dummy_outdated_store_view_t::dummy_outdated_store_view_t(dummy_underlying_store_t *p, dummy_protocol_t::region_t r) :
-    outdated_store_view_t<dummy_protocol_t>(r), parent(p) { }
-
-void dummy_outdated_store_view_t::do_receive_backfill_chunk(dummy_protocol_t::backfill_chunk_t chunk, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+void dummy_store_view_t::do_receive_backfill(
+    dummy_protocol_t::backfill_chunk_t chunk,
+    signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t)
+{
     rassert(get_region().keys.count(chunk.key) != 0);
     if (interruptor->is_pulsed() && rng.randint(2)) throw interrupted_exc_t();
     parent->values[chunk.key] = chunk.value;
     parent->timestamps[chunk.key] = chunk.timestamp;
     if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
-}
-
-boost::shared_ptr<ready_store_view_t<dummy_protocol_t> > dummy_outdated_store_view_t::do_done(state_timestamp_t timestamp) THROWS_NOTHING {
-    return boost::make_shared<dummy_ready_store_view_t>(parent, get_region(), timestamp);
 }
 
 }   /* namespace unittest */

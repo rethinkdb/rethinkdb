@@ -54,10 +54,10 @@ redis_protocol_t::write_response_t redis_protocol_t::write_t::unshard(const std:
     return result;
 }
 
-dummy_redis_ready_store_view_t::dummy_redis_ready_store_view_t(key_range_t region, btree_slice_t *b) :
-    ready_store_view_t<redis_protocol_t>(region, state_timestamp_t::zero()), btree(b) { }
+dummy_redis_store_view_t::dummy_redis_store_view_t(key_range_t region, btree_slice_t *b) :
+    store_view_t<redis_protocol_t>(region), btree(b) { }
 
-redis_protocol_t::read_response_t dummy_redis_ready_store_view_t::do_read(const redis_protocol_t::read_t &r, UNUSED state_timestamp_t t, order_token_t otok, UNUSED signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+redis_protocol_t::read_response_t dummy_redis_store_view_t::do_read(const redis_protocol_t::read_t &r, UNUSED state_timestamp_t t, order_token_t otok, UNUSED signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     try {
         redis_protocol_t::read_response_t response = r.op->execute(btree, otok);
         return response;
@@ -66,7 +66,7 @@ redis_protocol_t::read_response_t dummy_redis_ready_store_view_t::do_read(const 
     }
 }
 
-redis_protocol_t::write_response_t dummy_redis_ready_store_view_t::do_write(const redis_protocol_t::write_t &w, transition_timestamp_t t, order_token_t otok, UNUSED signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+redis_protocol_t::write_response_t dummy_redis_store_view_t::do_write(const redis_protocol_t::write_t &w, transition_timestamp_t t, order_token_t otok) THROWS_NOTHING {
     try {
         redis_protocol_t::write_response_t response = w.op->execute(btree, t, otok);
         return response;

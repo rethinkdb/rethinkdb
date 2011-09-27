@@ -89,6 +89,7 @@ void slice_leaves_iterator_t<Value>::done() {
         delete traversal_state.back().lock;
         traversal_state.pop_back();
     }
+    superblock.reset();
     nevermore = true;
 }
 
