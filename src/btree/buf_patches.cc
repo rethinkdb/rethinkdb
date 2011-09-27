@@ -161,7 +161,7 @@ leaf_erase_presence_patch_t::leaf_erase_presence_patch_t(block_id_t block_id, pa
 
 leaf_erase_presence_patch_t::leaf_erase_presence_patch_t(block_id_t block_id, patch_counter_t patch_counter, const char *data, uint16_t data_length)
     : buf_patch_t(block_id, patch_counter, buf_patch_t::OPER_LEAF_ERASE_PRESENCE),
-      key_buf(NULL) {
+      key_buf(0) {
     const btree_key_t *data_as_key = reinterpret_cast<const btree_key_t *>(data);
     guarantee_patch_format(data_as_key->fits(data_length));
 
