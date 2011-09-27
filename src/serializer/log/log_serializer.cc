@@ -490,6 +490,7 @@ void log_serializer_t::register_block_token(ls_block_token_pointee_t *token, off
 }
 
 void log_serializer_t::unregister_block_token(ls_block_token_pointee_t *token) {
+    assert_thread();
     rassert(!expecting_no_more_tokens);
     std::map<ls_block_token_pointee_t *, off64_t>::iterator token_offset_it = token_offsets.find(token);
     rassert(token_offset_it != token_offsets.end());
@@ -500,9 +501,13 @@ void log_serializer_t::unregister_block_token(ls_block_token_pointee_t *token) {
 
         if (offset_token_it->second == token) {
             offset_tokens.erase(offset_token_it);
-            break;
+            goto successfully_removed_entry;
         }
     }
+
+    unreachable("We probably tried unregistering the same token twice.");
+
+ successfully_removed_entry:
 
     const bool last_token_for_offset = offset_tokens.find(token_offset_it->second) == offset_tokens.end();
     if (last_token_for_offset) {
