@@ -60,10 +60,12 @@ template<class protocol_t, class value_t>
 class region_map_t {
 public:
     region_map_t() THROWS_NOTHING { }
+
     region_map_t(typename protocol_t::region_t r, value_t v) THROWS_NOTHING {
         regions_and_values.push_back(std::make_pair(r, v));
     }
-    region_map_t(const std::vector<std::pair<typename protocol_t::region_t, value_t> > &x) THROWS_NOTHING :
+
+    explicit region_map_t(const std::vector<std::pair<typename protocol_t::region_t, value_t> > &x) THROWS_NOTHING :
         regions_and_values(x)
     {
         /* Make sure that the vector we were given is valid */
