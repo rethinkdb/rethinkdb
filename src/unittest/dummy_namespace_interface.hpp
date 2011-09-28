@@ -146,7 +146,12 @@ public:
                 rassert(metadata.get_as_pairs().size() == 1);
                 rassert(metadata.get_as_pairs()[0].first == shards[i]);
                 rassert(metadata.get_as_pairs()[0].second.size() == 0);
-                txn->set_metadata(region_map_t<protocol_t, binary_blob_t>(shards[i], binary_blob_t(state_timestamp_t::zero())));
+                txn->set_metadata(
+                    region_map_transform<protocol_t, state_timestamp_t, binary_blob_t>(
+                        region_map_t<protocol_t, state_timestamp_t>(shards[i], state_timestamp_t::zero()),
+                        &binary_blob_t::make<state_timestamp_t>
+                        )
+                    );
             }
 
             dummy_performer_t<protocol_t> *performer = new dummy_performer_t<protocol_t>(stores[i]);

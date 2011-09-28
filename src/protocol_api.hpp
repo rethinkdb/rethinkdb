@@ -99,6 +99,19 @@ private:
     std::vector<std::pair<typename protocol_t::region_t, value_t> > regions_and_values;
 };
 
+template<class protocol_t, class old_t, class new_t, class callable_t>
+region_map_t<protocol_t, new_t> region_map_transform(const region_map_t<protocol_t, old_t> &original, const callable_t &callable) {
+    std::vector<std::pair<typename protocol_t::region_t, old_t> > original_pairs = original.get_as_pairs();
+    std::vector<std::pair<typename protocol_t::region_t, new_t> > new_pairs;
+    for (int i = 0; i < (int)original_pairs.size(); i++) {
+        new_pairs.push_back(std::make_pair(
+                original_pairs[i].first,
+                callable(original_pairs[i].second)
+                ));
+    }
+    return region_map_t<protocol_t, new_t>(new_pairs);
+}
+
 /* `store_view_t` is an abstract class that represents a region of a key-value
 store for some protocol. It's templatized on the protocol (`protocol_t`). It
 covers some `protocol_t::region_t`, which is returned by `get_region()`.
