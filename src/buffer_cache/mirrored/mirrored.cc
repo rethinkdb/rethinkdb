@@ -430,7 +430,7 @@ void *mc_inner_buf_t::acquire_snapshot_data(version_id_t version_to_access, file
             return snap->acquire_data(io_account);
         }
     }
-    return NULL;
+    unreachable("No acceptable snapshotted version found for version %lu", version_to_access);
 }
 
 // TODO (sam): Look at who's passing this void pointer.
