@@ -26,7 +26,7 @@ auto_drainer_t::lock_t::lock_t(const lock_t &l) : parent(l.parent) {
     if (parent) parent->incref();
 }
 
-auto_drainer_t::lock_t::lock_t &auto_drainer_t::lock_t::operator=(const lock_t &l) {
+auto_drainer_t::lock_t &auto_drainer_t::lock_t::operator=(const lock_t &l) {
     if (l.parent) l.parent->incref();
     if (parent) parent->decref();
     parent = l.parent;

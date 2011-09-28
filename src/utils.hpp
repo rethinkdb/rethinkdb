@@ -4,10 +4,10 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <iostream>
-#include <string>
 #include <map>
+#include <string>
+#include <vector>
 
-// #include "config/args.hpp"
 #include "errors.hpp"
 #include <boost/uuid/uuid.hpp>
 #include <boost/function.hpp>
@@ -102,6 +102,42 @@ private:
     std::map<key_t, value_t> *map;
     typename std::map<key_t, value_t>::iterator it;
 };
+
+/* Binary blob that represents some unknown POD type */
+class binary_blob_t {
+public:
+    binary_blob_t() { }
+
+    template<class obj_t>
+    explicit binary_blob_t(const obj_t &o) : storage(reinterpret_cast<const uint8_t *>(&o), reinterpret_cast<const uint8_t *>(&o + 1)) { }
+
+    size_t size() const {
+        return storage.size();
+    }
+
+    void *data() {
+        return storage.data();
+    }
+
+    const void *data() const {
+        return storage.data();
+    }
+
+private:
+    std::vector<uint8_t> storage;
+};
+
+template<class obj_t>
+obj_t &binary_blob_cast(binary_blob_t &blob) {
+    rassert(blob.size() == sizeof(obj_t));
+    return *reinterpret_cast<obj_t *>(blob.data());
+}
+
+template<class obj_t>
+const obj_t &binary_blob_cast(const binary_blob_t &blob) {
+    rassert(blob.size() == sizeof(obj_t));
+    return *reinterpret_cast<const obj_t *>(blob.data());
+}
 
 // Like std::max, except it's technically not associative.
 repli_timestamp_t repli_max(repli_timestamp_t x, repli_timestamp_t y);
