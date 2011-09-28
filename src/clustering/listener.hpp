@@ -8,7 +8,19 @@
 
 /* `listener_t` keeps a store-view in sync with a branch. Its constructor
 backfills from an existing mirror on a branch into the store, and as long as it
-exists the store will receive real-time updates. */
+exists the store will receive real-time updates.
+
+There are three ways a `listener_t` can go wrong:
+ *  You can interrupt the constructor. It will throw `interrupted_exc_t`. The
+    store may be left in a half-backfilled state; you can determine this through
+    the store's metadata.
+ *  It can fail to join the branch. In this case, the constructor will throw a
+    `resource_lost_exc_t`.
+ *  It can successfully join the branch, but not be able to keep up with real-
+    time updates. In that case, the constructor will succeed but
+    `get_outdated_signal()` will be pulsed. Note that it's possible for
+    `get_outdated_signal()` to be pulsed at the time the constructor returns.
+*/
 
 template<class protocol_t>
 class listener_t {
@@ -16,8 +28,8 @@ class listener_t {
 public:
     listener_t(
             mailbox_cluster_t *c,
+            boost::shared_ptr<metadata_read_view_t<namespace_metadata_t<protocol_t> > > namespace_metadata,
             store_view_t<protocol_t> *s,
-            boost::shared_ptr<metadata_read_view_t<std::map<branch_id_t, branch_metadata_t<protocol_t> > > > branches_metadata,
             branch_id_t bid,
             mirror_id_t backfiller_id,
             signal_t *interruptor)
@@ -25,39 +37,78 @@ public:
 
         cluster(c),
         store(s),
+        branch_id(bid),
 
         write_mailbox(cluster, boost::bind(&listener_t::on_write, this,
-            auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4)),
+            auto_drainer_t::lock_t(&drainer), _1, _2, _3)),
         writeread_mailbox(cluster, boost::bind(&listener_t::on_writeread, this,
-            auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4)),
+            auto_drainer_t::lock_t(&drainer), _1, _2, _3)),
         read_mailbox(cluster, boost::bind(&listener_t::on_read, this,
-            auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4)),
-
-        branch_id(bid)
+            auto_drainer_t::lock_t(&drainer), _1, _2, _3)),
     {
-        /* Validate input */
-        rassert(branches_metadata->get().count(branch_id) > 0);
-        rassert(region_is_superset(branches_metadata->get()[branch_id].region, store->get_region()));
-
         if (interruptor->is_pulsed()) {
             throw interrupted_exc_t();
         }
 
-        /* Attempt to register for reads and writes */
         boost::shared_ptr<metadata_read_view_t<branch_metadata_t<protocol_t> > > branch_metadata =
-            metadata_member(branch_id, branches_metadata);
+            metadata_member(branch_id, metadata_field(&namespace_metadata_t<protocol_t>::branches, namespace_metadata)); 
+
+        rassert(region_is_superset(branch_metadata->get().region, store->get_region()));
+
+        /* Attempt to register for reads and writes */
         try_start_receiving_writes(branch_metadata, interruptor);
 
         /* Backfill */
-        
+        backfillee<protocol_t>(
+            cluster,
+            store,
+            metadata_field(&mirror_metadata_t<protocol_t>::backfiller,
+                metadata_member(backfiller_id,
+                    metadata_field(&branch_metadata_t<protocol_t>::mirrors,
+                        branch_metadata
+                        )
+                    )
+                ),
+            interruptor
+            );
 
-        /* If there was a data gap, update the outdated-signal accordingly. This
-        must be done before we return from the constructor. */
-        if (registration_result_cond.get_value() &&
-                backfill_done_cond.get_value().backfill_end_timestamp <
-                registration_result_cond.get_value()->broadcaster_begin_timestamp) {
-            data_gap_cond.pulse();
-            outdated_signal.add(&data_gap_cond);
+        /* Check where the backfill sent us to. If the backfill sent us to a
+        reasonable place, then pulse `backfill_done_cond`. Otherwise, pulse
+        `backfill_failed_cond`. One or the other must be done before we return
+        from the constructor. */
+        if (registration_result_cond.get_value()) {
+
+            state_timestamp_t streaming_begin_point =
+                registration_result_cond.get_value()->broadcaster_begin_timestamp;
+            std::vector<std::pair<typename protocol_t::region_t, version_range_t> > backfill_end_point =
+                region_map_transform<protocol_t, binary_blob_t, version_range_t>(
+                    store->begin_read_transaction(interruptor)->get_metadata(interruptor),
+                    &binary_blob_t::get<version_range_t>
+                    ).get_as_pairs();
+
+            /* Sanity checking. The backfiller should have put us into a
+            coherent position because it shouldn't have been in the metadata if
+            it was incoherent. */
+            rassert(backfill_end_point.size() == 0);
+            rassert(backfill_end_point[0].second.is_coherent());
+            rassert(backfill_end_point[0].second.earliest.branch == branch_id);
+
+            if (backfill_end_point[0].second.earliest.timestamp >= streaming_begin_point) {
+                /* The backfill put us in a reasonable spot. Pulse
+                `backfill_done_cond` so real-time operations can proceed. */
+                backfill_done_cond.pulse(backfill_end_point[0].second.earliest.timestamp);
+            } else {
+                /* There was a gap between the data the backfiller sent us and
+                the beginning of the data we got from the broadcaster. We're
+                on the branch (namely, at the point the backfiller put us) but
+                we can't keep up with realtime updates. Pulse
+                `backfill_failed_cond` to notify realtime operations not to
+                proceed and set `outdated_signal` so people know we're not
+                keeping up with real-time operations. But don't throw an
+                exception, since we're on the branch. */
+                backfill_failed_cond.pulse();
+                outdated_signal.add(&backfill_failed_cond);
+            }
         }
     }
 
@@ -94,29 +145,33 @@ private:
     be used for any other purpose. */
     listener_t(
             mailbox_cluster_t *c,
+            boost::shared_ptr<metadata_read_view_t<namespace_metadata_t<protocol_t> > > namespace_metadata,
             store_view_t<protocol_t> *s,
-            boost::shared_ptr<metadata_read_view_t<branch_metadata_t<protocol_t> > > branch_metadata,
             branch_id_t bid,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) :
 
         cluster(c),
         store(s),
+        branch_id(bid)
 
         write_mailbox(cluster, boost::bind(&listener_t::on_write, this,
-            auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4)),
+            auto_drainer_t::lock_t(&drainer), _1, _2, _3)),
         writeread_mailbox(cluster, boost::bind(&listener_t::on_writeread, this,
-            auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4)),
+            auto_drainer_t::lock_t(&drainer), _1, _2, _3)),
         read_mailbox(cluster, boost::bind(&listener_t::on_read, this,
-            auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4)),
+            auto_drainer_t::lock_t(&drainer), _1, _2, _3)),
 
-        branch_id(bid)
     {
         if (interruptor->is_pulsed()) {
             throw interrupted_exc_t();
         }
 
-        /* Make sure the initial metadata is sane */
+        boost::shared_ptr<metadata_read_view_t<branch_metadata_t<protocol_t> > > branch_metadata =
+            metadata_member(branch_id, metadata_field(&namespace_metadata_t<protocol_t>::branches, namespace_metadata)); 
+
+        /* Make sure the initial state of the store is sane */
+        rassert(store->get_region() == branch_metadata->get().region);
         region_map_t<typename protocol_t::region_t, binary_blob_t> initial_metadata =
             store->begin_read_transaction(interruptor)->get_metadata(interruptor);
         rassert(initial_metadata.get_as_pairs().size() == 1);
@@ -136,13 +191,11 @@ private:
         }
 
         /* Pretend we just finished an imaginary backfill */
-        backfill_succeeded_t fake_success_record;
-        fake_success_record.backfill_end_timestamp = initial_timestamp;
-        backfill_done_cond.pulse(fake_success_record);
+        backfill_done_cond.pulse(initial_timestamp);
 
         /* When operating in this mode, the only reason we can become outdated
         is if we lose contact with the broadcaster. There cannot possibly be a
-        data gap, and `data_gap_cond` is unused. */
+        data gap, and `backfill_failed_cond` is unused. */
     }
 
     /* `try_start_receiving_writes()` is called from within the constructors. It
@@ -167,6 +220,7 @@ private:
                 ));
         } catch (resource_lost_exc_t) {
             registration_result_cond.pulse(boost::optional<registration_succeeded_t>());
+            return;
         }
 
         wait_any_t waiter(&intro_receiver, interruptor, registrant->get_failed_signal());
@@ -188,149 +242,219 @@ private:
     }
 
     void on_write(auto_drainer_t::lock_t keepalive,
-            typename protocol_t::write_t write, transition_timestamp_t ts, order_token_t tok,
+            typename protocol_t::write_t write,
+            transition_timestamp_t transition_timestamp,
             async_mailbox_t<void()>::address_t ack_addr)
             THROWS_NOTHING
     {
-        coro_fifo_acq_t order_preserver;
-        order_preserver.enter(&operation_order_manager);
+        /* IMPLICIT ASSUMPTION WARNING: We assume that operations acquire the
+        mutex in the same order they arrive over the network. I think this works
+        because of our cooperative scheduler. */
 
-        /* Block until registration has completely succeeded or failed. */
-        {
-            wait_any_t waiter(registration_result_cond.get_ready_signal(), keepalive.get_drain_signal());
-            waiter.wait_lazily_unordered();
-            if (keepalive.get_drain_signal()->is_pulsed()) {
-                return;
-            }
-        }
+        /* Acquire mutex. We use the mutex to ensure that operations don't get
+        reordered when we're blocking as part of the startup process. */
+        mutex_acquisition_t mutex_acq(&operation_order_mutex);
 
-        if (!registration_result_cond.get_value()) {
-            /* Registration never succeeded; for some reason a few writes were
-            transmitted anyway, and we're one of them. Abort. */
-            return;
-        }
-
-        /* Block until the backfill succeeds or fails. */
-        {
-            wait_any_t waiter(backfill_done_cond.get_ready_signal(), keepalive.get_drain_signal());
-            waiter.wait_lazily_unordered();
-            if (keepalive.get_drain_signal()->is_pulsed()) {
-                return;
-            }
-        }
-
-        if (backfill_done_cond.get_value().backfill_end_timestamp <
-                registration_result_cond.get_value()->broadcaster_begin_timestamp) {
-            /* There was a gap between the end of the backfill and the beginning
-            of the real-time streaming operations. The only way to stay
-            consistent is to throw away all the real-time streaming operations
-            and mark ourselves outdated. */
-            return;
-        }
-
-        if (ts.timestamp_before() < backfill_done_cond.get_value()->backfill_end_timestamp) {
-            /* `write` is a duplicate; we got it both as part of the backfill,
-            and from the broadcaster. Ignore this copy of it. */
-            return;
-        }
-
-        /* TODO: This is fragile. The key-value store should use the timestamps
-        for ordering and should be durable against `write()` being called out of
-        order. */
-        order_preserver.leave();
-
-        /* Perform the operation */
         try {
-            backfill_done_cond.get_value()->ready_store->write(
-                write, ts, tok, keepalive.get_drain_signal());
+            /* Block until registration has completely succeeded or failed. */
+            {
+                wait_any_t waiter(registration_result_cond.get_ready_signal(), keepalive.get_drain_signal());
+                waiter.wait_lazily_unordered();
+                if (keepalive.get_drain_signal()->is_pulsed()) {
+                    throw interrupted_exc_t();
+                }
+            }
+
+            if (!registration_result_cond.get_value()) {
+                /* Registration never succeeded; for some reason a few writes
+                were transmitted anyway, and we're one of them. Abort. */
+                return;
+            }
+
+            /* Block until the backfill succeeds or fails. */
+            {
+                wait_any_t waiter(backfill_done_cond.get_ready_signal(), &backfill_failed_cond, keepalive.get_drain_signal());
+                waiter.wait_lazily_unordered();
+                if (keepalive.get_drain_signal()->is_pulsed()) {
+                    throw interrupted_exc_t();
+                }
+            }
+
+            if (backfill_failed_cond.is_pulsed()) {
+                /* There was a gap between the end of the backfill and the
+                beginning of the real-time streaming operations. The only way to
+                stay consistent is to throw away all the real-time streaming
+                operations and mark ourselves outdated. The constructor will
+                take care of marking us outdated. */
+                return;
+            }
+
+            if (ts.timestamp_before() < backfill_done_cond.get_value()) {
+                /* `write` is a duplicate; we got it both as part of the
+                backfill, and from the broadcaster. Ignore this copy of it. */
+                return;
+            }
+
+            /* Start a transaction prior to releasing the mutex */
+            boost::shared_ptr<typename store_view_t<protocol_t>::write_transaction_t> transaction =
+                store->begin_write_transaction(keepalive.get_drain_signal());
+
+            /* Release the mutex */
+            {
+                mutex_acquisition_t doomed;
+                swap(mutex_acq, doomed);
+            }
+
+#ifndef NDEBUG
+            /* Sanity-check metadata */
+            std::vector<std::pair<typename protocol_t::region_t, version_range_t> > backfill_end_point =
+                region_map_transform<protocol_t, binary_blob_t, version_range_t>(
+                    transaction->get_metadata(keepalive.get_drain_signal()),
+                    &binary_blob_t::get<version_range_t>
+                    ).get_as_pairs();
+            rassert(backfill_end_point.size() == 1);
+            rassert(backfill_end_point[0].second.is_coherent());
+            rassert(backfill_end_point[0].second.earliest.timestamp ==
+                transition_timestamp.timestamp_before());
+#endif
+
+            /* Update metadata */
+            transaction->set_metadata(region_map_t<protocol_t, binary_blob_t>(
+                store->get_region(),
+                binary_blob_t(version_range_t(version_t(branch_id, transition_timestamp.timestamp_after())))
+                ));
+
+            /* Perform the operation */
+            transaction->write(
+                write,
+                transition_timestamp);
+
+            send(cluster, ack_addr);
+
         } catch (interrupted_exc_t) {
-            /* We're shutting down; don't bother finishing this operation. */
             return;
         }
-
-        send(cluster, ack_addr);
     }
 
     /* See the note at the place where `writeread_mailbox` is declared for an
     explanation of why `on_writeread()` and `on_read()` are here. */
 
     void on_writeread(auto_drainer_t::lock_t keepalive,
-            typename protocol_t::write_t write, transition_timestamp_t ts, order_token_t tok,
+            typename protocol_t::write_t write,
+            transition_timestamp_t transition_timestamp,
             typename async_mailbox_t<void(typename protocol_t::write_response_t)>::address_t ack_addr)
             THROWS_NOTHING
     {
-        /* Even though we aren't doing anything that could block, go through the
-        order preserver anyway to maintain ordering relative to calls to
-        `on_write()` */
-        coro_fifo_acq_t order_preserver;
-        order_preserver.enter(&operation_order_manager);
+        mutex_acquisition_t mutex_acq(&operation_order_mutex);
 
-        /* We can't possibly be receiving writereads unless we successfully
-        registered and completed a backfill, and we are not outdated */
-        rassert(registration_result_cond.get_ready_signal()->is_pulsed() &&
-            registration_result_cond.get_value());
-        rassert(backfill_done_cond.get_ready_signal()->is_pulsed());
-        rassert(!data_gap_cond.is_pulsed());
-
-        /* This mustn't be a duplicate operation because we can't register for
-        writereads until the backfill is over */
-        rassert(ts.timestamp_before() >= backfill_done_cond.get_value()->backfill_end_timestamp);
-
-        order_preserver.leave();
-
-        /* Perform the operation */
-        typename protocol_t::write_response_t write_response;
         try {
-            write_response = backfill_done_cond.get_value()->ready_store->write(
-                write, ts, tok, keepalive.get_drain_signal());
+            /* We can't possibly be receiving writereads unless we successfully
+            registered and completed a backfill */
+            rassert(registration_result_cond.get_ready_signal()->is_pulsed() &&
+                registration_result_cond.get_value());
+            rassert(backfill_done_cond.get_ready_signal()->is_pulsed());
+
+            /* This mustn't be a duplicate operation because we can't register for
+            writereads until the backfill is over */
+            rassert(transition_timestamp.timestamp_before() >=
+                backfill_done_cond.get_value());
+
+            /* Start a transaction prior to releasing the mutex */
+            boost::shared_ptr<typename store_view_t<protocol_t>::write_transaction_t> transaction =
+                store->begin_write_transaction(keepalive.get_drain_signal());
+
+            /* Release the mutex */
+            {
+                mutex_acquisition_t doomed;
+                swap(mutex_acq, doomed);
+            }
+
+#ifndef NDEBUG
+            /* Sanity-check metadata */
+            std::vector<std::pair<typename protocol_t::region_t, version_range_t> > backfill_end_point =
+                region_map_transform<protocol_t, binary_blob_t, version_range_t>(
+                    transaction->get_metadata(keepalive.get_drain_signal()),
+                    &binary_blob_t::get<version_range_t>
+                    ).get_as_pairs();
+            rassert(backfill_end_point.size() == 1);
+            rassert(backfill_end_point[0].second.is_coherent());
+            rassert(backfill_end_point[0].second.earliest.timestamp ==
+                transition_timestamp.timestamp_before());
+#endif
+
+            /* Update metadata */
+            transaction->set_metadata(region_map_t<protocol_t, binary_blob_t>(
+                store->get_region(),
+                binary_blob_t(version_range_t(version_t(branch_id, transition_timestamp.timestamp_after())))
+                ));
+
+            /* Perform the operation */
+            typename protocol_t::write_response_t response = transaction->write(
+                write,
+                transition_timestamp);
+
+            send(cluster, ack_addr, response);
+
         } catch (interrupted_exc_t) {
-            /* We're shutting down; don't bother finishing this operation. */
             return;
         }
-
-        send(cluster, ack_addr, write_response);
     }
 
     void on_read(auto_drainer_t::lock_t keepalive,
-            typename protocol_t::read_t read, state_timestamp_t ts, order_token_t tok,
+            typename protocol_t::read_t read,
+            UNUSED state_timestamp_t expected_timestamp,
             typename async_mailbox_t<void(typename protocol_t::read_response_t)>::address_t ack_addr)
             THROWS_NOTHING
     {
-        /* Even though we aren't doing anything that could block, go through the
-        order preserver anyway to maintain ordering relative to calls to
-        `on_write()` */
-        coro_fifo_acq_t order_preserver;
-        order_preserver.enter(&operation_order_manager);
+        mutex_acquisition_t mutex_acq(&operation_order_mutex);
 
-        /* We can't possibly be receiving reads unless we successfully
-        registered and completed a backfill, and we are not outdated */
-        rassert(registration_result_cond.get_ready_signal()->is_pulsed() &&
-            registration_result_cond.get_value());
-        rassert(backfill_done_cond.get_ready_signal()->is_pulsed());
-        rassert(!data_gap_cond.is_pulsed());
-
-        /* This mustn't be a duplicate operation because we can't register for
-        reads until the backfill is over */
-        rassert(ts.timestamp_before() >= backfill_done_cond.get_value()->backfill_end_timestamp);
-
-        order_preserver.leave();
-
-        /* Perform the operation */
-        typename protocol_t::read_response_t read_response;
         try {
-            read_response = backfill_done_cond.get_value()->ready_store->read(
-                read, ts, tok, keepalive.get_drain_signal());
+            /* We can't possibly be receiving reads unless we successfully
+            registered and completed a backfill */
+            rassert(registration_result_cond.get_ready_signal()->is_pulsed() &&
+                registration_result_cond.get_value());
+            rassert(backfill_done_cond.get_ready_signal()->is_pulsed());
+
+            /* Start a transaction prior to releasing the mutex */
+            boost::shared_ptr<typename store_view_t<protocol_t>::read_transaction_t> transaction =
+                store->begin_read_transaction(keepalive.get_drain_signal());
+
+            /* Release the mutex */
+            {
+                mutex_acquisition_t doomed;
+                swap(mutex_acq, doomed);
+            }
+
+#ifndef NDEBUG
+            /* Sanity-check metadata */
+            std::vector<std::pair<typename protocol_t::region_t, version_range_t> > backfill_end_point =
+                region_map_transform<protocol_t, binary_blob_t, version_range_t>(
+                    transaction->get_metadata(keepalive.get_drain_signal()),
+                    &binary_blob_t::get<version_range_t>
+                    ).get_as_pairs();
+            rassert(backfill_end_point.size() == 1);
+            rassert(backfill_end_point[0].second.is_coherent());
+            rassert(backfill_end_point[0].second.earliest.timestamp ==
+                expected_timestamp);
+#endif
+
+            /* Perform the operation */
+            typename protocol_t::read_response_t response = transaction->read(
+                read,
+                keepalive.get_drain_signal());
+
+            send(cluster, ack_addr, response);
+
         } catch (interrupted_exc_t) {
-            /* We're shutting down; don't bother finishing this operation. */
             return;
         }
-
-        send(cluster, ack_addr, read_response);
     }
 
     mailbox_cluster_t *cluster;
 
     store_view_t<protocol_t> *store;
+
+    branch_id_t branch_id;
 
     /* `upgrade_mailbox` and `broadcaster_begin_timestamp` are valid only if we
     successfully registered with the broadcaster at some point. As a sanity
@@ -345,21 +469,13 @@ private:
     };
     promise_t<boost::optional<registration_succeeded_t> > registration_result_cond;
 
-    /* This `coro_fifo_t` is responsible for making sure that operations are
-    run in the same order that they arrive. We also use it to make the
-    writes wait until the backfill is done. */
-    coro_fifo_t operation_order_manager;
+    /* If the backfill succeeds, `backfill_done_cond` will be pulsed with the
+    point that the backfill brought us to. If the backfill fails,
+    `backfill_failed_cond` will be pulsed. */
+    promise_t<state_timestamp_t> backfill_done_cond;
+    cond_t backfill_failed_cond;
 
-    /* `ready_store` and `backfill_end_timestamp` aren't valid until the
-    backfill is over. As a sanity check, we put them in a `promise_t` that only
-    gets pulsed after the backfill is over. If the backfill fails, we never
-    pulse `backfill_done_cond`. */
-    class backfill_succeeded_t {
-    public:
-        boost::shared_ptr<ready_store_t<protocol_t> > ready_store;
-        state_timestamp_t backfill_end_timestamp;
-    };
-    promise_t<backfill_succeeded_t> backfill_done_cond;
+    mutex_t operation_order_mutex;
 
     auto_drainer_t drainer;
 
@@ -374,11 +490,8 @@ private:
     typename listener_data_t<protocol_t>::writeread_mailbox_t writeread_mailbox;
     typename listener_data_t<protocol_t>::read_mailbox_t read_mailbox;
 
-    branch_id_t branch_id;
     boost::scoped_ptr<registrant_t<listener_data_t<protocol_t> > > registrant;
 
-    /* `data_gap_cond` gets pulsed if the backfiller is outdated.
-    `outdated_signal` is pulsed if we become outdated for any reason. */
-    cond_t data_gap_cond;
+    /* `outdated_signal` is pulsed if we become outdated for any reason. */
     wait_any_t outdated_signal;
 };
