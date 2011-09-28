@@ -265,63 +265,11 @@ memcached_protocol_t::write_response_t memcached_protocol_t::write_t::unshard(st
 dummy_memcached_store_view_t::dummy_memcached_store_view_t(key_range_t region, btree_slice_t *b) :
     store_view_t<memcached_protocol_t>(region), btree(b) { }
 
-/* `dummy_memcached_store_view_t::do_read()` */
-
-struct read_perform_visitor_t : public boost::static_visitor<memcached_protocol_t::read_response_t> {
-    read_perform_visitor_t(btree_slice_t *_btree, order_token_t _tok) : btree(_btree), tok(_tok) { }
-    btree_slice_t *btree;
-    order_token_t tok;
-    memcached_protocol_t::read_response_t operator()(get_query_t get) {
-        return btree->get(get.key, tok);
-    }
-    memcached_protocol_t::read_response_t operator()(rget_query_t rget) {
-        return btree->rget(
-            rget.left_mode,
-            rget.left_key,
-            rget.right_mode,
-            rget.right_key,
-            tok
-            );
-    }
-};
-
-memcached_protocol_t::read_response_t dummy_memcached_store_view_t::do_read(const memcached_protocol_t::read_t &r, UNUSED state_timestamp_t t, order_token_t otok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    if (interruptor->is_pulsed()) throw interrupted_exc_t();
-    read_perform_visitor_t v(btree, otok);
-    return boost::apply_visitor(v, r.query);
+boost::shared_ptr<store_view_t<memcached_protocol_t>::read_transaction_t> dummy_memcached_store_view_t::begin_read_transaction(UNUSED signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    crash("stub");
 }
 
-/* `dummy_memcached_store_view_t::write()` */
-
-/* The return type of `set_store_t::change()` is `mutation_result_t`, which is
-equivalent but not identical to `memcached_protocol_t::write_response_t`. This
-converts between them.
-
-TODO: `mutation_result_t` should go away. */
-struct convert_response_visitor_t : public boost::static_visitor<memcached_protocol_t::write_response_t> {
-    template<class result_t>
-    memcached_protocol_t::write_response_t operator()(result_t res) const {
-        return res;
-    }
-};
-
-struct write_perform_visitor_t : public boost::static_visitor<memcached_protocol_t::write_response_t> {
-    write_perform_visitor_t(btree_slice_t *_btree, castime_t _castime, order_token_t _tok)
-        : btree(_btree), castime(_castime), tok(_tok) { }
-    btree_slice_t *btree;
-    castime_t castime;
-    order_token_t tok;
-    /* All mutation types can be converted to a `set_store_t`-style
-    `mutation_t`. */
-    template<class mutation_t>
-    memcached_protocol_t::write_response_t operator()(mutation_t mut) {
-        mutation_result_t res = btree->change(mut, castime, tok);
-        return boost::apply_visitor(convert_response_visitor_t(), res.result);
-    }
-};
-
-memcached_protocol_t::write_response_t dummy_memcached_store_view_t::do_write(const memcached_protocol_t::write_t &w, UNUSED transition_timestamp_t t, order_token_t otok) THROWS_NOTHING {
-    // TODO: Hook up timestamp
-    write_perform_visitor_t v(btree, castime_t(w.proposed_cas, repli_timestamp_t::invalid), otok);
-    return boost::apply_visitor(v, w.mutation);
+boost::shared_ptr<store_view_t<memcached_protocol_t>::write_transaction_t> dummy_memcached_store_view_t::begin_write_transaction(UNUSED signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    crash("stub");
 }
+

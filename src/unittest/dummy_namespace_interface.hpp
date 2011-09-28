@@ -15,25 +15,63 @@
 namespace unittest {
 
 template<class protocol_t>
+class dummy_performer_t {
+
+public:
+    explicit dummy_performer_t(boost::shared_ptr<store_view_t<protocol_t> > s) :
+        store(s) { }
+
+    typename protocol_t::read_response_t read(typename protocol_t::read_t read, state_timestamp_t expected_timestamp, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+        boost::shared_ptr<typename store_view_t<protocol_t>::read_transaction_t> txn = store->begin_read_transaction(interruptor);
+        region_map_t<protocol_t, binary_blob_t> metadata = txn->get_metadata(interruptor);
+        rassert(metadata.get_as_pairs().size() == 1);
+        rassert(binary_blob_cast<state_timestamp_t>(metadata.get_as_pairs()[0].second) == expected_timestamp);
+        return txn->read(read, interruptor);
+    }
+
+    typename protocol_t::write_response_t write(typename protocol_t::write_t write, transition_timestamp_t transition_timestamp) THROWS_NOTHING {
+        cond_t non_interruptor;
+        boost::shared_ptr<typename store_view_t<protocol_t>::write_transaction_t> txn = store->begin_write_transaction(&non_interruptor);
+        region_map_t<protocol_t, binary_blob_t> metadata = txn->get_metadata(&non_interruptor);
+        rassert(metadata.get_as_pairs().size() == 1);
+        rassert(binary_blob_cast<state_timestamp_t>(metadata.get_as_pairs()[0].second) == transition_timestamp.timestamp_before());
+        txn->set_metadata(region_map_t<protocol_t, binary_blob_t>(store->get_region(), binary_blob_t(transition_timestamp.timestamp_after())));
+        return txn->write(write, transition_timestamp);
+    }
+
+    boost::shared_ptr<store_view_t<protocol_t> > store;
+};
+
+template<class protocol_t>
 struct dummy_timestamper_t {
 
 public:
-    explicit dummy_timestamper_t(boost::shared_ptr<store_view_t<protocol_t> > next_)
-        : next(next_), timestamp(state_timestamp_t::zero()) { }
-
-    typename protocol_t::read_response_t read(typename protocol_t::read_t read, order_token_t tok, signal_t *interruptor) {
-        return next->read(read, timestamp, tok, interruptor);
+    explicit dummy_timestamper_t(dummy_performer_t<protocol_t> *n) :
+        next(n), current_timestamp(state_timestamp_t::zero())
+    {
+        cond_t interruptor;
+        boost::shared_ptr<typename store_view_t<protocol_t>::read_transaction_t> txn = next->store->begin_read_transaction(&interruptor);
+        region_map_t<protocol_t, binary_blob_t> metadata = txn->get_metadata(&interruptor);
+        rassert(metadata.get_as_pairs().size() == 1);
+        rassert(binary_blob_cast<state_timestamp_t>(metadata.get_as_pairs()[0].second) == current_timestamp);
     }
 
-    typename protocol_t::write_response_t write(typename protocol_t::write_t write, order_token_t tok) {
-        transition_timestamp_t ts = transition_timestamp_t::starting_from(timestamp);
-        timestamp = ts.timestamp_after();
-        return next->write(write, ts, tok);
+    typename protocol_t::read_response_t read(typename protocol_t::read_t read, order_token_t otok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+        order_sink.check_out(otok);
+        return next->read(read, current_timestamp, interruptor);
+    }
+
+    typename protocol_t::write_response_t write(typename protocol_t::write_t write, order_token_t otok) THROWS_NOTHING {
+        order_sink.check_out(otok);
+        transition_timestamp_t transition_timestamp = transition_timestamp_t::starting_from(current_timestamp);
+        current_timestamp = transition_timestamp.timestamp_after();
+        return next->write(write, transition_timestamp);
     }
 
 private:
-    boost::shared_ptr<store_view_t<protocol_t> > next;
-    state_timestamp_t timestamp;
+    dummy_performer_t<protocol_t> *next;
+    state_timestamp_t current_timestamp;
+    order_sink_t order_sink;
 };
 
 template<class protocol_t>
@@ -93,25 +131,29 @@ class dummy_namespace_interface_t :
 public:
     dummy_namespace_interface_t(std::vector<typename protocol_t::region_t> shards, std::vector<boost::shared_ptr<store_view_t<protocol_t> > > stores) {
 
+        /* Make sure shards are non-overlapping and stuff */
+        region_join(shards);
         rassert(stores.size() == shards.size());
 
         std::vector<typename dummy_sharder_t<protocol_t>::timestamper_and_region_t> shards_of_this_db;
-
         for (int i = 0; i < (int)shards.size(); i++) {
 
-            for (int j = 0; j < (int)shards.size(); j++) {
-                if (i > j) {
-                    rassert(!region_overlaps(shards[i], shards[j]));
-                }
+            /* Initialize metadata everywhere */
+            {
+                cond_t interruptor;
+                boost::shared_ptr<typename store_view_t<protocol_t>::write_transaction_t> txn = stores[i]->begin_write_transaction(&interruptor);
+                region_map_t<protocol_t, binary_blob_t> metadata = txn->get_metadata(&interruptor);
+                rassert(metadata.get_as_pairs().size() == 1);
+                rassert(metadata.get_as_pairs()[0].first == shards[i]);
+                rassert(metadata.get_as_pairs()[0].second.size() == 0);
+                txn->set_metadata(region_map_t<protocol_t, binary_blob_t>(shards[i], binary_blob_t(state_timestamp_t::zero())));
             }
 
-            dummy_timestamper_t<protocol_t> *timestamper =
-                new dummy_timestamper_t<protocol_t>(stores[i]);
+            dummy_performer_t<protocol_t> *performer = new dummy_performer_t<protocol_t>(stores[i]);
+            performers.push_back(performer);
+            dummy_timestamper_t<protocol_t> *timestamper = new dummy_timestamper_t<protocol_t>(performer);
             timestampers.push_back(timestamper);
-
-            shards_of_this_db.push_back(
-                typename dummy_sharder_t<protocol_t>::timestamper_and_region_t(timestamper, shards[i])
-                );
+            shards_of_this_db.push_back(typename dummy_sharder_t<protocol_t>::timestamper_and_region_t(timestamper, shards[i]));
         }
 
         sharder.reset(new dummy_sharder_t<protocol_t>(shards_of_this_db));
@@ -126,6 +168,7 @@ public:
     }
 
 private:
+    boost::ptr_vector<dummy_performer_t<protocol_t> > performers;
     boost::ptr_vector<dummy_timestamper_t<protocol_t> > timestampers;
     boost::scoped_ptr<dummy_sharder_t<protocol_t> > sharder;
 };
