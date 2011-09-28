@@ -4,6 +4,8 @@
 #include "errors.hpp"
 #include <boost/uuid/uuid.hpp>
 
+#include "clustering/version.hpp"
+#include "protocol_api.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "timestamps.hpp"
 
@@ -14,15 +16,24 @@ struct backfiller_metadata_t {
 
     typedef async_mailbox_t<void(
         backfill_session_id_t,
-        typename protocol_t::store_t::backfill_request_t,
-        typename async_mailbox_t<void(typename protocol_t::store_t::backfill_chunk_t)>::address_t,
-        typename async_mailbox_t<void(state_timestamp_t)>::address_t
+        region_map_t<protocol_t, version_range_t>,
+        typename async_mailbox_t<void(region_map_t<protocol_t, version_range_t>)>::address_t,
+        typename async_mailbox_t<void(typename protocol_t::backfill_chunk_t)>::address_t,
+        async_mailbox_t<void()>::address_t
         )> backfill_mailbox_t;
-    typename backfill_mailbox_t::address_t backfill_mailbox;
 
     typedef async_mailbox_t<void(
         backfill_session_id_t
         )> cancel_backfill_mailbox_t;
+
+    backfiller_metadata_t() { }
+    backfiller_metadata_t(
+            const typename backfill_mailbox_t::address_t &ba,
+            const cancel_backfill_mailbox_t::address_t &cba) :
+        backfill_mailbox(ba), cancel_backfill_mailbox(cba)
+        { }
+
+    typename backfill_mailbox_t::address_t backfill_mailbox;
     cancel_backfill_mailbox_t::address_t cancel_backfill_mailbox;
 };
 

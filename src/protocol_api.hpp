@@ -1,6 +1,10 @@
 #ifndef __PROTOCOL_API_HPP__
 #define __PROTOCOL_API_HPP__
 
+#include "errors.hpp"
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/utility.hpp>   /* for `std::pair` serialization */
+
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/signal.hpp"
 #include "timestamps.hpp"
@@ -97,6 +101,7 @@ public:
 
 private:
     std::vector<std::pair<typename protocol_t::region_t, value_t> > regions_and_values;
+    RDB_MAKE_ME_SERIALIZABLE_1(regions_and_values);
 };
 
 template<class protocol_t, class old_t, class new_t, class callable_t>

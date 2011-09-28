@@ -122,12 +122,6 @@ public:
     }
 
     template<class obj_t>
-    static obj_t &get(binary_blob_t &blob) {
-        rassert(blob.size() == sizeof(obj_t));
-        return *reinterpret_cast<obj_t *>(blob.data());
-    }
-
-    template<class obj_t>
     static const obj_t &get(const binary_blob_t &blob) {
         rassert(blob.size() == sizeof(obj_t));
         return *reinterpret_cast<const obj_t *>(blob.data());

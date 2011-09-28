@@ -1,5 +1,5 @@
-#ifndef __UNITTEST_DUMMY_NAMESPACE_PROTOCOL_HPP__
-#define __UNITTEST_DUMMY_NAMESPACE_PROTOCOL_HPP__
+#ifndef __UNITTEST_DUMMY_PROTOCOL_HPP__
+#define __UNITTEST_DUMMY_PROTOCOL_HPP__
 
 #include <map>
 #include <set>
@@ -110,4 +110,4 @@ private:
 
 }   /* namespace unittest */
 
-#endif /* __UNITTEST_DUMMY_NAMESPACE_PROTOCOL_HPP__ */
+#endif /* __UNITTEST_DUMMY_PROTOCOL_HPP__ */

@@ -1,20 +1,23 @@
 #include "unittest/gtest.hpp"
 #include "clustering/backfiller.hpp"
 #include "clustering/backfillee.hpp"
-#include "unittest/dummy_protocol.hpp"
 #include "rpc/metadata/view/controller.hpp"
+#include "unittest/clustering_dummies.hpp"
+#include "unittest/dummy_protocol.hpp"
 #include "unittest/unittest_utils.hpp"
 
 namespace unittest {
 
 void run_backfill_test() {
 
+    dummy_branch_history_database_t branch_history;
+
     /* Set up two stores */
 
-    dummy_protocol_t::region_t region;
-    for (char c = 'a'; c <= 'z'; c++) region.keys.insert(std::string(1, c));
-
-    dummy_protocol_t::store_t backfiller_store(region), backfillee_store(region);
+    dummy_underlying_store_t backfiller_underlying_store(branch_history.region);
+    dummy_store_view_t backfiller_store(&backfiller_underlying_store, branch_history.region);
+    dummy_underlying_store_t backfillee_underlying_store(branch_history.region);
+    dummy_store_view_t backfillee_store(&backfillee_underlying_store, branch_history.region);
 
     /* Insert 10 values into both stores, then another 10 into only
     `backfiller_store` and not `backfillee_store` */
@@ -29,10 +32,27 @@ void run_backfill_test() {
         transition_timestamp_t ts = transition_timestamp_t::starting_from(timestamp);
         timestamp = ts.timestamp_after();
 
-        cond_t interruptor;
-        backfiller_store.write(w, ts, order_token_t::ignore, &interruptor);
+        {
+            cond_t interruptor;
+            boost::shared_ptr<store_view_t<dummy_protocol_t>::write_transaction_t> txn =
+                backfiller_store.begin_write_transaction(&interruptor);
+            txn->set_metadata(region_map_t<dummy_protocol_t, binary_blob_t>(
+                branch_history.region,
+                binary_blob_t(version_range_t(version_t(branch_history.branch_id, timestamp), version_t(branch_history.branch_id, timestamp)))
+                ));
+            txn->write(w, ts);
+        }
 
-        if (i < 10) backfillee_store.write(w, ts, order_token_t::ignore, &interruptor);
+        if (i < 10) {
+            cond_t interruptor;
+            boost::shared_ptr<store_view_t<dummy_protocol_t>::write_transaction_t> txn =
+                backfillee_store.begin_write_transaction(&interruptor);
+            txn->set_metadata(region_map_t<dummy_protocol_t, binary_blob_t>(
+                branch_history.region,
+                binary_blob_t(version_range_t(version_t(branch_history.branch_id, timestamp), version_t(branch_history.branch_id, timestamp)))
+                ));
+            txn->write(w, ts);
+        }
     }
 
     /* Set up a cluster so mailboxes can be created */
@@ -53,27 +73,31 @@ void run_backfill_test() {
 
     backfiller_t<dummy_protocol_t> backfiller(
         &cluster,
+        &branch_history,
         &backfiller_store,
         backfiller_md_controller.get_view());
 
     /* Run a backfill */
 
     cond_t interruptor;
-    backfill<dummy_protocol_t>(&backfillee_store, &cluster, backfiller_md_controller.get_view(), &interruptor);
+    backfillee<dummy_protocol_t>(&cluster, &backfillee_store, backfiller_md_controller.get_view(), &interruptor);
 
     /* Make sure everything got transferred properly */
 
     for (char c = 'a'; c <= 'z'; c++) {
         std::string key(1, c);
-        EXPECT_EQ(backfiller_store.values[key], backfillee_store.values[key]);
-        EXPECT_TRUE(backfiller_store.timestamps[key] == backfillee_store.timestamps[key]);
+        EXPECT_EQ(backfiller_underlying_store.values[key], backfillee_underlying_store.values[key]);
+        EXPECT_TRUE(backfiller_underlying_store.timestamps[key] == backfillee_underlying_store.timestamps[key]);
     }
 
-    EXPECT_TRUE(backfiller_store.get_timestamp() == backfillee_store.get_timestamp());
-    EXPECT_TRUE(backfiller_store.is_coherent());
-    EXPECT_TRUE(backfillee_store.is_coherent());
-    EXPECT_FALSE(backfiller_store.is_backfilling());
-    EXPECT_FALSE(backfillee_store.is_backfilling());
+    std::vector<std::pair<dummy_protocol_t::region_t, version_range_t> > backfillee_metadata =
+        region_map_transform<dummy_protocol_t, binary_blob_t, version_range_t>(
+            backfillee_store.begin_read_transaction(&interruptor)->get_metadata(&interruptor),
+            static_cast<const version_range_t &(*)(const binary_blob_t &)>(&binary_blob_t::get<version_range_t>)
+            ).get_as_pairs();
+    EXPECT_EQ(1, backfillee_metadata.size());
+    EXPECT_TRUE(backfillee_metadata[0].second.is_coherent());
+    EXPECT_EQ(timestamp, backfillee_metadata[0].second.earliest.timestamp);
 }
 TEST(ClusteringBackfill, BackfillTest) {
     run_in_thread_pool(&run_backfill_test);
