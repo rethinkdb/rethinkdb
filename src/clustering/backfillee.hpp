@@ -19,7 +19,7 @@ void on_receive_backfill_chunk(
     }
 
     try {
-        store->receive_backfill(chunk, interruptor);
+        store->begin_write_transaction(interruptor)->receive_backfill(chunk, interruptor);
     } catch (interrupted_exc_t) {
         return;
     }
@@ -29,14 +29,10 @@ template<class protocol_t>
 void backfillee(
         mailbox_cluster_t *cluster,
         store_view_t<protocol_t> *store,
-        version_map_view_t<protocol_t> *store_version_map,
         boost::shared_ptr<metadata_read_view_t<backfiller_metadata_t<protocol_t> > > backfiller_metadata,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t)
 {
-    /* Validate input */
-    rassert(store->get_region() == store_version_map->get_region());
-
     resource_access_t<mirror_metadata_t<protocol_t> > backfiller(cluster, backfiller);
 
     /* Pick a unique ID to identify this backfill session to the backfiller */
@@ -44,12 +40,12 @@ void backfillee(
 
     /* The backfiller will send a description of where it's backfilling us to to
     `end_point_mailbox`. */
-    promise_t<version_map_t<protocol_t> > end_point_cond;
-    async_mailbox_t<void(version_map_t<protocol_t>)> end_point_mailbox(
-            cluster, boost::bind(&promise_t<version_map_t<protocol_t> >::pulse, &end_point_cond, _1));
+    promise_t<region_map_t<protocol_t, version_range_t> > end_point_cond;
+    async_mailbox_t<void(region_map_t<protocol_t, version_range_t>)> end_point_mailbox(
+            cluster, boost::bind(&promise_t<region_map_t<protocol_t, version_range_t> >::pulse, &end_point_cond, _1));
 
     /* `dont_go_until` prevents any backfill chunks from being applied before we
-    update the version map to indicate that the backfill is in progress. */
+    update the store metadata to indicate that the backfill is in progress. */
     cond_t dont_go_until;
 
     /* The backfiller will notify `done_mailbox` when the backfill is all over
@@ -57,6 +53,9 @@ void backfillee(
     cond_t done_cond;
     async_mailbox_t<void()> done_mailbox(
         cluster, boost::bind(&cond_t::pulse, &done_cond));
+
+    std::vector<std::pair<typename protocol_t::region_t, version_range_t> > start_point =
+        store->begin_read_transaction(interruptor)->get_metadata(interruptor);
 
     {
         /* Use an `auto_drainer_t` to wait for all the bits of the backfill to
@@ -74,7 +73,7 @@ void backfillee(
         send(cluster,
             backfiller.access().backfill_mailbox,
             backfill_session_id,
-            store_version_map->read(),
+            start_point,
             end_point_mailbox.get_address(),
             chunk_mailbox.get_address(),
             done_mailbox.get_address()
@@ -111,23 +110,28 @@ void backfillee(
             rassert(end_point_mailbox.get_ready_signal()->is_pulsed());
         }
 
-        /* Indicate in `store_version_map` that a backfill is happening. We do
-        this by marking every region as indeterminate between the current state
-        and the backfill end state, since we don't know whether the backfill has
-        reached that region yet. */
-        version_map_t<protocol_t> start_point = store_version_map->read();
-        std::vector<std::pair<typename protocol_t::region_t, version_range_t> > new_versions;
-        for (int i = 0; i < (int)start_point.regions.size(); i++) {
-            for (int j = 0; j < (int)end_point.regions.size(); i++) {
-                typename protocol_t::region_t ixn = region_intersection(start_point.regions[i].first, end_point.regions[i].first);
+        /* Indicate in the metadata that a backfill is happening. We do this by
+        marking every region as indeterminate between the current state and the
+        backfill end state, since we don't know whether the backfill has reached
+        that region yet. */
+        std::vector<std::pair<typename protocol_t::region_t, version_range_t> > start_point_parts =
+                start_point->get_as_pairs();
+        std::vector<std::pair<typename protocol_t::region_t, version_range_t> > end_point_parts =
+                end_point_mailbox.get_value().get_as_pairs());
+        std::vector<std::pair<typename protocol_t::region_t, version_range_t> > new_parts;
+        for (int i = 0; i < (int)start_point_parts.size(); i++) {
+            for (int j = 0; j < (int)end_point_parts.size(); i++) {
+                typename protocol_t::region_t ixn = region_intersection(start_point_parts[i].first, end_point_parts[i].first);
                 if (!region_is_empty(ixn)) {
                     new_version.push_back(std::make_pair(
                         ixn,
-                        version_range_t(start_point.regions[i].second.earliest, end_point.regions[i].second.latest)
+                        version_range_t(start_point_parts[i].second.earliest, end_point_parts[i].second.latest)
                         ));
                 }
             }
         }
+        store->begin_write_transaction(interruptor)->set_metadata(
+                region_map_t<protocol_t, 
         store_version_map->write(version_map_t<protocol_t>(new_versions));
 
     /* Wait until either the backfill is over or something goes wrong */

@@ -16,9 +16,7 @@ class listener_t {
 public:
     listener_t(
             mailbox_cluster_t *c,
-            typename protocol_t::region_t r,
             store_view_t<protocol_t> *s,
-            version_map_view_t<protocol_t> *svm,
             boost::shared_ptr<metadata_read_view_t<std::map<branch_id_t, branch_metadata_t<protocol_t> > > > branches_metadata,
             branch_id_t bid,
             mirror_id_t backfiller_id,
@@ -26,8 +24,7 @@ public:
             THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t) :
 
         cluster(c),
-
-        region(r), store(s), store_version_map(svm),
+        store(s),
 
         write_mailbox(cluster, boost::bind(&listener_t::on_write, this,
             auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4)),
@@ -39,10 +36,8 @@ public:
         branch_id(bid)
     {
         /* Validate input */
-        rassert(region_is_superset(store_version_map->get_region(), region));
-        rassert(region_is_superset(store->get_region(), region));
         rassert(branches_metadata->get().count(branch_id) > 0);
-        rassert(region_is_superset(branches_metadata->get()[branch_id].region, region));
+        rassert(region_is_superset(branches_metadata->get()[branch_id].region, store->get_region()));
 
         if (interruptor->is_pulsed()) {
             throw interrupted_exc_t();
@@ -56,7 +51,8 @@ public:
         /* Backfill */
         
 
-        /* If there was a data gap, update the outdated-signal accordingly. */
+        /* If there was a data gap, update the outdated-signal accordingly. This
+        must be done before we return from the constructor. */
         if (registration_result_cond.get_value() &&
                 backfill_done_cond.get_value().backfill_end_timestamp <
                 registration_result_cond.get_value()->broadcaster_begin_timestamp) {
@@ -98,14 +94,14 @@ private:
     be used for any other purpose. */
     listener_t(
             mailbox_cluster_t *c,
-            boost::shared_ptr<metadata_read_view_t<branch_history_t<protocol_t> > > bh,
-            boost::shared_ptr<ready_store_view_t<protocol_t> > ready_store,
+            store_view_t<protocol_t> *s,
             boost::shared_ptr<metadata_read_view_t<branch_metadata_t<protocol_t> > > branch_metadata,
             branch_id_t bid,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) :
 
         cluster(c),
+        store(s),
 
         write_mailbox(cluster, boost::bind(&listener_t::on_write, this,
             auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4)),
@@ -120,18 +116,28 @@ private:
             throw interrupted_exc_t();
         }
 
+        /* Make sure the initial metadata is sane */
+        region_map_t<typename protocol_t::region_t, binary_blob_t> initial_metadata =
+            store->begin_read_transaction(interruptor)->get_metadata(interruptor);
+        rassert(initial_metadata.get_as_pairs().size() == 1);
+        version_range_t initial_version = initial_metadata.get_as_pairs()[0].second;
+        rassert(initial_version.is_coherent());
+        rassert(initial_version.earliest.branch == branch_id);
+        state_timestamp_t initial_timestamp = initial_version.earliest.timestamp;
+
         /* Attempt to register for reads and writes */
         try_start_receiving_writes(branch_metadata, interruptor);
 
+        /* Make sure that `broadcast_begin_timestamp` matches the initial
+        metadata */
         if (registration_result_cond.get_value()) {
             rassert(registration_result_cond.get_value().broadcast_begin_timestamp ==
-                ready_store->get_timestamp());
+                    initial_timestamp);
         }
 
         /* Pretend we just finished an imaginary backfill */
         backfill_succeeded_t fake_success_record;
-        fake_success_record.backfill_end_timestamp = ready_store->get_timestamp();
-        fake_success_record.ready_store = ready_store;
+        fake_success_record.backfill_end_timestamp = initial_timestamp;
         backfill_done_cond.pulse(fake_success_record);
 
         /* When operating in this mode, the only reason we can become outdated
@@ -179,33 +185,6 @@ private:
 
         /* If we lose contact with the master, mark ourselves outdated */
         outdated_signal.add(registrant->get_failed_signal()->is_pulsed());
-    }
-
-    void on_backfill_chunk(
-            auto_drainer_t::lock_t listener_keepalive,
-            UNUSED auto_drainer_t::lock_t backfill_keepalive,
-            signal_t *ready_to_begin,
-            typename protocol_t::backfill_chunk_t chunk)
-            THROWS_NOTHING
-    {
-        /* Block on `ready_to_begin` until it gets pulsed. (This is so that no
-        backfill chunks are applied before the version map has been updated to
-        reflect the fact that the backfill is happening.) */
-        {
-            wait_any_t waiter(ready_to_begin, listener_keepalive.get_drain_signal());
-            waiter.wait_lazily_unordered();
-            if (listener_keepalive.get_drain_signal()->is_pulsed()) {
-                return;
-            }
-        }
-
-        try {
-            store->receive_backfill(chunk, listener_keepalive.get_drain_signal());
-        } catch (interrupted_exc_t) {
-            return;
-        }
-
-        /* We hold `backfill_keepalive` until we're done applying the chunk */
     }
 
     void on_write(auto_drainer_t::lock_t keepalive,
@@ -351,9 +330,7 @@ private:
 
     mailbox_cluster_t *cluster;
 
-    typename protocol_t::region_t region;
     store_view_t<protocol_t> *store;
-    version_map_view_t<protocol_t> *store_version_map;
 
     /* `upgrade_mailbox` and `broadcaster_begin_timestamp` are valid only if we
     successfully registered with the broadcaster at some point. As a sanity
