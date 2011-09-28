@@ -25,7 +25,7 @@ public:
         boost::shared_ptr<typename store_view_t<protocol_t>::read_transaction_t> txn = store->begin_read_transaction(interruptor);
         region_map_t<protocol_t, binary_blob_t> metadata = txn->get_metadata(interruptor);
         rassert(metadata.get_as_pairs().size() == 1);
-        rassert(binary_blob_cast<state_timestamp_t>(metadata.get_as_pairs()[0].second) == expected_timestamp);
+        rassert(binary_blob_t::get<state_timestamp_t>(metadata.get_as_pairs()[0].second) == expected_timestamp);
         return txn->read(read, interruptor);
     }
 
@@ -34,7 +34,7 @@ public:
         boost::shared_ptr<typename store_view_t<protocol_t>::write_transaction_t> txn = store->begin_write_transaction(&non_interruptor);
         region_map_t<protocol_t, binary_blob_t> metadata = txn->get_metadata(&non_interruptor);
         rassert(metadata.get_as_pairs().size() == 1);
-        rassert(binary_blob_cast<state_timestamp_t>(metadata.get_as_pairs()[0].second) == transition_timestamp.timestamp_before());
+        rassert(binary_blob_t::get<state_timestamp_t>(metadata.get_as_pairs()[0].second) == transition_timestamp.timestamp_before());
         txn->set_metadata(region_map_t<protocol_t, binary_blob_t>(store->get_region(), binary_blob_t(transition_timestamp.timestamp_after())));
         return txn->write(write, transition_timestamp);
     }
@@ -53,7 +53,7 @@ public:
         boost::shared_ptr<typename store_view_t<protocol_t>::read_transaction_t> txn = next->store->begin_read_transaction(&interruptor);
         region_map_t<protocol_t, binary_blob_t> metadata = txn->get_metadata(&interruptor);
         rassert(metadata.get_as_pairs().size() == 1);
-        rassert(binary_blob_cast<state_timestamp_t>(metadata.get_as_pairs()[0].second) == current_timestamp);
+        rassert(binary_blob_t::get<state_timestamp_t>(metadata.get_as_pairs()[0].second) == current_timestamp);
     }
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t read, order_token_t otok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
@@ -146,7 +146,12 @@ public:
                 rassert(metadata.get_as_pairs().size() == 1);
                 rassert(metadata.get_as_pairs()[0].first == shards[i]);
                 rassert(metadata.get_as_pairs()[0].second.size() == 0);
-                txn->set_metadata(region_map_t<protocol_t, binary_blob_t>(shards[i], binary_blob_t(state_timestamp_t::zero())));
+                txn->set_metadata(
+                    region_map_transform<protocol_t, state_timestamp_t, binary_blob_t>(
+                        region_map_t<protocol_t, state_timestamp_t>(shards[i], state_timestamp_t::zero()),
+                        &binary_blob_t::make<state_timestamp_t>
+                        )
+                    );
             }
 
             dummy_performer_t<protocol_t> *performer = new dummy_performer_t<protocol_t>(stores[i]);
