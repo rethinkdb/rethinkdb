@@ -1,7 +1,7 @@
-#ifndef __CLUSTERING_BACKFILLEE_HPP__
-#define __CLUSTERING_BACKFILLEE_HPP__
+#ifndef __CLUSTERING_IMMEDIATE_CONSISTENCY_BACKFILLEE_HPP__
+#define __CLUSTERING_IMMEDIATE_CONSISTENCY_BACKFILLEE_HPP__
 
-#include "clustering/backfill_metadata.hpp"
+#include "clustering/immediate_consistency/metadata.hpp"
 #include "concurrency/promise.hpp"
 
 template<class protocol_t>
@@ -177,4 +177,4 @@ void backfillee(
         );
 }
 
-#endif /* __CLUSTERING_BACKFILLEE_HPP__ */
+#endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_BACKFILLEE_HPP__ */

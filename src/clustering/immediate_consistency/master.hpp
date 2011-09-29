@@ -1,9 +1,8 @@
-#ifndef __CLUSTERING_MASTER_HPP__
-#define __CLUSTERING_MASTER_HPP__
+#ifndef __CLUSTERING_IMMEDIATE_CONSISTENCY_MASTER_HPP__
+#define __CLUSTERING_IMMEDIATE_CONSISTENCY_MASTER_HPP__
 
-#include "clustering/namespace_metadata.hpp"
-#include "clustering/mirror.hpp"
-#include "clustering/mirror_dispatcher.hpp"
+#include "clustering/immediate_consistency/namespace_metadata.hpp"
+#include "clustering/immediate_consistency/broadcaster.hpp"
 
 template<class protocol_t>
 class master_t {
@@ -99,4 +98,4 @@ private:
     boost::scoped_ptr<resource_advertisement_t<master_metadata_t<protocol_t> > > advertisement;
 };
 
-#endif /* __CLUSTERING_MASTER_HPP__ */
+#endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_MASTER_HPP__ */

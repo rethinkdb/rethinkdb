@@ -1,9 +1,9 @@
-#ifndef __CLUSTERING_BACKFILLER_HPP__
-#define __CLUSTERING_BACKFILLER_HPP__
+#ifndef __CLUSTERING_IMMEDIATE_CONSISTENCY_BACKFILLER_HPP__
+#define __CLUSTERING_IMMEDIATE_CONSISTENCY_BACKFILLER_HPP__
 
 #include <map>
 
-#include "clustering/backfill_metadata.hpp"
+#include "clustering/immediate_consistency/metadata.hpp"
 #include "clustering/resource.hpp"
 #include "protocol_api.hpp"
 
@@ -20,14 +20,14 @@ struct backfiller_t :
 {
     backfiller_t(
             mailbox_cluster_t *c,
-            branch_history_database_t<protocol_t> *bh,
+            boost::shared_ptr<metadata_read_view_t<namespace_metadata_t<protocol_t> > > nm,
             store_view_t<protocol_t> *s,
-            boost::shared_ptr<metadata_readwrite_view_t<resource_metadata_t<backfiller_metadata_t<protocol_t> > > > md_view) :
-        cluster(c), branch_history(bh),
+            boost::shared_ptr<metadata_readwrite_view_t<resource_metadata_t<backfiller_metadata_t<protocol_t> > > > our_spot) :
+        cluster(c), namespace_metadata(nm),
         store(s),
         backfill_mailbox(cluster, boost::bind(&backfiller_t::on_backfill, this, _1, _2, _3, _4, _5, auto_drainer_t::lock_t(&drainer))),
         cancel_backfill_mailbox(cluster, boost::bind(&backfiller_t::on_cancel_backfill, this, _1, auto_drainer_t::lock_t(&drainer))),
-        advertisement(cluster, md_view, backfiller_metadata_t<protocol_t>(backfill_mailbox.get_address(), cancel_backfill_mailbox.get_address()))
+        advertisement(cluster, our_spot, backfiller_metadata_t<protocol_t>(backfill_mailbox.get_address(), cancel_backfill_mailbox.get_address()))
         { }
 
 private:
@@ -129,7 +129,7 @@ private:
     }
 
     mailbox_cluster_t *cluster;
-    branch_history_database_t<protocol_t> *branch_history;
+    boost::shared_ptr<metadata_read_view_t<namespace_metadata_t<protocol_t> > > namespace_metadata;
 
     store_view_t<protocol_t> *store;
 
@@ -142,4 +142,4 @@ private:
     resource_advertisement_t<backfiller_metadata_t<protocol_t> > advertisement;
 };
 
-#endif /* __CLUSTERING_BACKFILLER_HPP__ */
+#endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_BACKFILLER_HPP__ */

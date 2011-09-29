@@ -1,11 +1,11 @@
-#ifndef __CLUSTERING_BROADCASTER_HPP__
-#define __CLUSTERING_BROADCASTER_HPP__
+#ifndef __CLUSTERING_IMMEDIATE_CONSISTENCY_BROADCASTER_HPP__
+#define __CLUSTERING_IMMEDIATE_CONSISTENCY_BROADCASTER_HPP__
 
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 
-#include "clustering/mirror_metadata.hpp"
+#include "clustering/immediate_consistency/namespace_metadata.hpp"
 #include "clustering/registrar.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/mailbox/typed.hpp"
@@ -238,6 +238,6 @@ private:
     registrar_t<listener_data_t, broadcaster_t *, dispatchee_t> registrar;
 };
 
-#include "clustering/broadcaster.tcc"
+#include "clustering/immediate_consistency/broadcaster.tcc"
 
-#endif /* __CLUSTERING_BROADCASTER_HPP__ */
+#endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_BROADCASTER_HPP__ */

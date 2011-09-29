@@ -1,7 +1,7 @@
-#ifndef __CLUSTERING_LISTENER_HPP__
-#define __CLUSTERING_LISTENER_HPP__
+#ifndef __CLUSTERING_IMMEDIATE_CONSISTENCY_LISTENER_HPP__
+#define __CLUSTERING_IMMEDIATE_CONSISTENCY_LISTENER_HPP__
 
-#include "clustering/branch_metadata.hpp"
+#include "clustering/immediate_consistency/namespace_metadata.hpp"
 #include "clustering/resource.hpp"
 #include "clustering/registrant.hpp"
 #include "protocol_api.hpp"
@@ -495,3 +495,5 @@ private:
     /* `outdated_signal` is pulsed if we become outdated for any reason. */
     wait_any_t outdated_signal;
 };
+
+#endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_LISTENER_HPP__ */

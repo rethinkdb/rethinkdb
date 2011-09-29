@@ -1,27 +1,27 @@
-#ifndef __CLUSTERING_REPLIER_HPP__
-#define __CLUSTERING_REPLIER_HPP__
+#ifndef __CLUSTERING_IMMEDIATE_CONSISTENCY_REPLIER_HPP__
+#define __CLUSTERING_IMMEDIATE_CONSISTENCY_REPLIER_HPP__
 
-#include "clustering/listener.hpp"
+#include "clustering/immediate_consistency/listener.hpp"
 
 /* If you construct a `replier_t` for a given `listener_t`, then the listener
-will inform the `broadcaster_t` that it's ready to reply to queries. If you
-destroy the `replier_t`, the listener will tell the `broadcaster_t` that it's
-no longer ready to reply to queries. */
+will inform the `broadcaster_t` that it's ready to reply to queries, and will
+advertise via the metadata that it can perform backfills. When you destroy the
+`replier_t`, the listener will tell the `broadcaster_t` that it's no longer
+ready to reply to queries, and it will also stop performing backfills. */
+
 template<class protocol_t>
 class replier_t {
 
 public:
-    replier_t(
-            mailbox_cluster_t *c,
-            listener_t<protocol_t> *l) :
-        cluster(c), listener(l),
-        stopped(false),
+    replier_t(listener_t<protocol_t> *l) :
+        listener(l),
+        stopped_replying(false),
         warm_shutdown_mailbox(cluster, boost::bind(&cond_t::pulse, &warm_shutdown_cond)),
+        backfiller(
     {
-        rassert(cluster == listener->cluster);
         rassert(!listener->get_outdated_signal()->is_pulsed());
 
-        send(cluster,
+        send(listener->cluster,
             listener->registration_result_cond.get_value()->upgrade_mailbox,
             listener->writeread_mailbox.get_address(),
             listener->read_mailbox.get_address()
@@ -32,8 +32,8 @@ public:
     outstanding write or read that the broadcaster was expecting us to respond
     to, an error may be returned to the client. */
     ~replier_t() {
-        if (!stopped) {
-            send(cluster,
+        if (!stopped_replying) {
+            send(listener->cluster,
                 listener->registration_result_cond.get_value()->downgrade_mailbox,
                 /* We don't want a confirmation */
                 async_mailbox_t<void()>::address_t()
@@ -48,9 +48,9 @@ public:
     destroy the `replier_t`. */
     signal_t *warm_shutdown() {
         ASSERT_FINITE_CORO_WAITING;
-        rassert(!stopped);
-        stopped = true;
-        send(cluster,
+        rassert(!stopped_replying);
+        stopped_replying = true;
+        send(listener->cluster,
             listener->registration_result_cond.get_value()->downgrade_mailbox,
             warm_shutdown_mailbox.get_address()
             );
@@ -58,11 +58,11 @@ public:
     }
 
 private:
-    mailbox_cluster_t *cluster;
     listener_t<protocol_t> *listener;
-    bool stopped;
+
+    bool stopped_replying;
     cond_t warm_shutdown_cond;
     async_mailbox_t<void()> warm_shutdown_mailbox;
 };
 
-#endif /* __CLUSTERING_REPLIER_HPP__ */
+#endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_REPLIER_HPP__ */

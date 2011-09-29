@@ -1,13 +1,13 @@
-#ifndef __CLUSTERING_NAMESPACE_INTERFACE_HPP__
-#define __CLUSTERING_NAMESPACE_INTERFACE_HPP__
+#ifndef __CLUSTERING_IMMEDIATE_CONSISTENCY_NAMESPACE_INTERFACE_HPP__
+#define __CLUSTERING_IMMEDIATE_CONSISTENCY_NAMESPACE_INTERFACE_HPP__
 
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 
-#include "clustering/namespace_metadata.hpp"
+#include "clustering/immediate_consistency/namespace_metadata.hpp"
 #include "concurrency/promise.hpp"
-#include "../namespace_interface.hpp"
+#include "../../namespace_interface.hpp"
 
 template<class protocol_t>
 class cluster_namespace_interface_t :
@@ -194,4 +194,4 @@ private:
     typename protocol_t::temporary_cache_t temporary_cache;
 };
 
-#endif /* __CLUSTERING_NAMESPACE_INTERFACE_HPP__ */
+#endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_NAMESPACE_INTERFACE_HPP__ */
