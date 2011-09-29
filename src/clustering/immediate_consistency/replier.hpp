@@ -16,8 +16,18 @@ public:
     replier_t(listener_t<protocol_t> *l) :
         listener(l),
         stopped_replying(false),
-        warm_shutdown_mailbox(cluster, boost::bind(&cond_t::pulse, &warm_shutdown_cond)),
+        warm_shutdown_mailbox(listener->cluster, boost::bind(&cond_t::pulse, &warm_shutdown_cond)),
         backfiller(
+            listener->cluster,
+            listener->namespace_metadata,
+            listener->store,
+            metadata_new_member(generate_uuid(),
+                metadata_field(&branch_metadata_t<protocol_t>::backfillers,
+                    metadata_member(listener->branch_id,
+                        metadata_field(&namespace_metadata_t<protocol_t>::branches,
+                            listener->namespace_metadata
+                ))))
+            )
     {
         rassert(!listener->get_outdated_signal()->is_pulsed());
 
@@ -30,7 +40,9 @@ public:
 
     /* The destructor immediately stops responding to queries. If there was an
     outstanding write or read that the broadcaster was expecting us to respond
-    to, an error may be returned to the client. */
+    to, an error may be returned to the client.
+
+    The destructor also immediately stops any outstanding backfills. */
     ~replier_t() {
         if (!stopped_replying) {
             send(listener->cluster,
@@ -45,7 +57,9 @@ public:
     or writes, but doesn't interrupt reads or writes that we have already been
     asked to respond to. When the `signal_t *` returned by `warm_shutdown()` is
     pulsed, all the pending reads or writes are complete and it's safe to
-    destroy the `replier_t`. */
+    destroy the `replier_t`.
+
+    `warm_shutdown()` has no effect on backfills. */
     signal_t *warm_shutdown() {
         ASSERT_FINITE_CORO_WAITING;
         rassert(!stopped_replying);
@@ -63,6 +77,8 @@ private:
     bool stopped_replying;
     cond_t warm_shutdown_cond;
     async_mailbox_t<void()> warm_shutdown_mailbox;
+
+    backfiller_t<protocol_t> backfiller;
 };
 
 #endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_REPLIER_HPP__ */

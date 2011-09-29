@@ -5,7 +5,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 
-#include "clustering/immediate_consistency/namespace_metadata.hpp"
+#include "clustering/immediate_consistency/metadata.hpp"
 #include "clustering/registrar.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/mailbox/typed.hpp"
@@ -75,9 +75,9 @@ private:
     {
     public:
         incomplete_write_t(broadcaster_t *p,
-                typename protocol_t::write_t w, transition_timestamp_t ts, order_token_t otok,
+                typename protocol_t::write_t w, transition_timestamp_t ts,
                 int target_ack_count_) :
-            write(w), timestamp(ts), order_token(otok),
+            write(w), timestamp(ts),
             parent(p),
             ack_count(0), target_ack_count(target_ack_count_)
         {
@@ -99,7 +99,6 @@ private:
 
         typename protocol_t::write_t write;
         transition_timestamp_t timestamp;
-        order_token_t order_token;
 
         /* `done_promise` gets pulsed with `true` when `target_ack_count` is
         reached, or pulsed with `false` if it will never be reached. */
@@ -218,10 +217,8 @@ private:
 
     /* This mutex is held when an operation is starting or a new dispatchee is
     connecting. It protects `current_timestamp`, `newest_complete_timestamp`,
-    `incomplete_writes`, `dispatchees`, and `order_checkpoint`. */
+    `incomplete_writes`, `dispatchees`, and `order_sink`. */
     mutex_t mutex;
-
-    order_checkpoint_t order_checkpoint;
 
     /* If a write has begun, but some mirror might not have completed it yet,
     then it goes in `incomplete_writes`. The idea is that a new mirror that
@@ -229,7 +226,9 @@ private:
     data, and that will guarantee it gets at least one copy of every write. */
 
     std::list<boost::shared_ptr<incomplete_write_t> > incomplete_writes;
+
     state_timestamp_t current_timestamp, newest_complete_timestamp;
+    order_sink_t order_sink;
 
     std::map<dispatchee_t *, auto_drainer_t::lock_t> dispatchees;
 

@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_IMMEDIATE_CONSISTENCY_NAMESPACE_METADATA_HPP__
-#define __CLUSTERING_IMMEDIATE_CONSISTENCY_NAMESPACE_METADATA_HPP__
+#ifndef __CLUSTERING_IMMEDIATE_CONSISTENCY_METADATA_HPP__
+#define __CLUSTERING_IMMEDIATE_CONSISTENCY_METADATA_HPP__
 
 #include <map>
 
@@ -9,7 +9,6 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/variant.hpp>
 
-#include "clustering/immediate_consistency/backfill_metadata.hpp"
 #include "clustering/registration_metadata.hpp"
 #include "clustering/resource.hpp"
 #include "concurrency/fifo_checker.hpp"
@@ -165,8 +164,7 @@ void semilattice_join(UNUSED backfiller_metadata_t<protocol_t> *a, UNUSED const 
 }
 
 /* There is one `master_metadata_t` per branch. It's created by the master.
-Listeners use it to find the broadcaster and a backfiller. Parsers use it to
-find the master. */
+Parsers use it to find the master. */
 
 template<class protocol_t>
 class master_metadata_t {
@@ -194,6 +192,28 @@ public:
     typename read_mailbox_t::address_t read_mailbox;
     typename write_mailbox_t::address_t write_mailbox;
 
+    RDB_MAKE_ME_SERIALIZABLE_2(read_mailbox, write_mailbox);
+};
+
+template<class protocol_t>
+void semilattice_join(master_metadata_t<protocol_t> *a, const master_metadata_t<protocol_t> &b) {
+    /* The mailboxes should be identical, but we don't check. */
+}
+
+/* `branch_metadata_t` is all the metadata for a branch. */
+
+template<class protocol_t>
+class branch_metadata_t {
+
+public:
+    /* History metadata for the branch. This never changes. */
+    typename protocol_t::region_t region;
+    state_timestamp_t initial_timestamp;
+    region_map_t<protocol_t, version_range_t> origin;
+
+    /* The master itself */
+    resource_metadata_t<master_metadata_t<protocol_t> > master;
+
     /* When listeners start up, they construct a `listener_data_t` and send it
     to the broadcaster via `broadcaster_registrar` */
     resource_metadata_t<registrar_metadata_t<listener_data_t<protocol_t> > > broadcaster_registrar;
@@ -202,39 +222,18 @@ public:
     listeners can find them for backfills */
     std::map<backfiller_id_t, resource_metadata_t<backfiller_metadata_t<protocol_t> > > backfillers;
 
-    RDB_MAKE_ME_SERIALIZABLE_4(
-        read_mailbox, write_mailbox,
-        broadcaster_registrar, repliers);
-};
-
-template<class protocol_t>
-void semilattice_join(master_metadata_t<protocol_t> *a, const master_metadata_t<protocol_t> &b) {
-    semilattice_join(&a->broadcaster_registrar, b.broadcaster_registrar);
-    semilattice_join(&a->repliers, b.repliers);
-}
-
-/* `branch_metadata_t` is a thin wrapper around `master_metadata_t` that adds
-some things that have to persist after the master is gone. */
-
-template<class protocol_t>
-class branch_metadata_t {
-
-public:
-    /* History metadata for the branch. This never changes. */
-    typename protocol_t::region_t region;
-    region_map_t<protocol_t, version_range_t> origin;
-
-    /* The master itself */
-    resource_metadata_t<master_metadata_t<protocol_t> > master;
-
-    RDB_MAKE_ME_SERIALIZABLE_2(region, origin);
+    RDB_MAKE_ME_SERIALIZABLE_5(region, initial_timestamp, origin,
+        master, broadcaster_registrar, backfillers);
 };
 
 template<class protocol_t>
 void semilattice_join(branch_metadata_t<protocol_t> *a, const branch_metadata_t<protocol_t> &b) {
     rassert(a->region == b.region);
+    rassert(a->initial_timestamp == b.initial_timestamp);
     /* `origin` should be the same too, but don't bother comparing */
     semilattice_join(&a->master, b.master);
+    semilattice_join(&a->broadcaster_registrar, b.broadcaster_registrar);
+    semilattice_join(&a->backfillers, b.backfillers);
 }
 
 /* The namespace as a whole has a `namespace_metadata_t` that holds all of the
@@ -254,4 +253,4 @@ void semilattice_join(namespace_metadata_t<protocol_t> *a, const namespace_metad
     semilattice_join(&a->branches, b.branches);
 }
 
-#endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_NAMESPACE_METADATA_HPP__ */
+#endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_METADATA_HPP__ */

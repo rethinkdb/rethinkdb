@@ -14,7 +14,7 @@ class cluster_namespace_interface_t :
     public namespace_interface_t<protocol_t>
 {
 public:
-    typedef std::map<branch_id_t, resource_metadata_t<master_metadata_t<protocol_t> > > master_map_t;
+    typedef std::map<branch_id_t, resource_metadata_t<branch_metadata_t<protocol_t> > > master_map_t;
 
     class ambiguity_exc_t : public std::exception {
         const char *what() const throw () {
@@ -165,7 +165,13 @@ private:
             typename protocol_t::region_t region;
             try {
                 access = boost::make_shared<resource_access_t<master_metadata_t<protocol_t> > >(
-                    cluster, metadata_member((*it).first, masters_view));
+                    cluster,
+                    metadata_field(&branch_metadata_t<protocol_t>::master,
+                        metadata_member((*it).first,
+                            masters_view
+                            )
+                        )
+                    );
                 region = access->access().region;
             } catch (resource_lost_exc_t) {
                 /* Ignore masters that have been shut down or are currently

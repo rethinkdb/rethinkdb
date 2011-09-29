@@ -3,6 +3,7 @@
 
 #include <map>
 
+#include "clustering/immediate_consistency/history.hpp"
 #include "clustering/immediate_consistency/metadata.hpp"
 #include "clustering/resource.hpp"
 #include "protocol_api.hpp"
@@ -76,7 +77,7 @@ private:
                         version_t start = start_point_pairs[i].second.latest;
                         version_t end = end_point_pairs[i].second.earliest;
                         rassert(start.timestamp <= end.timestamp);
-                        rassert(branch_history->version_is_ancestor(start, end, ixn));
+                        rassert(version_is_ancestor(namespace_metadata, start, end, ixn));
                     }
                 }
             }

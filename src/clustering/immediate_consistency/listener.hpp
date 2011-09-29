@@ -28,14 +28,15 @@ class listener_t {
 public:
     listener_t(
             mailbox_cluster_t *c,
-            boost::shared_ptr<metadata_read_view_t<namespace_metadata_t<protocol_t> > > namespace_metadata,
+            boost::shared_ptr<metadata_read_view_t<namespace_metadata_t<protocol_t> > > nm,
             store_view_t<protocol_t> *s,
             branch_id_t bid,
-            mirror_id_t backfiller_id,
+            backfiller_id_t backfiller_id,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t) :
 
         cluster(c),
+        namespace_metadata(nm),
         store(s),
         branch_id(bid),
 
@@ -53,7 +54,30 @@ public:
         boost::shared_ptr<metadata_read_view_t<branch_metadata_t<protocol_t> > > branch_metadata =
             metadata_member(branch_id, metadata_field(&namespace_metadata_t<protocol_t>::branches, namespace_metadata)); 
 
+#ifndef NDEBUG
         rassert(region_is_superset(branch_metadata->get().region, store->get_region()));
+
+        /* Sanity-check to make sure we're on the same timeline as the thing
+        we're trying to join. The backfiller will perform an equivalent check,
+        but if there's an error it would be nice to catch it where the action
+        was initiated. */
+        std::vector<std::pair<typename protocol_t::region_t, version_range_t> > start_point_pairs =
+            region_map_transform<protocol_t, binary_blob_t, version_range_t>(
+                store->begin_read_transaction(interruptor)->get_metadata(interruptor),
+                &binary_blob_t::get<version_range_t>
+                ).get_as_pairs();
+        for (int i = 0; i < (int)start_point_pairs.size(); i++) {
+            version_t version = start_point_pairs[i].second.latest;
+            rassert(
+                version.branch == branch_id ||
+                version_is_ancestor(
+                    namespace_metadata,
+                    version,
+                    version_t(branch_id, branch_metadata->get().initial_timestamp),
+                    start_point_pairs[i].first)
+                );
+        }
+#endif
 
         /* Attempt to register for reads and writes */
         try_start_receiving_writes(branch_metadata, interruptor);
@@ -62,13 +86,10 @@ public:
         backfillee<protocol_t>(
             cluster,
             store,
-            metadata_field(&mirror_metadata_t<protocol_t>::backfiller,
-                metadata_member(backfiller_id,
-                    metadata_field(&branch_metadata_t<protocol_t>::mirrors,
-                        branch_metadata
-                        )
-                    )
-                ),
+            metadata_member(backfiller_id,
+                metadata_field(&branch_metadata_t<protocol_t>::backfillers,
+                    branch_metadata
+                    )),
             interruptor
             );
 
@@ -145,13 +166,14 @@ private:
     be used for any other purpose. */
     listener_t(
             mailbox_cluster_t *c,
-            boost::shared_ptr<metadata_read_view_t<namespace_metadata_t<protocol_t> > > namespace_metadata,
+            boost::shared_ptr<metadata_read_view_t<namespace_metadata_t<protocol_t> > > nm,
             store_view_t<protocol_t> *s,
             branch_id_t bid,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) :
 
         cluster(c),
+        namespace_metadata(nm),
         store(s),
         branch_id(bid)
 
@@ -175,7 +197,7 @@ private:
         region_map_t<typename protocol_t::region_t, binary_blob_t> initial_metadata =
             store->begin_read_transaction(interruptor)->get_metadata(interruptor);
         rassert(initial_metadata.get_as_pairs().size() == 1);
-        version_range_t initial_version = initial_metadata.get_as_pairs()[0].second;
+        version_range_t initial_version = binary_blob_t::get<version_range_t>(initial_metadata.get_as_pairs()[0].second);
         rassert(initial_version.is_coherent());
         rassert(initial_version.earliest.branch == branch_id);
         state_timestamp_t initial_timestamp = initial_version.earliest.timestamp;
@@ -256,6 +278,10 @@ private:
         mutex_acquisition_t mutex_acq(&operation_order_mutex);
 
         try {
+            /* Validate write. */
+            rassert(region_is_superset(namespace_metadata->get().branches[branch_id].region, write.get_region()));
+            rassert(!region_is_empty(write.get_region()));
+
             /* Block until registration has completely succeeded or failed. */
             {
                 wait_any_t waiter(registration_result_cond.get_ready_signal(), keepalive.get_drain_signal());
@@ -324,6 +350,9 @@ private:
                 binary_blob_t(version_range_t(version_t(branch_id, transition_timestamp.timestamp_after())))
                 ));
 
+            /* Mask out any parts of the operation that don't apply to us */
+            write = write.shard(store->get_region());
+
             /* Perform the operation */
             transaction->write(
                 write,
@@ -348,6 +377,10 @@ private:
         mutex_acquisition_t mutex_acq(&operation_order_mutex);
 
         try {
+            /* Validate write. */
+            rassert(region_is_superset(namespace_metadata->get().branches[branch_id].region, write.get_region()));
+            rassert(!region_is_empty(write.get_region()));
+
             /* We can't possibly be receiving writereads unless we successfully
             registered and completed a backfill */
             rassert(registration_result_cond.get_ready_signal()->is_pulsed() &&
@@ -388,6 +421,10 @@ private:
                 binary_blob_t(version_range_t(version_t(branch_id, transition_timestamp.timestamp_after())))
                 ));
 
+            /* Make sure we can serve the entire operation without masking it.
+            (We shouldn't have been signed up for writereads if we couldn't.) */
+            rassert(region_is_superset(store->get_region(), write.get_region()));
+
             /* Perform the operation */
             typename protocol_t::write_response_t response = transaction->write(
                 write,
@@ -409,6 +446,10 @@ private:
         mutex_acquisition_t mutex_acq(&operation_order_mutex);
 
         try {
+            /* Validate read. */
+            rassert(region_is_superset(namespace_metadata->get().branches[branch_id].region, read.get_region()));
+            rassert(!region_is_empty(read.get_region()));
+
             /* We can't possibly be receiving reads unless we successfully
             registered and completed a backfill */
             rassert(registration_result_cond.get_ready_signal()->is_pulsed() &&
@@ -438,6 +479,10 @@ private:
                 expected_timestamp);
 #endif
 
+            /* Make sure we can serve the entire operation without masking it.
+            (We shouldn't have been signed up for reads if we couldn't.) */
+            rassert(region_is_superset(store->get_region(), read.get_region()));
+
             /* Perform the operation */
             typename protocol_t::read_response_t response = transaction->read(
                 read,
@@ -451,6 +496,7 @@ private:
     }
 
     mailbox_cluster_t *cluster;
+    boost::shared_ptr<metadata_read_view_t<namespace_metadata_t<protocol_t> > > namespace_metadata;
 
     store_view_t<protocol_t> *store;
 

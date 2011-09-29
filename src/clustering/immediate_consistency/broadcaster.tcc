@@ -3,10 +3,10 @@
 /* Functions to send a read or write to a mirror and wait for a response. */
 
 template<class protocol_t>
-void mirror_data_write(
+void listener_write(
         mailbox_cluster_t *cluster,
-        const typename branch_metadata_t<protocol_t>::mirror_data_t::write_mailbox_t::address_t &write_mailbox,
-        typename protocol_t::write_t w, transition_timestamp_t ts, order_token_t tok,
+        const typename listener_data_t<protocol_t>::write_mailbox_t::address_t &write_mailbox,
+        typename protocol_t::write_t w, transition_timestamp_t ts,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
 {
@@ -15,7 +15,7 @@ void mirror_data_write(
         cluster, boost::bind(&cond_t::pulse, &ack_cond));
 
     send(cluster, write_mailbox,
-        w, ts, tok, ack_mailbox.get_address());
+        w, ts, ack_mailbox.get_address());
 
     wait_any_t waiter(&ack_cond, interruptor);
     waiter.wait_lazily_unordered();
@@ -25,10 +25,10 @@ void mirror_data_write(
 }
 
 template<class protocol_t>
-typename protocol_t::write_response_t mirror_data_writeread(
+typename protocol_t::write_response_t listener_writeread(
         mailbox_cluster_t *cluster,
-        const typename branch_metadata_t<protocol_t>::mirror_data_t::writeread_mailbox_t::address_t &writeread_mailbox,
-        typename protocol_t::write_t w, transition_timestamp_t ts, order_token_t tok,
+        const typename listener_data_t<protocol_t>::writeread_mailbox_t::address_t &writeread_mailbox,
+        typename protocol_t::write_t w, transition_timestamp_t ts,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
 {
@@ -37,7 +37,7 @@ typename protocol_t::write_response_t mirror_data_writeread(
         cluster, boost::bind(&promise_t<typename protocol_t::write_response_t>::pulse, &resp_cond, _1));
 
     send(cluster, writeread_mailbox,
-        w, ts, tok, resp_mailbox.get_address());
+        w, ts, resp_mailbox.get_address());
 
     wait_any_t waiter(resp_cond.get_ready_signal(), interruptor);
     waiter.wait_lazily_unordered();
@@ -47,10 +47,10 @@ typename protocol_t::write_response_t mirror_data_writeread(
 }
 
 template<class protocol_t>
-typename protocol_t::read_response_t mirror_data_read(
+typename protocol_t::read_response_t listener_read(
         mailbox_cluster_t *cluster,
-        const typename branch_metadata_t<protocol_t>::mirror_data_t::read_mailbox_t::address_t &read_mailbox,
-        typename protocol_t::read_t r, state_timestamp_t ts, order_token_t tok,
+        const typename listener_data_t<protocol_t>::read_mailbox_t::address_t &read_mailbox,
+        typename protocol_t::read_t r, state_timestamp_t ts,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
 {
@@ -59,7 +59,7 @@ typename protocol_t::read_response_t mirror_data_read(
         cluster, boost::bind(&promise_t<typename protocol_t::read_response_t>::pulse, &resp_cond, _1));
 
     send(cluster, read_mailbox,
-        r, ts, tok, resp_mailbox.get_address());
+        r, ts, resp_mailbox.get_address());
 
     wait_any_t waiter(resp_cond.get_ready_signal(), interruptor);
     waiter.wait_lazily_unordered();
@@ -79,11 +79,12 @@ typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename pr
         mutex_acquisition_t mutex_acq(&mutex);
         pick_a_readable_dispatchee(&reader, &reader_lock);
         timestamp = current_timestamp;
+        order_sink.check_in(order_token);
     }
 
     try {
-        return mirror_data_read<protocol_t>(cluster, reader->read_mailbox,
-            read, timestamp, order_token,
+        return listener_read<protocol_t>(cluster, reader->read_mailbox,
+            read, timestamp,
             reader_lock.get_drain_signal());
     } catch (interrupted_exc_t) {
         throw mirror_lost_exc_t();
@@ -91,14 +92,14 @@ typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename pr
 }
 
 template<class protocol_t>
-typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename protocol_t::write_t w, order_token_t tok) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t) {
+typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename protocol_t::write_t write, order_token_t order_token) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t) {
 
     /* TODO: Make `target_ack_count` configurable */
     int target_ack_count = 1;
 
-    /* We'll fill `write` with the write that we start; we hold it in a shared
-    pointer so that it stays alive while we check its `done_promise`. */
-    boost::shared_ptr<incomplete_write_t> write;
+    /* We'll fill `write_wrapper` with the write that we start; we hold it in a
+    shared pointer so that it stays alive while we check its `done_promise`. */
+    boost::shared_ptr<incomplete_write_t> write_wrapper;
 
     typename protocol_t::write_response_t resp;
 
@@ -118,16 +119,15 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
 
             transition_timestamp_t timestamp = transition_timestamp_t::starting_from(current_timestamp);
             current_timestamp = timestamp.timestamp_after(); 
+            order_sink.check_in(order_token);
 
-            tok = order_checkpoint.check_through(tok);
-
-            write = boost::make_shared<incomplete_write_t>(
-                this, w, timestamp, tok, target_ack_count);
-            incomplete_writes.push_back(write);
+            write_wrapper = boost::make_shared<incomplete_write_t>(
+                this, write, timestamp, tok, target_ack_count);
+            incomplete_writes.push_back(write_wrapper);
 
             /* Create a reference so that `write` doesn't declare itself
             complete before we've even started */
-            write_ref = incomplete_write_ref_t(write);
+            write_ref = incomplete_write_ref_t(write_wrapper);
 
             sanity_check(&mutex_acq);
 
@@ -149,8 +149,8 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
 
         /* ... then dispatch it to the writereader */
         try {
-            resp = mirror_data_writeread<protocol_t>(cluster, writereader->writeread_mailbox,
-                write_ref.get()->write, write_ref.get()->timestamp, write_ref.get()->order_token,
+            resp = listener_writeread<protocol_t>(cluster, writereader->writeread_mailbox,
+                write_ref.get()->write, write_ref.get()->timestamp,
                 writereader_lock.get_drain_signal());
         } catch (interrupted_exc_t) {
             throw mirror_lost_exc_t();
@@ -160,14 +160,14 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
 
     /* Wait until `target_ack_count` has been reached, or until the write is
     declared impossible because there are too few mirrors. */
-    bool success = write->done_promise.wait();
+    bool success = write_wrapper->done_promise.wait();
     if (!success) throw insufficient_mirrors_exc_t();
 
     return resp;
 }
 
 template<class protocol_t>
-broadcaster_t<protocol_t>::dispatchee_t::dispatchee_t(broadcaster_t *c, mirror_data_t d) THROWS_NOTHING :
+broadcaster_t<protocol_t>::dispatchee_t::dispatchee_t(broadcaster_t *c, listener_t d) THROWS_NOTHING :
     write_mailbox(d.write_mailbox), is_readable(false), controller(c),
     upgrade_mailbox(controller->cluster,
         boost::bind(&dispatchee_t::upgrade, this, _1, _2, auto_drainer_t::lock_t(&drainer)))
@@ -200,8 +200,8 @@ broadcaster_t<protocol_t>::dispatchee_t::~dispatchee_t() THROWS_NOTHING {
 
 template<class protocol_t>
 void broadcaster_t<protocol_t>::dispatchee_t::upgrade(
-        typename mirror_data_t::writeread_mailbox_t::address_t wrm,
-        typename mirror_data_t::read_mailbox_t::address_t rm,
+        typename listener_t::writeread_mailbox_t::address_t wrm,
+        typename listener_t::read_mailbox_t::address_t rm,
         auto_drainer_t::lock_t)
         THROWS_NOTHING
 {
@@ -249,8 +249,8 @@ void broadcaster_t<protocol_t>::pick_a_readable_dispatchee(dispatchee_t **dispat
 template<class protocol_t>
 void broadcaster_t<protocol_t>::background_write(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref) THROWS_NOTHING {
     try {
-        mirror_data_write<protocol_t>(cluster, mirror->write_mailbox,
-            write_ref.get()->write, write_ref.get()->timestamp, write_ref.get()->order_token,
+        listener_write<protocol_t>(cluster, mirror->write_mailbox,
+            write_ref.get()->write, write_ref.get()->timestamp,
             mirror_lock.get_drain_signal());
     } catch (interrupted_exc_t) {
         return;
