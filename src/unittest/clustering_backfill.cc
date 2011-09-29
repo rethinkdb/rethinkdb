@@ -1,8 +1,8 @@
 #include "unittest/gtest.hpp"
-#include "clustering/backfiller.hpp"
-#include "clustering/backfillee.hpp"
+#include "clustering/immediate_consistency/backfiller.hpp"
+#include "clustering/immediate_consistency/backfillee.hpp"
 #include "rpc/metadata/view/controller.hpp"
-#include "unittest/clustering_dummies.hpp"
+#include "rpc/metadata/view/field.hpp"
 #include "unittest/dummy_protocol.hpp"
 #include "unittest/unittest_utils.hpp"
 
@@ -10,14 +10,37 @@ namespace unittest {
 
 void run_backfill_test() {
 
-    dummy_branch_history_database_t branch_history;
-
     /* Set up two stores */
 
-    dummy_underlying_store_t backfiller_underlying_store(branch_history.region);
-    dummy_store_view_t backfiller_store(&backfiller_underlying_store, branch_history.region);
-    dummy_underlying_store_t backfillee_underlying_store(branch_history.region);
-    dummy_store_view_t backfillee_store(&backfillee_underlying_store, branch_history.region);
+    dummy_protocol_t::region_t region;
+    for (char c = 'a'; c <= 'z'; c++) {
+        region.keys.insert(std::string(&c, 1));
+    }
+
+    dummy_underlying_store_t backfiller_underlying_store(region);
+    dummy_store_view_t backfiller_store(&backfiller_underlying_store, region);
+    dummy_underlying_store_t backfillee_underlying_store(region);
+    dummy_store_view_t backfillee_store(&backfillee_underlying_store, region);
+
+    /* Make a dummy metadata view to hold a branch tree so branch history checks
+    can be performed */
+
+    metadata_view_controller_t<namespace_metadata_t<dummy_protocol_t> > namespace_metadata_controller(
+        /* Parentheses prevent C++ from interpreting this as a function
+        declaration */
+        (namespace_metadata_t<dummy_protocol_t>()));
+    branch_id_t dummy_branch_id = generate_uuid();
+    {
+        branch_metadata_t<dummy_protocol_t> dummy_branch;
+        dummy_branch.region = region;
+        dummy_branch.initial_timestamp = state_timestamp_t::zero();
+        dummy_branch.origin = region_map_t<dummy_protocol_t, version_range_t>(
+            region, version_range_t(version_t(boost::uuids::nil_generator()(), state_timestamp_t::zero()))
+            );
+        std::map<branch_id_t, branch_metadata_t<dummy_protocol_t> > singleton_map;
+        singleton_map[dummy_branch_id] = dummy_branch;
+        metadata_field(&namespace_metadata_t<dummy_protocol_t>::branches, namespace_metadata_controller.get_view())->join(singleton_map);
+    }
 
     /* Insert 10 values into both stores, then another 10 into only
     `backfiller_store` and not `backfillee_store` */
@@ -37,8 +60,8 @@ void run_backfill_test() {
             boost::shared_ptr<store_view_t<dummy_protocol_t>::write_transaction_t> txn =
                 backfiller_store.begin_write_transaction(&interruptor);
             txn->set_metadata(region_map_t<dummy_protocol_t, binary_blob_t>(
-                branch_history.region,
-                binary_blob_t(version_range_t(version_t(branch_history.branch_id, timestamp), version_t(branch_history.branch_id, timestamp)))
+                region,
+                binary_blob_t(version_range_t(version_t(dummy_branch_id, timestamp)))
                 ));
             txn->write(w, ts);
         }
@@ -48,8 +71,8 @@ void run_backfill_test() {
             boost::shared_ptr<store_view_t<dummy_protocol_t>::write_transaction_t> txn =
                 backfillee_store.begin_write_transaction(&interruptor);
             txn->set_metadata(region_map_t<dummy_protocol_t, binary_blob_t>(
-                branch_history.region,
-                binary_blob_t(version_range_t(version_t(branch_history.branch_id, timestamp), version_t(branch_history.branch_id, timestamp)))
+                region,
+                binary_blob_t(version_range_t(version_t(dummy_branch_id, timestamp)))
                 ));
             txn->write(w, ts);
         }
@@ -73,14 +96,14 @@ void run_backfill_test() {
 
     backfiller_t<dummy_protocol_t> backfiller(
         &cluster,
-        &branch_history,
+        namespace_metadata_controller.get_view(),
         &backfiller_store,
         backfiller_md_controller.get_view());
 
     /* Run a backfill */
 
     cond_t interruptor;
-    backfillee<dummy_protocol_t>(&cluster, &backfillee_store, backfiller_md_controller.get_view(), &interruptor);
+    backfillee<dummy_protocol_t>(&cluster, namespace_metadata_controller.get_view(), &backfillee_store, backfiller_md_controller.get_view(), &interruptor);
 
     /* Make sure everything got transferred properly */
 

@@ -17,7 +17,8 @@ dummy_protocol_t::region_t dummy_protocol_t::read_t::get_region() const {
 }
 
 dummy_protocol_t::read_t dummy_protocol_t::read_t::shard(region_t region) const {
-    rassert(region_is_superset(get_region(), region));
+    rassert(region_is_superset(get_region(), region),
+        "Parameter to `shard()` should be a subset of read's region.");
     read_t r;
     r.keys = region_intersection(region, keys);
     return r;
@@ -29,8 +30,11 @@ dummy_protocol_t::read_response_t dummy_protocol_t::read_t::unshard(std::vector<
     for (int i = 0; i < (int)resps.size(); i++) {
         for (std::map<std::string, std::string>::const_iterator it = resps[i].values.begin();
                 it != resps[i].values.end(); it++) {
-            rassert(keys.keys.count((*it).first) != 0);
-            rassert(combined.values.count((*it).first) == 0);
+            rassert(keys.keys.count((*it).first) != 0,
+                "We got a response that doesn't match our request");
+            rassert(combined.values.count((*it).first) == 0,
+                "Part of the query was run multiple times, or a response was "
+                "duplicated.");
             combined.values[(*it).first] = (*it).second;
         }
     }
@@ -47,7 +51,8 @@ dummy_protocol_t::region_t dummy_protocol_t::write_t::get_region() const {
 }
 
 dummy_protocol_t::write_t dummy_protocol_t::write_t::shard(region_t region) const {
-    rassert(region_is_superset(get_region(), region));
+    rassert(region_is_superset(get_region(), region),
+        "Parameter to `shard()` should be a subset of the write's region.");
     write_t w;
     for (std::map<std::string, std::string>::const_iterator it = values.begin();
             it != values.end(); it++) {
@@ -64,8 +69,11 @@ dummy_protocol_t::write_response_t dummy_protocol_t::write_t::unshard(std::vecto
     for (int i = 0; i < (int)resps.size(); i++) {
         for (std::map<std::string, std::string>::const_iterator it = resps[i].old_values.begin();
                 it != resps[i].old_values.end(); it++) {
-            rassert(values.find((*it).first) != values.end());
-            rassert(combined.old_values.count((*it).first) == 0);
+            rassert(values.find((*it).first) != values.end(),
+                "We got a response that doesn't match our request.");
+            rassert(combined.old_values.count((*it).first) == 0,
+                "Part of the query was run multiple times, or a response was "
+                "duplicated.");
             combined.old_values[(*it).first] = (*it).second;
         }
     }
@@ -131,18 +139,20 @@ public:
     }
 
     region_map_t<dummy_protocol_t, binary_blob_t> get_metadata(signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        rassert(valid);
+        rassert(valid, "It's illegal to call `get_metadata()` after calling "
+            "`read()`, `write()`, `send_backfill()`, or `receive_backfill()`.");
         if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
         return view->parent->metadata.mask(view->get_region());
     }
 
     dummy_protocol_t::read_response_t read(const dummy_protocol_t::read_t &read, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        rassert(valid);
+        rassert(valid, "It's illegal to call `read()` again after calling "
+            "`read()`, `write()`, `send_backfill()`, or `receive_backfill()`.");
         valid = false;
         dummy_protocol_t::read_response_t resp;
         {
-            /* Swap `acq` into a temp variable so it gets released when we
-            throw an exception or finish */
+            /* Swap `acq` into a temp variable so it gets released when we throw
+            an exception or finish */
             rwi_lock_t::acq_t temp_acq;
             swap(acq, temp_acq);
             if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
@@ -161,7 +171,9 @@ public:
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t)
     {
-        rassert(valid);
+        rassert(valid, "It's illegal to call `send_backfill()` again after "
+            "calling `read()`, `write()`, `send_backfill()`, or "
+            "`receive_backfill()`.");
         valid = false;
         /* Make a copy so we can sleep and still have the correct semantics */
         std::map<std::string, std::string> values_snapshot = view->parent->values;
@@ -178,6 +190,8 @@ public:
         for (int i = 0; i < (int)pairs.size(); i++) {
             for (std::set<std::string>::iterator it = pairs[i].first.keys.begin();
                     it != pairs[i].first.keys.end(); it++) {
+                rassert(view->get_region().keys.count(*it) != 0,
+                    "The backfill request is for a region that we don't have.");
                 if (timestamps_snapshot[*it] > pairs[i].second) {
                     dummy_protocol_t::backfill_chunk_t chunk;
                     chunk.key = *it;
@@ -191,8 +205,11 @@ public:
     }
 
     void set_metadata(const region_map_t<dummy_protocol_t, binary_blob_t> &metadata) THROWS_NOTHING {
-        rassert(valid);
+        rassert(valid, "It's illegal to call `set_metadata()` after calling "
+            "`read()`, `write()`, `send_backfill()`, or `receive_backfill()`.");
         if (rng.randint(2) == 0) nap(rng.randint(10));
+        rassert(metadata.get_domain() == view->get_region(),
+            "The new metadata should exactly cover our region.");
         std::vector<std::pair<dummy_protocol_t::region_t, binary_blob_t> > old_pairs = view->parent->metadata.get_as_pairs();
         dummy_protocol_t::region_t cutout = metadata.get_domain();
         std::vector<std::pair<dummy_protocol_t::region_t, binary_blob_t> > new_pairs = metadata.get_as_pairs();
@@ -209,7 +226,8 @@ public:
     }
 
     dummy_protocol_t::write_response_t write(const dummy_protocol_t::write_t &write, transition_timestamp_t transition_timestamp) THROWS_NOTHING {
-        rassert(valid);
+        rassert(valid, "It's illegal to call `write()` again after calling "
+            "`read()`, `write()`, `send_backfill()`, or `receive_backfill()`.");
         valid = false;
         dummy_protocol_t::write_response_t resp;
         {
@@ -218,6 +236,8 @@ public:
             if (rng.randint(2) == 0) nap(rng.randint(10));
             for (std::map<std::string, std::string>::const_iterator it = write.values.begin();
                     it != write.values.end(); it++) {
+                rassert(view->get_region().keys.count((*it).first) != 0,
+                    "The write is (at least partially) outside of our region.");
                 resp.old_values[(*it).first] = view->parent->values[(*it).first];
                 view->parent->values[(*it).first] = (*it).second;
                 view->parent->timestamps[(*it).first] = transition_timestamp.timestamp_after();
@@ -228,8 +248,11 @@ public:
     }
 
     void receive_backfill(const dummy_protocol_t::backfill_chunk_t &chunk, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        rassert(view->get_region().keys.count(chunk.key) != 0);
-        rassert(valid);
+        rassert(view->get_region().keys.count(chunk.key) != 0,
+            "The backfill contains keys that aren't in our region.");
+        rassert(valid, "It's illegal to call `receive_backfill()` again after "
+            "calling `read()`, `write()`, `send_backfill()`, or "
+            "`receive_backfill()`.");
         valid = false;
         {
             rwi_lock_t::acq_t temp_acq;

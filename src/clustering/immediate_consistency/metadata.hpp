@@ -12,6 +12,7 @@
 #include "clustering/registration_metadata.hpp"
 #include "clustering/resource.hpp"
 #include "concurrency/fifo_checker.hpp"
+#include "protocol_api.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/metadata/semilattice/map.hpp"
 #include "timestamps.hpp"
@@ -188,6 +189,12 @@ public:
             >)>::address_t
         )> write_mailbox_t;
 
+    master_metadata_t() { }
+    master_metadata_t(
+            const typename read_mailbox_t::address_t rm,
+            const typename write_mailbox_t::address_t wm) :
+        read_mailbox(rm), write_mailbox(wm) { }
+
     /* Contact info for the master itself */
     typename read_mailbox_t::address_t read_mailbox;
     typename write_mailbox_t::address_t write_mailbox;
@@ -196,7 +203,7 @@ public:
 };
 
 template<class protocol_t>
-void semilattice_join(master_metadata_t<protocol_t> *a, const master_metadata_t<protocol_t> &b) {
+void semilattice_join(UNUSED master_metadata_t<protocol_t> *a, UNUSED const master_metadata_t<protocol_t> &b) {
     /* The mailboxes should be identical, but we don't check. */
 }
 
@@ -222,7 +229,7 @@ public:
     listeners can find them for backfills */
     std::map<backfiller_id_t, resource_metadata_t<backfiller_metadata_t<protocol_t> > > backfillers;
 
-    RDB_MAKE_ME_SERIALIZABLE_5(region, initial_timestamp, origin,
+    RDB_MAKE_ME_SERIALIZABLE_6(region, initial_timestamp, origin,
         master, broadcaster_registrar, backfillers);
 };
 
@@ -243,7 +250,7 @@ template<class protocol_t>
 class namespace_metadata_t {
 
 public:
-    std::map<branch_id_t, resource_metadata_t<branch_metadata_t<protocol_t> > > branches;
+    std::map<branch_id_t, branch_metadata_t<protocol_t> > branches;
 
     RDB_MAKE_ME_SERIALIZABLE_1(branches);
 };

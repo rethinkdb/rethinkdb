@@ -31,6 +31,7 @@ void on_receive_backfill_chunk(
 template<class protocol_t>
 void backfillee(
         mailbox_cluster_t *cluster,
+        boost::shared_ptr<metadata_read_view_t<namespace_metadata_t<protocol_t> > > namespace_metadata,
         store_view_t<protocol_t> *store,
         boost::shared_ptr<metadata_read_view_t<resource_metadata_t<backfiller_metadata_t<protocol_t> > > > backfiller_metadata,
         signal_t *interruptor)
@@ -131,6 +132,12 @@ void backfillee(
             for (int j = 0; j < (int)end_point_parts.size(); j++) {
                 typename protocol_t::region_t ixn = region_intersection(start_point_parts[i].first, end_point_parts[j].first);
                 if (!region_is_empty(ixn)) {
+                    rassert(version_is_ancestor(namespace_metadata,
+                        start_point_parts[i].second.earliest,
+                        end_point_parts[j].second.latest,
+                        ixn),
+                        "We're on a different timeline than the backfiller, "
+                        "but it somehow failed to notice.");
                     span_parts.push_back(std::make_pair(
                         ixn,
                         version_range_t(start_point_parts[i].second.earliest, end_point_parts[j].second.latest)
