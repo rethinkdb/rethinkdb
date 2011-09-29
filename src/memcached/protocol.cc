@@ -127,7 +127,7 @@ key_range_t region_join(const std::vector<key_range_t> &vec) THROWS_ONLY(bad_joi
 }
 
 bool region_overlaps(const key_range_t &r1, const key_range_t &r2) THROWS_NOTHING {
-    return (r1.left < r2.right && r2.left < r1.right);
+    return (r1.left < r2.right && r2.left < r1.right && !region_is_empty(r1) && !region_is_empty(r2));
 }
 
 bool operator==(key_range_t a, key_range_t b) THROWS_NOTHING {
