@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_IMMEDIATE_CONSISTENCY_METADATA_HPP__
-#define __CLUSTERING_IMMEDIATE_CONSISTENCY_METADATA_HPP__
+#ifndef __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_METADATA_HPP__
+#define __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_METADATA_HPP__
 
 #include <map>
 
@@ -164,49 +164,6 @@ void semilattice_join(UNUSED backfiller_metadata_t<protocol_t> *a, UNUSED const 
     /* They should be equal, but we don't bother testing that */
 }
 
-/* There is one `master_metadata_t` per branch. It's created by the master.
-Parsers use it to find the master. */
-
-template<class protocol_t>
-class master_metadata_t {
-
-public:
-    /* Mailbox types for the master */
-    typedef async_mailbox_t<void(
-        typename protocol_t::read_t,
-        order_token_t,
-        typename async_mailbox_t<void(boost::variant<
-            typename protocol_t::read_response_t,
-            std::string
-            >)>::address_t
-        )> read_mailbox_t;
-    typedef async_mailbox_t<void(
-        typename protocol_t::write_t,
-        order_token_t,
-        typename async_mailbox_t<void(boost::variant<
-            typename protocol_t::write_response_t,
-            std::string
-            >)>::address_t
-        )> write_mailbox_t;
-
-    master_metadata_t() { }
-    master_metadata_t(
-            const typename read_mailbox_t::address_t rm,
-            const typename write_mailbox_t::address_t wm) :
-        read_mailbox(rm), write_mailbox(wm) { }
-
-    /* Contact info for the master itself */
-    typename read_mailbox_t::address_t read_mailbox;
-    typename write_mailbox_t::address_t write_mailbox;
-
-    RDB_MAKE_ME_SERIALIZABLE_2(read_mailbox, write_mailbox);
-};
-
-template<class protocol_t>
-void semilattice_join(UNUSED master_metadata_t<protocol_t> *a, UNUSED const master_metadata_t<protocol_t> &b) {
-    /* The mailboxes should be identical, but we don't check. */
-}
-
 /* `branch_metadata_t` is all the metadata for a branch. */
 
 template<class protocol_t>
@@ -218,9 +175,6 @@ public:
     state_timestamp_t initial_timestamp;
     region_map_t<protocol_t, version_range_t> origin;
 
-    /* The master itself */
-    resource_metadata_t<master_metadata_t<protocol_t> > master;
-
     /* When listeners start up, they construct a `listener_data_t` and send it
     to the broadcaster via `broadcaster_registrar` */
     resource_metadata_t<registrar_metadata_t<listener_data_t<protocol_t> > > broadcaster_registrar;
@@ -229,8 +183,8 @@ public:
     listeners can find them for backfills */
     std::map<backfiller_id_t, resource_metadata_t<backfiller_metadata_t<protocol_t> > > backfillers;
 
-    RDB_MAKE_ME_SERIALIZABLE_6(region, initial_timestamp, origin,
-        master, broadcaster_registrar, backfillers);
+    RDB_MAKE_ME_SERIALIZABLE_5(region, initial_timestamp, origin,
+        broadcaster_registrar, backfillers);
 };
 
 template<class protocol_t>
@@ -238,16 +192,15 @@ void semilattice_join(branch_metadata_t<protocol_t> *a, const branch_metadata_t<
     rassert(a->region == b.region);
     rassert(a->initial_timestamp == b.initial_timestamp);
     /* `origin` should be the same too, but don't bother comparing */
-    semilattice_join(&a->master, b.master);
     semilattice_join(&a->broadcaster_registrar, b.broadcaster_registrar);
     semilattice_join(&a->backfillers, b.backfillers);
 }
 
-/* The namespace as a whole has a `namespace_metadata_t` that holds all of the
-branches. */
+/* The namespace as a whole has a `namespace_branches_metadata_t` that holds all
+of the branches. */
 
 template<class protocol_t>
-class namespace_metadata_t {
+class namespace_branch_metadata_t {
 
 public:
     std::map<branch_id_t, branch_metadata_t<protocol_t> > branches;
@@ -256,8 +209,8 @@ public:
 };
 
 template<class protocol_t>
-void semilattice_join(namespace_metadata_t<protocol_t> *a, const namespace_metadata_t<protocol_t> &b) {
+void semilattice_join(namespace_branch_metadata_t<protocol_t> *a, const namespace_branch_metadata_t<protocol_t> &b) {
     semilattice_join(&a->branches, b.branches);
 }
 
-#endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_METADATA_HPP__ */
+#endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_METADATA_HPP__ */

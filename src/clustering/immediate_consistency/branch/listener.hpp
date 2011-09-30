@@ -1,8 +1,8 @@
-#ifndef __CLUSTERING_IMMEDIATE_CONSISTENCY_LISTENER_HPP__
-#define __CLUSTERING_IMMEDIATE_CONSISTENCY_LISTENER_HPP__
+#ifndef __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_LISTENER_HPP__
+#define __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_LISTENER_HPP__
 
-#include "clustering/immediate_consistency/backfillee.hpp"
-#include "clustering/immediate_consistency/metadata.hpp"
+#include "clustering/immediate_consistency/branch/backfillee.hpp"
+#include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "clustering/resource.hpp"
 #include "clustering/registrant.hpp"
 #include "concurrency/promise.hpp"
@@ -30,7 +30,7 @@ class listener_t {
 public:
     listener_t(
             mailbox_cluster_t *c,
-            boost::shared_ptr<metadata_read_view_t<namespace_metadata_t<protocol_t> > > nm,
+            boost::shared_ptr<metadata_read_view_t<namespace_branch_metadata_t<protocol_t> > > nm,
             store_view_t<protocol_t> *s,
             branch_id_t bid,
             backfiller_id_t backfiller_id,
@@ -54,7 +54,7 @@ public:
         }
 
         boost::shared_ptr<metadata_read_view_t<branch_metadata_t<protocol_t> > > branch_metadata =
-            metadata_member(branch_id, metadata_field(&namespace_metadata_t<protocol_t>::branches, namespace_metadata)); 
+            metadata_member(branch_id, metadata_field(&namespace_branch_metadata_t<protocol_t>::branches, namespace_metadata)); 
 
 #ifndef NDEBUG
         rassert(region_is_superset(branch_metadata->get().region, store->get_region()));
@@ -178,7 +178,7 @@ private:
     be used for any other purpose. */
     listener_t(
             mailbox_cluster_t *c,
-            boost::shared_ptr<metadata_read_view_t<namespace_metadata_t<protocol_t> > > nm,
+            boost::shared_ptr<metadata_read_view_t<namespace_branch_metadata_t<protocol_t> > > nm,
             store_view_t<protocol_t> *s,
             branch_id_t bid,
             signal_t *interruptor)
@@ -201,7 +201,7 @@ private:
         }
 
         boost::shared_ptr<metadata_read_view_t<branch_metadata_t<protocol_t> > > branch_metadata =
-            metadata_member(branch_id, metadata_field(&namespace_metadata_t<protocol_t>::branches, namespace_metadata)); 
+            metadata_member(branch_id, metadata_field(&namespace_branch_metadata_t<protocol_t>::branches, namespace_metadata)); 
 
         /* Make sure the initial state of the store is sane */
         rassert(store->get_region() == branch_metadata->get().region);
@@ -507,7 +507,7 @@ private:
     }
 
     mailbox_cluster_t *cluster;
-    boost::shared_ptr<metadata_read_view_t<namespace_metadata_t<protocol_t> > > namespace_metadata;
+    boost::shared_ptr<metadata_read_view_t<namespace_branch_metadata_t<protocol_t> > > namespace_metadata;
 
     store_view_t<protocol_t> *store;
 
@@ -547,4 +547,4 @@ private:
     wait_any_t outdated_signal;
 };
 
-#endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_LISTENER_HPP__ */
+#endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_LISTENER_HPP__ */

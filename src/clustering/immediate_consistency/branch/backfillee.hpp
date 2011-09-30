@@ -1,7 +1,7 @@
-#ifndef __CLUSTERING_IMMEDIATE_CONSISTENCY_BACKFILLEE_HPP__
-#define __CLUSTERING_IMMEDIATE_CONSISTENCY_BACKFILLEE_HPP__
+#ifndef __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BACKFILLEE_HPP__
+#define __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BACKFILLEE_HPP__
 
-#include "clustering/immediate_consistency/metadata.hpp"
+#include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "concurrency/promise.hpp"
 
 template<class protocol_t>
@@ -31,7 +31,7 @@ void on_receive_backfill_chunk(
 template<class protocol_t>
 void backfillee(
         mailbox_cluster_t *cluster,
-        boost::shared_ptr<metadata_read_view_t<namespace_metadata_t<protocol_t> > > namespace_metadata,
+        boost::shared_ptr<metadata_read_view_t<namespace_branch_metadata_t<protocol_t> > > namespace_metadata,
         store_view_t<protocol_t> *store,
         boost::shared_ptr<metadata_read_view_t<resource_metadata_t<backfiller_metadata_t<protocol_t> > > > backfiller_metadata,
         signal_t *interruptor)
@@ -184,4 +184,4 @@ void backfillee(
         );
 }
 
-#endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_BACKFILLEE_HPP__ */
+#endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BACKFILLEE_HPP__ */

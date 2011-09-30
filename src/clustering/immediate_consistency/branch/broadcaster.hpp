@@ -1,11 +1,11 @@
-#ifndef __CLUSTERING_IMMEDIATE_CONSISTENCY_BROADCASTER_HPP__
-#define __CLUSTERING_IMMEDIATE_CONSISTENCY_BROADCASTER_HPP__
+#ifndef __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BROADCASTER_HPP__
+#define __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BROADCASTER_HPP__
 
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 
-#include "clustering/immediate_consistency/metadata.hpp"
+#include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "clustering/registrar.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/mailbox/typed.hpp"
@@ -23,14 +23,77 @@ class broadcaster_t : public home_thread_mixin_t {
 public:
     broadcaster_t(
             mailbox_cluster_t *c,
-            boost::shared_ptr<metadata_readwrite_view_t<branch_metadata_t<protocol_t> > > metadata_view,
-            state_timestamp_t initial_timestamp
-            ) THROWS_NOTHING :
+            boost::shared_ptr<metadata_readwrite_view_t<namespace_branch_metadata_t<protocol_t> > > namespace_metadata,
+            store_view_t<protocol_t> *initial_store,
+            signal_t *interruptor,
+            boost::scoped_ptr<listener_t<protocol_t> > *initial_listener_out)
+            THROWS_ONLY(interrupted_exc_t) :
         cluster(c),
-        current_timestamp(initial_timestamp), newest_complete_timestamp(current_timestamp),
-        registrar(cluster, this,
-            metadata_field(&branch_metadata_t<protocol_t>::broadcaster_registrar, metadata_view))
+        branch_id(generate_uuid())
     {
+        /* Snapshot the starting point of the store; we'll need to record this
+        and store it in the metadata. */
+        region_map_t<protocol_t, version_range_t> origins =
+            region_map_transform<protocol_t, binary_blob_t, version_range_t>(
+                initial_store->begin_read_transaction(interruptor)->get_metadata(interruptor),
+                &binary_blob_t::get<version_range_t>
+            );
+
+        /* Determine what the first timestamp of the new branch will be */
+        state_timestamp_t initial_timestamp = state_timestamp_t::zero();
+        std::vector<std::pair<typename protocol_t::region_t, version_range_t> > pairs = origins.get_as_pairs();
+        for (int i = 0; i < (int)pairs.size(); i++) {
+            state_timestamp_t part_timestamp = pairs[i].second.latest.timestamp;
+            if (part_timestamp > initial_timestamp) {
+                initial_timestamp = part_timestamp;
+            }
+        }
+        current_timestamp = newest_complete_timestamp = initial_timestamp;
+
+        /* Make an entry for this branch in the global metadata */
+        {
+            branch_metadata_t<protocol_t> our_metadata;
+            our_metadata.region = initial_store->get_region();
+            our_metadata.initial_timestamp = initial_timestamp;
+            our_metadata.origins = origins;
+            /* We'll fill in `broadcaster_registrar` in just a moment */
+
+            std::map<branch_id_t, branch_metadata_t<protocol_t> > singleton;
+            singleton[branch_id] = our_metadata;
+            metadata_field(&namespace_branch_metadata_t<protocol_t>::branches, namespace_metadata)->join(singleton);
+        }
+
+        /* Now set up the registrar */
+        registrar.reset(new registrar_t<listener_data_t<protocol_t>, broadcaster_t *, dispatchee_t>(
+            cluster,
+            this,
+            metadata_field(&branch_metadata_t<protocol_t>::broadcaster_registrar,
+                metadata_member(branch_id,
+                    metadata_field(&namespace_metadata_t<protocol_t>::branches,
+                        namespace_metadata
+                )))
+            ));
+
+        /* Reset the store metadata. We should do this after making the branch
+        entry in the global metadata so that we aren't left in a state where
+        the store has been marked as belonging to a branch for which no
+        information exists. */
+        initial_store->begin_write_transaction(interruptor)->set_metadata(
+            region_map_t<protocol_t, binary_blob_t>(
+                initial_store->get_region(),
+                binary_blob_t(version_range_t(version_t(branch_id, initial_timestamp)))
+            ));
+
+        /* Set up the initial listener. Note that we're invoking the special
+        private `listener_t` constructor that doesn't perform a backfill. */
+        initial_listener_out->reset(new listener_t<protocol_t>(
+            cluster,
+            namespace_metadata,
+            initial_store,
+            branch_id,
+            interruptor));
+
+        /* Perform an initial sanity check. */
         mutex_acquisition_t mutex_acq(&mutex);
         sanity_check(&mutex_acq);
     }
@@ -215,6 +278,8 @@ private:
 
     mailbox_cluster_t *cluster;
 
+    branch_id_t branch_id;
+
     /* This mutex is held when an operation is starting or a new dispatchee is
     connecting. It protects `current_timestamp`, `newest_complete_timestamp`,
     `incomplete_writes`, `dispatchees`, and `order_sink`. */
@@ -234,9 +299,9 @@ private:
 
     intrusive_list_t<dispatchee_t> readable_dispatchees;
 
-    registrar_t<listener_data_t<protocol_t>, broadcaster_t *, dispatchee_t> registrar;
+    boost::scoped_ptr<registrar_t<listener_data_t<protocol_t>, broadcaster_t *, dispatchee_t> > registrar;
 };
 
-#include "clustering/immediate_consistency/broadcaster.tcc"
+#include "clustering/immediate_consistency/branch/broadcaster.tcc"
 
-#endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_BROADCASTER_HPP__ */
+#endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BROADCASTER_HPP__ */

@@ -1,7 +1,7 @@
-#ifndef __CLUSTERING_IMMEDIATE_CONSISTENCY_REPLIER_HPP__
-#define __CLUSTERING_IMMEDIATE_CONSISTENCY_REPLIER_HPP__
+#ifndef __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_REPLIER_HPP__
+#define __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_REPLIER_HPP__
 
-#include "clustering/immediate_consistency/listener.hpp"
+#include "clustering/immediate_consistency/branch/listener.hpp"
 
 /* If you construct a `replier_t` for a given `listener_t`, then the listener
 will inform the `broadcaster_t` that it's ready to reply to queries, and will
@@ -41,7 +41,7 @@ public:
             metadata_new_member(backfiller_id,
                 metadata_field(&branch_metadata_t<protocol_t>::backfillers,
                     metadata_member(listener->branch_id,
-                        metadata_field(&namespace_metadata_t<protocol_t>::branches,
+                        metadata_field(&namespace_branch_metadata_t<protocol_t>::branches,
                             listener->namespace_metadata
                 ))))
             ));
@@ -96,4 +96,4 @@ private:
     boost::scoped_ptr<signal_t::subscription_t> stop_backfilling_if_listener_outdated;
 };
 
-#endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_REPLIER_HPP__ */
+#endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_REPLIER_HPP__ */

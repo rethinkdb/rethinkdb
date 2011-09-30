@@ -1,3 +1,5 @@
+#if 0
+
 #include "unittest/gtest.hpp"
 #include "clustering/immediate_consistency/listener.hpp"
 #include "clustering/immediate_consistency/master.hpp"
@@ -199,3 +201,5 @@ TEST(ClusteringListener, Backfill) {
 }
 
 }   /* namespace unittest */
+
+#endif

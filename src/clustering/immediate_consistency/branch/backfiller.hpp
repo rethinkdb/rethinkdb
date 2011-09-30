@@ -1,10 +1,10 @@
-#ifndef __CLUSTERING_IMMEDIATE_CONSISTENCY_BACKFILLER_HPP__
-#define __CLUSTERING_IMMEDIATE_CONSISTENCY_BACKFILLER_HPP__
+#ifndef __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BACKFILLER_HPP__
+#define __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BACKFILLER_HPP__
 
 #include <map>
 
-#include "clustering/immediate_consistency/history.hpp"
-#include "clustering/immediate_consistency/metadata.hpp"
+#include "clustering/immediate_consistency/branch/history.hpp"
+#include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "clustering/resource.hpp"
 #include "protocol_api.hpp"
 
@@ -21,7 +21,7 @@ struct backfiller_t :
 {
     backfiller_t(
             mailbox_cluster_t *c,
-            boost::shared_ptr<metadata_read_view_t<namespace_metadata_t<protocol_t> > > nm,
+            boost::shared_ptr<metadata_read_view_t<namespace_branch_metadata_t<protocol_t> > > nm,
             store_view_t<protocol_t> *s,
             boost::shared_ptr<metadata_readwrite_view_t<resource_metadata_t<backfiller_metadata_t<protocol_t> > > > our_spot) :
         cluster(c), namespace_metadata(nm),
@@ -132,7 +132,7 @@ private:
     }
 
     mailbox_cluster_t *cluster;
-    boost::shared_ptr<metadata_read_view_t<namespace_metadata_t<protocol_t> > > namespace_metadata;
+    boost::shared_ptr<metadata_read_view_t<namespace_branch_metadata_t<protocol_t> > > namespace_metadata;
 
     store_view_t<protocol_t> *store;
 
@@ -145,4 +145,4 @@ private:
     resource_advertisement_t<backfiller_metadata_t<protocol_t> > advertisement;
 };
 
-#endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_BACKFILLER_HPP__ */
+#endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BACKFILLER_HPP__ */

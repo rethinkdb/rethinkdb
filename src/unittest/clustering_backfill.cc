@@ -1,6 +1,6 @@
 #include "unittest/gtest.hpp"
-#include "clustering/immediate_consistency/backfiller.hpp"
-#include "clustering/immediate_consistency/backfillee.hpp"
+#include "clustering/immediate_consistency/branch/backfiller.hpp"
+#include "clustering/immediate_consistency/branch/backfillee.hpp"
 #include "rpc/metadata/view/controller.hpp"
 #include "rpc/metadata/view/field.hpp"
 #include "unittest/dummy_protocol.hpp"
@@ -25,10 +25,10 @@ void run_backfill_test() {
     /* Make a dummy metadata view to hold a branch tree so branch history checks
     can be performed */
 
-    metadata_view_controller_t<namespace_metadata_t<dummy_protocol_t> > namespace_metadata_controller(
+    metadata_view_controller_t<namespace_branch_metadata_t<dummy_protocol_t> > namespace_metadata_controller(
         /* Parentheses prevent C++ from interpreting this as a function
         declaration */
-        (namespace_metadata_t<dummy_protocol_t>()));
+        (namespace_branch_metadata_t<dummy_protocol_t>()));
     branch_id_t dummy_branch_id = generate_uuid();
     {
         branch_metadata_t<dummy_protocol_t> dummy_branch;
@@ -39,7 +39,7 @@ void run_backfill_test() {
             );
         std::map<branch_id_t, branch_metadata_t<dummy_protocol_t> > singleton_map;
         singleton_map[dummy_branch_id] = dummy_branch;
-        metadata_field(&namespace_metadata_t<dummy_protocol_t>::branches, namespace_metadata_controller.get_view())->join(singleton_map);
+        metadata_field(&namespace_branch_metadata_t<dummy_protocol_t>::branches, namespace_metadata_controller.get_view())->join(singleton_map);
     }
 
     /* Insert 10 values into both stores, then another 10 into only
