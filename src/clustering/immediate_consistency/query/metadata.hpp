@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_IMMEDIATE_CONSISTENCY_MASTER_METADATA_HPP__
-#define __CLUSTERING_IMMEDIATE_CONSISTENCY_MASTER_METADATA_HPP__
+#ifndef __CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_METADATA_HPP__
+#define __CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_METADATA_HPP__
 
 #include "errors.hpp"
 #include <boost/variant.hpp>
@@ -36,9 +36,10 @@ public:
 
     master_metadata_t() { }
     master_metadata_t(
-            const typename read_mailbox_t::address_t rm,
-            const typename write_mailbox_t::address_t wm) :
-        read_mailbox(rm), write_mailbox(wm) { }
+            const typename protocol_t::region_t &r,
+            const typename read_mailbox_t::address_t &rm,
+            const typename write_mailbox_t::address_t &wm) :
+        region(r), read_mailbox(rm), write_mailbox(wm) { }
 
     /* The region that this master covers */
     typename protocol_t::region_t region;
@@ -47,12 +48,30 @@ public:
     typename read_mailbox_t::address_t read_mailbox;
     typename write_mailbox_t::address_t write_mailbox;
 
-    RDB_MAKE_ME_SERIALIZABLE_2(read_mailbox, write_mailbox);
+    RDB_MAKE_ME_SERIALIZABLE_3(region, read_mailbox, write_mailbox);
 };
 
 template<class protocol_t>
-void semilattice_join(UNUSED master_metadata_t<protocol_t> *a, UNUSED const master_metadata_t<protocol_t> &b) {
+void semilattice_join(master_metadata_t<protocol_t> *a, const master_metadata_t<protocol_t> &b) {
+    rassert(a->region == b.region);
     /* The mailboxes should be identical, but we don't check. */
 }
 
-#endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_MASTER_METADATA_HPP__ */
+/* `namespace_master_metadata_t` holds a list of all the masters in the
+namespace. */
+
+template<class protocol_t>
+class namespace_master_metadata_t {
+
+public:
+    std::map<master_id_t, resource_metadata_t<master_metadata_t<protocol_t> > > masters;
+
+    RDB_MAKE_ME_SERIALIZABLE_1(masters);
+};
+
+template<class protocol_t>
+void semilattice_join(namespace_master_metadata_t<protocol_t> *a, const namespace_master_metadata_t<protocol_t> &b) {
+    semilattice_join(&a->masters, b.masters);
+}
+
+#endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_METADATA_HPP__ */

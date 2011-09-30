@@ -1,20 +1,20 @@
-#ifndef __CLUSTERING_IMMEDIATE_CONSISTENCY_NAMESPACE_INTERFACE_HPP__
-#define __CLUSTERING_IMMEDIATE_CONSISTENCY_NAMESPACE_INTERFACE_HPP__
+#ifndef __CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_NAMESPACE_INTERFACE_HPP__
+#define __CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_NAMESPACE_INTERFACE_HPP__
 
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 
-#include "clustering/immediate_consistency/namespace_metadata.hpp"
+#include "clustering/immediate_consistency/query/metadata.hpp"
 #include "concurrency/promise.hpp"
-#include "../../namespace_interface.hpp"
+#include "protocol_api.hpp"
 
 template<class protocol_t>
 class cluster_namespace_interface_t :
     public namespace_interface_t<protocol_t>
 {
 public:
-    typedef std::map<branch_id_t, resource_metadata_t<branch_metadata_t<protocol_t> > > master_map_t;
+    typedef std::map<master_id_t, resource_metadata_t<master_metadata_t<protocol_t> > > master_map_t;
 
     class ambiguity_exc_t : public std::exception {
         const char *what() const throw () {
@@ -36,9 +36,9 @@ public:
 
     cluster_namespace_interface_t(
             mailbox_cluster_t *c,
-            boost::shared_ptr<metadata_read_view_t<namespace_metadata_t<protocol_t> > > masters) :
+            boost::shared_ptr<metadata_read_view_t<namespace_master_metadata_t<protocol_t> > > masters) :
         cluster(c),
-        masters_view(metadata_field(&namespace_metadata_t<protocol_t>::masters, masters))
+        masters_view(metadata_field(&namespace_master_metadata_t<protocol_t>::masters, masters))
         { }
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t r, order_token_t order_token, signal_t *interruptor) {
@@ -85,15 +85,9 @@ private:
         cover(op.get_region(), &regions, &master_accesses);
         rassert(regions.size() == master_accesses.size());
 
-        std::vector<op_t> op_shards = op.shard(regions);
-        rassert(op_shards.size() == regions.size());
-        for (int i = 0; i < (int)regions.size(); i++) {
-            rassert(regions[i].contains(op_shards[i].get_region()));
-        }
-
         std::vector<boost::variant<op_response_t, std::string> > results_or_failures(regions.size());
         pmap(regions.size(), boost::bind(&cluster_namespace_interface_t::generic_perform<op_t, op_response_t>, this,
-            mailbox_field, &master_accesses, &op_shards, order_token, &results_or_failures, _1, interruptor));
+            mailbox_field, &regions, &master_accesses, &op, order_token, &results_or_failures, _1, interruptor));
 
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
@@ -110,14 +104,18 @@ private:
     template<class op_t, class op_response_t>
     void generic_perform(
             typename async_mailbox_t<void(op_t, order_token_t, typename async_mailbox_t<void(boost::variant<op_response_t, std::string>)>::address_t)>::address_t master_metadata_t<protocol_t>::*mailbox_field,
+            std::vector<typename protocol_t::region_t> *regions,
             std::vector<boost::shared_ptr<resource_access_t<master_metadata_t<protocol_t> > > > *master_accesses,
-            std::vector<op_t> *ops,
+            op_t *operation,
             order_token_t order_token,
             std::vector<boost::variant<op_response_t, std::string> > *results_or_failures,
             int i,
             signal_t *interruptor)
             THROWS_NOTHING
     {
+        op_t shard = operation->shard((*regions)[i]);
+        rassert(region_is_superset((*regions)[i], shard.get_region()));
+
         try {
             promise_t<boost::variant<op_response_t, std::string> > result_or_failure;
             async_mailbox_t<void(boost::variant<op_response_t, std::string>)> result_or_failure_mailbox(
@@ -127,7 +125,7 @@ private:
                 (*master_accesses)[i]->access().*mailbox_field;
 
             send(cluster, query_address,
-                (*ops)[i], order_token, result_or_failure_mailbox.get_address());
+                shard, order_token, result_or_failure_mailbox.get_address());
 
             wait_any_t waiter(result_or_failure.get_ready_signal(), interruptor, (*master_accesses)[i]->get_failed_signal());
             waiter.wait_lazily_unordered();
@@ -159,6 +157,8 @@ private:
         rassert(regions_out->empty());
         rassert(masters_out->empty());
         ASSERT_FINITE_CORO_WAITING;
+
+        /* Find all the masters that might possibly be relevant */
         master_map_t masters = masters_view->get();
         for (typename master_map_t::iterator it = masters.begin(); it != masters.end(); it++) {
             boost::shared_ptr<resource_access_t<master_metadata_t<protocol_t> > > access;
@@ -166,11 +166,7 @@ private:
             try {
                 access = boost::make_shared<resource_access_t<master_metadata_t<protocol_t> > >(
                     cluster,
-                    metadata_field(&branch_metadata_t<protocol_t>::master,
-                        metadata_member((*it).first,
-                            masters_view
-                            )
-                        )
+                    metadata_member((*it).first, masters_view)
                     );
                 region = access->access().region;
             } catch (resource_lost_exc_t) {
@@ -178,20 +174,23 @@ private:
                 inaccessible. */
                 continue;
             }
-            if (region.overlaps(target_region)) {
-                typename protocol_t::region_t intersection = region.intersection(target_region);
-                for (int i = 0; i < (int)regions_out->size(); i++) {
-                    if (intersection.overlaps((*regions_out)[i])) {
-                        throw ambiguity_exc_t();
-                    }
-                }
+            typename protocol_t::region_t intersection = region_intersection(region, target_region);
+            if (!region_is_empty(intersection)) {
                 regions_out->push_back(intersection);
                 masters_out->push_back(access);
             }
         }
-        if (!target_region.covered_by(*regions_out)) {
+
+        /* Check if they form a proper cover */
+        typename protocol_t::region_t join;
+        try {
+            join = region_join(*regions_out);
+        } catch (bad_region_exc_t) {
             throw gap_exc_t();
+        } catch (bad_join_exc_t) {
+            throw ambiguity_exc_t();
         }
+        if (join != target_region) throw gap_exc_t();
     }
 
     mailbox_cluster_t *cluster;
@@ -200,4 +199,4 @@ private:
     typename protocol_t::temporary_cache_t temporary_cache;
 };
 
-#endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_NAMESPACE_INTERFACE_HPP__ */
+#endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_NAMESPACE_INTERFACE_HPP__ */

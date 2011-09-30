@@ -2,24 +2,12 @@
 #include "clustering/registrar.hpp"
 #include "clustering/registrant.hpp"
 #include "rpc/metadata/view/controller.hpp"
+#include "unittest/clustering_utils.hpp"
 #include "unittest/unittest_utils.hpp"
 
 namespace unittest {
 
 namespace {
-
-/* We need a `mailbox_cluster_t` so we can create mailboxes, but we have no use
-for its utility messages. `dummy_cluster_t` is a `mailbox_cluster_t` with
-stubbed utility message implementation. */
-
-class dummy_cluster_t : public mailbox_cluster_t {
-public:
-    dummy_cluster_t() : mailbox_cluster_t(10000 + rand() % 20000) { }
-private:
-    void on_utility_message(peer_id_t, std::istream&, boost::function<void()>&) {
-        ADD_FAILURE() << "no utility messages should be sent. WTF?";
-    }
-};
 
 class monitoring_controller_t {
 
