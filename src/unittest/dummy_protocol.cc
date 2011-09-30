@@ -288,4 +288,12 @@ boost::shared_ptr<store_view_t<dummy_protocol_t>::write_transaction_t> dummy_sto
     return boost::make_shared<dummy_transaction_t>(this, &acq);
 }
 
+dummy_protocol_t::region_t a_thru_z_region() {
+    dummy_protocol_t::region_t r;
+    for (char c = 'a'; c <= 'z'; c++) {
+        r.keys.insert(std::string(&c, 1));
+    }
+    return r;
+}
+
 }   /* namespace unittest */

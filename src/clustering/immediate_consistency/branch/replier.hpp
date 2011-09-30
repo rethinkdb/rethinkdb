@@ -1,7 +1,10 @@
 #ifndef __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_REPLIER_HPP__
 #define __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_REPLIER_HPP__
 
+#include "clustering/immediate_consistency/branch/backfiller.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
+#include "rpc/metadata/view/field.hpp"
+#include "rpc/metadata/view/member.hpp"
 
 /* If you construct a `replier_t` for a given `listener_t`, then the listener
 will inform the `broadcaster_t` that it's ready to reply to queries, and will
@@ -13,13 +16,15 @@ template<class protocol_t>
 class replier_t {
 
 public:
-    replier_t(listener_t<protocol_t> *l) :
-        listener(l),
-        stopped_replying(false),
-        warm_shutdown_mailbox(listener->cluster, boost::bind(&cond_t::pulse, &warm_shutdown_cond)),
+    replier_t(
+            mailbox_cluster_t *cluster,
+            boost::shared_ptr<metadata_readwrite_view_t<namespace_branch_metadata_t<protocol_t> > > namespace_metadata,
+            listener_t<protocol_t> *l) :
+        listener(l)
     {
+        rassert(cluster == listener->cluster);
         rassert(listener->store->get_region() ==
-            listener->namespace_metadata.get().branches[listener->branch_id].region,
+            listener->namespace_metadata->get().branches[listener->branch_id].region,
             "Even though you can have a listener that only watches some subset "
             "of a branch, you can't have a replier for some subset of a "
             "branch.");
@@ -42,7 +47,7 @@ public:
                 metadata_field(&branch_metadata_t<protocol_t>::backfillers,
                     metadata_member(listener->branch_id,
                         metadata_field(&namespace_branch_metadata_t<protocol_t>::branches,
-                            listener->namespace_metadata
+                            namespace_metadata
                 ))))
             ));
 
@@ -69,7 +74,7 @@ public:
 
     backfiller_id_t get_backfiller_id() {
         rassert(!listener->get_outdated_signal()->is_pulsed(),
-            "We're no longer serving backfills because we're outdated.")
+            "We're no longer serving backfills because we're outdated.");
         return backfiller_id;
     }
 
@@ -86,10 +91,6 @@ private:
     }
 
     listener_t<protocol_t> *listener;
-
-    bool stopped_replying;
-    cond_t warm_shutdown_cond;
-    async_mailbox_t<void()> warm_shutdown_mailbox;
 
     backfiller_id_t backfiller_id;
     boost::scoped_ptr<backfiller_t<protocol_t> > backfiller;

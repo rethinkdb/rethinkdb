@@ -108,6 +108,8 @@ private:
     rwi_lock_t read_write_lock;
 };
 
+dummy_protocol_t::region_t a_thru_z_region();
+
 }   /* namespace unittest */
 
 #endif /* __UNITTEST_DUMMY_PROTOCOL_HPP__ */

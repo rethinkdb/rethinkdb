@@ -8,6 +8,11 @@
 #include "concurrency/promise.hpp"
 #include "protocol_api.hpp"
 
+/* Forward declarations (so we can friend them) */
+
+template<class protocol_t> class broadcaster_t;
+template<class protocol_t> class replier_t;
+
 /* `listener_t` keeps a store-view in sync with a branch. Its constructor
 backfills from an existing mirror on a branch into the store, and as long as it
 exists the store will receive real-time updates.
@@ -113,7 +118,7 @@ public:
             /* Sanity checking. The backfiller should have put us into a
             coherent position because it shouldn't have been in the metadata if
             it was incoherent. */
-            rassert(backfill_end_point.size() == 0);
+            rassert(backfill_end_point.size() == 1);
             rassert(backfill_end_point[0].second.is_coherent());
             rassert(backfill_end_point[0].second.earliest.branch == branch_id);
 
@@ -143,9 +148,8 @@ public:
     }
 
 private:
-    friend class backfiller_t;
-    friend class master_t;
-    friend class replier_t;
+    friend class broadcaster_t<protocol_t>;
+    friend class replier_t<protocol_t>;
 
     /* `intro_t` represents the introduction we expect to get from the
     broadcaster if all goes well. */
@@ -205,7 +209,7 @@ private:
 
         /* Make sure the initial state of the store is sane */
         rassert(store->get_region() == branch_metadata->get().region);
-        region_map_t<typename protocol_t::region_t, binary_blob_t> initial_metadata =
+        region_map_t<protocol_t, binary_blob_t> initial_metadata =
             store->begin_read_transaction(interruptor)->get_metadata(interruptor);
         rassert(initial_metadata.get_as_pairs().size() == 1);
         version_range_t initial_version = binary_blob_t::get<version_range_t>(initial_metadata.get_as_pairs()[0].second);
@@ -219,7 +223,7 @@ private:
         /* Make sure that `broadcast_begin_timestamp` matches the initial
         metadata */
         if (registration_result_cond.get_value()) {
-            rassert(registration_result_cond.get_value().broadcast_begin_timestamp ==
+            rassert(registration_result_cond.get_value()->broadcaster_begin_timestamp ==
                     initial_timestamp);
         }
 
@@ -237,7 +241,7 @@ private:
     a value indicating if the registration succeeded or not, and with the intro
     we got from the broadcaster if it succeeded. */
     void try_start_receiving_writes(
-            boost::shared_ptr<metadata_readwrite_view_t<branch_metadata_t<protocol_t> > > branch,
+            boost::shared_ptr<metadata_read_view_t<branch_metadata_t<protocol_t> > > branch,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t)
     {
@@ -271,7 +275,7 @@ private:
         }
 
         /* If we lose contact with the master, mark ourselves outdated */
-        outdated_signal.add(registrant->get_failed_signal()->is_pulsed());
+        outdated_signal.add(registrant->get_failed_signal());
     }
 
     void on_write(auto_drainer_t::lock_t keepalive,
@@ -362,7 +366,7 @@ private:
                 ));
 
             /* Mask out any parts of the operation that don't apply to us */
-            write = write.shard(store->get_region());
+            write = write.shard(region_intersection(write.get_region(), store->get_region()));
 
             /* Perform the operation */
             transaction->write(

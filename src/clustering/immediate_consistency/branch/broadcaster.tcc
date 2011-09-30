@@ -170,7 +170,9 @@ template<class protocol_t>
 broadcaster_t<protocol_t>::dispatchee_t::dispatchee_t(broadcaster_t *c, listener_data_t<protocol_t> d) THROWS_NOTHING :
     write_mailbox(d.write_mailbox), is_readable(false), controller(c),
     upgrade_mailbox(controller->cluster,
-        boost::bind(&dispatchee_t::upgrade, this, _1, _2, auto_drainer_t::lock_t(&drainer)))
+        boost::bind(&dispatchee_t::upgrade, this, _1, _2, auto_drainer_t::lock_t(&drainer))),
+    downgrade_mailbox(controller->cluster,
+        boost::bind(&dispatchee_t::downgrade, this, _1, auto_drainer_t::lock_t(&drainer)))
 {
     controller->assert_thread();
 
@@ -181,7 +183,8 @@ broadcaster_t<protocol_t>::dispatchee_t::dispatchee_t(broadcaster_t *c, listener
 
     send(controller->cluster, d.intro_mailbox,
         controller->newest_complete_timestamp,
-        upgrade_mailbox.get_address());
+        upgrade_mailbox.get_address(),
+        downgrade_mailbox.get_address());
 
     for (typename std::list<boost::shared_ptr<incomplete_write_t> >::iterator it = controller->incomplete_writes.begin();
             it != controller->incomplete_writes.end(); it++) {
@@ -225,7 +228,7 @@ void broadcaster_t<protocol_t>::dispatchee_t::downgrade(
         is_readable = false;
         controller->readable_dispatchees.remove(this);
     }
-    if (ack_addr) {
+    if (!ack_addr.is_nil()) {
         send(controller->cluster, ack_addr);
     }
 }

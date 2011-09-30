@@ -5,12 +5,14 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 
+#include "clustering/immediate_consistency/branch/listener.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "clustering/registrar.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/metadata/view.hpp"
 #include "rpc/metadata/view/field.hpp"
+#include "rpc/metadata/view/member.hpp"
 #include "utils.hpp"
 #include "timestamps.hpp"
 
@@ -55,7 +57,7 @@ public:
             branch_metadata_t<protocol_t> our_metadata;
             our_metadata.region = initial_store->get_region();
             our_metadata.initial_timestamp = initial_timestamp;
-            our_metadata.origins = origins;
+            our_metadata.origin = origins;
             /* We'll fill in `broadcaster_registrar` in just a moment */
 
             std::map<branch_id_t, branch_metadata_t<protocol_t> > singleton;
@@ -69,7 +71,7 @@ public:
             this,
             metadata_field(&branch_metadata_t<protocol_t>::broadcaster_registrar,
                 metadata_member(branch_id,
-                    metadata_field(&namespace_metadata_t<protocol_t>::branches,
+                    metadata_field(&namespace_branch_metadata_t<protocol_t>::branches,
                         namespace_metadata
                 )))
             ));
@@ -126,6 +128,10 @@ public:
     typename protocol_t::read_response_t read(typename protocol_t::read_t r, order_token_t tok) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t);
 
     typename protocol_t::write_response_t write(typename protocol_t::write_t w, order_token_t tok) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t);
+
+    branch_id_t get_branch_id() {
+        return branch_id;
+    }
 
 private:
     class incomplete_write_ref_t;

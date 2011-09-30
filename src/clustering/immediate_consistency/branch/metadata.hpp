@@ -31,6 +31,9 @@ public:
     version_t() { }
     version_t(branch_id_t bid, state_timestamp_t ts) :
         branch(bid), timestamp(ts) { }
+    static version_t zero() {
+        return version_t(boost::uuids::nil_generator()(), state_timestamp_t::zero());
+    }
 
     bool operator==(const version_t &v) {
         return branch == v.branch && timestamp == v.timestamp;
@@ -83,17 +86,17 @@ public:
     the mirrors. */
 
     typedef async_mailbox_t<void(
-        typename protocol_t::write_t, transition_timestamp_t, order_token_t,
+        typename protocol_t::write_t, transition_timestamp_t,
         async_mailbox_t<void()>::address_t
         )> write_mailbox_t;
 
     typedef async_mailbox_t<void(
-        typename protocol_t::write_t, transition_timestamp_t, order_token_t,
+        typename protocol_t::write_t, transition_timestamp_t,
         typename async_mailbox_t<void(typename protocol_t::write_response_t)>::address_t
         )> writeread_mailbox_t;
 
     typedef async_mailbox_t<void(
-        typename protocol_t::read_t, state_timestamp_t, order_token_t,
+        typename protocol_t::read_t, state_timestamp_t,
         typename async_mailbox_t<void(typename protocol_t::read_response_t)>::address_t
         )> read_mailbox_t;
 
