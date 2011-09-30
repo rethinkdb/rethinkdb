@@ -31,6 +31,8 @@ struct backfiller_t :
         advertisement(cluster, our_spot, backfiller_metadata_t<protocol_t>(backfill_mailbox.get_address(), cancel_backfill_mailbox.get_address()))
         { }
 
+    /* TODO: Support warm shutdowns? */
+
 private:
     typedef typename backfiller_metadata_t<protocol_t>::backfill_session_id_t session_id_t;
 

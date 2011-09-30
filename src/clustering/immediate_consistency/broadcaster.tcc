@@ -79,7 +79,7 @@ typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename pr
         mutex_acquisition_t mutex_acq(&mutex);
         pick_a_readable_dispatchee(&reader, &reader_lock);
         timestamp = current_timestamp;
-        order_sink.check_in(order_token);
+        order_sink.check_out(order_token);
     }
 
     try {
@@ -119,10 +119,10 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
 
             transition_timestamp_t timestamp = transition_timestamp_t::starting_from(current_timestamp);
             current_timestamp = timestamp.timestamp_after(); 
-            order_sink.check_in(order_token);
+            order_sink.check_out(order_token);
 
             write_wrapper = boost::make_shared<incomplete_write_t>(
-                this, write, timestamp, tok, target_ack_count);
+                this, write, timestamp, target_ack_count);
             incomplete_writes.push_back(write_wrapper);
 
             /* Create a reference so that `write` doesn't declare itself
@@ -167,7 +167,7 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
 }
 
 template<class protocol_t>
-broadcaster_t<protocol_t>::dispatchee_t::dispatchee_t(broadcaster_t *c, listener_t d) THROWS_NOTHING :
+broadcaster_t<protocol_t>::dispatchee_t::dispatchee_t(broadcaster_t *c, listener_data_t<protocol_t> d) THROWS_NOTHING :
     write_mailbox(d.write_mailbox), is_readable(false), controller(c),
     upgrade_mailbox(controller->cluster,
         boost::bind(&dispatchee_t::upgrade, this, _1, _2, auto_drainer_t::lock_t(&drainer)))
@@ -200,8 +200,8 @@ broadcaster_t<protocol_t>::dispatchee_t::~dispatchee_t() THROWS_NOTHING {
 
 template<class protocol_t>
 void broadcaster_t<protocol_t>::dispatchee_t::upgrade(
-        typename listener_t::writeread_mailbox_t::address_t wrm,
-        typename listener_t::read_mailbox_t::address_t rm,
+        typename listener_data_t<protocol_t>::writeread_mailbox_t::address_t wrm,
+        typename listener_data_t<protocol_t>::read_mailbox_t::address_t rm,
         auto_drainer_t::lock_t)
         THROWS_NOTHING
 {

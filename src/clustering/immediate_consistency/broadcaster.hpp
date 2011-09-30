@@ -163,18 +163,18 @@ private:
     class dispatchee_t : public intrusive_list_node_t<dispatchee_t> {
 
     public:
-        dispatchee_t(broadcaster_t *c, listener_data_t d) THROWS_NOTHING;
+        dispatchee_t(broadcaster_t *c, listener_data_t<protocol_t> d) THROWS_NOTHING;
         ~dispatchee_t() THROWS_NOTHING;
 
-        typename listener_data_t::write_mailbox_t::address_t write_mailbox;
+        typename listener_data_t<protocol_t>::write_mailbox_t::address_t write_mailbox;
         bool is_readable;
-        typename listener_data_t::writeread_mailbox_t::address_t writeread_mailbox;
-        typename listener_data_t::read_mailbox_t::address_t read_mailbox;
+        typename listener_data_t<protocol_t>::writeread_mailbox_t::address_t writeread_mailbox;
+        typename listener_data_t<protocol_t>::read_mailbox_t::address_t read_mailbox;
 
     private:
         void upgrade(
-            typename listener_data_t::writeread_mailbox_t::address_t,
-            typename listener_data_t::read_mailbox_t::address_t,
+            typename listener_data_t<protocol_t>::writeread_mailbox_t::address_t,
+            typename listener_data_t<protocol_t>::read_mailbox_t::address_t,
             auto_drainer_t::lock_t)
             THROWS_NOTHING;
         void downgrade(
@@ -186,7 +186,7 @@ private:
         auto_drainer_t drainer;
 
         typename listener_data_t<protocol_t>::upgrade_mailbox_t upgrade_mailbox;
-        listener_data_t<protocol_t>::downgrade_mailbox_t downgrade_mailbox;
+        typename listener_data_t<protocol_t>::downgrade_mailbox_t downgrade_mailbox;
     };
 
     /* Reads need to pick a single readable mirror to perform the operation.
@@ -234,7 +234,7 @@ private:
 
     intrusive_list_t<dispatchee_t> readable_dispatchees;
 
-    registrar_t<listener_data_t, broadcaster_t *, dispatchee_t> registrar;
+    registrar_t<listener_data_t<protocol_t>, broadcaster_t *, dispatchee_t> registrar;
 };
 
 #include "clustering/immediate_consistency/broadcaster.tcc"

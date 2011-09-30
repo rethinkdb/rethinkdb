@@ -1,9 +1,11 @@
 #ifndef __CLUSTERING_IMMEDIATE_CONSISTENCY_LISTENER_HPP__
 #define __CLUSTERING_IMMEDIATE_CONSISTENCY_LISTENER_HPP__
 
-#include "clustering/immediate_consistency/namespace_metadata.hpp"
+#include "clustering/immediate_consistency/backfillee.hpp"
+#include "clustering/immediate_consistency/metadata.hpp"
 #include "clustering/resource.hpp"
 #include "clustering/registrant.hpp"
+#include "concurrency/promise.hpp"
 #include "protocol_api.hpp"
 
 /* `listener_t` keeps a store-view in sync with a branch. Its constructor
@@ -45,7 +47,7 @@ public:
         writeread_mailbox(cluster, boost::bind(&listener_t::on_writeread, this,
             auto_drainer_t::lock_t(&drainer), _1, _2, _3)),
         read_mailbox(cluster, boost::bind(&listener_t::on_read, this,
-            auto_drainer_t::lock_t(&drainer), _1, _2, _3)),
+            auto_drainer_t::lock_t(&drainer), _1, _2, _3))
     {
         if (interruptor->is_pulsed()) {
             throw interrupted_exc_t();
@@ -85,6 +87,7 @@ public:
         /* Backfill */
         backfillee<protocol_t>(
             cluster,
+            namespace_metadata,
             store,
             metadata_member(backfiller_id,
                 metadata_field(&branch_metadata_t<protocol_t>::backfillers,
@@ -144,15 +147,24 @@ private:
     friend class master_t;
     friend class replier_t;
 
+    /* `intro_t` represents the introduction we expect to get from the
+    broadcaster if all goes well. */
+    class intro_t {
+    public:
+        typename listener_data_t<protocol_t>::upgrade_mailbox_t::address_t upgrade_mailbox;
+        typename listener_data_t<protocol_t>::downgrade_mailbox_t::address_t downgrade_mailbox;
+        state_timestamp_t broadcaster_begin_timestamp;
+    };
+
     /* Support class for `start_receiving_writes()`. It's defined out here, as
     opposed to locally in `start_receiving_writes()`, so that we can
     `boost::bind()` to it. */
     class intro_receiver_t : public signal_t {
     public:
-        registration_succeeded_t intro;
+        intro_t intro;
         void fill(state_timestamp_t its,
                 typename listener_data_t<protocol_t>::upgrade_mailbox_t::address_t um,
-                listener_data_t<protocol_t>::downgrade_mailbox_t::address_t dm) {
+                typename listener_data_t<protocol_t>::downgrade_mailbox_t::address_t dm) {
             rassert(!is_pulsed());
             intro.broadcaster_begin_timestamp = its;
             intro.upgrade_mailbox = um;
@@ -175,15 +187,14 @@ private:
         cluster(c),
         namespace_metadata(nm),
         store(s),
-        branch_id(bid)
+        branch_id(bid),
 
         write_mailbox(cluster, boost::bind(&listener_t::on_write, this,
             auto_drainer_t::lock_t(&drainer), _1, _2, _3)),
         writeread_mailbox(cluster, boost::bind(&listener_t::on_writeread, this,
             auto_drainer_t::lock_t(&drainer), _1, _2, _3)),
         read_mailbox(cluster, boost::bind(&listener_t::on_read, this,
-            auto_drainer_t::lock_t(&drainer), _1, _2, _3)),
-
+            auto_drainer_t::lock_t(&drainer), _1, _2, _3))
     {
         if (interruptor->is_pulsed()) {
             throw interrupted_exc_t();
@@ -226,7 +237,7 @@ private:
     a value indicating if the registration succeeded or not, and with the intro
     we got from the broadcaster if it succeeded. */
     void try_start_receiving_writes(
-            boost::shared_ptr<metadata_readwrite_view_t<branch_metadata_t<protocol_t> > > dispatcher,
+            boost::shared_ptr<metadata_readwrite_view_t<branch_metadata_t<protocol_t> > > branch,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t)
     {
@@ -237,11 +248,11 @@ private:
         try {
             registrant.reset(new registrant_t<listener_data_t<protocol_t> >(
                 cluster,
-                metadata_field(&mirror_dispatcher_metadata_t<protocol_t>::registrar, dispatcher),
+                metadata_field(&branch_metadata_t<protocol_t>::broadcaster_registrar, branch),
                 listener_data_t<protocol_t>(intro_mailbox.get_address(), write_mailbox.get_address())
                 ));
         } catch (resource_lost_exc_t) {
-            registration_result_cond.pulse(boost::optional<registration_succeeded_t>());
+            registration_result_cond.pulse(boost::optional<intro_t>());
             return;
         }
 
@@ -252,10 +263,10 @@ private:
         }
 
         if (registrant->get_failed_signal()->is_pulsed()) {
-            registration_result_cond.pulse(boost::optional<registration_succeeded_t>());
+            registration_result_cond.pulse(boost::optional<intro_t>());
         } else {
             rassert(intro_receiver.is_pulsed());
-            registration_result_cond.pulse(boost::optional<registration_succeeded_t>(
+            registration_result_cond.pulse(boost::optional<intro_t>(
                 intro_receiver.intro));
         }
 
@@ -315,7 +326,7 @@ private:
                 return;
             }
 
-            if (ts.timestamp_before() < backfill_done_cond.get_value()) {
+            if (transition_timestamp.timestamp_before() < backfill_done_cond.get_value()) {
                 /* `write` is a duplicate; we got it both as part of the
                 backfill, and from the broadcaster. Ignore this copy of it. */
                 return;
@@ -507,13 +518,7 @@ private:
     check, we put them in a `promise_t` that only gets pulsed when we
     successfully register. If registration fails, we pulse
     `registration_result_cond` with an empty `boost::optional`. */
-    class registration_succeeded_t {
-    public:
-        typename listener_data_t<protocol_t>::upgrade_mailbox_t::address_t upgrade_mailbox;
-        listener_data_t<protocol_t>::downgrade_mailbox_t::address_t downgrade_mailbox;
-        state_timestamp_t broadcaster_begin_timestamp;
-    };
-    promise_t<boost::optional<registration_succeeded_t> > registration_result_cond;
+    promise_t<boost::optional<intro_t> > registration_result_cond;
 
     /* If the backfill succeeds, `backfill_done_cond` will be pulsed with the
     point that the backfill brought us to. If the backfill fails,
