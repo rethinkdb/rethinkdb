@@ -81,7 +81,7 @@ public:
 #ifndef NDEBUG
     // A unique identifier for this particular instance of coro_t over
     // the lifetime of the process.
-    int64_t selfname() const;
+    int64_t selfname() const { return selfname_number; }
 
     int64_t selfname_number;
 #endif

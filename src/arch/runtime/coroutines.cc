@@ -162,7 +162,7 @@ static __thread int64_t coro_selfname_counter = 0;
 
 coro_t::coro_t(const boost::function<void()>& deed) :
 #ifndef NDEBUG
-    selfname_number(coro_selfname_counter++),
+    selfname_number(get_thread_id() + MAX_THREADS * coro_selfname_counter++),
 #endif
     deed_(deed),
     current_thread_(linux_thread_pool_t::thread_id),
@@ -375,10 +375,6 @@ assert_finite_coro_waiting_t::assert_finite_coro_waiting_t() {
 }
 assert_finite_coro_waiting_t::~assert_finite_coro_waiting_t() {
     cglobals->assert_finite_coro_waiting_counter--;
-}
-
-int64_t coro_t::selfname() const {
-    return get_thread_id() + selfname_number * MAX_THREADS;
 }
 
 #endif /* NDEBUG */
