@@ -422,18 +422,13 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
 
     extent_manager_t::transaction_t *em_trx = parent->serializer->extent_manager->begin_transaction();
     // Step 1: Write buffers to disk and assemble index operations
-    for (size_t i = 0; i < (size_t)num_writes; ++i) {
+    for (int i = 0; i < num_writes; ++i) {
         block_write_conds.push_back(new block_write_cond_t());
-        // the "false" argument indicates that we do not with to assign a new block sequence id
-        const off64_t offset = parent->write(writes[i].buf, writes[i].block_id, false, parent->choose_gc_io_account(), block_write_conds.back());
-        writes[i].new_offset = offset;
-        boost::intrusive_ptr<ls_block_token_pointee_t> token = parent->serializer->generate_block_token(offset);
 
-        // ... also generate the corresponding index op
-        if (writes[i].block_id != NULL_BLOCK_ID) {
-            index_write_ops.push_back(index_write_op_t(writes[i].block_id, to_standard_block_token(writes[i].block_id, token)));
-        }
-        // (if we don't have a block id, the block is referenced by tokens only. These get remapped later)
+        const ls_buf_data_t *data = static_cast<const ls_buf_data_t *>(writes[i].buf) - 1;
+
+        // the "false" argument indicates that we do not with to assign a new block sequence id
+        writes[i].new_offset = parent->write(writes[i].buf, data->block_id, false, parent->choose_gc_io_account(), block_write_conds.back());
     }
     parent->serializer->extent_manager->end_transaction(em_trx);
     parent->serializer->extent_manager->commit_transaction(em_trx);
@@ -444,15 +439,46 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
         delete block_write_conds[i];
     }
 
-    // Step 3: Commit the transaction to the serializer
+    // Step 3: Figure out index ops.  It's important that we do this
+    // now, right before the index_write, so that the updates to the
+    // index are done atomically.
+    {
+        ASSERT_NO_CORO_WAITING;
+
+        int num_index_write_ops = 0;
+
+        for (int i = 0; i < num_writes; ++i) {
+            unsigned int extent_id = parent->static_config->extent_index(writes[i].old_offset);
+            unsigned int block_id = parent->static_config->block_index(writes[i].old_offset);
+
+            if (i == 0) {
+                debugf("fyi i_array.count() = %zd, t_arary.count() = %zd\n", parent->entries[extent_id]->i_array.count(), parent->entries[extent_id]->t_array.count());
+            }
+
+            if (parent->entries[extent_id]->i_array[block_id]) {
+                const ls_buf_data_t *data = static_cast<const ls_buf_data_t *>(writes[i].buf) - 1;
+                boost::intrusive_ptr<ls_block_token_pointee_t> token = parent->serializer->generate_block_token(writes[i].new_offset);
+                index_write_ops.push_back(index_write_op_t(data->block_id, to_standard_block_token(data->block_id, token)));
+                ++ num_index_write_ops;
+            }
+
+            // (If we don't have an i_array entry, the block is referenced
+            // by a non-negative number of tokens only.  These get tokens
+            // remapped later.)
+        }
+
+        debugf("num_index_write_ops = %d, num_writes = %d\n", num_index_write_ops, num_writes);
+    }
+
+    // Step 4: Commit the transaction to the serializer
     parent->serializer->index_write(index_write_ops, parent->choose_gc_io_account());
     index_write_ops.clear(); // cleanup index_write_ops
 
-    // Step 4: Call parent
+    // Step 5: Call parent
     done = true;
     parent->on_gc_write_done();
 
-    // Step 5: Delete us
+    // Step 6: Delete us
     delete this;
 }
 
@@ -566,9 +592,9 @@ void data_block_manager_t::run_gc() {
             case gc_write:
                 mark_unyoung_entries(); //We need to do this here so that we don't get stuck on the GC treadmill
                 /* Our write should have forced all of the blocks in the extent to become garbage,
-                which should have caused the extent to be released and gc_state.current_offset to
+                which should have caused the extent to be released and gc_state.current_entry to
                 become NULL. */
-                rassert(gc_state.current_entry == NULL, "%d live blocks left on the extent.\n", (int)gc_state.current_entry->g_array.count());
+                rassert(gc_state.current_entry == NULL, "%zd garbage blocks left on the extent, %zd i_array blocks, %zd t_array blocks.\n", gc_state.current_entry->g_array.count(), gc_state.current_entry->i_array.count(), gc_state.current_entry->t_array.count());
                 
                 rassert(gc_state.refcount == 0);
 

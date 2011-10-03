@@ -328,39 +328,45 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
     index_write_context_t context;
     index_write_prepare(context, io_account);
 
-    for (std::vector<index_write_op_t>::const_iterator write_op_it = write_ops.begin();
-         write_op_it != write_ops.end();
-         ++write_op_it)
     {
-        const index_write_op_t& op = *write_op_it;
-        flagged_off64_t offset = lba_index->get_block_offset(op.block_id);
+        // The in-memory index updates, at least due to the needs of
+        // data_block_manager_t garbage collection, needs to be
+        // atomic.
+        ASSERT_NO_CORO_WAITING;
 
-        if (op.token) {
-            // Update the offset pointed to, and mark garbage/liveness as necessary.
-            boost::intrusive_ptr<ls_block_token_pointee_t> token = get_ls_block_token(op.token.get());
+        for (std::vector<index_write_op_t>::const_iterator write_op_it = write_ops.begin();
+             write_op_it != write_ops.end();
+             ++write_op_it) {
+            const index_write_op_t& op = *write_op_it;
+            flagged_off64_t offset = lba_index->get_block_offset(op.block_id);
 
-            // Mark old offset as garbage
-            if (offset.has_value())
-                data_block_manager->mark_garbage(offset.get_value());
+            if (op.token) {
+                // Update the offset pointed to, and mark garbage/liveness as necessary.
+                boost::intrusive_ptr<ls_block_token_pointee_t> token = get_ls_block_token(op.token.get());
 
-            // Write new token to index, or remove from index as appropriate.
-            if (token) {
-                ls_block_token_pointee_t *ls_token = token.get();
-                rassert(ls_token);
-                rassert(token_offsets.find(ls_token) != token_offsets.end());
-                offset = flagged_off64_t::make(token_offsets[ls_token]);
+                // Mark old offset as garbage
+                if (offset.has_value())
+                    data_block_manager->mark_garbage(offset.get_value());
 
-                /* mark the life */
-                data_block_manager->mark_live(offset.get_value());
-            } else {
-                offset = flagged_off64_t::unused();
+                // Write new token to index, or remove from index as appropriate.
+                if (token) {
+                    ls_block_token_pointee_t *ls_token = token.get();
+                    rassert(ls_token);
+                    rassert(token_offsets.find(ls_token) != token_offsets.end());
+                    offset = flagged_off64_t::make(token_offsets[ls_token]);
+
+                    /* mark the life */
+                    data_block_manager->mark_live(offset.get_value());
+                } else {
+                    offset = flagged_off64_t::unused();
+                }
             }
+
+            repli_timestamp_t recency = op.recency ? op.recency.get()
+                : lba_index->get_block_recency(op.block_id);
+
+            lba_index->set_block_info(op.block_id, recency, offset, io_account);
         }
-
-        repli_timestamp_t recency = op.recency ? op.recency.get()
-                                  : lba_index->get_block_recency(op.block_id);
-
-        lba_index->set_block_info(op.block_id, recency, offset, io_account);
     }
 
     index_write_finish(context, io_account);
