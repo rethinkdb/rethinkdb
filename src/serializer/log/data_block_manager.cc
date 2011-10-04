@@ -451,10 +451,6 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
             unsigned int extent_id = parent->static_config->extent_index(writes[i].old_offset);
             unsigned int block_id = parent->static_config->block_index(writes[i].old_offset);
 
-            if (i == 0) {
-                debugf("fyi i_array.count() = %zd, t_arary.count() = %zd\n", parent->entries[extent_id]->i_array.count(), parent->entries[extent_id]->t_array.count());
-            }
-
             if (parent->entries[extent_id]->i_array[block_id]) {
                 const ls_buf_data_t *data = static_cast<const ls_buf_data_t *>(writes[i].buf) - 1;
                 boost::intrusive_ptr<ls_block_token_pointee_t> token = parent->serializer->generate_block_token(writes[i].new_offset);
@@ -466,17 +462,20 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
             // by a non-negative number of tokens only.  These get tokens
             // remapped later.)
         }
-
-        debugf("num_index_write_ops = %d, num_writes = %d\n", num_index_write_ops, num_writes);
     }
 
     // Step 4: Commit the transaction to the serializer
     parent->serializer->index_write(index_write_ops, parent->choose_gc_io_account());
-    index_write_ops.clear(); // cleanup index_write_ops
 
-    // Step 5: Call parent
-    done = true;
-    parent->on_gc_write_done();
+    {
+        ASSERT_NO_CORO_WAITING;
+
+        index_write_ops.clear(); // cleanup index_write_ops
+
+        // Step 5: Call parent
+        done = true;
+        parent->on_gc_write_done();
+    }
 
     // Step 6: Delete us
     delete this;
@@ -594,6 +593,7 @@ void data_block_manager_t::run_gc() {
                 /* Our write should have forced all of the blocks in the extent to become garbage,
                 which should have caused the extent to be released and gc_state.current_entry to
                 become NULL. */
+
                 rassert(gc_state.current_entry == NULL, "%zd garbage blocks left on the extent, %zd i_array blocks, %zd t_array blocks.\n", gc_state.current_entry->g_array.count(), gc_state.current_entry->i_array.count(), gc_state.current_entry->t_array.count());
                 
                 rassert(gc_state.refcount == 0);
@@ -690,9 +690,7 @@ off64_t data_block_manager_t::gimme_a_new_offset() {
     active_extents[next_active_extent]->was_written = true;
 
     rassert(active_extents[next_active_extent]->g_array[blocks_in_active_extent[next_active_extent]]);
-    active_extents[next_active_extent]->t_array.set(blocks_in_active_extent[next_active_extent], 1);
-    active_extents[next_active_extent]->update_g_array(blocks_in_active_extent[next_active_extent]);
-    
+
     blocks_in_active_extent[next_active_extent]++;
     
     /* Deactivate the extent if necessary */

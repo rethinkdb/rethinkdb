@@ -495,8 +495,15 @@ void log_serializer_t::register_block_token(ls_block_token_pointee_t *token, off
     offset_tokens.insert(std::pair<off64_t, ls_block_token_pointee_t *>(offset, token));
 }
 
+bool log_serializer_t::tokens_exist_for_offset(off64_t off) {
+    return offset_tokens.find(off) != offset_tokens.end();
+}
+
 void log_serializer_t::unregister_block_token(ls_block_token_pointee_t *token) {
     assert_thread();
+
+    ASSERT_NO_CORO_WAITING;
+
     rassert(!expecting_no_more_tokens);
     std::map<ls_block_token_pointee_t *, off64_t>::iterator token_offset_it = token_offsets.find(token);
     rassert(token_offset_it != token_offsets.end());
@@ -533,6 +540,9 @@ void log_serializer_t::unregister_block_token(ls_block_token_pointee_t *token) {
 }
 
 void log_serializer_t::remap_block_to_new_offset(off64_t current_offset, off64_t new_offset) {
+    assert_thread();
+    ASSERT_NO_CORO_WAITING;
+
     rassert(new_offset != current_offset);
     bool have_to_update_gc = false;
     {
