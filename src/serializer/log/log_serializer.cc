@@ -508,12 +508,12 @@ void log_serializer_t::unregister_block_token(ls_block_token_pointee_t *token) {
     std::map<ls_block_token_pointee_t *, off64_t>::iterator token_offset_it = token_offsets.find(token);
     rassert(token_offset_it != token_offsets.end());
 
-    for (std::multimap<off64_t, ls_block_token_pointee_t *>::iterator offset_token_it = offset_tokens.find(token_offset_it->second);
-            offset_token_it != offset_tokens.end() && offset_token_it->first == token_offset_it->second;
-            ++offset_token_it) {
-
-        if (offset_token_it->second == token) {
-            offset_tokens.erase(offset_token_it);
+    typedef std::multimap<off64_t, ls_block_token_pointee_t *>::iterator ot_iter;
+    for (std::pair<ot_iter, ot_iter> range = offset_tokens.equal_range(token_offset_it->second);
+         range.first != range.second;
+         ++range.first) {
+        if (range.first->second == token) {
+            offset_tokens.erase(range.first);
             goto successfully_removed_entry;
         }
     }
@@ -546,17 +546,17 @@ void log_serializer_t::remap_block_to_new_offset(off64_t current_offset, off64_t
     rassert(new_offset != current_offset);
     bool have_to_update_gc = false;
     {
-        std::multimap<off64_t, ls_block_token_pointee_t *>::iterator offset_token_it = offset_tokens.find(current_offset);
-        while (offset_token_it != offset_tokens.end() && offset_token_it->first == current_offset) {
+        typedef std::multimap<off64_t, ls_block_token_pointee_t *>::iterator ot_iter;
+        std::pair<ot_iter, ot_iter> range = offset_tokens.equal_range(current_offset);
 
+        while (range.first != range.second) {
             have_to_update_gc = true;
+            rassert(token_offsets[range.first->second] == current_offset);
+            token_offsets[range.first->second] = new_offset;
+            offset_tokens.insert(std::pair<off64_t, ls_block_token_pointee_t *>(new_offset, range.first->second));
 
-            rassert(token_offsets[offset_token_it->second] == current_offset);
-            token_offsets[offset_token_it->second] = new_offset;
-            offset_tokens.insert(std::pair<off64_t, ls_block_token_pointee_t *>(new_offset, offset_token_it->second));
-
-            std::multimap<off64_t, ls_block_token_pointee_t *>::iterator prev = offset_token_it;
-            ++offset_token_it;
+            ot_iter prev = range.first;
+            ++range.first;
             offset_tokens.erase(prev);
         }
     }
