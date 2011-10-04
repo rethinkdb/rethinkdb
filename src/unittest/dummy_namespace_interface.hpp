@@ -20,7 +20,7 @@ public:
     explicit dummy_performer_t(boost::shared_ptr<store_view_t<protocol_t> > s) :
         store(s) { }
 
-    typename protocol_t::read_response_t read(typename protocol_t::read_t read, state_timestamp_t expected_timestamp, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    typename protocol_t::read_response_t read(typename protocol_t::read_t read, UNUSED state_timestamp_t expected_timestamp, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         boost::shared_ptr<typename store_view_t<protocol_t>::read_transaction_t> txn = store->begin_read_transaction(interruptor);
         region_map_t<protocol_t, binary_blob_t> metadata = txn->get_metadata(interruptor);
         rassert(metadata.get_as_pairs().size() == 1);
