@@ -497,28 +497,8 @@ class dummy_redis_store_view_t : public store_view_t<redis_protocol_t> {
 public:
     dummy_redis_store_view_t(key_range_t, btree_slice_t *);
 
-protected:
-    /* `store_view_t` interface: */
-
-    redis_protocol_t::read_response_t do_read(const redis_protocol_t::read_t &r, state_timestamp_t t, order_token_t otok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
-    redis_protocol_t::write_response_t do_write(const redis_protocol_t::write_t &w, transition_timestamp_t t, order_token_t otok) THROWS_NOTHING;
-
-    void do_send_backfill(
-        UNUSED std::vector<std::pair<key_range_t, state_timestamp_t> > start_point,
-        UNUSED boost::function<void(redis_protocol_t::backfill_chunk_t)> chunk_sender,
-        UNUSED signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t)
-    {
-        crash("stub");
-    }
-
-    void do_receive_backfill(
-        UNUSED redis_protocol_t::backfill_chunk_t chunk,
-        UNUSED signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t)
-    {
-        crash("stub");
-    }
+    boost::shared_ptr<store_view_t<redis_protocol_t>::read_transaction_t> begin_read_transaction(signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+    boost::shared_ptr<store_view_t<redis_protocol_t>::write_transaction_t> begin_write_transaction(signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
 private:
     btree_slice_t *btree;

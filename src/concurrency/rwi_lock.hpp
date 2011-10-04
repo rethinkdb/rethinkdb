@@ -56,13 +56,15 @@ public:
     bool locked();
 
     struct acq_t {
+        acq_t() : lock(NULL) { }
         acq_t(rwi_lock_t *l, access_t m) : lock(l) {
             lock->co_lock(m);
         }
         ~acq_t() {
-            lock->unlock();
+            if (lock) lock->unlock();
         }
     private:
+        friend void swap(acq_t &, acq_t &);
         rwi_lock_t *lock;
     };
 
@@ -89,7 +91,9 @@ private:
     request_list_t queue;
 };
 
-
+inline void swap(rwi_lock_t::acq_t &a1, rwi_lock_t::acq_t &a2) {
+    std::swap(a1.lock, a2.lock);
+}
 
 #endif // __RWI_LOCK_HPP__
 
