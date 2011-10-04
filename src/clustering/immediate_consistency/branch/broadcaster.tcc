@@ -116,6 +116,7 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
             `current_state_timestamp`, `incomplete_queue`, `dispatchees`, and
             `order_checkpoint`. */
             mutex_acquisition_t mutex_acq(&mutex);
+            ASSERT_FINITE_CORO_WAITING;
 
             transition_timestamp_t timestamp = transition_timestamp_t::starting_from(current_timestamp);
             current_timestamp = timestamp.timestamp_after(); 
@@ -178,6 +179,7 @@ broadcaster_t<protocol_t>::dispatchee_t::dispatchee_t(broadcaster_t *c, listener
 
     /* Grab mutex so no new writes start while we're setting ourselves up. */
     mutex_acquisition_t mutex_acq(&controller->mutex);
+    ASSERT_FINITE_CORO_WAITING;
 
     controller->dispatchees[this] = auto_drainer_t::lock_t(&drainer);
 
@@ -263,8 +265,8 @@ void broadcaster_t<protocol_t>::background_write(dispatchee_t *mirror, auto_drai
 
 template<class protocol_t>
 void broadcaster_t<protocol_t>::end_write(boost::shared_ptr<incomplete_write_t> write) THROWS_NOTHING {
-    ASSERT_FINITE_CORO_WAITING;
     mutex_acquisition_t mutex_acq(&mutex);
+    ASSERT_FINITE_CORO_WAITING;
     /* It's safe to remove a write from the queue once it has acquired the root
     of every mirror's btree. We aren't notified when it acquires the root; we're
     notified when it completes, which happens some unspecified amount of time
