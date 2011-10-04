@@ -418,8 +418,6 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
     std::vector<block_write_cond_t*> block_write_conds;
     block_write_conds.reserve(num_writes);
 
-    std::vector<index_write_op_t> index_write_ops;
-
     extent_manager_t::transaction_t *em_trx = parent->serializer->extent_manager->begin_transaction();
     // Step 1: Write buffers to disk and assemble index operations
     for (int i = 0; i < num_writes; ++i) {
@@ -439,38 +437,43 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
         delete block_write_conds[i];
     }
 
-    // Step 3: Figure out index ops.  It's important that we do this
-    // now, right before the index_write, so that the updates to the
-    // index are done atomically.
-    {
-        ASSERT_NO_CORO_WAITING;
+    // We just did a blocking operation, so recheck if we can access the current entry.
+    if (parent->gc_state.current_entry != NULL) {
 
-        int num_index_write_ops = 0;
+        std::vector<index_write_op_t> index_write_ops;
 
-        for (int i = 0; i < num_writes; ++i) {
-            unsigned int extent_id = parent->static_config->extent_index(writes[i].old_offset);
-            unsigned int block_id = parent->static_config->block_index(writes[i].old_offset);
+        // Step 3: Figure out index ops.  It's important that we do this
+        // now, right before the index_write, so that the updates to the
+        // index are done atomically.
+        {
+            ASSERT_NO_CORO_WAITING;
 
-            if (parent->entries[extent_id]->i_array[block_id]) {
-                const ls_buf_data_t *data = static_cast<const ls_buf_data_t *>(writes[i].buf) - 1;
-                boost::intrusive_ptr<ls_block_token_pointee_t> token = parent->serializer->generate_block_token(writes[i].new_offset);
-                index_write_ops.push_back(index_write_op_t(data->block_id, to_standard_block_token(data->block_id, token)));
-                ++ num_index_write_ops;
+            for (int i = 0; i < num_writes; ++i) {
+                unsigned int block_id = parent->static_config->block_index(writes[i].old_offset);
+
+                if (parent->gc_state.current_entry->i_array[block_id]) {
+                    const ls_buf_data_t *data = static_cast<const ls_buf_data_t *>(writes[i].buf) - 1;
+                    boost::intrusive_ptr<ls_block_token_pointee_t> token = parent->serializer->generate_block_token(writes[i].new_offset);
+                    index_write_ops.push_back(index_write_op_t(data->block_id, to_standard_block_token(data->block_id, token)));
+                }
+
+                // (If we don't have an i_array entry, the block is referenced
+                // by a non-negative number of tokens only.  These get tokens
+                // remapped later.)
             }
 
-            // (If we don't have an i_array entry, the block is referenced
-            // by a non-negative number of tokens only.  These get tokens
-            // remapped later.)
         }
-    }
 
-    // Step 4: Commit the transaction to the serializer
-    parent->serializer->index_write(index_write_ops, parent->choose_gc_io_account());
+        // Step 4: Commit the transaction to the serializer
+        parent->serializer->index_write(index_write_ops, parent->choose_gc_io_account());
+
+        ASSERT_NO_CORO_WAITING;
+
+        index_write_ops.clear();  // cleanup index_write_ops under the watchful eyes of ASSERT_NO_CORO_WAITING
+    }
 
     {
         ASSERT_NO_CORO_WAITING;
-
-        index_write_ops.clear(); // cleanup index_write_ops
 
         // Step 5: Call parent
         done = true;
