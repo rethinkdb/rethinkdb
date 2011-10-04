@@ -521,7 +521,20 @@ mc_buf_t::mc_buf_t(mc_inner_buf_t *_inner_buf, access_t _mode, mc_inner_buf_t::v
         inner_buf->lock.co_lock(mode == rwi_read_outdated_ok ? rwi_read : mode, call_when_in_line);
         pm_bufs_acquiring.end(&lock_start_time);
 
-        acquire_block(version_to_access);
+        // It's possible that, now that we've acquired the lock, that
+        // the inner buf's version id has changed, and that we should
+        // get a snapshotted version.
+
+        if (snapshotted && version_to_access != mc_inner_buf_t::faux_version_id && version_to_access < inner_buf->version_id) {
+            inner_buf->lock.unlock();
+
+            // acquire the snapshotted block; no need to lock
+            data = inner_buf->acquire_snapshot_data(version_to_access, io_account, &subtree_recency);
+            guarantee(data != NULL);
+
+        } else {
+            acquire_block(version_to_access);
+        }
     }
 
     pm_bufs_held.begin(&start_time);
