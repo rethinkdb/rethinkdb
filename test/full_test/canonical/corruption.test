@@ -1,7 +1,7 @@
 for (mode, checker) in [
         ("debug", "valgrind"),
         ("release", "valgrind"),
-        ("release", none),
+        ("release", None),
 # Don't run the corruption test in mockcache mode because in that modes
 # we don't flush to disk at all until the server is shut down, so obviously the
 # corruption test will fail.
