@@ -68,6 +68,7 @@ struct cmd_config_t {
 
     int port;
     int n_workers;
+    bool do_set_affinity;
 
     std::string log_file_name;
     // Log messages below this level aren't printed

@@ -363,6 +363,7 @@ class Server(object):
             command_line = [self.executable_path,
                 "-p", str(self.internal_server_port),
                 "-c", str(self.opts["cores"]),
+                "--no-set-affinity",                    # make multiple tests cohabit on the same machine (TODO: add an option to disable that)
                 "-m", str(self.opts["memory"]),
                 ] + self.data_files.rethinkdb_serve_flags() + \
                 shlex.split(self.opts["serve-flags"]) + \

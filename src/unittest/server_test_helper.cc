@@ -15,7 +15,7 @@ const int server_test_helper_t::init_value = 0x12345678;
 const int server_test_helper_t::changed_value = 0x87654321;
 
 server_test_helper_t::server_test_helper_t()
-    : serializer(NULL), thread_pool(new thread_pool_t(1)) { }
+    : serializer(NULL), thread_pool(new thread_pool_t(1, false)) { }
 server_test_helper_t::~server_test_helper_t() {
     delete thread_pool;
 }
