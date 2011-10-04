@@ -33,7 +33,7 @@ void let_stuff_happen() {
     nap(1000);
 }
 
-/* `dummy_cluster_t` is a `mailbox_cluster_t` that keeps track of utility
+/* `recording_mailbox_cluster_t` is a `mailbox_cluster_t` that keeps track of utility
 messages it receives from other nodes in the cluster. `dummy_mailbox_t` is a
 `mailbox_t` that keeps track of messages it receives. You can send to a
 `dummy_mailbox_t` with `send()`. */
@@ -42,7 +42,7 @@ void write_integer(int i, std::ostream &stream) {
     stream << i;
 }
 
-struct dummy_cluster_t : public mailbox_cluster_t {
+struct recording_mailbox_cluster_t : public mailbox_cluster_t {
 private:
     std::map<int, peer_id_t> inbox;
     void on_utility_message(peer_id_t peer, std::istream &stream, boost::function<void()> &on_done) {
@@ -52,7 +52,7 @@ private:
         inbox[i] = peer;
     }
 public:
-    dummy_cluster_t(int i) : mailbox_cluster_t(i) { }
+    recording_mailbox_cluster_t(int i) : mailbox_cluster_t(i) { }
     void send(int message, peer_id_t peer) {
         send_utility_message(peer, boost::bind(&write_integer, message, _1));
     }
@@ -91,7 +91,7 @@ It's just a clone of `Message` in `rpc_connectivity.cc`, except with
 
 void run_utility_message_test() {
     int port = 10000 + rand() % 20000;
-    dummy_cluster_t c1(port), c2(port+1), c3(port+2);
+    recording_mailbox_cluster_t c1(port), c2(port+1), c3(port+2);
     c2.join(peer_address_t(ip_address_t::us(), port));
     c3.join(peer_address_t(ip_address_t::us(), port));
 
@@ -117,7 +117,7 @@ TEST(RPCMailboxTest, UtilityMessage) {
 
 void run_mailbox_start_stop_test() {
     int port = 10000 + rand() % 20000;
-    dummy_cluster_t cluster(port);
+    recording_mailbox_cluster_t cluster(port);
 
     /* Make sure we can create a mailbox */
     dummy_mailbox_t mbox1(&cluster);
@@ -134,7 +134,7 @@ TEST(RPCMailboxTest, MailboxStartStop) {
 
 void run_mailbox_message_test() {
     int port = 10000 + rand() % 20000;
-    dummy_cluster_t cluster1(port), cluster2(port+1);
+    recording_mailbox_cluster_t cluster1(port), cluster2(port+1);
     cluster1.join(peer_address_t(ip_address_t::us(), port+1));
     let_stuff_happen();
 
@@ -161,7 +161,7 @@ for the message to be silently ignored. */
 
 void run_dead_mailbox_test() {
     int port = 10000 + rand() % 20000;
-    dummy_cluster_t cluster1(port), cluster2(port+1);
+    recording_mailbox_cluster_t cluster1(port), cluster2(port+1);
 
     /* Create a mailbox, take its address, then destroy it. */
     mailbox_t::address_t address;
@@ -188,7 +188,7 @@ void run_mailbox_address_semantics_test() {
     EXPECT_TRUE(nil_addr.is_nil());
 
     int port = 10000 + rand() % 20000;
-    dummy_cluster_t cluster(port);
+    recording_mailbox_cluster_t cluster(port);
 
     dummy_mailbox_t mbox(&cluster);
     mailbox_t::address_t mbox_addr = mbox.get_address();
@@ -204,7 +204,7 @@ TEST(RPCMailboxTest, MailboxAddressSemantics) {
 void run_typed_mailbox_test() {
 
     int port = 10000 + rand() % 20000;
-    dummy_cluster_t cluster(port);
+    recording_mailbox_cluster_t cluster(port);
 
     std::vector<std::string> inbox;
     async_mailbox_t<void(std::string)> mbox(&cluster, boost::bind(&std::vector<std::string>::push_back, &inbox, _1));

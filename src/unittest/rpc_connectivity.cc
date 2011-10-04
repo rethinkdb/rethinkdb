@@ -30,10 +30,10 @@ void let_stuff_happen() {
     nap(1000);
 }
 
-/* `dummy_cluster_t` is a `connectivity_cluster_t` that keeps track of messages
-it receives from other nodes in the cluster. */
+/* `recording_connectivity_cluster_t` is a `connectivity_cluster_t` that keeps
+track of messages it receives from other nodes in the cluster. */
 
-struct dummy_cluster_t : public connectivity_cluster_t {
+struct recording_connectivity_cluster_t : public connectivity_cluster_t {
 private:
     std::map<int, peer_id_t> inbox;
     std::map<int, int> timing;
@@ -49,7 +49,7 @@ private:
         stream << i;
     }
 public:
-    dummy_cluster_t(int i) : connectivity_cluster_t(i), sequence_number(0) { }
+    recording_connectivity_cluster_t(int i) : connectivity_cluster_t(i), sequence_number(0) { }
     void send(int message, peer_id_t peer) {
         send_message(peer, boost::bind(&write, message, _1));
     }
@@ -74,7 +74,7 @@ public:
 
 void run_start_stop_test() {
     int port = 10000 + rand() % 20000;
-    dummy_cluster_t c1(port), c2(port+1), c3(port+2);
+    recording_connectivity_cluster_t c1(port), c2(port+1), c3(port+2);
     c2.join(peer_address_t(ip_address_t::us(), port));
     c3.join(peer_address_t(ip_address_t::us(), port));
     let_stuff_happen();
@@ -87,7 +87,7 @@ TEST(RPCConnectivityTest, StartStop) {
 
 void run_message_test() {
     int port = 10000 + rand() % 20000;
-    dummy_cluster_t c1(port), c2(port+1), c3(port+2);
+    recording_connectivity_cluster_t c1(port), c2(port+1), c3(port+2);
     c2.join(peer_address_t(ip_address_t::us(), port));
     c3.join(peer_address_t(ip_address_t::us(), port));
 
@@ -114,7 +114,7 @@ fail. */
 
 void run_unreachable_peer_test() {
     int port = 10000 + rand() % 20000;
-    dummy_cluster_t c1(port), c2(port+1);
+    recording_connectivity_cluster_t c1(port), c2(port+1);
     /* Note that we DON'T join them together. */
 
     let_stuff_happen();
@@ -147,7 +147,7 @@ order they were sent in. */
 
 void run_ordering_test() {
     int port = 10000 + rand() % 20000;
-    dummy_cluster_t c1(port), c2(port+1);
+    recording_connectivity_cluster_t c1(port), c2(port+1);
     c1.join(peer_address_t(ip_address_t::us(), port+1));
 
     let_stuff_happen();
@@ -173,7 +173,7 @@ correct. */
 
 void run_get_everybody_test() {
     int port = 10000 + rand() % 20000;
-    dummy_cluster_t c1(port);
+    recording_connectivity_cluster_t c1(port);
 
     /* Make sure `get_everybody()` is initially sane */
     std::map<peer_id_t, peer_address_t> routing_table_1;
@@ -182,7 +182,7 @@ void run_get_everybody_test() {
     EXPECT_EQ(routing_table_1.size(), 1);
 
     {
-        dummy_cluster_t c2(port+1);
+        recording_connectivity_cluster_t c2(port+1);
         c2.join(peer_address_t(ip_address_t::us(), port));
 
         let_stuff_happen();
@@ -212,9 +212,9 @@ properly. */
 
 void run_event_watchers_test() {
     int port = 10000 + rand() % 20000;
-    dummy_cluster_t c1(port);
+    recording_connectivity_cluster_t c1(port);
 
-    boost::scoped_ptr<dummy_cluster_t> c2(new dummy_cluster_t(port+1));
+    boost::scoped_ptr<recording_connectivity_cluster_t> c2(new recording_connectivity_cluster_t(port+1));
     peer_id_t c2_id = c2->get_me();
 
     /* Make sure `c1` notifies us when `c2` connects */
@@ -249,13 +249,13 @@ notification is consistent with information delivered via `get_everybody()`. */
 void run_event_watcher_ordering_test() {
 
     int port = 10000 + rand() % 20000;
-    dummy_cluster_t c1(port);
+    recording_connectivity_cluster_t c1(port);
 
     struct watcher_t : public event_watcher_t {
 
-        watcher_t(dummy_cluster_t *c) :
+        watcher_t(recording_connectivity_cluster_t *c) :
             event_watcher_t(c), cluster(c) { }
-        dummy_cluster_t *cluster;
+        recording_connectivity_cluster_t *cluster;
 
         void on_connect(peer_id_t p) {
             /* When we get a connection event, make sure that the peer address
@@ -267,7 +267,7 @@ void run_event_watcher_ordering_test() {
             /* Make sure messages sent from connection events are delivered
             properly. We must use `coro_t::spawn_now()` because `send_message()`
             may block. */
-            coro_t::spawn_now(boost::bind(&dummy_cluster_t::send, cluster, 89765, p));
+            coro_t::spawn_now(boost::bind(&recording_connectivity_cluster_t::send, cluster, 89765, p));
         }
 
         void on_disconnect(peer_id_t p) {
@@ -281,7 +281,7 @@ void run_event_watcher_ordering_test() {
 
     /* Generate some connection/disconnection activity */
     {
-        dummy_cluster_t c2(port+1);
+        recording_connectivity_cluster_t c2(port+1);
         c2.join(peer_address_t(ip_address_t::us(), port));
 
         let_stuff_happen();
@@ -306,9 +306,9 @@ void run_stop_mid_join_test() {
     const int num_members = 5;
 
     /* Spin up 20 cluster-members */
-    boost::scoped_ptr<dummy_cluster_t> nodes[num_members];
+    boost::scoped_ptr<recording_connectivity_cluster_t> nodes[num_members];
     for (int i = 0; i < num_members; i++) {
-        nodes[i].reset(new dummy_cluster_t(port+i));
+        nodes[i].reset(new recording_connectivity_cluster_t(port+i));
     }
     for (int i = 1; i < num_members; i++) {
         nodes[i]->join(peer_address_t(ip_address_t::us(), port));
@@ -339,9 +339,9 @@ void run_blob_join_test() {
     const int blob_size = 4;
 
     /* Spin up cluster-members */
-    boost::scoped_ptr<dummy_cluster_t> nodes[blob_size * 2];
+    boost::scoped_ptr<recording_connectivity_cluster_t> nodes[blob_size * 2];
     for (int i = 0; i < blob_size * 2; i++) {
-        nodes[i].reset(new dummy_cluster_t(port+i));
+        nodes[i].reset(new recording_connectivity_cluster_t(port+i));
     }
 
     for (int i = 1; i < blob_size; i++) {
@@ -418,7 +418,7 @@ void run_peer_id_semantics_test() {
     ASSERT_TRUE(nil_peer.is_nil());
 
     int port = 10000 + rand() % 20000;
-    dummy_cluster_t cluster_node(port);
+    recording_connectivity_cluster_t cluster_node(port);
     ASSERT_FALSE(cluster_node.get_me().is_nil());
 }
 TEST(RPCConnectivityTest, PeerIDSemantics) {

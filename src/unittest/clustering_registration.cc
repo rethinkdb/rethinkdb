@@ -43,7 +43,7 @@ registrant. */
 
 void run_register_test() {
 
-    dummy_cluster_t cluster;
+    simple_mailbox_cluster_t cluster;
 
     metadata_view_controller_t<resource_metadata_t<registrar_metadata_t<std::string> > > metadata_controller(
         (resource_metadata_t<registrar_metadata_t<std::string> >()));
@@ -80,7 +80,7 @@ is registered. */
 
 void run_registrar_death_test() {
 
-    dummy_cluster_t cluster;
+    simple_mailbox_cluster_t cluster;
 
     metadata_view_controller_t<resource_metadata_t<registrar_metadata_t<std::string> > > metadata_controller(
         (resource_metadata_t<registrar_metadata_t<std::string> >()));

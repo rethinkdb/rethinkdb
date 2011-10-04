@@ -131,6 +131,6 @@ void mailbox_cluster_t::on_message(peer_id_t src, std::istream &stream, boost::f
             }
             break;
         }
-        default: crash("Bad message type");
+        default: crash("Bad message type: %d", (int)c);
     }
 }

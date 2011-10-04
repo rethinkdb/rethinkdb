@@ -80,9 +80,9 @@ void run_backfill_test() {
 
     /* Set up a cluster so mailboxes can be created */
 
-    class dummy_cluster_t : public mailbox_cluster_t {
+    class simple_mailbox_cluster_t : public mailbox_cluster_t {
     public:
-        dummy_cluster_t(int port) : mailbox_cluster_t(port) { }
+        simple_mailbox_cluster_t(int port) : mailbox_cluster_t(port) { }
     private:
         void on_utility_message(peer_id_t, std::istream&, boost::function<void()>&) {
             ADD_FAILURE() << "no utility messages should be sent. WTF?";

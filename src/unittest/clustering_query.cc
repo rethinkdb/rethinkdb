@@ -28,7 +28,7 @@ void let_stuff_happen() {
 static void run_read_write_test() {
 
     /* Set up a cluster so mailboxes can be created */
-    dummy_cluster_t cluster;
+    simple_mailbox_cluster_t cluster;
 
     /* Set up a metadata meeting-place for branches */
     namespace_branch_metadata_t<dummy_protocol_t> initial_branch_metadata;
