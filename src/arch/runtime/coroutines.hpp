@@ -1,8 +1,13 @@
 #ifndef __ARCH_RUNTIME_COROUTINES_HPP__
 #define __ARCH_RUNTIME_COROUTINES_HPP__
 
+#ifndef NDEBUG
+#include <string>
+#endif
+
 #include "errors.hpp"
 #include <boost/function.hpp>
+
 #include "arch/runtime/runtime_utils.hpp"
 
 const size_t MAX_COROUTINE_STACK_SIZE = 8*1024*1024;
@@ -72,6 +77,14 @@ public:
     that are on the same thread, they will run in the same order you call
     `notify_later_ordered()` in. */
     void notify_later_ordered();
+
+#ifndef NDEBUG
+    // A unique identifier for this particular instance of coro_t over
+    // the lifetime of the process.
+    int64_t selfname() const { return selfname_number; }
+
+    int64_t selfname_number;
+#endif
 
 public:
     /* `spawn()` and `notify()` are aliases for `spawn_later_ordered()` and

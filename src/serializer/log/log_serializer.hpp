@@ -149,6 +149,7 @@ private:
     bool expecting_no_more_tokens;
 #endif
     void register_block_token(ls_block_token_pointee_t *token, off64_t offset);
+    bool tokens_exist_for_offset(off64_t off);
     void unregister_block_token(ls_block_token_pointee_t *token);
     void remap_block_to_new_offset(off64_t current_offset, off64_t new_offset);
     boost::intrusive_ptr<ls_block_token_pointee_t> generate_block_token(off64_t offset);

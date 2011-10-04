@@ -4,11 +4,10 @@
 #include "utils.hpp"
 #include <boost/bind.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
+#include <boost/scoped_ptr.hpp>
 
 #include "concurrency/pmap.hpp"
 #include "protocol_api.hpp"
-#include "serializer/config.hpp"
-#include "serializer/translator.hpp"
 #include "timestamps.hpp"
 #include "unittest/unittest_utils.hpp"
 
