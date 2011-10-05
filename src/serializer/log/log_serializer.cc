@@ -530,7 +530,7 @@ void log_serializer_t::unregister_block_token(ls_block_token_pointee_t *token) {
     token_offsets.erase(token_offset_it);
 
     rassert(!(token_offsets.empty() ^ offset_tokens.empty()));
-    if (token_offsets.empty() && offset_tokens.empty() && shutdown_state == shutdown_waiting_on_block_tokens) {
+    if (token_offsets.empty() && offset_tokens.empty() && state == state_shutting_down && shutdown_state == shutdown_waiting_on_block_tokens) {
 #ifndef NDEBUG
         expecting_no_more_tokens = true;
 #endif
