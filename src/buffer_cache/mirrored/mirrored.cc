@@ -1051,7 +1051,7 @@ void get_subtree_recencies_helper(int slice_home_thread, serializer_t *serialize
     serializer->assert_thread();
 
     for (size_t i = 0; i < num_block_ids; ++i) {
-        if (recencies_out[i].time == repli_timestamp_t::invalid.time) {
+        if (block_ids[i] != NULL_BLOCK_ID && recencies_out[i].time == repli_timestamp_t::invalid.time) {
             recencies_out[i] = serializer->get_recency(block_ids[i]);
         }
     }
@@ -1063,12 +1063,14 @@ void mc_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num_b
     assert_thread();
     bool need_second_loop = false;
     for (size_t i = 0; i < num_block_ids; ++i) {
-        inner_buf_t *inner_buf = cache->find_buf(block_ids[i]);
-        if (inner_buf) {
-            recencies_out[i] = inner_buf->subtree_recency;
-        } else {
-            need_second_loop = true;
-            recencies_out[i] = repli_timestamp_t::invalid;
+        if (block_ids[i] != NULL_BLOCK_ID) {
+            inner_buf_t *inner_buf = cache->find_buf(block_ids[i]);
+            if (inner_buf) {
+                recencies_out[i] = inner_buf->subtree_recency;
+            } else {
+                need_second_loop = true;
+                recencies_out[i] = repli_timestamp_t::invalid;
+            }
         }
     }
 
