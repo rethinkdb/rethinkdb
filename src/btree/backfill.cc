@@ -130,7 +130,9 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
             return true;
         } else {
             store_key_t x_left_copy(x_left->size, x_left->contents);
-            x_left_copy.increment();
+            if (!x_left_copy.increment()) {
+                return false;
+            }
 
             // Now it's [x_left_copy, x_right] intersecting [y_left, y_right).
             return sized_strcmp(x_left_copy.contents, x_left_copy.size, y_right.key.contents, y_right.key.size) < 0;
