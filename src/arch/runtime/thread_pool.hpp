@@ -69,6 +69,9 @@ public:
     static __thread int thread_id;
     // The event queue for the thread we are currently in (same as &thread_pool->threads[thread_id])
     static __thread linux_thread_t *thread;
+
+private:
+    DISABLE_COPYING(linux_thread_pool_t);
 };
 
 class linux_thread_t :
