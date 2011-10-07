@@ -462,12 +462,28 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
                 // remapped later.)
             }
 
+            // Step 4A: Remap tokens to new offsets.  It is important
+            // that we do this _before_ calling index_write.
+            // Otherwise, the token_offset map would still point to
+            // the extent we're gcing.  Then somebody could do an
+            // index_write after our index_write starts but before it
+            // returns in Step 4 below, resulting in i_array entries
+            // that point to the current entry.  This should empty out
+            // all the t_array bits.
+            for (int i = 0; i < num_writes; ++i) {
+                parent->serializer->remap_block_to_new_offset(writes[i].old_offset, writes[i].new_offset);
+            }
+
         }
 
-        // Step 4: Commit the transaction to the serializer
+        // Step 4B: Commit the transaction to the serializer, emptying
+        // out all the i_array bits.
         parent->serializer->index_write(index_write_ops, parent->choose_gc_io_account());
 
         ASSERT_NO_CORO_WAITING;
+
+        // We've cleaned out the t_array and i_array bits.
+        rassert(parent->gc_state.current_entry == NULL);
 
         index_write_ops.clear();  // cleanup index_write_ops under the watchful eyes of ASSERT_NO_CORO_WAITING
     }
@@ -485,11 +501,7 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
 }
 
 void data_block_manager_t::on_gc_write_done() {
-    // Remap tokens to new offsets...
-    for (size_t i = 0; i < gc_writes.size(); ++i) {
-        serializer->remap_block_to_new_offset(gc_writes[i].old_offset, gc_writes[i].new_offset);
-    }
-    
+
     // Process GC data changes which have been caused by the tokens
     extent_manager_t::transaction_t *em_trx = serializer->extent_manager->begin_transaction();
     check_and_handle_outstanding_empty_extents();
