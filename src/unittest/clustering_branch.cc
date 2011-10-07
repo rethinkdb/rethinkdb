@@ -2,8 +2,8 @@
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
+#include "unittest/dummy_metadata_controller.hpp"
 #include "unittest/dummy_protocol.hpp"
-#include "rpc/metadata/view/controller.hpp"
 #include "unittest/clustering_utils.hpp"
 #include "unittest/unittest_utils.hpp"
 
@@ -25,7 +25,7 @@ void run_with_broadcaster(
 
     /* Set up a metadata meeting-place */
     namespace_branch_metadata_t<dummy_protocol_t> initial_metadata;
-    metadata_view_controller_t<namespace_branch_metadata_t<dummy_protocol_t> > metadata_controller(initial_metadata);
+    dummy_metadata_controller_t<namespace_branch_metadata_t<dummy_protocol_t> > metadata_controller(initial_metadata);
 
     /* Set up a broadcaster and initial listener */
     test_store_t initial_store;

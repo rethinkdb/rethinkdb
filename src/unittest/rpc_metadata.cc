@@ -2,9 +2,9 @@
 
 #include "rpc/metadata/metadata.hpp"
 #include "rpc/metadata/semilattice/map.hpp"
-#include "rpc/metadata/view/controller.hpp"
 #include "rpc/metadata/view/field.hpp"
 #include "rpc/metadata/view/member.hpp"
+#include "unittest/dummy_metadata_controller.hpp"
 
 namespace unittest {
 
@@ -65,11 +65,6 @@ void run_in_thread_pool(boost::function<void()> fun, int nthreads = 1) {
     thread_pool.run(&starter);
 }
 
-/* `let_stuff_happen()` delays for some time to let events occur */
-void let_stuff_happen() {
-    nap(1000);
-}
-
 template<class T>
 void assign(T *target, T value) {
     *target = value;
@@ -106,13 +101,19 @@ void run_metadata_exchange_test() {
     EXPECT_EQ(cluster2.get_root_view()->get().i, 2);
 
     cluster1.join(cluster2.get_everybody()[cluster2.get_me()]);
-    let_stuff_happen();
+    connect_watcher_t connect_watcher(&cluster1, cluster2.get_me());
+    connect_watcher.wait_lazily_unordered();
+
+    cond_t interruptor1;
+    cluster1.get_root_view()->sync_to(cluster2.get_me(), &interruptor1);
 
     EXPECT_EQ(cluster1.get_root_view()->get().i, 3);
     EXPECT_EQ(cluster2.get_root_view()->get().i, 3);
 
     cluster1.get_root_view()->join(sl_int_t(4));
-    let_stuff_happen();
+
+    cond_t interruptor2;
+    cluster1.get_root_view()->sync_to(cluster2.get_me(), &interruptor2);
 
     EXPECT_EQ(cluster1.get_root_view()->get().i, 7);
     EXPECT_EQ(cluster2.get_root_view()->get().i, 7);
@@ -141,11 +142,11 @@ TEST(RPCMetadataTest, Watcher) {
     run_in_thread_pool(&run_watcher_test, 2);
 }
 
-/* `ViewController` tests `metadata_view_controller_t`. */
+/* `ViewController` tests `dummy_metadata_controller_t`. */
 
 void run_view_controller_test() {
 
-    metadata_view_controller_t<sl_int_t> controller(sl_int_t(16));
+    dummy_metadata_controller_t<sl_int_t> controller(sl_int_t(16));
     EXPECT_EQ(controller.get_view()->get().i, 16);
 
     controller.get_view()->join(sl_int_t(2));
@@ -171,7 +172,7 @@ TEST(RPCMetadataTest, ViewController) {
 
 void run_field_view_test() {
 
-    metadata_view_controller_t<sl_pair_t> controller(
+    dummy_metadata_controller_t<sl_pair_t> controller(
         sl_pair_t(sl_int_t(8), sl_int_t(4)));
 
     boost::shared_ptr<metadata_read_view_t<sl_int_t> > x_view =
@@ -200,7 +201,7 @@ void run_member_view_test() {
 
     std::map<std::string, sl_int_t> initial_value;
     initial_value["foo"] = sl_int_t(8);
-    metadata_view_controller_t<std::map<std::string, sl_int_t> > controller(
+    dummy_metadata_controller_t<std::map<std::string, sl_int_t> > controller(
         initial_value);
 
     boost::shared_ptr<metadata_read_view_t<sl_int_t> > foo_view =

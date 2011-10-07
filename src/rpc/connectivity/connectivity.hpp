@@ -60,6 +60,8 @@ struct peer_id_t {
 
 private:
     friend class connectivity_cluster_t;
+    friend std::ostream &operator<<(std::ostream &, peer_id_t);
+
     boost::uuids::uuid uuid;
     peer_id_t(boost::uuids::uuid u) : uuid(u) { }
 
@@ -68,6 +70,10 @@ private:
         ar & uuid;
     }
 };
+
+inline std::ostream &operator<<(std::ostream &stream, peer_id_t id) {
+    return stream << id.uuid;
+}
 
 /* `event_watcher_t` is used to watch for any node joining or leaving the
 cluster. `connect_watcher_t` and `disconnect_watcher_t` are used to watch for a

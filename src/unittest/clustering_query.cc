@@ -6,8 +6,8 @@
 #include "clustering/immediate_consistency/query/master.hpp"
 #include "clustering/immediate_consistency/query/namespace_interface.hpp"
 #include "rpc/mailbox/mailbox.hpp"
-#include "rpc/metadata/view/controller.hpp"
 #include "unittest/clustering_utils.hpp"
+#include "unittest/dummy_metadata_controller.hpp"
 #include "unittest/dummy_protocol.hpp"
 #include "unittest/unittest_utils.hpp"
 
@@ -32,7 +32,7 @@ static void run_read_write_test() {
 
     /* Set up a metadata meeting-place for branches */
     namespace_branch_metadata_t<dummy_protocol_t> initial_branch_metadata;
-    metadata_view_controller_t<namespace_branch_metadata_t<dummy_protocol_t> > branch_metadata_controller(initial_branch_metadata);
+    dummy_metadata_controller_t<namespace_branch_metadata_t<dummy_protocol_t> > branch_metadata_controller(initial_branch_metadata);
 
     /* Set up a branch */
     test_store_t initial_store;
@@ -43,7 +43,7 @@ static void run_read_write_test() {
 
     /* Set up a metadata meeting-place for masters */
     namespace_master_metadata_t<dummy_protocol_t> initial_master_metadata;
-    metadata_view_controller_t<namespace_master_metadata_t<dummy_protocol_t> > master_metadata_controller(initial_master_metadata);
+    dummy_metadata_controller_t<namespace_master_metadata_t<dummy_protocol_t> > master_metadata_controller(initial_master_metadata);
 
     /* Set up a master */
     master_t<dummy_protocol_t> master(&cluster, master_metadata_controller.get_view(), a_thru_z_region(), &broadcaster);

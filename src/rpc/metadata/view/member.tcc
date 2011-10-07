@@ -18,6 +18,10 @@ public:
         return superview->get()[key];
     }
 
+    void sync_from(peer_id_t peer, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, sync_failed_exc_t) {
+        superview->sync_from(peer, interruptor);
+    }
+
     publisher_t<boost::function<void()> > *get_publisher() {
         return superview->get_publisher();
     }
@@ -46,6 +50,14 @@ public:
         std::map<key_t, value_t> map = superview->get();
         semilattice_join(&map[key], v);
         superview->join(map);
+    }
+
+    void sync_from(peer_id_t peer, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, sync_failed_exc_t) {
+        superview->sync_from(peer, interruptor);
+    }
+
+    void sync_to(peer_id_t peer, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, sync_failed_exc_t) {
+        superview->sync_to(peer, interruptor);
     }
 
     publisher_t<boost::function<void()> > *get_publisher() {

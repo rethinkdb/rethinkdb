@@ -1,8 +1,8 @@
 #include "unittest/gtest.hpp"
 #include "clustering/immediate_consistency/branch/backfiller.hpp"
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
-#include "rpc/metadata/view/controller.hpp"
 #include "rpc/metadata/view/field.hpp"
+#include "unittest/dummy_metadata_controller.hpp"
 #include "unittest/dummy_protocol.hpp"
 #include "unittest/unittest_utils.hpp"
 
@@ -25,7 +25,7 @@ void run_backfill_test() {
     /* Make a dummy metadata view to hold a branch tree so branch history checks
     can be performed */
 
-    metadata_view_controller_t<namespace_branch_metadata_t<dummy_protocol_t> > namespace_metadata_controller(
+    dummy_metadata_controller_t<namespace_branch_metadata_t<dummy_protocol_t> > namespace_metadata_controller(
         /* Parentheses prevent C++ from interpreting this as a function
         declaration */
         (namespace_branch_metadata_t<dummy_protocol_t>()));
@@ -91,7 +91,7 @@ void run_backfill_test() {
 
     /* Expose the backfiller to the cluster */
 
-    metadata_view_controller_t<resource_metadata_t<backfiller_metadata_t<dummy_protocol_t> > > backfiller_md_controller(
+    dummy_metadata_controller_t<resource_metadata_t<backfiller_metadata_t<dummy_protocol_t> > > backfiller_md_controller(
         (resource_metadata_t<backfiller_metadata_t<dummy_protocol_t> >()));
 
     backfiller_t<dummy_protocol_t> backfiller(

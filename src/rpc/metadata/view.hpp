@@ -3,6 +3,14 @@
 
 #include "concurrency/pubsub.hpp"
 
+class sync_failed_exc_t : public std::exception {
+public:
+    const char *what() const throw () {
+        return "Could not sync with other node, because the connection was "
+            "lost before the sync was over.";
+    }
+};
+
 /* A `metadata_read_view_t` represents some sub-region of metadata. You can read
 it and monitor it for changes. The purpose is to make it easier to make metadata
 composable; because of `metadata_read_view_t`, each component that interacts
@@ -14,6 +22,8 @@ class metadata_read_view_t {
 
 public:
     virtual metadata_t get() = 0;
+
+    virtual void sync_from(peer_id_t peer, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, sync_failed_exc_t) = 0;
 
     class subscription_t {
     public:
@@ -49,6 +59,8 @@ class metadata_readwrite_view_t : public metadata_read_view_t<metadata_t> {
 
 public:
     virtual void join(const metadata_t &) = 0;
+
+    virtual void sync_to(peer_id_t peer, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, sync_failed_exc_t) = 0;
 };
 
 #endif /* __RPC_METADATA_VIEW_HPP__ */

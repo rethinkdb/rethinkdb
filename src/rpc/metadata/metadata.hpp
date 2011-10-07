@@ -43,6 +43,8 @@ private:
         metadata_cluster_t *parent;
         metadata_t get();
         void join(const metadata_t &);
+        void sync_from(peer_id_t, signal_t *) THROWS_ONLY(interrupted_exc_t, sync_failed_exc_t);
+        void sync_to(peer_id_t, signal_t *) THROWS_ONLY(interrupted_exc_t, sync_failed_exc_t);
         publisher_t<boost::function<void()> > *get_publisher();
     };
     boost::shared_ptr<root_view_t> root_view;
@@ -57,9 +59,14 @@ private:
     publisher_controller_t<boost::function<void()> > change_publisher;
 
     static void write_metadata(std::ostream&, metadata_t);
+    static void write_ping(std::ostream&, int);
+    static void write_ping_response(std::ostream&, int);
     void on_utility_message(peer_id_t, std::istream&, boost::function<void()>&);
     void on_connect(peer_id_t);
     void on_disconnect(peer_id_t);
+
+    int ping_id_counter;
+    std::map<int, cond_t *> ping_waiters;
 };
 
 #include "rpc/metadata/metadata.tcc"

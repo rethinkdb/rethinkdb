@@ -1,8 +1,8 @@
 #include "unittest/gtest.hpp"
 #include "clustering/registrar.hpp"
 #include "clustering/registrant.hpp"
-#include "rpc/metadata/view/controller.hpp"
 #include "unittest/clustering_utils.hpp"
+#include "unittest/dummy_metadata_controller.hpp"
 #include "unittest/unittest_utils.hpp"
 
 namespace unittest {
@@ -45,7 +45,7 @@ void run_register_test() {
 
     simple_mailbox_cluster_t cluster;
 
-    metadata_view_controller_t<resource_metadata_t<registrar_metadata_t<std::string> > > metadata_controller(
+    dummy_metadata_controller_t<resource_metadata_t<registrar_metadata_t<std::string> > > metadata_controller(
         (resource_metadata_t<registrar_metadata_t<std::string> >()));
 
     monitoring_controller_t controller;
@@ -82,7 +82,7 @@ void run_registrar_death_test() {
 
     simple_mailbox_cluster_t cluster;
 
-    metadata_view_controller_t<resource_metadata_t<registrar_metadata_t<std::string> > > metadata_controller(
+    dummy_metadata_controller_t<resource_metadata_t<registrar_metadata_t<std::string> > > metadata_controller(
         (resource_metadata_t<registrar_metadata_t<std::string> >()));
 
     monitoring_controller_t controller;

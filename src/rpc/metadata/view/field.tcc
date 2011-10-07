@@ -16,6 +16,10 @@ public:
         return ((outer->get()).*field);
     }
 
+    void sync_from(peer_id_t peer, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, sync_failed_exc_t) {
+        outer->sync_from(peer, interruptor);
+    }
+
     publisher_t<boost::function<void()> > *get_publisher() {
         return outer->get_publisher();
     }
@@ -43,6 +47,14 @@ public:
         outer_t value = outer->get();
         semilattice_join(&(value.*field), new_inner);
         outer->join(value);
+    }
+
+    void sync_from(peer_id_t peer, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, sync_failed_exc_t) {
+        outer->sync_from(peer, interruptor);
+    }
+
+    void sync_to(peer_id_t peer, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, sync_failed_exc_t) {
+        outer->sync_to(peer, interruptor);
     }
 
     publisher_t<boost::function<void()> > *get_publisher() {

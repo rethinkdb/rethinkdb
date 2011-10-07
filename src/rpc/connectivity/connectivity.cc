@@ -133,6 +133,11 @@ void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(s
     std::stringstream buffer(std::ios_base::out|std::stringstream::binary);
     writer(buffer);
 
+#ifdef CLUSTER_MESSAGE_DEBUGGING
+    std::cerr << "from " << me << " to " << dest << std::endl;
+    print_hd(buffer.str().data(), 0, buffer.str().size());
+#endif
+
     if (dest == me) {
         std::stringstream buffer2(buffer.str(), std::stringstream::in|std::stringstream::binary);
 
