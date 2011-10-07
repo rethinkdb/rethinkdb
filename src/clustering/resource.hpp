@@ -50,6 +50,8 @@ private:
     state_t state;
     peer_id_t peer;
     business_card_t contact_info;
+
+    RDB_MAKE_ME_SERIALIZABLE_3(state, peer, contact_info);
 };
 
 template<class business_card_t>
