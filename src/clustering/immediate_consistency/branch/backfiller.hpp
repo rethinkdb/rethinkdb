@@ -128,6 +128,12 @@ private:
             local_interruptors.find(session_id);
         if (it != local_interruptors.end()) {
             (*it).second->pulse();
+        } else {
+            /* The backfill ended on its own right as we were trying to cancel
+            it. Since the backfill was over, we removed the local interruptor
+            from the map, but the cancel message was already in flight. Since
+            there is no backfill to cancel, we just ignore the cancel message.
+            */
         }
     }
 
