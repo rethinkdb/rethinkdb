@@ -49,8 +49,9 @@ void backfillee(
     /* Pick a unique ID to identify this backfill session to the backfiller */
     typename backfiller_metadata_t<protocol_t>::backfill_session_id_t backfill_session_id = generate_uuid();
 
-    /* The backfiller will send a description of where it's backfilling us to to
-    `end_point_mailbox`. */
+    /* The backfiller will send a message to `end_point_mailbox` before it sends
+    any other messages; that message will tell us what the version will be when
+    the backfill is over. */
     promise_t<region_map_t<protocol_t, version_range_t> > end_point_cond;
     async_mailbox_t<void(region_map_t<protocol_t, version_range_t>)> end_point_mailbox(
         cluster, boost::bind(&promise_t<region_map_t<protocol_t, version_range_t> >::pulse, &end_point_cond, _1));
