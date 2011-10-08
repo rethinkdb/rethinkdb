@@ -11,14 +11,14 @@
 struct ip_address_t {
     ip_address_t() { }
     explicit ip_address_t(const char *);   // Address with hostname or IP
-    explicit ip_address_t(uint32_t);
     static ip_address_t us();
 
     bool operator==(const ip_address_t &x) const;   // Compare addresses
     bool operator!=(const ip_address_t &x) const;
 
 public:
-    uint32_t ip_as_uint32();
+    /* Returns IP address in `a.b.c.d` form. */
+    std::string as_dotted_decimal();
 
 public:
     struct in_addr addr;

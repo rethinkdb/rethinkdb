@@ -1,4 +1,5 @@
 #include "arch/address.hpp"
+#include <arpa/inet.h>   /* for `inet_ntop()` */
 #include <netdb.h>
 #include <stdlib.h>
 #include <string.h>
@@ -30,10 +31,6 @@ ip_address_t::ip_address_t(const char *host) {
     freeaddrinfo(addr_possibilities);
 }
 
-ip_address_t::ip_address_t(uint32_t a) {
-    addr.s_addr = a;
-}
-
 bool ip_address_t::operator==(const ip_address_t &x) const {
     return !memcmp(&addr, &x.addr, sizeof(struct in_addr));
 }
@@ -51,6 +48,10 @@ ip_address_t ip_address_t::us() {
     return ip_address_t(name);
 }
 
-uint32_t ip_address_t::ip_as_uint32() {
-    return addr.s_addr;
+std::string ip_address_t::as_dotted_decimal() {
+    char buffer[INET_ADDRSTRLEN + 1];
+    const char *result = inet_ntop(AF_INET, reinterpret_cast<void*>(&addr),
+        buffer, INET_ADDRSTRLEN);
+    guarantee(result == buffer, "Could not format IP address");
+    return std::string(buffer);
 }

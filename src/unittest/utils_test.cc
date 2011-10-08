@@ -1,6 +1,7 @@
 #include "unittest/gtest.hpp"
 
 #include "utils.hpp"
+#include "arch/address.hpp"
 
 namespace unittest {
 
@@ -79,6 +80,14 @@ TEST(UtilsTest, SizedStrcmp)
     ASSERT_EQ(0, sized_strcmp(test1, 14, test1, 14));
     ASSERT_EQ(0, sized_strcmp(test1, 0, test1, 0));
     ASSERT_NE(0, sized_strcmp(test3, 11, test1, 14));
+}
+
+/* This doesn't quite belong in `utils_test.cc`, but I don't want to create a
+new file just for it. */
+TEST(UtilsTest, IPAddress)
+{
+    ip_address_t test("111.112.113.114");
+    EXPECT_EQ("111.112.113.114", test.as_dotted_decimal());
 }
 
 }  // namespace unittest
