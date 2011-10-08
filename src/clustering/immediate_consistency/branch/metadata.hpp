@@ -134,10 +134,10 @@ public:
 /* `backfiller_metadata_t` represents a thing that is willing to serve backfills
 over the network. */
 
+typedef boost::uuids::uuid backfill_session_id_t;
+
 template<class protocol_t>
 struct backfiller_metadata_t {
-
-    typedef boost::uuids::uuid backfill_session_id_t;
 
     typedef async_mailbox_t<void(
         backfill_session_id_t,

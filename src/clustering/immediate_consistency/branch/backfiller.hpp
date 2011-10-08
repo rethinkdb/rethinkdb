@@ -34,10 +34,8 @@ struct backfiller_t :
     /* TODO: Support warm shutdowns? */
 
 private:
-    typedef typename backfiller_metadata_t<protocol_t>::backfill_session_id_t session_id_t;
-
     void on_backfill(
-            session_id_t session_id,
+            backfill_session_id_t session_id,
             region_map_t<protocol_t, version_range_t> start_point,
             typename async_mailbox_t<void(region_map_t<protocol_t, version_range_t>)>::address_t end_point_cont,
             typename async_mailbox_t<void(typename protocol_t::backfill_chunk_t)>::address_t chunk_cont,
@@ -50,7 +48,7 @@ private:
         /* Set up a local interruptor cond and put it in the map so that this
         session can be interrupted if the backfillee decides to abort */
         cond_t local_interruptor;
-        map_insertion_sentry_t<session_id_t, cond_t *> be_interruptible(&local_interruptors, session_id, &local_interruptor);
+        map_insertion_sentry_t<backfill_session_id_t, cond_t *> be_interruptible(&local_interruptors, session_id, &local_interruptor);
 
         /* Set up a cond that gets pulsed if we're interrupted by either the
         backfillee stopping or the backfiller destructor being called, but don't
@@ -120,11 +118,11 @@ private:
         }
     }
 
-    void on_cancel_backfill(session_id_t session_id, UNUSED auto_drainer_t::lock_t) {
+    void on_cancel_backfill(backfill_session_id_t session_id, UNUSED auto_drainer_t::lock_t) {
 
         assert_thread();
 
-        typename std::map<session_id_t, cond_t *>::iterator it =
+        typename std::map<backfill_session_id_t, cond_t *>::iterator it =
             local_interruptors.find(session_id);
         if (it != local_interruptors.end()) {
             (*it).second->pulse();
@@ -143,7 +141,7 @@ private:
     store_view_t<protocol_t> *store;
 
     auto_drainer_t drainer;
-    std::map<session_id_t, cond_t *> local_interruptors;
+    std::map<backfill_session_id_t, cond_t *> local_interruptors;
 
     typename backfiller_metadata_t<protocol_t>::backfill_mailbox_t backfill_mailbox;
     typename backfiller_metadata_t<protocol_t>::cancel_backfill_mailbox_t cancel_backfill_mailbox;

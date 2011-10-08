@@ -47,7 +47,7 @@ void backfillee(
             );
 
     /* Pick a unique ID to identify this backfill session to the backfiller */
-    typename backfiller_metadata_t<protocol_t>::backfill_session_id_t backfill_session_id = generate_uuid();
+    backfill_session_id_t backfill_session_id = generate_uuid();
 
     /* The backfiller will send a message to `end_point_mailbox` before it sends
     any other messages; that message will tell us what the version will be when
@@ -101,7 +101,7 @@ void backfillee(
             void (*send_cast_to_correct_type)(
                 mailbox_cluster_t *,
                 typename backfiller_metadata_t<protocol_t>::cancel_backfill_mailbox_t::address_t,
-                const typename backfiller_metadata_t<protocol_t>::backfill_session_id_t &) = &send;
+                const backfill_session_id_t &) = &send;
             backfiller_notifier.fun = boost::bind(
                 send_cast_to_correct_type, cluster,
                 backfiller.access().cancel_backfill_mailbox,
