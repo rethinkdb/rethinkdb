@@ -72,8 +72,10 @@ def generate_async_message_template(nargs):
     print "    boost::function< void(" + csep("arg#_t") + ") > callback;"
     print "};"
     print
-    if nargs == 0: print "inline"
-    else: print "template<" + csep("class arg#_t") + ">"
+    if nargs == 0:
+        print "inline"
+    else:
+        print "template<" + csep("class arg#_t") + ">"
     print "void send(mailbox_cluster_t *src, " + ("typename " if nargs > 0 else "") + "async_mailbox_t< void(" + csep("arg#_t") + ") >::address_t dest" + cpre("const arg#_t &arg#") + ") {"
     print "    send(src, dest.addr,"
     print "        boost::bind(&async_mailbox_t< void(" + csep("arg#_t") + ") >::write, _1" + cpre("arg#") + "));"
