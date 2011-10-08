@@ -62,23 +62,26 @@ public:
     }
 };
 
-struct dummy_mailbox_t : public mailbox_t {
+struct dummy_mailbox_t {
 private:
     std::set<int> inbox;
-    void on_message(std::istream &stream, boost::function<void()> &on_done) {
+    void on_message(std::istream &stream, const boost::function<void()> &on_done) {
         int i;
         stream >> i;
         on_done();
         inbox.insert(i);
     }
 public:
-    dummy_mailbox_t(mailbox_cluster_t *c) : mailbox_t(c) { }
+    dummy_mailbox_t(mailbox_cluster_t *c) :
+        mailbox(c, boost::bind(&dummy_mailbox_t::on_message, this, _1, _2))
+        { }
     void expect(int message) {
         EXPECT_TRUE(inbox.count(message) == 1);
     }
+    mailbox_t mailbox;
 };
 
-void send(mailbox_cluster_t *c, dummy_mailbox_t::address_t dest, int message) {
+void send(mailbox_cluster_t *c, mailbox_t::address_t dest, int message) {
     send(c, dest, boost::bind(&write_integer, message, _1));
 }
 
@@ -140,7 +143,7 @@ void run_mailbox_message_test() {
 
     /* Create a mailbox and send it three messages */
     dummy_mailbox_t mbox(&cluster1);
-    mailbox_t::address_t address = mbox.get_address();
+    mailbox_t::address_t address = mbox.mailbox.get_address();
 
     send(&cluster1, address, 88555);
     send(&cluster2, address, 3131);
@@ -167,7 +170,7 @@ void run_dead_mailbox_test() {
     mailbox_t::address_t address;
     {
         dummy_mailbox_t mbox(&cluster1);
-        address = mbox.get_address();
+        address = mbox.mailbox.get_address();
     }
 
     send(&cluster1, address, 12345);
@@ -191,7 +194,7 @@ void run_mailbox_address_semantics_test() {
     recording_mailbox_cluster_t cluster(port);
 
     dummy_mailbox_t mbox(&cluster);
-    mailbox_t::address_t mbox_addr = mbox.get_address();
+    mailbox_t::address_t mbox_addr = mbox.mailbox.get_address();
     EXPECT_FALSE(mbox_addr.is_nil());
     EXPECT_TRUE(mbox_addr.get_peer() == cluster.get_me());
 }

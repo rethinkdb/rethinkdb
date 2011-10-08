@@ -5,10 +5,9 @@
 
 class mailbox_cluster_t;
 
-/* `mailbox_t` is a receiver of messages. Instantiate a subclass that overrides
-`on_message()` to handle messages you receive. To send messages to the mailbox,
-construct a `mailbox_t::address_t` with this mailbox and then call `send()` on
-the address. */
+/* `mailbox_t` is a receiver of messages. Construct it with a callback function
+to handle messages it receives. To send messages to the mailbox, call the
+`get_address()` method and then call `send()` on the address it returns. */
 
 struct mailbox_t :
     public home_thread_mixin_t
@@ -20,6 +19,8 @@ private:
 
     typedef int id_t;
     id_t mailbox_id;
+
+    boost::function<void(std::istream &, const boost::function<void()> &)> callback;
 
     DISABLE_COPYING(mailbox_t);
 
@@ -59,16 +60,10 @@ public:
         id_t mailbox_id;
     };
 
+    mailbox_t(mailbox_cluster_t *, const boost::function<void(std::istream &, const boost::function<void()> &)> &);
+    ~mailbox_t();
+
     address_t get_address();
-
-protected:
-    mailbox_t(mailbox_cluster_t *);
-    virtual ~mailbox_t();
-
-    /* Called to when a message is sent to the mailbox over the network. Should
-    deserialize the message, then call the second argument to indicate it is
-    done deserializing, then act on the message. */
-    virtual void on_message(std::istream&, boost::function<void()>&) = 0;
 };
 
 /* `send()` sends a message to a mailbox. It is safe to call `send()` outside of

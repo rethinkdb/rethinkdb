@@ -18,11 +18,13 @@ def generate_async_message_template(nargs):
         return "".join(", " + template.replace("#", str(i)) for i in xrange(nargs))
 
     print "template<" + csep("class arg#_t") + ">" 
-    print "class async_mailbox_t< void(" + csep("arg#_t") + ") > : private mailbox_t {"
+    print "class async_mailbox_t< void(" + csep("arg#_t") + ") > {"
     print
     print "public:"
     print "    async_mailbox_t(mailbox_cluster_t *cluster, const boost::function< void(" + csep("arg#_t") + ") > &fun) :"
-    print "        mailbox_t(cluster), callback(fun) { }"
+    print "        callback(fun),"
+    print "        mailbox(cluster, boost::bind(&async_mailbox_t::on_message, this, _1, _2))"
+    print "        { }"
     print
     print "    class address_t {"
     print "    public:"
@@ -42,7 +44,7 @@ def generate_async_message_template(nargs):
     print
     print "    address_t get_address() {"
     print "        address_t a;"
-    print "        a.addr = mailbox_t::get_address();"
+    print "        a.addr = mailbox.get_address();"
     print "        return a;"
     print "    }"
     print
@@ -57,7 +59,7 @@ def generate_async_message_template(nargs):
     for i in xrange(nargs):
         print "        archive << arg%d;" % i
     print "    }"
-    print "    void on_message(std::istream &stream, boost::function<void()> &done) {"
+    print "    void on_message(std::istream &stream, const boost::function<void()> &done) {"
     for i in xrange(nargs):
         print "        arg%d_t arg%d;" % (i, i)
     print "        {"
@@ -70,6 +72,7 @@ def generate_async_message_template(nargs):
     print "    }"
     print
     print "    boost::function< void(" + csep("arg#_t") + ") > callback;"
+    print "    mailbox_t mailbox;"
     print "};"
     print
     if nargs == 0:

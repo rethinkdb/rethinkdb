@@ -17,17 +17,10 @@ peer_id_t mailbox_t::address_t::get_peer() const {
     return peer;
 }
 
-mailbox_t::address_t mailbox_t::get_address() {
-    address_t a;
-    a.peer = cluster->get_me();
-    a.thread = home_thread();
-    a.mailbox_id = mailbox_id;
-    return a;
-}
-
-mailbox_t::mailbox_t(mailbox_cluster_t *cluster) :
-    cluster(cluster),
-    mailbox_id(cluster->mailbox_tables[home_thread()].next_mailbox_id++)
+mailbox_t::mailbox_t(mailbox_cluster_t *c, const boost::function<void(std::istream &, const boost::function<void()> &)> &fun) :
+    cluster(c),
+    mailbox_id(cluster->mailbox_tables[home_thread()].next_mailbox_id++),
+    callback(fun)
 {
     rassert(cluster->mailbox_tables[home_thread()].mailboxes.find(mailbox_id) ==
         cluster->mailbox_tables[home_thread()].mailboxes.end());
@@ -37,6 +30,14 @@ mailbox_t::mailbox_t(mailbox_cluster_t *cluster) :
 mailbox_t::~mailbox_t() {
     rassert(cluster->mailbox_tables[home_thread()].mailboxes[mailbox_id] == this);
     cluster->mailbox_tables[home_thread()].mailboxes.erase(mailbox_id);
+}
+
+mailbox_t::address_t mailbox_t::get_address() {
+    address_t a;
+    a.peer = cluster->get_me();
+    a.thread = home_thread();
+    a.mailbox_id = mailbox_id;
+    return a;
 }
 
 void send(mailbox_cluster_t *src, mailbox_t::address_t dest, boost::function<void(std::ostream&)> writer) {
@@ -124,7 +125,7 @@ void mailbox_cluster_t::on_message(peer_id_t src, std::istream &stream, boost::f
             on_thread_t thread_switcher(dest_thread);
             mailbox_t *mbox = mailbox_tables[dest_thread].find_mailbox(dest_mailbox_id);
             if (mbox) {
-                mbox->on_message(stream, on_done);
+                mbox->callback(stream, on_done);
             } else {
                 /* Mailbox doesn't exist; silently fail to deliver message. */
                 on_done();

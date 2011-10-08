@@ -16,11 +16,13 @@ template<class invalid_proto_t> class async_mailbox_t {
 };
 
 template<>
-class async_mailbox_t< void() > : private mailbox_t {
+class async_mailbox_t< void() > {
 
 public:
     async_mailbox_t(mailbox_cluster_t *cluster, const boost::function< void() > &fun) :
-        mailbox_t(cluster), callback(fun) { }
+        callback(fun),
+        mailbox(cluster, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        { }
 
     class address_t {
     public:
@@ -36,7 +38,7 @@ public:
 
     address_t get_address() {
         address_t a;
-        a.addr = mailbox_t::get_address();
+        a.addr = mailbox.get_address();
         return a;
     }
 
@@ -45,7 +47,7 @@ private:
     static void write(std::ostream &stream) {
         boost::archive::binary_oarchive archive(stream);
     }
-    void on_message(std::istream &stream, boost::function<void()> &done) {
+    void on_message(std::istream &stream, const boost::function<void()> &done) {
         {
             boost::archive::binary_iarchive archive(stream);
         }
@@ -54,6 +56,7 @@ private:
     }
 
     boost::function< void() > callback;
+    mailbox_t mailbox;
 };
 
 inline
@@ -63,11 +66,13 @@ void send(mailbox_cluster_t *src, async_mailbox_t< void() >::address_t dest) {
 }
 
 template<class arg0_t>
-class async_mailbox_t< void(arg0_t) > : private mailbox_t {
+class async_mailbox_t< void(arg0_t) > {
 
 public:
     async_mailbox_t(mailbox_cluster_t *cluster, const boost::function< void(arg0_t) > &fun) :
-        mailbox_t(cluster), callback(fun) { }
+        callback(fun),
+        mailbox(cluster, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        { }
 
     class address_t {
     public:
@@ -84,7 +89,7 @@ public:
 
     address_t get_address() {
         address_t a;
-        a.addr = mailbox_t::get_address();
+        a.addr = mailbox.get_address();
         return a;
     }
 
@@ -95,7 +100,7 @@ private:
         boost::archive::binary_oarchive archive(stream);
         archive << arg0;
     }
-    void on_message(std::istream &stream, boost::function<void()> &done) {
+    void on_message(std::istream &stream, const boost::function<void()> &done) {
         arg0_t arg0;
         {
             boost::archive::binary_iarchive archive(stream);
@@ -106,6 +111,7 @@ private:
     }
 
     boost::function< void(arg0_t) > callback;
+    mailbox_t mailbox;
 };
 
 template<class arg0_t>
@@ -115,11 +121,13 @@ void send(mailbox_cluster_t *src, typename async_mailbox_t< void(arg0_t) >::addr
 }
 
 template<class arg0_t, class arg1_t>
-class async_mailbox_t< void(arg0_t, arg1_t) > : private mailbox_t {
+class async_mailbox_t< void(arg0_t, arg1_t) > {
 
 public:
     async_mailbox_t(mailbox_cluster_t *cluster, const boost::function< void(arg0_t, arg1_t) > &fun) :
-        mailbox_t(cluster), callback(fun) { }
+        callback(fun),
+        mailbox(cluster, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        { }
 
     class address_t {
     public:
@@ -136,7 +144,7 @@ public:
 
     address_t get_address() {
         address_t a;
-        a.addr = mailbox_t::get_address();
+        a.addr = mailbox.get_address();
         return a;
     }
 
@@ -148,7 +156,7 @@ private:
         archive << arg0;
         archive << arg1;
     }
-    void on_message(std::istream &stream, boost::function<void()> &done) {
+    void on_message(std::istream &stream, const boost::function<void()> &done) {
         arg0_t arg0;
         arg1_t arg1;
         {
@@ -161,6 +169,7 @@ private:
     }
 
     boost::function< void(arg0_t, arg1_t) > callback;
+    mailbox_t mailbox;
 };
 
 template<class arg0_t, class arg1_t>
@@ -170,11 +179,13 @@ void send(mailbox_cluster_t *src, typename async_mailbox_t< void(arg0_t, arg1_t)
 }
 
 template<class arg0_t, class arg1_t, class arg2_t>
-class async_mailbox_t< void(arg0_t, arg1_t, arg2_t) > : private mailbox_t {
+class async_mailbox_t< void(arg0_t, arg1_t, arg2_t) > {
 
 public:
     async_mailbox_t(mailbox_cluster_t *cluster, const boost::function< void(arg0_t, arg1_t, arg2_t) > &fun) :
-        mailbox_t(cluster), callback(fun) { }
+        callback(fun),
+        mailbox(cluster, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        { }
 
     class address_t {
     public:
@@ -191,7 +202,7 @@ public:
 
     address_t get_address() {
         address_t a;
-        a.addr = mailbox_t::get_address();
+        a.addr = mailbox.get_address();
         return a;
     }
 
@@ -204,7 +215,7 @@ private:
         archive << arg1;
         archive << arg2;
     }
-    void on_message(std::istream &stream, boost::function<void()> &done) {
+    void on_message(std::istream &stream, const boost::function<void()> &done) {
         arg0_t arg0;
         arg1_t arg1;
         arg2_t arg2;
@@ -219,6 +230,7 @@ private:
     }
 
     boost::function< void(arg0_t, arg1_t, arg2_t) > callback;
+    mailbox_t mailbox;
 };
 
 template<class arg0_t, class arg1_t, class arg2_t>
@@ -228,11 +240,13 @@ void send(mailbox_cluster_t *src, typename async_mailbox_t< void(arg0_t, arg1_t,
 }
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t>
-class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > : private mailbox_t {
+class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > {
 
 public:
     async_mailbox_t(mailbox_cluster_t *cluster, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t) > &fun) :
-        mailbox_t(cluster), callback(fun) { }
+        callback(fun),
+        mailbox(cluster, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        { }
 
     class address_t {
     public:
@@ -249,7 +263,7 @@ public:
 
     address_t get_address() {
         address_t a;
-        a.addr = mailbox_t::get_address();
+        a.addr = mailbox.get_address();
         return a;
     }
 
@@ -263,7 +277,7 @@ private:
         archive << arg2;
         archive << arg3;
     }
-    void on_message(std::istream &stream, boost::function<void()> &done) {
+    void on_message(std::istream &stream, const boost::function<void()> &done) {
         arg0_t arg0;
         arg1_t arg1;
         arg2_t arg2;
@@ -280,6 +294,7 @@ private:
     }
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t) > callback;
+    mailbox_t mailbox;
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t>
@@ -289,11 +304,13 @@ void send(mailbox_cluster_t *src, typename async_mailbox_t< void(arg0_t, arg1_t,
 }
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t>
-class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > : private mailbox_t {
+class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > {
 
 public:
     async_mailbox_t(mailbox_cluster_t *cluster, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > &fun) :
-        mailbox_t(cluster), callback(fun) { }
+        callback(fun),
+        mailbox(cluster, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        { }
 
     class address_t {
     public:
@@ -310,7 +327,7 @@ public:
 
     address_t get_address() {
         address_t a;
-        a.addr = mailbox_t::get_address();
+        a.addr = mailbox.get_address();
         return a;
     }
 
@@ -325,7 +342,7 @@ private:
         archive << arg3;
         archive << arg4;
     }
-    void on_message(std::istream &stream, boost::function<void()> &done) {
+    void on_message(std::istream &stream, const boost::function<void()> &done) {
         arg0_t arg0;
         arg1_t arg1;
         arg2_t arg2;
@@ -344,6 +361,7 @@ private:
     }
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > callback;
+    mailbox_t mailbox;
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t>
@@ -353,11 +371,13 @@ void send(mailbox_cluster_t *src, typename async_mailbox_t< void(arg0_t, arg1_t,
 }
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t>
-class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > : private mailbox_t {
+class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > {
 
 public:
     async_mailbox_t(mailbox_cluster_t *cluster, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > &fun) :
-        mailbox_t(cluster), callback(fun) { }
+        callback(fun),
+        mailbox(cluster, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        { }
 
     class address_t {
     public:
@@ -374,7 +394,7 @@ public:
 
     address_t get_address() {
         address_t a;
-        a.addr = mailbox_t::get_address();
+        a.addr = mailbox.get_address();
         return a;
     }
 
@@ -390,7 +410,7 @@ private:
         archive << arg4;
         archive << arg5;
     }
-    void on_message(std::istream &stream, boost::function<void()> &done) {
+    void on_message(std::istream &stream, const boost::function<void()> &done) {
         arg0_t arg0;
         arg1_t arg1;
         arg2_t arg2;
@@ -411,6 +431,7 @@ private:
     }
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > callback;
+    mailbox_t mailbox;
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t>
@@ -420,11 +441,13 @@ void send(mailbox_cluster_t *src, typename async_mailbox_t< void(arg0_t, arg1_t,
 }
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t>
-class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > : private mailbox_t {
+class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > {
 
 public:
     async_mailbox_t(mailbox_cluster_t *cluster, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > &fun) :
-        mailbox_t(cluster), callback(fun) { }
+        callback(fun),
+        mailbox(cluster, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        { }
 
     class address_t {
     public:
@@ -441,7 +464,7 @@ public:
 
     address_t get_address() {
         address_t a;
-        a.addr = mailbox_t::get_address();
+        a.addr = mailbox.get_address();
         return a;
     }
 
@@ -458,7 +481,7 @@ private:
         archive << arg5;
         archive << arg6;
     }
-    void on_message(std::istream &stream, boost::function<void()> &done) {
+    void on_message(std::istream &stream, const boost::function<void()> &done) {
         arg0_t arg0;
         arg1_t arg1;
         arg2_t arg2;
@@ -481,6 +504,7 @@ private:
     }
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > callback;
+    mailbox_t mailbox;
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t>
@@ -490,11 +514,13 @@ void send(mailbox_cluster_t *src, typename async_mailbox_t< void(arg0_t, arg1_t,
 }
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t>
-class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > : private mailbox_t {
+class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > {
 
 public:
     async_mailbox_t(mailbox_cluster_t *cluster, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > &fun) :
-        mailbox_t(cluster), callback(fun) { }
+        callback(fun),
+        mailbox(cluster, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        { }
 
     class address_t {
     public:
@@ -511,7 +537,7 @@ public:
 
     address_t get_address() {
         address_t a;
-        a.addr = mailbox_t::get_address();
+        a.addr = mailbox.get_address();
         return a;
     }
 
@@ -529,7 +555,7 @@ private:
         archive << arg6;
         archive << arg7;
     }
-    void on_message(std::istream &stream, boost::function<void()> &done) {
+    void on_message(std::istream &stream, const boost::function<void()> &done) {
         arg0_t arg0;
         arg1_t arg1;
         arg2_t arg2;
@@ -554,6 +580,7 @@ private:
     }
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > callback;
+    mailbox_t mailbox;
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t>
@@ -563,11 +590,13 @@ void send(mailbox_cluster_t *src, typename async_mailbox_t< void(arg0_t, arg1_t,
 }
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t>
-class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > : private mailbox_t {
+class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > {
 
 public:
     async_mailbox_t(mailbox_cluster_t *cluster, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > &fun) :
-        mailbox_t(cluster), callback(fun) { }
+        callback(fun),
+        mailbox(cluster, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        { }
 
     class address_t {
     public:
@@ -584,7 +613,7 @@ public:
 
     address_t get_address() {
         address_t a;
-        a.addr = mailbox_t::get_address();
+        a.addr = mailbox.get_address();
         return a;
     }
 
@@ -603,7 +632,7 @@ private:
         archive << arg7;
         archive << arg8;
     }
-    void on_message(std::istream &stream, boost::function<void()> &done) {
+    void on_message(std::istream &stream, const boost::function<void()> &done) {
         arg0_t arg0;
         arg1_t arg1;
         arg2_t arg2;
@@ -630,6 +659,7 @@ private:
     }
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > callback;
+    mailbox_t mailbox;
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t>
@@ -639,11 +669,13 @@ void send(mailbox_cluster_t *src, typename async_mailbox_t< void(arg0_t, arg1_t,
 }
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t>
-class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > : private mailbox_t {
+class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > {
 
 public:
     async_mailbox_t(mailbox_cluster_t *cluster, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > &fun) :
-        mailbox_t(cluster), callback(fun) { }
+        callback(fun),
+        mailbox(cluster, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        { }
 
     class address_t {
     public:
@@ -660,7 +692,7 @@ public:
 
     address_t get_address() {
         address_t a;
-        a.addr = mailbox_t::get_address();
+        a.addr = mailbox.get_address();
         return a;
     }
 
@@ -680,7 +712,7 @@ private:
         archive << arg8;
         archive << arg9;
     }
-    void on_message(std::istream &stream, boost::function<void()> &done) {
+    void on_message(std::istream &stream, const boost::function<void()> &done) {
         arg0_t arg0;
         arg1_t arg1;
         arg2_t arg2;
@@ -709,6 +741,7 @@ private:
     }
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > callback;
+    mailbox_t mailbox;
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t>
@@ -718,11 +751,13 @@ void send(mailbox_cluster_t *src, typename async_mailbox_t< void(arg0_t, arg1_t,
 }
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t>
-class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > : private mailbox_t {
+class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > {
 
 public:
     async_mailbox_t(mailbox_cluster_t *cluster, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > &fun) :
-        mailbox_t(cluster), callback(fun) { }
+        callback(fun),
+        mailbox(cluster, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        { }
 
     class address_t {
     public:
@@ -739,7 +774,7 @@ public:
 
     address_t get_address() {
         address_t a;
-        a.addr = mailbox_t::get_address();
+        a.addr = mailbox.get_address();
         return a;
     }
 
@@ -760,7 +795,7 @@ private:
         archive << arg9;
         archive << arg10;
     }
-    void on_message(std::istream &stream, boost::function<void()> &done) {
+    void on_message(std::istream &stream, const boost::function<void()> &done) {
         arg0_t arg0;
         arg1_t arg1;
         arg2_t arg2;
@@ -791,6 +826,7 @@ private:
     }
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > callback;
+    mailbox_t mailbox;
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t>
@@ -800,11 +836,13 @@ void send(mailbox_cluster_t *src, typename async_mailbox_t< void(arg0_t, arg1_t,
 }
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t>
-class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > : private mailbox_t {
+class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > {
 
 public:
     async_mailbox_t(mailbox_cluster_t *cluster, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > &fun) :
-        mailbox_t(cluster), callback(fun) { }
+        callback(fun),
+        mailbox(cluster, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        { }
 
     class address_t {
     public:
@@ -821,7 +859,7 @@ public:
 
     address_t get_address() {
         address_t a;
-        a.addr = mailbox_t::get_address();
+        a.addr = mailbox.get_address();
         return a;
     }
 
@@ -843,7 +881,7 @@ private:
         archive << arg10;
         archive << arg11;
     }
-    void on_message(std::istream &stream, boost::function<void()> &done) {
+    void on_message(std::istream &stream, const boost::function<void()> &done) {
         arg0_t arg0;
         arg1_t arg1;
         arg2_t arg2;
@@ -876,6 +914,7 @@ private:
     }
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > callback;
+    mailbox_t mailbox;
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t>
@@ -885,11 +924,13 @@ void send(mailbox_cluster_t *src, typename async_mailbox_t< void(arg0_t, arg1_t,
 }
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t, class arg12_t>
-class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > : private mailbox_t {
+class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > {
 
 public:
     async_mailbox_t(mailbox_cluster_t *cluster, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > &fun) :
-        mailbox_t(cluster), callback(fun) { }
+        callback(fun),
+        mailbox(cluster, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        { }
 
     class address_t {
     public:
@@ -906,7 +947,7 @@ public:
 
     address_t get_address() {
         address_t a;
-        a.addr = mailbox_t::get_address();
+        a.addr = mailbox.get_address();
         return a;
     }
 
@@ -929,7 +970,7 @@ private:
         archive << arg11;
         archive << arg12;
     }
-    void on_message(std::istream &stream, boost::function<void()> &done) {
+    void on_message(std::istream &stream, const boost::function<void()> &done) {
         arg0_t arg0;
         arg1_t arg1;
         arg2_t arg2;
@@ -964,6 +1005,7 @@ private:
     }
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > callback;
+    mailbox_t mailbox;
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t, class arg12_t>
@@ -973,11 +1015,13 @@ void send(mailbox_cluster_t *src, typename async_mailbox_t< void(arg0_t, arg1_t,
 }
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t, class arg12_t, class arg13_t>
-class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > : private mailbox_t {
+class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > {
 
 public:
     async_mailbox_t(mailbox_cluster_t *cluster, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > &fun) :
-        mailbox_t(cluster), callback(fun) { }
+        callback(fun),
+        mailbox(cluster, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        { }
 
     class address_t {
     public:
@@ -994,7 +1038,7 @@ public:
 
     address_t get_address() {
         address_t a;
-        a.addr = mailbox_t::get_address();
+        a.addr = mailbox.get_address();
         return a;
     }
 
@@ -1018,7 +1062,7 @@ private:
         archive << arg12;
         archive << arg13;
     }
-    void on_message(std::istream &stream, boost::function<void()> &done) {
+    void on_message(std::istream &stream, const boost::function<void()> &done) {
         arg0_t arg0;
         arg1_t arg1;
         arg2_t arg2;
@@ -1055,6 +1099,7 @@ private:
     }
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > callback;
+    mailbox_t mailbox;
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t, class arg12_t, class arg13_t>
