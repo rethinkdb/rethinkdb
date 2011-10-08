@@ -40,7 +40,6 @@ def generate_async_message_template(nargs):
         print "        friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(" + csep("a#_t") + ") >::address_t" + cpre("const a#_t&") + ");"
     print "        mailbox_t::address_t addr;"
     print "    };"
-    print "    friend class address_t;"
     print
     print "    address_t get_address() {"
     print "        address_t a;"

@@ -34,7 +34,6 @@ public:
         friend void send(mailbox_cluster_t*, address_t);
         mailbox_t::address_t addr;
     };
-    friend class address_t;
 
     address_t get_address() {
         address_t a;
@@ -85,7 +84,6 @@ public:
         friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t) >::address_t, const a0_t&);
         mailbox_t::address_t addr;
     };
-    friend class address_t;
 
     address_t get_address() {
         address_t a;
@@ -140,7 +138,6 @@ public:
         friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t) >::address_t, const a0_t&, const a1_t&);
         mailbox_t::address_t addr;
     };
-    friend class address_t;
 
     address_t get_address() {
         address_t a;
@@ -198,7 +195,6 @@ public:
         friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t) >::address_t, const a0_t&, const a1_t&, const a2_t&);
         mailbox_t::address_t addr;
     };
-    friend class address_t;
 
     address_t get_address() {
         address_t a;
@@ -259,7 +255,6 @@ public:
         friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&);
         mailbox_t::address_t addr;
     };
-    friend class address_t;
 
     address_t get_address() {
         address_t a;
@@ -323,7 +318,6 @@ public:
         friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&);
         mailbox_t::address_t addr;
     };
-    friend class address_t;
 
     address_t get_address() {
         address_t a;
@@ -390,7 +384,6 @@ public:
         friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&);
         mailbox_t::address_t addr;
     };
-    friend class address_t;
 
     address_t get_address() {
         address_t a;
@@ -460,7 +453,6 @@ public:
         friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&);
         mailbox_t::address_t addr;
     };
-    friend class address_t;
 
     address_t get_address() {
         address_t a;
@@ -533,7 +525,6 @@ public:
         friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&);
         mailbox_t::address_t addr;
     };
-    friend class address_t;
 
     address_t get_address() {
         address_t a;
@@ -609,7 +600,6 @@ public:
         friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&);
         mailbox_t::address_t addr;
     };
-    friend class address_t;
 
     address_t get_address() {
         address_t a;
@@ -688,7 +678,6 @@ public:
         friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&);
         mailbox_t::address_t addr;
     };
-    friend class address_t;
 
     address_t get_address() {
         address_t a;
@@ -770,7 +759,6 @@ public:
         friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&);
         mailbox_t::address_t addr;
     };
-    friend class address_t;
 
     address_t get_address() {
         address_t a;
@@ -855,7 +843,6 @@ public:
         friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&);
         mailbox_t::address_t addr;
     };
-    friend class address_t;
 
     address_t get_address() {
         address_t a;
@@ -943,7 +930,6 @@ public:
         friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t, a12_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&, const a12_t&);
         mailbox_t::address_t addr;
     };
-    friend class address_t;
 
     address_t get_address() {
         address_t a;
@@ -1034,7 +1020,6 @@ public:
         friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t, a12_t, a13_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&, const a12_t&, const a13_t&);
         mailbox_t::address_t addr;
     };
-    friend class address_t;
 
     address_t get_address() {
         address_t a;
