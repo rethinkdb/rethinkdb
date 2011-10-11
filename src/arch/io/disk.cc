@@ -303,15 +303,13 @@ void linux_file_t::set_size_at_least(size_t size) {
     }
 }
 
-bool linux_file_t::read_async(size_t offset, size_t length, void *buf, linux_file_account_t *account, linux_iocallback_t *callback) {
+void linux_file_t::read_async(size_t offset, size_t length, void *buf, linux_file_account_t *account, linux_iocallback_t *callback) {
     rassert(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");
 
     verify(offset, length, buf);
     diskmgr->submit_read(fd.get(), buf, length, offset,
         account == DEFAULT_DISK_ACCOUNT ? default_account->account : account->account,
         callback);
-
-    return false;
 }
 
 bool linux_file_t::write_async(size_t offset, size_t length, const void *buf, linux_file_account_t *account, linux_iocallback_t *callback) {

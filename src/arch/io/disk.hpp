@@ -48,7 +48,7 @@ public:
 
     /* These always return 'false'; the reason they return bool instead of void
     is for consistency with other asynchronous-callback methods */
-    bool read_async(size_t offset, size_t length, void *buf, linux_file_account_t *account, linux_iocallback_t *cb);
+    void read_async(size_t offset, size_t length, void *buf, linux_file_account_t *account, linux_iocallback_t *cb);
     bool write_async(size_t offset, size_t length, const void *buf, linux_file_account_t *account, linux_iocallback_t *cb);
 
     void read_blocking(size_t offset, size_t length, void *buf);
