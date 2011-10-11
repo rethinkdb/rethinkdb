@@ -701,7 +701,9 @@ bool log_serializer_t::next_shutdown_step() {
 
         // Don't call the callback if we went through the entire
         // shutdown process in one synchronous shot.
-        if (!shutdown_in_one_shot && shutdown_callback) shutdown_callback->pulse();
+        if (!shutdown_in_one_shot && shutdown_callback) {
+            shutdown_callback->pulse();
+        }
 
         return true;
     }

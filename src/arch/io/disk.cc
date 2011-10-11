@@ -43,6 +43,8 @@ actual implementations can be swapped in at runtime. */
 // TODO: If two files are on the same disk, should they share part of the IO stack?
 
 struct linux_disk_manager_t {
+    linux_disk_manager_t() { }
+
     virtual ~linux_disk_manager_t() { }
 
     virtual void *create_account(int priority, int outstanding_requests_limit) = 0;
@@ -52,6 +54,9 @@ struct linux_disk_manager_t {
         void *account, linux_iocallback_t *cb) = 0;
     virtual void submit_read(fd_t fd, void *buf, size_t count, size_t offset,
         void *account, linux_iocallback_t *cb) = 0;
+
+private:
+    DISABLE_COPYING(linux_disk_manager_t);
 };
 
 template<class backend_t>
@@ -147,6 +152,8 @@ struct linux_templated_disk_manager_t : public linux_disk_manager_t {
 
 private:
     int outstanding_txn;
+
+    DISABLE_COPYING(linux_templated_disk_manager_t);
 };
 
 /* Disk account object */

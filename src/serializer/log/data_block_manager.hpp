@@ -247,6 +247,7 @@ private:
     struct gc_read_callback_t : public iocallback_t {
         data_block_manager_t *parent;
         void on_io_complete() {
+            rassert(parent->gc_state.step() == gc_read);
             parent->run_gc();
         }
     };

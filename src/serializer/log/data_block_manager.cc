@@ -234,6 +234,7 @@ bool data_block_manager_t::read(off64_t off_in, void *buf_out, file_account_t *i
     } else {
         ls_buf_data_t *data = reinterpret_cast<ls_buf_data_t *>(buf_out);
         data--;
+        // TODO(sam): read_async can call the callback immediately.  Is this bad?
         dbfile->read_async(off_in, static_config->block_size().ser_value(), data, io_account, cb);
     }
 
@@ -320,7 +321,7 @@ file_account_t *data_block_manager_t::choose_gc_io_account() {
     // Start going into high priority as soon as the garbage ratio is more than
     // 2% above the configured goal.
     // The idea is that we use the nice i/o account whenever possible, except
-    // if it proofs insufficient to maintain an acceptable garbage ratio, in
+    // if it proves insufficient to maintain an acceptable garbage ratio, in
     // which case we switch over to the high priority account until the situation
     // has improved.
 
@@ -518,9 +519,11 @@ void data_block_manager_t::run_gc() {
     while (run_again) {
         run_again = false;
         switch (gc_state.step()) {
-            case gc_ready:
-                if (gc_pq.empty() || !should_we_keep_gcing(*gc_pq.peak())) return;
-                
+            case gc_ready: {
+                if (gc_pq.empty() || !should_we_keep_gcing(*gc_pq.peak())) {
+                    return;
+                }
+
                 pm_serializer_data_extents_gced++;
 
                 /* grab the entry */
@@ -538,6 +541,18 @@ void data_block_manager_t::run_gc() {
                 gc_state.gc_read_callback.parent = this;
 
                 rassert(gc_state.refcount == 0);
+
+                // read_async can call the callback immediately, which
+                // will then decrement the refcount (and that's all it
+                // will do if the refcount is not zero).  So we
+                // increment the refcount here and set the step to
+                // gc_read, before any calls to read_async.
+                gc_state.refcount++;
+
+                gc_state.set_step(gc_read);
+#ifndef NDEBUG
+                bool some_read_happened = false;
+#endif
                 for (unsigned int i = 0, bpe = static_config->blocks_per_extent(); i < bpe; i++) {
                     if (!gc_state.current_entry->g_array[i]) {
                         dbfile->read_async(gc_state.current_entry->offset + (i * static_config->block_size().ser_value()),
@@ -545,20 +560,26 @@ void data_block_manager_t::run_gc() {
                                            gc_state.gc_blocks + (i * static_config->block_size().ser_value()),
                                            choose_gc_io_account(),
                                            &(gc_state.gc_read_callback));
+#ifndef NDEBUG
+                        some_read_happened = true;
+#endif
                         gc_state.refcount++;
                     }
                 }
-                rassert(gc_state.refcount > 0);
-                gc_state.set_step(gc_read);
-                break;
-                
+
+                rassert(some_read_happened);
+
+                // Fall through to the gc_read case, where we
+                // decrement the refcount we incremented before the
+                // for loop.
+            }
             case gc_read: {
                 gc_state.refcount--;
                 if (gc_state.refcount > 0) {
                     /* We got a block, but there are still more to go */
                     break;
-                }    
-                
+                }
+
                 /* If other forces cause all of the blocks in the extent to become garbage
                 before we even finish GCing it, they will set current_entry to NULL. */
                 if (gc_state.current_entry == NULL) {
@@ -662,7 +683,7 @@ bool data_block_manager_t::shutdown(shutdown_callback_t *cb) {
 void data_block_manager_t::actually_shutdown() {
     rassert(state == state_shutting_down);
     state = state_shut_down;
-    
+
     rassert(!reconstructed_extents.head());
     
     for (unsigned int i = 0; i < dynamic_config->num_active_data_extents; i++) {
@@ -681,7 +702,9 @@ void data_block_manager_t::actually_shutdown() {
         delete gc_pq.pop();
     }
     
-    if (shutdown_callback) shutdown_callback->on_datablock_manager_shutdown();
+    if (shutdown_callback) {
+        shutdown_callback->on_datablock_manager_shutdown();
+    }
 }
 
 off64_t data_block_manager_t::gimme_a_new_offset() {
