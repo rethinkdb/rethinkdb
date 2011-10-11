@@ -225,7 +225,7 @@ bool data_block_manager_t::should_perform_read_ahead(off64_t offset) {
     return !entry->was_written && serializer->should_perform_read_ahead();
 }
 
-bool data_block_manager_t::read(off64_t off_in, void *buf_out, file_account_t *io_account, iocallback_t *cb) {
+void data_block_manager_t::read(off64_t off_in, void *buf_out, file_account_t *io_account, iocallback_t *cb) {
     rassert(state == state_ready);
 
     if (should_perform_read_ahead(off_in)) {
@@ -234,11 +234,8 @@ bool data_block_manager_t::read(off64_t off_in, void *buf_out, file_account_t *i
     } else {
         ls_buf_data_t *data = reinterpret_cast<ls_buf_data_t *>(buf_out);
         data--;
-        // TODO(sam): read_async can call the callback immediately.  Is this bad?
         dbfile->read_async(off_in, static_config->block_size().ser_value(), data, io_account, cb);
     }
-
-    return false;
 }
 
 /*

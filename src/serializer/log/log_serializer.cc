@@ -276,6 +276,8 @@ void log_serializer_t::block_read(const boost::intrusive_ptr<ls_block_token_poin
     cb.wait();
 }
 
+// TODO(sam): block_read can call the callback before it returns.  Is
+// this acceptable?
 void log_serializer_t::block_read(const boost::intrusive_ptr<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) {
     struct my_cb_t : public iocallback_t {
         void on_io_complete() {
@@ -300,7 +302,7 @@ void log_serializer_t::block_read(const boost::intrusive_ptr<ls_block_token_poin
     rassert(token_offsets.find(ls_token) != token_offsets.end());
 
     const off64_t offset = token_offsets[ls_token];
-    if (data_block_manager->read(offset, buf, io_account, readcb)) readcb->on_io_complete();
+    data_block_manager->read(offset, buf, io_account, readcb);
 }
 
 // God this is such a hack.

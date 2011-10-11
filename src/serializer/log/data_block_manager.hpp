@@ -58,7 +58,7 @@ public:
     void start_existing(direct_file_t *dbfile, metablock_mixin_t *last_metablock);
 
 public:
-    bool read(off64_t off_in, void *buf_out, file_account_t *io_account, iocallback_t *cb);
+    void read(off64_t off_in, void *buf_out, file_account_t *io_account, iocallback_t *cb);
 
     /* Returns the offset to which the block will be written */
     off64_t write(const void *buf_in, block_id_t block_id, bool assign_new_block_sequence_id,
