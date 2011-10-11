@@ -19,3 +19,6 @@ void resettable_cond_t::reset() {
 signal_t *resettable_cond_t::get_signal() {
     return signal.get();
 }
+void resettable_cond_t::rethread(int new_thread) {
+    signal->rethread(new_thread);
+}
