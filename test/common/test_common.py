@@ -46,7 +46,7 @@ def make_option_parser():
     o["duration"] = IntFlag("--duration", 10)
     o["serve-flags"] = StringFlag("--serve-flags", "")
     o["stress"] = StringFlag("--stress", "")
-    o["sigint-timeout"] = IntFlag("--sigint-timeout", 60)
+    o["sigint-timeout"] = IntFlag("--sigint-timeout", 150)
     o["no-timeout"] = BoolFlag("--no-timeout", invert = False)
     o["ssds"] = StringFlag("--ssds", default = [])
     o["num-files"] = IntFlag("--num-files", default = 1)

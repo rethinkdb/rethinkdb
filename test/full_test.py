@@ -77,7 +77,8 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
                     "slices"      : slices,
                     "chunk-size"  : 1000 if (mode == "release" and not checker) else 100,
                     "num-ints"    : 1000000 if (mode == "release" and not checker) else 1000,
-                    "sigint-timeout" : sigint_timeout },
+                    "sigint-timeout" : sigint_timeout,
+                    "force-timeout" : 720 },
                   repeat=3, timeout = 180 * ec2)
 
     # Don't run the corruption test in mockcache mode because in that modes
@@ -109,7 +110,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "cores"       : cores,
                     "slices"      : slices,
                     "num-keys"    : 50000},
-                  repeat=3, timeout=1200)
+                  repeat=3, timeout=1200 * ec2)
 
     # Run a canonical workload for half hour
     do_test_cloud("integration/stress_load.py",
@@ -249,7 +250,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "serve-flags" : "--flush-timer 0 --wait-for-flush y",
                     "num-testers" : 128,
                     "duration"    : 420 },
-                  repeat=3, timeout = 480)
+                  repeat=3, timeout = 600)
 
     # TODO: This should really only be run under one environment...
     do_test_cloud("regression/gc_verification.py",
@@ -388,7 +389,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "protocol"    : protocol,
                     "cores"       : cores,
                     "slices"      : slices },
-                  repeat=3)
+                  repeat=3, timeout=120)
 
     do_test_cloud("integration/append_stress.py",
                   { "auto"        : True,
@@ -397,7 +398,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "protocol"    : protocol,
                     "cores"       : cores,
                     "slices"      : slices },
-                  repeat=3, timeout=90)
+                  repeat=3, timeout=270)
 
     do_test_cloud("integration/cas.py",
                   { "auto"        : True,
@@ -406,7 +407,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "protocol"    : protocol,
                     "cores"       : cores,
                     "slices"      : slices },
-                  repeat=3)
+                  repeat=3, timeout=240)
 
     do_test_cloud("integration/flags.py",
                   { "auto"        : True,
@@ -415,7 +416,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "protocol"    : protocol,
                     "cores"       : cores,
                     "slices"      : slices },
-                  repeat=3)
+                  repeat=3, timeout=240)
 
     do_test_cloud("integration/shrink.py",
                   { "auto"        : True,
@@ -424,7 +425,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "protocol"    : protocol,
                     "cores"       : cores,
                     "slices"      : slices },
-                  repeat=3, timeout = 60 * ec2)
+                  repeat=3, timeout=240)
 
     do_test_cloud("integration/incr_decr.py",
                   { "auto"        : True,
@@ -433,7 +434,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "protocol"    : protocol,
                     "cores"       : cores,
                     "slices"      : slices },
-                  repeat=3)
+                  repeat=3, timeout=240)
 
     do_test_cloud("integration/expiration.py",
                   { "auto"        : True,
@@ -442,7 +443,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "protocol"    : protocol,
                     "cores"       : cores,
                     "slices"      : slices },
-                  repeat=5)
+                  repeat=5, timeout=240)
 
     do_test_cloud("integration/fuzz.py",
                   { "auto"        : True,
@@ -452,7 +453,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "cores"       : cores,
                     "slices"      : slices,
                     "duration"    : 340},
-                  repeat=3, timeout=400)
+                  repeat=3, timeout=500)
 
     do_test_cloud("integration/serial_mix.py",
                   { "auto"        : True,
@@ -463,7 +464,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "slices"      : slices,
                     "serve-flags" : "--flush-timer 50",
                     "duration"    : 60},
-                  repeat=1, timeout = 120)
+                  repeat=1, timeout = 240)
 
     do_test_cloud("integration/rget.py",
                   { "auto"        : True,
@@ -499,7 +500,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "protocol"    : protocol,
                     "cores"       : cores,
                     "slices"      : slices},
-                  repeat=1, timeout=60)
+                  repeat=1, timeout=240)
 
     do_test_cloud("regression/issue_90.py",
                   { "auto"        : True,
@@ -508,7 +509,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "protocol"    : protocol,
                     "cores"       : cores,
                     "slices"      : slices},
-                  repeat=1, timeout=60)
+                  repeat=1, timeout=240)
 
     do_test_cloud("regression/issue_95.py",
                   { "auto"        : True,
@@ -517,7 +518,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "protocol"    : protocol,
                     "cores"       : cores,
                     "slices"      : slices},
-                  repeat=1, timeout=60)
+                  repeat=1, timeout=240)
 
     do_test_cloud("regression/issue_133.py",
                   { "auto"        : True,
@@ -581,9 +582,9 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                         "protocol"    : protocol,
                         "cores"       : cores,
                         "slices"      : slices,
-                        "sigint-timeout" : 560,
+                        "sigint-timeout" : 1020,
                         "suite-test"  : suite_test},
-                      repeat=3, timeout=540)
+                      repeat=3, timeout=1000)
 
     # Test different command line configurations (defaults less thoroughly)
     do_test_cloud("integration/serial_mix.py",
@@ -596,7 +597,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "duration"    : 180,
                     "restart-server-prob" : "0.002",
                     "serve-flags" : "--read-ahead y"},
-                          repeat=3, timeout=300)
+                          repeat=3, timeout=600)
     do_test_cloud("integration/serial_mix.py",
                   { "auto"        : True,
                     "mode"        : mode,
@@ -607,7 +608,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "duration"    : 180,
                     "restart-server-prob" : "0.002",
                     "serve-flags" : "--read-ahead n"},
-                          repeat=1, timeout=300)
+                          repeat=1, timeout=600)
     do_test_cloud("integration/serial_mix.py",
                   { "auto"        : True,
                     "mode"        : mode,
@@ -618,7 +619,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "duration"    : 180,
                     "restart-server-prob" : "0.002",
                     "serve-flags" : "--flush-concurrency 20 --flush-timer 500"},
-                          repeat=3, timeout=300)
+                          repeat=3, timeout=600)
     do_test_cloud("integration/serial_mix.py",
                   { "auto"        : True,
                     "mode"        : mode,
@@ -629,7 +630,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "duration"    : 180,
                     "restart-server-prob" : "0.002",
                     "serve-flags" : "--flush-concurrency 1 --flush-timer 500"},
-                          repeat=1, timeout=300)
+                          repeat=1, timeout=600)
     do_test_cloud("integration/stress_load.py",
                   { "auto"        : True,
                     "mode"        : mode,
