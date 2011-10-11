@@ -312,7 +312,7 @@ void linux_file_t::read_async(size_t offset, size_t length, void *buf, linux_fil
         callback);
 }
 
-bool linux_file_t::write_async(size_t offset, size_t length, const void *buf, linux_file_account_t *account, linux_iocallback_t *callback) {
+void linux_file_t::write_async(size_t offset, size_t length, const void *buf, linux_file_account_t *account, linux_iocallback_t *callback) {
     rassert(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");
 
 #ifdef DEBUG_DUMP_WRITES
@@ -327,8 +327,6 @@ bool linux_file_t::write_async(size_t offset, size_t length, const void *buf, li
     diskmgr->submit_write(fd.get(), buf, length, offset,
         account == DEFAULT_DISK_ACCOUNT ? default_account->account : account->account,
         callback);
-
-    return false;
 }
 
 void linux_file_t::read_blocking(size_t offset, size_t length, void *buf) {
