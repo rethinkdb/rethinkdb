@@ -16,8 +16,11 @@ class side_coro_handler_t {
 public:
     side_coro_handler_t(const boost::function<void(signal_t *)> &f);
     ~side_coro_handler_t() {
+        debugf("~side_coro_handler_t begin\n");
         stop_cond.pulse();
+        debugf("~side_coro_handler_t stop_cond pulsed.\n");
         done_cond.wait();
+        debugf("~side_coro_handler_t done_cond wait finished.\n");
     }
 
 private:

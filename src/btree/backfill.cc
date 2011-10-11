@@ -66,6 +66,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         boost::scoped_array<repli_timestamp_t> recencies;
         const key_range_t *key_range;
         repli_timestamp_t since_when;
+        cond_t *done_cond;
 
         void got_subtree_recencies() {
             coro_t::spawn(boost::bind(&annoying_t::do_got_subtree_recencies, this));
@@ -81,8 +82,10 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
             }
 
             interesting_children_callback_t *local_cb = cb;
+            cond_t *local_done_cond = done_cond;
             delete this;
             local_cb->no_more_interesting_children();
+            local_done_cond->pulse();
         }
     };
 
@@ -102,13 +105,16 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
             }
         }
 
+        cond_t done_cond;
         fsm->cb = cb;
         fsm->ids_source = ids_source;
         fsm->key_range = key_range_;
         fsm->since_when = since_when_;
         fsm->recencies.reset(new repli_timestamp_t[num_block_ids]);
+        fsm->done_cond = &done_cond;
 
         txn->get_subtree_recencies(fsm->block_ids.get(), num_block_ids, fsm->recencies.get(), fsm);
+        done_cond.wait();
     }
 
     // Checks if (x_left, x_right] intersects [y_left, y_right).  If

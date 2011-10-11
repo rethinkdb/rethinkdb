@@ -468,9 +468,6 @@ bool fsck(value_sizer_t<V> *sizer, const btree_key_t *left_exclusive_or_null, co
         iter.step(sizer, node);
     }
 
-    if (i != node->num_pairs) {
-        debugf("i is %d, node->num_pairs is %d\n", i, node->num_pairs);
-    }
     if (failed(i == node->num_pairs, "missing entries")
         || failed(node->live_size == observed_live_size, "incorrect live_size recorded")) {
         return false;
@@ -1419,8 +1416,17 @@ void dump_entries_since_time(value_sizer_t<V> *sizer, const leaf_node_t *node, r
 
     {
         entry_iter_t iter = entry_iter_t::make(node);
+        repli_timestamp_t last_seen_tstamp = repli_timestamp_t::invalid;
         while (iter.offset < stop_offset) {
-            repli_timestamp_t tstamp = get_timestamp(node, iter.offset);
+            repli_timestamp_t tstamp;
+            if (iter.offset < node->tstamp_cutpoint) {
+                tstamp = get_timestamp(node, iter.offset);
+            } else {
+                rassert(last_seen_tstamp != repli_timestamp_t::invalid);
+                tstamp = last_seen_tstamp;
+            }
+            last_seen_tstamp = tstamp;
+
             const entry_t *ent = get_entry(node, iter.offset);
 
             if (entry_is_live(ent)) {
