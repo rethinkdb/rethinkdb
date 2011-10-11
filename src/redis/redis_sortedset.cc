@@ -24,7 +24,7 @@ struct sorted_set_set_oper_t : set_oper_t {
             value->get_score_index_root() = NULL_BLOCK_ID;
 
         } else if(value->get_redis_type() != REDIS_SORTED_SET) {
-            throw "Operation against key holding the wrong kind of value";
+            throw "ERR Operation against key holding the wrong kind of value";
         }
 
         member_index_root = value->get_member_index_root();
@@ -187,7 +187,7 @@ private:
 
         void apply_change(transaction_t *txn) {
             // TODO hook up timestamp once Tim figures out what to do with the timestamp
-            apply_keyvalue_change(txn, &loc, nested_key.key(), repli_timestamp_t::invalid /*ths->timestamp*/);
+            apply_keyvalue_change(txn, &loc, nested_key.key(), convert_to_repli_timestamp(ths->timestamp));
             virtual_superblock_t *sb = reinterpret_cast<virtual_superblock_t *>(loc.sb.get());
             ths->member_index_root = sb->get_root_block_id();
         }
@@ -243,9 +243,9 @@ struct sorted_set_read_oper_t : read_oper_t {
     {
         redis_sorted_set_value_t *value = reinterpret_cast<redis_sorted_set_value_t *>(location.value.get());
         if(value == NULL) {
-            throw "Key doesn't exist";
+            throw "ERR Key doesn't exist";
         } else if(value->get_redis_type() != REDIS_SORTED_SET) {
-            throw "Operation against key holding the wrong kind of value";
+            throw "ERR Operation against key holding the wrong kind of value";
         }
 
         member_index_root = value->get_member_index_root();
@@ -334,7 +334,7 @@ EXECUTE_W(zadd) {
         iter++;
 
         if(iter == one.end())
-            throw "Protocol Error";
+            throw "ERR Protocol Error";
         std::string member = *iter;
         iter++;
 
@@ -342,7 +342,7 @@ EXECUTE_W(zadd) {
         try {
             score = boost::lexical_cast<float>(score_str);
         } catch(boost::bad_lexical_cast &) {
-            throw "Protocol Error";
+            throw "ERR Protocol Error";
         }
 
         if(oper.add_or_update(member, score)) {
@@ -439,7 +439,7 @@ float parse_limit(std::string &str, bool *open) {
     try {
         return boost::lexical_cast<float>(str);
     } catch(boost::bad_lexical_cast &) {
-        throw "Protocol Error";
+        throw "ERR Protocol Error";
     }
 }
 

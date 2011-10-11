@@ -5,10 +5,7 @@
 
 //WRITE(del)
 KEYS(del)
-
-redis_protocol_t::write_t redis_protocol_t::del::shard(UNUSED redis_protocol_t::region_t regions) {
-    crash("this was completely broken");
-}
+SHARD_W(del)
 
 EXECUTE_W(del) {
     int count = 0;

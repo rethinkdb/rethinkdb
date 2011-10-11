@@ -10,7 +10,7 @@ struct string_set_oper_t : set_oper_t {
             location.value.swap(smrsv);
             location.value->set_redis_type(REDIS_STRING);
         } else if(location.value->get_redis_type() != REDIS_STRING) {
-            throw "Operation against key holding wrong kind of value";
+            throw "ERR Operation against key holding wrong kind of value";
         }
 
         value = reinterpret_cast<redis_string_value_t *>(location.value.get());
@@ -88,9 +88,9 @@ struct string_read_oper_t : read_oper_t {
         read_oper_t(key, btree, otok)
     {
         if(location.value.get() == NULL) {
-            //throw "Key does not exist";
+            throw "ERR Key does not exist";
         } else if(location.value->get_redis_type() != REDIS_STRING) {
-            throw "Operation against key holding wrong kind of value";
+            throw "ERR Operation against key holding wrong kind of value";
         }
 
         value = reinterpret_cast<redis_string_value_t *>(location.value.get());

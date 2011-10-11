@@ -29,7 +29,11 @@ proc assert_error {pattern code} {
     }
 }
 
+## We don't support the debug command and we don't have different 
+## encodings so we make this a no op
 proc assert_encoding {enc key} {
+    return
+
     # Swapped out values don't have an encoding, so make sure that
     # the value is swapped in before checking the encoding.
     set dbg [r debug object $key]

@@ -284,6 +284,12 @@ struct redis_grammar : qi::grammar<Iterator>, redis_output_writer, redis_ext {
             | arbitrary_command[px::bind(&redis_grammar::pubsub_error, this)]
         COMMANDS_END
 
+        // Admin
+        BEGIN(admin)
+            CMD_1(select, unsigned)
+            CMD_0(info)
+        COMMANDS_END
+
         // TODO better than this
         srand(time(NULL));
         connection_id = rand();
@@ -292,7 +298,8 @@ struct redis_grammar : qi::grammar<Iterator>, redis_output_writer, redis_ext {
         //Because of the aformentioned tiny blocks problem we have to now or the blocks here
         //*sigh* and we were so close to requiring only one line to add a command
         commands = keys1 | keys2 | strings1 | strings2 | hashes1 | hashes2 | sets1 |
-                   sets2 | lists1 | lists2 | sortedsets1 | sortedsets2 | sortedsets3;
+                   sets2 | lists1 | lists2 | sortedsets1 | sortedsets2 | sortedsets3 | admin
+                   | arbitrary_command[px::bind(&redis_grammar::unrecognized_command_error, this)];
         start = commands | pubsub_ext;
     }
 
@@ -337,6 +344,7 @@ private:
     qi::rule<Iterator> sortedsets3;
     qi::rule<Iterator> pubsub_ext;
     qi::rule<Iterator> pubsub;
+    qi::rule<Iterator> admin;
 
     
     // Pub/sub support
@@ -411,6 +419,12 @@ private:
     void pubsub_error() {
         output_response(redis_protocol_t::error_result(
             "ERR only (P)SUBSCRIBE / (P)UNSUBSCRIBE / QUIT allowed in this contex"
+        ));
+    }
+
+    void unrecognized_command_error() {
+        output_response(redis_protocol_t::error_result(
+            "ERR command not recognized"
         ));
     }
 

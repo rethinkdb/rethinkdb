@@ -14,7 +14,7 @@ struct hash_read_oper_t : public read_oper_t {
         if(!value) {
             root = NULL_BLOCK_ID;
         } else if(value->get_redis_type() != REDIS_HASH) {
-            throw "Operation against key holding the wrong kind of value";
+            throw "ERR Operation against key holding the wrong kind of value";
         } else {
             root = value->get_root();
         }
@@ -93,7 +93,7 @@ struct hash_set_oper_t : set_oper_t {
             value = reinterpret_cast<redis_hash_value_t *>(location.value.get());
             value->get_root() = NULL_BLOCK_ID;
         } else if(value->get_redis_type() != REDIS_HASH) {
-            throw "Operation against key holding the wrong kind of value";
+            throw "ERR Operation against key holding the wrong kind of value";
         }
         
         root = value->get_root();
@@ -149,7 +149,7 @@ protected:
 
         void apply_change() {
             // TODO hook up timestamp once Tim figures out what to do with the timestamp
-            apply_keyvalue_change(ths->txn.get(), &loc, nested_key.key(), repli_timestamp_t::invalid /*ths->timestamp*/);
+            apply_keyvalue_change(ths->txn.get(), &loc, nested_key.key(), convert_to_repli_timestamp(ths->timestamp));
             virtual_superblock_t *sb = reinterpret_cast<virtual_superblock_t *>(loc.sb.get());
             ths->root = sb->get_root_block_id();
         }

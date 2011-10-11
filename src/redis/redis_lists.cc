@@ -18,7 +18,7 @@ struct list_set_oper_t : set_oper_t {
             value->get_ref()->count = 0;
             value->get_ref()->node_id = NULL_BLOCK_ID;
         } else if(value->get_redis_type() != REDIS_LIST) {
-            throw "Operation against key holding the wrong kind of value";
+            throw "ERR Operation against key holding the wrong kind of value";
         }
 
         if(value) {
@@ -71,7 +71,7 @@ protected:
             u_index = size + index;
         }
 
-        if(u_index < 0 || u_index >= size) throw "Index out of range";
+        if(u_index < 0 || u_index > size) throw "ERR Index out of range";
         
         return u_index;
     }
@@ -88,9 +88,9 @@ struct list_read_oper_t : read_oper_t {
         redis_list_value_t *value = reinterpret_cast<redis_list_value_t *>(location.value.get());
         
         if(value == NULL) {
-            throw "Key doesn't exist";
+            throw "ERR Key doesn't exist";
         } else if(value->get_redis_type() != REDIS_LIST) {
-            throw "Operation against key holding the wrong kind of value";
+            throw "ERR Operation against key holding the wrong kind of value";
         }
 
         ref = value->get_ref();
@@ -164,7 +164,7 @@ EXECUTE_W(linsert) {
             } else if(three == std::string("AFTER")) {
                 insert_index = index + 1;
             } else {
-                throw "Syntax error";
+                throw "ERR Syntax error";
             }
 
             oper.insert(insert_index, four);

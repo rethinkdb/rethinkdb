@@ -210,7 +210,7 @@ struct redis_ext {
         try {
             timeout = boost::lexical_cast<int>(str_timeout);
         } catch(boost::bad_lexical_cast &) {
-            throw "Protocol Error";
+            throw "ERR Protocol Error";
         }
 
         // Try all the lists first with a normal pop
@@ -369,10 +369,16 @@ struct redis_ext {
     CMD_2(zscore, std::string, std::string)
     CMD_N(zunionstore)
 
-    // Pub/sub
-    void psubscribe(tcp_conn_t *out_conn, std::vector<std::string> patterns) {
-        (void)out_conn;
-        (void)patterns;
+    // Admin
+    redis_protocol_t::redis_return_type select(unsigned index) {
+        // TODO Someday this will select a namespace
+        (void)index;
+        return redis_protocol_t::status_result("OK");
+    }
+
+    redis_protocol_t::redis_return_type info() {
+        // TODO real statistics
+        return std::string("redis_version:2.2.10\r\nredis_git_sha1:00000000\r\nredis_git_dirty:0\r\narch_bits:64\r\nmultiplexing_api:epoll\r\nprocess_id:5969\r\nuptime_in_seconds:24\r\nuptime_in_days:0\r\nlru_clock:1693112\r\nused_cpu_sys:0.00\r\nused_cpu_user:0.00\r\nused_cpu_sys_childrens:0.00\r\nused_cpu_user_childrens:0.00\r\nconnected_clients:1\r\nconnected_slaves:0\r\nclient_longest_output_list:0\r\nclient_biggest_input_buf:0\r\nblocked_clients:0\r\nused_memory:800688\r\nused_memory_human:781.92K\r\nused_memory_rss:1675264\r\nmem_fragmentation_ratio:2.09\r\nuse_tcmalloc:0\r\nloading:0\r\naof_enabled:0\r\nchanges_since_last_save:0\r\nbgsave_in_progress:0\r\nlast_save_time:1317165345\r\nbgrewriteaof_in_progress:0\r\ntotal_connections_received:1\r\ntotal_commands_processed:0\r\nexpired_keys:0\r\nevicted_keys:0\r\nkeyspace_hits:0\r\nkeyspace_misses:0\r\nhash_max_zipmap_entries:512\r\nhash_max_zipmap_value:64\r\npubsub_channels:0\r\npubsub_patterns:0\r\nvm_enabled:0\r\nrole:master\r\nallocation_stats:2=1,6=1,8=1,9=5,10=10,11=7,12=15,13=40,14=27,15=35,16=10092,17=12,18=7,19=14,20=6,21=2,22=2,23=1,24=134,25=2,26=1,27=2,28=2,32=6,34=1,40=1,48=10,56=1,58=1,59=1,64=3,71=1,88=68,128=3,>=256=12\r\ndb0:keys=10,expires=0");
     }
 
 private:
@@ -383,18 +389,6 @@ private:
         // TODO give interruptor
         cond_t signal;
         redis_protocol_t::write_response_t response = namespace_interface->write(write, order_token_t::ignore, &signal);
-        if(response.get() == NULL) {
-            return redis_protocol_t::nil_result();
-        } else {
-            return response->get_result();
-        }
-    }
-
-    redis_protocol_t::redis_return_type exec(redis_protocol_t::read_operation_t *oper) {
-        redis_protocol_t::read_t read(oper);
-        // TODO give interruptor
-        cond_t signal;
-        redis_protocol_t::read_response_t response = namespace_interface->read(read, order_token_t::ignore, &signal);
         if(response.get() == NULL) {
             return redis_protocol_t::nil_result();
         } else {
@@ -456,29 +450,17 @@ private:
 
     }
 
-/*
-    // This has to exist on the master for each key
-    std::map<std::string, std::list<signal_t *> > waiters;
-
-    // This has to dispatch to the master for this key
-    void wait_for_list_push(std::string *list, cond_t *signal, std::string *out_list) {
-        // Waiters will have to exist on the master for each shard
-        
-        // This will happen on the master
-        std::list waiting_on = waiters[*list];
-        cond_t *pushed = new cond_t();
-        waiting_on.push_back(pushed);
-        signal->wait_lazily_ordered();
-
-        delete pushed;
-
-        // On return message from master
-
-        // TODO race condition on out_list
-        out_list = list;
-        signal->pulse();
+    redis_protocol_t::redis_return_type exec(redis_protocol_t::read_operation_t *oper) {
+        redis_protocol_t::read_t read(oper);
+        // TODO give interruptor
+        cond_t signal;
+        redis_protocol_t::read_response_t response = namespace_interface->read(read, order_token_t::ignore, &signal);
+        if(response.get() == NULL) {
+            return redis_protocol_t::nil_result();
+        } else {
+            return response->get_result();
+        }
     }
-*/
 };
 
 #undef CMD_0

@@ -68,7 +68,7 @@ start_server {
         assert_encoding hashtable mylargeintset
         assert_encoding hashtable myhashset
 
-        r debug reload
+        #r debug reload # We don't have this command
         assert_encoding intset myintset
         assert_encoding hashtable mylargeintset
         assert_encoding hashtable myhashset
@@ -136,7 +136,7 @@ start_server {
         }
 
         test "SINTERSTORE with two sets, after a DEBUG RELOAD - $type" {
-            r debug reload
+            #r debug reload
             r sinterstore setres set1 set2
             assert_encoding $type setres
             assert_equal [list 195 196 197 198 199 $large] [lsort [r smembers setres]]

@@ -17,7 +17,7 @@ struct set_set_oper_t : set_oper_t {
             value->get_root() = NULL_BLOCK_ID;
             value->get_sub_size() = 0;
         } else if(value->get_redis_type() != REDIS_SET) {
-            throw "Operation against key holding the wrong kind of value";
+            throw "ERR Operation against key holding the wrong kind of value";
         }
 
         root = value->get_root();
@@ -74,7 +74,7 @@ protected:
 
         void apply_change() {
             // TODO hook up timestamp once Tim figures out what to do with the timestamp
-            apply_keyvalue_change(ths->txn.get(), &loc, nested_key.key(), repli_timestamp_t::invalid /*ths->timestamp*/);
+            apply_keyvalue_change(ths->txn.get(), &loc, nested_key.key(), convert_to_repli_timestamp(ths->timestamp));
             virtual_superblock_t *sb = reinterpret_cast<virtual_superblock_t *>(loc.sb.get());
             ths->root = sb->get_root_block_id();
         }
@@ -96,7 +96,7 @@ struct set_read_oper_t : read_oper_t {
         if(!value) {
             root = NULL_BLOCK_ID;
         } else if(value->get_redis_type() != REDIS_SET) {
-            throw "Operation against key holding the wrong kind of value";
+            throw "ERR Operation against key holding the wrong kind of value";
         } else {
             root = value->get_root();
         }
@@ -229,9 +229,11 @@ EXECUTE_R(sinter) {
         new merge_ordered_data_iterator_t<std::string>();
 
     // Add each set iterator to the merged data iterator
+    std::list<set_read_oper_t *> opers;
     for(std::vector<std::string>::iterator iter = one.begin(); iter != one.end(); ++iter) {
-        set_read_oper_t oper(*iter, btree, otok);
-        boost::shared_ptr<one_way_iterator_t<std::string> > set_iter = oper.iterator();
+        set_read_oper_t *oper = new set_read_oper_t(*iter, btree, otok);
+        opers.push_back(oper);
+        boost::shared_ptr<one_way_iterator_t<std::string> > set_iter = oper->iterator();
         merged->add_mergee(set_iter);
     }
     
@@ -244,6 +246,11 @@ EXECUTE_R(sinter) {
         if(!next) break;
 
         result.push_back(next.get());
+    }
+
+    // Delete opers
+    for(std::list<set_read_oper_t *>::iterator iter = opers.begin(); iter != opers.end(); ++iter) {
+        delete *iter;
     }
 
     return read_response_t(new multi_bulk_result_t(result));
@@ -313,9 +320,10 @@ EXECUTE_R(sunion) {
         new merge_ordered_data_iterator_t<std::string>();
 
     // Add each set iterator to the merged data iterator
+    std::list<set_read_oper_t *> opers;
     for(std::vector<std::string>::iterator iter = one.begin(); iter != one.end(); ++iter) {
-        set_read_oper_t oper(*iter, btree, otok);
-        boost::shared_ptr<one_way_iterator_t<std::string> > set_iter = oper.iterator();
+        set_read_oper_t *oper = new set_read_oper_t(*iter, btree, otok);
+        boost::shared_ptr<one_way_iterator_t<std::string> > set_iter = oper->iterator();
         merged->add_mergee(set_iter);
     }
     
@@ -328,6 +336,11 @@ EXECUTE_R(sunion) {
         if(!next) break;
 
         result.push_back(next.get());
+    }
+
+    // Delete opers
+    for(std::list<set_read_oper_t *>::iterator iter = opers.begin(); iter != opers.end(); ++iter) {
+        delete *iter;
     }
 
     return read_response_t(new multi_bulk_result_t(result));

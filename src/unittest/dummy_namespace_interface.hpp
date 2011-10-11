@@ -71,6 +71,7 @@ public:
         std::vector<typename protocol_t::write_response_t> responses;
         for (int i = 0; i < (int)timestampers.size(); i++) {
             typename protocol_t::region_t ixn = region_intersection(timestampers[i].region, write.get_region());
+
             if (!region_is_empty(ixn)) {
                 typename protocol_t::write_t subwrite = write.shard(ixn);
                 typename protocol_t::write_response_t subresponse = timestampers[i].timestamper->write(subwrite, tok);
