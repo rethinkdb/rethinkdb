@@ -1396,7 +1396,7 @@ void dump_entries_since_time(value_sizer_t<V> *sizer, const leaf_node_t *node, r
         entry_iter_t iter = entry_iter_t::make(node);
         while (!iter.done(sizer) && iter.offset < node->tstamp_cutpoint) {
             repli_timestamp_t new_earliest = get_timestamp(node, iter.offset);
-            rassert(earliest >= new_earliest);
+            rassert(earliest >= new_earliest, "asserted earliest (%u) >= new_earliest (%u)", earliest.time, new_earliest.time);
             earliest = new_earliest;
             iter.step(sizer, node);
 
