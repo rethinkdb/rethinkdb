@@ -232,10 +232,11 @@ UNIT_TEST_FILTER?=*
 DEP_DIR:=$(BUILD_DIR)/dep
 OBJ_DIR:=$(BUILD_DIR)/obj
 
+# redis_proto.cc and riak.cc are some of our slowest-compiling files, so we start them first.
 ifeq ($(UNIT_TESTS),1)
-SOURCES:=$(shell find $(SOURCE_DIR) -name '*.cc')
+SOURCES:=./redis/redis_proto.cc ./riak/riak.cc $(shell find $(SOURCE_DIR) -name '*.cc' | grep -v 'riak.cc' | grep -v 'redis_proto.cc')
 else
-SOURCES:=$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR)/unittest`")
+SOURCES:=./redis/redis_proto.cc ./riak/riak.cc $(shell find $(SOURCE_DIR) -name '*.cc' | grep -v 'riak.cc' | grep -v 'redis_proto.cc' | grep -vF "`find $(SOURCE_DIR)/unittest`")
 endif
 
 PROTO_SOURCES:=$(shell find $(SOURCE_DIR) -name '*.proto')
