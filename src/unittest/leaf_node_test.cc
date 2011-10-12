@@ -284,7 +284,8 @@ public:
         leaf::validate(&sizer_, node_);
 
         verify_receptor_t receptor;
-        leaf::dump_entries_since_time(&sizer_, node_, repli_timestamp_t::distant_past, &receptor);
+        repli_timestamp_t max_possible_tstamp = { tstamp_counter_ };
+        leaf::dump_entries_since_time(&sizer_, node_, repli_timestamp_t::distant_past, max_possible_tstamp, &receptor);
 
         if (receptor.map() != kv_) {
             printf("receptor.map(): ");

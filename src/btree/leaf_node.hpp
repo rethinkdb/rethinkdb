@@ -1387,7 +1387,7 @@ protected:
 };
 
 template <class V>
-void dump_entries_since_time(value_sizer_t<V> *sizer, const leaf_node_t *node, repli_timestamp_t minimum_tstamp, entry_reception_callback_t<V> *cb) {
+void dump_entries_since_time(value_sizer_t<V> *sizer, const leaf_node_t *node, repli_timestamp_t minimum_tstamp, repli_timestamp_t maximum_possible_timestamp,  entry_reception_callback_t<V> *cb) {
     int stop_offset = 0;
 
     {
@@ -1416,13 +1416,12 @@ void dump_entries_since_time(value_sizer_t<V> *sizer, const leaf_node_t *node, r
 
     {
         entry_iter_t iter = entry_iter_t::make(node);
-        repli_timestamp_t last_seen_tstamp = repli_timestamp_t::invalid;
+        repli_timestamp_t last_seen_tstamp = maximum_possible_timestamp;
         while (iter.offset < stop_offset) {
             repli_timestamp_t tstamp;
             if (iter.offset < node->tstamp_cutpoint) {
                 tstamp = get_timestamp(node, iter.offset);
             } else {
-                rassert(last_seen_tstamp != repli_timestamp_t::invalid);
                 tstamp = last_seen_tstamp;
             }
             last_seen_tstamp = tstamp;
