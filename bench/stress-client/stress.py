@@ -7,7 +7,7 @@ from ctypes import POINTER
 
 my_dir = os.path.split(__file__)[0]
 libstress_path = os.path.abspath(os.path.join(my_dir, "libstress.so"))
-assert os.path.exists(libstress_path)
+assert os.path.exists(libstress_path), 'libstress.so was not found at path %r' % libstress_path
 libstress = ctypes.cdll.LoadLibrary(libstress_path)
 
 def declare_struct(name):
