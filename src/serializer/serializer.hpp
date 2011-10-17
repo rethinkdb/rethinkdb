@@ -13,12 +13,6 @@
 #include "concurrency/cond_var.hpp"
 
 struct index_write_op_t {
-    block_id_t block_id;
-    // Buf to write. None if not to be modified. Initialized but a null ptr if to be removed from lba.
-    bool modify_buf;
-    boost::intrusive_ptr<standard_block_token_t> buf_token;
-    boost::optional<repli_timestamp_t> recency; // Recency, if it should be modified.
-
     index_write_op_t(block_id_t _block_id,
                      bool _modify_buf = false,
                      const boost::intrusive_ptr<standard_block_token_t>& token = 0,
@@ -31,6 +25,23 @@ struct index_write_op_t {
         modify_buf = true;
         buf_token = token;
     }
+
+    bool wants_modify_buf(boost::intrusive_ptr<standard_block_token_t> *buf_token_out) const {
+        if (modify_buf) {
+            *buf_token_out = buf_token;
+            return true;
+        }
+        return false;
+    }
+
+public:
+    block_id_t block_id;
+private:
+    // Buf to write. None if not to be modified. Initialized but a null ptr if to be removed from lba.
+    bool modify_buf;
+    boost::intrusive_ptr<standard_block_token_t> buf_token;
+public:
+    boost::optional<repli_timestamp_t> recency; // Recency, if it should be modified.
 };
 
 /* serializer_t is an abstract interface that describes how each serializer should

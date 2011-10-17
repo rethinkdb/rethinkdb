@@ -341,9 +341,10 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
             const index_write_op_t& op = *write_op_it;
             flagged_off64_t offset = lba_index->get_block_offset(op.block_id);
 
-            if (op.modify_buf) {
+            boost::intrusive_ptr<standard_block_token_t> std_token;
+            if (op.wants_modify_buf(&std_token)) {
                 // Update the offset pointed to, and mark garbage/liveness as necessary.
-                boost::intrusive_ptr<ls_block_token_pointee_t> token = get_ls_block_token(op.buf_token);
+                boost::intrusive_ptr<ls_block_token_pointee_t> token = get_ls_block_token(std_token);
 
                 // Mark old offset as garbage
                 if (offset.has_value())

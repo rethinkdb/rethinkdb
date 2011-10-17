@@ -79,9 +79,11 @@ struct write_performer_t : public boost::static_visitor<void> {
 
     void operator()(const serializer_write_t::update_t &update) {
         block_write_conds->push_back(new write_cond_t(update.io_callback));
-        op->make_modify_buf(serializer->block_write(update.buf, op->block_id, io_account, block_write_conds->back()));
-        if (update.launch_callback)
-            update.launch_callback->on_write_launched(op->buf_token.get());
+        boost::intrusive_ptr<standard_block_token_t> token = serializer->block_write(update.buf, op->block_id, io_account, block_write_conds->back());
+        op->make_modify_buf(token);
+        if (update.launch_callback) {
+            update.launch_callback->on_write_launched(token.get());
+        }
         op->recency = update.recency;
     }
 
