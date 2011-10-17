@@ -22,9 +22,10 @@ update_block_info(block_id_t block_id, scs_block_info_t info) {
 }
 
 template<class inner_serializer_t>
-refc_ptr< scs_block_token_t<inner_serializer_t> > semantic_checking_serializer_t<inner_serializer_t>::
-wrap_token(block_id_t block_id, scs_block_info_t info, refc_ptr<typename serializer_traits_t<inner_serializer_t>::block_token_type> inner_token) {
-    return refc_ptr< scs_block_token_t<inner_serializer_t> >(new scs_block_token_t<inner_serializer_t>(block_id, info, inner_token));
+void semantic_checking_serializer_t<inner_serializer_t>::wrap_token(block_id_t block_id, scs_block_info_t info,
+                                                                    refc_ptr<typename serializer_traits_t<inner_serializer_t>::block_token_type> inner_token,
+                                                                    refc_ptr< scs_block_token_t<inner_serializer_t> > *tok_out) {
+    tok_out->reset(new scs_block_token_t<inner_serializer_t>(block_id, info, inner_token));
 }
 
 template<class inner_serializer_t>
@@ -117,7 +118,7 @@ void semantic_checking_serializer_t<inner_serializer_t>::index_read(block_id_t b
     guarantee(info.state != scs_block_info_t::state_deleted || !result,
               "Cache asked for a deleted block, and serializer didn't complain.");
     if (result) {
-        tok_out->copy_from(wrap_token(block_id, info, result));
+        wrap_token(block_id, info, result, tok_out);
     } else {
         tok_out->reset();
     }
@@ -238,37 +239,38 @@ index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_a
 }
 
 template<class inner_serializer_t>
-refc_ptr< scs_block_token_t<inner_serializer_t> > semantic_checking_serializer_t<inner_serializer_t>::
-wrap_buf_token(block_id_t block_id, const void *buf, refc_ptr<typename serializer_traits_t<inner_serializer_t>::block_token_type> inner_token) {
-    return wrap_token(block_id, scs_block_info_t(compute_crc(buf)), inner_token);
+void semantic_checking_serializer_t<inner_serializer_t>::wrap_buf_token(block_id_t block_id, const void *buf,
+                                                                        refc_ptr<typename serializer_traits_t<inner_serializer_t>::block_token_type> inner_token,
+                                                                        refc_ptr< scs_block_token_t<inner_serializer_t> > *tok_out) {
+    wrap_token(block_id, scs_block_info_t(compute_crc(buf)), inner_token, tok_out);
 }
 
 template<class inner_serializer_t>
 void semantic_checking_serializer_t<inner_serializer_t>::block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb, refc_ptr< scs_block_token_t<inner_serializer_t> > *tok_out) {
     refc_ptr<typename serializer_traits_t<inner_serializer_t>::block_token_type> token;
     inner_serializer.block_write(buf, block_id, io_account, cb, &token);
-    tok_out->copy_from(wrap_buf_token(block_id, buf, token));
+    wrap_buf_token(block_id, buf, token, tok_out);
 }
 
 template<class inner_serializer_t>
 void semantic_checking_serializer_t<inner_serializer_t>::block_write(const void *buf, file_account_t *io_account, iocallback_t *cb, refc_ptr< scs_block_token_t<inner_serializer_t> > *tok_out) {
     refc_ptr<typename serializer_traits_t<inner_serializer_t>::block_token_type> token;
     inner_serializer.block_write(buf, io_account, cb, &token);
-    tok_out->copy_from(wrap_buf_token(NULL_BLOCK_ID, buf, token));
+    wrap_buf_token(NULL_BLOCK_ID, buf, token, tok_out);
 }
 
 template<class inner_serializer_t>
 void semantic_checking_serializer_t<inner_serializer_t>::block_write(const void *buf, block_id_t block_id, file_account_t *io_account, refc_ptr< scs_block_token_t<inner_serializer_t> > *tok_out) {
     refc_ptr<typename serializer_traits_t<inner_serializer_t>::block_token_type> token;
     inner_serializer.block_write(buf, block_id, io_account, &token);
-    tok_out->copy_from(wrap_buf_token(block_id, buf, token));
+    wrap_buf_token(block_id, buf, token, tok_out);
 }
 
 template<class inner_serializer_t>
 void semantic_checking_serializer_t<inner_serializer_t>::block_write(const void *buf, file_account_t *io_account, refc_ptr< scs_block_token_t<inner_serializer_t> > *tok_out) {
     refc_ptr<typename serializer_traits_t<inner_serializer_t>::block_token_type> token;
     inner_serializer.block_write(buf, io_account, &token);
-    tok_out->copy_from(wrap_buf_token(NULL_BLOCK_ID, buf, token));
+    wrap_buf_token(NULL_BLOCK_ID, buf, token, tok_out);
 }
 
 template<class inner_serializer_t>

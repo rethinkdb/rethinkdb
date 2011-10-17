@@ -44,8 +44,8 @@ private:
     uint32_t compute_crc(const void *buf);
     void update_block_info(block_id_t block_id, scs_block_info_t info);
 
-    refc_ptr< scs_block_token_t<inner_serializer_t> > wrap_token(block_id_t block_id, scs_block_info_t info, refc_ptr<typename serializer_traits_t<inner_serializer_t>::block_token_type> inner_token);
-    refc_ptr< scs_block_token_t<inner_serializer_t> > wrap_buf_token(block_id_t block_id, const void *buf, refc_ptr<typename serializer_traits_t<inner_serializer_t>::block_token_type> inner_token);
+    void wrap_token(block_id_t block_id, scs_block_info_t info, refc_ptr<typename serializer_traits_t<inner_serializer_t>::block_token_type> inner_token, refc_ptr< scs_block_token_t<inner_serializer_t> > *tok_out);
+    void wrap_buf_token(block_id_t block_id, const void *buf, refc_ptr<typename serializer_traits_t<inner_serializer_t>::block_token_type> inner_token, refc_ptr< scs_block_token_t<inner_serializer_t> > *tok_out);
 
     void read_check_state(scs_block_token_t<inner_serializer_t> *token, const void *buf);
 
