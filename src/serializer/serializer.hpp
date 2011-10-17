@@ -15,13 +15,22 @@
 struct index_write_op_t {
     block_id_t block_id;
     // Buf to write. None if not to be modified. Initialized but a null ptr if to be removed from lba.
-    boost::optional<boost::intrusive_ptr<standard_block_token_t> > token;
+    bool modify_buf;
+    boost::intrusive_ptr<standard_block_token_t> buf_token;
     boost::optional<repli_timestamp_t> recency; // Recency, if it should be modified.
 
     index_write_op_t(block_id_t _block_id,
-		     boost::optional<boost::intrusive_ptr<standard_block_token_t> > _token = boost::none,
+                     bool _modify_buf = false,
+                     const boost::intrusive_ptr<standard_block_token_t>& token = 0,
 		     boost::optional<repli_timestamp_t> _recency = boost::none)
-	: block_id(_block_id), token(_token), recency(_recency) { }
+	: block_id(_block_id), modify_buf(_modify_buf), buf_token(), recency(_recency) {
+        buf_token = token;
+    }
+
+    void make_modify_buf(const boost::intrusive_ptr<standard_block_token_t>& token) {
+        modify_buf = true;
+        buf_token = token;
+    }
 };
 
 /* serializer_t is an abstract interface that describes how each serializer should
