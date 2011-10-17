@@ -116,7 +116,7 @@ struct serializer_t :
     virtual bool get_delete_bit(block_id_t id) = 0;
 
     /* Reads the block's actual data */
-    virtual refc_ptr<standard_block_token_t> index_read(block_id_t block_id) = 0;
+    virtual void index_read(block_id_t block_id, refc_ptr<standard_block_token_t> *tok_out) = 0;
 
     /* index_write() applies all given index operations in an atomic way */
     virtual void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account) = 0;

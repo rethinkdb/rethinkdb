@@ -591,21 +591,21 @@ block_id_t log_serializer_t::max_block_id() {
     return lba_index->end_block_id();
 }
 
-refc_ptr<ls_block_token_pointee_t> log_serializer_t::index_read(block_id_t block_id) {
+void log_serializer_t::index_read(block_id_t block_id, refc_ptr<ls_block_token_pointee_t> *tok_out) {
     pm_serializer_index_reads++;
 
     assert_thread();
     rassert(state == state_ready);
 
     if (block_id >= lba_index->end_block_id()) {
-        return refc_ptr<ls_block_token_pointee_t>();
+        tok_out->reset();
     }
 
     flagged_off64_t offset = lba_index->get_block_offset(block_id);
     if (offset.has_value()) {
-        return refc_ptr<ls_block_token_pointee_t>(new ls_block_token_pointee_t(this, offset.get_value()));
+        tok_out->reset(new ls_block_token_pointee_t(this, offset.get_value()));
     } else {
-        return refc_ptr<ls_block_token_pointee_t>();
+        tok_out->reset();
     }
 }
 

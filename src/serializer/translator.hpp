@@ -138,7 +138,7 @@ public:
 
     void block_read(const refc_ptr<standard_block_token_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb);
     void block_read(const refc_ptr<standard_block_token_t>& token, void *buf, file_account_t *io_account);
-    refc_ptr<standard_block_token_t> index_read(block_id_t block_id);
+    void index_read(block_id_t block_id, refc_ptr<standard_block_token_t> *tok_out);
 
 public:
     bool offer_read_ahead_buf(block_id_t block_id, void *buf, const refc_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);

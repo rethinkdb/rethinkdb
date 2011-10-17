@@ -207,7 +207,9 @@ mock_cache_t::mock_cache_t( serializer_t *_serializer, UNUSED mirrored_cache_con
         if (!serializer->get_delete_bit(i)) {
             internal_buf_t *internal_buf = bufs[i] = new internal_buf_t(this, i, serializer->get_recency(i));
             read_cb.acquire();
-            serializer->block_read(serializer->index_read(i), internal_buf->data, DEFAULT_DISK_ACCOUNT, &read_cb);
+            refc_ptr<standard_block_token_t> token;
+            serializer->index_read(i, &token);
+            serializer->block_read(token, internal_buf->data, DEFAULT_DISK_ACCOUNT, &read_cb);
         }
     }
 

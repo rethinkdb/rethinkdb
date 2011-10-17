@@ -34,10 +34,12 @@ public:
                    bool leave_clone)
         : evictable_t(buf->cache, /* TODO: we can load the data later and we never get added to the page map */ buf->data.has() ? true : false),
           parent(buf), snapshotted_version(buf->version_id),
-          token(buf->data_token),
+          token(),
           subtree_recency(buf->subtree_recency),
           snapshot_refcount(_snapshot_refcount), active_refcount(_active_refcount) {
         cache->assert_thread();
+
+        token.copy_from(buf->data_token);
 
         if (leave_clone) {
             if (buf->data.has()) {
@@ -169,7 +171,7 @@ void mc_inner_buf_t::load_inner_buf(bool should_lock, file_account_t *io_account
         on_thread_t thread(cache->serializer->home_thread());
         subtree_recency = cache->serializer->get_recency(block_id);
         // TODO: Merge this initialization with the read itself eventually
-        data_token.copy_from(cache->serializer->index_read(block_id));
+        cache->serializer->index_read(block_id, &data_token);
         cache->serializer->block_read(data_token, data.get(), io_account);
     }
 
