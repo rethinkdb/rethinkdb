@@ -268,7 +268,7 @@ perfmon_counter_t pm_serializer_block_writes("serializer_block_writes");
 perfmon_duration_sampler_t pm_serializer_index_writes("serializer_index_writes", secs_to_ticks(1));
 perfmon_sampler_t pm_serializer_index_writes_size("serializer_index_writes_size", secs_to_ticks(1));
 
-void log_serializer_t::block_read(const boost::intrusive_ptr<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account) {
+void log_serializer_t::block_read(const refc_ptr<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account) {
     struct : public cond_t, public iocallback_t {
         void on_io_complete() { pulse(); }
     } cb;
@@ -278,16 +278,16 @@ void log_serializer_t::block_read(const boost::intrusive_ptr<ls_block_token_poin
 
 // TODO(sam): block_read can call the callback before it returns.  Is
 // this acceptable?
-void log_serializer_t::block_read(const boost::intrusive_ptr<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) {
+void log_serializer_t::block_read(const refc_ptr<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) {
     struct my_cb_t : public iocallback_t {
         void on_io_complete() {
             pm_serializer_block_reads.end(&pm_time);
             if (cb) cb->on_io_complete();
             delete this;
         }
-        my_cb_t(iocallback_t *_cb, const boost::intrusive_ptr<ls_block_token_pointee_t>& _tok) : cb(_cb), tok(_tok) {}
+        my_cb_t(iocallback_t *_cb, const refc_ptr<ls_block_token_pointee_t>& _tok) : cb(_cb), tok(_tok) {}
         iocallback_t *cb;
-        boost::intrusive_ptr<ls_block_token_pointee_t> tok; // needed to keep it alive for appropriate period of time
+        refc_ptr<ls_block_token_pointee_t> tok; // needed to keep it alive for appropriate period of time
         ticks_t pm_time;
     };
 
@@ -307,15 +307,15 @@ void log_serializer_t::block_read(const boost::intrusive_ptr<ls_block_token_poin
 
 // God this is such a hack.
 #ifndef SEMANTIC_SERIALIZER_CHECK
-boost::intrusive_ptr<ls_block_token_pointee_t> get_ls_block_token(const boost::intrusive_ptr<ls_block_token_pointee_t>& tok) {
+refc_ptr<ls_block_token_pointee_t> get_ls_block_token(const refc_ptr<ls_block_token_pointee_t>& tok) {
     return tok;
 }
 #else
-boost::intrusive_ptr<ls_block_token_pointee_t> get_ls_block_token(const boost::intrusive_ptr<scs_block_token_t<log_serializer_t> >& tok) {
+refc_ptr<ls_block_token_pointee_t> get_ls_block_token(const refc_ptr<scs_block_token_t<log_serializer_t> >& tok) {
     if (tok) {
         return tok->inner_token;
     } else {
-        return boost::intrusive_ptr<ls_block_token_pointee_t>();
+        return refc_ptr<ls_block_token_pointee_t>();
     }
 }
 #endif  // SEMANTIC_SERIALIZER_CHECK
@@ -341,10 +341,10 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
             const index_write_op_t& op = *write_op_it;
             flagged_off64_t offset = lba_index->get_block_offset(op.block_id);
 
-            boost::intrusive_ptr<standard_block_token_t> std_token;
+            refc_ptr<standard_block_token_t> std_token;
             if (op.wants_modify_buf(&std_token)) {
                 // Update the offset pointed to, and mark garbage/liveness as necessary.
-                boost::intrusive_ptr<ls_block_token_pointee_t> token = get_ls_block_token(std_token);
+                refc_ptr<ls_block_token_pointee_t> token = get_ls_block_token(std_token);
 
                 // Mark old offset as garbage
                 if (offset.has_value())
@@ -453,11 +453,11 @@ void log_serializer_t::index_write_finish(index_write_context_t &context, file_a
     }
 }
 
-boost::intrusive_ptr<ls_block_token_pointee_t> log_serializer_t::generate_block_token(off64_t offset) {
-    return boost::intrusive_ptr<ls_block_token_pointee_t>(new ls_block_token_pointee_t(this, offset));
+refc_ptr<ls_block_token_pointee_t> log_serializer_t::generate_block_token(off64_t offset) {
+    return refc_ptr<ls_block_token_pointee_t>(new ls_block_token_pointee_t(this, offset));
 }
 
-boost::intrusive_ptr<ls_block_token_pointee_t>
+refc_ptr<ls_block_token_pointee_t>
 log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) {
     // TODO: Implement a duration sampler perfmon for this
     pm_serializer_block_writes++;
@@ -470,15 +470,15 @@ log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account
     return generate_block_token(offset);
 }
 
-boost::intrusive_ptr<ls_block_token_pointee_t>
+refc_ptr<ls_block_token_pointee_t>
 log_serializer_t::block_write(const void *buf, file_account_t *io_account, iocallback_t *cb) {
     return serializer_block_write(this, buf, io_account, cb);
 }
-boost::intrusive_ptr<ls_block_token_pointee_t>
+refc_ptr<ls_block_token_pointee_t>
 log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account) {
     return serializer_block_write(this, buf, block_id, io_account);
 }
-boost::intrusive_ptr<ls_block_token_pointee_t>
+refc_ptr<ls_block_token_pointee_t>
 log_serializer_t::block_write(const void *buf, file_account_t *io_account) {
     return serializer_block_write(this, buf, io_account);
 }
@@ -590,22 +590,22 @@ block_id_t log_serializer_t::max_block_id() {
     
     return lba_index->end_block_id();
 }
-    
-boost::intrusive_ptr<ls_block_token_pointee_t> log_serializer_t::index_read(block_id_t block_id) {
+
+refc_ptr<ls_block_token_pointee_t> log_serializer_t::index_read(block_id_t block_id) {
     pm_serializer_index_reads++;
 
     assert_thread();
     rassert(state == state_ready);
 
     if (block_id >= lba_index->end_block_id()) {
-        return boost::intrusive_ptr<ls_block_token_pointee_t>();
+        return refc_ptr<ls_block_token_pointee_t>();
     }
 
     flagged_off64_t offset = lba_index->get_block_offset(block_id);
     if (offset.has_value()) {
-        return boost::intrusive_ptr<ls_block_token_pointee_t>(new ls_block_token_pointee_t(this, offset.get_value()));
+        return refc_ptr<ls_block_token_pointee_t>(new ls_block_token_pointee_t(this, offset.get_value()));
     } else {
-        return boost::intrusive_ptr<ls_block_token_pointee_t>();
+        return refc_ptr<ls_block_token_pointee_t>();
     }
 }
 
@@ -766,7 +766,7 @@ void log_serializer_t::unregister_read_ahead_cb(serializer_read_ahead_callback_t
     }
 }
 
-bool log_serializer_t::offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
+bool log_serializer_t::offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, const refc_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
     for (size_t i = 0; i < read_ahead_callbacks.size(); ++i) {
         if (read_ahead_callbacks[i]->offer_read_ahead_buf(block_id, buf, token, recency_timestamp)) {
             return true;

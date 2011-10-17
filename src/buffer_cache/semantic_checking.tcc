@@ -180,7 +180,7 @@ boost::shared_ptr<typename inner_cache_t::cache_account_t> scc_cache_t<inner_cac
 }
 
 template<class inner_cache_t>
-bool scc_cache_t<inner_cache_t>::offer_read_ahead_buf(block_id_t block_id, void *buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
+bool scc_cache_t<inner_cache_t>::offer_read_ahead_buf(block_id_t block_id, void *buf, const refc_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
     return inner_cache.offer_read_ahead_buf(block_id, buf, token, recency_timestamp);
 }
 

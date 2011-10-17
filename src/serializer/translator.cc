@@ -220,7 +220,7 @@ void translator_serializer_t::index_write(const std::vector<index_write_op_t>& w
     inner->index_write(translated_ops, io_account);
 }
 
-boost::intrusive_ptr<standard_block_token_t>
+refc_ptr<standard_block_token_t>
 translator_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) {
     // NULL_BLOCK_ID is special: it indicates no block id specified.
     if (block_id != NULL_BLOCK_ID)
@@ -228,20 +228,20 @@ translator_serializer_t::block_write(const void *buf, block_id_t block_id, file_
     return inner->block_write(buf, block_id, io_account, cb);
 }
 
-boost::intrusive_ptr<standard_block_token_t>
+refc_ptr<standard_block_token_t>
 translator_serializer_t::block_write(const void *buf, file_account_t *io_account, iocallback_t *cb) {
     return inner->block_write(buf, io_account, cb);
 }
 
-void translator_serializer_t::block_read(const boost::intrusive_ptr<standard_block_token_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) {
+void translator_serializer_t::block_read(const refc_ptr<standard_block_token_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) {
     return inner->block_read(token, buf, io_account, cb);
 }
 
-void translator_serializer_t::block_read(const boost::intrusive_ptr<standard_block_token_t>& token, void *buf, file_account_t *io_account) {
+void translator_serializer_t::block_read(const refc_ptr<standard_block_token_t>& token, void *buf, file_account_t *io_account) {
     return inner->block_read(token, buf, io_account);
 }
 
-boost::intrusive_ptr<standard_block_token_t> translator_serializer_t::index_read(block_id_t block_id) {
+refc_ptr<standard_block_token_t> translator_serializer_t::index_read(block_id_t block_id) {
     return inner->index_read(translate_block_id(block_id));
 }
 
@@ -281,7 +281,7 @@ bool translator_serializer_t::get_delete_bit(block_id_t id) {
     return inner->get_delete_bit(translate_block_id(id));
 }
 
-bool translator_serializer_t::offer_read_ahead_buf(block_id_t block_id, void *buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
+bool translator_serializer_t::offer_read_ahead_buf(block_id_t block_id, void *buf, const refc_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
     inner->assert_thread();
 
     // Offer the buffer if we are the correct shard

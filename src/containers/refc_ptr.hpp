@@ -22,12 +22,16 @@ public:
     // Takes a pointer allocated on the heap (with a ref count of
     // zero) and claims ownership over it (making its ref count 1).
     explicit refc_ptr(T *unowned) : px_(NULL) {
-        refc_ptr_add_ref(unowned);
-        px_ = unowned;
+        reset(unowned);
     }
 
     ~refc_ptr() {
         reset();
+    }
+
+    // TODO(sam): Temporary function to ease transition.
+    refc_ptr(const refc_ptr& other) : px_(NULL) {
+        copy_from(other);
     }
 
     void copy_from(const refc_ptr& other) {
@@ -72,7 +76,9 @@ public:
     }
 
 private:
-    DISABLE_COPYING(refc_ptr);
+    //     DISABLE_COPYING(refc_ptr);
+    // TODO(sam): Temporarily to easy transition.
+    void operator=(const refc_ptr& other);
     T *px_;
 };
 
