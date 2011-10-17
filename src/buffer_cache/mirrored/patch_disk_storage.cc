@@ -23,7 +23,9 @@ void patch_disk_storage_t::create(serializer_t *serializer, block_id_t start_id,
     on_thread_t switcher(serializer->home_thread());
 
     index_write_op_t op(start_id);
-    op.make_modify_buf(serializer->block_write(c, start_id, DEFAULT_DISK_ACCOUNT));
+    refc_ptr<standard_block_token_t> token;
+    serializer->block_write(c, start_id, DEFAULT_DISK_ACCOUNT, &token);
+    op.make_modify_buf(token);
     op.recency = repli_timestamp_t::invalid;
     serializer_index_write(serializer, op, DEFAULT_DISK_ACCOUNT);
 

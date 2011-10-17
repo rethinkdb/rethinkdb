@@ -120,8 +120,8 @@ public:
     void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account);
 
     /* Non-blocking variant */
-    refc_ptr<standard_block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb);
-    refc_ptr<standard_block_token_t> block_write(const void *buf, file_account_t *io_account, iocallback_t *cb);
+    void block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb, refc_ptr<standard_block_token_t> *tok_out);
+    void block_write(const void *buf, file_account_t *io_account, iocallback_t *cb, refc_ptr<standard_block_token_t> *tok_out);
 
     block_size_t get_block_size();
 

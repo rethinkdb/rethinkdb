@@ -43,7 +43,9 @@ void prep_serializer(
     c->n_proxies = n_proxies;
 
     index_write_op_t op(CONFIG_BLOCK_ID.ser_id);
-    op.make_modify_buf(ser->block_write(c, CONFIG_BLOCK_ID.ser_id, DEFAULT_DISK_ACCOUNT));
+    refc_ptr<standard_block_token_t> token;
+    ser->block_write(c, CONFIG_BLOCK_ID.ser_id, DEFAULT_DISK_ACCOUNT, &token);
+    op.make_modify_buf(token);
     op.recency = repli_timestamp_t::invalid;
     serializer_index_write(ser, op, DEFAULT_DISK_ACCOUNT);
 
@@ -224,17 +226,15 @@ void translator_serializer_t::index_write(const std::vector<index_write_op_t>& w
     inner->index_write(translated_ops, io_account);
 }
 
-refc_ptr<standard_block_token_t>
-translator_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) {
+void translator_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb, refc_ptr<standard_block_token_t> *tok_out) {
     // NULL_BLOCK_ID is special: it indicates no block id specified.
     if (block_id != NULL_BLOCK_ID)
         block_id = translate_block_id(block_id);
-    return inner->block_write(buf, block_id, io_account, cb);
+    return inner->block_write(buf, block_id, io_account, cb, tok_out);
 }
 
-refc_ptr<standard_block_token_t>
-translator_serializer_t::block_write(const void *buf, file_account_t *io_account, iocallback_t *cb) {
-    return inner->block_write(buf, io_account, cb);
+void translator_serializer_t::block_write(const void *buf, file_account_t *io_account, iocallback_t *cb, refc_ptr<standard_block_token_t> *tok_out) {
+    return inner->block_write(buf, io_account, cb, tok_out);
 }
 
 void translator_serializer_t::block_read(const refc_ptr<standard_block_token_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) {

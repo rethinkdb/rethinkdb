@@ -76,10 +76,10 @@ public:
 
     void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account);
 
-    refc_ptr< scs_block_token_t<inner_serializer_t> > block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb);
-    refc_ptr< scs_block_token_t<inner_serializer_t> > block_write(const void *buf, file_account_t *io_account, iocallback_t *cb);
-    refc_ptr< scs_block_token_t<inner_serializer_t> > block_write(const void *buf, block_id_t block_id, file_account_t *io_account);
-    refc_ptr< scs_block_token_t<inner_serializer_t> > block_write(const void *buf, file_account_t *io_account);
+    void block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb, refc_ptr< scs_block_token_t<inner_serializer_t> > *tok_out);
+    void block_write(const void *buf, file_account_t *io_account, iocallback_t *cb, refc_ptr< scs_block_token_t<inner_serializer_t> > *tok_out);
+    void block_write(const void *buf, block_id_t block_id, file_account_t *io_account, refc_ptr< scs_block_token_t<inner_serializer_t> > *tok_out);
+    void block_write(const void *buf, file_account_t *io_account, refc_ptr< scs_block_token_t<inner_serializer_t> > *tok_out);
 
     block_size_t get_block_size();
 

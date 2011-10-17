@@ -122,15 +122,15 @@ struct serializer_t :
     virtual void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account) = 0;
 
     /* Non-blocking variants */
-    virtual refc_ptr<standard_block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) = 0;
+    virtual void block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb, refc_ptr<standard_block_token_t> *tok_out) = 0;
     // `block_write(buf, acct, cb)` must behave identically to `block_write(buf, NULL_BLOCK_ID, acct, cb)`
     // a default implementation is provided using this
-    virtual refc_ptr<standard_block_token_t> block_write(const void *buf, file_account_t *io_account, iocallback_t *cb);
+    virtual void block_write(const void *buf, file_account_t *io_account, iocallback_t *cb, refc_ptr<standard_block_token_t> *tok_out);
 
     /* Blocking variants (use in coroutine context) with and without known block_id */
     // these have default implementations in serializer.cc in terms of the non-blocking variants above
-    virtual refc_ptr<standard_block_token_t> block_write(const void *buf, file_account_t *io_account);
-    virtual refc_ptr<standard_block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account);
+    virtual void block_write(const void *buf, file_account_t *io_account, refc_ptr<standard_block_token_t> *tok_out);
+    virtual void block_write(const void *buf, block_id_t block_id, file_account_t *io_account, refc_ptr<standard_block_token_t> *tok_out);
 
     virtual block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf) = 0;
 
@@ -195,30 +195,27 @@ void serializer_index_write(serializer_type *ser, const index_write_op_t& op, fi
 }
 
 template <class serializer_type>
-refc_ptr<typename serializer_traits_t<serializer_type>::block_token_type> serializer_block_write(serializer_type *ser, const void *buf, file_account_t *io_account, iocallback_t *cb) {
-    return ser->block_write(buf, NULL_BLOCK_ID, io_account, cb);
+void serializer_block_write(serializer_type *ser, const void *buf, file_account_t *io_account, iocallback_t *cb, refc_ptr<typename serializer_traits_t<serializer_type>::block_token_type> *tok_out) {
+    ser->block_write(buf, NULL_BLOCK_ID, io_account, cb, tok_out);
 }
 
 // Blocking variants.
 template <class serializer_type>
-refc_ptr<typename serializer_traits_t<serializer_type>::block_token_type> serializer_block_write(serializer_type *ser, const void *buf, file_account_t *io_account) {
+void serializer_block_write(serializer_type *ser, const void *buf, file_account_t *io_account, refc_ptr<typename serializer_traits_t<serializer_type>::block_token_type> *tok_out) {
     struct : public cond_t, public iocallback_t {
         void on_io_complete() { pulse(); }
     } cb;
-    refc_ptr<typename serializer_traits_t<serializer_type>::block_token_type> result = ser->block_write(buf, io_account, &cb);
+    ser->block_write(buf, io_account, &cb, tok_out);
     cb.wait();
-    return result;
 }
 
 template <class serializer_type>
-refc_ptr<typename serializer_traits_t<serializer_type>::block_token_type> serializer_block_write(serializer_type *ser, const void *buf, block_id_t block_id, file_account_t *io_account) {
+void serializer_block_write(serializer_type *ser, const void *buf, block_id_t block_id, file_account_t *io_account, refc_ptr<typename serializer_traits_t<serializer_type>::block_token_type> *tok_out) {
     struct : public cond_t, public iocallback_t {
         void on_io_complete() { pulse(); }
     } cb;
-    refc_ptr<typename serializer_traits_t<serializer_type>::block_token_type> result = ser->block_write(buf, block_id, io_account, &cb);
+    ser->block_write(buf, block_id, io_account, &cb, tok_out);
     cb.wait();
-    return result;
-
 }
 
 #endif /* __SERIALIZER_HPP__ */

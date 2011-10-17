@@ -453,12 +453,11 @@ void log_serializer_t::index_write_finish(index_write_context_t &context, file_a
     }
 }
 
-refc_ptr<ls_block_token_pointee_t> log_serializer_t::generate_block_token(off64_t offset) {
-    return refc_ptr<ls_block_token_pointee_t>(new ls_block_token_pointee_t(this, offset));
+void log_serializer_t::generate_block_token(off64_t offset, refc_ptr<ls_block_token_pointee_t> *tok_out) {
+    tok_out->reset(new ls_block_token_pointee_t(this, offset));
 }
 
-refc_ptr<ls_block_token_pointee_t>
-log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) {
+void log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb, refc_ptr<ls_block_token_pointee_t> *tok_out) {
     // TODO: Implement a duration sampler perfmon for this
     pm_serializer_block_writes++;
 
@@ -467,20 +466,17 @@ log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account
     extent_manager->end_transaction(em_trx);
     extent_manager->commit_transaction(em_trx);
 
-    return generate_block_token(offset);
+    generate_block_token(offset, tok_out);
 }
 
-refc_ptr<ls_block_token_pointee_t>
-log_serializer_t::block_write(const void *buf, file_account_t *io_account, iocallback_t *cb) {
-    return serializer_block_write(this, buf, io_account, cb);
+void log_serializer_t::block_write(const void *buf, file_account_t *io_account, iocallback_t *cb, refc_ptr<ls_block_token_pointee_t> *tok_out) {
+    serializer_block_write(this, buf, io_account, cb, tok_out);
 }
-refc_ptr<ls_block_token_pointee_t>
-log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account) {
-    return serializer_block_write(this, buf, block_id, io_account);
+void log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account, refc_ptr<ls_block_token_pointee_t> *tok_out) {
+    serializer_block_write(this, buf, block_id, io_account, tok_out);
 }
-refc_ptr<ls_block_token_pointee_t>
-log_serializer_t::block_write(const void *buf, file_account_t *io_account) {
-    return serializer_block_write(this, buf, io_account);
+void log_serializer_t::block_write(const void *buf, file_account_t *io_account, refc_ptr<ls_block_token_pointee_t> *tok_out) {
+    serializer_block_write(this, buf, io_account, tok_out);
 }
 
 

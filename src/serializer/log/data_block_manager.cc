@@ -450,7 +450,8 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
 
                 if (parent->gc_state.current_entry->i_array[block_id]) {
                     const ls_buf_data_t *data = static_cast<const ls_buf_data_t *>(writes[i].buf) - 1;
-                    refc_ptr<ls_block_token_pointee_t> token = parent->serializer->generate_block_token(writes[i].new_offset);
+                    refc_ptr<ls_block_token_pointee_t> token;
+                    parent->serializer->generate_block_token(writes[i].new_offset, &token);
                     refc_ptr<standard_block_token_t> std_token;
                     to_standard_block_token(data->block_id, token, &std_token);
                     index_write_ops.push_back(index_write_op_t(data->block_id, std_token));
