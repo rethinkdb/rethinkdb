@@ -780,26 +780,26 @@ bool log_serializer_t::should_perform_read_ahead() {
 }
 
 ls_block_token_pointee_t::ls_block_token_pointee_t(log_serializer_t *serializer, off64_t initial_offset)
-    : serializer_(serializer), ref_count_(0) {
+    : serializer_(serializer), ref_count(0) {
     serializer_->assert_thread();
     serializer_->register_block_token(this, initial_offset);
 }
 
 void ls_block_token_pointee_t::destroy() {
-    // We used to call do_destroy with coro_t::spawn_on_thread, but
-    // that turned out to be too expensive.  It spawned too many
-    // coroutines in one big non-blocking glomp, probably when
-    // deleting a bunch of patch storage tokens (50MB is just enough
-    // to break 10000 coroutines if we do this).  The function we're
-    // calling doesn't need to run in a coroutine (AND NEVER WILL!) so
-    // this is not a problem.
-
-    one_way_do_on_thread(serializer_->home_thread(), boost::bind(&ls_block_token_pointee_t::do_destroy, this));
-}
-
-void ls_block_token_pointee_t::do_destroy() {
     serializer_->assert_thread();
-    rassert(ref_count_ == 0);
+    rassert(ref_count == 0);
     serializer_->unregister_block_token(this);
     delete this;
+}
+
+int ls_block_token_pointee_t::home_thread() const {
+    return serializer_->home_thread();
+}
+
+void refc_ptr_add_ref(ls_block_token_pointee_t *p) {
+    refc_ptr_prototypical_adjust_ref(p, 1);
+}
+
+void refc_ptr_release(ls_block_token_pointee_t *p) {
+    refc_ptr_prototypical_adjust_ref(p, -1);
 }

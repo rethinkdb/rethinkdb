@@ -55,35 +55,23 @@ class ls_block_token_pointee_t {
     friend class log_serializer_t;
     friend class dbm_read_ahead_fsm_t;  // For read-ahead tokens.
 
-    friend void refc_ptr_add_ref(ls_block_token_pointee_t *p);
-    friend void refc_ptr_release(ls_block_token_pointee_t *p);
+    template <class T>
+    friend void refc_ptr_prototypical_adjust_ref(T *p, int adjustment);
 
     ls_block_token_pointee_t(log_serializer_t *serializer, off64_t initial_offset);
 
     void destroy();
 
     log_serializer_t *serializer_;
-    int64_t ref_count_;
 
-    void do_destroy();
+    int64_t ref_count;
+    int home_thread() const;
 
     DISABLE_COPYING(ls_block_token_pointee_t);
 };
 
-inline
-void refc_ptr_add_ref(ls_block_token_pointee_t *p) {
-    UNUSED int64_t res = __sync_add_and_fetch(&p->ref_count_, 1);
-    rassert(res > 0);
-}
-
-inline
-void refc_ptr_release(ls_block_token_pointee_t *p) {
-    int64_t res = __sync_sub_and_fetch(&p->ref_count_, 1);
-    rassert(res >= 0);
-    if (res == 0) {
-        p->destroy();
-    }
-}
+void refc_ptr_add_ref(ls_block_token_pointee_t *p);
+void refc_ptr_release(ls_block_token_pointee_t *p);
 
 template <>
 struct serializer_traits_t<log_serializer_t> {
