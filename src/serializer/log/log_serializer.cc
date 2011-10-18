@@ -9,6 +9,7 @@
 
 #include "arch/arch.hpp"
 #include "buffer_cache/types.hpp"
+#include "containers/refc_ptr-impl.hpp"
 #include "do_on_thread.hpp"
 #include "perfmon.hpp"
 
