@@ -1,5 +1,9 @@
 #include "rpc/mailbox/mailbox.hpp"
 
+#include <sstream>
+
+#include "logger.hpp"
+
 /* mailbox_t */
 
 mailbox_t::address_t::address_t() :
@@ -127,8 +131,16 @@ void mailbox_cluster_t::on_message(peer_id_t src, std::istream &stream, boost::f
             if (mbox) {
                 mbox->callback(stream, on_done);
             } else {
-                /* Mailbox doesn't exist; silently fail to deliver message. */
+                /* Mailbox doesn't exist; don't deliver message */
                 on_done();
+                /* Print a warning message */
+                mailbox_t::address_t dest_address;
+                dest_address.peer = get_me();
+                dest_address.thread = dest_thread;
+                dest_address.mailbox_id = dest_mailbox_id;
+                std::ostringstream buffer;
+                buffer << dest_address;
+                logDBG("Message dropped because mailbox %s no longer exists.\n", buffer.str().c_str());
             }
             break;
         }

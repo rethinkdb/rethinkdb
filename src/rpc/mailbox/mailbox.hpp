@@ -40,8 +40,10 @@ public:
         peer_id_t get_peer() const;
 
     private:
+        friend std::ostream &operator<<(std::ostream &, mailbox_t::address_t);
         friend void send(mailbox_cluster_t *, mailbox_t::address_t, boost::function<void(std::ostream&)>);
         friend class mailbox_t;
+        friend class mailbox_cluster_t;
 
         friend class ::boost::serialization::access;
         template<class Archive> void serialize(Archive & ar, UNUSED const unsigned int version) {
@@ -65,6 +67,10 @@ public:
 
     address_t get_address();
 };
+
+inline std::ostream &operator<<(std::ostream &s, mailbox_t::address_t a) {
+    return s << a.peer << ":" << a.thread << ":" << a.mailbox_id;
+}
 
 /* `send()` sends a message to a mailbox. It is safe to call `send()` outside of
 a coroutine; it does not block. If the mailbox does not exist or the peer is
