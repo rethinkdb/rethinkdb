@@ -229,7 +229,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, void *_buf
       subtree_recency(_recency_timestamp),
       data(_buf),
       version_id(_cache->get_min_snapshot_version(_cache->get_current_version_id())),
-      data_token(token),
+      data_token(),
       refcount(0),
       do_delete(false),
       cow_refcount(0),
@@ -237,6 +237,8 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, void *_buf
       block_sequence_id(NULL_BLOCK_SEQUENCE_ID) {
 
     rassert(version_id != faux_version_id);
+
+    data_token.copy_from(token);
 
     array_map_t::constructing_inner_buf(this);
 
@@ -1292,8 +1294,33 @@ void mc_cache_t::on_transaction_commit(transaction_t *txn) {
 }
 
 bool mc_cache_t::offer_read_ahead_buf(block_id_t block_id, void *buf, const refc_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
+    struct offerer_t : public thread_message_t {
+        block_id_t block_id;
+        void *buf;
+        refc_ptr<standard_block_token_t> token;
+        repli_timestamp_t recency_timestamp;
+        mc_cache_t *cache;
+
+        void on_thread_switch() {
+            cache->offer_read_ahead_buf_home_thread(block_id, buf, token, recency_timestamp);
+            delete this;
+        }
+    };
+
+    offerer_t *offerer = new offerer_t;
+    offerer->block_id = block_id;
+    offerer->buf = buf;
+    offerer->token.copy_from(token);
+    offerer->recency_timestamp = recency_timestamp;
+    offerer->cache = this;
+
+    // TODO(sam): What is this comment talking about?
+
     // Note that the offered block might get deleted between the point where the serializer offers it and the message gets delivered!
-    do_on_thread(home_thread(), boost::bind(&mc_cache_t::offer_read_ahead_buf_home_thread, this, block_id, buf, token, recency_timestamp));
+
+    if (continue_on_thread(home_thread(), offerer)) {
+        offerer->on_thread_switch();
+    }
     return true;
 }
 

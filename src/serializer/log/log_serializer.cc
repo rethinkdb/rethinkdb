@@ -285,7 +285,9 @@ void log_serializer_t::block_read(const refc_ptr<ls_block_token_pointee_t>& toke
             if (cb) cb->on_io_complete();
             delete this;
         }
-        my_cb_t(iocallback_t *_cb, const refc_ptr<ls_block_token_pointee_t>& _tok) : cb(_cb), tok(_tok) {}
+        my_cb_t(iocallback_t *_cb, const refc_ptr<ls_block_token_pointee_t>& _tok) : cb(_cb), tok() {
+            tok.copy_from(_tok);
+        }
         iocallback_t *cb;
         refc_ptr<ls_block_token_pointee_t> tok; // needed to keep it alive for appropriate period of time
         ticks_t pm_time;
@@ -307,15 +309,15 @@ void log_serializer_t::block_read(const refc_ptr<ls_block_token_pointee_t>& toke
 
 // God this is such a hack.
 #ifndef SEMANTIC_SERIALIZER_CHECK
-refc_ptr<ls_block_token_pointee_t> get_ls_block_token(const refc_ptr<ls_block_token_pointee_t>& tok) {
-    return tok;
+void get_ls_block_token(const refc_ptr<ls_block_token_pointee_t>& tok, refc_ptr<ls_block_token_pointee_t> *tok_out) {
+    tok_out->copy_from(tok);
 }
 #else
-refc_ptr<ls_block_token_pointee_t> get_ls_block_token(const refc_ptr<scs_block_token_t<log_serializer_t> >& tok) {
+void get_ls_block_token(const refc_ptr<scs_block_token_t<log_serializer_t> >& tok, refc_ptr<ls_block_token_pointee_t> *tok_out) {
     if (tok) {
-        return tok->inner_token;
+        tok_out->copy_from(tok->inner_token);
     } else {
-        return refc_ptr<ls_block_token_pointee_t>();
+        tok_out->reset();
     }
 }
 #endif  // SEMANTIC_SERIALIZER_CHECK
@@ -344,7 +346,8 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
             refc_ptr<standard_block_token_t> std_token;
             if (op.wants_modify_buf(&std_token)) {
                 // Update the offset pointed to, and mark garbage/liveness as necessary.
-                refc_ptr<ls_block_token_pointee_t> token = get_ls_block_token(std_token);
+                refc_ptr<ls_block_token_pointee_t> token;
+                get_ls_block_token(std_token, &token);
 
                 // Mark old offset as garbage
                 if (offset.has_value())

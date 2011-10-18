@@ -29,11 +29,6 @@ public:
         reset();
     }
 
-    // TODO(sam): Temporary function to ease transition.
-    refc_ptr(const refc_ptr& other) : px_(NULL) {
-        copy_from(other);
-    }
-
     void copy_from(const refc_ptr& other) {
         reset(other.px_);
     }
@@ -76,9 +71,9 @@ public:
     }
 
 private:
-    //     DISABLE_COPYING(refc_ptr);
+    DISABLE_COPYING(refc_ptr);
     // TODO(sam): Temporarily to easy transition.
-    void operator=(const refc_ptr& other);
+    // void operator=(const refc_ptr& other);
     T *px_;
 };
 
