@@ -3,17 +3,21 @@
 
 #include "utils.hpp"
 
+// An intrusive_ptr-like pointer with no implicit copy constructor or
+// assignment operator.
+//
 // Users of this class must implement two overloads:
 //
 //     void refc_ptr_add_ref(T *obj)
 //
-// Increments the reference count in obj, may not throw exceptions.
+//         Increments the reference count in obj.  May not throw
+//         exceptions.
 //
 //     void refc_ptr_release(T *)
 //
-// Decrements the reference count in obj, and releases it if the
-// reference count has hit zero.  May not throw exceptions.
-
+//         Decrements the reference count in obj, and releases it if
+//         the reference count has hit zero.  May not throw
+//         exceptions.
 template <class T>
 class refc_ptr {
 public:
@@ -63,6 +67,7 @@ public:
         px_ = tmp;
     }
 
+    // A dummy bool type that can't get implicitly converted to int.
     typedef void (refc_ptr::*bool_type)() const;
     void dummy_member_function() const { }
 
@@ -72,8 +77,6 @@ public:
 
 private:
     DISABLE_COPYING(refc_ptr);
-    // TODO(sam): Temporarily to easy transition.
-    // void operator=(const refc_ptr& other);
     T *px_;
 };
 
