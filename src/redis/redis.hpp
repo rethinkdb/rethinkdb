@@ -9,13 +9,13 @@
 #include <deque>
 #include <vector>
 #include <string>
-using std::string;
 
 // For key ranges, we'll split this when I figure stuff out
 #include "memcached/protocol.hpp"
 
 
 struct redis_protocol_t {
+    typedef std::string string;
 
     // Dummy namespace_interface_t expects a temporary cache object. Why?
     struct temporary_cache_t {};

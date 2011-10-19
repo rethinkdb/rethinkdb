@@ -44,6 +44,8 @@ redis_protocol_t::redis_return_type CNAME(std::vector<std::string> one) { \
 }
 
 struct redis_ext {
+    typedef std::string string;
+
     redis_ext(namespace_interface_t<redis_protocol_t> *intface) : namespace_interface(intface) {;}
 
     // KEYS
