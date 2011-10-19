@@ -8,7 +8,6 @@
 #include "btree/slice.hpp"
 #include "btree/node.hpp"
 #include "concurrency/access.hpp"
-#include "concurrency/signal.hpp"
 #include "server/key_value_store_config.hpp"
 #include "stats/control.hpp"
 #include "server/dispatching_store.hpp"
