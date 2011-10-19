@@ -1,6 +1,9 @@
 #include "concurrency/cross_thread_signal.hpp"
 
+#include "errors.hpp"
 #include <boost/bind.hpp>
+
+#include "arch/runtime/runtime.hpp"
 
 cross_thread_signal_t::cross_thread_signal_t(signal_t *source, int dest) :
     source_thread(get_thread_id()), dest_thread(dest),

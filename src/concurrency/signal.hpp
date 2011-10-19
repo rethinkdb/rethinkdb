@@ -2,6 +2,7 @@
 #define __CONCURRENCY_SIGNAL_HPP__
 
 #include "concurrency/pubsub.hpp"
+#include "concurrency/mutex.hpp"
 #include "utils.hpp"
 
 /* A `signal_t` is a boolean variable, combined with a way to be notified if
@@ -87,12 +88,7 @@ protected:
     signal_t() : pulsed(false), publisher_controller(&mutex) { }
     ~signal_t() { }
 
-    void pulse() THROWS_NOTHING {
-        mutex_acquisition_t acq(&mutex, false);
-        rassert(!is_pulsed());
-        pulsed = true;
-        publisher_controller.publish(&signal_t::call, &acq);
-    }
+    void pulse();
 
 private:
     static void call(boost::function<void()>& fun) THROWS_NOTHING {
