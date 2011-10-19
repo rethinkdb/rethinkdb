@@ -4,15 +4,18 @@
 #include "containers/intrusive_list.hpp"
 
 typedef int fd_t;
-#define INVALID_FD fd_t(-1)
+#define INVALID_FD (fd_t(-1))
 
 class linux_thread_message_t :
     public intrusive_list_node_t<linux_thread_message_t>
 {
 public:
+    linux_thread_message_t() { }
     virtual void on_thread_switch() = 0;
 protected:
     virtual ~linux_thread_message_t() {}
+
+    DISABLE_COPYING(linux_thread_message_t);
 };
 
 typedef linux_thread_message_t thread_message_t;

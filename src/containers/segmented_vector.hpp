@@ -1,8 +1,5 @@
-
-#ifndef __SEGMENTED_VECTOR_HPP__
-#define __SEGMENTED_VECTOR_HPP__
-
-#include <stdio.h>
+#ifndef SEGMENTED_VECTOR_HPP_
+#define SEGMENTED_VECTOR_HPP_
 
 #include "errors.hpp"
 
@@ -17,12 +14,12 @@ private:
         element_t elements[ELEMENTS_PER_SEGMENT];
     } *segments[max_size / ELEMENTS_PER_SEGMENT];
     size_t size;
-    
+
 public:
     explicit segmented_vector_t(size_t size = 0) : size(0) {
         set_size(size);
     }
-    
+
     ~segmented_vector_t() {
         set_size(0);
     }
@@ -35,7 +32,7 @@ public:
     const element_t &operator[](size_t i) const {
         return const_get(i);
     }
-    
+
     size_t get_size() const {
         return size;
     }
@@ -45,10 +42,10 @@ public:
     // initialized even though the array might be of size 1).
     void set_size(size_t new_size) {
         rassert(new_size <= max_size);
-        
+
         size_t num_segs = size ? ((size - 1) / ELEMENTS_PER_SEGMENT) + 1 : 0;
         size_t new_num_segs = new_size ? ((new_size - 1) / ELEMENTS_PER_SEGMENT) + 1 : 0;
-        
+
         if (num_segs > new_num_segs) {
             for (size_t si = new_num_segs; si < num_segs; si ++) {
                 delete segments[si];
@@ -59,10 +56,10 @@ public:
                 segments[si] = new segment_t;
             }
         }
-        
+
         size = new_size;
     }
-    
+
     // This form of set_size fills the newly allocated space with a value
     void set_size(size_t new_size, element_t fill) {
         size_t old_size = size;
@@ -72,11 +69,8 @@ public:
 
 private:
     const element_t &const_get(size_t i) const {
-        if (!(i < size)) {
-            printf("i is %lu, size is %lu\n", i, size);
-        }
-        rassert(i < size);
-        
+        rassert(i < size, "i = %zu, size = %zu", i, size);
+
         segment_t *segment = segments[i / ELEMENTS_PER_SEGMENT];
         rassert(segment);
         return segment->elements[i % ELEMENTS_PER_SEGMENT];
@@ -85,4 +79,4 @@ private:
     DISABLE_COPYING(segmented_vector_t);
 };
 
-#endif /* __SEGMENTED_VECTOR_HPP_ */
+#endif /* SEGMENTED_VECTOR_HPP_ */

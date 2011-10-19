@@ -32,13 +32,17 @@ bool rwi_lock_t::lock(access_t access, lock_available_callback_t *callback) {
     }
 }
 
-void rwi_lock_t::co_lock(access_t access, boost::function<void()> call_when_in_line) {
+void rwi_lock_t::co_lock(access_t access) {
+    co_lock(access, 0);
+}
+
+void rwi_lock_t::co_lock(access_t access, const boost::function<void()>& call_when_in_line) {
     struct : public lock_available_callback_t, public cond_t {
         void on_lock_available() { pulse(); }
     } cb;
     bool got_immediately = lock(access, &cb);
-    if (call_when_in_line) call_when_in_line();
-    if (!got_immediately) cb.wait();
+    if (call_when_in_line) { call_when_in_line(); }
+    if (!got_immediately) { cb.wait(); }
 }
 
 // Call if you've locked for read or write, or upgraded to write,

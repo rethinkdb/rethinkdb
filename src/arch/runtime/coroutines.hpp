@@ -1,10 +1,6 @@
 #ifndef __ARCH_RUNTIME_COROUTINES_HPP__
 #define __ARCH_RUNTIME_COROUTINES_HPP__
 
-#ifndef NDEBUG
-#include <string>
-#endif
-
 #include "errors.hpp"
 #include <boost/function.hpp>
 

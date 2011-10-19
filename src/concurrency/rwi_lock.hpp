@@ -1,14 +1,14 @@
 #ifndef __RWI_LOCK_HPP__
 #define __RWI_LOCK_HPP__
 
-#include "errors.hpp"
-#include <boost/function.hpp>
+namespace boost {
+template <class T> class function;
+}  // namespace boost
 
 #include "containers/intrusive_list.hpp"
 #include "concurrency/access.hpp"
 
 // Forward declarations
-struct rwi_lock_t;
 struct lock_request_t;
 
 /**
@@ -39,10 +39,12 @@ public:
     // Call to lock for read, write, intent, or upgrade intent to write
     bool lock(access_t access, lock_available_callback_t *callback);
 
-    // Like `lock()` but blocks; only legal in a coroutine. If `call_when_in_line` is not zero,
-    // it will be called as soon as `co_lock()` has gotten in line for the lock but before
+    // Like `lock()` but blocks; only legal in a coroutine. If
+    // `call_when_in_line` is supplied, it will be called as soon as
+    // `co_lock()` has gotten in line for the lock but before
     // `co_lock()` actually returns.
-    void co_lock(access_t access, boost::function<void()> call_when_in_line = 0);
+    void co_lock(access_t access);
+    void co_lock(access_t access, const boost::function<void()>& call_when_in_line);
 
     // Call if you've locked for read or write, or upgraded to write,
     // and are now unlocking.
@@ -66,6 +68,8 @@ public:
     private:
         friend void swap(acq_t &, acq_t &);
         rwi_lock_t *lock;
+
+        DISABLE_COPYING(acq_t);
     };
 
 private:
@@ -92,7 +96,9 @@ private:
 };
 
 inline void swap(rwi_lock_t::acq_t &a1, rwi_lock_t::acq_t &a2) {
-    std::swap(a1.lock, a2.lock);
+    rwi_lock_t *tmp = a1.lock;
+    a1.lock = a2.lock;
+    a2.lock = tmp;
 }
 
 #endif // __RWI_LOCK_HPP__

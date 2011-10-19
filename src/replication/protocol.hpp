@@ -3,6 +3,7 @@
 
 #include "errors.hpp"
 #include <boost/function.hpp>
+#include <boost/scoped_ptr.hpp>
 
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/drain_semaphore.hpp"
