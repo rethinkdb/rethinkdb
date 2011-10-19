@@ -1,6 +1,9 @@
 #ifndef __MEMCACHED_STORE_HPP__
 #define __MEMCACHED_STORE_HPP__
 
+#include "errors.hpp"
+#include <boost/variant.hpp>
+
 #include "memcached/queries.hpp"
 
 class order_token_t;

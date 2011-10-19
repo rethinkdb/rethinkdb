@@ -7,7 +7,6 @@
 #include <boost/variant.hpp>
 
 #include "btree/slice.hpp"
-#include "buffer_cache/types.hpp"
 #include "memcached/queries.hpp"
 #include "protocol_api.hpp"
 #include "timestamps.hpp"

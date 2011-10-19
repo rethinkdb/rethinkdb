@@ -1,7 +1,6 @@
-#ifndef __PROTOCOL_REDIS_REDIS_HPP__
-#define __PROTOCOL_REDIS_REDIS_HPP__
+#ifndef PROTOCOL_REDIS_REDIS_HPP_
+#define PROTOCOL_REDIS_REDIS_HPP_
 
-#include "arch/arch.hpp"
 #include "utils.hpp"
 #include "redis/redis_types.hpp"
 #include <boost/shared_ptr.hpp>
@@ -504,4 +503,4 @@ private:
     btree_slice_t *btree;
 };
 
-#endif /* __PROTOCOL_REDIS_REDIS_HPP__ */
+#endif /* PROTOCOL_REDIS_REDIS_HPP_ */
