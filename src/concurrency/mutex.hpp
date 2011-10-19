@@ -1,20 +1,12 @@
 #ifndef __CONCURRENCY_MUTEX_HPP__
 #define __CONCURRENCY_MUTEX_HPP__
 
-#include "concurrency/rwi_lock.hpp"   // For lock_available_callback_t
-#include "arch/runtime/runtime_utils.hpp"
+#include "containers/intrusive_list.hpp"
+
+struct lock_available_callback_t;
 
 class mutex_t {
-    struct lock_request_t :
-        public intrusive_list_node_t<lock_request_t>,
-        public thread_message_t
-    {
-        lock_available_callback_t *cb;
-        void on_thread_switch() {
-            cb->on_lock_available();
-            delete this;
-        }
-    };
+    struct lock_request_t;
 
     bool locked;
     intrusive_list_t<lock_request_t> waiters;
@@ -22,16 +14,7 @@ class mutex_t {
 public:
     mutex_t() : locked(false) { }
 
-    void lock(lock_available_callback_t *cb) {
-        if (locked) {
-            lock_request_t *r = new lock_request_t;
-            r->cb = cb;
-            waiters.push_back(r);
-        } else {
-            locked = true;
-            cb->on_lock_available();
-        }
-    }
+    void lock(lock_available_callback_t *cb);
 
     void unlock(bool eager = false);
 
@@ -67,8 +50,17 @@ private:
 };
 
 inline void swap(mutex_acquisition_t &a, mutex_acquisition_t &b) {
-    std::swap(a.lock_, b.lock_);
-    std::swap(a.eager_, b.eager_);
+    {
+        mutex_t *tmp = a.lock_;
+        a.lock_ = b.lock_;
+        b.lock_ = tmp;
+    }
+
+    {
+        bool tmp = a.eager_;
+        a.eager_ = b.eager_;
+        b.eager_ = tmp;
+    }
 }
 
 #endif /* __CONCURRENCY_MUTEX_HPP__ */

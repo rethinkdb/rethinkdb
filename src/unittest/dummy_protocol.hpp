@@ -9,6 +9,7 @@
 #include "utils.hpp"
 #include <boost/function.hpp>
 
+#include "concurrency/rwi_lock.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "protocol_api.hpp"
 #include "timestamps.hpp"

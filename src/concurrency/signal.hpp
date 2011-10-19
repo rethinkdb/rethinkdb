@@ -1,9 +1,12 @@
 #ifndef __CONCURRENCY_SIGNAL_HPP__
 #define __CONCURRENCY_SIGNAL_HPP__
 
+#include "utils.hpp"
+#include <boost/function.hpp>
+
 #include "concurrency/pubsub.hpp"
 #include "concurrency/mutex.hpp"
-#include "utils.hpp"
+
 
 /* A `signal_t` is a boolean variable, combined with a way to be notified if
 that boolean variable becomes true. Typically you will construct a concrete
@@ -38,10 +41,10 @@ public:
     /* Wrapper around a `publisher_t<boost::function<void()> >::subscription_t`
     */
     struct subscription_t : public home_thread_mixin_t {
-        subscription_t(boost::function<void()> cb) :
+        subscription_t(const boost::function<void()>& cb) :
             subs(cb) {
         }
-        subscription_t(boost::function<void()> cb, signal_t *s) :
+        subscription_t(const boost::function<void()>& cb, signal_t *s) :
             subs(cb, s->publisher_controller.get_publisher()) {
             rassert(!s->is_pulsed());
         }
