@@ -35,7 +35,7 @@ public:
     mutex_acquisition_t(mutex_t *lock, bool eager = false) : lock_(lock), eager_(eager) {
         co_lock_mutex(lock_);
     }
-    mutex_acquisition_t() : lock_(NULL) { }
+    mutex_acquisition_t() : lock_(NULL), eager_(false) { }
     ~mutex_acquisition_t() {
         if (lock_) lock_->unlock(eager_);
     }

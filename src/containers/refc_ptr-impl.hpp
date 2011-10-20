@@ -26,7 +26,7 @@ void refc_ptr_t_prototypical_adjust_ref(T *p, int adjustment) {
             p->destroy();
         }
     } else {
-        bool res = continue_on_thread(p_thread, new ref_adder_t(p, adjustment));
+        UNUSED bool res = continue_on_thread(p_thread, new ref_adder_t(p, adjustment));
         rassert(!res);
     }
 }

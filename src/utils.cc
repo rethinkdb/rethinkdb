@@ -186,7 +186,7 @@ const repli_timestamp_t repli_timestamp_t::distant_past = { 0 };
 microtime_t current_microtime() {
     // This could be done more efficiently, surely.
     struct timeval t;
-    int res __attribute__((unused)) = gettimeofday(&t, NULL);
+    UNUSED int res = gettimeofday(&t, NULL);
     rassert(0 == res);
     return uint64_t(t.tv_sec) * (1000 * 1000) + t.tv_usec;
 }

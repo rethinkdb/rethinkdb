@@ -81,7 +81,7 @@ struct log_message_t
             /* Our guess was insufficient; grow the buffer and print it again. Fortunately,
             'chunk_length' is now exactly as much space as we need. */
             contents.resize(old_length + chunk_length + 1);   // +1 for NUL-terminator
-            int chunk_length_2 __attribute__((unused)) = vsnprintf(
+            UNUSED int chunk_length_2 = vsnprintf(
                 contents.data() + old_length,
                 chunk_length + 1,   // +1 for NUL-terminator
                 format, arg2);
