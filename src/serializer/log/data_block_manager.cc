@@ -197,8 +197,8 @@ public:
                 --data;
                 memcpy(data, current_buf, parent->static_config->block_size().ser_value());
                 ++data;
-                refc_ptr<ls_block_token_pointee_t> ls_token(new ls_block_token_pointee_t(parent->serializer, current_offset));
-                refc_ptr<standard_block_token_t> token;
+                refc_ptr_t<ls_block_token_pointee_t> ls_token(new ls_block_token_pointee_t(parent->serializer, current_offset));
+                refc_ptr_t<standard_block_token_t> token;
                 to_standard_block_token(block_id, ls_token, &token);
                 if (!parent->serializer->offer_buf_to_read_ahead_callbacks(block_id, data, token, recency_timestamp)) {
                     // If there is no interest anymore, delete the buffer again
@@ -450,9 +450,9 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
 
                 if (parent->gc_state.current_entry->i_array[block_id]) {
                     const ls_buf_data_t *data = static_cast<const ls_buf_data_t *>(writes[i].buf) - 1;
-                    refc_ptr<ls_block_token_pointee_t> token;
+                    refc_ptr_t<ls_block_token_pointee_t> token;
                     parent->serializer->generate_block_token(writes[i].new_offset, &token);
-                    refc_ptr<standard_block_token_t> std_token;
+                    refc_ptr_t<standard_block_token_t> std_token;
                     to_standard_block_token(data->block_id, token, &std_token);
                     index_write_ops.push_back(index_write_op_t(data->block_id, std_token));
                 }

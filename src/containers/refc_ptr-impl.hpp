@@ -3,7 +3,7 @@
 
 // A typical refcount adjustment function for types that have refcounts.
 template <class T>
-void refc_ptr_prototypical_adjust_ref(T *p, int adjustment) {
+void refc_ptr_t_prototypical_adjust_ref(T *p, int adjustment) {
     struct ref_adder_t : public thread_message_t {
         void on_thread_switch() {
             ptr->ref_count += adj;

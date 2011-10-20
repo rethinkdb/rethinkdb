@@ -43,7 +43,7 @@ void prep_serializer(
     c->n_proxies = n_proxies;
 
     index_write_op_t op(CONFIG_BLOCK_ID.ser_id);
-    refc_ptr<standard_block_token_t> token;
+    refc_ptr_t<standard_block_token_t> token;
     ser->block_write(c, CONFIG_BLOCK_ID.ser_id, DEFAULT_DISK_ACCOUNT, &token);
     op.make_modify_buf(token);
     op.recency = repli_timestamp_t::invalid;
@@ -74,7 +74,7 @@ void create_proxies(const std::vector<standard_serializer_t *>& underlying,
 
     /* Load config block */
     multiplexer_config_block_t *c = reinterpret_cast<multiplexer_config_block_t *>(ser->malloc());
-    refc_ptr<standard_block_token_t> token;
+    refc_ptr_t<standard_block_token_t> token;
     ser->index_read(CONFIG_BLOCK_ID.ser_id, &token);
     ser->block_read(token, c, DEFAULT_DISK_ACCOUNT);
 
@@ -136,7 +136,7 @@ serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<standard_se
         /* Load config block */
         multiplexer_config_block_t *c = reinterpret_cast<multiplexer_config_block_t *>(
             underlying[0]->malloc());
-        refc_ptr<standard_block_token_t> token;
+        refc_ptr_t<standard_block_token_t> token;
         underlying[0]->index_read(CONFIG_BLOCK_ID.ser_id, &token);
         underlying[0]->block_read(token, c, DEFAULT_DISK_ACCOUNT);
 
@@ -226,26 +226,26 @@ void translator_serializer_t::index_write(const std::vector<index_write_op_t>& w
     inner->index_write(translated_ops, io_account);
 }
 
-void translator_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb, refc_ptr<standard_block_token_t> *tok_out) {
+void translator_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb, refc_ptr_t<standard_block_token_t> *tok_out) {
     // NULL_BLOCK_ID is special: it indicates no block id specified.
     if (block_id != NULL_BLOCK_ID)
         block_id = translate_block_id(block_id);
     return inner->block_write(buf, block_id, io_account, cb, tok_out);
 }
 
-void translator_serializer_t::block_write(const void *buf, file_account_t *io_account, iocallback_t *cb, refc_ptr<standard_block_token_t> *tok_out) {
+void translator_serializer_t::block_write(const void *buf, file_account_t *io_account, iocallback_t *cb, refc_ptr_t<standard_block_token_t> *tok_out) {
     return inner->block_write(buf, io_account, cb, tok_out);
 }
 
-void translator_serializer_t::block_read(const refc_ptr<standard_block_token_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) {
+void translator_serializer_t::block_read(const refc_ptr_t<standard_block_token_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) {
     return inner->block_read(token, buf, io_account, cb);
 }
 
-void translator_serializer_t::block_read(const refc_ptr<standard_block_token_t>& token, void *buf, file_account_t *io_account) {
+void translator_serializer_t::block_read(const refc_ptr_t<standard_block_token_t>& token, void *buf, file_account_t *io_account) {
     return inner->block_read(token, buf, io_account);
 }
 
-void translator_serializer_t::index_read(block_id_t block_id, refc_ptr<standard_block_token_t> *tok_out) {
+void translator_serializer_t::index_read(block_id_t block_id, refc_ptr_t<standard_block_token_t> *tok_out) {
     return inner->index_read(translate_block_id(block_id), tok_out);
 }
 
@@ -285,7 +285,7 @@ bool translator_serializer_t::get_delete_bit(block_id_t id) {
     return inner->get_delete_bit(translate_block_id(id));
 }
 
-bool translator_serializer_t::offer_read_ahead_buf(block_id_t block_id, void *buf, const refc_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
+bool translator_serializer_t::offer_read_ahead_buf(block_id_t block_id, void *buf, const refc_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
     inner->assert_thread();
 
     // Offer the buffer if we are the correct shard

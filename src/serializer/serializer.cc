@@ -9,7 +9,7 @@ file_account_t *serializer_t::make_io_account(int priority) {
 }
 
 // Blocking block_read implementation
-void serializer_t::block_read(const refc_ptr<standard_block_token_t>& token, void *buf, file_account_t *io_account) {
+void serializer_t::block_read(const refc_ptr_t<standard_block_token_t>& token, void *buf, file_account_t *io_account) {
     struct : public cond_t, public iocallback_t {
         void on_io_complete() { pulse(); }
     } cb;
@@ -18,15 +18,15 @@ void serializer_t::block_read(const refc_ptr<standard_block_token_t>& token, voi
 }
 
 // Blocking block_write implementation
-void serializer_t::block_write(const void *buf, file_account_t *io_account, refc_ptr<standard_block_token_t> *tok_out) {
+void serializer_t::block_write(const void *buf, file_account_t *io_account, refc_ptr_t<standard_block_token_t> *tok_out) {
     serializer_block_write(this, buf, io_account, tok_out);
 }
 
-void serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account, refc_ptr<standard_block_token_t> *tok_out) {
+void serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account, refc_ptr_t<standard_block_token_t> *tok_out) {
     serializer_block_write(this, buf, block_id, io_account, tok_out);
 }
 
-void serializer_t::block_write(const void *buf, file_account_t *io_account, iocallback_t *cb, refc_ptr<standard_block_token_t> *tok_out) {
+void serializer_t::block_write(const void *buf, file_account_t *io_account, iocallback_t *cb, refc_ptr_t<standard_block_token_t> *tok_out) {
     serializer_block_write(this, buf, io_account, cb, tok_out);
 }
 
@@ -76,7 +76,7 @@ struct write_performer_t : public boost::static_visitor<void> {
 
     void operator()(const serializer_write_t::update_t &update) {
         block_write_conds->push_back(new write_cond_t(update.io_callback));
-        refc_ptr<standard_block_token_t> token;
+        refc_ptr_t<standard_block_token_t> token;
         serializer->block_write(update.buf, op->block_id, io_account, block_write_conds->back(), &token);
         op->make_modify_buf(token);
         if (update.launch_callback) {
@@ -86,7 +86,7 @@ struct write_performer_t : public boost::static_visitor<void> {
     }
 
     void operator()(UNUSED const serializer_write_t::delete_t &del) {
-        op->make_modify_buf(refc_ptr<standard_block_token_t>());
+        op->make_modify_buf(refc_ptr_t<standard_block_token_t>());
         op->recency = repli_timestamp_t::invalid;
     }
 

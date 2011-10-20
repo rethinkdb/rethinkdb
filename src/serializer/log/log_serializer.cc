@@ -269,7 +269,7 @@ perfmon_counter_t pm_serializer_block_writes("serializer_block_writes");
 perfmon_duration_sampler_t pm_serializer_index_writes("serializer_index_writes", secs_to_ticks(1));
 perfmon_sampler_t pm_serializer_index_writes_size("serializer_index_writes_size", secs_to_ticks(1));
 
-void log_serializer_t::block_read(const refc_ptr<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account) {
+void log_serializer_t::block_read(const refc_ptr_t<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account) {
     struct : public cond_t, public iocallback_t {
         void on_io_complete() { pulse(); }
     } cb;
@@ -279,18 +279,18 @@ void log_serializer_t::block_read(const refc_ptr<ls_block_token_pointee_t>& toke
 
 // TODO(sam): block_read can call the callback before it returns.  Is
 // this acceptable?
-void log_serializer_t::block_read(const refc_ptr<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) {
+void log_serializer_t::block_read(const refc_ptr_t<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) {
     struct my_cb_t : public iocallback_t {
         void on_io_complete() {
             pm_serializer_block_reads.end(&pm_time);
             if (cb) cb->on_io_complete();
             delete this;
         }
-        my_cb_t(iocallback_t *_cb, const refc_ptr<ls_block_token_pointee_t>& _tok) : cb(_cb), tok() {
+        my_cb_t(iocallback_t *_cb, const refc_ptr_t<ls_block_token_pointee_t>& _tok) : cb(_cb), tok() {
             tok.copy_from(_tok);
         }
         iocallback_t *cb;
-        refc_ptr<ls_block_token_pointee_t> tok; // needed to keep it alive for appropriate period of time
+        refc_ptr_t<ls_block_token_pointee_t> tok; // needed to keep it alive for appropriate period of time
         ticks_t pm_time;
     };
 
@@ -310,11 +310,11 @@ void log_serializer_t::block_read(const refc_ptr<ls_block_token_pointee_t>& toke
 
 // God this is such a hack.
 #ifndef SEMANTIC_SERIALIZER_CHECK
-void get_ls_block_token(const refc_ptr<ls_block_token_pointee_t>& tok, refc_ptr<ls_block_token_pointee_t> *tok_out) {
+void get_ls_block_token(const refc_ptr_t<ls_block_token_pointee_t>& tok, refc_ptr_t<ls_block_token_pointee_t> *tok_out) {
     tok_out->copy_from(tok);
 }
 #else
-void get_ls_block_token(const refc_ptr<scs_block_token_t<log_serializer_t> >& tok, refc_ptr<ls_block_token_pointee_t> *tok_out) {
+void get_ls_block_token(const refc_ptr_t<scs_block_token_t<log_serializer_t> >& tok, refc_ptr_t<ls_block_token_pointee_t> *tok_out) {
     if (tok) {
         tok_out->copy_from(tok->inner_token);
     } else {
@@ -344,10 +344,10 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
             const index_write_op_t& op = *write_op_it;
             flagged_off64_t offset = lba_index->get_block_offset(op.block_id);
 
-            refc_ptr<standard_block_token_t> std_token;
+            refc_ptr_t<standard_block_token_t> std_token;
             if (op.wants_modify_buf(&std_token)) {
                 // Update the offset pointed to, and mark garbage/liveness as necessary.
-                refc_ptr<ls_block_token_pointee_t> token;
+                refc_ptr_t<ls_block_token_pointee_t> token;
                 get_ls_block_token(std_token, &token);
 
                 // Mark old offset as garbage
@@ -457,11 +457,11 @@ void log_serializer_t::index_write_finish(index_write_context_t &context, file_a
     }
 }
 
-void log_serializer_t::generate_block_token(off64_t offset, refc_ptr<ls_block_token_pointee_t> *tok_out) {
+void log_serializer_t::generate_block_token(off64_t offset, refc_ptr_t<ls_block_token_pointee_t> *tok_out) {
     tok_out->reset(new ls_block_token_pointee_t(this, offset));
 }
 
-void log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb, refc_ptr<ls_block_token_pointee_t> *tok_out) {
+void log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb, refc_ptr_t<ls_block_token_pointee_t> *tok_out) {
     // TODO: Implement a duration sampler perfmon for this
     pm_serializer_block_writes++;
 
@@ -473,13 +473,13 @@ void log_serializer_t::block_write(const void *buf, block_id_t block_id, file_ac
     generate_block_token(offset, tok_out);
 }
 
-void log_serializer_t::block_write(const void *buf, file_account_t *io_account, iocallback_t *cb, refc_ptr<ls_block_token_pointee_t> *tok_out) {
+void log_serializer_t::block_write(const void *buf, file_account_t *io_account, iocallback_t *cb, refc_ptr_t<ls_block_token_pointee_t> *tok_out) {
     serializer_block_write(this, buf, io_account, cb, tok_out);
 }
-void log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account, refc_ptr<ls_block_token_pointee_t> *tok_out) {
+void log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account, refc_ptr_t<ls_block_token_pointee_t> *tok_out) {
     serializer_block_write(this, buf, block_id, io_account, tok_out);
 }
-void log_serializer_t::block_write(const void *buf, file_account_t *io_account, refc_ptr<ls_block_token_pointee_t> *tok_out) {
+void log_serializer_t::block_write(const void *buf, file_account_t *io_account, refc_ptr_t<ls_block_token_pointee_t> *tok_out) {
     serializer_block_write(this, buf, io_account, tok_out);
 }
 
@@ -591,7 +591,7 @@ block_id_t log_serializer_t::max_block_id() {
     return lba_index->end_block_id();
 }
 
-void log_serializer_t::index_read(block_id_t block_id, refc_ptr<ls_block_token_pointee_t> *tok_out) {
+void log_serializer_t::index_read(block_id_t block_id, refc_ptr_t<ls_block_token_pointee_t> *tok_out) {
     pm_serializer_index_reads++;
 
     assert_thread();
@@ -766,7 +766,7 @@ void log_serializer_t::unregister_read_ahead_cb(serializer_read_ahead_callback_t
     }
 }
 
-bool log_serializer_t::offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, const refc_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
+bool log_serializer_t::offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, const refc_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
     for (size_t i = 0; i < read_ahead_callbacks.size(); ++i) {
         if (read_ahead_callbacks[i]->offer_read_ahead_buf(block_id, buf, token, recency_timestamp)) {
             return true;
@@ -797,10 +797,10 @@ int ls_block_token_pointee_t::home_thread() const {
     return serializer_->home_thread();
 }
 
-void refc_ptr_add_ref(ls_block_token_pointee_t *p) {
-    refc_ptr_prototypical_adjust_ref(p, 1);
+void refc_ptr_t_add_ref(ls_block_token_pointee_t *p) {
+    refc_ptr_t_prototypical_adjust_ref(p, 1);
 }
 
-void refc_ptr_release(ls_block_token_pointee_t *p) {
-    refc_ptr_prototypical_adjust_ref(p, -1);
+void refc_ptr_t_release(ls_block_token_pointee_t *p) {
+    refc_ptr_t_prototypical_adjust_ref(p, -1);
 }

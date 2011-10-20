@@ -56,7 +56,7 @@ class ls_block_token_pointee_t {
     friend class dbm_read_ahead_fsm_t;  // For read-ahead tokens.
 
     template <class T>
-    friend void refc_ptr_prototypical_adjust_ref(T *p, int adjustment);
+    friend void refc_ptr_t_prototypical_adjust_ref(T *p, int adjustment);
 
     ls_block_token_pointee_t(log_serializer_t *serializer, off64_t initial_offset);
 
@@ -70,8 +70,8 @@ class ls_block_token_pointee_t {
     DISABLE_COPYING(ls_block_token_pointee_t);
 };
 
-void refc_ptr_add_ref(ls_block_token_pointee_t *p);
-void refc_ptr_release(ls_block_token_pointee_t *p);
+void refc_ptr_t_add_ref(ls_block_token_pointee_t *p);
+void refc_ptr_t_release(ls_block_token_pointee_t *p);
 
 template <>
 struct serializer_traits_t<log_serializer_t> {
@@ -105,31 +105,31 @@ struct scs_block_info_t {
 template <class inner_serializer_t>
 struct scs_block_token_t {
     scs_block_token_t(block_id_t _block_id, const scs_block_info_t& _info,
-                      const refc_ptr<typename serializer_traits_t<inner_serializer_t>::block_token_type>& tok)
+                      const refc_ptr_t<typename serializer_traits_t<inner_serializer_t>::block_token_type>& tok)
         : block_id(_block_id), info(_info), inner_token(tok), ref_count_(0) {
         rassert(inner_token, "scs_block_token wrapping null token");
     }
 
     block_id_t block_id;    // NULL_BLOCK_ID if not associated with a block id
     scs_block_info_t info;      // invariant: info.state != scs_block_info_t::state_deleted
-    refc_ptr<typename serializer_traits_t<inner_serializer_t>::block_token_type> inner_token;
+    refc_ptr_t<typename serializer_traits_t<inner_serializer_t>::block_token_type> inner_token;
 
     template <class T>
-    friend void refc_ptr_add_ref(scs_block_token_t<T> *p);
+    friend void refc_ptr_t_add_ref(scs_block_token_t<T> *p);
     template <class T>
-    friend void refc_ptr_release(scs_block_token_t<T> *p);
+    friend void refc_ptr_t_release(scs_block_token_t<T> *p);
 private:
     int ref_count_;
 };
 
 template <class inner_serializer_t>
-void refc_ptr_add_ref(scs_block_token_t<inner_serializer_t> *p) {
+void refc_ptr_t_add_ref(scs_block_token_t<inner_serializer_t> *p) {
     UNUSED int64_t res = __sync_add_and_fetch(&p->ref_count_, 1);
     rassert(res > 0);
 }
 
 template <class inner_serializer_t>
-void refc_ptr_release(scs_block_token_t<inner_serializer_t> *p) {
+void refc_ptr_t_release(scs_block_token_t<inner_serializer_t> *p) {
     int64_t res = __sync_sub_and_fetch(&p->ref_count_, 1);
     rassert(res >= 0);
     if (res == 0) {
@@ -147,7 +147,7 @@ struct serializer_traits_t<semantic_checking_serializer_t<inner_serializer_type>
 
 // God this is such a hack (Part 1 of 2)
 inline
-void to_standard_block_token(block_id_t block_id, const refc_ptr<ls_block_token_pointee_t>& tok, refc_ptr< scs_block_token_t<log_serializer_t> > *tok_out) {
+void to_standard_block_token(block_id_t block_id, const refc_ptr_t<ls_block_token_pointee_t>& tok, refc_ptr_t< scs_block_token_t<log_serializer_t> > *tok_out) {
     tok_out->reset(new scs_block_token_t<log_serializer_t>(block_id, scs_block_info_t(), tok));
 }
 
@@ -157,7 +157,7 @@ typedef log_serializer_t standard_serializer_t;
 
 // God this is such a hack (Part 2 of 2)
 inline
-void to_standard_block_token(UNUSED block_id_t block_id, const refc_ptr<ls_block_token_pointee_t>& tok, refc_ptr<ls_block_token_pointee_t> *tok_out) {
+void to_standard_block_token(UNUSED block_id_t block_id, const refc_ptr_t<ls_block_token_pointee_t>& tok, refc_ptr_t<ls_block_token_pointee_t> *tok_out) {
     tok_out->copy_from(tok);
 }
 
@@ -219,7 +219,7 @@ class serializer_read_ahead_callback_t {
 public:
     virtual ~serializer_read_ahead_callback_t() { }
     /* If the callee returns true, it is responsible to free buf by calling free(buf) in the corresponding serializer. */
-    virtual bool offer_read_ahead_buf(block_id_t block_id, void *buf, const refc_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) = 0;
+    virtual bool offer_read_ahead_buf(block_id_t block_id, void *buf, const refc_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) = 0;
 };
 
 #endif  // __SERIALIZER_TYPES_HPP__

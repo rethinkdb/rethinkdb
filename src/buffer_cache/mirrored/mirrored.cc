@@ -141,7 +141,7 @@ private:
     serializer_data_ptr_t data;
 
     // Our block token to the serializer.
-    refc_ptr<standard_block_token_t> token;
+    refc_ptr_t<standard_block_token_t> token;
 
     // The recency of the snapshot we hold.
     repli_timestamp_t subtree_recency;
@@ -222,7 +222,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, bool _shou
 }
 
 // This form of the buf constructor is used when the block exists on disks but has been loaded into buf already
-mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, void *_buf, const refc_ptr<standard_block_token_t>& token, repli_timestamp_t _recency_timestamp)
+mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, void *_buf, const refc_ptr_t<standard_block_token_t>& token, repli_timestamp_t _recency_timestamp)
     : evictable_t(_cache),
       writeback_t::local_buf_t(),
       block_id(_block_id),
@@ -464,7 +464,7 @@ bool mc_inner_buf_t::safe_to_unload() {
 }
 
 // TODO (sam): Look at who's passing this void pointer.
-void mc_inner_buf_t::update_data_token(const void *the_data, const refc_ptr<standard_block_token_t>& token) {
+void mc_inner_buf_t::update_data_token(const void *the_data, const refc_ptr_t<standard_block_token_t>& token) {
     cache->assert_thread();
     // TODO (sam): Obviously this comparison is disgusting.
     if (data.equals(the_data)) {
@@ -1103,7 +1103,7 @@ void mc_cache_t::create(serializer_t *serializer, mirrored_cache_static_config_t
     bzero(superblock, serializer->get_block_size().value());
 
     index_write_op_t op(SUPERBLOCK_ID);
-    refc_ptr<standard_block_token_t> token;
+    refc_ptr_t<standard_block_token_t> token;
     serializer->block_write(superblock, SUPERBLOCK_ID, DEFAULT_DISK_ACCOUNT, &token);
     op.make_modify_buf(token);
     op.recency = repli_timestamp_t::invalid;
@@ -1293,11 +1293,11 @@ void mc_cache_t::on_transaction_commit(transaction_t *txn) {
     }
 }
 
-bool mc_cache_t::offer_read_ahead_buf(block_id_t block_id, void *buf, const refc_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
+bool mc_cache_t::offer_read_ahead_buf(block_id_t block_id, void *buf, const refc_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
     struct offerer_t : public thread_message_t {
         block_id_t block_id;
         void *buf;
-        refc_ptr<standard_block_token_t> token;
+        refc_ptr_t<standard_block_token_t> token;
         repli_timestamp_t recency_timestamp;
         mc_cache_t *cache;
 
@@ -1324,7 +1324,7 @@ bool mc_cache_t::offer_read_ahead_buf(block_id_t block_id, void *buf, const refc
     return true;
 }
 
-void mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, const refc_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
+void mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, const refc_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
     assert_thread();
 
     // Check that the offered block is allowed to be accepted at the current time
