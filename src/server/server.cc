@@ -250,12 +250,9 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                         wait_for_sigint();
 
                         logINF("Waiting for running operations to finish...\n");
-                        debugf("debugf Waiting for running operations to finish...\n");
 
                         /* Slave destructor called here */
                     }
-
-                    debugf("Slave destructor has completed.\n");
 
                     /* query_enabler destructor called here; has the side effect of draining queries. */
 
