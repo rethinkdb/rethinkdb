@@ -457,6 +457,23 @@ void writeback_t::do_concurrent_flush() {
     pm_flushes_writing.end(&start_time);
     --active_flushes;
 
+    // Try again to start the next sync now.  If we didn't do this,
+    // then the following may occur.  If active_flushes ==
+    // max_active_flushes and all the flush operations are waiting for
+    // I/O to complete (they've all passed the previous attempt to
+    // check start_next_sync_immediately), and if we have no active
+    // transactions (because our active transaction is blocked trying
+    // to acquire the dirty block semaphore) then
+    // start_next_sync_immediately will be true and we'll finish all
+    // our flushes without starting a new one, and the transaction
+    // waiting on the dirty block semaphore will never get to go,
+    // which means the flush timer will never be reactivated.  So
+    // we'll have a deadlock. See issue #457.
+    if (start_next_sync_immediately) {
+        start_next_sync_immediately = false;
+        sync(NULL);
+    }
+
     if (active_flushes == 0) {
         if (to_pulse_when_last_active_flush_finishes) {
             to_pulse_when_last_active_flush_finishes->pulse();
