@@ -479,7 +479,7 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
         ASSERT_NO_CORO_WAITING;
 
         // We've cleaned out the t_array and i_array bits.
-        rassert(parent->gc_state.current_entry == NULL);
+        rassert(parent->gc_state.current_entry == NULL, "ugh. %zd garbage blocks left on the extent, %zd i_array blocks, %zd t_array blocks.\n", parent->gc_state.current_entry->g_array.count(), parent->gc_state.current_entry->i_array.count(), parent->gc_state.current_entry->t_array.count());
 
         index_write_ops.clear();  // cleanup index_write_ops under the watchful eyes of ASSERT_NO_CORO_WAITING
     }
