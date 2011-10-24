@@ -785,21 +785,46 @@ ls_block_token_pointee_t::ls_block_token_pointee_t(log_serializer_t *serializer,
     serializer_->register_block_token(this, initial_offset);
 }
 
-void ls_block_token_pointee_t::destroy() {
-    // We used to call do_destroy with coro_t::spawn_on_thread, but
-    // that turned out to be too expensive.  It spawned too many
-    // coroutines in one big non-blocking glomp, probably when
-    // deleting a bunch of patch storage tokens (50MB is just enough
-    // to break 10000 coroutines if we do this).  The function we're
-    // calling doesn't need to run in a coroutine (AND NEVER WILL!) so
-    // this is not a problem.
-
-    one_way_do_on_thread(serializer_->home_thread(), boost::bind(&ls_block_token_pointee_t::do_destroy, this));
-}
-
 void ls_block_token_pointee_t::do_destroy() {
     serializer_->assert_thread();
     rassert(ref_count_ == 0);
     serializer_->unregister_block_token(this);
     delete this;
+}
+
+void adjust_ref(ls_block_token_pointee_t *p, int adjustment) {
+    struct adjuster_t : public linux_thread_message_t {
+        void on_thread_switch() {
+            rassert(p->ref_count_ + adjustment >= 0);
+            p->ref_count_ += adjustment;
+            if (p->ref_count_ == 0) {
+                p->do_destroy();
+            }
+            delete this;
+        }
+        ls_block_token_pointee_t *p;
+        int adjustment;
+    };
+
+    if (get_thread_id() == p->serializer_->home_thread()) {
+        rassert(p->ref_count_ + adjustment >= 0);
+        p->ref_count_ += adjustment;
+        if (p->ref_count_ == 0) {
+            p->do_destroy();
+        }
+    } else {
+        adjuster_t *adjuster = new adjuster_t;
+        adjuster->p = p;
+        adjuster->adjustment = adjustment;
+        UNUSED bool res = continue_on_thread(p->serializer_->home_thread(), adjuster);
+        rassert(!res);
+    }
+}
+
+void intrusive_ptr_add_ref(ls_block_token_pointee_t *p) {
+    adjust_ref(p, 1);
+}
+
+void intrusive_ptr_release(ls_block_token_pointee_t *p) {
+    adjust_ref(p, -1);
 }
