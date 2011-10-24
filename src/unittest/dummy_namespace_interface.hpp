@@ -2,6 +2,7 @@
 #define __UNITTEST_DUMMY_NAMESPACE_INTERFACE_HPP__
 
 #include "utils.hpp"
+#include <boost/bind.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/scoped_ptr.hpp>
 

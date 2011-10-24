@@ -1,6 +1,7 @@
 #ifndef __CONCURRENCY_QUEUE_PASSIVE_PRODUCER_HPP__
 #define __CONCURRENCY_QUEUE_PASSIVE_PRODUCER_HPP__
 
+#include "errors.hpp"
 #include "utils.hpp"
 #include <boost/function.hpp>
 

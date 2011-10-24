@@ -268,15 +268,15 @@ public:
         public home_thread_mixin_t {
         writeback_t *parent;
         mc_buf_t *buf;
-        refc_ptr_t<standard_block_token_t> token;
+        boost::intrusive_ptr<standard_block_token_t> token;
 
     private:
         friend class buf_writer_t;
         cond_t finished_;
 
     public:
-        void on_write_launched(const refc_ptr_t<standard_block_token_t>& tok) {
-            token.copy_from(tok);
+        void on_write_launched(const boost::intrusive_ptr<standard_block_token_t>& tok) {
+            token = tok;
             if (continue_on_thread(home_thread(), this)) on_thread_switch();
         }
         void on_thread_switch() {

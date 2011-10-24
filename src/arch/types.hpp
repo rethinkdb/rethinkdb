@@ -6,14 +6,8 @@
 
 class linux_iocallback_t {
 public:
-    linux_iocallback_t() { }
+    virtual ~linux_iocallback_t() {}
     virtual void on_io_complete() = 0;
-
-protected:
-    virtual ~linux_iocallback_t() { }
-
-    linux_iocallback_t(const linux_iocallback_t&);
-    void operator=(const linux_iocallback_t&);
 };
 
 class linux_thread_pool_t;

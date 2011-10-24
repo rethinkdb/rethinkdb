@@ -3,7 +3,6 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
-#include "arch/runtime/runtime.hpp"
 #include "concurrency/wait_any.hpp"
 #include "logger.hpp"
 #include "replication/backfill_sender.hpp"

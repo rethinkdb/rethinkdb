@@ -1,16 +1,13 @@
 #ifndef __PROTOCOL_REDIS_TYPES_H__
 #define __PROTOCOL_REDIS_TYPES_H__
 
-#include <vector>
-#include <inttypes.h>
-
-#include "errors.hpp"
-#include <boost/shared_ptr.hpp>
-#include <boost/variant.hpp>
-
 #include "serializer/types.hpp"
 #include "buffer_cache/blob.hpp"
 #include "btree/node.hpp"
+#include "boost/shared_ptr.hpp"
+#include "boost/variant.hpp"
+#include <vector>
+#include <inttypes.h>
 
 enum redis_value_type {
     REDIS_STRING,

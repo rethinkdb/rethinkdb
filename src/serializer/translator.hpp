@@ -120,8 +120,8 @@ public:
     void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account);
 
     /* Non-blocking variant */
-    void block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb, refc_ptr_t<standard_block_token_t> *tok_out);
-    void block_write(const void *buf, file_account_t *io_account, iocallback_t *cb, refc_ptr_t<standard_block_token_t> *tok_out);
+    boost::intrusive_ptr<standard_block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb);
+    boost::intrusive_ptr<standard_block_token_t> block_write(const void *buf, file_account_t *io_account, iocallback_t *cb);
 
     block_size_t get_block_size();
 
@@ -136,12 +136,12 @@ public:
     bool get_delete_bit(block_id_t id);
     block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf);
 
-    void block_read(const refc_ptr_t<standard_block_token_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb);
-    void block_read(const refc_ptr_t<standard_block_token_t>& token, void *buf, file_account_t *io_account);
-    void index_read(block_id_t block_id, refc_ptr_t<standard_block_token_t> *tok_out);
+    void block_read(const boost::intrusive_ptr<standard_block_token_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb);
+    void block_read(const boost::intrusive_ptr<standard_block_token_t>& token, void *buf, file_account_t *io_account);
+    boost::intrusive_ptr<standard_block_token_t> index_read(block_id_t block_id);
 
 public:
-    bool offer_read_ahead_buf(block_id_t block_id, void *buf, const refc_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
+    bool offer_read_ahead_buf(block_id_t block_id, void *buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
 };
 
 #endif /* __SERIALIZER_TRANSLATOR_HPP__ */

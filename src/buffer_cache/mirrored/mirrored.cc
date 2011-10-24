@@ -34,12 +34,10 @@ public:
                    bool leave_clone)
         : evictable_t(buf->cache, /* TODO: we can load the data later and we never get added to the page map */ buf->data.has() ? true : false),
           parent(buf), snapshotted_version(buf->version_id),
-          token(),
+          token(buf->data_token),
           subtree_recency(buf->subtree_recency),
           snapshot_refcount(_snapshot_refcount), active_refcount(_active_refcount) {
         cache->assert_thread();
-
-        token.copy_from(buf->data_token);
 
         if (leave_clone) {
             if (buf->data.has()) {
@@ -141,7 +139,7 @@ private:
     serializer_data_ptr_t data;
 
     // Our block token to the serializer.
-    refc_ptr_t<standard_block_token_t> token;
+    boost::intrusive_ptr<standard_block_token_t> token;
 
     // The recency of the snapshot we hold.
     repli_timestamp_t subtree_recency;
@@ -171,7 +169,7 @@ void mc_inner_buf_t::load_inner_buf(bool should_lock, file_account_t *io_account
         on_thread_t thread(cache->serializer->home_thread());
         subtree_recency = cache->serializer->get_recency(block_id);
         // TODO: Merge this initialization with the read itself eventually
-        cache->serializer->index_read(block_id, &data_token);
+        data_token = cache->serializer->index_read(block_id);
         cache->serializer->block_read(data_token, data.get(), io_account);
     }
 
@@ -222,14 +220,14 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, bool _shou
 }
 
 // This form of the buf constructor is used when the block exists on disks but has been loaded into buf already
-mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, void *_buf, const refc_ptr_t<standard_block_token_t>& token, repli_timestamp_t _recency_timestamp)
+mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, void *_buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t _recency_timestamp)
     : evictable_t(_cache),
       writeback_t::local_buf_t(),
       block_id(_block_id),
       subtree_recency(_recency_timestamp),
       data(_buf),
       version_id(_cache->get_min_snapshot_version(_cache->get_current_version_id())),
-      data_token(),
+      data_token(token),
       refcount(0),
       do_delete(false),
       cow_refcount(0),
@@ -237,8 +235,6 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, void *_buf
       block_sequence_id(NULL_BLOCK_SEQUENCE_ID) {
 
     rassert(version_id != faux_version_id);
-
-    data_token.copy_from(token);
 
     array_map_t::constructing_inner_buf(this);
 
@@ -464,12 +460,12 @@ bool mc_inner_buf_t::safe_to_unload() {
 }
 
 // TODO (sam): Look at who's passing this void pointer.
-void mc_inner_buf_t::update_data_token(const void *the_data, const refc_ptr_t<standard_block_token_t>& token) {
+void mc_inner_buf_t::update_data_token(const void *the_data, const boost::intrusive_ptr<standard_block_token_t>& token) {
     cache->assert_thread();
     // TODO (sam): Obviously this comparison is disgusting.
     if (data.equals(the_data)) {
         rassert(!data_token, "data token already up-to-date");
-        data_token.copy_from(token);
+        data_token = token;
         return;
     }
     for (buf_snapshot_t *snap = snapshots.head(); snap; snap = snapshots.next(snap)) {
@@ -478,7 +474,7 @@ void mc_inner_buf_t::update_data_token(const void *the_data, const refc_ptr_t<st
             continue;
         }
         rassert(!snap->token, "snapshot data token already up-to-date");
-        snap->token.copy_from(token);
+        snap->token = token;
         return;
     }
     unreachable("data does not correspond to current buffer or any existing snapshot of it");
@@ -1103,9 +1099,7 @@ void mc_cache_t::create(serializer_t *serializer, mirrored_cache_static_config_t
     bzero(superblock, serializer->get_block_size().value());
 
     index_write_op_t op(SUPERBLOCK_ID);
-    refc_ptr_t<standard_block_token_t> token;
-    serializer->block_write(superblock, SUPERBLOCK_ID, DEFAULT_DISK_ACCOUNT, &token);
-    op.make_modify_buf(token);
+    op.token = serializer->block_write(superblock, SUPERBLOCK_ID, DEFAULT_DISK_ACCOUNT);
     op.recency = repli_timestamp_t::invalid;
     serializer_index_write(serializer, op, DEFAULT_DISK_ACCOUNT);
 
@@ -1293,38 +1287,13 @@ void mc_cache_t::on_transaction_commit(transaction_t *txn) {
     }
 }
 
-bool mc_cache_t::offer_read_ahead_buf(block_id_t block_id, void *buf, const refc_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
-    struct offerer_t : public thread_message_t {
-        block_id_t block_id;
-        void *buf;
-        refc_ptr_t<standard_block_token_t> token;
-        repli_timestamp_t recency_timestamp;
-        mc_cache_t *cache;
-
-        void on_thread_switch() {
-            cache->offer_read_ahead_buf_home_thread(block_id, buf, token, recency_timestamp);
-            delete this;
-        }
-    };
-
-    offerer_t *offerer = new offerer_t;
-    offerer->block_id = block_id;
-    offerer->buf = buf;
-    offerer->token.copy_from(token);
-    offerer->recency_timestamp = recency_timestamp;
-    offerer->cache = this;
-
-    // TODO(sam): What is this comment talking about?
-
+bool mc_cache_t::offer_read_ahead_buf(block_id_t block_id, void *buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
     // Note that the offered block might get deleted between the point where the serializer offers it and the message gets delivered!
-
-    if (continue_on_thread(home_thread(), offerer)) {
-        offerer->on_thread_switch();
-    }
+    do_on_thread(home_thread(), boost::bind(&mc_cache_t::offer_read_ahead_buf_home_thread, this, block_id, buf, token, recency_timestamp));
     return true;
 }
 
-void mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, const refc_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
+void mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
     assert_thread();
 
     // Check that the offered block is allowed to be accepted at the current time

@@ -1,6 +1,8 @@
 #ifndef __CONCURRENCY_RESETTABLE_COND_VAR_HPP__
 #define __CONCURRENCY_RESETTABLE_COND_VAR_HPP__
 
+#include <boost/scoped_ptr.hpp>
+
 class cond_t;
 class signal_t;
 
@@ -21,7 +23,7 @@ public:
     void rethread(int new_thread);
 private:
     bool state;
-    cond_t *signal;
+    boost::scoped_ptr<cond_t> signal;
 };
 
 #endif /* __CONCURRENCY_RESETTABLE_COND_VAR_HPP__ */

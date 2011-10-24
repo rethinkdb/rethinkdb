@@ -183,9 +183,7 @@ void mock_cache_t::create(serializer_t *serializer, UNUSED mirrored_cache_static
     bzero(superblock, serializer->get_block_size().value());
 
     index_write_op_t op(SUPERBLOCK_ID);
-    refc_ptr_t<standard_block_token_t> token;
-    serializer->block_write(superblock, SUPERBLOCK_ID, DEFAULT_DISK_ACCOUNT, &token);
-    op.make_modify_buf(token);
+    op.token = serializer->block_write(superblock, SUPERBLOCK_ID, DEFAULT_DISK_ACCOUNT);
     op.recency = repli_timestamp_t::invalid;
     serializer_index_write(serializer, op, DEFAULT_DISK_ACCOUNT);
 
@@ -209,9 +207,7 @@ mock_cache_t::mock_cache_t( serializer_t *_serializer, UNUSED mirrored_cache_con
         if (!serializer->get_delete_bit(i)) {
             internal_buf_t *internal_buf = bufs[i] = new internal_buf_t(this, i, serializer->get_recency(i));
             read_cb.acquire();
-            refc_ptr_t<standard_block_token_t> token;
-            serializer->index_read(i, &token);
-            serializer->block_read(token, internal_buf->data, DEFAULT_DISK_ACCOUNT, &read_cb);
+            serializer->block_read(serializer->index_read(i), internal_buf->data, DEFAULT_DISK_ACCOUNT, &read_cb);
         }
     }
 
@@ -247,7 +243,7 @@ block_size_t mock_cache_t::get_block_size() {
     return block_size;
 }
 
-bool mock_cache_t::offer_read_ahead_buf(UNUSED block_id_t block_id, UNUSED void *buf, UNUSED const refc_ptr_t<standard_block_token_t>& token, UNUSED repli_timestamp_t recency_timestamp) {
+bool mock_cache_t::offer_read_ahead_buf(UNUSED block_id_t block_id, UNUSED void *buf, UNUSED const boost::intrusive_ptr<standard_block_token_t>& token, UNUSED repli_timestamp_t recency_timestamp) {
     // We never use read-ahead.
     return false;
 }

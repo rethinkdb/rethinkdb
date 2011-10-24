@@ -4,7 +4,7 @@
 #include "concurrency/signal.hpp"
 
 /* A count_down_latch_t pulses its signal_t only after its count_down() method has
-been called a certain number of times. It is safe to call the count_down() method
+been called a certain number of times. It is safe to call the cound_down() method
 on any thread.
 
 NOTE: This class might go away, because there's usually a better way to do

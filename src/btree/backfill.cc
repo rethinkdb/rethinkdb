@@ -173,13 +173,16 @@ void do_agnostic_btree_backfill(value_sizer_t<void> *sizer, btree_slice_t *slice
 
     txn.set_token(slice->post_begin_transaction_checkpoint_.check_through(begin_transaction_token));
 
-    {
-        ASSERT_NO_CORO_WAITING;
+#ifndef NDEBUG
+    boost::scoped_ptr<assert_no_coro_waiting_t> no_coro_waiting(new assert_no_coro_waiting_t());
+#endif
 
-        txn.set_account(backfill_account);
-        txn.snapshot();
+    txn.set_account(backfill_account);
+    txn.snapshot();
 
-    }
+#ifndef NDEBUG
+    no_coro_waiting.reset();
+#endif
 
     btree_parallel_traversal(&txn, slice, &helper);
 }

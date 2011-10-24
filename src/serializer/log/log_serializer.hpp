@@ -123,18 +123,18 @@ public:
     repli_timestamp_t get_recency(block_id_t id);
 
     bool get_delete_bit(block_id_t id);
-    void index_read(block_id_t block_id, refc_ptr_t<ls_block_token_pointee_t> *tok_out);
+    boost::intrusive_ptr<ls_block_token_pointee_t> index_read(block_id_t block_id);
 
-    void block_read(const refc_ptr_t<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb);
+    void block_read(const boost::intrusive_ptr<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb);
 
-    void block_read(const refc_ptr_t<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account);
+    void block_read(const boost::intrusive_ptr<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account);
 
     void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account);
 
-    void block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb, refc_ptr_t<ls_block_token_pointee_t> *tok_out);
-    void block_write(const void *buf, file_account_t *io_account, iocallback_t *cb, refc_ptr_t<ls_block_token_pointee_t> *tok_out);
-    void block_write(const void *buf, block_id_t block_id, file_account_t *io_account, refc_ptr_t<ls_block_token_pointee_t> *tok_out);
-    void block_write(const void *buf, file_account_t *io_account, refc_ptr_t<ls_block_token_pointee_t> *tok_out);
+    boost::intrusive_ptr<ls_block_token_pointee_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb);
+    boost::intrusive_ptr<ls_block_token_pointee_t> block_write(const void *buf, file_account_t *io_account, iocallback_t *cb);
+    boost::intrusive_ptr<ls_block_token_pointee_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account);
+    boost::intrusive_ptr<ls_block_token_pointee_t> block_write(const void *buf, file_account_t *io_account);
 
     block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf);
 
@@ -151,10 +151,10 @@ private:
     bool tokens_exist_for_offset(off64_t off);
     void unregister_block_token(ls_block_token_pointee_t *token);
     void remap_block_to_new_offset(off64_t current_offset, off64_t new_offset);
-    void generate_block_token(off64_t offset, refc_ptr_t<ls_block_token_pointee_t> *tok_out);
+    boost::intrusive_ptr<ls_block_token_pointee_t> generate_block_token(off64_t offset);
 
     std::vector<serializer_read_ahead_callback_t*> read_ahead_callbacks;
-    bool offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, const refc_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
+    bool offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
     bool should_perform_read_ahead();
 
     struct index_write_context_t {

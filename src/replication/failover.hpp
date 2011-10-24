@@ -3,9 +3,6 @@
 
 #include <string>
 
-#include "utils.hpp"
-#include <boost/scoped_ptr.hpp>
-
 #include "containers/intrusive_list.hpp"
 #include "server/gated_store.hpp"
 #include "utils.hpp"

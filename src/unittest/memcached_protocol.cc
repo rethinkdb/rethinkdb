@@ -1,5 +1,4 @@
 #include "errors.hpp"
-#include <boost/bind.hpp>
 #include <boost/make_shared.hpp>
 
 #include "buffer_cache/buffer_cache.hpp"

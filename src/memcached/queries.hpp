@@ -7,6 +7,7 @@
 #include "errors.hpp"
 #include <boost/intrusive_ptr.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/variant.hpp>
 
 #include "config/args.hpp"
 #include "containers/data_buffer.hpp"
@@ -15,6 +16,8 @@
 typedef uint32_t mcflags_t;
 typedef uint32_t exptime_t;
 typedef uint64_t cas_t;
+
+class data_buffer_t;
 
 template <typename T> struct one_way_iterator_t;
 

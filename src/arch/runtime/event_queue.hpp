@@ -1,9 +1,16 @@
+
 #ifndef __ARCH_RUNTIME_EVENT_QUEUE_HPP__
 #define __ARCH_RUNTIME_EVENT_QUEUE_HPP__
 
-#include <string>
+#include <signal.h>
+
+#include "errors.hpp"
+#include <boost/function.hpp>
+#include <boost/scoped_ptr.hpp>
 
 #include "perfmon_types.hpp"
+#include "arch/runtime/runtime_utils.hpp"
+#include "arch/runtime/event_queue_types.hpp"
 
 const int poll_event_in = 1;
 const int poll_event_out = 2;

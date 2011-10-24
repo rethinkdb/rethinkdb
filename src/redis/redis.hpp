@@ -1,6 +1,7 @@
-#ifndef PROTOCOL_REDIS_REDIS_HPP_
-#define PROTOCOL_REDIS_REDIS_HPP_
+#ifndef __PROTOCOL_REDIS_REDIS_HPP__
+#define __PROTOCOL_REDIS_REDIS_HPP__
 
+#include "arch/arch.hpp"
 #include "utils.hpp"
 #include "redis/redis_types.hpp"
 #include <boost/shared_ptr.hpp>
@@ -8,13 +9,13 @@
 #include <deque>
 #include <vector>
 #include <string>
+using std::string;
 
 // For key ranges, we'll split this when I figure stuff out
 #include "memcached/protocol.hpp"
 
 
 struct redis_protocol_t {
-    typedef std::string string;
 
     // Dummy namespace_interface_t expects a temporary cache object. Why?
     struct temporary_cache_t {};
@@ -503,4 +504,4 @@ private:
     btree_slice_t *btree;
 };
 
-#endif /* PROTOCOL_REDIS_REDIS_HPP_ */
+#endif /* __PROTOCOL_REDIS_REDIS_HPP__ */

@@ -1,7 +1,6 @@
 #include "unittest/gtest.hpp"
 
 #include "errors.hpp"
-#include <boost/bind.hpp>
 #include <boost/make_shared.hpp>
 
 #include "unittest/dummy_namespace_interface.hpp"
