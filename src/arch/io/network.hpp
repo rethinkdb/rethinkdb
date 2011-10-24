@@ -21,7 +21,7 @@
 
 class side_coro_handler_t;
 
-/* linux_tcp_conn_t provides a nice wrapper around a TCP network connection. */
+/* linux_tcp_conn_t provides a disgusting wrapper around a TCP network connection. */
 
 class linux_tcp_conn_t :
     public home_thread_mixin_t,
