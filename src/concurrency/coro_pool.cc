@@ -46,14 +46,6 @@ void coro_pool_t::worker_run(UNUSED drain_semaphore_t::lock_t coro_drain_semapho
     --active_worker_count;
 }
 
-void coro_pool_t::rethread(int new_thread) {
-    /* Can't rethread while there are active operations */
-    rassert(active_worker_count == 0);
-    rassert(!source->available->get());
-    real_home_thread = new_thread;
-    coro_drain_semaphore.rethread(new_thread);
-}
-
 void coro_pool_t::drain() {
     assert_thread();
     coro_drain_semaphore.drain();

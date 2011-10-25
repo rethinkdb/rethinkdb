@@ -51,6 +51,7 @@ void drain_semaphore_t::rethread(int new_thread) {
 }
 
 
+
 void drain_semaphore_t::drain() {
     assert_thread();
     draining = true;

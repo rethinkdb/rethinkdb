@@ -109,7 +109,9 @@ void write_http_msg(boost::scoped_ptr<tcp_conn_t> &conn, http_res_t const &res) 
     conn->write(res.body.c_str(), res.body.size());
 }
 
-void http_server_t::handle_conn(boost::scoped_ptr<tcp_conn_t> &conn) {
+void http_server_t::handle_conn(boost::scoped_ptr<nascent_tcp_conn_t> &nconn) {
+    boost::scoped_ptr<tcp_conn_t> conn;
+    nconn->ennervate(conn);
     //BREAKPOINT;
     http_req_t req;
     tcp_http_msg_parser_t http_msg_parser;

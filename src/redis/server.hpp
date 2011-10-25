@@ -24,7 +24,7 @@ private:
     int next_thread;
     boost::scoped_ptr<tcp_listener_t> tcp_listener;
 
-    void handle(boost::scoped_ptr<tcp_conn_t> &conn);
+    void handle(boost::scoped_ptr<nascent_tcp_conn_t> &conn);
 };
 
 #endif /* __REDIS_SERVER_HPP__ */
