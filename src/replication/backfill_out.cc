@@ -46,7 +46,7 @@ public:
                 ASSERT_NO_CORO_WAITING;
 
                 /* We always use the `realtime_mutation_drain_semaphore` on the slice's thread */
-                realtime_mutation_drain_semaphore.rethread(get_thread_id());
+                realtime_mutation_drain_semaphore.reset(new drain_semaphore_t);
 
                 /* Increment the replication clock right as we start the backfill. This
                    makes it so that every operation with timestamp `new_timestamp - 1` will be
@@ -65,7 +65,7 @@ public:
                 shard_->dispatching_store.set_dispatcher(
                     boost::bind(
                     &slice_manager_t::dispatch_change, this,
-                    drain_semaphore_t::lock_t(&realtime_mutation_drain_semaphore),
+                    drain_semaphore_t::lock_t(realtime_mutation_drain_semaphore.get()),
                     _1, _2, _3));
 
                 backfilling_ = true;
@@ -99,7 +99,8 @@ public:
 
             /* Wait for any already-dispatched changes to finish before we let ourselves
             be destroyed */
-            realtime_mutation_drain_semaphore.drain();
+            realtime_mutation_drain_semaphore->drain();
+            realtime_mutation_drain_semaphore.reset();
         }
 
         backfill_and_streaming_manager_t *parent_;
@@ -118,7 +119,8 @@ public:
         cross_thread_limited_fifo_t<boost::function<void()> > backfill_job_queue, realtime_job_queue;
         accounting_queue_t<boost::function<void()> >::account_t backfill_job_account, realtime_job_account;
 
-        drain_semaphore_t realtime_mutation_drain_semaphore;
+        // Its home thread is shard_->home_thread().
+        boost::scoped_ptr<drain_semaphore_t> realtime_mutation_drain_semaphore;
 
         int slice_num_;
         int n_slices_;
