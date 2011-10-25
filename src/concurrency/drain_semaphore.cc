@@ -48,14 +48,6 @@ drain_semaphore_t::lock_t::~lock_t() {
     parent->release();
 }
 
-void drain_semaphore_t::rethread(int new_thread) {
-    rassert(refcount == 0);
-    real_home_thread = new_thread;
-    cond.rethread(new_thread);
-}
-
-
-
 void drain_semaphore_t::drain() {
     assert_thread();
     draining = true;

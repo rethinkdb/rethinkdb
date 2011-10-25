@@ -38,8 +38,6 @@ struct drain_semaphore_t : public home_thread_mixin_t {
     to start. */
     void drain();
 
-    void rethread(int new_thread);
-
 private:
     bool draining;
     int refcount;
