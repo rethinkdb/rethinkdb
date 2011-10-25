@@ -443,7 +443,7 @@ class ForkedMemcachedWrapper(object):
         self.replica_mcs = replica_mc_maker() #should be a list of mcs
         self.test_dir = test_dir
     def __getattr__(self, name):
-        return getattr(random.choice([self.internal_mc] + replica_mcs), name)
+        return getattr(random.choice([self.internal_mc] + self.replica_mcs), name)
 
 class MemcachedWrapperThatRestartsServer(object):
     def __init__(self, opts, server, internal_mc_maker, test_dir):
