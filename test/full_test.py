@@ -280,6 +280,17 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                             "duration"    : 300 },
                           repeat=3, timeout=400)
 
+            do_test("integration/multi_serial_mix.py",
+                    { "auto" : True,
+                      "mode", mode,
+                      "no-valgrind" : not checker,
+                      "valgrind-tool" : valgrind_tool,
+                      "protocol" : protocol,
+                      "cores" : cores,
+                      "slices" : slices,
+                      "duration" : 120 },
+                    repeat=2, timeout=200)
+
     do_test_cloud("integration/serial_mix.py",
                   { "auto"        : True,
                     "mode"        : mode,
