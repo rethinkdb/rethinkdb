@@ -226,6 +226,7 @@ public:
 #endif  // NDEBUG
 
 protected:
+    explicit home_thread_mixin_t(int specified_home_thread);
     home_thread_mixin_t();
     ~home_thread_mixin_t() { }
 

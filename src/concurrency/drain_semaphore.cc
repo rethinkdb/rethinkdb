@@ -2,6 +2,10 @@
 #include "concurrency/signal.hpp"
 
 
+drain_semaphore_t::drain_semaphore_t(int specified_home_thread)
+    : home_thread_mixin_t(specified_home_thread),
+      draining(false), refcount(0),
+      cond(specified_home_thread) { }
 drain_semaphore_t::drain_semaphore_t() : draining(false), refcount(0) { }
 drain_semaphore_t::~drain_semaphore_t() {
     /* Should we assert draining here? Or should we call drain() if
