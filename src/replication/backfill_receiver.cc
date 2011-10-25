@@ -88,12 +88,12 @@ void backfill_receiver_t::send(scoped_malloc<net_backfill_delete_range_t>& msg) 
     store_key_t left, right;
     bool left_supplied = false, right_supplied = false;
 
-    if (msg->low_key_size != 255) {
+    if (msg->low_key_size != net_backfill_delete_range_t::infinity_key_size) {
         left.assign(msg->low_key_size, msg->keys);
         left_supplied = true;
     }
-    if (msg->high_key_size != 255) {
-        right.assign(msg->high_key_size, msg->keys + msg->low_key_size);
+    if (msg->high_key_size != net_backfill_delete_range_t::infinity_key_size) {
+        right.assign(msg->high_key_size, msg->keys + (msg->low_key_size == net_backfill_delete_range_t::infinity_key_size ? 0 : msg->low_key_size));
         right_supplied = true;
     }
     cb->backfill_delete_range(msg->hash_value, msg->hashmod, left_supplied, left, right_supplied, right, token);
