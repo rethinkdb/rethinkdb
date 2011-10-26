@@ -103,8 +103,10 @@ class SubProcess(object):
         try:
             res = wait_with_timeout(self.sub, timeout)
         finally:
-            try: sub.terminate()
-            except: pass
+            try:
+                self.sub.terminate()
+            except:
+                pass
 
         if res is None:
             raise RuntimeError("%r took more than %d seconds to shut down. Output is at %r." % \
