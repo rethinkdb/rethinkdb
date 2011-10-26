@@ -75,7 +75,7 @@ if __name__ == "__main__":
 
 
 
-    def verify_values(test_dir):
+    def verify_values(unused_test_dir):
         # memcache seems to cause connection problems during verification. Switch over to pylibmc...
         original_mclib = opts["mclib"]
         opts["mclib"] = "pylibmc"
@@ -83,12 +83,14 @@ if __name__ == "__main__":
         successes = fails = 0
         for key in mutual_dict:
             value = mc.get(key)
-            if mutual_dict[key] == value: successes += 1
-            elif value is None: fails += 1
+            if mutual_dict[key] == value:
+                successes += 1
+            elif value is None:
+                fails += 1
             else:
                 # If the value was not merely missing, but actually turned into a different value,
                 # then raise an error saying that
-                raise ValueError("Expected %s, got %s" % (repr(value), repr(value2)))
+                raise ValueError("Expected %s, got %s" % (repr(value), repr(mutual_dict[key])))
         mc.disconnect_all()
         opts["mclib"] = original_mclib
         print "Out of %d values written, %d survived the server shutdown." % \
