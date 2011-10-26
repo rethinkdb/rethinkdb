@@ -18,6 +18,7 @@ def signal_with_number(number):
     return str(number)
 
 def wait_with_timeout(process, timeout):
+    "waits with timeout"
     if timeout is None:
         return process.wait()
     else:
@@ -25,7 +26,8 @@ def wait_with_timeout(process, timeout):
         n_intervals = int(timeout / wait_interval) + 1
         while process.poll() is None:
             n_intervals -= 1
-            if n_intervals == 0: break
+            if n_intervals == 0:
+                break
             time.sleep(wait_interval)
         return process.poll()
 
@@ -37,8 +39,10 @@ class SubProcess(object):
             raise RuntimeError("Bad executable: %r does not exist." % command_line[0])
 
         self.summary = os.path.basename(command_line[0])
-        if len(command_line) > 4: self.summary += " " + cmd_join(command_line[1:4]) + " [...]"
-        else: self.summary += " " + cmd_join(command_line[1:])
+        if len(command_line) > 4:
+            self.summary += " " + cmd_join(command_line[1:4]) + " [...]"
+        else:
+            self.summary += " " + cmd_join(command_line[1:])
 
         self.valgrind_tool = valgrind_tool
         if valgrind_tool is not None:
@@ -87,8 +91,10 @@ class SubProcess(object):
     def interrupt(self, timeout = 5):
         self.verify()
 
-        try: self.sub.send_signal(signal.SIGINT)
-        except: pass
+        try:
+            self.sub.send_signal(signal.SIGINT)
+        except:
+            pass
 
         if self.valgrind_tool is not None:
             # Sometimes valgrind loses track of the first SIGINT, especially if it receives it
@@ -123,8 +129,10 @@ class SubProcess(object):
 
     def kill(self):
         self.verify()
-        try: self.sub.terminate()
-        except: pass
+        try:
+            self.sub.terminate()
+        except:
+            pass
 
     def __del__(self):
         # Avoid leaking processes in case there is an error
