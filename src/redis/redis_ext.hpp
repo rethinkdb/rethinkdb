@@ -1,3 +1,6 @@
+#ifndef REDIS_REDIS_EXT_HPP_
+#define REDIS_REDIS_EXT_HPP_
+
 #include "redis/redis.hpp"
 #include "arch/runtime/coroutines.hpp"
 #include "concurrency/wait_any.hpp"
@@ -487,3 +490,5 @@ private:
 #undef CMD_3
 #undef CMD_4
 #undef CMD_N
+
+#endif  // REDIS_REDIS_EXT_HPP_
