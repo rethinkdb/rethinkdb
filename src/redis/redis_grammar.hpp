@@ -95,73 +95,17 @@ private:
     uint64_t connection_id;
     uint64_t subscribed_channels;
 
-    void first_subscribe(std::vector<std::string> &channels, bool patterned) {
-        subscribe(channels, patterned);
+    void first_subscribe(std::vector<std::string> &channels, bool patterned);
 
-        // After subscription we only accept pub/sub commands until unsubscribe
-        parse_pubsub();
-    }
+    void subscribe(std::vector<std::string> &channels, bool patterned);
 
-    void subscribe(std::vector<std::string> &channels, bool patterned) {
-        for(std::vector<std::string>::iterator iter = channels.begin(); iter != channels.end(); iter++) {
-            // Add our subscription
-            if(patterned) subscribed_channels += runtime->subscribe_pattern(*iter, connection_id, this);
-            else          subscribed_channels += runtime->subscribe(*iter, connection_id, this);
-            
-            // Output the successful subscription message
-            std::vector<std::string> subscription_message;
-            subscription_message.push_back(std::string("subscribe"));
-            subscription_message.push_back(*iter);
-            subscription_message.push_back(boost::lexical_cast<std::string>(subscribed_channels));
-            output_response(redis_protocol_t::redis_return_type(subscription_message));
-        }
-    }
+    void unsubscribe(std::vector<std::string> &channels, bool patterned);
 
-    void unsubscribe(std::vector<std::string> &channels, bool patterned) {
-        for(std::vector<std::string>::iterator iter = channels.begin(); iter != channels.end(); iter++) {
-            // Add our subscription
-            if(patterned) subscribed_channels -= runtime->unsubscribe_pattern(*iter, connection_id);
-            else          subscribed_channels -= runtime->unsubscribe(*iter, connection_id);
+    void publish(std::string &channel, std::string &message);
 
-            // Output the sucessful unsubscription message
-            std::vector<std::string> unsubscription_message;
-            unsubscription_message.push_back(std::string("unsubscribe"));
-            unsubscription_message.push_back(*iter);
-            unsubscription_message.push_back(boost::lexical_cast<std::string>(subscribed_channels));
-            output_response(redis_protocol_t::redis_return_type(unsubscription_message));
-        }
-    }
+    void parse_pubsub();
 
-    void publish(std::string &channel, std::string &message) {
-        // This behaves like a normal command. No special states associated here
-        int clients_recieved = runtime->publish(channel, message);
-        output_response(redis_protocol_t::redis_return_type(clients_recieved));
-    }
-
-    void parse_pubsub() {
-        // loop on parse. Parse just pub/sub commands
-
-        while(true) {
-            // Clear data read from the connection
-            const_charslice res = out_conn->peek();
-            size_t len = res.end - res.beg;
-            out_conn->pop(len);
-
-            // parse pub/sub commands
-            qi::parse(out_conn->begin(), out_conn->end(), pubsub);
-
-            if(subscribed_channels == 0) {
-                // We've unsubscribed from all our channels. Leave pub/sub mode.
-                break;
-            }
-        }
-    }
-
-    void pubsub_error() {
-        output_response(redis_protocol_t::error_result(
-            "ERR only (P)SUBSCRIBE / (P)UNSUBSCRIBE / QUIT allowed in this contex"
-        ));
-    }
+    void pubsub_error();
 
 };
 

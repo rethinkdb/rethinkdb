@@ -267,3 +267,78 @@ redis_grammar<Iterator>::redis_grammar(tcp_conn_t *conn, namespace_interface_t<r
 #undef CMD_7
 #undef CMD_N
 
+
+template <class Iterator>
+void redis_grammar<Iterator>::first_subscribe(std::vector<std::string> &channels, bool patterned) {
+    subscribe(channels, patterned);
+
+    // After subscription we only accept pub/sub commands until unsubscribe
+    parse_pubsub();
+}
+
+template <class Iterator>
+void redis_grammar<Iterator>::subscribe(std::vector<std::string> &channels, bool patterned) {
+    for(std::vector<std::string>::iterator iter = channels.begin(); iter != channels.end(); iter++) {
+        // Add our subscription
+        if(patterned) subscribed_channels += runtime->subscribe_pattern(*iter, connection_id, this);
+        else          subscribed_channels += runtime->subscribe(*iter, connection_id, this);
+
+        // Output the successful subscription message
+        std::vector<std::string> subscription_message;
+        subscription_message.push_back(std::string("subscribe"));
+        subscription_message.push_back(*iter);
+        subscription_message.push_back(boost::lexical_cast<std::string>(subscribed_channels));
+        output_response(redis_protocol_t::redis_return_type(subscription_message));
+    }
+}
+
+template <class Iterator>
+void redis_grammar<Iterator>::unsubscribe(std::vector<std::string> &channels, bool patterned) {
+    for(std::vector<std::string>::iterator iter = channels.begin(); iter != channels.end(); iter++) {
+        // Add our subscription
+        if(patterned) subscribed_channels -= runtime->unsubscribe_pattern(*iter, connection_id);
+        else          subscribed_channels -= runtime->unsubscribe(*iter, connection_id);
+
+        // Output the sucessful unsubscription message
+        std::vector<std::string> unsubscription_message;
+        unsubscription_message.push_back(std::string("unsubscribe"));
+        unsubscription_message.push_back(*iter);
+        unsubscription_message.push_back(boost::lexical_cast<std::string>(subscribed_channels));
+        output_response(redis_protocol_t::redis_return_type(unsubscription_message));
+    }
+}
+
+template <class Iterator>
+void redis_grammar<Iterator>::publish(std::string &channel, std::string &message) {
+    // This behaves like a normal command. No special states associated here
+    int clients_recieved = runtime->publish(channel, message);
+    output_response(redis_protocol_t::redis_return_type(clients_recieved));
+}
+
+
+template <class Iterator>
+void redis_grammar<Iterator>::parse_pubsub() {
+    // loop on parse. Parse just pub/sub commands
+
+    while(true) {
+        // Clear data read from the connection
+        const_charslice res = out_conn->peek();
+        size_t len = res.end - res.beg;
+        out_conn->pop(len);
+
+        // parse pub/sub commands
+        qi::parse(out_conn->begin(), out_conn->end(), pubsub);
+
+        if(subscribed_channels == 0) {
+            // We've unsubscribed from all our channels. Leave pub/sub mode.
+            break;
+        }
+    }
+}
+
+template <class Iterator>
+void redis_grammar<Iterator>::pubsub_error() {
+    output_response(redis_protocol_t::error_result(
+        "ERR only (P)SUBSCRIBE / (P)UNSUBSCRIBE / QUIT allowed in this contex"
+    ));
+}
