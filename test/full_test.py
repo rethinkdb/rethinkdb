@@ -282,7 +282,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
 
             do_test("integration/multi_serial_mix.py",
                     { "auto" : True,
-                      "mode", mode,
+                      "mode": mode,
                       "no-valgrind" : not checker,
                       "valgrind-tool" : valgrind_tool,
                       "protocol" : protocol,
