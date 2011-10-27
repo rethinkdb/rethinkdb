@@ -42,7 +42,7 @@ namespace qi = boost::spirit::qi;
 namespace ascii = boost::spirit::ascii;
 namespace px = boost::phoenix;
 
-template <typename Iterator>
+template <class Iterator>
 struct redis_grammar : qi::grammar<Iterator>, redis_output_writer, redis_ext {
     redis_grammar(tcp_conn_t *conn, namespace_interface_t<redis_protocol_t> *intface, pubsub_runtime_t *runtime_);
 
@@ -108,8 +108,6 @@ private:
     void pubsub_error();
 
 };
-
-#include "redis/redis_grammar.tcc"
 
 
 #endif  // REDIS_REDIS_GRAMMAR_HPP_
