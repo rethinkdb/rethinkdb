@@ -8,9 +8,9 @@
 
 #include <boost/variant.hpp>
 
-//Spirit QI
-//Note this result could have been achieved with <boost/spirit/include/qi.hpp> but I expanded
-//it out in the hopes that this would reduce compile time, it did by about half a second
+// Spirit QI
+// Note this result could have been achieved with <boost/spirit/include/qi.hpp> but I expanded
+// it out in the hopes that this would reduce compile time, it did by about half a second
 #include <boost/spirit/home/qi/action/action.hpp>
 #include <boost/spirit/home/qi/char/char.hpp>
 #include <boost/spirit/home/qi/directive/no_case.hpp>
@@ -49,7 +49,7 @@ struct redis_grammar : qi::grammar<Iterator>, redis_output_writer, redis_ext {
 private:
     pubsub_runtime_t *runtime;
 
-    //Support rules
+    // Support rules
     qi::rule<Iterator> eol;
     qi::rule<Iterator, unsigned(unsigned)> args;
     qi::rule<Iterator, unsigned()> args_n;
@@ -68,7 +68,7 @@ private:
     qi::rule<Iterator, std::vector<std::string>(std::string), qi::locals<unsigned> > command_n;
     qi::rule<Iterator, void(), qi::locals<unsigned> > arbitrary_command;
 
-    //Command blocks
+    // Command blocks
     qi::rule<Iterator> commands;
     qi::rule<Iterator> keys1;
     qi::rule<Iterator> keys2;
@@ -78,6 +78,7 @@ private:
     qi::rule<Iterator> hashes2;
     qi::rule<Iterator> start;
     qi::rule<Iterator> sets1;
+
     qi::rule<Iterator> sets2;
     qi::rule<Iterator> lists1;
     qi::rule<Iterator> lists2;
@@ -87,7 +88,7 @@ private:
     qi::rule<Iterator> pubsub_ext;
     qi::rule<Iterator> pubsub;
 
-    
+
     // Pub/sub support
 
     // Randomly generated (and so hopefully unique) id for this connection. Used to identify this connection
@@ -107,6 +108,15 @@ private:
 
     void pubsub_error();
 
+    // Constructor helpers, split between files to make compilation faster.
+    void help_construct_1();
+    void help_construct_2();
+    void help_construct_3();
+    void help_construct_4a();
+    void help_construct_4b();
+    void help_construct_4c();
+    void help_construct_5();
+    void help_construct_6();
 };
 
 
