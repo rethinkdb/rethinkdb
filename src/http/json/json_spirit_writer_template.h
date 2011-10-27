@@ -28,7 +28,7 @@ namespace json_spirit
 
     inline char to_hex_char( unsigned int c )
     {
-        assert( c <= 0xF );
+        rassert( c <= 0xF );
 
         const char ch = static_cast< char >( c );
 
@@ -200,7 +200,7 @@ namespace json_spirit
                 case real_type:  output( value.get_real() );  break;
                 case int_type:   output_int( value );         break;
                 case null_type:  os_ << "null";               break;
-                default: assert( false );
+                default: rassert( false );
             }
         }
 
