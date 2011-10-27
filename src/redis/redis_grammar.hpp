@@ -1,7 +1,6 @@
 #ifndef REDIS_REDIS_GRAMMAR_HPP_
 #define REDIS_REDIS_GRAMMAR_HPP_
 
-#include "redis/redis_proto.hpp"
 #include "redis/redis.hpp"
 #include "redis/redis_ext.hpp"
 #include "redis/pubsub.hpp"
@@ -33,7 +32,7 @@
 
 #include <boost/spirit/include/support_istream_iterator.hpp>
 #include <boost/spirit/include/phoenix.hpp>
-#include <boost/spirit/home/phoenix/bind/bind_function.hpp> 
+#include <boost/spirit/home/phoenix/bind/bind_function.hpp>
 #include <boost/spirit/home/phoenix/core/argument.hpp>
 
 //These aliases greatly reduce typeing. I avoided "using namespce qi" to avoid any
