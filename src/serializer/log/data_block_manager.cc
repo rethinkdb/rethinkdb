@@ -782,7 +782,7 @@ void data_block_manager_t::remove_last_unyoung_entry() {
 }
 
 
-data_block_manager_t::gc_entry::gc_entry(data_block_manager_t *_parent)
+gc_entry::gc_entry(data_block_manager_t *_parent)
     : parent(_parent),
       offset(parent->extent_manager->gen_extent()),
       g_array(parent->static_config->blocks_per_extent()),
@@ -798,7 +798,7 @@ data_block_manager_t::gc_entry::gc_entry(data_block_manager_t *_parent)
     pm_serializer_data_extents++;
 }
 
-data_block_manager_t::gc_entry::gc_entry(data_block_manager_t *_parent, off64_t _offset)
+gc_entry::gc_entry(data_block_manager_t *_parent, off64_t _offset)
     : parent(_parent),
       offset(_offset),
       g_array(parent->static_config->blocks_per_extent()),
@@ -815,20 +815,20 @@ data_block_manager_t::gc_entry::gc_entry(data_block_manager_t *_parent, off64_t 
     pm_serializer_data_extents++;
 }
 
-data_block_manager_t::gc_entry::~gc_entry() {
+gc_entry::~gc_entry() {
     rassert(parent->entries.get(offset / parent->extent_manager->extent_size) == this);
     parent->entries.set(offset / parent->extent_manager->extent_size, NULL);
 
     pm_serializer_data_extents--;
 }
 
-void data_block_manager_t::gc_entry::destroy() {
+void gc_entry::destroy() {
     parent->extent_manager->release_extent(offset);
     delete this;
 }
 
 #ifndef NDEBUG
-void data_block_manager_t::gc_entry::print() {
+void gc_entry::print() {
     debugf("gc_entry:\n");
     debugf("offset: %ld\n", offset);
     for (unsigned int i = 0; i < g_array.size(); i++)
@@ -860,7 +860,7 @@ bool data_block_manager_t::do_we_want_to_start_gcing() const {
 }
 
 /* !< is x less than y */
-bool data_block_manager_t::Less::operator() (const data_block_manager_t::gc_entry *x, const data_block_manager_t::gc_entry *y) {
+bool gc_entry_less::operator() (const gc_entry *x, const gc_entry *y) {
     return x->g_array.count() < y->g_array.count();
 }
 
