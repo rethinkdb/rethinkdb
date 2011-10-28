@@ -1,4 +1,4 @@
-#include "redis_grammar.hpp"
+#include "redis/redis_grammar.hpp"
 
 #include <boost/spirit/home/qi/action/action.hpp>
 // #include <boost/spirit/home/qi/char/char.hpp>
@@ -25,7 +25,7 @@
 #include <boost/spirit/home/phoenix/bind/bind_function.hpp>
 // #include <boost/spirit/home/phoenix/core/argument.hpp>
 
-#include "redis_grammar_internal.hpp"
+#include "redis/redis_grammar_internal.hpp"
 
 template <class Iterator>
 void redis_grammar<Iterator>::help_construct_3() {
