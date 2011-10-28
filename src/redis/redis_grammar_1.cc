@@ -1,5 +1,30 @@
 #include "redis_grammar.hpp"
 
+#include <boost/spirit/home/qi/action/action.hpp>
+#include <boost/spirit/home/qi/char/char.hpp>
+#include <boost/spirit/home/qi/directive/no_case.hpp>
+#include <boost/spirit/home/qi/directive/repeat.hpp>
+#include <boost/spirit/home/qi/directive/as.hpp>
+// #include <boost/spirit/home/qi/nonterminal/rule.hpp>
+// #include <boost/spirit/home/qi/nonterminal/grammar.hpp>
+#include <boost/spirit/home/qi/numeric/uint.hpp>
+#include <boost/spirit/home/qi/numeric/int.hpp>
+// #include <boost/spirit/home/qi/numeric/real.hpp>
+#include <boost/spirit/home/qi/operator/sequence.hpp>
+#include <boost/spirit/home/qi/operator/alternative.hpp>
+// #include <boost/spirit/home/qi/operator/kleene.hpp>
+// #include <boost/spirit/home/qi/operator/plus.hpp>
+// #include <boost/spirit/home/qi/operator/not_predicate.hpp>
+// #include <boost/spirit/home/qi/auxiliary/eps.hpp>
+// #include <boost/spirit/home/qi/parse.hpp>
+// #include <boost/spirit/home/qi/parser.hpp>
+#include <boost/spirit/home/qi/string/lit.hpp>
+
+// #include <boost/spirit/include/support_istream_iterator.hpp>
+#include <boost/spirit/include/phoenix.hpp>
+// #include <boost/spirit/home/phoenix/bind/bind_function.hpp>
+// #include <boost/spirit/home/phoenix/core/argument.hpp>
+
 template <class Iterator>
 void redis_grammar<Iterator>::help_construct_1() {
     eol = qi::lit("\r\n");
