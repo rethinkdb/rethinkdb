@@ -334,6 +334,14 @@ void data_block_manager_t::check_and_handle_empty_extent_later(unsigned int exte
 }
 
 void data_block_manager_t::check_and_handle_outstanding_empty_extents() {
+#ifndef NDEBUG
+    if (potentially_empty_extents.size() != 0) {
+        debugf("We got some potentially empty extents, yo! %zu of them.\n", potentially_empty_extents.size());
+    }
+    // Just have a brutal check to see if this case ever really
+    // happens.
+    rassert(potentially_empty_extents.size() == 0);
+#endif
     for (size_t i = 0; i < potentially_empty_extents.size(); ++i) {
         check_and_handle_empty_extent(potentially_empty_extents[i]);
     }
@@ -477,9 +485,6 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
         parent->serializer->index_write(index_write_ops, parent->choose_gc_io_account());
 
         ASSERT_NO_CORO_WAITING;
-
-        // We've cleaned out the t_array and i_array bits.
-        rassert(parent->gc_state.current_entry == NULL, "ugh. %zd garbage blocks left on the extent, %zd i_array blocks, %zd t_array blocks.\n", parent->gc_state.current_entry->g_array.count(), parent->gc_state.current_entry->i_array.count(), parent->gc_state.current_entry->t_array.count());
 
         index_write_ops.clear();  // cleanup index_write_ops under the watchful eyes of ASSERT_NO_CORO_WAITING
     }
