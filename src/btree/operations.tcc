@@ -296,18 +296,17 @@ void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_lo
         rassert(!leaf::is_full(sizer, reinterpret_cast<const leaf_node_t *>(kv_loc->buf->get_data_read()),
                 key, kv_loc->value.get()));
 
-        kv_loc->buf->apply_patch(new leaf_insert_patch_t(kv_loc->buf->get_block_id(), kv_loc->buf->get_next_patch_counter(),
-                sizer->size(kv_loc->value.get()), kv_loc->value.get(), key->size, key->contents, tstamp));
-
+        leaf_patched_insert(sizer, kv_loc->buf.buf(), key, kv_loc->value.get(), tstamp);
     } else {
         // Delete the value if it's there.
         if (kv_loc->there_originally_was_value) {
-            if(!expired) {
+            // TODO: expired?? What is that doing here?!
+            if (!expired) {
                 rassert(tstamp != repli_timestamp_t::invalid, "Deletes need a valid timestamp now.");
-                kv_loc->buf->apply_patch(new leaf_remove_patch_t(kv_loc->buf->get_block_id(), kv_loc->buf->get_next_patch_counter(), tstamp, key->size, key->contents));
+                leaf_patched_remove(kv_loc->buf.buf(), key, tstamp);
             } else {
                 // Expirations do an erase, not a delete.
-                kv_loc->buf->apply_patch(new leaf_erase_presence_patch_t(kv_loc->buf->get_block_id(), kv_loc->buf->get_next_patch_counter(), key->size, key->contents));
+                leaf_patched_erase_presence(kv_loc->buf.buf(), key);
             }
         }
     }

@@ -3,10 +3,11 @@
 
 #include <string>
 
-#include "buffer_cache/types.hpp"
 #include "config/args.hpp"
 #include "errors.hpp"
 #include "btree/node.hpp"
+#include "btree/buf_patches.hpp"
+#include "buffer_cache/buffer_cache.hpp"
 
 namespace leaf {
 
@@ -1507,5 +1508,20 @@ live_iter_t iter_for_whole_leaf(const leaf_node_t *node) {
 }  // namespace leaf
 
 using leaf::leaf_node_t;
+
+template <class V>
+void leaf_patched_insert(value_sizer_t<V> *sizer, buf_t *node, const btree_key_t *key, const void *value, repli_timestamp_t tstamp) {
+    node->apply_patch(new leaf_insert_patch_t(node->get_block_id(), node->get_next_patch_counter(), sizer->size(value), value, key->size, key->contents, tstamp));
+}
+
+inline
+void leaf_patched_remove(buf_t *node, const btree_key_t *key, repli_timestamp_t tstamp) {
+    node->apply_patch(new leaf_remove_patch_t(node->get_block_id(), node->get_next_patch_counter(), tstamp, key->size, key->contents));
+}
+
+inline
+void leaf_patched_erase_presence(buf_t *node, const btree_key_t *key) {
+    node->apply_patch(new leaf_erase_presence_patch_t(node->get_block_id(), node->get_next_patch_counter(), key->size, key->contents));
+}
 
 #endif  // BTREE_LEAF_NODE_HPP_
