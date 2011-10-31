@@ -40,8 +40,6 @@ btree_metadata_store_t::btree_metadata_store_t(const btree_key_value_store_dynam
     store_.reset(new btree_key_value_store_t(dynamic_config));
 
     // Unpersist stats & create the stat persistence coro
-    // TODO (rntz) should this really be in the constructor? what if it errors?
-    // But how else can I ensure the first unpersist happens before the first persist?
     persistent_stat_t::unpersist_all(this);
     stat_persistence_side_coro_ptr =
         new side_coro_handler_t(boost::bind(&co_persist_stats, this, _1));
