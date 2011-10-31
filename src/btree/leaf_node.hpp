@@ -9,6 +9,31 @@
 #include "btree/buf_patches.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 
+// TODO: Could key_modification_proof_t not go in this file?
+
+// Originally we thought that leaf node modification functions would
+// take a key-modification callback, thus forcing every key/value
+// modification to consider the callback.  The problem is that the
+// user is supposed to call is_full before calling insert, and is_full
+// depends on the value size and can cause a split to happen.  But
+// what if the key modification then wants to change the value size?
+// Then we would need to redo the logic considering whether we want to
+// split the leaf node.  Instead the caller just provides evidence
+// that they considered doing the appropriate value modifications, by
+// constructing one of these dummy values.
+class key_modification_proof_t {
+public:
+    bool is_fake() const { return is_fake_; }
+    // TODO: Get rid of fake_proof, and fakeness.
+    static key_modification_proof_t fake_proof() { return key_modification_proof_t(true); }
+
+    static key_modification_proof_t real_proof() { return key_modification_proof_t(false); }
+private:
+
+    key_modification_proof_t(bool fake) : is_fake_(fake) { }
+    bool is_fake_;
+};
+
 namespace leaf {
 
 // A leaf node is a set of key/value, key/value/modification_time, and
@@ -83,29 +108,6 @@ struct leaf_node_t {
     uint16_t pair_offsets[];
 };
 
-
-// Originally we thought that leaf node modification functions would
-// take a key-modification callback, thus forcing every key/value
-// modification to consider the callback.  The problem is that the
-// user is supposed to call is_full before calling insert, and is_full
-// depends on the value size and can cause a split to happen.  But
-// what if the key modification then wants to change the value size?
-// Then we would need to redo the logic considering whether we want to
-// split the leaf node.  Instead the caller just provides evidence
-// that they considered doing the appropriate key modifications, by
-// constructing one of these dummy values.
-class key_modification_proof_t {
-public:
-    bool is_fake() const { return is_fake_; }
-    // TODO: Get rid of fake_proof, and fakeness.
-    static key_modification_proof_t fake_proof() { return key_modification_proof_t(true); }
-
-    static key_modification_proof_t real_proof() { return key_modification_proof_t(false); }
-private:
-
-    key_modification_proof_t(bool fake) : is_fake_(fake) { }
-    bool is_fake_;
-};
 
 
 
@@ -1540,22 +1542,23 @@ live_iter_t iter_for_whole_leaf(const leaf_node_t *node) {
 using leaf::leaf_node_t;
 
 template <class V>
-void leaf_patched_insert(value_sizer_t<V> *sizer, buf_t *node, const btree_key_t *key, const void *value, repli_timestamp_t tstamp, UNUSED leaf::key_modification_proof_t km_proof) {
+void leaf_patched_insert(value_sizer_t<V> *sizer, buf_t *node, const btree_key_t *key, const void *value, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof) {
     // rassert(!km_proof.is_fake());
     node->apply_patch(new leaf_insert_patch_t(node->get_block_id(), node->get_next_patch_counter(), sizer->size(value), value, key->size, key->contents, tstamp));
 }
 
 inline
-void leaf_patched_remove(buf_t *node, const btree_key_t *key, repli_timestamp_t tstamp, UNUSED leaf::key_modification_proof_t km_proof) {
+void leaf_patched_remove(buf_t *node, const btree_key_t *key, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof) {
     // rassert(!km_proof.is_fake());
     node->apply_patch(new leaf_remove_patch_t(node->get_block_id(), node->get_next_patch_counter(), tstamp, key->size, key->contents));
 }
 
 inline
-void leaf_patched_erase_presence(buf_t *node, const btree_key_t *key, UNUSED leaf::key_modification_proof_t km_proof) {
+void leaf_patched_erase_presence(buf_t *node, const btree_key_t *key, UNUSED key_modification_proof_t km_proof) {
     // TODO: Maybe we don't need key modification proof here.
     // rassert(!km_proof.is_fake());
     node->apply_patch(new leaf_erase_presence_patch_t(node->get_block_id(), node->get_next_patch_counter(), key->size, key->contents));
 }
+
 
 #endif  // BTREE_LEAF_NODE_HPP_

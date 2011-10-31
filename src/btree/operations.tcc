@@ -6,6 +6,8 @@
 #include "buffer_cache/buffer_cache.hpp"
 
 
+
+
 // TODO: consider B#/B* trees to improve space efficiency
 
 // TODO: perhaps allow memory reclamation due to oversplitting? We can
@@ -284,7 +286,7 @@ void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_lo
     value_sizer_t<Value> v_sizer(txn->get_cache()->get_block_size());
     value_sizer_t<void> *sizer = &v_sizer;
 
-    leaf::key_modification_proof_t km_proof = km_callback->value_modification(txn, kv_loc, key);
+    key_modification_proof_t km_proof = km_callback->value_modification(txn, kv_loc, key);
 
     if (kv_loc->value) {
         // We have a value to insert.

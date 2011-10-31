@@ -7,8 +7,6 @@
 #include "buffer_cache/buf_lock.hpp"
 #include "containers/scoped_malloc.hpp"
 #include "btree/node.hpp"
-
-// TODO: Move leaf::key_modification_proof_t to this file.
 #include "btree/leaf_node.hpp"
 
 class btree_slice_t;
@@ -121,6 +119,8 @@ private:
     DISABLE_COPYING(keyvalue_location_t);
 };
 
+
+
 template <class Value>
 class key_modification_callback_t {
 public:
@@ -128,8 +128,7 @@ public:
     // scoped_malloc.  It's the caller's responsibility to have
     // destroyed any blobs that the value might reference, before
     // calling this here, so that this callback can reacquire them.
-    // Returns leaf::key_modification_proof_t::real_proof().
-    virtual leaf::key_modification_proof_t value_modification(transaction_t *txn, keyvalue_location_t<Value> *kv_loc, const btree_key_t *key) = 0;
+    virtual key_modification_proof_t value_modification(transaction_t *txn, keyvalue_location_t<Value> *kv_loc, const btree_key_t *key) = 0;
 
     key_modification_callback_t() { }
 protected:
@@ -171,17 +170,20 @@ private:
 
 template <class Value>
 class null_key_modification_callback_t : public key_modification_callback_t<Value> {
-    leaf::key_modification_proof_t value_modification(UNUSED transaction_t *txn, UNUSED keyvalue_location_t<Value> *kv_loc, UNUSED const btree_key_t *key) {
+    key_modification_proof_t value_modification(UNUSED transaction_t *txn, UNUSED keyvalue_location_t<Value> *kv_loc, UNUSED const btree_key_t *key) {
         // do nothing
-        return leaf::key_modification_proof_t::fake_proof();
+        return key_modification_proof_t::real_proof();
     }
 };
 
 // TODO: Remove all instances of this, each time considering what kind
 // of key modification callback is necessary.
 template <class Value>
-class fake_key_modification_callback_t : public null_key_modification_callback_t<Value> {
-    // empty
+class fake_key_modification_callback_t : public key_modification_callback_t<Value> {
+    key_modification_proof_t value_modification(UNUSED transaction_t *txn, UNUSED keyvalue_location_t<Value> *kv_loc, UNUSED const btree_key_t *key) {
+        // do nothing
+        return key_modification_proof_t::fake_proof();
+    }
 };
 
 
