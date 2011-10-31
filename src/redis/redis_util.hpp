@@ -95,7 +95,8 @@ struct set_oper_t {
     }
 
     ~set_oper_t() {
-        apply_keyvalue_change(txn.get(), &location, btree_key.key(), repli_timestamp_t::invalid);
+        fake_key_modification_callback_t<redis_value_t> fake_cb;
+        apply_keyvalue_change(txn.get(), &location, btree_key.key(), repli_timestamp_t::invalid, &fake_cb);
     }
 
     bool del() {
