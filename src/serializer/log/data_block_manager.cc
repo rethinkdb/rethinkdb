@@ -334,14 +334,6 @@ void data_block_manager_t::check_and_handle_empty_extent_later(unsigned int exte
 }
 
 void data_block_manager_t::check_and_handle_outstanding_empty_extents() {
-#ifndef NDEBUG
-    if (potentially_empty_extents.size() != 0) {
-        debugf("We got some potentially empty extents, yo! %zu of them.\n", potentially_empty_extents.size());
-    }
-    // Just have a brutal check to see if this case ever really
-    // happens.
-    rassert(potentially_empty_extents.size() == 0);
-#endif
     for (size_t i = 0; i < potentially_empty_extents.size(); ++i) {
         check_and_handle_empty_extent(potentially_empty_extents[i]);
     }
