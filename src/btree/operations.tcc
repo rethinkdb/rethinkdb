@@ -296,17 +296,17 @@ void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_lo
         rassert(!leaf::is_full(sizer, reinterpret_cast<const leaf_node_t *>(kv_loc->buf->get_data_read()),
                 key, kv_loc->value.get()));
 
-        leaf_patched_insert(sizer, kv_loc->buf.buf(), key, kv_loc->value.get(), tstamp);
+        leaf_patched_insert(sizer, kv_loc->buf.buf(), key, kv_loc->value.get(), tstamp, leaf::key_modification_proof_t::fake_proof());
     } else {
         // Delete the value if it's there.
         if (kv_loc->there_originally_was_value) {
             // TODO: expired?? What is that doing here?!
             if (!expired) {
                 rassert(tstamp != repli_timestamp_t::invalid, "Deletes need a valid timestamp now.");
-                leaf_patched_remove(kv_loc->buf.buf(), key, tstamp);
+                leaf_patched_remove(kv_loc->buf.buf(), key, tstamp, leaf::key_modification_proof_t::fake_proof());
             } else {
                 // Expirations do an erase, not a delete.
-                leaf_patched_erase_presence(kv_loc->buf.buf(), key);
+                leaf_patched_erase_presence(kv_loc->buf.buf(), key, leaf::key_modification_proof_t::fake_proof());
             }
         }
     }

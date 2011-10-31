@@ -56,7 +56,7 @@ public:
             if (leaf::lookup(sizer_, node, keys_to_delete[i].key(), value.get())) {
                 deleter_->delete_value(txn, value.get());
             }
-            leaf::erase_presence(sizer_, node, keys_to_delete[i].key());
+            leaf::erase_presence(sizer_, node, keys_to_delete[i].key(), leaf::key_modification_proof_t::fake_proof());
         }
     }
 

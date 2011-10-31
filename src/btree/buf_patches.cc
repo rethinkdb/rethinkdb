@@ -87,7 +87,7 @@ uint16_t leaf_insert_patch_t::get_data_size() const {
 
 void leaf_insert_patch_t::apply_to_buf(char *buf_data, block_size_t bs) {
     leaf_node_t *leaf_node = reinterpret_cast<leaf_node_t *>(buf_data);
-    DETEMPLATIZE_LEAF_NODE_OP(leaf::insert, leaf_node, bs, leaf_node, key_buf.get(), value_buf.get(), insertion_time);
+    DETEMPLATIZE_LEAF_NODE_OP(leaf::insert, leaf_node, bs, leaf_node, key_buf.get(), value_buf.get(), insertion_time, leaf::key_modification_proof_t::real_proof());
 }
 
 
@@ -144,7 +144,7 @@ uint16_t leaf_remove_patch_t::get_data_size() const {
 
 void leaf_remove_patch_t::apply_to_buf(char* buf_data, block_size_t bs) {
     leaf_node_t *leaf_node = reinterpret_cast<leaf_node_t *>(buf_data);
-    DETEMPLATIZE_LEAF_NODE_OP(leaf::remove, leaf_node, bs, reinterpret_cast<leaf_node_t *>(buf_data), key_buf.get(), timestamp);
+    DETEMPLATIZE_LEAF_NODE_OP(leaf::remove, leaf_node, bs, reinterpret_cast<leaf_node_t *>(buf_data), key_buf.get(), timestamp, leaf::key_modification_proof_t::real_proof());
 }
 
 
@@ -175,7 +175,7 @@ leaf_erase_presence_patch_t::leaf_erase_presence_patch_t(block_id_t block_id, pa
 
 void leaf_erase_presence_patch_t::apply_to_buf(char *buf_data, block_size_t bs) {
     leaf_node_t *leaf_node = reinterpret_cast<leaf_node_t *>(buf_data);
-    DETEMPLATIZE_LEAF_NODE_OP(leaf::erase_presence, leaf_node, bs, leaf_node, key_buf.get());
+    DETEMPLATIZE_LEAF_NODE_OP(leaf::erase_presence, leaf_node, bs, leaf_node, key_buf.get(), leaf::key_modification_proof_t::real_proof());
 }
 
 void leaf_erase_presence_patch_t::serialize_data(char *destination) const {

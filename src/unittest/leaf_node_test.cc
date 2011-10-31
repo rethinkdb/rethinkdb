@@ -94,7 +94,7 @@ public:
         }
 
         repli_timestamp_t tstamp = NextTimestamp();
-        leaf::insert(&sizer_, node_, k.key(), v.data(), tstamp);
+        leaf::insert(&sizer_, node_, k.key(), v.data(), tstamp, leaf::key_modification_proof_t::real_proof());
 
         kv_[key] = value;
 
@@ -113,7 +113,7 @@ public:
         kv_.erase(key);
 
         repli_timestamp_t tstamp = NextTimestamp();
-        leaf::remove(&sizer_, node_, k.key(), tstamp);
+        leaf::remove(&sizer_, node_, k.key(), tstamp, leaf::key_modification_proof_t::real_proof());
 
         Verify();
 
