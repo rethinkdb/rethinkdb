@@ -648,9 +648,8 @@ endif
 # bug in GNU Make, possibly a bug in our Makefile.
 .SECONDARY: $(PROTO_HEADERS)
 
+NO_DEPS_TARGETS:=clean depclean tags cscope style
 # Include the dependencies into the makefile so that they take effect
-ifneq ($(MAKECMDGOALS), clean)
-ifneq ($(MAKECMDGOALS), depclean)
+ifneq (,$(if $(MAKECMDGOALS),$(filter-out $(NO_DEPS_TARGETS),$(MAKECMDGOALS)),non-empty-placeholder))
 -include $(DEPS)
-endif
 endif
