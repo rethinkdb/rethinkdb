@@ -144,10 +144,6 @@ public:
     value_txn_t(btree_key_t *, keyvalue_location_t<Value>&, repli_timestamp_t, key_modification_callback_t<Value> *km_callback);
     value_txn_t(btree_slice_t *slice, btree_key_t *key, const repli_timestamp_t tstamp, const order_token_t token, key_modification_callback_t<Value> *km_callback);
 
-    // TODO: Where is this copy constructor implemented and how could
-    // this possibly be implemented?
-    //value_txn_t(const value_txn_t&);
-
     ~value_txn_t();
 
     scoped_malloc<Value>& value();
@@ -163,7 +159,7 @@ private:
     // Not owned by this object.
     key_modification_callback_t<Value> *km_callback;
 
-    DISABLE_COPYING(value_txn_t<Value>);
+    DISABLE_COPYING(value_txn_t);
 };
 
 
