@@ -325,15 +325,17 @@ void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_lo
 template <class Value>
 value_txn_t<Value>::value_txn_t(btree_key_t *_key,
                                 keyvalue_location_t<Value>& _kv_location,
-                                repli_timestamp_t _tstamp)
-    : key(_key), tstamp(_tstamp)
+                                repli_timestamp_t _tstamp,
+                                key_modification_callback_t<Value> *_km_callback)
+    : key(_key), tstamp(_tstamp), km_callback(_km_callback)
 {
     kv_location.swap(_kv_location);
 }
 
 template <class Value>
-value_txn_t<Value>::value_txn_t(btree_slice_t *slice, btree_key_t *_key, const repli_timestamp_t _tstamp, const order_token_t token)
-    : key(_key), tstamp(_tstamp)
+value_txn_t<Value>::value_txn_t(btree_slice_t *slice, btree_key_t *_key, const repli_timestamp_t _tstamp, const order_token_t token,
+                                key_modification_callback_t<Value> *_km_callback)
+    : key(_key), tstamp(_tstamp), km_callback(_km_callback)
 {
     got_superblock_t can_haz_superblock;
 
@@ -347,8 +349,7 @@ value_txn_t<Value>::value_txn_t(btree_slice_t *slice, btree_key_t *_key, const r
 
 template <class Value>
 value_txn_t<Value>::~value_txn_t() {
-    fake_key_modification_callback_t<Value> fake_cb;
-    apply_keyvalue_change(txn.get(), &kv_location, key, tstamp, false, &fake_cb);
+    apply_keyvalue_change(txn.get(), &kv_location, key, tstamp, false, km_callback);
 }
 
 template <class Value>

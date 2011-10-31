@@ -122,11 +122,28 @@ private:
 };
 
 template <class Value>
+class key_modification_callback_t {
+public:
+    // Perhaps this modifies the kv_loc in place, swapping in its own
+    // scoped_malloc.  It's the caller's responsibility to have
+    // destroyed any blobs that the value might reference, before
+    // calling this here, so that this callback can reacquire them.
+    // Returns leaf::key_modification_proof_t::real_proof().
+    virtual leaf::key_modification_proof_t value_modification(transaction_t *txn, keyvalue_location_t<Value> *kv_loc, const btree_key_t *key) = 0;
+
+    key_modification_callback_t() { }
+protected:
+    virtual ~key_modification_callback_t() { }
+private:
+    DISABLE_COPYING(key_modification_callback_t);
+};
+
+
+template <class Value>
 class value_txn_t {
 public:
-    value_txn_t();
-    value_txn_t(btree_key_t *, keyvalue_location_t<Value>&, repli_timestamp_t);
-    value_txn_t(btree_slice_t *slice, btree_key_t *key, const repli_timestamp_t tstamp, const order_token_t token);
+    value_txn_t(btree_key_t *, keyvalue_location_t<Value>&, repli_timestamp_t, key_modification_callback_t<Value> *km_callback);
+    value_txn_t(btree_slice_t *slice, btree_key_t *key, const repli_timestamp_t tstamp, const order_token_t token, key_modification_callback_t<Value> *km_callback);
 
     // TODO: Where is this copy constructor implemented and how could
     // this possibly be implemented?
@@ -144,25 +161,13 @@ private:
     keyvalue_location_t<Value> kv_location;
     repli_timestamp_t tstamp;
 
+    // Not owned by this object.
+    key_modification_callback_t<Value> *km_callback;
+
     DISABLE_COPYING(value_txn_t<Value>);
 };
 
-template <class Value>
-class key_modification_callback_t {
-public:
-    // Perhaps this modifies the kv_loc in place, swapping in its own
-    // scoped_malloc.  It's the caller's responsibility to have
-    // destroyed any blobs that the value might reference, before
-    // calling this here, so that this callback can reacquire them.
-    // Returns leaf::key_modification_proof_t::real_proof().
-    virtual leaf::key_modification_proof_t value_modification(transaction_t *txn, keyvalue_location_t<Value> *kv_loc, const btree_key_t *key) = 0;
 
-    key_modification_callback_t() { }
-protected:
-    virtual ~key_modification_callback_t() { }
-private:
-    DISABLE_COPYING(key_modification_callback_t);
-};
 
 template <class Value>
 class null_key_modification_callback_t : public key_modification_callback_t<Value> {
