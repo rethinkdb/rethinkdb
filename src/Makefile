@@ -271,7 +271,7 @@ CXXFLAGS+=-DRETHINKDB_VERSION=\"$(RETHINKDB_VERSION)\"
 SERVER_EXEC_NAME_VERSIONED:=$(SERVER_EXEC_NAME)-$(RETHINKDB_SHORT_VERSION)
 
 ##### Build targets
-.PHONY: all install-binaries install-manpages install-tools install install-rpm install-deb build-deb deb build-rpm rpm rpm-suse10 run rerun gdb regdb sembuild valgrind revalgrind callgrind
+.PHONY: all build-deb build-rpm callgrind callgrind clean cscope deb deb depclean gdb install install-binaries install-deb install-docs install-manpages install-rpm install-tools prepare_deb_package_dirs prepare_rpm_package_dirs regdb rerun revalgrind rpm rpm rpm-suse10 run sembuild showdefines style tags unit valgrind
 
 # High level build targets
 
@@ -531,9 +531,6 @@ ifeq ($(VERBOSE),0)
 endif
 	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_UNIT_TEST_OBJS) $(STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
 
-
-
-
 $(BUILD_DIR)/$(START_DB_NAME):
 	$(QUIET) cp $(SCRIPTS_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(START_DB_NAME)
 
@@ -598,7 +595,6 @@ style:
 showdefines:
 	$(QUIET) $(CXX) $(CXXFLAGS) -m32 -E -dM - < /dev/null
 
-.PHONY: depclean clean
 depclean:
 ifeq ($(VERBOSE),0)
 	@echo "    RM -f $(BUILD_ROOT_DIR)/*.d"
@@ -652,9 +648,8 @@ endif
 # bug in GNU Make, possibly a bug in our Makefile.
 .SECONDARY: $(PROTO_HEADERS)
 
+NO_DEPS_TARGETS:=clean depclean tags cscope style
 # Include the dependencies into the makefile so that they take effect
-ifneq ($(MAKECMDGOALS), clean)
-ifneq ($(MAKECMDGOALS), depclean)
+ifneq (,$(if $(MAKECMDGOALS),$(filter-out $(NO_DEPS_TARGETS),$(MAKECMDGOALS)),non-empty-placeholder))
 -include $(DEPS)
-endif
 endif
