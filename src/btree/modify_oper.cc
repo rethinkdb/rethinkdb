@@ -46,8 +46,8 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
         // Actually update the leaf, if needed.
         if (update_needed) {
             kv_location.value.reinterpret_swap(the_value);
-            fake_key_modification_callback_t<memcached_value_t> fake_cb;
-            apply_keyvalue_change(txn.get(), &kv_location, key, castime.timestamp, expired, &fake_cb);
+            null_key_modification_callback_t<memcached_value_t> null_cb;
+            apply_keyvalue_change(txn.get(), &kv_location, key, castime.timestamp, expired, &null_cb);
         }
     }
 }
