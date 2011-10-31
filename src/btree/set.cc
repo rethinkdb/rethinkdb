@@ -52,7 +52,7 @@ struct btree_set_oper_t : public btree_modify_oper_t {
         // Whatever the case, shrink the old value.
         {
             blob_t b(value->value_ref(), blob::btree_maxreflen);
-            b.unappend_region(txn, b.valuesize());
+            b.clear(txn);
         }
 
         if (data->size() > MAX_VALUE_SIZE) {
@@ -85,7 +85,7 @@ struct btree_set_oper_t : public btree_modify_oper_t {
         } catch (...) {
             // Gotta release ownership of all those bufs first.
             acq.reset();
-            b.unappend_region(txn, b.valuesize());
+            b.clear(txn);
             throw;
         }
 
