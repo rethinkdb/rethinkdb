@@ -206,7 +206,7 @@ public:
         return ptr_;
     }
 
-    // TODO (sam): All uses of this function are disgusting.
+    // TODO: All uses of this function are disgusting.
     bool equals(const void *buf) const {
         return ptr_ == buf;
     }
