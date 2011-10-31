@@ -1,9 +1,6 @@
 #ifndef __BTREE_OPERATIONS_HPP__
 #define __BTREE_OPERATIONS_HPP__
 
-
-#include <boost/scoped_ptr.hpp>
-#include <boost/shared_ptr.hpp>
 #include "utils.hpp"
 #include <boost/scoped_ptr.hpp>
 

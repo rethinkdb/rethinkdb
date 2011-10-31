@@ -284,6 +284,8 @@ void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_lo
     value_sizer_t<Value> v_sizer(txn->get_cache()->get_block_size());
     value_sizer_t<void> *sizer = &v_sizer;
 
+
+
     if (kv_loc->value) {
         // We have a value to insert.
 
