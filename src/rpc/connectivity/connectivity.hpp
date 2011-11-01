@@ -2,6 +2,8 @@
 #define __RPC_CONNECTIVITY_CONNECTIVITY_HPP__
 
 #include <map>
+
+#include "utils.hpp"
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -11,9 +13,9 @@
 #include <boost/serialization/base_object.hpp>
 #include <boost/serialization/binary_object.hpp>
 #include <boost/serialization/utility.hpp>
+
 #include "arch/streamed_tcp.hpp"
 #include "arch/address.hpp"
-#include "utils.hpp"
 #include "concurrency/signal.hpp"
 #include "concurrency/mutex.hpp"
 #include "concurrency/auto_drainer.hpp"
