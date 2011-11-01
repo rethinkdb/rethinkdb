@@ -193,7 +193,7 @@ private:
             rassert(w);
             w->incomplete_count++;
         }
-        explicit incomplete_write_ref_t(const incomplete_write_ref_t &r) : write(r.write) {
+        incomplete_write_ref_t(const incomplete_write_ref_t &r) : write(r.write) {
             if (r.write) {
                 r.write->incomplete_count++;
             }
