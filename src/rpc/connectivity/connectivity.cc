@@ -432,7 +432,7 @@ void connectivity_cluster_t::handle(
                 on `pulse_when_done_reading`, refrain. It may look silly now,
                 but later we will want to read directly off the socket for
                 better performance, and then we will need this code. */
-                std::stringstream stream(message, std::stringstream::in|std::stringstream::binary);
+                std::stringstream stream(message, std::stringstream::in | std::stringstream::binary);
                 cond_t pulse_when_done_reading;
                 coro_t::spawn_now(boost::bind(
                     &connectivity_cluster_t::on_message,
