@@ -130,7 +130,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(s
     /* We currently write the message to a `stringstream`, then serialize that
     as a string. It's horribly inefficient, of course. */
 
-    std::stringstream buffer(std::ios_base::out|std::stringstream::binary);
+    std::stringstream buffer(std::ios_base::out | std::stringstream::binary);
     writer(buffer);
 
 #ifdef CLUSTER_MESSAGE_DEBUGGING
@@ -139,7 +139,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(s
 #endif
 
     if (dest == me) {
-        std::stringstream buffer2(buffer.str(), std::stringstream::in|std::stringstream::binary);
+        std::stringstream buffer2(buffer.str(), std::stringstream::in | std::stringstream::binary);
 
         /* Spawn `on_message()` directly in a new coroutine */
         cond_t pulse_when_done_reading;

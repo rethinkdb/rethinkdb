@@ -92,7 +92,7 @@ artificial_stack_t::~artificial_stack_t() {
 #endif
 
     /* Undo protections changes */
-    mprotect(stack, getpagesize(), PROT_READ|PROT_WRITE);
+    mprotect(stack, getpagesize(), PROT_READ | PROT_WRITE);
 
     /* Release the stack we allocated */
     free(stack);

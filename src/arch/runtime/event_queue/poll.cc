@@ -19,7 +19,7 @@
 
 int user_to_poll(int mode) {
 
-    rassert((mode & (poll_event_in|poll_event_out)) == mode);
+    rassert((mode & (poll_event_in | poll_event_out)) == mode);
 
     int out_mode = 0;
     if (mode & poll_event_in) out_mode |= POLLIN;
@@ -30,7 +30,7 @@ int user_to_poll(int mode) {
 
 int poll_to_user(int mode) {
 
-    rassert((mode & (POLLIN|POLLOUT|POLLERR|POLLHUP|POLLRDHUP)) == mode);
+    rassert((mode & (POLLIN | POLLOUT | POLLERR | POLLHUP | POLLRDHUP)) == mode);
 
     int out_mode = 0;
     if (mode & POLLIN) out_mode |= poll_event_in;
