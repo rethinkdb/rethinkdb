@@ -74,8 +74,12 @@ void metadata_cluster_t<metadata_t>::root_view_t::sync_from(peer_id_t peer, sign
         boost::bind(&metadata_cluster_t<metadata_t>::write_ping, _1, ping_id));
     wait_any_t waiter(&response_cond, &watcher, interruptor);
     waiter.wait_lazily_unordered();
-    if (interruptor->is_pulsed()) throw interrupted_exc_t();
-    if (watcher.is_pulsed()) throw sync_failed_exc_t();
+    if (interruptor->is_pulsed()) {
+        throw interrupted_exc_t();
+    }
+    if (watcher.is_pulsed()) {
+        throw sync_failed_exc_t();
+    }
     rassert(response_cond.is_pulsed());
 }
 
@@ -133,6 +137,7 @@ void metadata_cluster_t<metadata_t>::on_utility_message(peer_id_t sender, std::i
     assert_thread();
     char code;
     stream >> code;
+    // TODO: Hard-coded constants.
     if (code == 'M') {
         metadata_t added_metadata;
         {
@@ -156,6 +161,7 @@ void metadata_cluster_t<metadata_t>::on_utility_message(peer_id_t sender, std::i
             (*it).second->pulse();
         }
     } else {
+        // TODO: Crashing is debatable.
         crash("Unexpected utility message code: %d", (int)code);
     }
 }

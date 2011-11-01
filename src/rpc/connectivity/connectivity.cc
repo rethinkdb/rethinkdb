@@ -227,8 +227,11 @@ void connectivity_cluster_t::handle(
     /* Make sure that if we're ordered to shut down, any pending read or write
     gets interrupted. */
     signal_t::subscription_t conn_closer(boost::bind(&close_conn, conn));
-    if (drainer_lock.get_drain_signal()->is_pulsed()) close_conn(conn);
-    else conn_closer.resubscribe(drainer_lock.get_drain_signal());
+    if (drainer_lock.get_drain_signal()->is_pulsed()) {
+        close_conn(conn);
+    } else {
+        conn_closer.resubscribe(drainer_lock.get_drain_signal());
+    }
 
     /* Each side sends their own ID and address, then receives the other side's.
     */
@@ -315,8 +318,11 @@ void connectivity_cluster_t::handle(
             sender << routing_table_to_send;
         } catch (boost::archive::archive_exception) {
             routing_table.erase(other_id);
-            if (!conn->is_write_open()) return;
-            else throw;
+            if (!conn->is_write_open()) {
+                return;
+            } else {
+                throw;
+            }
         }
 
         /* Receive the follower's routing table */
@@ -325,8 +331,11 @@ void connectivity_cluster_t::handle(
             receiver >> other_routing_table;
         } catch (boost::archive::archive_exception) {
             routing_table.erase(other_id);
-            if (!conn->is_read_open()) return;
-            else throw;
+            if (!conn->is_read_open()) {
+                return;
+            } else {
+                throw;
+            }
         }
 
     } else {
@@ -338,8 +347,11 @@ void connectivity_cluster_t::handle(
             boost::archive::binary_iarchive receiver(conn->get_istream());
             receiver >> other_routing_table;
         } catch (boost::archive::archive_exception) {
-            if (!conn->is_read_open()) return;
-            else throw;
+            if (!conn->is_read_open()) {
+                return;
+            } else {
+                throw;
+            }
         }
 
         std::map<peer_id_t, peer_address_t> routing_table_to_send;
@@ -368,8 +380,11 @@ void connectivity_cluster_t::handle(
             boost::archive::binary_oarchive sender(conn->get_ostream());
             sender << routing_table_to_send;
         } catch (boost::archive::archive_exception) {
-            if (!conn->is_write_open()) return;
-            else throw;
+            if (!conn->is_write_open()) {
+                return;
+            } else {
+                throw;
+            }
         }
     }
 
@@ -446,7 +461,9 @@ void connectivity_cluster_t::handle(
         } catch (boost::archive::archive_exception) {
             /* The exception broke us out of the loop, and that's what we
             wanted. */
-            if (conn->is_read_open()) throw;
+            if (conn->is_read_open()) {
+                throw;
+            }
         }
 
         /* Remove us from the connection map. */
