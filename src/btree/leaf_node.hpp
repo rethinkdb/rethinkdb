@@ -30,7 +30,7 @@ public:
     static key_modification_proof_t real_proof() { return key_modification_proof_t(false); }
 private:
 
-    key_modification_proof_t(bool fake) : is_fake_(fake) { }
+    explicit key_modification_proof_t(bool fake) : is_fake_(fake) { }
     bool is_fake_;
 };
 

@@ -238,7 +238,7 @@ public:
 private:
     friend class linux_tcp_listener_t;
 
-    linux_nascent_tcp_conn_t(fd_t fd);
+    explicit linux_nascent_tcp_conn_t(fd_t fd);
 
 private:
     fd_t fd_;

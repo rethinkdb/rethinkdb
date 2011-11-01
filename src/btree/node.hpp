@@ -151,7 +151,7 @@ struct btree_key_buffer_t {
         memcpy(btree_key.contents, store_key.contents, store_key.size);
     }
 
-    btree_key_buffer_t(std::string &key_string) {
+    explicit btree_key_buffer_t(std::string &key_string) {
         btree_key.size = key_string.size();
         memcpy(btree_key.contents, &key_string.at(0), btree_key.size);
     }
