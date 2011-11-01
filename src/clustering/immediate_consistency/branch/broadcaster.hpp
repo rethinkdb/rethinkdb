@@ -189,11 +189,11 @@ private:
     class incomplete_write_ref_t {
     public:
         incomplete_write_ref_t() { }
-        incomplete_write_ref_t(const boost::shared_ptr<incomplete_write_t> &w) : write(w) {
+        explicit incomplete_write_ref_t(const boost::shared_ptr<incomplete_write_t> &w) : write(w) {
             rassert(w);
             w->incomplete_count++;
         }
-        incomplete_write_ref_t(const incomplete_write_ref_t &r) : write(r.write) {
+        explicit incomplete_write_ref_t(const incomplete_write_ref_t &r) : write(r.write) {
             if (r.write) {
                 r.write->incomplete_count++;
             }

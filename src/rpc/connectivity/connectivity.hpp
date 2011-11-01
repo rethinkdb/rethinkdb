@@ -65,7 +65,7 @@ private:
     friend std::ostream &operator<<(std::ostream &, peer_id_t);
 
     boost::uuids::uuid uuid;
-    peer_id_t(boost::uuids::uuid u) : uuid(u) { }
+    explicit peer_id_t(boost::uuids::uuid u) : uuid(u) { }
 
     friend class boost::serialization::access;
     template<class Archive> void serialize(Archive & ar, UNUSED const unsigned int version) {
@@ -84,7 +84,7 @@ specific peer connecting or disconnecting. */
 struct connectivity_cluster_t;
 
 struct event_watcher_t : public intrusive_list_node_t<event_watcher_t> {
-    event_watcher_t(connectivity_cluster_t *);
+    explicit event_watcher_t(connectivity_cluster_t *);
     virtual ~event_watcher_t();
     virtual void on_connect(peer_id_t) = 0;
     virtual void on_disconnect(peer_id_t) = 0;
@@ -126,7 +126,7 @@ public:
 protected:
     /* Creating a new cluster node, and connecting one cluster to another
     cluster */
-    connectivity_cluster_t(int port);
+    explicit connectivity_cluster_t(int port);
     virtual ~connectivity_cluster_t();
 
     /* TODO: We should have a better mechanism for sending messages to ourself.

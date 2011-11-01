@@ -52,7 +52,7 @@ private:
         inbox[i] = peer;
     }
 public:
-    recording_mailbox_cluster_t(int i) : mailbox_cluster_t(i) { }
+    explicit recording_mailbox_cluster_t(int i) : mailbox_cluster_t(i) { }
     void send(int message, peer_id_t peer) {
         send_utility_message(peer, boost::bind(&write_integer, message, _1));
     }
@@ -72,7 +72,7 @@ private:
         inbox.insert(i);
     }
 public:
-    dummy_mailbox_t(mailbox_cluster_t *c) :
+    explicit dummy_mailbox_t(mailbox_cluster_t *c) :
         mailbox(c, boost::bind(&dummy_mailbox_t::on_message, this, _1, _2))
         { }
     void expect(int message) {
