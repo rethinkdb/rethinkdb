@@ -210,8 +210,12 @@ sending out the connect-notification, receiving messages from the peer until it
 disconnects or we are shut down, and sending out the disconnect-notification. */
 
 static void close_conn(streamed_tcp_conn_t *c) {
-    if (c->is_read_open()) c->shutdown_read();
-    if (c->is_write_open()) c->shutdown_write();
+    if (c->is_read_open()) {
+        c->shutdown_read();
+    }
+    if (c->is_write_open()) {
+        c->shutdown_write();
+    }
 }
 
 
