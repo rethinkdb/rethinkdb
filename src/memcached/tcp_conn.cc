@@ -103,31 +103,11 @@ memcache_listener_t::memcache_listener_t(int port, get_store_t *_get_store, set_
         this, auto_drainer_t::lock_t(&drainer), _1))
     { }
 
-class rethread_tcp_conn_t {
-public:
-    rethread_tcp_conn_t(tcp_conn_t *conn, int thread) : conn_(conn), old_thread_(conn->home_thread()), new_thread_(thread) {
-        conn->rethread(thread);
-        rassert(conn->home_thread() == thread);
-    }
-
-    ~rethread_tcp_conn_t() {
-        rassert(conn_->home_thread() == new_thread_);
-        conn_->rethread(old_thread_);
-        rassert(conn_->home_thread() == old_thread_);
-    }
-
-private:
-    tcp_conn_t *conn_;
-    int old_thread_, new_thread_;
-
-    DISABLE_COPYING(rethread_tcp_conn_t);
-};
-
 static void close_conn_if_open(tcp_conn_t *conn) {
     if (conn->is_read_open()) conn->shutdown_read();
 }
 
-void memcache_listener_t::handle(auto_drainer_t::lock_t keepalive, boost::scoped_ptr<tcp_conn_t> &conn) {
+void memcache_listener_t::handle(auto_drainer_t::lock_t keepalive, boost::scoped_ptr<nascent_tcp_conn_t> &nconn) {
     assert_thread();
 
     block_pm_duration conn_timer(&pm_conns);
@@ -140,13 +120,9 @@ void memcache_listener_t::handle(auto_drainer_t::lock_t keepalive, boost::scoped
     when a shutdown command is delivered on the main thread. */
     cross_thread_signal_t signal_transfer(keepalive.get_drain_signal(), chosen_thread);
 
-    /* Switch to the other thread. We use the `rethread_tcp_conn_t` objects to
-    unregister the conn with the event loop on this thread and to reregister it
-    with the event loop on the new thread, then do the reverse when we switch
-    back. */
-    rethread_tcp_conn_t unregister_conn(conn.get(), INVALID_THREAD);
     on_thread_t thread_switcher(chosen_thread);
-    rethread_tcp_conn_t reregister_conn(conn.get(), get_thread_id());
+    boost::scoped_ptr<tcp_conn_t> conn;
+    nconn->ennervate(conn);
 
     /* Set up an object that will close the network connection when a shutdown signal
     is delivered */

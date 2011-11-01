@@ -311,15 +311,17 @@ struct do_a_subtree_traversal_fsm_t : public node_ready_callback_t {
 
         traversal_state_t *local_state = state;
         int local_level = level;
+        const btree_key_t *local_left_exclusive_or_null = left_exclusive_or_null;
+        const btree_key_t *local_right_inclusive_or_null = right_inclusive_or_null;
 
         if (node::is_leaf(node)) {
             delete this;
-            process_a_leaf_node(local_state, buf, local_level, left_exclusive_or_null, right_inclusive_or_null);
+            process_a_leaf_node(local_state, buf, local_level, local_left_exclusive_or_null, local_right_inclusive_or_null);
         } else {
             rassert(node::is_internal(node));
 
             delete this;
-            process_a_internal_node(local_state, buf, local_level, left_exclusive_or_null, right_inclusive_or_null);
+            process_a_internal_node(local_state, buf, local_level, local_left_exclusive_or_null, local_right_inclusive_or_null);
         }
     }
 };

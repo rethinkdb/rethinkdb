@@ -160,7 +160,8 @@ public:
             slice = create_slice(sm_key);
         }
 
-        value_txn_t<riak_value_t> txn(slice, btree_key_buffer_t(obj.key.begin(), obj.key.end()).key(), repli_timestamp_t::invalid, order_token_t::ignore);
+        fake_key_modification_callback_t<riak_value_t> fake_cb;
+        value_txn_t<riak_value_t> txn(slice, btree_key_buffer_t(obj.key.begin(), obj.key.end()).key(), repli_timestamp_t::invalid, order_token_t::ignore, &fake_cb);
 
         if (!txn.value()) {
             scoped_malloc<riak_value_t> tmp(MAX_RIAK_VALUE_SIZE);

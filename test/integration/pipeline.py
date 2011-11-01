@@ -107,6 +107,10 @@ if __name__ == "__main__":
     op["chunk_size"] = IntFlag("--chunk-size", 10)
     op["num_ints"] = IntFlag("--num-ints", 1000)
     op["num_chunks"] = IntFlag("--num-chunks", 50)
+    op["force_timeout"] = IntFlag("--force-timeout", 0)
     opts = op.parse(sys.argv)
-    timeout = opts["num_ints"] * (0.03 if "mockcache" not in opts["mode"] else 1)
+    if opts["force_timeout"]:
+        timeout = opts["force_timeout"]
+    else:
+        timeout = opts["num_ints"] * (0.03 if "mockcache" not in opts["mode"] else 1)
     auto_server_test_main(test_function, opts, timeout = timeout)

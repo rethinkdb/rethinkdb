@@ -32,12 +32,12 @@ struct redis_protocol_t {
     typedef boost::shared_ptr<write_result_t> write_response_t;
 
     struct status_result {
-        status_result(const char *msg_) : msg(msg_) {;}
+        status_result(const char *_msg) : msg(_msg) { }
         const char *msg;
     };
 
     struct error_result {
-        error_result(const char *msg_) : msg(msg_) {;}
+        error_result(const char *_msg) : msg(_msg) { }
         const char *msg;
     };
 

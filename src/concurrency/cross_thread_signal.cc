@@ -3,10 +3,10 @@
 #include <boost/bind.hpp>
 
 cross_thread_signal_t::cross_thread_signal_t(signal_t *source, int dest) :
+    signal_t(dest),
     source_thread(get_thread_id()), dest_thread(dest),
-    rethreader((signal_t *)this, dest_thread),
     subs(boost::bind(&cross_thread_signal_t::on_signal_pulsed,
-        this, auto_drainer_t::lock_t(&drainer)))
+                     this, auto_drainer_t::lock_t(&drainer)))
 {
     rassert(source->home_thread() == source_thread);
     if (source->is_pulsed()) {

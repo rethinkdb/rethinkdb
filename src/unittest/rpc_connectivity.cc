@@ -20,7 +20,7 @@ struct starter_t : public thread_message_t {
     }
 };
 void run_in_thread_pool(boost::function<void()> fun) {
-    thread_pool_t thread_pool(1);
+    thread_pool_t thread_pool(1, false);
     starter_t starter(&thread_pool, fun);
     thread_pool.run(&starter);
 }

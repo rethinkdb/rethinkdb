@@ -143,7 +143,6 @@ public:
 private:
     std::map<ls_block_token_pointee_t*, off64_t> token_offsets;
     std::multimap<off64_t, ls_block_token_pointee_t*> offset_tokens;
-    cond_t *no_tokens_cond;
 #ifndef NDEBUG
     // Makes sure we get no tokens after we thought that
     bool expecting_no_more_tokens;
@@ -207,6 +206,7 @@ private:
         shutdown_begin,
         shutdown_waiting_on_serializer,
         shutdown_waiting_on_datablock_manager,
+        shutdown_waiting_on_block_tokens,
         shutdown_waiting_on_lba
     } shutdown_state;
     bool shutdown_in_one_shot;

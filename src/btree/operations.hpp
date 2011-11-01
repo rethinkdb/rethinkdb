@@ -1,15 +1,13 @@
 #ifndef __BTREE_OPERATIONS_HPP__
 #define __BTREE_OPERATIONS_HPP__
 
-
-#include <boost/scoped_ptr.hpp>
-#include <boost/shared_ptr.hpp>
 #include "utils.hpp"
 #include <boost/scoped_ptr.hpp>
 
 #include "buffer_cache/buf_lock.hpp"
 #include "containers/scoped_malloc.hpp"
 #include "btree/node.hpp"
+#include "btree/leaf_node.hpp"
 
 class btree_slice_t;
 
@@ -34,7 +32,7 @@ private:
    structure. */
 class real_superblock_t : public superblock_t {
 public:
-    real_superblock_t(buf_lock_t &sb_buf);
+    explicit real_superblock_t(buf_lock_t &sb_buf);
 
     void release();
     void swap_buf(buf_lock_t &swapee);
@@ -59,7 +57,7 @@ private:
  */
 class virtual_superblock_t : public superblock_t {
 public:
-    virtual_superblock_t(block_id_t root_block_id = NULL_BLOCK_ID) : root_block_id_(root_block_id) { }
+    explicit virtual_superblock_t(block_id_t root_block_id = NULL_BLOCK_ID) : root_block_id_(root_block_id) { }
 
     void release() { }
     void swap_buf(buf_lock_t &swapee) {
@@ -121,16 +119,30 @@ private:
     DISABLE_COPYING(keyvalue_location_t);
 };
 
+
+
+template <class Value>
+class key_modification_callback_t {
+public:
+    // Perhaps this modifies the kv_loc in place, swapping in its own
+    // scoped_malloc.  It's the caller's responsibility to have
+    // destroyed any blobs that the value might reference, before
+    // calling this here, so that this callback can reacquire them.
+    virtual key_modification_proof_t value_modification(transaction_t *txn, keyvalue_location_t<Value> *kv_loc, const btree_key_t *key) = 0;
+
+    key_modification_callback_t() { }
+protected:
+    virtual ~key_modification_callback_t() { }
+private:
+    DISABLE_COPYING(key_modification_callback_t);
+};
+
+
 template <class Value>
 class value_txn_t {
 public:
-    value_txn_t();
-    value_txn_t(btree_key_t *, keyvalue_location_t<Value>&, repli_timestamp_t);
-    value_txn_t(btree_slice_t *slice, btree_key_t *key, const repli_timestamp_t tstamp, const order_token_t token);
-
-    // TODO: Where is this copy constructor implemented and how could
-    // this possibly be implemented?
-    //value_txn_t(const value_txn_t&);
+    value_txn_t(btree_key_t *, keyvalue_location_t<Value>&, repli_timestamp_t, key_modification_callback_t<Value> *km_callback);
+    value_txn_t(btree_slice_t *slice, btree_key_t *key, const repli_timestamp_t tstamp, const order_token_t token, key_modification_callback_t<Value> *km_callback);
 
     ~value_txn_t();
 
@@ -144,8 +156,32 @@ private:
     keyvalue_location_t<Value> kv_location;
     repli_timestamp_t tstamp;
 
-    DISABLE_COPYING(value_txn_t<Value>);
+    // Not owned by this object.
+    key_modification_callback_t<Value> *km_callback;
+
+    DISABLE_COPYING(value_txn_t);
 };
+
+
+
+template <class Value>
+class null_key_modification_callback_t : public key_modification_callback_t<Value> {
+    key_modification_proof_t value_modification(UNUSED transaction_t *txn, UNUSED keyvalue_location_t<Value> *kv_loc, UNUSED const btree_key_t *key) {
+        // do nothing
+        return key_modification_proof_t::real_proof();
+    }
+};
+
+// TODO: Remove all instances of this, each time considering what kind
+// of key modification callback is necessary.
+template <class Value>
+class fake_key_modification_callback_t : public key_modification_callback_t<Value> {
+    key_modification_proof_t value_modification(UNUSED transaction_t *txn, UNUSED keyvalue_location_t<Value> *kv_loc, UNUSED const btree_key_t *key) {
+        // do nothing
+        return key_modification_proof_t::fake_proof();
+    }
+};
+
 
 #include "btree/operations.tcc"
 

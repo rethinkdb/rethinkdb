@@ -503,33 +503,6 @@ linux_tcp_conn_t::iterator linux_tcp_conn_t::end() {
     return res;
 }
 
-void linux_tcp_conn_t::rethread(int new_thread) {
-
-    if (home_thread() == get_thread_id() && new_thread == INVALID_THREAD) {
-        rassert(!read_in_progress);
-        rassert(!write_in_progress);
-        rassert(event_watcher);
-        delete event_watcher;
-        event_watcher = NULL;
-
-    } else if (home_thread() == INVALID_THREAD && new_thread == get_thread_id()) {
-        rassert(!event_watcher);
-        event_watcher = new linux_event_watcher_t(sock.get(), this);
-
-    } else {
-        crash("linux_tcp_conn_t can be rethread()ed from no thread to the current thread or "
-            "from the current thread to no thread, but no other combination is legal. The "
-            "current thread is %d; the old thread is %d; the new thread is %d.\n",
-            get_thread_id(), home_thread(), new_thread);
-    }
-
-    real_home_thread = new_thread;
-
-    read_closed.rethread(new_thread);
-    write_closed.rethread(new_thread);
-    write_coro_pool.rethread(new_thread);
-}
-
 void linux_tcp_conn_t::on_event(int events) {
 
     assert_thread();
@@ -666,11 +639,27 @@ bool linux_tcp_conn_t::iterator::operator!=(linux_tcp_conn_t::iterator const &ot
     return !equal(other);
 }
 
+
+linux_nascent_tcp_conn_t::linux_nascent_tcp_conn_t(fd_t fd) : fd_(fd) {
+    rassert(fd != -1);
+}
+
+linux_nascent_tcp_conn_t::~linux_nascent_tcp_conn_t() {
+    rassert(fd_ == -1);
+}
+
+void linux_nascent_tcp_conn_t::ennervate(boost::scoped_ptr<linux_tcp_conn_t>& tcp_conn) {
+    tcp_conn.reset(new linux_tcp_conn_t(fd_));
+    fd_ = -1;
+}
+
+
+
 /* Network listener object */
 
 linux_tcp_listener_t::linux_tcp_listener_t(
         int port,
-        boost::function<void(boost::scoped_ptr<linux_tcp_conn_t>&)> cb) :
+        boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> cb) :
     sock(socket(AF_INET, SOCK_STREAM, 0)),
     event_watcher(sock.get(), this),
     callback(cb),
@@ -779,8 +768,8 @@ void linux_tcp_listener_t::accept_loop(signal_t *shutdown_signal) {
 }
 
 void linux_tcp_listener_t::handle(fd_t socket) {
-    boost::scoped_ptr<linux_tcp_conn_t> conn(new linux_tcp_conn_t(socket));
-    callback(conn);
+    boost::scoped_ptr<linux_nascent_tcp_conn_t> nconn(new linux_nascent_tcp_conn_t(socket));
+    callback(nconn);
 }
 
 linux_tcp_listener_t::~linux_tcp_listener_t() {

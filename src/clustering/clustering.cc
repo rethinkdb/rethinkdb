@@ -25,7 +25,7 @@ int run_server(int argc, char *argv[]) {
     int port = atoi(argv[1]);
 
     server_starter_t ss;
-    thread_pool_t tp(8);
+    thread_pool_t tp(8 /* TODO: Magic constant here. */, false /* TODO: Add --set-affinity option. */);
     ss.thread_pool = &tp;
     ss.fun = boost::bind(&clustering_main, port);
     tp.run(&ss);

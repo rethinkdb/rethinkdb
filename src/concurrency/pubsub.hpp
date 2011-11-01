@@ -59,6 +59,8 @@ private:
     friend class subscription_t;
     friend class publisher_controller_t<subscriber_t>;
 
+    publisher_t(publisher_controller_t<subscriber_t> *p, int specified_home_thread)
+        : home_thread_mixin_t(specified_home_thread), parent(p) { }
     explicit publisher_t(publisher_controller_t<subscriber_t> *p) : parent(p) { }
 
     publisher_controller_t<subscriber_t> *parent;
@@ -86,6 +88,12 @@ struct publisher_controller_t :
     public home_thread_mixin_t
 {
 public:
+    publisher_controller_t(mutex_t *m, int specified_home_thread)
+        : home_thread_mixin_t(specified_home_thread),
+          publisher(this, specified_home_thread),
+          mutex(m),
+          publishing(false) { }
+
     explicit publisher_controller_t(mutex_t *m) :
         publisher(this),
         mutex(m),
@@ -127,15 +135,6 @@ public:
         publishing = false;
 
         swap(*proof, temp);
-    }
-
-    void rethread(int new_thread) {
-
-        rassert(subscriptions.empty(), "Cannot rethread a `publisher_t` that "
-            "has subscribers.");
-
-        real_home_thread = new_thread;
-        publisher.real_home_thread = new_thread;
     }
 
 private:

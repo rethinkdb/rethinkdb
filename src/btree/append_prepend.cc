@@ -3,7 +3,7 @@
 #include "btree/modify_oper.hpp"
 #include "containers/buffer_group.hpp"
 
-struct btree_append_prepend_oper_t : public btree_modify_oper_t<memcached_value_t> {
+struct btree_append_prepend_oper_t : public btree_modify_oper_t {
 
     btree_append_prepend_oper_t(boost::intrusive_ptr<data_buffer_t> _data, bool _append)
         : data(_data), append(_append)
@@ -57,6 +57,6 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t<memcached_value_
 
 append_prepend_result_t btree_append_prepend(const store_key_t &key, btree_slice_t *slice, const boost::intrusive_ptr<data_buffer_t>& data, bool append, castime_t castime, order_token_t token) {
     btree_append_prepend_oper_t oper(data, append);
-    run_btree_modify_oper<memcached_value_t>(&oper, slice, key, castime, token);
+    run_btree_modify_oper(&oper, slice, key, castime, token);
     return oper.result;
 }

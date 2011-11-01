@@ -175,7 +175,7 @@ Note: Union of sets can be implemented as a unque iterator around a merge iterat
 template <class T>
 class unique_filter_iterator_t : public one_way_iterator_t<T> {
 public:
-    unique_filter_iterator_t(one_way_iterator_t<T> *_ownee) : previous(boost::none), ownee(_ownee) { }
+    explicit unique_filter_iterator_t(one_way_iterator_t<T> *_ownee) : previous(boost::none), ownee(_ownee) { }
     ~unique_filter_iterator_t() {
         delete ownee;
     }

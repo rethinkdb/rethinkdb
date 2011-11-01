@@ -238,7 +238,9 @@ public:
 
 private:
     // The wrapping handler
-    void handle(boost::scoped_ptr<linux_tcp_conn_t> &conn) {
+    void handle(boost::scoped_ptr<nascent_tcp_conn_t> &nconn) {
+        boost::scoped_ptr<tcp_conn_t> conn;
+        nconn->ennervate(conn);
         boost::scoped_ptr<streamed_tcp_conn_t> streamed_conn(new streamed_tcp_conn_t(conn));
         callback(streamed_conn);
     }

@@ -1,4 +1,4 @@
-
+.PHONY: build
 LIBS = -lpthread -ldl 
 # Do not include main.cc or python_interface.cc in SRC
 SRC = utils.cc random.cc protocol.cc protocols/sqlite3.c
@@ -33,6 +33,8 @@ CXXFLAGS = -g $(INCLUDE) -I . $(DEFINES) -fPIC # -O3
 
 OBJ = $(addsuffix .o, $(basename $(SRC)))
 
+build: $(EXEC_NAME) $(SO_NAME)
+
 %.o: %.cc $(HEADERS)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
@@ -46,3 +48,4 @@ clean:
 	rm -f *~
 	rm -f *.o
 	rm -f $(EXEC_NAME)
+	rm -f $(SO_NAME)

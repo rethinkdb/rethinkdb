@@ -6,7 +6,7 @@
 #include "containers/scoped_malloc.hpp"
 
 
-struct btree_incr_decr_oper_t : public btree_modify_oper_t<memcached_value_t> {
+struct btree_incr_decr_oper_t : public btree_modify_oper_t {
 
     explicit btree_incr_decr_oper_t(bool _increment, uint64_t _delta)
         : increment(_increment), delta(_delta)
@@ -69,7 +69,7 @@ struct btree_incr_decr_oper_t : public btree_modify_oper_t<memcached_value_t> {
         char tmp[50];
         int chars_written = snprintf(tmp, sizeof(tmp), "%llu", (long long unsigned)number);
         rassert(chars_written <= 49);
-        b.unappend_region(txn, b.valuesize());
+        b.clear(txn);
         b.append_region(txn, chars_written);
         rassert(b.valuesize() == chars_written, "expecting %ld == %d", b.valuesize(), chars_written);
         buffer_group_t group;

@@ -21,13 +21,13 @@
 
 class side_coro_handler_t;
 
-/* linux_tcp_conn_t provides a nice wrapper around a TCP network connection. */
+/* linux_tcp_conn_t provides a disgusting wrapper around a TCP network connection. */
 
 class linux_tcp_conn_t :
     public home_thread_mixin_t,
     private linux_event_callback_t {
 public:
-    friend class linux_tcp_listener_t;
+    friend class linux_nascent_tcp_conn_t;
 
     struct connect_failed_exc_t : public std::exception {
         const char *what() throw () {
@@ -174,9 +174,6 @@ public:
     iterator begin();
     iterator end();
 
-    // Changes the home_thread_mixin_t superclass's real_home_thread.
-    void rethread(int);
-
 private:
     explicit linux_tcp_conn_t(fd_t sock);   // Used by tcp_listener_t
 
@@ -243,6 +240,25 @@ private:
     size_t popped_bytes;
 };
 
+class linux_nascent_tcp_conn_t {
+public:
+    ~linux_nascent_tcp_conn_t();
+
+    // Must get called exactly once during lifetime of this object.
+    // Call it on the thread you'll use the connection on.
+    void ennervate(boost::scoped_ptr<linux_tcp_conn_t>& tcp_conn);
+
+private:
+    friend class linux_tcp_listener_t;
+
+    explicit linux_nascent_tcp_conn_t(fd_t fd);
+
+private:
+    fd_t fd_;
+
+    DISABLE_COPYING(linux_nascent_tcp_conn_t);
+};
+
 /* The linux_tcp_listener_t is used to listen on a network port for incoming
 connections. Create a linux_tcp_listener_t with some port and then call set_callback();
 the provided callback will be called in a new coroutine every time something connects. */
@@ -251,7 +267,7 @@ class linux_tcp_listener_t : public linux_event_callback_t {
 public:
     linux_tcp_listener_t(
         int port,
-        boost::function<void(boost::scoped_ptr<linux_tcp_conn_t>&)> callback
+        boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> callback
         );
     ~linux_tcp_listener_t();
 
@@ -272,7 +288,7 @@ private:
     linux_event_watcher_t event_watcher;
 
     // The callback to call when we get a connection
-    boost::function<void(boost::scoped_ptr<linux_tcp_conn_t>&)> callback;
+    boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> callback;
 
     /* accept_loop() runs in a separate coroutine. It repeatedly tries to accept
     new connections; when accept() blocks, then it waits for events from the

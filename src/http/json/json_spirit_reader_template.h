@@ -160,7 +160,7 @@ namespace json_spirit
     String_type get_str_( typename String_type::const_iterator begin, 
                        typename String_type::const_iterator end )
     {
-        assert( end - begin >= 2 );
+        rassert( end - begin >= 2 );
 
         typedef typename String_type::const_iterator Iter_type;
 
@@ -212,35 +212,35 @@ namespace json_spirit
 
         void begin_obj( UNUSED Char_type c )
         {
-            assert( c == '{' );
+            rassert( c == '{' );
 
             begin_compound< Object_type >();
         }
 
         void end_obj( UNUSED Char_type c )
         {
-            assert( c == '}' );
+            rassert( c == '}' );
 
             end_compound();
         }
 
         void begin_array( UNUSED Char_type c )
         {
-            assert( c == '[' );
+            rassert( c == '[' );
      
             begin_compound< Array_type >();
         }
 
         void end_array( UNUSED Char_type c )
         {
-            assert( c == ']' );
+            rassert( c == ']' );
 
             end_compound();
         }
 
         void new_name( Iter_type begin, Iter_type end )
         {
-            assert( current_p_->type() == obj_type );
+            rassert( current_p_->type() == obj_type );
 
             name_ = get_str< String_type >( begin, end );
         }
@@ -252,21 +252,21 @@ namespace json_spirit
 
         void new_true( UNUSED Iter_type begin,  UNUSED Iter_type end )
         {
-            assert( is_eq( begin, end, "true" ) );
+            rassert( is_eq( begin, end, "true" ) );
 
             add_to_current( true );
         }
 
         void new_false( UNUSED Iter_type begin, UNUSED Iter_type end )
         {
-            assert( is_eq( begin, end, "false" ) );
+            rassert( is_eq( begin, end, "false" ) );
 
             add_to_current( false );
         }
 
         void new_null( UNUSED Iter_type begin, UNUSED Iter_type end )
         {
-            assert( is_eq( begin, end, "null" ) );
+            rassert( is_eq( begin, end, "null" ) );
 
             add_to_current( Value_type() );
         }
@@ -293,7 +293,7 @@ namespace json_spirit
 
         Value_type* add_first( const Value_type& value )
         {
-            assert( current_p_ == 0 );
+            rassert( current_p_ == 0 );
 
             value_ = value;
             current_p_ = &value_;
@@ -340,7 +340,7 @@ namespace json_spirit
                 return &current_p_->get_array().back(); 
             }
             
-            assert( current_p_->type() == obj_type );
+            rassert( current_p_->type() == obj_type );
 
             return &Config_type::add( current_p_->get_obj(), name_, value );
         }
@@ -565,7 +565,7 @@ namespace json_spirit
 
         if( !info.hit )
         {
-            assert( false ); // in theory exception should already have been thrown
+            rassert( false ); // in theory exception should already have been thrown
             throw_error( info.stop, "error" );
         }
 

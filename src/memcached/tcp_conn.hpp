@@ -29,7 +29,7 @@ private:
 
     tcp_listener_t tcp_listener;
 
-    void handle(auto_drainer_t::lock_t keepalive, boost::scoped_ptr<tcp_conn_t>& conn);
+    void handle(auto_drainer_t::lock_t keepalive, boost::scoped_ptr<nascent_tcp_conn_t>& conn);
 };
 
 #endif /* __MEMCACHED_TCP_CONN_HPP__ */

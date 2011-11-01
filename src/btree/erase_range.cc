@@ -56,7 +56,7 @@ public:
             if (leaf::lookup(sizer_, node, keys_to_delete[i].key(), value.get())) {
                 deleter_->delete_value(txn, value.get());
             }
-            leaf::erase_presence(sizer_, node, keys_to_delete[i].key());
+            leaf::erase_presence(sizer_, node, keys_to_delete[i].key(), key_modification_proof_t::fake_proof());
         }
     }
 
@@ -100,8 +100,8 @@ public:
     // Checks if (x_l_excl, x_r_incl] intersects (y_l_excl, y_r_incl].
     static bool overlaps(const btree_key_t *x_l_excl, const btree_key_t *x_r_incl,
                          const btree_key_t *y_l_excl, const btree_key_t *y_r_incl) {
-        return (x_l_excl == NULL || sized_strcmp(x_l_excl->contents, x_l_excl->size, y_r_incl->contents, y_r_incl->size) < 0)
-            && (x_r_incl == NULL || sized_strcmp(y_l_excl->contents, y_l_excl->size, x_r_incl->contents, x_r_incl->size) < 0);
+        return (x_l_excl == NULL || y_r_incl == NULL || sized_strcmp(x_l_excl->contents, x_l_excl->size, y_r_incl->contents, y_r_incl->size) < 0)
+            && (x_r_incl == NULL || y_l_excl == NULL || sized_strcmp(y_l_excl->contents, y_l_excl->size, x_r_incl->contents, x_r_incl->size) < 0);
     }
 
 private:
