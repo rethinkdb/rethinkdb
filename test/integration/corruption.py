@@ -75,7 +75,7 @@ if __name__ == "__main__":
 
 
 
-    def verify_values(unused_test_dir):
+    def verify_values(test_dir):
         # memcache seems to cause connection problems during verification. Switch over to pylibmc...
         original_mclib = opts["mclib"]
         opts["mclib"] = "pylibmc"
