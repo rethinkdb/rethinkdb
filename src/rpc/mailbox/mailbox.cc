@@ -140,7 +140,7 @@ void mailbox_cluster_t::on_message(peer_id_t src, std::istream &stream, boost::f
                 dest_address.mailbox_id = dest_mailbox_id;
                 std::ostringstream buffer;
                 buffer << dest_address;
-                logDBG("Message dropped because mailbox %s no longer exists.\n", buffer.str().c_str());
+                logDBG("Message dropped because mailbox %s no longer exists. (This doesn't necessarily indicate a bug.)\n", buffer.str().c_str());
             }
             break;
         }
