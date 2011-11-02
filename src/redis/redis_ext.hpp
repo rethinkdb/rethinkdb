@@ -1,11 +1,14 @@
+#ifndef REDIS_REDIS_EXT_HPP_
+#define REDIS_REDIS_EXT_HPP_
+
 #include "redis/redis.hpp"
-#include "arch/runtime/coroutines.hpp"
-#include "concurrency/wait_any.hpp"
-#include <boost/lexical_cast.hpp>
-#include <boost/bind.hpp>
-#include <boost/variant/get.hpp>
-#include <map>
-#include <list>
+// #include "arch/runtime/coroutines.hpp"
+// #include "concurrency/wait_any.hpp"
+// #include <boost/lexical_cast.hpp>
+// #include <boost/bind.hpp>
+// #include <boost/variant/get.hpp>
+// #include <map>
+// #include <list>
 
 #define CMD_0(CNAME) \
 redis_protocol_t::redis_return_type CNAME() { \
@@ -487,3 +490,5 @@ private:
 #undef CMD_3
 #undef CMD_4
 #undef CMD_N
+
+#endif  // REDIS_REDIS_EXT_HPP_

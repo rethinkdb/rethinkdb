@@ -84,7 +84,7 @@ bool operator!=(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b);
 class dummy_underlying_store_t {
 
 public:
-    dummy_underlying_store_t(dummy_protocol_t::region_t r);
+    explicit dummy_underlying_store_t(dummy_protocol_t::region_t r);
 
     dummy_protocol_t::region_t region;
 

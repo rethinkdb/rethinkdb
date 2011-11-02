@@ -225,7 +225,7 @@ bool data_block_manager_t::should_perform_read_ahead(off64_t offset) {
     return !entry->was_written && serializer->should_perform_read_ahead();
 }
 
-bool data_block_manager_t::read(off64_t off_in, void *buf_out, file_account_t *io_account, iocallback_t *cb) {
+void data_block_manager_t::read(off64_t off_in, void *buf_out, file_account_t *io_account, iocallback_t *cb) {
     rassert(state == state_ready);
 
     if (should_perform_read_ahead(off_in)) {
@@ -236,8 +236,6 @@ bool data_block_manager_t::read(off64_t off_in, void *buf_out, file_account_t *i
         data--;
         dbfile->read_async(off_in, static_config->block_size().ser_value(), data, io_account, cb);
     }
-
-    return false;
 }
 
 /*
@@ -264,9 +262,7 @@ off64_t data_block_manager_t::write(const void *buf_in, block_id_t block_id, boo
         data->block_sequence_id = ++serializer->latest_block_sequence_id;
     }
 
-    if (dbfile->write_async(offset, static_config->block_size().ser_value(), data, io_account, cb)) {
-        cb->on_io_complete();
-    }
+    dbfile->write_async(offset, static_config->block_size().ser_value(), data, io_account, cb);
 
     return offset;
 }
@@ -320,7 +316,7 @@ file_account_t *data_block_manager_t::choose_gc_io_account() {
     // Start going into high priority as soon as the garbage ratio is more than
     // 2% above the configured goal.
     // The idea is that we use the nice i/o account whenever possible, except
-    // if it proofs insufficient to maintain an acceptable garbage ratio, in
+    // if it proves insufficient to maintain an acceptable garbage ratio, in
     // which case we switch over to the high priority account until the situation
     // has improved.
 
@@ -418,8 +414,6 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
     std::vector<block_write_cond_t*> block_write_conds;
     block_write_conds.reserve(num_writes);
 
-    std::vector<index_write_op_t> index_write_ops;
-
     extent_manager_t::transaction_t *em_trx = parent->serializer->extent_manager->begin_transaction();
     // Step 1: Write buffers to disk and assemble index operations
     for (int i = 0; i < num_writes; ++i) {
@@ -439,38 +433,56 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
         delete block_write_conds[i];
     }
 
-    // Step 3: Figure out index ops.  It's important that we do this
-    // now, right before the index_write, so that the updates to the
-    // index are done atomically.
-    {
-        ASSERT_NO_CORO_WAITING;
+    // We just did a blocking operation, so recheck if we can access the current entry.
+    if (parent->gc_state.current_entry != NULL) {
 
-        int num_index_write_ops = 0;
+        std::vector<index_write_op_t> index_write_ops;
 
-        for (int i = 0; i < num_writes; ++i) {
-            unsigned int extent_id = parent->static_config->extent_index(writes[i].old_offset);
-            unsigned int block_id = parent->static_config->block_index(writes[i].old_offset);
+        // Step 3: Figure out index ops.  It's important that we do this
+        // now, right before the index_write, so that the updates to the
+        // index are done atomically.
+        {
+            ASSERT_NO_CORO_WAITING;
 
-            if (parent->entries[extent_id]->i_array[block_id]) {
-                const ls_buf_data_t *data = static_cast<const ls_buf_data_t *>(writes[i].buf) - 1;
-                boost::intrusive_ptr<ls_block_token_pointee_t> token = parent->serializer->generate_block_token(writes[i].new_offset);
-                index_write_ops.push_back(index_write_op_t(data->block_id, to_standard_block_token(data->block_id, token)));
-                ++ num_index_write_ops;
+            for (int i = 0; i < num_writes; ++i) {
+                unsigned int block_id = parent->static_config->block_index(writes[i].old_offset);
+
+                if (parent->gc_state.current_entry->i_array[block_id]) {
+                    const ls_buf_data_t *data = static_cast<const ls_buf_data_t *>(writes[i].buf) - 1;
+                    boost::intrusive_ptr<ls_block_token_pointee_t> token = parent->serializer->generate_block_token(writes[i].new_offset);
+                    index_write_ops.push_back(index_write_op_t(data->block_id, to_standard_block_token(data->block_id, token)));
+                }
+
+                // (If we don't have an i_array entry, the block is referenced
+                // by a non-negative number of tokens only.  These get tokens
+                // remapped later.)
             }
 
-            // (If we don't have an i_array entry, the block is referenced
-            // by a non-negative number of tokens only.  These get tokens
-            // remapped later.)
-        }
-    }
+            // Step 4A: Remap tokens to new offsets.  It is important
+            // that we do this _before_ calling index_write.
+            // Otherwise, the token_offset map would still point to
+            // the extent we're gcing.  Then somebody could do an
+            // index_write after our index_write starts but before it
+            // returns in Step 4 below, resulting in i_array entries
+            // that point to the current entry.  This should empty out
+            // all the t_array bits.
+            for (int i = 0; i < num_writes; ++i) {
+                parent->serializer->remap_block_to_new_offset(writes[i].old_offset, writes[i].new_offset);
+            }
 
-    // Step 4: Commit the transaction to the serializer
-    parent->serializer->index_write(index_write_ops, parent->choose_gc_io_account());
+        }
+
+        // Step 4B: Commit the transaction to the serializer, emptying
+        // out all the i_array bits.
+        parent->serializer->index_write(index_write_ops, parent->choose_gc_io_account());
+
+        ASSERT_NO_CORO_WAITING;
+
+        index_write_ops.clear();  // cleanup index_write_ops under the watchful eyes of ASSERT_NO_CORO_WAITING
+    }
 
     {
         ASSERT_NO_CORO_WAITING;
-
-        index_write_ops.clear(); // cleanup index_write_ops
 
         // Step 5: Call parent
         done = true;
@@ -482,11 +494,7 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
 }
 
 void data_block_manager_t::on_gc_write_done() {
-    // Remap tokens to new offsets...
-    for (size_t i = 0; i < gc_writes.size(); ++i) {
-        serializer->remap_block_to_new_offset(gc_writes[i].old_offset, gc_writes[i].new_offset);
-    }
-    
+
     // Process GC data changes which have been caused by the tokens
     extent_manager_t::transaction_t *em_trx = serializer->extent_manager->begin_transaction();
     check_and_handle_outstanding_empty_extents();
@@ -503,9 +511,11 @@ void data_block_manager_t::run_gc() {
     while (run_again) {
         run_again = false;
         switch (gc_state.step()) {
-            case gc_ready:
-                if (gc_pq.empty() || !should_we_keep_gcing(*gc_pq.peak())) return;
-                
+            case gc_ready: {
+                if (gc_pq.empty() || !should_we_keep_gcing(*gc_pq.peak())) {
+                    return;
+                }
+
                 pm_serializer_data_extents_gced++;
 
                 /* grab the entry */
@@ -523,6 +533,18 @@ void data_block_manager_t::run_gc() {
                 gc_state.gc_read_callback.parent = this;
 
                 rassert(gc_state.refcount == 0);
+
+                // read_async can call the callback immediately, which
+                // will then decrement the refcount (and that's all it
+                // will do if the refcount is not zero).  So we
+                // increment the refcount here and set the step to
+                // gc_read, before any calls to read_async.
+                gc_state.refcount++;
+
+                gc_state.set_step(gc_read);
+#ifndef NDEBUG
+                bool some_read_happened = false;
+#endif
                 for (unsigned int i = 0, bpe = static_config->blocks_per_extent(); i < bpe; i++) {
                     if (!gc_state.current_entry->g_array[i]) {
                         dbfile->read_async(gc_state.current_entry->offset + (i * static_config->block_size().ser_value()),
@@ -530,20 +552,26 @@ void data_block_manager_t::run_gc() {
                                            gc_state.gc_blocks + (i * static_config->block_size().ser_value()),
                                            choose_gc_io_account(),
                                            &(gc_state.gc_read_callback));
+#ifndef NDEBUG
+                        some_read_happened = true;
+#endif
                         gc_state.refcount++;
                     }
                 }
-                rassert(gc_state.refcount > 0);
-                gc_state.set_step(gc_read);
-                break;
-                
+
+                rassert(some_read_happened);
+
+                // Fall through to the gc_read case, where we
+                // decrement the refcount we incremented before the
+                // for loop.
+            }
             case gc_read: {
                 gc_state.refcount--;
                 if (gc_state.refcount > 0) {
                     /* We got a block, but there are still more to go */
                     break;
-                }    
-                
+                }
+
                 /* If other forces cause all of the blocks in the extent to become garbage
                 before we even finish GCing it, they will set current_entry to NULL. */
                 if (gc_state.current_entry == NULL) {
@@ -647,7 +675,7 @@ bool data_block_manager_t::shutdown(shutdown_callback_t *cb) {
 void data_block_manager_t::actually_shutdown() {
     rassert(state == state_shutting_down);
     state = state_shut_down;
-    
+
     rassert(!reconstructed_extents.head());
     
     for (unsigned int i = 0; i < dynamic_config->num_active_data_extents; i++) {
@@ -666,7 +694,9 @@ void data_block_manager_t::actually_shutdown() {
         delete gc_pq.pop();
     }
     
-    if (shutdown_callback) shutdown_callback->on_datablock_manager_shutdown();
+    if (shutdown_callback) {
+        shutdown_callback->on_datablock_manager_shutdown();
+    }
 }
 
 off64_t data_block_manager_t::gimme_a_new_offset() {
@@ -749,7 +779,7 @@ void data_block_manager_t::remove_last_unyoung_entry() {
 }
 
 
-data_block_manager_t::gc_entry::gc_entry(data_block_manager_t *_parent)
+gc_entry::gc_entry(data_block_manager_t *_parent)
     : parent(_parent),
       offset(parent->extent_manager->gen_extent()),
       g_array(parent->static_config->blocks_per_extent()),
@@ -765,7 +795,7 @@ data_block_manager_t::gc_entry::gc_entry(data_block_manager_t *_parent)
     pm_serializer_data_extents++;
 }
 
-data_block_manager_t::gc_entry::gc_entry(data_block_manager_t *_parent, off64_t _offset)
+gc_entry::gc_entry(data_block_manager_t *_parent, off64_t _offset)
     : parent(_parent),
       offset(_offset),
       g_array(parent->static_config->blocks_per_extent()),
@@ -782,20 +812,20 @@ data_block_manager_t::gc_entry::gc_entry(data_block_manager_t *_parent, off64_t 
     pm_serializer_data_extents++;
 }
 
-data_block_manager_t::gc_entry::~gc_entry() {
+gc_entry::~gc_entry() {
     rassert(parent->entries.get(offset / parent->extent_manager->extent_size) == this);
     parent->entries.set(offset / parent->extent_manager->extent_size, NULL);
 
     pm_serializer_data_extents--;
 }
 
-void data_block_manager_t::gc_entry::destroy() {
+void gc_entry::destroy() {
     parent->extent_manager->release_extent(offset);
     delete this;
 }
 
 #ifndef NDEBUG
-void data_block_manager_t::gc_entry::print() {
+void gc_entry::print() {
     debugf("gc_entry:\n");
     debugf("offset: %ld\n", offset);
     for (unsigned int i = 0; i < g_array.size(); i++)
@@ -827,7 +857,7 @@ bool data_block_manager_t::do_we_want_to_start_gcing() const {
 }
 
 /* !< is x less than y */
-bool data_block_manager_t::Less::operator() (const data_block_manager_t::gc_entry *x, const data_block_manager_t::gc_entry *y) {
+bool gc_entry_less::operator() (const gc_entry *x, const gc_entry *y) {
     return x->g_array.count() < y->g_array.count();
 }
 

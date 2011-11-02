@@ -6,6 +6,8 @@
 #include "buffer_cache/buffer_cache.hpp"
 
 
+
+
 // TODO: consider B#/B* trees to improve space efficiency
 
 // TODO: perhaps allow memory reclamation due to oversplitting? We can
@@ -280,9 +282,11 @@ void find_keyvalue_location_for_read(transaction_t *txn, got_superblock_t *got_s
 }
 
 template <class Value>
-void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_loc, btree_key_t *key, repli_timestamp_t tstamp, bool expired) {
+void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_loc, btree_key_t *key, repli_timestamp_t tstamp, bool expired, key_modification_callback_t<Value> *km_callback) {
     value_sizer_t<Value> v_sizer(txn->get_cache()->get_block_size());
     value_sizer_t<void> *sizer = &v_sizer;
+
+    key_modification_proof_t km_proof = km_callback->value_modification(txn, kv_loc, key);
 
     if (kv_loc->value) {
         // We have a value to insert.
@@ -296,18 +300,16 @@ void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_lo
         rassert(!leaf::is_full(sizer, reinterpret_cast<const leaf_node_t *>(kv_loc->buf->get_data_read()),
                 key, kv_loc->value.get()));
 
-        kv_loc->buf->apply_patch(new leaf_insert_patch_t(kv_loc->buf->get_block_id(), kv_loc->buf->get_next_patch_counter(),
-                sizer->size(kv_loc->value.get()), kv_loc->value.get(), key->size, key->contents, tstamp));
-
+        leaf_patched_insert(sizer, kv_loc->buf.buf(), key, kv_loc->value.get(), tstamp, km_proof);
     } else {
         // Delete the value if it's there.
         if (kv_loc->there_originally_was_value) {
-            if(!expired) {
+            if (!expired) {
                 rassert(tstamp != repli_timestamp_t::invalid, "Deletes need a valid timestamp now.");
-                kv_loc->buf->apply_patch(new leaf_remove_patch_t(kv_loc->buf->get_block_id(), kv_loc->buf->get_next_patch_counter(), tstamp, key->size, key->contents));
+                leaf_patched_remove(kv_loc->buf.buf(), key, tstamp, km_proof);
             } else {
                 // Expirations do an erase, not a delete.
-                kv_loc->buf->apply_patch(new leaf_erase_presence_patch_t(kv_loc->buf->get_block_id(), kv_loc->buf->get_next_patch_counter(), key->size, key->contents));
+                leaf_patched_erase_presence(kv_loc->buf.buf(), key, km_proof);
             }
         }
     }
@@ -318,22 +320,24 @@ void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_lo
 }
 
 template <class Value>
-void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_loc, btree_key_t *key, repli_timestamp_t tstamp) {
-    apply_keyvalue_change(txn, kv_loc, key, tstamp, false);
+void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_loc, btree_key_t *key, repli_timestamp_t tstamp, key_modification_callback_t<Value> *km_callback) {
+    apply_keyvalue_change(txn, kv_loc, key, tstamp, false, km_callback);
 }
 
 template <class Value>
 value_txn_t<Value>::value_txn_t(btree_key_t *_key,
                                 keyvalue_location_t<Value>& _kv_location,
-                                repli_timestamp_t _tstamp)
-    : key(_key), tstamp(_tstamp)
+                                repli_timestamp_t _tstamp,
+                                key_modification_callback_t<Value> *_km_callback)
+    : key(_key), tstamp(_tstamp), km_callback(_km_callback)
 {
     kv_location.swap(_kv_location);
 }
 
 template <class Value>
-value_txn_t<Value>::value_txn_t(btree_slice_t *slice, btree_key_t *_key, const repli_timestamp_t _tstamp, const order_token_t token)
-    : key(_key), tstamp(_tstamp)
+value_txn_t<Value>::value_txn_t(btree_slice_t *slice, btree_key_t *_key, const repli_timestamp_t _tstamp, const order_token_t token,
+                                key_modification_callback_t<Value> *_km_callback)
+    : key(_key), tstamp(_tstamp), km_callback(_km_callback)
 {
     got_superblock_t can_haz_superblock;
 
@@ -347,7 +351,7 @@ value_txn_t<Value>::value_txn_t(btree_slice_t *slice, btree_key_t *_key, const r
 
 template <class Value>
 value_txn_t<Value>::~value_txn_t() {
-    apply_keyvalue_change(txn.get(), &kv_location, key, tstamp, false);
+    apply_keyvalue_change(txn.get(), &kv_location, key, tstamp, false, km_callback);
 }
 
 template <class Value>

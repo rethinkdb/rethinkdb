@@ -6,6 +6,7 @@
 #include "buffer_cache/buffer_cache.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/fifo_checker.hpp"
+#include "memcached/protocol.hpp"
 #include "memcached/store.hpp"
 #include "utils.hpp"
 
@@ -39,7 +40,7 @@ protected:
 or equal than `since_when` but which reached the tree before `btree_backfill()` was called.
 It may also find changes that happened before `since_when`. */
 
-void btree_backfill(btree_slice_t *slice, repli_timestamp_t since_when, const boost::shared_ptr<cache_account_t>& backfill_account, backfill_callback_t *callback, order_token_t token);
+void btree_backfill(btree_slice_t *slice, repli_timestamp_t since_when, repli_timestamp_t maximum_possible_timestamp, const boost::shared_ptr<cache_account_t>& backfill_account, backfill_callback_t *callback, order_token_t token);
 
 
 
@@ -52,13 +53,13 @@ public:
 };
 
 
-void do_agnostic_btree_backfill(value_sizer_t<void> *sizer, btree_slice_t *slice, repli_timestamp_t since_when, const boost::shared_ptr<cache_account_t>& backfill_account, agnostic_backfill_callback_t *callback, order_token_t token);
+void do_agnostic_btree_backfill(value_sizer_t<void> *sizer, btree_slice_t *slice, const key_range_t *key_range, repli_timestamp_t since_when, repli_timestamp_t maximum_possible_timestamp, const boost::shared_ptr<cache_account_t>& backfill_account, agnostic_backfill_callback_t *callback, order_token_t token);
 
 
 template <class V>
-void agnostic_btree_backfill(btree_slice_t *slice, repli_timestamp_t since_when, const boost::shared_ptr<cache_account_t>& backfill_account, agnostic_backfill_callback_t *callback, order_token_t token) {
+void agnostic_btree_backfill(btree_slice_t *slice, const key_range_t *key_range, repli_timestamp_t since_when, repli_timestamp_t maximum_possible_timestamp, const boost::shared_ptr<cache_account_t>& backfill_account, agnostic_backfill_callback_t *callback, order_token_t token) {
     value_sizer_t<V> sizer(slice->cache()->get_block_size());
-    do_agnostic_btree_backfill(&sizer, slice, since_when, backfill_account, callback, token);
+    do_agnostic_btree_backfill(&sizer, slice, key_range, since_when, maximum_possible_timestamp, backfill_account, callback, token);
 }
 
 

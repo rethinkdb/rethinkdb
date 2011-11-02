@@ -94,7 +94,7 @@ public:
         }
 
         repli_timestamp_t tstamp = NextTimestamp();
-        leaf::insert(&sizer_, node_, k.key(), v.data(), tstamp);
+        leaf::insert(&sizer_, node_, k.key(), v.data(), tstamp, key_modification_proof_t::real_proof());
 
         kv_[key] = value;
 
@@ -113,7 +113,7 @@ public:
         kv_.erase(key);
 
         repli_timestamp_t tstamp = NextTimestamp();
-        leaf::remove(&sizer_, node_, k.key(), tstamp);
+        leaf::remove(&sizer_, node_, k.key(), tstamp, key_modification_proof_t::real_proof());
 
         Verify();
 
@@ -284,7 +284,8 @@ public:
         leaf::validate(&sizer_, node_);
 
         verify_receptor_t receptor;
-        leaf::dump_entries_since_time(&sizer_, node_, repli_timestamp_t::distant_past, &receptor);
+        repli_timestamp_t max_possible_tstamp = { tstamp_counter_ };
+        leaf::dump_entries_since_time(&sizer_, node_, repli_timestamp_t::distant_past, max_possible_tstamp, &receptor);
 
         if (receptor.map() != kv_) {
             printf("receptor.map(): ");

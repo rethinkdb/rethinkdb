@@ -14,7 +14,7 @@ template<class metadata_t>
 class dummy_metadata_controller_t {
 
 public:
-    dummy_metadata_controller_t(const metadata_t &m) :
+    explicit dummy_metadata_controller_t(const metadata_t &m) :
         view(boost::make_shared<view_t>(this)),
         metadata(m),
         change_publisher(&change_lock) { }
@@ -30,7 +30,7 @@ public:
 private:
     class view_t : public metadata_readwrite_view_t<metadata_t> {
     public:
-        view_t(dummy_metadata_controller_t *c) : controller(c) { }
+        explicit view_t(dummy_metadata_controller_t *c) : controller(c) { }
         metadata_t get() {
             rassert(controller, "accessing a `dummy_metadata_controller_t`'s "
                 "view after the controller was destroyed.");

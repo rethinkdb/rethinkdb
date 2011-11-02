@@ -94,6 +94,7 @@ if __name__ == "__main__":
     print "Please modify '%s' instead of modifying this file.*/" % sys.argv[0]
     print
 
+    print "#include \"errors.hpp\""
     print "#include <boost/archive/binary_iarchive.hpp>"
     print "#include <boost/archive/binary_oarchive.hpp>"
     print "#include \"rpc/serialize_macros.hpp\""

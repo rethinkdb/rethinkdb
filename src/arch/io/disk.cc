@@ -43,6 +43,8 @@ actual implementations can be swapped in at runtime. */
 // TODO: If two files are on the same disk, should they share part of the IO stack?
 
 struct linux_disk_manager_t {
+    linux_disk_manager_t() { }
+
     virtual ~linux_disk_manager_t() { }
 
     virtual void *create_account(int priority, int outstanding_requests_limit) = 0;
@@ -52,6 +54,9 @@ struct linux_disk_manager_t {
         void *account, linux_iocallback_t *cb) = 0;
     virtual void submit_read(fd_t fd, void *buf, size_t count, size_t offset,
         void *account, linux_iocallback_t *cb) = 0;
+
+private:
+    DISABLE_COPYING(linux_disk_manager_t);
 };
 
 template<class backend_t>
@@ -147,6 +152,8 @@ struct linux_templated_disk_manager_t : public linux_disk_manager_t {
 
 private:
     int outstanding_txn;
+
+    DISABLE_COPYING(linux_templated_disk_manager_t);
 };
 
 /* Disk account object */
@@ -296,18 +303,16 @@ void linux_file_t::set_size_at_least(size_t size) {
     }
 }
 
-bool linux_file_t::read_async(size_t offset, size_t length, void *buf, linux_file_account_t *account, linux_iocallback_t *callback) {
+void linux_file_t::read_async(size_t offset, size_t length, void *buf, linux_file_account_t *account, linux_iocallback_t *callback) {
     rassert(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");
 
     verify(offset, length, buf);
     diskmgr->submit_read(fd.get(), buf, length, offset,
         account == DEFAULT_DISK_ACCOUNT ? default_account->account : account->account,
         callback);
-
-    return false;
 }
 
-bool linux_file_t::write_async(size_t offset, size_t length, const void *buf, linux_file_account_t *account, linux_iocallback_t *callback) {
+void linux_file_t::write_async(size_t offset, size_t length, const void *buf, linux_file_account_t *account, linux_iocallback_t *callback) {
     rassert(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");
 
 #ifdef DEBUG_DUMP_WRITES
@@ -322,8 +327,6 @@ bool linux_file_t::write_async(size_t offset, size_t length, const void *buf, li
     diskmgr->submit_write(fd.get(), buf, length, offset,
         account == DEFAULT_DISK_ACCOUNT ? default_account->account : account->account,
         callback);
-
-    return false;
 }
 
 void linux_file_t::read_blocking(size_t offset, size_t length, void *buf) {

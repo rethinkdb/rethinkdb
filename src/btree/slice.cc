@@ -112,12 +112,12 @@ void btree_slice_t::backfill_delete_range(key_tester_t *tester,
 }
 
 
-void btree_slice_t::backfill(repli_timestamp_t since_when, backfill_callback_t *callback, order_token_t token) {
+void btree_slice_t::backfill(repli_timestamp_t since_when, repli_timestamp_t max_allowable_timestamp, backfill_callback_t *callback, order_token_t token) {
     assert_thread();
 
     token = order_checkpoint_.check_through(token);
 
-    btree_backfill(this, since_when, backfill_account, callback, token);
+    btree_backfill(this, since_when, max_allowable_timestamp, backfill_account, callback, token);
 }
 
 void btree_slice_t::set_replication_clock(repli_timestamp_t t, order_token_t token) {

@@ -144,11 +144,11 @@ class PacketCorrupter(object):
         if not stream_id in self.stream_unique_ids:
             n = len(self.stream_ids)
             if n < self.streams_max_unique:
-                stream_ids.append(stream_id)
+                self.stream_ids.append(stream_id)
             else:
                 pos = random.randrange(n)
                 del self.stream_unique_ids[self.stream_ids[pos]]
-                stream_ids[pos] = stream_id
+                self.stream_ids[pos] = stream_id
             self.stream_unique_ids[stream_id] = None
 
     def get_valid_stream_id(self):

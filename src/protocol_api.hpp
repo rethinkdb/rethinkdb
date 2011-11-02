@@ -224,7 +224,7 @@ public:
             THROWS_ONLY(interrupted_exc_t) = 0;
 
 protected:
-    store_view_t(typename protocol_t::region_t r) : region(r) { }
+    explicit store_view_t(typename protocol_t::region_t r) : region(r) { }
 
 private:
     typename protocol_t::region_t region;

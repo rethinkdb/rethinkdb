@@ -5,9 +5,9 @@ import threading
 import re
 
 class StatRange():
-    def __init__(self, min = None, max = None):
-        self.min = min
-        self.max = max
+    def __init__(self, mini = None, maxi = None):
+        self.min = mini
+        self.max = maxi
 
     def __contains__(self, x):
         if self.min and self.min > x:
@@ -17,10 +17,10 @@ class StatRange():
         return True
 
 class StatError(Exception):
-    def __init__(self, stat, val, range):
+    def __init__(self, stat, val, ranje):
         self.stat = stat
         self.val = val
-        self.range = range
+        self.range = ranje
 
     def __repr__(self):
         return "Stat: %s had value: %s outside of range [%s, %s]" % (self.stat, repr(self.val), repr(self.range[0]), repr(self.range[1]))
@@ -40,6 +40,8 @@ class RDBStat():
         self.interval = interval
         self.stats_callback = stats_callback    # we pass a dictionary with stats whenever we get the new stats
         self.last_stats = {}
+        self.limits = None
+        self.thr = None
 
     def check(self, limits = None):
         if limits:

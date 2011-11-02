@@ -20,7 +20,7 @@ struct starter_t : public thread_message_t {
     }
 };
 void run_in_thread_pool(boost::function<void()> fun) {
-    thread_pool_t thread_pool(1);
+    thread_pool_t thread_pool(1, false);
     starter_t starter(&thread_pool, fun);
     thread_pool.run(&starter);
 }
@@ -49,7 +49,7 @@ private:
         stream << i;
     }
 public:
-    recording_connectivity_cluster_t(int i) : connectivity_cluster_t(i), sequence_number(0) { }
+    explicit recording_connectivity_cluster_t(int i) : connectivity_cluster_t(i), sequence_number(0) { }
     void send(int message, peer_id_t peer) {
         send_message(peer, boost::bind(&write, message, _1));
     }
@@ -253,7 +253,7 @@ void run_event_watcher_ordering_test() {
 
     struct watcher_t : public event_watcher_t {
 
-        watcher_t(recording_connectivity_cluster_t *c) :
+        explicit watcher_t(recording_connectivity_cluster_t *c) :
             event_watcher_t(c), cluster(c) { }
         recording_connectivity_cluster_t *cluster;
 
@@ -371,7 +371,7 @@ TEST(RPCConnectivityTest, BlobJoin) {
 void run_binary_data_test() {
 
     struct binary_cluster_t : public connectivity_cluster_t {
-        binary_cluster_t(int port) : connectivity_cluster_t(port), got_spectrum(false) { }
+        explicit binary_cluster_t(int port) : connectivity_cluster_t(port), got_spectrum(false) { }
         bool got_spectrum;
         static void dump_spectrum(std::ostream &stream) {
             char spectrum[CHAR_MAX - CHAR_MIN + 1];

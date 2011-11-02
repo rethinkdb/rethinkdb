@@ -1,3 +1,5 @@
+#if 0
+
 #include "errors.hpp"
 #include <boost/make_shared.hpp>
 
@@ -140,3 +142,5 @@ TEST(MemcachedProtocol, GetSet) {
 }
 
 }   /* namespace unittest */
+
+#endif  // 0

@@ -317,7 +317,7 @@ int main(int argc, char *argv[]) {
     config_t config;
     parse_config(argc, argv, &config);
     
-    thread_pool_t thread_pool(1);
+    thread_pool_t thread_pool(1, true);
     tester_t tester(&config, &thread_pool);
     thread_pool.run(&tester);
     

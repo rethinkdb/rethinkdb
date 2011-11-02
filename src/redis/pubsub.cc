@@ -140,7 +140,7 @@ int pubsub_runtime_t::publish(std::string &channel, std::string &message) {
 bool match_pattern(const char *, const char *);
 
 bool star_match(const char *chan, const char *patt) {
-    assert(*patt == '*');
+    rassert(*patt == '*');
     ++patt;
 
     // If * is the last charater in the pattern than we automatically match the rest of the pattern
@@ -156,7 +156,7 @@ bool star_match(const char *chan, const char *patt) {
 }
 
 bool group_match(const char *chan, const char *patt) {
-    assert(*patt == '[');
+    rassert(*patt == '[');
     ++patt;
 
     std::vector<char> group;

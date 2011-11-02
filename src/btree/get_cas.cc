@@ -8,13 +8,14 @@
 #include "concurrency/promise.hpp"
 #include "btree/btree_data_provider.hpp"
 
-// This function is like get(), except that it sets a CAS value if there isn't
-// one already, so it has to be a btree_modify_oper_t. Potentially we can use a
-// regular get() for this (that replaces itself with this one if a CAS value
-// hasn't been set, for instance), but depending on how CAS is used, that may
-// be unnecessary.
+// This function is like get(), except that it sets a CAS value if
+// there isn't one already, so it has to be a
+// btree_modify_oper_t. Potentially we can use a regular get() for
+// this (that replaces itself with this one if a CAS value hasn't been
+// set, for instance), but depending on how CAS is used, that may be
+// unnecessary.
 
-struct btree_get_cas_oper_t : public btree_modify_oper_t<memcached_value_t>, public home_thread_mixin_t {
+struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mixin_t {
     btree_get_cas_oper_t(cas_t proposed_cas_, promise_t<get_result_t> *res_)
         : proposed_cas(proposed_cas_), res(res_) { }
 
@@ -57,7 +58,7 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t<memcached_value_t>, pub
 void co_btree_get_cas(const store_key_t &key, castime_t castime, btree_slice_t *slice,
                       promise_t<get_result_t> *res, order_token_t token) {
     btree_get_cas_oper_t oper(castime.proposed_cas, res);
-    run_btree_modify_oper<memcached_value_t>(&oper, slice, key, castime, token);
+    run_btree_modify_oper(&oper, slice, key, castime, token);
 }
 
 get_result_t btree_get_cas(const store_key_t &key, btree_slice_t *slice, castime_t castime, order_token_t token) {

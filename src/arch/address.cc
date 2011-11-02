@@ -22,6 +22,7 @@ ip_address_t::ip_address_t(const char *host) {
     hint.ai_next = NULL;
 
     struct addrinfo *addr_possibilities;
+    // TODO: getaddrinfo is a blocking operation.  See #478
     int res = getaddrinfo(host, NULL, &hint, &addr_possibilities);
     guarantee(res == 0, "getaddrinfo() failed: %s", strerror(errno));
 

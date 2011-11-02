@@ -151,7 +151,7 @@ public:
 private:
     virtual http_res_t handle(const http_req_t &) = 0;
 protected:
-    void handle_conn(boost::scoped_ptr<tcp_conn_t> &conn);
+    void handle_conn(boost::scoped_ptr<nascent_tcp_conn_t> &conn);
 };
 
 class test_server_t : public http_server_t {

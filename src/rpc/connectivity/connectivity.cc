@@ -130,7 +130,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(s
     /* We currently write the message to a `stringstream`, then serialize that
     as a string. It's horribly inefficient, of course. */
 
-    std::stringstream buffer(std::ios_base::out|std::stringstream::binary);
+    std::stringstream buffer(std::ios_base::out | std::stringstream::binary);
     writer(buffer);
 
 #ifdef CLUSTER_MESSAGE_DEBUGGING
@@ -139,7 +139,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(s
 #endif
 
     if (dest == me) {
-        std::stringstream buffer2(buffer.str(), std::stringstream::in|std::stringstream::binary);
+        std::stringstream buffer2(buffer.str(), std::stringstream::in | std::stringstream::binary);
 
         /* Spawn `on_message()` directly in a new coroutine */
         cond_t pulse_when_done_reading;
@@ -210,8 +210,12 @@ sending out the connect-notification, receiving messages from the peer until it
 disconnects or we are shut down, and sending out the disconnect-notification. */
 
 static void close_conn(streamed_tcp_conn_t *c) {
-    if (c->is_read_open()) c->shutdown_read();
-    if (c->is_write_open()) c->shutdown_write();
+    if (c->is_read_open()) {
+        c->shutdown_read();
+    }
+    if (c->is_write_open()) {
+        c->shutdown_write();
+    }
 }
 
 
@@ -227,8 +231,11 @@ void connectivity_cluster_t::handle(
     /* Make sure that if we're ordered to shut down, any pending read or write
     gets interrupted. */
     signal_t::subscription_t conn_closer(boost::bind(&close_conn, conn));
-    if (drainer_lock.get_drain_signal()->is_pulsed()) close_conn(conn);
-    else conn_closer.resubscribe(drainer_lock.get_drain_signal());
+    if (drainer_lock.get_drain_signal()->is_pulsed()) {
+        close_conn(conn);
+    } else {
+        conn_closer.resubscribe(drainer_lock.get_drain_signal());
+    }
 
     /* Each side sends their own ID and address, then receives the other side's.
     */
@@ -327,8 +334,11 @@ void connectivity_cluster_t::handle(
             boost::archive::binary_oarchive sender(conn->get_ostream());
             sender << routing_table_to_send;
         } catch (boost::archive::archive_exception) {
-            if (!conn->is_write_open()) return;
-            else throw;
+            if (!conn->is_write_open()) {
+                return;
+            } else {
+                throw;
+            }
         }
 
         /* Receive the follower's routing table */
@@ -336,8 +346,11 @@ void connectivity_cluster_t::handle(
             boost::archive::binary_iarchive receiver(conn->get_istream());
             receiver >> other_routing_table;
         } catch (boost::archive::archive_exception) {
-            if (!conn->is_read_open()) return;
-            else throw;
+            if (!conn->is_read_open()) {
+                return;
+            } else {
+                throw;
+            }
         }
 
     } else {
@@ -349,8 +362,11 @@ void connectivity_cluster_t::handle(
             boost::archive::binary_iarchive receiver(conn->get_istream());
             receiver >> other_routing_table;
         } catch (boost::archive::archive_exception) {
-            if (!conn->is_read_open()) return;
-            else throw;
+            if (!conn->is_read_open()) {
+                return;
+            } else {
+                throw;
+            }
         }
 
         std::map<peer_id_t, peer_address_t> routing_table_to_send;
@@ -382,8 +398,11 @@ void connectivity_cluster_t::handle(
             boost::archive::binary_oarchive sender(conn->get_ostream());
             sender << routing_table_to_send;
         } catch (boost::archive::archive_exception) {
-            if (!conn->is_write_open()) return;
-            else throw;
+            if (!conn->is_write_open()) {
+                return;
+            } else {
+                throw;
+            }
         }
     }
 
@@ -446,7 +465,7 @@ void connectivity_cluster_t::handle(
                 on `pulse_when_done_reading`, refrain. It may look silly now,
                 but later we will want to read directly off the socket for
                 better performance, and then we will need this code. */
-                std::stringstream stream(message, std::stringstream::in|std::stringstream::binary);
+                std::stringstream stream(message, std::stringstream::in | std::stringstream::binary);
                 cond_t pulse_when_done_reading;
                 coro_t::spawn_now(boost::bind(
                     &connectivity_cluster_t::on_message,
@@ -460,7 +479,9 @@ void connectivity_cluster_t::handle(
         } catch (boost::archive::archive_exception) {
             /* The exception broke us out of the loop, and that's what we
             wanted. */
-            if (conn->is_read_open()) throw;
+            if (conn->is_read_open()) {
+                throw;
+            }
         }
 
         /* Remove us from the connection map. */

@@ -88,7 +88,7 @@ message routing infrastructure. */
 struct mailbox_cluster_t : public connectivity_cluster_t {
 
 public:
-    mailbox_cluster_t(int port);
+    explicit mailbox_cluster_t(int port);
     ~mailbox_cluster_t();
 
 protected:

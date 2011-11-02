@@ -157,3 +157,5 @@ overload for better performance. By default, they are implemented in terms of
 the primitive `region_*` functions defined here. */
 
 }   /* namespace ? */
+
+// Also, a proper store_view_t<protocol_t> needs to be implemented. See protocol_api.hpp.

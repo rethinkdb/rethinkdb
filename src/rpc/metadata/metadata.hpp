@@ -39,7 +39,7 @@ private:
     `metadata_readwrite_view_t` for us. */
     class root_view_t : public metadata_readwrite_view_t<metadata_t> {
     public:
-        root_view_t(metadata_cluster_t *);
+        explicit root_view_t(metadata_cluster_t *);
         metadata_cluster_t *parent;
         metadata_t get();
         void join(const metadata_t &);

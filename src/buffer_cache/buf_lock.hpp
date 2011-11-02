@@ -47,6 +47,7 @@ public:
 
     // Gets the buf_t that has been locked.  Don't call release() on it!
     // TODO: Remove buf_t::release, or make it private.
+    // TODO: Just rename this to get().
     buf_t *buf() {
         assert_thread();
         return buf_;

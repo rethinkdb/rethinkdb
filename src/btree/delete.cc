@@ -1,7 +1,7 @@
 #include "btree/delete.hpp"
 #include "btree/modify_oper.hpp"
 
-struct btree_delete_oper_t : public btree_modify_oper_t<memcached_value_t> {
+struct btree_delete_oper_t : public btree_modify_oper_t {
 
     btree_delete_oper_t(bool dont_record, btree_slice_t *_slice) : dont_put_in_delete_queue(dont_record), slice(_slice) { }
 
@@ -14,7 +14,7 @@ struct btree_delete_oper_t : public btree_modify_oper_t<memcached_value_t> {
             result = dr_deleted;
             {
                 blob_t b(value->value_ref(), blob::btree_maxreflen);
-                b.unappend_region(txn, b.valuesize());
+                b.clear(txn);
             }
             value.reset();
             return true;
