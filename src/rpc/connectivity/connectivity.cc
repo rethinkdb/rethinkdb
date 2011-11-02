@@ -270,6 +270,16 @@ void connectivity_cluster_t::handle(
         crash("Inconsistent routing information: wrong address");
     }
 
+    /* The trickiest case is when there are two or more parallel connections
+    that are trying to be established between the same two machines. We can get
+    this when e.g. machine A and machine B try to connect to each other at the
+    same time. It's important that exactly one of the connections actually gets
+    established. When there are multiple connections trying to be established,
+    this is referred to as a "conflict". */
+
+    boost::scoped_ptr<map_insertion_sentry_t<peer_id_t, peer_address_t> >
+        routing_table_entry_sentry;
+
     /* We pick one side of the connection to be the "leader" and the other side
     to be the "follower". These roles are only relevant in the initial startup
     process. The leader registers the connection locally. If there's a conflict,
@@ -305,7 +315,10 @@ void connectivity_cluster_t::handle(
 
             /* Register ourselves while in the critical section, so that whoever
             comes next will see us */
-            routing_table[other_id] = other_address;
+            routing_table_entry_sentry.reset(
+                new map_insertion_sentry_t<peer_id_t, peer_address_t>(
+                    &routing_table, other_id, other_address
+                    ));
         }
 
         /* We're good to go! Transmit the routing table to the follower, so it
@@ -314,7 +327,6 @@ void connectivity_cluster_t::handle(
             boost::archive::binary_oarchive sender(conn->get_ostream());
             sender << routing_table_to_send;
         } catch (boost::archive::archive_exception) {
-            routing_table.erase(other_id);
             if (!conn->is_write_open()) return;
             else throw;
         }
@@ -324,7 +336,6 @@ void connectivity_cluster_t::handle(
             boost::archive::binary_iarchive receiver(conn->get_istream());
             receiver >> other_routing_table;
         } catch (boost::archive::archive_exception) {
-            routing_table.erase(other_id);
             if (!conn->is_read_open()) return;
             else throw;
         }
@@ -360,7 +371,10 @@ void connectivity_cluster_t::handle(
 
             /* Register ourselves while in the critical section, so that whoever
             comes next will see us */
-            routing_table[other_id] = other_address;
+            routing_table_entry_sentry.reset(
+                new map_insertion_sentry_t<peer_id_t, peer_address_t>(
+                    &routing_table, other_id, other_address
+                    ));
         }
 
         /* Send our routing table to the leader */
@@ -472,7 +486,4 @@ void connectivity_cluster_t::handle(
             }
         }
     }
-
-    /* Remove us from the routing map */
-    routing_table.erase(other_id);
 }
