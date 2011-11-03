@@ -125,8 +125,7 @@ connectivity_cluster_t::~connectivity_cluster_t() {
 }
 
 void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(std::ostream&)> writer) {
-    // TODO THREAD are we on dest thread yet, or do we on_thread_t to
-    // it here, or do we spawn and forget?
+    // THREAD we are not on dest thread yet
     rassert(!dest.is_nil());
 
     /* We currently write the message to a `stringstream`, then serialize that
@@ -141,7 +140,8 @@ void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(s
 #endif
 
     if (dest == me) {
-        // TODO THREAD we should be on a particular thread for send-to-self messages.  Maybe the tcp listener thread.
+        // TODO THREAD go to dest thread
+        // THREAD dest thread
         std::stringstream buffer2(buffer.str(), std::stringstream::in | std::stringstream::binary);
 
         /* Spawn `on_message()` directly in a new coroutine */
@@ -160,7 +160,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(s
         // when this function returns?
 
     } else {
-        // TODO THREAD we switch to home thread to find the connection in the connections map.  Unacceptable.
+        // TODO THREAD switch to dest thread, not home thread.  Do connection lookup appropriately.
         on_thread_t thread_switcher(home_thread());
 
         std::map<peer_id_t, connection_t*>::iterator it = connections.find(dest);
@@ -172,7 +172,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(s
         }
         connection_t *dest_conn = it->second;
 
-        // TODO THREAD we need to be on the connection's thread right here.
+        // THREAD we need to be on dest thread.
 
         /* Acquire the send-mutex so we don't collide with other things trying
         to send on the same connection. */
@@ -241,7 +241,7 @@ void connectivity_cluster_t::handle(
         boost::optional<peer_id_t> expected_id,
         boost::optional<peer_address_t> expected_address,
         auto_drainer_t::lock_t drainer_lock) {
-    // TODO THREAD we  don't know the other_id yet, and don't necessarily have an expected_id allegedly.
+    // THREAD rpc listener thread
 
     /* Make sure that if we're ordered to shut down, any pending read or write
     gets interrupted. */
@@ -251,6 +251,8 @@ void connectivity_cluster_t::handle(
     } else {
         conn_closer.resubscribe(drainer_lock.get_drain_signal());
     }
+
+    // TODO THREAD rpc listener thread or connection thread, depending on whether we hash peer_id or allocate irrespectively.
 
     /* Each side sends their own ID and address, then receives the other side's.
     */
@@ -292,6 +294,8 @@ void connectivity_cluster_t::handle(
         crash("Inconsistent routing information: wrong address");
     }
 
+    // THREAD still on rpc listener thread
+
     /* The trickiest case is when there are two or more parallel connections
     that are trying to be established between the same two machines. We can get
     this when e.g. machine A and machine B try to connect to each other at the
@@ -311,6 +315,8 @@ void connectivity_cluster_t::handle(
     Then the follower sends its routing table to the leader. */
     bool we_are_leader = me < other_id;
 
+    // THREAD still on rpc listener thread, for sending/receiving
+    // routing table
     std::map<peer_id_t, peer_address_t> other_routing_table;
 
     if (we_are_leader) {
@@ -421,6 +427,8 @@ void connectivity_cluster_t::handle(
         }
     }
 
+    // THREAD still on rpc listener thread
+
     /* For each peer that our new friend told us about that we don't already
     know about, start a new connection. If the cluster is shutting down, skip
     this step. */
@@ -439,12 +447,16 @@ void connectivity_cluster_t::handle(
         }
     }
 
+    // TODO THREAD go to connection thread
+
     {
         /* `connection_t` is the public interface of this coroutine. We put a
         pointer to `conn_structure` into `connections`, and clients use that to
         find us for the purpose of sending messages. */
         connection_t conn_structure;
         conn_structure.conn = conn;
+
+        // TODO THREAD no watchers mutex, and we need to announce to all threads that we exist.
 
         /* Put ourselves in the connection-map and notify event-watchers that
         the connection is up */
@@ -521,5 +533,7 @@ void connectivity_cluster_t::handle(
                 w->on_disconnect(other_id);
             }
         }
+
+        // TODO THREAD announce that the connection no longer exists
     }
 }
