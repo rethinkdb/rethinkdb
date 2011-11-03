@@ -131,7 +131,8 @@ void mailbox_cluster_t::on_message(peer_id_t src, std::istream &stream, boost::f
             if (mbox) {
                 mbox->callback(stream, on_done);
             } else {
-                /* Mailbox doesn't exist; don't deliver message */
+                /* Mailbox doesn't exist; don't deliver message, don't
+                   bother consuming bytes from stream. */
                 on_done();
                 /* Print a warning message */
                 mailbox_t::address_t dest_address;

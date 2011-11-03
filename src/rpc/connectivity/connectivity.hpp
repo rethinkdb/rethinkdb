@@ -140,13 +140,16 @@ protected:
     void send_message(peer_id_t, boost::function<void(std::ostream&)>);
 
     /* Whenever we receive a message, we spawn a new coroutine running
-    `on_message()`. Its arguments are the peer we received the message from, a
-    `std::istream&` from that peer, and a function to call when we're done
-    reading the message off the stream. `on_message()` should read the message,
-    call the function, then perform whatever action the message requires. This
-    way, the next message can be read off the socket as soon as possible.
-    `connectivity_cluster_t` may run `on_message()` on any thread. */
-    virtual void on_message(peer_id_t, std::istream&, boost::function<void()>&) = 0;
+    `on_message()`. Its arguments are the peer we received the message
+    from, a `std::istream&` from that peer, and a function to call
+    when we're done reading the message off the stream. `on_message()`
+    should read the message, call the function, then perform whatever
+    action the message requires. This way, the next message can be
+    read off the socket as soon as possible.  `connectivity_cluster_t`
+    may run `on_message()` on any thread.  on_message may call on_done
+    without consuming any bytes, in which case it is this superclass's
+    responsibility to make sure the bytes get consumed. */
+    virtual void on_message(peer_id_t src, std::istream& stream, boost::function<void()>& on_done) = 0;
 
 private:
     /* We listen for new connections from other peers. (The reason `listener` is
