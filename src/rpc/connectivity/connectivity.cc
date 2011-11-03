@@ -125,6 +125,8 @@ connectivity_cluster_t::~connectivity_cluster_t() {
 }
 
 void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(std::ostream&)> writer) {
+    // TODO THREAD are we on dest thread yet, or do we on_thread_t to
+    // it here, or do we spawn and forget?
     rassert(!dest.is_nil());
 
     /* We currently write the message to a `stringstream`, then serialize that
@@ -139,6 +141,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(s
 #endif
 
     if (dest == me) {
+        // TODO THREAD we should be on a particular thread for send-to-self messages.  Maybe the tcp listener thread.
         std::stringstream buffer2(buffer.str(), std::stringstream::in | std::stringstream::binary);
 
         /* Spawn `on_message()` directly in a new coroutine */
@@ -152,7 +155,12 @@ void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(s
             ));
         pulse_when_done_reading.wait();
 
+        // TODO THREAD why do we pulse_when_done_reading.wait()?  is
+        // it for object lifetime or is it so that we're done reading
+        // when this function returns?
+
     } else {
+        // TODO THREAD we switch to home thread to find the connection in the connections map.  Unacceptable.
         on_thread_t thread_switcher(home_thread());
 
         std::map<peer_id_t, connection_t*>::iterator it = connections.find(dest);
@@ -163,6 +171,8 @@ void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(s
             return;
         }
         connection_t *dest_conn = it->second;
+
+        // TODO THREAD we need to be on the connection's thread right here.
 
         /* Acquire the send-mutex so we don't collide with other things trying
         to send on the same connection. */
@@ -183,6 +193,8 @@ void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(s
 }
 
 void connectivity_cluster_t::on_new_connection(boost::scoped_ptr<streamed_tcp_conn_t> &conn) {
+    // TODO THREAD should we be on the connection's thread here?
+    // TODO THREAD we probably want a nascent_tcp_conn_t for the streamed_tcp_listener_t callback.
     handle(conn.get(), boost::none, boost::none,
         auto_drainer_t::lock_t(&drainer));
 }
@@ -196,7 +208,9 @@ void connectivity_cluster_t::join_blocking(
         peer_address_t address,
         boost::optional<peer_id_t> expected_id,
         auto_drainer_t::lock_t drainer_lock) {
+    // TODO THREAD figure out what thread we want to be on
     try {
+        // THREAD we need to be on the connection's thread here.
         streamed_tcp_conn_t conn(address.ip, address.port);
         handle(&conn, expected_id, boost::optional<peer_address_t>(address), drainer_lock);
     } catch (tcp_conn_t::connect_failed_exc_t) {
@@ -227,6 +241,7 @@ void connectivity_cluster_t::handle(
         boost::optional<peer_id_t> expected_id,
         boost::optional<peer_address_t> expected_address,
         auto_drainer_t::lock_t drainer_lock) {
+    // TODO THREAD we  don't know the other_id yet, and don't necessarily have an expected_id allegedly.
 
     /* Make sure that if we're ordered to shut down, any pending read or write
     gets interrupted. */

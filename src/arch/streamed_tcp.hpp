@@ -60,7 +60,7 @@ public:
     // TODO: The following might already have equivalents in std::iostream, which we should
     // support instead.
     // However they are convenient for porting legacy code to the streamed_tcp_conn_t
-    // interface.
+    // interface (which is even more legacy).
 
     /* Call shutdown_read() to close the half of the pipe that goes from the peer to us. If there
     is an outstanding read() or peek_until() operation, it will throw read_closed_exc_t. */
