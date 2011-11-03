@@ -98,7 +98,7 @@ std::map<peer_id_t, peer_address_t> connectivity_cluster_t::get_everybody() {
     peers[me] = routing_table[me];
     for (std::map<peer_id_t, connection_t*>::iterator it = connections.begin();
             it != connections.end(); it++) {
-        peers[(*it).first] = routing_table[(*it).first];
+        peers[it->first] = routing_table[it->first];
     }
     return peers;
 }
@@ -162,7 +162,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(s
             is not always possible). So just return. */
             return;
         }
-        connection_t *dest_conn = (*it).second;
+        connection_t *dest_conn = it->second;
 
         /* Acquire the send-mutex so we don't collide with other things trying
         to send on the same connection. */
@@ -412,13 +412,13 @@ void connectivity_cluster_t::handle(
     if (!drainer_lock.get_drain_signal()->is_pulsed()) {
         for (std::map<peer_id_t, peer_address_t>::iterator it = other_routing_table.begin();
              it != other_routing_table.end(); it++) {
-            if (routing_table.find((*it).first) == routing_table.end()) {
-                /* `(*it).first` is the ID of a peer that our peer is connected
+            if (routing_table.find(it->first) == routing_table.end()) {
+                /* `it->first` is the ID of a peer that our peer is connected
                 to, but we aren't connected to. */
                 coro_t::spawn_now(boost::bind(
                     &connectivity_cluster_t::join_blocking, this,
-                    (*it).second,
-                    boost::optional<peer_id_t>((*it).first),
+                    it->second,
+                    boost::optional<peer_id_t>(it->first),
                     drainer_lock));
             }
         }
