@@ -174,11 +174,14 @@ private:
     const peer_id_t me;
     std::map<peer_id_t, peer_address_t> routing_table;
 
-    /* `connections` holds open connections to other peers. It has an entry for
-    every peer that we are fully and officially connected to, not including us.
-    That means it's a subset of the nodes in `routing_table`. */
+    /* connections holds open connections to other peers. It has an
+    entry for every peer that we are fully and officially connected
+    to, not including us.  That means it's a subset of the nodes in
+    routing_table.  Also it's a subset of all the information in
+    routing_table, since it contains a peer_address_t. */
     struct connection_t {
         streamed_tcp_conn_t *conn;
+        peer_address_t address;
         mutex_t send_mutex;
     };
     std::vector< std::map<peer_id_t, connection_t *> > connection_maps_by_thread;

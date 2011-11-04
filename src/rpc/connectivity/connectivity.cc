@@ -94,7 +94,9 @@ peer_id_t connectivity_cluster_t::get_me() {
 }
 
 std::map<peer_id_t, peer_address_t> connectivity_cluster_t::get_everybody() {
-    // THREAD rpc listener thread
+    // THREAD rpc listener thread TODO THREAD we can remove this
+    // assert thread when we can call event watchers with cross thread
+    // messages.  But that's not going to happen.
     assert_thread();
     /* We can't just return `routing_table` because `routing_table` includes
     some partially-connected peers, so if we just returned `routing_table` then
@@ -110,7 +112,7 @@ std::map<peer_id_t, peer_address_t> connectivity_cluster_t::get_everybody() {
     peers[me] = routing_table[me];
     for (std::map<peer_id_t, connection_t*>::const_iterator it = connections.begin();
             it != connections.end(); it++) {
-        peers[it->first] = routing_table[it->first];
+        peers[it->first] = it->second->address;
     }
     return peers;
 }
@@ -474,6 +476,7 @@ void connectivity_cluster_t::handle(
         find us for the purpose of sending messages. */
         connection_t conn_structure;
         conn_structure.conn = conn;
+        conn_structure.address = other_address;
 
         // TODO THREAD no watchers mutex, and we need to announce to all threads that we exist.
 
