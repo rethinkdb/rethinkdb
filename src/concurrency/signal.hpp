@@ -78,6 +78,11 @@ public:
         wait_lazily_ordered();
     }
 
+    void rethread(int new_thread) {
+        real_home_thread = new_thread;
+        publisher_controller.rethread(new_thread);
+    }
+
 protected:
     explicit signal_t(int specified_home_thread)
         : home_thread_mixin_t(specified_home_thread),

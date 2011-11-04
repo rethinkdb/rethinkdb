@@ -137,6 +137,15 @@ public:
         swap(*proof, temp);
     }
 
+    void rethread(int new_thread) {
+
+        rassert(subscriptions.empty(), "Cannot rethread a `publisher_t` that "
+            "has subscribers.");
+
+        real_home_thread = new_thread;
+        publisher.real_home_thread = new_thread;
+    }
+
 private:
     friend class publisher_t<subscriber_t>::subscription_t;
 

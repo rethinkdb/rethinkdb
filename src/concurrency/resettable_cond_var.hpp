@@ -21,6 +21,7 @@ public:
     void pulse();
     void reset();
     signal_t *get_signal();
+    void rethread(int new_thread);
 private:
     bool state;
     boost::scoped_ptr<cond_t> signal;
