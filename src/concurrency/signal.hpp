@@ -84,9 +84,6 @@ public:
     }
 
 protected:
-    explicit signal_t(int specified_home_thread)
-        : home_thread_mixin_t(specified_home_thread),
-          pulsed(false), publisher_controller(&mutex, specified_home_thread) { }
     signal_t() : pulsed(false), publisher_controller(&mutex) { }
     ~signal_t() { }
 

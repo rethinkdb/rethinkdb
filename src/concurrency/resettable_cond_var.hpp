@@ -15,7 +15,6 @@ be returned by get_signal(). */
 
 class resettable_cond_t {
 public:
-    explicit resettable_cond_t(int specified_home_thread);
     resettable_cond_t();
     ~resettable_cond_t();
     void pulse();
