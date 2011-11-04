@@ -306,27 +306,6 @@ private:
     bool log_next_error;
 };
 
-// TODO: I'm semi-sorry about putting this here.  Really this could/should go outside of arch/.
-class rethread_tcp_conn_t {
-public:
-    rethread_tcp_conn_t(linux_tcp_conn_t *conn, int thread) : conn_(conn), old_thread_(conn->home_thread()), new_thread_(thread) {
-        conn->rethread(thread);
-        rassert(conn->home_thread() == thread);
-    }
-
-    ~rethread_tcp_conn_t() {
-        rassert(conn_->home_thread() == new_thread_);
-        conn_->rethread(old_thread_);
-        rassert(conn_->home_thread() == old_thread_);
-    }
-
-private:
-    linux_tcp_conn_t *conn_;
-    int old_thread_, new_thread_;
-
-    DISABLE_COPYING(rethread_tcp_conn_t);
-};
-
 
 
 #endif // __ARCH_IO_NETWORK_HPP__

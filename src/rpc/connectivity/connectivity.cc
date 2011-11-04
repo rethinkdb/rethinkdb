@@ -88,23 +88,30 @@ peer_id_t connectivity_cluster_t::get_me() {
 }
 
 std::map<peer_id_t, peer_address_t> connectivity_cluster_t::get_everybody() {
+    // THREAD rpc listener thread
     assert_thread();
     /* We can't just return `routing_table` because `routing_table` includes
     some partially-connected peers, so if we just returned `routing_table` then
     some peers would appear in the output from `get_everybody()` before the
     `on_connect()` event was sent out or after the `on_disconnect()` event was
     sent out. */
+
+    // TODO THREAD: Consider whether it is correct to just use the rpc
+    // listener's connections map.  See who uses get_everybody.
+    const std::map<peer_id_t, connection_t *>& connections = connection_maps_by_thread[get_thread_id()];
+
     std::map<peer_id_t, peer_address_t> peers;
     peers[me] = routing_table[me];
-    for (std::map<peer_id_t, connection_t*>::iterator it = connections.begin();
+    for (std::map<peer_id_t, connection_t*>::const_iterator it = connections.begin();
             it != connections.end(); it++) {
         peers[it->first] = routing_table[it->first];
     }
     return peers;
 }
 
-connectivity_cluster_t::connectivity_cluster_t(int port) :
-    me(peer_id_t(generate_uuid()))
+connectivity_cluster_t::connectivity_cluster_t(int port)
+    : me(peer_id_t(generate_uuid())),
+      connection_maps_by_thread(get_num_threads())
 {
     /* Put ourselves in the routing table */
     routing_table[me] = peer_address_t(ip_address_t::us(), port);
@@ -163,7 +170,8 @@ void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(s
         // TODO THREAD switch to dest thread, not home thread.  Do connection lookup appropriately.
         on_thread_t thread_switcher(home_thread());
 
-        std::map<peer_id_t, connection_t*>::iterator it = connections.find(dest);
+        const std::map<peer_id_t, connection_t *>& connections = connection_maps_by_thread[get_thread_id()];
+        std::map<peer_id_t, connection_t *>::const_iterator it = connections.find(dest);
         if (it == connections.end()) {
             /* We don't currently have access to this peer. Our policy is to not
             notify the sender when a message cannot be transmitted (since this
@@ -463,8 +471,11 @@ void connectivity_cluster_t::handle(
         {
             mutex_acquisition_t acq(&watchers_mutex);
 
+            std::map<peer_id_t, connection_t *>& connections = connection_maps_by_thread[get_thread_id()];
             rassert(connections.find(other_id) == connections.end());
             connections[other_id] = &conn_structure;
+            // TODO THREAD send out information to other threads about
+            // this connection.
 
             /* `event_watcher_t`s shouldn't block. */
             ASSERT_FINITE_CORO_WAITING;
@@ -522,6 +533,7 @@ void connectivity_cluster_t::handle(
             new acquires the `send_mutex`) and then acquire the `send_mutex`
             ourself (so anything that already was in line for the `send_mutex`
             gets a chance to finish). */
+            std::map<peer_id_t, connection_t *>& connections = connection_maps_by_thread[get_thread_id()];
             rassert(connections[other_id] == &conn_structure);
             connections.erase(other_id);
             co_lock_mutex(&conn_structure.send_mutex);

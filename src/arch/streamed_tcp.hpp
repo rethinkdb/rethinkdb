@@ -84,6 +84,14 @@ public:
         return conn_->is_write_open();
     }
 
+    void rethread(int new_thread) {
+        conn_->rethread(new_thread);
+    }
+
+    int home_thread() const {
+        return conn_->home_thread();
+    }
+
 private:
     /*
      This implements the actual streambuf object. It is buffered, so it's *not*
@@ -224,6 +232,30 @@ private:
     std::istream istream;
     std::ostream ostream;
 };
+
+
+class rethread_streamed_tcp_conn_t {
+public:
+    rethread_streamed_tcp_conn_t(streamed_tcp_conn_t *conn, int thread) : conn_(conn), old_thread_(conn->home_thread()), new_thread_(thread) {
+        conn->rethread(thread);
+        rassert(conn->home_thread() == thread);
+    }
+
+    ~rethread_streamed_tcp_conn_t() {
+        rassert(conn_->home_thread() == new_thread_);
+        conn_->rethread(old_thread_);
+        rassert(conn_->home_thread() == old_thread_);
+    }
+
+private:
+    streamed_tcp_conn_t *conn_;
+    int old_thread_, new_thread_;
+
+    DISABLE_COPYING(rethread_streamed_tcp_conn_t);
+};
+
+
+
 
 /*
  tcp_listener_t creates tcp_conn_t objects. We want to be able to get

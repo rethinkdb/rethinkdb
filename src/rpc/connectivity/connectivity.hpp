@@ -171,7 +171,7 @@ private:
     currently access and their addresses. Peers that are in the process of
     connecting or disconnecting may be in `routing_table` but not in
     `connections`. */
-    peer_id_t me;
+    const peer_id_t me;
     std::map<peer_id_t, peer_address_t> routing_table;
 
     /* `connections` holds open connections to other peers. It has an entry for
@@ -181,7 +181,7 @@ private:
         streamed_tcp_conn_t *conn;
         mutex_t send_mutex;
     };
-    std::map<peer_id_t, connection_t*> connections;
+    std::vector< std::map<peer_id_t, connection_t *> > connection_maps_by_thread;
 
     /* Writes to `routing_table` and `connections` are protected by this mutex
     so we never get redundant connections to the same peer. */
