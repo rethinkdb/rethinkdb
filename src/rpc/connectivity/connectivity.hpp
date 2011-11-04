@@ -183,6 +183,9 @@ private:
     };
     std::vector< std::map<peer_id_t, connection_t *> > connection_maps_by_thread;
 
+    void set_a_connection_entry(int target_thread, peer_id_t other_id, connection_t *connection);
+    void erase_a_connection_entry(int target_thread, peer_id_t other_id);
+
     /* Writes to `routing_table` and `connections` are protected by this mutex
     so we never get redundant connections to the same peer. */
     mutex_t new_connection_mutex;
@@ -195,6 +198,8 @@ private:
 
     /* This makes sure all the connections are dead before we shut down */
     auto_drainer_t drainer;
+
+    rng_t rng;
 
     DISABLE_COPYING(connectivity_cluster_t);
 };

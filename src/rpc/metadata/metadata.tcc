@@ -146,6 +146,8 @@ void metadata_cluster_t<metadata_t>::write_ping_response(std::ostream &stream, i
 template<class metadata_t>
 void metadata_cluster_t<metadata_t>::on_utility_message(peer_id_t sender, std::istream &stream, boost::function<void()> &on_done) {
     // THREAD connection thread
+    // TODO THREAD on_thread_t here is a thoughtless hack, an experiment.
+    on_thread_t switcher(home_thread());
     // TODO THREAD bad assertion here
     assert_thread();
     char code;

@@ -1,12 +1,18 @@
 #include "rpc/connectivity/connectivity.hpp"
+
 #include <sstream>
 #include <ios>
+
+#include "utils.hpp"
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/base_object.hpp>
 #include <boost/serialization/string.hpp>
 #include <boost/serialization/map.hpp>
+
+#include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/drain_semaphore.hpp"
+#include "concurrency/pmap.hpp"
 
 /* event_watcher_t */
 
@@ -167,10 +173,8 @@ void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(s
         // when this function returns?
 
     } else {
-        // TODO THREAD switch to dest thread, not home thread.  Do connection lookup appropriately.
-        on_thread_t thread_switcher(home_thread());
-
         const std::map<peer_id_t, connection_t *>& connections = connection_maps_by_thread[get_thread_id()];
+
         std::map<peer_id_t, connection_t *>::const_iterator it = connections.find(dest);
         if (it == connections.end()) {
             /* We don't currently have access to this peer. Our policy is to not
@@ -180,7 +184,9 @@ void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(s
         }
         connection_t *dest_conn = it->second;
 
-        // THREAD we need to be on dest thread.
+        // TODO THREAD do this operation asynchronously.
+        on_thread_t threader(dest_conn->conn->home_thread());
+        // THREAD we are on dest thread.
 
         /* Acquire the send-mutex so we don't collide with other things trying
         to send on the same connection. */
@@ -250,17 +256,6 @@ void connectivity_cluster_t::handle(
         boost::optional<peer_address_t> expected_address,
         auto_drainer_t::lock_t drainer_lock) {
     // THREAD rpc listener thread
-
-    /* Make sure that if we're ordered to shut down, any pending read or write
-    gets interrupted. */
-    signal_t::subscription_t conn_closer(boost::bind(&close_conn, conn));
-    if (drainer_lock.get_drain_signal()->is_pulsed()) {
-        close_conn(conn);
-    } else {
-        conn_closer.resubscribe(drainer_lock.get_drain_signal());
-    }
-
-    // TODO THREAD rpc listener thread or connection thread, depending on whether we hash peer_id or allocate irrespectively.
 
     /* Each side sends their own ID and address, then receives the other side's.
     */
@@ -455,7 +450,23 @@ void connectivity_cluster_t::handle(
         }
     }
 
-    // TODO THREAD go to connection thread
+    // TODO THREAD pick a better way to pick a better thread
+    int chosen_thread = rng.randint(get_num_threads());
+
+    cross_thread_signal_t connection_thread_drain_signal(drainer_lock.get_drain_signal(), chosen_thread);
+
+    rethread_streamed_tcp_conn_t unregister_conn(conn, INVALID_THREAD);
+    on_thread_t conn_threader(chosen_thread);
+    rethread_streamed_tcp_conn_t reregister_conn(conn, get_thread_id());
+
+    // Make sure that if we're ordered to shut down, any pending read
+    // or write gets interrupted.
+    signal_t::subscription_t conn_closer(boost::bind(&close_conn, conn));
+    if (connection_thread_drain_signal.is_pulsed()) {
+        close_conn(conn);
+    } else {
+        conn_closer.resubscribe(&connection_thread_drain_signal);
+    }
 
     {
         /* `connection_t` is the public interface of this coroutine. We put a
@@ -469,13 +480,19 @@ void connectivity_cluster_t::handle(
         /* Put ourselves in the connection-map and notify event-watchers that
         the connection is up */
         {
-            mutex_acquisition_t acq(&watchers_mutex);
-
             std::map<peer_id_t, connection_t *>& connections = connection_maps_by_thread[get_thread_id()];
             rassert(connections.find(other_id) == connections.end());
-            connections[other_id] = &conn_structure;
-            // TODO THREAD send out information to other threads about
-            // this connection.
+
+            pmap(get_num_threads(), boost::bind(&connectivity_cluster_t::set_a_connection_entry, this, _1, other_id, &conn_structure));
+
+            // TODO THREAD do we really want to go back to the home
+            // thread to update the watchers?  It seems okay, but is
+            // it necessary?
+            on_thread_t rpc_threader(home_thread());
+
+            // TODO THREAD ask tim about putting the watchers_mutex
+            // acquisition after broadcast_connection_pairing.
+            mutex_acquisition_t acq(&watchers_mutex);
 
             /* `event_watcher_t`s shouldn't block. */
             ASSERT_FINITE_CORO_WAITING;
@@ -524,8 +541,6 @@ void connectivity_cluster_t::handle(
 
         /* Remove us from the connection map. */
         {
-            mutex_acquisition_t acq(&watchers_mutex);
-
             /* This is kind of tricky: We want new calls to `send_message()` to
             see that we are gone, but we don't want to cause segfaults by
             destroying the `connection_t` while something is still using it. The
@@ -533,10 +548,18 @@ void connectivity_cluster_t::handle(
             new acquires the `send_mutex`) and then acquire the `send_mutex`
             ourself (so anything that already was in line for the `send_mutex`
             gets a chance to finish). */
-            std::map<peer_id_t, connection_t *>& connections = connection_maps_by_thread[get_thread_id()];
-            rassert(connections[other_id] == &conn_structure);
-            connections.erase(other_id);
+
+            pmap(get_num_threads(), boost::bind(&connectivity_cluster_t::erase_a_connection_entry, this, _1, other_id));
+
             co_lock_mutex(&conn_structure.send_mutex);
+
+            // TODO THREAD definitely ask tim: we switched the order
+            // of acquiring the send_mutex versus acquiring the
+            // watchers_mutex.  Supposedly the watchers mutex is
+            // worried about the watchers array getting modified as we
+            // iterate over it, so I (Sam) don't see why it wouldn't have
+            // been superclose to the watchers array.
+            mutex_acquisition_t acq(&watchers_mutex);
 
             /* `event_watcher_t`s shouldn't block. */
             ASSERT_FINITE_CORO_WAITING;
@@ -545,7 +568,15 @@ void connectivity_cluster_t::handle(
                 w->on_disconnect(other_id);
             }
         }
-
-        // TODO THREAD announce that the connection no longer exists
     }
+}
+
+void connectivity_cluster_t::set_a_connection_entry(int target_thread, peer_id_t other_id, connection_t *connection) {
+    on_thread_t switcher(target_thread);
+    connection_maps_by_thread[target_thread][other_id] = connection;
+}
+
+void connectivity_cluster_t::erase_a_connection_entry(int target_thread, peer_id_t other_id) {
+    on_thread_t switcher(target_thread);
+    connection_maps_by_thread[target_thread].erase(other_id);
 }
