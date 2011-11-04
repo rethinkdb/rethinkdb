@@ -96,8 +96,7 @@ public:
             interruptor));
 
         /* Perform an initial sanity check. */
-        mutex_acquisition_t mutex_acq(&mutex);
-        sanity_check(&mutex_acq);
+        sanity_check();
     }
 
     /* TODO: These exceptions ought to be a bit more specific. Either there
@@ -260,8 +259,9 @@ private:
 
     /* Reads need to pick a single readable mirror to perform the operation.
     Writes need to choose a readable mirror to get the reply from. Both use
-    `pick_a_readable_dispatchee()` to do the picking. */
-    void pick_a_readable_dispatchee(dispatchee_t **dispatchee_out, auto_drainer_t::lock_t *lock_out) THROWS_ONLY(insufficient_mirrors_exc_t);
+    `pick_a_readable_dispatchee()` to do the picking. You must hold
+    `dispatchee_mutex` and pass in `proof` of the mutex acquisition.*/
+    void pick_a_readable_dispatchee(dispatchee_t **dispatchee_out, mutex_acquisition_t *proof, auto_drainer_t::lock_t *lock_out) THROWS_ONLY(insufficient_mirrors_exc_t);
 
     void background_write(dispatchee_t *, auto_drainer_t::lock_t, incomplete_write_ref_t) THROWS_NOTHING;
     void end_write(boost::shared_ptr<incomplete_write_t> write) THROWS_NOTHING;
@@ -269,9 +269,9 @@ private:
     /* This function sanity-checks `incomplete_writes`, `current_timestamp`,
     and `newest_complete_timestamp`. It mostly exists as a form of executable
     documentation. */
-    void sanity_check(mutex_acquisition_t *mutex_acq) {
+    void sanity_check() {
 #ifndef NDEBUG
-        mutex_acq->assert_is_holding(&mutex);
+        mutex_acquisition_t acq(&dispatch_mutex);
         state_timestamp_t ts = newest_complete_timestamp;
         for (typename std::list<boost::shared_ptr<incomplete_write_t> >::iterator it = incomplete_writes.begin();
                 it != incomplete_writes.end(); it++) {
@@ -286,23 +286,25 @@ private:
 
     branch_id_t branch_id;
 
-    /* This mutex is held when an operation is starting or a new dispatchee is
-    connecting. It protects `current_timestamp`, `newest_complete_timestamp`,
-    `incomplete_writes`, `dispatchees`, and `order_sink`. */
-    mutex_t mutex;
-
     /* If a write has begun, but some mirror might not have completed it yet,
     then it goes in `incomplete_writes`. The idea is that a new mirror that
     connects will use the union of a backfill and `incomplete_writes` as its
-    data, and that will guarantee it gets at least one copy of every write. */
+    data, and that will guarantee it gets at least one copy of every write.
+    See the member function `sanity_check()` for a description of the
+    relationship between `incomplete_writes`, `current_timestamp`, and
+    `newest_complete_timestamp`. */
+
+    /* `mutex` is held by new writes and reads being created, by writes
+    finishing, and by dispatchees joining, leaving, or upgrading. It protects
+    `incomplete_writes`, `current_timestamp`, `newest_complete_timestamp`,
+    `order_sink`, `dispatchees`, and `readable_dispatchees`. */
+    mutex_t mutex;
 
     std::list<boost::shared_ptr<incomplete_write_t> > incomplete_writes;
-
     state_timestamp_t current_timestamp, newest_complete_timestamp;
     order_sink_t order_sink;
 
     std::map<dispatchee_t *, auto_drainer_t::lock_t> dispatchees;
-
     intrusive_list_t<dispatchee_t> readable_dispatchees;
 
     boost::scoped_ptr<registrar_t<listener_data_t<protocol_t>, broadcaster_t *, dispatchee_t> > registrar;
