@@ -22,6 +22,25 @@ private:
 
     int source_thread, dest_thread;
 
+    /* This object's constructor rethreads our internal `signal_t` to our other
+    thread, and then reverses it in the destructor. It must be a separate object
+    instead of logic in the constructor/destructor because its destructor must
+    be run after `drainer`'s destructor. */
+    class rethreader_t {
+    public:
+        rethreader_t(signal_t *s, int d) :
+            signal(s), original(signal->home_thread())
+        {
+            signal->rethread(d);
+        }
+        ~rethreader_t() {
+            signal->rethread(original);
+        }
+    private:
+        signal_t *signal;
+        int original;
+    } rethreader;
+
     /* `drainer` makes sure we don't shut down with a signal still in flight */
     auto_drainer_t drainer;
 
