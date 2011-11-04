@@ -23,10 +23,10 @@ struct cross_thread_limited_fifo_t :
         passive_producer_t<value_t>(&available_control),
         source_thread(st),
         semaphore(capacity, trickle_fraction),
-        drain_semaphore(source_thread),
         in_destructor(false)
     {
         assert_good_thread_id(source_thread);
+        drain_semaphore.rethread(source_thread);
     }
 
     ~cross_thread_limited_fifo_t() {
@@ -41,11 +41,10 @@ struct cross_thread_limited_fifo_t :
             // queue, and released once for each thing popped off the queue. The
             // difference, which we compensate for here, is the number of objects
             // that were on the queue at the time that the destructor was called.
-            for (int i = 0; i < number_times_to_release_drain_semaphore; i++) {
-                drain_semaphore.release();
-            }
+            for (int i = 0; i < number_times_to_release_drain_semaphore; i++) drain_semaphore.release();
             drain_semaphore.drain();
         }
+        drain_semaphore.rethread(home_thread());
     }
 
     struct do_pusher_t {
