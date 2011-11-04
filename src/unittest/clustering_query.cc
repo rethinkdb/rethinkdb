@@ -25,6 +25,9 @@ void let_stuff_happen() {
 /* The `Write` test sends some reads and writes to some shards via a
 `cluster_namespace_interface_t`. */
 
+// Commented out to avoid unused function warning (thanks to
+// ClusteringNamespace.ReadWrite being commented out below).
+#if 0
 static void run_read_write_test() {
 
     /* Set up a cluster so mailboxes can be created */
@@ -69,6 +72,7 @@ static void run_read_write_test() {
         EXPECT_EQ((*it).second, resp.values[(*it).first]);
     }
 }
+#endif
 // TODO(sam) TODO(tim) @sam @tim Commented out another failing test.  See #479.
 
 // TEST(ClusteringNamespace, ReadWrite) {
