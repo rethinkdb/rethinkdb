@@ -146,7 +146,7 @@ private:
                 typename protocol_t::write_t w, transition_timestamp_t ts,
                 int target_ack_count_) :
             write(w), timestamp(ts),
-            parent(p),
+            parent(p), incomplete_count(0),
             ack_count(0), target_ack_count(target_ack_count_)
         {
             rassert(target_ack_count > 0);
@@ -271,7 +271,7 @@ private:
     documentation. */
     void sanity_check() {
 #ifndef NDEBUG
-        mutex_acquisition_t acq(&dispatch_mutex);
+        mutex_acquisition_t acq(&mutex);
         state_timestamp_t ts = newest_complete_timestamp;
         for (typename std::list<boost::shared_ptr<incomplete_write_t> >::iterator it = incomplete_writes.begin();
                 it != incomplete_writes.end(); it++) {
