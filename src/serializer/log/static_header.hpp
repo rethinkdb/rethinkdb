@@ -1,8 +1,8 @@
-
 #ifndef __SERIALIZER_STATIC_HEADER_HPP__
 #define __SERIALIZER_STATIC_HEADER_HPP__
 
-#include "arch/arch.hpp"
+#include <stddef.h>
+#include "arch/types.hpp"
 
 struct static_header_t {
     char software_name[16];

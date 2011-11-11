@@ -1,6 +1,11 @@
 #include "concurrency/fifo_checker.hpp"
 
+#include "arch/runtime/runtime.hpp"
+#include "config/args.hpp"
+
 #ifndef NDEBUG
+
+#include <vector>
 
 #define ORDER_INVALID (-2)
 #define ORDER_INVALID (-2)
@@ -17,15 +22,15 @@ const order_token_t order_token_t::ignore;
 
 #ifndef NDEBUG
 
-bool operator==(const order_bucket_t &a, const order_bucket_t &b) {
+bool operator==(const order_bucket_t& a, const order_bucket_t& b) {
     return a.thread_ == b.thread_ && a.number_ == b.number_;
 }
 
-bool operator!=(const order_bucket_t &a, const order_bucket_t &b) {
+bool operator!=(const order_bucket_t& a, const order_bucket_t& b) {
     return !(a == b);
 }
 
-bool operator<(const order_bucket_t &a, const order_bucket_t &b) {
+bool operator<(const order_bucket_t& a, const order_bucket_t& b) {
     if (a.thread_ < b.thread_) {
         return true;
     } else if (a.thread_ == b.thread_) {
@@ -76,7 +81,7 @@ struct order_source_pigeoncoop_t {
         ASSERT_NO_CORO_WAITING;
         if (free_buckets_.empty()) {
             int ret = least_unregistered_bucket_;
-            ++ least_unregistered_bucket_;
+            ++least_unregistered_bucket_;
             return std::pair<int, int64_t>(ret, 0);
         } else {
             std::pair<int, int64_t> ret = free_buckets_.back();
@@ -183,7 +188,7 @@ void order_sink_t::check_out(order_token_t token) {
         Either way, `last_seen` will be a pointer to the `std::pair`
         that ends up in the map. */
         last_seens_map_t::iterator it = last_seens_.insert(last_seens_map_t::value_type(token.bucket_, std::pair<tagged_seen_t, tagged_seen_t>(tagged_seen_t(0, "0"), tagged_seen_t(0, "0")))).first;
-        std::pair<tagged_seen_t, tagged_seen_t> *last_seen = &(*it).second;
+        std::pair<tagged_seen_t, tagged_seen_t> *last_seen = &it->second;
         verify_token_value_and_update(token, last_seen);
     }
 }
@@ -214,7 +219,7 @@ void plain_sink_t::check_out(order_token_t token) {
             bucket_ = token.bucket_;
             have_bucket_ = true;
         } else {
-            rassert(token.bucket_ == bucket_, "plain_sink_t can only be used with one order_source_t.");
+            rassert(token.bucket_ == bucket_, "plain_sink_t can only be used with one order_source_t. for %s (last seens %s, %s)", token.tag_.c_str(), ls_pair_.first.tag.c_str(), ls_pair_.second.tag.c_str());
         }
 
         order_sink_t::verify_token_value_and_update(token, &ls_pair_);

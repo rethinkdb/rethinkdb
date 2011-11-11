@@ -4,10 +4,10 @@
 #define __SERIALIZER_LOG_LBA_LIST_HPP__
 
 #include "serializer/serializer.hpp"
-#include "serializer/log/extents/extent_manager.hpp"
-#include "disk_format.hpp"
-#include "in_memory_index.hpp"
-#include "disk_structure.hpp"
+#include "serializer/log/extent_manager.hpp"
+#include "serializer/log/lba/disk_format.hpp"
+#include "serializer/log/lba/in_memory_index.hpp"
+#include "serializer/log/lba/disk_structure.hpp"
 
 class lba_start_fsm_t;
 class lba_syncer_t;
@@ -37,11 +37,11 @@ public:
     
 public:
     flagged_off64_t get_block_offset(block_id_t block);
-    repli_timestamp get_block_recency(block_id_t block);
+    repli_timestamp_t get_block_recency(block_id_t block);
     
     /* Returns a block ID such that all blocks that exist are guaranteed to have IDs less than
     that block ID. */
-    block_id_t max_block_id();
+    block_id_t end_block_id();
     
 #ifndef NDEBUG
     bool is_extent_referenced(off64_t offset);
@@ -50,18 +50,18 @@ public:
 #endif
     
 public:
-    void set_block_offset(block_id_t block, repli_timestamp recency,
-                          flagged_off64_t offset, file_t::account_t *io_account);
+    void set_block_info(block_id_t block, repli_timestamp_t recency,
+                        flagged_off64_t offset, file_account_t *io_account);
 
     struct sync_callback_t {
         virtual void on_lba_sync() = 0;
         virtual ~sync_callback_t() {}
     };
-    bool sync(file_t::account_t *io_account, sync_callback_t *cb);
+    bool sync(file_account_t *io_account, sync_callback_t *cb);
     
     void prepare_metablock(metablock_mixin_t *mb_out);
     
-    void consider_gc(file_t::account_t *io_account);
+    void consider_gc(file_account_t *io_account);
     
 public:
     struct shutdown_callback_t {
@@ -93,7 +93,7 @@ private:
     lba_disk_structure_t *disk_structures[LBA_SHARD_FACTOR];
     
     // Garbage-collect the given shard
-    void gc(int i, file_t::account_t *io_account);
+    void gc(int i, file_account_t *io_account);
 
     // Returns true if the garbage ratio is bad enough that we want to
     // gc. The integer is which shard to GC.

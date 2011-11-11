@@ -1,7 +1,7 @@
 #ifndef __BUFFER_CACHE_STATS_HPP__
 #define __BUFFER_CACHE_STATS_HPP__
 
-#include "perfmon.hpp"
+#include "perfmon_types.hpp"
 
 extern perfmon_counter_t
     pm_n_blocks_in_memory,

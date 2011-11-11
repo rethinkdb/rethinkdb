@@ -18,6 +18,13 @@ struct promise_t {
         cond.wait();
         return *value;
     }
+    signal_t *get_ready_signal() {
+        return &cond;
+    }
+    val_t get_value() {
+        rassert(value);
+        return *value;
+    }
     ~promise_t() {
         if (value) delete value;
     }
@@ -27,29 +34,6 @@ private:
     val_t *value;
 
     DISABLE_COPYING(promise_t);
-};
-
-// A flat_promise_t is like a promise_t except that it doesn't use a
-// pointer, doesn't own the value.
-template <class T>
-class flat_promise_t {
-public:
-    flat_promise_t() : cond_(), value_() { }
-    ~flat_promise_t() { }
-    void pulse(const T& v) {
-        value_ = v;
-        cond_.pulse();
-    }
-    T wait() {
-        cond_.wait();
-        return value_;
-    }
-
-private:
-    cond_t cond_;
-    T value_;
-
-    DISABLE_COPYING(flat_promise_t);
 };
 
 #endif /* __CONCURRENCY_PROMISE_HPP__ */

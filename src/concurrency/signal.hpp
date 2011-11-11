@@ -1,95 +1,106 @@
 #ifndef __CONCURRENCY_SIGNAL_HPP__
 #define __CONCURRENCY_SIGNAL_HPP__
 
-#include "containers/intrusive_list.hpp"
+#include "concurrency/pubsub.hpp"
 #include "utils.hpp"
 
-/* A signal_t is a boolean variable, combined with a way to be notified if that boolean
-variable is pulsed. Typically you will construct a concrete subclass of signal_t, then pass
-a pointer to the underlying signal_t to another object which will wait on it.
+/* A `signal_t` is a boolean variable, combined with a way to be notified if
+that boolean variable becomes true. Typically you will construct a concrete
+subclass of `signal_t`, then pass a pointer to the underlying `signal_t` to
+another object which will read from or listen to it.
+
+To check if a `signal_t` has already been pulsed, call `is_pulsed()` on it. To
+be notified when it gets pulsed, construct a `signal_t::subscription_t` and pass
+a callback function and the signal to watch to its constructor. The callback
+will be called when the signal is pulsed.
+
+If you construct a `signal_t::subscription_t` for a signal that's already been
+pulsed, you will get an exception.
 
 `signal_t` is generally not thread-safe, although the `wait_*()` functions are.
 
-Although you may be tempted to, please do not add a method that "unpulses" a signal_t. Part of
-the definition of a signal_t is that it does not return to the unpulsed state after being
-pulsed, and some things may depend on that property. If you want something like that, maybe you
-should look at something other than signal_t; have you tried resettable_cond_t? */
+Although you may be tempted to, please do not add a method that "unpulses" a
+`signal_t`. Part of the definition of a `signal_t` is that it does not return to
+the unpulsed state after being pulsed, and some things may depend on that
+property. If you want something like that, maybe you should look at something
+other than `signal_t`; have you tried `resettable_cond_t`? */
 
-struct signal_t : public home_thread_mixin_t {
-
+class signal_t :
+    public home_thread_mixin_t
+{
 public:
-    /* Waiters are always notified on the `signal_t`'s home thread. */
-    struct waiter_t : public intrusive_list_node_t<waiter_t> {
-        virtual void on_signal_pulsed() = 0;
-    protected:
-        virtual ~waiter_t() { }
+    /* True if somebody has called `pulse()`. */
+    bool is_pulsed() const {
+        return pulsed;
+    }
+
+    /* Wrapper around a `publisher_t<boost::function<void()> >::subscription_t`
+    */
+    struct subscription_t : public home_thread_mixin_t {
+        subscription_t(boost::function<void()> cb) :
+            subs(cb) {
+        }
+        subscription_t(boost::function<void()> cb, signal_t *s) :
+            subs(cb, s->publisher_controller.get_publisher()) {
+            rassert(!s->is_pulsed());
+        }
+        void resubscribe(signal_t *s) {
+            rassert(!s->is_pulsed());
+            subs.resubscribe(s->publisher_controller.get_publisher());
+        }
+        void unsubscribe() {
+            subs.unsubscribe();
+        }
+    private:
+        publisher_t<boost::function<void()> >::subscription_t subs;
+        DISABLE_COPYING(subscription_t);
     };
 
-    /* It is illegal to add a waiter to a signal when it is in a call to `pulse()`,
-    but it is legal to remove a waiter if that waiter hasn't been notified yet. */
-    void add_waiter(waiter_t *);
-    void remove_waiter(waiter_t *);
+    /* The coro that calls `wait_lazily_ordered()` will be pushed onto the event
+    queue when the signal is pulsed, but will not wake up immediately. */
+    void wait_lazily_ordered();
 
-    // Means that somebody has called pulse().
-    bool is_pulsed() const;
-
-    /* The coro that calls `wait_lazily()` will be pushed onto the event queue
-    when the signal is pulsed, but will not wake up immediately. */
-    void wait_lazily() {
-        on_thread_t thread_switcher(home_thread());
-        if (!is_pulsed()) {
-            struct : public waiter_t {
-                coro_t *to_wake;
-                void on_signal_pulsed() { to_wake->notify(); }
-            } waiter;
-            waiter.to_wake = coro_t::self();
-            add_waiter(&waiter);
-            coro_t::wait();
-        }
-    }
+    /* The coro that calls `wait_lazily_unordered()` will be notified soon after
+    the signal has been pulsed, but not immediately. */
+    void wait_lazily_unordered();
 
     /* The coro that calls `wait_eagerly()` will be woken up immediately when
-    the signal is pulsed, before `pulse()` even returns. */
-    void wait_eagerly() {
-        on_thread_t thread_switcher(home_thread());
-        if (!is_pulsed()) {
-            struct : public waiter_t {
-                coro_t *to_wake;
-                void on_signal_pulsed() { to_wake->notify_now(); }
-            } waiter;
-            waiter.to_wake = coro_t::self();
-            add_waiter(&waiter);
-            coro_t::wait();
-        }
-    }
+    the signal is pulsed, before `pulse()` even returns.
 
-    /* `wait()` is a synonym for `wait_lazily()`, but it's better to explicitly
-    call `wait_lazily()` or `wait_eagerly()`. */
+    Note: This is dangerous! It's easy to cause race conditions by e.g.
+    destroying the signal that's just been pulsed. You should probably use
+    `wait_lazily_unordered()` instead; its performance will be similar once we
+    optimize `notify_sometime()`. */
+    void wait_eagerly();
+
+    /* `wait()` is a deprecated synonym for `wait_lazily_ordered()`. */
     void wait() {
-        wait_lazily();
-    }
-
-    void rethread(int new_thread) {
-        rassert(waiters.empty(), "It might not be safe to rethread() a signal_t with "
-            "something currently waiting on it.");
-        real_home_thread = new_thread;
+        wait_lazily_ordered();
     }
 
 protected:
-    signal_t();
-    ~signal_t();
-    void pulse();
+    explicit signal_t(int specified_home_thread)
+        : home_thread_mixin_t(specified_home_thread),
+          pulsed(false), publisher_controller(&mutex, specified_home_thread) { }
+    signal_t() : pulsed(false), publisher_controller(&mutex) { }
+    ~signal_t() { }
+
+    void pulse() THROWS_NOTHING {
+        mutex_acquisition_t acq(&mutex, false);
+        rassert(!is_pulsed());
+        pulsed = true;
+        publisher_controller.publish(&signal_t::call, &acq);
+    }
 
 private:
+    static void call(boost::function<void()>& fun) THROWS_NOTHING {
+        fun();
+    }
+
+    bool pulsed;
+    mutex_t mutex;
+    publisher_controller_t<boost::function<void()> > publisher_controller;
     DISABLE_COPYING(signal_t);
-
-    intrusive_list_t<waiter_t> waiters;
-
-    enum state_t {
-        state_unpulsed,
-        state_pulsing,   // We are *in* the call to pulse()
-        state_pulsed
-    } state;
 };
 
 #endif /* __CONCURRENCY_SIGNAL_HPP__ */

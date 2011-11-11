@@ -1,11 +1,13 @@
-#include "progress.hpp"
-#include "errors.hpp"
-#include "utils2.hpp"
+#include "progress/progress.hpp"
+
 #include <sys/stat.h>
 
-progress_bar_t::progress_bar_t(std::string activity, int redraw_interval_ms = 100) 
-    : repeating_timer_t(redraw_interval_ms, boost::bind(&progress_bar_t::refresh, this)), 
-      activity(activity), redraw_interval_ms(redraw_interval_ms), start_time(get_ticks()),
+#include "utils.hpp"
+#include <boost/bind.hpp>
+
+progress_bar_t::progress_bar_t(std::string _activity, int _redraw_interval_ms = 100)
+    : repeating_timer_t(redraw_interval_ms, boost::bind(&progress_bar_t::refresh, this)),
+      activity(_activity), redraw_interval_ms(_redraw_interval_ms), start_time(get_ticks()),
       total_refreshes(0)
 { }
 
@@ -16,8 +18,8 @@ void progress_bar_t::refresh() {
     reset_bar();
 }
 
-void progress_bar_t::reset_bar() { 
-    printf("\r"); 
+void progress_bar_t::reset_bar() {
+    printf("\r");
     fflush(stdout);
 }
 
@@ -27,10 +29,15 @@ void progress_bar_t::draw_bar(float progress,  int eta) {
     printf("%s: ", activity.c_str());
     printf("[");
     for (int i = 1; i < 49; i++) {
-        if (i % 5 == 0) printf("%d", 2 * i);
-        else if (i == percent_done / 2) printf(">");
-        else if (i < percent_done / 2) printf("=");
-        else printf(" ");
+        if (i % 5 == 0) {
+            printf("%d", 2 * i);
+        } else if (i == percent_done / 2) {
+            printf(">");
+        } else if (i < percent_done / 2) {
+            printf("=");
+        } else {
+            printf(" ");
+        }
     }
     printf("] ");
 
@@ -39,17 +46,19 @@ void progress_bar_t::draw_bar(float progress,  int eta) {
         eta = int(((1.0f / progress) - 1) * ticks_to_secs(get_ticks() - start_time));
     }
 
-    if (eta == -1) printf("ETA: -");
-    else printf("ETA: %01d:%02d:%02d", (eta / 3600), (eta / 60) % 60, eta % 60);
+    if (eta == -1) {
+        printf("ETA: -");
+    } else {
+        printf("ETA: %01d:%02d:%02d", (eta / 3600), (eta / 60) % 60, eta % 60);
+    }
 
     printf("                 "); //make sure we don't leave an characters behind
     fflush(stdout);
 }
 
 
-counter_progress_bar_t::counter_progress_bar_t(std::string activity, int expected_count, int redraw_interval_ms) 
-    : progress_bar_t(activity, redraw_interval_ms), count(0), expected_count(expected_count)
-{ }
+counter_progress_bar_t::counter_progress_bar_t(std::string activity, int _expected_count, int redraw_interval_ms)
+    : progress_bar_t(activity, redraw_interval_ms), count(0), expected_count(_expected_count) { }
 
 void counter_progress_bar_t::draw() {
     progress_bar_t::draw_bar(float(count) / float(expected_count), -1);
@@ -59,9 +68,8 @@ void counter_progress_bar_t::operator++(int) {
     count++;
 }
 
-file_progress_bar_t::file_progress_bar_t(std::string activity, FILE *file, int redraw_interval_ms)
-    : progress_bar_t(activity, redraw_interval_ms), file(file)
-{ 
+file_progress_bar_t::file_progress_bar_t(std::string activity, FILE *_file, int redraw_interval_ms)
+    : progress_bar_t(activity, redraw_interval_ms), file(_file) { 
     struct stat file_stats;
     fstat(fileno(file), &file_stats);
     file_size = file_stats.st_size;

@@ -1,4 +1,5 @@
-#include "failover.hpp"
+#include "replication/failover.hpp"
+
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
@@ -61,33 +62,39 @@ void failover_t::remove_callback(failover_callback_t *cb) {
 }
 
 void failover_t::on_failure() {
-    for (intrusive_list_t<failover_callback_t>::iterator it = callbacks.begin(); it != callbacks.end(); it++)
-        (*it)->on_failure();
+    for (failover_callback_t *c = callbacks.head(); c; c = callbacks.next(c)) {
+        c->on_failure();
+    }
 }
 
 void failover_t::on_resume() {
-    for (intrusive_list_t<failover_callback_t>::iterator it = callbacks.begin(); it != callbacks.end(); it++)
-        (*it)->on_resume();
+    for (failover_callback_t *c = callbacks.head(); c; c = callbacks.next(c)) {
+        c->on_resume();
+    }
 }
 
 void failover_t::on_backfill_begin() {
-    for (intrusive_list_t<failover_callback_t>::iterator it = callbacks.begin(); it != callbacks.end(); it++)
-        (*it)->on_backfill_begin();
+    for (failover_callback_t *c = callbacks.head(); c; c = callbacks.next(c)) {
+        c->on_backfill_begin();
+    }
 }
 
 void failover_t::on_backfill_end() {
-    for (intrusive_list_t<failover_callback_t>::iterator it = callbacks.begin(); it != callbacks.end(); it++)
-        (*it)->on_backfill_end();
+    for (failover_callback_t *c = callbacks.head(); c; c = callbacks.next(c)) {
+        c->on_backfill_end();
+    }
 }
 
 void failover_t::on_reverse_backfill_begin() {
-    for (intrusive_list_t<failover_callback_t>::iterator it = callbacks.begin(); it != callbacks.end(); it++)
-        (*it)->on_reverse_backfill_begin();
+    for (failover_callback_t *c = callbacks.head(); c; c = callbacks.next(c)) {
+        c->on_reverse_backfill_begin();
+    }
 }
 
 void failover_t::on_reverse_backfill_end() {
-    for (intrusive_list_t<failover_callback_t>::iterator it = callbacks.begin(); it != callbacks.end(); it++)
-        (*it)->on_reverse_backfill_end();
+    for (failover_callback_t *c = callbacks.head(); c; c = callbacks.next(c)) {
+        c->on_reverse_backfill_end();
+    }
 }
 
 /* failover_query_enabler_disabler_t is responsible for deciding when to let sets and

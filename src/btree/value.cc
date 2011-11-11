@@ -1,8 +1,6 @@
-#include "value.hpp"
+#include "btree/value.hpp"
 
-const lbref_limit_t btree_value::lbref_limit(MAX_IN_NODE_VALUE_SIZE);
-
-
+#include <time.h>
 
 int metadata_size(metadata_flags_t mf) {
     return ((mf.flags & MEMCACHED_FLAGS) ? sizeof(mcflags_t) : 0)
@@ -41,18 +39,6 @@ cas_t *metadata_force_memcached_casptr(metadata_flags_t *mf, char *buf, char *bu
     return reinterpret_cast<cas_t*>(cas_pos);
 }
 
-bool metadata_large_value_bit(metadata_flags_t mf) {
-    return (mf.flags & LARGE_VALUE) != 0;
-}
-
-void metadata_set_large_value_bit(metadata_flags_t *mf, bool bit) {
-    if (bit) {
-        mf->flags |= LARGE_VALUE;
-    } else {
-        mf->flags &= ~LARGE_VALUE;
-    }
-}
-
 char *metadata_write(metadata_flags_t *mf_out, char *to, mcflags_t mcflags, exptime_t exptime) {
     mf_out->flags = 0;
     char *p = to;
@@ -77,3 +63,18 @@ char *metadata_write(metadata_flags_t *mf_out, char *to, mcflags_t mcflags, expt
     return p;
 }
 
+bool btree_value_fits(block_size_t block_size, int data_length, const memcached_value_t *value) {
+    if (data_length < 1) {
+        return false;
+    }
+    int msize = metadata_size(value->metadata_flags);
+    if (data_length < 1 + msize) {
+        return false;
+    }
+
+    return blob::ref_fits(block_size, data_length - (1 + msize), value->value_ref(), blob::btree_maxreflen);
+}
+
+bool memcached_value_t::expired() const {
+    return exptime() && time(NULL) >= exptime();
+}

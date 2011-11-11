@@ -1,6 +1,7 @@
 #include "memcached/file.hpp"
 #include "memcached/memcached.hpp"
 #include "progress/progress.hpp"
+#include "concurrency/fifo_checker.hpp"
 
 /* `file_memcached_interface_t` is a `memcached_interface_t` that reads queries
 from a file and ignores the responses to its queries. */
@@ -13,10 +14,10 @@ private:
     signal_t *interrupt;
 
 public:
-    file_memcached_interface_t(std::string filename, signal_t *interrupt) :
-        file(fopen(filename.c_str(), "r")),
+    file_memcached_interface_t(const char *filename, signal_t *_interrupt) :
+        file(fopen(filename, "r")),
         progress_bar(std::string("Import"), file),
-        interrupt(interrupt)
+        interrupt(_interrupt)
     { }
     ~file_memcached_interface_t() {
         fclose(file);
@@ -42,8 +43,11 @@ public:
         const char *head = "\r\n";
         while ((*head) && ((c = getc(file)) != EOF) && (limit--) > 0) {
             dest->push_back(c);
-            if (c == *head) head++;
-            else head = "\r\n";
+            if (c == *head) {
+                head++;
+            } else {
+                head = "\r\n";
+            }
         }
         //we didn't every find a crlf unleash the exception 
         if (*head) throw no_more_data_exc_t();
@@ -62,7 +66,7 @@ class dummy_get_store_t : public get_store_t {
     }
 };
 
-void import_memcache(std::string filename, set_store_interface_t *set_store, signal_t *interrupt) {
+void import_memcache(const char *filename, set_store_interface_t *set_store, signal_t *interrupt) {
     rassert(interrupt);
     interrupt->assert_thread();
 

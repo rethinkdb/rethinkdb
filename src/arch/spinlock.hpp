@@ -1,10 +1,9 @@
 #ifndef __ARCH_SPINLOCK_HPP__
 #define __ARCH_SPINLOCK_HPP__
 
-#include "errors.hpp"
-
 #include <pthread.h>
-#include <string.h>
+
+#include "errors.hpp"
 
 class spinlock_t {
 public:
@@ -34,7 +33,7 @@ private:
 
 class spinlock_acq_t {
 public:
-    spinlock_acq_t(spinlock_t *the_lock) : the_lock_(the_lock) {
+    explicit spinlock_acq_t(spinlock_t *the_lock) : the_lock_(the_lock) {
         the_lock_->lock();
     }
     ~spinlock_acq_t() {

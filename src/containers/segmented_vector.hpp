@@ -4,12 +4,12 @@
 
 #include <stdio.h>
 
-#include "utils2.hpp"
+#include "errors.hpp"
 
 
 #define ELEMENTS_PER_SEGMENT (1 << 14)
 
-template<class element_t, int max_size>
+template<class element_t, size_t max_size>
 class segmented_vector_t
 {
 private:

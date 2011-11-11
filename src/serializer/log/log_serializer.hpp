@@ -1,4 +1,3 @@
-
 #ifndef __LOG_SERIALIZER_HPP__
 #define __LOG_SERIALIZER_HPP__
 
@@ -10,18 +9,17 @@
 #include <vector>
 
 #include "serializer/serializer.hpp"
-#include "server/cmd_args.hpp"
+#include "serializer/log/config.hpp"
 #include "utils.hpp"
-#include "concurrency/cond_var.hpp"
 #include "concurrency/mutex.hpp"
 
+#include "serializer/log/metablock_manager.hpp"
+#include "serializer/log/extent_manager.hpp"
+#include "serializer/log/lba/lba_list.hpp"
+#include "serializer/log/data_block_manager.hpp"
+
 class log_serializer_t;
-
-#include "metablock/metablock_manager.hpp"
-#include "extents/extent_manager.hpp"
-#include "lba/lba_list.hpp"
-#include "data_block_manager.hpp"
-
+class cond_t;
 struct block_magic_t;
 
 /**
@@ -36,31 +34,35 @@ struct log_serializer_metablock_t {
     extent_manager_t::metablock_mixin_t extent_manager_part;
     lba_index_t::metablock_mixin_t lba_index_part;
     data_block_manager_t::metablock_mixin_t data_block_manager_part;
-    ser_transaction_id_t transaction_id;
+    block_sequence_id_t block_sequence_id;
 };
 
+//  Data to be serialized to disk with each block.  Changing this changes the disk format!
+// TODO: This header data should maybe go to the cache
 typedef metablock_manager_t<log_serializer_metablock_t> mb_manager_t;
 
 // Used internally
 struct ls_block_writer_t;
-struct ls_write_fsm_t;
 struct ls_read_fsm_t;
 struct ls_start_new_fsm_t;
 struct ls_start_existing_fsm_t;
 
 class log_serializer_t :
+#ifndef SEMANTIC_SERIALIZER_CHECK
     public serializer_t,
-    private data_block_manager_t::gc_writer_t,
+#else
+    public home_thread_mixin_t,
+#endif  // SEMANTIC_SERIALIZER_CHECK
     private data_block_manager_t::shutdown_callback_t,
     private lba_index_t::shutdown_callback_t
 {
     friend struct ls_block_writer_t;
-    friend struct ls_write_fsm_t;
     friend struct ls_read_fsm_t;
     friend struct ls_start_new_fsm_t;
     friend struct ls_start_existing_fsm_t;
     friend class data_block_manager_t;
-    friend class dbm_read_ahead_fsm_t;
+    friend struct dbm_read_ahead_fsm_t;
+    friend class ls_block_token_pointee_t;
 
 public:
     /* Serializer configuration. dynamic_config_t is everything that can be changed from run
@@ -69,18 +71,33 @@ public:
     typedef log_serializer_private_dynamic_config_t private_dynamic_config_t;
     typedef log_serializer_dynamic_config_t dynamic_config_t;
     typedef log_serializer_static_config_t static_config_t;
-    
-    dynamic_config_t *dynamic_config;
-    private_dynamic_config_t *private_config;
-    static_config_t static_config;
+
+    struct log_serializer_config_t {
+        dynamic_config_t dynamic_config;
+        private_dynamic_config_t private_dynamic_config;
+        static_config_t static_config;
+
+        explicit log_serializer_config_t(const std::string& file_name)
+            : private_dynamic_config(file_name)
+        { }
+
+        friend class boost::serialization::access;
+        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
+            ar & dynamic_config;
+            ar & private_dynamic_config;
+            ar & static_config;
+        }
+    };
+
+    typedef log_serializer_config_t config_t;
 
 public:
 
     /* Blocks. Does not check for an existing database--use check_existing for that. */
-    static void create(dynamic_config_t *dynamic_config, private_dynamic_config_t *private_dynamic_config, static_config_t *static_config);
+    static void create(dynamic_config_t dynamic_config, private_dynamic_config_t private_dynamic_config, static_config_t static_config);
 
     /* Blocks. */
-    log_serializer_t(dynamic_config_t *dynamic_config, private_dynamic_config_t *private_dynamic_config);
+    log_serializer_t(dynamic_config_t dynamic_config, private_dynamic_config_t private_dynamic_config);
 
     /* Blocks. */
     virtual ~log_serializer_t();
@@ -98,42 +115,61 @@ public:
     void *clone(void*); // clones a buf
     void free(void*);
 
-    file_t::account_t *make_io_account(int priority, int outstanding_requests_limit = UNLIMITED_OUTSTANDING_REQUESTS);
+    file_account_t *make_io_account(int priority, int outstanding_requests_limit);
 
-    void register_read_ahead_cb(read_ahead_callback_t *cb);
-    void unregister_read_ahead_cb(read_ahead_callback_t *cb);
-    bool do_read(block_id_t block_id, void *buf, file_t::account_t *io_account, read_callback_t *callback);
-    ser_transaction_id_t get_current_transaction_id(block_id_t block_id, const void* buf);
-    bool do_write(write_t *writes, int num_writes, file_t::account_t *io_account, write_txn_callback_t *callback, write_tid_callback_t *tid_callback = NULL) {
-        return do_write(writes, num_writes, io_account, callback, tid_callback, false);
-    }
-    block_size_t get_block_size();
+    void register_read_ahead_cb(serializer_read_ahead_callback_t *cb);
+    void unregister_read_ahead_cb(serializer_read_ahead_callback_t *cb);
     block_id_t max_block_id();
-    bool block_in_use(block_id_t id);
-    repli_timestamp get_recency(block_id_t id);
+    repli_timestamp_t get_recency(block_id_t id);
+
+    bool get_delete_bit(block_id_t id);
+    boost::intrusive_ptr<ls_block_token_pointee_t> index_read(block_id_t block_id);
+
+    void block_read(const boost::intrusive_ptr<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb);
+
+    void block_read(const boost::intrusive_ptr<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account);
+
+    void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account);
+
+    boost::intrusive_ptr<ls_block_token_pointee_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb);
+    boost::intrusive_ptr<ls_block_token_pointee_t> block_write(const void *buf, file_account_t *io_account, iocallback_t *cb);
+    boost::intrusive_ptr<ls_block_token_pointee_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account);
+    boost::intrusive_ptr<ls_block_token_pointee_t> block_write(const void *buf, file_account_t *io_account);
+
+    block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf);
+
+    block_size_t get_block_size();
 
 private:
-    bool do_write(write_t *writes, int num_writes, file_t::account_t *io_account, write_txn_callback_t *callback, write_tid_callback_t *tid_callback, bool main_mutex_has_been_acquired);
+    std::map<ls_block_token_pointee_t*, off64_t> token_offsets;
+    std::multimap<off64_t, ls_block_token_pointee_t*> offset_tokens;
+#ifndef NDEBUG
+    // Makes sure we get no tokens after we thought that
+    bool expecting_no_more_tokens;
+#endif
+    void register_block_token(ls_block_token_pointee_t *token, off64_t offset);
+    bool tokens_exist_for_offset(off64_t off);
+    void unregister_block_token(ls_block_token_pointee_t *token);
+    void remap_block_to_new_offset(off64_t current_offset, off64_t new_offset);
+    boost::intrusive_ptr<ls_block_token_pointee_t> generate_block_token(off64_t offset);
 
-    std::vector<read_ahead_callback_t*> read_ahead_callbacks;
-    bool offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
+    std::vector<serializer_read_ahead_callback_t*> read_ahead_callbacks;
+    bool offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
     bool should_perform_read_ahead();
 
-    /* Called by the data block manager when it wants us to rewrite some blocks */
-    bool write_gcs(data_block_manager_t::gc_write_t *writes, int num_writes, file_t::account_t *io_account, data_block_manager_t::gc_write_callback_t *cb);
+    struct index_write_context_t {
+        index_write_context_t() : next_metablock_write(NULL) { }
+        extent_manager_t::transaction_t *extent_txn;
+        cond_t *next_metablock_write;
+    };
+    /* Starts a new transaction, updates perfmons etc. */
+    void index_write_prepare(index_write_context_t &context, file_account_t *io_account);
+    /* Finishes a write transaction */
+    void index_write_finish(index_write_context_t &context, file_account_t *io_account);
 
     /* This mess is because the serializer is still mostly FSM-based */
     bool shutdown(cond_t *cb);
     bool next_shutdown_step();
-    cond_t *shutdown_callback;
-    
-    enum shutdown_state_t {
-        shutdown_begin,
-        shutdown_waiting_on_serializer,
-        shutdown_waiting_on_datablock_manager,
-        shutdown_waiting_on_lba
-    } shutdown_state;
-    bool shutdown_in_one_shot;
 
     virtual void on_datablock_manager_shutdown();
     virtual void on_lba_shutdown();
@@ -154,19 +190,26 @@ public:
     // do_on_thread.  TODO: who uses this return value?
     void enable_gc();
 
-    // The magic value used for "zero" buffers written upon deletion.
-    static const block_magic_t zerobuf_magic;
-
 private:
-    /* We want to be able to yield the CPU when preparing large writes, so to
-    avoid corruption we have this mutex. It is used to make sure that another
-    read or write doesn't come along during the time we are yielding the CPU. */
-    mutex_t main_mutex;
-
     typedef log_serializer_metablock_t metablock_t;
     void prepare_metablock(metablock_t *mb_buffer);
 
     void consider_start_gc();
+
+    dynamic_config_t dynamic_config;
+    private_dynamic_config_t private_config;
+    static_config_t static_config;
+
+    cond_t *shutdown_callback;
+
+    enum shutdown_state_t {
+        shutdown_begin,
+        shutdown_waiting_on_serializer,
+        shutdown_waiting_on_datablock_manager,
+        shutdown_waiting_on_block_tokens,
+        shutdown_waiting_on_lba
+    } shutdown_state;
+    bool shutdown_in_one_shot;
 
     enum state_t {
         state_unstarted,
@@ -178,25 +221,23 @@ private:
 
     const char *db_path;
     direct_file_t *dbfile;
-    
+
     extent_manager_t *extent_manager;
     mb_manager_t *metablock_manager;
     lba_index_t *lba_index;
     data_block_manager_t *data_block_manager;
-    
-    /* The ls_write_fsm_ts organize themselves into a list so that they can be sure to
+
+    /* The running index writes organize themselves into a list so that they can be sure to
     write their metablocks in the correct order. last_write points to the most recent
-    transaction that started but did not finish; new ls_write_fsm_ts use it to find the
+    transaction that started but did not finish; new index writes use it to find the
     end of the list so they can append themselves to it. */
-    ls_write_fsm_t *last_write;
-    
+    index_write_context_t *last_write;
+
     int active_write_count;
 
-    ser_transaction_id_t current_transaction_id;
+    block_sequence_id_t latest_block_sequence_id;
 
-#ifndef NDEBUG
-    metablock_t debug_mb_buffer;
-#endif
+    DISABLE_COPYING(log_serializer_t);
 };
 
 #endif /* __LOG_SERIALIZER_HPP__ */

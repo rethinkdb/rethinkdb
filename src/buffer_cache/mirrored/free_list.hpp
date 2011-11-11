@@ -1,10 +1,12 @@
 #ifndef __BUFFER_CACHE_MIRRORED_FREE_LIST_HPP__
 #define __BUFFER_CACHE_MIRRORED_FREE_LIST_HPP__
 
-#include "serializer/serializer.hpp"
+#include <deque>
+
 #include "buffer_cache/types.hpp"
 #include "utils.hpp"
 
+class serializer_t;
 /* TODO We could implement a free list in the unused cells of the page map, saving a little bit
 of memory. */
 

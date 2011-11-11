@@ -1,0 +1,35 @@
+for (mode, checker) in [
+        ("debug", "valgrind"),
+        ("release", "valgrind"),
+        ("release", None),
+        ("debug-mockcache", "valgrind"),
+        ("debug-noepoll", "valgrind")]:
+    for protocol in ["text"]: # ["text", "binary"]:
+        for (cores, slices) in [(1, 1), (2, 8)]:
+            sigint_timeout = 360 if "mock" in mode else 60
+            do_test_fog("integration/multi_serial_mix.py",
+                        { "auto"        : True,
+                          "mode"        : mode,
+                          "no-valgrind" : not checker,
+                          "protocol"    : protocol,
+                          "cores"       : cores,
+                          "slices"      : slices,
+                          "num-testers" : 16,
+                          "duration"    : 420,
+                          "sigint-timeout" : sigint_timeout },
+                        repeat=5, timeout = 480 + sigint_timeout)
+
+            do_test_fog("integration/multi_serial_mix.py",
+                        { "auto"        : True,
+                          "mode"        : mode,
+                          "no-valgrind" : not checker,
+                          "protocol"    : protocol,
+                          "cores"       : cores,
+                          "slices"      : slices,
+                          "num-testers" : 16,
+                          "memory"      : 12,
+                          "diff-log-size" : 2,
+                          "duration"    : 420,
+                          "sigint-timeout" : sigint_timeout },
+                        repeat=5, timeout = 540 + sigint_timeout)
+

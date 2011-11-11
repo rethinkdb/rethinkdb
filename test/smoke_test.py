@@ -2,12 +2,12 @@
 from cloud_retester import do_test, do_test_cloud, report_cloud, setup_testing_nodes, terminate_testing_nodes
 
 # Clean the repo
-do_test("cd ../src/; make clean")
+do_test("cd ../src/; make depclean")
 
 # Make every target first, as some tests depend on multiple targets
 
 # Build the version of the server that the tests will use
-do_test("cd ../src/; nice make -j",
+do_test("cd ../src/; nice make -j 9",
         { "DEBUG"      : 1,
           "VALGRIND"   : 1,
           "UNIT_TESTS" : 1 },
@@ -16,11 +16,11 @@ do_test("cd ../src/; nice make -j",
 # Build with all the special flags to make sure they all compile. We use
 # all the special flags simultaneously so that the smoke test doesn't have
 # to perform very many builds.
-do_test("cd ../src/; nice make -j",
+do_test("cd ../src/; nice make -j 9",
         { "DEBUG"            : 0,
           "NO_EPOLL"         : 1,
-          "MOCK_IO_LAYER"    : 1,
           "MOCK_CACHE_CHECK" : 1,
+          "SEMANTIC_SERIALIZER_CHECK" : 1,
           "UNIT_TESTS" : 1 },
         cmd_format="make", timeout=180)
 

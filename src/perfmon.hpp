@@ -7,20 +7,19 @@
 #ifndef __PERFMON_HPP__
 #define __PERFMON_HPP__
 
-#include <string>
 #include <map>
-#include <deque>
-#include <stdarg.h>
-#include "utils2.hpp"
+#include <limits>
+#include <string>
+
+#include "utils.hpp"
 #include "config/args.hpp"
 #include "containers/intrusive_list.hpp"
-#include <limits>
-#include "server/control.hpp"
+#include "stats/control.hpp"
 #include "perfmon_types.hpp"
 
-#include <sstream>
-
-#include "arch/core.hpp"
+// Some arch/runtime declarations.
+int get_num_threads();
+int get_thread_id();
 
 // Pad a value to the size of a cache line to avoid false sharing.
 // TODO: This is implemented as a struct with subtraction rather than a union
@@ -34,22 +33,6 @@ struct cache_line_padded_t {
     value_t value;
     char padding[CACHE_LINE_SIZE - sizeof(value_t)];
 };
-
-/* Number formatter */
-// TODO (rntz) should this go somewhere else?
-
-template<class T>
-std::string format(T value, std::streamsize prec) {
-    std::stringstream ss;
-    ss.precision(prec);
-    ss << std::fixed << value;
-    return ss.str();
-}
-
-template<class T>
-std::string format(T value) {
-    return format(value, 8);
-}
 
 /* The perfmon (short for "PERFormance MONitor") is responsible for gathering data about
 various parts of the server. */
@@ -77,7 +60,7 @@ class perfmon_t :
 public:
     bool internal;
 public:
-    perfmon_t(bool internal = true);
+    explicit perfmon_t(bool internal = true);
     virtual ~perfmon_t();
     
     /* To get a value from a given perfmon: Call begin_stats(). On each core, call the visit_stats()
@@ -96,24 +79,23 @@ stats. The command-line flag `--full-perfmon` sets `global_full_perfmon` to true
 
 extern bool global_full_perfmon;
 
-
 // Abstract perfmon subclass that implements perfmon tracking by combining per-thread values.
 template<typename thread_stat_t, typename combined_stat_t = thread_stat_t>
 struct perfmon_perthread_t
     : public perfmon_t
 {
-    perfmon_perthread_t(bool internal = true) : perfmon_t(internal) {};
+    explicit perfmon_perthread_t(bool internal = true) : perfmon_t(internal) { }
 
     void *begin_stats() {
         return new thread_stat_t[get_num_threads()];
     }
     void visit_stats(void *data) {
-        get_thread_stat(&((thread_stat_t *) data)[get_thread_id()]);
+        get_thread_stat(&(reinterpret_cast<thread_stat_t *>(data))[get_thread_id()]);
     }
     void end_stats(void *data, perfmon_stats_t *dest) {
-        combined_stat_t combined = combine_stats((thread_stat_t *) data);
+        combined_stat_t combined = combine_stats(reinterpret_cast<thread_stat_t *>(data));
         output_stat(combined, dest);
-        delete[] (thread_stat_t*) data;
+        delete[] reinterpret_cast<thread_stat_t *>(data);
     }
 
   protected:
@@ -121,14 +103,6 @@ struct perfmon_perthread_t
     virtual combined_stat_t combine_stats(thread_stat_t *) = 0;
     virtual void output_stat(const combined_stat_t &, perfmon_stats_t *) = 0;
 };
-
-// Convenience macros for subclasses of perfmon_perthread_t that implement its pure virtual methods.
-#define PERFMON_PERTHREAD_IMPL2(thread_stat_t, combined_stat_t)         \
-    void get_thread_stat(thread_stat_t *);                              \
-    combined_stat_t combine_stats(thread_stat_t *);                     \
-    void output_stat(const combined_stat_t &, perfmon_stats_t *)
-
-#define PERFMON_PERTHREAD_IMPL(thread_stat_t) PERFMON_PERTHREAD_IMPL2(thread_stat_t, thread_stat_t)
 
 /* perfmon_counter_t is a perfmon_t that keeps a global counter that can be incremented
 and decremented. (Internally, it keeps many individual counters for thread-safety.) */
@@ -142,7 +116,10 @@ class perfmon_counter_t :
     std::string name;
     padded_int64_t thread_data[MAX_THREADS];
     int64_t &get();
-    PERFMON_PERTHREAD_IMPL2(padded_int64_t, int64_t);
+
+    void get_thread_stat(padded_int64_t *);
+    int64_t combine_stats(padded_int64_t *);
+    void output_stat(const int64_t&, perfmon_stats_t *);
   public:
     explicit perfmon_counter_t(std::string name, bool internal = true);
     void operator++(int) { get()++; }
@@ -159,16 +136,14 @@ time period, the average record, and the min and max records. */
 // need to use a namespace, not inner classes, so we can pass the auxiliary
 // classes to the templated base classes
 namespace perfmon_sampler {
-    typedef double value_t;
-
     struct stats_t {
         int count;
-        value_t sum, min, max;
+        double sum, min, max;
         stats_t() : count(0), sum(0),
-            min(std::numeric_limits<value_t>::max()),
-            max(std::numeric_limits<value_t>::min())
+            min(std::numeric_limits<double>::max()),
+            max(std::numeric_limits<double>::min())
             { }
-        void record(value_t v) {
+        void record(double v) {
             count++;
             sum += v;
             if (count) {
@@ -192,13 +167,16 @@ namespace perfmon_sampler {
 class perfmon_sampler_t
     : public perfmon_perthread_t<perfmon_sampler::stats_t>
 {
-    typedef perfmon_sampler::value_t value_t;
     typedef perfmon_sampler::stats_t stats_t;
     struct thread_info_t {
         stats_t current_stats, last_stats;
         int current_interval;
     } thread_data[MAX_THREADS];
-    PERFMON_PERTHREAD_IMPL(stats_t);
+
+    void get_thread_stat(stats_t *);
+    stats_t combine_stats(stats_t *);
+    void output_stat(const stats_t&, perfmon_stats_t *);
+
     void update(ticks_t now);
 
     std::string name;
@@ -206,7 +184,7 @@ class perfmon_sampler_t
     bool include_rate;
   public:
     perfmon_sampler_t(std::string name, ticks_t length, bool include_rate = false, bool internal = true);
-    void record(value_t value);
+    void record(double value);
 };
 
 /* Tracks the mean and standard deviation of a sequence value in constant space
@@ -228,9 +206,12 @@ struct stddev_t {
     static stddev_t combine(size_t nelts, stddev_t *data);
 
   private:
-    // N is the number of datapoints, M is the current mean, Q/N is the
-    // standard variance, and sqrt(Q/N) is the standard deviation. Read the
-    // paper for why it works.
+    // N is the number of datapoints, M is the current mean, Q/N is
+    // the standard variance, and sqrt(Q/N) is the standard
+    // deviation. Read the paper for why it works or use algebra.
+    //
+    // (Note that this is a better scheme numerically than using the
+    // classic calculator technique of storing sum(x), sum(x^2), n.)
     size_t N;
     float M, Q;
 };
@@ -244,7 +225,10 @@ struct perfmon_stddev_t
 
   protected:
     std::string name;
-    PERFMON_PERTHREAD_IMPL(stddev_t);
+
+    void get_thread_stat(stddev_t *);
+    stddev_t combine_stats(stddev_t *);
+    void output_stat(const stddev_t&, perfmon_stats_t *);
   private:
     stddev_t thread_data[MAX_THREADS]; // TODO (rntz) should this be cache-line padded?
 };
@@ -265,7 +249,10 @@ private:
     void update(ticks_t now);
     std::string name;
     ticks_t length;
-    PERFMON_PERTHREAD_IMPL(double);
+
+    void get_thread_stat(double *);
+    double combine_stats(double *);
+    void output_stat(const double&, perfmon_stats_t *);
 public:
     perfmon_rate_monitor_t(std::string name, ticks_t length, bool internal = true);
     void record(double value = 1.0);
@@ -294,28 +281,36 @@ private:
     perfmon_sampler_t recent;
     bool ignore_global_full_perfmon;
 public:
-    perfmon_duration_sampler_t(std::string name, ticks_t length, bool internal = true, bool ignore_global_full_perfmon = false) 
+    perfmon_duration_sampler_t(std::string name, ticks_t length, bool internal = true, bool _ignore_global_full_perfmon = false)
         : control_t(std::string("pm_") + name + "_toggle", name + " toggle on and off", true),
-          active(name + "_active_count", internal), total(name + "_total", internal), 
-          recent(name, length, true, internal), ignore_global_full_perfmon(ignore_global_full_perfmon)
+          active(name + "_active_count", internal), total(name + "_total", internal),
+          recent(name, length, true, internal), ignore_global_full_perfmon(_ignore_global_full_perfmon)
         { }
     void begin(ticks_t *v) {
         active++;
         total++;
-        if (global_full_perfmon || ignore_global_full_perfmon) *v = get_ticks();
-        else *v = 0;
+        if (global_full_perfmon || ignore_global_full_perfmon) {
+            *v = get_ticks();
+        } else {
+            *v = 0;
+        }
     }
     void end(ticks_t *v) {
         active--;
-        if (*v != 0) recent.record(ticks_to_secs(get_ticks() - *v));
+        if (*v != 0) {
+            recent.record(ticks_to_secs(get_ticks() - *v));
+        }
     }
 
 //Control interface used for enabling and disabling duration samplers at run time
 public:
     std::string call(UNUSED int argc, UNUSED char **argv) {
         ignore_global_full_perfmon = !ignore_global_full_perfmon;
-        if (ignore_global_full_perfmon) return std::string("Enabled\n");
-        else                            return std::string("Disabled\n");
+        if (ignore_global_full_perfmon) {
+            return "Enabled\n";
+        } else {
+            return "Disabled\n";
+        }
     }
 };
 
@@ -332,7 +327,7 @@ public:
         public intrusive_list_node_t<internal_function_t>
     {
     public:
-        internal_function_t(perfmon_function_t *p);
+        explicit internal_function_t(perfmon_function_t *p);
         virtual ~internal_function_t();
         virtual std::string compute_stat() = 0;
     private:
@@ -345,8 +340,8 @@ private:
     intrusive_list_t<internal_function_t> funs[MAX_THREADS];
 
 public:
-    perfmon_function_t(std::string name, bool internal = true)
-        : perfmon_t(internal), name(name) {}
+    perfmon_function_t(std::string _name, bool internal = true)
+        : perfmon_t(internal), name(_name) {}
     ~perfmon_function_t() {}
 
     void *begin_stats();
@@ -358,9 +353,8 @@ struct block_pm_duration {
     ticks_t time;
     bool ended;
     perfmon_duration_sampler_t *pm;
-    block_pm_duration(perfmon_duration_sampler_t *pm)
-        : ended(false), pm(pm)
-    {
+    explicit block_pm_duration(perfmon_duration_sampler_t *_pm)
+        : ended(false), pm(_pm) {
         pm->begin(&time);
     }
     void end() {

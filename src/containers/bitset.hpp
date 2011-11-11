@@ -1,9 +1,11 @@
 #ifndef __CONTAINERS_BITSET_HPP__
 #define __CONTAINERS_BITSET_HPP__
 
+#include <vector>
+
 #include <stdint.h>
 
-#include "utils2.hpp"
+#include "utils.hpp"
 
 class bitset_t {
 private:
@@ -15,7 +17,7 @@ private:
         if (value) {
             bits[place / 64] |= (uint64_t(1) << (place % 64));
         } else {
-            bits[place / 64] &= ~ (uint64_t(1) << (place % 64));
+            bits[place / 64] &= ~(uint64_t(1) << (place % 64));
         }
     }
 

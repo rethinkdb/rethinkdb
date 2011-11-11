@@ -1,6 +1,5 @@
-
-#ifndef __MEMCACHED_PROTOCOL_HPP__
-#define __MEMCACHED_PROTOCOL_HPP__
+#ifndef __STRESS_CLIENT_PROTOCOLS_MEMCACHED_PROTOCOL_HPP__
+#define __STRESS_CLIENT_PROTOCOLS_MEMCACHED_PROTOCOL_HPP__
 
 #include <libmemcached/memcached.h>
 #include <stdlib.h>
@@ -133,5 +132,5 @@ private:
 };
 
 
-#endif // __MEMCACHED_PROTOCOL_HPP__
+#endif  // __STRESS_CLIENT_PROTOCOLS_MEMCACHED_PROTOCOL_HPP__
 

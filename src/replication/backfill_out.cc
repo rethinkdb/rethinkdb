@@ -1,5 +1,10 @@
-#include "btree/node.hpp"
 #include "replication/backfill_out.hpp"
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
+#include "arch/timing.hpp"
+#include "btree/node.hpp"
 #include "concurrency/drain_semaphore.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/count_down_latch.hpp"
@@ -7,6 +12,7 @@
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/queue/cross_thread_limited_fifo.hpp"
 #include "concurrency/queue/accounting.hpp"
+#include "perfmon.hpp"
 
 perfmon_duration_sampler_t
     pm_replication_master_dispatch_cost("replication_master_dispatch_cost", secs_to_ticks(1.0)),
@@ -25,13 +31,14 @@ public:
     struct slice_manager_t :
         public backfill_callback_t
     {
-        slice_manager_t(backfill_and_streaming_manager_t *parent, shard_store_t *shard, repli_timestamp_t backfill_from, repli_timestamp_t new_timestamp) :
+        slice_manager_t(backfill_and_streaming_manager_t *parent, shard_store_t *shard, repli_timestamp_t backfill_from, repli_timestamp_t new_timestamp, int slice_num, int n_slices) :
             parent_(parent), shard_(shard),
-            max_backfill_timestamp_(new_timestamp), min_realtime_timestamp_(new_timestamp),
+            max_backfill_timestamp_plus_one_(new_timestamp), min_realtime_timestamp_(new_timestamp),
             backfill_job_queue(shard_->home_thread(), REPLICATION_JOB_QUEUE_DEPTH),
             realtime_job_queue(shard_->home_thread(), REPLICATION_JOB_QUEUE_DEPTH),
             backfill_job_account(&parent->backfill_job_queue, &backfill_job_queue, 1),
-            realtime_job_account(&parent->realtime_job_queue, &realtime_job_queue, 1)
+            realtime_job_account(&parent->realtime_job_queue, &realtime_job_queue, 1),
+            slice_num_(slice_num), n_slices_(n_slices)
         {
             on_thread_t thread_switcher(shard_->home_thread());
 
@@ -39,7 +46,7 @@ public:
                 ASSERT_NO_CORO_WAITING;
 
                 /* We always use the `realtime_mutation_drain_semaphore` on the slice's thread */
-                realtime_mutation_drain_semaphore.rethread(get_thread_id());
+                realtime_mutation_drain_semaphore.reset(new drain_semaphore_t);
 
                 /* Increment the replication clock right as we start the backfill. This
                    makes it so that every operation with timestamp `new_timestamp - 1` will be
@@ -58,12 +65,28 @@ public:
                 shard_->dispatching_store.set_dispatcher(
                     boost::bind(
                     &slice_manager_t::dispatch_change, this,
-                    drain_semaphore_t::lock_t(&realtime_mutation_drain_semaphore),
+                    drain_semaphore_t::lock_t(realtime_mutation_drain_semaphore.get()),
                     _1, _2, _3));
 
                 backfilling_ = true;
             }
-            coro_t::spawn_now(boost::bind(&btree_slice_t::backfill, &shard->btree, backfill_from, this, shard->dispatching_store.substore_order_source.check_in("slice_manager_t").with_read_mode()));
+
+            order_token_t token = shard->dispatching_store.substore_order_source.check_in("slice_manager_t").with_read_mode();
+            coro_t::spawn_now(boost::bind(&slice_manager_t::run_backfill, this, &shard->btree, backfill_from, this, token));
+        }
+
+        void run_backfill(btree_slice_t *slice, repli_timestamp_t since_when, backfill_callback_t *callback, order_token_t token) {
+            rassert(get_thread_id() == shard_->home_thread());
+
+            repli_timestamp_t max_allowable_timestamp = { max_backfill_timestamp_plus_one_.time - 1 };
+            slice->backfill(since_when, max_allowable_timestamp, callback, token);
+
+            // We're done backfill, so say so.
+            rassert(backfilling_);
+            backfilling_ = false;
+            boost::function<void()> fun = boost::bind(&backfill_and_streaming_manager_t::backfill_done, parent_);
+            coro_t::spawn_now(boost::bind(
+                &cross_thread_limited_fifo_t<boost::function<void()> >::push, &backfill_job_queue, fun));
         }
 
         ~slice_manager_t() {
@@ -76,16 +99,19 @@ public:
 
             /* Wait for any already-dispatched changes to finish before we let ourselves
             be destroyed */
-            realtime_mutation_drain_semaphore.drain();
+            realtime_mutation_drain_semaphore->drain();
+            realtime_mutation_drain_semaphore.reset();
         }
 
         backfill_and_streaming_manager_t *parent_;
         shard_store_t *shard_;
 
-        // For sanity checking. All backfill operations should have timestamps less than
-        // `max_backfill_timestamp_`, and all realtime operations should have timestamps
-        // greater than or equal to `min_realtime_timestamp_`.
-        repli_timestamp_t max_backfill_timestamp_, min_realtime_timestamp_;
+        // For sanity checking. All backfill operations should have
+        // timestamps less than `max_backfill_timestamp_plus_one_`,
+        // and all realtime operations should have timestamps greater
+        // than or equal to `min_realtime_timestamp_`.
+        const repli_timestamp_t max_backfill_timestamp_plus_one_;
+        repli_timestamp_t min_realtime_timestamp_;
 
         // True while actually backfilling
         bool backfilling_;
@@ -93,7 +119,11 @@ public:
         cross_thread_limited_fifo_t<boost::function<void()> > backfill_job_queue, realtime_job_queue;
         accounting_queue_t<boost::function<void()> >::account_t backfill_job_account, realtime_job_account;
 
-        drain_semaphore_t realtime_mutation_drain_semaphore;
+        // Its home thread is shard_->home_thread().
+        boost::scoped_ptr<drain_semaphore_t> realtime_mutation_drain_semaphore;
+
+        int slice_num_;
+        int n_slices_;
 
         /* Functor for replicating changes */
 
@@ -175,77 +205,39 @@ public:
             realtime_job_queue.push(job);
         }
 
-        /* backfill_callback_t implementation */
-
-        bool should_send_deletion_keys(bool can_send_deletion_keys) {
-            on_thread_t th(parent_->home_thread());
-
-            rassert(backfilling_);
-
-            if (parent_->all_delete_queues_so_far_can_send_keys_ && !can_send_deletion_keys) {
-                parent_->all_delete_queues_so_far_can_send_keys_ = false;
-
-                // We only send this once, and it is important that we
-                // send it before the delete_queues_can_send_keys_latch_
-                // gets pulsed, because then a delete queue could finish
-                // and start sending sets before we sent a
-                // delete_everything message.
-                parent_->handler_->backfill_delete_everything(order_token_t::ignore);
-            }
-
-            parent_->delete_queues_can_send_keys_latch_.count_down();
-
-            // Wait until all slices have gotten here.
-            parent_->delete_queues_can_send_keys_latch_.wait();
-
-            return parent_->all_delete_queues_so_far_can_send_keys_;
-        }
-
-        void wait_and_maybe_send_delete_all_keys_message() {
-            parent_->delete_queues_can_send_keys_latch_.wait();
-        }
-
-        /* The store calls this when we need to backfill a deletion. */
-        void deletion_key(const btree_key_t *key) {
-            // This runs in the scheduler context.
+        void on_delete_range(const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null) {
             rassert(get_thread_id() == shard_->home_thread());
             rassert(backfilling_);
-            store_key_t tmp(key->size, key->contents);
-            backfill_job_queue.push(boost::bind(
-                &backfill_and_realtime_streaming_callback_t::backfill_deletion, parent_->handler_,
-                tmp, order_token_t::ignore));
+            backfill_job_queue.push(boost::bind(&backfill_and_realtime_streaming_callback_t::backfill_delete_range,
+                                                parent_->handler_,
+                                                slice_num_, n_slices_,
+                                                left_exclusive_or_null != NULL,
+                                                left_exclusive_or_null ? store_key_t(left_exclusive_or_null->size, left_exclusive_or_null->contents) : store_key_t(),
+                                                right_inclusive_or_null != NULL,
+                                                right_inclusive_or_null ? store_key_t(right_inclusive_or_null->size, right_inclusive_or_null->contents) : store_key_t(),
+                                                order_token_t::ignore));
         }
 
-        /* The store calls this when it finishes the first phase of backfilling. It's redundant
-        because we will get another callback when the second phase is done. */
-        void done_deletion_keys() {
+        void on_deletion(const btree_key_t *key, repli_timestamp_t recency) {
+            // TODO:  We ignore recency.  Is this correct?
+
+            // This may run in the scheduler context.
+            rassert(get_thread_id() == shard_->home_thread());
+            rassert(backfilling_);
+            backfill_job_queue.push(boost::bind(&backfill_and_realtime_streaming_callback_t::backfill_deletion,
+                                                parent_->handler_,
+                                                store_key_t(key->size, key->contents), recency, order_token_t::ignore));
         }
 
         /* The store calls this when we need to backfill a key/value pair to the slave */
         void on_keyvalue(backfill_atom_t atom) {
             // This runs in the scheduler context
             rassert(get_thread_id() == shard_->home_thread());
-            rassert(atom.recency < max_backfill_timestamp_, "atom.recency (%u) < max_backfill_timestamp_ (%u)", atom.recency.time, max_backfill_timestamp_.time);
+            rassert(atom.recency < max_backfill_timestamp_plus_one_, "atom.recency (%u) < max_backfill_timestamp_plus_one_ (%u)", atom.recency.time, max_backfill_timestamp_plus_one_.time);
             rassert(backfilling_);
             backfill_job_queue.push(boost::bind(
                 &backfill_and_realtime_streaming_callback_t::backfill_set, parent_->handler_,
                 atom, order_token_t::ignore));
-        }
-
-        /* When we are finally done with the backfill, the store calls `done()`. */
-        void done_backfill() {
-            // This runs in the scheduler context. Since `push()` can block, we spawn a coroutine.
-            // It is essential that we push it through the backfill job queue so that it it not
-            // reordered relative to the actual backfill sets. Note that `boost::bind()` assigns
-            // a special meaning to `boost::bind()` called with a `boost::bind()` as one of its
-            // parameters, so we need to wrap it in a `boost::function` to get the behavior we
-            // want.
-            rassert(get_thread_id() == shard_->home_thread());
-            rassert(backfilling_);
-            backfilling_ = false;
-            boost::function<void()> fun = boost::bind(&backfill_and_streaming_manager_t::backfill_done, parent_);
-            coro_t::spawn_now(boost::bind(
-                &cross_thread_limited_fifo_t<boost::function<void()> >::push, &backfill_job_queue, fun));
         }
     };
 
@@ -300,9 +292,6 @@ public:
 
     /* Startup, shutdown, and member variables */
 
-    count_down_latch_t delete_queues_can_send_keys_latch_;
-    bool all_delete_queues_so_far_can_send_keys_;
-
     btree_key_value_store_t *internal_store_;
     backfill_and_realtime_streaming_callback_t *handler_;
 
@@ -330,15 +319,16 @@ public:
     backfill_and_streaming_manager_t(btree_key_value_store_t *kvs,
             backfill_and_realtime_streaming_callback_t *handler,
             repli_timestamp_t backfill_from) :
-        delete_queues_can_send_keys_latch_(kvs->btree_static_config.n_slices),
-        all_delete_queues_so_far_can_send_keys_(true),
         internal_store_(kvs),
         handler_(handler),
+        combined_job_queue(1),
         /* Every job that goes through the job queue will try to acquire the same lock, so
         there is no point in having more than one coroutine. Also, there is empirical
         evidence that having extra coroutines just waiting for the lock hurts performance.
         So the "pool" really just has one thing in it. */
         coro_pool(1, &combined_job_queue),
+        backfill_job_queue(1),
+        realtime_job_queue(1),
         backfill_job_account(&combined_job_queue, &backfill_job_queue, 1),
         realtime_job_account(&combined_job_queue, &realtime_job_queue, 1)
     {
@@ -359,7 +349,7 @@ public:
 
         pmap(internal_store_->btree_static_config.n_slices,
              boost::bind(&backfill_and_streaming_manager_t::register_on_slice, this,
-                         _1, backfill_from, replication_clock_));
+                         _1, internal_store_->btree_static_config.n_slices, backfill_from, replication_clock_));
 
         /* Start the timer that will repeatedly increment the replication clock */
         replication_clock_timer_.reset(new repeating_timer_t(1000,
@@ -368,8 +358,8 @@ public:
                 drain_semaphore_t::lock_t(&replication_clock_drain_semaphore_))));
     }
 
-    void register_on_slice(int i, repli_timestamp_t backfill_from, repli_timestamp_t new_timestamp) {
-        slice_managers[i] = new slice_manager_t(this, internal_store_->shards[i], backfill_from, new_timestamp);
+    void register_on_slice(int i, int nslices, repli_timestamp_t backfill_from, repli_timestamp_t new_timestamp) {
+        slice_managers[i] = new slice_manager_t(this, internal_store_->shards[i], backfill_from, new_timestamp, i, nslices);
     }
 
     ~backfill_and_streaming_manager_t() {

@@ -1,13 +1,13 @@
-#include "disk_structure.hpp"
+#include "serializer/log/lba/disk_structure.hpp"
 #include "containers/scoped_malloc.hpp"
 
-lba_disk_structure_t::lba_disk_structure_t(extent_manager_t *em, direct_file_t *file)
-    : em(em), file(file), superblock_extent(NULL), last_extent(NULL)
+lba_disk_structure_t::lba_disk_structure_t(extent_manager_t *_em, direct_file_t *_file)
+    : em(_em), file(_file), superblock_extent(NULL), last_extent(NULL)
 {
 }
 
-lba_disk_structure_t::lba_disk_structure_t(extent_manager_t *em, direct_file_t *file, lba_shard_metablock_t *metablock)
-    : em(em), file(file)
+lba_disk_structure_t::lba_disk_structure_t(extent_manager_t *_em, direct_file_t *_file, lba_shard_metablock_t *metablock)
+    : em(_em), file(_file)
 {
     if (metablock->last_lba_extent_offset != NULL_OFFSET) {
         last_extent = new lba_disk_extent_t(em, file, metablock->last_lba_extent_offset, metablock->last_lba_extent_entries_count);
@@ -26,7 +26,7 @@ lba_disk_structure_t::lba_disk_structure_t(extent_manager_t *em, direct_file_t *
         superblock_extent = new extent_t(em, file, superblock_extent_offset,
             superblock_offset + superblock_size - superblock_extent_offset);
         
-        startup_superblock_buffer = (lba_superblock_t *)malloc_aligned(superblock_size, DEVICE_BLOCK_SIZE);
+        startup_superblock_buffer = reinterpret_cast<lba_superblock_t *>(malloc_aligned(superblock_size, DEVICE_BLOCK_SIZE));
         superblock_extent->read(
             superblock_offset - superblock_extent_offset,
             superblock_size,
@@ -51,17 +51,17 @@ void lba_disk_structure_t::on_extent_read() {
 
     for (int i = 0; i < startup_superblock_count; i++) {
         extents_in_superblock.push_back(
-            new lba_disk_extent_t(em, file, 
+            new lba_disk_extent_t(em, file,
                 startup_superblock_buffer->entries[i].offset,
                 startup_superblock_buffer->entries[i].lba_entries_count));
     }
-    
+
     free(startup_superblock_buffer);
-    
+
     start_callback->on_lba_load();
 }
 
-void lba_disk_structure_t::add_entry(block_id_t block_id, repli_timestamp recency, flagged_off64_t offset, file_t::account_t *io_account) {
+void lba_disk_structure_t::add_entry(block_id_t block_id, repli_timestamp_t recency, flagged_off64_t offset, file_account_t *io_account) {
     if (last_extent && last_extent->full()) {
         /* We have filled up an extent. Transfer it to the superblock. */
 
@@ -134,7 +134,7 @@ public:
     }
 };
 
-void lba_disk_structure_t::sync(file_t::account_t *io_account, sync_callback_t *cb) {
+void lba_disk_structure_t::sync(file_account_t *io_account, sync_callback_t *cb) {
     lba_writer_t *writer = new lba_writer_t(cb);
     
     /* Count how many things need to be synced */
@@ -208,8 +208,11 @@ struct reader_t
             extent->read_step_2(&read_info, parent->index);
             parent->active_readers--;
             parent->start_more_readers();
-            if (index == (int)parent->readers.size() - 1) parent->done();
-            else parent->readers[index+1]->on_prev_done();
+            if (index == (int)parent->readers.size() - 1) {
+                parent->done();
+            } else {
+                parent->readers[index+1]->on_prev_done();
+            }
             delete this;
         }
     };
@@ -221,8 +224,8 @@ struct reader_t
     // reading process so that we stay under LBA_READ_BUFFER_SIZE.
     int active_readers;
 
-    reader_t(lba_disk_structure_t *ds, in_memory_index_t *index, lba_disk_structure_t::read_callback_t *cb)
-        : ds(ds), index(index), rcb(cb)
+    reader_t(lba_disk_structure_t *_ds, in_memory_index_t *_index, lba_disk_structure_t::read_callback_t *cb)
+        : ds(_ds), index(_index), rcb(cb)
     {
         for (lba_disk_extent_t *e = ds->extents_in_superblock.head(); e; e = ds->extents_in_superblock.next(e)) {
             new extent_reader_t(this, e);
@@ -264,18 +267,13 @@ void lba_disk_structure_t::prepare_metablock(lba_shard_metablock_t *mb_out) {
         mb_out->last_lba_extent_offset = last_extent->offset;
         mb_out->last_lba_extent_entries_count = last_extent->count;
 
-#ifndef NDEBUG
-        {
-            bool modcmp = (offsetof(lba_extent_t, entries[0]) + sizeof(lba_entry_t) * mb_out->last_lba_extent_entries_count)
-                % DEVICE_BLOCK_SIZE == 0;
-            rassert(modcmp);
-        }
-#endif
+        rassert(divides(DEVICE_BLOCK_SIZE, offsetof(lba_extent_t, entries[0]) + sizeof(lba_entry_t) * mb_out->last_lba_extent_entries_count));
+
     } else {
         mb_out->last_lba_extent_offset = NULL_OFFSET;
         mb_out->last_lba_extent_entries_count = 0;
     }
-    
+
     if (extents_in_superblock.size()) {
         mb_out->lba_superblock_offset = superblock_offset;
         mb_out->lba_superblock_entries_count = extents_in_superblock.size();

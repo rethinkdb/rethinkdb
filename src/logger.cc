@@ -1,9 +1,13 @@
+#include "logger.hpp"
+
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#include "logger.hpp"
 #include <string.h>
+
 #include "utils.hpp"
+#include <boost/bind.hpp>
+
 #include "arch/arch.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "concurrency/pmap.hpp"
@@ -128,8 +132,11 @@ void _mlog_start(const char *src_file, int src_line, log_level_t level) {
 
     /* If the log controller hasn't been started yet, then assume the thread pool hasn't been
     started either, so don't write which core the message came from. */
-    if (log_controller) mlogf("%s %s (Q%d, %s:%d): ", formatted_time, level_str, get_thread_id(), src_file, src_line);
-    else mlogf("%s %s (%s:%d): ", formatted_time, level_str, src_file, src_line);
+    if (log_controller) {
+        mlogf("%s %s (Q%d, %s:%d): ", formatted_time, level_str, get_thread_id(), src_file, src_line);
+    } else {
+        mlogf("%s %s (%s:%d): ", formatted_time, level_str, src_file, src_line);
+    }
 }
 
 void mlogf(const char *format, ...) {
@@ -140,11 +147,19 @@ void mlogf(const char *format, ...) {
     va_end(arg);
 }
 
+static void do_write_message(log_message_t *msg) {
+    size_t written = fwrite(msg->contents.data(), 1, msg->contents.size(), log_file);
+    if (written != msg->contents.size() || ferror(log_file)) {
+        // An error occurred. Not a lot we can do here.
+        BREAKPOINT;
+    }
+}
+
 void write_log_message(log_message_t *msg, log_controller_t *lc) {
 
     {
         on_thread_t thread_switcher(lc->home_thread_);
-        fwrite(msg->contents.data(), 1, msg->contents.size(), log_file);
+        do_write_message(msg);
     }
 
     delete msg;
@@ -154,7 +169,7 @@ void write_log_message(log_message_t *msg, log_controller_t *lc) {
 void mlog_end() {
     rassert(current_message);
     if (!log_controller) {
-        fwrite(current_message->contents.data(), 1, current_message->contents.size(), log_file);
+        do_write_message(current_message);
         delete current_message;
     } else {
         log_controller_lock->co_lock(rwi_read);

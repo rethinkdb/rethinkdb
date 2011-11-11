@@ -1,18 +1,31 @@
+#include "server/server.hpp"
+
 #include <math.h>
-#include "server.hpp"
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
+
+#include "arch/arch.hpp"
 #include "db_thread_info.hpp"
 #include "memcached/tcp_conn.hpp"
 #include "memcached/file.hpp"
-#include "diskinfo.hpp"
+#include "server/diskinfo.hpp"
 #include "concurrency/cond_var.hpp"
 #include "logger.hpp"
 #include "server/cmd_args.hpp"
 #include "replication/master.hpp"
 #include "replication/slave.hpp"
-#include "control.hpp"
-#include "gated_store.hpp"
+#include "stats/control.hpp"
+#include "server/gated_store.hpp"
 #include "concurrency/promise.hpp"
 #include "arch/os_signal.hpp"
+#include "http/http.hpp"
+#include "riak/riak.hpp"
+#include "redis/server.hpp"
+#include "server/key_value_store.hpp"
+#include "server/metadata_store.hpp"
 
 int run_server(int argc, char *argv[]) {
 
@@ -21,7 +34,7 @@ int run_server(int argc, char *argv[]) {
 
     // Open the log file, if necessary.
     if (config.log_file_name[0]) {
-        log_file = fopen(config.log_file_name, "a");
+        log_file = fopen(config.log_file_name.c_str(), "a");
     }
 
     // Initial thread message to start server
@@ -38,7 +51,7 @@ int run_server(int argc, char *argv[]) {
 
 
     // Run the server.
-    thread_pool_t thread_pool(config.n_workers);
+    thread_pool_t thread_pool(config.n_workers, config.do_set_affinity);
     starter.thread_pool = &thread_pool;
     thread_pool.run(&starter);
 
@@ -80,7 +93,7 @@ static spinlock_t timer_token_lock;
 static volatile bool no_more_checking;
 
 struct periodic_checker_t {
-    periodic_checker_t(creation_timestamp_t creation_timestamp) : creation_timestamp(creation_timestamp), timer_token(NULL) {
+    explicit periodic_checker_t(creation_timestamp_t _creation_timestamp) : creation_timestamp(_creation_timestamp), timer_token(NULL) {
         no_more_checking = false;
         check(this);
     }
@@ -90,10 +103,12 @@ struct periodic_checker_t {
         no_more_checking = true;
         if (timer_token) {
             cancel_timer(const_cast<timer_token_t*>(timer_token));
-        } 
+        }
     }
 
-    static void check(periodic_checker_t *timebomb_checker) {
+    static void check(void *void_timebomb_checker) {
+        periodic_checker_t *timebomb_checker = static_cast<periodic_checker_t *>(void_timebomb_checker);
+
         spinlock_acq_t lock(&timer_token_lock);
         if (!no_more_checking) {
             bool exploded = false;
@@ -124,7 +139,7 @@ struct periodic_checker_t {
                 // schedule next check
                 long seconds_left = ceil(double(TIMEBOMB_DAYS)*seconds_in_a_day - seconds_since_created) + 1;
                 long seconds_till_check = seconds_left < timebomb_check_period_in_sec ? seconds_left : timebomb_check_period_in_sec;
-                timebomb_checker->timer_token = fire_timer_once(seconds_till_check * 1000, (void (*)(void*)) &check, timebomb_checker);
+                timebomb_checker->timer_token = fire_timer_once(seconds_till_check * 1000, &check, timebomb_checker);
             }
         }
     }
@@ -174,6 +189,12 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             logINF("Creating database...\n");
             btree_key_value_store_t::create(&cmd_config->store_dynamic_config,
                                             &cmd_config->store_static_config);
+            // TODO: Shouldn't do this... Setting up the metadata static config doesn't belong here
+            // and it's very hacky to build on the store_static_config.
+            btree_key_value_store_static_config_t metadata_static_config = cmd_config->store_static_config;
+            metadata_static_config.cache.n_patch_log_blocks = 0;
+            btree_metadata_store_t::create(&cmd_config->metadata_store_dynamic_config,
+                                            &metadata_static_config);
             logINF("Done creating.\n");
         }
 
@@ -181,7 +202,8 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
             /* Start key-value store */
             logINF("Loading database...\n");
-            btree_key_value_store_t store(&cmd_config->store_dynamic_config);
+            btree_metadata_store_t metadata_store(cmd_config->metadata_store_dynamic_config);
+            btree_key_value_store_t store(cmd_config->store_dynamic_config);
 
 #ifdef TIMEBOMB_DAYS
             /* This continuously checks to see if RethinkDB has expired */
@@ -190,9 +212,9 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             if (!cmd_config->import_config.file.empty()) {
                 store.set_replication_master_id(NOT_A_SLAVE);
                 std::vector<std::string>::iterator it;
-                for(it = cmd_config->import_config.file.begin(); it != cmd_config->import_config.file.end(); it++) {
+                for (it = cmd_config->import_config.file.begin(); it != cmd_config->import_config.file.end(); it++) {
                     logINF("Importing file %s...\n", it->c_str());
-                    import_memcache(*it, &store, &os_signal_cond);
+                    import_memcache(it->c_str(), &store, &os_signal_cond);
                     logINF("Done\n");
                 }
             } else {
@@ -211,9 +233,8 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
                     /* So that we call the appropriate user-defined callback on failure */
                     boost::scoped_ptr<failover_script_callback_t> failover_script;
-                    if (strlen(cmd_config->failover_config.failover_script_path) > 0) {
-                        failover_script.reset(new failover_script_callback_t(
-                            cmd_config->failover_config.failover_script_path));
+                    if (!cmd_config->failover_config.failover_script_path.empty()) {
+                        failover_script.reset(new failover_script_callback_t(cmd_config->failover_config.failover_script_path.c_str()));
                         failover.add_callback(failover_script.get());
                     }
 
@@ -229,9 +250,12 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                         wait_for_sigint();
 
                         logINF("Waiting for running operations to finish...\n");
+                        debugf("debugf Waiting for running operations to finish...\n");
 
                         /* Slave destructor called here */
                     }
+
+                    debugf("Slave destructor has completed.\n");
 
                     /* query_enabler destructor called here; has the side effect of draining queries. */
 
@@ -263,8 +287,16 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                     /* Master destructor called here */
 
                 } else {
+                    store_manager_t<std::list<std::string> > *store_manager = new store_manager_t<std::list<std::string> >();
 
                     /* We aren't doing any sort of replication. */
+                    //riak::riak_server_t server(2222, store_manager);
+
+                    // Runs the redis server. Comment to disable redis. Uncomment to reenable. This is a
+                    // temporary hack for testing while we figure out how multiprotocol support should work
+                    // Port 6380 is used rather than the standard redis port (6379) to allow parallel testing
+                    // of our redis implementation with actual redis
+                    //redis_listener_t redis_conn_acceptor(6380);
 
                     /* Make it impossible for this database file to later be used as a slave, because
                     that would confuse the replication logic. */
@@ -285,9 +317,11 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
                     memcache_listener_t conn_acceptor(cmd_config->port, &gated_get_store, &gated_set_store);
 
-                    logINF("Server will now permit memcached queries on port %d.\n", cmd_config->port);
+                    logINF("Server will now permit queries on port %d.\n", cmd_config->port);
 
                     wait_for_sigint();
+
+                    delete store_manager;
 
                     logINF("Waiting for running operations to finish...\n");
                 }
@@ -324,7 +358,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 /* Install the shutdown control for thread pool */
 struct shutdown_control_t : public control_t
 {
-    shutdown_control_t(std::string key)
+    explicit shutdown_control_t(std::string key)
         : control_t(key, "Shut down the server.")
     {}
     std::string call(UNUSED int argc, UNUSED char **argv) {
@@ -335,28 +369,3 @@ struct shutdown_control_t : public control_t
 };
 
 shutdown_control_t shutdown_control(std::string("shutdown"));
-
-struct malloc_control_t : public control_t {
-    malloc_control_t(std::string key)
-        : control_t(key, "tcmalloc-testing control.", true) { }
-
-    std::string call(UNUSED int argc, UNUSED char **argv) {
-        std::vector<void *> ptrs;
-        ptrs.reserve(100000);
-        std::string ret("HundredThousandComplete\r\n");
-        for (int i = 0; i < 100000; ++i) {
-            void *ptr;
-            int res = posix_memalign(&ptr, 4096, 131072);
-            if (res != 0) {
-                ret = strprintf("Failed at i = %d\r\n", i);
-                break;
-            }
-        }
-
-        for (int j = 0; j < int(ptrs.size()); ++j) {
-            free(ptrs[j]);
-        }
-
-        return ret;
-    }
-} malloc_control("malloc_control");

@@ -7,7 +7,7 @@ ec2 = 4
 
 # returns (return_value, stdout, stderr) or None in case the process did not terminate within timeout seconds
 # run_rethinkdb() automatically fills in -f, -s, -c and -p if not specified in flags
-def run_rethinkdb(opts, test_dir, flags = [], timeout = 10):
+def run_rethinkdb(opts, test_dir, flags, timeout = 10):
     executable_path = get_executable_path(opts, "rethinkdb")
     db_data_dir = test_dir.p("db_data")
     if not os.path.isdir(db_data_dir): os.mkdir(db_data_dir)
@@ -17,11 +17,13 @@ def run_rethinkdb(opts, test_dir, flags = [], timeout = 10):
     has_s_flag = False
     has_f_flag = False
     has_p_flag = False
+    has_md_flag = False
     for flag in flags:
         has_c_flag = has_c_flag or flag == "-c"
         has_s_flag = has_s_flag or flag == "-s"
         has_f_flag = has_f_flag or flag == "-f"
         has_p_flag = has_p_flag or flag == "-p"
+        has_md_flag = has_md_flag or flag == "--metadata-file"
     
     if not has_c_flag:
         flags += ["-c", str(opts["cores"])]
@@ -31,7 +33,9 @@ def run_rethinkdb(opts, test_dir, flags = [], timeout = 10):
         flags += ["-f", db_data_path]
     if not has_p_flag:
         flags += ["-p", str(find_unused_port())]
-        
+    if not has_md_flag:
+        flags += ["--metadata-file", os.path.join(db_data_dir, "metadata_file")]
+
     command_line = [executable_path] + flags
     
     print "Executing " + subprocess.list2cmdline(command_line)
@@ -43,7 +47,8 @@ def run_rethinkdb(opts, test_dir, flags = [], timeout = 10):
     rethinkdb_stderr = file(stderr_path, "w")
     
     server = subprocess.Popen(command_line,
-        stdout = rethinkdb_stdout, stderr = rethinkdb_stderr);
+                              stdout = rethinkdb_stdout,
+                              stderr = rethinkdb_stderr)
     
     return_value = wait_with_timeout(server, timeout)
     dead = return_value is not None
@@ -81,7 +86,7 @@ def check_rethinkdb_flags(opts, flags, expected_return_value):
         if rethinkdb_result[0] != expected_return_value:
             raise ValueError("RethinkDB gave a return value of %i, expected a value of %i. Flags were: %s" % (rethinkdb_result[0], expected_return_value, flags))
 
-if __name__ == "__main__":
+def main():
     op = make_option_parser()
     opts = op.parse(sys.argv)
     opts["mclib"] = "memcache"
@@ -116,3 +121,5 @@ if __name__ == "__main__":
         
         # TODO: Also check -l behvior on missing permissions and slashes in file name
 
+if __name__ == "__main__":
+    main()

@@ -1,12 +1,16 @@
 #include "errors.hpp"
+#include <boost/bind.hpp>
+
+#include "arch/arch.hpp"
 #include "serializer/log/log_serializer.hpp"
 
-#undef __UTILS_HPP__   /* Hack because both RethinkDB and stress-client have a utils.hpp */
 namespace stress {
     #include "../stress-client/utils.hpp"
     #include "../stress-client/utils.cc"
     #include "../stress-client/random.cc"
 }
+
+class timer_token_t;
 
 struct txn_info_t {
     ticks_t start, end;
@@ -14,81 +18,63 @@ struct txn_info_t {
 
 typedef std::deque<txn_info_t> log_t;
 
-struct transaction_t :
-    public serializer_t::write_txn_callback_t
-{
-    serializer_t *ser;
-    ticks_t start_time;
-    log_t *log;
-    void *dummy_buf;
-    std::vector<serializer_t::write_t> writes;
-    
-    struct callback_t {
-        virtual void on_transaction_complete() = 0;
-    } *cb;
-    
-    transaction_t(serializer_t *ser, log_t *log, unsigned inserts, unsigned updates, callback_t *cb)
-        : ser(ser), log(log), cb(cb)
-    {
-        /* If there aren't enough blocks to update, then convert the updates into inserts */
-        
-        if (updates > ser->max_block_id()) {
-            inserts += updates;
-            updates = 0;
-        }
-        
-        /* To save CPU time (from clearing many bufs) we malloc() one buf and clear it and then
-        write all the blocks from that one. I hope this doesn't bias the test. */
-        
-        dummy_buf = ser->malloc();
-        memset(dummy_buf, 0xDB, ser->get_block_size().value());
-        
-        writes.reserve(updates + inserts);
-        
-        /* As a simple way to avoid updating the same block twice in one transaction, select
-        a contiguous range of blocks starting at a random offset within range */
-        
-        block_id_t begin = stress::random(0, ser->max_block_id() - updates);
+struct txn_callback_t {
+    virtual void on_transaction_complete() = 0;
+} *cb;
 
-        // We just need some value for this.
-        repli_timestamp_t tstamp = repli_timestamp_t::distant_past;
-        for (unsigned i = 0; i < updates; i++) {
-            writes.push_back(serializer_t::write_t::make(begin + i, tstamp, dummy_buf, true, NULL));
-        }
+void transact(serializer_t *ser, log_t *log, unsigned inserts, unsigned updates, txn_callback_t *cb) {
+    /* If there aren't enough blocks to update, then convert the updates into inserts */
+    std::vector<serializer_write_t> writes;
 
-        /* Generate new IDs to insert by simply taking (highest ID + 1) */
-
-        for (unsigned i = 0; i < inserts; i++) {
-            writes.push_back(serializer_t::write_t::make(ser->max_block_id() + i, tstamp, dummy_buf, true, NULL));
-        }
-
-        start_time = get_ticks();
-        
-        bool done = ser->do_write(&writes[0], writes.size(), DEFAULT_DISK_ACCOUNT, this);
-        if (done) on_serializer_write_txn();   // Probably never happens
+    if (updates > ser->max_block_id()) {
+        inserts += updates;
+        updates = 0;
     }
-    
-    void on_serializer_write_txn() {
-        
-        ticks_t end_time = get_ticks();
-        if (log) {
-            txn_info_t info;
-            info.start = start_time;
-            info.end = end_time;
-            //log->push_back(info);
-        }
-        
-        ser->free(dummy_buf);
-        
-        cb->on_transaction_complete();
-        delete(this);
+
+    /* To save CPU time (from clearing many bufs) we malloc() one buf and clear it and then
+    write all the blocks from that one. I hope this doesn't bias the test. */
+
+    void *dummy_buf = ser->malloc();
+    memset(dummy_buf, 0xDB, ser->get_block_size().value());
+
+    writes.reserve(updates + inserts);
+
+    /* As a simple way to avoid updating the same block twice in one transaction, select
+    a contiguous range of blocks starting at a random offset within range */
+
+    block_id_t begin = stress::random(0, ser->max_block_id() - updates);
+
+    // We just need some value for this.
+    repli_timestamp_t tstamp = repli_timestamp_t::distant_past;
+    for (unsigned i = 0; i < updates; i++) {
+        writes.push_back(serializer_write_t::make_update(begin + i, tstamp, dummy_buf));
     }
-};
+
+    /* Generate new IDs to insert by simply taking (highest ID + 1) */
+    for (unsigned i = 0; i < inserts; i++) {
+        writes.push_back(serializer_write_t::make_update(ser->max_block_id() + i, tstamp, dummy_buf));
+    }
+
+    ticks_t start_time = get_ticks();
+
+    do_writes(ser, writes, DEFAULT_DISK_ACCOUNT);
+
+    ticks_t end_time = get_ticks();
+    if (log) {
+        txn_info_t info;
+        info.start = start_time;
+        info.end = end_time;
+        //log->push_back(info);
+    }
+
+    ser->free(dummy_buf);
+
+    cb->on_transaction_complete();
+}
 
 #define RUN_FOREVER (-1)
 
 struct config_t {
-    
     const char *log_file, *tps_log_file;
     log_serializer_static_config_t ser_static_config;
     log_serializer_dynamic_config_t ser_dynamic_config;
@@ -100,7 +86,7 @@ struct config_t {
 
 struct tester_t :
     public thread_message_t,
-    public transaction_t::callback_t
+    public txn_callback_t
 {
     log_t *log;
     FILE *tps_log_fd;
@@ -151,10 +137,10 @@ struct tester_t :
         }
 
         fprintf(stderr, "Creating a database...\n");
-        log_serializer_t::create(&config->ser_dynamic_config, &config->ser_private_dynamic_config, &config->ser_static_config);
+        log_serializer_t::create(config->ser_dynamic_config, config->ser_private_dynamic_config, config->ser_static_config);
         
         fprintf(stderr, "Starting serializer...\n");
-        ser = new log_serializer_t(&config->ser_dynamic_config, &config->ser_private_dynamic_config);
+        ser = new log_serializer_t(config->ser_dynamic_config, config->ser_private_dynamic_config);
         on_serializer_ready(ser);
     }
     
@@ -179,8 +165,8 @@ struct tester_t :
         while (active_txns < config->concurrent_txns && !stop) {
             active_txns++;
             total_txns++;
-            new transaction_t(ser, log, config->inserts_per_txn, config->updates_per_txn, this);
-
+            // TODO should this be spawn_now or spawn?
+            coro_t::spawn_now(boost::bind(transact, ser, log, config->inserts_per_txn, config->updates_per_txn, this));
         }
         
         // See if we need to report the TPS
@@ -271,15 +257,8 @@ void parse_config(int argc, char *argv[], config_t *config) {
     config->log_file = NULL;
     config->tps_log_file = NULL;
     
-    config->ser_static_config.unsafe_block_size() = DEFAULT_BTREE_BLOCK_SIZE;
-    config->ser_static_config.unsafe_extent_size() = DEFAULT_EXTENT_SIZE;
-    config->ser_dynamic_config.gc_low_ratio = DEFAULT_GC_LOW_RATIO;
-    config->ser_dynamic_config.gc_high_ratio = DEFAULT_GC_HIGH_RATIO;
-    config->ser_dynamic_config.num_active_data_extents = DEFAULT_ACTIVE_DATA_EXTENTS;
-    config->ser_dynamic_config.file_size = 0;
-    config->ser_dynamic_config.file_zone_size = GIGABYTE;
-    config->ser_dynamic_config.read_ahead = false;
-    config->ser_dynamic_config.io_backend = aio_native;
+    // config->ser_static_config uses its own defaults from constructor
+    // config->ser_dynamic_config uses its own defaults from constructor
     
     config->duration = 10;   /* Seconds */
     config->concurrent_txns = 8;
@@ -301,9 +280,9 @@ void parse_config(int argc, char *argv[], config_t *config) {
         } else if (strcmp(flag, "--tps-log") == 0) {
             config->tps_log_file = read_arg(argc, argv);
         } else if (strcmp(flag, "--block-size") == 0) {
-            config->ser_static_config.unsafe_block_size() = atoi(read_arg(argc, argv));
+            config->ser_static_config.block_size_ = atoi(read_arg(argc, argv));
         } else if (strcmp(flag, "--extent-size") == 0) {
-            config->ser_static_config.unsafe_extent_size() = atoi(read_arg(argc, argv));
+            config->ser_static_config.extent_size_ = atoi(read_arg(argc, argv));
         } else if (strcmp(flag, "--active-data-extents") == 0) {
             config->ser_dynamic_config.num_active_data_extents = atoi(read_arg(argc, argv));
         } else if (strcmp(flag, "--file-zone-size") == 0) {
@@ -338,7 +317,7 @@ int main(int argc, char *argv[]) {
     config_t config;
     parse_config(argc, argv, &config);
     
-    thread_pool_t thread_pool(1);
+    thread_pool_t thread_pool(1, true);
     tester_t tester(&config, &thread_pool);
     thread_pool.run(&tester);
     

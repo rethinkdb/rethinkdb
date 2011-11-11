@@ -3,11 +3,12 @@
 
 #include <queue>
 
+#include "concurrency/side_coro.hpp"
 #include "replication/protocol.hpp"
 #include "server/cmd_args.hpp"
-#include "server/control.hpp"
-#include "store.hpp"
-#include "failover.hpp"
+#include "stats/control.hpp"
+#include "memcached/store.hpp"
+#include "replication/failover.hpp"
 
 // The initial time we wait to reconnect to the master, upon failure.  In ms.
 #define INITIAL_TIMEOUT  (100)
@@ -57,9 +58,9 @@ private:
 
     class failover_reset_control_t : public control_t {
     public:
-        failover_reset_control_t(slave_t *slave)
-            : control_t("failover-reset", "Reset the failover module to the state at startup. This will force a reconnection to the master."), slave(slave)
-            { }
+        explicit failover_reset_control_t(slave_t *_slave)
+            : control_t("failover-reset", "Reset the failover module to the state at startup. This will force a reconnection to the master."), slave(_slave) { }
+
         std::string call(int argc, UNUSED char **argv) {
             if (argc == 1) {
                 slave->failover_reset();
@@ -77,9 +78,10 @@ private:
 
     class new_master_control_t : public control_t {
     public:
-        new_master_control_t(slave_t *slave)
-            : control_t("new-master", "Set a new master for replication. The slave will disconnect and immediately reconnect to the new server. Syntax: \"rethinkdb new-master host port\""), slave(slave)
-            { }
+        explicit new_master_control_t(slave_t *_slave)
+            : control_t("new-master", "Set a new master for replication. The slave will disconnect and immediately reconnect to the new server. Syntax: \"rethinkdb new-master host port\""),
+	      slave(_slave) { }
+
         std::string call(int argc, char **argv) {
             if (argc != 3) return "Syntax: \"rethinkdb new-master host port\"\r\n";
             std::string host = argv[1];
@@ -108,7 +110,7 @@ private:
     replication_config_t replication_config_;
     failover_config_t failover_config_;
 
-    cond_weak_ptr_t pulse_to_reset_failover_;
+    cond_t *pulse_to_reset_failover_;
 
     side_coro_handler_t side_coro_handler_;
     void run(signal_t *shutdown_signal);

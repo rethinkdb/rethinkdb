@@ -3,14 +3,14 @@
 
 #include "buffer_cache/buf_patch.hpp"
 #include "buffer_cache/mirrored/patch_memory_storage.hpp"
-#include "serializer/translator.hpp"
-#include "server/cmd_args.hpp"
+#include "buffer_cache/mirrored/config.hpp"
 
 class mc_cache_t;
 class mc_buf_t;
+class serializer_t;
+class coro_t;
 
-// Whenever the on-disk format of the patches changes, please increase the version number (currently 00)
-static char LOG_BLOCK_MAGIC[] __attribute__((unused)) = {'L','O','G','B','0','0'};
+extern const block_magic_t log_block_magic;
 
 struct mc_config_block_t {
     block_magic_t magic;
@@ -44,7 +44,7 @@ struct mc_config_block_t {
 class patch_disk_storage_t {
 public:
     static void create(serializer_t *serializer, block_id_t start_id, mirrored_cache_static_config_t *config);
-    patch_disk_storage_t(mc_cache_t &cache, block_id_t start_id);
+    patch_disk_storage_t(mc_cache_t *cache, block_id_t start_id);
     ~patch_disk_storage_t();
 
     void shutdown();
@@ -54,7 +54,7 @@ public:
 
     // Returns true on success, false if patch could not be stored (e.g. because of insufficient free space in log)
     // This function never blocks and must only be called while the flush_lock is held.
-    bool store_patch(buf_patch_t &patch, const ser_transaction_id_t current_block_transaction_id);
+    bool store_patch(buf_patch_t &patch, const block_sequence_id_t current_block_block_sequence_id);
 
     // This function might block while it acquires old blocks from disk.
     void clear_n_oldest_blocks(unsigned int n);
@@ -84,8 +84,7 @@ private:
 
     unsigned int waiting_for_clear;
 
-    // TODO: A reference?  This can confuse readers.
-    mc_cache_t& cache;
+    mc_cache_t *cache;
     block_id_t first_block;
     block_id_t number_of_blocks;
     std::vector<bool> block_is_empty;

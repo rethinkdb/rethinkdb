@@ -30,7 +30,7 @@ public:
         // Asserts that token_t is unsigned.  Sure, there might be a
         // better way to do this.
         token_t value = 0;
-        -- value;
+        --value;
         rassert(value > 0);
 #endif
 

@@ -1,0 +1,20 @@
+for (mode, checker) in [
+        ("debug", "valgrind"),
+        ("release", "valgrind"),
+        ("release", None),
+        ("debug-mockcache", "valgrind"),
+        ("debug-noepoll", "valgrind")]:
+    for protocol in ["text"]: # ["text", "binary"]:
+        for (cores, slices) in [(1, 1), (2, 8)]:
+            sigint_timeout = 360 if "mock" in mode else 60
+
+            do_test_fog("integration/big_values.py",
+                        { "auto"        : True,
+                          "mode"        : mode,
+                          "no-valgrind" : not checker,
+                          "protocol"    : protocol,
+                          "cores"       : cores,
+                          "slices"      : slices,
+                          "sigint-timeout" : sigint_timeout },
+                        repeat=3, timeout = 320 + sigint_timeout)
+

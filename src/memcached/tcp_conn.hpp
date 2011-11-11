@@ -1,10 +1,10 @@
 #ifndef __MEMCACHED_TCP_CONN_HPP__
 #define __MEMCACHED_TCP_CONN_HPP__
 
-#include <string>
-#include "arch/arch.hpp"
-#include "store.hpp"
-#include "concurrency/fifo_checker.hpp"
+#include "arch/types.hpp"
+#include "concurrency/auto_drainer.hpp"
+#include "memcached/store.hpp"
+#include "arch/io/network.hpp"
 
 /* Serves memcache queries over the given TCP connection until the connection in question
 is closed. */
@@ -17,16 +17,19 @@ connections until the destructor is called. */
 struct memcache_listener_t : public home_thread_mixin_t {
 
     memcache_listener_t(int port, get_store_t *get_store, set_store_interface_t *set_store);
-    ~memcache_listener_t();
 
 private:
     get_store_t *get_store;
     set_store_interface_t *set_store;
-    cond_t pulse_to_begin_shutdown;
-    drain_semaphore_t active_connection_drain_semaphore;
     int next_thread;
-    boost::scoped_ptr<tcp_listener_t> tcp_listener;
-    void handle(boost::scoped_ptr<tcp_conn_t> &conn);
+
+    /* We use this to make sure that all TCP connections stop when the
+    `memcached_listener_t` is destroyed. */
+    auto_drainer_t drainer;
+
+    tcp_listener_t tcp_listener;
+
+    void handle(auto_drainer_t::lock_t keepalive, boost::scoped_ptr<nascent_tcp_conn_t>& conn);
 };
 
 #endif /* __MEMCACHED_TCP_CONN_HPP__ */

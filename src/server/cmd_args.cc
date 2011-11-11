@@ -3,28 +3,33 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <vector>
+
+#include "arch/runtime/runtime.hpp"
 #include "server/cmd_args.hpp"
 #include "utils.hpp"
 #include "help.hpp"
 #include "arch/arch.hpp"
-#include "cmd_args.hpp"
-#include "perfmon.hpp"   // For `global_full_perfmon`
+#include "perfmon.hpp"
+#include "server/key_value_store_config.hpp"   // For `global_full_perfmon`
 
 /* Note that this file only parses arguments for the 'serve' and 'create' subcommands. */
 
 void usage_serve() {
     Help_Pager *help = Help_Pager::instance();
     help->pagef("Usage:\n"
-                "        rethinkdb serve [OPTIONS] [-f <file_1> -f <file_2> ... --metadata-file <file>]\n"
+                "        rethinkdb serve [OPTIONS]\n"
+                "                [-f <file_1> -f <file_2> ... --metadata-file <file>]\n"
                 "        Serve a database with one or more storage files.\n"
                 "\n"
                 "Options:\n"
 
-    //          "                        24 characters start here.                              | < last character
+    //          "                        24 characters, start here                              | < last character
                 "  -f, --file            Path to file or block device where database goes.\n"
                 "                        Can be specified multiple times to use multiple files.\n"
                 "  --metadata-file       Path to file or block device used for database metadata.\n");
     help->pagef("  -c, --cores           Number of cores to use for handling requests.\n"
+                "      --no-set-affinity Do not set thread affinity (affinity is set by default).\n"  
                 "  -m, --max-cache-size  Maximum amount of RAM to use for caching disk\n"
                 "                        blocks, in megabytes. This should be ~80%% of\n" 
                 "                        the RAM you want RethinkDB to use.\n"
@@ -44,10 +49,11 @@ void usage_serve() {
     }
     help->pagef("      --flush-threshold Number of transactions waiting for a flush on any slice\n"
                 "                        at which a flush is automatically triggered. In\n"
-                "                        combination with --wait-for-flush this option can be used\n"
-                "                        to optimize the write latency for concurrent strong\n"
+                "                        combination with --wait-for-flush this option can be\n"
+                "                        used to optimize the write latency for concurrent strong\n"
                 "                        durability workloads. Defaults to %d\n"
-                "      --flush-concurrency   Maximal number of concurrently active flushes per\n"
+                "      --flush-concurrency\n"
+                "                        Maximal number of concurrently active flushes per\n"
                 "                        slice. Defaults to %d\n",
                                 DEFAULT_FLUSH_WAITING_THRESHOLD, DEFAULT_MAX_CONCURRENT_FLUSHES);
     help->pagef("      --unsaved-data-limit\n" 
@@ -56,8 +62,7 @@ void usage_serve() {
                 "                        ");
     if (DEFAULT_UNSAVED_DATA_LIMIT == 0) {
         help->pagef("Defaults to %1.1f times the max cache size.\n", MAX_UNSAVED_DATA_LIMIT_FRACTION);
-    }
-    else {
+    } else {
         help->pagef("Defaults to %ld MB.\n", DEFAULT_UNSAVED_DATA_LIMIT / MEGABYTE);
     }
     help->pagef("\n"
@@ -70,7 +75,12 @@ void usage_serve() {
                 "      --io-backend      Possible options are 'native' (the default) and 'pool'.\n"
                 "                        The native backend is most efficient, but may have\n"
                 "                        performance problems in some environments.\n"
-                "      --read-ahead      Enable or disable read ahead during cache warmup. Read\n"
+                "      --io-batch-factor The number of disk operations in an i/o scheduler batch.\n"
+                "                        A higher value can increase the sequentiality of i/o\n"
+                "                        requests, increasing i/o throughput on drives that have\n"
+                "                        high random seek times. A lower value improves latency.\n"
+                "                        Defaults to %d\n", DEFAULT_IO_BATCH_FACTOR);
+    help->pagef("      --read-ahead      Enable or disable read ahead during cache warmup. Read\n"
                 "                        ahead can significantly speed up the cache warmup time\n"
                 "                        for disks which have high costs for random access.\n"
                 "                        Expects 'y' or 'n'.\n"
@@ -99,17 +109,17 @@ void usage_serve() {
                 "                        OFF or ON. If ON, defaults to %d.\n", DEFAULT_REPLICATION_PORT);
     help->pagef("      --slave-of host:port\n"
                 "                        Run this server as a slave of a master server. As a\n"
-                "                        slave it will be a replica of the master and will respond\n"
-                "                        only to get and rget. When the master goes down it will\n"
-                "                        begin responding to writes.\n"
+                "                        slave it will be a replica of the master and will\n"
+                "                        respond only to get and rget. When the master goes down\n"
+                "                        it will begin responding to writes.\n"
                 "      --heartbeat-timeout\n"
-                "                        If the slave does not receive a heartbeat message from the\n"
-                "                        master within --heartbeat-timeout seconds, it will\n"
+                "                        If the slave does not receive a heartbeat message from\n"
+                "                        the master within --heartbeat-timeout seconds, it will\n"
                 "                        terminate the connection and try to reconnect. If that\n"
                 "                        fails too, it will promote itself ot master.\n"
                 "      --failover-script Used in conjunction with --slave-of to specify a script\n"
-                "                        that will be run when the master fails and comes back up.\n"
-                "                        See the manual for an example script.\n"
+                "                        that will be run when the master fails and comes back\n"
+                "                        up. See the manual for an example script.\n"
                 "      --no-rogue        If the connection to master is intermittent (e.g. the\n"
                 "                        master disconnects five times within five minutes), the\n"
                 "                        slave will promote itself to master. Use the --no-rogue\n"
@@ -190,6 +200,7 @@ enum {
     gc_range,
     active_data_extents,
     io_backend,
+    io_batch_factor,
     block_size,
     extent_size,
     read_ahead,
@@ -204,16 +215,19 @@ enum {
     flush_concurrency,
     flush_threshold,
     full_perfmon,
-    total_delete_queue_limit,
+    no_set_affinity,
     memcache_file,
-    metadata_file
+    metadata_file,
+    verbose,
+    no_rogue
 };
 
 cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     parsing_cmd_config_t config;
 
     std::vector<log_serializer_private_dynamic_config_t>& private_configs = config.store_dynamic_config.serializer_private;
-    log_serializer_private_dynamic_config_t &metadata_private_config = config.store_dynamic_config.metadata_serializer_private;
+    config.metadata_store_dynamic_config.serializer_private.resize(std::max(static_cast<size_t>(1), config.metadata_store_dynamic_config.serializer_private.size()));
+    log_serializer_private_dynamic_config_t &metadata_private_config = config.metadata_store_dynamic_config.serializer_private[0];
 
     /* main() will have automatically inserted "serve" if no argument was specified */
     rassert(!strcmp(argv[0], "serve") || !strcmp(argv[0], "create") || !strcmp(argv[0], "import"));
@@ -247,6 +261,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
         int do_force_create = 0;
         int do_force_unslavify = 0;
         int do_full_perfmon = 0;
+        int do_no_set_affinity = 0;
         struct option long_options[] =
             {
                 {"wait-for-flush",       required_argument, 0, wait_for_flush},
@@ -261,6 +276,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"diff-log-size",        required_argument, 0, diff_log_size},
                 {"active-data-extents",  required_argument, 0, active_data_extents},
                 {"io-backend",           required_argument, 0, io_backend},
+                {"io-batch-factor",      required_argument, 0, io_batch_factor},
                 {"coroutine-stack-size", required_argument, 0, coroutine_stack_size},
                 {"cores",                required_argument, 0, 'c'},
                 {"slices",               required_argument, 0, 's'},
@@ -272,7 +288,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"max-cache-size",       required_argument, 0, 'm'},
                 {"log-file",             required_argument, 0, 'l'},
                 {"port",                 required_argument, 0, 'p'},
-                {"verbose",              no_argument, (int*)&config.verbose, 1},
+                {"verbose",              no_argument, 0, verbose},
                 {"force",                no_argument, &do_force_create, 1},
                 {"force-unslavify",      no_argument, &do_force_unslavify, 1},
                 {"help",                 no_argument, &do_help, 1},
@@ -280,24 +296,30 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"slave-of",             required_argument, 0, slave_of},
                 {"failover-script",      required_argument, 0, failover_script},
                 {"heartbeat-timeout",    required_argument, 0, heartbeat_timeout},
-                {"no-rogue",             no_argument, (int*)&config.failover_config.no_rogue, 1},
+                {"no-rogue",             no_argument, 0, no_rogue},
                 {"full-perfmon",         no_argument, &do_full_perfmon, 1},
-                {"total-delete-queue-limit", required_argument, 0, total_delete_queue_limit},
-                {"memcached-file", required_argument, 0, memcache_file},
+                {"no-set-affinity",      no_argument, &do_no_set_affinity, 1},
+                {"memcached-file",       required_argument, 0, memcache_file},
                 {0, 0, 0, 0}
             };
 
         int option_index = 0;
         int c = getopt_long(argc, argv, "vc:s:f:S:m:l:p:h", long_options, &option_index);
 
-        if (do_help)
+        if (do_help) {
             c = 'h';
-        if (do_force_create)
+        }
+        if (do_force_create) {
             c = force_create;
-        if (do_force_unslavify)
+        }
+        if (do_force_unslavify) {
             c = force_unslavify;
+        }
         if (do_full_perfmon) {
             c = full_perfmon;
+        }
+        if (do_no_set_affinity) {
+            c = no_set_affinity;
         }
      
         /* Detect the end of the options. */
@@ -309,71 +331,110 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
             case 0:
                 break;
             case 'v':
-                config.verbose = true; break;
+                config.verbose = true;
+                break;
             case 'p':
-                config.set_port(optarg); break;
+                config.set_port(optarg);
+                break;
             case 'l':
-                config.set_log_file(optarg); break;
+                config.set_log_file(optarg);
+                break;
             case 'c':
-                config.set_cores(optarg); break;
+                config.set_cores(optarg);
+                break;
             case 's':
                 slices_set_by_user = true;
                 config.set_slices(optarg);
                 break;
             case 'f':
-                config.push_private_config(optarg); break;
+                config.push_private_config(optarg);
+                break;
 #ifdef SEMANTIC_SERIALIZER_CHECK
             case 'S':
-                config.set_last_semantic_file(optarg); break;
+                config.set_last_semantic_file(optarg);
+                break;
 #endif
             case 'm':
-                config.set_max_cache_size(optarg); break;
+                config.set_max_cache_size(optarg);
+                break;
             case metadata_file:
-                config.set_metadata_file(optarg); break;
+                config.set_metadata_file(optarg);
+                break;
             case wait_for_flush:
-                config.set_wait_for_flush(optarg); break;
+                config.set_wait_for_flush(optarg);
+                break;
             case flush_timer:
-                config.set_flush_timer(optarg); break;
+                config.set_flush_timer(optarg);
+                break;
             case flush_threshold:
-                config.set_flush_waiting_threshold(optarg); break;
+                config.set_flush_waiting_threshold(optarg);
+                break;
             case flush_concurrency:
-                config.set_max_concurrent_flushes(optarg); break;
+                config.set_max_concurrent_flushes(optarg);
+                break;
             case unsaved_data_limit:
-                config.set_unsaved_data_limit(optarg); break;
+                config.set_unsaved_data_limit(optarg);
+                break;
             case gc_range:
-                config.set_gc_range(optarg); break;
-            case active_data_extents: 
-                config.set_active_data_extents(optarg); break;
+                config.set_gc_range(optarg);
+                break;
+            case active_data_extents:
+                config.set_active_data_extents(optarg);
+                break;
             case io_backend:
-                config.set_io_backend(optarg); break;
+                config.set_io_backend(optarg);
+                break;
+            case io_batch_factor:
+                config.set_io_batch_factor(optarg);
+                break;
             case block_size:
-                config.set_block_size(optarg); break;
+                config.set_block_size(optarg);
+                break;
             case extent_size:
-                config.set_extent_size(optarg); break;
+                config.set_extent_size(optarg);
+                break;
             case read_ahead:
-                config.set_read_ahead(optarg); break;
+                config.set_read_ahead(optarg);
+                break;
             case diff_log_size:
-                override_diff_log_size = config.parse_diff_log_size(optarg); break;
+                override_diff_log_size = config.parse_diff_log_size(optarg);
+                break;
             case coroutine_stack_size:
-                config.set_coroutine_stack_size(optarg); break;
+                config.set_coroutine_stack_size(optarg);
+                break;
             case force_create:
-                config.force_create = true; break;
+                config.force_create = true;
+                break;
             case force_unslavify:
-                config.force_unslavify = true; break;
+                config.force_unslavify = true;
+                break;
             case master_port:
-                config.set_master_listen_port(optarg); break;
+                config.set_master_listen_port(optarg);
+                break;
             case slave_of:
-                config.set_master_addr(optarg); break;
+                config.set_master_addr(optarg);
+                break;
             case heartbeat_timeout:
-                config.set_heartbeat_timeout(optarg); break;
+                config.set_heartbeat_timeout(optarg);
+                break;
             case failover_script:
-                config.set_failover_file(optarg); break;
+                config.set_failover_file(optarg);
+                break;
             case full_perfmon:
-                global_full_perfmon = true; break;
-            case total_delete_queue_limit:
-                config.set_total_delete_queue_limit(optarg); break;
+                global_full_perfmon = true;
+                break;
+            case no_set_affinity:
+                config.do_set_affinity = false;
+                break;
             case memcache_file:
-                config.import_config.add_import_file(optarg); break;
+                config.import_config.add_import_file(optarg);
+                break;
+            case verbose:
+                config.verbose = true;
+                break;
+            case no_rogue:
+                config.failover_config.no_rogue = true;
+                break;
             case 'h':
             default:
                 /* getopt_long already printed an error message. */
@@ -459,7 +520,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     }
     
     if (config.store_static_config.serializer.extent_size() % config.store_static_config.serializer.block_size().ser_value() != 0) {
-        fail_due_to_user_error("Extent size (%lu) is not a multiple of block size (%lu).",
+        fail_due_to_user_error("Extent size (%lu) is not a multiple of block size (%u).",
              config.store_static_config.serializer.extent_size(),
              config.store_static_config.serializer.block_size().ser_value());
     }
@@ -476,9 +537,9 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
 
     //slices divisable by the number of files
     if ((config.store_static_config.btree.n_slices % config.store_dynamic_config.serializer_private.size()) != 0) {
-        if (slices_set_by_user)
+        if (slices_set_by_user) {
             fail_due_to_user_error("Slices must be divisable by the number of files\n");
-        else {
+        } else {
             config.store_static_config.btree.n_slices -= config.store_static_config.btree.n_slices % config.store_dynamic_config.serializer_private.size();
             if (config.store_static_config.btree.n_slices <= 0)
                 fail_due_to_user_error("Failed to set number of slices automatically. Please specify it manually by using the -s option.\n");
@@ -528,9 +589,10 @@ void parsing_cmd_config_t::push_private_config(const char* value) {
 }
 
 void parsing_cmd_config_t::set_metadata_file(const char *value) {
-    store_dynamic_config.metadata_serializer_private.db_filename = std::string(value);
+    metadata_store_dynamic_config.serializer_private.resize(std::max(static_cast<size_t>(1), metadata_store_dynamic_config.serializer_private.size()));
+    metadata_store_dynamic_config.serializer_private[0].db_filename = std::string(value);
 #ifdef SEMANTIC_SERIALIZER_CHECK
-    store_dynamic_config.metadata_serializer_private.semantic_filename = std::string(value) + DEFAULT_SEMANTIC_EXTENSION;
+    metadata_store_dynamic_config.serializer_private[0].semantic_filename = std::string(value) + DEFAULT_SEMANTIC_EXTENSION;
 #endif
 }
 
@@ -554,9 +616,9 @@ void parsing_cmd_config_t::set_last_semantic_file(const char* value) {
 void parsing_cmd_config_t::set_flush_timer(const char* value) {
     int& target = store_dynamic_config.cache.flush_timer_ms;
     
-    if (strcmp(value, "disable") == 0)
+    if (strcmp(value, "disable") == 0) {
         target = NEVER_FLUSH;
-    else {
+    } else {
         target = parse_int(value);
         if (parsing_failed || !is_at_least(target, 0))
             fail_due_to_user_error("flush timer should not be negative; use 'disable' to allow changes to sit in memory indefinitely.");
@@ -588,7 +650,7 @@ void parsing_cmd_config_t::set_extent_size(const char* value) {
     if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
         fail_due_to_user_error("Extent size must be a number from %lld to %lld.", minimum_value, maximum_value);
 
-    store_static_config.serializer.unsafe_extent_size() = static_cast<long long unsigned int>(target);
+    store_static_config.serializer.extent_size_ = static_cast<long long unsigned int>(target);
 }
 
 void parsing_cmd_config_t::set_read_ahead(const char* value) {
@@ -621,7 +683,7 @@ void parsing_cmd_config_t::set_block_size(const char* value) {
     if (target % DEVICE_BLOCK_SIZE != 0)
         fail_due_to_user_error("Block size must be a multiple of %ld.", DEVICE_BLOCK_SIZE);
         
-    store_static_config.serializer.unsafe_block_size() = static_cast<unsigned int>(target);
+    store_static_config.serializer.block_size_ = static_cast<unsigned int>(target);
 }
 
 void parsing_cmd_config_t::set_active_data_extents(const char* value) {
@@ -691,12 +753,13 @@ void parsing_cmd_config_t::set_log_file(const char* value) {
 
     // See if we can open or create the file at this path with write permissions
     FILE* logfile = fopen(value, "a");
-    if (logfile == NULL)
+    if (logfile == NULL) {
         fail_due_to_user_error("Inaccessible or invalid log file: \"%s\": %s", value, strerror(errno));
-    else
+    } else {
         fclose(logfile);
-    
-    strncpy(log_file_name, value, MAX_LOG_FILE_NAME);
+    }
+
+    log_file_name = value;
 }
 
 void parsing_cmd_config_t::set_port(const char* value) {
@@ -749,15 +812,15 @@ void parsing_cmd_config_t::set_master_listen_port(const char *value) {
 
 void parsing_cmd_config_t::set_master_addr(const char *value) {
     std::vector<char> copy(value, value + 1 + strlen(value));
-    char *token = strtok(copy.data(), ":");
+    char *saveptr;
+    char *token = strtok_r(copy.data(), ":", &saveptr);
     if (token == NULL || strlen(token) > MAX_HOSTNAME_LEN - 1) {
         fail_due_to_user_error("Invalid master address, address should be of the form hostname:port");
     }
 
-    strncpy(replication_config.hostname, token, MAX_HOSTNAME_LEN);
-    replication_config.hostname[MAX_HOSTNAME_LEN - 1] = '\0';
+    replication_config.hostname = token;
 
-    token = strtok(NULL, ":");
+    token = strtok_r(NULL, ":", &saveptr);
     if (token == NULL) {
         fail_due_to_user_error("Invalid master address, address should be of the form hostname:port");
     }
@@ -778,31 +841,35 @@ void parsing_cmd_config_t::set_heartbeat_timeout(const char* value) {
     target *= 1000; // Convert to milliseconds
 }
 
-void parsing_cmd_config_t::set_total_delete_queue_limit(const char *value) {
-    int64_t target = parse_longlong(value);
-    if (parsing_failed || target < 0)
-        fail_due_to_user_error("Total delete queue limit must be non-negative\n");
-
-    store_dynamic_config.total_delete_queue_limit = target;
-}
-
 void parsing_cmd_config_t::set_failover_file(const char* value) {
     if (strlen(value) > MAX_PATH_LEN)
         fail_due_to_user_error("Failover script path is too long");
 
-    strcpy(failover_config.failover_script_path, value);
+    failover_config.failover_script_path = value;
 }
 
 void parsing_cmd_config_t::set_io_backend(const char* value) {
     /* #if WE_ARE_ON_LINUX */
     if(strcmp(value, "native") == 0) {
         store_dynamic_config.serializer.io_backend = aio_native;
+        metadata_store_dynamic_config.serializer.io_backend = aio_native;
     } else if(strcmp(value, "pool") == 0) {
         store_dynamic_config.serializer.io_backend = aio_pool;
+        metadata_store_dynamic_config.serializer.io_backend = aio_pool;
     } else {
         fail_due_to_user_error("Possible options for IO backend are 'native' and 'pool'.");
     }
     /* #endif */
+}
+
+void parsing_cmd_config_t::set_io_batch_factor(const char* value) {
+    int& target = store_dynamic_config.serializer.io_batch_factor;
+    const int minimum_value = 1;
+    const int maximum_value = 128;
+
+    target = parse_int(value);
+    if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
+        fail_due_to_user_error("The io batch factor must be a number from %d to %d.", minimum_value, maximum_value);
 }
 
 long long int parsing_cmd_config_t::parse_longlong(const char* value) {
@@ -873,7 +940,8 @@ void cmd_config_t::print_runtime_flags() {
 }
 
 void cmd_config_t::print_database_flags() {
-    log_serializer_private_dynamic_config_t &metadata_config = store_dynamic_config.metadata_serializer_private;
+    metadata_store_dynamic_config.serializer_private.resize(std::max(static_cast<size_t>(1), metadata_store_dynamic_config.serializer_private.size()));
+    log_serializer_private_dynamic_config_t &metadata_config = metadata_store_dynamic_config.serializer_private[0];
     const std::vector<log_serializer_private_dynamic_config_t>& private_configs = store_dynamic_config.serializer_private;
 
     printf("--- Database ---\n");
@@ -919,55 +987,35 @@ void cmd_config_t::print() {
 }
 
 cmd_config_t::cmd_config_t() {
-    bzero(&replication_config, sizeof(replication_config));
-    bzero(&failover_config, sizeof(failover_config));
-
     verbose = false;
     port = DEFAULT_LISTEN_PORT;
     n_workers = get_cpu_count();
+    do_set_affinity = true;
     
     log_file_name[0] = 0;
     log_file_name[MAX_LOG_FILE_NAME - 1] = 0;
-    
-    store_dynamic_config.serializer.gc_low_ratio = DEFAULT_GC_LOW_RATIO;
-    store_dynamic_config.serializer.gc_high_ratio = DEFAULT_GC_HIGH_RATIO;
-    store_dynamic_config.serializer.num_active_data_extents = DEFAULT_ACTIVE_DATA_EXTENTS;
-    store_dynamic_config.serializer.file_size = 0;   // Unlimited file size
-    store_dynamic_config.serializer.file_zone_size = GIGABYTE;
-    store_dynamic_config.serializer.read_ahead = true;
-    /* #if WE_ARE_ON_LINUX */
-    store_dynamic_config.serializer.io_backend = aio_native;
-    /* #endif */
-    
-    store_dynamic_config.cache.max_size = (long long int)(DEFAULT_MAX_CACHE_RATIO * get_available_ram());
-    store_dynamic_config.cache.wait_for_flush = false;
-    store_dynamic_config.cache.flush_timer_ms = DEFAULT_FLUSH_TIMER_MS;
-    store_dynamic_config.cache.max_dirty_size = DEFAULT_UNSAVED_DATA_LIMIT;
-    store_dynamic_config.cache.flush_dirty_size = 0;
-    store_dynamic_config.cache.flush_waiting_threshold = DEFAULT_FLUSH_WAITING_THRESHOLD;
-    store_dynamic_config.cache.max_concurrent_flushes = DEFAULT_MAX_CONCURRENT_FLUSHES;
-    store_dynamic_config.cache.io_priority_reads = CACHE_READS_IO_PRIORITY;
-    store_dynamic_config.cache.io_priority_writes = CACHE_WRITES_IO_PRIORITY;
-
-    store_dynamic_config.total_delete_queue_limit = DEFAULT_TOTAL_DELETE_QUEUE_LIMIT;
 
     create_store = false;
     force_create = false;
     shutdown_after_creation = false;
 
     replication_config.port = DEFAULT_REPLICATION_PORT;
-    memset(replication_config.hostname, 0, MAX_HOSTNAME_LEN);
+    replication_config.hostname = "";
     replication_config.active = false;
     replication_config.heartbeat_timeout = DEFAULT_REPLICATION_HEARTBEAT_TIMEOUT;
     replication_master_listen_port = DEFAULT_REPLICATION_PORT;
     replication_master_active = false;
     force_unslavify = false;
 
-    store_static_config.serializer.unsafe_extent_size() = DEFAULT_EXTENT_SIZE;
-    store_static_config.serializer.unsafe_block_size() = DEFAULT_BTREE_BLOCK_SIZE;
-    
-    store_static_config.btree.n_slices = DEFAULT_BTREE_SHARD_FACTOR;
+    store_dynamic_config.cache.max_size = (long long int)(DEFAULT_MAX_CACHE_RATIO * get_available_ram());
 
     store_static_config.cache.n_patch_log_blocks = DEFAULT_PATCH_LOG_SIZE / store_static_config.serializer.block_size().ser_value() / store_static_config.btree.n_slices;
+
+    // TODO: This is hacky. It also doesn't belong here. Probably the metadata
+    // store should really have a configuration structure of its own.
+    metadata_store_dynamic_config = store_dynamic_config;
+    metadata_store_dynamic_config.cache.max_size = 8 * MEGABYTE;
+    metadata_store_dynamic_config.cache.max_dirty_size = 4 * MEGABYTE;
+    metadata_store_dynamic_config.cache.flush_dirty_size = 2 * MEGABYTE;
 }
 

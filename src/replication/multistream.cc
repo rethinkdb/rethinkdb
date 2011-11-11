@@ -1,6 +1,12 @@
 #include "replication/multistream.hpp"
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
+#include "arch/arch.hpp"
 #include "containers/scoped_malloc.hpp"
 #include "containers/thick_list.hpp"
+#include "logger.hpp"
 #include "perfmon.hpp"
 
 namespace replication {
@@ -138,7 +144,7 @@ void do_parse_normal_messages(tcp_conn_t *conn, connection_handler_t *conn_handl
 
 class tracker_cleaner_t {
 public:
-    tracker_cleaner_t(tracker_t *tracker) : tracker_(tracker) { }
+    explicit tracker_cleaner_t(tracker_t *tracker) : tracker_(tracker) { }
     ~tracker_cleaner_t() {
         for (uint32_t i = 0, e = tracker_->end_index(); i < e; ++i) {
             stream_handler_t *h = (*tracker_)[i];

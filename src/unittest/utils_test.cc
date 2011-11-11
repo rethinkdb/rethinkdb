@@ -1,7 +1,6 @@
 #include "unittest/gtest.hpp"
 
 #include "utils.hpp"
-#include "utils2.hpp"
 
 namespace unittest {
 
@@ -26,16 +25,16 @@ TEST(UtilsTest, StrtofooStrict) {
 
     char *end;
 
-    ASSERT_TRUE(0 == strtoul_strict(test1, &end, 10));
-    ASSERT_TRUE(1024 == strtoul_strict(test2, &end, 10));
-    ASSERT_TRUE(0 == strtoul_strict(test3, &end, 10));
-    ASSERT_TRUE(123 == strtoul_strict(test4, &end, 10));
+    ASSERT_EQ(0, strtoul_strict(test1, &end, 10));
+    ASSERT_EQ(1024, strtoul_strict(test2, &end, 10));
+    ASSERT_EQ(0, strtoul_strict(test3, &end, 10));
+    ASSERT_EQ(123, strtoul_strict(test4, &end, 10));
     ASSERT_FALSE(strncmp("lskdjf", end, 6));
 
-    ASSERT_TRUE(0 == strtoull_strict(test1, &end, 10));
-    ASSERT_TRUE(1024 == strtoull_strict(test2, &end, 10));
-    ASSERT_TRUE(0 == strtoull_strict(test3, &end, 10));
-    ASSERT_TRUE(123 == strtoull_strict(test4, &end, 10));
+    ASSERT_EQ(0, strtoull_strict(test1, &end, 10));
+    ASSERT_EQ(1024, strtoull_strict(test2, &end, 10));
+    ASSERT_EQ(0, strtoull_strict(test3, &end, 10));
+    ASSERT_EQ(123, strtoull_strict(test4, &end, 10));
     ASSERT_FALSE(strncmp("lskdjf", end, 6));
 }
 
@@ -74,12 +73,12 @@ TEST(UtilsTest, SizedStrcmp)
     char test2[] = "foobarbazn\nquxr";
     char test3[] = "hello world";
 
-    ASSERT_TRUE(-1 == sized_strcmp(test1, 14, test2, 15));
-    ASSERT_TRUE(1 == sized_strcmp(test2, 15, test1, 14));
-    ASSERT_TRUE(0 == sized_strcmp(test1, 10, test1, 10));
-    ASSERT_TRUE(0 == sized_strcmp(test1, 14, test1, 14));
-    ASSERT_TRUE(0 == sized_strcmp(test1, 0, test1, 0));
-    ASSERT_TRUE(0 != sized_strcmp(test3, 11, test1, 14));
+    ASSERT_EQ(-1, sized_strcmp(test1, 14, test2, 15));
+    ASSERT_EQ(1, sized_strcmp(test2, 15, test1, 14));
+    ASSERT_EQ(0, sized_strcmp(test1, 10, test1, 10));
+    ASSERT_EQ(0, sized_strcmp(test1, 14, test1, 14));
+    ASSERT_EQ(0, sized_strcmp(test1, 0, test1, 0));
+    ASSERT_NE(0, sized_strcmp(test3, 11, test1, 14));
 }
 
-}
+}  // namespace unittest

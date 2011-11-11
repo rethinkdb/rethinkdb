@@ -1,7 +1,8 @@
 #ifndef __BUFFER_CACHE_TYPES_HPP__
 #define __BUFFER_CACHE_TYPES_HPP__
 
-#include "utils2.hpp"
+#include <stdint.h>
+
 #include "serializer/types.hpp"
 
 typedef uint32_t block_magic_comparison_t;
@@ -20,34 +21,11 @@ struct block_magic_t {
 
         return u.n == v.n;
     }
+
+    bool operator!=(const block_magic_t& other) const {
+        return !(operator==(other));
+    }
 };
-
-template <class block_value_t>
-bool check_magic(block_magic_t magic) {
-    return magic == block_value_t::expected_magic;
-}
-
-
-struct lbref_limit_t {
-    int value;
-    lbref_limit_t() : value(-1) { }
-    explicit lbref_limit_t(int value_) : value(value_) { }
-};
-
-struct large_buf_ref {
-    int64_t size;
-    int64_t offset;
-    block_id_t block_ids[0];
-
-    // TODO fix these and fix users of these.
-    const block_id_t& checker_block_id() const { return block_ids[0]; }
-    block_id_t& checker_block_id() { return block_ids[0]; }
-
-    // Computes the reference size for leaf nodes' references.
-    int refsize(block_size_t block_size, lbref_limit_t ref_limit) const;
-    static int refsize(block_size_t block_size, int64_t size, int64_t offset, lbref_limit_t ref_limit);
-} __attribute((__packed__));
-
 
 // HEY: put this somewhere else.
 class get_subtree_recencies_callback_t {
@@ -57,5 +35,81 @@ protected:
     virtual ~get_subtree_recencies_callback_t() { }
 };
 
+template <class T> class scoped_malloc;
+
+// HEY: This is kind of fsck-specific, maybe it belongs somewhere else.
+class block_getter_t {
+public:
+    virtual bool get_block(block_id_t, scoped_malloc<char>& block_out) = 0;
+protected:
+    virtual ~block_getter_t() { }
+};
+
+
+// This line is hereby labeled BLAH.
+
+// Keep this part below synced up with buffer_cache.hpp.
+
+#ifndef MOCK_CACHE_CHECK
+
+class mc_cache_t;
+class mc_buf_t;
+class mc_transaction_t;
+class mc_cache_account_t;
+
+#if !defined(VALGRIND) && !defined(NDEBUG)
+
+template <class inner_cache_type> class scc_cache_t;
+template <class inner_cache_type> class scc_buf_t;
+template <class inner_cache_type> class scc_transaction_t;
+
+typedef scc_cache_t<mc_cache_t> cache_t;
+typedef scc_buf_t<mc_cache_t> buf_t;
+typedef scc_transaction_t<mc_cache_t> transaction_t;
+typedef mc_cache_account_t cache_account_t;
+
+#else  // !defined(VALGRIND) && !defined(NDEBUG)
+
+// scc_cache_t is way too slow under valgrind and makes automated
+// tests run forever.
+typedef mc_cache_t cache_t;
+typedef mc_buf_t buf_t;
+typedef mc_transaction_t transaction_t;
+typedef mc_cache_account_t cache_account_t;
+
+#endif  // !defined(VALGRIND) && !defined(NDEBUG)
+
+#else
+
+class mock_cache_t;
+class mock_cache_account_t;
+
+#if !defined(VALGRIND)
+
+template <class inner_cache_type> class scc_cache_t;
+template <class inner_cache_type> class scc_buf_t;
+template <class inner_cache_type> class scc_transaction_t;
+
+typedef scc_cache_t<mock_cache_t> cache_t;
+typedef scc_buf_t<mock_cache_t> buf_t;
+typedef scc_transaction_t<mock_cache_t> transaction_t;
+typedef mock_cache_account_t cache_account_t;
+
+#else  // !defined(VALGRIND)
+
+class mock_buf_t;
+class mock_transaction_t;
+class mock_cache_account_t;
+
+typedef mock_cache_t cache_t;
+typedef mock_buf_t buf_t;
+typedef mock_transaction_t transaction_t;
+typedef mock_cache_account_t cache_account_t;
+
+#endif  // !defined(VALGRIND)
+
+#endif // MOCK_CACHE_CHECK
+
+// Don't put anything down here, put it above the line labeled "BLAH".
 
 #endif /* __BUFFER_CACHE_TYPES_HPP__ */

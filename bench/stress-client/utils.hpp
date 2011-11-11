@@ -1,6 +1,5 @@
-
-#ifndef __UTILS_HPP__
-#define __UTILS_HPP__
+#ifndef __STRESS_CLIENT_UTILS_HPP__
+#define __STRESS_CLIENT_UTILS_HPP__
 
 #include <assert.h>
 #include <pthread.h>
@@ -115,5 +114,5 @@ struct reservoir_sample_t {
     }
 };
 
-#endif // __UTILS_HPP__
+#endif // __STRESS_CLIENT_UTILS_HPP__
 

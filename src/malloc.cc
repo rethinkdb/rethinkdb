@@ -23,15 +23,3 @@ void operator delete[](void* p) __THROW {
     tc_deletearray(p);         
 }
 #endif
-/* void* operator new(size_t size, const std::nothrow_t& nt) __THROW {
-  return tc_new_nothrow(size, nt);
-}
-void* operator new[](size_t size, const std::nothrow_t& nt) __THROW {
-  return tc_newarray_nothrow(size, nt);
-}
-void operator delete(void* ptr, const std::nothrow_t& nt) __THROW {
-  return tc_delete_nothrow(ptr, nt);
-}
-void operator delete[](void* ptr, const std::nothrow_t& nt) __THROW {
-  return tc_deletearray_nothrow(ptr, nt);
-} */

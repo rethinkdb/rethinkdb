@@ -60,6 +60,7 @@ TIMEBOMB?=0
 # Choose our directories
 # This makefile is meant to be run from the 'src' directory.
 SOURCE_DIR:=.
+EXTERNAL_SOURCE_DIR:=/usr/src/rethinkdb_lib_external
 BUILD_ROOT_DIR:=../build
 ifeq (${DEBUG},1)
 BUILD_DIR:=$(BUILD_ROOT_DIR)/debug
@@ -67,11 +68,11 @@ else
 BUILD_DIR:=$(BUILD_ROOT_DIR)/release
 endif
 
-PROTO_DIR:=$(BUILD_DIR)/proto
-
 PACKAGES_DIR:=$(BUILD_ROOT_DIR)/packages
 RPM_PACKAGE_DIR:=$(PACKAGES_DIR)/rpm
 DEB_PACKAGE_DIR:=$(PACKAGES_DIR)/deb
+
+CXXDEP:=g++
 
 # Define configuration variables
 ifeq (${CLANG},1)
@@ -80,11 +81,12 @@ else
 CXX:=g++
 endif
 LDFLAGS:=-Wl,--no-as-needed -lpthread -lrt -laio
-STATIC_LIBRARIES:=protoc protobuf
+
+STATIC_LIBRARIES:=boost_serialization
 
 CXXFLAGS?=
 
-CXXFLAGS+=-I$(SOURCE_DIR) -I$(PROTO_DIR) -Wall -Wextra -Wformat=2 -Wswitch-enum -Werror -Wnon-virtual-dtor
+CXXFLAGS+=-I$(SOURCE_DIR) -I/usr/include/qt4 -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source/JavaScriptCore/ForwardingHeaders -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source/JavaScriptCore -Wall -Wextra -Wformat=2 -Wswitch-enum -Werror -Wnon-virtual-dtor
 CXXFLAGS+="-DPRODUCT_NAME=\"$(PRODUCT_NAME)\""
 
 ifeq ($(SOLO),1)
@@ -93,10 +95,8 @@ else
 CXXFLAGS+=-DRETHINKDB_CACHE_PRODUCT
 endif
 
-ifeq ($(UNIT_TESTS),0)
 ifeq ($(CLANG),0)
 CXXFLAGS+=-Wswitch-default
-endif
 endif
 
 ifeq ($(AGRESSIVE_BUF_UNLOADING),1)
@@ -152,16 +152,12 @@ endif
 
 ifeq ($(SEMANTIC_SERIALIZER_CHECK),1)
 CXXFLAGS+=-DSEMANTIC_SERIALIZER_CHECK
+BUILD_DIR:=$(BUILD_DIR)-scs
 endif
 
 ifeq ($(MOCK_CACHE_CHECK),1)
 CXXFLAGS+=-DMOCK_CACHE_CHECK
 BUILD_DIR:=$(BUILD_DIR)-mockcache
-endif
-
-ifeq ($(MOCK_IO_LAYER),1)
-CXXFLAGS+=-DMOCK_IO_LAYER
-BUILD_DIR:=$(BUILD_DIR)-mockio
 endif
 
 ifeq ($(BTREE_DEBUG),1)
@@ -207,12 +203,15 @@ BUILD_DIR:=$(BUILD_DIR)-valgrind
 NO_TCMALLOC:=1
 endif
 
+PROTO_DIR:=$(BUILD_DIR)/proto
+CXXFLAGS += -I$(PROTO_DIR)
+
 ifeq ($(NO_TCMALLOC),0)
 STATIC_LIBRARIES+=tcmalloc_minimal
 endif
 
 # look for the static library in the same directory as the .so file
-STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))
+STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }')) $(EXTERNAL_SOURCE_DIR)/WebKit/WebKitBuild/Release/JavaScriptCore/release/libjscore.a /usr/lib/libQtCore.so.4
 
 # Should makefile be noisy?
 ifeq ($(VERBOSE),1)
@@ -226,15 +225,18 @@ ifeq ($(UNIT_TESTS),1)
 LDFLAGS+=-lgtest
 endif
 
+UNIT_TEST_FILTER?=*
+
 ##### Finding what to build
 
 DEP_DIR:=$(BUILD_DIR)/dep
 OBJ_DIR:=$(BUILD_DIR)/obj
 
+# redis_proto.cc and riak.cc are some of our slowest-compiling files, so we start them first.
 ifeq ($(UNIT_TESTS),1)
-SOURCES:=$(shell find $(SOURCE_DIR) -name '*.cc')
+SOURCES:=$(shell find $(SOURCE_DIR) -name 'redis_grammar*.cc') ./riak/riak.cc $(shell find $(SOURCE_DIR) -name '*.cc' | grep -v 'redis_grammar.*.cc' |  grep -v 'riak.cc')
 else
-SOURCES:=$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR)/unittest`")
+SOURCES:=$(shell find $(SOURCE_DIR) -name 'redis_grammar*.cc') ./riak/riak.cc $(shell find $(SOURCE_DIR) -name '*.cc' | grep -v 'riak.cc' | grep -v 'redis_grammar.*.cc' | grep -vF "`find $(SOURCE_DIR)/unittest`")
 endif
 
 PROTO_SOURCES:=$(shell find $(SOURCE_DIR) -name '*.proto')
@@ -248,9 +250,9 @@ DEPS:=$(patsubst %,$(DEP_DIR)/%.d,$(NAMES))
 OBJS:=$(PROTO_OBJS) $(patsubst %,$(OBJ_DIR)/%.o,$(NAMES))
 
 
-SERVER_EXEC_OBJS:=$(PROTO_OBJS) $(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR)/unittest`"))
+SERVER_EXEC_OBJS:=$(PROTO_OBJS) $(patsubst %.cc,$(OBJ_DIR)/%.o,$(filter-out $(SOURCE_DIR)/unittest/%,$(SOURCES)))
 
-SERVER_NOMAIN_OBJS:=$(PROTO_OBJS) $(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR) -name 'main.cc'`"))
+SERVER_NOMAIN_OBJS:=$(PROTO_OBJS) $(patsubst %.cc,$(OBJ_DIR)/%.o,$(filter-out %/main.cc,$(SOURCES)))
 
 SERVER_UNIT_TEST_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/unittest/main.o
 
@@ -269,7 +271,7 @@ CXXFLAGS+=-DRETHINKDB_VERSION=\"$(RETHINKDB_VERSION)\"
 SERVER_EXEC_NAME_VERSIONED:=$(SERVER_EXEC_NAME)-$(RETHINKDB_SHORT_VERSION)
 
 ##### Build targets
-.PHONY: all install-binaries install-manpages install-tools install install-rpm install-deb build-deb deb build-rpm rpm rpm-suse10 run rerun gdb regdb sembuild valgrind revalgrind callgrind
+.PHONY: all build-deb build-rpm callgrind callgrind clean cscope deb deb depclean gdb install install-binaries install-deb install-docs install-manpages install-rpm install-tools prepare_deb_package_dirs prepare_rpm_package_dirs regdb rerun revalgrind rpm rpm rpm-suse10 run sembuild showdefines style tags unit valgrind
 
 # High level build targets
 
@@ -281,7 +283,7 @@ endif
 
 unit:
 	$(MAKE) UNIT_TESTS=1
-	$(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
+	$(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) --gtest_filter=$(UNIT_TEST_FILTER)
 
 # Packaging
 ifeq ($(PACKAGING),1)
@@ -339,7 +341,10 @@ endif
 install-manpages: $(ASSETS_DIR)/man/rethinkdb.1
 	$(QUIET) install -m755 -d $(DESTDIR)$(man1_dir)
 # TODO: support other man pages
-	$(QUIET) gzip -9 < $(ASSETS_DIR)/man/rethinkdb.1 | install -m644 -T /dev/stdin $(DESTDIR)$(man1_dir)/$(VERSIONED_PACKAGE_NAME).1.gz;
+	$(QUIET) m4 \
+			-D "SHORT_VERSION=$(RETHINKDB_SHORT_VERSION)" \
+			-D "CURRENT_DATE=$(shell date +%F)" \
+			< $(ASSETS_DIR)/man/rethinkdb.1 | gzip -9 | install -m644 -T /dev/stdin $(DESTDIR)$(man1_dir)/$(VERSIONED_PACKAGE_NAME).1.gz;
 #	$(QUIET) for manpage in $(MAN_PAGES); do \
 #			gzip -9 < $$manpage | install -m644 -T /dev/stdin $(DESTDIR)$(man1_dir)/$$(basename $$manpage).gz; \
 #		done
@@ -516,14 +521,15 @@ ifeq ($(NO_TCMALLOC),0)
 endif
 	@echo "    Finished building RethinkDB key-value store server version '${RETHINKDB_VERSION}'"
 
+# The unittests use gtest, which uses macros that expand into switch statements which don't contain
+# default cases. So we have to remove the -Wswitch-default argument for them.
+$(OBJ_DIR)/unittest/%.o: CXXFLAGS:=$(filter-out -Wswitch-default,$(CXXFLAGS))
+
 $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME): $(OBJS) $(BUILD_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    LD $@"
 endif
 	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_UNIT_TEST_OBJS) $(STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
-
-
-
 
 $(BUILD_DIR)/$(START_DB_NAME):
 	$(QUIET) cp $(SCRIPTS_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(START_DB_NAME)
@@ -567,13 +573,15 @@ ifeq ($(VALGRIND),0)
 endif
 	valgrind $(VALGRIND_FLAGS) $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) -f $(RUN_FILE) $(RUN_FLAGS)
 
-callgrind: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 ifeq ($(CALLGRIND),0)
-	$(error Using the 'callgrind' target doesn't automatically set CALLGRIND to 1. Try again with \
-'make calgrind CALLGRIND=1')
-endif
+callgrind:
+	$(error "Using the 'callgrind' target doesn't automatically set CALLGRIND to 1. Try again with \
+'make calgrind CALLGRIND=1'")
+else
+callgrind: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 	$(QUIET) rm -f $(RUN_FILE)
 	valgrind --tool=callgrind $(CALLGRIND_FLAGS) $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) -f $(RUN_FILE) $(RUN_FLAGS)
+endif
 
 tags:
 	$(QUIET) ctags -R --c++-kinds=+p --fields=+iaS --extra=+q -f $(TAGS) --langmap="c++:.cc.tcc.hpp"
@@ -582,10 +590,16 @@ cscope:
 	$(QUIET) cscope -bR -f $(CSCOPE_XREF)
 
 style:
-	$(QUIET) find . -name \*.cc -o -name \*.hpp | xargs ../scripts/cpplint --verbose 2 --filter=-whitespace/end_of_line,-whitespace/parens,-whitespace/line_length,-readability/casting,-whitespace/braces,-readability/todo,-legal/copyright,-whitespace/comments,-build/include,-whitespace/labels,-runtime/int,-runtime/printf 2>&1 | grep -v Done\ processing
+	$(QUIET) find . -name \*.cc -o -name \*.hpp -o -name \*.tcc | xargs ../scripts/cpplint --verbose 2 --filter=-whitespace/end_of_line,-whitespace/parens,-whitespace/line_length,-readability/casting,-whitespace/braces,-readability/todo,-legal/copyright,-whitespace/comments,-build/include,-whitespace/labels,-runtime/references,-whitespace/blank_line,-readability/function 2>&1 | grep -v Done\ processing
 
 showdefines:
 	$(QUIET) $(CXX) $(CXXFLAGS) -m32 -E -dM - < /dev/null
+
+depclean:
+ifeq ($(VERBOSE),0)
+	@echo "    RM -f $(BUILD_ROOT_DIR)/*.d"
+endif
+	$(QUIET) if test -d $(BUILD_ROOT_DIR); then find $(BUILD_ROOT_DIR) -name '*.d' -exec rm {} \; ; fi
 
 clean:
 ifeq ($(VERBOSE),0)
@@ -613,7 +627,7 @@ ifeq ($(VERBOSE),0)
 endif
 	$(QUIET) $(CXX) $(CXXFLAGS) -c -o $@ $<
 
-$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc Makefile $(PROTO_HEADERS)
+$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc Makefile
 	$(QUIET) mkdir -p $(dir $@)
 ifeq ($(VERBOSE),0)
 	@echo "    CC $< -o $@"
@@ -621,14 +635,21 @@ endif
 	$(QUIET) $(CXX) $(CXXFLAGS) -c -o $@ $<
 
 # Dependencies
-# TODO: Adding PROTO_HEADERS here is kind of hacky
 $(DEP_DIR)/%.d: $(SOURCE_DIR)/%.cc $(PROTO_HEADERS)
+ifeq ($(VERBOSE),0)
+	@echo "    DEP $@"
+endif
 	$(QUIET) mkdir -p $(dir $@)
-	$(QUIET) $(CXX) $(CXXFLAGS) -M $< > $@.$$$$;				   \
-	sed 's,$(notdir $*)\.o[ :]*,$(OBJ_DIR)/$*.o $@ : ,g' < $@.$$$$ > $@;	  \
-	rm -f $@.$$$$
-# Include the dependencies into the makefile so that they take effect
+	$(QUIET) $(CXXDEP) $(CXXFLAGS) -M -MQ $(OBJ_DIR)/$*.o -MQ $@ $< > $@
 
-ifneq ($(MAKECMDGOALS),clean)
+# Without this, the proto headers get generated to build the .d files, then are removed as
+# intermediate files; then the .d files are read in, and some depend on the proto headers, so they
+# get remade. This is redundant work. Also, it appears to cause nondeterministic races - possibly a
+# bug in GNU Make, possibly a bug in our Makefile.
+.SECONDARY: $(PROTO_HEADERS)
+
+NO_DEPS_TARGETS:=clean depclean tags cscope style
+# Include the dependencies into the makefile so that they take effect
+ifneq (,$(if $(MAKECMDGOALS),$(filter-out $(NO_DEPS_TARGETS),$(MAKECMDGOALS)),non-empty-placeholder))
 -include $(DEPS)
 endif

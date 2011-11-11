@@ -12,7 +12,7 @@
  */
 
 #define SOFTWARE_NAME_STRING "RethinkDB"
-#define VERSION_STRING "0.3"
+#define VERSION_STRING "0.4"
 
 /**
  * Basic configuration parameters.
@@ -30,6 +30,19 @@
 // decrease concurrency
 #define MAX_IO_EVENT_PROCESSING_BATCH_SIZE        50
 
+// The io batch factor ensures a minimum number of i/o operations
+// which are picked from any specific i/o account consecutively.
+// A higher value might be advantageous for throughput if seek times
+// matter on the underlying i/o system. A low value improves latency.
+// The advantage only holds as long as each account has a tendentially
+// sequential set of i/o operations though. If access patterns are random
+// for all accounts, a low io batch factor does just as well (as bad) when it comes
+// to the number of random seeks, but might still provide a lower latency
+// than a high batch factor. Our serializer writes usually generate a sequential
+// access pattern and therefore take considerable advantage from a high io batch
+// factor.
+#define DEFAULT_IO_BATCH_FACTOR                   8
+
 // Currently, each cache uses two IO accounts:
 // one account for writes, and one account for reads.
 // By adjusting the priorities of these accounts, reads
@@ -38,8 +51,8 @@
 // This is a one-per-serializer/file priority.
 // The per-cache priorities are dynamically derived by dividing these priorities
 // by the number of slices on a specific file.
-#define CACHE_READS_IO_PRIORITY                   2048
-#define CACHE_WRITES_IO_PRIORITY                  128
+#define CACHE_READS_IO_PRIORITY                   512
+#define CACHE_WRITES_IO_PRIORITY                  64
 
 // Garbage Colletion uses its own two IO accounts.
 // There is one low-priority account that is meant to guarantee
@@ -51,7 +64,7 @@
 // doesn't grow indefinitely.
 //
 // This is a one-per-serializer/file priority.
-#define GC_IO_PRIORITY_NICE                       16
+#define GC_IO_PRIORITY_NICE                       8
 #define GC_IO_PRIORITY_HIGH                       (2 * CACHE_WRITES_IO_PRIORITY)
 
 // Size of the buffer used to perform IO operations (in bytes).
@@ -82,7 +95,7 @@
 #define LOG_WORKER 0
 
 // Ratio of free ram to use for the cache by default
-#define DEFAULT_MAX_CACHE_RATIO                   0.7f
+#define DEFAULT_MAX_CACHE_RATIO                   0.5f
 
 // Maximum number of threads we support
 // TODO: make this dynamic where possible
@@ -102,7 +115,7 @@
 // If --diff-log-size is not specified, then the patch log size will default to the
 // smaller of DEFAULT_PATCH_LOG_SIZE and (DEFAULT_PATCH_LOG_FRACTION * cache size).
 #ifdef NDEBUG
-#define DEFAULT_PATCH_LOG_SIZE                     (512 * MEGABYTE)
+#define DEFAULT_PATCH_LOG_SIZE                     (0 * MEGABYTE)
 #else
 #define DEFAULT_PATCH_LOG_SIZE                     (4 * MEGABYTE)
 #endif
@@ -144,11 +157,21 @@
 
 // If the size of the data affected by the current set of patches in a block is larger than
 // block size / MAX_PATCHES_SIZE_RATIO, we flush the block instead of waiting for
-// more patches to come.
+// more patches to come. Flushing the block means that we rewrite the actual data
+// block (including all patches). In this case, we don't have to store any of the
+// patches for that block, because to block will be re-written anyway. This results
+// in improved CPU efficiency, because we save the overhead of storing and managing
+// patches.
+// In summary: larger max patches size ratio -> less usage of patches, more i/o
+//     smaller max patches size ratio -> more usage of patches, less i/o, more CPU usage
+//
 // Note: An average write transaction under canonical workload leads to patches of about 75
 // bytes of affected data.
-// The actual value is continuously adjusted between MAX_PATCHES_SIZE_RATIO_MIN and
-// MAX_PATCHES_SIZE_RATIO_MAX depending on how much the system is i/o bound
+// The actual value is constantly adjusted between MAX_PATCHES_SIZE_RATIO_MIN and
+// MAX_PATCHES_SIZE_RATIO_MAX depending on whether the system is i/o bound or not.
+// An exception from this is operating in durability mode, where any write
+// operation is ultimately i/o bound anyway. In this case, the patches size ratio
+// does not get dynamically adjusted but stays constant at MAX_PATCHES_SIZE_RATIO_DURABILITY.
 #define MAX_PATCHES_SIZE_RATIO_MIN                100
 #define MAX_PATCHES_SIZE_RATIO_MAX                2
 #define MAX_PATCHES_SIZE_RATIO_DURABILITY         5
@@ -181,9 +204,9 @@
 #define MAX_IN_NODE_VALUE_SIZE                    250
 
 // In addition to the value itself we could potentially store
-// memcached flags, exptime, and a CAS value in the value contents, so
-// we reserve space for that.
-#define MAX_BTREE_VALUE_AUXILIARY_SIZE            (sizeof(btree_value) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint64_t))
+// memcached flags, exptime, and a CAS value in the value contents,
+// plus the first size byte, so we reserve space for that.
+#define MAX_BTREE_VALUE_AUXILIARY_SIZE            (sizeof(memcached_value_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint64_t) + 1)
 #define MAX_BTREE_VALUE_SIZE                      (MAX_BTREE_VALUE_AUXILIARY_SIZE + MAX_IN_NODE_VALUE_SIZE)
 
 // memcached specifies the maximum value size to be 1MB, but customers asked this to be much higher
@@ -201,7 +224,7 @@
 
 // How many timestamps we store in a leaf node.  We store the
 // NUM_LEAF_NODE_EARLIER_TIMES+1 most-recent timestamps.
-#define NUM_LEAF_NODE_EARLIER_TIMES               2
+#define NUM_LEAF_NODE_EARLIER_TIMES               4
 
 // Perform allocator GC every N milliseconds (the resolution is limited to TIMER_TICKS_IN_MS)
 #define ALLOC_GC_INTERVAL_MS                      3000

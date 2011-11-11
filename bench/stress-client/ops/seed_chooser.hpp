@@ -1,5 +1,5 @@
-#ifndef __KEY_CHOOSER_HPP__
-#define __KEY_CHOOSER_HPP__
+#ifndef __STRESS_CLIENT_OPS_KEY_CHOOSER_HPP__
+#define __STRESS_CLIENT_OPS_KEY_CHOOSER_HPP__
 
 #include "ops/seed_key_generator.hpp"
 
@@ -19,4 +19,4 @@ struct seed_chooser_t {
     virtual ~seed_chooser_t() { }
 };
 
-#endif /* __KEY_CHOOSER_HPP__ */
+#endif /* __STRESS_CLIENT_OPS_KEY_CHOOSER_HPP__ */

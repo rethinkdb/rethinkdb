@@ -1,6 +1,5 @@
-
-#ifndef __SQLITE_PROTOCOL_HPP__
-#define __SQLITE_PROTOCOL_HPP__
+#ifndef __STRESS_CLIENT_PROTOCOLS_SQLITE_PROTOCOL_HPP__
+#define __STRESS_CLIENT_PROTOCOLS_SQLITE_PROTOCOL_HPP__
 
 #include <stdlib.h>
 #include <vector>
@@ -168,4 +167,5 @@ private:
         }
     }
 };
-#endif
+
+#endif  // __STRESS_CLIENT_PROTOCOLS_SQLITE_PROTOCOL_HPP__

@@ -1,6 +1,7 @@
 #include "unittest/gtest.hpp"
 
-#include "arch/linux/disk/conflict_resolving.hpp"
+#include "arch/io/disk/conflict_resolving.hpp"
+#include "arch/runtime/thread_pool.hpp"
 #include <list>
 #include <boost/scoped_array.hpp>
 #include <boost/bind.hpp>
@@ -11,6 +12,7 @@ namespace unittest {
 struct test_driver_t {
 
     struct core_action_t : public intrusive_list_node_t<core_action_t> {
+        bool get_is_write() const { return !is_read; }
         bool get_is_read() const { return is_read; }
         void *get_buf() const { return buf; }
         size_t get_count() const { return count; }
@@ -32,11 +34,19 @@ struct test_driver_t {
 
     typedef conflict_resolving_diskmgr_t<core_action_t>::action_t action_t;
 
+    int old_thread_id;
     test_driver_t() {
+        /* Fake thread-context to make perfmons work. */
+        old_thread_id = linux_thread_pool_t::thread_id;
+        linux_thread_pool_t::thread_id = 0;
+
         conflict_resolver.submit_fun = boost::bind(
             &test_driver_t::submit_from_conflict_resolving_diskmgr, this, _1);
         conflict_resolver.done_fun = boost::bind(
             &test_driver_t::done_from_conflict_resolving_diskmgr, this, _1);
+    }
+    ~test_driver_t() {
+        linux_thread_pool_t::thread_id = old_thread_id;
     }
 
     void submit(action_t *a) {
@@ -51,13 +61,10 @@ struct test_driver_t {
 
         /* The conflict_resolving_diskmgr_t should not have sent us two potentially
         conflicting actions */
-        for (intrusive_list_t<core_action_t>::iterator it = running_actions.begin();
-             it != running_actions.end(); it++) {
-            if (!(a->is_read && (*it)->is_read)) {
-                /* They aren't both reads, so they should be non-overlapping. */
-                ASSERT_TRUE(
-                    (int)a->offset >= (int)((*it)->offset + (*it)->count) ||
-                    (int)(*it)->offset >= (int)(a->offset + a->count));
+        for (core_action_t *p = running_actions.head(); p; p = running_actions.next(p)) {
+            if (!(a->is_read && p->is_read)) {
+                ASSERT_TRUE((int)a->offset >= (int)(p->offset + p->count) ||
+                            (int)p->offset >= (int)(a->offset + a->count));
             }
         }
 
@@ -86,8 +93,8 @@ struct test_driver_t {
 
 struct read_test_t {
 
-    read_test_t(test_driver_t *driver, off_t o, std::string e) :
-        driver(driver),
+    read_test_t(test_driver_t *_driver, off_t o, std::string e) :
+        driver(_driver),
         offset(o),
         expected(e),
         buffer(new char[expected.size()])
@@ -123,8 +130,8 @@ struct read_test_t {
 
 struct write_test_t {
 
-    write_test_t(test_driver_t *driver, off_t o, std::string d) :
-        driver(driver),
+    write_test_t(test_driver_t *_driver, off_t o, std::string d) :
+        driver(_driver),
         offset(o),
         data(d)
     {
@@ -259,5 +266,5 @@ TEST(DiskConflictTest, MetaTest) {
     EXPECT_NONFATAL_FAILURE(cause_test_failure(), "Read returned wrong data.");
 };
 
-}
+}  // namespace unittest
 

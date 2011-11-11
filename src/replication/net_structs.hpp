@@ -4,22 +4,23 @@
 #include <stdint.h>
 
 #include "btree/value.hpp"
-#include "serializer/translator.hpp"
+#include "utils.hpp"
 
 namespace replication {
 
 enum multipart_aspect { SMALL = 0x81, FIRST = 0x82, MIDDLE = 0x83, LAST = 0x84 };
 
 enum message_code { MSGCODE_NIL = 0, INTRODUCE = 1,
-                    BACKFILL = 2, BACKFILL_COMPLETE = 3, BACKFILL_DELETE_EVERYTHING = 4,
+                    BACKFILL = 2, BACKFILL_COMPLETE = 3, /* BACKFILL_DELETE_EVERYTHING = 4, */
                     BACKFILL_SET = 5, BACKFILL_DELETE = 6,
 
                     GET_CAS = 7, SARC = 8, INCR = 9, DECR = 10, APPEND = 11, PREPEND = 12,
-                    DELETE = 13, TIMEBARRIER = 14, HEARTBEAT = 15 };
+                    DELETE = 13, TIMEBARRIER = 14, HEARTBEAT = 15,
+                    BACKFILL_DELETE_RANGE = 16 };
 
 struct net_castime_t {
     cas_t proposed_cas;
-    repli_timestamp timestamp;
+    repli_timestamp_t timestamp;
 } __attribute__((__packed__));
 
 struct net_hello_t {
@@ -54,16 +55,11 @@ struct net_multipart_header_t {
 // message, if it's not the first message in the stream }
 
 struct net_backfill_t {
-    repli_timestamp timestamp;
+    repli_timestamp_t timestamp;
 } __attribute__((__packed__));
 
 struct net_backfill_complete_t {
-    repli_timestamp time_barrier_timestamp;
-} __attribute__((__packed__));
-
-struct net_backfill_delete_everything_t {
-    // Unnecessary padding.
-    uint32_t padding;
+    repli_timestamp_t time_barrier_timestamp;
 } __attribute__((__packed__));
 
 struct net_heartbeat_t {
@@ -72,12 +68,12 @@ struct net_heartbeat_t {
 } __attribute__((__packed__));
 
 struct net_timebarrier_t {
-    repli_timestamp timestamp;
+    repli_timestamp_t timestamp;
 } __attribute__((__packed__));
 
 struct net_get_cas_t {
     cas_t proposed_cas;
-    repli_timestamp timestamp;
+    repli_timestamp_t timestamp;
     uint16_t key_size;
     char key[];
 } __attribute__((__packed__));
@@ -85,7 +81,7 @@ struct net_get_cas_t {
 // TODO: Make this structure more efficient, use optional fields for
 // flags, exptime, add_policy, old_cas.
 struct net_sarc_t {
-    repli_timestamp timestamp;
+    repli_timestamp_t timestamp;
     cas_t proposed_cas;
     mcflags_t flags;
     exptime_t exptime;
@@ -98,7 +94,7 @@ struct net_sarc_t {
 } __attribute__((__packed__));
 
 struct net_backfill_set_t {
-    repli_timestamp timestamp;
+    repli_timestamp_t timestamp;
     mcflags_t flags;
     exptime_t exptime;
     cas_t cas_or_zero;
@@ -108,7 +104,7 @@ struct net_backfill_set_t {
 } __attribute__((__packed__));
 
 struct net_incr_t {
-    repli_timestamp timestamp;
+    repli_timestamp_t timestamp;
     cas_t proposed_cas;
     uint64_t amount;
     uint16_t key_size;
@@ -116,7 +112,7 @@ struct net_incr_t {
 } __attribute__((__packed__));
 
 struct net_decr_t {
-    repli_timestamp timestamp;
+    repli_timestamp_t timestamp;
     cas_t proposed_cas;
     uint64_t amount;
     uint16_t key_size;
@@ -124,7 +120,7 @@ struct net_decr_t {
 } __attribute__((__packed__));
 
 struct net_append_t {
-    repli_timestamp timestamp;
+    repli_timestamp_t timestamp;
     cas_t proposed_cas;
     uint16_t key_size;
     uint32_t value_size;
@@ -135,7 +131,7 @@ struct net_append_t {
 } __attribute__((__packed__));
 
 struct net_prepend_t {
-    repli_timestamp timestamp;
+    repli_timestamp_t timestamp;
     cas_t proposed_cas;
     uint16_t key_size;
     uint32_t value_size;
@@ -146,17 +142,29 @@ struct net_prepend_t {
 } __attribute__((__packed__));
 
 struct net_delete_t {
-    repli_timestamp timestamp;
+    repli_timestamp_t timestamp;
     uint16_t key_size;
     char key[];
 } __attribute__((__packed__));
 
 struct net_backfill_delete_t {
-    // We need at least 4 bytes so that we do not get a msgsize
-    // smaller than sizeof(net_multipart_header_t).
-    uint16_t padding;
+    repli_timestamp_t timestamp;
     uint16_t key_size;
     char key[];
+} __attribute__((__packed__));
+
+// Says to delete the keys who hash to hash_value (mod hashmod) in the
+// interval [low_key, high_key), with an exclusive upper bound, where
+// if low_key_size is 255 that means -infinity and if high_key_size is
+// 255 that means +infinity.
+struct net_backfill_delete_range_t {
+    uint16_t hash_value;
+    uint16_t hashmod;
+    uint8_t low_key_size;  // may be 255
+    uint8_t high_key_size;  // may be 255
+    char keys[];
+
+    static const int infinity_key_size = 255;
 } __attribute__((__packed__));
 
 }  // namespace replication

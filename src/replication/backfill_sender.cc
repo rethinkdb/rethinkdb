@@ -1,4 +1,6 @@
 #include "replication/backfill_sender.hpp"
+
+#include "logger.hpp"
 #include "perfmon.hpp"
 
 namespace replication {
@@ -20,26 +22,46 @@ void backfill_sender_t::warn_about_expiration() {
     }
 }
 
-void backfill_sender_t::backfill_delete_everything(order_token_t token) {
+void backfill_sender_t::backfill_delete_range(int hash_value, int hashmod,
+                                              bool left_key_supplied, const store_key_t& left_key_exclusive,
+                                              bool right_key_supplied, const store_key_t& right_key_inclusive,
+                                              order_token_t token) {
     order_sink_before_send.check_out(token);
 
     if (*stream_) {
-        net_backfill_delete_everything_t msg;
-        msg.padding = 0;
-        (*stream_)->send(msg);
+        int left_offseter = (left_key_supplied ? left_key_exclusive.size : 0);
+        size_t n = sizeof(net_backfill_delete_range_t)
+            + left_offseter
+            + (right_key_supplied ? right_key_inclusive.size : 0);
+
+        scoped_malloc<net_backfill_delete_range_t> msg(n);
+        msg->hash_value = hash_value;
+        msg->hashmod = hashmod;
+        msg->low_key_size = left_key_supplied ? left_key_exclusive.size : net_backfill_delete_range_t::infinity_key_size;
+        msg->high_key_size = right_key_supplied ? right_key_inclusive.size : net_backfill_delete_range_t::infinity_key_size;
+        if (left_key_supplied) {
+            memcpy(msg->keys, left_key_exclusive.contents, left_key_exclusive.size);
+        }
+        if (right_key_supplied) {
+            memcpy(msg->keys + left_offseter, right_key_inclusive.contents, right_key_inclusive.size);
+        }
+
+        (*stream_)->send(msg.get());
     }
 
     order_sink_after_send.check_out(token);
 }
 
-void backfill_sender_t::backfill_deletion(store_key_t key, order_token_t token) {
-    order_sink_before_send.check_out(token);
-    block_pm_duration set_timer(&master_bf_del);
+void backfill_sender_t::backfill_deletion(store_key_t key, repli_timestamp_t timestamp, order_token_t token) {
+    block_pm_duration del_timer(&master_bf_del);
 
-    size_t n = sizeof(net_backfill_delete_t) + key.size;
+    order_sink_before_send.check_out(token);
+
     if (*stream_) {
+        size_t n = sizeof(net_backfill_delete_t) + key.size;
+
         scoped_malloc<net_backfill_delete_t> msg(n);
-        msg->padding = 0;
+        msg->timestamp = timestamp;
         msg->key_size = key.size;
         memcpy(msg->key, key.contents, key.size);
 
@@ -67,7 +89,7 @@ void backfill_sender_t::backfill_set(backfill_atom_t atom, order_token_t token) 
         msg.exptime = atom.exptime;
         msg.cas_or_zero = atom.cas_or_zero;
         msg.key_size = atom.key.size;
-        msg.value_size = atom.value->get_size();
+        msg.value_size = atom.value->size();
         (*stream_)->send(&msg, atom.key.contents, atom.value);
     }
 
@@ -124,7 +146,7 @@ void backfill_sender_t::realtime_sarc(sarc_mutation_t& m, castime_t castime, ord
         stru.flags = m.flags;
         stru.exptime = m.exptime;
         stru.key_size = m.key.size;
-        stru.value_size = m.data->get_size();
+        stru.value_size = m.data->size();
         stru.add_policy = m.add_policy;
         stru.replace_policy = m.replace_policy;
         stru.old_cas = m.old_cas;
@@ -169,7 +191,7 @@ void backfill_sender_t::incr_decr_like(const store_key_t &key, uint64_t amount, 
     if (*stream_) (*stream_)->send(msg.get());
 }
 
-void backfill_sender_t::realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key, boost::shared_ptr<data_provider_t> data, castime_t castime, order_token_t token) {
+void backfill_sender_t::realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key, const boost::intrusive_ptr<data_buffer_t>& data, castime_t castime, order_token_t token) {
     assert_thread();
     block_pm_duration set_timer(&master_rt_op);
     order_sink_before_send.check_out(token);
@@ -180,7 +202,7 @@ void backfill_sender_t::realtime_append_prepend(append_prepend_kind_t kind, cons
             appendstruct.timestamp = castime.timestamp;
             appendstruct.proposed_cas = castime.proposed_cas;
             appendstruct.key_size = key.size;
-            appendstruct.value_size = data->get_size();
+            appendstruct.value_size = data->size();
 
             if (*stream_) (*stream_)->send(&appendstruct, key.contents, data);
         } else {
@@ -190,7 +212,7 @@ void backfill_sender_t::realtime_append_prepend(append_prepend_kind_t kind, cons
             prependstruct.timestamp = castime.timestamp;
             prependstruct.proposed_cas = castime.proposed_cas;
             prependstruct.key_size = key.size;
-            prependstruct.value_size = data->get_size();
+            prependstruct.value_size = data->size();
 
             if (*stream_) (*stream_)->send(&prependstruct, key.contents, data);
         }
@@ -198,7 +220,7 @@ void backfill_sender_t::realtime_append_prepend(append_prepend_kind_t kind, cons
     order_sink_after_send.check_out(token);
 }
 
-void backfill_sender_t::realtime_delete_key(const store_key_t &key, repli_timestamp timestamp, order_token_t token) {
+void backfill_sender_t::realtime_delete_key(const store_key_t &key, repli_timestamp_t timestamp, order_token_t token) {
     assert_thread();
     block_pm_duration set_timer(&master_rt_op);
     order_sink_before_send.check_out(token);
@@ -216,7 +238,7 @@ void backfill_sender_t::realtime_delete_key(const store_key_t &key, repli_timest
     order_sink_after_send.check_out(token);
 }
 
-void backfill_sender_t::realtime_time_barrier(repli_timestamp timestamp, order_token_t token) {
+void backfill_sender_t::realtime_time_barrier(repli_timestamp_t timestamp, order_token_t token) {
     block_pm_duration timer(&master_rt_timebarrier);
     order_sink_before_send.check_out(token);
     assert_thread();

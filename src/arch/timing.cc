@@ -1,14 +1,29 @@
 #include "arch/timing.hpp"
+
 #include "arch/arch.hpp"
+#include "arch/runtime/runtime.hpp"
+#include "concurrency/wait_any.hpp"
 
 // nap()
 
-void nap(int ms) {
+void nap(int ms) THROWS_NOTHING {
     if (ms > 0) {
         signal_timer_t timer(ms);
-        timer.wait_lazily();
-    } else {
-        coro_t::yield();
+        timer.wait_lazily_ordered();
+    }
+}
+
+void nap(int ms, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    if (interruptor->is_pulsed()) {
+        throw interrupted_exc_t();
+    }
+    if (ms > 0) {
+        signal_timer_t timer(ms);
+        wait_any_t waiter(&timer, interruptor);
+        waiter.wait_lazily_unordered();
+        if (interruptor->is_pulsed()) {
+            throw interrupted_exc_t();
+        }
     }
 }
 
@@ -31,8 +46,8 @@ void signal_timer_t::on_timer_ring(void *v_timer) {
 
 // repeating_timer_t
 
-repeating_timer_t::repeating_timer_t(int frequency_ms, boost::function<void(void)> ring) :
-    ring(ring) {
+repeating_timer_t::repeating_timer_t(int frequency_ms, const boost::function<void()>& _ring) :
+    ring(_ring) {
     rassert(frequency_ms > 0);
     timer = add_timer(frequency_ms, &repeating_timer_t::on_timer_ring, this);
 }
@@ -42,5 +57,5 @@ repeating_timer_t::~repeating_timer_t() {
 }
 
 void repeating_timer_t::on_timer_ring(void *v_timer) {
-    coro_t::spawn(reinterpret_cast<repeating_timer_t*>(v_timer)->ring);
+    coro_t::spawn(reinterpret_cast<repeating_timer_t *>(v_timer)->ring);
 }

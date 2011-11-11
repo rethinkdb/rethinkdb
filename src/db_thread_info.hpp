@@ -1,8 +1,7 @@
-
 #ifndef __DB_THREAD_INFO_HPP__
 #define __DB_THREAD_INFO_HPP__
 
-#include "arch/arch.hpp"
+#include "arch/runtime/runtime.hpp"
 
 // The last thread is a service thread that runs an connection acceptor, a
 // log writer, and possibly similar services, and does not run any db

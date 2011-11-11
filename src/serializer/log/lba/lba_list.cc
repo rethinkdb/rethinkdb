@@ -1,9 +1,8 @@
-#include <vector>
+#include "serializer/log/lba/lba_list.hpp"
+
 #include "utils.hpp"
-#include "disk_format.hpp"
-#include "lba_list.hpp"
+#include "serializer/log/lba/disk_format.hpp"
 #include "arch/arch.hpp"
-#include "logger.hpp"
 #include "perfmon.hpp"
 
 perfmon_counter_t pm_serializer_lba_gcs("serializer_lba_gcs");
@@ -85,26 +84,25 @@ bool lba_list_t::start_existing(direct_file_t *file, metablock_mixin_t *last_met
     }
 }
 
-block_id_t lba_list_t::max_block_id() {
+block_id_t lba_list_t::end_block_id() {
     rassert(state == state_ready);
-    
-    return in_memory_index.max_block_id();
+
+    return in_memory_index.end_block_id();
 }
 
 flagged_off64_t lba_list_t::get_block_offset(block_id_t block) {
     rassert(state == state_ready);
-    
+
     return in_memory_index.get_block_info(block).offset;
 }
 
-repli_timestamp lba_list_t::get_block_recency(block_id_t block) {
+repli_timestamp_t lba_list_t::get_block_recency(block_id_t block) {
     rassert(state == state_ready);
 
     return in_memory_index.get_block_info(block).recency;
 }
 
-// TODO rename to set_block_info
-void lba_list_t::set_block_offset(block_id_t block, repli_timestamp recency, flagged_off64_t offset, file_t::account_t *io_account) {
+void lba_list_t::set_block_info(block_id_t block, repli_timestamp_t recency, flagged_off64_t offset, file_account_t *io_account) {
     rassert(state == state_ready);
 
     in_memory_index.set_block_info(block, recency, offset);
@@ -126,8 +124,8 @@ public:
     int structures_unsynced;
     lba_list_t::sync_callback_t *callback;
     
-    explicit lba_syncer_t(lba_list_t *owner, file_t::account_t *io_account)
-        : owner(owner), done(false), should_delete_self(false), callback(NULL)
+    explicit lba_syncer_t(lba_list_t *_owner, file_account_t *io_account)
+        : owner(_owner), done(false), should_delete_self(false), callback(NULL)
     {
         structures_unsynced = LBA_SHARD_FACTOR;
         for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
@@ -146,7 +144,7 @@ public:
     }
 };
 
-bool lba_list_t::sync(file_t::account_t *io_account, sync_callback_t *cb) {
+bool lba_list_t::sync(file_account_t *io_account, sync_callback_t *cb) {
     rassert(state == state_ready);
     
     lba_syncer_t *syncer = new lba_syncer_t(this, io_account);
@@ -166,7 +164,7 @@ void lba_list_t::prepare_metablock(metablock_mixin_t *mb_out) {
     }
 }
 
-void lba_list_t::consider_gc(file_t::account_t *io_account) {
+void lba_list_t::consider_gc(file_account_t *io_account) {
     for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
         if (we_want_to_gc(i)) gc(i, io_account);
     }
@@ -178,16 +176,15 @@ class gc_fsm_t :
 public:
     lba_list_t *owner;
     int i;
-    
-    gc_fsm_t(lba_list_t *owner, int i, file_t::account_t *io_account)
-        : owner(owner), i(i)
-        {
-            pm_serializer_lba_gcs++;
-            owner->gc_count++;
-            do_replace_disk_structure(io_account);
-        }
-    
-    void do_replace_disk_structure(file_t::account_t *io_account) {
+
+    gc_fsm_t(lba_list_t *_owner, int _i, file_account_t *io_account)
+        : owner(_owner), i(_i) {
+	pm_serializer_lba_gcs++;
+	owner->gc_count++;
+	do_replace_disk_structure(io_account);
+    }
+
+    void do_replace_disk_structure(file_account_t *io_account) {
         /* Replace the LBA with a new empty LBA */
         
         owner->disk_structures[i]->destroy();
@@ -195,12 +192,12 @@ public:
         
         /* Put entries in the new empty LBA */
 
-        for (block_id_t id = i, end_id = owner->max_block_id();
+        for (block_id_t id = i, end_id = owner->end_block_id();
              id < end_id;
              id += LBA_SHARD_FACTOR) {
             block_id_t block_id = id;
             flagged_off64_t off = owner->get_block_offset(block_id);
-            if (flagged_off64_t::has_value(off)) {
+            if (off.has_value()) {
                 owner->disk_structures[i]->add_entry(block_id, owner->get_block_recency(block_id), off, io_account);
             }
         }
@@ -240,7 +237,7 @@ bool lba_list_t::we_want_to_gc(int i) {
     // If we are not using more than N times the amount of space that we need, don't GC
     int entries_per_extent = disk_structures[i]->num_entries_that_can_fit_in_an_extent();
     int64_t entries_total = disk_structures[i]->extents_in_superblock.size() * entries_per_extent;
-    int64_t entries_live = max_block_id() / LBA_SHARD_FACTOR;
+    int64_t entries_live = end_block_id() / LBA_SHARD_FACTOR;
     if ((entries_live / (float)entries_total) > LBA_MIN_UNGARBAGE_FRACTION) {
         return false;
     }
@@ -249,7 +246,7 @@ bool lba_list_t::we_want_to_gc(int i) {
     return true;
 }
 
-void lba_list_t::gc(int i, file_t::account_t *io_account) {
+void lba_list_t::gc(int i, file_account_t *io_account) {
     new gc_fsm_t(this, i, io_account);
 }
 

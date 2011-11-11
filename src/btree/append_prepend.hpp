@@ -3,8 +3,8 @@
 
 #include "btree/node.hpp"
 #include "btree/slice.hpp"
-#include "store.hpp"
+#include "memcached/store.hpp"
 
-append_prepend_result_t btree_append_prepend(const store_key_t &key, btree_slice_t *slice, boost::shared_ptr<data_provider_t> data, bool append, castime_t castime, order_token_t token);
+append_prepend_result_t btree_append_prepend(const store_key_t &key, btree_slice_t *slice, const boost::intrusive_ptr<data_buffer_t>& data, bool append, castime_t castime, order_token_t token);
 
 #endif // __BTREE_APPEND_PREPEND_HPP__

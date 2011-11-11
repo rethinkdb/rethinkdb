@@ -1,6 +1,11 @@
 #include "serializer/translator.hpp"
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "concurrency/pmap.hpp"
 #include "serializer/types.hpp"
+#include "serializer/config.hpp"
 
 /* serializer_multiplexer_t */
 
@@ -12,15 +17,15 @@
     (proxy_id / n_files))).
 */
 
-const block_magic_t multiplexer_config_block_t::expected_magic = { { 'c','f','g','_' } };
+const block_magic_t multiplexer_config_block_t::expected_magic = { { 'c', 'f', 'g', '_' } };
 
 void prep_serializer(
-        const std::vector<serializer_t *> &serializers,
+        const std::vector<standard_serializer_t *>& serializers,
         creation_timestamp_t creation_timestamp,
         int n_proxies,
         int i) {
 
-    serializer_t *ser = serializers[i];
+    standard_serializer_t *ser = serializers[i];
 
     /* Go to the thread the serializer is running on because it can only be accessed safely from
     that thread */
@@ -37,17 +42,16 @@ void prep_serializer(
     c->this_serializer = i;
     c->n_proxies = n_proxies;
 
-    serializer_t::write_t w = serializer_t::write_t::make(CONFIG_BLOCK_ID.ser_id, repli_timestamp::invalid, c, true, NULL);
-    struct : public serializer_t::write_txn_callback_t, public cond_t {
-        void on_serializer_write_txn() { pulse(); }
-    } write_cb;
-    if (!ser->do_write(&w, 1, DEFAULT_DISK_ACCOUNT, &write_cb)) write_cb.wait();
+    index_write_op_t op(CONFIG_BLOCK_ID.ser_id);
+    op.token = ser->block_write(c, CONFIG_BLOCK_ID.ser_id, DEFAULT_DISK_ACCOUNT);
+    op.recency = repli_timestamp_t::invalid;
+    serializer_index_write(ser, op, DEFAULT_DISK_ACCOUNT);
 
     ser->free(c);
 }
 
 /* static */
-void serializer_multiplexer_t::create(const std::vector<serializer_t *> &underlying, int n_proxies) {
+void serializer_multiplexer_t::create(const std::vector<standard_serializer_t *>& underlying, int n_proxies) {
     /* Choose a more-or-less unique ID so that we can hopefully catch the case where files are
     mixed and mismatched. */
     creation_timestamp_t creation_timestamp = time(NULL);
@@ -57,10 +61,10 @@ void serializer_multiplexer_t::create(const std::vector<serializer_t *> &underly
         underlying, creation_timestamp, n_proxies, _1));
 }
 
-void create_proxies(const std::vector<serializer_t *> &underlying,
+void create_proxies(const std::vector<standard_serializer_t *>& underlying,
     creation_timestamp_t creation_timestamp, std::vector<translator_serializer_t *> *proxies, int i) {
 
-    serializer_t *ser = underlying[i];
+    standard_serializer_t *ser = underlying[i];
 
     /* Go to the thread the serializer is running on because it is only safe to access on that
     thread and because the pseudoserializers must be created on that thread */
@@ -68,14 +72,10 @@ void create_proxies(const std::vector<serializer_t *> &underlying,
 
     /* Load config block */
     multiplexer_config_block_t *c = reinterpret_cast<multiplexer_config_block_t *>(ser->malloc());
-    struct : public serializer_t::read_callback_t, public cond_t {
-        void on_serializer_read() { pulse(); }
-    } read_cb;
-    if (!ser->do_read(CONFIG_BLOCK_ID.ser_id, c, DEFAULT_DISK_ACCOUNT, &read_cb))
-        read_cb.wait();
+    ser->block_read(ser->index_read(CONFIG_BLOCK_ID.ser_id), c, DEFAULT_DISK_ACCOUNT);
 
     /* Verify that stuff is sane */
-    if (!check_magic<multiplexer_config_block_t>(c->magic)) {
+    if (c->magic != multiplexer_config_block_t::expected_magic) {
         fail_due_to_user_error("File did not come from 'rethinkdb create'.");
     }
     if (c->creation_timestamp != creation_timestamp) {
@@ -119,9 +119,11 @@ void create_proxies(const std::vector<serializer_t *> &underlying,
     ser->free(c);
 }
 
-serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<serializer_t *> &underlying) {
+serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<standard_serializer_t *>& underlying) {
     rassert(underlying.size() > 0);
-    for (int i = 0; i < (int)underlying.size(); i++) rassert(underlying[i]);
+    for (int i = 0; i < (int)underlying.size(); i++) {
+	rassert(underlying[i]);
+    }
 
     /* Figure out how many slices there are gonna be and figure out what the creation magic is */
     {
@@ -130,12 +132,9 @@ serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<serializer_
         /* Load config block */
         multiplexer_config_block_t *c = reinterpret_cast<multiplexer_config_block_t *>(
             underlying[0]->malloc());
-        struct : public serializer_t::read_callback_t, public cond_t {
-            void on_serializer_read() { pulse(); }
-        } read_cb;
-        if (!underlying[0]->do_read(CONFIG_BLOCK_ID.ser_id, c, DEFAULT_DISK_ACCOUNT, &read_cb)) read_cb.wait();
+        underlying[0]->block_read(underlying[0]->index_read(CONFIG_BLOCK_ID.ser_id), c, DEFAULT_DISK_ACCOUNT);
 
-        rassert(check_magic<multiplexer_config_block_t>(c->magic));
+        rassert(c->magic == multiplexer_config_block_t::expected_magic);
         creation_timestamp = c->creation_timestamp;
         proxies.resize(c->n_proxies);
 
@@ -187,11 +186,12 @@ block_id_t translator_serializer_t::untranslate_block_id_to_id(block_id_t inner_
 }
 
 block_id_t translator_serializer_t::translate_block_id(block_id_t id) {
+    rassert(id != NULL_BLOCK_ID);
     return translate_block_id(id, mod_count, mod_id, cfgid);
 }
 
-translator_serializer_t::translator_serializer_t(serializer_t *inner_, int mod_count_, int mod_id_, config_block_id_t cfgid_)
-    : inner(inner_), mod_count(mod_count_), mod_id(mod_id_), cfgid(cfgid_), read_ahead_callback(NULL) {
+translator_serializer_t::translator_serializer_t(standard_serializer_t *_inner, int _mod_count, int _mod_id, config_block_id_t _cfgid)
+    : inner(_inner), mod_count(_mod_count), mod_id(_mod_id), cfgid(_cfgid), read_ahead_callback(NULL) {
     rassert(mod_count > 0);
     rassert(mod_id >= 0);
     rassert(mod_id < mod_count);
@@ -209,49 +209,45 @@ void translator_serializer_t::free(void *ptr) {
     inner->free(ptr);
 }
 
-file_t::account_t *translator_serializer_t::make_io_account(int priority, int outstanding_requests_limit) {
+file_account_t *translator_serializer_t::make_io_account(int priority, int outstanding_requests_limit) {
     return inner->make_io_account(priority, outstanding_requests_limit);
 }
 
-bool translator_serializer_t::do_read(block_id_t block_id, void *buf, file_t::account_t *io_account, serializer_t::read_callback_t *callback) {
-    return inner->do_read(translate_block_id(block_id), buf, io_account, callback);
+void translator_serializer_t::index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account) {
+    std::vector<index_write_op_t> translated_ops(write_ops);
+    for (std::vector<index_write_op_t>::iterator it = translated_ops.begin(); it < translated_ops.end(); ++it)
+        it->block_id = translate_block_id(it->block_id);
+    inner->index_write(translated_ops, io_account);
 }
 
-ser_transaction_id_t translator_serializer_t::get_current_transaction_id(block_id_t block_id, const void* buf) {
-    return inner->get_current_transaction_id(translate_block_id(block_id), buf);
+boost::intrusive_ptr<standard_block_token_t>
+translator_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) {
+    // NULL_BLOCK_ID is special: it indicates no block id specified.
+    if (block_id != NULL_BLOCK_ID)
+        block_id = translate_block_id(block_id);
+    return inner->block_write(buf, block_id, io_account, cb);
 }
 
-struct write_fsm_t : public serializer_t::write_txn_callback_t, public serializer_t::write_tid_callback_t {
-    std::vector<serializer_t::write_t> writes;
-    serializer_t::write_txn_callback_t *cb;
-    serializer_t::write_tid_callback_t *tid_cb;
-    void on_serializer_write_txn() {
-        cb->on_serializer_write_txn();
-        delete this;
-    }
-    void on_serializer_write_tid() {
-        if (tid_cb) {
-            tid_cb->on_serializer_write_tid();
-        }
-    }
-};
-
-bool translator_serializer_t::do_write(write_t *writes, int num_writes, file_t::account_t *io_account, serializer_t::write_txn_callback_t *callback, serializer_t::write_tid_callback_t *tid_callback) {
-    write_fsm_t *fsm = new write_fsm_t();
-    fsm->cb = callback;
-    fsm->tid_cb = tid_callback;
-    for (int i = 0; i < num_writes; i++) {
-        fsm->writes.push_back(serializer_t::write_t(translate_block_id(writes[i].block_id), writes[i].recency_specified, writes[i].recency,
-                                                writes[i].buf_specified, writes[i].buf, writes[i].write_empty_deleted_block, writes[i].callback, writes[i].assign_transaction_id));
-    }
-    if (inner->do_write(fsm->writes.data(), num_writes, io_account, fsm, fsm)) {
-        delete fsm;
-        return true;
-    } else {
-        return false;
-    }
+boost::intrusive_ptr<standard_block_token_t>
+translator_serializer_t::block_write(const void *buf, file_account_t *io_account, iocallback_t *cb) {
+    return inner->block_write(buf, io_account, cb);
 }
 
+void translator_serializer_t::block_read(const boost::intrusive_ptr<standard_block_token_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) {
+    return inner->block_read(token, buf, io_account, cb);
+}
+
+void translator_serializer_t::block_read(const boost::intrusive_ptr<standard_block_token_t>& token, void *buf, file_account_t *io_account) {
+    return inner->block_read(token, buf, io_account);
+}
+
+boost::intrusive_ptr<standard_block_token_t> translator_serializer_t::index_read(block_id_t block_id) {
+    return inner->index_read(translate_block_id(block_id));
+}
+
+block_sequence_id_t translator_serializer_t::get_block_sequence_id(block_id_t block_id, const void* buf) {
+    return inner->get_block_sequence_id(translate_block_id(block_id), buf);
+}
 
 block_size_t translator_serializer_t::get_block_size() {
     return inner->get_block_size();
@@ -269,7 +265,7 @@ block_id_t translator_serializer_t::max_block_id() {
 
     while (x > 0) {
         --x;
-        if (block_in_use(x)) {
+        if (!get_delete_bit(x)) {
             ++x;
             break;
         }
@@ -277,16 +273,15 @@ block_id_t translator_serializer_t::max_block_id() {
     return x;
 }
 
-
-bool translator_serializer_t::block_in_use(block_id_t id) {
-    return inner->block_in_use(translate_block_id(id));
-}
-
-repli_timestamp translator_serializer_t::get_recency(block_id_t id) {
+repli_timestamp_t translator_serializer_t::get_recency(block_id_t id) {
     return inner->get_recency(translate_block_id(id));
 }
 
-bool translator_serializer_t::offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {
+bool translator_serializer_t::get_delete_bit(block_id_t id) {
+    return inner->get_delete_bit(translate_block_id(id));
+}
+
+bool translator_serializer_t::offer_read_ahead_buf(block_id_t block_id, void *buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
     inner->assert_thread();
 
     // Offer the buffer if we are the correct shard
@@ -298,9 +293,10 @@ bool translator_serializer_t::offer_read_ahead_buf(block_id_t block_id, void *bu
 
     if (read_ahead_callback) {
         const block_id_t inner_block_id = untranslate_block_id_to_id(block_id, mod_count, mod_id, cfgid);
-        if (!read_ahead_callback->offer_read_ahead_buf(inner_block_id, buf, recency_timestamp))
+        if (!read_ahead_callback->offer_read_ahead_buf(inner_block_id, buf, token, recency_timestamp)) {
             // They aren't going to free the buffer, so we do.
             inner->free(buf);
+        }
     } else {
         // Discard the buffer
         inner->free(buf);
@@ -308,14 +304,14 @@ bool translator_serializer_t::offer_read_ahead_buf(block_id_t block_id, void *bu
     return true;
 }
 
-void translator_serializer_t::register_read_ahead_cb(translator_serializer_t::read_ahead_callback_t *cb) {
+void translator_serializer_t::register_read_ahead_cb(serializer_read_ahead_callback_t *cb) {
     on_thread_t t(inner->home_thread());
 
     rassert(!read_ahead_callback);
     inner->register_read_ahead_cb(this);
     read_ahead_callback = cb;
 }
-void translator_serializer_t::unregister_read_ahead_cb(UNUSED translator_serializer_t::read_ahead_callback_t *cb) {
+void translator_serializer_t::unregister_read_ahead_cb(UNUSED serializer_read_ahead_callback_t *cb) {
     on_thread_t t(inner->home_thread());
 
     rassert(read_ahead_callback == NULL || cb == read_ahead_callback);

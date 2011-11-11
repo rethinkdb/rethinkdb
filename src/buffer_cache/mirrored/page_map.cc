@@ -1,14 +1,12 @@
-#include "page_map.hpp"
-#include "mirrored.hpp"
+#include "buffer_cache/mirrored/page_map.hpp"
+#include "buffer_cache/mirrored/mirrored.hpp"
 
-array_map_t::local_buf_t::local_buf_t(mc_inner_buf_t *gbuf)
-    : gbuf(gbuf)
-{
+void array_map_t::constructing_inner_buf(inner_buf_t *gbuf) {
     rassert(!gbuf->cache->page_map.array.get(gbuf->block_id));
     gbuf->cache->page_map.array.set(gbuf->block_id, gbuf);
 }
 
-array_map_t::local_buf_t::~local_buf_t() {
+void array_map_t::destroying_inner_buf(inner_buf_t *gbuf) {
     rassert(gbuf->cache->page_map.array.get(gbuf->block_id));
     gbuf->cache->page_map.array.set(gbuf->block_id, NULL);
 }

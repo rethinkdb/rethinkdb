@@ -1,77 +1,49 @@
-
 #ifndef __SERIALIZER_LOG_LBA_DISK_FORMAT__
 #define __SERIALIZER_LOG_LBA_DISK_FORMAT__
-
 
 #include <limits.h>
 
 #include "serializer/serializer.hpp"
+#include "config/args.hpp"
 
 
 
-// An off64_t with the highest bit saying that a block is deleted.
-// Some deleted blocks still have an offset, since there's a zero
-// block sitting in place for them.  The remaining 63 bits give the
-// offset to the block, if it has one (whether it is deleted or not).
+// Contains an off64_t, or a "padding" value, or a "unused" value.  I
+// don't think we really need separate padding and unused values.
+
+// There used to be some flag bits on the value but now there's only
+// one special sentinel value for deletion entries or padding entries.
 union flagged_off64_t {
-    off64_t whole_value;
-    struct {
-        // The actual offset into the file.
-        off64_t value : 63;
+    off64_t the_value_;
 
-        // This block id was deleted, and the offset points to a zeroed
-        // out buffer.
-        int is_delete : 1;
-    } parts;
+    bool has_value() const {
+        return the_value_ >= 0;
+    }
+    off64_t get_value() const {
+        rassert(has_value());
+        return the_value_;
+    }
 
-    static inline flagged_off64_t unused() {
+    static flagged_off64_t make(off64_t off) {
+        rassert(off >= 0);
         flagged_off64_t ret;
-        ret.whole_value = -1;
+        ret.the_value_ = off;
         return ret;
     }
 
-    static inline flagged_off64_t padding() {
+    static flagged_off64_t padding() {
         flagged_off64_t ret;
-        ret.whole_value = -1;
+        ret.the_value_ = -1;
         return ret;
     }
+    bool is_padding() const {
+        return the_value_ == -1;
+    }
 
-    // TODO: Rename this from delete_id.
-    static inline flagged_off64_t delete_id() {
+    static flagged_off64_t unused() {
         flagged_off64_t ret;
-        ret.parts.value = -2;
-        ret.parts.is_delete = 1;
+        ret.the_value_ = -1;
         return ret;
-    }
-
-    static inline bool is_padding(flagged_off64_t offset) {
-        return offset.whole_value == -1;
-    }
-
-    static inline flagged_off64_t real(off64_t offset) {
-        flagged_off64_t ret;
-        ret.parts.value = offset;
-        ret.parts.is_delete = 0;
-        return ret;
-    }
-
-    static inline flagged_off64_t deleteblock(off64_t offset) {
-        flagged_off64_t ret;
-        ret.parts.value = offset;
-        ret.parts.is_delete = 1;
-        return ret;
-    }
-
-    static inline bool has_value(flagged_off64_t offset) {
-        return offset.parts.value >= 0;
-    }
-
-    static inline bool can_be_gced(flagged_off64_t offset) {
-        return has_value(offset);
-    }
-
-    static inline bool is_delete_id(flagged_off64_t offset) {
-        return offset.whole_value == delete_id().whole_value;
     }
 };
 
@@ -106,11 +78,11 @@ static const block_id_t PADDING_BLOCK_ID = NULL_BLOCK_ID;
 
 struct lba_entry_t {
     block_id_t block_id;
-    repli_timestamp recency;
+    repli_timestamp_t recency;
     // An offset into the file, with is_delete set appropriately.
     flagged_off64_t offset;
 
-    static inline lba_entry_t make(block_id_t block_id, repli_timestamp recency, flagged_off64_t offset) {
+    static inline lba_entry_t make(block_id_t block_id, repli_timestamp_t recency, flagged_off64_t offset) {
         lba_entry_t entry;
         entry.block_id = block_id;
         entry.recency = recency;
@@ -119,11 +91,11 @@ struct lba_entry_t {
     }
 
     static inline bool is_padding(const lba_entry_t* entry) {
-        return entry->block_id == PADDING_BLOCK_ID  && flagged_off64_t::is_padding(entry->offset);
+        return entry->block_id == PADDING_BLOCK_ID  && entry->offset.is_padding();
     }
 
     static inline lba_entry_t make_padding_entry() {
-        return make(PADDING_BLOCK_ID, repli_timestamp::invalid, flagged_off64_t::padding());
+        return make(PADDING_BLOCK_ID, repli_timestamp_t::invalid, flagged_off64_t::padding());
     }
 } __attribute__((__packed__));
 

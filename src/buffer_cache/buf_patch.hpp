@@ -1,7 +1,7 @@
 #ifndef __BUF_PATCH_HPP__
 #define	__BUF_PATCH_HPP__
 
-#include <sstream>
+#include <string>
 
 /*
  * This file provides the basic buf_patch_t type as well as a few low-level binary
@@ -14,7 +14,7 @@ class buf_patch_t;
 #include "serializer/types.hpp"
 
 typedef uint32_t patch_counter_t;
-typedef char patch_operation_code_t;
+typedef int8_t patch_operation_code_t;
 
 /*
  * As the buf_patch code is used in both extract and server, it should not crash
@@ -22,20 +22,11 @@ typedef char patch_operation_code_t;
  * Instead patches should emit a patch_deserialization_error_t exception.
  */
 class patch_deserialization_error_t {
+    // TODO: This isn't a std::exception?
+
     std::string message;
 public:
-    patch_deserialization_error_t(const char *file, int line, const char *msg) {
-        if (msg[0]) {
-            message = "Patch deserialization error: " + std::string(msg);
-        } else {
-            message = "Patch deserialization error.";
-        }
-        std::stringstream conv;
-        conv << line;
-        std::string line_str;
-        conv >> line_str;
-        message += " (in " + std::string(file) + ":" + line_str + ")";
-    }
+    patch_deserialization_error_t(const char *file, int line, const char *msg);
     const char *c_str() { return message.c_str(); }
 };
 #define guarantee_patch_format(cond, msg...) do {    \
@@ -48,7 +39,7 @@ public:
 /*
  * A buf_patch_t is an in-memory representation for a patch. A patch describes
  * a specific change which can be applied to a buffer.
- * Each buffer patch has a patch counter as well as a transaction id. The transaction id
+ * Each buffer patch has a patch counter as well as a block sequence id. The block sequence id
  * is used to determine to which version of a block the patch applies. Within
  * one version of a block, the patch counter explicitly encodes an ordering, which
  * is used to ensure that patches can be applied in the correct order
@@ -73,37 +64,36 @@ public:
     void serialize(char* destination) const;
 
     inline uint16_t get_serialized_size() const {
-        return sizeof(uint16_t) + sizeof(block_id) + sizeof(patch_counter_t) + sizeof(ser_transaction_id_t) + sizeof(patch_operation_code_t) + get_data_size();
+        return sizeof(uint16_t) + sizeof(block_id_t) + sizeof(patch_counter_t) + sizeof(block_sequence_id_t) + sizeof(patch_operation_code_t) + get_data_size();
     }
     inline static uint16_t get_min_serialized_size() {
-        return sizeof(uint16_t) + sizeof(block_id_t) + sizeof(patch_counter_t) + sizeof(ser_transaction_id_t) + sizeof(patch_operation_code_t);
+        return sizeof(uint16_t) + sizeof(block_id_t) + sizeof(patch_counter_t) + sizeof(block_sequence_id_t) + sizeof(patch_operation_code_t);
     }
 
     inline patch_counter_t get_patch_counter() const {
         return patch_counter;
     }
-    inline ser_transaction_id_t get_transaction_id() const {
-        return applies_to_transaction_id;
+    inline block_sequence_id_t get_block_sequence_id() const {
+        return applies_to_block_sequence_id;
     }
-    inline void set_transaction_id(const ser_transaction_id_t transaction_id) {
-        applies_to_transaction_id = transaction_id;
+    inline void set_block_sequence_id(block_sequence_id_t block_sequence_id) {
+        applies_to_block_sequence_id = block_sequence_id;
     }
     inline block_id_t get_block_id() const {
         return block_id;
     }
 
-    virtual size_t get_affected_data_size() const = 0;
-
     // This is called from buf_t
-    virtual void apply_to_buf(char* buf_data) = 0;
+    virtual void apply_to_buf(char* buf_data, block_size_t block_size) = 0;
 
-    bool operator<(const buf_patch_t& p) const;
-    
-protected:    
-    // These are for usage in subclasses
-    buf_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const patch_operation_code_t operation_code);
-    virtual void serialize_data(char* destination) const = 0;
+    bool applies_before(const buf_patch_t *p) const;
+
+protected:
     virtual uint16_t get_data_size() const = 0;
+
+    // These are for usage in subclasses
+    buf_patch_t(block_id_t block_id, patch_counter_t patch_counter, patch_operation_code_t operation_code);
+    virtual void serialize_data(char *destination) const = 0;
 
     static const patch_operation_code_t OPER_MEMCPY = 0;
     static const patch_operation_code_t OPER_MEMMOVE = 1;
@@ -111,19 +101,22 @@ protected:
     static const patch_operation_code_t OPER_LEAF_INSERT_PAIR = 3;
     static const patch_operation_code_t OPER_LEAF_INSERT = 4;
     static const patch_operation_code_t OPER_LEAF_REMOVE = 5;
+    static const patch_operation_code_t OPER_LEAF_ERASE_PRESENCE = 6;
     /* Assign an operation id to new subtypes here */
     /* Please note: you also have to "register" new operations in buf_patch_t::load_patch() */
 
 private:
     block_id_t block_id;
     patch_counter_t patch_counter;
-    ser_transaction_id_t applies_to_transaction_id;
+    block_sequence_id_t applies_to_block_sequence_id;
     patch_operation_code_t operation_code;
+
+    DISABLE_COPYING(buf_patch_t);
 };
 
 struct dereferencing_buf_patch_compare_t {
-    bool operator()(buf_patch_t *const& x, buf_patch_t *const& y) const {
-        return *x < *y;
+    bool operator()(buf_patch_t *x, buf_patch_t *y) const {
+        return x->applies_before(y);
     }
 };
 
@@ -132,14 +125,12 @@ struct dereferencing_buf_patch_compare_t {
 /* memcpy_patch_t copies n bytes from src to the offset dest_offset of a buffer */
 class memcpy_patch_t : public buf_patch_t {
 public:
-    memcpy_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const uint16_t dest_offset, const char *src, const uint16_t n);
-    memcpy_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const char* data, const uint16_t data_length);
+    memcpy_patch_t(block_id_t block_id, patch_counter_t patch_counter, uint16_t dest_offset, const char *src, uint16_t n);
+    memcpy_patch_t(block_id_t block_id, patch_counter_t patch_counter, const char* data, uint16_t data_length);
 
     virtual ~memcpy_patch_t();
 
-    virtual void apply_to_buf(char* buf_data);
-
-    virtual size_t get_affected_data_size() const;
+    virtual void apply_to_buf(char* buf_data, block_size_t bs);
 
 protected:
     virtual void serialize_data(char* destination) const;
@@ -154,16 +145,15 @@ private:
 /* memove_patch_t moves data from src_offset to dest_offset within a single buffer (with semantics equivalent to memmove()) */
 class memmove_patch_t : public buf_patch_t {
 public:
-    memmove_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const uint16_t dest_offset, const uint16_t src_offset, const uint16_t n);
-    memmove_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const char* data, const uint16_t data_length);
+    memmove_patch_t(block_id_t block_id, patch_counter_t patch_counter, uint16_t dest_offset, uint16_t src_offset, uint16_t n);
+    memmove_patch_t(block_id_t block_id, patch_counter_t patch_counter, const char* data, uint16_t data_length);
 
-    virtual void apply_to_buf(char* buf_data);
+    virtual void apply_to_buf(char* buf_data, block_size_t bs);
 
-    virtual size_t get_affected_data_size() const;
+    virtual uint16_t get_data_size() const;
 
 protected:
     virtual void serialize_data(char* destination) const;
-    virtual uint16_t get_data_size() const;
 
 private:
     uint16_t dest_offset;

@@ -10,13 +10,17 @@ Things could be made cleaner but we're just moving this out of utils2.cc.
 TODO: Make this cleaner in v1.2.
 */
 
-void random_delay(void (*fun)(void*), void *arg) {
+void random_delay(void (*fun)(void *), void *arg) {
     /* In one in ten thousand requests, we delay up to 10 seconds. In half of the remaining
     requests, we delay up to 50 milliseconds; in the other half we delay a very short time. */
-    int kind = rand() % 10000, ms;
-    if (kind == 0) ms = rand() % 10000;
-    else if (kind % 2 == 0) ms = 0;
-    else ms = rand() % 50;
+    int kind = thread_local_randint(10000), ms;
+    if (kind == 0) {
+        ms = thread_local_randint(10000);
+    } else if (kind % 2 == 0) {
+        ms = 0;
+    } else {
+        ms = thread_local_randint(50);
+    }
     fire_timer_once(ms, fun, arg);
 }
 

@@ -18,7 +18,7 @@ def expect(s, string):
     while len(msg) < len(string):
         msg += s.recv(len(string) - len(msg))
     if msg != string:
-        raise ValueError("Didn't get what we expected: expected %s, got %s" % (abbreviate(string), abbreviate(msg)));
+        raise ValueError("Didn't get what we expected: expected %s, got %s" % (string, msg));
 
 def test_sizes(s, cmd, lo, hi):
     print ("testing un%s with %d .. %d" % (cmd, lo, hi))

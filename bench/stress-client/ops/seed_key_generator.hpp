@@ -1,5 +1,5 @@
-#ifndef __SEED_KEY_GENERATOR_HPP__
-#define __SEED_KEY_GENERATOR_HPP__
+#ifndef __STRESS_CLIENT_OPS_SEED_KEY_GENERATOR_HPP__
+#define __STRESS_CLIENT_OPS_SEED_KEY_GENERATOR_HPP__
 
 #include "distr.hpp"
 #include "utils.hpp"
@@ -139,4 +139,4 @@ public:
     }
 };
 
-#endif /* __SEED_KEY_GENERATOR_HPP__ */
+#endif /* __STRESS_CLIENT_OPS_SEED_KEY_GENERATOR_HPP__ */

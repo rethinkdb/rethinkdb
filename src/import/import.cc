@@ -2,13 +2,11 @@
 #include "import/import.hpp"
 #include <math.h>
 #include "db_thread_info.hpp"
-#include "memcached/memcached.hpp"
-#include "diskinfo.hpp"
+#include "server/diskinfo.hpp"
 #include "concurrency/cond_var.hpp"
 #include "logger.hpp"
 #include "replication/master.hpp"
 #include "replication/slave.hpp"
-#include "gated_store.hpp"
 #include "concurrency/promise.hpp"
 
 namespace import {

@@ -1,10 +1,9 @@
-
 #ifndef USE_MYSQL
 #error "This file shouldn't be included if USE_MYSQL is not set."
 #endif
 
-#ifndef __MYSQL_PROTOCOL_HPP__
-#define __MYSQL_PROTOCOL_HPP__
+#ifndef __STRESS_CLIENT_PROTOCOLS_MYSQL_PROTOCOL_HPP__
+#define __STRESS_CLIENT_PROTOCOLS_MYSQL_PROTOCOL_HPP__
 
 #include <stdlib.h>
 #include <mysql/mysql.h>
@@ -338,7 +337,6 @@ struct mysql_protocol_t : public protocol_t {
     }
 
     virtual void range_read(char* lkey, size_t lkey_size, char* rkey, size_t rkey_size, int count_limit, payload_t *values = NULL) {
-        // TODO: The following is completely untested!
         // Bind the data
         MYSQL_BIND bind[3];
         memset(bind, 0, sizeof(bind));
@@ -356,11 +354,11 @@ struct mysql_protocol_t : public protocol_t {
         bind[1].length = &rkey_size;
 
         bind[2].buffer_type = MYSQL_TYPE_LONG;
-        bind[2].buffer = &count_limit;
-        bind[2].buffer_length = sizeof(count_limit);
+        bind[2].buffer = (void*)&count_limit;
+        bind[2].buffer_length = 0;
         bind[2].is_null = 0;
+        bind[2].length = 0;
 
-        MYSQL_STMT *range_read_stmt = range_read_stmt;
         int res = mysql_stmt_bind_param(range_read_stmt, bind);
         if(res != 0) {
             fprintf(stderr, "Could not bind range read statement\n");
@@ -486,5 +484,4 @@ inline void initialize_mysql_table(const char *conn_str, int key_size, int value
     mysql_close(&mysql);
 }
 
-#endif // __MYSQL_PROTOCOL_HPP__
-
+#endif // __STRESS_CLIENT_PROTOCOLS_MYSQL_PROTOCOL_HPP__

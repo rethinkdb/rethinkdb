@@ -12,51 +12,49 @@ namespace replication {
 first one is empty, it tries the next one. */
 
 template <class value_t>
-class selective_passive_producer_t : public passive_producer_t<value_t>, public watchable_t<bool>::watcher_t {
+class selective_passive_producer_t : public passive_producer_t<value_t> {
 public:
-    selective_passive_producer_t(passive_producer_t<value_t> *selectee) :
-        passive_producer_t<value_t>(&available_var),
-	the_producer(NULL) {
+    explicit selective_passive_producer_t(passive_producer_t<value_t> *selectee) :
+        passive_producer_t<value_t>(&available_control),
+        the_producer(NULL) {
         set_source(selectee);
     }
     ~selective_passive_producer_t() {
         set_source(NULL);
     }
+
+    struct recompute_caller_t {
+	selective_passive_producer_t *parent_;
+	explicit recompute_caller_t(selective_passive_producer_t *parent) : parent_(parent) { }
+	void operator()() { parent_->recompute(); }
+    };
+
     void set_source(passive_producer_t<value_t> *selectee) {
-	if (the_producer) {
-	    the_producer->available->remove_watcher(this);
-	    the_producer = NULL;
-	}
-	if (selectee != NULL) {
-	    the_producer = selectee;
-	    the_producer->available->add_watcher(this);
+        if (the_producer) {
+            the_producer->available->unset_callback();
+            the_producer = NULL;
+        }
+        if (selectee != NULL) {
+            the_producer = selectee;
+            the_producer->available->set_callback(recompute_caller_t(this));
         }
         recompute();
-    }
-
-    void on_watchable_changed() {
-	recompute();
     }
 
 private:
 
     void recompute() {
         /* We are available if our source is available. */
-        available_var.set(the_producer && the_producer->available->get());
+        available_control.set_available(the_producer && the_producer->available->get());
     }
     value_t produce_next_value() {
-        /* Find the first available source. */
-	if (the_producer && the_producer->available->get()) {
-	    return the_producer->pop();
-	}
-        /* If none of the producers were `available`, then our `available_var`
-        should have been `false`, so `produce_next_value()` should never have
-        been called. */
-        unreachable();
+        rassert(available_control.get());
+        rassert(the_producer, "available_control doesn't match the_producer");
+        return the_producer->pop();
     }
 
     passive_producer_t<value_t> *the_producer;
-    watchable_var_t<bool> available_var;
+    availability_control_t available_control;
 
     DISABLE_COPYING(selective_passive_producer_t);
 };
@@ -68,23 +66,23 @@ them into another key-value store.
 Usually, they are transmitted over the network between when they are extracted by
 backfill_and_realtime_stream() and when they are stored by backfill_storer_t. */
 
-struct backfill_storer_t : public backfill_and_realtime_streaming_callback_t {
-
-    backfill_storer_t(btree_key_value_store_t *underlying);
+class backfill_storer_t : public backfill_and_realtime_streaming_callback_t {
+public:
+    explicit backfill_storer_t(btree_key_value_store_t *underlying);
     ~backfill_storer_t();
 
-    void backfill_delete_everything(order_token_t token);
-    void backfill_deletion(store_key_t key, order_token_t token);
+    void backfill_delete_range(int hash_value, int hashmod, bool left_key_supplied, const store_key_t& left_key_exclusive, bool right_key_supplied, const store_key_t& right_key_inclusive, order_token_t token);
+    void backfill_deletion(store_key_t key, repli_timestamp_t timestamp, order_token_t token);
     void backfill_set(backfill_atom_t atom, order_token_t token);
     void backfill_done(repli_timestamp_t timestamp, order_token_t token);
 
     void realtime_get_cas(const store_key_t& key, castime_t castime, order_token_t token);
     void realtime_sarc(sarc_mutation_t& m, castime_t castime, order_token_t token);
-    void realtime_incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount,
+    void realtime_incr_decr(incr_decr_kind_t kind, const store_key_t& key, uint64_t amount,
                             castime_t castime, order_token_t token);
-    void realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key,
-                                 boost::shared_ptr<data_provider_t> data, castime_t castime, order_token_t token);
-    void realtime_delete_key(const store_key_t &key, repli_timestamp timestamp, order_token_t token);
+    void realtime_append_prepend(append_prepend_kind_t kind, const store_key_t& key,
+                                 const boost::intrusive_ptr<data_buffer_t>& data, castime_t castime, order_token_t token);
+    void realtime_delete_key(const store_key_t& key, repli_timestamp_t timestamp, order_token_t token);
     void realtime_time_barrier(repli_timestamp_t timestamp, order_token_t token);
 
 private:

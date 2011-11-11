@@ -1,4 +1,8 @@
-#include "extent.hpp"
+#include "serializer/log/lba/extent.hpp"
+
+#include <vector>
+
+#include "arch/arch.hpp"
 #include "perfmon.hpp"
 
 struct extent_block_t :
@@ -11,16 +15,15 @@ struct extent_block_t :
     std::vector< extent_t::sync_callback_t* > sync_cbs;
     bool waiting_for_prev, have_finished_sync, is_last_block;
     
-    extent_block_t(extent_t *parent, size_t offset)
-        : parent(parent), offset(offset)
-    {
+    extent_block_t(extent_t *_parent, size_t _offset)
+        : parent(_parent), offset(_offset) {
         data = reinterpret_cast<char *>(malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE));
     }
     ~extent_block_t() {
         free(data);
     }
     
-    void write(file_t::account_t *io_account) {
+    void write(file_account_t *io_account) {
         waiting_for_prev = true;
         have_finished_sync = false;
         
@@ -59,20 +62,18 @@ struct extent_block_t :
 
 perfmon_counter_t pm_serializer_lba_extents("serializer_lba_extents");
 
-extent_t::extent_t(extent_manager_t *em, direct_file_t *file)
-    : offset(em->gen_extent()), amount_filled(0), em(em), file(file), last_block(NULL), current_block(NULL)
+extent_t::extent_t(extent_manager_t *_em, direct_file_t *_file)
+    : offset(_em->gen_extent()), amount_filled(0), em(_em), file(_file), last_block(NULL), current_block(NULL)
 {
     pm_serializer_lba_extents++;
 }
 
-extent_t::extent_t(extent_manager_t *em, direct_file_t *file, off64_t loc, size_t size)
-    : offset(loc), amount_filled(size), em(em), file(file), last_block(NULL), current_block(NULL)
+extent_t::extent_t(extent_manager_t *_em, direct_file_t *_file, off64_t loc, size_t size)
+    : offset(loc), amount_filled(size), em(_em), file(_file), last_block(NULL), current_block(NULL)
 {
     em->reserve_extent(offset);
-#ifndef NDEBUG
-    bool modcmp = amount_filled % DEVICE_BLOCK_SIZE == 0;
-    rassert(modcmp);
-#endif
+
+    rassert(divides(DEVICE_BLOCK_SIZE, amount_filled));
     pm_serializer_lba_extents++;
 }
 
@@ -96,7 +97,7 @@ void extent_t::read(size_t pos, size_t length, void *buffer, read_callback_t *cb
     file->read_async(offset + pos, length, buffer, DEFAULT_DISK_ACCOUNT, cb);
 }
 
-void extent_t::append(void *buffer, size_t length, file_t::account_t *io_account) {
+void extent_t::append(void *buffer, size_t length, file_account_t *io_account) {
     rassert(amount_filled + length <= em->extent_size);
     
     while (length > 0) {
@@ -126,10 +127,7 @@ void extent_t::append(void *buffer, size_t length, file_t::account_t *io_account
 }
 
 void extent_t::sync(sync_callback_t *cb) {
-#ifndef NDEBUG
-    bool modcmp = amount_filled % DEVICE_BLOCK_SIZE == 0;
-    rassert(modcmp);
-#endif
+    rassert(divides(DEVICE_BLOCK_SIZE, amount_filled));
     rassert(!current_block);
     if (last_block) {
         last_block->sync_cbs.push_back(cb);
