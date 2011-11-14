@@ -174,7 +174,7 @@ void do_agnostic_btree_backfill(value_sizer_t<void> *sizer, btree_slice_t *slice
     txn.set_token(slice->post_begin_transaction_checkpoint_.check_through(begin_transaction_token));
 
 #ifndef NDEBUG
-    boost::scoped_ptr<assert_no_coro_waiting_t> no_coro_waiting(new assert_no_coro_waiting_t());
+    boost::scoped_ptr<assert_no_coro_waiting_t> no_coro_waiting(new assert_no_coro_waiting_t(__FILE__, __LINE__));
 #endif
 
     txn.set_account(backfill_account);
