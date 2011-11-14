@@ -95,12 +95,10 @@ void run_read_write_test(mailbox_cluster_t *cluster,
         EXPECT_EQ((*it).second, resp.values[(*it).first]);
     }
 }
-// TODO(sam): TODO(tim): @sam @tim Tim needs to fix the bug that
-// causes this test to fail.  See issue #479.
 
-// TEST(ClusteringBranch, ReadWrite) {
-//     run_in_thread_pool_with_broadcaster(&run_read_write_test);
-// }
+TEST(ClusteringBranch, ReadWrite) {
+    run_in_thread_pool_with_broadcaster(&run_read_write_test);
+}
 
 /* The `Backfill` test starts up a node with one mirror, inserts some data, and
 then adds another mirror. */
