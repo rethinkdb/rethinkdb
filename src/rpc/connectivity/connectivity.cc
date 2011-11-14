@@ -478,8 +478,6 @@ void connectivity_cluster_t::handle(
         conn_structure.conn = conn;
         conn_structure.address = other_address;
 
-        // TODO THREAD no watchers mutex, and we need to announce to all threads that we exist.
-
         /* Put ourselves in the connection-map and notify event-watchers that
         the connection is up */
         {
@@ -537,6 +535,10 @@ void connectivity_cluster_t::handle(
         } catch (boost::archive::archive_exception) {
             /* The exception broke us out of the loop, and that's what we
             wanted. */
+
+            // TODO THREAD: We can't just throw, we need to cleanly
+            // remove ourselves from the connection map, no?
+
             if (conn->is_read_open()) {
                 throw;
             }
@@ -562,6 +564,9 @@ void connectivity_cluster_t::handle(
             // worried about the watchers array getting modified as we
             // iterate over it, so I (Sam) don't see why it wouldn't have
             // been superclose to the watchers array.
+
+            // TODO THREAD: A big WTF: How are we acquiring the
+            // watchers mutex when we're on the wrong thread?
             mutex_acquisition_t acq(&watchers_mutex);
 
             /* `event_watcher_t`s shouldn't block. */
