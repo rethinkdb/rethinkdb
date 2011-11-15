@@ -52,3 +52,10 @@
     ...
     fun:_Z15print_backtraceP8_IO_FILEb
 }
+
+{
+    LocaleClassic
+    Drd:ConflictingAccess
+    fun:_ZNSt6localeC1EPNS_5_ImplE
+    fun:_ZNSt6locale7classicEv
+}
