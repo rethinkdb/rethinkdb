@@ -39,6 +39,8 @@ private:
     std::map<int, int> timing;
     int sequence_number;
     void on_message(peer_id_t peer, std::istream &stream, boost::function<void()> &on_done) {
+        assert_thread();
+
         int i;
         stream >> i;
         on_done();

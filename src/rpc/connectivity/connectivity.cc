@@ -155,11 +155,17 @@ void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(s
 #endif
 
     if (dest == me) {
-        // TODO THREAD go to dest thread
+
+        // The destination "connection"'s home thread is the rpc
+        // listener thread.
+
+        // TODO THREAD do this operation asynchronously.
+        on_thread_t threader(home_thread());
         // THREAD dest thread
         std::stringstream buffer2(buffer.str(), std::stringstream::in | std::stringstream::binary);
 
         /* Spawn `on_message()` directly in a new coroutine */
+        debugf("spawning weird on_message Now.\n");
         cond_t pulse_when_done_reading;
         coro_t::spawn_now(boost::bind(
             &connectivity_cluster_t::on_message,
@@ -513,6 +519,8 @@ void connectivity_cluster_t::handle(
                 should change it when we care about performance. */
                 std::string message;
                 {
+                    assert(get_thread_id() == chosen_thread);
+                    // TODO THREAD we got a drd error right inside here.
                     boost::archive::binary_iarchive receiver(conn->get_istream());
                     receiver >> message;
                 }
@@ -523,6 +531,7 @@ void connectivity_cluster_t::handle(
                 better performance, and then we will need this code. */
                 std::stringstream stream(message, std::stringstream::in | std::stringstream::binary);
                 cond_t pulse_when_done_reading;
+                debugf("Spawning on_message right now.\n");
                 coro_t::spawn_now(boost::bind(
                     &connectivity_cluster_t::on_message,
                     this,
