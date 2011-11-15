@@ -141,6 +141,7 @@ with open("build-log.txt", "w") as build_log:
                         print >>build_log, time.ctime(), "fail", build.name
         except Exception, e:
             with build_log_lock:
+                print >>build_log, time.ctime(), "bug", build.name
                 traceback.print_exc()
         with build_log_lock:
             print "Thread", threading.current_thread(), "exiting"
@@ -158,6 +159,7 @@ with open("build-log.txt", "w") as build_log:
 
 class Test(object):
     def __init__(self, name, inputs, command_line):
+        self.name = name
         self.inputs = inputs
         self.command_line = command_line
 
@@ -165,6 +167,7 @@ tests = []
 test_counter = 1
 
 def do_test_fog(executable, arguments, repeat=1, timeout=60):
+    global test_counter
 
     # The `timeout` parameter is ignored
 
@@ -276,14 +279,19 @@ echo "exitcode:$?"
                     )
         except Exception, e:
             with test_log_lock:
+                print >>test_log, time.ctime(), "bug", test.name
                 traceback.print_exc()
         thread_cap_semaphore.release()
     threads = []
     for test in tests:
-        thread_cap_semaphore.acquire()
-        thread = threading.Thread(target = run_test, args = (test,))
-        thread.start()
-        threads.append(thread)
+        if all(os.path.exists(input) for input in test.inputs):
+            thread_cap_semaphore.acquire()
+            thread = threading.Thread(target = run_test, args = (test,))
+            thread.start()
+            threads.append(thread)
+        else:
+            with test_log_lock:
+                print >>test_log, time.ctime(), "didn't-try", test.name
     for thread in threads:
         thread.join()
 
