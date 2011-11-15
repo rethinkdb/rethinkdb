@@ -112,6 +112,8 @@ typedef redis_hash_value_t redis_set_value_t;
 // Yes this is coppied from counted.hpp
 struct sub_ref_t {
     uint32_t count; // the size of this sub tree
+    float greatest_score; // All nodes in this sub-tree are guaranteed to
+                          // have a score < this value
     block_id_t node_id; // The root block of the sub tree
 } __attribute__((__packed__));
 

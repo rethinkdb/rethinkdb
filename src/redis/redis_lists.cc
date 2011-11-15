@@ -36,7 +36,7 @@ struct list_set_oper_t : set_oper_t {
     }
 
     void insert(unsigned index, std::string &value) {
-        tree.insert(index, value);
+        tree.insert_index(index, value);
     }
 
     void remove(int index) {
@@ -56,7 +56,7 @@ struct list_set_oper_t : set_oper_t {
     }
 
     bool get_element(unsigned index, std::string &str_out) {
-        blob_t b(const_cast<char *>(tree.at(index)), blob::btree_maxreflen);
+        blob_t b(const_cast<char *>(tree.at(index)->blb), blob::btree_maxreflen);
         b.read_to_string(str_out, txn.get(), 0, b.valuesize());
 
         return true;
@@ -110,11 +110,24 @@ struct list_read_oper_t : read_oper_t {
 
         if(index < 0 || index >= size) return false;
 
-        blob_t b(const_cast<char *>(tree.at(index)), blob::btree_maxreflen);
+        blob_t b(const_cast<char *>(tree.at(index)->blb), blob::btree_maxreflen);
         b.read_to_string(str_out, txn.get(), 0, b.valuesize());
 
         return true;
    }
+
+    unsigned convert_index(int index) {
+        int size = get_size();
+
+        int u_index = index;
+        if(index < 0) {
+            u_index = size + index;
+        }
+
+        if(u_index < 0 || u_index > size) throw "ERR Index out of range";
+        
+        return u_index;
+    }
 
 protected:
     sub_ref_t *ref;
@@ -243,10 +256,17 @@ SHARD_R(lrange)
 EXECUTE_R(lrange) {
     list_read_oper_t oper(one, btree, otok);
     std::vector<std::string> result;
-    for(int i = two; i < three; i++) {
+
+    unsigned start = oper.convert_index(two);
+    unsigned stop = oper.convert_index(three);
+    for(unsigned i = start; i <= stop; i++) {
         std::string str;
-        oper.get_element(i, str);
-        result.push_back(str);
+        if(oper.get_element(i, str)) {
+            result.push_back(str);
+        } else {
+            // We've hit an out of range index
+            break;
+        }
     }
 
     return read_response_t(new multi_bulk_result_t(result));

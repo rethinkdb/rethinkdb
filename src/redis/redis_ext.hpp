@@ -43,6 +43,12 @@ redis_protocol_t::redis_return_type CNAME(std::vector<std::string> one) { \
     return exec(oper); \
 }
 
+void toUpper(std::string &str) {
+    for(unsigned i = 0; i < str.length(); i++) {
+        str[i] = toupper(str[i]);
+    }
+}
+
 struct redis_ext {
     redis_ext(namespace_interface_t<redis_protocol_t> *intface) : namespace_interface(intface) {;}
 
@@ -285,6 +291,7 @@ struct redis_ext {
     }
 
     redis_protocol_t::redis_return_type zrange(std::string &key, int start, int stop, std::string &scores) {
+        toUpper(scores);
         if(scores != std::string("WITHSCORES")) {
             return  redis_protocol_t::error_result("Protocol Error");
         }
