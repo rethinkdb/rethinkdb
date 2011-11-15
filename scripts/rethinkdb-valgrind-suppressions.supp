@@ -69,12 +69,14 @@
 {
     FlockfileWtf
     drd:ConflictingAccess
+    ...
     fun:flockfile
 }
 
 {
     FunlockfileWtf
     drd:ConflictingAccess
+    ...
     fun:funlockfile
 }
 
