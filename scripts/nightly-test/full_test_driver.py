@@ -16,7 +16,7 @@
 #   * `./test/*/output_from_test/`: The `output_from_test` directory
 #     from the test scripts that were run
 
-import sys, subprocess, time, os, traceback, socket, threading
+import sys, subprocess32, time, os, traceback, socket, threading
 import remotely
 
 # Parse input
@@ -47,21 +47,15 @@ print "We are running as user:", os.getlogin()
 
 print "Checking out RethinkDB..."
 
-subprocess.check_call(["git", "clone", "git@github.com:coffeemug/rethinkdb.git", "--depth", "0", "rethinkdb"])
-subprocess.check_call(["git", "checkout", git_branch], cwd="rethinkdb")
+subprocess32.check_call(["git", "clone", "git@github.com:coffeemug/rethinkdb.git", "--depth", "0", "rethinkdb"])
+subprocess32.check_call(["git", "checkout", git_branch], cwd="rethinkdb")
 
 print "Done checking out RethinkDB."
 
-def check_output(*args, **kwargs):
-    kwargs["stdout"] = subprocess.PIPE
-    process = subprocess.Popen(*args, **kwargs)
-    stdout = process.communicate()[0]
-    return stdout
-
-rethinkdb_version = check_output(["scripts/gen-version.sh"], cwd="rethinkdb").strip()
+rethinkdb_version = subprocess32.check_output(["scripts/gen-version.sh"], cwd="rethinkdb").strip()
 print "RethinkDB version:", rethinkdb_version
 
-rethinkdb_shortversion = check_output(["scripts/gen-version.sh", "-s"], cwd="rethinkdb").strip()
+rethinkdb_shortversion = subprocess32.check_output(["scripts/gen-version.sh", "-s"], cwd="rethinkdb").strip()
 print "RethinkDB version (short):", rethinkdb_shortversion
 
 # Plan what builds to run
@@ -124,6 +118,8 @@ os.mkdir("builds")
 with open("build-log.txt", "w") as build_log:
     build_log_lock = threading.Lock()
     def run_build(build):
+        with build_log_lock:
+            print "Thread", threading.current_thread(), "entering"
         try:
             with open("builds/%s.txt" % build.name, "w") as output:
                 def on_begin_script():
@@ -146,12 +142,16 @@ with open("build-log.txt", "w") as build_log:
         except Exception, e:
             with build_log_lock:
                 traceback.print_exc()
+        with build_log_lock:
+            print "Thread", threading.current_thread(), "exiting"
     threads = []
     for build in builds:
         thread = threading.Thread(target = run_build, args = (build,))
         thread.start()
         threads.append(thread)
     for thread in threads:
+        with build_log_lock:
+            print "Joining thread", thread
         thread.join()
 
 # Plan what tests to run
@@ -213,7 +213,7 @@ for (dirpath, dirname, filenames) in os.walk("rethinkdb/test/full_test/"):
         try:
             execfile(full_path, {"__builtins__": __builtins__, "do_test_fog": do_test_fog, "ec2": False})
         except Exception, e:
-            traceback.print_backtrace()
+            traceback.print_exc()
 
 # Run tests
 
@@ -275,7 +275,7 @@ echo "exitcode:$?"
                     on_end_script = on_end_script
                     )
         except Exception, e:
-            with build_log_lock:
+            with test_log_lock:
                 traceback.print_exc()
         thread_cap_semaphore.release()
     threads = []

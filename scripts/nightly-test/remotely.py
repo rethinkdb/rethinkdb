@@ -21,6 +21,14 @@ def escape_shell_arg(string):
     else:
         return string
 
+class TemporaryDirectory(object):
+    def __init__(self):
+        self.name = tempfile.mkdtemp(prefix = "remotely-output-fifo")
+    def __enter__(self):
+        return self
+    def __exit__(self, type, value, traceback):
+        os.rmdir(self.name)
+
 def run(command_line, stdout = sys.stdout, inputs = [], outputs = [],
         on_begin_script = None, on_end_script = None):
     """Runs `command_line` on a remote machine. Output will be written to
@@ -38,18 +46,18 @@ goes wrong, such as inputs or outputs not being found, `run()` will throw a
     for output in outputs:
         assert not os.path.isabs(output)
     command_script = """
-echo "BEGIN"
 set -eou pipefail
 DIR="/tmp/$(cd /tmp; mktemp -d "remotely.XXXXXXXXXX")"
 pushd "$DIR" > /dev/null
 """
     if inputs:
-        input_tar_process = subprocess.Popen(
-            ["tar", "--create", "-z", "--file=-"] + inputs,
-            stdout = subprocess.PIPE
-            )
         command_script += """
+echo "SEND_TARBALL"
 tar --extract -z --file=-
+"""
+    else:
+        command_script += """
+echo "SEND_NO_TARBALL"
 """
     if isinstance(command_line, (list, tuple)):
         command_line = " ".join(escape_shell_arg(cl) for cl in command_line)
@@ -68,12 +76,12 @@ echo "SCRIPT_SUCCESS"
 """
     if outputs:
         command_script += """
-echo "TARBALL"
+echo "HERE_IS_TARBALL"
 tar --create -z --file=- -- %s
 """ % " ".join(escape_shell_arg(out) for out in outputs)
     else:
         command_script += """
-echo "NO_TARBALL"
+echo "HERE_IS_NO_TARBALL"
 """
     command_script += """
 else
@@ -82,71 +90,73 @@ fi
 popd > /dev/null
 rm -rf "$DIR"
 """
-    with tempfile.NamedTemporaryFile() as unparsed_output_file:
-        srun_command = [
-            "srun",
-            "--output", unparsed_output_file.name,
-            "--error", "all",
-            "bash",
-            "-c",
-            command_script
-            ]
-        srun_process = subprocess.Popen(
-            srun_command,
-            stdin = input_tar_process.stdout if inputs else open("/dev/null")
-            )
-        try:
-            line = unparsed_output_file.readline()
-            if not line.startswith("BEGIN"):
-                raise RemotelyInternalError("Expected 'BEGIN', got %r" % line)
-            if inputs:
-                exit_code = input_tar_process.wait()
-                if exit_code != 0:
-                    srun_process.terminate()
-                    raise RemotelyInternalError("input tar failed: %d" % exit_code_1)
-            line = unparsed_output_file.readline()
-            if not line.startswith("SCRIPT_BEGIN"):
-                raise RemotelyInternalError("Expected 'SCRIPT_BEGIN', got %r" % line)
-            if on_begin_script is not None:
-                on_begin_script()
-            while True:
+    with TemporaryDirectory() as temp_dir:
+        os.mkfifo(os.path.join(temp_dir.name, "output"))
+        with open(os.path.join(temp_dir.name, "output"), "r") as unparsed_output_file:
+            srun_command = [
+                "srun",
+                "--output", os.path.join(temp_dir.name, "output"),
+                "--error", "all",
+                "bash",
+                "-c",
+                command_script
+                ]
+            srun_process = subprocess32.Popen(
+                srun_command,
+                stdin = subprocess.PIPE
+                )
+            try:
                 line = unparsed_output_file.readline()
-                if line.startswith("STDOUT"):
-                    stdout.write(line[line.find(":")+1:])
-                else:
-                    break
-            if line.startswith("SCRIPT_SUCCESS"):
-                if on_end_script is not None:
-                    on_end_script()
-                line = unparsed_output_file.readline()
-                if outputs:
-                    if not line.startswith("TARBALL"):
-                        raise RemotelyInternalError("Expected 'TARBALL', got %r" % line)
-                    # The Python file's current `tell()` location points at the
-                    # beginning of the tarball, but the underlying file
-                    # descriptor's `tell()` location might point to somewhere
-                    # past that because of Python's read buffering. Calling
-                    # `flush()` forces Python to set the underlying FD's
-                    # location to the beginning of the tarball so that our `tar`
-                    # subprocess gets the right input.
-                    unparsed_output_file.flush()
-                    output_tar_process = subprocess.Popen(
-                        ["tar", "--extract", "-z", "--file=-"],
-                        stdin = unparsed_output_file
+                if inputs:
+                    if not line.startswith("SEND_TARBALL"):
+                        raise RemotelyInternalError("Expected 'SEND_TARBALL', got %r" % line)
+                    subprocess32.check_call(
+                        ["tar", "--create", "-z", "--file=-"] + inputs,
+                        stdout = srun_process.stdin
                         )
-                    exit_code = output_tar_process.wait()
-                    if exit_code != 0:
-                        raise RemotelyInternalError("output tar failed: %d" % exit_code)
                 else:
-                    if not line.startswith("NO_TARBALL"):
-                        raise RemotelyInternalError("Expected 'NO_TARBALL', got %r" % line)
-            elif line.startswith("SCRIPT_FAILURE"):
-                final_exit_code = int(line.split()[1].strip())
-                raise ScriptFailedError(final_exit_code)
-            else:
-                raise RemotelyInternalError("bad line: %r" % line)
-            exit_code = srun_process.wait()
-            if exit_code != 0:
-                raise RemotelyInternalError("remote script failed: %d" % exit_code_2)
-        finally:
-            srun_process.terminate()
+                    if not line.startswith("SEND_NO_TARBALL"):
+                        raise RemotelyInternalError("Expected 'SEND_NO_TARBALL', got %r" % line)
+                line = unparsed_output_file.readline()
+                if not line.startswith("SCRIPT_BEGIN"):
+                    raise RemotelyInternalError("Expected 'SCRIPT_BEGIN', got %r" % line)
+                if on_begin_script is not None:
+                    on_begin_script()
+                while True:
+                    line = unparsed_output_file.readline()
+                    if line.startswith("STDOUT"):
+                        stdout.write(line[line.find(":")+1:])
+                    else:
+                        break
+                if line.startswith("SCRIPT_SUCCESS"):
+                    if on_end_script is not None:
+                        on_end_script()
+                    line = unparsed_output_file.readline()
+                    if outputs:
+                        if not line.startswith("HERE_IS_TARBALL"):
+                            raise RemotelyInternalError("Expected 'HERE_IS_TARBALL', got %r" % line)
+                        # The Python file's current `tell()` location points at the
+                        # beginning of the tarball, but the underlying file
+                        # descriptor's `tell()` location might point to somewhere
+                        # past that because of Python's read buffering. Calling
+                        # `flush()` forces Python to set the underlying FD's
+                        # location to the beginning of the tarball so that our `tar`
+                        # subprocess gets the right input.
+                        unparsed_output_file.flush()
+                        subprocess32.check_call(
+                            ["tar", "--extract", "-z", "--file=-"],
+                            stdin = unparsed_output_file
+                            )
+                    else:
+                        if not line.startswith("HERE_IS_NO_TARBALL"):
+                            raise RemotelyInternalError("Expected 'HERE_IS_NO_TARBALL', got %r" % line)
+                elif line.startswith("SCRIPT_FAILURE"):
+                    final_exit_code = int(line.split()[1].strip())
+                    raise ScriptFailedError(final_exit_code)
+                else:
+                    raise RemotelyInternalError("bad line: %r" % line)
+                exit_code = srun_process.wait()
+                if exit_code != 0:
+                    raise RemotelyInternalError("remote script failed: %d" % exit_code_2)
+            finally:
+                srun_process.terminate()
