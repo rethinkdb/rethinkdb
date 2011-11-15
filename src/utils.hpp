@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #include <string>
+#include <vector>
 
 // #include "config/args.hpp"
 #include "errors.hpp"
@@ -51,6 +52,48 @@ public:
     const char *what() const throw () {
         return "interrupted";
     }
+};
+
+/* Binary blob that represents some unknown POD type */
+class binary_blob_t {
+public:
+    binary_blob_t() { }
+
+    template<class obj_t>
+    explicit binary_blob_t(const obj_t &o) : storage(reinterpret_cast<const uint8_t *>(&o), reinterpret_cast<const uint8_t *>(&o + 1)) { }
+
+    /* Constructor in static method form so we can use it as a functor */
+    template<class obj_t>
+    static binary_blob_t make(const obj_t &o) {
+        return binary_blob_t(o);
+    }
+
+    size_t size() const {
+        return storage.size();
+    }
+
+    template<class obj_t>
+    static obj_t &get(binary_blob_t &blob) {
+        rassert(blob.size() == sizeof(obj_t));
+        return *reinterpret_cast<obj_t *>(blob.data());
+    }
+
+    template<class obj_t>
+    static const obj_t &get(const binary_blob_t &blob) {
+        rassert(blob.size() == sizeof(obj_t));
+        return *reinterpret_cast<const obj_t *>(blob.data());
+    }
+
+    void *data() {
+        return storage.data();
+    }
+
+    const void *data() const {
+        return storage.data();
+    }
+
+private:
+    std::vector<uint8_t> storage;
 };
 
 // Like std::max, except it's technically not associative.

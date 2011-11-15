@@ -74,40 +74,28 @@ bool operator!=(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b);
 class dummy_underlying_store_t {
 
 public:
-    dummy_underlying_store_t(dummy_protocol_t::region_t);
+    dummy_underlying_store_t(dummy_protocol_t::region_t r);
 
     dummy_protocol_t::region_t region;
+
     std::map<std::string, std::string> values;
     std::map<std::string, state_timestamp_t> timestamps;
 
-    order_sink_t order_sink;
+    region_map_t<dummy_protocol_t, binary_blob_t> metadata;
 };
 
 class dummy_store_view_t : public store_view_t<dummy_protocol_t> {
 
 public:
-    dummy_store_view_t(dummy_underlying_store_t *parent, dummy_protocol_t::region_t region);
+    dummy_store_view_t(dummy_underlying_store_t *p, dummy_protocol_t::region_t region);
 
-protected:
-    dummy_protocol_t::read_response_t do_read(const dummy_protocol_t::read_t &read, state_timestamp_t timestamp, order_token_t otok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
-    dummy_protocol_t::write_response_t do_write(const dummy_protocol_t::write_t &write, transition_timestamp_t timestamp, order_token_t otok) THROWS_NOTHING;
-
-    void do_send_backfill(
-        std::vector<std::pair<dummy_protocol_t::region_t, state_timestamp_t> > start_point,
-        boost::function<void(dummy_protocol_t::backfill_chunk_t)> chunk_sender,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t);
-
-    void do_receive_backfill(
-        dummy_protocol_t::backfill_chunk_t chunk,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t);
+    boost::shared_ptr<store_view_t<dummy_protocol_t>::read_transaction_t> begin_read_transaction(signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+    boost::shared_ptr<store_view_t<dummy_protocol_t>::write_transaction_t> begin_write_transaction(signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
 private:
+    friend class dummy_transaction_t;
     dummy_underlying_store_t *parent;
-
-    /* For random timeouts */
-    rng_t rng;
+    rwi_lock_t read_write_lock;
 };
 
 }   /* namespace unittest */

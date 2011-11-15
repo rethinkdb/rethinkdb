@@ -55,6 +55,8 @@ TEST(DiskFormatTest, LbaEntryT) {
     EXPECT_EQ(8, offsetof(lba_entry_t, offset));
     EXPECT_EQ(16, sizeof(lba_entry_t));
 
+    EXPECT_TRUE(divides(sizeof(lba_entry_t), DEVICE_BLOCK_SIZE));
+
     lba_entry_t ent = lba_entry_t::make_padding_entry();
     ASSERT_TRUE(lba_entry_t::is_padding(&ent));
     flagged_off64_t real = flagged_off64_t::unused();

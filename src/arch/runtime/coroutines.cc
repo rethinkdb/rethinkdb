@@ -114,8 +114,8 @@ coro_runtime_t::~coro_runtime_t() {
 
 /* coro_context_t */
 
-coro_context_t::coro_context_t() :
-    stack(&coro_context_t::run, coro_stack_size)
+coro_context_t::coro_context_t()
+    : stack(&coro_context_t::run, coro_stack_size)
 {
     pm_allocated_coroutines++;
 
@@ -156,8 +156,14 @@ coro_context_t::~coro_context_t() {
 
 /* coro_t */
 
+#ifndef NDEBUG
+static __thread int64_t coro_selfname_counter = 0;
+#endif
 
 coro_t::coro_t(const boost::function<void()>& deed) :
+#ifndef NDEBUG
+    selfname_number(get_thread_id() + MAX_THREADS * coro_selfname_counter++),
+#endif
     deed_(deed),
     current_thread_(linux_thread_pool_t::thread_id),
     notified_(false),
@@ -179,6 +185,9 @@ void return_context_to_free_contexts(coro_context_t *context) {
 }
 
 coro_t::~coro_t() {
+    /* We never move contexts from one thread to another any more. */
+    rassert(get_thread_id() == context->home_thread());
+
     /* Return the context to the free-contexts list we took it from. */
     do_on_thread(context->home_thread(), boost::bind(return_context_to_free_contexts, context));
 

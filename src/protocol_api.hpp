@@ -56,11 +56,69 @@ bool region_overlaps(const region_t &r1, const region_t &r2) {
     return !region_is_empty(region_intersection(r1, r2));
 }
 
-/* `store_view_t` is an abstract class that represents a key-value store or a
-piece thereof. The protocol-specific logic should implement a subclass of
-`store_view_t` that overrides `do_read()`, `do_write()`, `do_send_backfill()`,
-and `do_receive_backfill()` to perform operations on some underlying B-tree or
-other storage structure. */
+template<class protocol_t, class value_t>
+class region_map_t {
+public:
+    region_map_t() THROWS_NOTHING { }
+
+    region_map_t(typename protocol_t::region_t r, value_t v) THROWS_NOTHING {
+        regions_and_values.push_back(std::make_pair(r, v));
+    }
+
+    explicit region_map_t(const std::vector<std::pair<typename protocol_t::region_t, value_t> > &x) THROWS_NOTHING :
+        regions_and_values(x)
+    {
+        /* Make sure that the vector we were given is valid */
+        DEBUG_ONLY(get_domain());
+    }
+
+    typename protocol_t::region_t get_domain() const THROWS_NOTHING {
+        std::vector<typename protocol_t::region_t> regions;
+        for (int i = 0; i < (int)regions_and_values.size(); i++) {
+            regions.push_back(regions_and_values[i].first);
+        }
+        return region_join(regions);
+    }
+
+    std::vector<std::pair<typename protocol_t::region_t, value_t> > get_as_pairs() const {
+        return regions_and_values;
+    }
+
+    region_map_t mask(typename protocol_t::region_t region) const {
+        std::vector<std::pair<typename protocol_t::region_t, value_t> > masked_pairs;
+        for (int i = 0; i < (int)regions_and_values.size(); i++) {
+            typename protocol_t::region_t ixn = region_intersection(regions_and_values[i].first, region);
+            if (!region_is_empty(ixn)) {
+                masked_pairs.push_back(std::make_pair(ixn, regions_and_values[i].second));
+            }
+        }
+        return region_map_t(masked_pairs);
+    }
+
+private:
+    std::vector<std::pair<typename protocol_t::region_t, value_t> > regions_and_values;
+};
+
+template<class protocol_t, class old_t, class new_t, class callable_t>
+region_map_t<protocol_t, new_t> region_map_transform(const region_map_t<protocol_t, old_t> &original, const callable_t &callable) {
+    std::vector<std::pair<typename protocol_t::region_t, old_t> > original_pairs = original.get_as_pairs();
+    std::vector<std::pair<typename protocol_t::region_t, new_t> > new_pairs;
+    for (int i = 0; i < (int)original_pairs.size(); i++) {
+        new_pairs.push_back(std::make_pair(
+                original_pairs[i].first,
+                callable(original_pairs[i].second)
+                ));
+    }
+    return region_map_t<protocol_t, new_t>(new_pairs);
+}
+
+/* `store_view_t` is an abstract class that represents a region of a key-value
+store for some protocol. It's templatized on the protocol (`protocol_t`). It
+covers some `protocol_t::region_t`, which is returned by `get_region()`.
+
+In addition to the actual data, `store_view_t` is responsible for keeping track
+of metadata which is keyed by region. The metadata is currently implemented as
+opaque binary blob (`binary_blob_t`). */
 
 template<class protocol_t>
 class store_view_t {
@@ -72,69 +130,99 @@ public:
         return region;
     }
 
-    typename protocol_t::read_response_t read(typename protocol_t::read_t r, state_timestamp_t t, order_token_t otok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        rassert(region_is_superset(region, r.get_region()));
-        otok = order_checkpoint.check_through(otok);
-        return do_read(r, t, otok, interruptor);
-    }
+    class read_transaction_t {
 
-    typename protocol_t::write_response_t write(typename protocol_t::write_t w, transition_timestamp_t t, order_token_t otok) THROWS_NOTHING {
-        rassert(region_is_superset(region, w.get_region()));
-        otok = order_checkpoint.check_through(otok);
-        return do_write(w, t, otok);
-    }
+    public:
+        virtual ~read_transaction_t() { }
 
-    void send_backfill(
-            std::vector<std::pair<typename protocol_t::region_t, state_timestamp_t> > start_point,
-            boost::function<void(typename protocol_t::backfill_chunk_t)> chunk_fun,
+        /* Gets the metadata.
+        [Precondition] `this` holds the superblock
+        [Postcondition] return_value.get_domain() == view->get_region()
+        [May block] */
+        virtual region_map_t<protocol_t, binary_blob_t> get_metadata(
+                signal_t *interruptor)
+                THROWS_ONLY(interrupted_exc_t) = 0;
+
+        /* Performs a read.
+        [Precondition] `this` holds the superblock
+        [Postcondition] `this` does not hold the superblock
+        [May block] */
+        virtual typename protocol_t::read_response_t read(
+                const typename protocol_t::read_t &,
+                signal_t *interruptor)
+                THROWS_ONLY(interrupted_exc_t) = 0;
+
+        /* Expresses the changes that have happened since `start_point` as a
+        series of `backfill_chunk_t` objects.
+        [Precondition] start_point.get_domain() <= view->get_region()
+        [Precondition] `this` holds the superblock
+        [Postcondition] `this` does not hold the superblock
+        [May block] */
+        virtual void send_backfill(
+                const region_map_t<protocol_t, state_timestamp_t> &start_point,
+                const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
+                signal_t *interruptor)
+                THROWS_ONLY(interrupted_exc_t) = 0;
+    };
+
+    /* Begins a read transaction. If there are any outstanding write
+    transactions that still hold the superblock, blocks until they release the
+    superblock.
+    [May block] */
+    virtual boost::shared_ptr<read_transaction_t> begin_read_transaction(
             signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t) {
-        for (int i = 0; i < (int)start_point.size(); i++) {
-            rassert(region_contains(region, start_point[i].first));
-            for (int j = i + 1; j < (int)start_point.size(); j++) {
-                rassert(!region_overlaps(start_point[i].first, start_point[j].first));
-            }
-        }
-        do_send_backfill(start_point, chunk_fun, interruptor);
-    }
+            THROWS_ONLY(interrupted_exc_t) = 0;
 
-    void receive_backfill(
-            typename protocol_t::backfill_chunk_t chunk,
+    class write_transaction_t : public read_transaction_t {
+
+    public:
+        virtual ~write_transaction_t() { }
+
+        /* Replaces the metadata over the view's entire range with the given
+        metadata.
+        [Precondition] `this` holds the superblock
+        [Precondition] new_metadata.get_domain() == view->get_region()
+        [Postcondition] this->get_metadata() == new_metadata
+        [May block] */
+        virtual void set_metadata(
+                const region_map_t<protocol_t, binary_blob_t> &new_metadata)
+                THROWS_NOTHING = 0;
+
+        /* Performs a write.
+        [Precondition] `this` holds the superblock
+        [Precondition] region_is_superset(view->get_region(), write.get_region())
+        [Postcondition] `this` does not hold the superblock
+        [May block] */
+        virtual typename protocol_t::write_response_t write(
+                const typename protocol_t::write_t &write,
+                transition_timestamp_t timestamp)
+                THROWS_NOTHING = 0;
+
+        /* Applies a backfill data chunk sent by `send_backfill()`. If
+        `interrupted_exc_t` is thrown, the state of the database is undefined
+        except that doing a second backfill must put it into a valid state.
+        [Precondition] `this` holds the superblock
+        [Postcondition] `this` does not hold the superblock
+        [May block] */
+        virtual void receive_backfill(
+                const typename protocol_t::backfill_chunk_t &chunk_fun,
+                signal_t *interruptor)
+                THROWS_ONLY(interrupted_exc_t) = 0;
+    };
+
+    /* Begins a write transaction. If there are any outstanding read or write
+    transactions that still hold the superblock, blocks until they release the
+    superblock.
+    [May block] */
+    virtual boost::shared_ptr<write_transaction_t> begin_write_transaction(
             signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t) {
-        do_recv_backfill(chunk, interruptor);
-    }
+            THROWS_ONLY(interrupted_exc_t) = 0;
 
 protected:
     store_view_t(typename protocol_t::region_t r) : region(r) { }
 
-    virtual typename protocol_t::read_response_t do_read(
-        const typename protocol_t::read_t &r,
-        state_timestamp_t t,
-        order_token_t otok,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t) = 0;
-
-    virtual typename protocol_t::write_response_t do_write(
-        const typename protocol_t::write_t &w,
-        transition_timestamp_t t,
-        order_token_t otok)
-        THROWS_NOTHING = 0;
-
-    virtual void do_send_backfill(
-        std::vector<std::pair<typename protocol_t::region_t, state_timestamp_t> > start_point,
-        boost::function<void(typename protocol_t::backfill_chunk_t)> chunk_fun,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t) = 0;
-
-    virtual void do_receive_backfill(
-        typename protocol_t::backfill_chunk_t chunk,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t) = 0;
-
 private:
     typename protocol_t::region_t region;
-    order_checkpoint_t order_checkpoint;
 };
 
 /* The query-routing logic provides the following ordering guarantees:

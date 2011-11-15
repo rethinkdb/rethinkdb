@@ -3,6 +3,8 @@
 
 #include "buffer_cache/buffer_cache.hpp"
 #include "memcached/protocol.hpp"
+#include "serializer/config.hpp"
+#include "serializer/translator.hpp"
 #include "unittest/gtest.hpp"
 #include "unittest/dummy_namespace_interface.hpp"
 

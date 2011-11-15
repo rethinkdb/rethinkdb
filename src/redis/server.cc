@@ -10,6 +10,10 @@
 #include "concurrency/cross_thread_signal.hpp"
 #include "db_thread_info.hpp"
 #include "perfmon.hpp"
+#include "serializer/config.hpp"
+#include "serializer/translator.hpp"
+
+// TODO: Get rid of these unittest inclusions (or get rid of this file).
 #include "unittest/unittest_utils.hpp"
 #include "unittest/dummy_namespace_interface.hpp"
 

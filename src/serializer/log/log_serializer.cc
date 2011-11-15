@@ -180,8 +180,7 @@ struct ls_start_existing_fsm_t :
     log_serializer_t::metablock_t metablock_buffer;
 };
 
-log_serializer_t::log_serializer_t(dynamic_config_t dynamic_config_, private_dynamic_config_t private_config_)
-    : no_tokens_cond(NULL),
+log_serializer_t::log_serializer_t(dynamic_config_t dynamic_config_, private_dynamic_config_t private_config_) :
 #ifndef NDEBUG
       expecting_no_more_tokens(false),
 #endif
@@ -277,6 +276,8 @@ void log_serializer_t::block_read(const boost::intrusive_ptr<ls_block_token_poin
     cb.wait();
 }
 
+// TODO(sam): block_read can call the callback before it returns.  Is
+// this acceptable?
 void log_serializer_t::block_read(const boost::intrusive_ptr<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) {
     struct my_cb_t : public iocallback_t {
         void on_io_complete() {
@@ -301,7 +302,7 @@ void log_serializer_t::block_read(const boost::intrusive_ptr<ls_block_token_poin
     rassert(token_offsets.find(ls_token) != token_offsets.end());
 
     const off64_t offset = token_offsets[ls_token];
-    if (data_block_manager->read(offset, buf, io_account, readcb)) readcb->on_io_complete();
+    data_block_manager->read(offset, buf, io_account, readcb);
 }
 
 // God this is such a hack.
@@ -328,39 +329,45 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
     index_write_context_t context;
     index_write_prepare(context, io_account);
 
-    for (std::vector<index_write_op_t>::const_iterator write_op_it = write_ops.begin();
-         write_op_it != write_ops.end();
-         ++write_op_it)
     {
-        const index_write_op_t& op = *write_op_it;
-        flagged_off64_t offset = lba_index->get_block_offset(op.block_id);
+        // The in-memory index updates, at least due to the needs of
+        // data_block_manager_t garbage collection, needs to be
+        // atomic.
+        ASSERT_NO_CORO_WAITING;
 
-        if (op.token) {
-            // Update the offset pointed to, and mark garbage/liveness as necessary.
-            boost::intrusive_ptr<ls_block_token_pointee_t> token = get_ls_block_token(op.token.get());
+        for (std::vector<index_write_op_t>::const_iterator write_op_it = write_ops.begin();
+             write_op_it != write_ops.end();
+             ++write_op_it) {
+            const index_write_op_t& op = *write_op_it;
+            flagged_off64_t offset = lba_index->get_block_offset(op.block_id);
 
-            // Mark old offset as garbage
-            if (offset.has_value())
-                data_block_manager->mark_garbage(offset.get_value());
+            if (op.token) {
+                // Update the offset pointed to, and mark garbage/liveness as necessary.
+                boost::intrusive_ptr<ls_block_token_pointee_t> token = get_ls_block_token(op.token.get());
 
-            // Write new token to index, or remove from index as appropriate.
-            if (token) {
-                ls_block_token_pointee_t *ls_token = token.get();
-                rassert(ls_token);
-                rassert(token_offsets.find(ls_token) != token_offsets.end());
-                offset = flagged_off64_t::make(token_offsets[ls_token]);
+                // Mark old offset as garbage
+                if (offset.has_value())
+                    data_block_manager->mark_garbage(offset.get_value());
 
-                /* mark the life */
-                data_block_manager->mark_live(offset.get_value());
-            } else {
-                offset = flagged_off64_t::unused();
+                // Write new token to index, or remove from index as appropriate.
+                if (token) {
+                    ls_block_token_pointee_t *ls_token = token.get();
+                    rassert(ls_token);
+                    rassert(token_offsets.find(ls_token) != token_offsets.end());
+                    offset = flagged_off64_t::make(token_offsets[ls_token]);
+
+                    /* mark the life */
+                    data_block_manager->mark_live(offset.get_value());
+                } else {
+                    offset = flagged_off64_t::unused();
+                }
             }
+
+            repli_timestamp_t recency = op.recency ? op.recency.get()
+                : lba_index->get_block_recency(op.block_id);
+
+            lba_index->set_block_info(op.block_id, recency, offset, io_account);
         }
-
-        repli_timestamp_t recency = op.recency ? op.recency.get()
-                                  : lba_index->get_block_recency(op.block_id);
-
-        lba_index->set_block_info(op.block_id, recency, offset, io_account);
     }
 
     index_write_finish(context, io_account);
@@ -489,18 +496,25 @@ void log_serializer_t::register_block_token(ls_block_token_pointee_t *token, off
     offset_tokens.insert(std::pair<off64_t, ls_block_token_pointee_t *>(offset, token));
 }
 
+bool log_serializer_t::tokens_exist_for_offset(off64_t off) {
+    return offset_tokens.find(off) != offset_tokens.end();
+}
+
 void log_serializer_t::unregister_block_token(ls_block_token_pointee_t *token) {
     assert_thread();
+
+    ASSERT_NO_CORO_WAITING;
+
     rassert(!expecting_no_more_tokens);
     std::map<ls_block_token_pointee_t *, off64_t>::iterator token_offset_it = token_offsets.find(token);
     rassert(token_offset_it != token_offsets.end());
 
-    for (std::multimap<off64_t, ls_block_token_pointee_t *>::iterator offset_token_it = offset_tokens.find(token_offset_it->second);
-            offset_token_it != offset_tokens.end() && offset_token_it->first == token_offset_it->second;
-            ++offset_token_it) {
-
-        if (offset_token_it->second == token) {
-            offset_tokens.erase(offset_token_it);
+    typedef std::multimap<off64_t, ls_block_token_pointee_t *>::iterator ot_iter;
+    for (std::pair<ot_iter, ot_iter> range = offset_tokens.equal_range(token_offset_it->second);
+         range.first != range.second;
+         ++range.first) {
+        if (range.first->second == token) {
+            offset_tokens.erase(range.first);
             goto successfully_removed_entry;
         }
     }
@@ -518,29 +532,32 @@ void log_serializer_t::unregister_block_token(ls_block_token_pointee_t *token) {
     token_offsets.erase(token_offset_it);
 
     rassert(!(token_offsets.empty() ^ offset_tokens.empty()));
-    if (token_offsets.empty() && offset_tokens.empty() && no_tokens_cond) {
-        no_tokens_cond->pulse();
+    if (token_offsets.empty() && offset_tokens.empty() && state == state_shutting_down && shutdown_state == shutdown_waiting_on_block_tokens) {
 #ifndef NDEBUG
         expecting_no_more_tokens = true;
 #endif
+        next_shutdown_step();
     }
 }
 
 void log_serializer_t::remap_block_to_new_offset(off64_t current_offset, off64_t new_offset) {
+    assert_thread();
+    ASSERT_NO_CORO_WAITING;
+
     rassert(new_offset != current_offset);
     bool have_to_update_gc = false;
     {
-        std::multimap<off64_t, ls_block_token_pointee_t *>::iterator offset_token_it = offset_tokens.find(current_offset);
-        while (offset_token_it != offset_tokens.end() && offset_token_it->first == current_offset) {
+        typedef std::multimap<off64_t, ls_block_token_pointee_t *>::iterator ot_iter;
+        std::pair<ot_iter, ot_iter> range = offset_tokens.equal_range(current_offset);
 
+        while (range.first != range.second) {
             have_to_update_gc = true;
+            rassert(token_offsets[range.first->second] == current_offset);
+            token_offsets[range.first->second] = new_offset;
+            offset_tokens.insert(std::pair<off64_t, ls_block_token_pointee_t *>(new_offset, range.first->second));
 
-            rassert(token_offsets[offset_token_it->second] == current_offset);
-            token_offsets[offset_token_it->second] = new_offset;
-            offset_tokens.insert(std::pair<off64_t, ls_block_token_pointee_t *>(new_offset, offset_token_it->second));
-
-            std::multimap<off64_t, ls_block_token_pointee_t *>::iterator prev = offset_token_it;
-            ++offset_token_it;
+            ot_iter prev = range.first;
+            ++range.first;
             offset_tokens.erase(prev);
         }
     }
@@ -614,20 +631,6 @@ bool log_serializer_t::shutdown(cond_t *cb) {
     shutdown_state = shutdown_begin;
     shutdown_in_one_shot = true;
 
-    rassert(!(token_offsets.empty() ^ offset_tokens.empty()));
-    if (!(token_offsets.empty() && offset_tokens.empty())) {
-        cond_t no_tokens_remain;
-        no_tokens_cond = &no_tokens_remain;
-        no_tokens_remain.wait();
-        no_tokens_cond = NULL;
-    } else {
-#ifndef NDEBUG
-        expecting_no_more_tokens = true;
-#endif
-    }
-    rassert(expecting_no_more_tokens);
-    rassert(token_offsets.empty() && offset_tokens.empty());
-
     return next_shutdown_step();
 }
 
@@ -653,7 +656,23 @@ bool log_serializer_t::next_shutdown_step() {
         }
     }
 
+    // The datablock manager uses block tokens, so it goes before.
     if(shutdown_state == shutdown_waiting_on_datablock_manager) {
+        shutdown_state = shutdown_waiting_on_block_tokens;
+        rassert(!(token_offsets.empty() ^ offset_tokens.empty()));
+        if(!(token_offsets.empty() && offset_tokens.empty())) {
+            shutdown_in_one_shot = false;
+            return false;
+        } else {
+#ifndef NDEBUG
+            expecting_no_more_tokens = true;
+#endif
+        }
+    }
+
+    rassert(expecting_no_more_tokens);
+
+    if(shutdown_state == shutdown_waiting_on_block_tokens) {
         shutdown_state = shutdown_waiting_on_lba;
         if(!lba_index->shutdown(this)) {
             shutdown_in_one_shot = false;
@@ -684,7 +703,9 @@ bool log_serializer_t::next_shutdown_step() {
 
         // Don't call the callback if we went through the entire
         // shutdown process in one synchronous shot.
-        if (!shutdown_in_one_shot && shutdown_callback) shutdown_callback->pulse();
+        if (!shutdown_in_one_shot && shutdown_callback) {
+            shutdown_callback->pulse();
+        }
 
         return true;
     }

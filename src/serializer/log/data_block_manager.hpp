@@ -58,7 +58,7 @@ public:
     void start_existing(direct_file_t *dbfile, metablock_mixin_t *last_metablock);
 
 public:
-    bool read(off64_t off_in, void *buf_out, file_account_t *io_account, iocallback_t *cb);
+    void read(off64_t off_in, void *buf_out, file_account_t *io_account, iocallback_t *cb);
 
     /* Returns the offset to which the block will be written */
     off64_t write(const void *buf_in, block_id_t block_id, bool assign_new_block_sequence_id,
@@ -247,6 +247,7 @@ private:
     struct gc_read_callback_t : public iocallback_t {
         data_block_manager_t *parent;
         void on_io_complete() {
+            rassert(parent->gc_state.step() == gc_read);
             parent->run_gc();
         }
     };
@@ -286,7 +287,6 @@ private:
 
         explicit gc_state_t(size_t extent_size) : step_(gc_ready), should_be_stopped(0), refcount(0), current_entry(NULL)
         {
-            /* TODO this is excessive as soon as we have a bound on how much space we need we should allocate less */
             gc_blocks = reinterpret_cast<char *>(malloc_aligned(extent_size, DEVICE_BLOCK_SIZE));
         }
 

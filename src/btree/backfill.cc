@@ -64,6 +64,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         boost::scoped_array<block_id_t> block_ids;
         ranged_block_ids_t *ids_source;
         boost::scoped_array<repli_timestamp_t> recencies;
+        const key_range_t *key_range;
         repli_timestamp_t since_when;
 
         void got_subtree_recencies() {
@@ -74,7 +75,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
             rassert(coro_t::self());
 
             for (int i = 0, e = ids_source->num_block_ids(); i < e; ++i) {
-                if (recencies[i].time >= since_when.time) {
+                if (block_ids[i] != NULL_BLOCK_ID && recencies[i].time >= since_when.time) {
                     cb->receive_interesting_child(i);
                 }
             }
@@ -91,31 +92,69 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         int num_block_ids = ids_source->num_block_ids();
         fsm->block_ids.reset(new block_id_t[num_block_ids]);
         for (int i = 0; i < num_block_ids; ++i) {
-            const btree_key_t *ignore_left, *ignore_right;
-            ids_source->get_block_id_and_bounding_interval(i, &fsm->block_ids[i], &ignore_left, &ignore_right);
+            const btree_key_t *left, *right;
+            block_id_t id;
+            ids_source->get_block_id_and_bounding_interval(i, &id, &left, &right);
+            if (overlaps(left, right, key_range_->left, key_range_->right)) {
+                fsm->block_ids[i] = id;
+            } else {
+                fsm->block_ids[i] = NULL_BLOCK_ID;
+            }
         }
 
         fsm->cb = cb;
         fsm->ids_source = ids_source;
+        fsm->key_range = key_range_;
         fsm->since_when = since_when_;
         fsm->recencies.reset(new repli_timestamp_t[num_block_ids]);
 
         txn->get_subtree_recencies(fsm->block_ids.get(), num_block_ids, fsm->recencies.get(), fsm);
     }
 
+    // Checks if (x_left, x_right] intersects [y_left, y_right).  If
+    // it returns false, the intersection may be non-empty.
+    static bool overlaps(const btree_key_t *x_left, const btree_key_t *x_right,
+                         const store_key_t& y_left, const key_range_t::right_bound_t& y_right) {
+        // Does (x_left, x_right] intersects [y_left, y_right)?
+
+        // For real numbers, if x_left < y_right and x_right >=
+        // y_left, we have overlap.  However, for integers, consider
+        // the case where x_left + 1 == y_right.  Then we don't have
+        // overlap.  Our keys are like integers.
+
+        if (!(x_right == NULL || sized_strcmp(y_left.contents, y_left.size, x_left->contents, x_left->size) <= 0)) {
+            return false;
+        }
+
+        if (x_left == NULL || y_right.unbounded) {
+            return true;
+        } else {
+            store_key_t x_left_copy(x_left->size, x_left->contents);
+            if (!x_left_copy.increment()) {
+                return false;
+            }
+
+            // Now it's [x_left_copy, x_right] intersecting [y_left, y_right).
+            return sized_strcmp(x_left_copy.contents, x_left_copy.size, y_right.key.contents, y_right.key.size) < 0;
+        }
+    }
+
+
     agnostic_backfill_callback_t *callback_;
     repli_timestamp_t since_when_;
     value_sizer_t<void> *sizer_;
+    const key_range_t *key_range_;
 
-    backfill_traversal_helper_t(agnostic_backfill_callback_t *callback, repli_timestamp_t since_when, value_sizer_t<void> *sizer)
-        : callback_(callback), since_when_(since_when), sizer_(sizer) { }
+    backfill_traversal_helper_t(agnostic_backfill_callback_t *callback, repli_timestamp_t since_when,
+                                value_sizer_t<void> *sizer, const key_range_t *key_range)
+        : callback_(callback), since_when_(since_when), sizer_(sizer), key_range_(key_range) { }
 };
 
 
-void do_agnostic_btree_backfill(value_sizer_t<void> *sizer, btree_slice_t *slice, repli_timestamp_t since_when, const boost::shared_ptr<cache_account_t>& backfill_account, agnostic_backfill_callback_t *callback, order_token_t token) {
+void do_agnostic_btree_backfill(value_sizer_t<void> *sizer, btree_slice_t *slice, const key_range_t *key_range, repli_timestamp_t since_when, const boost::shared_ptr<cache_account_t>& backfill_account, agnostic_backfill_callback_t *callback, order_token_t token) {
     rassert(coro_t::self());
 
-    backfill_traversal_helper_t helper(callback, since_when, sizer);
+    backfill_traversal_helper_t helper(callback, since_when, sizer, key_range);
 
     slice->pre_begin_transaction_sink_.check_out(token);
     // TODO: Why are we using a write_mode source here?  There must be a reason...
@@ -174,5 +213,7 @@ void btree_backfill(btree_slice_t *slice, repli_timestamp_t since_when, const bo
     agnostic_memcached_backfill_callback_t agnostic_cb(callback);
 
     value_sizer_t<memcached_value_t> sizer(slice->cache()->get_block_size());
-    do_agnostic_btree_backfill(&sizer, slice, since_when, backfill_account, &agnostic_cb, token);
+    store_key_t k;
+    key_range_t range(key_range_t::none, k, key_range_t::none, k);
+    do_agnostic_btree_backfill(&sizer, slice, &range, since_when, backfill_account, &agnostic_cb, token);
 }

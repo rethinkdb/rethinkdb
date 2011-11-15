@@ -108,10 +108,14 @@ std::string debug_format(const net_delete_t *msg) {
 }
 
 std::string debug_format(const net_backfill_delete_range_t *msg) {
+    bool low_key_supplied = msg->low_key_size != net_backfill_delete_range_t::infinity_key_size;
+    bool high_key_supplied = msg->high_key_size != net_backfill_delete_range_t::infinity_key_size;
+    int high_key_offset = low_key_supplied ? msg->low_key_size : 0;
+
     return strprintf("net_backfill_delete_range_t { hash_value = %u; hashmod = %u; low_key = %s; high_key = %s; }",
                      msg->hash_value, msg->hashmod,
-                     debug_format(msg->low_key_size, msg->keys).c_str(),
-                     debug_format(msg->high_key_size, msg->keys + msg->low_key_size).c_str());
+                     low_key_supplied ? debug_format(msg->low_key_size, msg->keys).c_str() : "[missing]",
+                     high_key_supplied ? debug_format(msg->high_key_size, msg->keys + high_key_offset).c_str() : "[missing]");
 }
 
 std::string debug_format(const net_backfill_delete_t *msg) {
