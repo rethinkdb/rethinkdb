@@ -77,3 +77,10 @@
     drd:ConflictingAccess
     fun:funlockfile
 }
+
+{
+    StringResizeWtf
+    drd:ConflictingAccess
+    fun:*string*resize*
+}
+
