@@ -137,22 +137,22 @@ bool is_coroutine_stack_overflow(void *addr);
 /* If `ASSERT_NO_CORO_WAITING;` appears at the top of a block, then it is illegal
 to call `coro_t::wait()`, `coro_t::spawn_now()`, or `coro_t::notify_now()`
 within that block and any attempt to do so will be a fatal error. */
-#define ASSERT_NO_CORO_WAITING assert_no_coro_waiting_t assert_no_coro_waiting_var
+#define ASSERT_NO_CORO_WAITING assert_no_coro_waiting_t assert_no_coro_waiting_var(__FILE__, __LINE__)
 
 /* If `ASSERT_FINITE_CORO_WAITING;` appears at the top of a block, then code
 within that block may call `coro_t::spawn_now()` or `coro_t::notify_now()` but
 not `coro_t::wait()`. This is because `coro_t::spawn_now()` and
 `coro_t::notify_now()` will return control directly to the coroutine that called
 then. */
-#define ASSERT_FINITE_CORO_WAITING assert_finite_coro_waiting_t assert_finite_coro_waiting_var
+#define ASSERT_FINITE_CORO_WAITING assert_finite_coro_waiting_t assert_finite_coro_waiting_var(__FILE__, __LINE__)
 
 /* Implementation support for `ASSERT_NO_CORO_WAITING` and `ASSERT_FINITE_CORO_WAITING` */
 struct assert_no_coro_waiting_t {
-    assert_no_coro_waiting_t();
+    assert_no_coro_waiting_t(std::string, int);
     ~assert_no_coro_waiting_t();
 };
 struct assert_finite_coro_waiting_t {
-    assert_finite_coro_waiting_t();
+    assert_finite_coro_waiting_t(std::string, int);
     ~assert_finite_coro_waiting_t();
 };
 
