@@ -1,5 +1,8 @@
 #include "btree/incr_decr.hpp"
 
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
+
 #include "btree/modify_oper.hpp"
 #include "containers/buffer_group.hpp"
 #include "buffer_cache/buf_lock.hpp"
@@ -67,7 +70,7 @@ struct btree_incr_decr_oper_t : public btree_modify_oper_t {
         result.new_value = number;
 
         char tmp[50];
-        int chars_written = snprintf(tmp, sizeof(tmp), "%llu", (long long unsigned)number);
+        int chars_written = snprintf(tmp, sizeof(tmp), "%" PRIu64, number);
         rassert(chars_written <= 49);
         b.clear(txn);
         b.append_region(txn, chars_written);
