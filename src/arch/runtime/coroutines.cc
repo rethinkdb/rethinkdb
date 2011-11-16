@@ -16,6 +16,7 @@
 
 #ifndef NDEBUG
 #include <cxxabi.h>   // For __cxa_current_exception_type (see below)
+#include <stack>
 #endif
 
 perfmon_counter_t pm_active_coroutines("active_coroutines"),
@@ -72,7 +73,10 @@ struct coro_globals_t {
     number of things that are currently preventing us from `wait()`ing or
     `notify_now()`ing or whatever. */
     int assert_no_coro_waiting_counter;
+    std::stack<std::pair<std::string, int> > no_waiting_call_sites;
+
     int assert_finite_coro_waiting_counter;
+    std::stack<std::pair<std::string, int> > finite_waiting_call_sites;
 
 #endif  // NDEBUG
 
@@ -209,9 +213,15 @@ coro_t *coro_t::self() {   /* class method */
 
 void coro_t::wait() {   /* class method */
     rassert(self(), "Not in a coroutine context");
-    rassert(cglobals->assert_no_coro_waiting_counter == 0 &&
-            cglobals->assert_finite_coro_waiting_counter == 0,
-        "This code path is not supposed to use coro_t::wait().");
+    rassert(cglobals->assert_finite_coro_waiting_counter == 0,
+        "This code path is not supposed to use coro_t::wait().\nConstraint imposed at: %s:%d", 
+        cglobals->finite_waiting_call_sites.top().first.c_str(), cglobals->finite_waiting_call_sites.top().second
+        );
+
+    rassert(cglobals->assert_no_coro_waiting_counter == 0,
+        "This code path is not supposed to use coro_t::wait().\nConstraint imposed at: %s:%d", 
+        cglobals->no_waiting_call_sites.top().first.c_str(), cglobals->no_waiting_call_sites.top().second
+        );
 
 #ifndef NDEBUG
     /* It's not safe to wait() in a catch clause of an exception handler. We use the non-standard
@@ -364,16 +374,20 @@ void coro_t::spawn_on_thread(int thread, const boost::function<void()>& deed) {
 
 /* These are used in the implementation of `ASSERT_NO_CORO_WAITING` and
 `ASSERT_FINITE_CORO_WAITING` */
-assert_no_coro_waiting_t::assert_no_coro_waiting_t() {
+assert_no_coro_waiting_t::assert_no_coro_waiting_t(std::string filename, int line_no) {
+    cglobals->no_waiting_call_sites.push(std::make_pair(filename, line_no));
     cglobals->assert_no_coro_waiting_counter++;
 }
 assert_no_coro_waiting_t::~assert_no_coro_waiting_t() {
+    cglobals->no_waiting_call_sites.pop();
     cglobals->assert_no_coro_waiting_counter--;
 }
-assert_finite_coro_waiting_t::assert_finite_coro_waiting_t() {
+assert_finite_coro_waiting_t::assert_finite_coro_waiting_t(std::string filename, int line_no) {
+    cglobals->finite_waiting_call_sites.push(std::make_pair(filename, line_no));
     cglobals->assert_finite_coro_waiting_counter++;
 }
 assert_finite_coro_waiting_t::~assert_finite_coro_waiting_t() {
+    cglobals->finite_waiting_call_sites.pop();
     cglobals->assert_finite_coro_waiting_counter--;
 }
 
