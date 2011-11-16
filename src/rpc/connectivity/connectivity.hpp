@@ -151,6 +151,12 @@ protected:
     responsibility to make sure the bytes get consumed. */
     virtual void on_message(peer_id_t src, std::istream& stream, boost::function<void()>& on_done) = 0;
 
+#ifndef NDEBUG
+    void assert_connection_thread(peer_id_t peer) const;
+#else
+    void assert_connection_thread(UNUSED peer_id_t peer) const { }
+#endif  // ndef NDEBUG
+
 private:
     /* We listen for new connections from other peers. (The reason `listener` is
     in a `boost::scoped_ptr` is so that we can stop listening at the beginning
@@ -185,6 +191,7 @@ private:
         mutex_t send_mutex;
     };
     std::vector< std::map<peer_id_t, connection_t *> > connection_maps_by_thread;
+
 
     void set_a_connection_entry(int target_thread, peer_id_t other_id, connection_t *connection);
     void erase_a_connection_entry(int target_thread, peer_id_t other_id);

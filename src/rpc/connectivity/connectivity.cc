@@ -214,6 +214,20 @@ void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(s
     }
 }
 
+#ifndef NDEBUG
+void connectivity_cluster_t::assert_connection_thread(peer_id_t peer) const {
+    if (peer != me) {
+        const std::map<peer_id_t, connection_t *>& map = connection_maps_by_thread[get_thread_id()];
+
+        std::map<peer_id_t, connection_t *>::const_iterator it = map.find(peer);
+        rassert(it != map.end());
+        rassert(it->second->conn->home_thread() == get_thread_id());
+    } else {
+        assert_thread();
+    }
+}
+#endif
+
 void connectivity_cluster_t::on_new_connection(boost::scoped_ptr<streamed_tcp_conn_t> &conn) {
     // TODO THREAD should we be on the connection's thread here?
     // TODO THREAD we probably want a nascent_tcp_conn_t for the streamed_tcp_listener_t callback.
