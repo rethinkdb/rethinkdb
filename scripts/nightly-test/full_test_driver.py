@@ -43,117 +43,122 @@ print "Our working directory is:", os.getcwd()
 print "The machine we are on is:", socket.gethostname()
 print "We are running as user:", os.getlogin()
 
-# Check out git repository
+class SynchronizedLog(object):
+    def __init__(self, path):
+        self.file = open(path, "w")
+        self.lock = threading.Lock()
+    def __enter__(self):
+        return self
+    def __exit__(self, type, value, traceback):
+        self.file.close()
+    def write(self, string):
+        with self.lock:
+            print >>self.file, string
+            self.file.flush()
 
-print "Checking out RethinkDB..."
+output_lock = threading.Lock()
 
-subprocess32.check_call(["git", "clone", "git@github.com:coffeemug/rethinkdb.git", "--depth", "0", "rethinkdb"])
-subprocess32.check_call(["git", "checkout", git_branch], cwd="rethinkdb")
+# For debugging purposes
+if not int(os.environ.get("SKIP_BUILDS", 0)):
 
-print "Done checking out RethinkDB."
+    # Check out git repository
 
-rethinkdb_version = subprocess32.check_output(["scripts/gen-version.sh"], cwd="rethinkdb").strip()
-print "RethinkDB version:", rethinkdb_version
+    print "Checking out RethinkDB..."
 
-rethinkdb_shortversion = subprocess32.check_output(["scripts/gen-version.sh", "-s"], cwd="rethinkdb").strip()
-print "RethinkDB version (short):", rethinkdb_shortversion
+    subprocess32.check_call(["git", "clone", "git@github.com:coffeemug/rethinkdb.git", "--depth", "0", "rethinkdb"])
+    subprocess32.check_call(["git", "checkout", git_branch], cwd="rethinkdb")
 
-# Plan what builds to run
+    print "Done checking out RethinkDB."
 
-class Build(object):
-    def __init__(self, name, command_line, products):
-        self.name = name
-        self.command_line = command_line
-        self.products = products
+    rethinkdb_version = subprocess32.check_output(["scripts/gen-version.sh"], cwd="rethinkdb").strip()
+    print "RethinkDB version:", rethinkdb_version
 
-builds = []
+    rethinkdb_shortversion = subprocess32.check_output(["scripts/gen-version.sh", "-s"], cwd="rethinkdb").strip()
+    print "RethinkDB version (short):", rethinkdb_shortversion
 
-builds.append(Build(
-    "stress-client",
-    "cd rethinkdb/bench/stress-client; make -j12",
-    ["rethinkdb/bench/stress-client/stress", "rethinkdb/bench/stress-client/libstress.so"]))
-builds.append(Build(
-    "serializer-bench",
-    "cd rethinkdb/bench/serializer-bench; make -j12",
-    []))
-builds.append(Build(
-    "deb",
-    "cd rethinkdb/src; make -j12 deb",
-    ["rethinkdb/build/packages/rethinkdb-%s_%s_amd64.deb" % (rethinkdb_shortversion, rethinkdb_version+"-1"),
-     "rethinkdb/build/packages/rethinkdb-%s_%s_amd64.deb" % (rethinkdb_shortversion, rethinkdb_version+"-unstripped-1"),
-     ]))
-builds.append(Build(
-    "rpm",
-    "cd rethinkdb/src; make -j12 rpm",
-    ["rethinkdb/build/packages/rethinkdb-%s-%s-1.x86_64.rpm" % (rethinkdb_shortversion, (rethinkdb_version+"-1").replace("-", "_")),
-     "rethinkdb/build/packages/rethinkdb-%s-%s-1.x86_64.rpm" % (rethinkdb_shortversion, (rethinkdb_version+"-unstripped-1").replace("-", "_"))
-     ]))
+    # Plan what builds to run
 
-config_bits = [
-    ("DEBUG",            [(0, "release"), (1, "debug")     ]),
-    ("MOCK_CACHE_CHECK", [(0, ""),        (1, "-mockcache")]),
-    ("NO_EPOLL",         [(0, ""),        (1, "-noepoll")  ]),
-    ("VALGRIND",         [(0, ""),        (1, "-valgrind") ]),
-    ]
+    class Build(object):
+        def __init__(self, name, command_line, products):
+            self.name = name
+            self.command_line = command_line
+            self.products = products
 
-def generate_configs(configs, make_flags, config_name):
-    if configs:
-        (make_flag, options) = configs[0]
-        configs = configs[1:]
-        for (make_flag_value, config_name_part) in options:
-            generate_configs(configs,
-                make_flags + ["%s=%s" % (make_flag, make_flag_value)],
-                config_name + config_name_part)
-    else:
-        product_path = "rethinkdb/build/%s/rethinkdb" % config_name
-        builds.append(Build(
-            config_name,
-            "cd rethinkdb/src; make -j12 " + " ".join(make_flags),
-            [product_path]))
-generate_configs(config_bits, [], "")
+    builds = []
 
-# Run builds
+    builds.append(Build(
+        "stress-client",
+        "cd rethinkdb/bench/stress-client; make -j12",
+        ["rethinkdb/bench/stress-client/stress", "rethinkdb/bench/stress-client/libstress.so"]))
+    builds.append(Build(
+        "serializer-bench",
+        "cd rethinkdb/bench/serializer-bench; make -j12",
+        []))
+    builds.append(Build(
+        "deb",
+        "cd rethinkdb/src; make -j12 deb",
+        ["rethinkdb/build/packages/rethinkdb-%s_%s_amd64.deb" % (rethinkdb_shortversion, rethinkdb_version+"-1"),
+         "rethinkdb/build/packages/rethinkdb-%s_%s_amd64.deb" % (rethinkdb_shortversion, rethinkdb_version+"-unstripped-1"),
+         ]))
+    builds.append(Build(
+        "rpm",
+        "cd rethinkdb/src; make -j12 rpm",
+        ["rethinkdb/build/packages/rethinkdb-%s-%s-1.x86_64.rpm" % (rethinkdb_shortversion, (rethinkdb_version+"-1").replace("-", "_")),
+         "rethinkdb/build/packages/rethinkdb-%s-%s-1.x86_64.rpm" % (rethinkdb_shortversion, (rethinkdb_version+"-unstripped-1").replace("-", "_"))
+         ]))
 
-os.mkdir("builds")
-with open("build-log.txt", "w") as build_log:
-    build_log_lock = threading.Lock()
-    def run_build(build):
-        with build_log_lock:
-            print "Thread", threading.current_thread(), "entering"
-        try:
-            with open("builds/%s.txt" % build.name, "w") as output:
-                def on_begin_script():
-                    with build_log_lock:
-                        print >>build_log, time.ctime(), "begin", build.name
-                def on_end_script():
-                    with build_log_lock:
-                        print >>build_log, time.ctime(), "pass", build.name
-                try:
-                    remotely.run(
-                        command_line = build.command_line,
-                        stdout = output,
-                        inputs = ["rethinkdb"],
-                        outputs = build.products,
-                        on_begin_script = on_begin_script,
-                        on_end_script = on_end_script)
-                except remotely.ScriptFailedError:
-                    with build_log_lock:
-                        print >>build_log, time.ctime(), "fail", build.name
-        except Exception, e:
-            with build_log_lock:
-                print >>build_log, time.ctime(), "bug", build.name
-                traceback.print_exc()
-        with build_log_lock:
-            print "Thread", threading.current_thread(), "exiting"
-    threads = []
-    for build in builds:
-        thread = threading.Thread(target = run_build, args = (build,))
-        thread.start()
-        threads.append(thread)
-    for thread in threads:
-        with build_log_lock:
-            print "Joining thread", thread
-        thread.join()
+    config_bits = [
+        ("DEBUG",            [(0, "release"), (1, "debug")     ]),
+        ("MOCK_CACHE_CHECK", [(0, ""),        (1, "-mockcache")]),
+        ("NO_EPOLL",         [(0, ""),        (1, "-noepoll")  ]),
+        ("VALGRIND",         [(0, ""),        (1, "-valgrind") ]),
+        ]
+
+    def generate_configs(configs, make_flags, config_name):
+        if configs:
+            (make_flag, options) = configs[0]
+            configs = configs[1:]
+            for (make_flag_value, config_name_part) in options:
+                generate_configs(configs,
+                    make_flags + ["%s=%s" % (make_flag, make_flag_value)],
+                    config_name + config_name_part)
+        else:
+            product_path = "rethinkdb/build/%s/rethinkdb" % config_name
+            builds.append(Build(
+                config_name,
+                "cd rethinkdb/src; make -j12 " + " ".join(make_flags),
+                [product_path]))
+    generate_configs(config_bits, [], "")
+
+    # Run builds
+
+    os.mkdir("builds")
+    with SynchronizedLog("build-log.txt") as build_log:
+        def run_build(build):
+            try:
+                with open("builds/%s.txt" % build.name, "w") as output:
+                    try:
+                        remotely.run(
+                            command_line = build.command_line,
+                            stdout = output,
+                            inputs = ["rethinkdb"],
+                            outputs = build.products,
+                            on_begin_script = lambda: build_log.write("begin %s %s" % (build.name, time.ctime())),
+                            on_end_script = lambda: build_log.write("pass %s %s" % (build.name, time.ctime()))
+                            )
+                    except remotely.ScriptFailedError:
+                        build_log.write("fail %s %s" % (build.name, time.ctime()))
+            except Exception, e:
+                build_log.write("bug %s %s" % (build.name, time.ctime()))
+                with output_lock:
+                    traceback.print_exc()
+        threads = []
+        for build in builds:
+            thread = threading.Thread(target = run_build, args = (build,))
+            thread.start()
+            threads.append(thread)
+        for thread in threads:
+            thread.join()
 
 # Plan what tests to run
 
@@ -206,8 +211,10 @@ def do_test_fog(executable, arguments, repeat=1, timeout=60):
     command_line = " ".join(remotely.escape_shell_arg(x) for x in command_line)
 
     for i in xrange(repeat):
-        tests.append(Test(str(test_counter), inputs, command_line))
+        test_name = str(test_counter)
         test_counter += 1
+        print test_name + ":", repr(command_line)
+        tests.append(Test(test_name, inputs, command_line))
 
 for (dirpath, dirname, filenames) in os.walk("rethinkdb/test/full_test/"):
     for filename in filenames:
@@ -221,13 +228,12 @@ for (dirpath, dirname, filenames) in os.walk("rethinkdb/test/full_test/"):
 # Run tests
 
 os.mkdir("tests")
-with open("test-log.txt", "w") as test_log:
-    test_log_lock = threading.Lock()
+with SynchronizedLog("test-log.txt") as test_log:
     thread_cap_semaphore = threading.Semaphore(100)
     def run_test(test):
         try:
             os.mkdir(os.path.join("tests", test.name))
-            with open(os.path.join("tests", test.name, "output.txt")) as output_file:
+            with open(os.path.join("tests", test.name, "output.txt"), "w") as output_file:
                 # We must have an exit code of zero even if the test-script
                 # fails so that `remotely` will copy `output_from_test` even if
                 # the test script fails. So we have to trap a non-zero exit
@@ -247,39 +253,34 @@ with open("test-log.txt", "w") as test_log:
                         lines = self.buffer.split("\n")
                         for line in lines[:-1]:
                             if line.startswith("stdout:"):
-                                self.file.write(line[line.find(":")+1:])
+                                self.file.write(line[line.find(":")+1:]+"\n")
                             elif line.startswith("exitcode:"):
-                                self.exit_code = int(line[line.find(":")+1:])
+                                self.exit_code = int(line[line.find(":")+1:].strip())
                             else:
                                 raise ValueError("Bad line: %r" % line)
                         self.buffer = lines[-1]
+                        if len(lines) > 1:
+                            self.file.flush()
                 demuxer = ExitCodeDemuxer(output_file)
-                def on_begin_script():
-                    with test_log_lock:
-                        print >>test_log, time.ctime(), "begin", test.name
-                def on_end_script(exit_code):
-                    with test_log_lock:
-                        if demuxer.exit_code == 0:
-                            print >>test_log, time.ctime(), "pass", test.name
-                        else:
-                            print >>test_log, time.ctime(), "fail", test.name
                 remotely.run(
                     """
 set -e
 mkdir -p tests/%(name)s/
 cd tests/%(name)s/
-(../../rethinkdb/test/%(name)s 2>&1 | sed s//stdout:/)
+export PYTHONUNBUFFERED=1
+set +e
+(../../rethinkdb/test/%(command)s 2>&1 | sed -u s/^/stdout:/)
 echo "exitcode:$?"
-""" % { "name": test.name},
+""" % { "name": test.name, "command": test.command_line },
                     stdout = demuxer,
                     inputs = test.inputs,
-                    output = [os.path.join("tests", test.name, "output_from_test")],
-                    on_begin_script = on_begin_script,
-                    on_end_script = on_end_script
+                    outputs = [os.path.join("tests", test.name, "output_from_test")],
+                    on_begin_script = lambda: test_log.write("begin %s %s" % (test.name, time.ctime())),
+                    on_end_script = lambda: test_log.write("%s %s %s" % ("pass" if demuxer.exit_code == 0 else "fail", test.name, time.ctime()))
                     )
         except Exception, e:
-            with test_log_lock:
-                print >>test_log, time.ctime(), "bug", test.name
+            test_log.write("bug %s %s" % (test.name, time.ctime()))
+            with output_lock:
                 traceback.print_exc()
         thread_cap_semaphore.release()
     threads = []
@@ -290,8 +291,7 @@ echo "exitcode:$?"
             thread.start()
             threads.append(thread)
         else:
-            with test_log_lock:
-                print >>test_log, time.ctime(), "didn't-try", test.name
+            test_log.write("ignore %s %s" % (test.name, time.ctime()))
     for thread in threads:
         thread.join()
 
