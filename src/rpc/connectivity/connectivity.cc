@@ -520,8 +520,10 @@ void connectivity_cluster_t::handle(
         /* Put ourselves in the connection-map and notify event-watchers that
         the connection is up */
         {
+#ifndef NDEBUG
             std::map<peer_id_t, connection_t *>& connections = connection_maps_by_thread[get_thread_id()];
             rassert(connections.find(other_id) == connections.end());
+#endif
 
             pmap(get_num_threads(), boost::bind(&connectivity_cluster_t::set_a_connection_entry, this, _1, other_id, &conn_structure));
 
