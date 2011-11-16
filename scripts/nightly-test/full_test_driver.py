@@ -56,7 +56,29 @@ class SynchronizedLog(object):
             print >>self.file, string
             self.file.flush()
 
-output_lock = threading.Lock()
+def run_in_threads(functions, max = 10):
+    """Run the given functions each in their own thread. Run at most `max` at
+    the same time."""
+    cap_semaphore = threading.Semaphore(max)
+    def run(fun):
+        try:
+            fun()
+        finally:
+            cap_semaphore.release()
+    threads = []
+    try:
+        for fun in functions:
+            # For some reason calling `cap_semaphore.acquire(blocking = True)`
+            # doesn't work when we get a `SIGINT`. This works better. I don't
+            # know why.
+            while not cap_semaphore.acquire(blocking = False):
+                time.sleep(1)
+            th = threading.Thread(target = run, args = (fun,))
+            th.start()
+            threads.append(th)
+    finally:
+        for thread in threads:
+            thread.join()
 
 # For debugging purposes
 if not int(os.environ.get("SKIP_BUILDS", 0)):
@@ -134,6 +156,7 @@ if not int(os.environ.get("SKIP_BUILDS", 0)):
 
     os.mkdir("builds")
     with SynchronizedLog("build-log.txt") as build_log:
+        output_lock = threading.Lock()
         def run_build(build):
             try:
                 with open("builds/%s.txt" % build.name, "w") as output:
@@ -151,14 +174,9 @@ if not int(os.environ.get("SKIP_BUILDS", 0)):
             except Exception, e:
                 build_log.write("bug %s %s" % (build.name, time.ctime()))
                 with output_lock:
+                    print >>sys.stderr, "Bug when running build %s:" % build.name
                     traceback.print_exc()
-        threads = []
-        for build in builds:
-            thread = threading.Thread(target = run_build, args = (build,))
-            thread.start()
-            threads.append(thread)
-        for thread in threads:
-            thread.join()
+        run_in_threads((lambda: run_build(b)) for b in builds)
 
 # Plan what tests to run
 
@@ -229,7 +247,7 @@ for (dirpath, dirname, filenames) in os.walk("rethinkdb/test/full_test/"):
 
 os.mkdir("tests")
 with SynchronizedLog("test-log.txt") as test_log:
-    thread_cap_semaphore = threading.Semaphore(100)
+    output_lock = threading.Lock()
     def run_test(test):
         try:
             os.mkdir(os.path.join("tests", test.name))
@@ -281,17 +299,14 @@ echo "exitcode:$?"
         except Exception, e:
             test_log.write("bug %s %s" % (test.name, time.ctime()))
             with output_lock:
+                print >>sys.stderr, "Bug when running test %s:" % test.name
                 traceback.print_exc()
-        thread_cap_semaphore.release()
-    threads = []
+    funs = []
     for test in tests:
         if all(os.path.exists(input) for input in test.inputs):
-            thread_cap_semaphore.acquire()
-            thread = threading.Thread(target = run_test, args = (test,))
-            thread.start()
-            threads.append(thread)
+            funs.append(lambda test=test: run_test(test))
         else:
             test_log.write("ignore %s %s" % (test.name, time.ctime()))
-    for thread in threads:
-        thread.join()
+    run_in_threads(funs)
 
+print "Done."
