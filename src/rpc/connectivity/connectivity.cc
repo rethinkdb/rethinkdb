@@ -94,10 +94,11 @@ peer_id_t connectivity_cluster_t::get_me() {
 }
 
 std::map<peer_id_t, peer_address_t> connectivity_cluster_t::get_everybody() {
-    // THREAD rpc listener thread TODO THREAD we can remove this
-    // assert thread when we can call event watchers with cross thread
-    // messages.  But that's not going to happen.
+    // TODO THREAD we can remove this assert thread when we can call
+    // event watchers with cross thread messages.  But that's not
+    // necessarily going to happen.
     assert_thread();
+
     /* We can't just return `routing_table` because `routing_table` includes
     some partially-connected peers, so if we just returned `routing_table` then
     some peers would appear in the output from `get_everybody()` before the
@@ -140,11 +141,14 @@ connectivity_cluster_t::~connectivity_cluster_t() {
 }
 
 void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(std::ostream&)> writer) {
-    // THREAD we are not on dest thread yet
+    // We could be on _any_ thread.
+
     rassert(!dest.is_nil());
 
-    /* We currently write the message to a `stringstream`, then serialize that
-    as a string. It's horribly inefficient, of course. */
+    /* We currently write the message to a `stringstream`, then
+       serialize that as a string. It's horribly inefficient, of course. */
+    // TODO: If we don't do it this way, we (or the caller) will need
+    // to worry about having the writer run on the connection thread.
 
     std::stringstream buffer(std::ios_base::out | std::stringstream::binary);
     writer(buffer);
@@ -159,9 +163,15 @@ void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(s
         // The destination "connection"'s home thread is the rpc
         // listener thread.
 
-        // TODO THREAD do this operation asynchronously.
+        // TODO THREAD do this operation asynchronously, if we can.
+        // (Maybe not.  Maybe the caller can be asynchronous, if it
+        // cares.)
         on_thread_t threader(home_thread());
-        // THREAD dest thread
+
+        // Of course we're on the connection thread, since dest == me,
+        // but we're just trying to make a point here.
+        assert_connection_thread(dest);
+
         std::stringstream buffer2(buffer.str(), std::stringstream::in | std::stringstream::binary);
 
         /* Spawn `on_message()` directly in a new coroutine */
@@ -192,9 +202,14 @@ void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(s
         }
         connection_t *dest_conn = it->second;
 
-        // TODO THREAD do this operation asynchronously.
+        // TODO THREAD do this operation asynchronously.  (Again,
+        // maybe not.  Maybe the caller can call this function
+        // asynchronously, if he cares to.)
         on_thread_t threader(dest_conn->conn->home_thread());
-        // THREAD we are on dest thread.
+
+        // Kind of redundant, again, since we explicitly visited
+        // connections.find(dest)->second->conn->home_thread().
+        assert_connection_thread(dest);
 
         /* Acquire the send-mutex so we don't collide with other things trying
         to send on the same connection. */
@@ -229,8 +244,8 @@ void connectivity_cluster_t::assert_connection_thread(peer_id_t peer) const {
 #endif
 
 void connectivity_cluster_t::on_new_connection(boost::scoped_ptr<streamed_tcp_conn_t> &conn) {
-    // TODO THREAD should we be on the connection's thread here?
-    // TODO THREAD we probably want a nascent_tcp_conn_t for the streamed_tcp_listener_t callback.
+    assert_thread();
+
     handle(conn.get(), boost::none, boost::none,
         auto_drainer_t::lock_t(&drainer));
 }
@@ -244,9 +259,10 @@ void connectivity_cluster_t::join_blocking(
         peer_address_t address,
         boost::optional<peer_id_t> expected_id,
         auto_drainer_t::lock_t drainer_lock) {
-    // TODO THREAD figure out what thread we want to be on
+
+    assert_thread();
+
     try {
-        // THREAD we need to be on the connection's thread here.
         streamed_tcp_conn_t conn(address.ip, address.port);
         handle(&conn, expected_id, boost::optional<peer_address_t>(address), drainer_lock);
     } catch (tcp_conn_t::connect_failed_exc_t) {
@@ -277,7 +293,7 @@ void connectivity_cluster_t::handle(
         boost::optional<peer_id_t> expected_id,
         boost::optional<peer_address_t> expected_address,
         auto_drainer_t::lock_t drainer_lock) {
-    // THREAD rpc listener thread
+    assert_thread();
 
     /* Each side sends their own ID and address, then receives the other side's.
     */
@@ -319,7 +335,8 @@ void connectivity_cluster_t::handle(
         crash("Inconsistent routing information: wrong address");
     }
 
-    // THREAD still on rpc listener thread
+    // Just saying that we're still on the rpc listener thread.
+    assert_thread();
 
     /* The trickiest case is when there are two or more parallel connections
     that are trying to be established between the same two machines. We can get
@@ -340,8 +357,9 @@ void connectivity_cluster_t::handle(
     Then the follower sends its routing table to the leader. */
     bool we_are_leader = me < other_id;
 
-    // THREAD still on rpc listener thread, for sending/receiving
-    // routing table
+    // Just saying: Still on rpc listener thread, for
+    // sending/receiving routing table
+    assert_thread();
     std::map<peer_id_t, peer_address_t> other_routing_table;
 
     if (we_are_leader) {
@@ -452,7 +470,8 @@ void connectivity_cluster_t::handle(
         }
     }
 
-    // THREAD still on rpc listener thread
+    // Just saying: We haven't left the RPC listener thread.
+    assert_thread();
 
     /* For each peer that our new friend told us about that we don't already
     know about, start a new connection. If the cluster is shutting down, skip
@@ -508,11 +527,13 @@ void connectivity_cluster_t::handle(
 
             // TODO THREAD do we really want to go back to the home
             // thread to update the watchers?  It seems okay, but is
-            // it necessary?
+            // it necessary?  It's necessary if we want to acquire the
+            // watchers_mutex.
             on_thread_t rpc_threader(home_thread());
 
             // TODO THREAD ask tim about putting the watchers_mutex
-            // acquisition after broadcast_connection_pairing.
+            // acquisition after broadcast_connection_pairing, because
+            // it was before, before.
             mutex_acquisition_t acq(&watchers_mutex);
 
             /* `event_watcher_t`s shouldn't block. */
@@ -534,7 +555,6 @@ void connectivity_cluster_t::handle(
                 std::string message;
                 {
                     assert(get_thread_id() == chosen_thread);
-                    // TODO THREAD we got a drd error right inside here.
                     boost::archive::binary_iarchive receiver(conn->get_istream());
                     receiver >> message;
                 }
@@ -592,7 +612,9 @@ void connectivity_cluster_t::handle(
             // watchers array and watchers_mutex.  Do we really want
             // to do that here?  Or should we let the above
             // on_thread_t (to the connection thread) go out of scope
-            // and do it then?
+            // and do it then?  (Similarly, could we have added
+            // ourselves to watchers before letting the on_thread_t
+            // get into scope?)
 
             on_thread_t rpc_threader(home_thread());
 

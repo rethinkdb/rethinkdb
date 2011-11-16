@@ -47,7 +47,6 @@ private:
         on_done();
 
         on_thread_t th(home_thread());
-        // THREAD on home thread, to update debugging information.
         inbox[i] = peer;
         timing[i] = sequence_number++;
     }
