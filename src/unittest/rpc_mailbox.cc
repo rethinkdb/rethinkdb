@@ -49,6 +49,8 @@ private:
         int i;
         stream >> i;
         on_done();
+
+        on_thread_t rethreader(home_thread());
         inbox[i] = peer;
     }
 public:
@@ -57,6 +59,7 @@ public:
         send_utility_message(peer, boost::bind(&write_integer, message, _1));
     }
     void expect(int message, peer_id_t peer) {
+        assert_thread();
         EXPECT_TRUE(inbox.find(message) != inbox.end());
         EXPECT_TRUE(inbox[message] == peer);
     }

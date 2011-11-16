@@ -574,8 +574,14 @@ void connectivity_cluster_t::handle(
             // iterate over it, so I (Sam) don't see why it wouldn't have
             // been superclose to the watchers array.
 
-            // TODO THREAD: A big WTF: How are we acquiring the
-            // watchers mutex when we're on the wrong thread?
+            // TODO THREAD: We need to switch threads to access the
+            // watchers array and watchers_mutex.  Do we really want
+            // to do that here?  Or should we let the above
+            // on_thread_t (to the connection thread) go out of scope
+            // and do it then?
+
+            on_thread_t rpc_threader(home_thread());
+
             mutex_acquisition_t acq(&watchers_mutex);
 
             /* `event_watcher_t`s shouldn't block. */
