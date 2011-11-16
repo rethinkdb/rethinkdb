@@ -268,8 +268,9 @@ private:
  are all the keys from ownee_left that are not in ownee_right, assuming
  that they are both sorted. T has to implement operator==() and operator<().
 */
-// TODO/WARNING: As of Jul 28th, this has not been thoroughly tested. (daniel)
-//  If you use this and stuff fails, consider diff_filter_iterator_t to be potentially faulty.
+// TODO / WARNING: As of Jul 28th, this has not been thoroughly
+// tested. (daniel) If you use this and stuff fails, consider
+// diff_filter_iterator_t to be potentially faulty.
 template <class T>
 class diff_filter_iterator_t : public one_way_iterator_t<T> {
 public:
