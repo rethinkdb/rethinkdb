@@ -81,8 +81,9 @@
 }
 
 {
-    StringResizeWtf
+    StringWtf
     drd:ConflictingAccess
-    fun:*string*resize*
+    ...
+    fun:_ZNSs*
 }
 
