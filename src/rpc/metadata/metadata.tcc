@@ -19,7 +19,7 @@ metadata_cluster_t<metadata_t>::metadata_cluster_t(int port, const metadata_t &i
 
 template<class metadata_t>
 metadata_cluster_t<metadata_t>::~metadata_cluster_t() {
-    // TODO THREAD assert thread
+    assert_thread();
     root_view->parent = NULL;
 }
 
@@ -30,12 +30,13 @@ boost::shared_ptr<metadata_readwrite_view_t<metadata_t> > metadata_cluster_t<met
 }
 
 template<class metadata_t>
-metadata_cluster_t<metadata_t>::root_view_t::root_view_t(metadata_cluster_t *p) :
-    parent(p) { /* TODO THREAD */ }
+metadata_cluster_t<metadata_t>::root_view_t::root_view_t(metadata_cluster_t *p)
+    : parent(p) {
+    parent->assert_thread();
+}
 
 template<class metadata_t>
 metadata_t metadata_cluster_t<metadata_t>::root_view_t::get() {
-    // TODO THREAD
     rassert(parent, "accessing `metadata_cluster_t` root view when cluster no "
         "longer exists");
     parent->assert_thread();
@@ -44,7 +45,6 @@ metadata_t metadata_cluster_t<metadata_t>::root_view_t::get() {
 
 template<class metadata_t>
 void metadata_cluster_t<metadata_t>::root_view_t::join(const metadata_t &added_metadata) {
-    // TODO THREAD gotta be home thread.
     rassert(parent, "accessing `metadata_cluster_t` root view when cluster no "
         "longer exists");
     parent->assert_thread();
@@ -66,7 +66,6 @@ void metadata_cluster_t<metadata_t>::root_view_t::join(const metadata_t &added_m
 
 template<class metadata_t>
 void metadata_cluster_t<metadata_t>::root_view_t::sync_from(peer_id_t peer, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, sync_failed_exc_t) {
-    // TODO THREAD gotta be home thread.
     rassert(parent, "accessing `metadata_cluster_t` root view when cluster no "
         "longer exists");
     parent->assert_thread();
@@ -99,7 +98,6 @@ void metadata_cluster_t<metadata_t>::root_view_t::sync_to(peer_id_t peer, signal
 
 template<class metadata_t>
 publisher_t<boost::function<void()> > *metadata_cluster_t<metadata_t>::root_view_t::get_publisher() {
-    // TODO THREAD gotta be home thread.
     rassert(parent, "accessing `metadata_cluster_t` root view when cluster no "
         "longer exists");
     parent->assert_thread();
@@ -108,7 +106,6 @@ publisher_t<boost::function<void()> > *metadata_cluster_t<metadata_t>::root_view
 
 template<class metadata_t>
 void metadata_cluster_t<metadata_t>::join_metadata_locally(metadata_t added_metadata) {
-    // TODO THREAD gotta be home thread.
     assert_thread();
     mutex_acquisition_t change_acq(&change_mutex);
     semilattice_join(&metadata, added_metadata);
@@ -145,11 +142,11 @@ void metadata_cluster_t<metadata_t>::write_ping_response(std::ostream &stream, i
 
 template<class metadata_t>
 void metadata_cluster_t<metadata_t>::on_utility_message(peer_id_t sender, std::istream &stream, boost::function<void()> &on_done) {
-    // THREAD connection thread
+    assert_connection_thread(sender);
+
     // TODO THREAD on_thread_t here is a thoughtless hack, an experiment.
     on_thread_t switcher(home_thread());
-    // TODO THREAD bad assertion here
-    assert_thread();
+
     char code;
     stream >> code;
     // TODO: Hard-coded constants.
@@ -183,8 +180,8 @@ void metadata_cluster_t<metadata_t>::on_utility_message(peer_id_t sender, std::i
 
 template<class metadata_t>
 void metadata_cluster_t<metadata_t>::on_connect(peer_id_t peer) {
-    // TODO THREAD connection thread?
     assert_thread();
+
     /* We have to spawn this in a separate coroutine because `on_connect()` is
     not supposed to block. */
     coro_t::spawn_now(boost::bind(
@@ -199,7 +196,7 @@ void metadata_cluster_t<metadata_t>::on_connect(peer_id_t peer) {
 
 template<class metadata_t>
 void metadata_cluster_t<metadata_t>::on_disconnect(peer_id_t) {
-    // TODO THREAD assert thread
+    assert_thread();
     /* Ignore event */
 }
 

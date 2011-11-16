@@ -115,7 +115,7 @@ void mailbox_cluster_t::write_mailbox_message(std::ostream &stream, int dest_thr
 }
 
 void mailbox_cluster_t::on_message(peer_id_t src, std::istream &stream, boost::function<void()> &on_done) {
-    // THREAD connection thread.
+    assert_connection_thread(src);
     char c;
     stream >> c;
     switch(c) {
@@ -130,7 +130,7 @@ void mailbox_cluster_t::on_message(peer_id_t src, std::istream &stream, boost::f
             stream.read(reinterpret_cast<char*>(&dest_mailbox_id), sizeof(dest_mailbox_id));
 
             on_thread_t thread_switcher(dest_thread);
-            // THREAD mailbox thread
+
             mailbox_t *mbox = mailbox_tables[dest_thread].find_mailbox(dest_mailbox_id);
             if (mbox) {
                 mbox->callback(stream, on_done);
