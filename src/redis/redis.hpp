@@ -54,6 +54,7 @@ struct redis_protocol_t {
     public:
         read_t(read_operation_t *ptr) : op(ptr) { }
         read_t() { }
+        read_t(const read_t &other) : op(other.op) { }
         region_t get_region();
         read_t shard(region_t region);
         read_response_t unshard(const std::vector<read_response_t> &bits, temporary_cache_t *cache);
@@ -73,6 +74,7 @@ struct redis_protocol_t {
     public:
         write_t(write_operation_t *ptr) : op(ptr) { }
         write_t() { }
+        write_t(const write_t &other) : op(other.op) { }
         region_t get_region();
         write_t shard(region_t region);
         write_response_t unshard(const std::vector<write_response_t> &bits, temporary_cache_t *cache);

@@ -175,7 +175,7 @@ struct read_shard_visitor_t : public boost::static_visitor<memcached_protocol_t:
     const key_range_t &region;
     memcached_protocol_t::read_t operator()(get_query_t get) {
         rassert(region == key_range_t(key_range_t::closed, get.key, key_range_t::closed, get.key));
-        return get;
+        return memcached_protocol_t::read_t(get);
     }
     memcached_protocol_t::read_t operator()(UNUSED rget_query_t original_rget) {
         rassert(region_is_superset(
@@ -196,7 +196,7 @@ struct read_shard_visitor_t : public boost::static_visitor<memcached_protocol_t:
             sub_rget.right_mode = rget_bound_open;
             sub_rget.right_key = region.right.key;
         }
-        return sub_rget;
+        return memcached_protocol_t::read_t(sub_rget);
     }
 };
 

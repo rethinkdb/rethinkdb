@@ -16,7 +16,7 @@ public:
 #endif
         prev(NULL), next(NULL)
         {}
-    ~intrusive_list_node_t() {
+    virtual ~intrusive_list_node_t() {
         rassert(prev == NULL);
         rassert(next == NULL);
         rassert(parent_list == NULL);
