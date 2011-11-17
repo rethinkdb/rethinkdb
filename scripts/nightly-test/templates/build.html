@@ -1,12 +1,14 @@
-{% include 'badge.html' %}
+{% import 'badge.html' as badge %}
 <html>
     <head>
         <title>Build: {{ build.name }}</title>
     </head>
     <body>
         <h1>Build: {{ build.name }}</h1>
-        <p>Status: {{ build_badge(build) }}</p>
-        <p>Output:</p>
-        <code><pre>{{ output }}</pre></code>
+        <p>Status: {{ badge.build_badge(build, debug_url) }}</p>
+        {% if output %}
+            <p>Output:</p>
+            <code><pre>{{ output }}</pre></code>
+        {% endif %}
     </body>
 </html>

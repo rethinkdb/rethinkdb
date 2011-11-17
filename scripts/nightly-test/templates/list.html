@@ -1,4 +1,4 @@
-{% include 'badge.html' %}
+{% import 'badge.html' as badge %}
 <html>
     <head>
         <title>Nightly test</title>
@@ -18,7 +18,7 @@
                     {% for build in builds %}
                         <tr>
                             <td><a href={{ build.href }}>{{ build.name | e }}</a></td>
-                            <td>{{ build_badge(build) }}</td>
+                            <td>{{ badge.build_badge(build, debug_url) }}</td>
                         </tr>
                     {% endfor %}
                 </tbody>
@@ -36,7 +36,7 @@
                         {% for test in tests %}
                             <tr>
                                 <td><a href={{ test.href }}>{{ test.name | e }}</a></td>
-                                <td>{{ test_badge(test) }}</td>
+                                <td>{{ badge.test_badge(test, debug_url) }}</td>
                             </tr>
                         {% endfor %}
                     </tbody>

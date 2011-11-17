@@ -22,7 +22,7 @@ def parse_log(log_name, detail_app_name):
                     objects[name]["start_time"] = float(time)
                 elif type in ["pass", "fail"]:
                     objects[name]["status"] = type
-                    objects[name]["end_time"] = time
+                    objects[name]["end_time"] = float(time)
                 elif type == "bug":
                     objects[name]["status"] = "bug"
     else:
@@ -34,7 +34,7 @@ def parse_log(log_name, detail_app_name):
 @app.template_filter("duration")
 def jinja_duration_filter(seconds):
     seconds = int(seconds)
-    return "%2d:%2d:%2d" % (seconds // 3600, seconds // 60 % 60, seconds % 60)
+    return "%0.2d:%0.2d:%0.2d" % (seconds // 3600, seconds // 60 % 60, seconds % 60)
 
 @app.template_filter("duration_to_now")
 def jinja_duration_to_now_filter(timestamp):
@@ -52,21 +52,31 @@ def list():
 
 @app.route("/build/<name>")
 def build(name):
-    with open("builds/%s/output.txt" % name) as output_file:
-        return flask.render_template("build.html",
-            build = parse_log("build-log.txt", "build")[name],
-            output = output_file,
-            debug_url = flask.url_for("list") + "#log"
-            )
+    build = parse_log("build-log.txt", "build")[name]
+    if os.path.exists("builds/%s.txt" % name):
+        with open("builds/%s.txt" % name) as output_file:
+            output = output_file.read()
+    else:
+        output = None
+    return flask.render_template("build.html",
+        build = build,
+        output = output,
+        debug_url = flask.url_for("list") + "#log"
+        )
 
 @app.route("/test/<name>")
 def test(name):
-    with open("tests/%s/output.txt" % name) as output_file:
-        return flask.render_template("test.html",
-            test = parse_log("test-log.txt", "test")[name],
-            output = output_file,
-            debug_url = flask.url_for("list") + "#log"
-            )
+    test = parse_log("test-log.txt", "test")[name]
+    if os.path.exists("test/%s/output.txt" % name):
+        with open("tests/%s/output.txt" % name) as output_file:
+            output = output_file.read()
+    else:
+        output = None
+    return flask.render_template("test.html",
+        test = test,
+        output = output,
+        debug_url = flask.url_for("list") + "#log"
+        )
 
 app.debug = True
 

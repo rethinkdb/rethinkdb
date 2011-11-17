@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 
-import shelve, threading, subprocess32, os, sys, atexit, time, traceback, cStringIO
+import shelve, threading, subprocess32, os, sys, atexit, time, traceback, cStringIO, signal
 import cgi_as_wsgi, send_gmail
 import flask
-import werkzeug.debug
 
 assert __name__ == "__main__"
 
@@ -91,7 +90,7 @@ def run_test(test_id, command):
         with database_lock:
             database["%d.result" % test_id] = { "status": "running" }
         with file(os.path.join(test_dir, "output.txt"), "w") as output_file:
-            proc = subprocess32.Popen(command, shell = True, stdout = output_file, stderr = output_file, cwd = box_dir)
+            proc = subprocess32.Popen(command, shell = True, stdout = output_file, stderr = output_file, cwd = box_dir, preexec_fn = os.setsid)
             running_tasks[test_id]["proc"] = proc
             rc = proc.wait()
         with database_lock:
@@ -102,6 +101,7 @@ def run_test(test_id, command):
     finally:
         del running_tasks[test_id]
 
+@app.route("/spawn", methods = ["POST"])
 @app.route("/spawn/", methods = ["POST"])
 def spawn():
     tarball_file = flask.request.files["tarball"]
@@ -198,8 +198,10 @@ class ErrorReportingMiddleware(object):
             return output_buffer
 
 @app.route("/test/<int:test_id>")
-@app.route("/test/<int:test_id>/<path>")
+@app.route("/test/<int:test_id>/")
+@app.route("/test/<int:test_id>/<path:path>")
 def view(test_id, path = None):
+    print "view", test_id, path
     test_dir = os.path.join(root_dir, "test-%d" % test_id)
     if not os.path.exists(test_dir):
         flask.abort(404)
@@ -218,6 +220,7 @@ debug_template = """
 </html>"""
 
 @app.route("/debug/<int:test_id>")
+@app.route("/debug/<int:test_id>/")
 def debug(test_id):
     with database_lock:
         metadata = database.get("%d.metadata" % test_id)
@@ -251,9 +254,10 @@ def debug(test_id):
     return debug_template % { "test_id": test_id, "fields": fields }
 
 @app.route("/debug/<int:test_id>/kill", methods = ["POST"])
+@app.route("/debug/<int:test_id>/kill/", methods = ["POST"])
 def kill(test_id):
     if test_id in running_tasks:
-        running_tasks[test_id]["proc"].terminate()
+        os.killpg(running_tasks[test_id]["proc"].pid, signal.SIGTERM)
     return flask.redirect(flask.url_for("debug", test_id = test_id))
 
 app.run(host = '0.0.0.0', debug = True)

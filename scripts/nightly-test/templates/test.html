@@ -1,12 +1,14 @@
-{% include 'test.html' %}
+{% import 'badge.html' as badge %}
 <html>
     <head>
         <title>Test: {{ test.name }}</title>
     </head>
     <body>
         <h1>Test: {{ test.name }}</h1>
-        <p>Status: {{ test_badge(test) }}</p>
-        <p>Output:</p>
-        <code><pre>{{ output }}</pre></code>
+        <p>Status: {{ badge.test_badge(test, debug_url) }}</p>
+        {% if output %}
+            <p>Output:</p>
+            <code><pre>{{ output }}</pre></code>
+        {% endif %}
     </body>
 </html>

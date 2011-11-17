@@ -1,28 +1,28 @@
-{% macro build_badge(test) -%}
+{% macro build_badge(build, debug_url) -%}
     {% if build.status == "waiting" %}
         Waiting
     {% elif build.status == "running" %}
-        <span style="color:yellow">Running ({{ build.start_time | duration_to_now }})</span>
+        <span style="color:#ccaa00">Running ({{ build.start_time | duration_to_now }})</span>
     {% elif build.status == "pass" %}
-        <span style="color:green">OK ({{ build.end_time - build.start_time | duration }})</span>
+        <span style="color:green">OK ({{ (build.end_time - build.start_time) | duration }})</span>
     {% elif build.status == "fail" %}
-        <span style="color:red">Fail ({{ build.end_time - build.start_time | duration }})</span>
+        <span style="color:#cc0000">Fail ({{ (build.end_time - build.start_time) | duration }})</span>
     {% elif build.status == "bug" %}
-        <span style="color:red">Bug (<a href={{ debug_url }}>details</a>)</span>
+        <span style="color:#cc0000">Bug (<a href={{ debug_url }}>details</a>)</span>
     {% endif %}
 {%- endmacro %}
 
-{% macro test_badge(test) -%}
+{% macro test_badge(test, debug_url) -%}
     {% if test.status == "waiting" %}
         Waiting
     {% elif test.status == "running" %}
-        <span style="color:yellow">Running ({{ test.start_time | duration_to_now}})</span>
+        <span style="color:#ccaa00">Running ({{ test.start_time | duration_to_now}})</span>
     {% elif test.status == "pass" %}
         <span style="color:green">Pass ({{ test.end_time - test.start_time | duration }})</span>
     {% elif test.status == "fail" %}
-        <span style="color:red">Fail ({{ test.end_time - test.start_time | duration }})</span>
+        <span style="color:#cc0000">Fail ({{ test.end_time - test.start_time | duration }})</span>
     {% elif test.status == "bug" %}
-        <span style="color:red">Bug (<a href={{ debug_url }}>details</a>)</span>
+        <span style="color:#cc0000">Bug (<a href={{ debug_url }}>details</a>)</span>
     {% elif test.status == "ignore" %}
         Prerequisite missing
     {% endif %}
