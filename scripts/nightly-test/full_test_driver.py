@@ -166,16 +166,18 @@ if not int(os.environ.get("SKIP_BUILDS", 0)):
                             stdout = output,
                             inputs = ["rethinkdb"],
                             outputs = build.products,
-                            on_begin_script = lambda: build_log.write("begin %s %s" % (build.name, time.ctime())),
-                            on_end_script = lambda: build_log.write("pass %s %s" % (build.name, time.ctime()))
+                            on_begin_script = lambda: build_log.write("begin %s %s" % (build.name, time.time())),
+                            on_end_script = lambda: build_log.write("pass %s %s" % (build.name, time.time()))
                             )
                     except remotely.ScriptFailedError:
-                        build_log.write("fail %s %s" % (build.name, time.ctime()))
+                        build_log.write("fail %s %s" % (build.name, time.time()))
             except Exception, e:
-                build_log.write("bug %s %s" % (build.name, time.ctime()))
+                build_log.write("bug %s %s" % (build.name, time.time()))
                 with output_lock:
                     print >>sys.stderr, "Bug when running build %s:" % build.name
                     traceback.print_exc()
+        for b in builds:
+            build_log.write("plan %s -" % b.name)
         run_in_threads((lambda: run_build(b)) for b in builds)
 
 # Plan what tests to run
@@ -293,20 +295,21 @@ echo "exitcode:$?"
                     stdout = demuxer,
                     inputs = test.inputs,
                     outputs = [os.path.join("tests", test.name, "output_from_test")],
-                    on_begin_script = lambda: test_log.write("begin %s %s" % (test.name, time.ctime())),
-                    on_end_script = lambda: test_log.write("%s %s %s" % ("pass" if demuxer.exit_code == 0 else "fail", test.name, time.ctime()))
+                    on_begin_script = lambda: test_log.write("begin %s %s" % (test.name, time.time())),
+                    on_end_script = lambda: test_log.write("%s %s %s" % ("pass" if demuxer.exit_code == 0 else "fail", test.name, time.time()))
                     )
         except Exception, e:
-            test_log.write("bug %s %s" % (test.name, time.ctime()))
+            test_log.write("bug %s %s" % (test.name, time.time()))
             with output_lock:
                 print >>sys.stderr, "Bug when running test %s:" % test.name
                 traceback.print_exc()
     funs = []
     for test in tests:
         if all(os.path.exists(input) for input in test.inputs):
+            test_log.write("plan %s -" % test.name)
             funs.append(lambda test=test: run_test(test))
         else:
-            test_log.write("ignore %s %s" % (test.name, time.ctime()))
+            test_log.write("ignore %s -" % test.name)
     run_in_threads(funs)
 
 print "Done."

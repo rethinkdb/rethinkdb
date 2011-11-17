@@ -1,0 +1,74 @@
+#!/usr/bin/env python
+
+import os, time
+import flask
+
+assert __name__ == "__main__"
+
+app = flask.Flask(__name__)
+
+def parse_log(log_name, detail_app_name):
+    if os.path.exists(log_name):
+        objects = {}
+        with open(log_name) as log_file:
+            for line in log_file:
+                type, name, time = line.strip().split(" ")
+                if type == "plan":
+                    objects[name] = { "name": name, "status": "waiting" }
+                elif type == "ignore":
+                    objects[name] = { "name": name, "status": "ignore" }
+                elif type == "begin":
+                    objects[name]["status"] = "running"
+                    objects[name]["start_time"] = float(time)
+                elif type in ["pass", "fail"]:
+                    objects[name]["status"] = type
+                    objects[name]["end_time"] = time
+                elif type == "bug":
+                    objects[name]["status"] = "bug"
+    else:
+        objects = {}
+    for name in objects:
+        objects[name]["href"] = flask.url_for(detail_app_name, name = name)
+    return objects
+
+@app.template_filter("duration")
+def jinja_duration_filter(seconds):
+    seconds = int(seconds)
+    return "%2d:%2d:%2d" % (seconds // 3600, seconds // 60 % 60, seconds % 60)
+
+@app.template_filter("duration_to_now")
+def jinja_duration_to_now_filter(timestamp):
+    return jinja_duration_filter(time.time() - timestamp) + "..."
+
+@app.route("/")
+def list():
+    with open("output.txt") as log_file:
+        return flask.render_template("list.html",
+            builds = parse_log("build-log.txt", "build").values(),
+            tests = parse_log("test-log.txt", "test").values(),
+            log = log_file.read(),
+            debug_url = flask.url_for("list") + "#log"
+            )
+
+@app.route("/build/<name>")
+def build(name):
+    with open("builds/%s/output.txt" % name) as output_file:
+        return flask.render_template("build.html",
+            build = parse_log("build-log.txt", "build")[name],
+            output = output_file,
+            debug_url = flask.url_for("list") + "#log"
+            )
+
+@app.route("/test/<name>")
+def test(name):
+    with open("tests/%s/output.txt" % name) as output_file:
+        return flask.render_template("test.html",
+            test = parse_log("test-log.txt", "test")[name],
+            output = output_file,
+            debug_url = flask.url_for("list") + "#log"
+            )
+
+app.debug = True
+
+from wsgiref.handlers import CGIHandler
+CGIHandler().run(app)

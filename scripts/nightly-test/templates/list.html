@@ -1,0 +1,55 @@
+{% include 'badge.html' %}
+<html>
+    <head>
+        <title>Nightly test</title>
+    </head>
+    <body>
+        <h1>Nightly test</h1>
+        {% if builds %}
+            <h2>Builds</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Result</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for build in builds %}
+                        <tr>
+                            <td><a href={{ build.href }}>{{ build.name | e }}</a></td>
+                            <td>{{ build_badge(build) }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% if tests %}
+                <h2>Tests</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Result</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for test in tests %}
+                            <tr>
+                                <td><a href={{ test.href }}>{{ test.name | e }}</a></td>
+                                <td>{{ test_badge(test) }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+        {% endif %}
+        <a name="log"><h2>Log</h2></a>
+        <code>
+            <pre>
+{{ log }}
+            </pre>
+        </code>
+    </body>
+</html>
+
+                                

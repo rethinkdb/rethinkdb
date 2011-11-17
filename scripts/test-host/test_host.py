@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
-import shelve, threading, subprocess32, os, sys, atexit, time, traceback
+import shelve, threading, subprocess32, os, sys, atexit, time, traceback, cStringIO
 import cgi_as_wsgi, send_gmail
 import flask
+import werkzeug.debug
 
 assert __name__ == "__main__"
 
@@ -51,12 +52,12 @@ database_lock = threading.Lock()
 # `%d.result`
 #     One of the following:
 #         `{ "status": "starting" }`:
-#             The test is unpacking the tarball or creating directories.
+#             The test is unpacking the tarball or creating directories, or it
+#             was doing that when it was interrupted by the server shutting
+#             down. Check the `running_tasks` dictionary for more information.
 #         `{ "status": "running" }`:
-#             The test is running.
-#         `{ "status": "interrupted" }`:
-#             The server was shut down while the test was in progress. The test
-#             did not finish and never will.
+#             The test is running, or was running when it was interrupted by the
+#             server shutting down. Again, check `running_tasks`.
 #         `{ "status": "done", "return_code": return_code, "end_time": timestamp }`:
 #             The test has finished. `return_code` is the return code from the
 #             test command. `timestamp` is the time when the test finished.
@@ -76,13 +77,12 @@ database_lock = threading.Lock()
 #         `"emailees"`:
 #             Who got emailed when this test was run.
 
-# Nothing can be running since we just started up. If anything says it's
-# running, then it was running when we last shut down the server and now is no
-# longer running. So move it to the `interrupted` state.
-with database_lock:
-    for i in xrange(database.get("next_test_id", 0)):
-        if "%d.result" % i in database and database["%d.result" % i]["status"] == "running":
-            database["%d.result" % i] = { "status": "interrupted" }
+running_tasks = {}
+
+# `running_tasks` has an entry for every task that is currently running. Each
+# entry is a dictionary with the following keys:
+#
+# `proc`: The `subprocess32.Popen` object associated with the task.
 
 def run_test(test_id, command):
     try:
@@ -91,12 +91,16 @@ def run_test(test_id, command):
         with database_lock:
             database["%d.result" % test_id] = { "status": "running" }
         with file(os.path.join(test_dir, "output.txt"), "w") as output_file:
-            rc = subprocess32.call(command, shell = True, stdout = output_file, stderr = output_file, cwd = box_dir)
+            proc = subprocess32.Popen(command, shell = True, stdout = output_file, stderr = output_file, cwd = box_dir)
+            running_tasks[test_id]["proc"] = proc
+            rc = proc.wait()
         with database_lock:
             database["%d.result" % test_id] = { "status": "done", "return_code": rc, "end_time": time.time() }
     except Exception, e:
         with database_lock:
             database["%d.result" % test_id] = { "status": "bug", "traceback": traceback.format_exc() }
+    finally:
+        del running_tasks[test_id]
 
 @app.route("/spawn/", methods = ["POST"])
 def spawn():
@@ -116,31 +120,36 @@ def spawn():
             "emailees": emailees
             }
     try:
-        with database_lock:
-            database["%d.result" % test_id] = { "status": "starting" }
-        test_dir = os.path.join(root_dir, "test-%d" % test_id)
-        os.mkdir(test_dir)
-        box_dir = os.path.join(test_dir, "box")
-        os.mkdir(box_dir)
+        running_tasks[test_id] = { }
         try:
-            tar_cmd = ["tar", "--extract", "-z", "-C", box_dir]
-            if hasattr(tarball_file, "fileno"):
-                subprocess32.check_output(tar_cmd + ["--file=-"], stdin = tarball_file, stderr = subprocess32.STDOUT)
-            else:
-                tarball_path = os.path.join(test_dir, "tarball-temp.tar")
-                tarball_file.save(tarball_path)
-                subprocess32.check_output(tar_cmd + ["--file", tarball_path], stderr = subprocess32.STDOUT)
-                os.remove(tarball_path)
-        except subprocess32.CalledProcessError, e:
-            raise ValueError("Bad tarball: " + e.output)
-        if not os.access(os.path.join(box_dir, "renderer"), os.X_OK):
-            raise ValueError("renderer is missing or not executable")
-        for emailee in emailees:
-            send_gmail.send_gmail(
-                subject = title,
-                body = flask.url_for("view", test_id = test_id),
-                sender = (emailer, emailer_password),
-                receiver = emailee)
+            with database_lock:
+                database["%d.result" % test_id] = { "status": "starting" }
+            test_dir = os.path.join(root_dir, "test-%d" % test_id)
+            os.mkdir(test_dir)
+            box_dir = os.path.join(test_dir, "box")
+            os.mkdir(box_dir)
+            try:
+                tar_cmd = ["tar", "--extract", "-z", "-C", box_dir]
+                if hasattr(tarball_file, "fileno"):
+                    subprocess32.check_output(tar_cmd + ["--file=-"], stdin = tarball_file, stderr = subprocess32.STDOUT)
+                else:
+                    tarball_path = os.path.join(test_dir, "tarball-temp.tar")
+                    tarball_file.save(tarball_path)
+                    subprocess32.check_output(tar_cmd + ["--file", tarball_path], stderr = subprocess32.STDOUT)
+                    os.remove(tarball_path)
+            except subprocess32.CalledProcessError, e:
+                raise ValueError("Bad tarball: " + e.output)
+            if not os.access(os.path.join(box_dir, "renderer"), os.X_OK):
+                raise ValueError("renderer is missing or not executable")
+            for emailee in emailees:
+                send_gmail.send_gmail(
+                    subject = title,
+                    body = flask.url_for("view", test_id = test_id, _external = True),
+                    sender = (emailer, emailer_password),
+                    receiver = emailee)
+        except Exception, e:
+            del running_tasks[test_id]
+            raise
         threading.Thread(target = run_test, args = (test_id, command)).start()
     except Exception, e:
         with database_lock:
@@ -148,13 +157,55 @@ def spawn():
         raise
     return "%d\n" % test_id
 
+# If you have a WSGI application hosted at `/foo/bar`, and someone requests
+# `/foo/bar/baz`, then the WSGI application should get `SCRIPT_NAME` set to
+# `/foo/bar` and `PATH_INFO` set to `/baz`. Unfortunately, Flask doesn't seem to
+# do this correctly; it tells the application that `SCRIPT_NAME` is empty and
+# `PATH_INFO` is `/foo/bar/baz`. `PathInfoFixMiddleware` is a tiny bit of WSGI
+# middleware that fixes this problem.
+class PathInfoFixMiddleware(object):
+    def __init__(self, script_path, subapplication):
+        self.script_path = script_path
+        self.subapplication = subapplication
+    def __call__(self, environ, start_response):
+        environ = environ.copy()
+        assert environ["PATH_INFO"].startswith(self.script_path)
+        environ["SCRIPT_NAME"] = os.path.join(environ["SCRIPT_NAME"], self.script_path)
+        environ["PATH_INFO"] = environ["PATH_INFO"][len(self.script_path):]
+        return self.subapplication(environ, start_response)
+
+# If something goes wrong in the renderer script, then the person who wrote the
+# renderer script should probably know about it. This bit of middleware catches
+# things written to `wsgi.errors` and reports them in the HTTP response.
+class ErrorReportingMiddleware(object):
+    def __init__(self, subapplication):
+        self.subapplication = subapplication
+    def __call__(self, environ, start_response):
+        status_code_and_headers = []
+        def start_response_2(code, headers):
+            status_code_and_headers[:] = [code, headers]
+        error_buffer = cStringIO.StringIO()
+        output_buffer = []
+        environ_2 = environ.copy()
+        environ_2["wsgi.errors"] = error_buffer
+        for thing in self.subapplication(environ_2, start_response_2):
+            output_buffer.append(thing)
+        if status_code_and_headers[0] >= 500 and error_buffer.getvalue() != "":
+            start_response(500, [("Content-Type", "text/plain")])
+            return ["The renderer script for this test failed. The following error message was printed:\n\n", error_buffer.getvalue()]
+        else:
+            start_response(status_code_and_headers[0], status_code_and_headers[1])
+            return output_buffer
+
 @app.route("/test/<int:test_id>")
-@app.route("/test/<int:test_id>/<path:path>")
+@app.route("/test/<int:test_id>/<path>")
 def view(test_id, path = None):
     test_dir = os.path.join(root_dir, "test-%d" % test_id)
     if not os.path.exists(test_dir):
         flask.abort(404)
-    return cgi_as_wsgi.CGIApplication(os.path.join(test_dir, "box", "renderer"))
+    cgi_app = cgi_as_wsgi.CGIApplication(os.path.join(test_dir, "box", "renderer"))
+    error_wrapper = ErrorReportingMiddleware(cgi_app)
+    return PathInfoFixMiddleware(flask.url_for("view", test_id = test_id), error_wrapper)
 
 debug_template = """
 <html>
@@ -169,11 +220,12 @@ debug_template = """
 @app.route("/debug/<int:test_id>")
 def debug(test_id):
     with database_lock:
-        metadata = database.get("%d.metadata" % test_id, None)
-        result = database.get("%d.result" % test_id, None)
+        metadata = database.get("%d.metadata" % test_id)
+        result = database.get("%d.result" % test_id)
     output_path = os.path.join(root_dir, "test-%d" % test_id, "output.txt")
     if not metadata or not result or not os.access(output_path, os.R_OK):
         flask.abort(404)
+    task = running_tasks.get(test_id)
     fields = ""
     fields += """<p>Title: %s</p>""" % flask.escape(metadata["title"])
     fields += """<p>Command: <code>%s</code></p>""" % flask.escape(metadata["command"])
@@ -182,7 +234,10 @@ def debug(test_id):
         fields += """<p>Emailees: %s</p>""" % ", ".join(flask.escape(e) for e in metadata["emailees"])
     else:
         fields += """<p>Emailees: none</p>"""
-    fields += """<p>Status: %s</p>""" % result["status"]
+    if task is None and result["status"] in ("starting", "running"):
+        fields += """<p>Status: interrupted (was %s)</p>""" % result["status"]
+    else:
+        fields += """<p>Status: %s</p>""" % result["status"]
     if result["status"] == "done":
         fields += """<p>Return code: %d</p>""" % result["return_code"]
         fields += """<p>End time: %s</p>""" % flask.escape(time.ctime(result["end_time"]))
@@ -190,6 +245,15 @@ def debug(test_id):
         fields += """<p>Traceback:</p><p><code><pre>%s</pre></code></p>""" % flask.escape(result["traceback"])
     with open(output_path) as output_file:
         fields += """<p>Output:</p><p><code><pre>%s</pre></code></p>""" % flask.escape(output_file.read())
+    if task is not None:
+        fields += """<p>PID: %d</p>""" % task["proc"].pid
+        fields += """<form method="post" action="%s"><p><input type="submit" value="Kill"></p></form>""" % flask.url_for("kill", test_id = test_id)
     return debug_template % { "test_id": test_id, "fields": fields }
+
+@app.route("/debug/<int:test_id>/kill", methods = ["POST"])
+def kill(test_id):
+    if test_id in running_tasks:
+        running_tasks[test_id]["proc"].terminate()
+    return flask.redirect(flask.url_for("debug", test_id = test_id))
 
 app.run(host = '0.0.0.0', debug = True)

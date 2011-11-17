@@ -1,0 +1,12 @@
+{% include 'test.html' %}
+<html>
+    <head>
+        <title>Test: {{ test.name }}</title>
+    </head>
+    <body>
+        <h1>Test: {{ test.name }}</h1>
+        <p>Status: {{ test_badge(test) }}</p>
+        <p>Output:</p>
+        <code><pre>{{ output }}</pre></code>
+    </body>
+</html>

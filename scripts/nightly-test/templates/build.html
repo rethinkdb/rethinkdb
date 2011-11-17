@@ -1,0 +1,12 @@
+{% include 'badge.html' %}
+<html>
+    <head>
+        <title>Build: {{ build.name }}</title>
+    </head>
+    <body>
+        <h1>Build: {{ build.name }}</h1>
+        <p>Status: {{ build_badge(build) }}</p>
+        <p>Output:</p>
+        <code><pre>{{ output }}</pre></code>
+    </body>
+</html>
