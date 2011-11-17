@@ -1,14 +1,27 @@
+#!/usr/bin/env python
+
 import shelve, threading, subprocess32, os, sys, atexit, time, traceback
-import cgi_as_wsgi
-from flask import Flask, escape, request, abort
+import cgi_as_wsgi, send_gmail
+import flask
 
 assert __name__ == "__main__"
 
-app = Flask(__name__)
+app = flask.Flask(__name__)
 
-root_dir = os.environ["TEST_HOST_ROOT"]
+try:
+    root_dir = os.environ["TEST_HOST_ROOT"]
+except KeyError:
+    raise ValueError("You must set environment variable `TEST_HOST_ROOT` to "
+        "the directory where the test host should store tests.")
 if not os.path.exists(root_dir):
     os.mkdir(root_dir)
+
+try:
+    emailer, emailer_password = os.environ["EMAILER"].split(":")
+except KeyError:
+    raise ValueError("You must set environment variable `EMAILER` to a string "
+        "of the form `username:password`, where `username` is a GMail-hosted "
+        "email address and `password` is the password for that address.")
 
 # Directory structure:
 # 
@@ -60,6 +73,8 @@ database_lock = threading.Lock()
 #             The time when this task started.
 #         `"command"`:
 #             The command line for this test.
+#         `"emailees"`:
+#             Who got emailed when this test was run.
 
 # Nothing can be running since we just started up. If anything says it's
 # running, then it was running when we last shut down the server and now is no
@@ -76,7 +91,6 @@ def run_test(test_id, command):
         with database_lock:
             database["%d.result" % test_id] = { "status": "running" }
         with file(os.path.join(test_dir, "output.txt"), "w") as output_file:
-            print repr(command), repr(box_dir), os.listdir(box_dir)
             rc = subprocess32.call(command, shell = True, stdout = output_file, stderr = output_file, cwd = box_dir)
         with database_lock:
             database["%d.result" % test_id] = { "status": "done", "return_code": rc, "end_time": time.time() }
@@ -86,16 +100,20 @@ def run_test(test_id, command):
 
 @app.route("/spawn/", methods = ["POST"])
 def spawn():
-    tarball_file = request.files["tarball"]
-    command = request.form["command"]
-    title = request.form.get("title", "Unnamed test")
+    tarball_file = flask.request.files["tarball"]
+    command = flask.request.form["command"]
+    title = flask.request.form.get("title", "Unnamed test")
+    emailees = flask.request.form.getlist("emailee")
+    for emailee in emailees:
+        assert "@" in emailee
     with database_lock:
         test_id = database.get("next_test_id", 0)
         database["next_test_id"] = test_id + 1
         database["%d.metadata" % test_id] = {
             "title": title,
             "start_time": time.time(),
-            "command": command
+            "command": command,
+            "emailees": emailees
             }
     try:
         with database_lock:
@@ -117,19 +135,25 @@ def spawn():
             raise ValueError("Bad tarball: " + e.output)
         if not os.access(os.path.join(box_dir, "renderer"), os.X_OK):
             raise ValueError("renderer is missing or not executable")
+        for emailee in emailees:
+            send_gmail.send_gmail(
+                subject = title,
+                body = flask.url_for("view", test_id = test_id),
+                sender = (emailer, emailer_password),
+                receiver = emailee)
         threading.Thread(target = run_test, args = (test_id, command)).start()
     except Exception, e:
         with database_lock:
             database["%d.result" % test_id] = { "status": "bug", "traceback": traceback.format_exc() }
         raise
-    return "OK\n"
+    return "%d\n" % test_id
 
 @app.route("/test/<int:test_id>")
 @app.route("/test/<int:test_id>/<path:path>")
 def view(test_id, path = None):
     test_dir = os.path.join(root_dir, "test-%d" % test_id)
     if not os.path.exists(test_dir):
-        abort(404)
+        flask.abort(404)
     return cgi_as_wsgi.CGIApplication(os.path.join(test_dir, "box", "renderer"))
 
 debug_template = """
@@ -149,19 +173,23 @@ def debug(test_id):
         result = database.get("%d.result" % test_id, None)
     output_path = os.path.join(root_dir, "test-%d" % test_id, "output.txt")
     if not metadata or not result or not os.access(output_path, os.R_OK):
-        abort(404)
+        flask.abort(404)
     fields = ""
-    fields += """<p>Title: %s</p>""" % escape(metadata["title"])
-    fields += """<p>Command: <code>%s</code></p>""" % escape(metadata["command"])
-    fields += """<p>Start time: %s</p>""" % escape(time.ctime(metadata["start_time"]))
+    fields += """<p>Title: %s</p>""" % flask.escape(metadata["title"])
+    fields += """<p>Command: <code>%s</code></p>""" % flask.escape(metadata["command"])
+    fields += """<p>Start time: %s</p>""" % flask.escape(time.ctime(metadata["start_time"]))
+    if metadata["emailees"]:
+        fields += """<p>Emailees: %s</p>""" % ", ".join(flask.escape(e) for e in metadata["emailees"])
+    else:
+        fields += """<p>Emailees: none</p>"""
     fields += """<p>Status: %s</p>""" % result["status"]
     if result["status"] == "done":
         fields += """<p>Return code: %d</p>""" % result["return_code"]
-        fields += """<p>End time: %s</p>""" % escape(time.ctime(result["end_time"]))
+        fields += """<p>End time: %s</p>""" % flask.escape(time.ctime(result["end_time"]))
     elif result["status"] == "bug":
-        fields += """<p>Traceback:</p><p><code><pre>%s</pre></code></p>""" % escape(result["traceback"])
+        fields += """<p>Traceback:</p><p><code><pre>%s</pre></code></p>""" % flask.escape(result["traceback"])
     with open(output_path) as output_file:
-        fields += """<p>Output:</p><p><code><pre>%s</pre></code></p>""" % escape(output_file.read())
+        fields += """<p>Output:</p><p><code><pre>%s</pre></code></p>""" % flask.escape(output_file.read())
     return debug_template % { "test_id": test_id, "fields": fields }
 
 app.run(host = '0.0.0.0', debug = True)
