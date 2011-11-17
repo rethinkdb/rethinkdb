@@ -1,7 +1,7 @@
 #ifndef __BTREE_DETEMPLATIZER_HPP__
 #define	__BTREE_DETEMPLATIZER_HPP__
 
-// TODO! Uhm, refactor the sizer definitions to a central place, so we don't have to include
+// TODO: Uhm, refactor the sizer definitions to a central place, so we don't have to include
 // files from non-btree directories here
 //#include "server/nested_demo/redis_utils.hpp"
 //#include "server/nested_demo/redis_sortedset_values.hpp"
@@ -16,27 +16,28 @@
  op_name<T>(&sizer, ...);
  */
 #define DETEMPLATIZE_LEAF_NODE_OP(op_name, leaf_node, sizer_argument, ...) \
-    do { \
+    do {                                                                \
         if (leaf_node->magic == value_sizer_t<memcached_value_t>::leaf_magic()) { \
-            value_sizer_t<memcached_value_t> sizer(sizer_argument); \
-            op_name<memcached_value_t>(&sizer, __VA_ARGS__); \
+            value_sizer_t<memcached_value_t> sizer(sizer_argument);     \
+            op_name<memcached_value_t>(&sizer, __VA_ARGS__);            \
         } else if (leaf_node->magic == value_sizer_t<riak_value_t>::leaf_magic()) { \
-            value_sizer_t<riak_value_t> sizer(sizer_argument); \
-            op_name<riak_value_t>(&sizer, __VA_ARGS__); \
+            value_sizer_t<riak_value_t> sizer(sizer_argument);          \
+            op_name<riak_value_t>(&sizer, __VA_ARGS__);                 \
         } else if (leaf_node->magic == value_sizer_t<redis_nested_string_value_t>::leaf_magic()) { \
             value_sizer_t<redis_nested_string_value_t> sizer(sizer_argument); \
-            op_name<redis_nested_string_value_t>(&sizer, __VA_ARGS__); \
+            op_name<redis_nested_string_value_t>(&sizer, __VA_ARGS__);  \
         } else if (leaf_node->magic == value_sizer_t<redis_value_t>::leaf_magic()) { \
-            value_sizer_t<redis_value_t> sizer(sizer_argument); \
-            op_name<redis_value_t>(&sizer, __VA_ARGS__); \
+            value_sizer_t<redis_value_t> sizer(sizer_argument);         \
+            op_name<redis_value_t>(&sizer, __VA_ARGS__);                \
         } else if (leaf_node->magic == value_sizer_t<redis_nested_set_value_t>::leaf_magic()) { \
             value_sizer_t<redis_nested_set_value_t> sizer(sizer_argument); \
-            op_name<redis_nested_set_value_t>(&sizer, __VA_ARGS__); \
+            op_name<redis_nested_set_value_t>(&sizer, __VA_ARGS__);     \
         } else if (leaf_node->magic == value_sizer_t<redis_nested_sorted_set_value_t>::leaf_magic()) { \
             value_sizer_t<redis_nested_sorted_set_value_t> sizer(sizer_argument); \
             op_name<redis_nested_sorted_set_value_t>(&sizer, __VA_ARGS__); \
-        } else \
+        } else {                                                        \
             crash("Unmatched leaf node magic: %.*s", (int)sizeof(block_magic_t), leaf_node->magic.bytes); \
+        }                                                               \
     } while(0)
 
 #endif	/* __BTREE_DETEMPLATIZER_HPP__ */
