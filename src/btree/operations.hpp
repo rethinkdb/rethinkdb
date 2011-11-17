@@ -183,6 +183,12 @@ class fake_key_modification_callback_t : public key_modification_callback_t<Valu
 };
 
 
+bool get_superblock_metainfo(transaction_t *txn, buf_t *superblock, const std::vector<char> &key, std::vector<char> &value_out);
+
+void set_superblock_metainfo(transaction_t *txn, buf_t *superblock, const std::vector<char> &key, const std::vector<char> &value);
+
+void delete_superblock_metainfo(transaction_t *txn, buf_t *superblock, const std::vector<char> &key);
+
 #include "btree/operations.tcc"
 
 #endif  // __BTREE_OPERATIONS_HPP__
