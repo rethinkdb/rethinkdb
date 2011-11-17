@@ -221,7 +221,7 @@ endif
 
 # googletest flags
 ifeq ($(UNIT_TESTS),1)
-LDFLAGS+=-lgtest
+LDFLAGS+=-L/usr/local/lib -lgtest
 endif
 
 UNIT_TEST_FILTER?=*
