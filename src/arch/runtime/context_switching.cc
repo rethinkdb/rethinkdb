@@ -129,6 +129,7 @@ void context_switch(context_ref_t *current_context_out, context_ref_t *dest_cont
 asm(
     /* `current_pointer_out` is in `%rdi`. `dest_pointer` is in `%rsi`. */
 
+".text\n"
 "lightweight_swapcontext:\n"
 
     /* Save preserved registers (the return address is already on the stack). */
