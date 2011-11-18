@@ -201,7 +201,6 @@ class ErrorReportingMiddleware(object):
 @app.route("/test/<int:test_id>/")
 @app.route("/test/<int:test_id>/<path:path>")
 def view(test_id, path = None):
-    print "view", test_id, path
     test_dir = os.path.join(root_dir, "test-%d" % test_id)
     if not os.path.exists(test_dir):
         flask.abort(404)

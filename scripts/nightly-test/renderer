@@ -2,34 +2,11 @@
 
 import os, time
 import flask
+import simple_linear_db
 
 assert __name__ == "__main__"
 
 app = flask.Flask(__name__)
-
-def parse_log(log_name, detail_app_name):
-    if os.path.exists(log_name):
-        objects = {}
-        with open(log_name) as log_file:
-            for line in log_file:
-                type, name, time = line.strip().split(" ")
-                if type == "plan":
-                    objects[name] = { "name": name, "status": "waiting" }
-                elif type == "ignore":
-                    objects[name] = { "name": name, "status": "ignore" }
-                elif type == "begin":
-                    objects[name]["status"] = "running"
-                    objects[name]["start_time"] = float(time)
-                elif type in ["pass", "fail"]:
-                    objects[name]["status"] = type
-                    objects[name]["end_time"] = float(time)
-                elif type == "bug":
-                    objects[name]["status"] = "bug"
-    else:
-        objects = {}
-    for name in objects:
-        objects[name]["href"] = flask.url_for(detail_app_name, name = name)
-    return objects
 
 @app.template_filter("duration")
 def jinja_duration_filter(seconds):
@@ -42,40 +19,43 @@ def jinja_duration_to_now_filter(timestamp):
 
 @app.route("/")
 def list():
+    builds = simple_linear_db.read_linear_db("build-log.txt")
+    build_urls = dict((build, flask.url_for("build", name = build)) for build in builds)
+    tests = simple_linear_db.read_linear_db("test-log.txt")
+    test_urls = dict((test, flask.url_for("test", name = test)) for test in tests)
     with open("output.txt") as log_file:
         return flask.render_template("list.html",
-            builds = parse_log("build-log.txt", "build").values(),
-            tests = parse_log("test-log.txt", "test").values(),
-            log = log_file.read(),
-            debug_url = flask.url_for("list") + "#log"
+            builds = builds, build_urls = build_urls,
+            tests = tests, test_urls = test_urls,
+            log = log_file.read()
             )
 
 @app.route("/build/<name>")
 def build(name):
-    build = parse_log("build-log.txt", "build")[name]
+    build = simple_linear_db.read_linear_db("build-log.txt")[name]
     if os.path.exists("builds/%s.txt" % name):
         with open("builds/%s.txt" % name) as output_file:
             output = output_file.read()
     else:
         output = None
     return flask.render_template("build.html",
+        name = name,
         build = build,
-        output = output,
-        debug_url = flask.url_for("list") + "#log"
+        output = output
         )
 
 @app.route("/test/<name>")
 def test(name):
-    test = parse_log("test-log.txt", "test")[name]
+    test = simple_linear_db.read_linear_db("test-log.txt")[name]
     if os.path.exists("test/%s/output.txt" % name):
         with open("tests/%s/output.txt" % name) as output_file:
             output = output_file.read()
     else:
         output = None
     return flask.render_template("test.html",
+        name = name,
         test = test,
-        output = output,
-        debug_url = flask.url_for("list") + "#log"
+        output = output
         )
 
 app.debug = True

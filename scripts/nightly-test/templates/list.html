@@ -1,4 +1,5 @@
-{% import 'badge.html' as badge %}
+{% from 'common.html' import build_badge, test_badge %}
+
 <html>
     <head>
         <title>Nightly test</title>
@@ -11,32 +12,34 @@
                 <thead>
                     <tr>
                         <th>Name</th>
-                        <th>Result</th>
+                        <th>Status</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for build in builds %}
+                    {% for name in builds %}
                         <tr>
-                            <td><a href={{ build.href }}>{{ build.name | e }}</a></td>
-                            <td>{{ badge.build_badge(build, debug_url) }}</td>
+                            <td><a href={{ build_urls[name] }}>{{ name | e }}</a></td>
+                            <td>{{ build_badge(builds[name]) }}</td>
                         </tr>
                     {% endfor %}
                 </tbody>
             </table>
             {% if tests %}
                 <h2>Tests</h2>
-                <table>
+                <table style="table-layout:fixed; width:100%;">
                     <thead>
                         <tr>
-                            <th>Name</th>
-                            <th>Result</th>
+                            <th style="width:50px;">Name</th>
+                            <th>Command line</th>
+                            <th style="width:200px">Status</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for test in tests %}
-                            <tr>
-                                <td><a href={{ test.href }}>{{ test.name | e }}</a></td>
-                                <td>{{ badge.test_badge(test, debug_url) }}</td>
+                        {% for name in tests %}
+                            <tr style="height:1em;">
+                                <td><a href={{ test_urls[name] }}>{{ name | e }}</a></td>
+                                <td style="overflow:hidden; white-space:nowrap;"><code>{{ tests[name].command_line | e }}</code></td>
+                                <td style="padding-left: 50px;">{{ test_badge(tests[name]) }}</td>
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -44,11 +47,13 @@
             {% endif %}
         {% endif %}
         <a name="log"><h2>Log</h2></a>
-        <code>
-            <pre>
+        <div style="width:100%; overflow:auto;">
+            <code>
+                <pre>
 {{ log }}
-            </pre>
-        </code>
+                </pre>
+            </code>
+        </div>
     </body>
 </html>
 

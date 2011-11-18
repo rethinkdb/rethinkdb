@@ -36,7 +36,7 @@ class SafePopen(object):
             pass
 
 def run(command_line, stdout = sys.stdout, inputs = [], outputs = [],
-        on_begin_script = None, on_end_script = None):
+        on_begin_script = lambda: None, on_end_script = lambda: None):
     """Runs `command_line` on a remote machine. Output will be written to
 `stdout`. The working directory will be a temporary directory; paths in `inputs`
 will be copied to the remote directory before running the script, and paths in
@@ -115,8 +115,7 @@ rm -rf "$DIR"
         line = srun_process.stdout.readline()
         if not line.startswith("SCRIPT_BEGIN"):
             raise RemotelyInternalError("Expected 'SCRIPT_BEGIN', got %r" % line)
-        if on_begin_script is not None:
-            on_begin_script()
+        on_begin_script()
         while True:
             line = srun_process.stdout.readline()
             if line.startswith("STDOUT"):
@@ -124,8 +123,7 @@ rm -rf "$DIR"
             else:
                 break
         if line.startswith("SCRIPT_SUCCESS"):
-            if on_end_script is not None:
-                on_end_script()
+            on_end_script()
             line = srun_process.stdout.readline()
             if outputs:
                 if not line.startswith("HERE_IS_TARBALL"):

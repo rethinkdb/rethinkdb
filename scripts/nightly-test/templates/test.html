@@ -1,11 +1,23 @@
-{% import 'badge.html' as badge %}
+{% from 'common.html' import test_badge %}
+
 <html>
     <head>
-        <title>Test: {{ test.name }}</title>
+        <title>Test {{ name | e }}: {{ test.command_line | e }}</title>
     </head>
     <body>
-        <h1>Test: {{ test.name }}</h1>
-        <p>Status: {{ badge.test_badge(test, debug_url) }}</p>
+        <h1>Test {{ name | e }}: <code>{{ test.command_line | e }}</code></h1>
+        <p>Status: {{ test_badge(test) }}</p>
+        {% if test.status == "bug" %}
+            <p>Bug traceback:</p>
+            <code><pre>{{ build.traceback }}</pre></code>
+        {% elif test.status == "missing_prereqs" %}
+            <p>Missing prerequisites:</p>
+            <ul>
+                {% for prereq in test.missing %}
+                    <li><code>{{ prereq }}</code></li>
+                {% endfor %}
+            </ul>
+        {% endif %}
         {% if output %}
             <p>Output:</p>
             <code><pre>{{ output }}</pre></code>

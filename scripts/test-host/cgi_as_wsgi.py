@@ -128,6 +128,7 @@ class CGIWriter(object):
                     self.status = value
                 else:
                     self.headers.append((name, value))
+        return []
 
 class StdinReader(object):
 
