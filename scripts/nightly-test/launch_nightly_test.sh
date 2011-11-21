@@ -9,7 +9,7 @@ then
     exit 1
 fi
 EMAILEE=$1; shift
-tar --create -z --file=- full_test_driver.py remotely.py simple_linear_db.py renderer templates | \
+tar --create -z --file=- full_test_driver.py remotely.py simple_linear_db.py renderer static | \
     curl -X POST http://$TEST_HOST/spawn/ \
         -F tarball=@- \
         -F command="SLURM_CONF=/home/tim/slurm/slurm.conf ./full_test_driver.py $* >output.txt 2>&1" \
