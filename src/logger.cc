@@ -23,7 +23,7 @@ to one thread to write them. */
 TLS_with_init(log_controller_t *, log_controller, NULL);
 TLS_with_init(rwi_lock_t *, log_controller_lock, NULL);
 
-static void install_log_controller(log_controller_t *lc, int thread) {
+static void install_log_controller(UNUSED log_controller_t *lc, int thread) {
     on_thread_t thread_switcher(thread);
     rassert(!TLS_get_log_controller());
     TLS_set_log_controller(lc);
@@ -34,7 +34,7 @@ log_controller_t::log_controller_t() : home_thread_(get_thread_id()) {
     pmap(get_num_threads(), boost::bind(&install_log_controller, this, _1));
 }
 
-static void uninstall_log_controller(log_controller_t *lc, int thread) {
+static void uninstall_log_controller(UNUSED log_controller_t *lc, int thread) {
     on_thread_t thread_switcher(thread);
     rassert(TLS_get_log_controller() == lc);
     TLS_set_log_controller(NULL);
