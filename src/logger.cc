@@ -12,31 +12,34 @@
 #include "concurrency/rwi_lock.hpp"
 #include "concurrency/pmap.hpp"
 
+#include "thread_local.hpp"
+
 FILE *log_file = stderr;
 
 /* As an optimization, during the main phase of the server's running we route all log messages
 to one thread to write them. */
 
-static __thread log_controller_t *log_controller = NULL;   // Non-NULL if we are routing log messages
-static __thread rwi_lock_t *log_controller_lock = NULL;
+
+TLS(log_controller_t *, log_controller, NULL);
+TLS(rwi_lock_t *, log_controller_lock, NULL);
 
 static void install_log_controller(log_controller_t *lc, int thread) {
     on_thread_t thread_switcher(thread);
-    rassert(!log_controller);
-    log_controller = lc;
-    log_controller_lock = new rwi_lock_t;
+    rassert(!TLS_get_log_controller());
+    TLS_set_log_controller(lc);
+    TLS_set_log_controller_lock(new rwi_lock_t);
 }
 
 log_controller_t::log_controller_t() : home_thread_(get_thread_id()) {
     pmap(get_num_threads(), boost::bind(&install_log_controller, this, _1));
 }
 
-static void uninstall_log_controller(UNUSED log_controller_t *lc, int thread) {
+static void uninstall_log_controller(log_controller_t *lc, int thread) {
     on_thread_t thread_switcher(thread);
-    rassert(log_controller == lc);
-    log_controller = NULL;
-    log_controller_lock->co_lock(rwi_write);
-    delete log_controller_lock;
+    rassert(TLS_get_log_controller() == lc);
+    TLS_set_log_controller(NULL);
+    TLS_get_log_controller_lock()->co_lock(rwi_write);
+    delete TLS_get_log_controller_lock();
 }
 
 log_controller_t::~log_controller_t() {
@@ -132,7 +135,7 @@ void _mlog_start(const char *src_file, int src_line, log_level_t level) {
 
     /* If the log controller hasn't been started yet, then assume the thread pool hasn't been
     started either, so don't write which core the message came from. */
-    if (log_controller) {
+    if (TLS_get_log_controller()) {
         mlogf("%s %s (Q%d, %s:%d): ", formatted_time, level_str, get_thread_id(), src_file, src_line);
     } else {
         mlogf("%s %s (%s:%d): ", formatted_time, level_str, src_file, src_line);
@@ -163,17 +166,17 @@ void write_log_message(log_message_t *msg, log_controller_t *lc) {
     }
 
     delete msg;
-    log_controller_lock->unlock();
+    TLS_get_log_controller_lock()->unlock();
 }
 
 void mlog_end() {
     rassert(current_message);
-    if (!log_controller) {
+    if (!TLS_get_log_controller()) {
         do_write_message(current_message);
         delete current_message;
     } else {
-        log_controller_lock->co_lock(rwi_read);
-        coro_t::spawn(boost::bind(&write_log_message, current_message, log_controller));
+        TLS_get_log_controller_lock()->co_lock(rwi_read);
+        coro_t::spawn(boost::bind(&write_log_message, current_message, TLS_get_log_controller()));
     }
     current_message = NULL;
 }
