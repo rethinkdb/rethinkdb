@@ -20,8 +20,8 @@ FILE *log_file = stderr;
 to one thread to write them. */
 
 
-TLS(log_controller_t *, log_controller, NULL);
-TLS(rwi_lock_t *, log_controller_lock, NULL);
+TLS_with_init(log_controller_t *, log_controller, NULL);
+TLS_with_init(rwi_lock_t *, log_controller_lock, NULL);
 
 static void install_log_controller(log_controller_t *lc, int thread) {
     on_thread_t thread_switcher(thread);

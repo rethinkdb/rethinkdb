@@ -158,9 +158,9 @@ perfmon_sampler_t
     pm_memory_faults("memory_faults", secs_to_ticks(5));
 
 
-TLS(proc_pid_stat_t, last_stats, proc_pid_stat_t());
-TLS(ticks_t, last_ticks, 0);
-TLS(bool, have_reported_stats_error, false);
+TLS(proc_pid_stat_t, last_stats);
+TLS_with_init(ticks_t, last_ticks, 0);
+TLS_with_init(bool, have_reported_stats_error, false);
 
 void poll_system_stats(void *) {
 
