@@ -1,3 +1,4 @@
+#ifndef NO_REDIS
 #include "redis/redis.hpp"
 #include "redis/redis_util.hpp"
 #include "redis/counted/counted2.hpp"
@@ -585,3 +586,4 @@ EXECUTE_R(zscore) {
 }
 
 WRITE(zunionstore)
+#endif //#ifndef NO_REDIS

@@ -1,3 +1,4 @@
+#ifndef NO_REDIS
 #include "redis/redis.hpp"
 #include "redis/redis_util.hpp"
 
@@ -291,3 +292,4 @@ EXECUTE_R(Strlen) {
     string_read_oper_t oper(one, btree, otok);
     return int_response(oper.get_length());
 }
+#endif //#ifndef NO_REDIS

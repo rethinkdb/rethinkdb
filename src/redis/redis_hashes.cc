@@ -1,3 +1,4 @@
+#ifndef NO_REDIS
 #include "redis/redis_util.hpp"
 #include "btree/iteration.hpp"
 #include <boost/lexical_cast.hpp>
@@ -403,3 +404,4 @@ EXECUTE_R(hvals) {
 
     return read_response_t(new multi_bulk_result_t(vals));
 }
+#endif //#ifndef NO_REDIS

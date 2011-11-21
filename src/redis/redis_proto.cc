@@ -1,3 +1,4 @@
+#ifndef NO_REDIS
 #include "errors.hpp"
 #include <boost/variant.hpp>
 
@@ -102,3 +103,4 @@ struct output_visitor : boost::static_visitor<void> {
 void redis_output_writer::output_response(redis_protocol_t::redis_return_type response) {
     boost::apply_visitor(output_visitor(out_conn), response);
 }
+#endif //#ifndef NO_REDIS

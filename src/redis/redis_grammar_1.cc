@@ -1,3 +1,4 @@
+#ifndef NO_REDIS
 #include "redis/redis_grammar.hpp"
 
 #include <boost/spirit/home/qi/action/action.hpp>
@@ -49,3 +50,4 @@ void redis_grammar<Iterator>::help_construct_1() {
 
 
 template class redis_grammar<tcp_conn_t::iterator>;
+#endif //#ifndef NO_REDIS

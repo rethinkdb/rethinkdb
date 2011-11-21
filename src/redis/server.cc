@@ -1,3 +1,4 @@
+#ifndef NO_REDIS
 #include "redis/server.hpp"
 
 #include <iostream>
@@ -147,3 +148,4 @@ void redis_listener_t::handle(boost::scoped_ptr<nascent_tcp_conn_t> &nconn) {
     until the connection is closed. */
     serve_redis(conn.get(), redis_interface);
 }
+#endif //#ifndef NO_REDIS
