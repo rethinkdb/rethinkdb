@@ -59,18 +59,49 @@ function isEmpty(x) {
     return true;
 };
 
+function doGET(url, cb) {
+    var req = new XMLHttpRequest();
+    req.open('GET', url, true);
+    req.onreadystatechange = function (e) {
+        if (req.readyState === 4) { // Completed
+            // The callback can handle errors here, but maybe we should.
+            cb(req);
+        }
+    };
+    req.send(null);
+}
+
+function parseJSON(json) {
+    if (json === '') {
+        throw "Empty JSON response"
+    }
+    try {
+        return eval('(' + json + ')');
+    } catch (e) {
+        console.log(json);
+        throw e;
+    }
+}
+
+function doGETJSON(url, cb) {
+    doGET(url, function (req) {
+        cb(parseJSON(req.responseText));
+    });
+}
+
 function currentUnixTimestamp() {
     return (new Date()).getTime() / 1000;
 }
 
 var formatDuration = function(seconds) {
     function pad(s) {
-        if (s.length() == 1) {
+        s = "" + s;
+        if (s.length == 1) {
             s = "0" + s;
         }
         return s;
     }
-    var s = seconds % 60;
+    var s = Math.floor(seconds % 60);
     var m = Math.floor(seconds / 60) % 60;
     var h = Math.floor(seconds / 3600);
     return '' + pad(h) + ':' + pad(m) + ':' + pad(s);
@@ -192,7 +223,7 @@ function BuildStatusRenderer() {
         } else if (build.status == "running") {
             this.element.style.color = "#CCAA00";
             this.text.replaceWholeText("Running (" + formatDuration(currentUnixTimestamp() - build.start_time) + ")");
-        } else if (build.status == "pass") {
+        } else if (build.status == "ok") {
             this.element.style.color = "green";
             this.text.replaceWholeText("OK (" + formatDuration(build.end_time - build.start_time) + ")");
         } else if (build.status == "fail") {
@@ -278,9 +309,21 @@ function LogRenderer(title) {
 };
 """
 
+@app.route("/json/results")
+@app.route("/json/results/")
+def json_list_results():
+    results = simple_linear_db.read_linear_db("result_log.txt")
+    return json.dumps(results)
+
+@app.route("/json/output")
+@app.route("/json/output/")
+def json_list_output():
+    with open("output.txt") as output_file:
+        return json.dumps(output_file.read())
+
 @app.route("/")
 def list():
-    results = simple_linear_db.read_linear_db("result_log.txt")
+    
     template = """
         <html>
             <head>
@@ -363,6 +406,15 @@ def list():
                         };
                     };
 
+                    function refresh() {
+                        doGETJSON(%(refresh_results_url)s, function (results) {
+                            root.setResults(results);
+                        });
+                        doGETJSON(%(refresh_output_url)s, function (output) {
+                            root.setOutput(output);
+                        });
+                    }
+
                     initialResults = %(initial_results)s;
                     initialOutput = %(initial_output)s;
                     function start() {
@@ -370,6 +422,7 @@ def list():
                         root.setResults(initialResults);
                         root.setOutput(initialOutput);
                         document.getElementsByTagName("body")[0].appendChild(root.element);
+                        setInterval("refresh()", 1000);
                     };
                 </script>
             </head>
@@ -378,27 +431,37 @@ def list():
             </body>
         </html>
     """
-    with open("output.txt") as output_file:
-        return template % {
-            "shared_javascript": shared_javascript,
-            "initial_results": json.dumps(results),
-            "initial_output": json.dumps(output_file.read()),
-            "build_url_pattern": json.dumps(generate_subbable_link("build", name="<BUILD>")),
-            "test_url_pattern": json.dumps(generate_subbable_link("test", name="<TEST>")),
-            "round_url_pattern": json.dumps(generate_subbable_link("round", name="<TEST>", round="<ROUND>"))
-            }
+    return template % {
+        "shared_javascript": shared_javascript,
+        "initial_results": json_list_results(),
+        "refresh_results_url": json.dumps(flask.url_for("json_list_results")),
+        "initial_output": json_list_output(),
+        "refresh_output_url": json.dumps(flask.url_for("json_list_output")),
+        "build_url_pattern": json.dumps(generate_subbable_link("build", name="<BUILD>")),
+        "test_url_pattern": json.dumps(generate_subbable_link("test", name="<TEST>")),
+        "round_url_pattern": json.dumps(generate_subbable_link("round", name="<TEST>", round="<ROUND>"))
+        }
+
+@app.route("/json/build/<name>/results")
+@app.route("/json/build/<name>/results/")
+def json_build_results(name):
+    results = simple_linear_db.read_linear_db("result_log.txt")
+    if "builds" not in results or name not in results["builds"]:
+        flask.abort(404)
+    return json.dumps(results["builds"][name])
+
+@app.route("/json/build/<name>/output")
+@app.route("/json/build/<name>/output/")
+def json_build_output(name):
+    if os.path.exists("builds/%s.txt" % name):
+        with open("builds/%s.txt" % name) as output_file:
+            return json.dumps(output_file.read())
+    else:
+        return "undefined"
 
 @app.route("/build/<name>")
 @app.route("/build/<name>/")
 def build(name):
-    results = simple_linear_db.read_linear_db("result_log.txt")
-    if "builds" not in results or name not in results["builds"]:
-        flask.abort(404)
-    if os.path.exists("builds/%s.txt" % name):
-        with open("builds/%s.txt" % name) as output_file:
-            initial_output = json.dumps(output_file.read())
-    else:
-        initial_output = "undefined"
     template = """
         <html>
             <head>
@@ -435,7 +498,16 @@ def build(name):
                         this.setOutput = function (output) {
                             this.logRenderer.setData(output);
                         };
-                    };
+                    }
+
+                    function refresh() {
+                        doGETJSON(%(refresh_result_url)s, function (result) {
+                            root.setResult(result);
+                        });
+                        doGETJSON(%(refresh_output_url)s, function (output) {
+                            root.setOutput(output);
+                        });
+                    }
 
                     initialResult = %(initial_result)s;
                     initialOutput = %(initial_output)s;
@@ -444,7 +516,8 @@ def build(name):
                         root.setResult(initialResult);
                         root.setOutput(initialOutput);
                         document.getElementsByTagName("body")[0].appendChild(root.element);
-                    };
+                        setInterval("refresh()", 1000);
+                    }
                 </script>
             </head>
             <body onload="start();">
@@ -455,16 +528,23 @@ def build(name):
     return template % {
         "shared_javascript": shared_javascript,
         "name": flask.escape(name),
-        "initial_result": json.dumps(results["builds"][name]),
-        "initial_output": initial_output
+        "initial_result": json_build_results(name),
+        "refresh_result_url": json.dumps(flask.url_for("json_build_results", name=name)),
+        "initial_output": json_build_output(name),
+        "refresh_output_url": json.dumps(flask.url_for("json_build_output", name=name))
         }
+
+@app.route("/json/test/<name>/result")
+@app.route("/json/test/<name>/result/")
+def json_test_result(name):
+    results = simple_linear_db.read_linear_db("result_log.txt")
+    if "tests" not in results or name not in results["tests"]:
+        flask.abort(404)
+    return json.dumps(results["tests"][name])
 
 @app.route("/test/<name>")
 @app.route("/test/<name>/")
 def test(name):
-    results = simple_linear_db.read_linear_db("result_log.txt")
-    if "tests" not in results or name not in results["tests"]:
-        flask.abort(404)
     template = """
         <html>
             <head>
@@ -514,11 +594,18 @@ def test(name):
                         };
                     }
 
+                    function refresh() {
+                        doGETJSON(%(refresh_result_url)s, function (result) {
+                            root.setResult(result);
+                        });
+                    }
+
                     initialResult = %(initial_result)s;
                     function start() {
                         root = new TestRootRenderer();
                         root.setResult(initialResult);
                         document.getElementsByTagName("body")[0].appendChild(root.element);
+                        setInterval("refresh()", 1000);
                     };
                 </script>
             </head>
@@ -530,22 +617,32 @@ def test(name):
     return template % {
         "shared_javascript": shared_javascript,
         "name": flask.escape(name),
-        "initial_result": json.dumps(results["tests"][name]),
+        "initial_result": json_test_result(name),
+        "refresh_result_url": json.dumps(flask.url_for("json_test_result", name=name)),
         "round_url_pattern": json.dumps(generate_subbable_link("round", name=name, round="<ROUND>"))
         }
+
+@app.route("/json/test/<name>/round/<round>/results")
+@app.route("/json/test/<name>/round/<round>/results/")
+def json_test_round_result(name, round):
+    results = simple_linear_db.read_linear_db("result_log.txt")
+    if "tests" not in results or name not in results["tests"] or \
+            "rounds" not in results["tests"][name] or int(round) not in results["tests"][name]["rounds"]:
+        flask.abort(404)
+    return json.dumps(results["tests"][name]["rounds"][int(round)])
+
+@app.route("/json/test/<name>/round/<round>/output")
+@app.route("/json/test/<name>/round/<round>/output/")
+def json_test_round_output(name, round):
+    if os.path.exists("tests/%s/%s/output.txt" % (name, round)):
+        with open("tests/%s/%s/output.txt" % (name, round)) as output_file:
+            return json.dumps(output_file.read())
+    else:
+        return "undefined"
 
 @app.route("/test/<name>/round/<round>")
 @app.route("/test/<name>/round/<round>/")
 def round(name, round):
-    results = simple_linear_db.read_linear_db("result_log.txt")
-    if "tests" not in results or name not in results["tests"] or \
-            "rounds" not in results["tests"] or round not in results["tests"][name]["rounds"]:
-        flask.abort(404)
-    if os.path.exists("tests/%s/%s/output.txt" % (name, round)):
-        with open("tests/%s/%s/output.txt" % (name, round)) as output_file:
-            initial_output = json.dumps(output_file.read())
-    else:
-        initial_output = "undefined"
     template = """
         <html>
             <head>
@@ -554,7 +651,8 @@ def round(name, round):
                     %(shared_javascript)s
 
                     function TestRoundRootRenderer(name) {
-                        this.statusRenderer = new TestStatusRenderer();
+                        this.statusRenderer = new TestRoundStatusRenderer();
+                        this.commandLine = makeText("");
                         this.tracebackRenderer = new OptionalRenderer(
                             "Traceback",
                             function () {
@@ -569,6 +667,10 @@ def round(name, round):
                         );
                         this.element = makeElement("div", { }, [
                             makeElement("p", { }, [
+                                makeText("Command line: "),
+                                makeElement("code", { }, [this.commandLine])
+                            ]),
+                            makeElement("p", { }, [
                                 makeText("Status: "),
                                 this.statusRenderer.element
                             ]),
@@ -579,18 +681,33 @@ def round(name, round):
                             this.statusRenderer.setData(round);
                             this.tracebackRenderer.setData(round.traceback);
                         };
+                        this.setTestData = function (test) {
+                            this.commandLine.replaceWholeText(test.command_line);
+                        }
                         this.setOutput = function (output) {
                             this.logRenderer.setData(output);
                         };
                     };
 
+                    function refresh() {
+                        doGETJSON(%(refresh_result_url)s, function (result) {
+                            root.setResult(result);
+                        });
+                        doGETJSON(%(refresh_output_url)s, function (output) {
+                            root.setOutput(output);
+                        });
+                    }
+
                     initialResult = %(initial_result)s;
+                    initialTestData = %(initial_test_data)s;
                     initialOutput = %(initial_output)s;
                     function start() {
                         root = new TestRoundRootRenderer();
                         root.setResult(initialResult);
+                        root.setTestData(initialTestData);
                         root.setOutput(initialOutput);
                         document.getElementsByTagName("body")[0].appendChild(root.element);
+                        setInterval("refresh()", 1000);
                     };
                 </script>
             </head>
@@ -603,8 +720,11 @@ def round(name, round):
         "shared_javascript": shared_javascript,
         "name": flask.escape(name),
         "round": flask.escape(round),
-        "initial_result": json.dumps(results["tests"][name]["rounds"][round]),
-        "initial_output": initial_output
+        "initial_result": json_test_round_result(name, round),
+        "refresh_result_url": json.dumps(flask.url_for("json_test_round_result", name=name, round=round)),
+        "initial_test_data": json_test_result(name),
+        "initial_output": json_test_round_output(name, round),
+        "refresh_output_url": json.dumps(flask.url_for("json_test_round_output", name=name, round=round))
         }
 
 app.debug = True

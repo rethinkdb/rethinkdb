@@ -209,10 +209,10 @@ with simple_linear_db.LinearDBWriter("result_log.txt") as result_log:
                 with open("builds/%s.txt" % name, "w") as output:
                     try:
                         remotely.run(
-                            command_line = build.command_line,
+                            command_line = build["command_line"],
                             stdout = output,
                             inputs = ["rethinkdb"],
-                            outputs = build.products,
+                            outputs = build["products"],
                             on_begin_script = lambda: result_log.write("builds", name, status = "running", start_time = time.time()),
                             on_end_script = lambda: result_log.write("builds", name, status = "ok", end_time = time.time())
                             )
@@ -225,7 +225,7 @@ with simple_linear_db.LinearDBWriter("result_log.txt") as result_log:
             builds[name]["status"] = "waiting"
         result_log.write(builds = builds)
 
-        run_in_threads((lambda: run_build(name, builds[name])) for name in builds)
+        run_in_threads((lambda name=name: run_build(name, builds[name])) for name in builds)
 
     # Plan what tests to run
 
@@ -298,13 +298,14 @@ with simple_linear_db.LinearDBWriter("result_log.txt") as result_log:
                 run_test_remotely(
                     """
 set -e
+WD=$(pwd)
 mkdir -p %(directory)s
 cd %(directory)s
-PYTHONUNBUFFERED=1 %(command)s
+PYTHONUNBUFFERED=1 $WD/rethinkdb/test/%(command)s
 """ % { "directory": directory, "command": test["command_line"] },
                     stdout = output_file,
                     inputs = test["inputs"],
-                    outputs = [os.path.join("tests", name, "output_from_test")],
+                    outputs = [os.path.join("tests", name, str(round), "output_from_test")],
                     on_begin_script = lambda: result_log.write("tests", name, "rounds", round, status = "running", start_time = time.time()),
                     on_end_script = lambda rc: result_log.write("tests", name, "rounds", round, status = "pass" if rc == 0 else "fail", end_time = time.time())
                     )
@@ -315,6 +316,7 @@ PYTHONUNBUFFERED=1 %(command)s
         test = tests[name]
         missing_prereqs = [i for i in test["inputs"] if not os.path.exists(i)]
         if not missing_prereqs:
+            os.mkdir(os.path.join("tests", name))
             test["rounds"] = { }
             for i in xrange(test["repeat"]):
                 test["rounds"][i] = { "status": "waiting" }
