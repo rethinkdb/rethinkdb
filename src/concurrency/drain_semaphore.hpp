@@ -17,7 +17,6 @@ and it would be nice to get rid of `drain_semaphore_t` completely. */
 
 struct drain_semaphore_t : public home_thread_mixin_t {
 
-    explicit drain_semaphore_t(int specified_home_thread);
     drain_semaphore_t();
     ~drain_semaphore_t();
 
@@ -37,6 +36,8 @@ struct drain_semaphore_t : public home_thread_mixin_t {
     /* Call drain() to wait for all processes to finish and not allow any new ones
     to start. */
     void drain();
+
+    void rethread(int new_thread);
 
 private:
     bool draining;

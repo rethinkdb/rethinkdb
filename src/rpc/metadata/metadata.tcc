@@ -19,6 +19,7 @@ metadata_cluster_t<metadata_t>::metadata_cluster_t(int port, const metadata_t &i
 
 template<class metadata_t>
 metadata_cluster_t<metadata_t>::~metadata_cluster_t() {
+    assert_thread();
     root_view->parent = NULL;
 }
 
@@ -29,8 +30,10 @@ boost::shared_ptr<metadata_readwrite_view_t<metadata_t> > metadata_cluster_t<met
 }
 
 template<class metadata_t>
-metadata_cluster_t<metadata_t>::root_view_t::root_view_t(metadata_cluster_t *p) :
-    parent(p) { }
+metadata_cluster_t<metadata_t>::root_view_t::root_view_t(metadata_cluster_t *p)
+    : parent(p) {
+    parent->assert_thread();
+}
 
 template<class metadata_t>
 metadata_t metadata_cluster_t<metadata_t>::root_view_t::get() {
@@ -85,6 +88,7 @@ void metadata_cluster_t<metadata_t>::root_view_t::sync_from(peer_id_t peer, sign
 
 template<class metadata_t>
 void metadata_cluster_t<metadata_t>::root_view_t::sync_to(peer_id_t peer, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, sync_failed_exc_t) {
+    // TODO THREAD what thread?
     /* For now we just implement `sync_to()` the same way we implement
     `sync_from()`: we ping the peer. In the future, it could send an ack every
     time the metadata changes and we could just check how recently the last ack
@@ -110,11 +114,13 @@ void metadata_cluster_t<metadata_t>::join_metadata_locally(metadata_t added_meta
 
 template<class metadata_t>
 void metadata_cluster_t<metadata_t>::call(boost::function<void()> fun) {
+    // TODO THREAD wtf is this?
     fun();
 }
 
 template<class metadata_t>
 void metadata_cluster_t<metadata_t>::write_metadata(std::ostream &stream, metadata_t md) {
+    // THREAD connection thread.
     stream << 'M';
     boost::archive::binary_oarchive archive(stream);
     archive << md;
@@ -122,19 +128,25 @@ void metadata_cluster_t<metadata_t>::write_metadata(std::ostream &stream, metada
 
 template<class metadata_t>
 void metadata_cluster_t<metadata_t>::write_ping(std::ostream &stream, int ping_id) {
+    // THREAD connection thread.
     stream << 'P';
     stream.write(reinterpret_cast<const char *>(&ping_id), sizeof(ping_id));
 }
 
 template<class metadata_t>
 void metadata_cluster_t<metadata_t>::write_ping_response(std::ostream &stream, int ping_id) {
+    // THREAD connection thread
     stream << 'R';
     stream.write(reinterpret_cast<const char *>(&ping_id), sizeof(ping_id));
 }
 
 template<class metadata_t>
 void metadata_cluster_t<metadata_t>::on_utility_message(peer_id_t sender, std::istream &stream, boost::function<void()> &on_done) {
-    assert_thread();
+    assert_connection_thread(sender);
+
+    // TODO THREAD on_thread_t here is a thoughtless hack, an experiment.
+    on_thread_t switcher(home_thread());
+
     char code;
     stream >> code;
     // TODO: Hard-coded constants.
@@ -169,6 +181,7 @@ void metadata_cluster_t<metadata_t>::on_utility_message(peer_id_t sender, std::i
 template<class metadata_t>
 void metadata_cluster_t<metadata_t>::on_connect(peer_id_t peer) {
     assert_thread();
+
     /* We have to spawn this in a separate coroutine because `on_connect()` is
     not supposed to block. */
     coro_t::spawn_now(boost::bind(
@@ -183,6 +196,7 @@ void metadata_cluster_t<metadata_t>::on_connect(peer_id_t peer) {
 
 template<class metadata_t>
 void metadata_cluster_t<metadata_t>::on_disconnect(peer_id_t) {
+    assert_thread();
     /* Ignore event */
 }
 

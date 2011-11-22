@@ -174,6 +174,8 @@ public:
     iterator begin();
     iterator end();
 
+    void rethread(int);
+
 private:
     explicit linux_tcp_conn_t(fd_t sock);   // Used by tcp_listener_t
 
@@ -303,5 +305,7 @@ private:
     void on_event(int events);
     bool log_next_error;
 };
+
+
 
 #endif // __ARCH_IO_NETWORK_HPP__

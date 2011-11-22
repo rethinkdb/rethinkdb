@@ -1,8 +1,6 @@
 #include "concurrency/resettable_cond_var.hpp"
 #include "concurrency/cond_var.hpp"
 
-resettable_cond_t::resettable_cond_t(int specified_home_thread)
-    : state(false), signal(new cond_t(specified_home_thread)) { }
 resettable_cond_t::resettable_cond_t() : state(false), signal(new cond_t) { }
 
 // Put here so that the header file can be minimized.
@@ -20,4 +18,7 @@ void resettable_cond_t::reset() {
 }
 signal_t *resettable_cond_t::get_signal() {
     return signal.get();
+}
+void resettable_cond_t::rethread(int new_thread) {
+    signal->rethread(new_thread);
 }

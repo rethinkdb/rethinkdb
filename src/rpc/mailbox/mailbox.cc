@@ -101,11 +101,13 @@ mailbox_t *mailbox_cluster_t::mailbox_table_t::find_mailbox(mailbox_t::id_t id) 
 }
 
 void mailbox_cluster_t::write_utility_message(std::ostream &stream, boost::function<void(std::ostream&)> writer) {
+    // TODO THREAD same as send_utility_message(..)
     stream << 'u';
     writer(stream);
 }
 
 void mailbox_cluster_t::write_mailbox_message(std::ostream &stream, int dest_thread, mailbox_t::id_t dest_mailbox_id, boost::function<void(std::ostream&)> writer) {
+    // TODO THREAD same as send(..)
     stream << 'm';
     stream.write(reinterpret_cast<char*>(&dest_thread), sizeof(dest_thread));
     stream.write(reinterpret_cast<char*>(&dest_mailbox_id), sizeof(dest_mailbox_id));
@@ -113,6 +115,7 @@ void mailbox_cluster_t::write_mailbox_message(std::ostream &stream, int dest_thr
 }
 
 void mailbox_cluster_t::on_message(peer_id_t src, std::istream &stream, boost::function<void()> &on_done) {
+    assert_connection_thread(src);
     char c;
     stream >> c;
     switch(c) {
@@ -127,11 +130,13 @@ void mailbox_cluster_t::on_message(peer_id_t src, std::istream &stream, boost::f
             stream.read(reinterpret_cast<char*>(&dest_mailbox_id), sizeof(dest_mailbox_id));
 
             on_thread_t thread_switcher(dest_thread);
+
             mailbox_t *mbox = mailbox_tables[dest_thread].find_mailbox(dest_mailbox_id);
             if (mbox) {
                 mbox->callback(stream, on_done);
             } else {
-                /* Mailbox doesn't exist; don't deliver message */
+                /* Mailbox doesn't exist; don't deliver message, don't
+                   bother consuming bytes from stream. */
                 on_done();
                 /* Print a warning message */
                 mailbox_t::address_t dest_address;

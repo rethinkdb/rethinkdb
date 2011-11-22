@@ -140,13 +140,22 @@ protected:
     void send_message(peer_id_t, boost::function<void(std::ostream&)>);
 
     /* Whenever we receive a message, we spawn a new coroutine running
-    `on_message()`. Its arguments are the peer we received the message from, a
-    `std::istream&` from that peer, and a function to call when we're done
-    reading the message off the stream. `on_message()` should read the message,
-    call the function, then perform whatever action the message requires. This
-    way, the next message can be read off the socket as soon as possible.
-    `connectivity_cluster_t` may run `on_message()` on any thread. */
-    virtual void on_message(peer_id_t, std::istream&, boost::function<void()>&) = 0;
+    `on_message()`. Its arguments are the peer we received the message
+    from, a `std::istream&` from that peer, and a function to call
+    when we're done reading the message off the stream. `on_message()`
+    should read the message, call the function, then perform whatever
+    action the message requires. This way, the next message can be
+    read off the socket as soon as possible.  `connectivity_cluster_t`
+    may run `on_message()` on any thread.  on_message may call on_done
+    without consuming any bytes, in which case it is this superclass's
+    responsibility to make sure the bytes get consumed. */
+    virtual void on_message(peer_id_t src, std::istream& stream, boost::function<void()>& on_done) = 0;
+
+#ifndef NDEBUG
+    void assert_connection_thread(peer_id_t peer) const;
+#else
+    void assert_connection_thread(UNUSED peer_id_t peer) const { }
+#endif  // ndef NDEBUG
 
 private:
     /* We listen for new connections from other peers. (The reason `listener` is
@@ -168,17 +177,24 @@ private:
     currently access and their addresses. Peers that are in the process of
     connecting or disconnecting may be in `routing_table` but not in
     `connections`. */
-    peer_id_t me;
+    const peer_id_t me;
     std::map<peer_id_t, peer_address_t> routing_table;
 
-    /* `connections` holds open connections to other peers. It has an entry for
-    every peer that we are fully and officially connected to, not including us.
-    That means it's a subset of the nodes in `routing_table`. */
+    /* connections holds open connections to other peers. It has an
+    entry for every peer that we are fully and officially connected
+    to, not including us.  That means it's a subset of the nodes in
+    routing_table.  Also it's a subset of all the information in
+    routing_table, since it contains a peer_address_t. */
     struct connection_t {
         streamed_tcp_conn_t *conn;
+        peer_address_t address;
         mutex_t send_mutex;
     };
-    std::map<peer_id_t, connection_t*> connections;
+    std::vector< std::map<peer_id_t, connection_t *> > connection_maps_by_thread;
+
+
+    void set_a_connection_entry(int target_thread, peer_id_t other_id, connection_t *connection);
+    void erase_a_connection_entry(int target_thread, peer_id_t other_id);
 
     /* Writes to `routing_table` and `connections` are protected by this mutex
     so we never get redundant connections to the same peer. */
@@ -192,6 +208,8 @@ private:
 
     /* This makes sure all the connections are dead before we shut down */
     auto_drainer_t drainer;
+
+    rng_t rng;
 
     DISABLE_COPYING(connectivity_cluster_t);
 };

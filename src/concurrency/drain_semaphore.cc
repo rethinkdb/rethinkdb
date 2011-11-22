@@ -2,10 +2,6 @@
 #include "concurrency/signal.hpp"
 
 
-drain_semaphore_t::drain_semaphore_t(int specified_home_thread)
-    : home_thread_mixin_t(specified_home_thread),
-      draining(false), refcount(0),
-      cond(specified_home_thread) { }
 drain_semaphore_t::drain_semaphore_t() : draining(false), refcount(0) { }
 drain_semaphore_t::~drain_semaphore_t() {
     /* Should we assert draining here? Or should we call drain() if
@@ -47,6 +43,14 @@ drain_semaphore_t::lock_t& drain_semaphore_t::lock_t::operator=(const lock_t &co
 drain_semaphore_t::lock_t::~lock_t() {
     parent->release();
 }
+
+void drain_semaphore_t::rethread(int new_thread) {
+    rassert(refcount == 0);
+    real_home_thread = new_thread;
+    cond.rethread(new_thread);
+}
+
+
 
 void drain_semaphore_t::drain() {
     assert_thread();

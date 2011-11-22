@@ -60,7 +60,7 @@ public:
     // TODO: The following might already have equivalents in std::iostream, which we should
     // support instead.
     // However they are convenient for porting legacy code to the streamed_tcp_conn_t
-    // interface.
+    // interface (which is even more legacy).
 
     /* Call shutdown_read() to close the half of the pipe that goes from the peer to us. If there
     is an outstanding read() or peek_until() operation, it will throw read_closed_exc_t. */
@@ -82,6 +82,14 @@ public:
     /* Returns false if the half of the pipe that goes from us to the peer has been closed. */
     bool is_write_open() {
         return conn_->is_write_open();
+    }
+
+    void rethread(int new_thread) {
+        conn_->rethread(new_thread);
+    }
+
+    int home_thread() const {
+        return conn_->home_thread();
     }
 
 private:
@@ -224,6 +232,30 @@ private:
     std::istream istream;
     std::ostream ostream;
 };
+
+
+class rethread_streamed_tcp_conn_t {
+public:
+    rethread_streamed_tcp_conn_t(streamed_tcp_conn_t *conn, int thread) : conn_(conn), old_thread_(conn->home_thread()), new_thread_(thread) {
+        conn->rethread(thread);
+        rassert(conn->home_thread() == thread);
+    }
+
+    ~rethread_streamed_tcp_conn_t() {
+        rassert(conn_->home_thread() == new_thread_);
+        conn_->rethread(old_thread_);
+        rassert(conn_->home_thread() == old_thread_);
+    }
+
+private:
+    streamed_tcp_conn_t *conn_;
+    int old_thread_, new_thread_;
+
+    DISABLE_COPYING(rethread_streamed_tcp_conn_t);
+};
+
+
+
 
 /*
  tcp_listener_t creates tcp_conn_t objects. We want to be able to get

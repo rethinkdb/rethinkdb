@@ -39,9 +39,14 @@ private:
     std::map<int, int> timing;
     int sequence_number;
     void on_message(peer_id_t peer, std::istream &stream, boost::function<void()> &on_done) {
+        assert_connection_thread(peer);
+
         int i;
         stream >> i;
+
         on_done();
+
+        on_thread_t th(home_thread());
         inbox[i] = peer;
         timing[i] = sequence_number++;
     }
@@ -55,17 +60,21 @@ public:
     }
     void expect(int message, peer_id_t peer) {
         expect_delivered(message);
+        assert_thread();
         EXPECT_TRUE(inbox[message] == peer);
     }
     void expect_delivered(int message) {
+        assert_thread();
         EXPECT_TRUE(inbox.find(message) != inbox.end());
     }
     void expect_undelivered(int message) {
+        assert_thread();
         EXPECT_TRUE(inbox.find(message) == inbox.end());
     }
     void expect_order(int first, int second) {
         expect_delivered(first);
         expect_delivered(second);
+        assert_thread();
         EXPECT_LT(timing[first], timing[second]);
     }
 };

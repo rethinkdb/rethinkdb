@@ -69,6 +69,7 @@ static void run_read_write_test() {
         EXPECT_EQ((*it).second, resp.values[(*it).first]);
     }
 }
+
 TEST(ClusteringNamespace, ReadWrite) {
     run_in_thread_pool(&run_read_write_test);
 }

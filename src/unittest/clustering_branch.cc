@@ -95,6 +95,7 @@ void run_read_write_test(mailbox_cluster_t *cluster,
         EXPECT_EQ((*it).second, resp.values[(*it).first]);
     }
 }
+
 TEST(ClusteringBranch, ReadWrite) {
     run_in_thread_pool_with_broadcaster(&run_read_write_test);
 }

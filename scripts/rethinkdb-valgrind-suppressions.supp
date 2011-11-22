@@ -52,3 +52,38 @@
     ...
     fun:_Z15print_backtraceP8_IO_FILEb
 }
+
+{
+    LocaleClassic
+    drd:ConflictingAccess
+    fun:_ZNSt6localeC1EPNS_5_ImplE
+    fun:_ZNSt6locale7classicEv
+}
+
+{
+    LocaleDepressing
+    drd:ConflictingAccess
+    fun:_ZNSt6localeC1IN5boost7archive*
+}
+
+{
+    FlockfileWtf
+    drd:ConflictingAccess
+    ...
+    fun:flockfile
+}
+
+{
+    FunlockfileWtf
+    drd:ConflictingAccess
+    ...
+    fun:funlockfile
+}
+
+{
+    StringWtf
+    drd:ConflictingAccess
+    ...
+    fun:_ZNSs*
+}
+

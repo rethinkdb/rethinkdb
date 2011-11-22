@@ -26,6 +26,7 @@ public:
     coro_pool_t(size_t worker_count_, passive_producer_t<boost::function<void()> > *source);
 
     ~coro_pool_t();
+    void rethread(int new_thread);
 
     // Blocks until all pending tasks have been processed. The coro_pool_t is
     // reusable immediately after drain() returns.
