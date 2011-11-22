@@ -46,11 +46,7 @@ redis_protocol_t::redis_return_type CNAME(std::vector<std::string> one) { \
     return exec(oper); \
 }
 
-void toUpper(std::string &str) {
-    for(unsigned i = 0; i < str.length(); i++) {
-        str[i] = toupper(str[i]);
-    }
-}
+void toUpper(std::string &str);
 
 struct redis_ext {
     redis_ext(namespace_interface_t<redis_protocol_t> *intface) : namespace_interface(intface) {;}
