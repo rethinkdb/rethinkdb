@@ -68,6 +68,11 @@ public:
         return after;
     }
 
+    // TODO get rid of this. This is only for a hack until we know what to do with timestamps
+    uint64_t numeric_representation() {
+        return before.num;
+    }
+
 private:
     state_timestamp_t before;
     RDB_MAKE_ME_SERIALIZABLE_1(before);

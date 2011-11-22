@@ -113,7 +113,7 @@ private:
     coro_context_t object. */
     coro_context_t *context;
 
-    coro_t(const boost::function<void()>& deed);
+    explicit coro_t(const boost::function<void()>& deed);
     boost::function<void()> deed_;
     void run();
     ~coro_t();

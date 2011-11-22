@@ -82,9 +82,11 @@ public:
 
         read_t() { }
         read_t(const read_t& r) : query(r.query) { }
-        template<class T> read_t(const T& q) : query(q) { }
 
-        boost::variant<get_query_t, rget_query_t> query;
+        typedef boost::variant<get_query_t, rget_query_t> query_t;
+        read_t(const query_t& q) : query(q) { }
+
+        query_t query;
     };
 
     class write_response_t {
@@ -92,15 +94,17 @@ public:
     public:
         write_response_t() { }
         write_response_t(const write_response_t& w) : result(w.result) { }
-        template<class T> write_response_t(const T& r) : result(r) { }
 
-        boost::variant<
-            get_result_t,   // for `gets` operations
-            set_result_t,
-            delete_result_t,
-            incr_decr_result_t,
-            append_prepend_result_t
-            > result;
+        typedef boost::variant<
+                    get_result_t,   // for `gets` operations
+                    set_result_t,
+                    delete_result_t,
+                    incr_decr_result_t,
+                    append_prepend_result_t
+                    > result_t;
+        template<class T> write_response_t(const result_t& r) : result(r) { }
+
+        result_t result;
     };
 
     class write_t {

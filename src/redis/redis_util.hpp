@@ -24,7 +24,7 @@ redis_protocol_t::write_response_t redis_protocol_t::CNAME::execute(btree_slice_
     (void)btree; \
     (void)timestamp; \
     (void)otok; \
-    throw "Redis command " #CNAME " not yet implemented"; \
+    throw "ERR Redis command " #CNAME " not yet implemented"; \
 }
 
 #define READ(CNAME)\
@@ -34,14 +34,10 @@ redis_protocol_t::read_t redis_protocol_t::CNAME::shard(UNUSED redis_protocol_t:
     return redis_protocol_t::read_t(new CNAME(*this)); \
 } \
  \
-std::vector<redis_protocol_t::read_t> redis_protocol_t::CNAME::parallelize(UNUSED int optimal_factor) { \
-    crash("no more parallelization"); \
-} \
- \
 redis_protocol_t::read_response_t redis_protocol_t::CNAME::execute(btree_slice_t *btree, order_token_t otok) { \
     (void)btree; \
     (void)otok; \
-    throw "Redis command " #CNAME " not yet implemented"; \
+    throw "ERR Redis command " #CNAME " not yet implemented"; \
 }
 
 // Macros to make some of these implementations a little less tedius
@@ -63,15 +59,11 @@ redis_protocol_t::read_response_t redis_protocol_t::CNAME::execute(btree_slice_t
     return redis_protocol_t::read_t(new CNAME(*this)); \
 }
 
-// Similar for parallelize
-#define PARALLEL(CNAME) std::vector<redis_protocol_t::read_t> \
-        redis_protocol_t::CNAME::parallelize(UNUSED int optimal_factor) { \
-    crash("no more parallelization"); \
-} 
-
 #define EXECUTE_R(CNAME) redis_protocol_t::read_response_t redis_protocol_t::CNAME::execute(btree_slice_t *btree, order_token_t otok)
 
 #define EXECUTE_W(CNAME) redis_protocol_t::write_response_t redis_protocol_t::CNAME::execute(btree_slice_t *btree, timestamp_t timestamp, order_token_t otok)
+
+
 
 struct set_oper_t {
     set_oper_t(std::string &key, btree_slice_t *btree, timestamp_t timestamp_, order_token_t otok) :
@@ -80,10 +72,10 @@ struct set_oper_t {
         timestamp(timestamp_)
     {
 
-        // TODO hook-up timestamp after Tim figures out what to do with it
+        // TODO Figure out correct conversion from transition timestamp to repli timestamp
         
         // Get the superblock that represents our write transaction
-        get_btree_superblock(btree, rwi_write, 1, repli_timestamp_t::invalid, otok, &superblock, txn);
+        get_btree_superblock(btree, rwi_write, 1, convert_to_repli_timestamp(timestamp), otok, &superblock, txn);
         find_keyvalue_location_for_write(txn.get(), &superblock, btree_key.key(), &location);
 
         // Check for expiration
@@ -92,6 +84,13 @@ struct set_oper_t {
             // Then this key is expired and technically doesn't exist
             del();
         }
+    }
+
+    // TODO get rid of this when no longer necessary
+    static repli_timestamp_t convert_to_repli_timestamp(timestamp_t timestamp) {
+        repli_timestamp_t toreturn;
+        toreturn.time = timestamp.numeric_representation();
+        return toreturn;
     }
 
     ~set_oper_t() {

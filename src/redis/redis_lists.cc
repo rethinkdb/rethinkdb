@@ -1,3 +1,4 @@
+#ifndef NO_REDIS
 #include "redis/redis_util.hpp"
 #include "redis/counted/counted.hpp"
 
@@ -18,7 +19,7 @@ struct list_set_oper_t : set_oper_t {
             value->get_ref()->count = 0;
             value->get_ref()->node_id = NULL_BLOCK_ID;
         } else if(value->get_redis_type() != REDIS_LIST) {
-            throw "Operation against key holding the wrong kind of value";
+            throw "ERR Operation against key holding the wrong kind of value";
         }
 
         if(value) {
@@ -36,7 +37,7 @@ struct list_set_oper_t : set_oper_t {
     }
 
     void insert(unsigned index, std::string &value) {
-        tree.insert(index, value);
+        tree.insert_index(index, value);
     }
 
     void remove(int index) {
@@ -56,7 +57,7 @@ struct list_set_oper_t : set_oper_t {
     }
 
     bool get_element(unsigned index, std::string &str_out) {
-        blob_t b(const_cast<char *>(tree.at(index)), blob::btree_maxreflen);
+        blob_t b(const_cast<char *>(tree.at(index)->blb), blob::btree_maxreflen);
         b.read_to_string(str_out, txn.get(), 0, b.valuesize());
 
         return true;
@@ -71,7 +72,7 @@ protected:
             u_index = size + index;
         }
 
-        if(u_index < 0 || u_index >= size) throw "Index out of range";
+        if(u_index < 0 || u_index > size) throw "ERR Index out of range";
         
         return u_index;
     }
@@ -88,9 +89,9 @@ struct list_read_oper_t : read_oper_t {
         redis_list_value_t *value = reinterpret_cast<redis_list_value_t *>(location.value.get());
         
         if(value == NULL) {
-            throw "Key doesn't exist";
+            throw "ERR Key doesn't exist";
         } else if(value->get_redis_type() != REDIS_LIST) {
-            throw "Operation against key holding the wrong kind of value";
+            throw "ERR Operation against key holding the wrong kind of value";
         }
 
         ref = value->get_ref();
@@ -110,11 +111,24 @@ struct list_read_oper_t : read_oper_t {
 
         if(index < 0 || index >= size) return false;
 
-        blob_t b(const_cast<char *>(tree.at(index)), blob::btree_maxreflen);
+        blob_t b(const_cast<char *>(tree.at(index)->blb), blob::btree_maxreflen);
         b.read_to_string(str_out, txn.get(), 0, b.valuesize());
 
         return true;
    }
+
+    unsigned convert_index(int index) {
+        int size = get_size();
+
+        int u_index = index;
+        if(index < 0) {
+            u_index = size + index;
+        }
+
+        if(u_index < 0 || u_index > size) throw "ERR Index out of range";
+        
+        return u_index;
+    }
 
 protected:
     sub_ref_t *ref;
@@ -131,7 +145,6 @@ WRITE(brpoplpush)
 //READ(lindex)
 KEYS(lindex)
 SHARD_R(lindex)
-PARALLEL(lindex)
 
 EXECUTE_R(lindex) {
     list_read_oper_t oper(one, btree, otok);
@@ -165,7 +178,7 @@ EXECUTE_W(linsert) {
             } else if(three == std::string("AFTER")) {
                 insert_index = index + 1;
             } else {
-                throw "Syntax error";
+                throw "ERR Syntax error";
             }
 
             oper.insert(insert_index, four);
@@ -182,7 +195,6 @@ EXECUTE_W(linsert) {
 //READ(llen)
 KEYS(llen)
 SHARD_R(llen)
-PARALLEL(llen)
 
 EXECUTE_R(llen) {
     list_read_oper_t oper(one, btree, otok);
@@ -241,15 +253,21 @@ EXECUTE_W(lpushx) {
 //READ(lrange)
 KEYS(lrange)
 SHARD_R(lrange)
-PARALLEL(lrange)
 
 EXECUTE_R(lrange) {
     list_read_oper_t oper(one, btree, otok);
     std::vector<std::string> result;
-    for(int i = two; i < three; i++) {
+
+    unsigned start = oper.convert_index(two);
+    unsigned stop = oper.convert_index(three);
+    for(unsigned i = start; i <= stop; i++) {
         std::string str;
-        oper.get_element(i, str);
-        result.push_back(str);
+        if(oper.get_element(i, str)) {
+            result.push_back(str);
+        } else {
+            // We've hit an out of range index
+            break;
+        }
     }
 
     return read_response_t(new multi_bulk_result_t(result));
@@ -383,3 +401,4 @@ EXECUTE_W(rpushx) {
     oper.insert(oper.get_size(), two);
     return int_response(oper.get_size());
 }
+#endif //#ifndef NO_REDIS

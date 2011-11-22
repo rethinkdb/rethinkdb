@@ -1,3 +1,4 @@
+#ifndef NO_REDIS
 #include "redis/server.hpp"
 
 #include <iostream>
@@ -46,10 +47,10 @@ redis_listener_t::redis_listener_t(int port) :
     // Set up redis stack
 
     std::vector<redis_protocol_t::region_t> shards;
-    key_range_t key_range1(key_range_t::none, store_key_t(""),  key_range_t::open, store_key_t("n"));
-    key_range_t key_range2(key_range_t::none, store_key_t("n"),  key_range_t::open, store_key_t(""));
+    key_range_t key_range1(key_range_t::none, store_key_t(""),  key_range_t::open, store_key_t("zzzzzzzzzz"));
+    //key_range_t key_range2(key_range_t::none, store_key_t("n"),  key_range_t::open, store_key_t(""));
     shards.push_back(key_range1);
-    shards.push_back(key_range2);
+    //shards.push_back(key_range2);
 
     temp_file_t2 db_file("/tmp/rdb_unittest.XXXXXX");
 
@@ -147,3 +148,4 @@ void redis_listener_t::handle(boost::scoped_ptr<nascent_tcp_conn_t> &nconn) {
     until the connection is closed. */
     serve_redis(conn.get(), redis_interface);
 }
+#endif //#ifndef NO_REDIS

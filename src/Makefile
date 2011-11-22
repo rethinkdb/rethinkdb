@@ -51,7 +51,7 @@ SEMANTIC_SERIALIZER_CHECK?=0
 MOCK_CACHE_CHECK?=0
 VERBOSE?=0
 UNIT_TESTS?=$(DEBUG)
-CLANG?=0
+NO_REDIS?=0
 
 # Set TRIAL to 1 to build a 21-day trial version. If you want a different number of days, set TIMEBOMB to the number of days instead.
 TRIAL?=0
@@ -68,25 +68,48 @@ else
 BUILD_DIR:=$(BUILD_ROOT_DIR)/release
 endif
 
+ifeq ($(COMPILER), CLANG)
+BUILD_DIR:=$(BUILD_DIR)_clang
+else
+ifeq ($(COMPILER), INTEL)
+BUILD_DIR:=$(BUILD_DIR)_intel
+endif
+endif
+
 PACKAGES_DIR:=$(BUILD_ROOT_DIR)/packages
 RPM_PACKAGE_DIR:=$(PACKAGES_DIR)/rpm
 DEB_PACKAGE_DIR:=$(PACKAGES_DIR)/deb
 
-CXXDEP:=g++
 
 # Define configuration variables
-ifeq (${CLANG},1)
+ifeq ($(COMPILER),CLANG)
 CXX:=clang
+CXXDEP:=clang
+else
+ifeq ($(COMPILER),INTEL)
+CXX:=icc
+CXXDEP:=icc
 else
 CXX:=g++
+CXXDEP:=g++
 endif
+endif
+
+ifeq ($(COMPILER),CLANG)
 LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio
+else
+ifeq ($(COMPILER),INTEL)
+LDFLAGS:= -B/opt/intel/bin -pthread -lrt -laio -lstdc++
+else
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio
+endif
+endif
 
 STATIC_LIBRARIES:=boost_serialization
 
 CXXFLAGS?=
 
-CXXFLAGS+=-I$(SOURCE_DIR) -I/usr/include/qt4 -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source/JavaScriptCore/ForwardingHeaders -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source/JavaScriptCore -Wall -Wextra -Wformat=2 -Wswitch-enum -Werror -Wnon-virtual-dtor -pthread
+CXXFLAGS+=-I$(SOURCE_DIR) -I/usr/include/qt4 -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source/JavaScriptCore/ForwardingHeaders -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source/JavaScriptCore -pthread
 CXXFLAGS+="-DPRODUCT_NAME=\"$(PRODUCT_NAME)\""
 
 ifeq ($(SOLO),1)
@@ -95,9 +118,16 @@ else
 CXXFLAGS+=-DRETHINKDB_CACHE_PRODUCT
 endif
 
+ifeq ($(COMPILER), INTEL)
+CXXFLAGS+=-std=c++0x -w0 -ftls-model=local-dynamic
+else
 ifeq ($(CLANG),0)
-CXXFLAGS+=-Wswitch-default
+else
+CXXFLAGS+=-Wall -Wextra -Wformat=2 -Wswitch-enum -Werror -Wnon-virtual-dtor -Wswitch-default
 endif
+endif
+
+
 
 ifeq ($(AGRESSIVE_BUF_UNLOADING),1)
 CXXFLAGS+=-DAGRESSIVE_BUF_UNLOADING=1
@@ -201,6 +231,10 @@ ifeq ($(VALGRIND),1)
 CXXFLAGS+=-DVALGRIND
 BUILD_DIR:=$(BUILD_DIR)-valgrind
 NO_TCMALLOC:=1
+endif
+
+ifeq ($(NO_REDIS),1)
+CXXFLAGS+=-DNO_REDIS
 endif
 
 PROTO_DIR:=$(BUILD_DIR)/proto

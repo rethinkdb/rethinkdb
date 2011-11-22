@@ -1,6 +1,7 @@
+#ifndef NO_REDIS
 #include "redis/redis.hpp"
 #include "redis/redis_util.hpp"
-#include "redis/counted/counted2.hpp"
+#include "redis/counted/counted.hpp"
 #include <boost/lexical_cast.hpp>
 #include <deque>
 #include <float.h>
@@ -24,13 +25,13 @@ struct sorted_set_set_oper_t : set_oper_t {
             value->get_score_index_root() = NULL_BLOCK_ID;
 
         } else if(value->get_redis_type() != REDIS_SORTED_SET) {
-            throw "Operation against key holding the wrong kind of value";
+            throw "ERR Operation against key holding the wrong kind of value";
         }
 
         member_index_root = value->get_member_index_root();
         counted_ref.count = value->get_sub_size();
         counted_ref.node_id = value->get_score_index_root();
-        score_index = counted_btree2_t(&counted_ref, btree->cache()->get_block_size(), txn.get());
+        score_index = counted_btree_t(&counted_ref, btree->cache()->get_block_size(), txn.get());
     }
 
     ~sorted_set_set_oper_t() {
@@ -42,7 +43,7 @@ struct sorted_set_set_oper_t : set_oper_t {
 
     // Returns whether or not the member was actually added
     bool add_or_update(std::string &member, float score) {
-        bool found;
+        bool new_value_added;
 
         find_member mem(txn.get(), this, member);
         if(mem.loc.value.get() == NULL) {
@@ -50,7 +51,7 @@ struct sorted_set_set_oper_t : set_oper_t {
             mem.create(txn.get(), member, score);
             mem.apply_change(txn.get());
 
-            found = false;
+            new_value_added = true;
         } else {
             // Update the score for this member. Remove from score index.
             redis_nested_sorted_set_value_t *value = mem.loc.value.get();
@@ -59,13 +60,13 @@ struct sorted_set_set_oper_t : set_oper_t {
 
             remove_from_score_index(member, old_score);
 
-            found = true;
+            new_value_added = false;
         }
 
         // Add to score index
-        score_index.insert(score, member);
+        score_index.insert_score(score, member);
 
-        return found;
+        return new_value_added;
     }
 
     bool remove(std::string &member) {
@@ -95,7 +96,7 @@ struct sorted_set_set_oper_t : set_oper_t {
         // TODO(wmrowan): Fix this for loop.
         for(unsigned i = u_end; i >= u_start; i--) {
             // Find the member name to remove from member index
-            const counted2_value_t *val = score_index.at(i);
+            const counted_value_t *val = score_index.at(i);
             std::string member;
             blob_t blob(const_cast<char *>(val->blb), blob::btree_maxreflen);
             blob.read_to_string(member, txn.get(), 0, blob.valuesize());
@@ -117,7 +118,7 @@ struct sorted_set_set_oper_t : set_oper_t {
     int remove_score_range(float score_min, float score_max) {
         int removed = 0;
         int index = 0;
-        for(counted_btree2_t::iterator_t iter = score_index.score_iterator(score_min, score_max); iter.is_valid(); iter.next()) {
+        for(counted_btree_t::iterator_t iter = score_index.score_iterator(score_min, score_max); iter.is_valid(); iter.next()) {
             if(removed == 0) index = iter.rank();
 
             std::string member = iter.member();
@@ -155,7 +156,7 @@ struct sorted_set_set_oper_t : set_oper_t {
             mem.create(txn.get(), member, new_score);
         }
 
-        score_index.insert(new_score, member);
+        score_index.insert_score(new_score, member);
 
         return new_score;
     }
@@ -203,7 +204,7 @@ private:
         // scores are not unique we have to use a counted_btree iterator over this score to find the correct one
 
         int index_to_remove = -1;
-        for(counted_btree2_t::iterator_t iter = score_index.score_iterator(score, score); iter.is_valid(); iter.next()) {
+        for(counted_btree_t::iterator_t iter = score_index.score_iterator(score, score); iter.is_valid(); iter.next()) {
             std::string to_test = iter.member();
             if(to_test == member) {
                 // We've found 'er!
@@ -233,8 +234,8 @@ private:
 
     redis_sorted_set_value_t *value;
     block_id_t member_index_root;
-    sub_ref2_t counted_ref;
-    counted_btree2_t score_index;
+    sub_ref_t counted_ref;
+    counted_btree_t score_index;
 };
 
 struct sorted_set_read_oper_t : read_oper_t {
@@ -244,25 +245,29 @@ struct sorted_set_read_oper_t : read_oper_t {
     {
         redis_sorted_set_value_t *value = reinterpret_cast<redis_sorted_set_value_t *>(location.value.get());
         if(value == NULL) {
-            throw "Key doesn't exist";
+            throw "ERR Key doesn't exist";
         } else if(value->get_redis_type() != REDIS_SORTED_SET) {
-            throw "Operation against key holding the wrong kind of value";
+            throw "ERR Operation against key holding the wrong kind of value";
         }
 
         member_index_root = value->get_member_index_root();
         score_index_root = value->get_score_index_root();
         counted_ref.count = value->get_sub_size();
         counted_ref.node_id = value->get_score_index_root();
-        rank_index = counted_btree2_t(&counted_ref, btree->cache()->get_block_size(), txn.get());
+        rank_index = counted_btree_t(&counted_ref, btree->cache()->get_block_size(), txn.get());
     }
 
     int get_size() {
         return counted_ref.count;
     }
 
+    const counted_value_t *at_index(unsigned index) {
+        return rank_index.at(index);
+    }
+
     int count(float score_min, float score_max) {
         int count = 0;
-        for(counted_btree2_t::iterator_t iter = rank_index.score_iterator(score_min, score_max); iter.is_valid(); iter.next()) {
+        for(counted_btree_t::iterator_t iter = rank_index.score_iterator(score_min, score_max); iter.is_valid(); iter.next()) {
             count++;
         }
         return count;
@@ -278,14 +283,14 @@ struct sorted_set_read_oper_t : read_oper_t {
         return false;
     }
 
-    counted_btree2_t::iterator_t get_iterator(float start, float stop) {
+    counted_btree_t::iterator_t get_iterator(float start, float stop) {
         return rank_index.score_iterator(start, stop);
     }
 
     int rank(std::string &member) {
         find_member mem(this, member);
         float score = mem.loc.value->score;
-        for(counted_btree2_t::iterator_t iter = rank_index.score_iterator(score, score); iter.is_valid(); iter.next()) {
+        for(counted_btree_t::iterator_t iter = rank_index.score_iterator(score, score); iter.is_valid(); iter.next()) {
             if(iter.member() == member) {
                 return iter.rank();
             }
@@ -293,6 +298,21 @@ struct sorted_set_read_oper_t : read_oper_t {
 
         // Not found
         return -1;
+    }
+
+    unsigned convert_index(int index) {
+        int size = counted_ref.count;
+        if(index < 0) {
+            index += size;
+        }
+
+        if(index < 0) {
+            index = 0;
+        } else if(index >= size) {
+            index = size - 1;
+        }
+        
+        return index;
     }
 
 private:
@@ -315,8 +335,8 @@ private:
 
     block_id_t member_index_root;
     block_id_t score_index_root;
-    sub_ref2_t counted_ref;
-    counted_btree2_t rank_index;
+    sub_ref_t counted_ref;
+    counted_btree_t rank_index;
 };
 
 //WRITE(zadd)
@@ -335,7 +355,7 @@ EXECUTE_W(zadd) {
         iter++;
 
         if(iter == one.end())
-            throw "Protocol Error";
+            throw "ERR Protocol Error";
         std::string member = *iter;
         iter++;
 
@@ -343,7 +363,7 @@ EXECUTE_W(zadd) {
         try {
             score = boost::lexical_cast<float>(score_str);
         } catch(boost::bad_lexical_cast &) {
-            throw "Protocol Error";
+            throw "ERR Protocol Error";
         }
 
         if(oper.add_or_update(member, score)) {
@@ -357,7 +377,6 @@ EXECUTE_W(zadd) {
 //READ(zcard)
 KEYS(zcard)
 SHARD_R(zcard)
-PARALLEL(zcard)
 
 EXECUTE_R(zcard) {
     sorted_set_read_oper_t oper(one, btree, otok);
@@ -367,7 +386,6 @@ EXECUTE_R(zcard) {
 //READ(zcount)
 KEYS(zcount)
 SHARD_R(zcount)
-PARALLEL(zcount)
 
 EXECUTE_R(zcount) {
     sorted_set_read_oper_t oper(one, btree, otok);
@@ -392,14 +410,19 @@ redis_protocol_t::indicated_key_t redis_protocol_t::zrange::get_keys() {
 }
 
 SHARD_R(zrange)
-PARALLEL(zrange)
 
 EXECUTE_R(zrange) {
     sorted_set_read_oper_t oper(key, btree, otok);
     std::deque<std::string> result;
-    for(counted_btree2_t::iterator_t iter = oper.get_iterator(start, stop); iter.is_valid(); iter.next()) {
-        std::string member = iter.member();
-        float f_score = iter.score();
+    start = oper.convert_index(start);
+    stop = oper.convert_index(stop);
+    for(int i = start; i <= stop; i++) {
+        const counted_value_t *val = oper.at_index(i);
+        std::string member;
+        blob_t b(const_cast<char *>(val->blb), blob::btree_maxreflen);
+        b.read_to_string(member, oper.txn.get(), 0, b.valuesize());
+
+        float f_score = val->score;
         std::string str_score;
         try {
             str_score = boost::lexical_cast<std::string>(f_score);
@@ -429,7 +452,6 @@ redis_protocol_t::indicated_key_t redis_protocol_t::zrangebyscore::get_keys() {
 }
 
 SHARD_R(zrangebyscore)
-PARALLEL(zrangebyscore)
 
 float parse_limit(std::string &str, bool *open) {
     if(str == std::string("+inf")) {
@@ -444,7 +466,7 @@ float parse_limit(std::string &str, bool *open) {
     try {
         return boost::lexical_cast<float>(str);
     } catch(boost::bad_lexical_cast &) {
-        throw "Protocol Error";
+        throw "ERR Protocol Error";
     }
 }
 
@@ -460,7 +482,7 @@ EXECUTE_R(zrangebyscore) {
     sorted_set_read_oper_t oper(key, btree, otok);
 
     std::deque<std::string> result;
-    for(counted_btree2_t::iterator_t iter = oper.get_iterator(min_val, max_val); iter.is_valid(); iter.next()) {
+    for(counted_btree_t::iterator_t iter = oper.get_iterator(min_val, max_val); iter.is_valid(); iter.next()) {
         // Handle limits
         if(limit) {
             if(offset > 0) {
@@ -515,7 +537,6 @@ redis_protocol_t::indicated_key_t redis_protocol_t::zrank::get_keys() {
 }
 
 SHARD_R(zrank)
-PARALLEL(zrank)
 
 EXECUTE_R(zrank) {
     sorted_set_read_oper_t oper(key, btree, otok);
@@ -572,7 +593,6 @@ EXECUTE_W(zremrangebyscore) {
 //READ(zscore)
 KEYS(zscore)
 SHARD_R(zscore)
-PARALLEL(zscore)
 
 EXECUTE_R(zscore) {
     sorted_set_read_oper_t oper(one, btree, otok);
@@ -585,3 +605,4 @@ EXECUTE_R(zscore) {
 }
 
 WRITE(zunionstore)
+#endif //#ifndef NO_REDIS

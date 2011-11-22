@@ -1,3 +1,4 @@
+#ifndef NO_REDIS
 #include "errors.hpp"
 #include <boost/variant.hpp>
 
@@ -11,8 +12,6 @@
 #include "redis/redis_proto.hpp"
 #include "redis/redis_ext.hpp"
 #include "redis/redis_grammar.hpp"
-
-
 
 void start_serving(tcp_conn_t *conn, namespace_interface_t<redis_protocol_t> *intface, pubsub_runtime_t *runtime) {
     redis_grammar<tcp_conn_t::iterator> redis(conn, intface, runtime);
@@ -102,3 +101,4 @@ struct output_visitor : boost::static_visitor<void> {
 void redis_output_writer::output_response(redis_protocol_t::redis_return_type response) {
     boost::apply_visitor(output_visitor(out_conn), response);
 }
+#endif //#ifndef NO_REDIS
