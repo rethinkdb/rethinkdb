@@ -20,7 +20,7 @@ def expect(s, string):
     while len(msg) < len(string):
         msg += s.recv(len(string) - len(msg))
     if msg != string:
-        raise ValueError("Didn't get what we expected: expected %s, got %s" % (abbreviate(string), abbreviate(msg)));
+        raise ValueError("Didn't get what we expected: expected %s, got %s" % (abbreviate(string), abbreviate(msg)))
 
 def expect_get_response(s, value):
     expect(s, "VALUE x 0 %d\r\n" % len(value))
@@ -66,7 +66,7 @@ def test_sizes(x, y, s):
     test_sizes_one_way("append", x, y, s)
     test_sizes_another_way("prepend", x, y, s)
 
-def test(opts, port, test_dir):
+def test(options, port, test_dir):
 
     # 250 - the maximum small value
     # 251 - the minimum large buf (in a leaf node)
@@ -89,7 +89,10 @@ def test(opts, port, test_dir):
     s.send("quit\r\n")
     s.close()
 
-if __name__ == "__main__":
+def main():
     op = make_option_parser()
     opts = op.parse(sys.argv)
     auto_server_test_main(test, opts, timeout = 600)
+
+if __name__ == "__main__":
+    main()

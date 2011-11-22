@@ -1,3 +1,4 @@
+#ifndef NO_REDIS
 #include "redis/redis_util.hpp"
 #include "btree/iteration.hpp"
 #include <boost/bind.hpp>
@@ -74,7 +75,8 @@ protected:
 
         void apply_change() {
             // TODO hook up timestamp once Tim figures out what to do with the timestamp
-            apply_keyvalue_change(ths->txn.get(), &loc, nested_key.key(), convert_to_repli_timestamp(ths->timestamp));
+            fake_key_modification_callback_t<redis_nested_set_value_t> fake_cb;
+            apply_keyvalue_change(ths->txn.get(), &loc, nested_key.key(), repli_timestamp_t::invalid /*ths->timestamp*/, &fake_cb);
             virtual_superblock_t *sb = reinterpret_cast<virtual_superblock_t *>(loc.sb.get());
             ths->root = sb->get_root_block_id();
         }
@@ -347,3 +349,4 @@ EXECUTE_R(sunion) {
 }
 
 WRITE(sunionstore)
+#endif //#ifndef NO_REDIS

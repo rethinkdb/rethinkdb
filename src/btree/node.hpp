@@ -106,6 +106,13 @@ struct btree_superblock_t {
     repli_timestamp_t last_sync;
     uint32_t replication_master_id, replication_slave_id;
 
+    // We are unnecessarily generous with the amount of space
+    // allocated here, but there's nothing else to push out of the
+    // way.
+    static const int METAINFO_BLOB_MAXREFLEN = 1500;
+
+    char metainfo_blob[METAINFO_BLOB_MAXREFLEN];
+
     static const block_magic_t expected_magic;
 };
 
@@ -151,7 +158,7 @@ struct btree_key_buffer_t {
         memcpy(btree_key.contents, store_key.contents, store_key.size);
     }
 
-    btree_key_buffer_t(std::string &key_string) {
+    explicit btree_key_buffer_t(std::string &key_string) {
         btree_key.size = key_string.size();
         memcpy(btree_key.contents, &key_string.at(0), btree_key.size);
     }

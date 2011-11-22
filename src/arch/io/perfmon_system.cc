@@ -14,6 +14,7 @@
 #include "perfmon.hpp"
 #include "logger.hpp"
 #include "utils.hpp"
+#include "thread_local.hpp"
 
 /* Class to represent and parse the contents of /proc/[pid]/stat */
 
@@ -156,9 +157,10 @@ perfmon_sampler_t
     pm_cpu_combined("cpu_combined", secs_to_ticks(5)),
     pm_memory_faults("memory_faults", secs_to_ticks(5));
 
-static __thread proc_pid_stat_t last_stats;
-static __thread ticks_t last_ticks = 0;
-static __thread bool have_reported_stats_error = false;
+
+TLS(proc_pid_stat_t, last_stats);
+TLS_with_init(ticks_t, last_ticks, 0);
+TLS_with_init(bool, have_reported_stats_error, false);
 
 void poll_system_stats(void *) {
 
@@ -166,29 +168,29 @@ void poll_system_stats(void *) {
     try {
         current_stats = proc_pid_stat_t::for_pid_and_tid(getpid(), syscall(SYS_gettid));
     } catch (proc_pid_stat_exc_t e) {
-        if (!have_reported_stats_error) {
+        if (!TLS_get_have_reported_stats_error()) {
             logWRN("Error in reporting per-thread stats: %s (Further errors like this will "
                 "be suppressed.)\n", e.what());
-            have_reported_stats_error = true;
+            TLS_set_have_reported_stats_error(true);
         }
     }
     ticks_t current_ticks = get_ticks();
 
-    if (last_ticks == 0) {
-        last_stats = current_stats;
-        last_ticks = current_ticks;
-    } else if (current_ticks > last_ticks + secs_to_ticks(1)) {
-        double realtime_elapsed = ticks_to_secs(current_ticks - last_ticks) * sysconf(_SC_CLK_TCK);
-        pm_cpu_user.record((current_stats.utime - last_stats.utime) / realtime_elapsed);
-        pm_cpu_system.record((current_stats.stime - last_stats.stime) / realtime_elapsed);
+    if (TLS_get_last_ticks() == 0) {
+        TLS_set_last_stats(current_stats);
+        TLS_set_last_ticks(current_ticks);
+    } else if (current_ticks > TLS_get_last_ticks() + secs_to_ticks(1)) {
+        double realtime_elapsed = ticks_to_secs(current_ticks - TLS_get_last_ticks()) * sysconf(_SC_CLK_TCK);
+        pm_cpu_user.record((current_stats.utime - TLS_get_last_stats().utime) / realtime_elapsed);
+        pm_cpu_system.record((current_stats.stime - TLS_get_last_stats().stime) / realtime_elapsed);
         pm_cpu_combined.record(
-            (current_stats.utime - last_stats.utime +
-             current_stats.stime - last_stats.stime) /
+            (current_stats.utime - TLS_get_last_stats().utime +
+             current_stats.stime - TLS_get_last_stats().stime) /
              realtime_elapsed);
-        pm_memory_faults.record((current_stats.majflt - last_stats.majflt) / realtime_elapsed);
+        pm_memory_faults.record((current_stats.majflt - TLS_get_last_stats().majflt) / realtime_elapsed);
         
-        last_stats = current_stats;
-        last_ticks = current_ticks;
+        TLS_set_last_stats(current_stats);
+        TLS_set_last_ticks(current_ticks);
     }
 }
 

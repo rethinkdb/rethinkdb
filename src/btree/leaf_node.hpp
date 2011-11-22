@@ -3,10 +3,36 @@
 
 #include <string>
 
-#include "buffer_cache/types.hpp"
 #include "config/args.hpp"
 #include "errors.hpp"
 #include "btree/node.hpp"
+#include "btree/buf_patches.hpp"
+#include "buffer_cache/buffer_cache.hpp"
+
+// TODO: Could key_modification_proof_t not go in this file?
+
+// Originally we thought that leaf node modification functions would
+// take a key-modification callback, thus forcing every key/value
+// modification to consider the callback.  The problem is that the
+// user is supposed to call is_full before calling insert, and is_full
+// depends on the value size and can cause a split to happen.  But
+// what if the key modification then wants to change the value size?
+// Then we would need to redo the logic considering whether we want to
+// split the leaf node.  Instead the caller just provides evidence
+// that they considered doing the appropriate value modifications, by
+// constructing one of these dummy values.
+class key_modification_proof_t {
+public:
+    bool is_fake() const { return is_fake_; }
+    // TODO: Get rid of fake_proof, and fakeness.
+    static key_modification_proof_t fake_proof() { return key_modification_proof_t(true); }
+
+    static key_modification_proof_t real_proof() { return key_modification_proof_t(false); }
+private:
+
+    explicit key_modification_proof_t(bool fake) : is_fake_(fake) { }
+    bool is_fake_;
+};
 
 namespace leaf {
 
@@ -81,6 +107,9 @@ struct leaf_node_t {
     // The pair offsets.
     uint16_t pair_offsets[];
 };
+
+
+
 
 // Entries are contiguously connected to the end of a btree
 // block. Here's what a full leaf node looks like.
@@ -468,9 +497,6 @@ bool fsck(value_sizer_t<V> *sizer, const btree_key_t *left_exclusive_or_null, co
         iter.step(sizer, node);
     }
 
-    if (i != node->num_pairs) {
-        debugf("i is %d, node->num_pairs is %d\n", i, node->num_pairs);
-    }
     if (failed(i == node->num_pairs, "missing entries")
         || failed(node->live_size == observed_live_size, "incorrect live_size recorded")) {
         return false;
@@ -1248,8 +1274,9 @@ bool lookup(value_sizer_t<V> *sizer, const leaf_node_t *node, const btree_key_t 
 // Inserts a key/value pair into the node.  Hopefully you've already
 // cleaned up the old value, if there is one.
 template <class V>
-void insert(value_sizer_t<V> *sizer, leaf_node_t *node, const btree_key_t *key, const void *value, repli_timestamp_t tstamp) {
+void insert(value_sizer_t<V> *sizer, leaf_node_t *node, const btree_key_t *key, const void *value, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof) {
     rassert(!is_full(sizer, node, key, value));
+    rassert(!km_proof.is_fake());
 
     if (offsetof(leaf_node_t, pair_offsets) + sizeof(uint16_t) * (node->num_pairs + 1) + sizeof(repli_timestamp_t) + key->full_size() + sizer->size(value) > node->frontmost) {
         garbage_collect(sizer, node, MANDATORY_TIMESTAMPS - 1);
@@ -1303,7 +1330,8 @@ void insert(value_sizer_t<V> *sizer, leaf_node_t *node, const btree_key_t *key, 
 // already sure the key is in the node, which means we're doing an
 // unnecessary binary search.
 template <class V>
-void remove(value_sizer_t<V> *sizer, leaf_node_t *node, const btree_key_t *key, repli_timestamp_t tstamp) {
+void remove(value_sizer_t<V> *sizer, leaf_node_t *node, const btree_key_t *key, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof) {
+    rassert(!km_proof.is_fake());
     int index;
     bool found = find_key(node, key, &index);
 
@@ -1349,7 +1377,9 @@ void remove(value_sizer_t<V> *sizer, leaf_node_t *node, const btree_key_t *key, 
 
 // Erases the entry for the given key, leaving behind no trace.
 template <class V>
-void erase_presence(value_sizer_t<V> *sizer, leaf_node_t *node, const btree_key_t *key) {
+void erase_presence(value_sizer_t<V> *sizer, leaf_node_t *node, const btree_key_t *key, UNUSED key_modification_proof_t km_proof) {
+    // TODO: Maybe we don't want key_modification_proof_t for this function.
+    rassert(!km_proof.is_fake());
     int index;
     bool found = find_key(node, key, &index);
 
@@ -1390,7 +1420,7 @@ protected:
 };
 
 template <class V>
-void dump_entries_since_time(value_sizer_t<V> *sizer, const leaf_node_t *node, repli_timestamp_t minimum_tstamp, entry_reception_callback_t<V> *cb) {
+void dump_entries_since_time(value_sizer_t<V> *sizer, const leaf_node_t *node, repli_timestamp_t minimum_tstamp, repli_timestamp_t maximum_possible_timestamp,  entry_reception_callback_t<V> *cb) {
     int stop_offset = 0;
 
     {
@@ -1399,7 +1429,7 @@ void dump_entries_since_time(value_sizer_t<V> *sizer, const leaf_node_t *node, r
         entry_iter_t iter = entry_iter_t::make(node);
         while (!iter.done(sizer) && iter.offset < node->tstamp_cutpoint) {
             repli_timestamp_t new_earliest = get_timestamp(node, iter.offset);
-            rassert(earliest >= new_earliest);
+            rassert(earliest >= new_earliest, "asserted earliest (%u) >= new_earliest (%u)", earliest.time, new_earliest.time);
             earliest = new_earliest;
             iter.step(sizer, node);
 
@@ -1419,8 +1449,16 @@ void dump_entries_since_time(value_sizer_t<V> *sizer, const leaf_node_t *node, r
 
     {
         entry_iter_t iter = entry_iter_t::make(node);
+        repli_timestamp_t last_seen_tstamp = maximum_possible_timestamp;
         while (iter.offset < stop_offset) {
-            repli_timestamp_t tstamp = get_timestamp(node, iter.offset);
+            repli_timestamp_t tstamp;
+            if (iter.offset < node->tstamp_cutpoint) {
+                tstamp = get_timestamp(node, iter.offset);
+            } else {
+                tstamp = last_seen_tstamp;
+            }
+            last_seen_tstamp = tstamp;
+
             const entry_t *ent = get_entry(node, iter.offset);
 
             if (entry_is_live(ent)) {
@@ -1502,5 +1540,25 @@ live_iter_t iter_for_whole_leaf(const leaf_node_t *node) {
 }  // namespace leaf
 
 using leaf::leaf_node_t;
+
+template <class V>
+void leaf_patched_insert(value_sizer_t<V> *sizer, buf_t *node, const btree_key_t *key, const void *value, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof) {
+    // rassert(!km_proof.is_fake());
+    node->apply_patch(new leaf_insert_patch_t(node->get_block_id(), node->get_next_patch_counter(), sizer->size(value), value, key->size, key->contents, tstamp));
+}
+
+inline
+void leaf_patched_remove(buf_t *node, const btree_key_t *key, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof) {
+    // rassert(!km_proof.is_fake());
+    node->apply_patch(new leaf_remove_patch_t(node->get_block_id(), node->get_next_patch_counter(), tstamp, key->size, key->contents));
+}
+
+inline
+void leaf_patched_erase_presence(buf_t *node, const btree_key_t *key, UNUSED key_modification_proof_t km_proof) {
+    // TODO: Maybe we don't need key modification proof here.
+    // rassert(!km_proof.is_fake());
+    node->apply_patch(new leaf_erase_presence_patch_t(node->get_block_id(), node->get_next_patch_counter(), key->size, key->contents));
+}
+
 
 #endif  // BTREE_LEAF_NODE_HPP_

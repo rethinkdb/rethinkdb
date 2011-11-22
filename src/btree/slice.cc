@@ -28,6 +28,8 @@ void btree_slice_t::create(cache_t *cache) {
     btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock->get_data_major_write());
     bzero(sb, cache->get_block_size().value());
 
+    // sb->metainfo_blob has been properly zeroed.
+
     sb->magic = btree_superblock_t::expected_magic;
     sb->root_block = NULL_BLOCK_ID;
 
@@ -112,12 +114,12 @@ void btree_slice_t::backfill_delete_range(key_tester_t *tester,
 }
 
 
-void btree_slice_t::backfill(repli_timestamp_t since_when, backfill_callback_t *callback, order_token_t token) {
+void btree_slice_t::backfill(repli_timestamp_t since_when, repli_timestamp_t max_allowable_timestamp, backfill_callback_t *callback, order_token_t token) {
     assert_thread();
 
     token = order_checkpoint_.check_through(token);
 
-    btree_backfill(this, since_when, backfill_account, callback, token);
+    btree_backfill(this, since_when, max_allowable_timestamp, backfill_account, callback, token);
 }
 
 void btree_slice_t::set_replication_clock(repli_timestamp_t t, order_token_t token) {

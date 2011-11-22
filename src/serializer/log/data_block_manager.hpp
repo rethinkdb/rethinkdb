@@ -15,10 +15,73 @@
 
 class log_serializer_t;
 
+class data_block_manager_t;
+
+class gc_entry;
+
+struct gc_entry_less {
+    bool operator() (const gc_entry *x, const gc_entry *y);
+};
+
+
+// Identifies an extent, the time we started writing to the
+// extent, whether it's the extent we're currently writing to, and
+// describes blocks are garbage.
+class gc_entry :
+    public intrusive_list_node_t<gc_entry>
+{
+public:
+    data_block_manager_t *parent;
+
+    off64_t offset; /* !< the offset that this extent starts at */
+    bitset_t g_array; /* !< bit array for whether or not each block is garbage */
+    bitset_t t_array; /* !< bit array for whether or not each block is referenced by some token */
+    bitset_t i_array; /* !< bit array for whether or not each block is referenced by the current lba (*i*ndex) */
+    // g_array is redundant. g_array[i] = !(t_array[i] || i_array[i])
+    void update_g_array(unsigned int block_id) {
+        g_array.set(block_id, !(t_array[block_id] || i_array[block_id]));
+    }
+    microtime_t timestamp; /* !< when we started writing to the extent */
+    priority_queue_t<gc_entry*, gc_entry_less>::entry_t *our_pq_entry; /* !< The PQ entry pointing to us */
+    bool was_written; /* true iff the extent has been written to after starting up the serializer */
+
+    enum state_t {
+        // It has been, or is being, reconstructed from data on disk.
+        state_reconstructing,
+        // We are currently putting things on this extent. It is equal to last_data_extent.
+        state_active,
+        // Not active, but not a GC candidate yet. It is in young_extent_queue.
+        state_young,
+        // Candidate to be GCed. It is in gc_pq.
+        state_old,
+        // Currently being GCed. It is equal to gc_state.current_entry.
+        state_in_gc,
+    } state;
+
+public:
+    /* This constructor is for starting a new extent. */
+    explicit gc_entry(data_block_manager_t *parent);
+
+    /* This constructor is for reconstructing extents that the LBA tells us contained
+       data blocks. */
+    explicit gc_entry(data_block_manager_t *parent, off64_t offset);
+
+    void destroy();
+    ~gc_entry();
+
+#ifndef NDEBUG
+    void print();
+#endif
+
+private:
+    DISABLE_COPYING(gc_entry);
+};
+
+
 // Stats
 
 class data_block_manager_t {
-
+    friend class gc_entry;
     friend class dbm_read_ahead_fsm_t;
 
 private:
@@ -44,7 +107,6 @@ public:
     data_block_manager_t(const log_serializer_dynamic_config_t *dynamic_config, extent_manager_t *em, log_serializer_t *serializer, const log_serializer_on_disk_static_config_t *static_config);
     ~data_block_manager_t();
 
-public:
     struct metablock_mixin_t {
         off64_t active_extents[MAX_ACTIVE_DATA_EXTENTS];
         uint64_t blocks_in_active_extent[MAX_ACTIVE_DATA_EXTENTS];
@@ -53,18 +115,15 @@ public:
     /* When initializing the database from scratch, call start() with just the database FD. When
     restarting an existing database, call start() with the last metablock. */
 
-public:
     static void prepare_initial_metablock(metablock_mixin_t *mb);
     void start_existing(direct_file_t *dbfile, metablock_mixin_t *last_metablock);
 
-public:
     void read(off64_t off_in, void *buf_out, file_account_t *io_account, iocallback_t *cb);
 
     /* Returns the offset to which the block will be written */
     off64_t write(const void *buf_in, block_id_t block_id, bool assign_new_block_sequence_id,
                   file_account_t *io_account, iocallback_t *cb);
 
-public:
     /* exposed gc api */
     /* mark a buffer as garbage */
     void mark_garbage(off64_t);  // Takes a real off64_t.
@@ -90,19 +149,15 @@ public:
     /* take step in gcing */
     void run_gc();
 
-public:
     void prepare_metablock(metablock_mixin_t *metablock);
     bool do_we_want_to_start_gcing() const;
 
-public:
     struct shutdown_callback_t {
         virtual void on_datablock_manager_shutdown() = 0;
         virtual ~shutdown_callback_t() {}
     };
     // The shutdown_callback_t may destroy the data_block_manager.
     bool shutdown(shutdown_callback_t *cb);
-
-public:
 
     struct gc_disable_callback_t {
         virtual void on_gc_disabled() = 0;
@@ -121,7 +176,6 @@ private:
     // This is permitted to destroy the data_block_manager.
     shutdown_callback_t *shutdown_callback;
 
-private:
     enum state_t {
         state_unstarted,
         state_ready,
@@ -150,67 +204,6 @@ private:
     /* Runs check_and_handle_empty extent() for each extent in potentially_empty_extents */
     void check_and_handle_outstanding_empty_extents();
 
-private:
-
-    class gc_entry;
-
-    struct Less {
-        bool operator() (const gc_entry *x, const gc_entry *y);
-    };
-
-    // Identifies an extent, the time we started writing to the
-    // extent, whether it's the extent we're currently writing to, and
-    // describes blocks are garbage.
-    class gc_entry :
-        public intrusive_list_node_t<gc_entry>
-    {
-    public:
-        data_block_manager_t *parent;
-
-        off64_t offset; /* !< the offset that this extent starts at */
-        bitset_t g_array; /* !< bit array for whether or not each block is garbage */
-        bitset_t t_array; /* !< bit array for whether or not each block is referenced by some token */
-        bitset_t i_array; /* !< bit array for whether or not each block is referenced by the current lba (*i*ndex) */
-        // g_array is redundant. g_array[i] = !(t_array[i] || i_array[i])
-        void update_g_array(unsigned int block_id) {
-            g_array.set(block_id, !(t_array[block_id] || i_array[block_id]));
-        }
-        microtime_t timestamp; /* !< when we started writing to the extent */
-        priority_queue_t<gc_entry*, Less>::entry_t *our_pq_entry; /* !< The PQ entry pointing to us */
-        bool was_written; /* true iff the extent has been written to after starting up the serializer */
-
-        enum state_t {
-            // It has been, or is being, reconstructed from data on disk.
-            state_reconstructing,
-            // We are currently putting things on this extent. It is equal to last_data_extent.
-            state_active,
-            // Not active, but not a GC candidate yet. It is in young_extent_queue.
-            state_young,
-            // Candidate to be GCed. It is in gc_pq.
-            state_old,
-            // Currently being GCed. It is equal to gc_state.current_entry.
-            state_in_gc,
-        } state;
-
-    public:
-        /* This constructor is for starting a new extent. */
-        explicit gc_entry(data_block_manager_t *parent);
-
-        /* This constructor is for reconstructing extents that the LBA tells us contained
-        data blocks. */
-        explicit gc_entry(data_block_manager_t *parent, off64_t offset);
-
-        void destroy();
-        ~gc_entry();
-
-#ifndef NDEBUG
-        void print();
-#endif
-
-    private:
-        DISABLE_COPYING(gc_entry);
-    };
-
     /* Contains a pointer to every gc_entry, regardless of what its current state is */
     two_level_array_t<gc_entry*, MAX_DATA_EXTENTS> entries;
     
@@ -227,7 +220,7 @@ private:
     intrusive_list_t< gc_entry > young_extent_queue;
     
     /* Contains every extent in the gc_entry::state_old state */
-    priority_queue_t<gc_entry*, Less> gc_pq;
+    priority_queue_t<gc_entry*, gc_entry_less> gc_pq;
     
     // Tells if we should keep gc'ing, being told the next extent that
     // would be gc'ed.
@@ -240,7 +233,6 @@ private:
     // to be not young.
     void remove_last_unyoung_entry();
 
-private:
     bool should_perform_read_ahead(off64_t offset);
 
     /* internal garbage collection structures */
@@ -308,7 +300,6 @@ private:
         }
     } gc_state;
 
-private:
     /* \brief structure to keep track of global stats about the data blocks
      */
     class gc_stat_t {

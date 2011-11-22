@@ -125,9 +125,7 @@ void slave_t::run(signal_t *shutdown_signal) {
                 pulse_to_reset_failover_ = &slave_cond;
 
                 // This makes it so that if we get a shutdown command, the connection gets closed.
-                signal_t::subscription_t(
-                    boost::bind(&pulse_if_not_already_pulsed, &slave_cond),
-                    shutdown_signal);
+                signal_t::subscription_t shutdown_subscription(boost::bind(&pulse_if_not_already_pulsed, &slave_cond), shutdown_signal);
 
                 // last_sync is the latest timestamp that we didn't get all the master's changes for
                 repli_timestamp_t last_sync = internal_store_->get_last_sync();
@@ -154,6 +152,7 @@ void slave_t::run(signal_t *shutdown_signal) {
             }
 
             if (shutdown_signal->is_pulsed()) {
+                debugf("slave_t: Shutdown signal has been pulsed.\n");
                 break;
             }
 

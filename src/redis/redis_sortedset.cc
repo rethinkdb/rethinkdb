@@ -1,3 +1,4 @@
+#ifndef NO_REDIS
 #include "redis/redis.hpp"
 #include "redis/redis_util.hpp"
 #include "redis/counted/counted.hpp"
@@ -187,7 +188,8 @@ private:
 
         void apply_change(transaction_t *txn) {
             // TODO hook up timestamp once Tim figures out what to do with the timestamp
-            apply_keyvalue_change(txn, &loc, nested_key.key(), convert_to_repli_timestamp(ths->timestamp));
+            fake_key_modification_callback_t<redis_nested_sorted_set_value_t> fake_cb;
+            apply_keyvalue_change(txn, &loc, nested_key.key(), repli_timestamp_t::invalid /*ths->timestamp*/, &fake_cb);
             virtual_superblock_t *sb = reinterpret_cast<virtual_superblock_t *>(loc.sb.get());
             ths->member_index_root = sb->get_root_block_id();
         }
@@ -603,3 +605,4 @@ EXECUTE_R(zscore) {
 }
 
 WRITE(zunionstore)
+#endif //#ifndef NO_REDIS

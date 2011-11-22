@@ -8,6 +8,7 @@ ec2 = 6
 
 class TestFailure(Exception):
     def __init__(self, value):
+        super(TestFailure, self).__init__()
         self.value = value
     def __str__(self):
         return repr(self.value)
@@ -16,6 +17,8 @@ class StdoutAsLog(object):
     def __init__(self, name, test_dir):
         self.name = name
         self.test_dir = test_dir
+        self.path = None
+        self.f = None
     def __enter__(self):
         self.path = self.test_dir.make_file(self.name)
         print "Writing log file %r." % self.path
@@ -69,12 +72,17 @@ def find_unused_port():
     while True:
         current_port_to_check += 1
         s = socket.socket()
-        try: s.bind(("", current_port_to_check))
+        try:
+            s.bind(("", current_port_to_check))
         except socket.error, err:
-            if "Address already in use" in str(err): continue
-            else: raise
-        else: return current_port_to_check
-        finally: s.close()
+            if "Address already in use" in str(err):
+                continue
+            else:
+                raise
+        else:
+            return current_port_to_check
+        finally:
+            s.close()
 
 def run_with_timeout(obj, test_dir, args = (), kwargs = {}, timeout = None, name = "the test"):
     print "Running %s..." % name
@@ -83,8 +91,9 @@ def run_with_timeout(obj, test_dir, args = (), kwargs = {}, timeout = None, name
     kwargs['test_dir'] = test_dir
     def run():
         try:
-            result = obj(*args, **kwargs)
-        except Exception, e:
+            # TODO: Do we want to return the result of obj(*args, **kwargs)?
+            obj(*args, **kwargs)
+        except Exception:
             result_holder[0] = "exception"
             result_holder[1] = sys.exc_info()
         else:
@@ -129,7 +138,8 @@ class NetRecord(object):
         self.process = None
 
     def __del__(self):
-        if getattr(self, "process"): self.stop()
+        if getattr(self, "process"):
+            self.stop()
 
 num_stress_clients = 0
 
@@ -178,8 +188,8 @@ def rdb_stats(port=8080, host="localhost"):
         buffer += sock.recv(4096)
 
     stats = {}
-    for line in buffer.split("\r\n"):
-        parts = line.split()
+    for lin in buffer.split("\r\n"):
+        parts = lin.split()
         if parts == ["END"]:
             break
         elif parts:
@@ -188,7 +198,7 @@ def rdb_stats(port=8080, host="localhost"):
             value = " ".join(parts[2:])
             stats[name] = value
     else:
-        raise ValueError("Didn't get an END");
+        raise ValueError("Didn't get an END")
 
     sock.shutdown(socket.SHUT_RDWR)
     sock.close()
@@ -196,7 +206,8 @@ def rdb_stats(port=8080, host="localhost"):
 
 def build_rethinkdb_executable_path(build_dir_path, opts, exec_name='rethinkdb'):
     executable_path = os.path.join(build_dir_path, opts["mode"])
-    if opts["valgrind"]: executable_path += "-valgrind"
+    if opts["valgrind"]:
+        executable_path += "-valgrind"
     executable_path = os.path.join(executable_path, exec_name)
     return executable_path
 
@@ -254,8 +265,8 @@ class DataFiles(object):
 
     def rethinkdb_serve_flags(self):
         flags = []
-        for file in self.files:
-            flags.extend(["-f", file])
+        for f in self.files:
+            flags.extend(["-f", f])
         return flags + ["--metadata-file", self.metadata_file]
 
     def fsck(self):
@@ -336,14 +347,14 @@ class Server(object):
             while time.time() < deadline:
                 s.settimeout(deadline - time.time())
                 s.send("get are_you_up\r\n")
-                line = s.makefile().readline()
+                lyne = s.makefile().readline()
 
-                if line.startswith("VALUE") or line == "END\r\n":
+                if lyne.startswith("VALUE") or lyne == "END\r\n":
                     break
-                elif line.startswith("CLIENT_ERROR"):
+                elif lyne.startswith("CLIENT_ERROR"):
                     time.sleep(0.5)
                 else:
-                    raise RuntimeError("Unexpected response from server: %r" % line)
+                    raise RuntimeError("Unexpected response from server: %r" % lyne)
             else:
                 raise RuntimeError("Server took longer than %.2f seconds to start." % timeout)
 
@@ -428,9 +439,11 @@ class Server(object):
         # Kill the server rudely
         self.server.kill()
         self.server = None
-        if self.opts["netrecord"]: self.nrc.stop()
+        if self.opts["netrecord"]:
+            self.nrc.stop()
         print "Killed %s." % self.name
-        if self.opts["fsck"]: self.data_files.fsck()
+        if self.opts["fsck"]:
+            self.data_files.fsck()
 
 #A forked memcache wrapper invisibly sends
 class ForkedMemcachedWrapper(object):
@@ -443,7 +456,7 @@ class ForkedMemcachedWrapper(object):
         self.replica_mcs = replica_mc_maker() #should be a list of mcs
         self.test_dir = test_dir
     def __getattr__(self, name):
-        return getattr(random.choice([self.internal_mc] + replica_mcs), name)
+        return getattr(random.choice([self.internal_mc] + self.replica_mcs), name)
 
 class MemcachedWrapperThatRestartsServer(object):
     def __init__(self, opts, server, internal_mc_maker, test_dir):
@@ -524,9 +537,12 @@ class FailoverMemcachedWrapper(object):
             import pylibmc
             def test():
                 # pylibmc throws ClientError when it gets a CLIENT_ERROR
-                try: self.mc["slave"].set("are_you_accepting_sets", "yes")
-                except pylibmc.ClientError: return False
-                else: return True
+                try:
+                    self.mc["slave"].set("are_you_accepting_sets", "yes")
+                except pylibmc.ClientError:
+                    return False
+                else:
+                    return True
         else:
             def test():
                 ret = self.mc["slave"].set("are_you_accepting_sets", "yes")
@@ -534,7 +550,7 @@ class FailoverMemcachedWrapper(object):
                 return ret
         n_tries = 30
         try_interval = 1
-        for i in xrange(n_tries):
+        for _ in xrange(n_tries):
             time.sleep(try_interval)
             if test(): break
         else:
@@ -647,7 +663,8 @@ def auto_server_test_main(test_function, opts, timeout = 30, extra_flags = [], t
 
         server.shutdown()
 
-        if test_failure: raise test_failure
+        if test_failure:
+            raise test_failure
     else:
         port = int(os.environ.get("RUN_PORT", "11211"))
         print "Assuming user has started a server on port %d." % port
@@ -778,7 +795,7 @@ def replication_test_main(test_function, opts, timeout = 30, extra_flags = [], t
             repli_mc.elb_port = None
 
             try:
-                run_with_timeout(test_function, args=(opts,mc,repli_mc), timeout = adjust_timeout(opts, timeout), test_dir=test_dir)
+                run_with_timeout(test_function, args=(opts, mc, repli_mc), timeout = adjust_timeout(opts, timeout), test_dir=test_dir)
             except Exception, e:
                 test_failure = e
             else:
@@ -792,7 +809,8 @@ def replication_test_main(test_function, opts, timeout = 30, extra_flags = [], t
             server.shutdown_or_just_fsck()
             repli_server.shutdown_or_just_fsck()
 
-            if test_failure: raise test_failure
+            if test_failure:
+                raise test_failure
 
     except ValueError, e:
         # Handle ValueError explicitly to give nicer error output
@@ -810,7 +828,7 @@ def master_slave_main(test_function, opts, timeout = 30, extra_flags = [], test_
             stat_checker = start_stats(opts, server.port)
 
             try:
-                run_with_timeout(test_function, args=(opts,server,repli_server), timeout = adjust_timeout(opts, timeout), test_dir=test_dir)
+                run_with_timeout(test_function, args=(opts, server, repli_server), timeout = adjust_timeout(opts, timeout), test_dir=test_dir)
             except Exception, e:
                 test_failure = e
             else:

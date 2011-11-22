@@ -39,10 +39,13 @@ def test(opts, mc, test_dir):
             if (0 != mc.explicit_cas(str(i), str(i+20), cas_id)):
                 raise ValueError("cas of %d should have failed, item has been modified" % i)
 
-if __name__ == "__main__":
+def main():
     op = make_option_parser()
     del op["mclib"]   # No longer optional; we only work with memcache.
     op["num_ints"] = IntFlag("--num-ints", 10)
     opts = op.parse(sys.argv)
     opts["mclib"] = "memcache"
     simple_test_main(test, opts, timeout = 10)
+
+if __name__ == "__main__":
+    main()

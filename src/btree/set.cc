@@ -2,7 +2,7 @@
 #include "btree/modify_oper.hpp"
 #include "containers/buffer_group.hpp"
 
-struct btree_set_oper_t : public btree_modify_oper_t<memcached_value_t> {
+struct btree_set_oper_t : public btree_modify_oper_t {
     explicit btree_set_oper_t(const boost::intrusive_ptr<data_buffer_t>& _data, mcflags_t _mcflags, exptime_t _exptime,
                               add_policy_t ap, replace_policy_t rp, cas_t _req_cas)
         : data(_data), mcflags(_mcflags), exptime(_exptime),
@@ -52,7 +52,7 @@ struct btree_set_oper_t : public btree_modify_oper_t<memcached_value_t> {
         // Whatever the case, shrink the old value.
         {
             blob_t b(value->value_ref(), blob::btree_maxreflen);
-            b.unappend_region(txn, b.valuesize());
+            b.clear(txn);
         }
 
         if (data->size() > MAX_VALUE_SIZE) {
@@ -85,7 +85,7 @@ struct btree_set_oper_t : public btree_modify_oper_t<memcached_value_t> {
         } catch (...) {
             // Gotta release ownership of all those bufs first.
             acq.reset();
-            b.unappend_region(txn, b.valuesize());
+            b.clear(txn);
             throw;
         }
 

@@ -1,3 +1,4 @@
+#ifndef NO_REDIS
 #include "redis/redis_types.hpp"
 
 #include "buffer_cache/buffer_cache.hpp"
@@ -19,3 +20,4 @@ void redis_sorted_set_value_t::clear(transaction_t *txn) {
     get_sub_size() = 0;
     get_score_index_root() = NULL_BLOCK_ID;
 }
+#endif //#ifndef NO_REDIS

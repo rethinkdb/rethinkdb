@@ -22,12 +22,12 @@ def test_function(opts, port, test_dir):
 
     n_appends = n_appends_valgrind if opts["valgrind"] else n_appends_no_valgrind
 
-    def send(str):
+    def send(x):
         # print str
-        s.sendall(str)
+        s.sendall(x)
 
     key = 'fizz'
-    val_chunks = ['buzzBUZZZ','baazBAAZ','bozoBOZO']
+    val_chunks = ['buzzBUZZZ', 'baazBAAZ', 'bozoBOZO']
 
     send("set %s 0 0 %d noreply\r\n%s\r\n" % (key, len(val_chunks[0]), val_chunks[0]))
 

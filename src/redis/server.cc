@@ -1,3 +1,4 @@
+#ifndef NO_REDIS
 #include "redis/server.hpp"
 
 #include <iostream>
@@ -110,31 +111,11 @@ redis_listener_t::~redis_listener_t() {
     active_connection_drain_semaphore.drain();
 }
 
-class rethread_tcp_conn_t {
-public:
-    rethread_tcp_conn_t(tcp_conn_t *conn, int thread) : conn_(conn), old_thread_(conn->home_thread()), new_thread_(thread) {
-        conn->rethread(thread);
-        rassert(conn->home_thread() == thread);
-    }
-
-    ~rethread_tcp_conn_t() {
-        rassert(conn_->home_thread() == new_thread_);
-        conn_->rethread(old_thread_);
-        rassert(conn_->home_thread() == old_thread_);
-    }
-
-private:
-    tcp_conn_t *conn_;
-    int old_thread_, new_thread_;
-
-    DISABLE_COPYING(rethread_tcp_conn_t);
-};
-
 static void close_conn_if_open(tcp_conn_t *conn) {
     if (conn->is_read_open()) conn->shutdown_read();
 }
  
-void redis_listener_t::handle(boost::scoped_ptr<tcp_conn_t> &conn) {
+void redis_listener_t::handle(boost::scoped_ptr<nascent_tcp_conn_t> &nconn) {
     assert_thread();
 
     drain_semaphore_t::lock_t dont_shut_down_yet(&active_connection_drain_semaphore);
@@ -150,20 +131,21 @@ void redis_listener_t::handle(boost::scoped_ptr<tcp_conn_t> &conn) {
     when a shutdown command is delivered on the main thread. */
     cross_thread_signal_t signal_transfer(&pulse_to_begin_shutdown, chosen_thread);
 
-    /* Switch to the other thread. We use the `rethread_t` objects to unregister
-    the conn with the event loop on this thread and to reregister it with the
-    event loop on the new thread, then do the reverse when we switch back. */
-    rethread_tcp_conn_t unregister_conn(conn.get(), INVALID_THREAD);
     on_thread_t thread_switcher(chosen_thread);
-    rethread_tcp_conn_t reregister_conn(conn.get(), get_thread_id());
+    boost::scoped_ptr<tcp_conn_t> conn;
+    nconn->ennervate(conn);
 
     /* Set up an object that will close the network connection when a shutdown signal
     is delivered */
     signal_t::subscription_t conn_closer(boost::bind(&close_conn_if_open, conn.get()));
-    if (signal_transfer.is_pulsed()) close_conn_if_open(conn.get());
-    else conn_closer.resubscribe(&signal_transfer);
+    if (signal_transfer.is_pulsed()) {
+        close_conn_if_open(conn.get());
+    } else {
+        conn_closer.resubscribe(&signal_transfer);
+    }
 
     /* `serve_redis()` will continuously serve redis queries on the given conn
     until the connection is closed. */
     serve_redis(conn.get(), redis_interface);
 }
+#endif //#ifndef NO_REDIS

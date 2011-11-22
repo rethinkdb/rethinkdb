@@ -51,7 +51,7 @@ SEMANTIC_SERIALIZER_CHECK?=0
 MOCK_CACHE_CHECK?=0
 VERBOSE?=0
 UNIT_TESTS?=$(DEBUG)
-CLANG?=0
+NO_REDIS?=0
 
 # Set TRIAL to 1 to build a 21-day trial version. If you want a different number of days, set TIMEBOMB to the number of days instead.
 TRIAL?=0
@@ -68,25 +68,48 @@ else
 BUILD_DIR:=$(BUILD_ROOT_DIR)/release
 endif
 
+ifeq ($(COMPILER), CLANG)
+BUILD_DIR:=$(BUILD_DIR)_clang
+else
+ifeq ($(COMPILER), INTEL)
+BUILD_DIR:=$(BUILD_DIR)_intel
+endif
+endif
+
 PACKAGES_DIR:=$(BUILD_ROOT_DIR)/packages
 RPM_PACKAGE_DIR:=$(PACKAGES_DIR)/rpm
 DEB_PACKAGE_DIR:=$(PACKAGES_DIR)/deb
 
-CXXDEP:=g++
 
 # Define configuration variables
-ifeq (${CLANG},1)
+ifeq ($(COMPILER),CLANG)
 CXX:=clang
+CXXDEP:=clang
+else
+ifeq ($(COMPILER),INTEL)
+CXX:=icc
+CXXDEP:=icc
 else
 CXX:=g++
+CXXDEP:=g++
 endif
+endif
+
+ifeq ($(COMPILER),CLANG)
 LDFLAGS:=-Wl,--no-as-needed -lpthread -lrt -laio
+else
+ifeq ($(COMPILER),INTEL)
+LDFLAGS:= -B/opt/intel/bin -lpthread -lrt -laio -lstdc++
+else
+LDFLAGS:=-Wl,--no-as-needed -lpthread -lrt -laio
+endif
+endif
 
 STATIC_LIBRARIES:=boost_serialization
 
 CXXFLAGS?=
 
-CXXFLAGS+=-I$(SOURCE_DIR) -I/usr/include/qt4 -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source/JavaScriptCore/ForwardingHeaders -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source/JavaScriptCore -Wall -Wextra -Wformat=2 -Wswitch-enum -Werror -Wnon-virtual-dtor
+CXXFLAGS+=-I$(SOURCE_DIR) -I/usr/include/qt4 -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source/JavaScriptCore/ForwardingHeaders -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source/JavaScriptCore 
 CXXFLAGS+="-DPRODUCT_NAME=\"$(PRODUCT_NAME)\""
 
 ifeq ($(SOLO),1)
@@ -95,9 +118,16 @@ else
 CXXFLAGS+=-DRETHINKDB_CACHE_PRODUCT
 endif
 
+ifeq ($(COMPILER), INTEL)
+CXXFLAGS+=-std=c++0x -w0 -ftls-model=local-dynamic
+else
 ifeq ($(CLANG),0)
-CXXFLAGS+=-Wswitch-default
+else
+CXXFLAGS+=-Wall -Wextra -Wformat=2 -Wswitch-enum -Werror -Wnon-virtual-dtor -Wswitch-default
 endif
+endif
+
+
 
 ifeq ($(AGRESSIVE_BUF_UNLOADING),1)
 CXXFLAGS+=-DAGRESSIVE_BUF_UNLOADING=1
@@ -203,6 +233,10 @@ BUILD_DIR:=$(BUILD_DIR)-valgrind
 NO_TCMALLOC:=1
 endif
 
+ifeq ($(NO_REDIS),1)
+CXXFLAGS+=-DNO_REDIS
+endif
+
 PROTO_DIR:=$(BUILD_DIR)/proto
 CXXFLAGS += -I$(PROTO_DIR)
 
@@ -232,10 +266,11 @@ UNIT_TEST_FILTER?=*
 DEP_DIR:=$(BUILD_DIR)/dep
 OBJ_DIR:=$(BUILD_DIR)/obj
 
+# redis_proto.cc and riak.cc are some of our slowest-compiling files, so we start them first.
 ifeq ($(UNIT_TESTS),1)
-SOURCES:=$(shell find $(SOURCE_DIR) -name '*.cc')
+SOURCES:=$(shell find $(SOURCE_DIR) -name 'redis_grammar*.cc') ./riak/riak.cc $(shell find $(SOURCE_DIR) -name '*.cc' | grep -v 'redis_grammar.*.cc' |  grep -v 'riak.cc')
 else
-SOURCES:=$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR)/unittest`")
+SOURCES:=$(shell find $(SOURCE_DIR) -name 'redis_grammar*.cc') ./riak/riak.cc $(shell find $(SOURCE_DIR) -name '*.cc' | grep -v 'riak.cc' | grep -v 'redis_grammar.*.cc' | grep -vF "`find $(SOURCE_DIR)/unittest`")
 endif
 
 PROTO_SOURCES:=$(shell find $(SOURCE_DIR) -name '*.proto')
@@ -270,7 +305,7 @@ CXXFLAGS+=-DRETHINKDB_VERSION=\"$(RETHINKDB_VERSION)\"
 SERVER_EXEC_NAME_VERSIONED:=$(SERVER_EXEC_NAME)-$(RETHINKDB_SHORT_VERSION)
 
 ##### Build targets
-.PHONY: all install-binaries install-manpages install-tools install install-rpm install-deb build-deb deb build-rpm rpm rpm-suse10 run rerun gdb regdb sembuild valgrind revalgrind callgrind
+.PHONY: all build-deb build-rpm callgrind callgrind clean cscope deb deb depclean gdb install install-binaries install-deb install-docs install-manpages install-rpm install-tools prepare_deb_package_dirs prepare_rpm_package_dirs regdb rerun revalgrind rpm rpm rpm-suse10 run sembuild showdefines style tags unit valgrind
 
 # High level build targets
 
@@ -530,9 +565,6 @@ ifeq ($(VERBOSE),0)
 endif
 	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_UNIT_TEST_OBJS) $(STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
 
-
-
-
 $(BUILD_DIR)/$(START_DB_NAME):
 	$(QUIET) cp $(SCRIPTS_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(START_DB_NAME)
 
@@ -597,7 +629,6 @@ style:
 showdefines:
 	$(QUIET) $(CXX) $(CXXFLAGS) -m32 -E -dM - < /dev/null
 
-.PHONY: depclean clean
 depclean:
 ifeq ($(VERBOSE),0)
 	@echo "    RM -f $(BUILD_ROOT_DIR)/*.d"
@@ -651,9 +682,8 @@ endif
 # bug in GNU Make, possibly a bug in our Makefile.
 .SECONDARY: $(PROTO_HEADERS)
 
+NO_DEPS_TARGETS:=clean depclean tags cscope style
 # Include the dependencies into the makefile so that they take effect
-ifneq ($(MAKECMDGOALS), clean)
-ifneq ($(MAKECMDGOALS), depclean)
+ifneq (,$(if $(MAKECMDGOALS),$(filter-out $(NO_DEPS_TARGETS),$(MAKECMDGOALS)),non-empty-placeholder))
 -include $(DEPS)
-endif
 endif

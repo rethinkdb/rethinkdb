@@ -1,3 +1,4 @@
+#ifndef NO_REDIS
 #include "redis/redis_util.hpp"
 #include "redis/counted/counted.hpp"
 
@@ -400,3 +401,4 @@ EXECUTE_W(rpushx) {
     oper.insert(oper.get_size(), two);
     return int_response(oper.get_size());
 }
+#endif //#ifndef NO_REDIS

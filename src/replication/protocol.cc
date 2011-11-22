@@ -54,6 +54,7 @@ size_t objsize(const net_backfill_set_t *buf) { return sizeof(net_backfill_set_t
 size_t objsize(const net_backfill_delete_range_t *buf) {
     // low_key_size and high_key_size are uint8_t's, we be careful not to add them together first.
     size_t ret = sizeof(net_backfill_delete_range_t);
+    rassert(sizeof(net_backfill_delete_range_t) == 6);
     ret += (buf->low_key_size == net_backfill_delete_range_t::infinity_key_size ? 0 : buf->low_key_size);
     ret += (buf->high_key_size == net_backfill_delete_range_t::infinity_key_size ? 0 : buf->high_key_size);
     return ret;

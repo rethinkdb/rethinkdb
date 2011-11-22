@@ -62,7 +62,10 @@ master_t::~master_t() {
 }
 
 
-void master_t::on_conn(boost::scoped_ptr<linux_tcp_conn_t>& conn) {
+void master_t::on_conn(boost::scoped_ptr<nascent_tcp_conn_t>& nconn) {
+    boost::scoped_ptr<tcp_conn_t> conn;
+    nconn->ennervate(conn);
+
     mutex_acquisition_t ak(&stream_setup_teardown_);
 
     // Note: As destroy_existing_slave_conn_if_it_exists() acquires

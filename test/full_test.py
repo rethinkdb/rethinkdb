@@ -253,15 +253,16 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                   repeat=3, timeout = 600)
 
     # TODO: This should really only be run under one environment...
-    do_test_cloud("regression/gc_verification.py",
-                  { "auto"        : True,
-                    "mode"        : mode,
-                    "no-valgrind" : not checker,
-                    "protocol"    : protocol,
-                    "cores"       : cores,
-                    "slices"      : slices,
-                    "duration"    : 400 },
-                  repeat=3, timeout=600)
+    if not checker:
+        do_test_cloud("regression/gc_verification.py",
+                      { "auto"        : True,
+                        "mode"        : mode,
+                        "no-valgrind" : True,
+                        "protocol"    : protocol,
+                        "cores"       : cores,
+                        "slices"      : slices,
+                        "duration"    : 400 },
+                      repeat=3, timeout=600)
 
     # Run the serial mix test also with drd
     if checker == "valgrind":
@@ -278,6 +279,17 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                             "slices"      : slices,
                             "duration"    : 300 },
                           repeat=3, timeout=400)
+
+            do_test("integration/multi_serial_mix.py",
+                    { "auto" : True,
+                      "mode": mode,
+                      "no-valgrind" : not checker,
+                      "valgrind-tool" : valgrind_tool,
+                      "protocol" : protocol,
+                      "cores" : cores,
+                      "slices" : slices,
+                      "duration" : 120 },
+                    repeat=2, timeout=200)
 
     do_test_cloud("integration/serial_mix.py",
                   { "auto"        : True,

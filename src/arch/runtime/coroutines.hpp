@@ -81,7 +81,10 @@ public:
 #ifndef NDEBUG
     // A unique identifier for this particular instance of coro_t over
     // the lifetime of the process.
-    int64_t selfname() const { return selfname_number; }
+    static int64_t selfname() {
+        coro_t *self = coro_t::self();
+        return self ? self->selfname_number : 0;
+    }
 
     int64_t selfname_number;
 #endif
@@ -110,7 +113,7 @@ private:
     coro_context_t object. */
     coro_context_t *context;
 
-    coro_t(const boost::function<void()>& deed);
+    explicit coro_t(const boost::function<void()>& deed);
     boost::function<void()> deed_;
     void run();
     ~coro_t();
@@ -134,22 +137,22 @@ bool is_coroutine_stack_overflow(void *addr);
 /* If `ASSERT_NO_CORO_WAITING;` appears at the top of a block, then it is illegal
 to call `coro_t::wait()`, `coro_t::spawn_now()`, or `coro_t::notify_now()`
 within that block and any attempt to do so will be a fatal error. */
-#define ASSERT_NO_CORO_WAITING assert_no_coro_waiting_t assert_no_coro_waiting_var
+#define ASSERT_NO_CORO_WAITING assert_no_coro_waiting_t assert_no_coro_waiting_var(__FILE__, __LINE__)
 
 /* If `ASSERT_FINITE_CORO_WAITING;` appears at the top of a block, then code
 within that block may call `coro_t::spawn_now()` or `coro_t::notify_now()` but
 not `coro_t::wait()`. This is because `coro_t::spawn_now()` and
 `coro_t::notify_now()` will return control directly to the coroutine that called
 then. */
-#define ASSERT_FINITE_CORO_WAITING assert_finite_coro_waiting_t assert_finite_coro_waiting_var
+#define ASSERT_FINITE_CORO_WAITING assert_finite_coro_waiting_t assert_finite_coro_waiting_var(__FILE__, __LINE__)
 
 /* Implementation support for `ASSERT_NO_CORO_WAITING` and `ASSERT_FINITE_CORO_WAITING` */
 struct assert_no_coro_waiting_t {
-    assert_no_coro_waiting_t();
+    assert_no_coro_waiting_t(std::string, int);
     ~assert_no_coro_waiting_t();
 };
 struct assert_finite_coro_waiting_t {
-    assert_finite_coro_waiting_t();
+    assert_finite_coro_waiting_t(std::string, int);
     ~assert_finite_coro_waiting_t();
 };
 

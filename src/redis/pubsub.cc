@@ -1,3 +1,4 @@
+#ifndef NO_REDIS
 #include "redis/pubsub.hpp"
 
 bool pubsub_runtime_t::subscribe(std::string &channel, uint64_t connection_id, redis_output_writer *out) {
@@ -140,7 +141,7 @@ int pubsub_runtime_t::publish(std::string &channel, std::string &message) {
 bool match_pattern(const char *, const char *);
 
 bool star_match(const char *chan, const char *patt) {
-    assert(*patt == '*');
+    rassert(*patt == '*');
     ++patt;
 
     // If * is the last charater in the pattern than we automatically match the rest of the pattern
@@ -156,7 +157,7 @@ bool star_match(const char *chan, const char *patt) {
 }
 
 bool group_match(const char *chan, const char *patt) {
-    assert(*patt == '[');
+    rassert(*patt == '[');
     ++patt;
 
     std::vector<char> group;
@@ -214,3 +215,4 @@ bool pubsub_runtime_t::pattern_matches(std::string &channel, std::string &patter
 
     return match_pattern(chan, patt);
 }
+#endif //#ifndef NO_REDIS

@@ -14,6 +14,7 @@ class coro_t;
 
 class cond_t : public signal_t {
 public:
+    explicit cond_t(int specified_home_thread) : signal_t(specified_home_thread) { }
     cond_t() { }
     void pulse();
 private:

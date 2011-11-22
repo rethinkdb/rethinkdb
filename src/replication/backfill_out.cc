@@ -33,7 +33,7 @@ public:
     {
         slice_manager_t(backfill_and_streaming_manager_t *parent, shard_store_t *shard, repli_timestamp_t backfill_from, repli_timestamp_t new_timestamp, int slice_num, int n_slices) :
             parent_(parent), shard_(shard),
-            max_backfill_timestamp_(new_timestamp), min_realtime_timestamp_(new_timestamp),
+            max_backfill_timestamp_plus_one_(new_timestamp), min_realtime_timestamp_(new_timestamp),
             backfill_job_queue(shard_->home_thread(), REPLICATION_JOB_QUEUE_DEPTH),
             realtime_job_queue(shard_->home_thread(), REPLICATION_JOB_QUEUE_DEPTH),
             backfill_job_account(&parent->backfill_job_queue, &backfill_job_queue, 1),
@@ -46,7 +46,7 @@ public:
                 ASSERT_NO_CORO_WAITING;
 
                 /* We always use the `realtime_mutation_drain_semaphore` on the slice's thread */
-                realtime_mutation_drain_semaphore.rethread(get_thread_id());
+                realtime_mutation_drain_semaphore.reset(new drain_semaphore_t);
 
                 /* Increment the replication clock right as we start the backfill. This
                    makes it so that every operation with timestamp `new_timestamp - 1` will be
@@ -65,7 +65,7 @@ public:
                 shard_->dispatching_store.set_dispatcher(
                     boost::bind(
                     &slice_manager_t::dispatch_change, this,
-                    drain_semaphore_t::lock_t(&realtime_mutation_drain_semaphore),
+                    drain_semaphore_t::lock_t(realtime_mutation_drain_semaphore.get()),
                     _1, _2, _3));
 
                 backfilling_ = true;
@@ -78,7 +78,8 @@ public:
         void run_backfill(btree_slice_t *slice, repli_timestamp_t since_when, backfill_callback_t *callback, order_token_t token) {
             rassert(get_thread_id() == shard_->home_thread());
 
-            slice->backfill(since_when, callback, token);
+            repli_timestamp_t max_allowable_timestamp = { max_backfill_timestamp_plus_one_.time - 1 };
+            slice->backfill(since_when, max_allowable_timestamp, callback, token);
 
             // We're done backfill, so say so.
             rassert(backfilling_);
@@ -98,16 +99,19 @@ public:
 
             /* Wait for any already-dispatched changes to finish before we let ourselves
             be destroyed */
-            realtime_mutation_drain_semaphore.drain();
+            realtime_mutation_drain_semaphore->drain();
+            realtime_mutation_drain_semaphore.reset();
         }
 
         backfill_and_streaming_manager_t *parent_;
         shard_store_t *shard_;
 
-        // For sanity checking. All backfill operations should have timestamps less than
-        // `max_backfill_timestamp_`, and all realtime operations should have timestamps
-        // greater than or equal to `min_realtime_timestamp_`.
-        repli_timestamp_t max_backfill_timestamp_, min_realtime_timestamp_;
+        // For sanity checking. All backfill operations should have
+        // timestamps less than `max_backfill_timestamp_plus_one_`,
+        // and all realtime operations should have timestamps greater
+        // than or equal to `min_realtime_timestamp_`.
+        const repli_timestamp_t max_backfill_timestamp_plus_one_;
+        repli_timestamp_t min_realtime_timestamp_;
 
         // True while actually backfilling
         bool backfilling_;
@@ -115,7 +119,8 @@ public:
         cross_thread_limited_fifo_t<boost::function<void()> > backfill_job_queue, realtime_job_queue;
         accounting_queue_t<boost::function<void()> >::account_t backfill_job_account, realtime_job_account;
 
-        drain_semaphore_t realtime_mutation_drain_semaphore;
+        // Its home thread is shard_->home_thread().
+        boost::scoped_ptr<drain_semaphore_t> realtime_mutation_drain_semaphore;
 
         int slice_num_;
         int n_slices_;
@@ -228,7 +233,7 @@ public:
         void on_keyvalue(backfill_atom_t atom) {
             // This runs in the scheduler context
             rassert(get_thread_id() == shard_->home_thread());
-            rassert(atom.recency < max_backfill_timestamp_, "atom.recency (%u) < max_backfill_timestamp_ (%u)", atom.recency.time, max_backfill_timestamp_.time);
+            rassert(atom.recency < max_backfill_timestamp_plus_one_, "atom.recency (%u) < max_backfill_timestamp_plus_one_ (%u)", atom.recency.time, max_backfill_timestamp_plus_one_.time);
             rassert(backfilling_);
             backfill_job_queue.push(boost::bind(
                 &backfill_and_realtime_streaming_callback_t::backfill_set, parent_->handler_,
