@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os, time
+import os, time, random, string
 import flask
 import simple_linear_db, json
 
@@ -17,8 +17,8 @@ This is best explained by example. Suppose you have the following Flask rule:
     def blah(foo, bar):
         ...
 
-Then `generate_subbable_link("blah", foo="[FOO]", bar="[BAR]")` will return
-something like `http://.../foo/[FOO]/bar/[BAR]/baz`.
+Then `generate_subbable_link("blah", foo="<FOO>", bar="<BAR>")` will return
+something like `"http://.../foo/<FOO>/bar/<BAR>/baz"`.
 
 The use case for this is when Javascript needs to be able to generate URLs for
 Flask routes. You can write Python code like this:
@@ -26,19 +26,27 @@ Flask routes. You can write Python code like this:
     my_js = '''
     var my_foo = somehow_get_foo_id();
     var my_bar = somehow_get_bar_id();
-    var url = %s.replace("[FOO]", my_foo).replace("[BAR]", my_bar);
+    var url = %s.replace("<FOO>", my_foo).replace("<BAR>", my_bar);
     do_something_with(url);
-    ''' % json.dumps(generate_subbable_link("blah", foo="[FOO]", bar="[BAR]"))
+    ''' % json.dumps(generate_subbable_link("blah", foo="<FOO>", bar="<BAR>"))
 
+Note that if the substitution is not surrounded by angle brackets, then it will
+be escaped.
     """
     magics = { }
+    non_magics = { }
     for key in kwargs:
-        s = ""
-        for i in xrange(10):
-            s += random.choice(letters)
-        magics[key] = s
-    url = flask.url_for(page, **magics)
-    for key in kwargs:
+        if kwargs[key].startswith("<") and kwargs[key].endswith(">"):
+            s = ""
+            for i in xrange(10):
+                s += random.choice(string.letters)
+            magics[key] = s
+        else:
+            non_magics[key] = kwargs[key]
+    all_subs = magics.copy()
+    all_subs.update(non_magics)
+    url = flask.url_for(page, **all_subs)
+    for key in magics:
         assert url.count(magics[key]) == 1
         url = url.replace(magics[key], kwargs[key])
     return url
@@ -278,91 +286,91 @@ def list():
             <head>
                 <title>Nightly test</title>
                 <script type="text/javascript">
-        %(shared_javascript)s
+                    %(shared_javascript)s
 
-        function ListRootRenderer() {
-            this.buildsRenderer = new OptionalRenderer(
-                "Builds",
-                function () {
-                    return new SortedTableRenderer(
-                        ["Build", "Status"],
-                        function (name) {
-                            return new BuildRowRenderer(name);
-                        }
-                    );
-                }
-            );
-            this.testsRenderer = new OptionalRenderer(
-                "Tests",
-                function () {
-                    return new SortedTableRenderer(
-                        ["Test", "Command line", "Status"],
-                        function (name) {
-                            return new TestRowRenderer(name);
-                        }
-                    );
-                });
-            this.logRenderer = new OptionalRenderer(
-                "Log",
-                function () {
-                    return new LogRenderer();
-                }
-            );
-            this.element = makeElement("div", { }, [
-                this.buildsRenderer.element,
-                this.testsRenderer.element,
-                this.logRenderer.element
-            ]);
-            this.setResults = function (results) {
-                this.buildsRenderer.setData(results.builds);
-                this.testsRenderer.setData(results.tests);
-            };
-            this.setOutput = function (output) {
-                this.logRenderer.setData(output);
-            };
-        };
+                    function ListRootRenderer() {
+                        this.buildsRenderer = new OptionalRenderer(
+                            "Builds",
+                            function () {
+                                return new SortedTableRenderer(
+                                    ["Build", "Status"],
+                                    function (name) {
+                                        return new BuildRowRenderer(name);
+                                    }
+                                );
+                            }
+                        );
+                        this.testsRenderer = new OptionalRenderer(
+                            "Tests",
+                            function () {
+                                return new SortedTableRenderer(
+                                    ["Test", "Command line", "Status"],
+                                    function (name) {
+                                        return new TestRowRenderer(name);
+                                    }
+                                );
+                            });
+                        this.logRenderer = new OptionalRenderer(
+                            "Log",
+                            function () {
+                                return new LogRenderer();
+                            }
+                        );
+                        this.element = makeElement("div", { }, [
+                            this.buildsRenderer.element,
+                            this.testsRenderer.element,
+                            this.logRenderer.element
+                        ]);
+                        this.setResults = function (results) {
+                            this.buildsRenderer.setData(results.builds);
+                            this.testsRenderer.setData(results.tests);
+                        };
+                        this.setOutput = function (output) {
+                            this.logRenderer.setData(output);
+                        };
+                    };
 
-        function BuildRowRenderer(name) {
-            this.statusRenderer = new BuildStatusRenderer();
-            this.element = makeElement("tr", { }, [
-                makeElement("td", { }, [
-                    makeLink(%(build_url_pattern)s.replace("<BUILD>", name), [
-                        makeText(name)
-                    ])
-                ]),
-                makeElement("td", { }, [this.statusRenderer.element])
-            ]);
-            this.setData = function (build) {
-                this.statusRenderer.setData(build);
-            };
-        };
+                    function BuildRowRenderer(name) {
+                        this.statusRenderer = new BuildStatusRenderer();
+                        this.element = makeElement("tr", { }, [
+                            makeElement("td", { }, [
+                                makeLink(%(build_url_pattern)s.replace("<BUILD>", name), [
+                                    makeText(name)
+                                ])
+                            ]),
+                            makeElement("td", { }, [this.statusRenderer.element])
+                        ]);
+                        this.setData = function (build) {
+                            this.statusRenderer.setData(build);
+                        };
+                    };
 
-        function TestRowRenderer(name) {
-            this.statusRenderer = new TestStatusRenderer(%(round_url_pattern)s.replace("<TEST>", name));
-            this.commandLineText = makeText("");
-            this.element = makeElement("tr", { }, [
-                makeElement("td", { }, [
-                    makeLink(%(test_url_pattern)s.replace("<TEST>", name), [
-                        makeText(name)
-                    ]),
-                ]),
-                makeElement("td", { }, [this.commandLineText]),
-                makeElement("td", { }, [this.statusRenderer.element])
-            ]);
-            this.setData = function (test) {
-                this.statusRenderer.setData(test);
-                this.commandLineText.replaceWholeText(test.command_line);
-            };
-        };
+                    function TestRowRenderer(name) {
+                        this.statusRenderer = new TestStatusRenderer(%(round_url_pattern)s.replace("<TEST>", name));
+                        this.commandLineText = makeText("");
+                        this.element = makeElement("tr", { }, [
+                            makeElement("td", { }, [
+                                makeLink(%(test_url_pattern)s.replace("<TEST>", name), [
+                                    makeText(name)
+                                ]),
+                            ]),
+                            makeElement("td", { }, [this.commandLineText]),
+                            makeElement("td", { }, [this.statusRenderer.element])
+                        ]);
+                        this.setData = function (test) {
+                            this.statusRenderer.setData(test);
+                            this.commandLineText.replaceWholeText(test.command_line);
+                        };
+                    };
 
-        initialResults = %(initial_results)s;
-        initialOutput = %(initial_output)s;
-        function start() {
-            root = new ListRootRenderer();
-            root.setResults(initialResults);
-            root.setOutput(initialOutput);
-            document.getElementsByTagName("body")[0].appendChild(root.element);
-        };
+                    initialResults = %(initial_results)s;
+                    initialOutput = %(initial_output)s;
+                    function start() {
+                        root = new ListRootRenderer();
+                        root.setResults(initialResults);
+                        root.setOutput(initialOutput);
+                        document.getElementsByTagName("body")[0].appendChild(root.element);
+                    };
                 </script>
             </head>
             <body onload="start();">
@@ -375,7 +383,9 @@ def list():
             "shared_javascript": shared_javascript,
             "initial_results": json.dumps(results),
             "initial_output": json.dumps(output_file.read()),
-            "build_url_pattern": json.dumps(generate_js_link("build", "name", "<BUILD>"))
+            "build_url_pattern": json.dumps(generate_subbable_link("build", name="<BUILD>")),
+            "test_url_pattern": json.dumps(generate_subbable_link("test", name="<TEST>")),
+            "round_url_pattern": json.dumps(generate_subbable_link("round", name="<TEST>", round="<ROUND>"))
             }
 
 @app.route("/build/<name>")
@@ -388,53 +398,53 @@ def build(name):
         with open("builds/%s.txt" % name) as output_file:
             initial_output = json.dumps(output_file.read())
     else:
-        initial_output = undefined
-    template = build_template = """
+        initial_output = "undefined"
+    template = """
         <html>
             <head>
                 <title>Build: %(name)s</title>
                 <script type="text/javascript">
-        %(shared_javascript)s
+                    %(shared_javascript)s
 
-        function BuildRootRenderer(name) {
-            this.statusRenderer = new BuildStatusRenderer();
-            this.tracebackRenderer = new OptionalRenderer(
-                "Traceback",
-                function () {
-                    return new LogRenderer();
-                }
-            );
-            this.logRenderer = new OptionalRenderer(
-                "Log",
-                function () {
-                    return new LogRenderer();
-                }
-            );
-            this.element = makeElement("div", { }, [
-                makeElement("p", { }, [
-                    makeText("Status: "),
-                    this.statusRenderer.element
-                ]),
-                this.tracebackRenderer.element,
-                this.logRenderer.element
-            ]);
-            this.setResult = function (build) {
-                this.statusRenderer.setData(build);
-                this.tracebackRenderer.setData(build.traceback);
-            };
-            this.setOutput = function (output) {
-                this.logRenderer.setData(output);
-            };
-        };
+                    function BuildRootRenderer(name) {
+                        this.statusRenderer = new BuildStatusRenderer();
+                        this.tracebackRenderer = new OptionalRenderer(
+                            "Traceback",
+                            function () {
+                                return new LogRenderer();
+                            }
+                        );
+                        this.logRenderer = new OptionalRenderer(
+                            "Log",
+                            function () {
+                                return new LogRenderer();
+                            }
+                        );
+                        this.element = makeElement("div", { }, [
+                            makeElement("p", { }, [
+                                makeText("Status: "),
+                                this.statusRenderer.element
+                            ]),
+                            this.tracebackRenderer.element,
+                            this.logRenderer.element
+                        ]);
+                        this.setResult = function (build) {
+                            this.statusRenderer.setData(build);
+                            this.tracebackRenderer.setData(build.traceback);
+                        };
+                        this.setOutput = function (output) {
+                            this.logRenderer.setData(output);
+                        };
+                    };
 
-        initialResult = %(initial_result)s;
-        initialOutput = %(initial_output)s;
-        function start() {
-            root = new BuildRootRenderer();
-            root.setResult(initialResult);
-            root.setOutput(initialOutput);
-            document.getElementsByTagName("body")[0].appendChild(root.element);
-        };
+                    initialResult = %(initial_result)s;
+                    initialOutput = %(initial_output)s;
+                    function start() {
+                        root = new BuildRootRenderer();
+                        root.setResult(initialResult);
+                        root.setOutput(initialOutput);
+                        document.getElementsByTagName("body")[0].appendChild(root.element);
+                    };
                 </script>
             </head>
             <body onload="start();">
@@ -442,7 +452,7 @@ def build(name):
             </body>
         </html>
         """
-    return build_template % {
+    return template % {
         "shared_javascript": shared_javascript,
         "name": flask.escape(name),
         "initial_result": json.dumps(results["builds"][name]),
@@ -455,64 +465,147 @@ def test(name):
     results = simple_linear_db.read_linear_db("result_log.txt")
     if "tests" not in results or name not in results["tests"]:
         flask.abort(404)
-    return test_template % {
+    template = """
+        <html>
+            <head>
+                <title>Test: %(name)s</title>
+                <script type="text/javascript">
+                    %(shared_javascript)s
+
+                    function TestRootRenderer() {
+                        this.statusRenderer = new TestStatusRenderer(%(round_url_pattern)s);
+                        this.commandLine = makeText("");
+                        this.missingRenderer = new OptionalRenderer(
+                            "Missing prerequisites",
+                            function () {
+                                return new ListRenderer();
+                            }
+                        );
+                        this.element = makeElement("div", { }, [
+                            makeElement("p", { }, [
+                                makeText("Command line: "),
+                                makeElement("code", { }, [this.commandLine])
+                            ]),
+                            makeElement("p", { }, [
+                                makeText("Status: "),
+                                this.statusRenderer.element
+                            ]),
+                            this.missingRenderer.element
+                        ]);
+                        this.setResult = function (test) {
+                            this.statusRenderer.setData(test);
+                            this.commandLine.replaceWholeText(test.command_line);
+                            this.missingRenderer.setData(test.missing);
+                        };
+                    }
+
+                    function ListRenderer() {
+                        this.element = makeElement("ul", { }, []);
+                        this.things = [];
+                        this.setData = function (data) {
+                            var this_ = this;
+                            this.things.forEach(this.element.removeChild);
+                            this.things = [];
+                            data.forEach(function (thing) {
+                                var el = makeElement("li", { }, [makeText(thing)]);
+                                this_.element.appendChild(el);
+                                this_.things.push(el);
+                            });
+                        };
+                    }
+
+                    initialResult = %(initial_result)s;
+                    function start() {
+                        root = new TestRootRenderer();
+                        root.setResult(initialResult);
+                        document.getElementsByTagName("body")[0].appendChild(root.element);
+                    };
+                </script>
+            </head>
+            <body onload="start();">
+                <h1>Test: %(name)s</h1>
+            </body>
+        </html>
+        """
+    return template % {
         "shared_javascript": shared_javascript,
         "name": flask.escape(name),
         "initial_result": json.dumps(results["tests"][name]),
+        "round_url_pattern": json.dumps(generate_subbable_link("round", name=name, round="<ROUND>"))
         }
 
-test_template = """
-<html>
-    <head>
-        <title>Test: %(name)s</title>
-        <script type="text/javascript">
-%(shared_javascript)s
+@app.route("/test/<name>/round/<round>")
+@app.route("/test/<name>/round/<round>/")
+def round(name, round):
+    results = simple_linear_db.read_linear_db("result_log.txt")
+    if "tests" not in results or name not in results["tests"] or \
+            "rounds" not in results["tests"] or round not in results["tests"][name]["rounds"]:
+        flask.abort(404)
+    if os.path.exists("tests/%s/%s/output.txt" % (name, round)):
+        with open("tests/%s/%s/output.txt" % (name, round)) as output_file:
+            initial_output = json.dumps(output_file.read())
+    else:
+        initial_output = "undefined"
+    template = """
+        <html>
+            <head>
+                <title>Test: %(name)s (round %(round)s)</title>
+                <script type="text/javascript">
+                    %(shared_javascript)s
 
-function TestRootRenderer() {
-    this.statusRenderer = new TestStatusRenderer(%();
-    this.tracebackRenderer = new OptionalRenderer(
-        "Traceback",
-        function () {
-            return new LogRenderer();
-        }
-    );
-    this.logRenderer = new OptionalRenderer(
-        "Log",
-        function () {
-            return new LogRenderer();
-        }
-    );
-    this.element = makeElement("div", { }, [
-        makeElement("p", { }, [
-            makeText("Status: "),
-            this.statusRenderer.element
-        ]),
-        this.tracebackRenderer.element,
-        this.logRenderer.element
-    ]);
-    this.setResult = function (build) {
-        this.statusRenderer.setData(build);
-        this.tracebackRenderer.setData(build.traceback);
-    };
-    this.setOutput = function (output) {
-        this.logRenderer.setData(output);
-    };
-};
+                    function TestRoundRootRenderer(name) {
+                        this.statusRenderer = new TestStatusRenderer();
+                        this.tracebackRenderer = new OptionalRenderer(
+                            "Traceback",
+                            function () {
+                                return new LogRenderer();
+                            }
+                        );
+                        this.logRenderer = new OptionalRenderer(
+                            "Log",
+                            function () {
+                                return new LogRenderer();
+                            }
+                        );
+                        this.element = makeElement("div", { }, [
+                            makeElement("p", { }, [
+                                makeText("Status: "),
+                                this.statusRenderer.element
+                            ]),
+                            this.tracebackRenderer.element,
+                            this.logRenderer.element
+                        ]);
+                        this.setResult = function (round) {
+                            this.statusRenderer.setData(round);
+                            this.tracebackRenderer.setData(round.traceback);
+                        };
+                        this.setOutput = function (output) {
+                            this.logRenderer.setData(output);
+                        };
+                    };
 
-initialResult = %(initial_result)s;
-initialOutput = %(initial_output)s;
-function start() {
-    root = new TestRootRenderer();
-    root.setResult(initialResult);
-    root.setOutput(initialOutput);
-    document.getElementsByTagName("body")[0].appendChild(root.element);
-};
-        </script>
-    </head>
-    <body onload="start();">
-        <h1>Test: %(name)s</h1>
-    </body>
-</html>"""
+                    initialResult = %(initial_result)s;
+                    initialOutput = %(initial_output)s;
+                    function start() {
+                        root = new TestRoundRootRenderer();
+                        root.setResult(initialResult);
+                        root.setOutput(initialOutput);
+                        document.getElementsByTagName("body")[0].appendChild(root.element);
+                    };
+                </script>
+            </head>
+            <body onload="start();">
+                <h1>Test: %(name)s (round %(round)s)</h1>
+            </body>
+        </html>
+        """
+    return template % {
+        "shared_javascript": shared_javascript,
+        "name": flask.escape(name),
+        "round": flask.escape(round),
+        "initial_result": json.dumps(results["tests"][name]["rounds"][round]),
+        "initial_output": initial_output
+        }
 
 app.debug = True
 
