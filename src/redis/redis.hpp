@@ -483,7 +483,43 @@ public:
     boost::shared_ptr<store_view_t<redis_protocol_t>::read_transaction_t> begin_read_transaction(signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
     boost::shared_ptr<store_view_t<redis_protocol_t>::write_transaction_t> begin_write_transaction(signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
-private:
+    class transaction_t : public virtual store_view_t<redis_protocol_t>::write_transaction_t {
+    public:
+        transaction_t(dummy_redis_store_view_t *parent_);
+
+        region_map_t<redis_protocol_t, binary_blob_t> get_metadata(
+                signal_t *interruptor)
+                THROWS_ONLY(interrupted_exc_t);
+
+        redis_protocol_t::read_response_t read(
+                const redis_protocol_t::read_t &,
+                signal_t *interruptor)
+                THROWS_ONLY(interrupted_exc_t);
+
+        void send_backfill(
+                const region_map_t<redis_protocol_t, state_timestamp_t> &start_point,
+                const boost::function<void(redis_protocol_t::backfill_chunk_t)> &chunk_fun,
+                signal_t *interruptor)
+                THROWS_ONLY(interrupted_exc_t);
+
+        void set_metadata(
+            const region_map_t<redis_protocol_t, binary_blob_t> &new_metadata)
+            THROWS_NOTHING;
+
+        redis_protocol_t::write_response_t write(
+                const redis_protocol_t::write_t &write,
+                transition_timestamp_t timestamp)
+                THROWS_NOTHING;
+
+        void receive_backfill(
+                const redis_protocol_t::backfill_chunk_t &chunk_fun,
+                signal_t *interruptor)
+                THROWS_ONLY(interrupted_exc_t);
+    private:
+        dummy_redis_store_view_t *parent;
+    };
+
+    region_map_t<redis_protocol_t, binary_blob_t> metadata;
     btree_slice_t *btree;
 };
 

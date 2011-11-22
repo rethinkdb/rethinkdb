@@ -1,27 +1,20 @@
 #!/usr/bin/python
 
-from redis import Redis
+from testRedis import cmd
 import random
 
 elements = 1000
 
-r = Redis('localhost', 6380, 0)
-c = Redis('localhost', 6379, 0)
-
-def aply(fun, *args):
-    return (getattr(r, fun)('l', *args)
-           ,getattr(c, fun)('l', *args))
-
-aply('delete')
+cmd('delete')
 
 for i in xrange(0,elements):
     data = random.random()
     if random.random() > 0.5:
-        aply('lpush', data)
+        cmd('lpush', data)
     else:
-        aply('rpush', data)
+        cmd('rpush', data)
 
-(rethink_range,redis_range) = aply('lrange', 0, -30)
+(rethink_range,redis_range) = cmd('lrange', 0, -30)
 
 if (rethink_range == redis_range): 
     print "OK"
