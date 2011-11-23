@@ -51,7 +51,7 @@ SEMANTIC_SERIALIZER_CHECK?=0
 MOCK_CACHE_CHECK?=0
 VERBOSE?=0
 UNIT_TESTS?=$(DEBUG)
-NO_REDIS?=0
+NO_REDIS?=1
 
 # Set TRIAL to 1 to build a 21-day trial version. If you want a different number of days, set TIMEBOMB to the number of days instead.
 TRIAL?=0
@@ -549,7 +549,7 @@ ifeq ($(VERBOSE),0)
 endif
 	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_EXEC_OBJS) $(STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 ifeq ($(NO_TCMALLOC),0)
-	@objdump -T $(BUILD_DIR)/$(SERVER_EXEC_NAME) | c++filt | grep -q "tcmalloc::" || \
+	@objdump -T $(BUILD_DIR)/$(SERVER_EXEC_NAME) | c++filt | grep -q 'tcmalloc::\|google_malloc' || \
 		(echo "    Failed to link in TCMalloc. Either install it, or make with NO_TCMALLOC=1." && \
 		false)
 endif
