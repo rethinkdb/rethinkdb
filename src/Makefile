@@ -51,7 +51,7 @@ SEMANTIC_SERIALIZER_CHECK?=0
 MOCK_CACHE_CHECK?=0
 VERBOSE?=0
 UNIT_TESTS?=$(DEBUG)
-NO_REDIS?=0
+NO_REDIS?=1
 
 # Set TRIAL to 1 to build a 21-day trial version. If you want a different number of days, set TIMEBOMB to the number of days instead.
 TRIAL?=0
