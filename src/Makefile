@@ -471,7 +471,7 @@ ifeq ($(VERBOSE),0)
 endif
 	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_EXEC_OBJS) $(STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 ifeq ($(NO_TCMALLOC),0)
-	@objdump -T $(BUILD_DIR)/$(SERVER_EXEC_NAME) | c++filt | grep -q "tcmalloc::" || \
+	@objdump -T $(BUILD_DIR)/$(SERVER_EXEC_NAME) | c++filt | grep -q 'tcmalloc::\|google_malloc' || \
 		(echo "    Failed to link in TCMalloc. Either install it, or make with NO_TCMALLOC=1." && \
 		false)
 endif
