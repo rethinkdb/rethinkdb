@@ -6,10 +6,7 @@
 
 //WRITE(del)
 KEYS(del)
-
-redis_protocol_t::write_t redis_protocol_t::del::shard(UNUSED redis_protocol_t::region_t regions) {
-    crash("this was completely broken");
-}
+SHARD_W(del)
 
 EXECUTE_W(del) {
     int count = 0;
@@ -24,7 +21,6 @@ EXECUTE_W(del) {
 //READ(exists)
 KEYS(exists)
 SHARD_R(exists)
-PARALLEL(exists)
 
 EXECUTE_R(exists) {
     read_oper_t oper(one, btree, otok);
@@ -90,7 +86,6 @@ READ(randomkey)
 //READ(rename_get_type)
 KEYS(rename_get_type)
 SHARD_R(rename_get_type)
-PARALLEL(rename_get_type)
 
 EXECUTE_R(rename_get_type) {
     read_oper_t oper(one, btree, otok);
@@ -105,7 +100,6 @@ EXECUTE_R(rename_get_type) {
 //READ(ttl)
 KEYS(ttl)
 SHARD_R(ttl)
-PARALLEL(ttl)
 
 EXECUTE_R(ttl) {
     read_oper_t oper(one, btree, otok);
@@ -129,7 +123,6 @@ EXECUTE_R(ttl) {
 //READ(type)
 KEYS(type)
 SHARD_R(type)
-PARALLEL(type)
 
 EXECUTE_R(type) {
     read_oper_t oper(one, btree, otok);

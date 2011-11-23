@@ -18,7 +18,7 @@ struct set_set_oper_t : set_oper_t {
             value->get_root() = NULL_BLOCK_ID;
             value->get_sub_size() = 0;
         } else if(value->get_redis_type() != REDIS_SET) {
-            throw "Operation against key holding the wrong kind of value";
+            throw "ERR Operation against key holding the wrong kind of value";
         }
 
         root = value->get_root();
@@ -98,7 +98,7 @@ struct set_read_oper_t : read_oper_t {
         if(!value) {
             root = NULL_BLOCK_ID;
         } else if(value->get_redis_type() != REDIS_SET) {
-            throw "Operation against key holding the wrong kind of value";
+            throw "ERR Operation against key holding the wrong kind of value";
         } else {
             root = value->get_root();
         }
@@ -171,7 +171,6 @@ EXECUTE_W(sadd) {
 //READ(scard)
 KEYS(scard)
 SHARD_R(scard)
-PARALLEL(scard)
 
 EXECUTE_R(scard) {
     set_read_oper_t oper(one, btree, otok);
@@ -186,7 +185,6 @@ redis_protocol_t::indicated_key_t redis_protocol_t::sdiff::get_keys() {
 }
 
 SHARD_R(sdiff)
-PARALLEL(sdiff)
 
 EXECUTE_R(sdiff) {
     merge_ordered_data_iterator_t<std::string> *right =
@@ -227,16 +225,17 @@ redis_protocol_t::indicated_key_t redis_protocol_t::sinter::get_keys() {
 }
 
 SHARD_R(sinter)
-PARALLEL(sinter)
 
 EXECUTE_R(sinter) {
     merge_ordered_data_iterator_t<std::string> *merged =
         new merge_ordered_data_iterator_t<std::string>();
 
     // Add each set iterator to the merged data iterator
+    std::list<set_read_oper_t *> opers;
     for(std::vector<std::string>::iterator iter = one.begin(); iter != one.end(); ++iter) {
-        set_read_oper_t oper(*iter, btree, otok);
-        boost::shared_ptr<one_way_iterator_t<std::string> > set_iter = oper.iterator();
+        set_read_oper_t *oper = new set_read_oper_t(*iter, btree, otok);
+        opers.push_back(oper);
+        boost::shared_ptr<one_way_iterator_t<std::string> > set_iter = oper->iterator();
         merged->add_mergee(set_iter);
     }
     
@@ -251,13 +250,17 @@ EXECUTE_R(sinter) {
         result.push_back(next.get());
     }
 
+    // Delete opers
+    for(std::list<set_read_oper_t *>::iterator iter = opers.begin(); iter != opers.end(); ++iter) {
+        delete *iter;
+    }
+
     return read_response_t(new multi_bulk_result_t(result));
 }
 
 //READ(sismember)
 KEYS(sismember)
 SHARD_R(sismember)
-PARALLEL(sismember)
 
 EXECUTE_R(sismember) {
     set_read_oper_t oper(one, btree, otok);
@@ -267,7 +270,6 @@ EXECUTE_R(sismember) {
 //READ(smembers)
 KEYS(smembers)
 SHARD_R(smembers)
-PARALLEL(smembers)
 
 EXECUTE_R(smembers) {
     set_read_oper_t oper(one, btree, otok);
@@ -314,16 +316,16 @@ redis_protocol_t::indicated_key_t redis_protocol_t::sunion::get_keys() {
 }
 
 SHARD_R(sunion)
-PARALLEL(sunion)
 
 EXECUTE_R(sunion) {
     merge_ordered_data_iterator_t<std::string> *merged =
         new merge_ordered_data_iterator_t<std::string>();
 
     // Add each set iterator to the merged data iterator
+    std::list<set_read_oper_t *> opers;
     for(std::vector<std::string>::iterator iter = one.begin(); iter != one.end(); ++iter) {
-        set_read_oper_t oper(*iter, btree, otok);
-        boost::shared_ptr<one_way_iterator_t<std::string> > set_iter = oper.iterator();
+        set_read_oper_t *oper = new set_read_oper_t(*iter, btree, otok);
+        boost::shared_ptr<one_way_iterator_t<std::string> > set_iter = oper->iterator();
         merged->add_mergee(set_iter);
     }
     
@@ -336,6 +338,11 @@ EXECUTE_R(sunion) {
         if(!next) break;
 
         result.push_back(next.get());
+    }
+
+    // Delete opers
+    for(std::list<set_read_oper_t *>::iterator iter = opers.begin(); iter != opers.end(); ++iter) {
+        delete *iter;
     }
 
     return read_response_t(new multi_bulk_result_t(result));

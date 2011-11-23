@@ -9,11 +9,9 @@
 #include <deque>
 #include <vector>
 #include <string>
-using std::string;
 
 // For key ranges, we'll split this when I figure stuff out
 #include "memcached/protocol.hpp"
-
 
 struct redis_protocol_t {
 
@@ -66,8 +64,10 @@ struct redis_protocol_t {
         virtual ~read_operation_t(){};
         virtual indicated_key_t get_keys() = 0;
         virtual read_t shard(region_t mask) = 0;
-        virtual std::vector<read_t> parallelize(int optimal_factor) = 0;
         virtual read_response_t execute(btree_slice_t *btree, order_token_t otok) = 0;
+
+    private:
+        std::string one;
     };
 
     struct write_t {
@@ -119,7 +119,6 @@ struct redis_protocol_t {
     struct integer_result_t : read_result_t, write_result_t {
         integer_result_t(int val) : value(val) {;}
         virtual void deshard(const void *other) {(void)other;}
-        virtual void deparallelize(const void *other) {(void)other;}
         virtual redis_return_type get_result() { return value; }
 
         int value;
@@ -141,10 +140,6 @@ struct redis_protocol_t {
             const integer_result_t *oth = reinterpret_cast<const integer_result_t *>(other);
             value += oth->value; 
         }
-
-        virtual void deparallelize(const void *other) {
-            (void)other;
-        }
     };
 
     // Bulk response classes
@@ -161,7 +156,6 @@ struct redis_protocol_t {
             }
         }
         virtual void deshard(const void *other) {(void)other;}
-        virtual void deparallelize(const void *other) {(void)other;}
         virtual redis_return_type get_result() { return value; }
 
         std::string value;
@@ -172,7 +166,6 @@ struct redis_protocol_t {
         multi_bulk_result_t(std::vector<std::string> &val) : value(val) {;}
         multi_bulk_result_t(std::deque<std::string> &val) : value(val.begin(), val.end()) {;}
         virtual void deshard(const void *other) {(void)other;}
-        virtual void deparallelize(const void *other) {(void)other;}
         virtual redis_return_type get_result() { return value; }
 
         std::vector<std::string> value;
@@ -181,7 +174,6 @@ struct redis_protocol_t {
     // Status response classes
     struct msg_result_t : read_result_t, write_result_t {
         virtual void deshard(const void *other) {(void)other;}
-        virtual void deparallelize(const void *other) {(void)other;}
         virtual redis_return_type get_result() = 0;
     };
 
@@ -261,7 +253,6 @@ struct redis_protocol_t {
         CNAME() { } \
         virtual indicated_key_t get_keys(); \
         virtual read_t shard(region_t region); \
-        virtual std::vector<read_t> parallelize(int optimal_factor); \
         virtual redis_protocol_t::read_response_t execute(btree_slice_t *btree, order_token_t otok); \
     };
 
@@ -270,7 +261,6 @@ struct redis_protocol_t {
         CNAME(ARG_TYPE_ONE one_) : one(one_) { } \
         virtual indicated_key_t get_keys(); \
         virtual read_t shard(region_t region); \
-        virtual std::vector<read_t> parallelize(int optimal_factor); \
         virtual redis_protocol_t::read_response_t execute(btree_slice_t *btree, order_token_t otok); \
     private: \
         ARG_TYPE_ONE one; \
@@ -281,7 +271,6 @@ struct redis_protocol_t {
         CNAME(ARG_TYPE_ONE one_, ARG_TYPE_TWO two_) : one(one_), two(two_) { } \
         virtual indicated_key_t get_keys(); \
         virtual read_t shard(region_t region); \
-        virtual std::vector<read_t> parallelize(int optimal_factor); \
         virtual redis_protocol_t::read_response_t execute(btree_slice_t *btree, order_token_t otok); \
     private: \
         ARG_TYPE_ONE one; \
@@ -293,7 +282,6 @@ struct redis_protocol_t {
         CNAME(ARG_TYPE_ONE one_, ARG_TYPE_TWO two_, ARG_TYPE_THREE three_) : one(one_), two(two_), three(three_) { } \
         virtual indicated_key_t get_keys(); \
         virtual read_t shard(region_t region); \
-        virtual std::vector<read_t> parallelize(int optimal_factor); \
         virtual redis_protocol_t::read_response_t execute(btree_slice_t *btree, order_token_t otok); \
     private: \
         ARG_TYPE_ONE one; \
@@ -306,7 +294,6 @@ struct redis_protocol_t {
         CNAME(ARG_TYPE_ONE one_, ARG_TYPE_TWO two_, ARG_TYPE_THREE three_, ARG_TYPE_FOUR four_) : one(one_), two(two_), three(three_), four(four_) { } \
         virtual indicated_key_t get_keys(); \
         virtual read_t shard(region_t region); \
-        virtual std::vector<read_t> parallelize(int optimal_factor); \
         virtual redis_protocol_t::read_response_t execute(btree_slice_t *btree, order_token_t otok); \
     private: \
         ARG_TYPE_ONE one; \
@@ -331,7 +318,6 @@ struct redis_protocol_t {
         CNAME(std::vector<std::string> &one_) : one(one_) { } \
         virtual indicated_key_t get_keys(); \
         virtual read_t shard(region_t region); \
-        virtual std::vector<read_t> parallelize(int optimal_factor); \
         virtual redis_protocol_t::read_response_t execute(btree_slice_t *btree, order_token_t otok); \
     private: \
         std::vector<std::string> one; \
@@ -339,60 +325,60 @@ struct redis_protocol_t {
 
     //KEYS
     WRITE_N(del)
-    READ__1(exists, string&)
-    WRITE_2(expire, string&, unsigned)
-    WRITE_2(expireat, string&, unsigned)
-    READ__1(keys, string&)
-    WRITE_2(move, string&, string&)
-    WRITE_1(persist, string&)
+    READ__1(exists, std::string&)
+    WRITE_2(expire, std::string&, unsigned)
+    WRITE_2(expireat, std::string&, unsigned)
+    READ__1(keys, std::string&)
+    WRITE_2(move, std::string&, std::string&)
+    WRITE_1(persist, std::string&)
     READ__0(randomkey)
-    READ__1(rename_get_type, string&)
-    READ__1(ttl, string&)
-    READ__1(type, string&)
+    READ__1(rename_get_type, std::string&)
+    READ__1(ttl, std::string&)
+    READ__1(type, std::string&)
 
     //STRINGS
-    WRITE_2(append, string&, string&)
-    WRITE_1(decr, string&)
-    WRITE_2(decrby, string&, int)
-    READ__1(get, string&)
-    READ__2(getbit, string&, unsigned)
-    READ__3(getrange, string&, int, int)
-    WRITE_2(getset, string&, string&)
-    WRITE_1(incr, string&)
-    WRITE_2(incrby, string&, int)
+    WRITE_2(append, std::string&, std::string&)
+    WRITE_1(decr, std::string&)
+    WRITE_2(decrby, std::string&, int)
+    READ__1(get, std::string&)
+    READ__2(getbit, std::string&, unsigned)
+    READ__3(getrange, std::string&, int, int)
+    WRITE_2(getset, std::string&, std::string&)
+    WRITE_1(incr, std::string&)
+    WRITE_2(incrby, std::string&, int)
     READ__N(mget)
     WRITE_N(mset)
     WRITE_N(msetnx)
-    WRITE_2(set, string&, string&)
-    WRITE_3(setbit, string&, unsigned, unsigned)
-    WRITE_3(setex, string&, unsigned, string&)
-    WRITE_2(setnx, string&, string&)
-    WRITE_3(setrange, string&, unsigned, string&)
-    READ__1(Strlen, string&)
+    WRITE_2(set, std::string&, std::string&)
+    WRITE_3(setbit, std::string&, unsigned, unsigned)
+    WRITE_3(setex, std::string&, unsigned, std::string&)
+    WRITE_2(setnx, std::string&, std::string&)
+    WRITE_3(setrange, std::string&, unsigned, std::string&)
+    READ__1(Strlen, std::string&)
 
     //Hashes
     WRITE_N(hdel)
-    READ__2(hexists, string&, string&)
-    READ__2(hget, string&, string&)
-    READ__1(hgetall, string&)
-    WRITE_3(hincrby, string&, string&, int)
-    READ__1(hkeys, string&)
-    READ__1(hlen, string&)
+    READ__2(hexists, std::string&, std::string&)
+    READ__2(hget, std::string&, std::string&)
+    READ__1(hgetall, std::string&)
+    WRITE_3(hincrby, std::string&, std::string&, int)
+    READ__1(hkeys, std::string&)
+    READ__1(hlen, std::string&)
     READ__N(hmget)
     WRITE_N(hmset)
-    WRITE_3(hset, string&, string&, string&)
-    WRITE_3(hsetnx, string&, string&, string&)
-    READ__1(hvals, string&)
+    WRITE_3(hset, std::string&, std::string&, std::string&)
+    WRITE_3(hsetnx, std::string&, std::string&, std::string&)
+    READ__1(hvals, std::string&)
 
     // Sets
     WRITE_N(sadd)
-    READ__1(scard, string&)
+    READ__1(scard, std::string&)
     READ__N(sdiff)
     READ__N(sinter)
-    READ__2(sismember, string&, string&)
-    READ__1(smembers, string&)
-    WRITE_1(spop, string&)
-    READ__1(srandmember, string&)
+    READ__2(sismember, std::string&, std::string&)
+    READ__1(smembers, std::string&)
+    WRITE_1(spop, std::string&)
+    READ__1(srandmember, std::string&)
     WRITE_N(srem)
     READ__N(sunion)
     WRITE_N(sunionstore)
@@ -401,32 +387,31 @@ struct redis_protocol_t {
     WRITE_N(blpop)
     WRITE_N(brpop)
     WRITE_N(brpoplpush)
-    READ__2(lindex, string&, int)
-    WRITE_4(linsert, string&, string&, string&, string&)
-    READ__1(llen, string&)
-    WRITE_1(lpop, string&)
+    READ__2(lindex, std::string&, int)
+    WRITE_4(linsert, std::string&, std::string&, std::string&, std::string&)
+    READ__1(llen, std::string&)
+    WRITE_1(lpop, std::string&)
     WRITE_N(lpush)
-    WRITE_2(lpushx, string&, string&)
-    READ__3(lrange, string&, int, int)
-    WRITE_3(lrem, string&, int, string&)
-    WRITE_3(lset, string&, int, string&)
-    WRITE_3(ltrim, string&, int, int)
-    WRITE_1(rpop, string&)
+    WRITE_2(lpushx, std::string&, std::string&)
+    READ__3(lrange, std::string&, int, int)
+    WRITE_3(lrem, std::string&, int, std::string&)
+    WRITE_3(lset, std::string&, int, std::string&)
+    WRITE_3(ltrim, std::string&, int, int)
+    WRITE_1(rpop, std::string&)
     WRITE_N(rpush)
-    WRITE_2(rpushx, string&, string&)
+    WRITE_2(rpushx, std::string&, std::string&)
 
     // Sorted Sets
     WRITE_N(zadd)
-    READ__1(zcard, string)
-    READ__3(zcount, string, float, float)
-    WRITE_3(zincrby, string, float, string)
+    READ__1(zcard, std::string)
+    READ__3(zcount, std::string, float, float)
+    WRITE_3(zincrby, std::string, float, std::string)
     WRITE_N(zinterstore)
 
     struct zrange : read_operation_t {
         zrange(std::string one_, int two_, int three_, bool four_, bool five_) : key(one_), start(two_), stop(three_), with_scores(four_), reverse(five_) { }
         virtual indicated_key_t get_keys();
         virtual read_t shard(region_t region);
-        virtual std::vector<read_t> parallelize(int optimal_factor);
         virtual redis_protocol_t::read_response_t execute(btree_slice_t *btree, order_token_t otok);
     private:
         std::string key;
@@ -444,7 +429,6 @@ struct redis_protocol_t {
         { }
         virtual indicated_key_t get_keys();
         virtual read_t shard(region_t region);
-        virtual std::vector<read_t> parallelize(int optimal_factor);
         virtual redis_protocol_t::read_response_t execute(btree_slice_t *btree, order_token_t otok);
     private:
         std::string key;
@@ -461,7 +445,6 @@ struct redis_protocol_t {
         zrank(std::string one_, std::string two_, bool three_) : key(one_), member(two_), reverse(three_) {;}
         virtual indicated_key_t get_keys();
         virtual read_t shard(region_t region);
-        virtual std::vector<read_t> parallelize(int optimal_factor);
         virtual redis_protocol_t::read_response_t execute(btree_slice_t *btree, order_token_t otok);
 
     private:
@@ -471,11 +454,11 @@ struct redis_protocol_t {
     };
 
     WRITE_N(zrem)
-    WRITE_3(zremrangebyrank, string, int, int)
-    WRITE_3(zremrangebyscore, string, float, float)
+    WRITE_3(zremrangebyrank, std::string, int, int)
+    WRITE_3(zremrangebyscore, std::string, float, float)
     READ__N(zrevrangebyscore)
-    READ__2(zrevrank, string, string)
-    READ__2(zscore, string, string)
+    READ__2(zrevrank, std::string, std::string)
+    READ__2(zscore, std::string, std::string)
     WRITE_N(zunionstore)
     
     #undef WRITE_0
@@ -502,7 +485,43 @@ public:
     boost::shared_ptr<store_view_t<redis_protocol_t>::read_transaction_t> begin_read_transaction(signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
     boost::shared_ptr<store_view_t<redis_protocol_t>::write_transaction_t> begin_write_transaction(signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
-private:
+    class transaction_t : public virtual store_view_t<redis_protocol_t>::write_transaction_t {
+    public:
+        transaction_t(dummy_redis_store_view_t *parent_);
+
+        region_map_t<redis_protocol_t, binary_blob_t> get_metadata(
+                signal_t *interruptor)
+                THROWS_ONLY(interrupted_exc_t);
+
+        redis_protocol_t::read_response_t read(
+                const redis_protocol_t::read_t &,
+                signal_t *interruptor)
+                THROWS_ONLY(interrupted_exc_t);
+
+        void send_backfill(
+                const region_map_t<redis_protocol_t, state_timestamp_t> &start_point,
+                const boost::function<void(redis_protocol_t::backfill_chunk_t)> &chunk_fun,
+                signal_t *interruptor)
+                THROWS_ONLY(interrupted_exc_t);
+
+        void set_metadata(
+            const region_map_t<redis_protocol_t, binary_blob_t> &new_metadata)
+            THROWS_NOTHING;
+
+        redis_protocol_t::write_response_t write(
+                const redis_protocol_t::write_t &write,
+                transition_timestamp_t timestamp)
+                THROWS_NOTHING;
+
+        void receive_backfill(
+                const redis_protocol_t::backfill_chunk_t &chunk_fun,
+                signal_t *interruptor)
+                THROWS_ONLY(interrupted_exc_t);
+    private:
+        dummy_redis_store_view_t *parent;
+    };
+
+    region_map_t<redis_protocol_t, binary_blob_t> metadata;
     btree_slice_t *btree;
 };
 

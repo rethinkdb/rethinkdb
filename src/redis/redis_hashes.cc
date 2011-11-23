@@ -15,7 +15,7 @@ struct hash_read_oper_t : public read_oper_t {
         if(!value) {
             root = NULL_BLOCK_ID;
         } else if(value->get_redis_type() != REDIS_HASH) {
-            throw "Operation against key holding the wrong kind of value";
+            throw "ERR Operation against key holding the wrong kind of value";
         } else {
             root = value->get_root();
         }
@@ -94,7 +94,7 @@ struct hash_set_oper_t : set_oper_t {
             value = reinterpret_cast<redis_hash_value_t *>(location.value.get());
             value->get_root() = NULL_BLOCK_ID;
         } else if(value->get_redis_type() != REDIS_HASH) {
-            throw "Operation against key holding the wrong kind of value";
+            throw "ERR Operation against key holding the wrong kind of value";
         }
         
         root = value->get_root();
@@ -219,7 +219,6 @@ EXECUTE_W(hdel) {
 //READ(hexists)
 KEYS(hexists)
 SHARD_R(hexists)
-PARALLEL(hexists)
 
 EXECUTE_R(hexists) {
     hash_read_oper_t oper(one, btree, otok);
@@ -232,7 +231,6 @@ EXECUTE_R(hexists) {
 //READ(hget)
 KEYS(hget)
 SHARD_R(hget)
-PARALLEL(hget)
 
 EXECUTE_R(hget) {
     hash_read_oper_t oper(one, btree, otok);
@@ -245,7 +243,6 @@ EXECUTE_R(hget) {
 //READ(hgetall)
 KEYS(hgetall)
 SHARD_R(hgetall)
-PARALLEL(hgetall)
 
 EXECUTE_R(hgetall) {
     hash_read_oper_t oper(one, btree, otok);
@@ -278,7 +275,6 @@ EXECUTE_W(hincrby) {
 //READ(hkeys)
 KEYS(hkeys)
 SHARD_R(hkeys)
-PARALLEL(hkeys)
 
 EXECUTE_R(hkeys) {
     hash_read_oper_t oper(one, btree, otok);
@@ -302,7 +298,6 @@ EXECUTE_R(hkeys) {
 //READ(hlen)
 KEYS(hlen)
 SHARD_R(hlen)
-PARALLEL(hlen)
 
 EXECUTE_R(hlen) {
     hash_read_oper_t oper(one, btree, otok);
@@ -315,7 +310,6 @@ redis_protocol_t::indicated_key_t redis_protocol_t::hmget::get_keys() {
 }
 
 SHARD_R(hmget)
-PARALLEL(hmget)
 
 EXECUTE_R(hmget) {
     std::string key = one[0];
@@ -384,7 +378,6 @@ EXECUTE_W(hsetnx) {
 //READ(hvals)
 KEYS(hvals)
 SHARD_R(hvals)
-PARALLEL(hvals)
 
 EXECUTE_R(hvals) {
     hash_read_oper_t oper(one, btree, otok);

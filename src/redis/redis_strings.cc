@@ -11,7 +11,7 @@ struct string_set_oper_t : set_oper_t {
             location.value.swap(smrsv);
             location.value->set_redis_type(REDIS_STRING);
         } else if(location.value->get_redis_type() != REDIS_STRING) {
-            throw "Operation against key holding wrong kind of value";
+            throw "ERR Operation against key holding wrong kind of value";
         }
 
         value = reinterpret_cast<redis_string_value_t *>(location.value.get());
@@ -89,9 +89,9 @@ struct string_read_oper_t : read_oper_t {
         read_oper_t(key, btree, otok)
     {
         if(location.value.get() == NULL) {
-            //throw "Key does not exist";
+            throw "ERR Key does not exist";
         } else if(location.value->get_redis_type() != REDIS_STRING) {
-            throw "Operation against key holding wrong kind of value";
+            throw "ERR Operation against key holding wrong kind of value";
         }
 
         value = reinterpret_cast<redis_string_value_t *>(location.value.get());
@@ -150,7 +150,6 @@ EXECUTE_W(decrby) {
 //READ(get)
 KEYS(get)
 SHARD_R(get)
-PARALLEL(get)
 
 EXECUTE_R(get) {
     string_read_oper_t oper(one, btree, otok);
@@ -167,7 +166,6 @@ EXECUTE_R(get) {
 //READ(getbit)
 KEYS(getbit)
 SHARD_R(getbit)
-PARALLEL(getbit)
 
 EXECUTE_R(getbit) {
     string_read_oper_t oper(one, btree, otok);
@@ -181,7 +179,6 @@ EXECUTE_R(getbit) {
 //READ(getrange)
 KEYS(getrange)
 SHARD_R(getrange)
-PARALLEL(getrange)
 
 EXECUTE_R(getrange) {
     string_read_oper_t oper(one, btree, otok);
@@ -286,7 +283,6 @@ EXECUTE_W(setrange) {
 //READ(Strlen)
 KEYS(Strlen)
 SHARD_R(Strlen)
-PARALLEL(Strlen)
 
 EXECUTE_R(Strlen) {
     string_read_oper_t oper(one, btree, otok);

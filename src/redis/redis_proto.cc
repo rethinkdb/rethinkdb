@@ -13,8 +13,6 @@
 #include "redis/redis_ext.hpp"
 #include "redis/redis_grammar.hpp"
 
-
-
 void start_serving(tcp_conn_t *conn, namespace_interface_t<redis_protocol_t> *intface, pubsub_runtime_t *runtime) {
     redis_grammar<tcp_conn_t::iterator> redis(conn, intface, runtime);
     try {

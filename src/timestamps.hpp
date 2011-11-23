@@ -70,6 +70,11 @@ public:
         return next().before;
     }
 
+    // TODO get rid of this. This is only for a hack until we know what to do with timestamps
+    uint64_t numeric_representation() {
+        return before.num;
+    }
+
 private:
     state_timestamp_t before;
 };
