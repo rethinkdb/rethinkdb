@@ -1,62 +1,731 @@
 #!/usr/bin/env python
 
-import os, time
+import os, time, random, string
 import flask
-import simple_linear_db
+import simple_linear_db, json
 
 assert __name__ == "__main__"
 
 app = flask.Flask(__name__)
 
-@app.template_filter("duration")
-def jinja_duration_filter(seconds):
-    seconds = int(seconds)
-    return "%0.2d:%0.2d:%0.2d" % (seconds // 3600, seconds // 60 % 60, seconds % 60)
+def generate_subbable_link(page, **kwargs):
+    """generate_subbable_link(page, **kwargs) -> URL containing substitutions
 
-@app.template_filter("duration_to_now")
-def jinja_duration_to_now_filter(timestamp):
-    return jinja_duration_filter(time.time() - timestamp) + "..."
+This is best explained by example. Suppose you have the following Flask rule:
+
+    @app.route("/foo/<foo>/bar/<bar>/baz")
+    def blah(foo, bar):
+        ...
+
+Then `generate_subbable_link("blah", foo="<FOO>", bar="<BAR>")` will return
+something like `"http://.../foo/<FOO>/bar/<BAR>/baz"`.
+
+The use case for this is when Javascript needs to be able to generate URLs for
+Flask routes. You can write Python code like this:
+
+    my_js = '''
+    var my_foo = somehow_get_foo_id();
+    var my_bar = somehow_get_bar_id();
+    var url = %s.replace("<FOO>", my_foo).replace("<BAR>", my_bar);
+    do_something_with(url);
+    ''' % json.dumps(generate_subbable_link("blah", foo="<FOO>", bar="<BAR>"))
+
+Note that if the substitution is not surrounded by angle brackets, then it will
+be escaped.
+    """
+    magics = { }
+    non_magics = { }
+    for key in kwargs:
+        if kwargs[key].startswith("<") and kwargs[key].endswith(">"):
+            s = ""
+            for i in xrange(10):
+                s += random.choice(string.letters)
+            magics[key] = s
+        else:
+            non_magics[key] = kwargs[key]
+    all_subs = magics.copy()
+    all_subs.update(non_magics)
+    url = flask.url_for(page, **all_subs)
+    for key in magics:
+        assert url.count(magics[key]) == 1
+        url = url.replace(magics[key], kwargs[key])
+    return url
+
+shared_javascript = """
+function isEmpty(x) {
+    for (var i in x) {
+        return false;
+    }
+    return true;
+};
+
+function doGET(url, cb) {
+    var req = new XMLHttpRequest();
+    req.open('GET', url, true);
+    req.onreadystatechange = function (e) {
+        if (req.readyState === 4) { // Completed
+            // The callback can handle errors here, but maybe we should.
+            cb(req);
+        }
+    };
+    req.send(null);
+}
+
+function parseJSON(json) {
+    if (json === '') {
+        throw "Empty JSON response"
+    }
+    try {
+        return eval('(' + json + ')');
+    } catch (e) {
+        console.log(json);
+        throw e;
+    }
+}
+
+function doGETJSON(url, cb) {
+    doGET(url, function (req) {
+        cb(parseJSON(req.responseText));
+    });
+}
+
+function currentUnixTimestamp() {
+    return (new Date()).getTime() / 1000;
+}
+
+var formatDuration = function(seconds) {
+    function pad(s) {
+        s = "" + s;
+        if (s.length == 1) {
+            s = "0" + s;
+        }
+        return s;
+    }
+    var s = Math.floor(seconds % 60);
+    var m = Math.floor(seconds / 60) % 60;
+    var h = Math.floor(seconds / 3600);
+    return '' + pad(h) + ':' + pad(m) + ':' + pad(s);
+};
+
+
+function makeElement(tag, style, children) {
+    var e = document.createElement(tag);
+    for (var name in style) {
+        e.style[name] = style[name];
+    }
+    if (children) {
+        children.forEach(function (c) {
+            e.appendChild(c);
+        });
+    }
+    return e;
+}
+
+function makeText(text) {
+    return document.createTextNode(text);
+}
+
+function makeLink(href, children) {
+    var e = document.createElement("a");
+    e.href = href;
+    if (children) {
+        children.forEach(function (c) {
+            e.appendChild(c);
+        });
+    }
+    return e;
+}
+
+function OptionalRenderer(name, subRendererFunc) {
+    this.element = makeElement("div", { }, []);
+    this.setData = function (data) {
+        if (data !== undefined) {
+            if (this.header === undefined) {
+                this.header = makeElement("h2", { }, [makeText(name + ":")]);
+                this.renderer = subRendererFunc();
+                this.element.appendChild(this.header);
+                this.element.appendChild(this.renderer.element);
+            }
+            this.renderer.setData(data);
+        } else {
+            if (this.header !== undefined) {
+                this.element.removeChild(this.header);
+                this.element.removeChild(this.renderer.element);
+                this.header = this.renderer = undefined;
+            }
+        }
+    };
+}
+
+function SortedTableRenderer(headers, rowRendererFunc) {
+    this.tableRenderer = new TableRenderer(headers, rowRendererFunc, { }, []);
+    this.element = this.tableRenderer.element;
+    this.setData = function (data) {
+        var keys = [];
+        for (var name in data) {
+            keys.push(name);
+        }
+        this.tableRenderer.setOrder([]);
+        this.tableRenderer.setObjects(data);
+        this.tableRenderer.setOrder(keys);
+    };
+};
+
+function TableRenderer(headers, rowRendererFunc) {
+    this.tbody = makeElement("tbody", { }, []);
+    this.element = makeElement("table", { }, [
+        makeElement("thead", { }, [
+            makeElement("tr", { }, headers.map(function (name) {
+                return makeElement("th", { }, [makeText(name)]);
+            }))
+        ]),
+        this.tbody
+    ]);
+    this.rowRenderers = { };
+    this.objects = { };
+    this.order = [];
+    this.setObjects = function (objects) {
+        var this_ = this;
+        this.objects = objects;
+        this.order.forEach(function (name) {
+            this_.rowRenderers[name].setData(this_.objects[name]);
+        });
+    };
+    this.setOrder = function (newOrder) {
+        var this_ = this;
+        this.order.forEach(function (name) {
+            this_.tbody.removeChild(this_.rowRenderers[name].element);
+        });
+        newRowRenderers = { };
+        newOrder.forEach(function (name) {
+            if (this_.rowRenderers[name] !== undefined) {
+                newRowRenderers[name] = this_.rowRenderers[name];
+            } else {
+                newRowRenderers[name] = rowRendererFunc(name);
+                newRowRenderers[name].setData(this_.objects[name]);
+            }
+        });
+        this.rowRenderers = newRowRenderers;
+        this.order = newOrder;
+        this.order.forEach(function (name) {
+            this_.tbody.appendChild(this_.rowRenderers[name].element);
+        });
+    };
+};
+
+function BuildStatusRenderer() {
+    this.text = makeText("");
+    this.element = makeElement("span", { }, [this.text]);
+    this.setData = function(build) {
+        if (build.status == "waiting") {
+            this.element.style.color = "black";
+            this.text.replaceWholeText("Waiting");
+        } else if (build.status == "running") {
+            this.element.style.color = "#CCAA00";
+            this.text.replaceWholeText("Running (" + formatDuration(currentUnixTimestamp() - build.start_time) + ")");
+        } else if (build.status == "ok") {
+            this.element.style.color = "green";
+            this.text.replaceWholeText("OK (" + formatDuration(build.end_time - build.start_time) + ")");
+        } else if (build.status == "fail") {
+            this.element.style.color = "#CC0000";
+            this.text.replaceWholeText("Fail (" + formatDuration(build.end_time - build.start_time) + ")");
+        } else if (build.status == "bug") {
+            this.element.style.color = "#CC0000";
+            this.text.replaceWholeText("Bug");
+        }
+    };
+};
+
+function TestRoundStatusRenderer() {
+    this.text = makeText("");
+    this.element = makeElement("span", { }, [this.text]);
+    this.setData = function(round) {
+        if (round.status == "waiting") {
+            this.element.style.color = "black";
+            this.text.replaceWholeText("Waiting");
+        } else if (round.status == "running") {
+            this.element.style.color = "#CCAA00";
+            this.text.replaceWholeText("Running (" + formatDuration(currentUnixTimestamp() - round.start_time) + ")");
+        } else if (round.status == "pass") {
+            this.element.style.color = "green";
+            this.text.replaceWholeText("Pass (" + formatDuration(round.end_time - round.start_time) + ")");
+        } else if (round.status == "fail") {
+            this.element.style.color = "#CC0000";
+            this.text.replaceWholeText("Fail (" + formatDuration(round.end_time - round.start_time) + ")");
+        } else if (round.status == "bug") {
+            this.element.style.color = "#CC0000";
+            this.text.replaceWholeText("Bug");
+        }
+    };
+};
+
+function TestStatusRenderer(url_pattern) {
+    this.element = makeElement("span", { }, []);
+    this.setData = function (test) {
+        if (test.rounds === undefined && this.roundRenderers !== undefined) {
+            this.roundBits.forEach(this.element.removeChild);
+            this.roundRenderers = undefined;
+            this.roundBits = undefined;
+        }
+        if (test.missing === undefined && this.missingText !== undefined) {
+            this.element.removeChild(this.missingText);
+            this.missingText = undefined;
+        }
+        if (test.rounds !== undefined) {
+            if (this.roundRenderers === undefined) {
+                this.roundRenderers = { };
+                this.roundBits = [];
+                for (var i in test.rounds) {
+                    this.roundRenderers[i] = new TestRoundStatusRenderer();
+                    if (i != 0) {
+                        var comma = makeText(", ");
+                        this.roundBits.push(comma);
+                        this.element.appendChild(comma);
+                    }
+                    var link = makeLink(url_pattern.replace("<ROUND>", i), [this.roundRenderers[i].element]);
+                    this.roundBits.push(link);
+                    this.element.appendChild(link);
+                }
+            }
+            for (var i in test.rounds) {
+                this.roundRenderers[i].setData(test.rounds[i]);
+            }
+        }
+        if (test.missing !== undefined) {
+            if (this.missingText === undefined) {
+                this.missingText = makeText("Missing prerequisites");
+                this.element.appendChild(this.missingText);
+            }
+        }
+    };
+};
+
+function LogRenderer(title) {
+    var logText = document.createTextNode();
+    this.element = makeElement("code", { "white-space": "pre", "overflow": "scroll" }, [logText]);
+    this.setData = function (output) {
+        logText.replaceWholeText(output);
+    };
+};
+"""
+
+@app.route("/json/results")
+@app.route("/json/results/")
+def json_list_results():
+    results = simple_linear_db.read_linear_db("result_log.txt")
+    return json.dumps(results)
+
+@app.route("/json/output")
+@app.route("/json/output/")
+def json_list_output():
+    with open("output.txt") as output_file:
+        return json.dumps(output_file.read())
 
 @app.route("/")
 def list():
-    builds = simple_linear_db.read_linear_db("build-log.txt")
-    build_urls = dict((build, flask.url_for("build", name = build)) for build in builds)
-    tests = simple_linear_db.read_linear_db("test-log.txt")
-    test_urls = dict((test, flask.url_for("test", name = test)) for test in tests)
-    with open("output.txt") as log_file:
-        return flask.render_template("list.html",
-            builds = builds, build_urls = build_urls,
-            tests = tests, test_urls = test_urls,
-            log = log_file.read()
-            )
+    
+    template = """
+        <html>
+            <head>
+                <title>Nightly test</title>
+                <script type="text/javascript">
+                    %(shared_javascript)s
 
-@app.route("/build/<name>")
-def build(name):
-    build = simple_linear_db.read_linear_db("build-log.txt")[name]
+                    function ListRootRenderer() {
+                        this.buildsRenderer = new OptionalRenderer(
+                            "Builds",
+                            function () {
+                                return new SortedTableRenderer(
+                                    ["Build", "Status"],
+                                    function (name) {
+                                        return new BuildRowRenderer(name);
+                                    }
+                                );
+                            }
+                        );
+                        this.testsRenderer = new OptionalRenderer(
+                            "Tests",
+                            function () {
+                                return new SortedTableRenderer(
+                                    ["Test", "Command line", "Status"],
+                                    function (name) {
+                                        return new TestRowRenderer(name);
+                                    }
+                                );
+                            });
+                        this.logRenderer = new OptionalRenderer(
+                            "Log",
+                            function () {
+                                return new LogRenderer();
+                            }
+                        );
+                        this.element = makeElement("div", { }, [
+                            this.buildsRenderer.element,
+                            this.testsRenderer.element,
+                            this.logRenderer.element
+                        ]);
+                        this.setResults = function (results) {
+                            this.buildsRenderer.setData(results.builds);
+                            this.testsRenderer.setData(results.tests);
+                        };
+                        this.setOutput = function (output) {
+                            this.logRenderer.setData(output);
+                        };
+                    };
+
+                    function BuildRowRenderer(name) {
+                        this.statusRenderer = new BuildStatusRenderer();
+                        this.element = makeElement("tr", { }, [
+                            makeElement("td", { }, [
+                                makeLink(%(build_url_pattern)s.replace("<BUILD>", name), [
+                                    makeText(name)
+                                ])
+                            ]),
+                            makeElement("td", { }, [this.statusRenderer.element])
+                        ]);
+                        this.setData = function (build) {
+                            this.statusRenderer.setData(build);
+                        };
+                    };
+
+                    function TestRowRenderer(name) {
+                        this.statusRenderer = new TestStatusRenderer(%(round_url_pattern)s.replace("<TEST>", name));
+                        this.commandLineText = makeText("");
+                        this.element = makeElement("tr", { }, [
+                            makeElement("td", { }, [
+                                makeLink(%(test_url_pattern)s.replace("<TEST>", name), [
+                                    makeText(name)
+                                ]),
+                            ]),
+                            makeElement("td", { }, [this.commandLineText]),
+                            makeElement("td", { }, [this.statusRenderer.element])
+                        ]);
+                        this.setData = function (test) {
+                            this.statusRenderer.setData(test);
+                            this.commandLineText.replaceWholeText(test.command_line);
+                        };
+                    };
+
+                    function refresh() {
+                        doGETJSON(%(refresh_results_url)s, function (results) {
+                            root.setResults(results);
+                        });
+                        doGETJSON(%(refresh_output_url)s, function (output) {
+                            root.setOutput(output);
+                        });
+                    }
+
+                    initialResults = %(initial_results)s;
+                    initialOutput = %(initial_output)s;
+                    function start() {
+                        root = new ListRootRenderer();
+                        root.setResults(initialResults);
+                        root.setOutput(initialOutput);
+                        document.getElementsByTagName("body")[0].appendChild(root.element);
+                        setInterval("refresh()", 1000);
+                    };
+                </script>
+            </head>
+            <body onload="start();">
+                <h1>Nightly test</h1>
+            </body>
+        </html>
+    """
+    return template % {
+        "shared_javascript": shared_javascript,
+        "initial_results": json_list_results(),
+        "refresh_results_url": json.dumps(flask.url_for("json_list_results")),
+        "initial_output": json_list_output(),
+        "refresh_output_url": json.dumps(flask.url_for("json_list_output")),
+        "build_url_pattern": json.dumps(generate_subbable_link("build", name="<BUILD>")),
+        "test_url_pattern": json.dumps(generate_subbable_link("test", name="<TEST>")),
+        "round_url_pattern": json.dumps(generate_subbable_link("round", name="<TEST>", round="<ROUND>"))
+        }
+
+@app.route("/json/build/<name>/results")
+@app.route("/json/build/<name>/results/")
+def json_build_results(name):
+    results = simple_linear_db.read_linear_db("result_log.txt")
+    if "builds" not in results or name not in results["builds"]:
+        flask.abort(404)
+    return json.dumps(results["builds"][name])
+
+@app.route("/json/build/<name>/output")
+@app.route("/json/build/<name>/output/")
+def json_build_output(name):
     if os.path.exists("builds/%s.txt" % name):
         with open("builds/%s.txt" % name) as output_file:
-            output = output_file.read()
+            return json.dumps(output_file.read())
     else:
-        output = None
-    return flask.render_template("build.html",
-        name = name,
-        build = build,
-        output = output
-        )
+        return "undefined"
+
+@app.route("/build/<name>")
+@app.route("/build/<name>/")
+def build(name):
+    template = """
+        <html>
+            <head>
+                <title>Build: %(name)s</title>
+                <script type="text/javascript">
+                    %(shared_javascript)s
+
+                    function BuildRootRenderer(name) {
+                        this.statusRenderer = new BuildStatusRenderer();
+                        this.tracebackRenderer = new OptionalRenderer(
+                            "Traceback",
+                            function () {
+                                return new LogRenderer();
+                            }
+                        );
+                        this.logRenderer = new OptionalRenderer(
+                            "Log",
+                            function () {
+                                return new LogRenderer();
+                            }
+                        );
+                        this.element = makeElement("div", { }, [
+                            makeElement("p", { }, [
+                                makeText("Status: "),
+                                this.statusRenderer.element
+                            ]),
+                            this.tracebackRenderer.element,
+                            this.logRenderer.element
+                        ]);
+                        this.setResult = function (build) {
+                            this.statusRenderer.setData(build);
+                            this.tracebackRenderer.setData(build.traceback);
+                        };
+                        this.setOutput = function (output) {
+                            this.logRenderer.setData(output);
+                        };
+                    }
+
+                    function refresh() {
+                        doGETJSON(%(refresh_result_url)s, function (result) {
+                            root.setResult(result);
+                        });
+                        doGETJSON(%(refresh_output_url)s, function (output) {
+                            root.setOutput(output);
+                        });
+                    }
+
+                    initialResult = %(initial_result)s;
+                    initialOutput = %(initial_output)s;
+                    function start() {
+                        root = new BuildRootRenderer();
+                        root.setResult(initialResult);
+                        root.setOutput(initialOutput);
+                        document.getElementsByTagName("body")[0].appendChild(root.element);
+                        setInterval("refresh()", 1000);
+                    }
+                </script>
+            </head>
+            <body onload="start();">
+                <h1>Build: %(name)s</h1>
+            </body>
+        </html>
+        """
+    return template % {
+        "shared_javascript": shared_javascript,
+        "name": flask.escape(name),
+        "initial_result": json_build_results(name),
+        "refresh_result_url": json.dumps(flask.url_for("json_build_results", name=name)),
+        "initial_output": json_build_output(name),
+        "refresh_output_url": json.dumps(flask.url_for("json_build_output", name=name))
+        }
+
+@app.route("/json/test/<name>/result")
+@app.route("/json/test/<name>/result/")
+def json_test_result(name):
+    results = simple_linear_db.read_linear_db("result_log.txt")
+    if "tests" not in results or name not in results["tests"]:
+        flask.abort(404)
+    return json.dumps(results["tests"][name])
 
 @app.route("/test/<name>")
+@app.route("/test/<name>/")
 def test(name):
-    test = simple_linear_db.read_linear_db("test-log.txt")[name]
-    if os.path.exists("test/%s/output.txt" % name):
-        with open("tests/%s/output.txt" % name) as output_file:
-            output = output_file.read()
+    template = """
+        <html>
+            <head>
+                <title>Test: %(name)s</title>
+                <script type="text/javascript">
+                    %(shared_javascript)s
+
+                    function TestRootRenderer() {
+                        this.statusRenderer = new TestStatusRenderer(%(round_url_pattern)s);
+                        this.commandLine = makeText("");
+                        this.missingRenderer = new OptionalRenderer(
+                            "Missing prerequisites",
+                            function () {
+                                return new ListRenderer();
+                            }
+                        );
+                        this.element = makeElement("div", { }, [
+                            makeElement("p", { }, [
+                                makeText("Command line: "),
+                                makeElement("code", { }, [this.commandLine])
+                            ]),
+                            makeElement("p", { }, [
+                                makeText("Status: "),
+                                this.statusRenderer.element
+                            ]),
+                            this.missingRenderer.element
+                        ]);
+                        this.setResult = function (test) {
+                            this.statusRenderer.setData(test);
+                            this.commandLine.replaceWholeText(test.command_line);
+                            this.missingRenderer.setData(test.missing);
+                        };
+                    }
+
+                    function ListRenderer() {
+                        this.element = makeElement("ul", { }, []);
+                        this.things = [];
+                        this.setData = function (data) {
+                            var this_ = this;
+                            this.things.forEach(this.element.removeChild);
+                            this.things = [];
+                            data.forEach(function (thing) {
+                                var el = makeElement("li", { }, [makeText(thing)]);
+                                this_.element.appendChild(el);
+                                this_.things.push(el);
+                            });
+                        };
+                    }
+
+                    function refresh() {
+                        doGETJSON(%(refresh_result_url)s, function (result) {
+                            root.setResult(result);
+                        });
+                    }
+
+                    initialResult = %(initial_result)s;
+                    function start() {
+                        root = new TestRootRenderer();
+                        root.setResult(initialResult);
+                        document.getElementsByTagName("body")[0].appendChild(root.element);
+                        setInterval("refresh()", 1000);
+                    };
+                </script>
+            </head>
+            <body onload="start();">
+                <h1>Test: %(name)s</h1>
+            </body>
+        </html>
+        """
+    return template % {
+        "shared_javascript": shared_javascript,
+        "name": flask.escape(name),
+        "initial_result": json_test_result(name),
+        "refresh_result_url": json.dumps(flask.url_for("json_test_result", name=name)),
+        "round_url_pattern": json.dumps(generate_subbable_link("round", name=name, round="<ROUND>"))
+        }
+
+@app.route("/json/test/<name>/round/<round>/results")
+@app.route("/json/test/<name>/round/<round>/results/")
+def json_test_round_result(name, round):
+    results = simple_linear_db.read_linear_db("result_log.txt")
+    if "tests" not in results or name not in results["tests"] or \
+            "rounds" not in results["tests"][name] or int(round) not in results["tests"][name]["rounds"]:
+        flask.abort(404)
+    return json.dumps(results["tests"][name]["rounds"][int(round)])
+
+@app.route("/json/test/<name>/round/<round>/output")
+@app.route("/json/test/<name>/round/<round>/output/")
+def json_test_round_output(name, round):
+    if os.path.exists("tests/%s/%s/output.txt" % (name, round)):
+        with open("tests/%s/%s/output.txt" % (name, round)) as output_file:
+            return json.dumps(output_file.read())
     else:
-        output = None
-    return flask.render_template("test.html",
-        name = name,
-        test = test,
-        output = output
-        )
+        return "undefined"
+
+@app.route("/test/<name>/round/<round>")
+@app.route("/test/<name>/round/<round>/")
+def round(name, round):
+    template = """
+        <html>
+            <head>
+                <title>Test: %(name)s (round %(round)s)</title>
+                <script type="text/javascript">
+                    %(shared_javascript)s
+
+                    function TestRoundRootRenderer(name) {
+                        this.statusRenderer = new TestRoundStatusRenderer();
+                        this.commandLine = makeText("");
+                        this.tracebackRenderer = new OptionalRenderer(
+                            "Traceback",
+                            function () {
+                                return new LogRenderer();
+                            }
+                        );
+                        this.logRenderer = new OptionalRenderer(
+                            "Log",
+                            function () {
+                                return new LogRenderer();
+                            }
+                        );
+                        this.element = makeElement("div", { }, [
+                            makeElement("p", { }, [
+                                makeText("Command line: "),
+                                makeElement("code", { }, [this.commandLine])
+                            ]),
+                            makeElement("p", { }, [
+                                makeText("Status: "),
+                                this.statusRenderer.element
+                            ]),
+                            this.tracebackRenderer.element,
+                            this.logRenderer.element
+                        ]);
+                        this.setResult = function (round) {
+                            this.statusRenderer.setData(round);
+                            this.tracebackRenderer.setData(round.traceback);
+                        };
+                        this.setTestData = function (test) {
+                            this.commandLine.replaceWholeText(test.command_line);
+                        }
+                        this.setOutput = function (output) {
+                            this.logRenderer.setData(output);
+                        };
+                    };
+
+                    function refresh() {
+                        doGETJSON(%(refresh_result_url)s, function (result) {
+                            root.setResult(result);
+                        });
+                        doGETJSON(%(refresh_output_url)s, function (output) {
+                            root.setOutput(output);
+                        });
+                    }
+
+                    initialResult = %(initial_result)s;
+                    initialTestData = %(initial_test_data)s;
+                    initialOutput = %(initial_output)s;
+                    function start() {
+                        root = new TestRoundRootRenderer();
+                        root.setResult(initialResult);
+                        root.setTestData(initialTestData);
+                        root.setOutput(initialOutput);
+                        document.getElementsByTagName("body")[0].appendChild(root.element);
+                        setInterval("refresh()", 1000);
+                    };
+                </script>
+            </head>
+            <body onload="start();">
+                <h1>Test: %(name)s (round %(round)s)</h1>
+            </body>
+        </html>
+        """
+    return template % {
+        "shared_javascript": shared_javascript,
+        "name": flask.escape(name),
+        "round": flask.escape(round),
+        "initial_result": json_test_round_result(name, round),
+        "refresh_result_url": json.dumps(flask.url_for("json_test_round_result", name=name, round=round)),
+        "initial_test_data": json_test_result(name),
+        "initial_output": json_test_round_output(name, round),
+        "refresh_output_url": json.dumps(flask.url_for("json_test_round_output", name=name, round=round))
+        }
 
 app.debug = True
 

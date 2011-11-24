@@ -9,6 +9,8 @@ class LinearDBWriter(object):
     def __exit__(self, type, value, traceback):
         self.file.close()
     def write(self, *path, **values):
+        for thing in path:
+            assert isinstance(thing, (str, int))
         with self.lock:
             print >>self.file, (path, values)
             self.file.flush()
@@ -26,5 +28,6 @@ def read_linear_db(filename):
                 for thing in path:
                     if thing not in object:
                         object[thing] = {}
+                    object = object[thing]
                 object.update(values)
     return root

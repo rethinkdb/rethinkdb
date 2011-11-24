@@ -150,4 +150,4 @@ rm -rf "$DIR"
             raise RemotelyInternalError("bad line: %r" % line)
         exit_code = srun_process.wait()
         if exit_code != 0:
-            raise RemotelyInternalError("remote script failed: %d" % exit_code_2)
+            raise RemotelyInternalError("remote script failed: %d" % exit_code)
