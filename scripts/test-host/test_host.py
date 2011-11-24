@@ -259,4 +259,4 @@ def kill(test_id):
         os.killpg(running_tasks[test_id]["proc"].pid, signal.SIGTERM)
     return flask.redirect(flask.url_for("debug", test_id = test_id))
 
-app.run(host = '0.0.0.0', debug = True)
+app.run(host = '0.0.0.0', port = int(os.environ.get("PORT", "5000")), debug = True)
