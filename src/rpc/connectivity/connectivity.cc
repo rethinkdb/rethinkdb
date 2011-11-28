@@ -180,10 +180,6 @@ void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(s
             ));
         pulse_when_done_reading.wait();
 
-        // TODO THREAD why do we pulse_when_done_reading.wait()?  is
-        // it for object lifetime or is it so that we're done reading
-        // when this function returns?
-
     } else {
         const std::map<peer_id_t, connection_t *>& connections = connection_maps_by_thread[get_thread_id()];
 
@@ -196,9 +192,6 @@ void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(s
         }
         connection_t *dest_conn = it->second;
 
-        // TODO THREAD do this operation asynchronously.  (Again,
-        // maybe not.  Maybe the caller can call this function
-        // asynchronously, if he cares to.)
         on_thread_t threader(dest_conn->conn->home_thread());
 
         // Kind of redundant, again, since we explicitly visited
@@ -587,14 +580,6 @@ void connectivity_cluster_t::handle(
             // worried about the watchers array getting modified as we
             // iterate over it, so I (Sam) don't see why it wouldn't have
             // been superclose to the watchers array.
-
-            // TODO THREAD: We need to switch threads to access the
-            // watchers array and watchers_mutex.  Do we really want
-            // to do that here?  Or should we let the above
-            // on_thread_t (to the connection thread) go out of scope
-            // and do it then?  (Similarly, could we have added
-            // ourselves to watchers before letting the on_thread_t
-            // get into scope?)
 
             pmap(get_num_threads(), boost::bind(&connectivity_cluster_t::ping_disconnection_watchers, this, _1, other_id));
         }

@@ -120,7 +120,7 @@ void metadata_cluster_t<metadata_t>::call(boost::function<void()> fun) {
 
 template<class metadata_t>
 void metadata_cluster_t<metadata_t>::write_metadata(std::ostream &stream, metadata_t md) {
-    // THREAD connection thread.
+    // We must be on the connection thread.
     stream << 'M';
     boost::archive::binary_oarchive archive(stream);
     archive << md;
@@ -128,14 +128,14 @@ void metadata_cluster_t<metadata_t>::write_metadata(std::ostream &stream, metada
 
 template<class metadata_t>
 void metadata_cluster_t<metadata_t>::write_ping(std::ostream &stream, int ping_id) {
-    // THREAD connection thread.
+    // We must be on the connection thread.
     stream << 'P';
     stream.write(reinterpret_cast<const char *>(&ping_id), sizeof(ping_id));
 }
 
 template<class metadata_t>
 void metadata_cluster_t<metadata_t>::write_ping_response(std::ostream &stream, int ping_id) {
-    // THREAD connection thread
+    // We must be on the connection thread
     stream << 'R';
     stream.write(reinterpret_cast<const char *>(&ping_id), sizeof(ping_id));
 }
