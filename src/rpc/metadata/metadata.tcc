@@ -88,7 +88,7 @@ void metadata_cluster_t<metadata_t>::root_view_t::sync_from(peer_id_t peer, sign
 
 template<class metadata_t>
 void metadata_cluster_t<metadata_t>::root_view_t::sync_to(peer_id_t peer, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, sync_failed_exc_t) {
-    // TODO THREAD what thread?
+    parent->assert_thread();
     /* For now we just implement `sync_to()` the same way we implement
     `sync_from()`: we ping the peer. In the future, it could send an ack every
     time the metadata changes and we could just check how recently the last ack
