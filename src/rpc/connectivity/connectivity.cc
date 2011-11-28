@@ -20,14 +20,14 @@ event_watcher_t::event_watcher_t(connectivity_cluster_t *parent) :
     cluster(parent)
 {
     cluster->assert_thread();
-    mutex_acquisition_t acq(&cluster->watchers_mutex);
-    cluster->watchers.push_back(this);
+    mutex_acquisition_t acq(&cluster->watchers_mutexes_by_thread[get_thread_id()]);
+    cluster->watchers_by_thread[get_thread_id()].push_back(this);
 }
 
 event_watcher_t::~event_watcher_t() {
     cluster->assert_thread();
-    mutex_acquisition_t acq(&cluster->watchers_mutex);
-    cluster->watchers.remove(this);
+    mutex_acquisition_t acq(&cluster->watchers_mutexes_by_thread[get_thread_id()]);
+    cluster->watchers_by_thread[get_thread_id()].remove(this);
 }
 
 /* connect_watcher_t */
@@ -120,7 +120,9 @@ std::map<peer_id_t, peer_address_t> connectivity_cluster_t::get_everybody() {
 
 connectivity_cluster_t::connectivity_cluster_t(int port)
     : me(peer_id_t(generate_uuid())),
-      connection_maps_by_thread(get_num_threads())
+      connection_maps_by_thread(get_num_threads()),
+      watchers_by_thread(new intrusive_list_t<event_watcher_t>[get_num_threads()]),
+      watchers_mutexes_by_thread(new mutex_t[get_num_threads()])
 {
     /* Put ourselves in the routing table */
     routing_table[me] = peer_address_t(ip_address_t::us(), port);
@@ -527,23 +529,7 @@ void connectivity_cluster_t::handle(
 
             pmap(get_num_threads(), boost::bind(&connectivity_cluster_t::set_a_connection_entry, this, _1, other_id, &conn_structure));
 
-            // TODO THREAD do we really want to go back to the home
-            // thread to update the watchers?  It seems okay, but is
-            // it necessary?  It's necessary if we want to acquire the
-            // watchers_mutex.
-            on_thread_t rpc_threader(home_thread());
-
-            // TODO THREAD ask tim about putting the watchers_mutex
-            // acquisition after broadcast_connection_pairing, because
-            // it was before, before.
-            mutex_acquisition_t acq(&watchers_mutex);
-
-            /* `event_watcher_t`s shouldn't block. */
-            ASSERT_FINITE_CORO_WAITING;
-
-            for (event_watcher_t *w = watchers.head(); w; w = watchers.next(w)) {
-                w->on_connect(other_id);
-            }
+            pmap(get_num_threads(), boost::bind(&connectivity_cluster_t::ping_connection_watchers, this, _1, other_id));
         }
 
         /* Main message-handling loop: read messages off the connection until
@@ -618,16 +604,7 @@ void connectivity_cluster_t::handle(
             // ourselves to watchers before letting the on_thread_t
             // get into scope?)
 
-            on_thread_t rpc_threader(home_thread());
-
-            mutex_acquisition_t acq(&watchers_mutex);
-
-            /* `event_watcher_t`s shouldn't block. */
-            ASSERT_FINITE_CORO_WAITING;
-
-            for (event_watcher_t *w = watchers.head(); w; w = watchers.next(w)) {
-                w->on_disconnect(other_id);
-            }
+            pmap(get_num_threads(), boost::bind(&connectivity_cluster_t::ping_disconnection_watchers, this, _1, other_id));
         }
     }
 }
@@ -640,4 +617,28 @@ void connectivity_cluster_t::set_a_connection_entry(int target_thread, peer_id_t
 void connectivity_cluster_t::erase_a_connection_entry(int target_thread, peer_id_t other_id) {
     on_thread_t switcher(target_thread);
     connection_maps_by_thread[target_thread].erase(other_id);
+}
+
+void connectivity_cluster_t::ping_connection_watchers(int target_thread, peer_id_t other_id) {
+    on_thread_t th(target_thread);
+
+    mutex_acquisition_t acq(&watchers_mutexes_by_thread[target_thread]);
+
+    ASSERT_FINITE_CORO_WAITING;
+
+    for (event_watcher_t *w = watchers_by_thread[target_thread].head(); w; w = watchers_by_thread[target_thread].next(w)) {
+        w->on_connect(other_id);
+    }
+}
+
+void connectivity_cluster_t::ping_disconnection_watchers(int target_thread, peer_id_t other_id) {
+    on_thread_t th(target_thread);
+
+    mutex_acquisition_t acq(&watchers_mutexes_by_thread[target_thread]);
+
+    ASSERT_FINITE_CORO_WAITING;
+
+    for (event_watcher_t *w = watchers_by_thread[target_thread].head(); w; w = watchers_by_thread[target_thread].next(w)) {
+        w->on_disconnect(other_id);
+    }
 }
