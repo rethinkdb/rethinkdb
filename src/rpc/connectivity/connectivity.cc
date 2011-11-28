@@ -89,7 +89,6 @@ void connectivity_cluster_t::join(peer_address_t address) {
 }
 
 peer_id_t connectivity_cluster_t::get_me() {
-    assert_thread();
     return me;
 }
 
@@ -102,7 +101,7 @@ std::map<peer_id_t, peer_address_t> connectivity_cluster_t::get_everybody() {
     const std::map<peer_id_t, connection_t *>& connections = connection_maps_by_thread[get_thread_id()];
 
     std::map<peer_id_t, peer_address_t> peers;
-    peers[me] = routing_table[me];
+    peers[me] = connections.find(me)->second->address;
     for (std::map<peer_id_t, connection_t*>::const_iterator it = connections.begin();
             it != connections.end(); it++) {
         peers[it->first] = it->second->address;
