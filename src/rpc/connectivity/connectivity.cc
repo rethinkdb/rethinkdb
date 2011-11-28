@@ -101,7 +101,7 @@ std::map<peer_id_t, peer_address_t> connectivity_cluster_t::get_everybody() {
     const std::map<peer_id_t, connection_t *>& connections = connection_maps_by_thread[get_thread_id()];
 
     std::map<peer_id_t, peer_address_t> peers;
-    peers[me] = connections.find(me)->second->address;
+    peers[me] = me_address;
     for (std::map<peer_id_t, connection_t*>::const_iterator it = connections.begin();
             it != connections.end(); it++) {
         peers[it->first] = it->second->address;
@@ -111,12 +111,13 @@ std::map<peer_id_t, peer_address_t> connectivity_cluster_t::get_everybody() {
 
 connectivity_cluster_t::connectivity_cluster_t(int port)
     : me(peer_id_t(generate_uuid())),
+      me_address(ip_address_t::us(), port),
       connection_maps_by_thread(get_num_threads()),
       watchers_by_thread(new intrusive_list_t<event_watcher_t>[get_num_threads()]),
       watchers_mutexes_by_thread(new mutex_t[get_num_threads()])
 {
     /* Put ourselves in the routing table */
-    routing_table[me] = peer_address_t(ip_address_t::us(), port);
+    routing_table[me] = me_address;
 
     /* Start listening for peers */
     listener.reset(

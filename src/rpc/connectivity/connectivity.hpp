@@ -179,6 +179,7 @@ private:
     connecting or disconnecting may be in `routing_table` but not in
     `connections`. */
     const peer_id_t me;
+    const peer_address_t me_address;
     std::map<peer_id_t, peer_address_t> routing_table;
 
     /* connections holds open connections to other peers. It has an
