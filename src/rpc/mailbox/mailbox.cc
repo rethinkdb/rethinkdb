@@ -101,13 +101,11 @@ mailbox_t *mailbox_cluster_t::mailbox_table_t::find_mailbox(mailbox_t::id_t id) 
 }
 
 void mailbox_cluster_t::write_utility_message(std::ostream &stream, boost::function<void(std::ostream&)> writer) {
-    // TODO THREAD same as send_utility_message(..)
     stream << 'u';
     writer(stream);
 }
 
 void mailbox_cluster_t::write_mailbox_message(std::ostream &stream, int dest_thread, mailbox_t::id_t dest_mailbox_id, boost::function<void(std::ostream&)> writer) {
-    // TODO THREAD same as send(..)
     stream << 'm';
     stream.write(reinterpret_cast<char*>(&dest_thread), sizeof(dest_thread));
     stream.write(reinterpret_cast<char*>(&dest_mailbox_id), sizeof(dest_mailbox_id));
