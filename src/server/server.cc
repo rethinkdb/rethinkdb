@@ -292,11 +292,13 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                     /* We aren't doing any sort of replication. */
                     //riak::riak_server_t server(2222, store_manager);
 
+#ifndef NO_REDIS
                     // Runs the redis server. Comment to disable redis. Uncomment to reenable. This is a
                     // temporary hack for testing while we figure out how multiprotocol support should work
                     // Port 6380 is used rather than the standard redis port (6379) to allow parallel testing
                     // of our redis implementation with actual redis
                     redis_listener_t redis_conn_acceptor(6380);
+#endif
 
                     /* Make it impossible for this database file to later be used as a slave, because
                     that would confuse the replication logic. */
