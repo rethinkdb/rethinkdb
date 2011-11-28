@@ -94,19 +94,11 @@ peer_id_t connectivity_cluster_t::get_me() {
 }
 
 std::map<peer_id_t, peer_address_t> connectivity_cluster_t::get_everybody() {
-    // TODO THREAD we can remove this assert thread when we can call
-    // event watchers with cross thread messages.  But that's not
-    // necessarily going to happen.
-    assert_thread();
-
     /* We can't just return `routing_table` because `routing_table` includes
     some partially-connected peers, so if we just returned `routing_table` then
     some peers would appear in the output from `get_everybody()` before the
     `on_connect()` event was sent out or after the `on_disconnect()` event was
     sent out. */
-
-    // TODO THREAD: Consider whether it is correct to just use the rpc
-    // listener's connections map.  See who uses get_everybody.
     const std::map<peer_id_t, connection_t *>& connections = connection_maps_by_thread[get_thread_id()];
 
     std::map<peer_id_t, peer_address_t> peers;
