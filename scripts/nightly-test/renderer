@@ -300,11 +300,13 @@ function TestStatusRenderer(url_pattern) {
     };
 };
 
-function LogRenderer(title) {
-    var logText = document.createTextNode();
-    this.element = makeElement("code", { "white-space": "pre", "overflow": "scroll" }, [logText]);
+function LongTextRenderer(title) {
+    var text = document.createTextNode();
+    this.element = makeElement("textarea", { }, [text]);
+    this.element.readonly = true;
+    this.element.wrap = "off";
     this.setData = function (output) {
-        logText.replaceWholeText(output);
+        text.replaceWholeText(output);
     };
 };
 """
@@ -356,7 +358,7 @@ def list():
                         this.logRenderer = new OptionalRenderer(
                             "Log",
                             function () {
-                                return new LogRenderer();
+                                return new LongTextRenderer();
                             }
                         );
                         this.element = makeElement("div", { }, [
@@ -474,13 +476,13 @@ def build(name):
                         this.tracebackRenderer = new OptionalRenderer(
                             "Traceback",
                             function () {
-                                return new LogRenderer();
+                                return new LongTextRenderer();
                             }
                         );
                         this.logRenderer = new OptionalRenderer(
                             "Log",
                             function () {
-                                return new LogRenderer();
+                                return new LongTextRenderer();
                             }
                         );
                         this.element = makeElement("div", { }, [
@@ -656,13 +658,13 @@ def round(name, round):
                         this.tracebackRenderer = new OptionalRenderer(
                             "Traceback",
                             function () {
-                                return new LogRenderer();
+                                return new LongTextRenderer();
                             }
                         );
                         this.logRenderer = new OptionalRenderer(
                             "Log",
                             function () {
-                                return new LogRenderer();
+                                return new LongTextRenderer();
                             }
                         );
                         this.element = makeElement("div", { }, [

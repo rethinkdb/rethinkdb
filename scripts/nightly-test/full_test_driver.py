@@ -47,7 +47,6 @@ print "Full test begun."
 print "The branch we are testing is:", options.git_branch
 print "Our working directory is:", os.getcwd()
 print "The machine we are on is:", socket.gethostname()
-print "We are running as user:", os.getlogin()
 
 def run_in_threads(functions, max = 10):
     """Run the given functions each in their own thread. Run at most `max` at
