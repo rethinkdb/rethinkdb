@@ -512,9 +512,7 @@ void connectivity_cluster_t::handle(
             rassert(connections.find(other_id) == connections.end());
 #endif
 
-            pmap(get_num_threads(), boost::bind(&connectivity_cluster_t::set_a_connection_entry, this, _1, other_id, &conn_structure));
-
-            pmap(get_num_threads(), boost::bind(&connectivity_cluster_t::ping_connection_watchers, this, _1, other_id));
+            pmap(get_num_threads(), boost::bind(&connectivity_cluster_t::set_a_connection_entry_and_ping_connection_watchers, this, _1, other_id, &conn_structure));
         }
 
         /* Main message-handling loop: read messages off the connection until
@@ -562,42 +560,28 @@ void connectivity_cluster_t::handle(
 
         /* Remove us from the connection map. */
         {
-            /* This is kind of tricky: We want new calls to `send_message()` to
-            see that we are gone, but we don't want to cause segfaults by
-            destroying the `connection_t` while something is still using it. The
-            solution is to remove our entry in the connections map (so nothing
-            new acquires the `send_mutex`) and then acquire the `send_mutex`
-            ourself (so anything that already was in line for the `send_mutex`
-            gets a chance to finish). */
+            /* This is kind of tricky: We want new calls to
+            `send_message()` to see that we are gone, but we don't
+            want to cause segfaults by destroying the `connection_t`
+            while something is still using it. The solution is to
+            remove our entry in the connections map (so nothing new
+            acquires the `send_mutex`) and then acquire the
+            `send_mutex` ourself (so anything that already was in line
+            for the `send_mutex` gets a chance to finish).  Everything
+            that acquires something from its connections map must
+            immediately move to the connection thread and acquire the
+            send mutex. */
 
-            pmap(get_num_threads(), boost::bind(&connectivity_cluster_t::erase_a_connection_entry, this, _1, other_id));
+            pmap(get_num_threads(), boost::bind(&connectivity_cluster_t::erase_a_connection_entry_and_ping_disconnection_watchers, this, _1, other_id));
 
             co_lock_mutex(&conn_structure.send_mutex);
-
-            // TODO THREAD definitely ask tim: we switched the order
-            // of acquiring the send_mutex versus acquiring the
-            // watchers_mutex.  Supposedly the watchers mutex is
-            // worried about the watchers array getting modified as we
-            // iterate over it, so I (Sam) don't see why it wouldn't have
-            // been superclose to the watchers array.
-
-            pmap(get_num_threads(), boost::bind(&connectivity_cluster_t::ping_disconnection_watchers, this, _1, other_id));
         }
     }
 }
 
-void connectivity_cluster_t::set_a_connection_entry(int target_thread, peer_id_t other_id, connection_t *connection) {
+void connectivity_cluster_t::set_a_connection_entry_and_ping_connection_watchers(int target_thread, peer_id_t other_id, connection_t *connection) {
     on_thread_t switcher(target_thread);
     connection_maps_by_thread[target_thread][other_id] = connection;
-}
-
-void connectivity_cluster_t::erase_a_connection_entry(int target_thread, peer_id_t other_id) {
-    on_thread_t switcher(target_thread);
-    connection_maps_by_thread[target_thread].erase(other_id);
-}
-
-void connectivity_cluster_t::ping_connection_watchers(int target_thread, peer_id_t other_id) {
-    on_thread_t th(target_thread);
 
     mutex_acquisition_t acq(&watchers_mutexes_by_thread[target_thread]);
 
@@ -608,8 +592,9 @@ void connectivity_cluster_t::ping_connection_watchers(int target_thread, peer_id
     }
 }
 
-void connectivity_cluster_t::ping_disconnection_watchers(int target_thread, peer_id_t other_id) {
-    on_thread_t th(target_thread);
+void connectivity_cluster_t::erase_a_connection_entry_and_ping_disconnection_watchers(int target_thread, peer_id_t other_id) {
+    on_thread_t switcher(target_thread);
+    connection_maps_by_thread[target_thread].erase(other_id);
 
     mutex_acquisition_t acq(&watchers_mutexes_by_thread[target_thread]);
 
@@ -619,3 +604,4 @@ void connectivity_cluster_t::ping_disconnection_watchers(int target_thread, peer
         w->on_disconnect(other_id);
     }
 }
+
