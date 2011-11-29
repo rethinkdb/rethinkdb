@@ -2,31 +2,11 @@
 
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/mailbox/typed.hpp"
+#include "unittest/unittest_utils.hpp"
 
 namespace unittest {
 
 namespace {
-
-/* `run_in_thread_pool()` starts a RethinkDB IO layer thread pool and calls the
-given function within a coroutine inside of it. */
-
-struct starter_t : public thread_message_t {
-    thread_pool_t *tp;
-    boost::function<void()> fun;
-    starter_t(thread_pool_t *tp, boost::function<void()> fun) : tp(tp), fun(fun) { }
-    void run() {
-        fun();
-        tp->shutdown();
-    }
-    void on_thread_switch() {
-        coro_t::spawn_now(boost::bind(&starter_t::run, this));
-    }
-};
-void run_in_thread_pool(boost::function<void()> fun, int nthreads = 1) {
-    thread_pool_t thread_pool(nthreads, false);
-    starter_t starter(&thread_pool, fun);
-    thread_pool.run(&starter);
-}
 
 /* `let_stuff_happen()` delays for some time to let events occur */
 void let_stuff_happen() {

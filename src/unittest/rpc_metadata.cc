@@ -5,6 +5,7 @@
 #include "rpc/metadata/view/field.hpp"
 #include "rpc/metadata/view/member.hpp"
 #include "unittest/dummy_metadata_controller.hpp"
+#include "unittest/unittest_utils.hpp"
 
 namespace unittest {
 
@@ -41,28 +42,6 @@ template<class archive_t>
 void serialize(archive_t &a, sl_pair_t &p, UNUSED unsigned int version) {
     a & p.x;
     a & p.y;
-}
-
-/* `run_in_thread_pool()` starts a RethinkDB IO layer thread pool and calls the
-given function within a coroutine inside of it. */
-
-class starter_t : public thread_message_t {
-public:
-    thread_pool_t *tp;
-    boost::function<void()> fun;
-    starter_t(thread_pool_t *tp, boost::function<void()> fun) : tp(tp), fun(fun) { }
-    void run() {
-        fun();
-        tp->shutdown();
-    }
-    void on_thread_switch() {
-        coro_t::spawn_now(boost::bind(&starter_t::run, this));
-    }
-};
-void run_in_thread_pool(boost::function<void()> fun, int nthreads = 1) {
-    thread_pool_t thread_pool(nthreads, false);
-    starter_t starter(&thread_pool, fun);
-    thread_pool.run(&starter);
 }
 
 template<class T>

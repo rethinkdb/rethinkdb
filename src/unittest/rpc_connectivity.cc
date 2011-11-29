@@ -1,11 +1,9 @@
 #include "unittest/gtest.hpp"
 
+#include "unittest_utils.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 
 namespace unittest {
-
-/* `run_in_thread_pool()` starts a RethinkDB IO layer thread pool and calls the
-given function within a coroutine inside of it. */
 
 struct starter_t : public thread_message_t {
     thread_pool_t *tp;
@@ -19,11 +17,6 @@ struct starter_t : public thread_message_t {
         coro_t::spawn_now(boost::bind(&starter_t::run, this));
     }
 };
-void run_in_thread_pool(int num_threads, boost::function<void()> fun) {
-    thread_pool_t thread_pool(num_threads, false);
-    starter_t starter(&thread_pool, fun);
-    thread_pool.run(&starter);
-}
 
 /* `let_stuff_happen()` delays for some time to let events occur */
 void let_stuff_happen() {
@@ -89,11 +82,11 @@ void run_start_stop_test() {
     let_stuff_happen();
 }
 TEST(RPCConnectivityTest, StartStop) {
-    run_in_thread_pool(1, &run_start_stop_test);
+    run_in_thread_pool(&run_start_stop_test);
 }
 
 TEST(RPCConnectivityTest, StartStopMultiThread) {
-    run_in_thread_pool(3, &run_start_stop_test);
+    run_in_thread_pool(&run_start_stop_test, 3);
 }
 
 
@@ -120,10 +113,10 @@ void run_message_test() {
     c3.expect(999, c3.get_me());
 }
 TEST(RPCConnectivityTest, Message) {
-    run_in_thread_pool(1, &run_message_test);
+    run_in_thread_pool(&run_message_test);
 }
 TEST(RPCConnectivityTest, MesssageMultiThread) {
-    run_in_thread_pool(3, &run_message_test);
+    run_in_thread_pool(&run_message_test, 3);
 }
 
 /* `UnreachablePeer` tests that messages sent to unreachable peers silently
@@ -156,10 +149,10 @@ void run_unreachable_peer_test() {
     c2.expect(999, c1.get_me());
 }
 TEST(RPCConnectivityTest, UnreachablePeer) {
-    run_in_thread_pool(1, &run_unreachable_peer_test);
+    run_in_thread_pool(&run_unreachable_peer_test);
 }
 TEST(RPCConnectivityTest, UnreachablePeerMultiThread) {
-    run_in_thread_pool(3, &run_unreachable_peer_test);
+    run_in_thread_pool(&run_unreachable_peer_test, 3);
 }
 
 /* `Ordering` tests that messages sent by the same route arrive in the same
@@ -185,10 +178,10 @@ void run_ordering_test() {
     }
 }
 TEST(RPCConnectivityTest, Ordering) {
-    run_in_thread_pool(1, &run_ordering_test);
+    run_in_thread_pool(&run_ordering_test);
 }
 TEST(RPCConnectivityTest, OrderingMultiThread) {
-    run_in_thread_pool(3, &run_ordering_test);
+    run_in_thread_pool(&run_ordering_test, 3);
 }
 
 /* `GetEverybody` confirms that the behavior of `cluster_t::get_everybody()` is
@@ -227,7 +220,10 @@ void run_get_everybody_test() {
     EXPECT_EQ(routing_table_3.size(), 1);
 }
 TEST(RPCConnectivityTest, GetEverybody) {
-    run_in_thread_pool(1, &run_get_everybody_test);
+    run_in_thread_pool(&run_get_everybody_test);
+}
+TEST(RPCConnectivityTest, GetEverybodyMultiThread) {
+    run_in_thread_pool(&run_get_everybody_test, 3);
 }
 
 /* `EventWatchers` confirms that `cluster_t::[dis]connect_watcher_t` works
@@ -263,10 +259,10 @@ void run_event_watchers_test() {
     EXPECT_TRUE(disconnect_watcher_2.is_pulsed());
 }
 TEST(RPCConnectivityTest, EventWatchers) {
-    run_in_thread_pool(1, &run_event_watchers_test);
+    run_in_thread_pool(&run_event_watchers_test);
 }
 TEST(RPCConnectivityTest, EventWatchersMultiThread) {
-    run_in_thread_pool(3, &run_event_watchers_test);
+    run_in_thread_pool(&run_event_watchers_test, 3);
 }
 
 /* `EventWatcherOrdering` confirms that information delivered via event
@@ -319,10 +315,10 @@ void run_event_watcher_ordering_test() {
     let_stuff_happen();
 }
 TEST(RPCConnectivityTest, EventWatcherOrdering) {
-    run_in_thread_pool(1, &run_event_watcher_ordering_test);
+    run_in_thread_pool(&run_event_watcher_ordering_test);
 }
 TEST(RPCConnectivityTest, EventWatcherOrderingMultiThread) {
-    run_in_thread_pool(3, &run_event_watcher_ordering_test);
+    run_in_thread_pool(&run_event_watcher_ordering_test, 3);
 }
 
 /* `StopMidJoin` makes sure that nothing breaks if you shut down the cluster
@@ -354,10 +350,10 @@ void run_stop_mid_join_test() {
     work of shutting down.) */
 }
 TEST(RPCConnectivityTest, StopMidJoin) {
-    run_in_thread_pool(1, &run_stop_mid_join_test);
+    run_in_thread_pool(&run_stop_mid_join_test);
 }
 TEST(RPCConnectivityTest, StopMidJoinMultiThread) {
-    run_in_thread_pool(3, &run_stop_mid_join_test);
+    run_in_thread_pool(&run_stop_mid_join_test, 3);
 }
 
 /* `BlobJoin` tests whether two groups of cluster nodes can correctly merge
@@ -388,17 +384,19 @@ void run_blob_join_test() {
     nodes[1]->join(peer_address_t(ip_address_t::us(), port+blob_size+1));
 
     let_stuff_happen();
+    let_stuff_happen();
+    let_stuff_happen();
 
     /* Make sure every node sees every other */
     for (int i = 0; i < blob_size*2; i++) {
-        ASSERT_EQ(nodes[i]->get_everybody().size(), blob_size*2);
+        ASSERT_EQ(blob_size * 2, nodes[i]->get_everybody().size());
     }
 }
 TEST(RPCConnectivityTest, BlobJoin) {
-    run_in_thread_pool(1, &run_blob_join_test);
+    run_in_thread_pool(&run_blob_join_test);
 }
 TEST(RPCConnectivityTest, BlobJoinMultiThread) {
-    run_in_thread_pool(3, &run_blob_join_test);
+    run_in_thread_pool(&run_blob_join_test, 3);
 }
 
 /* `BinaryData` makes sure that any octet can be sent over the wire. */
@@ -442,10 +440,10 @@ void run_binary_data_test() {
     EXPECT_TRUE(cluster2.got_spectrum);
 }
 TEST(RPCConnectivityTest, BinaryData) {
-    run_in_thread_pool(1, &run_binary_data_test);
+    run_in_thread_pool(&run_binary_data_test);
 }
 TEST(RPCConnectivityTest, BinaryDataMultiThread) {
-    run_in_thread_pool(3, &run_binary_data_test);
+    run_in_thread_pool(&run_binary_data_test, 3);
 }
 
 /* `PeerIDSemantics` makes sure that `peer_id_t::is_nil()` works as expected. */
@@ -460,10 +458,10 @@ void run_peer_id_semantics_test() {
     ASSERT_FALSE(cluster_node.get_me().is_nil());
 }
 TEST(RPCConnectivityTest, PeerIDSemantics) {
-    run_in_thread_pool(1, &run_peer_id_semantics_test);
+    run_in_thread_pool(&run_peer_id_semantics_test);
 }
 TEST(RPCConnectivityTest, PeerIDSemanticsMultiThread) {
-    run_in_thread_pool(3, &run_peer_id_semantics_test);
+    run_in_thread_pool(&run_peer_id_semantics_test, 3);
 }
 
 }   /* namespace unittest */

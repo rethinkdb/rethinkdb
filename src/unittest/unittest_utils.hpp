@@ -32,6 +32,6 @@ public:
 function in a coroutine inside of it, waits for the function to return, and then
 shuts down the thread pool. */
 
-void run_in_thread_pool(const boost::function<void()>& fun);
+void run_in_thread_pool(const boost::function<void()>& fun, int num_threads = 1);
 
 #endif // __UNITTEST_UTILS__
