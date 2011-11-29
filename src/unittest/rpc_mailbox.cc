@@ -98,7 +98,9 @@ void run_utility_message_test() {
 TEST(RPCMailboxTest, UtilityMessage) {
     run_in_thread_pool(&run_utility_message_test);
 }
-
+TEST(RPCMailboxTest, UtilityMessageMultiThread) {
+    run_in_thread_pool(&run_utility_message_test, 3);
+}
 /* `MailboxStartStop` creates and destroys some mailboxes. */
 
 void run_mailbox_start_stop_test() {
@@ -142,6 +144,10 @@ TEST(RPCMailboxTest, MailboxMessage) {
     run_in_thread_pool(&run_mailbox_message_test);
 }
 
+TEST(RPCMailboxTest, MailboxMessageMultiThread) {
+    run_in_thread_pool(&run_mailbox_message_test, 3);
+}
+
 /* `DeadMailbox` sends a message to a defunct mailbox. The expected behavior is
 for the message to be silently ignored. */
 
@@ -164,7 +170,9 @@ void run_dead_mailbox_test() {
 TEST(RPCMailboxTest, DeadMailbox) {
     run_in_thread_pool(&run_dead_mailbox_test);
 }
-
+TEST(RPCMailboxTest, DeadMailboxMultiThread) {
+    run_in_thread_pool(&run_dead_mailbox_test, 3);
+}
 /* `MailboxAddressSemantics` makes sure that `mailbox_t::address_t` behaves as
 expected. */
 
@@ -183,6 +191,9 @@ void run_mailbox_address_semantics_test() {
 }
 TEST(RPCMailboxTest, MailboxAddressSemantics) {
     run_in_thread_pool(&run_mailbox_address_semantics_test);
+}
+TEST(RPCMailboxTest, MailboxAddressSemanticsMultiThread) {
+    run_in_thread_pool(&run_mailbox_address_semantics_test, 3);
 }
 
 /* `TypedMailbox` makes sure that `async_mailbox_t<>` works. */
@@ -212,6 +223,9 @@ void run_typed_mailbox_test() {
 }
 TEST(RPCMailboxTest, TypedMailbox) {
     run_in_thread_pool(&run_typed_mailbox_test);
+}
+TEST(RPCMailboxTest, TypedMailboxMultiThread) {
+    run_in_thread_pool(&run_typed_mailbox_test, 3);
 }
 
 }   /* namespace unittest */
