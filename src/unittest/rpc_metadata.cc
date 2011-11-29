@@ -146,6 +146,9 @@ void run_view_controller_test() {
 TEST(RPCMetadataTest, ViewController) {
     run_in_thread_pool(&run_view_controller_test);
 }
+TEST(RPCMetadataTest, ViewControllerMultiThread) {
+    run_in_thread_pool(&run_view_controller_test, 3);
+}
 
 /* `FieldView` tests `metadata_field()`. */
 
@@ -172,6 +175,9 @@ void run_field_view_test() {
 }
 TEST(RPCMetadataTest, FieldView) {
     run_in_thread_pool(&run_field_view_test);
+}
+TEST(RPCMetadataTest, FieldViewMultiThread) {
+    run_in_thread_pool(&run_field_view_test, 3);
 }
 
 /* `MemberView` tests `metadata_member()`. */
@@ -203,6 +209,9 @@ void run_member_view_test() {
 }
 TEST(RPCMetadataTest, MemberView) {
     run_in_thread_pool(&run_member_view_test);
+}
+TEST(RPCMetadataTest, MemberViewMultiThread) {
+    run_in_thread_pool(&run_member_view_test, 3);
 }
 
 }   /* namespace unittest */
