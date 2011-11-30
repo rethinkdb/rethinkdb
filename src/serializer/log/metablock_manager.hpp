@@ -1,6 +1,16 @@
 #ifndef __SERIALIZER_LOG_METABLOCK_METABLOCK_MANAGER_HPP__
 #define __SERIALIZER_LOG_METABLOCK_METABLOCK_MANAGER_HPP__
 
+/* Notice:
+ * This file defines templatized classes and does not provide their
+ * implementations. Those implementations are provided in
+ * serializer/log/metablock_manager.tcc which is included by
+ * serializer/log/metablock_manager.cc and explicitly instantiates the template
+ * on the type log_serializer_metablock_t. If you want to use this type as the
+ * template parameter you can do so and it should work fine... if you want to
+ * use a different type you may have some difficulty and should look at what's
+ * going on in the aforementioned files. */
+
 #include <vector>
 
 #include <boost/crc.hpp>
