@@ -114,7 +114,6 @@ void metadata_cluster_t<metadata_t>::join_metadata_locally(metadata_t added_meta
 
 template<class metadata_t>
 void metadata_cluster_t<metadata_t>::call(boost::function<void()> fun) {
-    // TODO THREAD wtf is this?
     fun();
 }
 
@@ -144,9 +143,6 @@ template<class metadata_t>
 void metadata_cluster_t<metadata_t>::on_utility_message(peer_id_t sender, std::istream &stream, boost::function<void()> &on_done) {
     assert_connection_thread(sender);
 
-    // TODO THREAD on_thread_t here is a thoughtless hack, an experiment.
-    on_thread_t switcher(home_thread());
-
     char code;
     stream >> code;
     // TODO: Hard-coded constants.
@@ -157,8 +153,12 @@ void metadata_cluster_t<metadata_t>::on_utility_message(peer_id_t sender, std::i
             archive >> added_metadata;
         }
         on_done();
+        // TODO: Couldn't this just use one_way_do_on_thread?
+        on_thread_t threader(home_thread());
         join_metadata_locally(added_metadata);
     } else if (code == 'P') {
+        // Good news: We never leave the connection thread.
+        // TODO: We should not be sending an int over the wire.
         int ping_id;
         stream.read(reinterpret_cast<char *>(&ping_id), sizeof(ping_id));
         on_done();
@@ -168,6 +168,7 @@ void metadata_cluster_t<metadata_t>::on_utility_message(peer_id_t sender, std::i
         int ping_id;
         stream.read(reinterpret_cast<char *>(&ping_id), sizeof(ping_id));
         on_done();
+        on_thread_t threader(home_thread());
         std::map<int, cond_t *>::iterator it = ping_waiters.find(ping_id);
         if (it != ping_waiters.end()) {
             (*it).second->pulse();

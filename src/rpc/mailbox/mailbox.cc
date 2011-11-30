@@ -113,7 +113,6 @@ void mailbox_cluster_t::write_mailbox_message(std::ostream &stream, int dest_thr
 }
 
 void mailbox_cluster_t::on_message(peer_id_t src, std::istream &stream, boost::function<void()> &on_done) {
-    assert_connection_thread(src);
     char c;
     stream >> c;
     switch(c) {
@@ -129,6 +128,9 @@ void mailbox_cluster_t::on_message(peer_id_t src, std::istream &stream, boost::f
 
             on_thread_t thread_switcher(dest_thread);
 
+            // This is trouble, since we must have gone to dest_thread
+            // to find the mailbox that knows how to parse the message
+            // and then call on_done.
             mailbox_t *mbox = mailbox_tables[dest_thread].find_mailbox(dest_mailbox_id);
             if (mbox) {
                 mbox->callback(stream, on_done);

@@ -13,6 +13,7 @@
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/drain_semaphore.hpp"
 #include "concurrency/pmap.hpp"
+#include "do_on_thread.hpp"
 
 /* event_watcher_t */
 
@@ -154,17 +155,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(s
 
     if (dest == me) {
 
-        // The destination "connection"'s home thread is the rpc
-        // listener thread.
-
-        // TODO THREAD do this operation asynchronously, if we can.
-        // (Maybe not.  Maybe the caller can be asynchronous, if it
-        // cares.)
-        on_thread_t threader(home_thread());
-
-        // Of course we're on the connection thread, since dest == me,
-        // but we're just trying to make a point here.
-        assert_connection_thread(dest);
+        // We could be on any thread here!  Oh no!
 
         std::stringstream buffer2(buffer.str(), std::stringstream::in | std::stringstream::binary);
 
@@ -478,7 +469,8 @@ void connectivity_cluster_t::handle(
         }
     }
 
-    // TODO THREAD pick a better way to pick a better thread
+    // We could pick a better way to pick a better thread, our choice
+    // now is hopefully a performance non-problem.
     int chosen_thread = rng.randint(get_num_threads());
 
     cross_thread_signal_t connection_thread_drain_signal(drainer_lock.get_drain_signal(), chosen_thread);
@@ -533,16 +525,19 @@ void connectivity_cluster_t::handle(
                 /* In case anyone is tempted to refactor this so it doesn't wait
                 on `pulse_when_done_reading`, refrain. It may look silly now,
                 but later we will want to read directly off the socket for
-                better performance, and then we will need this code. */
+                better performance, and then we will need this code. (Actually,
+                probably not, since on_done ends up getting called from different
+                threads.) */
                 std::stringstream stream(message, std::stringstream::in | std::stringstream::binary);
                 cond_t pulse_when_done_reading;
                 debugf("Spawning on_message right now.\n");
+                boost::function<void()> pulser = boost::bind(&cond_t::pulse, &pulse_when_done_reading);
                 coro_t::spawn_now(boost::bind(
                     &connectivity_cluster_t::on_message,
                     this,
                     other_id,
                     boost::ref(stream),
-                    boost::function<void()>(boost::bind(&cond_t::pulse, &pulse_when_done_reading))
+                    boost::function<void()>(boost::bind(one_way_do_on_thread<boost::function<void()> >, chosen_thread, pulser))
                     ));
                 pulse_when_done_reading.wait();
             }
@@ -550,12 +545,7 @@ void connectivity_cluster_t::handle(
             /* The exception broke us out of the loop, and that's what we
             wanted. */
 
-            // TODO THREAD: We can't just throw, we need to cleanly
-            // remove ourselves from the connection map, no?
-
-            if (conn->is_read_open()) {
-                throw;
-            }
+            guarantee(!conn->is_read_open(), "the connection was open for read, which means we had a boost archive exception");
         }
 
         /* Remove us from the connection map. */
