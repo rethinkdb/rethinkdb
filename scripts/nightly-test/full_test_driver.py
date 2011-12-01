@@ -200,7 +200,7 @@ with simple_linear_db.LinearDBWriter("result_log.txt") as result_log:
                         remotely.run(
                             command_line = """
 tar --extract --gzip --touch --file=rethinkdb.tar.gz -- rethinkdb
-%(command_line)s
+(%(command_line)s) 2>&1
 """ % { "command_line": build["command_line"] },
                             stdout = output,
                             inputs = ["rethinkdb.tar.gz"],
