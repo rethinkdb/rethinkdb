@@ -37,7 +37,8 @@ class SafePopen(object):
 
 def run(command_line, stdout = sys.stdout, inputs = [], outputs = [],
         on_begin_script = lambda: None, on_end_script = lambda: None,
-        input_root = ".", output_root = "."):
+        input_root = ".", output_root = ".",
+        constraint = None):
     """Runs `command_line` on a remote machine. Output will be written to
 `stdout`. The working directory will be a temporary directory; paths in `inputs`
 will be copied to the remote directory before running the script, and paths in
@@ -97,7 +98,10 @@ fi
 popd > /dev/null
 rm -rf "$DIR"
 """
-    srun_command = ["srun", "bash", "-c", command_script]
+    srun_command = ["srun"]
+    if constraint:
+        srun_command += ["-C", constraint]
+    srun_command += ["bash", "-c", command_script]
     # For some reason, it's essential to set `close_fds` to `True` or else
     # `run()` will lock up if you run it in multiple threads concurrently.
     with SafePopen(srun_command, stdin = subprocess32.PIPE, stdout = subprocess32.PIPE, close_fds = True) as srun_process:
