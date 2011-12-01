@@ -245,7 +245,7 @@ tar --extract --gzip --touch --file=rethinkdb.tar.gz -- rethinkdb
         inputs.append("rethinkdb/build/" + arguments.get("mode", "debug") +
             ("-valgrind" if not arguments.get("no-valgrind", False) else "") +
             "/rethinkdb")
-        if executable == "integration/corruption.py" and arguments.get("no-valgrind", False):
+        if executable == "integration/corruption.py" and not arguments.get("no-valgrind", False):
             # The corruption test always uses the no-valgrind version of RethinkDB
             # in addition to whatever version is specified on the command line
             inputs.append("rethinkdb/build/" + arguments.get("mode", "debug") + "/rethinkdb")
