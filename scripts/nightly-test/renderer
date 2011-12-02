@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-import os, time, random, string
+import os, time, random, string, contextlib
 import flask
-import simple_linear_db, json
+import simple_linear_db, json, zipfile, tarfile, tempfile
 
 assert __name__ == "__main__"
 
@@ -51,7 +51,7 @@ be escaped.
         url = url.replace(magics[key], kwargs[key])
     return url
 
-shared_javascript = """
+shared_javascript = r"""
 function isEmpty(x) {
     for (var i in x) {
         return false;
@@ -157,8 +157,23 @@ function OptionalRenderer(name, subRendererFunc) {
     };
 }
 
+function CountedTableRenderer(headers, rowRendererFunc, labels, labelFunc) {
+    this.countRenderer = new CountRenderer(labels, labelFunc);
+    this.sortedTableRenderer = new SortedTableRenderer(headers, rowRendererFunc);
+    this.element = makeElement("div", { }, [
+        makeElement("p", { }, [
+            this.countRenderer.element
+        ]),
+        this.sortedTableRenderer.element
+    ]);
+    this.setData = function (data) {
+        this.countRenderer.setData(data);
+        this.sortedTableRenderer.setData(data);
+    };
+};
+
 function SortedTableRenderer(headers, rowRendererFunc) {
-    this.tableRenderer = new TableRenderer(headers, rowRendererFunc, { }, []);
+    this.tableRenderer = new TableRenderer(headers, rowRendererFunc);
     this.element = this.tableRenderer.element;
     this.setData = function (data) {
         var keys = [];
@@ -300,10 +315,35 @@ function TestStatusRenderer(url_pattern) {
     };
 };
 
-function LongTextRenderer(title) {
+function CountRenderer(labels, classifier) {
+    this.text = makeText("");
+    this.element = makeElement("span", { }, [this.text]);
+    this.setData = function (data) {
+        var counts = { };
+        labels.forEach(function (label) {
+            counts[label] = 0;
+        });
+        for (var key in data) {
+            var classification = classifier(data[key]);
+            counts[classification] += 1;
+        }
+        var text = "";
+        labels.forEach(function (label) {
+            if (counts[label] != 0) {
+                if (text != "") {
+                    text += " - ";
+                }
+                text += counts[label] + " " + label;
+            }
+        });
+        this.text.replaceWholeText(text);
+    };
+};
+
+function LongTextRenderer(height) {
     var text = document.createTextNode();
-    this.element = makeElement("textarea", { }, [text]);
-    this.element.readonly = true;
+    this.element = makeElement("textarea", { "width": "70%", "height": height + "px", "whitespace": "pre", "font-family": "monospace" }, [text]);
+    this.element.readOnly = true;
     this.element.wrap = "off";
     this.setData = function (output) {
         text.replaceWholeText(output);
@@ -311,22 +351,49 @@ function LongTextRenderer(title) {
 };
 """
 
-@app.route("/json/results")
-@app.route("/json/results/")
-def json_list_results():
+@app.route("/raw/results")
+def raw_list_results():
     results = simple_linear_db.read_linear_db("result_log.txt")
     return json.dumps(results)
 
-@app.route("/json/output")
-@app.route("/json/output/")
-def json_list_output():
+@app.route("/raw/output")
+def raw_list_output():
     with open("output.txt") as output_file:
         return json.dumps(output_file.read())
 
+@app.route("/raw/failures.tar.gz")
+def raw_failures():
+    def wsgi_dumper_app(environ, start_response):
+        results = simple_linear_db.read_linear_db("result_log.txt")
+        filenames = []
+        for test_id, test in results["tests"].iteritems():
+            if "rounds" in test:
+                for round_id, round in test["rounds"].iteritems():
+                    if round["status"] == "fail":
+                        filenames.extend([
+                            os.path.join(test_id, str(round_id), "output.txt"),
+                            os.path.join(test_id, str(round_id), "output_from_test.zip")
+                            ])
+        tarball_contents_directory = "failures-%s" % time.strftime("%Y-%m-%d", time.gmtime(os.stat("result_log.txt").st_ctime))
+        with tempfile.TemporaryFile() as tarball_temp_file:
+            with contextlib.closing(tarfile.open(mode = "w:gz", fileobj = tarball_temp_file)) as tarball_writer:
+                for filename in filenames:
+                    tarball_writer.add(
+                        os.path.join("tests", filename),
+                        arcname = os.path.join(tarball_contents_directory, filename)
+                        )
+            start_response("200 OK", [("Content-Type", "application/x-tar/gz")])
+            tarball_temp_file.seek(0)
+            while True:
+                block = tarball_temp_file.read(4096)
+                if not block:
+                    break
+                yield block
+    return wsgi_dumper_app
+
 @app.route("/")
 def list():
-    
-    template = """
+    template = r"""
         <html>
             <head>
                 <title>Nightly test</title>
@@ -348,17 +415,13 @@ def list():
                         this.testsRenderer = new OptionalRenderer(
                             "Tests",
                             function () {
-                                return new SortedTableRenderer(
-                                    ["Test", "Command line", "Status"],
-                                    function (name) {
-                                        return new TestRowRenderer(name);
-                                    }
-                                );
-                            });
+                                return new TestsRenderer();
+                            }
+                        );
                         this.logRenderer = new OptionalRenderer(
                             "Log",
                             function () {
-                                return new LongTextRenderer();
+                                return new LongTextRenderer(800);
                             }
                         );
                         this.element = makeElement("div", { }, [
@@ -374,6 +437,50 @@ def list():
                             this.logRenderer.setData(output);
                         };
                     };
+
+                    function TestsRenderer() {
+                        this.countedTableRenderer = new CountedTableRenderer(
+                            ["Test", "Command line", "Status"],
+                            function (name) {
+                                return new TestRowRenderer(name);
+                            },
+                            ["missing prerequisites", "waiting", "running", "passed", "failed", "mixed", "bugs"],
+                            function (test) {
+                                if (test.missing) {
+                                    return "missing prerequisites";
+                                }
+                                var statuses = { };
+                                for (var key in test.rounds) {
+                                    statuses[test.rounds[key].status] = true;
+                                }
+                                if (statuses["running"] !== undefined) {
+                                    return "running";
+                                } else if (statuses["waiting"] !== undefined) {
+                                    return "waiting";
+                                } else if (statuses["bug"] !== undefined) {
+                                    return "bug";
+                                } else if (statuses["pass"] !== undefined && statuses["fail"] === undefined) {
+                                    return "passed";
+                                } else if (statuses["pass"] === undefined && statuses["fail"] !== undefined) {
+                                    return "failed";
+                                } else if (statuses["pass"] !== undefined && statuses["fail"] !== undefined) {
+                                    return "mixed";
+                                }
+                            }
+                        );
+                        this.element = makeElement("div", { }, [
+                            makeElement("p", { }, [
+                                makeText("Command to automatically download failures: "),
+                                makeElement("code", { }, [
+                                    makeText("curl -f " + %(failures_url)s + " | tar -xzf -")
+                                ])
+                            ]),
+                            this.countedTableRenderer.element
+                        ]);
+                        this.setData = function (data) {
+                            this.countedTableRenderer.setData(data);
+                        }
+                    }
 
                     function BuildRowRenderer(name) {
                         this.statusRenderer = new BuildStatusRenderer();
@@ -435,36 +542,34 @@ def list():
     """
     return template % {
         "shared_javascript": shared_javascript,
-        "initial_results": json_list_results(),
-        "refresh_results_url": json.dumps(flask.url_for("json_list_results")),
-        "initial_output": json_list_output(),
-        "refresh_output_url": json.dumps(flask.url_for("json_list_output")),
+        "initial_results": raw_list_results(),
+        "refresh_results_url": json.dumps(flask.url_for("raw_list_results")),
+        "initial_output": raw_list_output(),
+        "refresh_output_url": json.dumps(flask.url_for("raw_list_output")),
         "build_url_pattern": json.dumps(generate_subbable_link("build", name="<BUILD>")),
         "test_url_pattern": json.dumps(generate_subbable_link("test", name="<TEST>")),
-        "round_url_pattern": json.dumps(generate_subbable_link("round", name="<TEST>", round="<ROUND>"))
+        "round_url_pattern": json.dumps(generate_subbable_link("round", name="<TEST>", round="<ROUND>")),
+        "failures_url": json.dumps(flask.url_for("raw_failures", _external = True))
         }
 
-@app.route("/json/build/<name>/results")
-@app.route("/json/build/<name>/results/")
-def json_build_results(name):
+@app.route("/raw/build/<name>/results")
+def raw_build_results(name):
     results = simple_linear_db.read_linear_db("result_log.txt")
     if "builds" not in results or name not in results["builds"]:
         flask.abort(404)
     return json.dumps(results["builds"][name])
 
-@app.route("/json/build/<name>/output")
-@app.route("/json/build/<name>/output/")
-def json_build_output(name):
+@app.route("/raw/build/<name>/output")
+def raw_build_output(name):
     if os.path.exists("builds/%s.txt" % name):
         with open("builds/%s.txt" % name) as output_file:
             return json.dumps(output_file.read())
     else:
         return "undefined"
 
-@app.route("/build/<name>")
 @app.route("/build/<name>/")
 def build(name):
-    template = """
+    template = r"""
         <html>
             <head>
                 <title>Build: %(name)s</title>
@@ -476,13 +581,13 @@ def build(name):
                         this.tracebackRenderer = new OptionalRenderer(
                             "Traceback",
                             function () {
-                                return new LongTextRenderer();
+                                return new LongTextRenderer(400);
                             }
                         );
                         this.logRenderer = new OptionalRenderer(
                             "Log",
                             function () {
-                                return new LongTextRenderer();
+                                return new LongTextRenderer(800);
                             }
                         );
                         this.element = makeElement("div", { }, [
@@ -530,24 +635,22 @@ def build(name):
     return template % {
         "shared_javascript": shared_javascript,
         "name": flask.escape(name),
-        "initial_result": json_build_results(name),
-        "refresh_result_url": json.dumps(flask.url_for("json_build_results", name=name)),
-        "initial_output": json_build_output(name),
-        "refresh_output_url": json.dumps(flask.url_for("json_build_output", name=name))
+        "initial_result": raw_build_results(name),
+        "refresh_result_url": json.dumps(flask.url_for("raw_build_results", name=name)),
+        "initial_output": raw_build_output(name),
+        "refresh_output_url": json.dumps(flask.url_for("raw_build_output", name=name))
         }
 
-@app.route("/json/test/<name>/result")
-@app.route("/json/test/<name>/result/")
-def json_test_result(name):
+@app.route("/raw/test/<name>/result")
+def raw_test_result(name):
     results = simple_linear_db.read_linear_db("result_log.txt")
     if "tests" not in results or name not in results["tests"]:
         flask.abort(404)
     return json.dumps(results["tests"][name])
 
-@app.route("/test/<name>")
 @app.route("/test/<name>/")
 def test(name):
-    template = """
+    template = r"""
         <html>
             <head>
                 <title>Test: %(name)s</title>
@@ -619,33 +722,97 @@ def test(name):
     return template % {
         "shared_javascript": shared_javascript,
         "name": flask.escape(name),
-        "initial_result": json_test_result(name),
-        "refresh_result_url": json.dumps(flask.url_for("json_test_result", name=name)),
+        "initial_result": raw_test_result(name),
+        "refresh_result_url": json.dumps(flask.url_for("raw_test_result", name=name)),
         "round_url_pattern": json.dumps(generate_subbable_link("round", name=name, round="<ROUND>"))
         }
 
-@app.route("/json/test/<name>/round/<round>/results")
-@app.route("/json/test/<name>/round/<round>/results/")
-def json_test_round_result(name, round):
+@app.route("/raw/test/<name>/round/<round>/results")
+def raw_test_round_result(name, round):
     results = simple_linear_db.read_linear_db("result_log.txt")
     if "tests" not in results or name not in results["tests"] or \
             "rounds" not in results["tests"][name] or int(round) not in results["tests"][name]["rounds"]:
         flask.abort(404)
     return json.dumps(results["tests"][name]["rounds"][int(round)])
 
-@app.route("/json/test/<name>/round/<round>/output")
-@app.route("/json/test/<name>/round/<round>/output/")
-def json_test_round_output(name, round):
+@app.route("/raw/test/<name>/round/<round>/output")
+def raw_test_round_output(name, round):
     if os.path.exists("tests/%s/%s/output.txt" % (name, round)):
         with open("tests/%s/%s/output.txt" % (name, round)) as output_file:
             return json.dumps(output_file.read())
     else:
         return "undefined"
 
-@app.route("/test/<name>/round/<round>")
+@app.route("/raw/test/<name>/round/<round>/files/")
+def raw_test_round_files(name, round):
+    results = simple_linear_db.read_linear_db("result_log.txt")
+    if "tests" not in results or name not in results["tests"] or \
+            "rounds" not in results["tests"][name] or int(round) not in results["tests"][name]["rounds"]:
+        flask.abort(404)
+    result = results["tests"][name]["rounds"][int(round)]
+    if result["status"] not in ("pass", "fail"):
+        return json.dumps(None)
+    with contextlib.closing(zipfile.ZipFile(os.path.join("tests", name, round, "output_from_test.zip"))) as output_from_test:
+        file_descriptions = { }
+        for info in output_from_test.infolist():
+            is_directory = info.filename.endswith("/")
+            path_parts = info.filename.rstrip("/").split("/")
+            assert path_parts[0] == "output_from_test"
+            path_parts = path_parts[1:]
+            if len(path_parts) != 1:
+                continue
+            if is_directory:
+                file_description = {
+                    "type": "directory"
+                    }
+            else:
+                with contextlib.closing(output_from_test.open(info)) as fileobj:
+                    sample_size = 100
+                    sample = fileobj.read(sample_size)
+                    # If the file is not human-readable, don't include it in the
+                    # output
+                    if all(x in string.printable for x in sample):
+                        # If the file is too big, don't include it in the output
+                        max_size = 20 * 1024 * 1024
+                        if info.file_size < max_size:
+                            file_description = {
+                                "type": "normal",
+                                "contents": sample + fileobj.read()
+                                }
+                        else:
+                            file_description = {
+                                "type": "too_big",
+                                "size": info.file_size
+                                }
+                    else:
+                        file_description = {
+                            "type": "binary",
+                            "size": info.file_size
+                            }
+            file_descriptions[info.filename] = file_description
+    return json.dumps(file_descriptions)
+
+@app.route("/raw/test/<name>/round/<round>/files/<path:path>")
+def raw_test_round_file_dump(name, round, path):
+    def wsgi_dumper_app(environ, start_response):
+        with contextlib.closing(zipfile.ZipFile(os.path.join("tests", name, round, "output_from_test.zip"))) as output_from_test:
+            try:
+                info = output_from_test.getinfo(path)
+            except KeyError:
+                start_response("404 Not Found", [])
+            else:
+                start_response("200 OK", [("Content-Length", str(info.file_size))])
+                with contextlib.closing(output_from_test.open(info)) as fileobj:
+                    while True:
+                        block = fileobj.read(4096)
+                        if not block:
+                            break
+                        yield block
+    return wsgi_dumper_app
+
 @app.route("/test/<name>/round/<round>/")
 def round(name, round):
-    template = """
+    template = r"""
         <html>
             <head>
                 <title>Test: %(name)s (round %(round)s)</title>
@@ -658,15 +825,16 @@ def round(name, round):
                         this.tracebackRenderer = new OptionalRenderer(
                             "Traceback",
                             function () {
-                                return new LongTextRenderer();
+                                return new LongTextRenderer(400);
                             }
                         );
                         this.logRenderer = new OptionalRenderer(
                             "Log",
                             function () {
-                                return new LongTextRenderer();
+                                return new LongTextRenderer(400);
                             }
                         );
+                        this.filesRenderer = new FilesRenderer();
                         this.element = makeElement("div", { }, [
                             makeElement("p", { }, [
                                 makeText("Command line: "),
@@ -677,7 +845,8 @@ def round(name, round):
                                 this.statusRenderer.element
                             ]),
                             this.tracebackRenderer.element,
-                            this.logRenderer.element
+                            this.logRenderer.element,
+                            this.filesRenderer.element
                         ]);
                         this.setResult = function (round) {
                             this.statusRenderer.setData(round);
@@ -685,31 +854,92 @@ def round(name, round):
                         };
                         this.setTestData = function (test) {
                             this.commandLine.replaceWholeText(test.command_line);
-                        }
+                        };
                         this.setOutput = function (output) {
                             this.logRenderer.setData(output);
+                        };
+                        this.setFiles = function (files) {
+                            this.filesRenderer.setData(files);
+                        };
+                    };
+
+                    function FilesRenderer() {
+                        this.element = makeElement("div", { }, []);
+                        this.blocks = [];
+                        this.setData = function (file_descriptions) {
+                            var this_ = this;
+                            this.blocks.forEach(function (block) {
+                                this_.element.removeChild(block);
+                            });
+                            this.blocks = [];
+                            for (var name in file_descriptions) {
+                                var file = file_descriptions[name];
+                                var element;
+                                if (file.type != "directory") {
+                                    var subelement;
+                                    if (file.type == "normal") {
+                                        var renderer = new LongTextRenderer(200);
+                                        renderer.setData(file.contents);
+                                        subelement = renderer.element;
+                                    } else if (file.type == "too_big") {
+                                        subelement = makeText("Too big to display (" + file.size + " bytes)");
+                                    } else if (file.type == "binary") {
+                                        subelement = makeText("Binary file (" + file.size + " bytes)");
+                                    }
+                                    element = makeElement("div", { }, [
+                                        makeElement("p", { }, [
+                                            makeLink(%(dump_url_pattern)s.replace("<PATH>", name), [
+                                                makeText("Download")
+                                            ])
+                                        ]),
+                                        subelement
+                                    ]);
+                                } else {
+                                    element = makeText("Directory");
+                                }
+                                var block = makeElement("div", { }, [
+                                    makeElement("h2", { }, [
+                                        makeElement("code", { }, [
+                                            makeText(name)
+                                        ])
+                                    ]),
+                                    element
+                                ]);
+                                this.blocks.push(block);
+                                this_.element.appendChild(block);
+                            }
                         };
                     };
 
                     function refresh() {
                         doGETJSON(%(refresh_result_url)s, function (result) {
                             root.setResult(result);
+                            if (result.status == "pass" || result.status == "fail" || result.status == "bug") {
+                                cancelInterval(theRefreshTimer);
+                            }
                         });
                         doGETJSON(%(refresh_output_url)s, function (output) {
                             root.setOutput(output);
+                        });
+                        doGETJSON(%(refresh_files_url)s, function (files) {
+                            root.setFiles(files);
                         });
                     }
 
                     initialResult = %(initial_result)s;
                     initialTestData = %(initial_test_data)s;
                     initialOutput = %(initial_output)s;
+                    initialFiles = %(initial_files)s;
                     function start() {
                         root = new TestRoundRootRenderer();
                         root.setResult(initialResult);
                         root.setTestData(initialTestData);
                         root.setOutput(initialOutput);
+                        root.setFiles(initialFiles);
                         document.getElementsByTagName("body")[0].appendChild(root.element);
-                        setInterval("refresh()", 1000);
+                        if (!(initialResult.status == "pass" || initialResult.status == "fail" || initialResult.status == "bug")) {
+                            theRefreshTimer = setInterval("refresh()", 1000);
+                        }
                     };
                 </script>
             </head>
@@ -722,11 +952,14 @@ def round(name, round):
         "shared_javascript": shared_javascript,
         "name": flask.escape(name),
         "round": flask.escape(round),
-        "initial_result": json_test_round_result(name, round),
-        "refresh_result_url": json.dumps(flask.url_for("json_test_round_result", name=name, round=round)),
-        "initial_test_data": json_test_result(name),
-        "initial_output": json_test_round_output(name, round),
-        "refresh_output_url": json.dumps(flask.url_for("json_test_round_output", name=name, round=round))
+        "initial_result": raw_test_round_result(name, round),
+        "refresh_result_url": json.dumps(flask.url_for("raw_test_round_result", name=name, round=round)),
+        "initial_test_data": raw_test_result(name),
+        "initial_output": raw_test_round_output(name, round),
+        "refresh_output_url": json.dumps(flask.url_for("raw_test_round_output", name=name, round=round)),
+        "initial_files": raw_test_round_files(name, round),
+        "refresh_files_url": json.dumps(flask.url_for("raw_test_round_files", name=name, round=round)),
+        "dump_url_pattern": json.dumps(generate_subbable_link("raw_test_round_file_dump", name=name, round=round, path="<PATH>"))
         }
 
 app.debug = True

@@ -4,17 +4,8 @@
 # Environment variables: SLURM_CONF
 #
 # Check out the given RethinkDB branch from GitHub and run a full test against
-# it. The full test results are stored in the current working directory in the
-# following locations:
-#   * `./rethinkdb`: RethinkDB source tree
-#   * `./rethinkdb/build/*/rethinkdb`, `./rethinkdb/bench/stress-client/stress`,
-#     `./rethinkdb/bench/stress-client/libstress.so`: Build products
-#   * `./build-list.txt`: Pass/fail information for all builds
-#   * `./build/*.txt`: `stdout` and `stderr` from `make` during the build
-#   * `./test-list.txt`: Pass/fail information for all tests
-#   * `./test/*/output.txt`: Things that the test script printed
-#   * `./test/*/output_from_test/`: The `output_from_test` directory
-#     from the test scripts that were run
+# it. The full test results are stored in the current working directory in a
+# format that can be parsed by the `renderer` script.
 
 import sys, subprocess32, time, os, traceback, socket, threading, optparse
 import remotely, simple_linear_db
@@ -72,12 +63,7 @@ def run_in_threads(functions, max = 10):
         for thread in threads:
             thread.join()
 
-def run_test_remotely(command, stdout = sys.stdout, inputs = [], outputs = [], on_begin_script = lambda: None, on_end_script = lambda rc: None):
-    """Runs the given command remotely. The difference between this and
-    `remotely.run()` is that if the remote command returns a non-zero exit
-    status, `remotely.run()` will throw an exception and will not copy the
-    outputs, but this will still copy the outputs and will report failures by
-    passing the return code to `on_end_script()`."""
+def run_rethinkdb_test_remotely(dependencies, command_line, stdout_file, zipfile_path, on_begin_script = lambda: None, on_end_script = lambda status: None, constraint = None):
     # We must have an exit code of zero even if the test-script fails so that
     # `remotely` will copy `output_from_test` even if the test script fails. So
     # we have to trap a non-zero exit status and communicate it some other way.
@@ -88,33 +74,35 @@ def run_test_remotely(command, stdout = sys.stdout, inputs = [], outputs = [], o
     # output is actually transmitted over the network as
     # `STDOUT:stdout:<actual line>`.
     class ExitCodeDemuxer(object):
-        def __init__(self, f):
-            self.file = f
+        def __init__(self):
             self.buffer = ""
         def write(self, text):
             self.buffer += text
             lines = self.buffer.split("\n")
             for line in lines[:-1]:
                 if line.startswith("stdout:"):
-                    self.file.write(line[line.find(":")+1:]+"\n")
+                    stdout_file.write(line[line.find(":")+1:]+"\n")
                 elif line.startswith("exitcode:"):
                     self.exit_code = int(line[line.find(":")+1:].strip())
                 else:
                     raise ValueError("Bad line: %r" % line)
             self.buffer = lines[-1]
             if len(lines) > 1:
-                self.file.flush()
-    demuxer = ExitCodeDemuxer(stdout)
+                stdout_file.flush()
+    demuxer = ExitCodeDemuxer()
     remotely.run("""
 set +e
-((%s) 2>&1 | sed -u s/^/stdout:/)
+(PYTHONUNBUFFERED=1 rethinkdb/test/%(command_line)s 2>&1 | sed -u s/^/stdout:/)
 echo "exitcode:$?"
-""" % command,
+zip -r %(zipfile_name)s output_from_test >/dev/null
+""" % { "command_line": command_line, "zipfile_name": os.path.basename(zipfile_path) },
         stdout = demuxer,
-        inputs = inputs,
-        outputs = outputs,
+        inputs = dependencies,
+        outputs = [os.path.basename(zipfile_path)],
+        output_root = os.path.dirname(zipfile_path),
         on_begin_script = on_begin_script,
-        on_end_script = lambda: on_end_script(demuxer.exit_code)
+        on_end_script = lambda: on_end_script("pass" if demuxer.exit_code == 0 else "fail"),
+        constraint = constraint
         )
 
 with simple_linear_db.LinearDBWriter("result_log.txt") as result_log:
@@ -126,7 +114,7 @@ with simple_linear_db.LinearDBWriter("result_log.txt") as result_log:
 
         print "Checking out RethinkDB..."
 
-        subprocess32.check_call(["git", "clone", "git@github.com:coffeemug/rethinkdb.git", "--depth", "0", "rethinkdb"])
+        subprocess32.check_call(["git", "clone", "git@github.com:rethinkdb/rethinkdb.git", "--depth", "0", "rethinkdb"])
         subprocess32.check_call(["git", "checkout", options.git_branch], cwd="rethinkdb")
 
         print "Done checking out RethinkDB."
@@ -202,18 +190,24 @@ with simple_linear_db.LinearDBWriter("result_log.txt") as result_log:
 
         # Run builds
 
+        subprocess32.check_call(["tar", "--create", "--gzip", "--file=rethinkdb.tar.gz", "--", "rethinkdb"])
+
         os.mkdir("builds")
         def run_build(name, build):
             try:
                 with open("builds/%s.txt" % name, "w") as output:
                     try:
                         remotely.run(
-                            command_line = build["command_line"],
+                            command_line = """
+tar --extract --gzip --touch --file=rethinkdb.tar.gz -- rethinkdb
+(%(command_line)s) 2>&1
+""" % { "command_line": build["command_line"] },
                             stdout = output,
-                            inputs = ["rethinkdb"],
+                            inputs = ["rethinkdb.tar.gz"],
                             outputs = build["products"],
                             on_begin_script = lambda: result_log.write("builds", name, status = "running", start_time = time.time()),
-                            on_end_script = lambda: result_log.write("builds", name, status = "ok", end_time = time.time())
+                            on_end_script = lambda: result_log.write("builds", name, status = "ok", end_time = time.time()),
+                            constraint = "build-ready"
                             )
                     except remotely.ScriptFailedError:
                         result_log.write("builds", name, status = "fail", end_time = time.time())
@@ -251,7 +245,7 @@ with simple_linear_db.LinearDBWriter("result_log.txt") as result_log:
         inputs.append("rethinkdb/build/" + arguments.get("mode", "debug") +
             ("-valgrind" if not arguments.get("no-valgrind", False) else "") +
             "/rethinkdb")
-        if executable == "integration/corruption.py" and arguments.get("no-valgrind", False):
+        if executable == "integration/corruption.py" and not arguments.get("no-valgrind", False):
             # The corruption test always uses the no-valgrind version of RethinkDB
             # in addition to whatever version is specified on the command line
             inputs.append("rethinkdb/build/" + arguments.get("mode", "debug") + "/rethinkdb")
@@ -294,19 +288,13 @@ with simple_linear_db.LinearDBWriter("result_log.txt") as result_log:
             directory = os.path.join("tests", name, str(round))
             os.mkdir(directory)
             with open(os.path.join(directory, "output.txt"), "w") as output_file:
-                run_test_remotely(
-                    """
-set -e
-WD=$(pwd)
-mkdir -p %(directory)s
-cd %(directory)s
-PYTHONUNBUFFERED=1 $WD/rethinkdb/test/%(command)s
-""" % { "directory": directory, "command": test["command_line"] },
-                    stdout = output_file,
-                    inputs = test["inputs"],
-                    outputs = [os.path.join("tests", name, str(round), "output_from_test")],
+                run_rethinkdb_test_remotely(
+                    test["inputs"],
+                    test["command_line"],
+                    output_file,
+                    os.path.join(directory, "output_from_test.zip"),
                     on_begin_script = lambda: result_log.write("tests", name, "rounds", round, status = "running", start_time = time.time()),
-                    on_end_script = lambda rc: result_log.write("tests", name, "rounds", round, status = "pass" if rc == 0 else "fail", end_time = time.time())
+                    on_end_script = lambda status: result_log.write("tests", name, "rounds", round, status = status, end_time = time.time())
                     )
         except Exception, e:
             result_log.write("tests", name, "rounds", round, status = "bug", traceback = traceback.format_exc())

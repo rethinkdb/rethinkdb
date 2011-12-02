@@ -36,7 +36,9 @@ class SafePopen(object):
             pass
 
 def run(command_line, stdout = sys.stdout, inputs = [], outputs = [],
-        on_begin_script = lambda: None, on_end_script = lambda: None):
+        on_begin_script = lambda: None, on_end_script = lambda: None,
+        input_root = ".", output_root = ".",
+        constraint = None):
     """Runs `command_line` on a remote machine. Output will be written to
 `stdout`. The working directory will be a temporary directory; paths in `inputs`
 will be copied to the remote directory before running the script, and paths in
@@ -59,8 +61,8 @@ pushd "$DIR" > /dev/null
     if inputs:
         command_script += """
 echo "SEND_TARBALL"
-tar --extract -z --file=-
-"""
+tar --extract --gzip --touch --file=- -- %s
+""" % " ".join(escape_shell_arg(input) for input in inputs)
     else:
         command_script += """
 echo "SEND_NO_TARBALL"
@@ -83,7 +85,7 @@ echo "SCRIPT_SUCCESS"
     if outputs:
         command_script += """
 echo "HERE_IS_TARBALL"
-tar --create -z --file=- -- %s
+tar --create --gzip --file=- -- %s
 """ % " ".join(escape_shell_arg(out) for out in outputs)
     else:
         command_script += """
@@ -96,7 +98,10 @@ fi
 popd > /dev/null
 rm -rf "$DIR"
 """
-    srun_command = ["srun", "bash", "-c", command_script]
+    srun_command = ["srun"]
+    if constraint:
+        srun_command += ["-C", constraint]
+    srun_command += ["bash", "-c", command_script]
     # For some reason, it's essential to set `close_fds` to `True` or else
     # `run()` will lock up if you run it in multiple threads concurrently.
     with SafePopen(srun_command, stdin = subprocess32.PIPE, stdout = subprocess32.PIPE, close_fds = True) as srun_process:
@@ -105,7 +110,7 @@ rm -rf "$DIR"
             if not line.startswith("SEND_TARBALL"):
                 raise RemotelyInternalError("Expected 'SEND_TARBALL', got %r" % line)
             subprocess32.check_call(
-                ["tar", "--create", "-z", "--file=-"] + inputs,
+                ["tar", "--create", "--gzip", "--file=-", "-C", input_root, "--"] + inputs,
                 stdout = srun_process.stdin
                 )
         else:
@@ -137,7 +142,7 @@ rm -rf "$DIR"
                 # subprocess gets the right input.
                 srun_process.stdout.flush()
                 subprocess32.check_call(
-                    ["tar", "--extract", "-z", "--file=-"],
+                    ["tar", "--extract", "--gzip", "--touch", "--file=-", "-C", output_root, "--"] + outputs,
                     stdin = srun_process.stdout
                     )
             else:
