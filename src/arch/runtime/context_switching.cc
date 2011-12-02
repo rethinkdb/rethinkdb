@@ -47,7 +47,7 @@ artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_
     /* Align stack. The x86-64 ABI requires the stack pointer to always be
     16-byte-aligned at function calls. That is, "(%rsp - 8) is always a multiple
     of 16 when control is transferred to the function entry point". */
-    sp = reinterpret_cast<uint64_t *>(uintptr_t(sp) & -16L);
+    sp = reinterpret_cast<uint64_t *>(uintptr_t(sp) & static_cast<uintptr_t>(-16L));
 
     // Currently sp is 16-byte aligned.
 

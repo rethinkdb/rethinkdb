@@ -21,7 +21,7 @@ struct memcached_interface_t {
     virtual bool is_write_open() = 0;
 
     struct no_more_data_exc_t : public std::exception {
-        const char *what() throw () {
+        const char *what() const throw () {
             return "No more data available from txt_memcached handler.";
         }
     };

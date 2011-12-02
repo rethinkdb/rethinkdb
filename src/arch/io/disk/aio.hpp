@@ -57,7 +57,7 @@ public:
         friend class linux_diskmgr_aio_t;
     };
 
-    explicit linux_diskmgr_aio_t(
+    linux_diskmgr_aio_t(
         linux_event_queue_t *queue,
         passive_producer_t<action_t *> *source);
     boost::function<void(action_t *)> done_fun;

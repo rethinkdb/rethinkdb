@@ -30,12 +30,12 @@ struct redis_protocol_t {
     typedef boost::shared_ptr<write_result_t> write_response_t;
 
     struct status_result {
-        status_result(const char *_msg) : msg(_msg) { }
+        explicit status_result(const char *_msg) : msg(_msg) { }
         const char *msg;
     };
 
     struct error_result {
-        error_result(const char *_msg) : msg(_msg) { }
+        explicit error_result(const char *_msg) : msg(_msg) { }
         const char *msg;
     };
 
@@ -50,7 +50,7 @@ struct redis_protocol_t {
 
     class read_t {
     public:
-        read_t(read_operation_t *ptr) : op(ptr) { }
+        explicit read_t(read_operation_t *ptr) : op(ptr) { }
         read_t() { }
         read_t(const read_t &other) : op(other.op) { }
         region_t get_region();
@@ -72,7 +72,7 @@ struct redis_protocol_t {
 
     struct write_t {
     public:
-        write_t(write_operation_t *ptr) : op(ptr) { }
+        explicit write_t(write_operation_t *ptr) : op(ptr) { }
         write_t() { }
         write_t(const write_t &other) : op(other.op) { }
         region_t get_region();
@@ -117,7 +117,7 @@ struct redis_protocol_t {
     // Base integer result class, by default it reduces by choosing the first value
     // This is, for example, the expected behavior for the innumerable 1 or 0 integer responses
     struct integer_result_t : read_result_t, write_result_t {
-        integer_result_t(int val) : value(val) {;}
+        explicit integer_result_t(int val) : value(val) {;}
         virtual void deshard(const void *other) {(void)other;}
         virtual redis_return_type get_result() { return value; }
 
@@ -126,7 +126,7 @@ struct redis_protocol_t {
 
     // Example of integer_result class, this takes the max integer value on reduction
     struct max_integer_t : integer_result_t {
-        max_integer_t(int val) : integer_result_t(val) {;}
+        explicit max_integer_t(int val) : integer_result_t(val) {;}
         virtual void deshard(const void *other) {
             const integer_result_t *oth = reinterpret_cast<const integer_result_t *>(other);
             if(oth->value > value) value = oth->value;
@@ -135,7 +135,7 @@ struct redis_protocol_t {
 
     // Sums the values on reduction
     struct sum_integer_t : integer_result_t {
-        sum_integer_t(int val) : integer_result_t(val) {;}
+        explicit sum_integer_t(int val) : integer_result_t(val) {;}
         virtual void deshard(const void *other) {
             const integer_result_t *oth = reinterpret_cast<const integer_result_t *>(other);
             value += oth->value; 
@@ -146,9 +146,9 @@ struct redis_protocol_t {
 
     // Bulk response base class
     struct bulk_result_t : read_result_t, write_result_t {
-        bulk_result_t(std::string &val) : value(val) {;}
+        explicit bulk_result_t(std::string &val) : value(val) {;}
         // Create a result string from a float value
-        bulk_result_t(float val) {
+        explicit bulk_result_t(float val) {
             try {
                 value = boost::lexical_cast<std::string>(val);
             } catch(boost::bad_lexical_cast &) {
@@ -163,8 +163,8 @@ struct redis_protocol_t {
 
     // Multi-bulk response base class
     struct multi_bulk_result_t : read_result_t, write_result_t {
-        multi_bulk_result_t(std::vector<std::string> &val) : value(val) {;}
-        multi_bulk_result_t(std::deque<std::string> &val) : value(val.begin(), val.end()) {;}
+        explicit multi_bulk_result_t(std::vector<std::string> &val) : value(val) {;}
+        explicit multi_bulk_result_t(std::deque<std::string> &val) : value(val.begin(), val.end()) {;}
         virtual void deshard(const void *other) {(void)other;}
         virtual redis_return_type get_result() { return value; }
 
@@ -179,14 +179,14 @@ struct redis_protocol_t {
 
     struct ok_result_t : msg_result_t {
         ok_result_t() : value("OK") {;}
-        ok_result_t(const char *msg) : value(msg) {;}
+        explicit ok_result_t(const char *msg) : value(msg) {;}
         virtual redis_return_type get_result() {return value;}
 
         status_result value;
     };
 
     struct error_result_t : msg_result_t {
-        error_result_t(const char *msg) : value(msg) {;}
+        explicit error_result_t(const char *msg) : value(msg) {;}
         virtual redis_return_type get_result() {return value;}
 
         error_result value;
@@ -204,7 +204,7 @@ struct redis_protocol_t {
 
     #define WRITE_1(CNAME, ARG_TYPE_ONE)\
     struct CNAME : write_operation_t { \
-        CNAME(ARG_TYPE_ONE one_) : one(one_) { } \
+        explicit CNAME(ARG_TYPE_ONE one_) : one(one_) { } \
         virtual indicated_key_t get_keys(); \
         virtual write_t shard(region_t region); \
         virtual redis_protocol_t::write_response_t execute(btree_slice_t *btree, timestamp_t timestamp, order_token_t otok); \
@@ -258,7 +258,7 @@ struct redis_protocol_t {
 
     #define READ__1(CNAME, ARG_TYPE_ONE)\
     struct CNAME : read_operation_t { \
-        CNAME(ARG_TYPE_ONE one_) : one(one_) { } \
+        explicit CNAME(ARG_TYPE_ONE one_) : one(one_) { } \
         virtual indicated_key_t get_keys(); \
         virtual read_t shard(region_t region); \
         virtual redis_protocol_t::read_response_t execute(btree_slice_t *btree, order_token_t otok); \
@@ -305,7 +305,7 @@ struct redis_protocol_t {
 
     #define WRITE_N(CNAME) \
     struct CNAME : write_operation_t { \
-        CNAME(std::vector<std::string> &one_) : one(one_) { } \
+        explicit CNAME(std::vector<std::string> &one_) : one(one_) { } \
         virtual indicated_key_t get_keys(); \
         virtual write_t shard(region_t region); \
         virtual redis_protocol_t::write_response_t execute(btree_slice_t *btree, timestamp_t timestamp, order_token_t otok); \
@@ -315,7 +315,7 @@ struct redis_protocol_t {
 
     #define READ__N(CNAME) \
     struct CNAME : read_operation_t { \
-        CNAME(std::vector<std::string> &one_) : one(one_) { } \
+        explicit CNAME(std::vector<std::string> &one_) : one(one_) { } \
         virtual indicated_key_t get_keys(); \
         virtual read_t shard(region_t region); \
         virtual redis_protocol_t::read_response_t execute(btree_slice_t *btree, order_token_t otok); \
@@ -487,7 +487,7 @@ public:
 
     class transaction_t : public virtual store_view_t<redis_protocol_t>::write_transaction_t {
     public:
-        transaction_t(dummy_redis_store_view_t *parent_);
+        explicit transaction_t(dummy_redis_store_view_t *parent_);
 
         region_map_t<redis_protocol_t, binary_blob_t> get_metadata(
                 signal_t *interruptor)

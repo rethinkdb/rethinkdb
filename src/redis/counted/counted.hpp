@@ -61,7 +61,7 @@ struct counted_btree_t {
     counted_btree_t(sub_ref_t *root_, block_size_t blocksize, transaction_t *transaction) :
         root(root_), blksize(blocksize), txn(transaction) {;}
 
-    counted_btree_t(block_size_t blocksize) : blksize(blocksize) {;}
+    explicit counted_btree_t(block_size_t blocksize) : blksize(blocksize) {;}
 
     const counted_value_t *at(unsigned index);
     void insert_score(float score, std::string &value);

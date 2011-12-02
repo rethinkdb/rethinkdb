@@ -34,8 +34,8 @@ public:
     void hello(UNUSED net_hello_t message) { debugf("Received hello from slave.\n"); }
 
     void send(scoped_malloc<net_introduce_t>& message);
-
     void send(scoped_malloc<net_backfill_t>& message);
+    using backfill_receiver_t::send;
 
     void send(scoped_malloc<net_timebarrier_t>& message) {
         timebarrier_helper(*message);

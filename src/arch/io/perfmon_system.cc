@@ -19,7 +19,7 @@
 /* Class to represent and parse the contents of /proc/[pid]/stat */
 
 struct proc_pid_stat_exc_t : public std::exception {
-    proc_pid_stat_exc_t(const char *format, ...) __attribute__ ((format (printf, 2, 3))) {
+    explicit proc_pid_stat_exc_t(const char *format, ...) __attribute__ ((format (printf, 2, 3))) {
         char buffer[2000];
         va_list l;
         va_start(l, format);

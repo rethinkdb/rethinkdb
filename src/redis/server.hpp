@@ -13,7 +13,7 @@
 /* Listens for TCP connections on the given port. Handles connections with redis. */
 struct redis_listener_t : public home_thread_mixin_t {
 
-    redis_listener_t(int port);
+    explicit redis_listener_t(int port);
     ~redis_listener_t();
 
 private:

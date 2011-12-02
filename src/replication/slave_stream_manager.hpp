@@ -36,8 +36,8 @@ struct slave_stream_manager_t :
     void hello(net_hello_t message);
 
     void send(scoped_malloc<net_introduce_t>& message);
-
     void send(scoped_malloc<net_backfill_t>& message);
+    using backfill_receiver_t::send;
 
     // Overrides backfill_receiver_t::send(scoped_malloc<net_backfill_complete_t>&)
     void send(scoped_malloc<net_backfill_complete_t>& message) {

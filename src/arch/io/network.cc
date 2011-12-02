@@ -586,6 +586,7 @@ bool linux_tcp_conn_t::iterator::equal(iterator const& other) {
 }
 
 const char &linux_tcp_conn_t::iterator::dereference() {
+    rassert(!end, "Trying to dereference an end iterator.");
     const_charslice slc = source->peek(pos + 1);
 
     /* check to make sure we at least got some data */
@@ -606,10 +607,15 @@ linux_tcp_conn_t::iterator::iterator(linux_tcp_conn_t *_source, size_t _pos)
     : source(_source), end(false), pos(_pos)
 { }
 
-// TODO: Wtf, why does this take an unused bool parameter?
+//The unused bool denotes and "end" constructor. You should use the below
+//method in actual code
 linux_tcp_conn_t::iterator::iterator(linux_tcp_conn_t *_source, bool)
-    : source(_source), end(true), pos(-1)
+    : source(_source), end(true), pos(0)
 { }
+
+linux_tcp_conn_t::iterator linux_tcp_conn_t::iterator::make_end_iterator(linux_tcp_conn_t *conn) {
+    return iterator(conn, true);
+}
 
 linux_tcp_conn_t::iterator::iterator(iterator const& other) 
     : source(other.source), end(other.end), pos(other.pos)

@@ -183,7 +183,7 @@ on_thread_t::~on_thread_t() {
 }
 
 
-const repli_timestamp_t repli_timestamp_t::invalid = { -1 };
+const repli_timestamp_t repli_timestamp_t::invalid = { static_cast<uint32_t>(-1) };
 const repli_timestamp_t repli_timestamp_t::distant_past = { 0 };
 
 microtime_t current_microtime() {

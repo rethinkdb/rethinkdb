@@ -124,7 +124,7 @@ public:
     int structures_unsynced;
     lba_list_t::sync_callback_t *callback;
     
-    explicit lba_syncer_t(lba_list_t *_owner, file_account_t *io_account)
+    lba_syncer_t(lba_list_t *_owner, file_account_t *io_account)
         : owner(_owner), done(false), should_delete_self(false), callback(NULL)
     {
         structures_unsynced = LBA_SHARD_FACTOR;

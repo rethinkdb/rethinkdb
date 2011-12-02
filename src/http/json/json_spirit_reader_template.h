@@ -204,7 +204,7 @@ namespace json_spirit
         typedef typename Config_type::Array_type Array_type;
         typedef typename String_type::value_type Char_type;
 
-        Semantic_actions( Value_type& value )
+        explicit Semantic_actions( Value_type& value )
         :   value_( value )
         ,   current_p_( 0 )
         {
@@ -247,21 +247,21 @@ namespace json_spirit
 
         void new_str( Iter_type begin, Iter_type end )
         {
-            add_to_current( get_str< String_type >( begin, end ) );
+            add_to_current( Value_type( get_str< String_type >( begin, end ) ) );
         }
 
         void new_true( UNUSED Iter_type begin,  UNUSED Iter_type end )
         {
             rassert( is_eq( begin, end, "true" ) );
 
-            add_to_current( true );
+            add_to_current( Value_type( true ) );
         }
 
         void new_false( UNUSED Iter_type begin, UNUSED Iter_type end )
         {
             rassert( is_eq( begin, end, "false" ) );
 
-            add_to_current( false );
+            add_to_current( Value_type( false ) );
         }
 
         void new_null( UNUSED Iter_type begin, UNUSED Iter_type end )
@@ -273,17 +273,17 @@ namespace json_spirit
 
         void new_int( boost::int64_t i )
         {
-            add_to_current( i );
+            add_to_current( Value_type( i ) );
         }
 
         void new_uint64( boost::uint64_t ui )
         {
-            add_to_current( ui );
+            add_to_current( Value_type( ui ) );
         }
 
         void new_real( double d )
         {
-            add_to_current( d );
+            add_to_current( Value_type( d ) );
         }
 
     private:
@@ -305,7 +305,7 @@ namespace json_spirit
         {
             if( current_p_ == 0 )
             {
-                add_first( Array_or_obj() );
+                add_first( Value_type(Array_or_obj()) );
             }
             else
             {
@@ -313,7 +313,7 @@ namespace json_spirit
 
                 Array_or_obj new_array_or_obj;   // avoid copy by building new array or object in place
 
-                current_p_ = add_to_current( new_array_or_obj );
+                current_p_ = add_to_current( Value_type(new_array_or_obj) );
             }
         }
 
@@ -374,7 +374,7 @@ namespace json_spirit
 
         typedef Semantic_actions< Value_type, Iter_type > Semantic_actions_t;
 
-        Json_grammer( Semantic_actions_t& semantic_actions )
+        explicit Json_grammer( Semantic_actions_t& semantic_actions )
         :   actions_( semantic_actions )
         {
         }
@@ -414,7 +414,7 @@ namespace json_spirit
         {
         public:
 
-            definition( const Json_grammer& self )
+            explicit definition( const Json_grammer& self )
             {
                 using namespace spirit_namespace;
 
@@ -533,7 +533,7 @@ namespace json_spirit
         typedef std::istream_iterator< Char_type, Char_type > istream_iter;
         typedef spirit_namespace::multi_pass< istream_iter > Mp_iter;
 
-        Multi_pass_iters( Istream_type& is )
+        explicit Multi_pass_iters( Istream_type& is )
         {
             is.unsetf( std::ios::skipws );
 

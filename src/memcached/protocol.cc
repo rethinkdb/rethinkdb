@@ -76,7 +76,7 @@ key_range_t::key_range_t(bound_t lm, store_key_t l, bound_t rm, store_key_t r) {
 bool region_is_superset(const key_range_t &potential_superset, const key_range_t &potential_subset) THROWS_NOTHING {
 
     /* Special-case empty ranges */
-    if (potential_subset.left == potential_subset.right) return true;
+    if (key_range_t::right_bound_t(potential_subset.left) == potential_subset.right) return true;
 
     if (potential_superset.left > potential_subset.left) return false;
     if (potential_superset.right < potential_subset.right) return false;
@@ -104,13 +104,13 @@ key_range_t region_join(const std::vector<key_range_t> &vec) THROWS_ONLY(bad_joi
     } else {
         std::vector<key_range_t> sorted = vec;
         std::sort(sorted.begin(), sorted.end(), &compare_range_by_left);
-        key_range_t::right_bound_t cursor = sorted[0].left;
+        key_range_t::right_bound_t cursor = key_range_t::right_bound_t(sorted[0].left);
         for (int i = 0; i < (int)sorted.size(); i++) {
-            if (cursor < sorted[i].left) {
+            if (cursor < key_range_t::right_bound_t(sorted[i].left)) {
                 /* There's a gap between this region and the region on its left,
                 so their union isn't a `key_range_t`. */
                 throw bad_region_exc_t();
-            } else if (cursor > sorted[i].left) {
+            } else if (cursor > key_range_t::right_bound_t(sorted[i].left)) {
                 /* This region overlaps with the region on its left, so the join
                 is bad. */
                 throw bad_join_exc_t();
@@ -127,7 +127,9 @@ key_range_t region_join(const std::vector<key_range_t> &vec) THROWS_ONLY(bad_joi
 }
 
 bool region_overlaps(const key_range_t &r1, const key_range_t &r2) THROWS_NOTHING {
-    return (r1.left < r2.right && r2.left < r1.right && !region_is_empty(r1) && !region_is_empty(r2));
+    return (key_range_t::right_bound_t(r1.left) < r2.right && 
+            key_range_t::right_bound_t(r2.left) < r1.right && 
+            !region_is_empty(r1) && !region_is_empty(r2));
 }
 
 bool operator==(key_range_t a, key_range_t b) THROWS_NOTHING {

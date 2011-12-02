@@ -295,7 +295,7 @@ public:
         }
     } launch_cb;
 
-    explicit buf_writer_t(writeback_t *wb, mc_buf_t *buf) {
+    buf_writer_t(writeback_t *wb, mc_buf_t *buf) {
         launch_cb.parent = wb;
         launch_cb.buf = buf;
         launch_cb.parent->cache->assert_thread();

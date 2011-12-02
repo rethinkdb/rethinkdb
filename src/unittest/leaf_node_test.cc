@@ -10,7 +10,7 @@ struct short_value_t;
 template <>
 class value_sizer_t<short_value_t> : public value_sizer_t<void> {
 public:
-    value_sizer_t<short_value_t>(block_size_t bs) : block_size_(bs) { }
+    explicit value_sizer_t<short_value_t>(block_size_t bs) : block_size_(bs) { }
 
     int size(const void *value) const {
         int x = *reinterpret_cast<const uint8_t *>(value);

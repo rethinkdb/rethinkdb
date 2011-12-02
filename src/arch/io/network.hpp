@@ -30,9 +30,10 @@ public:
     friend class linux_nascent_tcp_conn_t;
 
     struct connect_failed_exc_t : public std::exception {
-        const char *what() throw () {
+        const char *what() const throw () {
             return "Could not make connection";
         }
+        ~connect_failed_exc_t() throw () { }
     };
 
     /* TODO: One of these forms should be replaced by the other. */
@@ -42,7 +43,7 @@ public:
     /* Reading */
 
     struct read_closed_exc_t : public std::exception {
-        const char *what() throw () {
+        const char *what() const throw () {
             return "Network connection read end closed";
         }
     };
@@ -88,7 +89,7 @@ public:
     /* Writing */
 
     struct write_closed_exc_t : public std::exception {
-        const char *what() throw () {
+        const char *what() const throw () {
             return "Network connection write end closed";
         }
     };
@@ -159,7 +160,10 @@ public:
     public:
         iterator();
         iterator(linux_tcp_conn_t *, size_t);
-        iterator(linux_tcp_conn_t *, bool);
+    private:
+        iterator(linux_tcp_conn_t *, bool); // <--- constructs and end iterator use the below method for better readability;
+    public:
+        static iterator make_end_iterator(linux_tcp_conn_t *);
         iterator(const iterator&);
         ~iterator();
         char operator*();
@@ -262,7 +266,7 @@ public:
     struct address_in_use_exc_t :
         public std::exception
     {
-        const char *what() throw () {
+        const char *what() const throw () {
             return "The requested port is already in use.";
         }
     };

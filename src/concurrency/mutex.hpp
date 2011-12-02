@@ -49,7 +49,7 @@ void co_lock_mutex(mutex_t *mutex);
 
 class mutex_acquisition_t {
 public:
-    mutex_acquisition_t(mutex_t *lock, bool eager = false) : lock_(lock), eager_(eager) {
+    explicit mutex_acquisition_t(mutex_t *lock, bool eager = false) : lock_(lock), eager_(eager) {
         co_lock_mutex(lock_);
     }
     mutex_acquisition_t() : lock_(NULL) { }

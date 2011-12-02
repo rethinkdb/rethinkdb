@@ -37,7 +37,7 @@ public:
     /* Wrapper around a `publisher_t<boost::function<void()> >::subscription_t`
     */
     struct subscription_t : public home_thread_mixin_t {
-        subscription_t(boost::function<void()> cb) :
+        explicit subscription_t(boost::function<void()> cb) :
             subs(cb) {
         }
         subscription_t(boost::function<void()> cb, signal_t *s) :

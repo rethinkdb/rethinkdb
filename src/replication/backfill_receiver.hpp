@@ -29,6 +29,7 @@ struct backfill_receiver_t :
     void send(scoped_malloc<net_backfill_delete_range_t>& message);
     void send(scoped_malloc<net_backfill_delete_t>& message);
     void send(scoped_malloc<net_heartbeat_t>& message);
+    using message_callback_t::send; //bring in the base classes methods
 
     void timebarrier_helper(net_timebarrier_t msg);
 

@@ -60,7 +60,7 @@ public:
 
     class local_buf_t : public intrusive_list_node_t<local_buf_t> {
     public:
-        explicit local_buf_t()
+        local_buf_t()
             : last_patch_materialized_(0), needs_flush_(false), dirty(false), recency_dirty(false) {}
 
         void set_dirty(bool _dirty = true);

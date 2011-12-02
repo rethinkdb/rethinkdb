@@ -35,7 +35,7 @@ public:
     greater than or equal to `left` and less than `right.key`. */
     struct right_bound_t {
         right_bound_t() : unbounded(true) { }
-        right_bound_t(store_key_t k) : unbounded(false), key(k) { }
+        explicit right_bound_t(store_key_t k) : unbounded(false), key(k) { }
         bool unbounded;
         store_key_t key;
     };
@@ -84,7 +84,7 @@ public:
         read_t(const read_t& r) : query(r.query) { }
 
         typedef boost::variant<get_query_t, rget_query_t> query_t;
-        read_t(const query_t& q) : query(q) { }
+        explicit read_t(const query_t& q) : query(q) { }
 
         query_t query;
     };
@@ -102,7 +102,7 @@ public:
                     incr_decr_result_t,
                     append_prepend_result_t
                     > result_t;
-        template<class T> write_response_t(const result_t& r) : result(r) { }
+        explicit write_response_t(const result_t& r) : result(r) { }
 
         result_t result;
     };

@@ -56,9 +56,9 @@ TEST(BitsetTest, Resize) {
 TEST(BitsetTest, BoundsChecking) {
     bitset_t b(100);
     ASSERT_DEATH(b.test(400), "");
-    ASSERT_DEATH(b.set(-5), "");
+    ASSERT_DEATH(b.set(static_cast<unsigned int>(-5)), "");
     ASSERT_DEATH(b.test(100), "");
-    ASSERT_DEATH(b.test(-1), "");
+    ASSERT_DEATH(b.test(static_cast<unsigned int>(-1)), "");
     b.set(99, true);
     ASSERT_TRUE(b.test(99));
     b.verify();
