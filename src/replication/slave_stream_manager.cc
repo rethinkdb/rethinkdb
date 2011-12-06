@@ -31,10 +31,13 @@ slave_stream_manager_t::slave_stream_manager_t(boost::scoped_ptr<tcp_conn_t> *co
     stream_ = new repli_stream_t(*conn, this, heartbeat_timeout);
 
     cond_ = cond;
-    if (cond_->is_pulsed()) {
-        on_signal_pulsed();
-    } else {
-        subs_.resubscribe(cond);
+    {
+        signal_t::lock_t lock(cond_);
+        if (cond_->is_pulsed()) {
+            on_signal_pulsed();
+        } else {
+            subs_.resubscribe(cond);
+        }
     }
 }
 

@@ -9,6 +9,7 @@ cross_thread_signal_t::cross_thread_signal_t(signal_t *source, int dest) :
                      this, auto_drainer_t::lock_t(&drainer)))
 {
     rassert(source->home_thread() == source_thread);
+    signal_t::lock_t lock(source);
     if (source->is_pulsed()) {
         on_signal_pulsed(auto_drainer_t::lock_t(&drainer));
     } else {

@@ -88,15 +88,15 @@ struct publisher_controller_t :
     public home_thread_mixin_t
 {
 public:
-    publisher_controller_t(mutex_t *m, int specified_home_thread)
+    publisher_controller_t(rwi_lock_t *l, int specified_home_thread)
         : home_thread_mixin_t(specified_home_thread),
           publisher(this, specified_home_thread),
-          mutex(m),
+          lock(l),
           publishing(false) { }
 
-    explicit publisher_controller_t(mutex_t *m) :
+    explicit publisher_controller_t(rwi_lock_t *l) :
         publisher(this),
-        mutex(m),
+        lock(l),
         publishing(false) { }
 
     ~publisher_controller_t() {
@@ -114,10 +114,10 @@ public:
     }
 
     template<class callable_t>
-    void publish(const callable_t &callable, mutex_acquisition_t *proof) {
+    void publish(const callable_t &callable, rwi_lock_t::write_acq_t *proof) {
 
-        proof->assert_is_holding(mutex);
-        mutex_acquisition_t temp;
+        proof->assert_is_holding(lock);
+        rwi_lock_t::write_acq_t temp;
         swap(*proof, temp);
 
         rassert(!publishing);
@@ -144,7 +144,7 @@ private:
 
     intrusive_list_t<typename publisher_t<subscriber_t>::subscription_t> subscriptions;
 
-    mutex_t *mutex;
+    rwi_lock_t *lock;
     bool publishing;
 
     DISABLE_COPYING(publisher_controller_t);
@@ -170,7 +170,7 @@ void publisher_t<subscriber_t>::subscription_t::resubscribe(publisher_t *pub) {
     rassert(pub);
     pub->assert_thread();
     publisher = pub;
-    mutex_acquisition_t acq(publisher->parent->mutex);
+    rwi_lock_t::read_acq_t acq(publisher->parent->lock);
     publisher->parent->subscriptions.push_back(this);
 }
 
@@ -178,7 +178,7 @@ template<class subscriber_t>
 void publisher_t<subscriber_t>::subscription_t::unsubscribe() {
     assert_thread();
     rassert(publisher);
-    mutex_acquisition_t acq(publisher->parent->mutex);
+    rwi_lock_t::read_acq_t acq(publisher->parent->lock);
     publisher->parent->subscriptions.remove(this);
     publisher = NULL;
 }

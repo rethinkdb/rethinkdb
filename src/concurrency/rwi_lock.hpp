@@ -60,12 +60,22 @@ public:
         read_acq_t(rwi_lock_t *l) : lock(l) {
             lock->co_lock(rwi_read);
         }
+        void reset() {
+            if (lock) {
+                lock->unlock();
+                lock = NULL;
+            }
+        }
+        void assert_is_holding(rwi_lock_t *l) {
+            rassert(lock == l);
+        }
         ~read_acq_t() {
-            if (lock) lock->unlock();
+            reset();
         }
     private:
         friend void swap(read_acq_t &, read_acq_t &);
         rwi_lock_t *lock;
+        DISABLE_COPYING(read_acq_t);
     };
 
     struct write_acq_t {
@@ -73,12 +83,22 @@ public:
         write_acq_t(rwi_lock_t *l) : lock(l) {
             lock->co_lock(rwi_write);
         }
+        void reset() {
+            if (lock) {
+                lock->unlock();
+                lock = NULL;
+            }
+        }
+        void assert_is_holding(rwi_lock_t *l) {
+            rassert(lock == l);
+        }
         ~write_acq_t() {
-            if (lock) lock->unlock();
+            reset();
         }
     private:
         friend void swap(write_acq_t &, write_acq_t &);
         rwi_lock_t *lock;
+        DISABLE_COPYING(write_acq_t);
     };
 
 private:

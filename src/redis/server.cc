@@ -138,10 +138,13 @@ void redis_listener_t::handle(boost::scoped_ptr<nascent_tcp_conn_t> &nconn) {
     /* Set up an object that will close the network connection when a shutdown signal
     is delivered */
     signal_t::subscription_t conn_closer(boost::bind(&close_conn_if_open, conn.get()));
-    if (signal_transfer.is_pulsed()) {
-        close_conn_if_open(conn.get());
-    } else {
-        conn_closer.resubscribe(&signal_transfer);
+    {
+        signal_t::lock_t lock(&signal_transfer);
+        if (signal_transfer.is_pulsed()) {
+            close_conn_if_open(conn.get());
+        } else {
+            conn_closer.resubscribe(&signal_transfer);
+        }
     }
 
     /* `serve_redis()` will continuously serve redis queries on the given conn
