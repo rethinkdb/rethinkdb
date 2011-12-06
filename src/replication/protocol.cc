@@ -193,7 +193,7 @@ repli_stream_t::repli_stream_t(boost::scoped_ptr<tcp_conn_t>& conn, message_call
     parse_messages(conn_.get(), &conn_handler_);
     watch_heartbeat();
     {
-        mutex_acquisition_t ak(&outgoing_mutex_);
+        mutex_t::acq_t ak(&outgoing_mutex_);
         send_hello(ak);
     }
     start_sending_heartbeats();
@@ -213,7 +213,7 @@ void repli_stream_t::shutdown() {
     unwatch_heartbeat();
     stop_sending_heartbeats();
     try {
-        mutex_acquisition_t ak(&outgoing_mutex_); // flush_buffer() would interfere with active writes
+        mutex_t::acq_t ak(&outgoing_mutex_); // flush_buffer() would interfere with active writes
         conn_->flush_buffer();
     } catch (tcp_conn_t::write_closed_exc_t &e) {
         (void)e;
@@ -239,7 +239,7 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
         hdr.msgsize = sizeof(net_header_t) + 1 + obsize;
         hdr.message_multipart_aspect = SMALL;
 
-        mutex_acquisition_t ak(&outgoing_mutex_, true);
+        mutex_t::acq_t ak(&outgoing_mutex_, true);
 
         try_write(&hdr, sizeof(net_header_t));
         rassert(1 == sizeof(msgcode));
@@ -249,14 +249,14 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
         // Right now we don't really split up messages into
         // submessages, even though the other end of the protocol
         // supports that.
-        mutex_acquisition_t ak(&outgoing_mutex_, true);
+        mutex_t::acq_t ak(&outgoing_mutex_, true);
 
         net_multipart_header_t hdr;
         hdr.msgsize = MAX_MESSAGE_SIZE;
         hdr.message_multipart_aspect = FIRST;
         // TODO: This is an obvious bug, when we can split up our
         // messages (but right now it is fine because we hold the
-        // mutex_acquisition_t the whole time).  Note that the value
+        // mutex_t::acq_t the whole time).  Note that the value
         // we use here _must_ be zero, since the set of previously
         // used identifier codes must be a contiguous set whose
         // minimal element must be zero.
@@ -267,7 +267,7 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
 
         {
             // Commented because we have a global mutex for all the messages.
-            //            mutex_acquisition_t ak(&outgoing_mutex_, true);
+            //            mutex_t::acq_t ak(&outgoing_mutex_, true);
             try_write(&hdr, sizeof(net_multipart_header_t));
             rassert(sizeof(msgcode) == 1);
             try_write(&msgcode, sizeof(msgcode));
@@ -280,7 +280,7 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
 
         while (offset + midlast_message_size < obsize) {
             // Commented because we have a global mutex for all the messages.
-            //            mutex_acquisition_t ak(&outgoing_mutex_, true);
+            //            mutex_t::acq_t ak(&outgoing_mutex_, true);
             hdr.message_multipart_aspect = MIDDLE;
             try_write(&hdr, sizeof(net_multipart_header_t));
             try_write(buf + offset, midlast_message_size);
@@ -290,7 +290,7 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
         {
             rassert(obsize - offset <= midlast_message_size);
             // Commented because we have a global mutex for all the messages.
-            //            mutex_acquisition_t ak(&outgoing_mutex_, true);
+            //            mutex_t::acq_t ak(&outgoing_mutex_, true);
             hdr.message_multipart_aspect = LAST;
             hdr.msgsize = sizeof(net_multipart_header_t) + (obsize - offset);
             try_write(&hdr, sizeof(net_multipart_header_t));
@@ -401,7 +401,7 @@ void repli_stream_t::send(net_heartbeat_t msg) {
     flush();
 }
 
-void repli_stream_t::send_hello(const mutex_acquisition_t& evidence_of_acquisition) {
+void repli_stream_t::send_hello(const mutex_t::acq_t& evidence_of_acquisition) {
 
     evidence_of_acquisition.assert_is_holding(&outgoing_mutex_);
 
@@ -447,7 +447,7 @@ void repli_stream_t::try_write(const void *data, size_t size) {
 
 void repli_stream_t::flush() {
     try {
-        mutex_acquisition_t ak(&outgoing_mutex_, true);
+        mutex_t::acq_t ak(&outgoing_mutex_, true);
         conn_->flush_buffer_eventually();
     } catch (tcp_conn_t::write_closed_exc_t &e) {
 	(void)e;

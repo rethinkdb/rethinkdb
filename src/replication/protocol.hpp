@@ -160,7 +160,7 @@ private:
     template <class net_struct_type>
     void sendobj(uint8_t msgcode, net_struct_type *msg, const char *key, const boost::intrusive_ptr<data_buffer_t>& data);
 
-    void send_hello(const mutex_acquisition_t& proof_of_acquisition);
+    void send_hello(const mutex_t::acq_t& proof_of_acquisition);
 
     void try_write(const void *data, size_t size);
 

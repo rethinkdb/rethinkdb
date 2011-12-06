@@ -197,7 +197,7 @@ bool metablock_manager_t<metablock_t>::start_existing(direct_file_t *file, bool 
 }
 template<class metablock_t>
 void metablock_manager_t<metablock_t>::co_write_metablock(metablock_t *mb, file_account_t *io_account) {
-    mutex_acquisition_t hold(&write_lock);
+    mutex_t::acq_t hold(&write_lock);
 
     rassert(state == state_ready);
     rassert(!mb_buffer_in_use);

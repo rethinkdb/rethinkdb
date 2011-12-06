@@ -66,7 +66,7 @@ void master_t::on_conn(boost::scoped_ptr<nascent_tcp_conn_t>& nconn) {
     boost::scoped_ptr<tcp_conn_t> conn;
     nconn->ennervate(conn);
 
-    mutex_acquisition_t ak(&stream_setup_teardown_);
+    mutex_t::acq_t ak(&stream_setup_teardown_);
 
     // Note: As destroy_existing_slave_conn_if_it_exists() acquires
     // stream_setup_teardown_ now, we would have to be careful in case
@@ -124,7 +124,7 @@ void master_t::conn_closed() {
     logINF("Connection to slave was closed.\n");
 
     assert_thread();
-    mutex_acquisition_t ak(&stream_setup_teardown_);
+    mutex_t::acq_t ak(&stream_setup_teardown_);
 
     /* The stream destructor may block, so we set stream_ to NULL before calling the stream
        destructor. */
@@ -148,7 +148,7 @@ void master_t::destroy_existing_slave_conn_if_it_exists() {
     assert_thread();
     // We acquire the stream_setup_teardown_ mutex to make sure that we don't interfere
     // with half-opened or half-closed connections
-    boost::scoped_ptr<mutex_acquisition_t> ak(new mutex_acquisition_t(&stream_setup_teardown_));
+    boost::scoped_ptr<mutex_t::acq_t> ak(new mutex_t::acq_t(&stream_setup_teardown_));
     if (stream_) {
         // We have to release the mutex, otherwise the following would dead-lock
         ak.reset();

@@ -1,7 +1,7 @@
 #ifndef __CONCURRENCY_PUBSUB_HPP__
 #define __CONCURRENCY_PUBSUB_HPP__
 
-#include "concurrency/mutex.hpp"
+#include "concurrency/rwi_lock.hpp"
 #include "utils.hpp"
 #include "arch/runtime/runtime.hpp"
 

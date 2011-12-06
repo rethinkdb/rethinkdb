@@ -71,7 +71,7 @@ public:
         cache->assert_thread();
         ++active_refcount;
 
-        mutex_acquisition_t m(&data_mutex);
+        mutex_t::acq_t m(&data_mutex);
         // The buffer might have already been loaded.
         if (data.has()) {
             return data.get();
