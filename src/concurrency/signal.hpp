@@ -83,15 +83,6 @@ public:
     the signal has been pulsed, but not immediately. */
     void wait_lazily_unordered();
 
-    /* The coro that calls `wait_eagerly()` will be woken up immediately when
-    the signal is pulsed, before `pulse()` even returns.
-
-    Note: This is dangerous! It's easy to cause race conditions by e.g.
-    destroying the signal that's just been pulsed. You should probably use
-    `wait_lazily_unordered()` instead; its performance will be similar once we
-    optimize `notify_sometime()`. */
-    void wait_eagerly();
-
     /* `wait()` is a deprecated synonym for `wait_lazily_ordered()`. */
     void wait() {
         wait_lazily_ordered();

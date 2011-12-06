@@ -20,12 +20,3 @@ void signal_t::wait_lazily_unordered() {
 	coro_t::wait();
     }
 }
-
-void signal_t::wait_eagerly() {
-    if (!is_pulsed()) {
-	subscription_t subs(
-			    boost::bind(&coro_t::notify_now, coro_t::self()),
-			    this);
-	coro_t::wait();
-    }
-}
