@@ -55,16 +55,29 @@ public:
     // cache, this is used by the page replacement algorithm to see whether the buffer is in use.)
     bool locked();
 
-    struct acq_t {
-        acq_t() : lock(NULL) { }
-        acq_t(rwi_lock_t *l, access_t m) : lock(l) {
-            lock->co_lock(m);
+    struct read_acq_t {
+        read_acq_t() : lock(NULL) { }
+        read_acq_t(rwi_lock_t *l) : lock(l) {
+            lock->co_lock(rwi_read);
         }
-        ~acq_t() {
+        ~read_acq_t() {
             if (lock) lock->unlock();
         }
     private:
-        friend void swap(acq_t &, acq_t &);
+        friend void swap(read_acq_t &, read_acq_t &);
+        rwi_lock_t *lock;
+    };
+
+    struct write_acq_t {
+        write_acq_t() : lock(NULL) { }
+        write_acq_t(rwi_lock_t *l) : lock(l) {
+            lock->co_lock(rwi_write);
+        }
+        ~write_acq_t() {
+            if (lock) lock->unlock();
+        }
+    private:
+        friend void swap(write_acq_t &, write_acq_t &);
         rwi_lock_t *lock;
     };
 
@@ -91,7 +104,11 @@ private:
     request_list_t queue;
 };
 
-inline void swap(rwi_lock_t::acq_t &a1, rwi_lock_t::acq_t &a2) {
+inline void swap(rwi_lock_t::read_acq_t &a1, rwi_lock_t::read_acq_t &a2) {
+    std::swap(a1.lock, a2.lock);
+}
+
+inline void swap(rwi_lock_t::write_acq_t &a1, rwi_lock_t::write_acq_t &a2) {
     std::swap(a1.lock, a2.lock);
 }
 

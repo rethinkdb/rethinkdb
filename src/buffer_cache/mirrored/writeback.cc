@@ -386,7 +386,7 @@ void writeback_t::do_concurrent_flush() {
     // Acquire flush lock to force write txn completion, and perform necessary preparations
     {
         /* Acquire exclusive flush_lock, forcing all write txns to complete. */
-        rwi_lock_t::acq_t flush_lock_acq(&flush_lock, rwi_write);
+        rwi_lock_t::write_acq_t flush_lock_acq(&flush_lock);
         rassert(writeback_in_progress);
 
         pm_flushes_locking.end(&start_time);
