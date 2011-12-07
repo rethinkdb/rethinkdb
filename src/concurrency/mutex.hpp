@@ -14,7 +14,7 @@ public:
         acq_t() : lock_(NULL) { }
         explicit acq_t(mutex_t *l, bool eager = false);
         ~acq_t();
-        void assert_is_holding(mutex_t *m) const {
+        void assert_is_holding(UNUSED mutex_t *m) const {
             rassert(lock_ == m);
         }
     private:
