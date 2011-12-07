@@ -21,13 +21,13 @@ event_watcher_t::event_watcher_t(connectivity_cluster_t *parent) :
     cluster(parent)
 {
     cluster->assert_thread();
-    mutex_acquisition_t acq(&cluster->watchers_mutexes_by_thread[get_thread_id()]);
+    mutex_t::acq_t acq(&cluster->watchers_mutexes_by_thread[get_thread_id()]);
     cluster->watchers_by_thread[get_thread_id()].push_back(this);
 }
 
 event_watcher_t::~event_watcher_t() {
     cluster->assert_thread();
-    mutex_acquisition_t acq(&cluster->watchers_mutexes_by_thread[get_thread_id()]);
+    mutex_t::acq_t acq(&cluster->watchers_mutexes_by_thread[get_thread_id()]);
     cluster->watchers_by_thread[get_thread_id()].remove(this);
 }
 
@@ -191,7 +191,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(s
 
         /* Acquire the send-mutex so we don't collide with other things trying
         to send on the same connection. */
-        mutex_acquisition_t acq(&dest_conn->send_mutex);
+        mutex_t::acq_t acq(&dest_conn->send_mutex);
 
         try {
             boost::archive::binary_oarchive sender(dest_conn->conn->get_ostream());
@@ -350,7 +350,7 @@ void connectivity_cluster_t::handle(
         two connections from different nodes, one will find out about the other.
         */
         {
-            mutex_acquisition_t acq(&new_connection_mutex);
+            mutex_t::acq_t acq(&new_connection_mutex);
 
             if (routing_table.find(other_id) != routing_table.end()) {
                 /* Conflict! Abort! Terminate the connection unceremoniously;
@@ -417,7 +417,7 @@ void connectivity_cluster_t::handle(
         we get two connections from different nodes at the same time, one will
         find out about the other. */
         {
-            mutex_acquisition_t acq(&new_connection_mutex);
+            mutex_t::acq_t acq(&new_connection_mutex);
 
             if (routing_table.find(other_id) != routing_table.end()) {
                 crash("Why didn't the leader detect this conflict?");
@@ -481,12 +481,9 @@ void connectivity_cluster_t::handle(
 
     // Make sure that if we're ordered to shut down, any pending read
     // or write gets interrupted.
-    signal_t::subscription_t conn_closer(boost::bind(&close_conn, conn));
-    if (connection_thread_drain_signal.is_pulsed()) {
-        close_conn(conn);
-    } else {
-        conn_closer.resubscribe(&connection_thread_drain_signal);
-    }
+    signal_t::subscription_t conn_closer(
+        boost::bind(&close_conn, conn),
+        &connection_thread_drain_signal);
 
     {
         /* `connection_t` is the public interface of this coroutine. We put a
@@ -564,7 +561,7 @@ void connectivity_cluster_t::handle(
 
             pmap(get_num_threads(), boost::bind(&connectivity_cluster_t::erase_a_connection_entry_and_ping_disconnection_watchers, this, _1, other_id));
 
-            co_lock_mutex(&conn_structure.send_mutex);
+            mutex_t::acq_t final_acq(&conn_structure.send_mutex);
         }
     }
 }
@@ -573,7 +570,7 @@ void connectivity_cluster_t::set_a_connection_entry_and_ping_connection_watchers
     on_thread_t switcher(target_thread);
     connection_maps_by_thread[target_thread][other_id] = connection;
 
-    mutex_acquisition_t acq(&watchers_mutexes_by_thread[target_thread]);
+    mutex_t::acq_t acq(&watchers_mutexes_by_thread[target_thread]);
 
     ASSERT_FINITE_CORO_WAITING;
 
@@ -586,7 +583,7 @@ void connectivity_cluster_t::erase_a_connection_entry_and_ping_disconnection_wat
     on_thread_t switcher(target_thread);
     connection_maps_by_thread[target_thread].erase(other_id);
 
-    mutex_acquisition_t acq(&watchers_mutexes_by_thread[target_thread]);
+    mutex_t::acq_t acq(&watchers_mutexes_by_thread[target_thread]);
 
     ASSERT_FINITE_CORO_WAITING;
 

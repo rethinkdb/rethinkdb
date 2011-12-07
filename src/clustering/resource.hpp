@@ -127,7 +127,7 @@ public:
     {
         /* If the resource sets its state to offline, then it's lost */
         check_dead();
-        subs.resubscribe(view);
+        subs.reset(view);
         either_failed.add(&resource_went_offline);
 
         /* If the node that the resource is on ceases to be visible, then it's

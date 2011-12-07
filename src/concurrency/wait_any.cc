@@ -38,13 +38,9 @@ wait_any_t::wait_any_t(signal_t *s1, signal_t *s2, signal_t *s3, signal_t *s4, s
 
 void wait_any_t::add(signal_t *s) {
     rassert(s);
-    if (s->is_pulsed()) {
-        pulse_if_not_already_pulsed();
-    } else {
-        subs.push_back(new signal_t::subscription_t(
-            boost::bind(&wait_any_t::pulse_if_not_already_pulsed, this),
-            s));
-    }
+    subs.push_back(new signal_t::subscription_t(
+        boost::bind(&wait_any_t::pulse_if_not_already_pulsed, this),
+        s));
 }
 
 void wait_any_t::pulse_if_not_already_pulsed() {

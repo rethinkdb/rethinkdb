@@ -4,7 +4,9 @@
 #include "logger.hpp"
 #include "perfmon.hpp"
 
-evictable_t::evictable_t(mc_cache_t *_cache, bool loaded) : cache(_cache), page_repl_index(-1) {
+evictable_t::evictable_t(mc_cache_t *_cache, bool loaded) 
+    : cache(_cache), page_repl_index(static_cast<unsigned int>(-1)) 
+{
     cache->assert_thread();
     if (loaded) {
         insert_into_page_repl();
@@ -42,7 +44,7 @@ void evictable_t::remove_from_page_repl() {
         cache->page_repl.array.set(page_repl_index, replacement);
         cache->page_repl.array.set(last_index, NULL);
     }
-    page_repl_index = -1;
+    page_repl_index = static_cast<unsigned int>(-1);
 }
 
 page_repl_random_t::page_repl_random_t(unsigned int _unload_threshold, cache_t *_cache)

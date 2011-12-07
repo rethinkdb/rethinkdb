@@ -340,7 +340,7 @@ private:
     intrusive_list_t<internal_function_t> funs[MAX_THREADS];
 
 public:
-    perfmon_function_t(std::string _name, bool internal = true)
+    explicit perfmon_function_t(std::string _name, bool internal = true)
         : perfmon_t(internal), name(_name) {}
     ~perfmon_function_t() {}
 

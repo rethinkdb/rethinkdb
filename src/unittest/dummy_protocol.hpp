@@ -11,6 +11,7 @@
 #include <boost/serialization/set.hpp>
 
 #include "concurrency/fifo_checker.hpp"
+#include "concurrency/rwi_lock.hpp"
 #include "protocol_api.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"

@@ -18,7 +18,7 @@ struct index_write_op_t {
     boost::optional<boost::intrusive_ptr<standard_block_token_t> > token;
     boost::optional<repli_timestamp_t> recency; // Recency, if it should be modified.
 
-    index_write_op_t(block_id_t _block_id,
+    explicit index_write_op_t(block_id_t _block_id,
 		     boost::optional<boost::intrusive_ptr<standard_block_token_t> > _token = boost::none,
 		     boost::optional<repli_timestamp_t> _recency = boost::none)
 	: block_id(_block_id), token(_token), recency(_recency) { }

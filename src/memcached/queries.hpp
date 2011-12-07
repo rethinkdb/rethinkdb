@@ -287,7 +287,7 @@ struct incr_decr_result_t {
     } res;
     uint64_t new_value;   // Valid only if idr_success
     incr_decr_result_t() { }
-    incr_decr_result_t(result_t r, uint64_t n = 0) : res(r), new_value(n) { }
+    explicit incr_decr_result_t(result_t r, uint64_t n = 0) : res(r), new_value(n) { }
 };
 
 /* `append`, `prepend` */

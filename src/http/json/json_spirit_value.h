@@ -40,15 +40,15 @@ namespace json_spirit
         typedef typename String_type::const_pointer Const_str_ptr;  // eg const char*
 
         Value_impl();  // creates null value
-        Value_impl( Const_str_ptr      value ); 
-        Value_impl( const String_type& value );
-        Value_impl( const Object&      value );
-        Value_impl( const Array&       value );
-        Value_impl( bool               value );
-        Value_impl( int                value );
-        Value_impl( boost::int64_t     value );
-        Value_impl( boost::uint64_t    value );
-        Value_impl( double             value );
+        explicit Value_impl( Const_str_ptr      value ); 
+        explicit Value_impl( const String_type& value );
+        explicit Value_impl( const Object&      value );
+        explicit Value_impl( const Array&       value );
+        explicit Value_impl( bool               value );
+        explicit Value_impl( int                value );
+        explicit Value_impl( boost::int64_t     value );
+        explicit Value_impl( boost::uint64_t    value );
+        explicit Value_impl( double             value );
 
         Value_impl( const Value_impl& other );
 

@@ -47,7 +47,7 @@ private:
     bool should_load;
     bool has_been_changed;
     typename inner_cache_t::buf_t *inner_buf;
-    explicit scc_buf_t(scc_cache_t<inner_cache_t> *, bool snapshotted, bool should_load);
+    scc_buf_t(scc_cache_t<inner_cache_t> *, bool snapshotted, bool should_load);
     scc_cache_t<inner_cache_t> *cache;
 private:
     crc_t compute_crc() {

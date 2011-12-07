@@ -64,7 +64,7 @@ public:
 
     /* This constructor is for reconstructing extents that the LBA tells us contained
        data blocks. */
-    explicit gc_entry(data_block_manager_t *parent, off64_t offset);
+    gc_entry(data_block_manager_t *parent, off64_t offset);
 
     void destroy();
     ~gc_entry();

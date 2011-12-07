@@ -4,6 +4,7 @@
 #include <boost/make_shared.hpp>
 
 #include "arch/timing.hpp"
+#include "concurrency/rwi_lock.hpp"
 #include "concurrency/signal.hpp"
 
 namespace unittest {
@@ -132,10 +133,14 @@ dummy_underlying_store_t::dummy_underlying_store_t(dummy_protocol_t::region_t r)
 class dummy_transaction_t : public store_view_t<dummy_protocol_t>::write_transaction_t {
 
 public:
-    dummy_transaction_t(dummy_store_view_t *v, rwi_lock_t::acq_t *acq_in) :
-        view(v), valid(true)
+    dummy_transaction_t(dummy_store_view_t *v, bool isr, rwi_lock_t::read_acq_t *read_acq_in, rwi_lock_t::write_acq_t *write_acq_in) :
+        view(v), valid(true), is_read(isr)
     {
-        swap(*acq_in, acq);
+        if (is_read) {
+            swap(*read_acq_in, read_acq);
+        } else {
+            swap(*write_acq_in, write_acq);
+        }
     }
 
     region_map_t<dummy_protocol_t, binary_blob_t> get_metadata(signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
@@ -151,10 +156,15 @@ public:
         valid = false;
         dummy_protocol_t::read_response_t resp;
         {
-            /* Swap `acq` into a temp variable so it gets released when we throw
-            an exception or finish */
-            rwi_lock_t::acq_t temp_acq;
-            swap(acq, temp_acq);
+            /* Swap `read_acq` or `write_acq` into a temp variable so it gets
+            released when we throw an exception or finish */
+            rwi_lock_t::read_acq_t temp_read_acq;
+            rwi_lock_t::write_acq_t temp_write_acq;
+            if (is_read) {
+                swap(temp_read_acq, read_acq);
+            } else {
+                swap(temp_write_acq, write_acq);
+            }
             if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
             for (std::set<std::string>::iterator it = read.keys.keys.begin();
                     it != read.keys.keys.end(); it++) {
@@ -179,10 +189,15 @@ public:
         std::map<std::string, std::string> values_snapshot = view->parent->values;
         std::map<std::string, state_timestamp_t> timestamps_snapshot = view->parent->timestamps;
         {
-            /* Swap `acq` into a temp variable so it gets released as soon
-            as this timeout is over or interrupted */
-            rwi_lock_t::acq_t temp_acq;
-            swap(acq, temp_acq);
+            /* Swap `read_acq` or `write_acq` into a temp variable so it gets
+            released as soon as this timeout is over or interrupted */
+            rwi_lock_t::read_acq_t temp_read_acq;
+            rwi_lock_t::write_acq_t temp_write_acq;
+            if (is_read) {
+                swap(temp_read_acq, read_acq);
+            } else {
+                swap(temp_write_acq, write_acq);
+            }
             if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
         }
         if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
@@ -231,8 +246,13 @@ public:
         valid = false;
         dummy_protocol_t::write_response_t resp;
         {
-            rwi_lock_t::acq_t temp_acq;
-            swap(acq, temp_acq);
+            rwi_lock_t::read_acq_t temp_read_acq;
+            rwi_lock_t::write_acq_t temp_write_acq;
+            if (is_read) {
+                swap(temp_read_acq, read_acq);
+            } else {
+                swap(temp_write_acq, write_acq);
+            }
             if (rng.randint(2) == 0) nap(rng.randint(10));
             for (std::map<std::string, std::string>::const_iterator it = write.values.begin();
                     it != write.values.end(); it++) {
@@ -255,8 +275,13 @@ public:
             "`receive_backfill()`.");
         valid = false;
         {
-            rwi_lock_t::acq_t temp_acq;
-            swap(acq, temp_acq);
+            rwi_lock_t::read_acq_t temp_read_acq;
+            rwi_lock_t::write_acq_t temp_write_acq;
+            if (is_read) {
+                swap(temp_read_acq, read_acq);
+            } else {
+                swap(temp_write_acq, write_acq);
+            }
             if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
             view->parent->values[chunk.key] = chunk.value;
             view->parent->timestamps[chunk.key] = chunk.timestamp;
@@ -271,21 +296,24 @@ private:
 
     dummy_store_view_t *view;
 
-    rwi_lock_t::acq_t acq;
     bool valid;
+
+    bool is_read;
+    rwi_lock_t::read_acq_t read_acq;
+    rwi_lock_t::write_acq_t write_acq;
 };
 
 dummy_store_view_t::dummy_store_view_t(dummy_underlying_store_t *p, dummy_protocol_t::region_t region) :
     store_view_t<dummy_protocol_t>(region), parent(p) { }
 
 boost::shared_ptr<store_view_t<dummy_protocol_t>::read_transaction_t> dummy_store_view_t::begin_read_transaction(UNUSED signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    rwi_lock_t::acq_t acq(&read_write_lock, rwi_read);
-    return boost::make_shared<dummy_transaction_t>(this, &acq);
+    rwi_lock_t::read_acq_t acq(&read_write_lock);
+    return boost::make_shared<dummy_transaction_t>(this, true, &acq, static_cast<rwi_lock_t::write_acq_t *>(NULL));
 }
 
 boost::shared_ptr<store_view_t<dummy_protocol_t>::write_transaction_t> dummy_store_view_t::begin_write_transaction(UNUSED signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    rwi_lock_t::acq_t acq(&read_write_lock, rwi_write);
-    return boost::make_shared<dummy_transaction_t>(this, &acq);
+    rwi_lock_t::write_acq_t acq(&read_write_lock);
+    return boost::make_shared<dummy_transaction_t>(this, false, static_cast<rwi_lock_t::read_acq_t *>(NULL), &acq);
 }
 
 dummy_protocol_t::region_t a_thru_z_region() {

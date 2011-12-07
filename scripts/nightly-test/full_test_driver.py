@@ -63,7 +63,7 @@ def run_in_threads(functions, max = 10):
         for thread in threads:
             thread.join()
 
-def run_rethinkdb_test_remotely(dependencies, command_line, stdout_file, zipfile_path, on_begin_script = lambda: None, on_end_script = lambda status: None):
+def run_rethinkdb_test_remotely(dependencies, command_line, stdout_file, zipfile_path, on_begin_script = lambda: None, on_end_script = lambda status: None, constraint = None):
     # We must have an exit code of zero even if the test-script fails so that
     # `remotely` will copy `output_from_test` even if the test script fails. So
     # we have to trap a non-zero exit status and communicate it some other way.
@@ -102,6 +102,7 @@ zip -r %(zipfile_name)s output_from_test >/dev/null
         output_root = os.path.dirname(zipfile_path),
         on_begin_script = on_begin_script,
         on_end_script = lambda: on_end_script("pass" if demuxer.exit_code == 0 else "fail"),
+        constraint = constraint
         )
 
 with simple_linear_db.LinearDBWriter("result_log.txt") as result_log:
@@ -199,13 +200,14 @@ with simple_linear_db.LinearDBWriter("result_log.txt") as result_log:
                         remotely.run(
                             command_line = """
 tar --extract --gzip --touch --file=rethinkdb.tar.gz -- rethinkdb
-%(command_line)s
+(%(command_line)s) 2>&1
 """ % { "command_line": build["command_line"] },
                             stdout = output,
                             inputs = ["rethinkdb.tar.gz"],
                             outputs = build["products"],
                             on_begin_script = lambda: result_log.write("builds", name, status = "running", start_time = time.time()),
-                            on_end_script = lambda: result_log.write("builds", name, status = "ok", end_time = time.time())
+                            on_end_script = lambda: result_log.write("builds", name, status = "ok", end_time = time.time()),
+                            constraint = "build-ready"
                             )
                     except remotely.ScriptFailedError:
                         result_log.write("builds", name, status = "fail", end_time = time.time())
@@ -243,7 +245,7 @@ tar --extract --gzip --touch --file=rethinkdb.tar.gz -- rethinkdb
         inputs.append("rethinkdb/build/" + arguments.get("mode", "debug") +
             ("-valgrind" if not arguments.get("no-valgrind", False) else "") +
             "/rethinkdb")
-        if executable == "integration/corruption.py" and arguments.get("no-valgrind", False):
+        if executable == "integration/corruption.py" and not arguments.get("no-valgrind", False):
             # The corruption test always uses the no-valgrind version of RethinkDB
             # in addition to whatever version is specified on the command line
             inputs.append("rethinkdb/build/" + arguments.get("mode", "debug") + "/rethinkdb")

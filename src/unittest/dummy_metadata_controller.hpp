@@ -16,8 +16,7 @@ class dummy_metadata_controller_t {
 public:
     explicit dummy_metadata_controller_t(const metadata_t &m) :
         view(boost::make_shared<view_t>(this)),
-        metadata(m),
-        change_publisher(&change_lock) { }
+        metadata(m) { }
 
     ~dummy_metadata_controller_t() {
         view->controller = NULL;
@@ -40,9 +39,9 @@ private:
             rassert(controller, "accessing a `dummy_metadata_controller_t`'s "
                 "view after the controller was destroyed.");
             {
-                mutex_acquisition_t change_acq(&controller->change_lock);
+                mutex_t::acq_t change_acq(&controller->change_lock);
                 semilattice_join(&controller->metadata, new_metadata);
-                controller->change_publisher.publish(&dummy_metadata_controller_t::call, &change_acq);
+                controller->change_publisher.publish(&dummy_metadata_controller_t::call);
             }
             if (rng.randint(2) == 0) nap(rng.randint(10));
         }

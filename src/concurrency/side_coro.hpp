@@ -14,7 +14,7 @@ to make sure that the side coroutine exits before `~side_coro_handler_t()` retur
 
 class side_coro_handler_t {
 public:
-    side_coro_handler_t(const boost::function<void(signal_t *)> &f);
+    explicit side_coro_handler_t(const boost::function<void(signal_t *)> &f);
     ~side_coro_handler_t() {
         stop_cond.pulse();
         done_cond.wait();

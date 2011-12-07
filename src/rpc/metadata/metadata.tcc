@@ -13,7 +13,6 @@ metadata_cluster_t<metadata_t>::metadata_cluster_t(int port, const metadata_t &i
     event_watcher_t(this),
     root_view(boost::make_shared<root_view_t>(this)),
     metadata(initial_metadata),
-    change_publisher(&change_mutex),
     ping_id_counter(0)
     { }
 
@@ -107,9 +106,9 @@ publisher_t<boost::function<void()> > *metadata_cluster_t<metadata_t>::root_view
 template<class metadata_t>
 void metadata_cluster_t<metadata_t>::join_metadata_locally(metadata_t added_metadata) {
     assert_thread();
-    mutex_acquisition_t change_acq(&change_mutex);
+    mutex_t::acq_t change_acq(&change_mutex);
     semilattice_join(&metadata, added_metadata);
-    change_publisher.publish(&metadata_cluster_t<metadata_t>::call, &change_acq);
+    change_publisher.publish(&metadata_cluster_t<metadata_t>::call);
 }
 
 template<class metadata_t>

@@ -28,15 +28,16 @@ public:
     class subscription_t {
     public:
         subscription_t(boost::function<void()> cb) : subs(cb) { }
-        subscription_t(boost::function<void()> cb, boost::shared_ptr<metadata_read_view_t> v) :
-            view(v), subs(cb, view->get_publisher()) { }
-        void resubscribe(boost::shared_ptr<metadata_read_view_t> v) {
-            view = v;
-            subs.resubscribe(view->get_publisher());
+        subscription_t(boost::function<void()> cb, boost::shared_ptr<metadata_read_view_t> v) : subs(cb) {
+            reset(v);
         }
-        void unsubscribe() {
-            subs.unsubscribe();
-            view.reset();
+        void reset(boost::shared_ptr<metadata_read_view_t> v) {
+            if (v) {
+                subs.reset(v->get_publisher());
+            } else {
+                subs.reset(NULL);
+            }
+            view = v;
         }
     private:
         /* Hold a pointer to the `metadata_read_view_t` so it doesn't die while

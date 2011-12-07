@@ -158,12 +158,12 @@ http_res_t riak_server_t::list_buckets(const http_req_t &) {
     std::pair<bucket_iterator_t, bucket_iterator_t> bucket_iters = riak_interface.buckets();
 
     json::mObject body;
-    body["buckets"] = json::mArray();
+    body["buckets"] = json::mValue(json::mArray());
 
     bucket_iterator_t it = bucket_iters.first, end = bucket_iters.second;
 
     for (; it != end; it++) {
-        body["buckets"].get_array().push_back(it->name);
+        body["buckets"].get_array().push_back(json::mValue(it->name));
     }
 
     http_res_t res;
@@ -195,7 +195,7 @@ http_res_t riak_server_t::get_bucket(const http_req_t &req) {
 
     if (req.find_query_param("keys") == "true" || req.find_query_param("keys") == "stream") {
         //add the keys array to the json
-        body["keys"] = json::mArray();
+        body["keys"] = json::mValue(json::mArray());
 
         //we also return the keys as a links header field
         std::vector<std::string> links;
@@ -205,7 +205,7 @@ http_res_t riak_server_t::get_bucket(const http_req_t &req) {
         object_iterator_t obj_it = object_iters.first, obj_end = object_iters.second;
 
         for(; obj_it != obj_end; obj_it++) {
-            body["keys"].get_array().push_back(obj_it->key);
+            body["keys"].get_array().push_back(json::mValue(obj_it->key));
             links.push_back("</riak/" + bucket->name + "/" + obj_it->key + ">; riaktag=\"contained\"");
         }
 
@@ -213,31 +213,31 @@ http_res_t riak_server_t::get_bucket(const http_req_t &req) {
     }
 
     if (req.find_header_line("props") != "false") {
-        body["props"] = json::mObject();
+        body["props"] = json::mValue(json::mObject());
 
         json::mObject &props = body["props"].get_obj();
-        props["name"] = bucket->name;
-        props["n_val"] = bucket->n_val;
-        props["allow_mult"] = bucket->allow_mult;
-        props["last_write_wins"] = bucket->last_write_wins;
+        props["name"] = json::mValue(bucket->name);
+        props["n_val"] = json::mValue(bucket->n_val);
+        props["allow_mult"] = json::mValue(bucket->allow_mult);
+        props["last_write_wins"] = json::mValue(bucket->last_write_wins);
         
-        props["precommit"] = json::mArray();
+        props["precommit"] = json::mValue(json::mArray());
         for (std::vector<hook_t>::iterator it = bucket->precommit.begin(); it != bucket->precommit.end(); it++) {
-            props["precommit"].get_array().push_back(it->code); //TODO not sure if there should be a name here or what
+            props["precommit"].get_array().push_back(json::mValue(it->code)); //TODO not sure if there should be a name here or what
         }
 
-        props["postcommit"] = json::mArray();
+        props["postcommit"] = json::mValue(json::mArray());
         for (std::vector<hook_t>::iterator it = bucket->postcommit.begin(); it != bucket->postcommit.end(); it++) {
-            props["postcommit"].get_array().push_back(it->code); //TODO not sure if there should be a name here or what
+            props["postcommit"].get_array().push_back(json::mValue(it->code)); //TODO not sure if there should be a name here or what
         }
 
 
-        props["r"] = bucket->r;
-        props["w"] = bucket->w;
-        props["dw"] = bucket->dw;
-        props["rw"] = bucket->rw;
+        props["r"] = json::mValue(bucket->r);
+        props["w"] = json::mValue(bucket->w);
+        props["dw"] = json::mValue(bucket->dw);
+        props["rw"] = json::mValue(bucket->rw);
 
-        props["backend"] = bucket->backend;
+        props["backend"] = json::mValue(bucket->backend);
     }
 
     res.set_body("application/json", json::write_string(json::mValue(body)));
@@ -294,7 +294,7 @@ http_res_t riak_server_t::set_bucket(const http_req_t &req) {
                 continue;
             }
 
-            if (it->second == "postcommit") {
+            if (it->second == json::mValue("postcommit")) {
                 continue;
             }
 
@@ -542,21 +542,21 @@ http_res_t riak_server_t::luwak_info(const http_req_t &req) {
     json::mObject body;
 
     if (req.find_query_param("props") != "false") {
-        body["props"] = json::mObject();
+        body["props"] = json::mValue(json::mObject());
         luwak_props_t props = riak_interface.luwak_props();
 
 
-        body["props"].get_obj()["o_bucket"] = props.root_bucket;
-        body["props"].get_obj()["n_bucket"] = props.segment_bucket;
-        body["props"].get_obj()["block_default"] = props.block_default;
+        body["props"].get_obj()["o_bucket"] = json::mValue(props.root_bucket);
+        body["props"].get_obj()["n_bucket"] = json::mValue(props.segment_bucket);
+        body["props"].get_obj()["block_default"] = json::mValue(props.block_default);
     }
 
     if (req.find_query_param("keys") == "true" || req.find_query_param("keys") == "stream") {
-        body["keys"] = json::mArray();
+        body["keys"] = json::mValue(json::mArray());
         std::pair<object_iterator_t, object_iterator_t> obj_iters = riak_interface.objects(riak_interface.luwak_props().root_bucket);
 
         for (object_iterator_t obj_it = obj_iters.first; obj_it != obj_iters.second; obj_it++) {
-            body["keys"].get_array().push_back(obj_it->key);
+            body["keys"].get_array().push_back(json::mValue(obj_it->key));
         }
     }
 

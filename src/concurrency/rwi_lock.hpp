@@ -42,6 +42,9 @@ public:
     // Like `lock()` but blocks; only legal in a coroutine. If `call_when_in_line` is not zero,
     // it will be called as soon as `co_lock()` has gotten in line for the lock but before
     // `co_lock()` actually returns.
+
+    // You are encouraged to use `read_acq_t` and `write_acq_t` instead of
+    // `co_lock()`.
     void co_lock(access_t access, boost::function<void()> call_when_in_line = 0);
 
     // Call if you've locked for read or write, or upgraded to write,
@@ -55,17 +58,50 @@ public:
     // cache, this is used by the page replacement algorithm to see whether the buffer is in use.)
     bool locked();
 
-    struct acq_t {
-        acq_t() : lock(NULL) { }
-        acq_t(rwi_lock_t *l, access_t m) : lock(l) {
-            lock->co_lock(m);
+    struct read_acq_t {
+        read_acq_t() : lock(NULL) { }
+        read_acq_t(rwi_lock_t *l) : lock(l) {
+            lock->co_lock(rwi_read);
         }
-        ~acq_t() {
-            if (lock) lock->unlock();
+        void reset() {
+            if (lock) {
+                lock->unlock();
+                lock = NULL;
+            }
+        }
+        void assert_is_holding(UNUSED rwi_lock_t *l) {
+            rassert(lock == l);
+        }
+        ~read_acq_t() {
+            reset();
         }
     private:
-        friend void swap(acq_t &, acq_t &);
+        friend void swap(read_acq_t &, read_acq_t &);
         rwi_lock_t *lock;
+        DISABLE_COPYING(read_acq_t);
+    };
+
+    struct write_acq_t {
+        write_acq_t() : lock(NULL) { }
+        write_acq_t(rwi_lock_t *l) : lock(l) {
+            lock->co_lock(rwi_write);
+        }
+        void reset() {
+            if (lock) {
+                lock->unlock();
+                lock = NULL;
+            }
+        }
+        void assert_is_holding(UNUSED rwi_lock_t *l) {
+            rassert(lock == l);
+        }
+        ~write_acq_t() {
+            reset();
+        }
+    private:
+        friend void swap(write_acq_t &, write_acq_t &);
+        rwi_lock_t *lock;
+        DISABLE_COPYING(write_acq_t);
     };
 
 private:
@@ -91,7 +127,11 @@ private:
     request_list_t queue;
 };
 
-inline void swap(rwi_lock_t::acq_t &a1, rwi_lock_t::acq_t &a2) {
+inline void swap(rwi_lock_t::read_acq_t &a1, rwi_lock_t::read_acq_t &a2) {
+    std::swap(a1.lock, a2.lock);
+}
+
+inline void swap(rwi_lock_t::write_acq_t &a1, rwi_lock_t::write_acq_t &a2) {
     std::swap(a1.lock, a2.lock);
 }
 

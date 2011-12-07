@@ -136,7 +136,7 @@ struct knowledge_t {
     nondirect_file_t *metadata_file;
     file_knowledge_t *metadata_file_knog;
 
-    explicit knowledge_t(const std::vector<std::string>& filenames, const std::string &metadata_filename)
+    knowledge_t(const std::vector<std::string>& filenames, const std::string &metadata_filename)
         : files(filenames.size(), NULL), file_knog(filenames.size(), NULL) {
         for (int i = 0, n = filenames.size(); i < n; ++i) {
             nondirect_file_t *file = new nondirect_file_t(filenames[i].c_str(), file_t::mode_read);
@@ -1196,7 +1196,7 @@ struct all_slices_errors {
     slice_errors *slice;
     slice_errors *metadata_slice;
 
-    explicit all_slices_errors(int n_slices_, bool has_metadata_file)
+    all_slices_errors(int n_slices_, bool has_metadata_file)
         : n_slices(n_slices_), slice(new slice_errors[n_slices_]) {
         metadata_slice = has_metadata_file ? new slice_errors : NULL;
     }

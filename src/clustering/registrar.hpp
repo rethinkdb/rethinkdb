@@ -32,7 +32,7 @@ private:
         update mailbox or the delete mailbox while we're working. We must not
         block between when `on_create()` begins and when `mutex_acq` is
         constructed. */
-        mutex_acquisition_t mutex_acq(&mutex);
+        mutex_t::acq_t mutex_acq(&mutex);
 
         /* Construct a `registrant_t` to tell the controller that something has
         now registered. */
@@ -51,7 +51,7 @@ private:
 
         /* Release the mutex, since we're done with our initial setup phase */
         {
-            mutex_acquisition_t doomed;
+            mutex_t::acq_t doomed;
             swap(mutex_acq, doomed);
         }
 
@@ -63,7 +63,7 @@ private:
         deregistering from `deleters`. I'm not sure if there re any such race
         conditions, but better safe than sorry. */
         {
-            mutex_acquisition_t reacquisition(&mutex);
+            mutex_t::acq_t reacquisition(&mutex);
             swap(mutex_acq, reacquisition);
         }
 
@@ -82,7 +82,7 @@ private:
     void on_delete(registration_id_t rid, UNUSED auto_drainer_t::lock_t keepalive) {
 
         /* Acquire the mutex so we don't race with `on_create()`. */
-        mutex_acquisition_t mutex_acq(&mutex);
+        mutex_t::acq_t mutex_acq(&mutex);
 
         /* Deliver our notification */
         typename std::map<registration_id_t, cond_t *>::iterator it =

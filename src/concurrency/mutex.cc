@@ -1,25 +1,26 @@
 #include "arch/runtime/runtime.hpp"
 #include "concurrency/mutex.hpp"
-#include "concurrency/cond_var.hpp"
 
-void co_lock_mutex(mutex_t *mutex) {
-    struct : public lock_available_callback_t, public one_waiter_cond_t {
-        void on_lock_available() { pulse(); }
-    } cb;
-    mutex->lock(&cb);
-    cb.wait_eagerly();
+mutex_t::acq_t::acq_t(mutex_t *l, bool eager) : lock_(l), eager_(eager) {
+    if (lock_->locked) {
+        lock_->waiters.push_back(coro_t::self());
+        coro_t::wait();
+    } else {
+        lock_->locked = true;
+    }
 }
 
-void mutex_t::unlock(bool eager) {
-    rassert(locked);
-    if (lock_request_t *h = waiters.head()) {
-        waiters.remove(h);
-        if (eager) {
-            h->on_thread_switch();
-        } else {
-            call_later_on_this_thread(h);
-        }
+mutex_t::acq_t::~acq_t() {
+    rassert(lock_->locked);
+    if (lock_->waiters.empty()) {
+        lock_->locked = false;
     } else {
-        locked = false;
+        coro_t *next = lock_->waiters.front();
+        lock_->waiters.pop_front();
+        if (eager_) {
+            next->notify_now();
+        } else {
+            next->notify_sometime();
+        }
     }
 }

@@ -261,7 +261,7 @@ private:
     Writes need to choose a readable mirror to get the reply from. Both use
     `pick_a_readable_dispatchee()` to do the picking. You must hold
     `dispatchee_mutex` and pass in `proof` of the mutex acquisition.*/
-    void pick_a_readable_dispatchee(dispatchee_t **dispatchee_out, mutex_acquisition_t *proof, auto_drainer_t::lock_t *lock_out) THROWS_ONLY(insufficient_mirrors_exc_t);
+    void pick_a_readable_dispatchee(dispatchee_t **dispatchee_out, mutex_t::acq_t *proof, auto_drainer_t::lock_t *lock_out) THROWS_ONLY(insufficient_mirrors_exc_t);
 
     void background_write(dispatchee_t *, auto_drainer_t::lock_t, incomplete_write_ref_t) THROWS_NOTHING;
     void end_write(boost::shared_ptr<incomplete_write_t> write) THROWS_NOTHING;
@@ -271,7 +271,7 @@ private:
     documentation. */
     void sanity_check() {
 #ifndef NDEBUG
-        mutex_acquisition_t acq(&mutex);
+        mutex_t::acq_t acq(&mutex);
         state_timestamp_t ts = newest_complete_timestamp;
         for (typename std::list<boost::shared_ptr<incomplete_write_t> >::iterator it = incomplete_writes.begin();
                 it != incomplete_writes.end(); it++) {

@@ -118,16 +118,17 @@ else
 CXXFLAGS+=-DRETHINKDB_CACHE_PRODUCT
 endif
 
+CXXFLAGS+=-Wall -Wextra -Werror -Wnon-virtual-dtor
+
 ifeq ($(COMPILER), INTEL)
-CXXFLAGS+=-std=c++0x -w0 -ftls-model=local-dynamic
+CXXFLAGS+=-std=gnu++98 -w1 -ftls-model=local-dynamic
 else
-ifeq ($(CLANG),0)
+ifeq ($(COMPILER), CLANG)
+CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default
 else
-CXXFLAGS+=-Wall -Wextra -Wformat=2 -Wswitch-enum -Werror -Wnon-virtual-dtor -Wswitch-default
+CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default
 endif
 endif
-
-
 
 ifeq ($(AGRESSIVE_BUF_UNLOADING),1)
 CXXFLAGS+=-DAGRESSIVE_BUF_UNLOADING=1

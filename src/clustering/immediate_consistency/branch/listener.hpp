@@ -290,7 +290,7 @@ private:
 
         /* Acquire mutex. We use the mutex to ensure that operations don't get
         reordered when we're blocking as part of the startup process. */
-        mutex_acquisition_t mutex_acq(&operation_order_mutex);
+        mutex_t::acq_t mutex_acq(&operation_order_mutex);
 
         try {
             /* Validate write. */
@@ -342,7 +342,7 @@ private:
 
             /* Release the mutex */
             {
-                mutex_acquisition_t doomed;
+                mutex_t::acq_t doomed;
                 swap(mutex_acq, doomed);
             }
 
@@ -389,7 +389,7 @@ private:
             typename async_mailbox_t<void(typename protocol_t::write_response_t)>::address_t ack_addr)
             THROWS_NOTHING
     {
-        mutex_acquisition_t mutex_acq(&operation_order_mutex);
+        mutex_t::acq_t mutex_acq(&operation_order_mutex);
 
         try {
             /* Validate write. */
@@ -413,7 +413,7 @@ private:
 
             /* Release the mutex */
             {
-                mutex_acquisition_t doomed;
+                mutex_t::acq_t doomed;
                 swap(mutex_acq, doomed);
             }
 
@@ -458,7 +458,7 @@ private:
             typename async_mailbox_t<void(typename protocol_t::read_response_t)>::address_t ack_addr)
             THROWS_NOTHING
     {
-        mutex_acquisition_t mutex_acq(&operation_order_mutex);
+        mutex_t::acq_t mutex_acq(&operation_order_mutex);
 
         try {
             /* Validate read. */
@@ -477,7 +477,7 @@ private:
 
             /* Release the mutex */
             {
-                mutex_acquisition_t doomed;
+                mutex_t::acq_t doomed;
                 swap(mutex_acq, doomed);
             }
 

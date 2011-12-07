@@ -25,7 +25,7 @@ struct one_way_iterator_t {
 template <class T, class U>
 struct transform_iterator_t : public one_way_iterator_t<U> {
     transform_iterator_t(const boost::function<U(T&)>& _func, one_way_iterator_t<T> *_ownee) : func(_func), ownee(_ownee) { }
-    ~transform_iterator_t() {
+    virtual ~transform_iterator_t() {
         delete ownee;
     }
     virtual typename boost::optional<U> next() {
@@ -47,7 +47,7 @@ struct transform_iterator_t : public one_way_iterator_t<U> {
 template <class T>
 struct filter_iterator_t : public one_way_iterator_t<T> {
     filter_iterator_t(const boost::function<bool(T&)>& _predicate, one_way_iterator_t<T> *_ownee) : predicate(_predicate), ownee(_ownee) { }
-    ~filter_iterator_t() {
+    virtual ~filter_iterator_t() {
         delete ownee;
     }
     virtual typename boost::optional<T> next() {
@@ -176,7 +176,7 @@ template <class T>
 class unique_filter_iterator_t : public one_way_iterator_t<T> {
 public:
     explicit unique_filter_iterator_t(one_way_iterator_t<T> *_ownee) : previous(boost::none), ownee(_ownee) { }
-    ~unique_filter_iterator_t() {
+    virtual ~unique_filter_iterator_t() {
         delete ownee;
     }
     virtual typename boost::optional<T> next() {
@@ -220,7 +220,7 @@ public:
     repetition_filter_iterator_t(one_way_iterator_t<T> *_ownee, int _n_repetitions) : previous(boost::none), previous_repetitions(0), ownee(_ownee), n_repetitions(_n_repetitions) {
         rassert(n_repetitions > 0);
     }
-    ~repetition_filter_iterator_t() {
+    virtual ~repetition_filter_iterator_t() {
         delete ownee;
     }
     virtual typename boost::optional<T> next() {
@@ -275,7 +275,7 @@ template <class T>
 class diff_filter_iterator_t : public one_way_iterator_t<T> {
 public:
     diff_filter_iterator_t(one_way_iterator_t<T> *_ownee_left, one_way_iterator_t<T> *_ownee_right) : ownee_left(_ownee_left), ownee_right(_ownee_right), prefetched_right(boost::none) { }
-    ~diff_filter_iterator_t() {
+    virtual ~diff_filter_iterator_t() {
         delete ownee_left;
         delete ownee_right;
     }

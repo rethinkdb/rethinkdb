@@ -159,7 +159,7 @@ struct redis_sorted_set_value_t : redis_value_t {
 template <>
 class value_sizer_t<redis_value_t> : public value_sizer_t<void> {
 public:
-    value_sizer_t(block_size_t bs) : block_size_(bs) { }
+    explicit value_sizer_t(block_size_t bs) : block_size_(bs) { }
     ~value_sizer_t() {;}
 
     int size(const void *void_value) const {
@@ -231,7 +231,7 @@ struct redis_nested_set_value_t {
 template <>
 class value_sizer_t<redis_nested_set_value_t> : public value_sizer_t<void> {
 public:
-    value_sizer_t(block_size_t bs) : block_size_(bs) { }
+    explicit value_sizer_t(block_size_t bs) : block_size_(bs) { }
     ~value_sizer_t() {;}
 
     int size(const void *value) const {
@@ -285,7 +285,7 @@ struct redis_nested_string_value_t {
 template <>
 class value_sizer_t<redis_nested_string_value_t> : public value_sizer_t<void> {
 public:
-    value_sizer_t(block_size_t bs) : block_size_(bs) { }
+    explicit value_sizer_t(block_size_t bs) : block_size_(bs) { }
     ~value_sizer_t() {;}
 
     int size(const void *value) const {
@@ -339,7 +339,7 @@ struct redis_nested_sorted_set_value_t {
 template <>
 class value_sizer_t<redis_nested_sorted_set_value_t> : public value_sizer_t<void> {
 public:
-    value_sizer_t(block_size_t bs) : block_size_(bs) { }
+    explicit value_sizer_t(block_size_t bs) : block_size_(bs) { }
     ~value_sizer_t() {;}
 
     int size(const void *void_value) const {

@@ -177,7 +177,7 @@ struct reader_t
         and the LBA would be corrupted. */
         bool prev_done;
 
-        explicit extent_reader_t(reader_t *p, lba_disk_extent_t *e)
+        extent_reader_t(reader_t *p, lba_disk_extent_t *e)
             : parent(p), extent(e), have_read(false)
         {
             index = parent->readers.size();

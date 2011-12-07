@@ -12,12 +12,11 @@ another object which will read from or listen to it.
 To check if a `signal_t` has already been pulsed, call `is_pulsed()` on it. To
 be notified when it gets pulsed, construct a `signal_t::subscription_t` and pass
 a callback function and the signal to watch to its constructor. The callback
-will be called when the signal is pulsed.
+will be called when the signal is pulsed. If the signal is already pulsed at the
+time you construct the `signal_t::subscription_t`, then the callback will be
+called immediately.
 
-If you construct a `signal_t::subscription_t` for a signal that's already been
-pulsed, you will get an exception.
-
-`signal_t` is generally not thread-safe, although the `wait_*()` functions are.
+`signal_t` is not thread-safe.
 
 Although you may be tempted to, please do not add a method that "unpulses" a
 `signal_t`. Part of the definition of a `signal_t` is that it does not return to
@@ -31,25 +30,29 @@ class signal_t :
 public:
     /* True if somebody has called `pulse()`. */
     bool is_pulsed() const {
+        assert_thread();
         return pulsed;
     }
 
     /* Wrapper around a `publisher_t<boost::function<void()> >::subscription_t`
     */
-    struct subscription_t : public home_thread_mixin_t {
-        subscription_t(boost::function<void()> cb) :
-            subs(cb) {
+    class subscription_t : public home_thread_mixin_t {
+    public:
+        explicit subscription_t(boost::function<void()> cb) : subs(cb) { }
+        subscription_t(boost::function<void()> cb, signal_t *s) : subs(cb) {
+            reset(s);
         }
-        subscription_t(boost::function<void()> cb, signal_t *s) :
-            subs(cb, s->publisher_controller.get_publisher()) {
-            rassert(!s->is_pulsed());
-        }
-        void resubscribe(signal_t *s) {
-            rassert(!s->is_pulsed());
-            subs.resubscribe(s->publisher_controller.get_publisher());
-        }
-        void unsubscribe() {
-            subs.unsubscribe();
+        void reset(signal_t *s = NULL) {
+            if (s) {
+                mutex_assertion_t::acq_t acq(&s->lock);
+                if (s->is_pulsed()) {
+                    (subs.subscriber)();
+                } else {
+                    subs.reset(s->publisher_controller.get_publisher());
+                }
+            } else {
+                subs.reset(NULL);
+            }
         }
     private:
         publisher_t<boost::function<void()> >::subscription_t subs;
@@ -57,21 +60,14 @@ public:
     };
 
     /* The coro that calls `wait_lazily_ordered()` will be pushed onto the event
-    queue when the signal is pulsed, but will not wake up immediately. */
+    queue when the signal is pulsed, but will not wake up immediately. Unless
+    you really need the ordering guarantee, you should call
+    `wait_lazily_unordered()`. */
     void wait_lazily_ordered();
 
     /* The coro that calls `wait_lazily_unordered()` will be notified soon after
     the signal has been pulsed, but not immediately. */
     void wait_lazily_unordered();
-
-    /* The coro that calls `wait_eagerly()` will be woken up immediately when
-    the signal is pulsed, before `pulse()` even returns.
-
-    Note: This is dangerous! It's easy to cause race conditions by e.g.
-    destroying the signal that's just been pulsed. You should probably use
-    `wait_lazily_unordered()` instead; its performance will be similar once we
-    optimize `notify_sometime()`. */
-    void wait_eagerly();
 
     /* `wait()` is a deprecated synonym for `wait_lazily_ordered()`. */
     void wait() {
@@ -81,17 +77,18 @@ public:
     void rethread(int new_thread) {
         real_home_thread = new_thread;
         publisher_controller.rethread(new_thread);
+        lock.rethread(new_thread);
     }
 
 protected:
-    signal_t() : pulsed(false), publisher_controller(&mutex) { }
+    signal_t() : pulsed(false) { }
     ~signal_t() { }
 
     void pulse() THROWS_NOTHING {
-        mutex_acquisition_t acq(&mutex, false);
+        mutex_assertion_t::acq_t acq(&lock);
         rassert(!is_pulsed());
         pulsed = true;
-        publisher_controller.publish(&signal_t::call, &acq);
+        publisher_controller.publish(&signal_t::call);
     }
 
 private:
@@ -100,8 +97,8 @@ private:
     }
 
     bool pulsed;
-    mutex_t mutex;
     publisher_controller_t<boost::function<void()> > publisher_controller;
+    mutex_assertion_t lock;
     DISABLE_COPYING(signal_t);
 };
 

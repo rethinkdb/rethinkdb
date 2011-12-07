@@ -76,7 +76,7 @@ typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename pr
     state_timestamp_t timestamp;
 
     {
-        mutex_acquisition_t mutex_acq(&mutex);
+        mutex_t::acq_t mutex_acq(&mutex);
         pick_a_readable_dispatchee(&reader, &mutex_acq, &reader_lock);
         timestamp = current_timestamp;
         order_sink.check_out(order_token);
@@ -114,7 +114,7 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
         {
             /* We must hold the mutex so that we don't race with other writes
             that are starting or with new dispatchees that are joining. */
-            mutex_acquisition_t mutex_acq(&mutex);
+            mutex_t::acq_t mutex_acq(&mutex);
             ASSERT_FINITE_CORO_WAITING;
 
             transition_timestamp_t timestamp = transition_timestamp_t::starting_from(current_timestamp);
@@ -181,7 +181,7 @@ broadcaster_t<protocol_t>::dispatchee_t::dispatchee_t(broadcaster_t *c, listener
     For example, a write might get dispatched to us twice if it starts after
     we're in `controller->dispatchees` but before we've iterated over
     `incomplete_writes`. */
-    mutex_acquisition_t acq(&controller->mutex);
+    mutex_t::acq_t acq(&controller->mutex);
     ASSERT_FINITE_CORO_WAITING;
 
     controller->dispatchees[this] = auto_drainer_t::lock_t(&drainer);
@@ -200,7 +200,7 @@ broadcaster_t<protocol_t>::dispatchee_t::dispatchee_t(broadcaster_t *c, listener
 
 template<class protocol_t>
 broadcaster_t<protocol_t>::dispatchee_t::~dispatchee_t() THROWS_NOTHING {
-    mutex_acquisition_t acq(&controller->mutex);
+    mutex_t::acq_t acq(&controller->mutex);
     ASSERT_FINITE_CORO_WAITING;
     if (is_readable) controller->readable_dispatchees.remove(this);
     controller->dispatchees.erase(this);
@@ -214,7 +214,7 @@ void broadcaster_t<protocol_t>::dispatchee_t::upgrade(
         auto_drainer_t::lock_t)
         THROWS_NOTHING
 {
-    mutex_acquisition_t acq(&controller->mutex);
+    mutex_t::acq_t acq(&controller->mutex);
     ASSERT_FINITE_CORO_WAITING;
     rassert(!is_readable);
     is_readable = true;
@@ -230,7 +230,7 @@ void broadcaster_t<protocol_t>::dispatchee_t::downgrade(
         THROWS_NOTHING
 {
     {
-        mutex_acquisition_t acq(&controller->mutex);
+        mutex_t::acq_t acq(&controller->mutex);
         ASSERT_FINITE_CORO_WAITING;
         rassert(is_readable);
         is_readable = false;
@@ -242,7 +242,7 @@ void broadcaster_t<protocol_t>::dispatchee_t::downgrade(
 }
 
 template<class protocol_t>
-void broadcaster_t<protocol_t>::pick_a_readable_dispatchee(dispatchee_t **dispatchee_out, mutex_acquisition_t *proof, auto_drainer_t::lock_t *lock_out) THROWS_ONLY(insufficient_mirrors_exc_t) {
+void broadcaster_t<protocol_t>::pick_a_readable_dispatchee(dispatchee_t **dispatchee_out, mutex_t::acq_t *proof, auto_drainer_t::lock_t *lock_out) THROWS_ONLY(insufficient_mirrors_exc_t) {
 
     ASSERT_FINITE_CORO_WAITING;
     proof->assert_is_holding(&mutex);
@@ -276,7 +276,7 @@ void broadcaster_t<protocol_t>::end_write(boost::shared_ptr<incomplete_write_t> 
     view of `newest_complete_timestamp` and the front of `incomplete_writes`.
     Specifically, this is important for newly-created dispatchees and for
     `sanity_check()`. */
-    mutex_acquisition_t mutex_acq(&mutex);
+    mutex_t::acq_t mutex_acq(&mutex);
     ASSERT_FINITE_CORO_WAITING;
     /* It's safe to remove a write from the queue once it has acquired the root
     of every mirror's btree. We aren't notified when it acquires the root; we're
