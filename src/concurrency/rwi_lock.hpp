@@ -42,6 +42,9 @@ public:
     // Like `lock()` but blocks; only legal in a coroutine. If `call_when_in_line` is not zero,
     // it will be called as soon as `co_lock()` has gotten in line for the lock but before
     // `co_lock()` actually returns.
+
+    // You are encouraged to use `read_acq_t` and `write_acq_t` instead of
+    // `co_lock()`.
     void co_lock(access_t access, boost::function<void()> call_when_in_line = 0);
 
     // Call if you've locked for read or write, or upgraded to write,
