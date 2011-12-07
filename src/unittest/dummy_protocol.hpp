@@ -10,6 +10,7 @@
 #include <boost/function.hpp>
 
 #include "concurrency/fifo_checker.hpp"
+#include "concurrency/rwi_lock.hpp"
 #include "protocol_api.hpp"
 #include "timestamps.hpp"
 

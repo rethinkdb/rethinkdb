@@ -4,6 +4,7 @@
 #include <boost/make_shared.hpp>
 
 #include "arch/timing.hpp"
+#include "concurrency/rwi_lock.hpp"
 #include "concurrency/signal.hpp"
 
 namespace unittest {

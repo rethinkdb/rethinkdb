@@ -31,14 +31,7 @@ slave_stream_manager_t::slave_stream_manager_t(boost::scoped_ptr<tcp_conn_t> *co
     stream_ = new repli_stream_t(*conn, this, heartbeat_timeout);
 
     cond_ = cond;
-    {
-        signal_t::lock_t lock(cond_);
-        if (cond_->is_pulsed()) {
-            on_signal_pulsed();
-        } else {
-            subs_.resubscribe(cond);
-        }
-    }
+    subs_.reset(cond_);
 }
 
 slave_stream_manager_t::~slave_stream_manager_t() {
@@ -145,7 +138,7 @@ void slave_stream_manager_t::conn_closed() {
     // the run loop gets unstuck. cond_ could be NULL if we didn't finish our
     // constructor yet.
     if (!interrupted_by_external_event_ && cond_) {
-        subs_.unsubscribe();   // So `on_signal_pulsed()` doesn't get called
+        subs_.reset();   // So `on_signal_pulsed()` doesn't get called
         cond_->pulse();
     }
 
