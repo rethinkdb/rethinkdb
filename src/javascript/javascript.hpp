@@ -7,41 +7,9 @@
 #include "arch/runtime/runtime.hpp"
 #include <vector>
 #include <exception>
+#include "javascript/javascript_pool.hpp"
 
 namespace JS {
-
-//static __thread JSContextGroupRef m_ctxGroup;
-//static __thread bool initialized = false;
-//static __thread int refcount = 0;
-
-template <class T>
-class one_per_thread_t {
-private:
-    std::vector<T> data;
-public:
-    one_per_thread_t() 
-    { 
-        data.resize(get_num_threads());
-    }
-    one_per_thread_t(const T &init)
-    {
-        data.resize(get_num_threads());
-        for (typename std::vector<T>::iterator it = data.begin(); it != data.end(); it++) {
-            *it = init;
-        }
-    }
-
-    ~one_per_thread_t() { }
-
-    T &get() { return data[get_thread_id()]; }
-
-    // notice you should only use this if you know no one on the other threads
-    // can be accessing it
-    typedef typename std::vector<T>::iterator iterator;
-
-    iterator begin() { return data.begin(); }
-    iterator end() { return data.end(); }
-};
 
 /* The context group is an object that creates a context group per thread and
  * facilitates its use and cleanup. Note because JSContextGroupRefs are pretty
@@ -54,60 +22,39 @@ template <class T>
 class scoped_js_t;
 } //namespace details
 
-typedef details::scoped_js_t<JSValueRef> scoped_js_value_t;
-typedef details::scoped_js_t<JSObjectRef> scoped_js_object_t;
+typedef details::scoped_js_t< ::JSValueRef> scoped_js_value_t;
+typedef details::scoped_js_t< ::JSObjectRef> scoped_js_object_t;
 
 class scoped_js_value_array_t;
 class scoped_js_string_t;
 
-class ctx_group_t {
-private:
-    one_per_thread_t<JSContextGroupRef> ctx_groups;
-    one_per_thread_t<int> refcounts;
-    void ensure_ctx_group();
+/* ctx_t is a wrapper for an actual JavaScript context object. Any operations
+ * that touch a context must be run in the ctx_group_t's associated
+ * blocker thread. */
 
+class ctx_t {
 public:
-    ctx_group_t();
-    ~ctx_group_t();
-
-private:
-friend class ctx_t;
-    JSContextGroupRef get_group();
-    int &get_refcount();
-
-private:
-    JSGlobalContextRef make_new_ctx();
-};
-
-/* ctx_wrapper_t wraps a JSGlobalContextRef and allows it to safely be passed
- * from coroutine to couroutine. It also*/
-class ctx_t : public home_thread_mixin_t,
-              public home_coro_mixin_t
-{
-private:
-    JSGlobalContextRef m_ctx;
-    ctx_group_t *ctx_group;
-    int refcount; //the number of scoped_js_values that reference this ctx_t
-
-public:
-    void incr_refcount() { refcount++; }
-    void decr_refcount() { refcount--; }
-
-public:
-    ctx_t() :refcount(0) { }
-    ctx_t(ctx_group_t *); 
+    explicit ctx_t(javascript_pool_t *js_pool);
     ~ctx_t();
 
-private:
-    /* Warning, this object cannot be passed between couroutines, in fact it
-     * should really never even be copied. Instead you should just use it
-     * inline i.e JSFunction(ctx_wrapper.get(), ...); */
-    JSGlobalContextRef get();
+    /* Run a function in the ctx_group's blocker thread. See
+     * ctx_group_t::run_blocking for more information. */
+    template <typename res_t>
+    res_t run_blocking(boost::function<res_t()> f) {
+        return ctx_group->run_blocking<res_t>(f);
+    }
+
+    inline void incr_refcount() { refcount++; }
+    inline void decr_refcount() { refcount--; }
 
 private:
-    DISABLE_COPYING(ctx_t);
+    ctx_group_t *ctx_group;
+    JSGlobalContextRef jsc_context;
+
+    int refcount; /* the number of scoped_js_values that reference this ctx */
 
 public:
+    /* All of the following functions must be called only on the blocker thread. */
     scoped_js_value_t JSValueMakeFromJSONString(scoped_js_string_t);
     scoped_js_string_t JSValueCreateJSONString(scoped_js_value_t, unsigned);
     scoped_js_value_t JSEvaluateScript(scoped_js_string_t, scoped_js_object_t, scoped_js_string_t, int);
@@ -116,18 +63,26 @@ public:
     scoped_js_value_t JSObjectCallAsFunction(scoped_js_object_t, scoped_js_object_t, scoped_js_value_t);
     scoped_js_object_t JSObjectMakeArray(scoped_js_value_array_t);
     scoped_js_string_t JSValueToStringCopy(scoped_js_value_t);
+
+    /* These functions *might* be safe to call in the main thread pool, but
+     * verify for yourself before using them. */
+    scoped_js_string_t JSContextCreateBacktrace(unsigned);
+    std::string make_string(scoped_js_value_t);
+
 private:
-friend class scoped_js_value_array_t;
-template <class T> friend class details::scoped_js_t;
+    friend class scoped_js_value_array_t;
+    template <class T> friend class details::scoped_js_t;
 
     void JSValueProtect(JSValueRef);
     void JSValueUnprotect(JSValueRef);
 
-public:
-    scoped_js_string_t JSContextCreateBacktrace(unsigned);
+private:
+    /* get() gets the actual JSC context; it's for internal use, and must be
+     * called on the blocker thread. */
+    JSGlobalContextRef get();
 
-public:
-    std::string make_string(scoped_js_value_t);
+private:
+    DISABLE_COPYING(ctx_t);
 };
 
 namespace details {
@@ -255,19 +210,19 @@ public:
     { }
 
     scoped_js_string_t(std::string _str) 
-        : str(JSStringCreateWithUTF8CString(_str.c_str()))
+        : str(::JSStringCreateWithUTF8CString(_str.c_str()))
     { }
 
     scoped_js_string_t(const scoped_js_string_t &other)
         : str(other.str)
     {
         if (str) {
-            JSStringRetain(str);
+            ::JSStringRetain(str);
         }
     }
     ~scoped_js_string_t() {
         if (str) {
-            JSStringRelease(str);
+            ::JSStringRelease(str);
         }
     }
 public:

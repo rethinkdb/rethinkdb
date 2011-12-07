@@ -48,7 +48,12 @@ private:
     btree_slice_t *create_slice(std::list<std::string>);
 public:
     riak_interface_t(store_manager_t<std::list<std::string> > *store_manager)
-        : store_manager(store_manager)
+        : store_manager(store_manager),
+          js_pool(get_num_threads(), &linux_thread_pool_t::thread->queue)
+          /* TODO: Make this configurable; there's no reason for the number of
+             JS pool threads to be equal to the number of main thread pool
+             threads. When riak_interface_t is changed to use the protocol API,
+             there'll probably be a better place to put this? */
     { }
 
 private:
@@ -82,6 +87,13 @@ public:
     std::string mapreduce(json::mValue &) throw(JS::engine_exception);
 private:
     //supporting cast for mapreduce just to make this code a bit more readable
+
+    typedef boost::variant<std::string, JS::engine_exception> str_or_exc_t;
+    str_or_exc_t actual_mapreduce(JS::ctx_t *ctx,
+                                  std::vector<object_t> &inputs,
+                                  json::mArray::iterator &query_it, json::mArray::iterator &query_end);
+
+    // The part of the mapreduce job that runs in the JS thread. For now this is one monolithic beast.
     
     //return a vector of objects containing all of the objects linked to be
     //another vector of objects which match the link filter
@@ -96,7 +108,7 @@ public:
     std::string gen_key();
 
 private:
-    JS::ctx_group_t ctx_group;
+    JS::javascript_pool_t js_pool;
 
     //used to initialize the field ctx_group with riaks built in mapred
     //functions.

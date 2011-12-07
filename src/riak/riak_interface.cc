@@ -251,45 +251,71 @@ std::string riak_interface_t::mapreduce(json::mValue &val) throw(JS::engine_exce
         }
     }
 
-    //startup the javascript contexts
-    JS::ctx_t ctx(&ctx_group);
-    //put the riak built in functions in the ctx
-    initialize_riak_ctx(ctx);
+    // Get a new JavaScript context in one of the pool threads.
+    JS::ctx_t ctx(&js_pool);
 
-    // convert the values to js_values
-    std::vector<JS::scoped_js_value_t> js_values;
-    for (std::vector<object_t>::iterator it = inputs.begin(); it != inputs.end(); it++) {
-        js_values.push_back(object_to_jsvalue(ctx, *it));
+    // Run the actual mapreduce code in a blocker thread.
+    // Once the real mapreduce code is written, this will be more complicated,
+    // of course; for now we'll just use this ugly hack.
+    str_or_exc_t res =
+        ctx.run_blocking<str_or_exc_t>(boost::bind(&riak_interface_t::actual_mapreduce, this,
+                                                                        &ctx, inputs, query_it, query_end));
+
+    if (res.type() == typeid(JS::engine_exception)) {
+        JS::engine_exception e = boost::get<JS::engine_exception>(res);
+        throw e;
     }
 
-    std::string res;
+    std::string str = boost::get<std::string>(res);
+    return str;
+}
 
-    for (; query_it != query_end; query_it++) {
-        if (std_contains(query_it->get_obj(), std::string("link"))) {
-            goto MALFORMED_REQUEST;
-        } else if (std_contains(query_it->get_obj(), std::string("map"))) {
-            if (query_it->get_obj()["map"].get_obj()["language"].get_str() != "javascript") { 
-                goto MALFORMED_REQUEST; 
-            }
+// This is the previous contents of mapreduce(), painfully ripped out without
+// anæsthetic, and with several surgical instruments retained. See above comment.
+riak_interface_t::str_or_exc_t riak_interface_t::actual_mapreduce(JS::ctx_t *ctx,
+                                                                  std::vector<object_t> &inputs,
+                                                                  json::mArray::iterator &query_it,
+                                                                  json::mArray::iterator &query_end) {
 
-            js_values = js_map(ctx, query_it->get_obj()["map"].get_obj()["source"].get_str(), js_values);
-        } else if (std_contains(query_it->get_obj(), std::string("reduce"))) {
-            if (query_it->get_obj()["reduce"].get_obj()["language"].get_str() != "javascript") { 
-                goto MALFORMED_REQUEST; 
-            }
+    try {
 
-            JS::scoped_js_value_t value = js_reduce(ctx, query_it->get_obj()["reduce"].get_obj()["source"].get_str(), js_values);
-            res = JS::js_obj_to_string(ctx.JSValueCreateJSONString(value, 0));
-        } else {
-            fprintf(stderr, "Don't know how to handle: %s\n", json::write_string(json::mValue(query_it->get_obj())).c_str());
-            goto MALFORMED_REQUEST;
+        // put the riak built in functions in the ctx
+        initialize_riak_ctx(*ctx);
+
+        // convert the values to js_values
+        std::vector<JS::scoped_js_value_t> js_values;
+        for (std::vector<object_t>::iterator it = inputs.begin(); it != inputs.end(); it++) {
+            js_values.push_back(object_to_jsvalue(*ctx, *it));
         }
+
+        std::string res;
+
+        for (; query_it != query_end; query_it++) {
+            if (std_contains(query_it->get_obj(), std::string("link"))) {
+                crash("Not implemented");
+            } else if (std_contains(query_it->get_obj(), std::string("map"))) {
+                if (query_it->get_obj()["map"].get_obj()["language"].get_str() != "javascript") { 
+                    crash("Not implemented");
+                }
+
+                js_values = js_map(*ctx, query_it->get_obj()["map"].get_obj()["source"].get_str(), js_values);
+            } else if (std_contains(query_it->get_obj(), std::string("reduce"))) {
+                if (query_it->get_obj()["reduce"].get_obj()["language"].get_str() != "javascript") { 
+                    crash("Not implemented");
+                }
+
+                JS::scoped_js_value_t value = js_reduce(*ctx, query_it->get_obj()["reduce"].get_obj()["source"].get_str(), js_values);
+                res = JS::js_obj_to_string(ctx->JSValueCreateJSONString(value, 0));
+            } else {
+                fprintf(stderr, "Don't know how to handle: %s\n", json::write_string(json::mValue(query_it->get_obj())).c_str());
+                crash("Not implemented");
+            }
+        }
+
+        return res;
+    } catch (JS::engine_exception e) {
+        return e;
     }
-
-    return res;
-
-MALFORMED_REQUEST:
-    crash("Not implemented");
 }
 
 std::vector<object_t> riak_interface_t::follow_links(std::vector<object_t> const &starting_objects, link_filter_t const &link_filter) {
@@ -305,7 +331,7 @@ std::vector<object_t> riak_interface_t::follow_links(std::vector<object_t> const
 }
 
 std::vector<JS::scoped_js_value_t> riak_interface_t::js_map(JS::ctx_t &ctx, std::string src, std::vector<JS::scoped_js_value_t> values) {
-    JS::scoped_js_string_t scriptJS(JSStringCreateWithUTF8CString(("(" + src + ")").c_str()));
+    JS::scoped_js_string_t scriptJS("(" + src + ")");
     JS::scoped_js_object_t fn(ctx.JSValueToObject(ctx.JSEvaluateScript(scriptJS, NULL, NULL, 0)));
 
     std::vector<JS::scoped_js_value_t> res;
@@ -321,12 +347,12 @@ JS::scoped_js_value_t riak_interface_t::js_reduce(JS::ctx_t &ctx, std::string sr
     JS::scoped_js_value_array_t array_args(&ctx, values);
     JS::scoped_js_object_t data_list = ctx.JSObjectMakeArray(array_args);
 
-    JS::scoped_js_string_t collapse_script(JSStringCreateWithUTF8CString("(function(x) { return x.reduce(function(a, b) { return a.concat(b); }, []); })"));
+    JS::scoped_js_string_t collapse_script("(function(x) { return x.reduce(function(a, b) { return a.concat(b); }, []); })");
     JS::scoped_js_object_t collapse_fn = ctx.JSValueToObject(ctx.JSEvaluateScript(collapse_script.get(), NULL, NULL, 0));
     JS::scoped_js_value_t collapsed_data = ctx.JSObjectCallAsFunction(collapse_fn, NULL, data_list);
 
     // create the function
-    JS::scoped_js_string_t scriptJS(JSStringCreateWithUTF8CString(("(" + src + ")").c_str()));
+    JS::scoped_js_string_t scriptJS("(" + src + ")");
     JS::scoped_js_object_t fn = ctx.JSValueToObject(ctx.JSEvaluateScript(scriptJS.get(), NULL, NULL, 0));
 
     //evaluate the function on the data
@@ -349,7 +375,7 @@ void riak_interface_t::initialize_riak_ctx(JS::ctx_t &ctx) {
     std::string script(oss.str());
 
 
-    JS::scoped_js_string_t scriptJS(JSStringCreateWithUTF8CString(script.c_str()));
+    JS::scoped_js_string_t scriptJS(script);
     ctx.JSEvaluateScript(scriptJS, NULL, NULL, 0);
 }
 

@@ -2,72 +2,24 @@
 #include "arch/runtime/context_switching.hpp"
 #include "arch/runtime/coroutines.hpp"
 
+#include <boost/bind.hpp>
+
 namespace JS {
 
-ctx_group_t::ctx_group_t() 
-    : ctx_groups(NULL), refcounts(0)
-{ }
+ctx_t::ctx_t(javascript_pool_t *js_pool) 
+    : ctx_group(js_pool->get_a_ctx_group()),
+      jsc_context(ctx_group->create_JSGlobalContext()),
+      refcount(0) { }
 
-ctx_group_t::~ctx_group_t() {
-    for (one_per_thread_t<int>::iterator it = refcounts.begin(); it != refcounts.end(); it++) {
-        rassert(*it == 0, "Trying to destroy a context group while an oustanding context exists");
-    }
-    for (one_per_thread_t<JSContextGroupRef>::iterator it = ctx_groups.begin(); it != ctx_groups.end(); it++) {
-        if (*it) {
-            JSContextGroupRelease(*it);
-        }
-    }
-
-}
-
-void ctx_group_t::ensure_ctx_group() {
-    if (!ctx_groups.get()) {
-        //FIXME turns out the first call to this function can't race but this allows it to
-        ctx_groups.get() = JSContextGroupCreate();
-    }
-}
-
-JSContextGroupRef ctx_group_t::get_group() {
-    ensure_ctx_group();
-    return ctx_groups.get();
-}
-
-int &ctx_group_t::get_refcount() {
-    ensure_ctx_group();
-    return refcounts.get();
-}
-
-JSGlobalContextRef ctx_group_t::make_new_ctx() {
-    return JSGlobalContextCreateInGroup(get_group(), NULL);
-}
-
-ctx_t::ctx_t(ctx_group_t *ctx_group) 
-    : m_ctx(ctx_group->make_new_ctx()), ctx_group(ctx_group), refcount(0)
-{
-    ctx_group->get_refcount()++;
-}
 ctx_t::~ctx_t() {
-    assert_thread();
-    assert_coro();
-
     rassert(refcount == 0);
-
-    JSGlobalContextRelease(m_ctx);
-    ctx_group->get_refcount()--;
+    ctx_group->release_JSGlobalContext(jsc_context);
 }
 
 JSGlobalContextRef ctx_t::get() {
-    assert_thread();
-    assert_coro();
-
-    JSSetStackBounds(ctx_group->get_group(),
-                     coro_t::self()->get_stack()->get_stack_base(),
-                     coro_t::self()->get_stack()->get_stack_bound());
-#ifndef NDEBUG
-    JSGarbageCollect(m_ctx);
-#endif
-
-    return m_ctx;
+    rassert(ctx_group->am_on_blocker_thread());
+    DEBUG_ONLY(::JSGarbageCollect(jsc_context));
+    return jsc_context;
 }
 
 scoped_js_value_t ctx_t::JSValueMakeFromJSONString(scoped_js_string_t json_str) {
