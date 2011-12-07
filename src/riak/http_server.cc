@@ -33,8 +33,8 @@ std::string link_to_string(link_t const &link) {
     return res.str();
 }
 
-riak_server_t::riak_server_t(int port, store_manager_t<std::list<std::string> > *store_manager)
-    : http_server_t(port), riak_interface(store_manager)
+riak_server_t::riak_server_t(int port, store_manager_t<std::list<std::string> > *)
+    : http_server_t(port), riak_interface(NULL)
 { }
 
 http_res_t riak_server_t::handle(const http_req_t &req) {
@@ -98,7 +98,7 @@ http_res_t riak_server_t::handle(const http_req_t &req) {
 }
 
 http_res_t riak_server_t::list_buckets(const http_req_t &) {
-    std::pair<bucket_iterator_t, bucket_iterator_t> bucket_iters = riak_interface.buckets();
+    /* std::pair<bucket_iterator_t, bucket_iterator_t> bucket_iters = riak_interface.buckets();
 
     json::mObject body;
     body["buckets"] = json::mArray();
@@ -114,11 +114,12 @@ http_res_t riak_server_t::list_buckets(const http_req_t &) {
     res.set_body("application/json", json::write_string(json::mValue(body)));
     res.code = 200;
 
-    return res;
+    return res; */
+    crash("Not implemented");
 }
 
-http_res_t riak_server_t::get_bucket(const http_req_t &req) {
-    boost::char_separator<char> sep("/");
+http_res_t riak_server_t::get_bucket(const http_req_t &) {
+    /* boost::char_separator<char> sep("/");
     tokenizer tokens(req.resource, sep);
     tok_iterator url_it = tokens.begin(), url_end = tokens.end();
     rassert(url_it != url_end, "The first path compenent in the resource should be riak");
@@ -186,11 +187,12 @@ http_res_t riak_server_t::get_bucket(const http_req_t &req) {
     res.set_body("application/json", json::write_string(json::mValue(body)));
     res.code = 200;
 
-    return res;
+    return res; */
+    crash("Not implemented");
 }
 
-http_res_t riak_server_t::set_bucket(const http_req_t &req) {
-    boost::char_separator<char> sep("/");
+http_res_t riak_server_t::set_bucket(const http_req_t &) {
+    /* boost::char_separator<char> sep("/");
     tokenizer tokens(req.resource, sep);
     tok_iterator url_it = tokens.begin(), url_end = tokens.end();
     rassert(url_it != url_end, "The first path compenent in the resource should be riak");
@@ -278,10 +280,12 @@ http_res_t riak_server_t::set_bucket(const http_req_t &req) {
 
     res.code = 204;
 
-    return res;
+    return res; */
+    crash("Not implemented");
 }
 
-http_res_t riak_server_t::fetch_object(const http_req_t &req) {
+http_res_t riak_server_t::fetch_object(const http_req_t &) {
+    /* 
     //TODO this doesn't handle conditional request sementics
     boost::char_separator<char> sep("/");
     tokenizer tokens(req.resource, sep);
@@ -340,11 +344,12 @@ http_res_t riak_server_t::fetch_object(const http_req_t &req) {
 
         res.add_header_line("Link", boost::algorithm::join(links, ", "));
     }
-    return res;
+    return res; */
+    crash("Not implemented");
 }
 
-http_res_t riak_server_t::store_object(const http_req_t &req) {
-    boost::char_separator<char> sep("/");
+http_res_t riak_server_t::store_object(const http_req_t &) {
+    /* boost::char_separator<char> sep("/");
     tokenizer tokens(req.resource, sep);
     tok_iterator url_it = tokens.begin(), url_end = tokens.end();
     rassert(url_it != url_end, "The first path compenent in the resource should be riak");
@@ -401,11 +406,12 @@ http_res_t riak_server_t::store_object(const http_req_t &req) {
 
     riak_interface.store_object(bucket, obj);
 
-    return res;
+    return res; */
+    crash("Not implemented");
 }
 
-http_res_t riak_server_t::delete_object(const http_req_t &req) {
-    boost::char_separator<char> sep("/");
+http_res_t riak_server_t::delete_object(const http_req_t &) {
+    /* boost::char_separator<char> sep("/");
     tokenizer tokens(req.resource, sep);
     tok_iterator url_it = tokens.begin(), url_end = tokens.end();
     rassert(url_it != url_end, "The first path compenent in the resource should be riak");
@@ -431,11 +437,12 @@ http_res_t riak_server_t::delete_object(const http_req_t &req) {
         res.code = 404;
     }
 
-    return res;
+    return res; */
+    crash("Not implemented");
 }
 
-http_res_t riak_server_t::link_walk(const http_req_t &req) {
-    boost::char_separator<char> sep("/");
+http_res_t riak_server_t::link_walk(const http_req_t &) {
+    /* boost::char_separator<char> sep("/");
     tokenizer tokens(req.resource, sep);
     tok_iterator url_it = tokens.begin(), url_end = tokens.end();
 
@@ -524,12 +531,12 @@ http_res_t riak_server_t::link_walk(const http_req_t &req) {
 ERROR_BAD_REQUEST:
     http_res_t err_res;
     res.code = 400;
-    return res;
+    return res; */
+    crash("Not implemented");
 }
 
-http_res_t riak_server_t::mapreduce(const http_req_t &req) {
-    //BREAKPOINT;
-    json::mValue job; //job to parse the json in to
+http_res_t riak_server_t::mapreduce(const http_req_t &) {
+    //json::mValue job; //job to parse the json in to
 
     //this really should be checked... but unfortunately riak's python client
     //doesn't conform to this so it can't be
@@ -540,7 +547,7 @@ http_res_t riak_server_t::mapreduce(const http_req_t &req) {
         return res;
     } */
 
-    if (!json::read_string(req.body, job)) {
+    /* if (!json::read_string(req.body, job)) {
         http_res_t res;
         res.code = 400;
         return res;
@@ -560,7 +567,8 @@ http_res_t riak_server_t::mapreduce(const http_req_t &req) {
         return res;
     }
 
-    return res;
+    return res; */
+    crash("Not implemented");
 }
 
 http_res_t riak_server_t::ping(const http_req_t &) {
