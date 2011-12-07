@@ -1,5 +1,5 @@
 #include "riak/cluster/read.hpp"
-#include "riak/cluster/utils.hpp"
+#include "riak/cluster/std_utils.hpp"
 
 namespace riak {
 point_read_t::point_read_t(std::string _key) 

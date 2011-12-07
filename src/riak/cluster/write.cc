@@ -1,5 +1,5 @@
 #include "riak/cluster/write.hpp"
-#include "riak/cluster/utils.hpp"
+#include "riak/cluster/std_utils.hpp"
 
 namespace riak {
 
