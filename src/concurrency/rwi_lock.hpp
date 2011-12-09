@@ -60,7 +60,7 @@ public:
 
     struct read_acq_t {
         read_acq_t() : lock(NULL) { }
-        read_acq_t(rwi_lock_t *l) : lock(l) {
+        explicit read_acq_t(rwi_lock_t *l) : lock(l) {
             lock->co_lock(rwi_read);
         }
         void reset() {
@@ -83,7 +83,7 @@ public:
 
     struct write_acq_t {
         write_acq_t() : lock(NULL) { }
-        write_acq_t(rwi_lock_t *l) : lock(l) {
+        explicit write_acq_t(rwi_lock_t *l) : lock(l) {
             lock->co_lock(rwi_write);
         }
         void reset() {
