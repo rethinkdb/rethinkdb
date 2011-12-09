@@ -61,7 +61,7 @@ private:
     static void write_metadata(std::ostream&, metadata_t);
     static void write_ping(std::ostream&, int);
     static void write_ping_response(std::ostream&, int);
-    void on_utility_message(peer_id_t, std::istream&, boost::function<void()>&);
+    void on_utility_message(peer_id_t, std::istream&, const boost::function<void()> &);
     void on_connect(peer_id_t);
     void on_disconnect(peer_id_t);
 

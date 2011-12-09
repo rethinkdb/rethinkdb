@@ -31,7 +31,7 @@ private:
     std::map<int, peer_id_t> inbox;
     std::map<int, int> timing;
     int sequence_number;
-    void on_message(peer_id_t peer, std::istream &stream, boost::function<void()> &on_done) {
+    void on_message(peer_id_t peer, std::istream &stream, const boost::function<void()> &on_done) {
         assert_connection_thread(peer);
 
         int i;
@@ -47,7 +47,8 @@ private:
         stream << i;
     }
 public:
-    explicit recording_connectivity_cluster_t(int i) : connectivity_cluster_t(i), sequence_number(0) { }
+    explicit recording_connectivity_cluster_t(int i) :
+        connectivity_cluster_t(boost::bind(&recording_connectivity_cluster_t::on_message, this, _1, _2, _3), i), sequence_number(0) { }
     void send(int message, peer_id_t peer) {
         send_message(peer, boost::bind(&write, message, _1));
     }
@@ -401,31 +402,32 @@ TEST(RPCConnectivityTest, BlobJoinMultiThread) {
 
 /* `BinaryData` makes sure that any octet can be sent over the wire. */
 
-void run_binary_data_test() {
+struct binary_cluster_t : public connectivity_cluster_t {
+    explicit binary_cluster_t(int port) :
+        connectivity_cluster_t(boost::bind(&binary_cluster_t::on_message, this, _1, _2, _3), port), got_spectrum(false) { }
+    bool got_spectrum;
+    static void dump_spectrum(std::ostream &stream) {
+        char spectrum[CHAR_MAX - CHAR_MIN + 1];
+        for (int i = CHAR_MIN; i <= CHAR_MAX; i++) spectrum[i - CHAR_MIN] = i;
+        stream.write(spectrum, CHAR_MAX - CHAR_MIN + 1);
+    }
+    void send_spectrum(peer_id_t peer) {
+        send_message(peer, &dump_spectrum);
+    }
+    void on_message(peer_id_t, std::istream &stream, const boost::function<void()> &on_done) {
+        char spectrum[CHAR_MAX - CHAR_MIN + 1];
+        stream.read(spectrum, CHAR_MAX - CHAR_MIN + 1);
+        int eof = stream.peek();
+        on_done();
+        for (int i = CHAR_MIN; i <= CHAR_MAX; i++) {
+            EXPECT_EQ(spectrum[i - CHAR_MIN], i);
+        }
+        EXPECT_EQ(eof, EOF);
+        got_spectrum = true;
+    }
+};
 
-    struct binary_cluster_t : public connectivity_cluster_t {
-        explicit binary_cluster_t(int port) : connectivity_cluster_t(port), got_spectrum(false) { }
-        bool got_spectrum;
-        static void dump_spectrum(std::ostream &stream) {
-            char spectrum[CHAR_MAX - CHAR_MIN + 1];
-            for (int i = CHAR_MIN; i <= CHAR_MAX; i++) spectrum[i - CHAR_MIN] = i;
-            stream.write(spectrum, CHAR_MAX - CHAR_MIN + 1);
-        }
-        void send_spectrum(peer_id_t peer) {
-            send_message(peer, &dump_spectrum);
-        }
-        void on_message(peer_id_t, std::istream &stream, boost::function<void()> &on_done) {
-            char spectrum[CHAR_MAX - CHAR_MIN + 1];
-            stream.read(spectrum, CHAR_MAX - CHAR_MIN + 1);
-            int eof = stream.peek();
-            on_done();
-            for (int i = CHAR_MIN; i <= CHAR_MAX; i++) {
-                EXPECT_EQ(spectrum[i - CHAR_MIN], i);
-            }
-            EXPECT_EQ(eof, EOF);
-            got_spectrum = true;
-        }
-    };
+void run_binary_data_test() {
 
     int port = 10000 + rand() % 20000;
     binary_cluster_t cluster1(port), cluster2(port+1);

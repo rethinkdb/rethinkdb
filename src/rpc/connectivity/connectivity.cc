@@ -110,12 +110,13 @@ std::map<peer_id_t, peer_address_t> connectivity_cluster_t::get_everybody() {
     return peers;
 }
 
-connectivity_cluster_t::connectivity_cluster_t(int port)
-    : me(peer_id_t(generate_uuid())),
-      me_address(ip_address_t::us(), port),
-      connection_maps_by_thread(get_num_threads()),
-      watchers_by_thread(new intrusive_list_t<event_watcher_t>[get_num_threads()]),
-      watchers_mutexes_by_thread(new mutex_t[get_num_threads()])
+connectivity_cluster_t::connectivity_cluster_t(const boost::function<void(peer_id_t, std::istream &, const boost::function<void()> &)> &cb, int port) :
+    on_message(cb),
+    me(peer_id_t(generate_uuid())),
+    me_address(ip_address_t::us(), port),
+    connection_maps_by_thread(get_num_threads()),
+    watchers_by_thread(new intrusive_list_t<event_watcher_t>[get_num_threads()]),
+    watchers_mutexes_by_thread(new mutex_t[get_num_threads()])
 {
     /* Put ourselves in the routing table */
     routing_table[me] = me_address;
@@ -135,7 +136,7 @@ connectivity_cluster_t::~connectivity_cluster_t() {
     coroutines we spawned shut down. */
 }
 
-void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(std::ostream&)> writer) {
+void connectivity_cluster_t::send_message(peer_id_t dest, const boost::function<void(std::ostream&)> &writer) {
     // We could be on _any_ thread.
 
     rassert(!dest.is_nil());
@@ -163,8 +164,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, boost::function<void(s
         debugf("spawning weird on_message Now.\n");
         cond_t pulse_when_done_reading;
         coro_t::spawn_now(boost::bind(
-            &connectivity_cluster_t::on_message,
-            this,
+            boost::cref(on_message),
             me,
             boost::ref(buffer2),
             boost::function<void()>(boost::bind(&cond_t::pulse, &pulse_when_done_reading))
@@ -530,8 +530,7 @@ void connectivity_cluster_t::handle(
                 debugf("Spawning on_message right now.\n");
                 boost::function<void()> pulser = boost::bind(&cond_t::pulse, &pulse_when_done_reading);
                 coro_t::spawn_now(boost::bind(
-                    &connectivity_cluster_t::on_message,
-                    this,
+                    boost::cref(on_message),
                     other_id,
                     boost::ref(stream),
                     boost::function<void()>(boost::bind(one_way_do_on_thread<boost::function<void()> >, chosen_thread, pulser))

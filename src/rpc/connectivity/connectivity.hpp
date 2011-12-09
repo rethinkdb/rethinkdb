@@ -113,22 +113,20 @@ struct connectivity_cluster_t :
     public home_thread_mixin_t
 {
 public:
+    connectivity_cluster_t(
+        const boost::function<void(peer_id_t, std::istream &, const boost::function<void()> &)> &on_message,
+        int port);
+    ~connectivity_cluster_t();
+
     /* Attaches the cluster this node is part of to another existing cluster.
     May only be called on home thread. */
     void join(peer_address_t);
 
     /* `get_me()` returns the `peer_id_t` for this cluster node.
-    `get_everybody()` returns all the currently-accessible peers in the
-    cluster and their addresses, including us. These may only be called on the
-    home thread. */
+    `get_everybody()` returns all the currently-accessible peers in the cluster
+    and their addresses, including us. */
     peer_id_t get_me();
     std::map<peer_id_t, peer_address_t> get_everybody();
-
-protected:
-    /* Creating a new cluster node, and connecting one cluster to another
-    cluster */
-    explicit connectivity_cluster_t(int port);
-    virtual ~connectivity_cluster_t();
 
     /* TODO: We should have a better mechanism for sending messages to ourself.
     Right now, they get serialized and then deserialized. If we did it more
@@ -138,19 +136,7 @@ protected:
     /* `send_message()` is used to send a message to a specific peer. The
     function will be called with a `std::ostream&` that leads to the peer in
     question. `send_message()` can be called on any thread. It may block. */
-    void send_message(peer_id_t, boost::function<void(std::ostream&)>);
-
-    /* Whenever we receive a message, we spawn a new coroutine running
-    `on_message()`. Its arguments are the peer we received the message
-    from, a `std::istream&` from that peer, and a function to call
-    when we're done reading the message off the stream. `on_message()`
-    should read the message, call the function, then perform whatever
-    action the message requires. This way, the next message can be
-    read off the socket as soon as possible.  `connectivity_cluster_t`
-    may run `on_message()` on any thread.  on_message may call on_done
-    without consuming any bytes, in which case it is this superclass's
-    responsibility to make sure the bytes get consumed. */
-    virtual void on_message(peer_id_t src, std::istream& stream, boost::function<void()>& on_done) = 0;
+    void send_message(peer_id_t, const boost::function<void(std::ostream &)> &);
 
 #ifndef NDEBUG
     void assert_connection_thread(peer_id_t peer) const;
@@ -173,6 +159,18 @@ private:
         boost::optional<peer_id_t> expected_id,
         boost::optional<peer_address_t> expected_address,
         auto_drainer_t::lock_t);
+
+    /* Whenever we receive a message, we spawn a new coroutine running
+    `on_message()`. Its arguments are the peer we received the message from, a
+    `std::istream&` from that peer, and a function to call when we're done
+    reading the message off the stream. `on_message()` should read the message,
+    call the function, then perform whatever action the message requires. This
+    way, the next message can be read off the socket as soon as possible. 
+    `connectivity_cluster_t` may run `on_message()` on any thread. `on_message`
+    may call `on_done` without consuming the whole message, in which case it is
+    `connectivity_cluster_t`'s responsibility to make sure the bytes get
+    consumed. */
+    boost::function<void(peer_id_t, std::istream &, const boost::function<void()> &)> on_message;
 
     /* `me` is our `peer_id_t`. `routing_table` is all the peers we can
     currently access and their addresses. Peers that are in the process of

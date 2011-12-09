@@ -73,8 +73,9 @@ class simple_mailbox_cluster_t : public mailbox_cluster_t {
 public:
     simple_mailbox_cluster_t() : mailbox_cluster_t(10000 + rand() % 20000) { }
 private:
-    void on_utility_message(peer_id_t, std::istream&, boost::function<void()>&) {
+    void on_utility_message(peer_id_t, std::istream&, const boost::function<void()> &on_done) {
         ADD_FAILURE() << "no utility messages should be sent. WTF?";
+        on_done();
     }
 };
 
