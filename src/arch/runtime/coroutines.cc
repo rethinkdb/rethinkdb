@@ -316,12 +316,11 @@ void coro_t::notify_later_ordered() {
 
 void coro_t::move_to_thread(int thread) {
     assert_good_thread_id(thread);
+    rassert(coro_t::self(), "coro_t::move_to_thread() called when not in a coroutine.")
     if (thread == linux_thread_pool_t::thread_id) {
         // If we're trying to switch to the thread we're currently on, do nothing.
         return;
     }
-    rassert(coro_t::self(), "coro_t::move_to_thread() called when not in a coroutine, and the "
-        "desired thread isn't the one we're already on.");
     self()->current_thread_ = thread;
     self()->notify_later_ordered();
     wait();
