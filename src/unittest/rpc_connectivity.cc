@@ -227,8 +227,8 @@ TEST(RPCConnectivityTest, GetEverybodyMultiThread) {
     run_in_thread_pool(&run_get_everybody_test, 3);
 }
 
-/* `EventWatchers` confirms that `cluster_t::[dis]connect_watcher_t` works
-properly. */
+/* `EventWatchers` confirms that `disconnect_watcher_t` and
+`connectivity_cluster_t::peers_list_subscription_t` work properly. */
 
 void run_event_watchers_test() {
     int port = 10000 + rand() % 20000;
@@ -238,15 +238,23 @@ void run_event_watchers_test() {
     peer_id_t c2_id = c2->get_me();
 
     /* Make sure `c1` notifies us when `c2` connects */
-    connect_watcher_t connect_watcher(&c1, c2_id);
-    EXPECT_FALSE(connect_watcher.is_pulsed());
+    cond_t connection_established;
+    connectivity_cluster_t::peers_list_subscription_t subs(
+        boost::bind(&cond_t::pulse, &connection_established),
+        NULL);
+    {
+        connectivity_cluster_t::peers_list_freeze_t freeze(&c1);
+        if (c1.get_everybody().count(c2->get_me()) == 0) {
+            subs.reset(&c1, &freeze);
+        } else {
+            connection_established.pulse();
+        }
+    }
+    
+    EXPECT_FALSE(connection_established.is_pulsed());
     c1.join(peer_address_t(ip_address_t::us(), port+1));
     let_stuff_happen();
-    EXPECT_TRUE(connect_watcher.is_pulsed());
-
-    /* Make sure `connect_watcher_t` works for an already-connected peer */
-    connect_watcher_t connect_watcher_2(&c1, c2_id);
-    EXPECT_TRUE(connect_watcher_2.is_pulsed());
+    EXPECT_TRUE(connection_established.is_pulsed());
 
     /* Make sure `c1` notifies us when `c2` disconnects */
     disconnect_watcher_t disconnect_watcher(&c1, c2_id);
@@ -269,38 +277,49 @@ TEST(RPCConnectivityTest, EventWatchersMultiThread) {
 /* `EventWatcherOrdering` confirms that information delivered via event
 notification is consistent with information delivered via `get_everybody()`. */
 
+struct watcher_t {
+
+    explicit watcher_t(recording_connectivity_cluster_t *c) :
+        cluster(c),
+        event_watcher(
+            boost::bind(&watcher_t::on_connect, this, _1),
+            boost::bind(&watcher_t::on_disconnect, this, _1))
+    {
+        connectivity_cluster_t::peers_list_freeze_t freeze(cluster);
+        event_watcher.reset(cluster, &freeze);
+    }
+
+    void on_connect(peer_id_t p) {
+        /* When we get a connection event, make sure that the peer address
+        is present in the routing table */
+        std::map<peer_id_t, peer_address_t> routing_table;
+        routing_table = cluster->get_everybody();
+        EXPECT_TRUE(routing_table.find(p) != routing_table.end());
+
+        /* Make sure messages sent from connection events are delivered
+        properly. We must use `coro_t::spawn_now()` because `send_message()`
+        may block. */
+        coro_t::spawn_now(boost::bind(&recording_connectivity_cluster_t::send, cluster, 89765, p));
+    }
+
+    void on_disconnect(peer_id_t p) {
+        /* When we get a disconnection event, make sure that the peer
+        address is gone from the routing table */
+        std::map<peer_id_t, peer_address_t> routing_table;
+        routing_table = cluster->get_everybody();
+        EXPECT_TRUE(routing_table.find(p) == routing_table.end());
+    }
+
+    recording_connectivity_cluster_t *cluster;
+    connectivity_cluster_t::peers_list_subscription_t event_watcher;
+};
+
 void run_event_watcher_ordering_test() {
 
     int port = 10000 + rand() % 20000;
     recording_connectivity_cluster_t c1(port);
 
-    struct watcher_t : public event_watcher_t {
-
-        explicit watcher_t(recording_connectivity_cluster_t *c) :
-            event_watcher_t(c), cluster(c) { }
-        recording_connectivity_cluster_t *cluster;
-
-        void on_connect(peer_id_t p) {
-            /* When we get a connection event, make sure that the peer address
-            is present in the routing table */
-            std::map<peer_id_t, peer_address_t> routing_table;
-            routing_table = cluster->get_everybody();
-            EXPECT_TRUE(routing_table.find(p) != routing_table.end());
-
-            /* Make sure messages sent from connection events are delivered
-            properly. We must use `coro_t::spawn_now()` because `send_message()`
-            may block. */
-            coro_t::spawn_now(boost::bind(&recording_connectivity_cluster_t::send, cluster, 89765, p));
-        }
-
-        void on_disconnect(peer_id_t p) {
-            /* When we get a disconnection event, make sure that the peer
-            address is gone from the routing table */
-            std::map<peer_id_t, peer_address_t> routing_table;
-            routing_table = cluster->get_everybody();
-            EXPECT_TRUE(routing_table.find(p) == routing_table.end());
-        }
-    } watcher(&c1);
+    watcher_t watcher(&c1);
 
     /* Generate some connection/disconnection activity */
     {

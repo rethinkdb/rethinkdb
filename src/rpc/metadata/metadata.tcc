@@ -9,12 +9,17 @@
 template<class metadata_t>
 metadata_cluster_t<metadata_t>::metadata_cluster_t(int port, const metadata_t &initial_metadata) :
     mailbox_cluster_t(port),
-    /* Watch ourself for new peers connecting */
-    event_watcher_t(this),
     root_view(boost::make_shared<root_view_t>(this)),
     metadata(initial_metadata),
+    event_watcher(
+        boost::bind(&metadata_cluster_t<metadata_t>::on_connect, this, _1),
+        boost::bind(&metadata_cluster_t<metadata_t>::on_disconnect, this, _1)),
     ping_id_counter(0)
-    { }
+{
+    connectivity_cluster_t::peers_list_freeze_t freeze(this);
+    rassert(get_everybody().size() == 1);
+    event_watcher.reset(this, &freeze);
+}
 
 template<class metadata_t>
 metadata_cluster_t<metadata_t>::~metadata_cluster_t() {

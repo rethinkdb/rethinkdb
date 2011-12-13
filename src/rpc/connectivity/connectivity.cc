@@ -15,67 +15,34 @@
 #include "concurrency/pmap.hpp"
 #include "do_on_thread.hpp"
 
-/* event_watcher_t */
+connectivity_cluster_t::peers_list_freeze_t::peers_list_freeze_t(connectivity_cluster_t *cluster) :
+    acq(&cluster->thread_info.get()->lock) { }
 
-event_watcher_t::event_watcher_t(connectivity_cluster_t *parent) :
-    cluster(parent)
-{
-    cluster->assert_thread();
-    mutex_t::acq_t acq(&cluster->watchers_mutexes_by_thread[get_thread_id()]);
-    cluster->watchers_by_thread[get_thread_id()].push_back(this);
+void connectivity_cluster_t::peers_list_freeze_t::assert_is_holding(connectivity_cluster_t *cluster) {
+    acq.assert_is_holding(&cluster->thread_info.get()->lock);
 }
 
-event_watcher_t::~event_watcher_t() {
-    cluster->assert_thread();
-    mutex_t::acq_t acq(&cluster->watchers_mutexes_by_thread[get_thread_id()]);
-    cluster->watchers_by_thread[get_thread_id()].remove(this);
+connectivity_cluster_t::peers_list_subscription_t::peers_list_subscription_t(
+        const boost::function<void(peer_id_t)> &on_connect,
+        const boost::function<void(peer_id_t)> &on_disconnect) :
+    subs(std::make_pair(on_connect, on_disconnect)) { }
+
+connectivity_cluster_t::peers_list_subscription_t::peers_list_subscription_t(
+        const boost::function<void(peer_id_t)> &on_connect,
+        const boost::function<void(peer_id_t)> &on_disconnect,
+        connectivity_cluster_t *cluster, peers_list_freeze_t *proof) :
+    subs(std::make_pair(on_connect, on_disconnect)) {
+    reset(cluster, proof);
 }
 
-/* connect_watcher_t */
-
-connect_watcher_t::connect_watcher_t(connectivity_cluster_t *parent, peer_id_t peer) :
-    event_watcher_t(parent), peer(peer)
-{
-    rassert(!peer.is_nil());
-    std::map<peer_id_t, peer_address_t> everybody = parent->get_everybody();
-    if (everybody.find(peer) != everybody.end()) {
-        pulse();
-    }
+void connectivity_cluster_t::peers_list_subscription_t::reset() {
+    subs.reset();
 }
 
-void connect_watcher_t::on_connect(peer_id_t p) {
-    if (peer == p && !is_pulsed()) {
-        pulse();
-    }
+void connectivity_cluster_t::peers_list_subscription_t::reset(connectivity_cluster_t *cluster, peers_list_freeze_t *proof) {
+    proof->assert_is_holding(cluster);
+    subs.reset(cluster->thread_info.get()->publisher.get_publisher());
 }
-
-void connect_watcher_t::on_disconnect(peer_id_t) {
-    // Ignore this event
-}
-
-/* disconnect_watcher_t */
-
-disconnect_watcher_t::disconnect_watcher_t(connectivity_cluster_t *parent, peer_id_t peer) :
-    event_watcher_t(parent), peer(peer)
-{
-    rassert(!peer.is_nil());
-    std::map<peer_id_t, peer_address_t> everybody = parent->get_everybody();
-    if (everybody.find(peer) == everybody.end()) {
-        pulse();
-    }
-}
-
-void disconnect_watcher_t::on_connect(peer_id_t) {
-    // Ignore this event
-}
-
-void disconnect_watcher_t::on_disconnect(peer_id_t p) {
-    if (peer == p && !is_pulsed()) {
-        pulse();
-    }
-}
-
-/* connectivity_cluster_t */
 
 void connectivity_cluster_t::join(peer_address_t address) {
     assert_thread();
@@ -98,13 +65,13 @@ std::map<peer_id_t, peer_address_t> connectivity_cluster_t::get_everybody() {
     some partially-connected peers, so if we just returned `routing_table` then
     some peers would appear in the output from `get_everybody()` before the
     `on_connect()` event was sent out or after the `on_disconnect()` event was
-    sent out. */
-    const std::map<peer_id_t, connection_t *>& connections = connection_maps_by_thread[get_thread_id()];
-
+    sent out. Also, `routing_table` can only be safely accessed from the home
+    thread. */
+    std::map<peer_id_t, connection_t *> *connection_map = &thread_info.get()->connection_map;
     std::map<peer_id_t, peer_address_t> peers;
     peers[me] = me_address;
-    for (std::map<peer_id_t, connection_t*>::const_iterator it = connections.begin();
-            it != connections.end(); it++) {
+    for (std::map<peer_id_t, connection_t*>::const_iterator it = connection_map->begin();
+            it != connection_map->end(); it++) {
         peers[it->first] = it->second->address;
     }
     return peers;
@@ -113,10 +80,7 @@ std::map<peer_id_t, peer_address_t> connectivity_cluster_t::get_everybody() {
 connectivity_cluster_t::connectivity_cluster_t(const boost::function<void(peer_id_t, std::istream &, const boost::function<void()> &)> &cb, int port) :
     on_message(cb),
     me(peer_id_t(generate_uuid())),
-    me_address(ip_address_t::us(), port),
-    connection_maps_by_thread(get_num_threads()),
-    watchers_by_thread(new intrusive_list_t<event_watcher_t>[get_num_threads()]),
-    watchers_mutexes_by_thread(new mutex_t[get_num_threads()])
+    me_address(ip_address_t::us(), port)
 {
     /* Put ourselves in the routing table */
     routing_table[me] = me_address;
@@ -172,10 +136,10 @@ void connectivity_cluster_t::send_message(peer_id_t dest, const boost::function<
         pulse_when_done_reading.wait();
 
     } else {
-        const std::map<peer_id_t, connection_t *>& connections = connection_maps_by_thread[get_thread_id()];
+        std::map<peer_id_t, connection_t *> *connection_map = &thread_info.get()->connection_map;
 
-        std::map<peer_id_t, connection_t *>::const_iterator it = connections.find(dest);
-        if (it == connections.end()) {
+        std::map<peer_id_t, connection_t *>::const_iterator it = connection_map->find(dest);
+        if (it == connection_map->end()) {
             /* We don't currently have access to this peer. Our policy is to not
             notify the sender when a message cannot be transmitted (since this
             is not always possible). So just return. */
@@ -208,15 +172,12 @@ void connectivity_cluster_t::send_message(peer_id_t dest, const boost::function<
 }
 
 #ifndef NDEBUG
-void connectivity_cluster_t::assert_connection_thread(peer_id_t peer) const {
+void connectivity_cluster_t::assert_connection_thread(peer_id_t peer) {
     if (peer != me) {
-        const std::map<peer_id_t, connection_t *>& map = connection_maps_by_thread[get_thread_id()];
-
-        std::map<peer_id_t, connection_t *>::const_iterator it = map.find(peer);
-        rassert(it != map.end());
+        std::map<peer_id_t, connection_t *> *connection_map = &thread_info.get()->connection_map;
+        std::map<peer_id_t, connection_t *>::const_iterator it = connection_map->find(peer);
+        rassert(it != connection_map->end());
         rassert(it->second->conn->home_thread() == get_thread_id());
-    } else {
-        assert_thread();
     }
 }
 #endif
@@ -495,14 +456,7 @@ void connectivity_cluster_t::handle(
 
         /* Put ourselves in the connection-map and notify event-watchers that
         the connection is up */
-        {
-#ifndef NDEBUG
-            std::map<peer_id_t, connection_t *>& connections = connection_maps_by_thread[get_thread_id()];
-            rassert(connections.find(other_id) == connections.end());
-#endif
-
-            pmap(get_num_threads(), boost::bind(&connectivity_cluster_t::set_a_connection_entry_and_ping_connection_watchers, this, _1, other_id, &conn_structure));
-        }
+        pmap(get_num_threads(), boost::bind(&connectivity_cluster_t::set_a_connection_entry_and_ping_connection_watchers, this, _1, other_id, &conn_structure));
 
         /* Main message-handling loop: read messages off the connection until
         it's closed, which may be due to network events, or the other end
@@ -565,29 +519,51 @@ void connectivity_cluster_t::handle(
     }
 }
 
+void connectivity_cluster_t::ping_connection_watcher(peer_id_t peer, const std::pair<boost::function<void(peer_id_t)>, boost::function<void(peer_id_t)> > &connect_cb_and_disconnect_cb) {
+    if (connect_cb_and_disconnect_cb.first) {
+        connect_cb_and_disconnect_cb.first(peer);
+    }
+}
+
 void connectivity_cluster_t::set_a_connection_entry_and_ping_connection_watchers(int target_thread, peer_id_t other_id, connection_t *connection) {
     on_thread_t switcher(target_thread);
-    connection_maps_by_thread[target_thread][other_id] = connection;
-
-    mutex_t::acq_t acq(&watchers_mutexes_by_thread[target_thread]);
-
+    thread_info_t *ti = thread_info.get();
     ASSERT_FINITE_CORO_WAITING;
+    mutex_assertion_t::acq_t acq(&ti->lock);
+    rassert(ti->connection_map.find(other_id) == ti->connection_map.end());
+    ti->connection_map[other_id] = connection;
+    ti->publisher.publish(boost::bind(&connectivity_cluster_t::ping_connection_watcher, other_id, _1));
+}
 
-    for (event_watcher_t *w = watchers_by_thread[target_thread].head(); w; w = watchers_by_thread[target_thread].next(w)) {
-        w->on_connect(other_id);
+void connectivity_cluster_t::ping_disconnection_watcher(peer_id_t peer, const std::pair<boost::function<void(peer_id_t)>, boost::function<void(peer_id_t)> > &connect_cb_and_disconnect_cb) {
+    if (connect_cb_and_disconnect_cb.second) {
+        connect_cb_and_disconnect_cb.second(peer);
     }
 }
 
 void connectivity_cluster_t::erase_a_connection_entry_and_ping_disconnection_watchers(int target_thread, peer_id_t other_id) {
     on_thread_t switcher(target_thread);
-    connection_maps_by_thread[target_thread].erase(other_id);
-
-    mutex_t::acq_t acq(&watchers_mutexes_by_thread[target_thread]);
-
+    thread_info_t *ti = thread_info.get();
     ASSERT_FINITE_CORO_WAITING;
+    mutex_assertion_t::acq_t acq(&ti->lock);
+    ti->connection_map.erase(other_id);
+    ti->publisher.publish(boost::bind(&connectivity_cluster_t::ping_disconnection_watcher, other_id, _1));
+}
 
-    for (event_watcher_t *w = watchers_by_thread[target_thread].head(); w; w = watchers_by_thread[target_thread].next(w)) {
-        w->on_disconnect(other_id);
+disconnect_watcher_t::disconnect_watcher_t(connectivity_cluster_t *cluster, peer_id_t p) :
+    subs(0, boost::bind(&disconnect_watcher_t::on_disconnect, this, _1)), peer(p) {
+    connectivity_cluster_t::peers_list_freeze_t freeze(cluster);
+    if (cluster->get_everybody().count(peer) == 0) {
+        pulse();
+    } else {
+        subs.reset(cluster, &freeze);
     }
 }
 
+void disconnect_watcher_t::on_disconnect(peer_id_t p) {
+    if (peer == p) {
+        if (!is_pulsed()) {
+            pulse();
+        }
+    }
+}

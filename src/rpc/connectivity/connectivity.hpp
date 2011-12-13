@@ -17,9 +17,10 @@
 
 #include "arch/streamed_tcp.hpp"
 #include "arch/address.hpp"
-#include "concurrency/signal.hpp"
-#include "concurrency/mutex.hpp"
 #include "concurrency/auto_drainer.hpp"
+#include "concurrency/one_per_thread.hpp"
+#include "concurrency/mutex.hpp"
+#include "concurrency/signal.hpp"
 
 struct peer_address_t {
     peer_address_t(ip_address_t i, int p) : ip(i), port(p) { }
@@ -78,41 +79,43 @@ inline std::ostream &operator<<(std::ostream &stream, peer_id_t id) {
     return stream << id.uuid;
 }
 
-/* `event_watcher_t` is used to watch for any node joining or leaving the
-cluster. `connect_watcher_t` and `disconnect_watcher_t` are used to watch for a
-specific peer connecting or disconnecting. */
-
-struct connectivity_cluster_t;
-
-struct event_watcher_t : public intrusive_list_node_t<event_watcher_t> {
-    explicit event_watcher_t(connectivity_cluster_t *);
-    virtual ~event_watcher_t();
-    virtual void on_connect(peer_id_t) = 0;
-    virtual void on_disconnect(peer_id_t) = 0;
-private:
-    connectivity_cluster_t *cluster;
-};
-
-struct connect_watcher_t : public signal_t, private event_watcher_t {
-    connect_watcher_t(connectivity_cluster_t *, peer_id_t);
-private:
-    void on_connect(peer_id_t);
-    void on_disconnect(peer_id_t);
-    peer_id_t peer;
-};
-
-struct disconnect_watcher_t : public signal_t, private event_watcher_t {
-    disconnect_watcher_t(connectivity_cluster_t *, peer_id_t);
-private:
-    void on_connect(peer_id_t);
-    void on_disconnect(peer_id_t);
-    peer_id_t peer;
-};
-
-struct connectivity_cluster_t :
+class connectivity_cluster_t :
     public home_thread_mixin_t
 {
 public:
+    /* While a `peers_list_freeze_t` exists, no connect or disconnect events
+    will be delivered. This is so that you can check the status of a peer or
+    peers and construct a `connectivity_subscription_t` atomically, without
+    worrying about whether there was a connection or disconnection in between.
+    Don't block while holding a `peers_list_freeze_t`. */
+    class peers_list_freeze_t {
+    public:
+        peers_list_freeze_t(connectivity_cluster_t *);
+        void assert_is_holding(connectivity_cluster_t *);
+    private:
+        mutex_assertion_t::acq_t acq;
+    };
+
+    /* `peers_list_subscription_t` will call the given functions when a peer
+    connects or disconnects. */
+    class peers_list_subscription_t {
+    public:
+        peers_list_subscription_t(
+                const boost::function<void(peer_id_t)> &on_connect,
+                const boost::function<void(peer_id_t)> &on_disconnect);
+        peers_list_subscription_t(
+                const boost::function<void(peer_id_t)> &on_connect,
+                const boost::function<void(peer_id_t)> &on_disconnect,
+                connectivity_cluster_t *, peers_list_freeze_t *proof);
+        void reset();
+        void reset(connectivity_cluster_t *, peers_list_freeze_t *proof);
+    private:
+        publisher_t<std::pair<
+                boost::function<void(peer_id_t)>,
+                boost::function<void(peer_id_t)>
+                > >::subscription_t subs;
+    };
+
     connectivity_cluster_t(
         const boost::function<void(peer_id_t, std::istream &, const boost::function<void()> &)> &on_message,
         int port);
@@ -139,12 +142,36 @@ public:
     void send_message(peer_id_t, const boost::function<void(std::ostream &)> &);
 
 #ifndef NDEBUG
-    void assert_connection_thread(peer_id_t peer) const;
+    void assert_connection_thread(peer_id_t peer);
 #else
-    void assert_connection_thread(UNUSED peer_id_t peer) const { }
+    void assert_connection_thread(UNUSED peer_id_t peer) { }
 #endif  // ndef NDEBUG
 
 private:
+    class connection_t {
+    public:
+        streamed_tcp_conn_t *conn;
+        /* `connection_t` contains a `peer_address_t` so that we can call
+        `get_everybody()` on any thread. Otherwise, we would have to go
+        cross-thread to access the routing table. */
+        peer_address_t address;
+        mutex_t send_mutex;
+    };
+
+    class thread_info_t {
+    public:
+        /* `thread_info->connection_map` holds open connections to other peers.
+        It's the same on every thread. It has an entry for every peer that we
+        are fully and officially connected to, not including us.  That means
+        it's a subset of the nodes in `routing_table`.  */
+        std::map<peer_id_t, connection_t *> connection_map;
+        mutex_assertion_t lock;
+        publisher_controller_t<std::pair<
+                boost::function<void(peer_id_t)>,
+                boost::function<void(peer_id_t)>
+                > > publisher;
+    };
+
     /* We listen for new connections from other peers. (The reason `listener` is
     in a `boost::scoped_ptr` is so that we can stop listening at the beginning
     of our destructor.) */
@@ -180,38 +207,33 @@ private:
     const peer_address_t me_address;
     std::map<peer_id_t, peer_address_t> routing_table;
 
-    /* connections holds open connections to other peers. It has an
-    entry for every peer that we are fully and officially connected
-    to, not including us.  That means it's a subset of the nodes in
-    routing_table.  Also it's a subset of all the information in
-    routing_table, since it contains a peer_address_t. */
-    struct connection_t {
-        streamed_tcp_conn_t *conn;
-        peer_address_t address;
-        mutex_t send_mutex;
-    };
-    std::vector< std::map<peer_id_t, connection_t *> > connection_maps_by_thread;
+    one_per_thread_t<thread_info_t> thread_info;
 
-
+    static void ping_connection_watcher(peer_id_t peer, const std::pair<boost::function<void(peer_id_t)>, boost::function<void(peer_id_t)> > &connect_cb_and_disconnect_cb);
     void set_a_connection_entry_and_ping_connection_watchers(int target_thread, peer_id_t other_id, connection_t *connection);
+    static void ping_disconnection_watcher(peer_id_t peer, const std::pair<boost::function<void(peer_id_t)>, boost::function<void(peer_id_t)> > &connect_cb_and_disconnect_cb);
     void erase_a_connection_entry_and_ping_disconnection_watchers(int target_thread, peer_id_t other_id);
 
     /* Writes to `routing_table` and `connections` are protected by this mutex
     so we never get redundant connections to the same peer. */
     mutex_t new_connection_mutex;
 
-    /* List of everybody watching for connectivity events. `watchers_mutex` is
-    so nobody updates `watchers` while we're iterating over it. */
-    friend class event_watcher_t;
-    boost::scoped_array<intrusive_list_t<event_watcher_t> > watchers_by_thread;
-    boost::scoped_array<mutex_t> watchers_mutexes_by_thread;
-
-    /* This makes sure all the connections are dead before we shut down */
-    auto_drainer_t drainer;
-
     rng_t rng;
 
+    /* This makes sure all the connections are dead before we shut down. It must
+    be the last thing so that none of our other member variables get destroyed
+    before its destructor returns. */
+    auto_drainer_t drainer;
+
     DISABLE_COPYING(connectivity_cluster_t);
+};
+
+struct disconnect_watcher_t : public signal_t {
+    disconnect_watcher_t(connectivity_cluster_t *, peer_id_t);
+private:
+    void on_disconnect(peer_id_t);
+    connectivity_cluster_t::peers_list_subscription_t subs;
+    peer_id_t peer;
 };
 
 #endif /* __RPC_CONNECTIVITY_CONNECTIVITY_HPP__ */
