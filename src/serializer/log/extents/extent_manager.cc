@@ -140,17 +140,16 @@ extent_manager_t::extent_manager_t(direct_file_t *file, log_serializer_static_co
         which is determined by a configuration parameter. */
         size_t zone_size = ceil_aligned(dynamic_config->file_zone_size, extent_size);
         off64_t end = 0;
-        num_zones = 0;
         while (end != floor_aligned((off64_t)file->get_size(), extent_size)) {
             off64_t start = end;
             end = std::min(start + zone_size, floor_aligned(file->get_size(), extent_size));
-            zones[num_zones++] = new extent_zone_t(start, end, extent_size);
+            zones.push_back(new extent_zone_t(start, end, extent_size));
         }
     } else {
         /* On an ordinary file on disk, make one "zone" that is large enough to encompass
         any file. */
-        zones[0] = new extent_zone_t(0, TERABYTE * 1024, extent_size);
-        num_zones = 1;
+        guarantee(zones.size() == 0);
+        zones.push_back(new extent_zone_t(0, TERABYTE * 1024, extent_size));
     }
     
     next_zone = 0;
@@ -158,10 +157,6 @@ extent_manager_t::extent_manager_t(direct_file_t *file, log_serializer_static_co
 
 extent_manager_t::~extent_manager_t() {
     rassert(state == state_reserving_extents || state == state_shut_down);
-    
-    for (unsigned int i = 0; i < num_zones; i++) {
-        delete zones[i];
-    }
 }
 
 void extent_manager_t::reserve_extent(off64_t extent) {
@@ -184,8 +179,10 @@ void extent_manager_t::start_existing(UNUSED metablock_mixin_t *last_metablock) 
 
     rassert(state == state_reserving_extents);
     current_transaction = NULL;
-    for (unsigned int i = 0; i < num_zones; i++) {
-        zones[i]->reconstruct_free_list();
+    for (boost::ptr_vector<extent_zone_t>::iterator it  = zones.begin(); 
+                                                      it != zones.end(); 
+                                                      it++) {
+        it->reconstruct_free_list();
     }
     state = state_running;
 
@@ -249,8 +246,8 @@ off64_t extent_manager_t::gen_extent() {
     int first_zone = next_zone;
     for (;;) {   /* Loop looking for a zone with a free extent */
         
-        extent = zones[next_zone]->gen_extent();
-        next_zone = (next_zone+1) % num_zones;
+        extent = zones[next_zone].gen_extent();
+        next_zone = (next_zone+1) % zones.size();
         
         if (extent != NULL_OFFSET) break;
         
@@ -299,7 +296,11 @@ void extent_manager_t::commit_transaction(transaction_t *t) {
 
 int extent_manager_t::held_extents() {
     int total = 0;
-    for (unsigned int i = 0; i < num_zones; i++)
-        total += zones[i]->held_extents();
+
+    for (boost::ptr_vector<extent_zone_t>::iterator it  = zones.begin(); 
+                                                    it != zones.end(); 
+                                                    it++) {
+        total += it->held_extents();
+    }
     return total;
 }
