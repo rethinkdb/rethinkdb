@@ -149,26 +149,24 @@ void mock_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num
 }
 
 mock_transaction_t::mock_transaction_t(mock_cache_t *_cache, access_t _access, UNUSED int expected_change_count, repli_timestamp_t _recency_timestamp)
-    : cache(_cache), order_token(order_token_t::ignore), access(_access), recency_timestamp(_recency_timestamp) {
+    : cache(_cache), order_token(order_token_t::ignore), access(_access), recency_timestamp(_recency_timestamp),
+      keepalive(_cache->transaction_counter.get()) {
     coro_fifo_acq_t fifo_acq;
     fifo_acq.enter(&cache->transaction_constructor_coro_fifo_);
 
-    cache->transaction_counter.acquire();
     if (access == rwi_write) nap(5);   // TODO: Nap for a random amount of time.
 }
 
 mock_transaction_t::mock_transaction_t(mock_cache_t *_cache, access_t _access)
-    : cache(_cache), order_token(order_token_t::ignore), access(_access) {
+    : cache(_cache), order_token(order_token_t::ignore), access(_access),
+      keepalive(_cache->transaction_counter.get()) {
     coro_fifo_acq_t fifo_acq;
     fifo_acq.enter(&cache->transaction_constructor_coro_fifo_);
-
-    cache->transaction_counter.acquire();
 }
 
 mock_transaction_t::~mock_transaction_t() {
     assert_thread();
     if (access == rwi_write) nap(5);   // TODO: Nap for a random amount of time.
-    cache->transaction_counter.release();
 }
 
 /* Cache */
@@ -193,7 +191,8 @@ void mock_cache_t::create(serializer_t *serializer, UNUSED mirrored_cache_static
 // dynamic_config is unused because this is a mock cache and the
 // configuration parameters don't apply.
 mock_cache_t::mock_cache_t( serializer_t *_serializer, UNUSED mirrored_cache_config_t *dynamic_config)
-    : serializer(_serializer), block_size(_serializer->get_block_size()) {
+    : serializer(_serializer), transaction_counter(new auto_drainer_t),
+      block_size(_serializer->get_block_size()) {
 
     on_thread_t switcher(serializer->home_thread());
 
@@ -221,7 +220,7 @@ struct mock_cb_t : public iocallback_t, public cond_t {
 
 mock_cache_t::~mock_cache_t() {
     /* Wait for all transactions to complete */
-    transaction_counter.drain();
+    transaction_counter.reset();
 
     {
         on_thread_t thread_switcher(serializer->home_thread());
