@@ -2,14 +2,15 @@
 #define __BUFFER_CACHE_MOCK_HPP__
 
 #include "errors.hpp"
+#include <boost/scoped_ptr.hpp>
 #include <boost/shared_ptr.hpp>
 
 #include "buffer_cache/buf_patch.hpp"
 #include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
+#include "concurrency/auto_drainer.hpp"
 #include "concurrency/coro_fifo.hpp"
-#include "concurrency/drain_semaphore.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "containers/segmented_vector.hpp"
@@ -88,6 +89,7 @@ private:
     access_t access;
     int n_bufs;
     repli_timestamp_t recency_timestamp;
+    auto_drainer_t::lock_t keepalive;
 };
 
 /* Cache */
@@ -125,7 +127,7 @@ private:
     friend class internal_buf_t;
 
     serializer_t *serializer;
-    drain_semaphore_t transaction_counter;
+    boost::scoped_ptr<auto_drainer_t> transaction_counter;
     block_size_t block_size;
 
     // Makes sure that write operations do not get reordered, which

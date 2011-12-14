@@ -22,12 +22,14 @@ class Builder(Thread):
         finally:
             semaphore.release()
 
+target_names = ["suse", "redhat5_1", "ubuntu", "debian", "centos5_5"]
+
 def help():
     print >>sys.stderr, "Virtual builder:"
     print >>sys.stderr, "     --help      Print this help."
     print >>sys.stderr, "     --target target1 [target2, target3]"
     print >>sys.stderr, "                 Build just one target, options are:"
-    print >>sys.stderr, "                 ", targets.keys()
+    print >>sys.stderr, "                 ", target_names
     print >>sys.stderr, "                 defaults to all of them."
     print >>sys.stderr, "     --branch branch_name"
     print >>sys.stderr, "                 Build from a branch mutually exclusive with --tag."
@@ -35,29 +37,23 @@ def help():
     print >>sys.stderr, "                 Build from a tag mutually exclusive with --branch."
     print >>sys.stderr, "     --threads number"
     print >>sys.stderr, "                 The number of parallel threads to run."
+    print >>sys.stderr, "     --debug"
+    print >>sys.stderr, "                 Whether to build the packages with debugging enabled."
     print >>sys.stderr, "     --interact"
     print >>sys.stderr, "                 This starts a target so that you can interact with it."
     print >>sys.stderr, "                 Requires a target."
     print >>sys.stderr, "     --clean-up"
     print >>sys.stderr, "                 Shutdown all running vms"
 
-
-suse = vm_build.target('12c1cf78-5dc5-4baa-8e93-ac6fdd1ebf1f', '192.168.0.173', 'rethinkdb', 'LANG=C make LEGACY_LINUX=1 LEGACY_GCC=1 NO_EVENTFD=1 DEBUG=0 rpm-suse10', 'rpm', vm_build.rpm_install, vm_build.rpm_uninstall, vm_build.rpm_get_binary)
-redhat5_1 = vm_build.target('5eaf8089-9ae4-4493-81fc-a885dc8e08ff', '192.168.0.159', 'rethinkdb', 'LANG=C make rpm DEBUG=0 LEGACY_GCC=1 LEGACY_LINUX=1 NO_EVENTFD=1', 'rpm', vm_build.rpm_install, vm_build.rpm_uninstall, vm_build.rpm_get_binary)
-ubuntu = vm_build.target('b555d9f6-441f-4b00-986f-b94286d122e9', '192.168.0.172', 'rethinkdb', 'LANG=C make deb DEBUG=0', 'deb', vm_build.deb_install, vm_build.deb_uninstall, vm_build.deb_get_binary)
-debian = vm_build.target('3ba1350e-eda8-4166-90c1-714be0960724', '192.168.0.176', 'root', 'LANG=C make deb DEBUG=0 NO_EVENTFD=1 LEGACY_LINUX=1', 'deb', vm_build.deb_install, vm_build.deb_uninstall, vm_build.deb_get_binary)
-centos5_5 = vm_build.target('46c6b842-b4ac-4cd6-9eae-fe98a7246ca9', '192.168.0.177', 'root', 'LANG=C make rpm DEBUG=0 LEGACY_GCC=1 LEGACY_LINUX=1', 'rpm', vm_build.rpm_install, vm_build.rpm_uninstall, vm_build.rpm_get_binary)
-
-targets = {"suse" : suse, "redhat5_1" : redhat5_1, "ubuntu" : ubuntu, "debian" : debian, "centos5_5" : centos5_5}
-
 o = OptParser()
 o["help"] = BoolFlag("--help")
 o["target"] = StringFlag("--target", None)
-o["branch"] = StringFlag("--branch", "master")
+o["branch"] = StringFlag("--branch", None)
 o["tag"] = StringFlag("--tag", None)
 o["threads"] = IntFlag("--threads", 3)
 o["clean-up"] = BoolFlag("--clean-up")
 o["interact"] = BoolFlag("--interact")
+o["debug"] = BoolFlag("--debug");
 
 
 try:
@@ -81,7 +77,23 @@ if opts["branch"]:
 elif opts["tag"]:
     rspec = vm_build.Tag(opts["tag"])
 else:
-    rspec = Branch("master")
+    rspec = vm_build.Branch("master")
+
+#Prepare the build flags
+flags = "" #this will be given to the makefile
+if opts["debug"]:
+    flags += "DEBUG=1 UNIT_TESTS=0"
+else:
+    flags += "DEBUG=0"
+
+
+suse = vm_build.target('12c1cf78-5dc5-4baa-8e93-ac6fdd1ebf1f', '192.168.0.173', 'rethinkdb', 'LANG=C make LEGACY_LINUX=1 LEGACY_GCC=1 NO_EVENTFD=1 rpm-suse10 ' + flags, 'rpm', vm_build.rpm_install, vm_build.rpm_uninstall, vm_build.rpm_get_binary)
+redhat5_1 = vm_build.target('5eaf8089-9ae4-4493-81fc-a885dc8e08ff', '192.168.0.159', 'rethinkdb', 'LANG=C make rpm LEGACY_GCC=1 LEGACY_LINUX=1 NO_EVENTFD=1 ' + flags, 'rpm', vm_build.rpm_install, vm_build.rpm_uninstall, vm_build.rpm_get_binary)
+ubuntu = vm_build.target('b555d9f6-441f-4b00-986f-b94286d122e9', '192.168.0.172', 'rethinkdb', 'LANG=C make deb' + flags, 'deb', vm_build.deb_install, vm_build.deb_uninstall, vm_build.deb_get_binary)
+debian = vm_build.target('3ba1350e-eda8-4166-90c1-714be0960724', '192.168.0.176', 'root', 'LANG=C make deb NO_EVENTFD=1 LEGACY_LINUX=1 ' + flags, 'deb', vm_build.deb_install, vm_build.deb_uninstall, vm_build.deb_get_binary)
+centos5_5 = vm_build.target('46c6b842-b4ac-4cd6-9eae-fe98a7246ca9', '192.168.0.177', 'root', 'LANG=C make rpm LEGACY_GCC=1 LEGACY_LINUX=1 ' + flags, 'rpm', vm_build.rpm_install, vm_build.rpm_uninstall, vm_build.rpm_get_binary)
+
+targets = {"suse" : suse, "redhat5_1" : redhat5_1, "ubuntu" : ubuntu, "debian" : debian, "centos5_5" : centos5_5}
 
 if (opts["target"]):
     targets = {opts["target"] : targets[opts["target"]]}

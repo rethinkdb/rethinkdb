@@ -28,7 +28,7 @@ public:
         selector(0),
         batch_factor(_batch_factor) {
 
-	rassert(batch_factor > 0);
+        rassert(batch_factor > 0);
     }
 
     ~accounting_queue_t() {
@@ -36,31 +36,29 @@ public:
         rassert(inactive_accounts.empty());
     }
 
-
     class account_t :
         public intrusive_list_node_t<account_t>
     {
-	struct calls_on_availability_changed_t {
-	    account_t *parent_;
-	    explicit calls_on_availability_changed_t(account_t *parent) : parent_(parent) { }
-	    void operator()() { parent_->on_availability_changed(); }
-	};
+        struct calls_on_availability_changed_t {
+            account_t *parent_;
+            explicit calls_on_availability_changed_t(account_t *parent) : parent_(parent) { }
+            void operator()() { parent_->on_availability_changed(); }
+        };
 
     public:
         account_t(accounting_queue_t *p, passive_producer_t<value_t> *s, int _shares)
-	    : parent(p), source(s), shares(_shares), active(false) {
-            on_thread_t thread_switcher(parent->home_thread());
+            : parent(p), source(s), shares(_shares), active(false) {
+            parent->assert_thread();
             rassert(shares > 0);
             if (source->available->get()) {
-		activate();
-	    } else {
-		parent->inactive_accounts.push_back(this);
-	    }
+                activate();
+            } else {
+                parent->inactive_accounts.push_back(this);
+            }
             source->available->set_callback(calls_on_availability_changed_t(this));
             parent->available_control.set_available(!parent->active_accounts.empty());
         }
         ~account_t() {
-            on_thread_t thread_switcher(parent->home_thread());
             parent->assert_thread();
             source->available->unset_callback();
             if (active) {
