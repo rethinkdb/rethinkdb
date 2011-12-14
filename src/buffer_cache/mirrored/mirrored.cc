@@ -1044,7 +1044,7 @@ void mc_transaction_t::set_account(const boost::shared_ptr<mc_cache_account_t>& 
 }
 
 file_account_t *mc_transaction_t::get_io_account() const {
-    return (cache_account_.get() == NULL ? cache->reads_io_account.get() : cache_account_->io_account_.get());
+    return (cache_account_.get() == NULL ? cache->reads_io_account.get() : cache_account_->io_account_);
 }
 
 void get_subtree_recencies_helper(int slice_home_thread, serializer_t *serializer, block_id_t *block_ids, size_t num_block_ids, repli_timestamp_t *recencies_out, get_subtree_recencies_callback_t *cb) {
@@ -1081,6 +1081,13 @@ void mc_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num_b
     }
 }
 
+mc_cache_account_t::mc_cache_account_t(int thread, file_account_t *io_account)
+    : thread_(thread), io_account_(io_account) { }
+
+mc_cache_account_t::~mc_cache_account_t() {
+    on_thread_t thread_switcher(thread_);
+    delete io_account_;
+}
 
 /**
  * Cache implementation.
@@ -1112,8 +1119,6 @@ mc_cache_t::mc_cache_t(
 
     dynamic_config(*dynamic_config),
     serializer(_serializer),
-    reads_io_account(_serializer->make_io_account(dynamic_config->io_priority_reads)),
-    writes_io_account(_serializer->make_io_account(dynamic_config->io_priority_writes)),
     page_repl(
         // Launch page replacement if the user-specified maximum number of blocks is reached
         dynamic_config->max_size / _serializer->get_block_size().ser_value(),
@@ -1134,6 +1139,12 @@ mc_cache_t::mc_cache_t(
     max_patches_size_ratio((dynamic_config->wait_for_flush || dynamic_config->flush_timer_ms == 0) ? MAX_PATCHES_SIZE_RATIO_DURABILITY : MAX_PATCHES_SIZE_RATIO_MIN),
     read_ahead_registered(false),
     next_snapshot_version(mc_inner_buf_t::faux_version_id+1) {
+
+    {
+        on_thread_t thread_switcher(serializer->home_thread());
+        reads_io_account.reset(serializer->make_io_account(dynamic_config->io_priority_reads));
+        writes_io_account.reset(serializer->make_io_account(dynamic_config->io_priority_writes));
+    }
 
 #ifndef NDEBUG
     writebacks_allowed = false;
@@ -1194,6 +1205,13 @@ mc_cache_t::~mc_cache_t() {
     while (evictable_t *buf = page_repl.get_first_buf()) {
         // TODO (rntz) check that buf is actually a mc_inner_buf_t
         delete buf;
+    }
+
+    {
+        /* IO accounts must be destroyed on the thread they were created on */
+        on_thread_t thread_switcher(serializer->home_thread());
+        reads_io_account.reset();
+        writes_io_account.reset();
     }
 }
 
@@ -1269,9 +1287,13 @@ boost::shared_ptr<mc_cache_account_t> mc_cache_t::create_account(int priority) {
     // TODO: This is a heuristic. While it might not be evil, it's not really optimal either.
     int outstanding_requests_limit = std::max(1, 16 * priority / 100);
 
-    boost::shared_ptr<file_account_t> io_account(serializer->make_io_account(io_priority, outstanding_requests_limit));
+    file_account_t *io_account;
+    {
+        on_thread_t thread_switcher(serializer->home_thread());
+        io_account = serializer->make_io_account(io_priority, outstanding_requests_limit);
+    }
 
-    return boost::shared_ptr<cache_account_t>(new cache_account_t(io_account));
+    return boost::shared_ptr<cache_account_t>(new cache_account_t(serializer->home_thread(), io_account));
 }
 
 void mc_cache_t::on_transaction_commit(transaction_t *txn) {

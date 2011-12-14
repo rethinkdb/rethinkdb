@@ -5,6 +5,7 @@
 #include "arch/arch.hpp"
 
 file_account_t *serializer_t::make_io_account(int priority) {
+    assert_thread();
     return make_io_account(priority, UNLIMITED_OUTSTANDING_REQUESTS);
 }
 
