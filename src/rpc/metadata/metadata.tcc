@@ -16,7 +16,7 @@ metadata_cluster_t<metadata_t>::metadata_cluster_t(int port, const metadata_t &i
         boost::bind(&metadata_cluster_t<metadata_t>::on_disconnect, this, _1)),
     ping_id_counter(0)
 {
-    connectivity_cluster_t::peers_list_freeze_t freeze(this);
+    connectivity_service_t::peers_list_freeze_t freeze(this);
     rassert(get_peers_list().size() == 1);
     event_watcher.reset(this, &freeze);
 }

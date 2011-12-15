@@ -64,7 +64,7 @@ private:
     void on_connect(peer_id_t);
     void on_disconnect(peer_id_t);
 
-    connectivity_cluster_t::peers_list_subscription_t event_watcher;
+    connectivity_service_t::peers_list_subscription_t event_watcher;
 
     int ping_id_counter;
     std::map<int, cond_t *> ping_waiters;

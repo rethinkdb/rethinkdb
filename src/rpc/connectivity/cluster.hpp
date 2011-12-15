@@ -10,7 +10,7 @@
 #include "rpc/connectivity/connectivity.hpp"
 
 class connectivity_cluster_t :
-    public connectivity_t,
+    public connectivity_service_t,
     public home_thread_mixin_t
 {
 public:
@@ -91,7 +91,7 @@ private:
     static void ping_disconnection_watcher(peer_id_t peer, const std::pair<boost::function<void(peer_id_t)>, boost::function<void(peer_id_t)> > &connect_cb_and_disconnect_cb);
     void erase_a_connection_entry_and_ping_disconnection_watchers(int target_thread, peer_id_t other_id);
 
-    /* `connectivity_t` methods */
+    /* `connectivity_service_t` methods */
     mutex_assertion_t *get_peers_list_lock();
     publisher_t<std::pair<
             boost::function<void(peer_id_t)>,

@@ -76,14 +76,15 @@ inline std::ostream &operator<<(std::ostream &stream, peer_id_t id) {
     return stream << id.uuid;
 }
 
-/* A `connectivity_t` is an object that keeps track of peers that are connected
-to us. It's an abstract class because there may be multiple types of
+/* A `connectivity_service_t` is an object that keeps track of peers that are
+connected to us. It's an abstract class because there may be multiple types of
 connected-ness between us and other peers. For example, we may be in contact
-with another peer but have not received their directory yet, in which case
-the `(connectivity_t *)&the_connectivity_cluster` will say that we are connected
-but the `(connectivity_t *)&the_directory` will say that we are not. */
+with another peer but have not received their directory yet, in which case the
+`(connectivity_service_t *)&the_connectivity_cluster` will say that we are
+connected but the `(connectivity_service_t *)&the_directory` will say that we
+are not. */
 
-class connectivity_t {
+class connectivity_service_t {
 public:
     /* While a `peers_list_freeze_t` exists, no connect or disconnect events
     will be delivered. This is so that you can check the status of a peer or
@@ -92,8 +93,8 @@ public:
     Don't block while holding a `peers_list_freeze_t`. */
     class peers_list_freeze_t {
     public:
-        peers_list_freeze_t(connectivity_t *);
-        void assert_is_holding(connectivity_t *);
+        peers_list_freeze_t(connectivity_service_t *);
+        void assert_is_holding(connectivity_service_t *);
     private:
         mutex_assertion_t::acq_t acq;
     };
@@ -108,9 +109,9 @@ public:
         peers_list_subscription_t(
                 const boost::function<void(peer_id_t)> &on_connect,
                 const boost::function<void(peer_id_t)> &on_disconnect,
-                connectivity_t *, peers_list_freeze_t *proof);
+                connectivity_service_t *, peers_list_freeze_t *proof);
         void reset();
-        void reset(connectivity_t *, peers_list_freeze_t *proof);
+        void reset(connectivity_service_t *, peers_list_freeze_t *proof);
     private:
         publisher_t<std::pair<
                 boost::function<void(peer_id_t)>,
@@ -129,7 +130,7 @@ public:
     }
 
 protected:
-    virtual ~connectivity_t() { }
+    virtual ~connectivity_service_t() { }
 
 private:
     virtual mutex_assertion_t *get_peers_list_lock() = 0;
@@ -141,10 +142,10 @@ private:
 
 class disconnect_watcher_t : public signal_t {
 public:
-    disconnect_watcher_t(connectivity_t *, peer_id_t);
+    disconnect_watcher_t(connectivity_service_t *, peer_id_t);
 private:
     void on_disconnect(peer_id_t);
-    connectivity_t::peers_list_subscription_t subs;
+    connectivity_service_t::peers_list_subscription_t subs;
     peer_id_t peer;
 };
 

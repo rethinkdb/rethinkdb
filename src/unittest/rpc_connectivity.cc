@@ -225,7 +225,7 @@ TEST(RPCConnectivityTest, GetPeersListMultiThread) {
 }
 
 /* `EventWatchers` confirms that `disconnect_watcher_t` and
-`connectivity_cluster_t::peers_list_subscription_t` work properly. */
+`connectivity_service_t::peers_list_subscription_t` work properly. */
 
 void run_event_watchers_test() {
     int port = 10000 + rand() % 20000;
@@ -236,11 +236,11 @@ void run_event_watchers_test() {
 
     /* Make sure `c1` notifies us when `c2` connects */
     cond_t connection_established;
-    connectivity_cluster_t::peers_list_subscription_t subs(
+    connectivity_service_t::peers_list_subscription_t subs(
         boost::bind(&cond_t::pulse, &connection_established),
         NULL);
     {
-        connectivity_cluster_t::peers_list_freeze_t freeze(&c1);
+        connectivity_service_t::peers_list_freeze_t freeze(&c1);
         if (c1.get_peers_list().count(c2->get_me()) == 0) {
             subs.reset(&c1, &freeze);
         } else {
@@ -282,7 +282,7 @@ struct watcher_t {
             boost::bind(&watcher_t::on_connect, this, _1),
             boost::bind(&watcher_t::on_disconnect, this, _1))
     {
-        connectivity_cluster_t::peers_list_freeze_t freeze(cluster);
+        connectivity_service_t::peers_list_freeze_t freeze(cluster);
         event_watcher.reset(cluster, &freeze);
     }
 
@@ -306,7 +306,7 @@ struct watcher_t {
     }
 
     recording_connectivity_cluster_t *cluster;
-    connectivity_cluster_t::peers_list_subscription_t event_watcher;
+    connectivity_service_t::peers_list_subscription_t event_watcher;
 };
 
 void run_event_watcher_ordering_test() {
