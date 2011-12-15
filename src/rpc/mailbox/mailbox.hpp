@@ -1,7 +1,7 @@
 #ifndef __RPC_MAILBOX_MAILBOX_HPP__
 #define __RPC_MAILBOX_MAILBOX_HPP__
 
-#include "rpc/connectivity/connectivity.hpp"
+#include "rpc/connectivity/cluster.hpp"
 
 class mailbox_cluster_t;
 

@@ -79,7 +79,7 @@ void run_metadata_exchange_test() {
     EXPECT_EQ(cluster1.get_root_view()->get().i, 1);
     EXPECT_EQ(cluster2.get_root_view()->get().i, 2);
 
-    cluster1.join(cluster2.get_everybody()[cluster2.get_me()]);
+    cluster1.join(cluster2.get_peer_address(cluster2.get_me()));
 
     /* Block until the connection is established */
     {
@@ -89,7 +89,7 @@ void run_metadata_exchange_test() {
             NULL);
         {
             connectivity_cluster_t::peers_list_freeze_t freeze(&cluster1);
-            if (cluster1.get_everybody().count(cluster2.get_me()) == 0) {
+            if (cluster1.get_peer_connected(cluster2.get_me()) == 0) {
                 subs.reset(&cluster1, &freeze);
             } else {
                 connection_established.pulse();

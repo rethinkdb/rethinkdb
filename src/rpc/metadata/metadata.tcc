@@ -17,7 +17,7 @@ metadata_cluster_t<metadata_t>::metadata_cluster_t(int port, const metadata_t &i
     ping_id_counter(0)
 {
     connectivity_cluster_t::peers_list_freeze_t freeze(this);
-    rassert(get_everybody().size() == 1);
+    rassert(get_peers_list().size() == 1);
     event_watcher.reset(this, &freeze);
 }
 
@@ -58,11 +58,10 @@ void metadata_cluster_t<metadata_t>::root_view_t::join(const metadata_t &added_m
     /* Distribute changes to all peers we can currently see. If we can't
     currently see a peer, that's OK; it will hear about the metadata change when
     it reconnects, via the `metadata_cluster_t`'s `on_connect()` handler. */
-    std::map<peer_id_t, peer_address_t> peers = parent->get_everybody();
-    for (std::map<peer_id_t, peer_address_t>::iterator it = peers.begin(); it != peers.end(); it++) {
-        peer_id_t peer = (*it).first;
-        if (peer != parent->get_me()) {
-            parent->send_utility_message(peer,
+    std::set<peer_id_t> peers = parent->get_peers_list();
+    for (std::set<peer_id_t>::iterator it = peers.begin(); it != peers.end(); it++) {
+        if (*it != parent->get_me()) {
+            parent->send_utility_message(*it,
                 boost::bind(&metadata_cluster_t<metadata_t>::write_metadata, _1, added_metadata));
         }
     }

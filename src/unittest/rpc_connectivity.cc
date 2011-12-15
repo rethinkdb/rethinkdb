@@ -1,7 +1,7 @@
 #include "unittest/gtest.hpp"
 
 #include "unittest_utils.hpp"
-#include "rpc/connectivity/connectivity.hpp"
+#include "rpc/connectivity/cluster.hpp"
 
 namespace unittest {
 
@@ -185,18 +185,17 @@ TEST(RPCConnectivityTest, OrderingMultiThread) {
     run_in_thread_pool(&run_ordering_test, 3);
 }
 
-/* `GetEverybody` confirms that the behavior of `cluster_t::get_everybody()` is
+/* `GetPeersList` confirms that the behavior of `cluster_t::get_peers_list()` is
 correct. */
 
-void run_get_everybody_test() {
+void run_get_peers_list_test() {
     int port = 10000 + rand() % 20000;
     recording_connectivity_cluster_t c1(port);
 
-    /* Make sure `get_everybody()` is initially sane */
-    std::map<peer_id_t, peer_address_t> routing_table_1;
-    routing_table_1 = c1.get_everybody();
-    EXPECT_TRUE(routing_table_1.find(c1.get_me()) != routing_table_1.end());
-    EXPECT_EQ(routing_table_1.size(), 1);
+    /* Make sure `get_peers_list()` is initially sane */
+    std::set<peer_id_t> list_1 = c1.get_peers_list();
+    EXPECT_TRUE(list_1.find(c1.get_me()) != list_1.end());
+    EXPECT_EQ(list_1.size(), 1);
 
     {
         recording_connectivity_cluster_t c2(port+1);
@@ -204,27 +203,25 @@ void run_get_everybody_test() {
 
         let_stuff_happen();
 
-        /* Make sure `get_everybody()` correctly notices that a peer connects */
-        std::map<peer_id_t, peer_address_t> routing_table_2;
-        routing_table_2 = c1.get_everybody();
-        EXPECT_TRUE(routing_table_2.find(c2.get_me()) != routing_table_2.end());
-        EXPECT_EQ(routing_table_2[c2.get_me()].port, port+1);
+        /* Make sure `get_peers_list()` correctly notices that a peer connects */
+        std::set<peer_id_t> list_2 = c1.get_peers_list();
+        EXPECT_TRUE(list_2.find(c2.get_me()) != list_2.end());
+        EXPECT_EQ(port + 1, c1.get_peer_address(c2.get_me()).port);
 
         /* `c2`'s destructor is called here */
     }
 
     let_stuff_happen();
 
-    /* Make sure `get_everybody()` notices that a peer has disconnected */
-    std::map<peer_id_t, peer_address_t> routing_table_3;
-    routing_table_3 = c1.get_everybody();
-    EXPECT_EQ(routing_table_3.size(), 1);
+    /* Make sure `get_peers_list()` notices that a peer has disconnected */
+    std::set<peer_id_t> list_3 = c1.get_peers_list();
+    EXPECT_EQ(list_3.size(), 1);
 }
-TEST(RPCConnectivityTest, GetEverybody) {
-    run_in_thread_pool(&run_get_everybody_test);
+TEST(RPCConnectivityTest, GetPeersList) {
+    run_in_thread_pool(&run_get_peers_list_test);
 }
-TEST(RPCConnectivityTest, GetEverybodyMultiThread) {
-    run_in_thread_pool(&run_get_everybody_test, 3);
+TEST(RPCConnectivityTest, GetPeersListMultiThread) {
+    run_in_thread_pool(&run_get_peers_list_test, 3);
 }
 
 /* `EventWatchers` confirms that `disconnect_watcher_t` and
@@ -244,7 +241,7 @@ void run_event_watchers_test() {
         NULL);
     {
         connectivity_cluster_t::peers_list_freeze_t freeze(&c1);
-        if (c1.get_everybody().count(c2->get_me()) == 0) {
+        if (c1.get_peers_list().count(c2->get_me()) == 0) {
             subs.reset(&c1, &freeze);
         } else {
             connection_established.pulse();
@@ -275,7 +272,7 @@ TEST(RPCConnectivityTest, EventWatchersMultiThread) {
 }
 
 /* `EventWatcherOrdering` confirms that information delivered via event
-notification is consistent with information delivered via `get_everybody()`. */
+notification is consistent with information delivered via `get_peers_list()`. */
 
 struct watcher_t {
 
@@ -292,9 +289,8 @@ struct watcher_t {
     void on_connect(peer_id_t p) {
         /* When we get a connection event, make sure that the peer address
         is present in the routing table */
-        std::map<peer_id_t, peer_address_t> routing_table;
-        routing_table = cluster->get_everybody();
-        EXPECT_TRUE(routing_table.find(p) != routing_table.end());
+        std::set<peer_id_t> list = cluster->get_peers_list();
+        EXPECT_TRUE(list.find(p) != list.end());
 
         /* Make sure messages sent from connection events are delivered
         properly. We must use `coro_t::spawn_now()` because `send_message()`
@@ -305,9 +301,8 @@ struct watcher_t {
     void on_disconnect(peer_id_t p) {
         /* When we get a disconnection event, make sure that the peer
         address is gone from the routing table */
-        std::map<peer_id_t, peer_address_t> routing_table;
-        routing_table = cluster->get_everybody();
-        EXPECT_TRUE(routing_table.find(p) == routing_table.end());
+        std::set<peer_id_t> list = cluster->get_peers_list();
+        EXPECT_TRUE(list.find(p) == list.end());
     }
 
     recording_connectivity_cluster_t *cluster;
@@ -361,7 +356,7 @@ void run_stop_mid_join_test() {
 
     coro_t::yield();
 
-    EXPECT_NE(nodes[1]->get_everybody().size(), num_members) << "This test is "
+    EXPECT_NE(nodes[1]->get_peers_list().size(), num_members) << "This test is "
         "supposed to test what happens when a cluster is interrupted as it "
         "starts up, but the cluster finished starting up before we could "
         "interrupt it.";
@@ -409,7 +404,7 @@ void run_blob_join_test() {
 
     /* Make sure every node sees every other */
     for (int i = 0; i < blob_size*2; i++) {
-        ASSERT_EQ(blob_size * 2, nodes[i]->get_everybody().size());
+        ASSERT_EQ(blob_size * 2, nodes[i]->get_peers_list().size());
     }
 }
 TEST(RPCConnectivityTest, BlobJoin) {
@@ -450,7 +445,7 @@ void run_binary_data_test() {
 
     int port = 10000 + rand() % 20000;
     binary_cluster_t cluster1(port), cluster2(port+1);
-    cluster1.join(cluster2.get_everybody()[cluster2.get_me()]);
+    cluster1.join(cluster2.get_peer_address(cluster2.get_me()));
 
     let_stuff_happen();
 
