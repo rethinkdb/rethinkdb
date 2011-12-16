@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
 #include "utils.hpp"
 
 void report_user_error(const char *msg, ...) {

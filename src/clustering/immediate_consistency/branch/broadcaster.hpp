@@ -22,7 +22,6 @@ very clean. */
 
 template<class protocol_t>
 class broadcaster_t : public home_thread_mixin_t {
-
 public:
     broadcaster_t(
             mailbox_manager_t *mm,
@@ -138,9 +137,7 @@ private:
     /* `incomplete_write_t` represents a write that has been sent to some nodes
     but not completed yet. */
 
-    class incomplete_write_t :
-        public home_thread_mixin_t
-    {
+    class incomplete_write_t : public home_thread_mixin_t {
     public:
         incomplete_write_t(broadcaster_t *p,
                 typename protocol_t::write_t w, transition_timestamp_t ts,
@@ -229,7 +226,6 @@ private:
     connects to us. */
 
     class dispatchee_t : public intrusive_list_node_t<dispatchee_t> {
-
     public:
         dispatchee_t(broadcaster_t *c, listener_business_card_t<protocol_t> d) THROWS_NOTHING;
         ~dispatchee_t() THROWS_NOTHING;

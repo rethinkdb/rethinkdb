@@ -4,6 +4,8 @@
 #include <vector>
 
 #include "memcached/store.hpp"
+#include "memcached/protocol.hpp"
+#include "clustering/immediate_consistency/query/namespace_interface.hpp"
 
 /* `handle_memcache()` handles memcache queries from the given `memcached_interface_t`,
 sending the results to the same `memcached_interface_t`, until either SIGINT is sent to

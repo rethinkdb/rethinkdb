@@ -224,10 +224,13 @@ private:
 // `order_checkpoint_t` is an `order_sink_t` plus an `order_source_t`.
 class order_checkpoint_t : public home_thread_mixin_t {
 public:
+    order_checkpoint_t() { }
 #ifndef NDEBUG
+    explicit order_checkpoint_t(const std::string& tagappend) : tagappend_(tagappend) { }
     void set_tagappend(const std::string& tagappend);
     order_token_t check_through(order_token_t token);
 #else
+    explicit order_checkpoint_t(UNUSED const std::string& tagappend) { }
     void set_tagappend(UNUSED const std::string& tagappend) { }
     order_token_t check_through(UNUSED order_token_t token) { return order_token_t(); }
 #endif  // ndef NDEBUG

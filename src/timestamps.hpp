@@ -15,7 +15,6 @@ one `state_timestamp_t` to the next. Databases have `state_timestamp_t`s, and
 transactions have `transition_timestamp_t`s. */
 
 class state_timestamp_t {
-
 public:
     bool operator==(state_timestamp_t t) const { return num == t.num; }
     bool operator!=(state_timestamp_t t) const { return num != t.num; }
@@ -30,6 +29,13 @@ public:
         return t;
     }
 
+    // TODO get rid of this. This is only for a hack until we know what to do with timestamps
+    repli_timestamp_t to_repli_timestamp() const {
+        repli_timestamp_t ts;
+        ts.time = static_cast<uint32_t>(num);   // FIXME Aaaargh!!! We're losing precision here
+        return ts;
+    }
+
 private:
     friend class transition_timestamp_t;
     friend std::ostream &operator<<(std::ostream &os, state_timestamp_t ts);
@@ -42,7 +48,6 @@ inline std::ostream &operator<<(std::ostream &os, state_timestamp_t ts) {
 }
 
 class transition_timestamp_t {
-
 public:
     bool operator==(transition_timestamp_t t) const { return before == t.before; }
     bool operator!=(transition_timestamp_t t) const { return before != t.before; }
@@ -71,6 +76,11 @@ public:
     // TODO get rid of this. This is only for a hack until we know what to do with timestamps
     uint64_t numeric_representation() {
         return before.num;
+    }
+
+    // TODO get rid of this. This is only for a hack until we know what to do with timestamps
+    repli_timestamp_t to_repli_timestamp() const {
+        return before.to_repli_timestamp();
     }
 
 private:

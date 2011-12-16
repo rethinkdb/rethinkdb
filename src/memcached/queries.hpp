@@ -3,14 +3,18 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <vector>
 
 #include "errors.hpp"
 #include <boost/intrusive_ptr.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/variant.hpp>
+#include <boost/serialization/binary_object.hpp>
 
+#include "btree/keys.hpp"
 #include "config/args.hpp"
 #include "containers/data_buffer.hpp"
+#include "protocol_api.hpp"
 #include "utils.hpp"
 
 typedef uint32_t mcflags_t;
@@ -21,119 +25,12 @@ struct data_buffer_t;
 
 template <typename T> struct one_way_iterator_t;
 
-/* `store_key_t` */
-
-struct store_key_t {
-    uint8_t size;
-    char contents[MAX_KEY_SIZE];
-
-    store_key_t() : size(0) { }
-
-    store_key_t(int sz, const char *buf) {
-        assign(sz, buf);
-    }
-
-    explicit store_key_t(const std::string& s) {
-        assign(s.size(), s.data());
-    }
-
-    void assign(int sz, const char *buf) {
-        rassert(sz <= MAX_KEY_SIZE);
-        size = sz;
-        memcpy(contents, buf, sz);
-    }
-
-    void print() const {
-        printf("%*.*s", size, size, contents);
-    }
-
-    static store_key_t min() {
-        return store_key_t(0, NULL);
-    }
-
-    static store_key_t max() {
-        uint8_t buf[MAX_KEY_SIZE];
-        for (int i = 0; i < MAX_KEY_SIZE; i++) {
-            buf[i] = 255;
-        }
-        return store_key_t(MAX_KEY_SIZE, reinterpret_cast<char *>(buf));
-    }
-
-    bool increment() {
-        if (size < MAX_KEY_SIZE) {
-            contents[size] = 0;
-            size++;
-            return true;
-        }
-        while (size > 0 && (reinterpret_cast<uint8_t *>(contents))[size-1] == 255) {
-            size--;
-        }
-        if (size == 0) {
-            /* We were the largest possible key. Oops. Restore our previous
-            state and return `false`. */
-            *this = store_key_t::max();
-            return false;
-        }
-        (reinterpret_cast<uint8_t *>(contents))[size-1]++;
-        return true;
-    }
-
-    bool decrement() {
-        if (size == 0) {
-            return false;
-        }
-        if ((reinterpret_cast<uint8_t *>(contents))[size-1] > 0) {
-            (reinterpret_cast<uint8_t *>(contents))[size-1]--;
-            return true;
-        }
-        size--;
-        return true;
-    }
-};
-
-inline bool operator==(const store_key_t &k1, const store_key_t &k2) {
-    return k1.size == k2.size && memcmp(k1.contents, k2.contents, k1.size) == 0;
-}
-
-inline bool operator!=(const store_key_t &k1, const store_key_t &k2) {
-    return !(k1 == k2);
-}
-
-inline bool operator<(const store_key_t &k1, const store_key_t &k2) {
-    return sized_strcmp(k1.contents, k1.size, k2.contents, k2.size) < 0;
-}
-
-inline bool operator>(const store_key_t &k1, const store_key_t &k2) {
-    return k2 < k1;
-}
-
-inline bool operator<=(const store_key_t &k1, const store_key_t &k2) {
-    return sized_strcmp(k1.contents, k1.size, k2.contents, k2.size) <= 0;
-}
-
-inline bool operator>=(const store_key_t &k1, const store_key_t &k2) {
-    return k2 <= k1;
-}
-
-inline bool str_to_key(const char *str, store_key_t *buf) {
-    int len = strlen(str);
-    if (len <= MAX_KEY_SIZE) {
-        memcpy(buf->contents, str, len);
-        buf->size = (uint8_t) len;
-        return true;
-    } else {
-        return false;
-    }
-}
-
-inline std::string key_to_str(const store_key_t &key) {
-    return std::string(key.contents, key.size);
-}
-
 /* `get` */
 
 struct get_query_t {
     store_key_t key;
+    get_query_t() { }
+    explicit get_query_t(const store_key_t& key_) : key(key_) { }
 };
 
 struct get_result_t {
@@ -165,6 +62,11 @@ struct rget_query_t {
     store_key_t left_key;
     rget_bound_mode_t right_mode;
     store_key_t right_key;
+
+    rget_query_t() { }
+    rget_query_t(const rget_bound_mode_t& left_mode_, const store_key_t left_key_,
+                 const rget_bound_mode_t& right_mode_, const store_key_t right_key_)
+        : left_mode(left_mode_), left_key(left_key_), right_mode(right_mode_), right_key(right_key_) { }
 };
 
 struct key_with_data_buffer_t {
@@ -173,7 +75,7 @@ struct key_with_data_buffer_t {
     boost::intrusive_ptr<data_buffer_t> value_provider;
 
     key_with_data_buffer_t(const std::string& _key, mcflags_t _mcflags, const boost::intrusive_ptr<data_buffer_t>& _value_provider)
-	: key(_key), mcflags(_mcflags), value_provider(_value_provider) { }
+        : key(_key), mcflags(_mcflags), value_provider(_value_provider) { }
 
     struct less {
         bool operator()(const key_with_data_buffer_t& pair1, const key_with_data_buffer_t& pair2) {
@@ -207,7 +109,6 @@ enum replace_policy_t {
 #define NO_CAS_SUPPLIED 0
 
 struct sarc_mutation_t {
-
     /* The key to operate on */
     store_key_t key;
 
@@ -232,7 +133,9 @@ struct sarc_mutation_t {
     replace_policy_t replace_policy;
     cas_t old_cas;
 
-    //sarc_mutation_t() { BREAKPOINT; }
+    sarc_mutation_t() { }
+    sarc_mutation_t(const store_key_t& key_, const boost::intrusive_ptr<data_buffer_t>& data_, mcflags_t flags_, exptime_t exptime_, add_policy_t add_policy_, replace_policy_t replace_policy_, cas_t old_cas_) :
+        key(key_), data(data_), flags(flags_), exptime(exptime_), add_policy(add_policy_), replace_policy(replace_policy_), old_cas(old_cas_) { }
 };
 
 enum set_result_t {
@@ -257,6 +160,9 @@ struct delete_mutation_t {
     /* This is a hack for replication. If true, the btree will not record the change
     in the delete queue. */
     bool dont_put_in_delete_queue;
+
+    delete_mutation_t() { }
+    delete_mutation_t(const store_key_t& key_, bool dont_put_in_delete_queue_) : key(key_), dont_put_in_delete_queue(dont_put_in_delete_queue_) { }
 };
 
 enum delete_result_t {

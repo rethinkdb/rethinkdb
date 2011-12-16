@@ -130,14 +130,12 @@ class dummy_namespace_interface_t :
 {
 public:
     dummy_namespace_interface_t(std::vector<typename protocol_t::region_t> shards, std::vector<boost::shared_ptr<store_view_t<protocol_t> > > stores) {
-
         /* Make sure shards are non-overlapping and stuff */
         region_join(shards);
         rassert(stores.size() == shards.size());
 
         std::vector<typename dummy_sharder_t<protocol_t>::timestamper_and_region_t> shards_of_this_db;
         for (int i = 0; i < (int)shards.size(); i++) {
-
             /* Initialize metadata everywhere */
             {
                 cond_t interruptor;

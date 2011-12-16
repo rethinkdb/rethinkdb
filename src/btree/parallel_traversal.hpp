@@ -5,6 +5,7 @@
 #include <boost/shared_ptr.hpp>
 
 #include "btree/internal_node.hpp"
+#include "btree/operations.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
 #include "containers/scoped_malloc.hpp"
@@ -97,7 +98,7 @@ struct btree_traversal_helper_t {
     virtual ~btree_traversal_helper_t() { }
 };
 
-void btree_parallel_traversal(transaction_t *txn, btree_slice_t *slice, btree_traversal_helper_t *helper);
-
+void btree_parallel_traversal(boost::scoped_ptr<transaction_t> &txn, btree_slice_t *slice, btree_traversal_helper_t *helper);
+void btree_parallel_traversal(boost::scoped_ptr<transaction_t> &txn, got_superblock_t &got_superblock_t, btree_slice_t *slice, btree_traversal_helper_t *helper);
 
 #endif  // __BTREE_PARALLEL_TRAVERSAL_HPP__

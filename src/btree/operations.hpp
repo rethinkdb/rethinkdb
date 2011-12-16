@@ -1,9 +1,10 @@
 #ifndef __BTREE_OPERATIONS_HPP__
 #define __BTREE_OPERATIONS_HPP__
 
-#include "utils.hpp"
+#include "errors.hpp"
 #include <boost/scoped_ptr.hpp>
 
+#include "utils.hpp"
 #include "buffer_cache/buf_lock.hpp"
 #include "containers/scoped_malloc.hpp"
 #include "btree/node.hpp"
@@ -35,6 +36,7 @@ public:
     explicit real_superblock_t(buf_lock_t &sb_buf);
 
     void release();
+    buf_lock_t* get() { return &sb_buf_; }
     void swap_buf(buf_lock_t &swapee);
     block_id_t get_root_block_id() const;
     void set_root_block_id(const block_id_t new_root_block);
@@ -82,6 +84,7 @@ private:
 class got_superblock_t {
 public:
     got_superblock_t() { }
+    got_superblock_t(superblock_t * sb_) : sb(sb_) { }
 
     boost::scoped_ptr<superblock_t> sb;
 
@@ -183,11 +186,61 @@ class fake_key_modification_callback_t : public key_modification_callback_t<Valu
 };
 
 
+/* This iterator encapsulates most of the metainfo data layout. Unfortunately,
+ * functions set_superblock_metainfo and delete_superblock_metainfo also know a
+ * lot about the data layout, so if it's changed, these functions must be
+ * changed as well.
+ *
+ * Data layout is dead simple right now, it's an array of the following
+ * (unaligned, unpadded) contents:
+ *
+ *   sz_t key_size;
+ *   char key[key_size];
+ *   sz_t value_size;
+ *   char value[value_size];
+ */
+struct superblock_metainfo_iterator_t {
+    typedef uint32_t sz_t;  // be careful: the values of this type get casted to int64_t in checks, so it must fit
+    typedef std::pair<sz_t,char*> key_t;
+    typedef std::pair<sz_t,char*> value_t;
+
+    superblock_metainfo_iterator_t(char* metainfo, char* metainfo_end) : end(metainfo_end) { advance(metainfo); }
+    superblock_metainfo_iterator_t(std::vector<char>& metainfo) : end(metainfo.data() + metainfo.size()) { advance(metainfo.data()); }
+
+    bool is_end() { return pos == end; }
+
+    void operator++();
+    void operator++(int) { this->operator++(); }
+
+    std::pair<key_t,value_t> operator*() {
+        return std::make_pair(key(), value());
+    }
+    key_t key() { return std::make_pair(key_size, key_ptr); }
+    value_t value() { return std::make_pair(value_size, value_ptr); }
+
+    char* record_ptr() { return pos; }
+    char* next_record_ptr() { return next_pos; }
+    char* end_ptr() { return end; }
+    sz_t* value_size_ptr() { return reinterpret_cast<sz_t*>(value_ptr) - 1; }
+private:
+    void advance(char* p);
+
+    char* pos;
+    char* next_pos;
+    char* end;
+    sz_t key_size;
+    char* key_ptr;
+    sz_t value_size;
+    char* value_ptr;
+};
+
 bool get_superblock_metainfo(transaction_t *txn, buf_t *superblock, const std::vector<char> &key, std::vector<char> &value_out);
+void get_superblock_metainfo(transaction_t *txn, buf_t *superblock, std::vector<std::pair<std::vector<char>,std::vector<char> > > &kv_pairs_out);
 
 void set_superblock_metainfo(transaction_t *txn, buf_t *superblock, const std::vector<char> &key, const std::vector<char> &value);
 
 void delete_superblock_metainfo(transaction_t *txn, buf_t *superblock, const std::vector<char> &key);
+void clear_superblock_metainfo(transaction_t *txn, buf_t *superblock);
 
 #include "btree/operations.tcc"
 
