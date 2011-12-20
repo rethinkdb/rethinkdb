@@ -14,8 +14,7 @@
 #include "concurrency/pmap.hpp"
 #include "do_on_thread.hpp"
 
-connectivity_cluster_t::connectivity_cluster_t(const boost::function<void(peer_id_t, std::istream &, const boost::function<void()> &)> &cb, int port) :
-    on_message(cb),
+connectivity_cluster_t::connectivity_cluster_t(int port) :
     me(peer_id_t(generate_uuid())),
     me_address(ip_address_t::us(), port)
 {
@@ -150,6 +149,16 @@ void connectivity_cluster_t::send_message(peer_id_t dest, const boost::function<
             }
         }
     }
+}
+
+void connectivity_cluster_t::set_message_callback(
+        const boost::function<void(
+            peer_id_t source_peer,
+            std::istream &stream_from_peer,
+            const boost::function<void()> &call_when_done
+            )> &callback
+        ) {
+    on_message = callback;
 }
 
 #ifndef NDEBUG

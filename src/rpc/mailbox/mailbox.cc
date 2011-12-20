@@ -61,9 +61,10 @@ void send(mailbox_cluster_t *src, mailbox_t::address_t dest, boost::function<voi
 /* mailbox_cluster_t */
 
 mailbox_cluster_t::mailbox_cluster_t(int port) :
-    connectivity_cluster_t(boost::bind(&mailbox_cluster_t::on_message, this, _1, _2, _3), port)
+    connectivity_cluster_t(port)
 {
     mailbox_tables.resize(get_num_threads());
+    set_message_callback(boost::bind(&mailbox_cluster_t::on_message, this, _1, _2, _3));
 }
 
 mailbox_cluster_t::~mailbox_cluster_t() {

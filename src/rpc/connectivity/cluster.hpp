@@ -8,27 +8,31 @@
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/one_per_thread.hpp"
 #include "rpc/connectivity/connectivity.hpp"
+#include "rpc/connectivity/messages.hpp"
 
 class connectivity_cluster_t :
     public connectivity_service_t,
+    public message_service_t,
     public home_thread_mixin_t
 {
 public:
-    connectivity_cluster_t(
-        const boost::function<void(peer_id_t, std::istream &, const boost::function<void()> &)> &on_message,
-        int port);
+    connectivity_cluster_t(int port);
     ~connectivity_cluster_t();
 
+    /* `connectivity_service_t` public methods: */
+
     peer_id_t get_me();
+
     std::set<peer_id_t> get_peers_list();
 
-    /* Returns the address of the given peer. Fatal error if we are not
-    connected to the peer. */
-    peer_address_t get_peer_address(peer_id_t);
+    /* `message_service_t` public methods: */
 
-    /* Attaches the cluster this node is part of to another existing cluster.
-    May only be called on home thread. */
-    void join(peer_address_t);
+    /* This is kind of silly. We need to implement it because
+    `message_service_t` has a `get_connectivity()` method, and we are also the
+    `connectivity_service_t` for our `message_service_t`. */
+    connectivity_service_t *get_connectivity() {
+        return this;
+    }
 
     /* TODO: We should have a better mechanism for sending messages to ourself.
     Right now, they get serialized and then deserialized. If we did it more
@@ -39,6 +43,26 @@ public:
     function will be called with a `std::ostream&` that leads to the peer in
     question. `send_message()` can be called on any thread. It may block. */
     void send_message(peer_id_t, const boost::function<void(std::ostream &)> &);
+
+    /* Sets the function that will be called when a message is received from
+    another peer. */
+    void set_message_callback(
+            const boost::function<void(
+                peer_id_t source_peer,
+                std::istream &stream_from_peer,
+                const boost::function<void()> &call_when_done
+                )> &callback
+            );
+
+    /* Other public methods: */
+
+    /* Returns the address of the given peer. Fatal error if we are not
+    connected to the peer. */
+    peer_address_t get_peer_address(peer_id_t);
+
+    /* Attaches the cluster this node is part of to another existing cluster.
+    May only be called on home thread. */
+    void join(peer_address_t);
 
 #ifndef NDEBUG
     void assert_connection_thread(peer_id_t peer);
