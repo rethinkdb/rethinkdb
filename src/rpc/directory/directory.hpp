@@ -4,15 +4,28 @@
 #include "rpc/mailbox/mailbox.hpp"
 
 template<class metadata_t>
-class directory_cluster_t :
-    public directory_t,
-    private event_watcher_t
+class directory_manager_t :
+    public connectivity_service_t,
+    public directory_service_t,
+    
+    public home_thread_mixin_t
 {
 public:
-    directory_cluster_t(int port, const metadata_t &initial_metadata) THROWS_NOTHING;
-    ~directory_cluster_t() THROWS_NOTHING;
+    directory_manager_t(message_service_t *ms, const metadata_t &initial_metadata) THROWS_NOTHING;
 
     boost::shared_ptr<directory_rwview_t<metadata_t> > get_root_view() THROWS_NOTHING;
+
+    /* `connectivity_service_t` interface */
+    peer_id_t get_me();
+    std::set<peer_id_t> get_peers_list();
+
+    /* `directory_service_t` interface */
+    connectivity_service_t *get_connectivity();
+
+    /* Returns a `message_service_t` that can be used to send non-directory
+    communications between peers. The returned message service's
+    `get_connectivity()` will return `this`. */
+    message_service_t *get_sub_message_service();
 
 private:
     /* `get_root_view()` returns a pointer to this. */
@@ -28,7 +41,27 @@ private:
         directory_cluster_t *parent;
     };
 
+    class sub_message_service_t : public message_service_t {
+    public:
+        sub_message_service_t(directory_manager_t *p);
+        connectivity_service_t *get_connectivity();
+        void send_message(
+                peer_id_t dest_peer,
+                const boost::function<void(std::ostream &)> &writer);
+        void set_message_callback(
+                const boost::function<void(
+                    peer_id_t source_peer,
+                    std::istream &stream_from_peer,
+                    const boost::function<void()> &call_when_done
+                    )> &callback
+                );
+    private:
+        directory_manager_t *parent;
+    };
+
     class peer_info_t {
+    public:
+        peer_info_t(const metadata_t &md) : value(md) { }
         mutex_assertion_t peer_value_lock;
         metadata_t value;
         publisher_controller_t<
@@ -37,37 +70,55 @@ private:
     };
 
     class thread_info_t {
-        mutex_assertion_t peers_list_lock;
+    public:
+        thread_info_t(peer_id_t me, const metadata_t &md) {
+            peers.insert(me, new peer_info_t(md));
+        }
         boost::ptr_map<peer_id_t, peer_info_t> peers;
-        publisher_controller_t<std::pair<
-                boost::function<void(peer_id_t)>,
-                boost::function<void(peer_id_t)>
-                > > peers_list_publisher;
     };
 
-    void construct_on_thread(int thread, const metadata_t &initial_metadata) THROWS_NOTHING;
-    void destruct_on_thread(int thread) THROWS_NOTHING;
+    void on_message(peer_id_t source, std::istream &stream, const boost::function<void()> &on_done) THROWS_NOTHING;
+    void propagate_to_peer(peer_id_t peer, const metadata_t &value) THROWS_NOTHING;
     void propagate_on_thread(int thread, peer_id_t peer, const metadata_t &value) THROWS_NOTHING;
 
-    /* `directory_t` methods */
-    mutex_assertion_t *get_peers_list_lock() THROWS_NOTHING;
-    publisher_t<std::pair<
-            boost::function<void(peer_id_t)>,
-            boost::function<void(peer_id_t)>
-            > > *get_peer_list_publisher(peers_list_freeze_t *proof) THROWS_NOTHING;
+    /* `directory_service_t` methods */
     mutex_assertion_t *get_peer_value_lock(peer_id_t) THROWS_NOTHING;
     publisher_t<
             boost::function<void()>
             > *get_peer_value_publisher(peer_id_t, peer_value_freeze_t *proof) THROWS_NOTHING;
     mutex_t *get_our_value_lock() THROWS_NOTHING;
+    int get_our_value_lock_thread() THROWS_NOTHING;
+
+    /* The message service that we use to communicate with other peers */
+    message_service_t *super_message_service;
+
+    /* The message service that we expose to other components, whose
+    connectivity service is us */
+    sub_message_service_t sub_message_service;
 
     boost::shared_ptr<root_view_t> root_view;
 
-    boost::scoped_array<boost::scoped_ptr<thread_info_t> > threads;
+    /* `our_value` is our current metadata value. It's usually equal to
+    `thread_info[...]->peers[super_message_service->get_me()]->value`. The
+    difference is that `our_value` is used for propagation to other machines
+    whereas `thread_info[...]->...->value` is used for propagation to other
+    threads on the same machine, so they are locked differently. */
+    metadata_t our_value;
 
+    /* Incremented every time `our_value` is changed. */
+    state_timestamp_t our_value_timestamp;
+
+    one_per_thread_t<thread_info_t> thread_info;
+
+    /* Held when `our_value` is being changed. */
     mutex_t our_value_lock;
 
-    boost::scoped_ptr<auto_drainer_t> auto_drainer;
+    /* `auto_drainer` is used to make sure that all propagation operations are
+    completed before we start calling the destructors on our internal variables.
+    */
+    auto_drainer_t auto_drainer;
 };
+
+#include "rpc/directory/directory.tcc"
 
 #endif /* __RPC_DIRECTORY_DIRECTORY_HPP__ */
