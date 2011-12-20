@@ -333,14 +333,14 @@ private:
 
 
 class mc_cache_account_t {
+public:
+    ~mc_cache_account_t();
+private:
     friend class mc_cache_t;
     friend class mc_transaction_t;
-
-    explicit mc_cache_account_t(boost::shared_ptr<file_account_t> io_account)
-        : io_account_(io_account) { }
-
-    boost::shared_ptr<file_account_t> io_account_;
-
+    mc_cache_account_t(int thread, file_account_t *io_account);
+    int thread_;
+    file_account_t *io_account_;
     DISABLE_COPYING(mc_cache_account_t);
 };
 

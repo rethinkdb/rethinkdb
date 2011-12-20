@@ -25,8 +25,7 @@ cluster metadata. The type `metadata_t` must satisfy the following constraints:
 
 template<class metadata_t>
 class metadata_cluster_t :
-    public mailbox_cluster_t,
-    private event_watcher_t
+    public mailbox_cluster_t
 {
 public:
     metadata_cluster_t(int port, const metadata_t &initial_metadata);
@@ -61,9 +60,11 @@ private:
     static void write_metadata(std::ostream&, metadata_t);
     static void write_ping(std::ostream&, int);
     static void write_ping_response(std::ostream&, int);
-    void on_utility_message(peer_id_t, std::istream&, boost::function<void()>&);
+    void on_utility_message(peer_id_t, std::istream&, const boost::function<void()> &);
     void on_connect(peer_id_t);
     void on_disconnect(peer_id_t);
+
+    connectivity_service_t::peers_list_subscription_t event_watcher;
 
     int ping_id_counter;
     std::map<int, cond_t *> ping_waiters;

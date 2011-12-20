@@ -1,7 +1,7 @@
 #ifndef __RPC_MAILBOX_MAILBOX_HPP__
 #define __RPC_MAILBOX_MAILBOX_HPP__
 
-#include "rpc/connectivity/connectivity.hpp"
+#include "rpc/connectivity/cluster.hpp"
 
 class mailbox_cluster_t;
 
@@ -100,7 +100,7 @@ protected:
     message arrives. The semantics are the same as with
     `connectivity_cluster_t`'s `send_message()`/`on_message()`. */
     void send_utility_message(peer_id_t, boost::function<void(std::ostream&)>);
-    virtual void on_utility_message(peer_id_t, std::istream&, boost::function<void()>&) = 0;
+    virtual void on_utility_message(peer_id_t, std::istream&, const boost::function<void()> &) = 0;
 
 private:
     friend class mailbox_t;
@@ -117,7 +117,7 @@ private:
 
     static void write_utility_message(std::ostream&, boost::function<void(std::ostream&)> writer);
     static void write_mailbox_message(std::ostream&, int dest_thread, mailbox_t::id_t dest_mailbox_id, boost::function<void(std::ostream&)> writer);
-    void on_message(peer_id_t, std::istream&, boost::function<void()>&);
+    void on_message(peer_id_t, std::istream&, const boost::function<void()>&);
 };
 
 #endif /* __RPC_MAILBOX_MAILBOX_HPP__ */

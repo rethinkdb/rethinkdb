@@ -9,12 +9,17 @@
 template<class metadata_t>
 metadata_cluster_t<metadata_t>::metadata_cluster_t(int port, const metadata_t &initial_metadata) :
     mailbox_cluster_t(port),
-    /* Watch ourself for new peers connecting */
-    event_watcher_t(this),
     root_view(boost::make_shared<root_view_t>(this)),
     metadata(initial_metadata),
+    event_watcher(
+        boost::bind(&metadata_cluster_t<metadata_t>::on_connect, this, _1),
+        boost::bind(&metadata_cluster_t<metadata_t>::on_disconnect, this, _1)),
     ping_id_counter(0)
-    { }
+{
+    connectivity_service_t::peers_list_freeze_t freeze(this);
+    rassert(get_peers_list().size() == 1);
+    event_watcher.reset(this, &freeze);
+}
 
 template<class metadata_t>
 metadata_cluster_t<metadata_t>::~metadata_cluster_t() {
@@ -53,11 +58,10 @@ void metadata_cluster_t<metadata_t>::root_view_t::join(const metadata_t &added_m
     /* Distribute changes to all peers we can currently see. If we can't
     currently see a peer, that's OK; it will hear about the metadata change when
     it reconnects, via the `metadata_cluster_t`'s `on_connect()` handler. */
-    std::map<peer_id_t, peer_address_t> peers = parent->get_everybody();
-    for (std::map<peer_id_t, peer_address_t>::iterator it = peers.begin(); it != peers.end(); it++) {
-        peer_id_t peer = (*it).first;
-        if (peer != parent->get_me()) {
-            parent->send_utility_message(peer,
+    std::set<peer_id_t> peers = parent->get_peers_list();
+    for (std::set<peer_id_t>::iterator it = peers.begin(); it != peers.end(); it++) {
+        if (*it != parent->get_me()) {
+            parent->send_utility_message(*it,
                 boost::bind(&metadata_cluster_t<metadata_t>::write_metadata, _1, added_metadata));
         }
     }
@@ -139,7 +143,7 @@ void metadata_cluster_t<metadata_t>::write_ping_response(std::ostream &stream, i
 }
 
 template<class metadata_t>
-void metadata_cluster_t<metadata_t>::on_utility_message(peer_id_t sender, std::istream &stream, boost::function<void()> &on_done) {
+void metadata_cluster_t<metadata_t>::on_utility_message(peer_id_t sender, std::istream &stream, const boost::function<void()> &on_done) {
     assert_connection_thread(sender);
 
     char code;

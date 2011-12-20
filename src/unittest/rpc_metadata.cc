@@ -79,9 +79,24 @@ void run_metadata_exchange_test() {
     EXPECT_EQ(cluster1.get_root_view()->get().i, 1);
     EXPECT_EQ(cluster2.get_root_view()->get().i, 2);
 
-    cluster1.join(cluster2.get_everybody()[cluster2.get_me()]);
-    connect_watcher_t connect_watcher(&cluster1, cluster2.get_me());
-    connect_watcher.wait_lazily_unordered();
+    cluster1.join(cluster2.get_peer_address(cluster2.get_me()));
+
+    /* Block until the connection is established */
+    {
+        cond_t connection_established;
+        connectivity_service_t::peers_list_subscription_t subs(
+            boost::bind(&cond_t::pulse, &connection_established),
+            NULL);
+        {
+            connectivity_service_t::peers_list_freeze_t freeze(&cluster1);
+            if (cluster1.get_peer_connected(cluster2.get_me()) == 0) {
+                subs.reset(&cluster1, &freeze);
+            } else {
+                connection_established.pulse();
+            }
+        }
+        connection_established.wait_lazily_unordered();
+    }
 
     cond_t interruptor1;
     cluster1.get_root_view()->sync_to(cluster2.get_me(), &interruptor1);

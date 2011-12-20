@@ -64,6 +64,7 @@ mailbox_cluster_t::mailbox_cluster_t(int port) :
     connectivity_cluster_t(port)
 {
     mailbox_tables.resize(get_num_threads());
+    set_message_callback(boost::bind(&mailbox_cluster_t::on_message, this, _1, _2, _3));
 }
 
 mailbox_cluster_t::~mailbox_cluster_t() {
@@ -112,7 +113,7 @@ void mailbox_cluster_t::write_mailbox_message(std::ostream &stream, int dest_thr
     writer(stream);
 }
 
-void mailbox_cluster_t::on_message(peer_id_t src, std::istream &stream, boost::function<void()> &on_done) {
+void mailbox_cluster_t::on_message(peer_id_t src, std::istream &stream, const boost::function<void()> &on_done) {
     char c;
     stream >> c;
     switch(c) {

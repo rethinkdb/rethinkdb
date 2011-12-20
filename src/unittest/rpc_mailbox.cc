@@ -25,7 +25,7 @@ void write_integer(int i, std::ostream &stream) {
 struct recording_mailbox_cluster_t : public mailbox_cluster_t {
 private:
     std::map<int, peer_id_t> inbox;
-    void on_utility_message(peer_id_t peer, std::istream &stream, boost::function<void()> &on_done) {
+    void on_utility_message(peer_id_t peer, std::istream &stream, const boost::function<void()> &on_done) {
         int i;
         stream >> i;
         on_done();

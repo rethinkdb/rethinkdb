@@ -2,6 +2,7 @@
 #include "clustering/immediate_consistency/branch/backfiller.hpp"
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
 #include "rpc/metadata/view/field.hpp"
+#include "unittest/clustering_utils.hpp"
 #include "unittest/dummy_metadata_controller.hpp"
 #include "unittest/dummy_protocol.hpp"
 #include "unittest/unittest_utils.hpp"
@@ -80,14 +81,7 @@ void run_backfill_test() {
 
     /* Set up a cluster so mailboxes can be created */
 
-    class simple_mailbox_cluster_t : public mailbox_cluster_t {
-    public:
-        explicit simple_mailbox_cluster_t(int port) : mailbox_cluster_t(port) { }
-    private:
-        void on_utility_message(peer_id_t, std::istream&, boost::function<void()>&) {
-            ADD_FAILURE() << "no utility messages should be sent. WTF?";
-        }
-    } cluster(10000 + rand() % 20000);
+    simple_mailbox_cluster_t cluster;
 
     /* Expose the backfiller to the cluster */
 
