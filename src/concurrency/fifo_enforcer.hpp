@@ -4,6 +4,7 @@
 #include <map>
 
 #include "concurrency/mutex_assertion.hpp"
+#include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
 #include "utils.hpp"
 
@@ -26,6 +27,7 @@ private:
     fifo_enforcer_read_token_t(state_timestamp_t t) THROWS_NOTHING :
         timestamp(t) { }
     state_timestamp_t timestamp;
+    RDB_MAKE_ME_SERIALIZABLE_1(timestamp);
 };
 
 class fifo_enforcer_write_token_t {
@@ -38,6 +40,7 @@ private:
         timestamp(t), num_preceding_reads(npr) { }
     transition_timestamp_t timestamp;
     int num_preceding_reads;
+    RDB_MAKE_ME_SERIALIZABLE_2(timestamp, num_preceding_reads);
 };
 
 class fifo_enforcer_source_t : public home_thread_mixin_t {

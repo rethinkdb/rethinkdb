@@ -12,6 +12,11 @@ advertise via the metadata that it can perform backfills. When you destroy the
 `replier_t`, the listener will tell the `broadcaster_t` that it's no longer
 ready to reply to queries, and it will also stop performing backfills. */
 
+/* TODO: What if the upgrade/downgrade messages get reordered on the network?
+For example, what if we create and then immediately destroy a `replier_t`, and
+the downgrade message arrives at the `broadcaster_t` before the upgrade message
+does? Consider using a FIFO enforcer or something. */
+
 template<class protocol_t>
 class replier_t {
 

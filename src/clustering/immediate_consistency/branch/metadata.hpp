@@ -12,6 +12,7 @@
 #include "clustering/registration_metadata.hpp"
 #include "clustering/resource.hpp"
 #include "concurrency/fifo_checker.hpp"
+#include "concurrency/fifo_enforcer.hpp"
 #include "protocol_api.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/metadata/semilattice/map.hpp"
@@ -86,17 +87,17 @@ public:
     the mirrors. */
 
     typedef async_mailbox_t<void(
-        typename protocol_t::write_t, transition_timestamp_t,
+        typename protocol_t::write_t, transition_timestamp_t, fifo_enforcer_write_token_t,
         async_mailbox_t<void()>::address_t
         )> write_mailbox_t;
 
     typedef async_mailbox_t<void(
-        typename protocol_t::write_t, transition_timestamp_t,
+        typename protocol_t::write_t, transition_timestamp_t, fifo_enforcer_write_token_t,
         typename async_mailbox_t<void(typename protocol_t::write_response_t)>::address_t
         )> writeread_mailbox_t;
 
     typedef async_mailbox_t<void(
-        typename protocol_t::read_t, state_timestamp_t,
+        typename protocol_t::read_t, state_timestamp_t, fifo_enforcer_read_token_t,
         typename async_mailbox_t<void(typename protocol_t::read_response_t)>::address_t
         )> read_mailbox_t;
 
