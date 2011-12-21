@@ -83,7 +83,7 @@ void run_fifo_enforcer_test() {
     }
 }
 
-TEST(FifoEnforcer, FifoEnforcer) {
+TEST(FIFOEnforcer, FIFOEnforcer) {
     run_in_thread_pool(&run_fifo_enforcer_test);
 }
 
