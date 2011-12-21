@@ -89,7 +89,6 @@ struct mailbox_cluster_t : public connectivity_cluster_t {
 
 public:
     explicit mailbox_cluster_t(int port);
-    ~mailbox_cluster_t();
 
 protected:
     /* It's impossible to send a message to a mailbox without having its
@@ -113,11 +112,13 @@ private:
         std::map<mailbox_t::id_t, mailbox_t*> mailboxes;
         mailbox_t *find_mailbox(mailbox_t::id_t);
     };
-    std::vector<mailbox_table_t> mailbox_tables;
+    one_per_thread_t<mailbox_table_t> mailbox_tables;
 
     static void write_utility_message(std::ostream&, boost::function<void(std::ostream&)> writer);
     static void write_mailbox_message(std::ostream&, int dest_thread, mailbox_t::id_t dest_mailbox_id, boost::function<void(std::ostream&)> writer);
-    void on_message(peer_id_t, std::istream&, const boost::function<void()>&);
+    void on_message(peer_id_t, std::istream&);
+
+    message_service_t::handler_registration_t message_handler_registration;
 };
 
 #endif /* __RPC_MAILBOX_MAILBOX_HPP__ */

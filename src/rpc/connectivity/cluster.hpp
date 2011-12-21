@@ -26,13 +26,6 @@ public:
     /* `message_service_t` public methods: */
     connectivity_service_t *get_connectivity();
     void send_message(peer_id_t, const boost::function<void(std::ostream &)> &);
-    void set_message_callback(
-            const boost::function<void(
-                peer_id_t source_peer,
-                std::istream &stream_from_peer,
-                const boost::function<void()> &call_when_done
-                )> &callback
-            );
 
     /* Other public methods: */
 
@@ -95,24 +88,22 @@ private:
     static void ping_disconnection_watcher(peer_id_t peer, const std::pair<boost::function<void(peer_id_t)>, boost::function<void(peer_id_t)> > &connect_cb_and_disconnect_cb);
     void erase_a_connection_entry_and_ping_disconnection_watchers(int target_thread, peer_id_t other_id);
 
-    /* `connectivity_service_t` methods */
+    /* `connectivity_service_t` private methods: */
     mutex_assertion_t *get_peers_list_lock();
     publisher_t<std::pair<
             boost::function<void(peer_id_t)>,
             boost::function<void(peer_id_t)>
             > > *get_peers_list_publisher();
 
-    /* Whenever we receive a message, we spawn a new coroutine running
-    `on_message()`. Its arguments are the peer we received the message from, a
-    `std::istream&` from that peer, and a function to call when we're done
-    reading the message off the stream. `on_message()` should read the message,
-    call the function, then perform whatever action the message requires. This
-    way, the next message can be read off the socket as soon as possible. 
-    `connectivity_cluster_t` may run `on_message()` on any thread. `on_message`
-    may call `on_done` without consuming the whole message, in which case it is
-    `connectivity_cluster_t`'s responsibility to make sure the bytes get
-    consumed. */
-    boost::function<void(peer_id_t, std::istream &, const boost::function<void()> &)> on_message;
+    /* `message_service_t` private methods: */
+    void set_message_callback(
+            const boost::function<void(
+                peer_id_t source_peer,
+                std::istream &stream_from_peer
+                )> &callback
+            );
+
+    boost::function<void(peer_id_t, std::istream &)> on_message;
 
     /* `me` is our `peer_id_t`. `routing_table` is all the peers we can
     currently access and their addresses. Peers that are in the process of

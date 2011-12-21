@@ -92,17 +92,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, const boost::function<
         // We could be on any thread here!  Oh no!
 
         std::stringstream buffer2(buffer.str(), std::stringstream::in | std::stringstream::binary);
-
-        /* Spawn `on_message()` directly in a new coroutine */
-        debugf("spawning weird on_message Now.\n");
-        cond_t pulse_when_done_reading;
-        coro_t::spawn_now(boost::bind(
-            boost::cref(on_message),
-            me,
-            boost::ref(buffer2),
-            boost::function<void()>(boost::bind(&cond_t::pulse, &pulse_when_done_reading))
-            ));
-        pulse_when_done_reading.wait();
+        on_message(me, buffer2);
 
     } else {
         std::map<peer_id_t, connection_t *> *connection_map = &thread_info.get()->connection_map;
@@ -143,8 +133,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, const boost::function<
 void connectivity_cluster_t::set_message_callback(
         const boost::function<void(
             peer_id_t source_peer,
-            std::istream &stream_from_peer,
-            const boost::function<void()> &call_when_done
+            std::istream &stream_from_peer
             )> &callback
         ) {
     on_message = callback;
@@ -475,23 +464,8 @@ void connectivity_cluster_t::handle(
                     receiver >> message;
                 }
 
-                /* In case anyone is tempted to refactor this so it doesn't wait
-                on `pulse_when_done_reading`, refrain. It may look silly now,
-                but later we will want to read directly off the socket for
-                better performance, and then we will need this code. (Actually,
-                probably not, since on_done ends up getting called from different
-                threads.) */
                 std::stringstream stream(message, std::stringstream::in | std::stringstream::binary);
-                cond_t pulse_when_done_reading;
-                debugf("Spawning on_message right now.\n");
-                boost::function<void()> pulser = boost::bind(&cond_t::pulse, &pulse_when_done_reading);
-                coro_t::spawn_now(boost::bind(
-                    boost::cref(on_message),
-                    other_id,
-                    boost::ref(stream),
-                    boost::function<void()>(boost::bind(one_way_do_on_thread<boost::function<void()> >, chosen_thread, pulser))
-                    ));
-                pulse_when_done_reading.wait();
+                on_message(other_id, stream);
             }
         } catch (boost::archive::archive_exception) {
             /* The exception broke us out of the loop, and that's what we

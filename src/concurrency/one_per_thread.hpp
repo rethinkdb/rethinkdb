@@ -7,6 +7,7 @@
 #include <boost/scoped_ptr.hpp>
 
 #include "arch/runtime/runtime.hpp"
+#include "concurrency/pmap.hpp"
 
 template<class inner_t>
 class one_per_thread_t {
