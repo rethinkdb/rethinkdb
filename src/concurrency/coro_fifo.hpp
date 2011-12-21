@@ -13,8 +13,11 @@
 
 // This must run on a single thread, which limits its usefulness.
 
-// Note that nobody has ever used this type, so you might want to be
-// paranoid the first time it's used.
+/* `coro_fifo_t` is obsolete. Use `fifo_enforcer_t` instead. `fifo_enforcer_t`
+is safer because exiting the `fifo_enforcer_t` acquires a lock instead of just
+assuming that nothing will block between exiting the `coro_fifo_t` and accessing
+whatever the next important thing is. Also, `fifo_enforcer_t` can be split
+across two different threads or machines. */
 
 class coro_fifo_acq_t;
 
