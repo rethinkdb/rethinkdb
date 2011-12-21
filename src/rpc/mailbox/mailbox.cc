@@ -23,17 +23,18 @@ peer_id_t mailbox_t::address_t::get_peer() const {
 
 mailbox_t::mailbox_t(mailbox_cluster_t *c, const boost::function<void(std::istream &, const boost::function<void()> &)> &fun) :
     cluster(c),
-    mailbox_id(cluster->mailbox_tables[home_thread()].next_mailbox_id++),
+    mailbox_id(cluster->mailbox_tables.get()->next_mailbox_id++),
     callback(fun)
 {
-    rassert(cluster->mailbox_tables[home_thread()].mailboxes.find(mailbox_id) ==
-        cluster->mailbox_tables[home_thread()].mailboxes.end());
-    cluster->mailbox_tables[home_thread()].mailboxes[mailbox_id] = this;
+    rassert(cluster->mailbox_tables.get()->mailboxes.find(mailbox_id) ==
+        cluster->mailbox_tables.get()->mailboxes.end());
+    cluster->mailbox_tables.get()->mailboxes[mailbox_id] = this;
 }
 
 mailbox_t::~mailbox_t() {
-    rassert(cluster->mailbox_tables[home_thread()].mailboxes[mailbox_id] == this);
-    cluster->mailbox_tables[home_thread()].mailboxes.erase(mailbox_id);
+    assert_thread();
+    rassert(cluster->mailbox_tables.get()->mailboxes[mailbox_id] == this);
+    cluster->mailbox_tables.get()->mailboxes.erase(mailbox_id);
 }
 
 mailbox_t::address_t mailbox_t::get_address() {
@@ -61,14 +62,9 @@ void send(mailbox_cluster_t *src, mailbox_t::address_t dest, boost::function<voi
 /* mailbox_cluster_t */
 
 mailbox_cluster_t::mailbox_cluster_t(int port) :
-    connectivity_cluster_t(port)
-{
-    mailbox_tables.resize(get_num_threads());
-    set_message_callback(boost::bind(&mailbox_cluster_t::on_message, this, _1, _2, _3));
-}
-
-mailbox_cluster_t::~mailbox_cluster_t() {
-}
+    connectivity_cluster_t(port),
+    message_handler_registration(this, boost::bind(&mailbox_cluster_t::on_message, this, _1, _2))
+    { }
 
 void mailbox_cluster_t::send_utility_message(peer_id_t dest, boost::function<void(std::ostream&)> writer) {
     send_message(dest,
@@ -113,12 +109,15 @@ void mailbox_cluster_t::write_mailbox_message(std::ostream &stream, int dest_thr
     writer(stream);
 }
 
-void mailbox_cluster_t::on_message(peer_id_t src, std::istream &stream, const boost::function<void()> &on_done) {
+void mailbox_cluster_t::on_message(peer_id_t src, std::istream &stream) {
     char c;
     stream >> c;
     switch(c) {
         case 'u': {
-            on_utility_message(src, stream, on_done);
+            cond_t done_cond;
+            boost::function<void()> done_fun = boost::bind(&cond_t::pulse, &done_cond);
+            coro_t::spawn_sometime(boost::bind(&mailbox_cluster_t::on_utility_message, this, src, boost::ref(stream), done_fun));
+            done_cond.wait_lazily_unordered();
             break;
         }
         case 'm': {
@@ -127,18 +126,17 @@ void mailbox_cluster_t::on_message(peer_id_t src, std::istream &stream, const bo
             stream.read(reinterpret_cast<char*>(&dest_thread), sizeof(dest_thread));
             stream.read(reinterpret_cast<char*>(&dest_mailbox_id), sizeof(dest_mailbox_id));
 
+            /* TODO: This is probably horribly inefficient; we switch to another
+            thread and back before we parse the next message. */
             on_thread_t thread_switcher(dest_thread);
 
-            // This is trouble, since we must have gone to dest_thread
-            // to find the mailbox that knows how to parse the message
-            // and then call on_done.
-            mailbox_t *mbox = mailbox_tables[dest_thread].find_mailbox(dest_mailbox_id);
+            mailbox_t *mbox = mailbox_tables.get()->find_mailbox(dest_mailbox_id);
             if (mbox) {
-                mbox->callback(stream, on_done);
+                cond_t done_cond;
+                boost::function<void()> done_fun = boost::bind(&cond_t::pulse, &done_cond);
+                coro_t::spawn_sometime(boost::bind(mbox->callback, boost::ref(stream), done_fun));
+                done_cond.wait_lazily_unordered();
             } else {
-                /* Mailbox doesn't exist; don't deliver message, don't
-                   bother consuming bytes from stream. */
-                on_done();
                 /* Print a warning message */
                 mailbox_t::address_t dest_address;
                 dest_address.peer = get_me();

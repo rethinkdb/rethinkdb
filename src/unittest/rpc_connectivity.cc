@@ -30,10 +30,9 @@ class recording_test_application_t : public home_thread_mixin_t {
 public:
     explicit recording_test_application_t(message_service_t *s) :
         service(s),
-        sequence_number(0)
-    {
-        service->set_message_callback(boost::bind(&recording_test_application_t::on_message, this, _1, _2, _3));
-    }
+        sequence_number(0),
+        message_handler_registration(s, boost::bind(&recording_test_application_t::on_message, this, _1, _2))
+        { }
     void send(int message, peer_id_t peer) {
         service->send_message(peer, boost::bind(&write, message, _1));
     }
@@ -58,12 +57,9 @@ public:
     }
 
 private:
-    void on_message(peer_id_t peer, std::istream &stream, const boost::function<void()> &on_done) {
+    void on_message(peer_id_t peer, std::istream &stream) {
         int i;
         stream >> i;
-
-        on_done();
-
         on_thread_t th(home_thread());
         inbox[i] = peer;
         timing[i] = sequence_number++;
@@ -76,6 +72,7 @@ private:
     std::map<int, peer_id_t> inbox;
     std::map<int, int> timing;
     int sequence_number;
+    message_service_t::handler_registration_t message_handler_registration;
 };
 
 /* `StartStop` starts a cluster of three nodes, then shuts it down again. */
@@ -434,10 +431,9 @@ class binary_test_application_t {
 public:
     explicit binary_test_application_t(message_service_t *s) :
         service(s),
-        got_spectrum(false)
-    {
-        service->set_message_callback(boost::bind(&binary_test_application_t::on_message, this, _1, _2, _3));
-    }
+        got_spectrum(false),
+        message_handler_registration(s, boost::bind(&binary_test_application_t::on_message, this, _1, _2))
+        { }
     static void dump_spectrum(std::ostream &stream) {
         char spectrum[CHAR_MAX - CHAR_MIN + 1];
         for (int i = CHAR_MIN; i <= CHAR_MAX; i++) spectrum[i - CHAR_MIN] = i;
@@ -446,11 +442,10 @@ public:
     void send_spectrum(peer_id_t peer) {
         service->send_message(peer, &dump_spectrum);
     }
-    void on_message(peer_id_t, std::istream &stream, const boost::function<void()> &on_done) {
+    void on_message(peer_id_t, std::istream &stream) {
         char spectrum[CHAR_MAX - CHAR_MIN + 1];
         stream.read(spectrum, CHAR_MAX - CHAR_MIN + 1);
         int eof = stream.peek();
-        on_done();
         for (int i = CHAR_MIN; i <= CHAR_MAX; i++) {
             EXPECT_EQ(spectrum[i - CHAR_MIN], i);
         }
@@ -459,6 +454,7 @@ public:
     }
     message_service_t *service;
     bool got_spectrum;
+    message_service_t::handler_registration_t message_handler_registration;
 };
 
 void run_binary_data_test() {

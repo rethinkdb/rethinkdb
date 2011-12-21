@@ -87,4 +87,23 @@ TEST(FIFOEnforcer, FIFOEnforcer) {
     run_in_thread_pool(&run_fifo_enforcer_test);
 }
 
+void run_state_transfer_test() {
+    fifo_enforcer_source_t source;
+    fifo_enforcer_write_token_t tok = source.enter_write();
+    fifo_enforcer_sink_t sink(source.get_state());
+    fifo_enforcer_write_token_t tok2 = source.enter_write();
+    {
+        try {
+            signal_timer_t interruptor(1000);
+            fifo_enforcer_sink_t::exit_write_t fifo_exit(&sink, tok2, &interruptor);
+        } catch (interrupted_exc_t) {
+            ADD_FAILURE() << "Got stuck trying to exit FIFO";
+        }
+    }
+}
+
+TEST(FIFOEnforcer, StateTransfer) {
+    run_in_thread_pool(&run_state_transfer_test);
+}
+
 }   /* namespace unittest */
