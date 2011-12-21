@@ -18,6 +18,8 @@ checkpoint. The objects in transit between the checkpoints are identified by
 to each other but not relative to write tokens. */
 
 class fifo_enforcer_read_token_t {
+public:
+    fifo_enforcer_read_token_t() { }
 private:
     friend class fifo_enforcer_source_t;
     friend class fifo_enforcer_sink_t;
@@ -27,6 +29,8 @@ private:
 };
 
 class fifo_enforcer_write_token_t {
+public:
+    fifo_enforcer_write_token_t() { }
 private:
     friend class fifo_enforcer_source_t;
     friend class fifo_enforcer_sink_t;
@@ -51,6 +55,7 @@ private:
     mutex_assertion_t lock;
     state_timestamp_t timestamp;
     int num_reads;
+    DISABLE_COPYING(fifo_enforcer_source_t);
 };
 
 class fifo_enforcer_sink_t : public home_thread_mixin_t {
@@ -69,8 +74,11 @@ public:
 
     class exit_read_t {
     public:
+        exit_read_t() THROWS_NOTHING;
         exit_read_t(fifo_enforcer_sink_t *, fifo_enforcer_read_token_t, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
         ~exit_read_t() THROWS_NOTHING;
+        void reset() THROWS_NOTHING;
+        void reset(fifo_enforcer_sink_t *, fifo_enforcer_read_token_t, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
     private:
         fifo_enforcer_sink_t *parent;
         fifo_enforcer_read_token_t token;
@@ -78,8 +86,11 @@ public:
 
     class exit_write_t {
     public:
+        exit_write_t() THROWS_NOTHING;
         exit_write_t(fifo_enforcer_sink_t *, fifo_enforcer_write_token_t, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
         ~exit_write_t() THROWS_NOTHING;
+        void reset() THROWS_NOTHING;
+        void reset(fifo_enforcer_sink_t *, fifo_enforcer_write_token_t, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
     private:
         fifo_enforcer_sink_t *parent;
         fifo_enforcer_write_token_t token;
@@ -100,6 +111,7 @@ private:
     int num_reads;
     std::multimap<state_timestamp_t, cond_t *> waiting_readers;
     std::map<transition_timestamp_t, std::pair<int, cond_t *> > waiting_writers;
+    DISABLE_COPYING(fifo_enforcer_sink_t);
 };
 
 #endif /* __CONCURRENCY_FIFO_ENFORCER_HPP__ */
