@@ -77,9 +77,8 @@ private:
         > *get_peer_value_publisher(peer_id_t, peer_value_lock_acq_t *proof) THROWS_NOTHING = 0;
 
     /* Returns a lock for writing to our value. `get_our_value_lock()` should
-    only be accessed on the thread `get_our_value_lock_home_thread()`. */
+    only be accessed on the `directory_service_t`'s home thread. */
     virtual mutex_t *get_our_value_lock() THROWS_NOTHING = 0;
-    virtual int get_our_value_lock_home_thread() THROWS_NOTHING = 0;
 };
 
 /* `directory_rview_t` and `directory_rwview_t` refer to the same part of the
