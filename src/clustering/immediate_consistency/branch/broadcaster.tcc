@@ -6,7 +6,7 @@ template<class protocol_t>
 void listener_write(
         mailbox_cluster_t *cluster,
         const typename listener_data_t<protocol_t>::write_mailbox_t::address_t &write_mailbox,
-        typename protocol_t::write_t w, transition_timestamp_t ts,
+        typename protocol_t::write_t w, transition_timestamp_t ts, fifo_enforcer_write_token_t token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
 {
@@ -15,7 +15,7 @@ void listener_write(
         cluster, boost::bind(&cond_t::pulse, &ack_cond));
 
     send(cluster, write_mailbox,
-        w, ts, ack_mailbox.get_address());
+        w, ts, token, ack_mailbox.get_address());
 
     wait_any_t waiter(&ack_cond, interruptor);
     waiter.wait_lazily_unordered();
@@ -28,7 +28,7 @@ template<class protocol_t>
 typename protocol_t::write_response_t listener_writeread(
         mailbox_cluster_t *cluster,
         const typename listener_data_t<protocol_t>::writeread_mailbox_t::address_t &writeread_mailbox,
-        typename protocol_t::write_t w, transition_timestamp_t ts,
+        typename protocol_t::write_t w, transition_timestamp_t ts, fifo_enforcer_write_token_t token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
 {
@@ -37,7 +37,7 @@ typename protocol_t::write_response_t listener_writeread(
         cluster, boost::bind(&promise_t<typename protocol_t::write_response_t>::pulse, &resp_cond, _1));
 
     send(cluster, writeread_mailbox,
-        w, ts, resp_mailbox.get_address());
+        w, ts, token, resp_mailbox.get_address());
 
     wait_any_t waiter(resp_cond.get_ready_signal(), interruptor);
     waiter.wait_lazily_unordered();
@@ -50,7 +50,7 @@ template<class protocol_t>
 typename protocol_t::read_response_t listener_read(
         mailbox_cluster_t *cluster,
         const typename listener_data_t<protocol_t>::read_mailbox_t::address_t &read_mailbox,
-        typename protocol_t::read_t r, state_timestamp_t ts,
+        typename protocol_t::read_t r, state_timestamp_t ts, fifo_enforcer_read_token_t token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
 {
@@ -59,7 +59,7 @@ typename protocol_t::read_response_t listener_read(
         cluster, boost::bind(&promise_t<typename protocol_t::read_response_t>::pulse, &resp_cond, _1));
 
     send(cluster, read_mailbox,
-        r, ts, resp_mailbox.get_address());
+        r, ts, token, resp_mailbox.get_address());
 
     wait_any_t waiter(resp_cond.get_ready_signal(), interruptor);
     waiter.wait_lazily_unordered();
@@ -74,17 +74,19 @@ typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename pr
     dispatchee_t *reader;
     auto_drainer_t::lock_t reader_lock;
     state_timestamp_t timestamp;
+    fifo_enforcer_read_token_t enforcer_token;
 
     {
         mutex_t::acq_t mutex_acq(&mutex);
         pick_a_readable_dispatchee(&reader, &mutex_acq, &reader_lock);
         timestamp = current_timestamp;
         order_sink.check_out(order_token);
+        enforcer_token = reader->fifo_source.enter_read();
     }
 
     try {
         return listener_read<protocol_t>(cluster, reader->read_mailbox,
-            read, timestamp,
+            read, timestamp, enforcer_token,
             reader_lock.get_drain_signal());
     } catch (interrupted_exc_t) {
         throw mirror_lost_exc_t();
@@ -109,8 +111,15 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
         std::map<dispatchee_t *, auto_drainer_t::lock_t> writers;
         dispatchee_t *writereader;
         auto_drainer_t::lock_t writereader_lock;
+        std::map<dispatchee_t *, fifo_enforcer_write_token_t> enforcer_tokens;
 
-        /* Set up the write */
+        /* Set up the write. We have to be careful about the case where
+        dispatchees are joining or leaving at the same time as we are doing the
+        write. The way we handle this is via `mutex`. If the write reaches
+        `mutex` before a new dispatchee does, then the new dispatchee's
+        constructor will send off the write. Otherwise, the write will be sent
+        directly to the new dispatchee by the loop further down in this very
+        function. */
         {
             /* We must hold the mutex so that we don't race with other writes
             that are starting or with new dispatchees that are joining. */
@@ -133,6 +142,10 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
             snapshot of the dispatchee map */
             pick_a_readable_dispatchee(&writereader, &mutex_acq, &writereader_lock);
             writers = dispatchees;
+            for (typename std::map<dispatchee_t *, auto_drainer_t::lock_t>::iterator it = dispatchees.begin();
+                    it != dispatchees.end(); it++) {
+                enforcer_tokens[(*it).first] = (*it).first->fifo_source.enter_write();
+            }
         }
 
         sanity_check();
@@ -144,13 +157,13 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
             /* Make sure not to send a duplicate operation to `writereader` */
             if ((*it).first == writereader) continue;
             coro_t::spawn_sometime(boost::bind(&broadcaster_t::background_write, this,
-                (*it).first, (*it).second, write_ref));
+                (*it).first, (*it).second, write_ref, enforcer_tokens[(*it).first]));
         }
 
         /* ... then dispatch it to the writereader */
         try {
             resp = listener_writeread<protocol_t>(cluster, writereader->writeread_mailbox,
-                write_ref.get()->write, write_ref.get()->timestamp,
+                write_ref.get()->write, write_ref.get()->timestamp, enforcer_tokens[writereader],
                 writereader_lock.get_drain_signal());
         } catch (interrupted_exc_t) {
             throw mirror_lost_exc_t();
@@ -178,9 +191,9 @@ broadcaster_t<protocol_t>::dispatchee_t::dispatchee_t(broadcaster_t *c, listener
     controller->sanity_check();
 
     /* Grab mutex so we don't race with writes that are starting or finishing.
-    For example, a write might get dispatched to us twice if it starts after
-    we're in `controller->dispatchees` but before we've iterated over
-    `incomplete_writes`. */
+    If we don't do this, bad things could happen: for example, a write might get
+    dispatched to us twice if it starts after we're in `controller->dispatchees`
+    but before we've iterated over `incomplete_writes`. */
     mutex_t::acq_t acq(&controller->mutex);
     ASSERT_FINITE_CORO_WAITING;
 
@@ -194,7 +207,7 @@ broadcaster_t<protocol_t>::dispatchee_t::dispatchee_t(broadcaster_t *c, listener
     for (typename std::list<boost::shared_ptr<incomplete_write_t> >::iterator it = controller->incomplete_writes.begin();
             it != controller->incomplete_writes.end(); it++) {
         coro_t::spawn_sometime(boost::bind(&broadcaster_t::background_write, controller,
-            this, auto_drainer_t::lock_t(&drainer), incomplete_write_ref_t(*it)));
+            this, auto_drainer_t::lock_t(&drainer), incomplete_write_ref_t(*it), fifo_source.enter_write()));
     }
 }
 
@@ -259,10 +272,10 @@ void broadcaster_t<protocol_t>::pick_a_readable_dispatchee(dispatchee_t **dispat
 }
 
 template<class protocol_t>
-void broadcaster_t<protocol_t>::background_write(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref) THROWS_NOTHING {
+void broadcaster_t<protocol_t>::background_write(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, fifo_enforcer_write_token_t token) THROWS_NOTHING {
     try {
         listener_write<protocol_t>(cluster, mirror->write_mailbox,
-            write_ref.get()->write, write_ref.get()->timestamp,
+            write_ref.get()->write, write_ref.get()->timestamp, token,
             mirror_lock.get_drain_signal());
     } catch (interrupted_exc_t) {
         return;

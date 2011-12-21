@@ -37,6 +37,10 @@ public:
         auto_drainer_t *parent;
     };
 
+    void assert_not_draining() {
+        rassert(!draining.is_pulsed());
+    }
+
 private:
     void incref();
     void decref();

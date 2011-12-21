@@ -20,32 +20,12 @@ public:
     ~connectivity_cluster_t();
 
     /* `connectivity_service_t` public methods: */
-
     peer_id_t get_me();
-
     std::set<peer_id_t> get_peers_list();
 
     /* `message_service_t` public methods: */
-
-    /* This is kind of silly. We need to implement it because
-    `message_service_t` has a `get_connectivity()` method, and we are also the
-    `connectivity_service_t` for our `message_service_t`. */
-    connectivity_service_t *get_connectivity() {
-        return this;
-    }
-
-    /* TODO: We should have a better mechanism for sending messages to ourself.
-    Right now, they get serialized and then deserialized. If we did it more
-    efficiently, we wouldn't have to special-case messages to local mailboxes on
-    the higher levels. */
-
-    /* `send_message()` is used to send a message to a specific peer. The
-    function will be called with a `std::ostream&` that leads to the peer in
-    question. `send_message()` can be called on any thread. It may block. */
+    connectivity_service_t *get_connectivity();
     void send_message(peer_id_t, const boost::function<void(std::ostream &)> &);
-
-    /* Sets the function that will be called when a message is received from
-    another peer. */
     void set_message_callback(
             const boost::function<void(
                 peer_id_t source_peer,

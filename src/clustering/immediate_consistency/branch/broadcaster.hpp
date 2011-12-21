@@ -239,6 +239,11 @@ private:
         typename listener_data_t<protocol_t>::writeread_mailbox_t::address_t writeread_mailbox;
         typename listener_data_t<protocol_t>::read_mailbox_t::address_t read_mailbox;
 
+        /* This is used to enforce that operations are performed on the
+        destination machine in the same order that we send them, even if the
+        network layer reorders the messages. */
+        fifo_enforcer_source_t fifo_source;
+
     private:
         void upgrade(
             typename listener_data_t<protocol_t>::writeread_mailbox_t::address_t,
@@ -263,7 +268,7 @@ private:
     `dispatchee_mutex` and pass in `proof` of the mutex acquisition.*/
     void pick_a_readable_dispatchee(dispatchee_t **dispatchee_out, mutex_t::acq_t *proof, auto_drainer_t::lock_t *lock_out) THROWS_ONLY(insufficient_mirrors_exc_t);
 
-    void background_write(dispatchee_t *, auto_drainer_t::lock_t, incomplete_write_ref_t) THROWS_NOTHING;
+    void background_write(dispatchee_t *, auto_drainer_t::lock_t, incomplete_write_ref_t, fifo_enforcer_write_token_t) THROWS_NOTHING;
     void end_write(boost::shared_ptr<incomplete_write_t> write) THROWS_NOTHING;
 
     /* This function sanity-checks `incomplete_writes`, `current_timestamp`,

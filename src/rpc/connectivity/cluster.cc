@@ -57,27 +57,11 @@ std::set<peer_id_t> connectivity_cluster_t::get_peers_list() {
     return peers;
 }
 
-peer_address_t connectivity_cluster_t::get_peer_address(peer_id_t p) {
-    if (p == me) {
-        return me_address;
-    } else {
-        std::map<peer_id_t, connection_t *> *connection_map = &thread_info.get()->connection_map;
-        rassert(connection_map->count(p) == 1, "You can only call "
-            "get_peer_address() on a peer that we're currently connected to.");
-        return (*connection_map)[p]->address;
-    }
-}
-
-void connectivity_cluster_t::join(peer_address_t address) {
-    assert_thread();
-    coro_t::spawn_now(boost::bind(
-        &connectivity_cluster_t::join_blocking,
-        this,
-        address,
-        /* We don't know what `peer_id_t` the peer has until we connect to it */
-        boost::none,
-        auto_drainer_t::lock_t(&drainer)
-        ));
+connectivity_service_t *connectivity_cluster_t::get_connectivity() {
+    /* This is kind of silly. We need to implement it because
+    `message_service_t` has a `get_connectivity()` method, and we are also the
+    `connectivity_service_t` for our own `message_service_t`. */
+    return this;
 }
 
 void connectivity_cluster_t::send_message(peer_id_t dest, const boost::function<void(std::ostream&)> &writer) {
@@ -99,6 +83,11 @@ void connectivity_cluster_t::send_message(peer_id_t dest, const boost::function<
 #endif
 
     if (dest == me) {
+
+        /* TODO: We should consider having a better mechanism for sending
+        messages to ourself. Right now, they get serialized and then
+        deserialized. If we did it more efficiently, we wouldn't have to
+        special-case messages to local mailboxes on the higher levels. */
 
         // We could be on any thread here!  Oh no!
 
@@ -159,6 +148,29 @@ void connectivity_cluster_t::set_message_callback(
             )> &callback
         ) {
     on_message = callback;
+}
+
+peer_address_t connectivity_cluster_t::get_peer_address(peer_id_t p) {
+    if (p == me) {
+        return me_address;
+    } else {
+        std::map<peer_id_t, connection_t *> *connection_map = &thread_info.get()->connection_map;
+        rassert(connection_map->count(p) == 1, "You can only call "
+            "get_peer_address() on a peer that we're currently connected to.");
+        return (*connection_map)[p]->address;
+    }
+}
+
+void connectivity_cluster_t::join(peer_address_t address) {
+    assert_thread();
+    coro_t::spawn_now(boost::bind(
+        &connectivity_cluster_t::join_blocking,
+        this,
+        address,
+        /* We don't know what `peer_id_t` the peer has until we connect to it */
+        boost::none,
+        auto_drainer_t::lock_t(&drainer)
+        ));
 }
 
 #ifndef NDEBUG

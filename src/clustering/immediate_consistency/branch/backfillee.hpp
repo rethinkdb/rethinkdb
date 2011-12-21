@@ -4,6 +4,11 @@
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "concurrency/promise.hpp"
 
+/* TODO: What if the backfill chunks on the network get reordered in transit?
+Even if the `protocol_t` can tolerate backfill chunks being reordered, it's
+clearly not OK for the end-of-backfill message to be processed before the last
+of the backfill chunks are. Consider using a FIFO enforcer or something. */
+
 template<class protocol_t>
 void on_receive_backfill_chunk(
         store_view_t<protocol_t> *store,

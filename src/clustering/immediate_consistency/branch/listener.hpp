@@ -48,11 +48,11 @@ public:
         branch_id(bid),
 
         write_mailbox(cluster, boost::bind(&listener_t::on_write, this,
-            auto_drainer_t::lock_t(&drainer), _1, _2, _3)),
+            auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4)),
         writeread_mailbox(cluster, boost::bind(&listener_t::on_writeread, this,
-            auto_drainer_t::lock_t(&drainer), _1, _2, _3)),
+            auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4)),
         read_mailbox(cluster, boost::bind(&listener_t::on_read, this,
-            auto_drainer_t::lock_t(&drainer), _1, _2, _3))
+            auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4))
     {
         if (interruptor->is_pulsed()) {
             throw interrupted_exc_t();
@@ -194,11 +194,11 @@ private:
         branch_id(bid),
 
         write_mailbox(cluster, boost::bind(&listener_t::on_write, this,
-            auto_drainer_t::lock_t(&drainer), _1, _2, _3)),
+            auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4)),
         writeread_mailbox(cluster, boost::bind(&listener_t::on_writeread, this,
-            auto_drainer_t::lock_t(&drainer), _1, _2, _3)),
+            auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4)),
         read_mailbox(cluster, boost::bind(&listener_t::on_read, this,
-            auto_drainer_t::lock_t(&drainer), _1, _2, _3))
+            auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4))
     {
         if (interruptor->is_pulsed()) {
             throw interrupted_exc_t();
@@ -281,18 +281,15 @@ private:
     void on_write(auto_drainer_t::lock_t keepalive,
             typename protocol_t::write_t write,
             transition_timestamp_t transition_timestamp,
+            fifo_enforcer_write_token_t fifo_token,
             async_mailbox_t<void()>::address_t ack_addr)
             THROWS_NOTHING
     {
-        /* IMPLICIT ASSUMPTION WARNING: We assume that operations acquire the
-        mutex in the same order they arrive over the network. I think this works
-        because of our cooperative scheduler. */
-
-        /* Acquire mutex. We use the mutex to ensure that operations don't get
-        reordered when we're blocking as part of the startup process. */
-        mutex_t::acq_t mutex_acq(&operation_order_mutex);
-
         try {
+            /* Enforce that we start our transaction in the same order as we
+            entered the FIFO at the broadcaster. */
+            fifo_enforcer_sink_t::exit_write_t fifo_exit(&fifo_sink, fifo_token, keepalive.get_drain_signal());
+
             /* Validate write. */
             rassert(region_is_superset(namespace_metadata->get().branches[branch_id].region, write.get_region()));
             rassert(!region_is_empty(write.get_region()));
@@ -336,15 +333,12 @@ private:
                 return;
             }
 
-            /* Start a transaction prior to releasing the mutex */
             boost::shared_ptr<typename store_view_t<protocol_t>::write_transaction_t> transaction =
                 store->begin_write_transaction(keepalive.get_drain_signal());
 
-            /* Release the mutex */
-            {
-                mutex_t::acq_t doomed;
-                swap(mutex_acq, doomed);
-            }
+            /* Now that we've started a transaction, the superblock is locked,
+            so it's safe to allow the next write or read to proceed. */
+            fifo_exit.reset();
 
 #ifndef NDEBUG
             /* Sanity-check metadata */
@@ -386,12 +380,13 @@ private:
     void on_writeread(auto_drainer_t::lock_t keepalive,
             typename protocol_t::write_t write,
             transition_timestamp_t transition_timestamp,
+            fifo_enforcer_write_token_t fifo_token,
             typename async_mailbox_t<void(typename protocol_t::write_response_t)>::address_t ack_addr)
             THROWS_NOTHING
     {
-        mutex_t::acq_t mutex_acq(&operation_order_mutex);
-
         try {
+            fifo_enforcer_sink_t::exit_write_t fifo_exit(&fifo_sink, fifo_token, keepalive.get_drain_signal());
+
             /* Validate write. */
             rassert(region_is_superset(namespace_metadata->get().branches[branch_id].region, write.get_region()));
             rassert(!region_is_empty(write.get_region()));
@@ -407,15 +402,11 @@ private:
             rassert(transition_timestamp.timestamp_before() >=
                 backfill_done_cond.get_value());
 
-            /* Start a transaction prior to releasing the mutex */
             boost::shared_ptr<typename store_view_t<protocol_t>::write_transaction_t> transaction =
                 store->begin_write_transaction(keepalive.get_drain_signal());
 
-            /* Release the mutex */
-            {
-                mutex_t::acq_t doomed;
-                swap(mutex_acq, doomed);
-            }
+            /* Now that we have the superblock, allow the next guy to proceed */
+            fifo_exit.reset();
 
 #ifndef NDEBUG
             /* Sanity-check metadata */
@@ -455,12 +446,13 @@ private:
     void on_read(auto_drainer_t::lock_t keepalive,
             typename protocol_t::read_t read,
             UNUSED state_timestamp_t expected_timestamp,
+            fifo_enforcer_read_token_t fifo_token,
             typename async_mailbox_t<void(typename protocol_t::read_response_t)>::address_t ack_addr)
             THROWS_NOTHING
     {
-        mutex_t::acq_t mutex_acq(&operation_order_mutex);
-
         try {
+            fifo_enforcer_sink_t::exit_read_t fifo_exit(&fifo_sink, fifo_token, keepalive.get_drain_signal());
+
             /* Validate read. */
             rassert(region_is_superset(namespace_metadata->get().branches[branch_id].region, read.get_region()));
             rassert(!region_is_empty(read.get_region()));
@@ -471,15 +463,11 @@ private:
                 registration_result_cond.get_value());
             rassert(backfill_done_cond.get_ready_signal()->is_pulsed());
 
-            /* Start a transaction prior to releasing the mutex */
             boost::shared_ptr<typename store_view_t<protocol_t>::read_transaction_t> transaction =
                 store->begin_read_transaction(keepalive.get_drain_signal());
 
-            /* Release the mutex */
-            {
-                mutex_t::acq_t doomed;
-                swap(mutex_acq, doomed);
-            }
+            /* Now that we have the superblock, allow the next guy to proceed */
+            fifo_exit.reset();
 
 #ifndef NDEBUG
             /* Sanity-check metadata */
@@ -530,7 +518,7 @@ private:
     promise_t<state_timestamp_t> backfill_done_cond;
     cond_t backfill_failed_cond;
 
-    mutex_t operation_order_mutex;
+    fifo_enforcer_sink_t fifo_sink;
 
     auto_drainer_t drainer;
 
