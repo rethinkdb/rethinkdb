@@ -1,7 +1,6 @@
 template<class metadata_t>
 directory_read_manager_t<metadata_t>::directory_read_manager_t(message_rservice_t *sub) :
     super_message_service(sub),
-    root_view(new root_view_t(this)),
     connectivity_subscription(
         std::make_pair(
             boost::bind(&directory_read_manager_t::on_connect, this, _1),
@@ -25,8 +24,8 @@ directory_read_manager_t<metadata_t>::~directory_read_manager_t() {
 }
 
 template<class metadata_t>
-boost::shared_ptr<directory_rview_t<metadata_t> > directory_read_manager_t<metadata_t>::get_root_view() {
-    return root_view;
+clone_ptr_t<directory_rview_t<metadata_t> > directory_read_manager_t<metadata_t>::get_root_view() {
+    return clone_ptr_t<directory_rview_t<metadata_t> >(new root_view_t(this));
 }
 
 template<class metadata_t>
@@ -48,6 +47,11 @@ template<class metadata_t>
 connectivity_service_t *directory_read_manager_t<metadata_t>::get_connectivity() {
     /* We are our own `connectivity_service_t` */
     return this;
+}
+
+template<class metadata_t>
+directory_read_manager_t<metadata_t>::root_view_t *directory_read_manager_t<metadata_t>::root_view_t::clone() THROWS_NOTHING {
+    return new root_view_t(parent);
 }
 
 template<class metadata_t>

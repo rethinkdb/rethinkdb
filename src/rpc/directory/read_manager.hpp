@@ -1,6 +1,10 @@
 #ifndef __RPC_DIRECTORY_RECEIVER_HPP__
 #define __RPC_DIRECTORY_RECEIVER_HPP__
 
+#include "rpc/connectivity/connectivity.hpp"
+#include "rpc/connectivity/messages.hpp"
+#include "rpc/directory/read_view.hpp"
+
 /* Because the directory manager is so complex, it's broken out into several
 sub-components. `directory_read_manager_t` is the read-only sub-component of the
 directory manager. It doesn't publish a directory value of its own. */
@@ -8,24 +12,25 @@ directory manager. It doesn't publish a directory value of its own. */
 template<class metadata_t>
 class directory_read_manager_t :
     public connectivity_service_t,
-    public directory_rservice_t
+    public directory_read_service_t
 {
 public:
-    directory_read_manager_t(message_rservice_t *sub_message_service);
+    directory_read_manager_t(message_read_service_t *sub_message_service);
 
-    boost::shared_ptr<directory_rview_t<metadata_t> > get_root_view();
+    clone_ptr_t<directory_rview_t<metadata_t> > get_root_view();
 
     /* `connectivity_service_t` interface */
     peer_id_t get_me();
     std::set<peer_id_t> get_peers_list();
 
-    /* `directory_rservice_t` interface */
+    /* `directory_read_service_t` interface */
     connectivity_service_t *get_connectivity();
 
 private:
     /* `get_root_view()` returns a pointer to this. */
     class root_view_t : public directory_rview_t<metadata_t> {
     public:
+        root_view_t *clone() THROWS_NOTHING;
         boost::optional<metadata_t> get_value(peer_id_t peer) THROWS_NOTHING;
         directory_rservice_t *get_directory() THROWS_NOTHING;
     private:
@@ -102,8 +107,6 @@ private:
 
     /* The message service that we use to communicate with other peers */
     message_rservice_t *super_message_service;
-
-    boost::shared_ptr<root_view_t> root_view;
 
     one_per_thread_t<thread_info_t> thread_info;
 
