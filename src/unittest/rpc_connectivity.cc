@@ -23,12 +23,13 @@ void let_stuff_happen() {
     nap(1000);
 }
 
-/* `recording_test_application_t` sends and receives integers over a `message_service_t`.
-It keeps track of the integers it has received. */
+/* `recording_test_application_t` sends and receives integers over a
+`message_readwrite_service_t`. It keeps track of the integers it has received.
+*/
 
 class recording_test_application_t : public home_thread_mixin_t {
 public:
-    explicit recording_test_application_t(message_service_t *s) :
+    explicit recording_test_application_t(message_readwrite_service_t *s) :
         service(s),
         sequence_number(0),
         message_handler_registration(s, boost::bind(&recording_test_application_t::on_message, this, _1, _2))
@@ -68,11 +69,11 @@ private:
         stream << i;
     }
 
-    message_service_t *service;
+    message_readwrite_service_t *service;
     std::map<int, peer_id_t> inbox;
     std::map<int, int> timing;
     int sequence_number;
-    message_service_t::handler_registration_t message_handler_registration;
+    message_readwrite_service_t::handler_registration_t message_handler_registration;
 };
 
 /* `StartStop` starts a cluster of three nodes, then shuts it down again. */
@@ -429,7 +430,7 @@ TEST(RPCConnectivityTest, BlobJoinMultiThread) {
 
 class binary_test_application_t {
 public:
-    explicit binary_test_application_t(message_service_t *s) :
+    explicit binary_test_application_t(message_readwrite_service_t *s) :
         service(s),
         got_spectrum(false),
         message_handler_registration(s, boost::bind(&binary_test_application_t::on_message, this, _1, _2))
@@ -452,9 +453,9 @@ public:
         EXPECT_EQ(eof, EOF);
         got_spectrum = true;
     }
-    message_service_t *service;
+    message_readwrite_service_t *service;
     bool got_spectrum;
-    message_service_t::handler_registration_t message_handler_registration;
+    message_readwrite_service_t::handler_registration_t message_handler_registration;
 };
 
 void run_binary_data_test() {

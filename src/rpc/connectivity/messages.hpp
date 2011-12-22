@@ -3,14 +3,19 @@
 
 #include "rpc/connectivity/connectivity.hpp"
 
-/* `message_service_t` is an abstract superclass for things that allow you to
-send messages directly to other nodes and receive messages from other nodes. The
-reason why we need such an abstract class is that some of the clustering stack
-components build on each other. Specifically, `connectivity_cluster_t` exposes a
-`message_service_t` to `directory_manager_t`, which in turn exposes a
-`message_service_t` to `mailbox_manager_t`. */
+/* `message_read_service_t` is an abstract superclass for things that let you
+receive messages from other nodes. `message_write_service_t` is an abstract
+superclass for things that let you send messages to other nodes.
+`message_readwrite_service_t` allows both.
 
-class message_service_t {
+The reason for these abstract classes is because some of the components of the
+clustering stack can be stacked on top of each other in different ways. For
+example, `mailbox_manager_t` can run on top of any
+`message_readwrite_service_t`; usually it's run on top of a
+`directory_manager_t`, which is a `message_readwrite_service_t` and also uses a
+`message_readwrite_service_t`. */
+
+class message_read_service_t {
 public:
     /* Whenever the message service receives a message from a peer, it calls the
     callback that is passed to the `handler_registration_t`. Its arguments are
@@ -22,21 +27,18 @@ public:
     entire message. */
     class handler_registration_t {
     public:
-        handler_registration_t(message_service_t *p, const boost::function<void(peer_id_t, std::istream &)> &cb) : parent(p) {
+        handler_registration_t(message_read_service_t *p, const boost::function<void(peer_id_t, std::istream &)> &cb) : parent(p) {
             parent->set_message_callback(cb);
         }
         ~handler_registration_t() {
             parent->set_message_callback(NULL);
         }
     private:
-        message_service_t *parent;
+        message_read_service_t *parent;
     };
     virtual connectivity_service_t *get_connectivity() = 0;
-    virtual void send_message(
-            peer_id_t dest_peer,
-            const boost::function<void(std::ostream &)> &writer) = 0;
 protected:
-    virtual ~message_service_t() { }
+    virtual ~message_read_service_t() { }
 private:
     friend class handler_registration_t;
     virtual void set_message_callback(
@@ -45,6 +47,24 @@ private:
                 std::istream &stream_from_peer
                 )> &callback
             ) = 0;
+};
+
+class message_write_service_t {
+public:
+    virtual void send_message(
+            peer_id_t dest_peer,
+            const boost::function<void(std::ostream &)> &writer) = 0;
+    virtual connectivity_service_t *get_connectivity() = 0;
+protected:
+    virtual ~message_write_service_t() { }
+};
+
+class message_readwrite_service_t :
+    public message_read_service_t,
+    public message_write_service_t
+{
+public:
+    virtual connectivity_service_t *get_connectivity() = 0;
 };
 
 #endif /* __RPC_CONNECTIVITY_MESSAGES_HPP__ */

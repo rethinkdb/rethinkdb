@@ -12,7 +12,7 @@
 
 class connectivity_cluster_t :
     public connectivity_service_t,
-    public message_service_t,
+    public message_readwrite_service_t,
     public home_thread_mixin_t
 {
 public:
@@ -23,7 +23,7 @@ public:
     peer_id_t get_me();
     std::set<peer_id_t> get_peers_list();
 
-    /* `message_service_t` public methods: */
+    /* `message_readwrite_service_t` public methods: */
     connectivity_service_t *get_connectivity();
     void send_message(peer_id_t, const boost::function<void(std::ostream &)> &);
 
@@ -95,7 +95,7 @@ private:
             boost::function<void(peer_id_t)>
             > > *get_peers_list_publisher();
 
-    /* `message_service_t` private methods: */
+    /* `message_readwrite_service_t` private methods: */
     void set_message_callback(
             const boost::function<void(
                 peer_id_t source_peer,

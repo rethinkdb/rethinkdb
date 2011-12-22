@@ -118,7 +118,7 @@ private:
     static void write_mailbox_message(std::ostream&, int dest_thread, mailbox_t::id_t dest_mailbox_id, boost::function<void(std::ostream&)> writer);
     void on_message(peer_id_t, std::istream&);
 
-    message_service_t::handler_registration_t message_handler_registration;
+    message_read_service_t::handler_registration_t message_handler_registration;
 };
 
 #endif /* __RPC_MAILBOX_MAILBOX_HPP__ */
