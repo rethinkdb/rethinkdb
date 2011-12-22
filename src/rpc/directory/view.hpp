@@ -4,7 +4,7 @@
 #include "concurrency/pubsub.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 
-class directory_service_t :
+class directory_rservice_t :
         public home_thread_mixin_t
 {
 public:
@@ -43,20 +43,6 @@ public:
                 >::subscription_t subs;
     };
 
-    /* `our_value_lock_acq_t` prevents anyone from changing our directory-value
-    other than the person who holds the `our_value_lock_acq_t`. Its constructor
-    may block. It can only be acquired on the `directory_service_t`'s home
-    thread. It doesn't interfere with `peer_value_freeze_t`, but be sure not to
-    call `set_our_value()` while a `peer_value_freeze_t` exists in the same
-    coroutine. */
-    class our_value_lock_acq_t {
-    public:
-        our_value_lock_acq_t(directory_service_t *) THROWS_NOTHING;
-        void assert_is_holding(directory_service_t *) THROWS_NOTHING;
-    private:
-        mutex_t::acq_t acq;
-    };
-
     /* Returns the `connectivity_service_t` associated with the directory
     service. The directory should report a non-nothing value for a peer if and
     only if the `connectivity_service_t` says that the peer is connected. */
@@ -75,7 +61,25 @@ private:
     virtual publisher_t<
         boost::function<void()>
         > *get_peer_value_publisher(peer_id_t, peer_value_lock_acq_t *proof) THROWS_NOTHING = 0;
+};
 
+class directory_rwservice_t : public directory_rservice_t {
+public:
+    /* `our_value_lock_acq_t` prevents anyone from changing our directory-value
+    other than the person who holds the `our_value_lock_acq_t`. Its constructor
+    may block. It can only be acquired on the `directory_service_t`'s home
+    thread. It doesn't interfere with `peer_value_freeze_t`, but be sure not to
+    call `set_our_value()` while a `peer_value_freeze_t` exists in the same
+    coroutine. */
+    class our_value_lock_acq_t {
+    public:
+        our_value_lock_acq_t(directory_service_t *) THROWS_NOTHING;
+        void assert_is_holding(directory_service_t *) THROWS_NOTHING;
+    private:
+        mutex_t::acq_t acq;
+    };
+
+private:
     /* Returns a lock for writing to our value. `get_our_value_lock()` should
     only be accessed on the `directory_service_t`'s home thread. */
     virtual mutex_t *get_our_value_lock() THROWS_NOTHING = 0;
@@ -92,7 +96,7 @@ public:
     virtual boost::optional<metadata_t> get_value(peer_id_t peer) THROWS_NOTHING = 0;
 
     /* Returns the directory that this is a part of. */
-    virtual directory_service_t *get_directory() THROWS_NOTHING = 0;
+    virtual directory_rservice_t *get_directory() THROWS_NOTHING = 0;
 
 protected:
     virtual ~directory_rview_t() THROWS_NOTHING { }
@@ -113,6 +117,8 @@ public:
     destroying `peer_value_freeze_t`s, because they shouldn't block while
     holding them anyway. */
     virtual void set_our_value(const metadata_t &new_value_for_us, directory_service_t::our_value_lock_acq_t *proof) THROWS_NOTHING = 0;
+
+    virtual directory_rwservice_t *get_directory() THROWS_NOTHING = 0;
 };
 
 /* `directory_peer_rview_t` refers to a certain part of the directory metadata
@@ -126,7 +132,7 @@ public:
     virtual boost::optional<metadata_t> get_value() THROWS_NOTHING = 0;
 
     /* Returns the directory that this is a part of. */
-    virtual directory_service_t *get_directory() THROWS_NOTHING = 0;
+    virtual directory_rservice_t *get_directory() THROWS_NOTHING = 0;
 
     /* Returns the peer that this `directory_peer_rview_t` is looking at. */
     virtual peer_id_t get_peer() THROWS_NOTHING = 0;

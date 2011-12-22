@@ -5,12 +5,12 @@ directory_manager_t<metadata_t>::directory_manager_t(metadata_service_t *ms, con
     root_view(boost::make_shared<root_view_t>(this)),
     our_value(initial_metadata),
     connectivity_subscription(std::make_pair(
-        boost::bind(&directory_manager_t::on_connect, this, _1, auto_drainer_t::lock_t(&drainer)),
-        boost::bind(&directory_manager_t::on_disconnect, this, _1, auto_drainer_t::lock_t(&drainer))
+        boost::bind(&directory_manager_t::on_connect, this, _1),
+        boost::bind(&directory_manager_t::on_disconnect, this, _1)
         )),
     message_handler_registration(
         super_message_service,
-        boost::bind(&directory_manager_t::on_message, this, _1, _2, _3)
+        boost::bind(&directory_manager_t::on_message, this, _1, _2)
         )
 {
     on_connect(get_me(), auto_drainer_t::lock_t(&drainer));
@@ -76,13 +76,27 @@ void directory_manager_t<metadata_t>::write_sub_message(std::ostream &stream, co
 }
 
 template<class metadata_t>
-void directory_manager_t<metadata_t>::on_connect(peer_id_t peer, auto_drainer_t::lock_t keepalive) {
-    
-    }
+void directory_manager_t<metadata_t>::on_connect(peer_id_t peer) {
+    assert_thread();
+    mutex_assertion_t::acq_t acq(&connectivity_mutex_assertion);
+
+    /* We could start receiving update messages now, so create a drainer for the
+    peer. */
+    rassert(peer_drainers.count(peer) == 0);
+    peer_drainers.insert(peer, new auto_drainer_t);
+
+    /* Send an initial copy of our metadata to the peer. */
+    mutex_assertion_t::acq_t acq(&our_value_lock_assertion);
+    coro_t::spawn_sometime(boost::bind(
+        &directory_manager_t::greet_peer,
+        auto_drainer_t::lock_t(&drainer),
+        our_value,
+        change_fifo_source.get_state()
+        ));
 }
 
 template<class metadata_t>
-void directory_manager_t<metadata_t>::on_message(peer_id_t source, std::istream &stream, const boost::function<void()> &on_done, auto_drainer_t::lock_t global_keepalive) THROWS_NOTHING {
+void directory_manager_t<metadata_t>::on_message(peer_id_t source_peer, std::istream &stream) THROWS_NOTHING {
     switch (stream.get()) {
         case 'I': {
             metadata_t initial_value;
@@ -92,14 +106,14 @@ void directory_manager_t<metadata_t>::on_message(peer_id_t source, std::istream 
                 archive >> initial_value;
                 archive >> state;
             }
-            on_done();
+            mutex_assertion_t::acq_t acq(&connectivity_mutex_assertion);
             fifo_enforcer_write_token_t connectivity_fifo_token =
                 connectivity_fifo_source.enter_write();
             for (int i = 0; i < get_num_threads(); i++) {
                 coro_t::spawn_sometime(boost::bind(
                     &directory_manager_t::propagate_initial, this,
                     i, connectivity_fifo_token, global_keepalive,
-                    peer, intiial_value, state
+                    source_peer, intiial_value, state
                     ));
             }
             break;
@@ -112,22 +126,21 @@ void directory_manager_t<metadata_t>::on_message(peer_id_t source, std::istream 
                 archive >> new_value;
                 archive >> fifo_token;
             }
-            on_done();
+            mutex_assertion_t::acq_t acq(&connectivity_mutex_assertion);
             fifo_enforcer_read_token_t connectivity_fifo_token =
                 connectivity_fifo_source.enter_read();
             for (int i = 0; i < get_num_threads(); i++) {
                 coro_t::spawn_sometime(boost::bind(
-                    &directory_manager_t::propagate_change, this,
-                    
-            pmap(get_num_threads(), boost::bind(
-                &directory_manager_t::propagate_someones_change_to_thread, this,
-                _1, source, new_value, fifo_token, peer_keepalive
-                ));
+                    &directory_manager_t::propagate_update, this,
+                    i, connectivity_fifo_token, auto_drainer_t::lock_t(&drainer),
+                    source_peer, new_value, fifo_token,
+                    auto_drainer_t::lock_t(&peer_drainers[source_peer])
+                    ));
             break;
         }
         case 'S': {
             rassert(!sub_message_service.callback.empty());
-            sub_message_service.callback(source, stream, on_done);
+            sub_message_service.callback(source_peer, stream);
             break;
         }
         default: {
@@ -138,10 +151,41 @@ void directory_manager_t<metadata_t>::on_message(peer_id_t source, std::istream 
 
 template<class metadata_t>
 void directory_manager_t<metadata_t>::on_disconnect(peer_id_t peer, auto_drainer_t::lock_t keepalive) {
+    assert_thread();
+    mutex_assertion_t::acq_t acq(&connectivity_mutex_assertion);
+
+    /* Start interrupting active instances of `propagate_update()` */
+    rassert(peer_drainers.count(peer) == 1);
+    std::auto_ptr<auto_drainer_t> doomed_peer_drainer = peer_drainers.release(peer_drainers.find(peer));
+    coro_t::spawn_sometime(boost::bind(
+        &directory_manager_t::drain_propagate_update, this,
+        auto_drainer_t::lock_t(&drainer),
+        doomed_peer_drainer.release()
+        ));
+
+    /* Start notifying everyone that the peer is gone */
+    fifo_enforcer_write_token_t connectivity_fifo_token =
+        connectivity_fifo_source.enter_write();
+    for (int i = 0; i < get_num_threads(); i++) {
+        coro_t::spawn_sometime(boost::bind(
+            &directory_manager_t::propagate_disconnect, this,
+            i, connectivity_fifo_token, auto_drainer_t::lock_t(&drainer),
+            peer
+            ));
+    }
 }
 
 template<class metadata_t>
-void directory_manager_t<metadata_t>::propagate_initial(int dest_thread, fifo_enforcer_write_token_t connectivity_fifo_token, auto_drainer_t::lock_t global_keepalive, peer_id_t peer, const metadata_t &initial_value, fifo_enforcer_source_t::state_t fifo_state) THROWS_NOTHING {
+void greet_peer(auto_drainer_t::lock_t global_keepalive, peer_id_t peer, const metadata_t &initial_value, fifo_enforcer_source_t::state_t state) THROWS_NOTHING {
+    assert_thread();
+    global_keepalive.assert_is_holding(&drainer);
+    super_message_service->send_message(peer,
+        boost::bind(&directory_manager_t::write_initial_message, _1, initial_value, state)
+        );
+}
+
+template<class metadata_t>
+void directory_manager_t<metadata_t>::propagate_initial_on_thread(int dest_thread, fifo_enforcer_write_token_t connectivity_fifo_token, UNUSED auto_drainer_t::lock_t global_keepalive, peer_id_t peer, const metadata_t &initial_value, fifo_enforcer_source_t::state_t fifo_state) THROWS_NOTHING {
     /* All notifications start from the main thread */
     assert_thread();
 
@@ -163,7 +207,13 @@ void directory_manager_t<metadata_t>::propagate_initial(int dest_thread, fifo_en
 }
 
 template<class metadata_t>
-void directory_manager_t<metadata_t>::propagate_update(int dest_thread, fifo_enforcer_read_token_t connectivity_fifo_token, auto_drainer_t::lock_t global_keepalive, peer_id_t peer, const metadata_t &new_value, fifo_enforcer_write_token_t fifo_token, signal_t *interruptor) THROWS_NOTHING {
+void propagate_update_everywhere(auto_drainer_t::lock_t global_keepalive, peer_id_t peer, const metadata_t &new_value, fifo_enforcer_write_token_t change_fifo_token, auto_drainer_t::lock_t peer_keepalive) THROWS_NOTHING {
+    
+}
+
+
+template<class metadata_t>
+void directory_manager_t<metadata_t>::propagate_update_on_thread(int dest_thread, fifo_enforcer_read_token_t connectivity_fifo_token, UNUSED auto_drainer_t::lock_t global_keepalive, peer_id_t peer, const metadata_t &new_value, fifo_enforcer_write_token_t fifo_token, auto_drainer_t::lock_t peer_keepalive) THROWS_NOTHING {
     /* All notifications start from the main thread */
     assert_thread();
 
@@ -192,6 +242,15 @@ void directory_manager_t<metadata_t>::propagate_update(int dest_thread, fifo_enf
         of order from the peer and then lost the connection, then the update
         we're blocking on might never arrive. */
     }
+}
+
+template<class metadata_t>
+void directory_manager_t<metadata_t>::drain_propagate_update(UNUSED auto_drainer_t::lock_t global_keepalive, auto_drainer_t::lock_t *destroy_me) THROWS_NOTHING {
+    assert_thread();
+
+    /* Destroying this will interrupt any active instances of
+    `propagate_update()`, and block until they have all returned. */
+    delete destroy_me;
 }
 
 template<class metadata_t>
