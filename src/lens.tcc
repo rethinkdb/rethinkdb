@@ -42,7 +42,7 @@ private:
 template<class inner_t, class outer_t>
 clone_ptr_t<readwrite_lens_t<inner_t, outer_t> > ref_fun_lens(const boost::function<inner_t &(outer_t &)> &fun) {
     return clone_ptr_t<readwrite_lens_t<inner_t, outer_t> >(
-        new ref_fun_readwrite_lens_t(fun)
+        new ref_fun_readwrite_lens_t<inner_t, outer_t>(fun)
         );
 }
 
@@ -68,7 +68,7 @@ private:
 template<class key_t, class value_t>
 clone_ptr_t<readwrite_lens_t<value_t, std::map<key_t, value_t> > > assumed_member_lens(const key_t &key) {
     return clone_ptr_t<readwrite_lens_t<value_t, std::map<key_t, value_t> > >(
-        new assumed_member_readwrite_lens_t(key)
+        new assumed_member_readwrite_lens_t<key_t, value_t>(key)
         );
 }
 
@@ -77,7 +77,7 @@ class optional_member_readwrite_lens_t : public readwrite_lens_t<boost::optional
 public:
     optional_member_readwrite_lens_t(const key_t &k) : key(k) { }
     boost::optional<value_t> get(const std::map<key_t, value_t> &o) {
-        std::map<key_t, value_t>::const_iterator it = o.find(key);
+        typename std::map<key_t, value_t>::const_iterator it = o.find(key);
         if (it == o.end()) {
             return boost::optional<value_t>();
         } else {
@@ -101,7 +101,7 @@ private:
 template<class key_t, class value_t>
 clone_ptr_t<readwrite_lens_t<boost::optional<value_t>, std::map<key_t, value_t> > > optional_member_lens(const key_t &key) {
     return clone_ptr_t<readwrite_lens_t<boost::optional<value_t>, std::map<key_t, value_t> > >(
-        new optional_member_readwrite_lens_t(key)
+        new optional_member_readwrite_lens_t<key_t, value_t>(key)
         );
 }
 

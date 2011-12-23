@@ -57,11 +57,11 @@ std::set<peer_id_t> connectivity_cluster_t::get_peers_list() {
     return peers;
 }
 
-connectivity_service_t *connectivity_cluster_t::get_connectivity() {
+connectivity_service_t *connectivity_cluster_t::get_connectivity_service() {
     /* This is kind of silly. We need to implement it because
-    `message_readwrite_service_t` has a `get_connectivity()` method, and we are
-    also the `connectivity_service_t` for our own `message_readwrite_service_t`.
-    */
+    `message_readwrite_service_t` has a `get_connectivity_service()` method, and
+    we are also the `connectivity_service_t` for our own
+    `message_readwrite_service_t`. */
     return this;
 }
 

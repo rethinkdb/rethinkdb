@@ -1,6 +1,10 @@
-#ifndef __RPC_DIRECTORY_RECEIVER_HPP__
-#define __RPC_DIRECTORY_RECEIVER_HPP__
+#ifndef __RPC_DIRECTORY_READ_MANAGER_HPP__
+#define __RPC_DIRECTORY_READ_MANAGER_HPP__
 
+#include "errors.hpp"
+#include <boost/ptr_container/ptr_map.hpp>
+
+#include "concurrency/fifo_enforcer.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/connectivity/messages.hpp"
 #include "rpc/directory/read_view.hpp"
@@ -12,27 +16,29 @@ directory manager. It doesn't publish a directory value of its own. */
 template<class metadata_t>
 class directory_read_manager_t :
     public connectivity_service_t,
-    public directory_read_service_t
+    public virtual directory_read_service_t,
+    public home_thread_mixin_t
 {
 public:
-    directory_read_manager_t(message_read_service_t *sub_message_service);
+    directory_read_manager_t(message_read_service_t *sub_message_service) THROWS_NOTHING;
+    ~directory_read_manager_t() THROWS_NOTHING;
 
-    clone_ptr_t<directory_rview_t<metadata_t> > get_root_view();
+    clone_ptr_t<directory_rview_t<metadata_t> > get_root_view() THROWS_NOTHING;
 
     /* `connectivity_service_t` interface */
-    peer_id_t get_me();
-    std::set<peer_id_t> get_peers_list();
+    peer_id_t get_me() THROWS_NOTHING;
+    std::set<peer_id_t> get_peers_list() THROWS_NOTHING;
 
     /* `directory_read_service_t` interface */
-    connectivity_service_t *get_connectivity();
+    connectivity_service_t *get_connectivity_service() THROWS_NOTHING;
 
 private:
-    /* `get_root_view()` returns a pointer to this. */
+    /* `get_root_view()` returns an instance of this. */
     class root_view_t : public directory_rview_t<metadata_t> {
     public:
         root_view_t *clone() THROWS_NOTHING;
         boost::optional<metadata_t> get_value(peer_id_t peer) THROWS_NOTHING;
-        directory_rservice_t *get_directory() THROWS_NOTHING;
+        directory_read_service_t *get_directory_service() THROWS_NOTHING;
     private:
         friend class directory_read_manager_t;
         explicit root_view_t(directory_read_manager_t *) THROWS_NOTHING;
@@ -41,7 +47,7 @@ private:
 
     class thread_peer_info_t {
     public:
-        thread_peer_info_t(const metadata_t &md) : value(md) { }
+        thread_peer_info_t(const metadata_t &md) THROWS_NOTHING : peer_value(md) { }
         mutex_assertion_t peer_value_lock;
         metadata_t peer_value;
         publisher_controller_t<
@@ -57,7 +63,7 @@ private:
                 boost::function<void(peer_id_t)>,
                 boost::function<void(peer_id_t)>
                 > > peers_list_publisher;
-        boost::ptr_map<peer_id_t, peer_info_t> peers_list;
+        boost::ptr_map<peer_id_t, thread_peer_info_t> peers_list;
     };
 
     class global_peer_info_t {
@@ -88,16 +94,16 @@ private:
     void propagate_disconnect_on_thread(int dest_thread, fifo_enforcer_write_token_t propagation_fifo_token, peer_id_t peer, auto_drainer_t::lock_t global_keepalive) THROWS_NOTHING;
 
     /* These are used as callbacks for `publisher_controller_t::publish()` */
-    static void ping_connection_watcher(peer_id_t peer, const std::pair<boost::function<void(peer_id_t)>, boost::function<void(peer_id_t)> > &connect_cb_and_disconnect_cb);
-    static void ping_value_watcher(const boost::function<void()> &callback);
-    static void ping_disconnection_watcher(peer_id_t peer, const std::pair<boost::function<void(peer_id_t)>, boost::function<void(peer_id_t)> > &connect_cb_and_disconnect_cb);
+    static void ping_connection_watcher(peer_id_t peer, const std::pair<boost::function<void(peer_id_t)>, boost::function<void(peer_id_t)> > &connect_cb_and_disconnect_cb) THROWS_NOTHING;
+    static void ping_value_watcher(const boost::function<void()> &callback) THROWS_NOTHING;
+    static void ping_disconnection_watcher(peer_id_t peer, const std::pair<boost::function<void(peer_id_t)>, boost::function<void(peer_id_t)> > &connect_cb_and_disconnect_cb) THROWS_NOTHING;
 
     /* `connectivity_service_t` methods */
-    mutex_assertion_t *get_peers_list_lock();
+    mutex_assertion_t *get_peers_list_lock() THROWS_NOTHING;
     publisher_t<std::pair<
             boost::function<void(peer_id_t)>,
             boost::function<void(peer_id_t)>
-            > > *get_peers_list_publisher();
+            > > *get_peers_list_publisher() THROWS_NOTHING;
 
     /* `directory_rservice_t` methods */
     mutex_assertion_t *get_peer_value_lock(peer_id_t) THROWS_NOTHING;
@@ -106,7 +112,7 @@ private:
             > *get_peer_value_publisher(peer_id_t, peer_value_freeze_t *proof) THROWS_NOTHING;
 
     /* The message service that we use to communicate with other peers */
-    message_rservice_t *super_message_service;
+    message_read_service_t *super_message_service;
 
     one_per_thread_t<thread_info_t> thread_info;
 
@@ -122,9 +128,9 @@ private:
     auto_drainer_t global_drainer;
 
     connectivity_service_t::peers_list_subscription_t connectivity_subscription;
-    message_service_t::handler_registration_t message_handler_registration;
+    message_read_service_t::handler_registration_t message_handler_registration;
 };
 
-#include "rpc/directory/receiver.tcc"
+#include "rpc/directory/read_manager.tcc"
 
-#endif /* __RPC_DIRECTORY_RECEIVER_HPP__ */
+#endif /* __RPC_DIRECTORY_READ_MANAGER_HPP__ */

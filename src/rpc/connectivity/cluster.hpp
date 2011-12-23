@@ -24,7 +24,7 @@ public:
     std::set<peer_id_t> get_peers_list();
 
     /* `message_readwrite_service_t` public methods: */
-    connectivity_service_t *get_connectivity();
+    connectivity_service_t *get_connectivity_service();
     void send_message(peer_id_t, const boost::function<void(std::ostream &)> &);
 
     /* Other public methods: */

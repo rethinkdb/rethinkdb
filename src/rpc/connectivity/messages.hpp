@@ -36,7 +36,7 @@ public:
     private:
         message_read_service_t *parent;
     };
-    virtual connectivity_service_t *get_connectivity() = 0;
+    virtual connectivity_service_t *get_connectivity_service() = 0;
 protected:
     virtual ~message_read_service_t() { }
 private:
@@ -54,7 +54,7 @@ public:
     virtual void send_message(
             peer_id_t dest_peer,
             const boost::function<void(std::ostream &)> &writer) = 0;
-    virtual connectivity_service_t *get_connectivity() = 0;
+    virtual connectivity_service_t *get_connectivity_service() = 0;
 protected:
     virtual ~message_write_service_t() { }
 };
@@ -64,7 +64,7 @@ class message_readwrite_service_t :
     public message_write_service_t
 {
 public:
-    virtual connectivity_service_t *get_connectivity() = 0;
+    virtual connectivity_service_t *get_connectivity_service() = 0;
 };
 
 #endif /* __RPC_CONNECTIVITY_MESSAGES_HPP__ */

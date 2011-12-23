@@ -1,3 +1,6 @@
+#include "errors.hpp"
+#include <boost/scoped_ptr.hpp>
+
 template<class metadata_t, class inner_t>
 class subview_directory_wview_t : public directory_wview_t<inner_t> {
 public:
@@ -31,7 +34,7 @@ private:
 };
 
 template<class metadata_t> template<class inner_t>
-clone_ptr_t<directory_wview_t<inner_t> > subview(const clone_ptr_t<readwrite_lens_t<inner_t, metadata_t> > &lens) {
+clone_ptr_t<directory_wview_t<inner_t> > directory_wview_t<metadata_t>::subview(const clone_ptr_t<readwrite_lens_t<inner_t, metadata_t> > &lens) {
     return clone_ptr_t<directory_wview_t<inner_t> >(
         new subview_directory_wview_t<metadata_t, inner_t>(this, lens)
         );

@@ -1,3 +1,6 @@
+#include "errors.hpp"
+#include <boost/scoped_ptr.hpp>
+
 template<class metadata_t, class inner_t>
 class subview_directory_single_rview_t :
     public directory_single_rview_t<inner_t>
@@ -37,7 +40,7 @@ private:
 
 template<class metadata_t> template<class inner_t>
 clone_ptr_t<directory_single_rview_t<inner_t> > directory_single_rview_t<metadata_t>::subview(const clone_ptr_t<read_lens_t<inner_t, metadata_t> > &lens) THROWS_NOTHING {
-    return clone_ptr<directory_single_rview_t<inner_t> >(
+    return clone_ptr_t<directory_single_rview_t<inner_t> >(
         new subview_directory_single_rview_t<metadata_t, inner_t>(
             this,
             lens
@@ -79,7 +82,7 @@ private:
 
 template<class metadata_t> template<class inner_t>
 clone_ptr_t<directory_rview_t<inner_t> > directory_rview_t<metadata_t>::subview(const clone_ptr_t<read_lens_t<inner_t, metadata_t> > &lens) THROWS_NOTHING {
-    return clone_ptr<directory_rview_t<inner_t> >(
+    return clone_ptr_t<directory_rview_t<inner_t> >(
         new subview_directory_rview_t<metadata_t, inner_t>(
             this,
             lens
@@ -101,7 +104,7 @@ public:
         return new peer_subview_directory_single_rview_t(superview.get(), peer);
     }
 
-    boost::optional<inner_t> get_value() THROWS_NOTHING {
+    boost::optional<metadata_t> get_value() THROWS_NOTHING {
         return superview->get_value(peer);
     }
 

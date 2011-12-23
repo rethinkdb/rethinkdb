@@ -60,6 +60,7 @@ public:
         state_t(state_timestamp_t ts, int nr) THROWS_NOTHING : timestamp(ts), num_reads(nr) { }
         state_timestamp_t timestamp;
         int num_reads;
+        RDB_MAKE_ME_SERIALIZABLE_2(timestamp, num_reads);
     };
 
     fifo_enforcer_source_t() THROWS_NOTHING :

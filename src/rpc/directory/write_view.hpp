@@ -2,6 +2,8 @@
 #define __RPC_DIRECTORY_WRITE_VIEW_HPP__
 
 #include "concurrency/mutex.hpp"
+#include "containers/clone_ptr.hpp"
+#include "lens.hpp"
 
 class directory_write_service_t :
     public home_thread_mixin_t

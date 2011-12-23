@@ -4,7 +4,7 @@
 #include "errors.hpp"
 #include <boost/optional.hpp>
 
-#include "concurrency/clone_ptr.hpp"
+#include "containers/clone_ptr.hpp"
 
 template<class inner_t, class outer_t>
 class read_lens_t {

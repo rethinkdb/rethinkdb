@@ -1,7 +1,12 @@
 #ifndef __RPC_DIRECTORY_READ_VIEW_HPP__
 #define __RPC_DIRECTORY_READ_VIEW_HPP__
 
+#include "errors.hpp"
+#include <boost/optional.hpp>
+
 #include "concurrency/pubsub.hpp"
+#include "containers/clone_ptr.hpp"
+#include "lens.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 
 class directory_read_service_t {
@@ -44,7 +49,7 @@ public:
     /* Returns the `connectivity_service_t` associated with the directory
     service. The directory should report a non-nothing value for a peer if and
     only if the `connectivity_service_t` says that the peer is connected. */
-    virtual connectivity_service_t *get_connectivity() = 0;
+    virtual connectivity_service_t *get_connectivity_service() = 0;
 
 protected:
     virtual ~directory_read_service_t() THROWS_NOTHING { }
@@ -58,7 +63,7 @@ private:
     virtual mutex_assertion_t *get_peer_value_lock(peer_id_t) THROWS_NOTHING = 0;
     virtual publisher_t<
         boost::function<void()>
-        > *get_peer_value_publisher(peer_id_t, peer_value_lock_acq_t *proof) THROWS_NOTHING = 0;
+        > *get_peer_value_publisher(peer_id_t, peer_value_freeze_t *proof) THROWS_NOTHING = 0;
 };
 
 template<class metadata_t>
@@ -93,12 +98,12 @@ public:
     virtual boost::optional<metadata_t> get_value(peer_id_t peer) THROWS_NOTHING = 0;
 
     /* Returns the directory that this is a part of. */
-    virtual directory_read_service_t *get_directory() THROWS_NOTHING = 0;
+    virtual directory_read_service_t *get_directory_service() THROWS_NOTHING = 0;
 
     /* Constructs a sub-view of this view, that looks at some sub-component of
     all of the peers simultaneously. */
     template<class inner_t>
-    clone_ptr_t<directory_rview_t<inner_t> > subview(const clone_ptr<read_lens_t<inner_t, metadata_t> > &lens) THROWS_NOTHING;
+    clone_ptr_t<directory_rview_t<inner_t> > subview(const clone_ptr_t<read_lens_t<inner_t, metadata_t> > &lens) THROWS_NOTHING;
 
     /* Constructs a sub-view of this view, that looks at the same object but at
     only a single one of the peers. */
