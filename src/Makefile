@@ -51,7 +51,6 @@ SEMANTIC_SERIALIZER_CHECK?=0
 MOCK_CACHE_CHECK?=0
 VERBOSE?=0
 UNIT_TESTS?=$(DEBUG)
-NO_REDIS?=0
 
 # Set TRIAL to 1 to build a 21-day trial version. If you want a different number of days, set TIMEBOMB to the number of days instead.
 TRIAL?=0
@@ -232,10 +231,6 @@ ifeq ($(VALGRIND),1)
 CXXFLAGS+=-DVALGRIND
 BUILD_DIR:=$(BUILD_DIR)-valgrind
 NO_TCMALLOC:=1
-endif
-
-ifeq ($(NO_REDIS),1)
-CXXFLAGS+=-DNO_REDIS
 endif
 
 PROTO_DIR:=$(BUILD_DIR)/proto
