@@ -184,7 +184,7 @@ public:
 
     virtual redis_protocol_t::redis_return_type execute(UNUSED redis_ext *extApi, std::vector<std::string> &args) {
         parser->first_subscribe(args, patterned);
-        return redis_protocol_t::redis_return_type(NULL);
+        return redis_protocol_t::redis_return_type(redis_protocol_t::nil_result());
     }
 };
 
