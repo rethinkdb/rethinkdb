@@ -126,7 +126,7 @@ public:
         blob_acq_t acq;
         blob.expose_all(txn.get(), rwi_read, &buffer_group, &acq);
 
-        const_buffer_group_t::iterator it = buffer_group.begin(), end = buffer_group.end(); 
+        const_buffer_group_t::iterator it = buffer_group.begin();
 
         /* grab the content type */
         res.content_type.reserve(kv_location.value->content_type_len);

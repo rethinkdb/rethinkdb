@@ -72,7 +72,7 @@ void test_header_parser() {
         "\r\n";
     std::string::const_iterator iter = header.begin();
     std::string::const_iterator end = header.end();
-    bool success = parse(iter, end, http_msg_parser, res);
+    UNUSED bool success = parse(iter, end, http_msg_parser, res);
     BREAKPOINT;
     success = true;
 }

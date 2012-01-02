@@ -89,7 +89,7 @@ TEST(FIFOEnforcer, FIFOEnforcer) {
 
 void run_state_transfer_test() {
     fifo_enforcer_source_t source;
-    fifo_enforcer_write_token_t tok = source.enter_write();
+    UNUSED fifo_enforcer_write_token_t tok = source.enter_write();
     fifo_enforcer_sink_t sink(source.get_state());
     fifo_enforcer_write_token_t tok2 = source.enter_write();
     {
