@@ -49,8 +49,15 @@ std::set<peer_id_t> directory_read_manager_t<metadata_t>::get_peers_list() THROW
 }
 
 template<class metadata_t>
+boost::uuids::uuid directory_read_manager_t<metadata_t>::get_connection_session_id(peer_id_t peer) THROWS_NOTHING {
+    rassert(thread_info.get()->peers_list.count(peer) != 0);
+    return super_message_service->get_connectivity_service()->get_connection_session_id(peer);
+}
+
+template<class metadata_t>
 connectivity_service_t *directory_read_manager_t<metadata_t>::get_connectivity_service() THROWS_NOTHING {
-    /* We are our own `connectivity_service_t` */
+    /* We are the `connectivity_service_t` for our own
+    `directory_read_service_t`. */
     return this;
 }
 
@@ -82,41 +89,33 @@ directory_read_manager_t<metadata_t>::root_view_t::root_view_t(directory_read_ma
 template<class metadata_t>
 void directory_read_manager_t<metadata_t>::on_connect(peer_id_t peer) THROWS_NOTHING {
     assert_thread();
-    mutex_assertion_t::acq_t acq(&mutex);
-    rassert(peer_info.count(peer) == 0);
-    peer_info.insert(peer, new global_peer_info_t);
+    rassert(sessions.count(peer) == 0);
+    sessions.insert(peer, new session_t(
+        super_message_service->get_connectivity_service()->get_connection_session_id(peer)
+        ));
 }
 
 template<class metadata_t>
 void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, std::istream &stream) THROWS_NOTHING {
-    assert_thread();
     switch (stream.get()) {
         case 'I': {
             /* Initial message from another peer */
             metadata_t initial_value;
-            fifo_enforcer_source_t::state_t state;
+            fifo_enforcer_source_t::state_t metadata_fifo_state;
             {
                 boost::archive::binary_iarchive archive(stream);
                 archive >> initial_value;
-                archive >> state;
+                archive >> metadata_fifo_state;
             }
 
-            mutex_assertion_t::acq_t acq(&mutex);
-
-            /* Dispatch notice of the initialization to every thread */
-            fifo_enforcer_write_token_t propagation_fifo_token = propagation_fifo_source.enter_write();
-            for (int i = 0; i < get_num_threads(); i++) {
-                coro_t::spawn_sometime(boost::bind(
-                    &directory_read_manager_t::propagate_initialize_on_thread, this,
-                    i, propagation_fifo_token, source_peer, initial_value,
-                    auto_drainer_t::lock_t(&global_drainer)
-                    ));
-            }
-
-            /* Create FIFO sink so that updates will work, and pulse the
-            initial-message cond so that they know that they can go */
-            peer_info[source_peer].metadata_fifo_sink.reset(new fifo_enforcer_sink_t(state));
-            peer_info[source_peer].got_initial_message.pulse();
+            /* Spawn a new coroutine because we might not be on the home thread
+            and `on_message()` isn't supposed to block very long */
+            coro_t::spawn_sometime(boost::bind(
+                &directory_read_manager_t::propagate_initialization, this,
+                source_peer, super_message_service->get_connectivity_service()->get_connection_session_id(source_peer),
+                initial_value, metadata_fifo_state,
+                auto_drainer_t::lock_t(per_thread_drainers.get())
+                ));
 
             break;
         }
@@ -131,16 +130,13 @@ void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, std
                 archive >> metadata_fifo_token;
             }
 
-            /* Spawn a new coroutine to handle the dispatching. This is because
-            if the network reordered this message so it arrived before the
-            initialization message, we won't have a FIFO sink to sink
-            `metadata_fifo_token` into, so we need to be able to block. If
-            `on_message()` blocks waiting for another message from the same
-            peer, the result will be a deadlock. */
+            /* Spawn a new coroutine because we might not be on the home thread
+            and `on_message()` isn't supposed to block very long */
             coro_t::spawn_sometime(boost::bind(
                 &directory_read_manager_t::propagate_update, this,
-                source_peer, new_value, metadata_fifo_token,
-                auto_drainer_t::lock_t(&peer_info[source_peer].drainer)
+                source_peer, super_message_service->get_connectivity_service()->get_connection_session_id(source_peer),
+                new_value, metadata_fifo_token,
+                auto_drainer_t::lock_t(per_thread_drainers.get())
                 ));
 
             break;
@@ -153,19 +149,18 @@ void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, std
 template<class metadata_t>
 void directory_read_manager_t<metadata_t>::on_disconnect(peer_id_t peer) THROWS_NOTHING {
     assert_thread();
-    mutex_assertion_t::acq_t acq(&mutex);
 
     /* Remove the `global_peer_info_t` object from the table */
-    rassert(peer_info.count(peer) == 1);
-    global_peer_info_t *peer_info_to_destroy = peer_info.release(peer_info.find(peer)).release();
+    rassert(sessions.count(peer) == 1);
+    session_t *session_to_destroy = sessions.release(sessions.find(peer)).release();
 
     /* Start interrupting any running calls to `propagate_update()`. We need to
     explicitly interrupt them rather than letting them finish on their own
     because, if the network reordered messages, they might wait indefinitely for
     a message that will now never come. */
     coro_t::spawn_sometime(boost::bind(
-        &directory_read_manager_t::interrupt_updates_and_free_global_peer_info, this,
-        peer_info_to_destroy,
+        &directory_read_manager_t::interrupt_updates_and_free_session, this,
+        session_to_destroy,
         auto_drainer_t::lock_t(&global_drainer)
         ));
 
@@ -181,15 +176,66 @@ void directory_read_manager_t<metadata_t>::on_disconnect(peer_id_t peer) THROWS_
 }
 
 template<class metadata_t>
-void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, const metadata_t &new_value, fifo_enforcer_write_token_t metadata_fifo_token, auto_drainer_t::lock_t peer_keepalive) THROWS_NOTHING {
-    assert_thread();
+void directory_read_manager_t<metadata_t>::propagate_initialization(peer_id_t peer, boost::uuids::uuid session_id, metadata_t initial_value, fifo_enforcer_source_t::state_t metadata_fifo_state, auto_drainer_t::lock_t per_thread_keepalive) THROWS_NOTHING {
+    per_thread_keepalive.assert_is_holding(per_thread_drainers.get());
+    on_thread_t thread_switcher(home_thread());
+
+    /* Check to make sure that the peer didn't die while we were coming from the
+    thread on which `on_message()` was run */
+    typename boost::ptr_map<peer_id_t, session_t>::iterator it = sessions.find(peer);
+    if (it == sessions.end()) {
+        /* The peer disconnected since we got the message; ignore. */
+        return;
+    }
+    session_t *session = (*it).second;
+    if (session->session_id != session_id) {
+        /* The peer disconnected and then reconnected since we got the message;
+        ignore. */
+        return;
+    }
+
+    /* Dispatch notice of the initialization to every thread */
+    fifo_enforcer_write_token_t propagation_fifo_token = propagation_fifo_source.enter_write();
+    for (int i = 0; i < get_num_threads(); i++) {
+        coro_t::spawn_sometime(boost::bind(
+            &directory_read_manager_t::propagate_initialize_on_thread, this,
+            i, propagation_fifo_token, peer, initial_value,
+            auto_drainer_t::lock_t(&global_drainer)
+            ));
+    }
+
+    /* Create a metadata FIFO sink and pulse the `got_initial_message` cond so
+    that instances of `propagate_update()` can proceed */
+    session->metadata_fifo_sink.reset(new fifo_enforcer_sink_t(metadata_fifo_state));
+    session->got_initial_message.pulse();
+}
+
+template<class metadata_t>
+void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, boost::uuids::uuid session_id, metadata_t new_value, fifo_enforcer_write_token_t metadata_fifo_token, auto_drainer_t::lock_t per_thread_keepalive) THROWS_NOTHING {
+    per_thread_keepalive.assert_is_holding(per_thread_drainers.get());
+    on_thread_t thread_switcher(home_thread());
+
+    /* Check to make sure that the peer didn't die while we were coming from the
+    thread on which `on_message()` was run */
+    typename boost::ptr_map<peer_id_t, session_t>::iterator it = sessions.find(peer);
+    if (it == sessions.end()) {
+        /* The peer disconnected since we got the message; ignore. */
+        return;
+    }
+    session_t *session = (*it).second;
+    if (session->session_id != session_id) {
+        /* The peer disconnected and then reconnected since we got the message;
+        ignore. */
+        return;
+    }
+    auto_drainer_t::lock_t session_keepalive(&session->drainer);
 
     try {
         /* Wait until we got an initialization message from this peer */
         {
-            wait_any_t waiter(&peer_info[peer].got_initial_message, peer_keepalive.get_drain_signal());
+            wait_any_t waiter(&session->got_initial_message, session_keepalive.get_drain_signal());
             waiter.wait_lazily_unordered();
-            if (peer_keepalive.get_drain_signal()->is_pulsed()) {
+            if (session_keepalive.get_drain_signal()->is_pulsed()) {
                 throw interrupted_exc_t();
             }
         }
@@ -197,9 +243,9 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, cons
         /* Exit this peer's `metadata_fifo_sink` so that we perform the updates
         in the same order as they were performed at the source. */
         fifo_enforcer_sink_t::exit_write_t fifo_exit(
-            peer_info[peer].metadata_fifo_sink.get(),
+            session->metadata_fifo_sink.get(),
             metadata_fifo_token,
-            peer_keepalive.get_drain_signal()
+            session_keepalive.get_drain_signal()
             );
 
         fifo_enforcer_write_token_t propagation_fifo_token =
@@ -214,10 +260,10 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, cons
 
     } catch (interrupted_exc_t) {
         /* Here's what happened: `on_disconnect()` was called for the peer. It
-        spawned `interrupt_updates_and_free_global_peer_info()`, which deleted
-        the `global_peer_info_t` for this peer, thereby calling the destructor
-        for the peer's `auto_drainer_t`, for which `peer_keepalive` is an
-        `auto_drainer_t::lock_t`. `peer_keepalive.get_drain_signal()` was
+        spawned `interrupt_updates_and_free_session()`, which deleted the
+        `session_t` for this peer, thereby calling the destructor for the peer's
+        `auto_drainer_t`, for which `session_keepalive` is an
+        `auto_drainer_t::lock_t`. `session_keepalive.get_drain_signal()` was
         pulsed, so an `interrupted_exc_t` was thrown.
 
         The peer has disconnected, so we can safely ignore this update; its
@@ -226,12 +272,13 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, cons
 }
 
 template<class metadata_t>
-void directory_read_manager_t<metadata_t>::interrupt_updates_and_free_global_peer_info(global_peer_info_t *peer_info, UNUSED auto_drainer_t::lock_t global_keepalive) THROWS_NOTHING {
+void directory_read_manager_t<metadata_t>::interrupt_updates_and_free_session(session_t *session, UNUSED auto_drainer_t::lock_t global_keepalive) THROWS_NOTHING {
     assert_thread();
+    global_keepalive.assert_is_holding(&global_drainer);
 
-    /* This must be done in a separate coroutine because `global_peer_info_t`
-    has an `auto_drainer_t`, and the `auto_drainer_t` destructor can block. */
-    delete peer_info;
+    /* This must be done in a separate coroutine because `session_t` has an
+    `auto_drainer_t`, and the `auto_drainer_t` destructor can block. */
+    delete session;
 }
 
 template<class metadata_t>

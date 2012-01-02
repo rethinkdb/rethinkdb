@@ -16,7 +16,8 @@
 
 connectivity_cluster_t::connectivity_cluster_t(int port) :
     me(peer_id_t(generate_uuid())),
-    me_address(ip_address_t::us(), port)
+    me_address(ip_address_t::us(), port),
+    me_session(generate_uuid())
 {
     /* Put ourselves in the routing table */
     routing_table[me] = me_address;
@@ -55,6 +56,17 @@ std::set<peer_id_t> connectivity_cluster_t::get_peers_list() {
         peers.insert(it->first);
     }
     return peers;
+}
+
+boost::uuids::uuid connectivity_cluster_t::get_connection_session_id(peer_id_t peer) {
+    if (peer == me) {
+        return me_session;
+    } else {
+        std::map<peer_id_t, connection_t *> *connection_map = &thread_info.get()->connection_map;
+        std::map<peer_id_t, connection_t *>::iterator it = connection_map->find(peer);
+        rassert(it != connection_map->end());
+        return (*it).second->session_id;
+    }
 }
 
 connectivity_service_t *connectivity_cluster_t::get_connectivity_service() {
@@ -445,6 +457,7 @@ void connectivity_cluster_t::handle(
         connection_t conn_structure;
         conn_structure.conn = conn;
         conn_structure.address = other_address;
+        conn_structure.session_id = generate_uuid();
 
         /* Put ourselves in the connection-map and notify event-watchers that
         the connection is up */

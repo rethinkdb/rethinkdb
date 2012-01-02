@@ -22,6 +22,7 @@ public:
     /* `connectivity_service_t` public methods: */
     peer_id_t get_me();
     std::set<peer_id_t> get_peers_list();
+    boost::uuids::uuid get_connection_session_id(peer_id_t);
 
     /* `message_readwrite_service_t` public methods: */
     connectivity_service_t *get_connectivity_service();
@@ -52,6 +53,7 @@ private:
         cross-thread to access the routing table. */
         peer_address_t address;
         mutex_t send_mutex;
+        boost::uuids::uuid session_id;
     };
 
     class thread_info_t {
@@ -113,6 +115,7 @@ private:
     const peer_address_t me_address;
     std::map<peer_id_t, peer_address_t> routing_table;
 
+    boost::uuids::uuid me_session;
     one_per_thread_t<thread_info_t> thread_info;
 
     /* Writes to `routing_table` and `connections` are protected by this mutex

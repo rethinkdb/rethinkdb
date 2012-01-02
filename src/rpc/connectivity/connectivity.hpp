@@ -129,6 +129,13 @@ public:
         return get_peers_list().count(peer) == 1;
     }
 
+    /* `get_connection_session_id()` returns a UUID for the given peer that
+    changes every time the peer disconnects and reconnects. This information
+    could be reconstructed by watching connection and disconnection events, but
+    it would be hard to reconstruct it consistently across multiple threads. The
+    connectivity layer can do it trivially. */
+    virtual boost::uuids::uuid get_connection_session_id(peer_id_t) = 0;
+
 protected:
     virtual ~connectivity_service_t() { }
 
