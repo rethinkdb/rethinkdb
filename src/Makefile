@@ -95,12 +95,12 @@ endif
 endif
 
 ifeq ($(COMPILER),CLANG)
-LDFLAGS:=-Wl,--no-as-needed -lpthread -lrt -laio
+LDFLAGS:=-Wl,--no-as-needed -lpthread -lrt -laio -lQtCore
 else
 ifeq ($(COMPILER),INTEL)
-LDFLAGS:= -B/opt/intel/bin -lpthread -lrt -laio -lstdc++
+LDFLAGS:= -B/opt/intel/bin -lpthread -lrt -laio -lQtCore -lstdc++
 else
-LDFLAGS:=-Wl,--no-as-needed -lpthread -lrt -laio
+LDFLAGS:=-Wl,--no-as-needed -lpthread -lrt -laio -lQtCore
 endif
 endif
 
@@ -241,7 +241,9 @@ STATIC_LIBRARIES+=tcmalloc_minimal
 endif
 
 # look for the static library in the same directory as the .so file
-STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }')) $(EXTERNAL_SOURCE_DIR)/WebKit/WebKitBuild/Release/JavaScriptCore/release/libjscore.a /usr/lib/libQtCore.so.4
+STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }')) $(EXTERNAL_SOURCE_DIR)/WebKit/WebKitBuild/Release/JavaScriptCore/release/libjscore.a
+
+#  /usr/lib/x86_64-linux-gnu/libQtCore.so.4
 
 # Should makefile be noisy?
 ifeq ($(VERBOSE),1)
