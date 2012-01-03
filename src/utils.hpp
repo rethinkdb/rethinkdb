@@ -3,12 +3,12 @@
 
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #include <map>
 #include <string>
 #include <vector>
 
-// #include "config/args.hpp"
 #include "errors.hpp"
 
 /* Note that repli_timestamp_t does NOT represent an actual timestamp; instead it's an arbitrary
@@ -316,5 +316,7 @@ public:
     explicit on_thread_t(int thread);
     ~on_thread_t();
 };
+
+void print_backtrace(FILE *out = stderr, bool use_addr2line = true);
 
 #endif // __UTILS_HPP__

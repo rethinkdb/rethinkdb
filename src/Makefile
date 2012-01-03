@@ -246,7 +246,11 @@ STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -
 ifeq ($(VERBOSE),1)
 QUIET:=
 else
+ifeq ($(TIMINGS),1)
+QUIET:=@ time
+else
 QUIET:=@
+endif
 endif
 
 # googletest flags
