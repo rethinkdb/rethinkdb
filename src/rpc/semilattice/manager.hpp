@@ -1,13 +1,14 @@
-#ifndef __RPC_METADATA_METADATA_HPP__
-#define __RPC_METADATA_METADATA_HPP__
+#ifndef __RPC_SEMILATTICE_MANAGER_HPP__
+#define __RPC_SEMILATTICE_MANAGER_HPP__
 
 #include "rpc/mailbox/mailbox.hpp"
-#include "rpc/metadata/view.hpp"
+#include "rpc/semilattice/view.hpp"
 
-/* `metadata_cluster_t` is a `mailbox_cluster_t` that uses the utility message
-system to synchronize a value, called the "cluster metadata", between all of the
-nodes in the cluster. `metadata_cluster_t` is templatized on the type of the
-cluster metadata. The type `metadata_t` must satisfy the following constraints:
+/* `semilattice_manager_t` runs on top of a `message_service_t` and synchronizes
+a value, called the "global semilattice metadata", between all of the nodes in
+the cluster. `semilattice_manager_t` is templatized on the type of the global
+semilattice metadata. The type `metadata_t` must satisfy the following
+constraints:
 
 1. It must have public and sane default constructor, copy constructor,
     copy assignment, and destructor.
@@ -21,55 +22,68 @@ cluster metadata. The type `metadata_t` must satisfy the following constraints:
     such that `metadata_t` is a semilattice and `semilattice_join(a, b)` sets
     `*a` to the semilattice-join of `*a` and `b`.
 
-`metadata_cluster_t` is currently not thread-safe at all. */
+Currently it's not thread-safe at all; all accesses to the metadata must be on
+the home thread of the `semilattice_manager_t`. */
 
 template<class metadata_t>
-class metadata_cluster_t :
-    public mailbox_cluster_t
+class semilattice_manager_t :
+        public home_thread_mixin_t,
+        public message_handler_t
 {
 public:
-    metadata_cluster_t(int port, const metadata_t &initial_metadata);
-    ~metadata_cluster_t() THROWS_NOTHING;
+    semilattice_manager_t(message_service_t *service, const metadata_t &initial_metadata);
+    ~semilattice_manager_t() THROWS_NOTHING;
 
-    boost::shared_ptr<metadata_readwrite_view_t<metadata_t> > get_root_view();
+    boost::shared_ptr<semilattice_readwrite_view_t<metadata_t> > get_root_view();
 
 private:
     /* `get_root_view()` returns a pointer to this. It just exists to implement
-    `metadata_readwrite_view_t` for us. */
-    class root_view_t : public metadata_readwrite_view_t<metadata_t> {
+    `semilattice_readwrite_view_t` for us. */
+    class root_view_t : public semilattice_readwrite_view_t<metadata_t> {
     public:
-        explicit root_view_t(metadata_cluster_t *);
-        metadata_cluster_t *parent;
+        explicit root_view_t(semilattice_manager_t *);
+        semilattice_manager_t *parent;
         metadata_t get();
         void join(const metadata_t &);
         void sync_from(peer_id_t, signal_t *) THROWS_ONLY(interrupted_exc_t, sync_failed_exc_t);
         void sync_to(peer_id_t, signal_t *) THROWS_ONLY(interrupted_exc_t, sync_failed_exc_t);
         publisher_t<boost::function<void()> > *get_publisher();
     };
+
+    static void write_metadata(std::ostream &stream, metadata_t md);
+    static void write_ping(std::ostream &stream, int ping_id);
+    static void write_ping_response(std::ostream &stream, int ping_id);
+
+    /* These are called in a blocking fashion by the message service or by the
+    `connectivity_service_t`. */
+    void on_message(peer_id_t, std::istream&);
+    void on_connect(peer_id_t);
+    void on_disconnect(peer_id_t);
+
+    /* These are spawned in new coroutines. */
+    void send_metadata_to_peer(peer_id_t, metadata_t, auto_drainer_t::lock_t);
+    void send_ping_response_to_peer(peer_id_t, int, auto_drainer_t::lock_t);
+    void join_metadata_locally_on_home_thread(metadata_t, auto_drainer_t::lock_t);
+    void release_ping_waiter_on_home_thread(int ping_id, auto_drainer_t::lock_t);
+
+    static void call_with_no_args(const boost::function<void()> &);
+    void join_metadata_locally(metadata_t);
+
+    message_service_t *message_service;
     boost::shared_ptr<root_view_t> root_view;
 
     metadata_t metadata;
-
-    void join_metadata_locally(metadata_t);
-
-    /* Infrastructure for notifying things when metadata changes */
-    mutex_t change_mutex;
-    static void call(boost::function<void()>);
-    publisher_controller_t<boost::function<void()> > change_publisher;
-
-    static void write_metadata(std::ostream&, metadata_t);
-    static void write_ping(std::ostream&, int);
-    static void write_ping_response(std::ostream&, int);
-    void on_utility_message(peer_id_t, std::istream&, const boost::function<void()> &);
-    void on_connect(peer_id_t);
-    void on_disconnect(peer_id_t);
+    publisher_controller_t<boost::function<void()> > metadata_publisher;
+    mutex_assertion_t metadata_mutex;
 
     connectivity_service_t::peers_list_subscription_t event_watcher;
 
     int ping_id_counter;
     std::map<int, cond_t *> ping_waiters;
+
+    one_per_thread_t<auto_drainer_t> drainers;
 };
 
-#include "rpc/metadata/metadata.tcc"
+#include "rpc/semilattice/manager.tcc"
 
-#endif /* __RPC_METADATA_METADATA_HPP__ */
+#endif /* __RPC_SEMILATTICE_MANAGER_HPP__ */

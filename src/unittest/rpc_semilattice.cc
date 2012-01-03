@@ -1,9 +1,9 @@
 #include "unittest/gtest.hpp"
 
-#include "rpc/metadata/metadata.hpp"
-#include "rpc/metadata/semilattice/map.hpp"
-#include "rpc/metadata/view/field.hpp"
-#include "rpc/metadata/view/member.hpp"
+#include "rpc/semilattice/manager.hpp"
+#include "rpc/semilattice/semilattice/map.hpp"
+#include "rpc/semilattice/view/field.hpp"
+#include "rpc/semilattice/view/member.hpp"
 #include "unittest/dummy_metadata_controller.hpp"
 #include "unittest/unittest_utils.hpp"
 
@@ -55,15 +55,17 @@ void assign(T *target, T value) {
 
 void run_single_metadata_test() {
     int port = 10000 + rand() % 20000;
-    metadata_cluster_t<sl_int_t> cluster(port, sl_int_t(2));
+    connectivity_cluster_t c;
+    semilattice_manager_t<sl_int_t> slm(&c, sl_int_t(2));
+    connectivity_cluster_t::run_t cr(&c, port, &slm);
 
     /* Make sure that metadata works properly when passed to the constructor */
-    EXPECT_EQ(cluster.get_root_view()->get().i, 2);
+    EXPECT_EQ(slm.get_root_view()->get().i, 2);
 
     /* Make sure `join()` works properly */
-    cluster.get_root_view()->join(sl_int_t(1));
+    slm.get_root_view()->join(sl_int_t(1));
 
-    EXPECT_EQ(cluster.get_root_view()->get().i, 3);
+    EXPECT_EQ(slm.get_root_view()->get().i, 3);
 }
 TEST(RPCMetadataTest, SingleMetadata) {
     run_in_thread_pool(&run_single_metadata_test, 2);
@@ -74,12 +76,14 @@ nodes. */
 
 void run_metadata_exchange_test() {
     int port = 10000 + rand() % 20000;
-    metadata_cluster_t<sl_int_t> cluster1(port, sl_int_t(1)), cluster2(port+1, sl_int_t(2));
+    connectivity_cluster_t cluster1, cluster2;
+    semilattice_manager_t<sl_int_t> slm1(&cluster1, sl_int_t(1)), slm2(&cluster2, sl_int_t(2));
+    connectivity_cluster_t::run_t run1(&cluster1, port, &slm1), run2(&cluster2, port+1, &slm2);
 
-    EXPECT_EQ(cluster1.get_root_view()->get().i, 1);
-    EXPECT_EQ(cluster2.get_root_view()->get().i, 2);
+    EXPECT_EQ(slm1.get_root_view()->get().i, 1);
+    EXPECT_EQ(slm2.get_root_view()->get().i, 2);
 
-    cluster1.join(cluster2.get_peer_address(cluster2.get_me()));
+    run1.join(cluster2.get_peer_address(cluster2.get_me()));
 
     /* Block until the connection is established */
     {
@@ -100,18 +104,18 @@ void run_metadata_exchange_test() {
     }
 
     cond_t interruptor1;
-    cluster1.get_root_view()->sync_to(cluster2.get_me(), &interruptor1);
+    slm1.get_root_view()->sync_to(cluster2.get_me(), &interruptor1);
 
-    EXPECT_EQ(cluster1.get_root_view()->get().i, 3);
-    EXPECT_EQ(cluster2.get_root_view()->get().i, 3);
+    EXPECT_EQ(slm1.get_root_view()->get().i, 3);
+    EXPECT_EQ(slm2.get_root_view()->get().i, 3);
 
-    cluster1.get_root_view()->join(sl_int_t(4));
+    slm1.get_root_view()->join(sl_int_t(4));
 
     cond_t interruptor2;
-    cluster1.get_root_view()->sync_to(cluster2.get_me(), &interruptor2);
+    slm1.get_root_view()->sync_to(cluster2.get_me(), &interruptor2);
 
-    EXPECT_EQ(cluster1.get_root_view()->get().i, 7);
-    EXPECT_EQ(cluster2.get_root_view()->get().i, 7);
+    EXPECT_EQ(slm1.get_root_view()->get().i, 7);
+    EXPECT_EQ(slm2.get_root_view()->get().i, 7);
 }
 TEST(RPCMetadataTest, MetadataExchange) {
     run_in_thread_pool(&run_metadata_exchange_test, 2);
@@ -122,14 +126,16 @@ changes. */
 
 void run_watcher_test() {
     int port = 10000 + rand() % 20000;
-    metadata_cluster_t<sl_int_t> cluster(port, sl_int_t(2));
+    connectivity_cluster_t cluster;
+    semilattice_manager_t<sl_int_t> slm(&cluster, sl_int_t(2));
+    connectivity_cluster_t::run_t run(&cluster, port, &slm);
 
     bool have_been_notified = false;
-    metadata_read_view_t<sl_int_t>::subscription_t watcher(
+    semilattice_read_view_t<sl_int_t>::subscription_t watcher(
         boost::bind(&assign<bool>, &have_been_notified, true),
-        cluster.get_root_view());
+        slm.get_root_view());
 
-    cluster.get_root_view()->join(sl_int_t(1));
+    slm.get_root_view()->join(sl_int_t(1));
 
     EXPECT_TRUE(have_been_notified);
 }
@@ -148,7 +154,7 @@ void run_view_controller_test() {
     EXPECT_EQ(controller.get_view()->get().i, 18);
 
     bool have_been_notified = false;
-    metadata_read_view_t<sl_int_t>::subscription_t watcher(
+    semilattice_read_view_t<sl_int_t>::subscription_t watcher(
         boost::bind(&assign<bool>, &have_been_notified, true),
         controller.get_view());
 
@@ -173,13 +179,13 @@ void run_field_view_test() {
     dummy_metadata_controller_t<sl_pair_t> controller(
         sl_pair_t(sl_int_t(8), sl_int_t(4)));
 
-    boost::shared_ptr<metadata_read_view_t<sl_int_t> > x_view =
+    boost::shared_ptr<semilattice_read_view_t<sl_int_t> > x_view =
         metadata_field(&sl_pair_t::x, controller.get_view());
 
     EXPECT_EQ(x_view->get().i, 8);
 
     bool have_been_notified = false;
-    metadata_read_view_t<sl_int_t>::subscription_t watcher(
+    semilattice_read_view_t<sl_int_t>::subscription_t watcher(
         boost::bind(&assign<bool>, &have_been_notified, true),
         x_view);
 
@@ -205,13 +211,13 @@ void run_member_view_test() {
     dummy_metadata_controller_t<std::map<std::string, sl_int_t> > controller(
         initial_value);
 
-    boost::shared_ptr<metadata_read_view_t<sl_int_t> > foo_view =
+    boost::shared_ptr<semilattice_read_view_t<sl_int_t> > foo_view =
         metadata_member(std::string("foo"), controller.get_view());
 
     EXPECT_EQ(foo_view->get().i, 8);
 
     bool have_been_notified = false;
-    metadata_read_view_t<sl_int_t>::subscription_t watcher(
+    semilattice_read_view_t<sl_int_t>::subscription_t watcher(
         boost::bind(&assign<bool>, &have_been_notified, true),
         foo_view);
 

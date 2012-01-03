@@ -11,14 +11,17 @@ public:
     }
 };
 
-/* A `metadata_read_view_t` represents some sub-region of metadata. You can read
-it and monitor it for changes. The purpose is to make it easier to make metadata
-composable; because of `metadata_read_view_t`, each component that interacts
-with the metadata only needs to know about its own little part of the metadata.
-*/
+/* A `semilattice_read_view_t` represents some sub-region of metadata. You can
+read it and monitor it for changes. The purpose is to make it easier to make
+metadata composable; because of `semilattice_read_view_t`, each component that
+interacts with the metadata only needs to know about its own little part of the
+metadata. */
+
+/* TODO: Make this more like `directory_*_view_t`, with `clone_ptr_t` and a
+`subview()` method and all that jazz. */
 
 template<class metadata_t>
-class metadata_read_view_t {
+class semilattice_read_view_t {
 
 public:
     virtual metadata_t get() = 0;
@@ -28,10 +31,10 @@ public:
     class subscription_t {
     public:
         subscription_t(boost::function<void()> cb) : subs(cb) { }
-        subscription_t(boost::function<void()> cb, boost::shared_ptr<metadata_read_view_t> v) : subs(cb) {
+        subscription_t(boost::function<void()> cb, boost::shared_ptr<semilattice_read_view_t> v) : subs(cb) {
             reset(v);
         }
-        void reset(boost::shared_ptr<metadata_read_view_t> v) {
+        void reset(boost::shared_ptr<semilattice_read_view_t> v) {
             if (v) {
                 subs.reset(v->get_publisher());
             } else {
@@ -40,23 +43,23 @@ public:
             view = v;
         }
     private:
-        /* Hold a pointer to the `metadata_read_view_t` so it doesn't die while
+        /* Hold a pointer to the `semilattice_read_view_t` so it doesn't die while
         we are subscribed to it */
-        boost::shared_ptr<metadata_read_view_t> view;
+        boost::shared_ptr<semilattice_read_view_t> view;
         publisher_t<boost::function<void()> >::subscription_t subs;
     };
 
     virtual publisher_t<boost::function<void()> > *get_publisher() = 0;
 
 protected:
-    virtual ~metadata_read_view_t() { }
+    virtual ~semilattice_read_view_t() { }
 };
 
-/* A `metadata_readwrite_view_t` is like a `metadata_read_view_t` except that
+/* A `semilattice_readwrite_view_t` is like a `semilattice_read_view_t` except that
 you can join new metadata with it as well as read from it. */
 
 template<class metadata_t>
-class metadata_readwrite_view_t : public metadata_read_view_t<metadata_t> {
+class semilattice_readwrite_view_t : public semilattice_read_view_t<metadata_t> {
 
 public:
     virtual void join(const metadata_t &) = 0;
