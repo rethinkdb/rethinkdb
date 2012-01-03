@@ -1,12 +1,13 @@
 #ifndef __CMD_ARGS_HPP__
 #define __CMD_ARGS_HPP__
 
-#include <string>
-#include <vector>
-
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/types.h>
+
+#include <string>
+#include <vector>
 
 #include "serializer/types.hpp"
 
