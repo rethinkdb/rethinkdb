@@ -11,7 +11,7 @@ class directory_write_manager_t :
 {
 public:
     directory_write_manager_t(
-        message_write_service_t *sub_message_service,
+        message_service_t *message_service,
         const metadata_t &initial_metadata) THROWS_NOTHING;
 
     clone_ptr_t<directory_wview_t<metadata_t> > get_root_view() THROWS_NOTHING;
@@ -40,7 +40,7 @@ private:
     /* `directory_write_service_t` interface: */
     mutex_t *get_our_value_lock() THROWS_NOTHING;
 
-    message_write_service_t *sub_message_service;
+    message_service_t *message_service;
 
     mutex_t our_value_lock;
 

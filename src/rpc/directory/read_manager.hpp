@@ -11,16 +11,18 @@
 
 /* Because the directory manager is so complex, it's broken out into several
 sub-components. `directory_read_manager_t` is the read-only sub-component of the
-directory manager. It doesn't publish a directory value of its own. */
+directory manager. It doesn't publish a directory value of its own; that's the
+job of `directory_write_manager_t`. */
 
 template<class metadata_t>
 class directory_read_manager_t :
     public connectivity_service_t,
     public virtual directory_read_service_t,
-    public home_thread_mixin_t
+    public home_thread_mixin_t,
+    public message_handler_t
 {
 public:
-    directory_read_manager_t(message_read_service_t *sub_message_service) THROWS_NOTHING;
+    directory_read_manager_t(connectivity_service_t *super_connectivity_service) THROWS_NOTHING;
     ~directory_read_manager_t() THROWS_NOTHING;
 
     clone_ptr_t<directory_rview_t<metadata_t> > get_root_view() THROWS_NOTHING;
@@ -73,7 +75,7 @@ private:
     public:
         session_t(boost::uuids::uuid si) : session_id(si) { }
         /* We get this by calling `get_connection_session_id()` on the
-        `connectivity_service_t` from `super_message_service`. */
+        `connectivity_service_t` from `super_connectivity_service`. */
         boost::uuids::uuid session_id;
         cond_t got_initial_message;
         boost::scoped_ptr<fifo_enforcer_sink_t> metadata_fifo_sink;
@@ -86,9 +88,10 @@ private:
     Peers only show up on our own `connectivity_service_t` once initialization
     has happened. */
 
-    /* These will be called in a blocking fashion by the message service */
+    /* These will be called in a blocking fashion by the connectivity service
+    (or message service, in the case of `on_message()`) */
     void on_connect(peer_id_t peer) THROWS_NOTHING;
-    void on_message(peer_id_t source, std::istream &stream) THROWS_NOTHING;
+    void on_message(peer_id_t, std::istream &) THROWS_NOTHING;
     void on_disconnect(peer_id_t peer) THROWS_NOTHING;
 
     /* These are meant to be spawned in new coroutines */
@@ -119,8 +122,8 @@ private:
             boost::function<void()>
             > *get_peer_value_publisher(peer_id_t, peer_value_freeze_t *proof) THROWS_NOTHING;
 
-    /* The message service that we use to communicate with other peers */
-    message_read_service_t *super_message_service;
+    /* The connectivity service telling us which peers are connected */
+    connectivity_service_t *super_connectivity_service;
 
     one_per_thread_t<thread_info_t> thread_info;
 
@@ -139,7 +142,6 @@ private:
     one_per_thread_t<auto_drainer_t> per_thread_drainers;
 
     connectivity_service_t::peers_list_subscription_t connectivity_subscription;
-    message_read_service_t::handler_registration_t message_handler_registration;
 };
 
 #include "rpc/directory/read_manager.tcc"

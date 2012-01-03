@@ -19,8 +19,9 @@ void let_stuff_happen() {
 
 void run_one_node_test() {
     int port = 10000 + rand() % 20000;
-    connectivity_cluster_t c(port);
+    connectivity_cluster_t c;
     directory_readwrite_manager_t<int> directory_manager(&c, 5);
+    connectivity_cluster_t::run_t cr(&c, &directory_manager, port);
     let_stuff_happen();
 }
 TEST(RPCDirectoryTest, OneNode) {
@@ -32,10 +33,11 @@ then shuts them down again. */
 
 void run_three_nodes_test() {
     int port = 10000 + rand() % 20000;
-    connectivity_cluster_t c1(port), c2(port+1), c3(port+2);
+    connectivity_cluster_t c1, c2, c3;
     directory_readwrite_manager_t<int> m1(&c1, 101), m2(&c2, 202), m3(&c3, 303);
-    c2.join(c1.get_peer_address(c1.get_me()));
-    c3.join(c1.get_peer_address(c1.get_me()));
+    connectivity_cluster_t::run_t cr1(&c1, &m1, port), cr2(&c2, &m2, port+1), cr3(&c3, &m3, port+2);
+    cr2.join(c1.get_peer_address(c1.get_me()));
+    cr3.join(c1.get_peer_address(c1.get_me()));
     let_stuff_happen();
 }
 TEST(RPCDirectoryTest, ThreeNodes) {
@@ -46,10 +48,11 @@ TEST(RPCDirectoryTest, ThreeNodes) {
 
 void run_exchange_test() {
     int port = 10000 + rand() % 20000;
-    connectivity_cluster_t c1(port), c2(port+1), c3(port+2);
+    connectivity_cluster_t c1, c2, c3;
     directory_readwrite_manager_t<int> m1(&c1, 101), m2(&c2, 202), m3(&c3, 303);
-    c2.join(c1.get_peer_address(c1.get_me()));
-    c3.join(c1.get_peer_address(c1.get_me()));
+    connectivity_cluster_t::run_t cr1(&c1, &m1, port), cr2(&c2, &m2, port+1), cr3(&c3, &m3, port+2);
+    cr2.join(c1.get_peer_address(c1.get_me()));
+    cr3.join(c1.get_peer_address(c1.get_me()));
     let_stuff_happen();
     EXPECT_EQ(boost::optional<int>(101), m1.get_root_view()->get_value(c1.get_me()));
     EXPECT_EQ(boost::optional<int>(202), m1.get_root_view()->get_value(c2.get_me()));
@@ -63,10 +66,11 @@ TEST(RPCDirectoryTest, Exchange) {
 
 void run_update_test() {
     int port = 10000 + rand() % 20000;
-    connectivity_cluster_t c1(port), c2(port+1), c3(port+2);
+    connectivity_cluster_t c1, c2, c3;
     directory_readwrite_manager_t<int> m1(&c1, 101), m2(&c2, 202), m3(&c3, 303);
-    c2.join(c1.get_peer_address(c1.get_me()));
-    c3.join(c1.get_peer_address(c1.get_me()));
+    connectivity_cluster_t::run_t cr1(&c1, &m1, port), cr2(&c2, &m2, port+1), cr3(&c3, &m3, port+2);
+    cr2.join(c1.get_peer_address(c1.get_me()));
+    cr3.join(c1.get_peer_address(c1.get_me()));
     let_stuff_happen();
     {
         directory_write_service_t::our_value_lock_acq_t lock(&m1);
@@ -87,8 +91,9 @@ value changes. */
 
 void run_notify_test() {
     int port = 10000 + rand() % 20000;
-    connectivity_cluster_t c(port);
+    connectivity_cluster_t c;
     directory_readwrite_manager_t<int> m(&c, 8765);
+    connectivity_cluster_t::run_t cr(&c, &m, port);
     {
         cond_t got_notified;
         directory_read_service_t::peer_value_subscription_t subs(boost::bind(&cond_t::pulse, &got_notified));

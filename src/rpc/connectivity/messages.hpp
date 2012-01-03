@@ -3,68 +3,59 @@
 
 #include "rpc/connectivity/connectivity.hpp"
 
-/* `message_read_service_t` is an abstract superclass for things that let you
-receive messages from other nodes. `message_write_service_t` is an abstract
-superclass for things that let you send messages to other nodes.
-`message_readwrite_service_t` allows both.
+/* `message_service_t` is an abstract superclass for things that let you send
+messages to other nodes. `message_handler_t` is an abstract superclass for
+things that handle messages received from other nodes. The general pattern
+usually looks something like this:
 
-The reason for these abstract classes is because some of the components of the
-clustering stack can be stacked on top of each other in different ways. For
-example, `mailbox_manager_t` can run on top of any
-`message_readwrite_service_t`; usually it's run on top of a
-`directory_manager_t`, which is a `message_readwrite_service_t` and also uses a
-`message_readwrite_service_t`. */
-
-class message_read_service_t {
-public:
-    /* Whenever the message service receives a message from a peer, it calls the
-    callback that is passed to the `handler_registration_t`. Its arguments are
-    the peer we received the message from and a `std::istream&` from that peer.
-    The callback should read the message from the stream and then handle it.
-    Only one instance of the callback will be active at a time for any given
-    peer, so the callback should spawn a new coroutine if it needs to perform
-    any long-running computations. The callback may return without reading the
-    entire message. */
-    class handler_registration_t {
+    class cluster_t : public message_service_t {
     public:
-        handler_registration_t(message_read_service_t *p, const boost::function<void(peer_id_t, std::istream &)> &cb) : parent(p) {
-            parent->set_message_callback(cb);
-        }
-        ~handler_registration_t() {
-            parent->set_message_callback(NULL);
-        }
-    private:
-        message_read_service_t *parent;
+        class run_t {
+        public:
+            run_t(cluster_t *, message_handler_t *);
+        };
+        ...
     };
-    virtual connectivity_service_t *get_connectivity_service() = 0;
-protected:
-    virtual ~message_read_service_t() { }
-private:
-    friend class handler_registration_t;
-    virtual void set_message_callback(
-            const boost::function<void(
-                peer_id_t source_peer,
-                std::istream &stream_from_peer
-                )> &callback
-            ) = 0;
-};
 
-class message_write_service_t {
+    class application_t : public message_handler_t {
+    public:
+        application_t(message_service_t *);
+        ...
+    };
+
+    void do_cluster() {
+        cluster_t cluster;
+        application_t app(&cluster);
+        cluster_t::run_t cluster_run(&cluster, &app);
+        ...
+    }
+
+The rationale for splitting the lower-level messaging stuff into two components
+(e.g. `cluster_t` and `cluster_t::run_t`) is that it makes it clear how to stop
+further messages from being delivered. When the `cluster_t::run_t` is destroyed,
+no further messages are delivered. This gives a natural way to make sure that no
+messages are still being delivered at the time that the `application_t`
+destructor is called. */
+
+class message_service_t  {
 public:
     virtual void send_message(
             peer_id_t dest_peer,
-            const boost::function<void(std::ostream &)> &writer) = 0;
+            const boost::function<void(std::ostream &)> &writer
+            ) = 0;
     virtual connectivity_service_t *get_connectivity_service() = 0;
 protected:
-    virtual ~message_write_service_t() { }
+    virtual ~message_service_t() { }
 };
 
-class message_readwrite_service_t :
-    public message_read_service_t,
-    public message_write_service_t
-{
+class message_handler_t {
 public:
-    virtual connectivity_service_t *get_connectivity_service() = 0;
+    virtual void on_message(
+            peer_id_t source_peer,
+            std::istream &stream_from_peer
+            ) = 0;
+protected:
+    virtual ~message_handler_t() { }
 };
 
 #endif /* __RPC_CONNECTIVITY_MESSAGES_HPP__ */

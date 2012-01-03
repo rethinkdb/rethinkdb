@@ -5,27 +5,21 @@
 #include "concurrency/wait_any.hpp"
 
 template<class metadata_t>
-directory_read_manager_t<metadata_t>::directory_read_manager_t(message_read_service_t *sub) THROWS_NOTHING :
-    super_message_service(sub),
+directory_read_manager_t<metadata_t>::directory_read_manager_t(connectivity_service_t *super) THROWS_NOTHING :
+    super_connectivity_service(super),
     connectivity_subscription(
         boost::bind(&directory_read_manager_t::on_connect, this, _1),
         boost::bind(&directory_read_manager_t::on_disconnect, this, _1)
-        ),
-    message_handler_registration(
-        super_message_service,
-        boost::bind(&directory_read_manager_t::on_message, this, _1, _2)
         )
 {
-    connectivity_service_t::peers_list_freeze_t freeze(super_message_service->get_connectivity_service());
-    rassert(super_message_service->get_connectivity_service()->get_peers_list().size() == 1);
-    connectivity_subscription.reset(super_message_service->get_connectivity_service(), &freeze);
-    on_connect(get_me());
+    connectivity_service_t::peers_list_freeze_t freeze(super_connectivity_service);
+    rassert(super_connectivity_service->get_peers_list().empty());
+    connectivity_subscription.reset(super_connectivity_service, &freeze);
 }
 
 template<class metadata_t>
 directory_read_manager_t<metadata_t>::~directory_read_manager_t() THROWS_NOTHING {
-    rassert(super_message_service->get_connectivity_service()->get_peers_list().size() == 1);
-    on_disconnect(get_me());
+    rassert(super_connectivity_service->get_peers_list().empty());
 }
 
 template<class metadata_t>
@@ -35,7 +29,7 @@ clone_ptr_t<directory_rview_t<metadata_t> > directory_read_manager_t<metadata_t>
 
 template<class metadata_t>
 peer_id_t directory_read_manager_t<metadata_t>::get_me() THROWS_NOTHING {
-    return super_message_service->get_connectivity_service()->get_me();
+    return super_connectivity_service->get_me();
 }
 
 template<class metadata_t>
@@ -51,7 +45,7 @@ std::set<peer_id_t> directory_read_manager_t<metadata_t>::get_peers_list() THROW
 template<class metadata_t>
 boost::uuids::uuid directory_read_manager_t<metadata_t>::get_connection_session_id(peer_id_t peer) THROWS_NOTHING {
     rassert(thread_info.get()->peers_list.count(peer) != 0);
-    return super_message_service->get_connectivity_service()->get_connection_session_id(peer);
+    return super_connectivity_service->get_connection_session_id(peer);
 }
 
 template<class metadata_t>
@@ -91,7 +85,7 @@ void directory_read_manager_t<metadata_t>::on_connect(peer_id_t peer) THROWS_NOT
     assert_thread();
     rassert(sessions.count(peer) == 0);
     sessions.insert(peer, new session_t(
-        super_message_service->get_connectivity_service()->get_connection_session_id(peer)
+        super_connectivity_service->get_connection_session_id(peer)
         ));
 }
 
@@ -112,7 +106,7 @@ void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, std
             and `on_message()` isn't supposed to block very long */
             coro_t::spawn_sometime(boost::bind(
                 &directory_read_manager_t::propagate_initialization, this,
-                source_peer, super_message_service->get_connectivity_service()->get_connection_session_id(source_peer),
+                source_peer, super_connectivity_service->get_connection_session_id(source_peer),
                 initial_value, metadata_fifo_state,
                 auto_drainer_t::lock_t(per_thread_drainers.get())
                 ));
@@ -134,7 +128,7 @@ void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, std
             and `on_message()` isn't supposed to block very long */
             coro_t::spawn_sometime(boost::bind(
                 &directory_read_manager_t::propagate_update, this,
-                source_peer, super_message_service->get_connectivity_service()->get_connection_session_id(source_peer),
+                source_peer, super_connectivity_service->get_connection_session_id(source_peer),
                 new_value, metadata_fifo_token,
                 auto_drainer_t::lock_t(per_thread_drainers.get())
                 ));

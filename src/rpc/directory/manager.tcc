@@ -1,9 +1,9 @@
 template<class metadata_t>
 directory_readwrite_manager_t<metadata_t>::directory_readwrite_manager_t(
-        message_readwrite_service_t *sub,
+        message_service_t *super,
         const metadata_t &initial_metadata) THROWS_NOTHING :
-    directory_read_manager_t<metadata_t>(sub),
-    directory_write_manager_t<metadata_t>(sub, initial_metadata)
+    directory_read_manager_t<metadata_t>(super->get_connectivity_service()),
+    directory_write_manager_t<metadata_t>(super, initial_metadata)
     { }
 
 template<class metadata_t>

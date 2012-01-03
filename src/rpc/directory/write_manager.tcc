@@ -1,17 +1,16 @@
 template<class metadata_t>
 directory_write_manager_t<metadata_t>::directory_write_manager_t(
-        message_write_service_t *sub,
+        message_service_t *sub,
         const metadata_t &initial_metadata) THROWS_NOTHING :
-    sub_message_service(sub),
+    message_service(sub),
     our_value(initial_metadata),
     connectivity_subscription(
         boost::bind(&directory_write_manager_t::on_connect, this, _1),
         NULL)
 {
-    connectivity_service_t::peers_list_freeze_t freeze(sub_message_service->get_connectivity_service());
-    rassert(sub_message_service->get_connectivity_service()->get_peers_list().size() == 1);
-    connectivity_subscription.reset(sub_message_service->get_connectivity_service(), &freeze);
-    on_connect(sub_message_service->get_connectivity_service()->get_me());
+    connectivity_service_t::peers_list_freeze_t freeze(message_service->get_connectivity_service());
+    rassert(message_service->get_connectivity_service()->get_peers_list().empty());
+    connectivity_subscription.reset(message_service->get_connectivity_service(), &freeze);
 }
 
 template<class metadata_t>
@@ -37,10 +36,10 @@ void directory_write_manager_t<metadata_t>::root_view_t::set_our_value(const met
     value after we change it but also gets an update sent. (That would lead to a
     crash on the receiving end because the receiving FIFO would get a duplicate
     update.) */
-    connectivity_service_t::peers_list_freeze_t freeze(parent->sub_message_service->get_connectivity_service());
+    connectivity_service_t::peers_list_freeze_t freeze(parent->message_service->get_connectivity_service());
     parent->our_value = new_value_for_us;
     fifo_enforcer_write_token_t metadata_fifo_token = parent->metadata_fifo_source.enter_write();
-    std::set<peer_id_t> peers = parent->sub_message_service->get_connectivity_service()->get_peers_list();
+    std::set<peer_id_t> peers = parent->message_service->get_connectivity_service()->get_peers_list();
     for (std::set<peer_id_t>::iterator it = peers.begin(); it != peers.end(); it++) {
         coro_t::spawn_sometime(boost::bind(
             &directory_write_manager_t::send_update, parent,
@@ -72,14 +71,14 @@ void directory_write_manager_t<metadata_t>::on_connect(peer_id_t peer) THROWS_NO
 
 template<class metadata_t>
 void directory_write_manager_t<metadata_t>::send_initialization(peer_id_t peer, const metadata_t &initial_value, fifo_enforcer_source_t::state_t metadata_fifo_state, auto_drainer_t::lock_t) THROWS_NOTHING {
-    sub_message_service->send_message(peer,
+    message_service->send_message(peer,
         boost::bind(&directory_write_manager_t::write_initialization, _1, initial_value, metadata_fifo_state)
         );
 }
 
 template<class metadata_t>
 void directory_write_manager_t<metadata_t>::send_update(peer_id_t peer, const metadata_t &new_value, fifo_enforcer_write_token_t metadata_fifo_token, auto_drainer_t::lock_t) THROWS_NOTHING {
-    sub_message_service->send_message(peer,
+    message_service->send_message(peer,
         boost::bind(&directory_write_manager_t::write_update, _1, new_value, metadata_fifo_token)
         );
 }

@@ -24,15 +24,14 @@ void let_stuff_happen() {
 }
 
 /* `recording_test_application_t` sends and receives integers over a
-`message_readwrite_service_t`. It keeps track of the integers it has received.
+`message_service_t`. It keeps track of the integers it has received.
 */
 
-class recording_test_application_t : public home_thread_mixin_t {
+class recording_test_application_t : public home_thread_mixin_t, public message_handler_t {
 public:
-    explicit recording_test_application_t(message_readwrite_service_t *s) :
+    explicit recording_test_application_t(message_service_t *s) :
         service(s),
-        sequence_number(0),
-        message_handler_registration(s, boost::bind(&recording_test_application_t::on_message, this, _1, _2))
+        sequence_number(0)
         { }
     void send(int message, peer_id_t peer) {
         service->send_message(peer, boost::bind(&write, message, _1));
@@ -69,11 +68,10 @@ private:
         stream << i;
     }
 
-    message_readwrite_service_t *service;
+    message_service_t *service;
     std::map<int, peer_id_t> inbox;
     std::map<int, int> timing;
     int sequence_number;
-    message_readwrite_service_t::handler_registration_t message_handler_registration;
 };
 
 /* `StartStop` starts a cluster of three nodes, then shuts it down again. */
@@ -98,10 +96,11 @@ TEST(RPCConnectivityTest, StartStopMultiThread) {
 
 void run_message_test() {
     int port = 10000 + rand() % 20000;
-    connectivity_cluster_t c1(port), c2(port+1), c3(port+2);
+    connectivity_cluster_t c1, c2, c3;
     recording_test_application_t a1(&c1), a2(&c2), a3(&c3);
-    c2.join(peer_address_t(ip_address_t::us(), port));
-    c3.join(peer_address_t(ip_address_t::us(), port));
+    connectivity_cluster_t::run_t cr1(&c1, &a1, port), cr2(&c2, &a2, port+1), cr3(&c3, &a3, port+2);
+    cr2.join(c1.get_peer_address(c1.get_me()));
+    cr3.join(c1.get_peer_address(c1.get_me()));
 
     let_stuff_happen();
 
@@ -129,9 +128,10 @@ fail. */
 
 void run_unreachable_peer_test() {
     int port = 10000 + rand() % 20000;
-    connectivity_cluster_t c1(port), c2(port+1);
+    connectivity_cluster_t c1, c2;
     recording_test_application_t a1(&c1), a2(&c2);
-    
+    connectivity_cluster_t::run_t cr1(&c1, &a1, port), cr2(&c2, &a2, port+1);
+
     /* Note that we DON'T join them together. */
 
     let_stuff_happen();
@@ -144,7 +144,7 @@ void run_unreachable_peer_test() {
     crashed, either. */
     a2.expect_undelivered(888);
 
-    c1.join(peer_address_t(ip_address_t::us(), port+1));
+    cr1.join(c2.get_peer_address(c2.get_me()));
 
     let_stuff_happen();
 
@@ -167,10 +167,11 @@ order they were sent in. */
 
 void run_ordering_test() {
     int port = 10000 + rand() % 20000;
-    connectivity_cluster_t c1(port), c2(port+1);
+    connectivity_cluster_t c1, c2;
     recording_test_application_t a1(&c1), a2(&c2);
+    connectivity_cluster_t::run_t cr1(&c1, &a1, port), cr2(&c2, &a2, port+1);
 
-    c1.join(peer_address_t(ip_address_t::us(), port+1));
+    cr1.join(c2.get_peer_address(c2.get_me()));
 
     let_stuff_happen();
 
@@ -198,7 +199,8 @@ correct. */
 
 void run_get_peers_list_test() {
     int port = 10000 + rand() % 20000;
-    connectivity_cluster_t c1(port);
+    connectivity_cluster_t c1;
+    connectivity_cluster_t::run_t cr1(&c1, NULL, port);
 
     /* Make sure `get_peers_list()` is initially sane */
     std::set<peer_id_t> list_1 = c1.get_peers_list();
@@ -206,8 +208,9 @@ void run_get_peers_list_test() {
     EXPECT_EQ(list_1.size(), 1);
 
     {
-        connectivity_cluster_t c2(port+1);
-        c2.join(peer_address_t(ip_address_t::us(), port));
+        connectivity_cluster_t c2;
+        connectivity_cluster_t::run_t cr2(&c2, NULL, port+1);
+        cr2.join(c1.get_peer_address(c1.get_me()));
 
         let_stuff_happen();
 
@@ -237,10 +240,11 @@ TEST(RPCConnectivityTest, GetPeersListMultiThread) {
 
 void run_event_watchers_test() {
     int port = 10000 + rand() % 20000;
-    connectivity_cluster_t c1(port);
+    connectivity_cluster_t c1;
+    connectivity_cluster_t::run_t cr1(&c1, NULL, port);
 
-    boost::scoped_ptr<connectivity_cluster_t> c2(new connectivity_cluster_t(port+1));
-    peer_id_t c2_id = c2->get_me();
+    connectivity_cluster_t c2;
+    boost::scoped_ptr<connectivity_cluster_t::run_t> cr2(new connectivity_cluster_t::run_t(&c2, NULL, port+1));
 
     /* Make sure `c1` notifies us when `c2` connects */
     cond_t connection_established;
@@ -257,19 +261,19 @@ void run_event_watchers_test() {
     }
     
     EXPECT_FALSE(connection_established.is_pulsed());
-    c1.join(peer_address_t(ip_address_t::us(), port+1));
+    cr1.join(c2.get_peer_address(c2.get_me()));
     let_stuff_happen();
     EXPECT_TRUE(connection_established.is_pulsed());
 
     /* Make sure `c1` notifies us when `c2` disconnects */
-    disconnect_watcher_t disconnect_watcher(&c1, c2_id);
+    disconnect_watcher_t disconnect_watcher(&c1, c2.get_me());
     EXPECT_FALSE(disconnect_watcher.is_pulsed());
-    c2.reset();
+    cr2.reset();
     let_stuff_happen();
     EXPECT_TRUE(disconnect_watcher.is_pulsed());
 
     /* Make sure `disconnect_watcher_t` works for an already-unconnected peer */
-    disconnect_watcher_t disconnect_watcher_2(&c1, c2_id);
+    disconnect_watcher_t disconnect_watcher_2(&c1, c2.get_me());
     EXPECT_TRUE(disconnect_watcher_2.is_pulsed());
 }
 TEST(RPCConnectivityTest, EventWatchers) {
@@ -322,16 +326,18 @@ struct watcher_t {
 void run_event_watcher_ordering_test() {
 
     int port = 10000 + rand() % 20000;
-    connectivity_cluster_t c1(port);
+    connectivity_cluster_t c1;
     recording_test_application_t a1(&c1);
+    connectivity_cluster_t::run_t cr1(&c1, &a1, port);
 
     watcher_t watcher(&c1, &a1);
 
     /* Generate some connection/disconnection activity */
     {
-        connectivity_cluster_t c2(port+1);
+        connectivity_cluster_t c2;
         recording_test_application_t a2(&c2);
-        c2.join(peer_address_t(ip_address_t::us(), port));
+        connectivity_cluster_t::run_t cr2(&c2, &a2, port+1);
+        c2.join(c1.get_peer_address(c1.get_me()));
 
         let_stuff_happen();
 
@@ -357,18 +363,20 @@ void run_stop_mid_join_test() {
 
     const int num_members = 5;
 
-    /* Spin up 20 cluster-members */
+    /* Spin up `num_members` cluster-members */
     boost::scoped_ptr<connectivity_cluster_t> nodes[num_members];
+    boost::scoped_ptr<connectivity_cluster_t::run_t> runs[num_members];
     for (int i = 0; i < num_members; i++) {
-        nodes[i].reset(new connectivity_cluster_t(port+i));
+        nodes[i].reset(new connectivity_cluster_t);
+        runs[i].reset(new connectivity_cluster_t::run_t(nodes[i].get(), NULL, port+i));
     }
     for (int i = 1; i < num_members; i++) {
-        nodes[i]->join(peer_address_t(ip_address_t::us(), port));
+        runs[i]->join(nodes[0]->get_peer_address(nodes[0]->get_me()));
     }
 
     coro_t::yield();
 
-    EXPECT_NE(nodes[1]->get_peers_list().size(), num_members) << "This test is "
+    EXPECT_NE(num_members, nodes[1]->get_peers_list().size()) << "This test is "
         "supposed to test what happens when a cluster is interrupted as it "
         "starts up, but the cluster finished starting up before we could "
         "interrupt it.";
@@ -395,20 +403,22 @@ void run_blob_join_test() {
 
     /* Spin up cluster-members */
     boost::scoped_ptr<connectivity_cluster_t> nodes[blob_size * 2];
+    boost::scoped_ptr<connectivity_cluster_t::run_t> runs[blob_size * 2];
     for (int i = 0; i < blob_size * 2; i++) {
-        nodes[i].reset(new connectivity_cluster_t(port+i));
+        nodes[i].reset(new connectivity_cluster_t);
+        runs[i].reset(new connectivity_cluster_t::run_t(nodes[i].get(), NULL, port+i));
     }
 
     for (int i = 1; i < blob_size; i++) {
-        nodes[i]->join(peer_address_t(ip_address_t::us(), port));
+        runs[i]->join(nodes[0]->get_peer_address(nodes[0]->get_me()));
     }
     for (int i = blob_size+1; i < blob_size*2; i++) {
-        nodes[i]->join(peer_address_t(ip_address_t::us(), port+blob_size));
+        runs[i]->join(nodes[blob_size]->get_peer_address(nodes[blob_size]->get_me()));
     }
 
     let_stuff_happen();
 
-    nodes[1]->join(peer_address_t(ip_address_t::us(), port+blob_size+1));
+    runs[1]->join(nodes[blob_size+1]->get_peer_address(nodes[blob_size+1]->get_me()));
 
     let_stuff_happen();
     let_stuff_happen();
@@ -428,12 +438,11 @@ TEST(RPCConnectivityTest, BlobJoinMultiThread) {
 
 /* `BinaryData` makes sure that any octet can be sent over the wire. */
 
-class binary_test_application_t {
+class binary_test_application_t : public message_handler_t {
 public:
-    explicit binary_test_application_t(message_readwrite_service_t *s) :
+    explicit binary_test_application_t(message_service_t *s) :
         service(s),
-        got_spectrum(false),
-        message_handler_registration(s, boost::bind(&binary_test_application_t::on_message, this, _1, _2))
+        got_spectrum(false)
         { }
     static void dump_spectrum(std::ostream &stream) {
         char spectrum[CHAR_MAX - CHAR_MIN + 1];
@@ -453,25 +462,25 @@ public:
         EXPECT_EQ(eof, EOF);
         got_spectrum = true;
     }
-    message_readwrite_service_t *service;
+    message_service_t *service;
     bool got_spectrum;
-    message_readwrite_service_t::handler_registration_t message_handler_registration;
 };
 
 void run_binary_data_test() {
 
     int port = 10000 + rand() % 20000;
-    connectivity_cluster_t cluster1(port), cluster2(port+1);
-    binary_test_application_t application1(&cluster1), application2(&cluster2);
-    cluster1.join(cluster2.get_peer_address(cluster2.get_me()));
+    connectivity_cluster_t c1, c2;
+    binary_test_application_t a1(&c1), a2(&c2);
+    connectivity_cluster_t::run_t cr1(&c1, &a1, port), cr2(&c2, a2, port+1);
+    cr1.join(c2.get_peer_address(c2.get_me()));
 
     let_stuff_happen();
 
-    application1.send_spectrum(cluster2.get_me());
+    a1.send_spectrum(c2.get_me());
 
     let_stuff_happen();
 
-    EXPECT_TRUE(application2.got_spectrum);
+    EXPECT_TRUE(a2.got_spectrum);
 }
 TEST(RPCConnectivityTest, BinaryData) {
     run_in_thread_pool(&run_binary_data_test);
@@ -487,8 +496,7 @@ void run_peer_id_semantics_test() {
     peer_id_t nil_peer;
     ASSERT_TRUE(nil_peer.is_nil());
 
-    int port = 10000 + rand() % 20000;
-    connectivity_cluster_t cluster_node(port);
+    connectivity_cluster_t cluster_node;
     ASSERT_FALSE(cluster_node.get_me().is_nil());
 }
 TEST(RPCConnectivityTest, PeerIDSemantics) {

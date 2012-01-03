@@ -13,7 +13,7 @@ class directory_readwrite_manager_t :
 {
 public:
     directory_readwrite_manager_t(
-        message_readwrite_service_t *sub,
+        message_service_t *super,
         const metadata_t &initial_metadata) THROWS_NOTHING;
     ~directory_readwrite_manager_t() THROWS_NOTHING { }
 

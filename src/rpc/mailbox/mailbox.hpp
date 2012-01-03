@@ -85,10 +85,17 @@ void send(
 /* `mailbox_cluster_t` is a subclass of `connectivity_cluster_t` that adds
 message routing infrastructure. */
 
-struct mailbox_cluster_t : public connectivity_cluster_t {
+/* TODO: Break this up; it should be hosted on top of a `message_service_t`
+instead of creating its own `connectivity_cluster_t`. */
+
+struct mailbox_cluster_t : public connectivity_cluster_t, private message_handler_t {
 
 public:
     explicit mailbox_cluster_t(int port);
+
+    void join(peer_address_t peer) {
+        connectivity_cluster_run.join(peer);
+    }
 
 protected:
     /* It's impossible to send a message to a mailbox without having its
@@ -118,7 +125,7 @@ private:
     static void write_mailbox_message(std::ostream&, int dest_thread, mailbox_t::id_t dest_mailbox_id, boost::function<void(std::ostream&)> writer);
     void on_message(peer_id_t, std::istream&);
 
-    message_read_service_t::handler_registration_t message_handler_registration;
+    connectivity_cluster_t::run_t connectivity_cluster_run;
 };
 
 #endif /* __RPC_MAILBOX_MAILBOX_HPP__ */
