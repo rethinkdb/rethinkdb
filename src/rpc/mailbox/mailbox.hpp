@@ -3,7 +3,7 @@
 
 #include "rpc/connectivity/cluster.hpp"
 
-class mailbox_cluster_t;
+class mailbox_manager_t;
 
 /* `mailbox_t` is a receiver of messages. Construct it with a callback function
 to handle messages it receives. To send messages to the mailbox, call the
@@ -13,9 +13,9 @@ struct mailbox_t :
     public home_thread_mixin_t
 {
 private:
-    friend class mailbox_cluster_t;
+    friend class mailbox_manager_t;
 
-    mailbox_cluster_t *cluster;
+    mailbox_manager_t *manager;
 
     typedef int id_t;
     id_t mailbox_id;
@@ -62,7 +62,7 @@ public:
         id_t mailbox_id;
     };
 
-    mailbox_t(mailbox_cluster_t *, const boost::function<void(std::istream &, const boost::function<void()> &)> &);
+    mailbox_t(mailbox_manager_t *, const boost::function<void(std::istream &, const boost::function<void()> &)> &);
     ~mailbox_t();
 
     address_t get_address();
@@ -77,42 +77,32 @@ a coroutine; it does not block. If the mailbox does not exist or the peer is
 inaccessible, `send()` will silently fail. */
 
 void send(
-    mailbox_cluster_t *src,
+    mailbox_manager_t *src,
     mailbox_t::address_t dest,
     boost::function<void(std::ostream&)> message
     );
 
-/* `mailbox_cluster_t` is a subclass of `connectivity_cluster_t` that adds
-message routing infrastructure. */
+/* `mailbox_manager_t` uses a `message_service_t` to provide mailbox capability.
+Usually you will split a `message_service_t` into several sub-services using
+`message_multiplexer_t` and put a `mailbox_manager_t` on only one of them,
+because the `mailbox_manager_t` relies on something else to send the initial
+mailbox addresses back and forth between nodes. */
 
-/* TODO: Break this up; it should be hosted on top of a `message_service_t`
-instead of creating its own `connectivity_cluster_t`. */
-
-struct mailbox_cluster_t : public connectivity_cluster_t, private message_handler_t {
+struct mailbox_manager_t : public message_handler_t {
 
 public:
-    explicit mailbox_cluster_t(int port);
+    explicit mailbox_manager_t(message_service_t *);
 
-    void join(peer_address_t peer) {
-        connectivity_cluster_run.join(peer);
+    /* Returns the connectivity service of the underlying message service. */
+    connectivity_service_t *get_connectivity_service() {
+        return message_service->get_connectivity_service();
     }
-
-protected:
-    /* It's impossible to send a message to a mailbox without having its
-    address, and it's impossible to transfer its address from another machine
-    without sending a message. `send_utility_message()` is a way of
-    "bootstrapping" the system. It sends a message directly to another peer;
-    the other peer's `on_utility_message()` method will be called when the
-    message arrives. The semantics are the same as with
-    `connectivity_cluster_t`'s `send_message()`/`on_message()`. */
-    void send_utility_message(peer_id_t, boost::function<void(std::ostream&)>);
-    virtual void on_utility_message(peer_id_t, std::istream&, const boost::function<void()> &) = 0;
-
-    virtual ~mailbox_cluster_t() THROWS_NOTHING { }
 
 private:
     friend class mailbox_t;
-    friend void send(mailbox_cluster_t *, mailbox_t::address_t, boost::function<void(std::ostream&)>);
+    friend void send(mailbox_manager_t *, mailbox_t::address_t, boost::function<void(std::ostream&)>);
+
+    message_service_t *message_service;
 
     struct mailbox_table_t {
         mailbox_table_t();
@@ -123,11 +113,8 @@ private:
     };
     one_per_thread_t<mailbox_table_t> mailbox_tables;
 
-    static void write_utility_message(std::ostream&, boost::function<void(std::ostream&)> writer);
     static void write_mailbox_message(std::ostream&, int dest_thread, mailbox_t::id_t dest_mailbox_id, boost::function<void(std::ostream&)> writer);
     void on_message(peer_id_t, std::istream&);
-
-    connectivity_cluster_t::run_t connectivity_cluster_run;
 };
 
 #endif /* __RPC_MAILBOX_MAILBOX_HPP__ */
