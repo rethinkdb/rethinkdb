@@ -2,6 +2,7 @@
 
 #include "unittest_utils.hpp"
 #include "rpc/connectivity/cluster.hpp"
+#include "rpc/connectivity/multiplexer.hpp"
 
 namespace unittest {
 
@@ -435,6 +436,42 @@ TEST(RPCConnectivityTest, BlobJoin) {
 }
 TEST(RPCConnectivityTest, BlobJoinMultiThread) {
     run_in_thread_pool(&run_blob_join_test, 3);
+}
+
+/* `Multiplexer` tests `message_multiplexer_t`. */
+
+void run_multiplexer_test() {
+
+    int port = 10000 + rand() % 20000;
+    connectivity_cluster_t c1, c2;
+    message_multiplexer_t c1m(&c1), c2m(&c2);
+    message_multiplexer_t::client_t c1mcA(&c1m, 'A'), c2mcA(&c2m, 'A');
+    recording_test_application_t c1aA(&c1mcA), c2aA(&c2mcA);
+    message_multiplexer_t::client_t::run_t c1mcAr(&c1mcA, &c1aA), c2mcAr(&c2mcA, &c2aA);
+    message_multiplexer_t::client_t c1mcB(&c1m, 'B'), c2mcB(&c2m, 'B');
+    recording_test_application_t c1aB(&c1mcB), c2aB(&c2mcB);
+    message_multiplexer_t::client_t::run_t c1mcBr(&c1mcB, &c1aB), c2mcBr(&c2mcB, &c2aB);
+    message_multiplexer_t::run_t c1mr(&c1m), c2mr(&c2m);
+    connectivity_cluster_t::run_t c1r(&c1, port, &c1mr), c2r(&c2, port+1, &c2mr);
+
+    c1r.join(c2.get_peer_address(c2.get_me()));
+    let_stuff_happen();
+
+    c1aA.send(10065, c2.get_me());
+    c1aB.send(10066, c2.get_me());
+    c1aA.send(65, c1.get_me());
+
+    let_stuff_happen();
+
+    c2aA.expect(10065, c1.get_me());
+    c2aB.expect(10066, c1.get_me());
+    c1aA.expect(65, c1.get_me());
+    c2aA.expect_undelivered(10066);
+    c2aB.expect_undelivered(10065);
+}
+
+TEST(RPCConnectivityTest, Multiplexer) {
+    run_in_thread_pool(&run_multiplexer_test);
 }
 
 /* `BinaryData` makes sure that any octet can be sent over the wire. */
