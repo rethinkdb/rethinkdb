@@ -80,15 +80,16 @@ RPM_PACKAGE_DIR:=$(PACKAGES_DIR)/rpm
 DEB_PACKAGE_DIR:=$(PACKAGES_DIR)/deb
 
 
-# Define configuration variables
+ifndef CXX
+
 ifeq ($(COMPILER),CLANG)
 CXX:=clang
-else
-ifeq ($(COMPILER),INTEL)
+else ifeq ($(COMPILER),INTEL)
 CXX:=icc
 else
 CXX:=g++
 endif
+
 endif
 
 ifeq ($(COMPILER),CLANG)
