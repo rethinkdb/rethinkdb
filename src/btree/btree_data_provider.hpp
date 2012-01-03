@@ -6,7 +6,7 @@
 
 #include "buffer_cache/types.hpp"
 
-class memcached_value_t;
+struct memcached_value_t;
 struct data_buffer_t;
 
 boost::intrusive_ptr<data_buffer_t> value_to_data_buffer(const memcached_value_t *value, transaction_t *transaction);

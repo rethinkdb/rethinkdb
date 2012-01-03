@@ -14,7 +14,7 @@
 #include "protocol_api.hpp"
 #include "timestamps.hpp"
 
-struct signal_t;
+class signal_t;
 
 namespace unittest {
 

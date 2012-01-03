@@ -14,7 +14,7 @@
 #define BACKFILL_CACHE_PRIORITY 10
 
 class btree_slice_t;
-class btree_key_t;
+struct btree_key_t;
 
 struct backfill_atom_t {
     store_key_t key;

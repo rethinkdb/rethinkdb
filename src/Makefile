@@ -95,7 +95,7 @@ endif
 endif
 
 ifeq ($(COMPILER),CLANG)
-LDFLAGS:=-Wl,--no-as-needed -lpthread -lrt -laio -lQtCore
+LDFLAGS:=-Wl,--no-as-needed -lpthread -lrt -laio -lQtCore -lstdc++ -lm
 else
 ifeq ($(COMPILER),INTEL)
 LDFLAGS:= -B/opt/intel/bin -lpthread -lrt -laio -lQtCore -lstdc++
