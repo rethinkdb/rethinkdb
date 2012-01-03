@@ -138,7 +138,6 @@ struct perfmon_system_t :
         timespec uptime = get_uptime();
         std::stringstream uptime_str;
         uptime_str << uptime.tv_sec << '.' << std::setfill('0') << std::setw(6) << uptime.tv_nsec / 1000;
-        precise_time_t now = get_absolute_time(uptime);
 
         (*dest)["uptime"] = uptime_str.str();
         (*dest)["timestamp"] = format_precise_time(get_absolute_time(uptime));
