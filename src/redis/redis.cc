@@ -1,4 +1,3 @@
-#ifndef NO_REDIS
 #include "redis/redis_types.hpp"
 #include "redis/redis.hpp"
 #include "btree/slice.hpp"
@@ -159,4 +158,3 @@ redis_protocol_t::write_response_t dummy_redis_store_view_t::do_write(const redi
 */
 
 // Individual commands are implemented in their respective files: keys, strings, etc.
-#endif //#ifndef NO_REDIS

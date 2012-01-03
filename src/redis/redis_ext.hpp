@@ -53,75 +53,75 @@ struct redis_ext {
 
     // KEYS
     CMD_N(del)
-    CMD_1(exists, std::string&)
-    CMD_2(expire, std::string&, unsigned)
-    CMD_2(expireat, std::string&, unsigned)
-    CMD_1(keys, std::string&)
-    CMD_2(move, std::string&, std::string&)
-    CMD_1(persist, std::string&)
+    CMD_1(exists, std::string)
+    CMD_2(expire, std::string, unsigned)
+    CMD_2(expireat, std::string, unsigned)
+    CMD_1(keys, std::string)
+    CMD_2(move, std::string, std::string)
+    CMD_1(persist, std::string)
     CMD_0(randomkey)
 
-    //CMD_2(rename, std::string&, std::string&)
-    redis_protocol_t::redis_return_type rename(std::string &key, std::string &newkey) {
+    //CMD_2(rename, std::string, std::string)
+    redis_protocol_t::redis_return_type rename(std::string key, std::string newkey) {
         return rename_(key, newkey, false);
     }
     
-    //CMD_2(renamenx, std::string&, std::string&)
-    redis_protocol_t::redis_return_type renamenx(std::string &key, std::string &newkey) {
+    //CMD_2(renamenx, std::string, std::string)
+    redis_protocol_t::redis_return_type renamenx(std::string key, std::string newkey) {
         return rename_(key, newkey, true);
     }
 
-    CMD_1(ttl, std::string&)
-    CMD_1(type, std::string&)
+    CMD_1(ttl, std::string)
+    CMD_1(type, std::string)
 
     //STRINGS
-    CMD_2(append, std::string&, std::string&)
-    CMD_1(decr, std::string&)
-    CMD_2(decrby, std::string&, int)
-    CMD_1(get, std::string&)
-    CMD_2(getbit, std::string&, unsigned)
-    CMD_3(getrange, std::string&, int, int)
-    CMD_2(getset, std::string&, std::string&)
-    CMD_1(incr, std::string&)
-    CMD_2(incrby, std::string&, int)
+    CMD_2(append, std::string, std::string)
+    CMD_1(decr, std::string)
+    CMD_2(decrby, std::string, int)
+    CMD_1(get, std::string)
+    CMD_2(getbit, std::string, unsigned)
+    CMD_3(getrange, std::string, int, int)
+    CMD_2(getset, std::string, std::string)
+    CMD_1(incr, std::string)
+    CMD_2(incrby, std::string, int)
     CMD_N(mget)
     CMD_N(mset)
     CMD_N(msetnx)
 
-    //CMD_2(set, std::string&, std::string&)
-    redis_protocol_t::redis_return_type set(std::string &key, std::string value) {
+    //CMD_2(set, std::string, std::string)
+    redis_protocol_t::redis_return_type set(std::string key, std::string value) {
         on_thread_t(8);
         redis_protocol_t::set *oper = new redis_protocol_t::set(key, value);
         return exec(oper);
     }
 
-    CMD_3(setbit, std::string&, unsigned, unsigned)
-    CMD_3(setex, std::string&, unsigned, std::string&)
-    CMD_2(setnx, std::string&, std::string&)
-    CMD_3(setrange, std::string&, unsigned, std::string&)
-    CMD_1(Strlen, std::string&)
+    CMD_3(setbit, std::string, unsigned, unsigned)
+    CMD_3(setex, std::string, unsigned, std::string)
+    CMD_2(setnx, std::string, std::string)
+    CMD_3(setrange, std::string, unsigned, std::string)
+    CMD_1(Strlen, std::string)
 
     //Hashes
     CMD_N(hdel)
-    CMD_2(hexists, std::string&, std::string&)
-    CMD_2(hget, std::string&, std::string&)
-    CMD_1(hgetall, std::string&)
-    CMD_3(hincrby, std::string&, std::string&, int)
-    CMD_1(hkeys, std::string&)
-    CMD_1(hlen, std::string&)
+    CMD_2(hexists, std::string, std::string)
+    CMD_2(hget, std::string, std::string)
+    CMD_1(hgetall, std::string)
+    CMD_3(hincrby, std::string, std::string, int)
+    CMD_1(hkeys, std::string)
+    CMD_1(hlen, std::string)
     CMD_N(hmget)
     CMD_N(hmset)
-    CMD_3(hset, std::string&, std::string&, std::string&)
-    CMD_3(hsetnx, std::string&, std::string&, std::string&)
-    CMD_1(hvals, std::string&)
+    CMD_3(hset, std::string, std::string, std::string)
+    CMD_3(hsetnx, std::string, std::string, std::string)
+    CMD_1(hvals, std::string)
 
     //Sets
     CMD_N(sadd)
-    CMD_1(scard, std::string&)
+    CMD_1(scard, std::string)
     CMD_N(sdiff)
 
     //CMD_N(sdiffstore)
-    redis_protocol_t::redis_return_type sdiffstore(std::vector<std::string> &destkeys) {
+    redis_protocol_t::redis_return_type sdiffstore(std::vector<std::string> destkeys) {
         std::string dest = destkeys[0];
         destkeys.erase(destkeys.begin());
         std::vector<std::string> result = boost::get<std::vector<std::string> >(sdiff(destkeys));
@@ -142,7 +142,7 @@ struct redis_ext {
     CMD_N(sinter)
 
     //CMD_N(sinterstore)
-    redis_protocol_t::redis_return_type sinterstore(std::vector<std::string> &destkeys) {
+    redis_protocol_t::redis_return_type sinterstore(std::vector<std::string> destkeys) {
         std::string dest = destkeys[0];
         destkeys.erase(destkeys.begin());
         std::vector<std::string> result = boost::get<std::vector<std::string> >(sinter(destkeys));
@@ -160,11 +160,11 @@ struct redis_ext {
         return result_size;
     }
 
-    CMD_2(sismember, std::string&, std::string&)
-    CMD_1(smembers, std::string&)
+    CMD_2(sismember, std::string, std::string)
+    CMD_1(smembers, std::string)
     
-    //CMD_3(smove, std::string&, std::string&, std::string&)
-    redis_protocol_t::redis_return_type smove(std::string &source, std::string &destination, std::string member) {
+    //CMD_3(smove, std::string, std::string, std::string)
+    redis_protocol_t::redis_return_type smove(std::string source, std::string destination, std::string member) {
         std::vector<std::string> key_mem;
         key_mem.push_back(source);
         key_mem.push_back(member);
@@ -180,13 +180,13 @@ struct redis_ext {
         return 1;
     }
 
-    CMD_1(spop, std::string&)
-    CMD_1(srandmember, std::string&)
+    CMD_1(spop, std::string)
+    CMD_1(srandmember, std::string)
     CMD_N(srem)
     CMD_N(sunion)
 
     //CMD_N(sunionstore)
-    redis_protocol_t::redis_return_type sunionstore(std::vector<std::string> &destkeys) {
+    redis_protocol_t::redis_return_type sunionstore(std::vector<std::string> destkeys) {
         std::string dest = destkeys[0];
         destkeys.erase(destkeys.begin());
         std::vector<std::string> result = boost::get<std::vector<std::string> >(sunion(destkeys));
@@ -253,20 +253,20 @@ struct redis_ext {
 
     CMD_N(brpop)
     CMD_N(brpoplpush)
-    CMD_2(lindex, std::string&, int)
-    CMD_4(linsert, std::string&, std::string&, std::string&, std::string&)
-    CMD_1(llen, std::string&)
-    CMD_1(lpop, std::string&)
+    CMD_2(lindex, std::string, int)
+    CMD_4(linsert, std::string, std::string, std::string, std::string)
+    CMD_1(llen, std::string)
+    CMD_1(lpop, std::string)
     CMD_N(lpush)
-    CMD_2(lpushx, std::string&, std::string&)
-    CMD_3(lrange, std::string&, int, int)
-    CMD_3(lrem, std::string&, int, std::string&)
-    CMD_3(lset, std::string&, int, std::string&)
-    CMD_3(ltrim, std::string&, int, int)
-    CMD_1(rpop, std::string&)
+    CMD_2(lpushx, std::string, std::string)
+    CMD_3(lrange, std::string, int, int)
+    CMD_3(lrem, std::string, int, std::string)
+    CMD_3(lset, std::string, int, std::string)
+    CMD_3(ltrim, std::string, int, int)
+    CMD_1(rpop, std::string)
 
-    //CMD_2(rpoplpush, std::string&, std::string&)
-    redis_protocol_t::redis_return_type rpoplpush(std::string &source, std::string &destination) {
+    //CMD_2(rpoplpush, std::string, std::string)
+    redis_protocol_t::redis_return_type rpoplpush(std::string source, std::string destination) {
         std::string str = boost::get<std::string>(rpop(source));
         std::vector<std::string> vec;
         vec.push_back(destination);
@@ -276,7 +276,7 @@ struct redis_ext {
     }
 
     CMD_N(rpush)
-    CMD_2(rpushx, std::string&, std::string&)
+    CMD_2(rpushx, std::string, std::string)
 
     // Sorted Sets
     CMD_N(zadd)
@@ -285,11 +285,11 @@ struct redis_ext {
     CMD_3(zincrby, std::string, float, std::string)
     CMD_N(zinterstore)
 
-    redis_protocol_t::redis_return_type zrange(std::string &key, int start, int stop) {
+    redis_protocol_t::redis_return_type zrange(std::string key, int start, int stop) {
         return exec(new redis_protocol_t::zrange(key, start, stop, false, false));
     }
 
-    redis_protocol_t::redis_return_type zrange(std::string &key, int start, int stop, std::string &scores) {
+    redis_protocol_t::redis_return_type zrange(std::string key, int start, int stop, std::string scores) {
         toUpper(scores);
         if(scores != std::string("WITHSCORES")) {
             return  redis_protocol_t::error_result("Protocol Error");
@@ -298,32 +298,32 @@ struct redis_ext {
         return exec(new redis_protocol_t::zrange(key, start, stop, true, false));
     }
 
-    redis_protocol_t::redis_return_type zrangebyscore(std::string &key, std::string &score_min, std::string &score_max) {
+    redis_protocol_t::redis_return_type zrangebyscore(std::string key, std::string score_min, std::string score_max) {
         return exec(new redis_protocol_t::zrangebyscore(key, score_min, score_max, false, false, 0, 0, false));
     }
 
-    redis_protocol_t::redis_return_type zrangebyscore(std::string &key, std::string &score_min, std::string &score_max, std::string &with_scores) {
+    redis_protocol_t::redis_return_type zrangebyscore(std::string key, std::string score_min, std::string score_max, std::string with_scores) {
         if(with_scores != std::string("WITHSCORES")) {
             return redis_protocol_t::error_result("Protocol Error");
         }
         return exec(new redis_protocol_t::zrangebyscore(key, score_min, score_max, true, false, 0, 0, false));
     }
 
-    redis_protocol_t::redis_return_type zrangebyscore(std::string &key, std::string &score_min, std::string &score_max, std::string &limit, unsigned offset, unsigned count) {
+    redis_protocol_t::redis_return_type zrangebyscore(std::string key, std::string score_min, std::string score_max, std::string limit, unsigned offset, unsigned count) {
         if(limit != std::string("LIMIT")) {
             return redis_protocol_t::error_result("Protocol Error");
         }
         return exec(new redis_protocol_t::zrangebyscore(key, score_min, score_max, false, true, offset, count, false));
     }
 
-    redis_protocol_t::redis_return_type zrangebyscore(std::string &key, std::string &score_min, std::string &score_max, std::string &with_scores, std::string &limit, unsigned offset, unsigned count) {
+    redis_protocol_t::redis_return_type zrangebyscore(std::string key, std::string score_min, std::string score_max, std::string with_scores, std::string limit, unsigned offset, unsigned count) {
         if((with_scores != std::string("WITHSCORES")) || (limit != std::string("LIMIT"))) {
             return redis_protocol_t::error_result("Protocol Error");
         }
         return exec(new redis_protocol_t::zrangebyscore(key, score_min, score_max, true, true, offset, count, false));
     }
 
-    redis_protocol_t::redis_return_type zrank(std::string &key, std::string &member) {
+    redis_protocol_t::redis_return_type zrank(std::string key, std::string member) {
         return exec(new redis_protocol_t::zrank(key, member, false));
     }
 
@@ -331,11 +331,11 @@ struct redis_ext {
     CMD_3(zremrangebyrank, std::string, int, int)
     CMD_3(zremrangebyscore, std::string, float, float)
 
-    redis_protocol_t::redis_return_type zrevrange(std::string &key, int start, int stop) {
+    redis_protocol_t::redis_return_type zrevrange(std::string key, int start, int stop) {
         return exec(new redis_protocol_t::zrange(key, start, stop, false, true));
     }
 
-    redis_protocol_t::redis_return_type zrevrange(std::string &key, int start, int stop, std::string &scores) {
+    redis_protocol_t::redis_return_type zrevrange(std::string key, int start, int stop, std::string scores) {
         if(scores != std::string("WITHSCORES")) {
             return  redis_protocol_t::error_result("Protocol Error");
         }
@@ -343,32 +343,32 @@ struct redis_ext {
         return exec(new redis_protocol_t::zrange(key, start, stop, true, true));
     }
 
-    redis_protocol_t::redis_return_type zrevrangebyscore(std::string &key, std::string &score_min, std::string &score_max) {
+    redis_protocol_t::redis_return_type zrevrangebyscore(std::string key, std::string score_min, std::string score_max) {
         return exec(new redis_protocol_t::zrangebyscore(key, score_min, score_max, false, false, 0, 0, true));
     }
 
-    redis_protocol_t::redis_return_type zrevrangebyscore(std::string &key, std::string &score_min, std::string &score_max, std::string &with_scores) {
+    redis_protocol_t::redis_return_type zrevrangebyscore(std::string key, std::string score_min, std::string score_max, std::string with_scores) {
         if(with_scores != std::string("WITHSCORES")) {
             return redis_protocol_t::error_result("Protocol Error");
         }
         return exec(new redis_protocol_t::zrangebyscore(key, score_min, score_max, true, false, 0, 0, true));
     }
 
-    redis_protocol_t::redis_return_type zrevrangebyscore(std::string &key, std::string &score_min, std::string &score_max, std::string &limit, unsigned offset, unsigned count) {
+    redis_protocol_t::redis_return_type zrevrangebyscore(std::string key, std::string score_min, std::string score_max, std::string limit, unsigned offset, unsigned count) {
         if(limit != std::string("LIMIT")) {
             return redis_protocol_t::error_result("Protocol Error");
         }
         return exec(new redis_protocol_t::zrangebyscore(key, score_min, score_max, false, true, offset, count, true));
     }
 
-    redis_protocol_t::redis_return_type zrevrangebyscore(std::string &key, std::string &score_min, std::string &score_max, std::string &with_scores, std::string &limit, unsigned offset, unsigned count) {
+    redis_protocol_t::redis_return_type zrevrangebyscore(std::string key, std::string score_min, std::string score_max, std::string with_scores, std::string limit, unsigned offset, unsigned count) {
         if((with_scores != std::string("WITHSCORES")) || (limit != std::string("LIMIT"))) {
             return redis_protocol_t::error_result("Protocol Error");
         }
         return exec(new redis_protocol_t::zrangebyscore(key, score_min, score_max, true, true, offset, count, true));
     }
 
-    redis_protocol_t::redis_return_type zrevrank(std::string &key, std::string &member) {
+    redis_protocol_t::redis_return_type zrevrank(std::string key, std::string member) {
         return exec(new redis_protocol_t::zrank(key, member, true));
     }
 
@@ -402,7 +402,7 @@ private:
         }
     }
 
-    redis_protocol_t::redis_return_type rename_(std::string &key, std::string &newkey, bool nx) {
+    redis_protocol_t::redis_return_type rename_(std::string key, std::string newkey, bool nx) {
         if(key == newkey) {
             return redis_protocol_t::error_result("Protocol Error");
         }
