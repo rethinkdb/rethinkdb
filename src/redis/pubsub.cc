@@ -1,4 +1,3 @@
-#ifndef NO_REDIS
 #include "redis/pubsub.hpp"
 
 bool pubsub_runtime_t::subscribe(std::string &channel, uint64_t connection_id, redis_output_writer *out) {
@@ -215,4 +214,3 @@ bool pubsub_runtime_t::pattern_matches(std::string &channel, std::string &patter
 
     return match_pattern(chan, patt);
 }
-#endif //#ifndef NO_REDIS

@@ -1,4 +1,3 @@
-#ifndef NO_REDIS
 #include "redis/server.hpp"
 
 #include <iostream>
@@ -23,7 +22,7 @@
 // used here to go away soon.
 
 struct temp_file_t2 {
-    temp_file_t2(const char *tmpl) {
+    explicit temp_file_t2(const char *tmpl) {
         size_t len = strlen(tmpl);
         filename = new char[len+1];
         memcpy(filename, tmpl, len+1);
@@ -145,4 +144,3 @@ void redis_listener_t::handle(boost::scoped_ptr<nascent_tcp_conn_t> &nconn) {
     until the connection is closed. */
     serve_redis(conn.get(), redis_interface);
 }
-#endif //#ifndef NO_REDIS

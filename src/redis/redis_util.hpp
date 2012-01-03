@@ -227,7 +227,7 @@ int incr_loc(transaction_t *txn, keyvalue_location_t<T> &loc, int by) {
 // (one for read_t and one for write_t) so this is what I had to do instead, create a functor with overloaded
 // cast operators
 struct int_response {
-    int_response(int val_) : val(val_) { }
+    explicit int_response(int val_) : val(val_) { }
 
     operator redis_protocol_t::read_response_t () {
         return redis_protocol_t::read_response_t(new redis_protocol_t::integer_result_t(val));
@@ -242,11 +242,11 @@ private:
 };
 
 struct bulk_response {
-    bulk_response(std::string &val_) {
+    explicit bulk_response(std::string &val_) {
         val = new redis_protocol_t::bulk_result_t(val_);
     }
 
-    bulk_response(float val_) {
+    explicit bulk_response(float val_) {
         val = new redis_protocol_t::bulk_result_t(val_);
     }
 

@@ -51,7 +51,6 @@ SEMANTIC_SERIALIZER_CHECK?=0
 MOCK_CACHE_CHECK?=0
 VERBOSE?=0
 UNIT_TESTS?=$(DEBUG)
-NO_REDIS?=1
 
 # Set TRIAL to 1 to build a 21-day trial version. If you want a different number of days, set TIMEBOMB to the number of days instead.
 TRIAL?=0
@@ -96,12 +95,12 @@ endif
 endif
 
 ifeq ($(COMPILER),CLANG)
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lQtCore
 else
 ifeq ($(COMPILER),INTEL)
-LDFLAGS:= -B/opt/intel/bin -pthread -lrt -laio -lstdc++
+LDFLAGS:= -B/opt/intel/bin -pthread -lrt -laio -lQtCore -lstdc++
 else
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lQtCore
 endif
 endif
 
@@ -234,10 +233,6 @@ BUILD_DIR:=$(BUILD_DIR)-valgrind
 NO_TCMALLOC:=1
 endif
 
-ifeq ($(NO_REDIS),1)
-CXXFLAGS+=-DNO_REDIS
-endif
-
 PROTO_DIR:=$(BUILD_DIR)/proto
 CXXFLAGS += -I$(PROTO_DIR)
 
@@ -246,7 +241,9 @@ STATIC_LIBRARIES+=tcmalloc_minimal
 endif
 
 # look for the static library in the same directory as the .so file
-STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }')) $(EXTERNAL_SOURCE_DIR)/WebKit/WebKitBuild/Release/JavaScriptCore/release/libjscore.a /usr/lib/libQtCore.so.4
+STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }')) $(EXTERNAL_SOURCE_DIR)/WebKit/WebKitBuild/Release/JavaScriptCore/release/libjscore.a
+
+#  /usr/lib/x86_64-linux-gnu/libQtCore.so.4
 
 # Should makefile be noisy?
 ifeq ($(VERBOSE),1)

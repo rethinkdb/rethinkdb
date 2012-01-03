@@ -1,4 +1,3 @@
-#ifndef NO_REDIS
 #include "redis/redis_util.hpp"
 #include "redis/redis.hpp"
 
@@ -157,4 +156,3 @@ EXECUTE_R(type) {
     
     return read_response_t(result);
 }
-#endif //#ifndef NO_REDIS

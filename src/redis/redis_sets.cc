@@ -1,4 +1,3 @@
-#ifndef NO_REDIS
 #include "redis/redis_util.hpp"
 #include "btree/iteration.hpp"
 #include <boost/bind.hpp>
@@ -349,4 +348,3 @@ EXECUTE_R(sunion) {
 }
 
 WRITE(sunionstore)
-#endif //#ifndef NO_REDIS
