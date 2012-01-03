@@ -21,7 +21,7 @@ void run_one_node_test() {
     int port = 10000 + rand() % 20000;
     connectivity_cluster_t c;
     directory_readwrite_manager_t<int> directory_manager(&c, 5);
-    connectivity_cluster_t::run_t cr(&c, &directory_manager, port);
+    connectivity_cluster_t::run_t cr(&c, port, &directory_manager);
     let_stuff_happen();
 }
 TEST(RPCDirectoryTest, OneNode) {
@@ -35,7 +35,7 @@ void run_three_nodes_test() {
     int port = 10000 + rand() % 20000;
     connectivity_cluster_t c1, c2, c3;
     directory_readwrite_manager_t<int> m1(&c1, 101), m2(&c2, 202), m3(&c3, 303);
-    connectivity_cluster_t::run_t cr1(&c1, &m1, port), cr2(&c2, &m2, port+1), cr3(&c3, &m3, port+2);
+    connectivity_cluster_t::run_t cr1(&c1, port, &m1), cr2(&c2, port+1, &m2), cr3(&c3, port+2, &m3);
     cr2.join(c1.get_peer_address(c1.get_me()));
     cr3.join(c1.get_peer_address(c1.get_me()));
     let_stuff_happen();
@@ -50,7 +50,7 @@ void run_exchange_test() {
     int port = 10000 + rand() % 20000;
     connectivity_cluster_t c1, c2, c3;
     directory_readwrite_manager_t<int> m1(&c1, 101), m2(&c2, 202), m3(&c3, 303);
-    connectivity_cluster_t::run_t cr1(&c1, &m1, port), cr2(&c2, &m2, port+1), cr3(&c3, &m3, port+2);
+    connectivity_cluster_t::run_t cr1(&c1, port, &m1), cr2(&c2, port+1, &m2), cr3(&c3, port+2, &m3);
     cr2.join(c1.get_peer_address(c1.get_me()));
     cr3.join(c1.get_peer_address(c1.get_me()));
     let_stuff_happen();
@@ -68,7 +68,7 @@ void run_update_test() {
     int port = 10000 + rand() % 20000;
     connectivity_cluster_t c1, c2, c3;
     directory_readwrite_manager_t<int> m1(&c1, 101), m2(&c2, 202), m3(&c3, 303);
-    connectivity_cluster_t::run_t cr1(&c1, &m1, port), cr2(&c2, &m2, port+1), cr3(&c3, &m3, port+2);
+    connectivity_cluster_t::run_t cr1(&c1, port, &m1), cr2(&c2, port+1, &m2), cr3(&c3, port+2, &m3);
     cr2.join(c1.get_peer_address(c1.get_me()));
     cr3.join(c1.get_peer_address(c1.get_me()));
     let_stuff_happen();
@@ -93,7 +93,8 @@ void run_notify_test() {
     int port = 10000 + rand() % 20000;
     connectivity_cluster_t c;
     directory_readwrite_manager_t<int> m(&c, 8765);
-    connectivity_cluster_t::run_t cr(&c, &m, port);
+    connectivity_cluster_t::run_t cr(&c, port, &m);
+    let_stuff_happen();
     {
         cond_t got_notified;
         directory_read_service_t::peer_value_subscription_t subs(boost::bind(&cond_t::pulse, &got_notified));

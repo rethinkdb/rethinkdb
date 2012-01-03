@@ -35,6 +35,7 @@ private:
     }
 public:
     explicit recording_mailbox_cluster_t(int i) : mailbox_cluster_t(i) { }
+    ~recording_mailbox_cluster_t() THROWS_NOTHING { }
     void send(int message, peer_id_t peer) {
         send_utility_message(peer, boost::bind(&write_integer, message, _1));
     }

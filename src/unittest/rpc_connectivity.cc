@@ -78,9 +78,10 @@ private:
 
 void run_start_stop_test() {
     int port = 10000 + rand() % 20000;
-    connectivity_cluster_t c1(port), c2(port+1), c3(port+2);
-    c2.join(peer_address_t(ip_address_t::us(), port));
-    c3.join(peer_address_t(ip_address_t::us(), port));
+    connectivity_cluster_t c1, c2, c3;
+    connectivity_cluster_t::run_t cr1(&c1, port, NULL), cr2(&c2, port+1, NULL), cr3(&c3, port+2, NULL);
+    cr2.join(c1.get_peer_address(c1.get_me()));
+    cr3.join(c1.get_peer_address(c1.get_me()));
     let_stuff_happen();
 }
 TEST(RPCConnectivityTest, StartStop) {
@@ -98,7 +99,7 @@ void run_message_test() {
     int port = 10000 + rand() % 20000;
     connectivity_cluster_t c1, c2, c3;
     recording_test_application_t a1(&c1), a2(&c2), a3(&c3);
-    connectivity_cluster_t::run_t cr1(&c1, &a1, port), cr2(&c2, &a2, port+1), cr3(&c3, &a3, port+2);
+    connectivity_cluster_t::run_t cr1(&c1, port, &a1), cr2(&c2, port+1, &a2), cr3(&c3, port+2, &a3);
     cr2.join(c1.get_peer_address(c1.get_me()));
     cr3.join(c1.get_peer_address(c1.get_me()));
 
@@ -130,7 +131,7 @@ void run_unreachable_peer_test() {
     int port = 10000 + rand() % 20000;
     connectivity_cluster_t c1, c2;
     recording_test_application_t a1(&c1), a2(&c2);
-    connectivity_cluster_t::run_t cr1(&c1, &a1, port), cr2(&c2, &a2, port+1);
+    connectivity_cluster_t::run_t cr1(&c1, port, &a1), cr2(&c2, port+1, &a2);
 
     /* Note that we DON'T join them together. */
 
@@ -169,7 +170,7 @@ void run_ordering_test() {
     int port = 10000 + rand() % 20000;
     connectivity_cluster_t c1, c2;
     recording_test_application_t a1(&c1), a2(&c2);
-    connectivity_cluster_t::run_t cr1(&c1, &a1, port), cr2(&c2, &a2, port+1);
+    connectivity_cluster_t::run_t cr1(&c1, port, &a1), cr2(&c2, port+1, &a2);
 
     cr1.join(c2.get_peer_address(c2.get_me()));
 
@@ -200,7 +201,7 @@ correct. */
 void run_get_peers_list_test() {
     int port = 10000 + rand() % 20000;
     connectivity_cluster_t c1;
-    connectivity_cluster_t::run_t cr1(&c1, NULL, port);
+    connectivity_cluster_t::run_t cr1(&c1, port, NULL);
 
     /* Make sure `get_peers_list()` is initially sane */
     std::set<peer_id_t> list_1 = c1.get_peers_list();
@@ -209,7 +210,7 @@ void run_get_peers_list_test() {
 
     {
         connectivity_cluster_t c2;
-        connectivity_cluster_t::run_t cr2(&c2, NULL, port+1);
+        connectivity_cluster_t::run_t cr2(&c2, port+1, NULL);
         cr2.join(c1.get_peer_address(c1.get_me()));
 
         let_stuff_happen();
@@ -241,10 +242,10 @@ TEST(RPCConnectivityTest, GetPeersListMultiThread) {
 void run_event_watchers_test() {
     int port = 10000 + rand() % 20000;
     connectivity_cluster_t c1;
-    connectivity_cluster_t::run_t cr1(&c1, NULL, port);
+    connectivity_cluster_t::run_t cr1(&c1, port, NULL);
 
     connectivity_cluster_t c2;
-    boost::scoped_ptr<connectivity_cluster_t::run_t> cr2(new connectivity_cluster_t::run_t(&c2, NULL, port+1));
+    boost::scoped_ptr<connectivity_cluster_t::run_t> cr2(new connectivity_cluster_t::run_t(&c2, port+1, NULL));
 
     /* Make sure `c1` notifies us when `c2` connects */
     cond_t connection_established;
@@ -253,7 +254,7 @@ void run_event_watchers_test() {
         NULL);
     {
         connectivity_service_t::peers_list_freeze_t freeze(&c1);
-        if (c1.get_peers_list().count(c2->get_me()) == 0) {
+        if (c1.get_peers_list().count(c2.get_me()) == 0) {
             subs.reset(&c1, &freeze);
         } else {
             connection_established.pulse();
@@ -328,7 +329,7 @@ void run_event_watcher_ordering_test() {
     int port = 10000 + rand() % 20000;
     connectivity_cluster_t c1;
     recording_test_application_t a1(&c1);
-    connectivity_cluster_t::run_t cr1(&c1, &a1, port);
+    connectivity_cluster_t::run_t cr1(&c1, port, &a1);
 
     watcher_t watcher(&c1, &a1);
 
@@ -336,8 +337,8 @@ void run_event_watcher_ordering_test() {
     {
         connectivity_cluster_t c2;
         recording_test_application_t a2(&c2);
-        connectivity_cluster_t::run_t cr2(&c2, &a2, port+1);
-        c2.join(c1.get_peer_address(c1.get_me()));
+        connectivity_cluster_t::run_t cr2(&c2, port+1, &a2);
+        cr2.join(c1.get_peer_address(c1.get_me()));
 
         let_stuff_happen();
 
@@ -368,7 +369,7 @@ void run_stop_mid_join_test() {
     boost::scoped_ptr<connectivity_cluster_t::run_t> runs[num_members];
     for (int i = 0; i < num_members; i++) {
         nodes[i].reset(new connectivity_cluster_t);
-        runs[i].reset(new connectivity_cluster_t::run_t(nodes[i].get(), NULL, port+i));
+        runs[i].reset(new connectivity_cluster_t::run_t(nodes[i].get(), port+i, NULL));
     }
     for (int i = 1; i < num_members; i++) {
         runs[i]->join(nodes[0]->get_peer_address(nodes[0]->get_me()));
@@ -406,7 +407,7 @@ void run_blob_join_test() {
     boost::scoped_ptr<connectivity_cluster_t::run_t> runs[blob_size * 2];
     for (int i = 0; i < blob_size * 2; i++) {
         nodes[i].reset(new connectivity_cluster_t);
-        runs[i].reset(new connectivity_cluster_t::run_t(nodes[i].get(), NULL, port+i));
+        runs[i].reset(new connectivity_cluster_t::run_t(nodes[i].get(), port+i, NULL));
     }
 
     for (int i = 1; i < blob_size; i++) {
@@ -471,7 +472,7 @@ void run_binary_data_test() {
     int port = 10000 + rand() % 20000;
     connectivity_cluster_t c1, c2;
     binary_test_application_t a1(&c1), a2(&c2);
-    connectivity_cluster_t::run_t cr1(&c1, &a1, port), cr2(&c2, a2, port+1);
+    connectivity_cluster_t::run_t cr1(&c1, port, &a1), cr2(&c2, port+1, &a2);
     cr1.join(c2.get_peer_address(c2.get_me()));
 
     let_stuff_happen();

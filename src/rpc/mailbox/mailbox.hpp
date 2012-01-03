@@ -108,6 +108,8 @@ protected:
     void send_utility_message(peer_id_t, boost::function<void(std::ostream&)>);
     virtual void on_utility_message(peer_id_t, std::istream&, const boost::function<void()> &) = 0;
 
+    virtual ~mailbox_cluster_t() THROWS_NOTHING { }
+
 private:
     friend class mailbox_t;
     friend void send(mailbox_cluster_t *, mailbox_t::address_t, boost::function<void(std::ostream&)>);

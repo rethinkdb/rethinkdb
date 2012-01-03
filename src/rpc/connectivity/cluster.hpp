@@ -20,20 +20,22 @@ public:
     public:
         run_t(connectivity_cluster_t *parent,
             int port,
-            message_handler_t *message_handler);
-        ~run_t();
+            message_handler_t *message_handler) THROWS_NOTHING;
 
         /* Attaches the cluster this node is part of to another existing
-        cluster. May only be called on home thread. */
-        void join(peer_address_t);
+        cluster. May only be called on home thread. Returns immediately (it does
+        its work in the background). */
+        void join(peer_address_t) THROWS_NOTHING;
 
     private:
+        friend class connectivity_cluster_t;
+
         class connection_entry_t : public home_thread_mixin_t {
         public:
             /* The constructor registers us in every thread's `connection_map`;
             the destructor deregisters us. Both also notify all subscribers. */
-            connection_entry_t(run_t *, peer_id_t, streamed_tcp_conn_t *, peer_address_t);
-            ~connection_entry_t();
+            connection_entry_t(run_t *, peer_id_t, streamed_tcp_conn_t *, peer_address_t) THROWS_NOTHING;
+            ~connection_entry_t() THROWS_NOTHING;
 
             /* NULL for our "connection" to ourself */
             streamed_tcp_conn_t *conn;
@@ -49,12 +51,8 @@ public:
             boost::uuids::uuid session_id;
 
         private:
-            static void ping_connection_watcher(peer_id_t peer,
-                    const std::pair<boost::function<void(peer_id_t)>, boost::function<void(peer_id_t)> > &connect_cb_and_disconnect_cb);
-            void install_this(int target_thread);
-            static void ping_disconnection_watcher(peer_id_t peer,
-                    const std::pair<boost::function<void(peer_id_t)>, boost::function<void(peer_id_t)> > &connect_cb_and_disconnect_cb);
-            void uninstall_this(int target_thread);
+            void install_this(int target_thread) THROWS_NOTHING;
+            void uninstall_this(int target_thread) THROWS_NOTHING;
 
             /* We only hold this information so we can deregister ourself */
             run_t *parent;
@@ -67,13 +65,32 @@ public:
             boost::scoped_array<boost::scoped_ptr<auto_drainer_t> > drainers;
         };
 
-        void on_new_connection(boost::scoped_ptr<streamed_tcp_conn_t> &, auto_drainer_t::lock_t);
+        /* Sets a variable to a value in its constructor; sets it to NULL in its
+        destructor. This is kind of silly. The reason we need it is that we need
+        the variable to be set before the constructors for some other fields of
+        the `run_t` are constructed. */
+        class variable_setter_t {
+        public:
+            variable_setter_t(run_t **var, run_t *val) THROWS_NOTHING : variable(var), value(val) {
+                rassert(*variable == NULL);
+                *variable = value;
+            }
+            ~variable_setter_t() THROWS_NOTHING {
+                rassert(*variable == value);
+                *variable = NULL;
+            }
+        private:
+            run_t **variable;
+            run_t *value;
+        };
+
+        void on_new_connection(boost::scoped_ptr<streamed_tcp_conn_t> &, auto_drainer_t::lock_t) THROWS_NOTHING;
 
         /* `connectivity_cluster_t::join_blocking()` is spawned in a new
         coroutine by `connectivity_cluster_t::join()`. It's also run by
         `connectivity_cluster_t::handle()` when we hear about a new peer from a
         peer we are connected to. */
-        void join_blocking(peer_address_t address, boost::optional<peer_id_t>, auto_drainer_t::lock_t);
+        void join_blocking(peer_address_t address, boost::optional<peer_id_t>, auto_drainer_t::lock_t) THROWS_NOTHING;
 
         /* `handle()` takes an `auto_drainer_t::lock_t` so that we never shut
         down while there are still running instances of `handle()`. It's
@@ -85,7 +102,7 @@ public:
         void handle(streamed_tcp_conn_t *c,
             boost::optional<peer_id_t> expected_id,
             boost::optional<peer_address_t> expected_address,
-            auto_drainer_t::lock_t);
+            auto_drainer_t::lock_t) THROWS_NOTHING;
 
         connectivity_cluster_t *parent;
 
@@ -101,6 +118,8 @@ public:
         redundant connections to the same peer. */
         mutex_t new_connection_mutex;
 
+        variable_setter_t register_us_with_parent;
+
         map_insertion_sentry_t<peer_id_t, peer_address_t> routing_table_entry_for_ourself;
         connection_entry_t connection_to_ourself;
 
@@ -113,25 +132,27 @@ public:
         streamed_tcp_listener_t listener;
     };
 
-    connectivity_cluster_t();
-    ~connectivity_cluster_t();
+    connectivity_cluster_t() THROWS_NOTHING;
+    ~connectivity_cluster_t() THROWS_NOTHING;
 
     /* `connectivity_service_t` public methods: */
-    peer_id_t get_me();
-    std::set<peer_id_t> get_peers_list();
-    boost::uuids::uuid get_connection_session_id(peer_id_t);
+    peer_id_t get_me() THROWS_NOTHING;
+    std::set<peer_id_t> get_peers_list() THROWS_NOTHING;
+    boost::uuids::uuid get_connection_session_id(peer_id_t) THROWS_NOTHING;
 
     /* `message_service_t` public methods: */
-    connectivity_service_t *get_connectivity_service();
-    void send_message(peer_id_t, const boost::function<void(std::ostream &)> &);
+    connectivity_service_t *get_connectivity_service() THROWS_NOTHING;
+    void send_message(peer_id_t, const boost::function<void(std::ostream &)> &) THROWS_NOTHING;
 
     /* Other public methods: */
 
     /* Returns the address of the given peer. Fatal error if we are not
     connected to the peer. */
-    peer_address_t get_peer_address(peer_id_t);
+    peer_address_t get_peer_address(peer_id_t) THROWS_NOTHING;
 
 private:
+    friend class run_t;
+
     class thread_info_t {
     public:
         /* `connection_map` holds open connections to other peers. It's the same
@@ -152,11 +173,11 @@ private:
     };
 
     /* `connectivity_service_t` private methods: */
-    mutex_assertion_t *get_peers_list_lock();
+    mutex_assertion_t *get_peers_list_lock() THROWS_NOTHING;
     publisher_t<std::pair<
             boost::function<void(peer_id_t)>,
             boost::function<void(peer_id_t)>
-            > > *get_peers_list_publisher();
+            > > *get_peers_list_publisher() THROWS_NOTHING;
 
     /* `me` is our `peer_id_t`. */
     const peer_id_t me;

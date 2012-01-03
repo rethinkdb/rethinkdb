@@ -29,7 +29,7 @@ class metadata_cluster_t :
 {
 public:
     metadata_cluster_t(int port, const metadata_t &initial_metadata);
-    ~metadata_cluster_t();
+    ~metadata_cluster_t() THROWS_NOTHING;
 
     boost::shared_ptr<metadata_readwrite_view_t<metadata_t> > get_root_view();
 

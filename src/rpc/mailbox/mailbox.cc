@@ -62,8 +62,7 @@ void send(mailbox_cluster_t *src, mailbox_t::address_t dest, boost::function<voi
 /* mailbox_cluster_t */
 
 mailbox_cluster_t::mailbox_cluster_t(int port) :
-    connectivity_cluster_t(port),
-    connectivity_cluster_run(this, this)
+    connectivity_cluster_run(this, port, this)
     { }
 
 void mailbox_cluster_t::send_utility_message(peer_id_t dest, boost::function<void(std::ostream&)> writer) {

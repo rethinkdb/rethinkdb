@@ -88,6 +88,7 @@ void run_metadata_exchange_test() {
             boost::bind(&cond_t::pulse, &connection_established),
             NULL);
         {
+            ASSERT_FINITE_CORO_WAITING;
             connectivity_service_t::peers_list_freeze_t freeze(&cluster1);
             if (cluster1.get_peer_connected(cluster2.get_me()) == 0) {
                 subs.reset(&cluster1, &freeze);
