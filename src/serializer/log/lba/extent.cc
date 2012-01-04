@@ -112,6 +112,7 @@ void extent_t::append(void *buffer, size_t length, file_account_t *io_account) {
         }
         
         size_t chunk = std::min(length, room_in_block);
+        rassert(current_block);
         memcpy(current_block->data + (amount_filled % DEVICE_BLOCK_SIZE), buffer, chunk);
         amount_filled += chunk;
         
