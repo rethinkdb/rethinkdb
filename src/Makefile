@@ -41,6 +41,13 @@ RUN_FILE?=rethinkdb_data
 VALGRIND_FLAGS?=--leak-check=full --db-attach=yes --show-reachable=yes --suppressions=../scripts/rethinkdb-valgrind-suppressions.supp
 CALLGRIND_FLAGS?=--simulate-cache=yes --simulate-wb=yes --simulate-hwpref=yes --cacheuse=yes --collect-jumps=yes
 
+COMPILER?=gcc
+override COMPILER:=$(shell echo $(COMPILER) | tr '[:lower:]' '[:upper:]')
+SUPPORTED_COMPILERS:=GCC CLANG INTEL
+ifneq ($(COMPILER),$(filter $(COMPILER),$(SUPPORTED_COMPILERS)))
+$(error Unknown compiler: $(COMPILER). The supported compilers are: $(SUPPORTED_COMPILERS))
+endif
+
 # Set SYMBOLS to 1 to enable symbols, even in release mode
 SYMBOLS?=0
 
@@ -98,6 +105,7 @@ else
 ifeq ($(COMPILER),INTEL)
 LDFLAGS:= -B/opt/intel/bin -pthread -lrt -laio -lQtCore -lstdc++
 else
+# GCC
 LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lQtCore
 endif
 endif
