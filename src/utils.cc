@@ -197,15 +197,23 @@ microtime_t current_microtime() {
     return uint64_t(t.tv_sec) * (1000 * 1000) + t.tv_usec;
 }
 
+/* The canonical way to construct a random `boost::uuids::uuid` is to construct
+a `boost::uuids::random_generator` and then call it. However, that trips
+Valgrind errors because it uses uninitialized memory as a source of entropy.
+This horribly hacky function is equivalent except that it explicitly marks the
+memory as initialized for Valgrind. */
 boost::uuids::uuid generate_uuid() {
     boost::mt19937 number_generator;
-    boost::uuids::detail::seed(number_generator);
-    /* `boost::uuids::detail::seed()` uses uninitialized memory as one source of
-    entropy. This means that Valgrind thinks that `number_generator` contains
-    uninitialized contents. Explicitly tell Valgrind that it's OK. */
 #ifdef VALGRIND
     VALGRIND_MAKE_MEM_DEFINED_IF_ADDRESSABLE(&number_generator, sizeof(number_generator));
 #endif
+    boost::uuids::detail::seed_rng seed_gen;
+#ifdef VALGRIND
+    VALGRIND_MAKE_MEM_DEFINED_IF_ADDRESSABLE(&seed_gen, sizeof(seed_gen));
+#endif
+    boost::uuids::detail::generator_iterator<boost::uuids::detail::seed_rng> begin(&seed_gen);
+    boost::uuids::detail::generator_iterator<boost::uuids::detail::seed_rng> end;
+    number_generator.seed(begin, end);
     boost::uuids::random_generator uuid_generator(number_generator);
     return uuid_generator();
 }
