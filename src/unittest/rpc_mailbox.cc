@@ -26,8 +26,8 @@ private:
         inbox.insert(i);
     }
 public:
-    explicit dummy_mailbox_t(mailbox_cluster_t *c) :
-        mailbox(c, boost::bind(&dummy_mailbox_t::on_message, this, _1, _2))
+    explicit dummy_mailbox_t(mailbox_manager_t *m) :
+        mailbox(m, boost::bind(&dummy_mailbox_t::on_message, this, _1, _2))
         { }
     void expect(int message) {
         EXPECT_TRUE(inbox.count(message) == 1);
@@ -139,7 +139,7 @@ void run_mailbox_address_semantics_test() {
     dummy_mailbox_t mbox(&m);
     mailbox_t::address_t mbox_addr = mbox.mailbox.get_address();
     EXPECT_FALSE(mbox_addr.is_nil());
-    EXPECT_TRUE(mbox_addr.get_peer() == cluster.get_me());
+    EXPECT_TRUE(mbox_addr.get_peer() == c.get_me());
 }
 TEST(RPCMailboxTest, MailboxAddressSemantics) {
     run_in_thread_pool(&run_mailbox_address_semantics_test);

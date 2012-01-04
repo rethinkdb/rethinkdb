@@ -49,9 +49,9 @@ void send(mailbox_manager_t *src, mailbox_t::address_t dest, boost::function<voi
     rassert(src);
     rassert(!dest.is_nil());
 
-    src->send_message(dest.peer,
+    src->message_service->send_message(dest.peer,
         boost::bind(
-            &mailbox_cluster_t::write_mailbox_message,
+            &mailbox_manager_t::write_mailbox_message,
             _1,
             dest.thread,
             dest.mailbox_id,
@@ -59,22 +59,20 @@ void send(mailbox_manager_t *src, mailbox_t::address_t dest, boost::function<voi
             ));
 }
 
-/* mailbox_cluster_t */
-
-mailbox_cluster_t::mailbox_cluster_t(message_service_t *ms) :
+mailbox_manager_t::mailbox_manager_t(message_service_t *ms) :
     message_service(ms)
     { }
 
-mailbox_cluster_t::mailbox_table_t::mailbox_table_t() {
+mailbox_manager_t::mailbox_table_t::mailbox_table_t() {
     next_mailbox_id = 0;
 }
 
-mailbox_cluster_t::mailbox_table_t::~mailbox_table_t() {
+mailbox_manager_t::mailbox_table_t::~mailbox_table_t() {
     rassert(mailboxes.empty(), "Please destroy all mailboxes before destroying "
         "the cluster");
 }
 
-mailbox_t *mailbox_cluster_t::mailbox_table_t::find_mailbox(mailbox_t::id_t id) {
+mailbox_t *mailbox_manager_t::mailbox_table_t::find_mailbox(mailbox_t::id_t id) {
     std::map<mailbox_t::id_t, mailbox_t*>::iterator it = mailboxes.find(id);
     if (it == mailboxes.end()) {
         rassert(id < next_mailbox_id, "Not only does the requested mailbox not "
@@ -86,13 +84,13 @@ mailbox_t *mailbox_cluster_t::mailbox_table_t::find_mailbox(mailbox_t::id_t id) 
     }
 }
 
-void mailbox_cluster_t::write_mailbox_message(std::ostream &stream, int dest_thread, mailbox_t::id_t dest_mailbox_id, boost::function<void(std::ostream&)> writer) {
+void mailbox_manager_t::write_mailbox_message(std::ostream &stream, int dest_thread, mailbox_t::id_t dest_mailbox_id, boost::function<void(std::ostream&)> writer) {
     stream.write(reinterpret_cast<char*>(&dest_thread), sizeof(dest_thread));
     stream.write(reinterpret_cast<char*>(&dest_mailbox_id), sizeof(dest_mailbox_id));
     writer(stream);
 }
 
-void mailbox_cluster_t::on_message(peer_id_t src, std::istream &stream) {
+void mailbox_manager_t::on_message(UNUSED peer_id_t source_peer, std::istream &stream) {
     int dest_thread;
     mailbox_t::id_t dest_mailbox_id;
     stream.read(reinterpret_cast<char*>(&dest_thread), sizeof(dest_thread));
@@ -111,7 +109,7 @@ void mailbox_cluster_t::on_message(peer_id_t src, std::istream &stream) {
     } else {
         /* Print a warning message */
         mailbox_t::address_t dest_address;
-        dest_address.peer = get_me();
+        dest_address.peer = message_service->get_connectivity_service()->get_me();
         dest_address.thread = dest_thread;
         dest_address.mailbox_id = dest_mailbox_id;
         std::ostringstream buffer;

@@ -38,18 +38,18 @@ static void run_read_write_test() {
     test_store_t initial_store;
     cond_t interruptor;
     boost::scoped_ptr<listener_t<dummy_protocol_t> > initial_listener;
-    broadcaster_t<dummy_protocol_t> broadcaster(&cluster, branch_metadata_controller.get_view(), &initial_store.store, &interruptor, &initial_listener);
-    replier_t<dummy_protocol_t> initial_replier(&cluster, branch_metadata_controller.get_view(), initial_listener.get());
+    broadcaster_t<dummy_protocol_t> broadcaster(&cluster.mailbox_manager, branch_metadata_controller.get_view(), &initial_store.store, &interruptor, &initial_listener);
+    replier_t<dummy_protocol_t> initial_replier(&cluster.mailbox_manager, branch_metadata_controller.get_view(), initial_listener.get());
 
     /* Set up a metadata meeting-place for masters */
     namespace_master_metadata_t<dummy_protocol_t> initial_master_metadata;
     dummy_metadata_controller_t<namespace_master_metadata_t<dummy_protocol_t> > master_metadata_controller(initial_master_metadata);
 
     /* Set up a master */
-    master_t<dummy_protocol_t> master(&cluster, master_metadata_controller.get_view(), a_thru_z_region(), &broadcaster);
+    master_t<dummy_protocol_t> master(&cluster.mailbox_manager, master_metadata_controller.get_view(), a_thru_z_region(), &broadcaster);
 
     /* Set up a namespace dispatcher */
-    cluster_namespace_interface_t<dummy_protocol_t> namespace_interface(&cluster, master_metadata_controller.get_view());
+    cluster_namespace_interface_t<dummy_protocol_t> namespace_interface(&cluster.mailbox_manager, master_metadata_controller.get_view());
 
     /* Send some writes to the namespace */
     order_source_t order_source;

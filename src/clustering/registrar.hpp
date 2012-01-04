@@ -12,14 +12,14 @@ class registrar_t {
 
 public:
     registrar_t(
-            mailbox_manager_t *cl,
+            mailbox_manager_t *mm,
             controller_t co,
             boost::shared_ptr<semilattice_readwrite_view_t<resource_metadata_t<registrar_metadata_t<data_t> > > > metadata_view
             ) :
-        cluster(cl), controller(co),
-        create_mailbox(cluster, boost::bind(&registrar_t::on_create, this, _1, _2, _3, auto_drainer_t::lock_t(&drainer))),
-        delete_mailbox(cluster, boost::bind(&registrar_t::on_delete, this, _1, auto_drainer_t::lock_t(&drainer))),
-        advertisement(cluster, metadata_view,
+        mailbox_manager(mm), controller(co),
+        create_mailbox(mailbox_manager, boost::bind(&registrar_t::on_create, this, _1, _2, _3, auto_drainer_t::lock_t(&drainer))),
+        delete_mailbox(mailbox_manager, boost::bind(&registrar_t::on_delete, this, _1, auto_drainer_t::lock_t(&drainer))),
+        advertisement(mailbox_manager, metadata_view,
             registrar_metadata_t<data_t>(create_mailbox.get_address(), delete_mailbox.get_address()))
         { }
 
@@ -47,7 +47,7 @@ private:
             &registrations, rid, &deletion_cond);
 
         /* Begin monitoring the peer so we can disconnect when necessary. */
-        disconnect_watcher_t peer_monitor(cluster, peer);
+        disconnect_watcher_t peer_monitor(mailbox_manager->get_connectivity_service(), peer);
 
         /* Release the mutex, since we're done with our initial setup phase */
         {
@@ -94,7 +94,7 @@ private:
         }
     }
 
-    mailbox_manager_t *cluster;
+    mailbox_manager_t *mailbox_manager;
     controller_t controller;
 
     mutex_t mutex;

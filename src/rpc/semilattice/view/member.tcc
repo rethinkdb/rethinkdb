@@ -97,5 +97,5 @@ boost::shared_ptr<semilattice_readwrite_view_t<value_t> > metadata_new_member(
     std::map<key_t, value_t> new_value;
     new_value.insert(std::pair<key_t, value_t>(key, value_t()));
     outer->join(new_value);
-    return semilattice_member(key, outer);
+    return metadata_member(key, outer);
 }

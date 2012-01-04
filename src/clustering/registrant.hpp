@@ -2,7 +2,7 @@
 #define __CLUSTERING_REGISTRANT_HPP__
 
 #include "clustering/registration_metadata.hpp"
-#include "rpc/semilattice/metadata.hpp"
+#include "rpc/semilattice/view.hpp"
 #include "rpc/mailbox/typed.hpp"
 
 template<class data_t>
@@ -13,24 +13,24 @@ public:
     is already dead, it throws an exception. Otherwise, it returns immediately.
     */
     registrant_t(
-            mailbox_manager_t *cl,
+            mailbox_manager_t *mm,
             boost::shared_ptr<semilattice_read_view_t<resource_metadata_t<registrar_metadata_t<data_t> > > > registrar_md,
             data_t initial_value)
             THROWS_ONLY(resource_lost_exc_t) :
-        cluster(cl),
-        registrar(cluster, registrar_md),
+        mailbox_manager(mm),
+        registrar(mailbox_manager, registrar_md),
         registration_id(generate_uuid())
     {
         /* This will make it so that we get deregistered in our destructor. */
         deregisterer.fun = boost::bind(&registrant_t::send_deregister_message,
-            cluster,
+            mailbox_manager,
             registrar.access().delete_mailbox,
             registration_id);
 
         /* Send a message to register us */
-        send(cluster, registrar.access().create_mailbox,
+        send(mailbox_manager, registrar.access().create_mailbox,
             registration_id,
-            cluster->get_me(),
+            mailbox_manager->get_connectivity_service()->get_me(),
             initial_value);
     }
 
@@ -59,14 +59,14 @@ private:
     constructor sets `deregisterer.fun` to a `boost::bind()` of
     `send_deregister_message()`, and that deregisters things as necessary. */
     static void send_deregister_message(
-            mailbox_manager_t *cluster,
+            mailbox_manager_t *mailbox_manager,
             typename registrar_metadata_t<data_t>::delete_mailbox_t::address_t addr,
             registration_id_t rid) THROWS_NOTHING {
-        send(cluster, addr, rid);
+        send(mailbox_manager, addr, rid);
     }
     death_runner_t deregisterer;
 
-    mailbox_manager_t *cluster;
+    mailbox_manager_t *mailbox_manager;
     resource_access_t<registrar_metadata_t<data_t> > registrar;
     registration_id_t registration_id;
 };

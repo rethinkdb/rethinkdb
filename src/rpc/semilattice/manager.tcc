@@ -29,7 +29,7 @@ semilattice_manager_t<metadata_t>::~semilattice_manager_t() THROWS_NOTHING {
 }
 
 template<class metadata_t>
-boost::shared_ptr<metadata_readwrite_view_t<metadata_t> > semilattice_manager_t<metadata_t>::get_root_view() {
+boost::shared_ptr<semilattice_readwrite_view_t<metadata_t> > semilattice_manager_t<metadata_t>::get_root_view() {
     assert_thread();
     return root_view;
 }
@@ -84,7 +84,8 @@ void semilattice_manager_t<metadata_t>::root_view_t::sync_from(peer_id_t peer, s
     cond_t response_cond;
     map_insertion_sentry_t<int, cond_t *> response_listener(&parent->ping_waiters, ping_id, &response_cond);
     disconnect_watcher_t watcher(parent->message_service->get_connectivity_service(), peer);
-    parent->send_utility_message(peer, boost::bind(&semilattice_manager_t<metadata_t>::write_ping, _1, ping_id));
+    parent->message_service->send_message(peer,
+        boost::bind(&semilattice_manager_t<metadata_t>::write_ping, _1, ping_id));
     wait_any_t waiter(&response_cond, &watcher, interruptor);
     waiter.wait_lazily_unordered();
     if (interruptor->is_pulsed()) {
@@ -149,7 +150,7 @@ void semilattice_manager_t<metadata_t>::on_message(peer_id_t sender, std::istrea
             archive >> added_metadata;
         }
         coro_t::spawn_sometime(boost::bind(
-            &semilattice_manager_t<metadata_t>::join_metadata_locally_on_home_thread,
+            &semilattice_manager_t<metadata_t>::join_metadata_locally_on_home_thread, this,
             added_metadata, auto_drainer_t::lock_t(drainers.get())
             ));
 
@@ -186,7 +187,7 @@ void semilattice_manager_t<metadata_t>::on_connect(peer_id_t peer) {
     /* We have to spawn this in a separate coroutine because `on_connect()` is
     not supposed to block. */
     coro_t::spawn_sometime(boost::bind(
-        &mailbox_cluster_t::send_metadata_to_peer, this,
+        &semilattice_manager_t<metadata_t>::send_metadata_to_peer, this,
         peer, metadata, auto_drainer_t::lock_t(drainers.get())
         ));
 }
@@ -225,7 +226,7 @@ void semilattice_manager_t<metadata_t>::release_ping_waiter_on_home_thread(int p
 }
 
 template<class metadata_t>
-void semilattice_manager_t<metadata_t>::call_function_no_args(const boost::function<void()> &fun) {
+void semilattice_manager_t<metadata_t>::call_function_with_no_args(const boost::function<void()> &fun) {
     fun();
 }
 
@@ -234,5 +235,5 @@ void semilattice_manager_t<metadata_t>::join_metadata_locally(metadata_t added_m
     assert_thread();
     mutex_assertion_t::acq_t acq(&metadata_mutex);
     semilattice_join(&metadata, added_metadata);
-    change_publisher.publish(&semilattice_manager_t<metadata_t>::call_function_no_args);
+    metadata_publisher.publish(&semilattice_manager_t<metadata_t>::call_function_with_no_args);
 }

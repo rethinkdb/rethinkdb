@@ -4,7 +4,7 @@
 
 template<class protocol_t>
 void listener_write(
-        mailbox_manager_t *cluster,
+        mailbox_manager_t *mailbox_manager,
         const typename listener_data_t<protocol_t>::write_mailbox_t::address_t &write_mailbox,
         typename protocol_t::write_t w, transition_timestamp_t ts, fifo_enforcer_write_token_t token,
         signal_t *interruptor)
@@ -12,9 +12,9 @@ void listener_write(
 {
     cond_t ack_cond;
     async_mailbox_t<void()> ack_mailbox(
-        cluster, boost::bind(&cond_t::pulse, &ack_cond));
+        mailbox_manager, boost::bind(&cond_t::pulse, &ack_cond));
 
-    send(cluster, write_mailbox,
+    send(mailbox_manager, write_mailbox,
         w, ts, token, ack_mailbox.get_address());
 
     wait_any_t waiter(&ack_cond, interruptor);
@@ -26,7 +26,7 @@ void listener_write(
 
 template<class protocol_t>
 typename protocol_t::write_response_t listener_writeread(
-        mailbox_manager_t *cluster,
+        mailbox_manager_t *mailbox_manager,
         const typename listener_data_t<protocol_t>::writeread_mailbox_t::address_t &writeread_mailbox,
         typename protocol_t::write_t w, transition_timestamp_t ts, fifo_enforcer_write_token_t token,
         signal_t *interruptor)
@@ -34,9 +34,9 @@ typename protocol_t::write_response_t listener_writeread(
 {
     promise_t<typename protocol_t::write_response_t> resp_cond;
     async_mailbox_t<void(typename protocol_t::write_response_t)> resp_mailbox(
-        cluster, boost::bind(&promise_t<typename protocol_t::write_response_t>::pulse, &resp_cond, _1));
+        mailbox_manager, boost::bind(&promise_t<typename protocol_t::write_response_t>::pulse, &resp_cond, _1));
 
-    send(cluster, writeread_mailbox,
+    send(mailbox_manager, writeread_mailbox,
         w, ts, token, resp_mailbox.get_address());
 
     wait_any_t waiter(resp_cond.get_ready_signal(), interruptor);
@@ -48,7 +48,7 @@ typename protocol_t::write_response_t listener_writeread(
 
 template<class protocol_t>
 typename protocol_t::read_response_t listener_read(
-        mailbox_manager_t *cluster,
+        mailbox_manager_t *mailbox_manager,
         const typename listener_data_t<protocol_t>::read_mailbox_t::address_t &read_mailbox,
         typename protocol_t::read_t r, state_timestamp_t ts, fifo_enforcer_read_token_t token,
         signal_t *interruptor)
@@ -56,9 +56,9 @@ typename protocol_t::read_response_t listener_read(
 {
     promise_t<typename protocol_t::read_response_t> resp_cond;
     async_mailbox_t<void(typename protocol_t::read_response_t)> resp_mailbox(
-        cluster, boost::bind(&promise_t<typename protocol_t::read_response_t>::pulse, &resp_cond, _1));
+        mailbox_manager, boost::bind(&promise_t<typename protocol_t::read_response_t>::pulse, &resp_cond, _1));
 
-    send(cluster, read_mailbox,
+    send(mailbox_manager, read_mailbox,
         r, ts, token, resp_mailbox.get_address());
 
     wait_any_t waiter(resp_cond.get_ready_signal(), interruptor);
@@ -85,7 +85,7 @@ typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename pr
     }
 
     try {
-        return listener_read<protocol_t>(cluster, reader->read_mailbox,
+        return listener_read<protocol_t>(mailbox_manager, reader->read_mailbox,
             read, timestamp, enforcer_token,
             reader_lock.get_drain_signal());
     } catch (interrupted_exc_t) {
@@ -162,7 +162,7 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
 
         /* ... then dispatch it to the writereader */
         try {
-            resp = listener_writeread<protocol_t>(cluster, writereader->writeread_mailbox,
+            resp = listener_writeread<protocol_t>(mailbox_manager, writereader->writeread_mailbox,
                 write_ref.get()->write, write_ref.get()->timestamp, enforcer_tokens[writereader],
                 writereader_lock.get_drain_signal());
         } catch (interrupted_exc_t) {
@@ -182,9 +182,9 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
 template<class protocol_t>
 broadcaster_t<protocol_t>::dispatchee_t::dispatchee_t(broadcaster_t *c, listener_data_t<protocol_t> d) THROWS_NOTHING :
     write_mailbox(d.write_mailbox), is_readable(false), controller(c),
-    upgrade_mailbox(controller->cluster,
+    upgrade_mailbox(controller->mailbox_manager,
         boost::bind(&dispatchee_t::upgrade, this, _1, _2, auto_drainer_t::lock_t(&drainer))),
-    downgrade_mailbox(controller->cluster,
+    downgrade_mailbox(controller->mailbox_manager,
         boost::bind(&dispatchee_t::downgrade, this, _1, auto_drainer_t::lock_t(&drainer)))
 {
     controller->assert_thread();
@@ -199,10 +199,11 @@ broadcaster_t<protocol_t>::dispatchee_t::dispatchee_t(broadcaster_t *c, listener
 
     controller->dispatchees[this] = auto_drainer_t::lock_t(&drainer);
 
-    send(controller->cluster, d.intro_mailbox,
-        controller->newest_complete_timestamp,
-        upgrade_mailbox.get_address(),
-        downgrade_mailbox.get_address());
+    /* This coroutine will send an intro message to the newly-registered
+    listener. It needs to be a separate coroutine so that we don't block while
+    holding `controller->mutex`. */
+    coro_t::spawn_sometime(boost::bind(&dispatchee_t::send_intro, this,
+        d, controller->newest_complete_timestamp, auto_drainer_t::lock_t(&drainer)));
 
     for (typename std::list<boost::shared_ptr<incomplete_write_t> >::iterator it = controller->incomplete_writes.begin();
             it != controller->incomplete_writes.end(); it++) {
@@ -218,6 +219,16 @@ broadcaster_t<protocol_t>::dispatchee_t::~dispatchee_t() THROWS_NOTHING {
     if (is_readable) controller->readable_dispatchees.remove(this);
     controller->dispatchees.erase(this);
     controller->assert_thread();
+}
+
+template<class protocol_t>
+void broadcaster_t<protocol_t>::dispatchee_t::send_intro(listener_data_t<protocol_t> to_send_intro_to, state_timestamp_t intro_timestamp, auto_drainer_t::lock_t lock) THROWS_NOTHING {
+    lock.assert_is_holding(&drainer);
+    send(controller->mailbox_manager, to_send_intro_to.intro_mailbox,
+        intro_timestamp,
+        upgrade_mailbox.get_address(),
+        downgrade_mailbox.get_address()
+        );
 }
 
 template<class protocol_t>
@@ -250,7 +261,7 @@ void broadcaster_t<protocol_t>::dispatchee_t::downgrade(
         controller->readable_dispatchees.remove(this);
     }
     if (!ack_addr.is_nil()) {
-        send(controller->cluster, ack_addr);
+        send(controller->mailbox_manager, ack_addr);
     }
 }
 
@@ -274,7 +285,7 @@ void broadcaster_t<protocol_t>::pick_a_readable_dispatchee(dispatchee_t **dispat
 template<class protocol_t>
 void broadcaster_t<protocol_t>::background_write(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, fifo_enforcer_write_token_t token) THROWS_NOTHING {
     try {
-        listener_write<protocol_t>(cluster, mirror->write_mailbox,
+        listener_write<protocol_t>(mailbox_manager, mirror->write_mailbox,
             write_ref.get()->write, write_ref.get()->timestamp, token,
             mirror_lock.get_drain_signal());
     } catch (interrupted_exc_t) {

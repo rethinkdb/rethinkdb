@@ -24,13 +24,13 @@ class broadcaster_t : public home_thread_mixin_t {
 
 public:
     broadcaster_t(
-            mailbox_manager_t *c,
+            mailbox_manager_t *mm,
             boost::shared_ptr<semilattice_readwrite_view_t<namespace_branch_metadata_t<protocol_t> > > namespace_metadata,
             store_view_t<protocol_t> *initial_store,
             signal_t *interruptor,
             boost::scoped_ptr<listener_t<protocol_t> > *initial_listener_out)
             THROWS_ONLY(interrupted_exc_t) :
-        cluster(c),
+        mailbox_manager(mm),
         branch_id(generate_uuid())
     {
         /* Snapshot the starting point of the store; we'll need to record this
@@ -67,7 +67,7 @@ public:
 
         /* Now set up the registrar */
         registrar.reset(new registrar_t<listener_data_t<protocol_t>, broadcaster_t *, dispatchee_t>(
-            cluster,
+            mailbox_manager,
             this,
             metadata_field(&branch_metadata_t<protocol_t>::broadcaster_registrar,
                 metadata_member(branch_id,
@@ -89,7 +89,7 @@ public:
         /* Set up the initial listener. Note that we're invoking the special
         private `listener_t` constructor that doesn't perform a backfill. */
         initial_listener_out->reset(new listener_t<protocol_t>(
-            cluster,
+            mailbox_manager,
             namespace_metadata,
             initial_store,
             branch_id,
@@ -245,6 +245,14 @@ private:
         fifo_enforcer_source_t fifo_source;
 
     private:
+        /* The constructor spawns `send_intro()` in the background. */
+        void send_intro(
+            listener_data_t<protocol_t> to_send_intro_to,
+            state_timestamp_t intro_timestamp,
+            auto_drainer_t::lock_t)
+            THROWS_NOTHING;
+
+        /* `upgrade()` and `downgrade()` are mailbox callbacks. */
         void upgrade(
             typename listener_data_t<protocol_t>::writeread_mailbox_t::address_t,
             typename listener_data_t<protocol_t>::read_mailbox_t::address_t,
@@ -265,7 +273,9 @@ private:
     /* Reads need to pick a single readable mirror to perform the operation.
     Writes need to choose a readable mirror to get the reply from. Both use
     `pick_a_readable_dispatchee()` to do the picking. You must hold
-    `dispatchee_mutex` and pass in `proof` of the mutex acquisition.*/
+    `dispatchee_mutex` and pass in `proof` of the mutex acquisition. (A
+    dispatchee is "readable" if a `replier_t` exists for it on the remote
+    machine.) */
     void pick_a_readable_dispatchee(dispatchee_t **dispatchee_out, mutex_t::acq_t *proof, auto_drainer_t::lock_t *lock_out) THROWS_ONLY(insufficient_mirrors_exc_t);
 
     void background_write(dispatchee_t *, auto_drainer_t::lock_t, incomplete_write_ref_t, fifo_enforcer_write_token_t) THROWS_NOTHING;
@@ -287,7 +297,7 @@ private:
 #endif
     }
 
-    mailbox_manager_t *cluster;
+    mailbox_manager_t *mailbox_manager;
 
     branch_id_t branch_id;
 

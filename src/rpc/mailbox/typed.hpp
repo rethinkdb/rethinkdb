@@ -20,9 +20,9 @@ template<>
 class async_mailbox_t< void() > {
 
 public:
-    async_mailbox_t(mailbox_cluster_t *cluster, const boost::function< void() > &fun) :
+    async_mailbox_t(mailbox_manager_t *manager, const boost::function< void() > &fun) :
         callback(fun),
-        mailbox(cluster, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
         { }
 
     class address_t {
@@ -32,7 +32,7 @@ public:
         RDB_MAKE_ME_SERIALIZABLE_1(addr)
     private:
         friend class async_mailbox_t;
-        friend void send(mailbox_cluster_t*, address_t);
+        friend void send(mailbox_manager_t*, address_t);
         mailbox_t::address_t addr;
     };
 
@@ -43,7 +43,7 @@ public:
     }
 
 private:
-    friend void send(mailbox_cluster_t*, address_t);
+    friend void send(mailbox_manager_t*, address_t);
     static void write(std::ostream &stream) {
         boost::archive::binary_oarchive archive(stream);
     }
@@ -60,7 +60,7 @@ private:
 };
 
 inline
-void send(mailbox_cluster_t *src, async_mailbox_t< void() >::address_t dest) {
+void send(mailbox_manager_t *src, async_mailbox_t< void() >::address_t dest) {
     send(src, dest.addr,
         boost::bind(&async_mailbox_t< void() >::write, _1));
 }
@@ -69,9 +69,9 @@ template<class arg0_t>
 class async_mailbox_t< void(arg0_t) > {
 
 public:
-    async_mailbox_t(mailbox_cluster_t *cluster, const boost::function< void(arg0_t) > &fun) :
+    async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t) > &fun) :
         callback(fun),
-        mailbox(cluster, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
         { }
 
     class address_t {
@@ -82,7 +82,7 @@ public:
     private:
         friend class async_mailbox_t;
         template<class a0_t>
-        friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t) >::address_t, const a0_t&);
+        friend void send(mailbox_manager_t*, typename async_mailbox_t< void(a0_t) >::address_t, const a0_t&);
         mailbox_t::address_t addr;
     };
 
@@ -94,7 +94,7 @@ public:
 
 private:
     template<class a0_t>
-    friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t) >::address_t, const a0_t&);
+    friend void send(mailbox_manager_t*, typename async_mailbox_t< void(a0_t) >::address_t, const a0_t&);
     static void write(std::ostream &stream, const arg0_t &arg0) {
         boost::archive::binary_oarchive archive(stream);
         archive << arg0;
@@ -114,7 +114,7 @@ private:
 };
 
 template<class arg0_t>
-void send(mailbox_cluster_t *src, typename async_mailbox_t< void(arg0_t) >::address_t dest, const arg0_t &arg0) {
+void send(mailbox_manager_t *src, typename async_mailbox_t< void(arg0_t) >::address_t dest, const arg0_t &arg0) {
     send(src, dest.addr,
         boost::bind(&async_mailbox_t< void(arg0_t) >::write, _1, arg0));
 }
@@ -123,9 +123,9 @@ template<class arg0_t, class arg1_t>
 class async_mailbox_t< void(arg0_t, arg1_t) > {
 
 public:
-    async_mailbox_t(mailbox_cluster_t *cluster, const boost::function< void(arg0_t, arg1_t) > &fun) :
+    async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t) > &fun) :
         callback(fun),
-        mailbox(cluster, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
         { }
 
     class address_t {
@@ -136,7 +136,7 @@ public:
     private:
         friend class async_mailbox_t;
         template<class a0_t, class a1_t>
-        friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t) >::address_t, const a0_t&, const a1_t&);
+        friend void send(mailbox_manager_t*, typename async_mailbox_t< void(a0_t, a1_t) >::address_t, const a0_t&, const a1_t&);
         mailbox_t::address_t addr;
     };
 
@@ -148,7 +148,7 @@ public:
 
 private:
     template<class a0_t, class a1_t>
-    friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t) >::address_t, const a0_t&, const a1_t&);
+    friend void send(mailbox_manager_t*, typename async_mailbox_t< void(a0_t, a1_t) >::address_t, const a0_t&, const a1_t&);
     static void write(std::ostream &stream, const arg0_t &arg0, const arg1_t &arg1) {
         boost::archive::binary_oarchive archive(stream);
         archive << arg0;
@@ -171,7 +171,7 @@ private:
 };
 
 template<class arg0_t, class arg1_t>
-void send(mailbox_cluster_t *src, typename async_mailbox_t< void(arg0_t, arg1_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1) {
+void send(mailbox_manager_t *src, typename async_mailbox_t< void(arg0_t, arg1_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1) {
     send(src, dest.addr,
         boost::bind(&async_mailbox_t< void(arg0_t, arg1_t) >::write, _1, arg0, arg1));
 }
@@ -180,9 +180,9 @@ template<class arg0_t, class arg1_t, class arg2_t>
 class async_mailbox_t< void(arg0_t, arg1_t, arg2_t) > {
 
 public:
-    async_mailbox_t(mailbox_cluster_t *cluster, const boost::function< void(arg0_t, arg1_t, arg2_t) > &fun) :
+    async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t) > &fun) :
         callback(fun),
-        mailbox(cluster, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
         { }
 
     class address_t {
@@ -193,7 +193,7 @@ public:
     private:
         friend class async_mailbox_t;
         template<class a0_t, class a1_t, class a2_t>
-        friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t) >::address_t, const a0_t&, const a1_t&, const a2_t&);
+        friend void send(mailbox_manager_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t) >::address_t, const a0_t&, const a1_t&, const a2_t&);
         mailbox_t::address_t addr;
     };
 
@@ -205,7 +205,7 @@ public:
 
 private:
     template<class a0_t, class a1_t, class a2_t>
-    friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t) >::address_t, const a0_t&, const a1_t&, const a2_t&);
+    friend void send(mailbox_manager_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t) >::address_t, const a0_t&, const a1_t&, const a2_t&);
     static void write(std::ostream &stream, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2) {
         boost::archive::binary_oarchive archive(stream);
         archive << arg0;
@@ -231,7 +231,7 @@ private:
 };
 
 template<class arg0_t, class arg1_t, class arg2_t>
-void send(mailbox_cluster_t *src, typename async_mailbox_t< void(arg0_t, arg1_t, arg2_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2) {
+void send(mailbox_manager_t *src, typename async_mailbox_t< void(arg0_t, arg1_t, arg2_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2) {
     send(src, dest.addr,
         boost::bind(&async_mailbox_t< void(arg0_t, arg1_t, arg2_t) >::write, _1, arg0, arg1, arg2));
 }
@@ -240,9 +240,9 @@ template<class arg0_t, class arg1_t, class arg2_t, class arg3_t>
 class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > {
 
 public:
-    async_mailbox_t(mailbox_cluster_t *cluster, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t) > &fun) :
+    async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t) > &fun) :
         callback(fun),
-        mailbox(cluster, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
         { }
 
     class address_t {
@@ -253,7 +253,7 @@ public:
     private:
         friend class async_mailbox_t;
         template<class a0_t, class a1_t, class a2_t, class a3_t>
-        friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&);
+        friend void send(mailbox_manager_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&);
         mailbox_t::address_t addr;
     };
 
@@ -265,7 +265,7 @@ public:
 
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t>
-    friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&);
+    friend void send(mailbox_manager_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&);
     static void write(std::ostream &stream, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3) {
         boost::archive::binary_oarchive archive(stream);
         archive << arg0;
@@ -294,7 +294,7 @@ private:
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t>
-void send(mailbox_cluster_t *src, typename async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3) {
+void send(mailbox_manager_t *src, typename async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3) {
     send(src, dest.addr,
         boost::bind(&async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) >::write, _1, arg0, arg1, arg2, arg3));
 }
@@ -303,9 +303,9 @@ template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t>
 class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > {
 
 public:
-    async_mailbox_t(mailbox_cluster_t *cluster, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > &fun) :
+    async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > &fun) :
         callback(fun),
-        mailbox(cluster, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
         { }
 
     class address_t {
@@ -316,7 +316,7 @@ public:
     private:
         friend class async_mailbox_t;
         template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t>
-        friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&);
+        friend void send(mailbox_manager_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&);
         mailbox_t::address_t addr;
     };
 
@@ -328,7 +328,7 @@ public:
 
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t>
-    friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&);
+    friend void send(mailbox_manager_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&);
     static void write(std::ostream &stream, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4) {
         boost::archive::binary_oarchive archive(stream);
         archive << arg0;
@@ -360,7 +360,7 @@ private:
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t>
-void send(mailbox_cluster_t *src, typename async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4) {
+void send(mailbox_manager_t *src, typename async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4) {
     send(src, dest.addr,
         boost::bind(&async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) >::write, _1, arg0, arg1, arg2, arg3, arg4));
 }
@@ -369,9 +369,9 @@ template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, c
 class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > {
 
 public:
-    async_mailbox_t(mailbox_cluster_t *cluster, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > &fun) :
+    async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > &fun) :
         callback(fun),
-        mailbox(cluster, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
         { }
 
     class address_t {
@@ -382,7 +382,7 @@ public:
     private:
         friend class async_mailbox_t;
         template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t>
-        friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&);
+        friend void send(mailbox_manager_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&);
         mailbox_t::address_t addr;
     };
 
@@ -394,7 +394,7 @@ public:
 
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t>
-    friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&);
+    friend void send(mailbox_manager_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&);
     static void write(std::ostream &stream, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5) {
         boost::archive::binary_oarchive archive(stream);
         archive << arg0;
@@ -429,7 +429,7 @@ private:
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t>
-void send(mailbox_cluster_t *src, typename async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5) {
+void send(mailbox_manager_t *src, typename async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5) {
     send(src, dest.addr,
         boost::bind(&async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) >::write, _1, arg0, arg1, arg2, arg3, arg4, arg5));
 }
@@ -438,9 +438,9 @@ template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, c
 class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > {
 
 public:
-    async_mailbox_t(mailbox_cluster_t *cluster, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > &fun) :
+    async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > &fun) :
         callback(fun),
-        mailbox(cluster, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
         { }
 
     class address_t {
@@ -451,7 +451,7 @@ public:
     private:
         friend class async_mailbox_t;
         template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t>
-        friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&);
+        friend void send(mailbox_manager_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&);
         mailbox_t::address_t addr;
     };
 
@@ -463,7 +463,7 @@ public:
 
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t>
-    friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&);
+    friend void send(mailbox_manager_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&);
     static void write(std::ostream &stream, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6) {
         boost::archive::binary_oarchive archive(stream);
         archive << arg0;
@@ -501,7 +501,7 @@ private:
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t>
-void send(mailbox_cluster_t *src, typename async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6) {
+void send(mailbox_manager_t *src, typename async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6) {
     send(src, dest.addr,
         boost::bind(&async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) >::write, _1, arg0, arg1, arg2, arg3, arg4, arg5, arg6));
 }
@@ -510,9 +510,9 @@ template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, c
 class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > {
 
 public:
-    async_mailbox_t(mailbox_cluster_t *cluster, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > &fun) :
+    async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > &fun) :
         callback(fun),
-        mailbox(cluster, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
         { }
 
     class address_t {
@@ -523,7 +523,7 @@ public:
     private:
         friend class async_mailbox_t;
         template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t>
-        friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&);
+        friend void send(mailbox_manager_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&);
         mailbox_t::address_t addr;
     };
 
@@ -535,7 +535,7 @@ public:
 
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t>
-    friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&);
+    friend void send(mailbox_manager_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&);
     static void write(std::ostream &stream, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7) {
         boost::archive::binary_oarchive archive(stream);
         archive << arg0;
@@ -576,7 +576,7 @@ private:
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t>
-void send(mailbox_cluster_t *src, typename async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7) {
+void send(mailbox_manager_t *src, typename async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7) {
     send(src, dest.addr,
         boost::bind(&async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) >::write, _1, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7));
 }
@@ -585,9 +585,9 @@ template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, c
 class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > {
 
 public:
-    async_mailbox_t(mailbox_cluster_t *cluster, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > &fun) :
+    async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > &fun) :
         callback(fun),
-        mailbox(cluster, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
         { }
 
     class address_t {
@@ -598,7 +598,7 @@ public:
     private:
         friend class async_mailbox_t;
         template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t>
-        friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&);
+        friend void send(mailbox_manager_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&);
         mailbox_t::address_t addr;
     };
 
@@ -610,7 +610,7 @@ public:
 
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t>
-    friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&);
+    friend void send(mailbox_manager_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&);
     static void write(std::ostream &stream, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8) {
         boost::archive::binary_oarchive archive(stream);
         archive << arg0;
@@ -654,7 +654,7 @@ private:
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t>
-void send(mailbox_cluster_t *src, typename async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8) {
+void send(mailbox_manager_t *src, typename async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8) {
     send(src, dest.addr,
         boost::bind(&async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) >::write, _1, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8));
 }
@@ -663,9 +663,9 @@ template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, c
 class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > {
 
 public:
-    async_mailbox_t(mailbox_cluster_t *cluster, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > &fun) :
+    async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > &fun) :
         callback(fun),
-        mailbox(cluster, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
         { }
 
     class address_t {
@@ -676,7 +676,7 @@ public:
     private:
         friend class async_mailbox_t;
         template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t>
-        friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&);
+        friend void send(mailbox_manager_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&);
         mailbox_t::address_t addr;
     };
 
@@ -688,7 +688,7 @@ public:
 
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t>
-    friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&);
+    friend void send(mailbox_manager_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&);
     static void write(std::ostream &stream, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9) {
         boost::archive::binary_oarchive archive(stream);
         archive << arg0;
@@ -735,7 +735,7 @@ private:
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t>
-void send(mailbox_cluster_t *src, typename async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9) {
+void send(mailbox_manager_t *src, typename async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9) {
     send(src, dest.addr,
         boost::bind(&async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) >::write, _1, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9));
 }
@@ -744,9 +744,9 @@ template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, c
 class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > {
 
 public:
-    async_mailbox_t(mailbox_cluster_t *cluster, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > &fun) :
+    async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > &fun) :
         callback(fun),
-        mailbox(cluster, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
         { }
 
     class address_t {
@@ -757,7 +757,7 @@ public:
     private:
         friend class async_mailbox_t;
         template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t, class a10_t>
-        friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&);
+        friend void send(mailbox_manager_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&);
         mailbox_t::address_t addr;
     };
 
@@ -769,7 +769,7 @@ public:
 
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t, class a10_t>
-    friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&);
+    friend void send(mailbox_manager_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&);
     static void write(std::ostream &stream, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10) {
         boost::archive::binary_oarchive archive(stream);
         archive << arg0;
@@ -819,7 +819,7 @@ private:
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t>
-void send(mailbox_cluster_t *src, typename async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10) {
+void send(mailbox_manager_t *src, typename async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10) {
     send(src, dest.addr,
         boost::bind(&async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) >::write, _1, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10));
 }
@@ -828,9 +828,9 @@ template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, c
 class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > {
 
 public:
-    async_mailbox_t(mailbox_cluster_t *cluster, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > &fun) :
+    async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > &fun) :
         callback(fun),
-        mailbox(cluster, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
         { }
 
     class address_t {
@@ -841,7 +841,7 @@ public:
     private:
         friend class async_mailbox_t;
         template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t, class a10_t, class a11_t>
-        friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&);
+        friend void send(mailbox_manager_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&);
         mailbox_t::address_t addr;
     };
 
@@ -853,7 +853,7 @@ public:
 
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t, class a10_t, class a11_t>
-    friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&);
+    friend void send(mailbox_manager_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&);
     static void write(std::ostream &stream, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10, const arg11_t &arg11) {
         boost::archive::binary_oarchive archive(stream);
         archive << arg0;
@@ -906,7 +906,7 @@ private:
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t>
-void send(mailbox_cluster_t *src, typename async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10, const arg11_t &arg11) {
+void send(mailbox_manager_t *src, typename async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10, const arg11_t &arg11) {
     send(src, dest.addr,
         boost::bind(&async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) >::write, _1, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11));
 }
@@ -915,9 +915,9 @@ template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, c
 class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > {
 
 public:
-    async_mailbox_t(mailbox_cluster_t *cluster, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > &fun) :
+    async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > &fun) :
         callback(fun),
-        mailbox(cluster, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
         { }
 
     class address_t {
@@ -928,7 +928,7 @@ public:
     private:
         friend class async_mailbox_t;
         template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t, class a10_t, class a11_t, class a12_t>
-        friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t, a12_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&, const a12_t&);
+        friend void send(mailbox_manager_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t, a12_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&, const a12_t&);
         mailbox_t::address_t addr;
     };
 
@@ -940,7 +940,7 @@ public:
 
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t, class a10_t, class a11_t, class a12_t>
-    friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t, a12_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&, const a12_t&);
+    friend void send(mailbox_manager_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t, a12_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&, const a12_t&);
     static void write(std::ostream &stream, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10, const arg11_t &arg11, const arg12_t &arg12) {
         boost::archive::binary_oarchive archive(stream);
         archive << arg0;
@@ -996,7 +996,7 @@ private:
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t, class arg12_t>
-void send(mailbox_cluster_t *src, typename async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10, const arg11_t &arg11, const arg12_t &arg12) {
+void send(mailbox_manager_t *src, typename async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10, const arg11_t &arg11, const arg12_t &arg12) {
     send(src, dest.addr,
         boost::bind(&async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) >::write, _1, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12));
 }
@@ -1005,9 +1005,9 @@ template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, c
 class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > {
 
 public:
-    async_mailbox_t(mailbox_cluster_t *cluster, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > &fun) :
+    async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > &fun) :
         callback(fun),
-        mailbox(cluster, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
         { }
 
     class address_t {
@@ -1018,7 +1018,7 @@ public:
     private:
         friend class async_mailbox_t;
         template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t, class a10_t, class a11_t, class a12_t, class a13_t>
-        friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t, a12_t, a13_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&, const a12_t&, const a13_t&);
+        friend void send(mailbox_manager_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t, a12_t, a13_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&, const a12_t&, const a13_t&);
         mailbox_t::address_t addr;
     };
 
@@ -1030,7 +1030,7 @@ public:
 
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t, class a10_t, class a11_t, class a12_t, class a13_t>
-    friend void send(mailbox_cluster_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t, a12_t, a13_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&, const a12_t&, const a13_t&);
+    friend void send(mailbox_manager_t*, typename async_mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t, a12_t, a13_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&, const a12_t&, const a13_t&);
     static void write(std::ostream &stream, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10, const arg11_t &arg11, const arg12_t &arg12, const arg13_t &arg13) {
         boost::archive::binary_oarchive archive(stream);
         archive << arg0;
@@ -1089,7 +1089,7 @@ private:
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t, class arg12_t, class arg13_t>
-void send(mailbox_cluster_t *src, typename async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10, const arg11_t &arg11, const arg12_t &arg12, const arg13_t &arg13) {
+void send(mailbox_manager_t *src, typename async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10, const arg11_t &arg11, const arg12_t &arg12, const arg13_t &arg13) {
     send(src, dest.addr,
         boost::bind(&async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) >::write, _1, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13));
 }

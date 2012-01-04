@@ -50,7 +50,7 @@ void run_register_test() {
 
     monitoring_controller_t controller;
     registrar_t<std::string, monitoring_controller_t *, monitoring_controller_t::registrant_t> registrar(
-        &cluster,
+        &cluster.mailbox_manager,
         &controller,
         metadata_controller.get_view());
 
@@ -58,7 +58,7 @@ void run_register_test() {
 
     {
         registrant_t<std::string> registrant(
-            &cluster,
+            &cluster.mailbox_manager,
             metadata_controller.get_view(),
             "hello");
         let_stuff_happen();
@@ -91,7 +91,7 @@ void run_registrar_death_test() {
     we want to */
     boost::scoped_ptr<registrar_t<std::string, monitoring_controller_t *, monitoring_controller_t::registrant_t> > registrar(
         new registrar_t<std::string, monitoring_controller_t *, monitoring_controller_t::registrant_t>(
-            &cluster,
+            &cluster.mailbox_manager,
             &controller,
             metadata_controller.get_view()
         ));
@@ -99,7 +99,7 @@ void run_registrar_death_test() {
     EXPECT_FALSE(controller.has_registrant);
 
     registrant_t<std::string> registrant(
-        &cluster,
+        &cluster.mailbox_manager,
         metadata_controller.get_view(),
         "hello");
     let_stuff_happen();

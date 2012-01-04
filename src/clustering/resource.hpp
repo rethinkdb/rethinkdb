@@ -44,8 +44,8 @@ private:
         destroyed = 2
     };
 
-    resource_metadata_t(mailbox_cluster_t *cluster, const business_card_t &ci) :
-        state(destroyed), peer(cluster->get_me()), contact_info(ci) { }
+    resource_metadata_t(mailbox_manager_t *cluster, const business_card_t &ci) :
+        state(destroyed), peer(cluster->get_connectivity_service()->get_me()), contact_info(ci) { }
 
     state_t state;
     peer_id_t peer;
@@ -74,7 +74,7 @@ class resource_advertisement_t {
 
 public:
     resource_advertisement_t(
-            mailbox_cluster_t *cluster,
+            mailbox_manager_t *cluster,
             boost::shared_ptr<semilattice_readwrite_view_t<resource_metadata_t<business_card_t> > > md_view,
             const business_card_t &initial) :
         metadata_view(md_view)
@@ -83,7 +83,7 @@ public:
 
         resource_metadata_t<business_card_t> res_md;
         res_md.state = resource_metadata_t<business_card_t>::alive;
-        res_md.peer = cluster->get_me();
+        res_md.peer = cluster->get_connectivity_service()->get_me();
         res_md.contact_info = initial;
         metadata_view->join(res_md);
     }
@@ -120,7 +120,7 @@ public:
     /* Starts monitoring the resource. Throws `resource_lost_exc_t` if the
     resource is inaccessible. */
     resource_access_t(
-            mailbox_cluster_t *cluster,
+            mailbox_manager_t *cluster,
             boost::shared_ptr<semilattice_read_view_t<resource_metadata_t<business_card_t> > > v) :
         view(v),
         subs(boost::bind(&resource_access_t::check_dead, this))
@@ -133,7 +133,7 @@ public:
         /* If the node that the resource is on ceases to be visible, then it's
         lost */
         if (view->get().state != resource_metadata_t<business_card_t>::destroyed) {
-            disconnect_watcher.reset(new disconnect_watcher_t(cluster, view->get().peer));
+            disconnect_watcher.reset(new disconnect_watcher_t(cluster->get_connectivity_service(), view->get().peer));
             either_failed.add(disconnect_watcher.get());
         }
 

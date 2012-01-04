@@ -184,6 +184,10 @@ private:
 
     one_per_thread_t<thread_info_t> thread_info;
 
+#ifndef NDEBUG
+    rng_t debug_rng;
+#endif
+
     run_t *current_run;
 
     DISABLE_COPYING(connectivity_cluster_t);

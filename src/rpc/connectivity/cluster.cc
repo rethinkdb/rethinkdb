@@ -407,7 +407,6 @@ void connectivity_cluster_t::run_t::handle(
     }
 }
 
-
 connectivity_cluster_t::connectivity_cluster_t() THROWS_NOTHING :
     me(peer_id_t(generate_uuid())),
     current_run(NULL)
@@ -484,6 +483,14 @@ void connectivity_cluster_t::send_message(peer_id_t dest, const boost::function<
 #ifdef CLUSTER_MESSAGE_DEBUGGING
     std::cerr << "from " << me << " to " << dest << std::endl;
     print_hd(buffer.str().data(), 0, buffer.str().size());
+#endif
+
+#ifndef NDEBUG
+    /* We're allowed to block indefinitely, but it's tempting to write code on
+    the assumption that we won't. This might catch some programming errors. */
+    if (debug_rng.randint(10) == 0) {
+        nap(10);
+    }
 #endif
 
     if (conn_structure->conn == NULL) {

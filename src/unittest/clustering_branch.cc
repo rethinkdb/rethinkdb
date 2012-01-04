@@ -13,8 +13,8 @@ namespace {
 
 void run_with_broadcaster(
         boost::function<void(
-            mailbox_cluster_t *,
-            boost::shared_ptr<metadata_readwrite_view_t<namespace_branch_metadata_t<dummy_protocol_t> > >,
+            mailbox_manager_t *,
+            boost::shared_ptr<semilattice_readwrite_view_t<namespace_branch_metadata_t<dummy_protocol_t> > >,
             boost::scoped_ptr<broadcaster_t<dummy_protocol_t> > *,
             test_store_t *,
             boost::scoped_ptr<listener_t<dummy_protocol_t> > *
@@ -33,20 +33,20 @@ void run_with_broadcaster(
     boost::scoped_ptr<listener_t<dummy_protocol_t> > initial_listener;
     boost::scoped_ptr<broadcaster_t<dummy_protocol_t> > broadcaster(
         new broadcaster_t<dummy_protocol_t>(
-            &cluster,
+            &cluster.mailbox_manager,
             metadata_controller.get_view(),
             &initial_store.store,
             &interruptor,
             &initial_listener
         ));
 
-    fun(&cluster, metadata_controller.get_view(), &broadcaster, &initial_store, &initial_listener);
+    fun(&cluster.mailbox_manager, metadata_controller.get_view(), &broadcaster, &initial_store, &initial_listener);
 }
 
 void run_in_thread_pool_with_broadcaster(
         boost::function<void(
-            mailbox_cluster_t *,
-            boost::shared_ptr<metadata_readwrite_view_t<namespace_branch_metadata_t<dummy_protocol_t> > >,
+            mailbox_manager_t *,
+            boost::shared_ptr<semilattice_readwrite_view_t<namespace_branch_metadata_t<dummy_protocol_t> > >,
             boost::scoped_ptr<broadcaster_t<dummy_protocol_t> > *,
             test_store_t *,
             boost::scoped_ptr<listener_t<dummy_protocol_t> > *
@@ -65,15 +65,15 @@ void let_stuff_happen() {
 /* The `ReadWrite` test just sends some reads and writes via the broadcaster to a
 single mirror. */
 
-void run_read_write_test(mailbox_cluster_t *cluster,
-        boost::shared_ptr<metadata_readwrite_view_t<namespace_branch_metadata_t<dummy_protocol_t> > > metadata_view,
+void run_read_write_test(mailbox_manager_t *mailbox_manager,
+        boost::shared_ptr<semilattice_readwrite_view_t<namespace_branch_metadata_t<dummy_protocol_t> > > metadata_view,
         boost::scoped_ptr<broadcaster_t<dummy_protocol_t> > *broadcaster,
         UNUSED test_store_t *store,
         boost::scoped_ptr<listener_t<dummy_protocol_t> > *initial_listener)
 {
     /* Set up a replier so the broadcaster can handle operations */
     EXPECT_FALSE((*initial_listener)->get_outdated_signal()->is_pulsed());
-    replier_t<dummy_protocol_t> replier(cluster, metadata_view, initial_listener->get());
+    replier_t<dummy_protocol_t> replier(mailbox_manager, metadata_view, initial_listener->get());
 
     order_source_t order_source;
 
@@ -103,15 +103,15 @@ TEST(ClusteringBranch, ReadWrite) {
 /* The `Backfill` test starts up a node with one mirror, inserts some data, and
 then adds another mirror. */
 
-void run_backfill_test(mailbox_cluster_t *cluster,
-        boost::shared_ptr<metadata_readwrite_view_t<namespace_branch_metadata_t<dummy_protocol_t> > > metadata_view,
+void run_backfill_test(mailbox_manager_t *mailbox_manager,
+        boost::shared_ptr<semilattice_readwrite_view_t<namespace_branch_metadata_t<dummy_protocol_t> > > metadata_view,
         boost::scoped_ptr<broadcaster_t<dummy_protocol_t> > *broadcaster,
         test_store_t *store1,
         boost::scoped_ptr<listener_t<dummy_protocol_t> > *initial_listener)
 {
     /* Set up a replier so the broadcaster can handle operations */
     EXPECT_FALSE((*initial_listener)->get_outdated_signal()->is_pulsed());
-    replier_t<dummy_protocol_t> replier(cluster, metadata_view, initial_listener->get());
+    replier_t<dummy_protocol_t> replier(mailbox_manager, metadata_view, initial_listener->get());
 
     order_source_t order_source;
 
@@ -125,7 +125,7 @@ void run_backfill_test(mailbox_cluster_t *cluster,
     test_store_t store2;
     cond_t interruptor;
     listener_t<dummy_protocol_t> listener2(
-        cluster, metadata_view,
+        mailbox_manager, metadata_view,
         &store2.store,
         (*broadcaster)->get_branch_id(),
         replier.get_backfiller_id(),

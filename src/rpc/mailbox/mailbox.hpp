@@ -41,9 +41,9 @@ public:
 
     private:
         friend std::ostream &operator<<(std::ostream &, mailbox_t::address_t);
-        friend void send(mailbox_cluster_t *, mailbox_t::address_t, boost::function<void(std::ostream&)>);
+        friend void send(mailbox_manager_t *, mailbox_t::address_t, boost::function<void(std::ostream&)>);
         friend class mailbox_t;
-        friend class mailbox_cluster_t;
+        friend class mailbox_manager_t;
 
         friend class ::boost::serialization::access;
         template<class Archive> void serialize(Archive & ar, UNUSED const unsigned int version) {

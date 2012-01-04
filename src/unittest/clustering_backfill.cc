@@ -1,7 +1,7 @@
 #include "unittest/gtest.hpp"
 #include "clustering/immediate_consistency/branch/backfiller.hpp"
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
-#include "rpc/metadata/view/field.hpp"
+#include "rpc/semilattice/view/field.hpp"
 #include "unittest/clustering_utils.hpp"
 #include "unittest/dummy_metadata_controller.hpp"
 #include "unittest/dummy_protocol.hpp"
@@ -89,7 +89,7 @@ void run_backfill_test() {
         (resource_metadata_t<backfiller_metadata_t<dummy_protocol_t> >()));
 
     backfiller_t<dummy_protocol_t> backfiller(
-        &cluster,
+        &cluster.mailbox_manager,
         namespace_metadata_controller.get_view(),
         &backfiller_store,
         backfiller_md_controller.get_view());
@@ -97,7 +97,7 @@ void run_backfill_test() {
     /* Run a backfill */
 
     cond_t interruptor;
-    backfillee<dummy_protocol_t>(&cluster, namespace_metadata_controller.get_view(), &backfillee_store, backfiller_md_controller.get_view(), &interruptor);
+    backfillee<dummy_protocol_t>(&cluster.mailbox_manager, namespace_metadata_controller.get_view(), &backfillee_store, backfiller_md_controller.get_view(), &interruptor);
 
     /* Make sure everything got transferred properly */
 

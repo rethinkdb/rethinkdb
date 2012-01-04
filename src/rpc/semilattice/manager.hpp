@@ -66,7 +66,7 @@ private:
     void join_metadata_locally_on_home_thread(metadata_t, auto_drainer_t::lock_t);
     void release_ping_waiter_on_home_thread(int ping_id, auto_drainer_t::lock_t);
 
-    static void call_with_no_args(const boost::function<void()> &);
+    static void call_function_with_no_args(const boost::function<void()> &);
     void join_metadata_locally(metadata_t);
 
     message_service_t *message_service;
