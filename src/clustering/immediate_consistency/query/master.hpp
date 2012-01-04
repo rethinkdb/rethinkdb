@@ -18,8 +18,8 @@ class master_t {
 
 public:
     master_t(
-            mailbox_cluster_t *c,
-            boost::shared_ptr<metadata_readwrite_view_t<namespace_master_metadata_t<protocol_t> > > namespace_metadata,
+            mailbox_manager_t *c,
+            boost::shared_ptr<semilattice_readwrite_view_t<namespace_master_metadata_t<protocol_t> > > namespace_metadata,
             typename protocol_t::region_t region,
             broadcaster_t<protocol_t> *b)
             THROWS_ONLY(interrupted_exc_t) :
@@ -68,7 +68,7 @@ private:
         }
     }
 
-    mailbox_cluster_t *cluster;
+    mailbox_manager_t *cluster;
 
     broadcaster_t<protocol_t> *broadcaster;
 

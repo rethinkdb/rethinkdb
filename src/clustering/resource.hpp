@@ -4,7 +4,7 @@
 #include "concurrency/wait_any.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/mailbox/typed.hpp"
-#include "rpc/metadata/view.hpp"
+#include "rpc/semilattice/view.hpp"
 
 /* It's a common paradigm to have some resource that you find out about through
 metadata, and need to monitor in case it goes offline. These types facilitate
@@ -75,7 +75,7 @@ class resource_advertisement_t {
 public:
     resource_advertisement_t(
             mailbox_cluster_t *cluster,
-            boost::shared_ptr<metadata_readwrite_view_t<resource_metadata_t<business_card_t> > > md_view,
+            boost::shared_ptr<semilattice_readwrite_view_t<resource_metadata_t<business_card_t> > > md_view,
             const business_card_t &initial) :
         metadata_view(md_view)
     {
@@ -97,7 +97,7 @@ public:
     }
 
 private:
-    boost::shared_ptr<metadata_readwrite_view_t<resource_metadata_t<business_card_t> > > metadata_view;
+    boost::shared_ptr<semilattice_readwrite_view_t<resource_metadata_t<business_card_t> > > metadata_view;
 };
 
 /* A resource-user constructs a `resource_access_t` when it wants to start using
@@ -121,7 +121,7 @@ public:
     resource is inaccessible. */
     resource_access_t(
             mailbox_cluster_t *cluster,
-            boost::shared_ptr<metadata_read_view_t<resource_metadata_t<business_card_t> > > v) :
+            boost::shared_ptr<semilattice_read_view_t<resource_metadata_t<business_card_t> > > v) :
         view(v),
         subs(boost::bind(&resource_access_t::check_dead, this))
     {
@@ -180,9 +180,9 @@ private:
         }
     }
 
-    boost::shared_ptr<metadata_read_view_t<resource_metadata_t<business_card_t> > > view;
+    boost::shared_ptr<semilattice_read_view_t<resource_metadata_t<business_card_t> > > view;
 
-    typename metadata_read_view_t<resource_metadata_t<business_card_t> >::subscription_t subs;
+    typename semilattice_read_view_t<resource_metadata_t<business_card_t> >::subscription_t subs;
     cond_t resource_went_offline;
 
     boost::scoped_ptr<disconnect_watcher_t> disconnect_watcher;

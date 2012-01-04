@@ -20,10 +20,10 @@ struct backfiller_t :
     public home_thread_mixin_t
 {
     backfiller_t(
-            mailbox_cluster_t *c,
-            boost::shared_ptr<metadata_read_view_t<namespace_branch_metadata_t<protocol_t> > > nm,
+            mailbox_manager_t *c,
+            boost::shared_ptr<semilattice_read_view_t<namespace_branch_metadata_t<protocol_t> > > nm,
             store_view_t<protocol_t> *s,
-            boost::shared_ptr<metadata_readwrite_view_t<resource_metadata_t<backfiller_metadata_t<protocol_t> > > > our_spot) :
+            boost::shared_ptr<semilattice_readwrite_view_t<resource_metadata_t<backfiller_metadata_t<protocol_t> > > > our_spot) :
         cluster(c), namespace_metadata(nm),
         store(s),
         backfill_mailbox(cluster, boost::bind(&backfiller_t::on_backfill, this, _1, _2, _3, _4, _5, auto_drainer_t::lock_t(&drainer))),
@@ -90,7 +90,7 @@ private:
             need to cast `send()` to the correct type before calling
             `boost::bind()` so that C++ will find the correct overload. */
             void (*send_cast_to_correct_type)(
-                mailbox_cluster_t *,
+                mailbox_manager_t *,
                 typename async_mailbox_t<void(typename protocol_t::backfill_chunk_t)>::address_t,
                 const typename protocol_t::backfill_chunk_t &
                 ) = &send;
@@ -135,8 +135,8 @@ private:
         }
     }
 
-    mailbox_cluster_t *cluster;
-    boost::shared_ptr<metadata_read_view_t<namespace_branch_metadata_t<protocol_t> > > namespace_metadata;
+    mailbox_manager_t *cluster;
+    boost::shared_ptr<semilattice_read_view_t<namespace_branch_metadata_t<protocol_t> > > namespace_metadata;
 
     store_view_t<protocol_t> *store;
 

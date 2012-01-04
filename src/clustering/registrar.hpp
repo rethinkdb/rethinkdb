@@ -12,9 +12,9 @@ class registrar_t {
 
 public:
     registrar_t(
-            mailbox_cluster_t *cl,
+            mailbox_manager_t *cl,
             controller_t co,
-            boost::shared_ptr<metadata_readwrite_view_t<resource_metadata_t<registrar_metadata_t<data_t> > > > metadata_view
+            boost::shared_ptr<semilattice_readwrite_view_t<resource_metadata_t<registrar_metadata_t<data_t> > > > metadata_view
             ) :
         cluster(cl), controller(co),
         create_mailbox(cluster, boost::bind(&registrar_t::on_create, this, _1, _2, _3, auto_drainer_t::lock_t(&drainer))),
@@ -94,7 +94,7 @@ private:
         }
     }
 
-    mailbox_cluster_t *cluster;
+    mailbox_manager_t *cluster;
     controller_t controller;
 
     mutex_t mutex;

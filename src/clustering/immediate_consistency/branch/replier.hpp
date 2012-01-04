@@ -3,8 +3,8 @@
 
 #include "clustering/immediate_consistency/branch/backfiller.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
-#include "rpc/metadata/view/field.hpp"
-#include "rpc/metadata/view/member.hpp"
+#include "rpc/semilattice/view/field.hpp"
+#include "rpc/semilattice/view/member.hpp"
 
 /* If you construct a `replier_t` for a given `listener_t`, then the listener
 will inform the `broadcaster_t` that it's ready to reply to queries, and will
@@ -22,8 +22,8 @@ class replier_t {
 
 public:
     replier_t(
-            mailbox_cluster_t *cluster,
-            boost::shared_ptr<metadata_readwrite_view_t<namespace_branch_metadata_t<protocol_t> > > namespace_metadata,
+            mailbox_manager_t *cluster,
+            boost::shared_ptr<semilattice_readwrite_view_t<namespace_branch_metadata_t<protocol_t> > > namespace_metadata,
             listener_t<protocol_t> *l) :
         listener(l)
     {

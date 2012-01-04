@@ -35,10 +35,10 @@ void on_receive_backfill_chunk(
 
 template<class protocol_t>
 void backfillee(
-        mailbox_cluster_t *cluster,
-        boost::shared_ptr<metadata_read_view_t<namespace_branch_metadata_t<protocol_t> > > namespace_metadata,
+        mailbox_manager_t *cluster,
+        boost::shared_ptr<semilattice_read_view_t<namespace_branch_metadata_t<protocol_t> > > namespace_metadata,
         store_view_t<protocol_t> *store,
-        boost::shared_ptr<metadata_read_view_t<resource_metadata_t<backfiller_metadata_t<protocol_t> > > > backfiller_metadata,
+        boost::shared_ptr<semilattice_read_view_t<resource_metadata_t<backfiller_metadata_t<protocol_t> > > > backfiller_metadata,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t)
 {
@@ -104,7 +104,7 @@ void backfillee(
             it to `boost::bind()`, or else C++ can't figure out which
             overload to use. */
             void (*send_cast_to_correct_type)(
-                mailbox_cluster_t *,
+                mailbox_manager_t *,
                 typename backfiller_metadata_t<protocol_t>::cancel_backfill_mailbox_t::address_t,
                 const backfill_session_id_t &) = &send;
             backfiller_notifier.fun = boost::bind(

@@ -2,7 +2,7 @@
 #define __CLUSTERING_REGISTRANT_HPP__
 
 #include "clustering/registration_metadata.hpp"
-#include "rpc/metadata/metadata.hpp"
+#include "rpc/semilattice/metadata.hpp"
 #include "rpc/mailbox/typed.hpp"
 
 template<class data_t>
@@ -13,8 +13,8 @@ public:
     is already dead, it throws an exception. Otherwise, it returns immediately.
     */
     registrant_t(
-            mailbox_cluster_t *cl,
-            boost::shared_ptr<metadata_read_view_t<resource_metadata_t<registrar_metadata_t<data_t> > > > registrar_md,
+            mailbox_manager_t *cl,
+            boost::shared_ptr<semilattice_read_view_t<resource_metadata_t<registrar_metadata_t<data_t> > > > registrar_md,
             data_t initial_value)
             THROWS_ONLY(resource_lost_exc_t) :
         cluster(cl),
@@ -59,14 +59,14 @@ private:
     constructor sets `deregisterer.fun` to a `boost::bind()` of
     `send_deregister_message()`, and that deregisters things as necessary. */
     static void send_deregister_message(
-            mailbox_cluster_t *cluster,
+            mailbox_manager_t *cluster,
             typename registrar_metadata_t<data_t>::delete_mailbox_t::address_t addr,
             registration_id_t rid) THROWS_NOTHING {
         send(cluster, addr, rid);
     }
     death_runner_t deregisterer;
 
-    mailbox_cluster_t *cluster;
+    mailbox_manager_t *cluster;
     resource_access_t<registrar_metadata_t<data_t> > registrar;
     registration_id_t registration_id;
 };

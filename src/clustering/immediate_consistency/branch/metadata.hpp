@@ -15,7 +15,7 @@
 #include "concurrency/fifo_enforcer.hpp"
 #include "protocol_api.hpp"
 #include "rpc/mailbox/typed.hpp"
-#include "rpc/metadata/semilattice/map.hpp"
+#include "rpc/semilattice/semilattice/map.hpp"
 #include "timestamps.hpp"
 
 /* Objects that have a presence in the metadata are identified by UUID */

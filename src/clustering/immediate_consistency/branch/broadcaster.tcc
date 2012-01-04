@@ -4,7 +4,7 @@
 
 template<class protocol_t>
 void listener_write(
-        mailbox_cluster_t *cluster,
+        mailbox_manager_t *cluster,
         const typename listener_data_t<protocol_t>::write_mailbox_t::address_t &write_mailbox,
         typename protocol_t::write_t w, transition_timestamp_t ts, fifo_enforcer_write_token_t token,
         signal_t *interruptor)
@@ -26,7 +26,7 @@ void listener_write(
 
 template<class protocol_t>
 typename protocol_t::write_response_t listener_writeread(
-        mailbox_cluster_t *cluster,
+        mailbox_manager_t *cluster,
         const typename listener_data_t<protocol_t>::writeread_mailbox_t::address_t &writeread_mailbox,
         typename protocol_t::write_t w, transition_timestamp_t ts, fifo_enforcer_write_token_t token,
         signal_t *interruptor)
@@ -48,7 +48,7 @@ typename protocol_t::write_response_t listener_writeread(
 
 template<class protocol_t>
 typename protocol_t::read_response_t listener_read(
-        mailbox_cluster_t *cluster,
+        mailbox_manager_t *cluster,
         const typename listener_data_t<protocol_t>::read_mailbox_t::address_t &read_mailbox,
         typename protocol_t::read_t r, state_timestamp_t ts, fifo_enforcer_read_token_t token,
         signal_t *interruptor)

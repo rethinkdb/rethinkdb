@@ -10,9 +10,9 @@
 #include "clustering/registrar.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/mailbox/typed.hpp"
-#include "rpc/metadata/view.hpp"
-#include "rpc/metadata/view/field.hpp"
-#include "rpc/metadata/view/member.hpp"
+#include "rpc/semilattice/view.hpp"
+#include "rpc/semilattice/view/field.hpp"
+#include "rpc/semilattice/view/member.hpp"
 #include "utils.hpp"
 #include "timestamps.hpp"
 
@@ -24,8 +24,8 @@ class broadcaster_t : public home_thread_mixin_t {
 
 public:
     broadcaster_t(
-            mailbox_cluster_t *c,
-            boost::shared_ptr<metadata_readwrite_view_t<namespace_branch_metadata_t<protocol_t> > > namespace_metadata,
+            mailbox_manager_t *c,
+            boost::shared_ptr<semilattice_readwrite_view_t<namespace_branch_metadata_t<protocol_t> > > namespace_metadata,
             store_view_t<protocol_t> *initial_store,
             signal_t *interruptor,
             boost::scoped_ptr<listener_t<protocol_t> > *initial_listener_out)
@@ -287,7 +287,7 @@ private:
 #endif
     }
 
-    mailbox_cluster_t *cluster;
+    mailbox_manager_t *cluster;
 
     branch_id_t branch_id;
 

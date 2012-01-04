@@ -35,8 +35,8 @@ public:
     };
 
     cluster_namespace_interface_t(
-            mailbox_cluster_t *c,
-            boost::shared_ptr<metadata_read_view_t<namespace_master_metadata_t<protocol_t> > > masters) :
+            mailbox_manager_t *c,
+            boost::shared_ptr<semilattice_read_view_t<namespace_master_metadata_t<protocol_t> > > masters) :
         cluster(c),
         masters_view(metadata_field(&namespace_master_metadata_t<protocol_t>::masters, masters))
         { }
@@ -193,8 +193,8 @@ private:
         if (join != target_region) throw gap_exc_t();
     }
 
-    mailbox_cluster_t *cluster;
-    boost::shared_ptr<metadata_read_view_t<master_map_t> > masters_view;
+    mailbox_manager_t *cluster;
+    boost::shared_ptr<semilattice_read_view_t<master_map_t> > masters_view;
 
     typename protocol_t::temporary_cache_t temporary_cache;
 };

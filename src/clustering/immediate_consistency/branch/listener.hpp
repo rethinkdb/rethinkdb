@@ -34,8 +34,8 @@ class listener_t {
 
 public:
     listener_t(
-            mailbox_cluster_t *c,
-            boost::shared_ptr<metadata_read_view_t<namespace_branch_metadata_t<protocol_t> > > nm,
+            mailbox_manager_t *c,
+            boost::shared_ptr<semilattice_read_view_t<namespace_branch_metadata_t<protocol_t> > > nm,
             store_view_t<protocol_t> *s,
             branch_id_t bid,
             backfiller_id_t backfiller_id,
@@ -58,7 +58,7 @@ public:
             throw interrupted_exc_t();
         }
 
-        boost::shared_ptr<metadata_read_view_t<branch_metadata_t<protocol_t> > > branch_metadata =
+        boost::shared_ptr<semilattice_read_view_t<branch_metadata_t<protocol_t> > > branch_metadata =
             metadata_member(branch_id, metadata_field(&namespace_branch_metadata_t<protocol_t>::branches, namespace_metadata)); 
 
 #ifndef NDEBUG
@@ -181,8 +181,8 @@ private:
     becoming the first mirror of a new branch. It's private because it shouldn't
     be used for any other purpose. */
     listener_t(
-            mailbox_cluster_t *c,
-            boost::shared_ptr<metadata_read_view_t<namespace_branch_metadata_t<protocol_t> > > nm,
+            mailbox_manager_t *c,
+            boost::shared_ptr<semilattice_read_view_t<namespace_branch_metadata_t<protocol_t> > > nm,
             store_view_t<protocol_t> *s,
             branch_id_t bid,
             signal_t *interruptor)
@@ -204,7 +204,7 @@ private:
             throw interrupted_exc_t();
         }
 
-        boost::shared_ptr<metadata_read_view_t<branch_metadata_t<protocol_t> > > branch_metadata =
+        boost::shared_ptr<semilattice_read_view_t<branch_metadata_t<protocol_t> > > branch_metadata =
             metadata_member(branch_id, metadata_field(&namespace_branch_metadata_t<protocol_t>::branches, namespace_metadata)); 
 
         /* Make sure the initial state of the store is sane */
@@ -241,7 +241,7 @@ private:
     a value indicating if the registration succeeded or not, and with the intro
     we got from the broadcaster if it succeeded. */
     void try_start_receiving_writes(
-            boost::shared_ptr<metadata_read_view_t<branch_metadata_t<protocol_t> > > branch,
+            boost::shared_ptr<semilattice_read_view_t<branch_metadata_t<protocol_t> > > branch,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t)
     {
@@ -498,8 +498,8 @@ private:
         }
     }
 
-    mailbox_cluster_t *cluster;
-    boost::shared_ptr<metadata_read_view_t<namespace_branch_metadata_t<protocol_t> > > namespace_metadata;
+    mailbox_manager_t *cluster;
+    boost::shared_ptr<semilattice_read_view_t<namespace_branch_metadata_t<protocol_t> > > namespace_metadata;
 
     store_view_t<protocol_t> *store;
 

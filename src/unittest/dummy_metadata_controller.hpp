@@ -4,11 +4,11 @@
 #include "errors.hpp"
 #include <boost/make_shared.hpp>
 
-#include "rpc/metadata/view.hpp"
+#include "rpc/semilattice/view.hpp"
 
-/* `dummy_metadata_controller_t` exposes a `metadata_readwrite_view_t` (via the
-`get_view()` method) which isn't hooked up to any other nodes in the cluster.
-It's mostly useful for testing purposes. */
+/* `dummy_metadata_controller_t` exposes a `semilattice_readwrite_view_t` (via
+the `get_view()` method) which isn't hooked up to any other nodes in the
+cluster. It's mostly useful for testing purposes. */
 
 template<class metadata_t>
 class dummy_metadata_controller_t {
@@ -22,12 +22,12 @@ public:
         view->controller = NULL;
     }
 
-    boost::shared_ptr<metadata_readwrite_view_t<metadata_t> > get_view() {
+    boost::shared_ptr<semilattice_readwrite_view_t<metadata_t> > get_view() {
         return view;
     }
 
 private:
-    class view_t : public metadata_readwrite_view_t<metadata_t> {
+    class view_t : public semilattice_readwrite_view_t<metadata_t> {
     public:
         explicit view_t(dummy_metadata_controller_t *c) : controller(c) { }
         metadata_t get() {
