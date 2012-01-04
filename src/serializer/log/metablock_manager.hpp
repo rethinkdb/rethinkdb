@@ -15,6 +15,7 @@
 
 #include <boost/crc.hpp>
 #include <stddef.h>
+#include <string.h>
 
 #include "arch/types.hpp"
 #include "concurrency/mutex.hpp"

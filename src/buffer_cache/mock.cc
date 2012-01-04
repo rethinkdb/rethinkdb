@@ -6,30 +6,31 @@
 
 /* Internal buf object */
 
-struct internal_buf_t {
+class internal_buf_t {
+public:
     mock_cache_t *cache;
     block_id_t block_id;
     repli_timestamp_t subtree_recency;
     void *data;
     rwi_lock_t lock;
-    
+
     internal_buf_t(mock_cache_t *_cache, block_id_t _block_id, repli_timestamp_t _subtree_recency)
         : cache(_cache), block_id(_block_id), subtree_recency(_subtree_recency),
           data(cache->serializer->malloc()) {
         rassert(data);
         bzero(data, cache->block_size.value());
     }
-    
+
     ~internal_buf_t() {
         cache->serializer->free(data);
     }
-    
+
     void destroy() {
         rassert(!lock.locked());
-        
+
         rassert(cache->bufs[block_id] == this);
         cache->bufs[block_id] = NULL;
-        
+
         delete this;
     }
 };

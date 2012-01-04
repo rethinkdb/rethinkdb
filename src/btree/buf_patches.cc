@@ -58,7 +58,9 @@ leaf_insert_patch_t::leaf_insert_patch_t(block_id_t block_id, patch_counter_t pa
     key->size = key_size;
     guarantee_patch_format(data_length == sizeof(value_size) + sizeof(insertion_time) + value_size + sizeof(uint8_t) + key->size);
     memcpy(key->contents, data, key->size);
-    data += key->size;
+
+    // Uncomment this if you have more to read.
+    // data += key->size;
 }
 
 void leaf_insert_patch_t::serialize_data(char* destination) const {
@@ -76,7 +78,9 @@ void leaf_insert_patch_t::serialize_data(char* destination) const {
     memcpy(destination, &key->size, sizeof(key->size));
     destination += sizeof(key->size);
     memcpy(destination, key->contents, key->size);
-    destination += key->size;
+
+    // Uncomment this if you have more data to write.
+    // destination += key->size;
 }
 
 uint16_t leaf_insert_patch_t::get_data_size() const {
@@ -121,7 +125,9 @@ leaf_remove_patch_t::leaf_remove_patch_t(block_id_t block_id, patch_counter_t pa
     key->size = key_size;
     guarantee_patch_format(data_length >= sizeof(repli_timestamp_t) + sizeof(uint8_t) + key->size);
     memcpy(key->contents, data, key->size);
-    data += key->size;
+
+    // Uncomment this if you have more to read.
+    // data += key->size;
 }
 
 void leaf_remove_patch_t::serialize_data(char* destination) const {
@@ -133,7 +139,9 @@ void leaf_remove_patch_t::serialize_data(char* destination) const {
     memcpy(destination, &key->size, sizeof(key->size));
     destination += sizeof(key->size);
     memcpy(destination, key->contents, key->size);
-    destination += key->size;
+
+    // Uncomment this if you have more to write.
+    // destination += key->size;
 }
 
 uint16_t leaf_remove_patch_t::get_data_size() const {

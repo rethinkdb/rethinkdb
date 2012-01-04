@@ -55,7 +55,7 @@ class mc_inner_buf_t : public evictable_t,
 
 
 
-    struct buf_snapshot_t;
+    class buf_snapshot_t;
 
 
 

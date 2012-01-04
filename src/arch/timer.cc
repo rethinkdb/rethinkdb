@@ -8,9 +8,7 @@
 #include "concurrency/cond_var.hpp"
 
 /* Timer token */
-class timer_token_t :
-    public intrusive_list_node_t<timer_token_t>
-{
+class timer_token_t : public intrusive_list_node_t<timer_token_t> {
     friend class timer_handler_t;
     
 private:
