@@ -99,6 +99,11 @@ void initialize_precise_time() {
     (void) time(&time_sync_data.low_res_clock);
 }
 
+void set_precise_time_offset(timespec hi_res_clock, time_t low_res_clock) {
+    time_sync_data.hi_res_clock = hi_res_clock;
+    time_sync_data.low_res_clock = low_res_clock;
+}
+
 timespec get_uptime() {
     timespec now;
 

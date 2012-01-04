@@ -56,6 +56,11 @@ TEST(UtilsTest, PreciseTime) {
 
     EXPECT_EQ(std::string("2010-05-04T04:04:04.000102"), std::string(buf, buf + strnlen(buf, 100)));
 
+    struct timespec zerotime;
+    zerotime.tv_sec = 0;
+    zerotime.tv_nsec = 0;
+    set_precise_time_offset(zerotime, 0);
+
     struct timespec timespec;
     timespec.tv_sec = 1203731445;
     timespec.tv_nsec = 1203745;
@@ -65,6 +70,7 @@ TEST(UtilsTest, PreciseTime) {
 
     EXPECT_EQ(std::string("2008-02-23T01:50:45.001203"), std::string(buf, buf + strnlen(buf, 100)));
     EXPECT_EQ(format_precise_time(precise_time), std::string(buf, buf + strnlen(buf, 100)));
+    initialize_precise_time();
 }
 
 TEST(UtilsTest, SizedStrcmp)
