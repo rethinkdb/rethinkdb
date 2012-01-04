@@ -93,12 +93,12 @@ endif
 endif
 
 ifeq ($(COMPILER),CLANG)
-LDFLAGS:=-Wl,--no-as-needed -lpthread -lrt -laio -lQtCore -lstdc++ -lm
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lQtCore -lstdc++ -lm
 else
 ifeq ($(COMPILER),INTEL)
-LDFLAGS:= -B/opt/intel/bin -lpthread -lrt -laio -lQtCore -lstdc++
+LDFLAGS:= -B/opt/intel/bin -pthread -lrt -laio -lQtCore -lstdc++
 else
-LDFLAGS:=-Wl,--no-as-needed -lpthread -lrt -laio -lQtCore
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lQtCore
 endif
 endif
 
@@ -106,7 +106,7 @@ STATIC_LIBRARIES:=boost_serialization
 
 CXXFLAGS?=
 
-CXXFLAGS+=-I$(SOURCE_DIR) -I/usr/include/qt4 -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source/JavaScriptCore/ForwardingHeaders -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source/JavaScriptCore 
+CXXFLAGS+=-I$(SOURCE_DIR) -I/usr/include/qt4 -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source/JavaScriptCore/ForwardingHeaders -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source/JavaScriptCore -pthread
 CXXFLAGS+="-DPRODUCT_NAME=\"$(PRODUCT_NAME)\""
 
 ifeq ($(SOLO),1)
