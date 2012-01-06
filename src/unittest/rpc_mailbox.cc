@@ -70,7 +70,7 @@ void run_mailbox_message_test() {
     int port = 10000 + rand() % 20000;
     connectivity_cluster_t c1, c2;
     mailbox_manager_t m1(&c1), m2(&c2);
-    connectivity_cluster_t::run_t r1(&c1, port, &m1), r2(&c2, port, &m2);
+    connectivity_cluster_t::run_t r1(&c1, port, &m1), r2(&c2, port+1, &m2);
     r1.join(c2.get_peer_address(c2.get_me()));
     let_stuff_happen();
 
@@ -103,7 +103,7 @@ void run_dead_mailbox_test() {
     int port = 10000 + rand() % 20000;
     connectivity_cluster_t c1, c2;
     mailbox_manager_t m1(&c1), m2(&c2);
-    connectivity_cluster_t::run_t r1(&c1, port, &m1), r2(&c2, port, &m2);
+    connectivity_cluster_t::run_t r1(&c1, port, &m1), r2(&c2, port+1, &m2);
 
     /* Create a mailbox, take its address, then destroy it. */
     mailbox_t::address_t address;

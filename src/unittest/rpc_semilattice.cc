@@ -67,7 +67,7 @@ void run_single_metadata_test() {
 
     EXPECT_EQ(slm.get_root_view()->get().i, 3);
 }
-TEST(RPCMetadataTest, SingleMetadata) {
+TEST(RPCSemilatticeTest, SingleMetadata) {
     run_in_thread_pool(&run_single_metadata_test, 2);
 }
 
@@ -117,7 +117,7 @@ void run_metadata_exchange_test() {
     EXPECT_EQ(slm1.get_root_view()->get().i, 7);
     EXPECT_EQ(slm2.get_root_view()->get().i, 7);
 }
-TEST(RPCMetadataTest, MetadataExchange) {
+TEST(RPCSemilatticeTest, MetadataExchange) {
     run_in_thread_pool(&run_metadata_exchange_test, 2);
 }
 
@@ -139,7 +139,7 @@ void run_watcher_test() {
 
     EXPECT_TRUE(have_been_notified);
 }
-TEST(RPCMetadataTest, Watcher) {
+TEST(RPCSemilatticeTest, Watcher) {
     run_in_thread_pool(&run_watcher_test, 2);
 }
 
@@ -165,10 +165,10 @@ void run_view_controller_test() {
 
     EXPECT_TRUE(have_been_notified);
 }
-TEST(RPCMetadataTest, ViewController) {
+TEST(RPCSemilatticeTest, ViewController) {
     run_in_thread_pool(&run_view_controller_test);
 }
-TEST(RPCMetadataTest, ViewControllerMultiThread) {
+TEST(RPCSemilatticeTest, ViewControllerMultiThread) {
     run_in_thread_pool(&run_view_controller_test, 3);
 }
 
@@ -195,10 +195,10 @@ void run_field_view_test() {
 
     EXPECT_EQ(x_view->get().i, 9);
 }
-TEST(RPCMetadataTest, FieldView) {
+TEST(RPCSemilatticeTest, FieldView) {
     run_in_thread_pool(&run_field_view_test);
 }
-TEST(RPCMetadataTest, FieldViewMultiThread) {
+TEST(RPCSemilatticeTest, FieldViewMultiThread) {
     run_in_thread_pool(&run_field_view_test, 3);
 }
 
@@ -229,10 +229,10 @@ void run_member_view_test() {
 
     EXPECT_EQ(foo_view->get().i, 9);
 }
-TEST(RPCMetadataTest, MemberView) {
+TEST(RPCSemilatticeTest, MemberView) {
     run_in_thread_pool(&run_member_view_test);
 }
-TEST(RPCMetadataTest, MemberViewMultiThread) {
+TEST(RPCSemilatticeTest, MemberViewMultiThread) {
     run_in_thread_pool(&run_member_view_test, 3);
 }
 

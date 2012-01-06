@@ -42,7 +42,7 @@ message_multiplexer_t::client_t::run_t::~run_t() {
 }
 
 message_multiplexer_t::client_t::client_t(message_multiplexer_t *p, tag_t t) :
-    parent(p), tag(t)
+    parent(p), tag(t), run(NULL)
 {
     rassert(parent->run == NULL);
     rassert(parent->clients[tag] == NULL);
