@@ -4,8 +4,8 @@ LIBS = -lpthread -ldl
 SRC = utils.cc random.cc protocol.cc protocols/sqlite3.c
 HEADERS = $(wildcard *.hpp) $(wildcard */*.hpp)
 
-MYSQL ?= 1
-LIBMEMCACHED ?= 1
+MYSQL ?= 0
+LIBMEMCACHED ?= 0
 LIBGSL ?= 1
 
 ifeq ($(MYSQL),1)
