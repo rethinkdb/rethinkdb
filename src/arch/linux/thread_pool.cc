@@ -109,8 +109,9 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         guarantee_err(r == 0, "Could not install SEGV handler");
 #endif
 
-        // Initialize generic_blocker_pool before the start barrier
-        if(tdata->initial_message && tdata->thread_pool->generic_blocker_pool == NULL) {
+        // First thread should initialize generic_blocker_pool before the start barrier
+        if(tdata->initial_message) {
+            rassert(tdata->thread_pool->generic_blocker_pool == NULL, "generic_blocker_pool already initialized");
             generic_blocker_pool = new blocker_pool_t(GENERIC_BLOCKER_THREAD_COUNT,
                                                       &thread.queue);
             tdata->thread_pool->generic_blocker_pool = generic_blocker_pool;
@@ -121,6 +122,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         // unstarted one.
         int res = pthread_barrier_wait(tdata->barrier);
         guarantee(res == 0 || res == PTHREAD_BARRIER_SERIAL_THREAD, "Could not wait at start barrier");
+        rassert(tdata->thread_pool->generic_blocker_pool != NULL, "Thread passed start barrier while generic_blocker_pool uninitialized");
         
         // Prime the pump by calling the initial thread message that was passed to thread_pool::run()
         if (tdata->initial_message) {

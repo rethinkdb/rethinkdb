@@ -73,7 +73,7 @@ public:
 
     // Cooperatively run a blocking function call using the generic_blocker_pool
     template<class T>
-    T coop_run(boost::function<T()>);
+    static T run_in_blocker_pool(boost::function<T()>);
     
     int n_threads;
     // The thread_pool that started the thread we are currently in
@@ -85,17 +85,18 @@ public:
 };
 
 template<class T>
-T linux_thread_pool_t::coop_run(boost::function<T()> fn)
+T linux_thread_pool_t::run_in_blocker_pool(boost::function<T()> fn)
 {
     generic_job_t<T> job;
     job.fn = fn;
     job.suspended = coro_t::self();
 
-    // TODO: guarantee that the blocker pool has been created?
-    generic_blocker_pool->do_job(&job);
+    rassert(thread_pool->generic_blocker_pool != NULL,
+            "thread_pool_t::run_in_blocker_pool called while generic_thread_pool uninitialized");
+    thread_pool->generic_blocker_pool->do_job(&job);
 
     // Give up execution, to be resumed when the done callback is made
-    job.suspended->wait();
+    coro_t::wait();
 
     return job.retval;
 }
@@ -112,7 +113,6 @@ void linux_thread_pool_t::generic_job_t<T>::done()
     // Now that the function is done, resume execution of the suspended task
     suspended->notify();
 }
-
 
 class linux_thread_t :
     public linux_event_callback_t,
