@@ -6,6 +6,8 @@
 #include "arch/runtime/event_queue.hpp"
 #include "arch/runtime/system_event.hpp"
 #include "arch/runtime/message_hub.hpp"
+#include "arch/runtime/coroutines.hpp"
+#include "arch/io/blocker_pool.hpp"
 #include "arch/timer.hpp"
 
 class linux_thread_t;
@@ -57,10 +59,30 @@ private:
     pthread_cond_t shutdown_cond;
     pthread_mutex_t shutdown_cond_mutex;
 
+    // The number of threads to allocate for handling blocking calls
+    static const int GENERIC_BLOCKER_THREAD_COUNT = 2;
+    blocker_pool_t* generic_blocker_pool;
+
+    template<class T>
+    struct generic_job_t :
+        public blocker_pool_t::job_t
+    {
+        void run();
+        void done();
+
+        boost::function<T()> fn;
+        coro_t* suspended;
+        T retval;
+    }; 
+
 public:
     pthread_t pthreads[MAX_THREADS];
     linux_thread_t *threads[MAX_THREADS];
 
+    // Cooperatively run a blocking function call using the generic_blocker_pool
+    template<class T>
+    T coop_run(boost::function<T()>);
+    
     int n_threads;
     bool do_set_affinity;
     // The thread_pool that started the thread we are currently in
@@ -73,6 +95,36 @@ public:
 private:
     DISABLE_COPYING(linux_thread_pool_t);
 };
+
+template<class T>
+T linux_thread_pool_t::coop_run(boost::function<T()> fn)
+{
+    generic_job_t<T> job;
+    job.fn = fn;
+    job.suspended = coro_t::self();
+
+    // TODO: guarantee that the blocker pool has been created?
+    generic_blocker_pool->do_job(&job);
+
+    // Give up execution, to be resumed when the done callback is made
+    job.suspended->wait();
+
+    return job.retval;
+}
+
+template <class T>
+void linux_thread_pool_t::generic_job_t<T>::run()
+{
+    retval = fn();
+}
+
+template <class T>
+void linux_thread_pool_t::generic_job_t<T>::done()
+{
+    // Now that the function is done, resume execution of the suspended task
+    suspended->notify_sometime();
+}
+
 
 class linux_thread_t :
     public linux_event_callback_t,
