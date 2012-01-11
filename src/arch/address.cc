@@ -1,4 +1,5 @@
 #include "arch/address.hpp"
+#include "arch/arch.hpp"
 #include <netdb.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,6 +7,7 @@
 #include <limits.h>
 #include <unistd.h>
 #include "errors.hpp"
+#include <boost/bind.hpp>
 
 ip_address_t::ip_address_t(const char *host) {
 
@@ -21,8 +23,11 @@ ip_address_t::ip_address_t(const char *host) {
     hint.ai_next = NULL;
 
     struct addrinfo *addr_possibilities;
-    int res = getaddrinfo(host, NULL, &hint, &addr_possibilities);
-    guarantee(res == 0, "getaddrinfo() failed: %s", strerror(errno));
+
+    // Because getaddrinfo may block, send it to a blocker thread and give up execution in the meantime
+    boost::function<int()> fn = boost::bind(getaddrinfo, host, reinterpret_cast<const char*>(NULL), &hint, &addr_possibilities);
+    int res = thread_pool_t::run_in_blocker_pool(fn);
+    guarantee_err(res == 0, "getaddrinfo() failed");
 
     struct sockaddr_in *addr_in = reinterpret_cast<struct sockaddr_in *>(addr_possibilities->ai_addr);
     addr = addr_in->sin_addr;
@@ -46,3 +51,4 @@ ip_address_t ip_address_t::us() {
 
     return ip_address_t(name);
 }
+

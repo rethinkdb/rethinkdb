@@ -8,6 +8,7 @@
 #include "arch/linux/system_event.hpp"
 #include "arch/linux/message_hub.hpp"
 #include "arch/linux/coroutines.hpp"
+#include "arch/linux/blocker_pool.hpp"
 #include "arch/timer.hpp"
 
 class linux_thread_message_t;
@@ -50,9 +51,35 @@ private:
     pthread_cond_t shutdown_cond;
     pthread_mutex_t shutdown_cond_mutex;
 
+    // The number of threads to allocate for handling blocking calls
+    static const int GENERIC_BLOCKER_THREAD_COUNT = 2;
+    blocker_pool_t* generic_blocker_pool;
+
+    template<class T>
+    struct generic_job_t :
+        public blocker_pool_t::job_t
+    {
+        void run() {
+            retval = fn();
+        }
+
+        void done() {
+            // Now that the function is done, resume execution of the suspended task
+            suspended->notify();
+        }
+
+        boost::function<T()> fn;
+        coro_t* suspended;
+        T retval;
+    }; 
+
 public:
     pthread_t pthreads[MAX_THREADS];
     linux_thread_t *threads[MAX_THREADS];
+
+    // Cooperatively run a blocking function call using the generic_blocker_pool
+    template<class T>
+    static T run_in_blocker_pool(boost::function<T()>);
     
     int n_threads;
     // The thread_pool that started the thread we are currently in
@@ -62,6 +89,25 @@ public:
     // The event queue for the thread we are currently in (same as &thread_pool->threads[thread_id])
     static __thread linux_thread_t *thread;
 };
+
+// Function to handle blocking calls in a separate thread pool
+// This should be used for any calls that cannot otherwise be made non-blocking
+template<class T>
+T linux_thread_pool_t::run_in_blocker_pool(boost::function<T()> fn)
+{
+    generic_job_t<T> job;
+    job.fn = fn;
+    job.suspended = coro_t::self();
+
+    rassert(thread_pool->generic_blocker_pool != NULL,
+            "thread_pool_t::run_in_blocker_pool called while generic_thread_pool uninitialized");
+    thread_pool->generic_blocker_pool->do_job(&job);
+
+    // Give up execution, to be resumed when the done callback is made
+    coro_t::wait();
+
+    return job.retval;
+}
 
 class linux_thread_t :
     public linux_event_callback_t,
