@@ -73,7 +73,7 @@ private:
 
         void done() {
             // Now that the function is done, resume execution of the suspended task
-            suspended->notify();
+            suspended->notify_sometime();
         }
 
         boost::function<T()> fn;
