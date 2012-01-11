@@ -87,7 +87,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         linux_thread_t thread(tdata->thread_pool, tdata->current_thread);
         tdata->thread_pool->threads[tdata->current_thread] = &thread;
         linux_thread_pool_t::thread = &thread;
-        blocker_pool_t* generic_blocker_pool = NULL; // Will only be instantiated by one thread
+        blocker_pool_t *generic_blocker_pool = NULL; // Will only be instantiated by one thread
 
         /* Install a handler for segmentation faults that just prints a backtrace. If we're
         running under valgrind, we don't install this handler because Valgrind will print the
@@ -110,7 +110,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
 #endif
 
         // First thread should initialize generic_blocker_pool before the start barrier
-        if(tdata->initial_message) {
+        if (tdata->initial_message) {
             rassert(tdata->thread_pool->generic_blocker_pool == NULL, "generic_blocker_pool already initialized");
             generic_blocker_pool = new blocker_pool_t(GENERIC_BLOCKER_THREAD_COUNT,
                                                       &thread.queue);
@@ -122,7 +122,8 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         // unstarted one.
         int res = pthread_barrier_wait(tdata->barrier);
         guarantee(res == 0 || res == PTHREAD_BARRIER_SERIAL_THREAD, "Could not wait at start barrier");
-        rassert(tdata->thread_pool->generic_blocker_pool != NULL, "Thread passed start barrier while generic_blocker_pool uninitialized");
+        rassert(tdata->thread_pool->generic_blocker_pool != NULL,
+                "Thread passed start barrier while generic_blocker_pool uninitialized");
         
         // Prime the pump by calling the initial thread message that was passed to thread_pool::run()
         if (tdata->initial_message) {
@@ -142,7 +143,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
 #endif
 
         // If this thread created the generic blocker pool, clean it up
-        if(generic_blocker_pool != NULL) {
+        if (generic_blocker_pool != NULL) {
             delete generic_blocker_pool;
             tdata->thread_pool->generic_blocker_pool = NULL;
         }
