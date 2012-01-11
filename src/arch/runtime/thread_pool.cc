@@ -124,7 +124,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         guarantee(res == 0 || res == PTHREAD_BARRIER_SERIAL_THREAD, "Could not wait at start barrier");
         rassert(tdata->thread_pool->generic_blocker_pool != NULL,
                 "Thread passed start barrier while generic_blocker_pool uninitialized");
-        
+
         // Prime the pump by calling the initial thread message that was passed to thread_pool::run()
         if (tdata->initial_message) {
             thread.message_hub.store_message(tdata->current_thread, tdata->initial_message);

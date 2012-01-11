@@ -79,7 +79,7 @@ private:
         boost::function<T()> fn;
         coro_t* suspended;
         T retval;
-    }; 
+    };
 
 public:
     pthread_t pthreads[MAX_THREADS];
@@ -88,7 +88,7 @@ public:
     // Cooperatively run a blocking function call using the generic_blocker_pool
     template<class T>
     static T run_in_blocker_pool(boost::function<T()>);
-    
+
     int n_threads;
     bool do_set_affinity;
     // The thread_pool that started the thread we are currently in
