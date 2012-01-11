@@ -20,16 +20,21 @@ struct backfiller_t :
     public home_thread_mixin_t
 {
     backfiller_t(
-            mailbox_manager_t *c,
-            boost::shared_ptr<semilattice_read_view_t<namespace_branch_metadata_t<protocol_t> > > nm,
-            store_view_t<protocol_t> *s,
-            boost::shared_ptr<semilattice_readwrite_view_t<resource_metadata_t<backfiller_metadata_t<protocol_t> > > > our_spot) :
-        cluster(c), namespace_metadata(nm),
+            mailbox_manager_t *mm,
+            boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > bh,
+            store_view_t<protocol_t> *s) :
+        mailbox_manager(mm), branch_history(bh),
         store(s),
-        backfill_mailbox(cluster, boost::bind(&backfiller_t::on_backfill, this, _1, _2, _3, _4, _5, auto_drainer_t::lock_t(&drainer))),
-        cancel_backfill_mailbox(cluster, boost::bind(&backfiller_t::on_cancel_backfill, this, _1, auto_drainer_t::lock_t(&drainer))),
-        advertisement(cluster, our_spot, backfiller_metadata_t<protocol_t>(backfill_mailbox.get_address(), cancel_backfill_mailbox.get_address()))
+        backfill_mailbox(mailbox_manager, boost::bind(&backfiller_t::on_backfill, this, _1, _2, _3, _4, _5, auto_drainer_t::lock_t(&drainer))),
+        cancel_backfill_mailbox(mailbox_manager, boost::bind(&backfiller_t::on_cancel_backfill, this, _1, auto_drainer_t::lock_t(&drainer)))
         { }
+
+    backfiller_business_card_t<protocol_t> get_business_card() {
+        return backfiller_business_card_t<protocol_t>(
+            backfill_mailbox.get_address(),
+            cancel_backfill_mailbox.get_address()
+            );
+    }
 
     /* TODO: Support warm shutdowns? */
 
@@ -77,14 +82,14 @@ private:
                         version_t start = start_point_pairs[i].second.latest;
                         version_t end = end_point_pairs[i].second.earliest;
                         rassert(start.timestamp <= end.timestamp);
-                        rassert(version_is_ancestor(namespace_metadata, start, end, ixn));
+                        rassert(version_is_ancestor(branch_history->get(), start, end, ixn));
                     }
                 }
             }
 #endif
 
             /* Transmit `end_point` to the backfillee */
-            send(cluster, end_point_cont, end_point);
+            send(mailbox_manager, end_point_cont, end_point);
 
             /* Calling `send_chunk()` will send a chunk to the backfillee. We
             need to cast `send()` to the correct type before calling
@@ -95,7 +100,7 @@ private:
                 const typename protocol_t::backfill_chunk_t &
                 ) = &send;
             boost::function<void(typename protocol_t::backfill_chunk_t)> send_fun =
-                boost::bind(send_cast_to_correct_type, cluster, chunk_cont, _1);
+                boost::bind(send_cast_to_correct_type, mailbox_manager, chunk_cont, _1);
 
             /* Actually perform the backfill */
             transaction->send_backfill(
@@ -108,7 +113,7 @@ private:
                 );
 
             /* Send a confirmation */
-            send(cluster, done_cont);
+            send(mailbox_manager, done_cont);
 
         } catch (interrupted_exc_t) {
             /* Ignore. If we were interrupted by the backfillee, then it already
@@ -135,18 +140,16 @@ private:
         }
     }
 
-    mailbox_manager_t *cluster;
-    boost::shared_ptr<semilattice_read_view_t<namespace_branch_metadata_t<protocol_t> > > namespace_metadata;
+    mailbox_manager_t *mailbox_manager;
+    boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > branch_history;
 
     store_view_t<protocol_t> *store;
 
     auto_drainer_t drainer;
     std::map<backfill_session_id_t, cond_t *> local_interruptors;
 
-    typename backfiller_metadata_t<protocol_t>::backfill_mailbox_t backfill_mailbox;
-    typename backfiller_metadata_t<protocol_t>::cancel_backfill_mailbox_t cancel_backfill_mailbox;
-
-    resource_advertisement_t<backfiller_metadata_t<protocol_t> > advertisement;
+    typename backfiller_business_card_t<protocol_t>::backfill_mailbox_t backfill_mailbox;
+    typename backfiller_business_card_t<protocol_t>::cancel_backfill_mailbox_t cancel_backfill_mailbox;
 };
 
 #endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BACKFILLER_HPP__ */

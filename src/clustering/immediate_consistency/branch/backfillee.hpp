@@ -3,6 +3,7 @@
 
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "concurrency/promise.hpp"
+#include "rpc/semilattice/view.hpp"
 
 /* TODO: What if the backfill chunks on the network get reordered in transit?
 Even if the `protocol_t` can tolerate backfill chunks being reordered, it's
@@ -35,14 +36,14 @@ void on_receive_backfill_chunk(
 
 template<class protocol_t>
 void backfillee(
-        mailbox_manager_t *cluster,
-        boost::shared_ptr<semilattice_read_view_t<namespace_branch_metadata_t<protocol_t> > > namespace_metadata,
+        mailbox_manager_t *mailbox_manager,
+        boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > branch_history,
         store_view_t<protocol_t> *store,
-        boost::shared_ptr<semilattice_read_view_t<resource_metadata_t<backfiller_metadata_t<protocol_t> > > > backfiller_metadata,
+        clone_ptr_t<directory_single_rview_t<boost::optional<backfiller_business_card_t<protocol_t> > > > backfiller_metadata,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t)
 {
-    resource_access_t<backfiller_metadata_t<protocol_t> > backfiller(cluster, backfiller_metadata);
+    resource_access_t<backfiller_business_card_t<protocol_t> > backfiller(backfiller_metadata);
 
     /* Read the metadata to determine where we're starting from */
     region_map_t<protocol_t, version_range_t> start_point =
@@ -59,7 +60,7 @@ void backfillee(
     the backfill is over. */
     promise_t<region_map_t<protocol_t, version_range_t> > end_point_cond;
     async_mailbox_t<void(region_map_t<protocol_t, version_range_t>)> end_point_mailbox(
-        cluster, boost::bind(&promise_t<region_map_t<protocol_t, version_range_t> >::pulse, &end_point_cond, _1));
+        mailbox_manager, boost::bind(&promise_t<region_map_t<protocol_t, version_range_t> >::pulse, &end_point_cond, _1));
 
     /* `dont_go_until` prevents any backfill chunks from being applied before we
     update the store metadata to indicate that the backfill is in progress. */
@@ -69,7 +70,7 @@ void backfillee(
     and the version described in `end_point_mailbox` has been achieved. */
     cond_t done_cond;
     async_mailbox_t<void()> done_mailbox(
-        cluster, boost::bind(&cond_t::pulse, &done_cond));
+        mailbox_manager, boost::bind(&cond_t::pulse, &done_cond));
 
     {
         /* Use an `auto_drainer_t` to wait for all the bits of the backfill to
@@ -80,12 +81,12 @@ void backfillee(
         /* The backfiller will send individual chunks of the backfill to
         `chunk_mailbox`. */
         async_mailbox_t<void(typename protocol_t::backfill_chunk_t)> chunk_mailbox(
-            cluster, boost::bind(&on_receive_backfill_chunk<protocol_t>,
+            mailbox_manager, boost::bind(&on_receive_backfill_chunk<protocol_t>,
                 store, &dont_go_until, _1, interruptor, auto_drainer_t::lock_t(&drainer)
                 ));
 
         /* Send off the backfill request */
-        send(cluster,
+        send(mailbox_manager,
             backfiller.access().backfill_mailbox,
             backfill_session_id,
             start_point,
@@ -105,10 +106,10 @@ void backfillee(
             overload to use. */
             void (*send_cast_to_correct_type)(
                 mailbox_manager_t *,
-                typename backfiller_metadata_t<protocol_t>::cancel_backfill_mailbox_t::address_t,
+                typename backfiller_business_card_t<protocol_t>::cancel_backfill_mailbox_t::address_t,
                 const backfill_session_id_t &) = &send;
             backfiller_notifier.fun = boost::bind(
-                send_cast_to_correct_type, cluster,
+                send_cast_to_correct_type, mailbox_manager,
                 backfiller.access().cancel_backfill_mailbox,
                 backfill_session_id);
         }
@@ -138,7 +139,7 @@ void backfillee(
             for (int j = 0; j < (int)end_point_parts.size(); j++) {
                 typename protocol_t::region_t ixn = region_intersection(start_point_parts[i].first, end_point_parts[j].first);
                 if (!region_is_empty(ixn)) {
-                    rassert(version_is_ancestor(namespace_metadata,
+                    rassert(version_is_ancestor(branch_history->get(),
                         start_point_parts[i].second.earliest,
                         end_point_parts[j].second.latest,
                         ixn),

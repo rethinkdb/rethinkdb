@@ -18,9 +18,8 @@
 #include "rpc/semilattice/semilattice/map.hpp"
 #include "timestamps.hpp"
 
-/* Objects that have a presence in the metadata are identified by UUID */
-
-typedef boost::uuids::uuid backfiller_id_t;
+/* Every broadcaster generates a UUID when it's first created. This is the UUID
+of the branch that the broadcaster administers. */
 
 typedef boost::uuids::uuid branch_id_t;
 
@@ -76,11 +75,11 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_2(earliest, latest);
 };
 
-/* Every `listener_t` constructs a `listener_data_t` and sends it to the
-`broadcaster_t`. */
+/* Every `listener_t` constructs a `listener_business_card_t` and sends it to
+the `broadcaster_t`. */
 
 template<class protocol_t>
-class listener_data_t {
+class listener_business_card_t {
 
 public:
     /* These are the types of mailboxes that the master uses to communicate with
@@ -120,8 +119,8 @@ public:
         typename downgrade_mailbox_t::address_t
         )> intro_mailbox_t;
 
-    listener_data_t() { }
-    listener_data_t(
+    listener_business_card_t() { }
+    listener_business_card_t(
             const typename intro_mailbox_t::address_t &im,
             const typename write_mailbox_t::address_t &wm) :
         intro_mailbox(im), write_mailbox(wm) { }
@@ -132,13 +131,13 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_2(intro_mailbox, write_mailbox);
 };
 
-/* `backfiller_metadata_t` represents a thing that is willing to serve backfills
-over the network. */
+/* `backfiller_business_card_t` represents a thing that is willing to serve
+backfills over the network. It appears in the directory. */
 
 typedef boost::uuids::uuid backfill_session_id_t;
 
 template<class protocol_t>
-struct backfiller_metadata_t {
+struct backfiller_business_card_t {
 
     typedef async_mailbox_t<void(
         backfill_session_id_t,
@@ -152,8 +151,8 @@ struct backfiller_metadata_t {
         backfill_session_id_t
         )> cancel_backfill_mailbox_t;
 
-    backfiller_metadata_t() { }
-    backfiller_metadata_t(
+    backfiller_business_card_t() { }
+    backfiller_business_card_t(
             const typename backfill_mailbox_t::address_t &ba,
             const cancel_backfill_mailbox_t::address_t &cba) :
         backfill_mailbox(ba), cancel_backfill_mailbox(cba)
@@ -161,59 +160,71 @@ struct backfiller_metadata_t {
 
     typename backfill_mailbox_t::address_t backfill_mailbox;
     cancel_backfill_mailbox_t::address_t cancel_backfill_mailbox;
+
+    RDB_MAKE_ME_SERIALIZABLE_2(backfill_mailbox, cancel_backfill_mailbox);
 };
 
-template<class protocol_t>
-void semilattice_join(UNUSED backfiller_metadata_t<protocol_t> *a, UNUSED const backfiller_metadata_t<protocol_t> &b) {
-    /* They should be equal, but we don't bother testing that */
-}
-
-/* `branch_metadata_t` is all the metadata for a branch. */
+/* `broadcaster_business_card_t` is the way that listeners find the broadcaster.
+It appears in the directory. */
 
 template<class protocol_t>
-class branch_metadata_t {
+struct broadcaster_business_card_t {
 
+    broadcaster_business_card_t(const registrar_business_card_t<listener_business_card_t<protocol_t> > &r) :
+        registrar(r) { }
+
+    broadcaster_business_card_t() { }
+
+    registrar_business_card_t<listener_business_card_t<protocol_t> > registrar;
+
+    RDB_MAKE_ME_SERIALIZABLE_1(registrar);
+};
+
+/* `branch_history_t` is a record of all of the branches that have ever been
+created. It appears in the semilattice metadata. */
+
+template<class protocol_t>
+class branch_birth_certificate_t {
 public:
-    /* History metadata for the branch. This never changes. */
+    /* The region covered by the branch */
     typename protocol_t::region_t region;
+
+    /* The timestamp of the first state on the branch */
     state_timestamp_t initial_timestamp;
+
+    /* Where the branch's initial data came from */
     region_map_t<protocol_t, version_range_t> origin;
 
-    /* When listeners start up, they construct a `listener_data_t` and send it
-    to the broadcaster via `broadcaster_registrar` */
-    resource_metadata_t<registrar_metadata_t<listener_data_t<protocol_t> > > broadcaster_registrar;
-
-    /* When repliers start up, they make entries in `backfillers` so new
-    listeners can find them for backfills */
-    std::map<backfiller_id_t, resource_metadata_t<backfiller_metadata_t<protocol_t> > > backfillers;
-
-    RDB_MAKE_ME_SERIALIZABLE_5(region, initial_timestamp, origin,
-        broadcaster_registrar, backfillers);
+    RDB_MAKE_ME_SERIALIZABLE_3(region, initial_timestamp, origin);
 };
 
 template<class protocol_t>
-void semilattice_join(branch_metadata_t<protocol_t> *a, const branch_metadata_t<protocol_t> &b) {
-    rassert(a->region == b.region);
-    rassert(a->initial_timestamp == b.initial_timestamp);
-    /* `origin` should be the same too, but don't bother comparing */
-    semilattice_join(&a->broadcaster_registrar, b.broadcaster_registrar);
-    semilattice_join(&a->backfillers, b.backfillers);
-}
-
-/* The namespace as a whole has a `namespace_branches_metadata_t` that holds all
-of the branches. */
-
-template<class protocol_t>
-class namespace_branch_metadata_t {
-
+class branch_history_t {
 public:
-    std::map<branch_id_t, branch_metadata_t<protocol_t> > branches;
+    std::map<branch_id_t, branch_birth_certificate_t<protocol_t> > branches;
 
     RDB_MAKE_ME_SERIALIZABLE_1(branches);
 };
 
 template<class protocol_t>
-void semilattice_join(namespace_branch_metadata_t<protocol_t> *a, const namespace_branch_metadata_t<protocol_t> &b) {
+bool operator==(const branch_birth_certificate_t<protocol_t> &a,
+        const branch_birth_certificate_t<protocol_t> &b) {
+    return a.region == b.region && a.initial_timestamp == b.initial_timestamp;
+}
+
+template<class protocol_t>
+void semilattice_join(branch_birth_certificate_t<protocol_t> *a,
+        const branch_birth_certificate_t<protocol_t> &b) {
+    rassert(*a == b);
+}
+
+template<class protocol_t>
+bool operator==(const branch_history_t<protocol_t> &a, const branch_history_t<protocol_t> &b) {
+    return a.branches == b.branches;
+}
+
+template<class protocol_t>
+void semilattice_join(branch_history_t<protocol_t> *a, const branch_history_t<protocol_t> &b) {
     semilattice_join(&a->branches, b.branches);
 }
 

@@ -8,6 +8,7 @@
 #include "clustering/immediate_consistency/branch/listener.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "clustering/registrar.hpp"
+#include "protocol_api.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/semilattice/view.hpp"
@@ -25,13 +26,15 @@ class broadcaster_t : public home_thread_mixin_t {
 public:
     broadcaster_t(
             mailbox_manager_t *mm,
-            boost::shared_ptr<semilattice_readwrite_view_t<namespace_branch_metadata_t<protocol_t> > > namespace_metadata,
+            clone_ptr_t<directory_rwview_t<std::map<branch_id_t, broadcaster_business_card_t<protocol_t> > > > broadcaster_directory,
+            boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > branch_history,
             store_view_t<protocol_t> *initial_store,
             signal_t *interruptor,
             boost::scoped_ptr<listener_t<protocol_t> > *initial_listener_out)
             THROWS_ONLY(interrupted_exc_t) :
         mailbox_manager(mm),
-        branch_id(generate_uuid())
+        branch_id(generate_uuid()),
+        registrar(mailbox_manager, this)
     {
         /* Snapshot the starting point of the store; we'll need to record this
         and store it in the metadata. */
@@ -52,28 +55,24 @@ public:
         }
         current_timestamp = newest_complete_timestamp = initial_timestamp;
 
-        /* Make an entry for this branch in the global metadata */
+        /* Make an entry for this branch in the global branch history
+        semilattice */
         {
-            branch_metadata_t<protocol_t> our_metadata;
+            branch_birth_certificate_t<protocol_t> our_metadata;
             our_metadata.region = initial_store->get_region();
             our_metadata.initial_timestamp = initial_timestamp;
             our_metadata.origin = origins;
-            /* We'll fill in `broadcaster_registrar` in just a moment */
 
-            std::map<branch_id_t, branch_metadata_t<protocol_t> > singleton;
+            std::map<branch_id_t, branch_birth_certificate_t<protocol_t> > singleton;
             singleton[branch_id] = our_metadata;
-            metadata_field(&namespace_branch_metadata_t<protocol_t>::branches, namespace_metadata)->join(singleton);
+            metadata_field(&branch_history_t<protocol_t>::branches, branch_history)->join(singleton);
         }
 
-        /* Now set up the registrar */
-        registrar.reset(new registrar_t<listener_data_t<protocol_t>, broadcaster_t *, dispatchee_t>(
-            mailbox_manager,
-            this,
-            metadata_field(&branch_metadata_t<protocol_t>::broadcaster_registrar,
-                metadata_member(branch_id,
-                    metadata_field(&namespace_branch_metadata_t<protocol_t>::branches,
-                        namespace_metadata
-                )))
+        /* Now put ourself in the broadcaster directory */
+        advertisement.reset(new resource_map_advertisement_t<branch_id_t, broadcaster_business_card_t<protocol_t> >(
+            broadcaster_directory,
+            branch_id,
+            broadcaster_business_card_t<protocol_t>(registrar.get_business_card())
             ));
 
         /* Reset the store metadata. We should do this after making the branch
@@ -90,7 +89,8 @@ public:
         private `listener_t` constructor that doesn't perform a backfill. */
         initial_listener_out->reset(new listener_t<protocol_t>(
             mailbox_manager,
-            namespace_metadata,
+            broadcaster_directory,
+            branch_history,
             initial_store,
             branch_id,
             interruptor));
@@ -231,13 +231,13 @@ private:
     class dispatchee_t : public intrusive_list_node_t<dispatchee_t> {
 
     public:
-        dispatchee_t(broadcaster_t *c, listener_data_t<protocol_t> d) THROWS_NOTHING;
+        dispatchee_t(broadcaster_t *c, listener_business_card_t<protocol_t> d) THROWS_NOTHING;
         ~dispatchee_t() THROWS_NOTHING;
 
-        typename listener_data_t<protocol_t>::write_mailbox_t::address_t write_mailbox;
+        typename listener_business_card_t<protocol_t>::write_mailbox_t::address_t write_mailbox;
         bool is_readable;
-        typename listener_data_t<protocol_t>::writeread_mailbox_t::address_t writeread_mailbox;
-        typename listener_data_t<protocol_t>::read_mailbox_t::address_t read_mailbox;
+        typename listener_business_card_t<protocol_t>::writeread_mailbox_t::address_t writeread_mailbox;
+        typename listener_business_card_t<protocol_t>::read_mailbox_t::address_t read_mailbox;
 
         /* This is used to enforce that operations are performed on the
         destination machine in the same order that we send them, even if the
@@ -247,15 +247,15 @@ private:
     private:
         /* The constructor spawns `send_intro()` in the background. */
         void send_intro(
-            listener_data_t<protocol_t> to_send_intro_to,
+            listener_business_card_t<protocol_t> to_send_intro_to,
             state_timestamp_t intro_timestamp,
             auto_drainer_t::lock_t)
             THROWS_NOTHING;
 
         /* `upgrade()` and `downgrade()` are mailbox callbacks. */
         void upgrade(
-            typename listener_data_t<protocol_t>::writeread_mailbox_t::address_t,
-            typename listener_data_t<protocol_t>::read_mailbox_t::address_t,
+            typename listener_business_card_t<protocol_t>::writeread_mailbox_t::address_t,
+            typename listener_business_card_t<protocol_t>::read_mailbox_t::address_t,
             auto_drainer_t::lock_t)
             THROWS_NOTHING;
         void downgrade(
@@ -266,8 +266,8 @@ private:
         broadcaster_t *controller;
         auto_drainer_t drainer;
 
-        typename listener_data_t<protocol_t>::upgrade_mailbox_t upgrade_mailbox;
-        typename listener_data_t<protocol_t>::downgrade_mailbox_t downgrade_mailbox;
+        typename listener_business_card_t<protocol_t>::upgrade_mailbox_t upgrade_mailbox;
+        typename listener_business_card_t<protocol_t>::downgrade_mailbox_t downgrade_mailbox;
     };
 
     /* Reads need to pick a single readable mirror to perform the operation.
@@ -322,7 +322,9 @@ private:
     std::map<dispatchee_t *, auto_drainer_t::lock_t> dispatchees;
     intrusive_list_t<dispatchee_t> readable_dispatchees;
 
-    boost::scoped_ptr<registrar_t<listener_data_t<protocol_t>, broadcaster_t *, dispatchee_t> > registrar;
+    registrar_t<listener_business_card_t<protocol_t>, broadcaster_t *, dispatchee_t> registrar;
+
+    boost::scoped_ptr<resource_map_advertisement_t<branch_id_t, broadcaster_business_card_t<protocol_t> > > advertisement;
 };
 
 #include "clustering/immediate_consistency/branch/broadcaster.tcc"

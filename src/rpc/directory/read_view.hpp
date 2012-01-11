@@ -107,7 +107,7 @@ public:
 
     /* Constructs a sub-view of this view, that looks at the same object but at
     only a single one of the peers. */
-    clone_ptr_t<directory_single_rview_t<metadata_t> > subview(peer_id_t) THROWS_NOTHING;
+    clone_ptr_t<directory_single_rview_t<metadata_t> > get_peer_view(peer_id_t) THROWS_NOTHING;
 };
 
 #include "rpc/directory/read_view.tcc"

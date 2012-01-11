@@ -26,21 +26,22 @@ void run_backfill_test() {
     /* Make a dummy metadata view to hold a branch tree so branch history checks
     can be performed */
 
-    dummy_metadata_controller_t<namespace_branch_metadata_t<dummy_protocol_t> > namespace_metadata_controller(
+    dummy_semilattice_controller_t<branch_history_t<dummy_protocol_t> > branch_history_controller(
         /* Parentheses prevent C++ from interpreting this as a function
         declaration */
-        (namespace_branch_metadata_t<dummy_protocol_t>()));
+        (branch_history_t<dummy_protocol_t>())
+        );
     branch_id_t dummy_branch_id = generate_uuid();
     {
-        branch_metadata_t<dummy_protocol_t> dummy_branch;
+        branch_birth_certificate_t<dummy_protocol_t> dummy_branch;
         dummy_branch.region = region;
         dummy_branch.initial_timestamp = state_timestamp_t::zero();
         dummy_branch.origin = region_map_t<dummy_protocol_t, version_range_t>(
             region, version_range_t(version_t(boost::uuids::nil_generator()(), state_timestamp_t::zero()))
             );
-        std::map<branch_id_t, branch_metadata_t<dummy_protocol_t> > singleton_map;
+        std::map<branch_id_t, branch_birth_certificate_t<dummy_protocol_t> > singleton_map;
         singleton_map[dummy_branch_id] = dummy_branch;
-        metadata_field(&namespace_branch_metadata_t<dummy_protocol_t>::branches, namespace_metadata_controller.get_view())->join(singleton_map);
+        metadata_field(&branch_history_t<dummy_protocol_t>::branches, branch_history_controller.get_view())->join(singleton_map);
     }
 
     /* Insert 10 values into both stores, then another 10 into only
@@ -85,19 +86,25 @@ void run_backfill_test() {
 
     /* Expose the backfiller to the cluster */
 
-    dummy_metadata_controller_t<resource_metadata_t<backfiller_metadata_t<dummy_protocol_t> > > backfiller_md_controller(
-        (resource_metadata_t<backfiller_metadata_t<dummy_protocol_t> >()));
-
     backfiller_t<dummy_protocol_t> backfiller(
-        &cluster.mailbox_manager,
-        namespace_metadata_controller.get_view(),
-        &backfiller_store,
-        backfiller_md_controller.get_view());
+        cluster.get_mailbox_manager(),
+        branch_history_controller.get_view(),
+        &backfiller_store);
+
+    simple_directory_manager_t<boost::optional<backfiller_business_card_t<dummy_protocol_t> > > directory_manager(
+        &cluster,
+        boost::optional<backfiller_business_card_t<dummy_protocol_t> >(backfiller.get_business_card())
+        );
 
     /* Run a backfill */
 
     cond_t interruptor;
-    backfillee<dummy_protocol_t>(&cluster.mailbox_manager, namespace_metadata_controller.get_view(), &backfillee_store, backfiller_md_controller.get_view(), &interruptor);
+    backfillee<dummy_protocol_t>(
+        cluster.get_mailbox_manager(),
+        branch_history_controller.get_view(),
+        &backfillee_store,
+        directory_manager.get_root_view()->get_peer_view(cluster.get_connectivity_service()->get_me()),
+        &interruptor);
 
     /* Make sure everything got transferred properly */
 

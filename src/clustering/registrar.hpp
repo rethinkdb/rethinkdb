@@ -7,26 +7,27 @@
 #include "concurrency/wait_any.hpp"
 #include "concurrency/promise.hpp"
 
-template<class data_t, class controller_t, class registrant_t>
+template<class business_card_t, class controller_t, class registrant_t>
 class registrar_t {
 
 public:
-    registrar_t(
-            mailbox_manager_t *mm,
-            controller_t co,
-            boost::shared_ptr<semilattice_readwrite_view_t<resource_metadata_t<registrar_metadata_t<data_t> > > > metadata_view
-            ) :
+    registrar_t(mailbox_manager_t *mm, controller_t co) :
         mailbox_manager(mm), controller(co),
         create_mailbox(mailbox_manager, boost::bind(&registrar_t::on_create, this, _1, _2, _3, auto_drainer_t::lock_t(&drainer))),
-        delete_mailbox(mailbox_manager, boost::bind(&registrar_t::on_delete, this, _1, auto_drainer_t::lock_t(&drainer))),
-        advertisement(mailbox_manager, metadata_view,
-            registrar_metadata_t<data_t>(create_mailbox.get_address(), delete_mailbox.get_address()))
+        delete_mailbox(mailbox_manager, boost::bind(&registrar_t::on_delete, this, _1, auto_drainer_t::lock_t(&drainer)))
         { }
 
-private:
-    typedef typename registrar_metadata_t<data_t>::registration_id_t registration_id_t;
+    registrar_business_card_t<business_card_t> get_business_card() {
+        return registrar_business_card_t<business_card_t>(
+            create_mailbox.get_address(),
+            delete_mailbox.get_address()
+            );
+    }
 
-    void on_create(registration_id_t rid, peer_id_t peer, data_t data, auto_drainer_t::lock_t keepalive) {
+private:
+    typedef typename registrar_business_card_t<business_card_t>::registration_id_t registration_id_t;
+
+    void on_create(registration_id_t rid, peer_id_t peer, business_card_t business_card, auto_drainer_t::lock_t keepalive) {
 
         /* Grab the mutex to avoid race conditions if a message arrives at the
         update mailbox or the delete mailbox while we're working. We must not
@@ -36,7 +37,7 @@ private:
 
         /* Construct a `registrant_t` to tell the controller that something has
         now registered. */
-        registrant_t registrant(controller, data);
+        registrant_t registrant(controller, business_card);
 
         /* `registration` is the interface that we expose to the `on_update()`
         and `on_delete()` handlers. */
@@ -102,10 +103,8 @@ private:
 
     auto_drainer_t drainer;
 
-    typename registrar_metadata_t<data_t>::create_mailbox_t create_mailbox;
-    typename registrar_metadata_t<data_t>::delete_mailbox_t delete_mailbox;
-
-    resource_advertisement_t<registrar_metadata_t<data_t> > advertisement;
+    typename registrar_business_card_t<business_card_t>::create_mailbox_t create_mailbox;
+    typename registrar_business_card_t<business_card_t>::delete_mailbox_t delete_mailbox;
 };
 
 #endif /* __CLUSTERING_REGISTRAR_HPP__ */

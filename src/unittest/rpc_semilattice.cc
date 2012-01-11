@@ -143,11 +143,11 @@ TEST(RPCSemilatticeTest, Watcher) {
     run_in_thread_pool(&run_watcher_test, 2);
 }
 
-/* `ViewController` tests `dummy_metadata_controller_t`. */
+/* `ViewController` tests `dummy_semilattice_controller_t`. */
 
 void run_view_controller_test() {
 
-    dummy_metadata_controller_t<sl_int_t> controller(sl_int_t(16));
+    dummy_semilattice_controller_t<sl_int_t> controller(sl_int_t(16));
     EXPECT_EQ(controller.get_view()->get().i, 16);
 
     controller.get_view()->join(sl_int_t(2));
@@ -176,7 +176,7 @@ TEST(RPCSemilatticeTest, ViewControllerMultiThread) {
 
 void run_field_view_test() {
 
-    dummy_metadata_controller_t<sl_pair_t> controller(
+    dummy_semilattice_controller_t<sl_pair_t> controller(
         sl_pair_t(sl_int_t(8), sl_int_t(4)));
 
     boost::shared_ptr<semilattice_read_view_t<sl_int_t> > x_view =
@@ -208,7 +208,7 @@ void run_member_view_test() {
 
     std::map<std::string, sl_int_t> initial_value;
     initial_value["foo"] = sl_int_t(8);
-    dummy_metadata_controller_t<std::map<std::string, sl_int_t> > controller(
+    dummy_semilattice_controller_t<std::map<std::string, sl_int_t> > controller(
         initial_value);
 
     boost::shared_ptr<semilattice_read_view_t<sl_int_t> > foo_view =

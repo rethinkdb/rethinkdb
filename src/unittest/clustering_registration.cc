@@ -45,21 +45,22 @@ void run_register_test() {
 
     simple_mailbox_cluster_t cluster;
 
-    dummy_metadata_controller_t<resource_metadata_t<registrar_metadata_t<std::string> > > metadata_controller(
-        (resource_metadata_t<registrar_metadata_t<std::string> >()));
-
     monitoring_controller_t controller;
     registrar_t<std::string, monitoring_controller_t *, monitoring_controller_t::registrant_t> registrar(
-        &cluster.mailbox_manager,
-        &controller,
-        metadata_controller.get_view());
+        cluster.get_mailbox_manager(),
+        &controller);
+
+    simple_directory_manager_t<boost::optional<registrar_business_card_t<std::string> > > metadata_controller(
+        &cluster,
+        boost::optional<registrar_business_card_t<std::string> >(registrar.get_business_card())
+        );
 
     EXPECT_FALSE(controller.has_registrant);
 
     {
         registrant_t<std::string> registrant(
-            &cluster.mailbox_manager,
-            metadata_controller.get_view(),
+            cluster.get_mailbox_manager(),
+            metadata_controller.get_root_view()->get_peer_view(cluster.get_connectivity_service()->get_me()),
             "hello");
         let_stuff_happen();
 
@@ -82,25 +83,26 @@ void run_registrar_death_test() {
 
     simple_mailbox_cluster_t cluster;
 
-    dummy_metadata_controller_t<resource_metadata_t<registrar_metadata_t<std::string> > > metadata_controller(
-        (resource_metadata_t<registrar_metadata_t<std::string> >()));
-
     monitoring_controller_t controller;
 
     /* Set up `registrar` in a `boost::scoped_ptr` so we can destroy it whenever
     we want to */
     boost::scoped_ptr<registrar_t<std::string, monitoring_controller_t *, monitoring_controller_t::registrant_t> > registrar(
         new registrar_t<std::string, monitoring_controller_t *, monitoring_controller_t::registrant_t>(
-            &cluster.mailbox_manager,
-            &controller,
-            metadata_controller.get_view()
+            cluster.get_mailbox_manager(),
+            &controller
         ));
 
     EXPECT_FALSE(controller.has_registrant);
 
+    simple_directory_manager_t<boost::optional<registrar_business_card_t<std::string> > > metadata_controller(
+        &cluster,
+        boost::optional<registrar_business_card_t<std::string> >(registrar->get_business_card())
+        );
+
     registrant_t<std::string> registrant(
-        &cluster.mailbox_manager,
-        metadata_controller.get_view(),
+        cluster.get_mailbox_manager(),
+        metadata_controller.get_root_view()->get_peer_view(cluster.get_connectivity_service()->get_me()),
         "hello");
     let_stuff_happen();
 
@@ -109,6 +111,12 @@ void run_registrar_death_test() {
     EXPECT_EQ("hello", controller.registrant_data);
 
     /* Kill the registrar */
+    {
+        directory_write_service_t::our_value_lock_acq_t lock(&metadata_controller);
+        metadata_controller.get_root_view()->set_our_value(
+            boost::optional<registrar_business_card_t<std::string> >(),
+            &lock);
+    }
     registrar.reset();
 
     let_stuff_happen();

@@ -14,7 +14,7 @@ class cluster_namespace_interface_t :
     public namespace_interface_t<protocol_t>
 {
 public:
-    typedef std::map<master_id_t, resource_metadata_t<master_metadata_t<protocol_t> > > master_map_t;
+    typedef std::map<master_id_t, master_business_card_t<protocol_t> > master_map_t;
 
     class ambiguity_exc_t : public std::exception {
         const char *what() const throw () {
@@ -35,21 +35,21 @@ public:
     };
 
     cluster_namespace_interface_t(
-            mailbox_manager_t *c,
-            boost::shared_ptr<semilattice_read_view_t<namespace_master_metadata_t<protocol_t> > > masters) :
-        cluster(c),
-        masters_view(metadata_field(&namespace_master_metadata_t<protocol_t>::masters, masters))
+            mailbox_manager_t *mm,
+            clone_ptr_t<directory_rview_t<master_map_t> > mv) :
+        mailbox_manager(mm),
+        masters_view(mv)
         { }
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t r, order_token_t order_token, signal_t *interruptor) {
         return generic_dispatch<typename protocol_t::read_t, typename protocol_t::read_response_t>(
-            &master_metadata_t<protocol_t>::read_mailbox,
+            &master_business_card_t<protocol_t>::read_mailbox,
             r, order_token, interruptor);
     }
 
     typename protocol_t::write_response_t write(typename protocol_t::write_t w, order_token_t order_token, signal_t *interruptor) {
         return generic_dispatch<typename protocol_t::write_t, typename protocol_t::write_response_t>(
-            &master_metadata_t<protocol_t>::write_mailbox,
+            &master_business_card_t<protocol_t>::write_mailbox,
             w, order_token, interruptor);
     }
 
@@ -72,16 +72,16 @@ private:
     template<class op_t, class op_response_t>
     op_response_t generic_dispatch(
             /* This is a pointer-to-member. It's always going to be either
-            `&master_metadata_t<protocol_t>::read_mailbox` or
-            `&master_metadata_t<protocol_t>::write_mailbox`. */
-            typename async_mailbox_t<void(op_t, order_token_t, typename async_mailbox_t<void(boost::variant<op_response_t, std::string>)>::address_t)>::address_t master_metadata_t<protocol_t>::*mailbox_field,
+            `&master_business_card_t<protocol_t>::read_mailbox` or
+            `&master_business_card_t<protocol_t>::write_mailbox`. */
+            typename async_mailbox_t<void(op_t, order_token_t, typename async_mailbox_t<void(boost::variant<op_response_t, std::string>)>::address_t)>::address_t master_business_card_t<protocol_t>::*mailbox_field,
             op_t op, order_token_t order_token, signal_t *interruptor)
             THROWS_ONLY(ambiguity_exc_t, gap_exc_t, forwarded_exc_t, interrupted_exc_t)
     {
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
         std::vector<typename protocol_t::region_t> regions;
-        std::vector<boost::shared_ptr<resource_access_t<master_metadata_t<protocol_t> > > > master_accesses;
+        std::vector<boost::shared_ptr<resource_access_t<master_business_card_t<protocol_t> > > > master_accesses;
         cover(op.get_region(), &regions, &master_accesses);
         rassert(regions.size() == master_accesses.size());
 
@@ -103,9 +103,9 @@ private:
 
     template<class op_t, class op_response_t>
     void generic_perform(
-            typename async_mailbox_t<void(op_t, order_token_t, typename async_mailbox_t<void(boost::variant<op_response_t, std::string>)>::address_t)>::address_t master_metadata_t<protocol_t>::*mailbox_field,
+            typename async_mailbox_t<void(op_t, order_token_t, typename async_mailbox_t<void(boost::variant<op_response_t, std::string>)>::address_t)>::address_t master_business_card_t<protocol_t>::*mailbox_field,
             std::vector<typename protocol_t::region_t> *regions,
-            std::vector<boost::shared_ptr<resource_access_t<master_metadata_t<protocol_t> > > > *master_accesses,
+            std::vector<boost::shared_ptr<resource_access_t<master_business_card_t<protocol_t> > > > *master_accesses,
             op_t *operation,
             order_token_t order_token,
             std::vector<boost::variant<op_response_t, std::string> > *results_or_failures,
@@ -119,12 +119,12 @@ private:
         try {
             promise_t<boost::variant<op_response_t, std::string> > result_or_failure;
             async_mailbox_t<void(boost::variant<op_response_t, std::string>)> result_or_failure_mailbox(
-                cluster, boost::bind(&promise_t<boost::variant<op_response_t, std::string> >::pulse, &result_or_failure, _1));
+                mailbox_manager, boost::bind(&promise_t<boost::variant<op_response_t, std::string> >::pulse, &result_or_failure, _1));
 
             typename async_mailbox_t<void(op_t, order_token_t, typename async_mailbox_t<void(boost::variant<op_response_t, std::string>)>::address_t)>::address_t query_address =
                 (*master_accesses)[i]->access().*mailbox_field;
 
-            send(cluster, query_address,
+            send(mailbox_manager, query_address,
                 shard, order_token, result_or_failure_mailbox.get_address());
 
             wait_any_t waiter(result_or_failure.get_ready_signal(), interruptor, (*master_accesses)[i]->get_failed_signal());
@@ -151,33 +151,37 @@ private:
     void cover(
             typename protocol_t::region_t target_region,
             std::vector<typename protocol_t::region_t> *regions_out,
-            std::vector<boost::shared_ptr<resource_access_t<master_metadata_t<protocol_t> > > > *masters_out)
+            std::vector<boost::shared_ptr<resource_access_t<master_business_card_t<protocol_t> > > > *masters_out)
             THROWS_ONLY(ambiguity_exc_t, gap_exc_t)
     {
         rassert(regions_out->empty());
         rassert(masters_out->empty());
-        ASSERT_FINITE_CORO_WAITING;
 
         /* Find all the masters that might possibly be relevant */
-        master_map_t masters = masters_view->get();
-        for (typename master_map_t::iterator it = masters.begin(); it != masters.end(); it++) {
-            boost::shared_ptr<resource_access_t<master_metadata_t<protocol_t> > > access;
-            typename protocol_t::region_t region;
-            try {
-                access = boost::make_shared<resource_access_t<master_metadata_t<protocol_t> > >(
-                    cluster,
-                    metadata_member((*it).first, masters_view)
-                    );
-                region = access->access().region;
-            } catch (resource_lost_exc_t) {
-                /* Ignore masters that have been shut down or are currently
-                inaccessible. */
-                continue;
-            }
-            typename protocol_t::region_t intersection = region_intersection(region, target_region);
-            if (!region_is_empty(intersection)) {
-                regions_out->push_back(intersection);
-                masters_out->push_back(access);
+        {
+            connectivity_service_t::peers_list_freeze_t connectivity_freeze(
+                masters_view->get_directory_service()->get_connectivity_service());
+            ASSERT_FINITE_CORO_WAITING;
+            std::set<peer_id_t> peers = masters_view->get_directory_service()->
+                get_connectivity_service()->get_peers_list();
+            for (std::set<peer_id_t>::iterator it = peers.begin(); it != peers.end(); it++) {
+                directory_read_service_t::peer_value_freeze_t value_freeze(
+                    masters_view->get_directory_service(), *it);
+                master_map_t masters = masters_view->get_value(*it).get();
+                for (typename master_map_t::iterator it2 = masters.begin(); it2 != masters.end(); it2++) {
+                    typename protocol_t::region_t intersection =
+                        region_intersection(target_region, (*it2).second.region);
+                    if (!region_is_empty(intersection)) {
+                        regions_out->push_back(intersection);
+                        masters_out->push_back(boost::make_shared<resource_access_t<master_business_card_t<protocol_t> > >(
+                            masters_view
+                                ->get_peer_view(*it)
+                                ->template subview<boost::optional<master_business_card_t<protocol_t> > >(
+                                    optional_member_lens<master_id_t, master_business_card_t<protocol_t> >((*it2).first)
+                                    )
+                            ));
+                    }
+                }
             }
         }
 
@@ -193,8 +197,8 @@ private:
         if (join != target_region) throw gap_exc_t();
     }
 
-    mailbox_manager_t *cluster;
-    boost::shared_ptr<semilattice_read_view_t<master_map_t> > masters_view;
+    mailbox_manager_t *mailbox_manager;
+    clone_ptr_t<directory_rview_t<master_map_t> > masters_view;
 
     typename protocol_t::temporary_cache_t temporary_cache;
 };

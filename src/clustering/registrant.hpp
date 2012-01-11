@@ -5,7 +5,7 @@
 #include "rpc/semilattice/view.hpp"
 #include "rpc/mailbox/typed.hpp"
 
-template<class data_t>
+template<class business_card_t>
 class registrant_t {
 
 public:
@@ -14,11 +14,11 @@ public:
     */
     registrant_t(
             mailbox_manager_t *mm,
-            boost::shared_ptr<semilattice_read_view_t<resource_metadata_t<registrar_metadata_t<data_t> > > > registrar_md,
-            data_t initial_value)
+            clone_ptr_t<directory_single_rview_t<boost::optional<registrar_business_card_t<business_card_t> > > > registrar_md,
+            business_card_t initial_value)
             THROWS_ONLY(resource_lost_exc_t) :
         mailbox_manager(mm),
-        registrar(mailbox_manager, registrar_md),
+        registrar(registrar_md),
         registration_id(generate_uuid())
     {
         /* This will make it so that we get deregistered in our destructor. */
@@ -51,7 +51,7 @@ public:
     }
 
 private:
-    typedef typename registrar_metadata_t<data_t>::registration_id_t registration_id_t;
+    typedef typename registrar_business_card_t<business_card_t>::registration_id_t registration_id_t;
 
     /* We can't deregister in our destructor because then we wouldn't get
     deregistered if we died mid-constructor. Instead, the deregistration must be
@@ -60,14 +60,14 @@ private:
     `send_deregister_message()`, and that deregisters things as necessary. */
     static void send_deregister_message(
             mailbox_manager_t *mailbox_manager,
-            typename registrar_metadata_t<data_t>::delete_mailbox_t::address_t addr,
+            typename registrar_business_card_t<business_card_t>::delete_mailbox_t::address_t addr,
             registration_id_t rid) THROWS_NOTHING {
         send(mailbox_manager, addr, rid);
     }
     death_runner_t deregisterer;
 
     mailbox_manager_t *mailbox_manager;
-    resource_access_t<registrar_metadata_t<data_t> > registrar;
+    resource_access_t<registrar_business_card_t<business_card_t> > registrar;
     registration_id_t registration_id;
 };
 

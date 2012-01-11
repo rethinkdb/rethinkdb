@@ -7,6 +7,7 @@
 #include "clustering/registrant.hpp"
 #include "concurrency/promise.hpp"
 #include "protocol_api.hpp"
+#include "rpc/directory/view.hpp"
 
 /* Forward declarations (so we can friend them) */
 
@@ -34,35 +35,36 @@ class listener_t {
 
 public:
     listener_t(
-            mailbox_manager_t *c,
-            boost::shared_ptr<semilattice_read_view_t<namespace_branch_metadata_t<protocol_t> > > nm,
+            mailbox_manager_t *mm,
+            clone_ptr_t<directory_rview_t<std::map<branch_id_t, broadcaster_business_card_t<protocol_t> > > > broadcaster_directory,
+            boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > bh,
             store_view_t<protocol_t> *s,
             branch_id_t bid,
-            backfiller_id_t backfiller_id,
+            clone_ptr_t<directory_single_rview_t<boost::optional<backfiller_business_card_t<protocol_t> > > > backfiller,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t) :
 
-        cluster(c),
-        namespace_metadata(nm),
+        mailbox_manager(mm),
+        branch_history(bh),
         store(s),
         branch_id(bid),
 
-        write_mailbox(cluster, boost::bind(&listener_t::on_write, this,
+        write_mailbox(mailbox_manager, boost::bind(&listener_t::on_write, this,
             auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4)),
-        writeread_mailbox(cluster, boost::bind(&listener_t::on_writeread, this,
+        writeread_mailbox(mailbox_manager, boost::bind(&listener_t::on_writeread, this,
             auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4)),
-        read_mailbox(cluster, boost::bind(&listener_t::on_read, this,
+        read_mailbox(mailbox_manager, boost::bind(&listener_t::on_read, this,
             auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4))
     {
         if (interruptor->is_pulsed()) {
             throw interrupted_exc_t();
         }
 
-        boost::shared_ptr<semilattice_read_view_t<branch_metadata_t<protocol_t> > > branch_metadata =
-            metadata_member(branch_id, metadata_field(&namespace_branch_metadata_t<protocol_t>::branches, namespace_metadata)); 
-
 #ifndef NDEBUG
-        rassert(region_is_superset(branch_metadata->get().region, store->get_region()));
+        branch_birth_certificate_t<protocol_t> this_branch_history =
+            branch_history->get().branches[branch_id];
+
+        rassert(region_is_superset(this_branch_history.region, store->get_region()));
 
         /* Sanity-check to make sure we're on the same timeline as the thing
         we're trying to join. The backfiller will perform an equivalent check,
@@ -78,26 +80,53 @@ public:
             rassert(
                 version.branch == branch_id ||
                 version_is_ancestor(
-                    namespace_metadata,
+                    branch_history->get(),
                     version,
-                    version_t(branch_id, branch_metadata->get().initial_timestamp),
+                    version_t(branch_id, this_branch_history.initial_timestamp),
                     start_point_pairs[i].first)
                 );
         }
 #endif
 
-        /* Attempt to register for reads and writes */
-        try_start_receiving_writes(branch_metadata, interruptor);
+        /* Figure out which peer the broadcaster lives on. */
+        peer_id_t broadcaster_peer;
+        int num_matches_found = 0;
+        {
+            connectivity_service_t::peers_list_freeze_t freeze(
+                broadcaster_directory->get_directory_service()->get_connectivity_service()
+                );
+            std::set<peer_id_t> peers = broadcaster_directory->
+                get_directory_service()->get_connectivity_service()->
+                get_peers_list();
+            for (std::set<peer_id_t>::iterator it = peers.begin();
+                    it != peers.end(); it++) {
+                if (broadcaster_directory->get_value(*it).get().count(branch_id) != 0) {
+                    broadcaster_peer = *it;
+                    num_matches_found++;
+                }
+            }
+        }
+        rassert(num_matches_found <= 1);
+        if (num_matches_found == 0) {
+            /* We already lost contact with the broadcaster peer */
+            registration_result_cond.pulse(boost::optional<intro_t>());
+        } else {
+            /* Attempt to register for reads and writes */
+            try_start_receiving_writes(
+                broadcaster_directory->
+                    get_peer_view(broadcaster_peer)->
+                    template subview<boost::optional<broadcaster_business_card_t<protocol_t> > >(
+                        optional_member_lens<branch_id_t, broadcaster_business_card_t<protocol_t> >(branch_id)
+                        ),
+                interruptor);
+        }
 
         /* Backfill */
         backfillee<protocol_t>(
-            cluster,
-            namespace_metadata,
+            mailbox_manager,
+            branch_history,
             store,
-            metadata_member(backfiller_id,
-                metadata_field(&branch_metadata_t<protocol_t>::backfillers,
-                    branch_metadata
-                    )),
+            backfiller,
             interruptor
             );
 
@@ -155,8 +184,8 @@ private:
     broadcaster if all goes well. */
     class intro_t {
     public:
-        typename listener_data_t<protocol_t>::upgrade_mailbox_t::address_t upgrade_mailbox;
-        typename listener_data_t<protocol_t>::downgrade_mailbox_t::address_t downgrade_mailbox;
+        typename listener_business_card_t<protocol_t>::upgrade_mailbox_t::address_t upgrade_mailbox;
+        typename listener_business_card_t<protocol_t>::downgrade_mailbox_t::address_t downgrade_mailbox;
         state_timestamp_t broadcaster_begin_timestamp;
     };
 
@@ -167,8 +196,8 @@ private:
     public:
         intro_t intro;
         void fill(state_timestamp_t its,
-                typename listener_data_t<protocol_t>::upgrade_mailbox_t::address_t um,
-                typename listener_data_t<protocol_t>::downgrade_mailbox_t::address_t dm) {
+                typename listener_business_card_t<protocol_t>::upgrade_mailbox_t::address_t um,
+                typename listener_business_card_t<protocol_t>::downgrade_mailbox_t::address_t dm) {
             rassert(!is_pulsed());
             intro.broadcaster_begin_timestamp = its;
             intro.upgrade_mailbox = um;
@@ -181,34 +210,30 @@ private:
     becoming the first mirror of a new branch. It's private because it shouldn't
     be used for any other purpose. */
     listener_t(
-            mailbox_manager_t *c,
-            boost::shared_ptr<semilattice_read_view_t<namespace_branch_metadata_t<protocol_t> > > nm,
+            mailbox_manager_t *mm,
+            clone_ptr_t<directory_rview_t<std::map<branch_id_t, broadcaster_business_card_t<protocol_t> > > > broadcaster_directory,
+            boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > bh,
             store_view_t<protocol_t> *s,
             branch_id_t bid,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) :
 
-        cluster(c),
-        namespace_metadata(nm),
+        mailbox_manager(mm),
+        branch_history(bh),
         store(s),
         branch_id(bid),
 
-        write_mailbox(cluster, boost::bind(&listener_t::on_write, this,
+        write_mailbox(mailbox_manager, boost::bind(&listener_t::on_write, this,
             auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4)),
-        writeread_mailbox(cluster, boost::bind(&listener_t::on_writeread, this,
+        writeread_mailbox(mailbox_manager, boost::bind(&listener_t::on_writeread, this,
             auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4)),
-        read_mailbox(cluster, boost::bind(&listener_t::on_read, this,
+        read_mailbox(mailbox_manager, boost::bind(&listener_t::on_read, this,
             auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4))
     {
         if (interruptor->is_pulsed()) {
             throw interrupted_exc_t();
         }
 
-        boost::shared_ptr<semilattice_read_view_t<branch_metadata_t<protocol_t> > > branch_metadata =
-            metadata_member(branch_id, metadata_field(&namespace_branch_metadata_t<protocol_t>::branches, namespace_metadata)); 
-
-        /* Make sure the initial state of the store is sane */
-        rassert(store->get_region() == branch_metadata->get().region);
         region_map_t<protocol_t, binary_blob_t> initial_metadata =
             store->begin_read_transaction(interruptor)->get_metadata(interruptor);
         rassert(initial_metadata.get_as_pairs().size() == 1);
@@ -217,8 +242,21 @@ private:
         rassert(initial_version.earliest.branch == branch_id);
         state_timestamp_t initial_timestamp = initial_version.earliest.timestamp;
 
+#ifndef NDEBUG
+        /* Make sure the initial state of the store is sane */
+        branch_birth_certificate_t<protocol_t> this_branch_history =
+            branch_history->get().branches[branch_id];
+        rassert(store->get_region() == this_branch_history.region);
+#endif
+
         /* Attempt to register for reads and writes */
-        try_start_receiving_writes(branch_metadata, interruptor);
+        try_start_receiving_writes(
+            broadcaster_directory->
+                get_peer_view(mailbox_manager->get_connectivity_service()->get_me())->
+                template subview<boost::optional<broadcaster_business_card_t<protocol_t> > >(
+                    optional_member_lens<branch_id_t, broadcaster_business_card_t<protocol_t> >(branch_id)
+                    ),
+            interruptor);
 
         /* Make sure that `broadcast_begin_timestamp` matches the initial
         metadata */
@@ -241,19 +279,25 @@ private:
     a value indicating if the registration succeeded or not, and with the intro
     we got from the broadcaster if it succeeded. */
     void try_start_receiving_writes(
-            boost::shared_ptr<semilattice_read_view_t<branch_metadata_t<protocol_t> > > branch,
+            clone_ptr_t<directory_single_rview_t<boost::optional<broadcaster_business_card_t<protocol_t> > > > broadcaster,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t)
     {
         intro_receiver_t intro_receiver;
-        typename listener_data_t<protocol_t>::intro_mailbox_t intro_mailbox(
-            cluster, boost::bind(&intro_receiver_t::fill, &intro_receiver, _1, _2, _3));
+        typename listener_business_card_t<protocol_t>::intro_mailbox_t intro_mailbox(
+            mailbox_manager, boost::bind(&intro_receiver_t::fill, &intro_receiver, _1, _2, _3));
 
         try {
-            registrant.reset(new registrant_t<listener_data_t<protocol_t> >(
-                cluster,
-                metadata_field(&branch_metadata_t<protocol_t>::broadcaster_registrar, branch),
-                listener_data_t<protocol_t>(intro_mailbox.get_address(), write_mailbox.get_address())
+            registrant.reset(new registrant_t<listener_business_card_t<protocol_t> >(
+                mailbox_manager,
+                broadcaster->subview(
+                    optional_monad_lens<
+                            registrar_business_card_t<listener_business_card_t<protocol_t> >,
+                            broadcaster_business_card_t<protocol_t> >(
+                        field_lens(&broadcaster_business_card_t<protocol_t>::registrar)
+                        )
+                    ),
+                listener_business_card_t<protocol_t>(intro_mailbox.get_address(), write_mailbox.get_address())
                 ));
         } catch (resource_lost_exc_t) {
             registration_result_cond.pulse(boost::optional<intro_t>());
@@ -291,7 +335,7 @@ private:
             fifo_enforcer_sink_t::exit_write_t fifo_exit(&fifo_sink, fifo_token, keepalive.get_drain_signal());
 
             /* Validate write. */
-            rassert(region_is_superset(namespace_metadata->get().branches[branch_id].region, write.get_region()));
+            rassert(region_is_superset(branch_history->get().branches[branch_id].region, write.get_region()));
             rassert(!region_is_empty(write.get_region()));
 
             /* Block until registration has completely succeeded or failed. */
@@ -367,7 +411,7 @@ private:
                 write,
                 transition_timestamp);
 
-            send(cluster, ack_addr);
+            send(mailbox_manager, ack_addr);
 
         } catch (interrupted_exc_t) {
             return;
@@ -388,7 +432,7 @@ private:
             fifo_enforcer_sink_t::exit_write_t fifo_exit(&fifo_sink, fifo_token, keepalive.get_drain_signal());
 
             /* Validate write. */
-            rassert(region_is_superset(namespace_metadata->get().branches[branch_id].region, write.get_region()));
+            rassert(region_is_superset(branch_history->get().branches[branch_id].region, write.get_region()));
             rassert(!region_is_empty(write.get_region()));
 
             /* We can't possibly be receiving writereads unless we successfully
@@ -436,7 +480,7 @@ private:
                 write,
                 transition_timestamp);
 
-            send(cluster, ack_addr, response);
+            send(mailbox_manager, ack_addr, response);
 
         } catch (interrupted_exc_t) {
             return;
@@ -454,7 +498,7 @@ private:
             fifo_enforcer_sink_t::exit_read_t fifo_exit(&fifo_sink, fifo_token, keepalive.get_drain_signal());
 
             /* Validate read. */
-            rassert(region_is_superset(namespace_metadata->get().branches[branch_id].region, read.get_region()));
+            rassert(region_is_superset(branch_history->get().branches[branch_id].region, read.get_region()));
             rassert(!region_is_empty(read.get_region()));
 
             /* We can't possibly be receiving reads unless we successfully
@@ -491,15 +535,19 @@ private:
                 read,
                 keepalive.get_drain_signal());
 
-            send(cluster, ack_addr, response);
+            send(mailbox_manager, ack_addr, response);
 
         } catch (interrupted_exc_t) {
             return;
         }
     }
 
-    mailbox_manager_t *cluster;
-    boost::shared_ptr<semilattice_read_view_t<namespace_branch_metadata_t<protocol_t> > > namespace_metadata;
+    mailbox_manager_t *mailbox_manager;
+
+    /* This variable looks useless, since it's set in the constructor but not
+    used by any of the methods, but in reality it's important because it's used
+    by `replier_t` which is our friend. */
+    boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > branch_history;
 
     store_view_t<protocol_t> *store;
 
@@ -522,7 +570,7 @@ private:
 
     auto_drainer_t drainer;
 
-    typename listener_data_t<protocol_t>::write_mailbox_t write_mailbox;
+    typename listener_business_card_t<protocol_t>::write_mailbox_t write_mailbox;
 
     /* `writeread_mailbox` and `read_mailbox` live on the `listener_t` even
     though they don't get used until the `replier_t` is constructed. The reason
@@ -530,10 +578,10 @@ private:
     `replier_t` is destroyed without doing a warm shutdown but the `listener_t`
     stays alive. The reason `read_mailbox` is here is for consistency, and to
     have all the query-handling code in one place. */
-    typename listener_data_t<protocol_t>::writeread_mailbox_t writeread_mailbox;
-    typename listener_data_t<protocol_t>::read_mailbox_t read_mailbox;
+    typename listener_business_card_t<protocol_t>::writeread_mailbox_t writeread_mailbox;
+    typename listener_business_card_t<protocol_t>::read_mailbox_t read_mailbox;
 
-    boost::scoped_ptr<registrant_t<listener_data_t<protocol_t> > > registrant;
+    boost::scoped_ptr<registrant_t<listener_business_card_t<protocol_t> > > registrant;
 
     /* `outdated_signal` is pulsed if we become outdated for any reason. */
     wait_any_t outdated_signal;

@@ -12,7 +12,9 @@ public:
         superview(clone_me->clone()), lens(l)
         { }
 
-    subview_directory_single_rview_t *clone() {
+    ~subview_directory_single_rview_t() THROWS_NOTHING { }
+
+    subview_directory_single_rview_t *clone() THROWS_NOTHING {
         return new subview_directory_single_rview_t(superview.get(), lens);
     }
 
@@ -58,7 +60,9 @@ public:
         superview(clone_me->clone()), lens(l)
         { }
 
-    subview_directory_rview_t *clone() {
+    ~subview_directory_rview_t() THROWS_NOTHING { }
+
+    subview_directory_rview_t *clone() THROWS_NOTHING {
         return new subview_directory_rview_t(superview.get(), lens);
     }
 
@@ -100,7 +104,9 @@ public:
         superview(clone_me->clone()), peer(p)
         { }
 
-    peer_subview_directory_single_rview_t *clone() {
+    ~peer_subview_directory_single_rview_t() THROWS_NOTHING { }
+
+    peer_subview_directory_single_rview_t *clone() THROWS_NOTHING {
         return new peer_subview_directory_single_rview_t(superview.get(), peer);
     }
 
@@ -120,3 +126,12 @@ private:
     boost::scoped_ptr<directory_rview_t<metadata_t> > superview;
     peer_id_t peer;
 };
+
+template<class metadata_t>
+clone_ptr_t<directory_single_rview_t<metadata_t> > directory_rview_t<metadata_t>::get_peer_view(peer_id_t peer) THROWS_NOTHING {
+    return clone_ptr_t<directory_single_rview_t<metadata_t> >(
+        new peer_subview_directory_single_rview_t<metadata_t>(
+            this,
+            peer
+        ));
+}

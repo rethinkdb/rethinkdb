@@ -5,7 +5,7 @@
 template<class protocol_t>
 void listener_write(
         mailbox_manager_t *mailbox_manager,
-        const typename listener_data_t<protocol_t>::write_mailbox_t::address_t &write_mailbox,
+        const typename listener_business_card_t<protocol_t>::write_mailbox_t::address_t &write_mailbox,
         typename protocol_t::write_t w, transition_timestamp_t ts, fifo_enforcer_write_token_t token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
@@ -27,7 +27,7 @@ void listener_write(
 template<class protocol_t>
 typename protocol_t::write_response_t listener_writeread(
         mailbox_manager_t *mailbox_manager,
-        const typename listener_data_t<protocol_t>::writeread_mailbox_t::address_t &writeread_mailbox,
+        const typename listener_business_card_t<protocol_t>::writeread_mailbox_t::address_t &writeread_mailbox,
         typename protocol_t::write_t w, transition_timestamp_t ts, fifo_enforcer_write_token_t token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
@@ -49,7 +49,7 @@ typename protocol_t::write_response_t listener_writeread(
 template<class protocol_t>
 typename protocol_t::read_response_t listener_read(
         mailbox_manager_t *mailbox_manager,
-        const typename listener_data_t<protocol_t>::read_mailbox_t::address_t &read_mailbox,
+        const typename listener_business_card_t<protocol_t>::read_mailbox_t::address_t &read_mailbox,
         typename protocol_t::read_t r, state_timestamp_t ts, fifo_enforcer_read_token_t token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
@@ -180,7 +180,7 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
 }
 
 template<class protocol_t>
-broadcaster_t<protocol_t>::dispatchee_t::dispatchee_t(broadcaster_t *c, listener_data_t<protocol_t> d) THROWS_NOTHING :
+broadcaster_t<protocol_t>::dispatchee_t::dispatchee_t(broadcaster_t *c, listener_business_card_t<protocol_t> d) THROWS_NOTHING :
     write_mailbox(d.write_mailbox), is_readable(false), controller(c),
     upgrade_mailbox(controller->mailbox_manager,
         boost::bind(&dispatchee_t::upgrade, this, _1, _2, auto_drainer_t::lock_t(&drainer))),
@@ -222,7 +222,7 @@ broadcaster_t<protocol_t>::dispatchee_t::~dispatchee_t() THROWS_NOTHING {
 }
 
 template<class protocol_t>
-void broadcaster_t<protocol_t>::dispatchee_t::send_intro(listener_data_t<protocol_t> to_send_intro_to, state_timestamp_t intro_timestamp, auto_drainer_t::lock_t lock) THROWS_NOTHING {
+void broadcaster_t<protocol_t>::dispatchee_t::send_intro(listener_business_card_t<protocol_t> to_send_intro_to, state_timestamp_t intro_timestamp, auto_drainer_t::lock_t lock) THROWS_NOTHING {
     lock.assert_is_holding(&drainer);
     send(controller->mailbox_manager, to_send_intro_to.intro_mailbox,
         intro_timestamp,
@@ -233,8 +233,8 @@ void broadcaster_t<protocol_t>::dispatchee_t::send_intro(listener_data_t<protoco
 
 template<class protocol_t>
 void broadcaster_t<protocol_t>::dispatchee_t::upgrade(
-        typename listener_data_t<protocol_t>::writeread_mailbox_t::address_t wrm,
-        typename listener_data_t<protocol_t>::read_mailbox_t::address_t rm,
+        typename listener_business_card_t<protocol_t>::writeread_mailbox_t::address_t wrm,
+        typename listener_business_card_t<protocol_t>::read_mailbox_t::address_t rm,
         auto_drainer_t::lock_t)
         THROWS_NOTHING
 {

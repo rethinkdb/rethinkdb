@@ -22,7 +22,7 @@ void let_stuff_happen() {
 
 }   /* anonymous namespace */
 
-/* The `Write` test sends some reads and writes to some shards via a
+/* The `ReadWrite` test sends some reads and writes to some shards via a
 `cluster_namespace_interface_t`. */
 
 static void run_read_write_test() {
@@ -30,26 +30,29 @@ static void run_read_write_test() {
     /* Set up a cluster so mailboxes can be created */
     simple_mailbox_cluster_t cluster;
 
-    /* Set up a metadata meeting-place for branches */
-    namespace_branch_metadata_t<dummy_protocol_t> initial_branch_metadata;
-    dummy_metadata_controller_t<namespace_branch_metadata_t<dummy_protocol_t> > branch_metadata_controller(initial_branch_metadata);
+    /* Set up metadata meeting-places */
+    branch_history_t<dummy_protocol_t> initial_branch_metadata;
+    dummy_semilattice_controller_t<branch_history_t<dummy_protocol_t> > branch_history_controller(initial_branch_metadata);
+    std::map<branch_id_t, broadcaster_business_card_t<dummy_protocol_t> > initial_broadcaster_directory;
+    simple_directory_manager_t<std::map<branch_id_t, broadcaster_business_card_t<dummy_protocol_t> > >
+        broadcaster_directory_controller(&cluster, initial_broadcaster_directory);
 
     /* Set up a branch */
     test_store_t initial_store;
     cond_t interruptor;
     boost::scoped_ptr<listener_t<dummy_protocol_t> > initial_listener;
-    broadcaster_t<dummy_protocol_t> broadcaster(&cluster.mailbox_manager, branch_metadata_controller.get_view(), &initial_store.store, &interruptor, &initial_listener);
-    replier_t<dummy_protocol_t> initial_replier(&cluster.mailbox_manager, branch_metadata_controller.get_view(), initial_listener.get());
+    broadcaster_t<dummy_protocol_t> broadcaster(cluster.get_mailbox_manager(), broadcaster_directory_controller.get_root_view(), branch_history_controller.get_view(), &initial_store.store, &interruptor, &initial_listener);
+    replier_t<dummy_protocol_t> initial_replier(initial_listener.get());
 
     /* Set up a metadata meeting-place for masters */
-    namespace_master_metadata_t<dummy_protocol_t> initial_master_metadata;
-    dummy_metadata_controller_t<namespace_master_metadata_t<dummy_protocol_t> > master_metadata_controller(initial_master_metadata);
+    std::map<master_id_t, master_business_card_t<dummy_protocol_t> > initial_master_metadata;
+    simple_directory_manager_t<std::map<master_id_t, master_business_card_t<dummy_protocol_t> > > master_metadata_controller(&cluster, initial_master_metadata);
 
     /* Set up a master */
-    master_t<dummy_protocol_t> master(&cluster.mailbox_manager, master_metadata_controller.get_view(), a_thru_z_region(), &broadcaster);
+    master_t<dummy_protocol_t> master(cluster.get_mailbox_manager(), master_metadata_controller.get_root_view(), a_thru_z_region(), &broadcaster);
 
     /* Set up a namespace dispatcher */
-    cluster_namespace_interface_t<dummy_protocol_t> namespace_interface(&cluster.mailbox_manager, master_metadata_controller.get_view());
+    cluster_namespace_interface_t<dummy_protocol_t> namespace_interface(cluster.get_mailbox_manager(), master_metadata_controller.get_root_view());
 
     /* Send some writes to the namespace */
     order_source_t order_source;

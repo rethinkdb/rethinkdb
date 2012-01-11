@@ -2,10 +2,11 @@
 #define __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_HISTORY_HPP__
 
 #include "clustering/immediate_consistency/branch/metadata.hpp"
+#include "rpc/semilattice/view.hpp"
 
 template<class protocol_t>
 bool version_is_ancestor(
-        boost::shared_ptr<semilattice_read_view_t<namespace_branch_metadata_t<protocol_t> > > namespace_metadata,
+        const branch_history_t<protocol_t> &branch_history,
         version_t ancestor,
         version_t descendent,
         typename protocol_t::region_t relevant_region)
@@ -21,8 +22,11 @@ bool version_is_ancestor(
     } else if (ancestor.branch == descendent.branch) {
         return ancestor.timestamp <= descendent.timestamp;
     } else {
-        rassert(namespace_metadata->get().branches.count(descendent.branch) != 0);
-        branch_metadata_t<protocol_t> descendent_branch_metadata = namespace_metadata->get().branches[descendent.branch];
+        rassert(branch_history.branches.count(descendent.branch) != 0);
+        typename std::map<branch_id_t, branch_birth_certificate_t<protocol_t> >::const_iterator it =
+            branch_history.branches.find(descendent.branch);
+        guarantee(it != branch_history.branches.end());
+        branch_birth_certificate_t<protocol_t> descendent_branch_metadata = (*it).second;
         rassert(region_is_superset(descendent_branch_metadata.region, relevant_region));
         rassert(descendent.timestamp >= descendent_branch_metadata.initial_timestamp);
         std::vector<std::pair<typename protocol_t::region_t, version_range_t> > origin_pairs =
@@ -30,8 +34,8 @@ bool version_is_ancestor(
         rassert(!origin_pairs.empty());
         for (int i = 0; i < (int)origin_pairs.size(); i++) {
             rassert(!region_is_empty(origin_pairs[i].first));
-            rassert(version_is_ancestor(namespace_metadata, origin_pairs[i].second.earliest, origin_pairs[i].second.latest, origin_pairs[i].first));
-            if (!version_is_ancestor(namespace_metadata, ancestor, origin_pairs[i].second.earliest, origin_pairs[i].first)) {
+            rassert(version_is_ancestor(branch_history, origin_pairs[i].second.earliest, origin_pairs[i].second.latest, origin_pairs[i].first));
+            if (!version_is_ancestor(branch_history, ancestor, origin_pairs[i].second.earliest, origin_pairs[i].first)) {
                 return false;
             }
         }

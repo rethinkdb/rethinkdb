@@ -4,8 +4,8 @@
 #include "rpc/mailbox/typed.hpp"
 #include <boost/uuid/uuid.hpp>
 
-template<class data_t>
-class registrar_metadata_t {
+template<class business_card_t>
+class registrar_business_card_t {
 
 public:
     typedef boost::uuids::uuid registration_id_t;
@@ -13,7 +13,7 @@ public:
     typedef async_mailbox_t<void(
         registration_id_t,
         peer_id_t,
-        data_t
+        business_card_t
         )> create_mailbox_t;
     typename create_mailbox_t::address_t create_mailbox;
 
@@ -22,18 +22,15 @@ public:
         )> delete_mailbox_t;
     typename delete_mailbox_t::address_t delete_mailbox;
 
-    registrar_metadata_t() { }
+    registrar_business_card_t() { }
 
-    registrar_metadata_t(
+    registrar_business_card_t(
             const typename create_mailbox_t::address_t &cm,
             const typename delete_mailbox_t::address_t &dm) :
         create_mailbox(cm), delete_mailbox(dm)
         { }
-};
 
-template<class data_t>
-void semilattice_join(UNUSED registrar_metadata_t<data_t> *a, UNUSED const registrar_metadata_t<data_t> &b) {
-    /* They should be identical. Do nothing. */
-}
+    RDB_MAKE_ME_SERIALIZABLE_2(create_mailbox, delete_mailbox);
+};
 
 #endif /* __CLUSTERING_REGISTRATION_HPP__ */

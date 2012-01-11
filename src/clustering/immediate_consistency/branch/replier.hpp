@@ -21,39 +21,28 @@ template<class protocol_t>
 class replier_t {
 
 public:
-    replier_t(
-            mailbox_manager_t *cluster,
-            boost::shared_ptr<semilattice_readwrite_view_t<namespace_branch_metadata_t<protocol_t> > > namespace_metadata,
-            listener_t<protocol_t> *l) :
+    replier_t(listener_t<protocol_t> *l) :
         listener(l)
     {
-        rassert(cluster == listener->cluster);
         rassert(listener->store->get_region() ==
-            listener->namespace_metadata->get().branches[listener->branch_id].region,
+            listener->branch_history->get().branches[listener->branch_id].region,
             "Even though you can have a listener that only watches some subset "
             "of a branch, you can't have a replier for some subset of a "
             "branch.");
         rassert(!listener->get_outdated_signal()->is_pulsed());
 
         /* Notify the broadcaster that we can reply to queries */
-        send(listener->cluster,
+        send(listener->mailbox_manager,
             listener->registration_result_cond.get_value()->upgrade_mailbox,
             listener->writeread_mailbox.get_address(),
             listener->read_mailbox.get_address()
             );
 
         /* Start serving backfills */
-        backfiller_id = generate_uuid();
         backfiller.reset(new backfiller_t<protocol_t>(
-            listener->cluster,
-            listener->namespace_metadata,
-            listener->store,
-            metadata_new_member(backfiller_id,
-                metadata_field(&branch_metadata_t<protocol_t>::backfillers,
-                    metadata_member(listener->branch_id,
-                        metadata_field(&namespace_branch_metadata_t<protocol_t>::branches,
-                            namespace_metadata
-                ))))
+            listener->mailbox_manager,
+            listener->branch_history,
+            listener->store
             ));
 
         stop_backfilling_if_listener_outdated.reset(new signal_t::subscription_t(
@@ -69,7 +58,7 @@ public:
     The destructor also immediately stops any outstanding backfills. */
     ~replier_t() {
         if (listener->get_outdated_signal()->is_pulsed()) {
-            send(listener->cluster,
+            send(listener->mailbox_manager,
                 listener->registration_result_cond.get_value()->downgrade_mailbox,
                 /* We don't want a confirmation */
                 async_mailbox_t<void()>::address_t()
@@ -77,10 +66,8 @@ public:
         }
     }
 
-    backfiller_id_t get_backfiller_id() {
-        rassert(!listener->get_outdated_signal()->is_pulsed(),
-            "We're no longer serving backfills because we're outdated.");
-        return backfiller_id;
+    backfiller_business_card_t<protocol_t> get_business_card() {
+        return backfiller->get_business_card();
     }
 
     /* TODO: Support warm shutdowns? */
@@ -97,7 +84,6 @@ private:
 
     listener_t<protocol_t> *listener;
 
-    backfiller_id_t backfiller_id;
     boost::scoped_ptr<backfiller_t<protocol_t> > backfiller;
     boost::scoped_ptr<signal_t::subscription_t> stop_backfilling_if_listener_outdated;
 };

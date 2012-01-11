@@ -18,20 +18,19 @@ class master_t {
 
 public:
     master_t(
-            mailbox_manager_t *c,
-            boost::shared_ptr<semilattice_readwrite_view_t<namespace_master_metadata_t<protocol_t> > > namespace_metadata,
+            mailbox_manager_t *mm,
+            clone_ptr_t<directory_wview_t<std::map<master_id_t, master_business_card_t<protocol_t> > > > master_directory,
             typename protocol_t::region_t region,
             broadcaster_t<protocol_t> *b)
             THROWS_ONLY(interrupted_exc_t) :
-        cluster(c),
+        mailbox_manager(mm),
         broadcaster(b),
-        read_mailbox(cluster, boost::bind(&master_t<protocol_t>::on_read,
+        read_mailbox(mailbox_manager, boost::bind(&master_t<protocol_t>::on_read,
             this, _1, _2, _3, auto_drainer_t::lock_t(&drainer))),
-        write_mailbox(cluster, boost::bind(&master_t<protocol_t>::on_write,
+        write_mailbox(mailbox_manager, boost::bind(&master_t<protocol_t>::on_write,
             this, _1, _2, _3, auto_drainer_t::lock_t(&drainer))),
-        advertisement(cluster,
-            metadata_new_member(generate_uuid(), metadata_field(&namespace_master_metadata_t<protocol_t>::masters, namespace_metadata)),
-            master_metadata_t<protocol_t>(region, read_mailbox.get_address(), write_mailbox.get_address())
+        advertisement(master_directory, generate_uuid(),
+            master_business_card_t<protocol_t>(region, read_mailbox.get_address(), write_mailbox.get_address())
             )
         { }
 
@@ -44,11 +43,11 @@ private:
         keepalive.assert_is_holding(&drainer);
         try {
             typename protocol_t::read_response_t response = broadcaster->read(read, otok);
-            send(cluster, response_address, boost::variant<typename protocol_t::read_response_t, std::string>(response));
+            send(mailbox_manager, response_address, boost::variant<typename protocol_t::read_response_t, std::string>(response));
         } catch (typename broadcaster_t<protocol_t>::mirror_lost_exc_t e) {
-            send(cluster, response_address, boost::variant<typename protocol_t::read_response_t, std::string>(std::string(e.what())));
+            send(mailbox_manager, response_address, boost::variant<typename protocol_t::read_response_t, std::string>(std::string(e.what())));
         } catch (typename broadcaster_t<protocol_t>::insufficient_mirrors_exc_t e) {
-            send(cluster, response_address, boost::variant<typename protocol_t::read_response_t, std::string>(std::string(e.what())));
+            send(mailbox_manager, response_address, boost::variant<typename protocol_t::read_response_t, std::string>(std::string(e.what())));
         }
     }
 
@@ -60,23 +59,23 @@ private:
         keepalive.assert_is_holding(&drainer);
         try {
             typename protocol_t::write_response_t response = broadcaster->write(write, otok);
-            send(cluster, response_address, boost::variant<typename protocol_t::write_response_t, std::string>(response));
+            send(mailbox_manager, response_address, boost::variant<typename protocol_t::write_response_t, std::string>(response));
         } catch (typename broadcaster_t<protocol_t>::mirror_lost_exc_t e) {
-            send(cluster, response_address, boost::variant<typename protocol_t::write_response_t, std::string>(std::string(e.what())));
+            send(mailbox_manager, response_address, boost::variant<typename protocol_t::write_response_t, std::string>(std::string(e.what())));
         } catch (typename broadcaster_t<protocol_t>::insufficient_mirrors_exc_t e) {
-            send(cluster, response_address, boost::variant<typename protocol_t::write_response_t, std::string>(std::string(e.what())));
+            send(mailbox_manager, response_address, boost::variant<typename protocol_t::write_response_t, std::string>(std::string(e.what())));
         }
     }
 
-    mailbox_manager_t *cluster;
+    mailbox_manager_t *mailbox_manager;
 
     broadcaster_t<protocol_t> *broadcaster;
 
     auto_drainer_t drainer;
 
-    typename master_metadata_t<protocol_t>::read_mailbox_t read_mailbox;
-    typename master_metadata_t<protocol_t>::write_mailbox_t write_mailbox;
-    resource_advertisement_t<master_metadata_t<protocol_t> > advertisement;
+    typename master_business_card_t<protocol_t>::read_mailbox_t read_mailbox;
+    typename master_business_card_t<protocol_t>::write_mailbox_t write_mailbox;
+    resource_map_advertisement_t<master_id_t, master_business_card_t<protocol_t> > advertisement;
 };
 
 #endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_MASTER_HPP__ */

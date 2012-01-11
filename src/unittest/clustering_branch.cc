@@ -13,8 +13,9 @@ namespace {
 
 void run_with_broadcaster(
         boost::function<void(
-            mailbox_manager_t *,
-            boost::shared_ptr<semilattice_readwrite_view_t<namespace_branch_metadata_t<dummy_protocol_t> > >,
+            simple_mailbox_cluster_t *,
+            boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<dummy_protocol_t> > >,
+            clone_ptr_t<directory_rwview_t<std::map<branch_id_t, broadcaster_business_card_t<dummy_protocol_t> > > >,
             boost::scoped_ptr<broadcaster_t<dummy_protocol_t> > *,
             test_store_t *,
             boost::scoped_ptr<listener_t<dummy_protocol_t> > *
@@ -23,9 +24,13 @@ void run_with_broadcaster(
     /* Set up a cluster so mailboxes can be created */
     simple_mailbox_cluster_t cluster;
 
-    /* Set up a metadata meeting-place */
-    namespace_branch_metadata_t<dummy_protocol_t> initial_metadata;
-    dummy_metadata_controller_t<namespace_branch_metadata_t<dummy_protocol_t> > metadata_controller(initial_metadata);
+    /* Set up metadata meeting-places */
+    branch_history_t<dummy_protocol_t> initial_branch_history;
+    dummy_semilattice_controller_t<branch_history_t<dummy_protocol_t> >
+        branch_history_controller(initial_branch_history);
+    std::map<branch_id_t, broadcaster_business_card_t<dummy_protocol_t> > initial_broadcaster_directory;
+    simple_directory_manager_t<std::map<branch_id_t, broadcaster_business_card_t<dummy_protocol_t> > >
+        broadcaster_directory_controller(&cluster, initial_broadcaster_directory);
 
     /* Set up a broadcaster and initial listener */
     test_store_t initial_store;
@@ -33,20 +38,27 @@ void run_with_broadcaster(
     boost::scoped_ptr<listener_t<dummy_protocol_t> > initial_listener;
     boost::scoped_ptr<broadcaster_t<dummy_protocol_t> > broadcaster(
         new broadcaster_t<dummy_protocol_t>(
-            &cluster.mailbox_manager,
-            metadata_controller.get_view(),
+            cluster.get_mailbox_manager(),
+            broadcaster_directory_controller.get_root_view(),
+            branch_history_controller.get_view(),
             &initial_store.store,
             &interruptor,
             &initial_listener
         ));
 
-    fun(&cluster.mailbox_manager, metadata_controller.get_view(), &broadcaster, &initial_store, &initial_listener);
+    fun(&cluster,
+        branch_history_controller.get_view(),
+        broadcaster_directory_controller.get_root_view(),
+        &broadcaster,
+        &initial_store,
+        &initial_listener);
 }
 
 void run_in_thread_pool_with_broadcaster(
         boost::function<void(
-            mailbox_manager_t *,
-            boost::shared_ptr<semilattice_readwrite_view_t<namespace_branch_metadata_t<dummy_protocol_t> > >,
+            simple_mailbox_cluster_t *,
+            boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<dummy_protocol_t> > >,
+            clone_ptr_t<directory_rwview_t<std::map<branch_id_t, broadcaster_business_card_t<dummy_protocol_t> > > >,
             boost::scoped_ptr<broadcaster_t<dummy_protocol_t> > *,
             test_store_t *,
             boost::scoped_ptr<listener_t<dummy_protocol_t> > *
@@ -65,15 +77,16 @@ void let_stuff_happen() {
 /* The `ReadWrite` test just sends some reads and writes via the broadcaster to a
 single mirror. */
 
-void run_read_write_test(mailbox_manager_t *mailbox_manager,
-        boost::shared_ptr<semilattice_readwrite_view_t<namespace_branch_metadata_t<dummy_protocol_t> > > metadata_view,
+void run_read_write_test(UNUSED simple_mailbox_cluster_t *cluster,
+        UNUSED boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<dummy_protocol_t> > > branch_history_view,
+        UNUSED clone_ptr_t<directory_rwview_t<std::map<branch_id_t, broadcaster_business_card_t<dummy_protocol_t> > > > broadcaster_directory_view,
         boost::scoped_ptr<broadcaster_t<dummy_protocol_t> > *broadcaster,
         UNUSED test_store_t *store,
         boost::scoped_ptr<listener_t<dummy_protocol_t> > *initial_listener)
 {
     /* Set up a replier so the broadcaster can handle operations */
     EXPECT_FALSE((*initial_listener)->get_outdated_signal()->is_pulsed());
-    replier_t<dummy_protocol_t> replier(mailbox_manager, metadata_view, initial_listener->get());
+    replier_t<dummy_protocol_t> replier(initial_listener->get());
 
     order_source_t order_source;
 
@@ -103,15 +116,22 @@ TEST(ClusteringBranch, ReadWrite) {
 /* The `Backfill` test starts up a node with one mirror, inserts some data, and
 then adds another mirror. */
 
-void run_backfill_test(mailbox_manager_t *mailbox_manager,
-        boost::shared_ptr<semilattice_readwrite_view_t<namespace_branch_metadata_t<dummy_protocol_t> > > metadata_view,
+void run_backfill_test(simple_mailbox_cluster_t *cluster,
+        boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<dummy_protocol_t> > > branch_history_view,
+        clone_ptr_t<directory_rwview_t<std::map<branch_id_t, broadcaster_business_card_t<dummy_protocol_t> > > > broadcaster_directory_view,
         boost::scoped_ptr<broadcaster_t<dummy_protocol_t> > *broadcaster,
         test_store_t *store1,
         boost::scoped_ptr<listener_t<dummy_protocol_t> > *initial_listener)
 {
     /* Set up a replier so the broadcaster can handle operations */
     EXPECT_FALSE((*initial_listener)->get_outdated_signal()->is_pulsed());
-    replier_t<dummy_protocol_t> replier(mailbox_manager, metadata_view, initial_listener->get());
+    replier_t<dummy_protocol_t> replier(initial_listener->get());
+
+    simple_directory_manager_t<boost::optional<backfiller_business_card_t<dummy_protocol_t> > >
+        backfiller_directory_controller(
+            cluster,
+            boost::optional<backfiller_business_card_t<dummy_protocol_t> >(replier.get_business_card())
+            );
 
     order_source_t order_source;
 
@@ -125,10 +145,12 @@ void run_backfill_test(mailbox_manager_t *mailbox_manager,
     test_store_t store2;
     cond_t interruptor;
     listener_t<dummy_protocol_t> listener2(
-        mailbox_manager, metadata_view,
+        cluster->get_mailbox_manager(),
+        broadcaster_directory_view,
+        branch_history_view,
         &store2.store,
         (*broadcaster)->get_branch_id(),
-        replier.get_backfiller_id(),
+        backfiller_directory_controller.get_root_view()->get_peer_view(cluster->get_connectivity_service()->get_me()),
         &interruptor);
 
     EXPECT_FALSE((*initial_listener)->get_outdated_signal()->is_pulsed());
