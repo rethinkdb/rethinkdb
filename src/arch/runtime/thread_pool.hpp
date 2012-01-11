@@ -67,8 +67,14 @@ private:
     struct generic_job_t :
         public blocker_pool_t::job_t
     {
-        void run();
-        void done();
+        void run() {
+            retval = fn();
+        }
+
+        void done() {
+            // Now that the function is done, resume execution of the suspended task
+            suspended->notify();
+        }
 
         boost::function<T()> fn;
         coro_t* suspended;
@@ -96,6 +102,8 @@ private:
     DISABLE_COPYING(linux_thread_pool_t);
 };
 
+// Function to handle blocking calls in a separate thread pool
+// This should be used for any calls that cannot otherwise be made non-blocking
 template<class T>
 T linux_thread_pool_t::run_in_blocker_pool(boost::function<T()> fn)
 {
@@ -111,19 +119,6 @@ T linux_thread_pool_t::run_in_blocker_pool(boost::function<T()> fn)
     coro_t::wait();
 
     return job.retval;
-}
-
-template <class T>
-void linux_thread_pool_t::generic_job_t<T>::run()
-{
-    retval = fn();
-}
-
-template <class T>
-void linux_thread_pool_t::generic_job_t<T>::done()
-{
-    // Now that the function is done, resume execution of the suspended task
-    suspended->notify_sometime();
 }
 
 class linux_thread_t :
