@@ -5,16 +5,18 @@
 #include <pthread.h>
 #include <stdint.h>
 #include "op.hpp"
+#include <queue>
+#include <signal.h>
 
 using namespace std;
 
 /* Structure that represents a running client */
 struct client_t {
 
-    client_t() : keep_running(false), total_freq(0) { }
+    client_t(int _pipeline_limit = 0) : keep_running(false), total_freq(0), pipeline_limit(_pipeline_limit) { }
 
-    void add_op(int freq, op_t *op) {
-        ops.push_back(op);
+    void add_op(int freq, op_generator_t *op_gen) {
+        ops.push_back(op_gen);
         freqs.push_back(freq);
         total_freq += freq;
     }
@@ -50,9 +52,11 @@ struct client_t {
     }
 
     // The ops that we are running against the database
-    std::vector<op_t *> ops;
+    std::vector<op_generator_t *> ops;
     std::vector<int> freqs;   // One entry in freqs for each entry in ops
     int total_freq;
+
+    int pipeline_limit;
 
 private:
     // This spinlock protects keep_running from race conditions
@@ -69,6 +73,7 @@ private:
     void run() {
 
         spinlock.lock();
+        std::queue<op_t *> outstanding_ops;
         while(keep_running) {
             spinlock.unlock();
 
@@ -77,19 +82,34 @@ private:
             op_t *op_to_do = NULL;
             for (int i = 0; i < ops.size(); i++) {
                 if (op_counter < freqs[i]) {
-                    op_to_do = ops[i];
+                    op_to_do = ops[i]->generate();
                     break;
                 } else {
                     op_counter -= freqs[i];
                 }
             }
+
             if (!op_to_do) {
                 fprintf(stderr, "Something went horribly wrong with the random op choice.\n");
                 exit(-1);
             }
 
             try {
-                op_to_do->run();
+                op_to_do->start();
+
+                outstanding_ops.push(op_to_do);
+
+                /* while (!outstanding_ops.empty() && outstanding_ops.front()->end_maybe()) {
+                    delete outstanding_ops.front();
+                    outstanding_ops.pop();
+                } */
+
+                while (outstanding_ops.size() > pipeline_limit) {
+                    outstanding_ops.front()->end();
+                    delete outstanding_ops.front();
+                    outstanding_ops.pop();
+                }
+
             } catch (protocol_error_t &e) {
                 fprintf(stderr, "Protocol error: %s\n", e.c_str());
                 throw e;

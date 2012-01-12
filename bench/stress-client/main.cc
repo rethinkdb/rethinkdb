@@ -79,20 +79,20 @@ int main(int argc, char *argv[])
         sqlite_mirror_t sqlite_mirror;
 
         consecutive_seed_model_t::insert_chooser_t insert_chooser;
-        insert_op_t insert_op;
+        insert_op_generator_t insert_op_generator;
 
         consecutive_seed_model_t::delete_chooser_t delete_chooser;
-        delete_op_t delete_op;
+        delete_op_generator_t delete_op_generator;
 
         consecutive_seed_model_t::live_chooser_t live_chooser;
-        read_op_t read_op;
-        update_op_t update_op;
-        append_prepend_op_t append_op;
-        append_prepend_op_t prepend_op;
+        read_op_generator_t read_op_generator;
+        update_op_generator_t update_op_generator;
+        append_prepend_op_generator_t append_op_generator;
+        append_prepend_op_generator_t prepend_op_generator;
 
-        sqlite_mirror_verify_op_t verify_op;
+        sqlite_mirror_verify_op_generator_t verify_op_generator;
 
-        percentage_range_read_op_t range_read_op;
+        percentage_range_read_op_generator_t range_read_op_generator;
 
         client_t client;
 
@@ -123,39 +123,39 @@ int main(int argc, char *argv[])
 
             /* Set up the various operations */
             insert_chooser(&model),
-            insert_op(&kg, &insert_chooser, &sqlite_mirror, protocol, config->values),
+            insert_op_generator(&kg, &insert_chooser, &sqlite_mirror, protocol, config->values),
 
             delete_chooser(&model),
-            delete_op(&kg, &delete_chooser, &sqlite_mirror, protocol),
+            delete_op_generator(&kg, &delete_chooser, &sqlite_mirror, protocol),
 
             live_chooser(&model, config->distr, config->mu),
-            read_op(&kg, &live_chooser, protocol, config->batch_factor),
-            update_op(&kg, &live_chooser, &sqlite_mirror, protocol, config->values),
-            append_op(&kg, &live_chooser, &sqlite_mirror, protocol, true, config->values),
-            prepend_op(&kg, &live_chooser, &sqlite_mirror, protocol, false, config->values),
+            read_op_generator(&kg, &live_chooser, protocol, config->batch_factor),
+            update_op_generator(&kg, &live_chooser, &sqlite_mirror, protocol, config->values),
+            append_op_generator(&kg, &live_chooser, &sqlite_mirror, protocol, true, config->values),
+            prepend_op_generator(&kg, &live_chooser, &sqlite_mirror, protocol, false, config->values),
 
-            verify_op(&sqlite_mirror, protocol),
+            verify_op_generator(&sqlite_mirror, protocol),
 
-            range_read_op(protocol, distr_t(50, 50), config->range_size, config->key_prefix),
+            range_read_op_generator(protocol, distr_t(50, 50), config->range_size, config->key_prefix),
 
             /* Construct the client object */
-            client()
+            client(config->pipeline_limit)
         {
             int expected_batch_factor = (config->batch_factor.min + config->batch_factor.max) / 2;
 
             /* We multiply the ratio by expected_batch_factor to get nicer rounding for reads (instead of dividing the reads frequency) */
-            client.add_op(config->op_ratios.inserts * expected_batch_factor, &insert_op);
+            client.add_op(config->op_ratios.inserts * expected_batch_factor, &insert_op_generator);
 
-            client.add_op(config->op_ratios.deletes * expected_batch_factor, &delete_op);
+            client.add_op(config->op_ratios.deletes * expected_batch_factor, &delete_op_generator);
 
-            client.add_op(config->op_ratios.reads, &read_op);
-            client.add_op(config->op_ratios.updates * expected_batch_factor, &update_op);
-            client.add_op(config->op_ratios.appends * expected_batch_factor, &append_op);
-            client.add_op(config->op_ratios.prepends * expected_batch_factor, &prepend_op);
+            client.add_op(config->op_ratios.reads, &read_op_generator);
+            client.add_op(config->op_ratios.updates * expected_batch_factor, &update_op_generator);
+            client.add_op(config->op_ratios.appends * expected_batch_factor, &append_op_generator);
+            client.add_op(config->op_ratios.prepends * expected_batch_factor, &prepend_op_generator);
 
-            client.add_op(config->op_ratios.verifies * expected_batch_factor, &verify_op);
+            client.add_op(config->op_ratios.verifies * expected_batch_factor, &verify_op_generator);
 
-            client.add_op(config->op_ratios.range_reads * expected_batch_factor, &range_read_op);
+            client.add_op(config->op_ratios.range_reads * expected_batch_factor, &range_read_op_generator);
         }
 
         ~client_stuff_t() {
@@ -173,7 +173,7 @@ int main(int argc, char *argv[])
         if the user does not ask for them. */
         if (latencies_fd == NULL) {
             for (int j = 0; j < (int)clients[i]->client.ops.size(); j++) {
-                clients[i]->client.ops[j]->enable_latency_samples = false;
+                clients[i]->client.ops[j]->query_stats.set_enable_latency_samples(false);
             }
         }
     }
@@ -246,28 +246,28 @@ int main(int argc, char *argv[])
             client_stuff_t *c = clients[i];
 
             for (int j = 0; j < (int)c->client.ops.size(); j++) {
-                c->client.ops[j]->stats_spinlock.lock();
+                c->client.ops[j]->query_stats.lock.lock();
             }
 
             /* We pool all the stats from different operations together into one pool for
             reporting. If you want to get stats for individual operations separately, use
             the Python interface. */
             for (int j = 0; j < (int)c->client.ops.size(); j++) {
-                round_stats.aggregate(c->client.ops[j]->stats);
+                round_stats.aggregate(c->client.ops[j]->query_stats);
             }
 
             /* Count total number of keys inserted and deleted (we will use this if our
             duration is specified in inserts) */
-            round_inserts_minus_deletes += c->insert_op.stats.queries - c->delete_op.stats.queries;
+            round_inserts_minus_deletes += c->insert_op_generator.query_stats.queries - c->delete_op_generator.query_stats.queries;
 
             /* Reset the stats, so that every time we poll we only get the stats from
             since we last polled. */
             for (int j = 0; j < (int)c->client.ops.size(); j++) {
-                c->client.ops[j]->stats = query_stats_t();
+                c->client.ops[j]->query_stats.reset();
             }
 
             for (int j = 0; j < (int)c->client.ops.size(); j++) {
-                c->client.ops[j]->stats_spinlock.unlock();
+                c->client.ops[j]->query_stats.lock.unlock();
             }
         }
 
@@ -322,9 +322,9 @@ int main(int argc, char *argv[])
     for (int i = 0; i < config.clients; i++) {
         client_stuff_t *c = clients[i];
         for (int j = 0; j < (int)c->client.ops.size(); j++) {
-            total_stats.aggregate(c->client.ops[j]->stats);
+            total_stats.aggregate(c->client.ops[j]->query_stats);
         }
-        total_inserts_minus_deletes += c->insert_op.stats.queries - c->delete_op.stats.queries;
+        total_inserts_minus_deletes += c->insert_op_generator.query_stats.queries - c->delete_op_generator.query_stats.queries;
     }
 
     printf("Total running time: %f seconds\n", ticks_to_secs(get_ticks() - start_time));

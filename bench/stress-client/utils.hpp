@@ -113,6 +113,10 @@ struct reservoir_sample_t {
     size_t size() {
         return std::min(n, goal);
     }
+
+    void clear() {
+        n = 0;
+    }
 };
 
 #endif // __UTILS_HPP__
