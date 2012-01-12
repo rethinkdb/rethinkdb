@@ -17,7 +17,7 @@ typedef uint32_t mcflags_t;
 typedef uint32_t exptime_t;
 typedef uint64_t cas_t;
 
-class data_buffer_t;
+struct data_buffer_t;
 
 template <typename T> struct one_way_iterator_t;
 

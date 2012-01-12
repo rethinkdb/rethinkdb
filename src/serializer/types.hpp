@@ -167,7 +167,7 @@ to_standard_block_token(UNUSED block_id_t block_id, const boost::intrusive_ptr<l
 
 typedef serializer_traits_t<standard_serializer_t>::block_token_type standard_block_token_t;
 
-struct serializer_t;
+class serializer_t;
 
 template <>
 struct serializer_traits_t<serializer_t> {

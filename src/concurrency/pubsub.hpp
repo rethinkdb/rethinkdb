@@ -95,9 +95,7 @@ created. `publish()` takes a function, which will be called once for each
 subscription. The function must not block. */
 
 template<class subscriber_t>
-struct publisher_controller_t :
-    public home_thread_mixin_t
-{
+class publisher_controller_t : public home_thread_mixin_t {
 public:
     publisher_controller_t() { }
 

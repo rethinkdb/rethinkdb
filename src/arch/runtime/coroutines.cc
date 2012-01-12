@@ -27,10 +27,8 @@ size_t coro_stack_size = COROUTINE_STACK_SIZE; //Default, setable by command-lin
 /* coro_context_t is only used internally within the coroutine logic. For performance reasons,
 we recycle stacks and ucontexts; the coro_context_t represents a stack and a ucontext. */
 
-struct coro_context_t :
-    public intrusive_list_node_t<coro_context_t>,
-    public home_thread_mixin_t
-{
+class coro_context_t : public intrusive_list_node_t<coro_context_t>, public home_thread_mixin_t {
+public:
     coro_context_t();
 
     /* The run() function is at the bottom of every coro_context_t's call stack. It repeatedly

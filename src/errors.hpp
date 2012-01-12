@@ -3,8 +3,6 @@
 
 #include <errno.h>
 #include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
 
 #ifdef __linux__
 #if defined __i386 || defined __x86_64
@@ -123,8 +121,6 @@ void install_generic_crash_handler();
 namespace boost {
     void assertion_failed(char const * expr, char const * function, char const * file, long line);
 }
-
-void print_backtrace(FILE *out = stderr, bool use_addr2line = true);
 
 
 // Put this in a private: section.

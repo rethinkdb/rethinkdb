@@ -145,7 +145,7 @@ TEST(MergeIteratorsTest, three_way_merge) {
 
     std::list<int> merged;
     boost::optional<int> next;
-    while (next = merge_iterator.next()) {
+    while ((next = merge_iterator.next())) {
         merged.push_back(next.get());
     }
 

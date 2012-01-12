@@ -2,6 +2,7 @@
 #define __ARCH_SPINLOCK_HPP__
 
 #include <pthread.h>
+#include <string.h>
 
 #include "errors.hpp"
 

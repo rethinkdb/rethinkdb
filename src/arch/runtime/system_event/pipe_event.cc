@@ -1,7 +1,9 @@
 #include "arch/runtime/system_event/pipe_event.hpp"
 
-#include <unistd.h>
 #include <fcntl.h>
+#include <string.h>
+#include <unistd.h>
+
 #include "utils.hpp"
 #include "logger.hpp"
 
@@ -11,7 +13,7 @@ pipe_event_t::pipe_event_t() {
 
     res = fcntl(pipefd[0], F_SETFL, O_NONBLOCK);
     guarantee_err(res == 0, "Could not make pipe[0] non-blocking");
-    
+
     res = fcntl(pipefd[1], F_SETFL, O_NONBLOCK);
     guarantee_err(res == 0, "Could not make pipe[1] non-blocking");
 }
@@ -19,7 +21,7 @@ pipe_event_t::pipe_event_t() {
 pipe_event_t::~pipe_event_t() {
     int res = close(pipefd[0]);
     guarantee_err(res == 0, "Could not close pipefd[0]");
-    
+
     res = close(pipefd[1]);
     guarantee_err(res == 0, "Could not close pipefd[1]");
 }
@@ -40,7 +42,7 @@ uint64_t pipe_event_t::read() {
             value += _temp;
         }
     } while(res != -1);
-    
+
     return value;
 }
 
