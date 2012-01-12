@@ -221,8 +221,11 @@ void coro_context_t::run() {
 
 coro_context_t::~coro_context_t() {
 #ifdef VALGRIND
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
     VALGRIND_STACK_DEREGISTER(valgrind_stack_id);
-#endif
+#pragma GCC diagnostic pop
+#endif  // VALGRIND
 
     mprotect(stack, getpagesize(), PROT_READ|PROT_WRITE); //Undo protections changes
 

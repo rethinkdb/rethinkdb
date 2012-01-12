@@ -24,6 +24,7 @@ __thread linux_thread_t *linux_thread_pool_t::thread;
 
 linux_thread_pool_t::linux_thread_pool_t(int n_threads)
     : interrupt_message(NULL),
+      generic_blocker_pool(NULL),
       n_threads(n_threads + 1) // we create an extra utility thread
 {
     rassert(n_threads > 0);
@@ -86,6 +87,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         linux_thread_t thread(tdata->thread_pool, tdata->current_thread);
         tdata->thread_pool->threads[tdata->current_thread] = &thread;
         linux_thread_pool_t::thread = &thread;
+        blocker_pool_t *generic_blocker_pool = NULL; // Will only be instantiated by one thread
 
         /* Install a handler for segmentation faults that just prints a backtrace. If we're
         running under valgrind, we don't install this handler because Valgrind will print the
@@ -107,11 +109,21 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         guarantee_err(r == 0, "Could not install SEGV handler");
 #endif
 
+        // First thread should initialize generic_blocker_pool before the start barrier
+        if (tdata->initial_message) {
+            rassert(tdata->thread_pool->generic_blocker_pool == NULL, "generic_blocker_pool already initialized");
+            generic_blocker_pool = new blocker_pool_t(GENERIC_BLOCKER_THREAD_COUNT,
+                                                      &thread.queue);
+            tdata->thread_pool->generic_blocker_pool = generic_blocker_pool;
+        }
+
         // If one thread is allowed to run before another one has finished
         // starting up, then it might try to access an uninitialized part of the
         // unstarted one.
         int res = pthread_barrier_wait(tdata->barrier);
         guarantee(res == 0 || res == PTHREAD_BARRIER_SERIAL_THREAD, "Could not wait at start barrier");
+        rassert(tdata->thread_pool->generic_blocker_pool != NULL,
+                "Thread passed start barrier while generic_blocker_pool uninitialized");
         
         // Prime the pump by calling the initial thread message that was passed to thread_pool::run()
         if (tdata->initial_message) {
@@ -129,6 +141,12 @@ void *linux_thread_pool_t::start_thread(void *arg) {
 #ifndef VALGRIND
         free(segv_stack.ss_sp);
 #endif
+
+        // If this thread created the generic blocker pool, clean it up
+        if (generic_blocker_pool != NULL) {
+            delete generic_blocker_pool;
+            tdata->thread_pool->generic_blocker_pool = NULL;
+        }
 
         tdata->thread_pool->threads[tdata->current_thread] = NULL;
         linux_thread_pool_t::thread = NULL;

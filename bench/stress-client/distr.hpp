@@ -73,34 +73,29 @@ public:
         {}
 
     void parse(const char *const_str) {
-        char str[200];
-        strncpy(str, const_str, sizeof(str));
-        if (!strchr(str, '-')) {
-            min = max = atoi(str);
-            return;
-        }
-        char *tok = strtok(str, "-");
-        int c = 0;
-        while(tok != NULL) {
-            switch(c) {
-            case 0:
-                min = atoi(tok);
-                break;
-            case 1:
-                max = atoi(tok);
-                break;
-            default:
-                fprintf(stderr, "Invalid distr format (use NUM or MIN-MAX)\n");
-                exit(-1);
-                break;
-            }
-            tok = strtok(NULL, "-");
-            c++;
-        }
-        if(c < 2) {
-            fprintf(stderr, "Invalid distr format (use NUM or MIN-MAX)\n");
+        std::string param(const_str);
+        size_t hyphenIndex = param.find("-");
+
+        // Make sure the parameter only contains numerals and the (optional) hyphen
+        if (param.find_first_not_of("0123456789-") != std::string::npos) {
+            fprintf(stderr, "Invalid distr format (use NUM or MIN-MAX), brackets and +/- signs are not supported\n");
             exit(-1);
         }
+        
+        if (hyphenIndex == std::string::npos) {
+            min = max = atoi(param.c_str());
+            return;
+        }
+        
+        // Protection against more than one hyphen
+        if (param.rfind("-") != hyphenIndex) {
+            fprintf(stderr, "Invalid distr format (use NUM or MIN-MAX), +/- signs are not supported\n");
+            exit(-1);
+        }
+
+        min = atoi(param.substr(0, hyphenIndex).c_str());
+        max = atoi(param.substr(hyphenIndex + 1, std::string::npos).c_str());
+
         if (min > max) {
             fprintf(stderr, "Invalid distr format (use NUM or MIN-MAX, where MIN <= MAX)\n");
             exit(-1);
