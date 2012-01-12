@@ -1297,6 +1297,12 @@ void handle_memcache(txt_memcached_handler_if *rh, order_source_t *order_source)
     done by now */
     rh->drain_semaphore.drain();
 
+    // And the same for the pipeliner.
+    pipeliner_acq_t pipeliner_acq(&pipeliner);
+    pipeliner_acq.begin_operation();
+    pipeliner_acq.begin_write();
+    pipeliner_acq.end_write();
+
     logDBG("Closed memcached stream: %p\n", coro_t::self());
 }
 
