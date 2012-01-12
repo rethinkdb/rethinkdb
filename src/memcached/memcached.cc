@@ -313,25 +313,31 @@ public:
         rassert(state_ == untouched);
         DEBUG_ONLY(state_ = has_begun_operation);
         fifo_acq_.enter(&pipeliner_->fifo);
+        debugf("entered fifo (%p)\n", this);
     }
 
     void begin_write() {
         rassert(state_ == has_begun_operation);
         DEBUG_ONLY(state_ = has_begun_write);
+        debugf("leaving fifo (%p)\n", this);
         fifo_acq_.leave();
         debugf("left fifo (%p)\n", this);
         co_lock_mutex(&pipeliner_->mutex);
+        debugf("acquired mutex (%p)\n", this);
     }
 
     void end_write() {
         rassert(state_ == has_begun_write);
         DEBUG_ONLY(state_ = has_ended_write);
 
+        debugf("flushing buffer (%p)\n", this);
         block_pm_duration flush_timer(&pm_conns_writing);
         pipeliner_->rh_->flush_buffer();
         flush_timer.end();
 
+        debugf("unlocking mutex (%p)\n", this);
         pipeliner_->mutex.unlock(true);
+        debugf("unlocked mutex (%p)\n", this);
     }
 
 private:
@@ -1028,11 +1034,11 @@ void do_delete(txt_memcached_handler_if *rh, UNUSED pipeliner_t *pipeliner, int 
                   || (argc == 4 && (zero && noreply));
 
         if (!valid) {
+            pipeliner_acq.begin_write();
             if (!noreply) {
-                pipeliner_acq.begin_write();
                 rh->client_error_bad_command_line_format();
-                pipeliner_acq.end_write();
             }
+            pipeliner_acq.end_write();
             return;
         }
     } else {
@@ -1042,7 +1048,7 @@ void do_delete(txt_memcached_handler_if *rh, UNUSED pipeliner_t *pipeliner, int 
     rh->begin_write_command();
 
     run_delete(rh, &pipeliner_acq, key, noreply, token);
-};
+}
 
 /* "stats" command */
 
@@ -1140,6 +1146,8 @@ bool parse_debug_command(txt_memcached_handler_if *rh, pipeliner_t *pipeliner, s
         do_quickset(rh, &pipeliner_acq, args);
         return true;
     } else {
+        pipeliner_acq.begin_write();
+        pipeliner_acq.end_write();
         return false;
     }
 }
@@ -1188,14 +1196,11 @@ void handle_memcache(txt_memcached_handler_if *rh, order_source_t *order_source)
         /* Dispatch to the appropriate subclass */
         order_token_t token = order_source->check_in(std::string("handle_memcache+") + args[0]);
         if (!strcmp(args[0], "get")) {    // check for retrieval commands
-            // TODO FIFO: spawn_now this.
-            do_get(rh, &pipeliner, false, args.size(), args.data(), token.with_read_mode());
+            coro_t::spawn_now(boost::bind(do_get, rh, &pipeliner, false, args.size(), args.data(), token.with_read_mode()));
         } else if (!strcmp(args[0], "gets")) {
-            // TODO FIFO: spawn_now this.
-            do_get(rh, &pipeliner, true, args.size(), args.data(), token);
+            coro_t::spawn_now(boost::bind(do_get, rh, &pipeliner, true, args.size(), args.data(), token));
         } else if (!strcmp(args[0], "rget")) {
-            // TODO FIFO: spawn_now this.
-            do_rget(rh, &pipeliner, args.size(), args.data(), token.with_read_mode());
+            coro_t::spawn_now(boost::bind(do_rget, rh, &pipeliner, args.size(), args.data(), token.with_read_mode()));
         } else if (!strcmp(args[0], "set")) {     // check for storage commands
             do_storage(rh, &pipeliner, set_command, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "add")) {
@@ -1209,14 +1214,11 @@ void handle_memcache(txt_memcached_handler_if *rh, order_source_t *order_source)
         } else if (!strcmp(args[0], "cas")) {
             do_storage(rh, &pipeliner, cas_command, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "delete")) {
-            // TODO FIFO: spawn_now this.
-            do_delete(rh, &pipeliner, args.size(), args.data(), token);
+            coro_t::spawn_now(boost::bind(do_delete, rh, &pipeliner, args.size(), args.data(), token));
         } else if (!strcmp(args[0], "incr")) {
-            // TODO FIFO: spawn_now this.
-            do_incr_decr(rh, &pipeliner, true, args.size(), args.data(), token);
+            coro_t::spawn_now(boost::bind(do_incr_decr, rh, &pipeliner, true, args.size(), args.data(), token));
         } else if (!strcmp(args[0], "decr")) {
-            // TODO FIFO: spawn_now this.
-            do_incr_decr(rh, &pipeliner, false, args.size(), args.data(), token);
+            coro_t::spawn_now(boost::bind(do_incr_decr, rh, &pipeliner, false, args.size(), args.data(), token));
         } else if (!strcmp(args[0], "quit")) {
             pipeliner_acq_t pipeliner_acq(&pipeliner);
             pipeliner_acq.begin_operation();
