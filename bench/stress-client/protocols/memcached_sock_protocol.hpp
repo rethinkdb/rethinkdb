@@ -364,70 +364,9 @@ protected:
     unsigned int number_of_keys;
 };
 
-class partial_memcached_retrieval_response_t : public memcached_retrieval_response_t {
-private:
-    bool complete; //have we received all the responses we're expecting
-public:
-    partial_memcached_retrieval_response_t(tcp_buffer_t &thread_buffer, const unsigned int number_of_keys, const bool mock_parse)
-        : memcached_retrieval_response_t(thread_buffer, number_of_keys, mock_parse),
-          complete(number_of_keys == 0)
-    { }
-
-    bool is_complete() {
-        return complete;
-    }
-
-    void read_from_socket(const int socketfd) {
-        this->socketfd = socketfd;
-        
-        values.clear();
-        flags.clear();
-        unsigned int number_of_failed_gets = 0;
-        
-        for (unsigned int values_left = number_of_keys; values_left > 0; --values_left) {
-            size_t line_length = 0;
-            const char* line = maybe_read_line(line_length);
-            if (!line) {
-                return;
-            }
-            check_for_error_condition(line, line_length); // We might still get ERROR...
-            
-            const std::string value_response(line, line_length);
-            
-            if (value_response == "END") {
-                number_of_failed_gets = number_of_keys - values.size();
-                break;
-            }
-            else if (does_match_at_position(line, "VALUE ", line_length, 0)) {
-                if (mock_parse)
-                    parse_value_response_mock(value_response);
-                else
-                    parse_value_response(value_response);
-            }
-            else {
-                throw protocol_error_t("Illegal response to get request: " + value_response);
-            }
-        }
-        
-        if (number_of_failed_gets == 0) {
-            size_t line_length = 0;
-            const char* end_line = read_line(line_length);
-            if (line_length != 3 || strncmp(end_line, "END", line_length) != 0)
-                throw protocol_error_t("Did not get END at end of retrieval response.");
-        }
-        
-        successful = number_of_failed_gets == 0;
-        char number_of_failed_gets_c_str[32];
-        sprintf(number_of_failed_gets_c_str, "%d", number_of_failed_gets);
-        failure_message = successful ? "" : "Failed to read a total of " + std::string(number_of_failed_gets_c_str) + " values.";
-
-        complete = true;
-    }
-};
-
 struct memcached_sock_protocol_t : public protocol_t {
     memcached_sock_protocol_t(const char *conn_str) 
-        : sockfd(-1), pipeline_response(NULL), outstanding_reads(0)
+        : sockfd(-1), outstanding_reads(0)
     {
         // init the socket
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -611,7 +550,6 @@ struct memcached_sock_protocol_t : public protocol_t {
         }
     }
 
-    partial_memcached_retrieval_response_t *pipeline_response;
     int outstanding_reads;
 
     /* add a read to the pipeline */
@@ -633,66 +571,23 @@ struct memcached_sock_protocol_t : public protocol_t {
         outstanding_reads++;
     }
 
-    /* remove as many reads as have been delivered from the pipeline */
-    /* returns the total number of pipelined reads that that were removed
-     * dequeued */
     bool dequeue_read_maybe(payload_t *keys, int count, payload_t *values = NULL) {
-        if (!pipeline_response || pipeline_response->is_complete()) {
-            if (pipeline_response) { 
-                if (values) {
-                    for (int i = 0; i < count; i++) {
-                        if (std::string(values[i].first) != pipeline_response->values[std::string(keys[i].first)]) {
-                            fprintf(stderr, "Got unexpected value: %s instead of %s\n", pipeline_response->values[std::string(keys[i].first)].c_str(), values[i].first);
-                        }
-                    }
-                }
-                delete pipeline_response;
-            }
-            pipeline_response = new partial_memcached_retrieval_response_t(thread_buffer, count, !values);
-        }
-
-        pipeline_response->read_from_socket(sockfd);
-
-        if (pipeline_response->is_complete()) {
-            outstanding_reads--;
-            return true;
-        } else {
-            return false;
-        }
+        dequeue_read(keys, count, values);
+        return true;
     }
 
     /* Wait until all of the pipelined reads have been returned */
     void dequeue_read(payload_t *keys, int count, payload_t *values = NULL) {
-        //make sure we have a pipeline_response
-        if (!pipeline_response || pipeline_response->is_complete()) {
-            if (pipeline_response) { 
-                if (values) {
-                    for (int i = 0; i < count; i++) {
-                        if (std::string(values[i].first) != pipeline_response->values[std::string(keys[i].first)]) {
-                            fprintf(stderr, "Got unexpected value: %s instead of %s\n", pipeline_response->values[std::string(keys[i].first)].c_str(), values[i].first);
-                        }
-                    }
-                }
-                delete pipeline_response;
-                pipeline_response == NULL;
-            } else {
-                memcached_retrieval_response_t response(thread_buffer, count, !values);
-                response.read_from_socket(sockfd);
+        memcached_retrieval_response_t response(thread_buffer, count, !values);
+        response.read_from_socket(sockfd);
 
-                if (values) {
-                    for (int i = 0; i < count; i++) {
-                        if (std::string(values[i].first) != response.values[std::string(keys[i].first)]) {
-                            fprintf(stderr, "Got unexpected value: %s instead of %s\n", response.values[std::string(keys[i].first)].c_str(), values[i].first);
-                        }
-                    }
+        if (values) {
+            for (int i = 0; i < count; i++) {
+                if (std::string(values[i].first) != response.values[std::string(keys[i].first)]) {
+                    fprintf(stderr, "Got unexpected value: %s instead of %s\n", response.values[std::string(keys[i].first)].c_str(), values[i].first);
                 }
-            }
-        } else {
-            while (!pipeline_response->is_complete()) {
-                pipeline_response->read_from_socket(sockfd);
             }
         }
-        outstanding_reads--;
     }
 
     bool exist_outstanding_pipeline_reads() {
