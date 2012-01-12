@@ -199,7 +199,9 @@ public:
             printf("normal\n");
             printf("MU................%d\n", mu);
         }
-        printf("Pipeline-limit....%d\n", pipeline_limit);
+        // Adding one because users are 1-based, unlike our code for
+        // pipelines, which is 0-based
+        printf("Pipeline-limit....%d\n", pipeline_limit + 1);
         printf("\n");
     }
 
@@ -300,7 +302,7 @@ void usage(const char *name) {
     printf("\t-f, --db-file\n\t\tIf present drop kv pairs into sqlite and verify correctness on read.\n");
     printf("\t-r, --distr\n\t\tA key access distrubution. Possible values: 'uniform' (default), and 'normal'.\n");
     printf("\t-m, --mu\n\t\tControl normal distribution. Percent of the database size within one standard\n\t\tdistribution (defaults to 1%%).\n");
-    printf("\t-p, --pipeline\n\t\tMaximum number of operations that may be queued 0 means never allow operations to be queued\n");
+    printf("\t-p, --pipeline\n\t\tMaximum number of operations that may be queued to server (defaults to 1).\n");
 
     printf("\nAdditional information:\n");
     printf("\t\tDISTR format describes a range and can be specified in as NUM or MIN-MAX.\n\n");
@@ -351,7 +353,6 @@ void parse(config_t *config, int argc, char *argv[]) {
                 {"pipeline",           required_argument, 0, 'p'},
                 {"client-suffix",      no_argument, 0, 'a'},
                 {"help",               no_argument, &do_help, 1},
-                {"pipeline",           no_argument, &do_help, 1},
                 {0, 0, 0, 0}
             };
 
@@ -437,6 +438,12 @@ void parse(config_t *config, int argc, char *argv[]) {
             break;
         case 'p':
             config->pipeline_limit = atoi(optarg);
+            if(config->pipeline_limit < 1) {
+                fprintf(stderr, "Minimum pipeline value is 1.\n");
+                usage(argv[0]);
+            }
+            // the code is structured in a way where zero means no pipelining, so we subtract one
+            config->pipeline_limit--;
             break;
         case 'h':
             usage(argv[0]);
@@ -453,7 +460,13 @@ void parse(config_t *config, int argc, char *argv[]) {
     }
 
     //validation:
-
+    bool only_sockmemcached = true;
+    for(int i = 0; i < config->servers.size(); i++) {
+        if(config->servers[i].protocol != protocol_sockmemcached) {
+            only_sockmemcached = false;
+            break;
+        }
+    }
     if (config->pipeline_limit > 0) {
         if (config->op_ratios.deletes > 0 ||
             config->op_ratios.updates > 0 ||
@@ -461,8 +474,10 @@ void parse(config_t *config, int argc, char *argv[]) {
             config->op_ratios.range_reads > 0 ||
             config->op_ratios.appends > 0 ||
             config->op_ratios.prepends > 0 ||
-            config->op_ratios.verifies > 0 ) {
-            fprintf(stderr, "Pipelining cannot be used with any operations other than reads.\n");
+            config->op_ratios.verifies > 0 ||
+            !only_sockmemcached)
+        {
+            fprintf(stderr, "Pipelining can only be used with read operations on a sockmemcached protocol.\n");
             usage(argv[0]);
         }
     }
