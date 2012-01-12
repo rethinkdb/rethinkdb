@@ -92,7 +92,7 @@ void connectivity_cluster_t::run_t::connection_entry_t::install_this(int target_
     drainers[get_thread_id()].reset(new auto_drainer_t);
     {
         ASSERT_FINITE_CORO_WAITING;
-        mutex_assertion_t::acq_t acq(&ti->lock);
+        rwi_lock_assertion_t::write_acq_t acq(&ti->lock);
         rassert(ti->connection_map.find(peer) == ti->connection_map.end());
         ti->connection_map[peer] =
             std::make_pair(this, auto_drainer_t::lock_t(drainers[get_thread_id()].get()));
@@ -112,7 +112,7 @@ void connectivity_cluster_t::run_t::connection_entry_t::uninstall_this(int targe
     thread_info_t *ti = parent->parent->thread_info.get();
     {
         ASSERT_FINITE_CORO_WAITING;
-        mutex_assertion_t::acq_t acq(&ti->lock);
+        rwi_lock_assertion_t::write_acq_t acq(&ti->lock);
         rassert(ti->connection_map[peer].first == this);
         ti->connection_map.erase(peer);
         ti->publisher.publish(boost::bind(&ping_disconnection_watcher, peer, _1));
@@ -535,7 +535,7 @@ peer_address_t connectivity_cluster_t::get_peer_address(peer_id_t p) THROWS_NOTH
     return (*it).second.first->address;
 }
 
-mutex_assertion_t *connectivity_cluster_t::get_peers_list_lock() THROWS_NOTHING {
+rwi_lock_assertion_t *connectivity_cluster_t::get_peers_list_lock() THROWS_NOTHING {
     return &thread_info.get()->lock;
 }
 

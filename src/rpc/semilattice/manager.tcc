@@ -233,7 +233,7 @@ void semilattice_manager_t<metadata_t>::call_function_with_no_args(const boost::
 template<class metadata_t>
 void semilattice_manager_t<metadata_t>::join_metadata_locally(metadata_t added_metadata) {
     assert_thread();
-    mutex_assertion_t::acq_t acq(&metadata_mutex);
+    rwi_lock_assertion_t::write_acq_t acq(&metadata_mutex);
     semilattice_join(&metadata, added_metadata);
     metadata_publisher.publish(&semilattice_manager_t<metadata_t>::call_function_with_no_args);
 }

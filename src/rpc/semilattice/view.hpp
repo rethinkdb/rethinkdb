@@ -18,7 +18,10 @@ interacts with the metadata only needs to know about its own little part of the
 metadata. */
 
 /* TODO: Make this more like `directory_*_view_t`, with `clone_ptr_t` and a
-`subview()` method and all that jazz. */
+`subview()` method and all that jazz.
+
+Also, use the same locking scheme as `directory_*_view_t`, where you have to
+hold the lock in order to subscribe. */
 
 template<class metadata_t>
 class semilattice_read_view_t {

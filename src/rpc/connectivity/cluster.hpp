@@ -164,7 +164,7 @@ private:
         removes itself from `connection_map`. */
         std::map<peer_id_t, std::pair<run_t::connection_entry_t *, auto_drainer_t::lock_t> > connection_map;
 
-        mutex_assertion_t lock;
+        rwi_lock_assertion_t lock;
 
         publisher_controller_t<std::pair<
                 boost::function<void(peer_id_t)>,
@@ -173,7 +173,7 @@ private:
     };
 
     /* `connectivity_service_t` private methods: */
-    mutex_assertion_t *get_peers_list_lock() THROWS_NOTHING;
+    rwi_lock_assertion_t *get_peers_list_lock() THROWS_NOTHING;
     publisher_t<std::pair<
             boost::function<void(peer_id_t)>,
             boost::function<void(peer_id_t)>

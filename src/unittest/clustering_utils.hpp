@@ -124,7 +124,9 @@ private:
         void set_our_value(const metadata_t &new_value_for_us, directory_write_service_t::our_value_lock_acq_t *proof) THROWS_NOTHING {
             parent->assert_thread();
             proof->assert_is_holding(parent);
+            rwi_lock_assertion_t::write_acq_t acq(&parent->metadata_rwi_lock_assertion);
             parent->metadata = new_value_for_us;
+            parent->metadata_publisher.publish(&simple_directory_manager_t::call_function_with_no_args);
         }
         directory_readwrite_service_t *get_directory_service() THROWS_NOTHING {
             return parent;
@@ -132,10 +134,13 @@ private:
     private:
         simple_directory_manager_t *parent;
     };
-    mutex_assertion_t *get_peer_value_lock(peer_id_t p) THROWS_NOTHING {
+    static void call_function_with_no_args(const boost::function<void()> &f) {
+        f();
+    }
+    rwi_lock_assertion_t *get_peer_value_lock(peer_id_t p) THROWS_NOTHING {
         assert_thread();
         rassert(p == parent->get_connectivity_service()->get_me());
-        return &metadata_mutex_assertion;
+        return &metadata_rwi_lock_assertion;
     }
     publisher_t<boost::function<void()> > *get_peer_value_publisher(peer_id_t p, peer_value_freeze_t *proof) THROWS_NOTHING {
         assert_thread();
@@ -150,7 +155,7 @@ private:
     simple_mailbox_cluster_t *parent;
     metadata_t metadata;
     mutex_t our_value_lock;
-    mutex_assertion_t metadata_mutex_assertion;
+    rwi_lock_assertion_t metadata_rwi_lock_assertion;
     publisher_controller_t<boost::function<void()> > metadata_publisher;
 };
 

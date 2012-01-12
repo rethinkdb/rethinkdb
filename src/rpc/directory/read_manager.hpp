@@ -51,7 +51,7 @@ private:
     class thread_peer_info_t {
     public:
         thread_peer_info_t(const metadata_t &md) THROWS_NOTHING : peer_value(md) { }
-        mutex_assertion_t peer_value_lock;
+        rwi_lock_assertion_t peer_value_lock;
         metadata_t peer_value;
         publisher_controller_t<
                 boost::function<void()>
@@ -61,7 +61,7 @@ private:
     class thread_info_t {
     public:
         fifo_enforcer_sink_t propagation_fifo_sink;
-        mutex_assertion_t peers_list_lock;
+        rwi_lock_assertion_t peers_list_lock;
         publisher_controller_t<std::pair<
                 boost::function<void(peer_id_t)>,
                 boost::function<void(peer_id_t)>
@@ -110,14 +110,14 @@ private:
     static void ping_disconnection_watcher(peer_id_t peer, const std::pair<boost::function<void(peer_id_t)>, boost::function<void(peer_id_t)> > &connect_cb_and_disconnect_cb) THROWS_NOTHING;
 
     /* `connectivity_service_t` methods */
-    mutex_assertion_t *get_peers_list_lock() THROWS_NOTHING;
+    rwi_lock_assertion_t *get_peers_list_lock() THROWS_NOTHING;
     publisher_t<std::pair<
             boost::function<void(peer_id_t)>,
             boost::function<void(peer_id_t)>
             > > *get_peers_list_publisher() THROWS_NOTHING;
 
     /* `directory_rservice_t` methods */
-    mutex_assertion_t *get_peer_value_lock(peer_id_t) THROWS_NOTHING;
+    rwi_lock_assertion_t *get_peer_value_lock(peer_id_t) THROWS_NOTHING;
     publisher_t<
             boost::function<void()>
             > *get_peer_value_publisher(peer_id_t, peer_value_freeze_t *proof) THROWS_NOTHING;

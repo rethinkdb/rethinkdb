@@ -26,7 +26,7 @@ public:
     private:
         directory_read_service_t *directory;
         peer_id_t peer;
-        mutex_assertion_t::acq_t acq;
+        rwi_lock_assertion_t::read_acq_t acq;
     };
 
     /* `peer_value_subscription_t` calls the given function whenever the given
@@ -60,7 +60,7 @@ private:
 
     /* Returns a lock and associated publisher for the value of a given peer.
     These should be per-thread. */
-    virtual mutex_assertion_t *get_peer_value_lock(peer_id_t) THROWS_NOTHING = 0;
+    virtual rwi_lock_assertion_t *get_peer_value_lock(peer_id_t) THROWS_NOTHING = 0;
     virtual publisher_t<
         boost::function<void()>
         > *get_peer_value_publisher(peer_id_t, peer_value_freeze_t *proof) THROWS_NOTHING = 0;

@@ -74,7 +74,7 @@ private:
 
     metadata_t metadata;
     publisher_controller_t<boost::function<void()> > metadata_publisher;
-    mutex_assertion_t metadata_mutex;
+    rwi_lock_assertion_t metadata_mutex;
 
     connectivity_service_t::peers_list_subscription_t event_watcher;
 

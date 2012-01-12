@@ -283,7 +283,7 @@ void directory_read_manager_t<metadata_t>::propagate_initialize_on_thread(int de
     cond_t non_interruptor;
     fifo_enforcer_sink_t::exit_write_t fifo_exit(&thread_info.get()->propagation_fifo_sink, propagation_fifo_token, &non_interruptor);
 
-    mutex_assertion_t::acq_t acq(&thread_info.get()->peers_list_lock);
+    rwi_lock_assertion_t::write_acq_t acq(&thread_info.get()->peers_list_lock);
     thread_info.get()->peers_list.insert(peer, new thread_peer_info_t(initial_value));
     thread_info.get()->peers_list_publisher.publish(
         boost::bind(&directory_read_manager_t::ping_connection_watcher, peer, _1)
@@ -302,7 +302,7 @@ void directory_read_manager_t<metadata_t>::propagate_update_on_thread(int dest_t
         thread_info.get()->peers_list.find(peer);
     rassert(it != thread_info.get()->peers_list.end());
     thread_peer_info_t *pi = (*it).second;
-    mutex_assertion_t::acq_t acq(&pi->peer_value_lock);
+    rwi_lock_assertion_t::write_acq_t acq(&pi->peer_value_lock);
     pi->peer_value = new_value;
     pi->peer_value_publisher.publish(&directory_read_manager_t::ping_value_watcher);
 }
@@ -315,7 +315,7 @@ void directory_read_manager_t<metadata_t>::propagate_disconnect_on_thread(int de
     cond_t non_interruptor;
     fifo_enforcer_sink_t::exit_write_t fifo_exit(&thread_info.get()->propagation_fifo_sink, propagation_fifo_token, &non_interruptor);
 
-    mutex_assertion_t::acq_t acq(&thread_info.get()->peers_list_lock);
+    rwi_lock_assertion_t::write_acq_t acq(&thread_info.get()->peers_list_lock);
     /* We need to remove the doomed peer from the peers list before we call the
     callbacks so that it doesn't appear if the callbacks call
     `get_peers_list()`. But we need to call the callbacks before we destroy it
@@ -349,7 +349,7 @@ void directory_read_manager_t<metadata_t>::ping_disconnection_watcher(peer_id_t 
 }
 
 template<class metadata_t>
-mutex_assertion_t *directory_read_manager_t<metadata_t>::get_peers_list_lock() THROWS_NOTHING {
+rwi_lock_assertion_t *directory_read_manager_t<metadata_t>::get_peers_list_lock() THROWS_NOTHING {
     return &thread_info.get()->peers_list_lock;
 }
 
@@ -362,7 +362,7 @@ publisher_t<std::pair<
 }
 
 template<class metadata_t>
-mutex_assertion_t *directory_read_manager_t<metadata_t>::get_peer_value_lock(peer_id_t peer) THROWS_NOTHING {
+rwi_lock_assertion_t *directory_read_manager_t<metadata_t>::get_peer_value_lock(peer_id_t peer) THROWS_NOTHING {
     typename boost::ptr_map<peer_id_t, thread_peer_info_t>::iterator it =
         thread_info.get()->peers_list.find(peer);
     rassert(it != thread_info.get()->peers_list.end());

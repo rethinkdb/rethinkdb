@@ -96,7 +96,7 @@ public:
         peers_list_freeze_t(connectivity_service_t *);
         void assert_is_holding(connectivity_service_t *);
     private:
-        mutex_assertion_t::acq_t acq;
+        rwi_lock_assertion_t::read_acq_t acq;
     };
 
     /* `peers_list_subscription_t` will call the given functions when a peer
@@ -140,7 +140,7 @@ protected:
     virtual ~connectivity_service_t() { }
 
 private:
-    virtual mutex_assertion_t *get_peers_list_lock() = 0;
+    virtual rwi_lock_assertion_t *get_peers_list_lock() = 0;
     virtual publisher_t<std::pair<
             boost::function<void(peer_id_t)>,
             boost::function<void(peer_id_t)>
