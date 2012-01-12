@@ -1,6 +1,8 @@
 #include "unittest/gtest.hpp"
 
 #include "utils.hpp"
+#include "arch/address.hpp"
+#include "unittest_utils.hpp"
 
 namespace unittest {
 
@@ -85,6 +87,20 @@ TEST(UtilsTest, SizedStrcmp)
     ASSERT_EQ(0, sized_strcmp(test1, 14, test1, 14));
     ASSERT_EQ(0, sized_strcmp(test1, 0, test1, 0));
     ASSERT_NE(0, sized_strcmp(test3, 11, test1, 14));
+}
+
+/* This doesn't quite belong in `utils_test.cc`, but I don't want to create a
+new file just for it. */
+
+void run_ip_address_test() {
+    ip_address_t test("111.112.113.114");
+    EXPECT_EQ(ntohl(0x6F707172), test.ip_as_uint32());
+}
+
+TEST(UtilsTest, IPAddress)
+{
+    // Since ip_address_t may block, it requires a thread_pool_t to exist
+    run_in_thread_pool(&run_ip_address_test);
 }
 
 }  // namespace unittest
