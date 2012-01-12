@@ -1,8 +1,10 @@
 #ifndef __UTILS_HPP__
 #define __UTILS_HPP__
 
-#include <stdlib.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #include <iostream>
 #include <map>
 #include <string>
@@ -265,6 +267,7 @@ struct precise_time_t : public tm {
 };
 
 void initialize_precise_time();     // should be called during startup
+void set_precise_time_offset(timespec hi_res_clock, time_t low_res_clock);  // used in unit-tests
 timespec get_uptime();              // returns relative time since initialize_precise_time(),
                                     // can return low precision time if clock_gettime call fails
 precise_time_t get_absolute_time(const timespec& relative_time); // converts relative time to absolute
@@ -336,5 +339,7 @@ public:
 /* This does the same thing as `boost::uuids::random_generator()()`, except that
 Valgrind won't complain about it. */
 boost::uuids::uuid generate_uuid();
+
+void print_backtrace(FILE *out = stderr, bool use_addr2line = true);
 
 #endif // __UTILS_HPP__

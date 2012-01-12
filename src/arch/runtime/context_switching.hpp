@@ -32,7 +32,8 @@ private:
     DISABLE_COPYING(context_ref_t);
 };
 
-struct artificial_stack_t {
+class artificial_stack_t {
+public:
 
     /* `artificial_stack_t()` sets up an artificial context. Once it is set up,
     you can use `context` to swap into and out of it. When you call
@@ -55,7 +56,7 @@ struct artificial_stack_t {
 
     /* Returns the end of the stack */
     void* get_stack_bound() { return stack; }
-    
+
 private:
     void *stack;
     size_t stack_size;

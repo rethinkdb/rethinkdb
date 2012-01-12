@@ -1,5 +1,6 @@
 #include "btree/value.hpp"
 
+#include <string.h>
 #include <time.h>
 
 int metadata_size(metadata_flags_t mf) {

@@ -14,8 +14,8 @@ class timer_token_t;
  * timer interval. It then manages a list of application timers based
  * on that lower level interface. Everyone who needs a timer should
  * use this class (through the thread pool). */
-struct timer_handler_t : public timer_provider_callback_t
-{
+class timer_handler_t : public timer_provider_callback_t {
+public:
     explicit timer_handler_t(linux_event_queue_t *queue);
     ~timer_handler_t();
     

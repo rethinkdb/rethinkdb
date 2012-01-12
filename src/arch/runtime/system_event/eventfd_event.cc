@@ -2,6 +2,7 @@
 #include "arch/runtime/system_event/eventfd_event.hpp"
 
 #include <fcntl.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "errors.hpp"
