@@ -288,9 +288,17 @@ class pipeliner_t {
 public:
     pipeliner_t(txt_memcached_handler_if *rh) : requests_out_sem(rh->max_concurrent_queries_per_connection), rh_(rh) { }
     ~pipeliner_t() { }
+
+    void lock_argparsing() {
+        co_lock_mutex(&argparsing_mutex);
+    }
 private:
     friend class pipeliner_acq_t;
     coro_fifo_t fifo;
+
+    // This should have no effect (because we don't block coroutines
+    // until after done argparsing), but
+    mutex_t argparsing_mutex;
 
     // Used to limit number of concurrent requests
     semaphore_t requests_out_sem;
@@ -322,6 +330,8 @@ public:
     void done_argparsing() {
         rassert(state_ == has_begun_operation);
         DEBUG_ONLY(state_ = has_done_argparsing);
+
+        pipeliner_->argparsing_mutex.unlock(true);
         pipeliner_->requests_out_sem.co_lock();
     }
 
@@ -1122,18 +1132,16 @@ void do_quickset(txt_memcached_handler_if *rh, pipeliner_acq_t *pipeliner_acq, s
 }
 
 bool parse_debug_command(txt_memcached_handler_if *rh, pipeliner_t *pipeliner, std::vector<char*> args) {
-    pipeliner_acq_t pipeliner_acq(pipeliner);
-    pipeliner_acq.begin_operation();
 
     if (args.size() < 1) {
-        pipeliner_acq.done_argparsing();
-        pipeliner_acq.begin_write();
-        pipeliner_acq.end_write();
         return false;
     }
 
     // .h is an alias for "rdb hash"
     if (!strcmp(args[0], ".h") && args.size() >= 2) {
+        pipeliner_acq_t pipeliner_acq(pipeliner);
+        pipeliner_acq.begin_operation();
+
         // We can't use our reference to args after we've called
         // done_argparsing().
         std::vector<std::string> args_copy(args.begin(), args.end());
@@ -1154,12 +1162,11 @@ bool parse_debug_command(txt_memcached_handler_if *rh, pipeliner_t *pipeliner, s
         pipeliner_acq.end_write();
         return true;
     } else if (!strcmp(args[0], ".s")) {
+        pipeliner_acq_t pipeliner_acq(pipeliner);
+        pipeliner_acq.begin_operation();
         do_quickset(rh, &pipeliner_acq, args);
         return true;
     } else {
-        pipeliner_acq.done_argparsing();
-        pipeliner_acq.begin_write();
-        pipeliner_acq.end_write();
         return false;
     }
 }
@@ -1177,7 +1184,7 @@ void handle_memcache(txt_memcached_handler_if *rh, order_source_t *order_source)
 
     pipeliner_t pipeliner(rh);
 
-    while (!sigint_has_happened.get_value()) {
+    while (pipeliner.lock_argparsing(), !sigint_has_happened.get_value()) {
         /* Read a line off the socket */
         block_pm_duration read_timer(&pm_conns_reading);
         try {
@@ -1235,22 +1242,17 @@ void handle_memcache(txt_memcached_handler_if *rh, order_source_t *order_source)
         } else if (!strcmp(args[0], "decr")) {
             coro_t::spawn_now(boost::bind(do_incr_decr, rh, &pipeliner, false, args.size(), args.data(), token));
         } else if (!strcmp(args[0], "quit")) {
-            pipeliner_acq_t pipeliner_acq(&pipeliner);
-            pipeliner_acq.begin_operation();
-
             // Make sure there's no more tokens (the kind in args, not
             // order tokens)
             if (args.size() > 1) {
+                pipeliner_acq_t pipeliner_acq(&pipeliner);
+                pipeliner_acq.begin_operation();
                 // We block everybody, but who cares?
                 pipeliner_acq.done_argparsing();
                 pipeliner_acq.begin_write();
                 rh->error();
                 pipeliner_acq.end_write();
             } else {
-                // It's very important that we actually block everybody here :)
-                pipeliner_acq.done_argparsing();
-                pipeliner_acq.begin_write();
-                pipeliner_acq.end_write();
                 break;
             }
         } else if (!strcmp(args[0], "stats") || !strcmp(args[0], "stat")) {
