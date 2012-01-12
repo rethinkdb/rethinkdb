@@ -20,7 +20,6 @@ mutation_result_t dispatching_store_t::change(const mutation_t &m, castime_t cas
 
         return substore->change(m2, castime, substore_token);
     } else {
-        // TODO FIFO: sink.check_out(token).  Why is that not being CALLED!!!!????  (That's not the root problem though.)
         // TODO: What if we go from having a dispatcher to having no dispatcher?
         order_token_t substore_token = substore_order_source.check_in(token.tag() + "+dispatching_store_t::change");
         return substore->change(m, castime, substore_token);
