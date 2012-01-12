@@ -98,6 +98,8 @@ transaction_t *co_begin_transaction(cache_t *cache, access_t access, int expecte
     cache->assert_thread();
     transaction_begun_callback_t cb;
 
+    // HISTORICAL COMMENTS:
+
     // Writes and reads must separately have their order preserved,
     // but we're expecting, in the case of throttling, for writes to
     // be throttled while reads are not.
@@ -109,13 +111,19 @@ transaction_t *co_begin_transaction(cache_t *cache, access_t access, int expecte
     // the event loop.  So there's an obvious problem with the code
     // below, if we did not have coro_fifo_acq_t protecting it.
 
+    // MODERN COMMENTS:
+
+    // Reads are now coro-fifoed in the same path that writes are.
+    // This is dumb because we really just want reads coming from the
+    // same _connection_ to be coro-fifoed in the same path that
+    // writes are.
+
+    // TODO FIFO: Fix this as the above comment says.
+
     coro_fifo_acq_t acq;
-    if (is_write_mode(access)) {
-        // We only care about write ordering and not anything about
-        // write operations' interaction with read ordering because
-        // that's how throttling works right now.
-        acq.enter(&cache->co_begin_coro_fifo());
-    }
+
+    // We care about write ordering _and_ read ordering.
+    acq.enter(&cache->co_begin_coro_fifo());
 
     transaction_t *value = cache->begin_transaction(access, expected_change_count, recency_timestamp, &cb);
     if (!value) {

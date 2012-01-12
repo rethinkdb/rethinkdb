@@ -696,6 +696,7 @@ void run_storage_command(txt_memcached_handler_if *rh,
 
         pipeliner_acq->begin_write();
 
+
         if (!noreply || res == sr_data_provider_failed) {
             switch (res) {
             case sr_stored:
