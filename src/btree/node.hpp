@@ -133,7 +133,7 @@ struct internal_node_t {
 // If you change this struct, previous stored data will be misinterpreted.
 struct btree_key_t {
     uint8_t size;
-    char contents[0];
+    char contents[];
     uint16_t full_size() const {
         return size + offsetof(btree_key_t, contents);
     }
@@ -175,12 +175,7 @@ struct btree_key_buffer_t {
     void assign(iterator_type beg, iterator_type end) {
         rassert(end - beg <= MAX_KEY_SIZE);
         btree_key.size = end - beg;
-        int i = 0;
-        while (beg != end) {
-            btree_key.contents[i] = *beg;
-            ++beg;
-            ++i;
-        }
+        std::copy(beg, end, &btree_key.contents[0]);
     }
 
     btree_key_t *key() { return &btree_key; }
