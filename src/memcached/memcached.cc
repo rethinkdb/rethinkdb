@@ -317,43 +317,31 @@ public:
         rassert(state_ == untouched);
         DEBUG_ONLY(state_ = has_begun_operation);
         fifo_acq_.enter(&pipeliner_->fifo);
-        debugf("entered fifo (%p)\n", this);
     }
 
     void done_argparsing() {
         rassert(state_ == has_begun_operation);
         DEBUG_ONLY(state_ = has_done_argparsing);
-        // This stuff below was previously in begin_write_command().
         pipeliner_->requests_out_sem.co_lock();
-        debugf("locked requests_out_sem (%p)\n", this);
     }
 
     void begin_write() {
         rassert(state_ == has_done_argparsing);
         DEBUG_ONLY(state_ = has_begun_write);
-        debugf("leaving fifo (%p)\n", this);
         fifo_acq_.leave();
-        debugf("left fifo (%p)\n", this);
         co_lock_mutex(&pipeliner_->mutex);
-        debugf("acquired mutex (%p)\n", this);
     }
 
     void end_write() {
         rassert(state_ == has_begun_write);
         DEBUG_ONLY(state_ = has_ended_write);
 
-        debugf("flushing buffer (%p)\n", this);
         block_pm_duration flush_timer(&pm_conns_writing);
         pipeliner_->rh_->flush_buffer();
         flush_timer.end();
 
-        debugf("unlocking mutex (%p)\n", this);
         pipeliner_->mutex.unlock(true);
-        debugf("unlocked mutex (%p)\n", this);
-
-        // This stuff below was previously in end_write_command().
         pipeliner_->requests_out_sem.unlock();
-        debugf("unlocked requests_out_sem (%p)\n", this);
     }
 
 private:
@@ -706,15 +694,12 @@ void run_storage_command(txt_memcached_handler_if *rh,
         set_result_t res = rh->set_store->sarc(key, data, metadata.mcflags, metadata.exptime,
                                                add_policy, replace_policy, metadata.unique, token);
 
-        debugf("calling begin_write on set (%p).\n", pipeliner_acq.get());
         pipeliner_acq->begin_write();
-        debugf("acquired begin_write.  yay (%p).\n", pipeliner_acq.get());
 
         if (!noreply || res == sr_data_provider_failed) {
             switch (res) {
             case sr_stored:
                 rh->writef("STORED\r\n");
-                debugf("writef call complete... (%p).\n", pipeliner_acq.get());
                 break;
             case sr_didnt_add:
                 if (sc == replace_command) rh->writef("NOT_STORED\r\n");
@@ -739,10 +724,6 @@ void run_storage_command(txt_memcached_handler_if *rh,
             default: unreachable();
             }
         }
-
-        debugf("calling end_write (%p).\n", pipeliner_acq.get());
-        pipeliner_acq->end_write();
-        debugf("done calling end_write (%p).\n", pipeliner_acq.get());
 
     } else {
         append_prepend_result_t res =
@@ -769,9 +750,9 @@ void run_storage_command(txt_memcached_handler_if *rh,
             default: unreachable();
             }
         }
-
-        pipeliner_acq->end_write();
     }
+
+    pipeliner_acq->end_write();
 
     /* If the key-value store never read our value for whatever reason, then the
     memcached_data_provider_t's destructor will read it off the socket and signal
