@@ -5,8 +5,8 @@ SRC = utils.cc random.cc protocol.cc protocols/sqlite3.c
 HEADERS = $(wildcard *.hpp) $(wildcard */*.hpp)
 
 MYSQL ?= 1
-LIBMEMCACHED ?= 1
-LIBGSL ?= 1
+LIBMEMCACHED ?= 0
+LIBGSL ?= 0
 TAGS=.tags
 
 ifeq ($(MYSQL),1)

@@ -95,15 +95,22 @@ struct sqlite_mirror_verify_op_t : public op_t {
 
 class sqlite_mirror_verify_op_generator_t : public op_generator_t {
 public:
-    sqlite_mirror_verify_op_generator_t(sqlite_mirror_t *m, protocol_t *p)
-        : m(m), p(p)
-    { }
+    sqlite_mirror_verify_op_generator_t(int max_concurrent_opts, sqlite_mirror_t *m, protocol_t *p)
+        : head(0)
+    { 
+        opts.resize(max_concurrent_opts, sqlite_mirror_verify_op_t(m, p, &query_stats));
+    }
 
-    sqlite_mirror_t *m;
-    protocol_t *p;
+private:
+    std::vector<sqlite_mirror_verify_op_t> opts;
+    int head;
 
+public:
     op_t *generate() {
-        return new sqlite_mirror_verify_op_t(m, p, &query_stats);
+        op_t *res =  &opts[head];
+        head++;
+        head %= opts.size();
+        return res;
     }
 };
 

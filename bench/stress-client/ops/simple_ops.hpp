@@ -67,18 +67,23 @@ struct read_op_t : public op_t {
     }
 };
 
-struct read_op_generator_t : op_generator_t {
-    read_op_generator_t(seed_key_generator_t *kg, seed_chooser_t *sc, protocol_t *p, distr_t bf)
-        : kg(kg), sc(sc), p(p), batch_factor(bf)
-    { }
-
-    seed_key_generator_t *kg;
-    seed_chooser_t *sc;
-    protocol_t *p;
-    distr_t batch_factor;
+struct read_op_generator_t : public op_generator_t {
+    read_op_generator_t(int max_concurrent_ops, seed_key_generator_t *kg, seed_chooser_t *sc, protocol_t *p, distr_t bf) 
+        : head(0)
+    {
+        opts.resize(max_concurrent_ops, read_op_t(kg, sc, p, bf, &query_stats));
+    }
+private:
+    std::vector<read_op_t> opts;
+    int head;
 
     op_t *generate() {
-        return new read_op_t(kg, sc, p, batch_factor, &query_stats);
+        op_t *res = &opts[head];
+
+        head++;
+        head %= opts.size();
+
+        return res;
     }
 };
 
@@ -137,17 +142,22 @@ struct delete_op_t : public simple_mutation_op_t {
 };
 
 struct delete_op_generator_t : op_generator_t {
-    delete_op_generator_t(seed_key_generator_t *kg, seed_chooser_t *sc, value_watcher_t *vw, protocol_t *p)
-        : kg(kg), sc(sc), vw(vw), p(p)
-    { }
+    delete_op_generator_t(int max_concurrent_opts, seed_key_generator_t *kg, seed_chooser_t *sc, value_watcher_t *vw, protocol_t *p)
+        : head(0)
+    { 
+        opts.resize(max_concurrent_opts, delete_op_t(kg, sc, vw, p, &query_stats));
+    }
 
-    seed_key_generator_t *kg;
-    seed_chooser_t *sc;
-    value_watcher_t *vw;
-    protocol_t *p;
+private:
+    std::vector<delete_op_t> opts;
+    int head;
 
+public:
     op_t *generate() {
-        return new delete_op_t(kg, sc, vw, p, &query_stats);
+        op_t *res =  &opts[head];
+        head++;
+        head %= opts.size();
+        return res;
     }
 };
 
@@ -178,18 +188,22 @@ struct update_op_t : public simple_mutation_op_t {
 
 class update_op_generator_t : public op_generator_t {
 public:
-    update_op_generator_t(seed_key_generator_t *kg, seed_chooser_t *sc, value_watcher_t *vw, protocol_t *p, distr_t vs)
-        : kg(kg), sc(sc), vw(vw), p(p), vs(vs)
-    { }
+    update_op_generator_t(int max_concurrent_opts, seed_key_generator_t *kg, seed_chooser_t *sc, value_watcher_t *vw, protocol_t *p, distr_t vs)
+        : head(0)
+    { 
+        opts.resize(max_concurrent_opts, update_op_t(kg, sc, vw, p, vs, &query_stats));
+    }
 
-    seed_key_generator_t *kg;
-    seed_chooser_t *sc;
-    value_watcher_t *vw;
-    protocol_t *p;
-    distr_t vs;
+private:
+    std::vector<update_op_t> opts;
+    int head;
 
+public:
     op_t *generate() {
-        return new update_op_t(kg, sc, vw, p, vs, &query_stats);
+        op_t *res =  &opts[head];
+        head++;
+        head %= opts.size();
+        return res;
     }
 };
 
@@ -219,18 +233,23 @@ struct insert_op_t : public simple_mutation_op_t {
 
 class insert_op_generator_t : public op_generator_t {
 public:
-    insert_op_generator_t(seed_key_generator_t *kg, seed_chooser_t *sc, value_watcher_t *vw, protocol_t *p, distr_t vs)
-        : kg(kg), sc(sc), vw(vw), p(p), vs(vs)
-    { }
+    insert_op_generator_t(int max_concurrent_opts, seed_key_generator_t *kg, seed_chooser_t *sc, value_watcher_t *vw, protocol_t *p, distr_t vs)
+        : head(0)
+    { 
+        opts.resize(max_concurrent_opts, insert_op_t(kg, sc, vw, p, vs, &query_stats));
+    }
 
-    seed_key_generator_t *kg;
-    seed_chooser_t *sc;
-    value_watcher_t *vw;
-    protocol_t *p;
-    distr_t vs;
+private:
+    std::vector<insert_op_t> opts;
+    int head;
+
+public:
 
     op_t *generate() {
-        return new insert_op_t(kg, sc, vw, p, vs, &query_stats);
+        op_t *res =  &opts[head];
+        head++;
+        head %= opts.size();
+        return res;
     }
 };
 
@@ -261,19 +280,22 @@ struct append_prepend_op_t : public simple_mutation_op_t {
 
 class append_prepend_op_generator_t : public op_generator_t {
 public:
-    append_prepend_op_generator_t(seed_key_generator_t *kg, seed_chooser_t *sc, value_watcher_t *vw, protocol_t *p, bool a, distr_t vs)
-        : kg(kg), sc(sc), vw(vw), p(p), a(a), vs(vs)
-    { }
+    append_prepend_op_generator_t(int max_concurrent_opts, seed_key_generator_t *kg, seed_chooser_t *sc, value_watcher_t *vw, protocol_t *p, bool a, distr_t vs)
+        : head(0)
+    { 
+        opts.resize(max_concurrent_opts, append_prepend_op_t(kg, sc, vw, p, a, vs, &query_stats));
+    }
 
-    seed_key_generator_t *kg;
-    seed_chooser_t *sc;
-    value_watcher_t *vw;
-    protocol_t *p;
-    bool a;
-    distr_t vs;
+private:
+    std::vector<append_prepend_op_t> opts;
+    int head;
 
+public:
     op_t *generate() {
-        return new append_prepend_op_t(kg, sc, vw, p, a, vs, &query_stats);
+        op_t *res =  &opts[head];
+        head++;
+        head %= opts.size();
+        return res;
     }
 };
 

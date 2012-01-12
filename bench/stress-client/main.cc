@@ -123,20 +123,20 @@ int main(int argc, char *argv[])
 
             /* Set up the various operations */
             insert_chooser(&model),
-            insert_op_generator(&kg, &insert_chooser, &sqlite_mirror, protocol, config->values),
+            insert_op_generator(config->pipeline_limit + 1, &kg, &insert_chooser, &sqlite_mirror, protocol, config->values),
 
             delete_chooser(&model),
-            delete_op_generator(&kg, &delete_chooser, &sqlite_mirror, protocol),
+            delete_op_generator(config->pipeline_limit + 1, &kg, &delete_chooser, &sqlite_mirror, protocol),
 
             live_chooser(&model, config->distr, config->mu),
-            read_op_generator(&kg, &live_chooser, protocol, config->batch_factor),
-            update_op_generator(&kg, &live_chooser, &sqlite_mirror, protocol, config->values),
-            append_op_generator(&kg, &live_chooser, &sqlite_mirror, protocol, true, config->values),
-            prepend_op_generator(&kg, &live_chooser, &sqlite_mirror, protocol, false, config->values),
+            read_op_generator(config->pipeline_limit + 1, &kg, &live_chooser, protocol, config->batch_factor),
+            update_op_generator(config->pipeline_limit + 1, &kg, &live_chooser, &sqlite_mirror, protocol, config->values),
+            append_op_generator(config->pipeline_limit + 1, &kg, &live_chooser, &sqlite_mirror, protocol, true, config->values),
+            prepend_op_generator(config->pipeline_limit + 1, &kg, &live_chooser, &sqlite_mirror, protocol, false, config->values),
 
-            verify_op_generator(&sqlite_mirror, protocol),
+            verify_op_generator(config->pipeline_limit + 1, &sqlite_mirror, protocol),
 
-            range_read_op_generator(protocol, distr_t(50, 50), config->range_size, config->key_prefix),
+            range_read_op_generator(config->pipeline_limit + 1, protocol, distr_t(50, 50), config->range_size, config->key_prefix),
 
             /* Construct the client object */
             client(config->pipeline_limit)
