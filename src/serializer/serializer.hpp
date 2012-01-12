@@ -28,11 +28,12 @@ struct index_write_op_t {
 behave. It is implemented by log_serializer_t, semantic_checking_serializer_t, and
 translator_serializer_t. */
 
-struct serializer_t :
-    /* Except as otherwise noted, the serializer's methods should only be called from the
-    thread it was created on, and it should be destroyed on that same thread. */
-    public home_thread_mixin_t
-{
+/* Except as otherwise noted, the serializer's methods should only be
+   called from the thread it was created on, and it should be
+   destroyed on that same thread. */
+
+class serializer_t : public home_thread_mixin_t {
+public:
     typedef standard_block_token_t block_token_type;
 
     serializer_t() { }

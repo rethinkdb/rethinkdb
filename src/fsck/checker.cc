@@ -1239,11 +1239,11 @@ void launch_check_after_config_block(nondirect_file_t *file, std::vector<pthread
 }
 
 void report_pre_config_block_errors(const check_to_config_block_errors& errs) {
-    const static_config_error *sc;
+    const static_config_error *sc = NULL;
     if (errs.static_config_err.is_known(&sc) && *sc != static_config_none) {
         printf("ERROR %s static header: %s\n", state, static_config_errstring[*sc]);
     }
-    const metablock_errors *mb;
+    const metablock_errors *mb = NULL;
     if (errs.metablock_errs.is_known(&mb)) {
         if (mb->unloadable_count > 0) {
             printf("ERROR %s %d of %d metablocks were unloadable\n", state, mb->unloadable_count, mb->total_count);
@@ -1270,7 +1270,7 @@ void report_pre_config_block_errors(const check_to_config_block_errors& errs) {
             printf("ERROR %s a metablock we once loaded became unloadable (your computer is broken)\n", state);
         }
     }
-    const lba_errors *lba;
+    const lba_errors *lba = NULL;
     if (errs.lba_errs.is_known(&lba) && lba->error_happened) {
         for (int i = 0; i < LBA_SHARD_FACTOR; ++i) {
             const lba_shard_errors *sherr = &lba->shard_errors[i];

@@ -41,6 +41,13 @@ RUN_FILE?=rethinkdb_data
 VALGRIND_FLAGS?=--leak-check=full --db-attach=yes --show-reachable=yes --suppressions=../scripts/rethinkdb-valgrind-suppressions.supp
 CALLGRIND_FLAGS?=--simulate-cache=yes --simulate-wb=yes --simulate-hwpref=yes --cacheuse=yes --collect-jumps=yes
 
+COMPILER?=gcc
+override COMPILER:=$(shell echo $(COMPILER) | tr '[:lower:]' '[:upper:]')
+SUPPORTED_COMPILERS:=GCC CLANG INTEL
+ifneq ($(COMPILER),$(filter $(COMPILER),$(SUPPORTED_COMPILERS)))
+$(error Unknown compiler: $(COMPILER). The supported compilers are: $(SUPPORTED_COMPILERS))
+endif
+
 # Set SYMBOLS to 1 to enable symbols, even in release mode
 SYMBOLS?=0
 
@@ -80,27 +87,26 @@ RPM_PACKAGE_DIR:=$(PACKAGES_DIR)/rpm
 DEB_PACKAGE_DIR:=$(PACKAGES_DIR)/deb
 
 
-# Define configuration variables
+ifndef CXX
+
 ifeq ($(COMPILER),CLANG)
 CXX:=clang
-CXXDEP:=clang
-else
-ifeq ($(COMPILER),INTEL)
+else ifeq ($(COMPILER),INTEL)
 CXX:=icc
-CXXDEP:=icc
 else
 CXX:=g++
-CXXDEP:=g++
 endif
+
 endif
 
 ifeq ($(COMPILER),CLANG)
-LDFLAGS:=-Wl,--no-as-needed -lpthread -lrt -laio -lQtCore
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lQtCore -lstdc++ -lm
 else
 ifeq ($(COMPILER),INTEL)
-LDFLAGS:= -B/opt/intel/bin -lpthread -lrt -laio -lQtCore -lstdc++
+LDFLAGS:= -B/opt/intel/bin -pthread -lrt -laio -lQtCore -lstdc++
 else
-LDFLAGS:=-Wl,--no-as-needed -lpthread -lrt -laio -lQtCore
+# GCC
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lQtCore
 endif
 endif
 
@@ -108,7 +114,7 @@ STATIC_LIBRARIES:=boost_serialization
 
 CXXFLAGS?=
 
-CXXFLAGS+=-I$(SOURCE_DIR) -I/usr/include/qt4 -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source/JavaScriptCore/ForwardingHeaders -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source/JavaScriptCore 
+CXXFLAGS+=-I$(SOURCE_DIR) -I/usr/include/qt4 -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source/JavaScriptCore/ForwardingHeaders -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source/JavaScriptCore -pthread
 CXXFLAGS+="-DPRODUCT_NAME=\"$(PRODUCT_NAME)\""
 
 ifeq ($(SOLO),1)
@@ -249,7 +255,11 @@ STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -
 ifeq ($(VERBOSE),1)
 QUIET:=
 else
+ifeq ($(TIMINGS),1)
+QUIET:=@ time
+else
 QUIET:=@
+endif
 endif
 
 # googletest flags
@@ -672,7 +682,7 @@ ifeq ($(VERBOSE),0)
 	@echo "    DEP $@"
 endif
 	$(QUIET) mkdir -p $(dir $@)
-	$(QUIET) $(CXXDEP) $(CXXFLAGS) -M -MQ $(OBJ_DIR)/$*.o -MQ $@ $< > $@
+	$(QUIET) $(CXX) $(CXXFLAGS) -M -MQ $(OBJ_DIR)/$*.o -MQ $@ $< > $@
 
 # Without this, the proto headers get generated to build the .d files, then are removed as
 # intermediate files; then the .d files are read in, and some depend on the proto headers, so they

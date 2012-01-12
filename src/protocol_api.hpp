@@ -17,8 +17,8 @@ instantiated. For a description of what `protocol_t` must be like, see
 logic for query routing exposes to the protocol-specific query parser. */
 
 template<class protocol_t>
-struct namespace_interface_t {
-
+class namespace_interface_t {
+public:
     virtual typename protocol_t::read_response_t read(typename protocol_t::read_t, order_token_t tok, signal_t *interruptor) = 0;
     virtual typename protocol_t::write_response_t write(typename protocol_t::write_t, order_token_t tok, signal_t *interruptor) = 0;
 

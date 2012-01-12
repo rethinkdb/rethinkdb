@@ -87,12 +87,12 @@ void data_block_manager_t::start_existing(direct_file_t *file, metablock_mixin_t
     dbfile = file;
     gc_io_account_nice.reset(new file_account_t(file, GC_IO_PRIORITY_NICE));
     gc_io_account_high.reset(new file_account_t(file, GC_IO_PRIORITY_HIGH));
-    
+
     /* Reconstruct the active data block extents from the metablock. */
-    
+
     for (unsigned int i = 0; i < MAX_ACTIVE_DATA_EXTENTS; i++) {
         off64_t offset = last_metablock->active_extents[i];
-        
+
         if (offset != NULL_OFFSET) {
             /* It is possible to have an active data block extent with no actual data
             blocks in it. In this case we would not have created a gc_entry for the extent
@@ -102,42 +102,40 @@ void data_block_manager_t::start_existing(direct_file_t *file, metablock_mixin_t
                 e->state = gc_entry::state_reconstructing;
                 reconstructed_extents.push_back(e);
             }
-            
+
             active_extents[i] = entries.get(offset / extent_manager->extent_size);
             rassert(active_extents[i]);
-            
+
             /* Turn the extent from a reconstructing extent into an active extent */
             rassert(active_extents[i]->state == gc_entry::state_reconstructing);
             active_extents[i]->state = gc_entry::state_active;
             reconstructed_extents.remove(active_extents[i]);
-            
+
             blocks_in_active_extent[i] = last_metablock->blocks_in_active_extent[i];
         } else {
             active_extents[i] = NULL;
         }
     }
-    
+
     /* Convert any extents that we found live blocks in, but that are not active extents,
     into old extents */
-    
+
     while (gc_entry *entry = reconstructed_extents.head()) {
         reconstructed_extents.remove(entry);
-        
+
         rassert(entry->state == gc_entry::state_reconstructing);
         entry->state = gc_entry::state_old;
-        
+
         entry->our_pq_entry = gc_pq.push(entry);
-        
+
         gc_stats.old_total_blocks += static_config->blocks_per_extent();
         gc_stats.old_garbage_blocks += entry->g_array.count();
     }
-    
+
     state = state_ready;
 }
 
-struct dbm_read_ahead_fsm_t :
-    public iocallback_t
-{
+class dbm_read_ahead_fsm_t : public iocallback_t {
 public:
     data_block_manager_t *parent;
     iocallback_t *callback;
