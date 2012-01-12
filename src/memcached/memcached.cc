@@ -5,6 +5,8 @@
 #include <unistd.h>
 
 #include "arch/arch.hpp"
+#include "concurrency/coro_fifo.hpp"
+#include "concurrency/mutex.hpp"
 #include "concurrency/task.hpp"
 #include "concurrency/semaphore.hpp"
 #include "concurrency/drain_semaphore.hpp"
@@ -276,10 +278,66 @@ public:
     };
 };
 
+class pipeliner_t {
+public:
+    pipeliner_t() { }
+    ~pipeliner_t() { }
+private:
+    friend class pipeliner_acq_t;
+    coro_fifo_t fifo;
+    mutex_t mutex;
+
+    DISABLE_COPYING(pipeliner_t);
+};
+
+class pipeliner_acq_t {
+public:
+    pipeliner_acq_t(pipeliner_t *pipeliner)
+        : pipeliner_(pipeliner)
+#ifndef NDEBUG
+        , state_(untouched)
+#endif
+    { }
+    ~pipeliner_acq_t() {
+        rassert(state_ == has_ended_write);
+    }
+
+    void begin_operation() {
+        rassert(state_ == untouched);
+        DEBUG_ONLY(state_ = has_begun_operation);
+        fifo_acq_.enter(&pipeliner_->fifo);
+    }
+
+    void begin_write() {
+        rassert(state_ == has_begun_operation);
+        DEBUG_ONLY(state_ = has_begun_write);
+        fifo_acq_.leave();
+        co_lock_mutex(&pipeliner_->mutex);
+    }
+
+    void end_write() {
+        rassert(state_ == has_begun_write);
+        DEBUG_ONLY(state_ = has_ended_write);
+        pipeliner_->mutex.unlock(true);
+    }
+
+private:
+    pipeliner_t *pipeliner_;
+    coro_fifo_acq_t fifo_acq_;
+#ifndef NDEBUG
+    enum { untouched, has_begun_operation, has_begun_write, has_ended_write } state_;
+#endif
+    DISABLE_COPYING(pipeliner_acq_t);
+};
+
+
 perfmon_duration_sampler_t
     pm_cmd_set("cmd_set", secs_to_ticks(1.0), false),
     pm_cmd_get("cmd_get", secs_to_ticks(1.0), false),
     pm_cmd_rget("cmd_rget", secs_to_ticks(1.0), false);
+
+
+
 
 /* do_get() is used for "get" and "gets" commands. */
 
@@ -296,7 +354,8 @@ void do_one_get(txt_memcached_handler_if *rh, bool with_cas, get_t *gets, int i,
     }
 }
 
-void do_get(txt_memcached_handler_if *rh, bool with_cas, int argc, char **argv, order_token_t token) {
+// TODO FIFO: Use the pipeliner parameter.
+void do_get(txt_memcached_handler_if *rh, UNUSED pipeliner_t *pipeliner, bool with_cas, int argc, char **argv, order_token_t token) {
     rassert(argc >= 1);
     rassert(strcmp(argv[0], "get") == 0 || strcmp(argv[0], "gets") == 0);
 
@@ -397,7 +456,8 @@ static bool rget_parse_bound(char *flag, char *key, rget_bound_mode_t *mode_out,
 }
 
 perfmon_duration_sampler_t rget_iteration_next("rget_iteration_next", secs_to_ticks(1));
-void do_rget(txt_memcached_handler_if *rh, int argc, char **argv, order_token_t token) {
+// TODO FIFO: use the pipeliner parameter.
+void do_rget(txt_memcached_handler_if *rh, UNUSED pipeliner_t *pipeliner, int argc, char **argv, order_token_t token) {
     if (argc != 6) {
         rh->client_error_bad_command_line_format();
         return;
@@ -643,7 +703,8 @@ void run_storage_command(txt_memcached_handler_if *rh,
     read_value_promise here */
 }
 
-void do_storage(txt_memcached_handler_if *rh, storage_command_t sc, int argc, char **argv, order_token_t token) {
+// TODO FIFO: Use the pipeliner parameter.
+void do_storage(txt_memcached_handler_if *rh, UNUSED pipeliner_t *pipeliner, storage_command_t sc, int argc, char **argv, order_token_t token) {
     char *invalid_char;
 
     /* cmd key flags exptime size [noreply]
@@ -776,7 +837,8 @@ void run_incr_decr(txt_memcached_handler_if *rh, store_key_t key, uint64_t amoun
     rh->end_write_command();
 }
 
-void do_incr_decr(txt_memcached_handler_if *rh, bool i, int argc, char **argv, order_token_t token) {
+// TODO FIFO: Actually use the pipeliner parameter.
+void do_incr_decr(txt_memcached_handler_if *rh, UNUSED pipeliner_t *pipeliner, bool i, int argc, char **argv, order_token_t token) {
     /* cmd key delta [noreply] */
     if (argc != 3 && argc != 4) {
         rh->error();
@@ -845,7 +907,8 @@ void run_delete(txt_memcached_handler_if *rh, store_key_t key, bool noreply, ord
     rh->end_write_command();
 }
 
-void do_delete(txt_memcached_handler_if *rh, int argc, char **argv, order_token_t token) {
+// TODO FIFO: Actually use the pipeliner parameter.
+void do_delete(txt_memcached_handler_if *rh, UNUSED pipeliner_t *pipeliner, int argc, char **argv, order_token_t token) {
     /* "delete" key [a number] ["noreply"] */
     if (argc < 2 || argc > 4) {
         rh->error();
@@ -987,7 +1050,13 @@ void handle_memcache(txt_memcached_handler_if *rh, order_source_t *order_source)
     /* Create a linked sigint cond on my thread */
     sigint_indicator_t sigint_has_happened;
 
+    pipeliner_t pipeliner;
+
     while (!sigint_has_happened.get_value()) {
+        // TODO FIFO: Force the pipeliner to be used on every request somehow, perhaps.
+
+        // TODO FIFO: Make sure the pipeliner actually throttles.
+
         /* Flush if necessary (no reason to do this the first time around, but it's easier
         to put it here than after every thing that could need to flush */
         block_pm_duration flush_timer(&pm_conns_writing);
@@ -1022,30 +1091,32 @@ void handle_memcache(txt_memcached_handler_if *rh, order_source_t *order_source)
         /* Dispatch to the appropriate subclass */
         order_token_t token = order_source->check_in(std::string("handle_memcache+") + args[0]);
         if (!strcmp(args[0], "get")) {    // check for retrieval commands
-            do_get(rh, false, args.size(), args.data(), token.with_read_mode());
+            do_get(rh, &pipeliner, false, args.size(), args.data(), token.with_read_mode());
         } else if (!strcmp(args[0], "gets")) {
-            do_get(rh, true, args.size(), args.data(), token);
+            do_get(rh, &pipeliner, true, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "rget")) {
-            do_rget(rh, args.size(), args.data(), token.with_read_mode());
+            do_rget(rh, &pipeliner, args.size(), args.data(), token.with_read_mode());
         } else if (!strcmp(args[0], "set")) {     // check for storage commands
-            do_storage(rh, set_command, args.size(), args.data(), token);
+            do_storage(rh, &pipeliner, set_command, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "add")) {
-            do_storage(rh, add_command, args.size(), args.data(), token);
+            do_storage(rh, &pipeliner, add_command, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "replace")) {
-            do_storage(rh, replace_command, args.size(), args.data(), token);
+            do_storage(rh, &pipeliner, replace_command, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "append")) {
-            do_storage(rh, append_command, args.size(), args.data(), token);
+            do_storage(rh, &pipeliner, append_command, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "prepend")) {
-            do_storage(rh, prepend_command, args.size(), args.data(), token);
+            do_storage(rh, &pipeliner, prepend_command, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "cas")) {
-            do_storage(rh, cas_command, args.size(), args.data(), token);
+            do_storage(rh, &pipeliner, cas_command, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "delete")) {
-            do_delete(rh, args.size(), args.data(), token);
+            do_delete(rh, &pipeliner, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "incr")) {
-            do_incr_decr(rh, true, args.size(), args.data(), token);
+            do_incr_decr(rh, &pipeliner, true, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "decr")) {
-            do_incr_decr(rh, false, args.size(), args.data(), token);
+            do_incr_decr(rh, &pipeliner, false, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "quit")) {
+            // TODO FIFO: Do pipeliner fifo for this.
+
             // Make sure there's no more tokens (the kind in args, not
             // order tokens)
             if (args.size() > 1) {
@@ -1054,13 +1125,21 @@ void handle_memcache(txt_memcached_handler_if *rh, order_source_t *order_source)
                 break;
             }
         } else if (!strcmp(args[0], "stats") || !strcmp(args[0], "stat")) {
+            // TODO FIFO: Do input/output fifo for this.
+
             rh->write(memcached_stats(args.size(), args.data(), false)); // Only shows "public" stats; to see all stats, use "rdb stats".
         } else if (!strcmp(args[0], "help")) {
+            // TODO FIFO: Do input/output fifo for this.
+
             // Slightly hacky -- just treat this as a control. This assumes that a control named "help" exists (which it does).
             rh->write(control_t::exec(args.size(), args.data()));
         } else if(!strcmp(args[0], "rethinkdb") || !strcmp(args[0], "rdb")) {
+            // TODO FIFO: Do input/output fifo for this.
+
             rh->write(control_t::exec(args.size() - 1, args.data() + 1));
         } else if (!strcmp(args[0], "version")) {
+            // TODO FIFO: Do input/output fifo for this.
+
             if (args.size() == 1) {
                 rh->writef("VERSION rethinkdb-%s\r\n", RETHINKDB_VERSION);
             } else {
@@ -1068,9 +1147,13 @@ void handle_memcache(txt_memcached_handler_if *rh, order_source_t *order_source)
             }
 #ifndef NDEBUG
         } else if (!parse_debug_command(rh, args)) {
+            // TODO FIFO: Do input/output fifo for this.
+
 #else
         } else {
 #endif
+            // TODO FIFO: Do input/output fifo for this.
+
             rh->error();
         }
 
