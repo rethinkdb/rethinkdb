@@ -20,33 +20,33 @@ shard_store_t::shard_store_t(
     timestamper(&dispatching_store)
     { }
 
-get_result_t shard_store_t::get(const store_key_t &key, order_token_t token) {
+get_result_t shard_store_t::get(const store_key_t &key, sequence_group_t *seq_group, order_token_t token) {
     on_thread_t th(home_thread());
     // We need to let gets reorder themselves, and haven't implemented that yet.
-    return dispatching_store.get(key, token);
+    return dispatching_store.get(key, seq_group, token);
 }
 
-rget_result_t shard_store_t::rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token) {
+rget_result_t shard_store_t::rget(sequence_group_t *seq_group, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token) {
     on_thread_t th(home_thread());
 
     // We need to let gets reorder themselves, and haven't implemented that yet.
-    return dispatching_store.rget(left_mode, left_key, right_mode, right_key, token);
+    return dispatching_store.rget(seq_group, left_mode, left_key, right_mode, right_key, token);
 }
 
-mutation_result_t shard_store_t::change(const mutation_t &m, order_token_t token) {
+mutation_result_t shard_store_t::change(sequence_group_t *seq_group, const mutation_t &m, order_token_t token) {
     on_thread_t th(home_thread());
-    return timestamper.change(m, token);
+    return timestamper.change(seq_group, m, token);
 }
 
-mutation_result_t shard_store_t::change(const mutation_t &m, castime_t ct, order_token_t token) {
+mutation_result_t shard_store_t::change(sequence_group_t *seq_group, const mutation_t &m, castime_t ct, order_token_t token) {
     /* Bypass the timestamper because we already have a castime_t */
     on_thread_t th(home_thread());
-    return dispatching_store.change(m, ct, token);
+    return dispatching_store.change(seq_group, m, ct, token);
 }
 
-void shard_store_t::delete_all_keys_for_backfill(order_token_t token) {
+void shard_store_t::delete_all_keys_for_backfill(sequence_group_t *seq_group, order_token_t token) {
     on_thread_t th(home_thread());
-    dispatching_store.delete_all_keys_for_backfill(token);
+    dispatching_store.delete_all_keys_for_backfill(seq_group, token);
 }
 
 void shard_store_t::set_replication_clock(repli_timestamp_t t, order_token_t token) {
@@ -332,16 +332,16 @@ uint32_t btree_key_value_store_t::slice_num(const store_key_t &key) {
     return hash(key) % btree_static_config.n_slices;
 }
 
-get_result_t btree_key_value_store_t::get(const store_key_t &key, order_token_t token) {
-    return shards[slice_num(key)]->get(key, token);
+get_result_t btree_key_value_store_t::get(const store_key_t &key, sequence_group_t *seq_group, order_token_t token) {
+    return shards[slice_num(key)]->get(key, seq_group, token);
 }
 
 typedef merge_ordered_data_iterator_t<key_with_data_provider_t,key_with_data_provider_t::less> merged_results_iterator_t;
 
-rget_result_t btree_key_value_store_t::rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token) {
+rget_result_t btree_key_value_store_t::rget(sequence_group_t *seq_group, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token) {
     unique_ptr_t<merged_results_iterator_t> merge_iterator(new merged_results_iterator_t());
     for (int s = 0; s < btree_static_config.n_slices; s++) {
-        merge_iterator->add_mergee(shards[s]->rget(left_mode, left_key, right_mode, right_key, token).release());
+        merge_iterator->add_mergee(shards[s]->rget(seq_group, left_mode, left_key, right_mode, right_key, token).release());
     }
     return merge_iterator;
 }
@@ -350,24 +350,24 @@ rget_result_t btree_key_value_store_t::rget(rget_bound_mode_t left_mode, const s
 
 perfmon_duration_sampler_t pm_store_change_1("store_change_1", secs_to_ticks(1.0));
 
-mutation_result_t btree_key_value_store_t::change(const mutation_t &m, order_token_t token) {
+mutation_result_t btree_key_value_store_t::change(sequence_group_t *seq_group, const mutation_t &m, order_token_t token) {
     block_pm_duration timer(&pm_store_change_1);
-    return shards[slice_num(m.get_key())]->change(m, token);
+    return shards[slice_num(m.get_key())]->change(seq_group, m, token);
 }
 
 /* set_store_t interface */
 
 perfmon_duration_sampler_t pm_store_change_2("store_change_2", secs_to_ticks(1.0));
 
-mutation_result_t btree_key_value_store_t::change(const mutation_t &m, castime_t ct, order_token_t token) {
+mutation_result_t btree_key_value_store_t::change(sequence_group_t *seq_group, const mutation_t &m, castime_t ct, order_token_t token) {
     block_pm_duration timer(&pm_store_change_2);
-    return shards[slice_num(m.get_key())]->change(m, ct, token);
+    return shards[slice_num(m.get_key())]->change(seq_group, m, ct, token);
 }
 
 /* btree_key_value_store_t interface */
 
-void btree_key_value_store_t::delete_all_keys_for_backfill(order_token_t token) {
+void btree_key_value_store_t::delete_all_keys_for_backfill(sequence_group_t *seq_group, order_token_t token) {
     for (int i = 0; i < btree_static_config.n_slices; ++i) {
-        coro_t::spawn_now(boost::bind(&shard_store_t::delete_all_keys_for_backfill, shards[i], token));
+        coro_t::spawn_now(boost::bind(&shard_store_t::delete_all_keys_for_backfill, shards[i], seq_group, token));
     }
 }

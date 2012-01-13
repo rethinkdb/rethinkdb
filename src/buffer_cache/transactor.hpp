@@ -8,13 +8,14 @@
 // want to rename this (we'd really want transaction_t but that's
 // taken).
 
+class sequence_group_t;
 
 class transactor_t {
 public:
     // This must be used in read mode or (read_mode_outdated_ok)
-    transactor_t(cache_t *cache, access_t access);
+    transactor_t(cache_t *cache, sequence_group_t *seq_group, access_t access);
 
-    transactor_t(cache_t *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp);
+    transactor_t(cache_t *cache, sequence_group_t *seq_group, access_t access, int expected_change_count, repli_timestamp recency_timestamp);
 
     ~transactor_t();
 

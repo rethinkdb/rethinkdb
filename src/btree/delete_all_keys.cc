@@ -59,7 +59,7 @@ struct delete_all_keys_traversal_helper_t : public btree_traversal_helper_t {
 // for backfill.  Thus we don't have to record the fact in the delete
 // queue.  (Or, we will have to, along with the neighbor that sent us
 // delete-all-keys operation.)
-void btree_delete_all_keys_for_backfill(btree_slice_t *slice, order_token_t token) {
+void btree_delete_all_keys_for_backfill(btree_slice_t *slice, sequence_group_t *seq_group, order_token_t token) {
     slice->assert_thread();
 
     rassert(coro_t::self());
@@ -69,7 +69,7 @@ void btree_delete_all_keys_for_backfill(btree_slice_t *slice, order_token_t toke
     slice->pre_begin_transaction_sink_.check_out(token);
     order_token_t begin_transaction_token = slice->pre_begin_transaction_write_mode_source_.check_in(token.tag() + "+begin_transaction_token");
 
-    boost::shared_ptr<transactor_t> txor = boost::make_shared<transactor_t>(slice->cache(), helper.transaction_mode(), 0, repli_timestamp::invalid);
+    boost::shared_ptr<transactor_t> txor = boost::make_shared<transactor_t>(slice->cache(), seq_group, helper.transaction_mode(), 0, repli_timestamp::invalid);
 
     slice->post_begin_transaction_sink_.check_out(begin_transaction_token);
 

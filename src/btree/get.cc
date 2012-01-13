@@ -12,7 +12,7 @@
 #include "btree/leaf_node.hpp"
 #include "btree/btree_data_provider.hpp"
 
-get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, order_token_t token) {
+get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, sequence_group_t *seq_group, order_token_t token) {
     btree_key_buffer_t kbuffer(store_key);
     btree_key_t *key = kbuffer.key();
 
@@ -22,7 +22,7 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, order
     // We can use repli_timestamp::invalid here because it's the timestamp for a read-only transaction.
     slice->pre_begin_transaction_sink_.check_out(token);
     order_token_t begin_transaction_token = slice->pre_begin_transaction_read_mode_source_.check_in(token.tag() + "+begin_transaction_token").with_read_mode();
-    boost::shared_ptr<transactor_t> transactor(new transactor_t(slice->cache(), rwi_read));
+    boost::shared_ptr<transactor_t> transactor(new transactor_t(slice->cache(), seq_group, rwi_read));
     slice->post_begin_transaction_sink_.check_out(begin_transaction_token);
 
     transactor->get()->set_token(slice->post_begin_transaction_source_.check_in(token.tag() + "+post").with_read_mode());

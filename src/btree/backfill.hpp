@@ -33,7 +33,9 @@ protected:
 or equal than `since_when` but which reached the tree before `btree_backfill()` was called.
 It may also find changes that happened before `since_when`. */
 
-void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, boost::shared_ptr<cache_account_t> backfill_account, backfill_callback_t *callback, order_token_t token);
+class sequence_group_t;
+
+void btree_backfill(btree_slice_t *slice, sequence_group_t *seq_group, repli_timestamp since_when, boost::shared_ptr<cache_account_t> backfill_account, backfill_callback_t *callback, order_token_t token);
 
 
 #endif  // __BTREE_BACKFILL_HPP__

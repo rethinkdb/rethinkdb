@@ -4,6 +4,7 @@
 #include "arch/arch.hpp"
 #include "data_provider.hpp"
 #include "btree/value.hpp"
+#include "buffer_cache/sequence_group.hpp"
 
 class get_store_t;
 class set_store_interface_t;
@@ -25,6 +26,12 @@ public:
 
     get_store_t *get_store;
     set_store_interface_t *set_store;
+
+    // The sequence group, so that the buffer cache or btree can make
+    // sure that operations aren't reordered after they get to the
+    // buffer cache.  (Specifically, when creating the transaction_t,
+    // see sequence_group.hpp.)
+    sequence_group_t seq_group;
 
     const int max_concurrent_queries_per_connection;
 

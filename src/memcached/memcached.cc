@@ -268,8 +268,9 @@ public:
     /* In our current use of import we ignore gets, the easiest way to do this
      * is with a dummyed get_store */
     class dummy_get_store_t : public get_store_t {
-        get_result_t get(UNUSED const store_key_t &key, UNUSED order_token_t token) { return get_result_t(); }
-        rget_result_t rget(UNUSED rget_bound_mode_t left_mode, UNUSED const store_key_t &left_key,
+        get_result_t get(UNUSED const store_key_t &key, UNUSED sequence_group_t *seq_group, UNUSED order_token_t token) { return get_result_t(); }
+        rget_result_t rget(UNUSED sequence_group_t *seq_group,
+                           UNUSED rget_bound_mode_t left_mode, UNUSED const store_key_t &left_key,
                            UNUSED rget_bound_mode_t right_mode, UNUSED const store_key_t &right_key, 
                            UNUSED order_token_t token)
         {
@@ -381,9 +382,9 @@ struct get_t {
 
 void do_one_get(txt_memcached_handler_if *rh, bool with_cas, get_t *gets, int i, order_token_t token) {
     if (with_cas) {
-        gets[i].res = rh->set_store->get_cas(gets[i].key, token);
+        gets[i].res = rh->set_store->get_cas(&rh->seq_group, gets[i].key, token);
     } else {
-        gets[i].res = rh->get_store->get(gets[i].key, token);
+        gets[i].res = rh->get_store->get(gets[i].key, &rh->seq_group, token);
     }
 }
 
@@ -542,7 +543,7 @@ void do_rget(txt_memcached_handler_if *rh, pipeliner_t *pipeliner, int argc, cha
 
     block_pm_duration rget_timer(&pm_cmd_rget);
 
-    rget_result_t results_iterator = rh->get_store->rget(left_mode, left_key, right_mode, right_key, token);
+    rget_result_t results_iterator = rh->get_store->rget(&rh->seq_group, left_mode, left_key, right_mode, right_key, token);
 
     pipeliner_acq.begin_write();
 
@@ -701,7 +702,7 @@ void run_storage_command(txt_memcached_handler_if *rh,
             unreachable();
         }
 
-        set_result_t res = rh->set_store->sarc(key, data, metadata.mcflags, metadata.exptime,
+        set_result_t res = rh->set_store->sarc(&rh->seq_group, key, data, metadata.mcflags, metadata.exptime,
                                                add_policy, replace_policy, metadata.unique, token);
 
         pipeliner_acq->begin_write();
@@ -738,7 +739,7 @@ void run_storage_command(txt_memcached_handler_if *rh,
 
     } else {
         append_prepend_result_t res =
-            rh->set_store->append_prepend(
+            rh->set_store->append_prepend(&rh->seq_group,
                 sc == append_command ? append_prepend_APPEND : append_prepend_PREPEND,
                 key, data, token);
 
@@ -900,7 +901,7 @@ void do_storage(txt_memcached_handler_if *rh, pipeliner_t *pipeliner, storage_co
 void run_incr_decr(txt_memcached_handler_if *rh, pipeliner_acq_t *pipeliner_acq, store_key_t key, uint64_t amount, bool incr, bool noreply, order_token_t token) {
     block_pm_duration set_timer(&pm_cmd_set);
 
-    incr_decr_result_t res = rh->set_store->incr_decr(
+    incr_decr_result_t res = rh->set_store->incr_decr(&rh->seq_group,
         incr ? incr_decr_INCR : incr_decr_DECR,
         key, amount, token);
 
@@ -984,7 +985,7 @@ void do_incr_decr(txt_memcached_handler_if *rh, pipeliner_t *pipeliner, bool i, 
 void run_delete(txt_memcached_handler_if *rh, pipeliner_acq_t *pipeliner_acq, store_key_t key, bool noreply, order_token_t token) {
     block_pm_duration set_timer(&pm_cmd_set);
 
-    delete_result_t res = rh->set_store->delete_key(key, token);
+    delete_result_t res = rh->set_store->delete_key(&rh->seq_group, key, token);
 
     pipeliner_acq->begin_write();
     if (!noreply) {
@@ -1120,7 +1121,7 @@ void do_quickset(txt_memcached_handler_if *rh, pipeliner_acq_t *pipeliner_acq, s
         }
         unique_ptr_t<buffered_data_provider_t> value(new buffered_data_provider_t(args_copy[i + 1].data(), args_copy[i + 1].size()));
 
-        set_result_t res = rh->set_store->sarc(key, value, 0, 0, add_policy_yes, replace_policy_yes, 0, order_token_t::ignore);
+        set_result_t res = rh->set_store->sarc(&rh->seq_group, key, value, 0, 0, add_policy_yes, replace_policy_yes, 0, order_token_t::ignore);
 
         if (res == sr_stored) {
             rh->writef("STORED key %s\r\n", args_copy[i].c_str());

@@ -26,8 +26,10 @@ void co_acquire_large_buf_lhs(large_buf_t *large_value);
 void co_acquire_large_buf_rhs(large_buf_t *large_value);
 void co_acquire_large_buf_for_delete(large_buf_t *large_value);
 
+class sequence_group_t;
+
 // Avoid using this, use transactor_t instead.
-transaction_t *co_begin_transaction(cache_t *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp);
+transaction_t *co_begin_transaction(cache_t *cache, sequence_group_t *seq_group, access_t access, int expected_change_count, repli_timestamp recency_timestamp);
 
 // Avoid using this, use transactor_t instead.
 void co_commit_transaction(transaction_t *transaction);

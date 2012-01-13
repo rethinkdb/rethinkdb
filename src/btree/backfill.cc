@@ -118,7 +118,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
 };
 
 
-void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, boost::shared_ptr<cache_account_t> backfill_account, backfill_callback_t *callback, order_token_t token) {
+void btree_backfill(btree_slice_t *slice, sequence_group_t *seq_group, repli_timestamp since_when, boost::shared_ptr<cache_account_t> backfill_account, backfill_callback_t *callback, order_token_t token) {
     {
         rassert(coro_t::self());
 
@@ -127,7 +127,7 @@ void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, boost::sha
         slice->pre_begin_transaction_sink_.check_out(token);
         order_token_t begin_transaction_token = slice->pre_begin_transaction_write_mode_source_.check_in(token.tag() + "+begin_transaction_token").with_read_mode();
 
-        boost::shared_ptr<transactor_t> txor = boost::make_shared<transactor_t>(slice->cache(), rwi_read_sync);
+        boost::shared_ptr<transactor_t> txor = boost::make_shared<transactor_t>(slice->cache(), seq_group, rwi_read_sync);
 
         slice->post_begin_transaction_sink_.check_out(begin_transaction_token);
 

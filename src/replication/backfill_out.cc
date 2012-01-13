@@ -7,6 +7,7 @@
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/queue/cross_thread_limited_fifo.hpp"
 #include "concurrency/queue/accounting.hpp"
+#include "buffer_cache/sequence_group.hpp"
 
 perfmon_duration_sampler_t
     pm_replication_master_dispatch_cost("replication_master_dispatch_cost", secs_to_ticks(1.0)),
@@ -60,7 +61,11 @@ public:
 
                 backfilling_ = true;
             }
-            coro_t::spawn_now(boost::bind(&btree_slice_t::backfill, &shard->btree, backfill_from, this, shard->dispatching_store.substore_order_source.check_in("slice_manager_t").with_read_mode()));
+
+            // TODO FIFO SEQ GROUP: We _definitely_ don't want this to be our sequence group.  Its lifetime is wrong.
+            sequence_group_t seq_group;
+
+            coro_t::spawn_now(boost::bind(&btree_slice_t::backfill, &shard->btree, &seq_group, backfill_from, this, shard->dispatching_store.substore_order_source.check_in("slice_manager_t").with_read_mode()));
         }
 
         ~slice_manager_t() {

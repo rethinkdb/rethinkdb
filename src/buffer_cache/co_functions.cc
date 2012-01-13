@@ -1,4 +1,5 @@
 #include "buffer_cache/co_functions.hpp"
+#include "buffer_cache/sequence_group.hpp"
 #include "concurrency/promise.hpp"
 
 struct co_block_available_callback_t : public block_available_callback_t {
@@ -94,7 +95,8 @@ struct transaction_begun_callback_t : public transaction_begin_callback_t {
     }
 };
 
-transaction_t *co_begin_transaction(cache_t *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp) {
+// TODO FIFO SEQ GROUP use the seq_group parameter.
+transaction_t *co_begin_transaction(cache_t *cache, UNUSED sequence_group_t *seq_group, access_t access, int expected_change_count, repli_timestamp recency_timestamp) {
     cache->assert_thread();
     transaction_begun_callback_t cb;
 

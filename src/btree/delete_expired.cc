@@ -2,6 +2,8 @@
 
 #include "btree/modify_oper.hpp"
 
+#include "buffer_cache/sequence_group.hpp"
+
 class btree_delete_expired_oper_t : public btree_modify_oper_t
 {
 public:
@@ -27,12 +29,18 @@ public:
 // the database, and so the subtrees it passes through have no data to
 // replicate.
 void co_btree_delete_expired(const store_key_t &key, btree_slice_t *slice) {
+
+    // Expiration operations are logically no-ops and can be reordered
+    // relative to any other kind of operation, so they don't need to
+    // fuzz up another's sequence_group_t.
+    sequence_group_t seq_group;
+
     btree_delete_expired_oper_t oper;
     // TODO: Something is wrong with our abstraction since we are
     // passing a completely meaningless proposed cas and because we
     // should not really be passing a recency timestamp.
     // It's okay to use repli_timestamp::invalid here.
-    run_btree_modify_oper(&oper, slice, key, castime_t(BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS, repli_timestamp::invalid), order_token_t::ignore);
+    run_btree_modify_oper(&oper, slice, &seq_group, key, castime_t(BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS, repli_timestamp::invalid), order_token_t::ignore);
 }
 
 void btree_delete_expired(const store_key_t &key, btree_slice_t *slice) {

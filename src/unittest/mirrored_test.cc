@@ -3,6 +3,8 @@
 #include "unittest/server_test_helper.hpp"
 #include "unittest/unittest_utils.hpp"
 
+#include "buffer_cache/sequence_group.hpp"
+
 namespace unittest {
 
 struct mirrored_tester_t : public server_test_helper_t {
@@ -27,11 +29,13 @@ private:
         // we will get an assertion failure during mc_inner_buf creation, but since creating it is a
         // bug in the first place, it's fine to do so in this test (although I'm definitely not proud
         // of doing so).
-        transactor_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past);
+        sequence_group_t seq_group;
+
+        transactor_t t0(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
         block_id_t block_A, block_B;
         create_two_blocks(t0, block_A, block_B);
 
-        transactor_t t1(cache, rwi_write, 0, repli_timestamp_t::distant_past);
+        transactor_t t1(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
 
         buf_t *buf1_A = acq(t1, block_A, rwi_write);
         buf1_A->mark_deleted(false);

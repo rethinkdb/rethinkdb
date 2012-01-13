@@ -2,6 +2,7 @@
 #include "unittest/server_test_helper.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "buffer_cache/large_buf.hpp"
+#include "buffer_cache/sequence_group.hpp"
 
 namespace unittest {
 
@@ -49,7 +50,9 @@ private:
 
         repli_timestamp time = repli_timestamp_t::distant_past;
 
-        boost::shared_ptr<transactor_t> txor(new transactor_t(cache, rwi_write, 0, time));
+        sequence_group_t seq_group;
+
+        boost::shared_ptr<transactor_t> txor(new transactor_t(cache, &seq_group, rwi_write, 0, time));
 
         union {
             large_buf_ref ref;
@@ -105,7 +108,9 @@ private:
 
         repli_timestamp time = repli_timestamp_t::distant_past;
 
-        boost::shared_ptr<transactor_t> txor(new transactor_t(cache, rwi_write, 0, time));
+        sequence_group_t seq_group;
+
+        boost::shared_ptr<transactor_t> txor(new transactor_t(cache, &seq_group, rwi_write, 0, time));
 
         union {
             large_buf_ref ref;
