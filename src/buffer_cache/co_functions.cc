@@ -95,8 +95,7 @@ struct transaction_begun_callback_t : public transaction_begin_callback_t {
     }
 };
 
-// TODO FIFO SEQ GROUP use the seq_group parameter.
-transaction_t *co_begin_transaction(cache_t *cache, UNUSED sequence_group_t *seq_group, access_t access, int expected_change_count, repli_timestamp recency_timestamp) {
+transaction_t *co_begin_transaction(cache_t *cache, sequence_group_t *seq_group, access_t access, int expected_change_count, repli_timestamp recency_timestamp) {
     cache->assert_thread();
     transaction_begun_callback_t cb;
 
@@ -120,12 +119,26 @@ transaction_t *co_begin_transaction(cache_t *cache, UNUSED sequence_group_t *seq
     // same _connection_ to be coro-fifoed in the same path that
     // writes are.
 
+    // Why do "writes" need to have their order preserved at all, now
+    // that we have sequence_group_t?  Perhaps it's because in the
+    // presence of replication, that prevents the gated store gate
+    // limitations being bypassed.  You could look at the gated store
+    // code to prove or disprove this claim, but since v1.1.x is
+    // supposed to be stable, we're being conservative.
+
     // TODO FIFO: Fix this as the above comment says.
 
-    coro_fifo_acq_t acq;
+    // It is important that we leave the sequence group's fifo _after_
+    // we leave the write throttle fifo.  So we construct it first.
+    // (The destructor will run after.)
+    coro_fifo_acq_t seq_group_acq;
+    seq_group_acq.enter(&seq_group->fifo);
 
-    // We care about write ordering _and_ read ordering.
-    acq.enter(&cache->co_begin_coro_fifo());
+    coro_fifo_acq_t write_throttle_acq;
+
+    if (is_write_mode(access)) {
+        write_throttle_acq.enter(&cache->co_begin_coro_fifo());
+    }
 
     transaction_t *value = cache->begin_transaction(access, expected_change_count, recency_timestamp, &cb);
     if (!value) {
