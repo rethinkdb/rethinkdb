@@ -98,7 +98,7 @@ struct btree_traversal_helper_t {
     virtual ~btree_traversal_helper_t() { }
 };
 
-void btree_parallel_traversal(boost::scoped_ptr<transaction_t> &txn, btree_slice_t *slice, btree_traversal_helper_t *helper);
-void btree_parallel_traversal(boost::scoped_ptr<transaction_t> &txn, got_superblock_t &got_superblock_t, btree_slice_t *slice, btree_traversal_helper_t *helper);
+void btree_parallel_traversal(const boost::scoped_ptr<transaction_t> &txn, btree_slice_t *slice, btree_traversal_helper_t *helper);
+void btree_parallel_traversal(const boost::scoped_ptr<transaction_t> &txn, got_superblock_t &got_superblock_t, btree_slice_t *slice, btree_traversal_helper_t *helper);
 
 #endif  // __BTREE_PARALLEL_TRAVERSAL_HPP__
