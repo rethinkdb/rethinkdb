@@ -335,8 +335,8 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             logINF("Shutting down...\n");
         }
 
-    } catch (tcp_listener_t::address_in_use_exc_t) {
-        logERR("Port %d is already in use -- aborting.\n", cmd_config->port);
+    } catch (tcp_listener_t::address_in_use_exc_t& ex) {
+        logERR("%s -- aborting.\n", ex.what());
     }
 
     /* The penultimate step of shutting down is to make sure that all messages
