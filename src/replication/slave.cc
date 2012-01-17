@@ -70,6 +70,8 @@ void slave_t::give_up_t::limit_to(unsigned int limit) {
 
 void slave_t::run(signal_t *shutdown_signal) {
 
+    sequence_group_t seq_group;
+
     /* Determine if we were connected to the master at the time that we last shut down. We figure
     that if the last timestamp (get_replication_clock()) is the same as the last timestamp that
     we are up to date with the master on (get_last_sync()), then we were connected to the master at
@@ -77,7 +79,7 @@ void slave_t::run(signal_t *shutdown_signal) {
     will be equal anyway, which produces the correct behavior because the way we act when we first
     connect is the same as the way we act when we reconnect after we went down. */
     bool were_connected_before =
-        internal_store_->get_replication_clock() == internal_store_->get_last_sync();
+        internal_store_->get_replication_clock(&seq_group) == internal_store_->get_last_sync();
 
     if (!were_connected_before) {
         logINF("We didn't have contact with the master at the time that we last shut down, so "
@@ -146,10 +148,10 @@ void slave_t::run(signal_t *shutdown_signal) {
 
             /* Make sure that any sets we run are assigned a timestamp later than the latest
             timestamp we got from the master. */
-            repli_timestamp_t rc = internal_store_->get_replication_clock().next();
+            repli_timestamp_t rc = internal_store_->get_replication_clock(&seq_group).next();
             debugf("Incrementing clock from %d to %d\n", rc.time - 1, rc.time);
             internal_store_->set_timestampers(rc);
-            internal_store_->set_replication_clock(rc, order_token_t::ignore);
+            internal_store_->set_replication_clock(&seq_group, rc, order_token_t::ignore);
 
             failover_->on_failure();
 

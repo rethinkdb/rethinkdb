@@ -294,7 +294,7 @@ public:
 
         /* Record the new value of the replication clock */
         replication_clock_ = rc;
-        internal_store_->set_replication_clock(rc, order_token_t::ignore);
+        internal_store_->set_replication_clock(&seq_group, rc, order_token_t::ignore);
 
         /* `slice_manager_t::set_replication_clock()` pushes a command to count down the
         `count_down_latch_t` through the same queue that is used for realtime replication
@@ -361,7 +361,7 @@ public:
         realtime_job_account(&combined_job_queue, &realtime_job_queue, 1)
     {
         /* Read the old value of the replication clock. */
-        initial_replication_clock_ = internal_store_->get_replication_clock();
+        initial_replication_clock_ = internal_store_->get_replication_clock(&seq_group);
 
         slice_managers.resize(internal_store_->btree_static_config.n_slices);
         replication_clock_ = initial_replication_clock_.next();
@@ -373,7 +373,7 @@ public:
         happened with the new timestamp and that operation was written to disk but we
         crashed before the new value of the replication clock could be written to disk,
         then the database could behave incorrectly when it started back up. */
-        internal_store_->set_replication_clock(replication_clock_, order_token_t::ignore);
+        internal_store_->set_replication_clock(&seq_group, replication_clock_, order_token_t::ignore);
 
         pmap(internal_store_->btree_static_config.n_slices,
              boost::bind(&backfill_and_streaming_manager_t::register_on_slice, this,

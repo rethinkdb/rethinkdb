@@ -3,7 +3,6 @@
 
 #include "concurrency/coro_fifo.hpp"
 
-// TODO FIFO: We shouldn't need this include when we've fixed our problems.
 #include "db_thread_info.hpp"
 
 class per_slice_sequence_group_t {

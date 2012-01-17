@@ -44,7 +44,7 @@ void dispatching_store_t::delete_all_keys_for_backfill(sequence_group_t *seq_gro
     substore->delete_all_keys_for_backfill(seq_group, substore_token);
 }
 
-void dispatching_store_t::set_replication_clock(repli_timestamp_t t, order_token_t token) {
+void dispatching_store_t::set_replication_clock(sequence_group_t *seq_group, repli_timestamp_t t, order_token_t token) {
     sink.check_out(token);
-    substore->set_replication_clock(t, substore_order_source.check_in(token.tag() + "shard_store_t::set_replication_clock"));
+    substore->set_replication_clock(seq_group, t, substore_order_source.check_in(token.tag() + "shard_store_t::set_replication_clock"));
 }

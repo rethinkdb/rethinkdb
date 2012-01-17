@@ -49,9 +49,9 @@ void shard_store_t::delete_all_keys_for_backfill(sequence_group_t *seq_group, or
     dispatching_store.delete_all_keys_for_backfill(seq_group, token);
 }
 
-void shard_store_t::set_replication_clock(repli_timestamp_t t, order_token_t token) {
+void shard_store_t::set_replication_clock(sequence_group_t *seq_group, repli_timestamp_t t, order_token_t token) {
     on_thread_t th(home_thread());
-    dispatching_store.set_replication_clock(t, token);
+    dispatching_store.set_replication_clock(seq_group, t, token);
 }
 
 /* btree_key_value_store_t */
@@ -179,7 +179,8 @@ btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_c
                      &per_slice_config, per_slice_delete_queue_limit, _1));
 
     /* Initialize the timestampers to the timestamp value on disk */
-    repli_timestamp_t t = get_replication_clock();
+    sequence_group_t seq_group;
+    repli_timestamp_t t = get_replication_clock(&seq_group);
     set_timestampers(t);
 }
 
@@ -245,12 +246,12 @@ void btree_key_value_store_t::check_existing(const std::vector<std::string>& fil
 }
 
 
-void btree_key_value_store_t::set_replication_clock(repli_timestamp_t t, order_token_t token) {
-    shards[0]->set_replication_clock(t, token);
+void btree_key_value_store_t::set_replication_clock(sequence_group_t *seq_group, repli_timestamp_t t, order_token_t token) {
+    shards[0]->set_replication_clock(seq_group, t, token);
 }
 
-repli_timestamp btree_key_value_store_t::get_replication_clock() {
-    return shards[0]->btree.get_replication_clock();   /* Read the value from disk */
+repli_timestamp btree_key_value_store_t::get_replication_clock(sequence_group_t *seq_group) {
+    return shards[0]->btree.get_replication_clock(seq_group);   /* Read the value from disk */
 }
 
 void btree_key_value_store_t::set_last_sync(repli_timestamp_t t, order_token_t token) {

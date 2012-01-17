@@ -44,7 +44,7 @@ struct shard_store_t :
     mutation_result_t change(sequence_group_t *seq_group, const mutation_t &m, order_token_t token);
     mutation_result_t change(sequence_group_t *seq_group, const mutation_t &m, castime_t ct, order_token_t token);
     void delete_all_keys_for_backfill(sequence_group_t *seq_group, order_token_t token);
-    void set_replication_clock(repli_timestamp_t t, order_token_t token);
+    void set_replication_clock(sequence_group_t *seq_group, repli_timestamp_t t, order_token_t token);
 
     btree_slice_t btree;
     dispatching_store_t dispatching_store;   // For replication
@@ -104,8 +104,8 @@ public:
     `set_timestampers()`, changing them doesn't change anything in the
     `btree_key_value_store_t` itself. They are used by the higher-level code to persist
     metadata to disk. */
-    void set_replication_clock(repli_timestamp_t t, order_token_t token);
-    repli_timestamp get_replication_clock();
+    void set_replication_clock(sequence_group_t *seq_group, repli_timestamp_t t, order_token_t token);
+    repli_timestamp get_replication_clock(sequence_group_t *seq_group);
     void set_last_sync(repli_timestamp_t t, order_token_t token);
     repli_timestamp get_last_sync();
     void set_replication_master_id(uint32_t ts);
