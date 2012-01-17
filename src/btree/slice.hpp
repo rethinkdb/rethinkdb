@@ -26,8 +26,7 @@ public:
     btree_slice_t(translator_serializer_t *serializer,
                   mirrored_cache_config_t *dynamic_config,
                   int64_t delete_queue_limit,
-                  int slice_num,
-                  const std::string& informal_name);
+                  int slice_num);
 
     // Blocks
     ~btree_slice_t();

@@ -74,12 +74,11 @@ void btree_slice_t::create(translator_serializer_t *serializer,
 btree_slice_t::btree_slice_t(translator_serializer_t *serializer,
                              mirrored_cache_config_t *dynamic_config,
                              int64_t delete_queue_limit,
-                             int slice_num,
-                             const std::string& informal_name)
+                             int slice_num)
     : pre_begin_transaction_read_mode_source_(PRE_BEGIN_TRANSACTION_READ_MODE_BUCKET),
       pre_begin_transaction_write_mode_source_(PRE_BEGIN_TRANSACTION_WRITE_MODE_BUCKET),
       cache_(serializer, dynamic_config, slice_num), delete_queue_limit_(delete_queue_limit),
-      informal_name_(informal_name),
+      informal_name_(strprintf("%d", slice_num)),
       backfill_account(cache()->create_account(BACKFILL_CACHE_PRIORITY)) { }
 
 btree_slice_t::~btree_slice_t() {
