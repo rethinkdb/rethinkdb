@@ -177,30 +177,24 @@ repli_timestamp btree_slice_t::get_replication_clock(sequence_group_t *seq_group
     return sb->replication_clock;
 }
 
-void btree_slice_t::set_last_sync(repli_timestamp_t t, UNUSED order_token_t token) {
+void btree_slice_t::set_last_sync(sequence_group_t *seq_group, repli_timestamp_t t, UNUSED order_token_t token) {
     on_thread_t th(cache()->home_thread());
 
     // TODO: We need to make sure that callers are using a proper substore token.
 
     //    order_sink_.check_out(token);
 
-    // TODO FIFO SEQ GROUP should this be passed in from the caller?
-    sequence_group_t seq_group;
-
-    transactor_t transactor(cache(), &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
+    transactor_t transactor(cache(), seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
     // TODO: set order token (not with the token parameter)
     buf_lock_t superblock(transactor, SUPERBLOCK_ID, rwi_write);
     btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock->get_data_major_write());
     sb->last_sync = t;
 }
 
-repli_timestamp btree_slice_t::get_last_sync() {
+repli_timestamp btree_slice_t::get_last_sync(sequence_group_t *seq_group) {
     on_thread_t th(cache()->home_thread());
 
-    // TODO FIFO SEQ GROUP should this be passed in from the caller?
-    sequence_group_t seq_group;
-
-    transactor_t transactor(cache(), &seq_group, rwi_read, 0, repli_timestamp_t::distant_past);
+    transactor_t transactor(cache(), seq_group, rwi_read, 0, repli_timestamp_t::distant_past);
     // TODO: set order token
     buf_lock_t superblock(transactor, SUPERBLOCK_ID, rwi_read);
     const btree_superblock_t *sb = reinterpret_cast<const btree_superblock_t *>(superblock->get_data_read());

@@ -50,8 +50,8 @@ public:
     since it really doesn't belong on the btree_slice_t! TODO: Move them elsewhere. */
     void set_replication_clock(sequence_group_t *seq_group, repli_timestamp_t t, order_token_t token);
     repli_timestamp get_replication_clock(sequence_group_t *seq_group);
-    void set_last_sync(repli_timestamp_t t, order_token_t token);
-    repli_timestamp get_last_sync();
+    void set_last_sync(sequence_group_t *seq_group, repli_timestamp_t t, order_token_t token);
+    repli_timestamp get_last_sync(sequence_group_t *seq_group);
     void set_replication_master_id(uint32_t t);
     uint32_t get_replication_master_id();
     void set_replication_slave_id(uint32_t t);

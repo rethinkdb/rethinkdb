@@ -157,7 +157,7 @@ void backfill_storer_t::backfill_done(repli_timestamp_t timestamp, order_token_t
     between them, we will redo the backfill instead of proceeding with a wrong
     replication clock. */
     backfill_queue_.push(boost::bind(&btree_key_value_store_t::set_replication_clock, kvs_, &seq_group, timestamp, token));
-    backfill_queue_.push(boost::bind(&btree_key_value_store_t::set_last_sync, kvs_, timestamp, token));
+    backfill_queue_.push(boost::bind(&btree_key_value_store_t::set_last_sync, kvs_, &seq_group, timestamp, token));
 
     /* We want the realtime queue to accept operations without throttling until
     the backfill is over, and then to start throttling. To make sure that we
@@ -252,7 +252,7 @@ void backfill_storer_t::realtime_time_barrier(repli_timestamp_t timestamp, order
     node; the master is still up. */
     block_pm_duration timer(&pm_replication_slave_realtime_enqueue);
     realtime_queue_.push(boost::bind(&btree_key_value_store_t::set_replication_clock, kvs_, &seq_group, timestamp, token));
-    realtime_queue_.push(boost::bind(&btree_key_value_store_t::set_last_sync, kvs_, timestamp, token));
+    realtime_queue_.push(boost::bind(&btree_key_value_store_t::set_last_sync, kvs_, &seq_group, timestamp, token));
 }
 
 }

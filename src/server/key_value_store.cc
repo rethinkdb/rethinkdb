@@ -254,12 +254,12 @@ repli_timestamp btree_key_value_store_t::get_replication_clock(sequence_group_t 
     return shards[0]->btree.get_replication_clock(seq_group);   /* Read the value from disk */
 }
 
-void btree_key_value_store_t::set_last_sync(repli_timestamp_t t, order_token_t token) {
-    shards[0]->btree.set_last_sync(t, token);   /* Write the value to disk */
+void btree_key_value_store_t::set_last_sync(sequence_group_t *seq_group, repli_timestamp_t t, order_token_t token) {
+    shards[0]->btree.set_last_sync(seq_group, t, token);   /* Write the value to disk */
 }
 
-repli_timestamp btree_key_value_store_t::get_last_sync() {
-    return shards[0]->btree.get_last_sync();   /* Read the value from disk */
+repli_timestamp btree_key_value_store_t::get_last_sync(sequence_group_t *seq_group) {
+    return shards[0]->btree.get_last_sync(seq_group);   /* Read the value from disk */
 }
 
 void btree_key_value_store_t::set_replication_master_id(uint32_t t) {

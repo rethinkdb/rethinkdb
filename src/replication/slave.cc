@@ -79,7 +79,7 @@ void slave_t::run(signal_t *shutdown_signal) {
     will be equal anyway, which produces the correct behavior because the way we act when we first
     connect is the same as the way we act when we reconnect after we went down. */
     bool were_connected_before =
-        internal_store_->get_replication_clock(&seq_group) == internal_store_->get_last_sync();
+        internal_store_->get_replication_clock(&seq_group) == internal_store_->get_last_sync(&seq_group);
 
     if (!were_connected_before) {
         logINF("We didn't have contact with the master at the time that we last shut down, so "
@@ -121,7 +121,7 @@ void slave_t::run(signal_t *shutdown_signal) {
                 cond_link_t close_connection_on_shutdown(shutdown_signal, &slave_cond);
 
                 // last_sync is the latest timestamp that we didn't get all the master's changes for
-                repli_timestamp last_sync = internal_store_->get_last_sync();
+                repli_timestamp last_sync = internal_store_->get_last_sync(&seq_group);
                 debugf("Last sync: %d\n", last_sync.time);
 
                 if (!were_connected_before) {
