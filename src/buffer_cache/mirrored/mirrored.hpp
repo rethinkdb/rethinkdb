@@ -353,9 +353,12 @@ private:
     // extensible when some policy implementation requires access to
     // components it wasn't originally given.
 
+    // Which slice this cache is for.  Used in get_slice_num or co_begin_transaction.
+    const int slice_num;
+
 public:
     // TODO FIFO: This is used by co_begin_transaction, possibly it's a hack.
-    int get_mod_id() const { return serializer->get_mod_id(); }
+    int get_slice_num() const { return slice_num; }
 
 private:
     translator_serializer_t *serializer;
@@ -373,7 +376,7 @@ private:
 
 public:
     static void create(translator_serializer_t *serializer, mirrored_cache_static_config_t *config);
-    mc_cache_t(translator_serializer_t *serializer, mirrored_cache_config_t *dynamic_config);
+    mc_cache_t(translator_serializer_t *serializer, mirrored_cache_config_t *dynamic_config, int this_slice_num);
     ~mc_cache_t();
 
 public:

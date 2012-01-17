@@ -20,7 +20,8 @@
 #include "replication/master.hpp"
 
 void btree_slice_t::create(translator_serializer_t *serializer,
-                           mirrored_cache_static_config_t *static_config) {
+                           mirrored_cache_static_config_t *static_config,
+                           int slice_num) {
     cache_t::create(serializer, static_config);
 
     /* Construct a cache so we can write the superblock */
@@ -40,7 +41,7 @@ void btree_slice_t::create(translator_serializer_t *serializer,
     startup_dynamic_config.io_priority_writes = 100;
 
     /* Cache is in a scoped pointer because it may be too big to allocate on the coroutine stack */
-    boost::scoped_ptr<cache_t> cache(new cache_t(serializer, &startup_dynamic_config));
+    boost::scoped_ptr<cache_t> cache(new cache_t(serializer, &startup_dynamic_config, slice_num));
 
     sequence_group_t seq_group;
 
@@ -73,10 +74,11 @@ void btree_slice_t::create(translator_serializer_t *serializer,
 btree_slice_t::btree_slice_t(translator_serializer_t *serializer,
                              mirrored_cache_config_t *dynamic_config,
                              int64_t delete_queue_limit,
+                             int slice_num,
                              const std::string& informal_name)
     : pre_begin_transaction_read_mode_source_(PRE_BEGIN_TRANSACTION_READ_MODE_BUCKET),
       pre_begin_transaction_write_mode_source_(PRE_BEGIN_TRANSACTION_WRITE_MODE_BUCKET),
-      cache_(serializer, dynamic_config), delete_queue_limit_(delete_queue_limit),
+      cache_(serializer, dynamic_config, slice_num), delete_queue_limit_(delete_queue_limit),
       informal_name_(informal_name),
       backfill_account(cache()->create_account(BACKFILL_CACHE_PRIORITY)) { }
 

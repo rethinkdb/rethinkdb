@@ -912,9 +912,11 @@ void mc_cache_t::create(translator_serializer_t *serializer, mirrored_cache_stat
 
 mc_cache_t::mc_cache_t(
             translator_serializer_t *serializer,
-            mirrored_cache_config_t *dynamic_config) :
+            mirrored_cache_config_t *dynamic_config,
+            int this_slice_num) :
 
     dynamic_config(*dynamic_config),
+    slice_num(this_slice_num),
     serializer(serializer),
     reads_io_account(serializer->make_io_account(dynamic_config->io_priority_reads)),
     writes_io_account(serializer->make_io_account(dynamic_config->io_priority_writes)),

@@ -15,7 +15,7 @@ shard_store_t::shard_store_t(
     mirrored_cache_config_t *dynamic_config,
     int64_t delete_queue_limit,
     int bucket) :
-    btree(translator_serializer, dynamic_config, delete_queue_limit, strprintf("%d", bucket)),
+    btree(translator_serializer, dynamic_config, delete_queue_limit, bucket, strprintf("%d", bucket)),
     dispatching_store(&btree, bucket),
     timestamper(&dispatching_store)
     { }
@@ -85,7 +85,7 @@ void prep_for_shard(
         int i) {
 
     on_thread_t thread_switcher(i % get_num_db_threads());
-    btree_slice_t::create(pseudoserializers[i], static_config);
+    btree_slice_t::create(pseudoserializers[i], static_config, i);
 }
 
 void destroy_serializer(standard_serializer_t **serializers, int i) {

@@ -216,8 +216,8 @@ void mock_cache_t::create( translator_serializer_t *serializer, UNUSED mirrored_
 
 // dynamic_config is unused because this is a mock cache and the
 // configuration parameters don't apply.
-mock_cache_t::mock_cache_t( translator_serializer_t *serializer, UNUSED mirrored_cache_config_t *dynamic_config)
-    : serializer(serializer), block_size(serializer->get_block_size())
+mock_cache_t::mock_cache_t( translator_serializer_t *serializer, UNUSED mirrored_cache_config_t *dynamic_config, int this_slice_num)
+    : slice_num(this_slice_num), serializer(serializer), block_size(serializer->get_block_size())
 {
     on_thread_t switcher(serializer->home_thread());
 

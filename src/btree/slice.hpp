@@ -20,12 +20,13 @@ class btree_slice_t :
 public:
     // Blocks
     static void create(translator_serializer_t *serializer,
-                       mirrored_cache_static_config_t *static_config);
+                       mirrored_cache_static_config_t *static_config, int slice_num);
 
     // Blocks
     btree_slice_t(translator_serializer_t *serializer,
                   mirrored_cache_config_t *dynamic_config,
                   int64_t delete_queue_limit,
+                  int slice_num,
                   const std::string& informal_name);
 
     // Blocks

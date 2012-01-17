@@ -124,12 +124,28 @@ transaction_t *co_begin_transaction(cache_t *cache, sequence_group_t *seq_group,
     // Yeah.  Really it's only backfill or replication that is the big
     // question and the reason we're being conservative here.
 
+    // POST-MODERN COMMENTS:
+    //
+    // It would make more sense if this function took a
+    // per_slice_sequence_group_t, instead of taking a
+    // sequence_group_t and having the cache know about what slice it
+    // is.  This would be proper software design.  However, it would
+    // require that stop using the get_store and set_store_interface_t
+    // stuff as abstract classes, or interfaces.  While that would
+    // make sense, and even though it always would have made sense,
+    // that would be a pain to do and then merge.  So we're not doing
+    // it.
+
+    // TODO FIFO: I think using mod id is wrong!  How can it possibly
+    // work when there are multiple serializers?  Yes it is completely
+    // wrong.  Or it's right.  Look at how we construct
+    // translator_serializer_t's.
+
     // It is important that we leave the sequence group's fifo _after_
     // we leave the write throttle fifo.  So we construct it first.
     // (The destructor will run after.)
     coro_fifo_acq_t seq_group_acq;
-    // TODO FIFO: This is such a hack, calling ->serializer->get_mod_id
-    seq_group_acq.enter(&seq_group->slice_groups[cache->get_mod_id()].fifo);
+    seq_group_acq.enter(&seq_group->slice_groups[cache->get_slice_num()].fifo);
 
     coro_fifo_acq_t write_throttle_acq;
 
