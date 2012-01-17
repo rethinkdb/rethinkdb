@@ -31,7 +31,6 @@ public:
     // sure that operations aren't reordered after they get to the
     // buffer cache.  (Specifically, when creating the transaction_t,
     // see sequence_group.hpp.)
-    // TODO FIFO SEQ GROUP: Really we need n_slices of these.
     sequence_group_t seq_group;
 
     const int max_concurrent_queries_per_connection;
