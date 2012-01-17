@@ -344,7 +344,7 @@ public:
 
 private:
     mirrored_cache_config_t dynamic_config; // Local copy of our initial configuration
-    
+
     // TODO: how do we design communication between cache policies?
     // Should they all have access to the cache, or should they only
     // be given access to each other as necessary? The first is more
@@ -357,7 +357,8 @@ private:
     const int slice_num;
 
 public:
-    // TODO FIFO: This is used by co_begin_transaction, possibly it's a hack.
+    // This is used by co_begin_transaction.  See co_begin_transaction
+    // for why it's a hack.
     int get_slice_num() const { return slice_num; }
 
 private:

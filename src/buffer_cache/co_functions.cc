@@ -133,13 +133,8 @@ transaction_t *co_begin_transaction(cache_t *cache, sequence_group_t *seq_group,
     // require that stop using the get_store and set_store_interface_t
     // stuff as abstract classes, or interfaces.  While that would
     // make sense, and even though it always would have made sense,
-    // that would be a pain to do and then merge.  So we're not doing
-    // it.
-
-    // TODO FIFO: I think using mod id is wrong!  How can it possibly
-    // work when there are multiple serializers?  Yes it is completely
-    // wrong.  Or it's right.  Look at how we construct
-    // translator_serializer_t's.
+    // that would be more pain to do and then merge.  So we're not
+    // doing it.
 
     // It is important that we leave the sequence group's fifo _after_
     // we leave the write throttle fifo.  So we construct it first.
