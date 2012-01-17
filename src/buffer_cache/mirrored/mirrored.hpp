@@ -353,6 +353,11 @@ private:
     // extensible when some policy implementation requires access to
     // components it wasn't originally given.
 
+public:
+    // TODO FIFO: This is used by co_begin_transaction, possibly it's a hack.
+    int get_mod_id() const { return serializer->get_mod_id(); }
+
+private:
     translator_serializer_t *serializer;
 
     // We use a separate IO account for reads and writes, so reads can pass ahead

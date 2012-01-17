@@ -132,7 +132,8 @@ transaction_t *co_begin_transaction(cache_t *cache, sequence_group_t *seq_group,
     // we leave the write throttle fifo.  So we construct it first.
     // (The destructor will run after.)
     coro_fifo_acq_t seq_group_acq;
-    seq_group_acq.enter(&seq_group->fifo);
+    // TODO FIFO: This is such a hack, calling ->serializer->get_mod_id
+    seq_group_acq.enter(&seq_group->slice_groups[cache->get_mod_id()].fifo);
 
     coro_fifo_acq_t write_throttle_acq;
 

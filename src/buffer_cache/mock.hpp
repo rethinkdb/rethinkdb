@@ -138,6 +138,7 @@ public:
         mirrored_cache_config_t *dynamic_config);
     ~mock_cache_t();
 
+    int get_mod_id() const { return serializer->get_mod_id(); }
     block_size_t get_block_size();
     transaction_t *begin_transaction(access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback);
 
