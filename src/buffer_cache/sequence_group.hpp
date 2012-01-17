@@ -16,6 +16,10 @@ private:
     DISABLE_COPYING(per_slice_sequence_group_t);
 };
 
+// This function undeclared, defined in key_value_store.cc.  It's
+// safer than using the modulo operator directly here.
+int compute_shard_home_thread(int shard_number, int num_db_threads);
+
 // Corresponds to a group of operations that must have their order
 // preserved.  (E.g. operations coming in over the same memcached
 // connection.)  Used by co_begin_transaction to make sure operations
@@ -26,8 +30,7 @@ public:
     sequence_group_t(int n_slices = 128) : slice_groups(new per_slice_sequence_group_t[n_slices]) {
         int num_db_threads = get_num_db_threads();
         for (int i = 0; i < n_slices; ++i) {
-            // TODO FIFO: This (i % num_db_threads) is duplication of logic at a distance.
-            slice_groups[i].fifo.rethread(i % num_db_threads);
+            slice_groups[i].fifo.rethread(compute_shard_home_thread(i, num_db_threads));
         }
     }
     ~sequence_group_t() { delete[] slice_groups; }

@@ -79,12 +79,16 @@ void create_existing_serializer(
         &dynamic_config->serializer_private[i]);
 }
 
+int compute_shard_home_thread(int shard_number, int num_db_threads) {
+    return shard_number % num_db_threads;
+}
+
 void prep_for_shard(
         translator_serializer_t **pseudoserializers,
         mirrored_cache_static_config_t *static_config,
         int i) {
 
-    on_thread_t thread_switcher(i % get_num_db_threads());
+    on_thread_t thread_switcher(compute_shard_home_thread(i, get_num_db_threads()));
     btree_slice_t::create(pseudoserializers[i], static_config, i);
 }
 
@@ -135,7 +139,7 @@ void create_existing_shard(
 
     // TODO try to align slices with serializers so that when possible, a slice is on the
     // same thread as its serializer
-    on_thread_t thread_switcher(i % get_num_db_threads());
+    on_thread_t thread_switcher(compute_shard_home_thread(i, get_num_db_threads()));
 
     shards[i] = new shard_store_t(pseudoserializers[i], dynamic_config, delete_queue_limit, i);
 }
