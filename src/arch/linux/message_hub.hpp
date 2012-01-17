@@ -61,16 +61,15 @@ private:
     
     /* Queue for messages going from this->current_thread to other threads */
     struct thread_queue_t {
+        //TODO this doesn't need to be a class anymore
+        
         /* Messages are cached here before being pushed to the global list so that we don't
         have to acquire the spinlock as often */
         msg_list_t msg_local_list;
-
-        /* msg_global_list is what is actually accessed by the destination thread, so it
-        is protected by a spinlock */
-        msg_list_t msg_global_list;
-
-        pthread_spinlock_t lock;
     } queues[MAX_THREADS];
+
+    msg_list_t incoming_messages;
+    pthread_spinlock_t incoming_messages_lock;
 
     /* We keep one notify_t for each other message hub that we interact with. When it has
     messages for us, it signals the appropriate notify_t from our set of notify_ts. We get

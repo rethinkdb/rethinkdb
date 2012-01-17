@@ -17,7 +17,7 @@ linux_message_hub_t::linux_message_hub_t(linux_event_queue_t *queue, linux_threa
     notify = new notify_t[thread_pool->n_threads];
     
     for (int i = 0; i < thread_pool->n_threads; i++) {
-        res = pthread_spin_init(&queues[i].lock, PTHREAD_PROCESS_PRIVATE);
+        res = pthread_spin_init(&incoming_messages_lock, PTHREAD_PROCESS_PRIVATE);
         guarantee(res == 0, "Could not initialize spin lock");
 
         // Create notify fd for other cores that send work to us
@@ -33,11 +33,12 @@ linux_message_hub_t::~linux_message_hub_t() {
     
     for (int i = 0; i < thread_pool->n_threads; i++) {
         rassert(queues[i].msg_local_list.empty());
-        rassert(queues[i].msg_global_list.empty());
         
-        res = pthread_spin_destroy(&queues[i].lock);
+        res = pthread_spin_destroy(&incoming_messages_lock);
         guarantee(res == 0, "Could not destroy spin lock");
     }
+
+    rassert(incoming_messages.empty());
 
     delete[] notify;
 }
@@ -49,9 +50,9 @@ void linux_message_hub_t::store_message(unsigned int nthread, linux_thread_messa
 }
 
 void linux_message_hub_t::insert_external_message(linux_thread_message_t *msg) {
-    pthread_spin_lock(&queues[current_thread].lock);
-    queues[current_thread].msg_global_list.push_back(msg);
-    pthread_spin_unlock(&queues[current_thread].lock);
+    pthread_spin_lock(&incoming_messages_lock);
+    incoming_messages.push_back(msg);
+    pthread_spin_unlock(&incoming_messages_lock);
     
     // Wakey wakey eggs and bakey
     notify[current_thread].event.write(1);
@@ -67,22 +68,15 @@ void linux_message_hub_t::notify_t::on_event(int events) {
     // don't pester us and use 100% cpu
     event.read();
 
-    // Pull the messages
-    parent->thread_pool->threads[notifier_thread]->message_hub.pull_messages(parent->current_thread);
-}
-
-// Pulls the messages stored in global lists for a given thread.
-void linux_message_hub_t::pull_messages(int thread) {
     msg_list_t msg_list;
-    
-    thread_queue_t *queue = &queues[thread];
-    pthread_spin_lock(&queue->lock);
-    msg_list.append_and_clear(&queue->msg_global_list);
-    pthread_spin_unlock(&queue->lock);
 
-    int count = 0;
+    pthread_spin_lock(&parent->incoming_messages_lock);
+    // Pull the messages
+    //msg_list.append_and_clear(parent->thread_pool->threads[parent->current_thread]->message_hub);
+    msg_list.append_and_clear(&parent->incoming_messages);
+    pthread_spin_unlock(&parent->incoming_messages_lock);
+
     while (linux_thread_message_t *m = msg_list.head()) {
-        count++;
         msg_list.remove(m);
         m->on_thread_switch();
     }
@@ -97,14 +91,15 @@ void linux_message_hub_t::push_messages() {
         thread_queue_t *queue = &queues[i];
         if(!queue->msg_local_list.empty()) {
             // Transfer messages to the other core
-            pthread_spin_lock(&queue->lock);
+
+            pthread_spin_lock(&thread_pool->threads[i]->message_hub.incoming_messages_lock);
 
             //We only need to do a wake up if the global
-            bool do_wake_up = queue->msg_global_list.empty();
+            bool do_wake_up = thread_pool->threads[i]->message_hub.incoming_messages.empty();
 
-            queue->msg_global_list.append_and_clear(&queue->msg_local_list);
+            thread_pool->threads[i]->message_hub.incoming_messages.append_and_clear(&queue->msg_local_list);
 
-            pthread_spin_unlock(&queue->lock);
+            pthread_spin_unlock(&thread_pool->threads[i]->message_hub.incoming_messages_lock);
             
             // Wakey wakey, perhaps eggs and bakey
             if (do_wake_up) {
@@ -116,4 +111,3 @@ void linux_message_hub_t::push_messages() {
         // instead of spinlocks
     }
 }
-
