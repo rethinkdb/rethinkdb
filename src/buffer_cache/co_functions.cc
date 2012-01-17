@@ -114,17 +114,15 @@ transaction_t *co_begin_transaction(cache_t *cache, sequence_group_t *seq_group,
 
     // MODERN COMMENTS:
 
-    // Reads are now coro-fifoed in the same path that writes are.
-    // This is dumb because we really just want reads coming from the
-    // same _connection_ to be coro-fifoed in the same path that
-    // writes are.
-
     // Why do "writes" need to have their order preserved at all, now
     // that we have sequence_group_t?  Perhaps it's because in the
     // presence of replication, that prevents the gated store gate
     // limitations being bypassed.  You could look at the gated store
     // code to prove or disprove this claim, but since v1.1.x is
     // supposed to be stable, we're being conservative.
+    //
+    // Yeah.  Really it's only backfill or replication that is the big
+    // question and the reason we're being conservative here.
 
     // TODO FIFO: Fix this as the above comment says.
 

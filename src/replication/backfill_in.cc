@@ -6,8 +6,6 @@
 #include "replication/master.hpp"
 #endif
 
-#include "buffer_cache/sequence_group.hpp"
-
 template<class value_t>
 std::vector<value_t> make_vector(value_t v1) {
     std::vector<value_t> vec;
@@ -81,9 +79,6 @@ void backfill_storer_t::backfill_delete_everything(order_token_t token) {
     ensure_backfilling();
     block_pm_duration timer(&pm_replication_slave_backfill_enqueue);
 
-    // TODO FIFO SEQ GROUP: Definitely the lifetime of this sequence group is wrong.
-    sequence_group_t seq_group;
-
     backfill_queue_.push(boost::bind(&btree_key_value_store_t::delete_all_keys_for_backfill, kvs_, &seq_group, token));
 }
 
@@ -95,9 +90,6 @@ void backfill_storer_t::backfill_deletion(store_key_t key, order_token_t token) 
     mut.key = key;
     mut.dont_put_in_delete_queue = true;
     block_pm_duration timer(&pm_replication_slave_backfill_enqueue);
-
-    // TODO FIFO SEQ GROUP: Definitely the lifetime of this sequence group is wrong.
-    sequence_group_t seq_group;
 
     backfill_queue_.push(boost::bind(
         &btree_key_value_store_t::change, kvs_,
@@ -124,9 +116,6 @@ void backfill_storer_t::backfill_set(backfill_atom_t atom, order_token_t token) 
     mut.replace_policy = replace_policy_yes;
     mut.old_cas = NO_CAS_SUPPLIED;
     block_pm_duration timer(&pm_replication_slave_backfill_enqueue);
-
-    // TODO FIFO SEQ GROUP: Definitely the lifetime of this sequence group is wrong.
-    sequence_group_t seq_group;
 
     backfill_queue_.push(boost::bind(
         &btree_key_value_store_t::change, kvs_, &seq_group,
@@ -211,17 +200,11 @@ void backfill_storer_t::realtime_get_cas(const store_key_t& key, castime_t casti
     mut.key = key;
     block_pm_duration timer(&pm_replication_slave_realtime_enqueue);
 
-    // TODO FIFO SEQ GROUP: _definitely_ bad
-    sequence_group_t seq_group;
-
     realtime_queue_.push(boost::bind(&btree_key_value_store_t::change, kvs_, &seq_group, mut, castime, token));
 }
 
 void backfill_storer_t::realtime_sarc(sarc_mutation_t& m, castime_t castime, order_token_t token) {
     block_pm_duration timer(&pm_replication_slave_realtime_enqueue);
-
-    // TODO FIFO SEQ GROUP: _definitely_ bad
-    sequence_group_t seq_group;
 
     realtime_queue_.push(boost::bind(&btree_key_value_store_t::change, kvs_, &seq_group, m, castime, token));
 }
@@ -234,9 +217,6 @@ void backfill_storer_t::realtime_incr_decr(incr_decr_kind_t kind, const store_ke
     mut.amount = amount;
     block_pm_duration timer(&pm_replication_slave_realtime_enqueue);
 
-    // TODO FIFO SEQ GROUP: definitely
-    sequence_group_t seq_group;
-
     realtime_queue_.push(boost::bind(&btree_key_value_store_t::change, kvs_, &seq_group, mut, castime, token));
 }
 
@@ -248,9 +228,6 @@ void backfill_storer_t::realtime_append_prepend(append_prepend_kind_t kind, cons
     mut.kind = kind;
     block_pm_duration timer(&pm_replication_slave_realtime_enqueue);
 
-    // TODO FIFO SEQ GROUP: definitely
-    sequence_group_t seq_group;
-
     realtime_queue_.push(boost::bind(&btree_key_value_store_t::change, kvs_, &seq_group, mut, castime, token));
 }
 
@@ -259,9 +236,6 @@ void backfill_storer_t::realtime_delete_key(const store_key_t &key, repli_timest
     mut.key = key;
     mut.dont_put_in_delete_queue = true;
     block_pm_duration timer(&pm_replication_slave_realtime_enqueue);
-
-    // TODO FIFO SEQ GROUP: definitely
-    sequence_group_t seq_group;
 
     realtime_queue_.push(boost::bind(
         &btree_key_value_store_t::change, kvs_, &seq_group, mut,

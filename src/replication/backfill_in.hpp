@@ -3,6 +3,7 @@
 
 #include "server/key_value_store.hpp"
 #include "replication/backfill.hpp"
+#include "buffer_cache/sequence_group.hpp"
 #include "concurrency/queue/limited_fifo.hpp"
 #include "concurrency/coro_pool.hpp"
 
@@ -92,6 +93,8 @@ private:
     // that no realtime operations are getting processed and that backfilling_ is
     // set to true
     void ensure_backfilling();
+
+    sequence_group_t seq_group;
 
     btree_key_value_store_t *kvs_;
     bool backfilling_, print_backfill_warning_;
