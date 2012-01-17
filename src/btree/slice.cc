@@ -201,52 +201,40 @@ repli_timestamp btree_slice_t::get_last_sync(sequence_group_t *seq_group) {
     return sb->last_sync;
 }
 
-void btree_slice_t::set_replication_master_id(uint32_t t) {
+void btree_slice_t::set_replication_master_id(sequence_group_t *seq_group, uint32_t t) {
     on_thread_t th(cache()->home_thread());
 
-    // TODO FIFO SEQ GROUP should this be passed in from the caller?
-    sequence_group_t seq_group;
-
-    transactor_t transactor(cache(), &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
+    transactor_t transactor(cache(), seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
     // TODO: set order token
     buf_lock_t superblock(transactor, SUPERBLOCK_ID, rwi_write);
     btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock->get_data_major_write());
     sb->replication_master_id = t;
 }
 
-uint32_t btree_slice_t::get_replication_master_id() {
+uint32_t btree_slice_t::get_replication_master_id(sequence_group_t *seq_group) {
     on_thread_t th(cache()->home_thread());
 
-    // TODO FIFO SEQ GROUP should this be passed in from the caller?
-    sequence_group_t seq_group;
-
-    transactor_t transactor(cache(), &seq_group, rwi_read, 0, repli_timestamp_t::distant_past);
+    transactor_t transactor(cache(), seq_group, rwi_read, 0, repli_timestamp_t::distant_past);
     // TODO: set order token
     buf_lock_t superblock(transactor, SUPERBLOCK_ID, rwi_read);
     const btree_superblock_t *sb = reinterpret_cast<const btree_superblock_t *>(superblock->get_data_read());
     return sb->replication_master_id;
 }
 
-void btree_slice_t::set_replication_slave_id(uint32_t t) {
+void btree_slice_t::set_replication_slave_id(sequence_group_t *seq_group, uint32_t t) {
     on_thread_t th(cache()->home_thread());
 
-    // TODO FIFO SEQ GROUP should this be passed in from the caller?
-    sequence_group_t seq_group;
-
-    transactor_t transactor(cache(), &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
+    transactor_t transactor(cache(), seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
     // TODO: set order token
     buf_lock_t superblock(transactor, SUPERBLOCK_ID, rwi_write);
     btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock->get_data_major_write());
     sb->replication_slave_id = t;
 }
 
-uint32_t btree_slice_t::get_replication_slave_id() {
+uint32_t btree_slice_t::get_replication_slave_id(sequence_group_t *seq_group) {
     on_thread_t th(cache()->home_thread());
 
-    // TODO FIFO SEQ GROUP should this be passed in from the caller?
-    sequence_group_t seq_group;
-
-    transactor_t transactor(cache(), &seq_group, rwi_read, 0, repli_timestamp_t::distant_past);
+    transactor_t transactor(cache(), seq_group, rwi_read, 0, repli_timestamp_t::distant_past);
     // TODO: set order token
     buf_lock_t superblock(transactor, SUPERBLOCK_ID, rwi_read);
     const btree_superblock_t *sb = reinterpret_cast<const btree_superblock_t *>(superblock->get_data_read());

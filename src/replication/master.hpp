@@ -76,13 +76,15 @@ public:
     void hello(UNUSED net_hello_t message) { debugf("Received hello from slave.\n"); }
 
     void send(scoped_malloc<net_introduce_t>& message) {
-        uint32_t previous_slave = kvs_->get_replication_slave_id();
+        // I guess this is okay.
+        sequence_group_t local_sequence_group;
+        uint32_t previous_slave = kvs_->get_replication_slave_id(&local_sequence_group);
         if (previous_slave != 0) {
             rassert(message->database_creation_timestamp != previous_slave);
             logWRN("The slave that was previously associated with this master is now being "
                 "forgotten; you will not be able to reconnect it later.\n");
         }
-        kvs_->set_replication_slave_id(message->database_creation_timestamp);
+        kvs_->set_replication_slave_id(&local_sequence_group, message->database_creation_timestamp);
     }
 
     void send(scoped_malloc<net_backfill_t>& message) {

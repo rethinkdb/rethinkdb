@@ -52,10 +52,10 @@ public:
     repli_timestamp get_replication_clock(sequence_group_t *seq_group);
     void set_last_sync(sequence_group_t *seq_group, repli_timestamp_t t, order_token_t token);
     repli_timestamp get_last_sync(sequence_group_t *seq_group);
-    void set_replication_master_id(uint32_t t);
-    uint32_t get_replication_master_id();
-    void set_replication_slave_id(uint32_t t);
-    uint32_t get_replication_slave_id();
+    void set_replication_master_id(sequence_group_t *seq_group, uint32_t t);
+    uint32_t get_replication_master_id(sequence_group_t *seq_group);
+    void set_replication_slave_id(sequence_group_t *seq_group, uint32_t t);
+    uint32_t get_replication_slave_id(sequence_group_t *seq_group);
 
     cache_t *cache() { return &cache_; }
     int64_t delete_queue_limit() { return delete_queue_limit_; }

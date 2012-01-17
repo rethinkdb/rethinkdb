@@ -41,7 +41,9 @@ struct slave_stream_manager_t :
 
     void send(scoped_malloc<net_introduce_t>& message) {
 
-        uint32_t old_master = kvs_->get_replication_master_id();
+        // I guess this is okay.
+        sequence_group_t local_seq_group;
+        uint32_t old_master = kvs_->get_replication_master_id(&local_seq_group);
 
         if (old_master == 0) {
             /* This is our first-ever time running; the database files are completely fresh. */
@@ -60,7 +62,7 @@ struct slave_stream_manager_t :
             if (stream_) stream_->send(&introduce);
 
             /* Remember the master */
-            kvs_->set_replication_master_id(message->database_creation_timestamp);
+            kvs_->set_replication_master_id(&local_seq_group, message->database_creation_timestamp);
 
         } else if (old_master == NOT_A_SLAVE) {
             /* We have run before, but in master-mode or non-replicated mode. There might be

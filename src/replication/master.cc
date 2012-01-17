@@ -43,7 +43,10 @@ void master_t::on_conn(boost::scoped_ptr<linux_tcp_conn_t>& conn) {
     /* Send the slave our database creation timestamp so it knows which master it's connected to. */
     net_introduce_t introduction;
     introduction.database_creation_timestamp = kvs_->get_creation_timestamp();
-    introduction.other_id = kvs_->get_replication_slave_id();
+
+    // I guess this is okay.
+    sequence_group_t local_seq_group;
+    introduction.other_id = kvs_->get_replication_slave_id(&local_seq_group);
     stream_->send(&introduction);
 
     // TODO: When sending/receiving hello handshake, use database

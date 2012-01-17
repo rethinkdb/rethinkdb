@@ -262,20 +262,20 @@ repli_timestamp btree_key_value_store_t::get_last_sync(sequence_group_t *seq_gro
     return shards[0]->btree.get_last_sync(seq_group);   /* Read the value from disk */
 }
 
-void btree_key_value_store_t::set_replication_master_id(uint32_t t) {
-    shards[0]->btree.set_replication_master_id(t);
+void btree_key_value_store_t::set_replication_master_id(sequence_group_t *seq_group, uint32_t t) {
+    shards[0]->btree.set_replication_master_id(seq_group, t);
 }
 
-uint32_t btree_key_value_store_t::get_replication_master_id() {
-    return shards[0]->btree.get_replication_master_id();
+uint32_t btree_key_value_store_t::get_replication_master_id(sequence_group_t *seq_group) {
+    return shards[0]->btree.get_replication_master_id(seq_group);
 }
 
-void btree_key_value_store_t::set_replication_slave_id(uint32_t t) {
-    shards[0]->btree.set_replication_slave_id(t);
+void btree_key_value_store_t::set_replication_slave_id(sequence_group_t *seq_group, uint32_t t) {
+    shards[0]->btree.set_replication_slave_id(seq_group, t);
 }
 
-uint32_t btree_key_value_store_t::get_replication_slave_id() {
-    return shards[0]->btree.get_replication_slave_id();
+uint32_t btree_key_value_store_t::get_replication_slave_id(sequence_group_t *seq_group) {
+    return shards[0]->btree.get_replication_slave_id(seq_group);
 }
 
 /* Hashing keys and choosing a slice for each key */
