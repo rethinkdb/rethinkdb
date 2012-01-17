@@ -98,18 +98,11 @@ void linux_message_hub_t::push_messages() {
         if(!queue->msg_local_list.empty()) {
             // Transfer messages to the other core
             pthread_spin_lock(&queue->lock);
-
-            //We only need to do a wake up if the global
-            bool do_wake_up = queue->msg_global_list.empty();
-
             queue->msg_global_list.append_and_clear(&queue->msg_local_list);
-
             pthread_spin_unlock(&queue->lock);
             
-            // Wakey wakey, perhaps eggs and bakey
-            if (do_wake_up) {
-                thread_pool->threads[i]->message_hub.notify[current_thread].event.write(1);
-            }
+            // Wakey wakey eggs and bakey
+            thread_pool->threads[i]->message_hub.notify[current_thread].event.write(1);
         }
 
         // TODO: we should use regular mutexes on single core CPU
