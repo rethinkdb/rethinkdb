@@ -124,8 +124,6 @@ transaction_t *co_begin_transaction(cache_t *cache, sequence_group_t *seq_group,
     // Yeah.  Really it's only backfill or replication that is the big
     // question and the reason we're being conservative here.
 
-    // TODO FIFO: Fix this as the above comment says.
-
     // It is important that we leave the sequence group's fifo _after_
     // we leave the write throttle fifo.  So we construct it first.
     // (The destructor will run after.)

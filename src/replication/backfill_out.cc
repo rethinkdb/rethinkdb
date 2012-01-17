@@ -20,6 +20,8 @@ namespace replication {
 class backfill_and_streaming_manager_t :
     public home_thread_mixin_t
 {
+    sequence_group_t seq_group;
+
 public:
     /* We construct one `slice_manager_t` per slice */
 
@@ -62,10 +64,7 @@ public:
                 backfilling_ = true;
             }
 
-            // TODO FIFO SEQ GROUP: We _definitely_ don't want this to be our sequence group.  Its lifetime is wrong.
-            sequence_group_t seq_group;
-
-            coro_t::spawn_now(boost::bind(&btree_slice_t::backfill, &shard->btree, &seq_group, backfill_from, this, shard->dispatching_store.substore_order_source.check_in("slice_manager_t").with_read_mode()));
+            coro_t::spawn_now(boost::bind(&btree_slice_t::backfill, &shard->btree, &parent_->seq_group, backfill_from, this, shard->dispatching_store.substore_order_source.check_in("slice_manager_t").with_read_mode()));
         }
 
         ~slice_manager_t() {
