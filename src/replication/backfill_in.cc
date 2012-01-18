@@ -40,8 +40,8 @@ perfmon_duration_sampler_t
 #define REALTIME_QUEUE_CAPACITY 2048
 #define CORO_POOL_SIZE 512
 
-backfill_storer_t::backfill_storer_t(btree_key_value_store_t *underlying) :
-    kvs_(underlying), backfilling_(false), print_backfill_warning_(false),
+backfill_storer_t::backfill_storer_t(sequence_group_t *replication_seq_group, btree_key_value_store_t *underlying) :
+    seq_group_(replication_seq_group), kvs_(underlying), backfilling_(false), print_backfill_warning_(false),
     backfill_queue_(BACKFILL_QUEUE_CAPACITY),
     realtime_queue_(SEMAPHORE_NO_LIMIT, 0.5, &pm_replication_slave_realtime_queue),
     queue_picker_(&backfill_queue_),
@@ -79,7 +79,7 @@ void backfill_storer_t::backfill_delete_everything(order_token_t token) {
     ensure_backfilling();
     block_pm_duration timer(&pm_replication_slave_backfill_enqueue);
 
-    backfill_queue_.push(boost::bind(&btree_key_value_store_t::delete_all_keys_for_backfill, kvs_, &seq_group, token));
+    backfill_queue_.push(boost::bind(&btree_key_value_store_t::delete_all_keys_for_backfill, kvs_, seq_group_, token));
 }
 
 void backfill_storer_t::backfill_deletion(store_key_t key, order_token_t token) {
@@ -93,7 +93,7 @@ void backfill_storer_t::backfill_deletion(store_key_t key, order_token_t token) 
 
     backfill_queue_.push(boost::bind(
         &btree_key_value_store_t::change, kvs_,
-        &seq_group,
+        seq_group_,
         mut,
         // NO_CAS_SUPPLIED is not used in any way for deletions, and the
         // timestamp is part of the "->change" interface in a way not
@@ -118,7 +118,7 @@ void backfill_storer_t::backfill_set(backfill_atom_t atom, order_token_t token) 
     block_pm_duration timer(&pm_replication_slave_backfill_enqueue);
 
     backfill_queue_.push(boost::bind(
-        &btree_key_value_store_t::change, kvs_, &seq_group,
+        &btree_key_value_store_t::change, kvs_, seq_group_,
         mut, castime_t(atom.cas_or_zero, atom.recency), token
         ));
 
@@ -133,7 +133,7 @@ void backfill_storer_t::backfill_set(backfill_atom_t atom, order_token_t token) 
         cas_mut.key = mut.key;
         block_pm_duration timer(&pm_replication_slave_backfill_enqueue);
         backfill_queue_.push(boost::bind(
-            &btree_key_value_store_t::change, kvs_, &seq_group,
+            &btree_key_value_store_t::change, kvs_, seq_group_,
             cas_mut, castime_t(atom.cas_or_zero, atom.recency), token));
     }
 }
@@ -156,8 +156,8 @@ void backfill_storer_t::backfill_done(repli_timestamp_t timestamp, order_token_t
     /* Write replication clock before timestamp so that if the flush happens
     between them, we will redo the backfill instead of proceeding with a wrong
     replication clock. */
-    backfill_queue_.push(boost::bind(&btree_key_value_store_t::set_replication_clock, kvs_, &seq_group, timestamp, token));
-    backfill_queue_.push(boost::bind(&btree_key_value_store_t::set_last_sync, kvs_, &seq_group, timestamp, token));
+    backfill_queue_.push(boost::bind(&btree_key_value_store_t::set_replication_clock, kvs_, seq_group_, timestamp, token));
+    backfill_queue_.push(boost::bind(&btree_key_value_store_t::set_last_sync, kvs_, seq_group_, timestamp, token));
 
     /* We want the realtime queue to accept operations without throttling until
     the backfill is over, and then to start throttling. To make sure that we
@@ -200,13 +200,13 @@ void backfill_storer_t::realtime_get_cas(const store_key_t& key, castime_t casti
     mut.key = key;
     block_pm_duration timer(&pm_replication_slave_realtime_enqueue);
 
-    realtime_queue_.push(boost::bind(&btree_key_value_store_t::change, kvs_, &seq_group, mut, castime, token));
+    realtime_queue_.push(boost::bind(&btree_key_value_store_t::change, kvs_, seq_group_, mut, castime, token));
 }
 
 void backfill_storer_t::realtime_sarc(sarc_mutation_t& m, castime_t castime, order_token_t token) {
     block_pm_duration timer(&pm_replication_slave_realtime_enqueue);
 
-    realtime_queue_.push(boost::bind(&btree_key_value_store_t::change, kvs_, &seq_group, m, castime, token));
+    realtime_queue_.push(boost::bind(&btree_key_value_store_t::change, kvs_, seq_group_, m, castime, token));
 }
 
 void backfill_storer_t::realtime_incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount,
@@ -217,7 +217,7 @@ void backfill_storer_t::realtime_incr_decr(incr_decr_kind_t kind, const store_ke
     mut.amount = amount;
     block_pm_duration timer(&pm_replication_slave_realtime_enqueue);
 
-    realtime_queue_.push(boost::bind(&btree_key_value_store_t::change, kvs_, &seq_group, mut, castime, token));
+    realtime_queue_.push(boost::bind(&btree_key_value_store_t::change, kvs_, seq_group_, mut, castime, token));
 }
 
 void backfill_storer_t::realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key,
@@ -228,7 +228,7 @@ void backfill_storer_t::realtime_append_prepend(append_prepend_kind_t kind, cons
     mut.kind = kind;
     block_pm_duration timer(&pm_replication_slave_realtime_enqueue);
 
-    realtime_queue_.push(boost::bind(&btree_key_value_store_t::change, kvs_, &seq_group, mut, castime, token));
+    realtime_queue_.push(boost::bind(&btree_key_value_store_t::change, kvs_, seq_group_, mut, castime, token));
 }
 
 void backfill_storer_t::realtime_delete_key(const store_key_t &key, repli_timestamp timestamp, order_token_t token) {
@@ -238,7 +238,7 @@ void backfill_storer_t::realtime_delete_key(const store_key_t &key, repli_timest
     block_pm_duration timer(&pm_replication_slave_realtime_enqueue);
 
     realtime_queue_.push(boost::bind(
-        &btree_key_value_store_t::change, kvs_, &seq_group, mut,
+        &btree_key_value_store_t::change, kvs_, seq_group_, mut,
         // TODO: where does "timestamp" go???  IS THIS RIGHT?? WHO KNOWS.
         castime_t(NO_CAS_SUPPLIED /* This isn't even used, why is it a parameter. */, timestamp),
         token
@@ -251,8 +251,8 @@ void backfill_storer_t::realtime_time_barrier(repli_timestamp_t timestamp, order
     There is no need to change the timestamper because there are no sets being sent to this
     node; the master is still up. */
     block_pm_duration timer(&pm_replication_slave_realtime_enqueue);
-    realtime_queue_.push(boost::bind(&btree_key_value_store_t::set_replication_clock, kvs_, &seq_group, timestamp, token));
-    realtime_queue_.push(boost::bind(&btree_key_value_store_t::set_last_sync, kvs_, &seq_group, timestamp, token));
+    realtime_queue_.push(boost::bind(&btree_key_value_store_t::set_replication_clock, kvs_, seq_group_, timestamp, token));
+    realtime_queue_.push(boost::bind(&btree_key_value_store_t::set_last_sync, kvs_, seq_group_, timestamp, token));
 }
 
 }

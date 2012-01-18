@@ -11,9 +11,10 @@
 
 namespace replication {
 
-slave_t::slave_t(btree_key_value_store_t *internal_store, replication_config_t replication_config,
+slave_t::slave_t(sequence_group_t *replication_seq_group, btree_key_value_store_t *internal_store, replication_config_t replication_config,
         failover_config_t failover_config, failover_t *failover) :
     failover_(failover),
+    seq_group_(replication_seq_group),
     timeout_(INITIAL_TIMEOUT),
     failover_reset_control_(this),
     new_master_control_(this),
@@ -70,8 +71,6 @@ void slave_t::give_up_t::limit_to(unsigned int limit) {
 
 void slave_t::run(signal_t *shutdown_signal) {
 
-    sequence_group_t seq_group;
-
     /* Determine if we were connected to the master at the time that we last shut down. We figure
     that if the last timestamp (get_replication_clock()) is the same as the last timestamp that
     we are up to date with the master on (get_last_sync()), then we were connected to the master at
@@ -79,7 +78,7 @@ void slave_t::run(signal_t *shutdown_signal) {
     will be equal anyway, which produces the correct behavior because the way we act when we first
     connect is the same as the way we act when we reconnect after we went down. */
     bool were_connected_before =
-        internal_store_->get_replication_clock(&seq_group) == internal_store_->get_last_sync(&seq_group);
+        internal_store_->get_replication_clock(seq_group_) == internal_store_->get_last_sync(seq_group_);
 
     if (!were_connected_before) {
         logINF("We didn't have contact with the master at the time that we last shut down, so "
@@ -105,7 +104,7 @@ void slave_t::run(signal_t *shutdown_signal) {
             {
                 boost::scoped_ptr<tcp_conn_t> conn(
                     new tcp_conn_t(replication_config_.hostname, replication_config_.port));
-                slave_stream_manager_t stream_mgr(&conn, internal_store_, &slave_cond, &slave_order_source, replication_config_.heartbeat_timeout);
+                slave_stream_manager_t stream_mgr(seq_group_, &conn, internal_store_, &slave_cond, &slave_order_source, replication_config_.heartbeat_timeout);
 
                 // No exception was thrown; it must have worked.
                 timeout_ = INITIAL_TIMEOUT;
@@ -121,7 +120,7 @@ void slave_t::run(signal_t *shutdown_signal) {
                 cond_link_t close_connection_on_shutdown(shutdown_signal, &slave_cond);
 
                 // last_sync is the latest timestamp that we didn't get all the master's changes for
-                repli_timestamp last_sync = internal_store_->get_last_sync(&seq_group);
+                repli_timestamp last_sync = internal_store_->get_last_sync(seq_group_);
                 debugf("Last sync: %d\n", last_sync.time);
 
                 if (!were_connected_before) {
@@ -148,10 +147,10 @@ void slave_t::run(signal_t *shutdown_signal) {
 
             /* Make sure that any sets we run are assigned a timestamp later than the latest
             timestamp we got from the master. */
-            repli_timestamp_t rc = internal_store_->get_replication_clock(&seq_group).next();
+            repli_timestamp_t rc = internal_store_->get_replication_clock(seq_group_).next();
             debugf("Incrementing clock from %d to %d\n", rc.time - 1, rc.time);
             internal_store_->set_timestampers(rc);
-            internal_store_->set_replication_clock(&seq_group, rc, order_token_t::ignore);
+            internal_store_->set_replication_clock(seq_group_, rc, order_token_t::ignore);
 
             failover_->on_failure();
 
