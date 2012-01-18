@@ -94,7 +94,7 @@ new file just for it. */
 
 void run_ip_address_test() {
     ip_address_t test("111.112.113.114");
-    EXPECT_EQ(ntohl(0x6F707172), test.ip_as_uint32());
+    EXPECT_EQ("111.112.113.114", test.as_dotted_decimal());
 }
 
 TEST(UtilsTest, IPAddress)
