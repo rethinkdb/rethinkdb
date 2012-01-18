@@ -115,11 +115,9 @@ void backfillee(
 
         /* Wait until we get a message in `end_point_mailbox`. */
         {
-            wait_any_t waiter(end_point_cond.get_ready_signal(), backfiller.get_failed_signal(), interruptor);
-            waiter.wait_lazily_unordered();
-            if (interruptor->is_pulsed()) {
-                throw interrupted_exc_t();
-            }
+            wait_any_t waiter(end_point_cond.get_ready_signal(), backfiller.get_failed_signal());
+            wait_interruptible(&waiter, interruptor);
+
             /* Throw an exception if backfiller died */
             backfiller.access();
             rassert(end_point_cond.get_ready_signal()->is_pulsed());
@@ -164,11 +162,9 @@ void backfillee(
 
         /* Now wait for the backfill to be over */
         {
-            wait_any_t waiter(&done_cond, backfiller.get_failed_signal(), interruptor);
-            waiter.wait_lazily_unordered();
-            if (interruptor->is_pulsed()) {
-                throw interrupted_exc_t();
-            }
+            wait_any_t waiter(&done_cond, backfiller.get_failed_signal());
+            wait_interruptible(&waiter, interruptor);
+
             /* Throw an exception if backfiller died */
             backfiller.access();
             rassert(done_cond.is_pulsed());

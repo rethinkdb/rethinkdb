@@ -260,11 +260,8 @@ private:
             return;
         }
 
-        wait_any_t waiter(&intro_receiver, interruptor, registrant->get_failed_signal());
-        waiter.wait_lazily_unordered();
-        if (interruptor->is_pulsed()) {
-            throw interrupted_exc_t();
-        }
+        wait_any_t waiter(&intro_receiver, registrant->get_failed_signal());
+        wait_interruptible(&waiter, interruptor);   /* May throw `interrupted_exc_t` */
 
         if (registrant->get_failed_signal()->is_pulsed()) {
             registration_result_cond.pulse(boost::optional<intro_t>());
@@ -294,14 +291,9 @@ private:
             rassert(region_is_superset(namespace_metadata->get().branches[branch_id].region, write.get_region()));
             rassert(!region_is_empty(write.get_region()));
 
-            /* Block until registration has completely succeeded or failed. */
-            {
-                wait_any_t waiter(registration_result_cond.get_ready_signal(), keepalive.get_drain_signal());
-                waiter.wait_lazily_unordered();
-                if (keepalive.get_drain_signal()->is_pulsed()) {
-                    throw interrupted_exc_t();
-                }
-            }
+            /* Block until registration has completely succeeded or failed.
+            (May throw `interrupted_exc_t`) */
+            wait_interruptible(registration_result_cond.get_ready_signal(), keepalive.get_drain_signal());
 
             if (!registration_result_cond.get_value()) {
                 /* Registration never succeeded; for some reason a few writes
@@ -311,11 +303,8 @@ private:
 
             /* Block until the backfill succeeds or fails. */
             {
-                wait_any_t waiter(backfill_done_cond.get_ready_signal(), &backfill_failed_cond, keepalive.get_drain_signal());
-                waiter.wait_lazily_unordered();
-                if (keepalive.get_drain_signal()->is_pulsed()) {
-                    throw interrupted_exc_t();
-                }
+                wait_any_t waiter(backfill_done_cond.get_ready_signal(), &backfill_failed_cond);
+                wait_interruptible(&waiter, keepalive.get_drain_signal());
             }
 
             if (backfill_failed_cond.is_pulsed()) {

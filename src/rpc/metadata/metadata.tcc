@@ -78,11 +78,8 @@ void metadata_cluster_t<metadata_t>::root_view_t::sync_from(peer_id_t peer, sign
     disconnect_watcher_t watcher(parent, peer);
     parent->send_utility_message(peer,
         boost::bind(&metadata_cluster_t<metadata_t>::write_ping, _1, ping_id));
-    wait_any_t waiter(&response_cond, &watcher, interruptor);
-    waiter.wait_lazily_unordered();
-    if (interruptor->is_pulsed()) {
-        throw interrupted_exc_t();
-    }
+    wait_any_t waiter(&response_cond, &watcher);
+    wait_interruptible(&waiter, interruptor);
     if (watcher.is_pulsed()) {
         throw sync_failed_exc_t();
     }
