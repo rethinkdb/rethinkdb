@@ -52,13 +52,15 @@ void fifo_enforcer_sink_t::exit_read_t::reset(fifo_enforcer_sink_t *p, fifo_enfo
             &p->waiting_readers,
             t.timestamp,
             &can_proceed_cond);
-        wait_any_t waiter(&can_proceed_cond, interruptor);
-        acq.reset();
-        waiter.wait_lazily_unordered();
-        acq.reset(&p->lock);
-        if (interruptor->is_pulsed()) {
-            throw interrupted_exc_t();
-        }
+
+        /* Release the mutex while we block */
+        mutex_assertion_t::acq_t::temporary_release_t release_while_blocking(&acq);
+
+        wait_interruptible(&can_proceed_cond, interruptor);
+
+        /* `release_while_blocking` destructor runs first, which reacquires the
+        mutex; then `insertion` destructor runs, which removes an element from
+        the map while we safely have the mutex. */
     }
     parent = p;
     token = t;
@@ -102,13 +104,15 @@ void fifo_enforcer_sink_t::exit_write_t::reset(fifo_enforcer_sink_t *p, fifo_enf
             &p->waiting_writers,
             t.timestamp,
             std::make_pair(t.num_preceding_reads, &can_proceed_cond));
-        wait_any_t waiter(&can_proceed_cond, interruptor);
-        acq.reset();
-        waiter.wait_lazily_unordered();
-        acq.reset(&p->lock);
-        if (interruptor->is_pulsed()) {
-            throw interrupted_exc_t();
-        }
+
+        /* Release the mutex while we block */
+        mutex_assertion_t::acq_t::temporary_release_t release_while_blocking(&acq);
+
+        wait_interruptible(&can_proceed_cond, interruptor);
+
+        /* `release_while_blocking` destructor runs first, which reacquires the
+        mutex; then `insertion` destructor runs, which removes an element from
+        the map while we safely have the mutex. */
     }
     parent = p;
     token = t;

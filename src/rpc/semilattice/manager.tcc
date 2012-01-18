@@ -86,11 +86,8 @@ void semilattice_manager_t<metadata_t>::root_view_t::sync_from(peer_id_t peer, s
     disconnect_watcher_t watcher(parent->message_service->get_connectivity_service(), peer);
     parent->message_service->send_message(peer,
         boost::bind(&semilattice_manager_t<metadata_t>::write_ping, _1, ping_id));
-    wait_any_t waiter(&response_cond, &watcher, interruptor);
-    waiter.wait_lazily_unordered();
-    if (interruptor->is_pulsed()) {
-        throw interrupted_exc_t();
-    }
+    wait_any_t waiter(&response_cond, &watcher);
+    wait_interruptible(&waiter, interruptor);   /* May throw `interrupted_exc_t` */
     if (watcher.is_pulsed()) {
         throw sync_failed_exc_t();
     }

@@ -12,6 +12,19 @@ class mutex_assertion_t : public home_thread_mixin_t {
 public:
     class acq_t {
     public:
+        class temporary_release_t {
+        public:
+            temporary_release_t(acq_t *a) : mutex(a->mutex), acq(a) {
+                acq->reset();
+            }
+            ~temporary_release_t() {
+                acq->reset(mutex);
+            }
+        private:
+            mutex_assertion_t *mutex;
+            acq_t *acq;
+            DISABLE_COPYING(temporary_release_t);
+        };
         acq_t() : mutex(NULL) { }
         explicit acq_t(mutex_assertion_t *m) : mutex(NULL) {
             reset(m);
@@ -36,6 +49,7 @@ public:
             rassert(mutex == m);
         }
     private:
+        friend class temporary_release_t;
         friend void swap(acq_t &, acq_t &);
         mutex_assertion_t *mutex;
         DISABLE_COPYING(acq_t);

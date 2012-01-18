@@ -127,10 +127,8 @@ private:
             send(mailbox_manager, query_address,
                 shard, order_token, result_or_failure_mailbox.get_address());
 
-            wait_any_t waiter(result_or_failure.get_ready_signal(), interruptor, (*master_accesses)[i]->get_failed_signal());
-            waiter.wait_lazily_unordered();
-
-            if (interruptor->is_pulsed()) throw interrupted_exc_t();
+            wait_any_t waiter(result_or_failure.get_ready_signal(), (*master_accesses)[i]->get_failed_signal());
+            wait_interruptible(&waiter, interruptor);
 
             /* Throw an exception if the master went down */
             (*master_accesses)[i]->access();

@@ -17,11 +17,7 @@ void listener_write(
     send(mailbox_manager, write_mailbox,
         w, ts, token, ack_mailbox.get_address());
 
-    wait_any_t waiter(&ack_cond, interruptor);
-    waiter.wait_lazily_unordered();
-
-    if (interruptor->is_pulsed()) throw interrupted_exc_t();
-    rassert(ack_cond.is_pulsed());
+    wait_interruptible(&ack_cond, interruptor);
 }
 
 template<class protocol_t>
@@ -39,10 +35,8 @@ typename protocol_t::write_response_t listener_writeread(
     send(mailbox_manager, writeread_mailbox,
         w, ts, token, resp_mailbox.get_address());
 
-    wait_any_t waiter(resp_cond.get_ready_signal(), interruptor);
-    waiter.wait_lazily_unordered();
+    wait_interruptible(resp_cond.get_ready_signal(), interruptor);
 
-    if (interruptor->is_pulsed()) throw interrupted_exc_t();
     return resp_cond.get_value();
 }
 
@@ -61,10 +55,8 @@ typename protocol_t::read_response_t listener_read(
     send(mailbox_manager, read_mailbox,
         r, ts, token, resp_mailbox.get_address());
 
-    wait_any_t waiter(resp_cond.get_ready_signal(), interruptor);
-    waiter.wait_lazily_unordered();
+    wait_interruptible(resp_cond.get_ready_signal(), interruptor);
 
-    if (interruptor->is_pulsed()) throw interrupted_exc_t();
     return resp_cond.get_value();
 }
 
