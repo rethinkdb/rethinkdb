@@ -292,7 +292,8 @@ void coro_t::notify_now() {
 }
 
 void coro_t::notify_sometime() {
-    rassert(current_thread_ == linux_thread_pool_t::thread_id);
+    // TODO: implement a notify_any_thread function if this is changed to not be thread-safe
+    // rassert(current_thread_ == linux_thread_pool_t::thread_id);
 
     /* For now we just implement `notify_sometime()` as
     `notify_later_ordered()`, but later we could eliminate the full trip around
