@@ -1,14 +1,14 @@
 template<class protocol_t>
-dispatcher_t(
+reactor_t<protocol_t>::reactor_t(
         mailbox_manager_t *mm,
-        clone_ptr_t<directory_readwrite_view_t<std::map<peer_id_t, manager_state_t<protocol_t> > > > md,
+        clone_ptr_t<directory_readwrite_view_t<reactor_business_card_t<protocol_t> > > rd,
         boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > bh,
         watchable_t<manager_orders_t<protocol_t> > *o,
         std::string file_path) THROWS_NOTHING :
-    mailbox_manager(mm), manager_directory(md), branch_history(bh), orders(o),
+    mailbox_manager(mm), reactor_directory(rd), branch_history(bh), orders(o),
     store_file(file_path),
     backfiller(mailbox_manager, branch_history, &store_file),
-    orders_subscription(boost::bind(&dispatcher_t::pump, this))
+    orders_subscription(boost::bind(&reactor_t::pump, this))
 {
     watchable_freeze_t freeze(orders);
     pump();
@@ -16,7 +16,7 @@ dispatcher_t(
 }
 
 template<class protocol_t>
-dispatcher_t<protocol_t>::activity_type_monitor_t::activity_type_monitor_t(dispatcher_t *p, typename protocol_t::region_t r, activity_type_t e) :
+reactor_t<protocol_t>::activity_type_monitor_t::activity_type_monitor_t(reactor_t *p, typename protocol_t::region_t r, activity_type_t e) :
     parent(p), region(r), expected(e),
     subscription(boost::bind(&activity_type_monitor_t::on_change, this))
 {
@@ -29,14 +29,14 @@ dispatcher_t<protocol_t>::activity_type_monitor_t::activity_type_monitor_t(dispa
 }
 
 template<class protocol_t>
-void dispatcher_t<protocol_t>::activity_type_monitor_t::on_change() {
+void reactor_t<protocol_t>::activity_type_monitor_t::on_change() {
     if (is_failed() && !is_pulsed()) {
         pulse();
     }
 }
 
 template<class protocol_t>
-bool dispatcher_t<protocol_t>::activity_type_monitor_t::is_failed() {
+bool reactor_t<protocol_t>::activity_type_monitor_t::is_failed() {
     std::map<typename protocol_t::region_t, typename blueprint_t<protocol_t>::shard_t> shards =
         blueprint->get().shards;
     std::map<typename protocol_t::region_t, typename blueprint_t<protocol_t>::shard_t>::iterator it = shards.find(region);
@@ -50,7 +50,7 @@ bool dispatcher_t<protocol_t>::activity_type_monitor_t::is_failed() {
 }
 
 template<class protocol_t>
-void dispatcher_t<protocol_t>::pump() THROWS_NOTHING {
+void reactor_t<protocol_t>::pump() THROWS_NOTHING {
     mutex_assertion_t::acq_t dont_let_activities_finish;
     std::map<typename protocol_t::region_t, typename blueprint_t<protocol_t>::shard_t> shards =
         blueprint->get().shards;
@@ -62,19 +62,19 @@ void dispatcher_t<protocol_t>::pump() THROWS_NOTHING {
                 case activity_type_nothing:
                     spawn_activity(
                         (*it).first,
-                        boost::bind(&dispatcher_t::activity_nothing, (*it).first, _1),
+                        boost::bind(&reactor_t::activity_nothing, (*it).first, _1),
                         &dont_let_activities_finish);
                     break;
                 case activity_type_primary:
                     spawn_activity(
                         (*it).first,
-                        boost::bind(&dispatcher_t::activity_primary, (*it).first, _1),
+                        boost::bind(&reactor_t::activity_primary, (*it).first, _1),
                         &dont_let_activities_finish);
                     break;
                 case activity_type_secondary:
                     spawn_activity(
                         (*it).first,
-                        boost::bind(&dispatcher_t::activity_secondary, (*it).first, _1),
+                        boost::bind(&reactor_t::activity_secondary, (*it).first, _1),
                         &dont_let_activities_finish);
                     break;
             }
@@ -83,13 +83,13 @@ void dispatcher_t<protocol_t>::pump() THROWS_NOTHING {
 }
 
 template<class protocol_t>
-void dispatcher_t<protocol_t>::spawn_activity(typename protocol_t::region_t region,
+void reactor_t<protocol_t>::spawn_activity(typename protocol_t::region_t region,
         const boost::function<void(auto_drainer_t::lock_t)> &activity,
         mutex_assertion_t::acq_t *proof) THROWS_NOTHING {
     proof->assert_is_holding(&lock);
     rassert(!region_is_active(region));
     active_regions.insert(region);
-    coro_t::spawn_sometime(boost::bind(&dispatcher_t<protocol_t>::do_activity,
+    coro_t::spawn_sometime(boost::bind(&reactor_t<protocol_t>::do_activity,
         region,
         activity,
         auto_drainer_t::lock_t(&drainer)
@@ -97,7 +97,7 @@ void dispatcher_t<protocol_t>::spawn_activity(typename protocol_t::region_t regi
 }
 
 template<class protocol_t>
-void dispatcher_t<protocol_t>::do_activity(typename protocol_t::region_t region,
+void reactor_t<protocol_t>::do_activity(typename protocol_t::region_t region,
         const boost::function<void(auto_drainer_t::lock_t)> &activity,
         auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
     activity(keepalive);
@@ -109,7 +109,7 @@ void dispatcher_t<protocol_t>::do_activity(typename protocol_t::region_t region,
 }
 
 template<class protocol_t>
-bool dispatcher_t<protocol_t>::region_is_active(typename protocol_t::region_t r) THROWS_NOTHING {
+bool reactor_t<protocol_t>::region_is_active(typename protocol_t::region_t r) THROWS_NOTHING {
     for (typename std::set<typename protocol_t::region_t>::iterator it = 
             regions_with_a_primary_or_secondary.begin();
             it != regions_with_a_primary_or_secondary.end(); it++) {
@@ -121,7 +121,7 @@ bool dispatcher_t<protocol_t>::region_is_active(typename protocol_t::region_t r)
 }
 
 template<class protocol_t>
-void dispatcher_t<protocol_t>::activity_nothing(typename protocol_t::region_t region, auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
+void reactor_t<protocol_t>::activity_nothing(typename protocol_t::region_t region, auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
     try {
         activity_type_monitor_t blueprint_watcher(this, region, activity_type_nothing);
         wait_any_t interruptor(&blueprint_watcher, keepalive.get_drain_signal());
@@ -145,13 +145,10 @@ void dispatcher_t<protocol_t>::activity_nothing(typename protocol_t::region_t re
             }
 
             /* Now it's safe to destroy the data */
-            /* May throw `interrupted_exc_t` */
             boost::shared_ptr<store_view_t<protocol_t>::write_transaction_t> txn =
-                subview.begin_write_transaction(&interruptor);
-            /* May throw `interrupted_exc_t` */
-            txn->set_metadata(region_map_t<protocol_t, version_range_t>(region, version_range_t::zero()), &interruptor);
-            /* May throw `interrupted_exc_t` */
-            txn->reset_region(region, &interruptor);
+                subview.begin_write_transaction(&interruptor);   /* May throw `interrupted_exc_t` */
+            txn->set_metadata(region_map_t<protocol_t, version_range_t>(region, version_range_t::zero()), &interruptor);   /* May throw `interrupted_exc_t` */
+            txn->reset_region(region, &interruptor);   /* May throw `interrupted_exc_t` */
         }
 
         interruptor.wait_lazily_unordered();
@@ -162,10 +159,10 @@ void dispatcher_t<protocol_t>::activity_nothing(typename protocol_t::region_t re
 }
 
 template<class protocol_t>
-void dispatcher_t<protocol_t>::activity_primary(typename protocol_t::region_t region, auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
+void reactor_t<protocol_t>::activity_primary(typename protocol_t::region_t region, auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
 }
 
 template<class protocol_t>
-void dispatcher_t<protocol_t>::activity_secondary(typename protocol_t::region_t region, auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
+void reactor_t<protocol_t>::activity_secondary(typename protocol_t::region_t region, auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
 }
 
