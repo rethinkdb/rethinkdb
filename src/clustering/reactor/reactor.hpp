@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_REACTORS_REACTOR_HPP__
-#define __CLUSTERING_REACTORS_REACTOR_HPP__
+#ifndef __CLUSTERING_REACTOR_REACTOR_HPP__
+#define __CLUSTERING_REACTOR_REACTOR_HPP__
 
 #include "clustering/reactors/metadata.hpp"
 
@@ -102,4 +102,4 @@ private:
     watchable_subscription_t blueprint_subscription;
 };
 
-#endif /* __CLUSTERING_REACTORS_REACTOR_HPP__ */
+#endif /* __CLUSTERING_REACTOR_REACTOR_HPP__ */

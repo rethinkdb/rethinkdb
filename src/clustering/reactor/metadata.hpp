@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_REACTORS_METADATA_HPP__
-#define __CLUSTERING_REACTORS_METADATA_HPP__
+#ifndef __CLUSTERING_REACTOR_METADATA_HPP__
+#define __CLUSTERING_REACTOR_METADATA_HPP__
 
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 
@@ -68,4 +68,4 @@ public:
     typename confirmation_mailbox_t::address_t confirmation_mailbox;
 };
 
-#endif /* __CLUSTERING_REACTORS_METADATA_HPP__ */
+#endif /* __CLUSTERING_REACTOR_METADATA_HPP__ */

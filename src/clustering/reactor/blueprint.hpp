@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_REACTORS_BLUEPRINT_HPP__
-#define __CLUSTERING_REACTORS_BLUEPRINT_HPP__
+#ifndef __CLUSTERING_REACTOR_BLUEPRINT_HPP__
+#define __CLUSTERING_REACTOR_BLUEPRINT_HPP__
 
 #include "utils.hpp"
 #include <boost/optional.hpp>
@@ -32,4 +32,4 @@ public:
     std::map<typename protocol_t::region_t, shard_t> shards;
 };
 
-#endif /* __CLUSTERING_REACTORS_BLUEPRINT_HPP__ */
+#endif /* __CLUSTERING_REACTOR_BLUEPRINT_HPP__ */
