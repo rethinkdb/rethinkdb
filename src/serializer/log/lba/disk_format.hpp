@@ -5,6 +5,7 @@
 
 
 #include <limits.h>
+#include <stddef.h>
 
 #include "serializer/serializer.hpp"
 

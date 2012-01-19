@@ -102,7 +102,7 @@ void epoll_event_queue_t::run() {
 }
 
 epoll_event_queue_t::~epoll_event_queue_t() {
-    int res;
+    int res __attribute__((unused));
     
     res = close(epoll_fd);
     assert_err(res == 0, "Could not close epoll_fd");

@@ -2,6 +2,7 @@
 #define __STORE_HPP__
 
 #include "utils.hpp"
+#include <stddef.h>
 
 typedef uint32_t mcflags_t;
 typedef uint32_t exptime_t;
