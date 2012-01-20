@@ -39,6 +39,11 @@ public:
 
     /* The guts of the coro_context_t */
     artificial_stack_t stack;
+
+    // The coroutine information currently being used
+    coro_t *coro;
+    char coro_data[sizeof(coro_t)];
+    bool coroutine_in_use;
 };
 
 /* `coro_globals_t` holds all of the thread-local variables that coroutines need
@@ -117,7 +122,9 @@ coro_runtime_t::~coro_runtime_t() {
 /* coro_context_t */
 
 coro_context_t::coro_context_t()
-    : stack(&coro_context_t::run, coro_stack_size)
+    : stack(&coro_context_t::run, coro_stack_size),
+      coro(reinterpret_cast<coro_t*>(coro_data)),
+      coroutine_in_use(false)
 {
     pm_allocated_coroutines++;
 
@@ -154,6 +161,10 @@ coro_context_t::~coro_context_t() {
     cglobals->coro_context_count--;
 #endif
     pm_allocated_coroutines--;
+
+    if(coroutine_in_use) {
+        reinterpret_cast<coro_t*>(coro_data)->~coro_t();
+    }
 }
 
 /* coro_t */
@@ -162,24 +173,17 @@ coro_context_t::~coro_context_t() {
 static __thread int64_t coro_selfname_counter = 0;
 #endif
 
-coro_t::coro_t(const boost::function<void()>& deed) :
+coro_t::coro_t(const boost::function<void()>& deed, coro_context_t* parent_context) :
 #ifndef NDEBUG
     selfname_number(get_thread_id() + MAX_THREADS * ++coro_selfname_counter),
 #endif
+    context(parent_context),
     deed_(deed),
     current_thread_(linux_thread_pool_t::thread_id),
     notified_(false),
     waiting_(true)
 {
     pm_active_coroutines++;
-
-    /* Find us a stack */
-    if (cglobals->free_contexts.size() == 0) {
-        context = new coro_context_t();
-    } else {
-        context = cglobals->free_contexts.tail();
-        cglobals->free_contexts.remove(context);
-    }
 }
 
 void return_context_to_free_contexts(coro_context_t *context) {
@@ -193,6 +197,7 @@ coro_t::~coro_t() {
     /* Return the context to the free-contexts list we took it from. */
     do_on_thread(context->home_thread(), boost::bind(return_context_to_free_contexts, context));
 
+    context->coroutine_in_use = false;
     pm_active_coroutines--;
 }
 
@@ -202,7 +207,8 @@ void coro_t::run() {
 
     deed_();
 
-    delete this;
+    // Since coro_t is allocated without 'new' in an existing coro_context_t, don't use 'delete'
+    this->~coro_t();
 }
 
 coro_t *coro_t::self() {   /* class method */
@@ -348,16 +354,33 @@ bool is_coroutine_stack_overflow(void *addr) {
     return cglobals->current_coro && cglobals->current_coro->context->stack.address_is_stack_overflow(addr);
 }
 
+coro_context_t* get_and_init_context(const boost::function<void()> &deed)
+{
+    coro_context_t *context;
+
+    if (cglobals->free_contexts.size() == 0) {
+        context = new coro_context_t();
+    } else {
+        context = cglobals->free_contexts.tail();
+        cglobals->free_contexts.remove(context);
+    }
+
+    // Placement-new initialize the context's coro_t
+    new (context->coro) coro_t(deed, context);
+
+    return context;
+}
+
 void coro_t::spawn_now(const boost::function<void()> &deed) {
-    (new coro_t(deed))->notify_now();
+    get_and_init_context(deed)->coro->notify_now();
 }
 
 void coro_t::spawn_sometime(const boost::function<void()> &deed) {
-    (new coro_t(deed))->notify_sometime();
+    get_and_init_context(deed)->coro->notify_sometime();
 }
 
 void coro_t::spawn_later_ordered(const boost::function<void()>& deed) {
-    (new coro_t(deed))->notify_later_ordered();
+    get_and_init_context(deed)->coro->notify_later_ordered();
 }
 
 void coro_t::spawn_on_thread(int thread, const boost::function<void()>& deed) {

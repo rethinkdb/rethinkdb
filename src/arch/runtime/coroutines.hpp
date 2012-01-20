@@ -39,6 +39,8 @@ public:
     // Use coro_t::spawn_*(boost::bind(...)) for spawning with parameters.
 
 public:
+    explicit coro_t(const boost::function<void()>& deed, coro_context_t *parent_context);
+
     /* Pauses the current coroutine until it is notified */
     static void wait();
 
@@ -113,7 +115,6 @@ private:
     coro_context_t object. */
     coro_context_t *context;
 
-    explicit coro_t(const boost::function<void()>& deed);
     boost::function<void()> deed_;
     void run();
     ~coro_t();

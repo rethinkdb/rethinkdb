@@ -39,7 +39,7 @@ struct thread_doer_t :
     
     void do_return_home() {
         state = state_go_home;
-        if (continue_on_thread(home_thread(), this)) delete this;
+        continue_on_thread(home_thread(), this);
     }
     
     void on_thread_switch() {
@@ -64,9 +64,18 @@ the current thread, returns the method's return value. Otherwise, returns false.
 template<class callable_t>
 void do_on_thread(int thread, const callable_t &callable) {
     assert_good_thread_id(thread);
-    // TODO: if we are currently on `thread`, we shouldn't need to allocate memory to do this.
-    thread_doer_t<callable_t> *fsm = new thread_doer_t<callable_t>(callable, thread);
-    fsm->run();
+
+    if(thread == get_thread_id())
+    {
+      // Run the function directly since we are already in the requested thread
+      callable_t mutable_callable(callable);
+      mutable_callable();
+    }
+    else
+    {
+      thread_doer_t<callable_t> *fsm = new thread_doer_t<callable_t>(callable, thread);
+      fsm->run();
+    }
 }
 
 
