@@ -51,17 +51,17 @@ private:
     secondary. If the blueprint is not completely implemented yet, it sets up a
     backfiller until the blueprint is complete, and then erases any data in the
     region and waits. */
-    void do_role_nothing(typename protocol_t::region_t region, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+    void do_role_nothing(typename protocol_t::region_t region, store_view_t<protocol_t> *subview, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
     /* `do_role_primary()` runs for regions where we are supposed to be the
     primary. It backfills from a conveniently available backfiller and then
     sets up a broadcaster, master, listener, and replier. */
-    void do_role_primary(typename protocol_t::region_t region, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+    void do_role_primary(typename protocol_t::region_t region, store_view_t<protocol_t> *subview, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
     /* `do_role_secondary()` runs for regions where we are supposed to be a
     secondary. If a primary is available, it tries to track it. Otherwise, it
     offers backfills. */
-    void do_role_secondary(typename protocol_t::region_t region, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+    void do_role_secondary(typename protocol_t::region_t region, store_view_t<protocol_t> *subview, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
     /* Sends messages to all peers asking them to confirm that their blueprint
     says we are supposed to take the given role for the given region. Returns

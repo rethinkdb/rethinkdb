@@ -9,15 +9,18 @@
 template<class protocol_t>
 class blueprint_t {
 public:
-    class shard_t {
-        peer_id_t primary;
-        std::set<peer_id_t> secondaries;
-    };
-
     enum role_t {
         role_nothing,
         role_primary,
         role_secondary
+    };
+
+    class shard_t {
+    public:
+        role_t get_role(peer_id_t) THROWS_NOTHING;
+
+        peer_id_t primary;
+        std::set<peer_id_t> secondaries;
     };
 
     /* Returns the role that this blueprint assigns to the given peer for the
