@@ -7,6 +7,6 @@
 
 incr_decr_result_t btree_incr_decr(const store_key_t &key, btree_slice_t *slice, bool increment, uint64_t delta, castime_t castime, order_token_t token);
 incr_decr_result_t btree_incr_decr(const store_key_t &key, btree_slice_t *slice, bool increment, uint64_t delta, castime_t castime, order_token_t token,
-    const boost::scoped_ptr<transaction_t>& txn, got_superblock_t& superblock);
+    transaction_t *txn, got_superblock_t& superblock);
 
 #endif // __BTREE_SET_HPP__

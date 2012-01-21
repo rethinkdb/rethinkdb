@@ -36,7 +36,7 @@ delete_result_t btree_delete(const store_key_t &key, bool dont_put_in_delete_que
 }
 
 delete_result_t btree_delete(const store_key_t &key, bool dont_put_in_delete_queue, btree_slice_t *slice, repli_timestamp_t timestamp, order_token_t token,
-    const boost::scoped_ptr<transaction_t>& txn, got_superblock_t& superblock) {
+    transaction_t *txn, got_superblock_t& superblock) {
 
     btree_delete_oper_t oper(dont_put_in_delete_queue, slice);
     run_btree_modify_oper(&oper, slice, key, castime_t(BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS, timestamp), token, txn, superblock);

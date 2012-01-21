@@ -14,17 +14,17 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, order
     boost::scoped_ptr<transaction_t> txn;
     got_superblock_t superblock;
     get_btree_superblock_for_reading(slice, rwi_read, token, false, &superblock, txn);
-    return btree_get(store_key, slice, token, txn, superblock);
+    return btree_get(store_key, slice, token, txn.get(), superblock);
 }
 
 get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, UNUSED order_token_t token,
-    const boost::scoped_ptr<transaction_t>& txn, got_superblock_t& superblock) {
+    transaction_t *txn, got_superblock_t& superblock) {
 
     btree_key_buffer_t kbuffer(store_key);
     btree_key_t *key = kbuffer.key();
 
     keyvalue_location_t<memcached_value_t> kv_location;
-    find_keyvalue_location_for_read(txn.get(), &superblock, key, &kv_location);
+    find_keyvalue_location_for_read(txn, &superblock, key, &kv_location);
 
     if (!kv_location.value) {
         return get_result_t();
@@ -37,7 +37,7 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, UNUSE
         return get_result_t();
     }
 
-    boost::intrusive_ptr<data_buffer_t> dp = value_to_data_buffer(value, txn.get());
+    boost::intrusive_ptr<data_buffer_t> dp = value_to_data_buffer(value, txn);
 
     return get_result_t(dp, value->mcflags(), 0);
 }

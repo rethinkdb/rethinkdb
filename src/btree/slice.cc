@@ -69,7 +69,7 @@ get_result_t btree_slice_t::get(const store_key_t &key, order_token_t token) {
     return btree_get(key, this, token);
 }
 
-get_result_t btree_slice_t::get(const store_key_t &key, order_token_t token, const boost::scoped_ptr<transaction_t>& txn, got_superblock_t& superblock) {
+get_result_t btree_slice_t::get(const store_key_t &key, order_token_t token, transaction_t *txn, got_superblock_t& superblock) {
     assert_thread();
     token = order_checkpoint_.check_through(token);
     return btree_get(key, this, token, txn, superblock);
@@ -133,14 +133,14 @@ struct btree_slice_change_with_superblock_visitor_t : public boost::static_visit
         return mutation_result_t(btree_delete(m.key, m.dont_put_in_delete_queue, parent, ct.timestamp, order_token, txn, superblock));
     }
 
-    btree_slice_change_with_superblock_visitor_t(btree_slice_t *_parent, castime_t _ct, order_token_t _order_token, boost::scoped_ptr<transaction_t>& _txn, got_superblock_t& _superblock)
+    btree_slice_change_with_superblock_visitor_t(btree_slice_t *_parent, castime_t _ct, order_token_t _order_token, transaction_t *_txn, got_superblock_t& _superblock)
         : parent(_parent), ct(_ct), order_token(_order_token), txn(_txn), superblock(_superblock) { }
 private:
     btree_slice_t *parent;
     castime_t ct;
     order_token_t order_token;
 
-    boost::scoped_ptr<transaction_t>& txn;
+    transaction_t *txn;
     got_superblock_t& superblock;
 
     DISABLE_COPYING(btree_slice_change_with_superblock_visitor_t);
@@ -154,7 +154,7 @@ mutation_result_t btree_slice_t::change(const mutation_t &m, castime_t castime, 
     return boost::apply_visitor(functor, m.mutation);
 }
 
-mutation_result_t btree_slice_t::change(const mutation_t &m, castime_t castime, order_token_t token, boost::scoped_ptr<transaction_t>& txn, got_superblock_t& superblock) {
+mutation_result_t btree_slice_t::change(const mutation_t &m, castime_t castime, order_token_t token, transaction_t *txn, got_superblock_t& superblock) {
     assert_thread();
     token = order_checkpoint_.check_through(token);
 

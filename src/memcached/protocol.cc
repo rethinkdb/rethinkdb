@@ -213,7 +213,7 @@ struct btree_operation_visitor_t : public boost::static_visitor<memcached_protoc
     btree_operation_visitor_t(btree_slice_t *btree_, order_token_t& token_, boost::scoped_ptr<transaction_t>& txn_, got_superblock_t& superblock_) : btree(btree_), token(token_), txn(txn_), superblock(superblock_) { }
 
     memcached_protocol_t::read_response_t operator()(const get_query_t& get) {
-        return memcached_protocol_t::read_response_t(btree->get(get.key, token, txn, superblock));
+        return memcached_protocol_t::read_response_t(btree->get(get.key, token, txn.get(), superblock));
     }
     memcached_protocol_t::read_response_t operator()(const rget_query_t& rget) {
         return memcached_protocol_t::read_response_t(btree->rget(rget.left_mode, rget.left_key, rget.right_mode, rget.right_key, token, txn, superblock));
@@ -233,7 +233,7 @@ memcached_protocol_t::read_response_t memcached_store_view_t::txn_t::read(const 
 
 memcached_protocol_t::write_response_t memcached_store_view_t::txn_t::write(const memcached_protocol_t::write_t &write, transition_timestamp_t timestamp) THROWS_NOTHING {
     castime_t cas = castime_t(write.proposed_cas, timestamp.to_repli_timestamp());
-    return memcached_protocol_t::write_response_t(btree->change(write.mutation, cas, token, txn, superblock).result);
+    return memcached_protocol_t::write_response_t(btree->change(write.mutation, cas, token, txn.get(), superblock).result);
 }
 
 struct memcached_backfill_callback_t : public backfill_callback_t {

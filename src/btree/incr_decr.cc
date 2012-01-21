@@ -101,7 +101,7 @@ incr_decr_result_t btree_incr_decr(const store_key_t &key, btree_slice_t *slice,
     return oper.result;
 }
 
-incr_decr_result_t btree_incr_decr(const store_key_t &key, btree_slice_t *slice, bool increment, uint64_t delta, castime_t castime, order_token_t token, const boost::scoped_ptr<transaction_t>& txn, got_superblock_t& superblock) {
+incr_decr_result_t btree_incr_decr(const store_key_t &key, btree_slice_t *slice, bool increment, uint64_t delta, castime_t castime, order_token_t token, transaction_t *txn, got_superblock_t& superblock) {
     btree_incr_decr_oper_t oper(increment, delta);
     run_btree_modify_oper(&oper, slice, key, castime, token, txn, superblock);
     return oper.result;
