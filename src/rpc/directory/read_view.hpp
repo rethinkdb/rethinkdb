@@ -11,14 +11,12 @@
 
 class directory_read_service_t {
 public:
-    /* `peer_value_freeze_t` prevents value-change notifications from being
-    delivered for the given peer. It's useful so that you can atomically read
-    the current value for that peer and construct a `peer_value_subscription_t`
-    without worrying about the value changing in between. Don't block while it
-    exists.
-
-    Underneath the hood, `peer_value_freeze_t` is just asserting that no changes
-    happen. That's why it's so dangerous to block while it exists. */
+    /* `peer_value_freeze_t` raises an assertion if the value for a given peer
+    would change. If you want to do something atomically without the peer value
+    changing out from under you, construct a `peer_value_freeze_t` and then do
+    the thing without blocking; if you screw up and accidentally block, the
+    `peer_value_freeze_t` will make it an assertion failure instead of a silent
+    race condition. */
     class peer_value_freeze_t {
     public:
         peer_value_freeze_t(directory_read_service_t *, peer_id_t) THROWS_NOTHING;
