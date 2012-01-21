@@ -24,28 +24,6 @@ perfmon_counter_t pm_active_coroutines("active_coroutines"),
 
 size_t coro_stack_size = COROUTINE_STACK_SIZE; //Default, setable by command-line parameter
 
-/* coro_context_t is only used internally within the coroutine logic. For performance reasons,
-we recycle stacks and ucontexts; the coro_context_t represents a stack and a ucontext. */
-
-class coro_context_t : public intrusive_list_node_t<coro_context_t>, public home_thread_mixin_t {
-public:
-    coro_context_t();
-
-    /* The run() function is at the bottom of every coro_context_t's call stack. It repeatedly
-    waits for a coroutine to run and then calls that coroutine's run() method. */
-    static void run();
-
-    ~coro_context_t();
-
-    /* The guts of the coro_context_t */
-    artificial_stack_t stack;
-
-    // The coroutine information currently being used
-    coro_t *coro;
-    char coro_data[sizeof(coro_t)];
-    bool coroutine_in_use;
-};
-
 /* `coro_globals_t` holds all of the thread-local variables that coroutines need
 to operate. There is one per thread; it is constructed by the constructor for
 `coro_runtime_t` and destroyed by the destructor. If one exists, you can find
@@ -53,8 +31,7 @@ it in `cglobals`. */
 
 struct coro_globals_t {
 
-    /* The coroutine we're currently in, if any. NULL if we are in the main
-    context. */
+    /* The coroutine we're currently in, if any. NULL if we are in the main context. */
     coro_t *current_coro;
 
     /* The main context. */
@@ -63,13 +40,13 @@ struct coro_globals_t {
     /* The previous context. */
     coro_t *prev_coro;
 
-    /* A list of coro_context_t objects that are not in use. */
-    intrusive_list_t<coro_context_t> free_contexts;
+    /* A list of coro_t objects that are not in use. */
+    intrusive_list_t<coro_t> free_coros;
 
 #ifndef NDEBUG
 
     /* An integer counting the number of coros on this thread */
-    int coro_context_count;
+    int coro_count;
 
     /* These variables are used in the implementation of
     `ASSERT_NO_CORO_WAITING` and `ASSERT_FINITE_CORO_WAITING`. They record the
@@ -87,7 +64,7 @@ struct coro_globals_t {
         : current_coro(NULL)
         , prev_coro(NULL)
 #ifndef NDEBUG
-        , coro_context_count(0)
+        , coro_count(0)
         , assert_no_coro_waiting_counter(0)
         , assert_finite_coro_waiting_counter(0)
 #endif
@@ -98,8 +75,8 @@ struct coro_globals_t {
         rassert(!current_coro);
 
         /* Destroy remaining coroutines */
-        while (coro_context_t *s = free_contexts.head()) {
-            free_contexts.remove(s);
+        while (coro_t *s = free_coros.head()) {
+            free_coros.remove(s);
             delete s;
         }
     }
@@ -119,96 +96,85 @@ coro_runtime_t::~coro_runtime_t() {
     cglobals = NULL;
 }
 
-/* coro_context_t */
-
-coro_context_t::coro_context_t()
-    : stack(&coro_context_t::run, coro_stack_size),
-      coro(reinterpret_cast<coro_t*>(coro_data)),
-      coroutine_in_use(false)
-{
-    pm_allocated_coroutines++;
-
-#ifndef NDEBUG
-    cglobals->coro_context_count++;
-    rassert(cglobals->coro_context_count < MAX_COROS_PER_THREAD, "Too many "
-            "coroutines allocated on this thread. This is problem due to a "
-            "misuse of the coroutines\n");
-#endif
-}
-
-void coro_context_t::run() {
-    coro_context_t *self = cglobals->current_coro->context;
-
-    /* Make sure we're on the right stack. */
-#ifndef NDEBUG
-    char dummy;
-    rassert(self->stack.address_in_stack(&dummy));
-#endif
-
-    while (true) {
-        cglobals->current_coro->run();
-
-        if (cglobals->prev_coro) {
-            context_switch(&self->stack.context, &cglobals->prev_coro->context->stack.context);
-        } else {
-            context_switch(&self->stack.context, &cglobals->scheduler);
-        }
-    }
-}
-
-coro_context_t::~coro_context_t() {
-#ifndef NDEBUG
-    cglobals->coro_context_count--;
-#endif
-    pm_allocated_coroutines--;
-
-    if(coroutine_in_use) {
-        reinterpret_cast<coro_t*>(coro_data)->~coro_t();
-    }
-}
-
 /* coro_t */
 
 #ifndef NDEBUG
 static __thread int64_t coro_selfname_counter = 0;
 #endif
 
-coro_t::coro_t(const boost::function<void()>& deed, coro_context_t* parent_context) :
+coro_t::coro_t() :
 #ifndef NDEBUG
     selfname_number(get_thread_id() + MAX_THREADS * ++coro_selfname_counter),
 #endif
-    context(parent_context),
-    deed_(deed),
+    stack(&coro_t::run, coro_stack_size),
+    deed_(boost::function<void()>()),
     current_thread_(linux_thread_pool_t::thread_id),
     notified_(false),
-    waiting_(true)
+    waiting_(false)
 {
-    pm_active_coroutines++;
+    pm_allocated_coroutines++;
+
+#ifndef NDEBUG
+    cglobals->coro_count++;
+    rassert(cglobals->coro_count < MAX_COROS_PER_THREAD, "Too many "
+            "coroutines allocated on this thread. This is problem due to a "
+            "misuse of the coroutines\n");
+#endif
 }
 
-void return_context_to_free_contexts(coro_context_t *context) {
-    cglobals->free_contexts.push_back(context);
+void return_coro_to_free_coros(coro_t *coro) {
+    cglobals->free_coros.push_back(coro);
 }
 
 coro_t::~coro_t() {
     /* We never move contexts from one thread to another any more. */
-    rassert(get_thread_id() == context->home_thread());
+    rassert(get_thread_id() == home_thread());
 
-    /* Return the context to the free-contexts list we took it from. */
-    do_on_thread(context->home_thread(), boost::bind(return_context_to_free_contexts, context));
+#ifndef NDEBUG
+    cglobals->coro_count--;
+#endif
+    pm_allocated_coroutines--;
+}
 
-    context->coroutine_in_use = false;
-    pm_active_coroutines--;
+void coro_t::assign(const boost::function<void()>& deed) {
+    rassert(!intrusive_list_node_t<coro_t>::in_a_list());
+    current_thread_ = linux_thread_pool_t::thread_id;
+    deed_ = deed;
+    notified_ = false;
+    waiting_ = true;
+    pm_active_coroutines++;
 }
 
 void coro_t::run() {
-    rassert(cglobals->current_coro == this);
-    waiting_ = false;
+    coro_t *coro = cglobals->current_coro;
 
-    deed_();
+    /* Make sure we're on the right stack. */
+#ifndef NDEBUG
+    char dummy;
+    rassert(coro->stack.address_in_stack(&dummy));
+#endif
 
-    // Since coro_t is allocated without 'new' in an existing coro_context_t, don't use 'delete'
-    this->~coro_t();
+    while (true) {
+        rassert(coro == cglobals->current_coro);
+        rassert(coro->current_thread_ == linux_thread_pool_t::thread_id);
+        rassert(coro->notified_ == false);
+        rassert(coro->waiting_ == true);
+        coro->waiting_ = false;
+
+        coro->deed_();
+
+        rassert(coro->current_thread_ == linux_thread_pool_t::thread_id);
+
+        /* Return the context to the free-contexts list we took it from. */
+        do_on_thread(coro->home_thread(), boost::bind(return_coro_to_free_coros, coro));
+        pm_active_coroutines--;
+
+        if (cglobals->prev_coro) {
+            context_switch(&coro->stack.context, &cglobals->prev_coro->stack.context);
+        } else {
+            context_switch(&coro->stack.context, &cglobals->scheduler);
+        }
+    } 
 }
 
 coro_t *coro_t::self() {   /* class method */
@@ -238,9 +204,9 @@ void coro_t::wait() {   /* class method */
     self()->waiting_ = true;
 
     if (cglobals->prev_coro) {
-        context_switch(&self()->context->stack.context, &cglobals->prev_coro->context->stack.context);
+        context_switch(&self()->stack.context, &cglobals->prev_coro->stack.context);
     } else {
-        context_switch(&self()->context->stack.context, &cglobals->scheduler);
+        context_switch(&self()->stack.context, &cglobals->scheduler);
     }
 
     rassert(self());
@@ -282,9 +248,9 @@ void coro_t::notify_now() {
     cglobals->current_coro = this;
 
     if (cglobals->prev_coro) {
-        context_switch(&cglobals->prev_coro->context->stack.context, &this->context->stack.context);
+        context_switch(&cglobals->prev_coro->stack.context, &this->stack.context);
     } else {
-        context_switch(&cglobals->scheduler, &this->context->stack.context);
+        context_switch(&cglobals->scheduler, &this->stack.context);
     }
 
     rassert(cglobals->current_coro == this);
@@ -343,7 +309,7 @@ void coro_t::set_coroutine_stack_size(size_t size) {
 }
 
 artificial_stack_t* coro_t::get_stack() {
-    return &context->stack;
+    return &stack;
 }
 
 /* Called by SIGSEGV handler to identify segfaults that come from overflowing a coroutine's
@@ -351,36 +317,33 @@ stack. Could also in theory be used by a function to check if it's about to over
 the stack. */
 
 bool is_coroutine_stack_overflow(void *addr) {
-    return cglobals->current_coro && cglobals->current_coro->context->stack.address_is_stack_overflow(addr);
+    return cglobals->current_coro && cglobals->current_coro->stack.address_is_stack_overflow(addr);
 }
 
-coro_context_t* get_and_init_context(const boost::function<void()> &deed)
-{
-    coro_context_t *context;
+coro_t * coro_t::get_and_init_coro(const boost::function<void()> &deed) {
+    coro_t *coro;
 
-    if (cglobals->free_contexts.size() == 0) {
-        context = new coro_context_t();
+    if (cglobals->free_coros.size() == 0) {
+        coro = new coro_t();
     } else {
-        context = cglobals->free_contexts.tail();
-        cglobals->free_contexts.remove(context);
+        coro = cglobals->free_coros.tail();
+        cglobals->free_coros.remove(coro);
     }
 
-    // Placement-new initialize the context's coro_t
-    new (context->coro) coro_t(deed, context);
-
-    return context;
+    coro->assign(deed);
+    return coro;
 }
 
 void coro_t::spawn_now(const boost::function<void()> &deed) {
-    get_and_init_context(deed)->coro->notify_now();
+    coro_t::get_and_init_coro(deed)->notify_now();
 }
 
 void coro_t::spawn_sometime(const boost::function<void()> &deed) {
-    get_and_init_context(deed)->coro->notify_sometime();
+    coro_t::get_and_init_coro(deed)->notify_sometime();
 }
 
 void coro_t::spawn_later_ordered(const boost::function<void()>& deed) {
-    get_and_init_context(deed)->coro->notify_later_ordered();
+    coro_t::get_and_init_coro(deed)->notify_later_ordered();
 }
 
 void coro_t::spawn_on_thread(int thread, const boost::function<void()>& deed) {

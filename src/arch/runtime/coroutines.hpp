@@ -9,11 +9,11 @@
 #include <boost/function.hpp>
 
 #include "arch/runtime/runtime_utils.hpp"
+#include "arch/runtime/context_switching.hpp"
 
 const size_t MAX_COROUTINE_STACK_SIZE = 8*1024*1024;
 
-class coro_context_t;
-class artificial_stack_t;
+class coro_globals_t;
 
 /* A coro_t represents a fiber of execution within a thread. Create one with spawn_*(). Within a
 coroutine, call wait() to return control to the scheduler; the coroutine will be resumed when
@@ -22,9 +22,8 @@ another fiber calls notify_*() on it.
 coro_t objects can switch threads with move_to_thread(), but it is recommended that you use
 on_thread_t for more safety. */
 
-class coro_t : private linux_thread_message_t {
+class coro_t : private linux_thread_message_t, public intrusive_list_node_t<coro_t>, public home_thread_mixin_t {
 public:
-    friend class coro_context_t;
     friend bool is_coroutine_stack_overflow(void *);
 
     static void spawn_now(const boost::function<void()> &deed);
@@ -39,7 +38,7 @@ public:
     // Use coro_t::spawn_*(boost::bind(...)) for spawning with parameters.
 
 public:
-    explicit coro_t(const boost::function<void()>& deed, coro_context_t *parent_context);
+    void assign(const boost::function<void()>& deed);
 
     /* Pauses the current coroutine until it is notified */
     static void wait();
@@ -111,12 +110,17 @@ private:
     friend class on_thread_t;
     static void move_to_thread(int thread);
 
-    /* Internally, we recycle ucontexts and stacks. So the real guts of the coroutine are in the
-    coro_context_t object. */
-    coro_context_t *context;
+    // Contructor sets up the stack, get_and_init_coro will load a function to be run
+    //  at which point the coroutine can be notified
+    coro_t();
+    static coro_t * get_and_init_coro(const boost::function<void()> &deed);
+
+    artificial_stack_t stack;
 
     boost::function<void()> deed_;
-    void run();
+    static void run();
+
+    friend struct coro_globals_t;
     ~coro_t();
 
     virtual void on_thread_switch();
