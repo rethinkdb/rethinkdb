@@ -631,6 +631,9 @@ tags:
 cscope:
 	$(QUIET) cscope -bR -f $(CSCOPE_XREF)
 
+analyze: $(SOURCES)
+	$(QUIET) clang --analyze $(CXXFLAGS) $(SOURCES)
+
 style:
 	$(QUIET) find . -name \*.cc -o -name \*.hpp -o -name \*.tcc | xargs ../scripts/cpplint --verbose 2 --filter=-whitespace/end_of_line,-whitespace/parens,-whitespace/line_length,-readability/casting,-whitespace/braces,-readability/todo,-legal/copyright,-whitespace/comments,-build/include,-whitespace/labels,-runtime/references,-whitespace/blank_line,-readability/function 2>&1 | grep -v Done\ processing
 
@@ -690,7 +693,7 @@ endif
 # bug in GNU Make, possibly a bug in our Makefile.
 .SECONDARY: $(PROTO_HEADERS)
 
-NO_DEPS_TARGETS:=clean depclean tags cscope style
+NO_DEPS_TARGETS:=clean depclean tags analyze cscope style
 # Include the dependencies into the makefile so that they take effect
 ifneq (,$(if $(MAKECMDGOALS),$(filter-out $(NO_DEPS_TARGETS),$(MAKECMDGOALS)),non-empty-placeholder))
 -include $(DEPS)

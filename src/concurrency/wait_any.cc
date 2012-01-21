@@ -46,3 +46,11 @@ void wait_any_t::add(signal_t *s) {
 void wait_any_t::pulse_if_not_already_pulsed() {
     if (!is_pulsed()) pulse();
 }
+
+void wait_interruptible(signal_t *signal, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    wait_any_t waiter(signal, interruptor);
+    waiter.wait_lazily_unordered();
+    if (interruptor->is_pulsed()) {
+        throw interrupted_exc_t();
+    }
+}
