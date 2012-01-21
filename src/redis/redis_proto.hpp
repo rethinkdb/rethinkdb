@@ -8,6 +8,7 @@
 #include "redis/pubsub.hpp"
 #include "redis/redis_ext.hpp"
 #include "redis/redis_output.hpp"
+#include "parsing/util.hpp"
 
 template <class protocol_type>
 class namespace_interface_t;
@@ -36,36 +37,7 @@ public:
     void parseCommand(tcp_conn_t *conn);
 
 private:
-    // Parses CRLF terminated lines from a TCP connection
-    class LineParser {
-    private:
-        tcp_conn_t *conn;
-
-        const char *start_position;
-        unsigned bytes_read;
-        const char *end_position;
-
-    public:
-        explicit LineParser(tcp_conn_t *conn_);
-
-        // Returns a charslice to the next CRLF line in the TCP conn's buffer
-        // blocks until a full line is available
-        std::string readLine(); 
-
-        // Both ensures that next line read is exactly bytes long and is able
-        // to operate more efficiently than readLine.
-        std::string readLineOf(size_t bytes);
-
-    private:
-        void peek();
-        void pop();
-        char current();
-
-        // Attempts to read a crlf at the current position
-        // possibily advanes the current position in its attempt to do so
-        bool readCRLF();
-    };
-
+    
     int parseNumericLine(char prefix, std::string &line);
     int parseArgNum(std::string &line);
     int parseArgLength(std::string &line);

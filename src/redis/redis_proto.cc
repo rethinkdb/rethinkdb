@@ -3,15 +3,7 @@
 #include <boost/algorithm/string.hpp>
 #include "redis/redis_proto.hpp"
 
-class RedisParseError {
-public:
-    virtual ~RedisParseError() {}
-    virtual const char *what() const throw() {
-        return "Redis parse failure";
-    }
-} parseException;
-
-class RedisTypeError : public RedisParseError {
+class RedisTypeError : public ParseError {
 public:
     virtual const char *what() const throw() {
         return "Wrong number of arguments applied to Redis command";
@@ -338,7 +330,7 @@ RedisParser::RedisParser(tcp_conn_t *conn_, namespace_interface_t<redis_protocol
 void RedisParser::parseCommand(tcp_conn_t *conn) {
     const char *error_msg = NULL;
     try {
-        RedisParser::LineParser p(conn);
+        LineParser p(conn);
 
         // All commands begin with a first line of '*{args}\r\n'
         std::string line = p.readLine();
@@ -368,7 +360,7 @@ void RedisParser::parseCommand(tcp_conn_t *conn) {
 
     } catch(std::out_of_range) {
         error_msg = "Command not recognized";
-    } catch(RedisParseError &e) {
+    } catch(ParseError &e) {
         error_msg = "Parse error";
     }
 
@@ -378,86 +370,10 @@ void RedisParser::parseCommand(tcp_conn_t *conn) {
     }
 }
 
-RedisParser::LineParser::LineParser(tcp_conn_t *conn_) : conn(conn_) {
-    peek();
-    bytes_read = 0;
-}
-
-// Returns a charslice to the next CRLF line in the TCP conn's buffer
-// blocks until a full line is available
-std::string RedisParser::LineParser::readLine() {
-    while(!readCRLF()) {
-        bytes_read++;
-    }
-
-    // Construct a string of everything upto the CRLF
-    std::string line(start_position, bytes_read - 2);
-    pop();
-    return line;
-}
-
-// Both ensures that next line read is exactly bytes long and is able
-// to operate more efficiently than readLine.
-std::string RedisParser::LineParser::readLineOf(size_t bytes) {
-    // Since we know exactly how much we want to read we'll buffer ourselves
-    // +2 is for expected terminating CRLF
-    char *buff = static_cast<char *>(alloca(bytes + 2));
-    conn->read(buff, bytes + 2);
-
-    // Now we expect the line to be demarcated by a CRLF
-    if((buff[bytes] == '\r') && (buff[bytes+1] == '\n')) {
-        return std::string(buff, buff + bytes);
-    } else {
-        // Error: line incorrectly terminated.
-        /* Note: Redis behavior seems to be to assume that the line is
-           always correctly terminated. It will just take the rest of
-           the input as the start of the next line and then probably
-           end up in an error state. We can probably be more fastidious.
-        */
-        throw parseException;
-    }
-
-    // No need to pop or anything. Did not use tcp_conn's buffer or bytes_read.
-}
-
-void RedisParser::LineParser::peek() {
-    const_charslice slice = conn->peek();
-    start_position = slice.beg;
-    end_position = slice.end;
-}
-
-void RedisParser::LineParser::pop() {
-    conn->pop(bytes_read);
-    peek();
-    bytes_read = 0;
-}
-
-char RedisParser::LineParser::current() {
-    while(bytes_read >= (end_position - start_position)) {
-        conn->read_more_buffered();
-        peek();
-    }
-    return start_position[bytes_read];
-}
-
-// Attempts to read a crlf at the current position
-// possibily advanes the current position in its attempt to do so
-bool RedisParser::LineParser::readCRLF() {
-    if(current() == '\r') {
-        bytes_read++;
-
-        if(current() == '\n') {
-            bytes_read++;
-            return true;
-        }
-    }
-    return false;
-}
-
 int RedisParser::parseNumericLine(char prefix, std::string &line) {
     if(!(line[0] == prefix)) {
         // line must begin with prefix
-        throw parseException;
+        throw ParseError();
     }
     line.erase(0, 1);
 
@@ -466,7 +382,7 @@ int RedisParser::parseNumericLine(char prefix, std::string &line) {
         numNum = boost::lexical_cast<int>(line);
     } catch(boost::bad_lexical_cast) {
         // Value on this line is not a unsigned integer value
-        throw parseException;
+        throw ParseError();
     }
 
     return numNum;
@@ -487,7 +403,7 @@ std::string RedisParser::parseArg(LineParser &p) {
     int argLength = parseArgLength(line);
 
     // Error, no valid length
-    if(argLength < 0) throw parseException;
+    if(argLength < 0) throw ParseError();
 
     return p.readLineOf(argLength);
 }
@@ -569,7 +485,7 @@ void RedisParser::parse_pubsub() {
                 ));            
             }
         }
-    } catch(RedisParseError &e) {
+    } catch(ParseError &e) {
         //TODO what to do here?
     }
 }
