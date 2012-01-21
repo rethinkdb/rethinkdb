@@ -94,7 +94,7 @@ void run_metadata_exchange_test() {
         {
             ASSERT_FINITE_CORO_WAITING;
             connectivity_service_t::peers_list_freeze_t freeze(&cluster1);
-            if (cluster1.get_peer_connected(cluster2.get_me()) == 0) {
+            if (!cluster1.get_peer_connected(cluster2.get_me())) {
                 subs.reset(&cluster1, &freeze);
             } else {
                 connection_established.pulse();
