@@ -36,7 +36,7 @@ public:
         ~run_t();
     private:
         void on_message(peer_id_t, std::istream &);
-        message_multiplexer_t *parent;
+        message_multiplexer_t *const parent;
     };
     class client_t : public message_service_t {
     public:
@@ -46,8 +46,8 @@ public:
             ~run_t();
         private:
             friend class message_multiplexer_t::run_t;
-            client_t *parent;
-            message_handler_t *message_handler;
+            client_t *const parent;
+            message_handler_t *const message_handler;
         };
         client_t(message_multiplexer_t *, tag_t tag);
         ~client_t();
@@ -55,8 +55,8 @@ public:
         void send_message(peer_id_t, const boost::function<void(std::ostream &)> &);
     private:
         friend class message_multiplexer_t;
-        message_multiplexer_t *parent;
-        tag_t tag;
+        message_multiplexer_t *const parent;
+        const tag_t tag;
         run_t *run;
     };
     message_multiplexer_t(message_service_t *super_ms);
@@ -65,7 +65,7 @@ private:
     friend class run_t;
     friend class client_t;
     friend class client_t::run_t;
-    message_service_t *message_service;
+    message_service_t *const message_service;
     client_t *clients[max_tag];
     run_t *run;
 };

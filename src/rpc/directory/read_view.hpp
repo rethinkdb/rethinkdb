@@ -22,8 +22,8 @@ public:
         peer_value_freeze_t(directory_read_service_t *, peer_id_t) THROWS_NOTHING;
         void assert_is_holding(directory_read_service_t *, peer_id_t) THROWS_NOTHING;
     private:
-        directory_read_service_t *directory;
-        peer_id_t peer;
+        directory_read_service_t *const directory;
+        const peer_id_t peer;
         rwi_lock_assertion_t::read_acq_t acq;
     };
 

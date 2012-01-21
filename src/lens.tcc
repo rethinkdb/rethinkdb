@@ -12,7 +12,7 @@ public:
         return new field_readwrite_lens_t(field);
     }
 private:
-    inner_t outer_t::*field;
+    inner_t outer_t::*const field;
 };
 
 template<class inner_t, class outer_t>
@@ -62,7 +62,7 @@ public:
         return new assumed_member_readwrite_lens_t(key);
     }
 private:
-    key_t key;
+    const key_t key;
 };
 
 template<class key_t, class value_t>
@@ -95,7 +95,7 @@ public:
         return new optional_member_readwrite_lens_t(key);
     }
 private:
-    key_t key;
+    const key_t key;
 };
 
 template<class key_t, class value_t>
@@ -120,7 +120,7 @@ public:
         return new optional_monad_read_lens_t(sublens);
     }
 private:
-    clone_ptr_t<read_lens_t<inner_t, outer_t> > sublens;
+    const clone_ptr_t<read_lens_t<inner_t, outer_t> > sublens;
 };
 
 template<class inner_t, class outer_t>

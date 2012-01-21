@@ -45,7 +45,7 @@ private:
     private:
         friend class directory_read_manager_t;
         explicit root_view_t(directory_read_manager_t *) THROWS_NOTHING;
-        directory_read_manager_t *parent;
+        directory_read_manager_t *const parent;
     };
 
     class thread_peer_info_t {
@@ -76,7 +76,7 @@ private:
         session_t(boost::uuids::uuid si) : session_id(si) { }
         /* We get this by calling `get_connection_session_id()` on the
         `connectivity_service_t` from `super_connectivity_service`. */
-        boost::uuids::uuid session_id;
+        const boost::uuids::uuid session_id;
         cond_t got_initial_message;
         boost::scoped_ptr<fifo_enforcer_sink_t> metadata_fifo_sink;
         auto_drainer_t drainer;

@@ -30,9 +30,9 @@ private:
     private:
         friend class directory_readwrite_manager_t;
         explicit root_view_t(directory_readwrite_manager_t *p) THROWS_NOTHING;
-        directory_readwrite_manager_t *parent;
-        clone_ptr_t<directory_rview_t<metadata_t> > read_view;
-        clone_ptr_t<directory_wview_t<metadata_t> > write_view;
+        directory_readwrite_manager_t *const parent;
+        const clone_ptr_t<directory_rview_t<metadata_t> > read_view;
+        const clone_ptr_t<directory_wview_t<metadata_t> > write_view;
     };
 };
 

@@ -69,8 +69,8 @@ private:
     static void call_function_with_no_args(const boost::function<void()> &);
     void join_metadata_locally(metadata_t);
 
-    message_service_t *message_service;
-    boost::shared_ptr<root_view_t> root_view;
+    message_service_t *const message_service;
+    const boost::shared_ptr<root_view_t> root_view;
 
     metadata_t metadata;
     publisher_controller_t<boost::function<void()> > metadata_publisher;
