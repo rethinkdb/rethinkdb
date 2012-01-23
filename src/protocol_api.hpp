@@ -60,6 +60,7 @@ bool region_overlaps(const region_t &r1, const region_t &r2) {
     return !region_is_empty(region_intersection(r1, r2));
 }
 
+/* Regions contained in region_map_t must never intersect. */
 template<class protocol_t, class value_t>
 class region_map_t {
 public:
