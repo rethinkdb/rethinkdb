@@ -24,6 +24,7 @@ void usage_serve() {
                 "  -f, --file            Path to file or block device where database goes.\n"
                 "                        Can be specified multiple times to use multiple files.\n");
     help->pagef("  -c, --cores           Number of cores to use for handling requests.\n"
+                "      --no-set-affinity Do not set thread affinity (affinity is set by default).\n"
                 "  -m, --max-cache-size  Maximum amount of RAM to use for caching disk\n"
                 "                        blocks, in megabytes. This should be ~80%% of\n" 
                 "                        the RAM you want RethinkDB to use.\n"
@@ -209,6 +210,7 @@ enum {
     flush_concurrency,
     flush_threshold,
     full_perfmon,
+    no_set_affinity,
     total_delete_queue_limit,
     memcache_file
 };
@@ -250,6 +252,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
         int do_force_create = 0;
         int do_force_unslavify = 0;
         int do_full_perfmon = 0;
+        int do_no_set_affinity = 0;
         struct option long_options[] =
             {
                 {"wait-for-flush",       required_argument, 0, wait_for_flush},
@@ -286,21 +289,28 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"no-rogue",             no_argument, (int*)&config.failover_config.no_rogue, 1},
                 {"full-perfmon",         no_argument, &do_full_perfmon, 1},
                 {"total-delete-queue-limit", required_argument, 0, total_delete_queue_limit},
-                {"memcached-file", required_argument, 0, memcache_file},
+                {"no-set-affinity",      no_argument, &do_no_set_affinity, 1},
+                {"memcached-file",       required_argument, 0, memcache_file},
                 {0, 0, 0, 0}
             };
 
         int option_index = 0;
         int c = getopt_long(argc, argv, "vc:s:f:S:m:l:p:h", long_options, &option_index);
 
-        if (do_help)
+        if (do_help) {
             c = 'h';
-        if (do_force_create)
+        }
+        if (do_force_create) {
             c = force_create;
-        if (do_force_unslavify)
+        }
+        if (do_force_unslavify) {
             c = force_unslavify;
+        }
         if (do_full_perfmon) {
             c = full_perfmon;
+        }
+        if (do_no_set_affinity) {
+            c = no_set_affinity;
         }
      
         /* Detect the end of the options. */
@@ -373,6 +383,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 config.set_failover_file(optarg); break;
             case full_perfmon:
                 global_full_perfmon = true; break;
+            case no_set_affinity:
+                config.do_set_affinity = false; break;
             case total_delete_queue_limit:
                 config.set_total_delete_queue_limit(optarg); break;
             case memcache_file:
@@ -907,6 +919,7 @@ cmd_config_t::cmd_config_t() {
     verbose = false;
     port = DEFAULT_LISTEN_PORT;
     n_workers = get_cpu_count();
+    do_set_affinity = true;
     
     log_file_name[0] = 0;
     log_file_name[MAX_LOG_FILE_NAME - 1] = 0;

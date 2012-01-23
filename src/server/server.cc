@@ -39,7 +39,7 @@ int run_server(int argc, char *argv[]) {
 
 
     // Run the server.
-    thread_pool_t thread_pool(config.n_workers);
+    thread_pool_t thread_pool(config.n_workers, config.do_set_affinity);
     starter.thread_pool = &thread_pool;
     thread_pool.run(&starter);
 

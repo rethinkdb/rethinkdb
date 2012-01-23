@@ -205,6 +205,7 @@ struct cmd_config_t {
     
     int port;
     int n_workers;
+    bool do_set_affinity;
     
     char log_file_name[MAX_LOG_FILE_NAME];
     // Log messages below this level aren't printed

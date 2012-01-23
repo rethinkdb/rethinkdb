@@ -15,6 +15,7 @@ rethinkdb \- the database for solid state drives
 .TP
 \fI\fBrethinkdb\fR [serve] [<\-f | \-\-file> <file_1> ...]
 [<\-c | \-\-cores> \fIcount\fP]
+[\-\-no\-set\-affinity]
 [<\-m | \-\-max\-cache\-size> \fImegabytes\fP]
 [<\-p | \-\-port> \fIport\fP]
 [\-\-wait\-for\-flush <y|n>]
@@ -77,6 +78,10 @@ Serve:
 .B \-c, 
 .B \-\-cores
     Number of cores to use.
+
+.B \-\-no\-set\-affinity
+    Do not set threads' affinity and let the OS move the threads between CPU cores.
+    This may cause performance degradation.
 
 .B \-m, 
 .B \-\-max\-cache\-size  
