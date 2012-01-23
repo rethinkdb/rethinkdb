@@ -6,14 +6,37 @@
 #endif
 
 #include "errors.hpp"
-#include <boost/function.hpp>
+#include <boost/bind.hpp>
 
 #include "arch/runtime/runtime_utils.hpp"
 #include "arch/runtime/context_switching.hpp"
 
 const size_t MAX_COROUTINE_STACK_SIZE = 8*1024*1024;
+const size_t CALLABLE_CUTOFF_SIZE = 128;
+
+int get_thread_id();
 
 class coro_globals_t;
+
+class coro_action_t {
+public:
+    virtual void run_action() = 0;
+    coro_action_t() { }
+    virtual ~coro_action_t() { }
+private:
+    DISABLE_COPYING(coro_action_t);
+};
+
+template<class Callable>
+class coro_action_instance_t : public coro_action_t {
+public:
+    coro_action_instance_t(const Callable& callable) : callable_(callable) { }
+
+    void run_action() { callable_(); }
+
+private:
+    Callable callable_;
+};
 
 /* A coro_t represents a fiber of execution within a thread. Create one with spawn_*(). Within a
 coroutine, call wait() to return control to the scheduler; the coroutine will be resumed when
@@ -26,19 +49,54 @@ class coro_t : private linux_thread_message_t, public intrusive_list_node_t<coro
 public:
     friend bool is_coroutine_stack_overflow(void *);
 
-    static void spawn_now(const boost::function<void()> &deed);
-    static void spawn_sometime(const boost::function<void()> &deed);
+    template<class Callable>
+    static void spawn_now(const Callable &action) {
+        get_and_init_coro(action)->notify_now();
+    }
+
+    template<class Callable>
+    static void spawn_sometime(const Callable &action) {
+        get_and_init_coro(action)->notify_sometime();
+    }
 
     // TODO: spawn_later_ordered is usually what naive people want,
     // but it's such a long and onerous name.  It should have the
     // shortest name.
-    static void spawn_later_ordered(const boost::function<void()> &deed);
-    static void spawn_on_thread(int thread, const boost::function<void()> &deed);
+    template<class Callable>
+    static void spawn_later_ordered(const Callable &action) {
+        get_and_init_coro(action)->notify_later_ordered();
+    }
+
+    template<class Callable>
+    static void spawn_on_thread(int thread, const Callable &action) {
+        if (get_thread_id() == thread) {
+            spawn_later_ordered(action);
+        } else {
+            do_on_thread(thread, boost::bind(&spawn_now, action));
+        }
+    }
 
     // Use coro_t::spawn_*(boost::bind(...)) for spawning with parameters.
 
-public:
-    void assign(const boost::function<void()>& deed);
+    /* `spawn()` and `notify()` are aliases for `spawn_later_ordered()` and
+    `notify_later_ordered()`. They are deprecated and new code should not use
+    them. */
+    template<class Callable>
+    static void spawn(const Callable &action) {
+        spawn_later_ordered(action);
+    }
+
+    template<class Callable>
+    void assign(const Callable &action) {
+        // Allocate the action inside this object, if possible, or the heap otherwise
+        if (sizeof(Callable) >= CALLABLE_CUTOFF_SIZE) {
+            action_ = new coro_action_instance_t<Callable>(action);
+            action_on_heap = true;
+        } else {
+            action_ = new (action_data) coro_action_instance_t<Callable>(action);
+            action_on_heap = false;
+        }
+    }
 
     /* Pauses the current coroutine until it is notified */
     static void wait();
@@ -90,15 +148,6 @@ public:
     int64_t selfname_number;
 #endif
 
-public:
-    /* `spawn()` and `notify()` are aliases for `spawn_later_ordered()` and
-    `notify_later_ordered()`. They are deprecated and new code should not use
-    them. */
-    static void spawn(const boost::function<void()> &deed) {
-        spawn_later_ordered(deed);
-    }
-
-public:
     static void set_coroutine_stack_size(size_t size);
 
     artificial_stack_t* get_stack();
@@ -113,11 +162,20 @@ private:
     // Contructor sets up the stack, get_and_init_coro will load a function to be run
     //  at which point the coroutine can be notified
     coro_t();
-    static coro_t * get_and_init_coro(const boost::function<void()> &deed);
+
+    template<class Callable>
+    static coro_t * get_and_init_coro(const Callable &action) {
+        coro_t *coro = get_coro();
+        coro->assign(action);
+        return coro;
+    }
+
+    static coro_t * get_coro();
+
+    static void return_coro_to_free_list(coro_t *coro);
 
     artificial_stack_t stack;
 
-    boost::function<void()> deed_;
     static void run();
 
     friend struct coro_globals_t;
@@ -130,6 +188,11 @@ private:
     // Sanity check variables
     bool notified_;
     bool waiting_;
+
+    // Buffer to store callable-object data
+    bool action_on_heap;
+    coro_action_t *action_;
+    char action_data[CALLABLE_CUTOFF_SIZE] __attribute__((aligned(sizeof(void*))));
 
     DISABLE_COPYING(coro_t);
 };

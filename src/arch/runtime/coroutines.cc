@@ -8,6 +8,7 @@
 
 #include "arch/runtime/context_switching.hpp"
 #include "arch/runtime/thread_pool.hpp"
+#include "arch/runtime/runtime.hpp"
 #include "config/args.hpp"
 #include "do_on_thread.hpp"
 
@@ -107,10 +108,10 @@ coro_t::coro_t() :
     selfname_number(get_thread_id() + MAX_THREADS * ++coro_selfname_counter),
 #endif
     stack(&coro_t::run, coro_stack_size),
-    deed_(boost::function<void()>()),
     current_thread_(linux_thread_pool_t::thread_id),
     notified_(false),
-    waiting_(false)
+    waiting_(false),
+    action_(NULL)
 {
     pm_allocated_coroutines++;
 
@@ -122,27 +123,27 @@ coro_t::coro_t() :
 #endif
 }
 
-void return_coro_to_free_coros(coro_t *coro) {
+void coro_t::return_coro_to_free_list(coro_t *coro) {
+    // If the callable wrapper was allocated on the heap, delete it
+    if (coro->action_on_heap) {
+        delete coro->action_;
+    }
+    coro->action_ = NULL;
+    coro->action_on_heap = false;
+
     cglobals->free_coros.push_back(coro);
 }
 
 coro_t::~coro_t() {
     /* We never move contexts from one thread to another any more. */
     rassert(get_thread_id() == home_thread());
+    rassert(action_on_heap == false);
+    rassert(action_ == NULL);
 
 #ifndef NDEBUG
     cglobals->coro_count--;
 #endif
     pm_allocated_coroutines--;
-}
-
-void coro_t::assign(const boost::function<void()>& deed) {
-    rassert(!intrusive_list_node_t<coro_t>::in_a_list());
-    current_thread_ = linux_thread_pool_t::thread_id;
-    deed_ = deed;
-    notified_ = false;
-    waiting_ = true;
-    pm_active_coroutines++;
 }
 
 void coro_t::run() {
@@ -157,16 +158,17 @@ void coro_t::run() {
     while (true) {
         rassert(coro == cglobals->current_coro);
         rassert(coro->current_thread_ == linux_thread_pool_t::thread_id);
+        rassert(coro->action_ != NULL);
         rassert(coro->notified_ == false);
         rassert(coro->waiting_ == true);
         coro->waiting_ = false;
 
-        coro->deed_();
+        coro->action_->run_action();
 
         rassert(coro->current_thread_ == linux_thread_pool_t::thread_id);
 
         /* Return the context to the free-contexts list we took it from. */
-        do_on_thread(coro->home_thread(), boost::bind(return_coro_to_free_coros, coro));
+        do_on_thread(coro->home_thread(), boost::bind(coro_t::return_coro_to_free_list, coro));
         pm_active_coroutines--;
 
         if (cglobals->prev_coro) {
@@ -320,7 +322,7 @@ bool is_coroutine_stack_overflow(void *addr) {
     return cglobals->current_coro && cglobals->current_coro->stack.address_is_stack_overflow(addr);
 }
 
-coro_t * coro_t::get_and_init_coro(const boost::function<void()> &deed) {
+coro_t * coro_t::get_coro() {
     coro_t *coro;
 
     if (cglobals->free_coros.size() == 0) {
@@ -330,28 +332,15 @@ coro_t * coro_t::get_and_init_coro(const boost::function<void()> &deed) {
         cglobals->free_coros.remove(coro);
     }
 
-    coro->assign(deed);
+    rassert(!coro->intrusive_list_node_t<coro_t>::in_a_list());
+    rassert(coro->action_ == NULL);
+
+    coro->current_thread_ = get_thread_id();
+    coro->notified_ = false;
+    coro->waiting_ = true;
+
+    pm_active_coroutines++;
     return coro;
-}
-
-void coro_t::spawn_now(const boost::function<void()> &deed) {
-    coro_t::get_and_init_coro(deed)->notify_now();
-}
-
-void coro_t::spawn_sometime(const boost::function<void()> &deed) {
-    coro_t::get_and_init_coro(deed)->notify_sometime();
-}
-
-void coro_t::spawn_later_ordered(const boost::function<void()>& deed) {
-    coro_t::get_and_init_coro(deed)->notify_later_ordered();
-}
-
-void coro_t::spawn_on_thread(int thread, const boost::function<void()>& deed) {
-    if (get_thread_id() == thread) {
-        coro_t::spawn_later_ordered(deed);
-    } else {
-        do_on_thread(thread, boost::bind(&coro_t::spawn_now, deed));
-    }
 }
 
 #ifndef NDEBUG
