@@ -5,6 +5,8 @@
 #include "buffer_cache/buffer_cache.hpp"
 #include "serializer/translator.hpp"
 
+const unsigned int STARTING_ROOT_EVICTION_PRIORITY = 2 << 16;
+
 class backfill_callback_t;
 
 /* btree_slice_t is a thin wrapper around cache_t that handles initializing the buffer
@@ -87,6 +89,10 @@ private:
     plain_sink_t order_sink_;
 
     DISABLE_COPYING(btree_slice_t);
+
+    //Information for cache eviction
+public:
+    unsigned int root_eviction_priority;
 };
 
 #endif /* __BTREE_SLICE_HPP__ */

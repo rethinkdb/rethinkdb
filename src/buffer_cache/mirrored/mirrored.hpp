@@ -149,7 +149,9 @@ private:
 
     access_t mode;
     bool non_locking_access;
+public:
     mc_inner_buf_t *inner_buf;
+private:
     void *data; /* Usually the same as inner_buf->data. If a COW happens or this mc_buf_t is part of a snapshotted transaction, it reference a different buffer however. */
 
     ~mc_buf_t();
@@ -215,6 +217,15 @@ public:
 
     bool is_dirty() {
         return inner_buf->writeback_buf.dirty;
+    }
+
+public:
+    unsigned int get_eviction_priority() {
+        return inner_buf->page_repl_buf.eviction_priority;
+    }
+
+    void set_eviction_priority(unsigned int val) {
+        inner_buf->page_repl_buf.eviction_priority = val;
     }
 
 private:

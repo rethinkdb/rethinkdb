@@ -61,7 +61,8 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
 buf_t *get_root(transaction_t *txn, buf_t **sb_buf, block_size_t block_size);
 void insert_root(block_id_t root_id, buf_t **sb_buf);
 void check_and_handle_split(transaction_t *txn, buf_t **buf, buf_t **last_buf, buf_t **sb_buf,
-    const btree_key_t *key, btree_value *new_value, block_size_t block_size);
+    const btree_key_t *key, btree_value *new_value, block_size_t block_size,
+    unsigned int *);
 void check_and_handle_underfull(transaction_t *txn, buf_t **buf, buf_t **last_buf, buf_t **sb_buf,
     const btree_key_t *key, block_size_t block_size);
 

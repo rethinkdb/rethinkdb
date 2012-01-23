@@ -6,6 +6,8 @@
 #include "logger.hpp"
 #include "containers/two_level_array.hpp"
 
+const unsigned int MAX_EVICTION_PRIORITY = static_cast<unsigned int>(-1);
+
 // TODO: We should use mlock (or mlockall or related) to make sure the
 // OS doesn't swap out our pages, since we're doing swapping
 // ourselves.
@@ -40,6 +42,11 @@ public:
         explicit local_buf_t(inner_buf_t *gbuf);
         ~local_buf_t();
     
+        /* The eviction priority represents how bad of a choice a buf is for
+         * eviction the buffer cache will (probabalistically) evict blocks of
+         * lower priority first. */
+        unsigned int eviction_priority;
+        
     private:
         inner_buf_t *gbuf;
         unsigned int index;

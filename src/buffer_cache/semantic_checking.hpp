@@ -79,6 +79,14 @@ private:
         crc_computer.process_bytes((void *) inner_buf->get_data_read(), cache->get_block_size().value());
         return crc_computer.checksum();
     }
+public:
+    unsigned int get_eviction_priority() {
+        return inner_buf->get_eviction_priority();
+    }
+
+    void set_eviction_priority(unsigned int val) {
+        inner_buf->set_eviction_priority(val);
+    }
 };
 
 /* Transaction */

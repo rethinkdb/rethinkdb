@@ -30,6 +30,10 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, order
     // Acquire the superblock
 
     buf_lock_t buf_lock(*transactor, SUPERBLOCK_ID, rwi_read);
+
+    //We always set the superblock to have 0 eviction priority
+    buf_lock->set_eviction_priority(0);
+
     block_id_t node_id = ptr_cast<btree_superblock_t>(buf_lock->get_data_read())->root_block;
     rassert(node_id != SUPERBLOCK_ID);
 
@@ -39,10 +43,25 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, order
     }
 
     // Acquire the root and work down the tree to the leaf node
+    
+    //A bit ugly, we need to do something different the first time through this
+    //loop when we're acquiring the root
+    bool getting_root = true;
 
     while (true) {
         {
             buf_lock_t tmp(*transactor, node_id, rwi_read);
+
+            if (getting_root) {
+                getting_root = false;
+
+                if (tmp->get_eviction_priority() == MAX_EVICTION_PRIORITY) {
+                    tmp->set_eviction_priority(slice->root_eviction_priority);
+                }
+            } else {
+                tmp->set_eviction_priority(buf_lock->get_eviction_priority() + 1);
+            }
+
             buf_lock.swap(tmp);
         }
 

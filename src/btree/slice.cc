@@ -75,7 +75,9 @@ btree_slice_t::btree_slice_t(translator_serializer_t *serializer,
       pre_begin_transaction_write_mode_source_(PRE_BEGIN_TRANSACTION_WRITE_MODE_BUCKET),
       cache_(serializer, dynamic_config), delete_queue_limit_(delete_queue_limit),
       informal_name_(informal_name),
-      backfill_account(cache()->create_account(BACKFILL_CACHE_PRIORITY)) { }
+      backfill_account(cache()->create_account(BACKFILL_CACHE_PRIORITY)),
+      root_eviction_priority(STARTING_ROOT_EVICTION_PRIORITY)
+{ }
 
 btree_slice_t::~btree_slice_t() {
     // Cache's destructor handles flushing and stuff

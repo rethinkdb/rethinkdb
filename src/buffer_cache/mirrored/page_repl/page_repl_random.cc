@@ -6,7 +6,7 @@ page_repl_random_t::page_repl_random_t(unsigned int _unload_threshold, cache_t *
       cache(_cache)
     {}
     
-page_repl_random_t::local_buf_t::local_buf_t(inner_buf_t *gbuf) : gbuf(gbuf) {
+page_repl_random_t::local_buf_t::local_buf_t(inner_buf_t *gbuf) : eviction_priority(MAX_EVICTION_PRIORITY), gbuf(gbuf) {
     index = gbuf->cache->page_repl.array.size();
     gbuf->cache->page_repl.array.set(index, gbuf);
 }
@@ -46,9 +46,23 @@ void page_repl_random_t::make_space(unsigned int space_needed) {
             /* Choose a block in memory at random. */
             unsigned int n = random() % array.size();
             inner_buf_t *block = array.get(n);
-            
-            if (block->safe_to_unload()) {
+
+            /* Figure out if this is a good block to evict */
+            if (!block->safe_to_unload()) {
+                /* nothing to do here, jetpack away to the next iteration of this loop */
+            } else if (block_to_unload == NULL) {
+                /* The block is safe to unload, and our only candidate so far, he's in */
                 block_to_unload = block;
+            } else if (block->page_repl_buf.eviction_priority > block_to_unload->page_repl_buf.eviction_priority) {
+                /* This block is a better candidate then our one before, he's in */
+                block_to_unload = block;
+            } else {
+                /* Failed to find a better candidate, continue on our way. */
+            }
+
+
+            if (block_to_unload && block_to_unload->page_repl_buf.eviction_priority == MAX_EVICTION_PRIORITY) {
+                /* This guy has maximal eviction priority, we're not going to beat him */
                 break;
             }
         }

@@ -28,7 +28,6 @@
 void insert_root(block_id_t root_id, buf_lock_t& sb_buf) {
     rassert(sb_buf.is_acquired());
     sb_buf->set_data(const_cast<block_id_t *>(&ptr_cast<btree_superblock_t>(sb_buf->get_data_read())->root_block), &root_id, sizeof(root_id));
-
     sb_buf.release();
 }
 
@@ -36,7 +35,8 @@ void insert_root(block_id_t root_id, buf_lock_t& sb_buf) {
 // value that will be inserted; if it's an internal node, provide NULL (we
 // split internal nodes proactively).
 void check_and_handle_split(transactor_t& txor, buf_lock_t& buf, buf_lock_t& last_buf, buf_lock_t& sb_buf,
-                            const btree_key_t *key, btree_value *new_value, block_size_t block_size) {
+                            const btree_key_t *key, btree_value *new_value, block_size_t block_size,
+                            unsigned int *root_eviction_priority) {
     txor->assert_thread();
 
     const node_t *node = ptr_cast<node_t>(buf->get_data_read());
@@ -58,12 +58,16 @@ void check_and_handle_split(transactor_t& txor, buf_lock_t& buf, buf_lock_t& las
     btree_key_t *median = median_buffer.key();
 
     node::split(block_size, *buf.buf(), *rbuf.buf(), median);
+    rbuf->set_eviction_priority(buf->get_eviction_priority());
 
     // Insert the key that sets the two nodes apart into the parent.
     if (!last_buf.is_acquired()) {
         // We're splitting what was previously the root, so create a new root to use as the parent.
         last_buf.allocate(txor);
         internal_node::init(block_size, *last_buf.buf());
+        rassert(buf->get_eviction_priority() > 0);
+        last_buf->set_eviction_priority(buf->get_eviction_priority() - 1);
+        *root_eviction_priority = last_buf->get_eviction_priority();
 
         insert_root(last_buf->get_block_id(), sb_buf);
     }
@@ -187,6 +191,10 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
         txor->get()->set_token(slice->post_begin_transaction_source_.check_in(token.tag() + "+post"));
 
         buf_lock_t sb_buf(*txor, SUPERBLOCK_ID, rwi_write);
+
+        //Set its affinity to 0
+        sb_buf->set_eviction_priority(0);
+
         // TODO: do_superblock_sidequest is blocking.  It doesn't have
         // to be, but when you fix this, make sure the superblock
         // sidequest is done using the superblock before the
@@ -197,10 +205,14 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
         buf_lock_t buf;
         get_root(*txor, sb_buf, block_size, &buf, castime.timestamp);
 
+        if (buf->get_eviction_priority() == MAX_EVICTION_PRIORITY) {
+            buf->set_eviction_priority(slice->root_eviction_priority);
+        }
+
         // Walk down the tree to the leaf.
         while (node::is_internal(ptr_cast<node_t>(buf->get_data_read()))) {
             // Check if the node is overfull and proactively split it if it is (since this is an internal node).
-            check_and_handle_split(*txor, buf, last_buf, sb_buf, key, NULL, block_size);
+            check_and_handle_split(*txor, buf, last_buf, sb_buf, key, NULL, block_size, &slice->root_eviction_priority);
             // Check if the node is underfull, and merge/level if it is.
             check_and_handle_underfull(*txor, buf, last_buf, sb_buf, key, block_size);
 
@@ -220,6 +232,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
             rassert(node_id != NULL_BLOCK_ID && node_id != SUPERBLOCK_ID);
 
             buf_lock_t tmp(*txor, node_id, rwi_write);
+            tmp->set_eviction_priority(buf->get_eviction_priority() + 1);
             last_buf.swap(tmp);
             buf.swap(last_buf);
         }
@@ -279,7 +292,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
                 // Split the node if necessary, to make sure that we have room
                 // for the value; This isn't necessary when we're deleting,
                 // because the node isn't going to grow.
-                check_and_handle_split(*txor, buf, last_buf, sb_buf, key, new_value, block_size);
+                check_and_handle_split(*txor, buf, last_buf, sb_buf, key, new_value, block_size, &slice->root_eviction_priority);
 
                 // Add a CAS to the value if necessary (this won't change its size).
                 if (new_value->has_cas()) {
