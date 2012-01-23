@@ -157,8 +157,8 @@ void check_and_handle_underfull(value_sizer_t<Value> *sizer, transaction_t *txn,
     }
 }
 
-inline void get_btree_superblock(const boost::scoped_ptr<transaction_t>& txn, access_t access, got_superblock_t *got_superblock_out) {
-    buf_lock_t tmp_buf(txn.get(), SUPERBLOCK_ID, access);
+inline void get_btree_superblock(transaction_t *txn, access_t access, got_superblock_t *got_superblock_out) {
+    buf_lock_t tmp_buf(txn, SUPERBLOCK_ID, access);
     boost::scoped_ptr<superblock_t> tmp_sb(new real_superblock_t(tmp_buf));
     got_superblock_out->sb.swap(tmp_sb);
 }
@@ -178,7 +178,7 @@ inline void get_btree_superblock(btree_slice_t *slice, access_t access, int expe
         txn_out->snapshot();
     }
 
-    get_btree_superblock(txn_out, access, got_superblock_out);
+    get_btree_superblock(txn_out.get(), access, got_superblock_out);
 }
 
 inline void get_btree_superblock(btree_slice_t *slice, access_t access, int expected_change_count, repli_timestamp_t tstamp, order_token_t token, got_superblock_t *got_superblock_out, boost::scoped_ptr<transaction_t>& txn_out) {

@@ -137,7 +137,7 @@ void btree_erase_range_generic(value_sizer_t<void> *sizer, btree_slice_t *slice,
 
     erase_range_helper_t helper(sizer, tester, deleter, left_exclusive_or_null, right_inclusive_or_null);
 
-    btree_parallel_traversal(txn, slice, &helper);
+    btree_parallel_traversal(txn.get(), slice, &helper);
 }
 
 void btree_erase_range(btree_slice_t *slice, key_tester_t *tester,

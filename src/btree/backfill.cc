@@ -180,7 +180,7 @@ void do_agnostic_btree_backfill(value_sizer_t<void> *sizer, btree_slice_t *slice
     no_coro_waiting.reset();
 #endif
 
-    btree_parallel_traversal(txn, slice, &helper);
+    btree_parallel_traversal(txn.get(), slice, &helper);
 }
 
 class agnostic_memcached_backfill_callback_t : public agnostic_backfill_callback_t {

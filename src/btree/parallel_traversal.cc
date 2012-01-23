@@ -257,14 +257,14 @@ struct internal_node_releaser_t : public parent_releaser_t {
     virtual ~internal_node_releaser_t() { }
 };
 
-void btree_parallel_traversal(const boost::scoped_ptr<transaction_t> &txn, btree_slice_t *slice, btree_traversal_helper_t *helper) {
+void btree_parallel_traversal(transaction_t *txn, btree_slice_t *slice, btree_traversal_helper_t *helper) {
     got_superblock_t superblock;
     get_btree_superblock(txn, helper->btree_superblock_mode(), &superblock);
     btree_parallel_traversal(txn, superblock, slice, helper);
 }
 
-void btree_parallel_traversal(const boost::scoped_ptr<transaction_t> &txn, got_superblock_t &got_superblock, btree_slice_t *slice, btree_traversal_helper_t *helper) {
-    traversal_state_t state(txn.get(), slice, helper);
+void btree_parallel_traversal(transaction_t *txn, got_superblock_t &got_superblock, btree_slice_t *slice, btree_traversal_helper_t *helper) {
+    traversal_state_t state(txn, slice, helper);
 
     buf_lock_t * superblock_buf = static_cast<real_superblock_t*>(got_superblock.sb.get())->get(); // TODO: Ugh
     const btree_superblock_t *superblock = reinterpret_cast<const btree_superblock_t *>(superblock_buf->buf()->get_data_read());
