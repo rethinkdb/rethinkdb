@@ -145,7 +145,7 @@ void create_existing_shard(
 }
 
 btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_config_t *dynamic_config)
-    : hash_control(this) {
+    : shards(NULL), hash_control(this) {
 
     /* Start serializers */
     n_files = dynamic_config->serializer_private.size();
@@ -162,6 +162,7 @@ btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_c
     multiplexer = new serializer_multiplexer_t(serializers_for_multiplexer);
 
     btree_static_config.n_slices = multiplexer->proxies.size();
+    shards = new shard_store_t*[btree_static_config.n_slices];
 
     /* Divide resources among the several slices */
     mirrored_cache_config_t per_slice_config = dynamic_config->cache;
@@ -212,6 +213,8 @@ btree_key_value_store_t::~btree_key_value_store_t() {
 
     /* Shut down serializers */
     pmap(n_files, boost::bind(&destroy_serializer, serializers, _1));
+
+    delete[] shards;
 }
 
 /* Function to check if any of the files seem to contain existing databases */
