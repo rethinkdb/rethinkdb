@@ -355,7 +355,7 @@ public:
 
 private:
     mirrored_cache_config_t dynamic_config; // Local copy of our initial configuration
-    
+
     // TODO: how do we design communication between cache policies?
     // Should they all have access to the cache, or should they only
     // be given access to each other as necessary? The first is more
@@ -364,6 +364,15 @@ private:
     // extensible when some policy implementation requires access to
     // components it wasn't originally given.
 
+    // Which slice this cache is for.  Used in get_slice_num or co_begin_transaction.
+    const int slice_num;
+
+public:
+    // This is used by co_begin_transaction.  See co_begin_transaction
+    // for why it's a hack.
+    int get_slice_num() const { return slice_num; }
+
+private:
     translator_serializer_t *serializer;
 
     // We use a separate IO account for reads and writes, so reads can pass ahead
@@ -379,7 +388,7 @@ private:
 
 public:
     static void create(translator_serializer_t *serializer, mirrored_cache_static_config_t *config);
-    mc_cache_t(translator_serializer_t *serializer, mirrored_cache_config_t *dynamic_config);
+    mc_cache_t(translator_serializer_t *serializer, mirrored_cache_config_t *dynamic_config, int this_slice_num);
     ~mc_cache_t();
 
 public:

@@ -12,7 +12,7 @@
 class server_test_helper_t {
     thread_pool_t thread_pool;
 public:
-    server_test_helper_t() : thread_pool(1), serializer(NULL) { }
+    server_test_helper_t() : thread_pool(1, false), serializer(NULL) { }
     virtual ~server_test_helper_t() { }
     void run();
 

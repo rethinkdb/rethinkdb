@@ -7,6 +7,7 @@
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/queue/cross_thread_limited_fifo.hpp"
 #include "concurrency/queue/accounting.hpp"
+#include "buffer_cache/sequence_group.hpp"
 
 perfmon_duration_sampler_t
     pm_replication_master_dispatch_cost("replication_master_dispatch_cost", secs_to_ticks(1.0)),
@@ -60,7 +61,8 @@ public:
 
                 backfilling_ = true;
             }
-            coro_t::spawn_now(boost::bind(&btree_slice_t::backfill, &shard->btree, backfill_from, this, shard->dispatching_store.substore_order_source.check_in("slice_manager_t").with_read_mode()));
+
+            coro_t::spawn_now(boost::bind(&btree_slice_t::backfill, &shard->btree, parent_->seq_group_, backfill_from, this, shard->dispatching_store.substore_order_source.check_in("slice_manager_t").with_read_mode()));
         }
 
         ~slice_manager_t() {
@@ -290,7 +292,7 @@ public:
 
         /* Record the new value of the replication clock */
         replication_clock_ = rc;
-        internal_store_->set_replication_clock(rc, order_token_t::ignore);
+        internal_store_->set_replication_clock(seq_group_, rc, order_token_t::ignore);
 
         /* `slice_manager_t::set_replication_clock()` pushes a command to count down the
         `count_down_latch_t` through the same queue that is used for realtime replication
@@ -310,6 +312,8 @@ public:
     }
 
     /* Startup, shutdown, and member variables */
+
+    sequence_group_t *seq_group_;
 
     count_down_latch_t delete_queues_can_send_keys_latch_;
     bool all_delete_queues_so_far_can_send_keys_;
@@ -338,9 +342,10 @@ public:
     so we have to use pulsed_when_backfill_over to wait for the backfill operation to finish. */
     cond_t pulsed_when_backfill_over;
 
-    backfill_and_streaming_manager_t(btree_key_value_store_t *kvs,
+    backfill_and_streaming_manager_t(sequence_group_t *replication_seq_group, btree_key_value_store_t *kvs,
             backfill_and_realtime_streaming_callback_t *handler,
             repli_timestamp_t backfill_from) :
+        seq_group_(replication_seq_group),
         delete_queues_can_send_keys_latch_(kvs->btree_static_config.n_slices),
         all_delete_queues_so_far_can_send_keys_(true),
         internal_store_(kvs),
@@ -357,7 +362,7 @@ public:
         realtime_job_account(&combined_job_queue, &realtime_job_queue, 1)
     {
         /* Read the old value of the replication clock. */
-        initial_replication_clock_ = internal_store_->get_replication_clock();
+        initial_replication_clock_ = internal_store_->get_replication_clock(seq_group_);
 
         slice_managers.resize(internal_store_->btree_static_config.n_slices);
         replication_clock_ = initial_replication_clock_.next();
@@ -369,7 +374,7 @@ public:
         happened with the new timestamp and that operation was written to disk but we
         crashed before the new value of the replication clock could be written to disk,
         then the database could behave incorrectly when it started back up. */
-        internal_store_->set_replication_clock(replication_clock_, order_token_t::ignore);
+        internal_store_->set_replication_clock(seq_group_, replication_clock_, order_token_t::ignore);
 
         pmap(internal_store_->btree_static_config.n_slices,
              boost::bind(&backfill_and_streaming_manager_t::register_on_slice, this,
@@ -409,12 +414,12 @@ public:
     }
 };
 
-void backfill_and_realtime_stream(btree_key_value_store_t *kvs, repli_timestamp_t start_time,
+void backfill_and_realtime_stream(sequence_group_t *replication_sequence_group, btree_key_value_store_t *kvs, repli_timestamp_t start_time,
         backfill_and_realtime_streaming_callback_t *bfh, signal_t *pulse_to_stop) {
 
     {
         /* Constructing this object starts the backfill and the streaming. */
-        backfill_and_streaming_manager_t manager(kvs, bfh, start_time);
+        backfill_and_streaming_manager_t manager(replication_sequence_group, kvs, bfh, start_time);
 
         pulse_to_stop->wait();
 

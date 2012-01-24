@@ -121,6 +121,7 @@ struct mirrored_cache_static_config_t {
 serializer */
 
 struct btree_config_t {
+    // The total number of slices.  Must be a multiple of the number of files.
     int32_t n_slices;
 };
 
@@ -205,6 +206,7 @@ struct cmd_config_t {
     
     int port;
     int n_workers;
+    bool do_set_affinity;
     
     char log_file_name[MAX_LOG_FILE_NAME];
     // Log messages below this level aren't printed
@@ -239,7 +241,7 @@ public:
     void set_cores(const char* value);
     void set_port(const char* value);
     void set_log_file(const char* value);
-    void set_slices(const char* value);
+    void set_slices(int *slices_per_device_out, const char* value);
     void set_max_cache_size(const char* value);
     void set_wait_for_flush(const char* value);
     void set_unsaved_data_limit(const char* value);

@@ -4,16 +4,18 @@
 
 namespace replication {
 
-slave_stream_manager_t::slave_stream_manager_t(boost::scoped_ptr<tcp_conn_t> *conn,
+slave_stream_manager_t::slave_stream_manager_t(sequence_group_t *replication_seq_group,
+                                               boost::scoped_ptr<tcp_conn_t> *conn,
                                                btree_key_value_store_t *kvs,
                                                cond_t *cond,
                                                backfill_receiver_order_source_t *slave_order_source,
                                                int heartbeat_timeout) :
     backfill_receiver_t(&backfill_storer_, slave_order_source),
     stream_(NULL),
+    seq_group_(replication_seq_group),
     cond_(NULL),
     kvs_(kvs),
-    backfill_storer_(kvs),
+    backfill_storer_(replication_seq_group, kvs),
     interrupted_by_external_event_(false) {
 
     // Assume backfilling when starting up.
@@ -59,7 +61,7 @@ void slave_stream_manager_t::reverse_side_backfill(repli_timestamp since_when) {
 
     cond_t mc;
     mc.pulse();   // So that backfill_and_realtime_stream() returns as soon as the backfill part is over
-    backfill_and_realtime_stream(kvs_, since_when, &sender, &mc);
+    backfill_and_realtime_stream(seq_group_, kvs_, since_when, &sender, &mc);
 }
 
  /* message_callback_t interface */

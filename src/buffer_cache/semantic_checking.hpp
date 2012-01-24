@@ -154,8 +154,10 @@ public:
         mirrored_cache_static_config_t *static_config);
     scc_cache_t(
         translator_serializer_t *serializer,
-        mirrored_cache_config_t *dynamic_config);
+        mirrored_cache_config_t *dynamic_config,
+        int this_slice_num);
 
+    int get_slice_num() const { return inner_cache.get_slice_num(); }
     block_size_t get_block_size();
     transaction_t *begin_transaction(access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback);
     boost::shared_ptr<cache_account_t> create_account(int priority);

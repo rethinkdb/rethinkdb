@@ -4,6 +4,7 @@
 #include "arch/arch.hpp"
 #include "data_provider.hpp"
 #include "btree/value.hpp"
+#include "buffer_cache/sequence_group.hpp"
 
 class get_store_t;
 class set_store_interface_t;
@@ -17,8 +18,8 @@ void import_memcache(std::string, set_store_interface_t *set_store, order_source
  * make a dummy one for importation of memcached commands from a file */
 class txt_memcached_handler_if {
 public:
-    txt_memcached_handler_if(get_store_t *get_store, set_store_interface_t *set_store, int max_concurrent_queries_per_connection = MAX_CONCURRENT_QUERIES_PER_CONNECTION)
-        : get_store(get_store), set_store(set_store), requests_out_sem(max_concurrent_queries_per_connection)
+    txt_memcached_handler_if(get_store_t *get_store, set_store_interface_t *set_store, int _max_concurrent_queries_per_connection = MAX_CONCURRENT_QUERIES_PER_CONNECTION)
+        : get_store(get_store), set_store(set_store), max_concurrent_queries_per_connection(_max_concurrent_queries_per_connection)
     { }
 
     virtual ~txt_memcached_handler_if() { }
@@ -26,13 +27,13 @@ public:
     get_store_t *get_store;
     set_store_interface_t *set_store;
 
-    // Used to limit number of concurrent noreply requests
-    semaphore_t requests_out_sem;
+    // The sequence group, so that the buffer cache or btree can make
+    // sure that operations aren't reordered after they get to the
+    // buffer cache.  (Specifically, when creating the transaction_t,
+    // see sequence_group.hpp.)
+    sequence_group_t seq_group;
 
-    /* If a client sends a bunch of noreply requests and then a 'quit', we cannot delete ourself
-    immediately because the noreply requests still hold the 'requests_out' semaphore. We use this
-    semaphore to figure out when we can delete ourself. */
-    drain_semaphore_t drain_semaphore;
+    const int max_concurrent_queries_per_connection;
 
     virtual void write(const std::string& buffer) = 0;
     virtual void write(const char *buffer, size_t bytes) = 0;
@@ -51,25 +52,6 @@ public:
     virtual void client_error_bad_data() = 0;
     virtual void client_error_not_allowed(bool op_is_write) = 0;
     virtual void server_error_object_too_large_for_cache() = 0;
-
-    // Used to implement throttling. Write requests should call begin_write_command() and
-    // end_write_command() to make sure that not too many write requests are sent
-    // concurrently.
-    //
-    // Note: these methods are implemented in the base class because it's
-    // dangerous not to do them, and as far as I can see the memcached handlers
-    // will need the same behavior for these functions. Of course things change
-    // and if they is indeed a need for seperate behaviors a second virtual
-    // function that is called in handle_memcache should also be created, these
-    // should not be removed
-    void begin_write_command() {
-        drain_semaphore.acquire();
-        requests_out_sem.co_lock();
-    }
-    void end_write_command() {
-        drain_semaphore.release();
-        requests_out_sem.unlock();
-    }
 
     virtual void flush_buffer() = 0;
 

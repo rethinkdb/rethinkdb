@@ -91,7 +91,7 @@ public:
     };
     void register_read_ahead_cb(read_ahead_callback_t *cb);
     void unregister_read_ahead_cb(read_ahead_callback_t *cb);
-    
+
 private:
     serializer_t *inner;
     int mod_count, mod_id;

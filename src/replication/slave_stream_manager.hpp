@@ -24,7 +24,7 @@ struct slave_stream_manager_t :
     // Give it a connection to the master, a pointer to the store to forward changes to, and a
     // cond. If the cond is pulsed, it will kill the connection. If the connection dies,
     // it will pulse the cond.
-    slave_stream_manager_t(boost::scoped_ptr<tcp_conn_t> *conn, btree_key_value_store_t *kvs, cond_t *cond, backfill_receiver_order_source_t *slave_order_source, int heartbeat_timeout);
+    slave_stream_manager_t(sequence_group_t *replication_seq_group, boost::scoped_ptr<tcp_conn_t> *conn, btree_key_value_store_t *kvs, cond_t *cond, backfill_receiver_order_source_t *slave_order_source, int heartbeat_timeout);
 
     ~slave_stream_manager_t();
 
@@ -41,7 +41,7 @@ struct slave_stream_manager_t :
 
     void send(scoped_malloc<net_introduce_t>& message) {
 
-        uint32_t old_master = kvs_->get_replication_master_id();
+        uint32_t old_master = kvs_->get_replication_master_id(seq_group_);
 
         if (old_master == 0) {
             /* This is our first-ever time running; the database files are completely fresh. */
@@ -60,7 +60,7 @@ struct slave_stream_manager_t :
             if (stream_) stream_->send(&introduce);
 
             /* Remember the master */
-            kvs_->set_replication_master_id(message->database_creation_timestamp);
+            kvs_->set_replication_master_id(seq_group_, message->database_creation_timestamp);
 
         } else if (old_master == NOT_A_SLAVE) {
             /* We have run before, but in master-mode or non-replicated mode. There might be
@@ -107,6 +107,9 @@ struct slave_stream_manager_t :
 
     // Our connection to the master
     repli_stream_t *stream_;
+
+    // The replication_seq_group of server.cc.
+    sequence_group_t *seq_group_;
 
     // If cond_ is pulsed, we drop our connection to the master. If the connection
     // to the master drops on its own, we pulse cond_.

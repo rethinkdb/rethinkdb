@@ -22,16 +22,17 @@ class master_t :
     public backfill_sender_t,
     public backfill_receiver_t {
 public:
-    master_t(int port, btree_key_value_store_t *kv_store, replication_config_t replication_config, gated_get_store_t *get_gate, gated_set_store_interface_t *set_gate, backfill_receiver_order_source_t *master_order_source) :
+    master_t(sequence_group_t *replication_seq_group, int port, btree_key_value_store_t *kv_store, replication_config_t replication_config, gated_get_store_t *get_gate, gated_set_store_interface_t *set_gate, backfill_receiver_order_source_t *master_order_source) :
         backfill_sender_t(&stream_),
         backfill_receiver_t(&backfill_storer_, master_order_source),
         stream_(NULL),
+        seq_group_(replication_seq_group),
         listener_port_(port),
         kvs_(kv_store),
         replication_config_(replication_config),
         get_gate_(get_gate),
         set_gate_(set_gate),
-        backfill_storer_(kv_store),
+        backfill_storer_(replication_seq_group, kv_store),
         dont_wait_for_slave_control(this)
     {
         logINF("Waiting for initial slave to connect on port %d...\n", listener_port_);
@@ -76,13 +77,13 @@ public:
     void hello(UNUSED net_hello_t message) { debugf("Received hello from slave.\n"); }
 
     void send(scoped_malloc<net_introduce_t>& message) {
-        uint32_t previous_slave = kvs_->get_replication_slave_id();
+        uint32_t previous_slave = kvs_->get_replication_slave_id(seq_group_);
         if (previous_slave != 0) {
             rassert(message->database_creation_timestamp != previous_slave);
             logWRN("The slave that was previously associated with this master is now being "
                 "forgotten; you will not be able to reconnect it later.\n");
         }
-        kvs_->set_replication_slave_id(message->database_creation_timestamp);
+        kvs_->set_replication_slave_id(seq_group_, message->database_creation_timestamp);
     }
 
     void send(scoped_malloc<net_backfill_t>& message) {
@@ -126,6 +127,8 @@ private:
 
     // The stream to the slave, or NULL if there is no slave connected.
     repli_stream_t *stream_;
+
+    sequence_group_t *seq_group_;
 
     const int listener_port_;
     // Listens for incoming slave connections.

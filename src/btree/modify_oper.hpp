@@ -55,8 +55,10 @@ public:
                                          UNUSED const store_key_t *key) { }
 };
 
+class sequence_group_t;
+
 // Runs a btree_modify_oper_t.
-void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, const store_key_t &key, castime_t castime, order_token_t token);
+void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, sequence_group_t *seq_group, const store_key_t &key, castime_t castime, order_token_t token);
 
 buf_t *get_root(transaction_t *txn, buf_t **sb_buf, block_size_t block_size);
 void insert_root(block_id_t root_id, buf_t **sb_buf);

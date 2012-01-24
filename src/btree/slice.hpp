@@ -8,6 +8,7 @@
 const unsigned int STARTING_ROOT_EVICTION_PRIORITY = 2 << 16;
 
 class backfill_callback_t;
+class sequence_group_t;
 
 /* btree_slice_t is a thin wrapper around cache_t that handles initializing the buffer
 cache for the purpose of storing a btree. There are many btree_slice_ts per
@@ -21,42 +22,42 @@ class btree_slice_t :
 public:
     // Blocks
     static void create(translator_serializer_t *serializer,
-                       mirrored_cache_static_config_t *static_config);
+                       mirrored_cache_static_config_t *static_config, int slice_num);
 
     // Blocks
     btree_slice_t(translator_serializer_t *serializer,
                   mirrored_cache_config_t *dynamic_config,
                   int64_t delete_queue_limit,
-                  const std::string& informal_name);
+                  int slice_num);
 
     // Blocks
     ~btree_slice_t();
 
     /* get_store_t interface */
 
-    get_result_t get(const store_key_t &key, order_token_t token);
-    rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token);
+    get_result_t get(const store_key_t &key, sequence_group_t *seq_group, order_token_t token);
+    rget_result_t rget(sequence_group_t *seq_gorup, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token);
 
     /* set_store_t interface */
 
-    mutation_result_t change(const mutation_t &m, castime_t castime, order_token_t token);
+    mutation_result_t change(sequence_group_t *seq_group, const mutation_t &m, castime_t castime, order_token_t token);
 
     /* btree_slice_t interface */
 
-    void delete_all_keys_for_backfill(order_token_t token);
+    void delete_all_keys_for_backfill(sequence_group_t *seq_group, order_token_t token);
 
-    void backfill(repli_timestamp since_when, backfill_callback_t *callback, order_token_t token);
+    void backfill(sequence_group_t *seq_group, repli_timestamp since_when, backfill_callback_t *callback, order_token_t token);
 
     /* These store metadata for replication. There must be a better way to store this information,
     since it really doesn't belong on the btree_slice_t! TODO: Move them elsewhere. */
-    void set_replication_clock(repli_timestamp_t t, order_token_t token);
-    repli_timestamp get_replication_clock();
-    void set_last_sync(repli_timestamp_t t, order_token_t token);
-    repli_timestamp get_last_sync();
-    void set_replication_master_id(uint32_t t);
-    uint32_t get_replication_master_id();
-    void set_replication_slave_id(uint32_t t);
-    uint32_t get_replication_slave_id();
+    void set_replication_clock(sequence_group_t *seq_group, repli_timestamp_t t, order_token_t token);
+    repli_timestamp get_replication_clock(sequence_group_t *seq_group);
+    void set_last_sync(sequence_group_t *seq_group, repli_timestamp_t t, order_token_t token);
+    repli_timestamp get_last_sync(sequence_group_t *seq_group);
+    void set_replication_master_id(sequence_group_t *seq_group, uint32_t t);
+    uint32_t get_replication_master_id(sequence_group_t *seq_group);
+    void set_replication_slave_id(sequence_group_t *seq_group, uint32_t t);
+    uint32_t get_replication_slave_id(sequence_group_t *seq_group);
 
     cache_t *cache() { return &cache_; }
     int64_t delete_queue_limit() { return delete_queue_limit_; }

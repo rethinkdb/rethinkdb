@@ -22,6 +22,8 @@ namespace replication {
 // timestamp of the master.
 #define NOT_A_SLAVE uint32_t(0xFFFFFFFF)
 
+class sequence_group_t;
+
 /* sharded_key_value_store_t represents a collection of serializers and slices, possibly distributed
 across several cores. */
 
@@ -37,12 +39,12 @@ struct shard_store_t :
         int64_t delete_queue_limit,
         int bucket);
 
-    get_result_t get(const store_key_t &key, order_token_t token);
-    rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token);
-    mutation_result_t change(const mutation_t &m, order_token_t token);
-    mutation_result_t change(const mutation_t &m, castime_t ct, order_token_t token);
-    void delete_all_keys_for_backfill(order_token_t token);
-    void set_replication_clock(repli_timestamp_t t, order_token_t token);
+    get_result_t get(const store_key_t &key, sequence_group_t *seq_group, order_token_t token);
+    rget_result_t rget(sequence_group_t *seq_group, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token);
+    mutation_result_t change(sequence_group_t *seq_group, const mutation_t &m, order_token_t token);
+    mutation_result_t change(sequence_group_t *seq_group, const mutation_t &m, castime_t ct, order_token_t token);
+    void delete_all_keys_for_backfill(sequence_group_t *seq_group, order_token_t token);
+    void set_replication_clock(sequence_group_t *seq_group, repli_timestamp_t t, order_token_t token);
 
     btree_slice_t btree;
     dispatching_store_t dispatching_store;   // For replication
@@ -78,20 +80,20 @@ public:
 public:
     /* get_store_t interface */
 
-    get_result_t get(const store_key_t &key, order_token_t token);
-    rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token);
+    get_result_t get(const store_key_t &key, sequence_group_t *seq_group, order_token_t token);
+    rget_result_t rget(sequence_group_t *seq_group, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token);
 
     /* set_store_interface_t interface */
 
-    mutation_result_t change(const mutation_t &m, order_token_t order_token);
+    mutation_result_t change(sequence_group_t *seq_group, const mutation_t &m, order_token_t order_token);
 
     /* set_store_t interface */
 
-    mutation_result_t change(const mutation_t &m, castime_t ct, order_token_t order_token);
+    mutation_result_t change(sequence_group_t *seq_group, const mutation_t &m, castime_t ct, order_token_t order_token);
 
     /* btree_key_value_store_t interface */
 
-    void delete_all_keys_for_backfill(order_token_t token);
+    void delete_all_keys_for_backfill(sequence_group_t *seq_group, order_token_t token);
 
     /* The value passed to `set_timestampers()` is the value that will be used as the
     timestamp for all new operations. When the key-value store starts up, it is
@@ -102,14 +104,14 @@ public:
     `set_timestampers()`, changing them doesn't change anything in the
     `btree_key_value_store_t` itself. They are used by the higher-level code to persist
     metadata to disk. */
-    void set_replication_clock(repli_timestamp_t t, order_token_t token);
-    repli_timestamp get_replication_clock();
-    void set_last_sync(repli_timestamp_t t, order_token_t token);
-    repli_timestamp get_last_sync();
-    void set_replication_master_id(uint32_t ts);
-    uint32_t get_replication_master_id();
-    void set_replication_slave_id(uint32_t ts);
-    uint32_t get_replication_slave_id();
+    void set_replication_clock(sequence_group_t *seq_group, repli_timestamp_t t, order_token_t token);
+    repli_timestamp get_replication_clock(sequence_group_t *seq_group);
+    void set_last_sync(sequence_group_t *seq_group, repli_timestamp_t t, order_token_t token);
+    repli_timestamp get_last_sync(sequence_group_t *seq_group);
+    void set_replication_master_id(sequence_group_t *seq_group, uint32_t ts);
+    uint32_t get_replication_master_id(sequence_group_t *seq_group);
+    void set_replication_slave_id(sequence_group_t *seq_group, uint32_t ts);
+    uint32_t get_replication_slave_id(sequence_group_t *seq_group);
 
     static uint32_t hash(const store_key_t &key);
 

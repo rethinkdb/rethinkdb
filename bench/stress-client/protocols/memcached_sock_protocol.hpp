@@ -418,7 +418,7 @@ struct memcached_sock_protocol_t : public protocol_t {
     }
 
     virtual ~memcached_sock_protocol_t() {
-        assert(!exist_outstanding_pipeline_reads());;
+        // assert(!exist_outstanding_pipeline_reads());;
         if(sockfd != -1) {
             int res = close(sockfd);
             int err = errno;

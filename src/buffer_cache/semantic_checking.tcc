@@ -206,8 +206,9 @@ void scc_cache_t<inner_cache_t>::create(
 template<class inner_cache_t>
 scc_cache_t<inner_cache_t>::scc_cache_t(
         translator_serializer_t *serializer,
-        mirrored_cache_config_t *dynamic_config)
-    : inner_cache(serializer, dynamic_config) {
+        mirrored_cache_config_t *dynamic_config,
+        int this_slice_num)
+    : inner_cache(serializer, dynamic_config, this_slice_num) {
 }
 
 template<class inner_cache_t>

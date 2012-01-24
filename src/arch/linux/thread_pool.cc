@@ -22,12 +22,13 @@ __thread linux_thread_pool_t *linux_thread_pool_t::thread_pool;
 __thread int linux_thread_pool_t::thread_id;
 __thread linux_thread_t *linux_thread_pool_t::thread;
 
-linux_thread_pool_t::linux_thread_pool_t(int n_threads)
+linux_thread_pool_t::linux_thread_pool_t(int worker_threads, bool _do_set_affinity)
     : interrupt_message(NULL),
       generic_blocker_pool(NULL),
-      n_threads(n_threads + 1) // we create an extra utility thread
+      n_threads(worker_threads + 1),    // we create an extra utility thread
+      do_set_affinity(_do_set_affinity)
 {
-    rassert(n_threads > 0);
+    rassert(n_threads > 1);             // we want at least one non-utility thread
     rassert(n_threads <= MAX_THREADS);
     
     int res;
@@ -162,7 +163,6 @@ void linux_thread_pool_t::run(linux_thread_message_t *initial_message) {
     do_shutdown = false;
     
     // Start child threads
-    
     pthread_barrier_t barrier;
     res = pthread_barrier_init(&barrier, NULL, n_threads);
     guarantee(res == 0, "Could not create barrier");
@@ -180,14 +180,15 @@ void linux_thread_pool_t::run(linux_thread_message_t *initial_message) {
         res = pthread_create(&pthreads[i], NULL, &start_thread, (void*)tdata);
         guarantee(res == 0, "Could not create thread");
         
-        // Distribute threads evenly among CPUs
-        
-        int ncpus = linux_io_config_t::get_cpu_count();
-        cpu_set_t mask;
-        CPU_ZERO(&mask);
-        CPU_SET(i % ncpus, &mask);
-        res = pthread_setaffinity_np(pthreads[i], sizeof(cpu_set_t), &mask);
-        guarantee(res == 0, "Could not set thread affinity");
+        if (do_set_affinity) {
+            // Distribute threads evenly among CPUs
+            int ncpus = linux_io_config_t::get_cpu_count();
+            cpu_set_t mask;
+            CPU_ZERO(&mask);
+            CPU_SET(i % ncpus, &mask);
+            res = pthread_setaffinity_np(pthreads[i], sizeof(cpu_set_t), &mask);
+            guarantee(res == 0, "Could not set thread affinity");
+        }
     }
 
     // Mark the main thread (for use in assertions etc.)

@@ -1,4 +1,5 @@
 #include "buffer_cache/co_functions.hpp"
+#include "buffer_cache/sequence_group.hpp"
 #include "concurrency/promise.hpp"
 
 struct co_block_available_callback_t : public block_available_callback_t {
@@ -94,9 +95,11 @@ struct transaction_begun_callback_t : public transaction_begin_callback_t {
     }
 };
 
-transaction_t *co_begin_transaction(cache_t *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp) {
+transaction_t *co_begin_transaction(cache_t *cache, sequence_group_t *seq_group, access_t access, int expected_change_count, repli_timestamp recency_timestamp) {
     cache->assert_thread();
     transaction_begun_callback_t cb;
+
+    // HISTORICAL COMMENTS:
 
     // Writes and reads must separately have their order preserved,
     // but we're expecting, in the case of throttling, for writes to
@@ -109,12 +112,40 @@ transaction_t *co_begin_transaction(cache_t *cache, access_t access, int expecte
     // the event loop.  So there's an obvious problem with the code
     // below, if we did not have coro_fifo_acq_t protecting it.
 
-    coro_fifo_acq_t acq;
+    // MODERN COMMENTS:
+
+    // Why do "writes" need to have their order preserved at all, now
+    // that we have sequence_group_t?  Perhaps it's because in the
+    // presence of replication, that prevents the gated store gate
+    // limitations being bypassed.  You could look at the gated store
+    // code to prove or disprove this claim, but since v1.1.x is
+    // supposed to be stable, we're being conservative.
+    //
+    // Yeah.  Really it's only backfill or replication that is the big
+    // question and the reason we're being conservative here.
+
+    // POST-MODERN COMMENTS:
+    //
+    // It would make more sense if this function took a
+    // per_slice_sequence_group_t, instead of taking a
+    // sequence_group_t and having the cache know about what slice it
+    // is.  This would be proper software design.  However, it would
+    // require that stop using the get_store and set_store_interface_t
+    // stuff as abstract classes, or interfaces.  While that would
+    // make sense, and even though it always would have made sense,
+    // that would be more pain to do and then merge.  So we're not
+    // doing it.
+
+    // It is important that we leave the sequence group's fifo _after_
+    // we leave the write throttle fifo.  So we construct it first.
+    // (The destructor will run after.)
+    coro_fifo_acq_t seq_group_acq;
+    seq_group_acq.enter(&seq_group->slice_groups[cache->get_slice_num()].fifo);
+
+    coro_fifo_acq_t write_throttle_acq;
+
     if (is_write_mode(access)) {
-        // We only care about write ordering and not anything about
-        // write operations' interaction with read ordering because
-        // that's how throttling works right now.
-        acq.enter(&cache->co_begin_coro_fifo());
+        write_throttle_acq.enter(&cache->co_begin_coro_fifo());
     }
 
     transaction_t *value = cache->begin_transaction(access, expected_change_count, recency_timestamp, &cb);

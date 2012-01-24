@@ -3,8 +3,9 @@
 
 class btree_slice_t;
 class order_token_t;
+class sequence_group_t;
 
-void btree_delete_all_keys_for_backfill(btree_slice_t *slice, order_token_t token);
+void btree_delete_all_keys_for_backfill(btree_slice_t *slice, sequence_group_t *seq_group, order_token_t token);
 
 
 

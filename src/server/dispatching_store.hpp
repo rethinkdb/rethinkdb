@@ -11,11 +11,11 @@ public:
     dispatching_store_t(btree_slice_t *substore, int bucket);
     void set_dispatcher(boost::function<mutation_t(const mutation_t &, castime_t, order_token_t)> disp);
 
-    mutation_result_t change(const mutation_t& m, castime_t castime, order_token_t token);
-    get_result_t get(const store_key_t &key, order_token_t token);
-    rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token);
-    void delete_all_keys_for_backfill(order_token_t token);
-    void set_replication_clock(repli_timestamp_t t, order_token_t token);
+    mutation_result_t change(sequence_group_t *seq_group, const mutation_t& m, castime_t castime, order_token_t token);
+    get_result_t get(const store_key_t &key, sequence_group_t *seq_group, order_token_t token);
+    rget_result_t rget(sequence_group_t *seq_group, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token);
+    void delete_all_keys_for_backfill(sequence_group_t *seq_group, order_token_t token);
+    void set_replication_clock(sequence_group_t *seq_group, repli_timestamp_t t, order_token_t token);
 
 private:
     order_source_t order_source_for_dispatchee;

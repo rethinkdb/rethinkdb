@@ -43,7 +43,9 @@ void master_t::on_conn(boost::scoped_ptr<linux_tcp_conn_t>& conn) {
     /* Send the slave our database creation timestamp so it knows which master it's connected to. */
     net_introduce_t introduction;
     introduction.database_creation_timestamp = kvs_->get_creation_timestamp();
-    introduction.other_id = kvs_->get_replication_slave_id();
+
+    // I guess this is okay.
+    introduction.other_id = kvs_->get_replication_slave_id(seq_group_);
     stream_->send(&introduction);
 
     // TODO: When sending/receiving hello handshake, use database
@@ -107,7 +109,7 @@ void master_t::do_backfill_and_realtime_stream(repli_timestamp since_when) {
 
         cond_t cond; // when cond is pulsed, backfill_and_realtime_stream() will return
         interrupt_streaming_cond_.watch(&cond);
-        backfill_and_realtime_stream(kvs_, since_when, this, &cond);
+        backfill_and_realtime_stream(seq_group_, kvs_, since_when, this, &cond);
 
         debugf("backfill_and_realtime_stream() returned.\n");
     } else if (opened) {

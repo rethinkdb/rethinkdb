@@ -20,7 +20,7 @@ and shutting down the threads and event queues. */
 
 class linux_thread_pool_t {
 public:
-    explicit linux_thread_pool_t(int n_threads);
+    linux_thread_pool_t(int n_threads, bool do_set_affinity);
     
     // When the process receives a SIGINT or SIGTERM, interrupt_message will be delivered to the
     // same thread that initial_message was delivered to, and interrupt_message will be set to
@@ -82,6 +82,7 @@ public:
     static T run_in_blocker_pool(boost::function<T()>);
     
     int n_threads;
+    bool do_set_affinity;
     // The thread_pool that started the thread we are currently in
     static __thread linux_thread_pool_t *thread_pool;
     // The ID of the thread we are currently in
