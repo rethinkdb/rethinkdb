@@ -98,7 +98,7 @@
 #define MAX_THREADS                                  128
 
 // Maximum slices total
-#define MAX_SLICES                                128
+#define MAX_SLICES                                12800
 
 // Maximum number of files we use
 #define MAX_SERIALIZERS                           32
