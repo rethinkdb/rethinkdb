@@ -197,7 +197,7 @@ private:
 
 #ifndef NDEBUG
     int64_t selfname_number;
-    const char* coroutine_info;
+    const char *coroutine_info;
 #endif
 
     DISABLE_COPYING(coro_t);
