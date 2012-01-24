@@ -108,9 +108,9 @@ coro_t::coro_t() :
     current_thread_(linux_thread_pool_t::thread_id),
     notified_(false),
     waiting_(false),
-    action_(NULL),
+    action_(NULL)
 #ifndef NDEBUG
-    selfname_number(get_thread_id() + MAX_THREADS * ++coro_selfname_counter),
+    , selfname_number(get_thread_id() + MAX_THREADS * ++coro_selfname_counter),
     coroutine_info(NULL)
 #endif
 {
