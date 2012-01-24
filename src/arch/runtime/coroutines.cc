@@ -176,7 +176,7 @@ void coro_t::run() {
         rassert(coro->current_thread_ == get_thread_id());
 
         // Destroy the Callable object which was either allocated within the coro_t or on the heap
-        coro->action_wrapper.destroy();
+        coro->action_wrapper.reset();
 
         /* Return the context to the free-contexts list we took it from. */
         do_on_thread(coro->home_thread(), boost::bind(coro_t::return_coro_to_free_list, coro));

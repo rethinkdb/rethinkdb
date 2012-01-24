@@ -53,7 +53,7 @@ public:
     ~callable_action_wrapper_t();
 
     template<class Callable>
-    void assign(const Callable& action)
+    void reset(const Callable& action)
     {
         rassert(action_ == NULL);
 
@@ -67,7 +67,7 @@ public:
         }
     }
 
-    void destroy();
+    void reset();
 
     void run();
 

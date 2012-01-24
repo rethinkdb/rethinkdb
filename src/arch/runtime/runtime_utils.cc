@@ -13,10 +13,14 @@ callable_action_wrapper_t::callable_action_wrapper_t() :
 
 callable_action_wrapper_t::~callable_action_wrapper_t()
 {
-    rassert(action_ == NULL);
+    if(action_ != NULL) {
+        reset();
+    }
 }
 
-void callable_action_wrapper_t::destroy() {
+void callable_action_wrapper_t::reset() {
+    rassert(action_ != NULL);
+
     if (action_on_heap) {
         delete action_;
         action_ = NULL;

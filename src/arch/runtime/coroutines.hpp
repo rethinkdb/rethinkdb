@@ -134,7 +134,7 @@ private:
 #ifndef NDEBUG
         coro->coroutine_info = __PRETTY_FUNCTION__;
 #endif
-        coro->action_wrapper.assign(action);
+        coro->action_wrapper.reset(action);
         return coro;
     }
 
