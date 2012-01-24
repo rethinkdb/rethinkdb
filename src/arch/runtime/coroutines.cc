@@ -59,6 +59,9 @@ struct coro_globals_t {
     int assert_finite_coro_waiting_counter;
     std::stack<std::pair<std::string, int> > finite_waiting_call_sites;
 
+    std::map<std::string, size_t> running_coroutine_counts;
+    std::map<std::string, size_t> total_coroutine_counts;
+
 #endif  // NDEBUG
 
     coro_globals_t()
@@ -97,6 +100,13 @@ coro_runtime_t::~coro_runtime_t() {
     cglobals = NULL;
 }
 
+#ifndef NDEBUG
+void coro_runtime_t::get_coroutine_counts(std::map<std::string, size_t> *dest) {
+    dest->clear();
+    dest->insert(cglobals->total_coroutine_counts.begin(), cglobals->total_coroutine_counts.end());
+}
+#endif
+
 /* coro_t */
 
 #ifndef NDEBUG
@@ -107,11 +117,9 @@ coro_t::coro_t() :
     stack(&coro_t::run, coro_stack_size),
     current_thread_(linux_thread_pool_t::thread_id),
     notified_(false),
-    waiting_(false),
-    action_(NULL)
+    waiting_(false)
 #ifndef NDEBUG
-    , selfname_number(get_thread_id() + MAX_THREADS * ++coro_selfname_counter),
-    coroutine_info(NULL)
+    , selfname_number(get_thread_id() + MAX_THREADS * ++coro_selfname_counter)
 #endif
 {
     pm_allocated_coroutines++;
@@ -125,21 +133,12 @@ coro_t::coro_t() :
 }
 
 void coro_t::return_coro_to_free_list(coro_t *coro) {
-    coro->action_ = NULL;
-    coro->action_on_heap = false;
-
-#ifndef NDEBUG
-    coro->coroutine_info = NULL;
-#endif
-
     cglobals->free_coros.push_back(coro);
 }
 
 coro_t::~coro_t() {
     /* We never move contexts from one thread to another any more. */
     rassert(get_thread_id() == home_thread());
-    rassert(action_on_heap == false);
-    rassert(action_ == NULL);
 
 #ifndef NDEBUG
     cglobals->coro_count--;
@@ -150,30 +149,34 @@ coro_t::~coro_t() {
 void coro_t::run() {
     coro_t *coro = cglobals->current_coro;
 
-    /* Make sure we're on the right stack. */
 #ifndef NDEBUG
-    char dummy;
+    std::string coroutine_type;
+    char dummy;  /* Make sure we're on the right stack. */
     rassert(coro->stack.address_in_stack(&dummy));
 #endif
 
     while (true) {
         rassert(coro == cglobals->current_coro);
-        rassert(coro->current_thread_ == linux_thread_pool_t::thread_id);
-        rassert(coro->action_ != NULL);
+        rassert(coro->current_thread_ == get_thread_id());
         rassert(coro->notified_ == false);
         rassert(coro->waiting_ == true);
         coro->waiting_ = false;
 
-        coro->action_->run_action();
+#ifndef NDEBUG
+        // Keep track of how many coroutines of each type ran
+        parse_coroutine_info(coro->coroutine_info, coroutine_type);
+        cglobals->running_coroutine_counts[coroutine_type]++;
+        cglobals->total_coroutine_counts[coroutine_type]++;
+#endif
+        coro->action_wrapper.run();
+#ifndef NDEBUG
+        cglobals->running_coroutine_counts[coroutine_type]--;
+#endif
 
-        rassert(coro->current_thread_ == linux_thread_pool_t::thread_id);
+        rassert(coro->current_thread_ == get_thread_id());
 
         // Destroy the Callable object which was either allocated within the coro_t or on the heap
-        if (coro->action_on_heap) {
-            delete coro->action_;
-        } else {
-            coro->action_->~coro_action_t();
-        }
+        coro->action_wrapper.destroy();
 
         /* Return the context to the free-contexts list we took it from. */
         do_on_thread(coro->home_thread(), boost::bind(coro_t::return_coro_to_free_list, coro));
@@ -186,6 +189,26 @@ void coro_t::run() {
         }
     } 
 }
+
+#ifndef NDEBUG
+// This function parses out the type that a coroutine was created with (usually a boost::bind), by
+//  parsing it out of the __PRETTY_FUNCTION__ string of a templated function.  This makes some
+//  assumptions about the format of that string, but if get_and_init_coro is changed, this may
+//  need to be updated.  The only reason we do this is so we don't have to enable RTTI to figure
+//  out the type of the template, but we can still provide a clean typename.
+void coro_t::parse_coroutine_info(const char* coroutine_function, std::string& coroutine_type)
+{
+     coroutine_type.assign(coroutine_function);
+
+     // Unless someone changes the function footprint, everything we're looking for
+     //  should be between these two indices
+     size_t first_equal = coroutine_type.find('=');
+     size_t last_comma = coroutine_type.rfind(',');
+
+     coroutine_type.erase(last_comma, std::string::npos);
+     coroutine_type.erase(0, first_equal + 2);
+}
+#endif
 
 coro_t *coro_t::self() {   /* class method */
     return cglobals->current_coro;
@@ -341,7 +364,6 @@ coro_t * coro_t::get_coro() {
     }
 
     rassert(!coro->intrusive_list_node_t<coro_t>::in_a_list());
-    rassert(coro->action_ == NULL);
 
     coro->current_thread_ = get_thread_id();
     coro->notified_ = false;

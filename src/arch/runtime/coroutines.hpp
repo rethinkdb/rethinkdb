@@ -12,31 +12,9 @@
 #include "arch/runtime/context_switching.hpp"
 
 const size_t MAX_COROUTINE_STACK_SIZE = 8*1024*1024;
-const size_t CALLABLE_CUTOFF_SIZE = 128;
 
 int get_thread_id();
-
 class coro_globals_t;
-
-class coro_action_t {
-public:
-    virtual void run_action() = 0;
-    coro_action_t() { }
-    virtual ~coro_action_t() { }
-private:
-    DISABLE_COPYING(coro_action_t);
-};
-
-template<class Callable>
-class coro_action_instance_t : public coro_action_t {
-public:
-    coro_action_instance_t(const Callable& callable) : callable_(callable) { }
-
-    void run_action() { callable_(); }
-
-private:
-    Callable callable_;
-};
 
 /* A coro_t represents a fiber of execution within a thread. Create one with spawn_*(). Within a
 coroutine, call wait() to return control to the scheduler; the coroutine will be resumed when
@@ -149,26 +127,15 @@ private:
     //  at which point the coroutine can be notified
     coro_t();
 
+    // If this function footprint ever changes, you may need to update the parse_coroutine_info function
     template<class Callable>
     static coro_t * get_and_init_coro(const Callable &action) {
         coro_t *coro = get_coro();
 #ifndef NDEBUG
         coro->coroutine_info = __PRETTY_FUNCTION__;
 #endif
-        coro->assign(action);
+        coro->action_wrapper.assign(action);
         return coro;
-    }
-
-    template<class Callable>
-    void assign(const Callable &action) {
-        // Allocate the action inside this object, if possible, or the heap otherwise
-        if (sizeof(Callable) >= CALLABLE_CUTOFF_SIZE) {
-            action_ = new coro_action_instance_t<Callable>(action);
-            action_on_heap = true;
-        } else {
-            action_ = new (action_data) coro_action_instance_t<Callable>(action);
-            action_on_heap = false;
-        }
     }
 
     static coro_t * get_coro();
@@ -190,14 +157,12 @@ private:
     bool notified_;
     bool waiting_;
 
-    // Buffer to store callable-object data
-    bool action_on_heap;
-    coro_action_t *action_;
-    char action_data[CALLABLE_CUTOFF_SIZE] __attribute__((aligned(sizeof(void*))));
+    callable_action_wrapper_t action_wrapper;
 
 #ifndef NDEBUG
     int64_t selfname_number;
-    const char *coroutine_info;
+    const char* coroutine_info;
+    static void parse_coroutine_info(const char* coroutine_function, std::string& coroutine_type);
 #endif
 
     DISABLE_COPYING(coro_t);
