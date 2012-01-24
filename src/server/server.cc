@@ -137,31 +137,33 @@ private:
 #endif
 
 struct memcache_conn_handler_t : public conn_handler_with_special_lifetime_t {
-    memcache_conn_handler_t(get_store_t *get_store, set_store_interface_t *set_store, order_source_pigeoncoop_t *pigeoncoop)
-        : get_store_(get_store), set_store_(set_store), order_source_(pigeoncoop) { }
+    memcache_conn_handler_t(get_store_t *get_store, set_store_interface_t *set_store, int num_slices, order_source_pigeoncoop_t *pigeoncoop)
+        : get_store_(get_store), set_store_(set_store), num_slices_(num_slices), order_source_(pigeoncoop) { }
 
     void talk_on_connection(tcp_conn_t *conn) {
-        serve_memcache(conn, get_store_, set_store_, &order_source_);
+        serve_memcache(conn, get_store_, set_store_, num_slices_, &order_source_);
     }
 
 private:
     get_store_t *get_store_;
     set_store_interface_t *set_store_;
+    int num_slices_;
     order_source_t order_source_;
     DISABLE_COPYING(memcache_conn_handler_t);
 };
 
 struct memcache_conn_acceptor_callback_t : public conn_acceptor_callback_t {
-    memcache_conn_acceptor_callback_t(get_store_t *get_store, set_store_interface_t *set_store, order_source_pigeoncoop_t *pigeoncoop)
-        : get_store_(get_store), set_store_(set_store), pigeoncoop_(pigeoncoop) { }
+    memcache_conn_acceptor_callback_t(get_store_t *get_store, set_store_interface_t *set_store, int num_slices, order_source_pigeoncoop_t *pigeoncoop)
+        : get_store_(get_store), set_store_(set_store), num_slices_(num_slices), pigeoncoop_(pigeoncoop) { }
 
     void make_handler_for_conn_thread(boost::scoped_ptr<conn_handler_with_special_lifetime_t>& output) {
-        output.reset(new memcache_conn_handler_t(get_store_, set_store_, pigeoncoop_));
+        output.reset(new memcache_conn_handler_t(get_store_, set_store_, num_slices_, pigeoncoop_));
     }
 
 private:
     get_store_t *get_store_;
     set_store_interface_t *set_store_;
+    int num_slices_;
     order_source_pigeoncoop_t *pigeoncoop_;
     DISABLE_COPYING(memcache_conn_acceptor_callback_t);
 };
@@ -228,23 +230,23 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             timebomb::periodic_checker_t timebomb_checker(store.get_creation_timestamp());
 #endif
             if (!cmd_config->import_config.file.empty()) {
-                sequence_group_t seq_group;
+                sequence_group_t seq_group(cmd_config->store_static_config.btree.n_slices);
                 store.set_replication_master_id(&seq_group, NOT_A_SLAVE);
                 std::vector<std::string>::iterator it;
                 for(it = cmd_config->import_config.file.begin(); it != cmd_config->import_config.file.end(); it++) {
                     logINF("Importing file %s...\n", it->c_str());
                     order_source_t order_source(&pigeoncoop);
-                    import_memcache(*it, &store, &order_source);
+                    import_memcache(*it, &store, cmd_config->store_static_config.btree.n_slices, &order_source);
                     logINF("Done\n");
                 }
             } else {
-                sequence_group_t replication_seq_group;
+                sequence_group_t replication_seq_group(cmd_config->store_static_config.btree.n_slices);
 
                 /* Start accepting connections. We use gated-stores so that the code can
                 forbid gets and sets at appropriate times. */
                 gated_get_store_t gated_get_store(&store);
                 gated_set_store_interface_t gated_set_store(&store);
-                memcache_conn_acceptor_callback_t conn_acceptor_callback(&gated_get_store, &gated_set_store, &pigeoncoop);
+                memcache_conn_acceptor_callback_t conn_acceptor_callback(&gated_get_store, &gated_set_store, cmd_config->store_static_config.btree.n_slices, &pigeoncoop);
                 if (cmd_config->replication_config.active) {
 
                     conn_acceptor_t conn_acceptor(cmd_config->port, &conn_acceptor_callback);

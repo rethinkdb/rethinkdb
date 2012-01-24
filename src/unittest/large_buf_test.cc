@@ -50,7 +50,7 @@ private:
 
         repli_timestamp time = repli_timestamp_t::distant_past;
 
-        sequence_group_t seq_group;
+        sequence_group_t seq_group(1);
 
         boost::shared_ptr<transactor_t> txor(new transactor_t(cache, &seq_group, rwi_write, 0, time));
 
@@ -108,7 +108,7 @@ private:
 
         repli_timestamp time = repli_timestamp_t::distant_past;
 
-        sequence_group_t seq_group;
+        sequence_group_t seq_group(1);
 
         boost::shared_ptr<transactor_t> txor(new transactor_t(cache, &seq_group, rwi_write, 0, time));
 

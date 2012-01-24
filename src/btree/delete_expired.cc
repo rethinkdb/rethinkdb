@@ -33,7 +33,9 @@ void co_btree_delete_expired(const store_key_t &key, btree_slice_t *slice) {
     // Expiration operations are logically no-ops and can be reordered
     // relative to any other kind of operation, so they don't need to
     // fuzz up another's sequence_group_t.
-    sequence_group_t seq_group;
+
+    // TODO FIFO: HACK: We don't know the number of slices but we just need the array entry for the cache's number.
+    sequence_group_t seq_group(slice->cache()->get_slice_num() + 1);
 
     btree_delete_expired_oper_t oper;
     // TODO: Something is wrong with our abstraction since we are

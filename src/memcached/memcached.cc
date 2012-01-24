@@ -27,8 +27,8 @@ static const char *crlf = "\r\n";
 struct txt_memcached_handler_t : public txt_memcached_handler_if, public home_thread_mixin_t {
     tcp_conn_t *conn;
 
-    txt_memcached_handler_t(tcp_conn_t *conn, get_store_t *get_store, set_store_interface_t *set_store) :
-        txt_memcached_handler_if(get_store, set_store),
+    txt_memcached_handler_t(tcp_conn_t *conn, get_store_t *get_store, set_store_interface_t *set_store, int num_slices) :
+        txt_memcached_handler_if(get_store, set_store, num_slices),
         conn(conn)
     { }
 
@@ -217,8 +217,8 @@ private:
 
 public:
 
-    txt_memcached_file_importer_t(std::string filename, get_store_t *get_store, set_store_interface_t *set_store) :
-        txt_memcached_handler_if(get_store, set_store, MAX_CONCURRENT_QUEURIES_ON_IMPORT),
+    txt_memcached_file_importer_t(std::string filename, get_store_t *get_store, set_store_interface_t *set_store, int num_slices) :
+        txt_memcached_handler_if(get_store, set_store, num_slices, MAX_CONCURRENT_QUEURIES_ON_IMPORT),
         file(fopen(filename.c_str(), "r")), progress_bar(std::string("Import"), file)
     { }
     ~txt_memcached_file_importer_t() {
@@ -1329,17 +1329,17 @@ void handle_memcache(txt_memcached_handler_if *rh, order_source_t *order_source)
 }
 
 /* serve_memcache serves memcache over a tcp_conn_t */
-void serve_memcache(tcp_conn_t *conn, get_store_t *get_store, set_store_interface_t *set_store, order_source_t *order_source) {
+void serve_memcache(tcp_conn_t *conn, get_store_t *get_store, set_store_interface_t *set_store, int num_slices, order_source_t *order_source) {
     /* Object that we pass around to subroutines (is there a better way to do this?) */
-    txt_memcached_handler_t rh(conn, get_store, set_store);
+    txt_memcached_handler_t rh(conn, get_store, set_store, num_slices);
 
     handle_memcache(&rh, order_source);
 }
 
-void import_memcache(std::string filename, set_store_interface_t *set_store, order_source_t *order_source) {
+void import_memcache(std::string filename, set_store_interface_t *set_store, int num_slices, order_source_t *order_source) {
     /* Object that we pass around to subroutines (is there a better way to do this?) - copy pasta */
     txt_memcached_file_importer_t::dummy_get_store_t dummy_get_store;
-    txt_memcached_file_importer_t rh(filename, &dummy_get_store, set_store);
+    txt_memcached_file_importer_t rh(filename, &dummy_get_store, set_store, num_slices);
 
     handle_memcache(&rh, order_source);
 }
