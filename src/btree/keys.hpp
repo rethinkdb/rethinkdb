@@ -149,6 +149,11 @@ struct key_range_t {
         return key_range_t();
     }
 
+    static key_range_t entire_range() THROWS_NOTHING {
+        store_key_t k;
+        return key_range_t(key_range_t::none, k, key_range_t::none, k);
+    }
+
     bool is_empty() const {
         return !right.unbounded && left <= right.key;
     }

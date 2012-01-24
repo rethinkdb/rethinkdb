@@ -62,7 +62,6 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         boost::scoped_array<block_id_t> block_ids;
         ranged_block_ids_t *ids_source;
         boost::scoped_array<repli_timestamp_t> recencies;
-        const key_range_t *key_range;
         repli_timestamp_t since_when;
         cond_t *done_cond;
 
@@ -96,7 +95,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
             const btree_key_t *left, *right;
             block_id_t id;
             ids_source->get_block_id_and_bounding_interval(i, &id, &left, &right);
-            if (overlaps(left, right, key_range_->left, key_range_->right)) {
+            if (overlaps(left, right, key_range_.left, key_range_.right)) {
                 fsm->block_ids[i] = id;
             } else {
                 fsm->block_ids[i] = NULL_BLOCK_ID;
@@ -106,7 +105,6 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         cond_t done_cond;
         fsm->cb = cb;
         fsm->ids_source = ids_source;
-        fsm->key_range = key_range_;
         fsm->since_when = since_when_;
         fsm->recencies.reset(new repli_timestamp_t[num_block_ids]);
         fsm->done_cond = &done_cond;
@@ -147,14 +145,14 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
     agnostic_backfill_callback_t *callback_;
     repli_timestamp_t since_when_;
     value_sizer_t<void> *sizer_;
-    const key_range_t *key_range_;
+    const key_range_t& key_range_;
 
     backfill_traversal_helper_t(agnostic_backfill_callback_t *callback, repli_timestamp_t since_when,
-                                value_sizer_t<void> *sizer, const key_range_t *key_range)
+                                value_sizer_t<void> *sizer, const key_range_t& key_range)
         : callback_(callback), since_when_(since_when), sizer_(sizer), key_range_(key_range) { }
 };
 
-void do_agnostic_btree_backfill(value_sizer_t<void> *sizer, btree_slice_t *slice, const key_range_t *key_range, repli_timestamp_t since_when,
+void do_agnostic_btree_backfill(value_sizer_t<void> *sizer, btree_slice_t *slice, const key_range_t& key_range, repli_timestamp_t since_when,
     const boost::shared_ptr<cache_account_t>& backfill_account, agnostic_backfill_callback_t *callback, order_token_t token) {
 
     rassert(coro_t::self());
@@ -211,19 +209,11 @@ public:
     backfill_callback_t *cb_;
 };
 
-void btree_backfill(btree_slice_t *slice, const key_range_t *key_range, repli_timestamp_t since_when,
+void btree_backfill(btree_slice_t *slice, const key_range_t& key_range, repli_timestamp_t since_when,
     const boost::shared_ptr<cache_account_t>& backfill_account, backfill_callback_t *callback, order_token_t token) {
 
     agnostic_memcached_backfill_callback_t agnostic_cb(callback);
-
     value_sizer_t<memcached_value_t> sizer(slice->cache()->get_block_size());
-
-    if (key_range) {
-        do_agnostic_btree_backfill(&sizer, slice, key_range, since_when, backfill_account, &agnostic_cb, token);
-    } else {
-        store_key_t k;
-        key_range_t range(key_range_t::none, k, key_range_t::none, k);
-        do_agnostic_btree_backfill(&sizer, slice, &range, since_when, backfill_account, &agnostic_cb, token);
-    }
+    do_agnostic_btree_backfill(&sizer, slice, key_range, since_when, backfill_account, &agnostic_cb, token);
 }
 

@@ -177,7 +177,7 @@ void btree_slice_t::backfill_delete_range(key_tester_t *tester,
 }
 
 
-void btree_slice_t::backfill(const key_range_t *key_range, repli_timestamp_t since_when, backfill_callback_t *callback, order_token_t token) {
+void btree_slice_t::backfill(const key_range_t& key_range, repli_timestamp_t since_when, backfill_callback_t *callback, order_token_t token) {
     assert_thread();
     token = order_checkpoint_.check_through(token);
     btree_backfill(this, key_range, since_when, backfill_account, callback, token);

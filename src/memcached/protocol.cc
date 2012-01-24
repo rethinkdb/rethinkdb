@@ -271,7 +271,7 @@ void memcached_store_view_t::txn_t::send_backfill(const region_map_t<memcached_p
     for (region_map_t<memcached_protocol_t,state_timestamp_t>::const_iterator i = start_point.begin(); i != start_point.end(); i++) {
         const memcached_protocol_t::region_t& range = (*i).first;
         repli_timestamp_t since_when = (*i).second.to_repli_timestamp();    // FIXME: this loses precision
-        btree->backfill(&static_cast<const key_range_t&>(range), since_when, &callback, token);
+        btree->backfill(static_cast<const key_range_t&>(range), since_when, &callback, token);
     }
 }
 
