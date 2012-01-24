@@ -86,18 +86,6 @@ public:
         spawn_later_ordered(action);
     }
 
-    template<class Callable>
-    void assign(const Callable &action) {
-        // Allocate the action inside this object, if possible, or the heap otherwise
-        if (sizeof(Callable) >= CALLABLE_CUTOFF_SIZE) {
-            action_ = new coro_action_instance_t<Callable>(action);
-            action_on_heap = true;
-        } else {
-            action_ = new (action_data) coro_action_instance_t<Callable>(action);
-            action_on_heap = false;
-        }
-    }
-
     /* Pauses the current coroutine until it is notified */
     static void wait();
 
@@ -169,6 +157,18 @@ private:
 #endif
         coro->assign(action);
         return coro;
+    }
+
+    template<class Callable>
+    void assign(const Callable &action) {
+        // Allocate the action inside this object, if possible, or the heap otherwise
+        if (sizeof(Callable) >= CALLABLE_CUTOFF_SIZE) {
+            action_ = new coro_action_instance_t<Callable>(action);
+            action_on_heap = true;
+        } else {
+            action_ = new (action_data) coro_action_instance_t<Callable>(action);
+            action_on_heap = false;
+        }
     }
 
     static coro_t * get_coro();
