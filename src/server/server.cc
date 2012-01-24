@@ -1,6 +1,7 @@
 #include "server/server.hpp"
 
 #include <math.h>
+#include <unistd.h>
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
@@ -165,20 +166,27 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             db_filenames.push_back((*it).db_filename);
         }
 
-        /* Check to see if there is an existing database */
-        struct : public btree_key_value_store_t::check_callback_t, public promise_t<bool> {
-            void on_store_check(bool ok) { pulse(ok); }
-        } check_cb;
-        btree_key_value_store_t::check_existing(db_filenames, &check_cb);
-        bool existing = check_cb.wait();
-        if (existing && cmd_config->create_store && !cmd_config->force_create) {
-            fail_due_to_user_error(
-                "It looks like there already is a database here. RethinkDB will abort in case you "
-                "didn't mean to overwrite it. Run with the '--force' flag to override this warning.");
-        } else {
-            if (!existing) {
-                cmd_config->create_store = true;
+        /* Check for overwrite conditioins or auto-create */
+        bool any_exist = false;
+        bool any_dontexist = false;
+        for(std::vector<std::string>::iterator iter = db_filenames.begin(); iter != db_filenames.end(); ++iter) {
+            // Simply checks for the existence of a file
+            if(access((*iter).c_str(), F_OK) == 0) {
+                any_exist |= true;
+            } else {
+                any_dontexist |= true;
             }
+        }
+
+        // Auto create as a convinience if the files don't exist
+        cmd_config->create_store |= any_dontexist;
+
+        // Note that this error will end up getting triggered in the case where we have mixed existant and non-existant files
+        if(any_exist && cmd_config->create_store && !cmd_config->force_create) {
+            fail_due_to_user_error(
+                "You are attempting to overwrite an existing file with a new RethinkDB database file. "
+                "Pass option \"--force\" to ignore this warning. "
+            );
         }
 
         /* Record information about disk drives to log file */
