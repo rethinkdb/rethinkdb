@@ -88,7 +88,10 @@ artificial_stack_t::~artificial_stack_t() {
 
     /* Tell Valgrind the stack is no longer in use */
 #ifdef VALGRIND
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
     VALGRIND_STACK_DEREGISTER(valgrind_stack_id);
+#pragma GCC diagnostic pop
 #endif
 
     /* Undo protections changes */

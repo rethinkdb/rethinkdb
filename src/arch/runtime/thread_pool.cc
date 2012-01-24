@@ -240,11 +240,19 @@ void linux_thread_pool_t::run(linux_thread_message_t *initial_message) {
     }
     linux_thread_pool_t::thread_pool = NULL;
 
-    // Shut down child threads
+#ifndef NDEBUG
+    // Save each thread's coroutine counters before shutting down
+    std::vector<std::map<std::string, size_t> > coroutine_counts(n_threads);
+#endif
 
+    // Shut down child threads
     for (int i = 0; i < n_threads; i++) {
         // Cause child thread to break out of its loop
+#ifndef NDEBUG
+        threads[i]->initiate_shut_down(coroutine_counts[i]);
+#else
         threads[i]->initiate_shut_down();
+#endif
     }
 
     for (int i = 0; i < n_threads; i++) {
@@ -253,6 +261,22 @@ void linux_thread_pool_t::run(linux_thread_message_t *initial_message) {
         res = pthread_join(pthreads[i], NULL);
         guarantee(res == 0, "Could not join thread");
     }
+
+#ifndef NDEBUG
+    // Combine coroutine counts from each thread, and log the totals
+    std::map<std::string, size_t> total_coroutine_counts;
+    for (int i = 0; i < n_threads; ++i) {
+        for (std::map<std::string, size_t>::iterator j = coroutine_counts[i].begin();
+             j != coroutine_counts[i].end(); ++j) {
+            total_coroutine_counts[j->first] += j->second;
+        }
+    }
+
+    for (std::map<std::string, size_t>::iterator i = total_coroutine_counts.begin();
+         i != total_coroutine_counts.end(); ++i) {
+        logDBG("%ld coroutines ran with type %s\n", i->second, i->first.c_str());
+    }
+#endif
 
     res = pthread_barrier_destroy(&barrier);
     guarantee(res == 0, "Could not destroy barrier");
@@ -329,6 +353,9 @@ linux_thread_t::linux_thread_t(linux_thread_pool_t *parent_pool, int thread_id)
       message_hub(&queue, parent_pool, thread_id),
       timer_handler(&queue),
       do_shutdown(false)
+#ifndef NDEBUG
+      , coroutine_counts_at_shutdown(NULL)
+#endif
 {
     // Initialize the mutex which synchronizes access to the do_shutdown variable
     pthread_mutex_init(&do_shutdown_mutex, NULL);
@@ -346,6 +373,13 @@ linux_thread_t::linux_thread_t(linux_thread_pool_t *parent_pool, int thread_id)
 linux_thread_t::~linux_thread_t() {
 #ifndef LEGACY_LINUX
     timer_handler.cancel_timer(perfmon_stats_timer);
+#endif
+
+#ifndef NDEBUG
+    // Save the coroutine counts before they're deleted, should be ready at shutdown
+    rassert(coroutine_counts_at_shutdown != NULL);
+    coroutine_counts_at_shutdown->clear();
+    coro_runtime.get_coroutine_counts(coroutine_counts_at_shutdown);
 #endif
 
     guarantee(pthread_mutex_destroy(&do_shutdown_mutex) == 0);
@@ -371,8 +405,15 @@ bool linux_thread_t::should_shut_down() {
     return result;
 }
 
+#ifndef NDEBUG
+void linux_thread_t::initiate_shut_down(std::map<std::string, size_t> &coroutine_counts) {
+#else
 void linux_thread_t::initiate_shut_down() {
+#endif
     pthread_mutex_lock(&do_shutdown_mutex);
+#ifndef NDEBUG
+    coroutine_counts_at_shutdown = &coroutine_counts;   
+#endif
     do_shutdown = true;
     shutdown_notify_event.write(1);
     pthread_mutex_unlock(&do_shutdown_mutex);
