@@ -104,14 +104,15 @@ static __thread int64_t coro_selfname_counter = 0;
 #endif
 
 coro_t::coro_t() :
-#ifndef NDEBUG
-    selfname_number(get_thread_id() + MAX_THREADS * ++coro_selfname_counter),
-#endif
     stack(&coro_t::run, coro_stack_size),
     current_thread_(linux_thread_pool_t::thread_id),
     notified_(false),
     waiting_(false),
-    action_(NULL)
+    action_(NULL),
+#ifndef NDEBUG
+    selfname_number(get_thread_id() + MAX_THREADS * ++coro_selfname_counter),
+    coroutine_info(NULL)
+#endif
 {
     pm_allocated_coroutines++;
 
@@ -124,12 +125,12 @@ coro_t::coro_t() :
 }
 
 void coro_t::return_coro_to_free_list(coro_t *coro) {
-    // If the callable wrapper was allocated on the heap, delete it
-    if (coro->action_on_heap) {
-        delete coro->action_;
-    }
     coro->action_ = NULL;
     coro->action_on_heap = false;
+
+#ifndef NDEBUG
+    coro->coroutine_info = NULL;
+#endif
 
     cglobals->free_coros.push_back(coro);
 }
@@ -166,6 +167,13 @@ void coro_t::run() {
         coro->action_->run_action();
 
         rassert(coro->current_thread_ == linux_thread_pool_t::thread_id);
+
+        // Destroy the Callable object which was either allocated within the coro_t or on the heap
+        if (coro->action_on_heap) {
+            delete coro->action_;
+        } else {
+            coro->action_->~coro_action_t();
+        }
 
         /* Return the context to the free-contexts list we took it from. */
         do_on_thread(coro->home_thread(), boost::bind(coro_t::return_coro_to_free_list, coro));

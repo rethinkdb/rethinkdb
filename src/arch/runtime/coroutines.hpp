@@ -144,8 +144,6 @@ public:
         coro_t *self = coro_t::self();
         return self ? self->selfname_number : 0;
     }
-
-    int64_t selfname_number;
 #endif
 
     static void set_coroutine_stack_size(size_t size);
@@ -166,6 +164,9 @@ private:
     template<class Callable>
     static coro_t * get_and_init_coro(const Callable &action) {
         coro_t *coro = get_coro();
+#ifndef NDEBUG
+        coro->coroutine_info = __PRETTY_FUNCTION__;
+#endif
         coro->assign(action);
         return coro;
     }
@@ -193,6 +194,11 @@ private:
     bool action_on_heap;
     coro_action_t *action_;
     char action_data[CALLABLE_CUTOFF_SIZE] __attribute__((aligned(sizeof(void*))));
+
+#ifndef NDEBUG
+    int64_t selfname_number;
+    const char* coroutine_info;
+#endif
 
     DISABLE_COPYING(coro_t);
 };
