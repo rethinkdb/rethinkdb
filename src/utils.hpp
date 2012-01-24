@@ -148,6 +148,10 @@ public:
     template<class obj_t>
     explicit binary_blob_t(const obj_t &o) : storage(reinterpret_cast<const uint8_t *>(&o), reinterpret_cast<const uint8_t *>(&o + 1)) { }
 
+    binary_blob_t(const uint8_t *data, size_t size) : storage(data, data+size) { }
+    template<class InputIterator>
+    binary_blob_t(InputIterator begin, InputIterator end) : storage(begin, end) { }
+
     /* Constructor in static method form so we can use it as a functor */
     template<class obj_t>
     static binary_blob_t make(const obj_t &o) {

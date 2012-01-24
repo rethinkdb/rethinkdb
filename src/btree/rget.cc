@@ -101,27 +101,26 @@ private:
 };
 
 rget_result_t btree_rget_slice(btree_slice_t *slice, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token) {
-    slice->pre_begin_transaction_sink_.check_out(token);
-    UNUSED order_token_t begin_transaction_token = slice->pre_begin_transaction_read_mode_source_.check_in(token.tag() + "+begin_transaction_token").with_read_mode();
-
-    transaction_t *transaction = new transaction_t(slice->cache(), rwi_read);
-    boost::scoped_ptr<transaction_t> txn(transaction);
-
-    transaction->set_token(slice->post_begin_transaction_checkpoint_.check_through(token).with_read_mode());
-
-    boost::shared_ptr<value_sizer_t<memcached_value_t> > sizer = boost::make_shared<memcached_value_sizer_t>(transaction->get_cache()->get_block_size());
-    transaction->snapshot();
-
     // Get the superblock of the slice
     slice->assert_thread();
-    buf_lock_t sb_buf(transaction, SUPERBLOCK_ID, rwi_read);
-    boost::scoped_ptr<superblock_t> superblock(new real_superblock_t(sb_buf));
+
+    boost::scoped_ptr<transaction_t> txn;
+    got_superblock_t superblock;
+    get_btree_superblock_for_reading(slice, rwi_read, token, true, &superblock, txn);
+
+    return btree_rget_slice(slice, left_mode, left_key, right_mode, right_key, txn, superblock);
+}
+
+rget_result_t btree_rget_slice(btree_slice_t *slice, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key,
+    boost::scoped_ptr<transaction_t>& txn, got_superblock_t& superblock) {
+
+    boost::shared_ptr<value_sizer_t<memcached_value_t> > sizer = boost::make_shared<memcached_value_sizer_t>(txn->get_cache()->get_block_size());
 
     return boost::shared_ptr<one_way_iterator_t<key_with_data_buffer_t> >(
        new transaction_holding_iterator_t<key_with_data_buffer_t>(txn,
             new transform_iterator_t<key_value_pair_t<memcached_value_t>, key_with_data_buffer_t>(
-                boost::bind(pair_to_key_with_data_buffer, transaction, _1),
+                boost::bind(pair_to_key_with_data_buffer, txn.get(), _1),
                 new filter_iterator_t<key_value_pair_t<memcached_value_t> >(
                     is_not_expired,
-                    new slice_keys_iterator_t<memcached_value_t>(sizer, transaction, superblock, slice->home_thread(), left_mode, left_key, right_mode, right_key)))));
+                    new slice_keys_iterator_t<memcached_value_t>(sizer, txn.get(), superblock.sb, slice->home_thread(), left_mode, left_key, right_mode, right_key)))));
 }

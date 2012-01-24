@@ -4,6 +4,7 @@
 #include "errors.hpp"
 #include <boost/variant.hpp>
 
+#include "clustering/resource.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "rpc/mailbox/typed.hpp"
 

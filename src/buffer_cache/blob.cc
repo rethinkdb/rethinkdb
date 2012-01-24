@@ -135,8 +135,8 @@ ref_info_t ref_info(block_size_t block_size, const char *ref, int maxreflen) {
     int smallsize = small_size(ref, maxreflen);
     if (smallsize <= maxreflen - big_size_offset(maxreflen)) {
         ref_info_t info;
-	info.refsize = big_size_offset(maxreflen) + smallsize;
-	info.levels = 0;
+        info.refsize = big_size_offset(maxreflen) + smallsize;
+        info.levels = 0;
         return info;
     } else {
         return big_ref_info(block_size, big_offset(ref, maxreflen), big_size(ref, maxreflen), maxreflen);

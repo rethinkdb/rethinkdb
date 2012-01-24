@@ -77,7 +77,8 @@ public:
 
 bool region_is_superset(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b);
 dummy_protocol_t::region_t region_intersection(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b);
-dummy_protocol_t::region_t region_join(std::vector<dummy_protocol_t::region_t> vec) THROWS_ONLY(bad_join_exc_t, bad_region_exc_t);
+dummy_protocol_t::region_t region_join(const std::vector<dummy_protocol_t::region_t>& vec) THROWS_ONLY(bad_join_exc_t, bad_region_exc_t);
+std::vector<dummy_protocol_t::region_t> region_subtract_many(dummy_protocol_t::region_t a, const std::vector<dummy_protocol_t::region_t>& b);
 
 bool operator==(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b);
 bool operator!=(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b);

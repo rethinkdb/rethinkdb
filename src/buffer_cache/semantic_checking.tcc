@@ -82,6 +82,12 @@ void scc_buf_t<inner_cache_t>::release() {
 }
 
 template<class inner_cache_t>
+repli_timestamp_t scc_buf_t<inner_cache_t>::get_recency() {
+    rassert(inner_buf);
+    return inner_buf->get_recency();
+}
+
+template<class inner_cache_t>
 scc_buf_t<inner_cache_t>::scc_buf_t(scc_cache_t<inner_cache_t> *_cache, bool snapshotted, bool should_load)
     : snapshotted(snapshotted), should_load(should_load), has_been_changed(false), inner_buf(NULL), cache(_cache) { }
 

@@ -10,7 +10,6 @@
 #include "logger.hpp"
 
 struct tcp_conn_memcached_interface_t : public memcached_interface_t, public home_thread_mixin_t {
-
     explicit tcp_conn_memcached_interface_t(tcp_conn_t *c) : conn(c) { }
 
     tcp_conn_t *conn;

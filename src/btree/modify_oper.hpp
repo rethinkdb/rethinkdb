@@ -31,6 +31,8 @@ public:
 
 // Runs a btree_modify_oper_t.
 void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, const store_key_t &key, castime_t castime, order_token_t token);
+void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, const store_key_t &key, castime_t castime, order_token_t token,
+    transaction_t *txn, got_superblock_t& superblock);
 
 
 #endif // __BTREE_MODIFY_OPER_HPP__

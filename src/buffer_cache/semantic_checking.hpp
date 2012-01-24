@@ -40,6 +40,7 @@ public:
     void mark_deleted();
     void touch_recency(repli_timestamp_t timestamp);
     void release();
+    repli_timestamp_t get_recency();
 
 private:
     friend class scc_transaction_t<inner_cache_t>;

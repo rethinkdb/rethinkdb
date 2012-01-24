@@ -71,8 +71,6 @@ protected:
     virtual ~acquisition_waiter_callback_t() { }
 };
 
-
-
 class traversal_state_t {
 public:
     traversal_state_t(transaction_t *txn, btree_slice_t *_slice, btree_traversal_helper_t *_helper)
@@ -260,14 +258,19 @@ struct internal_node_releaser_t : public parent_releaser_t {
 };
 
 void btree_parallel_traversal(transaction_t *txn, btree_slice_t *slice, btree_traversal_helper_t *helper) {
-    traversal_state_t state(txn, slice, helper);
-    buf_lock_t superblock_buf(state.transaction_ptr, SUPERBLOCK_ID, helper->btree_superblock_mode());
+    got_superblock_t superblock;
+    get_btree_superblock(txn, helper->btree_superblock_mode(), &superblock);
+    btree_parallel_traversal(txn, superblock, slice, helper);
+}
 
-    const btree_superblock_t *superblock = reinterpret_cast<const btree_superblock_t *>(superblock_buf->get_data_read());
+void btree_parallel_traversal(transaction_t *txn, got_superblock_t &got_superblock, btree_slice_t *slice, btree_traversal_helper_t *helper) {
+    traversal_state_t state(txn, slice, helper);
+
+    buf_lock_t * superblock_buf = static_cast<real_superblock_t*>(got_superblock.sb.get())->get(); // TODO: Ugh
+    const btree_superblock_t *superblock = reinterpret_cast<const btree_superblock_t *>(superblock_buf->buf()->get_data_read());
 
     block_id_t root_id = superblock->root_block;
     rassert(root_id != SUPERBLOCK_ID);
-
 
     struct : public parent_releaser_t {
         buf_t *buf;
@@ -277,7 +280,7 @@ void btree_parallel_traversal(transaction_t *txn, btree_slice_t *slice, btree_tr
             buf->release();
         }
     } superblock_releaser;
-    superblock_releaser.buf = superblock_buf.give_up_ownership();
+    superblock_releaser.buf = superblock_buf->give_up_ownership();
     superblock_releaser.state = &state;
 
     if (root_id == NULL_BLOCK_ID) {

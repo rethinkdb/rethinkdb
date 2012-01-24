@@ -30,42 +30,68 @@ void real_superblock_t::set_root_block_id(const block_id_t new_root_block) {
 
 
 bool find_superblock_metainfo_entry(char *beg, char *end, const std::vector<char> &key, char **verybeg_ptr_out,  uint32_t **size_ptr_out, char **beg_ptr_out, char **end_ptr_out) {
-    while (beg < end) {
-        char *verybeg_ptr = beg;
-
-        uint32_t keysize;
-        rassert(end - beg >= int(sizeof(keysize)));
-        if (end - beg < int(sizeof(keysize) + key.size())) {
-            return false;
-        }
-
-        keysize = *reinterpret_cast<uint32_t *>(beg);
-        beg += sizeof(keysize);
-
-        char *keybeg = beg;
-
-        rassert(end - beg >= int64_t(keysize));
-        beg += keysize;
-        uint32_t valuesize;
-        rassert(end - beg >= int(sizeof(valuesize)));
-        uint32_t *valuesize_ptr = reinterpret_cast<uint32_t *>(beg);
-        valuesize = *valuesize_ptr;
-        beg += sizeof(valuesize);
-        rassert(end - beg >= int64_t(valuesize));
-        char *beg_ptr = beg;
-        beg += valuesize;
-
-        if (keysize == key.size() && std::equal(key.data(), key.data() + key.size(), keybeg)) {
-            *verybeg_ptr_out = verybeg_ptr;
-            *size_ptr_out = valuesize_ptr;
-            *beg_ptr_out = beg_ptr;
-            *end_ptr_out = beg;
-
+    superblock_metainfo_iterator_t::sz_t len = static_cast<superblock_metainfo_iterator_t::sz_t>(key.size());
+    for (superblock_metainfo_iterator_t kv_iter(beg, end); !kv_iter.is_end(); ++kv_iter) {
+        const superblock_metainfo_iterator_t::key_t& cur_key = kv_iter.key();
+        if (len == cur_key.first && std::equal(key.begin(), key.end(), cur_key.second) == 0) {
+            *verybeg_ptr_out = kv_iter.record_ptr();
+            *size_ptr_out = kv_iter.value_size_ptr();
+            *beg_ptr_out = kv_iter.value().second;
+            *end_ptr_out = kv_iter.next_record_ptr();
             return true;
         }
     }
-
     return false;
+}
+
+void superblock_metainfo_iterator_t::advance(char * p) {
+    char* cur = p;
+    if (cur == end) {
+        goto check_failed;
+    }
+    rassert(end - cur >= int(sizeof(sz_t)), "Superblock metainfo data is corrupted: walked past the end off the buffer");
+    if (end - cur < int(sizeof(sz_t))) {
+        goto check_failed;
+    }
+    key_size = *reinterpret_cast<sz_t*>(cur);
+    cur += sizeof(sz_t);
+
+    rassert(end - cur >= int64_t(key_size), "Superblock metainfo data is corrupted: walked past the end off the buffer");
+    if (end - cur < int64_t(key_size)) {
+        goto check_failed;
+    }
+    key_ptr = cur;
+    cur += key_size;
+
+    rassert(end - cur >= int(sizeof(sz_t)), "Superblock metainfo data is corrupted: walked past the end off the buffer");
+    if (end - cur < int(sizeof(sz_t))) {
+        goto check_failed;
+    }
+    value_size = *reinterpret_cast<sz_t*>(cur);
+    cur += sizeof(sz_t);
+
+    rassert(end - cur >= int64_t(value_size), "Superblock metainfo data is corrupted: walked past the end off the buffer");
+    if (end - cur < int64_t(value_size)) {
+        goto check_failed;
+    }
+    value_ptr = cur;
+    cur += value_size;
+
+    pos = p;
+    next_pos = cur;
+
+    return;
+
+check_failed:
+    pos = next_pos = end;
+    key_size = value_size = 0;
+    key_ptr = value_ptr = NULL;
+}
+
+void superblock_metainfo_iterator_t::operator++() {
+    if (!is_end()) {
+        advance(next_pos);
+    }
 }
 
 bool get_superblock_metainfo(transaction_t *txn, buf_t *superblock, const std::vector<char> &key, std::vector<char> &value_out) {
@@ -94,6 +120,31 @@ bool get_superblock_metainfo(transaction_t *txn, buf_t *superblock, const std::v
         return true;
     } else {
         return false;
+    }
+}
+
+void get_superblock_metainfo(transaction_t *txn, buf_t *superblock, std::vector<std::pair<std::vector<char>,std::vector<char> > > &kv_pairs_out) {
+    const btree_superblock_t *data = static_cast<const btree_superblock_t *>(superblock->get_data_read());
+
+    // The const cast is okay because we access the data with rwi_read
+    // and don't write to the blob.
+    blob_t blob(const_cast<char *>(data->metainfo_blob), btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
+    blob_acq_t acq;
+    buffer_group_t group;
+    blob.expose_all(txn, rwi_read, &group, &acq);
+
+    int64_t group_size = group.get_size();
+    std::vector<char> metainfo(group_size);
+
+    buffer_group_t group_cpy;
+    group_cpy.add_buffer(group_size, metainfo.data());
+
+    buffer_group_copy_data(&group_cpy, const_view(&group));
+
+    for (superblock_metainfo_iterator_t kv_iter(metainfo); !kv_iter.is_end(); ++kv_iter) {
+        superblock_metainfo_iterator_t::key_t key = kv_iter.key();
+        superblock_metainfo_iterator_t::value_t value = kv_iter.value();
+        kv_pairs_out.push_back(std::make_pair(std::vector<char>(key.second, key.second + key.first), std::vector<char>(value.second, value.second + value.first)));
     }
 }
 
@@ -137,9 +188,14 @@ void set_superblock_metainfo(transaction_t *txn, buf_t *superblock, const std::v
             char x[sizeof(uint32_t)];
             uint32_t y;
         } data;
+        rassert(key.size() < UINT32_MAX);
         rassert(value.size() < UINT32_MAX);
-        data.y = value.size();
 
+        data.y = key.size();
+        metainfo.insert(metainfo.end(), data.x, data.x + sizeof(uint32_t));
+        metainfo.insert(metainfo.end(), key.begin(), key.end());
+
+        data.y = value.size();
         metainfo.insert(metainfo.end(), data.x, data.x + sizeof(uint32_t));
         metainfo.insert(metainfo.end(), value.begin(), value.end());
     }
@@ -206,4 +262,10 @@ void delete_superblock_metainfo(transaction_t *txn, buf_t *superblock, const std
             buffer_group_copy_data(&write_group, const_view(&group_cpy));
         }
     }
+}
+
+void clear_superblock_metainfo(transaction_t *txn, buf_t *superblock) {
+    btree_superblock_t *data = static_cast<btree_superblock_t *>(superblock->get_data_major_write());
+    blob_t blob(data->metainfo_blob, btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
+    blob.clear(txn);
 }

@@ -157,7 +157,13 @@ void check_and_handle_underfull(value_sizer_t<Value> *sizer, transaction_t *txn,
     }
 }
 
-inline void get_btree_superblock(btree_slice_t *slice, access_t access, int expected_change_count, repli_timestamp_t tstamp, order_token_t token, got_superblock_t *got_superblock_out, boost::scoped_ptr<transaction_t>& txn_out) {
+inline void get_btree_superblock(transaction_t *txn, access_t access, got_superblock_t *got_superblock_out) {
+    buf_lock_t tmp_buf(txn, SUPERBLOCK_ID, access);
+    boost::scoped_ptr<superblock_t> tmp_sb(new real_superblock_t(tmp_buf));
+    got_superblock_out->sb.swap(tmp_sb);
+}
+
+inline void get_btree_superblock(btree_slice_t *slice, access_t access, int expected_change_count, repli_timestamp_t tstamp, order_token_t token, bool snapshotted, got_superblock_t *got_superblock_out, boost::scoped_ptr<transaction_t>& txn_out) {
     slice->assert_thread();
 
     slice->pre_begin_transaction_sink_.check_out(token);
@@ -168,15 +174,22 @@ inline void get_btree_superblock(btree_slice_t *slice, access_t access, int expe
     txn_out.reset(new transaction_t(slice->cache(), access, expected_change_count, tstamp));
     txn_out->set_token(slice->post_begin_transaction_checkpoint_.check_through(begin_transaction_token));
 
-    buf_lock_t tmp_buf(txn_out.get(), SUPERBLOCK_ID, access);
-    boost::scoped_ptr<superblock_t> tmp_sb(new real_superblock_t(tmp_buf));
-    got_superblock_out->sb.swap(tmp_sb);
+    if (snapshotted) {
+        txn_out->snapshot();
+    }
+
+    get_btree_superblock(txn_out.get(), access, got_superblock_out);
 }
 
-inline void get_btree_superblock(btree_slice_t *slice, access_t access, order_token_t token, got_superblock_t *got_superblock_out, boost::scoped_ptr<transaction_t>& txn_out) {
-    rassert(is_read_mode(access));
-    get_btree_superblock(slice, access, 0, repli_timestamp_t::distant_past, token, got_superblock_out, txn_out);
+inline void get_btree_superblock(btree_slice_t *slice, access_t access, int expected_change_count, repli_timestamp_t tstamp, order_token_t token, got_superblock_t *got_superblock_out, boost::scoped_ptr<transaction_t>& txn_out) {
+    get_btree_superblock(slice, access, expected_change_count, tstamp, token, false, got_superblock_out, txn_out);
 }
+
+inline void get_btree_superblock_for_reading(btree_slice_t *slice, access_t access, order_token_t token, bool snapshotted, got_superblock_t *got_superblock_out, boost::scoped_ptr<transaction_t>& txn_out) {
+    rassert(is_read_mode(access));
+    get_btree_superblock(slice, access, 0, repli_timestamp_t::distant_past, token, snapshotted, got_superblock_out, txn_out);
+}
+
 
 template <class Value>
 void find_keyvalue_location_for_write(transaction_t *txn, got_superblock_t *got_superblock, btree_key_t *key, keyvalue_location_t<Value> *keyvalue_location_out) {
@@ -367,7 +380,7 @@ transaction_t *value_txn_t<Value>::get_txn() {
 template <class Value>
 void get_value_read(btree_slice_t *slice, btree_key_t *key, order_token_t token, keyvalue_location_t<Value> *kv_location_out, boost::scoped_ptr<transaction_t>& txn_out) {
     got_superblock_t got_superblock;
-    get_btree_superblock(slice, rwi_read, token, &got_superblock, txn_out);
+    get_btree_superblock_for_reading(slice, rwi_read, token, false, &got_superblock, txn_out);
 
     find_keyvalue_location_for_read(txn_out.get(), &got_superblock, key, kv_location_out);
 }

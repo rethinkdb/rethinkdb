@@ -32,7 +32,6 @@ There are three ways a `listener_t` can go wrong:
 
 template<class protocol_t>
 class listener_t {
-
 public:
     listener_t(
             mailbox_manager_t *mm,
@@ -135,7 +134,6 @@ public:
         `backfill_failed_cond`. One or the other must be done before we return
         from the constructor. */
         if (registration_result_cond.get_value()) {
-
             state_timestamp_t streaming_begin_point =
                 registration_result_cond.get_value()->broadcaster_begin_timestamp;
             std::vector<std::pair<typename protocol_t::region_t, version_range_t> > backfill_end_point =

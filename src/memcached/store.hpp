@@ -41,14 +41,11 @@ struct mutation_t {
 };
 
 struct mutation_result_t {
-
     typedef boost::variant<get_result_t, set_result_t, delete_result_t, incr_decr_result_t, append_prepend_result_t> result_variant_t;
     result_variant_t result;
 
     mutation_result_t() { }
-
-    template<class T>
-    mutation_result_t(const T &r) : result(r) { }  // NOLINT(runtime/explicit)
+    explicit mutation_result_t(const result_variant_t& r) : result(r) { }
 };
 
 class set_store_interface_t {
@@ -75,7 +72,6 @@ otherwise this would defeat the purpose of being deterministic because they woul
 arbitrary order.*/
 
 class set_store_t {
-
 public:
     virtual mutation_result_t change(const mutation_t&, castime_t, order_token_t) = 0;
 
