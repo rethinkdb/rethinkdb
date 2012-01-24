@@ -731,9 +731,9 @@ linux_tcp_listener_t::linux_tcp_listener_t(
     res = bind(sock.get(), reinterpret_cast<sockaddr *>(&serv_addr), sizeof(serv_addr));
     if (res != 0) {
         if (errno == EADDRINUSE) {
-            throw address_in_use_exc_t();
+            throw address_in_use_exc_t("localhost", port);
         } else {
-            crash("Could not bind socket: %s\n", strerror(errno));
+            crash("Could not bind socket at localhost:%i - %s\n", port, strerror(errno));
         }
     }
 
