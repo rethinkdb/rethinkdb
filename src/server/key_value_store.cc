@@ -180,7 +180,7 @@ btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_c
                      &per_slice_config, per_slice_delete_queue_limit, _1));
 
     /* Initialize the timestampers to the timestamp value on disk */
-    sequence_group_t seq_group;
+    sequence_group_t seq_group(btree_static_config.n_slices);
     repli_timestamp_t t = get_replication_clock(&seq_group);
     set_timestampers(t);
 }

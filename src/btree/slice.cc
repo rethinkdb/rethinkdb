@@ -43,7 +43,7 @@ void btree_slice_t::create(translator_serializer_t *serializer,
     /* Cache is in a scoped pointer because it may be too big to allocate on the coroutine stack */
     boost::scoped_ptr<cache_t> cache(new cache_t(serializer, &startup_dynamic_config, slice_num));
 
-    sequence_group_t seq_group;
+    sequence_group_t seq_group(slice_num + 1);
 
     /* Initialize the btree superblock and the delete queue */
     boost::shared_ptr<transactor_t> txor(new transactor_t(cache.get(), &seq_group, rwi_write, 1, repli_timestamp_t::distant_past));
