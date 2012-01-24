@@ -4,8 +4,8 @@ LIBS = -lpthread -ldl
 SRC = utils.cc random.cc protocol.cc protocols/sqlite3.c
 HEADERS = $(wildcard *.hpp) $(wildcard */*.hpp)
 
-MYSQL ?= 0
-LIBMEMCACHED ?= 0
+MYSQL ?= 1
+LIBMEMCACHED ?= 1
 LIBGSL ?= 1
 TAGS=.tags
 
@@ -17,7 +17,7 @@ endif
 
 ifeq ($(LIBMEMCACHED),1)
     INCLUDE += -I../../lib/libmemcached
-    LIBS += -lmemcached
+    LIBS += -lmemcached -L/usr/local/lib
     DEFINES += -DUSE_LIBMEMCACHED
 endif
 
