@@ -869,10 +869,27 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, int _expec
 {
     block_pm_duration start_timer(&pm_transactions_starting);
 
+    // HISTORICAL COMMENTS:
+
+    // Writes and reads must separately have their order preserved,
+    // but we're expecting, in the case of throttling, for writes to
+    // be throttled while reads are not.
+
+    // We think there is a bug in throttling that could reorder writes
+    // when throttling _ends_.  Reordering can also happen if
+    // begin_transaction sometimes returns NULL and other times does
+    // not, because then in one case cb.join() needs to spin around
+    // the event loop.  So there's an obvious problem with the code
+    // below, if we did not have coro_fifo_acq_t protecting it.
+
+    // MODERN COMMENTS:
+
+    // Reads are now coro-fifoed in the same path that writes are.
+    // This is dumb because we really just want reads coming from the
+    // same _connection_ to be coro-fifoed in the same path that
+    // writes are.
     coro_fifo_acq_t acq;
-    if (is_write_mode(access)) {
-        acq.enter(&cache->co_begin_coro_fifo());
-    }
+    acq.enter(&cache->co_begin_coro_fifo());
 
     rassert(access == rwi_read || access == rwi_read_sync || access == rwi_write);
     cache->assert_thread();
@@ -884,7 +901,7 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, int _expec
     pm_transactions_active.begin(&start_time);
 }
 
-/* This version is only for read transactions. */
+/* This version is only for read transactions from the writeback! */
 mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, UNUSED bool dont_assert_about_shutting_down) :
     cache(_cache),
     expected_change_count(0),
@@ -895,12 +912,34 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, UNUSED boo
 {
     block_pm_duration start_timer(&pm_transactions_starting);
     rassert(access == rwi_read || access == rwi_read_sync);
+
+    coro_fifo_acq_t acq;
+    acq.enter(&cache->co_begin_coro_fifo());
+
     cache->assert_thread();
     rassert(dont_assert_about_shutting_down || !cache->shutting_down);
     cache->num_live_transactions++;
     cache->writeback.begin_transaction(this);
     pm_transactions_active.begin(&start_time);
 }
+
+mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, UNUSED i_am_writeback_t i_am_writeback) :
+    cache(_cache),
+    expected_change_count(0),
+    access(_access),
+    recency_timestamp(repli_timestamp_t::distant_past),
+    snapshot_version(mc_inner_buf_t::faux_version_id),
+    snapshotted(false)
+{
+    block_pm_duration start_timer(&pm_transactions_starting);
+    rassert(access == rwi_read || access == rwi_read_sync);
+
+    cache->assert_thread();
+    cache->num_live_transactions++;
+    cache->writeback.begin_transaction(this);
+    pm_transactions_active.begin(&start_time);
+}
+
 
 void mc_transaction_t::register_buf_snapshot(mc_inner_buf_t *inner_buf, mc_inner_buf_t::buf_snapshot_t *snap) {
     assert_thread();

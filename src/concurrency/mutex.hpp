@@ -11,7 +11,7 @@ class mutex_t {
 public:
     class acq_t {
     public:
-        acq_t() : lock_(NULL) { }
+        acq_t() : lock_(NULL), eager_(false) { }
         explicit acq_t(mutex_t *l, bool eager = false);
         ~acq_t();
         void reset();

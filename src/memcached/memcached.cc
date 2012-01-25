@@ -9,6 +9,8 @@
 #include <boost/make_shared.hpp>
 #include <boost/optional.hpp>
 
+#include "concurrency/coro_fifo.hpp"
+#include "concurrency/mutex.hpp"
 #include "concurrency/semaphore.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/drain_semaphore.hpp"
@@ -32,8 +34,8 @@ static const char *crlf = "\r\n";
 struct txt_memcached_handler_t : public home_thread_mixin_t {
 
     txt_memcached_handler_t(memcached_interface_t *_interface, get_store_t *_get_store,
-            set_store_interface_t *_set_store, int max_concurrent_queries_per_connection)
-        : interface(_interface), get_store(_get_store), set_store(_set_store), requests_out_sem(max_concurrent_queries_per_connection)
+            set_store_interface_t *_set_store, int _max_concurrent_queries_per_connection)
+        : interface(_interface), get_store(_get_store), set_store(_set_store), max_concurrent_queries_per_connection(_max_concurrent_queries_per_connection)
     { }
 
     memcached_interface_t *interface;
@@ -41,25 +43,7 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
     get_store_t *get_store;
     set_store_interface_t *set_store;
 
-    // Used to limit number of concurrent noreply requests
-    semaphore_t requests_out_sem;
-
-    /* If a client sends a bunch of noreply requests and then a 'quit', we cannot delete ourself
-    immediately because the noreply requests still hold the 'requests_out' semaphore. We use this
-    semaphore to figure out when we can delete ourself. */
-    drain_semaphore_t drain_semaphore;
-
-    // Used to implement throttling. Write requests should call begin_write_command() and
-    // end_write_command() to make sure that not too many write requests are sent
-    // concurrently.
-    void begin_write_command() {
-        drain_semaphore.acquire();
-        requests_out_sem.co_lock();
-    }
-    void end_write_command() {
-        drain_semaphore.release();
-        requests_out_sem.unlock();
-    }
+    const int max_concurrent_queries_per_connection;
 
     void write(const std::string& buffer) {
         write(buffer.data(), buffer.length());
@@ -180,6 +164,83 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
 
 
 perfmon_duration_sampler_t
+    pm_conns_reading("conns_reading", secs_to_ticks(1), false),
+    pm_conns_writing("conns_writing", secs_to_ticks(1), false),
+    pm_conns_acting("conns_acting", secs_to_ticks(1), false);
+
+
+class pipeliner_t {
+public:
+    pipeliner_t(txt_memcached_handler_t *rh) : requests_out_sem(rh->max_concurrent_queries_per_connection), rh_(rh) { }
+    ~pipeliner_t() { }
+private:
+    friend class pipeliner_acq_t;
+    coro_fifo_t fifo;
+
+    // Used to limit number of concurrent requests
+    semaphore_t requests_out_sem;
+
+    mutex_t mutex;
+    txt_memcached_handler_t *rh_;
+
+    DISABLE_COPYING(pipeliner_t);
+};
+
+class pipeliner_acq_t {
+public:
+    pipeliner_acq_t(pipeliner_t *pipeliner)
+        : pipeliner_(pipeliner)
+#ifndef NDEBUG
+        , state_(untouched)
+#endif
+    { }
+    ~pipeliner_acq_t() {
+        rassert(state_ == has_ended_write);
+    }
+
+    void begin_operation() {
+        rassert(state_ == untouched);
+        DEBUG_ONLY(state_ = has_begun_operation);
+        fifo_acq_.enter(&pipeliner_->fifo);
+    }
+
+    void done_argparsing() {
+        rassert(state_ == has_begun_operation);
+        DEBUG_ONLY(state_ = has_done_argparsing);
+        pipeliner_->requests_out_sem.co_lock();
+    }
+
+    void begin_write() {
+        rassert(state_ == has_done_argparsing);
+        DEBUG_ONLY(state_ = has_begun_write);
+        fifo_acq_.leave();
+        mutex_acq_.reset(&pipeliner_->mutex);
+    }
+
+    void end_write() {
+        rassert(state_ == has_begun_write);
+        DEBUG_ONLY(state_ = has_ended_write);
+
+        block_pm_duration flush_timer(&pm_conns_writing);
+        pipeliner_->rh_->flush_buffer();
+        flush_timer.end();
+
+        mutex_acq_.reset();
+        pipeliner_->requests_out_sem.unlock();
+    }
+
+private:
+    pipeliner_t *pipeliner_;
+    mutex_t::acq_t mutex_acq_;
+    coro_fifo_acq_t fifo_acq_;
+#ifndef NDEBUG
+    enum { untouched, has_begun_operation, has_done_argparsing, has_begun_write, has_ended_write } state_;
+#endif
+    DISABLE_COPYING(pipeliner_acq_t);
+};
+
+
+perfmon_duration_sampler_t
     pm_cmd_set("cmd_set", secs_to_ticks(1.0), false),
     pm_cmd_get("cmd_get", secs_to_ticks(1.0), false),
     pm_cmd_rget("cmd_rget", secs_to_ticks(1.0), false);
@@ -205,7 +266,11 @@ void do_one_get(txt_memcached_handler_t *rh, bool with_cas, get_t *gets, int i, 
     }
 }
 
-void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv, order_token_t token) {
+void do_get(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool with_cas, int argc, char **argv, order_token_t token) {
+    // We should already be spawned within a coroutine.
+    pipeliner_acq_t pipeliner_acq(pipeliner);
+    pipeliner_acq.begin_operation();
+
     rassert(argc >= 1);
     rassert(strcmp(argv[0], "get") == 0 || strcmp(argv[0], "gets") == 0);
 
@@ -217,25 +282,30 @@ void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv, o
     for (int i = 1; i < argc; i++) {
         gets.push_back(get_t());
         if (!str_to_key(argv[i], &gets.back().key)) {
+            pipeliner_acq.done_argparsing();
+            pipeliner_acq.begin_write();
             rh->client_error_bad_command_line_format();
+            pipeliner_acq.end_write();
             return;
         }
         pm_get_key_size.record((float) gets.back().key.size);
     }
     if (gets.size() == 0) {
+        pipeliner_acq.done_argparsing();
+        pipeliner_acq.begin_write();
         rh->error();
+        pipeliner_acq.end_write();
         return;
     }
 
-    // We have to wait on noreply storage operations to finish first.
-    // If we don't, terrible stuff can happen (like outdated values getting returned
-    // to clients, riots breaking out all around the world, power plants exploding...)
-    rh->drain_semaphore.drain();
+    pipeliner_acq.done_argparsing();
 
     block_pm_duration get_timer(&pm_cmd_get);
 
     /* Now that we're sure they're all valid, send off the requests */
     pmap(gets.size(), boost::bind(&do_one_get, rh, with_cas, gets.data(), _1, token));
+
+    pipeliner_acq.begin_write();
 
     /* Check if they hit a gated_get_store_t. */
     if (gets.size() > 0 && gets[0].res.is_not_allowed) {
@@ -243,39 +313,43 @@ void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv, o
         for (int i = 0; i < (int)gets.size(); i++) {
             rassert(gets[i].res.is_not_allowed);
         }
+
         rh->client_error_not_allowed(with_cas);
-        return;
-    }
 
-    /* Handle the results in sequence */
-    for (int i = 0; i < (int)gets.size(); i++) {
-        get_result_t &res = gets[i].res;
+    } else {
 
-        rassert(!res.is_not_allowed);
+        /* Handle the results in sequence */
+        for (int i = 0; i < (int)gets.size(); i++) {
+            get_result_t &res = gets[i].res;
 
-        /* If res.value is NULL that means the value was not found so we don't write
-        anything */
-        if (res.value) {
-            /* If the write half of the connection has been closed, there's no point in trying
-            to send anything */
-            if (rh->is_write_open()) {
-                const store_key_t &key = gets[i].key;
+            rassert(!res.is_not_allowed);
 
-                /* Write the "VALUE ..." header */
-                if (with_cas) {
-                    rh->write_value_header(key.contents, key.size, res.flags, res.value->size(), res.cas);
-                } else {
-                    rassert(res.cas == 0);
-                    rh->write_value_header(key.contents, key.size, res.flags, res.value->size());
+            /* If res.value is NULL that means the value was not found so we don't write
+               anything */
+            if (res.value) {
+                /* If the write half of the connection has been closed, there's no point in trying
+                   to send anything */
+                if (rh->is_write_open()) {
+                    const store_key_t &key = gets[i].key;
+
+                    /* Write the "VALUE ..." header */
+                    if (with_cas) {
+                        rh->write_value_header(key.contents, key.size, res.flags, res.value->size(), res.cas);
+                    } else {
+                        rassert(res.cas == 0);
+                        rh->write_value_header(key.contents, key.size, res.flags, res.value->size());
+                    }
+
+                    rh->write_from_data_provider(res.value.get());
+                    rh->write_crlf();
                 }
-
-                rh->write_from_data_provider(res.value.get());
-                rh->write_crlf();
             }
         }
+
+        rh->write_end();
     }
 
-    rh->write_end();
+    pipeliner_acq.end_write();
 };
 
 static const char *rget_null_key = "null";
@@ -307,9 +381,17 @@ static bool rget_parse_bound(char *flag, char *key, rget_bound_mode_t *mode_out,
 }
 
 perfmon_duration_sampler_t rget_iteration_next("rget_iteration_next", secs_to_ticks(1));
-void do_rget(txt_memcached_handler_t *rh, int argc, char **argv, order_token_t token) {
+
+void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, char **argv, order_token_t token) {
+    // We should already be spawned within a coroutine.
+    pipeliner_acq_t pipeliner_acq(pipeliner);
+    pipeliner_acq.begin_operation();
+
     if (argc != 6) {
+        pipeliner_acq.done_argparsing();
+        pipeliner_acq.begin_write();
         rh->client_error_bad_command_line_format();
+        pipeliner_acq.end_write();
         return;
     }
 
@@ -318,8 +400,11 @@ void do_rget(txt_memcached_handler_t *rh, int argc, char **argv, order_token_t t
     store_key_t left_key, right_key;
 
     if (!rget_parse_bound(argv[3], argv[1], &left_mode, &left_key) ||
-        !rget_parse_bound(argv[4], argv[2], &right_mode, &right_key)) {\
+        !rget_parse_bound(argv[4], argv[2], &right_mode, &right_key)) {
+        pipeliner_acq.done_argparsing();
+        pipeliner_acq.begin_write();
         rh->client_error_bad_command_line_format();
+        pipeliner_acq.end_write();
         return;
     }
 
@@ -327,40 +412,44 @@ void do_rget(txt_memcached_handler_t *rh, int argc, char **argv, order_token_t t
     char *invalid_char;
     uint64_t max_items = strtoull_strict(argv[5], &invalid_char, 10);
     if (*invalid_char != '\0') {
+        pipeliner_acq.done_argparsing();
+        pipeliner_acq.begin_write();
         rh->client_error_bad_command_line_format();
+        pipeliner_acq.end_write();
         return;
     }
 
-    // We have to wait on noreply storage operations to finish first.
-    // If we don't, terrible stuff can happen (like outdated values getting returned
-    // to clients, riots breaking out all around the world, power plants exploding...)
-    rh->drain_semaphore.drain();
+    pipeliner_acq.done_argparsing();
 
     block_pm_duration rget_timer(&pm_cmd_rget);
 
     rget_result_t results_iterator = rh->get_store->rget(left_mode, left_key, right_mode, right_key, token);
 
+    pipeliner_acq.begin_write();
+
     /* Check if the query hit a gated_get_store_t */
     if (!results_iterator) {
         rh->client_error_not_allowed(false);
-        return;
+    } else {
+
+        boost::optional<key_with_data_buffer_t> pair;
+        uint64_t count = 0;
+        ticks_t next_time;
+        while (++count <= max_items && (rget_iteration_next.begin(&next_time), pair = results_iterator->next())) {
+            rget_iteration_next.end(&next_time);
+            const key_with_data_buffer_t& kv = pair.get();
+
+            const std::string& key = kv.key;
+            const boost::intrusive_ptr<data_buffer_t>& dp = kv.value_provider;
+
+            rh->write_value_header(key.c_str(), key.length(), kv.mcflags, dp->size());
+            rh->write_from_data_provider(dp.get());
+            rh->write_crlf();
+        }
+
+        rh->write_end();
     }
-
-    boost::optional<key_with_data_buffer_t> pair;
-    uint64_t count = 0;
-    ticks_t next_time;
-    while (++count <= max_items && (rget_iteration_next.begin(&next_time), pair = results_iterator->next())) {
-        rget_iteration_next.end(&next_time);
-        const key_with_data_buffer_t& kv = pair.get();
-
-        const std::string& key = kv.key;
-        const boost::intrusive_ptr<data_buffer_t>& dp = kv.value_provider;
-
-        rh->write_value_header(key.c_str(), key.length(), kv.mcflags, dp->size());
-        rh->write_from_data_provider(dp.get());
-        rh->write_crlf();
-    }
-    rh->write_end();
+    pipeliner_acq.end_write();
 }
 
 /* "set", "add", "replace", "cas", "append", and "prepend" command logic */
@@ -383,12 +472,14 @@ struct storage_metadata_t {
 };
 
 void run_storage_command(txt_memcached_handler_t *rh,
+                         pipeliner_acq_t *pipeliner_acq_raw,
                          storage_command_t sc,
                          store_key_t key,
                          const boost::intrusive_ptr<data_buffer_t>& data,
                          storage_metadata_t metadata,
                          bool noreply,
                          order_token_t token) {
+    boost::scoped_ptr<pipeliner_acq_t> pipeliner_acq(pipeliner_acq_raw);
 
     block_pm_duration set_timer(&pm_cmd_set);
 
@@ -421,6 +512,9 @@ void run_storage_command(txt_memcached_handler_t *rh,
 
         set_result_t res = rh->set_store->sarc(key, data, metadata.mcflags, metadata.exptime,
                                                add_policy, replace_policy, metadata.unique, token);
+
+        pipeliner_acq->begin_write();
+
 
         if (!noreply) {
             switch (res) {
@@ -461,6 +555,8 @@ void run_storage_command(txt_memcached_handler_t *rh,
                 sc == append_command ? append_prepend_APPEND : append_prepend_PREPEND,
                 key, data, token);
 
+        pipeliner_acq->begin_write();
+
         if (!noreply) {
             switch (res) {
             case apr_success: rh->writef("STORED\r\n"); break;
@@ -476,24 +572,41 @@ void run_storage_command(txt_memcached_handler_t *rh,
         }
     }
 
-    rh->end_write_command();
+    pipeliner_acq->end_write();
+
+    /* If the key-value store never read our value for whatever reason, then the
+    memcached_data_provider_t's destructor will read it off the socket and signal
+    read_value_promise here */
 }
 
-void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, char **argv, order_token_t token) {
+void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_command_t sc, int argc, char **argv, order_token_t token) {
+    // This is _not_ spawned yet.
+
+    pipeliner_acq_t *pipeliner_acq = new pipeliner_acq_t(pipeliner);
+    pipeliner_acq->begin_operation();
+
     char *invalid_char;
 
     /* cmd key flags exptime size [noreply]
-    OR "cas" key flags exptime size cas [noreply] */
+       OR "cas" key flags exptime size cas [noreply] */
     if ((sc != cas_command && (argc != 5 && argc != 6)) ||
         (sc == cas_command && (argc != 6 && argc != 7))) {
+        pipeliner_acq->done_argparsing();
+        pipeliner_acq->begin_write();
         rh->error();
+        pipeliner_acq->end_write();
+        delete pipeliner_acq;
         return;
     }
 
     /* First parse the key */
     store_key_t key;
     if (!str_to_key(argv[1], &key)) {
+        pipeliner_acq->done_argparsing();
+        pipeliner_acq->begin_write();
         rh->client_error_bad_command_line_format();
+        pipeliner_acq->end_write();
+        delete pipeliner_acq;
         return;
     }
     pm_storage_key_size.record((float) key.size);
@@ -501,17 +614,25 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
     /* Next parse the flags */
     mcflags_t mcflags = strtoul_strict(argv[2], &invalid_char, 10);
     if (*invalid_char != '\0') {
+        pipeliner_acq->done_argparsing();
+        pipeliner_acq->begin_write();
         rh->client_error_bad_command_line_format();
+        pipeliner_acq->end_write();
+        delete pipeliner_acq;
         return;
     }
 
     /* Now parse the expiration time */
     exptime_t exptime = strtoul_strict(argv[3], &invalid_char, 10);
     if (*invalid_char != '\0') {
+        pipeliner_acq->done_argparsing();
+        pipeliner_acq->begin_write();
         rh->client_error_bad_command_line_format();
+        pipeliner_acq->end_write();
+        delete pipeliner_acq;
         return;
     }
-    
+
     // This is protocol.txt, verbatim:
     // Some commands involve a client sending some kind of expiration time
     // (relative to an item or to an operation requested by the client) to
@@ -523,10 +644,10 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
     // that, the server will consider it to be real Unix time value rather
     // than an offset from current time.
     if (exptime <= 60*60*24*30 && exptime > 0) {
-	// If 60*60*24*30 < exptime <= time(NULL), that's fine, the
-	// btree code needs to handle that case gracefully anyway
-	// (since the clock can tick in the middle of an insert
-	// anyway...).  We have tests in expiration.py.
+        // If 60*60*24*30 < exptime <= time(NULL), that's fine, the
+        // btree code needs to handle that case gracefully anyway
+        // (since the clock can tick in the middle of an insert
+        // anyway...).  We have tests in expiration.py.
         exptime += time(NULL);
     }
 
@@ -534,7 +655,11 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
     size_t value_size = strtoul_strict(argv[4], &invalid_char, 10);
     // Check for signed 32 bit max value for Memcached compatibility...
     if (*invalid_char != '\0' || value_size >= (1u << 31) - 1) {
+        pipeliner_acq->done_argparsing();
+        pipeliner_acq->begin_write();
         rh->client_error_bad_command_line_format();
+        pipeliner_acq->end_write();
+        delete pipeliner_acq;
         return;
     }
     pm_storage_value_size.record((float) value_size);
@@ -544,7 +669,11 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
     if (sc == cas_command) {
         unique = strtoull_strict(argv[5], &invalid_char, 10);
         if (*invalid_char != '\0') {
+            pipeliner_acq->done_argparsing();
+            pipeliner_acq->begin_write();
             rh->client_error_bad_command_line_format();
+            pipeliner_acq->end_write();
+            delete pipeliner_acq;
             return;
         }
     }
@@ -584,25 +713,20 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
     to `boost::bind()` */
     storage_metadata_t metadata(mcflags, exptime, unique);
 
-    /* We must do this out here instead of in run_storage_command() so that we stop reading off
-    the socket if it blocks */
-    rh->begin_write_command();
+    pipeliner_acq->done_argparsing();
 
-    if (noreply) {
-        coro_t::spawn_now(boost::bind(&run_storage_command, rh, sc, key, dp, metadata, true, token));
-    } else {
-        run_storage_command(rh, sc, key, dp, metadata, false, token);
-    }
+    coro_t::spawn_now(boost::bind(&run_storage_command, rh, pipeliner_acq, sc, key, dp, metadata, noreply, token));
 }
 
 /* "incr" and "decr" commands */
-void run_incr_decr(txt_memcached_handler_t *rh, store_key_t key, uint64_t amount, bool incr, bool noreply, order_token_t token) {
+void run_incr_decr(txt_memcached_handler_t *rh, pipeliner_acq_t *pipeliner_acq, store_key_t key, uint64_t amount, bool incr, bool noreply, order_token_t token) {
     block_pm_duration set_timer(&pm_cmd_set);
 
     incr_decr_result_t res = rh->set_store->incr_decr(
         incr ? incr_decr_INCR : incr_decr_DECR,
         key, amount, token);
 
+    pipeliner_acq->begin_write();
     if (!noreply) {
         switch (res.res) {
             case incr_decr_result_t::idr_success:
@@ -621,20 +745,30 @@ void run_incr_decr(txt_memcached_handler_t *rh, store_key_t key, uint64_t amount
         }
     }
 
-    rh->end_write_command();
+    pipeliner_acq->end_write();
 }
 
-void do_incr_decr(txt_memcached_handler_t *rh, bool i, int argc, char **argv, order_token_t token) {
+void do_incr_decr(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool i, int argc, char **argv, order_token_t token) {
+    // We should already be spawned in a coroutine.
+    pipeliner_acq_t pipeliner_acq(pipeliner);
+    pipeliner_acq.begin_operation();
+
     /* cmd key delta [noreply] */
     if (argc != 3 && argc != 4) {
+        pipeliner_acq.done_argparsing();
+        pipeliner_acq.begin_write();
         rh->error();
+        pipeliner_acq.end_write();
         return;
     }
 
     /* Parse key */
     store_key_t key;
     if (!str_to_key(argv[1], &key)) {
+        pipeliner_acq.done_argparsing();
+        pipeliner_acq.begin_write();
         rh->client_error_bad_command_line_format();
+        pipeliner_acq.end_write();
         return;
     }
 
@@ -642,7 +776,10 @@ void do_incr_decr(txt_memcached_handler_t *rh, bool i, int argc, char **argv, or
     char *invalid_char;
     uint64_t delta = strtoull_strict(argv[2], &invalid_char, 10);
     if (*invalid_char != '\0') {
+        pipeliner_acq.done_argparsing();
+        pipeliner_acq.begin_write();
         rh->client_error_bad_command_line_format();
+        pipeliner_acq.end_write();
         return;
     }
 
@@ -659,23 +796,20 @@ void do_incr_decr(txt_memcached_handler_t *rh, bool i, int argc, char **argv, or
         noreply = false;
     }
 
-    rh->begin_write_command();
+    pipeliner_acq.done_argparsing();
 
-    if (noreply) {
-        coro_t::spawn_now(boost::bind(&run_incr_decr, rh, key, delta, i, true, token));
-    } else {
-        run_incr_decr(rh, key, delta, i, false, token);
-    }
+    run_incr_decr(rh, &pipeliner_acq, key, delta, i, noreply, token);
 }
 
 /* "delete" commands */
 
-void run_delete(txt_memcached_handler_t *rh, store_key_t key, bool noreply, order_token_t token) {
+void run_delete(txt_memcached_handler_t *rh, pipeliner_acq_t *pipeliner_acq, store_key_t key, bool noreply, order_token_t token) {
 
     block_pm_duration set_timer(&pm_cmd_set);
 
     delete_result_t res = rh->set_store->delete_key(key, token);
 
+    pipeliner_acq->begin_write();
     if (!noreply) {
         switch (res) {
             case dr_deleted:
@@ -691,20 +825,30 @@ void run_delete(txt_memcached_handler_t *rh, store_key_t key, bool noreply, orde
         }
     }
 
-    rh->end_write_command();
+    pipeliner_acq->end_write();
 }
 
-void do_delete(txt_memcached_handler_t *rh, int argc, char **argv, order_token_t token) {
+void do_delete(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, char **argv, order_token_t token) {
+    // This should already be spawned within a coroutine.
+    pipeliner_acq_t pipeliner_acq(pipeliner);
+    pipeliner_acq.begin_operation();
+
     /* "delete" key [a number] ["noreply"] */
     if (argc < 2 || argc > 4) {
+        pipeliner_acq.done_argparsing();
+        pipeliner_acq.begin_write();
         rh->error();
+        pipeliner_acq.end_write();
         return;
     }
 
     /* Parse key */
     store_key_t key;
     if (!str_to_key(argv[1], &key)) {
+        pipeliner_acq.done_argparsing();
+        pipeliner_acq.begin_write();
         rh->client_error_bad_command_line_format();
+        pipeliner_acq.end_write();
         return;
     }
     pm_delete_key_size.record((float) key.size);
@@ -722,22 +866,22 @@ void do_delete(txt_memcached_handler_t *rh, int argc, char **argv, order_token_t
                   || (argc == 4 && (zero && noreply));
 
         if (!valid) {
-            if (!noreply)
+            pipeliner_acq.done_argparsing();
+            pipeliner_acq.begin_write();
+            if (!noreply) {
                 rh->client_error_bad_command_line_format();
+            }
+            pipeliner_acq.end_write();
             return;
         }
     } else {
         noreply = false;
     }
 
-    rh->begin_write_command();
+    pipeliner_acq.done_argparsing();
 
-    if (noreply) {
-        coro_t::spawn_now(boost::bind(&run_delete, rh, key, true, token));
-    } else {
-        run_delete(rh, key, false, token);
-    }
-};
+    run_delete(rh, &pipeliner_acq, key, noreply, token);
+}
 
 /* "stats" command */
 
@@ -764,6 +908,7 @@ std::string memcached_stats(int argc, char **argv, bool include_internal) {
     return res;
 }
 
+
 // Control for showing internal stats.
 struct memcached_stats_control_t : public control_t {
     memcached_stats_control_t() :
@@ -773,56 +918,83 @@ struct memcached_stats_control_t : public control_t {
     }
 } memcached_stats_control;
 
-perfmon_duration_sampler_t
-    pm_conns_reading("conns_reading", secs_to_ticks(1), false),
-    pm_conns_writing("conns_writing", secs_to_ticks(1), false),
-    pm_conns_acting("conns_acting", secs_to_ticks(1), false);
-
 #ifndef NDEBUG
-void do_quickset(txt_memcached_handler_t *rh, std::vector<char*> args) {
+void do_quickset(txt_memcached_handler_t *rh, pipeliner_acq_t *pipeliner_acq, std::vector<char*> args) {
     if (args.size() < 2 || args.size() % 2 == 0) {
         // The connection will be closed if more than a megabyte or so is sent
         // over without a newline, so we don't really need to worry about large
         // values.
+        pipeliner_acq->done_argparsing();
+        pipeliner_acq->begin_write();
         rh->write("CLIENT_ERROR Usage: .s k1 v1 [k2 v2...] (no whitespace in values)\r\n");
+        pipeliner_acq->end_write();
         return;
     }
 
+    std::vector<std::string> args_copy(args.begin(), args.end());
+
+    pipeliner_acq->done_argparsing();
+    pipeliner_acq->begin_write();
     for (size_t i = 1; i < args.size(); i += 2) {
         store_key_t key;
-        if (!str_to_key(args[i], &key)) {
-            rh->writef("CLIENT_ERROR Invalid key %s\r\n", args[i]);
+        if (!str_to_key(args_copy[i].c_str(), &key)) {
+            rh->writef("CLIENT_ERROR Invalid key %s\r\n", args_copy[i].c_str());
+            pipeliner_acq->end_write();
             return;
         }
-        boost::intrusive_ptr<data_buffer_t> value = data_buffer_t::create(strlen(args[i + 1]));
-        memcpy(value->buf(), args[i + 1], value->size());
+        boost::intrusive_ptr<data_buffer_t> value = data_buffer_t::create(args_copy[i + 1].size());
+        memcpy(value->buf(), args_copy[i + 1].data(), value->size());
 
         set_result_t res = rh->set_store->sarc(key, value, 0, 0, add_policy_yes, replace_policy_yes, 0, order_token_t::ignore);
 
         if (res == sr_stored) {
-            rh->writef("STORED key %s\r\n", args[i]);
+            rh->writef("STORED key %s\r\n", args_copy[i].c_str());
         } else {
-            rh->writef("MYSTERIOUS_ERROR key %s\r\n", args[i]);
+            rh->writef("MYSTERIOUS_ERROR key %s\r\n", args_copy[i].c_str());
         }
     }
+    pipeliner_acq->end_write();
 }
 
-bool parse_debug_command(txt_memcached_handler_t *rh, std::vector<char*> args) {
+bool parse_debug_command(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, std::vector<char*> args) {
+    pipeliner_acq_t pipeliner_acq(pipeliner);
+    pipeliner_acq.begin_operation();
+
     if (args.size() < 1) {
+        pipeliner_acq.done_argparsing();
+        pipeliner_acq.begin_write();
+        pipeliner_acq.end_write();
         return false;
     }
 
     // .h is an alias for "rdb hash"
     if (!strcmp(args[0], ".h") && args.size() >= 2) {
-        std::vector<char *> ctrl_args = args;
+        // We can't use our reference to args after we've called
+        // done_argparsing().
+        std::vector<std::string> args_copy(args.begin(), args.end());
+
+        std::vector<char *> ctrl_args;
+        for (int i = 0, e = args_copy.size(); i < e; ++i) {
+            ctrl_args.push_back(const_cast<char *>(args_copy[i].c_str()));
+        }
+
         static char hashstring[] = "hash";
         ctrl_args[0] = hashstring;
-        rh->write(control_t::exec(ctrl_args.size(), ctrl_args.data()));
+
+        pipeliner_acq.done_argparsing();
+        std::string control_result = control_t::exec(ctrl_args.size(), ctrl_args.data());
+
+        pipeliner_acq.begin_write();
+        rh->write(control_result);
+        pipeliner_acq.end_write();
         return true;
     } else if (!strcmp(args[0], ".s")) {
-        do_quickset(rh, args);
+        do_quickset(rh, &pipeliner_acq, args);
         return true;
     } else {
+        pipeliner_acq.done_argparsing();
+        pipeliner_acq.begin_write();
+        pipeliner_acq.end_write();
         return false;
     }
 }
@@ -844,13 +1016,9 @@ void handle_memcache(memcached_interface_t *interface, get_store_t *get_store,
     /* Declared outside the while-loop so it doesn't repeatedly reallocate its buffer */
     std::vector<char> line;
 
-    while (true) {
+    pipeliner_t pipeliner(&rh);
 
-        /* Flush if necessary (no reason to do this the first time around, but it's easier
-        to put it here than after every thing that could need to flush */
-        block_pm_duration flush_timer(&pm_conns_writing);
-        rh.flush_buffer();
-        flush_timer.end();
+    while (true) {
 
         /* Read a line off the socket */
         block_pm_duration read_timer(&pm_conns_reading);
@@ -873,71 +1041,126 @@ void handle_memcache(memcached_interface_t *interface, get_store_t *get_store,
         }
 
         if (args.size() == 0) {
+            pipeliner_acq_t pipeliner_acq(&pipeliner);
+            pipeliner_acq.begin_operation();
+            pipeliner_acq.done_argparsing();
+            pipeliner_acq.begin_write();
             rh.error();
+            pipeliner_acq.end_write();
             continue;
         }
 
         /* Dispatch to the appropriate subclass */
 	order_token_t token = order_source.check_in(std::string("handle_memcache+") + args[0]);
         if (!strcmp(args[0], "get")) {    // check for retrieval commands
-            do_get(&rh, false, args.size(), args.data(), token.with_read_mode());
+            coro_t::spawn_now(boost::bind(do_get, &rh, &pipeliner, false, args.size(), args.data(), token.with_read_mode()));
         } else if (!strcmp(args[0], "gets")) {
-            do_get(&rh, true, args.size(), args.data(), token);
+            coro_t::spawn_now(boost::bind(do_get, &rh, &pipeliner, true, args.size(), args.data(), token));
         } else if (!strcmp(args[0], "rget")) {
-            do_rget(&rh, args.size(), args.data(), token.with_read_mode());
+            coro_t::spawn_now(boost::bind(do_rget, &rh, &pipeliner, args.size(), args.data(), token.with_read_mode()));
         } else if (!strcmp(args[0], "set")) {     // check for storage commands
-            do_storage(&rh, set_command, args.size(), args.data(), token);
+            do_storage(&rh, &pipeliner, set_command, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "add")) {
-            do_storage(&rh, add_command, args.size(), args.data(), token);
+            do_storage(&rh, &pipeliner, add_command, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "replace")) {
-            do_storage(&rh, replace_command, args.size(), args.data(), token);
+            do_storage(&rh, &pipeliner, replace_command, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "append")) {
-            do_storage(&rh, append_command, args.size(), args.data(), token);
+            do_storage(&rh, &pipeliner, append_command, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "prepend")) {
-            do_storage(&rh, prepend_command, args.size(), args.data(), token);
+            do_storage(&rh, &pipeliner, prepend_command, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "cas")) {
-            do_storage(&rh, cas_command, args.size(), args.data(), token);
+            do_storage(&rh, &pipeliner, cas_command, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "delete")) {
-            do_delete(&rh, args.size(), args.data(), token);
+            coro_t::spawn_now(boost::bind(do_delete, &rh, &pipeliner, args.size(), args.data(), token));
         } else if (!strcmp(args[0], "incr")) {
-            do_incr_decr(&rh, true, args.size(), args.data(), token);
+            coro_t::spawn_now(boost::bind(do_incr_decr, &rh, &pipeliner, true, args.size(), args.data(), token));
         } else if (!strcmp(args[0], "decr")) {
-            do_incr_decr(&rh, false, args.size(), args.data(), token);
+            coro_t::spawn_now(boost::bind(do_incr_decr, &rh, &pipeliner, false, args.size(), args.data(), token));
         } else if (!strcmp(args[0], "quit")) {
+            pipeliner_acq_t pipeliner_acq(&pipeliner);
+            pipeliner_acq.begin_operation();
+
             // Make sure there's no more tokens (the kind in args, not
             // order tokens)
             if (args.size() > 1) {
+                // We block everybody, but who cares?
+                pipeliner_acq.done_argparsing();
+                pipeliner_acq.begin_write();
                 rh.error();
+                pipeliner_acq.end_write();
             } else {
+                // It's very important that we actually block everybody here :)
+                pipeliner_acq.done_argparsing();
+                pipeliner_acq.begin_write();
+                pipeliner_acq.end_write();
                 break;
             }
         } else if (!strcmp(args[0], "stats") || !strcmp(args[0], "stat")) {
-            rh.write(memcached_stats(args.size(), args.data(), false)); // Only shows "public" stats; to see all stats, use "rdb stats".
+            pipeliner_acq_t pipeliner_acq(&pipeliner);
+            pipeliner_acq.begin_operation();
+
+            std::string the_stats = memcached_stats(args.size(), args.data(), false);
+
+            // We block everybody before writing.  I don't think we care.
+            pipeliner_acq.done_argparsing();
+            pipeliner_acq.begin_write();
+            rh.write(the_stats); // Only shows "public" stats; to see all stats, use "rdb stats".
+            pipeliner_acq.end_write();
         } else if (!strcmp(args[0], "help")) {
+            pipeliner_acq_t pipeliner_acq(&pipeliner);
+            pipeliner_acq.begin_operation();
+
             // Slightly hacky -- just treat this as a control. This assumes that a control named "help" exists (which it does).
-            rh.write(control_t::exec(args.size(), args.data()));
+            std::string help_text = control_t::exec(args.size(), args.data());
+
+            pipeliner_acq.done_argparsing();
+            pipeliner_acq.begin_write();
+            rh.write(help_text);
+            pipeliner_acq.end_write();
         } else if(!strcmp(args[0], "rethinkdb") || !strcmp(args[0], "rdb")) {
-            rh.write(control_t::exec(args.size() - 1, args.data() + 1));
+            pipeliner_acq_t pipeliner_acq(&pipeliner);
+            pipeliner_acq.begin_operation();
+
+            std::string control_text = control_t::exec(args.size() - 1, args.data() + 1);
+
+            pipeliner_acq.done_argparsing();
+            pipeliner_acq.begin_write();
+            rh.write(control_text);
+            pipeliner_acq.end_write();
         } else if (!strcmp(args[0], "version")) {
+            pipeliner_acq_t pipeliner_acq(&pipeliner);
+            pipeliner_acq.begin_operation();
+
+            pipeliner_acq.done_argparsing();
+            pipeliner_acq.begin_write();
             if (args.size() == 1) {
                 rh.writef("VERSION rethinkdb-%s\r\n", RETHINKDB_VERSION);
             } else {
                 rh.error();
             }
+            pipeliner_acq.end_write();
 #ifndef NDEBUG
-        } else if (!parse_debug_command(&rh, args)) {
+        } else if (!parse_debug_command(&rh, &pipeliner, args)) {
 #else
         } else {
 #endif
+            pipeliner_acq_t pipeliner_acq(&pipeliner);
+            pipeliner_acq.begin_operation();
+            pipeliner_acq.done_argparsing();
+            pipeliner_acq.begin_write();
             rh.error();
+            pipeliner_acq.end_write();
         }
 
         action_timer.end();
     }
 
-    /* Acquire the drain semaphore to make sure that anything that might refer to us is
-    done by now */
-    rh.drain_semaphore.drain();
+    // Make sure anything that would be running has finished.
+    pipeliner_acq_t pipeliner_acq(&pipeliner);
+    pipeliner_acq.begin_operation();
+    pipeliner_acq.done_argparsing();
+    pipeliner_acq.begin_write();
+    pipeliner_acq.end_write();
 
     logDBG("Closed memcached stream: %p\n", coro_t::self());
 }

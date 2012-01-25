@@ -1,7 +1,7 @@
 #include "arch/runtime/runtime.hpp"
 #include "concurrency/mutex.hpp"
 
-mutex_t::acq_t::acq_t(mutex_t *l, bool eager) : lock_(NULL) {
+mutex_t::acq_t::acq_t(mutex_t *l, bool eager) : lock_(NULL), eager_(false) {
     reset(l, eager);
 }
 
