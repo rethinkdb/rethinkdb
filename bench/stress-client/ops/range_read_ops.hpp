@@ -18,7 +18,8 @@ percentage_range_read_op_t and calibrated_range_read_op_t. */
 
 struct base_range_read_op_t : public op_t {
 
-    base_range_read_op_t(protocol_t *p, distr_t c, std::string prefix) :
+    base_range_read_op_t(protocol_t *p, distr_t c, std::string prefix, query_stats_t *qs) :
+            op_t(qs),
             proto(p), count(c), prefix(prefix) {
     }
     protocol_t *proto;
@@ -96,8 +97,8 @@ in the range. */
 
 struct percentage_range_read_op_t : public base_range_read_op_t {
 
-    percentage_range_read_op_t(protocol_t *p, distr_t dpb, distr_t c, std::string prefix = "") :
-            base_range_read_op_t(p, c, prefix), database_percentage(dpb) {
+    percentage_range_read_op_t(protocol_t *p, distr_t dpb, distr_t c, std::string prefix, query_stats_t *qs) :
+            base_range_read_op_t(p, c, prefix, qs), database_percentage(dpb) {
         if (dpb.max > 100) {
             fprintf(stderr, "It doesn't make sense to talk about doing a range get on "
                 "'more than 100%%' of the database.\n");
@@ -106,9 +107,31 @@ struct percentage_range_read_op_t : public base_range_read_op_t {
     }
     distr_t database_percentage;
 
-    void run() {
+    void start() {
         int percentage = xrandom(database_percentage.min, database_percentage.max);
         do_rget(percentage);
+    }
+
+    bool end_maybe() {
+        return true;
+    }
+
+    void end() { }
+};
+
+class percentage_range_read_op_generator_t : public op_generator_t {
+public:
+    percentage_range_read_op_generator_t(protocol_t *p, distr_t dpb, distr_t c, std::string prefix = "")
+        : p(p), dpb(dpb), c(c), prefix(prefix)
+    { }
+
+    protocol_t *p;
+    distr_t dpb;
+    distr_t c;
+    std::string prefix;
+
+    op_t *generate() {
+        return new percentage_range_read_op_t(p, dpb, c, prefix, &query_stats);
     }
 };
 
@@ -126,18 +149,44 @@ model it has access to and then multiplying by the model multiplier. */
 struct calibrated_range_read_op_t : public base_range_read_op_t {
 
     calibrated_range_read_op_t(existence_tracker_t *et, int mul,
-            protocol_t *p, distr_t rsize, distr_t c, std::string prefix = "") :
-            base_range_read_op_t(p, c, prefix), et(et), model_multiplier(mul), range_size(rsize) {
+            protocol_t *p, distr_t rsize, distr_t c, std::string prefix,
+            query_stats_t *qs) :
+            base_range_read_op_t(p, c, prefix, qs), et(et), model_multiplier(mul), range_size(rsize) {
     }
     existence_tracker_t *et;
     int model_multiplier;
     distr_t range_size;
 
-    void run() {
+    void start() {
         int rs = xrandom(range_size.min, range_size.max);
         int keys_in_db = et->key_count() * model_multiplier;
         float percentage = float(rs) / keys_in_db;
         do_rget(percentage);
+    }
+
+    bool end_maybe() {
+        return true;
+    }
+
+    void end() {
+    }
+};
+
+class calibrated_range_read_op_generator_t : public op_generator_t {
+    calibrated_range_read_op_generator_t(existence_tracker_t *et, int mul,
+            protocol_t *p, distr_t rsize, distr_t c, std::string prefix = "")
+        : et(et), mul(mul), p(p), rsize(rsize), c(c), prefix(prefix)
+    { }
+
+    existence_tracker_t *et;
+    int mul;
+    protocol_t *p;
+    distr_t rsize;
+    distr_t c;
+    std::string prefix;
+
+    op_t *generate() {
+        return new calibrated_range_read_op_t(et, mul, p, rsize, c, prefix, &query_stats);
     }
 };
 

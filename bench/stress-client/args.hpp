@@ -160,7 +160,7 @@ public:
         : clients(64), duration(10000000L, duration_t::queries_t), op_ratios(op_ratios_t()),
             keys(distr_t(8, 16)), values(distr_t(8, 128)),
             batch_factor(distr_t(1, 16)), range_size(distr_t(16, 128)),
-            distr(rnd_uniform_t), mu(1)
+            distr(rnd_uniform_t), mu(1), pipeline_limit(0)
         {
             latency_file[0] = 0;
             worst_latency_file[0] = 0;
@@ -198,6 +198,7 @@ public:
             printf("normal\n");
             printf("MU................%d\n", mu);
         }
+        printf("Pipeline-limit....%d\n", pipeline_limit);
         printf("\n");
     }
 
@@ -219,6 +220,7 @@ public:
     char out_file[MAX_FILE];
     char in_file[MAX_FILE];
     char db_file[MAX_FILE];
+    int pipeline_limit;
 };
 
 /* List supported protocols. */
@@ -297,6 +299,7 @@ void usage(const char *name) {
     printf("\t-f, --db-file\n\t\tIf present drop kv pairs into sqlite and verify correctness on read.\n");
     printf("\t-r, --distr\n\t\tA key access distrubution. Possible values: 'uniform' (default), and 'normal'.\n");
     printf("\t-m, --mu\n\t\tControl normal distribution. Percent of the database size within one standard\n\t\tdistribution (defaults to 1%%).\n");
+    printf("\t-p, --pipeline\n\t\tMaximum number of operations that may be queued 0 means never allow operations to be queued\n");
 
     printf("\nAdditional information:\n");
     printf("\t\tDISTR format describes a range and can be specified in as NUM or MIN-MAX.\n\n");
@@ -344,8 +347,10 @@ void parse(config_t *config, int argc, char *argv[]) {
                 {"db-file",            required_argument, 0, 'f'},
                 {"distr",              required_argument, 0, 'r'},
                 {"mu",                 required_argument, 0, 'm'},
+                {"pipeline",           required_argument, 0, 'p'},
                 {"client-suffix",      no_argument, 0, 'a'},
                 {"help",               no_argument, &do_help, 1},
+                {"pipeline",           no_argument, &do_help, 1},
                 {0, 0, 0, 0}
             };
 
@@ -429,6 +434,9 @@ void parse(config_t *config, int argc, char *argv[]) {
         case 'm':
             config->mu = atoi(optarg);
             break;
+        case 'p':
+            config->pipeline_limit = atoi(optarg);
+            break;
         case 'h':
             usage(argv[0]);
             break;
@@ -441,6 +449,21 @@ void parse(config_t *config, int argc, char *argv[]) {
 
     if (config->servers.size() == 0) { // No server specified -- add one to be used as the default.
         config->servers.push_back(server_t());
+    }
+
+    //validation:
+
+    if (config->pipeline_limit > 0) {
+        if (config->op_ratios.deletes > 0 ||
+            config->op_ratios.updates > 0 ||
+            config->op_ratios.inserts > 0 ||
+            config->op_ratios.range_reads > 0 ||
+            config->op_ratios.appends > 0 ||
+            config->op_ratios.prepends > 0 ||
+            config->op_ratios.verifies > 0 ) {
+            fprintf(stderr, "Pipelining cannot be used with any operations other than reads.\n");
+            usage(argv[0]);
+        }
     }
 }
 
