@@ -75,8 +75,8 @@ struct op_t {
  * instance of the op with its own state that can be put in the pipeline queue.
  * */
 struct op_generator_t {
-    /* this method follows the creation paradigm. The caller is responsible for
-     * deleting the op_t * that is returned. */
+    /* note this method does not follow the create paradigm, do not free the
+     * results */
     virtual op_t *generate() = 0;
     query_stats_t query_stats;
 };

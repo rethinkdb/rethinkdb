@@ -121,17 +121,27 @@ struct percentage_range_read_op_t : public base_range_read_op_t {
 
 class percentage_range_read_op_generator_t : public op_generator_t {
 public:
-    percentage_range_read_op_generator_t(protocol_t *p, distr_t dpb, distr_t c, std::string prefix = "")
-        : p(p), dpb(dpb), c(c), prefix(prefix)
-    { }
+    percentage_range_read_op_generator_t(int max_concurrent_opts, protocol_t *p, distr_t dpb, distr_t c, std::string prefix = "")
+        : head(0)
+    { 
+        opts.resize(max_concurrent_opts, percentage_range_read_op_t(p, dpb, c, prefix, &query_stats));
+    }
 
+private:
+    std::vector<percentage_range_read_op_t> opts;
+    int head;
+
+public:
     protocol_t *p;
     distr_t dpb;
     distr_t c;
     std::string prefix;
 
     op_t *generate() {
-        return new percentage_range_read_op_t(p, dpb, c, prefix, &query_stats);
+        op_t *res =  &opts[head];
+        head++;
+        head %= opts.size();
+        return res;
     }
 };
 
@@ -173,20 +183,23 @@ struct calibrated_range_read_op_t : public base_range_read_op_t {
 };
 
 class calibrated_range_read_op_generator_t : public op_generator_t {
-    calibrated_range_read_op_generator_t(existence_tracker_t *et, int mul,
+    calibrated_range_read_op_generator_t(int max_concurrent_opts, existence_tracker_t *et, int mul,
             protocol_t *p, distr_t rsize, distr_t c, std::string prefix = "")
-        : et(et), mul(mul), p(p), rsize(rsize), c(c), prefix(prefix)
-    { }
+        : head(0)
+    { 
+        opts.resize(max_concurrent_opts, calibrated_range_read_op_t(et, mul, p, rsize, c, prefix, &query_stats));
+    }
 
-    existence_tracker_t *et;
-    int mul;
-    protocol_t *p;
-    distr_t rsize;
-    distr_t c;
-    std::string prefix;
+private:
+    std::vector<calibrated_range_read_op_t> opts;
+    int head;
 
+public:
     op_t *generate() {
-        return new calibrated_range_read_op_t(et, mul, p, rsize, c, prefix, &query_stats);
+        op_t *res =  &opts[head];
+        head++;
+        head %= opts.size();
+        return res;
     }
 };
 

@@ -114,7 +114,6 @@ protected:
      * return NULL and result_length will be set to 0 */
 
     const char* maybe_read_line(size_t &result_length) {
-        fprintf(stdout, "mrl buffer: %.*s\n", (int) buffer.bytes_in_buffer, buffer.buffer.data() + buffer.first_buffer_byte);
         /* first do a non-blocking read */
         buffer.buffer.resize(std::max(buffer.first_buffer_byte + buffer.bytes_in_buffer + 512, buffer.buffer.size()), '\0');
         const ssize_t bytes_read = recv(socketfd, buffer.buffer.data() + buffer.first_buffer_byte + buffer.bytes_in_buffer, buffer.buffer.size() - (buffer.first_buffer_byte + buffer.bytes_in_buffer), MSG_DONTWAIT);
@@ -127,7 +126,6 @@ protected:
         } else {
             //Normal succesful read in which we got some data
             buffer.bytes_in_buffer += bytes_read;
-            //fprintf(stdout, "buffer:\n %.*s\n\n", (int) buffer.bytes_in_buffer, &buffer[buffer.first_buffer_byte]);
         }
 
         /* Now check to see if we've got a CRLF */

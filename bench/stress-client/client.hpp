@@ -98,14 +98,12 @@ private:
 
                 outstanding_ops.push(op_to_do);
 
-                /* while (!outstanding_ops.empty() && outstanding_ops.front()->end_maybe()) {
-                    delete outstanding_ops.front();
+                while (!outstanding_ops.empty() && outstanding_ops.front()->end_maybe()) {
                     outstanding_ops.pop();
-                } */
+                }
 
                 while (outstanding_ops.size() > pipeline_limit) {
                     outstanding_ops.front()->end();
-                    delete outstanding_ops.front();
                     outstanding_ops.pop();
                 }
 
