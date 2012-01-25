@@ -3,6 +3,7 @@
 
 #include "concurrency/pubsub.hpp"
 #include "utils.hpp"
+#include <boost/function.hpp>
 
 /* A `signal_t` is a boolean variable, combined with a way to be notified if
 that boolean variable becomes true. Typically you will construct a concrete

@@ -1,6 +1,7 @@
 #ifndef __ARCH_RUNTIME_THREAD_POOL_HPP__
 #define __ARCH_RUNTIME_THREAD_POOL_HPP__
 
+#include <map>
 #include <pthread.h>
 #include "config/args.hpp"
 #include "arch/runtime/event_queue.hpp"
@@ -19,6 +20,10 @@ when a coro_runtime_t exists. It exists to take advantage of RAII. */
 struct coro_runtime_t {
     coro_runtime_t();
     ~coro_runtime_t();
+
+#ifndef NDEBUG
+    void get_coroutine_counts(std::map<std::string, size_t> *dest);
+#endif
 };
 
 
@@ -141,7 +146,11 @@ public:
 
     void pump();   // Called by the event queue
     bool should_shut_down();   // Called by the event queue
+#ifndef NDEBUG
+    void initiate_shut_down(std::map<std::string, size_t> &coroutine_counts); // Can be called from any thread
+#else
     void initiate_shut_down(); // Can be called from any thread
+#endif
     void on_event(int events);
 
     rng_t thread_local_rng;
@@ -150,6 +159,10 @@ private:
     volatile bool do_shutdown;
     pthread_mutex_t do_shutdown_mutex;
     system_event_t shutdown_notify_event;
+
+#ifndef NDEBUG
+    std::map<std::string, size_t> *coroutine_counts_at_shutdown;
+#endif
 };
 
 #endif /* __ARCH_RUNTIME_THREAD_POOL_HPP__ */
