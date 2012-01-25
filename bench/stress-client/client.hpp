@@ -95,12 +95,7 @@ private:
 
             try {
                 op_to_do->start();
-
                 outstanding_ops.push(op_to_do);
-
-                while (!outstanding_ops.empty() && outstanding_ops.front()->end_maybe()) {
-                    outstanding_ops.pop();
-                }
 
                 while (outstanding_ops.size() > pipeline_limit) {
                     outstanding_ops.front()->end();
