@@ -332,7 +332,7 @@ public:
         rassert(state_ == has_begun_operation);
         DEBUG_ONLY(state_ = has_done_argparsing);
 
-        pipeliner_->argparsing_mutex.unlock(true);
+        pipeliner_->argparsing_mutex.unlock(false);
         pipeliner_->requests_out_sem.co_lock();
     }
 
