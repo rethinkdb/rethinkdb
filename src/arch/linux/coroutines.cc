@@ -57,8 +57,6 @@ void callable_action_wrapper_t::run() {
 }
 
 extern "C" {
-//    typedef void *lw_ucontext_t; /* A stack pointer into a stack that has all the other context registers. */
-
     void lightweight_makecontext(lw_ucontext_t *ucp, void (*func) (void), void *stack, size_t stack_size) {
         uint64_t *sp; /* A pointer into the stack. */
 
