@@ -1,13 +1,61 @@
+Use cases
+=========
+
+Startup:
+    1. Blueprint everywhere is empty. No data is present anywhere.
+    2. A blueprint is issued that designates one node as primary and two others
+        as secondaries.
+    3. The primary determines that since everything has version 0, it doesn't
+        need to do a backfill. So it sets up a broadcaster_t, etc.
+    4. The secondaries see that the primary is up and join it.
+
+Add secondary:
+    1. A primary and some secondaries are up.
+    2. A blueprint is issued that designates an additional node as a secondary.
+    3. The additional node sees that the primary is up and joins it.
+
+Swap primary and secondary:
+    1. A primary and some secondaries are up.
+    2. A blueprint is issued that designates the old primary as a secondary and
+        designates one of the old secondaries as a primary.
+    3. The old primary sees that the new primary is live-tracking it, so it
+        shuts itself off.
+    4. The new primary sees that the old primary is lost, so it sets up a
+        `broadcaster_t`, etc.
+    5. The other secondaries see that the old primary is lost.
+    6. The old primary and the other secondaries see that the primary is up and
+        join it.
+
+Move secondary:
+    1. A primary and some secondaries are up.
+    2. A blueprint is issued that removes an old secondary and adds a new one.
+    3. The new secondary sees that the primary is up and joins it.
+    4. The old secondary waits until the new secondary is up, then shuts itself
+        off and deletes the data.
+
+Swap primary and unused node:
+    1. A primary and some secondaries are up.
+    2. A blueprint is issued that designates a new node as the primary.
+    3. The new primary sees that it's out-of-date and live-tracks the primary.
+    4. When the new primary has caught up with the old primary, the old primary
+        sees and shuts itself off.
+    5. The new primary sees that the old primary is lost, so it sets up a
+        `broadcaster_t`, etc.
+
 Directory
 =========
 
-data Version = Stable VersionRange | Tracking BranchID | Transitional
-data Directory = Directory {
-    directoryVersion :: Map Key Version,
-    directoryBlueprint :: Blueprint,
-    
-    }
+Purposes:
+  * Advertising/finding broadcaster business cards
+  * Advertising/finding backfiller business cards
+  * Determining who to backfill from
+  * Synchronization
 
+Guarantees
+==========
+
+If A and B are each in the other's blueprint scope, they won't both have active
+masters.
 
 Procedure
 =========

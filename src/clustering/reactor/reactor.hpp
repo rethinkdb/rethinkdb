@@ -2,6 +2,7 @@
 #define __CLUSTERING_REACTOR_REACTOR_HPP__
 
 #include "clustering/reactors/metadata.hpp"
+#include "clustering/reactors/delayed_pump.hpp"
 
 template<class protocol_t>
 class reactor_t {
@@ -30,16 +31,21 @@ private:
 
     /* `pump()` spawns activities in an attempt to comply with `blueprint`. It
     doesn't terminate activities; activities are responsible for terminating
-    themselves when they no longer match `blueprint`.
+    themselves when they no longer match `blueprint`. Don't call it directly;
+    instead, call `need_to_pump()`. */ 
+    void pump(auto_drainer_t::lock_t keepalive) THROWS_NOTHING;
 
-    `pump()` never blocks. It is called at startup and in response to changes in
-    `blueprint` or activities terminating. */
-    void pump() THROWS_NOTHING;
+    /* `schedule_pump()` makes sure that `pump()` gets called in the near
+    future. It does not block. */
+    void schedule_pump() THROWS_NOTHING;
 
-    /* `pump()` spawns `do_role()` in a coroutine; `do_role()` calls
-    `do_role_*()`. */
-    void do_role(typename protocol_t::region_t region,
-            typename blueprint_t<protocol_t>::role_t role,
+    /* `spawn_activity()` spawns `run_activity()` in a coroutine. It also takes
+    care of recording that the activity is running in `active_regions`. */
+    void spawn_activity(typename protocol_t::region_t region,
+            const boost::function<void(store_view_t *, signal_t *)> &activity,
+            mutex_assertion_t *proof_of_activity_mutex) THROWS_NOTHING;
+    void run_activity(typename protocol_t::region_t region,
+            const boost::function<void(store_view_t *, signal_t *)> &activity,
             auto_drainer_t::lock_t keepalive) THROWS_NOTHING;
 
     /* Returns `true` if any instance of `do_role()` is currently running in any
@@ -47,40 +53,11 @@ private:
     `do_role()` overlap each other. */
     bool region_is_active(typename protocol_t::region_t r) THROWS_NOTHING;
 
-    /* `do_role_nothing()` runs for regions where we are not the primary or a
-    secondary. If the blueprint is not completely implemented yet, it sets up a
-    backfiller until the blueprint is complete, and then erases any data in the
-    region and waits. */
-    void do_role_nothing(typename protocol_t::region_t region, store_view_t<protocol_t> *subview, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
-
-    /* `do_role_primary()` runs for regions where we are supposed to be the
-    primary. It backfills from a conveniently available backfiller and then
-    sets up a broadcaster, master, listener, and replier. */
-    void do_role_primary(typename protocol_t::region_t region, store_view_t<protocol_t> *subview, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
-
-    /* `do_role_secondary()` runs for regions where we are supposed to be a
-    secondary. If a primary is available, it tries to track it. Otherwise, it
-    offers backfills. */
-    void do_role_secondary(typename protocol_t::region_t region, store_view_t<protocol_t> *subview, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
-
-    /* Sends messages to all peers asking them to confirm that their blueprint
-    says we are supposed to take the given role for the given region. Returns
-    `false` if any deny it or cannot be reached. */
-    bool confirm_with_peers(typename protocol_t::region_t region,
-            typename blueprint_t<protocol_t>::role_t role,
-            signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
-
-    void confirm_with_peer(peer_id_t *peer,
-            typename protocol_t::region_t region,
-            typename blueprint_t<protocol_t>::role_t role,
-            signal_t *interruptor,
-            bool *reply_out) THROWS_NOTHING;
-
-    /* This is called when another peer requests confirmation. */
-    void on_confirmation_request(typename protocol_t::region_t,
-            peer_id_t peer,
-            typename blueprint_t<protocol_t>::role_t,
-            async_mailbox_t<void(bool)>::address_t) THROWS_NOTHING;
+    void reset_region(typename protocol_t::region_t region, store_view_t *sub_store, signal_t *interruptor) THROWS_NOTHING;
+    void be_primary(typename protocol_t::region_t region, store_view_t *sub_store, signal_t *interruptor) THROWS_NOTHING;
+    void be_secondary(typename protocol_t::region_t region, store_view_t *sub_store, signal_t *interruptor) THROWS_NOTHING;
+    void backfill_in(typename protocol_t::region_t region, store_view_t *sub_store, clone_ptr_t<directory_single_rview_t<backfiller_business_card_t<protocol_t> > > backfiller, signal_t *interruptor) THROWS_NOTHING;
+    void offer_backfills(typename protocol_t::region_t region, store_view_t *sub_store, signal_t *interruptor) THROWS_NOTHING;
 
     mailbox_manager_t *mailbox_manager;
     clone_ptr_t<directory_readwrite_view_t<reactor_business_card_t<protocol_t> > > reactor_directory;
@@ -90,7 +67,8 @@ private:
     typename protocol_t::store_file_t store_file;
 
     backfiller_t<protocol_t> backfiller;
-    typename reactor_business_card_t<protocol_t>::confirmation_mailbox_t confirmation_mailbox;
+
+    delayed_pump_t pumper;
 
     std::set<typename protocol_t::region_t> active_regions;
 
@@ -100,6 +78,7 @@ private:
     auto_drainer_t drainer;
 
     watchable_subscription_t blueprint_subscription;
+    directory_read_service_t::whole_directory_subscription_t directory_subscription;
 };
 
 #endif /* __CLUSTERING_REACTOR_REACTOR_HPP__ */

@@ -57,7 +57,6 @@ public:
     to confirm that their blueprint is compatible with ours. */
     typedef async_mailbox_t<void(
             typename protocol_t::region_t,
-            peer_id_t peer,
             typename blueprint_t<protocol_t>::role_t,
             async_mailbox_t<void(bool)>::address_t
             )> confirmation_mailbox_t;
