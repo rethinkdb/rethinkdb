@@ -150,6 +150,12 @@ class mutex_assertion_t {
 public:
     class acq_t {
     public:
+        class temporary_release_t {
+        public:
+            temporary_release_t(acq_t *) { }
+        private:
+            DISABLE_COPYING(temporary_release_t);
+        };
         acq_t() { }
         explicit acq_t(mutex_assertion_t *) { }
         void reset(mutex_assertion_t * = NULL) { }
