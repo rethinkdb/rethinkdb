@@ -54,7 +54,7 @@ struct cross_thread_limited_fifo_t :
 	do_pusher_t(cross_thread_limited_fifo_t *parent, const value_t& value)
 	    : parent_(parent), value_(value) { }
 
-	void operator()() {
+	void operator()() const {
 	    parent_->do_push(value_);
 	}
     };
@@ -96,7 +96,7 @@ private:
     struct do_done_caller_t {
 	cross_thread_limited_fifo_t *parent_;
 	explicit do_done_caller_t(cross_thread_limited_fifo_t *parent) : parent_(parent) { }
-	void operator()() { parent_->do_done(); }
+	void operator()() const { parent_->do_done(); }
     };
 
     value_t produce_next_value() {
