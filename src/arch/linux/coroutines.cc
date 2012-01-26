@@ -26,8 +26,38 @@ size_t coro_stack_size = COROUTINE_STACK_SIZE; //Default, setable by command-lin
 /* We have a custom implementation of swapcontext() that doesn't swap the floating-point
 registers, the SSE registers, or the signal mask. This is for performance reasons. */
 
+callable_action_wrapper_t::callable_action_wrapper_t() :
+    action_on_heap(false),
+    action_(NULL)
+{ }
+
+callable_action_wrapper_t::~callable_action_wrapper_t()
+{
+    if(action_ != NULL) {
+        reset();
+    }
+}
+
+void callable_action_wrapper_t::reset() {
+    rassert(action_ != NULL);
+
+    if (action_on_heap) {
+        delete action_;
+        action_ = NULL;
+        action_on_heap = false;
+    } else {
+        action_->~callable_action_t();
+        action_ = NULL;
+    }
+}
+
+void callable_action_wrapper_t::run() {
+    rassert(action_ != NULL);
+    action_->run_action();
+}
+
 extern "C" {
-    typedef void *lw_ucontext_t; /* A stack pointer into a stack that has all the other context registers. */
+//    typedef void *lw_ucontext_t; /* A stack pointer into a stack that has all the other context registers. */
 
     void lightweight_makecontext(lw_ucontext_t *ucp, void (*func) (void), void *stack, size_t stack_size) {
         uint64_t *sp; /* A pointer into the stack. */
@@ -102,26 +132,6 @@ extern "C" {
     );
 }
 
-/* coro_context_t is only used internally within the coroutine logic. For performance reasons,
-we recycle stacks and ucontexts; the coro_context_t represents a stack and a ucontext. */
-
-struct coro_context_t : public intrusive_list_node_t<coro_context_t> {
-    coro_context_t();
-
-    /* The run() function is at the bottom of every coro_context_t's call stack. It repeatedly
-    waits for a coroutine to run and then calls that coroutine's run() method. */
-    static void run();
-
-    ~coro_context_t();
-
-    /* The guts of the coro_context_t */
-    void *stack;
-    lw_ucontext_t env; // A pointer into the stack.
-#ifdef VALGRIND
-    unsigned int valgrind_stack_id;
-#endif
-};
-
 /* The coroutine we're currently in, if any. NULL if we are in the main context. */
 static __thread coro_t *current_coro = NULL;
 
@@ -131,13 +141,13 @@ static __thread lw_ucontext_t scheduler;
 /* The previous context. */
 static __thread coro_t *prev_coro = NULL;
 
-/* A list of coro_context_t objects that are not in use. */
-static __thread intrusive_list_t<coro_context_t> *free_contexts = NULL;
+/* A list of coro_t objects that are not in use. */
+static __thread intrusive_list_t<coro_t> *free_coros = NULL;
 
 #ifndef NDEBUG
 
 /* An integer counting the number of coros on this thread */
-static __thread int coro_context_count = 0;
+static __thread int coro_count = 0;
 
 /* These variables are used in the implementation of `ASSERT_NO_CORO_WAITING` and
 `ASSERT_FINITE_CORO_WAITING`. They record the number of things that are currently
@@ -152,33 +162,37 @@ __thread int assert_finite_coro_waiting_counter = 0;
 coro_globals_t::coro_globals_t() {
     rassert(!current_coro);
 
-    rassert(free_contexts == NULL);
-    free_contexts = new intrusive_list_t<coro_context_t>;
+    rassert(free_coros == NULL);
+    free_coros = new intrusive_list_t<coro_t>;
 }
 
 coro_globals_t::~coro_globals_t() {
     rassert(!current_coro);
 
     /* Destroy remaining coroutines */
-    while (coro_context_t *s = free_contexts->head()) {
-        free_contexts->remove(s);
+    while (coro_t *s = free_coros->head()) {
+        free_coros->remove(s);
         delete s;
     }
 
-    delete free_contexts;
-    free_contexts = NULL;
+    delete free_coros;
+    free_coros = NULL;
 }
 
-/* coro_context_t */
+/* coro_t */
 
-coro_context_t::coro_context_t() {
+coro_t::coro_t() : 
+    home_thread_(get_thread_id()),
+    notified_(false),
+    waiting_(false)
+{
     pm_allocated_coroutines++;
 
 #ifndef NDEBUG
-    coro_context_count++;
+    coro_count++;
 #endif
 
-    rassert(coro_context_count < MAX_COROS_PER_THREAD, "Too many coroutines "
+    rassert(coro_count < MAX_COROS_PER_THREAD, "Too many coroutines "
             "allocated on this thread. This is problem due to a misuse of the "
             "coroutines\n");
 
@@ -195,11 +209,11 @@ coro_context_t::coro_context_t() {
 #endif
 
     /* run() is the main worker loop for a coroutine. */
-    lightweight_makecontext(&env, &coro_context_t::run, stack, coro_stack_size);
+    lightweight_makecontext(&env, &coro_t::run, stack, coro_stack_size);
 }
 
-void coro_context_t::run() {
-    coro_context_t *self = current_coro->context;
+void coro_t::run() {
+    coro_t *self = current_coro;
 
     /* Make sure we're on the right stack. */
 #ifndef NDEBUG
@@ -209,17 +223,27 @@ void coro_context_t::run() {
 #endif
 
     while (true) {
-        current_coro->run();
+        rassert(current_coro == self);
+        rassert(self->notified_ == false);
+        rassert(self->waiting_ == true);
+        self->waiting_ = false;
+
+        self->action_wrapper.run();
+
+        self->action_wrapper.reset();
+        /* Return the context to the free-contexts list we took it from. */
+        do_on_thread(self->home_thread_, boost::bind(return_coro_to_free_coros, self));
+        pm_active_coroutines++;
 
         if (prev_coro) {
-            lightweight_swapcontext(&self->env, prev_coro->context->env);
+            lightweight_swapcontext(&self->env, prev_coro->env);
         } else {
             lightweight_swapcontext(&self->env, scheduler);
         }
     }
 }
 
-coro_context_t::~coro_context_t() {
+coro_t::~coro_t() {
 #ifdef VALGRIND
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-but-set-variable"
@@ -234,51 +258,35 @@ coro_context_t::~coro_context_t() {
     pm_allocated_coroutines--;
 
 #ifndef NDEBUG
-    coro_context_count--;
+    coro_count--;
 #endif
 }
 
 /* coro_t */
 
+coro_t * coro_t::get_coro(int thread) {
+    coro_t *coro;
 
-coro_t::coro_t(const boost::function<void()>& deed, int thread) :
-    deed_(deed),
-    current_thread_(thread),
-    original_free_contexts_thread_(linux_thread_pool_t::thread_id),
-    notified_(false),
-    waiting_(true)
-{
     assert_good_thread_id(thread);
-
     pm_active_coroutines++;
 
     /* Find us a stack */
-    if (free_contexts->size() == 0) {
-        context = new coro_context_t();
+    if (free_coros->size() == 0) {
+        coro = new coro_t();
     } else {
-        context = free_contexts->tail();
-        free_contexts->remove(context);
+        coro = free_coros->tail();
+        free_coros->remove(coro);
     }
+
+    coro->current_thread_ = thread;
+    coro->notified_ = false;
+    coro->waiting_ = true;
+
+    return coro;
 }
 
-void return_context_to_free_contexts(coro_context_t *context) {
-    free_contexts->push_back(context);
-}
-
-coro_t::~coro_t() {
-    /* Return the context to the free-contexts list we took it from. */
-    do_on_thread(original_free_contexts_thread_, boost::bind(return_context_to_free_contexts, context));
-
-    pm_active_coroutines--;
-}
-
-void coro_t::run() {
-    rassert(current_coro == this);
-    waiting_ = false;
-
-    deed_();
-
-    delete this;
+void coro_t::return_coro_to_free_coros(coro_t *coro) {
+    free_coros->push_back(coro);
 }
 
 coro_t *coro_t::self() {   /* class method */
@@ -303,12 +311,13 @@ void coro_t::wait() {   /* class method */
 
     rassert(current_coro);
     if (prev_coro) {
-        lightweight_swapcontext(&current_coro->context->env, prev_coro->context->env);
+        lightweight_swapcontext(&current_coro->env, prev_coro->env);
     } else {
-        lightweight_swapcontext(&current_coro->context->env, scheduler);
+        lightweight_swapcontext(&current_coro->env, scheduler);
     }
 
     rassert(current_coro);
+    rassert(self()->current_thread_ == get_thread_id());
 
     rassert(current_coro->waiting_);
     current_coro->waiting_ = false;
@@ -323,7 +332,7 @@ void coro_t::yield() {  /* class method */
 void coro_t::notify_now() {
     rassert(waiting_);
     rassert(!notified_);
-    rassert(current_thread_ == linux_thread_pool_t::thread_id);
+    rassert(current_thread_ == get_thread_id());
 
 #ifndef NDEBUG
     rassert(assert_no_coro_waiting_counter == 0,
@@ -347,11 +356,12 @@ void coro_t::notify_now() {
     current_coro = this;
 
     if (prev_coro) {
-        lightweight_swapcontext(&prev_coro->context->env, context->env);
+        lightweight_swapcontext(&prev_coro->env, env);
     } else {
-        lightweight_swapcontext(&scheduler, context->env);
+        lightweight_swapcontext(&scheduler, env);
     }
 
+    rassert(this->current_thread_ == get_thread_id());
     rassert(current_coro == this);
     current_coro = prev_coro;
     prev_coro = prev_prev_coro;
@@ -376,7 +386,7 @@ void coro_t::notify_later() {
 
 void coro_t::move_to_thread(int thread) {   /* class method */
     assert_good_thread_id(thread);
-    if (thread == linux_thread_pool_t::thread_id) {
+    if (thread == get_thread_id()) {
         // If we're trying to switch to the thread we're currently on, do nothing.
         return;
     }
@@ -404,19 +414,7 @@ the stack. */
 
 bool is_coroutine_stack_overflow(void *addr) {
     void *base = (void *)floor_aligned((intptr_t)addr, getpagesize());
-    return current_coro && current_coro->context->stack == base;
-}
-
-void coro_t::spawn_later(const boost::function<void()>& deed) {
-    spawn_on_thread(linux_thread_pool_t::thread_id, deed);
-}
-
-void coro_t::spawn_now(const boost::function<void()> &deed) {
-    (new coro_t(deed, linux_thread_pool_t::thread_id))->notify_now();
-}
-
-void coro_t::spawn_on_thread(int thread, const boost::function<void()>& deed) {
-    (new coro_t(deed, thread))->notify_later();
+    return current_coro && current_coro->stack == base;
 }
 
 #ifndef NDEBUG
