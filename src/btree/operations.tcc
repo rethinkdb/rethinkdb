@@ -27,7 +27,7 @@ inline void insert_root(block_id_t root_id, superblock_t* sb) {
 
 // Get a root block given a superblock, or make a new root if there isn't one.
 template <class Value>
-void get_root(value_sizer_t<Value> *sizer, transaction_t *txn, superblock_t* sb, buf_lock_t *buf_out) {
+void get_root(value_sizer_t<Value> *sizer, transaction_t *txn, superblock_t* sb, buf_lock_t *buf_out, int root_eviction_priority) {
     rassert(!buf_out->is_acquired());
 
     block_id_t node_id = sb->get_root_block_id();
@@ -39,6 +39,10 @@ void get_root(value_sizer_t<Value> *sizer, transaction_t *txn, superblock_t* sb,
         buf_out->allocate(txn);
         leaf::init(sizer, reinterpret_cast<leaf_node_t *>(buf_out->buf()->get_data_major_write()));
         insert_root(buf_out->buf()->get_block_id(), sb);
+    }
+
+    if ((*buf_out)->get_eviction_priority() == MAX_EVICTION_PRIORITY) {
+        (*buf_out)->set_eviction_priority(root_eviction_priority);
     }
 }
 
@@ -191,12 +195,7 @@ void find_keyvalue_location_for_write(transaction_t *txn, got_superblock_t *got_
 
     buf_lock_t last_buf;
     buf_lock_t buf;
-    get_root(sizer, txn, keyvalue_location_out->sb.get(), &buf);
-
-    // TODO MERGE put this in get_root.
-    if (buf->get_eviction_priority() == MAX_EVICTION_PRIORITY) {
-        buf->set_eviction_priority(*root_eviction_priority);
-    }
+    get_root(sizer, txn, keyvalue_location_out->sb.get(), &buf, *root_eviction_priority);
 
     // Walk down the tree to the leaf.
     while (node::is_internal(reinterpret_cast<const node_t *>(buf->get_data_read()))) {
