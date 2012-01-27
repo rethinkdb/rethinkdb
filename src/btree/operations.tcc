@@ -260,11 +260,6 @@ void find_keyvalue_location_for_read(transaction_t *txn, got_superblock_t *got_s
 
     {
         buf_lock_t tmp(txn, node_id, rwi_read);
-        // TODO MERGE have this function (and the corresponding
-        // function find_keyvalue_location_for_write take a superblock
-        // priority as input (because we need to deal with subtrees
-        // now, so we can't use the slice's root eviction priority
-        // value).  This shouldn't even compile anyway.
         tmp->set_eviction_priority(root_eviction_priority);
         buf.swap(tmp);
     }
@@ -298,7 +293,6 @@ void find_keyvalue_location_for_read(transaction_t *txn, got_superblock_t *got_s
     }
 }
 
-// TODO MERGE i think this function needs to take the slice.
 template <class Value>
 void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_loc, btree_key_t *key, repli_timestamp_t tstamp, bool expired, key_modification_callback_t<Value> *km_callback, int *root_eviction_priority) {
     value_sizer_t<Value> v_sizer(txn->get_cache()->get_block_size());
