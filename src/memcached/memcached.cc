@@ -33,15 +33,19 @@ static const char *crlf = "\r\n";
 
 struct txt_memcached_handler_t : public home_thread_mixin_t {
 
+    // TODO MERGE make sure seq_group lifetime is appropriate, ask whether sequence group should be kept here.
+
     txt_memcached_handler_t(memcached_interface_t *_interface, get_store_t *_get_store,
-            set_store_interface_t *_set_store, int _max_concurrent_queries_per_connection)
-        : interface(_interface), get_store(_get_store), set_store(_set_store), max_concurrent_queries_per_connection(_max_concurrent_queries_per_connection)
+                            set_store_interface_t *_set_store, int _max_concurrent_queries_per_connection, int num_slices)
+        : interface(_interface), get_store(_get_store), set_store(_set_store), seq_group(num_slices), max_concurrent_queries_per_connection(_max_concurrent_queries_per_connection)
     { }
 
     memcached_interface_t *interface;
 
     get_store_t *get_store;
     set_store_interface_t *set_store;
+
+    sequence_group_t seq_group;
 
     const int max_concurrent_queries_per_connection;
 
@@ -270,9 +274,9 @@ struct get_t {
 
 void do_one_get(txt_memcached_handler_t *rh, bool with_cas, get_t *gets, int i, order_token_t token) {
     if (with_cas) {
-        gets[i].res = rh->set_store->get_cas(gets[i].key, token);
+        gets[i].res = rh->set_store->get_cas(&rh->seq_group, gets[i].key, token);
     } else {
-        gets[i].res = rh->get_store->get(gets[i].key, token);
+        gets[i].res = rh->get_store->get(gets[i].key, &rh->seq_group, token);
     }
 }
 
@@ -433,7 +437,7 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, char
 
     block_pm_duration rget_timer(&pm_cmd_rget);
 
-    rget_result_t results_iterator = rh->get_store->rget(left_mode, left_key, right_mode, right_key, token);
+    rget_result_t results_iterator = rh->get_store->rget(&rh->seq_group, left_mode, left_key, right_mode, right_key, token);
 
     pipeliner_acq.begin_write();
 
@@ -520,7 +524,7 @@ void run_storage_command(txt_memcached_handler_t *rh,
             unreachable();
         }
 
-        set_result_t res = rh->set_store->sarc(key, data, metadata.mcflags, metadata.exptime,
+        set_result_t res = rh->set_store->sarc(&rh->seq_group, key, data, metadata.mcflags, metadata.exptime,
                                                add_policy, replace_policy, metadata.unique, token);
 
         pipeliner_acq->begin_write();
@@ -561,7 +565,7 @@ void run_storage_command(txt_memcached_handler_t *rh,
 
     } else {
         append_prepend_result_t res =
-            rh->set_store->append_prepend(
+            rh->set_store->append_prepend(&rh->seq_group,
                 sc == append_command ? append_prepend_APPEND : append_prepend_PREPEND,
                 key, data, token);
 
@@ -732,7 +736,7 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
 void run_incr_decr(txt_memcached_handler_t *rh, pipeliner_acq_t *pipeliner_acq, store_key_t key, uint64_t amount, bool incr, bool noreply, order_token_t token) {
     block_pm_duration set_timer(&pm_cmd_set);
 
-    incr_decr_result_t res = rh->set_store->incr_decr(
+    incr_decr_result_t res = rh->set_store->incr_decr(&rh->seq_group,
         incr ? incr_decr_INCR : incr_decr_DECR,
         key, amount, token);
 
@@ -817,7 +821,7 @@ void run_delete(txt_memcached_handler_t *rh, pipeliner_acq_t *pipeliner_acq, sto
 
     block_pm_duration set_timer(&pm_cmd_set);
 
-    delete_result_t res = rh->set_store->delete_key(key, token);
+    delete_result_t res = rh->set_store->delete_key(&rh->seq_group, key, token);
 
     pipeliner_acq->begin_write();
     if (!noreply) {
@@ -955,7 +959,7 @@ void do_quickset(txt_memcached_handler_t *rh, pipeliner_acq_t *pipeliner_acq, st
         boost::intrusive_ptr<data_buffer_t> value = data_buffer_t::create(args_copy[i + 1].size());
         memcpy(value->buf(), args_copy[i + 1].data(), value->size());
 
-        set_result_t res = rh->set_store->sarc(key, value, 0, 0, add_policy_yes, replace_policy_yes, 0, order_token_t::ignore);
+        set_result_t res = rh->set_store->sarc(&rh->seq_group, key, value, 0, 0, add_policy_yes, replace_policy_yes, 0, order_token_t::ignore);
 
         if (res == sr_stored) {
             rh->writef("STORED key %s\r\n", args_copy[i].c_str());
@@ -1012,9 +1016,11 @@ void handle_memcache(memcached_interface_t *interface, get_store_t *get_store,
         set_store_interface_t *set_store, int max_concurrent_queries_per_connection) {
     logDBG("Opened memcached stream: %p\n", coro_t::self());
 
+    // TODO MERGE 1024 is a fake number of slices.
+
     /* This object just exists to group everything together so we don't have to pass a lot of
     context around. */
-    txt_memcached_handler_t rh(interface, get_store, set_store, max_concurrent_queries_per_connection);
+    txt_memcached_handler_t rh(interface, get_store, set_store, max_concurrent_queries_per_connection, 1024);
 
     /* The commands from each individual memcached handler must be performed in the order
     that the handler parses them. This `order_source_t` is used to guarantee that. */

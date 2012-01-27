@@ -9,7 +9,7 @@
 /* Serves memcache queries over the given TCP connection until the connection in question
 is closed. */
 
-void serve_memcache(tcp_conn_t *conn, get_store_t *get_store, set_store_interface_t *set_store);
+void serve_memcache(tcp_conn_t *conn, get_store_t *get_store, set_store_interface_t *set_store, int n_slices);
 
 /* Listens for TCP connections on the given port and serves memcache queries over those
 connections until the destructor is called. */

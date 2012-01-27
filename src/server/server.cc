@@ -218,14 +218,18 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             timebomb::periodic_checker_t timebomb_checker(store.get_creation_timestamp());
 #endif
             if (!cmd_config->import_config.file.empty()) {
-                store.set_replication_master_id(NOT_A_SLAVE);
+                sequence_group_t seq_group(cmd_config->store_static_config.btree.n_slices);
+                store.set_replication_master_id(&seq_group, NOT_A_SLAVE);
                 std::vector<std::string>::iterator it;
                 for (it = cmd_config->import_config.file.begin(); it != cmd_config->import_config.file.end(); it++) {
                     logINF("Importing file %s...\n", it->c_str());
-                    import_memcache(it->c_str(), &store, &os_signal_cond);
+
+                    import_memcache(it->c_str(), &store, cmd_config->store_static_config.btree.n_slices, &os_signal_cond);
                     logINF("Done\n");
                 }
             } else {
+                sequence_group_t replication_seq_group(cmd_config->store_static_config.btree.n_slices);
+
                 /* Start accepting connections. We use gated-stores so that the code can
                 forbid gets and sets at appropriate times. */
                 gated_get_store_t gated_get_store(&store);
@@ -252,7 +256,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
                     {
                         logINF("Starting up as a slave...\n");
-                        replication::slave_t slave(&store, cmd_config->replication_config,
+                        replication::slave_t slave(&replication_seq_group, &store, cmd_config->replication_config,
                             cmd_config->failover_config, &failover);
 
                         wait_for_sigint();
@@ -275,7 +279,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
                     /* Make it impossible for this database file to later be used as a slave, because
                     that would confuse the replication logic. */
-                    uint32_t replication_master_id = store.get_replication_master_id();
+                    uint32_t replication_master_id = store.get_replication_master_id(&replication_seq_group);
                     if (replication_master_id != 0 && replication_master_id != NOT_A_SLAVE &&
                             !cmd_config->force_unslavify) {
                         fail_due_to_user_error("This data file used to be for a replication slave. "
@@ -284,10 +288,10 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                             "you want to irreversibly turn this into a non-slave data file, run "
                             "again with the `--force-unslavify` flag.");
                     }
-                    store.set_replication_master_id(NOT_A_SLAVE);
+                    store.set_replication_master_id(&replication_seq_group, NOT_A_SLAVE);
 
                     backfill_receiver_order_source_t master_order_source;
-                    replication::master_t master(cmd_config->replication_master_listen_port, &store, cmd_config->replication_config, &gated_get_store, &gated_set_store, &master_order_source);
+                    replication::master_t master(&replication_seq_group, cmd_config->replication_master_listen_port, &store, cmd_config->replication_config, &gated_get_store, &gated_set_store, &master_order_source);
 
                     wait_for_sigint();
 
@@ -308,7 +312,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
                     /* Make it impossible for this database file to later be used as a slave, because
                     that would confuse the replication logic. */
-                    uint32_t replication_master_id = store.get_replication_master_id();
+                    uint32_t replication_master_id = store.get_replication_master_id(&replication_seq_group);
                     if (replication_master_id != 0 && replication_master_id != NOT_A_SLAVE &&
                             !cmd_config->force_unslavify) {
                         fail_due_to_user_error("This data file used to be for a replication slave. "
@@ -317,7 +321,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                             "you want to irreversibly turn this into a non-slave data file, run "
                             "again with the `--force-unslavify` flag.");
                     }
-                    store.set_replication_master_id(NOT_A_SLAVE);
+                    store.set_replication_master_id(&replication_seq_group, NOT_A_SLAVE);
 
                     // Open the gates to allow real queries
                     gated_get_store_t::open_t permit_gets(&gated_get_store);

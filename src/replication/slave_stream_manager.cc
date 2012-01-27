@@ -10,17 +10,19 @@
 
 namespace replication {
 
-slave_stream_manager_t::slave_stream_manager_t(boost::scoped_ptr<tcp_conn_t> *conn,
+slave_stream_manager_t::slave_stream_manager_t(sequence_group_t *replication_seq_group,
+                                               boost::scoped_ptr<tcp_conn_t> *conn,
                                                btree_key_value_store_t *kvs,
                                                cond_t *cond,
                                                backfill_receiver_order_source_t *slave_order_source,
                                                int heartbeat_timeout) :
     backfill_receiver_t(&backfill_storer_, slave_order_source),
     stream_(NULL),
+    seq_group_(replication_seq_group),
     cond_(NULL),
     subs_(boost::bind(&slave_stream_manager_t::on_signal_pulsed, this)),
     kvs_(kvs),
-    backfill_storer_(kvs),
+    backfill_storer_(replication_seq_group, kvs),
     interrupted_by_external_event_(false) {
 
     // Assume backfilling when starting up.
@@ -62,7 +64,7 @@ void slave_stream_manager_t::reverse_side_backfill(repli_timestamp_t since_when)
 
     cond_t mc;
     mc.pulse();   // So that backfill_and_realtime_stream() returns as soon as the backfill part is over
-    backfill_and_realtime_stream(kvs_, since_when, &sender, &mc);
+    backfill_and_realtime_stream(seq_group_, kvs_, since_when, &sender, &mc);
 }
 
 /* message_callback_t interface */
@@ -72,7 +74,7 @@ void slave_stream_manager_t::hello(UNUSED net_hello_t message) {
 
 void slave_stream_manager_t::send(scoped_malloc<net_introduce_t>& message) {
 
-    uint32_t old_master = kvs_->get_replication_master_id();
+    uint32_t old_master = kvs_->get_replication_master_id(seq_group_);
 
     if (old_master == 0) {
         /* This is our first-ever time running; the database files are completely fresh. */
@@ -91,7 +93,7 @@ void slave_stream_manager_t::send(scoped_malloc<net_introduce_t>& message) {
         if (stream_) stream_->send(&introduce);
 
         /* Remember the master */
-        kvs_->set_replication_master_id(message->database_creation_timestamp);
+        kvs_->set_replication_master_id(seq_group_, message->database_creation_timestamp);
 
     } else if (old_master == NOT_A_SLAVE) {
         /* We have run before, but in master-mode or non-replicated mode. There might be

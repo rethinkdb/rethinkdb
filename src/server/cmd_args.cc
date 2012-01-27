@@ -29,7 +29,7 @@ void usage_serve() {
                 "                        Can be specified multiple times to use multiple files.\n"
                 "  --metadata-file       Path to file or block device used for database metadata.\n");
     help->pagef("  -c, --cores           Number of cores to use for handling requests.\n"
-                "      --no-set-affinity Do not set thread affinity (affinity is set by default).\n"  
+                "      --no-set-affinity Do not set thread affinity (affinity is set by default).\n"
                 "  -m, --max-cache-size  Maximum amount of RAM to use for caching disk\n"
                 "                        blocks, in megabytes. This should be ~80%% of\n" 
                 "                        the RAM you want RethinkDB to use.\n"
@@ -252,7 +252,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
         config.import_config.do_import = true;
     }
 
-    bool slices_set_by_user = false;
+    int slices_per_device = DEFAULT_BTREE_SHARD_FACTOR;
+
     long long override_diff_log_size = -1;
     optind = 1; // reinit getopt
     while(1)
@@ -343,9 +344,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 config.set_cores(optarg);
                 break;
             case 's':
-                slices_set_by_user = true;
-                config.set_slices(optarg);
-                break;
+                config.set_slices(&slices_per_device, optarg); break;
             case 'f':
                 config.push_private_config(optarg);
                 break;
@@ -535,16 +534,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     config.store_dynamic_config.cache.flush_dirty_size =
         (long long int)(config.store_dynamic_config.cache.max_dirty_size * FLUSH_AT_FRACTION_OF_UNSAVED_DATA_LIMIT);
 
-    //slices divisable by the number of files
-    if ((config.store_static_config.btree.n_slices % config.store_dynamic_config.serializer_private.size()) != 0) {
-        if (slices_set_by_user) {
-            fail_due_to_user_error("Slices must be divisable by the number of files\n");
-        } else {
-            config.store_static_config.btree.n_slices -= config.store_static_config.btree.n_slices % config.store_dynamic_config.serializer_private.size();
-            if (config.store_static_config.btree.n_slices <= 0)
-                fail_due_to_user_error("Failed to set number of slices automatically. Please specify it manually by using the -s option.\n");
-        }
-    }
+    // TODO MERGE: HACK: Scales n_slices by the number of files.
+    config.store_static_config.btree.n_slices = slices_per_device * config.store_dynamic_config.serializer_private.size();
 
     /* Convert values which depends on others to be set first */
     int patch_log_memory;
@@ -737,14 +728,15 @@ void parsing_cmd_config_t::set_max_cache_size(const char* value) {
     store_dynamic_config.cache.max_size = (long long)(int_value) * MEGABYTE;
 }
 
-void parsing_cmd_config_t::set_slices(const char* value) {
-    int& target = store_static_config.btree.n_slices;
+// This is a bit of a HACK.  Go cry to your mommy about it.
+void parsing_cmd_config_t::set_slices(int *slices_per_device_out, const char* value) {
     const int minimum_value = 1;
-    const int maximum_value = MAX_SLICES;
-    
-    target = parse_int(value);
+    const int maximum_value = MAX_SLICES_PER_DEVICE;
+
+    int target = parse_int(value);
     if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
         fail_due_to_user_error("Number of slices must be a number from %d to %d.", minimum_value, maximum_value);
+    *slices_per_device_out = target;
 }
 
 void parsing_cmd_config_t::set_log_file(const char* value) {
@@ -1008,8 +1000,6 @@ cmd_config_t::cmd_config_t() {
     force_unslavify = false;
 
     store_dynamic_config.cache.max_size = (long long int)(DEFAULT_MAX_CACHE_RATIO * get_available_ram());
-
-    store_static_config.cache.n_patch_log_blocks = DEFAULT_PATCH_LOG_SIZE / store_static_config.serializer.block_size().ser_value() / store_static_config.btree.n_slices;
 
     // TODO: This is hacky. It also doesn't belong here. Probably the metadata
     // store should really have a configuration structure of its own.

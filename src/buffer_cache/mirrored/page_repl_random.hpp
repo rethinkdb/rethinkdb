@@ -2,8 +2,12 @@
 #ifndef __PAGE_REPL_RANDOM_HPP__
 #define __PAGE_REPL_RANDOM_HPP__
 
+#include <limits.h>
+
 #include "config/args.hpp"
 #include "containers/two_level_array.hpp"
+
+const int MAX_EVICTION_PRIORITY = INT_MAX;
 
 // TODO: We should use mlock (or mlockall or related) to make sure the
 // OS doesn't swap out our pages, since we're doing swapping
@@ -35,6 +39,11 @@ public:
     bool in_page_repl();
     void insert_into_page_repl();
     void remove_from_page_repl(); // does *not* call unload()
+
+    /* The eviction priority represents how bad of a choice a buf is for
+     * eviction the buffer cache will (probabalistically) evict blocks of
+     * lower priority first. */
+    int eviction_priority;
 
   protected:
     mc_cache_t *cache;

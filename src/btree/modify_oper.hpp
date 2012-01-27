@@ -29,8 +29,9 @@ public:
     virtual MUSTUSE int compute_expected_change_count(block_size_t block_size) = 0;
 };
 
-// Runs a btree_modify_oper_t.
-void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, const store_key_t &key, castime_t castime, order_token_t token);
+class sequence_group_t;
 
+// Runs a btree_modify_oper_t.
+void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, sequence_group_t *seq_group, const store_key_t &key, castime_t castime, order_token_t token);
 
 #endif // __BTREE_MODIFY_OPER_HPP__

@@ -89,7 +89,8 @@ struct tcp_conn_memcached_interface_t : public memcached_interface_t, public hom
     }
 };
 
-void serve_memcache(tcp_conn_t *conn, get_store_t *get_store, set_store_interface_t *set_store) {
+// TODO MERGE how are we going to use this n_slices parameter?
+void serve_memcache(tcp_conn_t *conn, get_store_t *get_store, set_store_interface_t *set_store, UNUSED int n_slices) {
     tcp_conn_memcached_interface_t interface(conn);
     handle_memcache(&interface, get_store, set_store, MAX_CONCURRENT_QUERIES_PER_CONNECTION);
 }
@@ -130,7 +131,9 @@ void memcache_listener_t::handle(auto_drainer_t::lock_t keepalive, boost::scoped
         boost::bind(&close_conn_if_open, conn.get()),
         &signal_transfer);
 
+    // TODO MERGE 1024 is a fake number of slices passed below.  Don't do that.
+
     /* `serve_memcache()` will continuously serve memcache queries on the given conn
     until the connection is closed. */
-    serve_memcache(conn.get(), get_store, set_store);
+    serve_memcache(conn.get(), get_store, set_store, 1024);
 }

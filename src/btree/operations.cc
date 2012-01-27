@@ -28,6 +28,18 @@ void real_superblock_t::set_root_block_id(const block_id_t new_root_block) {
     sb_buf_->set_data(const_cast<block_id_t *>(&reinterpret_cast<const btree_superblock_t *>(sb_buf_.buf()->get_data_read())->root_block), &new_root_block, sizeof(new_root_block));
 }
 
+void real_superblock_t::set_eviction_priority(int eviction_priority) {
+    // TODO MERGE see who wrote the rasserts above with the weird spacing.
+    rassert(sb_buf_.is_acquired());
+    sb_buf_->set_eviction_priority(eviction_priority);
+
+}
+
+int real_superblock_t::get_eviction_priority() {
+    rassert(sb_buf_.is_acquired());
+    return sb_buf_->get_eviction_priority();
+}
+
 
 bool find_superblock_metainfo_entry(char *beg, char *end, const std::vector<char> &key, char **verybeg_ptr_out,  uint32_t **size_ptr_out, char **beg_ptr_out, char **end_ptr_out) {
     while (beg < end) {

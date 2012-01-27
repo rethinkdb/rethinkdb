@@ -27,7 +27,10 @@ struct hash_read_oper_t : public read_oper_t {
         btree_key_buffer_t nested_key(field);
         keyvalue_location_t<redis_nested_string_value_t> nested_loc;
 
-        find_keyvalue_location_for_read(txn.get(), &nested_superblock, nested_key.key(), &nested_loc);
+        // TODO MERGE figure out eviction priorities
+        int fake_eviction_priority = 0;
+
+        find_keyvalue_location_for_read(txn.get(), &nested_superblock, nested_key.key(), &nested_loc, fake_eviction_priority);
 
         redis_nested_string_value_t *value = nested_loc.value.get();
         if(value != NULL) {
@@ -144,13 +147,20 @@ protected:
             got_superblock_t nested_superblock;
             nested_superblock.sb.swap(nested_btree_sb);
 
-            find_keyvalue_location_for_write(ths->txn.get(), &nested_superblock, nested_key.key(), &loc);
+            // TODO MERGE eviction priorities
+            int fake_eviction_priority = 0;
+
+            find_keyvalue_location_for_write(ths->txn.get(), &nested_superblock, nested_key.key(), &loc, &fake_eviction_priority);
         }
 
         void apply_change() {
             // TODO hook up timestamp once Tim figures out what to do with the timestamp
             fake_key_modification_callback_t<redis_nested_string_value_t> fake_cb;
-            apply_keyvalue_change(ths->txn.get(), &loc, nested_key.key(), repli_timestamp_t::invalid /*ths->timestamp*/, &fake_cb);
+
+            // TODO MERGE eviction priorities
+            int fake_eviction_priority = 0;
+
+            apply_keyvalue_change(ths->txn.get(), &loc, nested_key.key(), repli_timestamp_t::invalid /*ths->timestamp*/, &fake_cb, &fake_eviction_priority);
             virtual_superblock_t *sb = reinterpret_cast<virtual_superblock_t *>(loc.sb.get());
             ths->root = sb->get_root_block_id();
         }

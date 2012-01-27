@@ -2,6 +2,7 @@
 #define __MEMCACHED_MEMCACHED_HPP__
 
 #include <vector>
+#include "buffer_cache/sequence_group.hpp"
 
 #include "memcached/store.hpp"
 

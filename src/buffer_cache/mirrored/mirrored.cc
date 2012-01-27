@@ -4,6 +4,7 @@
 #include <boost/bind.hpp>
 
 #include "arch/arch.hpp"
+#include "buffer_cache/sequence_group.hpp"
 #include "buffer_cache/stats.hpp"
 #include "do_on_thread.hpp"
 #include "stats/persist.hpp"
@@ -859,7 +860,7 @@ perfmon_duration_sampler_t
     pm_transactions_active("transactions_active", secs_to_ticks(1)),
     pm_transactions_committing("transactions_committing", secs_to_ticks(1));
 
-mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, int _expected_change_count, repli_timestamp_t _recency_timestamp)
+mc_transaction_t::mc_transaction_t(cache_t *_cache, sequence_group_t *seq_group, access_t _access, int _expected_change_count, repli_timestamp_t _recency_timestamp)
     : cache(_cache),
       expected_change_count(_expected_change_count),
       access(_access),
@@ -884,12 +885,39 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, int _expec
 
     // MODERN COMMENTS:
 
-    // Reads are now coro-fifoed in the same path that writes are.
-    // This is dumb because we really just want reads coming from the
-    // same _connection_ to be coro-fifoed in the same path that
-    // writes are.
-    coro_fifo_acq_t acq;
-    acq.enter(&cache->co_begin_coro_fifo());
+    // Why do "writes" need to have their order preserved at all, now
+    // that we have sequence_group_t?  Perhaps it's because in the
+    // presence of replication, that prevents the gated store gate
+    // limitations being bypassed.  You could look at the gated store
+    // code to prove or disprove this claim, but since v1.1.x is
+    // supposed to be stable, we're being conservative.
+    //
+    // Yeah.  Really it's only backfill or replication that is the big
+    // question and the reason we're being conservative here.
+
+    // POST-MODERN COMMENTS:
+    //
+    // It would make more sense if this function took a
+    // per_slice_sequence_group_t, instead of taking a
+    // sequence_group_t and having the cache know about what slice it
+    // is.  This would be proper software design.  However, it would
+    // require that stop using the get_store and set_store_interface_t
+    // stuff as abstract classes, or interfaces.  While that would
+    // make sense, and even though it always would have made sense,
+    // that would be more pain to do and then merge.  So we're not
+    // doing it.
+
+    // It is important that we leave the sequence group's fifo _after_
+    // we leave the write throttle fifo.  So we construct it first.
+    // (The destructor will run after.)
+    coro_fifo_acq_t seq_group_acq;
+    seq_group_acq.enter(&seq_group->slice_groups[cache->get_slice_num()].fifo);
+
+    coro_fifo_acq_t write_throttle_acq;
+
+    if (is_write_mode(access)) {
+        write_throttle_acq.enter(&cache->co_begin_coro_fifo());
+    }
 
     rassert(access == rwi_read || access == rwi_read_sync || access == rwi_write);
     cache->assert_thread();
@@ -901,8 +929,8 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, int _expec
     pm_transactions_active.begin(&start_time);
 }
 
-/* This version is only for read transactions from the writeback! */
-mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, UNUSED bool dont_assert_about_shutting_down) :
+/* This version is only for read transactions from the writeback!  TODO MERGE: Oh really?? */
+mc_transaction_t::mc_transaction_t(cache_t *_cache, sequence_group_t *seq_group, access_t _access, UNUSED bool dont_assert_about_shutting_down) :
     cache(_cache),
     expected_change_count(0),
     access(_access),
@@ -913,8 +941,10 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, UNUSED boo
     block_pm_duration start_timer(&pm_transactions_starting);
     rassert(access == rwi_read || access == rwi_read_sync);
 
-    coro_fifo_acq_t acq;
-    acq.enter(&cache->co_begin_coro_fifo());
+    coro_fifo_acq_t seq_group_acq;
+    seq_group_acq.enter(&seq_group->slice_groups[cache->get_slice_num()].fifo);
+
+    // No write throttle acq.
 
     cache->assert_thread();
     rassert(dont_assert_about_shutting_down || !cache->shutting_down);
@@ -1152,10 +1182,10 @@ void mc_cache_t::create(serializer_t *serializer, mirrored_cache_static_config_t
     serializer->free(superblock);
 }
 
-mc_cache_t::mc_cache_t(
-            serializer_t *_serializer,
-            mirrored_cache_config_t *dynamic_config) :
-
+mc_cache_t::mc_cache_t(serializer_t *_serializer,
+                       mirrored_cache_config_t *dynamic_config,
+                       int this_slice_num) :
+    slice_num(this_slice_num),
     dynamic_config(*dynamic_config),
     serializer(_serializer),
     page_repl(

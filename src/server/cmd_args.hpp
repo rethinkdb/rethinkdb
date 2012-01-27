@@ -105,7 +105,7 @@ public:
     void set_cores(const char* value);
     void set_port(const char* value);
     void set_log_file(const char* value);
-    void set_slices(const char* value);
+    void set_slices(int *slices_per_device_out, const char* value);
     void set_max_cache_size(const char* value);
     void set_wait_for_flush(const char* value);
     void set_unsaved_data_limit(const char* value);

@@ -23,6 +23,8 @@ public:
     virtual void swap_buf(buf_lock_t &swapee) = 0;
     virtual block_id_t get_root_block_id() const = 0;
     virtual void set_root_block_id(const block_id_t new_root_block) = 0;
+    virtual void set_eviction_priority(int eviction_priority) = 0;
+    virtual int get_eviction_priority() = 0;
 
 private:
     DISABLE_COPYING(superblock_t);
@@ -39,6 +41,8 @@ public:
     block_id_t get_root_block_id() const;
     void set_root_block_id(const block_id_t new_root_block);
     block_id_t get_delete_queue_block() const;
+    void set_eviction_priority(int eviction_priority);
+    int get_eviction_priority();
 
 private:
     buf_lock_t sb_buf_;
@@ -73,6 +77,15 @@ public:
     }
     block_id_t get_delete_queue_block() const {
         return NULL_BLOCK_ID;
+    }
+
+    void set_eviction_priority(UNUSED int eviction_priority) {
+        // TODO MERGE what to do?  (Probably treat the same way as the root block id.)
+    }
+
+    int get_eviction_priority() {
+        // TODO MERGE what to do?
+        return 0;
     }
 
 private:
@@ -141,8 +154,8 @@ private:
 template <class Value>
 class value_txn_t {
 public:
-    value_txn_t(btree_key_t *, keyvalue_location_t<Value>&, repli_timestamp_t, key_modification_callback_t<Value> *km_callback);
-    value_txn_t(btree_slice_t *slice, btree_key_t *key, const repli_timestamp_t tstamp, const order_token_t token, key_modification_callback_t<Value> *km_callback);
+    value_txn_t(btree_key_t *, keyvalue_location_t<Value>&, repli_timestamp_t, key_modification_callback_t<Value> *km_callback, int *root_eviction_priority);
+    value_txn_t(btree_slice_t *slice, sequence_group_t *seq_group, btree_key_t *key, const repli_timestamp_t tstamp, const order_token_t token, key_modification_callback_t<Value> *km_callback);
 
     ~value_txn_t();
 
@@ -155,6 +168,7 @@ private:
     boost::scoped_ptr<transaction_t> txn;
     keyvalue_location_t<Value> kv_location;
     repli_timestamp_t tstamp;
+    int *root_eviction_priority;
 
     // Not owned by this object.
     key_modification_callback_t<Value> *km_callback;

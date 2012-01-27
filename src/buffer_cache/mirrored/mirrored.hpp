@@ -223,8 +223,16 @@ public:
         return subtree_recency;
     }
 
-private:
+public:
+    int get_eviction_priority() {
+        return inner_buf->eviction_priority;
+    }
 
+    void set_eviction_priority(int val) {
+        inner_buf->eviction_priority = val;
+    }
+
+private:
     // Used for the pm_bufs_held perfmon.
     ticks_t start_time;
 
@@ -262,6 +270,7 @@ private:
 
 struct i_am_writeback_t { };
 
+class sequence_group_t;
 
 /* Transaction class. */
 class mc_transaction_t :
@@ -276,8 +285,8 @@ class mc_transaction_t :
     friend class writeback_t;
 
 public:
-    mc_transaction_t(cache_t *cache, access_t access, int expected_change_count, repli_timestamp_t recency_timestamp);
-    mc_transaction_t(cache_t *cache, access_t access, bool dont_assert_about_shutting_down = false);   // Not for use with write transactions
+    mc_transaction_t(cache_t *cache, sequence_group_t *seq_group, access_t access, int expected_change_count, repli_timestamp_t recency_timestamp);
+    mc_transaction_t(cache_t *cache, sequence_group_t *seq_group, access_t access, bool dont_assert_about_shutting_down = false);   // Not for use with write transactions
     mc_transaction_t(cache_t *cache, access_t access, i_am_writeback_t i_am_writeback);
     ~mc_transaction_t();
 
@@ -366,9 +375,17 @@ public:
     typedef mc_transaction_t transaction_t;
     typedef mc_cache_account_t cache_account_t;
 
+    // For sequence groups to access the right fifo.  This is a bit of a HACK.
+    int get_slice_num() const { return slice_num; }
+
+private:
+    // TODO MERGE put this with the rest of the variables.
+    // Which slice this cache is for.  Used in get_slice_num or co_begin_transaction.
+    const int slice_num;
+public:
 
     static void create(serializer_t *serializer, mirrored_cache_static_config_t *config);
-    mc_cache_t(serializer_t *serializer, mirrored_cache_config_t *dynamic_config);
+    mc_cache_t(serializer_t *serializer, mirrored_cache_config_t *dynamic_config, int this_slice_num);
     ~mc_cache_t();
 
     block_size_t get_block_size();

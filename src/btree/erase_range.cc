@@ -116,6 +116,7 @@ private:
 
 
 void btree_erase_range_generic(value_sizer_t<void> *sizer, btree_slice_t *slice,
+                               sequence_group_t *seq_group,
                                key_tester_t *tester,
                                value_deleter_t *deleter,
                                const btree_key_t *left_exclusive_or_null,
@@ -131,7 +132,7 @@ void btree_erase_range_generic(value_sizer_t<void> *sizer, btree_slice_t *slice,
     // range of keys and that it won't be aligned right on a leaf node
     // boundary.
 
-    transaction_t txn(slice->cache(), rwi_write, 2, repli_timestamp_t::invalid);
+    transaction_t txn(slice->cache(), seq_group, rwi_write, 2, repli_timestamp_t::invalid);
     txn.set_token(slice->post_begin_transaction_checkpoint_.check_through(begin_transaction_token));
 
     erase_range_helper_t helper(sizer, tester, deleter, left_exclusive_or_null, right_inclusive_or_null);
@@ -139,7 +140,7 @@ void btree_erase_range_generic(value_sizer_t<void> *sizer, btree_slice_t *slice,
     btree_parallel_traversal(&txn, slice, &helper);
 }
 
-void btree_erase_range(btree_slice_t *slice, key_tester_t *tester,
+void btree_erase_range(btree_slice_t *slice, sequence_group_t *seq_group, key_tester_t *tester,
                        bool left_key_supplied, const store_key_t& left_key_exclusive,
                        bool right_key_supplied, const store_key_t& right_key_inclusive,
                        order_token_t token) {
@@ -166,5 +167,5 @@ void btree_erase_range(btree_slice_t *slice, key_tester_t *tester,
         rk = right.key();
     }
 
-    btree_erase_range_generic(sizer, slice, tester, &deleter, lk, rk, token);
+    btree_erase_range_generic(sizer, slice, seq_group, tester, &deleter, lk, rk, token);
 }
