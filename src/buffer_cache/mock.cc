@@ -2,6 +2,7 @@
 
 #include "arch/arch.hpp"
 #include "arch/random_delay.hpp"
+#include "buffer_cache/sequence_group.hpp"
 #include "serializer/serializer.hpp"
 
 /* Internal buf object */
@@ -149,13 +150,17 @@ void mock_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num
     cb->got_subtree_recencies();
 }
 
-mock_transaction_t::mock_transaction_t(mock_cache_t *_cache, access_t _access, UNUSED int expected_change_count, repli_timestamp_t _recency_timestamp)
+mock_transaction_t::mock_transaction_t(mock_cache_t *_cache, sequence_group_t *seq_group, access_t _access, UNUSED int expected_change_count, repli_timestamp_t _recency_timestamp)
     : cache(_cache), order_token(order_token_t::ignore), access(_access), recency_timestamp(_recency_timestamp),
       keepalive(_cache->transaction_counter.get()) {
-    coro_fifo_acq_t fifo_acq;
-    fifo_acq.enter(&cache->transaction_constructor_coro_fifo_);
+    coro_fifo_acq_t seq_group_acq;
+    seq_group_acq.enter(&seq_group->slice_groups[cache->get_slice_num()].fifo);
 
-    if (access == rwi_write) nap(5);   // TODO: Nap for a random amount of time.
+    coro_fifo_acq_t write_throttle_acq;
+    if (is_write_mode(access)) {
+        write_throttle_acq.enter(&cache->transaction_constructor_coro_fifo_);
+        nap(5);   // TODO: Nap for a random amount of time.
+    }
 }
 
 mock_transaction_t::~mock_transaction_t() {

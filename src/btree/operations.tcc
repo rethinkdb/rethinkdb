@@ -4,7 +4,8 @@
 #include "btree/slice.hpp"
 #include "btree/buf_patches.hpp"
 #include "buffer_cache/buffer_cache.hpp"
-
+// TODO MERGE don't include this file, move MAX_EVICTION_PRIORITY elsewhere.
+#include "buffer_cache/mirrored/page_repl_random.hpp"
 
 
 
