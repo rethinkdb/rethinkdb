@@ -534,7 +534,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     config.store_dynamic_config.cache.flush_dirty_size =
         (long long int)(config.store_dynamic_config.cache.max_dirty_size * FLUSH_AT_FRACTION_OF_UNSAVED_DATA_LIMIT);
 
-    // TODO MERGE: HACK: Scales n_slices by the number of files.
+    // HACK: Scales n_slices by the number of files.
     config.store_static_config.btree.n_slices = slices_per_device * config.store_dynamic_config.serializer_private.size();
 
     /* Convert values which depends on others to be set first */
