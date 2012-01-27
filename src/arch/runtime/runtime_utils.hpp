@@ -2,6 +2,7 @@
 #define __ARCH_RUNTIME_RUNTIME_UTILS_HPP__
 
 #include "containers/intrusive_list.hpp"
+#include <stdint.h>
 
 typedef int fd_t;
 #define INVALID_FD fd_t(-1)
@@ -78,5 +79,13 @@ private:
 
     DISABLE_COPYING(callable_action_wrapper_t);
 };
+
+#ifndef NDEBUG
+// Functions to keep track of running thread_message_t routines using get_clock_cycles
+void enable_watchdog(); // Enables watchdog printouts (off by default to avoid command-line spam)
+void start_watchdog(); // Starts time supervision
+void disarm_watchdog(); // Suspends time supervision until the next pet or start
+void pet_watchdog(); // Checks for long-running routines and restarts time supervision
+#endif
 
 #endif // __ARCH_RUNTIME_RUNTIME_UTILS_HPP__

@@ -81,11 +81,19 @@ void linux_message_hub_t::pull_messages(int thread) {
     msg_list.append_and_clear(&queue->msg_global_list);
     pthread_spin_unlock(&queue->lock);
 
+#ifndef NDEBUG
+    start_watchdog(); // Initialize watchdog before handling messages
+#endif
+
     int count = 0;
     while (linux_thread_message_t *m = msg_list.head()) {
         count++;
         msg_list.remove(m);
         m->on_thread_switch();
+
+#ifndef NDEBUG
+        pet_watchdog(); // Verify that each message completes in the acceptable time range
+#endif
     }
 }
 

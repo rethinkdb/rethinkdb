@@ -98,6 +98,18 @@ void usage_serve() {
                 "                        the database file. Default is the name of the database\n"
                 "                        file with \"%s\" appended.\n", DEFAULT_SEMANTIC_EXTENSION);
 #endif
+#ifndef NDEBUG
+    help->pagef("      --watchdog-enabled\n"
+                "                        Prints out the information of a coroutine if it takes a\n"
+                "                        significant amount of time to switch out (more than 100k\n"
+                "                        cycles.  This will be more common if the system is under\n"
+                "                        load from other processes.\n");
+    help->pagef("      --coroutine_summary\n"
+                "                        On process exit, prints out a summary of all coroutines\n"
+                "                        that ran, with the total count of each type.  These are\n"
+                "                        aggregated from all threads and sorted by the templatized\n"
+                "                        callable object that the coroutine was spawned with.\n");
+#endif
     //TODO move this in to an advanced options help file
     /* help->pagef("      --coroutine-stack-size\n"
                 "                        How much space is allocated for the stacks of coroutines.\n"
@@ -163,6 +175,18 @@ void usage_create() {
                 "  -l, --log-file        File to log to. If not provided, messages will be\n"
                 "                        printed to stderr.\n"
            );
+#ifndef NDEBUG
+    help->pagef("      --watchdog-enabled\n"
+                "                        Prints out the information of a coroutine if it takes a\n"
+                "                        significant amount of time to switch out (more than 100k\n"
+                "                        cycles.  This will be more common if the system is under\n"
+                "                        load from other processes.\n");
+    help->pagef("      --coroutine_summary\n"
+                "                        On process exit, prints out a summary of all coroutines\n"
+                "                        that ran, with the total count of each type.  These are\n"
+                "                        aggregated from all threads and sorted by the templatized\n"
+                "                        callable object that the coroutine was spawned with.\n");
+#endif
     help->pagef("\n"
                 "Behaviour options:\n"
                 "      --force           Create a new database even if there already is one.\n"
@@ -187,6 +211,18 @@ void usage_import() {
                 "Output options:\n"
                 "  -l, --log-file        File to log to. If not provided, messages will be\n"
                 "                        printed to stderr.\n");
+#ifndef NDEBUG
+    help->pagef("      --watchdog-enabled\n"
+                "                        Prints out the information of a coroutine if it takes a\n"
+                "                        significant amount of time to switch out (more than 100k\n"
+                "                        cycles.  This will be more common if the system is under\n"
+                "                        load from other processes.\n");
+    help->pagef("      --coroutine_summary\n"
+                "                        On process exit, prints out a summary of all coroutines\n"
+                "                        that ran, with the total count of each type.  These are\n"
+                "                        aggregated from all threads and sorted by the templatized\n"
+                "                        callable object that the coroutine was spawned with.\n");
+#endif
     help->pagef("\n"
                 "Files are imported in the order specified, thus if a key is set in successive\n" 
                 "files it will ultimately be set to the value in the last file it's metioned in.\n");
@@ -219,7 +255,9 @@ enum {
     memcache_file,
     metadata_file,
     verbose,
-    no_rogue
+    no_rogue,
+    watchdog_enabled,
+    coroutine_summary
 };
 
 cmd_config_t parse_cmd_args(int argc, char *argv[]) {
@@ -300,6 +338,10 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"full-perfmon",         no_argument, &do_full_perfmon, 1},
                 {"no-set-affinity",      no_argument, &do_no_set_affinity, 1},
                 {"memcached-file",       required_argument, 0, memcache_file},
+#ifndef NDEBUG
+                {"watchdog-enabled",     no_argument, 0, watchdog_enabled},
+                {"coroutine-summary",    no_argument, 0, coroutine_summary},
+#endif
                 {0, 0, 0, 0}
             };
 
@@ -435,6 +477,14 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
             case no_rogue:
                 config.failover_config.no_rogue = true;
                 break;
+#ifndef NDEBUG
+            case watchdog_enabled:
+                config.watchdog_enabled = true;
+                break;
+            case coroutine_summary:
+                config.coroutine_summary = true;
+                break;
+#endif
             case 'h':
             default:
                 /* getopt_long already printed an error message. */
@@ -988,6 +1038,10 @@ void cmd_config_t::print() {
 
 cmd_config_t::cmd_config_t() {
     verbose = false;
+#ifndef NDEBUG
+    watchdog_enabled = false;
+    coroutine_summary = false;
+#endif
     port = DEFAULT_LISTEN_PORT;
     n_workers = get_cpu_count();
     do_set_affinity = true;
