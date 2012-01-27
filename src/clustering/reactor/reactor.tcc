@@ -3,219 +3,188 @@ reactor_t<protocol_t>::reactor_t(
         mailbox_manager_t *mm,
         clone_ptr_t<directory_readwrite_view_t<reactor_business_card_t<protocol_t> > > rd,
         boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > bh,
-        watchable_t<manager_orders_t<protocol_t> > *o,
+        watchable_t<blueprint_t<protocol_t> > *b,
         std::string file_path) THROWS_NOTHING :
-    mailbox_manager(mm), reactor_directory(rd), branch_history(bh), orders(o),
+    mailbox_manager(mm), reactor_directory(rd), branch_history(bh), blueprint(b),
     store_file(file_path),
     backfiller(mailbox_manager, branch_history, &store_file),
-    orders_subscription(boost::bind(&delayed_pump_t::run_eventually, &pumper)),
-    directory_subscription(
-        boost::bind(&delayed_pump_t::run_eventually, &pumper),
-        boost::bind(&delayed_pump_t::run_eventually, &pumper),
-        boost::bind(&delayed_pump_t::run_eventually, &pumper))
+    blueprint_subscription(boost::bind(&reactor_t<protocol_t>::on_new_blueprint, this))
 {
     {
-        watchable_freeze_t freeze(orders);
-        orders_subscription.reset(orders, &freeze);
-    }
-    {
-        directory_read_service_t::whole_directory_freeze_t freeze(reactor_directory->get_directory_service());
-        directory_subscription.reset(reactor_directory->get_directory_service(), &freeze);
-    }
-    pumper.run_eventually();
-}
-
-template<class protocol_t>
-reactor_t<protocol_t>::role_monitor_t::role_monitor_t(reactor_t *p, typename protocol_t::region_t r, activity_type_t e) :
-    parent(p), region(r), expected(e),
-    subscription(boost::bind(&activity_type_monitor_t::on_change, this))
-{
-    watchable_freeze_t freeze(parent->blueprint);
-    if (is_failed()) {
-        pulse();
-    } else {
-        subscription.reset(parent->blueprint)
+        watchable_freeze_t freeze(blueprint);
+        on_new_blueprint();
+        blueprint_subscription.reset(blueprint, &freeze);
     }
 }
 
 template<class protocol_t>
-void reactor_t<protocol_t>::role_monitor_t::on_change() {
-    if (is_failed() && !is_pulsed()) {
-        pulse();
+void reactor_t<protocol_t>::on_new_blueprint() {
+
+    blueprint_t<protocol_t> bp = blueprint->get();
+
+    /* Interrupt any no-longer-current shards */
+    typename std::map<typename protocol_t::region_t, std::pair<typename blueprint_t<protocol_t>::role_t, boost::shared_ptr<cond_t> > >::iterator it;
+    for (it = current_activities.begin(); it != current_activities.end(); ) {
+        boost::optional<typename blueprint_t<protocol_t>::role_t> new_role =
+            bp->get_role((*it).first, get_me());
+        if (!new_role || new_role.get() != (*it).second.first) {
+            (*it).second.second->pulse();
+            current_activities.remove(it++);
+        } else {
+            it++;
+        }
     }
-}
 
-template<class protocol_t>
-bool reactor_t<protocol_t>::role_monitor_t::is_failed() {
-    boost::optional<typename blueprint_t<protocol_t>::role_t> role =
-        parent->blueprint->get().get_role(
-            parent->mailbox_manager->get_connectivity_service()->get_me(),
-            region
-            );
-    return role && role.get() == expected;
-}
-
-template<class protocol_t>
-void reactor_t<protocol_t>::pump() THROWS_NOTHING {
-    mutex_assertion_t::acq_t dont_let_activities_finish(&lock);
-    directory_read_service_t::whole_directory_freeze_t dont_let_directory_change(reactor_directory->get_directory_service());
-    watchable_freeze_t dont_let_blueprint_change(orders);
-    ASSERT_NO_CORO_WAITING;
-    std::map<typename protocol_t::region_t, typename blueprint_t<protocol_t>::shard_t> shards =
-        blueprint->get().shards;
-    for (typename std::map<typename protocol_t::region_t, typename blueprint_t<protocol_t>::shard_t>::iterator it = shards.begin();
-            it != shards.end(); it++) {
-        typename protocol_t::region_t region = (*it).first;
-        switch ((*it).second.get_role(mailbox_manager->get_connectivity_service()->get_me())) {
-            case blueprint_t<protocol_t>::role_nothing: {
-                if (/* every secondary in blueprint is up according to the directory */ && !region_is_active(region)) {
-                    spawn_activity(region, boost::bind(&reactor_t<protocol_t>::reset_region, this, region, _1));
-                } else {
-                    /* for each inactive subregion: set up a backfiller for that
-                    subregion */
-                }
-                break;
+    /* Spawn any new shards that are necessary */
+    typename std::map<typename protocol_t::region_t, typename blueprint_t<protocol_t>::role_t>::iterator it2;
+    for (it2 = bp.shards.begin(); it2 != bp.shards.end(); it2++) {
+        it = current_activities.find((*it2).first);
+        typename blueprint_t<protocol_t>::role_t role = bp->get_role((*it2).first, get_me());
+        if (it == current_activities.end()) {
+            boost::shared_ptr<cond_t> blueprint_changed = boost::make_shared<cond_t>();
+            current_activities.insert((*it2).first, std::make_pair(role, blueprint_changed));
+            switch (role) {
+                case blueprint_t<protocol_t>::role_primary:
+                    coro_t::spawn_sometime(boost::bind(
+                        &reactor_t<protocol_t>::be_primary, this,
+                        (*it2).first, blueprint_changed, auto_drainer_t::lock_t(&drainer)
+                        ));
+                    break;
+                case blueprint_t<protocol_t>::role_secondary:
+                    coro_t::spawn_sometime(boost::bind(
+                        &reactor_t<protocol_t>::be_secondary, this,
+                        (*it2).first, blueprint_changed, auto_drainer_t::lock_t(&drainer)
+                        ));
+                    break;
+                case blueprint_t<protocol_t>::role_nothing:
+                    coro_t::spawn_sometime(boost::bind(
+                        &reactor_t<protocol_t>::be_nothing, this,
+                        (*it2).first, blueprint_changed, auto_drainer_t::lock_t(&drainer)
+                        ));
+                    break;
             }
-            case blueprint_t<protocol_t>::role_primary: {
-                if (/* our state is as far forward as anyone else according to the directory, and no other primary is up */ && !region_is_active(region)) {
-                    spawn_activity(region, boost::bind(&reactor_t<protocol_t>::be_primary, this, region, _1));
-                } else {
-                    /* for each inactive subregion where we are lagging behind
-                    another peer: start backfilling from that peer */
-                }
-                break;
-            }
-            case blueprint_t<protocol_t>::role_secondary: {
-                if (/* there is a primary in the directory */ && !region_is_active(region)) {
-                    spawn_activity(region, boost::bind(&reactor_t<protocol_t>::be_secondary, this, region, _1));
-                } else {
-                    for (/* each inactive subregion in region */) {
-                        if (/* we are ahead of everything in directory */) {
-                            spawn_activity(subregion, boost::bind(&reactor_t<protocol_t>::offer_backfills, this, region, _1));
-                        } else if (/* there is a unique most recent backfiller */) {
-                            spawn_activity(subregion, boost::bind(&backfillee<protocol_t>, 
-                        }
-                    }
-                }
-                break;
-            }
+        } else {
+            rassert((*it).second.first == role);
         }
     }
 }
 
 template<class protocol_t>
-void reactor_t<protocol_t>::spawn_activity(typename protocol_t::region_t region,
-        const boost::function<void(signal_t *)> &activity,
-        mutex_assertion_t *proof_of_activity_mutex) THROWS_NOTHING {
-    proof_of_activity_mutex->assert_is_holding(&lock);
-    rassert(!region_is_active(region));
-    active_regions.insert(region);
-    coro_t::spawn_sometime(boost::bind(&reactor_t<protocol_t>::run_activity,
-        this, region, activity, auto_drainer_t::lock_t(&drainer)));
-}
-
-template<class protocol_t>
-void reactor_t<protocol_t>::run_activity(typename protocol_t::region_t region,
-        const boost::function<void(signal_t *)> &activity,
-        auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
-    {
-        store_subview_t sub_store(&store_file, region);
-        activity(&sub_store, keepalive.get_drain_signal());
-    }
-    {
-        mutex_assertion_t::acq_t acq(&lock);
-        active_regions.erase(region);
-    }
-    pumper.run_eventually();
-}
-
-template<class protocol_t>
-bool reactor_t<protocol_t>::region_is_active(typename protocol_t::region_t r) THROWS_NOTHING {
-    for (typename std::set<typename protocol_t::region_t>::iterator it = 
-            regions_with_a_primary_or_secondary.begin();
-            it != regions_with_a_primary_or_secondary.end(); it++) {
-        if (regions_overlap(*it, r)) {
-            return true;
-        }
-    }
-    return false;
-}
-
-template<class protocol_t>
-void reactor_t<protocol_t>::reset_region(typename protocol_t::region_t region, store_view_t *sub_store, signal_t *interruptor) THROWS_NOTHING {
+void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, boost::shared_ptr<cond_t> blueprint_changed, auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
     try {
-        role_monitor_t role_monitor(this, region, blueprint_t<protocol_t>::role_nothing);
-        wait_any_t interruptor2(&role_monitor, interruptor);
+        gradually_grab_region_t grab(region);
+
+        wait_any_t interruptor(keepalive.get_drain_signal(), blueprint_changed.get());
+        boost::scoped_ptr<get_up_to_date_t> get_me_up_to_date(new get_up_to_date_t(this, region, &grab, &interruptor));
+
+        /* we're up to date now */
+
+        directory_entry_t directory_entry(region, WAITING_TO_BE_PRIMARY);
+
+        directory_ack_waiter_t ack_waiter(directory_entry.get_timestamp());
+        wait_interruptible(&ack_waiter, &interruptor);
+
+        some_signal_subclass_t wait_for(/* directory says nothing but us is PRIMARY
+             or WAITING_TO_BE_PRIMARY except for us. */);
+        wait_interruptible(&wait_for, &interruptor);
+
+        wait_interruptible(&grab, &interruptor);
+
+        get_me_up_to_date.reset();
+
+        boost::scoped_ptr<listener_t> listener;
+        broadcaster_t<protocol_t> broadcaster(..., &listener, &interruptor);
+        replier_t<protocol_t> replier(listener.get());
+        master_t<protocol_t> master(..., &broadcaster);
+
+        directory_entry.update(PRIMARY, broadcaster.get_business_card());
+
+        wait_interruptible(&blueprint_changed.get(), keepalive.get_drain_signal());
+
+        some_signal_subclass_t wait_for(/* foreach key in region: either there is
+            something WAITING_TO_BE_PRIMARY in the directory, or the blueprint says
+            that there should not be a primary. */)
+        wait_interruptible(&wait_for, keepalive.get_drain_signal());
+
+    } catch (interrupted_exc_t) {
+        /* ignore */
+    }
+}
+
+template<class protocol_t>
+void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, boost::shared_ptr<cond_t> blueprint_changed, auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
+    try {
+        wait_any_t interruptor(keepalive.get_drain_signal(), blueprint_changed.get());
+
+        gradually_grab_region_t grab(region);
+        wait_interruptible(&grab, &interruptor);
+
+        while (true) {
+            boost::optional<broadcaster_business_card_t<protocol_t> > broadcaster =
+                /* find primary if any in directory */
+            if (broadcaster) {
+                listener_t<protocol_t> listener(broadcaster.get(), ...);
+                replier_t<protocol_t> replier(&listener);
+
+                directory_entry_t directory_entry(region, SECONDARY);
+
+                wait_any_t waiter(&blueprint_changed.get(), listener.get_outdated_signal());
+                wait_interruptible(&waiter, keepalive.get_drain_signal());
+
+                if (blueprint_changed.get().is_pulsed()) {
+                    directory_entry.update(WAITING_NOT_TO_BE_SECONDARY);
+
+                    directory_ack_waiter_t ack_waiter(directory_entry.get_timestamp());
+                    wait_interruptible(&ack_waiter, keepalive.get_drain_signal());
+
+                    some_signal_subclass_t wait_for(/* foreach key in region: (every
+                        secondary in the blueprint is SECONDARY in the directory,
+                        and every primary in the blueprint is either PRIMARY or
+                        WAITING_TO_BE_PRIMARY in the directory) or (our new role is
+                        role_secondary or role_primary for this key) */);
+                    wait_interruptible(&wait_for, keepalive.get_drain_signal());
+
+                    return;
+                }
+
+            } else {
+                backfiller_t<protocol_t> backfiller(...);
+
+                directory_entry_t directory_entry(region, BACKFILLER);
+
+                some_signal_subclass_t wait_for(/* there is a primary in the
+                    directory for our exact bounds */);
+                wait_interruptible(&wait_for, &interruptor);
+            }
+        }
+
+    } catch (interrupted_exc_t) {
+        /* ignore */
+    }
+}
+
+template<class protocol_t>
+void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region, boost::shared_ptr<cond_t> blueprint_changed, auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
+    try {
+        wait_any_t interruptor(keepalive.get_drain_signal(), blueprint_changed.get());
+
+        gradually_grab_region_t grab(region);
+        wait_interruptible(&grab, &interruptor);
+
+        /* maybe wait for something */;
+
         {
             boost::shared_ptr<typename store_view_t<protocol_t>::write_transaction_t> txn =
-                store_view.begin_write_transaction(&interruptor2);
+                store_view.begin_write_transaction(&interruptor);
             txn->set_metadata(region_map_t<protocol_t>(region, version_range_t::zero()));
             /* TODO make this interruptible */
             txn->reset_data();
         }
-        interruptor2.wait_lazily_unordered();
+
+        interruptor.wait_lazily_unordered();
+
     } catch (interrupted_exc_t) {
-        /* Ignore */
+        /* ignore */
     }
 }
 
-template<class protocol_t>
-void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, store_view_t *sub_store, signal_t *interruptor) THROWS_NOTHING {
-    try {
-        boost::scoped_ptr<listener_t<protocol_t> > listener;
-        broadcaster_t<protocol_t> broadcaster(..., &listener, interruptor);
-        replier_t<protocol_t> replier(listener.get());
-        master_t<protocol_t> master(...)
-    
-        some_signal_subclass_t thing; /* Will be pulsed when blueprint says someone else is primary of a shard overlapping ours and directory says
-            foreach primary of a shard overlapping ours: foreach subregion of their region: if there's an active
-            primary, they're live-tracking it, else they're most up-to-date of any node */
-        wait_any_t waiter(&thing, interruptor);
-        waiter.wait_lazily_unordered();
-    } catch (interrupted_exc_t) {
-        /* Ignore */
-    }
-}
-
-template<class protocol_t>
-void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, store_view_t<protocol_t> *sub_store, signal_t *interruptor) THROWS_NOTHING {
-    try {
-        listener_t<protocol_t> listener(...);
-        replier_t<protocol_t> replier(&listener);
-    
-        some_signal_subclass_t thing; /* Will be pulsed when blueprint says ? */
-        wait_any_t waiter(&thing, listener.get_outdated_signal(), interruptor);
-        waiter.wait_lazily_unordered();
-    } catch (interrupted_exc_t) {
-        /* Ignore */
-    }
-}
-
-template<class protocol_t>
-void backfill_in(typename protocol_t::region_t region, store_view_t<protocol_t> *sub_store, clone_ptr_t<directory_single_rview_t<backfiller_business_card_t<protocol_t> > > backfiller, signal_t *interruptor) THROWS_NOTHING {
-    try {
-        backfillee<protocol_t>(
-            mailbox_manager,
-            branch_history,
-            sub_store,
-            backfiller,
-            interruptor);
-    } catch (interrupted_exc_t) {
-        /* Ignore */
-    }
-}
-
-template<class protocol_t>
-void reactor_t<protocol_t>::offer_backfills(typename protocol_t::region_t region, store_view_t<protocol_t> *sub_store, signal_t *interruptor) THROWS_NOTHING {
-    try {
-        backfiller_t<protocol_t> backfiller(
-            mailbox_manager,
-            branch_history,
-            sub_store);
-        some_signal_subclass_t thing; /* Will be pulsed when the conditions
-            under which we started offering backfills no longer hold */
-        wait_interruptible(&thing, interruptor);
-    } catch (interrupted_exc_t) {
-        /* Ignore */
-    }
-}
