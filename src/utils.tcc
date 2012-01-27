@@ -6,7 +6,7 @@ struct thread_doer_t :
     public thread_message_t,
     public home_thread_mixin_t
 {
-    callable_t callable;
+    const callable_t callable;
     int thread;
     enum state_t {
         state_go_to_core,
@@ -33,7 +33,11 @@ struct thread_doer_t :
     
     void do_return_home() {
         state = state_go_home;
-        if (continue_on_thread(home_thread(), this)) delete this;
+#ifndef NDEBUG
+        rassert(!continue_on_thread(home_thread(), this));
+#else
+        continue_on_thread(home_thread(), this);
+#endif
     }
     
     void on_thread_switch() {
@@ -53,8 +57,14 @@ struct thread_doer_t :
 template<class callable_t>
 void do_on_thread(int thread, const callable_t &callable) {
     assert_good_thread_id(thread);
-    thread_doer_t<callable_t> *fsm = new thread_doer_t<callable_t>(callable, thread);
-    fsm->run();
+
+    if (thread == get_thread_id()) {
+        // Run the function directly since we are already in the requested thread
+        callable();
+    } else {
+        thread_doer_t<callable_t> *fsm = new thread_doer_t<callable_t>(callable, thread);
+        fsm->run();
+    }
 }
 
 template<class callable_t>
