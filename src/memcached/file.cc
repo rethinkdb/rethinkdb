@@ -14,8 +14,7 @@ private:
     signal_t *interrupt;
 
 public:
-    // TODO MERGE num_slices param unused in constructor
-    file_memcached_interface_t(const char *filename, signal_t *_interrupt, UNUSED int num_slices) :
+    file_memcached_interface_t(const char *filename, signal_t *_interrupt) :
         file(fopen(filename, "r")),
         progress_bar(std::string("Import"), file),
         interrupt(_interrupt)
@@ -67,13 +66,12 @@ class dummy_get_store_t : public get_store_t {
     }
 };
 
-// TODO MERGE you nede to use the parametre you added here.
 void import_memcache(const char *filename, set_store_interface_t *set_store, int n_slices, signal_t *interrupt) {
     rassert(interrupt);
     interrupt->assert_thread();
 
     dummy_get_store_t dummy_get_store;
-    file_memcached_interface_t interface(filename, interrupt, n_slices);
+    file_memcached_interface_t interface(filename, interrupt);
 
-    handle_memcache(&interface, &dummy_get_store, set_store, MAX_CONCURRENT_QUEURIES_ON_IMPORT);
+    handle_memcache(&interface, &dummy_get_store, set_store, MAX_CONCURRENT_QUEURIES_ON_IMPORT, n_slices);
 }

@@ -237,7 +237,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
                 if (cmd_config->replication_config.active) {
 
-                    memcache_listener_t conn_acceptor(cmd_config->port, &gated_get_store, &gated_set_store);
+                    memcache_listener_t conn_acceptor(cmd_config->port, &gated_get_store, &gated_set_store, cmd_config->store_static_config.btree.n_slices);
 
                     /* Failover callbacks. It's not safe to add or remove them when the slave is
                     running, so we have to set them all up now. */
@@ -275,7 +275,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
                 } else if (cmd_config->replication_master_active) {
 
-                    memcache_listener_t conn_acceptor(cmd_config->port, &gated_get_store, &gated_set_store);
+                    memcache_listener_t conn_acceptor(cmd_config->port, &gated_get_store, &gated_set_store, cmd_config->store_static_config.btree.n_slices);
 
                     /* Make it impossible for this database file to later be used as a slave, because
                     that would confuse the replication logic. */
@@ -327,7 +327,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                     gated_get_store_t::open_t permit_gets(&gated_get_store);
                     gated_set_store_interface_t::open_t permit_sets(&gated_set_store);
 
-                    memcache_listener_t conn_acceptor(cmd_config->port, &gated_get_store, &gated_set_store);
+                    memcache_listener_t conn_acceptor(cmd_config->port, &gated_get_store, &gated_set_store, cmd_config->store_static_config.btree.n_slices);
 
                     logINF("Server will now permit queries on port %d.\n", cmd_config->port);
 

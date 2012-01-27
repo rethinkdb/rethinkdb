@@ -33,8 +33,6 @@ static const char *crlf = "\r\n";
 
 struct txt_memcached_handler_t : public home_thread_mixin_t {
 
-    // TODO MERGE make sure seq_group lifetime is appropriate, ask whether sequence group should be kept here.
-
     txt_memcached_handler_t(memcached_interface_t *_interface, get_store_t *_get_store,
                             set_store_interface_t *_set_store, int _max_concurrent_queries_per_connection, int num_slices)
         : interface(_interface), get_store(_get_store), set_store(_set_store), seq_group(num_slices), max_concurrent_queries_per_connection(_max_concurrent_queries_per_connection)
@@ -1013,14 +1011,12 @@ bool parse_debug_command(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, st
 
 /* Handle memcached, takes a txt_memcached_handler_t and handles the memcached commands that come in on it */
 void handle_memcache(memcached_interface_t *interface, get_store_t *get_store,
-        set_store_interface_t *set_store, int max_concurrent_queries_per_connection) {
+                     set_store_interface_t *set_store, int max_concurrent_queries_per_connection, int n_slices) {
     logDBG("Opened memcached stream: %p\n", coro_t::self());
-
-    // TODO MERGE 1024 is a fake number of slices.
 
     /* This object just exists to group everything together so we don't have to pass a lot of
     context around. */
-    txt_memcached_handler_t rh(interface, get_store, set_store, max_concurrent_queries_per_connection, 1024);
+    txt_memcached_handler_t rh(interface, get_store, set_store, max_concurrent_queries_per_connection, n_slices);
 
     /* The commands from each individual memcached handler must be performed in the order
     that the handler parses them. This `order_source_t` is used to guarantee that. */
