@@ -80,10 +80,6 @@ private:
     DISABLE_COPYING(callable_action_wrapper_t);
 };
 
-// Functions to allow clock cycle supervision of a thread_message_t
-void get_clock_cycles(uint64_t *value);
-uint64_t get_and_check_clock_cycles(uint64_t* value, uint64_t max_delta);
-
 #ifndef NDEBUG
 // Functions to keep track of running thread_message_t routines using get_clock_cycles
 void enable_watchdog(); // Enables watchdog printouts (off by default to avoid command-line spam)

@@ -5,7 +5,16 @@
 #include <unistd.h>
 
 #ifndef NDEBUG
-bool watchdog_printout_enabled = false;
+// This is an inline assembly macro to get the current number of clock cycles
+// Guaranteed to be super awesome
+#define get_clock_cycles(res) do { \
+                                  uint32_t low; \
+                                  __asm__ __volatile__("rdtsc" : "=a" (low), "=d" (res));\
+                                  res = res << 32; \
+                                  res |= low; \
+                              } while(0)
+
+bool watchdog_check_enabled = false;
 __thread uint64_t watchdog_start_time = 0;
 const uint64_t MAX_WATCHDOG_DELTA = 100000000;
 #endif
@@ -44,45 +53,31 @@ void callable_action_wrapper_t::run() {
     action_->run_action();
 }
 
-void get_clock_cycles(uint64_t *value) {
-    asm volatile (
-        "pushq %%rax\n\t"
-        "pushq %%rbx\n\t"
-        "pushq %%rdx\n\t"
-        "rdtsc\n\t"
-        "movq %0, %%rbx\n\t"
-        "movl %%eax, (%%rbx)\n\t"
-        "movl %%edx, 4(%%rbx)\n\t"
-        "popq %%rdx\n\t"
-        "popq %%rbx\n\t"
-        "popq %%rax\n"
-        : // no outputs
-        : "" (value)
-    );
-}
+#ifndef NDEBUG
 
 // Function to check that the completion time is not too large
 //  returns 0 if within the acceptable time range, or the total delta time otherwise
-uint64_t get_and_check_clock_cycles(uint64_t* value, uint64_t max_delta) {
-    uint64_t old_count = *value;
+uint64_t get_and_check_clock_cycles(uint64_t& value, uint64_t max_delta) {
+    uint64_t old_count = value;
     get_clock_cycles(value);
 
     // old_count will now contain the delta
-    old_count = *value - old_count;
+    old_count = value - old_count;
 
     return (old_count < max_delta) ? 0 : old_count;
 }
 
-#ifndef NDEBUG
 void enable_watchdog() {
-    watchdog_printout_enabled = true;
+    watchdog_check_enabled = true;
 }
 
 void start_watchdog() {
-    get_clock_cycles(&watchdog_start_time);
+    if (watchdog_check_enabled) {
+        get_clock_cycles(watchdog_start_time);
 
-    if (watchdog_start_time == 0) {
-        ++watchdog_start_time;
+        if (watchdog_start_time == 0) {
+            ++watchdog_start_time;
+        }
     }
 }
 
@@ -91,14 +86,16 @@ void disarm_watchdog() {
 }
 
 void pet_watchdog() {
-    if (watchdog_start_time == 0) {
-        start_watchdog();
-    } else {
-        uint64_t delta = get_and_check_clock_cycles(&watchdog_start_time, MAX_WATCHDOG_DELTA);
+    if (watchdog_check_enabled) {
+        if (watchdog_start_time == 0) {
+            start_watchdog();
+        } else {
+            uint64_t delta = get_and_check_clock_cycles(watchdog_start_time, MAX_WATCHDOG_DELTA);
 
-        if (delta != 0 && watchdog_printout_enabled) {
-            logWRN("task triggered watchdog, elapsed cycles: %lu, running coroutine: %s\n", delta,
-                (coro_t::self() == NULL) ? "n/a" : coro_t::self()->get_coroutine_type().c_str());
+            if (delta != 0) {
+                logWRN("task triggered watchdog, elapsed cycles: %lu, running coroutine: %s\n", delta,
+                    (coro_t::self() == NULL) ? "n/a" : coro_t::self()->get_coroutine_type().c_str());
+            }
         }
     }
 }
