@@ -378,12 +378,6 @@ public:
     // For sequence groups to access the right fifo.  This is a bit of a HACK.
     int get_slice_num() const { return slice_num; }
 
-private:
-    // TODO MERGE put this with the rest of the variables.
-    // Which slice this cache is for.  Used in get_slice_num or co_begin_transaction.
-    const int slice_num;
-public:
-
     static void create(serializer_t *serializer, mirrored_cache_static_config_t *config);
     mc_cache_t(serializer_t *serializer, mirrored_cache_config_t *dynamic_config, int this_slice_num);
     ~mc_cache_t();
@@ -436,6 +430,8 @@ public:
     coro_fifo_t& co_begin_coro_fifo() { return co_begin_coro_fifo_; }
 
 private:
+    // Which slice this cache is for.  Used in get_slice_num or co_begin_transaction.
+    const int slice_num;
 
     mirrored_cache_config_t dynamic_config; // Local copy of our initial configuration
 
