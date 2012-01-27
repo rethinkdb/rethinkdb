@@ -97,17 +97,6 @@ scc_transaction_t<inner_cache_t>::scc_transaction_t(scc_cache_t<inner_cache_t> *
     { }
 
 template<class inner_cache_t>
-scc_transaction_t<inner_cache_t>::scc_transaction_t(scc_cache_t<inner_cache_t> *cache, sequence_group_t *seq_group, access_t access) :
-    cache(cache),
-    order_token(order_token_t::ignore),
-    snapshotted(false),
-    access(access),
-    inner_transaction(&cache->inner_cache, seq_group, access)
-{
-    rassert(access == rwi_read || access == rwi_read_sync);
-}
-
-template<class inner_cache_t>
 scc_transaction_t<inner_cache_t>::~scc_transaction_t() {
 }
 

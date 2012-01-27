@@ -158,13 +158,6 @@ mock_transaction_t::mock_transaction_t(mock_cache_t *_cache, access_t _access, U
     if (access == rwi_write) nap(5);   // TODO: Nap for a random amount of time.
 }
 
-mock_transaction_t::mock_transaction_t(mock_cache_t *_cache, access_t _access)
-    : cache(_cache), order_token(order_token_t::ignore), access(_access),
-      keepalive(_cache->transaction_counter.get()) {
-    coro_fifo_acq_t fifo_acq;
-    fifo_acq.enter(&cache->transaction_constructor_coro_fifo_);
-}
-
 mock_transaction_t::~mock_transaction_t() {
     assert_thread();
     if (access == rwi_write) nap(5);   // TODO: Nap for a random amount of time.

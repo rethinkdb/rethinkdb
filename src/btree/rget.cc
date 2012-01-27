@@ -104,7 +104,7 @@ rget_result_t btree_rget_slice(btree_slice_t *slice, sequence_group_t *seq_group
     slice->pre_begin_transaction_sink_.check_out(token);
     UNUSED order_token_t begin_transaction_token = slice->pre_begin_transaction_read_mode_source_.check_in(token.tag() + "+begin_transaction_token").with_read_mode();
 
-    transaction_t *transaction = new transaction_t(slice->cache(), seq_group, rwi_read);
+    transaction_t *transaction = new transaction_t(slice->cache(), seq_group, rwi_read, 0, repli_timestamp_t::distant_past);
     boost::scoped_ptr<transaction_t> txn(transaction);
 
     transaction->set_token(slice->post_begin_transaction_checkpoint_.check_through(token).with_read_mode());

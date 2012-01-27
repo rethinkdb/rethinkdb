@@ -169,7 +169,7 @@ void do_agnostic_btree_backfill(value_sizer_t<void> *sizer, btree_slice_t *slice
     // TODO: Why are we using a write_mode source here?  There must be a reason...
     order_token_t begin_transaction_token = slice->pre_begin_transaction_write_mode_source_.check_in(token.tag() + "+begin_transaction_token").with_read_mode();
 
-    transaction_t txn(slice->cache(), seq_group, rwi_read_sync);
+    transaction_t txn(slice->cache(), seq_group, rwi_read_sync, 0, repli_timestamp_t::distant_past);
 
     txn.set_token(slice->post_begin_transaction_checkpoint_.check_through(begin_transaction_token));
 

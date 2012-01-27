@@ -929,8 +929,8 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, sequence_group_t *seq_group,
     pm_transactions_active.begin(&start_time);
 }
 
-/* This version is only for read transactions from the writeback!  TODO MERGE: Oh really?? */
-mc_transaction_t::mc_transaction_t(cache_t *_cache, sequence_group_t *seq_group, access_t _access, UNUSED bool dont_assert_about_shutting_down) :
+/* This version is only for read transactions from the writeback!  And some unit tests use it. */
+mc_transaction_t::mc_transaction_t(cache_t *_cache, sequence_group_t *seq_group, access_t _access, UNUSED int fook, UNUSED bool dont_assert_about_shutting_down) :
     cache(_cache),
     expected_change_count(0),
     access(_access),
