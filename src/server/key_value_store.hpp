@@ -163,6 +163,9 @@ public:
 private:
     friend class replication::backfill_and_streaming_manager_t;
 
+    // TODO: Maybe add a get_n_slices method instead.
+    friend class btree_metadata_store_t;
+
     int n_files;
     btree_config_t btree_static_config;
     mirrored_cache_static_config_t cache_static_config;

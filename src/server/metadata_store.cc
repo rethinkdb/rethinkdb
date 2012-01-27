@@ -39,6 +39,8 @@ btree_metadata_store_t::btree_metadata_store_t(const btree_key_value_store_dynam
 
     store_.reset(new btree_key_value_store_t(dynamic_config));
 
+    seq_group_.reset(new sequence_group_t(store_->btree_static_config.n_slices));
+
     // Unpersist stats & create the stat persistence coro
     persistent_stat_t::unpersist_all(this);
     stat_persistence_side_coro_ptr =
@@ -58,10 +60,7 @@ static store_key_t key_from_string(const std::string& key) {
 bool btree_metadata_store_t::get_meta(const std::string &key, std::string *out) {
     store_key_t sk = key_from_string(key);
 
-    // TODO MERGE Find an actual sequence group to use.
-    sequence_group_t seq_group(1);
-
-    get_result_t res = store_->get(sk, &seq_group, order_token_t::ignore);
+    get_result_t res = store_->get(sk, seq_group_.get(), order_token_t::ignore);
 
     // This should only be tripped if a gated store was involved, which it wasn't.
     guarantee(!res.is_not_allowed);
@@ -84,10 +83,7 @@ void btree_metadata_store_t::set_meta(const std::string& key, const std::string&
     mcflags_t mcflags = 0;
     exptime_t exptime = 0;
 
-    // TODO MERGE Figure out where this sequence group should come from.
-    sequence_group_t seq_group(1);
-
-    set_result_t res = store_->sarc(&seq_group, sk, datap, mcflags, exptime,
+    set_result_t res = store_->sarc(seq_group_.get(), sk, datap, mcflags, exptime,
         add_policy_yes, replace_policy_yes,
         NO_CAS_SUPPLIED,
         order_token_t::ignore);

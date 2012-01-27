@@ -199,6 +199,8 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                                             &cmd_config->store_static_config);
             // TODO: Shouldn't do this... Setting up the metadata static config doesn't belong here
             // and it's very hacky to build on the store_static_config.
+            // TODO: Isn't the number of slices configured going to be completely deranged?
+            // TODO: Shouldn't btree_metadata_store_t::create be in charge of modifications to the configuration?
             btree_key_value_store_static_config_t metadata_static_config = cmd_config->store_static_config;
             metadata_static_config.cache.n_patch_log_blocks = 0;
             btree_metadata_store_t::create(&cmd_config->metadata_store_dynamic_config,
