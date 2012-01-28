@@ -380,7 +380,7 @@ void get_value_read(btree_slice_t *slice, sequence_group_t *seq_group, btree_key
     get_btree_superblock(slice, seq_group, rwi_read, token, &got_superblock, txn_out);
 
     // TODO MERGE we pass a fake root eviction priority
-    int fake_eviction_priority = 0;
+    int fake_eviction_priority = MAX_EVICTION_PRIORITY;
 
     find_keyvalue_location_for_read(txn_out.get(), &got_superblock, key, kv_location_out, fake_eviction_priority);
 }

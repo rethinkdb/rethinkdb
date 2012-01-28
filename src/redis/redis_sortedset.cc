@@ -170,8 +170,7 @@ private:
             got_superblock_t nested_superblock;
             nested_superblock.sb.swap(nested_btree_sb);
 
-            // TODO MERGE figure out evictionp priorities
-            int fake_eviction_priority = 0;
+            int fake_eviction_priority = MAX_EVICTION_PRIORITY;
 
             find_keyvalue_location_for_write(txn, &nested_superblock, nested_key.key(), &loc, &fake_eviction_priority);
         }
@@ -192,8 +191,7 @@ private:
             // TODO hook up timestamp once Tim figures out what to do with the timestamp
             fake_key_modification_callback_t<redis_nested_sorted_set_value_t> fake_cb;
 
-            // TODO MERGE figure out eviction priority
-            int fake_eviction_priority = 0;
+            int fake_eviction_priority = MAX_EVICTION_PRIORITY;
 
             apply_keyvalue_change(txn, &loc, nested_key.key(), repli_timestamp_t::invalid /*ths->timestamp*/, &fake_cb, &fake_eviction_priority);
             virtual_superblock_t *sb = reinterpret_cast<virtual_superblock_t *>(loc.sb.get());
@@ -331,8 +329,7 @@ private:
             got_superblock_t nested_superblock;
             nested_superblock.sb.swap(nested_btree_sb);
 
-            // TODO MERGE figure out eviction priorities
-            int eviction_priority = 0;
+            int eviction_priority = MAX_EVICTION_PRIORITY;
 
             find_keyvalue_location_for_read(ths->txn.get(), &nested_superblock, nested_key.key(), &loc, eviction_priority);
         }
