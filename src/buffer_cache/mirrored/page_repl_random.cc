@@ -96,11 +96,6 @@ void page_repl_random_t::make_space(unsigned int space_needed) {
             } else {
                 /* Failed to find a better candidate, continue on our way. */
             }
-
-            if (block_to_unload && block_to_unload->eviction_priority == MAX_EVICTION_PRIORITY) {
-                /* This guy has maximal eviction priority, we're not going to beat him */
-                break;
-            }
         }
 
         if (!block_to_unload) {
