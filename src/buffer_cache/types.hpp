@@ -1,9 +1,12 @@
 #ifndef __BUFFER_CACHE_TYPES_HPP__
 #define __BUFFER_CACHE_TYPES_HPP__
 
+#include <limits.h>
 #include <stdint.h>
 
 #include "serializer/types.hpp"
+
+const int MAX_EVICTION_PRIORITY = INT_MAX / 2;
 
 typedef uint32_t block_magic_comparison_t;
 

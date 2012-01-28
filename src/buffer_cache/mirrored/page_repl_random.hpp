@@ -2,12 +2,8 @@
 #ifndef __PAGE_REPL_RANDOM_HPP__
 #define __PAGE_REPL_RANDOM_HPP__
 
-#include <limits.h>
-
 #include "config/args.hpp"
 #include "containers/two_level_array.hpp"
-
-const int MAX_EVICTION_PRIORITY = INT_MAX;
 
 // TODO: We should use mlock (or mlockall or related) to make sure the
 // OS doesn't swap out our pages, since we're doing swapping
