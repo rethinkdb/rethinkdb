@@ -38,7 +38,7 @@ void get_root(value_sizer_t<Value> *sizer, transaction_t *txn, superblock_t* sb,
         insert_root(buf_out->buf()->get_block_id(), sb);
     }
 
-    if ((*buf_out)->get_eviction_priority() == MAX_EVICTION_PRIORITY) {
+    if ((*buf_out)->get_eviction_priority() == DEFAULT_EVICTION_PRIORITY) {
         (*buf_out)->set_eviction_priority(root_eviction_priority);
     }
 }

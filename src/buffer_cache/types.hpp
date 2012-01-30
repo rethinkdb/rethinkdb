@@ -6,7 +6,11 @@
 
 #include "serializer/types.hpp"
 
-const int MAX_EVICTION_PRIORITY = INT_MAX / 2;
+const int DEFAULT_EVICTION_PRIORITY = INT_MAX / 2;
+// TODO: Get rid of FAKE_EVICTION_PRIORITY.  It's just the default
+// eviction priority, with the connotation the code using is is doing
+// something stupid and needs to be fixed.
+const int FAKE_EVICTION_PRIORITY = INT_MAX / 2;
 
 typedef uint32_t block_magic_comparison_t;
 

@@ -27,7 +27,7 @@ struct hash_read_oper_t : public read_oper_t {
         btree_key_buffer_t nested_key(field);
         keyvalue_location_t<redis_nested_string_value_t> nested_loc;
 
-        int fake_eviction_priority = MAX_EVICTION_PRIORITY;
+        int fake_eviction_priority = FAKE_EVICTION_PRIORITY;
 
         find_keyvalue_location_for_read(txn.get(), &nested_superblock, nested_key.key(), &nested_loc, fake_eviction_priority);
 
@@ -146,7 +146,7 @@ protected:
             got_superblock_t nested_superblock;
             nested_superblock.sb.swap(nested_btree_sb);
 
-            int fake_eviction_priority = MAX_EVICTION_PRIORITY;
+            int fake_eviction_priority = FAKE_EVICTION_PRIORITY;
 
             find_keyvalue_location_for_write(ths->txn.get(), &nested_superblock, nested_key.key(), &loc, &fake_eviction_priority);
         }
@@ -155,7 +155,7 @@ protected:
             // TODO hook up timestamp once Tim figures out what to do with the timestamp
             fake_key_modification_callback_t<redis_nested_string_value_t> fake_cb;
 
-            int fake_eviction_priority = MAX_EVICTION_PRIORITY;
+            int fake_eviction_priority = FAKE_EVICTION_PRIORITY;
 
             apply_keyvalue_change(ths->txn.get(), &loc, nested_key.key(), repli_timestamp_t::invalid /*ths->timestamp*/, &fake_cb, &fake_eviction_priority);
             virtual_superblock_t *sb = reinterpret_cast<virtual_superblock_t *>(loc.sb.get());
