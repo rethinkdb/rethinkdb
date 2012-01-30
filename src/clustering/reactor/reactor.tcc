@@ -123,7 +123,7 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, b
             boost::optional<broadcaster_business_card_t<protocol_t> > broadcaster =
                 /* find primary if any in directory */
             if (broadcaster) {
-                listener_t<protocol_t> listener(broadcaster.get(), ...);
+                listener_t<protocol_t> listener(mailbox_manager, broadcaster.get(), ...);
                 replier_t<protocol_t> replier(&listener);
 
                 directory_entry_t directory_entry(region, SECONDARY);
@@ -148,7 +148,8 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, b
                 }
 
             } else {
-                backfiller_t<protocol_t> backfiller(...);
+                store_subview_t<protocol_t> store_view(&store_file, region);
+                backfiller_t<protocol_t> backfiller(mailbox_manager, branch_history, &store_view);
 
                 directory_entry_t directory_entry(region, BACKFILLER);
 
