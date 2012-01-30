@@ -87,17 +87,13 @@ RPM_PACKAGE_DIR:=$(PACKAGES_DIR)/rpm
 DEB_PACKAGE_DIR:=$(PACKAGES_DIR)/deb
 
 
-ifndef CXX
 
 ifeq ($(COMPILER),CLANG)
 CXX:=clang
 else ifeq ($(COMPILER),INTEL)
 CXX:=icc
-else
-CXX:=g++
 endif
 
-endif
 
 ifeq ($(COMPILER),CLANG)
 LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lQtCore -lstdc++ -lm

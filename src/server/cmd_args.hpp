@@ -94,6 +94,10 @@ struct cmd_config_t {
     import_config_t import_config;
 
     bool verbose;
+#ifndef NDEBUG
+    bool watchdog_enabled;
+    bool coroutine_summary;
+#endif
 };
 
 // This variant adds parsing functionality and also validates the values given

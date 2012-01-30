@@ -77,9 +77,17 @@ void linux_message_hub_t::notify_t::on_event(int events) {
     msg_list.append_and_clear(&parent->incoming_messages);
     pthread_spin_unlock(&parent->incoming_messages_lock);
 
+#ifndef NDEBUG
+    start_watchdog(); // Initialize watchdog before handling messages
+#endif
+
     while (linux_thread_message_t *m = msg_list.head()) {
         msg_list.remove(m);
         m->on_thread_switch();
+
+#ifndef NDEBUG
+        pet_watchdog(); // Verify that each message completes in the acceptable time range
+#endif
     }
 }
 

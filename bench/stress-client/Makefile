@@ -17,7 +17,7 @@ endif
 
 ifeq ($(LIBMEMCACHED),1)
     INCLUDE += -I../../lib/libmemcached
-    LIBS += -lmemcached -L/usr/local/lib
+    LIBS += -lmemcached -L /usr/local/lib
     DEFINES += -DUSE_LIBMEMCACHED
 endif
 

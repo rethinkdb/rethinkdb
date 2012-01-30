@@ -53,6 +53,13 @@ int run_server(int argc, char *argv[]) {
 
     // Run the server.
     thread_pool_t thread_pool(config.n_workers, config.do_set_affinity);
+
+#ifndef NDEBUG
+    if (config.coroutine_summary) {
+        thread_pool.enable_coroutine_summary();
+    }
+#endif
+
     starter.thread_pool = &thread_pool;
     thread_pool.run(&starter);
 
@@ -154,6 +161,12 @@ private:
 void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
     os_signal_cond_t os_signal_cond;
     try {
+#ifndef NDEBUG
+        if (cmd_config->watchdog_enabled) {
+            enable_watchdog();
+        }
+#endif
+
         /* Start logger */
         log_controller_t log_controller;
 
