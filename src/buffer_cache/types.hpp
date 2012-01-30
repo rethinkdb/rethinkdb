@@ -53,7 +53,6 @@ protected:
 };
 
 
-// This line is hereby labeled BLAH.
 
 // Keep this part below synced up with buffer_cache.hpp.
 
