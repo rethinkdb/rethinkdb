@@ -110,7 +110,7 @@ LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lQtCore
 endif
 endif
 
-STATIC_LIBRARIES:=boost_serialization
+STATIC_LIBRARIES:=boost_serialization protobuf
 
 CXXFLAGS?=
 
@@ -276,11 +276,11 @@ UNIT_TEST_FILTER?=*
 DEP_DIR:=$(BUILD_DIR)/dep
 OBJ_DIR:=$(BUILD_DIR)/obj
 
-# redis_proto.cc and riak.cc are some of our slowest-compiling files, so we start them first.
+# redis_proto.cc is some of our slowest-compiling files, so we start it first.
 ifeq ($(UNIT_TESTS),1)
-SOURCES:=$(shell find $(SOURCE_DIR) -name 'redis_grammar*.cc') ./riak/riak.cc $(shell find $(SOURCE_DIR) -name '*.cc' | grep -v 'redis_grammar.*.cc' |  grep -v 'riak.cc')
+SOURCES:=$(shell find $(SOURCE_DIR) -name 'redis_grammar*.cc') $(shell find $(SOURCE_DIR) -name '*.cc' | grep -v 'redis_grammar.*.cc')
 else
-SOURCES:=$(shell find $(SOURCE_DIR) -name 'redis_grammar*.cc') ./riak/riak.cc $(shell find $(SOURCE_DIR) -name '*.cc' | grep -v 'riak.cc' | grep -v 'redis_grammar.*.cc' | grep -vF "`find $(SOURCE_DIR)/unittest`")
+SOURCES:=$(shell find $(SOURCE_DIR) -name 'redis_grammar*.cc') $(shell find $(SOURCE_DIR) -name '*.cc' | grep -v 'redis_grammar.*.cc' | grep -vF "`find $(SOURCE_DIR)/unittest`")
 endif
 
 PROTO_SOURCES:=$(shell find $(SOURCE_DIR) -name '*.proto')

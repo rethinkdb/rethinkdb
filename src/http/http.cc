@@ -24,12 +24,33 @@ std::string http_req_t::find_header_line(std::string key) const {
     return std::string("");
 }
 
+bool http_req_t::has_header_line(std::string key) const {
+    //TODO this is inefficient we should actually load it all into a map
+    for (std::vector<header_line_t>::const_iterator it = header_lines.begin(); it != header_lines.end(); it++) {
+        if (it->key == key) {
+            return true;
+        }
+    }
+    return false;
+}
+
 int content_length(http_req_t msg) {
     for (std::vector<header_line_t>::iterator it = msg.header_lines.begin(); it != msg.header_lines.end(); it++) {
         if (it->key == std::string("Content-Length"))
             return atoi(it->val.c_str());
     }
     return 0;
+}
+
+http_res_t::http_res_t() 
+{ }
+
+http_res_t::http_res_t(int rescode) 
+    : code(rescode)
+{ }
+
+void http_res_t::add_last_modified(int) {
+    not_implemented();
 }
 
 void http_res_t::add_header_line(std::string const &key, std::string const &val) {
@@ -42,7 +63,7 @@ void http_res_t::add_header_line(std::string const &key, std::string const &val)
 void http_res_t::set_body(std::string const &content_type, std::string const &content) {
     for (std::vector<header_line_t>::iterator it = header_lines.begin(); it != header_lines.end(); it++) {
         rassert(it->key != "Content-Type");
-        rassert(it->key != "Conent-Length");
+        rassert(it->key != "Content-Length");
     }
     rassert(body.size() == 0);
 
@@ -89,6 +110,8 @@ std::string human_readable_status(int code) {
         return "Forbidden";
     case 404:
         return "Not Found";
+    case 501:
+        return "Not Implemented";
     default:
         unreachable();
     }

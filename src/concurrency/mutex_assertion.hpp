@@ -11,7 +11,7 @@ there is contention. */
 struct mutex_assertion_t : public home_thread_mixin_t {
     struct acq_t {
         struct temporary_release_t {
-            temporary_release_t(acq_t *a) : mutex(a->mutex), acq(a) {
+            explicit temporary_release_t(acq_t *a) : mutex(a->mutex), acq(a) {
                 acq->reset();
             }
             ~temporary_release_t() {

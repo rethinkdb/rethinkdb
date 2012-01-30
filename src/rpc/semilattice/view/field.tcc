@@ -40,7 +40,8 @@ public:
         field(f), outer(o) { }
 
     inner_t get() {
-        return ((outer->get()).*field);
+        outer_t value(outer->get());
+        return (value).*field;
     }
 
     void join(const inner_t &new_inner) {

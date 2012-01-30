@@ -1,0 +1,264 @@
+/* -------------------------------------------------------------------
+**
+** riakclient.proto: Protocol buffers for riak
+**
+** Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
+**
+** This file is provided to you under the Apache License,
+** Version 2.0 (the "License"); you may not use this file
+** except in compliance with the License.  You may obtain
+** a copy of the License at
+**
+**   http://www.apache.org/licenses/LICENSE-2.0
+**
+** Unless required by applicable law or agreed to in writing,
+** software distributed under the License is distributed on an
+** "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+** KIND, either express or implied.  See the License for the
+** specific language governing permissions and limitations
+** under the License.
+**
+** -------------------------------------------------------------------
+*/
+/*
+** Revision: 1.1
+**
+** Lowest Common Denominator Protocol Buffers Client
+**   - no ENUM (protobuffs_erlang does not support)
+**
+** Protocol 
+**
+**   The protocol encodes requests and responses as protocol buffer messages.
+**   Each request message results in one or more response messages.
+**   As message type and length are not encoded by PB they are sent
+**   on the wire as
+**
+**     <length:32>  <msg_code:8> <pbmsg>
+**
+**     length is the length of msg_code (1 byte) plus the message length
+**     in bytes encoded in network order (big endian)
+**
+**     msg_code indicates what is encoded as pbmsg
+**
+**     pbmsg is the encoded protocol buffer message
+**
+**   On connect, the client can make requests and will receive responses.
+**   For each request message there is a corresponding response message,
+**   or the server will respond with an error message if something has
+**   gone wrong.
+**
+**   The client should be prepared to handle messages without any pbmsg
+**   (i.e. length==1) for requests like ping or a put without return_body set.
+**   
+**   RpbGetClientIdReq -> RpbGetClientIdResp
+**   RpbSetClientIdReq -> RpbSetClientIdResp
+**   RpbGetServerInfoReq -> RpbGetServerInfoResp
+**   RpbPingReq -> RpbPingResp
+**   RpbGetReq -> RpbErrorResp | RbpGetResp
+**   RpbPutReq -> RpbErrorResp | RpbPutResp
+**   RpbDelReq -> RpbErrorResp | RpbDelResp
+**   RpbListBucketsReq -> RpbErrorResp | RpbListBucketsResp
+**   RpbListKeysReq -> RpbErrorResp | RpbListKeysResp{1,}
+**   RpbGetBucketReq -> RpbErrorResp | RpbGetBucketResp
+**
+**
+** Message Codes
+**  0 - RpbErrorResp
+**  1 - RpbPingReq - 0 length
+**  2 - RpbPingResp (pong) - 0 length
+**  3 - RpbGetClientIdReq
+**  4 - RpbGetClientIdResp
+**  5 - RpbSetClientIdReq
+**  6 - RpbSetClientIdResp
+**  7 - RpbGetServerInfoReq
+**  8 - RpbGetServerInfoResp
+**  9 - RpbGetReq 
+** 10 - RpbGetResp
+** 11 - RpbPutReq 
+** 12 - RpbPutResp - 0 length
+** 13 - RpbDelReq 
+** 14 - RpbDelResp
+** 15 - RpbListBucketsReq
+** 16 - RpbListBucketsResp
+** 17 - RpbListKeysReq
+** 18 - RpbListKeysResp{1,}
+** 19 - RpbGetBucketReq
+** 20 - RpbGetBucketResp
+** 21 - RpbSetBucketReq
+** 22 - RpbSetBucketResp
+** 23 - RpbMapRedReq
+** 24 - RpbMapRedResp{1,}
+**
+*/
+
+// Error response - may be generated for any Req
+message RpbErrorResp {
+    required bytes errmsg = 1;
+    required uint32 errcode = 2;
+}
+
+// Get ClientId Request - no message defined, just send RpbGetClientIdReq message code
+message RpbGetClientIdResp {
+    required bytes client_id = 1; // Client id in use for this connection
+}
+
+message RpbSetClientIdReq {
+    required bytes client_id = 1; // Client id to use for this connection
+}
+// Set ClientId Request - no message defined, just send RpbSetClientIdReq message code
+
+// Get server info request - no message defined, just send RpbGetServerInfoReq message code
+
+message RpbGetServerInfoResp {
+    optional bytes node = 1;
+    optional bytes server_version = 2;
+}
+
+
+// Get Request - retrieve bucket/key
+message RpbGetReq {
+    required bytes bucket = 1;
+    required bytes key = 2;
+    optional uint32 r = 3;
+    optional uint32 pr = 4;
+    optional bool basic_quorum = 5;
+    optional bool notfound_ok = 6;
+    optional bytes if_modified = 7;     // fail if the supplied vclock does not match
+    optional bool head = 8;             // return everything but the value
+    optional bool deletedvclock = 9;    // return the tombstone's vclock, if applicable
+}
+
+// Get Response - if the record was not found there will be no content/vclock
+message RpbGetResp {
+    repeated RpbContent content = 1;
+    optional bytes vclock = 2;        // the opaque vector clock for the object
+    optional bool unchanged = 3;
+}
+
+
+// Put request - if options.return_body is set then the updated metadata/data for
+//               the key will be returned.
+message RpbPutReq {
+    required bytes bucket = 1;
+    optional bytes key = 2;
+    optional bytes vclock = 3;
+    required RpbContent content = 4;
+    optional uint32 w = 5;
+    optional uint32 dw = 6;
+    optional bool return_body = 7;
+    optional uint32 pw = 8;
+    optional bool if_not_modified = 9;
+    optional bool if_none_match = 10;
+    optional bool return_head = 11;
+}
+
+// Put response - same as get response with optional key if one was generated
+message RpbPutResp {
+    repeated RpbContent content = 1;
+    optional bytes vclock = 2;        // the opaque vector clock for the object
+    optional bytes key = 3;           // the key generated, if any
+}
+
+
+// Delete request
+message RpbDelReq {
+    required bytes bucket = 1;
+    required bytes key = 2;
+    optional uint32 rw = 3;
+    optional bytes vclock = 4;
+    optional uint32 r = 5;
+    optional uint32 w = 6;
+    optional uint32 pr = 7;
+    optional uint32 pw = 8;
+    optional uint32 dw = 9;
+}
+
+// Delete response - not defined, will return a RpbDelResp on success or RpbErrorResp on failure
+
+// List buckets request - no message defined, just send RpbListBucketsReq
+
+// List buckets response
+message RpbListBucketsResp {
+    repeated bytes buckets = 1;
+}
+
+
+// List keys in bucket request
+message RpbListKeysReq {
+    required bytes bucket = 1;
+}
+
+// List keys in bucket response - one or more of these packets will be sent
+// the last one will have done set true (and may not have any keys in it)
+message RpbListKeysResp {
+    repeated bytes keys = 1;
+    optional bool done = 2;
+}
+
+// Get bucket properties request
+message RpbGetBucketReq {
+    required bytes bucket = 1;
+}
+
+// Get bucket properties response
+message RpbGetBucketResp {
+    required RpbBucketProps props = 1;    
+}
+
+// Set bucket properties request
+message RpbSetBucketReq {
+    required bytes bucket = 1;
+    required RpbBucketProps props = 2;
+}
+
+
+// Set bucket properties response - no message defined, just send RpbSetBucketResp
+
+
+// Map/Reduce request
+message RpbMapRedReq {
+    required bytes request = 1;
+    required bytes content_type = 2;
+}
+
+// Map/Reduce response
+// one or more of these packets will be sent the last one will have done set
+// true (and may not have phase/data in it)
+message RpbMapRedResp {
+    optional uint32 phase = 1;
+    optional bytes response = 2;
+    optional bool done = 3;
+}
+
+// Content message included in get/put responses
+// Holds the value and associated metadata
+message RpbContent {
+    required bytes value = 1;
+    optional bytes content_type = 2;     // the media type/format
+    optional bytes charset = 3;          
+    optional bytes content_encoding = 4; 
+    optional bytes vtag = 5;
+    repeated RpbLink links = 6;          // links to other resources
+    optional uint32 last_mod = 7;
+    optional uint32 last_mod_usecs = 8;
+    repeated RpbPair usermeta = 9;       // user metadata stored with the object
+}
+
+// Key/value pair - used for user metadata
+message RpbPair {
+    required bytes key = 1;
+    optional bytes value = 2;
+}
+
+// Link metadata
+message RpbLink {
+    optional bytes bucket = 1;
+    optional bytes key = 2;
+    optional bytes tag = 3;
+}
+
+// Bucket properties
+message RpbBucketProps {
+    optional uint32 n_val = 1;
+    optional bool allow_mult = 2;
+}

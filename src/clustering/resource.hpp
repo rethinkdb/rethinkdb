@@ -33,7 +33,7 @@ class resource_access_t {
 public:
     /* Starts monitoring the resource. Throws `resource_lost_exc_t` if the
     resource is inaccessible. */
-    resource_access_t(
+    explicit resource_access_t(
             clone_ptr_t<directory_single_rview_t<boost::optional<business_card_t> > > v)
             THROWS_ONLY(resource_lost_exc_t) :
         metadata_view(v),

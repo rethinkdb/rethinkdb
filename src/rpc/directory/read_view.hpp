@@ -31,7 +31,7 @@ public:
     peer changes its directory metadata. */
     class peer_value_subscription_t {
     public:
-        peer_value_subscription_t(
+        explicit peer_value_subscription_t(
             const boost::function<void()> &change_cb) THROWS_NOTHING;
         peer_value_subscription_t(
             const boost::function<void()> &change_cb,

@@ -170,7 +170,7 @@ It appears in the directory. */
 template<class protocol_t>
 struct broadcaster_business_card_t {
 
-    broadcaster_business_card_t(const registrar_business_card_t<listener_business_card_t<protocol_t> > &r) :
+    explicit broadcaster_business_card_t(const registrar_business_card_t<listener_business_card_t<protocol_t> > &r) :
         registrar(r) { }
 
     broadcaster_business_card_t() { }

@@ -84,7 +84,7 @@ private:
 class got_superblock_t {
 public:
     got_superblock_t() { }
-    got_superblock_t(superblock_t * sb_) : sb(sb_) { }
+    explicit got_superblock_t(superblock_t * sb_) : sb(sb_) { }
 
     boost::scoped_ptr<superblock_t> sb;
 
@@ -205,7 +205,7 @@ struct superblock_metainfo_iterator_t {
     typedef std::pair<sz_t,char*> value_t;
 
     superblock_metainfo_iterator_t(char* metainfo, char* metainfo_end) : end(metainfo_end) { advance(metainfo); }
-    superblock_metainfo_iterator_t(std::vector<char>& metainfo) : end(metainfo.data() + metainfo.size()) { advance(metainfo.data()); }
+    explicit superblock_metainfo_iterator_t(std::vector<char>& metainfo) : end(metainfo.data() + metainfo.size()) { advance(metainfo.data()); }
 
     bool is_end() { return pos == end; }
 
