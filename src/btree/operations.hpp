@@ -80,11 +80,11 @@ public:
     }
 
     void set_eviction_priority(UNUSED eviction_priority_t eviction_priority) {
-        // TODO MERGE what to do?  (Probably treat the same way as the root block id.)
+        // TODO Actually support the setting and getting of eviction priority in a virtual superblock.
     }
 
     eviction_priority_t get_eviction_priority() {
-        // TODO MERGE what to do?
+        // TODO Again, actually support the setting and getting of eviction priority in a virtual superblock.
         return FAKE_EVICTION_PRIORITY;
     }
 

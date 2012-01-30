@@ -83,7 +83,7 @@ void page_repl_random_t::make_space(unsigned int space_needed) {
             unsigned int n = random() % array.size();
             evictable_t *block = array.get(n);
 
-            // TODO MERGE we don't have code that sets setting buf_snapshot_t eviction priorities.
+            // TODO we don't have code that sets buf_snapshot_t eviction priorities.
 
             if (!block->safe_to_unload()) {
                 /* nothing to do here, jetpack away to the next iteration of this loop */

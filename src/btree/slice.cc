@@ -132,7 +132,7 @@ void btree_slice_t::set_replication_clock(sequence_group_t *seq_group, repli_tim
     transaction_t transaction(cache(), seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
     // TODO: Set the transaction's order token (not with the token parameter).
     buf_lock_t superblock(&transaction, SUPERBLOCK_ID, rwi_write);
-    // TODO MERGE dude!  have buf_lock_t take an eviction priority parameter.
+    // TODO dude!  have buf_lock_t take an eviction priority parameter.
     btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock->get_data_major_write());
     //    rassert(sb->replication_clock < t, "sb->replication_clock = %u, t = %u", sb->replication_clock.time, t.time);
     sb->replication_clock = std::max(sb->replication_clock, t);

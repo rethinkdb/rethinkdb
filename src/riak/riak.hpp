@@ -114,7 +114,7 @@ public:
         keyvalue_location_t<riak_value_t> kv_location;
         boost::scoped_ptr<transaction_t> txn;
 
-        // TODO MERGE sequence group.
+        // TODO b.s. sequence group.
         sequence_group_t seq_group(-1);
 
         get_value_read(slice, &seq_group, btree_key_buffer_t(key.begin(), key.end()).key(), order_token_t::ignore, &kv_location, txn);
@@ -165,7 +165,7 @@ public:
             slice = create_slice(sm_key);
         }
 
-        // TODO MERGE sequence group
+        // TODO b.s. sequence group
         sequence_group_t seq_group(-1);
 
         fake_key_modification_callback_t<riak_value_t> fake_cb;

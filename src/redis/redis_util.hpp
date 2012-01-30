@@ -75,13 +75,13 @@ struct set_oper_t {
 
         // TODO Figure out correct conversion from transition timestamp to repli timestamp
         
-        // TODO MERGE Get an actual sequence group.
+        // TODO Get an actual sequence group.
         sequence_group_t seq_group(1);
 
         // Get the superblock that represents our write transaction
         get_btree_superblock(btree, &seq_group, rwi_write, 1, convert_to_repli_timestamp(timestamp), otok, &superblock, txn);
 
-        // TODO MERGE Figure out where the root eviction priority is supposed to be.
+        // TODO Figure out where the root eviction priority is supposed to be.
         eviction_priority_t fake_root_eviction_priority = FAKE_EVICTION_PRIORITY;
 
         find_keyvalue_location_for_write(txn.get(), &superblock, btree_key.key(), &location, &fake_root_eviction_priority);
@@ -104,7 +104,7 @@ struct set_oper_t {
     ~set_oper_t() {
         fake_key_modification_callback_t<redis_value_t> fake_cb;
 
-        // TODO MERGE Figure out where the root eviction priority is supposed to be.
+        // TODO Figure out where the root eviction priority is supposed to be.
         eviction_priority_t fake_root_eviction_priority = FAKE_EVICTION_PRIORITY;
 
         apply_keyvalue_change(txn.get(), &location, btree_key.key(), repli_timestamp_t::invalid, &fake_cb, &fake_root_eviction_priority);
@@ -166,14 +166,13 @@ struct read_oper_t {
         sizer(btree->cache()->get_block_size()),
         storing_expired_value(false)
     {
-        // TODO MERGE Figure out where this sequence group comes from.
+        // TODO Figure out where this sequence group comes from.
         sequence_group_t seq_group(1);
-        eviction_priority_t root_eviction_priority = FAKE_EVICTION_PRIORITY;
 
         got_superblock_t superblock;
         get_btree_superblock(btree, &seq_group, rwi_read, otok, &superblock, txn);
         btree_key_buffer_t btree_key(key);
-        find_keyvalue_location_for_read(txn.get(), &superblock, btree_key.key(), &location, root_eviction_priority);
+        find_keyvalue_location_for_read(txn.get(), &superblock, btree_key.key(), &location, FAKE_EVICTION_PRIORITY);
 
         // Check for expiration
         redis_value_t *value = location.value.get();
