@@ -90,7 +90,7 @@ void page_repl_random_t::make_space(unsigned int space_needed) {
             } else if (block_to_unload == NULL) {
                 /* The block is safe to unload, and our only candidate so far, so he's in */
                 block_to_unload = block;
-            } else if (block->eviction_priority > block_to_unload->eviction_priority) {
+            } else if (block_to_unload->eviction_priority < block->eviction_priority) {
                 /* This block is a better candidate than one before, he's in */
                 block_to_unload = block;
             } else {

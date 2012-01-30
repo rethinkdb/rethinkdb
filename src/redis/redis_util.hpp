@@ -82,7 +82,7 @@ struct set_oper_t {
         get_btree_superblock(btree, &seq_group, rwi_write, 1, convert_to_repli_timestamp(timestamp), otok, &superblock, txn);
 
         // TODO MERGE Figure out where the root eviction priority is supposed to be.
-        int fake_root_eviction_priority = FAKE_EVICTION_PRIORITY;
+        eviction_priority_t fake_root_eviction_priority = FAKE_EVICTION_PRIORITY;
 
         find_keyvalue_location_for_write(txn.get(), &superblock, btree_key.key(), &location, &fake_root_eviction_priority);
 
@@ -105,7 +105,7 @@ struct set_oper_t {
         fake_key_modification_callback_t<redis_value_t> fake_cb;
 
         // TODO MERGE Figure out where the root eviction priority is supposed to be.
-        int fake_root_eviction_priority = FAKE_EVICTION_PRIORITY;
+        eviction_priority_t fake_root_eviction_priority = FAKE_EVICTION_PRIORITY;
 
         apply_keyvalue_change(txn.get(), &location, btree_key.key(), repli_timestamp_t::invalid, &fake_cb, &fake_root_eviction_priority);
     }
@@ -168,7 +168,7 @@ struct read_oper_t {
     {
         // TODO MERGE Figure out where this sequence group comes from.
         sequence_group_t seq_group(1);
-        int root_eviction_priority = FAKE_EVICTION_PRIORITY;
+        eviction_priority_t root_eviction_priority = FAKE_EVICTION_PRIORITY;
 
         got_superblock_t superblock;
         get_btree_superblock(btree, &seq_group, rwi_read, otok, &superblock, txn);

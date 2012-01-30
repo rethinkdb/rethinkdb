@@ -224,11 +224,11 @@ public:
     }
 
 public:
-    int get_eviction_priority() {
+    eviction_priority_t get_eviction_priority() {
         return inner_buf->eviction_priority;
     }
 
-    void set_eviction_priority(int val) {
+    void set_eviction_priority(eviction_priority_t val) {
         inner_buf->eviction_priority = val;
     }
 

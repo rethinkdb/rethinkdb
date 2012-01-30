@@ -57,11 +57,11 @@ private:
         return crc_computer.checksum();
     }
 public:
-    int get_eviction_priority() {
+    eviction_priority_t get_eviction_priority() {
         return inner_buf->get_eviction_priority();
     }
 
-    void set_eviction_priority(int val) {
+    void set_eviction_priority(eviction_priority_t val) {
         inner_buf->set_eviction_priority(val);
     }
 };

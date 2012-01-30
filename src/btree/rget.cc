@@ -117,7 +117,7 @@ rget_result_t btree_rget_slice(btree_slice_t *slice, sequence_group_t *seq_group
     buf_lock_t sb_buf(transaction, SUPERBLOCK_ID, rwi_read);
     // TODO MERGE make eviction priorities sane.  Make the numbers
     // sane, make buf_lock_t take them in the constructor.
-    sb_buf->set_eviction_priority(0);
+    sb_buf->set_eviction_priority(ZERO_EVICTION_PRIORITY);
     boost::scoped_ptr<superblock_t> superblock(new real_superblock_t(sb_buf));
 
     return boost::shared_ptr<one_way_iterator_t<key_with_data_buffer_t> >(

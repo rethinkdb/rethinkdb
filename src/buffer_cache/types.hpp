@@ -6,11 +6,37 @@
 
 #include "serializer/types.hpp"
 
-const int DEFAULT_EVICTION_PRIORITY = INT_MAX / 2;
+struct eviction_priority_t {
+    int priority;
+};
+
+const eviction_priority_t DEFAULT_EVICTION_PRIORITY = { INT_MAX / 2 };
 // TODO: Get rid of FAKE_EVICTION_PRIORITY.  It's just the default
 // eviction priority, with the connotation the code using is is doing
 // something stupid and needs to be fixed.
-const int FAKE_EVICTION_PRIORITY = INT_MAX / 2;
+const eviction_priority_t FAKE_EVICTION_PRIORITY = { INT_MAX / 2 };
+
+const eviction_priority_t ZERO_EVICTION_PRIORITY = { 0 };
+
+inline eviction_priority_t incr_priority(eviction_priority_t p) {
+    eviction_priority_t ret;
+    ret.priority = p.priority + (p.priority < DEFAULT_EVICTION_PRIORITY.priority);
+    return ret;
+}
+
+inline eviction_priority_t decr_priority(eviction_priority_t p) {
+    eviction_priority_t ret;
+    ret.priority = p.priority - (p.priority > 0);
+    return ret;
+}
+
+inline bool operator==(eviction_priority_t x, eviction_priority_t y) {
+    return x.priority == y.priority;
+}
+
+inline bool operator<(eviction_priority_t x, eviction_priority_t y) {
+    return x.priority < y.priority;
+}
 
 typedef uint32_t block_magic_comparison_t;
 

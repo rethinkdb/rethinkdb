@@ -24,7 +24,7 @@ inline void insert_root(block_id_t root_id, superblock_t* sb) {
 
 // Get a root block given a superblock, or make a new root if there isn't one.
 template <class Value>
-void get_root(value_sizer_t<Value> *sizer, transaction_t *txn, superblock_t* sb, buf_lock_t *buf_out, int root_eviction_priority) {
+void get_root(value_sizer_t<Value> *sizer, transaction_t *txn, superblock_t* sb, buf_lock_t *buf_out, eviction_priority_t root_eviction_priority) {
     rassert(!buf_out->is_acquired());
 
     block_id_t node_id = sb->get_root_block_id();
@@ -49,7 +49,7 @@ void get_root(value_sizer_t<Value> *sizer, transaction_t *txn, superblock_t* sb,
 // split internal nodes proactively).
 template <class Value>
 void check_and_handle_split(value_sizer_t<Value> *sizer, transaction_t *txn, buf_lock_t& buf, buf_lock_t& last_buf, superblock_t *sb,
-                            const btree_key_t *key, void *new_value, int *root_eviction_priority) {
+                            const btree_key_t *key, void *new_value, eviction_priority_t *root_eviction_priority) {
     txn->assert_thread();
 
     const node_t *node = reinterpret_cast<const node_t *>(buf->get_data_read());
@@ -82,8 +82,8 @@ void check_and_handle_split(value_sizer_t<Value> *sizer, transaction_t *txn, buf
         // We're splitting what was previously the root, so create a new root to use as the parent.
         last_buf.allocate(txn);
         internal_node::init(sizer->block_size(), reinterpret_cast<internal_node_t *>(last_buf->get_data_major_write()));
-        rassert(buf->get_eviction_priority() > 0);
-        last_buf->set_eviction_priority(buf->get_eviction_priority() - 1);
+        rassert(ZERO_EVICTION_PRIORITY < buf->get_eviction_priority());
+        last_buf->set_eviction_priority(decr_priority(buf->get_eviction_priority()));
         *root_eviction_priority = last_buf->get_eviction_priority();
 
         insert_root(last_buf->get_block_id(), sb);
@@ -175,7 +175,7 @@ inline void get_btree_superblock(btree_slice_t *slice, sequence_group_t *seq_gro
 
     buf_lock_t tmp_buf(txn_out.get(), SUPERBLOCK_ID, access);
     boost::scoped_ptr<superblock_t> tmp_sb(new real_superblock_t(tmp_buf));
-    tmp_sb->set_eviction_priority(0);
+    tmp_sb->set_eviction_priority(ZERO_EVICTION_PRIORITY);
     got_superblock_out->sb.swap(tmp_sb);
 }
 
@@ -185,7 +185,7 @@ inline void get_btree_superblock(btree_slice_t *slice, sequence_group_t *seq_gro
 }
 
 template <class Value>
-void find_keyvalue_location_for_write(transaction_t *txn, got_superblock_t *got_superblock, btree_key_t *key, keyvalue_location_t<Value> *keyvalue_location_out, int *root_eviction_priority) {
+void find_keyvalue_location_for_write(transaction_t *txn, got_superblock_t *got_superblock, btree_key_t *key, keyvalue_location_t<Value> *keyvalue_location_out, eviction_priority_t *root_eviction_priority) {
     keyvalue_location_out->sb.swap(got_superblock->sb);
     value_sizer_t<Value> v_sizer(txn->get_cache()->get_block_size());
     value_sizer_t<void> *sizer = &v_sizer;
@@ -218,7 +218,7 @@ void find_keyvalue_location_for_write(transaction_t *txn, got_superblock_t *got_
         rassert(node_id != NULL_BLOCK_ID && node_id != SUPERBLOCK_ID);
 
         buf_lock_t tmp(txn, node_id, rwi_write);
-        tmp->set_eviction_priority(buf->get_eviction_priority() + 1);
+        tmp->set_eviction_priority(incr_priority(buf->get_eviction_priority()));
         last_buf.swap(tmp);
         buf.swap(last_buf);
     }
@@ -240,7 +240,7 @@ void find_keyvalue_location_for_write(transaction_t *txn, got_superblock_t *got_
 }
 
 template <class Value>
-void find_keyvalue_location_for_read(transaction_t *txn, got_superblock_t *got_superblock, btree_key_t *key, keyvalue_location_t<Value> *keyvalue_location_out, int root_eviction_priority) {
+void find_keyvalue_location_for_read(transaction_t *txn, got_superblock_t *got_superblock, btree_key_t *key, keyvalue_location_t<Value> *keyvalue_location_out, eviction_priority_t root_eviction_priority) {
     block_id_t node_id = got_superblock->sb->get_root_block_id();
     rassert(node_id != SUPERBLOCK_ID);
 
@@ -271,7 +271,7 @@ void find_keyvalue_location_for_read(transaction_t *txn, got_superblock_t *got_s
 
         {
             buf_lock_t tmp(txn, node_id, rwi_read);
-            tmp->set_eviction_priority(buf->get_eviction_priority() + 1);
+            tmp->set_eviction_priority(incr_priority(buf->get_eviction_priority()));
             buf.swap(tmp);
         }
 
@@ -291,7 +291,7 @@ void find_keyvalue_location_for_read(transaction_t *txn, got_superblock_t *got_s
 }
 
 template <class Value>
-void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_loc, btree_key_t *key, repli_timestamp_t tstamp, bool expired, key_modification_callback_t<Value> *km_callback, int *root_eviction_priority) {
+void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_loc, btree_key_t *key, repli_timestamp_t tstamp, bool expired, key_modification_callback_t<Value> *km_callback, eviction_priority_t *root_eviction_priority) {
     value_sizer_t<Value> v_sizer(txn->get_cache()->get_block_size());
     value_sizer_t<void> *sizer = &v_sizer;
 
@@ -329,7 +329,7 @@ void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_lo
 }
 
 template <class Value>
-void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_loc, btree_key_t *key, repli_timestamp_t tstamp, key_modification_callback_t<Value> *km_callback, int *root_eviction_priority) {
+void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_loc, btree_key_t *key, repli_timestamp_t tstamp, key_modification_callback_t<Value> *km_callback, eviction_priority_t *root_eviction_priority) {
     apply_keyvalue_change(txn, kv_loc, key, tstamp, false, km_callback, root_eviction_priority);
 }
 
@@ -338,7 +338,7 @@ value_txn_t<Value>::value_txn_t(btree_key_t *_key,
                                 keyvalue_location_t<Value>& _kv_location,
                                 repli_timestamp_t _tstamp,
                                 key_modification_callback_t<Value> *_km_callback,
-                                int *_root_eviction_priority)
+                                eviction_priority_t *_root_eviction_priority)
     : key(_key), tstamp(_tstamp), root_eviction_priority(_root_eviction_priority), km_callback(_km_callback)
 {
     kv_location.swap(_kv_location);

@@ -84,7 +84,7 @@ private:
 
     //Information for cache eviction
 public:
-    int root_eviction_priority;
+    eviction_priority_t root_eviction_priority;
 };
 
 #endif /* __BTREE_SLICE_HPP__ */
