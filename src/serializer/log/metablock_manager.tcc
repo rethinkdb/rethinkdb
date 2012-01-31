@@ -128,7 +128,7 @@ void metablock_manager_t<metablock_t>::co_start_existing(direct_file_t *file, bo
     // slow. Read all of them in one batch, and check them later.
     state = state_reading;
     struct load_buffer_manager_t {
-        load_buffer_manager_t(size_t nmetablocks) {
+        explicit load_buffer_manager_t(size_t nmetablocks) {
             buffer = reinterpret_cast<crc_metablock_t*>(malloc_aligned(DEVICE_BLOCK_SIZE * nmetablocks,
                                                                        DEVICE_BLOCK_SIZE));
         }

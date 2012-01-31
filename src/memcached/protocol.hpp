@@ -164,7 +164,7 @@ public:
             repli_timestamp_t recency;
 
             delete_key_t() { }
-            explicit delete_key_t(const store_key_t& key_, const repli_timestamp_t& recency_) : key(key_), recency(recency_) { }
+            delete_key_t(const store_key_t& key_, const repli_timestamp_t& recency_) : key(key_), recency(recency_) { }
 
             RDB_MAKE_ME_SERIALIZABLE_1(key);
         };
@@ -172,7 +172,7 @@ public:
             key_range_t range;
 
             delete_range_t() { }
-            delete_range_t(const key_range_t& _range) : range(_range) { }
+            explicit delete_range_t(const key_range_t& _range) : range(_range) { }
 
             RDB_MAKE_ME_SERIALIZABLE_1(range);
         };
@@ -212,7 +212,7 @@ public:
         boost::scoped_ptr<transaction_t> txn;
         got_superblock_t superblock;
     public:
-        explicit txn_t(btree_slice_t *btree_, order_source_t &order_source, bool read_txn);
+        txn_t(btree_slice_t *btree_, order_source_t &order_source, bool read_txn);
 
         region_map_t<memcached_protocol_t,binary_blob_t> get_metadata(signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
         void set_metadata(const region_map_t<memcached_protocol_t, binary_blob_t> &new_metadata) THROWS_NOTHING;

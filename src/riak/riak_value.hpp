@@ -4,7 +4,6 @@
 #include "buffer_cache/blob.hpp"
 #include "btree/node.hpp"
 
-typedef uint32_t last_modified_time_t;
 
 typedef uint32_t etag_t;
 
@@ -18,31 +17,25 @@ typedef uint32_t etag_t;
  * write if the support operations throught riak like appending to values.
  * Riak's api does not support appending. */
 #define MAX_LINK_SIZE 256
-struct link_t {
+struct link_hdr_t {
     uint8_t bucket_len, key_len, tag_len;
-    char contents[];
-
-    const char *bucket() { return contents; }
-    const char *key() { return contents + bucket_len; }
-    const char *tag() { return contents + bucket_len + tag_len; }
-
-    unsigned size() { return  bucket_len + key_len + tag_len; }
-};
+} __attribute__((__packed__));
 
 //notice this class does nothing to maintain its consistency
 class riak_value_t {
 public:
-    last_modified_time_t mod_time;
+    time_t mod_time;
     etag_t etag;
     uint16_t content_type_len;
     uint32_t value_len;
     uint16_t n_links;
+    uint32_t links_length;
 
     //contents
     char contents[];
 
-    //contents is blob_t which has the follwing structure:
-    // contents = content_type content (link)* 
+    //contents is blob_t which has the following structure:
+    // contents = content_type content (link_hdr link)* 
 
     void print(block_size_t block_size) {
         print_hd(this, 0, offsetof(riak_value_t, contents) + blob::ref_size(block_size, contents, blob::btree_maxreflen));

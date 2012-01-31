@@ -240,7 +240,7 @@ struct memcached_backfill_callback_t : public backfill_callback_t {
     typedef memcached_protocol_t::backfill_chunk_t chunk_t;
     const boost::function<void(chunk_t)> &chunk_fun;
 
-    memcached_backfill_callback_t(const boost::function<void(chunk_t)> &chunk_fun_) : chunk_fun(chunk_fun_) { }
+    explicit memcached_backfill_callback_t(const boost::function<void(chunk_t)> &chunk_fun_) : chunk_fun(chunk_fun_) { }
 
     void on_delete_range(const btree_key_t *left_exclusive, const btree_key_t *right_inclusive) {
         chunk_fun(chunk_t::delete_range(
@@ -294,7 +294,7 @@ struct receive_backfill_visitor_t : public boost::static_visitor<> {
     }
 private:
     struct range_key_tester_t : public key_tester_t {
-        range_key_tester_t(const key_range_t& delete_range_) : delete_range(delete_range_) { }
+        explicit range_key_tester_t(const key_range_t& delete_range_) : delete_range(delete_range_) { }
         bool key_should_be_erased(const btree_key_t *key) {
             return delete_range.contains_key(key->contents, key->size);
         }

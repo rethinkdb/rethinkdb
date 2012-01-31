@@ -28,8 +28,10 @@ struct blocker_pool_t :
     };
     void do_job(job_t *job);
 
-private:
+    /* Making this public is slightly hacky, and is only used for some asserts
+     * in the one-thread blocker pools in the javascript_pool code. */
     std::vector<pthread_t> threads;
+private:
     static void *event_loop(void*);
 
     bool shutting_down;

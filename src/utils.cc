@@ -281,8 +281,20 @@ int rng_t::randint(int n) {
     return x % n;
 }
 
+std::string rand_string(int len) {
+    std::string res;
 
+    int seed = rand();
 
+    while (len --> 0) {
+        res.push_back((seed % 26) + 'A');
+        seed ^= seed >> 17;
+        seed += seed << 11;
+        seed ^= seed >> 29;
+    }
+
+    return res;
+}
 
 bool begins_with_minus(const char *string) {
     while (isspace(*string)) string++;
@@ -349,6 +361,12 @@ ticks_t get_ticks() {
     return secs_to_ticks(tv.tv_sec) + tv.tv_nsec;
 }
 
+time_t get_secs() {
+    timespec tv;
+    clock_gettime(CLOCK_REALTIME, &tv);
+    return tv.tv_sec;
+}
+
 long get_ticks_res() {
     timespec tv;
     clock_getres(CLOCK_MONOTONIC, &tv);
@@ -383,6 +401,10 @@ std::string vstrprintf(const char *format, va_list ap) {
     va_end(aq);
 
     return std::string(arr.get(), arr.get() + size);
+}
+
+bool notf(bool x) { 
+    return !x; 
 }
 
 std::string strprintf(const char *format, ...) {

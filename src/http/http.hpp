@@ -41,6 +41,7 @@ struct http_req_t {
 
     std::string find_query_param(std::string) const;
     std::string find_header_line(std::string) const;
+    bool has_header_line(std::string) const;
 };
 
 int content_length(http_req_t);
@@ -53,6 +54,10 @@ struct http_res_t {
 
     void add_header_line(std::string const &, std::string const &);
     void set_body(std::string const &, std::string const &);
+
+    http_res_t();
+    explicit http_res_t(int rescode);
+    void add_last_modified(int);
 };
 
 void test_header_parser();

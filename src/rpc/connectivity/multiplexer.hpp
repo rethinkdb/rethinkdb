@@ -32,7 +32,7 @@ public:
     static const int max_tag = 256;
     class run_t : public message_handler_t {
     public:
-        run_t(message_multiplexer_t *);
+        explicit run_t(message_multiplexer_t *);
         ~run_t();
     private:
         void on_message(peer_id_t, std::istream &);
@@ -59,7 +59,7 @@ public:
         const tag_t tag;
         run_t *run;
     };
-    message_multiplexer_t(message_service_t *super_ms);
+    explicit message_multiplexer_t(message_service_t *super_ms);
     ~message_multiplexer_t();
 private:
     friend class run_t;

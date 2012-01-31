@@ -22,7 +22,7 @@ class directory_read_manager_t :
     public message_handler_t
 {
 public:
-    directory_read_manager_t(connectivity_service_t *super_connectivity_service) THROWS_NOTHING;
+    explicit directory_read_manager_t(connectivity_service_t *super_connectivity_service) THROWS_NOTHING;
     ~directory_read_manager_t() THROWS_NOTHING;
 
     clone_ptr_t<directory_rview_t<metadata_t> > get_root_view() THROWS_NOTHING;
@@ -50,7 +50,7 @@ private:
 
     class thread_peer_info_t {
     public:
-        thread_peer_info_t(const metadata_t &md) THROWS_NOTHING : peer_value(md) { }
+        explicit thread_peer_info_t(const metadata_t &md) THROWS_NOTHING : peer_value(md) { }
         rwi_lock_assertion_t peer_value_lock;
         metadata_t peer_value;
         publisher_controller_t<
@@ -73,7 +73,7 @@ private:
     when they disconnect. A new `session_t` is created if they reconnect. */
     class session_t {
     public:
-        session_t(boost::uuids::uuid si) : session_id(si) { }
+        explicit session_t(boost::uuids::uuid si) : session_id(si) { }
         /* We get this by calling `get_connection_session_id()` on the
         `connectivity_service_t` from `super_connectivity_service`. */
         const boost::uuids::uuid session_id;

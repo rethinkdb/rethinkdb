@@ -290,7 +290,7 @@ notification is consistent with information delivered via `get_peers_list()`. */
 
 struct watcher_t {
 
-    explicit watcher_t(connectivity_cluster_t *c, recording_test_application_t *a) :
+    watcher_t(connectivity_cluster_t *c, recording_test_application_t *a) :
         cluster(c),
         application(a),
         event_watcher(

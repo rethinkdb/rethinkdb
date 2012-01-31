@@ -203,4 +203,12 @@ struct assert_finite_coro_waiting_t {
 
 #endif  // NDEBUG
 
+class home_coro_mixin_t {
+private:
+    coro_t *home_coro;
+public:
+    home_coro_mixin_t();
+    void assert_coro();
+};
+
 #endif // __ARCH_RUNTIME_COROUTINES_HPP__

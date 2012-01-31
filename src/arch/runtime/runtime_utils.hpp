@@ -39,7 +39,7 @@ private:
 template<class Callable>
 class callable_action_instance_t : public callable_action_t {
 public:
-    callable_action_instance_t(const Callable& callable) : callable_(callable) { }
+    explicit callable_action_instance_t(const Callable& callable) : callable_(callable) { }
 
     void run_action() { callable_(); }
 

@@ -21,7 +21,7 @@ template<class protocol_t>
 class replier_t {
 
 public:
-    replier_t(listener_t<protocol_t> *l) :
+    explicit replier_t(listener_t<protocol_t> *l) :
         listener(l)
     {
         rassert(listener->store->get_region() ==

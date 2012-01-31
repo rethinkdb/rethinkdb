@@ -6,7 +6,7 @@ namespace unittest {
 
 class thing_t {
 public:
-    thing_t(int i) : value(i) { }
+    explicit thing_t(int i) : value(i) { }
     virtual ~thing_t() { }
     virtual thing_t *clone() const {
         return new thing_t(value);

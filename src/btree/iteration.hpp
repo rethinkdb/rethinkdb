@@ -15,6 +15,7 @@
 #include "btree/slice.hpp"
 #include "memcached/store.hpp"
 
+//TODO make this not store value as a char array
 template <class Value>
 struct key_value_pair_t {
     std::string key;
@@ -134,6 +135,16 @@ private:
     leaf_iterator_t<Value> *active_leaf;
     slice_leaves_iterator_t<Value> *leaves_iterator;
 };
+
+template <class Value>
+class range_txn_t {
+    slice_keys_iterator_t<Value> *it;
+public:
+    explicit range_txn_t(slice_keys_iterator_t<Value> *it);
+};
+
+template <class Value> 
+range_txn_t<Value> get_range(btree_slice_t *slice, order_token_t token, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t, const store_key_t &right_key);
 
 #include "btree/iteration.tcc"
 

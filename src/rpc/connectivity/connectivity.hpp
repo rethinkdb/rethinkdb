@@ -98,7 +98,7 @@ public:
     trip an assertion. */
     class peers_list_freeze_t {
     public:
-        peers_list_freeze_t(connectivity_service_t *);
+        explicit peers_list_freeze_t(connectivity_service_t *);
         void assert_is_holding(connectivity_service_t *);
     private:
         rwi_lock_assertion_t::read_acq_t acq;
