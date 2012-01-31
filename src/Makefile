@@ -135,6 +135,12 @@ ifeq ($(AGRESSIVE_BUF_UNLOADING),1)
 CXXFLAGS+=-DAGRESSIVE_BUF_UNLOADING=1
 endif
 
+ifeq ($(COMPILER),INTEL)
+IGNORE_SOME_ICC_LD_WARNINGS?=1
+else
+IGNORE_SOME_ICC_LD_WARNINGS?=0
+endif
+
 STRIP_ON_INSTALL?=1
 
 # Configure debug vs. release
@@ -551,7 +557,14 @@ $(BUILD_DIR)/$(SERVER_EXEC_NAME): $(OBJS) $(BUILD_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    LD $@"
 endif
+ifeq ($(IGNORE_SOME_ICC_LD_WARNINGS),0)
 	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_EXEC_OBJS) $(STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME)
+else
+# The following line runs CXX in linking mode (supplying only the object files and libraries) and then
+# pass the output through a filter which filters out bogus (?) icc-related problems.
+# FIXME: figure out why we get these problems
+	$(QUIET) ($(CXX) $(LDFLAGS) $(SERVER_EXEC_OBJS) $(STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME) 2>&1 >&3 | (grep -v "warning: relocation refers to discarded section" || true) >&2) 3>&1
+endif
 ifeq ($(NO_TCMALLOC),0)
 	@objdump -T $(BUILD_DIR)/$(SERVER_EXEC_NAME) | c++filt | grep -q 'tcmalloc::\|google_malloc' || \
 		(echo "    Failed to link in TCMalloc. Either install it, or make with NO_TCMALLOC=1." && \
@@ -567,7 +580,15 @@ $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME): $(OBJS) $(BUILD_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    LD $@"
 endif
+ifeq ($(IGNORE_SOME_ICC_LD_WARNINGS),0)
 	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_UNIT_TEST_OBJS) $(STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
+else
+# Note: that is the copy of the problem description that we have above in server linking section.
+# The following line runs CXX in linking mode (supplying only the object files and libraries) and then
+# pass the output through a filter which filters out bogus (?) icc-related problems.
+# FIXME: figure out why we get these problems
+	$(QUIET) ($(CXX) $(LDFLAGS) $(SERVER_UNIT_TEST_OBJS) $(STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) 2>&1 >&3 | (grep -v "warning: relocation refers to discarded section" || true) >&2) 3>&1
+endif
 
 $(BUILD_DIR)/$(START_DB_NAME):
 	$(QUIET) cp $(SCRIPTS_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(START_DB_NAME)
