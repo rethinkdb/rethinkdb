@@ -29,11 +29,11 @@ public:
             "Even though you can have a listener that only watches some subset "
             "of a branch, you can't have a replier for some subset of a "
             "branch.");
-        rassert(!listener->get_outdated_signal()->is_pulsed());
+        rassert(!listener->get_broadcaster_lost_signal()->is_pulsed());
 
         /* Notify the broadcaster that we can reply to queries */
         send(listener->mailbox_manager,
-            listener->registration_result_cond.get_value()->upgrade_mailbox,
+            listener->registration_done_cond.get_value().upgrade_mailbox,
             listener->writeread_mailbox.get_address(),
             listener->read_mailbox.get_address()
             );
@@ -47,7 +47,7 @@ public:
 
         stop_backfilling_if_listener_outdated.reset(new signal_t::subscription_t(
             boost::bind(&replier_t::on_listener_outdated, this),
-            listener->get_outdated_signal()
+            listener->get_broadcaster_lost_signal()
             ));
     }
 
@@ -57,9 +57,9 @@ public:
 
     The destructor also immediately stops any outstanding backfills. */
     ~replier_t() {
-        if (listener->get_outdated_signal()->is_pulsed()) {
+        if (listener->get_broadcaster_lost_signal()->is_pulsed()) {
             send(listener->mailbox_manager,
-                listener->registration_result_cond.get_value()->downgrade_mailbox,
+                listener->registration_done_cond.get_value().downgrade_mailbox,
                 /* We don't want a confirmation */
                 async_mailbox_t<void()>::address_t()
                 );

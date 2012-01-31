@@ -170,14 +170,16 @@ It appears in the directory. */
 template<class protocol_t>
 struct broadcaster_business_card_t {
 
-    broadcaster_business_card_t(const registrar_business_card_t<listener_business_card_t<protocol_t> > &r) :
-        registrar(r) { }
+    broadcaster_business_card_t(branch_id_t bid, const registrar_business_card_t<listener_business_card_t<protocol_t> > &r) :
+        branch_id(bid), registrar(r) { }
 
     broadcaster_business_card_t() { }
 
+    branch_id_t branch_id;
+
     registrar_business_card_t<listener_business_card_t<protocol_t> > registrar;
 
-    RDB_MAKE_ME_SERIALIZABLE_1(registrar);
+    RDB_MAKE_ME_SERIALIZABLE_2(branch_id, registrar);
 };
 
 /* `branch_history_t` is a record of all of the branches that have ever been
