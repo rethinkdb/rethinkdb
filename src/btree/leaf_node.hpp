@@ -118,6 +118,8 @@ struct leaf_node_t {
 //                                                          \___________________________/        ^                                                           ^                                         ^
 //                                                                  N = num_pairs            frontmost                                                tstamp_cutpoint                            (block size)
 //
+// [tstamp] in [tstamp][entry] pairs are non-increasing (when you look at them from frontmost to tstamp_cutpoint).
+//
 // Here's what an "[entry]" may look like:
 //
 //   [btree key][btree value]                       -- a live entry
@@ -138,14 +140,14 @@ struct value_t;
 inline
 bool entry_is_deletion(const entry_t *p) {
     uint8_t x = *reinterpret_cast<const uint8_t *>(p);
-    rassert(x != 251);
+    rassert(x != SKIP_ENTRY_RESERVED);
     return x == DELETE_ENTRY_CODE;
 }
 
 inline
 bool entry_is_live(const entry_t *p) {
     uint8_t x = *reinterpret_cast<const uint8_t *>(p);
-    rassert(x != 251);
+    rassert(x != SKIP_ENTRY_RESERVED);
     rassert(MAX_KEY_SIZE == 250);
     return x <= MAX_KEY_SIZE;
 }
@@ -238,22 +240,22 @@ struct entry_iter_t {
 
     template <class V>
     void step(value_sizer_t<V> *sizer, const leaf_node_t *node) {
-	rassert(!done(sizer));
+        rassert(!done(sizer));
 
-	offset += entry_size(sizer, get_entry(node, offset)) + (offset < node->tstamp_cutpoint ? sizeof(repli_timestamp_t) : 0);
+        offset += entry_size(sizer, get_entry(node, offset)) + (offset < node->tstamp_cutpoint ? sizeof(repli_timestamp_t) : 0);
     }
 
     template <class V>
     bool done(value_sizer_t<V> *sizer) const {
         int bs = sizer->block_size().value();
-	rassert(offset <= bs, "offset=%d, bs=%d", offset, bs);
-	return offset == bs;
+        rassert(offset <= bs, "offset=%d, bs=%d", offset, bs);
+        return offset == bs;
     }
 
     static entry_iter_t make(const leaf_node_t *node) {
-	entry_iter_t ret;
-	ret.offset = node->frontmost;
-	return ret;
+        entry_iter_t ret;
+        ret.offset = node->frontmost;
+        return ret;
     }
 };
 
@@ -564,23 +566,22 @@ int mandatory_cost(value_sizer_t<V> *sizer, const leaf_node_t *node, int require
     int deletions_cost = 0;
     int max_deletions_cost = free_space(sizer) / DELETION_RESERVE_FRACTION;
     while (!(count == required_timestamps || iter.done(sizer) || iter.offset >= node->tstamp_cutpoint)) {
-
-	const entry_t *ent = get_entry(node, iter.offset);
-	if (entry_is_deletion(ent)) {
+        const entry_t *ent = get_entry(node, iter.offset);
+        if (entry_is_deletion(ent)) {
             if (deletions_cost >= max_deletions_cost) {
                 break;
             }
 
             int this_entry_cost = sizeof(uint16_t) + sizeof(repli_timestamp_t) + entry_size(sizer, ent);
             deletions_cost += this_entry_cost;
-	    size += this_entry_cost;
-	    ++count;
-	} else if (entry_is_live(ent)) {
-	    ++count;
-	    size += sizeof(repli_timestamp_t);
-	}
+            size += this_entry_cost;
+            ++count;
+        } else if (entry_is_live(ent)) {
+            ++count;
+            size += sizeof(repli_timestamp_t);
+        }
 
-	iter.step(sizer, node);
+        iter.step(sizer, node);
     }
 
     *tstamp_back_offset_out = iter.offset;
@@ -1423,30 +1424,36 @@ template <class V>
 void dump_entries_since_time(value_sizer_t<V> *sizer, const leaf_node_t *node, repli_timestamp_t minimum_tstamp, repli_timestamp_t maximum_possible_timestamp,  entry_reception_callback_t<V> *cb) {
     int stop_offset = 0;
 
+    // First, determine stop_offset: offset of the first [tstamp][entry] which has tstamp < minimum_tstamp
     {
-        repli_timestamp_t earliest = repli_timestamp_t::invalid;
+        repli_timestamp_t earliest_so_far = repli_timestamp_t::invalid;
 
         entry_iter_t iter = entry_iter_t::make(node);
         while (!iter.done(sizer) && iter.offset < node->tstamp_cutpoint) {
-            repli_timestamp_t new_earliest = get_timestamp(node, iter.offset);
-            rassert(earliest >= new_earliest, "asserted earliest (%u) >= new_earliest (%u)", earliest.time, new_earliest.time);
-            earliest = new_earliest;
-            iter.step(sizer, node);
+            repli_timestamp_t tstamp = get_timestamp(node, iter.offset);
+            rassert(earliest_so_far >= tstamp, "asserted earliest_so_far (%u) >= tstamp (%u)", earliest_so_far.time, tstamp.time);
+            earliest_so_far = tstamp;
 
-            if (earliest < minimum_tstamp) {
+            if (tstamp < minimum_tstamp) {
                 stop_offset = iter.offset;
                 break;
             }
+
+            iter.step(sizer, node);
         }
     }
 
     bool include_deletions = true;
+
+    // If we haven't found a [tstamp][entry] pair such that tstamp < minimum_tstamp, then we are missing some deletion history
     if (stop_offset == 0) {
         stop_offset = sizer->block_size().value();
         cb->lost_deletions();
         include_deletions = false;
     }
 
+    // Walk through all the entries starting with the the frontmost and finishing right before the one which has tstamp < minimum_tstamp
+    // (if it exists). If it doesn't exist, we also walk through the non-timestamped entries.
     {
         entry_iter_t iter = entry_iter_t::make(node);
         repli_timestamp_t last_seen_tstamp = maximum_possible_timestamp;

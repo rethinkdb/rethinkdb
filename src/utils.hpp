@@ -14,6 +14,9 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/function.hpp>
 
+#include <list>
+#include <map>
+
 /* Note that repli_timestamp_t does NOT represent an actual timestamp; instead it's an arbitrary
 counter. */
 
@@ -73,7 +76,7 @@ public:
 class death_runner_t {
 public:
     death_runner_t() { }
-    death_runner_t(const boost::function<void()> &f) : fun(f) { }
+    explicit death_runner_t(const boost::function<void()> &f) : fun(f) { }
     ~death_runner_t() {
         if (!fun.empty()) fun();
     }
@@ -148,6 +151,10 @@ public:
     template<class obj_t>
     explicit binary_blob_t(const obj_t &o) : storage(reinterpret_cast<const uint8_t *>(&o), reinterpret_cast<const uint8_t *>(&o + 1)) { }
 
+    binary_blob_t(const uint8_t *data, size_t size) : storage(data, data+size) { }
+    template<class InputIterator>
+    binary_blob_t(InputIterator begin, InputIterator end) : storage(begin, end) { }
+
     /* Constructor in static method form so we can use it as a functor */
     template<class obj_t>
     static binary_blob_t make(const obj_t &o) {
@@ -212,6 +219,7 @@ int gcd(int x, int y);
 typedef unsigned long long ticks_t;
 ticks_t secs_to_ticks(float secs);
 ticks_t get_ticks();
+time_t get_secs();
 long get_ticks_res();
 double ticks_to_secs(ticks_t ticks);
 
@@ -226,6 +234,8 @@ void debugf(const char *msg, ...) __attribute__((format (printf, 1, 2)));
 
 class rng_t {
 public:
+// Returns a random number in [0, n).  Is not perfectly uniform; the
+// bias tends to get worse when RAND_MAX is far from a multiple of n.
     int randint(int n);
     rng_t();
 private:
@@ -233,6 +243,8 @@ private:
     DISABLE_COPYING(rng_t);
 };
 
+
+std::string rand_string(int len);
 
 bool begins_with_minus(const char *string);
 // strtoul() and strtoull() will for some reason not fail if the input begins with a minus
@@ -341,5 +353,49 @@ Valgrind won't complain about it. */
 boost::uuids::uuid generate_uuid();
 
 void print_backtrace(FILE *out = stderr, bool use_addr2line = true);
+
+/* I think we basically all know this... but this function has linear
+ * complexity and thus you can't use it for anything real, if you want to do
+ * this type of access pattern use a different STL container. This only exists
+ * because it's convenient to pass around paths as std::lists and I don't want
+ * to write 3 lines of code to access the second element. */
+template <class T>
+T const &nth(std::list<T> const &l, unsigned n) {
+    typename std::list<T>::const_iterator it = l.begin();
+
+    while (n > 0) {
+        rassert(it != l.end(), "n > list.size()");
+        n--;
+        it++;
+    }
+
+    return *it;
+}
+
+//TODO change this things name
+template <class T, class K>
+bool std_contains(const T &target, K const & key) {
+    return target.find(key) != target.end();
+}
+template <class T, class K>
+bool std_does_not_contain(const T &target, K const & key) {
+    return !std_contains(target, key);
+}
+
+template <class InputIterator, class UnaryPredicate>
+bool all_match_predicate(InputIterator begin, InputIterator end, UnaryPredicate f) {
+    bool res = true;
+    for (; begin != end; begin++) {
+        res &= f(*begin);
+    }
+    return res;
+}
+
+template <class T, class UnaryPredicate>
+bool all_in_container_match_predicate (const T &container, UnaryPredicate f) {
+    return all_match_predicate(container.begin(), container.end(), f);
+}
+
+bool notf(bool x);
 
 #endif // __UTILS_HPP__

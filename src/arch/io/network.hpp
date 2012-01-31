@@ -18,6 +18,7 @@
 #include <stdexcept>
 #include <stdarg.h>
 #include <unistd.h>
+#include <sstream>
 
 class side_coro_handler_t;
 
@@ -281,9 +282,15 @@ public:
     struct address_in_use_exc_t :
         public std::exception
     {
+        address_in_use_exc_t(const char* hostname, int port) throw () : 
+            info(strprintf("The address at %s:%d is already in use", hostname, port)) { };
+        ~address_in_use_exc_t() throw () { };
+
         const char *what() const throw () {
-            return "The requested port is already in use.";
+            return info.c_str();
         }
+    private:
+        std::string info;
     };
 
 private:

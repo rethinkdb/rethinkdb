@@ -26,7 +26,7 @@ private:
     private:
         friend class directory_write_manager_t;
         explicit root_view_t(directory_write_manager_t *) THROWS_NOTHING;
-        directory_write_manager_t *parent;
+        directory_write_manager_t *const parent;
     };
 
     void on_connect(peer_id_t peer) THROWS_NOTHING;
@@ -40,7 +40,7 @@ private:
     /* `directory_write_service_t` interface: */
     mutex_t *get_our_value_lock() THROWS_NOTHING;
 
-    message_service_t *message_service;
+    message_service_t *const message_service;
 
     mutex_t our_value_lock;
 

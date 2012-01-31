@@ -15,7 +15,6 @@ them. */
 
 template<class protocol_t>
 class master_t {
-
 public:
     master_t(
             mailbox_manager_t *mm,
@@ -68,9 +67,7 @@ private:
     }
 
     mailbox_manager_t *mailbox_manager;
-
     broadcaster_t<protocol_t> *broadcaster;
-
     auto_drainer_t drainer;
 
     typename master_business_card_t<protocol_t>::read_mailbox_t read_mailbox;

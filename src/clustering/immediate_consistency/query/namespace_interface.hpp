@@ -5,6 +5,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 
+#include "concurrency/pmap.hpp"
 #include "clustering/immediate_consistency/query/metadata.hpp"
 #include "concurrency/promise.hpp"
 #include "protocol_api.hpp"
@@ -121,16 +122,16 @@ private:
             async_mailbox_t<void(boost::variant<op_response_t, std::string>)> result_or_failure_mailbox(
                 mailbox_manager, boost::bind(&promise_t<boost::variant<op_response_t, std::string> >::pulse, &result_or_failure, _1));
 
+            master_business_card_t<protocol_t> bcard = (*master_accesses)[i]->access();
+
             typename async_mailbox_t<void(op_t, order_token_t, typename async_mailbox_t<void(boost::variant<op_response_t, std::string>)>::address_t)>::address_t query_address =
-                (*master_accesses)[i]->access().*mailbox_field;
+                bcard.*mailbox_field;
 
             send(mailbox_manager, query_address,
                 shard, order_token, result_or_failure_mailbox.get_address());
 
-            wait_any_t waiter(result_or_failure.get_ready_signal(), interruptor, (*master_accesses)[i]->get_failed_signal());
-            waiter.wait_lazily_unordered();
-
-            if (interruptor->is_pulsed()) throw interrupted_exc_t();
+            wait_any_t waiter(result_or_failure.get_ready_signal(), (*master_accesses)[i]->get_failed_signal());
+            wait_interruptible(&waiter, interruptor);
 
             /* Throw an exception if the master went down */
             (*master_accesses)[i]->access();

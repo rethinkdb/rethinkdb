@@ -6,14 +6,15 @@
 #endif
 
 #include "errors.hpp"
-#include <boost/function.hpp>
+#include <boost/bind.hpp>
 
 #include "arch/runtime/runtime_utils.hpp"
+#include "arch/runtime/context_switching.hpp"
 
 const size_t MAX_COROUTINE_STACK_SIZE = 8*1024*1024;
 
-class coro_context_t;
-class artificial_stack_t;
+int get_thread_id();
+class coro_globals_t;
 
 /* A coro_t represents a fiber of execution within a thread. Create one with spawn_*(). Within a
 coroutine, call wait() to return control to the scheduler; the coroutine will be resumed when
@@ -22,23 +23,47 @@ another fiber calls notify_*() on it.
 coro_t objects can switch threads with move_to_thread(), but it is recommended that you use
 on_thread_t for more safety. */
 
-class coro_t : private linux_thread_message_t {
+class coro_t : private linux_thread_message_t, public intrusive_list_node_t<coro_t>, public home_thread_mixin_t {
 public:
-    friend class coro_context_t;
     friend bool is_coroutine_stack_overflow(void *);
 
-    static void spawn_now(const boost::function<void()> &deed);
-    static void spawn_sometime(const boost::function<void()> &deed);
+    template<class Callable>
+    static void spawn_now(const Callable &action) {
+        get_and_init_coro(action)->notify_now();
+    }
+
+    template<class Callable>
+    static void spawn_sometime(const Callable &action) {
+        get_and_init_coro(action)->notify_sometime();
+    }
 
     // TODO: spawn_later_ordered is usually what naive people want,
     // but it's such a long and onerous name.  It should have the
     // shortest name.
-    static void spawn_later_ordered(const boost::function<void()> &deed);
-    static void spawn_on_thread(int thread, const boost::function<void()> &deed);
+    template<class Callable>
+    static void spawn_later_ordered(const Callable &action) {
+        get_and_init_coro(action)->notify_later_ordered();
+    }
+
+    template<class Callable>
+    static void spawn_on_thread(int thread, const Callable &action) {
+        if (get_thread_id() == thread) {
+            spawn_later_ordered(action);
+        } else {
+            do_on_thread(thread, boost::bind(&spawn_now, action));
+        }
+    }
 
     // Use coro_t::spawn_*(boost::bind(...)) for spawning with parameters.
 
-public:
+    /* `spawn()` and `notify()` are aliases for `spawn_later_ordered()` and
+    `notify_later_ordered()`. They are deprecated and new code should not use
+    them. */
+    template<class Callable>
+    static void spawn(const Callable &action) {
+        spawn_later_ordered(action);
+    }
+
     /* Pauses the current coroutine until it is notified */
     static void wait();
 
@@ -85,19 +110,8 @@ public:
         coro_t *self = coro_t::self();
         return self ? self->selfname_number : 0;
     }
-
-    int64_t selfname_number;
 #endif
 
-public:
-    /* `spawn()` and `notify()` are aliases for `spawn_later_ordered()` and
-    `notify_later_ordered()`. They are deprecated and new code should not use
-    them. */
-    static void spawn(const boost::function<void()> &deed) {
-        spawn_later_ordered(deed);
-    }
-
-public:
     static void set_coroutine_stack_size(size_t size);
 
     artificial_stack_t* get_stack();
@@ -109,13 +123,30 @@ private:
     friend class on_thread_t;
     static void move_to_thread(int thread);
 
-    /* Internally, we recycle ucontexts and stacks. So the real guts of the coroutine are in the
-    coro_context_t object. */
-    coro_context_t *context;
+    // Contructor sets up the stack, get_and_init_coro will load a function to be run
+    //  at which point the coroutine can be notified
+    coro_t();
 
-    explicit coro_t(const boost::function<void()>& deed);
-    boost::function<void()> deed_;
-    void run();
+    // If this function footprint ever changes, you may need to update the parse_coroutine_info function
+    template<class Callable>
+    static coro_t * get_and_init_coro(const Callable &action) {
+        coro_t *coro = get_coro();
+#ifndef NDEBUG
+        coro->coroutine_info = __PRETTY_FUNCTION__;
+#endif
+        coro->action_wrapper.reset(action);
+        return coro;
+    }
+
+    static coro_t * get_coro();
+
+    static void return_coro_to_free_list(coro_t *coro);
+
+    artificial_stack_t stack;
+
+    static void run();
+
+    friend struct coro_globals_t;
     ~coro_t();
 
     virtual void on_thread_switch();
@@ -125,6 +156,14 @@ private:
     // Sanity check variables
     bool notified_;
     bool waiting_;
+
+    callable_action_wrapper_t action_wrapper;
+
+#ifndef NDEBUG
+    int64_t selfname_number;
+    const char* coroutine_info;
+    static void parse_coroutine_info(const char* coroutine_function, std::string& coroutine_type);
+#endif
 
     DISABLE_COPYING(coro_t);
 };
@@ -163,5 +202,13 @@ struct assert_finite_coro_waiting_t {
 #define ASSERT_FINITE_CORO_WAITING do { } while (0)
 
 #endif  // NDEBUG
+
+class home_coro_mixin_t {
+private:
+    coro_t *home_coro;
+public:
+    home_coro_mixin_t();
+    void assert_coro();
+};
 
 #endif // __ARCH_RUNTIME_COROUTINES_HPP__

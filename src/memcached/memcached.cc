@@ -24,13 +24,23 @@
 #include "perfmon.hpp"
 #include "stats/persist.hpp"
 
-/* txt_memcached_handler_t only exists as a convenient thing to pass around to do_get(),
-do_storage(), and the like. */
+perfmon_duration_sampler_t
+    pm_cmd_set("cmd_set", secs_to_ticks(1.0), false),
+    pm_cmd_get("cmd_get", secs_to_ticks(1.0), false),
+    pm_cmd_rget("cmd_rget", secs_to_ticks(1.0), false);
+
+perfmon_persistent_stddev_t
+    pm_get_key_size("cmd_get_key_size"),
+    pm_storage_key_size("cmd_set_key_size"),
+    pm_storage_value_size("cmd_set_val_size"),
+    pm_delete_key_size("cmd_delete_key_size");
 
 static const char *crlf = "\r\n";
 
-struct txt_memcached_handler_t : public home_thread_mixin_t {
+/* txt_memcached_handler_t only exists as a convenient thing to pass around to do_get(),
+do_storage(), and the like. */
 
+struct txt_memcached_handler_t : public home_thread_mixin_t {
     txt_memcached_handler_t(memcached_interface_t *_interface, get_store_t *_get_store,
             set_store_interface_t *_set_store, int max_concurrent_queries_per_connection)
         : interface(_interface), get_store(_get_store), set_store(_set_store), requests_out_sem(max_concurrent_queries_per_connection)
@@ -178,17 +188,6 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
     }
 };
 
-
-perfmon_duration_sampler_t
-    pm_cmd_set("cmd_set", secs_to_ticks(1.0), false),
-    pm_cmd_get("cmd_get", secs_to_ticks(1.0), false),
-    pm_cmd_rget("cmd_rget", secs_to_ticks(1.0), false);
-
-perfmon_persistent_stddev_t
-    pm_get_key_size("cmd_get_key_size"),
-    pm_storage_key_size("cmd_set_key_size"),
-    pm_storage_value_size("cmd_set_val_size"),
-    pm_delete_key_size("cmd_delete_key_size");
 
 /* do_get() is used for "get" and "gets" commands. */
 
@@ -523,10 +522,10 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
     // that, the server will consider it to be real Unix time value rather
     // than an offset from current time.
     if (exptime <= 60*60*24*30 && exptime > 0) {
-	// If 60*60*24*30 < exptime <= time(NULL), that's fine, the
-	// btree code needs to handle that case gracefully anyway
-	// (since the clock can tick in the middle of an insert
-	// anyway...).  We have tests in expiration.py.
+        // If 60*60*24*30 < exptime <= time(NULL), that's fine, the
+        // btree code needs to handle that case gracefully anyway
+        // (since the clock can tick in the middle of an insert
+        // anyway...).  We have tests in expiration.py.
         exptime += time(NULL);
     }
 
@@ -878,7 +877,7 @@ void handle_memcache(memcached_interface_t *interface, get_store_t *get_store,
         }
 
         /* Dispatch to the appropriate subclass */
-	order_token_t token = order_source.check_in(std::string("handle_memcache+") + args[0]);
+        order_token_t token = order_source.check_in(std::string("handle_memcache+") + args[0]);
         if (!strcmp(args[0], "get")) {    // check for retrieval commands
             do_get(&rh, false, args.size(), args.data(), token.with_read_mode());
         } else if (!strcmp(args[0], "gets")) {

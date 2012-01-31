@@ -155,7 +155,7 @@ struct read_oper_t {
         storing_expired_value(false)
     {
         got_superblock_t superblock;
-        get_btree_superblock(btree, rwi_read, otok, &superblock, txn);
+        get_btree_superblock_for_reading(btree, rwi_read, otok, false, &superblock, txn);
         btree_key_buffer_t btree_key(key);
         find_keyvalue_location_for_read(txn.get(), &superblock, btree_key.key(), &location);
 

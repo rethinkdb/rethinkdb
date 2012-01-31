@@ -1,12 +1,13 @@
-#include "btree/erase_range.hpp"
+#include "errors.hpp"
+#include <boost/scoped_ptr.hpp>
 
+#include "btree/erase_range.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/node.hpp"
 #include "btree/parallel_traversal.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "concurrency/fifo_checker.hpp"
-#include "errors.hpp"
 
 class value_deleter_t {
 public:
@@ -131,12 +132,12 @@ void btree_erase_range_generic(value_sizer_t<void> *sizer, btree_slice_t *slice,
     // range of keys and that it won't be aligned right on a leaf node
     // boundary.
 
-    transaction_t txn(slice->cache(), rwi_write, 2, repli_timestamp_t::invalid);
-    txn.set_token(slice->post_begin_transaction_checkpoint_.check_through(begin_transaction_token));
+    boost::scoped_ptr<transaction_t> txn(new transaction_t(slice->cache(), rwi_write, 2, repli_timestamp_t::invalid));
+    txn->set_token(slice->post_begin_transaction_checkpoint_.check_through(begin_transaction_token));
 
     erase_range_helper_t helper(sizer, tester, deleter, left_exclusive_or_null, right_inclusive_or_null);
 
-    btree_parallel_traversal(&txn, slice, &helper);
+    btree_parallel_traversal(txn.get(), slice, &helper);
 }
 
 void btree_erase_range(btree_slice_t *slice, key_tester_t *tester,

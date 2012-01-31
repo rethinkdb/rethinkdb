@@ -24,12 +24,33 @@ std::string http_req_t::find_header_line(std::string key) const {
     return std::string("");
 }
 
+bool http_req_t::has_header_line(std::string key) const {
+    //TODO this is inefficient we should actually load it all into a map
+    for (std::vector<header_line_t>::const_iterator it = header_lines.begin(); it != header_lines.end(); it++) {
+        if (it->key == key) {
+            return true;
+        }
+    }
+    return false;
+}
+
 int content_length(http_req_t msg) {
     for (std::vector<header_line_t>::iterator it = msg.header_lines.begin(); it != msg.header_lines.end(); it++) {
         if (it->key == std::string("Content-Length"))
             return atoi(it->val.c_str());
     }
     return 0;
+}
+
+http_res_t::http_res_t() 
+{ }
+
+http_res_t::http_res_t(int rescode) 
+    : code(rescode)
+{ }
+
+void http_res_t::add_last_modified(int) {
+    not_implemented();
 }
 
 void http_res_t::add_header_line(std::string const &key, std::string const &val) {
@@ -42,7 +63,7 @@ void http_res_t::add_header_line(std::string const &key, std::string const &val)
 void http_res_t::set_body(std::string const &content_type, std::string const &content) {
     for (std::vector<header_line_t>::iterator it = header_lines.begin(); it != header_lines.end(); it++) {
         rassert(it->key != "Content-Type");
-        rassert(it->key != "Conent-Length");
+        rassert(it->key != "Content-Length");
     }
     rassert(body.size() == 0);
 
@@ -55,26 +76,20 @@ void http_res_t::set_body(std::string const &content_type, std::string const &co
     body = content;
 }
 
-typedef std::string::const_iterator str_iterator_type;
-typedef http_msg_parser_t<str_iterator_type> str_http_msg_parser_t;
-
-typedef tcp_conn_t::iterator tcp_iterator_type;
-typedef http_msg_parser_t<tcp_iterator_type> tcp_http_msg_parser_t;
-
 void test_header_parser() {
     http_req_t res;
-    str_http_msg_parser_t http_msg_parser;
+    //str_http_msg_parser_t http_msg_parser;
     std::string header = 
         "GET /foo/bar HTTP/1.1\r\n"
         "Date: Fri, 31 Dec 1999 23:59:59 GMT\r\n"
         "Content-Type: text/html\r\n"
         "Content-Length: 0\r\n"
         "\r\n";
-    std::string::const_iterator iter = header.begin();
-    std::string::const_iterator end = header.end();
-    UNUSED bool success = parse(iter, end, http_msg_parser, res);
+    //std::string::const_iterator iter = header.begin();
+    //std::string::const_iterator end = header.end();
+    //UNUSED bool success = parse(iter, end, http_msg_parser, res);
     BREAKPOINT;
-    success = true;
+    UNUSED bool success = true;
 }
 
 http_server_t::http_server_t(int port) {
@@ -95,6 +110,8 @@ std::string human_readable_status(int code) {
         return "Forbidden";
     case 404:
         return "Not Found";
+    case 501:
+        return "Not Implemented";
     default:
         unreachable();
     }
@@ -112,42 +129,167 @@ void write_http_msg(boost::scoped_ptr<tcp_conn_t> &conn, http_res_t const &res) 
 void http_server_t::handle_conn(boost::scoped_ptr<nascent_tcp_conn_t> &nconn) {
     boost::scoped_ptr<tcp_conn_t> conn;
     nconn->ennervate(conn);
-    //BREAKPOINT;
+
     http_req_t req;
     tcp_http_msg_parser_t http_msg_parser;
 
-    //debug(http_msg_parser);
-
-    tcp_iterator_type iter = conn->begin();
-    tcp_iterator_type end = conn->end();
-
     /* parse the request */
-    if (parse(iter, end, http_msg_parser, req)) {
-        conn->pop(iter);
-        const_charslice slc = conn->peek(4);
-
-        if (strncmp(slc.beg, "\r\n\r\n", 4) != 0) {
-            goto PARSE_ERROR;
-        }
-        conn->pop(4);
-
-        slc = conn->peek(content_length(req));
-        req.body.append(slc.beg, content_length(req));
-        conn->pop(content_length(req));
-
-        logDBG("Request for: %s\n", req.resource.c_str());
-
-        http_res_t res = handle(req);
+    if(http_msg_parser.parse(conn.get(), &req)) {
+        http_res_t res = handle(req); 
         res.version = req.version;
         write_http_msg(conn, res);
+    } else {
+        // Write error
+        http_res_t res;
+        res.code = 400;
+        write_http_msg(conn, res);
+    }
+}
+
+// Parse a http request off of the tcp conn and stuff it into the http_req_t object. Returns parse success.
+bool tcp_http_msg_parser_t::parse(tcp_conn_t *conn, http_req_t *req) {
+    LineParser parser(conn);
+
+    std::string method = parser.readWord();
+    if(method == "HEAD") {
+        req->method = HEAD;
+    } else if(method == "GET") {
+        req->method = GET;
+    } else if(method == "POST") {
+        req->method = POST;
+    } else if(method == "PUT") {
+        req->method = PUT;
+    } else if(method == "DELETE") {
+        req->method = DELETE;
+    } else if(method == "TRACE") {
+        req->method = TRACE;
+    } else if(method == "OPTIONS") {
+        req->method = OPTIONS;
+    } else if(method == "CONNECT") {
+        req->method = CONNECT;
+    } else if(method == "PATCH") {
+        req->method = PATCH;
+    } else {
+        return false;
     }
 
-    return;
+    // Parse out the query params from the resource
+    resource_string_parser_t resource_string;
+    std::string src_string = parser.readWord();
+    if(!resource_string.parse(src_string)) {
+        return false;
+    }
 
-PARSE_ERROR:
-    http_res_t res;
-    res.code = 400;
-    write_http_msg(conn, res);
+    req->resource = resource_string.resource;
+    req->query_params = resource_string.query_params;
+
+    std::string version_str = parser.readLine();
+    version_parser_t version_parser;
+    version_parser.parse(version_str);
+    req->version = version_parser.version;
+
+    // Parse header lines.
+    while(true) {
+        std::string header_line = parser.readLine();
+        if(header_line.length() == 0) {
+            // Blank line separates header from body. We're done here.
+            break;
+        }
+
+        header_line_parser_t header_parser;
+        if(!header_parser.parse(header_line)) {
+            return false;
+        }
+
+        header_line_t final_line;
+        final_line.key = header_parser.key;
+        final_line.val = header_parser.val;
+        req->header_lines.push_back(final_line);
+    }
+
+    // Parse body
+    size_t body_length = content_length(*req);
+    const_charslice body = conn->peek(body_length);
+    req->body.append(body.beg, body_length);
+    conn->pop(body_length);
+
+    return true;
+}
+
+#define HTTP_VERSION_PREFIX "HTTP/"
+bool tcp_http_msg_parser_t::version_parser_t::parse(std::string &src) {
+    // Very simple, src will almost always be 'HTTP/1.1', we just need the '1.1'
+    if(strncmp(HTTP_VERSION_PREFIX, src.c_str(), strlen(HTTP_VERSION_PREFIX)) == 0) {
+        version = std::string(src.begin() + strlen(HTTP_VERSION_PREFIX), src.end());
+        return true;
+    }
+    return false;
+}
+
+bool tcp_http_msg_parser_t::resource_string_parser_t::parse(std::string &src) {
+    std::string::iterator iter = src.begin();
+    while(iter != src.end() && *iter != '?') {
+        ++iter;
+    }
+
+    resource = std::string(src.begin(), iter);
+
+    if(iter == src.end()) {
+        // No query string, leave it empty
+        return true;
+    }
+
+    ++iter; // To skip the '?'
+
+    while(iter != src.end()) {
+
+        // Parse single query param
+        query_parameter_t param;
+
+        // Skip to the end of this param
+        std::string::iterator query_start = iter;
+        while(!(iter == src.end() || *iter == '&')) {
+            ++iter;
+        }
+
+        // Find '=' that splits the key and value
+        std::string::iterator query_iter = query_start;
+        while(!(query_iter == iter || *query_iter == '=')) {
+            ++query_iter;
+        }
+
+        param.key = std::string(query_start, query_iter);
+        if(query_iter == iter) {
+            // There was no '=' and subsequent value, default to ""
+            param.val = "";
+        } else {
+            param.val = std::string(query_iter + 1, iter);
+        }
+
+        query_params.push_back(param);
+
+        // Skip the '&'
+        if(iter != src.end()) ++iter;
+    }
+
+    return true;
+}
+
+bool tcp_http_msg_parser_t::header_line_parser_t::parse(std::string &src) {
+    std::string::iterator iter = src.begin();
+    while(iter != src.end() && *iter != ':') {
+        ++iter;
+    }
+    
+    if(iter == src.end()) {
+        // No ':' found, error
+        return false;
+    }
+
+    key = std::string(src.begin(), iter);
+    val = std::string(iter + 1, src.end());
+
+    return true;
 }
 
 test_server_t::test_server_t(int port) 

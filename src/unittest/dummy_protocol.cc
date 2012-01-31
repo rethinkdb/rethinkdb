@@ -100,15 +100,20 @@ dummy_protocol_t::region_t region_intersection(dummy_protocol_t::region_t a, dum
     return i;
 }
 
-dummy_protocol_t::region_t region_join(std::vector<dummy_protocol_t::region_t> vec) THROWS_ONLY(bad_join_exc_t, bad_region_exc_t) {
+dummy_protocol_t::region_t region_join(const std::vector<dummy_protocol_t::region_t>& vec) THROWS_ONLY(bad_join_exc_t, bad_region_exc_t) {
     dummy_protocol_t::region_t u;
-    for (std::vector<dummy_protocol_t::region_t>::iterator it = vec.begin(); it != vec.end(); it++) {
+    for (std::vector<dummy_protocol_t::region_t>::const_iterator it = vec.begin(); it != vec.end(); it++) {
         for (std::set<std::string>::iterator it2 = (*it).keys.begin(); it2 != (*it).keys.end(); it2++) {
             if (u.keys.count(*it2) != 0) throw bad_join_exc_t();
             u.keys.insert(*it2);
         }
     }
     return u;
+}
+
+std::vector<dummy_protocol_t::region_t> region_subtract_many(UNUSED dummy_protocol_t::region_t a, UNUSED const std::vector<dummy_protocol_t::region_t>& b) {
+    // FIXME implement region_subtract_many for dummy_protocol_t::region_t
+    return std::vector<dummy_protocol_t::region_t>();
 }
 
 bool operator==(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b) {

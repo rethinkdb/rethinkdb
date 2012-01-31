@@ -112,7 +112,7 @@ public:
     iocb *produce_next_value();
 
     /* `getter` calls `aio_notify()` when an operation is complete. */
-    void aio_notify(iocb *event, int result) __attribute__((nonnull(2)));
+    void aio_notify(iocb *event, int result);
 };
 
 #endif // __ARCH_IO_DISK_AIO_HPP__

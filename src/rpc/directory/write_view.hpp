@@ -16,7 +16,7 @@ public:
     interfere with accessing our value via the `directory_rview_t`'s APIs. */
     class our_value_lock_acq_t {
     public:
-        our_value_lock_acq_t(directory_write_service_t *) THROWS_NOTHING;
+        explicit our_value_lock_acq_t(directory_write_service_t *) THROWS_NOTHING;
         void assert_is_holding(directory_write_service_t *) THROWS_NOTHING;
     private:
         mutex_t::acq_t acq;

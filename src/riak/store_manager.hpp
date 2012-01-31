@@ -353,10 +353,11 @@ public:
         store_map.erase(key);
     }
 
+    typedef typename store_map_t::const_iterator const_iterator;
     //functions to iterater through the elements
-    typename store_map_t::const_iterator begin() { return store_map.begin(); }
+    const_iterator begin() { return store_map.begin(); }
 
-    typename store_map_t::const_iterator end() { return store_map.end(); }
+    const_iterator end() { return store_map.end(); }
     
     // Note: We don't provide listing capabilities, because we rely on stores
     // being registered with some store_mapper_t. So you are able to list existing

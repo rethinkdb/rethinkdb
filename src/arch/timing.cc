@@ -14,17 +14,8 @@ void nap(int ms) THROWS_NOTHING {
 }
 
 void nap(int ms, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    if (interruptor->is_pulsed()) {
-        throw interrupted_exc_t();
-    }
-    if (ms > 0) {
-        signal_timer_t timer(ms);
-        wait_any_t waiter(&timer, interruptor);
-        waiter.wait_lazily_unordered();
-        if (interruptor->is_pulsed()) {
-            throw interrupted_exc_t();
-        }
-    }
+    signal_timer_t timer(ms);
+    wait_interruptible(&timer, interruptor);
 }
 
 // signal_timer_t

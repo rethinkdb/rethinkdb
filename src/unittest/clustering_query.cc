@@ -33,16 +33,33 @@ static void run_read_write_test() {
     /* Set up metadata meeting-places */
     branch_history_t<dummy_protocol_t> initial_branch_metadata;
     dummy_semilattice_controller_t<branch_history_t<dummy_protocol_t> > branch_history_controller(initial_branch_metadata);
-    std::map<branch_id_t, broadcaster_business_card_t<dummy_protocol_t> > initial_broadcaster_directory;
-    simple_directory_manager_t<std::map<branch_id_t, broadcaster_business_card_t<dummy_protocol_t> > >
-        broadcaster_directory_controller(&cluster, initial_broadcaster_directory);
 
     /* Set up a branch */
     test_store_t initial_store;
     cond_t interruptor;
-    boost::scoped_ptr<listener_t<dummy_protocol_t> > initial_listener;
-    broadcaster_t<dummy_protocol_t> broadcaster(cluster.get_mailbox_manager(), broadcaster_directory_controller.get_root_view(), branch_history_controller.get_view(), &initial_store.store, &interruptor, &initial_listener);
-    replier_t<dummy_protocol_t> initial_replier(initial_listener.get());
+    broadcaster_t<dummy_protocol_t> broadcaster(
+        cluster.get_mailbox_manager(),
+        branch_history_controller.get_view(),
+        &initial_store.store,
+        &interruptor
+        );
+
+    simple_directory_manager_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > >
+        broadcaster_metadata_controller(&cluster, 
+            boost::optional<broadcaster_business_card_t<dummy_protocol_t> >(
+                broadcaster.get_business_card()
+            ));
+
+    listener_t<dummy_protocol_t> initial_listener(
+        cluster.get_mailbox_manager(),
+        broadcaster_metadata_controller.get_root_view()->
+            get_peer_view(cluster.get_connectivity_service()->get_me()),
+        branch_history_controller.get_view(),
+        &broadcaster,
+        &interruptor
+        );
+
+    replier_t<dummy_protocol_t> initial_replier(&initial_listener);
 
     /* Set up a metadata meeting-place for masters */
     std::map<master_id_t, master_business_card_t<dummy_protocol_t> > initial_master_metadata;

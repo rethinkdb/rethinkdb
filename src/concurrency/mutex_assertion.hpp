@@ -8,10 +8,20 @@ there is contention. */
 
 #ifndef NDEBUG
 
-class mutex_assertion_t : public home_thread_mixin_t {
-public:
-    class acq_t {
-    public:
+struct mutex_assertion_t : public home_thread_mixin_t {
+    struct acq_t {
+        struct temporary_release_t {
+            explicit temporary_release_t(acq_t *a) : mutex(a->mutex), acq(a) {
+                acq->reset();
+            }
+            ~temporary_release_t() {
+                acq->reset(mutex);
+            }
+        private:
+            mutex_assertion_t *mutex;
+            acq_t *acq;
+            DISABLE_COPYING(temporary_release_t);
+        };
         acq_t() : mutex(NULL) { }
         explicit acq_t(mutex_assertion_t *m) : mutex(NULL) {
             reset(m);
@@ -36,6 +46,7 @@ public:
             rassert(mutex == m);
         }
     private:
+        friend class temporary_release_t;
         friend void swap(acq_t &, acq_t &);
         mutex_assertion_t *mutex;
         DISABLE_COPYING(acq_t);
@@ -58,10 +69,8 @@ inline void swap(mutex_assertion_t::acq_t &a, mutex_assertion_t::acq_t &b) {
     std::swap(a.mutex, b.mutex);
 }
 
-class rwi_lock_assertion_t : public home_thread_mixin_t {
-public:
-    class read_acq_t {
-    public:
+struct rwi_lock_assertion_t : public home_thread_mixin_t {
+    struct read_acq_t {
         read_acq_t() : lock(NULL) { }
         explicit read_acq_t(rwi_lock_assertion_t *l) : lock(NULL) {
             reset(l);
@@ -89,8 +98,7 @@ public:
         rwi_lock_assertion_t *lock;
         DISABLE_COPYING(read_acq_t);
     };
-    class write_acq_t {
-    public:
+    struct write_acq_t {
         write_acq_t() : lock(NULL) { }
         explicit write_acq_t(rwi_lock_assertion_t *l) : lock(NULL) {
             reset(l);
@@ -136,12 +144,16 @@ private:
     DISABLE_COPYING(rwi_lock_assertion_t);
 };
 
-#else
+#else /* NDEBUG */
 
-class mutex_assertion_t {
-public:
-    class acq_t {
-    public:
+struct mutex_assertion_t {
+    struct acq_t {
+        struct temporary_release_t {
+            temporary_release_t(acq_t *) { }
+            ~temporary_release_t() { }
+        private:
+            DISABLE_COPYING(temporary_release_t);
+        };
         acq_t() { }
         explicit acq_t(mutex_assertion_t *) { }
         void reset(mutex_assertion_t * = NULL) { }
@@ -158,10 +170,8 @@ private:
 inline void swap(mutex_assertion_t::acq_t &, mutex_assertion_t::acq_t &) {
 }
 
-class rwi_lock_assertion_t {
-public:
-    class read_acq_t {
-    public:
+struct rwi_lock_assertion_t {
+    struct read_acq_t {
         read_acq_t() { }
         explicit read_acq_t(rwi_lock_assertion_t *) { }
         void reset(rwi_lock_assertion_t * = NULL) { }
@@ -169,8 +179,7 @@ public:
     private:
         DISABLE_COPYING(read_acq_t);
     };
-    class write_acq_t {
-    public:
+    struct write_acq_t {
         write_acq_t() { }
         explicit write_acq_t(rwi_lock_assertion_t *) { }
         void reset(rwi_lock_assertion_t * = NULL) { }

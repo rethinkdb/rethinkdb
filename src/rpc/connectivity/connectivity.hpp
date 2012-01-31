@@ -86,14 +86,19 @@ are not. */
 
 class connectivity_service_t {
 public:
-    /* While a `peers_list_freeze_t` exists, no connect or disconnect events
-    will be delivered. This is so that you can check the status of a peer or
-    peers and construct a `peers_list_subscription_t` atomically, without
-    worrying about whether there was a connection or disconnection in between.
-    Don't block while holding a `peers_list_freeze_t`. */
+    /* Sometimes you want to check the status of a peer or peers and construct a
+    `peers_list_subscription_t` atomically, without worrying about whether there
+    was a connection or disconnection in between. The approved way to do that is
+    to construct a `peers_list_freeze_t` and not block while it exists. The
+    latter is what actually prevents race conditions; connection and
+    disconnection events cannot be processed while something else is holding the
+    CPU. The purpose of the `peers_list_freeze_t` is to trip an assertion if you
+    screws up by blocking at the wrong time. If a connection or disconnection
+    event would be delivered while the `peers_list_freeze_t` exists, it will
+    trip an assertion. */
     class peers_list_freeze_t {
     public:
-        peers_list_freeze_t(connectivity_service_t *);
+        explicit peers_list_freeze_t(connectivity_service_t *);
         void assert_is_holding(connectivity_service_t *);
     private:
         rwi_lock_assertion_t::read_acq_t acq;

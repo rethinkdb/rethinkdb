@@ -5,7 +5,6 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 
-#include "clustering/immediate_consistency/branch/listener.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "clustering/registrar.hpp"
 #include "protocol_api.hpp"
@@ -17,20 +16,21 @@
 #include "utils.hpp"
 #include "timestamps.hpp"
 
+/* Forward declarations (so we can friend them) */
+
+template<class protocol_t> class listener_t;
+
 /* The implementation of `broadcaster_t` is a mess, but the interface is
 very clean. */
 
 template<class protocol_t>
 class broadcaster_t : public home_thread_mixin_t {
-
 public:
     broadcaster_t(
             mailbox_manager_t *mm,
-            clone_ptr_t<directory_rwview_t<std::map<branch_id_t, broadcaster_business_card_t<protocol_t> > > > broadcaster_directory,
             boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > branch_history,
             store_view_t<protocol_t> *initial_store,
-            signal_t *interruptor,
-            boost::scoped_ptr<listener_t<protocol_t> > *initial_listener_out)
+            signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) :
         mailbox_manager(mm),
         branch_id(generate_uuid()),
@@ -68,13 +68,6 @@ public:
             metadata_field(&branch_history_t<protocol_t>::branches, branch_history)->join(singleton);
         }
 
-        /* Now put ourself in the broadcaster directory */
-        advertisement.reset(new resource_map_advertisement_t<branch_id_t, broadcaster_business_card_t<protocol_t> >(
-            broadcaster_directory,
-            branch_id,
-            broadcaster_business_card_t<protocol_t>(registrar.get_business_card())
-            ));
-
         /* Reset the store metadata. We should do this after making the branch
         entry in the global metadata so that we aren't left in a state where
         the store has been marked as belonging to a branch for which no
@@ -85,18 +78,11 @@ public:
                 binary_blob_t(version_range_t(version_t(branch_id, initial_timestamp)))
             ));
 
-        /* Set up the initial listener. Note that we're invoking the special
-        private `listener_t` constructor that doesn't perform a backfill. */
-        initial_listener_out->reset(new listener_t<protocol_t>(
-            mailbox_manager,
-            broadcaster_directory,
-            branch_history,
-            initial_store,
-            branch_id,
-            interruptor));
-
         /* Perform an initial sanity check. */
         sanity_check();
+
+        /* Set `bootstrap_store` so that the initial listener can find it */
+        bootstrap_store = initial_store;
     }
 
     /* TODO: These exceptions ought to be a bit more specific. Either there
@@ -132,15 +118,20 @@ public:
         return branch_id;
     }
 
+    broadcaster_business_card_t<protocol_t> get_business_card() {
+        return broadcaster_business_card_t<protocol_t>(
+            branch_id, registrar.get_business_card());
+    }
+
 private:
+    friend class listener_t<protocol_t>;
+
     class incomplete_write_ref_t;
 
     /* `incomplete_write_t` represents a write that has been sent to some nodes
     but not completed yet. */
 
-    class incomplete_write_t :
-        public home_thread_mixin_t
-    {
+    class incomplete_write_t : public home_thread_mixin_t {
     public:
         incomplete_write_t(broadcaster_t *p,
                 typename protocol_t::write_t w, transition_timestamp_t ts,
@@ -229,7 +220,6 @@ private:
     connects to us. */
 
     class dispatchee_t : public intrusive_list_node_t<dispatchee_t> {
-
     public:
         dispatchee_t(broadcaster_t *c, listener_business_card_t<protocol_t> d) THROWS_NOTHING;
         ~dispatchee_t() THROWS_NOTHING;
@@ -301,6 +291,10 @@ private:
 
     branch_id_t branch_id;
 
+    /* Until our initial listener has been constructed, this holds the store
+    that was passed to our constructor. After that, it's `NULL`. */
+    store_view_t<protocol_t> *bootstrap_store;
+
     /* If a write has begun, but some mirror might not have completed it yet,
     then it goes in `incomplete_writes`. The idea is that a new mirror that
     connects will use the union of a backfill and `incomplete_writes` as its
@@ -323,8 +317,6 @@ private:
     intrusive_list_t<dispatchee_t> readable_dispatchees;
 
     registrar_t<listener_business_card_t<protocol_t>, broadcaster_t *, dispatchee_t> registrar;
-
-    boost::scoped_ptr<resource_map_advertisement_t<branch_id_t, broadcaster_business_card_t<protocol_t> > > advertisement;
 };
 
 #include "clustering/immediate_consistency/branch/broadcaster.tcc"

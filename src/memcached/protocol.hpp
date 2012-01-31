@@ -4,142 +4,244 @@
 #include <vector>
 
 #include "errors.hpp"
+#include <boost/shared_ptr.hpp>
 #include <boost/variant.hpp>
+#include <boost/optional.hpp>
+#include <boost/serialization/split_free.hpp>
+#include <boost/serialization/string.hpp>
+#include <boost/serialization/variant.hpp>
 
 #include "btree/slice.hpp"
+#include "btree/operations.hpp"
+#include "btree/backfill.hpp"
 #include "buffer_cache/types.hpp"
+#include "buffer_cache/buf_lock.hpp"
 #include "memcached/queries.hpp"
 #include "protocol_api.hpp"
+#include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
+#include "containers/iterators.hpp"
 
-/* `key_range_t` represents a contiguous set of keys. */
+namespace boost {
+namespace serialization {
 
-class key_range_t {
+template<class Archive> void save(Archive &ar, const boost::intrusive_ptr<data_buffer_t> &buf, UNUSED const unsigned int version) {
+    int64_t sz = buf->size();
+    ar & sz;
+    ar.save_binary(buf.get()->buf(), buf.get()->size());
+}
 
-public:
-    enum bound_t {
-        open,
-        closed,
-        none
-    };
+template<class Archive> void load(Archive &ar, boost::intrusive_ptr<data_buffer_t> &value, UNUSED const unsigned int version) {
+    int64_t size;
+    ar >> size;
+    value = data_buffer_t::create(size);
+    ar.load_binary(value->buf(), size);
+}
 
-    key_range_t();   /* creates a range containing no keys */
-    key_range_t(bound_t, store_key_t, bound_t, store_key_t);
+template<class Archive> void save(Archive &ar, rget_result_t &iter, UNUSED const unsigned int version) {
+    while (boost::optional<key_with_data_buffer_t> pair = iter->next()) {
+        const key_with_data_buffer_t& kv = pair.get();
 
-    static key_range_t empty() THROWS_NOTHING {
-        return key_range_t();
+        const std::string& key = kv.key;
+        const boost::intrusive_ptr<data_buffer_t>& data = kv.value_provider;
+        ar << true << key << data;
     }
+    ar << false;
+}
 
-    /* If `right.unbounded`, then the range contains all keys greater than or
-    equal to `left`. If `right.bounded`, then the range contains all keys
-    greater than or equal to `left` and less than `right.key`. */
-    struct right_bound_t {
-        right_bound_t() : unbounded(true) { }
-        explicit right_bound_t(store_key_t k) : unbounded(false), key(k) { }
-        bool unbounded;
-        store_key_t key;
-    };
-    store_key_t left;
-    right_bound_t right;
+template<typename T>
+class vector_backed_one_way_iterator_t : public one_way_iterator_t<T> {
+    typename std::vector<T> data;
+    size_t pos;
+public:
+    vector_backed_one_way_iterator_t() : pos(0) { }
+    void push_back(T &v) { data.push_back(v); }
+    typename boost::optional<T> next() {
+        if (pos < data.size()) {
+            return boost::optional<T>(data[pos++]);
+        } else {
+            return boost::optional<T>();
+        }
+    }
+    void prefetch() { }
 };
 
-bool region_is_superset(const key_range_t &potential_superset, const key_range_t &potential_subset) THROWS_NOTHING;
-key_range_t region_intersection(const key_range_t &r1, const key_range_t &r2) THROWS_NOTHING;
-key_range_t region_join(const std::vector<key_range_t> &vec) THROWS_ONLY(bad_join_exc_t, bad_region_exc_t);
-bool region_overlaps(const key_range_t &r1, const key_range_t &r2) THROWS_NOTHING;
+template<class Archive> void load(Archive &ar, rget_result_t &iter, UNUSED const unsigned int version) {
+    iter = rget_result_t(new vector_backed_one_way_iterator_t<key_with_data_buffer_t>());
+    bool next;
+    while (ar >> next, next) {
+        std::string key;
+        boost::intrusive_ptr<data_buffer_t> data;
+        ar >> key >> data;
+    }
+}
 
-bool operator==(key_range_t, key_range_t) THROWS_NOTHING;
-bool operator!=(key_range_t, key_range_t) THROWS_NOTHING;
+}}
+
+BOOST_SERIALIZATION_SPLIT_FREE(boost::intrusive_ptr<data_buffer_t>);
+BOOST_SERIALIZATION_SPLIT_FREE(rget_result_t);
+
+RDB_MAKE_SERIALIZABLE_1(get_query_t, key);
+RDB_MAKE_SERIALIZABLE_4(rget_query_t, left_mode, left_key, right_mode, right_key);
+RDB_MAKE_SERIALIZABLE_4(get_result_t, is_not_allowed, value, flags, cas);
+RDB_MAKE_SERIALIZABLE_3(key_with_data_buffer_t, key, mcflags, value_provider);
+RDB_MAKE_SERIALIZABLE_1(get_cas_mutation_t, key);
+RDB_MAKE_SERIALIZABLE_7(sarc_mutation_t, key, data, flags, exptime, add_policy, replace_policy, old_cas);
+RDB_MAKE_SERIALIZABLE_2(delete_mutation_t, key, dont_put_in_delete_queue);
+RDB_MAKE_SERIALIZABLE_3(incr_decr_mutation_t, kind, key, amount);
+RDB_MAKE_SERIALIZABLE_2(incr_decr_result_t, res, new_value);
+RDB_MAKE_SERIALIZABLE_3(append_prepend_mutation_t, kind, key, data);
+RDB_MAKE_SERIALIZABLE_6(backfill_atom_t, key, value, flags, exptime, recency, cas_or_zero);
 
 /* `memcached_protocol_t` is a container struct. It's never actually
 instantiated; it just exists to pass around all the memcached-related types and
 functions that the query-routing logic needs to know about. */
 
 class memcached_protocol_t {
-
 public:
     typedef key_range_t region_t;
 
-    class temporary_cache_t {
-    };
+    struct temporary_cache_t { };
 
-    class read_response_t {
+    struct read_response_t {
+        typedef boost::variant<get_result_t, rget_result_t> result_t;
 
-    public:
         read_response_t() { }
         read_response_t(const read_response_t& r) : result(r.result) { }
-        template<class T> read_response_t(const T& r) : result(r) { }
+        explicit read_response_t(const result_t& r) : result(r) { }
 
-        boost::variant<get_result_t, rget_result_t> result;
+        result_t result;
+        RDB_MAKE_ME_SERIALIZABLE_1(result);
     };
 
-    class read_t {
+    struct read_t {
+        typedef boost::variant<get_query_t, rget_query_t> query_t;
 
-    public:
         key_range_t get_region() const THROWS_NOTHING;
         read_t shard(const key_range_t &region) const THROWS_NOTHING;
         read_response_t unshard(std::vector<read_response_t> responses, temporary_cache_t *cache) const THROWS_NOTHING;
 
         read_t() { }
         read_t(const read_t& r) : query(r.query) { }
-
-        typedef boost::variant<get_query_t, rget_query_t> query_t;
         explicit read_t(const query_t& q) : query(q) { }
 
         query_t query;
+
+        RDB_MAKE_ME_SERIALIZABLE_1(query);
     };
 
-    class write_response_t {
+    struct write_response_t {
+        typedef mutation_result_t::result_variant_t result_t;
 
-    public:
         write_response_t() { }
         write_response_t(const write_response_t& w) : result(w.result) { }
-
-        typedef boost::variant<
-                    get_result_t,   // for `gets` operations
-                    set_result_t,
-                    delete_result_t,
-                    incr_decr_result_t,
-                    append_prepend_result_t
-                    > result_t;
-        explicit write_response_t(const result_t& r) : result(r) { }
+        explicit write_response_t(const result_t& rv) : result(rv) { }
 
         result_t result;
+        RDB_MAKE_ME_SERIALIZABLE_1(result);
     };
 
-    class write_t {
-
-    public:
+    struct write_t {
+        typedef mutation_t::mutation_variant_t query_t;
         key_range_t get_region() const THROWS_NOTHING;
         write_t shard(key_range_t region) const THROWS_NOTHING;
         write_response_t unshard(std::vector<write_response_t> responses, temporary_cache_t *cache) const THROWS_NOTHING;
 
         write_t() { }
         write_t(const write_t& w) : mutation(w.mutation), proposed_cas(w.proposed_cas) { }
-        template<class T> write_t(const T& m, cas_t pc) : mutation(m), proposed_cas(pc) { }
+        write_t(const mutation_t& m, cas_t pc) : mutation(m.mutation), proposed_cas(pc) { }
+        write_t(const query_t& m, cas_t pc) : mutation(m), proposed_cas(pc) { }
 
-        boost::variant<
-            get_cas_mutation_t,
-            sarc_mutation_t,
-            delete_mutation_t,
-            incr_decr_mutation_t,
-            append_prepend_mutation_t
-            > mutation;
+        query_t mutation;
         cas_t proposed_cas;
+
+        RDB_MAKE_ME_SERIALIZABLE_2(mutation, proposed_cas);
     };
 
-    class backfill_chunk_t {
+    struct backfill_chunk_t {
+        struct delete_key_t {
+            store_key_t key;
+            repli_timestamp_t recency;
 
-        /* stub */
+            delete_key_t() { }
+            delete_key_t(const store_key_t& key_, const repli_timestamp_t& recency_) : key(key_), recency(recency_) { }
+
+            RDB_MAKE_ME_SERIALIZABLE_1(key);
+        };
+        struct delete_range_t {
+            key_range_t range;
+
+            delete_range_t() { }
+            explicit delete_range_t(const key_range_t& _range) : range(_range) { }
+
+            RDB_MAKE_ME_SERIALIZABLE_1(range);
+        };
+        struct key_value_pair_t {
+            backfill_atom_t backfill_atom;
+
+            key_value_pair_t() { }
+            explicit key_value_pair_t(const backfill_atom_t& backfill_atom_) : backfill_atom(backfill_atom_) { }
+
+            RDB_MAKE_ME_SERIALIZABLE_1(backfill_atom);
+        };
+
+        backfill_chunk_t() { }
+        explicit backfill_chunk_t(boost::variant<delete_range_t,delete_key_t,key_value_pair_t> val_) : val(val_) { }
+        boost::variant<delete_range_t,delete_key_t,key_value_pair_t> val;
+
+        static backfill_chunk_t delete_range(const key_range_t& range) {
+            return backfill_chunk_t(delete_range_t(range));
+        }
+        static backfill_chunk_t delete_key(const store_key_t& key, const repli_timestamp_t& recency) {
+            return backfill_chunk_t(delete_key_t(key, recency));
+        }
+        static backfill_chunk_t set_key(const backfill_atom_t& key) {
+            return backfill_chunk_t(key_value_pair_t(key));
+        }
     };
+};
+
+class memcached_store_view_t : public store_view_t<memcached_protocol_t> {
+    btree_slice_t *btree;
+    order_source_t order_source;
+public:
+    // This code relies on the fact that store_view_t::write_transaction_t is also a read_transaction_t
+    class txn_t : public store_view_t<memcached_protocol_t>::write_transaction_t {
+        btree_slice_t *btree;
+        order_token_t token;
+        boost::scoped_ptr<transaction_t> txn;
+        got_superblock_t superblock;
+    public:
+        txn_t(btree_slice_t *btree_, order_source_t &order_source, bool read_txn);
+
+        region_map_t<memcached_protocol_t,binary_blob_t> get_metadata(signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+        void set_metadata(const region_map_t<memcached_protocol_t, binary_blob_t> &new_metadata) THROWS_NOTHING;
+        memcached_protocol_t::read_response_t read(const memcached_protocol_t::read_t &, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+        memcached_protocol_t::write_response_t write(const memcached_protocol_t::write_t &write, transition_timestamp_t timestamp) THROWS_NOTHING;
+        void send_backfill(const region_map_t<memcached_protocol_t,state_timestamp_t> &start_point, const boost::function<void(memcached_protocol_t::backfill_chunk_t)> &chunk_fun, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+        void receive_backfill(const memcached_protocol_t::backfill_chunk_t &chunk, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+    private:
+        region_map_t<memcached_protocol_t,binary_blob_t> get_metadata_internal(transaction_t* txn, buf_lock_t& sb_buf) THROWS_NOTHING;
+        buf_t * get_superblock_buf();
+    };
+
+    typedef txn_t read_transaction_t;
+    typedef txn_t write_transaction_t;
+
+    memcached_store_view_t(const key_range_t& key_range_, btree_slice_t * btree_) : store_view_t<memcached_protocol_t>(key_range_), btree(btree_) { }
+
+    boost::shared_ptr<store_view_t<memcached_protocol_t>::read_transaction_t> begin_read_transaction(UNUSED signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+        return boost::shared_ptr<store_view_t<memcached_protocol_t>::read_transaction_t>(new txn_t(btree, order_source, true));
+    }
+    boost::shared_ptr<store_view_t<memcached_protocol_t>::write_transaction_t> begin_write_transaction(UNUSED signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+        return boost::shared_ptr<store_view_t<memcached_protocol_t>::write_transaction_t>(new txn_t(btree, order_source, false));
+    }
 };
 
 /* `dummy_memcached_store_view_t` is a `store_view_t<memcached_protocol_t>` that
 forwards its operations to a `btree_slice_t`. Currently it's mostly just
 stubs. */
-
 class dummy_memcached_store_view_t : public store_view_t<memcached_protocol_t> {
-
 public:
     dummy_memcached_store_view_t(key_range_t, btree_slice_t *);
 

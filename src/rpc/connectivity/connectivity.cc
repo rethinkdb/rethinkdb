@@ -36,7 +36,7 @@ disconnect_watcher_t::disconnect_watcher_t(connectivity_service_t *connectivity,
     subs(0, boost::bind(&disconnect_watcher_t::on_disconnect, this, _1)), peer(p) {
     ASSERT_FINITE_CORO_WAITING;
     connectivity_service_t::peers_list_freeze_t freeze(connectivity);
-    if (connectivity->get_peer_connected(peer) == 0) {
+    if (!connectivity->get_peer_connected(peer)) {
         pulse();
     } else {
         subs.reset(connectivity, &freeze);

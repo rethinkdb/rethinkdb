@@ -33,7 +33,7 @@ public:
 
     class subscription_t {
     public:
-        subscription_t(boost::function<void()> cb) : subs(cb) { }
+        explicit subscription_t(boost::function<void()> cb) : subs(cb) { }
         subscription_t(boost::function<void()> cb, boost::shared_ptr<semilattice_read_view_t> v) : subs(cb) {
             reset(v);
         }
