@@ -95,7 +95,7 @@ private:
     bool backfilling_, print_backfill_warning_;
     limited_fifo_queue_t<boost::function<void()> > backfill_queue_, realtime_queue_;
     selective_passive_producer_t<boost::function<void()> > queue_picker_;
-    coro_pool_t coro_pool_;
+    coro_pool_boost_t coro_pool_;
 };
 
 }

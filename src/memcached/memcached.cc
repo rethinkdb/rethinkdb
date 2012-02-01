@@ -843,6 +843,7 @@ void handle_memcache(memcached_interface_t *interface, get_store_t *get_store,
 
     /* Declared outside the while-loop so it doesn't repeatedly reallocate its buffer */
     std::vector<char> line;
+    std::vector<char*> args;
 
     while (true) {
 
@@ -865,7 +866,7 @@ void handle_memcache(memcached_interface_t *interface, get_store_t *get_store,
 
         /* Tokenize the line */
         line.push_back('\0');   // Null terminator
-        std::vector<char *> args;
+        args.clear();
         char *l = line.data(), *state = NULL;
         while (char *cmd_str = strtok_r(l, " \r\n\t", &state)) {
             args.push_back(cmd_str);
