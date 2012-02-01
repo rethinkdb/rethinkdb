@@ -19,9 +19,9 @@ def generate_make_serializable_macro(nfields):
         (nfields, "".join(", field%d" % (i+1) for i in xrange(nfields)))
     print "    namespace boost {\\"
     print "    namespace serialization {\\"
-    print "    template<class Archive> void serialize(%sArchive &ar, type_t &m, UNUSED const unsigned int version) { \\"  % ("UNUSED " if nfields == 0 else "")
+    print "    template<class Archive> void serialize(%sArchive &__archive, type_t &__thing, UNUSED const unsigned int /* version */) { \\"  % ("UNUSED " if nfields == 0 else "")
     for i in xrange(nfields):
-        print "        ar & m.field%d; \\" % (i+1)
+        print "        __archive & __thing.field%d; \\" % (i+1)
     print "    }}} \\"
     # See the note in the comment below.
     print "    extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;"
@@ -30,9 +30,9 @@ def generate_make_me_serializable_macro(nfields):
     print "#define RDB_MAKE_ME_SERIALIZABLE_%d(%s) \\" % \
         (nfields, ", ".join("field%d" % (i+1) for i in xrange(nfields)))
     print "    friend class boost::serialization::access; \\"
-    print "    template<typename Archive> void serialize(%sArchive &ar, UNUSED const unsigned int version) { \\"  % ("UNUSED " if nfields == 0 else "")
+    print "    template<typename Archive> void serialize(%sArchive &__archive, UNUSED const unsigned int /* version */) { \\"  % ("UNUSED " if nfields == 0 else "")
     for i in xrange(nfields):
-        print "        ar & field%d; \\" % (i+1)
+        print "        __archive & field%d; \\" % (i+1)
     print "    }"
 
 if __name__ == "__main__":

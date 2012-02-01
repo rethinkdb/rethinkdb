@@ -29,601 +29,601 @@ the class scope. */
 #define RDB_MAKE_SERIALIZABLE_0(type_t) \
     namespace boost {\
     namespace serialization {\
-    template<class Archive> void serialize(UNUSED Archive &ar, type_t &m, UNUSED const unsigned int version) { \
+    template<class Archive> void serialize(UNUSED Archive &__archive, type_t &__thing, UNUSED const unsigned int /* version */) { \
     }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_0() \
     friend class boost::serialization::access; \
-    template<typename Archive> void serialize(UNUSED Archive &ar, UNUSED const unsigned int version) { \
+    template<typename Archive> void serialize(UNUSED Archive &__archive, UNUSED const unsigned int /* version */) { \
     }
 
 #define RDB_MAKE_SERIALIZABLE_1(type_t, field1) \
     namespace boost {\
     namespace serialization {\
-    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
-        ar & m.field1; \
+    template<class Archive> void serialize(Archive &__archive, type_t &__thing, UNUSED const unsigned int /* version */) { \
+        __archive & __thing.field1; \
     }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_1(field1) \
     friend class boost::serialization::access; \
-    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
-        ar & field1; \
+    template<typename Archive> void serialize(Archive &__archive, UNUSED const unsigned int /* version */) { \
+        __archive & field1; \
     }
 
 #define RDB_MAKE_SERIALIZABLE_2(type_t, field1, field2) \
     namespace boost {\
     namespace serialization {\
-    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
-        ar & m.field1; \
-        ar & m.field2; \
+    template<class Archive> void serialize(Archive &__archive, type_t &__thing, UNUSED const unsigned int /* version */) { \
+        __archive & __thing.field1; \
+        __archive & __thing.field2; \
     }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_2(field1, field2) \
     friend class boost::serialization::access; \
-    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
-        ar & field1; \
-        ar & field2; \
+    template<typename Archive> void serialize(Archive &__archive, UNUSED const unsigned int /* version */) { \
+        __archive & field1; \
+        __archive & field2; \
     }
 
 #define RDB_MAKE_SERIALIZABLE_3(type_t, field1, field2, field3) \
     namespace boost {\
     namespace serialization {\
-    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
-        ar & m.field1; \
-        ar & m.field2; \
-        ar & m.field3; \
+    template<class Archive> void serialize(Archive &__archive, type_t &__thing, UNUSED const unsigned int /* version */) { \
+        __archive & __thing.field1; \
+        __archive & __thing.field2; \
+        __archive & __thing.field3; \
     }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_3(field1, field2, field3) \
     friend class boost::serialization::access; \
-    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
-        ar & field1; \
-        ar & field2; \
-        ar & field3; \
+    template<typename Archive> void serialize(Archive &__archive, UNUSED const unsigned int /* version */) { \
+        __archive & field1; \
+        __archive & field2; \
+        __archive & field3; \
     }
 
 #define RDB_MAKE_SERIALIZABLE_4(type_t, field1, field2, field3, field4) \
     namespace boost {\
     namespace serialization {\
-    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
-        ar & m.field1; \
-        ar & m.field2; \
-        ar & m.field3; \
-        ar & m.field4; \
+    template<class Archive> void serialize(Archive &__archive, type_t &__thing, UNUSED const unsigned int /* version */) { \
+        __archive & __thing.field1; \
+        __archive & __thing.field2; \
+        __archive & __thing.field3; \
+        __archive & __thing.field4; \
     }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_4(field1, field2, field3, field4) \
     friend class boost::serialization::access; \
-    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
-        ar & field1; \
-        ar & field2; \
-        ar & field3; \
-        ar & field4; \
+    template<typename Archive> void serialize(Archive &__archive, UNUSED const unsigned int /* version */) { \
+        __archive & field1; \
+        __archive & field2; \
+        __archive & field3; \
+        __archive & field4; \
     }
 
 #define RDB_MAKE_SERIALIZABLE_5(type_t, field1, field2, field3, field4, field5) \
     namespace boost {\
     namespace serialization {\
-    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
-        ar & m.field1; \
-        ar & m.field2; \
-        ar & m.field3; \
-        ar & m.field4; \
-        ar & m.field5; \
+    template<class Archive> void serialize(Archive &__archive, type_t &__thing, UNUSED const unsigned int /* version */) { \
+        __archive & __thing.field1; \
+        __archive & __thing.field2; \
+        __archive & __thing.field3; \
+        __archive & __thing.field4; \
+        __archive & __thing.field5; \
     }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_5(field1, field2, field3, field4, field5) \
     friend class boost::serialization::access; \
-    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
-        ar & field1; \
-        ar & field2; \
-        ar & field3; \
-        ar & field4; \
-        ar & field5; \
+    template<typename Archive> void serialize(Archive &__archive, UNUSED const unsigned int /* version */) { \
+        __archive & field1; \
+        __archive & field2; \
+        __archive & field3; \
+        __archive & field4; \
+        __archive & field5; \
     }
 
 #define RDB_MAKE_SERIALIZABLE_6(type_t, field1, field2, field3, field4, field5, field6) \
     namespace boost {\
     namespace serialization {\
-    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
-        ar & m.field1; \
-        ar & m.field2; \
-        ar & m.field3; \
-        ar & m.field4; \
-        ar & m.field5; \
-        ar & m.field6; \
+    template<class Archive> void serialize(Archive &__archive, type_t &__thing, UNUSED const unsigned int /* version */) { \
+        __archive & __thing.field1; \
+        __archive & __thing.field2; \
+        __archive & __thing.field3; \
+        __archive & __thing.field4; \
+        __archive & __thing.field5; \
+        __archive & __thing.field6; \
     }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_6(field1, field2, field3, field4, field5, field6) \
     friend class boost::serialization::access; \
-    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
-        ar & field1; \
-        ar & field2; \
-        ar & field3; \
-        ar & field4; \
-        ar & field5; \
-        ar & field6; \
+    template<typename Archive> void serialize(Archive &__archive, UNUSED const unsigned int /* version */) { \
+        __archive & field1; \
+        __archive & field2; \
+        __archive & field3; \
+        __archive & field4; \
+        __archive & field5; \
+        __archive & field6; \
     }
 
 #define RDB_MAKE_SERIALIZABLE_7(type_t, field1, field2, field3, field4, field5, field6, field7) \
     namespace boost {\
     namespace serialization {\
-    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
-        ar & m.field1; \
-        ar & m.field2; \
-        ar & m.field3; \
-        ar & m.field4; \
-        ar & m.field5; \
-        ar & m.field6; \
-        ar & m.field7; \
+    template<class Archive> void serialize(Archive &__archive, type_t &__thing, UNUSED const unsigned int /* version */) { \
+        __archive & __thing.field1; \
+        __archive & __thing.field2; \
+        __archive & __thing.field3; \
+        __archive & __thing.field4; \
+        __archive & __thing.field5; \
+        __archive & __thing.field6; \
+        __archive & __thing.field7; \
     }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_7(field1, field2, field3, field4, field5, field6, field7) \
     friend class boost::serialization::access; \
-    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
-        ar & field1; \
-        ar & field2; \
-        ar & field3; \
-        ar & field4; \
-        ar & field5; \
-        ar & field6; \
-        ar & field7; \
+    template<typename Archive> void serialize(Archive &__archive, UNUSED const unsigned int /* version */) { \
+        __archive & field1; \
+        __archive & field2; \
+        __archive & field3; \
+        __archive & field4; \
+        __archive & field5; \
+        __archive & field6; \
+        __archive & field7; \
     }
 
 #define RDB_MAKE_SERIALIZABLE_8(type_t, field1, field2, field3, field4, field5, field6, field7, field8) \
     namespace boost {\
     namespace serialization {\
-    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
-        ar & m.field1; \
-        ar & m.field2; \
-        ar & m.field3; \
-        ar & m.field4; \
-        ar & m.field5; \
-        ar & m.field6; \
-        ar & m.field7; \
-        ar & m.field8; \
+    template<class Archive> void serialize(Archive &__archive, type_t &__thing, UNUSED const unsigned int /* version */) { \
+        __archive & __thing.field1; \
+        __archive & __thing.field2; \
+        __archive & __thing.field3; \
+        __archive & __thing.field4; \
+        __archive & __thing.field5; \
+        __archive & __thing.field6; \
+        __archive & __thing.field7; \
+        __archive & __thing.field8; \
     }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_8(field1, field2, field3, field4, field5, field6, field7, field8) \
     friend class boost::serialization::access; \
-    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
-        ar & field1; \
-        ar & field2; \
-        ar & field3; \
-        ar & field4; \
-        ar & field5; \
-        ar & field6; \
-        ar & field7; \
-        ar & field8; \
+    template<typename Archive> void serialize(Archive &__archive, UNUSED const unsigned int /* version */) { \
+        __archive & field1; \
+        __archive & field2; \
+        __archive & field3; \
+        __archive & field4; \
+        __archive & field5; \
+        __archive & field6; \
+        __archive & field7; \
+        __archive & field8; \
     }
 
 #define RDB_MAKE_SERIALIZABLE_9(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9) \
     namespace boost {\
     namespace serialization {\
-    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
-        ar & m.field1; \
-        ar & m.field2; \
-        ar & m.field3; \
-        ar & m.field4; \
-        ar & m.field5; \
-        ar & m.field6; \
-        ar & m.field7; \
-        ar & m.field8; \
-        ar & m.field9; \
+    template<class Archive> void serialize(Archive &__archive, type_t &__thing, UNUSED const unsigned int /* version */) { \
+        __archive & __thing.field1; \
+        __archive & __thing.field2; \
+        __archive & __thing.field3; \
+        __archive & __thing.field4; \
+        __archive & __thing.field5; \
+        __archive & __thing.field6; \
+        __archive & __thing.field7; \
+        __archive & __thing.field8; \
+        __archive & __thing.field9; \
     }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_9(field1, field2, field3, field4, field5, field6, field7, field8, field9) \
     friend class boost::serialization::access; \
-    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
-        ar & field1; \
-        ar & field2; \
-        ar & field3; \
-        ar & field4; \
-        ar & field5; \
-        ar & field6; \
-        ar & field7; \
-        ar & field8; \
-        ar & field9; \
+    template<typename Archive> void serialize(Archive &__archive, UNUSED const unsigned int /* version */) { \
+        __archive & field1; \
+        __archive & field2; \
+        __archive & field3; \
+        __archive & field4; \
+        __archive & field5; \
+        __archive & field6; \
+        __archive & field7; \
+        __archive & field8; \
+        __archive & field9; \
     }
 
 #define RDB_MAKE_SERIALIZABLE_10(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10) \
     namespace boost {\
     namespace serialization {\
-    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
-        ar & m.field1; \
-        ar & m.field2; \
-        ar & m.field3; \
-        ar & m.field4; \
-        ar & m.field5; \
-        ar & m.field6; \
-        ar & m.field7; \
-        ar & m.field8; \
-        ar & m.field9; \
-        ar & m.field10; \
+    template<class Archive> void serialize(Archive &__archive, type_t &__thing, UNUSED const unsigned int /* version */) { \
+        __archive & __thing.field1; \
+        __archive & __thing.field2; \
+        __archive & __thing.field3; \
+        __archive & __thing.field4; \
+        __archive & __thing.field5; \
+        __archive & __thing.field6; \
+        __archive & __thing.field7; \
+        __archive & __thing.field8; \
+        __archive & __thing.field9; \
+        __archive & __thing.field10; \
     }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_10(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10) \
     friend class boost::serialization::access; \
-    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
-        ar & field1; \
-        ar & field2; \
-        ar & field3; \
-        ar & field4; \
-        ar & field5; \
-        ar & field6; \
-        ar & field7; \
-        ar & field8; \
-        ar & field9; \
-        ar & field10; \
+    template<typename Archive> void serialize(Archive &__archive, UNUSED const unsigned int /* version */) { \
+        __archive & field1; \
+        __archive & field2; \
+        __archive & field3; \
+        __archive & field4; \
+        __archive & field5; \
+        __archive & field6; \
+        __archive & field7; \
+        __archive & field8; \
+        __archive & field9; \
+        __archive & field10; \
     }
 
 #define RDB_MAKE_SERIALIZABLE_11(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11) \
     namespace boost {\
     namespace serialization {\
-    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
-        ar & m.field1; \
-        ar & m.field2; \
-        ar & m.field3; \
-        ar & m.field4; \
-        ar & m.field5; \
-        ar & m.field6; \
-        ar & m.field7; \
-        ar & m.field8; \
-        ar & m.field9; \
-        ar & m.field10; \
-        ar & m.field11; \
+    template<class Archive> void serialize(Archive &__archive, type_t &__thing, UNUSED const unsigned int /* version */) { \
+        __archive & __thing.field1; \
+        __archive & __thing.field2; \
+        __archive & __thing.field3; \
+        __archive & __thing.field4; \
+        __archive & __thing.field5; \
+        __archive & __thing.field6; \
+        __archive & __thing.field7; \
+        __archive & __thing.field8; \
+        __archive & __thing.field9; \
+        __archive & __thing.field10; \
+        __archive & __thing.field11; \
     }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_11(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11) \
     friend class boost::serialization::access; \
-    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
-        ar & field1; \
-        ar & field2; \
-        ar & field3; \
-        ar & field4; \
-        ar & field5; \
-        ar & field6; \
-        ar & field7; \
-        ar & field8; \
-        ar & field9; \
-        ar & field10; \
-        ar & field11; \
+    template<typename Archive> void serialize(Archive &__archive, UNUSED const unsigned int /* version */) { \
+        __archive & field1; \
+        __archive & field2; \
+        __archive & field3; \
+        __archive & field4; \
+        __archive & field5; \
+        __archive & field6; \
+        __archive & field7; \
+        __archive & field8; \
+        __archive & field9; \
+        __archive & field10; \
+        __archive & field11; \
     }
 
 #define RDB_MAKE_SERIALIZABLE_12(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12) \
     namespace boost {\
     namespace serialization {\
-    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
-        ar & m.field1; \
-        ar & m.field2; \
-        ar & m.field3; \
-        ar & m.field4; \
-        ar & m.field5; \
-        ar & m.field6; \
-        ar & m.field7; \
-        ar & m.field8; \
-        ar & m.field9; \
-        ar & m.field10; \
-        ar & m.field11; \
-        ar & m.field12; \
+    template<class Archive> void serialize(Archive &__archive, type_t &__thing, UNUSED const unsigned int /* version */) { \
+        __archive & __thing.field1; \
+        __archive & __thing.field2; \
+        __archive & __thing.field3; \
+        __archive & __thing.field4; \
+        __archive & __thing.field5; \
+        __archive & __thing.field6; \
+        __archive & __thing.field7; \
+        __archive & __thing.field8; \
+        __archive & __thing.field9; \
+        __archive & __thing.field10; \
+        __archive & __thing.field11; \
+        __archive & __thing.field12; \
     }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_12(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12) \
     friend class boost::serialization::access; \
-    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
-        ar & field1; \
-        ar & field2; \
-        ar & field3; \
-        ar & field4; \
-        ar & field5; \
-        ar & field6; \
-        ar & field7; \
-        ar & field8; \
-        ar & field9; \
-        ar & field10; \
-        ar & field11; \
-        ar & field12; \
+    template<typename Archive> void serialize(Archive &__archive, UNUSED const unsigned int /* version */) { \
+        __archive & field1; \
+        __archive & field2; \
+        __archive & field3; \
+        __archive & field4; \
+        __archive & field5; \
+        __archive & field6; \
+        __archive & field7; \
+        __archive & field8; \
+        __archive & field9; \
+        __archive & field10; \
+        __archive & field11; \
+        __archive & field12; \
     }
 
 #define RDB_MAKE_SERIALIZABLE_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13) \
     namespace boost {\
     namespace serialization {\
-    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
-        ar & m.field1; \
-        ar & m.field2; \
-        ar & m.field3; \
-        ar & m.field4; \
-        ar & m.field5; \
-        ar & m.field6; \
-        ar & m.field7; \
-        ar & m.field8; \
-        ar & m.field9; \
-        ar & m.field10; \
-        ar & m.field11; \
-        ar & m.field12; \
-        ar & m.field13; \
+    template<class Archive> void serialize(Archive &__archive, type_t &__thing, UNUSED const unsigned int /* version */) { \
+        __archive & __thing.field1; \
+        __archive & __thing.field2; \
+        __archive & __thing.field3; \
+        __archive & __thing.field4; \
+        __archive & __thing.field5; \
+        __archive & __thing.field6; \
+        __archive & __thing.field7; \
+        __archive & __thing.field8; \
+        __archive & __thing.field9; \
+        __archive & __thing.field10; \
+        __archive & __thing.field11; \
+        __archive & __thing.field12; \
+        __archive & __thing.field13; \
     }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_13(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13) \
     friend class boost::serialization::access; \
-    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
-        ar & field1; \
-        ar & field2; \
-        ar & field3; \
-        ar & field4; \
-        ar & field5; \
-        ar & field6; \
-        ar & field7; \
-        ar & field8; \
-        ar & field9; \
-        ar & field10; \
-        ar & field11; \
-        ar & field12; \
-        ar & field13; \
+    template<typename Archive> void serialize(Archive &__archive, UNUSED const unsigned int /* version */) { \
+        __archive & field1; \
+        __archive & field2; \
+        __archive & field3; \
+        __archive & field4; \
+        __archive & field5; \
+        __archive & field6; \
+        __archive & field7; \
+        __archive & field8; \
+        __archive & field9; \
+        __archive & field10; \
+        __archive & field11; \
+        __archive & field12; \
+        __archive & field13; \
     }
 
 #define RDB_MAKE_SERIALIZABLE_14(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14) \
     namespace boost {\
     namespace serialization {\
-    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
-        ar & m.field1; \
-        ar & m.field2; \
-        ar & m.field3; \
-        ar & m.field4; \
-        ar & m.field5; \
-        ar & m.field6; \
-        ar & m.field7; \
-        ar & m.field8; \
-        ar & m.field9; \
-        ar & m.field10; \
-        ar & m.field11; \
-        ar & m.field12; \
-        ar & m.field13; \
-        ar & m.field14; \
+    template<class Archive> void serialize(Archive &__archive, type_t &__thing, UNUSED const unsigned int /* version */) { \
+        __archive & __thing.field1; \
+        __archive & __thing.field2; \
+        __archive & __thing.field3; \
+        __archive & __thing.field4; \
+        __archive & __thing.field5; \
+        __archive & __thing.field6; \
+        __archive & __thing.field7; \
+        __archive & __thing.field8; \
+        __archive & __thing.field9; \
+        __archive & __thing.field10; \
+        __archive & __thing.field11; \
+        __archive & __thing.field12; \
+        __archive & __thing.field13; \
+        __archive & __thing.field14; \
     }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_14(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14) \
     friend class boost::serialization::access; \
-    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
-        ar & field1; \
-        ar & field2; \
-        ar & field3; \
-        ar & field4; \
-        ar & field5; \
-        ar & field6; \
-        ar & field7; \
-        ar & field8; \
-        ar & field9; \
-        ar & field10; \
-        ar & field11; \
-        ar & field12; \
-        ar & field13; \
-        ar & field14; \
+    template<typename Archive> void serialize(Archive &__archive, UNUSED const unsigned int /* version */) { \
+        __archive & field1; \
+        __archive & field2; \
+        __archive & field3; \
+        __archive & field4; \
+        __archive & field5; \
+        __archive & field6; \
+        __archive & field7; \
+        __archive & field8; \
+        __archive & field9; \
+        __archive & field10; \
+        __archive & field11; \
+        __archive & field12; \
+        __archive & field13; \
+        __archive & field14; \
     }
 
 #define RDB_MAKE_SERIALIZABLE_15(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15) \
     namespace boost {\
     namespace serialization {\
-    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
-        ar & m.field1; \
-        ar & m.field2; \
-        ar & m.field3; \
-        ar & m.field4; \
-        ar & m.field5; \
-        ar & m.field6; \
-        ar & m.field7; \
-        ar & m.field8; \
-        ar & m.field9; \
-        ar & m.field10; \
-        ar & m.field11; \
-        ar & m.field12; \
-        ar & m.field13; \
-        ar & m.field14; \
-        ar & m.field15; \
+    template<class Archive> void serialize(Archive &__archive, type_t &__thing, UNUSED const unsigned int /* version */) { \
+        __archive & __thing.field1; \
+        __archive & __thing.field2; \
+        __archive & __thing.field3; \
+        __archive & __thing.field4; \
+        __archive & __thing.field5; \
+        __archive & __thing.field6; \
+        __archive & __thing.field7; \
+        __archive & __thing.field8; \
+        __archive & __thing.field9; \
+        __archive & __thing.field10; \
+        __archive & __thing.field11; \
+        __archive & __thing.field12; \
+        __archive & __thing.field13; \
+        __archive & __thing.field14; \
+        __archive & __thing.field15; \
     }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_15(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15) \
     friend class boost::serialization::access; \
-    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
-        ar & field1; \
-        ar & field2; \
-        ar & field3; \
-        ar & field4; \
-        ar & field5; \
-        ar & field6; \
-        ar & field7; \
-        ar & field8; \
-        ar & field9; \
-        ar & field10; \
-        ar & field11; \
-        ar & field12; \
-        ar & field13; \
-        ar & field14; \
-        ar & field15; \
+    template<typename Archive> void serialize(Archive &__archive, UNUSED const unsigned int /* version */) { \
+        __archive & field1; \
+        __archive & field2; \
+        __archive & field3; \
+        __archive & field4; \
+        __archive & field5; \
+        __archive & field6; \
+        __archive & field7; \
+        __archive & field8; \
+        __archive & field9; \
+        __archive & field10; \
+        __archive & field11; \
+        __archive & field12; \
+        __archive & field13; \
+        __archive & field14; \
+        __archive & field15; \
     }
 
 #define RDB_MAKE_SERIALIZABLE_16(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16) \
     namespace boost {\
     namespace serialization {\
-    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
-        ar & m.field1; \
-        ar & m.field2; \
-        ar & m.field3; \
-        ar & m.field4; \
-        ar & m.field5; \
-        ar & m.field6; \
-        ar & m.field7; \
-        ar & m.field8; \
-        ar & m.field9; \
-        ar & m.field10; \
-        ar & m.field11; \
-        ar & m.field12; \
-        ar & m.field13; \
-        ar & m.field14; \
-        ar & m.field15; \
-        ar & m.field16; \
+    template<class Archive> void serialize(Archive &__archive, type_t &__thing, UNUSED const unsigned int /* version */) { \
+        __archive & __thing.field1; \
+        __archive & __thing.field2; \
+        __archive & __thing.field3; \
+        __archive & __thing.field4; \
+        __archive & __thing.field5; \
+        __archive & __thing.field6; \
+        __archive & __thing.field7; \
+        __archive & __thing.field8; \
+        __archive & __thing.field9; \
+        __archive & __thing.field10; \
+        __archive & __thing.field11; \
+        __archive & __thing.field12; \
+        __archive & __thing.field13; \
+        __archive & __thing.field14; \
+        __archive & __thing.field15; \
+        __archive & __thing.field16; \
     }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_16(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16) \
     friend class boost::serialization::access; \
-    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
-        ar & field1; \
-        ar & field2; \
-        ar & field3; \
-        ar & field4; \
-        ar & field5; \
-        ar & field6; \
-        ar & field7; \
-        ar & field8; \
-        ar & field9; \
-        ar & field10; \
-        ar & field11; \
-        ar & field12; \
-        ar & field13; \
-        ar & field14; \
-        ar & field15; \
-        ar & field16; \
+    template<typename Archive> void serialize(Archive &__archive, UNUSED const unsigned int /* version */) { \
+        __archive & field1; \
+        __archive & field2; \
+        __archive & field3; \
+        __archive & field4; \
+        __archive & field5; \
+        __archive & field6; \
+        __archive & field7; \
+        __archive & field8; \
+        __archive & field9; \
+        __archive & field10; \
+        __archive & field11; \
+        __archive & field12; \
+        __archive & field13; \
+        __archive & field14; \
+        __archive & field15; \
+        __archive & field16; \
     }
 
 #define RDB_MAKE_SERIALIZABLE_17(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17) \
     namespace boost {\
     namespace serialization {\
-    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
-        ar & m.field1; \
-        ar & m.field2; \
-        ar & m.field3; \
-        ar & m.field4; \
-        ar & m.field5; \
-        ar & m.field6; \
-        ar & m.field7; \
-        ar & m.field8; \
-        ar & m.field9; \
-        ar & m.field10; \
-        ar & m.field11; \
-        ar & m.field12; \
-        ar & m.field13; \
-        ar & m.field14; \
-        ar & m.field15; \
-        ar & m.field16; \
-        ar & m.field17; \
+    template<class Archive> void serialize(Archive &__archive, type_t &__thing, UNUSED const unsigned int /* version */) { \
+        __archive & __thing.field1; \
+        __archive & __thing.field2; \
+        __archive & __thing.field3; \
+        __archive & __thing.field4; \
+        __archive & __thing.field5; \
+        __archive & __thing.field6; \
+        __archive & __thing.field7; \
+        __archive & __thing.field8; \
+        __archive & __thing.field9; \
+        __archive & __thing.field10; \
+        __archive & __thing.field11; \
+        __archive & __thing.field12; \
+        __archive & __thing.field13; \
+        __archive & __thing.field14; \
+        __archive & __thing.field15; \
+        __archive & __thing.field16; \
+        __archive & __thing.field17; \
     }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_17(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17) \
     friend class boost::serialization::access; \
-    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
-        ar & field1; \
-        ar & field2; \
-        ar & field3; \
-        ar & field4; \
-        ar & field5; \
-        ar & field6; \
-        ar & field7; \
-        ar & field8; \
-        ar & field9; \
-        ar & field10; \
-        ar & field11; \
-        ar & field12; \
-        ar & field13; \
-        ar & field14; \
-        ar & field15; \
-        ar & field16; \
-        ar & field17; \
+    template<typename Archive> void serialize(Archive &__archive, UNUSED const unsigned int /* version */) { \
+        __archive & field1; \
+        __archive & field2; \
+        __archive & field3; \
+        __archive & field4; \
+        __archive & field5; \
+        __archive & field6; \
+        __archive & field7; \
+        __archive & field8; \
+        __archive & field9; \
+        __archive & field10; \
+        __archive & field11; \
+        __archive & field12; \
+        __archive & field13; \
+        __archive & field14; \
+        __archive & field15; \
+        __archive & field16; \
+        __archive & field17; \
     }
 
 #define RDB_MAKE_SERIALIZABLE_18(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18) \
     namespace boost {\
     namespace serialization {\
-    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
-        ar & m.field1; \
-        ar & m.field2; \
-        ar & m.field3; \
-        ar & m.field4; \
-        ar & m.field5; \
-        ar & m.field6; \
-        ar & m.field7; \
-        ar & m.field8; \
-        ar & m.field9; \
-        ar & m.field10; \
-        ar & m.field11; \
-        ar & m.field12; \
-        ar & m.field13; \
-        ar & m.field14; \
-        ar & m.field15; \
-        ar & m.field16; \
-        ar & m.field17; \
-        ar & m.field18; \
+    template<class Archive> void serialize(Archive &__archive, type_t &__thing, UNUSED const unsigned int /* version */) { \
+        __archive & __thing.field1; \
+        __archive & __thing.field2; \
+        __archive & __thing.field3; \
+        __archive & __thing.field4; \
+        __archive & __thing.field5; \
+        __archive & __thing.field6; \
+        __archive & __thing.field7; \
+        __archive & __thing.field8; \
+        __archive & __thing.field9; \
+        __archive & __thing.field10; \
+        __archive & __thing.field11; \
+        __archive & __thing.field12; \
+        __archive & __thing.field13; \
+        __archive & __thing.field14; \
+        __archive & __thing.field15; \
+        __archive & __thing.field16; \
+        __archive & __thing.field17; \
+        __archive & __thing.field18; \
     }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_18(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18) \
     friend class boost::serialization::access; \
-    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
-        ar & field1; \
-        ar & field2; \
-        ar & field3; \
-        ar & field4; \
-        ar & field5; \
-        ar & field6; \
-        ar & field7; \
-        ar & field8; \
-        ar & field9; \
-        ar & field10; \
-        ar & field11; \
-        ar & field12; \
-        ar & field13; \
-        ar & field14; \
-        ar & field15; \
-        ar & field16; \
-        ar & field17; \
-        ar & field18; \
+    template<typename Archive> void serialize(Archive &__archive, UNUSED const unsigned int /* version */) { \
+        __archive & field1; \
+        __archive & field2; \
+        __archive & field3; \
+        __archive & field4; \
+        __archive & field5; \
+        __archive & field6; \
+        __archive & field7; \
+        __archive & field8; \
+        __archive & field9; \
+        __archive & field10; \
+        __archive & field11; \
+        __archive & field12; \
+        __archive & field13; \
+        __archive & field14; \
+        __archive & field15; \
+        __archive & field16; \
+        __archive & field17; \
+        __archive & field18; \
     }
 
 #define RDB_MAKE_SERIALIZABLE_19(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19) \
     namespace boost {\
     namespace serialization {\
-    template<class Archive> void serialize(Archive &ar, type_t &m, UNUSED const unsigned int version) { \
-        ar & m.field1; \
-        ar & m.field2; \
-        ar & m.field3; \
-        ar & m.field4; \
-        ar & m.field5; \
-        ar & m.field6; \
-        ar & m.field7; \
-        ar & m.field8; \
-        ar & m.field9; \
-        ar & m.field10; \
-        ar & m.field11; \
-        ar & m.field12; \
-        ar & m.field13; \
-        ar & m.field14; \
-        ar & m.field15; \
-        ar & m.field16; \
-        ar & m.field17; \
-        ar & m.field18; \
-        ar & m.field19; \
+    template<class Archive> void serialize(Archive &__archive, type_t &__thing, UNUSED const unsigned int /* version */) { \
+        __archive & __thing.field1; \
+        __archive & __thing.field2; \
+        __archive & __thing.field3; \
+        __archive & __thing.field4; \
+        __archive & __thing.field5; \
+        __archive & __thing.field6; \
+        __archive & __thing.field7; \
+        __archive & __thing.field8; \
+        __archive & __thing.field9; \
+        __archive & __thing.field10; \
+        __archive & __thing.field11; \
+        __archive & __thing.field12; \
+        __archive & __thing.field13; \
+        __archive & __thing.field14; \
+        __archive & __thing.field15; \
+        __archive & __thing.field16; \
+        __archive & __thing.field17; \
+        __archive & __thing.field18; \
+        __archive & __thing.field19; \
     }}} \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_19(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19) \
     friend class boost::serialization::access; \
-    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) { \
-        ar & field1; \
-        ar & field2; \
-        ar & field3; \
-        ar & field4; \
-        ar & field5; \
-        ar & field6; \
-        ar & field7; \
-        ar & field8; \
-        ar & field9; \
-        ar & field10; \
-        ar & field11; \
-        ar & field12; \
-        ar & field13; \
-        ar & field14; \
-        ar & field15; \
-        ar & field16; \
-        ar & field17; \
-        ar & field18; \
-        ar & field19; \
+    template<typename Archive> void serialize(Archive &__archive, UNUSED const unsigned int /* version */) { \
+        __archive & field1; \
+        __archive & field2; \
+        __archive & field3; \
+        __archive & field4; \
+        __archive & field5; \
+        __archive & field6; \
+        __archive & field7; \
+        __archive & field8; \
+        __archive & field9; \
+        __archive & field10; \
+        __archive & field11; \
+        __archive & field12; \
+        __archive & field13; \
+        __archive & field14; \
+        __archive & field15; \
+        __archive & field16; \
+        __archive & field17; \
+        __archive & field18; \
+        __archive & field19; \
     }
 
 #endif /* __RPC_SERIALIZE_MACROS_HPP__ */
