@@ -545,13 +545,15 @@ linux_tcp_conn_t::~linux_tcp_conn_t() {
     event_watcher = NULL;
 
     while (!unused_write_buffers.empty()) {
-        delete unused_write_buffers.head();
+        write_buffer_t *buffer = unused_write_buffers.head();
         unused_write_buffers.pop_front();
+        delete buffer;
     }
 
     while (!unused_write_queue_ops.empty()) {
-        delete unused_write_queue_ops.head();
+        write_queue_op_t *op = unused_write_queue_ops.head();
         unused_write_queue_ops.pop_front();
+        delete op;
     }
     /* scoped_fd_t's destructor will take care of close()ing the socket. */
 }
