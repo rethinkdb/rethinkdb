@@ -555,6 +555,8 @@ linux_tcp_conn_t::~linux_tcp_conn_t() {
         unused_write_queue_ops.pop_front();
         delete op;
     }
+
+    delete current_write_buffer;
     /* scoped_fd_t's destructor will take care of close()ing the socket. */
 }
 
