@@ -1179,6 +1179,7 @@ void handle_memcache(txt_memcached_handler_if *rh, order_source_t *order_source)
 
     /* Declared outside the while-loop so it doesn't repeatedly reallocate its buffer */
     std::vector<char> line;
+    std::vector<char *> args;
 
     /* Create a linked sigint cond on my thread */
     sigint_indicator_t sigint_has_happened;
@@ -1199,7 +1200,7 @@ void handle_memcache(txt_memcached_handler_if *rh, order_source_t *order_source)
 
         /* Tokenize the line */
         line.push_back('\0');   // Null terminator
-        std::vector<char *> args;
+        args.clear();
         char *l = line.data(), *state = NULL;
         while (char *cmd_str = strtok_r(l, " \r\n\t", &state)) {
             args.push_back(cmd_str);
