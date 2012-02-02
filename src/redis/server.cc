@@ -85,7 +85,7 @@ redis_listener_t::redis_listener_t(int port) :
     for (int i = 0; i < (int)shards.size(); i++) {
         mirrored_cache_static_config_t cache_static_config;
         cache_t::create(multiplexer->proxies[i], &cache_static_config);
-        cache_t *cache = new cache_t(multiplexer->proxies[i], cache_dynamic_config);
+        cache_t *cache = new cache_t(multiplexer->proxies[i], cache_dynamic_config, i);
         btree_slice_t::create(cache);
         btree_slice_t *btree = new btree_slice_t(cache);
         stores.push_back(boost::make_shared<dummy_redis_store_view_t>(shards[i], btree));

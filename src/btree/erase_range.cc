@@ -121,29 +121,36 @@ void btree_erase_range_generic(value_sizer_t<void> *sizer, btree_slice_t *slice,
                                value_deleter_t *deleter,
                                const btree_key_t *left_exclusive_or_null,
                                const btree_key_t *right_inclusive_or_null,
-                               order_token_t token) {
+                               transaction_t *txn, got_superblock_t& superblock) {
+
+    erase_range_helper_t helper(sizer, tester, deleter, left_exclusive_or_null, right_inclusive_or_null);
+    btree_parallel_traversal(txn, superblock, slice, &helper);
+}
+
+void btree_erase_range(btree_slice_t *slice, sequence_group_t *seq_group, key_tester_t *tester,
+                       bool left_key_supplied, const store_key_t& left_key_exclusive,
+                       bool right_key_supplied, const store_key_t& right_key_inclusive,
+                       order_token_t token) {
     slice->assert_thread();
 
-    slice->pre_begin_transaction_sink_.check_out(token);
-    order_token_t begin_transaction_token = slice->pre_begin_transaction_write_mode_source_.check_in(token.tag() + "+begin_transaction_token");
+    boost::scoped_ptr<transaction_t> txn;
+    got_superblock_t superblock;
 
     // We're passing 2 for the expected_change_count based on the
     // reasoning that we're probably going to touch a leaf-node-sized
     // range of keys and that it won't be aligned right on a leaf node
     // boundary.
 
-    boost::scoped_ptr<transaction_t> txn(new transaction_t(slice->cache(), rwi_write, 2, repli_timestamp_t::invalid));
-    txn->set_token(slice->post_begin_transaction_checkpoint_.check_through(begin_transaction_token));
+    get_btree_superblock(slice, seq_group, rwi_write, 2, repli_timestamp_t::invalid, token, &superblock, txn);
 
-    erase_range_helper_t helper(sizer, tester, deleter, left_exclusive_or_null, right_inclusive_or_null);
-
-    btree_parallel_traversal(txn.get(), slice, &helper);
+    btree_erase_range(slice, tester, left_key_supplied, left_key_exclusive, right_key_supplied, right_key_inclusive, txn.get(), superblock);
 }
 
 void btree_erase_range(btree_slice_t *slice, key_tester_t *tester,
                        bool left_key_supplied, const store_key_t& left_key_exclusive,
                        bool right_key_supplied, const store_key_t& right_key_inclusive,
-                       order_token_t token) {
+                       transaction_t *txn, got_superblock_t& superblock) {
+
     value_sizer_t<memcached_value_t> mc_sizer(slice->cache()->get_block_size());
     value_sizer_t<void> *sizer = &mc_sizer;
 
@@ -167,5 +174,5 @@ void btree_erase_range(btree_slice_t *slice, key_tester_t *tester,
         rk = right.key();
     }
 
-    btree_erase_range_generic(sizer, slice, tester, &deleter, lk, rk, token);
+    btree_erase_range_generic(sizer, slice, tester, &deleter, lk, rk, txn, superblock);
 }

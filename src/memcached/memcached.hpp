@@ -2,6 +2,7 @@
 #define __MEMCACHED_MEMCACHED_HPP__
 
 #include <vector>
+#include "buffer_cache/sequence_group.hpp"
 
 #include "memcached/store.hpp"
 #include "memcached/protocol.hpp"
@@ -19,6 +20,7 @@ struct memcached_interface_t {
 
     virtual void write(const char *, size_t) = 0;
     virtual void write_unbuffered(const char *buffer, size_t bytes) = 0;
+
     virtual void flush_buffer() = 0;
     virtual bool is_write_open() = 0;
 
@@ -33,10 +35,10 @@ struct memcached_interface_t {
     virtual ~memcached_interface_t() { }
 };
 
-void handle_memcache(
-    memcached_interface_t *interface,
-    get_store_t *get_store,
-    set_store_interface_t *set_store,
-    int max_concurrent_queries_per_connection);
+void handle_memcache(memcached_interface_t *interface,
+                     get_store_t *get_store,
+                     set_store_interface_t *set_store,
+                     int max_concurrent_queries_per_connection,
+                     int n_slices);
 
 #endif /* __MEMCACHED_MEMCACHED_HPP__ */

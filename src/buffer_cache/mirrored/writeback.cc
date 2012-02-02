@@ -377,7 +377,8 @@ void writeback_t::do_concurrent_flush() {
         ASSERT_NO_CORO_WAITING;
 
         // It's a read transaction, that's why we use repli_timestamp_t::invalid.
-        transaction = new mc_transaction_t(cache, rwi_read, true);
+        i_am_writeback_t iam;
+        transaction = new mc_transaction_t(cache, rwi_read, iam);
     }
 
     flush_state_t state;

@@ -150,7 +150,6 @@ void coro_t::run() {
     coro_t *coro = cglobals->current_coro;
 
 #ifndef NDEBUG
-    std::string coroutine_type;
     char dummy;  /* Make sure we're on the right stack. */
     rassert(coro->stack.address_in_stack(&dummy));
 #endif
@@ -164,13 +163,14 @@ void coro_t::run() {
 
 #ifndef NDEBUG
         // Keep track of how many coroutines of each type ran
-        parse_coroutine_info(coro->coroutine_info, coroutine_type);
-        cglobals->running_coroutine_counts[coroutine_type]++;
-        cglobals->total_coroutine_counts[coroutine_type]++;
+        cglobals->running_coroutine_counts[coro->coroutine_type.c_str()]++;
+        cglobals->total_coroutine_counts[coro->coroutine_type.c_str()]++;
 #endif
         coro->action_wrapper.run();
 #ifndef NDEBUG
-        cglobals->running_coroutine_counts[coroutine_type]--;
+        // Pet the watchdog to reset it before execution moves
+        pet_watchdog();
+        cglobals->running_coroutine_counts[coro->coroutine_type.c_str()]--;
 #endif
 
         rassert(coro->current_thread_ == get_thread_id());
@@ -196,17 +196,14 @@ void coro_t::run() {
 //  assumptions about the format of that string, but if get_and_init_coro is changed, this may
 //  need to be updated.  The only reason we do this is so we don't have to enable RTTI to figure
 //  out the type of the template, but we can still provide a clean typename.
-void coro_t::parse_coroutine_info(const char* coroutine_function, std::string& coroutine_type)
+void coro_t::parse_coroutine_type(const char *coroutine_function)
 {
-     coroutine_type.assign(coroutine_function);
+     const char *first_equal = strchr(coroutine_function, '=');
+     const char *last_comma = strrchr(coroutine_function, ',');
 
      // Unless someone changes the function footprint, everything we're looking for
      //  should be between these two indices
-     size_t first_equal = coroutine_type.find('=');
-     size_t last_comma = coroutine_type.rfind(',');
-
-     coroutine_type.erase(last_comma, std::string::npos);
-     coroutine_type.erase(0, first_equal + 2);
+     coroutine_type.assign(first_equal + 2, last_comma - first_equal - 2);
 }
 #endif
 
@@ -236,6 +233,11 @@ void coro_t::wait() {   /* class method */
     rassert(!self()->waiting_);
     self()->waiting_ = true;
 
+#ifndef NDEBUG
+        // Pet the watchdog to reset it before execution moves
+        pet_watchdog();
+#endif
+
     if (cglobals->prev_coro) {
         context_switch(&self()->stack.context, &cglobals->prev_coro->stack.context);
     } else {
@@ -243,7 +245,6 @@ void coro_t::wait() {   /* class method */
     }
 
     rassert(self());
-
     rassert(self()->waiting_);
     self()->waiting_ = false;
 }
@@ -279,6 +280,11 @@ void coro_t::notify_now() {
     coro_t *prev_prev_coro = cglobals->prev_coro;
     cglobals->prev_coro = cglobals->current_coro;
     cglobals->current_coro = this;
+
+#ifndef NDEBUG
+    // Pet the watchdog to reset it before execution moves
+    pet_watchdog();
+#endif
 
     if (cglobals->prev_coro) {
         context_switch(&cglobals->prev_coro->stack.context, &this->stack.context);

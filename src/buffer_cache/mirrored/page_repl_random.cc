@@ -4,8 +4,8 @@
 #include "logger.hpp"
 #include "perfmon.hpp"
 
-evictable_t::evictable_t(mc_cache_t *_cache, bool loaded) 
-    : cache(_cache), page_repl_index(static_cast<unsigned int>(-1)) 
+evictable_t::evictable_t(mc_cache_t *_cache, bool loaded)
+    : eviction_priority(DEFAULT_EVICTION_PRIORITY), cache(_cache), page_repl_index(static_cast<unsigned int>(-1)) 
 {
     cache->assert_thread();
     if (loaded) {
@@ -83,9 +83,18 @@ void page_repl_random_t::make_space(unsigned int space_needed) {
             unsigned int n = random() % array.size();
             evictable_t *block = array.get(n);
 
-            if (block->safe_to_unload()) {
+            // TODO we don't have code that sets buf_snapshot_t eviction priorities.
+
+            if (!block->safe_to_unload()) {
+                /* nothing to do here, jetpack away to the next iteration of this loop */
+            } else if (block_to_unload == NULL) {
+                /* The block is safe to unload, and our only candidate so far, so he's in */
                 block_to_unload = block;
-                break;
+            } else if (block_to_unload->eviction_priority < block->eviction_priority) {
+                /* This block is a better candidate than one before, he's in */
+                block_to_unload = block;
+            } else {
+                /* Failed to find a better candidate, continue on our way. */
             }
         }
 

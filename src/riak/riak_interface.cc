@@ -113,14 +113,16 @@ const object_t riak_interface_t::get_object(std::string key, std::pair<int,int> 
 
     keyvalue_location_t<riak_value_t> kv_location;
     boost::scoped_ptr<transaction_t> txn;
-    get_value_read(slice, btree_key_buffer_t(key).key(), order_token_t::ignore, &kv_location, txn);
+
+    // TODO: fix the line below
+    // get_value_read(slice, seq_group, btree_key_buffer_t(key).key(), order_token_t::ignore, &kv_location, txn);
 
     kv_location.value->print(slice->cache()->get_block_size());
 
     return object_t(key, bucket, kv_location.value.get(), txn.get(), range);
 }
 
-riak_interface_t::set_result_t riak_interface_t::store_object(object_t obj) {
+riak_interface_t::set_result_t riak_interface_t::store_object(UNUSED object_t obj) {
     /* std::list<std::string> sm_key;
     sm_key.push_back("riak"); sm_key.push_back(bucket);
     btree_slice_t *slice = get_slice(sm_key);
@@ -130,6 +132,7 @@ riak_interface_t::set_result_t riak_interface_t::store_object(object_t obj) {
         slice = create_slice(sm_key);
     } */
 
+    /*
     fake_key_modification_callback_t<riak_value_t> fake_cb;
     value_txn_t<riak_value_t> txn(slice, btree_key_buffer_t(obj.key).key(), repli_timestamp_t::invalid, order_token_t::ignore, &fake_cb);
 
@@ -182,11 +185,13 @@ riak_interface_t::set_result_t riak_interface_t::store_object(object_t obj) {
     buffer_group_copy_data(&dest, const_view(&src));
 
     txn.value()->print(slice->cache()->get_block_size());
+    */
 
+    not_implemented();
     crash("Not implemented");
 }
 
-bool riak_interface_t::delete_object(std::string key) {
+bool riak_interface_t::delete_object(UNUSED std::string key) {
     /* std::list<std::string> sm_key;
     sm_key.push_back("riak"); sm_key.push_back(bucket);
     btree_slice_t *slice = get_slice(sm_key);
@@ -196,6 +201,7 @@ bool riak_interface_t::delete_object(std::string key) {
         slice = create_slice(sm_key);
     } */
 
+    /*
     fake_key_modification_callback_t<riak_value_t> fake_cb;
     value_txn_t<riak_value_t> txn(slice, btree_key_buffer_t(key).key(), repli_timestamp_t::invalid, order_token_t::ignore, &fake_cb);
 
@@ -208,6 +214,9 @@ bool riak_interface_t::delete_object(std::string key) {
     } else {
         return false;
     }
+    */
+    not_implemented();
+    crash("Not implemented");
 }
 
 //this is actually identical to HTTP_DATE_FORMAT, riak insists on having HTTP
@@ -219,7 +228,7 @@ std::string secs_to_riak_date(time_t secs) {
     struct tm *time = gmtime(&secs);
     char buffer[100]; 
 
-    size_t res = strftime(buffer, 100, RIAK_DATE_FORMAT, time);
+    UNUSED size_t res = strftime(buffer, 100, RIAK_DATE_FORMAT, time);
     rassert(res != 0, "Not enough space for the date time");
 
     return std::string(buffer);

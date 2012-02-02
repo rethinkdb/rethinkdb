@@ -29,6 +29,7 @@ void usage_serve() {
                 "                        Can be specified multiple times to use multiple files.\n"
                 "  --metadata-file       Path to file or block device used for database metadata.\n");
     help->pagef("  -c, --cores           Number of cores to use for handling requests.\n"
+                "      --no-set-affinity Do not set thread affinity (affinity is set by default).\n"
                 "  -m, --max-cache-size  Maximum amount of RAM to use for caching disk\n"
                 "                        blocks, in megabytes. This should be ~80%% of\n" 
                 "                        the RAM you want RethinkDB to use.\n"
@@ -61,8 +62,7 @@ void usage_serve() {
                 "                        ");
     if (DEFAULT_UNSAVED_DATA_LIMIT == 0) {
         help->pagef("Defaults to %1.1f times the max cache size.\n", MAX_UNSAVED_DATA_LIMIT_FRACTION);
-    }
-    else {
+    } else {
         help->pagef("Defaults to %ld MB.\n", DEFAULT_UNSAVED_DATA_LIMIT / MEGABYTE);
     }
     help->pagef("\n"
@@ -97,6 +97,18 @@ void usage_serve() {
                 "                        database file. Can only be specified after the path to\n"
                 "                        the database file. Default is the name of the database\n"
                 "                        file with \"%s\" appended.\n", DEFAULT_SEMANTIC_EXTENSION);
+#endif
+#ifndef NDEBUG
+    help->pagef("      --watchdog-enabled\n"
+                "                        Prints out the information of a coroutine if it takes a\n"
+                "                        significant amount of time to switch out (more than 100k\n"
+                "                        cycles.  This will be more common if the system is under\n"
+                "                        load from other processes.\n");
+    help->pagef("      --coroutine_summary\n"
+                "                        On process exit, prints out a summary of all coroutines\n"
+                "                        that ran, with the total count of each type.  These are\n"
+                "                        aggregated from all threads and sorted by the templatized\n"
+                "                        callable object that the coroutine was spawned with.\n");
 #endif
     //TODO move this in to an advanced options help file
     /* help->pagef("      --coroutine-stack-size\n"
@@ -163,6 +175,18 @@ void usage_create() {
                 "  -l, --log-file        File to log to. If not provided, messages will be\n"
                 "                        printed to stderr.\n"
            );
+#ifndef NDEBUG
+    help->pagef("      --watchdog-enabled\n"
+                "                        Prints out the information of a coroutine if it takes a\n"
+                "                        significant amount of time to switch out (more than 100k\n"
+                "                        cycles.  This will be more common if the system is under\n"
+                "                        load from other processes.\n");
+    help->pagef("      --coroutine_summary\n"
+                "                        On process exit, prints out a summary of all coroutines\n"
+                "                        that ran, with the total count of each type.  These are\n"
+                "                        aggregated from all threads and sorted by the templatized\n"
+                "                        callable object that the coroutine was spawned with.\n");
+#endif
     help->pagef("\n"
                 "Behaviour options:\n"
                 "      --force           Create a new database even if there already is one.\n"
@@ -187,6 +211,18 @@ void usage_import() {
                 "Output options:\n"
                 "  -l, --log-file        File to log to. If not provided, messages will be\n"
                 "                        printed to stderr.\n");
+#ifndef NDEBUG
+    help->pagef("      --watchdog-enabled\n"
+                "                        Prints out the information of a coroutine if it takes a\n"
+                "                        significant amount of time to switch out (more than 100k\n"
+                "                        cycles.  This will be more common if the system is under\n"
+                "                        load from other processes.\n");
+    help->pagef("      --coroutine_summary\n"
+                "                        On process exit, prints out a summary of all coroutines\n"
+                "                        that ran, with the total count of each type.  These are\n"
+                "                        aggregated from all threads and sorted by the templatized\n"
+                "                        callable object that the coroutine was spawned with.\n");
+#endif
     help->pagef("\n"
                 "Files are imported in the order specified, thus if a key is set in successive\n" 
                 "files it will ultimately be set to the value in the last file it's metioned in.\n");
@@ -215,10 +251,13 @@ enum {
     flush_concurrency,
     flush_threshold,
     full_perfmon,
+    no_set_affinity,
     memcache_file,
     metadata_file,
     verbose,
-    no_rogue
+    no_rogue,
+    watchdog_enabled,
+    coroutine_summary
 };
 
 cmd_config_t parse_cmd_args(int argc, char *argv[]) {
@@ -251,7 +290,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
         config.import_config.do_import = true;
     }
 
-    bool slices_set_by_user = false;
+    int slices_per_device = DEFAULT_BTREE_SHARD_FACTOR;
+
     long long override_diff_log_size = -1;
     optind = 1; // reinit getopt
     while(1)
@@ -260,6 +300,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
         int do_force_create = 0;
         int do_force_unslavify = 0;
         int do_full_perfmon = 0;
+        int do_no_set_affinity = 0;
         struct option long_options[] =
             {
                 {"wait-for-flush",       required_argument, 0, wait_for_flush},
@@ -296,21 +337,32 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"heartbeat-timeout",    required_argument, 0, heartbeat_timeout},
                 {"no-rogue",             no_argument, 0, no_rogue},
                 {"full-perfmon",         no_argument, &do_full_perfmon, 1},
-                {"memcached-file", required_argument, 0, memcache_file},
+                {"no-set-affinity",      no_argument, &do_no_set_affinity, 1},
+                {"memcached-file",       required_argument, 0, memcache_file},
+#ifndef NDEBUG
+                {"watchdog-enabled",     no_argument, 0, watchdog_enabled},
+                {"coroutine-summary",    no_argument, 0, coroutine_summary},
+#endif
                 {0, 0, 0, 0}
             };
 
         int option_index = 0;
         int c = getopt_long(argc, argv, "vc:s:f:S:m:l:p:h", long_options, &option_index);
 
-        if (do_help)
+        if (do_help) {
             c = 'h';
-        if (do_force_create)
+        }
+        if (do_force_create) {
             c = force_create;
-        if (do_force_unslavify)
+        }
+        if (do_force_unslavify) {
             c = force_unslavify;
+        }
         if (do_full_perfmon) {
             c = full_perfmon;
+        }
+        if (do_no_set_affinity) {
+            c = no_set_affinity;
         }
      
         /* Detect the end of the options. */
@@ -322,75 +374,116 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
             case 0:
                 break;
             case 'v':
-                config.verbose = true; break;
-            case 'p':
-                config.set_port(optarg); break;
-            case 'l':
-                config.set_log_file(optarg); break;
-            case 'c':
-                config.set_cores(optarg); break;
-            case 's':
-                slices_set_by_user = true;
-                config.set_slices(optarg);
+                config.verbose = true;
                 break;
+            case 'p':
+                config.set_port(optarg);
+                break;
+            case 'l':
+                config.set_log_file(optarg);
+                break;
+            case 'c':
+                config.set_cores(optarg);
+                break;
+            case 's':
+                config.set_slices(&slices_per_device, optarg); break;
             case 'f':
-                config.push_private_config(optarg); break;
+                config.push_private_config(optarg);
+                break;
 #ifdef SEMANTIC_SERIALIZER_CHECK
             case 'S':
-                config.set_last_semantic_file(optarg); break;
+                config.set_last_semantic_file(optarg);
+                break;
 #endif
             case 'm':
-                config.set_max_cache_size(optarg); break;
+                config.set_max_cache_size(optarg);
+                break;
             case metadata_file:
-                config.set_metadata_file(optarg); break;
+                config.set_metadata_file(optarg);
+                break;
             case wait_for_flush:
-                config.set_wait_for_flush(optarg); break;
+                config.set_wait_for_flush(optarg);
+                break;
             case flush_timer:
-                config.set_flush_timer(optarg); break;
+                config.set_flush_timer(optarg);
+                break;
             case flush_threshold:
-                config.set_flush_waiting_threshold(optarg); break;
+                config.set_flush_waiting_threshold(optarg);
+                break;
             case flush_concurrency:
-                config.set_max_concurrent_flushes(optarg); break;
+                config.set_max_concurrent_flushes(optarg);
+                break;
             case unsaved_data_limit:
-                config.set_unsaved_data_limit(optarg); break;
+                config.set_unsaved_data_limit(optarg);
+                break;
             case gc_range:
-                config.set_gc_range(optarg); break;
-            case active_data_extents: 
-                config.set_active_data_extents(optarg); break;
+                config.set_gc_range(optarg);
+                break;
+            case active_data_extents:
+                config.set_active_data_extents(optarg);
+                break;
             case io_backend:
-                config.set_io_backend(optarg); break;
+                config.set_io_backend(optarg);
+                break;
             case io_batch_factor:
-                config.set_io_batch_factor(optarg); break;
+                config.set_io_batch_factor(optarg);
+                break;
             case block_size:
-                config.set_block_size(optarg); break;
+                config.set_block_size(optarg);
+                break;
             case extent_size:
-                config.set_extent_size(optarg); break;
+                config.set_extent_size(optarg);
+                break;
             case read_ahead:
-                config.set_read_ahead(optarg); break;
+                config.set_read_ahead(optarg);
+                break;
             case diff_log_size:
-                override_diff_log_size = config.parse_diff_log_size(optarg); break;
+                override_diff_log_size = config.parse_diff_log_size(optarg);
+                break;
             case coroutine_stack_size:
-                config.set_coroutine_stack_size(optarg); break;
+                config.set_coroutine_stack_size(optarg);
+                break;
             case force_create:
-                config.force_create = true; break;
+                config.force_create = true;
+                break;
             case force_unslavify:
-                config.force_unslavify = true; break;
+                config.force_unslavify = true;
+                break;
             case master_port:
-                config.set_master_listen_port(optarg); break;
+                config.set_master_listen_port(optarg);
+                break;
             case slave_of:
-                config.set_master_addr(optarg); break;
+                config.set_master_addr(optarg);
+                break;
             case heartbeat_timeout:
-                config.set_heartbeat_timeout(optarg); break;
+                config.set_heartbeat_timeout(optarg);
+                break;
             case failover_script:
-                config.set_failover_file(optarg); break;
+                config.set_failover_file(optarg);
+                break;
             case full_perfmon:
-                global_full_perfmon = true; break;
+                global_full_perfmon = true;
+                break;
+            case no_set_affinity:
+                config.do_set_affinity = false;
+                break;
             case memcache_file:
-                config.import_config.add_import_file(optarg); break;
+                config.import_config.add_import_file(optarg);
+                break;
             case verbose:
-                config.verbose = true; break;
+                config.verbose = true;
+                break;
             case no_rogue:
-                config.failover_config.no_rogue = true; break;
+                config.failover_config.no_rogue = true;
+                break;
+#ifndef NDEBUG
+            case watchdog_enabled:
+                config.watchdog_enabled = true;
+                break;
+            case coroutine_summary:
+                config.coroutine_summary = true;
+                break;
+#endif
             case 'h':
             default:
                 /* getopt_long already printed an error message. */
@@ -491,16 +584,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     config.store_dynamic_config.cache.flush_dirty_size =
         (long long int)(config.store_dynamic_config.cache.max_dirty_size * FLUSH_AT_FRACTION_OF_UNSAVED_DATA_LIMIT);
 
-    //slices divisable by the number of files
-    if ((config.store_static_config.btree.n_slices % config.store_dynamic_config.serializer_private.size()) != 0) {
-        if (slices_set_by_user)
-            fail_due_to_user_error("Slices must be divisable by the number of files\n");
-        else {
-            config.store_static_config.btree.n_slices -= config.store_static_config.btree.n_slices % config.store_dynamic_config.serializer_private.size();
-            if (config.store_static_config.btree.n_slices <= 0)
-                fail_due_to_user_error("Failed to set number of slices automatically. Please specify it manually by using the -s option.\n");
-        }
-    }
+    // HACK: Scales n_slices by the number of files.
+    config.store_static_config.btree.n_slices = slices_per_device * config.store_dynamic_config.serializer_private.size();
 
     /* Convert values which depends on others to be set first */
     int patch_log_memory;
@@ -572,9 +657,9 @@ void parsing_cmd_config_t::set_last_semantic_file(const char* value) {
 void parsing_cmd_config_t::set_flush_timer(const char* value) {
     int& target = store_dynamic_config.cache.flush_timer_ms;
     
-    if (strcmp(value, "disable") == 0)
+    if (strcmp(value, "disable") == 0) {
         target = NEVER_FLUSH;
-    else {
+    } else {
         target = parse_int(value);
         if (parsing_failed || !is_at_least(target, 0))
             fail_due_to_user_error("flush timer should not be negative; use 'disable' to allow changes to sit in memory indefinitely.");
@@ -693,14 +778,15 @@ void parsing_cmd_config_t::set_max_cache_size(const char* value) {
     store_dynamic_config.cache.max_size = (long long)(int_value) * MEGABYTE;
 }
 
-void parsing_cmd_config_t::set_slices(const char* value) {
-    int& target = store_static_config.btree.n_slices;
+// This is a bit of a HACK.  Go cry to your mommy about it.
+void parsing_cmd_config_t::set_slices(int *slices_per_device_out, const char* value) {
     const int minimum_value = 1;
-    const int maximum_value = MAX_SLICES;
-    
-    target = parse_int(value);
+    const int maximum_value = MAX_SLICES_PER_DEVICE;
+
+    int target = parse_int(value);
     if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
         fail_due_to_user_error("Number of slices must be a number from %d to %d.", minimum_value, maximum_value);
+    *slices_per_device_out = target;
 }
 
 void parsing_cmd_config_t::set_log_file(const char* value) {
@@ -768,14 +854,15 @@ void parsing_cmd_config_t::set_master_listen_port(const char *value) {
 
 void parsing_cmd_config_t::set_master_addr(const char *value) {
     std::vector<char> copy(value, value + 1 + strlen(value));
-    char *token = strtok(copy.data(), ":");
+    char *saveptr;
+    char *token = strtok_r(copy.data(), ":", &saveptr);
     if (token == NULL || strlen(token) > MAX_HOSTNAME_LEN - 1) {
         fail_due_to_user_error("Invalid master address, address should be of the form hostname:port");
     }
 
     replication_config.hostname = token;
 
-    token = strtok(NULL, ":");
+    token = strtok_r(NULL, ":", &saveptr);
     if (token == NULL) {
         fail_due_to_user_error("Invalid master address, address should be of the form hostname:port");
     }
@@ -943,8 +1030,13 @@ void cmd_config_t::print() {
 
 cmd_config_t::cmd_config_t() {
     verbose = false;
+#ifndef NDEBUG
+    watchdog_enabled = false;
+    coroutine_summary = false;
+#endif
     port = DEFAULT_LISTEN_PORT;
     n_workers = get_cpu_count();
+    do_set_affinity = true;
     
     log_file_name[0] = 0;
     log_file_name[MAX_LOG_FILE_NAME - 1] = 0;
@@ -962,8 +1054,6 @@ cmd_config_t::cmd_config_t() {
     force_unslavify = false;
 
     store_dynamic_config.cache.max_size = (long long int)(DEFAULT_MAX_CACHE_RATIO * get_available_ram());
-
-    store_static_config.cache.n_patch_log_blocks = DEFAULT_PATCH_LOG_SIZE / store_static_config.serializer.block_size().ser_value() / store_static_config.btree.n_slices;
 
     // TODO: This is hacky. It also doesn't belong here. Probably the metadata
     // store should really have a configuration structure of its own.

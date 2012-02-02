@@ -577,7 +577,7 @@ void linux_tcp_conn_t::on_event(int events) {
         }
 
     } else {
-        /* We don't know why we got this, so log it and then shut down */
+        /* We don't know why we got this, so log it and then shut down the socket */
         logERR("Unexpected epoll err/hup/rdhup. events=%s, reading=%s, writing=%s\n",
             format_poll_event(events).c_str(),
             reading ? "yes" : "no",

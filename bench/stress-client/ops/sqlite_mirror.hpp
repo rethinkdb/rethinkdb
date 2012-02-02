@@ -62,12 +62,12 @@ public:
 
 struct sqlite_mirror_verify_op_t : public op_t {
 
-    sqlite_mirror_verify_op_t(sqlite_mirror_t *m, protocol_t *p) :
-            m(m), proto(p) { }
+    sqlite_mirror_verify_op_t(sqlite_mirror_t *m, protocol_t *p, query_stats_t *qs) :
+            op_t(qs), m(m), proto(p) { }
     sqlite_mirror_t *m;
     protocol_t *proto;
 
-    void run() {
+    void start() {
         /* this is a very expensive operation it will first do a very
          * expensive operation on the SQLITE reference db and then it will
          * do several queries on the db that's being stressed. it does not
@@ -85,6 +85,34 @@ struct sqlite_mirror_verify_op_t : public op_t {
 
         push_stats(end_time - start_time, 1);
     }
+
+    bool end_maybe() {
+        return true;
+    }
+
+    void end() { }
 };
+
+class sqlite_mirror_verify_op_generator_t : public op_generator_t {
+public:
+    sqlite_mirror_verify_op_generator_t(int max_concurrent_opts, sqlite_mirror_t *m, protocol_t *p)
+        : head(0)
+    { 
+        opts.resize(max_concurrent_opts, sqlite_mirror_verify_op_t(m, p, &query_stats));
+    }
+
+private:
+    std::vector<sqlite_mirror_verify_op_t> opts;
+    int head;
+
+public:
+    op_t *generate() {
+        op_t *res =  &opts[head];
+        head++;
+        head %= opts.size();
+        return res;
+    }
+};
+
 
 #endif /* __STRESS_CLIENT_OPS_SQLITE_MIRROR_HPP__ */

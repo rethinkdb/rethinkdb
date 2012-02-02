@@ -21,8 +21,11 @@ __thread linux_thread_pool_t *linux_thread_pool_t::thread_pool;
 __thread int linux_thread_pool_t::thread_id;
 __thread linux_thread_t *linux_thread_pool_t::thread;
 
-linux_thread_pool_t::linux_thread_pool_t(int worker_threads, bool _do_set_affinity)
-    : interrupt_message(NULL),
+linux_thread_pool_t::linux_thread_pool_t(int worker_threads, bool _do_set_affinity) :
+#ifndef NDEBUG
+      coroutine_summary(false),
+#endif
+      interrupt_message(NULL),
       generic_blocker_pool(NULL),
       n_threads(worker_threads + 1),    // we create an extra utility thread
       do_set_affinity(_do_set_affinity)
@@ -156,6 +159,12 @@ void *linux_thread_pool_t::start_thread(void *arg) {
     return NULL;
 }
 
+#ifndef NDEBUG
+void linux_thread_pool_t::enable_coroutine_summary() {
+    coroutine_summary = true;
+}
+#endif
+
 void linux_thread_pool_t::run(linux_thread_message_t *initial_message) {
     int res;
 
@@ -263,18 +272,21 @@ void linux_thread_pool_t::run(linux_thread_message_t *initial_message) {
     }
 
 #ifndef NDEBUG
-    // Combine coroutine counts from each thread, and log the totals
-    std::map<std::string, size_t> total_coroutine_counts;
-    for (int i = 0; i < n_threads; ++i) {
-        for (std::map<std::string, size_t>::iterator j = coroutine_counts[i].begin();
-             j != coroutine_counts[i].end(); ++j) {
-            total_coroutine_counts[j->first] += j->second;
+    if (coroutine_summary)
+    {
+        // Combine coroutine counts from each thread, and log the totals
+        std::map<std::string, size_t> total_coroutine_counts;
+        for (int i = 0; i < n_threads; ++i) {
+            for (std::map<std::string, size_t>::iterator j = coroutine_counts[i].begin();
+                 j != coroutine_counts[i].end(); ++j) {
+                total_coroutine_counts[j->first] += j->second;
+            }
         }
-    }
 
-    for (std::map<std::string, size_t>::iterator i = total_coroutine_counts.begin();
-         i != total_coroutine_counts.end(); ++i) {
-        logDBG("%ld coroutines ran with type %s\n", i->second, i->first.c_str());
+        for (std::map<std::string, size_t>::iterator i = total_coroutine_counts.begin();
+             i != total_coroutine_counts.end(); ++i) {
+            logDBG("%ld coroutines ran with type %s\n", i->second, i->first.c_str());
+        }
     }
 #endif
 

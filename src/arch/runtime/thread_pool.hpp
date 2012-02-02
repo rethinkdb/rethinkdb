@@ -46,12 +46,20 @@ public:
     // have been started; it is used to start the server's activity.
     void run(linux_thread_message_t *initial_message);
 
+#ifndef NDEBUG
+    void enable_coroutine_summary();
+#endif
+
     // Shut down all the threads. Can be called from any thread.
     void shutdown();
 
     ~linux_thread_pool_t();
 
 private:
+#ifndef NDEBUG
+    bool coroutine_summary;
+#endif
+
     static void *start_thread(void*);
 
     static void interrupt_handler(int);

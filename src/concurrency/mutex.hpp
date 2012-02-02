@@ -6,12 +6,17 @@
 #include "utils.hpp"
 
 class coro_t;
+class mutex_t;
+
+void co_lock_mutex(mutex_t *mutex);
+void unlock_mutex(mutex_t *mutex, bool eager = false);
+
 
 class mutex_t {
 public:
     class acq_t {
     public:
-        acq_t() : lock_(NULL) { }
+        acq_t() : lock_(NULL), eager_(false) { }
         explicit acq_t(mutex_t *l, bool eager = false);
         ~acq_t();
         void reset();
@@ -27,14 +32,20 @@ public:
     };
 
     mutex_t() : locked(false) { }
+    ~mutex_t() { rassert(!locked); }
 
     bool is_locked() {
         return locked;
     }
 
+    friend void co_lock_mutex(mutex_t *mutex);
+    friend void unlock_mutex(mutex_t *mutex, bool eager);
+
 private:
     bool locked;
     std::deque<coro_t *> waiters;
+
+    DISABLE_COPYING(mutex_t);
 };
 
 inline void swap(mutex_t::acq_t &a, mutex_t::acq_t &b) {

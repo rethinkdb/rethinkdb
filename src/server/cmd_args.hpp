@@ -68,6 +68,7 @@ struct cmd_config_t {
 
     int port;
     int n_workers;
+    bool do_set_affinity;
 
     std::string log_file_name;
     // Log messages below this level aren't printed
@@ -92,6 +93,10 @@ struct cmd_config_t {
     import_config_t import_config;
 
     bool verbose;
+#ifndef NDEBUG
+    bool watchdog_enabled;
+    bool coroutine_summary;
+#endif
 };
 
 // This variant adds parsing functionality and also validates the values given
@@ -103,7 +108,7 @@ public:
     void set_cores(const char* value);
     void set_port(const char* value);
     void set_log_file(const char* value);
-    void set_slices(const char* value);
+    void set_slices(int *slices_per_device_out, const char* value);
     void set_max_cache_size(const char* value);
     void set_wait_for_flush(const char* value);
     void set_unsaved_data_limit(const char* value);
