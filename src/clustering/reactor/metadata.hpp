@@ -32,11 +32,16 @@ public:
     public:
         region_map_t<protocol_t, version_range_t> version;
         backfiller_business_card_t<protocol_t> backfiller;
-    }
+    };
+
+    class nothing_t {
+        typename protocol_t::region_t region;
+    };
 
     std::map<activity_id_t, primary_t> primaries;
     std::map<activity_id_t, secondary_t> secondaries;
     std::map<activity_id_t, backfiller_t> backfillers;
+    std::map<activity_id_t, nothing_t> nothings;
 };
 
 #endif /* __CLUSTERING_REACTOR_METADATA_HPP__ */
