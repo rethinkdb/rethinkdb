@@ -62,7 +62,9 @@ linux_tcp_conn_t::linux_tcp_conn_t(const char *host, int port) :
     sock(connect_to(host, port)),
     event_watcher(new linux_event_watcher_t(sock.get(), this)),
     read_in_progress(false), write_in_progress(false),
-    write_queue_limiter(WRITE_QUEUE_MAX_SIZE), write_coro_pool(1, &write_queue, this, &linux_tcp_conn_t::handle_write_queue),
+    write_handler(this),
+    write_queue_limiter(WRITE_QUEUE_MAX_SIZE),
+    write_coro_pool(1, &write_queue, &write_handler),
     current_write_buffer(get_write_buffer())
 { }
 
@@ -93,7 +95,9 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port) :
     sock(connect_to(host, port)),
     event_watcher(new linux_event_watcher_t(sock.get(), this)),
     read_in_progress(false), write_in_progress(false),
-    write_queue_limiter(WRITE_QUEUE_MAX_SIZE), write_coro_pool(1, &write_queue, this, &linux_tcp_conn_t::handle_write_queue),
+    write_handler(this),
+    write_queue_limiter(WRITE_QUEUE_MAX_SIZE),
+    write_coro_pool(1, &write_queue, &write_handler),
     current_write_buffer(get_write_buffer())
 { }
 
@@ -102,7 +106,9 @@ linux_tcp_conn_t::linux_tcp_conn_t(fd_t s) :
     sock(s),
     event_watcher(new linux_event_watcher_t(sock.get(), this)),
     read_in_progress(false), write_in_progress(false),
-    write_queue_limiter(WRITE_QUEUE_MAX_SIZE), write_coro_pool(1, &write_queue, this, &linux_tcp_conn_t::handle_write_queue),
+    write_handler(this),
+    write_queue_limiter(WRITE_QUEUE_MAX_SIZE),
+    write_coro_pool(1, &write_queue, &write_handler),
     current_write_buffer(get_write_buffer())
 {
     rassert(sock.get() != INVALID_FD);
@@ -305,18 +311,21 @@ bool linux_tcp_conn_t::is_read_open() {
     return !read_closed.is_pulsed();
 }
 
-
 void delete_char_vector(std::vector<char> *x) {
     rassert(x);
     delete x;
 }
 
-void linux_tcp_conn_t::handle_write_queue(write_queue_op_t* operation) {
+linux_tcp_conn_t::write_handler_t::write_handler_t(linux_tcp_conn_t *parent_) :
+    parent(parent_)
+{ }
+
+void linux_tcp_conn_t::write_handler_t::coro_pool_callback(write_queue_op_t* operation) {
     if (operation->buffer != NULL) {
-        perform_write(operation->buffer, operation->size);
+        parent->perform_write(operation->buffer, operation->size);
         if (operation->dealloc != NULL) {
-            release_write_buffer(operation->dealloc);
-            write_queue_limiter.unlock((int)operation->size);
+            parent->release_write_buffer(operation->dealloc);
+            parent->write_queue_limiter.unlock((int)operation->size);
         }
     }
 
@@ -324,7 +333,7 @@ void linux_tcp_conn_t::handle_write_queue(write_queue_op_t* operation) {
         operation->cond->pulse();
     }
     if (operation->dealloc != NULL) {
-        release_write_queue_op(operation);
+        parent->release_write_queue_op(operation);
     }
 }
 
@@ -552,14 +561,18 @@ linux_tcp_conn_t::~linux_tcp_conn_t() {
     event_watcher = NULL;
 
     while (!unused_write_buffers.empty()) {
-        delete unused_write_buffers.head();
+        write_buffer_t *buffer = unused_write_buffers.head();
         unused_write_buffers.pop_front();
+        delete buffer;
     }
 
     while (!unused_write_queue_ops.empty()) {
-        delete unused_write_queue_ops.head();
+        write_queue_op_t *op = unused_write_queue_ops.head();
         unused_write_queue_ops.pop_front();
+        delete op;
     }
+
+    delete current_write_buffer;
     /* scoped_fd_t's destructor will take care of close()ing the socket. */
 }
 

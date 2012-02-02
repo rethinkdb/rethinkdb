@@ -26,6 +26,13 @@ void coro_pool_t::on_watchable_changed() {
     }
 }
 
+void coro_pool_t::rethread(int new_thread) {
+    /* Can't rethread while there are active operations */
+    rassert(active_worker_count == 0);
+    rassert(!available->get());
+    real_home_thread = new_thread;
+}
+
 void coro_pool_t::worker_run(UNUSED drain_semaphore_t::lock_t coro_drain_semaphore_lock) {
     assert_thread();
     ++active_worker_count;
