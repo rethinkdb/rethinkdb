@@ -60,36 +60,41 @@ btree_slice_t *riak_interface_t::create_slice(std::list<std::string> key) {
     return get_slice(key);
 } */
 
-/* boost::optional<bucket_t> riak_interface_t::get_bucket(std::string s) {
-    std::list<std::string> key;
-    key.push_back("riak"); key.push_back(s);
-    store_t *store = store_manager->get_store(key);
+boost::optional<bucket_t> riak_interface_t::get_bucket(std::string) {
+    crash("Not Implemented");
 
-    if (store) {
-        return boost::optional<bucket_t>(boost::get<bucket_t>(store->store_metadata));
-    } else {
-        return boost::optional<bucket_t>();
-    }
+    //std::list<std::string> key;
+    //key.push_back("riak"); key.push_back(s);
+    //store_t *store = store_manager->get_store(key);
+
+    //if (store) {
+    //    return boost::optional<bucket_t>(boost::get<bucket_t>(store->store_metadata));
+    //} else {
+    //    return boost::optional<bucket_t>();
+    //}
 }
 
-void riak_interface_t::set_bucket(std::string name, bucket_t bucket) {
-    std::list<std::string> key;
-    key.push_back("riak"); key.push_back(name);
+void riak_interface_t::set_bucket(std::string, bucket_t) {
+    crash("Not Implemented");
 
-    if (!store_manager->get_store(key)) {
-        //among other things, creates the store
-        create_slice(key);
-    }
+    //std::list<std::string> key;
+    //key.push_back("riak"); key.push_back(name);
 
-    store_t *store = store_manager->get_store(key);
-    rassert(store != NULL, "We just created this it better not be null");
+    //if (!store_manager->get_store(key)) {
+    //    //among other things, creates the store
+    //    create_slice(key);
+    //}
 
-    store->store_metadata = bucket;
-} */
+    //store_t *store = store_manager->get_store(key);
+    //rassert(store != NULL, "We just created this it better not be null");
 
-/* std::pair<bucket_iterator_t, bucket_iterator_t> riak_interface_t::buckets() { 
-    return std::make_pair(bucket_iterator_t(store_manager->begin()), bucket_iterator_t(store_manager->end()));
-}; */
+    //store->store_metadata = bucket;
+}
+
+std::pair<bucket_iterator_t, bucket_iterator_t> riak_interface_t::buckets() { 
+    crash("Not Implemented");
+    //return std::make_pair(bucket_iterator_t(store_manager->begin()), bucket_iterator_t(store_manager->end()));
+};
 
 object_iterator_t riak_interface_t::objects() { 
     not_implemented();
@@ -101,6 +106,11 @@ object_iterator_t riak_interface_t::objects() {
     return object_iterator_t(bucket, range_txn.it, range_txn.txn);
     */
 };
+
+object_iterator_t riak_interface_t::objects(const std::string &) {
+    not_implemented();
+    unreachable();
+}
 
 const object_t riak_interface_t::get_object(std::string key, std::pair<int,int> range) {
     /* std::list<std::string> sm_key;
@@ -228,7 +238,7 @@ std::string secs_to_riak_date(time_t secs) {
     struct tm *time = gmtime(&secs);
     char buffer[100]; 
 
-    UNUSED size_t res = strftime(buffer, 100, RIAK_DATE_FORMAT, time);
+    DEBUG_ONLY_VAR size_t res = strftime(buffer, 100, RIAK_DATE_FORMAT, time);
     rassert(res != 0, "Not enough space for the date time");
 
     return std::string(buffer);
@@ -342,7 +352,7 @@ std::vector<object_t> riak_interface_t::follow_links(std::vector<object_t> const
 
 std::vector<JS::scoped_js_value_t> riak_interface_t::js_map(JS::ctx_t &ctx, std::string src, std::vector<JS::scoped_js_value_t> values) {
     JS::scoped_js_string_t scriptJS("(" + src + ")");
-    JS::scoped_js_object_t fn(ctx.JSValueToObject(ctx.JSEvaluateScript(scriptJS, JS::scoped_js_object_t(NULL), JS::scoped_js_string_t(NULL), 0)));
+    JS::scoped_js_object_t fn(ctx.JSValueToObject(ctx.JSEvaluateScript(scriptJS, JS::scoped_js_object_t(NULL), JS::scoped_js_string_t(), 0)));
 
     std::vector<JS::scoped_js_value_t> res;
     for (std::vector<JS::scoped_js_value_t>::iterator jsval_it = values.begin(); jsval_it != values.end(); jsval_it++) {
@@ -358,12 +368,12 @@ JS::scoped_js_value_t riak_interface_t::js_reduce(JS::ctx_t &ctx, std::string sr
     JS::scoped_js_object_t data_list = ctx.JSObjectMakeArray(array_args);
 
     JS::scoped_js_string_t collapse_script("(function(x) { return x.reduce(function(a, b) { return a.concat(b); }, []); })");
-    JS::scoped_js_object_t collapse_fn = ctx.JSValueToObject(ctx.JSEvaluateScript(JS::scoped_js_string_t(collapse_script.get()), JS::scoped_js_object_t(NULL), JS::scoped_js_string_t(NULL), 0));
+    JS::scoped_js_object_t collapse_fn = ctx.JSValueToObject(ctx.JSEvaluateScript(JS::scoped_js_string_t(collapse_script.get()), JS::scoped_js_object_t(NULL), JS::scoped_js_string_t(), 0));
     JS::scoped_js_value_t collapsed_data = ctx.JSObjectCallAsFunction(collapse_fn, JS::scoped_js_object_t(NULL), data_list);
 
     // create the function
     JS::scoped_js_string_t scriptJS("(" + src + ")");
-    JS::scoped_js_object_t fn = ctx.JSValueToObject(ctx.JSEvaluateScript(JS::scoped_js_string_t(scriptJS.get()), JS::scoped_js_object_t(NULL), JS::scoped_js_string_t(NULL), 0));
+    JS::scoped_js_object_t fn = ctx.JSValueToObject(ctx.JSEvaluateScript(JS::scoped_js_string_t(scriptJS.get()), JS::scoped_js_object_t(NULL), JS::scoped_js_string_t(), 0));
 
     //evaluate the function on the data
     JS::scoped_js_value_t res = ctx.JSObjectCallAsFunction(fn, JS::scoped_js_object_t(NULL), collapsed_data);
@@ -386,35 +396,52 @@ void riak_interface_t::initialize_riak_ctx(JS::ctx_t &ctx) {
 
 
     JS::scoped_js_string_t scriptJS(script);
-    ctx.JSEvaluateScript(scriptJS, JS::scoped_js_object_t(NULL), JS::scoped_js_string_t(NULL), 0);
+    ctx.JSEvaluateScript(scriptJS, JS::scoped_js_object_t(NULL), JS::scoped_js_string_t(), 0);
 }
 
 JS::scoped_js_value_t object_to_jsvalue(JS::ctx_t &ctx, object_t &obj) {
-    json::mObject js_obj;
+    scoped_cJSON_t js_obj(cJSON_CreateObject());
 
-    js_obj["key"] = json::mValue(obj.key);
-    js_obj["bucket"] = json::mValue(obj.bucket);
+    cJSON_AddStringToObject(js_obj.get(), "key", obj.key.c_str());
+    cJSON_AddStringToObject(js_obj.get(), "bucket", obj.bucket.c_str());
 
-    js_obj["values"] = json::mValue(json::mArray());
-    js_obj["values"].get_array().push_back(json::mValue(json::mObject()));
-    js_obj["values"].get_array()[0].get_obj()["data"] = json::mValue(std::string(obj.content.get(), obj.content_length)); //extra copy
+    scoped_cJSON_t values(cJSON_CreateArray());
+    cJSON_AddItemReferenceToObject(js_obj.get(), "values", values.get());
+
+    //for riak compatibility we need to put our values in an array even though
+    //there can only ever be one in rethinkdb, (in riak there can be multiple
+    //due to vector clock divergence
+    scoped_cJSON_t first_and_only_value(cJSON_CreateObject());
+    cJSON_AddItemReferenceToArray(values.get(), first_and_only_value.get());
+
+    //add the data
+    cJSON_AddStringToObject(first_and_only_value.get(), "data", obj.data_as_c_str());
 
     /* add meta data to the object */
-    js_obj["values"].get_array()[0].get_obj()["metadata"] = json::mValue(json::mObject());
-    json::mObject &meta_data_obj = js_obj["values"].get_array()[0].get_obj()["metadata"].get_obj();
-    meta_data_obj["X-Riak-Last-Modified"] = json::mValue(secs_to_riak_date(obj.last_written));
-    meta_data_obj["content-type"] = json::mValue(obj.content_type);
-    meta_data_obj["Links"] = json::mValue(json::mArray());
+    scoped_cJSON_t metadata(cJSON_CreateObject());
+    cJSON_AddItemReferenceToObject(first_and_only_value.get(), "metadata", metadata.get());
+
+    cJSON_AddStringToObject(metadata.get(), "X-Riak-Last-Modified", secs_to_riak_date(obj.last_written).c_str());
+    cJSON_AddStringToObject(metadata.get(), "content-type", obj.content_type.c_str());
+
+    /* add the links */
+    scoped_cJSON_t links(cJSON_CreateObject());
+    cJSON_AddItemReferenceToObject(metadata.get(), "links", links.get());
 
     for (std::vector<link_t>::const_iterator it = obj.links.begin(); it != obj.links.end(); it++) {
-        json::mArray link;
-        link.push_back(json::mValue(it->bucket));
-        link.push_back(json::mValue(it->key));
-        link.push_back(json::mValue(it->tag));
-        meta_data_obj["Links"].get_array().push_back(json::mValue(link));
+        cJSON *link = cJSON_CreateArray();
+        cJSON_AddItemToArray(links.get(), link);
+
+        cJSON_AddItemToArray(link, cJSON_CreateString(it->bucket.c_str()));
+        cJSON_AddItemToArray(link, cJSON_CreateString(it->key.c_str()));
+        cJSON_AddItemToArray(link, cJSON_CreateString(it->tag.c_str()));
     }
 
-    return ctx.JSValueMakeFromJSONString(JS::scoped_js_string_t(json::write_string(json::mValue(js_obj))));
+    char *json = cJSON_PrintUnformatted(js_obj.get()); //FIXME this causes a copy and sucks!!!
+    JS::scoped_js_string_t scoped_str(json);
+    delete json;
+
+    return ctx.JSValueMakeFromJSONString(JS::scoped_js_string_t(json));
 }
 
 } //namespace riak

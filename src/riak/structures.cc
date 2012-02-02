@@ -27,6 +27,11 @@ void object_t::set_content(const char* c, size_t n) {
     memcpy(content.get(), c, n);
 }
 
+const char* object_t::data_as_c_str() {
+    content[content_length] = '\0';
+    return content.get();
+}
+
 object_t::object_t(std::string const &key, std::string const &bucket, riak_value_t *val, transaction_t *txn, std::pair<int, int> range)
     : key(key), bucket(bucket), range(range), total_value_len(val->value_len)
 {

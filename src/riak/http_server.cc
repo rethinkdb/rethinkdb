@@ -17,7 +17,7 @@
  * the complexity differences negligible and the syntax is nicer) */
 
 namespace riak {
-namespace json = json_spirit;
+//namespace json = json_spirit;
 
 std::string link_to_string(link_t const &link) {
     std::stringstream res;
@@ -98,99 +98,107 @@ http_res_t riak_server_t::handle(const http_req_t &req) {
 }
 
 http_res_t riak_server_t::list_buckets(const http_req_t &) {
-    //std::pair<bucket_iterator_t, bucket_iterator_t> bucket_iters = riak_interface.buckets();
+    std::pair<bucket_iterator_t, bucket_iterator_t> bucket_iters = riak_interface.buckets();
 
-    //json::mObject body;
-    //body["buckets"] = json::mValue(json::mArray());
+    scoped_cJSON_t body(cJSON_CreateObject());
 
-    //bucket_iterator_t it = bucket_iters.first, end = bucket_iters.second;
+    scoped_cJSON_t buckets(cJSON_CreateArray());
+    cJSON_AddItemReferenceToObject(body.get(), "buckets", buckets.get());
 
-    //for (; it != end; it++) {
-    //    body["buckets"].get_array().push_back(json::mValue(it->name));
-    //}
+    bucket_iterator_t it = bucket_iters.first, end = bucket_iters.second;
 
-    //http_res_t res;
+    for (; it != end; it++) {
+        cJSON_AddItemToArray(buckets.get(), cJSON_CreateString(it->name.c_str()));
+    }
 
-    //res.set_body("application/json", json::write_string(json::mValue(body)));
-    //res.code = 200;
+    http_res_t res;
 
-    http_res_t res(501);
+    res.set_body("application/json", cJSON_PrintUnformatted(body.get()));
+    res.code = 200;
 
     return res;
 }
 
 http_res_t riak_server_t::get_bucket(UNUSED const http_req_t &req) {
-    //boost::char_separator<char> sep("/");
-    //tokenizer tokens(req.resource, sep);
-    //tok_iterator url_it = tokens.begin(), url_end = tokens.end();
-    //rassert(url_it != url_end, "The first path compenent in the resource should be riak");
-    //url_it++;
-    //rassert(url_it != url_end, "This function should only be called if there's a bucket specified in the url");
+    boost::char_separator<char> sep("/");
+    tokenizer tokens(req.resource, sep);
+    tok_iterator url_it = tokens.begin(), url_end = tokens.end();
+    rassert(url_it != url_end, "The first path compenent in the resource should be riak");
+    url_it++;
+    rassert(url_it != url_end, "This function should only be called if there's a bucket specified in the url");
 
-    ////grab the bucket
-    //boost::optional<bucket_t> bucket = riak_interface.get_bucket(*url_it);
+    //grab the bucket
+    boost::optional<bucket_t> bucket = riak_interface.get_bucket(*url_it);
 
-    //http_res_t res; //the response we'll be sending
+    http_res_t res; //the response we'll be sending
 
-    //if (!bucket) {
-    //    res.code = 404;
-    //    return res;
-    //}
-    //json::mObject body; //the json for our body
+    if (!bucket) {
+        res.code = 404;
+        return res;
+    }
+    scoped_cJSON_t body(cJSON_CreateObject());
 
-    //if (req.find_query_param("keys") == "true" || req.find_query_param("keys") == "stream") {
-    //    //add the keys array to the json
-    //    body["keys"] = json::mValue(json::mArray());
+    if (req.find_query_param("keys") == "true" || req.find_query_param("keys") == "stream") {
+        //add the keys array to the json
+        cJSON *keys = cJSON_CreateArray();
 
-    //    //we also return the keys as a links header field
-    //    std::vector<std::string> links;
+        cJSON_AddItemToObject(body.get(), "keys", keys);
 
-    //    //get an iterator to the keys
-    //    std::pair<object_iterator_t, object_iterator_t> object_iters = riak_interface.objects(*url_it);
-    //    object_iterator_t obj_it = object_iters.first, obj_end = object_iters.second;
+        //we also return the keys as a links header field
+        std::vector<std::string> links;
 
-    //    for(; obj_it != obj_end; obj_it++) {
-    //        body["keys"].get_array().push_back(json::mValue(obj_it->key));
-    //        links.push_back("</riak/" + bucket->name + "/" + obj_it->key + ">; riaktag=\"contained\"");
-    //    }
+        //get an iterator to the keys
+        object_iterator_t object_iter = riak_interface.objects(*url_it);
+        //object_iterator_t obj_it = object_iters.first, obj_end = object_iters.second;
 
-    //    res.add_header_line("Link", boost::algorithm::join(links, ", "));
-    //}
+        boost::optional<object_t> obj;
+        while (obj = object_iter.next()) {
+            cJSON_AddItemToArray(keys, cJSON_CreateString(obj->key.c_str()));
+            links.push_back("</riak/" + bucket->name + "/" + obj->key + ">; riaktag=\"contained\"");
+        }
 
-    //if (req.find_header_line("props") != "false") {
-    //    body["props"] = json::mValue(json::mObject());
+        res.add_header_line("Link", boost::algorithm::join(links, ", "));
+    }
 
-    //    json::mObject &props = body["props"].get_obj();
-    //    props["name"] = json::mValue(bucket->name);
-    //    props["n_val"] = json::mValue(bucket->n_val);
-    //    props["allow_mult"] = json::mValue(bucket->allow_mult);
-    //    props["last_write_wins"] = json::mValue(bucket->last_write_wins);
-    //    
-    //    props["precommit"] = json::mValue(json::mArray());
-    //    for (std::vector<hook_t>::iterator it = bucket->precommit.begin(); it != bucket->precommit.end(); it++) {
-    //        props["precommit"].get_array().push_back(json::mValue(it->code)); //TODO not sure if there should be a name here or what
-    //    }
+    if (req.find_header_line("props") != "false") {
+        cJSON *props = cJSON_CreateObject();
+        cJSON_AddItemToObject(body.get(), "props", props);
 
-    //    props["postcommit"] = json::mValue(json::mArray());
-    //    for (std::vector<hook_t>::iterator it = bucket->postcommit.begin(); it != bucket->postcommit.end(); it++) {
-    //        props["postcommit"].get_array().push_back(json::mValue(it->code)); //TODO not sure if there should be a name here or what
-    //    }
+        cJSON_AddStringToObject(props, "name", bucket->name.c_str());
+
+        cJSON_AddNumberToObject(props, "n_val", bucket->n_val);
+        
+        cJSON_AddItemToObject(props, "allow_mult", cJSON_CreateBool(bucket->allow_mult));
+
+        cJSON_AddItemToObject(props, "last_write_wins", cJSON_CreateBool(bucket->last_write_wins));
+        
+        cJSON *precommit = cJSON_CreateArray();
+        cJSON_AddItemReferenceToObject(props, "precommit", precommit);
+
+        for (std::vector<hook_t>::iterator it = bucket->precommit.begin(); it != bucket->precommit.end(); it++) {
+            cJSON_AddItemReferenceToArray(precommit, cJSON_CreateString(it->code.c_str()));
+        }
+
+        cJSON *postcommit = cJSON_CreateArray();
+        cJSON_AddItemReferenceToObject(props, "postcommit", postcommit);
+
+        for (std::vector<hook_t>::iterator it = bucket->postcommit.begin(); it != bucket->postcommit.end(); it++) {
+            cJSON_AddItemReferenceToArray(postcommit, cJSON_CreateString(it->code.c_str()));
+        }
 
 
-    //    props["r"] = json::mValue(bucket->r);
-    //    props["w"] = json::mValue(bucket->w);
-    //    props["dw"] = json::mValue(bucket->dw);
-    //    props["rw"] = json::mValue(bucket->rw);
+        cJSON_AddNumberToObject(props, "r", bucket->r);
+        cJSON_AddNumberToObject(props, "w", bucket->w);
+        cJSON_AddNumberToObject(props, "dw", bucket->dw);
+        cJSON_AddNumberToObject(props, "rw", bucket->rw);
 
-    //    props["backend"] = json::mValue(bucket->backend);
-    //}
+        cJSON_AddStringToObject(props, "backend", bucket->backend.c_str());
+    }
 
-    //res.set_body("application/json", json::write_string(json::mValue(body)));
-    //res.code = 200;
+    res.set_body("application/json", cJSON_PrintUnformatted(body.get()));
+    res.code = 200;
 
-    //return res;
-
-    return http_res_t(501);
+    return res;
 }
 
 http_res_t riak_server_t::set_bucket(UNUSED const http_req_t &req) {
@@ -624,14 +632,15 @@ http_res_t riak_server_t::status(const http_req_t &) {
     perfmon_stats_t stats;
     perfmon_get_stats(&stats, false);
 
-    json::mObject body;
+    scoped_cJSON_t body(cJSON_CreateObject());
+
     for (perfmon_stats_t::const_iterator it = stats.begin(); it != stats.end(); it++) {
-        body[it->first] = json::mValue(it->second);
+        cJSON_AddStringToObject(body.get(), it->first.c_str(), it->second.c_str());
     }
 
     http_res_t res;
     res.code = 200;
-    res.set_body("application/json", json::write_string(json::mValue(body)));
+    res.set_body("application/json", cJSON_PrintUnformatted(body.get()));
     return res;
 }
 
