@@ -109,8 +109,10 @@ struct object_t {
     object_t() :content_length(0) { }
     void resize_content(size_t);
     void set_content(const char*, size_t);
+    const char* data_as_c_str();
     object_t(std::string const &, std::string const &, riak_value_t *, transaction_t *, std::pair<int, int> = std::make_pair(-1, -1));
     size_t on_disk_space_needed_for_links();
+
 };
 
 class object_iterator_t : public transform_iterator_t<key_value_pair_t<riak_value_t>, object_t> {

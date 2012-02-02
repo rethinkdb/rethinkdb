@@ -11,8 +11,6 @@
 
 namespace riak {
 
-namespace json = json_spirit;
-
 class bucket_iterator_t {
 private:
     store_manager_t<std::list<std::string> >::const_iterator it;
@@ -57,11 +55,11 @@ public:
     // Bucket operations:
 
     // Get a bucket by name
-    //boost::optional<bucket_t> get_bucket(std::string);
+    boost::optional<bucket_t> get_bucket(std::string);
     // Set the properties of a bucket
-    //void set_bucket(std::string, bucket_t);
+    void set_bucket(std::string, bucket_t);
     // Get all the buckets
-    //std::pair<bucket_iterator_t, bucket_iterator_t> buckets();
+    std::pair<bucket_iterator_t, bucket_iterator_t> buckets();
 
 
 
@@ -69,6 +67,10 @@ public:
     
     // Get all the keys in a bucket
     object_iterator_t objects();
+
+    // Get all the keys in a bucket
+    object_iterator_t objects(const std::string &);
+
     // Get a single object
     const object_t get_object(std::string, std::pair<int,int> range = std::make_pair(-1, -1));
     // Store an object
@@ -89,9 +91,9 @@ private:
     //supporting cast for mapreduce just to make this code a bit more readable
 
     typedef boost::variant<std::string, JS::engine_exception> str_or_exc_t;
-    str_or_exc_t actual_mapreduce(JS::ctx_t *ctx,
+    /* str_or_exc_t actual_mapreduce(JS::ctx_t *ctx,
                                   std::vector<object_t> &inputs,
-                                  json::mArray::iterator &query_it, json::mArray::iterator &query_end);
+                                  json::mArray::iterator &query_it, json::mArray::iterator &query_end); */
 
     // The part of the mapreduce job that runs in the JS thread. For now this is one monolithic beast.
     

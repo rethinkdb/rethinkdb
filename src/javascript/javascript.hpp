@@ -205,12 +205,20 @@ class scoped_js_string_t {
 private:
     JSStringRef str;
 public:
+    scoped_js_string_t()
+        : str(NULL)
+    { }
+
     explicit scoped_js_string_t(JSStringRef _str)
         : str(_str)
     { }
 
     explicit scoped_js_string_t(std::string _str) 
         : str(::JSStringCreateWithUTF8CString(_str.c_str()))
+    { }
+
+    explicit scoped_js_string_t(const char * _str)
+        : str(::JSStringCreateWithUTF8CString(_str))
     { }
 
     scoped_js_string_t(const scoped_js_string_t &other)
