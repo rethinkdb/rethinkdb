@@ -229,7 +229,7 @@ std::string secs_to_riak_date(time_t secs) {
     struct tm *time = gmtime(&secs);
     char buffer[100]; 
 
-    size_t res = strftime(buffer, 100, RIAK_DATE_FORMAT, time);
+    DEBUG_ONLY_VAR size_t res = strftime(buffer, 100, RIAK_DATE_FORMAT, time);
     rassert(res != 0, "Not enough space for the date time");
 
     return std::string(buffer);
