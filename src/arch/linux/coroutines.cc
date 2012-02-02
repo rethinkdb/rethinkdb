@@ -179,7 +179,7 @@ coro_globals_t::~coro_globals_t() {
 
 /* coro_t */
 
-coro_t::coro_t() : 
+coro_t::coro_t() :
     home_thread_(get_thread_id()),
     notified_(false),
     waiting_(false)
@@ -359,7 +359,6 @@ void coro_t::notify_now() {
         lightweight_swapcontext(&scheduler, env);
     }
 
-    rassert(this->current_thread_ == get_thread_id());
     rassert(current_coro == this);
     current_coro = prev_coro;
     prev_coro = prev_prev_coro;
