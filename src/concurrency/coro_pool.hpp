@@ -51,28 +51,35 @@ public:
     ~coro_pool_boost_t();
 };
 
-template <class T, class Param>
-class coro_pool_callback_t :
+template <class Param>
+class coro_pool_caller_t :
     public coro_pool_t
 {
+public:
+    class callback_t {
+    public:
+        virtual ~callback_t() { };
+        virtual void coro_pool_callback(Param) = 0;
+    };
+
 private:
     passive_producer_t<Param> *source;
-    T* callback_object;
-    void (T::*callback)(Param);
+    callback_t *callback_object;
 
     void run_internal() {
-        ((callback_object)->*(callback))(source->pop());
+        callback_object->coro_pool_callback(source->pop());
     }
 
 public:
-    coro_pool_callback_t(size_t worker_count_, passive_producer_t<Param> *source_, T *instance, void (T::*fn)(Param)) :
+    coro_pool_caller_t(size_t worker_count_,
+                         passive_producer_t<Param> *source_,
+                         callback_t *instance) :
         coro_pool_t(worker_count_, source_->available),
         source(source_),
-        callback_object(instance),
-        callback(fn)
+        callback_object(instance)
     { }
 
-    ~coro_pool_callback_t()
+    ~coro_pool_caller_t()
     { }
 };
 
