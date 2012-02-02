@@ -149,7 +149,7 @@ private:
 struct mutex_assertion_t {
     struct acq_t {
         struct temporary_release_t {
-            temporary_release_t(acq_t *) { }
+            explicit temporary_release_t(acq_t *) { }
             ~temporary_release_t() { }
         private:
             DISABLE_COPYING(temporary_release_t);
