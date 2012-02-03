@@ -2,6 +2,7 @@
 #include <boost/make_shared.hpp>
 
 #include "buffer_cache/buffer_cache.hpp"
+#include "buffer_cache/sequence_group.hpp"
 #include "memcached/protocol.hpp"
 #include "serializer/config.hpp"
 #include "serializer/translator.hpp"
@@ -48,13 +49,14 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
     boost::ptr_vector<cache_t> caches;
     boost::ptr_vector<btree_slice_t> btrees;
     std::vector<boost::shared_ptr<store_view_t<memcached_protocol_t> > > stores;
+    sequence_group_t seq_group(shards.size());
     for (int i = 0; i < (int)shards.size(); i++) {
         mirrored_cache_static_config_t cache_static_config;
         cache_t::create(multiplexer.proxies[i], &cache_static_config);
-        caches.push_back(new cache_t(multiplexer.proxies[i], &cache_dynamic_config));
+        caches.push_back(new cache_t(multiplexer.proxies[i], &cache_dynamic_config, shards.size()));
         btree_slice_t::create(&caches[i], shards[i]);
         btrees.push_back(new btree_slice_t(&caches[i]));
-        stores.push_back(boost::make_shared<memcached_store_view_t>(shards[i], &btrees[i]));
+        stores.push_back(boost::make_shared<memcached_store_view_t>(shards[i], &btrees[i], &seq_group));
     }
 
     /* Set up namespace interface */

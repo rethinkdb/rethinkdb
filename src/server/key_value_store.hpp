@@ -27,6 +27,8 @@ class serializer_multiplexer_t;
 // timestamp of the master.
 #define NOT_A_SLAVE uint32_t(0xFFFFFFFF)
 
+class sequence_group_t;
+
 /* sharded_key_value_store_t represents a collection of serializers and slices, possibly distributed
 across several cores. */
 
@@ -36,16 +38,16 @@ struct shard_store_t :
     public set_store_t,
     public get_store_t
 {
-    shard_store_t(
-        serializer_t *serializer,
-        mirrored_cache_config_t *dynamic_config);
+    shard_store_t(serializer_t *serializer,
+                  mirrored_cache_config_t *dynamic_config,
+                  int bucket);
 
-    get_result_t get(const store_key_t &key, order_token_t token);
-    rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token);
-    mutation_result_t change(const mutation_t &m, order_token_t token);
-    mutation_result_t change(const mutation_t &m, castime_t ct, order_token_t token);
-    void backfill_delete_range(int hash_value, int hashmode, bool left_key_supplied, const store_key_t& left_key_exclusive, bool right_key_supplied, const store_key_t& right_key_inclusive, order_token_t token);
-    void set_replication_clock(repli_timestamp_t t, order_token_t token);
+    get_result_t get(const store_key_t &key, sequence_group_t *seq_group, order_token_t token);
+    rget_result_t rget(sequence_group_t *seq_group, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token);
+    mutation_result_t change(sequence_group_t *seq_group, const mutation_t &m, order_token_t token);
+    mutation_result_t change(sequence_group_t *seq_group, const mutation_t &m, castime_t ct, order_token_t token);
+    void backfill_delete_range(sequence_group_t *seq_group, int hash_value, int hashmode, bool left_key_supplied, const store_key_t& left_key_exclusive, bool right_key_supplied, const store_key_t& right_key_inclusive, order_token_t token);
+    void set_replication_clock(sequence_group_t *seq_group, repli_timestamp_t t, order_token_t token);
 
     cache_t cache;
     btree_slice_t btree;
@@ -124,16 +126,16 @@ public:
     static void check_existing(const std::vector<std::string>& db_filenames, check_callback_t *cb);
 
 public:
-    get_result_t get(const store_key_t &key, order_token_t token);
-    rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token);
+    get_result_t get(const store_key_t &key, sequence_group_t *seq_group, order_token_t token);
+    rget_result_t rget(sequence_group_t *seq_group, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token);
 
-    mutation_result_t change(const mutation_t &m, order_token_t order_token);
+    mutation_result_t change(sequence_group_t *seq_group, const mutation_t &m, order_token_t order_token);
 
-    mutation_result_t change(const mutation_t &m, castime_t ct, order_token_t order_token);
+    mutation_result_t change(sequence_group_t *seq_group, const mutation_t &m, castime_t ct, order_token_t order_token);
 
     // Deletes the keys in the range (left_key_exclusive, right_key_inclusive] for
     // which hash(hash_value) % hashmod == slice.  Keys can be null, representing infinity.
-    void backfill_delete_range(int hash_value, int hashmod, bool left_key_supplied, const store_key_t& left_key_exclusive, bool right_key_supplied, const store_key_t& right_key_inclusive, order_token_t token);
+    void backfill_delete_range(sequence_group_t *seq_group, int hash_value, int hashmod, bool left_key_supplied, const store_key_t& left_key_exclusive, bool right_key_supplied, const store_key_t& right_key_inclusive, order_token_t token);
 
     /* The value passed to `set_timestampers()` is the value that will be used as the
     timestamp for all new operations. When the key-value store starts up, it is
@@ -144,14 +146,14 @@ public:
     `set_timestampers()`, changing them doesn't change anything in the
     `btree_key_value_store_t` itself. They are used by the higher-level code to persist
     metadata to disk. */
-    void set_replication_clock(repli_timestamp_t t, order_token_t token);
-    repli_timestamp_t get_replication_clock();
-    void set_last_sync(repli_timestamp_t t, order_token_t token);
-    repli_timestamp_t get_last_sync();
-    void set_replication_master_id(uint32_t ts);
-    uint32_t get_replication_master_id();
-    void set_replication_slave_id(uint32_t ts);
-    uint32_t get_replication_slave_id();
+    void set_replication_clock(sequence_group_t *seq_group, repli_timestamp_t t, order_token_t token);
+    repli_timestamp_t get_replication_clock(sequence_group_t *seq_group);
+    void set_last_sync(sequence_group_t *seq_group, repli_timestamp_t t, order_token_t token);
+    repli_timestamp_t get_last_sync(sequence_group_t *seq_group);
+    void set_replication_master_id(sequence_group_t *seq_group, uint32_t ts);
+    uint32_t get_replication_master_id(sequence_group_t *seq_group);
+    void set_replication_slave_id(sequence_group_t *seq_group, uint32_t ts);
+    uint32_t get_replication_slave_id(sequence_group_t *seq_group);
 
     static uint32_t hash(const char *data, int len);
     static uint32_t hash(const store_key_t& key);
@@ -160,6 +162,9 @@ public:
 
 private:
     friend class replication::backfill_and_streaming_manager_t;
+
+    // TODO: Maybe add a get_n_slices method instead.
+    friend class btree_metadata_store_t;
 
     int n_files;
     btree_config_t btree_static_config;
@@ -184,7 +189,7 @@ private:
     standard_serializer_t *serializers[MAX_SERIALIZERS];
     serializer_multiplexer_t *multiplexer;   // Helps us split the serializers among the slices
 
-    shard_store_t *shards[MAX_SLICES];
+    shard_store_t **shards;
     uint32_t slice_num(const store_key_t &key);
 
     /* slice debug control_t which allows us to see slice and hash for a key */

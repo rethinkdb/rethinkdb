@@ -27,6 +27,8 @@ public:
 
     friend class coro_fifo_acq_t;
 
+    void rethread(int new_home_thread) { real_home_thread = new_home_thread; }
+
 private:
     void inform_ready_to_leave(coro_fifo_acq_t *acq);
     void inform_left_and_notified();

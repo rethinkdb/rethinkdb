@@ -19,6 +19,7 @@ class mc_transaction_t;
 
 class writeback_t
 {
+    // TODO: These typedefs are horrible, since globally they could be different, in other files.
     typedef mc_cache_t cache_t;
     typedef mc_buf_t buf_t;
     typedef mc_inner_buf_t inner_buf_t;

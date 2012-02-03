@@ -5,8 +5,9 @@ SRC = utils.cc random.cc protocol.cc protocols/sqlite3.c
 HEADERS = $(wildcard *.hpp) $(wildcard */*.hpp)
 
 MYSQL ?= 1
-LIBMEMCACHED ?= 1
-LIBGSL ?= 1
+LIBMEMCACHED ?= 0
+LIBGSL ?= 0
+TAGS=.tags
 
 ifeq ($(MYSQL),1)
     INCLUDE += -I /usr/local/mysql/include
@@ -16,7 +17,7 @@ endif
 
 ifeq ($(LIBMEMCACHED),1)
     INCLUDE += -I../../lib/libmemcached
-    LIBS += -lmemcached
+    LIBS += -lmemcached -L /usr/local/lib
     DEFINES += -DUSE_LIBMEMCACHED
 endif
 
@@ -35,14 +36,17 @@ OBJ = $(addsuffix .o, $(basename $(SRC)))
 
 build: $(EXEC_NAME) $(SO_NAME)
 
-%.o: %.cc $(HEADERS)
+%.o: %.cc $(HEADERS) Makefile
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-$(EXEC_NAME): $(OBJ) main.o $(HEADERS)
+$(EXEC_NAME): $(OBJ) main.o $(HEADERS) Makefile
 	$(CXX) $(CXXFLAGS) -o $(EXEC_NAME) $(OBJ) main.o -lm -lrt $(TLIB) $(LIBS)
 
-$(SO_NAME): $(OBJ) python_interface.o $(HEADERS) python_interface.h
+$(SO_NAME): $(OBJ) python_interface.o $(HEADERS) python_interface.h Makefile
 	$(CXX) $(CXXFLAGS) -shared -o $(SO_NAME) $(OBJ) python_interface.o -lm -lrt $(TLIB) $(LIBS)
+
+tags: Makefile
+	ctags -R -f $(TAGS) --langmap="c++:.cc.tcc.hpp"
 
 clean:
 	rm -f *~

@@ -152,7 +152,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         : callback_(callback), since_when_(since_when), sizer_(sizer), key_range_(key_range) { }
 };
 
-void do_agnostic_btree_backfill(value_sizer_t<void> *sizer, btree_slice_t *slice, const key_range_t& key_range, repli_timestamp_t since_when,
+void do_agnostic_btree_backfill(value_sizer_t<void> *sizer, btree_slice_t *slice, sequence_group_t *seq_group, const key_range_t& key_range, repli_timestamp_t since_when,
     const boost::shared_ptr<cache_account_t>& backfill_account, agnostic_backfill_callback_t *callback, order_token_t token) {
 
     rassert(coro_t::self());
@@ -163,7 +163,7 @@ void do_agnostic_btree_backfill(value_sizer_t<void> *sizer, btree_slice_t *slice
     // TODO: Why are we using a write_mode source here?  There must be a reason...
     order_token_t begin_transaction_token = slice->pre_begin_transaction_write_mode_source_.check_in(token.tag() + "+begin_transaction_token").with_read_mode();
 
-    boost::scoped_ptr<transaction_t> txn(new transaction_t(slice->cache(), rwi_read_sync));
+    boost::scoped_ptr<transaction_t> txn(new transaction_t(slice->cache(), seq_group, rwi_read_sync, 0, repli_timestamp_t::distant_past));
 
     txn->set_token(slice->post_begin_transaction_checkpoint_.check_through(begin_transaction_token));
 
@@ -209,11 +209,11 @@ public:
     backfill_callback_t *cb_;
 };
 
-void btree_backfill(btree_slice_t *slice, const key_range_t& key_range, repli_timestamp_t since_when,
+void btree_backfill(btree_slice_t *slice, sequence_group_t *seq_group, const key_range_t& key_range, repli_timestamp_t since_when,
     const boost::shared_ptr<cache_account_t>& backfill_account, backfill_callback_t *callback, order_token_t token) {
 
     agnostic_memcached_backfill_callback_t agnostic_cb(callback);
     value_sizer_t<memcached_value_t> sizer(slice->cache()->get_block_size());
-    do_agnostic_btree_backfill(&sizer, slice, key_range, since_when, backfill_account, &agnostic_cb, token);
+    do_agnostic_btree_backfill(&sizer, slice, seq_group, key_range, since_when, backfill_account, &agnostic_cb, token);
 }
 

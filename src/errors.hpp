@@ -19,6 +19,19 @@
 #define DEBUG_ONLY(expr) ((void)(0))
 #endif
 
+/* This macro needs to exist because gcc and icc disagree on how to number the
+ * attributes to methods. ICC does different number for methods and functions
+ * and it's too unwieldy to make programs use these macros so we're just going
+ * to disable them in icc.
+ * With this macro attribute number starts at 1. If it is a nonstatic method
+ * then "1" refers to the class pointer ("this").
+ * */
+#ifdef __ICC
+#define NON_NULL_ATTR(arg) 
+#else
+#define NON_NULL_ATTR(arg) __attribute__((nonnull(arg)))
+#endif
+
 /* Error handling
  *
  * There are several ways to report errors in RethinkDB:

@@ -11,6 +11,9 @@
 #include <vector>
 #include <map>
 #include "protocol.hpp"
+#include <queue>
+
+#define MAX_MC_KEY_SIZE 250
 
 class non_existent_command_error_t : public protocol_error_t {
 public:
@@ -36,14 +39,25 @@ public:
     virtual ~temporary_server_error_t() throw () { }
 };
 
+class tcp_buffer_t {
+public:
+    std::vector<char> buffer;
+    size_t bytes_in_buffer;
+    size_t first_buffer_byte;
+
+public:
+    tcp_buffer_t()
+        : bytes_in_buffer(0), first_buffer_byte(0)
+    { }
+};
+
 class memcached_response_t {
 public:
-    memcached_response_t(std::vector<char>& thread_buffer) : buffer(thread_buffer) {
+    memcached_response_t(tcp_buffer_t &thread_buffer) : buffer(thread_buffer) {
         successful = false;
-        bytes_in_buffer = 0;
-        first_buffer_byte = 0;
     }
     ~memcached_response_t() {
+        //clean up the buffer
     }
 
     void read_from_socket(const int socketfd) { }
@@ -60,57 +74,109 @@ protected:
         
         size_t scanned_up_to_position = 0;
         while (true) {
-            while (scanned_up_to_position < bytes_in_buffer) {
-                if (buffer[first_buffer_byte + scanned_up_to_position] == '\r')
+            while (scanned_up_to_position < buffer.bytes_in_buffer) {
+                if (buffer.buffer[buffer.first_buffer_byte + scanned_up_to_position] == '\r')
                     gotR = true;
-                else if (gotR && buffer[first_buffer_byte + scanned_up_to_position] == '\n') {
+                else if (gotR && buffer.buffer[buffer.first_buffer_byte + scanned_up_to_position] == '\n') {
                     result_length = scanned_up_to_position - 1;
-                    char* char_buffer = &buffer[0];
-                    const char* result = char_buffer + first_buffer_byte;
-                    first_buffer_byte += scanned_up_to_position + 1;
-                    bytes_in_buffer -= scanned_up_to_position + 1;
+                    char* char_buffer = &buffer.buffer[0];
+                    const char* result = char_buffer + buffer.first_buffer_byte;
+                    buffer.first_buffer_byte += scanned_up_to_position + 1;
+                    buffer.bytes_in_buffer -= scanned_up_to_position + 1;
                     
-                    if (first_buffer_byte > 4096) {
+                    if (buffer.first_buffer_byte > 4096) {
                         // Wrap around and reset buffer
-                        memcpy(char_buffer, char_buffer + first_buffer_byte, bytes_in_buffer);
-                        first_buffer_byte = 0;
+                        memmove(char_buffer, char_buffer + buffer.first_buffer_byte, buffer.bytes_in_buffer);
+                        buffer.first_buffer_byte = 0;
                     }
-                    
                     return result;
                 }
-                else
+                else {
                     gotR = false;
+                }
 
                 ++scanned_up_to_position;
             }
 
-            buffer.resize(std::max(first_buffer_byte + bytes_in_buffer + 512, buffer.size()), '\0');
-            char* char_buffer = &buffer[0];
-            const ssize_t bytes_read = recv(socketfd, char_buffer + first_buffer_byte + bytes_in_buffer, 512, 0);
+            buffer.buffer.resize(std::max(buffer.first_buffer_byte + buffer.bytes_in_buffer + 512, buffer.buffer.size()), '\0');
+            char* char_buffer = &buffer.buffer[0];
+            const ssize_t bytes_read = recv(socketfd, char_buffer + buffer.first_buffer_byte + buffer.bytes_in_buffer, 512, 0);
             if (bytes_read <= 0) {
                 perror("Unable to read from socket");
                 exit(-1);
             }
-            bytes_in_buffer += bytes_read;
+            buffer.bytes_in_buffer += bytes_read;
         }
+    }
+
+    /* maybe_read_line is like read_line except that it does not block on io
+     * and thus doesn't always return a line. When no line is found it will
+     * return NULL and result_length will be set to 0 */
+
+    const char* maybe_read_line(size_t &result_length) {
+        /* first do a non-blocking read */
+        buffer.buffer.resize(std::max(buffer.first_buffer_byte + buffer.bytes_in_buffer + 512, buffer.buffer.size()), '\0');
+        const ssize_t bytes_read = recv(socketfd, buffer.buffer.data() + buffer.first_buffer_byte + buffer.bytes_in_buffer, buffer.buffer.size() - (buffer.first_buffer_byte + buffer.bytes_in_buffer), MSG_DONTWAIT);
+        if (bytes_read == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+            //We're fine with that, just means there wasn't any data
+        } else if (bytes_read <= 0) {
+            //Not fine with this, this is a real error
+            perror("Unable to read from socket");
+            exit(-1);
+        } else {
+            //Normal succesful read in which we got some data
+            buffer.bytes_in_buffer += bytes_read;
+        }
+
+        /* Now check to see if we've got a CRLF */
+        size_t scanned_up_to_position = 0;
+        bool gotR = false;
+
+        while (scanned_up_to_position < buffer.bytes_in_buffer) {
+            if (buffer.buffer[buffer.first_buffer_byte + scanned_up_to_position] == '\r')
+                gotR = true;
+            else if (gotR && buffer.buffer[buffer.first_buffer_byte + scanned_up_to_position] == '\n') {
+                result_length = scanned_up_to_position - 1;
+                char* char_buffer = &buffer.buffer[0];
+                const char* result = char_buffer + buffer.first_buffer_byte;
+                buffer.first_buffer_byte += scanned_up_to_position + 1;
+                buffer.bytes_in_buffer -= scanned_up_to_position + 1;
+
+                if (buffer.first_buffer_byte > 4096) {
+                    // Wrap around and reset buffer
+                    memmove(char_buffer, char_buffer + buffer.first_buffer_byte, buffer.bytes_in_buffer);
+                    buffer.first_buffer_byte = 0;
+                }
+
+                return result;
+            } else {
+                gotR = false;
+            }
+
+            ++scanned_up_to_position;
+        }
+
+        //We have failed to find a CRLF
+        result_length = 0;
+        return NULL;
     }
     
     const char* read_n_bytes(const size_t n) {
-        buffer.resize(std::max(first_buffer_byte + n, buffer.size()), '\0');
-        char* char_buffer = &buffer[0];
-        if (bytes_in_buffer < n) {
+        buffer.buffer.resize(std::max(buffer.first_buffer_byte + n, buffer.buffer.size()), '\0');
+        char* char_buffer = &buffer.buffer[0];
+        if (buffer.bytes_in_buffer < n) {
             // MSG_WAITALL makes recv wait until it actually receives the full n bytes
-            const ssize_t bytes_read = recv(socketfd, char_buffer + first_buffer_byte + bytes_in_buffer, n - bytes_in_buffer, MSG_WAITALL);
-            if(bytes_read < n - bytes_in_buffer) {
+            const ssize_t bytes_read = recv(socketfd, char_buffer + buffer.first_buffer_byte + buffer.bytes_in_buffer, n - buffer.bytes_in_buffer, MSG_WAITALL);
+            if(bytes_read < n - buffer.bytes_in_buffer) {
                 perror("Unable to read from socket");
                 exit(-1);
             }
-            bytes_in_buffer += bytes_read;
+            buffer.bytes_in_buffer += bytes_read;
         }
         
-        const char* result = char_buffer + first_buffer_byte;
-        first_buffer_byte += n;
-        bytes_in_buffer -= n;
+        const char* result = char_buffer + buffer.first_buffer_byte;
+        buffer.first_buffer_byte += n;
+        buffer.bytes_in_buffer -= n;
         
         return result;
     }
@@ -145,15 +211,13 @@ protected:
         }
     }
     
-private:
-    std::vector<char>& buffer;
-    size_t first_buffer_byte;
-    size_t bytes_in_buffer;
+protected:
+    tcp_buffer_t &buffer;
 };
 
 class memcached_delete_response_t : public memcached_response_t {
 public:
-    memcached_delete_response_t(std::vector<char>& thread_buffer) : memcached_response_t(thread_buffer) { }
+    memcached_delete_response_t(tcp_buffer_t &thread_buffer) : memcached_response_t(thread_buffer) { }
 
     void read_from_socket(const int socketfd) {
         this->socketfd = socketfd;
@@ -170,7 +234,7 @@ public:
 
 class memcached_store_response_t : public memcached_response_t {
 public:
-    memcached_store_response_t(std::vector<char>& thread_buffer) : memcached_response_t(thread_buffer) { }
+    memcached_store_response_t(tcp_buffer_t &thread_buffer) : memcached_response_t(thread_buffer) { }
 
     void read_from_socket(const int socketfd) {
         this->socketfd = socketfd;
@@ -187,12 +251,12 @@ public:
 
 class memcached_retrieval_response_t : public memcached_response_t {
 public:
-    memcached_retrieval_response_t(std::vector<char>& thread_buffer, const unsigned int number_of_keys, const bool mock_parse) : memcached_response_t(thread_buffer) {
+    memcached_retrieval_response_t(tcp_buffer_t &thread_buffer, const unsigned int number_of_keys, const bool mock_parse) : memcached_response_t(thread_buffer) {
         this->number_of_keys = number_of_keys;
         this->mock_parse = mock_parse;
     }
 
-    void read_from_socket(const int socketfd) {
+    virtual void read_from_socket(const int socketfd) {
         this->socketfd = socketfd;
         
         values.clear();
@@ -211,13 +275,15 @@ public:
                 break;
             }
             else if (does_match_at_position(line, "VALUE ", line_length, 0)) {
-                if (mock_parse)
+                if (mock_parse) {
                     parse_value_response_mock(value_response);
-                else
+                } else {
                     parse_value_response(value_response);
+                }
             }
-            else
+            else {
                 throw protocol_error_t("Illegal response to get request: " + value_response);
+            }
         }
         
         if (number_of_failed_gets == 0) {
@@ -237,7 +303,7 @@ public:
     std::map<std::string, std::string> values;
     std::map<std::string, int> flags;
     
-private:
+protected:
     void parse_value_response(const std::string& value_response) {
         size_t parse_position = 6;
                 
@@ -298,7 +364,9 @@ private:
 };
 
 struct memcached_sock_protocol_t : public protocol_t {
-    memcached_sock_protocol_t(const char *conn_str) : sockfd(-1) {
+    memcached_sock_protocol_t(const char *conn_str) 
+        : sockfd(-1), outstanding_reads(0)
+    {
         // init the socket
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
         if(sockfd < 0) {
@@ -308,7 +376,7 @@ struct memcached_sock_protocol_t : public protocol_t {
         }
 
         // Should be enough:
-        thread_buffer.resize(1024 * 8, '\0');
+        thread_buffer.buffer.resize(1024 * 8, '\0');
 
         // Parse the host string
         char _host[MAX_HOST];
@@ -349,6 +417,7 @@ struct memcached_sock_protocol_t : public protocol_t {
     }
 
     virtual ~memcached_sock_protocol_t() {
+        // assert(!exist_outstanding_pipeline_reads());;
         if(sockfd != -1) {
             int res = close(sockfd);
             int err = errno;
@@ -364,6 +433,7 @@ struct memcached_sock_protocol_t : public protocol_t {
     }
 
     virtual void remove(const char *key, size_t key_size) {
+        assert(!exist_outstanding_pipeline_reads());;
         // Setup the text command
         send_buffer_at_least(key_size + 1024);
         char *buf = send_buffer.data();
@@ -395,11 +465,13 @@ struct memcached_sock_protocol_t : public protocol_t {
 
     virtual void update(const char *key, size_t key_size,
                         const char *value, size_t value_size) {
+        assert(!exist_outstanding_pipeline_reads());;
         insert(key, key_size, value, value_size);
     }
 
     virtual void insert(const char *key, size_t key_size,
                         const char *value, size_t value_size) {
+        assert(!exist_outstanding_pipeline_reads());;
         // Setup the text command
         send_buffer_at_least(key_size + value_size + 1024);
         char *buf = send_buffer.data();
@@ -434,8 +506,9 @@ struct memcached_sock_protocol_t : public protocol_t {
     }
 
     virtual void read(payload_t *keys, int count, payload_t *values = NULL) {
+        assert(!exist_outstanding_pipeline_reads());;
         // Setup the text command
-        send_buffer_at_least(count * keys[0].second + 1024);
+        send_buffer_at_least(count * MAX_MC_KEY_SIZE + 1024);
         char *buf = send_buffer.data();
         buf += sprintf(buf, "get ");
         for(int i = 0; i < count; i++) {
@@ -476,7 +549,52 @@ struct memcached_sock_protocol_t : public protocol_t {
         }
     }
 
+    int outstanding_reads;
+
+    /* add a read to the pipeline */
+    void enqueue_read(payload_t *keys, int count, payload_t *values = NULL) {
+        // Setup the text command
+        send_buffer_at_least(count * MAX_MC_KEY_SIZE + 1024);
+        char *buf = send_buffer.data();
+        buf += sprintf(buf, "get ");
+        for(int i = 0; i < count; i++) {
+            memcpy(buf, keys[i].first, keys[i].second);
+            buf += keys[i].second;
+            if(i != count - 1) {
+                buf += sprintf(buf, " ");
+            }
+        }
+        buf += sprintf(buf, "\r\n");
+
+        send_command(buf - send_buffer.data());
+        outstanding_reads++;
+    }
+
+    bool dequeue_read_maybe(payload_t *keys, int count, payload_t *values = NULL) {
+        dequeue_read(keys, count, values);
+        return true;
+    }
+
+    /* Wait until all of the pipelined reads have been returned */
+    void dequeue_read(payload_t *keys, int count, payload_t *values = NULL) {
+        memcached_retrieval_response_t response(thread_buffer, count, !values);
+        response.read_from_socket(sockfd);
+
+        if (values) {
+            for (int i = 0; i < count; i++) {
+                if (std::string(values[i].first) != response.values[std::string(keys[i].first)]) {
+                    fprintf(stderr, "Got unexpected value: %s instead of %s\n", response.values[std::string(keys[i].first)].c_str(), values[i].first);
+                }
+            }
+        }
+    }
+
+    bool exist_outstanding_pipeline_reads() {
+        return outstanding_reads != 0;
+    }
+
     virtual void range_read(char* lkey, size_t lkey_size, char* rkey, size_t rkey_size, int count_limit, payload_t *values = NULL) {
+        assert(!exist_outstanding_pipeline_reads());
         // Setup the text command
         send_buffer_at_least(lkey_size + rkey_size + 1024);
         char *buf = send_buffer.data();
@@ -516,6 +634,7 @@ struct memcached_sock_protocol_t : public protocol_t {
 
     virtual void append(const char *key, size_t key_size,
                         const char *value, size_t value_size) {
+        assert(!exist_outstanding_pipeline_reads());;
         // Setup the text command
         send_buffer_at_least(key_size + value_size + 1024);
         char *buf = send_buffer.data();
@@ -550,6 +669,7 @@ struct memcached_sock_protocol_t : public protocol_t {
 
     virtual void prepend(const char *key, size_t key_size,
                           const char *value, size_t value_size) {
+        assert(!exist_outstanding_pipeline_reads());;
         // Setup the text command
         send_buffer_at_least(key_size + value_size + 1024);
         char *buf = send_buffer.data();
@@ -599,7 +719,7 @@ private:
 private:
     int sockfd;
     std::vector<char> send_buffer;
-    std::vector<char> thread_buffer;
+    tcp_buffer_t thread_buffer;
 };
 
 
