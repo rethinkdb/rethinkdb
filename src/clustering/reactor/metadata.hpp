@@ -4,44 +4,52 @@
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 
 /* `reactor_business_card_t` is the way that each peer tells peers what's
-currently happening namespace on this machine. Each `reactor_business_card_t`
-only applies to a single namespace. */
+currently happening on this machine. Each `reactor_business_card_t` only applies
+to a single namespace. */
 
 template<class protocol_t>
 class reactor_business_card_t {
 public:
-    typedef int activity_id_t;
+    class primary_soon_t {
+    };
 
     class primary_t {
-    public:
-        typename protocol_t::region_t region;
-
-        /* This is `boost::optional()` if we are a primary-in-waiting. */
-        boost::optional<broadcaster_business_card_t<protocol_t> > broadcaster;
+        broadcaster_business_card_t<protocol_t> broadcaster;
+        backfiller_business_card_t<protocol_t> backfiller;
     };
 
     class secondary_t {
-    public:
-        typename protocol_t::region_t region;
-        branch_id_t branch;
+        branch_id_t branch_id;
         backfiller_business_card_t<protocol_t> backfiller;
-        bool waiting_to_shut_down;
     };
 
-    class backfiller_t {
-    public:
-        region_map_t<protocol_t, version_range_t> version;
+    class secondary_without_primary_t {
+        region_map_t<protocol_t, version_range_t> current_state;
+        backfiller_business_card_t<protocol_t> backfiller;
+    };
+
+    class listener_t {
+    };
+
+    class listener_ready_t {
+    };
+
+    class nothing_soon_t {
+        region_map_t<protocol_t, version_range_t> current_state;
         backfiller_business_card_t<protocol_t> backfiller;
     };
 
     class nothing_t {
-        typename protocol_t::region_t region;
     };
 
-    std::map<activity_id_t, primary_t> primaries;
-    std::map<activity_id_t, secondary_t> secondaries;
-    std::map<activity_id_t, backfiller_t> backfillers;
-    std::map<activity_id_t, nothing_t> nothings;
+    typedef boost::variant<
+            primary_soon_t, primary_t,
+            secondary_t, secondary_without_primary_t,
+            listener_t, listener_ready_t,
+            nothing_soon_t, nothing_t
+            > activity_t;
+
+    std::map<typename protocol_t::region_t, activity_t> activities;
 };
 
 #endif /* __CLUSTERING_REACTOR_METADATA_HPP__ */
