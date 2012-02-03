@@ -14,6 +14,7 @@
 #include "concurrency/coro_pool.hpp"
 #include "perfmon_types.hpp"
 #include "arch/io/event_watcher.hpp"
+#include "containers/intrusive_list.hpp"
 #include <boost/iterator/iterator_facade.hpp>
 #include <stdexcept>
 #include <stdarg.h>
@@ -208,9 +209,40 @@ private:
     ::read(). Returns the number of bytes read or throws read_closed_exc_t. Bypasses read_buffer. */
     size_t read_internal(void *buffer, size_t size);
 
-    /* Buffer we are currently filling up with data that we want to write. When it reaches a
-    certain size, we push it onto `write_queue`. */
-    std::vector<char> write_buffer;
+    static const size_t WRITE_QUEUE_MAX_SIZE = 128 * KILOBYTE;
+    static const size_t WRITE_CHUNK_SIZE = 8 * KILOBYTE;
+
+    /* Structs to avoid over-using dynamic allocation */
+    struct write_buffer_t : public intrusive_list_node_t<write_buffer_t> {
+        char buffer[WRITE_CHUNK_SIZE];
+        size_t size;
+    };
+
+    struct write_queue_op_t : public intrusive_list_node_t<write_queue_op_t> {
+        write_buffer_t *dealloc;
+        const void *buffer;
+        size_t size;
+        cond_t *cond;
+    };
+
+    class write_handler_t :
+        public coro_pool_caller_t<write_queue_op_t*>::callback_t {
+    public:
+        write_handler_t(linux_tcp_conn_t *parent_);
+    private:
+        linux_tcp_conn_t *parent;
+        void coro_pool_callback(write_queue_op_t *operation);
+    } write_handler;
+
+    /* Lists of unused buffers, new buffers will be put on this list until needed again, reducing
+       the use of dynamic memory.  TODO: decay over time? */
+    intrusive_list_t<write_buffer_t> unused_write_buffers;
+    intrusive_list_t<write_queue_op_t> unused_write_queue_ops;
+
+    write_buffer_t * get_write_buffer();
+    write_queue_op_t * get_write_queue_op();
+    void release_write_buffer(write_buffer_t *buffer);
+    void release_write_queue_op(write_queue_op_t *op);
 
     /* Schedules old write buffer's contents to be flushed and swaps in a fresh write buffer.
     Blocks until it can acquire the `write_queue_limiter` semaphore, but doesn't wait for
@@ -219,13 +251,18 @@ private:
 
     /* Used to queue up buffers to write. The functions in `write_queue` will all be
     `boost::bind()`s of the `perform_write()` function below. */
-    unlimited_fifo_queue_t<boost::function<void()> > write_queue;
+    unlimited_fifo_queue_t<write_queue_op_t*, intrusive_list_t<write_queue_op_t> > write_queue;
 
     /* This semaphore prevents the write queue from getting arbitrarily big. */
     semaphore_t write_queue_limiter;
 
-    /* Used to actually perform the writes. Only has one coroutine in it. */
-    coro_pool_t write_coro_pool;
+    /* Used to actually perform the writes. Only has one coroutine in it, which will call the
+    handle_write_queue callback when operations are ready */
+    coro_pool_caller_t<write_queue_op_t*> write_coro_pool;
+
+    /* Buffer we are currently filling up with data that we want to write. When it reaches a
+    certain size, we push it onto `write_queue`. */
+    write_buffer_t* current_write_buffer;
 
     /* Used to actually perform a write. If the write end of the connection is open, then writes
     `size` bytes from `buffer` to the socket. */
