@@ -26,7 +26,7 @@ int compute_shard_home_thread(int shard_number, int num_db_threads);
 class sequence_group_t {
 public:
     // TODO FIFO: Don't even think about running the database while n_slices has a default argument.
-    sequence_group_t(int n_slices) : slice_groups(new per_slice_sequence_group_t[n_slices]) {
+    explicit sequence_group_t(int n_slices) : slice_groups(new per_slice_sequence_group_t[n_slices]) {
         int num_db_threads = get_num_db_threads();
         for (int i = 0; i < n_slices; ++i) {
             slice_groups[i].fifo.rethread(compute_shard_home_thread(i, num_db_threads));

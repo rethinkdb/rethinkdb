@@ -172,7 +172,7 @@ private:
     RedisParser *parser;
     bool patterned;
 public:
-    explicit pubsub_subscribe_cmd(RedisParser *parser_, bool patterned_) : parser(parser_), patterned(patterned_) {}
+    pubsub_subscribe_cmd(RedisParser *parser_, bool patterned_) : parser(parser_), patterned(patterned_) {}
 
     virtual redis_protocol_t::redis_return_type execute(UNUSED redis_ext *extApi, std::vector<std::string> &args) {
         parser->first_subscribe(args, patterned);
@@ -189,6 +189,10 @@ public:
     virtual redis_protocol_t::redis_return_type operator()(UNUSED redis_ext *extApi, std::string &channel, std::string &message) {
         return parser->publish(channel, message);
     }
+    virtual redis_protocol_t::redis_return_type operator()(redis_ext *extApi) { crash("not implemented"); }
+    virtual redis_protocol_t::redis_return_type operator()(redis_ext *extApi, std::string& arg1_string) { crash("not implemented"); }
+    virtual redis_protocol_t::redis_return_type operator()(redis_ext *extApi, std::string& arg1_string, std::string& arg2_string, std::string& arg3_string) { crash("not implemented"); } 
+    virtual redis_protocol_t::redis_return_type operator()(redis_ext *extApi, std::string& arg1_string, std::string& arg2_string, std::string& arg3_string, std::string &arg4_string) { crash("not implemented"); }
 };
 
 #define CMD(NAME, ...) commands[#NAME] = new cmd<__VA_ARGS__>(&redis_ext::NAME);

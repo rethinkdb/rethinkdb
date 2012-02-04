@@ -228,7 +228,7 @@ private:
     class write_handler_t :
         public coro_pool_caller_t<write_queue_op_t*>::callback_t {
     public:
-        write_handler_t(linux_tcp_conn_t *parent_);
+        explicit write_handler_t(linux_tcp_conn_t *parent_);
     private:
         linux_tcp_conn_t *parent;
         void coro_pool_callback(write_queue_op_t *operation);

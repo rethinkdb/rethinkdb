@@ -208,7 +208,7 @@ void debugf(const char *msg, ...) __attribute__((format (printf, 1, 2)));
 class rng_t {
 public:
     int randint(int n);
-    rng_t(long int seed = -1);
+    explicit rng_t(long int seed = -1);
 private:
     struct drand48_data buffer_;
     DISABLE_COPYING(rng_t);

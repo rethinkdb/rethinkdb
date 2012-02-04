@@ -173,7 +173,7 @@ perfmon_duration_sampler_t
 
 class pipeliner_t {
 public:
-    pipeliner_t(txt_memcached_handler_t *rh) : requests_out_sem(rh->max_concurrent_queries_per_connection), rh_(rh) { }
+    explicit pipeliner_t(txt_memcached_handler_t *rh) : requests_out_sem(rh->max_concurrent_queries_per_connection), rh_(rh) { }
     ~pipeliner_t() { }
 
     void lock_argparsing() {
@@ -198,7 +198,7 @@ private:
 
 class pipeliner_acq_t {
 public:
-    pipeliner_acq_t(pipeliner_t *pipeliner)
+    explicit pipeliner_acq_t(pipeliner_t *pipeliner)
         : pipeliner_(pipeliner)
 #ifndef NDEBUG
         , state_(untouched)

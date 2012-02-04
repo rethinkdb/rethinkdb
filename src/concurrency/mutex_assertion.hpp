@@ -14,7 +14,7 @@ public:
     public:
         class temporary_release_t {
         public:
-            temporary_release_t(acq_t *a) : mutex(a->mutex), acq(a) {
+            explicit temporary_release_t(acq_t *a) : mutex(a->mutex), acq(a) {
                 acq->reset();
             }
             ~temporary_release_t() {

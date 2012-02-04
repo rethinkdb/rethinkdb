@@ -12,7 +12,7 @@ namespace unittest {
 
 class test_shared_variable_t {
 public:
-    test_shared_variable_t(int initial) : variable(initial) { }
+    explicit test_shared_variable_t(int initial) : variable(initial) { }
     void spawn_read(int expected_value) {
         coro_t::spawn_sometime(boost::bind(
             &test_shared_variable_t::attempt_read, this,

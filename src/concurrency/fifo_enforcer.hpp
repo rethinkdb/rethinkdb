@@ -23,7 +23,7 @@ public:
 private:
     friend class fifo_enforcer_source_t;
     friend class fifo_enforcer_sink_t;
-    fifo_enforcer_read_token_t(state_timestamp_t t) THROWS_NOTHING :
+    explicit fifo_enforcer_read_token_t(state_timestamp_t t) THROWS_NOTHING :
         timestamp(t) { }
     state_timestamp_t timestamp;
 };
