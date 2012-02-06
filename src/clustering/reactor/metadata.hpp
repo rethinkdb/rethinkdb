@@ -15,17 +15,27 @@ public:
      *  - the peer is backfilling
      *  - another peer is a primary
      */
-    class primary_soon_t {
+    class primary_when_safe_t{
     };
 
     /* This peer is currently a primary in working order. */
     class primary_t {
+    public:
+        primary_t(broadcaster_business_card_t<protocol_t> _broadcaster, backfiller_business_card_t<protocol_t> _backfiller)
+            : broadcaster(_broadcaster), backfiller(_backfiller)
+        { }
+
         broadcaster_business_card_t<protocol_t> broadcaster;
         backfiller_business_card_t<protocol_t> backfiller;
     };
 
     /* This peer is currently a secondary in working order. */
     class secondary_up_to_date_t {
+    public:
+        secondary_up_to_date_t(branch_id_t _branch_id, backfiller_business_card_t<protocol_t> _backfiller)
+            : branch_id(_branch_id), backfiller(_backfiller)
+        { }
+
         branch_id_t branch_id;
         backfiller_business_card_t<protocol_t> backfiller;
     };
@@ -33,6 +43,11 @@ public:
     /* This peer would like to be a secondary but cannot because it failed to
      * find a primary. It may or may not have ever seen a primary. */
     class secondary_without_primary_t {
+    public:
+        secondary_without_primary_t(region_map_t<protocol_t, version_range_t> _current_state, backfiller_business_card_t<protocol_t> _backfiller)
+            : current_state(_current_state), backfiller(_backfiller)
+        { }
+
         region_map_t<protocol_t, version_range_t> current_state;
         backfiller_business_card_t<protocol_t> backfiller;
     };
@@ -64,9 +79,20 @@ public:
     /* This peer would like to erase its data and not do any job for this
      * shard, however it must stay up until every other peer is ready for it to
      * go away (to avoid risk of data loss). */
-    class nothing_soon_t {
+    class nothing_when_safe_t{
+    public:
+        nothing_soon_t(region_map_t<protocol_t, version_range_t> _current_state, backfiller_business_card_t<protocol_t> _backfiller)
+            : current_state(_current_state), backfiller(_backfiller)
+        { }
+
         region_map_t<protocol_t, version_range_t> current_state;
         backfiller_business_card_t<protocol_t> backfiller;
+    };
+
+    /* This peer is in the process of erasing data that it previously held,
+     * this is identical to nothing in terms of cluster behavior but is a state
+     * the we would like to display in the ui. */
+    class nothing_when_done_erasing_t {
     };
 
     /* This peer has no data for the shard, is not backfilling and is not a
