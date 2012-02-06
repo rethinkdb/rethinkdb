@@ -1,6 +1,13 @@
 #ifndef __PROTOCOL_API_HPP__
 #define __PROTOCOL_API_HPP__
 
+#include "errors.hpp"
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/utility.hpp>   /* for `std::pair` serialization */
+#include <functional>
+#include <utility>
+#include <vector>
+
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/signal.hpp"
 #include "timestamps.hpp"
@@ -17,8 +24,7 @@ instantiated. For a description of what `protocol_t` must be like, see
 logic for query routing exposes to the protocol-specific query parser. */
 
 template<class protocol_t>
-class namespace_interface_t {
-public:
+struct namespace_interface_t {
     virtual typename protocol_t::read_response_t read(typename protocol_t::read_t, order_token_t tok, signal_t *interruptor) = 0;
     virtual typename protocol_t::write_response_t write(typename protocol_t::write_t, order_token_t tok, signal_t *interruptor) = 0;
 
@@ -28,16 +34,14 @@ protected:
 
 /* Exceptions thrown by functions operating on `protocol_t::region_t` */
 
-class bad_region_exc_t : public std::exception {
-public:
+struct bad_region_exc_t : public std::exception {
     const char *what() const throw () {
         return "The set you're trying to compute cannot be expressed as a "
             "`region_t`.";
     }
 };
 
-class bad_join_exc_t : public std::exception {
-public:
+struct bad_join_exc_t : public std::exception {
     const char *what() const throw () {
         return "You need to give a non-overlapping set of regions.";
     }
@@ -56,11 +60,13 @@ bool region_overlaps(const region_t &r1, const region_t &r2) {
     return !region_is_empty(region_intersection(r1, r2));
 }
 
+/* Regions contained in region_map_t must never intersect. */
 template<class protocol_t, class value_t>
 class region_map_t {
 public:
-    region_map_t() THROWS_NOTHING { }
+    typedef typename std::vector<std::pair<typename protocol_t::region_t, value_t> >::const_iterator const_iterator;
 
+    region_map_t() THROWS_NOTHING { }
     region_map_t(typename protocol_t::region_t r, value_t v) THROWS_NOTHING {
         regions_and_values.push_back(std::make_pair(r, v));
     }
@@ -84,6 +90,14 @@ public:
         return regions_and_values;
     }
 
+    const_iterator begin() const {
+        return regions_and_values.begin();
+    }
+
+    const_iterator end() const {
+        return regions_and_values.end();
+    }
+
     region_map_t mask(typename protocol_t::region_t region) const {
         std::vector<std::pair<typename protocol_t::region_t, value_t> > masked_pairs;
         for (int i = 0; i < (int)regions_and_values.size(); i++) {
@@ -93,6 +107,28 @@ public:
             }
         }
         return region_map_t(masked_pairs);
+    }
+
+    // Important: 'update' assumes that new_values regions do not intersect
+    region_map_t update(const region_map_t& new_values) {
+        std::vector<typename protocol_t::region_t> overlay_regions;
+        for (const_iterator i = new_values.begin(); i != new_values.end(); ++i) {
+            overlay_regions.push_back((*i).first);
+        }
+
+        std::vector<std::pair<typename protocol_t::region_t, value_t> > updated_pairs;
+        for (const_iterator i = begin(); i != end(); ++i) {
+            typename protocol_t::region_t old = (*i).first;
+            std::vector<typename protocol_t::region_t> old_subregions = region_subtract_many(old, overlay_regions);
+
+            // Insert the unchanged parts of the old region into updated_pairs with the old value
+            for (typename std::vector<typename protocol_t::region_t>::const_iterator j = old_subregions.begin(); j != old_subregions.end(); ++j) {
+                updated_pairs.push_back(std::make_pair(*j, (*i).second));
+            }
+        }
+        std::copy(new_values.begin(), new_values.end(), std::back_inserter(updated_pairs));
+
+        return region_map_t(updated_pairs);
     }
 
 private:
@@ -118,11 +154,15 @@ covers some `protocol_t::region_t`, which is returned by `get_region()`.
 
 In addition to the actual data, `store_view_t` is responsible for keeping track
 of metadata which is keyed by region. The metadata is currently implemented as
-opaque binary blob (`binary_blob_t`). */
+opaque binary blob (`binary_blob_t`).
+
+Here are the possible call sequences for read/write transactions:
+ - begin_read_transaction get_metainfo* [read|send_backfill] destructor
+ - begin_write_transaction (get_metainfo|set_metainfo)* [read|write|send_backfill|recv_backfill] destructor
+*/
 
 template<class protocol_t>
 class store_view_t {
-
 public:
     virtual ~store_view_t() { }
 
@@ -130,9 +170,7 @@ public:
         return region;
     }
 
-    class read_transaction_t {
-
-    public:
+    struct read_transaction_t {
         virtual ~read_transaction_t() { }
 
         /* Gets the metadata.
@@ -173,9 +211,7 @@ public:
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
-    class write_transaction_t : public read_transaction_t {
-
-    public:
+    struct write_transaction_t : public read_transaction_t {
         virtual ~write_transaction_t() { }
 
         /* Replaces the metadata over the view's entire range with the given
@@ -205,7 +241,7 @@ public:
         [Postcondition] `this` does not hold the superblock
         [May block] */
         virtual void receive_backfill(
-                const typename protocol_t::backfill_chunk_t &chunk_fun,
+                const typename protocol_t::backfill_chunk_t &chunk,
                 signal_t *interruptor)
                 THROWS_ONLY(interrupted_exc_t) = 0;
     };
