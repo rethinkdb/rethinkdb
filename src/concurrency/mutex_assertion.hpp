@@ -152,7 +152,7 @@ public:
     public:
         class temporary_release_t {
         public:
-            temporary_release_t(acq_t *) { }
+            explicit temporary_release_t(acq_t *) { }
         private:
             DISABLE_COPYING(temporary_release_t);
         };

@@ -14,7 +14,7 @@
 const size_t MAX_COROUTINE_STACK_SIZE = 8*1024*1024;
 
 int get_thread_id();
-class coro_globals_t;
+struct coro_globals_t;
 
 /* A coro_t represents a fiber of execution within a thread. Create one with spawn_*(). Within a
 coroutine, call wait() to return control to the scheduler; the coroutine will be resumed when
