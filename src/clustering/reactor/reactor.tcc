@@ -4,14 +4,14 @@ reactor_t<protocol_t>::reactor_t(
         clone_ptr_t<directory_readwrite_view_t<reactor_business_card_t<protocol_t> > > rd,
         boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > bh,
         watchable_t<blueprint_t<protocol_t> > *b,
-        std::string file_path) THROWS_NOTHING :
+        store_view_t<protocol_t> *_underlying_store) THROWS_NOTHING :
     mailbox_manager(mm), directory_echo_access(mailbox_manager, rd, reactor_business_card_t<protocol_t>()), 
-    branch_history(bh), blueprint(b), store_file(file_path),
-    backfiller(mailbox_manager, branch_history, &store_file),
+    branch_history(bh), blueprint(b), underlying_store(_underlying_store),
     blueprint_subscription(boost::bind(&reactor_t<protocol_t>::on_blueprint_changed, this))
 {
     {
-        watchable_freeze_t freeze(blueprint);
+        typename watchable_t<blueprint_t<protocol_t> >::freeze_t freeze(blueprint);
+        blueprint->get().assert_valid();
         try_spawn_roles();
         blueprint_subscription.reset(blueprint, &freeze);
     }
@@ -37,6 +37,7 @@ reactor_t<protocol_t>::directory_entry_t::~directory_entry_t() {
 
 template<class protocol_t>
 void reactor_t<protocol_t>::on_blueprint_changed() THROWS_NOTHING {
+    blueprint->get().assert_valid();
     std::map<typename protocol_t::region_t, typename blueprint_t<protocol_t>::role_t> blueprint_roles =
         (*blueprint->get().peers.find(get_me())).second;
     typename std::map<
@@ -96,7 +97,7 @@ void reactor_t<protocol_t>::run_role(
         auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
 
     //A store_view_t derived object that acts as a store for the specified region
-    store_subview_t store_subview(&store_file, region);
+    store_subview_t store_subview(underlying_store_view, region);
 
     //All of the be_{role} functions respond identically to blueprint changes
     //and interruptions... so we just unify those signals

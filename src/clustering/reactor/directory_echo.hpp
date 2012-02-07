@@ -33,7 +33,7 @@ class directory_echo_access_t {
 public:
     class our_value_change_t {
     public:
-        our_value_change_t(directory_echo_access_t *p) :
+        explicit our_value_change_t(directory_echo_access_t *p) :
             parent(p), acq(parent->metadata_view->get_directory_service()),
             buffer(parent->metadata_view->get_our_value(&acq).get().internal)
             { }

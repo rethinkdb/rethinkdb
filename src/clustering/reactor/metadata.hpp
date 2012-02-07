@@ -16,6 +16,7 @@ public:
      *  - another peer is a primary
      */
     class primary_when_safe_t{
+        RDB_MAKE_ME_SERIALIZABLE_0();
     };
 
     /* This peer is currently a primary in working order. */
@@ -25,8 +26,12 @@ public:
             : broadcaster(_broadcaster), backfiller(_backfiller)
         { }
 
+        primary_t() { }
+
         broadcaster_business_card_t<protocol_t> broadcaster;
         backfiller_business_card_t<protocol_t> backfiller;
+
+        RDB_MAKE_ME_SERIALIZABLE_2(broadcaster, backfiller);
     };
 
     /* This peer is currently a secondary in working order. */
@@ -36,8 +41,12 @@ public:
             : branch_id(_branch_id), backfiller(_backfiller)
         { }
 
+        secondary_up_to_date_t() { }
+
         branch_id_t branch_id;
         backfiller_business_card_t<protocol_t> backfiller;
+
+        RDB_MAKE_ME_SERIALIZABLE_2(branch_id, backfiller);
     };
 
     /* This peer would like to be a secondary but cannot because it failed to
@@ -48,19 +57,25 @@ public:
             : current_state(_current_state), backfiller(_backfiller)
         { }
 
+        secondary_without_primary_t() { }
+
         region_map_t<protocol_t, version_range_t> current_state;
         backfiller_business_card_t<protocol_t> backfiller;
+
+        RDB_MAKE_ME_SERIALIZABLE_2(current_state, backfiller);
     };
 
     /* This peer is in the process of becoming a secondary, barring failures it
      * will become a secondary when it completes backfilling. */
     class secondary_backfilling_t {
+        RDB_MAKE_ME_SERIALIZABLE_0();
     };
 
     /* This peer has up to date data and is tracking from the primary
      * (receiving changes as they happen) and can be efficiently switch to a
      * role in which it will serve queries. */
     class listener_up_to_date_t {
+        RDB_MAKE_ME_SERIALIZABLE_0();
     };
 
     /* This peer is backfilling from the current primary but is not intending
@@ -68,12 +83,14 @@ public:
      * listener_ready_t state and from there can efficiently be switched to a
      * different role (one in which it actually serves queries). */
     class listener_backfilling_t {
+        RDB_MAKE_ME_SERIALIZABLE_0();
     };
 
 
     /* This peer would like to be a listener but can't find a primary to track.
      * It may or may not have seen a primary in the past. */
     class listener_without_primary_t {
+        RDB_MAKE_ME_SERIALIZABLE_0();
     };
 
     /* This peer would like to erase its data and not do any job for this
@@ -81,35 +98,43 @@ public:
      * go away (to avoid risk of data loss). */
     class nothing_when_safe_t{
     public:
-        nothing_soon_t(region_map_t<protocol_t, version_range_t> _current_state, backfiller_business_card_t<protocol_t> _backfiller)
+        nothing_when_safe_t(region_map_t<protocol_t, version_range_t> _current_state, backfiller_business_card_t<protocol_t> _backfiller)
             : current_state(_current_state), backfiller(_backfiller)
         { }
 
+        nothing_when_safe_t() { }
+
         region_map_t<protocol_t, version_range_t> current_state;
         backfiller_business_card_t<protocol_t> backfiller;
+
+        RDB_MAKE_ME_SERIALIZABLE_2(current_state, backfiller);
     };
 
     /* This peer is in the process of erasing data that it previously held,
      * this is identical to nothing in terms of cluster behavior but is a state
      * the we would like to display in the ui. */
     class nothing_when_done_erasing_t {
+        RDB_MAKE_ME_SERIALIZABLE_0();
     };
 
     /* This peer has no data for the shard, is not backfilling and is not a
      * primary or a secondary. */
     class nothing_t {
+        RDB_MAKE_ME_SERIALIZABLE_0();
     };
 
     typedef boost::variant<
-            primary_soon_t, primary_t,
+            primary_when_safe_t, primary_t,
             secondary_up_to_date_t, secondary_without_primary_t,
             secondary_backfilling_t,
             listener_backfilling_t, listener_up_to_date_t,
             listener_without_primary_t,
-            nothing_soon_t, nothing_t
+            nothing_when_safe_t, nothing_t
             > activity_t;
 
     std::map<typename protocol_t::region_t, activity_t> activities;
+
+    RDB_MAKE_ME_SERIALIZABLE_1(activities);
 };
 
 #endif /* __CLUSTERING_REACTOR_METADATA_HPP__ */

@@ -13,6 +13,27 @@ dummy_protocol_t::region_t dummy_protocol_t::region_t::empty() THROWS_NOTHING {
     return region_t();
 }
 
+bool dummy_protocol_t::region_t::operator<(const region_t &other) const {
+    std::set<std::string>::iterator it_us = keys.begin();
+    std::set<std::string>::iterator it_other = other.keys.begin();
+
+    while (true) {
+        if (it_us == keys.end() && it_other == other.keys.end()) {
+            return false;
+        } else if (it_us == keys.end()) {
+            return true;
+        } else if (it_other == other.keys.end()) {
+            return false;
+        } else if (*it_us == *it_other) {
+            it_us++;
+            it_other++;
+            continue;
+        } else {
+            return *it_us < *it_other;
+        }
+    }
+}
+
 dummy_protocol_t::region_t dummy_protocol_t::read_t::get_region() const {
     return keys;
 }

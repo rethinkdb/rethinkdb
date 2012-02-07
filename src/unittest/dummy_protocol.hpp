@@ -29,6 +29,7 @@ public:
         static region_t empty() THROWS_NOTHING;
         RDB_MAKE_ME_SERIALIZABLE_1(keys);
         std::set<std::string> keys;
+        bool operator<(const region_t &other) const;
     };
 
     class temporary_cache_t {

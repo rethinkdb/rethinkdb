@@ -1,18 +1,19 @@
 #ifndef __CLUSTERING_REACTOR_REACTOR_HPP__
 #define __CLUSTERING_REACTOR_REACTOR_HPP__
 
-#include "clustering/reactors/metadata.hpp"
-#include "clustering/reactors/delayed_pump.hpp"
+#include "clustering/reactor/metadata.hpp"
+#include "rpc/directory/view.hpp"
+#include "clustering/reactor/directory_echo.hpp"
 
 template<class protocol_t>
 class reactor_t {
 public:
     reactor_t(
             mailbox_manager_t *mailbox_manager,
-            clone_ptr_t<directory_readwrite_view_t<boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > > reactor_directory,
+            clone_ptr_t<directory_rwview_t<boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > > reactor_directory,
             boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > branch_history,
             watchable_t<blueprint_t<protocol_t> > *blueprint,
-            std::string file_path) THROWS_NOTHING;
+            store_view_t<protocol_t> *_underlying_store) THROWS_NOTHING;
 
 private:
     /* a directory_entry_t is a sentry that in its contructor inserts an entry
@@ -25,11 +26,11 @@ private:
         directory_entry_t(reactor_t<protocol_t> *, typename protocol_t::region_t);
 
         //Changes just the activity, leaves everything else in tact
-        directory_entry_version_t update(typename reactor_business_card_t<protocol_t>::activity_t);
+        directory_echo_version_t update(typename reactor_business_card_t<protocol_t>::activity_t);
         ~directory_entry_t();
     private:
         reactor_t<protocol_t> *parent;
-        protocol_t::region_t region;
+        typename protocol_t::region_t region;
     };
 
     /* To save typing */
@@ -63,7 +64,7 @@ private:
     boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > branch_history;
     watchable_t<blueprint_t<protocol_t> > *blueprint;
 
-    typename protocol_t::store_file_t store_file;
+    store_view_t<protocol_t> *underlying_store;
 
     std::map<
             typename protocol_t::region_t,
@@ -72,7 +73,7 @@ private:
 
     auto_drainer_t drainer;
 
-    watchable_subscription_t blueprint_subscription;
+    typename watchable_t<blueprint_t<protocol_t> >::subscription_t blueprint_subscription;
 };
 
 #endif /* __CLUSTERING_REACTOR_REACTOR_HPP__ */
