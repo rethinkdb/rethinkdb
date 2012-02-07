@@ -210,13 +210,13 @@ public:
 
     void begin_operation() {
         rassert(state_ == untouched);
-        DEBUG_ONLY(state_ = has_begun_operation);
+        DEBUG_ONLY_CODE(state_ = has_begun_operation);
         fifo_acq_.enter(&pipeliner_->fifo);
     }
 
     void done_argparsing() {
         rassert(state_ == has_begun_operation);
-        DEBUG_ONLY(state_ = has_done_argparsing);
+        DEBUG_ONLY_CODE(state_ = has_done_argparsing);
 
         unlock_mutex(&pipeliner_->argparsing_mutex);
         pipeliner_->requests_out_sem.co_lock();
@@ -224,14 +224,14 @@ public:
 
     void begin_write() {
         rassert(state_ == has_done_argparsing);
-        DEBUG_ONLY(state_ = has_begun_write);
+        DEBUG_ONLY_CODE(state_ = has_begun_write);
         fifo_acq_.leave();
         mutex_acq_.reset(&pipeliner_->mutex);
     }
 
     void end_write() {
         rassert(state_ == has_begun_write);
-        DEBUG_ONLY(state_ = has_ended_write);
+        DEBUG_ONLY_CODE(state_ = has_ended_write);
 
         block_pm_duration flush_timer(&pm_conns_writing);
         pipeliner_->rh_->flush_buffer();
