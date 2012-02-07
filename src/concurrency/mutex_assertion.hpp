@@ -51,6 +51,8 @@ struct mutex_assertion_t : public home_thread_mixin_t {
         mutex_assertion_t *mutex;
         DISABLE_COPYING(acq_t);
     };
+    explicit mutex_assertion_t(int explicit_home_thread) :
+        home_thread_mixin_t(explicit_home_thread), locked(false) { }
     mutex_assertion_t() : locked(false) { }
     ~mutex_assertion_t() {
         rassert(!locked);
@@ -126,6 +128,8 @@ struct rwi_lock_assertion_t : public home_thread_mixin_t {
         rwi_lock_assertion_t *lock;
         DISABLE_COPYING(write_acq_t);
     };
+    explicit rwi_lock_assertion_t(int explicit_home_thread) :
+        home_thread_mixin_t(explicit_home_thread), state(0) { }
     rwi_lock_assertion_t() : state(0) { }
     ~rwi_lock_assertion_t() {
         rassert(state == 0);
@@ -149,7 +153,7 @@ private:
 struct mutex_assertion_t {
     struct acq_t {
         struct temporary_release_t {
-            temporary_release_t(acq_t *) { }
+            explicit temporary_release_t(acq_t *) { }
             ~temporary_release_t() { }
         private:
             DISABLE_COPYING(temporary_release_t);
@@ -161,6 +165,7 @@ struct mutex_assertion_t {
     private:
         DISABLE_COPYING(acq_t);
     };
+    explicit mutex_assertion_t(int) { }
     mutex_assertion_t() { }
     void rethread(int) { }
 private:
@@ -187,6 +192,7 @@ struct rwi_lock_assertion_t {
     private:
         DISABLE_COPYING(write_acq_t);
     };
+    explicit rwi_lock_assertion_t(int) { }
     rwi_lock_assertion_t() { }
 private:
     friend class read_acq_t;

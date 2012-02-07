@@ -7,7 +7,7 @@ region_t set_write_t::get_region() {
     return region_t(utils::singleton_set<std::string>(object.key));
 }
 
-std::vector<write_t> set_write_t::shard(std::vector<region_t> regions) {
+std::vector<write_t> set_write_t::shard(DEBUG_ONLY_VAR std::vector<region_t> regions) {
     rassert(regions.size() == 1);
     return utils::singleton_vector<write_t>(write_t(*this));
 }
@@ -16,7 +16,7 @@ region_t delete_write_t::get_region() {
     return region_t(utils::singleton_set<std::string>(key));
 }
 
-std::vector<write_t> delete_write_t::shard(std::vector<region_t> regions) {
+std::vector<write_t> delete_write_t::shard(DEBUG_ONLY_VAR std::vector<region_t> regions) {
     rassert(regions.size() == 1);
     return utils::singleton_vector<write_t>(write_t(*this));
 }

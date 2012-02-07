@@ -3,6 +3,7 @@
 #include "unittest/unittest_utils.hpp"
 #include "buffer_cache/blob.hpp"
 #include "buffer_cache/buffer_cache.hpp"
+#include "buffer_cache/sequence_group.hpp"
 #include "containers/buffer_group.hpp"
 
 namespace unittest {
@@ -185,7 +186,9 @@ private:
         SCOPED_TRACE("small_value_test");
         UNUSED block_size_t block_size = cache->get_block_size();
 
-        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past);
+        sequence_group_t seq_group(1);
+
+        transaction_t txn(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
 
         blob_tracker_t tk(251);
 
@@ -218,7 +221,9 @@ private:
         SCOPED_TRACE("small_value_boundary_test");
         block_size_t block_size = cache->get_block_size();
 
-        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past);
+        sequence_group_t seq_group(1);
+
+        transaction_t txn(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
 
         blob_tracker_t tk(251);
 
@@ -272,7 +277,9 @@ private:
 
         ASSERT_EQ(4080, block_size.value() - sizeof(block_magic_t));
 
-        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past);
+        sequence_group_t seq_group(1);
+
+        transaction_t txn(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
 
         blob_tracker_t tk(251);
 
@@ -288,7 +295,9 @@ private:
 
         ASSERT_EQ(4080, block_size.value() - sizeof(block_magic_t));
 
-        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past);
+        sequence_group_t seq_group(1);
+
+        transaction_t txn(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
 
         blob_tracker_t tk(251);
 
@@ -307,7 +316,10 @@ private:
 
     void general_journey_test(cache_t *cache, const std::vector<step_t>& steps) {
         UNUSED block_size_t block_size = cache->get_block_size();
-        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past);
+
+        sequence_group_t seq_group(1);
+
+        transaction_t txn(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
         blob_tracker_t tk(251);
 
         char v = 'A';

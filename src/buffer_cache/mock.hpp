@@ -58,6 +58,7 @@ private:
 };
 
 /* Transaction */
+class sequence_group_t;
 
 class mock_transaction_t :
     public home_thread_mixin_t
@@ -65,8 +66,7 @@ class mock_transaction_t :
     typedef mock_buf_t buf_t;
 
 public:
-    mock_transaction_t(mock_cache_t *cache, access_t access, int expected_change_count, repli_timestamp_t recency_timestamp);
-    mock_transaction_t(mock_cache_t *cache, access_t access);
+    mock_transaction_t(mock_cache_t *cache, sequence_group_t *seq_group, access_t access, int expected_change_count, repli_timestamp_t recency_timestamp);
     ~mock_transaction_t();
 
     void snapshot() { }
@@ -108,11 +108,12 @@ public:
     static void create(
         serializer_t *serializer,
         mirrored_cache_static_config_t *static_config);
-    mock_cache_t(
-        serializer_t *serializer,
-        mirrored_cache_config_t *dynamic_config);
+    mock_cache_t(serializer_t *serializer,
+                 mirrored_cache_config_t *dynamic_config,
+                 int this_slice_num);
     ~mock_cache_t();
 
+    int get_slice_num() const { return slice_num; }
     block_size_t get_block_size();
 
     boost::shared_ptr<cache_account_t> create_account(UNUSED int priority) { return boost::shared_ptr<cache_account_t>(); }
@@ -126,6 +127,7 @@ private:
     friend class mock_buf_t;
     friend class internal_buf_t;
 
+    const int slice_num;
     serializer_t *serializer;
     boost::scoped_ptr<auto_drainer_t> transaction_counter;
     block_size_t block_size;

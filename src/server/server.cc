@@ -1,6 +1,7 @@
 #include "server/server.hpp"
 
 #include <math.h>
+#include <unistd.h>
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
@@ -23,6 +24,7 @@
 #include "riak/http_server.hpp"
 #include "server/key_value_store.hpp"
 #include "server/metadata_store.hpp"
+#include "buffer_cache/sequence_group.hpp"
 
 /*
 int run_server(int argc, char *argv[]) {
@@ -49,7 +51,14 @@ int run_server(int argc, char *argv[]) {
 
 
     // Run the server.
-    thread_pool_t thread_pool(config.n_workers, false); // TODO add set affinity flag here
+    thread_pool_t thread_pool(config.n_workers, config.do_set_affinity);
+
+#ifndef NDEBUG
+    if (config.coroutine_summary) {
+        thread_pool.enable_coroutine_summary();
+    }
+#endif
+
     starter.thread_pool = &thread_pool;
     thread_pool.run(&starter);
 
@@ -92,7 +101,7 @@ static spinlock_t timer_token_lock;
 static volatile bool no_more_checking;
 
 struct periodic_checker_t {
-    periodic_checker_t(creation_timestamp_t _creation_timestamp) : creation_timestamp(_creation_timestamp), timer_token(NULL) {
+    explicit periodic_checker_t(creation_timestamp_t _creation_timestamp) : creation_timestamp(_creation_timestamp), timer_token(NULL) {
         no_more_checking = false;
         check(this);
     }
@@ -152,6 +161,12 @@ private:
 void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
     os_signal_cond_t os_signal_cond;
     try {
+#ifndef NDEBUG
+        if (cmd_config->watchdog_enabled) {
+            enable_watchdog();
+        }
+#endif
+
         /* Start logger */
         log_controller_t log_controller;
 
@@ -164,20 +179,27 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             db_filenames.push_back((*it).db_filename);
         }
 
-        /* Check to see if there is an existing database */
-        struct : public btree_key_value_store_t::check_callback_t, public promise_t<bool> {
-            void on_store_check(bool ok) { pulse(ok); }
-        } check_cb;
-        btree_key_value_store_t::check_existing(db_filenames, &check_cb);
-        bool existing = check_cb.wait();
-        if (existing && cmd_config->create_store && !cmd_config->force_create) {
-            fail_due_to_user_error(
-                "It looks like there already is a database here. RethinkDB will abort in case you "
-                "didn't mean to overwrite it. Run with the '--force' flag to override this warning.");
-        } else {
-            if (!existing) {
-                cmd_config->create_store = true;
+        /* Check for overwrite conditions or auto-create */
+        bool any_exist = false;
+        bool any_dontexist = false;
+        for(std::vector<std::string>::iterator iter = db_filenames.begin(); iter != db_filenames.end(); ++iter) {
+            // Simply checks for the existence of a file
+            if(access((*iter).c_str(), F_OK) == 0) {
+                any_exist |= true;
+            } else {
+                any_dontexist |= true;
             }
+        }
+
+        // Auto create as a convinience if the files don't exist
+        cmd_config->create_store |= any_dontexist;
+
+        // Note that this error will end up getting triggered in the case where we have mixed existant and non-existant files
+        if(any_exist && cmd_config->create_store && !cmd_config->force_create) {
+            fail_due_to_user_error(
+                "You are attempting to overwrite an existing file with a new RethinkDB database file. "
+                "Pass option \"--force\" to ignore this warning. "
+            );
         }
 
         /* Record information about disk drives to log file */
@@ -190,6 +212,8 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                                             &cmd_config->store_static_config);
             // TODO: Shouldn't do this... Setting up the metadata static config doesn't belong here
             // and it's very hacky to build on the store_static_config.
+            // TODO: Isn't the number of slices configured going to be completely deranged?
+            // TODO: Shouldn't btree_metadata_store_t::create be in charge of modifications to the configuration?
             btree_key_value_store_static_config_t metadata_static_config = cmd_config->store_static_config;
             metadata_static_config.cache.n_patch_log_blocks = 0;
             btree_metadata_store_t::create(&cmd_config->metadata_store_dynamic_config,
@@ -209,22 +233,25 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             timebomb::periodic_checker_t timebomb_checker(store.get_creation_timestamp());
 #endif
             if (!cmd_config->import_config.file.empty()) {
-                store.set_replication_master_id(NOT_A_SLAVE);
+                sequence_group_t seq_group(cmd_config->store_static_config.btree.n_slices);
+                store.set_replication_master_id(&seq_group, NOT_A_SLAVE);
                 std::vector<std::string>::iterator it;
                 for (it = cmd_config->import_config.file.begin(); it != cmd_config->import_config.file.end(); it++) {
                     logINF("Importing file %s...\n", it->c_str());
-                    import_memcache(it->c_str(), &store, &os_signal_cond);
+
+                    import_memcache(it->c_str(), &store, cmd_config->store_static_config.btree.n_slices, &os_signal_cond);
                     logINF("Done\n");
                 }
             } else {
+                sequence_group_t replication_seq_group(cmd_config->store_static_config.btree.n_slices);
+
                 /* Start accepting connections. We use gated-stores so that the code can
                 forbid gets and sets at appropriate times. */
                 gated_get_store_t gated_get_store(&store);
                 gated_set_store_interface_t gated_set_store(&store);
 
                 if (cmd_config->replication_config.active) {
-
-                    memcache_listener_t conn_acceptor(cmd_config->port, &gated_get_store, &gated_set_store);
+                    memcache_listener_t conn_acceptor(cmd_config->port, &gated_get_store, &gated_set_store, cmd_config->store_static_config.btree.n_slices);
 
                     // FIXME hook this back up
                     /* Failover callbacks. It's not safe to add or remove them when the slave is
@@ -237,34 +264,35 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                     //    failover_script.reset(new failover_script_callback_t(cmd_config->failover_config.failover_script_path.c_str()));
                     //    failover.add_callback(failover_script.get());
                     //}
-
                     ///* So that we accept/reject gets and sets at the appropriate times */
                     //failover_query_enabler_disabler_t query_enabler(&gated_set_store, &gated_get_store);
                     //failover.add_callback(&query_enabler);
 
                     //{
                     //    logINF("Starting up as a slave...\n");
-                    //    replication::slave_t slave(&store, cmd_config->replication_config,
+                    //    replication::slave_t slave(&replication_seq_group, &store, cmd_config->replication_config,
                     //        cmd_config->failover_config, &failover);
 
                     //    wait_for_sigint();
 
                     //    logINF("Waiting for running operations to finish...\n");
+                    //    debugf("debugf Waiting for running operations to finish...\n");
 
                     //    /* Slave destructor called here */
                     //}
+
+                    //debugf("Slave destructor has completed.\n");
 
                     /* query_enabler destructor called here; has the side effect of draining queries. */
 
                     /* Other failover destructors called here */
 
                 } else if (cmd_config->replication_master_active) {
-
-                    memcache_listener_t conn_acceptor(cmd_config->port, &gated_get_store, &gated_set_store);
+                    memcache_listener_t conn_acceptor(cmd_config->port, &gated_get_store, &gated_set_store, cmd_config->store_static_config.btree.n_slices);
 
                     /* Make it impossible for this database file to later be used as a slave, because
                     that would confuse the replication logic. */
-                    uint32_t replication_master_id = store.get_replication_master_id();
+                    uint32_t replication_master_id = store.get_replication_master_id(&replication_seq_group);
                     if (replication_master_id != 0 && replication_master_id != NOT_A_SLAVE &&
                             !cmd_config->force_unslavify) {
                         fail_due_to_user_error("This data file used to be for a replication slave. "
@@ -273,11 +301,11 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                             "you want to irreversibly turn this into a non-slave data file, run "
                             "again with the `--force-unslavify` flag.");
                     }
-                    store.set_replication_master_id(NOT_A_SLAVE);
+                    store.set_replication_master_id(&replication_seq_group, NOT_A_SLAVE);
 
                     backfill_receiver_order_source_t master_order_source;
                     // FIXME: we had this
-                    //   replication::master_t master(cmd_config->replication_master_listen_port, &store, cmd_config->replication_config, &gated_get_store, &gated_set_store, &master_order_source);
+                    //   replication::master_t master(&replication_seq_group, cmd_config->replication_master_listen_port, &store, cmd_config->replication_config, &gated_get_store, &gated_set_store, &master_order_source);
                     // but now we don't have replication. Figure out what to do.
 
                     wait_for_sigint();
@@ -291,9 +319,15 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                     /* We aren't doing any sort of replication. */
                     riak::riak_server_t server(2222, store_manager);
 
+                    // Runs the redis server. Comment to disable redis. Uncomment to reenable. This is a
+                    // temporary hack for testing while we figure out how multiprotocol support should work
+                    // Port 6380 is used rather than the standard redis port (6379) to allow parallel testing
+                    // of our redis implementation with actual redis
+                    //redis_listener_t redis_conn_acceptor(6382);
+
                     /* Make it impossible for this database file to later be used as a slave, because
                     that would confuse the replication logic. */
-                    uint32_t replication_master_id = store.get_replication_master_id();
+                    uint32_t replication_master_id = store.get_replication_master_id(&replication_seq_group);
                     if (replication_master_id != 0 && replication_master_id != NOT_A_SLAVE &&
                             !cmd_config->force_unslavify) {
                         fail_due_to_user_error("This data file used to be for a replication slave. "
@@ -302,13 +336,13 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                             "you want to irreversibly turn this into a non-slave data file, run "
                             "again with the `--force-unslavify` flag.");
                     }
-                    store.set_replication_master_id(NOT_A_SLAVE);
+                    store.set_replication_master_id(&replication_seq_group, NOT_A_SLAVE);
 
                     // Open the gates to allow real queries
                     gated_get_store_t::open_t permit_gets(&gated_get_store);
                     gated_set_store_interface_t::open_t permit_sets(&gated_set_store);
 
-                    memcache_listener_t conn_acceptor(cmd_config->port, &gated_get_store, &gated_set_store);
+                    memcache_listener_t conn_acceptor(cmd_config->port, &gated_get_store, &gated_set_store, cmd_config->store_static_config.btree.n_slices);
 
                     logINF("Server will now permit memcached queries on port %d.\n", cmd_config->port);
 

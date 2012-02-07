@@ -149,7 +149,7 @@ boost::shared_ptr<store_view_t<memcached_protocol_t>::write_transaction_t> dummy
 
 namespace arc = boost::archive;
 
-memcached_store_view_t::txn_t::txn_t(btree_slice_t *btree_, order_source_t &order_source, bool read_txn) : btree(btree_) {
+memcached_store_view_t::txn_t::txn_t(btree_slice_t *btree_, sequence_group_t *seq_group, order_source_t &order_source, bool read_txn) : btree(btree_) {
     btree->assert_thread();
 
     access_t access = read_txn ? rwi_read : rwi_write;
@@ -157,10 +157,10 @@ memcached_store_view_t::txn_t::txn_t(btree_slice_t *btree_, order_source_t &orde
     token = order_source.check_in("memcached_store_view_t::txn_t");
     token = btree->order_checkpoint_.check_through(token);
     if (is_read_mode(access)) {
-        get_btree_superblock_for_reading(btree, access, token, false, &superblock, txn); // FIXME: for rgets we really want to pass snapshotting=true
+        get_btree_superblock_for_reading(btree, seq_group, access, token, false, &superblock, txn); // FIXME: for rgets we really want to pass snapshotting=true
     } else {
         const int expected_change_count = 0;    // FIXME: this is not correct, but should do for now. See issue #501.
-        get_btree_superblock(btree, access, expected_change_count, repli_timestamp_t::invalid, token, &superblock, txn);
+        get_btree_superblock(btree, seq_group, access, expected_change_count, repli_timestamp_t::invalid, token, &superblock, txn);
     }
 }
 
@@ -233,7 +233,7 @@ memcached_protocol_t::read_response_t memcached_store_view_t::txn_t::read(const 
 
 memcached_protocol_t::write_response_t memcached_store_view_t::txn_t::write(const memcached_protocol_t::write_t &write, transition_timestamp_t timestamp) THROWS_NOTHING {
     castime_t cas = castime_t(write.proposed_cas, timestamp.to_repli_timestamp());
-    return memcached_protocol_t::write_response_t(btree->change(write.mutation, cas, token, txn.get(), superblock).result);
+    return memcached_protocol_t::write_response_t(btree->change(write.mutation, cas, txn.get(), superblock).result);
 }
 
 struct memcached_backfill_callback_t : public backfill_callback_t {
@@ -271,26 +271,26 @@ void memcached_store_view_t::txn_t::send_backfill(const region_map_t<memcached_p
     for (region_map_t<memcached_protocol_t,state_timestamp_t>::const_iterator i = start_point.begin(); i != start_point.end(); i++) {
         const memcached_protocol_t::region_t& range = (*i).first;
         repli_timestamp_t since_when = (*i).second.to_repli_timestamp();    // FIXME: this loses precision
-        btree->backfill(static_cast<const key_range_t&>(range), since_when, &callback, token);
+        btree->backfill(NULL, static_cast<const key_range_t&>(range), since_when, &callback, token);   // FIXME This is broken! seq_group can't be null, and we want to pass txn and superblock here instead
     }
 }
 
 struct receive_backfill_visitor_t : public boost::static_visitor<> {
-    receive_backfill_visitor_t(btree_slice_t *btree_, order_token_t& token_, signal_t *interruptor_) : btree(btree_), token(token_), interruptor(interruptor_) { }
+    receive_backfill_visitor_t(btree_slice_t *btree_, transaction_t *txn_, got_superblock_t &superblock_, signal_t *interruptor_) : btree(btree_), txn(txn_), superblock(superblock_), interruptor(interruptor_) { }
     void operator()(const memcached_protocol_t::backfill_chunk_t::delete_key_t& delete_key) const {
         // FIXME: we ignored delete_key.recency here
-        btree->change(mutation_t(delete_mutation_t(delete_key.key, true)), castime_t(), token);
+        btree->change(mutation_t(delete_mutation_t(delete_key.key, true)), castime_t(), txn, superblock);
     }
     void operator()(const memcached_protocol_t::backfill_chunk_t::delete_range_t& delete_range) const {
         const key_range_t& range = delete_range.range;
         range_key_tester_t tester(range);
         bool left_supplied = range.left.size > 0;
         bool right_supplied = !range.right.unbounded;
-        btree->backfill_delete_range(&tester, left_supplied, range.left, right_supplied, range.right.key, token);
+        btree->backfill_delete_range(&tester, left_supplied, range.left, right_supplied, range.right.key, txn, superblock);
     }
     void operator()(const memcached_protocol_t::backfill_chunk_t::key_value_pair_t& kv) const {
         const backfill_atom_t& bf_atom = kv.backfill_atom;
-        btree->change(mutation_t(sarc_mutation_t(bf_atom.key, bf_atom.value, bf_atom.flags, bf_atom.exptime, add_policy_yes, replace_policy_yes, bf_atom.cas_or_zero)), castime_t(), token);
+        btree->change(mutation_t(sarc_mutation_t(bf_atom.key, bf_atom.value, bf_atom.flags, bf_atom.exptime, add_policy_yes, replace_policy_yes, bf_atom.cas_or_zero)), castime_t(), txn, superblock);
     }
 private:
     struct range_key_tester_t : public key_tester_t {
@@ -302,11 +302,12 @@ private:
         const key_range_t& delete_range;
     };
     btree_slice_t *btree;
-    order_token_t& token;
+    transaction_t *txn;
+    got_superblock_t &superblock;
     signal_t *interruptor;  // FIXME: interruptors are not used in btree code, so this one ignored.
 };
 
 void memcached_store_view_t::txn_t::receive_backfill(const memcached_protocol_t::backfill_chunk_t &chunk, UNUSED signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    boost::apply_visitor(receive_backfill_visitor_t(btree, token, interruptor), chunk.val);
+    boost::apply_visitor(receive_backfill_visitor_t(btree, txn.get(), superblock, interruptor), chunk.val);
 }
 

@@ -2,6 +2,7 @@
 #ifndef __PAGE_REPL_RANDOM_HPP__
 #define __PAGE_REPL_RANDOM_HPP__
 
+#include "buffer_cache/types.hpp"
 #include "config/args.hpp"
 #include "containers/two_level_array.hpp"
 
@@ -35,6 +36,11 @@ public:
     bool in_page_repl();
     void insert_into_page_repl();
     void remove_from_page_repl(); // does *not* call unload()
+
+    /* The eviction priority represents how bad of a choice a buf is for
+     * eviction the buffer cache will (probabalistically) evict blocks of
+     * lower priority first. */
+    eviction_priority_t eviction_priority;
 
   protected:
     mc_cache_t *cache;

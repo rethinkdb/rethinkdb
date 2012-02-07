@@ -345,10 +345,10 @@ range_txn_t<Value>::range_txn_t(slice_keys_iterator_t<Value> *it) : it(it)
 { }
 
 template <class Value>
-range_txn_t<Value> get_range(btree_slice_t *slice, order_token_t token, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key) {
+range_txn_t<Value> get_range(btree_slice_t *slice, sequence_group_t *seq_group, order_token_t token, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key) {
     boost::scoped_ptr<transaction_t> txn;
     got_superblock_t got_superblock;
-    get_btree_superblock_for_reading(slice, rwi_read, token, true, &got_superblock, txn);
+    get_btree_superblock_for_reading(slice, seq_group, rwi_read, token, true, &got_superblock, txn);
 
     boost::shared_ptr<value_sizer_t<Value> > sizer(new value_sizer_t<Value>(slice->cache()->get_block_size()));
     return range_txn_t<Value>(new slice_keys_iterator_t<Value>(sizer, txn, slice, left_mode, left_key, right_mode, right_key));

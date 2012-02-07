@@ -17,6 +17,7 @@
 #include "arch/runtime/runtime.hpp"
 #include "containers/scoped_malloc.hpp"
 #include "db_thread_info.hpp"
+#include "logger.hpp"
 
 #include <boost/uuid/uuid_generators.hpp>
 
@@ -183,7 +184,10 @@ void home_thread_mixin_t::assert_thread() const {
 }
 #endif
 
-home_thread_mixin_t::home_thread_mixin_t() : real_home_thread(get_thread_id()) { }
+home_thread_mixin_t::home_thread_mixin_t(int specified_home_thread)
+    : real_home_thread(specified_home_thread) { }
+home_thread_mixin_t::home_thread_mixin_t()
+    : real_home_thread(get_thread_id()) { }
 
 
 on_thread_t::on_thread_t(int thread) {
@@ -269,9 +273,19 @@ struct rand_initter_t {
     }
 } rand_initter;
 
-rng_t::rng_t() {
+rng_t::rng_t( UNUSED long int seed) {
     memset(&buffer_, 0, sizeof(buffer_));
+#ifndef NDEBUG
+    if(seed == -1) {
+        struct timeval tv;
+        gettimeofday(&tv, NULL);
+        seed = tv.tv_usec;
+    }
+    srand48_r(seed, &buffer_);
+    logDBG("Random number generator seeded with: %ld\n", seed);
+#else
     srand48_r(314159, &buffer_);
+#endif
 }
 
 int rng_t::randint(int n) {

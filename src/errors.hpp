@@ -14,9 +14,24 @@
 
 
 #ifndef NDEBUG
-#define DEBUG_ONLY(expr) do { expr; } while (0)
+#define DEBUG_ONLY(...) __VA_ARGS__
+#define DEBUG_ONLY_CODE(expr) do { expr; } while (0)
 #else
-#define DEBUG_ONLY(expr) ((void)(0))
+#define DEBUG_ONLY(...)
+#define DEBUG_ONLY_CODE(expr) ((void)(0))
+#endif
+
+/* This macro needs to exist because gcc and icc disagree on how to number the
+ * attributes to methods. ICC does different number for methods and functions
+ * and it's too unwieldy to make programs use these macros so we're just going
+ * to disable them in icc.
+ * With this macro attribute number starts at 1. If it is a nonstatic method
+ * then "1" refers to the class pointer ("this").
+ * */
+#ifdef __ICC
+#define NON_NULL_ATTR(arg) 
+#else
+#define NON_NULL_ATTR(arg) __attribute__((nonnull(arg)))
 #endif
 
 /* Error handling
@@ -47,6 +62,12 @@
  * The names rassert* are used instead of assert* because /usr/include/assert.h undefines assert macro and redefines it with its own version
  * every single time it gets included.
  */
+
+#ifndef NDEBUG
+#define DEBUG_ONLY_VAR
+#else
+#define DEBUG_ONLY_VAR __attribute__((unused))
+#endif
 
 #define UNUSED __attribute__((unused))
 #define MUSTUSE __attribute__((warn_unused_result))

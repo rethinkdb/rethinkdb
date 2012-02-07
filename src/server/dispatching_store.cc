@@ -10,7 +10,7 @@ void dispatching_store_t::set_dispatcher(boost::function<mutation_t(const mutati
     dispatcher = disp;
 }
 
-mutation_result_t dispatching_store_t::change(const mutation_t &m, castime_t castime, order_token_t token) {
+mutation_result_t dispatching_store_t::change(sequence_group_t *seq_group, const mutation_t &m, castime_t castime, order_token_t token) {
     assert_thread();
     if (dispatcher) {
         sink.check_out(token);
@@ -20,24 +20,24 @@ mutation_result_t dispatching_store_t::change(const mutation_t &m, castime_t cas
         post_dispatch_sink.check_out(tmp_token);
         order_token_t substore_token = substore_order_source.check_in(token.tag() + "+dispatching_store_t::change");
 
-        return substore->change(m2, castime, substore_token);
+        return substore->change(seq_group, m2, castime, substore_token);
     } else {
         // TODO: What if we go from having a dispatcher to having no dispatcher?
         order_token_t substore_token = substore_order_source.check_in(token.tag() + "+dispatching_store_t::change");
-        return substore->change(m, castime, substore_token);
+        return substore->change(seq_group, m, castime, substore_token);
     }
 }
 
-get_result_t dispatching_store_t::get(const store_key_t &key, order_token_t token) {
+get_result_t dispatching_store_t::get(const store_key_t &key, sequence_group_t *seq_group, order_token_t token) {
     sink.check_out(token);
     order_token_t substore_token = substore_order_source.check_in(token.tag() + "+dispatching_store_t::get").with_read_mode();
-    return substore->get(key, substore_token);
+    return substore->get(key, seq_group, substore_token);
 }
 
-rget_result_t dispatching_store_t::rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token) {
+rget_result_t dispatching_store_t::rget(sequence_group_t *seq_group, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token) {
     sink.check_out(token);
     order_token_t substore_token = substore_order_source.check_in(token.tag() + "+dispatching_store_t::rget").with_read_mode();
-    return substore->rget(left_mode, left_key, right_mode, right_key, substore_token);
+    return substore->rget(seq_group, left_mode, left_key, right_mode, right_key, substore_token);
 }
 
 class hash_key_tester_t : public key_tester_t {
@@ -55,22 +55,22 @@ private:
     int hash_value_, hashmod_;
 };
 
-void dispatching_store_t::backfill_delete_range(int hash_value, int hashmod,
+void dispatching_store_t::backfill_delete_range(sequence_group_t *seq_group, int hash_value, int hashmod,
                                                 bool left_key_supplied, const store_key_t& left_key_exclusive,
                                                 bool right_key_supplied, const store_key_t& right_key_inclusive,
                                                 order_token_t token) {
     sink.check_out(token);
     order_token_t substore_token = substore_order_source.check_in(token.tag() + "+dispatching_store_t::backfill_delete_range");
     hash_key_tester_t tester(hash_value, hashmod);
-    substore->backfill_delete_range(&tester,
+    substore->backfill_delete_range(seq_group, &tester,
                                     left_key_supplied, left_key_exclusive,
                                     right_key_supplied, right_key_inclusive,
                                     substore_token);
 }
 
-void dispatching_store_t::set_replication_clock(repli_timestamp_t t, order_token_t token) {
+void dispatching_store_t::set_replication_clock(sequence_group_t *seq_group, repli_timestamp_t t, order_token_t token) {
     sink.check_out(token);
-    substore->set_replication_clock(t, substore_order_source.check_in(token.tag() + "shard_store_t::set_replication_clock"));
+    substore->set_replication_clock(seq_group, t, substore_order_source.check_in(token.tag() + "shard_store_t::set_replication_clock"));
 }
 
 

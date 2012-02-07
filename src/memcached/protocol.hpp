@@ -203,6 +203,7 @@ public:
 
 class memcached_store_view_t : public store_view_t<memcached_protocol_t> {
     btree_slice_t *btree;
+    sequence_group_t *seq_group;
     order_source_t order_source;
 public:
     // This code relies on the fact that store_view_t::write_transaction_t is also a read_transaction_t
@@ -212,7 +213,7 @@ public:
         boost::scoped_ptr<transaction_t> txn;
         got_superblock_t superblock;
     public:
-        txn_t(btree_slice_t *btree_, order_source_t &order_source, bool read_txn);
+        txn_t(btree_slice_t *btree_, sequence_group_t *seq_group, order_source_t &order_source, bool read_txn);
 
         region_map_t<memcached_protocol_t,binary_blob_t> get_metadata(signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
         void set_metadata(const region_map_t<memcached_protocol_t, binary_blob_t> &new_metadata) THROWS_NOTHING;
@@ -228,13 +229,13 @@ public:
     typedef txn_t read_transaction_t;
     typedef txn_t write_transaction_t;
 
-    memcached_store_view_t(const key_range_t& key_range_, btree_slice_t * btree_) : store_view_t<memcached_protocol_t>(key_range_), btree(btree_) { }
+    memcached_store_view_t(const key_range_t& key_range_, btree_slice_t * btree_, sequence_group_t *seq_group_) : store_view_t<memcached_protocol_t>(key_range_), btree(btree_), seq_group(seq_group_) { }
 
     boost::shared_ptr<store_view_t<memcached_protocol_t>::read_transaction_t> begin_read_transaction(UNUSED signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        return boost::shared_ptr<store_view_t<memcached_protocol_t>::read_transaction_t>(new txn_t(btree, order_source, true));
+        return boost::shared_ptr<store_view_t<memcached_protocol_t>::read_transaction_t>(new txn_t(btree, seq_group, order_source, true));
     }
     boost::shared_ptr<store_view_t<memcached_protocol_t>::write_transaction_t> begin_write_transaction(UNUSED signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        return boost::shared_ptr<store_view_t<memcached_protocol_t>::write_transaction_t>(new txn_t(btree, order_source, false));
+        return boost::shared_ptr<store_view_t<memcached_protocol_t>::write_transaction_t>(new txn_t(btree, seq_group, order_source, false));
     }
 };
 

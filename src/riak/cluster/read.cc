@@ -16,7 +16,7 @@ region_t point_read_t::get_region() const {
     return region_t(set);
 }
 
-std::vector<read_t> point_read_t::shard(std::vector<region_t> regions) {
+std::vector<read_t> point_read_t::shard(DEBUG_ONLY_VAR std::vector<region_t> regions) {
     rassert(regions.size() == 1);
     region_t region = get_region();
     rassert(regions[0].overlaps(region));

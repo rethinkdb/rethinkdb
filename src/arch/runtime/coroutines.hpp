@@ -14,7 +14,7 @@
 const size_t MAX_COROUTINE_STACK_SIZE = 8*1024*1024;
 
 int get_thread_id();
-class coro_globals_t;
+struct coro_globals_t;
 
 /* A coro_t represents a fiber of execution within a thread. Create one with spawn_*(). Within a
 coroutine, call wait() to return control to the scheduler; the coroutine will be resumed when
@@ -110,11 +110,13 @@ public:
         coro_t *self = coro_t::self();
         return self ? self->selfname_number : 0;
     }
+    
+    const std::string& get_coroutine_type() { return coroutine_type; }
 #endif
 
     static void set_coroutine_stack_size(size_t size);
 
-    artificial_stack_t* get_stack();
+    artificial_stack_t * get_stack();
 
 private:
     /* When called from within a coroutine, schedules the coroutine to be run on
@@ -132,7 +134,7 @@ private:
     static coro_t * get_and_init_coro(const Callable &action) {
         coro_t *coro = get_coro();
 #ifndef NDEBUG
-        coro->coroutine_info = __PRETTY_FUNCTION__;
+        coro->parse_coroutine_type(__PRETTY_FUNCTION__);
 #endif
         coro->action_wrapper.reset(action);
         return coro;
@@ -161,8 +163,8 @@ private:
 
 #ifndef NDEBUG
     int64_t selfname_number;
-    const char* coroutine_info;
-    static void parse_coroutine_info(const char* coroutine_function, std::string& coroutine_type);
+    std::string coroutine_type;
+    void parse_coroutine_type(const char *coroutine_function);
 #endif
 
     DISABLE_COPYING(coro_t);

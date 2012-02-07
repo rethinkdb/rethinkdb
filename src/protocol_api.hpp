@@ -10,6 +10,7 @@
 
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/signal.hpp"
+#include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
 
 /* This file describes the relationship between the protocol-specific logic for

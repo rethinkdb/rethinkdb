@@ -34,6 +34,8 @@ public:
     void set_meta(const std::string& key, const std::string& value);
 
 private:
+    boost::scoped_ptr<sequence_group_t> seq_group_;
+
     boost::scoped_ptr<btree_key_value_store_t> store_;
 
     // Used for persisting stats; see stats/persist.hpp

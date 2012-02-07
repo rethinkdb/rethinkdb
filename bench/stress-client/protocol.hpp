@@ -22,6 +22,29 @@ struct protocol_t {
 
     virtual void read(payload_t *keys, int count, payload_t *values = NULL) = 0;
 
+
+    /* These functions allow reads to be pipelined to the server meaning there
+     * will be several reads sent over the socket and the client will not block
+     * on their return. It is the users job to make sure the queue doesn't get
+     * bigger than they want it to. */
+
+    /* By default these functions are just stubbed out in terms of read which
+     * is sementically correct but offers no performance improvements. */
+
+    /* add a read to the pipeline */
+public:
+    virtual void enqueue_read(payload_t *keys, int count, payload_t *values = NULL) {
+        read(keys, count, values);
+    }
+
+    /* remove as many reads as have been returned from the pipeline */
+    virtual bool dequeue_read_maybe(payload_t *keys, int count, payload_t *values = NULL) { 
+        return true;
+    }
+
+    /* Wait until all of the pipelined reads have been returned */
+    virtual void dequeue_read(payload_t *keys, int count, payload_t *values = NULL) { }
+
     virtual void range_read(char* lkey, size_t lkey_size, char* rkey, size_t rkey_size, int count_limit, payload_t *values = NULL) = 0;
 
     virtual void append(const char *key, size_t key_size,

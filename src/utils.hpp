@@ -165,6 +165,15 @@ public:
         return storage.size();
     }
 
+    // Unfortunately C++ compiler gets confused by two overloaded functions
+    // which differ only in constness of the argument, so they have to be named
+    // differently.
+    template<class obj_t>
+    static obj_t &get_modifiable(binary_blob_t &blob) {
+        rassert(blob.size() == sizeof(obj_t));
+        return *reinterpret_cast<obj_t *>(blob.data());
+    }
+
     template<class obj_t>
     static const obj_t &get(const binary_blob_t &blob) {
         rassert(blob.size() == sizeof(obj_t));
@@ -237,7 +246,7 @@ public:
 // Returns a random number in [0, n).  Is not perfectly uniform; the
 // bias tends to get worse when RAND_MAX is far from a multiple of n.
     int randint(int n);
-    rng_t();
+    explicit rng_t(long int seed = -1);
 private:
     struct drand48_data buffer_;
     DISABLE_COPYING(rng_t);
@@ -319,6 +328,7 @@ public:
 #endif  // NDEBUG
 
 protected:
+    explicit home_thread_mixin_t(int specified_home_thread);
     home_thread_mixin_t();
     virtual ~home_thread_mixin_t() { }
 
