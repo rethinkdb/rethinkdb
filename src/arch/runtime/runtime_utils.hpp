@@ -59,7 +59,7 @@ public:
         rassert(action_ == NULL);
 
         // Allocate the action inside this object, if possible, or the heap otherwise
-        if (sizeof(Callable) >= CALLABLE_CUTOFF_SIZE) {
+        if (sizeof(Callable) > CALLABLE_CUTOFF_SIZE) {
             action_ = new callable_action_instance_t<Callable>(action);
             action_on_heap = true;
         } else {

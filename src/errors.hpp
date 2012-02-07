@@ -14,9 +14,11 @@
 
 
 #ifndef NDEBUG
-#define DEBUG_ONLY(expr) do { expr; } while (0)
+#define DEBUG_ONLY(...) __VA_ARGS__
+#define DEBUG_ONLY_CODE(expr) do { expr; } while (0)
 #else
-#define DEBUG_ONLY(expr) ((void)(0))
+#define DEBUG_ONLY(...)
+#define DEBUG_ONLY_CODE(expr) ((void)(0))
 #endif
 
 /* This macro needs to exist because gcc and icc disagree on how to number the

@@ -9,10 +9,10 @@ void semaphore_t::lock(semaphore_available_callback_t *cb, int count) {
     rassert(count <= capacity || capacity == SEMAPHORE_NO_LIMIT);
     if (current + count <= capacity || capacity == SEMAPHORE_NO_LIMIT) {
         current += count;
-        DEBUG_ONLY(in_callback = true);
+        DEBUG_ONLY_CODE(in_callback = true);
         cb->on_semaphore_available();
         rassert(in_callback);
-        DEBUG_ONLY(in_callback = false);
+        DEBUG_ONLY_CODE(in_callback = false);
     } else {
         lock_request_t *r = new lock_request_t;
         r->count = count;
@@ -41,10 +41,10 @@ void semaphore_t::unlock(int count) {
             waiters.remove(h);
             current += h->count;
             rassert(!in_callback);
-            DEBUG_ONLY(in_callback = true);
+            DEBUG_ONLY_CODE(in_callback = true);
             h->on_available();
             rassert(in_callback);
-            DEBUG_ONLY(in_callback = false);
+            DEBUG_ONLY_CODE(in_callback = false);
         }
     }
 }
@@ -60,10 +60,10 @@ void adjustable_semaphore_t::lock(semaphore_available_callback_t *cb, int count)
     rassert(count <= capacity || capacity == SEMAPHORE_NO_LIMIT);
     if (try_lock(count)) {
         rassert(!in_callback);
-        DEBUG_ONLY(in_callback = true);
+        DEBUG_ONLY_CODE(in_callback = true);
         cb->on_semaphore_available();
         rassert(in_callback);
-        DEBUG_ONLY(in_callback = false);
+        DEBUG_ONLY_CODE(in_callback = false);
     } else {
         lock_request_t *r = new lock_request_t;
         r->count = count;
@@ -129,9 +129,9 @@ void adjustable_semaphore_t::pump() {
     while ((h = waiters.head()) && try_lock(h->count)) {
         waiters.remove(h);
         rassert(!in_callback);
-        DEBUG_ONLY(in_callback = true);
+        DEBUG_ONLY_CODE(in_callback = true);
         h->on_available();
         rassert(in_callback);
-        DEBUG_ONLY(in_callback = false);
+        DEBUG_ONLY_CODE(in_callback = false);
     }
 }

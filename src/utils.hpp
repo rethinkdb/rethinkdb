@@ -246,7 +246,7 @@ public:
 // Returns a random number in [0, n).  Is not perfectly uniform; the
 // bias tends to get worse when RAND_MAX is far from a multiple of n.
     int randint(int n);
-    rng_t();
+    explicit rng_t(long int seed = -1);
 private:
     struct drand48_data buffer_;
     DISABLE_COPYING(rng_t);
