@@ -1,11 +1,16 @@
 #ifndef __CLUSTERING_REACTOR_METADATA_HPP__
 #define __CLUSTERING_REACTOR_METADATA_HPP__
 
+#include "errors.hpp"
+#include <boost/optional.hpp>
+
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 
 /* `reactor_business_card_t` is the way that each peer tells peers what's
 currently happening on this machine. Each `reactor_business_card_t` only applies
 to a single namespace. */
+
+typedef boost::uuids::uuid reactor_activity_id_t;
 
 template<class protocol_t>
 class reactor_business_card_t {
@@ -22,6 +27,10 @@ public:
     /* This peer is currently a primary in working order. */
     class primary_t {
     public:
+        explicit primary_t(broadcaster_business_card_t<protocol_t> _broadcaster)
+            : broadcaster(_broadcaster)
+        { }
+
         primary_t(broadcaster_business_card_t<protocol_t> _broadcaster, backfiller_business_card_t<protocol_t> _backfiller)
             : broadcaster(_broadcaster), backfiller(_backfiller)
         { }
@@ -29,7 +38,15 @@ public:
         primary_t() { }
 
         broadcaster_business_card_t<protocol_t> broadcaster;
-        backfiller_business_card_t<protocol_t> backfiller;
+
+        /* Backfiller is optional because of an awkward circular dependency we
+         * run in to where we have to put the broadcaster in the directory in
+         * order to construct a listener however thats the listener that we
+         * will put in the directory as the backfiller. Thus these entries must
+         * be put in successively and for a brief period the backfiller will be
+         * unset.
+         */
+        boost::optional<backfiller_business_card_t<protocol_t> > backfiller;
 
         RDB_MAKE_ME_SERIALIZABLE_2(broadcaster, backfiller);
     };
@@ -130,9 +147,9 @@ public:
             listener_backfilling_t, listener_up_to_date_t,
             listener_without_primary_t,
             nothing_when_safe_t, nothing_t
-            > activity_t;
+        > activity_t;
 
-    std::map<typename protocol_t::region_t, activity_t> activities;
+    std::map<reactor_activity_id_t, std::pair<typename protocol_t::region_t, activity_t> > activities;
 
     RDB_MAKE_ME_SERIALIZABLE_1(activities);
 };

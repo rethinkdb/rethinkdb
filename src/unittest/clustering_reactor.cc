@@ -22,6 +22,14 @@ void let_stuff_happen() {
 
 }
 
+class test_cluster_directory_t {
+public:
+    boost::optional<directory_echo_wrapper_t<reactor_business_card_t<dummy_protocol_t> > >  reactor_directory;
+    std::map<master_id_t, master_business_card_t<dummy_protocol_t> > master_directory;
+
+    RDB_MAKE_ME_SERIALIZABLE_2(reactor_directory, master_directory);
+};
+
 /* This is a cluster that is useful for reactor testing... but doesn't actually
  * have a reactor due to the annoyance of needing the peer ids to create a
  * correct blueprint. */
@@ -40,7 +48,7 @@ public:
         semilattice_manager_client_run(&semilattice_manager_client, &semilattice_manager_branch_history),
 
         directory_manager_client(&message_multiplexer, 'D'),
-        directory_manager(&directory_manager_client, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<dummy_protocol_t> > >()),
+        directory_manager(&directory_manager_client, test_cluster_directory_t()),
         directory_manager_client_run(&directory_manager_client, &directory_manager),
 
         message_multiplexer_run(&message_multiplexer),
@@ -64,7 +72,7 @@ public:
     message_multiplexer_t::client_t::run_t semilattice_manager_client_run;
 
     message_multiplexer_t::client_t directory_manager_client;
-    directory_readwrite_manager_t<boost::optional<directory_echo_wrapper_t<reactor_business_card_t<dummy_protocol_t> > > > directory_manager;
+    directory_readwrite_manager_t<test_cluster_directory_t> directory_manager;
     message_multiplexer_t::client_t::run_t directory_manager_client_run;
 
     message_multiplexer_t::run_t message_multiplexer_run;
@@ -77,7 +85,9 @@ class test_reactor_t {
 public:
     test_reactor_t(reactor_test_cluster_t *r, const blueprint_t<dummy_protocol_t> &initial_blueprint)
         : blueprint_watchable(initial_blueprint),
-          reactor(&r->mailbox_manager, r->directory_manager.get_root_view(), r->semilattice_manager_branch_history.get_root_view(), &blueprint_watchable, &r->dummy_store_view)
+          reactor(&r->mailbox_manager, r->directory_manager.get_root_view()->subview(field_lens(&test_cluster_directory_t::reactor_directory)), 
+                  r->directory_manager.get_root_view()->subview(field_lens(&test_cluster_directory_t::master_directory)),
+                  r->semilattice_manager_branch_history.get_root_view(), &blueprint_watchable, &r->dummy_store_view)
     { }
 
     watchable_impl_t<blueprint_t<dummy_protocol_t> > blueprint_watchable;

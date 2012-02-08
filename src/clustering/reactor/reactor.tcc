@@ -1,11 +1,17 @@
+#include "clustering/immediate_consistency/branch/broadcaster.hpp"
+#include "clustering/immediate_consistency/branch/replier.hpp"
+#include "clustering/immediate_consistency/query/master.hpp"
+
 template<class protocol_t>
 reactor_t<protocol_t>::reactor_t(
         mailbox_manager_t *mm,
-        clone_ptr_t<directory_readwrite_view_t<reactor_business_card_t<protocol_t> > > rd,
-        boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > bh,
+        clone_ptr_t<directory_rwview_t<boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > > rd,
+        clone_ptr_t<directory_wview_t<std::map<master_id_t, master_business_card_t<protocol_t> > > > _master_directory,
+        boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > bh,
         watchable_t<blueprint_t<protocol_t> > *b,
         store_view_t<protocol_t> *_underlying_store) THROWS_NOTHING :
     mailbox_manager(mm), directory_echo_access(mailbox_manager, rd, reactor_business_card_t<protocol_t>()), 
+    master_directory(_master_directory), 
     branch_history(bh), blueprint(b), underlying_store(_underlying_store),
     blueprint_subscription(boost::bind(&reactor_t<protocol_t>::on_blueprint_changed, this))
 {
@@ -19,20 +25,36 @@ reactor_t<protocol_t>::reactor_t(
 
 template <class protocol_t>
 reactor_t<protocol_t>::directory_entry_t::directory_entry_t(reactor_t<protocol_t> *_parent, typename protocol_t::region_t _region)
-    : parent(_parent), region(_region) 
+    : parent(_parent), region(_region), reactor_activity_id(boost::uuids::nil_generator()())
 { }
 
 template <class protocol_t>
-directory_entry_version_t reactor_t<protocol_t>::directory_entry_t::update(typename reactor_business_card_t<protocol_t>::activity_t activity) {
-    directory_echo_access_t::our_value_change_t our_value_change(&parent->directory_echo_access);
-    our_value_change.buffer.activities.insert(std::make_pair(region, activity));
+directory_echo_version_t reactor_t<protocol_t>::directory_entry_t::set(typename reactor_business_card_t<protocol_t>::activity_t activity) {
+    typename directory_echo_access_t<reactor_business_card_t<protocol_t> >::our_value_change_t our_value_change(&parent->directory_echo_access);
+    if (!reactor_activity_id.is_nil()) {
+        our_value_change.buffer.activities.erase(reactor_activity_id);
+    }
+    reactor_activity_id = generate_uuid();
+    our_value_change.buffer.activities.insert(std::make_pair(reactor_activity_id, std::make_pair(region, activity)));
     return our_value_change.commit();
 }
+
+template <class protocol_t>
+directory_echo_version_t reactor_t<protocol_t>::directory_entry_t::update_without_changing_id(typename reactor_business_card_t<protocol_t>::activity_t activity) {
+    typename directory_echo_access_t<reactor_business_card_t<protocol_t> >::our_value_change_t our_value_change(&parent->directory_echo_access);
+    rassert(!reactor_activity_id.is_nil(), "This method should only be called when an activity has already been set\n");
+
+    our_value_change.buffer.activities.insert(std::make_pair(reactor_activity_id, std::make_pair(region, activity)));
+    return our_value_change.commit();
+}
+
 template <class protocol_t>
 reactor_t<protocol_t>::directory_entry_t::~directory_entry_t() {
-    directory_echo_access_t::our_value_change_t our_value_change(&parent->directory_echo_access);
-    our_value_change.buffer.activities.erase(region);
-    our_value_change.commit();
+    if (!reactor_activity_id.is_nil()) {
+        typename directory_echo_access_t<reactor_business_card_t<protocol_t> >::our_value_change_t our_value_change(&parent->directory_echo_access);
+        our_value_change.buffer.activities.erase(reactor_activity_id);
+        our_value_change.commit();
+    }
 }
 
 template<class protocol_t>
@@ -67,7 +89,7 @@ void reactor_t<protocol_t>::try_spawn_roles() THROWS_NOTHING {
             std::pair<typename blueprint_t<protocol_t>::role_t, cond_t *>
             >::iterator it2;
         for (it2 = current_roles.begin(); it2 != current_roles.end(); it2++) {
-            if (regions_overlap((*it).first, (*it2).first)) {
+            if (region_overlaps((*it).first, (*it2).first)) {
                 none_overlap = false;
                 break;
             }
@@ -86,7 +108,22 @@ void reactor_t<protocol_t>::try_spawn_roles() THROWS_NOTHING {
 template <class protocol_t>
 class store_subview_t : public store_view_t<protocol_t>
 {
-    store_subview_t(store_view_t<protocol_t> *, typename protocol_t::region_t);
+public:
+    store_subview_t(store_view_t<protocol_t> *, typename protocol_t::region_t region)
+        : store_view_t<protocol_t>(region)
+    { }
+
+    virtual boost::shared_ptr<typename store_view_t<protocol_t>::read_transaction_t> begin_read_transaction(
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t) {
+                crash("Not implemented\n");
+            }
+
+    virtual boost::shared_ptr<typename store_view_t<protocol_t>::write_transaction_t> begin_write_transaction(
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t) {
+                crash("Not implemented\n");
+            }
 };
 
 template<class protocol_t>
@@ -97,7 +134,7 @@ void reactor_t<protocol_t>::run_role(
         auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
 
     //A store_view_t derived object that acts as a store for the specified region
-    store_subview_t store_subview(underlying_store_view, region);
+    store_subview_t<protocol_t> store_subview(underlying_store, region);
 
     //All of the be_{role} functions respond identically to blueprint changes
     //and interruptions... so we just unify those signals
@@ -105,16 +142,16 @@ void reactor_t<protocol_t>::run_role(
 
     switch (role) {
         case blueprint_t<protocol_t>::role_primary:
-            be_primary(region, store_subview, &wait_any);
+            be_primary(region, &store_subview, &wait_any);
             break;
         case blueprint_t<protocol_t>::role_secondary:
-            be_secondary(region, store_subview, &wait_any);
+            be_secondary(region, &store_subview, &wait_any);
             break;
         case blueprint_t<protocol_t>::role_listener:
-            be_listener(region, store_subview, &wait_any);
+            be_listener(region, &store_subview, &wait_any);
             break;
         case blueprint_t<protocol_t>::role_nothing:
-            be_nothing(region, store_subview, &wait_any);
+            be_nothing(region, &store_subview, &wait_any);
             break;
         default:
             unreachable();
@@ -131,14 +168,15 @@ void reactor_t<protocol_t>::run_role(
 }
 
 template<class protocol_t>
-void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, store_view_t<protocol_t> *store, signal_t *interruptor) {
+void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, store_view_t<protocol_t> *store, signal_t *interruptor) THROWS_NOTHING {
     try {
         directory_entry_t directory_entry(this, region);
-        directory_echo_version_t version_to_wait_on = directory_entry.update(typename reactor_business_card_t<protocol_t>::primary_when_safe_t());
+        directory_echo_version_t version_to_wait_on = directory_entry.set(typename reactor_business_card_t<protocol_t>::primary_when_safe_t());
 
         /* block until all peers have acked `directory_entry` */
         wait_for_directory_acks(version_to_wait_on, interruptor);
 
+        directory_echo_access.get_internal_view()
         /* Block until foreach key in region: foreach peer in blueprint scope:
          * peer has SECONDAY_LOST, NOTHING_SOON, LISTENER, or NOTHING for this
          * region */
@@ -147,11 +185,18 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
            SECONDARY_LOST or NOTHING_SOON */
         broadcaster_t<protocol_t> broadcaster(mailbox_manager, branch_history, store, interruptor);
 
-        listener_t<protocol_t> listener(mailbox_manager, branch_history, directory_entry.get_view(), &broadcaster, interruptor);
-        replier_t<protocol_t> replier(&listener);
-        master_t<protocol_t> master(mailbox_manager, ..., &broadcaster);
+        directory_entry.set(typename reactor_business_card_t<protocol_t>::primary_t(broadcaster.get_business_card()));
 
-        directory_entry.update(typename reactor_business_card_t<protocol_t>::primary_t(broadcaster.get_business_card(), replier.get_business_card()));
+        clone_ptr_t<directory_single_rview_t<boost::optional<broadcaster_business_card_t<protocol_t> > > > broadcaster_business_card =
+            get_directory_entry_view<typename reactor_business_card_t<protocol_t>::primary_t>(get_me(), directory_entry.get_reactor_activity_id())->
+                subview(optional_monad_lens<broadcaster_business_card_t<protocol_t>, typename reactor_business_card_t<protocol_t>::primary_t>(
+                    field_lens(&reactor_business_card_t<protocol_t>::primary_t::broadcaster)));
+
+        listener_t<protocol_t> listener(mailbox_manager, broadcaster_business_card, branch_history, &broadcaster, interruptor);
+        replier_t<protocol_t> replier(&listener);
+        master_t<protocol_t> master(mailbox_manager, master_directory, region, &broadcaster);
+
+        directory_entry.update_without_changing_id(typename reactor_business_card_t<protocol_t>::primary_t(broadcaster.get_business_card(), replier.get_business_card()));
 
         interruptor->wait_lazily_unordered();
     } catch (interrupted_exc_t) {
@@ -160,7 +205,7 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
 }
 
 template<class protocol_t>
-void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, store_view_t<protocol_t> *store, signal_t *interruptor) {
+void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, store_view_t<protocol_t> *store, signal_t *interruptor) THROWS_NOTHING {
     try {
         /* Tell everyone that we're backfilling so that we can get up to
          * date. */
@@ -171,16 +216,27 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
             if (!broadcaster) {
                 /* TODO: Backfill from most up-to-date peer? */
                 backfiller_t<protocol_t> backfiller(mailbox_manager, branch_history, store);
-                typename reactor_business_card_t<protocol_t>::secondary_without_primary_t activity(store_view->get_metadata(interruptor), backfiller.get_business_card());
-                directory_entry.update(activity);
-                broadcaster = wait_for_broadcaster_to_appear_in_directory(interruptor);
+                typename reactor_business_card_t<protocol_t>::secondary_without_primary_t activity(store->get_metadata(interruptor), backfiller.get_business_card());
+                directory_entry.set(activity);
+                broadcaster = wait_for_broadcaster_to_appear_in_directory(region, interruptor);
             }
+
+            /* We need to save this to a local variable because there may be a
+             * race condition should the broadcaster go down. */
+            boost::optional<broadcaster_business_card_t<protocol_t> > broadcaster_business_card = broadcaster.get()->get_value();
+            if (!broadcaster_business_card) {
+                /* The broadcaster went down immediately after we found it so
+                 * we need to go through the loop again. */
+                continue;
+            }
+            branch_id_t branch_id = broadcaster_business_card.get().branch_id;
+
             try {
                 /* TODO we need to find a backfiller for listener_t */
 
                 /* We have found a broadcaster (a master to track) so now we
                  * need to backfill to get up to date. */
-                directory_entry.update(typename reactor_business_card_t<protocol_t>::secondary_backfilling_t());
+                directory_entry.set(typename reactor_business_card_t<protocol_t>::secondary_backfilling_t());
 
                 /* This causes backfilling to happen. Once this constructor returns we are up to date. */
                 listener_t<protocol_t> listener(mailbox_manager, branch_history, broadcaster, store, interruptor);
@@ -192,7 +248,7 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
 
                 /* Make the directory reflect the new role that we are filling.
                  * (Being a secondary). */
-                directory_entry.update(typename reactor_business_card_t<protocol_t>::secondary_up_to_date_t(..., replier.get_business_card()));
+                directory_entry.set(typename reactor_business_card_t<protocol_t>::secondary_up_to_date_t(branch_id, replier.get_business_card()));
 
                 /* Wait for something to change. */
                 wait_interruptible(listener.get_outdated_signal(), interruptor);
@@ -208,13 +264,13 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
 }
 
 template<class protocol_t>
-void reactor_t<protocol_t>::be_listener(typename protocol_t::region_t region, store_view_t<protocol_t> *store, signal_t *interruptor) {
+void reactor_t<protocol_t>::be_listener(typename protocol_t::region_t region, store_view_t<protocol_t> *store, signal_t *interruptor) THROWS_NOTHING {
     try {
         directory_entry_t directory_entry(this, region);
         while (true) {
             /* Tell everyone else that we're waiting for a broadcaster to
              * appear so that we can backfill. */
-            directory_entry.update(typename reactor_business_card_t<protocal_t>::listener_without_primary_t());
+            directory_entry.set(typename reactor_business_card_t<protocal_t>::listener_without_primary_t());
 
             /* TODO we need to find a backfiller for listener_t */
 
@@ -229,7 +285,7 @@ void reactor_t<protocol_t>::be_listener(typename protocol_t::region_t region, st
 
             /* We've found a broadcaster tell everyone else that we're about to
              * begin backfilling. */
-            directory_entry.update(typename reactor_business_card_t<protocal_t>::listener_backfilling_t());
+            directory_entry.set(typename reactor_business_card_t<protocal_t>::listener_backfilling_t());
 
             try {
                 /* Construct a listener to receive the backfill. */
@@ -238,7 +294,7 @@ void reactor_t<protocol_t>::be_listener(typename protocol_t::region_t region, st
                 /* We've completed backfilling, tell everyone that we're an up
                  * to date listener. (the architect will probably react to this
                  * by giving us a different role to fill .*/
-                directory_entry.update(typename reactor_business_card_t<protocal_t>::listener_up_to_date_t());
+                directory_entry.set(typename reactor_business_card_t<protocal_t>::listener_up_to_date_t());
 
                 /* Wait for something to change (probably us getting a new role
                  * to fill). */
@@ -255,7 +311,7 @@ void reactor_t<protocol_t>::be_listener(typename protocol_t::region_t region, st
 }
 
 template<class protocol_t>
-void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region, store_view_t<protocol_t> *store, signal_t *interruptor) {
+void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region, store_view_t<protocol_t> *store, signal_t *interruptor) THROWS_NOTHING {
     try {
         directory_entry_t directory_entry(this, region);
 
@@ -267,7 +323,7 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region, sto
             /* Tell the other peers that we are looking to shutdown and
              * offering backfilling until we do. */
             typename reactor_business_card_t<protocol_t>::nothing_when_safe_t activity(store_view->get_metadata(interruptor), backfiller.get_business_card());
-            directory_echo_version_t version_to_wait_on = directory_entry.update(activity);
+            directory_echo_version_t version_to_wait_on = directory_entry.set(activity);
 
             /* Make sure everyone sees that we're trying to erase our data,
              * it's important to do this to avoid the following race condition:
@@ -296,14 +352,14 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region, sto
 
         /* We now know that it's safe to shutdown so we tell the other peers
          * that we are beginning the process of erasing data. */
-        directory_entry.update(typename reactor_business_card_t<protocol_t>::nothing_when_done_erasing_t());
+        directory_entry.set(typename reactor_business_card_t<protocol_t>::nothing_when_done_erasing_t());
 
         /* This actually erases the data. */
         store.reset_data(region, region_map_t<protocol_t>(region, version_range_t::zero()), store.new_write_token(), interruptor);
 
         /* Tell the other peers that we are officially nothing for this region,
          * end of story. */
-        directory_entry.update(typename reactor_business_card_t<protocol_t>::nothing_t());
+        directory_entry.set(typename reactor_business_card_t<protocol_t>::nothing_t());
 
         interruptor->wait_lazily_unordered();
     } catch (interrupted_exc_t) {
@@ -320,5 +376,44 @@ void reactor_t<protocol_t>::wait_for_directory_acks(directory_echo_version_t ver
         wait_interruptible(&ack_waiter, interruptor);
     }
 
+}
+
+template <class protocol_t>
+template <class activity_t>
+clone_ptr_t<directory_single_rview_t<boost::optional<activity_t> > > reactor_t<protocol_t>::get_directory_entry_view(peer_id_t p_id, const reactor_activity_id_t &ra_id) {
+    typedef read_lens_t<boost::optional<activity_t>, boost::optional<reactor_business_card_t<protocol_t> > > activity_read_lens_t;
+
+    class activity_lens_t : public activity_read_lens_t {
+    public:
+        explicit activity_lens_t(const reactor_activity_id_t &_ra_id) 
+            : ra_id(_ra_id)
+        { }
+
+        boost::optional<activity_t> get(const boost::optional<reactor_business_card_t<protocol_t> > &outer) const {
+            if (!outer) {
+                return boost::optional<activity_t>();
+            } else if (outer.get().activities.find(ra_id) == outer.get().activities.end()) {
+                return boost::optional<activity_t>();
+            } else {
+                try {
+                    return boost::optional<activity_t>(boost::get<activity_t>(outer.get().activities.find(ra_id)->second.second));
+                } catch (boost::bad_get) {
+                    crash("Tried to get an activity of an unexpected type, it "
+                            "is assumed the person calling this function knows "
+                            "the type of the activity they will be getting "
+                            "back.\n");
+                }
+            }
+        }
+
+        activity_lens_t *clone() const {
+            return new activity_lens_t(ra_id);
+        }
+
+    private:
+        reactor_activity_id_t ra_id;
+    };
+
+    return directory_echo_access.get_internal_view()->get_peer_view(p_id)->subview(clone_ptr_t<activity_read_lens_t>(new activity_lens_t(ra_id)));
 }
 
