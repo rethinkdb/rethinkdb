@@ -5,6 +5,7 @@
 #include "rpc/directory/view.hpp"
 #include "clustering/reactor/directory_echo.hpp"
 #include "clustering/immediate_consistency/query/metadata.hpp"
+#include "rpc/connectivity/connectivity.hpp"
 
 template<class protocol_t>
 class reactor_t {
@@ -54,9 +55,10 @@ private:
             typename protocol_t::region_t region,
             typename blueprint_t<protocol_t>::role_t role,
             cond_t *blueprint_changed_cond,
+            const std::set<peer_id_it> &active_peers,
             auto_drainer_t::lock_t keepalive) THROWS_NOTHING;
 
-    void be_primary(typename protocol_t::region_t region, store_view_t<protocol_t> *store,
+    void be_primary(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const std::set<peer_id_t> &,
             signal_t *interruptor) THROWS_NOTHING;
     void be_secondary(typename protocol_t::region_t region, store_view_t<protocol_t> *store,
             signal_t *interruptor) THROWS_NOTHING;

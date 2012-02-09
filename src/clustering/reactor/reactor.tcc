@@ -131,6 +131,7 @@ void reactor_t<protocol_t>::run_role(
         typename protocol_t::region_t region,
         typename blueprint_t<protocol_t>::role_t role,
         cond_t *blueprint_changed_cond,
+        const std::set<peer_id_it> &active_peers,
         auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
 
     //A store_view_t derived object that acts as a store for the specified region
@@ -142,7 +143,7 @@ void reactor_t<protocol_t>::run_role(
 
     switch (role) {
         case blueprint_t<protocol_t>::role_primary:
-            be_primary(region, &store_subview, &wait_any);
+            be_primary(region, &store_subview, active_peers, &wait_any);
             break;
         case blueprint_t<protocol_t>::role_secondary:
             be_secondary(region, &store_subview, &wait_any);
@@ -168,7 +169,7 @@ void reactor_t<protocol_t>::run_role(
 }
 
 template<class protocol_t>
-void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, store_view_t<protocol_t> *store, signal_t *interruptor) THROWS_NOTHING {
+void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const std::set<peer_id_t> &active_peers, signal_t *interruptor) THROWS_NOTHING {
     try {
         directory_entry_t directory_entry(this, region);
         directory_echo_version_t version_to_wait_on = directory_entry.set(typename reactor_business_card_t<protocol_t>::primary_when_safe_t());
@@ -176,7 +177,6 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
         /* block until all peers have acked `directory_entry` */
         wait_for_directory_acks(version_to_wait_on, interruptor);
 
-        directory_echo_access.get_internal_view()
         /* Block until foreach key in region: foreach peer in blueprint scope:
          * peer has SECONDAY_LOST, NOTHING_SOON, LISTENER, or NOTHING for this
          * region */
