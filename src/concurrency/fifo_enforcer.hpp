@@ -4,6 +4,7 @@
 #include <map>
 
 #include "concurrency/mutex_assertion.hpp"
+#include "concurrency/signal.hpp"
 #include "timestamps.hpp"
 #include "utils.hpp"
 
@@ -17,6 +18,19 @@ checkpoint. The objects in transit between the checkpoints are identified by
 `fifo_enforcer_write_token_t`. Read tokens are allowed to be reordered relative
 to each other but not relative to write tokens. */
 
+/* A clinic can be used as metaphor for how `fifo_enforcer_{source,sink}_t` are used.
+ * First you get an appointment (`fifo_enforcer_source_t::enter_{read,write}()`), then you
+ * come to a waiting room (construct `fifo_enforcer_sink_t::exit_{read,write}_t`), where
+ * you are notified when the doctor is ready to see you (the `exit_{read,write}_t` object
+ * gets pulsed). When you finish seeing the doctor (destroy the `exit_{read,write}_t`),
+ * the person who has the next appointment is notified.  If you leave the waiting room
+ * (destroy the `exit_{read,write}_t` before it is pulsed), you forfeit your appointment
+ * and place in line.
+ *
+ * The metaphor breaks down in that, if you don't show up for your appointment, all the
+ * later appointments are delayed indefinitely. That means that if you never construct a
+ * `exit_{read,write}_t` for a token, users of all later tokens will never get to go.
+ */
 class fifo_enforcer_read_token_t {
 public:
     fifo_enforcer_read_token_t() THROWS_NOTHING { }
@@ -80,40 +94,34 @@ private:
 
 class fifo_enforcer_sink_t : public home_thread_mixin_t {
 public:
-    /* To avoid race conditions immediately after exiting the FIFO, exiting
-    is implemented as a sentry-object rather than a method. The constructor for
-    an `exit_read_t` or `exit_write_t` will block until the given token is
-    allowed to exit the FIFO. Higher-numbered tokens will not be allowed to
-    proceed until after the `exit_read_t` or `exit_write_t` has been destroyed.
-    */
-
-    /* If the `interruptor` parameter to `exit_read_t::exit_read_t()` or
-    `exit_write_t::exit_write_t()` is pulsed, then it will throw
-    `interrupted_exc_t` immediately, leaving the `fifo_enforcer_sink_t` in the
-    same state as if the interrupted token had never arrived. */
-
-    class exit_read_t {
+    class exit_read_t;
+    class exit_write_t;
+private:
+    typedef std::multimap<state_timestamp_t, exit_read_t*> reader_queue_t;
+    typedef std::map<transition_timestamp_t, std::pair<int, exit_write_t*> > writer_queue_t;
+public:
+    class exit_read_t : public signal_t {
     public:
-        exit_read_t() THROWS_NOTHING;
-        exit_read_t(fifo_enforcer_sink_t *, fifo_enforcer_read_token_t, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+        exit_read_t(fifo_enforcer_sink_t *, fifo_enforcer_read_token_t) THROWS_NOTHING;
         ~exit_read_t() THROWS_NOTHING;
-        void reset() THROWS_NOTHING;
-        void reset(fifo_enforcer_sink_t *, fifo_enforcer_read_token_t, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
     private:
+        friend class fifo_enforcer_sink_t;
+
         fifo_enforcer_sink_t *parent;
         fifo_enforcer_read_token_t token;
+        reader_queue_t::iterator queue_position;
     };
 
-    class exit_write_t {
+    class exit_write_t : public signal_t {
     public:
-        exit_write_t() THROWS_NOTHING;
-        exit_write_t(fifo_enforcer_sink_t *, fifo_enforcer_write_token_t, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+        exit_write_t(fifo_enforcer_sink_t *, fifo_enforcer_write_token_t) THROWS_NOTHING;
         ~exit_write_t() THROWS_NOTHING;
-        void reset() THROWS_NOTHING;
-        void reset(fifo_enforcer_sink_t *, fifo_enforcer_write_token_t, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
     private:
+        friend class fifo_enforcer_sink_t;
+
         fifo_enforcer_sink_t *parent;
         fifo_enforcer_write_token_t token;
+        writer_queue_t::iterator queue_position;
     };
 
     fifo_enforcer_sink_t() THROWS_NOTHING :
@@ -128,12 +136,14 @@ public:
     }
 
 private:
-    void pump_readers() THROWS_NOTHING;
-    void pump_writers() THROWS_NOTHING;
+    void pump() THROWS_NOTHING;
+    void finish_a_reader(state_timestamp_t timestamp) THROWS_NOTHING;
+    void finish_a_writer(transition_timestamp_t timestamp, int num_preceding_reads) THROWS_NOTHING;
+
     mutex_assertion_t lock;
     fifo_enforcer_source_t::state_t state;
-    std::multimap<state_timestamp_t, cond_t *> waiting_readers;
-    std::map<transition_timestamp_t, std::pair<int, cond_t *> > waiting_writers;
+    reader_queue_t waiting_readers;
+    writer_queue_t waiting_writers;
     DISABLE_COPYING(fifo_enforcer_sink_t);
 };
 

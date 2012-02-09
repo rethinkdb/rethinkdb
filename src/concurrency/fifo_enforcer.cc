@@ -19,125 +19,103 @@ fifo_enforcer_write_token_t fifo_enforcer_source_t::enter_write() THROWS_NOTHING
     return token;
 }
 
-fifo_enforcer_sink_t::exit_read_t::exit_read_t() THROWS_NOTHING : parent(NULL) { }
-
-fifo_enforcer_sink_t::exit_read_t::exit_read_t(fifo_enforcer_sink_t *p, fifo_enforcer_read_token_t t, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) :
-    parent(NULL)
+fifo_enforcer_sink_t::exit_read_t::exit_read_t(fifo_enforcer_sink_t *p, fifo_enforcer_read_token_t t) THROWS_NOTHING :
+    parent(p), token(t)
 {
-    reset(p, t, interruptor);
+    parent->assert_thread();
+    mutex_assertion_t::acq_t acq(&parent->lock);
+
+    queue_position = parent->waiting_readers.insert(std::make_pair(token.timestamp, this));
+
+    parent->pump();
 }
 
 fifo_enforcer_sink_t::exit_read_t::~exit_read_t() THROWS_NOTHING {
-    reset();
-}
-
-void fifo_enforcer_sink_t::exit_read_t::reset() THROWS_NOTHING {
-    if (parent) {
-        parent->assert_thread();
-        mutex_assertion_t::acq_t acq(&parent->lock);
-        rassert(parent->state.timestamp == token.timestamp);
-        parent->state.num_reads++;
-        parent->pump_writers();
-        parent = NULL;
+    mutex_assertion_t::acq_t acq(&parent->lock);
+    if (is_pulsed()) {
+        parent->finish_a_reader(token.timestamp);
+        parent->pump();
+    } else {
+        (*queue_position).second = NULL;
     }
 }
 
-void fifo_enforcer_sink_t::exit_read_t::reset(fifo_enforcer_sink_t *p, fifo_enforcer_read_token_t t, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    reset();
-    p->assert_thread();
-    mutex_assertion_t::acq_t acq(&p->lock);
-    if (p->state.timestamp < t.timestamp) {
-        cond_t can_proceed_cond;
-        multimap_insertion_sentry_t<state_timestamp_t, cond_t *> insertion(
-            &p->waiting_readers,
-            t.timestamp,
-            &can_proceed_cond);
-
-        /* Release the mutex while we block */
-        mutex_assertion_t::acq_t::temporary_release_t release_while_blocking(&acq);
-
-        wait_interruptible(&can_proceed_cond, interruptor);
-
-        /* `release_while_blocking` destructor runs first, which reacquires the
-        mutex; then `insertion` destructor runs, which removes an element from
-        the map while we safely have the mutex. */
-    }
-    parent = p;
-    token = t;
-    rassert(parent->state.timestamp == token.timestamp);
-}
-
-fifo_enforcer_sink_t::exit_write_t::exit_write_t() THROWS_NOTHING : parent(NULL) { }
-
-fifo_enforcer_sink_t::exit_write_t::exit_write_t(fifo_enforcer_sink_t *p, fifo_enforcer_write_token_t t, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) :
-    parent(NULL)
+fifo_enforcer_sink_t::exit_write_t::exit_write_t(fifo_enforcer_sink_t *p, fifo_enforcer_write_token_t t) THROWS_NOTHING :
+    parent(p), token(t)
 {
-    reset(p, t, interruptor);
+    parent->assert_thread();
+    mutex_assertion_t::acq_t acq(&parent->lock);
+
+    std::pair<writer_queue_t::iterator,bool> inserted = parent->waiting_writers.insert(std::make_pair(token.timestamp, std::make_pair(token.num_preceding_reads, this)));
+    rassert(inserted.second, "duplicate fifo_enforcer_write_token_t");
+    queue_position = inserted.first;
+
+    parent->pump();
 }
 
 fifo_enforcer_sink_t::exit_write_t::~exit_write_t() THROWS_NOTHING {
-    reset();
-}
-
-void fifo_enforcer_sink_t::exit_write_t::reset() THROWS_NOTHING {
-    if (parent) {
-        parent->assert_thread();
-        mutex_assertion_t::acq_t acq(&parent->lock);
-        rassert(parent->state.timestamp == token.timestamp.timestamp_before());
-        rassert(parent->state.num_reads == token.num_preceding_reads);
-        parent->state.timestamp = token.timestamp.timestamp_after();
-        parent->state.num_reads = 0;
-        parent->pump_readers();
-        parent->pump_writers();
-        parent = NULL;
+    mutex_assertion_t::acq_t acq(&parent->lock);
+    if (is_pulsed()) {
+        parent->finish_a_writer(token.timestamp, token.num_preceding_reads);
+        parent->pump();
+    } else {
+        (*queue_position).second.second = NULL;
     }
 }
 
-void fifo_enforcer_sink_t::exit_write_t::reset(fifo_enforcer_sink_t *p, fifo_enforcer_write_token_t t, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    reset();
-    p->assert_thread();
-    mutex_assertion_t::acq_t acq(&p->lock);
-    if (p->state.timestamp < t.timestamp.timestamp_before() ||
-            p->state.num_reads < t.num_preceding_reads) {
-        cond_t can_proceed_cond;
-        map_insertion_sentry_t<transition_timestamp_t, std::pair<int, cond_t *> > insertion(
-            &p->waiting_writers,
-            t.timestamp,
-            std::make_pair(t.num_preceding_reads, &can_proceed_cond));
-
-        /* Release the mutex while we block */
-        mutex_assertion_t::acq_t::temporary_release_t release_while_blocking(&acq);
-
-        wait_interruptible(&can_proceed_cond, interruptor);
-
-        /* `release_while_blocking` destructor runs first, which reacquires the
-        mutex; then `insertion` destructor runs, which removes an element from
-        the map while we safely have the mutex. */
-    }
-    parent = p;
-    token = t;
-    rassert(parent->state.timestamp == token.timestamp.timestamp_before());
-    rassert(parent->state.num_reads == token.num_preceding_reads);
-}
-
-void fifo_enforcer_sink_t::pump_readers() THROWS_NOTHING {
-    std::pair<
-            std::multimap<state_timestamp_t, cond_t *>::iterator,
-            std::multimap<state_timestamp_t, cond_t *>::iterator
-            > bounds = waiting_readers.equal_range(state.timestamp);
-    for (std::multimap<state_timestamp_t, cond_t *>::iterator it = bounds.first;
-            it != bounds.second; it++) {
-        (*it).second->pulse();
-    }
-}
-
-void fifo_enforcer_sink_t::pump_writers() THROWS_NOTHING {
-    std::map<transition_timestamp_t, std::pair<int, cond_t *> >::iterator it =
-        waiting_writers.find(transition_timestamp_t::starting_from(state.timestamp));
-    if (it != waiting_writers.end()) {
-        rassert(state.num_reads <= (*it).second.first);
-        if (state.num_reads == (*it).second.first) {
-            (*it).second.second->pulse();
+void fifo_enforcer_sink_t::pump() THROWS_NOTHING {
+    bool cont;
+    do {
+        cont = false;
+        std::pair<reader_queue_t::iterator, reader_queue_t::iterator> bounds =
+            waiting_readers.equal_range(state.timestamp);
+        for (reader_queue_t::iterator it = bounds.first;
+                it != bounds.second; it++) {
+            exit_read_t *read = (*it).second;
+            if (read) {
+                read->pulse();
+            } else {
+                cont = true;
+                finish_a_reader((*it).first);
+            }
         }
-    }
+        waiting_readers.erase(bounds.first, bounds.second);
+
+        writer_queue_t::iterator it =
+            waiting_writers.find(transition_timestamp_t::starting_from(state.timestamp));
+        if (it != waiting_writers.end()) {
+            int expected_num_reads = (*it).second.first;
+            rassert(state.num_reads <= expected_num_reads);
+
+            if (state.num_reads == expected_num_reads) {
+                exit_write_t *write = (*it).second.second;
+                if (write) {
+                    write->pulse();
+                } else {
+                    cont = true;
+                    finish_a_writer((*it).first, expected_num_reads);
+                }
+                waiting_writers.erase(it);
+            }
+        }
+    } while (cont);
 }
+
+void fifo_enforcer_sink_t::finish_a_reader(state_timestamp_t timestamp) THROWS_NOTHING {
+    assert_thread();
+
+    rassert(state.timestamp == timestamp);
+
+    state.num_reads++;
+}
+
+void fifo_enforcer_sink_t::finish_a_writer(transition_timestamp_t timestamp, int num_preceding_reads) THROWS_NOTHING {
+    assert_thread();
+
+    rassert(state.timestamp == timestamp.timestamp_before());
+    rassert(state.num_reads == num_preceding_reads);
+
+    state.timestamp = timestamp.timestamp_after();
+    state.num_reads = 0;
+}
+
