@@ -156,6 +156,8 @@ dummy_store_view_t::metainfo_t dummy_store_view_t::get_metainfo(boost::scoped_pt
 }
 
 void dummy_store_view_t::set_metainfo(const metainfo_t &new_metainfo, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
+
     boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> local_token;
     local_token.swap(token);
 
@@ -168,6 +170,9 @@ void dummy_store_view_t::set_metainfo(const metainfo_t &new_metainfo, boost::sco
 
 dummy_protocol_t::read_response_t dummy_store_view_t::read(DEBUG_ONLY(const metainfo_t& expected_metainfo,)
         const dummy_protocol_t::read_t &read, boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    rassert(region_is_superset(get_region(), expected_metainfo.get_domain()));
+    rassert(region_is_superset(get_region(), read.get_region()));
+
     dummy_protocol_t::read_response_t resp;
     {
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> local_token;
@@ -192,6 +197,10 @@ dummy_protocol_t::read_response_t dummy_store_view_t::read(DEBUG_ONLY(const meta
 dummy_protocol_t::write_response_t dummy_store_view_t::write(DEBUG_ONLY(const metainfo_t& expected_metainfo,)
         const metainfo_t& new_metainfo, const dummy_protocol_t::write_t &write, transition_timestamp_t timestamp, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    rassert(region_is_superset(get_region(), expected_metainfo.get_domain()));
+    rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
+    rassert(region_is_superset(get_region(), write.get_region()));
+
     dummy_protocol_t::write_response_t resp;
     {
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> local_token;
@@ -218,6 +227,8 @@ dummy_protocol_t::write_response_t dummy_store_view_t::write(DEBUG_ONLY(const me
 
 bool dummy_store_view_t::send_backfill(const region_map_t<dummy_protocol_t,state_timestamp_t> &start_point, const boost::function<bool(const metainfo_t&)> &should_backfill,
         const boost::function<void(dummy_protocol_t::backfill_chunk_t)> &chunk_fun, boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    rassert(region_is_superset(get_region(), start_point.get_domain()));
+
     boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> local_token;
     local_token.swap(token);
 
@@ -269,6 +280,9 @@ void dummy_store_view_t::receive_backfill(const dummy_protocol_t::backfill_chunk
 }
 
 void dummy_store_view_t::reset_data(dummy_protocol_t::region_t subregion, const metainfo_t &new_metainfo, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    rassert(region_is_superset(get_region(), subregion));
+    rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
+
     boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> local_token;
     local_token.swap(token);
 
