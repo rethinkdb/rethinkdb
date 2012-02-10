@@ -101,7 +101,7 @@ void fifo_enforcer_sink_t::pump() THROWS_NOTHING {
     } while (cont);
 }
 
-void fifo_enforcer_sink_t::finish_a_reader(state_timestamp_t timestamp) THROWS_NOTHING {
+void fifo_enforcer_sink_t::finish_a_reader(DEBUG_ONLY_VAR state_timestamp_t timestamp) THROWS_NOTHING {
     assert_thread();
 
     rassert(state.timestamp == timestamp);
@@ -109,7 +109,7 @@ void fifo_enforcer_sink_t::finish_a_reader(state_timestamp_t timestamp) THROWS_N
     state.num_reads++;
 }
 
-void fifo_enforcer_sink_t::finish_a_writer(transition_timestamp_t timestamp, int num_preceding_reads) THROWS_NOTHING {
+void fifo_enforcer_sink_t::finish_a_writer(transition_timestamp_t timestamp, DEBUG_ONLY_VAR int num_preceding_reads) THROWS_NOTHING {
     assert_thread();
 
     rassert(state.timestamp == timestamp.timestamp_before());

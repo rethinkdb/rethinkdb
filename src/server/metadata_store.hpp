@@ -30,7 +30,7 @@ public:
 public:
     /* metadata_store_t interface */
     // NOTE: key cannot be longer than MAX_KEY_SIZE. currently enforced by guarantee().
-    MUSTUSE bool get_meta(const std::string& key, std::string *out);
+    MUST_USE bool get_meta(const std::string& key, std::string *out);
     void set_meta(const std::string& key, const std::string& value);
 
 private:
