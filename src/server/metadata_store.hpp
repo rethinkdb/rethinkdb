@@ -1,5 +1,5 @@
 #ifndef __SERVER_METADATA_STORE_HPP__
-#define	__SERVER_METADATA_STORE_HPP__
+#define __SERVER_METADATA_STORE_HPP__
 
 #include "errors.hpp"
 #include <boost/scoped_ptr.hpp>
@@ -42,4 +42,4 @@ private:
     side_coro_handler_t *stat_persistence_side_coro_ptr;
 };
 
-#endif	/* __SERVER_METADATA_STORE_HPP__ */
+#endif /* __SERVER_METADATA_STORE_HPP__ */

@@ -25,9 +25,9 @@ public:
     }
 
     struct recompute_caller_t {
-	selective_passive_producer_t *parent_;
-	explicit recompute_caller_t(selective_passive_producer_t *parent) : parent_(parent) { }
-	void operator()() { parent_->recompute(); }
+        selective_passive_producer_t *parent_;
+        explicit recompute_caller_t(selective_passive_producer_t *parent) : parent_(parent) { }
+        void operator()() { parent_->recompute(); }
     };
 
     void set_source(passive_producer_t<value_t> *selectee) {

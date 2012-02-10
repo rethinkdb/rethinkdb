@@ -1,5 +1,5 @@
 #ifndef __BUFFER_CACHE_MIRRORED_CONFIG_HPP__
-#define	__BUFFER_CACHE_MIRRORED_CONFIG_HPP__
+#define __BUFFER_CACHE_MIRRORED_CONFIG_HPP__
 
 #include "config/args.hpp"
 #include "utils.hpp"

@@ -51,8 +51,8 @@ public:
         if (available != a) {
             available = a;
             if (callback) {
-		callback();
-	    }
+                callback();
+            }
         }
     }
 

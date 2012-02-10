@@ -122,7 +122,7 @@ void create_proxies(const std::vector<standard_serializer_t *>& underlying,
 serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<standard_serializer_t *>& underlying) {
     rassert(underlying.size() > 0);
     for (int i = 0; i < (int)underlying.size(); i++) {
-	rassert(underlying[i]);
+        rassert(underlying[i]);
     }
 
     /* Figure out how many slices there are gonna be and figure out what the creation magic is */

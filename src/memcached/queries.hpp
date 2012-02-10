@@ -173,7 +173,7 @@ struct key_with_data_buffer_t {
     boost::intrusive_ptr<data_buffer_t> value_provider;
 
     key_with_data_buffer_t(const std::string& _key, mcflags_t _mcflags, const boost::intrusive_ptr<data_buffer_t>& _value_provider)
-	: key(_key), mcflags(_mcflags), value_provider(_value_provider) { }
+        : key(_key), mcflags(_mcflags), value_provider(_value_provider) { }
 
     struct less {
         bool operator()(const key_with_data_buffer_t& pair1, const key_with_data_buffer_t& pair2) {

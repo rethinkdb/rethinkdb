@@ -132,7 +132,7 @@ void intrusive_ptr_release(scs_block_token_t<inner_serializer_t> *p) {
     int64_t res = __sync_sub_and_fetch(&p->ref_count_, 1);
     rassert(res >= 0);
     if (res == 0) {
-	delete p;
+        delete p;
     }
 }
 

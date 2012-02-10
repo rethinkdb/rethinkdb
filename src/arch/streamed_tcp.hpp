@@ -233,7 +233,7 @@ private:
 class streamed_tcp_listener_t {
 public:
     streamed_tcp_listener_t(int port, boost::function<void(boost::scoped_ptr<streamed_tcp_conn_t>&)> _callback)
-	: callback(_callback), listener(port, boost::bind(&streamed_tcp_listener_t::handle, this, _1) ) { }
+        : callback(_callback), listener(port, boost::bind(&streamed_tcp_listener_t::handle, this, _1) ) { }
 
 private:
     // The wrapping handler
