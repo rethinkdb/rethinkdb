@@ -1,11 +1,12 @@
 #include "unittest/dummy_protocol.hpp"
 
 #include "errors.hpp"
-#include <boost/make_shared.hpp>
+#include <boost/scoped_ptr.hpp>
 
 #include "arch/timing.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "concurrency/signal.hpp"
+#include "concurrency/wait_any.hpp"
 
 namespace unittest {
 
@@ -92,15 +93,26 @@ dummy_protocol_t::region_t region_intersection(dummy_protocol_t::region_t a, dum
     return i;
 }
 
-dummy_protocol_t::region_t region_join(std::vector<dummy_protocol_t::region_t> vec) THROWS_ONLY(bad_join_exc_t, bad_region_exc_t) {
+dummy_protocol_t::region_t region_join(const std::vector<dummy_protocol_t::region_t> &vec) THROWS_ONLY(bad_join_exc_t, bad_region_exc_t) {
     dummy_protocol_t::region_t u;
-    for (std::vector<dummy_protocol_t::region_t>::iterator it = vec.begin(); it != vec.end(); it++) {
+    for (std::vector<dummy_protocol_t::region_t>::const_iterator it = vec.begin(); it != vec.end(); it++) {
         for (std::set<std::string>::iterator it2 = (*it).keys.begin(); it2 != (*it).keys.end(); it2++) {
             if (u.keys.count(*it2) != 0) throw bad_join_exc_t();
             u.keys.insert(*it2);
         }
     }
     return u;
+}
+
+std::vector<dummy_protocol_t::region_t> region_subtract_many(const dummy_protocol_t::region_t &a, const std::vector<dummy_protocol_t::region_t>& b) {
+    std::vector<dummy_protocol_t::region_t> result(1, a);
+
+    for (size_t i = 0; i < b.size(); i++) {
+        for (std::set<std::string>::const_iterator j = b[i].keys.begin(); j != b[i].keys.end(); ++j) {
+            result[0].keys.erase(*j);
+        }
+    }
+    return result;
 }
 
 bool operator==(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b) {
@@ -111,7 +123,7 @@ bool operator!=(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b) {
     return !(a == b);
 }
 
-dummy_underlying_store_t::dummy_underlying_store_t(dummy_protocol_t::region_t r) : region(r), metadata(r, binary_blob_t()) {
+dummy_underlying_store_t::dummy_underlying_store_t(dummy_protocol_t::region_t r) : region(r), metainfo(r, binary_blob_t()) {
     for (std::set<std::string>::iterator it = region.keys.begin();
             it != region.keys.end(); it++) {
         values[*it] = "";
@@ -119,75 +131,108 @@ dummy_underlying_store_t::dummy_underlying_store_t(dummy_protocol_t::region_t r)
     }
 }
 
-/* The same class handles both read and write transactions because it's more
-    convenient that way. */
+dummy_store_view_t::dummy_store_view_t(dummy_underlying_store_t *p, dummy_protocol_t::region_t region) :
+    store_view_t<dummy_protocol_t>(region), parent(p) { }
 
-class dummy_transaction_t : public store_view_t<dummy_protocol_t>::write_transaction_t {
+void dummy_store_view_t::new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out) THROWS_NOTHING {
+    fifo_enforcer_read_token_t token = parent->token_source.enter_read();
+    token_out.reset(new fifo_enforcer_sink_t::exit_read_t(&parent->token_sink, token));
+}
 
-public:
-    dummy_transaction_t(dummy_store_view_t *v, bool isr, rwi_lock_t::read_acq_t *read_acq_in, rwi_lock_t::write_acq_t *write_acq_in) :
-        view(v), valid(true), is_read(isr)
+void dummy_store_view_t::new_write_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token_out) THROWS_NOTHING {
+    fifo_enforcer_write_token_t token = parent->token_source.enter_write();
+    token_out.reset(new fifo_enforcer_sink_t::exit_write_t(&parent->token_sink, token));
+}
+
+dummy_store_view_t::metainfo_t dummy_store_view_t::get_metainfo(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> local_token;
+    local_token.swap(token);
+
+    wait_interruptible(local_token.get(), interruptor);
+
+    if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
+    metainfo_t res = parent->metainfo.mask(get_region());
+    return res;
+}
+
+void dummy_store_view_t::set_metainfo(const metainfo_t &new_metainfo, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> local_token;
+    local_token.swap(token);
+
+    wait_interruptible(local_token.get(), interruptor);
+
+    if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
+
+    parent->metainfo = parent->metainfo.update(new_metainfo);
+}
+
+dummy_protocol_t::read_response_t dummy_store_view_t::read(DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+        const dummy_protocol_t::read_t &read, boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    dummy_protocol_t::read_response_t resp;
     {
-        if (is_read) {
-            swap(*read_acq_in, read_acq);
-        } else {
-            swap(*write_acq_in, write_acq);
+        boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> local_token;
+        local_token.swap(token);
+
+        wait_interruptible(local_token.get(), interruptor);
+
+        // We allow expected_metainfo domain to be smaller than the metainfo domain
+        rassert(expected_metainfo == parent->metainfo.mask(expected_metainfo.get_domain()));
+
+        if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
+        for (std::set<std::string>::iterator it = read.keys.keys.begin();
+                it != read.keys.keys.end(); it++) {
+            rassert(get_region().keys.count(*it) != 0);
+            resp.values[*it] = parent->values[*it];
         }
     }
+    if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
+    return resp;
+}
 
-    region_map_t<dummy_protocol_t, binary_blob_t> get_metadata(signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        rassert(valid);
-        if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
-        return view->parent->metadata.mask(view->get_region());
-    }
-
-    dummy_protocol_t::read_response_t read(const dummy_protocol_t::read_t &read, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        rassert(valid);
-        valid = false;
-        dummy_protocol_t::read_response_t resp;
-        {
-            /* Swap `read_acq` or `write_acq` into a temp variable so it gets
-            released when we throw an exception or finish */
-            rwi_lock_t::read_acq_t temp_read_acq;
-            rwi_lock_t::write_acq_t temp_write_acq;
-            if (is_read) {
-                swap(temp_read_acq, read_acq);
-            } else {
-                swap(temp_write_acq, write_acq);
-            }
-            if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
-            for (std::set<std::string>::iterator it = read.keys.keys.begin();
-                    it != read.keys.keys.end(); it++) {
-                rassert(view->get_region().keys.count(*it) != 0);
-                resp.values[*it] = view->parent->values[*it];
-            }
-        }
-        if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
-        return resp;
-    }
-
-    void send_backfill(const region_map_t<dummy_protocol_t, state_timestamp_t> &start_point,
-            const boost::function<void(dummy_protocol_t::backfill_chunk_t)> &chunk_sender,
-            signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t)
+dummy_protocol_t::write_response_t dummy_store_view_t::write(DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+        const metainfo_t& new_metainfo, const dummy_protocol_t::write_t &write, transition_timestamp_t timestamp, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    dummy_protocol_t::write_response_t resp;
     {
-        rassert(valid);
-        valid = false;
+        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> local_token;
+        local_token.swap(token);
+
+        wait_interruptible(local_token.get(), interruptor);
+
+        // We allow expected_metainfo domain to be smaller than the metainfo domain
+        rassert(expected_metainfo == parent->metainfo.mask(expected_metainfo.get_domain()));
+
+        if (rng.randint(2) == 0) nap(rng.randint(10));
+        for (std::map<std::string, std::string>::const_iterator it = write.values.begin();
+                it != write.values.end(); it++) {
+            resp.old_values[(*it).first] = parent->values[(*it).first];
+            parent->values[(*it).first] = (*it).second;
+            parent->timestamps[(*it).first] = timestamp.timestamp_after();
+        }
+
+        parent->metainfo = parent->metainfo.update(new_metainfo);
+    }
+    if (rng.randint(2) == 0) nap(rng.randint(10));
+    return resp;
+}
+
+bool dummy_store_view_t::send_backfill(const region_map_t<dummy_protocol_t,state_timestamp_t> &start_point, const boost::function<bool(const metainfo_t&)> &should_backfill,
+        const boost::function<void(dummy_protocol_t::backfill_chunk_t)> &chunk_fun, boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> local_token;
+    local_token.swap(token);
+
+    wait_interruptible(local_token.get(), interruptor);
+
+    metainfo_t metainfo = parent->metainfo.mask(get_region());
+    if (should_backfill(metainfo)) {
         /* Make a copy so we can sleep and still have the correct semantics */
-        std::map<std::string, std::string> values_snapshot = view->parent->values;
-        std::map<std::string, state_timestamp_t> timestamps_snapshot = view->parent->timestamps;
-        {
-            /* Swap `read_acq` or `write_acq` into a temp variable so it gets
-            released as soon as this timeout is over or interrupted */
-            rwi_lock_t::read_acq_t temp_read_acq;
-            rwi_lock_t::write_acq_t temp_write_acq;
-            if (is_read) {
-                swap(temp_read_acq, read_acq);
-            } else {
-                swap(temp_write_acq, write_acq);
-            }
-            if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
-        }
+        std::map<std::string, std::string> values_snapshot = parent->values;
+        std::map<std::string, state_timestamp_t> timestamps_snapshot = parent->timestamps;
+
+        if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
+
+        local_token.reset();
+
         if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
         std::vector<std::pair<dummy_protocol_t::region_t, state_timestamp_t> > pairs = start_point.get_as_pairs();
         for (int i = 0; i < (int)pairs.size(); i++) {
@@ -198,99 +243,43 @@ public:
                     chunk.key = *it;
                     chunk.value = values_snapshot[*it];
                     chunk.timestamp = timestamps_snapshot[*it];
-                    chunk_sender(chunk);
+                    chunk_fun(chunk);
                 }
                 if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
             }
         }
+        return true;
+    } else {
+        return false;
     }
-
-    void set_metadata(const region_map_t<dummy_protocol_t, binary_blob_t> &metadata) THROWS_NOTHING {
-        rassert(valid);
-        if (rng.randint(2) == 0) nap(rng.randint(10));
-        std::vector<std::pair<dummy_protocol_t::region_t, binary_blob_t> > old_pairs = view->parent->metadata.get_as_pairs();
-        dummy_protocol_t::region_t cutout = metadata.get_domain();
-        std::vector<std::pair<dummy_protocol_t::region_t, binary_blob_t> > new_pairs = metadata.get_as_pairs();
-        for (int i = 0; i < (int)old_pairs.size(); i++) {
-            dummy_protocol_t::region_t r = old_pairs[i].first;
-            for (std::set<std::string>::iterator it = cutout.keys.begin(); it != cutout.keys.end(); it++) {
-                r.keys.erase(*it);
-            }
-            if (!r.keys.empty()) {
-                new_pairs.push_back(std::make_pair(r, old_pairs[i].second));
-            }
-        }
-        view->parent->metadata = region_map_t<dummy_protocol_t, binary_blob_t>(new_pairs);
-    }
-
-    dummy_protocol_t::write_response_t write(const dummy_protocol_t::write_t &write, transition_timestamp_t transition_timestamp) THROWS_NOTHING {
-        rassert(valid);
-        valid = false;
-        dummy_protocol_t::write_response_t resp;
-        {
-            rwi_lock_t::read_acq_t temp_read_acq;
-            rwi_lock_t::write_acq_t temp_write_acq;
-            if (is_read) {
-                swap(temp_read_acq, read_acq);
-            } else {
-                swap(temp_write_acq, write_acq);
-            }
-            if (rng.randint(2) == 0) nap(rng.randint(10));
-            for (std::map<std::string, std::string>::const_iterator it = write.values.begin();
-                    it != write.values.end(); it++) {
-                resp.old_values[(*it).first] = view->parent->values[(*it).first];
-                view->parent->values[(*it).first] = (*it).second;
-                view->parent->timestamps[(*it).first] = transition_timestamp.timestamp_after();
-            }
-        }
-        if (rng.randint(2) == 0) nap(rng.randint(10));
-        return resp;
-    }
-
-    void receive_backfill(const dummy_protocol_t::backfill_chunk_t &chunk, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        rassert(view->get_region().keys.count(chunk.key) != 0);
-        rassert(valid);
-        valid = false;
-        {
-            rwi_lock_t::read_acq_t temp_read_acq;
-            rwi_lock_t::write_acq_t temp_write_acq;
-            if (is_read) {
-                swap(temp_read_acq, read_acq);
-            } else {
-                swap(temp_write_acq, write_acq);
-            }
-            if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
-            view->parent->values[chunk.key] = chunk.value;
-            view->parent->timestamps[chunk.key] = chunk.timestamp;
-            if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
-        }
-        if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
-    }
-
-private:
-    /* For random timeouts */
-    rng_t rng;
-
-    dummy_store_view_t *view;
-
-    bool valid;
-
-    bool is_read;
-    rwi_lock_t::read_acq_t read_acq;
-    rwi_lock_t::write_acq_t write_acq;
-};
-
-dummy_store_view_t::dummy_store_view_t(dummy_underlying_store_t *p, dummy_protocol_t::region_t region) :
-    store_view_t<dummy_protocol_t>(region), parent(p) { }
-
-boost::shared_ptr<store_view_t<dummy_protocol_t>::read_transaction_t> dummy_store_view_t::begin_read_transaction(UNUSED signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    rwi_lock_t::read_acq_t acq(&read_write_lock);
-    return boost::make_shared<dummy_transaction_t>(this, true, &acq, static_cast<rwi_lock_t::write_acq_t *>(NULL));
 }
 
-boost::shared_ptr<store_view_t<dummy_protocol_t>::write_transaction_t> dummy_store_view_t::begin_write_transaction(UNUSED signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    rwi_lock_t::write_acq_t acq(&read_write_lock);
-    return boost::make_shared<dummy_transaction_t>(this, false, static_cast<rwi_lock_t::read_acq_t *>(NULL), &acq);
+void dummy_store_view_t::receive_backfill(const dummy_protocol_t::backfill_chunk_t &chunk, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> local_token;
+    local_token.swap(token);
+
+    wait_interruptible(local_token.get(), interruptor);
+
+    rassert(get_region().keys.count(chunk.key) != 0);
+
+    if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
+    parent->values[chunk.key] = chunk.value;
+    parent->timestamps[chunk.key] = chunk.timestamp;
+    if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
+}
+
+void dummy_store_view_t::reset_data(dummy_protocol_t::region_t subregion, const metainfo_t &new_metainfo, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> local_token;
+    local_token.swap(token);
+
+    wait_interruptible(local_token.get(), interruptor);
+
+    rassert(region_is_superset(get_region(), subregion));
+    for (std::set<std::string>::iterator it = subregion.keys.begin(); it != subregion.keys.end(); it++) {
+        parent->values[*it] = "";
+        parent->timestamps[*it] = state_timestamp_t::zero();
+    }
+    parent->metainfo = parent->metainfo.update(new_metainfo);
 }
 
 }   /* namespace unittest */

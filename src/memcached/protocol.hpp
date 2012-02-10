@@ -134,20 +134,4 @@ public:
     };
 };
 
-/* `dummy_memcached_store_view_t` is a `store_view_t<memcached_protocol_t>` that
-forwards its operations to a `btree_slice_t`. Currently it's mostly just
-stubs. */
-
-class dummy_memcached_store_view_t : public store_view_t<memcached_protocol_t> {
-
-public:
-    dummy_memcached_store_view_t(key_range_t, btree_slice_t *);
-
-    boost::shared_ptr<store_view_t<memcached_protocol_t>::read_transaction_t> begin_read_transaction(signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
-    boost::shared_ptr<store_view_t<memcached_protocol_t>::write_transaction_t> begin_write_transaction(signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
-
-private:
-    btree_slice_t *btree;
-};
-
 #endif /* __MEMCACHED_PROTOCOL_HPP__ */

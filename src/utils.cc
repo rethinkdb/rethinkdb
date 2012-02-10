@@ -463,7 +463,7 @@ void print_backtrace(FILE *out, bool use_addr2line) {
     if (symbols) {
         for (int i = 0; i < size; i ++) {
             // Parse each line of the backtrace
-	    scoped_malloc<char> line(symbols[i], symbols[i] + (strlen(symbols[i]) + 1));
+            scoped_malloc<char> line(symbols[i], symbols[i] + (strlen(symbols[i]) + 1));
             char *executable, *function, *offset, *address;
 
             fprintf(out, "%d: ", i+1);
@@ -500,4 +500,12 @@ void print_backtrace(FILE *out, bool use_addr2line) {
     } else {
         fprintf(out, "(too little memory for backtrace)\n");
     }
+}
+
+bool operator==(const binary_blob_t &left, const binary_blob_t &right) {
+    return left.size() == right.size() && memcmp(left.data(), right.data(), left.size()) == 0;
+}
+
+bool operator!=(const binary_blob_t &left, const binary_blob_t &right) {
+    return !(left == right);
 }
