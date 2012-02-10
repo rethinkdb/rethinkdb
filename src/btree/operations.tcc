@@ -26,6 +26,7 @@ inline void insert_root(block_id_t root_id, superblock_t* sb) {
 template <class Value>
 void get_root(value_sizer_t<Value> *sizer, transaction_t *txn, superblock_t* sb, buf_lock_t *buf_out, eviction_priority_t root_eviction_priority) {
     rassert(!buf_out->is_acquired());
+    rassert(ZERO_EVICTION_PRIORITY < root_eviction_priority);
 
     block_id_t node_id = sb->get_root_block_id();
 
