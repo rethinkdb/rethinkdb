@@ -74,6 +74,18 @@ public:
     metadata. If `get_peer()` is not connected, returns nothing. */
     virtual boost::optional<metadata_t> get_value() THROWS_NOTHING = 0;
 
+    /* Blocks until an actual value can be found for the metadata (which
+     * happens when this peer connected). */
+    metadata_t get_actual_value(signal_t *interruptor);
+
+    /* When this function returns we are guarunteed that there existed a time
+     * at which f(get_value()) evaluated true. */
+    void wait_until_predicate_is_met(const boost::function<bool(boost::optional<metadata_t>)> &f, signal_t *interruptor);
+
+    /* Repeatedly runs a function on the value for a directory rview until that
+     * function is satisfied (function returns true). */
+    void run_until_satisfied(const boost::function<bool(boost::optional<metadata_t>)> &f, signal_t *interruptor);
+
     /* Returns the directory service that this is a part of. */
     virtual directory_read_service_t *get_directory_service() THROWS_NOTHING = 0;
 

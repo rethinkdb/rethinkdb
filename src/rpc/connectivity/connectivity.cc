@@ -32,6 +32,25 @@ void connectivity_service_t::peers_list_subscription_t::reset(connectivity_servi
     subs.reset(connectivity->get_peers_list_publisher());
 }
 
+connect_watcher_t::connect_watcher_t(connectivity_service_t *connectivity, peer_id_t p) :
+    subs(0, boost::bind(&connect_watcher_t::on_connect, this, _1)), peer(p) {
+    ASSERT_FINITE_CORO_WAITING;
+    connectivity_service_t::peers_list_freeze_t freeze(connectivity);
+    if (!connectivity->get_peer_connected(peer)) {
+        pulse();
+    } else {
+        subs.reset(connectivity, &freeze);
+    }
+}
+
+void connect_watcher_t::on_connect(peer_id_t p) {
+    if (peer == p) {
+        if (!is_pulsed()) {
+            pulse();
+        }
+    }
+}
+
 disconnect_watcher_t::disconnect_watcher_t(connectivity_service_t *connectivity, peer_id_t p) :
     subs(0, boost::bind(&disconnect_watcher_t::on_disconnect, this, _1)), peer(p) {
     ASSERT_FINITE_CORO_WAITING;

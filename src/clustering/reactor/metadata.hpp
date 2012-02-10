@@ -146,10 +146,11 @@ public:
             secondary_backfilling_t,
             listener_backfilling_t, listener_up_to_date_t,
             listener_without_primary_t,
-            nothing_when_safe_t, nothing_t
+            nothing_when_safe_t, nothing_t, nothing_when_done_erasing_t
         > activity_t;
 
-    std::map<reactor_activity_id_t, std::pair<typename protocol_t::region_t, activity_t> > activities;
+    typedef std::map<reactor_activity_id_t, std::pair<typename protocol_t::region_t, activity_t> > activity_map_t;
+    activity_map_t activities;
 
     RDB_MAKE_ME_SERIALIZABLE_1(activities);
 };

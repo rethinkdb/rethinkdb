@@ -132,6 +132,14 @@ public:
         return region_map_t(updated_pairs);
     }
 
+    region_map_t set(const std::pair<typename protocol_t::region_t, value_t> &pair) {
+        return update(region_map_t(pair.first, pair.second));
+    }
+
+    region_map_t set(const typename protocol_t::region_t &r, const value_t &v) {
+        return update(region_map_t(r, v));
+    }
+
 private:
     std::vector<std::pair<typename protocol_t::region_t, value_t> > regions_and_values;
     RDB_MAKE_ME_SERIALIZABLE_1(regions_and_values);

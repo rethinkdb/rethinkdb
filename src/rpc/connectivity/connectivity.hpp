@@ -152,6 +152,15 @@ private:
             > > *get_peers_list_publisher() = 0;
 };
 
+class connect_watcher_t : public signal_t {
+public:
+    connect_watcher_t(connectivity_service_t *, peer_id_t);
+private:
+    void on_connect(peer_id_t);
+    connectivity_service_t::peers_list_subscription_t subs;
+    peer_id_t peer;
+};
+
 class disconnect_watcher_t : public signal_t {
 public:
     disconnect_watcher_t(connectivity_service_t *, peer_id_t);

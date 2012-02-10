@@ -1,6 +1,8 @@
 #include "errors.hpp"
 #include <boost/scoped_ptr.hpp>
 
+#include "concurrency/cond_var.hpp"
+
 template<class metadata_t, class inner_t>
 class subview_directory_single_rview_t :
     public directory_single_rview_t<inner_t>
@@ -39,6 +41,20 @@ private:
     boost::scoped_ptr<directory_single_rview_t<metadata_t> > superview;
     clone_ptr_t<read_lens_t<inner_t, metadata_t> > lens;
 };
+
+template <class metadata_t>
+metadata_t directory_single_rview_t<metadata_t>::get_actual_value(signal_t *interruptor) {
+    while (true) {
+        boost::optional<metadata_t> val = get_value();
+        if (val) {
+            return val.get();
+        }
+        
+        connect_watcher_t connect_watcher(get_directory_service()->get_connectivity_service(), get_peer());
+        wait_interruptible(&connect_watcher, interruptor);
+    }
+}
+
 
 template<class metadata_t> template<class inner_t>
 clone_ptr_t<directory_single_rview_t<inner_t> > directory_single_rview_t<metadata_t>::subview(const clone_ptr_t<read_lens_t<inner_t, metadata_t> > &lens) THROWS_NOTHING {

@@ -15,7 +15,7 @@ public:
             clone_ptr_t<directory_rwview_t<boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > > reactor_directory,
             clone_ptr_t<directory_wview_t<std::map<master_id_t, master_business_card_t<protocol_t> > > > _master_directory,
             boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > branch_history,
-            watchable_t<blueprint_t<protocol_t> > *blueprint,
+            watchable_t<blueprint_t<protocol_t> > *blueprint_watchable,
             store_view_t<protocol_t> *_underlying_store) THROWS_NOTHING;
 
 private:
@@ -55,16 +55,16 @@ private:
             typename protocol_t::region_t region,
             typename blueprint_t<protocol_t>::role_t role,
             cond_t *blueprint_changed_cond,
-            const std::set<peer_id_it> &active_peers,
+            const blueprint_t<protocol_t> &blueprint,
             auto_drainer_t::lock_t keepalive) THROWS_NOTHING;
 
-    void be_primary(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const std::set<peer_id_t> &,
+    void be_primary(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const blueprint_t<protocol_t> &,
             signal_t *interruptor) THROWS_NOTHING;
-    void be_secondary(typename protocol_t::region_t region, store_view_t<protocol_t> *store,
+    void be_secondary(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const blueprint_t<protocol_t> &,
             signal_t *interruptor) THROWS_NOTHING;
-    void be_listener(typename protocol_t::region_t region, store_view_t<protocol_t> *store,
+    void be_listener(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const blueprint_t<protocol_t> &,
             signal_t *interruptor) THROWS_NOTHING;
-    void be_nothing(typename protocol_t::region_t region, store_view_t<protocol_t> *store,
+    void be_nothing(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const blueprint_t<protocol_t> &,
             signal_t *interruptor) THROWS_NOTHING;
 
 
@@ -90,7 +90,7 @@ private:
     clone_ptr_t<directory_wview_t<std::map<master_id_t, master_business_card_t<protocol_t> > > > master_directory;
     boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > branch_history;
 
-    watchable_t<blueprint_t<protocol_t> > *blueprint;
+    watchable_t<blueprint_t<protocol_t> > *blueprint_watchable;
 
     store_view_t<protocol_t> *underlying_store;
 
@@ -104,6 +104,16 @@ private:
     typename watchable_t<blueprint_t<protocol_t> >::subscription_t blueprint_subscription;
 };
 
-#include "clustering/reactor/reactor.tcc"
 
 #endif /* __CLUSTERING_REACTOR_REACTOR_HPP__ */
+
+#include "clustering/reactor/reactor.tcc"
+
+#include "clustering/reactor/reactor_be_primary.tcc"
+
+#include "clustering/reactor/reactor_be_secondary.tcc"
+
+#include "clustering/reactor/reactor_be_listener.tcc"
+
+#include "clustering/reactor/reactor_be_nothing.tcc"
+
