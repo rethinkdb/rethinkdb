@@ -23,10 +23,10 @@ public:
     // value to NULL would mean to delete the key-value pair (but if
     // you do so make sure to wipe out the blob, too).  The return
     // value is true if the leaf node needs to be updated.
-    virtual MUSTUSE bool operate(transaction_t *txn, scoped_malloc<memcached_value_t>& value) = 0;
+    virtual MUST_USE bool operate(transaction_t *txn, scoped_malloc<memcached_value_t>& value) = 0;
 
 
-    virtual MUSTUSE int compute_expected_change_count(block_size_t block_size) = 0;
+    virtual MUST_USE int compute_expected_change_count(block_size_t block_size) = 0;
 };
 
 class sequence_group_t;

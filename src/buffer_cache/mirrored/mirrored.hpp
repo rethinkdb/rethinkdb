@@ -38,8 +38,8 @@ class mc_cache_account_t;
 // evictable_t must go before array_map_t::local_buf_t, which
 // references evictable_t's cache field.
 class mc_inner_buf_t : public evictable_t,
-		       private writeback_t::local_buf_t, /* This local_buf_t has state used by the writeback. */
-		       public home_thread_mixin_t {
+                       private writeback_t::local_buf_t, /* This local_buf_t has state used by the writeback. */
+                       public home_thread_mixin_t {
     friend class mc_cache_t;
     friend class mc_transaction_t;
     friend class mc_buf_t;

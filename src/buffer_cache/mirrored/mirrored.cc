@@ -493,7 +493,7 @@ mc_buf_t::mc_buf_t(mc_inner_buf_t *_inner_buf, access_t _mode, mc_inner_buf_t::v
     patches_serialized_size_at_start = -1;
 
     if (snapshotted) {
-	rassert(is_read_mode(mode), "Only read access is allowed to block snapshots");
+        rassert(is_read_mode(mode), "Only read access is allowed to block snapshots");
         // Our snapshotting-specific code can't handle weird read
         // modes, unfortunately.
 

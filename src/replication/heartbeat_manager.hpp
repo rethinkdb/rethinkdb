@@ -1,5 +1,5 @@
 #ifndef __REPLICATION_HEARTBEAT_MANAGER_HPP__
-#define	__REPLICATION_HEARTBEAT_MANAGER_HPP__
+#define __REPLICATION_HEARTBEAT_MANAGER_HPP__
 
 class timer_token_t;
 
@@ -79,4 +79,4 @@ private:
     static void heartbeat_timeout_callback(void *data);
 };
 
-#endif	/* __REPLICATION_HEARTBEAT_MANAGER_HPP__ */
+#endif  /* __REPLICATION_HEARTBEAT_MANAGER_HPP__ */

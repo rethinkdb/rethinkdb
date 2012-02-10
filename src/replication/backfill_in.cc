@@ -72,9 +72,9 @@ void backfill_storer_t::ensure_backfilling() {
         // In order to do that, we first drain all realtime operations that are
         // still lingering around (is it possible at all that there are any?).
         // Then we set the queue_picker_ to only take requests from the backfill queue.
-	debugf("backfill_storer_t:      Draining coro_pool_ for realtime operations to finish.\n");
+        debugf("backfill_storer_t:      Draining coro_pool_ for realtime operations to finish.\n");
         coro_pool_.drain();
-	debugf("backfill_storer_t: DONE Draining coro_pool_ for realtime operations to finish.\n");
+        debugf("backfill_storer_t: DONE Draining coro_pool_ for realtime operations to finish.\n");
         queue_picker_.set_source(&backfill_queue_);
     }
     backfilling_ = true;

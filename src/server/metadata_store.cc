@@ -22,7 +22,7 @@
 static void co_persist_stats(btree_metadata_store_t *store, signal_t *shutdown);
 
 void btree_metadata_store_t::create(btree_key_value_store_dynamic_config_t *dynamic_config,
-				    btree_key_value_store_static_config_t *static_config) {
+                                    btree_key_value_store_static_config_t *static_config) {
 
     int n_files = dynamic_config->serializer_private.size();
     rassert(n_files > 0);
@@ -66,7 +66,7 @@ bool btree_metadata_store_t::get_meta(const std::string &key, std::string *out) 
     guarantee(!res.is_not_allowed);
 
     if (!res.value) {
-	return false;
+        return false;
     }
 
     // Get the data and copy it into *out.

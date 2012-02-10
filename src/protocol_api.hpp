@@ -99,7 +99,7 @@ public:
         return regions_and_values.end();
     }
 
-    MUSTUSE region_map_t mask(typename protocol_t::region_t region) const {
+    MUST_USE region_map_t mask(typename protocol_t::region_t region) const {
         std::vector<std::pair<typename protocol_t::region_t, value_t> > masked_pairs;
         for (int i = 0; i < (int)regions_and_values.size(); i++) {
             typename protocol_t::region_t ixn = region_intersection(regions_and_values[i].first, region);
@@ -111,7 +111,7 @@ public:
     }
 
     // Important: 'update' assumes that new_values regions do not intersect
-    MUSTUSE region_map_t update(const region_map_t& new_values) const {
+    MUST_USE region_map_t update(const region_map_t& new_values) const {
         rassert(region_is_superset(get_domain(), new_values.get_domain()));
 
         std::vector<typename protocol_t::region_t> overlay_regions;

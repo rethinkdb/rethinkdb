@@ -172,7 +172,7 @@ order_token_t backfill_receiver_order_source_t::check_in_realtime_operation(cons
     assert_thread();
     ++counter_;
     return order_token_t(bucket_, counter_ + (backfill_active_ ? REALTIME_COUNTER_INCREMENT : 0),
-			 false, "realtime+" + tag);
+                         false, "realtime+" + tag);
 }
 
 
@@ -198,10 +198,10 @@ void order_sink_t::verify_token_value_and_update(order_token_t token, std::pair<
     // to ensure that multiple actions don't get interrupted.  And
     // resending the same action isn't normally a problem.
     if (token.read_mode_) {
-	rassert(token.value_ >= ls_pair->first.value, "read_mode expected (0x%lx >= 0x%lx), (%s >= %s), bucket = (%d,%d)", token.value_, ls_pair->first.value, token.tag_.c_str(), ls_pair->first.tag.c_str(), token.bucket_.thread_, token.bucket_.number_);
-	if (ls_pair->second.value < token.value_) {
-	    ls_pair->second = tagged_seen_t(token.value_, token.tag_);
-	}
+        rassert(token.value_ >= ls_pair->first.value, "read_mode expected (0x%lx >= 0x%lx), (%s >= %s), bucket = (%d,%d)", token.value_, ls_pair->first.value, token.tag_.c_str(), ls_pair->first.tag.c_str(), token.bucket_.thread_, token.bucket_.number_);
+        if (ls_pair->second.value < token.value_) {
+            ls_pair->second = tagged_seen_t(token.value_, token.tag_);
+        }
     } else {
         rassert(token.value_ >= ls_pair->second.value, "write_mode expected (0x%lx >= 0x%lx), (%s >= %s), bucket = (%d,%d)", token.value_, ls_pair->second.value, token.tag_.c_str(), ls_pair->second.tag.c_str(), token.bucket_.thread_, token.bucket_.number_);
         ls_pair->first = ls_pair->second = tagged_seen_t(token.value_, token.tag_);

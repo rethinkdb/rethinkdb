@@ -63,8 +63,14 @@
  * every single time it gets included.
  */
 
+#ifndef NDEBUG
+#define DEBUG_ONLY_VAR
+#else
+#define DEBUG_ONLY_VAR __attribute__((unused))
+#endif
+
 #define UNUSED __attribute__((unused))
-#define MUSTUSE __attribute__((warn_unused_result))
+#define MUST_USE __attribute__((warn_unused_result))
 
 // TODO: Abort probably is not the right thing to do here.
 #define fail_due_to_user_error(msg, ...) do {                           \

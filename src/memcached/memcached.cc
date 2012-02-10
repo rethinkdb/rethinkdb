@@ -1060,7 +1060,7 @@ void handle_memcache(memcached_interface_t *interface, get_store_t *get_store,
         }
 
         /* Dispatch to the appropriate subclass */
-	order_token_t token = order_source.check_in(std::string("handle_memcache+") + args[0]);
+        order_token_t token = order_source.check_in(std::string("handle_memcache+") + args[0]);
         if (!strcmp(args[0], "get")) {    // check for retrieval commands
             coro_t::spawn_now(boost::bind(do_get, &rh, &pipeliner, false, args.size(), args.data(), token.with_read_mode()));
         } else if (!strcmp(args[0], "gets")) {

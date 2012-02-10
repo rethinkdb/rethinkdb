@@ -80,7 +80,7 @@ private:
     public:
         explicit new_master_control_t(slave_t *_slave)
             : control_t("new-master", "Set a new master for replication. The slave will disconnect and immediately reconnect to the new server. Syntax: \"rethinkdb new-master host port\""),
-	      slave(_slave) { }
+              slave(_slave) { }
 
         std::string call(int argc, char **argv) {
             if (argc != 3) return "Syntax: \"rethinkdb new-master host port\"\r\n";

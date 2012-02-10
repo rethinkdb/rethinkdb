@@ -238,22 +238,22 @@ struct entry_iter_t {
 
     template <class V>
     void step(value_sizer_t<V> *sizer, const leaf_node_t *node) {
-	rassert(!done(sizer));
+        rassert(!done(sizer));
 
-	offset += entry_size(sizer, get_entry(node, offset)) + (offset < node->tstamp_cutpoint ? sizeof(repli_timestamp_t) : 0);
+        offset += entry_size(sizer, get_entry(node, offset)) + (offset < node->tstamp_cutpoint ? sizeof(repli_timestamp_t) : 0);
     }
 
     template <class V>
     bool done(value_sizer_t<V> *sizer) const {
         int bs = sizer->block_size().value();
-	rassert(offset <= bs, "offset=%d, bs=%d", offset, bs);
-	return offset == bs;
+        rassert(offset <= bs, "offset=%d, bs=%d", offset, bs);
+        return offset == bs;
     }
 
     static entry_iter_t make(const leaf_node_t *node) {
-	entry_iter_t ret;
-	ret.offset = node->frontmost;
-	return ret;
+        entry_iter_t ret;
+        ret.offset = node->frontmost;
+        return ret;
     }
 };
 
@@ -564,23 +564,22 @@ int mandatory_cost(value_sizer_t<V> *sizer, const leaf_node_t *node, int require
     int deletions_cost = 0;
     int max_deletions_cost = free_space(sizer) / DELETION_RESERVE_FRACTION;
     while (!(count == required_timestamps || iter.done(sizer) || iter.offset >= node->tstamp_cutpoint)) {
-
-	const entry_t *ent = get_entry(node, iter.offset);
-	if (entry_is_deletion(ent)) {
+        const entry_t *ent = get_entry(node, iter.offset);
+        if (entry_is_deletion(ent)) {
             if (deletions_cost >= max_deletions_cost) {
                 break;
             }
 
             int this_entry_cost = sizeof(uint16_t) + sizeof(repli_timestamp_t) + entry_size(sizer, ent);
             deletions_cost += this_entry_cost;
-	    size += this_entry_cost;
-	    ++count;
-	} else if (entry_is_live(ent)) {
-	    ++count;
-	    size += sizeof(repli_timestamp_t);
-	}
+            size += this_entry_cost;
+            ++count;
+        } else if (entry_is_live(ent)) {
+            ++count;
+            size += sizeof(repli_timestamp_t);
+        }
 
-	iter.step(sizer, node);
+        iter.step(sizer, node);
     }
 
     *tstamp_back_offset_out = iter.offset;
