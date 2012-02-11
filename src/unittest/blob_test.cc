@@ -187,6 +187,7 @@ private:
         UNUSED block_size_t block_size = cache->get_block_size();
 
         sequence_group_t seq_group(1);
+        seq_group.slice_groups[cache->get_slice_num()].fifo.rethread(cache->home_thread());
 
         transaction_t txn(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
 
@@ -222,6 +223,7 @@ private:
         block_size_t block_size = cache->get_block_size();
 
         sequence_group_t seq_group(1);
+        seq_group.slice_groups[cache->get_slice_num()].fifo.rethread(cache->home_thread());
 
         transaction_t txn(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
 
@@ -278,6 +280,7 @@ private:
         ASSERT_EQ(4080, block_size.value() - sizeof(block_magic_t));
 
         sequence_group_t seq_group(1);
+        seq_group.slice_groups[cache->get_slice_num()].fifo.rethread(cache->home_thread());
 
         transaction_t txn(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
 
@@ -296,6 +299,7 @@ private:
         ASSERT_EQ(4080, block_size.value() - sizeof(block_magic_t));
 
         sequence_group_t seq_group(1);
+        seq_group.slice_groups[cache->get_slice_num()].fifo.rethread(cache->home_thread());
 
         transaction_t txn(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
 
@@ -318,6 +322,7 @@ private:
         UNUSED block_size_t block_size = cache->get_block_size();
 
         sequence_group_t seq_group(1);
+        seq_group.slice_groups[cache->get_slice_num()].fifo.rethread(cache->home_thread());
 
         transaction_t txn(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
         blob_tracker_t tk(251);
