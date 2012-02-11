@@ -29,6 +29,7 @@ private:
         // up later on allocate, because A is still in the free-list.
         //
         sequence_group_t seq_group(1);
+        seq_group.slice_groups[cache->get_slice_num()].fifo.rethread(cache->home_thread());
 
         // Also, since we are using fake_buf below, which doesn't contain the
         // block_id/block_sequence_id, we will get an assertion failure during mc_inner_buf
