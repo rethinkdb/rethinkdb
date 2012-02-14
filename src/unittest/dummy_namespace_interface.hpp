@@ -10,6 +10,7 @@
 #include "protocol_api.hpp"
 #include "timestamps.hpp"
 #include "unittest/unittest_utils.hpp"
+#include "protocol_api.hpp"
 
 namespace unittest {
 
@@ -61,8 +62,11 @@ public:
 
         region_map_t<protocol_t, binary_blob_t> metainfo = next->store->get_metainfo(read_token, &interruptor);
 
-        rassert(metainfo.get_as_pairs().size() == 1);
-        rassert(binary_blob_t::get<state_timestamp_t>(metainfo.get_as_pairs()[0].second) == current_timestamp);
+        for (typename region_map_t<protocol_t, binary_blob_t>::iterator it  = metainfo.begin();
+                                                                        it != metainfo.end();
+                                                                        it++) {
+            rassert(binary_blob_t::get<state_timestamp_t>(it->second) == current_timestamp);
+        }
     }
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t read, order_token_t otok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
@@ -157,9 +161,12 @@ public:
 
                 region_map_t<protocol_t, binary_blob_t> metadata = stores[i]->get_metainfo(read_token, &interruptor);
 
-                rassert(metadata.get_as_pairs().size() == 1);
-                rassert(metadata.get_as_pairs()[0].first == shards[i]);
-                rassert(metadata.get_as_pairs()[0].second.size() == 0);
+                rassert(metadata.get_domain() == shards[i]);
+                for (typename region_map_t<protocol_t, binary_blob_t>::const_iterator it  = metadata.begin();
+                                                                                      it != metadata.end();
+                                                                                      it++) {
+                    rassert(it->second.size() == 0);
+                }
 
                 boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> write_token;
                 stores[i]->new_write_token(write_token);

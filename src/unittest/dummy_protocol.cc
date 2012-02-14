@@ -14,6 +14,16 @@ dummy_protocol_t::region_t dummy_protocol_t::region_t::empty() THROWS_NOTHING {
     return region_t();
 }
 
+dummy_protocol_t::region_t::region_t() THROWS_NOTHING {
+}
+
+dummy_protocol_t::region_t::region_t(char x, char y) THROWS_NOTHING {
+    rassert(y >= x);
+    for (char c = x; c <= y; c++) {
+        keys.insert(std::string(1, c));
+    }
+}
+
 dummy_protocol_t::region_t dummy_protocol_t::read_t::get_region() const {
     return keys;
 }
@@ -112,6 +122,9 @@ std::vector<dummy_protocol_t::region_t> region_subtract_many(const dummy_protoco
             result[0].keys.erase(*j);
         }
     }
+    if (region_is_empty(result[0])) {
+        result.clear();
+    }
     return result;
 }
 
@@ -165,7 +178,7 @@ void dummy_store_view_t::set_metainfo(const metainfo_t &new_metainfo, boost::sco
 
     if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
 
-    parent->metainfo = parent->metainfo.update(new_metainfo);
+    parent->metainfo.update(new_metainfo);
 }
 
 dummy_protocol_t::read_response_t dummy_store_view_t::read(DEBUG_ONLY(const metainfo_t& expected_metainfo,)
@@ -219,7 +232,7 @@ dummy_protocol_t::write_response_t dummy_store_view_t::write(DEBUG_ONLY(const me
             parent->timestamps[(*it).first] = timestamp.timestamp_after();
         }
 
-        parent->metainfo = parent->metainfo.update(new_metainfo);
+        parent->metainfo.update(new_metainfo);
     }
     if (rng.randint(2) == 0) nap(rng.randint(10));
     return resp;
@@ -245,11 +258,12 @@ bool dummy_store_view_t::send_backfill(const region_map_t<dummy_protocol_t,state
         local_token.reset();
 
         if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
-        std::vector<std::pair<dummy_protocol_t::region_t, state_timestamp_t> > pairs = start_point.get_as_pairs();
-        for (int i = 0; i < (int)pairs.size(); i++) {
-            for (std::set<std::string>::iterator it = pairs[i].first.keys.begin();
-                    it != pairs[i].first.keys.end(); it++) {
-                if (timestamps_snapshot[*it] > pairs[i].second) {
+        for (region_map_t<dummy_protocol_t, state_timestamp_t>::const_iterator r_it  = start_point.begin();
+                                                                               r_it != start_point.end();
+                                                                               r_it++) {
+            for (std::set<std::string>::iterator it = r_it->first.keys.begin();
+                    it != r_it->first.keys.end(); it++) {
+                if (timestamps_snapshot[*it] > r_it->second) {
                     dummy_protocol_t::backfill_chunk_t chunk;
                     chunk.key = *it;
                     chunk.value = values_snapshot[*it];
@@ -293,7 +307,7 @@ void dummy_store_view_t::reset_data(dummy_protocol_t::region_t subregion, const 
         parent->values[*it] = "";
         parent->timestamps[*it] = state_timestamp_t::zero();
     }
-    parent->metainfo = parent->metainfo.update(new_metainfo);
+    parent->metainfo.update(new_metainfo);
 }
 
 }   /* namespace unittest */
