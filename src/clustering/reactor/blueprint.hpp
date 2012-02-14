@@ -32,7 +32,8 @@ public:
         //overlap any of the other ranges
     }
 
-    std::map<peer_id_t, std::map<typename protocol_t::region_t, role_t> > peers;
+    typedef std::map<peer_id_t, std::map<typename protocol_t::region_t, role_t> > role_map_t;
+    role_map_t peers_roles;
 };
 
 #endif /* __CLUSTERING_REACTOR_BLUEPRINT_HPP__ */

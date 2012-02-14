@@ -43,4 +43,15 @@ bool version_is_ancestor(
     }
 }
 
+template <class protocol_t>
+bool version_is_divergent(
+        const branch_history_t<protocol_t> &bh,
+        version_t v1,
+        version_t v2,
+        typename protocol_t::region_t relevant_region) {
+    return !version_is_ancestor(bh, v1, v2, relevant_region) &&
+           !version_is_ancestor(bh, v2, v1, relevant_region);
+}
+
+
 #endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_HISTORY_HPP__ */

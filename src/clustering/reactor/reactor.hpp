@@ -67,6 +67,8 @@ private:
     void be_nothing(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const blueprint_t<protocol_t> &,
             signal_t *interruptor) THROWS_NOTHING;
 
+    bool is_safe_for_us_to_be_primary(const boost::optional<boost::optional<reactor_business_card_t<protocol_t> > > &bcard, peer_id_t bcard_peer, 
+                                      const typename protocol_t::region_t &region, best_backfiller_map_t<protocol_t> *best_backfiller_out);
 
     void wait_for_directory_acks(directory_echo_version_t, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 

@@ -4,6 +4,7 @@
 #include "errors.hpp"
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/utility.hpp>   /* for `std::pair` serialization */
+#include <boost/iterator/iterator_facade.hpp>
 #include <functional>
 #include <utility>
 #include <vector>
@@ -65,7 +66,36 @@ bool region_overlaps(const region_t &r1, const region_t &r2) {
 template<class protocol_t, class value_t>
 class region_map_t {
 public:
-    typedef typename std::vector<std::pair<typename protocol_t::region_t, value_t> >::const_iterator const_iterator;
+    typedef std::vector<std::pair<const typename protocol_t::region_t, value_t> > internal_vec_t;
+    typedef typename internal_vec_t::const_iterator const_iterator;
+    typedef typename internal_vec_t::iterator iterator;
+
+    /* class iterator : public boost::iterator_facade<iterator,
+                                                   std::pair<const typename protocol_t::region_t &, value_t &>,
+                                                   boost::forward_traversal_tag
+                                                  
+    {
+    private:
+        iterator &increment(int);
+        iterator &decrement(int);
+        std::pair<const typename protocol_t::region_t &, value_t &> dereference() const;
+        bool equal(const iterator &) const;
+    public:
+        iterator &operator++();
+        iterator &operator++(int);
+        iterator &operator+(int);
+        iterator &operator+=(int);
+        iterator &operator--();
+        iterator &operator--(int);
+        iterator &operator-(int);
+        iterator &operator-=(int);
+
+        std::pair<const typename protocol_t::region_t &, value_t &> operator*() const;
+
+        bool operator==(const iterator& other);
+    private:
+        typename std::vector<std::pair<typename protocol_t::region_t, value_t> >::iterator it;
+    }; */
 
     region_map_t() THROWS_NOTHING { }
     region_map_t(typename protocol_t::region_t r, value_t v) THROWS_NOTHING {
@@ -96,6 +126,14 @@ public:
     }
 
     const_iterator end() const {
+        return regions_and_values.end();
+    }
+
+    iterator begin() {
+        return regions_and_values.begin();
+    }
+
+    iterator end() {
         return regions_and_values.end();
     }
 
@@ -308,3 +346,5 @@ private:
 */
 
 #endif /* __PROTOCOL_API_HPP__ */
+
+#include "protocol_api.tcc"

@@ -20,7 +20,7 @@ public:
      *  - the peer is backfilling
      *  - another peer is a primary
      */
-    class primary_when_safe_t{
+    class primary_when_safe_t {
         RDB_MAKE_ME_SERIALIZABLE_0();
     };
 

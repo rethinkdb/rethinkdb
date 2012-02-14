@@ -39,10 +39,12 @@ void backfillee(
         mailbox_manager_t *mailbox_manager,
         boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > branch_history,
         store_view_t<protocol_t> *store,
+        typename protocol_t::region_t region,
         clone_ptr_t<directory_single_rview_t<boost::optional<backfiller_business_card_t<protocol_t> > > > backfiller_metadata,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t)
 {
+    rassert(region_is_superset(store->get_region(), region));
     resource_access_t<backfiller_business_card_t<protocol_t> > backfiller(backfiller_metadata);
 
     /* Read the metadata to determine where we're starting from */
@@ -51,6 +53,8 @@ void backfillee(
             store->begin_read_transaction(interruptor)->get_metadata(interruptor),
             &binary_blob_t::get<version_range_t>
             );
+
+    start_point = start_point.mask(region);
 
     /* Pick a unique ID to identify this backfill session to the backfiller */
     backfill_session_id_t backfill_session_id = generate_uuid();
