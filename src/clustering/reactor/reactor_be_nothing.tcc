@@ -1,6 +1,57 @@
 #ifndef __CLUSTERING_REACTOR_REACTOR_BE_NOTHING_TCC__
 #define __CLUSTERING_REACTOR_REACTOR_BE_NOTHING_TCC__
 
+/* Returns true if every peer listed as a primary for this shard in the
+ * blueprint has activity primary_t and every peer listed as a secondary has
+ * activity secondary_up_to_date_t. */
+template <class protocol_t>
+bool reactor_t<protocol_t>::is_safe_for_us_to_be_nothing(const std::map<peer_id_t, boost::optional<reactor_business_card_t<protocol_t> > > &reactor_directory, const blueprint_t<protocol_t> &blueprint,
+                                                         const typename protocol_t::region_t &region) 
+{
+    typedef reactor_business_card_t<protocol_t> rb_t;
+
+    /* Iterator through the peers the blueprint claims we should be able to
+     * see. */
+    for (typename blueprint_t<protocol_t>::role_map_t::iterator p_it =  blueprint.peers_roles.begin();
+                                                                p_it != blueprint.activities.end();
+                                                                p_it++) {
+        typename std::map<peer_id_t, boost::optional<reactor_business_card_t<protocol_t> > >::const_iterator bcard_it = reactor_directory.find(p_it->first);
+        if (bcard_it == reactor_directory.end() || !bcard_it->second) {
+            //The peer is down or has no reactor
+            return false;
+        }
+
+        typename blueprint_t<protocol_t>::region_to_role_map_t::iterator r_it = p_it->second.find(region);
+        rassert(r_it != p_it->second.end(), "Invalid blueprint issued, different peers have different sharding schemes.\n");
+
+        /* Whether or not we found a directory entry for this peer */
+        bool found = false;
+        for (typename rb_t::activity_map_t::const_iterator it =  (*bcard_it->second).activities.begin();
+                                                           it != (*bcard_it->second).activities.end();
+                                                           it++) {
+            if (it->second.first == region) {
+                if (r_it->second == blueprint_t<protocol_t>::role_primary) {
+                    if (!boost::get<typename rb_t::primary_t>(&it->second.second)) {
+                        return false;
+                    }
+                } else if (r_it->second == blueprint_t<protocol_t>::role_secondary) {
+                    if (!boost::get<typename rb_t::secondary_up_to_date_t>(&it->second.second)) {
+                        return false;
+                    } 
+                }
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 template<class protocol_t>
 void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const blueprint_t<protocol_t> &blueprint, signal_t *interruptor) THROWS_NOTHING {
     try {
@@ -36,9 +87,10 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region, sto
              */
             wait_for_directory_acks(version_to_wait_on, interruptor);
 
-            /* TODO block until for each key: everything listed as a primary or secondary
-            in the blueprint is listed as PRIMARY, SECONDARY, SECONDARY_LOST, or
-            PRIMARY_SOON in the directory */
+            /* Make sure we don't go down and delete the data on our machine
+             * before every who needs a copy has it. */
+            directory_echo_access.get_internal_view()->run_until_satisfied(boost::bind(&reactor_t<protocol_t>::is_safe_for_us_to_be_nothing,
+                                                                                       _1, blueprint, region), interruptor);
         }
 
         /* We now know that it's safe to shutdown so we tell the other peers
@@ -46,7 +98,12 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region, sto
         directory_entry.set(typename reactor_business_card_t<protocol_t>::nothing_when_done_erasing_t());
 
         /* This actually erases the data. */
-        store.reset_data(region, region_map_t<protocol_t>(region, version_range_t::zero()), store.new_write_token(), interruptor);
+        {
+            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> token;
+            store->new_write_token(token);
+
+            store->reset_data(region, region_map_t<protocol_t>(region, version_range_t::zero()), token, interruptor);
+        }
 
         /* Tell the other peers that we are officially nothing for this region,
          * end of story. */

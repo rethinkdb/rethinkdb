@@ -31,7 +31,12 @@ public:
         //overlap any of the other ranges
     }
 
-    typedef std::map<peer_id_t, std::map<typename protocol_t::region_t, role_t> > role_map_t;
+    //TODO if we swap the region_t and peer_id_t's positions in these maps we
+    //can get better data structure integrity. It might get a bit tricky
+    //though.
+    typedef std::map<typename protocol_t::region_t, role_t> region_to_role_map_t;
+
+    typedef std::map<peer_id_t, region_to_role_map_t> role_map_t;
     role_map_t peers_roles;
 };
 
