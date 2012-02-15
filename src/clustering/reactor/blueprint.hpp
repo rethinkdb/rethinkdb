@@ -12,7 +12,6 @@ public:
     enum role_t {
         role_primary,
         role_secondary,
-        role_listener,
         role_nothing
     };
 

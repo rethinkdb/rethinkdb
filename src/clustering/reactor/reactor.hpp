@@ -66,11 +66,13 @@ private:
                                       const typename protocol_t::region_t &region, best_backfiller_map_t<protocol_t> *best_backfiller_out);
 
     /* Implemented in clustering/reactor/reactor_be_secondary.tcc */
-    void be_secondary(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const blueprint_t<protocol_t> &,
-            signal_t *interruptor) THROWS_NOTHING;
+    bool find_broadcaster_in_directory(const typename protocol_t::region_t &region, const blueprint_t<protocol_t> &bp, const std::map<peer_id_t, boost::optional<reactor_business_card_t<protocol_t> > > &reactor_directory, 
+                                       clone_ptr_t<directory_single_rview_t<boost::optional<broadcaster_business_card_t<protocol_t> > > > *broadcaster_out);
 
-    /* Implemented in clustering/reactor/be_listener.tcc */
-    void be_listener(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const blueprint_t<protocol_t> &,
+    bool find_backfiller_in_directory(const typename protocol_t::region_t &region, const blueprint_t<protocol_t> &bp, const std::map<peer_id_t, boost::optional<reactor_business_card_t<protocol_t> > > &reactor_directory, 
+                                      clone_ptr_t<directory_single_rview_t<boost::optional<backfiller_business_card_t<protocol_t> > > > *backfiller_out);
+
+    void be_secondary(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const blueprint_t<protocol_t> &,
             signal_t *interruptor) THROWS_NOTHING;
 
     void be_nothing(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const blueprint_t<protocol_t> &,
@@ -78,12 +80,6 @@ private:
 
 
     void wait_for_directory_acks(directory_echo_version_t, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
-
-    bool find_broadcaster_in_directory(const typename protocol_t::region_t &region, const blueprint_t<protocol_t> &bp, const std::map<peer_id_t, boost::optional<reactor_business_card_t<protocol_t> > > &reactor_directory, 
-                                       clone_ptr_t<directory_single_rview_t<boost::optional<broadcaster_business_card_t<protocol_t> > > > *broadcaster_out);
-
-    bool find_backfiller_in_directory(const typename protocol_t::region_t &region, const blueprint_t<protocol_t> &bp, const std::map<peer_id_t, boost::optional<reactor_business_card_t<protocol_t> > > &reactor_directory, 
-                                      clone_ptr_t<directory_single_rview_t<boost::optional<backfiller_business_card_t<protocol_t> > > > *backfiller_out);
 
 
     boost::optional<clone_ptr_t<directory_single_rview_t<boost::optional<broadcaster_business_card_t<protocol_t> > > > >
@@ -128,8 +124,6 @@ private:
 #include "clustering/reactor/reactor_be_primary.tcc"
 
 #include "clustering/reactor/reactor_be_secondary.tcc"
-
-#include "clustering/reactor/reactor_be_listener.tcc"
 
 #include "clustering/reactor/reactor_be_nothing.tcc"
 

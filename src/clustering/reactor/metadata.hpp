@@ -88,28 +88,6 @@ public:
         RDB_MAKE_ME_SERIALIZABLE_0();
     };
 
-    /* This peer has up to date data and is tracking from the primary
-     * (receiving changes as they happen) and can be efficiently switch to a
-     * role in which it will serve queries. */
-    class listener_up_to_date_t {
-        RDB_MAKE_ME_SERIALIZABLE_0();
-    };
-
-    /* This peer is backfilling from the current primary but is not intending
-     * to serve queries. When it's finished it will transition to the
-     * listener_ready_t state and from there can efficiently be switched to a
-     * different role (one in which it actually serves queries). */
-    class listener_backfilling_t {
-        RDB_MAKE_ME_SERIALIZABLE_0();
-    };
-
-
-    /* This peer would like to be a listener but can't find a primary to track.
-     * It may or may not have seen a primary in the past. */
-    class listener_without_primary_t {
-        RDB_MAKE_ME_SERIALIZABLE_0();
-    };
-
     /* This peer would like to erase its data and not do any job for this
      * shard, however it must stay up until every other peer is ready for it to
      * go away (to avoid risk of data loss). */
@@ -144,8 +122,6 @@ public:
             primary_when_safe_t, primary_t,
             secondary_up_to_date_t, secondary_without_primary_t,
             secondary_backfilling_t,
-            listener_backfilling_t, listener_up_to_date_t,
-            listener_without_primary_t,
             nothing_when_safe_t, nothing_t, nothing_when_done_erasing_t
         > activity_t;
 

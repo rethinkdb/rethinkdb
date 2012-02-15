@@ -71,7 +71,6 @@ void update_best_backfiller(const region_map_t<protocol_t, version_range_t> &off
  *      - has a reactor
  *      - foreach key in region peer has activity: 
  *          -secondary_without_primary_t
- *          -listener_without_primary_t
  *          -nothing_when_safe_t
  *          -nothing_t
  *          -nothing_when_done_erasing_t
@@ -127,8 +126,6 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_
                     } else if(boost::get<typename rb_t::nothing_t>(&it->second.second)) {
                         //Everything's fine this peer cannot obstruct us so we shall proceed
                     } else if(boost::get<typename rb_t::nothing_when_done_erasing_t>(&it->second.second)) {
-                        //Everything's fine this peer cannot obstruct us so we shall proceed
-                    } else if(boost::get<typename rb_t::listener_without_primary_t>(&it->second.second)) {
                         //Everything's fine this peer cannot obstruct us so we shall proceed
                     } else {
                         return false;
