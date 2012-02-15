@@ -129,3 +129,52 @@ clone_ptr_t<read_lens_t<boost::optional<inner_t>, boost::optional<outer_t> > > o
         new optional_monad_read_lens_t<inner_t, outer_t>(sublens)
         );
 }
+
+template <class value_t>
+class optional_collapser_read_lens_t : public read_lens_t<boost::optional<value_t>, boost::optional<boost::optional<value_t> > >
+{
+public:
+    boost::optional<value_t> get(const boost::optional<boost::optional<value_t> > &val) {
+        if (val) {
+            return *val;
+        } else {
+            return boost::optional<value_t>();
+        }
+    }
+    optional_collapser_read_lens_t *clone() const {
+        return new optional_collapser_read_lens_t;
+    }
+};
+
+/* If either of the optionals is nothing return nothing, otherwise return the thing. */
+template<class value_t>
+clone_ptr_t<read_lens_t<boost::optional<value_t>, boost::optional<boost::optional<value_t> > > > optional_collapser_lens() {
+    return clone_ptr_t<read_lens_t<boost::optional<value_t>, boost::optional<boost::optional<value_t> > > >(
+            new optional_collapser_read_lens_t<value_t>);
+}
+
+template <class inner_t, class middle_t, class outer_t>
+class compose_read_lens_t : public read_lens_t<inner_t, outer_t> {
+public:
+    compose_read_lens_t(const clone_ptr_t<read_lens_t<inner_t, middle_t> > &_inner, const clone_ptr_t<read_lens_t<middle_t, outer_t> > &_outer)
+        : inner(_inner), outer(_outer)
+    { }
+
+    inner_t get(const outer_t &outer_value) {
+        return inner->get(outer->get(outer_value));
+    }
+
+    compose_read_lens_t *clone() const {
+        return new compose_read_lens_t(inner, outer);
+    }
+
+private:
+    clone_ptr_t<read_lens_t<inner_t, middle_t> > inner;
+    clone_ptr_t<read_lens_t<middle_t, outer_t> > outer;
+};
+
+/* Return the results of the outer lens applied to the results of the inner lens. */
+template <class inner_t, class middle_t, class outer_t>
+clone_ptr_t<read_lens_t<inner_t, outer_t> > compose_lens(const clone_ptr_t<read_lens_t<inner_t, middle_t> > &inner, const clone_ptr_t<read_lens_t<middle_t, outer_t> > &outer) {
+    return clone_ptr_t<read_lens_t<inner_t, outer_t> >(new compose_read_lens_t<inner_t, middle_t, outer_t>(inner, outer));
+}

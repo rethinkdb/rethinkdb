@@ -5,6 +5,7 @@
 #include <boost/optional.hpp>
 
 #include "containers/clone_ptr.hpp"
+#include <map>
 
 template<class inner_t, class outer_t>
 class read_lens_t {
@@ -40,6 +41,14 @@ clone_ptr_t<readwrite_lens_t<boost::optional<value_t>, std::map<key_t, value_t> 
 to input. */
 template<class inner_t, class outer_t>
 clone_ptr_t<read_lens_t<boost::optional<inner_t>, boost::optional<outer_t> > > optional_monad_lens(const clone_ptr_t<read_lens_t<inner_t, outer_t> > &sublens);
+
+/* If either of the optionals is nothing return nothing, otherwise return the thing. */
+template<class value_t>
+clone_ptr_t<read_lens_t<boost::optional<value_t>, boost::optional<boost::optional<value_t> > > > optional_collapser_lens();
+
+/* Return the results of the outer lens applied to the results of the inner lens. */
+template <class inner_t, class middle_t, class outer_t>
+clone_ptr_t<read_lens_t<inner_t, outer_t> > compose_lens(const clone_ptr_t<read_lens_t<inner_t, middle_t> > &inner, const clone_ptr_t<read_lens_t<middle_t, outer_t> > &outer);
 
 #include "lens.tcc"
 
