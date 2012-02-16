@@ -2,6 +2,7 @@
 #include <boost/scoped_ptr.hpp>
 
 #include "concurrency/cond_var.hpp"
+#include "rpc/connectivity/connectivity.hpp"
 
 template<class metadata_t, class inner_t>
 class subview_directory_single_rview_t :
@@ -142,6 +143,56 @@ private:
     boost::scoped_ptr<directory_rview_t<metadata_t> > superview;
     peer_id_t peer;
 };
+
+inline void pulse_if_not_pulsed(cond_t *cond) {
+    if (!cond->is_pulsed()) {
+        cond->pulse();
+    }
+}
+
+inline void pulse_if_not_pulsed_and_remove_subscription(cond_t *cond, peer_id_t peer_id, boost::ptr_map<peer_id_t, directory_read_service_t::peer_value_subscription_t> *subscription_map) {
+    pulse_if_not_pulsed(cond);
+
+    subscription_map->erase(peer_id);
+}
+
+template<class metadata_t>
+void directory_rview_t<metadata_t>::run_until_satisfied(const boost::function<bool(std::map<peer_id_t, metadata_t>)> &f, signal_t *interruptor) {
+    while (true) {
+        boost::scoped_ptr<connectivity_service_t::peers_list_freeze_t> peers_list_freeze(new connectivity_service_t::peers_list_freeze_t(get_directory_service()->get_connectivity_service()));
+        std::set<peer_id_t> peers = get_directory_service()->get_connectivity_service()->get_peers_list();
+
+        boost::ptr_map<peer_id_t, directory_read_service_t::peer_value_freeze_t> peer_value_freezes;
+        std::map<peer_id_t, metadata_t> directory_value;
+
+        for (std::set<peer_id_t>::iterator it =  peers.begin();
+                                           it != peers.end();
+                                           it++) {
+            peer_value_freezes.insert(*it, new directory_read_service_t::peer_value_freeze_t(get_directory_service(), *it));
+            directory_value[*it] = get_value(*it);
+        }
+        if (f(directory_value)) {
+            return;
+        }
+
+        cond_t something_has_changed;
+        boost::ptr_map<peer_id_t, directory_read_service_t::peer_value_subscription_t> subscription_map;
+
+        connectivity_service_t::peers_list_subscription_t peers_list_subscription(boost::bind(&pulse_if_not_pulsed, &cond), 
+                                                                                  boost::bind(&pulse_if_not_pulsed_and_remove_subscription, &cond, _1, &subscription_map), 
+                                                                                  get_directory_service()->get_connectivity_service(), peers_list_freeze.get());
+
+        for (std::set<peer_id_t>::iterator it =  peers.begin();
+                                           it != peers.end();
+                                           it++) {
+            subscription_map.insert(*it, new directory_read_service_t::peer_value_subscription_t(boost::bind(&pulse_if_not_pulsed, &cond), get_directory_service(), *it, &peer_value_freezes[*it]));
+        }
+        peer_value_freezes.clear();
+        peers_list_freeze.reset();
+
+        wait_interruptible(&cond, interruptor);
+    }
+}
 
 template<class metadata_t>
 clone_ptr_t<directory_single_rview_t<metadata_t> > directory_rview_t<metadata_t>::get_peer_view(peer_id_t peer) THROWS_NOTHING {
