@@ -153,10 +153,12 @@ scc_buf_lock_t<inner_cache_t>::scc_buf_lock_t(scc_transaction_t<inner_cache_t> *
 }
 
 template<class inner_cache_t>
-void scc_buf_lock_t<inner_cache_t>::allocate(scc_transaction_t<inner_cache_t> *txn) {
-    cache = txn->cache;
-    snapshotted = txn->snapshotted || txn->access == rwi_read_outdated_ok;
-    inner_buf->allocate(&txn->inner_transaction);
+scc_buf_lock_t<inner_cache_t>::scc_buf_lock_t(scc_transaction_t<inner_cache_t> *txn) :
+    snapshotted(txn->snapshotted || txn->access == rwi_read_outdated_ok),
+    has_been_changed(false),
+    inner_buf(new typename inner_cache_t::buf_lock_t(&txn->inner_transaction)),
+    cache(txn->cache)
+{
     cache->crc_map.set(inner_buf->get_block_id(), compute_crc());
 }
 

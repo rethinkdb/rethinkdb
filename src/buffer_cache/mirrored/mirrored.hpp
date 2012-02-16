@@ -146,12 +146,10 @@ struct i_am_writeback_t { };
 // release the mc_inner_buf_t, so don't worry!
 class mc_buf_lock_t : public home_thread_mixin_t {
 public:
-    mc_buf_lock_t();
     mc_buf_lock_t(mc_transaction_t *txn, block_id_t block_id, access_t mode, boost::function<void()> call_when_in_line = 0);
+    mc_buf_lock_t(mc_transaction_t *txn); // Constructor used to allocate a new block
+    mc_buf_lock_t();
     ~mc_buf_lock_t();
-
-    // Allocate a new block with a new block_id
-    void allocate(mc_transaction_t *txn);
 
     // Swaps this mc_buf_lock_t with another, thus obeying RAII since one
     // mc_buf_lock_t owns up to one mc_inner_buf_t at a time.
@@ -199,7 +197,10 @@ private:
     friend class writeback_t::buf_writer_t;
     friend class patch_disk_storage_t;
 
+    // Special constructor used by patch_disk_storage_t
     mc_buf_lock_t(mc_cache_t *cache, const block_id_t block_id);
+
+    // Internal functions used during construction
     void initialize(mc_inner_buf_t::version_id_t version, file_account_t *io_account, boost::function<void()> call_when_in_line);
     void acquire_block(mc_inner_buf_t::version_id_t version_to_access);
 

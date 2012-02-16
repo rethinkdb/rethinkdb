@@ -632,22 +632,20 @@ mc_buf_lock_t::mc_buf_lock_t(mc_cache_t *cache, const block_id_t block_id) :
     cache->assert_thread();
 }
 
-void mc_buf_lock_t::allocate(mc_transaction_t *transaction) {
-#ifndef NDEBUG
-    real_home_thread = get_thread_id();
-#endif
-    guarantee(!acquired);
+mc_buf_lock_t::mc_buf_lock_t(mc_transaction_t *transaction) :
+    acquired(false),
+    snapshotted(transaction->snapshotted),
+    non_locking_access(snapshotted),
+    mode(transaction->access),
+    inner_buf(NULL),
+    data(NULL),
+    subtree_recency(repli_timestamp_t::invalid)
+{
     transaction->assert_thread();
-
-    mode = transaction->access;
-    snapshotted = transaction->snapshotted;
-    non_locking_access = snapshotted;
+    rassert(mode == rwi_write);
+    rassert(!snapshotted);
 
     /* Make a completely new block, complete with a shiny new block_id. */
-    rassert(transaction->access == rwi_write);
-    rassert(!snapshotted);
-    transaction->assert_thread();
-
     inner_buf = mc_inner_buf_t::allocate(transaction->cache, transaction->snapshot_version, transaction->recency_timestamp);
 
     // Assign a snapshot version, to ensure we can no longer become a snapshotting transaction.

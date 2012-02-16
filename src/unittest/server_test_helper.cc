@@ -73,20 +73,8 @@ void server_test_helper_t::run_serializer_tests() {
     run_tests(&cache);
 }
 
-// Static helper functions
-buf_lock_t *server_test_helper_t::create(transaction_t *txn) {
-    buf_lock_t *buffer = new buf_lock_t;
-    buffer->allocate(txn);
-    return buffer;
-}
-
 void server_test_helper_t::snap(transaction_t *txn) {
     txn->snapshot();
-}
-
-buf_lock_t * server_test_helper_t::acq(transaction_t *txn, block_id_t block_id, access_t mode) {
-    txn->assert_thread();
-    return new buf_lock_t(txn, block_id, mode);
 }
 
 void server_test_helper_t::change_value(buf_lock_t *buf, uint32_t value) {
@@ -97,33 +85,31 @@ uint32_t server_test_helper_t::get_value(buf_lock_t *buf) {
     return *reinterpret_cast<const uint32_t *>(buf->get_data_read());
 }
 
-buf_lock_t *server_test_helper_t::acq_check_if_blocks_until_buf_released(transaction_t *txn, buf_lock_t *already_acquired_block, access_t acquire_mode, bool do_release, bool *blocked) {
-    acquiring_coro_t acq_coro(txn, already_acquired_block->get_block_id(), acquire_mode);
+bool server_test_helper_t::acq_check_if_blocks_until_buf_released(buf_lock_t *newly_acquired_block, transaction_t *txn, buf_lock_t *already_acquired_block, access_t acquire_mode, bool do_release) {
+    acquiring_coro_t acq_coro(newly_acquired_block, txn, already_acquired_block->get_block_id(), acquire_mode);
 
     coro_t::spawn(boost::bind(&acquiring_coro_t::run, &acq_coro));
     nap(500);
-    *blocked = !acq_coro.signaled;
+    bool result = !acq_coro.signaled;
 
     if (do_release) {
-        delete already_acquired_block;
-        if (*blocked) {
+        already_acquired_block->release();
+        if (result) {
             nap(500);
-            rassert(acq_coro.signaled, "Buf release must have unblocked the coroutine trying to acquire the buf. May be a bug in the test.");
+            rassert(acq_coro.signaled, "Waiting acquire did not complete following release. May be a bug in the test.");
         }
     }
 
-    return acq_coro.result;
+    return result;
 }
 
 void server_test_helper_t::create_two_blocks(transaction_t *txn, block_id_t *block_A, block_id_t *block_B) {
-    buf_lock_t *buf_A = create(txn);
-    buf_lock_t *buf_B = create(txn);
-    *block_A = buf_A->get_block_id();
-    *block_B = buf_B->get_block_id();
-    change_value(buf_A, init_value);
-    change_value(buf_B, init_value);
-    delete buf_A;
-    delete buf_B;
+    buf_lock_t buf_A(txn);
+    buf_lock_t buf_B(txn);
+    *block_A = buf_A.get_block_id();
+    *block_B = buf_B.get_block_id();
+    change_value(&buf_A, init_value);
+    change_value(&buf_B, init_value);
 }
 
 }  // namespace unittest

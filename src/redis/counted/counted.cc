@@ -19,8 +19,7 @@ void counted_btree_t::insert_score(float score, std::string &value) {
 void counted_btree_t::insert_root(float score, unsigned index, bool by_score, std::string &value) {
     if(root->count == 0) {
         // Allocate the root block
-        buf_lock_t new_block;
-        new_block.allocate(txn);
+        buf_lock_t new_block(txn);
         leaf_counted_node_t *new_node = reinterpret_cast<leaf_counted_node_t *>(new_block.get_data_major_write());
         new_node->magic = leaf_counted_node_t::expected_magic();
         new_node->n_refs = 0;
@@ -39,8 +38,7 @@ void counted_btree_t::insert_root(float score, unsigned index, bool by_score, st
     if(insert_recur(blk, score, index, by_score, value, &new_block, &new_sub_size, &split_score)) {
         // The root block was split, we need to creat a new root and insert both the old root and new block
 
-        buf_lock_t new_root;
-        new_root.allocate(txn);
+        buf_lock_t new_root(txn);
         internal_counted_node_t *root_node = reinterpret_cast<internal_counted_node_t *>(new_root.get_data_major_write());
         root_node->magic = internal_counted_node_t::expected_magic();
         root_node->n_refs = 2;
@@ -225,7 +223,8 @@ bool counted_btree_t::internal_insert(buf_lock_t &blk, float score, unsigned ind
             float split_score = node->refs[refs_left].greatest_score;
 
             // Allocate the new node
-            new_block.allocate(txn);
+            buf_lock_t temp_lock(txn);
+            new_block.swap(temp_lock);
 
             internal_counted_node_t *new_node = reinterpret_cast<internal_counted_node_t *>(new_block.get_data_major_write());
             new_node->magic = internal_counted_node_t::expected_magic();
@@ -344,7 +343,8 @@ bool counted_btree_t::leaf_insert(buf_lock_t &blk, float score, unsigned index, 
         float split_score = reinterpret_cast<const counted_value_t*>(node->refs + bytes_left)->score;
 
         // Allocate the new block
-        new_block.allocate(txn);
+        buf_lock_t temp_lock(txn);
+        new_block.swap(temp_lock);
 
         leaf_counted_node_t *new_node = reinterpret_cast<leaf_counted_node_t *>(new_block.get_data_major_write());
         new_node->magic = leaf_counted_node_t::expected_magic();

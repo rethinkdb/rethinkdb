@@ -31,13 +31,10 @@ private:
         transaction_t t0(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
         transaction_t t1(cache, &seq_group, rwi_read, 0, repli_timestamp_t::invalid);
 
-        buf_lock_t *buf0 = create(&t0);
+        buf_lock_t buf0(&t0);
+        buf_lock_t buf1;
         snap(&t1);
-        bool blocked = false;
-        buf_lock_t *buf1 = acq_check_if_blocks_until_buf_released(&t1, buf0, rwi_read, true, &blocked);
-        EXPECT_TRUE(blocked);
-        EXPECT_TRUE(buf1 != NULL);
-        delete buf1;
+        EXPECT_TRUE(acq_check_if_blocks_until_buf_released(&buf1, &t1, &buf0, rwi_read, true));
     }
 
     static void test_snapshot_sees_changes_started_before_its_first_block_acq(cache_t *cache) {
@@ -55,22 +52,20 @@ private:
 
         snap(&t1);
 
-        buf_lock_t *buf2_A = acq(&t2, block_A, rwi_write);
-        change_value(buf2_A, changed_value);
-        delete buf2_A;
+        buf_lock_t buf2_A(&t2, block_A, rwi_write);
+        change_value(&buf2_A, changed_value);
+        buf2_A.release();
 
-        buf_lock_t *buf1_A = acq(&t1, block_A, rwi_read);
-        EXPECT_EQ(changed_value, get_value(buf1_A));
-        delete buf1_A;
+        buf_lock_t buf1_A(&t1, block_A, rwi_read);
+        EXPECT_EQ(changed_value, get_value(&buf1_A));
+        buf1_A.release();
 
-        buf_lock_t *buf2_B = acq(&t2, block_B, rwi_write);
-        change_value(buf2_B, changed_value);
+        buf_lock_t buf2_B(&t2, block_B, rwi_write);
+        change_value(&buf2_B, changed_value);
 
-        bool blocked = false;
-        buf_lock_t *buf1_B = acq_check_if_blocks_until_buf_released(&t2, buf2_B, rwi_read, true, &blocked);
-        EXPECT_TRUE(blocked);
-        EXPECT_EQ(changed_value, get_value(buf1_B));
-        delete buf1_B;
+        buf_lock_t buf1_B;
+        EXPECT_TRUE(acq_check_if_blocks_until_buf_released(&buf1_B, &t2, &buf2_B, rwi_read, true));
+        EXPECT_EQ(changed_value, get_value(&buf1_B));
     }
 
     static void test_snapshot_doesnt_see_later_changes_and_doesnt_block_them(cache_t *cache) {
@@ -88,22 +83,19 @@ private:
         transaction_t t3(cache, &seq_group, rwi_read, 0, repli_timestamp_t::invalid);
 
         snap(&t1);
-        buf_lock_t *buf1 = acq(&t1, block_A, rwi_read);
+        buf_lock_t buf1(&t1, block_A, rwi_read);
 
-        bool blocked = true;
-        buf_lock_t *buf2 = acq_check_if_blocks_until_buf_released(&t2, buf1, rwi_write, false, &blocked);
-        EXPECT_FALSE(blocked);
+        buf_lock_t buf2;
+        EXPECT_FALSE(acq_check_if_blocks_until_buf_released(&buf2, &t2, &buf1, rwi_write, false));
 
-        change_value(buf2, changed_value);
+        change_value(&buf2, changed_value);
 
         snap(&t3);
-        buf_lock_t *buf3 = acq_check_if_blocks_until_buf_released(&t2, buf2, rwi_read, true, &blocked);
-        EXPECT_TRUE(blocked);
+        buf_lock_t buf3;
+        EXPECT_TRUE(acq_check_if_blocks_until_buf_released(&buf3, &t2, &buf2, rwi_read, true));
 
-        EXPECT_EQ(init_value, get_value(buf1));
-        EXPECT_EQ(changed_value, get_value(buf3));
-        delete buf1;
-        delete buf3;
+        EXPECT_EQ(init_value, get_value(&buf1));
+        EXPECT_EQ(changed_value, get_value(&buf3));
     }
 
     static void test_snapshot_doesnt_block_or_get_blocked_on_txns_that_acq_first_block_later(cache_t *cache) {
@@ -120,21 +112,13 @@ private:
         transaction_t t2(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
 
         snap(&t1);
-        buf_lock_t *buf1_A = acq(&t1, block_A, rwi_read);
+        buf_lock_t buf1_A(&t1, block_A, rwi_read);
+        buf_lock_t buf2_A;
+        EXPECT_FALSE(acq_check_if_blocks_until_buf_released(&buf2_A, &t2, &buf1_A, rwi_write, false));
 
-        bool blocked = true;
-        buf_lock_t *buf2_A = acq_check_if_blocks_until_buf_released(&t2, buf1_A, rwi_write, false, &blocked);
-        EXPECT_FALSE(blocked);
-
-        buf_lock_t *buf2_B = acq(&t2, block_B, rwi_write);
-
-        buf_lock_t *buf1_B = acq_check_if_blocks_until_buf_released(&t1, buf2_B, rwi_read, false, &blocked);
-        EXPECT_FALSE(blocked);
-
-        delete buf1_A;
-        delete buf2_A;
-        delete buf1_B;
-        delete buf2_B;
+        buf_lock_t buf1_B(&t2, block_B, rwi_write);
+        buf_lock_t buf2_B;
+        EXPECT_FALSE(acq_check_if_blocks_until_buf_released(&buf2_B, &t1, &buf1_B, rwi_read, false));
     }
 
     static void test_snapshot_blocks_on_txns_that_acq_first_block_earlier(cache_t *cache) {
@@ -150,22 +134,20 @@ private:
         transaction_t t1(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
         transaction_t t2(cache, &seq_group, rwi_read, 0, repli_timestamp_t::invalid);
 
-        buf_lock_t *buf1_A = acq(&t1, block_A, rwi_write);
-        buf_lock_t *buf1_B = acq(&t1, block_B, rwi_write);
-        change_value(buf1_A, changed_value);
-        change_value(buf1_B, changed_value);
-        delete buf1_A;
+        buf_lock_t buf1_A(&t1, block_A, rwi_write);
+        buf_lock_t buf1_B(&t1, block_B, rwi_write);
+        change_value(&buf1_A, changed_value);
+        change_value(&buf1_B, changed_value);
+        buf1_A.release();
 
         snap(&t2);
-        buf_lock_t *buf2_A = acq(&t1, block_A, rwi_read);
-        EXPECT_EQ(changed_value, get_value(buf2_A));
+        buf_lock_t buf2_A(&t1, block_A, rwi_read);
+        EXPECT_EQ(changed_value, get_value(&buf2_A));
+        buf2_A.release();
 
-        delete buf2_A;
-        bool blocked = false;
-        buf_lock_t *buf2_B = acq_check_if_blocks_until_buf_released(&t2, buf1_B, rwi_read, true, &blocked);
-        EXPECT_TRUE(blocked);
-        EXPECT_EQ(changed_value, get_value(buf2_B));
-        delete buf2_B;
+        buf_lock_t buf2_B;
+        EXPECT_TRUE(acq_check_if_blocks_until_buf_released(&buf2_B, &t2, &buf1_B, rwi_read, true));
+        EXPECT_EQ(changed_value, get_value(&buf2_B));
     }
 
     static void test_issue_194(cache_t *cache) {
@@ -184,28 +166,25 @@ private:
         transaction_t t2(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
         transaction_t t3(cache, &seq_group, rwi_read, 0, repli_timestamp_t::invalid);
 
-        buf_lock_t *buf1_A = acq(&t1, block_A, rwi_write);
-        delete buf1_A;
+        buf_lock_t buf1_A(&t1, block_A, rwi_write);
+        buf1_A.release();
 
-        buf_lock_t *buf2_A = acq(&t2, block_A, rwi_write);
+        buf_lock_t buf2_A(&t2, block_A, rwi_write);
         snap(&t3);
 
-        bool blocked = false;
-        buf_lock_t *buf3_A = acq_check_if_blocks_until_buf_released(&t3, buf2_A, rwi_read, true, &blocked);
-        EXPECT_TRUE(blocked);
+        buf_lock_t buf3_A;
+        EXPECT_TRUE(acq_check_if_blocks_until_buf_released(&buf3_A, &t3, &buf2_A, rwi_read, true));
 
-        buf_lock_t *buf1_B = acq(&t1, block_B, rwi_write);
-        delete buf1_B;
+        buf_lock_t buf1_B(&t1, block_B, rwi_write);
+        buf1_B.release();
 
-        buf_lock_t *buf2_B = acq(&t2, block_B, rwi_write);    // if issue 194 is not fixed, expect assertion failure here
+        buf_lock_t buf2_B(&t2, block_B, rwi_write);    // if issue 194 is not fixed, expect assertion failure here
+        buf3_A.release();
 
-        delete buf3_A;
+        change_value(&buf2_B, changed_value);
 
-        change_value(buf2_B, changed_value);
-
-        buf_lock_t *buf3_B = acq_check_if_blocks_until_buf_released(&t3, buf2_B, rwi_read, true, &blocked);
-        EXPECT_TRUE(blocked);
-        delete buf3_B;
+        buf_lock_t buf3_B;
+        EXPECT_TRUE(acq_check_if_blocks_until_buf_released(&buf3_B, &t3, &buf2_B, rwi_read, true));
     }
 
     static void test_cow_snapshots(cache_t *cache) {
@@ -222,21 +201,19 @@ private:
         transaction_t t2(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
         transaction_t t3(cache, &seq_group, rwi_read, 0, repli_timestamp_t::invalid);
 
-        buf_lock_t *buf3_A = acq(&t3, block_A, rwi_read_outdated_ok);
-        uint32_t old_value = get_value(buf3_A);
+        buf_lock_t buf3_A(&t3, block_A, rwi_read_outdated_ok);
+        uint32_t old_value = get_value(&buf3_A);
 
-        bool blocked = true;
-        buf_lock_t *buf1_A = acq_check_if_blocks_until_buf_released(&t1, buf3_A, rwi_write, false, &blocked);
-        EXPECT_FALSE(blocked);
-        change_value(buf1_A, changed_value);
-        delete buf1_A;
+        buf_lock_t buf1_A;
+        EXPECT_FALSE(acq_check_if_blocks_until_buf_released(&buf1_A, &t1, &buf3_A, rwi_write, false));
+        change_value(&buf1_A, changed_value);
+        buf1_A.release();
 
-        buf_lock_t *buf2_A = acq_check_if_blocks_until_buf_released(&t2, buf3_A, rwi_write, false, &blocked);
-        EXPECT_FALSE(blocked);
-        delete buf2_A;
+        buf_lock_t buf2_A;
+        EXPECT_FALSE(acq_check_if_blocks_until_buf_released(&buf2_A, &t2, &buf3_A, rwi_write, false));
+        buf2_A.release();
 
-        EXPECT_EQ(old_value, get_value(buf3_A));
-        delete buf3_A;
+        EXPECT_EQ(old_value, get_value(&buf3_A));
     }
 
     static void test_double_cow_acq_release(cache_t * cache) {
@@ -252,11 +229,8 @@ private:
         transaction_t t1(cache, &seq_group, rwi_read, 0, repli_timestamp_t::invalid);
         transaction_t t2(cache, &seq_group, rwi_read, 0, repli_timestamp_t::invalid);
 
-        buf_lock_t *buf1_A = acq(&t1, block_A, rwi_read_outdated_ok);
-        buf_lock_t *buf2_A = acq(&t2, block_A, rwi_read_outdated_ok);
-
-        delete buf1_A;
-        delete buf2_A;
+        buf_lock_t buf1_A(&t1, block_A, rwi_read_outdated_ok);
+        buf_lock_t buf2_A(&t2, block_A, rwi_read_outdated_ok);
     }
 
     static void test_cow_delete(cache_t * cache) {
@@ -273,25 +247,23 @@ private:
         transaction_t t2(cache, &seq_group, rwi_read, 0, repli_timestamp_t::invalid);
         transaction_t t3(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
 
-        buf_lock_t *buf1_A = acq(&t1, block_A, rwi_read_outdated_ok);
-        buf_lock_t *buf2_A = acq(&t2, block_A, rwi_read_outdated_ok);
+        buf_lock_t buf1_A(&t1, block_A, rwi_read_outdated_ok);
+        buf_lock_t buf2_A(&t2, block_A, rwi_read_outdated_ok);
 
-        const uint32_t old_value = get_value(buf1_A);
-        EXPECT_EQ(old_value, get_value(buf2_A));
+        const uint32_t old_value = get_value(&buf1_A);
+        EXPECT_EQ(old_value, get_value(&buf2_A));
 
-        bool blocked = true;
-        buf_lock_t *buf3_A = acq_check_if_blocks_until_buf_released(&t3, buf1_A, rwi_write, false, &blocked);
-        EXPECT_FALSE(blocked);
+        buf_lock_t buf3_A;
+        EXPECT_FALSE(acq_check_if_blocks_until_buf_released(&buf3_A, &t3, &buf1_A, rwi_write, false));
 
-        change_value(buf3_A, changed_value);
-        buf3_A->mark_deleted();
-        delete buf3_A;
+        change_value(&buf3_A, changed_value);
+        buf3_A.mark_deleted();
+        buf3_A.release();
 
-        EXPECT_EQ(old_value, get_value(buf1_A));
-        delete buf1_A;
+        EXPECT_EQ(old_value, get_value(&buf1_A));
+        buf1_A.release();
 
-        EXPECT_EQ(old_value, get_value(buf2_A));
-        delete buf2_A;
+        EXPECT_EQ(old_value, get_value(&buf2_A));
     }
 };
 

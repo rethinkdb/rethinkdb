@@ -31,10 +31,11 @@ void get_root(value_sizer_t<Value> *sizer, transaction_t *txn, superblock_t* sb,
     block_id_t node_id = sb->get_root_block_id();
 
     if (node_id != NULL_BLOCK_ID) {
-        buf_lock_t tmp(txn, node_id, rwi_write);
-        buf_out->swap(tmp);
+        buf_lock_t temp_lock(txn, node_id, rwi_write);
+        buf_out->swap(temp_lock);
     } else {
-        buf_out->allocate(txn);
+        buf_lock_t temp_lock(txn);
+        buf_out->swap(temp_lock);
         leaf::init(sizer, reinterpret_cast<leaf_node_t *>(buf_out->get_data_major_write()));
         insert_root(buf_out->get_block_id(), sb);
     }
@@ -70,8 +71,7 @@ void check_and_handle_split(value_sizer_t<Value> *sizer, transaction_t *txn, buf
 
     // Allocate a new node to split into, and some temporary memory to keep
     // track of the median key in the split; then actually split.
-    buf_lock_t rbuf;
-    rbuf.allocate(txn);
+    buf_lock_t rbuf(txn);
     btree_key_buffer_t median_buffer;
     btree_key_t *median = median_buffer.key();
 
@@ -81,7 +81,8 @@ void check_and_handle_split(value_sizer_t<Value> *sizer, transaction_t *txn, buf
     // Insert the key that sets the two nodes apart into the parent.
     if (!last_buf.is_acquired()) {
         // We're splitting what was previously the root, so create a new root to use as the parent.
-        last_buf.allocate(txn);
+        buf_lock_t temp_buf(txn);
+        last_buf.swap(temp_buf);
         internal_node::init(sizer->block_size(), reinterpret_cast<internal_node_t *>(last_buf.get_data_major_write()));
         rassert(ZERO_EVICTION_PRIORITY < buf.get_eviction_priority());
         last_buf.set_eviction_priority(decr_priority(buf.get_eviction_priority()));

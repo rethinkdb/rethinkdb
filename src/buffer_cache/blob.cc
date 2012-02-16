@@ -681,7 +681,8 @@ bool blob_t::traverse_to_dimensions(transaction_t *txn, int levels, int64_t old_
 
 struct allocate_helper_t : public blob::traverse_helper_t {
     void preprocess(transaction_t *txn, int levels, buf_lock_t& lock, block_id_t *block_id) {
-        lock.allocate(txn);
+        buf_lock_t temp_lock(txn);
+        lock.swap(temp_lock);
         *block_id = lock.get_block_id();
         void *b = lock.get_data_major_write();
         if (levels == 1) {
@@ -808,8 +809,7 @@ void blob_t::consider_small_shift(transaction_t *txn, int levels, int64_t *min_s
 
 // Always returns levels + 1.
 int blob_t::add_level(transaction_t *txn, int levels) {
-    buf_lock_t lock;
-    lock.allocate(txn);
+    buf_lock_t lock(txn);
     void *b = lock.get_data_major_write();
     if (levels == 0) {
         *reinterpret_cast<block_magic_t *>(b) = blob::leaf_node_magic;

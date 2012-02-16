@@ -128,13 +128,12 @@ mock_buf_lock_t::mock_buf_lock_t(mock_transaction_t *txn, block_id_t block_id, a
 mock_buf_lock_t::~mock_buf_lock_t() {
 }
 
-void mock_buf_lock_t::allocate(mock_transaction_t *txn)
+mock_buf_lock_t::mock_buf_lock_t(mock_transaction_t *txn) :
+    internal_buf(NULL),
+    access(txn->access),
+    dirty(false),
+    deleted(false)
 {
-    assert_thread();
-    access = txn->access;
-    dirty = false;
-    deleted = false;
-
     rassert(access == rwi_write);
     
     block_id_t block_id = txn->cache->bufs.get_size();
