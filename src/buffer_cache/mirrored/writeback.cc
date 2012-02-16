@@ -267,7 +267,7 @@ public:
         public thread_message_t,
         public home_thread_mixin_t {
         writeback_t *parent;
-        mc_buf_t *buf;
+        mc_buf_lock_t *buf;
         boost::intrusive_ptr<standard_block_token_t> token;
 
     private:
@@ -295,7 +295,7 @@ public:
         }
     } launch_cb;
 
-    buf_writer_t(writeback_t *wb, mc_buf_t *buf) {
+    buf_writer_t(writeback_t *wb, mc_buf_lock_t *buf) {
         launch_cb.parent = wb;
         launch_cb.buf = buf;
         launch_cb.parent->cache->assert_thread();
@@ -326,7 +326,7 @@ public:
         assert_thread();
         rassert(self_cond_.is_pulsed());
         rassert(launch_cb.finished_.is_pulsed());
-        launch_cb.buf->release();
+        delete launch_cb.buf;
     }
 };
 
@@ -612,13 +612,12 @@ void writeback_t::flush_acquire_bufs(transaction_t *transaction, flush_state_t &
             rassert(!inner_buf->do_delete);
 
             // Acquire the blocks
-            buf_t *buf;
+            buf_lock_t *buf;
             {
                 // Acquire always succeeds, but sometimes it blocks.
                 // But it won't block because we hold the flush lock.
                 ASSERT_NO_CORO_WAITING;
-                buf = transaction->acquire(inner_buf->block_id, rwi_read_outdated_ok);
-                rassert(buf);
+                buf = new buf_lock_t(transaction, inner_buf->block_id, rwi_read_outdated_ok);
             }
 
             // Fill the serializer structure

@@ -41,9 +41,9 @@ private:
 
         transaction_t t1(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
 
-        buf_t *buf1_A = acq(&t1, block_A, rwi_write);
+        buf_lock_t *buf1_A = acq(&t1, block_A, rwi_write);
         buf1_A->mark_deleted();
-        buf1_A->release();
+        delete buf1_A;
 
         // create a fake buffer (be careful with populating it with data
         void *fake_buf = serializer->malloc();

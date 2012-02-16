@@ -4,7 +4,6 @@
 #include "utils.hpp"
 #include <boost/scoped_ptr.hpp>
 
-#include "buffer_cache/buf_lock.hpp"
 #include "containers/scoped_malloc.hpp"
 #include "btree/node.hpp"
 #include "btree/leaf_node.hpp"
@@ -197,11 +196,11 @@ class fake_key_modification_callback_t : public key_modification_callback_t<Valu
 };
 
 
-bool get_superblock_metainfo(transaction_t *txn, buf_t *superblock, const std::vector<char> &key, std::vector<char> &value_out);
+bool get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key, std::vector<char> &value_out);
 
-void set_superblock_metainfo(transaction_t *txn, buf_t *superblock, const std::vector<char> &key, const std::vector<char> &value);
+void set_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key, const std::vector<char> &value);
 
-void delete_superblock_metainfo(transaction_t *txn, buf_t *superblock, const std::vector<char> &key);
+void delete_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key);
 
 #include "btree/operations.tcc"
 

@@ -5,7 +5,6 @@
 
 #include "btree/modify_oper.hpp"
 #include "containers/buffer_group.hpp"
-#include "buffer_cache/buf_lock.hpp"
 #include "containers/scoped_malloc.hpp"
 
 
