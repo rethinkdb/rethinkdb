@@ -108,7 +108,7 @@ patch_disk_storage_t::patch_disk_storage_t(mc_cache_t *_cache, block_id_t start_
 
 patch_disk_storage_t::~patch_disk_storage_t() {
     for (size_t i = 0; i < log_block_bufs.size(); ++i)
-        log_block_bufs[i]->release();
+        delete log_block_bufs[i];
     log_block_bufs.clear();
 }
 
