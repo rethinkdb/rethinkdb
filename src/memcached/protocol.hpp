@@ -209,25 +209,6 @@ class memcached_store_view_t : public store_view_t<memcached_protocol_t> {
     fifo_enforcer_source_t token_source;
     fifo_enforcer_sink_t token_sink;
 public:
-    // This code relies on the fact that store_view_t::write_transaction_t is also a read_transaction_t
-    class txn_t {
-        btree_slice_t *btree;
-        order_token_t token;
-        boost::scoped_ptr<transaction_t> txn;
-        got_superblock_t superblock;
-    public:
-        txn_t(btree_slice_t *btree_, sequence_group_t *seq_group, order_source_t &order_source, bool read_txn);
-
-        region_map_t<memcached_protocol_t,binary_blob_t> get_metadata(signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
-        void set_metadata(const region_map_t<memcached_protocol_t, binary_blob_t> &new_metadata) THROWS_NOTHING;
-        memcached_protocol_t::read_response_t read(const memcached_protocol_t::read_t &, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
-        memcached_protocol_t::write_response_t write(const memcached_protocol_t::write_t &write, transition_timestamp_t timestamp) THROWS_NOTHING;
-        void send_backfill(const region_map_t<memcached_protocol_t,state_timestamp_t> &start_point, const boost::function<void(memcached_protocol_t::backfill_chunk_t)> &chunk_fun, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
-        void receive_backfill(const memcached_protocol_t::backfill_chunk_t &chunk, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
-    private:
-        region_map_t<memcached_protocol_t,binary_blob_t> get_metadata_internal(transaction_t* txn, buf_lock_t& sb_buf) THROWS_NOTHING;
-        buf_t * get_superblock_buf();
-    };
 
     memcached_store_view_t(const key_range_t& key_range_, btree_slice_t * btree_, sequence_group_t *seq_group_) : store_view_t<memcached_protocol_t>(key_range_), btree(btree_), seq_group(seq_group_) { }
 
