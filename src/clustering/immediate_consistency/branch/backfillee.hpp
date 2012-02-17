@@ -164,7 +164,7 @@ void backfillee(
         store->new_write_token(write_token);
         store->set_metainfo(
             region_map_transform<protocol_t, version_range_t, binary_blob_t>(
-                region_map_t<protocol_t, version_range_t>(span_parts.end(), span_parts.begin()),
+                region_map_t<protocol_t, version_range_t>(span_parts.begin(), span_parts.end()),
                 &binary_blob_t::make<version_range_t>
                 ),
             write_token,
