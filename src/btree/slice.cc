@@ -16,7 +16,8 @@
 #include "btree/get_cas.hpp"
 
 void btree_slice_t::create(cache_t *cache) {
-
+    // We don't know the total slice count, so we create fifos up to and including this slice number,
+    // that's why there's +1 below.
     sequence_group_t seq_group(cache->get_slice_num() + 1);
 
     /* Initialize the btree superblock and the delete queue */
