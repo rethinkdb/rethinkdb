@@ -78,6 +78,17 @@ void do_on_thread(int thread, const callable_t &callable) {
     }
 }
 
+// Beware: if you call spawn_on_thread with an action that is stored on stack (as is often
+// the case when you pass a boost::bind there), spawn_on_thread will return before the
+// action gets executed, and the action may go out of scope and get clobbered.
+template<class Callable>
+static void spawn_on_thread(int thread, const Callable &action) {
+    if (get_thread_id() == thread) {
+        coro_t::spawn_later_ordered(action);
+    } else {
+        do_on_thread(thread, boost::bind(&coro_t::spawn_now<Callable>, boost::ref(action)));
+    }
+}
 
 template <class callable_t>
 class one_way_doer_t : public thread_message_t {

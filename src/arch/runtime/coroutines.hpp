@@ -45,15 +45,6 @@ public:
         get_and_init_coro(action)->notify_later_ordered();
     }
 
-    template<class Callable>
-    static void spawn_on_thread(int thread, const Callable &action) {
-        if (get_thread_id() == thread) {
-            spawn_later_ordered(action);
-        } else {
-            do_on_thread(thread, boost::bind(&spawn_now, action));
-        }
-    }
-
     // Use coro_t::spawn_*(boost::bind(...)) for spawning with parameters.
 
     /* `spawn()` and `notify()` are aliases for `spawn_later_ordered()` and
