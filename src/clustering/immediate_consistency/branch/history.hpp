@@ -23,19 +23,25 @@ bool version_is_ancestor(
         return ancestor.timestamp <= descendent.timestamp;
     } else {
         rassert(branch_history.branches.count(descendent.branch) != 0);
+
         typename std::map<branch_id_t, branch_birth_certificate_t<protocol_t> >::const_iterator it =
             branch_history.branches.find(descendent.branch);
         guarantee(it != branch_history.branches.end());
         branch_birth_certificate_t<protocol_t> descendent_branch_metadata = (*it).second;
+
         rassert(region_is_superset(descendent_branch_metadata.region, relevant_region));
         rassert(descendent.timestamp >= descendent_branch_metadata.initial_timestamp);
-        std::vector<std::pair<typename protocol_t::region_t, version_range_t> > origin_pairs =
-            descendent_branch_metadata.origin.mask(relevant_region).get_as_pairs();
-        rassert(!origin_pairs.empty());
-        for (int i = 0; i < (int)origin_pairs.size(); i++) {
-            rassert(!region_is_empty(origin_pairs[i].first));
-            rassert(version_is_ancestor(branch_history, origin_pairs[i].second.earliest, origin_pairs[i].second.latest, origin_pairs[i].first));
-            if (!version_is_ancestor(branch_history, ancestor, origin_pairs[i].second.earliest, origin_pairs[i].first)) {
+
+        typedef region_map_t<protocol_t, version_range_t> version_map_t;
+        version_map_t relevant_origin = descendent_branch_metadata.origin.mask(relevant_region);
+
+        rassert(relevant_origin.begin() != relevant_origin.end());
+        for (typename version_map_t::const_iterator it  = relevant_origin.begin();
+                                                    it != relevant_origin.end();
+                                                    it++) {
+            rassert(!region_is_empty(it->first));
+            rassert(version_is_ancestor(branch_history, it->second.earliest, it->second.latest, it->first));
+            if (!version_is_ancestor(branch_history, ancestor, it->second.earliest, it->first)) {
                 return false;
             }
         }

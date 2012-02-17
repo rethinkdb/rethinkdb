@@ -6,6 +6,7 @@
 #include <boost/scoped_ptr.hpp>
 #include <utility>
 #include <vector>
+#include <list>
 
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
@@ -65,31 +66,33 @@ bool region_overlaps(const region_t &r1, const region_t &r2) {
 /* Regions contained in region_map_t must never intersect. */
 template<class protocol_t, class value_t>
 class region_map_t {
+private:
+    typedef std::pair<typename protocol_t::region_t, value_t> internal_pair_t;
+    typedef std::vector<internal_pair_t> internal_vec_t;
 public:
-    typedef typename std::vector<std::pair<typename protocol_t::region_t, value_t> >::const_iterator const_iterator;
+    typedef typename internal_vec_t::const_iterator const_iterator;
+    typedef typename internal_vec_t::iterator iterator;
 
     region_map_t() THROWS_NOTHING { }
-    region_map_t(typename protocol_t::region_t r, value_t v) THROWS_NOTHING {
-        regions_and_values.push_back(std::make_pair(r, v));
+
+    explicit region_map_t(typename protocol_t::region_t r, value_t v = value_t()) THROWS_NOTHING {
+        regions_and_values.push_back(internal_pair_t(r, v));
     }
 
-    explicit region_map_t(const std::vector<std::pair<typename protocol_t::region_t, value_t> > &x) THROWS_NOTHING :
-        regions_and_values(x)
-    {
-        /* Make sure that the vector we were given is valid */
-        DEBUG_ONLY_CODE(get_domain());
+    template <class input_iterator_t>
+    region_map_t(const input_iterator_t &_begin, const input_iterator_t &_end)
+        : regions_and_values(_begin, _end)
+    { 
+        DEBUG_ONLY(get_domain());
     }
 
+public:
     typename protocol_t::region_t get_domain() const THROWS_NOTHING {
         std::vector<typename protocol_t::region_t> regions;
-        for (int i = 0; i < (int)regions_and_values.size(); i++) {
-            regions.push_back(regions_and_values[i].first);
+        for (const_iterator it = begin(); it != end(); it++) {
+            regions.push_back(it->first);
         }
         return region_join(regions);
-    }
-
-    std::vector<std::pair<typename protocol_t::region_t, value_t> > get_as_pairs() const {
-        return regions_and_values;
     }
 
     const_iterator begin() const {
@@ -100,43 +103,54 @@ public:
         return regions_and_values.end();
     }
 
+    iterator begin() {
+        return regions_and_values.begin();
+    }
+
+    iterator end() {
+        return regions_and_values.end();
+    }
+
     MUST_USE region_map_t mask(typename protocol_t::region_t region) const {
-        std::vector<std::pair<typename protocol_t::region_t, value_t> > masked_pairs;
+        internal_vec_t masked_pairs;
         for (int i = 0; i < (int)regions_and_values.size(); i++) {
             typename protocol_t::region_t ixn = region_intersection(regions_and_values[i].first, region);
             if (!region_is_empty(ixn)) {
-                masked_pairs.push_back(std::make_pair(ixn, regions_and_values[i].second));
+                masked_pairs.push_back(internal_pair_t(ixn, regions_and_values[i].second));
             }
         }
-        return region_map_t(masked_pairs);
+        return region_map_t(masked_pairs.begin(), masked_pairs.end());
     }
 
     // Important: 'update' assumes that new_values regions do not intersect
-    MUST_USE region_map_t update(const region_map_t& new_values) const {
-        rassert(region_is_superset(get_domain(), new_values.get_domain()));
-
+    void update(const region_map_t& new_values) {
+        rassert(region_is_superset(get_domain(), new_values.get_domain()), "Update cannot expand the domain of a region_map.");
         std::vector<typename protocol_t::region_t> overlay_regions;
         for (const_iterator i = new_values.begin(); i != new_values.end(); ++i) {
             overlay_regions.push_back((*i).first);
         }
 
-        std::vector<std::pair<typename protocol_t::region_t, value_t> > updated_pairs;
+        internal_vec_t updated_pairs;
         for (const_iterator i = begin(); i != end(); ++i) {
             typename protocol_t::region_t old = (*i).first;
             std::vector<typename protocol_t::region_t> old_subregions = region_subtract_many(old, overlay_regions);
 
             // Insert the unchanged parts of the old region into updated_pairs with the old value
             for (typename std::vector<typename protocol_t::region_t>::const_iterator j = old_subregions.begin(); j != old_subregions.end(); ++j) {
-                updated_pairs.push_back(std::make_pair(*j, (*i).second));
+                updated_pairs.push_back(internal_pair_t(*j, (*i).second));
             }
         }
         std::copy(new_values.begin(), new_values.end(), std::back_inserter(updated_pairs));
 
-        return region_map_t(updated_pairs);
+        regions_and_values = updated_pairs;
+    }
+
+    void set(const typename protocol_t::region_t &r, const value_t &v) {
+        update(region_map_t(r,v));
     }
 
 private:
-    std::vector<std::pair<typename protocol_t::region_t, value_t> > regions_and_values;
+    internal_vec_t regions_and_values;
     RDB_MAKE_ME_SERIALIZABLE_1(regions_and_values);
 };
 
@@ -149,7 +163,7 @@ bool operator==(const region_map_t<P,V> &left, const region_map_t<P,V> &right) {
     for (typename region_map_t<P,V>::const_iterator i = left.begin(); i != left.end(); ++i) {
         region_map_t<P,V> r = right.mask((*i).first);
         for (typename region_map_t<P,V>::const_iterator j = r.begin(); j != r.end(); ++j) {
-            if ((*j).second != (*i).second) {
+            if (j->second != i->second) {
                 return false;
             }
         }
@@ -164,15 +178,16 @@ bool operator!=(const region_map_t<P,V> &left, const region_map_t<P,V> &right) {
 
 template<class protocol_t, class old_t, class new_t, class callable_t>
 region_map_t<protocol_t, new_t> region_map_transform(const region_map_t<protocol_t, old_t> &original, const callable_t &callable) {
-    std::vector<std::pair<typename protocol_t::region_t, old_t> > original_pairs = original.get_as_pairs();
     std::vector<std::pair<typename protocol_t::region_t, new_t> > new_pairs;
-    for (int i = 0; i < (int)original_pairs.size(); i++) {
-        new_pairs.push_back(std::make_pair(
-                original_pairs[i].first,
-                callable(original_pairs[i].second)
+    for (typename region_map_t<protocol_t, old_t>::const_iterator it =  original.begin();
+                                                                  it != original.end();
+                                                                  it++) {
+        new_pairs.push_back(std::pair<typename protocol_t::region_t, new_t>(
+                it->first,
+                callable(it->second)
                 ));
     }
-    return region_map_t<protocol_t, new_t>(new_pairs);
+    return region_map_t<protocol_t, new_t>(new_pairs.begin(), new_pairs.end());
 }
 
 /* `store_view_t` is an abstract class that represents a region of a key-value

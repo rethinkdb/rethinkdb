@@ -49,9 +49,13 @@ public:
 
         /* Determine what the first timestamp of the new branch will be */
         state_timestamp_t initial_timestamp = state_timestamp_t::zero();
-        std::vector<std::pair<typename protocol_t::region_t, version_range_t> > pairs = origins.get_as_pairs();
-        for (int i = 0; i < (int)pairs.size(); i++) {
-            state_timestamp_t part_timestamp = pairs[i].second.latest.timestamp;
+
+        typedef region_map_t<protocol_t, version_range_t> version_map_t;
+
+        for (typename version_map_t::const_iterator it =  origins.begin();
+                                                    it != origins.end();
+                                                    it++) {
+            state_timestamp_t part_timestamp = it->second.latest.timestamp;
             if (part_timestamp > initial_timestamp) {
                 initial_timestamp = part_timestamp;
             }

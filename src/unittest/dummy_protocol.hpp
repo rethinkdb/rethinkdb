@@ -27,8 +27,12 @@ public:
     class region_t {
     public:
         static region_t empty() THROWS_NOTHING;
-        RDB_MAKE_ME_SERIALIZABLE_1(keys);
+        region_t() THROWS_NOTHING;
+        region_t(char x, char y) THROWS_NOTHING;
+
         std::set<std::string> keys;
+
+        RDB_MAKE_ME_SERIALIZABLE_1(keys);
     };
 
     class temporary_cache_t {

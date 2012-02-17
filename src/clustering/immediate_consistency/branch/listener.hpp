@@ -101,20 +101,23 @@ public:
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> read_token;
         store->new_read_token(read_token);
 
-        std::vector<std::pair<typename protocol_t::region_t, version_range_t> > start_point_pairs =
+        typedef region_map_t<protocol_t, version_range_t> version_map_t;
+        version_map_t start_point =
             region_map_transform<protocol_t, binary_blob_t, version_range_t>(
                 store->get_metainfo(read_token, interruptor),
                 &binary_blob_t::get<version_range_t>
-                ).get_as_pairs();
-        for (int i = 0; i < (int)start_point_pairs.size(); i++) {
-            version_t version = start_point_pairs[i].second.latest;
+                );
+        for (typename version_map_t::const_iterator it = start_point.begin();
+                                                    it != start_point.end();
+                                                    it++) {
+            version_t version = it->second.latest;
             rassert(
                 version.branch == branch_id ||
                 version_is_ancestor(
                     branch_history->get(),
                     version,
                     version_t(branch_id, this_branch_history.initial_timestamp),
-                    start_point_pairs[i].first)
+                    it->first)
                 );
         }
 #endif
@@ -147,23 +150,34 @@ public:
 
         state_timestamp_t streaming_begin_point =
             registration_done_cond.get_value().broadcaster_begin_timestamp;
-        std::vector<std::pair<typename protocol_t::region_t, version_range_t> > backfill_end_point =
+
+        typedef region_map_t<protocol_t, version_range_t> version_map_t;
+
+        version_map_t backfill_end_point =
             region_map_transform<protocol_t, binary_blob_t, version_range_t>(
                 store->get_metainfo(read_token2, interruptor),
                 &binary_blob_t::get<version_range_t>
-                ).get_as_pairs();
+                );
 
-        /* Sanity checking. The backfiller should have put us into a
-        coherent position because it shouldn't have been in the metadata if
-        it was incoherent. */
-        rassert(backfill_end_point.size() == 1);
-        rassert(backfill_end_point[0].second.is_coherent());
-        rassert(backfill_end_point[0].second.earliest.branch == branch_id);
+        /* Sanity checking. */
 
-        if (backfill_end_point[0].second.earliest.timestamp >= streaming_begin_point) {
+        /* Make sure the region is not empty. */
+        rassert(backfill_end_point.begin() != backfill_end_point.end());
+
+        state_timestamp_t backfill_end_timestamp = backfill_end_point.begin()->second.earliest.timestamp;
+
+        /* Make sure the backfiller put us in a coherent position on the right
+         * branch. */
+#ifndef NDEBUG
+        version_map_t expected_backfill_endpoint(store->get_region(), version_range_t(version_t(branch_id, backfill_end_timestamp)));
+#endif
+
+        rassert(backfill_end_point == expected_backfill_endpoint);
+
+        if (backfill_end_timestamp >= streaming_begin_point) {
             /* The backfill put us in a reasonable spot. Pulse
             `backfill_done_cond` so real-time operations can proceed. */
-            backfill_done_cond.pulse(backfill_end_point[0].second.earliest.timestamp);
+            backfill_done_cond.pulse(backfill_end_timestamp);
         } else {
             /* There was a gap between the data the backfiller sent us and
             the beginning of the data we got from the broadcaster. */
@@ -210,34 +224,33 @@ public:
             broadcaster_metadata->get_value();
         rassert(business_card && business_card.get());
         rassert(business_card.get().get().branch_id == broadcaster->branch_id);
-#endif
 
-        boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> read_token;
-        store->new_read_token(read_token);
-
-        region_map_t<protocol_t, binary_blob_t> initial_metadata =
-            store->get_metainfo(read_token, interruptor);
-        rassert(initial_metadata.get_as_pairs().size() == 1);
-        version_range_t initial_version = binary_blob_t::get<version_range_t>(initial_metadata.get_as_pairs()[0].second);
-        rassert(initial_version.is_coherent());
-        rassert(initial_version.earliest.branch == branch_id);
-        state_timestamp_t initial_timestamp = initial_version.earliest.timestamp;
-
-#ifndef NDEBUG
         /* Make sure the initial state of the store is sane */
         branch_birth_certificate_t<protocol_t> this_branch_history =
             branch_history->get().branches[branch_id];
         rassert(store->get_region() == this_branch_history.region);
+        /* Snapshot the metainfo before we start receiving writes */
+        boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> read_token;
+        store->new_read_token(read_token);
+
+        region_map_t<protocol_t, binary_blob_t> initial_metainfo =
+            store->get_metainfo(read_token, interruptor);
 #endif
 
         /* Attempt to register for reads and writes */
         try_start_receiving_writes(broadcaster_metadata, interruptor);
         rassert(registration_done_cond.get_ready_signal()->is_pulsed());
-        rassert(registration_done_cond.get_value().broadcaster_begin_timestamp ==
-            initial_timestamp);
+
+#ifndef NDEBUG
+        region_map_t<protocol_t, binary_blob_t> expected_initial_metainfo(store->get_region(), 
+                                                                          binary_blob_t(version_range_t(version_t(branch_id, 
+                                                                                                                  registration_done_cond.get_value().broadcaster_begin_timestamp))));
+
+        rassert(expected_initial_metainfo == initial_metainfo);
+#endif
 
         /* Pretend we just finished an imaginary backfill */
-        backfill_done_cond.pulse(initial_timestamp);
+        backfill_done_cond.pulse(registration_done_cond.get_value().broadcaster_begin_timestamp);
     }
 
     /* Returns a signal that is pulsed if the mirror is not in contact with the

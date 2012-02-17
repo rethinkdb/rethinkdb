@@ -114,17 +114,29 @@ void run_backfill_test() {
         EXPECT_TRUE(backfiller_underlying_store.timestamps[key] == backfillee_underlying_store.timestamps[key]);
     }
 
-    boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> token;
-    backfillee_store.new_read_token(token);
-    std::vector<std::pair<dummy_protocol_t::region_t, version_range_t> > backfillee_metadata =
-        region_map_transform<dummy_protocol_t,binary_blob_t,version_range_t>(
-            backfillee_store.get_metainfo(token, &interruptor),
-            &binary_blob_t::get<version_range_t>
-        ).get_as_pairs();
+    boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> token1;
+    backfillee_store.new_read_token(token1);
 
-    EXPECT_EQ(1, backfillee_metadata.size());
-    EXPECT_TRUE(backfillee_metadata[0].second.is_coherent());
-    EXPECT_EQ(timestamp, backfillee_metadata[0].second.earliest.timestamp);
+    region_map_t<dummy_protocol_t, version_range_t> backfillee_metadata = 
+        region_map_transform<dummy_protocol_t,binary_blob_t,version_range_t>(
+            backfillee_store.get_metainfo(token1, &interruptor),
+            &binary_blob_t::get<version_range_t>
+        );
+
+    boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> token2;
+    backfiller_store.new_read_token(token2);
+
+    region_map_t<dummy_protocol_t, version_range_t> backfiller_metadata = 
+        region_map_transform<dummy_protocol_t,binary_blob_t,version_range_t>(
+            backfiller_store.get_metainfo(token2, &interruptor),
+            &binary_blob_t::get<version_range_t>
+        );
+
+    EXPECT_TRUE(backfillee_metadata == backfiller_metadata);
+
+    //EXPECT_EQ(1, backfillee_metadata.size());
+    //EXPECT_TRUE(backfillee_metadata[0].second.is_coherent());
+    //EXPECT_EQ(timestamp, backfillee_metadata[0].second.earliest.timestamp);
 }
 TEST(ClusteringBackfill, BackfillTest) {
     run_in_thread_pool(&run_backfill_test);

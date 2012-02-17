@@ -243,7 +243,7 @@ region_map_t<memcached_protocol_t,binary_blob_t> memcached_store_view_t::get_met
             binary_blob_t(value.begin(), value.end())
         ));
     }
-    return region_map_t<memcached_protocol_t,binary_blob_t>(result);
+    return region_map_t<memcached_protocol_t,binary_blob_t>(result.begin(), result.end());
 }
 
 void memcached_store_view_t::set_metainfo(
@@ -462,7 +462,8 @@ memcached_store_view_t::metainfo_t memcached_store_view_t::check_metainfo(
 }
 
 void memcached_store_view_t::update_metainfo(const metainfo_t &old_metainfo, const metainfo_t &new_metainfo, transaction_t *txn, got_superblock_t &superblock) const THROWS_NOTHING {
-    region_map_t<memcached_protocol_t,binary_blob_t> updated_metadata = old_metainfo.update(new_metainfo);
+    region_map_t<memcached_protocol_t,binary_blob_t> updated_metadata = old_metainfo;
+    updated_metadata.update(new_metainfo);
 
     buf_t* sb_buf = superblock.get_real_buf();
     clear_superblock_metainfo(txn, sb_buf);

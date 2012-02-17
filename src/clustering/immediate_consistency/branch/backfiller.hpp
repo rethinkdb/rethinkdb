@@ -49,16 +49,18 @@ private:
 
 #ifndef NDEBUG
         /* Confirm that `start_point` is a point in our past */
-        std::vector<std::pair<typename protocol_t::region_t, version_range_t> > start_point_pairs =
-            start_point.get_as_pairs();
-        std::vector<std::pair<typename protocol_t::region_t, version_range_t> > end_point_pairs =
-            end_point.get_as_pairs();
-        for (int i = 0; i < (int)start_point_pairs.size(); i++) {
-            for (int j = 0; j < (int)end_point_pairs.size(); j++) {
-                typename protocol_t::region_t ixn = region_intersection(start_point_pairs[i].first, end_point_pairs[i].first);
+        typedef region_map_t<protocol_t, version_range_t> version_map_t;
+
+        for (typename version_map_t::const_iterator it =  start_point.begin(); 
+                                                    it != start_point.end(); 
+                                                    it++) {
+            for (typename version_map_t::const_iterator jt =  end_point.begin(); 
+                                                        jt != end_point.end(); 
+                                                        jt++) {
+                typename protocol_t::region_t ixn = region_intersection(it->first, jt->first);
                 if (!region_is_empty(ixn)) {
-                    version_t start = start_point_pairs[i].second.latest;
-                    version_t end = end_point_pairs[i].second.earliest;
+                    version_t start = it->second.latest;
+                    version_t end = jt->second.earliest;
                     rassert(start.timestamp <= end.timestamp);
                     rassert(version_is_ancestor(branch_history->get(), start, end, ixn));
                 }

@@ -36,10 +36,10 @@ public:
         return version_t(boost::uuids::nil_generator()(), state_timestamp_t::zero());
     }
 
-    bool operator==(const version_t &v) {
+    bool operator==(const version_t &v) const{
         return branch == v.branch && timestamp == v.timestamp;
     }
-    bool operator!=(const version_t &v) {
+    bool operator!=(const version_t &v) const {
         return !(*this == v);
     }
 
@@ -61,13 +61,13 @@ public:
     version_range_t(const version_t &e, const version_t &l) :
         earliest(e), latest(l) { }
 
-    bool is_coherent() {
+    bool is_coherent() const {
         return earliest == latest;
     }
-    bool operator==(const version_range_t &v) {
+    bool operator==(const version_range_t &v) const {
         return earliest == v.earliest && latest == v.latest;
     }
-    bool operator!=(const version_range_t &v) {
+    bool operator!=(const version_range_t &v) const {
         return !(*this == v);
     }
 
