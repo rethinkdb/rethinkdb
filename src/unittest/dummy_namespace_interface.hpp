@@ -10,6 +10,7 @@
 #include "protocol_api.hpp"
 #include "timestamps.hpp"
 #include "unittest/unittest_utils.hpp"
+#include "protocol_api.hpp"
 
 namespace unittest {
 
@@ -21,21 +22,27 @@ public:
         store(s) { }
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t read, UNUSED state_timestamp_t expected_timestamp, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        boost::shared_ptr<typename store_view_t<protocol_t>::read_transaction_t> txn = store->begin_read_transaction(interruptor);
-        region_map_t<protocol_t, binary_blob_t> metadata = txn->get_metadata(interruptor);
-        rassert(metadata.get_as_pairs().size() == 1);
-        rassert(binary_blob_t::get<state_timestamp_t>(metadata.get_as_pairs()[0].second) == expected_timestamp);
-        return txn->read(read, interruptor);
+        boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> read_token;
+        store->new_read_token(read_token);
+
+        region_map_t<protocol_t,binary_blob_t> expected_metainfo(store->get_region(), binary_blob_t(expected_timestamp));
+
+        return store->read(DEBUG_ONLY(expected_metainfo,) read, read_token, interruptor);
     }
 
     typename protocol_t::write_response_t write(typename protocol_t::write_t write, transition_timestamp_t transition_timestamp) THROWS_NOTHING {
         cond_t non_interruptor;
-        boost::shared_ptr<typename store_view_t<protocol_t>::write_transaction_t> txn = store->begin_write_transaction(&non_interruptor);
-        region_map_t<protocol_t, binary_blob_t> metadata = txn->get_metadata(&non_interruptor);
-        rassert(metadata.get_as_pairs().size() == 1);
-        rassert(binary_blob_t::get<state_timestamp_t>(metadata.get_as_pairs()[0].second) == transition_timestamp.timestamp_before());
-        txn->set_metadata(region_map_t<protocol_t, binary_blob_t>(store->get_region(), binary_blob_t(transition_timestamp.timestamp_after())));
-        return txn->write(write, transition_timestamp);
+        region_map_t<protocol_t,binary_blob_t> expected_metainfo(store->get_region(), binary_blob_t(transition_timestamp.timestamp_before()));
+
+        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> write_token;
+        store->new_write_token(write_token);
+
+        return store->write(
+            DEBUG_ONLY(expected_metainfo,)
+            region_map_t<protocol_t, binary_blob_t>(store->get_region(), binary_blob_t(transition_timestamp.timestamp_after())),
+            write, transition_timestamp,
+            write_token, &non_interruptor
+            );
     }
 
     boost::shared_ptr<store_view_t<protocol_t> > store;
@@ -49,10 +56,17 @@ public:
         next(n), current_timestamp(state_timestamp_t::zero())
     {
         cond_t interruptor;
-        boost::shared_ptr<typename store_view_t<protocol_t>::read_transaction_t> txn = next->store->begin_read_transaction(&interruptor);
-        region_map_t<protocol_t, binary_blob_t> metadata = txn->get_metadata(&interruptor);
-        rassert(metadata.get_as_pairs().size() == 1);
-        rassert(binary_blob_t::get<state_timestamp_t>(metadata.get_as_pairs()[0].second) == current_timestamp);
+
+        boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> read_token;
+        next->store->new_read_token(read_token);
+
+        region_map_t<protocol_t, binary_blob_t> metainfo = next->store->get_metainfo(read_token, &interruptor);
+
+        for (typename region_map_t<protocol_t, binary_blob_t>::iterator it  = metainfo.begin();
+                                                                        it != metainfo.end();
+                                                                        it++) {
+            rassert(binary_blob_t::get<state_timestamp_t>(it->second) == current_timestamp);
+        }
     }
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t read, order_token_t otok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
@@ -139,17 +153,28 @@ public:
             /* Initialize metadata everywhere */
             {
                 cond_t interruptor;
-                boost::shared_ptr<typename store_view_t<protocol_t>::write_transaction_t> txn = stores[i]->begin_write_transaction(&interruptor);
-                region_map_t<protocol_t, binary_blob_t> metadata = txn->get_metadata(&interruptor);
-                rassert(metadata.get_as_pairs().size() == 1);
-                rassert(metadata.get_as_pairs()[0].first == shards[i]);
-                rassert(metadata.get_as_pairs()[0].second.size() == 0);
-                txn->set_metadata(
+
+                boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> read_token;
+                stores[i]->new_read_token(read_token);
+
+                region_map_t<protocol_t, binary_blob_t> metadata = stores[i]->get_metainfo(read_token, &interruptor);
+
+                rassert(metadata.get_domain() == shards[i]);
+                for (typename region_map_t<protocol_t, binary_blob_t>::const_iterator it  = metadata.begin();
+                                                                                      it != metadata.end();
+                                                                                      it++) {
+                    rassert(it->second.size() == 0);
+                }
+
+                boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> write_token;
+                stores[i]->new_write_token(write_token);
+
+                stores[i]->set_metainfo(
                     region_map_transform<protocol_t, state_timestamp_t, binary_blob_t>(
                         region_map_t<protocol_t, state_timestamp_t>(shards[i], state_timestamp_t::zero()),
                         &binary_blob_t::make<state_timestamp_t>
-                        )
-                    );
+                        ),
+                    write_token, &interruptor);
             }
 
             dummy_performer_t<protocol_t> *performer = new dummy_performer_t<protocol_t>(stores[i]);

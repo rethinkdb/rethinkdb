@@ -13,15 +13,6 @@
 
 namespace unittest {
 
-namespace {
-
-/* `let_stuff_happen()` delays for some time to let events occur */
-//void let_stuff_happen() {
-//    nap(1000);
-//}
-
-}   /* anonymous namespace */
-
 /* The `ReadWrite` test sends some reads and writes to some shards via a
 `cluster_namespace_interface_t`. */
 

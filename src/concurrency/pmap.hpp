@@ -12,14 +12,14 @@ struct pmap_runner_one_arg_t {
     int *outstanding;
     cond_t *to_signal;
     pmap_runner_one_arg_t(value_t _i, const callable_t *_c, int *_outstanding, cond_t *_to_signal)
-	: i(_i), c(_c), outstanding(_outstanding), to_signal(_to_signal) { }
+        : i(_i), c(_c), outstanding(_outstanding), to_signal(_to_signal) { }
 
     void operator()() {
-	(*c)(i);
-	(*outstanding)--;
-	if (*outstanding == 0) {
-	    to_signal->pulse();
-	}
+        (*c)(i);
+        (*outstanding)--;
+        if (*outstanding == 0) {
+            to_signal->pulse();
+        }
     }
 };
 
@@ -31,7 +31,7 @@ void spawn_pmap_runner_one_arg(value_t i, const callable_t *c, int *outstanding,
 template <class callable_t>
 void pmap(int count, const callable_t &c) {
     if (count == 0) {
-	return;
+        return;
     }
     if (count == 1) {
         c(0);
@@ -41,7 +41,7 @@ void pmap(int count, const callable_t &c) {
     cond_t cond;
     int outstanding = count - 1;
     for (int i = 0; i < count - 1; i++) {
-	coro_t::spawn_now(pmap_runner_one_arg_t<callable_t, int>(i, &c, &outstanding, &cond));
+        coro_t::spawn_now(pmap_runner_one_arg_t<callable_t, int>(i, &c, &outstanding, &cond));
     }
     c(count - 1);
     cond.wait();
@@ -58,7 +58,7 @@ void pmap(iterator_t start, iterator_t end, const callable_t &c) {
     }
     outstanding--;
     if (outstanding) {
-	cond.wait();
+        cond.wait();
     }
 }
 
@@ -71,14 +71,14 @@ class pmap_runner_two_arg_t {
     cond_t *to_signal;
 
     pmap_runner_two_arg_t(value1_t _i, value2_t _i2, const callable_t *_c, int *_outstanding, cond_t *_to_signal)
-	: i(_i), i2(_i2), c(_c), outstanding(_outstanding), to_signal(_to_signal) { }
+        : i(_i), i2(_i2), c(_c), outstanding(_outstanding), to_signal(_to_signal) { }
 
     void operator()() {
-	(*c)(i, i2);
-	(*outstanding)--;
-	if (*outstanding == 0) {
-	    to_signal->pulse();
-	}
+        (*c)(i, i2);
+        (*outstanding)--;
+        if (*outstanding == 0) {
+            to_signal->pulse();
+        }
     }
 };
 
@@ -100,7 +100,7 @@ void pimap(iterator_t start, iterator_t end, const callable_t &c) {
     }
     outstanding--;
     if (outstanding) {
-	cond.wait();
+        cond.wait();
     }
 }
 

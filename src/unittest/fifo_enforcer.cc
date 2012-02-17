@@ -6,6 +6,7 @@
 #include "arch/timing.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/fifo_enforcer.hpp"
+#include "concurrency/wait_any.hpp"
 #include "unittest/unittest_utils.hpp"
 
 namespace unittest {
@@ -34,32 +35,18 @@ private:
         if (rng.randint(2) == 0) {
             nap(rng.randint(10));
         }
-        while (true) {
-            try {
-                signal_timer_t interruptor(rng.randint(20));
-                fifo_enforcer_sink_t::exit_read_t exit(&sink, token, &interruptor);
-                EXPECT_EQ(expected_value, variable);
-                break;
-            } catch (interrupted_exc_t) {
-                /* Go around loop again */
-            }
-        }
+        fifo_enforcer_sink_t::exit_read_t exit(&sink, token);
+        exit.wait_lazily_unordered();
+        EXPECT_EQ(expected_value, variable);
     }
     void attempt_write(int expected_value, int new_value, fifo_enforcer_write_token_t token, auto_drainer_t::lock_t) {
         if (rng.randint(2) == 0) {
             nap(rng.randint(10));
         }
-        while (true) {
-            try {
-                signal_timer_t interruptor(rng.randint(20));
-                fifo_enforcer_sink_t::exit_write_t exit(&sink, token, &interruptor);
-                EXPECT_EQ(expected_value, variable);
-                variable = new_value;
-                break;
-            } catch (interrupted_exc_t) {
-                /* Go around loop again */
-            }
-        }
+        fifo_enforcer_sink_t::exit_write_t exit(&sink, token);
+        exit.wait_lazily_unordered();
+        EXPECT_EQ(expected_value, variable);
+        variable = new_value;
     }
     fifo_enforcer_source_t source;
     fifo_enforcer_sink_t sink;
@@ -95,7 +82,8 @@ void run_state_transfer_test() {
     {
         try {
             signal_timer_t interruptor(1000);
-            fifo_enforcer_sink_t::exit_write_t fifo_exit(&sink, tok2, &interruptor);
+            fifo_enforcer_sink_t::exit_write_t fifo_exit(&sink, tok2);
+            wait_interruptible(&fifo_exit, &interruptor);
         } catch (interrupted_exc_t) {
             ADD_FAILURE() << "Got stuck trying to exit FIFO";
         }

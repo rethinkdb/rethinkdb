@@ -14,12 +14,14 @@ public:
         store(&underlying_store, a_thru_z_region())
     {
         /* Initialize store metadata */
-        cond_t interruptor;
-        store.begin_write_transaction(&interruptor)->set_metadata(
-            region_map_t<dummy_protocol_t, binary_blob_t>(
+        cond_t non_interruptor;
+        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> token;
+        store.new_write_token(token);
+        region_map_t<dummy_protocol_t, binary_blob_t> new_metainfo(
                 a_thru_z_region(),
                 binary_blob_t(version_range_t(version_t::zero()))
-            ));
+            );
+        store.set_metainfo(new_metainfo, token, &non_interruptor);
     }
 
     dummy_underlying_store_t underlying_store;

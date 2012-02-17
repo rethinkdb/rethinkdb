@@ -192,6 +192,9 @@ private:
     std::vector<uint8_t> storage;
 };
 
+bool operator==(const binary_blob_t &left, const binary_blob_t &right);
+bool operator!=(const binary_blob_t &left, const binary_blob_t &right);
+
 // Like std::max, except it's technically not associative.
 repli_timestamp_t repli_max(repli_timestamp_t x, repli_timestamp_t y);
 

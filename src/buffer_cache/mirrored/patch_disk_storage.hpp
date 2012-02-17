@@ -91,5 +91,5 @@ private:
     std::vector<mc_buf_t*> log_block_bufs;
 };
 
-#endif	/* __PATCH_DISK_STORAGE_HPP__ */
+#endif /* __PATCH_DISK_STORAGE_HPP__ */
 

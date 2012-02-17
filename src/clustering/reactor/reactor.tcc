@@ -113,21 +113,98 @@ template <class protocol_t>
 class store_subview_t : public store_view_t<protocol_t>
 {
 public:
-    store_subview_t(store_view_t<protocol_t> *, typename protocol_t::region_t region)
-        : store_view_t<protocol_t>(region)
+    typedef typename store_view_t<protocol_t>::metainfo_t metainfo_t;
+
+    store_subview_t(store_view_t<protocol_t> *_store_view, typename protocol_t::region_t region)
+        : store_view_t<protocol_t>(region), store_view(_store_view)
     { }
 
-    virtual boost::shared_ptr<typename store_view_t<protocol_t>::read_transaction_t> begin_read_transaction(
-            signal_t *)
-            THROWS_ONLY(interrupted_exc_t) {
-                crash("Not implemented\n");
-            }
+    /* WAT */
+    using store_view_t<protocol_t>::get_region;
 
-    virtual boost::shared_ptr<typename store_view_t<protocol_t>::write_transaction_t> begin_write_transaction(
-            signal_t *)
+    void new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out) {
+        store_view->new_read_token(token_out);
+    }
+
+    void new_write_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token_out) {
+        store_view->new_write_token(token_out);
+    }
+
+    metainfo_t get_metainfo(
+            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+            signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
-                crash("Not implemented\n");
-            }
+                return store_view->get_metainfo(token, interruptor).mask(get_region());
+    }
+
+    void set_metainfo(
+            const metainfo_t &new_metainfo,
+            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t) {
+                rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
+                store_view->set_metainfo(new_metainfo, token, interruptor);
+    }
+
+    typename protocol_t::read_response_t read(
+            DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+            const typename protocol_t::read_t &read,
+            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t) {
+                rassert(region_is_superset(get_region(), expected_metainfo.get_domain()));
+
+                return store_view->read(DEBUG_ONLY(expected_metainfo,) read, token, interruptor);
+    }
+
+    typename protocol_t::write_response_t write(
+            DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+            const metainfo_t& new_metainfo,
+            const typename protocol_t::write_t &write,
+            transition_timestamp_t timestamp,
+            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t) {
+                rassert(region_is_superset(get_region(), expected_metainfo.get_domain()));
+                rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
+
+                return store_view->write(DEBUG_ONLY(expected_metainfo,) new_metainfo, write, timestamp, token, interruptor);
+    }
+
+    bool send_backfill(
+            const region_map_t<protocol_t,state_timestamp_t> &start_point,
+            const boost::function<bool(const metainfo_t&)> &should_backfill,
+            const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
+            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t) {
+                rassert(region_is_superset(get_region(), start_point.get_domain()));
+
+                return store_view->send_backfill(start_point, should_backfill, chunk_fun, token, interruptor);
+    }
+
+    void receive_backfill(
+            const typename protocol_t::backfill_chunk_t &chunk,
+            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t) {
+                store_view->receive_backfill(chunk, token, interruptor);
+    }
+
+    void reset_data(
+            typename protocol_t::region_t subregion,
+            const metainfo_t &new_metainfo, 
+            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t) {
+                rassert(region_is_superset(get_region(), subregion));
+                rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
+                
+                store_view->reset_data(subregion, new_metainfo, token, interruptor);
+    }
+
+public:
+    store_view_t<protocol_t> *store_view;
 };
 
 template<class protocol_t>

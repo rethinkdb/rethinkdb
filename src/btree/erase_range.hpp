@@ -11,8 +11,7 @@ class order_token_t;
 class sequence_group_t;
 class got_superblock_t;
 
-class key_tester_t {
-public:
+struct key_tester_t {
     key_tester_t() { }
     virtual bool key_should_be_erased(const btree_key_t *key) = 0;
 
@@ -20,6 +19,12 @@ protected:
     virtual ~key_tester_t() { }
 private:
     DISABLE_COPYING(key_tester_t);
+};
+
+struct always_true_key_tester_t : public key_tester_t {
+    bool key_should_be_erased(UNUSED const btree_key_t *key) {
+        return true;
+    }
 };
 
 void btree_erase_range(btree_slice_t *slice, sequence_group_t *seq_group, key_tester_t *tester,
@@ -30,6 +35,10 @@ void btree_erase_range(btree_slice_t *slice, sequence_group_t *seq_group, key_te
 void btree_erase_range(btree_slice_t *slice, key_tester_t *tester,
                        bool left_key_supplied, const store_key_t& left_key_exclusive,
                        bool right_key_supplied, const store_key_t& right_key_inclusive,
+                       transaction_t *txn, got_superblock_t& superblock);
+
+void btree_erase_range(btree_slice_t *slice, key_tester_t *tester,
+                       const key_range_t &keys,
                        transaction_t *txn, got_superblock_t& superblock);
 
 #endif  // BTREE_ERASE_RANGE_HPP_

@@ -42,7 +42,7 @@ public:
         std::vector<buffer_t>::iterator it;
         ssize_t offset;
 
-	friend class const_buffer_group_t;
+        friend class const_buffer_group_t;
         iterator(std::vector<buffer_t>::iterator _it, ssize_t _offset) 
             : it(_it), offset(_offset)
         { }

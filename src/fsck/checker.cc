@@ -780,7 +780,7 @@ void check_and_load_diff_log(slicecx_t *cx, diff_log_errors *errs) {
                     try {
                         patch = buf_patch_t::load_patch(reinterpret_cast<const char *>(buf_data) + current_offset);
                     } catch (patch_deserialization_error_t &e) {
-			(void)e;
+                        (void)e;
                         ++errs->corrupted_patch_blocks;
                         break;
                     }

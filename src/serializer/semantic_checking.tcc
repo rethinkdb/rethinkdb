@@ -117,9 +117,9 @@ index_read(block_id_t block_id) {
     guarantee(info.state != scs_block_info_t::state_deleted || !result,
               "Cache asked for a deleted block, and serializer didn't complain.");
     if (result) {
-	return wrap_token(block_id, info, result);
+        return wrap_token(block_id, info, result);
     } else {
-	return boost::intrusive_ptr< scs_block_token_t<inner_serializer_t> >();
+        return boost::intrusive_ptr< scs_block_token_t<inner_serializer_t> >();
     }
 }
 
@@ -215,7 +215,7 @@ index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_a
                 scs_block_token_t<inner_serializer_t> *token = tok.get();
                 // Fix the op to point at the inner serializer's block token.  (No.)
                 //   op.token = token->inner_token;
-		// (We don't actually do this now.  Instead the inner serializer strips the outer token.)
+                // (We don't actually do this now.  Instead the inner serializer strips the outer token.)
 
                 info = token->info;
                 guarantee(token->block_id == op.block_id,

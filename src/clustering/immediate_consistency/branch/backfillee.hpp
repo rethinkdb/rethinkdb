@@ -28,7 +28,9 @@ void on_receive_backfill_chunk(
     }
 
     try {
-        store->begin_write_transaction(interruptor)->receive_backfill(chunk, interruptor);
+        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> write_token;
+        store->new_write_token(write_token);
+        store->receive_backfill(chunk, write_token, interruptor);
     } catch (interrupted_exc_t) {
         return;
     }
@@ -48,9 +50,11 @@ void backfillee(
     resource_access_t<backfiller_business_card_t<protocol_t> > backfiller(backfiller_metadata);
 
     /* Read the metadata to determine where we're starting from */
+    boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> read_token;
+    store->new_read_token(read_token);
     region_map_t<protocol_t, version_range_t> start_point =
         region_map_transform<protocol_t, binary_blob_t, version_range_t>(
-            store->begin_read_transaction(interruptor)->get_metadata(interruptor),
+            store->get_metainfo(read_token, interruptor),
             &binary_blob_t::get<version_range_t>
             );
 
@@ -132,33 +136,43 @@ void backfillee(
         marking every region as indeterminate between the current state and the
         backfill end state, since we don't know whether the backfill has reached
         that region yet. */
-        std::vector<std::pair<typename protocol_t::region_t, version_range_t> > start_point_parts =
-            start_point.get_as_pairs();
-        std::vector<std::pair<typename protocol_t::region_t, version_range_t> > end_point_parts =
-            end_point_cond.get_value().get_as_pairs();
+
+        typedef region_map_t<protocol_t, version_range_t> version_map_t;
+
+        version_map_t end_point = end_point_cond.get_value();
+
         std::vector<std::pair<typename protocol_t::region_t, version_range_t> > span_parts;
-        for (int i = 0; i < (int)start_point_parts.size(); i++) {
-            for (int j = 0; j < (int)end_point_parts.size(); j++) {
-                typename protocol_t::region_t ixn = region_intersection(start_point_parts[i].first, end_point_parts[j].first);
+
+        for (typename version_map_t::const_iterator it  = start_point.begin();
+                                                    it != start_point.end();
+                                                    it++) {
+            for (typename version_map_t::const_iterator jt  = end_point.begin();
+                                                        jt != end_point.end();
+                                                        jt++) {
+                typename protocol_t::region_t ixn = region_intersection(it->first, jt->first);
                 if (!region_is_empty(ixn)) {
                     rassert(version_is_ancestor(branch_history->get(),
-                        start_point_parts[i].second.earliest,
-                        end_point_parts[j].second.latest,
+                        it->second.earliest,
+                        jt->second.latest,
                         ixn),
                         "We're on a different timeline than the backfiller, "
                         "but it somehow failed to notice.");
                     span_parts.push_back(std::make_pair(
                         ixn,
-                        version_range_t(start_point_parts[i].second.earliest, end_point_parts[j].second.latest)
+                        version_range_t(it->second.earliest, jt->second.latest)
                         ));
                 }
             }
         }
-        store->begin_write_transaction(interruptor)->set_metadata(
+        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> write_token;
+        store->new_write_token(write_token);
+        store->set_metainfo(
             region_map_transform<protocol_t, version_range_t, binary_blob_t>(
-                region_map_t<protocol_t, version_range_t>(span_parts),
+                region_map_t<protocol_t, version_range_t>(span_parts.end(), span_parts.begin()),
                 &binary_blob_t::make<version_range_t>
-                )
+                ),
+            write_token,
+            interruptor
             );
 
         /* Now that the metadata indicates that the backfill is happening, it's
@@ -183,11 +197,15 @@ void backfillee(
     }
 
     /* Update the metadata to indicate that the backfill occurred */
-    store->begin_write_transaction(interruptor)->set_metadata(
+    boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> write_token;
+    store->new_write_token(write_token);
+    store->set_metainfo(
         region_map_transform<protocol_t, version_range_t, binary_blob_t>(
             end_point_cond.get_value(),
             &binary_blob_t::make<version_range_t>
-            )
+            ),
+        write_token,
+        interruptor
         );
 }
 

@@ -66,7 +66,7 @@ bool btree_metadata_store_t::get_meta(const std::string &key, std::string *out) 
     guarantee(!res.is_not_allowed);
 
     if (!res.value) {
-	return false;
+        return false;
     }
 
     // Get the data and copy it into *out.

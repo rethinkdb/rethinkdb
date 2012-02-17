@@ -91,7 +91,7 @@ private:
         off64_t old_offset;
         off64_t new_offset;
         gc_write_t(block_id_t i, const void *b, off64_t _old_offset)
-	    : block_id(i), buf(b), old_offset(_old_offset), new_offset(0) { }
+            : block_id(i), buf(b), old_offset(_old_offset), new_offset(0) { }
     };
 
     struct gc_writer_t {

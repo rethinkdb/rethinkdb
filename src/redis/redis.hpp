@@ -478,6 +478,7 @@ struct redis_protocol_t {
     };
 };
 
+/*
 class dummy_redis_store_view_t : public store_view_t<redis_protocol_t> {
 public:
     dummy_redis_store_view_t(key_range_t, btree_slice_t *);
@@ -524,5 +525,6 @@ public:
     region_map_t<redis_protocol_t, binary_blob_t> metadata;
     btree_slice_t *btree;
 };
+*/
 
 #endif /* __PROTOCOL_REDIS_REDIS_HPP__ */

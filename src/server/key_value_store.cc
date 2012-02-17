@@ -190,8 +190,8 @@ void btree_key_value_store_t::create(btree_key_value_store_dynamic_config_t *dyn
         /* Prepare serializers for multiplexing */
         std::vector<standard_serializer_t *> serializers_for_multiplexer(n_files);
         for (int i = 0; i < n_files; i++) {
-	    serializers_for_multiplexer[i] = serializers[i];
-	}
+            serializers_for_multiplexer[i] = serializers[i];
+        }
         serializer_multiplexer_t::create(serializers_for_multiplexer, static_config->btree.n_slices);
 
         /* Create pseudoserializers */

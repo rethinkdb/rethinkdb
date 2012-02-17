@@ -57,7 +57,9 @@ void btree_slice_t::create(cache_t *cache, const key_range_t &key_range) {
 }
 
 btree_slice_t::btree_slice_t(cache_t *c)
-    : cache_(c), backfill_account(cache()->create_account(BACKFILL_CACHE_PRIORITY)) {
+    : cache_(c), backfill_account(cache()->create_account(BACKFILL_CACHE_PRIORITY)),
+    root_eviction_priority(INITIAL_ROOT_EVICTION_PRIORITY)
+ {
     order_checkpoint_.set_tagappend("slice");
     post_begin_transaction_checkpoint_.set_tagappend("post");
 }
@@ -72,10 +74,9 @@ get_result_t btree_slice_t::get(const store_key_t &key, sequence_group_t *seq_gr
     return btree_get(key, this, seq_group, token);
 }
 
-get_result_t btree_slice_t::get(const store_key_t &key, order_token_t token, transaction_t *txn, got_superblock_t& superblock) {
+get_result_t btree_slice_t::get(const store_key_t &key, transaction_t *txn, got_superblock_t& superblock) {
     assert_thread();
-    token = order_checkpoint_.check_through(token);
-    return btree_get(key, this, token, txn, superblock);
+    return btree_get(key, this, txn, superblock);
 }
 
 rget_result_t btree_slice_t::rget(sequence_group_t *seq_group, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token) {
@@ -84,11 +85,10 @@ rget_result_t btree_slice_t::rget(sequence_group_t *seq_group, rget_bound_mode_t
     return btree_rget_slice(this, seq_group, left_mode, left_key, right_mode, right_key, token);
 }
 
-rget_result_t btree_slice_t::rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token,
+rget_result_t btree_slice_t::rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key,
     boost::scoped_ptr<transaction_t>& txn, got_superblock_t& superblock) {
 
     assert_thread();
-    token = order_checkpoint_.check_through(token);
     return btree_rget_slice(this, left_mode, left_key, right_mode, right_key, txn, superblock);
 }
 
@@ -192,6 +192,11 @@ void btree_slice_t::backfill(sequence_group_t *seq_group, const key_range_t& key
     assert_thread();
     token = order_checkpoint_.check_through(token);
     btree_backfill(this, seq_group, key_range, since_when, backfill_account, callback, token);
+}
+
+void btree_slice_t::backfill(const key_range_t& key_range, repli_timestamp_t since_when, backfill_callback_t *callback,
+                             transaction_t *txn, got_superblock_t& superblock) {
+    btree_backfill(this, key_range, since_when, callback, txn, superblock);
 }
 
 void btree_slice_t::set_replication_clock(sequence_group_t *seq_group, repli_timestamp_t t, order_token_t token) {

@@ -176,3 +176,18 @@ void btree_erase_range(btree_slice_t *slice, key_tester_t *tester,
 
     btree_erase_range_generic(sizer, slice, tester, &deleter, lk, rk, txn, superblock);
 }
+
+void btree_erase_range(btree_slice_t *slice, key_tester_t *tester,
+                       const key_range_t &keys,
+                       transaction_t *txn, got_superblock_t& superblock) {
+    store_key_t left_exclusive(keys.left);
+    store_key_t right_inclusive(keys.right.key);
+
+    bool left_key_supplied = left_exclusive.decrement();
+    bool right_key_supplied = !keys.right.unbounded;
+    if (right_key_supplied) {
+        right_inclusive.decrement();
+    }
+    btree_erase_range(slice, tester, left_key_supplied, left_exclusive, right_key_supplied, right_inclusive, txn, superblock);
+}
+
