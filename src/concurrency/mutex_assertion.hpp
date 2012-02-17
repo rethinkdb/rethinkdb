@@ -46,7 +46,7 @@ struct mutex_assertion_t : public home_thread_mixin_t {
             rassert(mutex == m);
         }
     private:
-        friend class temporary_release_t;
+        friend struct temporary_release_t;
         friend void swap(acq_t &, acq_t &);
         mutex_assertion_t *mutex;
         DISABLE_COPYING(acq_t);
@@ -62,7 +62,7 @@ struct mutex_assertion_t : public home_thread_mixin_t {
         real_home_thread = new_thread;
     }
 private:
-    friend class acq_t;
+    friend struct acq_t;
     bool locked;
     DISABLE_COPYING(mutex_assertion_t);
 };
@@ -139,8 +139,8 @@ struct rwi_lock_assertion_t : public home_thread_mixin_t {
         real_home_thread = new_thread;
     }
 private:
-    friend class read_acq_t;
-    friend class write_acq_t;
+    friend struct read_acq_t;
+    friend struct write_acq_t;
     static const int write_locked = -1;
     /* If unlocked, `state` will be 0. If read-locked, `state` will be the
     number of readers. If write-locked, `state` will be `write_locked`. */

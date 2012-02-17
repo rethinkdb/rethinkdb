@@ -128,6 +128,7 @@ public:
                 mailbox_manager,
                 branch_history,
                 store,
+                store->get_region(),
                 backfiller,
                 interruptor
                 );

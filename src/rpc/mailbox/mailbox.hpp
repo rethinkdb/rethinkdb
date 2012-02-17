@@ -3,7 +3,7 @@
 
 #include "rpc/connectivity/cluster.hpp"
 
-class mailbox_manager_t;
+struct mailbox_manager_t;
 
 /* `mailbox_t` is a receiver of messages. Construct it with a callback function
 to handle messages it receives. To send messages to the mailbox, call the
@@ -13,7 +13,7 @@ struct mailbox_t :
     public home_thread_mixin_t
 {
 private:
-    friend class mailbox_manager_t;
+    friend struct mailbox_manager_t;
 
     mailbox_manager_t *manager;
 
@@ -42,8 +42,8 @@ public:
     private:
         friend std::ostream &operator<<(std::ostream &, mailbox_t::address_t);
         friend void send(mailbox_manager_t *, mailbox_t::address_t, boost::function<void(std::ostream&)>);
-        friend class mailbox_t;
-        friend class mailbox_manager_t;
+        friend struct mailbox_t;
+        friend struct mailbox_manager_t;
 
         friend class ::boost::serialization::access;
         template<class Archive> void serialize(Archive & ar, UNUSED const unsigned int version) {
@@ -99,7 +99,7 @@ public:
     }
 
 private:
-    friend class mailbox_t;
+    friend struct mailbox_t;
     friend void send(mailbox_manager_t *, mailbox_t::address_t, boost::function<void(std::ostream&)>);
 
     message_service_t *message_service;

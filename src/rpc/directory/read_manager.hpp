@@ -39,7 +39,7 @@ private:
     /* `get_root_view()` returns an instance of this. */
     class root_view_t : public directory_rview_t<metadata_t> {
     public:
-        root_view_t *clone() THROWS_NOTHING;
+        root_view_t *clone() const THROWS_NOTHING;
         boost::optional<metadata_t> get_value(peer_id_t peer) THROWS_NOTHING;
         directory_read_service_t *get_directory_service() THROWS_NOTHING;
     private:

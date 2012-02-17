@@ -103,6 +103,7 @@ void run_backfill_test() {
         cluster.get_mailbox_manager(),
         branch_history_controller.get_view(),
         &backfillee_store,
+        backfillee_store.get_region(),
         directory_manager.get_root_view()->get_peer_view(cluster.get_connectivity_service()->get_me()),
         &interruptor);
 

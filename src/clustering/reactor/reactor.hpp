@@ -62,14 +62,36 @@ private:
     void be_primary(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const blueprint_t<protocol_t> &,
             signal_t *interruptor) THROWS_NOTHING;
 
-    bool is_safe_for_us_to_be_primary(const boost::optional<boost::optional<reactor_business_card_t<protocol_t> > > &bcard, peer_id_t bcard_peer, 
-                                      const typename protocol_t::region_t &region, best_backfiller_map_t<protocol_t> *best_backfiller_out);
+    /* A backfill candidate is a structure we use to keep track of the different
+     * peers we could backfill from and what we could backfill from them to make it
+     * easier to grab data from them. */
+    class backfill_candidate_t {
+    public:
+        version_range_t version_range;
+
+        typedef clone_ptr_t<directory_single_rview_t<boost::optional<backfiller_business_card_t<protocol_t> > > > backfill_location_t;
+
+        std::vector<backfill_location_t> places_to_get_this_version;
+        bool present_in_our_store;
+
+        backfill_candidate_t(version_range_t _version_range, std::vector<backfill_location_t> _places_to_get_this_version, bool _present_in_our_store);
+    };
+
+    typedef region_map_t<protocol_t, backfill_candidate_t> best_backfiller_map_t;
+
+    void update_best_backfiller(const region_map_t<protocol_t, version_range_t> &offered_backfill_versions, const clone_ptr_t<directory_single_rview_t<boost::optional<backfiller_business_card_t<protocol_t> > > > &backfiller, 
+                                best_backfiller_map_t *best_backfiller_out, const branch_history_t<protocol_t> &branch_history);
+
+    bool is_safe_for_us_to_be_primary(const std::map<peer_id_t, boost::optional<reactor_business_card_t<protocol_t> > > &reactor_directory, const blueprint_t<protocol_t> &blueprint,
+                                      const typename protocol_t::region_t &region, best_backfiller_map_t *best_backfiller_out);
+
+    static backfill_candidate_t make_backfill_candidate_from_binary_blob(const binary_blob_t &b);
 
     /* Implemented in clustering/reactor/reactor_be_secondary.tcc */
     bool find_broadcaster_in_directory(const typename protocol_t::region_t &region, const blueprint_t<protocol_t> &bp, const std::map<peer_id_t, boost::optional<reactor_business_card_t<protocol_t> > > &reactor_directory, 
                                        clone_ptr_t<directory_single_rview_t<boost::optional<broadcaster_business_card_t<protocol_t> > > > *broadcaster_out);
 
-    bool find_backfiller_in_directory(const typename protocol_t::region_t &region, const blueprint_t<protocol_t> &bp, const std::map<peer_id_t, boost::optional<reactor_business_card_t<protocol_t> > > &reactor_directory, 
+    bool find_backfiller_in_directory(const typename protocol_t::region_t &region, const branch_id_t &b_id, const blueprint_t<protocol_t> &bp, const std::map<peer_id_t, boost::optional<reactor_business_card_t<protocol_t> > > &reactor_directory, 
                                       clone_ptr_t<directory_single_rview_t<boost::optional<backfiller_business_card_t<protocol_t> > > > *backfiller_out);
 
     void be_secondary(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const blueprint_t<protocol_t> &,
@@ -77,8 +99,8 @@ private:
 
 
     /* Implemented in clustering/reactor/reactor_be_listener.tcc */
-    bool reactor_t<protocol_t>::is_safe_for_us_to_be_nothing(const std::map<peer_id_t, boost::optional<reactor_business_card_t<protocol_t> > > &reactor_directory, const blueprint_t<protocol_t> &blueprint,
-                                                             const typename protocol_t::region_t &region);
+    bool is_safe_for_us_to_be_nothing(const std::map<peer_id_t, boost::optional<reactor_business_card_t<protocol_t> > > &reactor_directory, const blueprint_t<protocol_t> &blueprint,
+                                      const typename protocol_t::region_t &region);
 
     void be_nothing(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const blueprint_t<protocol_t> &,
             signal_t *interruptor) THROWS_NOTHING;

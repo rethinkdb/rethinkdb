@@ -68,7 +68,7 @@ template<class metadata_t>
 class directory_single_rview_t {
 public:
     virtual ~directory_single_rview_t() THROWS_NOTHING { }
-    virtual directory_single_rview_t *clone() THROWS_NOTHING = 0;
+    virtual directory_single_rview_t *clone() const THROWS_NOTHING = 0;
 
     /* Return the current value of this view of `get_peer()`'s directory
     metadata. If `get_peer()` is not connected, returns nothing. */
@@ -93,7 +93,7 @@ template<class metadata_t>
 class directory_rview_t {
 public:
     virtual ~directory_rview_t() THROWS_NOTHING { }
-    virtual directory_rview_t *clone() THROWS_NOTHING = 0;
+    virtual directory_rview_t *clone() const THROWS_NOTHING = 0;
 
     /* Returns the current value of this view of the given peer's directory
     metadata. If the peer is not connected, returns nothing. */

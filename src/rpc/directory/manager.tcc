@@ -12,7 +12,7 @@ clone_ptr_t<directory_rwview_t<metadata_t> > directory_readwrite_manager_t<metad
 }
 
 template<class metadata_t>
-typename directory_readwrite_manager_t<metadata_t>::root_view_t *directory_readwrite_manager_t<metadata_t>::root_view_t::clone() THROWS_NOTHING {
+typename directory_readwrite_manager_t<metadata_t>::root_view_t *directory_readwrite_manager_t<metadata_t>::root_view_t::clone() const THROWS_NOTHING {
     return new root_view_t(parent);
 }
 

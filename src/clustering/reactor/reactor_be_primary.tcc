@@ -4,29 +4,10 @@
 #include <exception>
 #include <vector>
 
-/* A backfill candidate is a structure we use to keep track of the different
- * peers we could backfill from and what we could backfill from them to make it
- * easier to grab data from them. */
 template <class protocol_t>
-class backfill_candidate_t {
-public:
-    version_range_t version_range;
-
-    typedef clone_ptr_t<directory_single_rview_t<boost::optional<backfiller_business_card_t<protocol_t> > > > backfill_location_t;
-
-    std::vector<backfill_location_t> places_to_get_this_version;
-    bool present_in_our_store;
-
-    backfill_candidate_t(version_range_t _version_range, std::vector<backfill_location_t> _places_to_get_this_version, bool _present_in_our_store)
-        : version_range(_version_range), places_to_get_this_version(_places_to_get_this_version), present_in_our_store(_present_in_our_store)
-    { }
-};
-
-/* Because we can't have a templatized typedef. */
-template <class protocol_t>
-class best_backfiller_map_t :
-public region_map_t<protocol_t, backfill_candidate_t<protocol_t> >
-{ };
+reactor_t<protocol_t>::backfill_candidate_t::backfill_candidate_t(version_range_t _version_range, std::vector<backfill_location_t> _places_to_get_this_version, bool _present_in_our_store)
+    : version_range(_version_range), places_to_get_this_version(_places_to_get_this_version), present_in_our_store(_present_in_our_store)
+{ }
 
 class divergent_data_exc_t : public std::exception {
     const char *what() const throw() {
@@ -34,15 +15,16 @@ class divergent_data_exc_t : public std::exception {
     }
 };
 
-void update_best_backfiller(const region_map_t<protocol_t, version_range_t> &offered_backfill_versions, const clone_ptr_t<directory_single_rview_t<boost::optional<backfiller_business_card_t<protocol_t> > > > &backfiller, 
-                            best_backfiller_map_t<protocol_t> *best_backfiller_out, const branch_history_t<protocol_t> &branch_history) {
+template <class protocol_t>
+void reactor_t<protocol_t>::update_best_backfiller(const region_map_t<protocol_t, version_range_t> &offered_backfill_versions, const clone_ptr_t<directory_single_rview_t<boost::optional<backfiller_business_card_t<protocol_t> > > > &backfiller, 
+                                                   best_backfiller_map_t *best_backfiller_out, const branch_history_t<protocol_t> &branch_history) {
     for (typename region_map_t<protocol_t, version_range_t>::const_iterator i =  offered_backfill_versions.begin();
                                                                             i != offered_backfill_versions.end(); 
                                                                             i++) {
         version_range_t challenger = i->second;
 
-        best_backfiller_map_t<protocol_t> best_backfiller_map = best_backfiller_out->mask(i->first);
-        for (typename best_backfiller_map_t<protocol_t>::iterator j =  best_backfiller_map.begin();
+        best_backfiller_map_t best_backfiller_map = best_backfiller_out->mask(i->first);
+        for (typename best_backfiller_map_t::iterator j =  best_backfiller_map.begin();
                                                                   j != best_backfiller_map.end();
                                                                   j++) {
             version_range_t incumbent = j->second.version_range;
@@ -54,8 +36,8 @@ void update_best_backfiller(const region_map_t<protocol_t, version_range_t> &off
                 j->second.places_to_get_this_version.push_back(backfiller);
             } else if (version_is_ancestor(branch_history, incumbent.latest, challenger.latest, j->first) ||
                        (incumbent.latest == challenger.latest && challenger.is_coherent() && !incumbent.is_coherent())) {
-                j->second = backfill_candidate_t<protocol_t>(challenger, 
-                                                             std::vector<typename backfill_candidate_t<protocol_t>::backfill_location_t>(1, backfiller), 
+                j->second = backfill_candidate_t(challenger, 
+                                                             std::vector<typename backfill_candidate_t::backfill_location_t>(1, backfiller), 
                                                              false);
             } else {
                 //if we get here our incumbent is better than the challenger.
@@ -83,17 +65,17 @@ void update_best_backfiller(const region_map_t<protocol_t, version_range_t> &off
  */
 template <class protocol_t>
 bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_t, boost::optional<reactor_business_card_t<protocol_t> > > &reactor_directory, const blueprint_t<protocol_t> &blueprint,
-                                                         const typename protocol_t::region_t &region, best_backfiller_map_t<protocol_t> *best_backfiller_out) 
+                                                         const typename protocol_t::region_t &region, best_backfiller_map_t *best_backfiller_out) 
 {
     typedef reactor_business_card_t<protocol_t> rb_t;
 
-    best_backfiller_map_t<protocol_t> res = *best_backfiller_out;
+    best_backfiller_map_t res = *best_backfiller_out;
 
     /* Iterator through the peers the blueprint claims we should be able to
      * see. */
-    for (typename blueprint_t<protocol_t>::role_map_t::iterator p_it =  blueprint.peers_roles.begin();
-                                                                p_it != blueprint.activities.end();
-                                                                p_it++) {
+    for (typename blueprint_t<protocol_t>::role_map_t::const_iterator p_it =  blueprint.peers_roles.begin();
+                                                                      p_it != blueprint.peers_roles.end();
+                                                                      p_it++) {
         //The peer we are currently checking
         peer_id_t peer = p_it->first;
 
@@ -107,22 +89,22 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_
         for (typename rb_t::activity_map_t::const_iterator it =  (*bcard_it->second).activities.begin();
                                                            it != (*bcard_it->second).activities.end();
                                                            it++) {
-            protocol_t::region_t intersection = region_intersection(it->second.first, region);
+            typename protocol_t::region_t intersection = region_intersection(it->second.first, region);
             if (!region_is_empty(intersection)) {
                 regions.push_back(intersection);
                 try {
-                    if (typename rb_t::secondary_without_primary_t * secondary_without_primary = boost::get<typename rb_t::secondary_without_primary_t>(&it->second.second)) {
+                    if (const typename rb_t::secondary_without_primary_t * secondary_without_primary = boost::get<typename rb_t::secondary_without_primary_t>(&it->second.second)) {
                         update_best_backfiller(secondary_without_primary->current_state, 
                                                get_directory_entry_view<typename rb_t::secondary_without_primary_t>(peer, it->first)->subview(
                                                     optional_monad_lens<backfiller_business_card_t<protocol_t>, typename rb_t::secondary_without_primary_t>(
                                                         field_lens(&rb_t::secondary_without_primary_t::backfiller))),
-                                               &res, branch_history.get());
-                    } else if (typename rb_t::nothing_when_safe_t * nothing_when_safe = boost::get<typename rb_t::nothing_when_safe_t>(&it->second.second)) {
+                                               &res, branch_history->get());
+                    } else if (const typename rb_t::nothing_when_safe_t * nothing_when_safe = boost::get<typename rb_t::nothing_when_safe_t>(&it->second.second)) {
                         update_best_backfiller(nothing_when_safe->current_state, 
                                                get_directory_entry_view<typename rb_t::nothing_when_safe_t>(peer, it->first)->subview(
                                                     optional_monad_lens<backfiller_business_card_t<protocol_t>, typename rb_t::nothing_when_safe_t>(
                                                         field_lens(&rb_t::nothing_when_safe_t::backfiller))),
-                                               &res, branch_history.get());
+                                               &res, branch_history->get());
                     } else if(boost::get<typename rb_t::nothing_t>(&it->second.second)) {
                         //Everything's fine this peer cannot obstruct us so we shall proceed
                     } else if(boost::get<typename rb_t::nothing_when_done_erasing_t>(&it->second.second)) {
@@ -152,15 +134,16 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_
      * then we don't backfill it automatically. The admin must explicit "bless"
      * the incoherent data making it coherent or get rid of all incoherent data
      * until the must up to date data for a region is coherent. */
-    for (typename best_backfiller_map_t<protocol_t>::iterator it =  res.begin();
-                                                              it != res.end();
-                                                              it++) {
-        if (!res->second.version_range.is_coherent()) {
+    for (typename best_backfiller_map_t::iterator it =  res.begin();
+                                                  it != res.end();
+                                                  it++) {
+        if (!it->second.version_range.is_coherent()) {
             return false;
         }
     }
 
     *best_backfiller_out = res;
+    return true;
 }
 
 /* This function helps initialize best backfiller maps, by constructing
@@ -168,9 +151,9 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_
  * candidates tell us not to backfill that data if our local store's version is
  * alreadly the most up to date. */
 template <class protocol_t>
-backfill_candidate_t<protocol_t> make_backfill_candidate_from_binary_blob(const binary_blob_t &b) {
-    return backfill_candidate_t<protocol_t>(binary_blob_t::get<version_range_t>(b),
-                                             std::vector<typename backfill_candidate_t<protocol_t>::backfill_location_t>(),
+typename reactor_t<protocol_t>::backfill_candidate_t reactor_t<protocol_t>::make_backfill_candidate_from_binary_blob(const binary_blob_t &b) {
+    return backfill_candidate_t(binary_blob_t::get<version_range_t>(b),
+                                             std::vector<typename backfill_candidate_t::backfill_location_t>(),
                                             true);
 }
 
@@ -213,9 +196,9 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
             /* Figure out what version of the data is already present in our
              * store so we don't backfill anything prior to it. */
             boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> order_token; 
-            store->new_read_token(order_token);
-            region_map_t<protocol_t, binary_blob_t> metainfo = store->get_metainfo(order_token, interruptor);
-            best_backfiller_map_t<protocol_t> best_backfillers = region_map_transform<protocol_t, binary_blob_t, backfill_candidate_t>(metainfo, &make_backfill_candidate_from_binary_blob<protocol_t>);
+            //RSI store->new_read_token(order_token);
+            region_map_t<protocol_t, binary_blob_t> metainfo ;//RSI= store->get_metainfo(order_token, interruptor);
+            best_backfiller_map_t best_backfillers = region_map_transform<protocol_t, binary_blob_t, backfill_candidate_t>(metainfo, &reactor_t<protocol_t>::make_backfill_candidate_from_binary_blob);
 
             /* This waits until every other peer is ready to accept us as the
              * primary and there is a unique coherent latest verstion of the
@@ -231,7 +214,7 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
             boost::ptr_vector<promise_t<bool> > promises;
 
 
-            for (typename best_backfiller_map_t<protocol_t>::iterator it =  best_backfillers.begin();
+            for (typename best_backfiller_map_t::iterator it =  best_backfillers.begin();
                                                                       it != best_backfillers.end();
                                                                       it++) {
                 if (it->second.present_in_our_store) {

@@ -134,7 +134,7 @@ template <class value_t>
 class optional_collapser_read_lens_t : public read_lens_t<boost::optional<value_t>, boost::optional<boost::optional<value_t> > >
 {
 public:
-    boost::optional<value_t> get(const boost::optional<boost::optional<value_t> > &val) {
+    boost::optional<value_t> get(const boost::optional<boost::optional<value_t> > &val) const {
         if (val) {
             return *val;
         } else {
@@ -160,7 +160,7 @@ public:
         : inner(_inner), outer(_outer)
     { }
 
-    inner_t get(const outer_t &outer_value) {
+    inner_t get(const outer_t &outer_value) const {
         return inner->get(outer->get(outer_value));
     }
 

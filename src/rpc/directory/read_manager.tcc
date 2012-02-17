@@ -56,7 +56,7 @@ connectivity_service_t *directory_read_manager_t<metadata_t>::get_connectivity_s
 }
 
 template<class metadata_t>
-typename directory_read_manager_t<metadata_t>::root_view_t *directory_read_manager_t<metadata_t>::root_view_t::clone() THROWS_NOTHING {
+typename directory_read_manager_t<metadata_t>::root_view_t *directory_read_manager_t<metadata_t>::root_view_t::clone() const THROWS_NOTHING {
     return new root_view_t(parent);
 }
 

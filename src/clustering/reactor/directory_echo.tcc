@@ -1,7 +1,10 @@
+#ifndef __CLUSTERING_REACTOR_DIRECTORY_ECHO_TCC__
+#define __CLUSTERING_REACTOR_DIRECTORY_ECHO_TCC__
+
 #include "clustering/reactor/directory_echo.hpp"
 
 template <class internal_t>
-directory_echo_access_t<internal_t>::our_value_change_t(directory_echo_access_t *p) 
+directory_echo_access_t<internal_t>::our_value_change_t::our_value_change_t(directory_echo_access_t *p) 
     : parent(p), acq(parent->metadata_view->get_directory_service()),
     buffer(parent->metadata_view->get_our_value(&acq).get().internal)
             { }
@@ -22,12 +25,8 @@ directory_echo_version_t directory_echo_access_t<internal_t>::our_value_change_t
     return parent->our_version;
 }
 
-
-    class ack_waiter_t : public signal_t {
-    public:
-
 template <class internal_t>
-directory_echo_access_t<internal_t>::ack_waiter_t(directory_echo_access_t *parent, peer_id_t peer, directory_echo_version_t version) {
+directory_echo_access_t<internal_t>::ack_waiter_t::ack_waiter_t(directory_echo_access_t *parent, peer_id_t peer, directory_echo_version_t version) {
     mutex_assertion_t::acq_t acq(&parent->ack_lock);
     std::map<peer_id_t, directory_echo_version_t>::iterator it = parent->last_acked.find(peer);
     if (it != parent->last_acked.end() && (*it).second >= version) {
@@ -45,6 +44,7 @@ directory_echo_access_t<internal_t>::ack_waiter_t(directory_echo_access_t *paren
                 )
             );
 }
+
 template <class internal_t>
 directory_echo_access_t<internal_t>::directory_echo_access_t(
         mailbox_manager_t *mm,
@@ -116,7 +116,7 @@ clone_ptr_t<directory_rview_t<boost::optional<internal_t> > > directory_echo_acc
 }
 
 template <class internal_t>
-void on_connect(peer_id_t peer) {
+void directory_echo_access_t<internal_t>::on_connect(peer_id_t peer) {
     directory_read_service_t::peer_value_freeze_t peer_value_freeze(metadata_view->get_directory_service(), peer);
     peer_value_subscriptions.insert(
             peer,
@@ -177,3 +177,5 @@ void directory_echo_access_t<internal_t>::on_ack(peer_id_t peer, directory_echo_
         }
     }
 }
+
+#endif

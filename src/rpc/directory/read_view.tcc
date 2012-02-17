@@ -1,8 +1,10 @@
 #include "errors.hpp"
+#include <boost/ptr_container/ptr_map.hpp>
 #include <boost/scoped_ptr.hpp>
 
 #include "concurrency/cond_var.hpp"
 #include "rpc/connectivity/connectivity.hpp"
+#include "concurrency/wait_any.hpp"
 
 template<class metadata_t, class inner_t>
 class subview_directory_single_rview_t :
@@ -17,7 +19,7 @@ public:
 
     ~subview_directory_single_rview_t() THROWS_NOTHING { }
 
-    subview_directory_single_rview_t *clone() THROWS_NOTHING {
+    subview_directory_single_rview_t *clone() const THROWS_NOTHING {
         return new subview_directory_single_rview_t(superview.get(), lens);
     }
 
@@ -43,20 +45,6 @@ private:
     clone_ptr_t<read_lens_t<inner_t, metadata_t> > lens;
 };
 
-template <class metadata_t>
-metadata_t directory_single_rview_t<metadata_t>::get_actual_value(signal_t *interruptor) {
-    while (true) {
-        boost::optional<metadata_t> val = get_value();
-        if (val) {
-            return val.get();
-        }
-        
-        connect_watcher_t connect_watcher(get_directory_service()->get_connectivity_service(), get_peer());
-        wait_interruptible(&connect_watcher, interruptor);
-    }
-}
-
-
 template<class metadata_t> template<class inner_t>
 clone_ptr_t<directory_single_rview_t<inner_t> > directory_single_rview_t<metadata_t>::subview(const clone_ptr_t<read_lens_t<inner_t, metadata_t> > &lens) THROWS_NOTHING {
     return clone_ptr_t<directory_single_rview_t<inner_t> >(
@@ -79,7 +67,7 @@ public:
 
     ~subview_directory_rview_t() THROWS_NOTHING { }
 
-    subview_directory_rview_t *clone() THROWS_NOTHING {
+    subview_directory_rview_t *clone() const THROWS_NOTHING {
         return new subview_directory_rview_t(superview.get(), lens);
     }
 
@@ -123,7 +111,7 @@ public:
 
     ~peer_subview_directory_single_rview_t() THROWS_NOTHING { }
 
-    peer_subview_directory_single_rview_t *clone() THROWS_NOTHING {
+    peer_subview_directory_single_rview_t *clone() const THROWS_NOTHING {
         return new peer_subview_directory_single_rview_t(superview.get(), peer);
     }
 
@@ -168,8 +156,14 @@ void directory_rview_t<metadata_t>::run_until_satisfied(const boost::function<bo
         for (std::set<peer_id_t>::iterator it =  peers.begin();
                                            it != peers.end();
                                            it++) {
-            peer_value_freezes.insert(*it, new directory_read_service_t::peer_value_freeze_t(get_directory_service(), *it));
-            directory_value[*it] = get_value(*it);
+            //tmp is a workaround for a bug in boost
+            //https://svn.boost.org/trac/boost/ticket/6089
+            peer_id_t tmp = *it;
+            peer_value_freezes.insert(tmp, new directory_read_service_t::peer_value_freeze_t(get_directory_service(), *it));
+            //The value should always exist because we got this peer from the
+            //peers list. If it doesn't this indicates a programmer error in
+            //directory code.
+            directory_value[*it] = *get_value(*it);
         }
         if (f(directory_value)) {
             return;
@@ -178,19 +172,22 @@ void directory_rview_t<metadata_t>::run_until_satisfied(const boost::function<bo
         cond_t something_has_changed;
         boost::ptr_map<peer_id_t, directory_read_service_t::peer_value_subscription_t> subscription_map;
 
-        connectivity_service_t::peers_list_subscription_t peers_list_subscription(boost::bind(&pulse_if_not_pulsed, &cond), 
-                                                                                  boost::bind(&pulse_if_not_pulsed_and_remove_subscription, &cond, _1, &subscription_map), 
+        connectivity_service_t::peers_list_subscription_t peers_list_subscription(boost::bind(&pulse_if_not_pulsed, &something_has_changed), 
+                                                                                  boost::bind(&pulse_if_not_pulsed_and_remove_subscription, &something_has_changed, _1, &subscription_map), 
                                                                                   get_directory_service()->get_connectivity_service(), peers_list_freeze.get());
 
         for (std::set<peer_id_t>::iterator it =  peers.begin();
                                            it != peers.end();
                                            it++) {
-            subscription_map.insert(*it, new directory_read_service_t::peer_value_subscription_t(boost::bind(&pulse_if_not_pulsed, &cond), get_directory_service(), *it, &peer_value_freezes[*it]));
+            //tmp is a workaround for a bug in boost
+            //https://svn.boost.org/trac/boost/ticket/6089
+            peer_id_t tmp = *it;
+            subscription_map.insert(tmp, new directory_read_service_t::peer_value_subscription_t(boost::bind(&pulse_if_not_pulsed, &something_has_changed), get_directory_service(), *it, peer_value_freezes.find(*it)->second));
         }
         peer_value_freezes.clear();
         peers_list_freeze.reset();
 
-        wait_interruptible(&cond, interruptor);
+        wait_interruptible(&something_has_changed, interruptor);
     }
 }
 

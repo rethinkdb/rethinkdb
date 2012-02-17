@@ -16,9 +16,9 @@ namespace unittest {
 namespace {
 
 /* `let_stuff_happen()` delays for some time to let events occur */
-void let_stuff_happen() {
-    nap(1000);
-}
+//void let_stuff_happen() {
+//    nap(1000);
+//}
 
 }   /* anonymous namespace */
 

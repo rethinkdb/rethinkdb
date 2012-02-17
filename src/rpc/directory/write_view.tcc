@@ -10,7 +10,7 @@ public:
         superview(clone_me->clone()), lens(l)
         { }
 
-    subview_directory_wview_t *clone() {
+    subview_directory_wview_t *clone() const {
         return new subview_directory_wview_t(superview.get(), lens);
     }
 

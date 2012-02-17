@@ -1,3 +1,8 @@
+#ifndef __RPC_DIRECTORY_VIEW_TCC__
+#define __RPC_DIRECTORY_VIEW_TCC__
+
+#include "rpc/directory/view.hpp"
+
 template<class metadata_t, class inner_t>
 class subview_directory_rwview_t :
     public directory_rwview_t<inner_t>
@@ -9,7 +14,10 @@ public:
         superview(clone_me->clone()), lens(l)
         { }
 
-    subview_directory_rwview_t *clone() {
+    ~subview_directory_rwview_t() THROWS_NOTHING {
+    }
+
+    subview_directory_rwview_t *clone() const THROWS_NOTHING {
         return new subview_directory_rwview_t(superview.get(), lens);
     }
 
@@ -42,8 +50,10 @@ private:
 };
 
 template<class metadata_t> template<class inner_t>
-clone_ptr_t<directory_rwview_t<metadata_t> > directory_rwview_t<metadata_t>::subview(const clone_ptr_t<readwrite_lens_t<inner_t, metadata_t> > &lens) {
-    return clone_ptr_t<directory_rwview_t<metadata_t> >(
+clone_ptr_t<directory_rwview_t<inner_t> > directory_rwview_t<metadata_t>::subview(const clone_ptr_t<readwrite_lens_t<inner_t, metadata_t> > &lens) {
+    return clone_ptr_t<directory_rwview_t<inner_t> >(
         new subview_directory_rwview_t<metadata_t, inner_t>(this, lens)
         );
 }
+
+#endif

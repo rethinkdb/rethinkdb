@@ -19,7 +19,7 @@ public:
 private:
     class root_view_t : public directory_wview_t<metadata_t> {
     public:
-        root_view_t *clone();
+        root_view_t *clone() const ;
         metadata_t get_our_value(directory_write_service_t::our_value_lock_acq_t *proof) THROWS_NOTHING;
         void set_our_value(const metadata_t &new_value_for_us, directory_write_service_t::our_value_lock_acq_t *proof) THROWS_NOTHING;
         directory_write_service_t *get_directory_service() THROWS_NOTHING;

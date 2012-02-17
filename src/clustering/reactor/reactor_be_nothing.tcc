@@ -12,16 +12,16 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_nothing(const std::map<peer_id_
 
     /* Iterator through the peers the blueprint claims we should be able to
      * see. */
-    for (typename blueprint_t<protocol_t>::role_map_t::iterator p_it =  blueprint.peers_roles.begin();
-                                                                p_it != blueprint.activities.end();
-                                                                p_it++) {
+    for (typename blueprint_t<protocol_t>::role_map_t::const_iterator p_it =  blueprint.peers_roles.begin();
+                                                                      p_it != blueprint.peers_roles.end();
+                                                                      p_it++) {
         typename std::map<peer_id_t, boost::optional<reactor_business_card_t<protocol_t> > >::const_iterator bcard_it = reactor_directory.find(p_it->first);
         if (bcard_it == reactor_directory.end() || !bcard_it->second) {
             //The peer is down or has no reactor
             return false;
         }
 
-        typename blueprint_t<protocol_t>::region_to_role_map_t::iterator r_it = p_it->second.find(region);
+        typename blueprint_t<protocol_t>::region_to_role_map_t::const_iterator r_it = p_it->second.find(region);
         rassert(r_it != p_it->second.end(), "Invalid blueprint issued, different peers have different sharding schemes.\n");
 
         /* Whether or not we found a directory entry for this peer */
@@ -64,8 +64,10 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region, sto
 
             /* Tell the other peers that we are looking to shutdown and
              * offering backfilling until we do. */
-            typename reactor_business_card_t<protocol_t>::nothing_when_safe_t activity(store_view->get_metadata(interruptor), backfiller.get_business_card());
-            directory_echo_version_t version_to_wait_on = directory_entry.set(activity);
+            // RSI boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> order_token;
+            //store->new_read_toke(order_token);
+            //typename reactor_business_card_t<protocol_t>::nothing_when_safe_t activity(store->get_metainfo(order_token, interruptor), backfiller.get_business_card());
+            //directory_echo_version_t version_to_wait_on; //= directory_entry.set(activity);
 
             /* Make sure everyone sees that we're trying to erase our data,
              * it's important to do this to avoid the following race condition:
@@ -85,12 +87,13 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region, sto
              * data, but never both, it's also possible that neither proceeds
              * which is okay as well. 
              */
-            wait_for_directory_acks(version_to_wait_on, interruptor);
+            //RSI wait_for_directory_acks(version_to_wait_on, interruptor);
 
             /* Make sure we don't go down and delete the data on our machine
              * before every who needs a copy has it. */
             directory_echo_access.get_internal_view()->run_until_satisfied(boost::bind(&reactor_t<protocol_t>::is_safe_for_us_to_be_nothing,
-                                                                                       _1, blueprint, region), interruptor);
+                                                                                       this, _1, blueprint, region), 
+                                                                           interruptor);
         }
 
         /* We now know that it's safe to shutdown so we tell the other peers
@@ -99,10 +102,10 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region, sto
 
         /* This actually erases the data. */
         {
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> token;
-            store->new_write_token(token);
+            //boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> token;
+            //store->new_write_token(token);
 
-            store->reset_data(region, region_map_t<protocol_t>(region, version_range_t::zero()), token, interruptor);
+            //store->reset_data(region, region_map_t<protocol_t, binary_blob_t>(region, binary_blob_t(version_range_t(version_t::zero()))), token, interruptor);
         }
 
         /* Tell the other peers that we are officially nothing for this region,

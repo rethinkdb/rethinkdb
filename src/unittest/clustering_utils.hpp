@@ -105,7 +105,7 @@ private:
     class root_view_t : public directory_rwview_t<metadata_t> {
     public:
         explicit root_view_t(simple_directory_manager_t *p) : parent(p) { }
-        root_view_t *clone() THROWS_NOTHING {
+        root_view_t *clone() const THROWS_NOTHING {
             return new root_view_t(parent);
         }
         boost::optional<metadata_t> get_value(peer_id_t peer) THROWS_NOTHING {

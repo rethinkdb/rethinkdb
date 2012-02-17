@@ -22,7 +22,7 @@ public:
 private:
     class root_view_t : public directory_rwview_t<metadata_t> {
     public:
-        root_view_t *clone() THROWS_NOTHING;
+        root_view_t *clone() const THROWS_NOTHING;
         directory_readwrite_service_t *get_directory_service() THROWS_NOTHING;
         boost::optional<metadata_t> get_value(peer_id_t peer) THROWS_NOTHING;
         metadata_t get_our_value(directory_write_service_t::our_value_lock_acq_t *proof) THROWS_NOTHING;

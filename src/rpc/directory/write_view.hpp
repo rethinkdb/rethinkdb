@@ -35,7 +35,7 @@ template<class metadata_t>
 class directory_wview_t {
 public:
     virtual ~directory_wview_t() { }
-    virtual directory_wview_t *clone() = 0;
+    virtual directory_wview_t *clone() const = 0;
 
     /* Returns the current value of this part of the directory for us. This is
     different from `directory_rview_t::get_value()` in that the return value

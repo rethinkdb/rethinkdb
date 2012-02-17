@@ -19,7 +19,7 @@ clone_ptr_t<directory_wview_t<metadata_t> > directory_write_manager_t<metadata_t
 }
 
 template<class metadata_t>
-typename directory_write_manager_t<metadata_t>::root_view_t *directory_write_manager_t<metadata_t>::root_view_t::clone() {
+typename directory_write_manager_t<metadata_t>::root_view_t *directory_write_manager_t<metadata_t>::root_view_t::clone() const {
     return new root_view_t(parent);
 }
 
