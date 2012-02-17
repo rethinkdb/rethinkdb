@@ -53,7 +53,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
     for (int i = 0; i < (int)shards.size(); i++) {
         mirrored_cache_static_config_t cache_static_config;
         cache_t::create(multiplexer.proxies[i], &cache_static_config);
-        caches.push_back(new cache_t(multiplexer.proxies[i], &cache_dynamic_config, shards.size()));
+        caches.push_back(new cache_t(multiplexer.proxies[i], &cache_dynamic_config, i));
         btree_slice_t::create(&caches[i], shards[i]);
         btrees.push_back(new btree_slice_t(&caches[i]));
         stores.push_back(boost::make_shared<memcached_store_view_t>(shards[i], &btrees[i], &seq_group));
