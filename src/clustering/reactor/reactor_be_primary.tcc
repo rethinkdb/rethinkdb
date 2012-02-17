@@ -196,8 +196,8 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
             /* Figure out what version of the data is already present in our
              * store so we don't backfill anything prior to it. */
             boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> order_token; 
-            //RSI store->new_read_token(order_token);
-            region_map_t<protocol_t, binary_blob_t> metainfo ;//RSI= store->get_metainfo(order_token, interruptor);
+            store->new_read_token(order_token);
+            region_map_t<protocol_t, binary_blob_t> metainfo = store->get_metainfo(order_token, interruptor);
             best_backfiller_map_t best_backfillers = region_map_transform<protocol_t, binary_blob_t, backfill_candidate_t>(metainfo, &reactor_t<protocol_t>::make_backfill_candidate_from_binary_blob);
 
             /* This waits until every other peer is ready to accept us as the

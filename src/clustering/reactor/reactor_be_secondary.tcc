@@ -123,10 +123,14 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
                 backfiller_t<protocol_t> backfiller(mailbox_manager, branch_history, store);
 
                 /* Tell everyone in the cluster what state we're in. */
-                //boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> order_token;
-                //RSI store->new_read_token(order_token);
-                //typename reactor_business_card_t<protocol_t>::secondary_without_primary_t activity(store->get_metainfo(order_token, interruptor), backfiller.get_business_card());
-                //directory_entry.set(activity);
+                boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> order_token;
+                store->new_read_token(order_token);
+                typename reactor_business_card_t<protocol_t>::secondary_without_primary_t activity(region_map_transform<protocol_t, 
+                                                                                                                        binary_blob_t, 
+                                                                                                                        version_range_t>(store->get_metainfo(order_token, interruptor), 
+                                                                                                                                         &binary_blob_t::get<version_range_t>), 
+                                                                                                   backfiller.get_business_card());
+                directory_entry.set(activity);
 
                 /* Wait until we can find a primary for our region. */
                 directory_echo_access.get_internal_view()->run_until_satisfied(boost::bind(&reactor_t<protocol_t>::find_broadcaster_in_directory, this, region, blueprint, _1, &broadcaster), interruptor);

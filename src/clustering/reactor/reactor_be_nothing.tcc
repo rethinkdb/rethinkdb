@@ -64,10 +64,14 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region, sto
 
             /* Tell the other peers that we are looking to shutdown and
              * offering backfilling until we do. */
-            // RSI boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> order_token;
-            //store->new_read_toke(order_token);
-            //typename reactor_business_card_t<protocol_t>::nothing_when_safe_t activity(store->get_metainfo(order_token, interruptor), backfiller.get_business_card());
-            //directory_echo_version_t version_to_wait_on; //= directory_entry.set(activity);
+            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> order_token;
+            store->new_read_token(order_token);
+            typename reactor_business_card_t<protocol_t>::nothing_when_safe_t activity(region_map_transform<protocol_t, 
+                                                                                                            binary_blob_t, 
+                                                                                                            version_range_t>(store->get_metainfo(order_token, interruptor), 
+                                                                                                                             &binary_blob_t::get<version_range_t>), 
+                                                                                       backfiller.get_business_card());
+            directory_echo_version_t version_to_wait_on = directory_entry.set(activity);
 
             /* Make sure everyone sees that we're trying to erase our data,
              * it's important to do this to avoid the following race condition:
@@ -87,7 +91,7 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region, sto
              * data, but never both, it's also possible that neither proceeds
              * which is okay as well. 
              */
-            //RSI wait_for_directory_acks(version_to_wait_on, interruptor);
+            wait_for_directory_acks(version_to_wait_on, interruptor);
 
             /* Make sure we don't go down and delete the data on our machine
              * before every who needs a copy has it. */
