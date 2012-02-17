@@ -5,6 +5,7 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
+#include "do_on_thread.hpp"
 #include "arch/arch.hpp"
 
 namespace unittest {
@@ -28,14 +29,16 @@ temp_file_t::~temp_file_t() {
 
 struct starter_t : public thread_message_t {
     thread_pool_t *tp;
-    boost::function<void()> fun;
-    starter_t(thread_pool_t *_tp, const boost::function<void()>& _fun) : tp(_tp), fun(_fun) { }
-    void run() {
+    boost::function<void()> run;
+
+    starter_t(thread_pool_t *_tp, const boost::function<void()>& _fun) : tp(_tp), run(boost::bind(&starter_t::run_wrapper, this, _fun)) { }
+    void on_thread_switch() {
+        spawn_on_thread(0, run);
+    }
+private:
+    void run_wrapper(const boost::function<void()>& fun) {
         fun();
         tp->shutdown();
-    }
-    void on_thread_switch() {
-        coro_t::spawn_now(boost::bind(&starter_t::run, this));
     }
 };
 
