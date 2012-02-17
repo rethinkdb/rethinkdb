@@ -38,9 +38,12 @@ public:
     {
         /* Snapshot the starting point of the store; we'll need to record this
         and store it in the metadata. */
-        region_map_t<protocol_t, version_range_t> origins =
+        boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> read_token;
+        initial_store->new_read_token(read_token);
+
+        region_map_t<protocol_t, version_range_t> origins = 
             region_map_transform<protocol_t, binary_blob_t, version_range_t>(
-                initial_store->begin_read_transaction(interruptor)->get_metadata(interruptor),
+                initial_store->get_metainfo(read_token, interruptor),
                 &binary_blob_t::get<version_range_t>
             );
 
@@ -72,11 +75,16 @@ public:
         entry in the global metadata so that we aren't left in a state where
         the store has been marked as belonging to a branch for which no
         information exists. */
-        initial_store->begin_write_transaction(interruptor)->set_metadata(
+        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> write_token;
+        initial_store->new_write_token(write_token);
+        initial_store->set_metainfo(
             region_map_t<protocol_t, binary_blob_t>(
                 initial_store->get_region(),
                 binary_blob_t(version_range_t(version_t(branch_id, initial_timestamp)))
-            ));
+            ),
+            write_token,
+            interruptor
+            );
 
         /* Perform an initial sanity check. */
         sanity_check();

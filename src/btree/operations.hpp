@@ -99,8 +99,12 @@ public:
     got_superblock_t() { }
     explicit got_superblock_t(superblock_t * sb_) : sb(sb_) { }
 
-    boost::scoped_ptr<superblock_t> sb;
+    // This is a convenience function which should only be used for real superblocks.
+    buf_t* get_real_buf() {
+        return static_cast<real_superblock_t*>(sb.get())->get()->buf();
+    }
 
+    boost::scoped_ptr<superblock_t> sb;
 private:
     DISABLE_COPYING(got_superblock_t);
 };

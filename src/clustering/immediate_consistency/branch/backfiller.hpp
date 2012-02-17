@@ -39,6 +39,38 @@ struct backfiller_t :
     /* TODO: Support warm shutdowns? */
 
 private:
+    bool confirm_and_send_metainfo(typename store_view_t<protocol_t>::metainfo_t metainfo, region_map_t<protocol_t, version_range_t> start_point,
+            typename async_mailbox_t<void(region_map_t<protocol_t, version_range_t>)>::address_t end_point_cont) {
+        region_map_t<protocol_t, version_range_t> end_point =
+            region_map_transform<protocol_t, binary_blob_t, version_range_t>(
+                metainfo,
+                &binary_blob_t::get<version_range_t>
+                );
+
+#ifndef NDEBUG
+        /* Confirm that `start_point` is a point in our past */
+        std::vector<std::pair<typename protocol_t::region_t, version_range_t> > start_point_pairs =
+            start_point.get_as_pairs();
+        std::vector<std::pair<typename protocol_t::region_t, version_range_t> > end_point_pairs =
+            end_point.get_as_pairs();
+        for (int i = 0; i < (int)start_point_pairs.size(); i++) {
+            for (int j = 0; j < (int)end_point_pairs.size(); j++) {
+                typename protocol_t::region_t ixn = region_intersection(start_point_pairs[i].first, end_point_pairs[i].first);
+                if (!region_is_empty(ixn)) {
+                    version_t start = start_point_pairs[i].second.latest;
+                    version_t end = end_point_pairs[i].second.earliest;
+                    rassert(start.timestamp <= end.timestamp);
+                    rassert(version_is_ancestor(branch_history->get(), start, end, ixn));
+                }
+            }
+        }
+#endif
+        /* Transmit `end_point` to the backfillee */
+        send(mailbox_manager, end_point_cont, end_point);
+
+        return true;
+    }
+
     void on_backfill(
             backfill_session_id_t session_id,
             region_map_t<protocol_t, version_range_t> start_point,
@@ -61,36 +93,6 @@ private:
         wait_any_t interrupted(&local_interruptor, keepalive.get_drain_signal());
 
         try {
-            boost::shared_ptr<typename store_view_t<protocol_t>::read_transaction_t> transaction =
-                store->begin_read_transaction(&interrupted);
-            region_map_t<protocol_t, version_range_t> end_point =
-                region_map_transform<protocol_t, binary_blob_t, version_range_t>(
-                    transaction->get_metadata(&interrupted),
-                    &binary_blob_t::get<version_range_t>
-                    );
-
-#ifndef NDEBUG
-            /* Confirm that `start_point` is a point in our past */
-            std::vector<std::pair<typename protocol_t::region_t, version_range_t> > start_point_pairs =
-                start_point.get_as_pairs();
-            std::vector<std::pair<typename protocol_t::region_t, version_range_t> > end_point_pairs =
-                end_point.get_as_pairs();
-            for (int i = 0; i < (int)start_point_pairs.size(); i++) {
-                for (int j = 0; j < (int)end_point_pairs.size(); j++) {
-                    typename protocol_t::region_t ixn = region_intersection(start_point_pairs[i].first, end_point_pairs[i].first);
-                    if (!region_is_empty(ixn)) {
-                        version_t start = start_point_pairs[i].second.latest;
-                        version_t end = end_point_pairs[i].second.earliest;
-                        rassert(start.timestamp <= end.timestamp);
-                        rassert(version_is_ancestor(branch_history->get(), start, end, ixn));
-                    }
-                }
-            }
-#endif
-
-            /* Transmit `end_point` to the backfillee */
-            send(mailbox_manager, end_point_cont, end_point);
-
             /* Calling `send_chunk()` will send a chunk to the backfillee. We
             need to cast `send()` to the correct type before calling
             `boost::bind()` so that C++ will find the correct overload. */
@@ -102,13 +104,18 @@ private:
             boost::function<void(typename protocol_t::backfill_chunk_t)> send_fun =
                 boost::bind(send_cast_to_correct_type, mailbox_manager, chunk_cont, _1);
 
+            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> send_backfill_token;
+            store->new_read_token(send_backfill_token);
+
             /* Actually perform the backfill */
-            transaction->send_backfill(
+            store->send_backfill(
                 region_map_transform<protocol_t, version_range_t, state_timestamp_t>(
                     start_point,
                     &get_earliest_timestamp_of_version_range
                     ),
+                boost::bind(&backfiller_t<protocol_t>::confirm_and_send_metainfo, this, _1, start_point, end_point_cont),
                 send_fun,
+                send_backfill_token,
                 &interrupted
                 );
 

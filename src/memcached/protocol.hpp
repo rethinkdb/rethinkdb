@@ -205,9 +205,12 @@ class memcached_store_view_t : public store_view_t<memcached_protocol_t> {
     btree_slice_t *btree;
     sequence_group_t *seq_group;
     order_source_t order_source;
+
+    fifo_enforcer_source_t token_source;
+    fifo_enforcer_sink_t token_sink;
 public:
     // This code relies on the fact that store_view_t::write_transaction_t is also a read_transaction_t
-    class txn_t : public store_view_t<memcached_protocol_t>::write_transaction_t {
+    class txn_t {
         btree_slice_t *btree;
         order_token_t token;
         boost::scoped_ptr<transaction_t> txn;
@@ -226,31 +229,96 @@ public:
         buf_t * get_superblock_buf();
     };
 
-    typedef txn_t read_transaction_t;
-    typedef txn_t write_transaction_t;
-
     memcached_store_view_t(const key_range_t& key_range_, btree_slice_t * btree_, sequence_group_t *seq_group_) : store_view_t<memcached_protocol_t>(key_range_), btree(btree_), seq_group(seq_group_) { }
 
-    boost::shared_ptr<store_view_t<memcached_protocol_t>::read_transaction_t> begin_read_transaction(UNUSED signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        return boost::shared_ptr<store_view_t<memcached_protocol_t>::read_transaction_t>(new txn_t(btree, seq_group, order_source, true));
-    }
-    boost::shared_ptr<store_view_t<memcached_protocol_t>::write_transaction_t> begin_write_transaction(UNUSED signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        return boost::shared_ptr<store_view_t<memcached_protocol_t>::write_transaction_t>(new txn_t(btree, seq_group, order_source, false));
-    }
-};
+    void new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out);
+    void new_write_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token_out);
+ 
+    metainfo_t get_metainfo(
+            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
 
-/* `dummy_memcached_store_view_t` is a `store_view_t<memcached_protocol_t>` that
-forwards its operations to a `btree_slice_t`. Currently it's mostly just
-stubs. */
-class dummy_memcached_store_view_t : public store_view_t<memcached_protocol_t> {
-public:
-    dummy_memcached_store_view_t(key_range_t, btree_slice_t *);
+    void set_metainfo(
+            const metainfo_t &new_metainfo,
+            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
 
-    boost::shared_ptr<store_view_t<memcached_protocol_t>::read_transaction_t> begin_read_transaction(signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
-    boost::shared_ptr<store_view_t<memcached_protocol_t>::write_transaction_t> begin_write_transaction(signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+    memcached_protocol_t::read_response_t read(
+            DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+            const memcached_protocol_t::read_t &read,
+            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
 
+    memcached_protocol_t::write_response_t write(
+            DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+            const metainfo_t& new_metainfo,
+            const memcached_protocol_t::write_t &write,
+            transition_timestamp_t timestamp,
+            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+
+    bool send_backfill(
+            const region_map_t<memcached_protocol_t,state_timestamp_t> &start_point,
+            const boost::function<bool(const metainfo_t&)> &should_backfill,
+            const boost::function<void(memcached_protocol_t::backfill_chunk_t)> &chunk_fun,
+            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+
+
+    void receive_backfill(
+            const memcached_protocol_t::backfill_chunk_t &chunk,
+            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+
+    void reset_data(
+            memcached_protocol_t::region_t subregion,
+            const metainfo_t &new_metainfo, 
+            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
 private:
-    btree_slice_t *btree;
+    region_map_t<memcached_protocol_t,binary_blob_t> get_metainfo_internal(transaction_t* txn, buf_t* sb_buf) const THROWS_NOTHING;
+
+    void acquire_superblock_for_read(
+            access_t access,
+            bool snapshot,
+            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+            boost::scoped_ptr<transaction_t> &txn_out,
+            got_superblock_t &sb_out,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+    void acquire_superblock_for_backfill(
+            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+            boost::scoped_ptr<transaction_t> &txn_out,
+            got_superblock_t &sb_out,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+    void acquire_superblock_for_write(
+            access_t access,
+            int expected_change_count,
+            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+            boost::scoped_ptr<transaction_t> &txn_out,
+            got_superblock_t &sb_out,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+    void check_and_update_metainfo(
+        DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+        const metainfo_t &new_metainfo,
+        transaction_t *txn,
+        got_superblock_t &superbloc) const
+        THROWS_NOTHING;
+    metainfo_t check_metainfo(
+        DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+        transaction_t *txn,
+        got_superblock_t &superbloc) const
+        THROWS_NOTHING;
+    void update_metainfo(const metainfo_t &old_metainfo, const metainfo_t &new_metainfo, transaction_t *txn, got_superblock_t &superbloc) const THROWS_NOTHING;
 };
 
 #endif /* __MEMCACHED_PROTOCOL_HPP__ */

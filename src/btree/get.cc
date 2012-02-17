@@ -14,11 +14,10 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, seque
     boost::scoped_ptr<transaction_t> txn;
     got_superblock_t superblock;
     get_btree_superblock_for_reading(slice, seq_group, rwi_read, token, false, &superblock, txn);
-    return btree_get(store_key, slice, token, txn.get(), superblock);
+    return btree_get(store_key, slice, txn.get(), superblock);
 }
 
-get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, UNUSED order_token_t token,
-    transaction_t *txn, got_superblock_t& superblock) {
+get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, transaction_t *txn, got_superblock_t& superblock) {
 
     btree_key_buffer_t kbuffer(store_key);
     btree_key_t *key = kbuffer.key();

@@ -225,8 +225,6 @@ void set_superblock_metainfo(transaction_t *txn, buf_t *superblock, const std::v
     }
 }
 
-
-
 void delete_superblock_metainfo(transaction_t *txn, buf_t *superblock, const std::vector<char> &key) {
     btree_superblock_t *data = static_cast<btree_superblock_t *>(superblock->get_data_major_write());
 

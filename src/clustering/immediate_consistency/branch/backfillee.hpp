@@ -28,7 +28,9 @@ void on_receive_backfill_chunk(
     }
 
     try {
-        store->begin_write_transaction(interruptor)->receive_backfill(chunk, interruptor);
+        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> write_token;
+        store->new_write_token(write_token);
+        store->receive_backfill(chunk, write_token, interruptor);
     } catch (interrupted_exc_t) {
         return;
     }
@@ -46,9 +48,11 @@ void backfillee(
     resource_access_t<backfiller_business_card_t<protocol_t> > backfiller(backfiller_metadata);
 
     /* Read the metadata to determine where we're starting from */
+    boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> read_token;
+    store->new_read_token(read_token);
     region_map_t<protocol_t, version_range_t> start_point =
         region_map_transform<protocol_t, binary_blob_t, version_range_t>(
-            store->begin_read_transaction(interruptor)->get_metadata(interruptor),
+            store->get_metainfo(read_token, interruptor),
             &binary_blob_t::get<version_range_t>
             );
 
@@ -150,11 +154,15 @@ void backfillee(
                 }
             }
         }
-        store->begin_write_transaction(interruptor)->set_metadata(
+        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> write_token;
+        store->new_write_token(write_token);
+        store->set_metainfo(
             region_map_transform<protocol_t, version_range_t, binary_blob_t>(
                 region_map_t<protocol_t, version_range_t>(span_parts),
                 &binary_blob_t::make<version_range_t>
-                )
+                ),
+            write_token,
+            interruptor
             );
 
         /* Now that the metadata indicates that the backfill is happening, it's
@@ -179,11 +187,15 @@ void backfillee(
     }
 
     /* Update the metadata to indicate that the backfill occurred */
-    store->begin_write_transaction(interruptor)->set_metadata(
+    boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> write_token;
+    store->new_write_token(write_token);
+    store->set_metainfo(
         region_map_transform<protocol_t, version_range_t, binary_blob_t>(
             end_point_cond.get_value(),
             &binary_blob_t::make<version_range_t>
-            )
+            ),
+        write_token,
+        interruptor
         );
 }
 

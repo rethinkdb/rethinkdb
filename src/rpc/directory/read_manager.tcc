@@ -238,9 +238,9 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, boos
         in the same order as they were performed at the source. */
         fifo_enforcer_sink_t::exit_write_t fifo_exit(
             session->metadata_fifo_sink.get(),
-            metadata_fifo_token,
-            session_keepalive.get_drain_signal()
+            metadata_fifo_token
             );
+        wait_interruptible(&fifo_exit, session_keepalive.get_drain_signal());
 
         fifo_enforcer_write_token_t propagation_fifo_token =
             propagation_fifo_source.enter_write();
@@ -280,8 +280,8 @@ void directory_read_manager_t<metadata_t>::propagate_initialize_on_thread(int de
     assert_thread();
     global_keepalive.assert_is_holding(&global_drainer);
     on_thread_t thread_switcher(dest_thread);
-    cond_t non_interruptor;
-    fifo_enforcer_sink_t::exit_write_t fifo_exit(&thread_info.get()->propagation_fifo_sink, propagation_fifo_token, &non_interruptor);
+    fifo_enforcer_sink_t::exit_write_t fifo_exit(&thread_info.get()->propagation_fifo_sink, propagation_fifo_token);
+    fifo_exit.wait_lazily_unordered();
 
     rwi_lock_assertion_t::write_acq_t acq(&thread_info.get()->peers_list_lock);
     thread_info.get()->peers_list.insert(peer, new thread_peer_info_t(initial_value));
@@ -295,8 +295,8 @@ void directory_read_manager_t<metadata_t>::propagate_update_on_thread(int dest_t
     assert_thread();
     global_keepalive.assert_is_holding(&global_drainer);
     on_thread_t thread_switcher(dest_thread);
-    cond_t non_interruptor;
-    fifo_enforcer_sink_t::exit_write_t fifo_exit(&thread_info.get()->propagation_fifo_sink, propagation_fifo_token, &non_interruptor);
+    fifo_enforcer_sink_t::exit_write_t fifo_exit(&thread_info.get()->propagation_fifo_sink, propagation_fifo_token);
+    fifo_exit.wait_lazily_unordered();
 
     typename boost::ptr_map<peer_id_t, thread_peer_info_t>::iterator it =
         thread_info.get()->peers_list.find(peer);
@@ -313,7 +313,8 @@ void directory_read_manager_t<metadata_t>::propagate_disconnect_on_thread(int de
     global_keepalive.assert_is_holding(&global_drainer);
     on_thread_t thread_switcher(dest_thread);
     cond_t non_interruptor;
-    fifo_enforcer_sink_t::exit_write_t fifo_exit(&thread_info.get()->propagation_fifo_sink, propagation_fifo_token, &non_interruptor);
+    fifo_enforcer_sink_t::exit_write_t fifo_exit(&thread_info.get()->propagation_fifo_sink, propagation_fifo_token);
+    wait_interruptible(&fifo_exit, &non_interruptor);
 
     rwi_lock_assertion_t::write_acq_t acq(&thread_info.get()->peers_list_lock);
     /* We need to remove the doomed peer from the peers list before we call the

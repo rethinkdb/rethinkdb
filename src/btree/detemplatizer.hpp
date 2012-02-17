@@ -1,5 +1,5 @@
 #ifndef __BTREE_DETEMPLATIZER_HPP__
-#define	__BTREE_DETEMPLATIZER_HPP__
+#define __BTREE_DETEMPLATIZER_HPP__
 
 // TODO: Uhm, refactor the sizer definitions to a central place, so we don't have to include
 // files from non-btree directories here
@@ -40,5 +40,5 @@
         }                                                               \
     } while(0)
 
-#endif	/* __BTREE_DETEMPLATIZER_HPP__ */
+#endif /* __BTREE_DETEMPLATIZER_HPP__ */
 

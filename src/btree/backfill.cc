@@ -152,13 +152,16 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         : callback_(callback), since_when_(since_when), sizer_(sizer), key_range_(key_range) { }
 };
 
-void do_agnostic_btree_backfill(value_sizer_t<void> *sizer, btree_slice_t *slice, sequence_group_t *seq_group, const key_range_t& key_range, repli_timestamp_t since_when,
-    const boost::shared_ptr<cache_account_t>& backfill_account, agnostic_backfill_callback_t *callback, order_token_t token) {
-
+void do_agnostic_btree_backfill(value_sizer_t<void> *sizer, btree_slice_t *slice, const key_range_t& key_range, repli_timestamp_t since_when,
+                                agnostic_backfill_callback_t *callback, transaction_t *txn, got_superblock_t& superblock) {
     rassert(coro_t::self());
 
     backfill_traversal_helper_t helper(callback, since_when, sizer, key_range);
+    btree_parallel_traversal(txn, superblock, slice, &helper);
+}
 
+void do_agnostic_btree_backfill(value_sizer_t<void> *sizer, btree_slice_t *slice, sequence_group_t *seq_group, const key_range_t& key_range, repli_timestamp_t since_when,
+    const boost::shared_ptr<cache_account_t>& backfill_account, agnostic_backfill_callback_t *callback, order_token_t token) {
     slice->pre_begin_transaction_sink_.check_out(token);
     // TODO: Why are we using a write_mode source here?  There must be a reason...
     order_token_t begin_transaction_token = slice->pre_begin_transaction_write_mode_source_.check_in(token.tag() + "+begin_transaction_token").with_read_mode();
@@ -178,7 +181,10 @@ void do_agnostic_btree_backfill(value_sizer_t<void> *sizer, btree_slice_t *slice
     no_coro_waiting.reset();
 #endif
 
-    btree_parallel_traversal(txn.get(), slice, &helper);
+    got_superblock_t superblock;
+    get_btree_superblock(txn.get(), rwi_read, &superblock);
+
+    do_agnostic_btree_backfill(sizer, slice, key_range, since_when, callback, txn.get(), superblock);
 }
 
 class agnostic_memcached_backfill_callback_t : public agnostic_backfill_callback_t {
@@ -217,3 +223,9 @@ void btree_backfill(btree_slice_t *slice, sequence_group_t *seq_group, const key
     do_agnostic_btree_backfill(&sizer, slice, seq_group, key_range, since_when, backfill_account, &agnostic_cb, token);
 }
 
+void btree_backfill(btree_slice_t *slice, const key_range_t& key_range, repli_timestamp_t since_when, backfill_callback_t *callback,
+                    transaction_t *txn, got_superblock_t& superblock) {
+    agnostic_memcached_backfill_callback_t agnostic_cb(callback);
+    value_sizer_t<memcached_value_t> sizer(slice->cache()->get_block_size());
+    do_agnostic_btree_backfill(&sizer, slice, key_range, since_when, &agnostic_cb, txn, superblock);
+}

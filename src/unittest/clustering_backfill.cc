@@ -57,26 +57,26 @@ void run_backfill_test() {
         transition_timestamp_t ts = transition_timestamp_t::starting_from(timestamp);
         timestamp = ts.timestamp_after();
 
-        {
-            cond_t interruptor;
-            boost::shared_ptr<store_view_t<dummy_protocol_t>::write_transaction_t> txn =
-                backfiller_store.begin_write_transaction(&interruptor);
-            txn->set_metadata(region_map_t<dummy_protocol_t, binary_blob_t>(
-                region,
-                binary_blob_t(version_range_t(version_t(dummy_branch_id, timestamp)))
-                ));
-            txn->write(w, ts);
-        }
+        for (int j = 0; j < (i < 10 ? 2 : 1); j++) {
+            cond_t non_interruptor;
+            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> token;
+            backfiller_store.new_write_token(token);
 
-        if (i < 10) {
-            cond_t interruptor;
-            boost::shared_ptr<store_view_t<dummy_protocol_t>::write_transaction_t> txn =
-                backfillee_store.begin_write_transaction(&interruptor);
-            txn->set_metadata(region_map_t<dummy_protocol_t, binary_blob_t>(
-                region,
-                binary_blob_t(version_range_t(version_t(dummy_branch_id, timestamp)))
-                ));
-            txn->write(w, ts);
+            backfiller_store.write(
+                DEBUG_ONLY(
+                    region_map_t<dummy_protocol_t, binary_blob_t>(
+                        region,
+                        binary_blob_t(version_range_t(version_t(dummy_branch_id, ts.timestamp_before())))
+                    ),
+                )
+                region_map_t<dummy_protocol_t, binary_blob_t>(
+                    region,
+                    binary_blob_t(version_range_t(version_t(dummy_branch_id, timestamp)))
+                ),
+                w, ts,
+                token,
+                &non_interruptor
+            );
         }
     }
 
@@ -114,11 +114,14 @@ void run_backfill_test() {
         EXPECT_TRUE(backfiller_underlying_store.timestamps[key] == backfillee_underlying_store.timestamps[key]);
     }
 
+    boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> token;
+    backfillee_store.new_read_token(token);
     std::vector<std::pair<dummy_protocol_t::region_t, version_range_t> > backfillee_metadata =
-        region_map_transform<dummy_protocol_t, binary_blob_t, version_range_t>(
-            backfillee_store.begin_read_transaction(&interruptor)->get_metadata(&interruptor),
-            static_cast<const version_range_t &(*)(const binary_blob_t &)>(&binary_blob_t::get<version_range_t>)
-            ).get_as_pairs();
+        region_map_transform<dummy_protocol_t,binary_blob_t,version_range_t>(
+            backfillee_store.get_metainfo(token, &interruptor),
+            &binary_blob_t::get<version_range_t>
+        ).get_as_pairs();
+
     EXPECT_EQ(1, backfillee_metadata.size());
     EXPECT_TRUE(backfillee_metadata[0].second.is_coherent());
     EXPECT_EQ(timestamp, backfillee_metadata[0].second.earliest.timestamp);

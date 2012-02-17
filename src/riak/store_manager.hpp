@@ -1,5 +1,5 @@
 #ifndef __STORE_MANAGER_HPP__
-#define	__STORE_MANAGER_HPP__
+#define __STORE_MANAGER_HPP__
 
 /*
 Managing multiple stores involves two components:
@@ -393,5 +393,5 @@ void serialize(Archive &ar, std::list<std::string> &target, const unsigned int) 
 } //namespace serialization
 
 
-#endif	/* __STORE_MANAGER_HPP__ */
+#endif  /* __STORE_MANAGER_HPP__ */
 

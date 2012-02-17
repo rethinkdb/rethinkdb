@@ -10,6 +10,7 @@ struct eviction_priority_t {
     int priority;
 };
 
+const eviction_priority_t INITIAL_ROOT_EVICTION_PRIORITY = { 100 };
 const eviction_priority_t DEFAULT_EVICTION_PRIORITY = { INT_MAX / 2 };
 // TODO: Get rid of FAKE_EVICTION_PRIORITY.  It's just the default
 // eviction priority, with the connotation the code using is is doing

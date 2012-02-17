@@ -38,7 +38,7 @@ timer_handler_t::~timer_handler_t() {
     while (timer_token_t *t = timers.head()) {
         timers.remove(t);
         if (t->deleted) {
-	    delete t;
+            delete t;
         } else {
             /* This is an error. However, the best way to debug this error is to have
             the timer token leak and have Valgrind tell us where the leaked block originated

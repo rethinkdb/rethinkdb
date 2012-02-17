@@ -88,7 +88,7 @@ public:
         bool recency_dirty;
 
     private:
-	DISABLE_COPYING(local_buf_t);
+        DISABLE_COPYING(local_buf_t);
     };
 
     /* User-controlled settings. */

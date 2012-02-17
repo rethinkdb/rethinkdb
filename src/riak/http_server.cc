@@ -152,7 +152,7 @@ http_res_t riak_server_t::get_bucket(UNUSED const http_req_t &req) {
         //object_iterator_t obj_it = object_iters.first, obj_end = object_iters.second;
 
         boost::optional<object_t> obj;
-        while (obj = object_iter.next()) {
+        while ((obj = object_iter.next())) {
             cJSON_AddItemToArray(keys, cJSON_CreateString(obj->key.c_str()));
             links.push_back("</riak/" + bucket->name + "/" + obj->key + ">; riaktag=\"contained\"");
         }

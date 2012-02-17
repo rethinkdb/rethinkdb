@@ -38,9 +38,9 @@ public:
     /* get_store_t interface */
 
     get_result_t get(const store_key_t &key, sequence_group_t *seq_group, order_token_t token);
-    get_result_t get(const store_key_t &key, order_token_t token, transaction_t *txn, got_superblock_t& superblock);
+    get_result_t get(const store_key_t &key, transaction_t *txn, got_superblock_t& superblock);
     rget_result_t rget(sequence_group_t *seq_group, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token);
-    rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token,
+    rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key,
         boost::scoped_ptr<transaction_t>& txn, got_superblock_t& superblock);
 
     /* set_store_t interface */
@@ -60,6 +60,8 @@ public:
                                transaction_t *txn, got_superblock_t& superblock);
 
     void backfill(sequence_group_t *seq_group, const key_range_t& key_range, repli_timestamp_t since_when, backfill_callback_t *callback, order_token_t token);
+    void backfill(const key_range_t& key_range, repli_timestamp_t since_when, backfill_callback_t *callback,
+                  transaction_t *txn, got_superblock_t& superblock);
 
     /* These store metadata for replication. There must be a better way to store this information,
     since it really doesn't belong on the btree_slice_t! TODO: Move them elsewhere. */
@@ -73,6 +75,7 @@ public:
     uint32_t get_replication_slave_id(sequence_group_t *seq_group);
 
     cache_t *cache() { return cache_; }
+    boost::shared_ptr<cache_account_t> get_backfill_account() { return backfill_account; }
 
     plain_sink_t pre_begin_transaction_sink_;
 
