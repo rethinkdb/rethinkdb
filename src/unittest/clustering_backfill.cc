@@ -44,20 +44,34 @@ void run_backfill_test() {
         metadata_field(&branch_history_t<dummy_protocol_t>::branches, branch_history_controller.get_view())->join(singleton_map);
     }
 
-    /* Insert 10 values into both stores, then another 10 into only
-    `backfiller_store` and not `backfillee_store` */
-
     state_timestamp_t timestamp = state_timestamp_t::zero();
-    for (int i = 0; i < 20; i++) {
 
+    // initialize the metainfo in a store
+    dummy_store_view_t* stores[] = { &backfiller_store, &backfillee_store };
+    for (size_t i = 0; i < sizeof stores / sizeof stores[0]; i++) {
+        cond_t non_interruptor;
+        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> token;
+        stores[i]->new_write_token(token);
+        stores[i]->set_metainfo(
+            region_map_t<dummy_protocol_t, binary_blob_t>(
+                region,
+                binary_blob_t(version_range_t(version_t(dummy_branch_id, timestamp)))
+                ),  
+                token,
+                &non_interruptor
+            );
+    }
+
+    // Insert 10 values into both stores, then another 10 into only `backfiller_store` and not `backfillee_store`
+    for (int i = 0; i < 20; i++) {
         dummy_protocol_t::write_t w;
         std::string key = std::string(1, 'a' + rand() % 26);
         w.values[key] = strprintf("%d", i);
 
-        transition_timestamp_t ts = transition_timestamp_t::starting_from(timestamp);
-        timestamp = ts.timestamp_after();
-
         for (int j = 0; j < (i < 10 ? 2 : 1); j++) {
+            transition_timestamp_t ts = transition_timestamp_t::starting_from(timestamp);
+            timestamp = ts.timestamp_after();
+
             cond_t non_interruptor;
             boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> token;
             backfiller_store.new_write_token(token);
@@ -80,7 +94,7 @@ void run_backfill_test() {
         }
     }
 
-    /* Set up a cluster so mailboxes can be created */
+    // Set up a cluster so mailboxes can be created
 
     simple_mailbox_cluster_t cluster;
 
