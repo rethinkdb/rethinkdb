@@ -144,6 +144,51 @@ inline void pulse_if_not_pulsed_and_remove_subscription(cond_t *cond, peer_id_t 
     subscription_map->erase(peer_id);
 }
 
+inline void pulse_if_not_pulsed_and_clear_subscription(cond_t *cond, peer_id_t peer_that_disconnected, peer_id_t relevant_peer, directory_read_service_t::peer_value_subscription_t *subscription) {
+    if (peer_that_disconnected == relevant_peer) {
+        pulse_if_not_pulsed(cond);
+        subscription->reset();
+    }
+}
+
+template<class metadata_t>
+void directory_single_rview_t<metadata_t>::run_until_satisfied(const boost::function<bool(boost::optional<metadata_t>)> &f, signal_t *interruptor) {
+    while (true) {
+        boost::scoped_ptr<connectivity_service_t::peers_list_freeze_t> peers_list_freeze(new connectivity_service_t::peers_list_freeze_t(get_directory_service()->get_connectivity_service()));
+
+        if (get_directory_service()->get_connectivity_service()->get_peer_connected(get_peer())) {
+            boost::scoped_ptr<directory_read_service_t::peer_value_freeze_t> peer_value_freeze(new directory_read_service_t::peer_value_freeze_t(get_directory_service(), get_peer()));
+
+            if (f(get_value())) {
+                return;
+            }
+
+            cond_t something_has_changed;
+
+            directory_read_service_t::peer_value_subscription_t peer_subscription(boost::bind(&pulse_if_not_pulsed, &something_has_changed), 
+                                                                                  get_directory_service(), 
+                                                                                  get_peer(), 
+                                                                                  peer_value_freeze.get());
+
+            connectivity_service_t::peers_list_subscription_t peers_list_subscription(NULL,
+                                                                                      boost::bind(&pulse_if_not_pulsed_and_clear_subscription, &something_has_changed, _1, get_peer(), &peer_subscription), 
+                                                                                      get_directory_service()->get_connectivity_service(), peers_list_freeze.get());
+
+            peer_value_freeze.reset();
+            peers_list_freeze.reset();
+
+            wait_interruptible(&something_has_changed, interruptor);
+        } else {
+            if (f(get_value())) {
+                return;
+            }
+
+            connect_watcher_t connect_watcher(get_directory_service()->get_connectivity_service(), get_peer());
+            wait_interruptible(&connect_watcher, interruptor);
+        }
+    }
+}
+
 template<class metadata_t>
 void directory_rview_t<metadata_t>::run_until_satisfied(const boost::function<bool(std::map<peer_id_t, metadata_t>)> &f, signal_t *interruptor) {
     while (true) {

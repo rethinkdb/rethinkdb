@@ -11,6 +11,7 @@
 #include "clustering/reactor/blueprint.hpp"
 #include "concurrency/watchable.hpp"
 #include "clustering/reactor/reactor.hpp"
+#include "clustering/immediate_consistency/query/namespace_interface.hpp"
 
 namespace unittest {
 
@@ -94,14 +95,22 @@ public:
     reactor_t<dummy_protocol_t> reactor;
 };
 
-void run_queries(reactor_test_cluster_t *) {
-    //do nothing
+void run_queries(reactor_test_cluster_t *reactor_test_cluster) {
+    cluster_namespace_interface_t<dummy_protocol_t> namespace_if(&reactor_test_cluster->mailbox_manager, 
+                                                                 reactor_test_cluster->directory_manager.get_root_view()->subview(field_lens(&test_cluster_directory_t::master_directory)));
+
+    order_source_t order_source;
+    inserter_t inserter(&namespace_if, &order_source);
+    let_stuff_happen();
+    inserter.stop();
+    inserter.validate();
 }
 
 void runOneShardOnePrimaryOneNodeStartupShutdowntest() {
     int port = 10000 + rand() % 20000;
 
     dummy_underlying_store_t dummy_underlying_store(a_thru_z_region());
+    dummy_underlying_store.metainfo.set(a_thru_z_region(), binary_blob_t(version_range_t(version_t::zero())));
 
     reactor_test_cluster_t test_cluster(port, &dummy_underlying_store);
 

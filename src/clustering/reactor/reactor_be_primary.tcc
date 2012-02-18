@@ -79,6 +79,10 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_
         //The peer we are currently checking
         peer_id_t peer = p_it->first;
 
+        if (peer == get_me()) {
+            continue;
+        }
+
         typename std::map<peer_id_t, boost::optional<reactor_business_card_t<protocol_t> > >::const_iterator bcard_it = reactor_directory.find(p_it->first);
         if (bcard_it == reactor_directory.end() ||
             !bcard_it->second) {
@@ -179,6 +183,12 @@ void do_backfill(
 
 }
 
+template <class protocol_t>
+bool check_that_we_see_our_broadcaster(const boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > &maybe_a_business_card) {
+    rassert(maybe_a_business_card, "Not connected to ourselves\n");
+    return bool(maybe_a_business_card.get());
+}
+
 template<class protocol_t>
 void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const blueprint_t<protocol_t> &blueprint, signal_t *interruptor) THROWS_NOTHING {
     try {
@@ -263,6 +273,11 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
             get_directory_entry_view<typename reactor_business_card_t<protocol_t>::primary_t>(get_me(), directory_entry.get_reactor_activity_id())->
                 subview(optional_monad_lens<broadcaster_business_card_t<protocol_t>, typename reactor_business_card_t<protocol_t>::primary_t>(
                     field_lens(&reactor_business_card_t<protocol_t>::primary_t::broadcaster)));
+
+        /* listener_t expects broadcaster to be visible in the directory at the
+         * time that it's constructed. It might take some time to propogate to
+         * ourselves after we've put it in the directory. */
+        broadcaster_business_card->run_until_satisfied(&check_that_we_see_our_broadcaster<protocol_t>, interruptor);
 
         listener_t<protocol_t> listener(mailbox_manager, broadcaster_business_card, branch_history, &broadcaster, interruptor);
         replier_t<protocol_t> replier(&listener);

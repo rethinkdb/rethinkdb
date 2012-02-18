@@ -65,7 +65,7 @@ static void run_read_write_test() {
     /* Send some writes to the namespace */
     order_source_t order_source;
     inserter_t inserter(
-        boost::bind(&namespace_interface_t<dummy_protocol_t>::write, &namespace_interface, _1, _2, _3),
+        &namespace_interface,
         &order_source);
     nap(100);
     inserter.stop();

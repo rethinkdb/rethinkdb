@@ -31,11 +31,23 @@ public:
 class inserter_t {
 
 public:
-    inserter_t(boost::function<dummy_protocol_t::write_response_t(dummy_protocol_t::write_t, order_token_t, signal_t *)> fun, order_source_t *osource) :
-        drainer(new auto_drainer_t)
+    inserter_t(boost::function<dummy_protocol_t::write_response_t(dummy_protocol_t::write_t, order_token_t, signal_t *)> _wfun, 
+               boost::function<dummy_protocol_t::read_response_t(dummy_protocol_t::read_t, order_token_t, signal_t *)> _rfun,
+               order_source_t *_osource)
+        : drainer(new auto_drainer_t), wfun(_wfun), rfun(_rfun), osource(_osource)
     {
         coro_t::spawn_sometime(boost::bind(&inserter_t::insert_forever,
-            this, fun, osource, auto_drainer_t::lock_t(drainer.get())));
+            this, wfun, osource, auto_drainer_t::lock_t(drainer.get())));
+    }
+
+    inserter_t(namespace_interface_t<dummy_protocol_t> *namespace_if, order_source_t *_osource)
+        : drainer(new auto_drainer_t), 
+          wfun(boost::bind(&namespace_interface_t<dummy_protocol_t>::write, namespace_if, _1, _2, _3)),
+          rfun(boost::bind(&namespace_interface_t<dummy_protocol_t>::read, namespace_if, _1, _2, _3)),
+          osource(_osource)
+    {
+        coro_t::spawn_sometime(boost::bind(&inserter_t::insert_forever,
+            this, wfun, osource, auto_drainer_t::lock_t(drainer.get())));
     }
 
     void stop() {
@@ -70,6 +82,24 @@ private:
             /* Break out of loop */
         }
     }
+
+public:
+    void validate() {
+        for (std::map<std::string, std::string>::iterator it = values_inserted.begin();
+                                                          it != values_inserted.end(); 
+                                                          it++) {
+            dummy_protocol_t::read_t r;
+            r.keys.keys.insert((*it).first);
+            cond_t interruptor;
+            dummy_protocol_t::read_response_t resp = rfun(r, osource->check_in("unittest"), &interruptor);
+            EXPECT_EQ((*it).second, resp.values[(*it).first]);
+        }
+    }
+
+private:
+    boost::function<dummy_protocol_t::write_response_t(dummy_protocol_t::write_t, order_token_t, signal_t *)> wfun;
+    boost::function<dummy_protocol_t::read_response_t(dummy_protocol_t::read_t, order_token_t, signal_t *)> rfun;
+    order_source_t *osource;
 };
 
 class simple_mailbox_cluster_t {

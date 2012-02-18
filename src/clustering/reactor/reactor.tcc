@@ -218,23 +218,25 @@ void reactor_t<protocol_t>::run_role(
     //A store_view_t derived object that acts as a store for the specified region
     store_subview_t<protocol_t> store_subview(underlying_store, region);
 
-    //All of the be_{role} functions respond identically to blueprint changes
-    //and interruptions... so we just unify those signals
-    wait_any_t wait_any(blueprint_changed_cond, keepalive.get_drain_signal());
+    {
+        //All of the be_{role} functions respond identically to blueprint changes
+        //and interruptions... so we just unify those signals
+        wait_any_t wait_any(blueprint_changed_cond, keepalive.get_drain_signal());
 
-    switch (role) {
-        case blueprint_t<protocol_t>::role_primary:
-            be_primary(region, &store_subview, blueprint, &wait_any);
-            break;
-        case blueprint_t<protocol_t>::role_secondary:
-            be_secondary(region, &store_subview, blueprint, &wait_any);
-            break;
-        case blueprint_t<protocol_t>::role_nothing:
-            be_nothing(region, &store_subview, blueprint, &wait_any);
-            break;
-        default:
-            unreachable();
-            break;
+        switch (role) {
+            case blueprint_t<protocol_t>::role_primary:
+                be_primary(region, &store_subview, blueprint, &wait_any);
+                break;
+            case blueprint_t<protocol_t>::role_secondary:
+                be_secondary(region, &store_subview, blueprint, &wait_any);
+                break;
+            case blueprint_t<protocol_t>::role_nothing:
+                be_nothing(region, &store_subview, blueprint, &wait_any);
+                break;
+            default:
+                unreachable();
+                break;
+        }
     }
 
     //As promised, clean up the state from try_spawn_roles

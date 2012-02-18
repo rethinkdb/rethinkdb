@@ -149,6 +149,7 @@ void run_backfill_test(simple_mailbox_cluster_t *cluster,
     /* Start sending operations to the broadcaster */
     inserter_t inserter(
         boost::bind(&broadcaster_t<dummy_protocol_t>::write, broadcaster->get(), _1, _2),
+        NULL,
         &order_source);
     nap(100);
 
