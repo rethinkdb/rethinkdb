@@ -94,4 +94,20 @@ TEST(FIFOEnforcer, StateTransfer) {
     run_in_thread_pool(&run_state_transfer_test);
 }
 
+/* This tests that dummy entries to fifo enforcers, that is entries which we
+ * construct and then destroy (as we are doing with source.new_write_token()
+ * and exit_write_t, don't trip up the fifo_enforce's destructors. */
+void run_dummy_entry_destruction_test() {
+    fifo_enforcer_source_t source;
+    fifo_enforcer_sink_t sink;
+
+    source.enter_write();
+
+    fifo_enforcer_sink_t::exit_write_t(&sink, source.enter_write());
+}
+
+TEST(FIFOEnforcer, DummyEntry) {
+    run_in_thread_pool(&run_dummy_entry_destruction_test);
+}
+
 }   /* namespace unittest */
