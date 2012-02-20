@@ -142,11 +142,14 @@ void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, std
 
 template<class metadata_t>
 void directory_read_manager_t<metadata_t>::on_disconnect(peer_id_t peer) THROWS_NOTHING {
+    ASSERT_FINITE_CORO_WAITING;
     assert_thread();
 
     /* Remove the `global_peer_info_t` object from the table */
     rassert(sessions.count(peer) == 1);
     session_t *session_to_destroy = sessions.release(sessions.find(peer)).release();
+
+    bool got_initialization = session_to_destroy->got_initial_message.is_pulsed();
 
     /* Start interrupting any running calls to `propagate_update()`. We need to
     explicitly interrupt them rather than letting them finish on their own
@@ -159,13 +162,15 @@ void directory_read_manager_t<metadata_t>::on_disconnect(peer_id_t peer) THROWS_
         ));
 
     /* Notify every thread that the peer has disconnected */
-    fifo_enforcer_write_token_t propagation_fifo_token = propagation_fifo_source.enter_write();
-    for (int i = 0; i < get_num_threads(); i++) {
-        coro_t::spawn_sometime(boost::bind(
-            &directory_read_manager_t::propagate_disconnect_on_thread, this,
-            i, propagation_fifo_token, peer,
-            auto_drainer_t::lock_t(&global_drainer)
-            ));
+    if (got_initialization) {
+        fifo_enforcer_write_token_t propagation_fifo_token = propagation_fifo_source.enter_write();
+        for (int i = 0; i < get_num_threads(); i++) {
+            coro_t::spawn_sometime(boost::bind(
+                &directory_read_manager_t::propagate_disconnect_on_thread, this,
+                i, propagation_fifo_token, peer,
+                auto_drainer_t::lock_t(&global_drainer)
+                ));
+        }
     }
 }
 
@@ -174,6 +179,7 @@ void directory_read_manager_t<metadata_t>::propagate_initialization(peer_id_t pe
     per_thread_keepalive.assert_is_holding(per_thread_drainers.get());
     on_thread_t thread_switcher(home_thread());
 
+    ASSERT_FINITE_CORO_WAITING;
     /* Check to make sure that the peer didn't die while we were coming from the
     thread on which `on_message()` was run */
     typename boost::ptr_map<peer_id_t, session_t>::iterator it = sessions.find(peer);
@@ -288,6 +294,7 @@ void directory_read_manager_t<metadata_t>::propagate_initialize_on_thread(int de
     thread_info.get()->peers_list_publisher.publish(
         boost::bind(&directory_read_manager_t::ping_connection_watcher, peer, _1)
         );
+
 }
 
 template<class metadata_t>
