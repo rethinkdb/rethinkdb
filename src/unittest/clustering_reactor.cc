@@ -23,6 +23,7 @@ void let_stuff_happen() {
 
 }
 
+
 class test_cluster_directory_t {
 public:
     boost::optional<directory_echo_wrapper_t<reactor_business_card_t<dummy_protocol_t> > >  reactor_directory;
@@ -95,6 +96,7 @@ public:
     reactor_t<dummy_protocol_t> reactor;
 };
 
+
 void run_queries(reactor_test_cluster_t *reactor_test_cluster) {
     cluster_namespace_interface_t<dummy_protocol_t> namespace_if(&reactor_test_cluster->mailbox_manager, 
                                                                  reactor_test_cluster->directory_manager.get_root_view()->subview(field_lens(&test_cluster_directory_t::master_directory)));
@@ -106,21 +108,50 @@ void run_queries(reactor_test_cluster_t *reactor_test_cluster) {
     inserter.validate();
 }
 
+class test_cluster_group_t {
+public:
+    boost::ptr_vector<dummy_underlying_store_t> stores;
+    boost::ptr_vector<reactor_test_cluster_t> test_clusters;
+
+    boost::ptr_vector<test_reactor_t> test_reactors;
+
+    test_cluster_group_t(int n_machines) {
+        int port = 10000 + rand() % 20000;
+        for (int i = 0; i < n_machines; i++) {
+            stores.push_back(new dummy_underlying_store_t(a_thru_z_region()));
+            stores.back().metainfo.set(a_thru_z_region(), binary_blob_t(version_range_t(version_t::zero())));
+
+            test_clusters.push_back(new reactor_test_cluster_t(port + i, &stores[i]));
+            if (i > 0) {
+                test_clusters[0].connectivity_cluster_run.join(test_clusters[i].connectivity_cluster.get_peer_address(test_clusters[i].connectivity_cluster.get_me()));
+            }
+        }
+    }
+
+    void construct_all_reactors(const blueprint_t<dummy_protocol_t> &bp) {
+        for (unsigned i = 0; i < test_clusters.size(); i++) {
+            test_reactors.push_back(new test_reactor_t(&test_clusters[i], bp));
+        }
+    }
+
+    peer_id_t get_peer_id(unsigned i) {
+        rassert(i < test_clusters.size());
+        return test_clusters[i].get_me();
+    }
+};
+
+}   /* anonymous namespace */
+
 void runOneShardOnePrimaryOneNodeStartupShutdowntest() {
-    int port = 10000 + rand() % 20000;
-
-    dummy_underlying_store_t dummy_underlying_store(a_thru_z_region());
-    dummy_underlying_store.metainfo.set(a_thru_z_region(), binary_blob_t(version_range_t(version_t::zero())));
-
-    reactor_test_cluster_t test_cluster(port, &dummy_underlying_store);
+    test_cluster_group_t cluster_group(1);
 
     blueprint_t<dummy_protocol_t> blueprint;
-    blueprint.add_peer(test_cluster.get_me());
-    blueprint.add_role(test_cluster.get_me(), a_thru_z_region(), blueprint_t<dummy_protocol_t>::role_primary);
+    blueprint.add_peer(cluster_group.get_peer_id(0));
+    blueprint.add_role(cluster_group.get_peer_id(0), a_thru_z_region(), blueprint_t<dummy_protocol_t>::role_primary);
 
-    test_reactor_t reactor(&test_cluster, blueprint);
+    cluster_group.construct_all_reactors(blueprint);
     let_stuff_happen();
-    run_queries(&test_cluster);
+    run_queries(&cluster_group.test_clusters[0]);
 }
 
 TEST(ClusteringReactor, OneShardOnePrimaryOneNodeStartupShutdown) {
@@ -157,7 +188,12 @@ TEST(ClusteringReactor, runOneShardOnePrimaryOneSecondaryStartupShutdowntest) {
     run_in_thread_pool(&runOneShardOnePrimaryOneSecondaryStartupShutdowntest);
 }
 
+void runTwoShardsTwoNodes() {
+}
 
-}   /* anonymous namespace */
+TEST(ClusteringReactor, runTwoShardsTwoNodes) {
+    run_in_thread_pool(&runTwoShardsTwoNodes);
+}
+
 
 } // namespace unittest
