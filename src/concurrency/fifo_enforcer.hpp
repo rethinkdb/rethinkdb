@@ -135,8 +135,23 @@ public:
         state(init) { }
 
     ~fifo_enforcer_sink_t() THROWS_NOTHING {
-        rassert(waiting_readers.empty());
-        rassert(waiting_writers.empty());
+        for (reader_queue_t::iterator it =  waiting_readers.begin();
+                                      it != waiting_readers.end();
+                                      it++) {
+            /* Make sure that any entries present are dummy entries, ie null
+             * pointer. If there are non dummy entries that means there are
+             * living exit_read_t objects that point to us. */
+            rassert(!it->second);
+        }
+
+        for (writer_queue_t::iterator it =  waiting_writers.begin();
+                                      it != waiting_writers.end();
+                                      it++) {
+            /* Make sure that any entries present are dummy entries, ie null
+             * pointer. If there are non dummy entries that means there are
+             * living exit_write_t objects that point to us. */
+            rassert(!it->second.second);
+        }
     }
 
 private:
