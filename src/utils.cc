@@ -275,7 +275,6 @@ rng_t::rng_t( UNUSED long int seed) {
         seed = tv.tv_usec;
     }
     srand48_r(seed, &buffer_);
-    logDBG("Random number generator seeded with: %ld\n", seed);
 #else
     srand48_r(314159, &buffer_);
 #endif
