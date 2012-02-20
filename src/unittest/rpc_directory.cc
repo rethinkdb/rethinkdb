@@ -114,4 +114,18 @@ TEST(RPCDirectoryTest, Notify) {
     run_in_thread_pool(&run_notify_test, 3);
 }
 
+void run_destructor_race_test() {
+    int port = 10000 + rand() % 20000;
+    connectivity_cluster_t c;
+    directory_readwrite_manager_t<int> directory_manager(&c, 5);
+    connectivity_cluster_t::run_t cr(&c, port, &directory_manager);
+
+    directory_write_service_t::our_value_lock_acq_t lock(&directory_manager);
+    directory_manager.get_root_view()->set_our_value(151, &lock);
+}
+
+TEST(RPCDirectoryTest, DestructorRace) {
+    run_in_thread_pool(&run_destructor_race_test, 3);
+}
+
 }   /* namespace unittest */

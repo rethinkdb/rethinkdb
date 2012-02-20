@@ -1,6 +1,6 @@
 #include "utils.hpp"
 
-
+#include "errors.hpp"
 #include <execinfo.h>
 #include <limits.h>
 #include <signal.h>
@@ -13,6 +13,8 @@
 #include <cxxabi.h>
 
 #include <boost/scoped_array.hpp>
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
 
 #include "arch/runtime/runtime.hpp"
 #include "containers/scoped_malloc.hpp"
@@ -209,25 +211,16 @@ microtime_t current_microtime() {
     return uint64_t(t.tv_sec) * (1000 * 1000) + t.tv_usec;
 }
 
-/* The canonical way to construct a random `boost::uuids::uuid` is to construct
-a `boost::uuids::random_generator` and then call it. However, that trips
-Valgrind errors because it uses uninitialized memory as a source of entropy.
-This horribly hacky function is equivalent except that it explicitly marks the
-memory as initialized for Valgrind. */
 boost::uuids::uuid generate_uuid() {
-    boost::mt19937 number_generator;
-#ifdef VALGRIND
-    VALGRIND_MAKE_MEM_DEFINED_IF_ADDRESSABLE(&number_generator, sizeof(number_generator));
+#ifndef VALGRIND
+    return boost::uuids::random_generator()();
+#else
+    boost::uuids::uuid uuid;
+    for (size_t i = 0; i < sizeof uuid.data; i++) {
+        uuid.data[i] = static_cast<uint8_t>(rand()&0xff);
+    }
+    return uuid;
 #endif
-    boost::uuids::detail::seed_rng seed_gen;
-#ifdef VALGRIND
-    VALGRIND_MAKE_MEM_DEFINED_IF_ADDRESSABLE(&seed_gen, sizeof(seed_gen));
-#endif
-    boost::uuids::detail::generator_iterator<boost::uuids::detail::seed_rng> begin(&seed_gen);
-    boost::uuids::detail::generator_iterator<boost::uuids::detail::seed_rng> end;
-    number_generator.seed(begin, end);
-    boost::uuids::random_generator uuid_generator(number_generator);
-    return uuid_generator();
 }
 
 repli_timestamp_t repli_max(repli_timestamp_t x, repli_timestamp_t y) {
