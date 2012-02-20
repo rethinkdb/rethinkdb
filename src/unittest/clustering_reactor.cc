@@ -127,6 +127,35 @@ TEST(CluteringReactor, OneShardOnePrimaryOneNodeStartupShutdown) {
     run_in_thread_pool(&runOneShardOnePrimaryOneNodeStartupShutdowntest);
 }
 
+void runOneShardOnePrimaryOneSecondaryStartupShutdowntest() {
+    int port = 10000 + rand() % 20000;
+
+    dummy_underlying_store_t primary_store(a_thru_z_region()), secondary_store(a_thru_z_region());
+    primary_store.metainfo.set(a_thru_z_region(), binary_blob_t(version_range_t(version_t::zero())));
+    secondary_store.metainfo.set(a_thru_z_region(), binary_blob_t(version_range_t(version_t::zero())));
+
+    reactor_test_cluster_t primary_cluster(port, &primary_store), secondary_cluster(port+1, &secondary_store);
+    primary_cluster.connectivity_cluster_run.join(secondary_cluster.connectivity_cluster.get_peer_address(secondary_cluster.connectivity_cluster.get_me()));
+
+
+    blueprint_t<dummy_protocol_t> blueprint;
+    blueprint.add_peer(primary_cluster.get_me());
+    blueprint.add_role(primary_cluster.get_me(), a_thru_z_region(), blueprint_t<dummy_protocol_t>::role_primary);
+
+    blueprint.add_peer(secondary_cluster.get_me());
+    blueprint.add_role(secondary_cluster.get_me(), a_thru_z_region(), blueprint_t<dummy_protocol_t>::role_secondary);
+
+    test_reactor_t primary_reactor(&primary_cluster, blueprint);
+    test_reactor_t secondary_reactor(&secondary_cluster, blueprint);
+
+    let_stuff_happen();
+
+    run_queries(&primary_cluster);
+}
+
+TEST(CluteringReactor, runOneShardOnePrimaryOneSecondaryStartupShutdowntest) {
+    run_in_thread_pool(&runOneShardOnePrimaryOneSecondaryStartupShutdowntest);
+}
 
 
 }   /* anonymous namespace */
