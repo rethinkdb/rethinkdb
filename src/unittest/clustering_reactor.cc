@@ -123,7 +123,7 @@ void runOneShardOnePrimaryOneNodeStartupShutdowntest() {
     run_queries(&test_cluster);
 }
 
-TEST(CluteringReactor, OneShardOnePrimaryOneNodeStartupShutdown) {
+TEST(ClusteringReactor, OneShardOnePrimaryOneNodeStartupShutdown) {
     run_in_thread_pool(&runOneShardOnePrimaryOneNodeStartupShutdowntest);
 }
 
@@ -153,7 +153,7 @@ void runOneShardOnePrimaryOneSecondaryStartupShutdowntest() {
     run_queries(&primary_cluster);
 }
 
-TEST(CluteringReactor, runOneShardOnePrimaryOneSecondaryStartupShutdowntest) {
+TEST(ClusteringReactor, runOneShardOnePrimaryOneSecondaryStartupShutdowntest) {
     run_in_thread_pool(&runOneShardOnePrimaryOneSecondaryStartupShutdowntest);
 }
 
