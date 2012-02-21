@@ -23,7 +23,9 @@ public:
     async_mailbox_t(mailbox_manager_t *manager, const boost::function< void() > &fun) :
         callback(fun),
         mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
-        { }
+        {
+            rassert(fun);
+        }
 
     class address_t {
     public:
@@ -72,7 +74,9 @@ public:
     async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t) > &fun) :
         callback(fun),
         mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
-        { }
+        {
+            rassert(fun);
+        }
 
     class address_t {
     public:
@@ -126,7 +130,9 @@ public:
     async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t) > &fun) :
         callback(fun),
         mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
-        { }
+        {
+            rassert(fun);
+        }
 
     class address_t {
     public:
@@ -183,7 +189,9 @@ public:
     async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t) > &fun) :
         callback(fun),
         mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
-        { }
+        {
+            rassert(fun);
+        }
 
     class address_t {
     public:
@@ -243,7 +251,9 @@ public:
     async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t) > &fun) :
         callback(fun),
         mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
-        { }
+        {
+            rassert(fun);
+        }
 
     class address_t {
     public:
@@ -306,7 +316,9 @@ public:
     async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > &fun) :
         callback(fun),
         mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
-        { }
+        {
+            rassert(fun);
+        }
 
     class address_t {
     public:
@@ -372,7 +384,9 @@ public:
     async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > &fun) :
         callback(fun),
         mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
-        { }
+        {
+            rassert(fun);
+        }
 
     class address_t {
     public:
@@ -441,7 +455,9 @@ public:
     async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > &fun) :
         callback(fun),
         mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
-        { }
+        {
+            rassert(fun);
+        }
 
     class address_t {
     public:
@@ -513,7 +529,9 @@ public:
     async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > &fun) :
         callback(fun),
         mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
-        { }
+        {
+            rassert(fun);
+        }
 
     class address_t {
     public:
@@ -588,7 +606,9 @@ public:
     async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > &fun) :
         callback(fun),
         mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
-        { }
+        {
+            rassert(fun);
+        }
 
     class address_t {
     public:
@@ -666,7 +686,9 @@ public:
     async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > &fun) :
         callback(fun),
         mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
-        { }
+        {
+            rassert(fun);
+        }
 
     class address_t {
     public:
@@ -747,7 +769,9 @@ public:
     async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > &fun) :
         callback(fun),
         mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
-        { }
+        {
+            rassert(fun);
+        }
 
     class address_t {
     public:
@@ -831,7 +855,9 @@ public:
     async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > &fun) :
         callback(fun),
         mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
-        { }
+        {
+            rassert(fun);
+        }
 
     class address_t {
     public:
@@ -918,7 +944,9 @@ public:
     async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > &fun) :
         callback(fun),
         mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
-        { }
+        {
+            rassert(fun);
+        }
 
     class address_t {
     public:
@@ -1008,7 +1036,9 @@ public:
     async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > &fun) :
         callback(fun),
         mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
-        { }
+        {
+            rassert(fun);
+        }
 
     class address_t {
     public:

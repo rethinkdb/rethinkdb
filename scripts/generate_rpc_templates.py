@@ -24,7 +24,9 @@ def generate_async_message_template(nargs):
     print "    async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(" + csep("arg#_t") + ") > &fun) :"
     print "        callback(fun),"
     print "        mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))"
-    print "        { }"
+    print "        {"
+    print "            rassert(fun);"
+    print "        }"
     print
     print "    class address_t {"
     print "    public:"
