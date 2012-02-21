@@ -59,21 +59,21 @@ public:
 private:
     bool snapshotted;
     bool has_been_changed;
-    typename inner_cache_t::buf_lock_t *inner_buf;
+    typename inner_cache_t::buf_lock_t *internal_buf_lock;
     scc_cache_t<inner_cache_t> *cache;
 private:
     crc_t compute_crc() {
         boost::crc_optimal<32, 0x04C11DB7, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc_computer;
-        crc_computer.process_bytes(inner_buf->get_data_read(), cache->get_block_size().value());
+        crc_computer.process_bytes(internal_buf_lock->get_data_read(), cache->get_block_size().value());
         return crc_computer.checksum();
     }
 public:
     eviction_priority_t get_eviction_priority() {
-        return inner_buf->get_eviction_priority();
+        return internal_buf_lock->get_eviction_priority();
     }
 
     void set_eviction_priority(eviction_priority_t val) {
-        inner_buf->set_eviction_priority(val);
+        internal_buf_lock->set_eviction_priority(val);
     }
 };
 

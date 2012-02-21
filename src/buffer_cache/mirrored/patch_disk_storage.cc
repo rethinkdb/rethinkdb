@@ -88,12 +88,12 @@ patch_disk_storage_t::patch_disk_storage_t(mc_cache_t *_cache, block_id_t start_
             // Initialize a new log block here
             new mc_inner_buf_t(cache, current_block, cache->get_current_version_id(), repli_timestamp_t::invalid);
 
-            log_block_bufs.push_back(new mc_buf_lock_t(cache, current_block));
+            log_block_bufs.push_back(mc_buf_lock_t::acquire_non_locking_lock(cache, current_block));
 
             init_log_block(current_block);
 
         } else {
-            log_block_bufs.push_back(new mc_buf_lock_t(cache, current_block));
+            log_block_bufs.push_back(mc_buf_lock_t::acquire_non_locking_lock(cache, current_block));
 
             // Check that this is a valid log block
             mc_buf_lock_t *log_buf = log_block_bufs[current_block - first_block];
@@ -360,7 +360,7 @@ void patch_disk_storage_t::clear_block(const block_id_t log_block_id, coro_t* no
                 // We never have to lock the buffer, as we neither really read nor write any data
                 // We just have to make sure that the buffer cache loads the block into memory
                 // and then make writeback write it back in the next flush
-                mc_buf_lock_t *data_buf = new mc_buf_lock_t(cache, patch->get_block_id());
+                mc_buf_lock_t *data_buf = mc_buf_lock_t::acquire_non_locking_lock(cache, patch->get_block_id());
                 // Check in-core storage again, now that the block has been acquired (old patches might have been evicted from it by doing so)
                 if (cache->patch_memory_storage.has_patches_for_block(patch->get_block_id())) {
                     data_buf->ensure_flush();

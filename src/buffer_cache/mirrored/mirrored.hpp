@@ -151,6 +151,9 @@ public:
     mc_buf_lock_t();
     ~mc_buf_lock_t();
 
+    // Special construction for patch_disk_storage_t
+    static mc_buf_lock_t * acquire_non_locking_lock(mc_cache_t *cache, const block_id_t block_id);
+
     // Swaps this mc_buf_lock_t with another, thus obeying RAII since one
     // mc_buf_lock_t owns up to one mc_inner_buf_t at a time.
     void swap(mc_buf_lock_t& swapee);
@@ -195,10 +198,6 @@ private:
     friend class mc_transaction_t;
     friend class writeback_t;
     friend class writeback_t::buf_writer_t;
-    friend class patch_disk_storage_t;
-
-    // Special constructor used by patch_disk_storage_t
-    mc_buf_lock_t(mc_cache_t *cache, const block_id_t block_id);
 
     // Internal functions used during construction
     void initialize(mc_inner_buf_t::version_id_t version, file_account_t *io_account, boost::function<void()> call_when_in_line);

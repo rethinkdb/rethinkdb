@@ -605,31 +605,28 @@ void mc_buf_lock_t::initialize(mc_inner_buf_t::version_id_t version_to_access,
 }
 
 /* Constructor for mc_buf_lock_t used by patch_disk_storage_t, takes some shortcuts and has some special behavior */
-mc_buf_lock_t::mc_buf_lock_t(mc_cache_t *cache, const block_id_t block_id) :
-    acquired(false),
-    snapshotted(false),
-    non_locking_access(false),
-    mode(rwi_read),
-    inner_buf(cache->page_map.find(block_id)),
-    data(NULL),
-    subtree_recency(repli_timestamp_t::invalid)
+mc_buf_lock_t * mc_buf_lock_t::acquire_non_locking_lock(mc_cache_t *cache, const block_id_t block_id)
 {
+    mc_buf_lock_t *lock = new mc_buf_lock_t();
+    lock->mode = rwi_read;
+    lock->inner_buf = cache->page_map.find(block_id);
     cache->assert_thread();
 
-    if (!inner_buf) {
+    if (!lock->inner_buf) {
         /* The buf isn't in the cache and must be loaded from disk */
-        inner_buf = new mc_inner_buf_t(cache, block_id, cache->reads_io_account.get());
+        lock->inner_buf = new mc_inner_buf_t(cache, block_id, cache->reads_io_account.get());
     }
 
     // We still have to acquire the lock once to wait for the buf to get ready
-    initialize(mc_inner_buf_t::faux_version_id, DEFAULT_DISK_ACCOUNT, 0);
+    lock->initialize(mc_inner_buf_t::faux_version_id, DEFAULT_DISK_ACCOUNT, 0);
 
     // Release the lock we've got
-    inner_buf->lock.unlock();
-    non_locking_access = true;
-    mode = rwi_write;
+    lock->inner_buf->lock.unlock();
+    lock->non_locking_access = true;
+    lock->mode = rwi_write;
 
     cache->assert_thread();
+    return lock;
 }
 
 mc_buf_lock_t::mc_buf_lock_t(mc_transaction_t *transaction) :
