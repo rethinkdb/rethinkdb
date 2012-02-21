@@ -38,21 +38,21 @@ public:
 
 /* Buf */
 
-block_id_t mock_buf_t::get_block_id() const {
+block_id_t mock_buf_lock_t::get_block_id() const {
     return internal_buf->block_id;
 }
 
-const void *mock_buf_t::get_data_read() const {
+const void *mock_buf_lock_t::get_data_read() const {
     return internal_buf->data;
 }
 
-void *mock_buf_t::get_data_major_write() {
+void *mock_buf_lock_t::get_data_major_write() {
     rassert(access == rwi_write);
     dirty = true;
     return internal_buf->data;
 }
 
-void mock_buf_t::apply_patch(buf_patch_t *patch) {
+void mock_buf_lock_t::apply_patch(buf_patch_t *patch) {
     rassert(access == rwi_write);
 
     patch->apply_to_buf(reinterpret_cast<char *>(internal_buf->data), internal_buf->cache->block_size);
@@ -61,83 +61,87 @@ void mock_buf_t::apply_patch(buf_patch_t *patch) {
     delete patch;
 }
 
-patch_counter_t mock_buf_t::get_next_patch_counter() {
+patch_counter_t mock_buf_lock_t::get_next_patch_counter() {
     return 0;
 }
 
-void mock_buf_t::set_data(void *dest, const void *src, const size_t n) {
+void mock_buf_lock_t::set_data(void *dest, const void *src, const size_t n) {
     size_t offset = reinterpret_cast<const char *>(dest) - reinterpret_cast<const char *>(internal_buf->data);
     apply_patch(new memcpy_patch_t(internal_buf->block_id, get_next_patch_counter(), offset, reinterpret_cast<const char *>(src), n));
 }
 
-void mock_buf_t::move_data(void *dest, const void *src, const size_t n) {
+void mock_buf_lock_t::move_data(void *dest, const void *src, const size_t n) {
     size_t dest_offset = reinterpret_cast<const char *>(dest) - reinterpret_cast<const char *>(internal_buf->data);
     size_t src_offset = reinterpret_cast<const char *>(src) - reinterpret_cast<const char *>(internal_buf->data);
     apply_patch(new memmove_patch_t(internal_buf->block_id, get_next_patch_counter(), dest_offset, src_offset, n));
 }
 
-void mock_buf_t::mark_deleted() {
+void mock_buf_lock_t::mark_deleted() {
     rassert(access == rwi_write);
     deleted = true;
 }
 
-void mock_buf_t::touch_recency(repli_timestamp_t timestamp) {
+void mock_buf_lock_t::touch_recency(repli_timestamp_t timestamp) {
     rassert(access == rwi_write);
     internal_buf->subtree_recency = timestamp;
 }
 
-void mock_buf_t::release() {
+void mock_buf_lock_t::release() {
     internal_buf->lock.unlock();
     if (deleted) internal_buf->destroy();
     delete this;
 }
 
 // TODO: Add notiont of recency_dirty
-bool mock_buf_t::is_deleted() {
+bool mock_buf_lock_t::is_deleted() const {
     return deleted;
 }
 
-mock_buf_t::mock_buf_t(internal_buf_t *_internal_buf, access_t _access)
-    : internal_buf(_internal_buf), access(_access), dirty(false), deleted(false) { }
-
 /* Transaction */
+mock_buf_lock_t::mock_buf_lock_t() :
+    internal_buf(NULL),
+    access(rwi_read),
+    dirty(false),
+    deleted(false)
+{ }
 
-mock_buf_t *mock_transaction_t::acquire(block_id_t block_id, access_t mode, boost::function<void()> call_when_in_line, UNUSED bool should_load) {
+mock_buf_lock_t::mock_buf_lock_t(mock_transaction_t *txn, block_id_t block_id, access_t mode, boost::function<void()> call_when_in_line) :
+    internal_buf(txn->cache->bufs[block_id]),
+    access(mode),
+    dirty(false),
+    deleted(false)
+{
     assert_thread();
-
-    // should_load is ignored for the mock cache.
-    if (mode == rwi_write) rassert(this->access == rwi_write);
-    
-    rassert(block_id < cache->bufs.get_size());
-    internal_buf_t *internal_buf = cache->bufs[block_id];
+    rassert(mode != rwi_write || txn->access == rwi_write);
+    rassert(block_id < txn->cache->bufs.get_size());
     rassert(internal_buf);
 
     internal_buf->lock.co_lock(mode == rwi_read_outdated_ok ? rwi_read : mode, call_when_in_line);
 
     if (!(mode == rwi_read || mode == rwi_read_outdated_ok || mode == rwi_read_sync)) {
-        internal_buf->subtree_recency = recency_timestamp;
+        internal_buf->subtree_recency = txn->recency_timestamp;
     }
 
-    mock_buf_t *buf = new mock_buf_t(internal_buf, mode);
-
     nap(5);   // TODO: We should nap for a random time like `maybe_random_delay()` does
-
-    return buf;
 }
 
-mock_buf_t *mock_transaction_t::allocate() {
-    assert_thread();
-    rassert(this->access == rwi_write);
+mock_buf_lock_t::~mock_buf_lock_t() {
+}
+
+mock_buf_lock_t::mock_buf_lock_t(mock_transaction_t *txn) :
+    internal_buf(NULL),
+    access(txn->access),
+    dirty(false),
+    deleted(false)
+{
+    rassert(access == rwi_write);
     
-    block_id_t block_id = cache->bufs.get_size();
-    cache->bufs.set_size(block_id + 1);
-    internal_buf_t *internal_buf = new internal_buf_t(cache, block_id, recency_timestamp);
-    cache->bufs[block_id] = internal_buf;
+    block_id_t block_id = txn->cache->bufs.get_size();
+    txn->cache->bufs.set_size(block_id + 1);
+    internal_buf = new internal_buf_t(txn->cache, block_id, txn->recency_timestamp);
+    txn->cache->bufs[block_id] = internal_buf;
     bool locked __attribute__((unused)) = internal_buf->lock.lock(rwi_write, NULL);
     rassert(locked);
-    
-    mock_buf_t *buf = new mock_buf_t(internal_buf, rwi_write);
-    return buf;
 }
 
 void mock_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp_t *recencies_out, get_subtree_recencies_callback_t *cb) {

@@ -42,7 +42,7 @@ class mc_inner_buf_t : public evictable_t,
                        public home_thread_mixin_t {
     friend class mc_cache_t;
     friend class mc_transaction_t;
-    friend class mc_buf_t;
+    friend class mc_buf_lock_t;
     friend class writeback_t;
     friend class writeback_t::local_buf_t;
     friend class page_repl_random_t;
@@ -53,11 +53,7 @@ class mc_inner_buf_t : public evictable_t,
 
     typedef uint64_t version_id_t;
 
-
-
     class buf_snapshot_t;
-
-
 
     static const version_id_t faux_version_id = 0;  // this version id must be smaller than any valid version id
 
@@ -71,7 +67,7 @@ class mc_inner_buf_t : public evictable_t,
     void unload();
 
     // Load an existing buf from disk
-    mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_load, file_account_t *io_account);
+    mc_inner_buf_t(cache_t *cache, block_id_t block_id, file_account_t *io_account);
 
     // Load an existing buf but use the provided data buffer (for read ahead)
     mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
@@ -119,17 +115,17 @@ private:
     // A patch counter that belongs to this block.
     patch_counter_t next_patch_counter;
 
-    // The number of mc_buf_ts that exist for this mc_inner_buf_t.
+    // The number of mc_buf_lock_ts that exist for this mc_inner_buf_t.
     unsigned int refcount;
 
     // true if this block is to be deleted.
     bool do_delete;
 
-    // number of references from mc_buf_t buffers, which hold a
+    // number of references from mc_buf_lock_t buffers, which hold a
     // pointer to the data in read_outdated_ok mode.
     size_t cow_refcount;
 
-    // number of references from mc_buf_t buffers which point to the current version of `data` as a
+    // number of references from mc_buf_lock_t buffers which point to the current version of `data` as a
     // snapshot. this is ugly, but necessary to correctly initialize buf_snapshot_t refcounts.
     size_t snap_refcount;
 
@@ -143,39 +139,36 @@ private:
     DISABLE_COPYING(mc_inner_buf_t);
 };
 
+struct i_am_writeback_t { };
 
-
-/* This class represents a hold on a mc_inner_buf_t (and potentially a specific version of one). */
-class mc_buf_t {
-    typedef mc_cache_t cache_t;
-
-    friend class mc_cache_t;
-    friend class mc_transaction_t;
-    friend class patch_disk_storage_t;
-    friend class writeback_t;
-    friend class writeback_t::buf_writer_t;
-
-private:
-    // io_account is only used if a snapshot needs to be read from disk. it may safely be
-    // DEFAULT_DISK_ACCOUNT if snapshotted is false. TODO: this is ugly. find a cleaner interface.
-    mc_buf_t(mc_inner_buf_t *inner, access_t mode, mc_inner_buf_t::version_id_t version_id, bool snapshotted,
-             boost::function<void()> call_when_in_line, file_account_t *io_account = DEFAULT_DISK_ACCOUNT);
-    void acquire_block(mc_inner_buf_t::version_id_t version_to_access);
-
-    ~mc_buf_t();
-
-
+// A mc_buf_lock_t acquires and holds an mc_inner_buf_t.  Make sure you call
+// release() as soon as it's feasible to do so.  The destructor will
+// release the mc_inner_buf_t, so don't worry!
+class mc_buf_lock_t : public home_thread_mixin_t {
 public:
+    mc_buf_lock_t(mc_transaction_t *txn, block_id_t block_id, access_t mode, boost::function<void()> call_when_in_line = 0);
+    mc_buf_lock_t(mc_transaction_t *txn); // Constructor used to allocate a new block
+    mc_buf_lock_t();
+    ~mc_buf_lock_t();
+
+    // Special construction for patch_disk_storage_t
+    static mc_buf_lock_t * acquire_non_locking_lock(mc_cache_t *cache, const block_id_t block_id);
+
+    // Swaps this mc_buf_lock_t with another, thus obeying RAII since one
+    // mc_buf_lock_t owns up to one mc_inner_buf_t at a time.
+    void swap(mc_buf_lock_t& swapee);
+
+    // Releases the buf.  You can only release once (unless you swap
+    // in an unreleased mc_buf_lock_t).
     void release();
-    bool is_deleted() { return data == NULL; }
 
-    void apply_patch(buf_patch_t *patch); // This might delete the supplied patch, do not use patch after its application
-    patch_counter_t get_next_patch_counter();
+    // Releases the buf, if it was acquired.
+    void release_if_acquired();
 
-    const void *get_data_read() const {
-        rassert(data);
-        return data;
-    }
+    bool is_acquired() const;
+
+    // Get the data buffer for reading
+    const void *get_data_read() const;
     // Use this only for writes which affect a large part of the block, as it bypasses the diff system
     void *get_data_major_write();
     // Convenience function to set some address in the buffer acquired through get_data_read. (similar to memcpy)
@@ -186,89 +179,61 @@ public:
     // Makes sure the block itself gets flushed, instead of just the patch log
     void ensure_flush();
 
-    block_id_t get_block_id() const {
-        return inner_buf->block_id;
-    }
+    block_id_t get_block_id() const;
 
+    bool is_deleted() const;
     void mark_deleted();
 
-    void touch_recency(repli_timestamp_t timestamp) {
-        rassert(mode == rwi_write);
+    patch_counter_t get_next_patch_counter();
+    void apply_patch(buf_patch_t *patch); // This might delete the supplied patch, do not use patch after its application
 
-        // Some operations acquire in write mode but should not
-        // actually affect subtree recency.  For example, delete
-        // operations, and delete_expired operations -- the subtree
-        // recency is an upper bound of the maximum timestamp of all
-        // the subtree's keys, and this cannot get affected by a
-        // delete operation.  (It is a bit ghetto that we use
-        // repli_timestamp_t invalid as a magic constant that indicates
-        // this fact, instead of using something robust.  We are so
-        // prone to using that value as a placeholder.)
-        if (timestamp != repli_timestamp_t::invalid) {
-            // TODO: Add rassert(inner_buf->subtree_recency <= timestamp)
+    eviction_priority_t get_eviction_priority() const;
+    void set_eviction_priority(eviction_priority_t val);
 
-            // TODO: use some slice-specific timestamp that gets updated
-            // every epoll call.
-            inner_buf->subtree_recency = timestamp;
-            subtree_recency = timestamp;
-            inner_buf->writeback_buf().set_recency_dirty();
-        }
-    }
-
-    repli_timestamp_t get_recency() {
-        // TODO: Make it possible to get the recency _without_
-        // acquiring the buf.  The recency should be locked with a
-        // lock that sits "above" buffer acquisition.  Or the recency
-        // simply should be set _before_ trying to acquire the buf.
-        return subtree_recency;
-    }
-
-public:
-    eviction_priority_t get_eviction_priority() {
-        return inner_buf->eviction_priority;
-    }
-
-    void set_eviction_priority(eviction_priority_t val) {
-        inner_buf->eviction_priority = val;
-    }
+    repli_timestamp_t get_recency() const;
+    void touch_recency(repli_timestamp_t timestamp);
 
 private:
+    friend class mc_cache_t;
+    friend class mc_transaction_t;
+    friend class writeback_t;
+    friend class writeback_t::buf_writer_t;
+
+    // Internal functions used during construction
+    void initialize(mc_inner_buf_t::version_id_t version, file_account_t *io_account, boost::function<void()> call_when_in_line);
+    void acquire_block(mc_inner_buf_t::version_id_t version_to_access);
+
+    // True if this is an mc_buf_lock_t for a snapshotted view of the buf.
+    bool acquired;
+    bool snapshotted;
+    bool non_locking_access;
+
     // Used for the pm_bufs_held perfmon.
     ticks_t start_time;
 
-    // Presumably, the mode with which this mc_buf_t holds the inner buf.
+    // Presumably, the mode with which this mc_buf_lock_t holds the inner buf.
     access_t mode;
-
-    // True if this is an mc_buf_t for a snapshotted view of the buf.
-    const bool snapshotted;
-
-    // non_locking_access is a hack for the sake of patch_disk_storage.cc. It would be nice if we
-    // could eliminate it.
-    bool non_locking_access;
 
     // Used for perfmon, measuring how much the patches' serialized
     // size changed.  TODO: Maybe this could be a uint16_t.
     int32_t patches_serialized_size_at_start;
 
-    // Our pointer to an inner_buf -- we have a bunch of mc_buf_t's
+    // Our pointer to an inner_buf -- we have a bunch of mc_buf_lock_t's
     // all pointing at an inner buf.
     mc_inner_buf_t *inner_buf;
 
     // Usually the same as inner_buf->data. If a COW happens or this
-    // mc_buf_t is part of a snapshotted transaction, it reference a
+    // mc_buf_lock_t is part of a snapshotted transaction, it reference a
     // different buffer however.
     void *data;
 
     // Similarly, usually the same as inner_buf->subtree_recency.  If
-    // a COW happens or this mc_buf_t is part of a snapshotted
+    // a COW happens or this mc_buf_lock_t is part of a snapshotted
     // transaction, it may have a different value.
     repli_timestamp_t subtree_recency;
 
-    DISABLE_COPYING(mc_buf_t);
+    DISABLE_COPYING(mc_buf_lock_t);
 };
-
-
-struct i_am_writeback_t { };
 
 class sequence_group_t;
 
@@ -277,10 +242,10 @@ class mc_transaction_t :
     public home_thread_mixin_t
 {
     typedef mc_cache_t cache_t;
-    typedef mc_buf_t buf_t;
     typedef mc_inner_buf_t inner_buf_t;
     typedef mc_cache_account_t cache_account_t;
 
+    friend class mc_buf_lock_t;
     friend class mc_cache_t;
     friend class writeback_t;
 
@@ -292,17 +257,6 @@ public:
 
     cache_t *get_cache() const { return cache; }
     access_t get_access() const { return access; }
-
-    /* `acquire()` acquires the block indicated by `block_id`. `mode` specifies whether
-    we want read or write access. `acquire()` blocks until the block has been acquired.
-    If `call_when_in_line` is non-zero, it will be a function to call once we have
-    gotten in line for the block but before `acquire()` actually returns. If `should_load`
-    is false, we will not bother loading the block from disk if it isn't in memory; this
-    is useful if we intend to delete or rewrite the block without accessing its previous
-    contents. */
-    buf_t *acquire(block_id_t block_id, access_t mode, boost::function<void()> call_when_in_line = 0, bool should_load = true);
-
-    buf_t *allocate();
 
     void get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp_t *recencies_out, get_subtree_recencies_callback_t *cb);
 
@@ -356,11 +310,9 @@ private:
     DISABLE_COPYING(mc_cache_account_t);
 };
 
-
-
 class mc_cache_t : public home_thread_mixin_t, public serializer_read_ahead_callback_t {
-    friend class mc_buf_t;
     friend class mc_inner_buf_t;
+    friend class mc_buf_lock_t;
     friend class mc_transaction_t;
     friend class writeback_t;
     friend class writeback_t::local_buf_t;
@@ -370,8 +322,8 @@ class mc_cache_t : public home_thread_mixin_t, public serializer_read_ahead_call
     friend class patch_disk_storage_t;
 
 public:
+    typedef mc_buf_lock_t buf_lock_t;
     typedef mc_inner_buf_t inner_buf_t;
-    typedef mc_buf_t buf_t;
     typedef mc_transaction_t transaction_t;
     typedef mc_cache_account_t cache_account_t;
 
@@ -415,8 +367,6 @@ private:
 
     inner_buf_t *find_buf(block_id_t block_id);
     void on_transaction_commit(transaction_t *txn);
-
-
 
 public:
     bool offer_read_ahead_buf(block_id_t block_id, void *buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);

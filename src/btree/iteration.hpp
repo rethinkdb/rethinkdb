@@ -10,7 +10,6 @@
 #include "containers/iterators.hpp"
 #include "btree/internal_node.hpp"
 #include "btree/leaf_node.hpp"
-#include "buffer_cache/buf_lock.hpp"
 #include "btree/operations.hpp"
 #include "btree/slice.hpp"
 #include "memcached/store.hpp"

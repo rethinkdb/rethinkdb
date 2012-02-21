@@ -111,7 +111,7 @@ public:
         }
     }
 
-    // We are safe to unload if we are saved to disk and have no mc_buf_ts actively referencing us.
+    // We are safe to unload if we are saved to disk and have no mc_buf_lock_ts actively referencing us.
     bool safe_to_unload() {
         cache->assert_thread();
         return bool(token) && !active_refcount;
@@ -148,7 +148,7 @@ private:
     // snapshot_refcount is the number of snapshots that could potentially use this buf_snapshot_t.
     size_t snapshot_refcount;
 
-    // active_refcount is the number of mc_buf_ts currently using this buf_snapshot_t. As long as
+    // active_refcount is the number of mc_buf_lock_ts currently using this buf_snapshot_t. As long as
     // >0, we cannot be unloaded.
     size_t active_refcount;
 
@@ -185,12 +185,12 @@ void mc_inner_buf_t::load_inner_buf(bool should_lock, file_account_t *io_account
 }
 
 // This form of the buf constructor is used when the block exists on disk and needs to be loaded
-mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, bool _should_load, file_account_t *_io_account)
+mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, file_account_t *_io_account)
     : evictable_t(_cache),
       writeback_t::local_buf_t(),
       block_id(_block_id),
       subtree_recency(repli_timestamp_t::invalid),  // Gets initialized by load_inner_buf
-      data(_should_load ? _cache->serializer->malloc() : NULL),
+      data(_cache->serializer->malloc()),
       version_id(_cache->get_min_snapshot_version(_cache->get_current_version_id())),
       next_patch_counter(1),
       refcount(0),
@@ -203,12 +203,10 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, bool _shou
 
     array_map_t::constructing_inner_buf(this);
 
-    if (_should_load) {
-        // Some things expect us to return immediately (as of 5/12/2011), so we do the loading in a
-        // separate coro. We have to make sure that load_inner_buf() acquires the lock first
-        // however, so we use spawn_now().
-        coro_t::spawn_now(boost::bind(&mc_inner_buf_t::load_inner_buf, this, true, _io_account));
-    }
+    // Some things expect us to return immediately (as of 5/12/2011), so we do the loading in a
+    // separate coro. We have to make sure that load_inner_buf() acquires the lock first
+    // however, so we use spawn_now().
+    coro_t::spawn_now(boost::bind(&mc_inner_buf_t::load_inner_buf, this, true, _io_account));
 
     // TODO: only increment pm_n_blocks_in_memory when we actually load the block into memory.
     pm_n_blocks_in_memory++;
@@ -408,8 +406,8 @@ bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version, bool leave_clo
     if (0 == num_snapshots_affected + cow_refcount)
         return false;           // no snapshot necessary
 
-    // Initially actively referencing the snapshotted buf are mc_buf_t's in rwi_read_outdated_ok
-    // mode, corresponding to cow_refcount; and mc_buf_t's in snapshotted rwi_read mode, indicated
+    // Initially actively referencing the snapshotted buf are mc_buf_lock_t's in rwi_read_outdated_ok
+    // mode, corresponding to cow_refcount; and mc_buf_lock_t's in snapshotted rwi_read mode, indicated
     // by snap_refcount.
 
     buf_snapshot_t *snap = new buf_snapshot_t(this, num_snapshots_affected, cow_refcount + snap_refcount, leave_clone);
@@ -485,9 +483,74 @@ perfmon_duration_sampler_t
     pm_bufs_acquiring("bufs_acquiring", secs_to_ticks(1)),
     pm_bufs_held("bufs_held", secs_to_ticks(1));
 
-mc_buf_t::mc_buf_t(mc_inner_buf_t *_inner_buf, access_t _mode, mc_inner_buf_t::version_id_t version_to_access, bool _snapshotted,
-                   boost::function<void()> call_when_in_line, file_account_t *io_account)
-    : mode(_mode), snapshotted(_snapshotted), non_locking_access(_snapshotted), inner_buf(_inner_buf), data(NULL), subtree_recency(repli_timestamp_t::invalid) {
+/* Default constructor does not obtain a lock, but a lock may be allocated or swapped from another mc_buf_lock_t object */
+mc_buf_lock_t::mc_buf_lock_t() :
+    acquired(false),
+    snapshotted(false),
+    non_locking_access(false),
+    inner_buf(NULL),
+    data(NULL),
+    subtree_recency(repli_timestamp_t::invalid)
+{ }
+
+/* Constructor to obtain a buffer lock within a transaction */
+mc_buf_lock_t::mc_buf_lock_t(mc_transaction_t *transaction, block_id_t block_id, access_t mode_, boost::function<void()> call_when_in_line) :
+    acquired(false),
+    snapshotted(transaction->snapshotted),
+    non_locking_access(snapshotted),
+    mode(mode_),
+    inner_buf(transaction->cache->find_buf(block_id)),
+    data(NULL),
+    subtree_recency(repli_timestamp_t::invalid)
+{
+    transaction->assert_thread();
+    rassert(block_id != NULL_BLOCK_ID);
+    assert_thread();
+
+    // Note that it is critical that between here and creating our buf_lock_t wrapper that we do nothing
+    // blocking (unless it acquires a lock on inner_buf or otherwise prevents it from being
+    // unloaded), or else inner_buf could be selected for deletion from the cache, then recreated,
+    // and we'd have two inner_bufs corresponding to the same block id floating around.
+
+    if (!inner_buf) {
+        /* The buf isn't in the cache and must be loaded from disk */
+        // We are either not snapshotted or our snapshot is consistent with the latest version;
+        // otherwise, the inner buf would be around to keep track of the snapshotted version. Thus,
+        // it is not wasteful to load the latest version if should_load is true.
+        inner_buf = new mc_inner_buf_t(transaction->cache, block_id, transaction->get_io_account());
+    } else {
+        // TODO: the logic for when to load an inner_buf's versions (most recent or snapshotted) is
+        // scattered around everywhere (eg: here). consolidate it, perhaps in mc_buf_lock_t.
+        rassert(!inner_buf->do_delete || snapshotted);
+
+        // ensures we're using the top version
+        if (!inner_buf->data.has() && !inner_buf->do_delete &&
+            // if we're accessing a snapshot rather than the top version, no need to load it here
+            !(snapshotted && transaction->snapshot_version != mc_inner_buf_t::faux_version_id && transaction->snapshot_version < inner_buf->version_id))
+        {
+            // The inner_buf doesn't have any data currently. We need the data though,
+            // so load it!
+            inner_buf->data.init_malloc(transaction->cache->serializer);
+
+            // Please keep in mind that this is blocking...
+            inner_buf->load_inner_buf(true, transaction->get_io_account());
+        }
+    }
+
+    initialize(transaction->snapshot_version, transaction->get_io_account(), call_when_in_line);
+
+    if (is_write_mode(mode)) {
+        touch_recency(transaction->recency_timestamp);
+    }
+
+    transaction->maybe_finalize_version();
+    transaction->assert_thread();
+}
+
+void mc_buf_lock_t::initialize(mc_inner_buf_t::version_id_t version_to_access,
+                               file_account_t *io_account,
+                               boost::function<void()> call_when_in_line)
+{
     inner_buf->cache->assert_thread();
     inner_buf->refcount++;
     patches_serialized_size_at_start = -1;
@@ -505,7 +568,7 @@ mc_buf_t::mc_buf_t(mc_inner_buf_t *_inner_buf, access_t _mode, mc_inner_buf_t::v
         }
     }
 
-    // If the top version is less or equal to version_to_access, then we need to acquire
+    // If the top version is less or equal to snapshot_version, then we need to acquire
     // a read lock first (otherwise we may get the data of the unfinished write on top).
     if (snapshotted && version_to_access != mc_inner_buf_t::faux_version_id && version_to_access < inner_buf->version_id) {
         // acquire the snapshotted block; no need to lock
@@ -514,7 +577,6 @@ mc_buf_t::mc_buf_t(mc_inner_buf_t *_inner_buf, access_t _mode, mc_inner_buf_t::v
 
         // we never needed to get in line, so just call the function straight-up to ensure it gets called.
         if (call_when_in_line) call_when_in_line();
-
     } else {
         ticks_t lock_start_time;
         // the top version is the right one for us; acquire a lock of the appropriate type first
@@ -539,9 +601,74 @@ mc_buf_t::mc_buf_t(mc_inner_buf_t *_inner_buf, access_t _mode, mc_inner_buf_t::v
     }
 
     pm_bufs_held.begin(&start_time);
+    acquired = true;
 }
 
-void mc_buf_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access) {
+/* Constructor for mc_buf_lock_t used by patch_disk_storage_t, takes some shortcuts and has some special behavior */
+mc_buf_lock_t * mc_buf_lock_t::acquire_non_locking_lock(mc_cache_t *cache, const block_id_t block_id)
+{
+    mc_buf_lock_t *lock = new mc_buf_lock_t();
+    lock->mode = rwi_read;
+    lock->inner_buf = cache->page_map.find(block_id);
+    cache->assert_thread();
+
+    if (!lock->inner_buf) {
+        /* The buf isn't in the cache and must be loaded from disk */
+        lock->inner_buf = new mc_inner_buf_t(cache, block_id, cache->reads_io_account.get());
+    }
+
+    // We still have to acquire the lock once to wait for the buf to get ready
+    lock->initialize(mc_inner_buf_t::faux_version_id, DEFAULT_DISK_ACCOUNT, 0);
+
+    // Release the lock we've got
+    lock->inner_buf->lock.unlock();
+    lock->non_locking_access = true;
+    lock->mode = rwi_write;
+
+    cache->assert_thread();
+    return lock;
+}
+
+mc_buf_lock_t::mc_buf_lock_t(mc_transaction_t *transaction) :
+    acquired(false),
+    snapshotted(transaction->snapshotted),
+    non_locking_access(snapshotted),
+    mode(transaction->access),
+    inner_buf(NULL),
+    data(NULL),
+    subtree_recency(repli_timestamp_t::invalid)
+{
+    transaction->assert_thread();
+    rassert(mode == rwi_write);
+    rassert(!snapshotted);
+
+    /* Make a completely new block, complete with a shiny new block_id. */
+    inner_buf = mc_inner_buf_t::allocate(transaction->cache, transaction->snapshot_version, transaction->recency_timestamp);
+
+    // Assign a snapshot version, to ensure we can no longer become a snapshotting transaction.
+    if (transaction->snapshot_version == mc_inner_buf_t::faux_version_id)
+        transaction->snapshot_version = inner_buf->version_id;
+
+    transaction->assert_thread();
+
+    // This must pass since no one else holds references to this block.
+    initialize(transaction->snapshot_version, transaction->get_io_account(), 0);
+
+    transaction->assert_thread();
+}
+
+mc_buf_lock_t::~mc_buf_lock_t() {
+    assert_thread();
+    release_if_acquired();
+}
+
+void mc_buf_lock_t::release_if_acquired() {
+    assert_thread();
+    if (acquired)
+        release();
+}
+
+void mc_buf_lock_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access) {
     inner_buf->cache->assert_thread();
     rassert(!inner_buf->do_delete);
 
@@ -566,7 +693,7 @@ void mc_buf_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access) {
             rassert(data != NULL);
             // unlock the buffer now that we have established a COW reference to it so that
             // writers can overwrite it. we know we have locked the buffer because !snapshotted,
-            // therefore mc_buf_t() locked it before calling us.
+            // therefore mc_buf_lock_t() locked it before calling us.
             inner_buf->lock.unlock();
             break;
         }
@@ -580,13 +707,11 @@ void mc_buf_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access) {
             inner_buf->version_id = version_to_access;
             // TODO (sam): Obviously something's f'd up about this.
             data = inner_buf->data.has() ? inner_buf->data.get() : 0;
-            // The inner_buf could just have been acquired with should_load == false,
-            // so we cannot assert data here unfortunately!
-            //rassert(data != NULL);
+            rassert(data != NULL);
 
             if (!inner_buf->writeback_buf().needs_flush() &&
-                    patches_serialized_size_at_start == -1 &&
-                    global_full_perfmon) {
+                  patches_serialized_size_at_start == -1 &&
+                  global_full_perfmon) {
                 patches_serialized_size_at_start =
                     inner_buf->cache->patch_memory_storage.get_patches_serialized_size(inner_buf->block_id);
             }
@@ -603,9 +728,85 @@ void mc_buf_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access) {
     if (snapshotted) {
         inner_buf->lock.unlock();
     }
+
+    inner_buf->cache->assert_thread();
 }
 
-void mc_buf_t::apply_patch(buf_patch_t *patch) {
+void mc_buf_lock_t::swap(mc_buf_lock_t& swapee) {
+    assert_thread();
+    swapee.assert_thread();
+    std::swap(acquired, swapee.acquired);
+    std::swap(snapshotted, swapee.snapshotted);
+    std::swap(non_locking_access, swapee.non_locking_access);
+    std::swap(start_time, swapee.start_time);
+    std::swap(mode, swapee.mode);
+    std::swap(patches_serialized_size_at_start, swapee.patches_serialized_size_at_start);
+    std::swap(inner_buf, swapee.inner_buf);
+    std::swap(data, swapee.data);
+    std::swap(subtree_recency, swapee.subtree_recency);
+#ifndef NDEBUG
+    std::swap(real_home_thread, swapee.real_home_thread);
+#endif
+}
+
+bool mc_buf_lock_t::is_acquired() const {
+    return acquired;
+}
+
+bool mc_buf_lock_t::is_deleted() const {
+    return data == NULL;
+}
+
+const void * mc_buf_lock_t::get_data_read() const {
+    rassert(data);
+    return data;
+}
+
+block_id_t mc_buf_lock_t::get_block_id() const {
+    return inner_buf->block_id;
+}
+
+void mc_buf_lock_t::touch_recency(repli_timestamp_t timestamp) {
+    rassert(mode == rwi_write);
+
+    // Some operations acquire in write mode but should not
+    // actually affect subtree recency.  For example, delete
+    // operations, and delete_expired operations -- the subtree
+    // recency is an upper bound of the maximum timestamp of all
+    // the subtree's keys, and this cannot get affected by a
+    // delete operation.  (It is a bit ghetto that we use
+    // repli_timestamp_t invalid as a magic constant that indicates
+    // this fact, instead of using something robust.  We are so
+    // prone to using that value as a placeholder.)
+    if (timestamp != repli_timestamp_t::invalid) {
+        // TODO: Add rassert(inner_buf->subtree_recency <= timestamp)
+
+        // TODO: use some slice-specific timestamp that gets updated
+        // every epoll call.
+        inner_buf->subtree_recency = timestamp;
+        subtree_recency = timestamp;
+        inner_buf->writeback_buf().set_recency_dirty();
+    }
+}
+
+repli_timestamp_t mc_buf_lock_t::get_recency() const {
+    // TODO: Make it possible to get the recency _without_
+    // acquiring the buf.  The recency should be locked with a
+    // lock that sits "above" buffer acquisition.  Or the recency
+    // simply should be set _before_ trying to acquire the buf.
+    return subtree_recency;
+}
+
+eviction_priority_t mc_buf_lock_t::get_eviction_priority() const {
+    return inner_buf->eviction_priority;
+}
+
+void mc_buf_lock_t::set_eviction_priority(eviction_priority_t val) {
+    inner_buf->eviction_priority = val;
+}
+
+void mc_buf_lock_t::apply_patch(buf_patch_t *patch) {
+    assert_thread();
     rassert(!inner_buf->safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
     rassert(!inner_buf->do_delete);
     rassert(mode == rwi_write);
@@ -645,7 +846,7 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
     }
 }
 
-void *mc_buf_t::get_data_major_write() {
+void *mc_buf_lock_t::get_data_major_write() {
     ASSERT_NO_CORO_WAITING;
 
     rassert(!inner_buf->safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
@@ -664,8 +865,9 @@ void *mc_buf_t::get_data_major_write() {
     return data;
 }
 
-void mc_buf_t::ensure_flush() {
+void mc_buf_lock_t::ensure_flush() {
     ASSERT_NO_CORO_WAITING;
+    assert_thread();
 
     // TODO (sam): f'd up
     rassert(inner_buf->data.equals(data));
@@ -680,7 +882,8 @@ void mc_buf_t::ensure_flush() {
     }
 }
 
-void mc_buf_t::mark_deleted() {
+void mc_buf_lock_t::mark_deleted() {
+    assert_thread();
     rassert(mode == rwi_write);
     rassert(!inner_buf->safe_to_unload());
     // TODO (sam): f'd up
@@ -703,7 +906,7 @@ void mc_buf_t::mark_deleted() {
     ensure_flush(); // Disable patch log system for the buffer
 }
 
-patch_counter_t mc_buf_t::get_next_patch_counter() {
+patch_counter_t mc_buf_lock_t::get_next_patch_counter() {
     rassert(!inner_buf->do_delete);
     rassert(mode == rwi_write);
     // TODO (sam): f'd up
@@ -727,7 +930,8 @@ bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range
 // a sort of long-term TODO, though.
 //
 // ^ Who are you?  A ghost in the github...
-void mc_buf_t::set_data(void *dest, const void *src, size_t n) {
+void mc_buf_lock_t::set_data(void *dest, const void *src, size_t n) {
+    assert_thread();
     // TODO (sam): f'd up.
     rassert(inner_buf->data.equals(data));
     if (n == 0) {
@@ -746,7 +950,8 @@ void mc_buf_t::set_data(void *dest, const void *src, size_t n) {
     }
 }
 
-void mc_buf_t::move_data(void *dest, const void *src, const size_t n) {
+void mc_buf_lock_t::move_data(void *dest, const void *src, const size_t n) {
+    assert_thread();
     // TODO (sam): f'd up.
     rassert(inner_buf->data.equals(data));
     if (n == 0) {
@@ -770,7 +975,9 @@ void mc_buf_t::move_data(void *dest, const void *src, const size_t n) {
 
 perfmon_sampler_t pm_patches_size_per_write("patches_size_per_write_buf", secs_to_ticks(1), false);
 
-void mc_buf_t::release() {
+void mc_buf_lock_t::release() {
+    assert_thread();
+    guarantee(acquired);
     inner_buf->cache->assert_thread();
     pm_bufs_held.end(&start_time);
 
@@ -844,12 +1051,9 @@ void mc_buf_t::release() {
         delete inner_buf;
     }
 #endif
-
-    delete this;
+    acquired = false;
 }
 
-mc_buf_t::~mc_buf_t() {
-}
 
 /**
  * Transaction implementation.
@@ -1015,75 +1219,6 @@ mc_transaction_t::~mc_transaction_t() {
     pm_registered_snapshot_blocks -= owned_buf_snapshots.size();
 
     cache_account_.reset();
-}
-
-mc_buf_t *mc_transaction_t::allocate() {
-    /* Make a completely new block, complete with a shiny new block_id. */
-    rassert(access == rwi_write);
-    rassert(!snapshotted);
-    assert_thread();
-
-    inner_buf_t *inner_buf = inner_buf_t::allocate(cache, snapshot_version, recency_timestamp);
-
-    // Assign a snapshot version, to ensure we can no longer become a snapshotting transaction.
-    if (snapshot_version == mc_inner_buf_t::faux_version_id)
-        snapshot_version = inner_buf->version_id;
-
-    assert_thread();
-
-    // This must pass since no one else holds references to this block.
-    mc_buf_t *buf = new mc_buf_t(inner_buf, rwi_write, snapshot_version, snapshotted, 0);
-
-    assert_thread();
-
-    return buf;
-}
-
-mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
-                                    boost::function<void()> call_when_in_line, bool should_load) {
-    rassert(block_id != NULL_BLOCK_ID);
-    rassert(should_load || access == rwi_write);
-    assert_thread();
-
-    inner_buf_t *inner_buf = cache->find_buf(block_id);
-    // Note that it is critical that between here and creating our buf_t wrapper that we do nothing
-    // blocking (unless it acquires a lock on inner_buf or otherwise prevents it from being
-    // unloaded), or else inner_buf could be selected for deletion from the cache, then recreated,
-    // and we'd have two inner_bufs corresponding to the same block id floating around.
-
-    if (!inner_buf) {
-        /* The buf isn't in the cache and must be loaded from disk */
-        // We are either not snapshotted or our snapshot is consistent with the latest version;
-        // otherwise, the inner buf would be around to keep track of the snapshotted version. Thus,
-        // it is not wasteful to load the latest version if should_load is true.
-        inner_buf = new inner_buf_t(cache, block_id, should_load, get_io_account());
-    } else {
-        // TODO: the logic for when to load an inner_buf's versions (most recent or snapshotted) is
-        // scattered around everywhere (eg: here). consolidate it, perhaps in mc_buf_t.
-        rassert(!inner_buf->do_delete || snapshotted);
-
-        // ensures inner_buf->data is loaded if should_load is true and we're using the top version
-        if (!inner_buf->data.has() && !inner_buf->do_delete && should_load &&
-            // if we're accessing a snapshot rather than the top version, no need to load it here
-            !(snapshotted && snapshot_version != mc_inner_buf_t::faux_version_id && snapshot_version < inner_buf->version_id))
-        {
-            // The inner_buf doesn't have any data currently. We need the data though,
-            // so load it!
-            inner_buf->data.init_malloc(cache->serializer);
-
-            // Please keep in mind that this is blocking...
-            inner_buf->load_inner_buf(true, get_io_account());
-        }
-    }
-
-    buf_t *buf = new buf_t(inner_buf, mode, snapshot_version, snapshotted, call_when_in_line, get_io_account());
-
-    if (is_write_mode(mode)) {
-        buf->touch_recency(recency_timestamp);
-    }
-
-    maybe_finalize_version();
-    return buf;
 }
 
 void mc_transaction_t::maybe_finalize_version() {
@@ -1437,3 +1572,4 @@ void mc_cache_t::adjust_max_patches_size_ratio_toward_maximum() {
     rassert(max_patches_size_ratio <= MAX_PATCHES_SIZE_RATIO_MIN);
     rassert(max_patches_size_ratio >= MAX_PATCHES_SIZE_RATIO_MAX);
 }
+

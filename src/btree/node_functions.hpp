@@ -31,7 +31,7 @@ bool is_mergable(value_sizer_t<V> *sizer, const node_t *node, const node_t *sibl
 }
 
 template <class V>
-void split(value_sizer_t<V> *sizer, buf_t *node_buf, node_t *rnode, btree_key_t *median) {
+void split(value_sizer_t<V> *sizer, buf_lock_t *node_buf, node_t *rnode, btree_key_t *median) {
     if (is_leaf(reinterpret_cast<const node_t *>(node_buf->get_data_read()))) {
         leaf_node_t *node = reinterpret_cast<leaf_node_t *>(node_buf->get_data_major_write());
         leaf::split(sizer, node, reinterpret_cast<leaf_node_t *>(rnode), median);
@@ -41,18 +41,18 @@ void split(value_sizer_t<V> *sizer, buf_t *node_buf, node_t *rnode, btree_key_t 
 }
 
 template <class V>
-void merge(value_sizer_t<V> *sizer, node_t *node, buf_t *rnode_buf, const internal_node_t *parent) {
+void merge(value_sizer_t<V> *sizer, node_t *node, buf_lock_t *rnode_buf, const internal_node_t *parent) {
     if (is_leaf(node)) {
         leaf::merge(sizer, reinterpret_cast<leaf_node_t *>(node), reinterpret_cast<leaf_node_t *>(rnode_buf->get_data_major_write()));
     } else {
-        // TODO: internal_node::merge should not take a buf_t, just
+        // TODO: internal_node::merge should not take a buf_lock_t, just
         // have it take an internal_node_t *rnode.
         internal_node::merge(sizer->block_size(), reinterpret_cast<const internal_node_t *>(node), rnode_buf, parent);
     }
 }
 
 template <class V>
-bool level(value_sizer_t<V> *sizer, int nodecmp_node_with_sib, buf_t *node_buf, buf_t *rnode_buf, btree_key_t *replacement_key, const internal_node_t *parent) {
+bool level(value_sizer_t<V> *sizer, int nodecmp_node_with_sib, buf_lock_t *node_buf, buf_lock_t *rnode_buf, btree_key_t *replacement_key, const internal_node_t *parent) {
     if (is_leaf(reinterpret_cast<const node_t *>(node_buf->get_data_read()))) {
         return leaf::level(sizer, nodecmp_node_with_sib, reinterpret_cast<leaf_node_t *>(node_buf->get_data_major_write()), reinterpret_cast<leaf_node_t *>(rnode_buf->get_data_major_write()), replacement_key);
     } else {

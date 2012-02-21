@@ -17,7 +17,7 @@
 
 struct backfill_traversal_helper_t : public btree_traversal_helper_t, public home_thread_mixin_t {
 
-    void process_a_leaf(transaction_t *txn, buf_t *leaf_node_buf, const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null) {
+    void process_a_leaf(transaction_t *txn, buf_lock_t *leaf_node_buf, const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null) {
         assert_thread();
         const leaf_node_t *data = reinterpret_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
 
@@ -47,11 +47,11 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         leaf::dump_entries_since_time(sizer_, data, since_when_, maximum_possible_timestamp_, &x);
     }
 
-    void postprocess_internal_node(UNUSED buf_t *internal_node_buf) {
+    void postprocess_internal_node(UNUSED buf_lock_t *internal_node_buf) {
         assert_thread();
         // do nothing
     }
-    void postprocess_btree_superblock(UNUSED buf_t *superblock_buf) {
+    void postprocess_btree_superblock(UNUSED buf_lock_t *superblock_buf) {
         assert_thread();
         // do nothing
     }
