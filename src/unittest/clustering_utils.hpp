@@ -33,15 +33,16 @@ class inserter_t {
 public:
     inserter_t(boost::function<dummy_protocol_t::write_response_t(dummy_protocol_t::write_t, order_token_t, signal_t *)> _wfun, 
                boost::function<dummy_protocol_t::read_response_t(dummy_protocol_t::read_t, order_token_t, signal_t *)> _rfun,
-               order_source_t *_osource)
-        : drainer(new auto_drainer_t), wfun(_wfun), rfun(_rfun), osource(_osource)
+               order_source_t *_osource, std::map<std::string, std::string> *state)
+        : values_inserted(state), drainer(new auto_drainer_t), wfun(_wfun), rfun(_rfun), osource(_osource)
     {
         coro_t::spawn_sometime(boost::bind(&inserter_t::insert_forever,
             this, wfun, osource, auto_drainer_t::lock_t(drainer.get())));
     }
 
-    inserter_t(namespace_interface_t<dummy_protocol_t> *namespace_if, order_source_t *_osource)
-        : drainer(new auto_drainer_t), 
+    inserter_t(namespace_interface_t<dummy_protocol_t> *namespace_if, order_source_t *_osource, std::map<std::string, std::string> *state)
+        : values_inserted(state),
+          drainer(new auto_drainer_t), 
           wfun(boost::bind(&namespace_interface_t<dummy_protocol_t>::write, namespace_if, _1, _2, _3)),
           rfun(boost::bind(&namespace_interface_t<dummy_protocol_t>::read, namespace_if, _1, _2, _3)),
           osource(_osource)
@@ -55,7 +56,7 @@ public:
         drainer.reset();
     }
 
-    std::map<std::string, std::string> values_inserted;
+    std::map<std::string, std::string> *values_inserted;
 
 private:
     boost::scoped_ptr<auto_drainer_t> drainer;
@@ -71,7 +72,7 @@ private:
 
                 dummy_protocol_t::write_t w;
                 std::string key = std::string(1, 'a' + rand() % 26);
-                w.values[key] = values_inserted[key] = strprintf("%d", i);
+                w.values[key] = (*values_inserted)[key] = strprintf("%d", i);
 
                 cond_t interruptor;
                 fun(w, osource->check_in("unittest"), &interruptor);
@@ -85,8 +86,8 @@ private:
 
 public:
     void validate() {
-        for (std::map<std::string, std::string>::iterator it = values_inserted.begin();
-                                                          it != values_inserted.end(); 
+        for (std::map<std::string, std::string>::iterator it = values_inserted->begin();
+                                                          it != values_inserted->end(); 
                                                           it++) {
             dummy_protocol_t::read_t r;
             r.keys.keys.insert((*it).first);

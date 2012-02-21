@@ -64,15 +64,17 @@ static void run_read_write_test() {
 
     /* Send some writes to the namespace */
     order_source_t order_source;
+    std::map<std::string, std::string> inserter_state;
     inserter_t inserter(
         &namespace_interface,
-        &order_source);
+        &order_source,
+        &inserter_state);
     nap(100);
     inserter.stop();
 
     /* Now send some reads */
-    for (std::map<std::string, std::string>::iterator it = inserter.values_inserted.begin();
-            it != inserter.values_inserted.end(); it++) {
+    for (std::map<std::string, std::string>::iterator it = inserter.values_inserted->begin();
+            it != inserter.values_inserted->end(); it++) {
         dummy_protocol_t::read_t r;
         r.keys.keys.insert((*it).first);
         cond_t interruptor;

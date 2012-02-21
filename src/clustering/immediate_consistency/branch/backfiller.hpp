@@ -41,6 +41,7 @@ struct backfiller_t :
 private:
     bool confirm_and_send_metainfo(typename store_view_t<protocol_t>::metainfo_t metainfo, region_map_t<protocol_t, version_range_t> start_point,
             typename async_mailbox_t<void(region_map_t<protocol_t, version_range_t>)>::address_t end_point_cont) {
+        rassert(metainfo.get_domain() == start_point.get_domain());
         region_map_t<protocol_t, version_range_t> end_point =
             region_map_transform<protocol_t, binary_blob_t, version_range_t>(
                 metainfo,

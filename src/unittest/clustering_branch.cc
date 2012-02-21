@@ -147,10 +147,12 @@ void run_backfill_test(simple_mailbox_cluster_t *cluster,
     order_source_t order_source;
 
     /* Start sending operations to the broadcaster */
+    std::map<std::string, std::string> inserter_state;
     inserter_t inserter(
         boost::bind(&broadcaster_t<dummy_protocol_t>::write, broadcaster->get(), _1, _2),
         NULL,
-        &order_source);
+        &order_source,
+        &inserter_state);
     nap(100);
 
     /* Set up a second mirror */
@@ -176,8 +178,8 @@ void run_backfill_test(simple_mailbox_cluster_t *cluster,
     let_stuff_happen();
 
     /* Confirm that both mirrors have all of the writes */
-    for (std::map<std::string, std::string>::iterator it = inserter.values_inserted.begin();
-            it != inserter.values_inserted.end(); it++) {
+    for (std::map<std::string, std::string>::iterator it = inserter.values_inserted->begin();
+            it != inserter.values_inserted->end(); it++) {
         EXPECT_EQ((*it).second, store1->underlying_store.values[(*it).first]);
         EXPECT_EQ((*it).second, store2.underlying_store.values[(*it).first]);
     }

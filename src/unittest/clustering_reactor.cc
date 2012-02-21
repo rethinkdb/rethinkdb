@@ -100,24 +100,14 @@ public:
     reactor_t<dummy_protocol_t> reactor;
 };
 
-
-void run_queries(reactor_test_cluster_t *reactor_test_cluster) {
-    cluster_namespace_interface_t<dummy_protocol_t> namespace_if(&reactor_test_cluster->mailbox_manager, 
-                                                                 reactor_test_cluster->directory_manager.get_root_view()->subview(field_lens(&test_cluster_directory_t::master_directory)));
-
-    order_source_t order_source;
-    inserter_t inserter(&namespace_if, &order_source);
-    let_stuff_happen();
-    inserter.stop();
-    inserter.validate();
-}
-
 class test_cluster_group_t {
 public:
     boost::ptr_vector<dummy_underlying_store_t> stores;
     boost::ptr_vector<reactor_test_cluster_t> test_clusters;
 
     boost::ptr_vector<test_reactor_t> test_reactors;
+
+    std::map<std::string, std::string> inserter_state;
 
     test_cluster_group_t(int n_machines) {
         int port = 10000 + rand() % 20000;
@@ -190,6 +180,20 @@ public:
     void set_blueprint(unsigned i, const blueprint_t<dummy_protocol_t> &bp) {
         test_reactors[i].blueprint_watchable.set_value(bp);
     }
+
+    void run_queries() {
+        for (unsigned i = 0; i < test_clusters.size(); i++) {
+            cluster_namespace_interface_t<dummy_protocol_t> namespace_if(&(&test_clusters[i])->mailbox_manager, 
+                                                                         (&test_clusters[i])->directory_manager.get_root_view()->subview(field_lens(&test_cluster_directory_t::master_directory)));
+
+            order_source_t order_source;
+
+            inserter_t inserter(&namespace_if, &order_source, &inserter_state);
+            let_stuff_happen();
+            inserter.stop();
+            inserter.validate();
+        }
+    }
 };
 
 }   /* anonymous namespace */
@@ -199,7 +203,7 @@ void runOneShardOnePrimaryOneNodeStartupShutdowntest() {
 
     cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,n"));
     let_stuff_happen();
-    run_queries(&cluster_group.test_clusters[0]);
+    cluster_group.run_queries();
 }
 
 TEST(ClusteringReactor, OneShardOnePrimaryOneNodeStartupShutdown) {
@@ -213,10 +217,10 @@ void runOneShardOnePrimaryOneSecondaryStartupShutdowntest() {
 
     let_stuff_happen();
 
-    run_queries(&cluster_group.test_clusters[0]);
+    cluster_group.run_queries();
 }
 
-TEST(ClusteringReactor, runOneShardOnePrimaryOneSecondaryStartupShutdowntest) {
+TEST(ClusteringReactor, OneShardOnePrimaryOneSecondaryStartupShutdowntest) {
     run_in_thread_pool(&runOneShardOnePrimaryOneSecondaryStartupShutdowntest);
 }
 
@@ -227,28 +231,65 @@ void runTwoShardsTwoNodes() {
 
     let_stuff_happen();
 
-    run_queries(&cluster_group.test_clusters[0]);
+    cluster_group.run_queries();
 }
 
-TEST(ClusteringReactor, runTwoShardsTwoNodes) {
+TEST(ClusteringReactor, TwoShardsTwoNodes) {
     run_in_thread_pool(&runTwoShardsTwoNodes);
 }
 
 void runRoleSwitchingTest() {
     test_cluster_group_t cluster_group(2);
 
-    blueprint_t<dummy_protocol_t> blueprint;
-
-    blueprint.add_peer(cluster_group.get_peer_id(0));
-    blueprint.add_role(cluster_group.get_peer_id(0), dummy_protocol_t::region_t('a', 'z'), blueprint_t<dummy_protocol_t>::role_primary);
-
-    blueprint.add_peer(cluster_group.get_peer_id(1));
-    blueprint.add_role(cluster_group.get_peer_id(1), dummy_protocol_t::region_t('a', 'z'), blueprint_t<dummy_protocol_t>::role_nothing);
-
-    cluster_group.construct_all_reactors(blueprint);
-
+    cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,n"));
     let_stuff_happen();
+    cluster_group.run_queries();
+
+    cluster_group.set_all_blueprints(cluster_group.compile_blueprint("n,p"));
+    let_stuff_happen();
+
+    cluster_group.run_queries();
 }
 
+TEST(ClusteringReactor, RoleSwitchingTest) {
+    run_in_thread_pool(&runRoleSwitchingTest);
+}
+
+void runOtherRoleSwitchingTest() {
+    test_cluster_group_t cluster_group(2);
+
+    cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,s"));
+    let_stuff_happen();
+    cluster_group.run_queries();
+
+    cluster_group.set_all_blueprints(cluster_group.compile_blueprint("s,p"));
+    let_stuff_happen();
+
+    cluster_group.run_queries();
+}
+
+TEST(ClusteringReactor, OtherRoleSwitchingTest) {
+    run_in_thread_pool(&runOtherRoleSwitchingTest);
+}
+
+void runReshardingTest() {
+    test_cluster_group_t cluster_group(2);
+
+    cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,n"));
+    let_stuff_happen();
+    cluster_group.run_queries();
+
+    cluster_group.set_all_blueprints(cluster_group.compile_blueprint("pp,ns"));
+    let_stuff_happen();
+    cluster_group.run_queries();
+
+    cluster_group.set_all_blueprints(cluster_group.compile_blueprint("pn,np"));
+    let_stuff_happen();
+    cluster_group.run_queries();
+}
+
+TEST(ClusteringReactor, ReshardingTest) {
+    run_in_thread_pool(&runReshardingTest);
+}
 
 } // namespace unittest
