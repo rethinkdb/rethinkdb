@@ -143,11 +143,14 @@ public:
 }   /* anonymous namespace */
 
 void runOneShardOnePrimaryOneNodeStartupShutdowntest() {
-    test_cluster_group_t cluster_group(1);
+    test_cluster_group_t cluster_group(2);
 
     blueprint_t<dummy_protocol_t> blueprint;
     blueprint.add_peer(cluster_group.get_peer_id(0));
     blueprint.add_role(cluster_group.get_peer_id(0), a_thru_z_region(), blueprint_t<dummy_protocol_t>::role_primary);
+
+    blueprint.add_peer(cluster_group.get_peer_id(1));
+    blueprint.add_role(cluster_group.get_peer_id(1), a_thru_z_region(), blueprint_t<dummy_protocol_t>::role_nothing);
 
     cluster_group.construct_all_reactors(blueprint);
     let_stuff_happen();
@@ -159,29 +162,24 @@ TEST(ClusteringReactor, OneShardOnePrimaryOneNodeStartupShutdown) {
 }
 
 void runOneShardOnePrimaryOneSecondaryStartupShutdowntest() {
-    int port = 10000 + rand() % 20000;
-
-    dummy_underlying_store_t primary_store(a_thru_z_region()), secondary_store(a_thru_z_region());
-    primary_store.metainfo.set(a_thru_z_region(), binary_blob_t(version_range_t(version_t::zero())));
-    secondary_store.metainfo.set(a_thru_z_region(), binary_blob_t(version_range_t(version_t::zero())));
-
-    reactor_test_cluster_t primary_cluster(port, &primary_store), secondary_cluster(port+1, &secondary_store);
-    primary_cluster.connectivity_cluster_run.join(secondary_cluster.connectivity_cluster.get_peer_address(secondary_cluster.connectivity_cluster.get_me()));
-
+    test_cluster_group_t cluster_group(3);
 
     blueprint_t<dummy_protocol_t> blueprint;
-    blueprint.add_peer(primary_cluster.get_me());
-    blueprint.add_role(primary_cluster.get_me(), a_thru_z_region(), blueprint_t<dummy_protocol_t>::role_primary);
 
-    blueprint.add_peer(secondary_cluster.get_me());
-    blueprint.add_role(secondary_cluster.get_me(), a_thru_z_region(), blueprint_t<dummy_protocol_t>::role_secondary);
+    blueprint.add_peer(cluster_group.get_peer_id(0));
+    blueprint.add_role(cluster_group.get_peer_id(0), a_thru_z_region(), blueprint_t<dummy_protocol_t>::role_primary);
 
-    test_reactor_t primary_reactor(&primary_cluster, blueprint);
-    test_reactor_t secondary_reactor(&secondary_cluster, blueprint);
+    blueprint.add_peer(cluster_group.get_peer_id(1));
+    blueprint.add_role(cluster_group.get_peer_id(1), a_thru_z_region(), blueprint_t<dummy_protocol_t>::role_secondary);
+
+    blueprint.add_peer(cluster_group.get_peer_id(2));
+    blueprint.add_role(cluster_group.get_peer_id(2), a_thru_z_region(), blueprint_t<dummy_protocol_t>::role_nothing);
+
+    cluster_group.construct_all_reactors(blueprint);
 
     let_stuff_happen();
 
-    run_queries(&primary_cluster);
+    run_queries(&cluster_group.test_clusters[0]);
 }
 
 TEST(ClusteringReactor, runOneShardOnePrimaryOneSecondaryStartupShutdowntest) {
@@ -189,6 +187,23 @@ TEST(ClusteringReactor, runOneShardOnePrimaryOneSecondaryStartupShutdowntest) {
 }
 
 void runTwoShardsTwoNodes() {
+    test_cluster_group_t cluster_group(2);
+
+    blueprint_t<dummy_protocol_t> blueprint;
+
+    blueprint.add_peer(cluster_group.get_peer_id(0));
+    blueprint.add_role(cluster_group.get_peer_id(0), dummy_protocol_t::region_t('a', 'm'), blueprint_t<dummy_protocol_t>::role_primary);
+    blueprint.add_role(cluster_group.get_peer_id(0), dummy_protocol_t::region_t('n', 'z'), blueprint_t<dummy_protocol_t>::role_secondary);
+
+    blueprint.add_peer(cluster_group.get_peer_id(1));
+    blueprint.add_role(cluster_group.get_peer_id(1), dummy_protocol_t::region_t('a', 'm'), blueprint_t<dummy_protocol_t>::role_secondary);
+    blueprint.add_role(cluster_group.get_peer_id(1), dummy_protocol_t::region_t('n', 'z'), blueprint_t<dummy_protocol_t>::role_primary);
+
+    cluster_group.construct_all_reactors(blueprint);
+
+    let_stuff_happen();
+
+    run_queries(&cluster_group.test_clusters[0]);
 }
 
 TEST(ClusteringReactor, runTwoShardsTwoNodes) {
