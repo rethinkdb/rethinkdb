@@ -292,4 +292,20 @@ TEST(ClusteringReactor, ReshardingTest) {
     run_in_thread_pool(&runReshardingTest);
 }
 
+void runLessGracefulReshardingTest() {
+    test_cluster_group_t cluster_group(2);
+
+    cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,n"));
+    let_stuff_happen();
+    cluster_group.run_queries();
+
+    cluster_group.set_all_blueprints(cluster_group.compile_blueprint("pn,np"));
+    let_stuff_happen();
+    cluster_group.run_queries();
+}
+
+TEST(ClusteringReactor, LessGracefulReshardingTest) {
+    run_in_thread_pool(&runLessGracefulReshardingTest);
+}
+
 } // namespace unittest
