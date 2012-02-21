@@ -334,7 +334,7 @@ public:
     operations or vice versa. Each of the accounts is itself an `accounting_queue_t` that
     collects operations from all the different slices. */
     accounting_queue_t<boost::function<void()> > combined_job_queue;
-    coro_pool_t coro_pool;
+    coro_pool_boost_t coro_pool;
     accounting_queue_t<boost::function<void()> > backfill_job_queue, realtime_job_queue;
     accounting_queue_t<boost::function<void()> >::account_t backfill_job_account, realtime_job_account;
 
