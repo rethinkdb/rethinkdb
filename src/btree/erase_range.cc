@@ -28,7 +28,7 @@ public:
         : sizer_(sizer), tester_(tester), deleter_(deleter),
           left_exclusive_or_null_(left_exclusive_or_null), right_inclusive_or_null_(right_inclusive_or_null) { }
 
-    void process_a_leaf(transaction_t *txn, buf_t *leaf_node_buf,
+    void process_a_leaf(transaction_t *txn, buf_lock_t *leaf_node_buf,
                         UNUSED const btree_key_t *l_excl,
                         UNUSED const btree_key_t *r_incl) {
         leaf_node_t *node = reinterpret_cast<leaf_node_t *>(leaf_node_buf->get_data_major_write());
@@ -60,11 +60,11 @@ public:
         }
     }
 
-    void postprocess_internal_node(UNUSED buf_t *internal_node_buf) {
+    void postprocess_internal_node(UNUSED buf_lock_t *internal_node_buf) {
         // We don't want to do anything here.
     }
 
-    void postprocess_btree_superblock(UNUSED buf_t *superblock_buf) {
+    void postprocess_btree_superblock(UNUSED buf_lock_t *superblock_buf) {
         // We don't want to do anything here.
     }
 

@@ -2,8 +2,8 @@
 #define __COUNTED_HPP__
 
 #include "buffer_cache/blob.hpp"
-#include "buffer_cache/buf_lock.hpp"
 #include "redis/redis_types.hpp"
+#include "buffer_cache/buffer_cache.hpp"
 #include "containers/iterators.hpp"
 #include <stack>
 

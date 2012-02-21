@@ -14,7 +14,7 @@
 /* The semantic-checking cache (scc_cache_t) is a wrapper around another cache that will
 make sure that the inner cache obeys the proper semantics. */
 
-template<class inner_cache_t> class scc_buf_t;
+template<class inner_cache_t> class scc_buf_lock_t;
 template<class inner_cache_t> class scc_transaction_t;
 template<class inner_cache_t> class scc_cache_t;
 
@@ -26,8 +26,18 @@ class sequence_group_t;
 /* Buf */
 
 template<class inner_cache_t>
-class scc_buf_t {
+class scc_buf_lock_t {
 public:
+    scc_buf_lock_t(scc_transaction_t<inner_cache_t> *txn, block_id_t block_id, access_t mode, boost::function<void()> call_when_in_line = 0);
+    scc_buf_lock_t(scc_transaction_t<inner_cache_t> *txn);
+    scc_buf_lock_t();
+    ~scc_buf_lock_t();
+
+    void swap(scc_buf_lock_t<inner_cache_t> &swapee);
+
+    void release();
+    void release_if_acquired();
+
     block_id_t get_block_id() const;
     const void *get_data_read() const;
     // Use this only for writes which affect a large part of the block, as it bypasses the diff system
@@ -40,29 +50,30 @@ public:
     patch_counter_t get_next_patch_counter();
     void mark_deleted();
     void touch_recency(repli_timestamp_t timestamp);
-    void release();
+
+    bool is_acquired() const;
+    void ensure_flush();
+    bool is_deleted() const;
+    repli_timestamp_t get_recency() const;
 
 private:
-    friend class scc_transaction_t<inner_cache_t>;
     bool snapshotted;
-    bool should_load;
     bool has_been_changed;
-    typename inner_cache_t::buf_t *inner_buf;
-    scc_buf_t(scc_cache_t<inner_cache_t> *, bool snapshotted, bool should_load);
+    typename inner_cache_t::buf_lock_t *internal_buf_lock;
     scc_cache_t<inner_cache_t> *cache;
 private:
     crc_t compute_crc() {
         boost::crc_optimal<32, 0x04C11DB7, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc_computer;
-        crc_computer.process_bytes(inner_buf->get_data_read(), cache->get_block_size().value());
+        crc_computer.process_bytes(internal_buf_lock->get_data_read(), cache->get_block_size().value());
         return crc_computer.checksum();
     }
 public:
     eviction_priority_t get_eviction_priority() {
-        return inner_buf->get_eviction_priority();
+        return internal_buf_lock->get_eviction_priority();
     }
 
     void set_eviction_priority(eviction_priority_t val) {
-        inner_buf->set_eviction_priority(val);
+        internal_buf_lock->set_eviction_priority(val);
     }
 };
 
@@ -72,7 +83,7 @@ template<class inner_cache_t>
 class scc_transaction_t :
     public home_thread_mixin_t
 {
-    typedef scc_buf_t<inner_cache_t> buf_t;
+    typedef scc_buf_lock_t<inner_cache_t> buf_lock_t;
 
 public:
     scc_transaction_t(scc_cache_t<inner_cache_t> *cache, sequence_group_t *seq_group, access_t access, int expected_change_count, repli_timestamp_t recency_timestamp);
@@ -86,9 +97,6 @@ public:
 
     void set_account(const boost::shared_ptr<typename inner_cache_t::cache_account_t>& cache_account);
 
-    buf_t *acquire(block_id_t block_id, access_t mode,
-                   boost::function<void()> call_when_in_line = 0, bool should_load = true);
-    buf_t *allocate();
     void get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp_t *recencies_out, get_subtree_recencies_callback_t *cb);
 
     scc_cache_t<inner_cache_t> *get_cache() const { return cache; }
@@ -101,6 +109,7 @@ public:
 private:
     bool snapshotted; // Disables CRC checks
 
+    friend class scc_buf_lock_t<inner_cache_t>;
     friend class scc_cache_t<inner_cache_t>;
     access_t access;
     typename inner_cache_t::transaction_t inner_transaction;
@@ -111,7 +120,7 @@ private:
 template<class inner_cache_t>
 class scc_cache_t : public home_thread_mixin_t, public serializer_read_ahead_callback_t {
 public:
-    typedef scc_buf_t<inner_cache_t> buf_t;
+    typedef scc_buf_lock_t<inner_cache_t> buf_lock_t;
     typedef scc_transaction_t<inner_cache_t> transaction_t;
     typedef typename inner_cache_t::cache_account_t cache_account_t;
 
@@ -136,7 +145,7 @@ private:
 
 private:
     friend class scc_transaction_t<inner_cache_t>;
-    friend class scc_buf_t<inner_cache_t>;
+    friend class scc_buf_lock_t<inner_cache_t>;
 
     /* CRC checking stuff */
     two_level_array_t<crc_t, MAX_BLOCK_ID> crc_map;

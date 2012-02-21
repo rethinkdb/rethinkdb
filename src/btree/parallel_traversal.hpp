@@ -81,13 +81,13 @@ private:
 
 struct btree_traversal_helper_t {
     // This is free to call mark_deleted.
-    virtual void process_a_leaf(transaction_t *txn, buf_t *leaf_node_buf,
+    virtual void process_a_leaf(transaction_t *txn, buf_lock_t *leaf_node_buf,
                                 const btree_key_t *left_exclusive_or_null,
                                 const btree_key_t *right_inclusive_or_null) = 0;
 
-    virtual void postprocess_internal_node(buf_t *internal_node_buf) = 0;
+    virtual void postprocess_internal_node(buf_lock_t *internal_node_buf) = 0;
 
-    virtual void postprocess_btree_superblock(buf_t *superblock_buf) = 0;
+    virtual void postprocess_btree_superblock(buf_lock_t *superblock_buf) = 0;
 
     virtual void filter_interesting_children(transaction_t *txn, ranged_block_ids_t *ids_source, interesting_children_callback_t *cb) = 0;
 

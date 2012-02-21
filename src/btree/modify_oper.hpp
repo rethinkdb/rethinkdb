@@ -2,7 +2,6 @@
 #define __BTREE_MODIFY_OPER_HPP__
 
 #include "btree/node.hpp"
-#include "buffer_cache/buf_lock.hpp"
 #include "containers/scoped_malloc.hpp"
 #include "btree/operations.hpp"
 

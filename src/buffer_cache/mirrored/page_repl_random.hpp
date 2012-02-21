@@ -12,7 +12,7 @@
 
 /*
 The random page replacement algorithm needs to be able to quickly choose a random buf among all the
-bufs in memory. This is accomplished using a dense array of buf_t* in a completely arbitrary order.
+bufs in memory. This is accomplished using a dense array of buf_lock_t* in a completely arbitrary order.
 Because the array is dense, choosing a random buf is as simple as choosing a random number less
 than the number of bufs in memory. When a buf is removed from memory, the last buf in the array is
 moved to the slot it last occupied, keeping the array dense. Each buf carries an index which is its
