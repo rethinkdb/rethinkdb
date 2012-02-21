@@ -19,8 +19,11 @@ namespace {
 
 /* `let_stuff_happen()` delays for some time to let events occur */
 void let_stuff_happen() {
+#ifdef VALGRIND
+    nap(10000);
+#else
     nap(1000);
-
+#endif
 }
 
 
