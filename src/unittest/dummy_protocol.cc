@@ -247,7 +247,7 @@ bool dummy_store_view_t::send_backfill(const region_map_t<dummy_protocol_t,state
 
     wait_interruptible(local_token.get(), interruptor);
 
-    metainfo_t metainfo = parent->metainfo.mask(get_region());
+    metainfo_t metainfo = parent->metainfo.mask(start_point.get_domain());
     if (should_backfill(metainfo)) {
         /* Make a copy so we can sleep and still have the correct semantics */
         std::map<std::string, std::string> values_snapshot = parent->values;
