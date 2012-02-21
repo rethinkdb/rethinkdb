@@ -22,11 +22,13 @@ def generate_async_message_template(nargs):
     print
     print "public:"
     print "    async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(" + csep("arg#_t") + ") > &fun) :"
-    print "        callback(fun),"
-    print "        mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))"
+    print "        mailbox(manager, boost::bind(&async_mailbox_t::on_message, _1, _2, fun))"
     print "        {"
     print "            rassert(fun);"
     print "        }"
+    print 
+    print "    ~async_mailbox_t() {"
+    print "    }"
     print
     print "    class address_t {"
     print "    public:"
@@ -60,7 +62,7 @@ def generate_async_message_template(nargs):
     for i in xrange(nargs):
         print "        archive << arg%d;" % i
     print "    }"
-    print "    void on_message(std::istream &stream, const boost::function<void()> &done) {"
+    print "    static void on_message(std::istream &stream, const boost::function<void()> &done, const boost::function< void(" + csep("arg#_t") + ") > &fun) {"
     for i in xrange(nargs):
         print "        arg%d_t arg%d;" % (i, i)
     print "        {"
@@ -69,10 +71,9 @@ def generate_async_message_template(nargs):
         print "        archive >> arg%d;" % i
     print "        }"
     print "        done();"
-    print "        callback(" + csep("arg#") + ");"
+    print "        fun(" + csep("arg#") + ");"
     print "    }"
     print
-    print "    boost::function< void(" + csep("arg#_t") + ") > callback;"
     print "    mailbox_t mailbox;"
     print "};"
     print

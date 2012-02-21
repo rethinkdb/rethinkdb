@@ -21,11 +21,13 @@ class async_mailbox_t< void() > {
 
 public:
     async_mailbox_t(mailbox_manager_t *manager, const boost::function< void() > &fun) :
-        callback(fun),
-        mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        mailbox(manager, boost::bind(&async_mailbox_t::on_message, _1, _2, fun))
         {
             rassert(fun);
         }
+
+    ~async_mailbox_t() {
+    }
 
     class address_t {
     public:
@@ -49,15 +51,14 @@ private:
     static void write(std::ostream &stream) {
         boost::archive::binary_oarchive archive(stream);
     }
-    void on_message(std::istream &stream, const boost::function<void()> &done) {
+    static void on_message(std::istream &stream, const boost::function<void()> &done, const boost::function< void() > &fun) {
         {
             boost::archive::binary_iarchive archive(stream);
         }
         done();
-        callback();
+        fun();
     }
 
-    boost::function< void() > callback;
     mailbox_t mailbox;
 };
 
@@ -72,11 +73,13 @@ class async_mailbox_t< void(arg0_t) > {
 
 public:
     async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t) > &fun) :
-        callback(fun),
-        mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        mailbox(manager, boost::bind(&async_mailbox_t::on_message, _1, _2, fun))
         {
             rassert(fun);
         }
+
+    ~async_mailbox_t() {
+    }
 
     class address_t {
     public:
@@ -103,17 +106,16 @@ private:
         boost::archive::binary_oarchive archive(stream);
         archive << arg0;
     }
-    void on_message(std::istream &stream, const boost::function<void()> &done) {
+    static void on_message(std::istream &stream, const boost::function<void()> &done, const boost::function< void(arg0_t) > &fun) {
         arg0_t arg0;
         {
             boost::archive::binary_iarchive archive(stream);
         archive >> arg0;
         }
         done();
-        callback(arg0);
+        fun(arg0);
     }
 
-    boost::function< void(arg0_t) > callback;
     mailbox_t mailbox;
 };
 
@@ -128,11 +130,13 @@ class async_mailbox_t< void(arg0_t, arg1_t) > {
 
 public:
     async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t) > &fun) :
-        callback(fun),
-        mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        mailbox(manager, boost::bind(&async_mailbox_t::on_message, _1, _2, fun))
         {
             rassert(fun);
         }
+
+    ~async_mailbox_t() {
+    }
 
     class address_t {
     public:
@@ -160,7 +164,7 @@ private:
         archive << arg0;
         archive << arg1;
     }
-    void on_message(std::istream &stream, const boost::function<void()> &done) {
+    static void on_message(std::istream &stream, const boost::function<void()> &done, const boost::function< void(arg0_t, arg1_t) > &fun) {
         arg0_t arg0;
         arg1_t arg1;
         {
@@ -169,10 +173,9 @@ private:
         archive >> arg1;
         }
         done();
-        callback(arg0, arg1);
+        fun(arg0, arg1);
     }
 
-    boost::function< void(arg0_t, arg1_t) > callback;
     mailbox_t mailbox;
 };
 
@@ -187,11 +190,13 @@ class async_mailbox_t< void(arg0_t, arg1_t, arg2_t) > {
 
 public:
     async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t) > &fun) :
-        callback(fun),
-        mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        mailbox(manager, boost::bind(&async_mailbox_t::on_message, _1, _2, fun))
         {
             rassert(fun);
         }
+
+    ~async_mailbox_t() {
+    }
 
     class address_t {
     public:
@@ -220,7 +225,7 @@ private:
         archive << arg1;
         archive << arg2;
     }
-    void on_message(std::istream &stream, const boost::function<void()> &done) {
+    static void on_message(std::istream &stream, const boost::function<void()> &done, const boost::function< void(arg0_t, arg1_t, arg2_t) > &fun) {
         arg0_t arg0;
         arg1_t arg1;
         arg2_t arg2;
@@ -231,10 +236,9 @@ private:
         archive >> arg2;
         }
         done();
-        callback(arg0, arg1, arg2);
+        fun(arg0, arg1, arg2);
     }
 
-    boost::function< void(arg0_t, arg1_t, arg2_t) > callback;
     mailbox_t mailbox;
 };
 
@@ -249,11 +253,13 @@ class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > {
 
 public:
     async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t) > &fun) :
-        callback(fun),
-        mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        mailbox(manager, boost::bind(&async_mailbox_t::on_message, _1, _2, fun))
         {
             rassert(fun);
         }
+
+    ~async_mailbox_t() {
+    }
 
     class address_t {
     public:
@@ -283,7 +289,7 @@ private:
         archive << arg2;
         archive << arg3;
     }
-    void on_message(std::istream &stream, const boost::function<void()> &done) {
+    static void on_message(std::istream &stream, const boost::function<void()> &done, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t) > &fun) {
         arg0_t arg0;
         arg1_t arg1;
         arg2_t arg2;
@@ -296,10 +302,9 @@ private:
         archive >> arg3;
         }
         done();
-        callback(arg0, arg1, arg2, arg3);
+        fun(arg0, arg1, arg2, arg3);
     }
 
-    boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t) > callback;
     mailbox_t mailbox;
 };
 
@@ -314,11 +319,13 @@ class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > {
 
 public:
     async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > &fun) :
-        callback(fun),
-        mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        mailbox(manager, boost::bind(&async_mailbox_t::on_message, _1, _2, fun))
         {
             rassert(fun);
         }
+
+    ~async_mailbox_t() {
+    }
 
     class address_t {
     public:
@@ -349,7 +356,7 @@ private:
         archive << arg3;
         archive << arg4;
     }
-    void on_message(std::istream &stream, const boost::function<void()> &done) {
+    static void on_message(std::istream &stream, const boost::function<void()> &done, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > &fun) {
         arg0_t arg0;
         arg1_t arg1;
         arg2_t arg2;
@@ -364,10 +371,9 @@ private:
         archive >> arg4;
         }
         done();
-        callback(arg0, arg1, arg2, arg3, arg4);
+        fun(arg0, arg1, arg2, arg3, arg4);
     }
 
-    boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > callback;
     mailbox_t mailbox;
 };
 
@@ -382,11 +388,13 @@ class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > {
 
 public:
     async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > &fun) :
-        callback(fun),
-        mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        mailbox(manager, boost::bind(&async_mailbox_t::on_message, _1, _2, fun))
         {
             rassert(fun);
         }
+
+    ~async_mailbox_t() {
+    }
 
     class address_t {
     public:
@@ -418,7 +426,7 @@ private:
         archive << arg4;
         archive << arg5;
     }
-    void on_message(std::istream &stream, const boost::function<void()> &done) {
+    static void on_message(std::istream &stream, const boost::function<void()> &done, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > &fun) {
         arg0_t arg0;
         arg1_t arg1;
         arg2_t arg2;
@@ -435,10 +443,9 @@ private:
         archive >> arg5;
         }
         done();
-        callback(arg0, arg1, arg2, arg3, arg4, arg5);
+        fun(arg0, arg1, arg2, arg3, arg4, arg5);
     }
 
-    boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > callback;
     mailbox_t mailbox;
 };
 
@@ -453,11 +460,13 @@ class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6
 
 public:
     async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > &fun) :
-        callback(fun),
-        mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        mailbox(manager, boost::bind(&async_mailbox_t::on_message, _1, _2, fun))
         {
             rassert(fun);
         }
+
+    ~async_mailbox_t() {
+    }
 
     class address_t {
     public:
@@ -490,7 +499,7 @@ private:
         archive << arg5;
         archive << arg6;
     }
-    void on_message(std::istream &stream, const boost::function<void()> &done) {
+    static void on_message(std::istream &stream, const boost::function<void()> &done, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > &fun) {
         arg0_t arg0;
         arg1_t arg1;
         arg2_t arg2;
@@ -509,10 +518,9 @@ private:
         archive >> arg6;
         }
         done();
-        callback(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
+        fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
     }
 
-    boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > callback;
     mailbox_t mailbox;
 };
 
@@ -527,11 +535,13 @@ class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6
 
 public:
     async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > &fun) :
-        callback(fun),
-        mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        mailbox(manager, boost::bind(&async_mailbox_t::on_message, _1, _2, fun))
         {
             rassert(fun);
         }
+
+    ~async_mailbox_t() {
+    }
 
     class address_t {
     public:
@@ -565,7 +575,7 @@ private:
         archive << arg6;
         archive << arg7;
     }
-    void on_message(std::istream &stream, const boost::function<void()> &done) {
+    static void on_message(std::istream &stream, const boost::function<void()> &done, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > &fun) {
         arg0_t arg0;
         arg1_t arg1;
         arg2_t arg2;
@@ -586,10 +596,9 @@ private:
         archive >> arg7;
         }
         done();
-        callback(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+        fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
     }
 
-    boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > callback;
     mailbox_t mailbox;
 };
 
@@ -604,11 +613,13 @@ class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6
 
 public:
     async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > &fun) :
-        callback(fun),
-        mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        mailbox(manager, boost::bind(&async_mailbox_t::on_message, _1, _2, fun))
         {
             rassert(fun);
         }
+
+    ~async_mailbox_t() {
+    }
 
     class address_t {
     public:
@@ -643,7 +654,7 @@ private:
         archive << arg7;
         archive << arg8;
     }
-    void on_message(std::istream &stream, const boost::function<void()> &done) {
+    static void on_message(std::istream &stream, const boost::function<void()> &done, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > &fun) {
         arg0_t arg0;
         arg1_t arg1;
         arg2_t arg2;
@@ -666,10 +677,9 @@ private:
         archive >> arg8;
         }
         done();
-        callback(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
+        fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
     }
 
-    boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > callback;
     mailbox_t mailbox;
 };
 
@@ -684,11 +694,13 @@ class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6
 
 public:
     async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > &fun) :
-        callback(fun),
-        mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        mailbox(manager, boost::bind(&async_mailbox_t::on_message, _1, _2, fun))
         {
             rassert(fun);
         }
+
+    ~async_mailbox_t() {
+    }
 
     class address_t {
     public:
@@ -724,7 +736,7 @@ private:
         archive << arg8;
         archive << arg9;
     }
-    void on_message(std::istream &stream, const boost::function<void()> &done) {
+    static void on_message(std::istream &stream, const boost::function<void()> &done, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > &fun) {
         arg0_t arg0;
         arg1_t arg1;
         arg2_t arg2;
@@ -749,10 +761,9 @@ private:
         archive >> arg9;
         }
         done();
-        callback(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
+        fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
     }
 
-    boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > callback;
     mailbox_t mailbox;
 };
 
@@ -767,11 +778,13 @@ class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6
 
 public:
     async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > &fun) :
-        callback(fun),
-        mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        mailbox(manager, boost::bind(&async_mailbox_t::on_message, _1, _2, fun))
         {
             rassert(fun);
         }
+
+    ~async_mailbox_t() {
+    }
 
     class address_t {
     public:
@@ -808,7 +821,7 @@ private:
         archive << arg9;
         archive << arg10;
     }
-    void on_message(std::istream &stream, const boost::function<void()> &done) {
+    static void on_message(std::istream &stream, const boost::function<void()> &done, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > &fun) {
         arg0_t arg0;
         arg1_t arg1;
         arg2_t arg2;
@@ -835,10 +848,9 @@ private:
         archive >> arg10;
         }
         done();
-        callback(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
+        fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
     }
 
-    boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > callback;
     mailbox_t mailbox;
 };
 
@@ -853,11 +865,13 @@ class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6
 
 public:
     async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > &fun) :
-        callback(fun),
-        mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        mailbox(manager, boost::bind(&async_mailbox_t::on_message, _1, _2, fun))
         {
             rassert(fun);
         }
+
+    ~async_mailbox_t() {
+    }
 
     class address_t {
     public:
@@ -895,7 +909,7 @@ private:
         archive << arg10;
         archive << arg11;
     }
-    void on_message(std::istream &stream, const boost::function<void()> &done) {
+    static void on_message(std::istream &stream, const boost::function<void()> &done, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > &fun) {
         arg0_t arg0;
         arg1_t arg1;
         arg2_t arg2;
@@ -924,10 +938,9 @@ private:
         archive >> arg11;
         }
         done();
-        callback(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11);
+        fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11);
     }
 
-    boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > callback;
     mailbox_t mailbox;
 };
 
@@ -942,11 +955,13 @@ class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6
 
 public:
     async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > &fun) :
-        callback(fun),
-        mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        mailbox(manager, boost::bind(&async_mailbox_t::on_message, _1, _2, fun))
         {
             rassert(fun);
         }
+
+    ~async_mailbox_t() {
+    }
 
     class address_t {
     public:
@@ -985,7 +1000,7 @@ private:
         archive << arg11;
         archive << arg12;
     }
-    void on_message(std::istream &stream, const boost::function<void()> &done) {
+    static void on_message(std::istream &stream, const boost::function<void()> &done, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > &fun) {
         arg0_t arg0;
         arg1_t arg1;
         arg2_t arg2;
@@ -1016,10 +1031,9 @@ private:
         archive >> arg12;
         }
         done();
-        callback(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12);
+        fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12);
     }
 
-    boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > callback;
     mailbox_t mailbox;
 };
 
@@ -1034,11 +1048,13 @@ class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6
 
 public:
     async_mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > &fun) :
-        callback(fun),
-        mailbox(manager, boost::bind(&async_mailbox_t::on_message, this, _1, _2))
+        mailbox(manager, boost::bind(&async_mailbox_t::on_message, _1, _2, fun))
         {
             rassert(fun);
         }
+
+    ~async_mailbox_t() {
+    }
 
     class address_t {
     public:
@@ -1078,7 +1094,7 @@ private:
         archive << arg12;
         archive << arg13;
     }
-    void on_message(std::istream &stream, const boost::function<void()> &done) {
+    static void on_message(std::istream &stream, const boost::function<void()> &done, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > &fun) {
         arg0_t arg0;
         arg1_t arg1;
         arg2_t arg2;
@@ -1111,10 +1127,9 @@ private:
         archive >> arg13;
         }
         done();
-        callback(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13);
+        fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13);
     }
 
-    boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > callback;
     mailbox_t mailbox;
 };
 
