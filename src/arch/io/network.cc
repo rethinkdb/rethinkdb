@@ -151,11 +151,11 @@ linux_tcp_conn_t::write_queue_op_t * linux_tcp_conn_t::get_write_queue_op() {
 }
 
 void linux_tcp_conn_t::release_write_buffer(write_buffer_t *buffer) {
-    unused_write_buffers.push_back(buffer);
+    unused_write_buffers.push_front(buffer);
 }
 
 void linux_tcp_conn_t::release_write_queue_op(write_queue_op_t *op) {
-    unused_write_queue_ops.push_back(op);
+    unused_write_queue_ops.push_front(op);
 }
 
 size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
