@@ -12,6 +12,7 @@
 #include "concurrency/watchable.hpp"
 #include "clustering/reactor/reactor.hpp"
 #include "clustering/immediate_consistency/query/namespace_interface.hpp"
+#include <boost/tokenizer.hpp>
 
 namespace unittest {
 
@@ -141,6 +142,54 @@ public:
         rassert(i < test_clusters.size());
         return test_clusters[i].get_me();
     }
+
+    blueprint_t<dummy_protocol_t> compile_blueprint(std::string bp) {
+        blueprint_t<dummy_protocol_t> blueprint;
+
+        typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+        typedef tokenizer::iterator tok_iterator;
+
+        boost::char_separator<char> sep(",");
+        tokenizer tokens(bp, sep);
+
+        unsigned peer = 0;
+        for (tok_iterator it =  tokens.begin();
+                          it != tokens.end();
+                          it++) {
+
+            blueprint.add_peer(get_peer_id(peer));
+            for (unsigned i = 0; i < it->size(); i++) {
+                dummy_protocol_t::region_t region('a' + ((i * 26)/it->size()), 'a' + (((i + 1) * 26)/it->size()) - 1);
+
+                switch (it->at(i)) {
+                    case 'p':
+                        blueprint.add_role(get_peer_id(peer), region, blueprint_t<dummy_protocol_t>::role_primary);
+                        break;
+                    case 's':
+                        blueprint.add_role(get_peer_id(peer), region, blueprint_t<dummy_protocol_t>::role_secondary);
+                        break;
+                    case 'n':
+                        blueprint.add_role(get_peer_id(peer), region, blueprint_t<dummy_protocol_t>::role_nothing);
+                        break;
+                    default:
+                        crash("Bad blueprint string\n");
+                        break;
+                }
+            }
+            peer++;
+        }
+        return blueprint;
+    }
+
+    void set_all_blueprints(const blueprint_t<dummy_protocol_t> &bp) {
+        for (unsigned i = 0; i < test_clusters.size(); i++) {
+            test_reactors[i].blueprint_watchable.set_value(bp);
+        }
+    }
+
+    void set_blueprint(unsigned i, const blueprint_t<dummy_protocol_t> &bp) {
+        test_reactors[i].blueprint_watchable.set_value(bp);
+    }
 };
 
 }   /* anonymous namespace */
@@ -148,14 +197,7 @@ public:
 void runOneShardOnePrimaryOneNodeStartupShutdowntest() {
     test_cluster_group_t cluster_group(2);
 
-    blueprint_t<dummy_protocol_t> blueprint;
-    blueprint.add_peer(cluster_group.get_peer_id(0));
-    blueprint.add_role(cluster_group.get_peer_id(0), a_thru_z_region(), blueprint_t<dummy_protocol_t>::role_primary);
-
-    blueprint.add_peer(cluster_group.get_peer_id(1));
-    blueprint.add_role(cluster_group.get_peer_id(1), a_thru_z_region(), blueprint_t<dummy_protocol_t>::role_nothing);
-
-    cluster_group.construct_all_reactors(blueprint);
+    cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,n"));
     let_stuff_happen();
     run_queries(&cluster_group.test_clusters[0]);
 }
@@ -167,18 +209,7 @@ TEST(ClusteringReactor, OneShardOnePrimaryOneNodeStartupShutdown) {
 void runOneShardOnePrimaryOneSecondaryStartupShutdowntest() {
     test_cluster_group_t cluster_group(3);
 
-    blueprint_t<dummy_protocol_t> blueprint;
-
-    blueprint.add_peer(cluster_group.get_peer_id(0));
-    blueprint.add_role(cluster_group.get_peer_id(0), a_thru_z_region(), blueprint_t<dummy_protocol_t>::role_primary);
-
-    blueprint.add_peer(cluster_group.get_peer_id(1));
-    blueprint.add_role(cluster_group.get_peer_id(1), a_thru_z_region(), blueprint_t<dummy_protocol_t>::role_secondary);
-
-    blueprint.add_peer(cluster_group.get_peer_id(2));
-    blueprint.add_role(cluster_group.get_peer_id(2), a_thru_z_region(), blueprint_t<dummy_protocol_t>::role_nothing);
-
-    cluster_group.construct_all_reactors(blueprint);
+    cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,s,n"));
 
     let_stuff_happen();
 
@@ -192,17 +223,7 @@ TEST(ClusteringReactor, runOneShardOnePrimaryOneSecondaryStartupShutdowntest) {
 void runTwoShardsTwoNodes() {
     test_cluster_group_t cluster_group(2);
 
-    blueprint_t<dummy_protocol_t> blueprint;
-
-    blueprint.add_peer(cluster_group.get_peer_id(0));
-    blueprint.add_role(cluster_group.get_peer_id(0), dummy_protocol_t::region_t('a', 'm'), blueprint_t<dummy_protocol_t>::role_primary);
-    blueprint.add_role(cluster_group.get_peer_id(0), dummy_protocol_t::region_t('n', 'z'), blueprint_t<dummy_protocol_t>::role_secondary);
-
-    blueprint.add_peer(cluster_group.get_peer_id(1));
-    blueprint.add_role(cluster_group.get_peer_id(1), dummy_protocol_t::region_t('a', 'm'), blueprint_t<dummy_protocol_t>::role_secondary);
-    blueprint.add_role(cluster_group.get_peer_id(1), dummy_protocol_t::region_t('n', 'z'), blueprint_t<dummy_protocol_t>::role_primary);
-
-    cluster_group.construct_all_reactors(blueprint);
+    cluster_group.construct_all_reactors(cluster_group.compile_blueprint("ps,sp"));
 
     let_stuff_happen();
 
@@ -211,6 +232,22 @@ void runTwoShardsTwoNodes() {
 
 TEST(ClusteringReactor, runTwoShardsTwoNodes) {
     run_in_thread_pool(&runTwoShardsTwoNodes);
+}
+
+void runRoleSwitchingTest() {
+    test_cluster_group_t cluster_group(2);
+
+    blueprint_t<dummy_protocol_t> blueprint;
+
+    blueprint.add_peer(cluster_group.get_peer_id(0));
+    blueprint.add_role(cluster_group.get_peer_id(0), dummy_protocol_t::region_t('a', 'z'), blueprint_t<dummy_protocol_t>::role_primary);
+
+    blueprint.add_peer(cluster_group.get_peer_id(1));
+    blueprint.add_role(cluster_group.get_peer_id(1), dummy_protocol_t::region_t('a', 'z'), blueprint_t<dummy_protocol_t>::role_nothing);
+
+    cluster_group.construct_all_reactors(blueprint);
+
+    let_stuff_happen();
 }
 
 
