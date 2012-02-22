@@ -105,7 +105,7 @@ void btree_store_helpers::prep_serializer(
     on_thread_t thread_switcher(i % get_num_db_threads());
 
     /* Prepare the serializer to hold a cache */
-    cache_t::create(serializer, static_config);\
+    cache_t::create(serializer, static_config);
 
     /* Construct a cache so that the btree code can write its superblock */
 

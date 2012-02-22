@@ -223,7 +223,7 @@ memcached_store_view_t::metainfo_t memcached_store_view_t::get_metainfo(
     return get_metainfo_internal(txn.get(), superblock.get_real_buf());
 }
 
-region_map_t<memcached_protocol_t,binary_blob_t> memcached_store_view_t::get_metainfo_internal(transaction_t *txn, buf_t *sb_buf) const THROWS_NOTHING {
+region_map_t<memcached_protocol_t,binary_blob_t> memcached_store_view_t::get_metainfo_internal(transaction_t *txn, buf_lock_t *sb_buf) const THROWS_NOTHING {
     std::vector<std::pair<std::vector<char>,std::vector<char> > > kv_pairs;
     get_superblock_metainfo(txn, sb_buf, kv_pairs);   // FIXME: this is inefficient, cut out the middleman (vector)
 
@@ -465,7 +465,7 @@ void memcached_store_view_t::update_metainfo(const metainfo_t &old_metainfo, con
     region_map_t<memcached_protocol_t,binary_blob_t> updated_metadata = old_metainfo;
     updated_metadata.update(new_metainfo);
 
-    buf_t* sb_buf = superblock.get_real_buf();
+    buf_lock_t* sb_buf = superblock.get_real_buf();
     clear_superblock_metainfo(txn, sb_buf);
 
     for (region_map_t<memcached_protocol_t,binary_blob_t>::const_iterator i = updated_metadata.begin(); i != updated_metadata.end(); ++i) {

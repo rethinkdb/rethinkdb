@@ -35,7 +35,7 @@ memcpy(tmp, ref, blob::ref_size(bs, ref, mrl));
     tmp.append_region(txn, x.size());
 
     {
-        // group holds pointers to buffers.  acq maintains the buf_t
+        // group holds pointers to buffers.  acq maintains the buf_lock_t
         // ownership itself.  You cannot use group outside the
         // lifetime of acq.
         blob_acq_t acq;
@@ -64,12 +64,12 @@ public:
     blob_acq_t() { }
     ~blob_acq_t();
 
-    void add_buf(buf_t *buf) {
+    void add_buf(buf_lock_t *buf) {
         bufs_.push_back(buf);
     }
 
 private:
-    std::vector<buf_t *> bufs_;
+    std::vector<buf_lock_t *> bufs_;
 
     // disable copying
     blob_acq_t(const blob_acq_t&);

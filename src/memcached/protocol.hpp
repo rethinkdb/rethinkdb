@@ -15,7 +15,6 @@
 #include "btree/operations.hpp"
 #include "btree/backfill.hpp"
 #include "buffer_cache/types.hpp"
-#include "buffer_cache/buf_lock.hpp"
 #include "memcached/queries.hpp"
 #include "protocol_api.hpp"
 #include "rpc/serialize_macros.hpp"
@@ -264,7 +263,7 @@ public:
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 private:
-    region_map_t<memcached_protocol_t,binary_blob_t> get_metainfo_internal(transaction_t* txn, buf_t* sb_buf) const THROWS_NOTHING;
+    region_map_t<memcached_protocol_t,binary_blob_t> get_metainfo_internal(transaction_t* txn, buf_lock_t* sb_buf) const THROWS_NOTHING;
 
     void acquire_superblock_for_read(
             access_t access,

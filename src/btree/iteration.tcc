@@ -122,7 +122,7 @@ boost::optional<leaf_iterator_t<Value>*> slice_leaves_iterator_t<Value>::get_fir
     }
 
     // read root node
-    const node_t *node = reinterpret_cast<const node_t *>(buf_lock->buf()->get_data_read());
+    const node_t *node = reinterpret_cast<const node_t *>(buf_lock->get_data_read());
     rassert(node != NULL);
 
     while (node::is_internal(node)) {
@@ -141,7 +141,7 @@ boost::optional<leaf_iterator_t<Value>*> slice_leaves_iterator_t<Value>::get_fir
         block_id_t child_id = get_child_id(i_node, index);
 
         buf_lock = new buf_lock_t(transaction, child_id, rwi_read);
-        node = reinterpret_cast<const node_t *>(buf_lock->buf()->get_data_read());
+        node = reinterpret_cast<const node_t *>(buf_lock->get_data_read());
     }
 
     rassert(node != NULL);
@@ -187,9 +187,9 @@ boost::optional<leaf_iterator_t<Value>*> slice_leaves_iterator_t<Value>::get_lef
     on_thread_t mover(slice_home_thread); // Move to the slice's thread.
 
     // TODO: Why is there a buf_lock_t pointer?  This is not how
-    // buf_lock_t works.  Just use a buf_t pointer then.
+    // buf_lock_t works.  Just use a buf_lock_t pointer then.
     buf_lock_t *buf_lock = new buf_lock_t(transaction, node_id, rwi_read);
-    const node_t *node = reinterpret_cast<const node_t *>(buf_lock->buf()->get_data_read());
+    const node_t *node = reinterpret_cast<const node_t *>(buf_lock->get_data_read());
 
     while (node::is_internal(node)) {
         const internal_node_t *i_node = reinterpret_cast<const internal_node_t *>(node);
@@ -202,7 +202,7 @@ boost::optional<leaf_iterator_t<Value>*> slice_leaves_iterator_t<Value>::get_lef
         block_id_t child_id = get_child_id(i_node, leftmost_child_index);
 
         buf_lock = new buf_lock_t(transaction, child_id, rwi_read);
-        node = reinterpret_cast<const node_t *>(buf_lock->buf()->get_data_read());
+        node = reinterpret_cast<const node_t *>(buf_lock->get_data_read());
     }
     rassert(node != NULL);
     rassert(node::is_leaf(node));

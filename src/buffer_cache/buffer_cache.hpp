@@ -7,7 +7,7 @@
 /* Choose our cache */
 
 // This file should be kept synced up with buffer_cache/types.hpp,
-// which defines what buf_t, cache_t, etc, are.
+// which defines what buf_lock_t, cache_t, etc, are.
 
 #ifndef MOCK_CACHE_CHECK
 

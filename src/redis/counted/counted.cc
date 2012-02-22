@@ -19,14 +19,12 @@ void counted_btree_t::insert_score(float score, std::string &value) {
 void counted_btree_t::insert_root(float score, unsigned index, bool by_score, std::string &value) {
     if(root->count == 0) {
         // Allocate the root block
-        buf_lock_t new_block;
-        new_block.allocate(txn);
-        leaf_counted_node_t *new_node = reinterpret_cast<leaf_counted_node_t *>(new_block->get_data_major_write());
+        buf_lock_t new_block(txn);
+        leaf_counted_node_t *new_node = reinterpret_cast<leaf_counted_node_t *>(new_block.get_data_major_write());
         new_node->magic = leaf_counted_node_t::expected_magic();
         new_node->n_refs = 0;
-        root->node_id = new_block->get_block_id();
+        root->node_id = new_block.get_block_id();
         root->greatest_score = FLT_MAX;
-        new_block.release();
     }
 
     // Pre-emptively increment count
@@ -40,9 +38,8 @@ void counted_btree_t::insert_root(float score, unsigned index, bool by_score, st
     if(insert_recur(blk, score, index, by_score, value, &new_block, &new_sub_size, &split_score)) {
         // The root block was split, we need to creat a new root and insert both the old root and new block
 
-        buf_lock_t new_root;
-        new_root.allocate(txn);
-        internal_counted_node_t *root_node = reinterpret_cast<internal_counted_node_t *>(new_root->get_data_major_write());
+        buf_lock_t new_root(txn);
+        internal_counted_node_t *root_node = reinterpret_cast<internal_counted_node_t *>(new_root.get_data_major_write());
         root_node->magic = internal_counted_node_t::expected_magic();
         root_node->n_refs = 2;
 
@@ -57,7 +54,7 @@ void counted_btree_t::insert_root(float score, unsigned index, bool by_score, st
         root_node->refs[1].greatest_score = root->greatest_score;
 
         // And reset root block id (count and score are already correct)
-        root->node_id = new_root->get_block_id();
+        root->node_id = new_root.get_block_id();
     }
 }
 
@@ -71,7 +68,7 @@ void counted_btree_t::remove(unsigned index) {
     root->count--;
     if(root->count == 0) {
         // Deallocate root block
-        blk->mark_deleted();
+        blk.mark_deleted();
         root->node_id = NULL_BLOCK_ID;
     }
 }
@@ -81,13 +78,13 @@ void counted_btree_t::clear() {
     clear_recur(blk);
     
     // Deallocate root block
-    blk->mark_deleted();
+    blk.mark_deleted();
     root->node_id = NULL_BLOCK_ID;
     root->count = 0;
 }
 
 void counted_btree_t::clear_recur(buf_lock_t &blk) {
-    const counted_node_t *node = reinterpret_cast<const counted_node_t *>(blk->get_data_read());
+    const counted_node_t *node = reinterpret_cast<const counted_node_t *>(blk.get_data_read());
     if(node->magic == internal_counted_node_t::expected_magic()) {
         internal_clear(blk);    
     } else if(node->magic == leaf_counted_node_t::expected_magic()) {
@@ -96,7 +93,7 @@ void counted_btree_t::clear_recur(buf_lock_t &blk) {
 }
 
 void counted_btree_t::internal_clear(buf_lock_t &blk) {
-    const internal_counted_node_t *i_node = reinterpret_cast<const internal_counted_node_t *>(blk->get_data_read());
+    const internal_counted_node_t *i_node = reinterpret_cast<const internal_counted_node_t *>(blk.get_data_read());
     for(int i = 0; i < i_node->n_refs; i++) {
         sub_ref_t sub_ref = i_node->refs[i];
         buf_lock_t sub_tree(txn, sub_ref.node_id, rwi_write);
@@ -105,12 +102,12 @@ void counted_btree_t::internal_clear(buf_lock_t &blk) {
         clear_recur(sub_tree);
 
         // And deallocate
-        sub_tree->mark_deleted();
+        sub_tree.mark_deleted();
     }
 }
 
 void counted_btree_t::leaf_clear(buf_lock_t &blk) {
-    const leaf_counted_node_t *l_node = reinterpret_cast<const leaf_counted_node_t *>(blk->get_data_read());
+    const leaf_counted_node_t *l_node = reinterpret_cast<const leaf_counted_node_t *>(blk.get_data_read());
 
     unsigned offset = 0;
     for(unsigned i = 0; i < l_node->n_refs; i++) {
@@ -124,7 +121,7 @@ void counted_btree_t::leaf_clear(buf_lock_t &blk) {
 const counted_value_t *counted_btree_t::at_recur(buf_lock_t &buf, unsigned index) {
     if(index >= root->count) return NULL;
 
-    const counted_node_t *node = reinterpret_cast<const counted_node_t *>(buf->get_data_read());
+    const counted_node_t *node = reinterpret_cast<const counted_node_t *>(buf.get_data_read());
 
     if(node->magic == internal_counted_node_t::expected_magic()) {
         const internal_counted_node_t *i_node = reinterpret_cast<const internal_counted_node_t *>(node);
@@ -166,7 +163,7 @@ const counted_value_t *counted_btree_t::at_recur(buf_lock_t &buf, unsigned index
 
 bool counted_btree_t::insert_recur(buf_lock_t &blk, float score, unsigned index, bool by_score,
         std::string &value, block_id_t *new_blk_out, unsigned *new_size_out, float *split_score_out) {
-    const counted_node_t *node = reinterpret_cast<const counted_node_t *>(blk->get_data_read());
+    const counted_node_t *node = reinterpret_cast<const counted_node_t *>(blk.get_data_read());
     if(node->magic == internal_counted_node_t::expected_magic()) {
         return internal_insert(blk, score, index, by_score, value, new_blk_out, new_size_out, split_score_out);
     } else if(node->magic == leaf_counted_node_t::expected_magic()) {
@@ -179,7 +176,7 @@ bool counted_btree_t::insert_recur(buf_lock_t &blk, float score, unsigned index,
 bool counted_btree_t::internal_insert(buf_lock_t &blk, float score, unsigned index, bool by_score,
         std::string &value, block_id_t *new_blk_out, unsigned *new_size_out, float *split_score_out) {
     bool split = false;
-    const internal_counted_node_t *node = reinterpret_cast<const internal_counted_node_t *>(blk->get_data_read());
+    const internal_counted_node_t *node = reinterpret_cast<const internal_counted_node_t *>(blk.get_data_read());
 
     // Find the appropriate sub tree
     unsigned insert_index = 0;
@@ -199,7 +196,7 @@ bool counted_btree_t::internal_insert(buf_lock_t &blk, float score, unsigned ind
 
     // Pre-emptively increment the count of this sub-tree
     uint32_t new_count = sub_ref->count + 1;
-    blk->set_data(const_cast<uint32_t *>(&(sub_ref->count)), &new_count, sizeof(new_count));
+    blk.set_data(const_cast<uint32_t *>(&(sub_ref->count)), &new_count, sizeof(new_count));
 
     // Why didn't we just simply increment sub_ref->count? Beause that's a const reference obtained through get_data_read.
     // We could have used get_data_major write to get a non-const reference instead, but using blk->set_data instead
@@ -226,9 +223,10 @@ bool counted_btree_t::internal_insert(buf_lock_t &blk, float score, unsigned ind
             float split_score = node->refs[refs_left].greatest_score;
 
             // Allocate the new node
-            new_block.allocate(txn);
+            buf_lock_t temp_lock(txn);
+            new_block.swap(temp_lock);
 
-            internal_counted_node_t *new_node = reinterpret_cast<internal_counted_node_t *>(new_block->get_data_major_write());
+            internal_counted_node_t *new_node = reinterpret_cast<internal_counted_node_t *>(new_block.get_data_major_write());
             new_node->magic = internal_counted_node_t::expected_magic();
             new_node->n_refs = refs_right;
 
@@ -236,7 +234,7 @@ bool counted_btree_t::internal_insert(buf_lock_t &blk, float score, unsigned ind
             memcpy(new_node->refs, node->refs + refs_left, refs_right * sizeof(sub_ref_t));
 
             // Resize old block
-            blk->set_data(const_cast<uint16_t *>(&(node->n_refs)), &refs_left, sizeof(refs_left));
+            blk.set_data(const_cast<uint16_t *>(&(node->n_refs)), &refs_left, sizeof(refs_left));
 
             // Count size of new internal node
             unsigned right_size = 0;
@@ -244,7 +242,7 @@ bool counted_btree_t::internal_insert(buf_lock_t &blk, float score, unsigned ind
                 right_size += new_node->refs[i].count;
             }
 
-            *new_blk_out = new_block->get_block_id();
+            *new_blk_out = new_block.get_block_id();
             *new_size_out = right_size;
             *split_score_out = split_score;
 
@@ -262,22 +260,22 @@ bool counted_btree_t::internal_insert(buf_lock_t &blk, float score, unsigned ind
         // Shift to make space
         unsigned refs_to_shift = node->n_refs - insert_index - 1;
         if(refs_to_shift) {
-            (*insertee)->move_data(const_cast<sub_ref_t *>(node->refs + insert_index + 2), node->refs + insert_index + 1, refs_to_shift * sizeof(sub_ref_t));
+            insertee->move_data(const_cast<sub_ref_t *>(node->refs + insert_index + 2), node->refs + insert_index + 1, refs_to_shift * sizeof(sub_ref_t));
         }
 
         // And change the ref count on this node to reflect the insert
         uint16_t new_n_refs = node->n_refs + 1;
-        (*insertee)->set_data(const_cast<uint16_t *>(&(node->n_refs)), &new_n_refs, sizeof(new_n_refs));
+        insertee->set_data(const_cast<uint16_t *>(&(node->n_refs)), &new_n_refs, sizeof(new_n_refs));
 
         // Set new reference
-        (*insertee)->set_data(const_cast<block_id_t *>(&(node->refs[insert_index + 1].node_id)), &new_block_id, sizeof(new_block_id));
-        (*insertee)->set_data(const_cast<uint32_t *>(&(node->refs[insert_index + 1].count)), &new_sub_size, sizeof(new_sub_size));
-        (*insertee)->set_data(const_cast<float *>(&(node->refs[insert_index + 1].greatest_score)), &(sub_ref->greatest_score), sizeof(sub_ref->greatest_score));
+        insertee->set_data(const_cast<block_id_t *>(&(node->refs[insert_index + 1].node_id)), &new_block_id, sizeof(new_block_id));
+        insertee->set_data(const_cast<uint32_t *>(&(node->refs[insert_index + 1].count)), &new_sub_size, sizeof(new_sub_size));
+        insertee->set_data(const_cast<float *>(&(node->refs[insert_index + 1].greatest_score)), &(sub_ref->greatest_score), sizeof(sub_ref->greatest_score));
 
         // Fix count and score on old reference
         uint32_t modified_old_sub_size = node->refs[insert_index].count - new_sub_size;
-        (*insertee)->set_data(const_cast<uint32_t *>(&(node->refs[insert_index].count)), &modified_old_sub_size, sizeof(modified_old_sub_size));
-        (*insertee)->set_data(const_cast<float *>(&(node->refs[insert_index].greatest_score)), &split_score, sizeof(split_score));
+        insertee->set_data(const_cast<uint32_t *>(&(node->refs[insert_index].count)), &modified_old_sub_size, sizeof(modified_old_sub_size));
+        insertee->set_data(const_cast<float *>(&(node->refs[insert_index].greatest_score)), &split_score, sizeof(split_score));
 
     } // else nothing to do at this level
 
@@ -297,7 +295,7 @@ bool counted_btree_t::leaf_insert(buf_lock_t &blk, float score, unsigned index, 
     b.write_from_string(value, txn, 0);
     unsigned refsize = b.refsize(blksize);
 
-    const leaf_counted_node_t *node = reinterpret_cast<const leaf_counted_node_t *>(blk->get_data_read());
+    const leaf_counted_node_t *node = reinterpret_cast<const leaf_counted_node_t *>(blk.get_data_read());
 
     // Find the correct blob, this involves a linear search through the blobs in this node
     unsigned offset = 0;
@@ -345,9 +343,10 @@ bool counted_btree_t::leaf_insert(buf_lock_t &blk, float score, unsigned index, 
         float split_score = reinterpret_cast<const counted_value_t*>(node->refs + bytes_left)->score;
 
         // Allocate the new block
-        new_block.allocate(txn);
+        buf_lock_t temp_lock(txn);
+        new_block.swap(temp_lock);
 
-        leaf_counted_node_t *new_node = reinterpret_cast<leaf_counted_node_t *>(new_block->get_data_major_write());
+        leaf_counted_node_t *new_node = reinterpret_cast<leaf_counted_node_t *>(new_block.get_data_major_write());
         new_node->magic = leaf_counted_node_t::expected_magic();
         new_node->n_refs = refs_right;
 
@@ -355,9 +354,9 @@ bool counted_btree_t::leaf_insert(buf_lock_t &blk, float score, unsigned index, 
         memcpy(new_node->refs, node->refs + bytes_left, bytes_right);
         
         // De-allocate space in old block
-        blk->set_data(const_cast<uint16_t *>(&(node->n_refs)), &refs_left, sizeof(refs_left));
+        blk.set_data(const_cast<uint16_t *>(&(node->n_refs)), &refs_left, sizeof(refs_left));
 
-        *new_blk_out = new_block->get_block_id();
+        *new_blk_out = new_block.get_block_id();
         *new_size_out = refs_right;
         *split_score_out = split_score;
 
@@ -377,19 +376,19 @@ bool counted_btree_t::leaf_insert(buf_lock_t &blk, float score, unsigned index, 
     const char *place = node->refs + offset;
 
     // Shift
-    (*insertee)->move_data(const_cast<char *>(place + refsize + sizeof(counted_value_t)), place, toshift);
+    insertee->move_data(const_cast<char *>(place + refsize + sizeof(counted_value_t)), place, toshift);
     uint16_t new_refs = node->n_refs + 1;
-    (*insertee)->set_data(const_cast<uint16_t *>(&(node->n_refs)), &new_refs, sizeof(new_refs));
+    insertee->set_data(const_cast<uint16_t *>(&(node->n_refs)), &new_refs, sizeof(new_refs));
 
     // And write
-    (*insertee)->set_data(const_cast<char *>(place), &score, sizeof(score));
-    (*insertee)->set_data(const_cast<char *>(place + sizeof(score)), blob_ref, refsize);
+    insertee->set_data(const_cast<char *>(place), &score, sizeof(score));
+    insertee->set_data(const_cast<char *>(place + sizeof(score)), blob_ref, refsize);
 
     return split;
 }
 
 void counted_btree_t::remove_recur(buf_lock_t &blk, unsigned index) {
-    const counted_node_t *node = reinterpret_cast<const counted_node_t *>(blk->get_data_read());
+    const counted_node_t *node = reinterpret_cast<const counted_node_t *>(blk.get_data_read());
     if(node->magic == internal_counted_node_t::expected_magic()) {
         internal_remove(blk, index);
     } else if(node->magic == leaf_counted_node_t::expected_magic()) {
@@ -398,7 +397,7 @@ void counted_btree_t::remove_recur(buf_lock_t &blk, unsigned index) {
 }
 
 void counted_btree_t::internal_remove(buf_lock_t &blk, unsigned index) {
-    const internal_counted_node_t *node = reinterpret_cast<const internal_counted_node_t *>(blk->get_data_read());
+    const internal_counted_node_t *node = reinterpret_cast<const internal_counted_node_t *>(blk.get_data_read());
 
     // Find appropriate sub tree
     unsigned count = 0;
@@ -417,28 +416,27 @@ void counted_btree_t::internal_remove(buf_lock_t &blk, unsigned index) {
     remove_recur(sub_blk, index - count);
 
     uint32_t new_count = sub_ref->count - 1;
-    blk->set_data(const_cast<uint32_t *>(&(sub_ref->count)), &new_count, sizeof(new_count));
+    blk.set_data(const_cast<uint32_t *>(&(sub_ref->count)), &new_count, sizeof(new_count));
 
     // Check and handle merge
     // For now, our under-fill condition is empty
 
     if(sub_ref->count == 0) {
         // Merge (in this case just delete this sub-tree)
-        sub_blk->mark_deleted();
-        sub_blk.release();
+        sub_blk.mark_deleted();
 
         // Modify ref-count
         uint16_t new_ref_count = node->n_refs - 1;
-        blk->set_data(const_cast<uint16_t *>(&(node->n_refs)), &new_ref_count, sizeof(new_ref_count));
+        blk.set_data(const_cast<uint16_t *>(&(node->n_refs)), &new_ref_count, sizeof(new_ref_count));
 
         // Shift down other references
         unsigned bytes_to_shift = (node->n_refs - remove_index) * sizeof(sub_ref_t);
-        blk->move_data(const_cast<sub_ref_t *>(node->refs + remove_index), node->refs + remove_index + 1, bytes_to_shift);
+        blk.move_data(const_cast<sub_ref_t *>(node->refs + remove_index), node->refs + remove_index + 1, bytes_to_shift);
     }
 }
 
 void counted_btree_t::leaf_remove(buf_lock_t &blk, unsigned index) {
-    const leaf_counted_node_t *node = reinterpret_cast<const leaf_counted_node_t *>(blk->get_data_read());
+    const leaf_counted_node_t *node = reinterpret_cast<const leaf_counted_node_t *>(blk.get_data_read());
 
     // Find appropriate place in this node
     unsigned offset = 0;
@@ -476,9 +474,9 @@ void counted_btree_t::leaf_remove(buf_lock_t &blk, unsigned index) {
     }
 
     // Shift down
-    blk->move_data(const_cast<char *>(place), next_place, to_shift);
+    blk.move_data(const_cast<char *>(place), next_place, to_shift);
     uint16_t new_ref_count = node->n_refs - 1;
-    blk->set_data(const_cast<uint16_t *>(&(node->n_refs)), &new_ref_count, sizeof(new_ref_count));
+    blk.set_data(const_cast<uint16_t *>(&(node->n_refs)), &new_ref_count, sizeof(new_ref_count));
 }
 
 counted_btree_t::iterator_t counted_btree_t::score_iterator(float score_min, float score_max) {
@@ -499,7 +497,7 @@ counted_btree_t::iterator_t::iterator_t(block_id_t root, transaction_t *txn_, bl
     // We can't use a recursive pattern to do the look up so we'll use a loop and
     // maintain a stack of blocks we've traversed
     while(true) {
-        const counted_node_t *node = reinterpret_cast<const counted_node_t *>(current_frame->blk->get_data_read());
+        const counted_node_t *node = reinterpret_cast<const counted_node_t *>(current_frame->blk.get_data_read());
         if(node->magic == internal_counted_node_t::expected_magic()) {
             const internal_counted_node_t *internal_node = reinterpret_cast<const internal_counted_node_t *>(node);
             
@@ -563,7 +561,7 @@ void counted_btree_t::iterator_t::next() {
     if(!is_valid()) return;
     
     const leaf_counted_node_t *leaf_node =
-            reinterpret_cast<const leaf_counted_node_t *>(current_frame->blk->get_data_read());
+            reinterpret_cast<const leaf_counted_node_t *>(current_frame->blk.get_data_read());
     rassert(leaf_node->magic == leaf_counted_node_t::expected_magic());
 
     current_frame->index++;
@@ -584,7 +582,7 @@ void counted_btree_t::iterator_t::next() {
             stack.pop();
             current_frame->index++;
 
-            internal_node = reinterpret_cast<const internal_counted_node_t *>(current_frame->blk->get_data_read());
+            internal_node = reinterpret_cast<const internal_counted_node_t *>(current_frame->blk.get_data_read());
 
         } while(current_frame->index < internal_node->n_refs);
 
@@ -597,7 +595,7 @@ void counted_btree_t::iterator_t::next() {
             current_frame = new stack_frame_t();
             current_frame->blk.swap(next_node);
 
-            internal_node = reinterpret_cast<const internal_counted_node_t *>(current_frame->blk->get_data_read());
+            internal_node = reinterpret_cast<const internal_counted_node_t *>(current_frame->blk.get_data_read());
         } while(internal_node->magic == internal_counted_node_t::expected_magic());
 
         // We're back at the leaf level (internal_node is actually a leaf node)
