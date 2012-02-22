@@ -18,13 +18,13 @@ template<class internal_t>
 class directory_echo_wrapper_t {
 public:
     directory_echo_wrapper_t() { }
-private:
-    friend class directory_echo_access_t<internal_t>;
     directory_echo_wrapper_t(internal_t i, directory_echo_version_t v, const async_mailbox_t<void(peer_id_t, directory_echo_version_t)>::address_t &am) :
         internal(i), version(v), ack_mailbox(am) { }
+
     internal_t internal;
     directory_echo_version_t version;
     async_mailbox_t<void(peer_id_t, directory_echo_version_t)>::address_t ack_mailbox;
+
     RDB_MAKE_ME_SERIALIZABLE_3(internal, version, ack_mailbox);
 };
 

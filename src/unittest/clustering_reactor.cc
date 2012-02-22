@@ -13,6 +13,7 @@
 #include "clustering/reactor/reactor.hpp"
 #include "clustering/immediate_consistency/query/namespace_interface.hpp"
 #include <boost/tokenizer.hpp>
+#include "clustering/reactor/blueprint.hpp"
 
 namespace unittest {
 
@@ -27,6 +28,75 @@ void let_stuff_happen() {
 #endif
 }
 
+template<class K, class V>
+std::ostream &operator<<(std::ostream &stream, const std::map<K,V> &map) {
+    stream << "{ ";
+    for (typename std::map<K,V>::const_iterator it =  map.begin();
+                                                it != map.end();
+                                                it++) {
+        stream << it->first << " -> " << it->second << ", ";
+    }
+    stream << "}";
+    return stream;
+}
+
+template <class T>
+std::ostream &operator<<(std::ostream &stream, const boost::optional<T> &optional) {
+    if (optional) {
+        stream << optional.get();
+    } else {
+        stream << "Boost optional containing nothing.";
+    }
+
+    return stream;
+}
+
+bool is_blueprint_satisfied(const blueprint_t<dummy_protocol_t> &bp,
+                            const std::map<peer_id_t, boost::optional<reactor_business_card_t<dummy_protocol_t> > > &reactor_directory) {
+    std::cout << "Current directory: " << reactor_directory << std::endl;
+    for (blueprint_t<dummy_protocol_t>::role_map_t::const_iterator it  = bp.peers_roles.begin();
+                                                                   it != bp.peers_roles.end();
+                                                                   it++) {
+
+        if (reactor_directory.find(it->first) == reactor_directory.end() ||
+            !reactor_directory.find(it->first)->second) {
+            return false;
+        }
+        reactor_business_card_t<dummy_protocol_t> bcard = reactor_directory.find(it->first)->second.get();
+
+        for (blueprint_t<dummy_protocol_t>::region_to_role_map_t::const_iterator jt  = it->second.begin();
+                                                                                 jt != it->second.end();
+                                                                                 jt++) {
+            bool found = false;
+            for (reactor_business_card_t<dummy_protocol_t>::activity_map_t::const_iterator kt  = bcard.activities.begin();
+                                                                                           kt != bcard.activities.end();
+                                                                                           kt++) {
+                if (jt->first == kt->second.first) {
+                    if (jt->second == blueprint_t<dummy_protocol_t>::role_primary &&
+                        boost::get<reactor_business_card_t<dummy_protocol_t>::primary_t>(&kt->second.second)) {
+                        found = true;
+                        break;
+                    } else if (jt->second == blueprint_t<dummy_protocol_t>::role_secondary&&
+                        boost::get<reactor_business_card_t<dummy_protocol_t>::secondary_up_to_date_t>(&kt->second.second)) {
+                        found = true;
+                        break;
+                    } else if (jt->second == blueprint_t<dummy_protocol_t>::role_nothing&&
+                        boost::get<reactor_business_card_t<dummy_protocol_t>::nothing_t>(&kt->second.second)) {
+                        found = true;
+                        break;
+                    } else {
+                        return false;
+                    }
+                }
+            }
+
+            if (!found) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
 
 class test_cluster_directory_t {
 public:
@@ -194,6 +264,27 @@ public:
             inserter.validate();
         }
     }
+
+    void wait_until_blueprint_is_satisfied(const blueprint_t<dummy_protocol_t> &bp) {
+        std::cout << "Waiting for blueprint to be satisfied:" << std::endl;
+        try {
+            signal_timer_t timer(2000);
+            static_cast<clone_ptr_t<directory_rview_t<boost::optional<directory_echo_wrapper_t<reactor_business_card_t<dummy_protocol_t> > > > > >(test_clusters[0].directory_manager.get_root_view()
+                ->subview(field_lens(&test_cluster_directory_t::reactor_directory)))
+                ->subview(optional_monad_lens<reactor_business_card_t<dummy_protocol_t>, directory_echo_wrapper_t<reactor_business_card_t<dummy_protocol_t> > >(
+                            field_lens(&directory_echo_wrapper_t<reactor_business_card_t<dummy_protocol_t> >::internal)))
+                    ->run_until_satisfied(
+                        boost::bind(&is_blueprint_satisfied, bp, _1), &timer);
+        } catch (interrupted_exc_t) {
+            ADD_FAILURE() << "The blueprint took too long to be satisfied, this is probably an error but you could try increasing the timeout. Heres the blueprint:";
+        }
+
+        nap(100);
+    }
+
+    void wait_until_blueprint_is_satisfied(std::string bp) {
+        wait_until_blueprint_is_satisfied(compile_blueprint(bp));
+    }
 };
 
 }   /* anonymous namespace */
@@ -202,7 +293,9 @@ void runOneShardOnePrimaryOneNodeStartupShutdowntest() {
     test_cluster_group_t cluster_group(2);
 
     cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,n"));
-    let_stuff_happen();
+
+    cluster_group.wait_until_blueprint_is_satisfied("p,n");
+
     cluster_group.run_queries();
 }
 
@@ -215,7 +308,7 @@ void runOneShardOnePrimaryOneSecondaryStartupShutdowntest() {
 
     cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,s,n"));
 
-    let_stuff_happen();
+    cluster_group.wait_until_blueprint_is_satisfied("p,s,n");
 
     cluster_group.run_queries();
 }
@@ -229,7 +322,7 @@ void runTwoShardsTwoNodes() {
 
     cluster_group.construct_all_reactors(cluster_group.compile_blueprint("ps,sp"));
 
-    let_stuff_happen();
+    cluster_group.wait_until_blueprint_is_satisfied("ps,sp");
 
     cluster_group.run_queries();
 }
@@ -242,11 +335,12 @@ void runRoleSwitchingTest() {
     test_cluster_group_t cluster_group(2);
 
     cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,n"));
-    let_stuff_happen();
+    cluster_group.wait_until_blueprint_is_satisfied("p,n");
+
     cluster_group.run_queries();
 
     cluster_group.set_all_blueprints(cluster_group.compile_blueprint("n,p"));
-    let_stuff_happen();
+    cluster_group.wait_until_blueprint_is_satisfied("n,p");
 
     cluster_group.run_queries();
 }
@@ -259,11 +353,11 @@ void runOtherRoleSwitchingTest() {
     test_cluster_group_t cluster_group(2);
 
     cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,s"));
-    let_stuff_happen();
+    cluster_group.wait_until_blueprint_is_satisfied("p,s");
     cluster_group.run_queries();
 
     cluster_group.set_all_blueprints(cluster_group.compile_blueprint("s,p"));
-    let_stuff_happen();
+    cluster_group.wait_until_blueprint_is_satisfied("s,p");
 
     cluster_group.run_queries();
 }
@@ -276,15 +370,15 @@ void runReshardingTest() {
     test_cluster_group_t cluster_group(2);
 
     cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,n"));
-    let_stuff_happen();
+    cluster_group.wait_until_blueprint_is_satisfied("p,n");
     cluster_group.run_queries();
 
     cluster_group.set_all_blueprints(cluster_group.compile_blueprint("pp,ns"));
-    let_stuff_happen();
+    cluster_group.wait_until_blueprint_is_satisfied("pp,ns");
     cluster_group.run_queries();
 
     cluster_group.set_all_blueprints(cluster_group.compile_blueprint("pn,np"));
-    let_stuff_happen();
+    cluster_group.wait_until_blueprint_is_satisfied("pn,np");
     cluster_group.run_queries();
 }
 
@@ -296,11 +390,11 @@ void runLessGracefulReshardingTest() {
     test_cluster_group_t cluster_group(2);
 
     cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,n"));
-    let_stuff_happen();
+    cluster_group.wait_until_blueprint_is_satisfied("p,n");
     cluster_group.run_queries();
 
     cluster_group.set_all_blueprints(cluster_group.compile_blueprint("pn,np"));
-    let_stuff_happen();
+    cluster_group.wait_until_blueprint_is_satisfied("pn,np");
     cluster_group.run_queries();
 }
 

@@ -345,4 +345,16 @@ dummy_protocol_t::region_t a_thru_z_region() {
     return r;
 }
 
+std::ostream &operator<<(std::ostream &stream, dummy_protocol_t::region_t r) {
+    stream << "{ ";
+    for (std::set<std::string>::iterator it  = r.keys.begin();
+                                         it != r.keys.end();
+                                         it++) {
+        stream << *it << " ";
+    }
+    stream << "}";
+
+    return stream;
+}
+
 }   /* namespace unittest */

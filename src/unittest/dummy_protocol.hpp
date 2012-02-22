@@ -131,6 +131,8 @@ private:
 
 dummy_protocol_t::region_t a_thru_z_region();
 
+std::ostream &operator<<(std::ostream &stream, dummy_protocol_t::region_t);
+
 }   /* namespace unittest */
 
 #endif /* __UNITTEST_DUMMY_PROTOCOL_HPP__ */
