@@ -13,6 +13,7 @@
 #include "errors.hpp"
 #include <boost/uuid/uuid.hpp>
 #include <boost/function.hpp>
+#include <boost/optional.hpp>
 
 #include <list>
 #include <map>
@@ -410,5 +411,29 @@ bool all_in_container_match_predicate (const T &container, UnaryPredicate f) {
 }
 
 bool notf(bool x);
+
+
+template<class K, class V>
+std::ostream &operator<<(std::ostream &stream, const std::map<K,V> &map) {
+    stream << "{ ";
+    for (typename std::map<K,V>::const_iterator it =  map.begin();
+                                                it != map.end();
+                                                it++) {
+        stream << it->first << " -> " << it->second << ", ";
+    }
+    stream << "}";
+    return stream;
+}
+
+template <class T>
+std::ostream &operator<<(std::ostream &stream, const boost::optional<T> &optional) {
+    if (optional) {
+        stream << optional.get();
+    } else {
+        stream << "Boost optional containing nothing.";
+    }
+
+    return stream;
+}
 
 #endif // __UTILS_HPP__

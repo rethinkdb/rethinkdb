@@ -28,32 +28,8 @@ void let_stuff_happen() {
 #endif
 }
 
-template<class K, class V>
-std::ostream &operator<<(std::ostream &stream, const std::map<K,V> &map) {
-    stream << "{ ";
-    for (typename std::map<K,V>::const_iterator it =  map.begin();
-                                                it != map.end();
-                                                it++) {
-        stream << it->first << " -> " << it->second << ", ";
-    }
-    stream << "}";
-    return stream;
-}
-
-template <class T>
-std::ostream &operator<<(std::ostream &stream, const boost::optional<T> &optional) {
-    if (optional) {
-        stream << optional.get();
-    } else {
-        stream << "Boost optional containing nothing.";
-    }
-
-    return stream;
-}
-
 bool is_blueprint_satisfied(const blueprint_t<dummy_protocol_t> &bp,
                             const std::map<peer_id_t, boost::optional<reactor_business_card_t<dummy_protocol_t> > > &reactor_directory) {
-    std::cout << "Current directory: " << reactor_directory << std::endl;
     for (blueprint_t<dummy_protocol_t>::role_map_t::const_iterator it  = bp.peers_roles.begin();
                                                                    it != bp.peers_roles.end();
                                                                    it++) {
@@ -266,7 +242,6 @@ public:
     }
 
     void wait_until_blueprint_is_satisfied(const blueprint_t<dummy_protocol_t> &bp) {
-        std::cout << "Waiting for blueprint to be satisfied:" << std::endl;
         try {
             signal_timer_t timer(2000);
             static_cast<clone_ptr_t<directory_rview_t<boost::optional<directory_echo_wrapper_t<reactor_business_card_t<dummy_protocol_t> > > > > >(test_clusters[0].directory_manager.get_root_view()

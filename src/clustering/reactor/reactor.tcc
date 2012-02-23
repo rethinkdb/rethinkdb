@@ -47,7 +47,7 @@ directory_echo_version_t reactor_t<protocol_t>::directory_entry_t::update_withou
     typename directory_echo_access_t<reactor_business_card_t<protocol_t> >::our_value_change_t our_value_change(&parent->directory_echo_access);
     rassert(!reactor_activity_id.is_nil(), "This method should only be called when an activity has already been set\n");
 
-    our_value_change.buffer.activities.insert(std::make_pair(reactor_activity_id, std::make_pair(region, activity)));
+    our_value_change.buffer.activities[reactor_activity_id].second = activity;
     return our_value_change.commit();
 }
 

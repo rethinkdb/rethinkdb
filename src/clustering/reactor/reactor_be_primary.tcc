@@ -225,8 +225,8 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
 
 
             for (typename best_backfiller_map_t::iterator it =  best_backfillers.begin();
-                                                                      it != best_backfillers.end();
-                                                                      it++) {
+                                                          it != best_backfillers.end();
+                                                          it++) {
                 if (it->second.present_in_our_store) {
                     continue;
                 } else {
