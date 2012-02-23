@@ -5,7 +5,6 @@
 #include <boost/scoped_ptr.hpp>
 
 #include "utils.hpp"
-#include "buffer_cache/buf_lock.hpp"
 #include "containers/scoped_malloc.hpp"
 #include "btree/node.hpp"
 #include "btree/leaf_node.hpp"
@@ -100,8 +99,8 @@ public:
     explicit got_superblock_t(superblock_t * sb_) : sb(sb_) { }
 
     // This is a convenience function which should only be used for real superblocks.
-    buf_t* get_real_buf() {
-        return static_cast<real_superblock_t*>(sb.get())->get()->buf();
+    buf_lock_t* get_real_buf() {
+        return static_cast<real_superblock_t*>(sb.get())->get();
     }
 
     boost::scoped_ptr<superblock_t> sb;
@@ -252,13 +251,13 @@ private:
     char* value_ptr;
 };
 
-bool get_superblock_metainfo(transaction_t *txn, buf_t *superblock, const std::vector<char> &key, std::vector<char> &value_out);
-void get_superblock_metainfo(transaction_t *txn, buf_t *superblock, std::vector<std::pair<std::vector<char>,std::vector<char> > > &kv_pairs_out);
+bool get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key, std::vector<char> &value_out);
+void get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, std::vector<std::pair<std::vector<char>,std::vector<char> > > &kv_pairs_out);
 
-void set_superblock_metainfo(transaction_t *txn, buf_t *superblock, const std::vector<char> &key, const std::vector<char> &value);
+void set_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key, const std::vector<char> &value);
 
-void delete_superblock_metainfo(transaction_t *txn, buf_t *superblock, const std::vector<char> &key);
-void clear_superblock_metainfo(transaction_t *txn, buf_t *superblock);
+void delete_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key);
+void clear_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock);
 
 #include "btree/operations.tcc"
 

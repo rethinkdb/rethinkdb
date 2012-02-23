@@ -1549,19 +1549,19 @@ live_iter_t iter_for_whole_leaf(const leaf_node_t *node) {
 using leaf::leaf_node_t;
 
 template <class V>
-void leaf_patched_insert(value_sizer_t<V> *sizer, buf_t *node, const btree_key_t *key, const void *value, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof) {
+void leaf_patched_insert(value_sizer_t<V> *sizer, buf_lock_t *node, const btree_key_t *key, const void *value, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof) {
     // rassert(!km_proof.is_fake());
     node->apply_patch(new leaf_insert_patch_t(node->get_block_id(), node->get_next_patch_counter(), sizer->size(value), value, key->size, key->contents, tstamp));
 }
 
 inline
-void leaf_patched_remove(buf_t *node, const btree_key_t *key, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof) {
+void leaf_patched_remove(buf_lock_t *node, const btree_key_t *key, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof) {
     // rassert(!km_proof.is_fake());
     node->apply_patch(new leaf_remove_patch_t(node->get_block_id(), node->get_next_patch_counter(), tstamp, key->size, key->contents));
 }
 
 inline
-void leaf_patched_erase_presence(buf_t *node, const btree_key_t *key, UNUSED key_modification_proof_t km_proof) {
+void leaf_patched_erase_presence(buf_lock_t *node, const btree_key_t *key, UNUSED key_modification_proof_t km_proof) {
     // TODO: Maybe we don't need key modification proof here.
     // rassert(!km_proof.is_fake());
     node->apply_patch(new leaf_erase_presence_patch_t(node->get_block_id(), node->get_next_patch_counter(), key->size, key->contents));

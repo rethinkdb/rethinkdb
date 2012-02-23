@@ -31,8 +31,8 @@ public:
         : broadcaster(_broadcaster)
     { }
 
-    primary_t(broadcaster_business_card_t<protocol_t> _broadcaster, backfiller_business_card_t<protocol_t> _backfiller)
-        : broadcaster(_broadcaster), backfiller(_backfiller)
+    primary_t(broadcaster_business_card_t<protocol_t> _broadcaster, replier_business_card_t<protocol_t> _replier)
+        : broadcaster(_broadcaster), replier(_replier)
     { }
 
     primary_t() { }
@@ -42,29 +42,29 @@ public:
     /* Backfiller is optional because of an awkward circular dependency we
      * run in to where we have to put the broadcaster in the directory in
      * order to construct a listener however thats the listener that we
-     * will put in the directory as the backfiller. Thus these entries must
-     * be put in successively and for a brief period the backfiller will be
+     * will put in the directory as the replier. Thus these entries must
+     * be put in successively and for a brief period the replier will be
      * unset.
      */
-    boost::optional<backfiller_business_card_t<protocol_t> > backfiller;
+    boost::optional<replier_business_card_t<protocol_t> > replier;
 
-    RDB_MAKE_ME_SERIALIZABLE_2(broadcaster, backfiller);
+    RDB_MAKE_ME_SERIALIZABLE_2(broadcaster, replier);
 };
 
 /* This peer is currently a secondary in working order. */
 template <class protocol_t>
 class secondary_up_to_date_t {
 public:
-    secondary_up_to_date_t(branch_id_t _branch_id, backfiller_business_card_t<protocol_t> _backfiller)
-        : branch_id(_branch_id), backfiller(_backfiller)
+    secondary_up_to_date_t(branch_id_t _branch_id, replier_business_card_t<protocol_t> _replier)
+        : branch_id(_branch_id), replier(_replier)
     { }
 
     secondary_up_to_date_t() { }
 
     branch_id_t branch_id;
-    backfiller_business_card_t<protocol_t> backfiller;
+    replier_business_card_t<protocol_t> replier;
 
-    RDB_MAKE_ME_SERIALIZABLE_2(branch_id, backfiller);
+    RDB_MAKE_ME_SERIALIZABLE_2(branch_id, replier);
 };
 
 /* This peer would like to be a secondary but cannot because it failed to

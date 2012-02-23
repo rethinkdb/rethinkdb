@@ -83,7 +83,7 @@ public:
         return block_id;
     }
 
-    // This is called from buf_t
+    // This is called from buf_lock_t
     virtual void apply_to_buf(char* buf_data, block_size_t block_size) = 0;
 
     bool applies_before(const buf_patch_t *p) const;

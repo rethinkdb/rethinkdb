@@ -183,6 +183,26 @@ struct broadcaster_business_card_t {
     RDB_MAKE_ME_SERIALIZABLE_2(branch_id, registrar);
 };
 
+template<class protocol_t>
+struct replier_business_card_t {
+    /* This mailbox is used to check that the replier is at least as up to date
+     * as the timestamp. The second argument is used as an ack mailbox, once
+     * synchronization is complete the replier will send a message to it. */
+    typedef async_mailbox_t<void(state_timestamp_t, async_mailbox_t<void()>::address_t)> synchronize_mailbox_t;
+    synchronize_mailbox_t::address_t synchronize_mailbox;
+
+    backfiller_business_card_t<protocol_t> backfiller_bcard;
+
+    replier_business_card_t()
+    { }
+
+    replier_business_card_t(const synchronize_mailbox_t::address_t &_synchronize_mailbox, const backfiller_business_card_t<protocol_t> &_backfiller_bcard)
+        : synchronize_mailbox(_synchronize_mailbox), backfiller_bcard(_backfiller_bcard)
+    { }
+
+    RDB_MAKE_ME_SERIALIZABLE_2(synchronize_mailbox, backfiller_bcard);
+};
+
 /* `branch_history_t` is a record of all of the branches that have ever been
 created. It appears in the semilattice metadata. */
 

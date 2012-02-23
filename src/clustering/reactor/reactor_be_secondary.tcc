@@ -47,9 +47,9 @@ bool reactor_t<protocol_t>::find_broadcaster_in_directory(const typename protoco
 }
 
 template <class protocol_t>
-bool reactor_t<protocol_t>::find_backfiller_in_directory(const typename protocol_t::region_t &region, const branch_id_t &b_id, const blueprint_t<protocol_t> &bp, const std::map<peer_id_t, boost::optional<reactor_business_card_t<protocol_t> > > &reactor_directory, 
-                                                         clone_ptr_t<directory_single_rview_t<boost::optional<backfiller_business_card_t<protocol_t> > > > *backfiller_out) {
-    std::vector<clone_ptr_t<directory_single_rview_t<boost::optional<backfiller_business_card_t<protocol_t> > > > > backfill_candidates;
+bool reactor_t<protocol_t>::find_replier_in_directory(const typename protocol_t::region_t &region, const branch_id_t &b_id, const blueprint_t<protocol_t> &bp, const std::map<peer_id_t, boost::optional<reactor_business_card_t<protocol_t> > > &reactor_directory, 
+                                                         clone_ptr_t<directory_single_rview_t<boost::optional<replier_business_card_t<protocol_t> > > > *replier_out) {
+    std::vector<clone_ptr_t<directory_single_rview_t<boost::optional<replier_business_card_t<protocol_t> > > > > backfill_candidates;
 
     typedef reactor_business_card_t<protocol_t> rb_t;
     typedef std::map<peer_id_t, boost::optional<rb_t> > reactor_directory_t;
@@ -64,14 +64,14 @@ bool reactor_t<protocol_t>::find_backfiller_in_directory(const typename protocol
                                                                a_it++) {
                 if (a_it->second.first == region) {
                     if (const typename rb_t::primary_t *primary = boost::get<typename rb_t::primary_t>(&a_it->second.second)) {
-                        if (primary->backfiller && primary->broadcaster.branch_id == b_id) {
+                        if (primary->replier && primary->broadcaster.branch_id == b_id) {
                             backfill_candidates.push_back(get_directory_entry_view<typename rb_t::primary_t>(it->first, a_it->first)->
-                                    subview(compose_lens<boost::optional<backfiller_business_card_t<protocol_t> >, 
-                                                         boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > >, 
+                                    subview(compose_lens<boost::optional<replier_business_card_t<protocol_t> >, 
+                                                         boost::optional<boost::optional<replier_business_card_t<protocol_t> > >, 
                                                          boost::optional<typename rb_t::primary_t> > (
-                                                             optional_collapser_lens<backfiller_business_card_t<protocol_t> >(),
-                                                             optional_monad_lens<boost::optional<backfiller_business_card_t<protocol_t> >, typename rb_t::primary_t>(
-                                                                 field_lens(&rb_t::primary_t::backfiller)
+                                                             optional_collapser_lens<replier_business_card_t<protocol_t> >(),
+                                                             optional_monad_lens<boost::optional<replier_business_card_t<protocol_t> >, typename rb_t::primary_t>(
+                                                                 field_lens(&rb_t::primary_t::replier)
                                                              )
                                                          )
                                     )
@@ -80,8 +80,8 @@ bool reactor_t<protocol_t>::find_backfiller_in_directory(const typename protocol
                     } else if (const typename rb_t::secondary_up_to_date_t *secondary = boost::get<typename rb_t::secondary_up_to_date_t>(&a_it->second.second)) {
                         if (secondary->branch_id == b_id) {
                             backfill_candidates.push_back(get_directory_entry_view<typename rb_t::secondary_up_to_date_t>(it->first, a_it->first)->
-                                                             subview(optional_monad_lens<backfiller_business_card_t<protocol_t>, typename rb_t::secondary_up_to_date_t>(
-                                                                field_lens(&rb_t::secondary_up_to_date_t::backfiller))));
+                                                             subview(optional_monad_lens<replier_business_card_t<protocol_t>, typename rb_t::secondary_up_to_date_t>(
+                                                                field_lens(&rb_t::secondary_up_to_date_t::replier))));
                         }
                     }
                 }
@@ -95,7 +95,7 @@ bool reactor_t<protocol_t>::find_backfiller_in_directory(const typename protocol
     if (backfill_candidates.empty()) {
         return false;
     } else {
-        *backfiller_out = backfill_candidates[rand() % backfill_candidates.size()];
+        *replier_out = backfill_candidates[rand() % backfill_candidates.size()];
         return true;
     }
 }
@@ -109,7 +109,7 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
         directory_entry_t directory_entry(this, region);
         while (true) {
             clone_ptr_t<directory_single_rview_t<boost::optional<broadcaster_business_card_t<protocol_t> > > > broadcaster;
-            clone_ptr_t<directory_single_rview_t<boost::optional<backfiller_business_card_t<protocol_t> > > > location_to_backfill_from;
+            clone_ptr_t<directory_single_rview_t<boost::optional<replier_business_card_t<protocol_t> > > > location_to_backfill_from;
             branch_id_t branch_id;
 
             {
@@ -147,7 +147,7 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
                 }
                 branch_id = broadcaster_business_card.get().get().branch_id;
 
-                directory_echo_access.get_internal_view()->run_until_satisfied(boost::bind(&reactor_t<protocol_t>::find_backfiller_in_directory, this, region, branch_id, blueprint, _1, &location_to_backfill_from), interruptor);
+                directory_echo_access.get_internal_view()->run_until_satisfied(boost::bind(&reactor_t<protocol_t>::find_replier_in_directory, this, region, branch_id, blueprint, _1, &location_to_backfill_from), interruptor);
 
                 /* Note, the backfiller goes out of scope here, that's because
                  * we're about to start backfilling from someone else and thus
@@ -176,7 +176,7 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
                 /* Wait for something to change. */
                 wait_interruptible(listener.get_broadcaster_lost_signal(), interruptor);
             } catch (typename listener_t<protocol_t>::backfiller_lost_exc_t) {
-                /* We lost the backfiller which means we should retry, just
+                /* We lost the replier which means we should retry, just
                  * going back to the top of the while loop accomplishes this.
                  * */
             }

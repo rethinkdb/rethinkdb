@@ -8,7 +8,6 @@
 #include "btree/node.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "buffer_cache/sequence_group.hpp"
-#include "buffer_cache/buf_lock.hpp"
 #include "concurrency/cond_var.hpp"
 #include "btree/get.hpp"
 #include "btree/rget.hpp"
@@ -37,9 +36,9 @@ void btree_slice_t::create(cache_t *cache, const key_range_t &key_range) {
 
     // Initialize replication time barrier to 0 so that if we are a slave, we will begin by pulling
     // ALL updates from master.
-    superblock->touch_recency(repli_timestamp_t::distant_past);
+    superblock.touch_recency(repli_timestamp_t::distant_past);
 
-    btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock->get_data_major_write());
+    btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock.get_data_major_write());
     bzero(sb, cache->get_block_size().value());
 
     // sb->metainfo_blob has been properly zeroed.
@@ -55,7 +54,7 @@ void btree_slice_t::create(cache_t *cache, const key_range_t &key_range) {
         arc::binary_oarchive meta_key_archive(meta_key, arc::no_header);
         meta_key_archive << key_range;
     }
-    set_superblock_metainfo(&txn, superblock.buf(), meta_key.vector(), std::vector<char>());
+    set_superblock_metainfo(&txn, &superblock, meta_key.vector(), std::vector<char>());
 }
 
 btree_slice_t::btree_slice_t(cache_t *c)
@@ -209,7 +208,7 @@ void btree_slice_t::set_replication_clock(sequence_group_t *seq_group, repli_tim
     // TODO: Set the transaction's order token (not with the token parameter).
     buf_lock_t superblock(&transaction, SUPERBLOCK_ID, rwi_write);
     // TODO dude!  have buf_lock_t take an eviction priority parameter.
-    btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock->get_data_major_write());
+    btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock.get_data_major_write());
     //    rassert(sb->replication_clock < t, "sb->replication_clock = %u, t = %u", sb->replication_clock.time, t.time);
     sb->replication_clock = std::max(sb->replication_clock, t);
 }
@@ -222,7 +221,7 @@ repli_timestamp_t btree_slice_t::get_replication_clock(sequence_group_t *seq_gro
     transaction_t transaction(cache(), seq_group, rwi_read, 0, repli_timestamp_t::distant_past);
     // TODO: Set the transaction's order token.
     buf_lock_t superblock(&transaction, SUPERBLOCK_ID, rwi_read);
-    const btree_superblock_t *sb = reinterpret_cast<const btree_superblock_t *>(superblock->get_data_read());
+    const btree_superblock_t *sb = reinterpret_cast<const btree_superblock_t *>(superblock.get_data_read());
     return sb->replication_clock;
 }
 
@@ -236,7 +235,7 @@ void btree_slice_t::set_last_sync(sequence_group_t *seq_group, repli_timestamp_t
     transaction_t transaction(cache(), seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
     // TODO: Set the transaction's order token (not with the token parameter).
     buf_lock_t superblock(&transaction, SUPERBLOCK_ID, rwi_write);
-    btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock->get_data_major_write());
+    btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock.get_data_major_write());
     sb->last_sync = t;
 }
 
@@ -245,7 +244,7 @@ repli_timestamp_t btree_slice_t::get_last_sync(sequence_group_t *seq_group) {
     transaction_t transaction(cache(), seq_group, rwi_read, 0, repli_timestamp_t::distant_past);
     // TODO: Set the transaction's order token.
     buf_lock_t superblock(&transaction, SUPERBLOCK_ID, rwi_read);
-    const btree_superblock_t *sb = reinterpret_cast<const btree_superblock_t *>(superblock->get_data_read());
+    const btree_superblock_t *sb = reinterpret_cast<const btree_superblock_t *>(superblock.get_data_read());
     return sb->last_sync;
 }
 
@@ -254,7 +253,7 @@ void btree_slice_t::set_replication_master_id(sequence_group_t *seq_group, uint3
     transaction_t transaction(cache(), seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
     // TODO: Set the transaction's order token.
     buf_lock_t superblock(&transaction, SUPERBLOCK_ID, rwi_write);
-    btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock->get_data_major_write());
+    btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock.get_data_major_write());
     sb->replication_master_id = t;
 }
 
@@ -263,7 +262,7 @@ uint32_t btree_slice_t::get_replication_master_id(sequence_group_t *seq_group) {
     transaction_t transaction(cache(), seq_group, rwi_read, 0, repli_timestamp_t::distant_past);
     // TODO: Set the transaction's order token.
     buf_lock_t superblock(&transaction, SUPERBLOCK_ID, rwi_read);
-    const btree_superblock_t *sb = reinterpret_cast<const btree_superblock_t *>(superblock->get_data_read());
+    const btree_superblock_t *sb = reinterpret_cast<const btree_superblock_t *>(superblock.get_data_read());
     return sb->replication_master_id;
 }
 
@@ -272,7 +271,7 @@ void btree_slice_t::set_replication_slave_id(sequence_group_t *seq_group, uint32
     transaction_t transaction(cache(), seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
     // TODO: Set the transaction's order token.
     buf_lock_t superblock(&transaction, SUPERBLOCK_ID, rwi_write);
-    btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock->get_data_major_write());
+    btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock.get_data_major_write());
     sb->replication_slave_id = t;
 }
 
@@ -281,7 +280,7 @@ uint32_t btree_slice_t::get_replication_slave_id(sequence_group_t *seq_group) {
     transaction_t transaction(cache(), seq_group, rwi_read, 0, repli_timestamp_t::distant_past);
     // TODO: Set the transaction's order token.
     buf_lock_t superblock(&transaction, SUPERBLOCK_ID, rwi_read);
-    const btree_superblock_t *sb = reinterpret_cast<const btree_superblock_t *>(superblock->get_data_read());
+    const btree_superblock_t *sb = reinterpret_cast<const btree_superblock_t *>(superblock.get_data_read());
     return sb->replication_slave_id;
 }
 
