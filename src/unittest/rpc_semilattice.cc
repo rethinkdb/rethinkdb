@@ -1,7 +1,7 @@
 #include "unittest/gtest.hpp"
 
 #include "rpc/semilattice/semilattice_manager.hpp"
-#include "rpc/semilattice/semilattice/map.hpp"
+#include "rpc/semilattice/joins/map.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/view/member.hpp"
 #include "unittest/dummy_metadata_controller.hpp"

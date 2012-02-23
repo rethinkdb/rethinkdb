@@ -16,7 +16,7 @@
 #include "concurrency/fifo_enforcer.hpp"
 #include "protocol_api.hpp"
 #include "rpc/mailbox/typed.hpp"
-#include "rpc/semilattice/semilattice/map.hpp"
+#include "rpc/semilattice/joins/map.hpp"
 #include "timestamps.hpp"
 
 /* Every broadcaster generates a UUID when it's first created. This is the UUID
