@@ -46,14 +46,6 @@ public:
         }
     };
 
-    class data_gap_exc_t : public std::exception {
-    public:
-        const char *what() const throw () {
-            return "Data from backfiller ended before data from broadcaster "
-                "began.";
-        }
-    };
-
     listener_t(
             mailbox_manager_t *mm,
             clone_ptr_t<directory_single_rview_t<boost::optional<broadcaster_business_card_t<protocol_t> > > > broadcaster_metadata,
