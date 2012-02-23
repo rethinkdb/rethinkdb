@@ -341,6 +341,21 @@ TEST(ClusteringReactor, OtherRoleSwitchingTest) {
     run_in_thread_pool(&runOtherRoleSwitchingTest);
 }
 
+void runAddSecondaryTest() {
+    test_cluster_group_t cluster_group(3);
+    cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,s,n"));
+    cluster_group.wait_until_blueprint_is_satisfied("p,s,n");
+    cluster_group.run_queries();
+
+    cluster_group.set_all_blueprints(cluster_group.compile_blueprint("p,s,s"));
+    cluster_group.wait_until_blueprint_is_satisfied("p,s,s");
+    cluster_group.run_queries();
+}
+
+TEST(ClusteringReactor, AddSecondaryTest) {
+    run_in_thread_pool(&runAddSecondaryTest);
+}
+
 void runReshardingTest() {
     test_cluster_group_t cluster_group(2);
 
