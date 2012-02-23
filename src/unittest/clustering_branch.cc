@@ -138,10 +138,10 @@ void run_backfill_test(simple_mailbox_cluster_t *cluster,
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
     replier_t<dummy_protocol_t> replier(initial_listener->get());
 
-    simple_directory_manager_t<boost::optional<backfiller_business_card_t<dummy_protocol_t> > >
-        backfiller_directory_controller(
+    simple_directory_manager_t<boost::optional<replier_business_card_t<dummy_protocol_t> > >
+        replier_directory_controller(
             cluster,
-            boost::optional<backfiller_business_card_t<dummy_protocol_t> >(replier.get_business_card())
+            boost::optional<replier_business_card_t<dummy_protocol_t> >(replier.get_business_card())
             );
 
     order_source_t order_source;
@@ -160,7 +160,7 @@ void run_backfill_test(simple_mailbox_cluster_t *cluster,
         broadcaster_metadata_view,
         branch_history_view,
         &store2.store,
-        backfiller_directory_controller.get_root_view()->
+        replier_directory_controller.get_root_view()->
             get_peer_view(cluster->get_connectivity_service()->get_me()),
         &interruptor);
 

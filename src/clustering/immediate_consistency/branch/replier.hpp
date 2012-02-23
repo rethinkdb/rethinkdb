@@ -5,6 +5,7 @@
 #include "clustering/immediate_consistency/branch/listener.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/view/member.hpp"
+#include "clustering/immediate_consistency/branch/metadata.hpp"
 
 /* If you construct a `replier_t` for a given `listener_t`, then the listener
 will inform the `broadcaster_t` that it's ready to reply to queries, and will
@@ -22,14 +23,27 @@ class replier_t {
 
 public:
     explicit replier_t(listener_t<protocol_t> *l) :
-        listener(l)
+        listener(l), 
+
+        synchronize_mailbox(listener->mailbox_manager, 
+                            boost::bind(&replier_t<protocol_t>::on_synchronize, 
+                                        this, 
+                                        _1, 
+                                        _2, 
+                                        auto_drainer_t::lock_t(&drainer))),
+
+        /* Start serving backfills */
+        backfiller(
+            listener->mailbox_manager,
+            listener->branch_history,
+            listener->store
+            )
     {
         rassert(listener->store->get_region() ==
             listener->branch_history->get().branches[listener->branch_id].region,
             "Even though you can have a listener that only watches some subset "
             "of a branch, you can't have a replier for some subset of a "
             "branch.");
-        rassert(!listener->get_broadcaster_lost_signal()->is_pulsed());
 
         /* Notify the broadcaster that we can reply to queries */
         send(listener->mailbox_manager,
@@ -37,18 +51,6 @@ public:
             listener->writeread_mailbox.get_address(),
             listener->read_mailbox.get_address()
             );
-
-        /* Start serving backfills */
-        backfiller.reset(new backfiller_t<protocol_t>(
-            listener->mailbox_manager,
-            listener->branch_history,
-            listener->store
-            ));
-
-        stop_backfilling_if_listener_outdated.reset(new signal_t::subscription_t(
-            boost::bind(&replier_t::on_listener_outdated, this),
-            listener->get_broadcaster_lost_signal()
-            ));
     }
 
     /* The destructor immediately stops responding to queries. If there was an
@@ -66,26 +68,28 @@ public:
         }
     }
 
-    backfiller_business_card_t<protocol_t> get_business_card() {
-        return backfiller->get_business_card();
+    replier_business_card_t<protocol_t> get_business_card() {
+        return replier_business_card_t<protocol_t>(synchronize_mailbox.get_address(), backfiller.get_business_card());
     }
 
     /* TODO: Support warm shutdowns? */
 
 private:
-    void on_listener_outdated() {
-        /* If the listener goes outdated, stop serving backfills. This is mostly
-        a courtesy to newly-started listeners; if we serve them a backfill even
-        though we're outdated, then they'll be outdated too.
-        TODO: It would be nice if we could warm-shutdown the backfiller in this
-        case. */
-        backfiller.reset();
+    void on_synchronize(state_timestamp_t timestamp, async_mailbox_t<void()>::address_t ack_mbox, auto_drainer_t::lock_t keepalive) {
+        try {
+            listener->wait_for_version(timestamp, keepalive.get_drain_signal());
+            send(listener->mailbox_manager, ack_mbox);
+        } catch (interrupted_exc_t) {
+        }
     }
 
     listener_t<protocol_t> *listener;
 
-    boost::scoped_ptr<backfiller_t<protocol_t> > backfiller;
-    boost::scoped_ptr<signal_t::subscription_t> stop_backfilling_if_listener_outdated;
+    auto_drainer_t drainer;
+
+    typename replier_business_card_t<protocol_t>::synchronize_mailbox_t synchronize_mailbox;
+
+    backfiller_t<protocol_t> backfiller;
 };
 
 #endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_REPLIER_HPP__ */

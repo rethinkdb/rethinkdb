@@ -1,14 +1,18 @@
 #ifndef __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_LISTENER_HPP__
 #define __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_LISTENER_HPP__
 
+#include <map>
+
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
-#include "clustering/resource.hpp"
 #include "clustering/registrant.hpp"
+#include "clustering/resource.hpp"
 #include "concurrency/promise.hpp"
 #include "protocol_api.hpp"
 #include "rpc/directory/view.hpp"
+#include "timestamps.hpp"
+#include "utils.hpp"
 
 /* Forward declarations (so we can friend them) */
 
@@ -22,9 +26,8 @@ There are four ways a `listener_t` can go wrong:
  *  You can interrupt the constructor. It will throw `interrupted_exc_t`. The
     store may be left in a half-backfilled state; you can determine this through
     the store's metadata.
- *  It can fail to contact the backfiller, or there can be a gap between the
-    data from the backfiller and the data from the broadcaster. In that case,
-    the constructor will throw `backfiller_lost_exc_t` or `data_gap_exc_t`.
+ *  It can fail to contact the backfiller. In that case,
+    the constructor will throw `backfiller_lost_exc_t`.
  *  It can fail to contact the broadcaster. In this case, the constructor will
     return normally but `get_outdated_signal()` will be pulsed at the time that
     the constructor returns.
@@ -56,9 +59,9 @@ public:
             clone_ptr_t<directory_single_rview_t<boost::optional<broadcaster_business_card_t<protocol_t> > > > broadcaster_metadata,
             boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > bh,
             store_view_t<protocol_t> *s,
-            clone_ptr_t<directory_single_rview_t<boost::optional<backfiller_business_card_t<protocol_t> > > > backfiller,
+            clone_ptr_t<directory_single_rview_t<boost::optional<replier_business_card_t<protocol_t> > > > replier,
             signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t, backfiller_lost_exc_t, data_gap_exc_t) :
+            THROWS_ONLY(interrupted_exc_t, backfiller_lost_exc_t) :
 
         mailbox_manager(mm),
         branch_history(bh),
@@ -110,6 +113,7 @@ public:
         for (typename version_map_t::const_iterator it = start_point.begin();
                                                     it != start_point.end();
                                                     it++) {
+            
             version_t version = it->second.latest;
             rassert(
                 version.branch == branch_id ||
@@ -124,32 +128,42 @@ public:
 
         /* Attempt to register for reads and writes */
         try_start_receiving_writes(broadcaster_metadata, interruptor);
+
         if (registration_failed_cond.is_pulsed()) {
             return;
         }
 
+        state_timestamp_t streaming_begin_point =
+            registration_done_cond.get_value().broadcaster_begin_timestamp;
+
         try {
+            /* Go through a little song and dance to make sure that the
+             * backfiller will at least get us to the point that we will being
+             * live streaming from. */
+
+            cond_t backfiller_is_up_to_date;
+            async_mailbox_t<void()> ack_mbox(mailbox_manager, boost::bind(&cond_t::pulse, &backfiller_is_up_to_date));
+
+            resource_access_t<replier_business_card_t<protocol_t> > replier_access(replier);
+            send(mailbox_manager, replier_access.access().synchronize_mailbox, streaming_begin_point, ack_mbox.get_address());
+
+            wait_any_t interruptor2(interruptor, replier_access.get_failed_signal());
+            wait_interruptible(&backfiller_is_up_to_date, &interruptor2);
+
             /* Backfill */
             backfillee<protocol_t>(
                 mailbox_manager,
                 branch_history,
                 store,
-                backfiller,
+                replier->subview(optional_monad_lens<backfiller_business_card_t<protocol_t>, replier_business_card_t<protocol_t> >(field_lens(&replier_business_card_t<protocol_t>::backfiller_bcard))),
                 interruptor
                 );
         } catch (resource_lost_exc_t) {
             throw backfiller_lost_exc_t();
         }
 
-        /* Check to make sure that there isn't a gap between where the backfill
-        ended and where the registration started. If the backfill sent us to a
-        reasonable place, then pulse `backfill_done_cond`. Otherwise, throw
-        `data_gap_exc_t`. */
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> read_token2;
         store->new_read_token(read_token2);
-
-        state_timestamp_t streaming_begin_point =
-            registration_done_cond.get_value().broadcaster_begin_timestamp;
 
         typedef region_map_t<protocol_t, version_range_t> version_map_t;
 
@@ -174,15 +188,10 @@ public:
 
         rassert(backfill_end_point == expected_backfill_endpoint);
 
-        if (backfill_end_timestamp >= streaming_begin_point) {
-            /* The backfill put us in a reasonable spot. Pulse
-            `backfill_done_cond` so real-time operations can proceed. */
-            backfill_done_cond.pulse(backfill_end_timestamp);
-        } else {
-            /* There was a gap between the data the backfiller sent us and
-            the beginning of the data we got from the broadcaster. */
-            throw data_gap_exc_t();
-        }
+        rassert(backfill_end_timestamp >= streaming_begin_point);
+
+        current_timestamp = backfill_end_timestamp;
+        backfill_done_cond.pulse(backfill_end_timestamp);
     }
 
     /* This version of the `listener_t` constructor is called when we are
@@ -250,6 +259,7 @@ public:
 #endif
 
         /* Pretend we just finished an imaginary backfill */
+        current_timestamp = registration_done_cond.get_value().broadcaster_begin_timestamp;
         backfill_done_cond.pulse(registration_done_cond.get_value().broadcaster_begin_timestamp);
     }
 
@@ -375,6 +385,8 @@ private:
                     return;
                 }
 
+                advance_current_timestamp_and_pulse_waiters(transition_timestamp);
+
                 store->new_write_token(token);
                 /* Now that we've gotten a write token, it's safe to allow the next write or read to proceed. */
             }
@@ -431,6 +443,8 @@ private:
                 writereads until the backfill is over */
                 rassert(transition_timestamp.timestamp_before() >=
                     backfill_done_cond.get_value());
+
+                advance_current_timestamp_and_pulse_waiters(transition_timestamp);
 
                 store->new_write_token(token);
                 /* Now that we've gotten a write token, allow the next guy to proceed */
@@ -507,6 +521,30 @@ private:
         }
     }
 
+    void wait_for_version(state_timestamp_t timestamp, signal_t *interruptor) {
+        rassert(backfill_done_cond.get_ready_signal()->is_pulsed(), "This shouldn't be called before the constructor has completed.");
+        if (timestamp > current_timestamp) {
+            cond_t c;
+            multimap_insertion_sentry_t<state_timestamp_t, cond_t *> sentry(&synchronize_waiters, timestamp, &c);
+            wait_interruptible(&c, interruptor);
+        }
+    }
+
+    void advance_current_timestamp_and_pulse_waiters(transition_timestamp_t timestamp) {
+        rassert(timestamp.timestamp_before() == current_timestamp);
+        current_timestamp = timestamp.timestamp_after();
+
+        for (std::multimap<state_timestamp_t, cond_t *>::const_iterator it  = synchronize_waiters.begin();
+                                                                        it != synchronize_waiters.upper_bound(current_timestamp);
+                                                                        it++) {
+            if (it->first < current_timestamp) {
+                rassert(it->second->is_pulsed(), "This cond should have already been pulsed because we assume timestamps move in discrete minimal steps.");
+            } else {
+                it->second->pulse();
+            }
+        }
+    }
+
     mailbox_manager_t *mailbox_manager;
 
     /* This variable looks useless, since it's set in the constructor but not
@@ -537,6 +575,8 @@ private:
     to `registration_failed_cond`. */
     promise_t<state_timestamp_t> backfill_done_cond;
 
+    state_timestamp_t current_timestamp;
+
     fifo_enforcer_sink_t fifo_sink;
 
     auto_drainer_t drainer;
@@ -557,6 +597,12 @@ private:
     /* `broadcaster_lost_signal` is pulsed if we lose contact with the
     broadcaster. */
     wait_any_t broadcaster_lost_signal;
+
+    /* Avaste this be used to keep track of people who are waitin' for a us to
+     * be up to date (past the given state_timestamp_t). The only use case for
+     * this right now is the replier_t who needs to be able to tell backfillees
+     * how up to date s/he is. */
+    std::multimap<state_timestamp_t, cond_t *> synchronize_waiters;
 };
 
 #endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_LISTENER_HPP__ */
