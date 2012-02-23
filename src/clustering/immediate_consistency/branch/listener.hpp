@@ -28,12 +28,10 @@ There are four ways a `listener_t` can go wrong:
     the store's metadata.
  *  It can fail to contact the backfiller. In that case,
     the constructor will throw `backfiller_lost_exc_t`.
- *  It can fail to contact the broadcaster. In this case, the constructor will
-    return normally but `get_outdated_signal()` will be pulsed at the time that
-    the constructor returns.
+ *  It can fail to contact the broadcaster. In this case it will throw `broadcaster_lost_exc_t`. 
  *  It can successfully join the branch, but then lose contact with the
-    broadcaster later. In that case, `get_outdated_signal()` will be pulsed when
-    it loses touch.
+    broadcaster later. In that case, `get_broadcaster_lost_signal()` will be
+    pulsed when it loses touch.
 */
 
 template<class protocol_t>
@@ -46,11 +44,10 @@ public:
         }
     };
 
-    class data_gap_exc_t : public std::exception {
+    class broadcaster_lost_exc_t : public std::exception {
     public:
         const char *what() const throw () {
-            return "Data from backfiller ended before data from broadcaster "
-                "began.";
+            return "Lost contact with broadcaster";
         }
     };
 
@@ -61,7 +58,7 @@ public:
             store_view_t<protocol_t> *s,
             clone_ptr_t<directory_single_rview_t<boost::optional<replier_business_card_t<protocol_t> > > > replier,
             signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t, backfiller_lost_exc_t) :
+            THROWS_ONLY(interrupted_exc_t, backfiller_lost_exc_t, broadcaster_lost_exc_t) :
 
         mailbox_manager(mm),
         branch_history(bh),
@@ -72,9 +69,7 @@ public:
         writeread_mailbox(mailbox_manager, boost::bind(&listener_t::on_writeread, this,
             auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4)),
         read_mailbox(mailbox_manager, boost::bind(&listener_t::on_read, this,
-            auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4)),
-
-        broadcaster_lost_signal(&cant_find_branch_id_cond, &registration_failed_cond)
+            auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4))
     {
         if (interruptor->is_pulsed()) {
             throw interrupted_exc_t();
@@ -85,10 +80,7 @@ public:
         if (business_card && business_card.get()) {
             branch_id = business_card.get().get().branch_id;
         } else {
-            /* Whooops, we already lost contact with the broadcaster. Just
-            bail out without trying to backfill. */
-            cant_find_branch_id_cond.pulse();
-            return;
+            throw broadcaster_lost_exc_t();
         }
 
 #ifndef NDEBUG
@@ -128,10 +120,7 @@ public:
 
         /* Attempt to register for reads and writes */
         try_start_receiving_writes(broadcaster_metadata, interruptor);
-
-        if (registration_failed_cond.is_pulsed()) {
-            return;
-        }
+        rassert(registration_done_cond.get_ready_signal()->is_pulsed());
 
         state_timestamp_t streaming_begin_point =
             registration_done_cond.get_value().broadcaster_begin_timestamp;
@@ -267,7 +256,7 @@ public:
     /* Returns a signal that is pulsed if the mirror is not in contact with the
     master. */
     signal_t *get_broadcaster_lost_signal() {
-        return &broadcaster_lost_signal;
+        return registrant->get_failed_signal();
     }
 
 private:
@@ -307,7 +296,7 @@ private:
     void try_start_receiving_writes(
             clone_ptr_t<directory_single_rview_t<boost::optional<broadcaster_business_card_t<protocol_t> > > > broadcaster,
             signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t)
+            THROWS_ONLY(interrupted_exc_t, broadcaster_lost_exc_t)
     {
         intro_receiver_t intro_receiver;
         typename listener_business_card_t<protocol_t>::intro_mailbox_t intro_mailbox(
@@ -326,22 +315,18 @@ private:
                 listener_business_card_t<protocol_t>(intro_mailbox.get_address(), write_mailbox.get_address())
                 ));
         } catch (resource_lost_exc_t) {
-            registration_failed_cond.pulse();
-            return;
+            throw broadcaster_lost_exc_t();
         }
 
         wait_any_t waiter(&intro_receiver, registrant->get_failed_signal());
         wait_interruptible(&waiter, interruptor);   /* May throw `interrupted_exc_t` */
 
         if (registrant->get_failed_signal()->is_pulsed()) {
-            registration_failed_cond.pulse();
+            throw broadcaster_lost_exc_t();
         } else {
             rassert(intro_receiver.is_pulsed());
             registration_done_cond.pulse(intro_receiver.intro);
         }
-
-        /* If we lose contact with the broadcaster, mark ourselves outdated */
-        broadcaster_lost_signal.add(registrant->get_failed_signal());
     }
 
     void on_write(auto_drainer_t::lock_t keepalive,
@@ -365,15 +350,7 @@ private:
 
                 /* Block until registration has completely succeeded or failed.
                 (May throw `interrupted_exc_t`) */
-                {
-                    wait_any_t waiter(registration_done_cond.get_ready_signal(), &registration_failed_cond);
-                    wait_interruptible(&waiter, keepalive.get_drain_signal());
-                    if (registration_failed_cond.is_pulsed()) {
-                        /* Registration never succeeded; a few writes were
-                        transmitted anyway, and we're one of them. Abort. */
-                        return;
-                    }
-                }
+                wait_interruptible(registration_done_cond.get_ready_signal(), keepalive.get_drain_signal());
 
                 /* Block until the backfill succeeds or fails. If the backfill
                 fails, then the constructor will throw an exception, so
@@ -557,18 +534,11 @@ private:
 
     branch_id_t branch_id;
 
-    /* If the metadata is missing from the beginning so we can't find the branch
-    ID, `cant_find_branch_id_cond` will be pulsed. Its main purpose is to make
-    `outdated_signal` be pulsed. */
-    cond_t cant_find_branch_id_cond;
-
     /* `upgrade_mailbox` and `broadcaster_begin_timestamp` are valid only if we
     successfully registered with the broadcaster at some point. As a sanity
     check, we put them in a `promise_t`, `registration_done_cond`, that only
-    gets pulsed when we successfully register. If registration fails, we pulse
-    `registration_failed_cond` instead. */
+    gets pulsed when we successfully register. */
     promise_t<intro_t> registration_done_cond;
-    cond_t registration_failed_cond;
 
     /* If the backfill succeeds, `backfill_done_cond` will be pulsed with the
     point that the backfill brought us to. If the backfill fails, the
@@ -594,10 +564,6 @@ private:
     typename listener_business_card_t<protocol_t>::read_mailbox_t read_mailbox;
 
     boost::scoped_ptr<registrant_t<listener_business_card_t<protocol_t> > > registrant;
-
-    /* `broadcaster_lost_signal` is pulsed if we lose contact with the
-    broadcaster. */
-    wait_any_t broadcaster_lost_signal;
 
     /* Avaste this be used to keep track of people who are waitin' for a us to
      * be up to date (past the given state_timestamp_t). The only use case for
