@@ -121,7 +121,7 @@ public:
         stop_sending_heartbeats();
         try {
             mutex_acquisition_t ak(&outgoing_mutex_); // flush_buffer() would interfere with active writes
-            conn_->flush_buffer();
+            conn_->flush_write_buffer();
         } catch (tcp_conn_t::write_closed_exc_t &e) {
 	    (void)e;
             // Ignore

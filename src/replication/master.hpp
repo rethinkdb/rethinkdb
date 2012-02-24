@@ -72,7 +72,7 @@ public:
     bool has_slave() { return stream_ != NULL; }
 
     // Listener callback functions
-    void on_conn(boost::scoped_ptr<linux_tcp_conn_t>& conn);
+    void on_conn(boost::scoped_ptr<tcp_conn_t>& conn);
 
     void hello(UNUSED net_hello_t message) { debugf("Received hello from slave.\n"); }
 

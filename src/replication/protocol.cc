@@ -165,7 +165,7 @@ repli_stream_t::repli_stream_t(boost::scoped_ptr<tcp_conn_t>& conn, message_call
             heartbeat_receiver_t(heartbeat_timeout),
             conn_handler_(recv_callback, this) {
     conn_.swap(conn);
-    conn_->write_perfmon = &pm_replication_network_write_rate;
+    conn_->get_raw_connection().write_perfmon = &pm_replication_network_write_rate;
     parse_messages(conn_.get(), &conn_handler_);
     watch_heartbeat();
     {
@@ -380,7 +380,7 @@ perfmon_duration_sampler_t master_write("master_write", secs_to_ticks(1.0));
 void repli_stream_t::try_write(const void *data, size_t size) {
     try {
         block_pm_duration set_timer(&master_write);
-        conn_->write_buffered(data, size);
+        conn_->write(data, size);
     } catch (tcp_conn_t::write_closed_exc_t &e) {
 	(void)e;
 #ifndef REPLICATION_DEBUG
@@ -397,7 +397,7 @@ void repli_stream_t::try_write(const void *data, size_t size) {
 void repli_stream_t::flush() {
     try {
         mutex_acquisition_t ak(&outgoing_mutex_, true);
-        conn_->flush_buffer_eventually();
+        conn_->flush_write_buffer();
     } catch (tcp_conn_t::write_closed_exc_t &e) {
 	(void)e;
         /* Ignore; see `repli_stream_t::try_write()`. */

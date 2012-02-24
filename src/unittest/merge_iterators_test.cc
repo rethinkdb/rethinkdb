@@ -98,7 +98,7 @@ std::list<int> data_blocks_to_list_of_ints(test_iterator::data_blocks_t& db) {
         for (std::list<int>::iterator i = (*it).begin(); i != (*it).end(); ++i) {
             result.push_back(*i);
         }
-        //std::copy((*it).begin(), (*it).end(), result.end());
+        //std::copy((*it).begin(), (*it).end(), std::back_inserter(result));
     }
     return result;
 }

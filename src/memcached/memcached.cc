@@ -41,7 +41,7 @@ struct txt_memcached_handler_t : public txt_memcached_handler_if, public home_th
     void write(const char *buffer, size_t bytes) {
         try {
             assert_thread();
-            conn->write_buffered(buffer, bytes);
+            conn->write(buffer, bytes);
         } catch (tcp_conn_t::write_closed_exc_t) {
         }
     }
@@ -140,7 +140,7 @@ struct txt_memcached_handler_t : public txt_memcached_handler_if, public home_th
 
     void flush_buffer() {
         try {
-            conn->flush_buffer();
+            conn->flush_write_buffer();
         } catch (tcp_conn_t::write_closed_exc_t) {
             /* Ignore errors; it's OK for the write end of the connection to be closed. */
         }
@@ -152,7 +152,7 @@ struct txt_memcached_handler_t : public txt_memcached_handler_if, public home_th
 
     void read(void *buf, size_t nbytes) {
         try {
-            conn->read(buf, nbytes);
+            conn->read_exactly(buf, nbytes);
         } catch(tcp_conn_t::read_closed_exc_t) {
             throw no_more_data_exc_t();
         }
@@ -161,7 +161,7 @@ struct txt_memcached_handler_t : public txt_memcached_handler_if, public home_th
     void read_line(std::vector<char> *dest) {
         try {
             for (;;) {
-                const_charslice sl = conn->peek();
+                const_charslice sl = conn->peek_read_buffer();
                 void *crlf_loc = memmem(sl.beg, sl.end - sl.beg, crlf, 2);
                 ssize_t threshold = MEGABYTE;
 
@@ -171,7 +171,7 @@ struct txt_memcached_handler_t : public txt_memcached_handler_if, public home_th
 
                     dest->resize(line_size + 2);  // +2 for CRLF
                     memcpy(dest->data(), sl.beg, line_size + 2);
-                    conn->pop(line_size + 2);
+                    conn->pop_read_buffer(line_size + 2);
                     return;
                 } else if (sl.end - sl.beg > threshold) {
                     // If a malfunctioning client sends a lot of data without a

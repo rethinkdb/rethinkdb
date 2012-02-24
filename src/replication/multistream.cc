@@ -17,7 +17,7 @@ void do_parse_hello_message(tcp_conn_t *conn, connection_handler_t *h) {
     net_hello_t buf;
     {
         block_pm_duration set_timer(&pm_replication_slave_reading);
-        conn->read(&buf, sizeof(buf));
+        conn->read_exactly(&buf, sizeof(buf));
     }
 
     h->process_hello_message(buf);
@@ -130,7 +130,7 @@ void do_parse_normal_messages(tcp_conn_t *conn, connection_handler_t *conn_handl
 
             {
                 block_pm_duration set_timer(&pm_replication_slave_reading);
-                num_read += conn->read_some(buffer.get() + offset + num_read, shbuf_size - (offset + num_read));
+                num_read += conn->get_raw_connection().read(buffer.get() + offset + num_read, shbuf_size - (offset + num_read));
             }
         }
     }

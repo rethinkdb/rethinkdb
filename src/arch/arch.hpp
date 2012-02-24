@@ -45,6 +45,8 @@ typedef io_config_t::iocallback_t iocallback_t;
 
 typedef io_config_t::tcp_listener_t tcp_listener_t;
 
+typedef io_config_t::buffered_tcp_conn_t buffered_tcp_conn_t;
+typedef io_config_t::raw_tcp_conn_t raw_tcp_conn_t;
 typedef io_config_t::tcp_conn_t tcp_conn_t;
 
 /* Timer functions create (non-)periodic timers, callbacks for which are

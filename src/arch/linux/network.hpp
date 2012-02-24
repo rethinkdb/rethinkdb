@@ -13,24 +13,32 @@
 #include "concurrency/coro_pool.hpp"
 #include "containers/intrusive_list.hpp"
 
-/* linux_tcp_conn_t provides a nice wrapper around a TCP network connection. */
+/* linux_raw_tcp_conn_t provides a thin wrapper around a TCP network connection.
+   Use linux_buffered_tcp_conn_t if you need higher-level abstraction */
 
-struct linux_tcp_conn_t :
+struct linux_raw_tcp_conn_t :
     public home_thread_mixin_t,
     private linux_event_callback_t
 {
-    friend class linux_tcp_listener_t;
-
 public:
+
+    class write_callback_t {
+    public:
+        virtual ~write_callback_t() { };
+        virtual void done() = 0;
+    };
+
     struct connect_failed_exc_t : public std::exception {
         const char *what() throw () {
             return "Could not make connection";
         }
     };
 
-    /* TODO: One of these forms should be replaced by the other. */
-    linux_tcp_conn_t(const char *host, int port);
-    linux_tcp_conn_t(const ip_address_t &host, int port);
+    linux_raw_tcp_conn_t(const char *host, int port);
+    linux_raw_tcp_conn_t(const ip_address_t &host, int port);
+
+    // Note that is_read_open() and is_write_open() must both be false before the socket is destroyed.
+    ~linux_raw_tcp_conn_t();
 
     /* Reading */
 
@@ -40,27 +48,12 @@ public:
         }
     };
 
-    /* If you know beforehand how many bytes you want to read, use read() with a byte buffer.
-    Returns when the buffer is full, or throws read_closed_exc_t. */
-    void read(void *buf, size_t size);
-
-    // If you don't know how many bytes you want to read, but still
-    // masochistically want to handle buffering yourself.  Makes at
-    // most one call to ::read(), reads some data or throws
-    // read_closed_exc_t. read_some() is guaranteed to return at least
-    // one byte of data unless it throws read_closed_exc_t.
-    size_t read_some(void *buf, size_t size);
-
-    // If you don't know how many bytes you want to read, use peek()
-    // and then, if you're satisfied, pop what you've read, or if
-    // you're unsatisfied, read_more_buffered() and then try again.
-    // Note that you should always call peek() before calling
-    // read_more_buffered(), because there might be leftover data in
-    // the peek buffer that might be enough for you.
-    const_charslice peek() const;
-    void pop(size_t len);
-
-    void read_more_buffered();
+    // Returns when any data has been read from the socket.
+    size_t read(void *buf, size_t size);
+    // Returns when size bytes of data has been read from the socket.
+    void read_exactly(void *buf, size_t size);
+    // Returns immediately, after trying to read data from the socket
+    size_t read_non_blocking(void *buf, size_t size);
 
     /* Call shutdown_read() to close the half of the pipe that goes from the peer to us. If there
     is an outstanding read() or peek_until() operation, it will throw read_closed_exc_t. */
@@ -79,14 +72,9 @@ public:
 
     /* write() writes 'size' bytes from 'buf' to the socket and blocks until it is done. Throws
     write_closed_exc_t if the write end of the pipe is closed before we can finish. */
-    void write(const void *buf, size_t size);
-
-    /* write_buffered() is like write(), but it might not send the data until flush_buffer*() or
-    write() is called. Internally, it bundles together the buffered writes; this may improve
-    performance. */
-    void write_buffered(const void *buf, size_t size);
-    void flush_buffer();   // Blocks until flush is done
-    void flush_buffer_eventually();   // Blocks only if the queue is backed up
+    void write(const void *buf, size_t size, write_callback_t *callback);
+    // This function will modify iov, abandon all hope ye who enter here
+    void write_vectored(struct iovec *iov, size_t count, write_callback_t *callback);
 
     /* Call shutdown_write() to close the half of the pipe that goes from us to the peer. If there
     is a write currently happening, it will get write_closed_exc_t. */
@@ -99,12 +87,12 @@ public:
     transmitted over the network. */
     perfmon_rate_monitor_t *write_perfmon;
 
-    /* Note that is_read_open() and is_write_open() must both be false1 before the socket is
-    destroyed. */
-    ~linux_tcp_conn_t();
-
 private:
-    explicit linux_tcp_conn_t(fd_t sock);   // Used by tcp_listener_t
+    friend class linux_buffered_tcp_conn_t;
+
+    explicit linux_raw_tcp_conn_t(fd_t sock);   // Used by tcp_listener_t
+    static fd_t connect_to(const char *host, int port);
+    static fd_t connect_to(const ip_address_t &host, int port);
 
     /* Note that this only gets called to handle error-events. Read and write
     events are handled through the linux_event_watcher_t. */
@@ -127,72 +115,55 @@ private:
 
     /* These are pulsed if and only if the read/write end of the connection has been closed. */
     cond_t read_closed, write_closed;
+};
 
-    /* Holds data that we read from the socket but hasn't been consumed yet */
+class linux_buffered_tcp_conn_t : public home_thread_mixin_t {
+public:
+    linux_buffered_tcp_conn_t(const char *host, int port);
+    linux_buffered_tcp_conn_t(const ip_address_t &host, int port);
+
+    void read_exactly(void *buf, size_t size); // Read until size bytes have been read
+    void read_more_buffered(); // Reads available data
+    const_charslice peek_read_buffer(); // Returns a const view of available data
+    void pop_read_buffer(size_t len); // Removes len bytes from the read buffer
+
+    void write(const void *buf, size_t size); // Batches buffers and may call write now or at a subsequent write/flush
+    void flush_write_buffer(); // Writes all batched buffers
+
+    // This returns the underlying 'raw' connection object, which will allow unbuffered reads/writes
+    // This can only be called if the read buffer is empty
+    linux_raw_tcp_conn_t& get_raw_connection();
+
+    // These are pass-throughs to the underlying raw connection object
+    void shutdown_write();
+    bool is_write_open();
+    void shutdown_read();
+    bool is_read_open();
+  
+    typedef linux_raw_tcp_conn_t::write_callback_t write_callback_t;
+    typedef linux_raw_tcp_conn_t::connect_failed_exc_t connect_failed_exc_t;
+    typedef linux_raw_tcp_conn_t::read_closed_exc_t read_closed_exc_t;
+    typedef linux_raw_tcp_conn_t::write_closed_exc_t write_closed_exc_t;
+
+private:
+    friend class linux_tcp_listener_t;
+    explicit linux_buffered_tcp_conn_t(fd_t sock);   // Used by tcp_listener_t
+
+    void rethread(int);
+    char * get_read_buffer_start();
+    char * get_read_buffer_end();
+
+    static const uint32_t READ_BUFFER_RESIZE_FACTOR;
+    static const uint32_t READ_BUFFER_MIN_UTILIZATION_FACTOR;
+    static const size_t MIN_BUFFERED_READ_SIZE;
+    static const size_t MIN_READ_BUFFER_SIZE;
+    static const size_t MAX_WRITE_BUFFER_SIZE;
+
+    size_t read_buffer_offset;
     std::vector<char> read_buffer;
+    std::vector<char> write_buffer;
 
-    /* Reads up to the given number of bytes, but not necessarily that many. Simple wrapper around
-    ::read(). Returns the number of bytes read or throws read_closed_exc_t. Bypasses read_buffer. */
-    size_t read_internal(void *buffer, size_t size);
-
-    static const size_t WRITE_QUEUE_MAX_SIZE = 128 * KILOBYTE;
-    static const size_t WRITE_CHUNK_SIZE = 8 * KILOBYTE;
-
-    /* Structs to avoid over-using dynamic allocation */
-    struct write_buffer_t : public intrusive_list_node_t<write_buffer_t> {
-        char buffer[WRITE_CHUNK_SIZE];
-        size_t size;
-    };
-
-    struct write_queue_op_t : public intrusive_list_node_t<write_queue_op_t> {
-        write_buffer_t *dealloc;
-        const void *buffer;
-        size_t size;
-        cond_t *cond;
-    };
-
-    class write_handler_t :
-        public coro_pool_caller_t<write_queue_op_t*>::callback_t {
-    public:
-        write_handler_t(linux_tcp_conn_t *parent_);
-    private:
-        linux_tcp_conn_t *parent;
-        void coro_pool_callback(write_queue_op_t *operation);
-    } write_handler;
-
-    /* Lists of unused buffers, new buffers will be put on this list until needed again, reducing
-       the use of dynamic memory.  TODO: decay over time? */
-    intrusive_list_t<write_buffer_t> unused_write_buffers;
-    intrusive_list_t<write_queue_op_t> unused_write_queue_ops;
-
-    write_buffer_t * get_write_buffer();
-    write_queue_op_t * get_write_queue_op();
-    void release_write_buffer(write_buffer_t *buffer);
-    void release_write_queue_op(write_queue_op_t *op);
-
-    /* Schedules old write buffer's contents to be flushed and swaps in a fresh write buffer.
-    Blocks until it can acquire the `write_queue_limiter` semaphore, but doesn't wait for
-    data to be completely written. */
-    void internal_flush_write_buffer();
-
-    /* Used to queue up buffers to write. The functions in `write_queue` will all be
-    `boost::bind()`s of the `perform_write()` function below. */
-    unlimited_fifo_queue_t<write_queue_op_t*, intrusive_list_t<write_queue_op_t> > write_queue;
-
-    /* This semaphore prevents the write queue from getting arbitrarily big. */
-    semaphore_t write_queue_limiter;
-
-    /* Used to actually perform the writes. Only has one coroutine in it, which will call the
-    handle_write_queue callback when operations are ready */
-    coro_pool_caller_t<write_queue_op_t*> write_coro_pool;
-
-    /* Buffer we are currently filling up with data that we want to write. When it reaches a
-    certain size, we push it onto `write_queue`. */
-    write_buffer_t* current_write_buffer;
-
-    /* Used to actually perform a write. If the write end of the connection is open, then writes
-    `size` bytes from `buffer` to the socket. */
-    void perform_write(const void *buffer, size_t size);
+    linux_raw_tcp_conn_t conn;
 };
 
 /* The linux_tcp_listener_t is used to listen on a network port for incoming
@@ -201,10 +172,8 @@ the provided callback will be called in a new coroutine every time something con
 
 class linux_tcp_listener_t : public linux_event_callback_t {
 public:
-    linux_tcp_listener_t(
-        int port,
-        boost::function<void(boost::scoped_ptr<linux_tcp_conn_t>&)> callback
-        );
+    linux_tcp_listener_t(int port,
+                         boost::function<void(boost::scoped_ptr<linux_buffered_tcp_conn_t>&)> callback);
     ~linux_tcp_listener_t();
 
     // The constructor can throw this exception
@@ -224,7 +193,7 @@ private:
     linux_event_watcher_t event_watcher;
 
     // The callback to call when we get a connection
-    boost::function<void(boost::scoped_ptr<linux_tcp_conn_t>&)> callback;
+    boost::function<void(boost::scoped_ptr<linux_buffered_tcp_conn_t>&)> callback;
 
     /* accept_loop() runs in a separate coroutine. It repeatedly tries to accept
     new connections; when accept() blocks, then it waits for events from the
