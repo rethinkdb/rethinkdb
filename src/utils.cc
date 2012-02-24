@@ -1,20 +1,22 @@
 #include "utils.hpp"
 
+#include <cxxabi.h>
 #include "errors.hpp"
 #include <execinfo.h>
 #include <limits.h>
 #include <signal.h>
+#include <sstream>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
 #include <unistd.h>
-#include <cxxabi.h>
 
 #include <boost/scoped_array.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
 
 #include "arch/runtime/runtime.hpp"
 #include "containers/scoped_malloc.hpp"
@@ -222,6 +224,17 @@ boost::uuids::uuid generate_uuid() {
     return uuid;
 #endif
 }
+
+std::string uuid_to_str(boost::uuids::uuid id) {
+    std::stringstream ss;
+    ss << id;
+    return ss.str();
+}
+
+boost::uuids::uuid str_to_uuid(std::string uuid) {
+    return boost::uuids::string_generator()(uuid);
+}
+
 
 repli_timestamp_t repli_max(repli_timestamp_t x, repli_timestamp_t y) {
     return int32_t(x.time - y.time) < 0 ? y : x;

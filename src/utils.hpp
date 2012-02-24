@@ -436,4 +436,8 @@ std::ostream &operator<<(std::ostream &stream, const boost::optional<T> &optiona
     return stream;
 }
 
+std::string uuid_to_str(boost::uuids::uuid id);
+
+boost::uuids::uuid str_to_uuid(std::string);
+
 #endif // __UTILS_HPP__
