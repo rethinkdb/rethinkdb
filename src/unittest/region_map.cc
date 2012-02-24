@@ -1,9 +1,10 @@
 #include "unittest/gtest.hpp"
 
 #include "protocol_api.hpp"
-#include "unittest/dummy_protocol.hpp"
+#include "mock/dummy_protocol.hpp"
 
 namespace unittest {
+using namespace mock;
     TEST(RegionMap, BasicSets) {
         region_map_t<dummy_protocol_t, int> rmap(dummy_protocol_t::region_t('a', 'z'), 0);
         rmap.set(dummy_protocol_t::region_t('a', 'm'), 1);

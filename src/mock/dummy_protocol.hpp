@@ -1,5 +1,5 @@
-#ifndef __UNITTEST_DUMMY_PROTOCOL_HPP__
-#define __UNITTEST_DUMMY_PROTOCOL_HPP__
+#ifndef __MOCK_DUMMY_PROTOCOL_HPP__
+#define __MOCK_DUMMY_PROTOCOL_HPP__
 
 #include <map>
 #include <set>
@@ -18,7 +18,7 @@
 
 class signal_t;
 
-namespace unittest {
+namespace mock {
 
 class dummy_protocol_t {
 
@@ -129,7 +129,6 @@ private:
 };
 
 dummy_protocol_t::region_t a_thru_z_region();
+} // namespace mock
 
-}   /* namespace unittest */
-
-#endif /* __UNITTEST_DUMMY_PROTOCOL_HPP__ */
+#endif /* __MOCK_DUMMY_PROTOCOL_HPP__ */

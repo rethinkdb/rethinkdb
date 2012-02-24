@@ -3,7 +3,7 @@
 #include "clustering/immediate_consistency/branch/listener.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
 #include "unittest/dummy_metadata_controller.hpp"
-#include "unittest/dummy_protocol.hpp"
+#include "mock/dummy_protocol.hpp"
 #include "unittest/clustering_utils.hpp"
 #include "unittest/unittest_utils.hpp"
 

@@ -4,7 +4,7 @@
 #include "rpc/semilattice/view/field.hpp"
 #include "unittest/clustering_utils.hpp"
 #include "unittest/dummy_metadata_controller.hpp"
-#include "unittest/dummy_protocol.hpp"
+#include "mock/dummy_protocol.hpp"
 #include "unittest/unittest_utils.hpp"
 
 namespace unittest {

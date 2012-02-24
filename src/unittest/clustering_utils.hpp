@@ -3,9 +3,11 @@
 
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "rpc/directory/view.hpp"
-#include "unittest/dummy_protocol.hpp"
+#include "mock/dummy_protocol.hpp"
 
 namespace unittest {
+
+using namespace mock;
 
 class test_store_t {
 public:

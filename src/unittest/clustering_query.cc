@@ -8,10 +8,12 @@
 #include "rpc/mailbox/mailbox.hpp"
 #include "unittest/clustering_utils.hpp"
 #include "unittest/dummy_metadata_controller.hpp"
-#include "unittest/dummy_protocol.hpp"
+#include "mock/dummy_protocol.hpp"
 #include "unittest/unittest_utils.hpp"
 
 namespace unittest {
+
+using namespace mock;
 
 /* The `ReadWrite` test sends some reads and writes to some shards via a
 `cluster_namespace_interface_t`. */
