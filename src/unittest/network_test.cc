@@ -158,7 +158,13 @@ private:
                 uint32_t crc;
                 conn->read_exactly(&length, sizeof(length));
                 buffer.resize(length);
-                conn->read_exactly(buffer.data(), buffer.size());
+
+                size_t bytes_read = 0;
+                while (bytes_read < length) {
+                    size_t read_now = rand() % (length - bytes_read + 1);
+                    conn->read_exactly(buffer.data() + bytes_read, read_now);
+                    bytes_read += read_now;
+                }
                 conn->read_exactly(&crc, sizeof(crc));
 
                 if (get_crc(buffer) != crc)
