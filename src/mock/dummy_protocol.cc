@@ -1,4 +1,4 @@
-#include "unittest/dummy_protocol.hpp"
+#include "mock/dummy_protocol.hpp"
 
 #include "errors.hpp"
 #include <boost/scoped_ptr.hpp>
@@ -8,7 +8,7 @@
 #include "concurrency/signal.hpp"
 #include "concurrency/wait_any.hpp"
 
-namespace unittest {
+namespace mock {
 
 dummy_protocol_t::region_t dummy_protocol_t::region_t::empty() THROWS_NOTHING {
     return region_t();
@@ -357,4 +357,4 @@ std::ostream &operator<<(std::ostream &stream, dummy_protocol_t::region_t r) {
     return stream;
 }
 
-}   /* namespace unittest */
+}   /* namespace mock */
