@@ -1,7 +1,7 @@
 #include "unittest/gtest.hpp"
 #include "unittest/clustering_utils.hpp"
 #include "unittest/dummy_metadata_controller.hpp"
-#include "unittest/dummy_protocol.hpp"
+#include "mock/dummy_protocol.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
@@ -16,6 +16,8 @@
 #include "clustering/reactor/blueprint.hpp"
 
 namespace unittest {
+
+using namespace mock;
 
 namespace {
 
