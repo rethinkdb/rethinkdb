@@ -4,7 +4,35 @@
 #include <errno.h>
 #include <stdlib.h>
 
-#include "debug.hpp"
+#ifdef __linux__
+#if defined __i386 || defined __x86_64
+#define BREAKPOINT __asm__ volatile ("int3")
+#else   /* not x86/amd64 */
+#define BREAKPOINT raise(SIGTRAP)
+#endif  /* x86/amd64 */
+#endif /* __linux__ */
+
+
+#ifndef NDEBUG
+#define DEBUG_ONLY(...) __VA_ARGS__
+#define DEBUG_ONLY_CODE(expr) do { expr; } while (0)
+#else
+#define DEBUG_ONLY(...)
+#define DEBUG_ONLY_CODE(expr) ((void)(0))
+#endif
+
+/* This macro needs to exist because gcc and icc disagree on how to number the
+ * attributes to methods. ICC does different number for methods and functions
+ * and it's too unwieldy to make programs use these macros so we're just going
+ * to disable them in icc.
+ * With this macro attribute number starts at 1. If it is a nonstatic method
+ * then "1" refers to the class pointer ("this").
+ * */
+#ifdef __ICC
+#define NON_NULL_ATTR(arg) 
+#else
+#define NON_NULL_ATTR(arg) __attribute__((nonnull(arg)))
+#endif
 
 /* Error handling
  *
@@ -35,12 +63,19 @@
  * every single time it gets included.
  */
 
+#ifndef NDEBUG
+#define DEBUG_ONLY_VAR
+#else
+#define DEBUG_ONLY_VAR __attribute__((unused))
+#endif
+
 #define UNUSED __attribute__((unused))
+#define MUST_USE __attribute__((warn_unused_result))
 
 // TODO: Abort probably is not the right thing to do here.
-#define fail_due_to_user_error(msg, ...) do {                       \
-        report_user_error(msg, ##__VA_ARGS__);                                     \
-        exit(-1);                                                    \
+#define fail_due_to_user_error(msg, ...) do {                           \
+        report_user_error(msg, ##__VA_ARGS__);                          \
+        exit(-1);                                                       \
     } while (0)
 
 #define crash(msg, ...) do {                                        \
@@ -99,8 +134,6 @@ void report_user_error(const char*, ...) __attribute__((format (printf, 1, 2)));
     } while (0)
 #endif
 
-char *demangle_cpp_name(const char *mangled_name);
-
 void install_generic_crash_handler();
 
 // If you include errors.hpp before including a Boost library, then Boost assertion
@@ -109,5 +142,26 @@ void install_generic_crash_handler();
 namespace boost {
     void assertion_failed(char const * expr, char const * function, char const * file, long line);
 }
+
+
+// Put this in a private: section.
+#define DISABLE_COPYING(T)                      \
+    T(const T&);                                \
+    void operator=(const T&)
+
+
+/* Put these after functions to indicate what they throw. In release mode, they
+turn into noops so that the compiler doesn't have to generate exception-checking
+code everywhere. If you need to add an exception specification for compatibility
+with e.g. a virtual method, don't use these, or your code won't compile in
+release mode. */
+#ifdef NDEBUG
+#define THROWS_NOTHING
+#define THROWS_ONLY(...)
+#else
+#define THROWS_NOTHING throw ()
+#define THROWS_ONLY(...) throw (__VA_ARGS__)
+#endif
+
 
 #endif /* __ERRORS_HPP__ */

@@ -1,7 +1,7 @@
 #ifndef __CONTAINERS_UNIQUE_PTR_HPP__
 #define __CONTAINERS_UNIQUE_PTR_HPP__
 
-#include "debug.hpp"
+#include "errors.hpp"
 
 /* We can't use C++0x's real unique pointer because we have to support GCC 4.1, so instead we have
 this hack. It's like an auto_ptr, but with two differences:

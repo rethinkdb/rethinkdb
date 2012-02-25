@@ -14,6 +14,16 @@
 #include "utils2.hpp"
 #include <string>
 
+/* `demangle_cpp_name()` attempts to de-mangle the given symbol name. If it
+succeeds, it returns the result as a `std::string`. If it fails, it throws
+`demangle_failed_exc_t`. */
+struct demangle_failed_exc_t : public std::exception {
+    const char *what() const throw () {
+        return "Could not demangle C++ name.";
+    }
+};
+std::string demangle_cpp_name(const char *mangled_name);
+
 // Precise time (time+nanoseconds) for logging, etc.
 
 struct precise_time_t : public tm {
@@ -129,6 +139,8 @@ void do_on_thread(int thread, const callable_t& callable);
 
 template<class callable_t>
 void do_later(const callable_t &callable);
+
+void print_backtrace(FILE *out = stderr, bool use_addr2line = true);
 
 #include "utils.tcc"
 
