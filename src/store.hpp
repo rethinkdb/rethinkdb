@@ -1,6 +1,8 @@
 #ifndef __STORE_HPP__
 #define __STORE_HPP__
 
+#include "errors.hpp"
+#include <boost/scoped_ptr.hpp>
 #include "utils.hpp"
 #include "arch/arch.hpp"
 #include "data_provider.hpp"
@@ -63,7 +65,7 @@ struct key_with_data_provider_t {
     mcflags_t mcflags;
     boost::shared_ptr<data_provider_t> value_provider;
 
-    key_with_data_provider_t(const std::string &key, mcflags_t mcflags, boost::shared_ptr<data_provider_t> value_provider) :
+    key_with_data_provider_t(const std::string &key, mcflags_t mcflags, const boost::shared_ptr<data_provider_t>& value_provider) :
         key(key), mcflags(mcflags), value_provider(value_provider) { }
 
     struct less {
@@ -77,17 +79,17 @@ struct key_with_data_provider_t {
 typedef unique_ptr_t<one_way_iterator_t<key_with_data_provider_t> > rget_result_t;
 
 struct get_result_t {
-    get_result_t(unique_ptr_t<data_provider_t> v, mcflags_t f, cas_t c) :
-        is_not_allowed(false), value(v), flags(f), cas(c) { }
+    get_result_t(const boost::shared_ptr<data_provider_t>& v, mcflags_t f, cas_t c) :
+        is_not_allowed(false), value_provider(v), flags(f), cas(c) { }
     get_result_t() :
-        is_not_allowed(false), value(), flags(0), cas(0) { }
+        is_not_allowed(false), value_provider(), flags(0), cas(0) { }
 
     /* If true, then all other fields should be ignored. */
     bool is_not_allowed;
 
     // NULL means not found. Parts of the store may wait for the data_provider_t's destructor,
     // so don't hold on to it forever.
-    unique_ptr_t<data_provider_t> value;
+    boost::shared_ptr<data_provider_t> value_provider;
 
     mcflags_t flags;
     cas_t cas;

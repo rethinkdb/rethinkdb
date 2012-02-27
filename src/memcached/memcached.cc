@@ -1,5 +1,7 @@
 #include "memcached/memcached.hpp"
 
+#include "errors.hpp"
+#include <boost/scoped_ptr.hpp>
 #include <stdexcept>
 #include <stdarg.h>
 #include <unistd.h>
@@ -23,6 +25,7 @@
 around to do_get(), do_storage(), and the like. */
 
 static const char *crlf = "\r\n";
+static const char crlf_array[] = { '\r', '\n' };
 
 struct txt_memcached_handler_t : public txt_memcached_handler_if, public home_thread_mixin_t {
     tcp_conn_t *conn;
@@ -60,23 +63,38 @@ struct txt_memcached_handler_t : public txt_memcached_handler_if, public home_th
     }
     void write_unbuffered(const char *buffer, size_t bytes) {
         try {
-            conn->write(buffer, bytes);
+            conn->get_raw_connection().write(buffer, bytes, NULL);
         } catch (tcp_conn_t::write_closed_exc_t) {
         }
     }
-    void write_from_data_provider(data_provider_t *dp) {
+
+    struct memcached_write_callback_t : public tcp_conn_t::write_callback_t {
+        memcached_write_callback_t(const boost::shared_ptr<data_provider_t>& result_dp) : dp(result_dp) { }
+        void done() {
+            delete this;
+        }
+
+        boost::shared_ptr<data_provider_t> dp;
+    };
+
+    void write_from_data_provider(const boost::shared_ptr<data_provider_t>& dp) {
         /* Write the value itself. If the value is small, write it into the send buffer;
         otherwise, stream it. */
         const const_buffer_group_t *bg = dp->get_data_as_buffers();
+        struct iovec iov[bg->num_buffers() + 1]; // We add an index to contain the end of line at the end of the write
+
+        // TODO: allocate callbacks on the stack of the caller and wait before returning
+        tcp_conn_t::write_callback_t *callback = (bg->num_buffers() == 1) ? NULL : new memcached_write_callback_t(dp);
 
         for (size_t i = 0; i < bg->num_buffers(); i++) {
             const_buffer_group_t::buffer_t b = bg->get_buffer(i);
-            if (dp->get_size() < MAX_BUFFERED_GET_SIZE) {
-                write(ptr_cast<const char>(b.data), b.size);
-            } else {
-                write_unbuffered(ptr_cast<const char>(b.data), b.size);
-            }
+            iov[i].iov_base = const_cast<void *>(b.data);
+            iov[i].iov_len = b.size;
         }
+        iov[bg->num_buffers()].iov_base = const_cast<void *>(reinterpret_cast<const void *>(crlf_array));
+        iov[bg->num_buffers()].iov_len = sizeof(crlf_array);
+
+        conn->write_vectored(iov, bg->num_buffers() + 1, callback);
     }
     void write_value_header(const char *key, size_t key_size, mcflags_t mcflags, size_t value_size) {
         writef("VALUE %*.*s %u %zu\r\n",
@@ -229,7 +247,7 @@ public:
     void vwritef(UNUSED const char *format, UNUSED va_list args) { }
     void writef(UNUSED const char *format, ...) { }
     void write_unbuffered(UNUSED const char *buffer, UNUSED size_t bytes) { }
-    void write_from_data_provider(UNUSED data_provider_t *dp) { }
+    void write_from_data_provider(UNUSED const boost::shared_ptr<data_provider_t>& dp) { }
     void write_value_header(UNUSED const char *key, UNUSED size_t key_size, UNUSED mcflags_t mcflags, UNUSED size_t value_size) { }
     void write_value_header(UNUSED const char *key, UNUSED size_t key_size, UNUSED mcflags_t mcflags, UNUSED size_t value_size, UNUSED cas_t cas) { }
     void error() { }
@@ -253,14 +271,14 @@ public:
     void read_line(std::vector<char> *dest) {
         int limit = MEGABYTE;
         dest->clear();
-        char c; 
+        char c;
         char *head = (char *) crlf;
         while ((*head) && ((c = getc(file)) != EOF) && (limit--) > 0) {
             dest->push_back(c);
             if (c == *head) head++;
             else head = (char *) crlf;
         }
-        //we didn't every find a crlf unleash the exception 
+        //we didn't every find a crlf unleash the exception
         if (*head) throw no_more_data_exc_t();
     }
 
@@ -271,7 +289,7 @@ public:
         get_result_t get(UNUSED const store_key_t &key, UNUSED sequence_group_t *seq_group, UNUSED order_token_t token) { return get_result_t(); }
         rget_result_t rget(UNUSED sequence_group_t *seq_group,
                            UNUSED rget_bound_mode_t left_mode, UNUSED const store_key_t &left_key,
-                           UNUSED rget_bound_mode_t right_mode, UNUSED const store_key_t &right_key, 
+                           UNUSED rget_bound_mode_t right_mode, UNUSED const store_key_t &right_key,
                            UNUSED order_token_t token)
         {
             return rget_result_t();
@@ -447,7 +465,7 @@ void do_get(txt_memcached_handler_if *rh, pipeliner_t *pipeliner, bool with_cas,
 
             /* If res.value is NULL that means the value was not found so we don't write
                anything */
-            if (res.value) {
+            if (res.value_provider) {
                 /* If the write half of the connection has been closed, there's no point in trying
                    to send anything */
                 if (rh->is_write_open()) {
@@ -455,14 +473,13 @@ void do_get(txt_memcached_handler_if *rh, pipeliner_t *pipeliner, bool with_cas,
 
                     /* Write the "VALUE ..." header */
                     if (with_cas) {
-                        rh->write_value_header(key.contents, key.size, res.flags, res.value->get_size(), res.cas);
+                        rh->write_value_header(key.contents, key.size, res.flags, res.value_provider->get_size(), res.cas);
                     } else {
                         rassert(res.cas == 0);
-                        rh->write_value_header(key.contents, key.size, res.flags, res.value->get_size());
+                        rh->write_value_header(key.contents, key.size, res.flags, res.value_provider->get_size());
                     }
 
-                    rh->write_from_data_provider(res.value.get());
-                    rh->write_crlf();
+                    rh->write_from_data_provider(res.value_provider);
                 }
             }
         }
@@ -558,13 +575,10 @@ void do_rget(txt_memcached_handler_if *rh, pipeliner_t *pipeliner, int argc, cha
         while (++count <= max_items && (rget_iteration_next.begin(&next_time), pair = results_iterator->next())) {
             rget_iteration_next.end(&next_time);
             const key_with_data_provider_t& kv = pair.get();
-
             const std::string& key = kv.key;
-            const boost::shared_ptr<data_provider_t>& dp = kv.value_provider;
 
-            rh->write_value_header(key.c_str(), key.length(), kv.mcflags, dp->get_size());
-            rh->write_from_data_provider(dp.get());
-            rh->write_crlf();
+            rh->write_value_header(key.c_str(), key.length(), kv.mcflags, kv.value_provider->get_size());
+            rh->write_from_data_provider(kv.value_provider);
         }
 
         rh->write_end();

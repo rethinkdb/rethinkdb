@@ -8,7 +8,9 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
+#include <sys/ioctl.h>
 #include <sys/types.h>
+#include <linux/sockios.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <iterator>
@@ -19,8 +21,9 @@ const uint32_t linux_buffered_tcp_conn_t::READ_BUFFER_MIN_UTILIZATION_FACTOR = 4
 const size_t linux_buffered_tcp_conn_t::MIN_BUFFERED_READ_SIZE = 1024;
 const size_t linux_buffered_tcp_conn_t::MIN_READ_BUFFER_SIZE = linux_buffered_tcp_conn_t::MIN_BUFFERED_READ_SIZE * 4;
 const size_t linux_buffered_tcp_conn_t::MAX_WRITE_BUFFER_SIZE = 4096;
+const size_t linux_raw_tcp_conn_t::ZEROCOPY_THRESHOLD = 2048;
 
-/* Network connection object */
+// Network connection object
 
 /* Warning: It is very easy to accidentally introduce race conditions to linux_raw_tcp_conn_t.
 Think carefully before changing read_internal(), perform_write(), or on_shutdown_*(). */
@@ -66,7 +69,6 @@ fd_t linux_raw_tcp_conn_t::connect_to(const char *host, int port) {
 }
 
 fd_t linux_raw_tcp_conn_t::connect_to(const ip_address_t &host, int port) {
-
     scoped_fd_t sock(socket(AF_INET, SOCK_STREAM, 0));
 
     if (sock.get() == INVALID_FD) {
@@ -92,40 +94,105 @@ fd_t linux_raw_tcp_conn_t::connect_to(const ip_address_t &host, int port) {
 linux_raw_tcp_conn_t::linux_raw_tcp_conn_t(const char *host, int port) :
     write_perfmon(NULL),
     sock(connect_to(host, port)),
+    read_vmsplice_pipe(),
+    write_vmsplice_pipe(),
     event_watcher(new linux_event_watcher_t(sock.get(), this)),
     read_in_progress(false),
-    write_in_progress(false)
-{ }
+    write_in_progress(false),
+    total_bytes_written(0)
+{
+    initialize_vmsplice_pipes();
+}
+
+void linux_raw_tcp_conn_t::initialize_vmsplice_pipes() {
+    fd_t pipe[2];
+    if (pipe2(pipe, O_NONBLOCK | O_CLOEXEC) != 0) {
+        crash("Could not create pipe"); // RSI: handle the pipe creation failure gracefully
+    } else {
+        read_vmsplice_pipe.reset(pipe[0]);
+        write_vmsplice_pipe.reset(pipe[1]);
+    }
+}
 
 linux_raw_tcp_conn_t::linux_raw_tcp_conn_t(const ip_address_t &host, int port) :
     write_perfmon(NULL),
     sock(connect_to(host, port)),
     event_watcher(new linux_event_watcher_t(sock.get(), this)),
     read_in_progress(false),
-    write_in_progress(false)
-{ }
+    write_in_progress(false),
+    total_bytes_written(0)
+{
+    initialize_vmsplice_pipes();
+}
 
 linux_raw_tcp_conn_t::linux_raw_tcp_conn_t(fd_t s) :
     write_perfmon(NULL),
     sock(s),
     event_watcher(new linux_event_watcher_t(sock.get(), this)),
     read_in_progress(false),
-    write_in_progress(false)
+    write_in_progress(false),
+    total_bytes_written(0)
 {
     rassert(sock.get() != INVALID_FD);
 
     // TODO: is this throwing away previous flags?
     int res = fcntl(sock.get(), F_SETFL, O_NONBLOCK);
     guarantee_err(res == 0, "Could not make socket non-blocking");
+    initialize_vmsplice_pipes();
+}
+
+void linux_raw_tcp_conn_t::timer_hook(void *instance) {
+    reinterpret_cast<linux_raw_tcp_conn_t *>(instance)->timer_handle_callbacks();
+}
+
+void linux_raw_tcp_conn_t::timer_handle_callbacks() {
+    // Get the current unsent bytes from the tcp queue
+    int send_queue_size;
+    int result = ::ioctl(sock.get(), SIOCOUTQ, &send_queue_size);
+    if (result != 0) {
+        logERR("Failed to get SIOCOUTQ from stream: %s", strerror(errno));
+        return;
+    }
+
+    // Call any callbacks whose buffers have been flushed
+    remove_write_callbacks(total_bytes_written - send_queue_size);
+}
+
+void linux_raw_tcp_conn_t::add_write_callback(write_callback_t *callback) {
+    // Set up the timer for running write callbacks
+    if (timer_token == NULL)
+        timer_token = linux_thread_pool_t::thread->timer_handler.add_timer_internal(1, &timer_hook, this, false);
+
+    callback->position_in_stream = total_bytes_written;
+    write_callback_list.push_back(callback);
+}
+
+void linux_raw_tcp_conn_t::remove_write_callbacks(size_t current_position) {
+    while (!write_callback_list.empty()) {
+        write_callback_t *callback = write_callback_list.front();
+        if (current_position >= callback->position_in_stream) {
+            callback->done();
+            write_callback_list.pop_front();
+        } else {
+            break;
+        }
+    }
+
+    // Check if we should remove timer from timer handler
+    if (write_callback_list.empty()) {
+        rassert(timer_token != NULL);
+        linux_thread_pool_t::thread->timer_handler.cancel_timer(timer_token);
+        timer_token = NULL;
+    }
 }
 
 // TODO: if this fails because the connection dies, do anything?
-void linux_raw_tcp_conn_t::write(const void *buffer, size_t size, write_callback_t *callback) {
+void linux_raw_tcp_conn_t::write(const void *buffer, size_t size, write_callback_t *callback) THROWS_ONLY(write_closed_exc_t) {
     struct iovec iov = { const_cast<void *>(buffer), size };
     write_vectored(&iov, 1, callback);
 }
 
-void linux_raw_tcp_conn_t::write_vectored(struct iovec *iov, size_t count, write_callback_t *callback) {
+void linux_raw_tcp_conn_t::write_vectored(struct iovec *iov, size_t count, write_callback_t *callback) THROWS_ONLY(write_closed_exc_t) {
     assert_thread();
     rassert(!write_in_progress);
 
@@ -137,12 +204,53 @@ void linux_raw_tcp_conn_t::write_vectored(struct iovec *iov, size_t count, write
         return;
     }
 
-    write_in_progress = true;
-
     size_t bytes_to_write = 0;
     for (size_t i = 0; i < count; i++)
         bytes_to_write += iov[i].iov_len;
 
+    if (bytes_to_write >= ZEROCOPY_THRESHOLD && callback != NULL) {
+        write_zerocopy(iov, count, bytes_to_write, callback);
+    } else {
+        write_copy(iov, count, bytes_to_write, callback);
+    }
+}
+
+void linux_raw_tcp_conn_t::write_zerocopy(struct iovec *iov, size_t count, size_t bytes_to_write, write_callback_t *callback) THROWS_ONLY(write_closed_exc_t) {
+    rassert(callback != NULL);
+
+    while (bytes_to_write > 0) {
+        ssize_t vmsplice_res = vmsplice(write_vmsplice_pipe.get(), iov, count, SPLICE_F_NONBLOCK);
+        if (vmsplice_res > 0) {
+            size_t bytes_to_splice = static_cast<size_t>(vmsplice_res);
+            rassert(bytes_to_splice <= bytes_to_write);
+            bytes_to_write -= bytes_to_splice;
+
+            while (bytes_to_splice > 0) {
+                ssize_t splice_res = splice(read_vmsplice_pipe.get(), NULL, sock.get(), NULL, bytes_to_splice, SPLICE_F_MOVE | SPLICE_F_NONBLOCK);
+                if (splice_res > 0) {
+                    rassert(static_cast<size_t>(splice_res) <= bytes_to_splice);
+                    bytes_to_splice -= splice_res;
+                    total_bytes_written += splice_res;
+                    if (bytes_to_splice > 0) {
+                        wait_for_epoll_out();
+                    }
+                } else {
+                    // RSI: exception
+                    logERR("Could not splice to a socket: %s\n", strerror(errno));
+                    shutdown_write();
+                }
+            }
+        } else {
+            // RSI: exception
+            logERR("Could not vmsplice to a pipe: %s\n", strerror(errno));
+            shutdown_write();
+        }
+    }
+
+    add_write_callback(callback);
+}
+
+void linux_raw_tcp_conn_t::write_copy(struct iovec *iov, size_t count, size_t bytes_to_write, write_callback_t *callback) THROWS_ONLY(write_closed_exc_t) {
     while (bytes_to_write > 0) {
         int res = ::writev(sock.get(), iov, count);
 
@@ -160,62 +268,67 @@ void linux_raw_tcp_conn_t::write_vectored(struct iovec *iov, size_t count, write
                     --count;
                 }
             }
+            total_bytes_written += res;
 
             if (write_perfmon)
                 write_perfmon->record(res);
         } else if (res == -1 && (errno == EPIPE || errno == ENOTCONN || errno == EHOSTUNREACH ||
                                  errno == ENETDOWN || errno == EHOSTDOWN || errno == ECONNRESET)) {
-            /* These errors are expected to happen at some point in practice */
+            // These errors are expected to happen at some point in practice
             on_shutdown_write();
             break;
 
         } else if (errno != EAGAIN && errno != EWOULDBLOCK) {
             /* In theory this should never happen, but it probably will. So we write a log message
                and then shut down normally. */
-            logERR("Could not write to socket: %s\n", strerror(errno));
+            logERR("Could not write to a socket: %s\n", strerror(errno));
             on_shutdown_write();
-            break;
+            break; // RSI
         } else {
             // THIS SPACE IS INTENTIONALLY LEFT BLANK
         }
 
         if (bytes_to_write > 0) {
-            // TODO: see if we can just do this cond_t stuff once in this function
-            /* Wait for a notification from the event queue */
-            cond_t cond;
-
-            /* Set up the cond so it gets pulsed when the socket is closed */
-            cond_link_t pulse_if_shut_down(&write_closed, &cond);
-
-            /* Set up the cond so it gets pulsed if an event comes */
-            event_watcher->watch(poll_event_out, boost::bind(&cond_t::pulse, &cond), &cond);
-
-            /* Wait for something to happen. */
-            cond.wait_lazily();
-
-            if (write_closed.is_pulsed()) {
-                /* We were closed for whatever reason. Whatever signalled us has already called
-                   on_shutdown_write(). */
-                break;
-            }
-
-            /* Go around the loop and try to write again */
+            wait_for_epoll_out();
+            // Go around the loop and try to write again
         }
     }
-    write_in_progress = false;
 
     if (callback) {
         callback->done();
     }
 }
 
-void linux_raw_tcp_conn_t::read_exactly(void *buffer, size_t size) {
+void linux_raw_tcp_conn_t::wait_for_epoll_out() THROWS_ONLY(write_closed_exc_t) {
+    rassert(!write_in_progress);
+    write_in_progress = true;
+    // Wait for a notification from the event queue
+    cond_t cond;
+
+    // Set up the cond so it gets pulsed when the socket is closed
+    cond_link_t pulse_if_shut_down(&write_closed, &cond);
+
+    // Set up the cond so it gets pulsed if an event comes
+    event_watcher->watch(poll_event_out, boost::bind(&cond_t::pulse, &cond), &cond);
+
+    // Wait for something to happen.
+    cond.wait_lazily();
+
+    write_in_progress = false;
+    if (write_closed.is_pulsed()) {
+        /* We were closed for whatever reason. Something else has already called
+        on_shutdown_write(). In fact, we were probably signalled by on_shutdown_write(). */
+        throw write_closed_exc_t();
+    }
+}
+
+void linux_raw_tcp_conn_t::read_exactly(void *buffer, size_t size) THROWS_ONLY(read_closed_exc_t) {
     size_t bytes_read(0);
     while (bytes_read < size)
         bytes_read += read(reinterpret_cast<char *>(buffer) + bytes_read, size - bytes_read);
 }
 
-size_t linux_raw_tcp_conn_t::read(void *buffer, size_t size) {
+size_t linux_raw_tcp_conn_t::read(void *buffer, size_t size) THROWS_ONLY(read_closed_exc_t) {
     assert_thread();
     rassert(!read_closed.is_pulsed());
 
@@ -223,53 +336,55 @@ size_t linux_raw_tcp_conn_t::read(void *buffer, size_t size) {
         ssize_t res = read_non_blocking(buffer, size);
 
         if (res > 0) {
-            /* We read some data, whooo */
+            // We read some data, whooo
             return res;
         } else {
-            rassert(!read_in_progress);
-            read_in_progress = true;
-
-            // TODO: see if we can just do this cond_t stuff once in this function
-            /* There's no data available right now, so we must wait for a notification from the
-            epoll queue. `cond` will be pulsed when the socket is closed or when there is data
-            available. */
-            cond_t cond;
-
-            /* Set up the cond so it gets pulsed when the socket is closed */
-            cond_link_t pulse_if_shut_down(&read_closed, &cond);
-
-            /* Set up the cond so it gets pulsed if an event comes */
-            event_watcher->watch(poll_event_in, boost::bind(&cond_t::pulse, &cond), &cond);
-
-            /* Wait for something to happen.
-
-            We must wait lazily because if we wait eagerly, the `linux_raw_tcp_conn_t` could be
-            immediately destroyed as a consequence of our being notified, which could screw up
-            the `linux_event_watcher_t`. See issue #322.
-
-            At one time it was believed that `wait_eagerly()` would provide better performance,
-            because `wait_lazily()` means an extra trip around the event loop when the connection
-            becomes readable. On 2011-05-12, Tim benchmarked `wait_eagerly()` against
-            `wait_lazily()` on electro with an all-get workload, no keys in the database, and
-            default stress-client and server parameters, and found that it had no significant
-            impact on performance. */
-            cond.wait_lazily();
-
-            read_in_progress = false;
-
-            if (read_closed.is_pulsed()) {
-                /* We were closed for whatever reason. Something else has already called
-                on_shutdown_read(). In fact, we were probably signalled by on_shutdown_read(). */
-                throw read_closed_exc_t();
-            }
-
-            /* Go around the loop and try to read again */
-
+            wait_for_epoll_in();
+            // Go around the loop and try to read again
         }
     }
 }
 
-size_t linux_raw_tcp_conn_t::read_non_blocking(void *buffer, size_t size) {
+void linux_raw_tcp_conn_t::wait_for_epoll_in() THROWS_ONLY(read_closed_exc_t) {
+    rassert(!read_in_progress);
+    read_in_progress = true;
+
+    /* There's no data available right now, so we must wait for a notification from the
+    epoll queue. `cond` will be pulsed when the socket is closed or when there is data
+    available. */
+    cond_t cond;
+
+    // Set up the cond so it gets pulsed when the socket is closed
+    cond_link_t pulse_if_shut_down(&read_closed, &cond);
+
+    // Set up the cond so it gets pulsed if an event comes
+    event_watcher->watch(poll_event_in, boost::bind(&cond_t::pulse, &cond), &cond);
+
+    /* Wait for something to happen.
+
+    We must wait lazily because if we wait eagerly, the `linux_raw_tcp_conn_t` could be
+    immediately destroyed as a consequence of our being notified, which could screw up
+    the `linux_event_watcher_t`. See issue #322.
+
+    At one time it was believed that `wait_eagerly()` would provide better performance,
+    because `wait_lazily()` means an extra trip around the event loop when the connection
+    becomes readable. On 2011-05-12, Tim benchmarked `wait_eagerly()` against
+    `wait_lazily()` on electro with an all-get workload, no keys in the database, and
+    default stress-client and server parameters, and found that it had no significant
+    impact on performance. */
+    cond.wait_lazily();
+
+    read_in_progress = false;
+
+    if (read_closed.is_pulsed()) {
+        /* We were closed for whatever reason. Something else has already called
+        on_shutdown_read(). In fact, we were probably signalled by on_shutdown_read(). */
+        throw read_closed_exc_t();
+    }
+}
+
+size_t linux_raw_tcp_conn_t::read_non_blocking(void *buffer, size_t size) THROWS_ONLY(read_closed_exc_t) {
+    rassert(!read_in_progress);
     ssize_t res = ::read(sock.get(), buffer, size);
 
     if (res > 0) {
@@ -313,7 +428,6 @@ bool linux_raw_tcp_conn_t::is_read_open() {
 }
 
 void linux_raw_tcp_conn_t::shutdown_write() {
-
     assert_thread();
 
     int res = ::shutdown(sock.get(), SHUT_WR);
@@ -348,7 +462,8 @@ linux_raw_tcp_conn_t::~linux_raw_tcp_conn_t() {
     delete event_watcher;
     event_watcher = NULL;
 
-    /* scoped_fd_t's destructor will take care of closing the socket. */
+    // scoped_fd_t's destructor will take care of closing the socket.
+    // RSI: call any remaining callbacks
 }
 void linux_buffered_tcp_conn_t::rethread(int new_thread) {
     conn.rethread(new_thread);
@@ -382,7 +497,6 @@ void linux_raw_tcp_conn_t::rethread(int new_thread) {
 }
 
 void linux_raw_tcp_conn_t::on_event(int events) {
-
     assert_thread();
 
     /* This is called by linux_event_watcher_t when error events occur. Ordinary
@@ -392,7 +506,6 @@ void linux_raw_tcp_conn_t::on_event(int events) {
     bool writing = event_watcher->is_watching(poll_event_out);
 
     if (events & (poll_event_err | poll_event_hup)) {
-
         /* TODO: What's the significance of these 'if' statements? Do they actually make
         any sense? Why don't we just close both halves of the socket?  - probably to finish writing/reading what is left */
 
@@ -412,7 +525,7 @@ void linux_raw_tcp_conn_t::on_event(int events) {
         }
 
         if (reading) {
-            /* See description for write case above */
+            // See description for write case above
             on_shutdown_read();
         }
 
@@ -424,7 +537,7 @@ void linux_raw_tcp_conn_t::on_event(int events) {
         }
 
     } else {
-        /* We don't know why we got this, so log it and then shut down the socket */
+        // We don't know why we got this, so log it and then shut down the socket
         logERR("Unexpected epoll err/hup/rdhup. events=%s, reading=%s, writing=%s\n",
             format_poll_event(events).c_str(),
             reading ? "yes" : "no",
@@ -466,7 +579,7 @@ char * linux_buffered_tcp_conn_t::get_read_buffer_end() {
     return read_buffer.data() + read_buffer.size();
 }
 
-void linux_buffered_tcp_conn_t::read_exactly(void *buf, size_t size) {
+void linux_buffered_tcp_conn_t::read_exactly(void *buf, size_t size) THROWS_ONLY(read_closed_exc_t) {
     size_t bytes_read = 0;
     size_t buffered_bytes = read_buffer.size() - read_buffer_offset;
 
@@ -482,7 +595,7 @@ void linux_buffered_tcp_conn_t::read_exactly(void *buf, size_t size) {
     conn.read_exactly(reinterpret_cast<char *>(buf) + bytes_read, size - bytes_read);
 }
 
-void linux_buffered_tcp_conn_t::read_more_buffered() {
+void linux_buffered_tcp_conn_t::read_more_buffered() THROWS_ONLY(read_closed_exc_t) {
     // Make sure there is enough free room in the buffer (may need to be expanded or shifted)
     const size_t free_space = read_buffer.capacity() - read_buffer.size();
     if (free_space < MIN_BUFFERED_READ_SIZE) {
@@ -499,7 +612,7 @@ void linux_buffered_tcp_conn_t::read_more_buffered() {
         }
         read_buffer_offset = 0;
     }
-            
+
     // Read available data into read buffer
     size_t old_size = read_buffer.size();
     read_buffer.resize(read_buffer.capacity());
@@ -533,7 +646,7 @@ void linux_buffered_tcp_conn_t::pop_read_buffer(size_t len) {
     }
 }
 
-void linux_buffered_tcp_conn_t::write(const void *buf, size_t size) {
+void linux_buffered_tcp_conn_t::write(const void *buf, size_t size) THROWS_ONLY(write_closed_exc_t) {
     conn.assert_thread();
 
     // Copy what will fit of buf into write buffer
@@ -549,7 +662,31 @@ void linux_buffered_tcp_conn_t::write(const void *buf, size_t size) {
     }
 }
 
-void linux_buffered_tcp_conn_t::flush_write_buffer() {
+void linux_buffered_tcp_conn_t::write_vectored(struct iovec *iov, size_t count, write_callback_t *callback) THROWS_ONLY(write_closed_exc_t) {
+    // If we don't have a pending write buffer, we can pass the write directly down
+    if (write_buffer.empty()) {
+        conn.write_vectored(iov, count, callback);
+    } else {
+        // We have a pending write buffer, either batch it into the iovectors or flush our buffer first
+        if (callback == NULL) {
+            struct iovec buffered_iov[count + 1];
+            memcpy(buffered_iov + 1, iov, sizeof(*iov) * count);
+
+            buffered_iov[0].iov_base = write_buffer.data();
+            buffered_iov[0].iov_len = write_buffer.size();
+
+            conn.write_vectored(buffered_iov, count + 1, NULL);
+        } else {
+            // Since there is a callback, we can't allow our write_buffer to be zerocopied
+            //   which would complicate the deallocation or reuse of the write_buffer
+            flush_write_buffer();
+            conn.write_vectored(iov, count, callback);
+        }
+        write_buffer.clear();
+    }
+}
+
+void linux_buffered_tcp_conn_t::flush_write_buffer() THROWS_ONLY(write_closed_exc_t) {
     if (write_buffer.size() > 0) {
         conn.write(write_buffer.data(), write_buffer.size(), NULL);
         write_buffer.clear();
@@ -557,7 +694,7 @@ void linux_buffered_tcp_conn_t::flush_write_buffer() {
 }
 
 // TODO: implement passthrough for various raw connection functions (read_closed, etc), do a diff to see all fns
-linux_raw_tcp_conn_t& linux_buffered_tcp_conn_t::get_raw_connection() {
+linux_raw_tcp_conn_t& linux_buffered_tcp_conn_t::get_raw_connection() THROWS_ONLY(write_closed_exc_t) {
     guarantee(read_buffer.size() - read_buffer_offset == 0);
     flush_write_buffer();
     return conn;
@@ -579,7 +716,7 @@ bool linux_buffered_tcp_conn_t::is_read_open() {
     return conn.is_read_open();
 }
 
-/* Network listener object */
+// Network listener object
 
 linux_tcp_listener_t::linux_tcp_listener_t(int port,
         boost::function<void(boost::scoped_ptr<linux_buffered_tcp_conn_t>&)> cb) :
@@ -639,13 +776,11 @@ linux_tcp_listener_t::linux_tcp_listener_t(int port,
 }
 
 void linux_tcp_listener_t::accept_loop(signal_t *shutdown_signal) {
-
     static const int initial_backoff_delay_ms = 10;   // Milliseconds
     static const int max_backoff_delay_ms = 160;
     int backoff_delay_ms = initial_backoff_delay_ms;
 
     while (!shutdown_signal->is_pulsed()) {
-
         fd_t new_sock = accept(sock.get(), NULL, NULL);
 
         if (new_sock != INVALID_FD) {
@@ -668,10 +803,10 @@ void linux_tcp_listener_t::accept_loop(signal_t *shutdown_signal) {
             c.wait();
 
         } else if (errno == EINTR) {
-            /* Harmless error; just try again. */ 
+            /* Harmless error; just try again. */
 
         } else {
-            /* Unexpected error. Log it unless it's a repeat error. */
+            // Unexpected error. Log it unless it's a repeat error.
             if (log_next_error) {
                 logERR("accept() failed: %s.\n",
                     strerror(errno));
@@ -685,7 +820,7 @@ void linux_tcp_listener_t::accept_loop(signal_t *shutdown_signal) {
             call_with_delay(backoff_delay_ms, boost::bind(&cond_t::pulse, &c), &c);
             c.wait();
 
-            /* Exponentially increase backoff time */
+            // Exponentially increase backoff time
             if (backoff_delay_ms < max_backoff_delay_ms) backoff_delay_ms *= 2;
         }
     }
@@ -697,8 +832,7 @@ void linux_tcp_listener_t::handle(fd_t socket) {
 }
 
 linux_tcp_listener_t::~linux_tcp_listener_t() {
-
-    /* Interrupt the accept loop */
+    // Interrupt the accept loop
     accept_loop_handler.reset();
 
     int res;
@@ -710,7 +844,6 @@ linux_tcp_listener_t::~linux_tcp_listener_t() {
 }
 
 void linux_tcp_listener_t::on_event(int events) {
-
     /* This is only called in cases of error; normal input events are recieved
     via event_listener.watch(). */
 

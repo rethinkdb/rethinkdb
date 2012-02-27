@@ -1,6 +1,8 @@
 #ifndef __MEMCACHED_MEMCACHED_HPP__
 #define __MEMCACHED_MEMCACHED_HPP__
 
+#include "errors.hpp"
+#include <boost/shared_ptr.hpp>
 #include "arch/arch.hpp"
 #include "data_provider.hpp"
 #include "btree/value.hpp"
@@ -40,7 +42,7 @@ public:
     virtual void vwritef(const char *format, va_list args) = 0;
     virtual void writef(const char *format, ...) = 0;
     virtual void write_unbuffered(const char *buffer, size_t bytes) = 0;
-    virtual void write_from_data_provider(data_provider_t *dp) = 0;
+    virtual void write_from_data_provider(const boost::shared_ptr<data_provider_t>& dp) = 0;
     virtual void write_value_header(const char *key, size_t key_size, mcflags_t mcflags, size_t value_size) = 0;
     virtual void write_value_header(const char *key, size_t key_size, mcflags_t mcflags, size_t value_size, cas_t cas) = 0;
     virtual void error() = 0;
