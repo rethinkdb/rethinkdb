@@ -6,6 +6,8 @@
 #include "clustering/reactor/directory_echo.hpp"
 #include "clustering/immediate_consistency/query/metadata.hpp"
 #include "rpc/connectivity/connectivity.hpp"
+#include "rpc/semilattice/view.hpp"
+#include "concurrency/watchable.hpp"
 
 template<class protocol_t>
 class reactor_t {
