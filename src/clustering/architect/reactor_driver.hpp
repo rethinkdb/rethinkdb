@@ -54,7 +54,7 @@ namespace reactor_driver_details {
 
             directory_write_service_t::our_value_lock_acq_t lock(directory_view->get_directory_service());
             namespaces_directory_metadata_t<protocol_t> namespaces_directory = directory_view->get_our_value(&lock);
-            namespaces_directory.mastermaps.erase(namespace_id); //delete the entry;
+            namespaces_directory.master_maps.erase(namespace_id); //delete the entry;
             directory_view->set_our_value(namespaces_directory, &lock);
         }
 
@@ -69,13 +69,13 @@ namespace reactor_driver_details {
 
 template <class protocol_t>
 class reactor_driver_t {
+public:
     reactor_driver_t(mailbox_manager_t *_mbox_manager,
                      clone_ptr_t<directory_rwview_t<namespaces_directory_metadata_t<protocol_t> > > _directory_view,
-                     boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > _branch_history,
-                     boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> > > _namespaces_view)
+                     boost::shared_ptr<semilattice_readwrite_view_t<namespaces_semilattice_metadata_t<protocol_t> > > _namespaces_view)
         : mbox_manager(_mbox_manager),
           directory_view(_directory_view), 
-          branch_history(_branch_history),
+          branch_history(metadata_field(&namespaces_semilattice_metadata_t<protocol_t>::branch_history, _namespaces_view)),
           namespaces_view(_namespaces_view) 
     { }
 

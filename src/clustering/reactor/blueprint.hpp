@@ -5,6 +5,7 @@
 #include <boost/optional.hpp>
 
 #include "rpc/connectivity/connectivity.hpp"
+#include "rpc/serialize_macros.hpp"
 #include "stl_utils.hpp"
 
 template<class protocol_t>
@@ -56,6 +57,8 @@ public:
     }
 
     role_map_t peers_roles;
+
+    RDB_MAKE_ME_SERIALIZABLE_1(peers_roles);
 };
 
 #endif /* __CLUSTERING_REACTOR_BLUEPRINT_HPP__ */
