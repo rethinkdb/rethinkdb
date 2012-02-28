@@ -5,7 +5,7 @@
 #include <boost/ptr_container/ptr_map.hpp>
 #include <boost/shared_ptr.hpp>
 
-#include "clustering/adminstration/metadata.hpp"
+#include "clustering/administration/metadata.hpp"
 #include "clustering/reactor/blueprint.hpp"
 #include "clustering/reactor/reactor.hpp"
 #include "concurrency/watchable.hpp"

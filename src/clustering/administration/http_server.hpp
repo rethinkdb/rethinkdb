@@ -1,7 +1,7 @@
 #ifndef __CLUSTERING_ADMINSTRATION_HTTP_SERVER_HPP__
 #define __CLUSTERING_ADMINSTRATION_HTTP_SERVER_HPP__
 
-#include "clustering/adminstration/metadata.hpp"
+#include "clustering/administration/metadata.hpp"
 #include "http/http.hpp"
 #include "rpc/semilattice/view.hpp"
 #include "mock/dummy_protocol.hpp"
