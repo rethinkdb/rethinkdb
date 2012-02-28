@@ -8,16 +8,7 @@
 #include "riak/store_manager.hpp"
 #include "perfmon.hpp"
 
-/* "What's the deal with all the "m"s in front of all the json_spirit types?" - Jerry Seinfeld
- *
- * Json_spirit provides 2 different json implementations, one in which the
- * dicts are represented as std::vectors, one in which they're represented as
- * std::maps the "m" indicates that you're using the map implementation (which
- * we probably will always do here because our dicts are small enough to make
- * the complexity differences negligible and the syntax is nicer) */
-
 namespace riak {
-//namespace json = json_spirit;
 
 std::string link_to_string(link_t const &link) {
     std::stringstream res;

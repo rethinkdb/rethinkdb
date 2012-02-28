@@ -1,11 +1,11 @@
-#ifndef __CLUSTERING_ARCHITECT_REACTOR_DRIVER_HPP__
-#define __CLUSTERING_ARCHITECT_REACTOR_DRIVER_HPP__
+#ifndef __CLUSTERING_ADMINISTRATION_REACTOR_DRIVER_HPP__
+#define __CLUSTERING_ADMINISTRATION_REACTOR_DRIVER_HPP__
 
 #include "errors.hpp"
 #include <boost/ptr_container/ptr_map.hpp>
 #include <boost/shared_ptr.hpp>
 
-#include "clustering/architect/metadata.hpp"
+#include "clustering/adminstration/metadata.hpp"
 #include "clustering/reactor/blueprint.hpp"
 #include "clustering/reactor/reactor.hpp"
 #include "concurrency/watchable.hpp"

@@ -11,9 +11,9 @@
 #include "rpc/semilattice/semilattice_manager.hpp"
 #include "rpc/directory/manager.hpp"
 #include "rpc/connectivity/cluster.hpp"
-#include "clustering/architect/metadata.hpp"
+#include "clustering/adminstration/metadata.hpp"
 #include "mock/dummy_protocol.hpp"
-#include "clustering/architect/reactor_driver.hpp"
+#include "clustering/adminstration/reactor_driver.hpp"
 
 struct server_starter_t : public thread_message_t {
     boost::function<void()> fun;

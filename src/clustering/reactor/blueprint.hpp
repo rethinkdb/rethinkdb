@@ -7,6 +7,7 @@
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "stl_utils.hpp"
+#include "http/json/json_adapter.hpp"
 
 template<class protocol_t>
 class blueprint_t {
@@ -61,4 +62,19 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_1(peers_roles);
 };
 
+template <class ctx_t, class protocol_t>
+typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(blueprint_t<protocol_t> *, const ctx_t &);
+
+template <class ctx_t, class protocol_t>
+cJSON *render_as_json(blueprint_t<protocol_t> *, const ctx_t &);
+
+template <class ctx_t, class protocol_t>
+void apply_json_to(const cJSON *, blueprint_t<protocol_t> *, const ctx_t &);
+
+template <class ctx_t, class protocol_t>
+void on_subfield_change(blueprint_t<protocol_t> *, const ctx_t &);
+
+#include "clustering/reactor/blueprint.tcc"
+
 #endif /* __CLUSTERING_REACTOR_BLUEPRINT_HPP__ */
+
