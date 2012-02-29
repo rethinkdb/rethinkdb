@@ -68,23 +68,11 @@ struct txt_memcached_handler_t : public txt_memcached_handler_if, public home_th
         }
     }
 
-    struct memcached_write_callback_t : public tcp_conn_t::write_callback_t {
-        memcached_write_callback_t(const boost::shared_ptr<data_provider_t>& result_dp) : dp(result_dp) { }
-        void done() {
-            delete this;
-        }
-
-        boost::shared_ptr<data_provider_t> dp;
-    };
-
-    void write_from_data_provider(const boost::shared_ptr<data_provider_t>& dp) {
+    void write_from_data_provider(const boost::shared_ptr<data_provider_t>& dp, memcached_write_callback_t *callback) {
         /* Write the value itself. If the value is small, write it into the send buffer;
         otherwise, stream it. */
         const const_buffer_group_t *bg = dp->get_data_as_buffers();
         struct iovec iov[bg->num_buffers() + 1]; // We add an index to contain the end of line at the end of the write
-
-        // TODO: allocate callbacks on the stack of the caller and wait before returning
-        tcp_conn_t::write_callback_t *callback = (bg->num_buffers() == 1) ? NULL : new memcached_write_callback_t(dp);
 
         for (size_t i = 0; i < bg->num_buffers(); i++) {
             const_buffer_group_t::buffer_t b = bg->get_buffer(i);
@@ -247,7 +235,7 @@ public:
     void vwritef(UNUSED const char *format, UNUSED va_list args) { }
     void writef(UNUSED const char *format, ...) { }
     void write_unbuffered(UNUSED const char *buffer, UNUSED size_t bytes) { }
-    void write_from_data_provider(UNUSED const boost::shared_ptr<data_provider_t>& dp) { }
+    void write_from_data_provider(UNUSED const boost::shared_ptr<data_provider_t>& dp, UNUSED memcached_write_callback_t *callback) { }
     void write_value_header(UNUSED const char *key, UNUSED size_t key_size, UNUSED mcflags_t mcflags, UNUSED size_t value_size) { }
     void write_value_header(UNUSED const char *key, UNUSED size_t key_size, UNUSED mcflags_t mcflags, UNUSED size_t value_size, UNUSED cas_t cas) { }
     void error() { }
@@ -407,87 +395,106 @@ void do_one_get(txt_memcached_handler_if *rh, bool with_cas, get_t *gets, int i,
 }
 
 void do_get(txt_memcached_handler_if *rh, pipeliner_t *pipeliner, bool with_cas, int argc, char **argv, order_token_t token) {
-    // We should already be spawned within a coroutine.
-    pipeliner_acq_t pipeliner_acq(pipeliner);
-    pipeliner_acq.begin_operation();
+    try { // RSI: try catch all the places
+        // We should already be spawned within a coroutine.
+        pipeliner_acq_t pipeliner_acq(pipeliner);
+        pipeliner_acq.begin_operation();
 
-    rassert(argc >= 1);
-    rassert(strcmp(argv[0], "get") == 0 || strcmp(argv[0], "gets") == 0);
+        rassert(argc >= 1);
+        rassert(strcmp(argv[0], "get") == 0 || strcmp(argv[0], "gets") == 0);
 
-    /* Vector to store the keys and the task-objects */
-    std::vector<get_t> gets;
+        /* Vector to store the keys and the task-objects */
+        std::vector<get_t> gets;
 
-    /* First parse all of the keys to get */
-    gets.reserve(argc - 1);
-    for (int i = 1; i < argc; i++) {
-        gets.push_back(get_t());
-        if (!str_to_key(argv[i], &gets.back().key)) {
+        /* First parse all of the keys to get */
+        gets.reserve(argc - 1);
+        for (int i = 1; i < argc; i++) {
+            gets.push_back(get_t());
+            if (!str_to_key(argv[i], &gets.back().key)) {
+                pipeliner_acq.done_argparsing();
+                pipeliner_acq.begin_write();
+                rh->client_error_bad_command_line_format();
+                pipeliner_acq.end_write();
+                return;
+            }
+        }
+        if (gets.size() == 0) {
             pipeliner_acq.done_argparsing();
             pipeliner_acq.begin_write();
-            rh->client_error_bad_command_line_format();
+            rh->error();
             pipeliner_acq.end_write();
             return;
         }
-    }
-    if (gets.size() == 0) {
+
         pipeliner_acq.done_argparsing();
+
+        block_pm_duration get_timer(&pm_cmd_get);
+
+        /* Now that we're sure they're all valid, send off the requests */
+        pmap(gets.size(), boost::bind(&do_one_get, rh, with_cas, gets.data(), _1, token));
+
         pipeliner_acq.begin_write();
-        rh->error();
-        pipeliner_acq.end_write();
-        return;
-    }
 
-    pipeliner_acq.done_argparsing();
+        /* Check if they hit a gated_get_store_t. */
+        if (gets.size() > 0 && gets[0].res.is_not_allowed) {
+            /* They all should have gotten the same error */
+            for (int i = 0; i < (int)gets.size(); i++) {
+                rassert(gets[i].res.is_not_allowed);
+            }
 
-    block_pm_duration get_timer(&pm_cmd_get);
+            rh->client_error_not_allowed(with_cas);
+            pipeliner_acq.end_write();
 
-    /* Now that we're sure they're all valid, send off the requests */
-    pmap(gets.size(), boost::bind(&do_one_get, rh, with_cas, gets.data(), _1, token));
+        } else {
+            txt_memcached_handler_if::memcached_write_callback_t callbacks[gets.size()];
+            cond_t callback_cond;
+            size_t callbacks_to_run = gets.size();
 
-    pipeliner_acq.begin_write();
+            /* Handle the results in sequence */
+            for (int i = 0; i < (int)gets.size(); i++) {
+                get_result_t &res = gets[i].res;
 
-    /* Check if they hit a gated_get_store_t. */
-    if (gets.size() > 0 && gets[0].res.is_not_allowed) {
-        /* They all should have gotten the same error */
-        for (int i = 0; i < (int)gets.size(); i++) {
-            rassert(gets[i].res.is_not_allowed);
-        }
+                rassert(!res.is_not_allowed);
 
-        rh->client_error_not_allowed(with_cas);
+                /* If res.value is NULL that means the value was not found so we don't write
+                   anything */
+                if (res.value_provider) {
+                    /* If the write half of the connection has been closed, there's no point in trying
+                       to send anything */
+                    if (rh->is_write_open()) {
+                        const store_key_t &key = gets[i].key;
 
-    } else {
+                        /* Write the "VALUE ..." header */
+                        if (with_cas) {
+                            rh->write_value_header(key.contents, key.size, res.flags, res.value_provider->get_size(), res.cas);
+                        } else {
+                            rassert(res.cas == 0);
+                            rh->write_value_header(key.contents, key.size, res.flags, res.value_provider->get_size());
+                        }
 
-        /* Handle the results in sequence */
-        for (int i = 0; i < (int)gets.size(); i++) {
-            get_result_t &res = gets[i].res;
-
-            rassert(!res.is_not_allowed);
-
-            /* If res.value is NULL that means the value was not found so we don't write
-               anything */
-            if (res.value_provider) {
-                /* If the write half of the connection has been closed, there's no point in trying
-                   to send anything */
-                if (rh->is_write_open()) {
-                    const store_key_t &key = gets[i].key;
-
-                    /* Write the "VALUE ..." header */
-                    if (with_cas) {
-                        rh->write_value_header(key.contents, key.size, res.flags, res.value_provider->get_size(), res.cas);
+                        callbacks[i].dp = res.value_provider;
+                        callbacks[i].cond = &callback_cond;
+                        callbacks[i].callbacks_to_run = &callbacks_to_run;
+                        rh->write_from_data_provider(res.value_provider, &callbacks[i]);
                     } else {
-                        rassert(res.cas == 0);
-                        rh->write_value_header(key.contents, key.size, res.flags, res.value_provider->get_size());
+                        --callbacks_to_run;
                     }
-
-                    rh->write_from_data_provider(res.value_provider);
+                } else {
+                    --callbacks_to_run;
                 }
             }
+
+            rh->write_end();
+            pipeliner_acq.end_write();
+
+            // Wait for the last callback to be called
+            callback_cond.wait();
+            guarantee(callbacks_to_run == 0);
         }
-
-        rh->write_end();
+        
+    } catch (tcp_conn_t::write_closed_exc_t &ex) {
+        // the other side has closed the socket, don't do anything
     }
-
-    pipeliner_acq.end_write();
 };
 
 static const char *rget_null_key = "null";
@@ -578,7 +585,7 @@ void do_rget(txt_memcached_handler_if *rh, pipeliner_t *pipeliner, int argc, cha
             const std::string& key = kv.key;
 
             rh->write_value_header(key.c_str(), key.length(), kv.mcflags, kv.value_provider->get_size());
-            rh->write_from_data_provider(kv.value_provider);
+            rh->write_from_data_provider(kv.value_provider, NULL); // RSI - this will always copy instead of using zerocopy
         }
 
         rh->write_end();

@@ -1,6 +1,8 @@
 #ifndef __ARCH_LINUX_NETWORK_HPP__
 #define __ARCH_LINUX_NETWORK_HPP__
 
+#include "errors.hpp"
+#include <iostream> // RSI
 #include "utils2.hpp"
 #include <boost/scoped_ptr.hpp>
 #include "arch/linux/event_queue.hpp"
@@ -67,9 +69,14 @@ public:
     // Writing
 
     struct write_closed_exc_t : public std::exception {
+        explicit write_closed_exc_t(int err_) : err(err_) {
+            std::cout << "write_closed_exc_t(" << err << ")" << std::endl;
+        }
         const char *what() throw () {
             return "Network connection write end closed";
         }
+
+        int err;
     };
 
     // The write functions will block until all the data has been put on the send queue
@@ -108,6 +115,7 @@ private:
     // These functions return false if the respective side of the socket was closed
     void wait_for_epoll_in() THROWS_ONLY(read_closed_exc_t);
     void wait_for_epoll_out() THROWS_ONLY(write_closed_exc_t);
+    void wait_for_pipe_epoll_out() THROWS_ONLY(write_closed_exc_t);
 
     // These functions are also used to subscribe/unsubscribe from the write callback timer
     void add_write_callback(write_callback_t *callback);
@@ -145,6 +153,8 @@ private:
 
     timer_token_t *timer_token;
     size_t total_bytes_written;
+    coro_t * shutdown_coro;
+    size_t total_bytes_to_write;
     intrusive_list_t<write_callback_t> write_callback_list;
 };
 

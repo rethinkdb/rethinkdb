@@ -99,8 +99,48 @@ linux_raw_tcp_conn_t::linux_raw_tcp_conn_t(const char *host, int port) :
     event_watcher(new linux_event_watcher_t(sock.get(), this)),
     read_in_progress(false),
     write_in_progress(false),
-    total_bytes_written(0)
+    timer_token(NULL),
+    total_bytes_written(0),
+    shutdown_coro(NULL),
+    total_bytes_to_write(0)
 {
+    initialize_vmsplice_pipes();
+}
+
+linux_raw_tcp_conn_t::linux_raw_tcp_conn_t(const ip_address_t &host, int port) :
+    write_perfmon(NULL),
+    sock(connect_to(host, port)),
+    read_vmsplice_pipe(),
+    write_vmsplice_pipe(),
+    event_watcher(new linux_event_watcher_t(sock.get(), this)),
+    read_in_progress(false),
+    write_in_progress(false),
+    timer_token(NULL),
+    total_bytes_written(0),
+    shutdown_coro(NULL),
+    total_bytes_to_write(0)
+{
+    initialize_vmsplice_pipes();
+}
+
+linux_raw_tcp_conn_t::linux_raw_tcp_conn_t(fd_t s) :
+    write_perfmon(NULL),
+    sock(s),
+    read_vmsplice_pipe(),
+    write_vmsplice_pipe(),
+    event_watcher(new linux_event_watcher_t(sock.get(), this)),
+    read_in_progress(false),
+    write_in_progress(false),
+    timer_token(NULL),
+    total_bytes_written(0),
+    shutdown_coro(NULL),
+    total_bytes_to_write(0)
+{
+    rassert(sock.get() != INVALID_FD);
+
+    // TODO: is this throwing away previous flags?
+    int res = fcntl(sock.get(), F_SETFL, O_NONBLOCK);
+    guarantee_err(res == 0, "Could not make socket non-blocking");
     initialize_vmsplice_pipes();
 }
 
@@ -114,33 +154,6 @@ void linux_raw_tcp_conn_t::initialize_vmsplice_pipes() {
     }
 }
 
-linux_raw_tcp_conn_t::linux_raw_tcp_conn_t(const ip_address_t &host, int port) :
-    write_perfmon(NULL),
-    sock(connect_to(host, port)),
-    event_watcher(new linux_event_watcher_t(sock.get(), this)),
-    read_in_progress(false),
-    write_in_progress(false),
-    total_bytes_written(0)
-{
-    initialize_vmsplice_pipes();
-}
-
-linux_raw_tcp_conn_t::linux_raw_tcp_conn_t(fd_t s) :
-    write_perfmon(NULL),
-    sock(s),
-    event_watcher(new linux_event_watcher_t(sock.get(), this)),
-    read_in_progress(false),
-    write_in_progress(false),
-    total_bytes_written(0)
-{
-    rassert(sock.get() != INVALID_FD);
-
-    // TODO: is this throwing away previous flags?
-    int res = fcntl(sock.get(), F_SETFL, O_NONBLOCK);
-    guarantee_err(res == 0, "Could not make socket non-blocking");
-    initialize_vmsplice_pipes();
-}
-
 void linux_raw_tcp_conn_t::timer_hook(void *instance) {
     reinterpret_cast<linux_raw_tcp_conn_t *>(instance)->timer_handle_callbacks();
 }
@@ -150,18 +163,21 @@ void linux_raw_tcp_conn_t::timer_handle_callbacks() {
     int send_queue_size;
     int result = ::ioctl(sock.get(), SIOCOUTQ, &send_queue_size);
     if (result != 0) {
-        logERR("Failed to get SIOCOUTQ from stream: %s", strerror(errno));
+        logERR("Failed to get SIOCOUTQ from stream: %s\n", strerror(errno));
         return;
     }
 
     // Call any callbacks whose buffers have been flushed
-    remove_write_callbacks(total_bytes_written - send_queue_size);
+    size_t current_position = total_bytes_written - send_queue_size;
+    remove_write_callbacks(current_position);
 }
 
 void linux_raw_tcp_conn_t::add_write_callback(write_callback_t *callback) {
     // Set up the timer for running write callbacks
-    if (timer_token == NULL)
+    if (timer_token == NULL) {
         timer_token = linux_thread_pool_t::thread->timer_handler.add_timer_internal(1, &timer_hook, this, false);
+        rassert(timer_token != NULL);
+    }
 
     callback->position_in_stream = total_bytes_written;
     write_callback_list.push_back(callback);
@@ -171,8 +187,8 @@ void linux_raw_tcp_conn_t::remove_write_callbacks(size_t current_position) {
     while (!write_callback_list.empty()) {
         write_callback_t *callback = write_callback_list.front();
         if (current_position >= callback->position_in_stream) {
-            callback->done();
             write_callback_list.pop_front();
+            callback->done();
         } else {
             break;
         }
@@ -183,6 +199,10 @@ void linux_raw_tcp_conn_t::remove_write_callbacks(size_t current_position) {
         rassert(timer_token != NULL);
         linux_thread_pool_t::thread->timer_handler.cancel_timer(timer_token);
         timer_token = NULL;
+
+        if (shutdown_coro != NULL) {
+            shutdown_coro->notify_later();
+        }
     }
 }
 
@@ -208,11 +228,15 @@ void linux_raw_tcp_conn_t::write_vectored(struct iovec *iov, size_t count, write
     for (size_t i = 0; i < count; i++)
         bytes_to_write += iov[i].iov_len;
 
+    total_bytes_to_write += bytes_to_write; // RSI: remove
+
     if (bytes_to_write >= ZEROCOPY_THRESHOLD && callback != NULL) {
         write_zerocopy(iov, count, bytes_to_write, callback);
     } else {
         write_copy(iov, count, bytes_to_write, callback);
     }
+
+    rassert(total_bytes_written == total_bytes_to_write);
 }
 
 void linux_raw_tcp_conn_t::write_zerocopy(struct iovec *iov, size_t count, size_t bytes_to_write, write_callback_t *callback) THROWS_ONLY(write_closed_exc_t) {
@@ -227,23 +251,29 @@ void linux_raw_tcp_conn_t::write_zerocopy(struct iovec *iov, size_t count, size_
 
             while (bytes_to_splice > 0) {
                 ssize_t splice_res = splice(read_vmsplice_pipe.get(), NULL, sock.get(), NULL, bytes_to_splice, SPLICE_F_MOVE | SPLICE_F_NONBLOCK);
-                if (splice_res > 0) {
+                if (splice_res >= 0) {
                     rassert(static_cast<size_t>(splice_res) <= bytes_to_splice);
                     bytes_to_splice -= splice_res;
                     total_bytes_written += splice_res;
                     if (bytes_to_splice > 0) {
                         wait_for_epoll_out();
                     }
+                } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                    wait_for_epoll_out();
                 } else {
-                    // RSI: exception
-                    logERR("Could not splice to a socket: %s\n", strerror(errno));
+                    int err = errno;
+                    logERR("Could not splice to a socket: %s\n", strerror(err));
                     shutdown_write();
+                    throw write_closed_exc_t(err);
                 }
             }
+        } else if (vmsplice_res == 0 || errno == EAGAIN || errno == EWOULDBLOCK) {
+            wait_for_pipe_epoll_out();
         } else {
-            // RSI: exception
-            logERR("Could not vmsplice to a pipe: %s\n", strerror(errno));
+            int err = errno;
+            logERR("Could not vmsplice to a pipe: %s\n", strerror(err));
             shutdown_write();
+            throw write_closed_exc_t(err);
         }
     }
 
@@ -256,6 +286,9 @@ void linux_raw_tcp_conn_t::write_copy(struct iovec *iov, size_t count, size_t by
 
         if (res >= 0) {
             bytes_to_write -= res;
+            total_bytes_written += res;
+
+            // advance the position in the iov array
             while (res > 0) {
                 rassert(count > 0);
                 size_t cur_len = std::min(iov->iov_len, static_cast<size_t>(res));
@@ -268,24 +301,25 @@ void linux_raw_tcp_conn_t::write_copy(struct iovec *iov, size_t count, size_t by
                     --count;
                 }
             }
-            total_bytes_written += res;
 
             if (write_perfmon)
                 write_perfmon->record(res);
         } else if (res == -1 && (errno == EPIPE || errno == ENOTCONN || errno == EHOSTUNREACH ||
                                  errno == ENETDOWN || errno == EHOSTDOWN || errno == ECONNRESET)) {
             // These errors are expected to happen at some point in practice
-            on_shutdown_write();
-            break;
-
+            int err = errno;
+            shutdown_write();
+            throw write_closed_exc_t(err);
         } else if (errno != EAGAIN && errno != EWOULDBLOCK) {
             /* In theory this should never happen, but it probably will. So we write a log message
                and then shut down normally. */
-            logERR("Could not write to a socket: %s\n", strerror(errno));
-            on_shutdown_write();
-            break; // RSI
+            int err = errno;
+            logERR("Could not write to a socket: %s\n", strerror(err));
+            shutdown_write();
+            throw write_closed_exc_t(err);
         } else {
-            // THIS SPACE IS INTENTIONALLY LEFT BLANK
+            // THIS SPACE IS INTENTIONALLY LEFT BLANK:
+            // do nothing in the case of EAGAIN/EWOULDBLOCK
         }
 
         if (bytes_to_write > 0) {
@@ -318,8 +352,13 @@ void linux_raw_tcp_conn_t::wait_for_epoll_out() THROWS_ONLY(write_closed_exc_t) 
     if (write_closed.is_pulsed()) {
         /* We were closed for whatever reason. Something else has already called
         on_shutdown_write(). In fact, we were probably signalled by on_shutdown_write(). */
-        throw write_closed_exc_t();
+        int err = errno;
+        throw write_closed_exc_t(err);
     }
+}
+
+void linux_raw_tcp_conn_t::wait_for_pipe_epoll_out() THROWS_ONLY(write_closed_exc_t) {
+    // RSI: implement this - need a new event watcher?
 }
 
 void linux_raw_tcp_conn_t::read_exactly(void *buffer, size_t size) THROWS_ONLY(read_closed_exc_t) {
@@ -392,6 +431,7 @@ size_t linux_raw_tcp_conn_t::read_non_blocking(void *buffer, size_t size) THROWS
     } else if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
         return 0;
     } else if (res == 0 || (res == -1 && (errno == ECONNRESET || errno == ENOTCONN))) {
+        // We will end up here if the remote side has closed with a read result of 0
         /* We were closed. This is the first notification that the kernel has given us, so we
         must call on_shutdown_read(). */
         on_shutdown_read();
@@ -434,7 +474,6 @@ void linux_raw_tcp_conn_t::shutdown_write() {
     if (res != 0 && errno != ENOTCONN) {
         logERR("Could not shutdown socket for writing: %s\n", strerror(errno));
     }
-
     on_shutdown_write();
 }
 
@@ -442,10 +481,6 @@ void linux_raw_tcp_conn_t::on_shutdown_write() {
     assert_thread();
     rassert(!write_closed.is_pulsed());
     write_closed.pulse();
-
-    /* We don't flush out the write queue or stop the write coro pool explicitly.
-    But by pulsing `write_closed`, we turn all `perform_write()` operations into
-    no-ops, so in practice the write queue empties. */
 }
 
 bool linux_raw_tcp_conn_t::is_write_open() {
@@ -462,9 +497,17 @@ linux_raw_tcp_conn_t::~linux_raw_tcp_conn_t() {
     delete event_watcher;
     event_watcher = NULL;
 
+    // Wait for callback queue to empty out before shutting down the socket
+    guarantee(coro_t::self() != NULL);
+    while (!write_callback_list.empty()) {
+        guarantee(timer_token != NULL);
+        shutdown_coro = coro_t::self();
+        coro_t::wait();
+    }
+
     // scoped_fd_t's destructor will take care of closing the socket.
-    // RSI: call any remaining callbacks
 }
+
 void linux_buffered_tcp_conn_t::rethread(int new_thread) {
     conn.rethread(new_thread);
     real_home_thread = conn.real_home_thread;

@@ -26,6 +26,26 @@ public:
 
     virtual ~txt_memcached_handler_if() { }
 
+    struct memcached_write_callback_t : public tcp_conn_t::write_callback_t {
+        void done() {
+            coro_t::spawn_now(boost::bind(&txt_memcached_handler_if::memcached_write_callback_t::reset, this));
+            size_t &callbacks_left = *callbacks_to_run;
+            guarantee(callbacks_left > 0);
+            --callbacks_left;
+            if (callbacks_left == 0) {
+                cond->pulse();
+            }
+        }
+
+        void reset() {
+            dp.reset();
+        }
+
+        boost::shared_ptr<data_provider_t> dp;
+        cond_t *cond;
+        size_t *callbacks_to_run;
+    };
+
     get_store_t *get_store;
     set_store_interface_t *set_store;
 
@@ -42,7 +62,7 @@ public:
     virtual void vwritef(const char *format, va_list args) = 0;
     virtual void writef(const char *format, ...) = 0;
     virtual void write_unbuffered(const char *buffer, size_t bytes) = 0;
-    virtual void write_from_data_provider(const boost::shared_ptr<data_provider_t>& dp) = 0;
+    virtual void write_from_data_provider(const boost::shared_ptr<data_provider_t>& dp, memcached_write_callback_t *callback) = 0;
     virtual void write_value_header(const char *key, size_t key_size, mcflags_t mcflags, size_t value_size) = 0;
     virtual void write_value_header(const char *key, size_t key_size, mcflags_t mcflags, size_t value_size, cas_t cas) = 0;
     virtual void error() = 0;
