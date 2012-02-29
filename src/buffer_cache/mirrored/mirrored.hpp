@@ -147,7 +147,7 @@ struct i_am_writeback_t { };
 class mc_buf_lock_t : public home_thread_mixin_t {
 public:
     mc_buf_lock_t(mc_transaction_t *txn, block_id_t block_id, access_t mode, boost::function<void()> call_when_in_line = 0);
-    mc_buf_lock_t(mc_transaction_t *txn); // Constructor used to allocate a new block
+    explicit mc_buf_lock_t(mc_transaction_t *txn); // Constructor used to allocate a new block
     mc_buf_lock_t();
     ~mc_buf_lock_t();
 

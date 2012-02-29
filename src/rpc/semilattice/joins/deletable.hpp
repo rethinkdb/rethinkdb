@@ -1,6 +1,8 @@
 #ifndef __RPC_SEMILATTICE_JOINS_DELETABLE_WRAPPER_HPP__
 #define __RPC_SEMILATTICE_JOINS_DELETABLE_WRAPPER_HPP__
 
+#include "rpc/serialize_macros.hpp"
+
 //a deletable wrapper allows a piece of metadata to be deleted (this makes up
 //for the fact that we don't have inverses in semilattices)
 template <class T>
@@ -25,7 +27,7 @@ public:
         : deleted(false), t()
     { }
 
-    deletable_t(T _t)
+    explicit deletable_t(T _t)
         : deleted(false), t(_t)
     { }
 

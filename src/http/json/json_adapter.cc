@@ -2,7 +2,7 @@
 
 //Functions to make accessing cJSON *objects easier
 
-bool get_bool(const cJSON *json) {
+bool get_bool(cJSON *json) {
     if (json->type == cJSON_True) {
         return true;
     } else if (json->type == cJSON_False) {
@@ -20,7 +20,7 @@ std::string get_string(cJSON *json) {
     }
 }
 
-int get_int(const cJSON *json) {
+int get_int(cJSON *json) {
     if (json->type == cJSON_Number) {
         return json->valueint;
     } else {
@@ -28,7 +28,7 @@ int get_int(const cJSON *json) {
     }
 }
 
-double get_double(const cJSON *json) {
+double get_double(cJSON *json) {
     if (json->type == cJSON_Number) {
         return json->valuedouble;
     } else {

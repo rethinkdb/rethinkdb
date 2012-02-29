@@ -21,7 +21,7 @@ cJSON *scoped_cJSON_t::release() {
     return tmp;
 }
 
-json_iterator_t::json_iterator_t(const cJSON *target) {
+json_iterator_t::json_iterator_t(cJSON *target) {
     node = target->child;
 }
 
@@ -33,13 +33,13 @@ cJSON *json_iterator_t::next() {
     return res;
 }
 
-json_object_iterator_t::json_object_iterator_t(const cJSON *target)
+json_object_iterator_t::json_object_iterator_t(cJSON *target)
     : json_iterator_t(target)
 {
     rassert(target->type == cJSON_Object);
 }
 
-json_array_iterator_t::json_array_iterator_t(const cJSON *target)
+json_array_iterator_t::json_array_iterator_t(cJSON *target)
     : json_iterator_t(target)
 {
     rassert(target->type == cJSON_Array);

@@ -6,13 +6,15 @@
 #include "utils.hpp"
 #include <boost/uuid/uuid.hpp>
 
+#include "clustering/administration/json_adapters.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "clustering/immediate_consistency/query/metadata.hpp"
 #include "clustering/reactor/blueprint.hpp"
+#include "clustering/reactor/metadata.hpp"
+#include "http/json/json_adapter.hpp"
 #include "rpc/semilattice/joins/deletable.hpp"
 #include "rpc/semilattice/joins/vclock.hpp"
 #include "rpc/serialize_macros.hpp"
-#include "clustering/reactor/metadata.hpp"
 
 typedef boost::uuids::uuid namespace_id_t;
 
@@ -24,6 +26,27 @@ public:
 
     RDB_MAKE_ME_SERIALIZABLE_1(blueprint);
 };
+
+//json adapter concept for namespace_semilattice_metadata_t
+template <class ctx_t, class protocol_t>
+typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(namespace_semilattice_metadata_t<protocol_t> *target, const ctx_t &) {
+    typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
+    res["blueprint"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<vclock_t<blueprint_t<protocol_t> >, ctx_t>(&target->blueprint));
+    return res;
+}
+
+template <class ctx_t, class protocol_t>
+cJSON *render_as_json(namespace_semilattice_metadata_t<protocol_t> *target, const ctx_t &ctx) {
+    return render_as_directory(target, ctx);
+}
+
+template <class ctx_t, class protocol_t>
+void apply_json_to(cJSON *change, namespace_semilattice_metadata_t<protocol_t> *target, const ctx_t &ctx) {
+    apply_as_directory(change, target, ctx);
+}
+
+template <class ctx_t, class protocol_t>
+void on_subfield_change(namespace_semilattice_metadata_t<protocol_t> *, const ctx_t &) { }
 
 /* semilattice concept for namespace_semilattice_metadata_t */
 template <class protocol_t>
@@ -48,6 +71,28 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_2(namespaces, branch_history);
 };
 
+//json adapter concept for namespaces_semilattice_metadata_t
+
+template <class ctx_t, class protocol_t>
+typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(namespaces_semilattice_metadata_t<protocol_t> *target, const ctx_t &) {
+    typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
+    res["namespaces"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t, ctx_t>(&target->namespaces));
+    return res;
+}
+
+template <class ctx_t, class protocol_t>
+cJSON *render_as_json(namespaces_semilattice_metadata_t<protocol_t> *target, const ctx_t &ctx) {
+    return render_as_directory(target, ctx);
+}
+
+template <class ctx_t, class protocol_t>
+void apply_json_to(cJSON *change, namespaces_semilattice_metadata_t<protocol_t> *target, const ctx_t &ctx) {
+    apply_as_directory(change, target, ctx);
+}
+
+template <class ctx_t, class protocol_t>
+void on_subfield_change(namespaces_semilattice_metadata_t<protocol_t> *, const ctx_t &) { }
+
 //semilattice concept for namespaces_semilattice_metadata_t 
 template <class protocol_t>
 bool operator==(const namespaces_semilattice_metadata_t<protocol_t> &a, const namespaces_semilattice_metadata_t<protocol_t> &b) {
@@ -67,6 +112,13 @@ public:
     std::map<namespace_id_t, std::map<master_id_t, master_business_card_t<protocol_t> > > master_maps;
 
     RDB_MAKE_ME_SERIALIZABLE_2(reactor_bcards, master_maps);
+};
+
+struct namespace_metadata_ctx_t {
+    boost::uuids::uuid us;
+    explicit namespace_metadata_ctx_t(boost::uuids::uuid _us) 
+        : us(_us)
+    { }
 };
 
 #endif /* __CLUSTERING_ARCHITECT_METADATA_HPP__ */

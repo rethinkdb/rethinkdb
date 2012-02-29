@@ -34,7 +34,7 @@ private:
 
     RDB_MAKE_ME_SERIALIZABLE_1(values);
 
-    vclock_t(const stamped_value_t &_value);
+    explicit vclock_t(const stamped_value_t &_value);
 
     //if there exist 2 values a,b in values s.t. a.first < b.first remove a
     void cull_old_values();

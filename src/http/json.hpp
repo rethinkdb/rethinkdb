@@ -19,7 +19,7 @@ public:
 
 class json_iterator_t {
 public:
-    json_iterator_t(const cJSON *target);
+    explicit json_iterator_t(cJSON *target);
 
     cJSON *next();
 private:
@@ -27,11 +27,13 @@ private:
 };
 
 class json_object_iterator_t : public json_iterator_t {
-    json_object_iterator_t(const cJSON *target);
+public:
+    explicit json_object_iterator_t(cJSON *target);
 };
 
 class json_array_iterator_t : public json_iterator_t {
-    json_array_iterator_t(const cJSON *target);
+public:
+    explicit json_array_iterator_t(cJSON *target);
 };
 
 std::string cJSON_print_std_string(cJSON *json);

@@ -55,7 +55,7 @@ private:
     void try_spawn_roles() THROWS_NOTHING;
     void run_role(
             typename protocol_t::region_t region,
-            typename blueprint_t<protocol_t>::role_t role,
+            typename blueprint_details::role_t role,
             cond_t *blueprint_changed_cond,
             const blueprint_t<protocol_t> &blueprint,
             auto_drainer_t::lock_t keepalive) THROWS_NOTHING;
@@ -137,7 +137,7 @@ private:
 
     std::map<
             typename protocol_t::region_t,
-            std::pair<typename blueprint_t<protocol_t>::role_t, cond_t *> 
+            std::pair<typename blueprint_details::role_t, cond_t *> 
             > current_roles;
 
     auto_drainer_t drainer;

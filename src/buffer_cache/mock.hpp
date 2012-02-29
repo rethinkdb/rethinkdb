@@ -33,7 +33,7 @@ class serializer_t;
 class mock_buf_lock_t : public home_thread_mixin_t {
 public:
     mock_buf_lock_t(mock_transaction_t *txn, block_id_t block_id, access_t mode, boost::function<void()> call_when_in_line = 0);
-    mock_buf_lock_t(mock_transaction_t *txn);
+    explicit mock_buf_lock_t(mock_transaction_t *txn);
     mock_buf_lock_t();
     ~mock_buf_lock_t();
 

@@ -53,7 +53,15 @@ public:
         return p.uuid < uuid;
     }
 
-    peer_id_t() : uuid(boost::uuids::nil_uuid()) { }
+    peer_id_t() 
+        : uuid(boost::uuids::nil_uuid()) 
+    { }
+
+    explicit peer_id_t(boost::uuids::uuid u) : uuid(u) { }
+
+    boost::uuids::uuid get_uuid() {
+        return uuid;
+    }
 
     bool is_nil() const {
         return uuid.is_nil();
@@ -64,7 +72,6 @@ private:
     friend std::ostream &operator<<(std::ostream &, peer_id_t);
 
     boost::uuids::uuid uuid;
-    explicit peer_id_t(boost::uuids::uuid u) : uuid(u) { }
 
     friend class boost::serialization::access;
     template<class Archive> void serialize(Archive & ar, UNUSED const unsigned int version) {

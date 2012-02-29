@@ -50,15 +50,15 @@ bool is_blueprint_satisfied(const blueprint_t<dummy_protocol_t> &bp,
                                                                                            kt != bcard.activities.end();
                                                                                            kt++) {
                 if (jt->first == kt->second.first) {
-                    if (jt->second == blueprint_t<dummy_protocol_t>::role_primary &&
+                    if (jt->second == blueprint_details::role_primary &&
                         boost::get<reactor_business_card_t<dummy_protocol_t>::primary_t>(&kt->second.second)) {
                         found = true;
                         break;
-                    } else if (jt->second == blueprint_t<dummy_protocol_t>::role_secondary&&
+                    } else if (jt->second == blueprint_details::role_secondary&&
                         boost::get<reactor_business_card_t<dummy_protocol_t>::secondary_up_to_date_t>(&kt->second.second)) {
                         found = true;
                         break;
-                    } else if (jt->second == blueprint_t<dummy_protocol_t>::role_nothing&&
+                    } else if (jt->second == blueprint_details::role_nothing&&
                         boost::get<reactor_business_card_t<dummy_protocol_t>::nothing_t>(&kt->second.second)) {
                         found = true;
                         break;
@@ -157,7 +157,7 @@ public:
 
     std::map<std::string, std::string> inserter_state;
 
-    test_cluster_group_t(int n_machines) {
+    explicit test_cluster_group_t(int n_machines) {
         int port = 10000 + rand() % 20000;
         for (int i = 0; i < n_machines; i++) {
             stores.push_back(new dummy_underlying_store_t(a_thru_z_region()));
@@ -201,13 +201,13 @@ public:
 
                 switch (it->at(i)) {
                     case 'p':
-                        blueprint.add_role(get_peer_id(peer), region, blueprint_t<dummy_protocol_t>::role_primary);
+                        blueprint.add_role(get_peer_id(peer), region, blueprint_details::role_primary);
                         break;
                     case 's':
-                        blueprint.add_role(get_peer_id(peer), region, blueprint_t<dummy_protocol_t>::role_secondary);
+                        blueprint.add_role(get_peer_id(peer), region, blueprint_details::role_secondary);
                         break;
                     case 'n':
-                        blueprint.add_role(get_peer_id(peer), region, blueprint_t<dummy_protocol_t>::role_nothing);
+                        blueprint.add_role(get_peer_id(peer), region, blueprint_details::role_nothing);
                         break;
                     default:
                         crash("Bad blueprint string\n");
@@ -225,9 +225,9 @@ public:
         }
     }
 
-    void set_blueprint(unsigned i, const blueprint_t<dummy_protocol_t> &bp) {
-        test_reactors[i].blueprint_watchable.set_value(bp);
-    }
+    //void set_blueprint(unsigned i, const blueprint_t<dummy_protocol_t> &bp) {
+    //    test_reactors[i].blueprint_watchable.set_value(bp);
+    //}
 
     void run_queries() {
         for (unsigned i = 0; i < test_clusters.size(); i++) {

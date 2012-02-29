@@ -63,14 +63,14 @@ reactor_t<protocol_t>::directory_entry_t::~directory_entry_t() {
 template<class protocol_t>
 void reactor_t<protocol_t>::on_blueprint_changed() THROWS_NOTHING {
     blueprint_watchable->get().assert_valid();
-    std::map<typename protocol_t::region_t, typename blueprint_t<protocol_t>::role_t> blueprint_roles =
+    std::map<typename protocol_t::region_t, typename blueprint_details::role_t> blueprint_roles =
         (*blueprint_watchable->get().peers_roles.find(get_me())).second;
     typename std::map<
             typename protocol_t::region_t,
-            std::pair<typename blueprint_t<protocol_t>::role_t, cond_t *>
+            std::pair<typename blueprint_details::role_t, cond_t *>
             >::iterator it;
     for (it = current_roles.begin(); it != current_roles.end(); it++) {
-        typename std::map<typename protocol_t::region_t, typename blueprint_t<protocol_t>::role_t>::iterator it2 =
+        typename std::map<typename protocol_t::region_t, blueprint_details::role_t>::iterator it2 =
             blueprint_roles.find((*it).first);
         if (it2 == blueprint_roles.end() || (*it).second.first != (*it2).second) {
             if (!(*it).second.second->is_pulsed()) {
@@ -83,14 +83,14 @@ void reactor_t<protocol_t>::on_blueprint_changed() THROWS_NOTHING {
 template<class protocol_t>
 void reactor_t<protocol_t>::try_spawn_roles() THROWS_NOTHING {
     blueprint_t<protocol_t> blueprint = blueprint_watchable->get();
-    std::map<typename protocol_t::region_t, typename blueprint_t<protocol_t>::role_t> blueprint_roles =
+    std::map<typename protocol_t::region_t, typename blueprint_details::role_t> blueprint_roles =
         (*blueprint.peers_roles.find(get_me())).second;
-    typename std::map<typename protocol_t::region_t, typename blueprint_t<protocol_t>::role_t>::iterator it;
+    typename std::map<typename protocol_t::region_t, blueprint_details::role_t>::iterator it;
     for (it = blueprint_roles.begin(); it != blueprint_roles.end(); it++) {
         bool none_overlap = true;
         typename std::map<
             typename protocol_t::region_t,
-            std::pair<typename blueprint_t<protocol_t>::role_t, cond_t *>
+            std::pair<typename blueprint_details::role_t, cond_t *>
             >::iterator it2;
         for (it2 = current_roles.begin(); it2 != current_roles.end(); it2++) {
             if (region_overlaps((*it).first, (*it2).first)) {
@@ -210,7 +210,7 @@ public:
 template<class protocol_t>
 void reactor_t<protocol_t>::run_role(
         typename protocol_t::region_t region,
-        typename blueprint_t<protocol_t>::role_t role,
+        typename blueprint_details::role_t role,
         cond_t *blueprint_changed_cond,
         const blueprint_t<protocol_t> &blueprint,
         auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
@@ -224,13 +224,13 @@ void reactor_t<protocol_t>::run_role(
         wait_any_t wait_any(blueprint_changed_cond, keepalive.get_drain_signal());
 
         switch (role) {
-            case blueprint_t<protocol_t>::role_primary:
+            case blueprint_details::role_primary:
                 be_primary(region, &store_subview, blueprint, &wait_any);
                 break;
-            case blueprint_t<protocol_t>::role_secondary:
+            case blueprint_details::role_secondary:
                 be_secondary(region, &store_subview, blueprint, &wait_any);
                 break;
-            case blueprint_t<protocol_t>::role_nothing:
+            case blueprint_details::role_nothing:
                 be_nothing(region, &store_subview, blueprint, &wait_any);
                 break;
             default:
@@ -251,7 +251,7 @@ void reactor_t<protocol_t>::run_role(
 template <class protocol_t>
 void reactor_t<protocol_t>::wait_for_directory_acks(directory_echo_version_t version_to_wait_on, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     blueprint_t<protocol_t> bp = blueprint_watchable->get();
-    typename std::map<peer_id_t, std::map<typename protocol_t::region_t, typename blueprint_t<protocol_t>::role_t> >::iterator it = bp.peers_roles.begin();
+    typename std::map<peer_id_t, std::map<typename protocol_t::region_t, typename blueprint_details::role_t> >::iterator it = bp.peers_roles.begin();
     for (it = bp.peers_roles.begin(); it != bp.peers_roles.end(); it++) {
         typename directory_echo_access_t<reactor_business_card_t<protocol_t> >::ack_waiter_t ack_waiter(&directory_echo_access, it->first, version_to_wait_on);
         wait_interruptible(&ack_waiter, interruptor);
