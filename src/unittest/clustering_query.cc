@@ -65,7 +65,7 @@ static void run_read_write_test() {
     /* Send some writes to the namespace */
     order_source_t order_source;
     std::map<std::string, std::string> inserter_state;
-    inserter_t inserter(
+    test_inserter_t inserter(
         &namespace_interface,
         &order_source,
         &inserter_state);

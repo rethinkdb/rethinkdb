@@ -28,27 +28,43 @@ public:
     dummy_store_view_t store;
 };
 
-class inserter_t {
+inline void test_inserter_write_namespace_if(namespace_interface_t<dummy_protocol_t> *nif, std::string key, std::string value, order_token_t otok, signal_t *interruptor) {
+    dummy_protocol_t::write_t w;
+    w.values[key] = value;
+    nif->write(w, otok, interruptor);
+}
+
+inline std::string test_inserter_read_namespace_if(namespace_interface_t<dummy_protocol_t> *nif, std::string key, order_token_t otok, signal_t *interruptor) {
+    dummy_protocol_t::read_t r;
+    r.keys.keys.insert(key);
+    dummy_protocol_t::read_response_t resp = nif->read(r, otok, interruptor);
+    return resp.values[key];
+}
+
+class test_inserter_t {
 
 public:
-    inserter_t(boost::function<dummy_protocol_t::write_response_t(dummy_protocol_t::write_t, order_token_t, signal_t *)> _wfun, 
-               boost::function<dummy_protocol_t::read_response_t(dummy_protocol_t::read_t, order_token_t, signal_t *)> _rfun,
-               order_source_t *_osource, std::map<std::string, std::string> *state)
+    typedef std::map<std::string, std::string> state_t;
+
+    test_inserter_t(boost::function<void(std::string, std::string, order_token_t, signal_t *)> _wfun, 
+               boost::function<std::string(std::string, order_token_t, signal_t *)> _rfun,
+               order_source_t *_osource, state_t *state)
         : values_inserted(state), drainer(new auto_drainer_t), wfun(_wfun), rfun(_rfun), osource(_osource)
     {
-        coro_t::spawn_sometime(boost::bind(&inserter_t::insert_forever,
-            this, wfun, osource, auto_drainer_t::lock_t(drainer.get())));
+        coro_t::spawn_sometime(boost::bind(&test_inserter_t::insert_forever,
+            this, osource, auto_drainer_t::lock_t(drainer.get())));
     }
 
-    inserter_t(namespace_interface_t<dummy_protocol_t> *namespace_if, order_source_t *_osource, std::map<std::string, std::string> *state)
+    template<class protocol_t>
+    test_inserter_t(namespace_interface_t<protocol_t> *namespace_if, order_source_t *_osource, state_t *state)
         : values_inserted(state),
           drainer(new auto_drainer_t), 
-          wfun(boost::bind(&namespace_interface_t<dummy_protocol_t>::write, namespace_if, _1, _2, _3)),
-          rfun(boost::bind(&namespace_interface_t<dummy_protocol_t>::read, namespace_if, _1, _2, _3)),
+          wfun(boost::bind(&test_inserter_t::write_namespace_if<protocol_t>, namespace_if, _1, _2, _3, _4)),
+          rfun(boost::bind(&test_inserter_t::read_namespace_if<protocol_t>, namespace_if, _1, _2, _3)),
           osource(_osource)
     {
-        coro_t::spawn_sometime(boost::bind(&inserter_t::insert_forever,
-            this, wfun, osource, auto_drainer_t::lock_t(drainer.get())));
+        coro_t::spawn_sometime(boost::bind(&test_inserter_t::insert_forever,
+            this, osource, auto_drainer_t::lock_t(drainer.get())));
     }
 
     void stop() {
@@ -56,13 +72,22 @@ public:
         drainer.reset();
     }
 
-    std::map<std::string, std::string> *values_inserted;
+    state_t *values_inserted;
 
 private:
+    template<class protocol_t>
+    static void write_namespace_if(namespace_interface_t<protocol_t> *namespace_if, std::string key, std::string value, order_token_t otok, signal_t *interruptor) {
+        test_inserter_write_namespace_if(namespace_if, key, value, otok, interruptor);
+    }
+
+    template<class protocol_t>
+    static std::string read_namespace_if(namespace_interface_t<protocol_t> *namespace_if, std::string key, order_token_t otok, signal_t *interruptor) {
+        return test_inserter_read_namespace_if(namespace_if, key, otok, interruptor);
+    }
+
     boost::scoped_ptr<auto_drainer_t> drainer;
 
     void insert_forever(
-            boost::function<dummy_protocol_t::write_response_t(dummy_protocol_t::write_t, order_token_t, signal_t *)> fun,
             order_source_t *osource,
             auto_drainer_t::lock_t keepalive) {
         try {
@@ -72,10 +97,10 @@ private:
 
                 dummy_protocol_t::write_t w;
                 std::string key = std::string(1, 'a' + rand() % 26);
-                w.values[key] = (*values_inserted)[key] = strprintf("%d", i);
+                std::string value = (*values_inserted)[key] = strprintf("%d", i);
 
                 cond_t interruptor;
-                fun(w, osource->check_in("unittest"), &interruptor);
+                wfun(key, value, osource->check_in("unittest"), &interruptor);
 
                 nap(10, keepalive.get_drain_signal());
             }
@@ -86,20 +111,18 @@ private:
 
 public:
     void validate() {
-        for (std::map<std::string, std::string>::iterator it = values_inserted->begin();
-                                                          it != values_inserted->end(); 
-                                                          it++) {
-            dummy_protocol_t::read_t r;
-            r.keys.keys.insert((*it).first);
+        for (state_t::iterator it = values_inserted->begin();
+                               it != values_inserted->end(); 
+                               it++) {
             cond_t interruptor;
-            dummy_protocol_t::read_response_t resp = rfun(r, osource->check_in("unittest"), &interruptor);
-            EXPECT_EQ((*it).second, resp.values[(*it).first]);
+            std::string response = rfun((*it).first, osource->check_in("unittest"), &interruptor);
+            EXPECT_EQ((*it).second, response);
         }
     }
 
 private:
-    boost::function<dummy_protocol_t::write_response_t(dummy_protocol_t::write_t, order_token_t, signal_t *)> wfun;
-    boost::function<dummy_protocol_t::read_response_t(dummy_protocol_t::read_t, order_token_t, signal_t *)> rfun;
+    boost::function<void(std::string, std::string, order_token_t, signal_t *)> wfun;
+    boost::function<std::string(std::string, order_token_t, signal_t *)> rfun;
     order_source_t *osource;
 };
 
