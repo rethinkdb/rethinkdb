@@ -332,7 +332,7 @@ template <class K, class V, class ctx_t>
 void apply_json_to(cJSON *change, std::map<K, V> *map, const ctx_t &ctx) {
     typedef typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_adapter_map_t;
 
-    json_adapter_map_t elements = get_json_subfields<K,V>(map, ctx);
+    json_adapter_map_t elements = get_json_subfields(map, ctx);
 
     json_object_iterator_t it(change);
 
