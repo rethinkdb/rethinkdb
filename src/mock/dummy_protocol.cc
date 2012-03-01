@@ -153,11 +153,12 @@ dummy_protocol_t::store_t::store_t() : store_view_t<dummy_protocol_t>(dummy_prot
     initialize_empty();
 }
 
-dummy_protocol_t::store_t::store_t(std::string fn) : store_view_t<dummy_protocol_t>(dummy_protocol_t::region_t('a', 'z')), filename(fn) {
-    std::ifstream stream(filename.c_str(), std::ios::in);
-    if (stream.fail()) {
+dummy_protocol_t::store_t::store_t(std::string fn, bool create) : store_view_t<dummy_protocol_t>(dummy_protocol_t::region_t('a', 'z')), filename(fn) {
+    if (create) {
         initialize_empty();
     } else {
+        std::ifstream stream(filename.c_str(), std::ios::in);
+        rassert(!stream.fail());
         boost::archive::text_iarchive i(stream);
         i >> metainfo;
         i >> values;
