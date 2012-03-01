@@ -17,6 +17,8 @@
 #include <list>
 #include <map>
 
+#include "rpc/serialize_macros.hpp"
+
 /* Note that repli_timestamp_t does NOT represent an actual timestamp; instead it's an arbitrary
 counter. */
 
@@ -190,6 +192,7 @@ public:
 
 private:
     std::vector<uint8_t> storage;
+    RDB_MAKE_ME_SERIALIZABLE_1(storage);
 };
 
 bool operator==(const binary_blob_t &left, const binary_blob_t &right);

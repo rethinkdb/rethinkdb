@@ -1,7 +1,12 @@
 #include "mock/dummy_protocol.hpp"
 
+#include <fstream>
+
 #include "errors.hpp"
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
 #include <boost/scoped_ptr.hpp>
+#include <boost/serialization/map.hpp>
 
 #include "arch/timing.hpp"
 #include "concurrency/rwi_lock.hpp"
@@ -144,39 +149,54 @@ bool operator!=(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b) {
     return !(a == b);
 }
 
-dummy_underlying_store_t::dummy_underlying_store_t(dummy_protocol_t::region_t r) : region(r), metainfo(r, binary_blob_t()) {
-    for (std::set<std::string>::iterator it = region.keys.begin();
-            it != region.keys.end(); it++) {
-        values[*it] = "";
-        timestamps[*it] = state_timestamp_t::zero();
+dummy_protocol_t::store_t::store_t() : store_view_t<dummy_protocol_t>(dummy_protocol_t::region_t('a', 'z')), filename("") {
+    initialize_empty();
+}
+
+dummy_protocol_t::store_t::store_t(std::string fn) : store_view_t<dummy_protocol_t>(dummy_protocol_t::region_t('a', 'z')), filename(fn) {
+    std::ifstream stream(filename.c_str(), std::ios::in);
+    if (stream.fail()) {
+        initialize_empty();
+    } else {
+        boost::archive::text_iarchive i(stream);
+        i >> metainfo;
+        i >> values;
+        i >> timestamps;
     }
 }
 
-dummy_store_view_t::dummy_store_view_t(dummy_underlying_store_t *p, dummy_protocol_t::region_t region) :
-    store_view_t<dummy_protocol_t>(region), parent(p) { }
-
-void dummy_store_view_t::new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out) THROWS_NOTHING {
-    fifo_enforcer_read_token_t token = parent->token_source.enter_read();
-    token_out.reset(new fifo_enforcer_sink_t::exit_read_t(&parent->token_sink, token));
+dummy_protocol_t::store_t::~store_t() {
+    if (filename != "") {
+        std::ofstream stream(filename.c_str(), std::ios::out);
+        boost::archive::text_oarchive o(stream);
+        o << metainfo;
+        o << values;
+        o << timestamps;
+    }
 }
 
-void dummy_store_view_t::new_write_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token_out) THROWS_NOTHING {
-    fifo_enforcer_write_token_t token = parent->token_source.enter_write();
-    token_out.reset(new fifo_enforcer_sink_t::exit_write_t(&parent->token_sink, token));
+void dummy_protocol_t::store_t::new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out) THROWS_NOTHING {
+    fifo_enforcer_read_token_t token = token_source.enter_read();
+    token_out.reset(new fifo_enforcer_sink_t::exit_read_t(&token_sink, token));
 }
 
-dummy_store_view_t::metainfo_t dummy_store_view_t::get_metainfo(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+void dummy_protocol_t::store_t::new_write_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token_out) THROWS_NOTHING {
+    fifo_enforcer_write_token_t token = token_source.enter_write();
+    token_out.reset(new fifo_enforcer_sink_t::exit_write_t(&token_sink, token));
+}
+
+dummy_protocol_t::store_t::metainfo_t dummy_protocol_t::store_t::get_metainfo(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> local_token;
     local_token.swap(token);
 
     wait_interruptible(local_token.get(), interruptor);
 
     if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
-    metainfo_t res = parent->metainfo.mask(get_region());
+    metainfo_t res = metainfo.mask(get_region());
     return res;
 }
 
-void dummy_store_view_t::set_metainfo(const metainfo_t &new_metainfo, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+void dummy_protocol_t::store_t::set_metainfo(const metainfo_t &new_metainfo, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
     boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> local_token;
@@ -186,10 +206,10 @@ void dummy_store_view_t::set_metainfo(const metainfo_t &new_metainfo, boost::sco
 
     if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
 
-    parent->metainfo.update(new_metainfo);
+    metainfo.update(new_metainfo);
 }
 
-dummy_protocol_t::read_response_t dummy_store_view_t::read(DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+dummy_protocol_t::read_response_t dummy_protocol_t::store_t::read(DEBUG_ONLY(const metainfo_t& expected_metainfo,)
         const dummy_protocol_t::read_t &read, boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), expected_metainfo.get_domain()));
     rassert(region_is_superset(get_region(), read.get_region()));
@@ -202,20 +222,20 @@ dummy_protocol_t::read_response_t dummy_store_view_t::read(DEBUG_ONLY(const meta
         wait_interruptible(local_token.get(), interruptor);
 
         // We allow expected_metainfo domain to be smaller than the metainfo domain
-        rassert(expected_metainfo == parent->metainfo.mask(expected_metainfo.get_domain()));
+        rassert(expected_metainfo == metainfo.mask(expected_metainfo.get_domain()));
 
         if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
         for (std::set<std::string>::iterator it = read.keys.keys.begin();
                 it != read.keys.keys.end(); it++) {
             rassert(get_region().keys.count(*it) != 0);
-            resp.values[*it] = parent->values[*it];
+            resp.values[*it] = values[*it];
         }
     }
     if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
     return resp;
 }
 
-dummy_protocol_t::write_response_t dummy_store_view_t::write(DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+dummy_protocol_t::write_response_t dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_t& expected_metainfo,)
         const metainfo_t& new_metainfo, const dummy_protocol_t::write_t &write, transition_timestamp_t timestamp, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), expected_metainfo.get_domain()));
@@ -230,23 +250,23 @@ dummy_protocol_t::write_response_t dummy_store_view_t::write(DEBUG_ONLY(const me
         wait_interruptible(local_token.get(), interruptor);
 
         // We allow expected_metainfo domain to be smaller than the metainfo domain
-        rassert(expected_metainfo == parent->metainfo.mask(expected_metainfo.get_domain()));
+        rassert(expected_metainfo == metainfo.mask(expected_metainfo.get_domain()));
 
         if (rng.randint(2) == 0) nap(rng.randint(10));
         for (std::map<std::string, std::string>::const_iterator it = write.values.begin();
                 it != write.values.end(); it++) {
-            resp.old_values[(*it).first] = parent->values[(*it).first];
-            parent->values[(*it).first] = (*it).second;
-            parent->timestamps[(*it).first] = timestamp.timestamp_after();
+            resp.old_values[(*it).first] = values[(*it).first];
+            values[(*it).first] = (*it).second;
+            timestamps[(*it).first] = timestamp.timestamp_after();
         }
 
-        parent->metainfo.update(new_metainfo);
+        metainfo.update(new_metainfo);
     }
     if (rng.randint(2) == 0) nap(rng.randint(10));
     return resp;
 }
 
-bool dummy_store_view_t::send_backfill(const region_map_t<dummy_protocol_t,state_timestamp_t> &start_point, const boost::function<bool(const metainfo_t&)> &should_backfill,
+bool dummy_protocol_t::store_t::send_backfill(const region_map_t<dummy_protocol_t,state_timestamp_t> &start_point, const boost::function<bool(const metainfo_t&)> &should_backfill,
         const boost::function<void(dummy_protocol_t::backfill_chunk_t)> &chunk_fun, boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), start_point.get_domain()));
 
@@ -255,11 +275,11 @@ bool dummy_store_view_t::send_backfill(const region_map_t<dummy_protocol_t,state
 
     wait_interruptible(local_token.get(), interruptor);
 
-    metainfo_t metainfo = parent->metainfo.mask(start_point.get_domain());
-    if (should_backfill(metainfo)) {
+    metainfo_t masked_metainfo = metainfo.mask(start_point.get_domain());
+    if (should_backfill(masked_metainfo)) {
         /* Make a copy so we can sleep and still have the correct semantics */
-        std::map<std::string, std::string> values_snapshot = parent->values;
-        std::map<std::string, state_timestamp_t> timestamps_snapshot = parent->timestamps;
+        std::map<std::string, std::string> values_snapshot = values;
+        std::map<std::string, state_timestamp_t> timestamps_snapshot = timestamps;
 
         if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
 
@@ -287,19 +307,19 @@ bool dummy_store_view_t::send_backfill(const region_map_t<dummy_protocol_t,state
     }
 }
 
-void dummy_store_view_t::receive_backfill(const dummy_protocol_t::backfill_chunk_t &chunk, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+void dummy_protocol_t::store_t::receive_backfill(const dummy_protocol_t::backfill_chunk_t &chunk, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> local_token;
     local_token.swap(token);
 
     rassert(get_region().keys.count(chunk.key) != 0);
 
     if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
-    parent->values[chunk.key] = chunk.value;
-    parent->timestamps[chunk.key] = chunk.timestamp;
+    values[chunk.key] = chunk.value;
+    timestamps[chunk.key] = chunk.timestamp;
     if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
 }
 
-void dummy_store_view_t::reset_data(dummy_protocol_t::region_t subregion, const metainfo_t &new_metainfo, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+void dummy_protocol_t::store_t::reset_data(dummy_protocol_t::region_t subregion, const metainfo_t &new_metainfo, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), subregion));
     rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
@@ -310,10 +330,20 @@ void dummy_store_view_t::reset_data(dummy_protocol_t::region_t subregion, const 
 
     rassert(region_is_superset(get_region(), subregion));
     for (std::set<std::string>::iterator it = subregion.keys.begin(); it != subregion.keys.end(); it++) {
-        parent->values[*it] = "";
-        parent->timestamps[*it] = state_timestamp_t::zero();
+        values[*it] = "";
+        timestamps[*it] = state_timestamp_t::zero();
     }
-    parent->metainfo.update(new_metainfo);
+    metainfo.update(new_metainfo);
+}
+
+void dummy_protocol_t::store_t::initialize_empty() {
+    dummy_protocol_t::region_t region = get_region();
+    for (std::set<std::string>::iterator it = region.keys.begin();
+            it != region.keys.end(); it++) {
+        values[*it] = "";
+        timestamps[*it] = state_timestamp_t::zero();
+    }
+    metainfo = metainfo_t(region, binary_blob_t());
 }
 
 dummy_protocol_t::region_t a_thru_z_region() {

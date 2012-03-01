@@ -11,10 +11,7 @@ using namespace mock;
 
 class test_store_t {
 public:
-    test_store_t() :
-        underlying_store(a_thru_z_region()),
-        store(&underlying_store, a_thru_z_region())
-    {
+    test_store_t() {
         /* Initialize store metadata */
         cond_t non_interruptor;
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> token;
@@ -26,8 +23,7 @@ public:
         store.set_metainfo(new_metainfo, token, &non_interruptor);
     }
 
-    dummy_underlying_store_t underlying_store;
-    dummy_store_view_t store;
+    dummy_protocol_t::store_t store;
 };
 
 class inserter_t {
