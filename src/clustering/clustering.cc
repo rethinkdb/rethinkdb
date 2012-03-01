@@ -5,15 +5,16 @@
 
 #include "arch/arch.hpp"
 #include "arch/os_signal.hpp"
+#include "clustering/administration/http_server.hpp"
+#include "clustering/administration/metadata.hpp"
+#include "clustering/administration/reactor_driver.hpp"
+#include "mock/dummy_protocol.hpp"
+#include "rpc/connectivity/cluster.hpp"
 #include "rpc/connectivity/cluster.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
+#include "rpc/directory/manager.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
-#include "rpc/directory/manager.hpp"
-#include "rpc/connectivity/cluster.hpp"
-#include "clustering/administration/metadata.hpp"
-#include "mock/dummy_protocol.hpp"
-#include "clustering/administration/reactor_driver.hpp"
 
 struct server_starter_t : public thread_message_t {
     boost::function<void()> fun;
@@ -76,5 +77,8 @@ void clustering_main(int port, int contact_port) {
     reactor_driver_t<mock::dummy_protocol_t> reactor_driver(&mailbox_manager,
                                                             directory_manager.get_root_view(), 
                                                             semilattice_manager_namespaces.get_root_view());
+    blueprint_http_server_t server(semilattice_manager_namespaces.get_root_view(),
+                                   connectivity_cluster.get_me().get_uuid(),
+                                   port + 1000);
     wait_for_sigint();
 }
