@@ -61,7 +61,7 @@ void clustering_main(int port, int contact_port) {
     message_multiplexer_t::client_t::run_t mailbox_manager_client_run(&mailbox_manager_client, &mailbox_manager);
 
     message_multiplexer_t::client_t semilattice_manager_client(&message_multiplexer, 'S');
-    semilattice_manager_t<cluster_semilattice_metadata_t> semilattice_manager_cluster(&semilattice_manager_client, cluster_semilattice_metadata_t());
+    semilattice_manager_t<cluster_semilattice_metadata_t> semilattice_manager_cluster(&semilattice_manager_client, cluster_semilattice_metadata_t(connectivity_cluster.get_me().get_uuid()));
     message_multiplexer_t::client_t::run_t semilattice_manager_client_run(&semilattice_manager_client, &semilattice_manager_cluster);
 
     message_multiplexer_t::client_t directory_manager_client(&message_multiplexer, 'D');

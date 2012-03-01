@@ -1,3 +1,6 @@
+#ifndef __HTTP_JSON_JSON_ADAPTER_TCC__
+#define __HTTP_JSON_JSON_ADAPTER_TCC__
+
 #include "utils.hpp"
 #include "logger.hpp"
 #include "http/json.hpp"
@@ -317,12 +320,21 @@ template <class K, class V, class ctx_t>
 typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(std::map<K, V> *map, const ctx_t &ctx) {
     typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
 
+#ifdef JSON_SHORTCUTS
+    int shortcut_index = 0;
+#endif
+
     for (typename std::map<K,V>::iterator it  = map->begin();
                                           it != map->end();
                                           it++) {
         typename std::map<K,V>::key_type key = it->first;
         //TODO catch the exception the get_string
         res[get_string(render_as_json(&key, ctx))] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<V, ctx_t>(&(it->second)));
+
+#ifdef JSON_SHORTCUTS
+        res[strprintf("%d", shortcut_index)] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<V, ctx_t>(&(it->second)));
+        shortcut_index++;
+#endif
     }
 
     return res;
@@ -432,3 +444,4 @@ void apply_as_directory(cJSON *change, T *target, const ctx_t &ctx) {
     }
 }
 
+#endif
