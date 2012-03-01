@@ -11,8 +11,19 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(dummy_p
 }
 
 template <class ctx_t>
-cJSON *render_as_json(dummy_protocol_t::region_t *target, const ctx_t &ctx) {
-    return render_as_json(&target->keys, ctx);
+cJSON *render_as_json(dummy_protocol_t::region_t *target, const ctx_t &) {
+    std::string val;
+    val += "{";
+    for (std::set<std::string>::iterator it =  target->keys.begin();
+                                         it != target->keys.end();
+                                         it++) {
+        val += *it;
+        val += ", ";
+    }
+
+    val += "}";
+
+    return cJSON_CreateString(val.c_str());
 }
 
 template <class ctx_t>
@@ -24,6 +35,7 @@ void apply_json_to(cJSON *change, dummy_protocol_t::region_t *target, const ctx_
             throw schema_mismatch_exc_t("Invalid region shortcut\n");
         }
         *target = dummy_protocol_t::region_t(region_spec[0], region_spec[2]);
+        return; //if we make it here we found a shortcut so don't proceed
     } catch (schema_mismatch_exc_t) {
         //do nothing
     }

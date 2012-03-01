@@ -71,6 +71,10 @@ int get_int(cJSON *json);
 
 double get_double(cJSON *json);
 
+json_array_iterator_t get_array_it(cJSON *json);
+
+json_object_iterator_t get_object_it(cJSON *json);
+
 template <class ctx_t>
 class subfield_change_functor_t {
 public:

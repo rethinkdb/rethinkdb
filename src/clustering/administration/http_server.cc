@@ -66,10 +66,12 @@ http_res_t blueprint_http_server_t::handle(const http_req_t &req) {
                 return res;
             } catch (schema_mismatch_exc_t e) {
                 http_res_t res(400);
+                logINF("HTTP request throw a schema_mismatch_exc_t with what =:\n %s\n", e.what());
                 res.set_body("application/text", e.what());
                 return res;
             } catch (permission_denied_exc_t e) {
                 http_res_t res(400);
+                logINF("HTTP request throw a permission_denied_exc_t with what =:\n %s\n", e.what());
                 res.set_body("application/text", e.what());
                 return res;
             }
