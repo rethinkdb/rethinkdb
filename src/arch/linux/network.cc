@@ -18,7 +18,7 @@ const uint32_t linux_buffered_tcp_conn_t::READ_BUFFER_RESIZE_FACTOR = 2;
 const uint32_t linux_buffered_tcp_conn_t::READ_BUFFER_MIN_UTILIZATION_FACTOR = 4; // if less than 1/4 of the buffer is used, shrink it
 const size_t linux_buffered_tcp_conn_t::MIN_BUFFERED_READ_SIZE = 1024;
 const size_t linux_buffered_tcp_conn_t::MIN_READ_BUFFER_SIZE = linux_buffered_tcp_conn_t::MIN_BUFFERED_READ_SIZE * 4;
-const size_t linux_buffered_tcp_conn_t::MAX_WRITE_BUFFER_SIZE = 4096;
+const size_t linux_buffered_tcp_conn_t::MAX_WRITE_BUFFER_SIZE = 8192;
 
 /* Network connection object */
 
