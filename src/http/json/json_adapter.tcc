@@ -101,49 +101,54 @@ json_temporary_adapter_t<T, ctx_t>::json_temporary_adapter_t(const T &_t)
 { }
 
 //implementation for map_inserter_t
-//TODO wtf is going on here?
-//template <class container_t, class ctx_t>
-//json_map_inserter_t<container_t, ctx_t>::json_map_inserter_t(container_t *_target, gen_function_t _generator, value_t _initial_value) 
-//    : target(_target), generator(_generator), initial_value(_initial_value)
-//{ }
-//
-//template <class container_t, class ctx_t>
-//cJSON *json_map_inserter_t<container_t, ctx_t>::render_impl(const ctx_t &ctx) {
-//    json::mObject res;
-//    for (typename keys_set_t::iterator it =  added_keys.begin();
-//                                       it != added_keys.end();
-//                                       it++) {
-//        res[render_as_json(&*it, ctx).get_str()] = render_as_json(&(target->find(*it)->second), ctx);
-//    }
-//    return res;
-//}
-//
-//template <class container_t, class ctx_t>
-//void json_map_inserter_t<container_t, ctx_t>::apply_impl(cJSON *change, const ctx_t &ctx) {
-//    typename container_t::key_type key = generator();
-//    added_keys.insert(key);
-//
-//    typename container_t::mapped_type val = initial_value;
-//    apply_json_to(change, &val, ctx);
-//
-//    target->insert(typename container_t::value_type(key, val));
-//}
-//
-//template <class container_t, class ctx_t>
-//typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_map_inserter_t<container_t, ctx_t>::get_subfields_impl(const ctx_t &ctx) {
-//    json_adapter_map_t res;
-//    for (typename keys_set_t::iterator it =  added_keys.begin();
-//                                       it != added_keys.end();
-//                                       it++) {
-//        res[render_as_json(&*it, ctx).get_str()] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<typename container_t::mapped_type, ctx_t>(&(target->find(*it)->second)));
-//    }
-//    return res;
-//}
-//
-//template <class container_t, class ctx_t>
-//boost::shared_ptr<subfield_change_functor_t<ctx_t> > json_map_inserter_t<container_t, ctx_t>::get_change_callback() {
-//    return boost::shared_ptr<subfield_change_functor_t<ctx_t> >(new standard_subfield_change_functor_t<container_t, ctx_t>(target));
-//}
+template <class container_t, class ctx_t>
+json_map_inserter_t<container_t, ctx_t>::json_map_inserter_t(container_t *_target, gen_function_t _generator, value_t _initial_value) 
+    : target(_target), generator(_generator), initial_value(_initial_value)
+{ }
+
+template <class container_t, class ctx_t>
+cJSON *json_map_inserter_t<container_t, ctx_t>::render_impl(const ctx_t &ctx) {
+    /* This is perhaps a bit confusing, json_map_inserters will generally
+     * render as nothing (an empty object) unless they have been used to insert
+     * something, this is kind of a weird thing so that when someone does a
+     * post to this value they get a view of the things we inserted. */
+    cJSON *res = cJSON_CreateObject();
+    for (typename keys_set_t::iterator it =  added_keys.begin();
+                                       it != added_keys.end();
+                                       it++) {
+        scoped_cJSON_t key(render_as_json(&*it, ctx));
+        cJSON_AddItemToObject(res, get_string(key.get()).c_str(), render_as_json(&(target->find(*it)->second), ctx));
+    }
+    return res;
+}
+
+template <class container_t, class ctx_t>
+void json_map_inserter_t<container_t, ctx_t>::apply_impl(cJSON *change, const ctx_t &ctx) {
+    typename container_t::key_type key = generator();
+    added_keys.insert(key);
+
+    typename container_t::mapped_type val = initial_value;
+    apply_json_to(change, &val, ctx);
+
+    target->insert(typename container_t::value_type(key, val));
+}
+
+template <class container_t, class ctx_t>
+typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_map_inserter_t<container_t, ctx_t>::get_subfields_impl(const ctx_t &ctx) {
+    json_adapter_map_t res;
+    for (typename keys_set_t::iterator it =  added_keys.begin();
+                                       it != added_keys.end();
+                                       it++) {
+        scoped_cJSON_t key(render_as_json(&*it, ctx));
+        res[get_string(key.get())] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<typename container_t::mapped_type, ctx_t>(&(target->find(*it)->second)));
+    }
+    return res;
+}
+
+template <class container_t, class ctx_t>
+boost::shared_ptr<subfield_change_functor_t<ctx_t> > json_map_inserter_t<container_t, ctx_t>::get_change_callback() {
+    return boost::shared_ptr<subfield_change_functor_t<ctx_t> >(new standard_subfield_change_functor_t<container_t, ctx_t>(target));
+}
 
 //implementation for json_adapter_with_inserter_t
 template <class container_t, class ctx_t>

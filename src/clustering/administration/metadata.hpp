@@ -5,6 +5,7 @@
 
 #include "utils.hpp"
 #include <boost/uuid/uuid.hpp>
+#include <boost/bind.hpp>
 
 #include "clustering/administration/json_adapters.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
@@ -76,7 +77,7 @@ public:
 template <class ctx_t, class protocol_t>
 typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(namespaces_semilattice_metadata_t<protocol_t> *target, const ctx_t &) {
     typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
-    res["namespaces"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t, ctx_t>(&target->namespaces));
+    res["namespaces"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_with_inserter_t<typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t, ctx_t>(&target->namespaces, boost::bind(&generate_uuid)));
     return res;
 }
 
