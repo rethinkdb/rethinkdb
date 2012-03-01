@@ -436,26 +436,26 @@ void linux_raw_tcp_conn_t::on_event(int events) {
 
 linux_buffered_tcp_conn_t::linux_buffered_tcp_conn_t(const char *host, int port) :
     read_buffer_offset(0),
-    conn(host, port)
+    conn(host, port),
+    write_buffer(MAX_WRITE_BUFFER_SIZE)
 {
     read_buffer.reserve(MIN_READ_BUFFER_SIZE);
-    write_buffer.reserve(MAX_WRITE_BUFFER_SIZE);
 }
 
 linux_buffered_tcp_conn_t::linux_buffered_tcp_conn_t(const ip_address_t &host, int port) :
     read_buffer_offset(0),
-    conn(host, port)
+    conn(host, port),
+    write_buffer(MAX_WRITE_BUFFER_SIZE)
 {
     read_buffer.reserve(MIN_READ_BUFFER_SIZE);
-    write_buffer.reserve(MAX_WRITE_BUFFER_SIZE);
 }
 
 linux_buffered_tcp_conn_t::linux_buffered_tcp_conn_t(fd_t sock) :
     read_buffer_offset(0),
-    conn(sock)
+    conn(sock),
+    write_buffer(MAX_WRITE_BUFFER_SIZE)
 {
     read_buffer.reserve(MIN_READ_BUFFER_SIZE);
-    write_buffer.reserve(MAX_WRITE_BUFFER_SIZE);
 }
 
 char * linux_buffered_tcp_conn_t::get_read_buffer_start() {
@@ -472,9 +472,7 @@ void linux_buffered_tcp_conn_t::read_exactly(void *buf, size_t size) {
 
     if (buffered_bytes > 0) {
         size_t bytes_to_copy = std::min(buffered_bytes, size);
-        std::copy(get_read_buffer_start(),
-                  get_read_buffer_start() + bytes_to_copy,
-                  reinterpret_cast<char *>(buf));
+        memcpy(buf, get_read_buffer_start(), bytes_to_copy);
         bytes_read += bytes_to_copy;
         pop_read_buffer(bytes_to_copy);
     }
@@ -486,15 +484,19 @@ void linux_buffered_tcp_conn_t::read_more_buffered() {
     // Make sure there is enough free room in the buffer (may need to be expanded or shifted)
     const size_t free_space = read_buffer.capacity() - read_buffer.size();
     if (free_space < MIN_BUFFERED_READ_SIZE) {
+        size_t data_size = get_read_buffer_end() - get_read_buffer_start();
+
         // If we can get the needed size by shifting the current buffer, do so, otherwise reallocate
         if (read_buffer_offset + free_space > MIN_BUFFERED_READ_SIZE) {
-            std::copy(get_read_buffer_start(), get_read_buffer_end(), read_buffer.begin());
+            memmove(read_buffer.data(), get_read_buffer_start(), data_size);
             read_buffer.resize(read_buffer.size() - read_buffer_offset);
         } else { // Not enough space, expand buffer
             std::vector<char> temp_buffer;
             size_t new_size = read_buffer.capacity() * READ_BUFFER_RESIZE_FACTOR;
             temp_buffer.reserve(new_size);
-            std::copy(get_read_buffer_start(), get_read_buffer_end(), std::back_inserter(temp_buffer));
+            temp_buffer.resize(data_size); // RSI: this is inefficient
+            memcpy(temp_buffer.data(), get_read_buffer_start(), data_size);
+
             read_buffer.swap(temp_buffer);
         }
         read_buffer_offset = 0;
@@ -526,7 +528,10 @@ void linux_buffered_tcp_conn_t::pop_read_buffer(size_t len) {
         if (new_size < read_buffer.capacity()) {
             std::vector<char> temp_buffer;
             temp_buffer.reserve(new_size);
-            std::copy(read_buffer.begin() + read_buffer_offset, read_buffer.end(), std::back_inserter(temp_buffer));
+            size_t data_size = read_buffer.size() - read_buffer_offset;
+            temp_buffer.resize(data_size); // RSI: this is inefficient
+            memcpy(temp_buffer.data(), get_read_buffer_start(), data_size);
+
             read_buffer.swap(temp_buffer);
             read_buffer_offset = 0;
         }
@@ -537,12 +542,11 @@ void linux_buffered_tcp_conn_t::write(const void *buf, size_t size) {
     conn.assert_thread();
 
     // Copy what will fit of buf into write buffer
-    size_t total_write_size = write_buffer.size() + size;
-    const char *data_start = reinterpret_cast<const char *>(buf);
+    size_t total_write_size = write_buffer.size + size;
     if (total_write_size <= MAX_WRITE_BUFFER_SIZE) {
-        std::copy(data_start, data_start + size, std::back_inserter(write_buffer));
+        write_buffer.put_back(buf, size);
     } else {
-        struct iovec iov[2] = { { write_buffer.data(), write_buffer.size() },
+        struct iovec iov[2] = { { write_buffer.data, write_buffer.size },
                                 { const_cast<void *>(buf), size } };
         conn.write_vectored(iov, 2, NULL);
         write_buffer.clear();
@@ -550,8 +554,8 @@ void linux_buffered_tcp_conn_t::write(const void *buf, size_t size) {
 }
 
 void linux_buffered_tcp_conn_t::flush_write_buffer() {
-    if (write_buffer.size() > 0) {
-        conn.write(write_buffer.data(), write_buffer.size(), NULL);
+    if (write_buffer.size > 0) {
+        conn.write(write_buffer.data, write_buffer.size, NULL);
         write_buffer.clear();
     }
 }
@@ -718,5 +722,21 @@ void linux_tcp_listener_t::on_event(int events) {
         logERR("poll()/epoll() sent linux_tcp_listener_t errors: %d.\n", events);
         log_next_error = false;
     }
+}
+
+linux_buffered_tcp_conn_t::write_buffer_t::write_buffer_t(size_t size_) : data(static_cast<char*>(malloc_aligned(size_, getpagesize()))), size(0), capacity(size_) { }
+
+linux_buffered_tcp_conn_t::write_buffer_t::~write_buffer_t() {
+    free(data);
+}
+
+void linux_buffered_tcp_conn_t::write_buffer_t::clear() {
+    size = 0;
+}
+
+void linux_buffered_tcp_conn_t::write_buffer_t::put_back(const void * buf, size_t sz) {
+    rassert(size + sz <= capacity);
+    memcpy(data + size, buf, sz);
+    size += sz;
 }
 

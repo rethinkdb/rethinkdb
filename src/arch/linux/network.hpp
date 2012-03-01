@@ -161,9 +161,19 @@ private:
 
     size_t read_buffer_offset;
     std::vector<char> read_buffer;
-    std::vector<char> write_buffer;
-
     linux_raw_tcp_conn_t conn;
+
+    struct write_buffer_t {
+        char *data;
+        size_t size;
+        size_t capacity;
+
+        write_buffer_t(size_t size_);
+        ~write_buffer_t();
+
+        void clear();
+        void put_back(const void *buf, size_t sz);
+    } write_buffer;
 };
 
 /* The linux_tcp_listener_t is used to listen on a network port for incoming
