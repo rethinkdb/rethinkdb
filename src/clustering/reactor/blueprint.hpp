@@ -73,6 +73,10 @@ public:
 
     role_map_t peers_roles;
 
+    bool operator==(const blueprint_t &other) const {
+        return peers_roles == other.peers_roles;
+    }
+
     RDB_MAKE_ME_SERIALIZABLE_1(peers_roles);
 };
 

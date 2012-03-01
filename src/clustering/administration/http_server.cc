@@ -9,11 +9,11 @@ typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
 typedef tokenizer::iterator tok_iterator;
 
 http_res_t blueprint_http_server_t::handle(const http_req_t &req) {
-    namespaces_semilattice_metadata_t<mock::dummy_protocol_t> namespaces_metadata = 
-        namespaces_semilattice_metadata->get();
+    cluster_semilattice_metadata_t cluster_metadata = 
+        semilattice_metadata->get();
 
     //as we traverse the json sub directories this will keep track of where we are
-    boost::shared_ptr<json_adapter_if_t<namespace_metadata_ctx_t> > json_adapter_head(new json_adapter_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t>, namespace_metadata_ctx_t>(&namespaces_metadata));
+    boost::shared_ptr<json_adapter_if_t<namespace_metadata_ctx_t> > json_adapter_head(new json_adapter_t<cluster_semilattice_metadata_t, namespace_metadata_ctx_t>(&cluster_metadata));
 
 
     //setup a tokenizer
@@ -57,7 +57,7 @@ http_res_t blueprint_http_server_t::handle(const http_req_t &req) {
 
             try {
                 json_adapter_head->apply(change.get(), json_ctx);
-                namespaces_semilattice_metadata->join(namespaces_metadata);
+                semilattice_metadata->join(cluster_metadata);
 
                 http_res_t res(200);
 

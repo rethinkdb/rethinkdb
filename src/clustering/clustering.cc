@@ -7,6 +7,7 @@
 #include "arch/os_signal.hpp"
 #include "clustering/administration/http_server.hpp"
 #include "clustering/administration/metadata.hpp"
+#include "clustering/administration/metadata.hpp"
 #include "clustering/administration/reactor_driver.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "rpc/connectivity/cluster.hpp"
@@ -60,8 +61,8 @@ void clustering_main(int port, int contact_port) {
     message_multiplexer_t::client_t::run_t mailbox_manager_client_run(&mailbox_manager_client, &mailbox_manager);
 
     message_multiplexer_t::client_t semilattice_manager_client(&message_multiplexer, 'S');
-    semilattice_manager_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> > semilattice_manager_namespaces(&semilattice_manager_client, namespaces_semilattice_metadata_t<mock::dummy_protocol_t>());
-    message_multiplexer_t::client_t::run_t semilattice_manager_client_run(&semilattice_manager_client, &semilattice_manager_namespaces);
+    semilattice_manager_t<cluster_semilattice_metadata_t> semilattice_manager_cluster(&semilattice_manager_client, cluster_semilattice_metadata_t());
+    message_multiplexer_t::client_t::run_t semilattice_manager_client_run(&semilattice_manager_client, &semilattice_manager_cluster);
 
     message_multiplexer_t::client_t directory_manager_client(&message_multiplexer, 'D');
     directory_readwrite_manager_t<namespaces_directory_metadata_t<mock::dummy_protocol_t> > directory_manager(&directory_manager_client, namespaces_directory_metadata_t<mock::dummy_protocol_t>());
@@ -76,8 +77,9 @@ void clustering_main(int port, int contact_port) {
 
     reactor_driver_t<mock::dummy_protocol_t> reactor_driver(&mailbox_manager,
                                                             directory_manager.get_root_view(), 
-                                                            semilattice_manager_namespaces.get_root_view());
-    blueprint_http_server_t server(semilattice_manager_namespaces.get_root_view(),
+                                                            metadata_field(&cluster_semilattice_metadata_t::namespaces, semilattice_manager_cluster.get_root_view()));
+
+    blueprint_http_server_t server(semilattice_manager_cluster.get_root_view(),
                                    connectivity_cluster.get_me().get_uuid(),
                                    port + 1000);
     wait_for_sigint();
