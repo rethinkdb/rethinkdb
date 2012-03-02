@@ -28,7 +28,6 @@ public:
 
     struct memcached_write_callback_t : public tcp_conn_t::write_callback_t {
         void done() {
-            coro_t::spawn_now(boost::bind(&txt_memcached_handler_if::memcached_write_callback_t::reset, this));
             size_t &callbacks_left = *callbacks_to_run;
             guarantee(callbacks_left > 0);
             --callbacks_left;
@@ -37,11 +36,6 @@ public:
             }
         }
 
-        void reset() {
-            dp.reset();
-        }
-
-        boost::shared_ptr<data_provider_t> dp;
         cond_t *cond;
         size_t *callbacks_to_run;
     };

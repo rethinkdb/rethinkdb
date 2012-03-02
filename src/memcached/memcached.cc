@@ -472,7 +472,6 @@ void do_get(txt_memcached_handler_if *rh, pipeliner_t *pipeliner, bool with_cas,
                             rh->write_value_header(key.contents, key.size, res.flags, res.value_provider->get_size());
                         }
 
-                        callbacks[i].dp = res.value_provider;
                         callbacks[i].cond = &callback_cond;
                         callbacks[i].callbacks_to_run = &callbacks_to_run;
                         rh->write_from_data_provider(res.value_provider, &callbacks[i]);
