@@ -18,6 +18,16 @@ version_map_t vmap_max(const version_map_t &, const version_map_t &);
 void print_version_map(const version_map_t &);
 } //namespace vclock_details
 
+class in_conflict_exc_t : public std::exception {
+public:
+    const char *what() const throw () {
+        return "Tried to access a vector clock protected value that was in conflict.";
+    }
+
+    virtual ~in_conflict_exc_t() throw () { }
+};
+
+
 template <class T>
 class vclock_t {
 private:
@@ -45,15 +55,6 @@ public:
     vclock_t(const T &_t, const boost::uuids::uuid &us);
 
     bool in_conflict() const;
-
-    class in_conflict_exc_t : public std::exception {
-    public:
-        const char *what() const throw () {
-            return "Tried to access a vector clock protected value that was in conflict.";
-        }
-
-        virtual ~in_conflict_exc_t() throw () { }
-    };
 
     void throw_if_conflict() const;
 

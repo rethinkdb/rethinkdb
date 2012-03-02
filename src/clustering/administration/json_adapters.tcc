@@ -11,7 +11,7 @@ template <class T, class ctx_t>
 typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(vclock_t<T> *target, const ctx_t &ctx) {
     try {
         return get_json_subfields(&target->get_mutable(), ctx);
-    } catch (typename vclock_t<T>::in_conflict_exc_t e) { 
+    } catch (in_conflict_exc_t e) { 
         return typename json_adapter_if_t<ctx_t>::json_adapter_map_t();
     }
 }
@@ -21,7 +21,7 @@ cJSON *render_as_json(vclock_t<T> *target, const ctx_t &ctx) {
     try {
         T t = target->get();
         return render_as_json(&t, ctx);
-    } catch (typename vclock_t<T>::in_conflict_exc_t e) {
+    } catch (in_conflict_exc_t e) {
         return cJSON_CreateString("Value in conflict\n");
     }
 }
@@ -50,7 +50,7 @@ void apply_json_to(cJSON *change, vclock_t<T> *target, const ctx_t &ctx) {
     try {
         apply_json_to(change, &target->get_mutable(), ctx);
         target->upgrade_version(ctx.us);
-    } catch (typename vclock_t<T>::in_conflict_exc_t e) {
+    } catch (in_conflict_exc_t e) {
         throw multiple_choices_exc_t();
     }
 }

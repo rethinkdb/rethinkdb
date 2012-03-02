@@ -11,6 +11,7 @@
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "clustering/immediate_consistency/query/metadata.hpp"
 #include "clustering/reactor/blueprint.hpp"
+#include "clustering/reactor/directory_echo.hpp"
 #include "clustering/reactor/metadata.hpp"
 #include "http/json/json_adapter.hpp"
 #include "rpc/semilattice/joins/deletable.hpp"
@@ -109,7 +110,7 @@ void semilattice_join(namespaces_semilattice_metadata_t<protocol_t> *a, const na
 template <class protocol_t>
 class namespaces_directory_metadata_t {
 public:
-    std::map<namespace_id_t, reactor_business_card_t<protocol_t> > reactor_bcards;
+    std::map<namespace_id_t, directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > reactor_bcards;
     std::map<namespace_id_t, std::map<master_id_t, master_business_card_t<protocol_t> > > master_maps;
 
     RDB_MAKE_ME_SERIALIZABLE_2(reactor_bcards, master_maps);

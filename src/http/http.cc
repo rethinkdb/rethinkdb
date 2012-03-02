@@ -110,6 +110,8 @@ std::string human_readable_status(int code) {
         return "Forbidden";
     case 404:
         return "Not Found";
+    case 500:
+        return "Internal Server Error";
     case 501:
         return "Not Implemented";
     default:

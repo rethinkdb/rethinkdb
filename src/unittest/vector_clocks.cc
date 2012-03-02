@@ -54,10 +54,10 @@ TEST(VectorClock, Conflict) {
     ASSERT_TRUE(merge.in_conflict());
 
     //make sure conflicted things throw on gets
-    ASSERT_THROW(merge.get(), vclock_t<int>::in_conflict_exc_t);
-    ASSERT_THROW(merge.get_mutable(), vclock_t<int>::in_conflict_exc_t);
-    ASSERT_THROW(merge.make_new_version(3, machine2), vclock_t<int>::in_conflict_exc_t);
-    ASSERT_THROW(merge.upgrade_version(machine2), vclock_t<int>::in_conflict_exc_t);
+    ASSERT_THROW(merge.get(), in_conflict_exc_t);
+    ASSERT_THROW(merge.get_mutable(), in_conflict_exc_t);
+    ASSERT_THROW(merge.make_new_version(3, machine2), in_conflict_exc_t);
+    ASSERT_THROW(merge.upgrade_version(machine2), in_conflict_exc_t);
 
     boost::uuids::uuid resolving_machine = generate_uuid();
     vclock_t<int> resolution = merge.make_resolving_version(3, resolving_machine);

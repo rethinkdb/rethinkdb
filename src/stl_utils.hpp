@@ -1,6 +1,10 @@
 #ifndef __STL_UTILS_HPP__
 #define __STL_UTILS_HPP__
 
+#include <map>
+
+#include "errors.hpp"
+#include <boost/function.hpp>
 #include <boost/optional.hpp>
 
 /* stl utils make some stl structures nicer to work with */
@@ -13,6 +17,9 @@ std::set<V> range(const std::map<K,V> &);
 
 template <class container_t>
 bool std_contains(const container_t &, const typename container_t::key_type &);
+
+template <class container_t>
+bool std_does_not_contain(const container_t &, const typename container_t::key_type &);
 
 template <class container_t>
 bool std_exists_such_that(const container_t &, boost::function<bool(typename container_t::const_iterator)>);

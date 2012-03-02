@@ -1,3 +1,5 @@
+#include "logger.hpp"
+
 template<class inner_t, class outer_t>
 class field_readwrite_lens_t : public readwrite_lens_t<inner_t, outer_t> {
 public:
@@ -52,7 +54,7 @@ public:
     explicit assumed_member_readwrite_lens_t(const key_t &k) : key(k) { }
     value_t get(const std::map<key_t, value_t> &o) const {
         rassert(o.count(key) == 1);
-        return o[key];
+        return o.find(key)->second;
     }
     void set(std::map<key_t, value_t> *o, const value_t &i) const {
         rassert(o->count(key) == 1);
@@ -186,8 +188,10 @@ public:
     explicit default_member_read_lens_t(const key_t &k, value_t _default_val = value_t()) : key(k), default_val(_default_val) { }
     value_t get(const std::map<key_t, value_t> &o) const {
         if (o.find(key) == o.end()) {
+            logINF("returning a default value\n");
             return default_val;
         }
+        logINF("returning a found value\n");
         return o.find(key)->second;
     }
 

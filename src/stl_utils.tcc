@@ -36,6 +36,11 @@ bool std_contains(const container_t &container, const typename container_t::key_
 }
 
 template <class container_t>
+bool std_does_not_contain(const container_t &container, const typename container_t::key_type &key) {
+    return !std_contains<container_t>(container, key);
+}
+
+template <class container_t>
 bool std_exists_such_that(const container_t &container, boost::function<bool(typename container_t::const_iterator)> p) {
     for (typename container_t::const_iterator it =  container.begin();
                                               it != container.end();

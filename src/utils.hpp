@@ -386,16 +386,6 @@ T const &nth(std::list<T> const &l, unsigned n) {
     return *it;
 }
 
-//TODO change this things name
-template <class T, class K>
-bool std_contains(const T &target, K const & key) {
-    return target.find(key) != target.end();
-}
-template <class T, class K>
-bool std_does_not_contain(const T &target, K const & key) {
-    return !std_contains(target, key);
-}
-
 template <class InputIterator, class UnaryPredicate>
 bool all_match_predicate(InputIterator begin, InputIterator end, UnaryPredicate f) {
     bool res = true;

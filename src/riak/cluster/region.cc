@@ -1,5 +1,9 @@
-#include "riak/cluster/region.hpp"
+#include "errors.hpp"
 #include <boost/bind.hpp>
+#include <boost/function.hpp>
+
+#include "riak/cluster/region.hpp"
+#include "stl_utils.hpp"
 #include "utils.hpp"
 
 namespace riak {
@@ -9,7 +13,7 @@ region_t::region_t(key_spec_t _key_spec)
 { }
 
 bool region_t::contains_functor::operator()(const finite_t & x, const finite_t & y) const {
-    return all_in_container_match_predicate(y, boost::bind(&std_contains<finite_t, std::string>, x, _1));
+    return all_in_container_match_predicate(y, boost::bind(&std_contains<finite_t>, x, _1));
 }
 bool region_t::contains_functor::operator()(const finite_t &, const hash_range_t & y) const {
     //notice, hash_range_ts are either infinite or empty, thus if y isn't empty
@@ -26,7 +30,7 @@ bool region_t::contains_functor::operator()(const hash_range_t & x, const hash_r
 }
 
 bool region_t::overlaps_functor::operator()(const finite_t & x, const finite_t & y) const {
-    return all_in_container_match_predicate(y, boost::bind(&std_does_not_contain<finite_t, std::string>, x, _1));
+    return all_in_container_match_predicate(y, boost::bind(&std_does_not_contain<finite_t>, x, _1));
 }
 
 bool region_t::overlaps_functor::operator()(const finite_t & x, const hash_range_t & y) const {
