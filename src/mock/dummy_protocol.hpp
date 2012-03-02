@@ -78,7 +78,50 @@ public:
 
         RDB_MAKE_ME_SERIALIZABLE_3(key, value, timestamp);
     };
+
+    class store_t : public store_view_t<dummy_protocol_t> {
+    public:
+        typedef region_map_t<dummy_protocol_t, binary_blob_t> metainfo_t;
+
+        store_t();
+        store_t(std::string filename, bool create);
+        ~store_t();
+
+        void new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out) THROWS_NOTHING;
+        void new_write_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token_out) THROWS_NOTHING;
+
+        metainfo_t get_metainfo(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+        void set_metainfo(const metainfo_t &new_metainfo, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+        dummy_protocol_t::read_response_t read(DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+                const dummy_protocol_t::read_t &read, boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+        dummy_protocol_t::write_response_t write(DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+                const metainfo_t& new_metainfo, const dummy_protocol_t::write_t &write, transition_timestamp_t timestamp, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+                signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+        bool send_backfill(const region_map_t<dummy_protocol_t,state_timestamp_t> &start_point, const boost::function<bool(const metainfo_t&)> &should_backfill,
+                const boost::function<void(dummy_protocol_t::backfill_chunk_t)> &chunk_fun, boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+        void receive_backfill(const dummy_protocol_t::backfill_chunk_t &chunk, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+        void reset_data(dummy_protocol_t::region_t subregion, const metainfo_t &new_metainfo, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+
+        std::map<std::string, std::string> values;
+        std::map<std::string, state_timestamp_t> timestamps;
+
+        metainfo_t metainfo;
+
+    private:
+        void initialize_empty();
+
+        std::string filename;
+
+        fifo_enforcer_source_t token_source;
+        fifo_enforcer_sink_t token_sink;
+
+        rng_t rng;
+    };
 };
+
+dummy_protocol_t::region_t a_thru_z_region();
+
+std::ostream &operator<<(std::ostream &stream, dummy_protocol_t::region_t);
 
 bool region_is_superset(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b);
 dummy_protocol_t::region_t region_intersection(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b);
@@ -87,51 +130,6 @@ std::vector<dummy_protocol_t::region_t> region_subtract_many(const dummy_protoco
 
 bool operator==(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b);
 bool operator!=(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b);
-
-class dummy_underlying_store_t {
-public:
-    explicit dummy_underlying_store_t(dummy_protocol_t::region_t r);
-
-    dummy_protocol_t::region_t region;
-
-    std::map<std::string, std::string> values;
-    std::map<std::string, state_timestamp_t> timestamps;
-
-    region_map_t<dummy_protocol_t, binary_blob_t> metainfo;
-
-    fifo_enforcer_source_t token_source;
-    fifo_enforcer_sink_t token_sink;
-};
-
-class dummy_store_view_t : public store_view_t<dummy_protocol_t> {
-public:
-    dummy_store_view_t(dummy_underlying_store_t *p, dummy_protocol_t::region_t region);
-
-    void new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out) THROWS_NOTHING;
-    void new_write_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token_out) THROWS_NOTHING;
-
-    metainfo_t get_metainfo(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
-    void set_metainfo(const metainfo_t &new_metainfo, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
-    dummy_protocol_t::read_response_t read(DEBUG_ONLY(const metainfo_t& expected_metainfo,)
-            const dummy_protocol_t::read_t &read, boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
-    dummy_protocol_t::write_response_t write(DEBUG_ONLY(const metainfo_t& expected_metainfo,)
-            const metainfo_t& new_metainfo, const dummy_protocol_t::write_t &write, transition_timestamp_t timestamp, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
-            signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
-    bool send_backfill(const region_map_t<dummy_protocol_t,state_timestamp_t> &start_point, const boost::function<bool(const metainfo_t&)> &should_backfill,
-            const boost::function<void(dummy_protocol_t::backfill_chunk_t)> &chunk_fun, boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
-    void receive_backfill(const dummy_protocol_t::backfill_chunk_t &chunk, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
-    void reset_data(dummy_protocol_t::region_t subregion, const metainfo_t &new_metainfo, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
-
-private:
-    dummy_underlying_store_t *parent;
-
-    /* For random timeouts */
-    rng_t rng;
-};
-
-dummy_protocol_t::region_t a_thru_z_region();
-
-std::ostream &operator<<(std::ostream &stream, dummy_protocol_t::region_t);
 
 } // namespace mock
 

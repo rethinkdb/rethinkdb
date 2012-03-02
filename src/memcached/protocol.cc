@@ -138,19 +138,48 @@ memcached_protocol_t::write_response_t memcached_protocol_t::write_t::unshard(st
     return responses[0];
 }
 
+memcached_protocol_t::store_t::store_t(std::string filename, bool create) : store_view_t<memcached_protocol_t>(key_range_t::entire_range()), seq_group(1) {
+
+    if (create) {
+        standard_serializer_t::create(
+            standard_serializer_t::dynamic_config_t(),
+            standard_serializer_t::private_dynamic_config_t(filename),
+            standard_serializer_t::static_config_t()
+            );
+    }
+
+    serializer.reset(new standard_serializer_t(
+        standard_serializer_t::dynamic_config_t(),
+        standard_serializer_t::private_dynamic_config_t(filename)
+        ));
+
+    if (create) {
+        mirrored_cache_static_config_t cache_static_config;
+        cache_t::create(serializer.get(), &cache_static_config);
+    }
+
+    cache.reset(new cache_t(serializer.get(), &cache_dynamic_config, 0));
+
+    if (create) {
+        btree_slice_t::create(cache.get(), key_range_t::entire_range());
+    }
+
+    btree.reset(new btree_slice_t(cache.get()));
+}
+
 namespace arc = boost::archive;
 
-void memcached_store_view_t::new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out) {
+void memcached_protocol_t::store_t::new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out) {
     fifo_enforcer_read_token_t token = token_source.enter_read();
     token_out.reset(new fifo_enforcer_sink_t::exit_read_t(&token_sink, token));
 }
 
-void memcached_store_view_t::new_write_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token_out) {
+void memcached_protocol_t::store_t::new_write_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token_out) {
     fifo_enforcer_write_token_t token = token_source.enter_write();
     token_out.reset(new fifo_enforcer_sink_t::exit_write_t(&token_sink, token));
 }
 
-void memcached_store_view_t::acquire_superblock_for_read(
+void memcached_protocol_t::store_t::acquire_superblock_for_read(
         access_t access,
         bool snapshot,
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
@@ -165,13 +194,13 @@ void memcached_store_view_t::acquire_superblock_for_read(
     local_token.swap(token);
     wait_interruptible(local_token.get(), interruptor);
 
-    order_token_t order_token = order_source.check_in("memcached_store_view_t::acquire_superblock_for_read");
+    order_token_t order_token = order_source.check_in("memcached_protocol_t::store_t::acquire_superblock_for_read");
     order_token = btree->order_checkpoint_.check_through(order_token);
 
-    get_btree_superblock_for_reading(btree, seq_group, access, order_token, snapshot, &sb_out, txn_out);
+    get_btree_superblock_for_reading(btree.get(), &seq_group, access, order_token, snapshot, &sb_out, txn_out);
 }
 
-void memcached_store_view_t::acquire_superblock_for_backfill(
+void memcached_protocol_t::store_t::acquire_superblock_for_backfill(
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
         boost::scoped_ptr<transaction_t> &txn_out,
         got_superblock_t &sb_out,
@@ -184,13 +213,13 @@ void memcached_store_view_t::acquire_superblock_for_backfill(
     local_token.swap(token);
     wait_interruptible(local_token.get(), interruptor);
 
-    order_token_t order_token = order_source.check_in("memcached_store_view_t::acquire_superblock_for_read");
+    order_token_t order_token = order_source.check_in("memcached_protocol_t::store_t::acquire_superblock_for_read");
     order_token = btree->order_checkpoint_.check_through(order_token);
 
-    get_btree_superblock_for_backfilling(btree, seq_group, order_token, &sb_out, txn_out);
+    get_btree_superblock_for_backfilling(btree.get(), &seq_group, order_token, &sb_out, txn_out);
 }
 
-void memcached_store_view_t::acquire_superblock_for_write(
+void memcached_protocol_t::store_t::acquire_superblock_for_write(
         access_t access,
         int expected_change_count,
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
@@ -205,13 +234,13 @@ void memcached_store_view_t::acquire_superblock_for_write(
     local_token.swap(token);
     wait_interruptible(local_token.get(), interruptor);
 
-    order_token_t order_token = order_source.check_in("memcached_store_view_t::acquire_superblock_for_write");
+    order_token_t order_token = order_source.check_in("memcached_protocol_t::store_t::acquire_superblock_for_write");
     order_token = btree->order_checkpoint_.check_through(order_token);
 
-    get_btree_superblock(btree, seq_group, access, expected_change_count, repli_timestamp_t::invalid, order_token, &sb_out, txn_out);
+    get_btree_superblock(btree.get(), &seq_group, access, expected_change_count, repli_timestamp_t::invalid, order_token, &sb_out, txn_out);
 }
 
-memcached_store_view_t::metainfo_t memcached_store_view_t::get_metainfo(
+memcached_protocol_t::store_t::metainfo_t memcached_protocol_t::store_t::get_metainfo(
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
@@ -223,7 +252,7 @@ memcached_store_view_t::metainfo_t memcached_store_view_t::get_metainfo(
     return get_metainfo_internal(txn.get(), superblock.get_real_buf());
 }
 
-region_map_t<memcached_protocol_t,binary_blob_t> memcached_store_view_t::get_metainfo_internal(transaction_t *txn, buf_lock_t *sb_buf) const THROWS_NOTHING {
+region_map_t<memcached_protocol_t,binary_blob_t> memcached_protocol_t::store_t::get_metainfo_internal(transaction_t *txn, buf_lock_t *sb_buf) const THROWS_NOTHING {
     std::vector<std::pair<std::vector<char>,std::vector<char> > > kv_pairs;
     get_superblock_metainfo(txn, sb_buf, kv_pairs);   // FIXME: this is inefficient, cut out the middleman (vector)
 
@@ -246,7 +275,7 @@ region_map_t<memcached_protocol_t,binary_blob_t> memcached_store_view_t::get_met
     return region_map_t<memcached_protocol_t,binary_blob_t>(result.begin(), result.end());
 }
 
-void memcached_store_view_t::set_metainfo(
+void memcached_protocol_t::store_t::set_metainfo(
         const metainfo_t &new_metainfo,
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
         signal_t *interruptor)
@@ -276,7 +305,7 @@ private:
     got_superblock_t& superblock;
 };
 
-memcached_protocol_t::read_response_t memcached_store_view_t::read(
+memcached_protocol_t::read_response_t memcached_protocol_t::store_t::read(
         DEBUG_ONLY(const metainfo_t& expected_metainfo,)
         const memcached_protocol_t::read_t &read,
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
@@ -289,11 +318,11 @@ memcached_protocol_t::read_response_t memcached_store_view_t::read(
 
     check_metainfo(DEBUG_ONLY(expected_metainfo,) txn.get(), superblock);
 
-    btree_operation_visitor_t v(btree, txn, superblock);
+    btree_operation_visitor_t v(btree.get(), txn, superblock);
     return boost::apply_visitor(v, read.query);
 }
 
-memcached_protocol_t::write_response_t memcached_store_view_t::write(
+memcached_protocol_t::write_response_t memcached_protocol_t::store_t::write(
         DEBUG_ONLY(const metainfo_t& expected_metainfo,)
         const metainfo_t& new_metainfo,
         const memcached_protocol_t::write_t &write,
@@ -342,7 +371,7 @@ protected:
     }
 };
 
-bool memcached_store_view_t::send_backfill(
+bool memcached_protocol_t::store_t::send_backfill(
         const region_map_t<memcached_protocol_t,state_timestamp_t> &start_point,
         const boost::function<bool(const metainfo_t&)> &should_backfill,
         const boost::function<void(memcached_protocol_t::backfill_chunk_t)> &chunk_fun,
@@ -401,7 +430,7 @@ private:
     signal_t *interruptor;  // FIXME: interruptors are not used in btree code, so this one ignored.
 };
 
-void memcached_store_view_t::receive_backfill(
+void memcached_protocol_t::store_t::receive_backfill(
         const memcached_protocol_t::backfill_chunk_t &chunk,
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
         signal_t *interruptor)
@@ -413,10 +442,10 @@ void memcached_store_view_t::receive_backfill(
 
     acquire_superblock_for_write(rwi_write, expected_change_count, token, txn, superblock, interruptor);
 
-    boost::apply_visitor(receive_backfill_visitor_t(btree, txn.get(), superblock, interruptor), chunk.val);
+    boost::apply_visitor(receive_backfill_visitor_t(btree.get(), txn.get(), superblock, interruptor), chunk.val);
 }
 
-void memcached_store_view_t::reset_data(
+void memcached_protocol_t::store_t::reset_data(
         memcached_protocol_t::region_t subregion,
         const metainfo_t &new_metainfo, 
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
@@ -436,10 +465,10 @@ void memcached_store_view_t::reset_data(
     region_map_t<memcached_protocol_t,binary_blob_t> old_metainfo = get_metainfo_internal(txn.get(), superblock.get_real_buf());
     update_metainfo(old_metainfo, new_metainfo, txn.get(), superblock);
 
-    btree_erase_range(btree, NULL, subregion, txn.get(), superblock);
+    btree_erase_range(btree.get(), NULL, subregion, txn.get(), superblock);
 }
 
-void memcached_store_view_t::check_and_update_metainfo(
+void memcached_protocol_t::store_t::check_and_update_metainfo(
         DEBUG_ONLY(const metainfo_t& expected_metainfo,)
         const metainfo_t &new_metainfo,
         transaction_t *txn,
@@ -450,7 +479,7 @@ void memcached_store_view_t::check_and_update_metainfo(
     update_metainfo(old_metainfo, new_metainfo, txn, superblock);
 }
 
-memcached_store_view_t::metainfo_t memcached_store_view_t::check_metainfo(
+memcached_protocol_t::store_t::metainfo_t memcached_protocol_t::store_t::check_metainfo(
         DEBUG_ONLY(const metainfo_t& expected_metainfo,)
         transaction_t *txn,
         got_superblock_t &superblock) const
@@ -461,7 +490,7 @@ memcached_store_view_t::metainfo_t memcached_store_view_t::check_metainfo(
     return old_metainfo;
 }
 
-void memcached_store_view_t::update_metainfo(const metainfo_t &old_metainfo, const metainfo_t &new_metainfo, transaction_t *txn, got_superblock_t &superblock) const THROWS_NOTHING {
+void memcached_protocol_t::store_t::update_metainfo(const metainfo_t &old_metainfo, const metainfo_t &new_metainfo, transaction_t *txn, got_superblock_t &superblock) const THROWS_NOTHING {
     region_map_t<memcached_protocol_t,binary_blob_t> updated_metadata = old_metainfo;
     updated_metadata.update(new_metainfo);
 

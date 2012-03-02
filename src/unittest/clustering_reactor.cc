@@ -89,7 +89,7 @@ public:
  * correct blueprint. */
 class reactor_test_cluster_t {
 public:
-    reactor_test_cluster_t(int port, dummy_underlying_store_t *dummy_underlying_store) :
+    reactor_test_cluster_t(int port) :
         connectivity_cluster(),
         message_multiplexer(&connectivity_cluster),
 
@@ -106,8 +106,7 @@ public:
         directory_manager_client_run(&directory_manager_client, &directory_manager),
 
         message_multiplexer_run(&message_multiplexer),
-        connectivity_cluster_run(&connectivity_cluster, port, &message_multiplexer_run),
-        dummy_store_view(dummy_underlying_store, a_thru_z_region())
+        connectivity_cluster_run(&connectivity_cluster, port, &message_multiplexer_run)
         { }
 
     peer_id_t get_me() {
@@ -131,18 +130,18 @@ public:
 
     message_multiplexer_t::run_t message_multiplexer_run;
     connectivity_cluster_t::run_t connectivity_cluster_run;
-
-    dummy_store_view_t dummy_store_view;
 };
 
 class test_reactor_t {
 public:
-    test_reactor_t(reactor_test_cluster_t *r, const blueprint_t<dummy_protocol_t> &initial_blueprint)
+    test_reactor_t(reactor_test_cluster_t *r, const blueprint_t<dummy_protocol_t> &initial_blueprint, store_view_t<dummy_protocol_t> *store_view)
         : blueprint_watchable(initial_blueprint),
           reactor(&r->mailbox_manager, r->directory_manager.get_root_view()->subview(field_lens(&test_cluster_directory_t::reactor_directory)), 
                   r->directory_manager.get_root_view()->subview(field_lens(&test_cluster_directory_t::master_directory)),
-                  r->semilattice_manager_branch_history.get_root_view(), &blueprint_watchable, &r->dummy_store_view)
-    { }
+                  r->semilattice_manager_branch_history.get_root_view(), &blueprint_watchable, store_view)
+    {
+        rassert(store_view->get_region() == a_thru_z_region());
+    }
 
     watchable_impl_t<blueprint_t<dummy_protocol_t> > blueprint_watchable;
     reactor_t<dummy_protocol_t> reactor;
@@ -150,7 +149,7 @@ public:
 
 class test_cluster_group_t {
 public:
-    boost::ptr_vector<dummy_underlying_store_t> stores;
+    boost::ptr_vector<dummy_protocol_t::store_t> stores;
     boost::ptr_vector<reactor_test_cluster_t> test_clusters;
 
     boost::ptr_vector<test_reactor_t> test_reactors;
@@ -160,10 +159,10 @@ public:
     test_cluster_group_t(int n_machines) {
         int port = 10000 + rand() % 20000;
         for (int i = 0; i < n_machines; i++) {
-            stores.push_back(new dummy_underlying_store_t(a_thru_z_region()));
+            stores.push_back(new dummy_protocol_t::store_t);
             stores.back().metainfo.set(a_thru_z_region(), binary_blob_t(version_range_t(version_t::zero())));
 
-            test_clusters.push_back(new reactor_test_cluster_t(port + i, &stores[i]));
+            test_clusters.push_back(new reactor_test_cluster_t(port + i));
             if (i > 0) {
                 test_clusters[0].connectivity_cluster_run.join(test_clusters[i].connectivity_cluster.get_peer_address(test_clusters[i].connectivity_cluster.get_me()));
             }
@@ -172,7 +171,7 @@ public:
 
     void construct_all_reactors(const blueprint_t<dummy_protocol_t> &bp) {
         for (unsigned i = 0; i < test_clusters.size(); i++) {
-            test_reactors.push_back(new test_reactor_t(&test_clusters[i], bp));
+            test_reactors.push_back(new test_reactor_t(&test_clusters[i], bp, &stores[i]));
         }
     }
 

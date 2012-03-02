@@ -186,8 +186,8 @@ void run_backfill_test(simple_mailbox_cluster_t *cluster,
     /* Confirm that both mirrors have all of the writes */
     for (std::map<std::string, std::string>::iterator it = inserter.values_inserted->begin();
             it != inserter.values_inserted->end(); it++) {
-        EXPECT_EQ((*it).second, store1->underlying_store.values[(*it).first]);
-        EXPECT_EQ((*it).second, store2.underlying_store.values[(*it).first]);
+        EXPECT_EQ((*it).second, store1->store.values[(*it).first]);
+        EXPECT_EQ((*it).second, store2.store.values[(*it).first]);
     }
 }
 TEST(ClusteringBranch, Backfill) {

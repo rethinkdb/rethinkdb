@@ -18,10 +18,7 @@ void run_backfill_test() {
         region.keys.insert(std::string(&c, 1));
     }
 
-    dummy_underlying_store_t backfiller_underlying_store(region);
-    dummy_store_view_t backfiller_store(&backfiller_underlying_store, region);
-    dummy_underlying_store_t backfillee_underlying_store(region);
-    dummy_store_view_t backfillee_store(&backfillee_underlying_store, region);
+    dummy_protocol_t::store_t backfiller_store, backfillee_store;
 
     /* Make a dummy metadata view to hold a branch tree so branch history checks
     can be performed */
@@ -47,7 +44,7 @@ void run_backfill_test() {
     state_timestamp_t timestamp = state_timestamp_t::zero();
 
     // initialize the metainfo in a store
-    dummy_store_view_t* stores[] = { &backfiller_store, &backfillee_store };
+    store_view_t<dummy_protocol_t> *stores[] = { &backfiller_store, &backfillee_store };
     for (size_t i = 0; i < sizeof stores / sizeof stores[0]; i++) {
         cond_t non_interruptor;
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> token;
@@ -125,8 +122,8 @@ void run_backfill_test() {
 
     for (char c = 'a'; c <= 'z'; c++) {
         std::string key(1, c);
-        EXPECT_EQ(backfiller_underlying_store.values[key], backfillee_underlying_store.values[key]);
-        EXPECT_TRUE(backfiller_underlying_store.timestamps[key] == backfillee_underlying_store.timestamps[key]);
+        EXPECT_EQ(backfiller_store.values[key], backfillee_store.values[key]);
+        EXPECT_TRUE(backfiller_store.timestamps[key] == backfillee_store.timestamps[key]);
     }
 
     boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> token1;
