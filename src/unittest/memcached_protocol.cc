@@ -18,45 +18,19 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
     shards.push_back(key_range_t(key_range_t::none,   store_key_t(""),  key_range_t::open, store_key_t("n")));
     shards.push_back(key_range_t(key_range_t::closed, store_key_t("n"), key_range_t::none, store_key_t("") ));
 
-    /* Create temporary file */
-    temp_file_t db_file("/tmp/rdb_unittest.XXXXXX");
-
-    /* Set up serializer */
-    standard_serializer_t::create(
-        standard_serializer_t::dynamic_config_t(),
-        standard_serializer_t::private_dynamic_config_t(db_file.name()),
-        standard_serializer_t::static_config_t()
-        );
-
-    standard_serializer_t serializer(
-        /* Extra parentheses are necessary so C++ doesn't interpret this as
-        a declaration of a function called `serializer`. WTF, C++? */
-        (standard_serializer_t::dynamic_config_t()),
-        standard_serializer_t::private_dynamic_config_t(db_file.name())
-        );
-
-    /* Set up multiplexer */
-    std::vector<standard_serializer_t *> multiplexer_files;
-    multiplexer_files.push_back(&serializer);
-
-    serializer_multiplexer_t::create(multiplexer_files, shards.size());
-
-    serializer_multiplexer_t multiplexer(multiplexer_files);
-    rassert(multiplexer.proxies.size() == shards.size());
-
-    /* Set up caches, btrees, and stores */
-    mirrored_cache_config_t cache_dynamic_config;
-    boost::ptr_vector<cache_t> caches;
-    boost::ptr_vector<btree_slice_t> btrees;
-    std::vector<boost::shared_ptr<store_view_t<memcached_protocol_t> > > stores;
-    sequence_group_t seq_group(shards.size());
+    boost::ptr_vector<temp_file_t> temp_files;
     for (int i = 0; i < (int)shards.size(); i++) {
-        mirrored_cache_static_config_t cache_static_config;
-        cache_t::create(multiplexer.proxies[i], &cache_static_config);
-        caches.push_back(new cache_t(multiplexer.proxies[i], &cache_dynamic_config, i));
-        btree_slice_t::create(&caches[i], shards[i]);
-        btrees.push_back(new btree_slice_t(&caches[i]));
-        stores.push_back(boost::make_shared<memcached_store_view_t>(shards[i], &btrees[i], &seq_group));
+        temp_files.push_back(new temp_file_t("/tmp/rdb_unittest.XXXXXX"));
+    }
+
+    boost::ptr_vector<memcached_protocol_t::store_t> underlying_stores;
+    for (int i = 0; i < (int)shards.size(); i++) {
+        underlying_stores.push_back(new memcached_protocol_t::store_t(temp_files[i].name(), true));
+    }
+
+    std::vector<boost::shared_ptr<store_view_t<memcached_protocol_t> > > stores;
+    for (int i = 0; i < (int)shards.size(); i++) {
+        stores.push_back(boost::make_shared<store_subview_t<memcached_protocol_t> >(&underlying_stores[i], shards[i]));
     }
 
     /* Set up namespace interface */
