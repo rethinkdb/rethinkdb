@@ -718,8 +718,17 @@ void linux_buffered_tcp_conn_t::write_vectored(struct iovec *iov, size_t count, 
     if (write_buffer.size == 0) {
         conn.write_vectored(iov, count, callback);
     } else {
+        size_t total_bytes = 0;
+        for (size_t i = 0; i < count; ++i) {
+            total_bytes += iov[i].iov_len;
+        }
         // We have a pending write buffer, either batch it into the iovectors or flush our buffer first
-        if (callback == NULL) {
+        if (total_bytes + write_buffer.size <= MAX_WRITE_BUFFER_SIZE) {
+            for (size_t i = 0; i < count; ++i) {
+                write_buffer.put_back(iov[i].iov_base, iov[i].iov_len);
+            }
+            if (callback != NULL) callback->done();
+        } else if (callback == NULL) {
             struct iovec buffered_iov[count + 1];
             memcpy(buffered_iov + 1, iov, sizeof(*iov) * count);
 
@@ -727,13 +736,14 @@ void linux_buffered_tcp_conn_t::write_vectored(struct iovec *iov, size_t count, 
             buffered_iov[0].iov_len = write_buffer.size;
 
             conn.write_vectored(buffered_iov, count + 1, NULL);
+            write_buffer.clear();
         } else {
             // Since there is a callback, we can't allow our write_buffer to be zerocopied
             //   which would complicate the deallocation or reuse of the write_buffer
             flush_write_buffer();
             conn.write_vectored(iov, count, callback);
+            write_buffer.clear();
         }
-        write_buffer.clear();
     }
 }
 
