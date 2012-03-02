@@ -31,9 +31,7 @@ namespace reactor_driver_details {
               mbox_manager(_mbox_manager),
               directory_view(_directory_view),
               namespace_id(_namespace_id),
-              branch_history(_branch_history),
-              store(mock::a_thru_z_region()),
-              store_view(&store, mock::a_thru_z_region())
+              branch_history(_branch_history)
         { 
             coro_t::spawn_sometime(boost::bind(&watchable_and_reactor_t<protocol_t>::initialize_reactor, this));
         }
@@ -55,18 +53,30 @@ namespace reactor_driver_details {
             }
         }
 
+        std::string get_file_name() {
+            return "rethinkdb_cluster_data/" + uuid_to_str(namespace_id);
+        }
+
         watchable_impl_t<blueprint_t<protocol_t> > watchable;
     private:
 
         void initialize_reactor() {
-            {
+            int res = access(get_file_name().c_str(), R_OK | W_OK);
+            if (res == 0) {
+                /* The file already exists thus we don't create it. */
+                store.reset(new typename protocol_t::store_t(get_file_name(), false));
+            } else {
+                /* The file does not exist, create it. */
+                store.reset(new typename protocol_t::store_t(get_file_name(), true));
+
                 //Initialize the metadata in the underlying store
                 boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> token;
-                store_view.new_write_token(token);
+                store->new_write_token(token);
 
                 cond_t dummy_interruptor;
-                store_view.set_metainfo(region_map_t<protocol_t, binary_blob_t>(store_view.get_region(), binary_blob_t(version_range_t(version_t::zero()))), token, &dummy_interruptor);
+                store->set_metainfo(region_map_t<protocol_t, binary_blob_t>(store->get_region(), binary_blob_t(version_range_t(version_t::zero()))), token, &dummy_interruptor);
             }
+
             {
                 directory_write_service_t::our_value_lock_acq_t lock(directory_view->get_directory_service());
                 namespaces_directory_metadata_t<protocol_t> namespaces_directory = directory_view->get_our_value(&lock);
@@ -82,7 +92,7 @@ namespace reactor_driver_details {
                 directory_view->subview(field_lens(&namespaces_directory_metadata_t<protocol_t>::master_maps))->subview(
                     assumed_member_lens<namespace_id_t, std::map<master_id_t, master_business_card_t<protocol_t> > >(namespace_id));
 
-            reactor.reset(new reactor_t<protocol_t>(mbox_manager, reactor_directory, master_directory, branch_history, &watchable, &store_view));
+            reactor.reset(new reactor_t<protocol_t>(mbox_manager, reactor_directory, master_directory, branch_history, &watchable, store.get()));
 
             reactor_has_been_initialized.pulse();
         }
@@ -93,8 +103,7 @@ namespace reactor_driver_details {
         clone_ptr_t<directory_rwview_t<namespaces_directory_metadata_t<protocol_t> > > directory_view;
         namespace_id_t namespace_id;
         boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > branch_history;
-        mock::dummy_underlying_store_t store;
-        mock::dummy_store_view_t store_view;
+        boost::scoped_ptr<typename protocol_t::store_t> store;
         boost::scoped_ptr<reactor_t<protocol_t> > reactor;
     };
 } //namespace reactor_driver_details
