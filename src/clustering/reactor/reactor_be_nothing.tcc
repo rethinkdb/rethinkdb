@@ -106,6 +106,7 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region, sto
 
         /* This actually erases the data. */
         {
+            //TODO uncomment this and see what happens
             //boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> token;
             //store->new_write_token(token);
 

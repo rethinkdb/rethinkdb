@@ -63,6 +63,8 @@ reactor_t<protocol_t>::directory_entry_t::~directory_entry_t() {
 template<class protocol_t>
 void reactor_t<protocol_t>::on_blueprint_changed() THROWS_NOTHING {
     blueprint_watchable->get().assert_valid();
+    rassert(std_contains(blueprint_watchable->get().peers_roles, get_me()), "reactor_t assumes that it is mentioned in the blueprint it's given.");
+
     std::map<typename protocol_t::region_t, typename blueprint_details::role_t> blueprint_roles =
         (*blueprint_watchable->get().peers_roles.find(get_me())).second;
     typename std::map<
@@ -83,6 +85,8 @@ void reactor_t<protocol_t>::on_blueprint_changed() THROWS_NOTHING {
 template<class protocol_t>
 void reactor_t<protocol_t>::try_spawn_roles() THROWS_NOTHING {
     blueprint_t<protocol_t> blueprint = blueprint_watchable->get();
+    rassert(std_contains(blueprint.peers_roles, get_me()), "reactor_t assumes that it is mentioned in the blueprint it's given.");
+
     std::map<typename protocol_t::region_t, typename blueprint_details::role_t> blueprint_roles =
         (*blueprint.peers_roles.find(get_me())).second;
     typename std::map<typename protocol_t::region_t, blueprint_details::role_t>::iterator it;

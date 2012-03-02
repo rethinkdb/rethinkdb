@@ -188,10 +188,8 @@ public:
     explicit default_member_read_lens_t(const key_t &k, value_t _default_val = value_t()) : key(k), default_val(_default_val) { }
     value_t get(const std::map<key_t, value_t> &o) const {
         if (o.find(key) == o.end()) {
-            logINF("returning a default value\n");
             return default_val;
         }
-        logINF("returning a found value\n");
         return o.find(key)->second;
     }
 

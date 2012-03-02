@@ -47,20 +47,32 @@ namespace reactor_driver_details {
              * the directory map. C'est la vie. */
             reactor.reset();
 
-            directory_write_service_t::our_value_lock_acq_t lock(directory_view->get_directory_service());
-            namespaces_directory_metadata_t<protocol_t> namespaces_directory = directory_view->get_our_value(&lock);
-            namespaces_directory.master_maps.erase(namespace_id); //delete the entry;
-            directory_view->set_our_value(namespaces_directory, &lock);
+            {
+                directory_write_service_t::our_value_lock_acq_t lock(directory_view->get_directory_service());
+                namespaces_directory_metadata_t<protocol_t> namespaces_directory = directory_view->get_our_value(&lock);
+                namespaces_directory.master_maps.erase(namespace_id); //delete the entry;
+                directory_view->set_our_value(namespaces_directory, &lock);
+            }
         }
 
         watchable_impl_t<blueprint_t<protocol_t> > watchable;
     private:
 
         void initialize_reactor() {
-            directory_write_service_t::our_value_lock_acq_t lock(directory_view->get_directory_service());
-            namespaces_directory_metadata_t<protocol_t> namespaces_directory = directory_view->get_our_value(&lock);
-            namespaces_directory.master_maps[namespace_id]; //create an entry
-            directory_view->set_our_value(namespaces_directory, &lock);
+            {
+                //Initialize the metadata in the underlying store
+                boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> token;
+                store_view.new_write_token(token);
+
+                cond_t dummy_interruptor;
+                store_view.set_metainfo(region_map_t<protocol_t, binary_blob_t>(store_view.get_region(), binary_blob_t(version_range_t(version_t::zero()))), token, &dummy_interruptor);
+            }
+            {
+                directory_write_service_t::our_value_lock_acq_t lock(directory_view->get_directory_service());
+                namespaces_directory_metadata_t<protocol_t> namespaces_directory = directory_view->get_our_value(&lock);
+                namespaces_directory.master_maps[namespace_id]; //create an entry
+                directory_view->set_our_value(namespaces_directory, &lock);
+            }
 
             clone_ptr_t<directory_rwview_t<boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > > reactor_directory =
                 directory_view->subview(field_lens(&namespaces_directory_metadata_t<protocol_t>::reactor_bcards))->subview(
@@ -111,7 +123,6 @@ private:
     }
 
     void on_change() {
-        debugf("Reactor driver on change\n");
         typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t namespaces = namespaces_view->get().namespaces;
 
         for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator it =  namespaces.begin();
@@ -138,18 +149,26 @@ private:
                     continue;
                 }
 
-                /* Either construct a new reactor (if this is a namespace we
-                 * haven't seen before). Or send the new blueprint to the
-                 * existing reactor. */
-                if (reactor_data.find(it->first) == reactor_data.end()) {
-                    namespace_id_t tmp = it->first;
-                    reactor_data.insert(tmp, new reactor_driver_details::watchable_and_reactor_t<protocol_t>(mbox_manager,
-                                directory_view,
-                                it->first,
-                                branch_history,
-                                bp));
+                if (std_contains(bp.peers_roles, mbox_manager->get_connectivity_service()->get_me())) {
+                    /* Either construct a new reactor (if this is a namespace we
+                     * haven't seen before). Or send the new blueprint to the
+                     * existing reactor. */
+                    if (!std_contains(reactor_data, it->first)) {
+                        namespace_id_t tmp = it->first;
+                        reactor_data.insert(tmp, new reactor_driver_details::watchable_and_reactor_t<protocol_t>(mbox_manager,
+                                    directory_view,
+                                    it->first,
+                                    branch_history,
+                                    bp));
+                    } else {
+                        reactor_data.find(it->first)->second->watchable.set_value(bp);
+                    }
                 } else {
-                    reactor_data.find(it->first)->second->watchable.set_value(bp);
+                    /* The blueprint does not mentions us so we destroy the
+                     * reactor. */
+                    if (std_contains(reactor_data, it->first)) {
+                        coro_t::spawn_sometime(boost::bind(&reactor_driver_t<protocol_t>::delete_reactor_data, this, auto_drainer_t::lock_t(&drainer), new typename reactor_map_t::auto_type(reactor_data.release(reactor_data.find(it->first)))));
+                    }
                 }
             }
         }
