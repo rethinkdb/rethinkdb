@@ -178,3 +178,30 @@ template <class inner_t, class middle_t, class outer_t>
 clone_ptr_t<read_lens_t<inner_t, outer_t> > compose_lens(const clone_ptr_t<read_lens_t<inner_t, middle_t> > &inner, const clone_ptr_t<read_lens_t<middle_t, outer_t> > &outer) {
     return clone_ptr_t<read_lens_t<inner_t, outer_t> >(new compose_read_lens_t<inner_t, middle_t, outer_t>(inner, outer));
 }
+
+/* Return the value if it's in the map.. otherwise return a default value */
+template<class key_t, class value_t>
+class default_member_read_lens_t : public read_lens_t<value_t, std::map<key_t, value_t> > {
+public:
+    explicit default_member_read_lens_t(const key_t &k, value_t _default_val = value_t()) : key(k), default_val(_default_val) { }
+    value_t get(const std::map<key_t, value_t> &o) const {
+        if (o.find(key) == o.end()) {
+            return default_val;
+        }
+        return o.find(key)->second;
+    }
+
+    default_member_read_lens_t *clone() const {
+        return new default_member_read_lens_t(key, default_val);
+    }
+private:
+    const key_t key;
+    value_t default_val;
+};
+
+template<class key_t, class value_t>
+clone_ptr_t<read_lens_t<value_t, std::map<key_t, value_t> > > default_member_lens(const key_t &key, value_t default_val) {
+    return clone_ptr_t<read_lens_t<value_t, std::map<key_t, value_t> > >(
+        new default_member_read_lens_t<key_t, value_t>(key, default_val)
+        );
+}

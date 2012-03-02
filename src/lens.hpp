@@ -50,6 +50,10 @@ clone_ptr_t<read_lens_t<boost::optional<value_t>, boost::optional<boost::optiona
 template <class inner_t, class middle_t, class outer_t>
 clone_ptr_t<read_lens_t<inner_t, outer_t> > compose_lens(const clone_ptr_t<read_lens_t<inner_t, middle_t> > &inner, const clone_ptr_t<read_lens_t<middle_t, outer_t> > &outer);
 
+/* Return the value if it's in the map.. otherwise return a default value */
+template<class key_t, class value_t>
+clone_ptr_t<read_lens_t<value_t, std::map<key_t, value_t> > > default_member_lens(const key_t &key, value_t default_val = value_t());
+
 #include "lens.tcc"
 
 #endif /* __LENS_HPP__ */

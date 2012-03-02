@@ -10,6 +10,7 @@
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/reactor_driver.hpp"
 #include "mock/dummy_protocol.hpp"
+#include "mock/dummy_protocol_parser.hpp"
 #include "rpc/connectivity/cluster.hpp"
 #include "rpc/connectivity/cluster.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
@@ -78,6 +79,11 @@ void clustering_main(int port, int contact_port) {
     reactor_driver_t<mock::dummy_protocol_t> reactor_driver(&mailbox_manager,
                                                             directory_manager.get_root_view(), 
                                                             metadata_field(&cluster_semilattice_metadata_t::namespaces, semilattice_manager_cluster.get_root_view()));
+
+    mock::dummy_protocol_parser_maker_t parser_maker(&mailbox_manager, 
+                                                     metadata_field(&cluster_semilattice_metadata_t::namespaces, semilattice_manager_cluster.get_root_view()),
+                                                     directory_manager.get_root_view());
+                                               
 
     blueprint_http_server_t server(semilattice_manager_cluster.get_root_view(),
                                    connectivity_cluster.get_me().get_uuid(),
