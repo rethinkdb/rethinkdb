@@ -191,7 +191,6 @@ bool check_that_we_see_our_broadcaster(const boost::optional<boost::optional<bro
 
 template<class protocol_t>
 void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const blueprint_t<protocol_t> &blueprint, signal_t *interruptor) THROWS_NOTHING {
-    debugf("be_primary\n");
     try {
         //Tell everyone that we're looking to become the primary
         directory_entry_t directory_entry(this, region);
@@ -283,7 +282,6 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
         listener_t<protocol_t> listener(mailbox_manager, broadcaster_business_card, branch_history, &broadcaster, interruptor);
         replier_t<protocol_t> replier(&listener);
         master_t<protocol_t> master(mailbox_manager, master_directory, region, &broadcaster);
-        debugf("Brought up a master\n");
 
         directory_entry.update_without_changing_id(typename reactor_business_card_t<protocol_t>::primary_t(broadcaster.get_business_card(), replier.get_business_card()));
 
