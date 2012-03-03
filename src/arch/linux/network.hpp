@@ -122,6 +122,7 @@ private:
     void remove_write_callbacks(size_t current_position);
 
     // Internal write functions
+    void advance_iov(struct iovec *&iov, size_t &count, size_t bytes_written);
     void write_zerocopy(struct iovec *iov, size_t count, size_t bytes_to_write, write_callback_t *callback) THROWS_ONLY(write_closed_exc_t);
     void write_copy(struct iovec *iov, size_t count, size_t bytes_to_write, write_callback_t *callback) THROWS_ONLY(write_closed_exc_t);
 

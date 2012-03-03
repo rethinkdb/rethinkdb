@@ -239,6 +239,21 @@ void linux_raw_tcp_conn_t::write_vectored(struct iovec *iov, size_t count, write
     rassert(total_bytes_written == total_bytes_to_write);
 }
 
+void linux_raw_tcp_conn_t::advance_iov(struct iovec *&iov, size_t &count, size_t bytes_written) {
+    while (bytes_written > 0) {
+        rassert(count > 0);
+        size_t cur_len = std::min(iov->iov_len, bytes_written);
+        bytes_written -= cur_len;
+        iov->iov_len -= cur_len;
+        iov->iov_base = reinterpret_cast<char *>(iov->iov_base) + cur_len;
+
+        while (count > 0 && iov->iov_len == 0) {
+            ++iov;
+            --count;
+        }
+    }
+}
+
 void linux_raw_tcp_conn_t::write_zerocopy(struct iovec *iov, size_t count, size_t bytes_to_write, write_callback_t *callback) THROWS_ONLY(write_closed_exc_t) {
     rassert(callback != NULL);
 
@@ -248,6 +263,7 @@ void linux_raw_tcp_conn_t::write_zerocopy(struct iovec *iov, size_t count, size_
             size_t bytes_to_splice = static_cast<size_t>(vmsplice_res);
             rassert(bytes_to_splice <= bytes_to_write);
             bytes_to_write -= bytes_to_splice;
+            advance_iov(iov, count, bytes_to_splice);
 
             while (bytes_to_splice > 0) {
                 ssize_t splice_res = splice(read_vmsplice_pipe.get(), NULL, sock.get(), NULL, bytes_to_splice, SPLICE_F_MOVE | SPLICE_F_NONBLOCK);
@@ -285,23 +301,11 @@ void linux_raw_tcp_conn_t::write_copy(struct iovec *iov, size_t count, size_t by
         int res = ::writev(sock.get(), iov, count);
 
         if (res >= 0) {
-            bytes_to_write -= res;
-            total_bytes_written += res;
-
-            // advance the position in the iov array
-            while (res > 0) {
-                rassert(count > 0);
-                size_t cur_len = std::min(iov->iov_len, static_cast<size_t>(res));
-                res -= cur_len;
-                iov->iov_len -= cur_len;
-                iov->iov_base = reinterpret_cast<char *>(iov->iov_base) + cur_len;
-
-                while (count > 0 && iov->iov_len == 0) {
-                    ++iov;
-                    --count;
-                }
-            }
-
+            size_t bytes_written = static_cast<size_t>(res);
+            rassert(bytes_written <= bytes_to_write);
+            bytes_to_write -= bytes_written;
+            total_bytes_written += bytes_written;
+            advance_iov(iov, count, bytes_written);
             if (write_perfmon)
                 write_perfmon->record(res);
         } else if (res == -1 && (errno == EPIPE || errno == ENOTCONN || errno == EHOSTUNREACH ||
