@@ -95,11 +95,13 @@ void serve_memcache(tcp_conn_t *conn, get_store_t *get_store, set_store_interfac
 
 perfmon_duration_sampler_t pm_conns("conns", secs_to_ticks(600), false);
 
-memcache_listener_t::memcache_listener_t(int port, get_store_t *_get_store, set_store_interface_t *_set_store, int n_slices) :
-    get_store(_get_store), set_store(_set_store),
-    next_thread(0),
-    tcp_listener(port, boost::bind(&memcache_listener_t::handle,
-                                   this, auto_drainer_t::lock_t(&drainer), n_slices, _1))
+memcache_listener_t::memcache_listener_t(int port, namespace_interface_t<memcached_protocol_t> *namespace_if) 
+    : get_store(*namespace_if), set_store(*namespace_if), ts_set_store(&set_store),
+      next_thread(0),
+      tcp_listener(port, boost::bind(&memcache_listener_t::handle,
+                                     this, auto_drainer_t::lock_t(&drainer), 1, _1))
+      //Notice we are hard coding n_slices to be 1, this is a bit of a hack for
+      //clustering sake
 { }
 
 static void close_conn_if_open(tcp_conn_t *conn) {
@@ -113,7 +115,8 @@ void memcache_listener_t::handle(auto_drainer_t::lock_t keepalive, int n_slices,
 
     /* We will switch to another thread so there isn't too much load on the thread
     where the `memcache_listener_t` lives */
-    int chosen_thread = (next_thread++) % get_num_db_threads();
+    //int chosen_thread = (next_thread++) % get_num_db_threads();
+    int chosen_thread = get_thread_id();
 
     /* Construct a cross-thread watcher so we will get notified on `chosen_thread`
     when a shutdown command is delivered on the main thread. */
@@ -131,5 +134,5 @@ void memcache_listener_t::handle(auto_drainer_t::lock_t keepalive, int n_slices,
 
     /* `serve_memcache()` will continuously serve memcache queries on the given conn
     until the connection is closed. */
-    serve_memcache(conn.get(), get_store, set_store, n_slices);
+    serve_memcache(conn.get(), &get_store, &ts_set_store, n_slices);
 }

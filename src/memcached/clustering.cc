@@ -5,44 +5,44 @@
 #include "memcached/tcp_conn.hpp"
 #include "memcached/store.hpp"
 
-struct cluster_get_store_t : public get_store_t {
-    explicit cluster_get_store_t(cluster_namespace_interface_t<memcached_protocol_t>& cluster_ns_) : cluster_ns(cluster_ns_) { }
-    get_result_t get(const store_key_t& key, UNUSED sequence_group_t *seq_group, order_token_t token) {
-        memcached_protocol_t::read_t r((get_query_t(key)));
-        cond_t cond;    // TODO: we should pass a real cond to this method, to allow request interruption
-        memcached_protocol_t::read_response_t res(cluster_ns.read(r, token, &cond));
-        rassert(boost::get<get_result_t>(&res.result) != NULL);
-        return boost::get<get_result_t>(res.result);
-    }
-    rget_result_t rget(UNUSED sequence_group_t *seq_group, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token) {
-        memcached_protocol_t::read_t r(rget_query_t(left_mode, left_key, right_mode, right_key));
-        cond_t cond;    // TODO: we should pass a real cond to this method, to allow request interruption
-        memcached_protocol_t::read_response_t res(cluster_ns.read(r, token, &cond));
-        rassert(boost::get<rget_result_t>(&res.result) != NULL);
-        return boost::get<rget_result_t>(res.result);
-    }
-    ~cluster_get_store_t() { }
-private:
-    cluster_namespace_interface_t<memcached_protocol_t>& cluster_ns;
-};
+memcached_parser_maker_t::memcached_parser_maker_t(mailbox_manager_t *_mailbox_manager, 
+                                                   boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<memcached_protocol_t> > > _namespaces_semilattice_metadata,
+                                                   clone_ptr_t<directory_rview_t<namespaces_directory_metadata_t<memcached_protocol_t> > > _namespaces_directory_metadata)
+    : mailbox_manager(_mailbox_manager), 
+      namespaces_semilattice_metadata(_namespaces_semilattice_metadata), 
+      namespaces_directory_metadata(_namespaces_directory_metadata),
+      subscription(boost::bind(&memcached_parser_maker_t::on_change, this), namespaces_semilattice_metadata)
+{
+    on_change();
+}
+void memcached_parser_maker_t::on_change() {
+    namespaces_semilattice_metadata_t<memcached_protocol_t> snapshot = namespaces_semilattice_metadata->get();
 
-struct cluster_set_store_t : public set_store_t {
-    explicit cluster_set_store_t(cluster_namespace_interface_t<memcached_protocol_t>& cluster_ns_) : cluster_ns(cluster_ns_) { }
-    mutation_result_t change(UNUSED sequence_group_t *seq_group, const mutation_t& m, castime_t cas, order_token_t token) {
-        memcached_protocol_t::write_t w(m, cas.proposed_cas);   // FIXME: we ignored the timestamp here, is it okay?
-        cond_t cond;
-        memcached_protocol_t::write_response_t res(cluster_ns.write(w, token, &cond));
-        return mutation_result_t(res.result);
+    for (namespaces_semilattice_metadata_t<memcached_protocol_t>::namespace_map_t::iterator it  = snapshot.namespaces.begin();
+                                                                                        it != snapshot.namespaces.end();
+                                                                                        it++) {
+        if (parsers.find(it->first) == parsers.end() && !it->second.is_deleted()) {
+            int port = 10000 + (random() % 10000);
+            //We're feeling lucky
+            namespace_id_t tmp = it->first;
+            parsers.insert(tmp, new parser_and_namespace_if_t(it->first, this, port));
+            logINF("Setup an mc parser on %d\n", port);
+        } else if (parsers.find(it->first) != parsers.end() && it->second.is_deleted()) {
+            //The namespace has been deleted... get rid of the parser
+            parsers.erase(it->first);
+        } else {
+            //do nothing
+        }
     }
-    ~cluster_set_store_t() { }
-private:
-    cluster_namespace_interface_t<memcached_protocol_t>& cluster_ns;
-};
-
-void serve_clustered_memcached(int port, int n_slices, cluster_namespace_interface_t<memcached_protocol_t>& namespace_if) {
-    cluster_get_store_t get_store(namespace_if);
-    cluster_set_store_t set_store(namespace_if);
-    timestamping_set_store_interface_t ts_set_store(&set_store);
-    memcache_listener_t(port, &get_store, &ts_set_store, n_slices);
 }
 
+//We need this typedef for a template below... this sort of sucks
+typedef std::map<namespace_id_t, std::map<master_id_t, master_business_card_t<memcached_protocol_t> > > master_map_t;
+
+memcached_parser_maker_t::parser_and_namespace_if_t::parser_and_namespace_if_t(namespace_id_t id, memcached_parser_maker_t *parent, int port) 
+    : namespace_if(parent->mailbox_manager, 
+                   parent->namespaces_directory_metadata->
+                       subview<master_map_t>(field_lens(&namespaces_directory_metadata_t<memcached_protocol_t>::master_maps))->
+                           subview(default_member_lens<master_map_t::key_type, master_map_t::mapped_type>(id))),
+      parser(port, &namespace_if)
+{ }

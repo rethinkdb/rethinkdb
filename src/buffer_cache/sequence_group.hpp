@@ -32,6 +32,13 @@ public:
             slice_groups[i].fifo.rethread(compute_shard_home_thread(i, num_db_threads));
         }
     }
+
+    sequence_group_t(int thread_id, UNUSED char disambiguator) 
+        : slice_groups(new per_slice_sequence_group_t[1])
+    {
+        slice_groups[0].fifo.rethread(thread_id);
+    }
+
     ~sequence_group_t() { delete[] slice_groups; }
 
     per_slice_sequence_group_t *slice_groups;

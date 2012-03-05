@@ -17,6 +17,7 @@
 #include "rpc/directory/manager.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
+#include "memcached/clustering.hpp"
 
 struct server_starter_t : public thread_message_t {
     boost::function<void()> fun;
@@ -84,9 +85,13 @@ void clustering_main(int port, int contact_port) {
                                                                     directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::memcached_namespaces)), 
                                                                     metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_manager_cluster.get_root_view()));
 
-    mock::dummy_protocol_parser_maker_t parser_maker(&mailbox_manager, 
-                                                     metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_manager_cluster.get_root_view()),
-                                                     directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::dummy_namespaces)));
+    mock::dummy_protocol_parser_maker_t dummy_parser_maker(&mailbox_manager, 
+                                                           metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_manager_cluster.get_root_view()),
+                                                           directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::dummy_namespaces)));
+
+    memcached_parser_maker_t mc_parser_maker(&mailbox_manager, 
+                                             metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_manager_cluster.get_root_view()),
+                                             directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::memcached_namespaces)));
                                                
 
     blueprint_http_server_t server(semilattice_manager_cluster.get_root_view(),

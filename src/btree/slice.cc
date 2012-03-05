@@ -27,7 +27,7 @@ void btree_slice_t::create(cache_t *cache) {
 void btree_slice_t::create(cache_t *cache, const key_range_t &key_range) {
     // We don't know the total slice count, so we create fifos up to and including this slice number,
     // that's why there's +1 below.
-    sequence_group_t seq_group(cache->get_slice_num() + 1);
+    sequence_group_t seq_group(get_thread_id(), 'c');
 
     /* Initialize the btree superblock and the delete queue */
     transaction_t txn(cache, &seq_group, rwi_write, 1, repli_timestamp_t::distant_past);
