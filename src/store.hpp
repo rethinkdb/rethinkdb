@@ -79,7 +79,7 @@ struct key_with_data_provider_t {
 typedef unique_ptr_t<one_way_iterator_t<key_with_data_provider_t> > rget_result_t;
 
 struct get_result_t {
-    get_result_t(const boost::shared_ptr<data_provider_t>& v, mcflags_t f, cas_t c) :
+    get_result_t(unique_ptr_t<data_provider_t> v, mcflags_t f, cas_t c) :
         is_not_allowed(false), value_provider(v), flags(f), cas(c) { }
     get_result_t() :
         is_not_allowed(false), value_provider(), flags(0), cas(0) { }
@@ -89,7 +89,7 @@ struct get_result_t {
 
     // NULL means not found. Parts of the store may wait for the data_provider_t's destructor,
     // so don't hold on to it forever.
-    boost::shared_ptr<data_provider_t> value_provider;
+    unique_ptr_t<data_provider_t> value_provider;
 
     mcflags_t flags;
     cas_t cas;

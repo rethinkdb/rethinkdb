@@ -68,7 +68,7 @@ struct txt_memcached_handler_t : public txt_memcached_handler_if, public home_th
         }
     }
 
-    void write_from_data_provider(const boost::shared_ptr<data_provider_t>& dp, memcached_write_callback_t *callback) {
+    void write_from_data_provider(data_provider_t* dp, memcached_write_callback_t *callback) {
         /* Write the value itself. If the value is small, write it into the send buffer;
         otherwise, stream it. */
         const const_buffer_group_t *bg = dp->get_data_as_buffers();
@@ -235,7 +235,7 @@ public:
     void vwritef(UNUSED const char *format, UNUSED va_list args) { }
     void writef(UNUSED const char *format, ...) { }
     void write_unbuffered(UNUSED const char *buffer, UNUSED size_t bytes) { }
-    void write_from_data_provider(UNUSED const boost::shared_ptr<data_provider_t>& dp, UNUSED memcached_write_callback_t *callback) { }
+    void write_from_data_provider(UNUSED data_provider_t* dp, UNUSED memcached_write_callback_t *callback) { }
     void write_value_header(UNUSED const char *key, UNUSED size_t key_size, UNUSED mcflags_t mcflags, UNUSED size_t value_size) { }
     void write_value_header(UNUSED const char *key, UNUSED size_t key_size, UNUSED mcflags_t mcflags, UNUSED size_t value_size, UNUSED cas_t cas) { }
     void error() { }
@@ -474,7 +474,7 @@ void do_get(txt_memcached_handler_if *rh, pipeliner_t *pipeliner, bool with_cas,
 
                         callbacks[i].cond = &callback_cond;
                         callbacks[i].callbacks_to_run = &callbacks_to_run;
-                        rh->write_from_data_provider(res.value_provider, &callbacks[i]);
+                        rh->write_from_data_provider(res.value_provider.get(), &callbacks[i]);
                     } else {
                         --callbacks_to_run;
                     }
@@ -584,7 +584,7 @@ void do_rget(txt_memcached_handler_if *rh, pipeliner_t *pipeliner, int argc, cha
             const std::string& key = kv.key;
 
             rh->write_value_header(key.c_str(), key.length(), kv.mcflags, kv.value_provider->get_size());
-            rh->write_from_data_provider(kv.value_provider, NULL); // RSI - this will always copy instead of using zerocopy
+            rh->write_from_data_provider(kv.value_provider.get(), NULL); // RSI - this will always copy instead of using zerocopy
         }
 
         rh->write_end();

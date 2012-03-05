@@ -8,7 +8,7 @@
 
 struct death_signalling_data_provider_t : public data_provider_t {
 
-    death_signalling_data_provider_t(boost::shared_ptr<data_provider_t> dp, cond_t *c) :
+    death_signalling_data_provider_t(unique_ptr_t<data_provider_t> dp, cond_t *c) :
         dp(dp), pulse_on_death(c) { }
     ~death_signalling_data_provider_t() {
         pulse_on_death->pulse();
@@ -25,7 +25,7 @@ struct death_signalling_data_provider_t : public data_provider_t {
     }
 
 private:
-    boost::shared_ptr<data_provider_t> dp;
+    unique_ptr_t<data_provider_t> dp;
     cond_t *pulse_on_death;
 };
 
@@ -63,11 +63,11 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
 
         // Need to block on the caller so we don't free the large value before it's done
         // Deliver the value to the client via the promise_t we got
-        boost::shared_ptr<value_data_provider_t> dp(value_data_provider_t::create(&value, txor));
+        unique_ptr_t<value_data_provider_t> dp(value_data_provider_t::create(&value, txor));
         if (value.is_large()) {
             // When dp2 is destroyed, it will signal to_signal_when_done.
             cond_t to_signal_when_done;
-            boost::shared_ptr<death_signalling_data_provider_t> dp2(
+            unique_ptr_t<death_signalling_data_provider_t> dp2(
                 new death_signalling_data_provider_t(dp, &to_signal_when_done));
             res->pulse(get_result_t(dp2, value.mcflags(), cas_to_report));
             to_signal_when_done.wait();
