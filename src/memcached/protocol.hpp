@@ -4,12 +4,13 @@
 #include <vector>
 
 #include "errors.hpp"
-#include <boost/shared_ptr.hpp>
-#include <boost/variant.hpp>
 #include <boost/optional.hpp>
+#include <boost/serialization/shared_ptr.hpp>
 #include <boost/serialization/split_free.hpp>
 #include <boost/serialization/string.hpp>
 #include <boost/serialization/variant.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/variant.hpp>
 
 #include "btree/slice.hpp"
 #include "btree/operations.hpp"
@@ -199,6 +200,8 @@ public:
         static backfill_chunk_t set_key(const backfill_atom_t& key) {
             return backfill_chunk_t(key_value_pair_t(key));
         }
+
+        RDB_MAKE_ME_SERIALIZABLE_1(val);
     };
 
     class store_t : public store_view_t<memcached_protocol_t> {

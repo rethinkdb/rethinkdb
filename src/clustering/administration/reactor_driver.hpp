@@ -9,7 +9,6 @@
 #include "clustering/reactor/blueprint.hpp"
 #include "clustering/reactor/reactor.hpp"
 #include "concurrency/watchable.hpp"
-#include "mock/dummy_protocol.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 
 /* This files contains the class reactor driver whose job is to create and
@@ -192,7 +191,7 @@ private:
 
     auto_drainer_t drainer;
 
-    semilattice_read_view_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> >::subscription_t subscription;
+    typename semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> >::subscription_t subscription;
 };
 
 #endif

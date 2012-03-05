@@ -66,7 +66,7 @@ void clustering_main(int port, int contact_port) {
     message_multiplexer_t::client_t::run_t semilattice_manager_client_run(&semilattice_manager_client, &semilattice_manager_cluster);
 
     message_multiplexer_t::client_t directory_manager_client(&message_multiplexer, 'D');
-    directory_readwrite_manager_t<namespaces_directory_metadata_t<mock::dummy_protocol_t> > directory_manager(&directory_manager_client, namespaces_directory_metadata_t<mock::dummy_protocol_t>());
+    directory_readwrite_manager_t<cluster_directory_metadata_t> directory_manager(&directory_manager_client, cluster_directory_metadata_t());
     message_multiplexer_t::client_t::run_t directory_manager_client_run(&directory_manager_client, &directory_manager);
 
     message_multiplexer_t::run_t message_multiplexer_run(&message_multiplexer);
@@ -76,13 +76,17 @@ void clustering_main(int port, int contact_port) {
         connectivity_cluster_run.join(peer_address_t(ip_address_t::us(), contact_port));
     }
 
-    reactor_driver_t<mock::dummy_protocol_t> reactor_driver(&mailbox_manager,
-                                                            directory_manager.get_root_view(), 
-                                                            metadata_field(&cluster_semilattice_metadata_t::namespaces, semilattice_manager_cluster.get_root_view()));
+    reactor_driver_t<mock::dummy_protocol_t> dummy_reactor_driver(&mailbox_manager,
+                                                                  directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::dummy_namespaces)), 
+                                                                  metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_manager_cluster.get_root_view()));
+
+    reactor_driver_t<memcached_protocol_t> memcached_reactor_driver(&mailbox_manager,
+                                                                    directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::memcached_namespaces)), 
+                                                                    metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_manager_cluster.get_root_view()));
 
     mock::dummy_protocol_parser_maker_t parser_maker(&mailbox_manager, 
-                                                     metadata_field(&cluster_semilattice_metadata_t::namespaces, semilattice_manager_cluster.get_root_view()),
-                                                     directory_manager.get_root_view());
+                                                     metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_manager_cluster.get_root_view()),
+                                                     directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::dummy_namespaces)));
                                                
 
     blueprint_http_server_t server(semilattice_manager_cluster.get_root_view(),

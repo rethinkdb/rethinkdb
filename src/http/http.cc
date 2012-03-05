@@ -1,6 +1,7 @@
 #include "http/http.hpp"
 
 #include <iostream>
+#include <exception>
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
@@ -306,6 +307,74 @@ http_res_t test_server_t::handle(const http_req_t &req) {
 
     res.add_header_line("Vary", "Accept-Encoding");
     res.add_header_line("Content-Length", "0");
+
+    return res;
+}
+
+bool is_safe(char c) {
+    return strchr("ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                  "abcdefghijklmnopqrstuvwxyz"
+                  "0123456789-_.~", c) != NULL;
+}
+
+int to_hex(char c) THROWS_ONLY(std::runtime_error) {
+    if ('0' <= c && c <= '9') {
+        return c - '0';
+    } else if ('a' <= c && c <= 'f') {
+        return 10 + c - 'a';
+    } else if ('A' <= c && c <= 'F') {
+        return 10 + c - 'A';
+    } else {
+        throw std::runtime_error("Bad hex char");
+    }
+}
+
+std::string percent_escaped_string(const std::string &s) {
+    std::string res;
+    const char *hex = "0123456789ABCDEF";
+    for (std::string::const_iterator it =  s.begin();
+                                     it != s.end();
+                                     it++) {
+        if (is_safe(*it)) {
+            res.push_back(*it);
+        } else {
+            res.push_back('%');
+            res.push_back(hex[((*it)>>4) & 0x0f]);
+            res.push_back(hex[(*it) & 0x0f]);
+        }
+    }
+
+    return res;
+}
+
+std::string percent_unescaped_string(const std::string &s) THROWS_ONLY(std::runtime_error) {
+    std::string res;
+    for (std::string::const_iterator it  = s.begin();
+                                     it != s.end();
+                                     it++) {
+        if (*it == '%') {
+            //read an escaped character
+            it++;
+            if (it == s.end()) {
+                throw std::runtime_error("Bad escape sequence % with nothing after it.");
+            }
+            int digit1 = to_hex(*it);
+
+            it++;
+            if (it == s.end()) {
+                throw std::runtime_error("Bad escaped sequence % with only one digit after it.");
+            }
+            int digit2 = to_hex(*it);
+
+            res.push_back(char((digit1 << 4) + digit2));
+        } else {
+            if (!is_safe(*it)) {
+                throw std::runtime_error("Unsafe character in string.");
+            }
+
+            res.push_back(*it);
+        }
+    }
 
     return res;
 }

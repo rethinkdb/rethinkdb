@@ -195,5 +195,6 @@ std::vector<key_range_t> region_subtract_many(key_range_t a, const std::vector<k
 
 bool operator==(key_range_t, key_range_t) THROWS_NOTHING;
 bool operator!=(key_range_t, key_range_t) THROWS_NOTHING;
+bool operator<(const key_range_t &, const key_range_t &) THROWS_NOTHING;
 
 #endif // __BTREE_KEYS_HPP__

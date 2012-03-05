@@ -8,10 +8,13 @@ cluster_semilattice_metadata_t::cluster_semilattice_metadata_t(const machine_id_
 
 /* semilattice concept for cluster_semilattice_metadata_t */
 bool operator==(const cluster_semilattice_metadata_t& a, const cluster_semilattice_metadata_t& b) {
-    return a.namespaces == b.namespaces && a.machines == b.machines;
+    return a.dummy_namespaces == b.dummy_namespaces && 
+           a.memcached_namespaces == b.memcached_namespaces && 
+           a.machines == b.machines;
 }
 
 void semilattice_join(cluster_semilattice_metadata_t *a, const cluster_semilattice_metadata_t &b) {
-    semilattice_join(&a->namespaces, b.namespaces);
+    semilattice_join(&a->dummy_namespaces, b.dummy_namespaces);
+    semilattice_join(&a->memcached_namespaces, b.memcached_namespaces);
     semilattice_join(&a->machines, b.machines);
 }

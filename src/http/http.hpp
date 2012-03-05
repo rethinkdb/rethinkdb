@@ -111,4 +111,8 @@ private:
     http_res_t handle(const http_req_t &);
 };
 
+std::string percent_escaped_string(const std::string &s);
+
+std::string percent_unescaped_string(const std::string &s) THROWS_ONLY(std::runtime_error);
+
 #endif

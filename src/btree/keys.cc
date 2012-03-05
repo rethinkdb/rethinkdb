@@ -164,3 +164,6 @@ bool operator!=(key_range_t a, key_range_t b) THROWS_NOTHING {
     return !(a == b);
 }
 
+bool operator<(const key_range_t &a, const key_range_t &b) THROWS_NOTHING {
+    return (a.left < b.left || (a.left == b.left && a.right < b.right));
+}
