@@ -16,17 +16,64 @@
 #include <iterator>
 #include <algorithm>
 
+/*
+ * Networking was redesigned to allow for zerocopy.  It was broken up into a raw_tcp_conn_t and a
+ * buffered_tcp_conn_t.  Normal operations should use the buffered_tcp_conn_t unless they are trying
+ * to optimize in some way.  By doing this refactor, a performance gain was seen, but that was lost
+ * upon adding in zerocopy.
+ *
+ * When zerocopy was implemented, it was discovered that there is no built-in mechanism to tell when
+ * the kernel is done with the zerocopied buffer.  Thus, a timer is used to poll the tcp send queue
+ * to track when a buffer has been flushed through the tcp layer.  When the send is finished, we
+ * call a callback registered with the original buffer to do any cleanup necessary.  The precise
+ * performance of the timer has not been evaluated, and may require tuning or an alternative
+ * solution if it is causing a bottleneck.
+ *
+ * This loss in performance was due to less efficient buffering resulting in more system calls.
+ * Zerocopy still has better performance for very large value sizes (tested with an average of 64k),
+ * but for smaller values (4k), there is a loss of about 5% performance.
+ *
+ * If this code is merged into the baseline, it should be determined if this performance loss can be
+ * regained.  In addition, there are two open issues with this network code:
+ *
+ * 1. A segmentation fault may occur upon client death
+ *   - This is likely due to new handling of socket error conditions (including exceptions that are
+ *   thrown)
+ * 2. On server shutdown, the server may hang
+ *   - This is likely due to a buffer lock not being released properly
+ *
+ * In order to reproduce the tests performed on this version, you should run the clients and server
+ * on separate machines connected by multiple 10 Gb ethernet interfaces.  The network irqs must be
+ * balanced across all cores to avoid the kernel pinning them all on a single core and
+ * bottlenecking.  This can be done using the irqbalance tool.  Tests were performed with 4k value
+ * sizes and 64k value sizes.
+ *
+ * With 64k values, we could fully utilize 4 10 Gb NICs while only using 75% CPU.  The baseline
+ * (v1.1.x) caps out at a little less than 3 10 Gb NICs and 100% CPU.
+ *
+ * In contrast, 4k values could cap out CPU on both versions, but with 5% more throughput for v1.1.x
+ * over this version.
+ *
+ * Issues to look out for:
+ *
+ * 1. Running over loopback doesn't make the zero-copy code actually zero-copy over PCI bus (since
+ *    no PCI bus transfers are being done, instead a memory copy or two may be done in the kernel).
+ * 2. After client side of the benchmark (running stress-client) was irqbalanced, a strange behavior
+ *    was uncovered: when running a single client with 64k value sizes over 10Gbps you get a
+ *    suboptimal performance (~8000 qps instead of expected 18300 qps).  However if you run another
+ *    stress-client on the same machine using a different NIC, performance of both stess-clients
+ *    goes up to ~16000 qps each.  Adding two more stress-clients (over the other two NICs) yields
+ *    even better results of ~18300 qps each.
+ * 3. Related to the previous one: if the second stress-client is run on the same machine as
+ *    rethinkdb server (over loopback), the performance of the first stress-client still increases.
+ */
+
 const uint32_t linux_buffered_tcp_conn_t::READ_BUFFER_RESIZE_FACTOR = 2;
 const uint32_t linux_buffered_tcp_conn_t::READ_BUFFER_MIN_UTILIZATION_FACTOR = 4; // if less than 1/4 of the buffer is used, shrink it
 const size_t linux_buffered_tcp_conn_t::MIN_BUFFERED_READ_SIZE = 1024;
 const size_t linux_buffered_tcp_conn_t::MIN_READ_BUFFER_SIZE = linux_buffered_tcp_conn_t::MIN_BUFFERED_READ_SIZE * 4;
 const size_t linux_buffered_tcp_conn_t::MAX_WRITE_BUFFER_SIZE = 8192;
 const size_t linux_raw_tcp_conn_t::ZEROCOPY_THRESHOLD = 2048;
-
-// Network connection object
-
-/* Warning: It is very easy to accidentally introduce race conditions to linux_raw_tcp_conn_t.
-Think carefully before changing read_internal(), perform_write(), or on_shutdown_*(). */
 
 fd_t linux_raw_tcp_conn_t::connect_to(const char *host, int port) {
     std::string last_error_str;
