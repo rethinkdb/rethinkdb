@@ -3,6 +3,7 @@
 
 #include "clustering/administration/machine_metadata.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
+#include "clustering/administration/datacenter_metadata.hpp"
 #include "memcached/protocol.hpp"
 #include "memcached/protocol_json_adapter.hpp"
 #include "mock/dummy_protocol.hpp"
@@ -17,6 +18,7 @@ public:
     namespaces_semilattice_metadata_t<mock::dummy_protocol_t> dummy_namespaces;
     namespaces_semilattice_metadata_t<memcached_protocol_t> memcached_namespaces;
     machines_semilattice_metadata_t machines;
+    std::map<datacenter_id_t, datacenter_semilattice_metadata_t> datacenters;
 
 
     RDB_MAKE_ME_SERIALIZABLE_3(dummy_namespaces, memcached_namespaces, machines);
@@ -29,6 +31,7 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(cluster
     res["dummy_namespaces"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t>, ctx_t>(&target->dummy_namespaces));
     res["memcached_namespaces"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<namespaces_semilattice_metadata_t<memcached_protocol_t>, ctx_t>(&target->memcached_namespaces));
     res["machines"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<machines_semilattice_metadata_t, ctx_t>(&target->machines));
+    res["datacenters"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_with_inserter_t<typename std::map<datacenter_id_t, datacenter_semilattice_metadata_t>, ctx_t>(&target->datacenters, boost::bind(&generate_uuid)));
     return res;
 }
 

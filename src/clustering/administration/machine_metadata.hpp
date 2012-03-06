@@ -5,15 +5,50 @@
 
 #include <set>
 
+#include "clustering/administration/datacenter_metadata.hpp"
 #include "http/json/json_adapter.hpp"
-#include "rpc/semilattice/joins/set.hpp"
+#include "rpc/semilattice/joins/map.hpp"
+#include "rpc/semilattice/joins/vclock.hpp"
 #include "rpc/serialize_macros.hpp"
 
 typedef boost::uuids::uuid machine_id_t;
 
+class machine_semilattice_metadata_t {
+public:
+    vclock_t<datacenter_id_t> datacenter;
+
+    RDB_MAKE_ME_SERIALIZABLE_1(datacenter);
+};
+
+//json adapter concept for machine_semilattice_metadata_t
+template <class ctx_t>
+typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(machine_semilattice_metadata_t *target, const ctx_t &) {
+    typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
+    res["datacenter"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<vclock_t<datacenter_id_t>, ctx_t>(&target->datacenter));
+    return res;
+}
+
+template <class ctx_t>
+cJSON *render_as_json(machine_semilattice_metadata_t *target, const ctx_t &ctx) {
+    return render_as_directory(target, ctx);
+}
+
+template <class ctx_t>
+void apply_json_to(cJSON *change, machine_semilattice_metadata_t *target, const ctx_t &ctx) {
+    apply_as_directory(change, target, ctx);
+}
+
+template <class ctx_t>
+void on_subfield_change(machine_semilattice_metadata_t *, const ctx_t &) { }
+
+/* semilattice concept for machine_semilattice_metadata_t */
+bool operator==(const machine_semilattice_metadata_t& a, const machine_semilattice_metadata_t& b);
+
+void semilattice_join(machine_semilattice_metadata_t *a, const machine_semilattice_metadata_t &b);
+
 class machines_semilattice_metadata_t {
 public:
-    std::set<machine_id_t> machines;
+    std::map<machine_id_t, machine_semilattice_metadata_t> machines;
 
     RDB_MAKE_ME_SERIALIZABLE_1(machines);
 };
@@ -31,7 +66,7 @@ cJSON *render_as_json(machines_semilattice_metadata_t *target, const ctx_t &ctx)
 
 template <class ctx_t>
 void apply_json_to(cJSON *change, machines_semilattice_metadata_t *target, const ctx_t &ctx) {
-    apply_as_directory(change, &target->machines, ctx);
+    apply_json_to(change, &target->machines, ctx);
 }
 
 template <class ctx_t>
