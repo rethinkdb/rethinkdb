@@ -19,8 +19,8 @@
 /*
  * Networking was redesigned to allow for zerocopy.  It was broken up into a raw_tcp_conn_t and a
  * buffered_tcp_conn_t.  Normal operations should use the buffered_tcp_conn_t unless they are trying
- * to optimize in some way.  By doing this refactor, a performance gain was seen, but that was lost
- * upon adding in zerocopy.
+ * to optimize in some way.  By doing this refactor, a performance gain was seen, especially in the
+ * case of larger values (>64k).
  *
  * When zerocopy was implemented, it was discovered that there is no built-in mechanism to tell when
  * the kernel is done with the zerocopied buffer.  Thus, a timer is used to poll the tcp send queue
@@ -29,18 +29,8 @@
  * performance of the timer has not been evaluated, and may require tuning or an alternative
  * solution if it is causing a bottleneck.
  *
- * This loss in performance was due to less efficient buffering resulting in more system calls.
- * Zerocopy still has better performance for very large value sizes (tested with an average of 64k),
- * but for smaller values (4k), there is a loss of about 5% performance.
- *
- * If this code is merged into the baseline, it should be determined if this performance loss can be
- * regained.  In addition, there are two open issues with this network code:
- *
- * 1. A segmentation fault may occur upon client death
- *   - This is likely due to new handling of socket error conditions (including exceptions that are
- *   thrown)
- * 2. On server shutdown, the server may hang
- *   - This is likely due to a buffer lock not being released properly
+ * If this code is merged into the baseline, the performance should be evaluated for various value
+ * buffer sizes, and it should be thoroughly tested.
  *
  * In order to reproduce the tests performed on this version, you should run the clients and server
  * on separate machines connected by multiple 10 Gb ethernet interfaces.  The network irqs must be
@@ -147,10 +137,9 @@ linux_raw_tcp_conn_t::linux_raw_tcp_conn_t(const char *host, int port) :
     read_in_progress(false),
     write_in_progress(false),
     timer_token(NULL),
-    total_bytes_written(0),
-    shutdown_coro(NULL),
-    total_bytes_to_write(0)
+    total_bytes_written(0)
 {
+    // TODO: only do that when zero-copy is first used
     initialize_vmsplice_pipes();
 }
 
@@ -163,10 +152,9 @@ linux_raw_tcp_conn_t::linux_raw_tcp_conn_t(const ip_address_t &host, int port) :
     read_in_progress(false),
     write_in_progress(false),
     timer_token(NULL),
-    total_bytes_written(0),
-    shutdown_coro(NULL),
-    total_bytes_to_write(0)
+    total_bytes_written(0)
 {
+    // TODO: only do that when zero-copy is first used
     initialize_vmsplice_pipes();
 }
 
@@ -179,22 +167,23 @@ linux_raw_tcp_conn_t::linux_raw_tcp_conn_t(fd_t s) :
     read_in_progress(false),
     write_in_progress(false),
     timer_token(NULL),
-    total_bytes_written(0),
-    shutdown_coro(NULL),
-    total_bytes_to_write(0)
+    total_bytes_written(0)
 {
     rassert(sock.get() != INVALID_FD);
 
     // TODO: is this throwing away previous flags?
     int res = fcntl(sock.get(), F_SETFL, O_NONBLOCK);
     guarantee_err(res == 0, "Could not make socket non-blocking");
+    // TODO: only do that when zero-copy is first used
     initialize_vmsplice_pipes();
 }
 
-void linux_raw_tcp_conn_t::initialize_vmsplice_pipes() {
+void linux_raw_tcp_conn_t::initialize_vmsplice_pipes() THROWS_ONLY(write_closed_exc_t) {
     fd_t pipe[2];
     if (pipe2(pipe, O_NONBLOCK | O_CLOEXEC) != 0) {
-        crash("Could not create pipe"); // RSI: handle the pipe creation failure gracefully
+        int err = errno;
+        on_shutdown_write();
+        throw write_closed_exc_t(err);
     } else {
         read_vmsplice_pipe.reset(pipe[0]);
         write_vmsplice_pipe.reset(pipe[1]);
@@ -216,7 +205,7 @@ void linux_raw_tcp_conn_t::timer_handle_callbacks() {
 
     // Call any callbacks whose buffers have been flushed
     size_t current_position = total_bytes_written - send_queue_size;
-    remove_write_callbacks(current_position);
+    remove_write_callbacks(true, current_position);
 }
 
 void linux_raw_tcp_conn_t::add_write_callback(write_callback_t *callback) {
@@ -230,27 +219,23 @@ void linux_raw_tcp_conn_t::add_write_callback(write_callback_t *callback) {
     write_callback_list.push_back(callback);
 }
 
-void linux_raw_tcp_conn_t::remove_write_callbacks(size_t current_position) {
+void linux_raw_tcp_conn_t::remove_write_callbacks(bool success, size_t current_position) {
     while (!write_callback_list.empty()) {
         write_callback_t *callback = write_callback_list.front();
         if (current_position >= callback->position_in_stream) {
             write_callback_list.pop_front();
-            callback->done();
+            callback->done(success);
         } else {
             break;
         }
     }
 
     // Check if we should remove timer from timer handler
-    if (write_callback_list.empty()) {
-        rassert(timer_token != NULL);
+    if (write_callback_list.empty() && timer_token != NULL) {
         linux_thread_pool_t::thread->timer_handler.cancel_timer(timer_token);
         timer_token = NULL;
-
-        if (shutdown_coro != NULL) {
-            shutdown_coro->notify_later();
-        }
     }
+    rassert(write_callback_list.empty() == (timer_token == NULL));
 }
 
 // TODO: if this fails because the connection dies, do anything?
@@ -268,6 +253,8 @@ void linux_raw_tcp_conn_t::write_vectored(struct iovec *iov, size_t count, write
         /* The write end of the connection was closed, but there are still
         operations in the write queue; we are one of those operations. Just
         don't do anything. */
+        if (callback)
+            callback->done(false);
         return;
     }
 
@@ -275,15 +262,11 @@ void linux_raw_tcp_conn_t::write_vectored(struct iovec *iov, size_t count, write
     for (size_t i = 0; i < count; i++)
         bytes_to_write += iov[i].iov_len;
 
-    total_bytes_to_write += bytes_to_write; // RSI: remove
-
     if (bytes_to_write >= ZEROCOPY_THRESHOLD && callback != NULL) {
         write_zerocopy(iov, count, bytes_to_write, callback);
     } else {
         write_copy(iov, count, bytes_to_write, callback);
     }
-
-    rassert(total_bytes_written == total_bytes_to_write);
 }
 
 void linux_raw_tcp_conn_t::advance_iov(struct iovec *&iov, size_t &count, size_t bytes_written) {
@@ -344,43 +327,50 @@ void linux_raw_tcp_conn_t::write_zerocopy(struct iovec *iov, size_t count, size_
 }
 
 void linux_raw_tcp_conn_t::write_copy(struct iovec *iov, size_t count, size_t bytes_to_write, write_callback_t *callback) THROWS_ONLY(write_closed_exc_t) {
-    while (bytes_to_write > 0) {
-        int res = ::writev(sock.get(), iov, count);
+    try {
+        while (bytes_to_write > 0) {
+            int res = ::writev(sock.get(), iov, count);
 
-        if (res >= 0) {
-            size_t bytes_written = static_cast<size_t>(res);
-            rassert(bytes_written <= bytes_to_write);
-            bytes_to_write -= bytes_written;
-            total_bytes_written += bytes_written;
-            advance_iov(iov, count, bytes_written);
-            if (write_perfmon)
-                write_perfmon->record(res);
-        } else if (res == -1 && (errno == EPIPE || errno == ENOTCONN || errno == EHOSTUNREACH ||
-                                 errno == ENETDOWN || errno == EHOSTDOWN || errno == ECONNRESET)) {
-            // These errors are expected to happen at some point in practice
-            int err = errno;
-            shutdown_write();
-            throw write_closed_exc_t(err);
-        } else if (errno != EAGAIN && errno != EWOULDBLOCK) {
-            /* In theory this should never happen, but it probably will. So we write a log message
-               and then shut down normally. */
-            int err = errno;
-            logERR("Could not write to a socket: %s\n", strerror(err));
-            shutdown_write();
-            throw write_closed_exc_t(err);
-        } else {
-            // THIS SPACE IS INTENTIONALLY LEFT BLANK:
-            // do nothing in the case of EAGAIN/EWOULDBLOCK
+            if (res >= 0) {
+                size_t bytes_written = static_cast<size_t>(res);
+                rassert(bytes_written <= bytes_to_write);
+                bytes_to_write -= bytes_written;
+                total_bytes_written += bytes_written;
+                advance_iov(iov, count, bytes_written);
+                if (write_perfmon)
+                    write_perfmon->record(res);
+            } else if (res == -1 && (errno == EPIPE || errno == ENOTCONN || errno == EHOSTUNREACH ||
+                                     errno == ENETDOWN || errno == EHOSTDOWN || errno == ECONNRESET)) {
+                // These errors are expected to happen at some point in practice
+                int err = errno;
+                shutdown_write();
+                throw write_closed_exc_t(err);
+            } else if (errno != EAGAIN && errno != EWOULDBLOCK) {
+                /* In theory this should never happen, but it probably will. So we write a log message
+                   and then shut down normally. */
+                int err = errno;
+                logERR("Could not write to a socket: %s\n", strerror(err));
+                shutdown_write();
+                throw write_closed_exc_t(err);
+            } else {
+                // THIS SPACE IS INTENTIONALLY LEFT BLANK:
+                // do nothing in the case of EAGAIN/EWOULDBLOCK
+            }
+
+            if (bytes_to_write > 0) {
+                wait_for_epoll_out();
+                // Go around the loop and try to write again
+            }
         }
 
-        if (bytes_to_write > 0) {
-            wait_for_epoll_out();
-            // Go around the loop and try to write again
+        if (callback) {
+            callback->done(true);
         }
-    }
-
-    if (callback) {
-        callback->done();
+    } catch (...) {
+        if (callback) {
+            callback->done(false);
+        }
+        throw;
     }
 }
 
@@ -409,7 +399,7 @@ void linux_raw_tcp_conn_t::wait_for_epoll_out() THROWS_ONLY(write_closed_exc_t) 
 }
 
 void linux_raw_tcp_conn_t::wait_for_pipe_epoll_out() THROWS_ONLY(write_closed_exc_t) {
-    // RSI: implement this - need a new event watcher?
+    // TODO: implement this - need a new event watcher? this may be unnecessary though
 }
 
 void linux_raw_tcp_conn_t::read_exactly(void *buffer, size_t size) THROWS_ONLY(read_closed_exc_t) {
@@ -531,6 +521,12 @@ void linux_raw_tcp_conn_t::shutdown_write() {
 void linux_raw_tcp_conn_t::on_shutdown_write() {
     assert_thread();
     rassert(!write_closed.is_pulsed());
+
+    // Remaining writes will never succeed, notify the callbacks and empty the queue
+    remove_write_callbacks(false, total_bytes_written);
+    rassert(write_callback_list.empty());
+    rassert(timer_token == NULL);
+
     write_closed.pulse();
 }
 
@@ -547,14 +543,6 @@ linux_raw_tcp_conn_t::~linux_raw_tcp_conn_t() {
 
     delete event_watcher;
     event_watcher = NULL;
-
-    // Wait for callback queue to empty out before shutting down the socket
-    guarantee(coro_t::self() != NULL);
-    while (!write_callback_list.empty()) {
-        guarantee(timer_token != NULL);
-        shutdown_coro = coro_t::self();
-        coro_t::wait();
-    }
 
     // scoped_fd_t's destructor will take care of closing the socket.
 }
@@ -701,7 +689,7 @@ void linux_buffered_tcp_conn_t::read_more_buffered() THROWS_ONLY(read_closed_exc
             std::vector<char> temp_buffer;
             size_t new_size = read_buffer.capacity() * READ_BUFFER_RESIZE_FACTOR;
             temp_buffer.reserve(new_size);
-            temp_buffer.resize(data_size); // RSI: this is inefficient
+            temp_buffer.resize(data_size); // FIXME: this is inefficient
             memcpy(temp_buffer.data(), get_read_buffer_start(), data_size);
 
             read_buffer.swap(temp_buffer);
@@ -736,7 +724,7 @@ void linux_buffered_tcp_conn_t::pop_read_buffer(size_t len) {
             std::vector<char> temp_buffer;
             temp_buffer.reserve(new_size);
             size_t data_size = read_buffer.size() - read_buffer_offset;
-            temp_buffer.resize(data_size); // RSI: this is inefficient
+            temp_buffer.resize(data_size); // FIXME: this is inefficient
             memcpy(temp_buffer.data(), get_read_buffer_start(), data_size);
 
             read_buffer.swap(temp_buffer);
@@ -762,35 +750,32 @@ void linux_buffered_tcp_conn_t::write(const void *buf, size_t size) THROWS_ONLY(
 
 void linux_buffered_tcp_conn_t::write_vectored(struct iovec *iov, size_t count, write_callback_t *callback) THROWS_ONLY(write_closed_exc_t) {
     // If we don't have a pending write buffer, we can pass the write directly down
-    if (write_buffer.size == 0) {
-        conn.write_vectored(iov, count, callback);
-    } else {
-        size_t total_bytes = 0;
+    size_t total_bytes = 0;
+    for (size_t i = 0; i < count; ++i) {
+        total_bytes += iov[i].iov_len;
+    }
+    // We have a pending write buffer, either batch it into the iovectors or flush our buffer first
+    if (total_bytes + write_buffer.size <= MAX_WRITE_BUFFER_SIZE) {
         for (size_t i = 0; i < count; ++i) {
-            total_bytes += iov[i].iov_len;
+            write_buffer.put_back(iov[i].iov_base, iov[i].iov_len);
         }
-        // We have a pending write buffer, either batch it into the iovectors or flush our buffer first
-        if (total_bytes + write_buffer.size <= MAX_WRITE_BUFFER_SIZE) {
-            for (size_t i = 0; i < count; ++i) {
-                write_buffer.put_back(iov[i].iov_base, iov[i].iov_len);
-            }
-            if (callback != NULL) callback->done();
-        } else if (callback == NULL) {
-            struct iovec buffered_iov[count + 1];
-            memcpy(buffered_iov + 1, iov, sizeof(*iov) * count);
+        if (callback != NULL)
+            callback->done(true);
+    } else if (callback == NULL) {
+        struct iovec buffered_iov[count + 1];
+        memcpy(buffered_iov + 1, iov, sizeof(*iov) * count);
 
-            buffered_iov[0].iov_base = write_buffer.data;
-            buffered_iov[0].iov_len = write_buffer.size;
+        buffered_iov[0].iov_base = write_buffer.data;
+        buffered_iov[0].iov_len = write_buffer.size;
 
-            conn.write_vectored(buffered_iov, count + 1, NULL);
-            write_buffer.clear();
-        } else {
-            // Since there is a callback, we can't allow our write_buffer to be zerocopied
-            //   which would complicate the deallocation or reuse of the write_buffer
-            flush_write_buffer();
-            conn.write_vectored(iov, count, callback);
-            write_buffer.clear();
-        }
+        conn.write_vectored(buffered_iov, count + 1, NULL);
+        write_buffer.clear();
+    } else {
+        // Since there is a callback, we can't allow our write_buffer to be zerocopied
+        //   which would complicate the deallocation or reuse of the write_buffer
+        flush_write_buffer();
+        conn.write_vectored(iov, count, callback);
+        write_buffer.clear();
     }
 }
 

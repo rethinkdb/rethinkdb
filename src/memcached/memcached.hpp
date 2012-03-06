@@ -27,7 +27,7 @@ public:
     virtual ~txt_memcached_handler_if() { }
 
     struct memcached_write_callback_t : public tcp_conn_t::write_callback_t {
-        void done() {
+        void done(UNUSED bool success) {
             size_t &callbacks_left = *callbacks_to_run;
             guarantee(callbacks_left > 0);
             --callbacks_left;

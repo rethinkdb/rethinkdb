@@ -23,7 +23,6 @@
 
 /* txt_memcached_handler_t is basically defunct; it only exists as a convenient thing to pass
 around to do_get(), do_storage(), and the like. */
-
 static const char *crlf = "\r\n";
 static const char crlf_array[] = { '\r', '\n' };
 
@@ -395,9 +394,9 @@ void do_one_get(txt_memcached_handler_if *rh, bool with_cas, get_t *gets, int i,
 }
 
 void do_get(txt_memcached_handler_if *rh, pipeliner_t *pipeliner, bool with_cas, int argc, char **argv, order_token_t token) {
-    try { // RSI: try catch all the places
+    pipeliner_acq_t pipeliner_acq(pipeliner);
+    try {
         // We should already be spawned within a coroutine.
-        pipeliner_acq_t pipeliner_acq(pipeliner);
         pipeliner_acq.begin_operation();
 
         rassert(argc >= 1);
@@ -487,12 +486,14 @@ void do_get(txt_memcached_handler_if *rh, pipeliner_t *pipeliner, bool with_cas,
             pipeliner_acq.end_write();
 
             // Wait for the last callback to be called
-            callback_cond.wait();
+            if (callbacks_to_run > 0) {
+                callback_cond.wait();
+            }
             guarantee(callbacks_to_run == 0);
         }
-        
     } catch (tcp_conn_t::write_closed_exc_t &ex) {
         // the other side has closed the socket, don't do anything
+        pipeliner_acq.end_write(); // TODO: this is some awful code here, we should do some RAII thing
     }
 };
 
@@ -526,6 +527,7 @@ static bool rget_parse_bound(char *flag, char *key, rget_bound_mode_t *mode_out,
 
 perfmon_duration_sampler_t rget_iteration_next("rget_iteration_next", secs_to_ticks(1));
 void do_rget(txt_memcached_handler_if *rh, pipeliner_t *pipeliner, int argc, char **argv, order_token_t token) {
+    // TODO: catch the write_closed_exc_t
     // We should already be spawned within a coroutine.
     pipeliner_acq_t pipeliner_acq(pipeliner);
     pipeliner_acq.begin_operation();
@@ -584,7 +586,7 @@ void do_rget(txt_memcached_handler_if *rh, pipeliner_t *pipeliner, int argc, cha
             const std::string& key = kv.key;
 
             rh->write_value_header(key.c_str(), key.length(), kv.mcflags, kv.value_provider->get_size());
-            rh->write_from_data_provider(kv.value_provider.get(), NULL); // RSI - this will always copy instead of using zerocopy
+            rh->write_from_data_provider(kv.value_provider.get(), NULL); // FIXME: this won't zero-copy, since we're using NULL for a callback
         }
 
         rh->write_end();

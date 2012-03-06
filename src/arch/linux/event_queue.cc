@@ -128,7 +128,6 @@ struct linux_event_watcher_guts_t :
             aborter = NULL;
             parent->remask();
         }
-
     } read_handler, write_handler;
 
     int old_mask;   // So remask() knows whether we were registered with the event queue before
@@ -136,7 +135,6 @@ struct linux_event_watcher_guts_t :
     int registration_thread;   // The event queue we are registered with, or -1 if we are not registered
 
     void on_event(int event) {
-
         int error_mask = poll_event_err | poll_event_hup | poll_event_rdhup;
         guarantee((event & (error_mask | old_mask)) == event, "Unexpected event received (from operating system?).");
 

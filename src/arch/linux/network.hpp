@@ -2,7 +2,6 @@
 #define __ARCH_LINUX_NETWORK_HPP__
 
 #include "errors.hpp"
-#include <iostream> // RSI
 #include "utils2.hpp"
 #include <boost/scoped_ptr.hpp>
 #include "arch/linux/event_queue.hpp"
@@ -26,7 +25,7 @@ public:
     class write_callback_t : public intrusive_list_node_t<write_callback_t> {
     public:
         virtual ~write_callback_t() { };
-        virtual void done() = 0;
+        virtual void done(bool success) = 0;
     private:
         friend class linux_raw_tcp_conn_t;
         size_t position_in_stream;
@@ -70,7 +69,6 @@ public:
 
     struct write_closed_exc_t : public std::exception {
         explicit write_closed_exc_t(int err_) : err(err_) {
-            std::cout << "write_closed_exc_t(" << err << ")" << std::endl;
         }
         const char *what() throw () {
             return "Network connection write end closed";
@@ -110,7 +108,7 @@ private:
     static void timer_hook(void *instance);
     void timer_handle_callbacks();
 
-    void initialize_vmsplice_pipes();
+    void initialize_vmsplice_pipes() THROWS_ONLY(write_closed_exc_t);
 
     // These functions return false if the respective side of the socket was closed
     void wait_for_epoll_in() THROWS_ONLY(read_closed_exc_t);
@@ -119,7 +117,7 @@ private:
 
     // These functions are also used to subscribe/unsubscribe from the write callback timer
     void add_write_callback(write_callback_t *callback);
-    void remove_write_callbacks(size_t current_position);
+    void remove_write_callbacks(bool success, size_t current_position);
 
     // Internal write functions
     void advance_iov(struct iovec *&iov, size_t &count, size_t bytes_written);
@@ -154,8 +152,6 @@ private:
 
     timer_token_t *timer_token;
     size_t total_bytes_written;
-    coro_t * shutdown_coro;
-    size_t total_bytes_to_write;
     intrusive_list_t<write_callback_t> write_callback_list;
 };
 
