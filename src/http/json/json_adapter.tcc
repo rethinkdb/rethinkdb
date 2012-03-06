@@ -328,8 +328,13 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(std::ma
                                           it != map->end();
                                           it++) {
         typename std::map<K,V>::key_type key = it->first;
-        //TODO catch the exception the get_string
-        res[get_string(render_as_json(&key, ctx))] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<V, ctx_t>(&(it->second)));
+        try {
+            res[get_string(render_as_json(&key, ctx))] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<V, ctx_t>(&(it->second)));
+        } catch (schema_mismatch_exc_t &) {
+            crash("Someone tried to json adapt a std::map with a key type that"
+                   "does not yield a JSON object of string type when"
+                   "render_as_json is applied to it.");
+        }
 
 #ifdef JSON_SHORTCUTS
         res[strprintf("%d", shortcut_index)] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<V, ctx_t>(&(it->second)));
