@@ -1,0 +1,56 @@
+@import "global.less";
+@panel_padding: 0 20px;
+.panel {
+    border: @panel_border;
+    .border-radius(@border_radius);
+    margin-bottom: 10px;
+
+    .title {
+        .border-radius(@border_radius);
+        .panel-gradient;
+        .border-radius(@border_radius @border_radius 0 0);
+        h3 {
+            line-height: 2.25em;
+        }
+        margin-bottom: 5px;
+        padding: @panel_padding;
+    }
+}
+
+#performance {
+    #performance-graph {
+        .center-block;
+        width: 90%;
+        height: 300px;
+        margin-top: 20px;
+    }
+
+    p.graph-controls {
+        line-height: 2.5em;
+        margin-top: 0.5em;
+        margin-left: 60px;
+
+        #resume-graph {
+            display: none;
+        }
+    }
+}
+
+#alerts table {
+    .zebra-striped;
+
+    td p {
+        color: @grayDark;
+        margin-bottom: 0;
+        line-height: 1.75em;
+    }
+
+    tr.last-child td {
+        border-bottom: 0;
+    }
+}
+
+/* Override Bootstrap CSS */
+.panel table {
+    margin-bottom: 1px; // 1px on the bottom preserves rounded corners on tables
+}

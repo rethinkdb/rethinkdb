@@ -1,0 +1,923 @@
+@import "bootstrap/bootstrap.less";
+
+/* Colors */
+@riak_color: #1693A5;
+@redis_color: #A80000;
+@memcached_color: #44AA55;
+@selected_color: #FCFBE3;
+@link_color: #0069D6;
+@light_red: #FFDEDB;
+@light_yellow: #FFE6B3;
+@light_green: #CDE9CA;
+
+/* Clear utility */
+.clearboth { clear: both; }
+.clearleft { clear: left; }
+.clearright { clear: right; }
+
+/* Border radius, box shadow, gradient */
+@border_radius: 3px;
+@panel_border: thin solid #DDD;
+
+.drop-shadow() {
+    .box-shadow(0 1px 2px @grayLighter);
+}
+
+.panel-gradient() {
+    #gradient > .vertical(rgba(255,255,255,1), rgba(246,246,246,1), rgba(237,237,237,1));
+}
+
+/*
+    ----------------------------
+    Development tools
+    ----------------------------
+*/
+
+#dev-tools {
+    display: none;
+    #translucent > .background(#000, 0.1);
+    border: thin solid #BBB;
+    padding: 10px 15px 20px 30px;
+    position: absolute;
+    right: 0;
+    width: 190px;
+    z-index: 1000;
+    .btn {
+        line-height: 16px;
+        margin: 5px 0px;
+        padding-top: 8px;
+        padding-bottom: 8px;
+        text-align: center;
+        width: 150px;
+    }
+}
+
+/*
+    ----------------------------
+    Sidebar
+    ----------------------------
+*/
+
+#sidebar {
+    border-left: thin solid @grayLighter;
+    padding-left: 20px;
+    margin-top: 52px;
+
+    h3 {
+        line-height: 1em;
+        margin-bottom: 1em;
+    }
+
+    .section {
+        padding: 15px;
+        margin-bottom: 20px;
+        &.last { margin-bottom: 0 }
+        &.cluster-status {
+            background: #FEFBF3;
+            border: thin solid lighten(@black, 80%);
+            .border-radius(3px 3px 3px 3px);
+
+            .resolve-issues {
+                margin-top: 15px;
+                margin-bottom: 0;
+            }
+            hr {
+                border-bottom: thin solid @grayLight;
+                margin: 15px 0;
+            }
+            .connectivity-info {
+                margin-top: 0.75em;
+                p.metrics {
+                }
+                p.more-details {
+                    margin-bottom: 0;
+                }
+            }
+        }
+    }
+
+    h5 {
+        text-transform: uppercase;
+        font-size: 0.85em;
+        font-weight: bold;
+        line-height: 2em;
+
+        &.cluster { color: darken(@green, 30%); }
+        &.critical { color: @red; }
+        &.other {
+            color: darken(@purple, 20%);
+            margin-top: 1em;
+        }
+    }
+
+    .issue {
+        padding: 8px 0px;
+
+        .message {
+            display: table-cell;
+            height: 28px;
+            overflow: hidden;
+            padding: 0 0;
+            vertical-align: middle;
+            width: 100%;
+        }
+
+        .priority {
+            width: 24px;
+            height: 24px;
+            float: left;
+            margin-top: 4px;
+            margin-bottom: 4px;
+            margin-right: 15px;
+        }
+
+        &.critical .priority {
+            background: url('/static/images/alert-icon_small.png') no-repeat center center;
+        }
+
+        &.other .priority {
+            background: url('/static/images/information-icon_small.png') no-repeat center center;
+        }
+    }
+
+    .event {
+        padding: 8px 0px;
+
+        .priority {
+            width: 24px;
+            height: 24px;
+            float: left;
+            margin-top: 4px;
+            margin-bottom: 4px;
+            margin-right: 15px;
+            &.medium {
+                background: url('/static/images/alert-icon_small.png') no-repeat center center;
+            }
+            &.low {
+                background: url('/static/images/information-icon_small.png') no-repeat center center;
+            }
+        }
+
+        .message {
+            display: table-cell;
+            height: 32px;
+            overflow: hidden;
+            padding: 0 0;
+            vertical-align: middle;
+            width: 100%;
+        }
+
+        .datetime {
+            color: @gray;
+            text-align: right;
+            text-transform: uppercase;
+            font-size: 0.75em;
+        }
+    }
+}
+
+/*
+    ----------------------------
+    Resolve issues view
+    ----------------------------
+*/
+#cluster > .resolve-issues {
+    .btn { float: right; }
+    .issue {
+        margin: 20px 0px;
+        padding: 15px 25px;
+        background: #FEFBF3;
+        border: thin solid lighten(@black, 80%);
+        .border-radius(3px 3px 3px 3px);
+
+        &.critical .header { background: url('/static/images/critical-issue_small.png') left top no-repeat; }
+
+        .header {
+            margin-top: 3px;
+            padding-left: 44px;
+            min-height: 32px;
+            h3 {
+                line-height: 0.8em;
+                margin-bottom: 0.5em;
+            }
+        }
+
+        hr {
+            margin: 0 0 12px;
+            border-bottom: 1px solid @grayLight;
+        }
+
+        .datetime {
+            font-weight: normal;
+            font-size: 0.75em;
+            color: @gray;
+            text-transform: uppercase;
+            line-height: 4em;
+        }
+
+        .details {
+            margin-top: 5px;
+            margin-bottom: 5px;
+            list-style: square;
+
+            li {
+                line-height: 1.8em;
+                color: @grayDark;
+            }
+        }
+    }
+}
+
+/*
+    ----------------------------
+    Events view
+    ----------------------------
+*/
+
+.events-view {
+    .events { padding-top: 10px; }
+    .event {
+        border-bottom: thin solid @grayLighter;
+        padding-bottom: 20px;
+        margin-bottom: 20px;
+        .datetime {
+            color: @gray;
+            font-size: 1.5em;
+            float: left;
+            width: 40%;
+        }
+
+        .message {
+            color: @grayDark;
+            font-size: 1.5em;
+            float: right;
+            width: 60%;
+        }
+    }
+}
+
+/*
+    ----------------------------
+    Alerts dropdown
+    ----------------------------
+*/
+
+/*#alerts-dropdown  {
+    .bordered {
+        border-bottom: thin solid @grayLighter;
+    }
+
+    .header {
+        padding: 5px 15px;
+        .bordered;
+    }
+
+    .footer {
+        padding: 10px 15px;
+        font-size: 1.2em;
+        text-align: center;
+        a { font-weight: bold; }
+        .bordered;
+    }
+
+    .alert {
+        background: #F5F5F5;
+        color: #666;
+        height: 32px;
+        padding: 15px;
+        cursor: pointer;
+        .bordered;
+
+        div {
+            display: table-cell;
+            height: 32px;
+            overflow: hidden;
+            padding: 0 0;
+            vertical-align: middle;
+            width: 100%;
+            &.goto {
+                padding-left: 5px;
+                font-size: 2em;
+            }
+        }
+
+        img {
+            float: left;
+            margin-top: 4px;
+            margin-bottom: 4px;
+            margin-right: 15px;
+        }
+
+        &.new {
+            background: #FFF;
+            color: #404040;
+            .element {
+                font-weight: bold;
+            }
+        }
+    }
+*/
+    /* Override Bootstrap */
+/*    padding: 0;
+    max-width: 600px;
+    width: 350px;
+    background-color: @white;
+
+    .border-radius(0 0 0 0);
+
+    a {
+        text-shadow: none;
+        color: @linkColor;
+        &:hover {
+            background: none;
+            text-decoration: underline
+        }
+    }
+
+    color: @black;
+    text-shadow: none;
+
+    p, h1, h2, h3, h4, h5, h6 { padding: 0px 15px; }
+}*/
+
+/*
+    ----------------------------
+    Dashboard view
+    ----------------------------
+*/
+.dashboard-view {
+
+    .section {
+        margin-top: 15px;
+        .title { margin-bottom: 15px; }
+
+        &.visualizations {
+            border: thin solid #DDD;
+            border-top: 0;
+            .border-radius(0 0 @border_radius @border_radius);
+
+            margin-top: 0px;
+            padding: 10px;
+            padding-top: 0;
+
+            hr { 
+                margin: 20px 0; 
+                &.first { margin-top: 0; }
+            }
+        }
+
+        hr {
+            border-bottom: thin solid @grayLighter;
+            margin: 15px 0;
+        }
+    }
+
+    .data-picker {
+        .nav {
+            margin-bottom: 0px;
+        }
+
+        .data-stream-filter {
+            @border: thin solid #DDD;
+            border-left: @border;
+            border-right: @border;
+            .border-radius(0 0 @border_radius @border_radius);
+            padding: 20px 10px;
+
+            .model {
+                display: inline;
+                padding: 5px 8px;
+                margin-right: 10px;
+                .border-radius(5px);
+                background: @grayLighter;
+
+                font-size: @baseFontSize * .9;
+                font-weight: bold;
+                color: @white;
+                text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.5);
+                line-height: @baseLineHeight * 1.5;
+
+                input { margin-right: 7px; }
+            }
+        }
+    }
+    .resource-pie-chart {
+        g.center {
+            .total-label {
+                text-transform: uppercase;
+                fill: @gray;
+                font-weight: bold;
+            }
+
+            .total-value {
+                font-weight: bold;
+                font-size: 14px;
+            }
+
+            .total-units {
+                text-transform: lowercase;
+                fill: @gray;
+            }
+        }
+
+        g.arc {
+            line.tick { stroke: gray; }
+            text.label {
+                font-size: 11px;
+            }
+        }
+    }
+    .chart {
+
+        path {
+            &.line, &.domain {
+                stroke-width: 2px;
+                fill: none;
+            }
+            &.domain {
+                stroke: steelblue;
+            }
+            &.area {
+                opacity: 0.7;
+            }
+        }
+
+        line {
+            stroke: black;
+        }
+
+        text {
+            font-size: 9pt;
+        }
+    }
+    /* Override Bootstrap */
+    .row::after {
+        content: none;
+    }
+}
+
+
+/*
+    ----------------------------
+    List view
+    ----------------------------
+*/
+
+.cluster-view {
+    ul.browser-tabs {
+        margin-top: 20px;
+        margin-bottom: 0;
+    }
+    .actions-bar {
+        padding: 12px;
+        .panel-gradient;
+    }
+
+    .rdb-content {
+        border: @panel_border;
+        border-top: 0;
+        .border-radius(0 0 @border_radius @border_radius);
+        margin-bottom: 20px;
+
+    }
+
+    .rdb-content table {
+        margin-bottom: 0;
+        border: 0;
+        td + td { border-left: 0; }
+        td { vertical-align: middle; }
+
+        tr.element {
+            &.selected td {
+                background: @selected_color;
+            }
+            &.last-child td {
+                border-bottom: 0;
+            }
+
+            input[type="checkbox"] {
+                margin-left: 10px; 
+            }
+        }
+
+        .details-wrapper {
+            padding: 10px;
+
+            span.name {
+                font-weight: bold;
+                font-size: 1.2em;
+                color: @grayDark;
+            }
+
+            p.details-text {
+                margin-top: 10px;
+                margin-bottom: 0;
+
+                span {
+                    margin-right: 20px;
+                }
+            }
+        }
+    }
+
+    #namespaces-panel {
+        span.protocol {
+            background: @gray;
+            color: @white;
+            font-size: 0.8em;
+            padding: 0.4em;
+            text-transform: uppercase;
+            font-weight: bold;
+            float: right;
+
+            &.riak { background-color: @riak_color; }
+            &.redis { background-color: @redis_color; }
+            &.memcached {  background-color: @memcached_color;  }
+        }
+    }
+
+    #browser-tabs {
+        margin-bottom: 0;
+    }
+}
+
+.modal {
+    display: none;
+    form {
+        input { height: 28px; }
+        margin-bottom: 0 !important;
+        span.help-inline { padding-left: 15px; }
+    }
+
+    .user-tip {
+        color: grey;
+    }
+}
+
+.alert-message {
+    .name {
+        font-weight: bold;
+    }
+}
+
+/*
+    ----------------------------
+    Generic element view
+    ----------------------------
+*/
+.namespace-view, .datacenter-view, .machine-view, .dashboard-view {
+    @panel_padding: 0 20px;
+    .panel {
+        border: @panel_border;
+        .border-radius(@border_radius);
+        margin-bottom: 10px;
+
+        .title {
+            .border-radius(@border_radius);
+            .panel-gradient;
+            .border-radius(@border_radius @border_radius 0 0);
+            h3 {
+                line-height: 2.25em;
+            }
+            margin-bottom: 5px;
+            padding: @panel_padding;
+        }
+        .content {
+            padding: @panel_padding;
+        }
+    }
+
+    #profile {
+        &:after { display: block; content: ""; clear: left; }
+        .wrapper {
+            width: 50%;
+            float: left;
+        }
+    }
+
+    #recent-actions table {
+        .table-striped;
+
+        td p {
+            color: @grayDark;
+            margin-bottom: 0;
+            line-height: 1.75em;
+        }
+
+        tr.last-child td {
+            border-bottom: 0;
+        }
+    }
+}
+
+/*
+    ----------------------------
+    Namespace view
+    ----------------------------
+*/
+
+.namespace-view {
+    table.datacenters {
+        margin-bottom: 15px;
+        td {
+            border-bottom: thin solid @grayLighter;
+            padding: 10px 0;
+        } 
+    }
+
+    #sharding.panel {
+       table.shards {
+            margin-bottom: 15px;
+            td {
+                border-bottom: thin solid @grayLighter;
+                padding: 10px 0;
+                &.name {
+                    width: 15%;
+                }
+            } 
+        }
+    }
+
+    /* Override Bootstrap */
+    table {
+        border: none;
+        th, td {
+            border-top: none;
+            border-bottom: thin solid @grayLighter;
+        }
+    }
+    /* End override */
+}
+
+/*
+    ----------------------------
+    Machine view
+    ----------------------------
+*/
+
+.machine-view {
+    #profile {
+        .meter {
+            height: 10px;
+            position: relative;
+            background: @grayLighter;
+            .border-radius(6px);
+            padding: 5px;
+            //.box-shadow(@shadow: 0px -1px 1px rgba(255,255,255,0,0.3));
+            float: right;
+            width: 100%;
+
+            span {
+                display: block;
+                height: 100%;
+                .border-radius(6px);
+                background-color: rgb(119,204,164);
+                // #gradient > .vertical(rgb(43, 194, 83), rgb(84,240,84));
+                // .box-shadow(@shadow: 0px 2px 9px rgba(255,255,255,0.3));
+                position: relative;
+                overflow: hidden;
+            }
+        }
+    }
+
+    #performance {
+        #performance-graph {
+            .center-block;
+            width: 90%;
+            height: 300px;
+            margin-top: 20px;
+        }
+
+        p.graph-controls {
+            line-height: 2.5em;
+            margin-top: 0.5em;
+            margin-left: 60px;
+
+            #resume-graph {
+                display: none;
+            }
+        }
+    }
+}
+
+/*
+    -----------------------------------------------
+    ModifyReplicasModal: replication for namespaces
+    -----------------------------------------------
+*/
+
+.modal.modify-replicas {
+    .modal-body {
+        padding-top: 10px;
+    }
+
+    .existing-replicas {
+        .border-radius(2px);
+        background-color: #F0F2EB;
+        border: thin solid #B9D7D9;
+        padding: 10px;
+        margin-top: 10px;
+        margin-bottom: 20px;
+        p { margin-bottom: 0; }
+    }
+
+    .replica-attributes {
+        .info {
+            float: right;
+            width: 200px;
+            margin-left: 20px;
+            .border-radius(4px);
+            background-color: #E5EDB8;
+            border: thin solid #B7D1A3;
+            padding: 14px;
+
+            p:last-child {
+                margin-bottom: 0;
+            }
+        }
+    }
+
+    form {
+        .xlarge {
+            width: 45%;
+            padding-right: 20px;    
+        }
+        tr.last {
+            td { padding-bottom: 0; }
+            .clearfix { margin-bottom: 0; }
+        }
+        label {
+            padding-top: 0px;
+            text-align: left;
+            p {
+                margin-bottom: 6px;
+                &.current {
+                    font-size: 12px;
+                    line-height: 24px;
+                    color: @gray;
+                }
+            }
+        }
+    }
+
+    .replica-plan {
+        h5.replicas {
+            line-height: 1em;
+            margin-bottom: 10px;
+        }
+
+        td {
+            border-bottom: thin solid @grayLighter;
+            padding: 10px 0;
+            &.name {
+                width: 15%;
+                h4 { line-height: 16px; }
+            }
+            &.machines {
+                line-height: 36px;
+                p.delta {
+                    font-size: 15px;
+                }
+                p.existing {
+                    font-size: 12px;
+                    line-height: 18px;
+                    color: @gray;
+                }
+            }
+            &.change-machines {
+                text-align: right;
+                line-height: 36px;
+            }
+        }
+
+        table.shards { margin-bottom: 10px; }
+    }
+
+    /* Override Bootstrap */
+    fieldset {
+        padding-top: 0px;
+        padding-bottom: 15px;
+        margin-bottom: 0;
+
+        label { padding-right: 20px; }
+        .input { margin-left: 0; }
+    }
+
+    table {
+        border: none;
+        margin-bottom: 0;
+
+        td {
+            padding: 0;
+            border: none;
+            padding-bottom: 5px;
+        }
+    }
+    /* End override */
+}
+
+/*
+    -----------------------------------------------
+    ModifyShardsModal: replication for namespaces
+    -----------------------------------------------
+*/
+
+.modal.modify-shards {
+    .modal-body {
+        padding-top: 10px;
+    }
+
+    form {
+        label {
+            padding-top: 0px;
+            text-align: left;
+            p {
+                margin-bottom: 6px;
+            }
+        }
+    }
+
+    .sharding-scheme table.shards, .sharding-plan table.datacenters {
+        td {
+            border-bottom: thin solid @grayLighter;
+            padding: 15px 0 10px;
+            &.name {
+                width: 15%;
+                h4 { line-height: 16px; }
+            }
+        }
+    }
+
+    .sharding-scheme table.shards {
+        td .action {
+            .border-radius(4px);
+            background-color: #F0F2EB;
+            border: thin solid #B9D7D9;
+            padding: 10px 14px;
+
+            p { margin-bottom: 0; }
+            label {
+                width: auto;
+                p { line-height: 28px; }
+            }
+            input { margin-left: 15px; }
+            .btn {
+                float: right;
+                margin-left: 10px;
+            }
+        }
+    }
+
+    .sharding-plan table.datacenters {
+        td {
+            &.machines {
+                line-height: 36px;
+                p.delta {
+                    font-size: 15px;
+                }
+                p.existing {
+                    font-size: 12px;
+                    line-height: 18px;
+                    color: @gray;
+                }
+            }
+            &.change-machines {
+                text-align: right;
+                line-height: 36px;
+            }
+            .existing-replicas {
+                .border-radius(2px);
+                background-color: #F0F2EB;
+                border: thin solid #B9D7D9;
+                padding: 10px;
+                margin-top: 10px;
+                margin-bottom: 20px;
+                p { margin-bottom: 0; }
+            }
+        }
+    }
+
+    /* Override Bootstrap */
+
+    table {
+        border: none;
+        margin-bottom: 0;
+
+        td {
+            padding: 0;
+            border: none;
+            padding-bottom: 5px;
+        }
+    }
+    /* End override */
+
+    table.shard-update-table {
+        border-collapse: collapse;
+        td {
+            border: 1px solid gray;
+        }
+        td.dummy {
+            border: none;
+        }
+    }
+}
