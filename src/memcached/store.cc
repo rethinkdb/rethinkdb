@@ -15,13 +15,13 @@ store_key_t mutation_t::get_key() const {
     return boost::apply_visitor(functor, mutation);
 }
 
-get_result_t set_store_interface_t::get_cas(sequence_group_t *seq_group, const store_key_t &key, order_token_t token) {
+get_result_t set_store_interface_t::get_cas(const store_key_t &key, order_token_t token) {
     get_cas_mutation_t mut;
     mut.key = key;
-    return boost::get<get_result_t>(change(seq_group, mut, token).result);
+    return boost::get<get_result_t>(change(mut, token).result);
 }
 
-set_result_t set_store_interface_t::sarc(sequence_group_t *seq_group, const store_key_t &key, boost::intrusive_ptr<data_buffer_t> data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas, order_token_t token) {
+set_result_t set_store_interface_t::sarc(const store_key_t &key, boost::intrusive_ptr<data_buffer_t> data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas, order_token_t token) {
     sarc_mutation_t mut;
     mut.key = key;
     mut.data = data;
@@ -30,39 +30,39 @@ set_result_t set_store_interface_t::sarc(sequence_group_t *seq_group, const stor
     mut.add_policy = add_policy;
     mut.replace_policy = replace_policy;
     mut.old_cas = old_cas;
-    mutation_result_t res = change(seq_group, mut, token);
+    mutation_result_t res = change(mut, token);
     return boost::get<set_result_t>(res.result);
 }
 
-incr_decr_result_t set_store_interface_t::incr_decr(sequence_group_t *seq_group, incr_decr_kind_t kind, const store_key_t &key, uint64_t amount, order_token_t token) {
+incr_decr_result_t set_store_interface_t::incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount, order_token_t token) {
     incr_decr_mutation_t mut;
     mut.kind = kind;
     mut.key = key;
     mut.amount = amount;
-    return boost::get<incr_decr_result_t>(change(seq_group, mut, token).result);
+    return boost::get<incr_decr_result_t>(change(mut, token).result);
 }
 
-append_prepend_result_t set_store_interface_t::append_prepend(sequence_group_t *seq_group, append_prepend_kind_t kind, const store_key_t &key, boost::intrusive_ptr<data_buffer_t> data, order_token_t token) {
+append_prepend_result_t set_store_interface_t::append_prepend(append_prepend_kind_t kind, const store_key_t &key, boost::intrusive_ptr<data_buffer_t> data, order_token_t token) {
     append_prepend_mutation_t mut;
     mut.kind = kind;
     mut.key = key;
     mut.data = data;
-    return boost::get<append_prepend_result_t>(change(seq_group, mut, token).result);
+    return boost::get<append_prepend_result_t>(change(mut, token).result);
 }
 
-delete_result_t set_store_interface_t::delete_key(sequence_group_t *seq_group, const store_key_t &key, order_token_t token, bool dont_put) {
+delete_result_t set_store_interface_t::delete_key(const store_key_t &key, order_token_t token, bool dont_put) {
     delete_mutation_t mut;
     mut.key = key;
     mut.dont_put_in_delete_queue = dont_put;
-    return boost::get<delete_result_t>(change(seq_group, mut, token).result);
+    return boost::get<delete_result_t>(change(mut, token).result);
 }
 
 timestamping_set_store_interface_t::timestamping_set_store_interface_t(set_store_t *_target)
     : target(_target), cas_counter(0), timestamp(repli_timestamp_t::distant_past) { }
 
-mutation_result_t timestamping_set_store_interface_t::change(sequence_group_t *seq_group, const mutation_t &mutation, order_token_t token) {
+mutation_result_t timestamping_set_store_interface_t::change(const mutation_t &mutation, order_token_t token) {
     assert_thread();
-    return target->change(seq_group, mutation, make_castime(), token);
+    return target->change(mutation, make_castime(), token);
 }
 
 castime_t timestamping_set_store_interface_t::make_castime() {

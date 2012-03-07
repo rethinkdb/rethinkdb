@@ -5,14 +5,14 @@
 #include "btree/slice.hpp"
 
 
-void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, sequence_group_t *seq_group, const store_key_t &store_key, castime_t castime, order_token_t token) {
+void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, const store_key_t &store_key, castime_t castime, order_token_t token) {
     slice->assert_thread();
 
     block_size_t block_size = slice->cache()->get_block_size();
 
     boost::scoped_ptr<transaction_t> txn;
     got_superblock_t superblock;
-    get_btree_superblock(slice, seq_group, rwi_write, oper->compute_expected_change_count(block_size), castime.timestamp, token, &superblock, txn);
+    get_btree_superblock(slice, rwi_write, oper->compute_expected_change_count(block_size), castime.timestamp, token, &superblock, txn);
 
     run_btree_modify_oper(oper, slice, store_key, castime, txn.get(), superblock);
 }

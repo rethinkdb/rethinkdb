@@ -88,25 +88,25 @@ struct tcp_conn_memcached_interface_t : public memcached_interface_t, public hom
     }
 };
 
-void serve_memcache(tcp_conn_t *conn, get_store_t *get_store, set_store_interface_t *set_store, int n_slices) {
+void serve_memcache(tcp_conn_t *conn, get_store_t *get_store, set_store_interface_t *set_store) {
     tcp_conn_memcached_interface_t interface(conn);
-    handle_memcache(&interface, get_store, set_store, MAX_CONCURRENT_QUERIES_PER_CONNECTION, n_slices);
+    handle_memcache(&interface, get_store, set_store, MAX_CONCURRENT_QUERIES_PER_CONNECTION);
 }
 
 perfmon_duration_sampler_t pm_conns("conns", secs_to_ticks(600), false);
 
-memcache_listener_t::memcache_listener_t(int port, get_store_t *_get_store, set_store_interface_t *_set_store, int n_slices) :
+memcache_listener_t::memcache_listener_t(int port, get_store_t *_get_store, set_store_interface_t *_set_store) :
     get_store(_get_store), set_store(_set_store),
     next_thread(0),
     tcp_listener(port, boost::bind(&memcache_listener_t::handle,
-                                   this, auto_drainer_t::lock_t(&drainer), n_slices, _1))
+                                   this, auto_drainer_t::lock_t(&drainer), _1))
 { }
 
 static void close_conn_if_open(tcp_conn_t *conn) {
     if (conn->is_read_open()) conn->shutdown_read();
 }
 
-void memcache_listener_t::handle(auto_drainer_t::lock_t keepalive, int n_slices, boost::scoped_ptr<nascent_tcp_conn_t> &nconn) {
+void memcache_listener_t::handle(auto_drainer_t::lock_t keepalive, boost::scoped_ptr<nascent_tcp_conn_t> &nconn) {
     assert_thread();
 
     block_pm_duration conn_timer(&pm_conns);
@@ -131,5 +131,5 @@ void memcache_listener_t::handle(auto_drainer_t::lock_t keepalive, int n_slices,
 
     /* `serve_memcache()` will continuously serve memcache queries on the given conn
     until the connection is closed. */
-    serve_memcache(conn.get(), get_store, set_store, n_slices);
+    serve_memcache(conn.get(), get_store, set_store);
 }

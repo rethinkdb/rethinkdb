@@ -161,7 +161,7 @@ template <class Value>
 class value_txn_t {
 public:
     value_txn_t(btree_key_t *, keyvalue_location_t<Value>&, repli_timestamp_t, key_modification_callback_t<Value> *km_callback, eviction_priority_t *root_eviction_priority);
-    value_txn_t(btree_slice_t *slice, sequence_group_t *seq_group, btree_key_t *key, const repli_timestamp_t tstamp, const order_token_t token, key_modification_callback_t<Value> *km_callback);
+    value_txn_t(btree_slice_t *slice, btree_key_t *key, const repli_timestamp_t tstamp, const order_token_t token, key_modification_callback_t<Value> *km_callback);
 
     ~value_txn_t();
 

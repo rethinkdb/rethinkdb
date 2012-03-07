@@ -3,7 +3,6 @@
 #include "unittest/server_test_helper.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "buffer_cache/buffer_cache.hpp"
-#include "buffer_cache/sequence_group.hpp"
 
 namespace unittest {
 
@@ -25,11 +24,8 @@ protected:
 private:
     static void test_snapshot_acq_blocks_on_unfinished_create(cache_t *cache) {
         // t0:create(A), t1:snap(), t1:acq(A) blocks, t0:release(A), t1 unblocks, t1 sees the block.
-        sequence_group_t seq_group(1);
-        seq_group.slice_groups[cache->get_slice_num()].fifo.rethread(cache->home_thread());
-
-        transaction_t t0(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
-        transaction_t t1(cache, &seq_group, rwi_read, 0, repli_timestamp_t::invalid);
+        transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past);
+        transaction_t t1(cache, rwi_read, 0, repli_timestamp_t::invalid);
 
         buf_lock_t buf0(&t0);
         buf_lock_t buf1;
@@ -39,16 +35,13 @@ private:
 
     static void test_snapshot_sees_changes_started_before_its_first_block_acq(cache_t *cache) {
         // t0:create+release(A,B), t1:snap(), t2:acqw(A), t2:change+release(A), t1:acq(A), t1 sees the A change, t1:release(A), t2:acqw(B), t2:change(B), t1:acq(B) blocks, t2:release(B), t1 unblocks, t1 sees the B change
-        sequence_group_t seq_group(1);
-        seq_group.slice_groups[cache->get_slice_num()].fifo.rethread(cache->home_thread());
-
-        transaction_t t0(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
+        transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past);
 
         block_id_t block_A, block_B;
         create_two_blocks(&t0, &block_A, &block_B);
 
-        transaction_t t1(cache, &seq_group, rwi_read, 0, repli_timestamp_t::invalid);
-        transaction_t t2(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
+        transaction_t t1(cache, rwi_read, 0, repli_timestamp_t::invalid);
+        transaction_t t2(cache, rwi_write, 0, repli_timestamp_t::distant_past);
 
         snap(&t1);
 
@@ -70,17 +63,14 @@ private:
 
     static void test_snapshot_doesnt_see_later_changes_and_doesnt_block_them(cache_t *cache) {
         // t0:create+release(A), t1:snap(), t1:acq(A), t2:acqw(A) doesn't block, t2:change+release(A), t3:snap(), t3:acq(A), t1 doesn't see the change, t3 does see the change
-        sequence_group_t seq_group(1);
-        seq_group.slice_groups[cache->get_slice_num()].fifo.rethread(cache->home_thread());
-
-        transaction_t t0(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
+        transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past);
 
         block_id_t block_A, block_B;
         create_two_blocks(&t0, &block_A, &block_B);
 
-        transaction_t t1(cache, &seq_group, rwi_read, 0, repli_timestamp_t::invalid);
-        transaction_t t2(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
-        transaction_t t3(cache, &seq_group, rwi_read, 0, repli_timestamp_t::invalid);
+        transaction_t t1(cache, rwi_read, 0, repli_timestamp_t::invalid);
+        transaction_t t2(cache, rwi_write, 0, repli_timestamp_t::distant_past);
+        transaction_t t3(cache, rwi_read, 0, repli_timestamp_t::invalid);
 
         snap(&t1);
         buf_lock_t buf1(&t1, block_A, rwi_read);
@@ -100,16 +90,13 @@ private:
 
     static void test_snapshot_doesnt_block_or_get_blocked_on_txns_that_acq_first_block_later(cache_t *cache) {
         // t0:create+release(A,B), t1:snap(), t1:acq(A), t2:acqw(A) doesn't block, t2:acqw(B), t1:acq(B) doesn't block
-        sequence_group_t seq_group(1);
-        seq_group.slice_groups[cache->get_slice_num()].fifo.rethread(cache->home_thread());
-
-        transaction_t t0(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
+        transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past);
 
         block_id_t block_A, UNUSED block_B;
         create_two_blocks(&t0, &block_A, &block_B);
 
-        transaction_t t1(cache, &seq_group, rwi_read, 0, repli_timestamp_t::invalid);
-        transaction_t t2(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
+        transaction_t t1(cache, rwi_read, 0, repli_timestamp_t::invalid);
+        transaction_t t2(cache, rwi_write, 0, repli_timestamp_t::distant_past);
 
         snap(&t1);
         buf_lock_t buf1_A(&t1, block_A, rwi_read);
@@ -123,16 +110,13 @@ private:
 
     static void test_snapshot_blocks_on_txns_that_acq_first_block_earlier(cache_t *cache) {
         // t0:create+release(A,B), t1:acqw(A), t1:acqw(B), t1:release(A), t2:snap(), t2:acq+release(A), t2:acq(B) blocks, t1:release(B), t2 unblocks
-        sequence_group_t seq_group(1);
-        seq_group.slice_groups[cache->get_slice_num()].fifo.rethread(cache->home_thread());
-
-        transaction_t t0(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
+        transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past);
 
         block_id_t block_A, block_B;
         create_two_blocks(&t0, &block_A, &block_B);
 
-        transaction_t t1(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
-        transaction_t t2(cache, &seq_group, rwi_read, 0, repli_timestamp_t::invalid);
+        transaction_t t1(cache, rwi_write, 0, repli_timestamp_t::distant_past);
+        transaction_t t2(cache, rwi_read, 0, repli_timestamp_t::invalid);
 
         buf_lock_t buf1_A(&t1, block_A, rwi_write);
         buf_lock_t buf1_B(&t1, block_B, rwi_write);
@@ -154,17 +138,14 @@ private:
         // issue 194 unit-test
         // t0:create+release(A,B), t1:acqw+release(A), t2:acqw(A), t3:snap(), t3:acq(A) blocks, t2:release(A), t1:acqw+release(B), t2:acqw(B), t2:change(B), t3:acq(B) blocks, t2:release(B), t3 unblocks and sees B change
         // (fails on t2:acqw(B) with assertion if issue 194 is not fixed)
-        sequence_group_t seq_group(1);
-        seq_group.slice_groups[cache->get_slice_num()].fifo.rethread(cache->home_thread());
-
-        transaction_t t0(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
+        transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past);
 
         block_id_t block_A, block_B;
         create_two_blocks(&t0, &block_A, &block_B);
 
-        transaction_t t1(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
-        transaction_t t2(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
-        transaction_t t3(cache, &seq_group, rwi_read, 0, repli_timestamp_t::invalid);
+        transaction_t t1(cache, rwi_write, 0, repli_timestamp_t::distant_past);
+        transaction_t t2(cache, rwi_write, 0, repli_timestamp_t::distant_past);
+        transaction_t t3(cache, rwi_read, 0, repli_timestamp_t::invalid);
 
         buf_lock_t buf1_A(&t1, block_A, rwi_write);
         buf1_A.release();
@@ -189,17 +170,14 @@ private:
 
     static void test_cow_snapshots(cache_t *cache) {
         // t0:create+release(A,B), t3:acq_outdated_ok(A), t1:acqw(A) doesn't block, t1:change(A), t1:release(A), t2:acqw(A) doesn't block, t2:release(A), t3 doesn't see the change, t3:release(A)
-        sequence_group_t seq_group(1);
-        seq_group.slice_groups[cache->get_slice_num()].fifo.rethread(cache->home_thread());
-
-        transaction_t t0(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
+        transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past);
 
         block_id_t block_A, block_B;
         create_two_blocks(&t0, &block_A, &block_B);
 
-        transaction_t t1(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
-        transaction_t t2(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
-        transaction_t t3(cache, &seq_group, rwi_read, 0, repli_timestamp_t::invalid);
+        transaction_t t1(cache, rwi_write, 0, repli_timestamp_t::distant_past);
+        transaction_t t2(cache, rwi_write, 0, repli_timestamp_t::distant_past);
+        transaction_t t3(cache, rwi_read, 0, repli_timestamp_t::invalid);
 
         buf_lock_t buf3_A(&t3, block_A, rwi_read_outdated_ok);
         uint32_t old_value = get_value(&buf3_A);
@@ -218,16 +196,13 @@ private:
 
     static void test_double_cow_acq_release(cache_t * cache) {
         // t0:create+release(A,B), t1:acq_outdated_ok(A), t2:acq_outdated_ok(A), [t3:acqw(A) doesn't block, t3:delete(A),] t1:release(A), t2:release(A)
-        sequence_group_t seq_group(1);
-        seq_group.slice_groups[cache->get_slice_num()].fifo.rethread(cache->home_thread());
-
-        transaction_t t0(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
+        transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past);
 
         block_id_t block_A, block_B;
         create_two_blocks(&t0, &block_A, &block_B);
 
-        transaction_t t1(cache, &seq_group, rwi_read, 0, repli_timestamp_t::invalid);
-        transaction_t t2(cache, &seq_group, rwi_read, 0, repli_timestamp_t::invalid);
+        transaction_t t1(cache, rwi_read, 0, repli_timestamp_t::invalid);
+        transaction_t t2(cache, rwi_read, 0, repli_timestamp_t::invalid);
 
         buf_lock_t buf1_A(&t1, block_A, rwi_read_outdated_ok);
         buf_lock_t buf2_A(&t2, block_A, rwi_read_outdated_ok);
@@ -235,17 +210,14 @@ private:
 
     static void test_cow_delete(cache_t * cache) {
         // t0:create+release(A,B), t1:acq_outdated_ok(A), t2:acq_outdated_ok(A), t3:acqw(A) doesn't block, t3:delete(A), t1:release(A), t2:release(A)
-        sequence_group_t seq_group(1);
-        seq_group.slice_groups[cache->get_slice_num()].fifo.rethread(cache->home_thread());
-
-        transaction_t t0(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
+        transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past);
 
         block_id_t block_A, block_B;
         create_two_blocks(&t0, &block_A, &block_B);
 
-        transaction_t t1(cache, &seq_group, rwi_read, 0, repli_timestamp_t::invalid);
-        transaction_t t2(cache, &seq_group, rwi_read, 0, repli_timestamp_t::invalid);
-        transaction_t t3(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
+        transaction_t t1(cache, rwi_read, 0, repli_timestamp_t::invalid);
+        transaction_t t2(cache, rwi_read, 0, repli_timestamp_t::invalid);
+        transaction_t t3(cache, rwi_write, 0, repli_timestamp_t::distant_past);
 
         buf_lock_t buf1_A(&t1, block_A, rwi_read_outdated_ok);
         buf_lock_t buf2_A(&t2, block_A, rwi_read_outdated_ok);

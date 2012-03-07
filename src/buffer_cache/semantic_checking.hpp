@@ -21,7 +21,6 @@ template<class inner_cache_t> class scc_cache_t;
 typedef uint32_t crc_t;
 
 class serializer_t;
-class sequence_group_t;
 
 /* Buf */
 
@@ -86,7 +85,7 @@ class scc_transaction_t :
     typedef scc_buf_lock_t<inner_cache_t> buf_lock_t;
 
 public:
-    scc_transaction_t(scc_cache_t<inner_cache_t> *cache, sequence_group_t *seq_group, access_t access, int expected_change_count, repli_timestamp_t recency_timestamp);
+    scc_transaction_t(scc_cache_t<inner_cache_t> *cache, access_t access, int expected_change_count, repli_timestamp_t recency_timestamp);
     ~scc_transaction_t();
 
     // TODO: Implement semantic checking for snapshots!
@@ -128,10 +127,8 @@ public:
         serializer_t *serializer,
         mirrored_cache_static_config_t *static_config);
     scc_cache_t(serializer_t *serializer,
-                mirrored_cache_config_t *dynamic_config,
-                int this_slice_num);
+                mirrored_cache_config_t *dynamic_config);
 
-    int get_slice_num() const { return inner_cache.get_slice_num(); }
     block_size_t get_block_size();
     boost::shared_ptr<cache_account_t> create_account(int priority);
 
