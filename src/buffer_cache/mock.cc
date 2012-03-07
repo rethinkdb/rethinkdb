@@ -2,7 +2,6 @@
 
 #include "arch/arch.hpp"
 #include "arch/random_delay.hpp"
-#include "buffer_cache/sequence_group.hpp"
 #include "serializer/serializer.hpp"
 
 /* Internal buf object */
@@ -154,12 +153,9 @@ void mock_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num
     cb->got_subtree_recencies();
 }
 
-mock_transaction_t::mock_transaction_t(mock_cache_t *_cache, sequence_group_t *seq_group, access_t _access, UNUSED int expected_change_count, repli_timestamp_t _recency_timestamp)
+mock_transaction_t::mock_transaction_t(mock_cache_t *_cache, access_t _access, UNUSED int expected_change_count, repli_timestamp_t _recency_timestamp)
     : cache(_cache), order_token(order_token_t::ignore), access(_access), recency_timestamp(_recency_timestamp),
       keepalive(_cache->transaction_counter.get()) {
-    coro_fifo_acq_t seq_group_acq;
-    seq_group_acq.enter(&seq_group->slice_groups[cache->get_slice_num()].fifo);
-
     coro_fifo_acq_t write_throttle_acq;
     if (is_write_mode(access)) {
         write_throttle_acq.enter(&cache->transaction_constructor_coro_fifo_);
@@ -193,8 +189,8 @@ void mock_cache_t::create(serializer_t *serializer, UNUSED mirrored_cache_static
 
 // dynamic_config is unused because this is a mock cache and the
 // configuration parameters don't apply.
-mock_cache_t::mock_cache_t( serializer_t *_serializer, UNUSED mirrored_cache_config_t *dynamic_config, int this_slice_num)
-    : slice_num(this_slice_num), serializer(_serializer), transaction_counter(new auto_drainer_t),
+mock_cache_t::mock_cache_t( serializer_t *_serializer, UNUSED mirrored_cache_config_t *dynamic_config)
+    : serializer(_serializer), transaction_counter(new auto_drainer_t),
       block_size(_serializer->get_block_size()) {
 
     on_thread_t switcher(serializer->home_thread());

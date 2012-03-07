@@ -127,7 +127,7 @@ void btree_erase_range_generic(value_sizer_t<void> *sizer, btree_slice_t *slice,
     btree_parallel_traversal(txn, superblock, slice, &helper);
 }
 
-void btree_erase_range(btree_slice_t *slice, sequence_group_t *seq_group, key_tester_t *tester,
+void btree_erase_range(btree_slice_t *slice, key_tester_t *tester,
                        bool left_key_supplied, const store_key_t& left_key_exclusive,
                        bool right_key_supplied, const store_key_t& right_key_inclusive,
                        order_token_t token) {
@@ -141,7 +141,7 @@ void btree_erase_range(btree_slice_t *slice, sequence_group_t *seq_group, key_te
     // range of keys and that it won't be aligned right on a leaf node
     // boundary.
 
-    get_btree_superblock(slice, seq_group, rwi_write, 2, repli_timestamp_t::invalid, token, &superblock, txn);
+    get_btree_superblock(slice, rwi_write, 2, repli_timestamp_t::invalid, token, &superblock, txn);
 
     btree_erase_range(slice, tester, left_key_supplied, left_key_exclusive, right_key_supplied, right_key_inclusive, txn.get(), superblock);
 }

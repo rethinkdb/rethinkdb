@@ -138,7 +138,8 @@ memcached_protocol_t::write_response_t memcached_protocol_t::write_t::unshard(st
     return responses[0];
 }
 
-memcached_protocol_t::store_t::store_t(std::string filename, bool create) : store_view_t<memcached_protocol_t>(key_range_t::entire_range()), seq_group(get_thread_id(), 'c') { //notice that 'c' is just to disambiguate
+memcached_protocol_t::store_t::store_t(std::string filename, bool create) : store_view_t<memcached_protocol_t>(key_range_t::entire_range()) {
+
     if (create) {
         standard_serializer_t::create(
             standard_serializer_t::dynamic_config_t(),
@@ -157,7 +158,7 @@ memcached_protocol_t::store_t::store_t(std::string filename, bool create) : stor
         cache_t::create(serializer.get(), &cache_static_config);
     }
 
-    cache.reset(new cache_t(serializer.get(), &cache_dynamic_config, 0));
+    cache.reset(new cache_t(serializer.get(), &cache_dynamic_config));
 
     if (create) {
         btree_slice_t::create(cache.get(), key_range_t::entire_range());
@@ -196,7 +197,7 @@ void memcached_protocol_t::store_t::acquire_superblock_for_read(
     order_token_t order_token = order_source.check_in("memcached_protocol_t::store_t::acquire_superblock_for_read");
     order_token = btree->order_checkpoint_.check_through(order_token);
 
-    get_btree_superblock_for_reading(btree.get(), &seq_group, access, order_token, snapshot, &sb_out, txn_out);
+    get_btree_superblock_for_reading(btree.get(), access, order_token, snapshot, &sb_out, txn_out);
 }
 
 void memcached_protocol_t::store_t::acquire_superblock_for_backfill(
@@ -215,7 +216,7 @@ void memcached_protocol_t::store_t::acquire_superblock_for_backfill(
     order_token_t order_token = order_source.check_in("memcached_protocol_t::store_t::acquire_superblock_for_read");
     order_token = btree->order_checkpoint_.check_through(order_token);
 
-    get_btree_superblock_for_backfilling(btree.get(), &seq_group, order_token, &sb_out, txn_out);
+    get_btree_superblock_for_backfilling(btree.get(), order_token, &sb_out, txn_out);
 }
 
 void memcached_protocol_t::store_t::acquire_superblock_for_write(
@@ -236,7 +237,7 @@ void memcached_protocol_t::store_t::acquire_superblock_for_write(
     order_token_t order_token = order_source.check_in("memcached_protocol_t::store_t::acquire_superblock_for_write");
     order_token = btree->order_checkpoint_.check_through(order_token);
 
-    get_btree_superblock(btree.get(), &seq_group, access, expected_change_count, repli_timestamp_t::invalid, order_token, &sb_out, txn_out);
+    get_btree_superblock(btree.get(), access, expected_change_count, repli_timestamp_t::invalid, order_token, &sb_out, txn_out);
 }
 
 memcached_protocol_t::store_t::metainfo_t memcached_protocol_t::store_t::get_metainfo(
