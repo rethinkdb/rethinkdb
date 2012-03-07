@@ -116,7 +116,7 @@ std::string human_readable_status(int code) {
     case 501:
         return "Not Implemented";
     default:
-        unreachable();
+        unreachable("Unknown code %d.", code);
     }
 }
 

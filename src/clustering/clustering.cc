@@ -9,6 +9,8 @@
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/reactor_driver.hpp"
+#include "http/file_server.hpp"
+#include "memcached/clustering.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "mock/dummy_protocol_parser.hpp"
 #include "rpc/connectivity/cluster.hpp"
@@ -17,7 +19,6 @@
 #include "rpc/directory/manager.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
-#include "memcached/clustering.hpp"
 
 struct server_starter_t : public thread_message_t {
     boost::function<void()> fun;
