@@ -2,7 +2,7 @@
 #define __JAVASCRIPT_JAVASCRIPT_HPP__
 
 #include <JavaScriptCore/JavaScript.h>
-#include "API/JSContextRefPrivate.h"
+#include <API/JSContextRefPrivate.h>
 #include "utils.hpp"
 #include "arch/runtime/runtime.hpp"
 #include <vector>
