@@ -1,6 +1,10 @@
 #ifndef __CLUSTERING_SUGGESTER_SUGGESTER_HPP__
 #define __CLUSTERING_SUGGESTER_SUGGESTER_HPP__
 
+#include "clustering/administration/datacenter_metadata.hpp"
+#include "clustering/reactor/blueprint.hpp"
+#include "clustering/reactor/metadata.hpp"
+
 class cannot_satisfy_goals_exc_t : public std::exception {
 public:
     const char *what() const throw () {
