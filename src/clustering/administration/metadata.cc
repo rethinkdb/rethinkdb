@@ -22,3 +22,7 @@ void semilattice_join(cluster_semilattice_metadata_t *a, const cluster_semilatti
     semilattice_join(&a->machines, b.machines);
     semilattice_join(&a->datacenters, b.datacenters);
 }
+
+cluster_directory_metadata_t::cluster_directory_metadata_t() { }
+
+cluster_directory_metadata_t::cluster_directory_metadata_t(machine_id_t mid) : machine_id(mid) { }

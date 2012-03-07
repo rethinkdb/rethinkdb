@@ -15,18 +15,6 @@ enum role_t {
     role_secondary,
     role_nothing
 };
-
-template <class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(role_t *, const ctx_t &);
-
-template <class ctx_t>
-cJSON *render_as_json(role_t *, const ctx_t &);
-
-template <class ctx_t>
-void apply_json_to(cJSON *, role_t *, const ctx_t &);
-
-template <class ctx_t>
-void on_subfield_change(role_t *, const ctx_t &);
 } //namespace blueprint_details
 
 template<class protocol_t>
@@ -72,27 +60,7 @@ public:
     }
 
     role_map_t peers_roles;
-
-    bool operator==(const blueprint_t &other) const {
-        return peers_roles == other.peers_roles;
-    }
-
-    RDB_MAKE_ME_SERIALIZABLE_1(peers_roles);
 };
-
-template <class protocol_t, class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(blueprint_t<protocol_t> *, const ctx_t &);
-
-template <class protocol_t, class ctx_t>
-cJSON *render_as_json(blueprint_t<protocol_t> *, const ctx_t &);
-
-template <class protocol_t, class ctx_t>
-void apply_json_to(cJSON *, blueprint_t<protocol_t> *, const ctx_t &);
-
-template <class protocol_t, class ctx_t>
-void on_subfield_change(blueprint_t<protocol_t> *, const ctx_t &);
-
-#include "clustering/reactor/blueprint.tcc"
 
 #endif /* __CLUSTERING_REACTOR_BLUEPRINT_HPP__ */
 

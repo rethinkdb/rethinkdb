@@ -9,6 +9,7 @@
 
 #include "clustering/administration/datacenter_metadata.hpp"
 #include "clustering/administration/json_adapters.hpp"
+#include "clustering/administration/persistable_blueprint.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "clustering/immediate_consistency/query/metadata.hpp"
 #include "clustering/reactor/blueprint.hpp"
@@ -25,7 +26,7 @@ typedef boost::uuids::uuid namespace_id_t;
 template<class protocol_t>
 class namespace_semilattice_metadata_t {
 public:
-    vclock_t<blueprint_t<protocol_t> > blueprint;
+    vclock_t<persistable_blueprint_t<protocol_t> > blueprint;
 
     vclock_t<datacenter_id_t> primary_datacenter;
 
@@ -40,7 +41,7 @@ public:
 template <class ctx_t, class protocol_t>
 typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(namespace_semilattice_metadata_t<protocol_t> *target, const ctx_t &) {
     typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
-    res["blueprint"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<vclock_t<blueprint_t<protocol_t> >, ctx_t>(&target->blueprint));
+    res["blueprint"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<vclock_t<persistable_blueprint_t<protocol_t> >, ctx_t>(&target->blueprint));
     res["primary_datacenter"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<vclock_t<datacenter_id_t>, ctx_t>(&target->primary_datacenter));
     res["replica_affinities"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<vclock_t<std::map<datacenter_id_t, int> >, ctx_t>(&target->replica_affinities));
     return res;

@@ -55,10 +55,16 @@ void semilattice_join(cluster_semilattice_metadata_t *a, const cluster_semilatti
 
 class cluster_directory_metadata_t {
 public:
+    cluster_directory_metadata_t();
+    explicit cluster_directory_metadata_t(machine_id_t machine_id);
+
     namespaces_directory_metadata_t<mock::dummy_protocol_t> dummy_namespaces;
     namespaces_directory_metadata_t<memcached_protocol_t> memcached_namespaces;
 
-    RDB_MAKE_ME_SERIALIZABLE_2(dummy_namespaces, memcached_namespaces);
+    /* Tell the other peers what our machine ID is */
+    machine_id_t machine_id;
+
+    RDB_MAKE_ME_SERIALIZABLE_3(dummy_namespaces, memcached_namespaces, machine_id);
 };
 
 #endif

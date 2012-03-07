@@ -11,21 +11,21 @@ TEST(ClusteringSuggester, NewNamespace) {
     datacenter_id_t primary_datacenter = generate_uuid(),
         secondary_datacenter = generate_uuid();
 
-    std::vector<peer_id_t> peers;
+    std::vector<machine_id_t> machines;
     for (int i = 0; i < 10; i++) {
-        peers.push_back(peer_id_t(generate_uuid()));
+        machines.push_back(generate_uuid());
     }
 
-    std::map<peer_id_t, reactor_business_card_t<dummy_protocol_t> > directory;
+    std::map<machine_id_t, reactor_business_card_t<dummy_protocol_t> > directory;
     for (int i = 0; i < 10; i++) {
         reactor_business_card_t<dummy_protocol_t> rb;
         rb.activities[generate_uuid()] = std::make_pair(a_thru_z_region(), reactor_business_card_t<dummy_protocol_t>::nothing_t());
-        directory[peers[i]] = rb;
+        directory[machines[i]] = rb;
     }
 
-    std::map<peer_id_t, datacenter_id_t> machine_data_centers;
+    std::map<machine_id_t, datacenter_id_t> machine_data_centers;
     for (int i = 0; i < 10; i++) {
-        machine_data_centers[peers[i]] = i % 2 == 0 ? primary_datacenter : secondary_datacenter;
+        machine_data_centers[machines[i]] = i % 2 == 0 ? primary_datacenter : secondary_datacenter;
     }
 
     std::map<datacenter_id_t, int> affinities;
@@ -36,14 +36,14 @@ TEST(ClusteringSuggester, NewNamespace) {
     shards.insert(dummy_protocol_t::region_t('a', 'm'));
     shards.insert(dummy_protocol_t::region_t('n', 'z'));
 
-    blueprint_t<dummy_protocol_t> blueprint = suggest_blueprint<dummy_protocol_t>(
+    persistable_blueprint_t<dummy_protocol_t> blueprint = suggest_blueprint<dummy_protocol_t>(
         directory,
         primary_datacenter,
         affinities,
         shards,
         machine_data_centers);
 
-    EXPECT_EQ(peers.size(), blueprint.peers_roles.size());
+    EXPECT_EQ(machines.size(), blueprint.machines_roles.size());
 }
 
 }  // namespace unittest
