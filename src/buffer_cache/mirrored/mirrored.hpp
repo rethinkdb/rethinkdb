@@ -326,7 +326,7 @@ public:
     typedef mc_cache_account_t cache_account_t;
 
     static void create(serializer_t *serializer, mirrored_cache_static_config_t *config);
-    mc_cache_t(serializer_t *serializer, mirrored_cache_config_t *dynamic_config, int this_slice_num);
+    mc_cache_t(serializer_t *serializer, mirrored_cache_config_t *dynamic_config);
     ~mc_cache_t();
 
     block_size_t get_block_size();
@@ -375,9 +375,6 @@ public:
     coro_fifo_t& co_begin_coro_fifo() { return co_begin_coro_fifo_; }
 
 private:
-    // Which slice this cache is for.  Used in get_slice_num or co_begin_transaction.
-    const int slice_num;
-
     mirrored_cache_config_t dynamic_config; // Local copy of our initial configuration
 
     // TODO: how do we design communication between cache policies?

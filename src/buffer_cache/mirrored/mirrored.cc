@@ -1316,9 +1316,7 @@ void mc_cache_t::create(serializer_t *serializer, mirrored_cache_static_config_t
 }
 
 mc_cache_t::mc_cache_t(serializer_t *_serializer,
-                       mirrored_cache_config_t *dynamic_config,
-                       int this_slice_num) :
-    slice_num(this_slice_num),
+                       mirrored_cache_config_t *dynamic_config) :
     dynamic_config(*dynamic_config),
     serializer(_serializer),
     page_repl(

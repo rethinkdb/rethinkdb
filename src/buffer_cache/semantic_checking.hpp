@@ -127,10 +127,8 @@ public:
         serializer_t *serializer,
         mirrored_cache_static_config_t *static_config);
     scc_cache_t(serializer_t *serializer,
-                mirrored_cache_config_t *dynamic_config,
-                int this_slice_num);
+                mirrored_cache_config_t *dynamic_config);
 
-    int get_slice_num() const { return inner_cache.get_slice_num(); }
     block_size_t get_block_size();
     boost::shared_ptr<cache_account_t> create_account(int priority);
 
