@@ -39,7 +39,7 @@ void on_receive_backfill_chunk(
 template<class protocol_t>
 void backfillee(
         mailbox_manager_t *mailbox_manager,
-        boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > branch_history,
+        UNUSED boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > branch_history,
         store_view_t<protocol_t> *store,
         typename protocol_t::region_t region,
         clone_ptr_t<directory_single_rview_t<boost::optional<backfiller_business_card_t<protocol_t> > > > backfiller_metadata,

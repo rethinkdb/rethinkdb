@@ -273,6 +273,8 @@ unsigned long long strtoull_strict(const char *string, char **end, int base);
 // arglist and output buffer excessively.
 std::string strprintf(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
 
+// Precise time (time+nanoseconds) for logging, etc.
+
 /* `demangle_cpp_name()` attempts to de-mangle the given symbol name. If it
 succeeds, it returns the result as a `std::string`. If it fails, it throws
 `demangle_failed_exc_t`. */
@@ -282,8 +284,6 @@ struct demangle_failed_exc_t : public std::exception {
     }
 };
 std::string demangle_cpp_name(const char *mangled_name);
-
-// Precise time (time+nanoseconds) for logging, etc.
 
 struct precise_time_t : public tm {
     uint32_t ns;    // nanoseconds since the start of the second

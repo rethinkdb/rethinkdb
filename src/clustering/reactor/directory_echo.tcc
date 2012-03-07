@@ -1,8 +1,6 @@
 #ifndef __CLUSTERING_REACTOR_DIRECTORY_ECHO_TCC__
 #define __CLUSTERING_REACTOR_DIRECTORY_ECHO_TCC__
 
-#include "clustering/reactor/directory_echo.hpp"
-
 template <class internal_t>
 directory_echo_access_t<internal_t>::our_value_change_t::our_value_change_t(directory_echo_access_t *p) 
     : parent(p), acq(parent->metadata_view->get_directory_service()),

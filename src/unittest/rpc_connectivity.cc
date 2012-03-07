@@ -1,6 +1,6 @@
 #include "unittest/gtest.hpp"
 
-#include "unittest_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 #include "rpc/connectivity/cluster.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
 

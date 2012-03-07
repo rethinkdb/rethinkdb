@@ -485,6 +485,45 @@ static bool parse_backtrace_line(char *line, char **filename, char **function, c
     return true;
 }
 
+/* There has been some trouble with abi::__cxa_demangle.
+
+Originally, demangle_cpp_name() took a pointer to the mangled name, and returned a
+buffer that must be free()ed. It did this by calling __cxa_demangle() and passing NULL
+and 0 for the buffer and buffer-size arguments.
+
+There were complaints that print_backtrace() was smashing memory. Shachaf observed that
+pieces of the backtrace seemed to be ending up overwriting other structs, and filed
+issue #100.
+
+Daniel Mewes suspected that the memory smashing was related to calling malloc().
+In December 2010, he changed demangle_cpp_name() to take a static buffer, and fill
+this static buffer with the demangled name. See 284246bd.
+
+abi::__cxa_demangle expects a malloc()ed buffer, and if the buffer is too small it
+will call realloc() on it. So the static-buffer approach worked except when the name
+to be demangled was too large.
+
+In March 2011, Tim and Ivan got tired of the memory allocator complaining that someone
+was trying to realloc() an unallocated buffer, and changed demangle_cpp_name() back
+to the way it was originally.
+
+Please don't change this function without talking to the people who have already
+been involved in this. */
+
+#include <cxxabi.h>
+
+std::string demangle_cpp_name(const char *mangled_name) {
+    int res;
+    char *name_as_c_str = abi::__cxa_demangle(mangled_name, NULL, 0, &res);
+    if (res == 0) {
+        std::string name_as_std_string(name_as_c_str);
+        free(name_as_c_str);
+        return name_as_std_string;
+    } else {
+        throw demangle_failed_exc_t();
+    }
+}
+
 static bool run_addr2line(char *executable, char *address, char *line, int line_size) {
     // Generate and run addr2line command
     char cmd_buf[255] = {0};

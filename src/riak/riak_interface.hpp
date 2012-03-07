@@ -2,7 +2,7 @@
 #define __RIAK_INTERFACE_HPP__
 
 #include "riak/structures.hpp"
-#include "store_manager.hpp"
+#include "riak/store_manager.hpp"
 #include <boost/ptr_container/ptr_map.hpp>
 #include "http/json.hpp"
 #include "javascript/javascript.hpp"

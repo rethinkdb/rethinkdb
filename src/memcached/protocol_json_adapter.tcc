@@ -5,7 +5,6 @@
 
 #include "http/http.hpp"
 #include "http/json.hpp"
-#include "memcached/protocol_json_adapter.hpp"
 
 //json adapter concept for memcached_protocol_t::region_t
 template <class ctx_t>

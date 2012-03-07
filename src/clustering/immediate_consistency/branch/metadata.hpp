@@ -236,8 +236,8 @@ bool operator==(const branch_birth_certificate_t<protocol_t> &a,
 }
 
 template<class protocol_t>
-void semilattice_join(branch_birth_certificate_t<protocol_t> *a,
-        const branch_birth_certificate_t<protocol_t> &b) {
+void semilattice_join(UNUSED branch_birth_certificate_t<protocol_t> *a,
+                      UNUSED const branch_birth_certificate_t<protocol_t> &b) {
     rassert(*a == b);
 }
 
