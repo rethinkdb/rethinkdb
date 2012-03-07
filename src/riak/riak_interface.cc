@@ -3,8 +3,8 @@
 #include "riak/riak_value.hpp"
 #include "containers/buffer_group.hpp"
 #include <boost/algorithm/string/join.hpp>
-#include "JavaScriptCore/JavaScript.h"
-#include "API/JSContextRefPrivate.h"
+#include <JavaScriptCore/JavaScript.h>
+#include <API/JSContextRefPrivate.h>
 #include "arch/runtime/context_switching.hpp"
 #include "utils.hpp"
 
