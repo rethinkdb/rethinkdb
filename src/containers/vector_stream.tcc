@@ -1,5 +1,3 @@
-#include "containers/vector_stream.hpp"
-
 #include <iterator>
 
 template<typename C,typename T,typename A>
