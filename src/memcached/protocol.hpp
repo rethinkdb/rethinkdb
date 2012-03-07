@@ -14,7 +14,6 @@
 #include "btree/slice.hpp"
 #include "btree/operations.hpp"
 #include "btree/backfill.hpp"
-#include "buffer_cache/sequence_group.hpp"
 #include "buffer_cache/types.hpp"
 #include "memcached/queries.hpp"
 #include "protocol_api.hpp"
@@ -207,7 +206,6 @@ public:
         boost::scoped_ptr<standard_serializer_t> serializer;
         mirrored_cache_config_t cache_dynamic_config;
         boost::scoped_ptr<cache_t> cache;
-        sequence_group_t seq_group;
         boost::scoped_ptr<btree_slice_t> btree;
         order_source_t order_source;
 

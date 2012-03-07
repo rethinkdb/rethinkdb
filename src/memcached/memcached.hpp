@@ -2,7 +2,6 @@
 #define __MEMCACHED_MEMCACHED_HPP__
 
 #include <vector>
-#include "buffer_cache/sequence_group.hpp"
 
 #include "memcached/store.hpp"
 #include "memcached/protocol.hpp"
@@ -38,7 +37,6 @@ struct memcached_interface_t {
 void handle_memcache(memcached_interface_t *interface,
                      get_store_t *get_store,
                      set_store_interface_t *set_store,
-                     int max_concurrent_queries_per_connection,
-                     int n_slices);
+                     int max_concurrent_queries_per_connection);
 
 #endif /* __MEMCACHED_MEMCACHED_HPP__ */

@@ -100,13 +100,13 @@ private:
     DISABLE_COPYING(transaction_holding_iterator_t);
 };
 
-rget_result_t btree_rget_slice(btree_slice_t *slice, sequence_group_t *seq_group, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token) {
+rget_result_t btree_rget_slice(btree_slice_t *slice, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token) {
     // Get the superblock of the slice
     slice->assert_thread();
 
     boost::scoped_ptr<transaction_t> txn;
     got_superblock_t superblock;
-    get_btree_superblock_for_reading(slice, seq_group, rwi_read, token, true, &superblock, txn);
+    get_btree_superblock_for_reading(slice, rwi_read, token, true, &superblock, txn);
 
     return btree_rget_slice(slice, left_mode, left_key, right_mode, right_key, txn, superblock);
 }
