@@ -2,7 +2,7 @@
 
 #include "rpc/connectivity/cluster.hpp"
 #include "rpc/directory/manager.hpp"
-#include "unittest_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 
 namespace unittest {
 
