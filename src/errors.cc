@@ -5,6 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
+#include <typeinfo>
+
 #include "utils.hpp"
 
 void report_user_error(const char *msg, ...) {
@@ -42,45 +45,6 @@ void report_fatal_error(const char *file, int line, const char *msg, ...) {
     funlockfile(stderr);
 }
 
-/* There has been some trouble with abi::__cxa_demangle.
-
-Originally, demangle_cpp_name() took a pointer to the mangled name, and returned a
-buffer that must be free()ed. It did this by calling __cxa_demangle() and passing NULL
-and 0 for the buffer and buffer-size arguments.
-
-There were complaints that print_backtrace() was smashing memory. Shachaf observed that
-pieces of the backtrace seemed to be ending up overwriting other structs, and filed
-issue #100.
-
-Daniel Mewes suspected that the memory smashing was related to calling malloc().
-In December 2010, he changed demangle_cpp_name() to take a static buffer, and fill
-this static buffer with the demangled name. See 284246bd.
-
-abi::__cxa_demangle expects a malloc()ed buffer, and if the buffer is too small it
-will call realloc() on it. So the static-buffer approach worked except when the name
-to be demangled was too large.
-
-In March 2011, Tim and Ivan got tired of the memory allocator complaining that someone
-was trying to realloc() an unallocated buffer, and changed demangle_cpp_name() back
-to the way it was originally.
-
-Please don't change this function without talking to the people who have already
-been involved in this. */
-
-#include <cxxabi.h>
-
-std::string demangle_cpp_name(const char *mangled_name) {
-    int res;
-    char *name_as_c_str = abi::__cxa_demangle(mangled_name, NULL, 0, &res);
-    if (res == 0) {
-        std::string name_as_std_string(name_as_c_str);
-        free(name_as_c_str);
-        return name_as_std_string;
-    } else {
-        throw demangle_failed_exc_t();
-    }
-}
-
 /* Handlers for various signals and for unexpected exceptions or calls to std::terminate() */
 
 void generic_crash_handler(int signum) {
@@ -92,6 +56,8 @@ void generic_crash_handler(int signum) {
 }
 
 void ignore_crash_handler(UNUSED int signum) { }
+
+#include <cxxabi.h>
 
 void terminate_handler() {
     std::type_info *t = abi::__cxa_current_exception_type();
