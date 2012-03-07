@@ -1,8 +1,6 @@
 #ifndef __RPC_DIRECTORY_VIEW_TCC__
 #define __RPC_DIRECTORY_VIEW_TCC__
 
-#include "rpc/directory/view.hpp"
-
 template<class metadata_t, class inner_t>
 class subview_directory_rwview_t :
     public directory_rwview_t<inner_t>
