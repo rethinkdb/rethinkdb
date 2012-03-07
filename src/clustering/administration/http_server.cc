@@ -37,7 +37,8 @@ http_res_t blueprint_http_server_t::handle(const http_req_t &req) {
     case GET:
         {
             http_res_t res(200);
-            res.set_body("application/json", cJSON_print_std_string(json_adapter_head->render(json_ctx)));
+            scoped_cJSON_t json_repr(json_adapter_head->render(json_ctx));
+            res.set_body("application/json", cJSON_print_std_string(json_repr.get()));
             return res;
         }
         break;
@@ -61,15 +62,16 @@ http_res_t blueprint_http_server_t::handle(const http_req_t &req) {
 
                 http_res_t res(200);
 
-                res.set_body("application/json", cJSON_print_std_string(json_adapter_head->render(json_ctx)));
+                scoped_cJSON_t json_repr(json_adapter_head->render(json_ctx));
+                res.set_body("application/json", cJSON_print_std_string(json_repr.get()));
 
                 return res;
-            } catch (schema_mismatch_exc_t e) {
+            } catch (schema_mismatch_exc_t &e) {
                 http_res_t res(400);
                 logINF("HTTP request throw a schema_mismatch_exc_t with what =:\n %s\n", e.what());
                 res.set_body("application/text", e.what());
                 return res;
-            } catch (permission_denied_exc_t e) {
+            } catch (permission_denied_exc_t &e) {
                 http_res_t res(400);
                 logINF("HTTP request throw a permission_denied_exc_t with what =:\n %s\n", e.what());
                 res.set_body("application/text", e.what());

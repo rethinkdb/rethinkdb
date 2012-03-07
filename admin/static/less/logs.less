@@ -1,0 +1,22 @@
+@import "global.less";
+
+#log-wrapper {
+    position: relative;
+}
+
+#log {
+    position: absolute;
+    top: 0; bottom: 0; left: 0; right: 0;
+    height: 600px;
+    width: 800px;
+    overflow: auto;
+    border: @panel_border;
+    padding: 10px;
+    background-color: @black;
+    p {
+        color: @white;
+        #font > .monospace;
+        line-height: 1.4em;
+        font-size: 0.9em;
+    }
+}
