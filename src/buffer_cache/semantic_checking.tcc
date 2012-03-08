@@ -119,12 +119,12 @@ scc_buf_lock_t<inner_cache_t>::~scc_buf_lock_t() {
 /* Transaction */
 
 template<class inner_cache_t>
-scc_transaction_t<inner_cache_t>::scc_transaction_t(scc_cache_t<inner_cache_t> *cache, sequence_group_t *seq_group, access_t access, int expected_change_count, repli_timestamp_t recency_timestamp) :
+scc_transaction_t<inner_cache_t>::scc_transaction_t(scc_cache_t<inner_cache_t> *cache, access_t access, int expected_change_count, repli_timestamp_t recency_timestamp) :
     cache(cache),
     order_token(order_token_t::ignore),
     snapshotted(false),
     access(access),
-    inner_transaction(&cache->inner_cache, seq_group, access, expected_change_count, recency_timestamp)
+    inner_transaction(&cache->inner_cache, access, expected_change_count, recency_timestamp)
     { }
 
 template<class inner_cache_t>
@@ -185,9 +185,8 @@ void scc_cache_t<inner_cache_t>::create(
 
 template<class inner_cache_t>
 scc_cache_t<inner_cache_t>::scc_cache_t(serializer_t *serializer,
-                                        mirrored_cache_config_t *dynamic_config,
-                                        int this_slice_num)
-    : inner_cache(serializer, dynamic_config, this_slice_num) {
+                                        mirrored_cache_config_t *dynamic_config)
+    : inner_cache(serializer, dynamic_config) {
 }
 
 template<class inner_cache_t>

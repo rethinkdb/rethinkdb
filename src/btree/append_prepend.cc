@@ -55,9 +55,9 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
     bool append;   // true = append, false = prepend
 };
 
-append_prepend_result_t btree_append_prepend(const store_key_t &key, btree_slice_t *slice, sequence_group_t *seq_group,  const boost::intrusive_ptr<data_buffer_t>& data, bool append, castime_t castime, order_token_t token) {
+append_prepend_result_t btree_append_prepend(const store_key_t &key, btree_slice_t *slice, const boost::intrusive_ptr<data_buffer_t>& data, bool append, castime_t castime, order_token_t token) {
     btree_append_prepend_oper_t oper(data, append);
-    run_btree_modify_oper(&oper, slice, seq_group, key, castime, token);
+    run_btree_modify_oper(&oper, slice, key, castime, token);
     return oper.result;
 }
 

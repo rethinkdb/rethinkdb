@@ -5,7 +5,6 @@
 
 #include "arch/runtime/runtime.hpp"
 #include "btree/modify_oper.hpp"
-#include "buffer_cache/sequence_group.hpp"
 
 class btree_delete_expired_oper_t : public btree_modify_oper_t {
 public:
@@ -32,20 +31,13 @@ public:
 // replicate.
 void co_btree_delete_expired(const store_key_t &key, btree_slice_t *slice) {
 
-    // Expiration operations are logically no-ops and can be reordered
-    // relative to any other kind of operation, so they don't need to
-    // fuzz up another's sequence_group_t.
-
-    // TODO FIFO: HACK: We don't know the number of slices but we just need the array entry for the cache's number.
-    sequence_group_t seq_group(slice->cache()->get_slice_num() + 1);
-
     btree_delete_expired_oper_t oper;
 
     // TODO: Something is wrong with our abstraction since we are
     // passing a completely meaningless proposed cas and because we
     // should not really be passing a recency timestamp.
     // It's okay to use repli_timestamp_t::invalid here.
-    run_btree_modify_oper(&oper, slice, &seq_group, key, castime_t(BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS, repli_timestamp_t::invalid), order_token_t::ignore);
+    run_btree_modify_oper(&oper, slice, key, castime_t(BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS, repli_timestamp_t::invalid), order_token_t::ignore);
 }
 
 void btree_delete_expired(const store_key_t &key, btree_slice_t *slice) {
