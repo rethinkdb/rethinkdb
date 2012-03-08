@@ -12,7 +12,7 @@ namespace unittest {
 namespace {
 
 void run_with_broadcaster(
-        boost::function<void(
+        boost::function< void(
             simple_mailbox_cluster_t *,
             boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<dummy_protocol_t> > >,
             clone_ptr_t<directory_single_rview_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > >,
@@ -66,7 +66,7 @@ void run_with_broadcaster(
 }
 
 void run_in_thread_pool_with_broadcaster(
-        boost::function<void(
+        boost::function< void(
             simple_mailbox_cluster_t *,
             boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<dummy_protocol_t> > >,
             clone_ptr_t<directory_single_rview_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > >,

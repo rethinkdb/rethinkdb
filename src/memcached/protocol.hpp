@@ -187,8 +187,8 @@ public:
         };
 
         backfill_chunk_t() { }
-        explicit backfill_chunk_t(boost::variant<delete_range_t,delete_key_t,key_value_pair_t> val_) : val(val_) { }
-        boost::variant<delete_range_t,delete_key_t,key_value_pair_t> val;
+        explicit backfill_chunk_t(boost::variant<delete_range_t, delete_key_t, key_value_pair_t> val_) : val(val_) { }
+        boost::variant<delete_range_t, delete_key_t, key_value_pair_t> val;
 
         static backfill_chunk_t delete_range(const key_range_t& range) {
             return backfill_chunk_t(delete_range_t(range));
@@ -249,7 +249,7 @@ public:
                 THROWS_ONLY(interrupted_exc_t);
 
         bool send_backfill(
-                const region_map_t<memcached_protocol_t,state_timestamp_t> &start_point,
+                const region_map_t<memcached_protocol_t, state_timestamp_t> &start_point,
                 const boost::function<bool(const metainfo_t&)> &should_backfill,
                 const boost::function<void(memcached_protocol_t::backfill_chunk_t)> &chunk_fun,
                 boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
@@ -269,7 +269,7 @@ public:
                 signal_t *interruptor)
                 THROWS_ONLY(interrupted_exc_t);
     private:
-        region_map_t<memcached_protocol_t,binary_blob_t> get_metainfo_internal(transaction_t* txn, buf_lock_t* sb_buf) const THROWS_NOTHING;
+        region_map_t<memcached_protocol_t, binary_blob_t> get_metainfo_internal(transaction_t* txn, buf_lock_t* sb_buf) const THROWS_NOTHING;
 
         void acquire_superblock_for_read(
                 access_t access,

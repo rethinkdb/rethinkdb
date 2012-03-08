@@ -133,7 +133,7 @@ bool get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const s
     }
 }
 
-void get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, std::vector<std::pair<std::vector<char>,std::vector<char> > > &kv_pairs_out) {
+void get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, std::vector<std::pair<std::vector<char>, std::vector<char> > > &kv_pairs_out) {
     const btree_superblock_t *data = static_cast<const btree_superblock_t *>(superblock->get_data_read());
 
     // The const cast is okay because we access the data with rwi_read
