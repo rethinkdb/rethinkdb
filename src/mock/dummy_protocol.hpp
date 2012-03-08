@@ -92,9 +92,9 @@ public:
 
         metainfo_t get_metainfo(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
         void set_metainfo(const metainfo_t &new_metainfo, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
-        dummy_protocol_t::read_response_t read(DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+        dummy_protocol_t::read_response_t read(DEBUG_ONLY(const metainfo_t& expected_metainfo, )
                 const dummy_protocol_t::read_t &read, boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
-        dummy_protocol_t::write_response_t write(DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+        dummy_protocol_t::write_response_t write(DEBUG_ONLY(const metainfo_t& expected_metainfo, )
                 const metainfo_t& new_metainfo, const dummy_protocol_t::write_t &write, transition_timestamp_t timestamp, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
                 signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
         bool send_backfill(const region_map_t<dummy_protocol_t, state_timestamp_t> &start_point, const boost::function<bool(const metainfo_t&)> &should_backfill,

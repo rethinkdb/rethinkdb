@@ -50,8 +50,8 @@ struct output_visitor : boost::static_visitor<void> {
     }
 
     void operator()(std::vector<std::string> &res) const {
-        char buff[20];
-        sprintf(buff, "%d", (int)res.size());
+        char buff[40];
+        snprintf(buff, sizeof(buff), "%d", (int)res.size());
 
         out_conn->write("*", 1);
         out_conn->write(buff, strlen(buff));
