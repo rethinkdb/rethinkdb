@@ -5,8 +5,8 @@
 #include <vector>
 #include <ios>
 
-template< typename C = char,typename T = std::char_traits<C>, typename A = std::allocator<C> >
-class vector_streambuf_t : public std::basic_streambuf<C,T> {
+template< typename C = char, typename T = std::char_traits<C>, typename A = std::allocator<C> >
+class vector_streambuf_t : public std::basic_streambuf<C, T> {
 public:
     typedef C char_type;
     typedef T traits_type;
