@@ -92,7 +92,7 @@ void proto_server_t::handle_msg(dummy_msgs::RpbGetClientIdReq &, boost::scoped_p
     write_to_conn(res, conn);
 }
 void proto_server_t::handle_msg(::RpbSetClientIdReq &, boost::scoped_ptr<tcp_conn_t> &conn) {
-    //TODO, actually set some clientID state and such
+    // TODO actually set some clientID state and such
     message_size_t size = 0;
     message_code_t mc = RpbSetClientIdResp;
     conn->write(&size, sizeof(message_size_t));

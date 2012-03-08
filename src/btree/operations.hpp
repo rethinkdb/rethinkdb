@@ -229,7 +229,7 @@ struct superblock_metainfo_iterator_t {
     void operator++();
     void operator++(int) { this->operator++(); }
 
-    std::pair<key_t,value_t> operator*() {
+    std::pair<key_t, value_t> operator*() {
         return std::make_pair(key(), value());
     }
     key_t key() { return std::make_pair(key_size, key_ptr); }
@@ -252,7 +252,7 @@ private:
 };
 
 bool get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key, std::vector<char> &value_out);
-void get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, std::vector<std::pair<std::vector<char>,std::vector<char> > > &kv_pairs_out);
+void get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, std::vector< std::pair<std::vector<char>, std::vector<char> > > &kv_pairs_out);
 
 void set_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key, const std::vector<char> &value);
 

@@ -306,7 +306,7 @@ private:
 };
 
 memcached_protocol_t::read_response_t memcached_protocol_t::store_t::read(
-        DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+        DEBUG_ONLY(const metainfo_t& expected_metainfo, )
         const memcached_protocol_t::read_t &read,
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
         signal_t *interruptor)
@@ -316,14 +316,14 @@ memcached_protocol_t::read_response_t memcached_protocol_t::store_t::read(
     boost::scoped_ptr<transaction_t> txn;
     acquire_superblock_for_read(rwi_read, false, token, txn, superblock, interruptor);
 
-    check_metainfo(DEBUG_ONLY(expected_metainfo,) txn.get(), superblock);
+    check_metainfo(DEBUG_ONLY(expected_metainfo, ) txn.get(), superblock);
 
     btree_operation_visitor_t v(btree.get(), txn, superblock);
     return boost::apply_visitor(v, read.query);
 }
 
 memcached_protocol_t::write_response_t memcached_protocol_t::store_t::write(
-        DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+        DEBUG_ONLY(const metainfo_t& expected_metainfo, )
         const metainfo_t& new_metainfo,
         const memcached_protocol_t::write_t &write,
         transition_timestamp_t timestamp,
@@ -336,7 +336,7 @@ memcached_protocol_t::write_response_t memcached_protocol_t::store_t::write(
     const int expected_change_count = 2; // FIXME: this is incorrect, but will do for now
     acquire_superblock_for_write(rwi_write, expected_change_count, token, txn, superblock, interruptor);
 
-    check_and_update_metainfo(DEBUG_ONLY(expected_metainfo,) new_metainfo, txn.get(), superblock);
+    check_and_update_metainfo(DEBUG_ONLY(expected_metainfo, ) new_metainfo, txn.get(), superblock);
 
     castime_t cas = castime_t(write.proposed_cas, timestamp.to_repli_timestamp());
     return memcached_protocol_t::write_response_t(btree->change(write.mutation, cas, txn.get(), superblock).result);
@@ -469,18 +469,18 @@ void memcached_protocol_t::store_t::reset_data(
 }
 
 void memcached_protocol_t::store_t::check_and_update_metainfo(
-        DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+        DEBUG_ONLY(const metainfo_t& expected_metainfo, )
         const metainfo_t &new_metainfo,
         transaction_t *txn,
         got_superblock_t &superblock) const
         THROWS_NOTHING {
 
-    metainfo_t old_metainfo = check_metainfo(DEBUG_ONLY(expected_metainfo,) txn, superblock);
+    metainfo_t old_metainfo = check_metainfo(DEBUG_ONLY(expected_metainfo, ) txn, superblock);
     update_metainfo(old_metainfo, new_metainfo, txn, superblock);
 }
 
 memcached_protocol_t::store_t::metainfo_t memcached_protocol_t::store_t::check_metainfo(
-        DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+        DEBUG_ONLY(const metainfo_t& expected_metainfo, )
         transaction_t *txn,
         got_superblock_t &superblock) const
         THROWS_NOTHING {

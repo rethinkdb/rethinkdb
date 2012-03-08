@@ -545,7 +545,7 @@ rwi_lock_assertion_t *connectivity_cluster_t::get_peers_list_lock() THROWS_NOTHI
     return &thread_info.get()->lock;
 }
 
-publisher_t<std::pair <
+publisher_t< std::pair<
         boost::function<void(peer_id_t)>,
         boost::function<void(peer_id_t)>
         > > *connectivity_cluster_t::get_peers_list_publisher() THROWS_NOTHING {

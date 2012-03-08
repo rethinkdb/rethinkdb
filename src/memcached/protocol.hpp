@@ -230,14 +230,14 @@ public:
                 THROWS_ONLY(interrupted_exc_t);
 
         memcached_protocol_t::read_response_t read(
-                DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+                DEBUG_ONLY(const metainfo_t& expected_metainfo, )
                 const memcached_protocol_t::read_t &read,
                 boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
                 signal_t *interruptor)
                 THROWS_ONLY(interrupted_exc_t);
 
         memcached_protocol_t::write_response_t write(
-                DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+                DEBUG_ONLY(const metainfo_t& expected_metainfo, )
                 const metainfo_t& new_metainfo,
                 const memcached_protocol_t::write_t &write,
                 transition_timestamp_t timestamp,
@@ -291,13 +291,13 @@ public:
                 signal_t *interruptor)
                 THROWS_ONLY(interrupted_exc_t);
         void check_and_update_metainfo(
-            DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+            DEBUG_ONLY(const metainfo_t& expected_metainfo, )
             const metainfo_t &new_metainfo,
             transaction_t *txn,
             got_superblock_t &superbloc) const
             THROWS_NOTHING;
         metainfo_t check_metainfo(
-            DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+            DEBUG_ONLY(const metainfo_t& expected_metainfo, )
             transaction_t *txn,
             got_superblock_t &superbloc) const
             THROWS_NOTHING;
