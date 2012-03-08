@@ -25,25 +25,3 @@ temp_file_t::~temp_file_t() {
 }
 
 }  // namespace unittest
-
-
-struct starter_t : public thread_message_t {
-    thread_pool_t *tp;
-    boost::function<void()> run;
-
-    starter_t(thread_pool_t *_tp, const boost::function<void()>& _fun) : tp(_tp), run(boost::bind(&starter_t::run_wrapper, this, _fun)) { }
-    void on_thread_switch() {
-        spawn_on_thread(0, run);
-    }
-private:
-    void run_wrapper(const boost::function<void()>& fun) {
-        fun();
-        tp->shutdown();
-    }
-};
-
-void run_in_thread_pool(const boost::function<void()>& fun, int num_threads) {
-    thread_pool_t thread_pool(num_threads, false);
-    starter_t starter(&thread_pool, fun);
-    thread_pool.run(&starter);
-}

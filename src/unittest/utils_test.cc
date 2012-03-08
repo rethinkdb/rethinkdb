@@ -2,6 +2,7 @@
 
 #include "utils.hpp"
 #include "arch/address.hpp"
+#include "arch/runtime/runtime.hpp"
 #include "unittest/unittest_utils.hpp"
 
 namespace unittest {
