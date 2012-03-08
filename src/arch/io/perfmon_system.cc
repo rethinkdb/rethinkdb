@@ -75,7 +75,7 @@ private:
         if (stat_file.get() == INVALID_FD) {
             throw proc_pid_stat_exc_t("Could not open '%s': %s (errno = %d)", path, strerror(errno), errno);
         }
-        
+
         char buffer[1000];
         int res = ::read(stat_file.get(), buffer, sizeof(buffer));
         if (res <= 0) {
@@ -84,7 +84,6 @@ private:
 
         buffer[res] = '\0';
 
-        // TODO rewrite this mess to use something more safe and sane, e.g. iostreams
         const int items_to_parse = 44;
         int res2 = sscanf(buffer, "%d %s %c %d %d %d %d %d %u %lu %lu %lu %lu %lu %lu %ld %ld "
             "%ld %ld %ld %ld %llu %lu %ld %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %d "
