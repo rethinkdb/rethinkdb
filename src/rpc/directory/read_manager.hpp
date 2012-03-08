@@ -62,7 +62,7 @@ private:
     public:
         fifo_enforcer_sink_t propagation_fifo_sink;
         rwi_lock_assertion_t peers_list_lock;
-        publisher_controller_t<std::pair<
+        publisher_controller_t<std::pair <
                 boost::function<void(peer_id_t)>,
                 boost::function<void(peer_id_t)>
                 > > peers_list_publisher;
@@ -111,7 +111,7 @@ private:
 
     /* `connectivity_service_t` methods */
     rwi_lock_assertion_t *get_peers_list_lock() THROWS_NOTHING;
-    publisher_t<std::pair<
+    publisher_t<std::pair <
             boost::function<void(peer_id_t)>,
             boost::function<void(peer_id_t)>
             > > *get_peers_list_publisher() THROWS_NOTHING;

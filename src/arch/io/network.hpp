@@ -273,7 +273,7 @@ private:
     /* memcpy up to n bytes from read_buffer into dest. Returns the number of bytes
     copied. Then pop_read_buffer() can be used to remove the fetched bytes from the read buffer.
     */
-    // TODO! Recover that to make pop() fast again
+    // TODO ! Recover that to make pop() fast again
     //size_t memcpy_from_read_buffer(void *buf, const size_t n);
     //void pop_read_buffer(const size_t n);
 
@@ -320,8 +320,8 @@ public:
         public std::exception
     {
         address_in_use_exc_t(const char* hostname, int port) throw () : 
-            info(strprintf("The address at %s:%d is already in use", hostname, port)) { };
-        ~address_in_use_exc_t() throw () { };
+            info(strprintf("The address at %s:%d is already in use", hostname, port)) { }
+        ~address_in_use_exc_t() throw () { }
 
         const char *what() const throw () {
             return info.c_str();
