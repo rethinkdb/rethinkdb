@@ -26,7 +26,7 @@ public:
     bucket_iterator_t operator++() { it++; return *this; }
     bucket_iterator_t operator++(int) { it++; return *this; }
     bucket_t operator*() { return boost::get<riak_store_metadata_t>(it->second->store_metadata); }
-    bucket_t *operator->() { return &boost::get<riak_store_metadata_t>(it->second->store_metadata); };
+    bucket_t *operator->() { return &boost::get<riak_store_metadata_t>(it->second->store_metadata); }
 };
 
 
@@ -72,7 +72,7 @@ public:
     object_iterator_t objects(const std::string &);
 
     // Get a single object
-    const object_t get_object(std::string, std::pair<int,int> range = std::make_pair(-1, -1));
+    const object_t get_object(std::string, std::pair<int, int> range = std::make_pair(-1, -1));
     // Store an object
     enum set_result_t {
         CREATED,

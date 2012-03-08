@@ -168,8 +168,11 @@ void connectivity_cluster_t::run_t::handle(
         /* We expect that sending can fail due to a network problem. If that
         happens, just ignore it. If sending fails for some other reason, then
         the programmer should learn about it, so we rethrow the exception. */
-        if (!conn->is_write_open()) return;
-        else throw;
+        if (!conn->is_write_open()) {
+            return;
+        } else {
+            throw;
+        }
     }
 
     peer_id_t other_id;
@@ -179,8 +182,11 @@ void connectivity_cluster_t::run_t::handle(
         receiver >> other_id;
         receiver >> other_address;
     } catch (boost::archive::archive_exception) {
-        if (!conn->is_read_open()) return;
-        else throw;
+        if (!conn->is_read_open()) {
+            return;
+        } else {
+            throw;
+        }
     }
 
     /* Sanity checks */
@@ -539,7 +545,7 @@ rwi_lock_assertion_t *connectivity_cluster_t::get_peers_list_lock() THROWS_NOTHI
     return &thread_info.get()->lock;
 }
 
-publisher_t<std::pair<
+publisher_t<std::pair <
         boost::function<void(peer_id_t)>,
         boost::function<void(peer_id_t)>
         > > *connectivity_cluster_t::get_peers_list_publisher() THROWS_NOTHING {

@@ -129,7 +129,7 @@ void run_backfill_test() {
     backfillee_store.new_read_token(token1);
 
     region_map_t<dummy_protocol_t, version_range_t> backfillee_metadata = 
-        region_map_transform<dummy_protocol_t,binary_blob_t,version_range_t>(
+        region_map_transform<dummy_protocol_t, binary_blob_t, version_range_t>(
             backfillee_store.get_metainfo(token1, &interruptor),
             &binary_blob_t::get<version_range_t>
         );
@@ -138,7 +138,7 @@ void run_backfill_test() {
     backfiller_store.new_read_token(token2);
 
     region_map_t<dummy_protocol_t, version_range_t> backfiller_metadata = 
-        region_map_transform<dummy_protocol_t,binary_blob_t,version_range_t>(
+        region_map_transform<dummy_protocol_t, binary_blob_t, version_range_t>(
             backfiller_store.get_metainfo(token2, &interruptor),
             &binary_blob_t::get<version_range_t>
         );
