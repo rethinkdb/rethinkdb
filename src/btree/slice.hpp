@@ -62,17 +62,6 @@ public:
     void backfill(const key_range_t& key_range, repli_timestamp_t since_when, backfill_callback_t *callback,
                   transaction_t *txn, got_superblock_t& superblock);
 
-    /* These store metadata for replication. There must be a better way to store this information,
-    since it really doesn't belong on the btree_slice_t! TODO: Move them elsewhere. */
-    void set_replication_clock(repli_timestamp_t t, order_token_t token);
-    repli_timestamp_t get_replication_clock();
-    void set_last_sync(repli_timestamp_t t, order_token_t token);
-    repli_timestamp_t get_last_sync();
-    void set_replication_master_id(uint32_t t);
-    uint32_t get_replication_master_id();
-    void set_replication_slave_id(uint32_t t);
-    uint32_t get_replication_slave_id();
-
     cache_t *cache() { return cache_; }
     boost::shared_ptr<cache_account_t> get_backfill_account() { return backfill_account; }
 
