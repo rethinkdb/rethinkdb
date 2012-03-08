@@ -88,14 +88,14 @@ private:
         const int items_to_parse = 44;
         int res2 = sscanf(buffer, "%d %s %c %d %d %d %d %d %u %lu %lu %lu %lu %lu %lu %ld %ld "
             "%ld %ld %ld %ld %llu %lu %ld %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %d "
-            "%d %u %u %u %u %llu %lu %ld",
+            "%d %u %u %llu %lu %ld",
             &pid, name, &state, &ppid, &pgrp, &session, &tty_nr, &tpgid,
             &flags, &minflt, &cminflt, &majflt, &cmajflt, &utime, &stime,
             &cutime, &cstime, &priority, &nice, &num_threads, &itrealvalue,
             &starttime, &vsize, &rss, &rsslim, &startcode, &endcode, &startstack,
             &kstkesp, &kstkeip, &signal, &blocked, &sigignore, &sigcatch, &wchan,
-            &nswap, &cnswap, &exit_signal, &processor, &rt_priority, &processor,
-            &rt_priority, &policy, &delayacct_blkio_ticks, &guest_time, &cguest_time);
+            &nswap, &cnswap, &exit_signal, &processor, &rt_priority, &policy,
+            &delayacct_blkio_ticks, &guest_time, &cguest_time);
         if (res2 != items_to_parse) {
             throw proc_pid_stat_exc_t("Could not parse '%s': expected to parse %d items, parsed "
                 "%d. Buffer contents: %s", path, items_to_parse, res2, buffer);
