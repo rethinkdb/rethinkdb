@@ -98,5 +98,9 @@ void clustering_main(int port, int contact_port) {
     blueprint_http_server_t server(semilattice_manager_cluster.get_root_view(),
                                    connectivity_cluster.get_me().get_uuid(),
                                    port + 1000);
+    std::set<std::string> white_list;
+    white_list.insert("/cluster.html");
+    http_file_server_t file_server(port + 1001, white_list, "../admin/templates");
+
     wait_for_sigint();
 }
