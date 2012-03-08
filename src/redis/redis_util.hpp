@@ -14,51 +14,51 @@ typedef redis_protocol_t::timestamp_t timestamp_t;
 //declaration from the header file to get a default implementation. Gradually these will go away
 //as we actually define real implementations of the various redis commands.
 
-#define WRITE(CNAME)\
-redis_protocol_t::indicated_key_t redis_protocol_t::CNAME::get_keys() {return std::string("");}\
- \
-redis_protocol_t::write_t redis_protocol_t::CNAME::shard(UNUSED redis_protocol_t::region_t mask) { \
-    return redis_protocol_t::write_t(new CNAME(*this)); \
-} \
- \
-redis_protocol_t::write_response_t redis_protocol_t::CNAME::execute(btree_slice_t *btree, timestamp_t timestamp, order_token_t otok) { \
-    (void)btree; \
-    (void)timestamp; \
-    (void)otok; \
-    throw "ERR Redis command " #CNAME " not yet implemented"; \
-}
+#define WRITE(CNAME)                                                    \
+    redis_protocol_t::indicated_key_t redis_protocol_t::CNAME::get_keys() { return std::string(""); } \
+                                                                        \
+    redis_protocol_t::write_t redis_protocol_t::CNAME::shard(UNUSED redis_protocol_t::region_t mask) { \
+        return redis_protocol_t::write_t(new CNAME(*this));             \
+    }                                                                   \
+                                                                        \
+    redis_protocol_t::write_response_t redis_protocol_t::CNAME::execute(btree_slice_t *btree, timestamp_t timestamp, order_token_t otok) { \
+        (void)btree;                                                    \
+        (void)timestamp;                                                \
+        (void)otok;                                                     \
+        throw "ERR Redis command " #CNAME " not yet implemented";       \
+    }
 
-#define READ(CNAME)\
-redis_protocol_t::indicated_key_t redis_protocol_t::CNAME::get_keys() {return std::string("");}\
- \
-redis_protocol_t::read_t redis_protocol_t::CNAME::shard(UNUSED redis_protocol_t::region_t mask) { \
-    return redis_protocol_t::read_t(new CNAME(*this)); \
-} \
- \
-redis_protocol_t::read_response_t redis_protocol_t::CNAME::execute(btree_slice_t *btree, order_token_t otok) { \
-    (void)btree; \
-    (void)otok; \
-    throw "ERR Redis command " #CNAME " not yet implemented"; \
-}
+#define READ(CNAME)                                                     \
+    redis_protocol_t::indicated_key_t redis_protocol_t::CNAME::get_keys() {return std::string("");} \
+                                                                        \
+    redis_protocol_t::read_t redis_protocol_t::CNAME::shard(UNUSED redis_protocol_t::region_t mask) { \
+        return redis_protocol_t::read_t(new CNAME(*this));              \
+    }                                                                   \
+                                                                        \
+    redis_protocol_t::read_response_t redis_protocol_t::CNAME::execute(btree_slice_t *btree, order_token_t otok) { \
+        (void)btree;                                                    \
+        (void)otok;                                                     \
+        throw "ERR Redis command " #CNAME " not yet implemented";       \
+    }
 
 // Macros to make some of these implementations a little less tedius
 
 // Assumes the key (or keys) is simply the first argument to the command. This is true for almost all commands
 #define KEYS(CNAME) redis_protocol_t::indicated_key_t redis_protocol_t::CNAME::get_keys() { \
-    return one; \
-}
+        return one;                                                     \
+    }
 
 // Simple shard behavior that merely returns one copy of this operation. Useful when the operation will only
 // touch one key (and thus touch only one shard) which is most of them
-#define SHARD_W(CNAME) redis_protocol_t::write_t \
-        redis_protocol_t::CNAME::shard(UNUSED redis_protocol_t::region_t mask) { \
-    return redis_protocol_t::write_t(new CNAME(*this)); \
-}
+#define SHARD_W(CNAME) redis_protocol_t::write_t                        \
+    redis_protocol_t::CNAME::shard(UNUSED redis_protocol_t::region_t mask) { \
+        return redis_protocol_t::write_t(new CNAME(*this));             \
+    }
 
-#define SHARD_R(CNAME) redis_protocol_t::read_t \
-        redis_protocol_t::CNAME::shard(UNUSED redis_protocol_t::region_t mask) { \
-    return redis_protocol_t::read_t(new CNAME(*this)); \
-}
+#define SHARD_R(CNAME) redis_protocol_t::read_t                         \
+    redis_protocol_t::CNAME::shard(UNUSED redis_protocol_t::region_t mask) { \
+        return redis_protocol_t::read_t(new CNAME(*this));              \
+    }
 
 #define EXECUTE_R(CNAME) redis_protocol_t::read_response_t redis_protocol_t::CNAME::execute(btree_slice_t *btree, order_token_t otok)
 

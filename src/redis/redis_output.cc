@@ -22,16 +22,16 @@ struct output_visitor : boost::static_visitor<void> {
     }
 
     void operator()(int res) const {
-        char buff[20]; //Max size of a base 10 representation of a 64 bit number
-        sprintf(buff, "%d", res);
+        char buff[40];
+        snprintf(buff, sizeof(buff), "%d", res);
         out_conn->write(":", 1);
         out_conn->write(buff, strlen(buff));
         out_conn->write("\r\n", 2);
     }
 
     void bulk_result(std::string &res) const {
-        char buff[20];
-        sprintf(buff, "%d", (int)res.size());
+        char buff[40];
+        snprintf(buff, sizeof(buff), "%d", (int)res.size());
 
         out_conn->write("$", 1);
         out_conn->write(buff, strlen(buff));

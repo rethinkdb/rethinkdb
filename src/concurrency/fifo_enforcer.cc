@@ -46,7 +46,7 @@ fifo_enforcer_sink_t::exit_write_t::exit_write_t(fifo_enforcer_sink_t *p, fifo_e
     parent->assert_thread();
     mutex_assertion_t::acq_t acq(&parent->lock);
 
-    std::pair<writer_queue_t::iterator,bool> inserted = parent->waiting_writers.insert(std::make_pair(token.timestamp, std::make_pair(token.num_preceding_reads, this)));
+    std::pair<writer_queue_t::iterator, bool> inserted = parent->waiting_writers.insert(std::make_pair(token.timestamp, std::make_pair(token.num_preceding_reads, this)));
     rassert(inserted.second, "duplicate fifo_enforcer_write_token_t");
     queue_position = inserted.first;
 
