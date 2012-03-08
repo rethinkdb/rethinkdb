@@ -307,6 +307,17 @@ SERVER_NOMAIN_OBJS:=$(PROTO_OBJS) $(patsubst %.cc,$(OBJ_DIR)/%.o,$(filter-out %/
 
 SERVER_UNIT_TEST_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/unittest/main.o
 
+#### Web UI sources
+WEB_SOURCE_DIR:=../admin
+WEB_ASSETS_BUILD_DIR:=$(BUILD_DIR)/web
+#This atrociousness comes from the fact... fuck it blah blah blah coffee script.
+#Basically coffee script can't handle dependencies.
+COFFEE_SOURCES:=$(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%, util.coffee clusterview.coffee namespaceview.coffee otherviews.coffee cluster.coffee)
+LESS_SOURCES:=$(shell find $(WEB_SOURCE_DIR)/static/less -name '*.less')
+LESS_MAIN:=$(WEB_SOURCE_DIR)/static/less/cluster.less
+CLUSTER_HTML:=$(WEB_SOURCE_DIR)/templates/cluster.html
+JS_EXTERNAL_DIR:=$(WEB_SOURCE_DIR)/static/js
+
 #### Version number handling
 RETHINKDB_VERSION:=$(shell ../scripts/gen-version.sh)
 RETHINKDB_SHORT_VERSION:=$(shell ../scripts/gen-version.sh -s)
@@ -322,14 +333,14 @@ CXXFLAGS+=-DRETHINKDB_VERSION=\"$(RETHINKDB_VERSION)\"
 SERVER_EXEC_NAME_VERSIONED:=$(SERVER_EXEC_NAME)-$(RETHINKDB_SHORT_VERSION)
 
 ##### Build targets
-.PHONY: all build-deb build-rpm callgrind callgrind clean cscope deb deb depclean gdb install install-binaries install-deb install-docs install-manpages install-rpm install-tools prepare_deb_package_dirs prepare_rpm_package_dirs regdb rerun revalgrind rpm rpm rpm-suse10 run sembuild showdefines style tags unit valgrind
+.PHONY: all build-deb build-rpm callgrind callgrind clean cscope deb deb depclean gdb install install-binaries install-deb install-docs install-manpages install-rpm install-tools prepare_deb_package_dirs prepare_rpm_package_dirs regdb rerun revalgrind rpm rpm rpm-suse10 run sembuild showdefines style tags unit valgrind web-assets
 
 # High level build targets
 
 ifeq ($(UNIT_TESTS),1)
-all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME)
+all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME) web-assets
 else
-all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME)
+all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME) web-assets
 endif
 
 unit:
@@ -551,6 +562,24 @@ rpm-suse10:
 endif
 
 # Build rules
+
+web-assets: $(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/cluster.css $(WEB_ASSETS_BUILD_DIR)/cluster.html $(WEB_ASSETS_BUILD_DIR)/js
+
+$(WEB_ASSETS_BUILD_DIR)/cluster-min.js: $(COFFEE_SOURCES)
+	mkdir -p $(WEB_ASSETS_BUILD_DIR)
+	coffee -bp $+ > $@
+
+$(WEB_ASSETS_BUILD_DIR)/cluster.css: $(LESS_SOURCES)
+	mkdir -p $(WEB_ASSETS_BUILD_DIR)
+	lessc $(LESS_MAIN) > $@
+
+$(WEB_ASSETS_BUILD_DIR)/cluster.html: $(CLUSTER_HTML)
+	mkdir -p $(WEB_ASSETS_BUILD_DIR)
+	sed 's:="gen/:=":g' $(CLUSTER_HTML) > $@
+
+$(WEB_ASSETS_BUILD_DIR)/js: 
+	mkdir -p $(WEB_ASSETS_BUILD_DIR)
+	cp -rP $(JS_EXTERNAL_DIR) $(WEB_ASSETS_BUILD_DIR)
 
 # Special recipe for the proto buffer generated code
 $(PROTO_DIR)/%.pb.h: $(SOURCE_DIR)/%.proto

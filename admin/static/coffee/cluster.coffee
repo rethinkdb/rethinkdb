@@ -939,7 +939,7 @@ $ ->
     generate_fake_issues(issues)
 
     # Load the data bootstrapped from the HTML template
-    reset_collections()
+    # reset_collections()
     reset_token()
 
     # Log all events fired for the namespaces collection (debugging)
