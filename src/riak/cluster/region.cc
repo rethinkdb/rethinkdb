@@ -66,11 +66,11 @@ region_t::key_spec_t region_t::intersection_functor::operator()(const finite_t &
 }
 
 region_t::key_spec_t region_t::intersection_functor::operator()(const hash_range_t & x, const finite_t & y) const {
-    return operator()(y,x);
+    return operator()(y, x);
 }
 
 region_t::key_spec_t region_t::intersection_functor::operator()(const hash_range_t & x, const hash_range_t & y) const {
-    if (overlaps_functor()(x,y)) {
+    if (overlaps_functor()(x, y)) {
         return std::make_pair(std::max(x.first, y.first), std::min(x.second, y.second));
     } else {
         return finite_t();

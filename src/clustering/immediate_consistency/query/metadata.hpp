@@ -18,18 +18,18 @@ class master_business_card_t {
 
 public:
     /* Mailbox types for the master */
-    typedef async_mailbox_t<void(
+    typedef async_mailbox_t< void(
         typename protocol_t::read_t,
         order_token_t,
-        typename async_mailbox_t<void(boost::variant<
+        typename async_mailbox_t< void(boost::variant<
             typename protocol_t::read_response_t,
             std::string
             >)>::address_t
         )> read_mailbox_t;
-    typedef async_mailbox_t<void(
+    typedef async_mailbox_t< void(
         typename protocol_t::write_t,
         order_token_t,
-        typename async_mailbox_t<void(boost::variant<
+        typename async_mailbox_t< void(boost::variant<
             typename protocol_t::write_response_t,
             std::string
             >)>::address_t

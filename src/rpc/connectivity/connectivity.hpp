@@ -118,7 +118,7 @@ public:
         void reset();
         void reset(connectivity_service_t *, peers_list_freeze_t *proof);
     private:
-        publisher_t<std::pair <
+        publisher_t< std::pair<
                 boost::function<void(peer_id_t)>,
                 boost::function<void(peer_id_t)>
                 > >::subscription_t subs;
@@ -146,7 +146,7 @@ protected:
 
 private:
     virtual rwi_lock_assertion_t *get_peers_list_lock() = 0;
-    virtual publisher_t<std::pair <
+    virtual publisher_t< std::pair<
             boost::function<void(peer_id_t)>,
             boost::function<void(peer_id_t)>
             > > *get_peers_list_publisher() = 0;
