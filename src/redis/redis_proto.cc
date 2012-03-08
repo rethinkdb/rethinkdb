@@ -65,7 +65,7 @@ public:
             arg3T arg3 = boost::lexical_cast<arg3T>(arg3_string);
             arg4T arg4 = boost::lexical_cast<arg4T>(arg4_string);
             return (extApi->*(static_cast<fptr>(action)))(arg1, arg2, arg3, arg4);
-        } catch(boost::bad_lexical_cast) {
+        } catch (boost::bad_lexical_cast) {
             throw typeException;
         }
     }   
@@ -89,7 +89,7 @@ public:
             arg2T arg2 = boost::lexical_cast<arg2T>(arg2_string);
             arg3T arg3 = boost::lexical_cast<arg3T>(arg3_string);
             return (extApi->*(static_cast<fptr>(action)))(arg1, arg2, arg3);
-        } catch(boost::bad_lexical_cast) {
+        } catch (boost::bad_lexical_cast) {
             throw typeException;
         }
     }   
@@ -111,7 +111,7 @@ public:
             arg1T arg1 = boost::lexical_cast<arg1T>(arg1_string);
             arg2T arg2 = boost::lexical_cast<arg2T>(arg2_string);
             return (extApi->*(static_cast<fptr>(action)))(arg1, arg2);
-        } catch(boost::bad_lexical_cast) {
+        } catch (boost::bad_lexical_cast) {
             throw typeException;
         }
     }
@@ -131,7 +131,7 @@ public:
         try {
             arg1T arg1 = boost::lexical_cast<arg1T>(arg1_string);
             return (extApi->*(static_cast<fptr>(action)))(arg1);
-        } catch(boost::bad_lexical_cast) {
+        } catch (boost::bad_lexical_cast) {
             throw typeException;
         }
     }
@@ -340,7 +340,7 @@ void RedisParser::parseCommand(tcp_conn_t *conn) {
         int argNum = parseArgNum(line);
 
         // In this case we're done, no arguments to read
-        if(argNum <= 0) return;
+        if (argNum <= 0) return;
 
         // Now we parse argNum args
 
@@ -351,7 +351,7 @@ void RedisParser::parseCommand(tcp_conn_t *conn) {
         // Note: Redis parses all expected lines before trying to match a command
 
         std::vector<std::string> args;
-        for(int i=0; i<argNum-1; ++i) {
+        for (int i = 0; i < argNum - 1; ++i) {
             args.push_back(parseArg(p));
         }
 
@@ -361,20 +361,20 @@ void RedisParser::parseCommand(tcp_conn_t *conn) {
         // Run the command
         output_response(result->execute(this, args));
 
-    } catch(std::out_of_range) {
+    } catch (std::out_of_range) {
         error_msg = "Command not recognized";
-    } catch(ParseError &e) {
+    } catch (ParseError &e) {
         error_msg = "Parse error";
     }
 
     // We can't call output_error inside the catch block so we have this little workaround
-    if(error_msg) {
+    if (error_msg) {
         output_error(error_msg);
     }
 }
 
 int RedisParser::parseNumericLine(char prefix, std::string &line) {
-    if(!(line[0] == prefix)) {
+    if (!(line[0] == prefix)) {
         // line must begin with prefix
         throw ParseError();
     }
@@ -383,7 +383,7 @@ int RedisParser::parseNumericLine(char prefix, std::string &line) {
     int numNum;
     try {
         numNum = boost::lexical_cast<int>(line);
-    } catch(boost::bad_lexical_cast) {
+    } catch (boost::bad_lexical_cast) {
         // Value on this line is not a unsigned integer value
         throw ParseError();
     }
@@ -406,7 +406,7 @@ std::string RedisParser::parseArg(LineParser &p) {
     int argLength = parseArgLength(line);
 
     // Error, no valid length
-    if(argLength < 0) throw ParseError();
+    if (argLength < 0) throw ParseError();
 
     return p.readLineOf(argLength);
 }
@@ -419,10 +419,13 @@ void RedisParser::first_subscribe(std::vector<std::string> &channels, bool patte
 }
 
 void RedisParser::subscribe(std::vector<std::string> &channels, bool patterned) {
-    for(std::vector<std::string>::iterator iter = channels.begin(); iter != channels.end(); iter++) {
+    for (std::vector<std::string>::iterator iter = channels.begin(); iter != channels.end(); iter++) {
         // Add our subscription
-        if(patterned) subscribed_channels += runtime->subscribe_pattern(*iter, connection_id, this);
-        else          subscribed_channels += runtime->subscribe(*iter, connection_id, this);
+        if (patterned) {
+            subscribed_channels += runtime->subscribe_pattern(*iter, connection_id, this);
+        } else {
+            subscribed_channels += runtime->subscribe(*iter, connection_id, this);
+        }
 
         // Output the successful subscription message
         std::vector<std::string> subscription_message;
@@ -434,10 +437,13 @@ void RedisParser::subscribe(std::vector<std::string> &channels, bool patterned) 
 }
 
 void RedisParser::unsubscribe(std::vector<std::string> &channels, bool patterned) {
-    for(std::vector<std::string>::iterator iter = channels.begin(); iter != channels.end(); iter++) {
+    for (std::vector<std::string>::iterator iter = channels.begin(); iter != channels.end(); iter++) {
         // Add our subscription
-        if(patterned) subscribed_channels -= runtime->unsubscribe_pattern(*iter, connection_id);
-        else          subscribed_channels -= runtime->unsubscribe(*iter, connection_id);
+        if (patterned) {
+            subscribed_channels -= runtime->unsubscribe_pattern(*iter, connection_id);
+        } else {
+            subscribed_channels -= runtime->unsubscribe(*iter, connection_id);
+        }
 
         // Output the sucessful unsubscription message
         std::vector<std::string> unsubscription_message;
@@ -460,27 +466,27 @@ void RedisParser::parse_pubsub() {
     try {
         LineParser p(conn);
 
-        while(subscribed_channels > 0) {
+        while (subscribed_channels > 0) {
             std::string line = p.readLine();
             int argNum = parseArgNum(line);
 
-            if(argNum <= 0) return;
+            if (argNum <= 0) return;
 
             std::string command = parseArg(p);
             boost::algorithm::to_lower(command);
 
             std::vector<std::string> chans;
-            for(int i=0; i<argNum-1; ++i) {
+            for (int i = 0; i < argNum - 1; ++i) {
                 chans.push_back(parseArg(p));
             }
 
-            if(command == "subscribe") {
+            if (command == "subscribe") {
                 subscribe(chans, false);
-            } else if(command == "psubscribe") {
+            } else if (command == "psubscribe") {
                 subscribe(chans, true);
-            } else if(command == "unsubscribe") {
+            } else if (command == "unsubscribe") {
                 unsubscribe(chans, false); 
-            } else if(command == "punsubscribe") {
+            } else if (command == "punsubscribe") {
                 unsubscribe(chans, true); 
             } else {
                 output_response(redis_protocol_t::error_result(
@@ -488,7 +494,7 @@ void RedisParser::parse_pubsub() {
                 ));            
             }
         }
-    } catch(ParseError &e) {
+    } catch (ParseError &e) {
         //TODO what to do here?
     }
 }
@@ -496,10 +502,10 @@ void RedisParser::parse_pubsub() {
 void start_serving(tcp_conn_t *conn, namespace_interface_t<redis_protocol_t> *intface, pubsub_runtime_t *runtime) {
     RedisParser redis(conn, intface, runtime);
     try {
-        while(true) {
+        while (true) {
             redis.parseCommand(conn);
         }
-    } catch(tcp_conn_t::read_closed_exc_t) {}
+    } catch (tcp_conn_t::read_closed_exc_t) {}
 
 }
 

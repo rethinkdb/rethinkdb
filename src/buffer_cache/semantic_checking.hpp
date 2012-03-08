@@ -28,7 +28,7 @@ template<class inner_cache_t>
 class scc_buf_lock_t {
 public:
     scc_buf_lock_t(scc_transaction_t<inner_cache_t> *txn, block_id_t block_id, access_t mode, boost::function<void()> call_when_in_line = 0);
-    scc_buf_lock_t(scc_transaction_t<inner_cache_t> *txn);
+    explicit scc_buf_lock_t(scc_transaction_t<inner_cache_t> *txn);
     scc_buf_lock_t();
     ~scc_buf_lock_t();
 
