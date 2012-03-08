@@ -25,14 +25,14 @@ public:
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> read_token;
         store->new_read_token(read_token);
 
-        region_map_t<protocol_t,binary_blob_t> expected_metainfo(store->get_region(), binary_blob_t(expected_timestamp));
+        region_map_t<protocol_t, binary_blob_t> expected_metainfo(store->get_region(), binary_blob_t(expected_timestamp));
 
         return store->read(DEBUG_ONLY(expected_metainfo,) read, read_token, interruptor);
     }
 
     typename protocol_t::write_response_t write(typename protocol_t::write_t write, transition_timestamp_t transition_timestamp) THROWS_NOTHING {
         cond_t non_interruptor;
-        region_map_t<protocol_t,binary_blob_t> expected_metainfo(store->get_region(), binary_blob_t(transition_timestamp.timestamp_before()));
+        region_map_t<protocol_t, binary_blob_t> expected_metainfo(store->get_region(), binary_blob_t(transition_timestamp.timestamp_before()));
 
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> write_token;
         store->new_write_token(write_token);

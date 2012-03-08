@@ -59,8 +59,7 @@ void btree_slice_t::create(cache_t *cache, const key_range_t &key_range) {
 
 btree_slice_t::btree_slice_t(cache_t *c)
     : cache_(c), backfill_account(cache()->create_account(BACKFILL_CACHE_PRIORITY)),
-    root_eviction_priority(INITIAL_ROOT_EVICTION_PRIORITY)
- {
+    root_eviction_priority(INITIAL_ROOT_EVICTION_PRIORITY) {
     order_checkpoint_.set_tagappend("slice");
     post_begin_transaction_checkpoint_.set_tagappend("post");
 }

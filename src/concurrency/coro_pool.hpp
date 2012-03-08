@@ -59,7 +59,7 @@ class coro_pool_caller_t :
 public:
     class callback_t {
     public:
-        virtual ~callback_t() { };
+        virtual ~callback_t() { }
         virtual void coro_pool_callback(Param) = 0;
     };
 
