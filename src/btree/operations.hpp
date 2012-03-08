@@ -37,7 +37,7 @@ public:
     explicit real_superblock_t(buf_lock_t &sb_buf);
 
     void release();
-    buf_lock_t* get() { return &sb_buf_; }
+    buf_lock_t *get() { return &sb_buf_; }
     void swap_buf(buf_lock_t &swapee);
     block_id_t get_root_block_id() const;
     void set_root_block_id(const block_id_t new_root_block);
@@ -96,10 +96,10 @@ private:
 class got_superblock_t {
 public:
     got_superblock_t() { }
-    explicit got_superblock_t(superblock_t * sb_) : sb(sb_) { }
+    explicit got_superblock_t(superblock_t *sb_) : sb(sb_) { }
 
     // This is a convenience function which should only be used for real superblocks.
-    buf_lock_t* get_real_buf() {
+    buf_lock_t *get_real_buf() {
         return static_cast<real_superblock_t*>(sb.get())->get();
     }
 
@@ -218,10 +218,10 @@ class fake_key_modification_callback_t : public key_modification_callback_t<Valu
  */
 struct superblock_metainfo_iterator_t {
     typedef uint32_t sz_t;  // be careful: the values of this type get casted to int64_t in checks, so it must fit
-    typedef std::pair<sz_t,char*> key_t;
-    typedef std::pair<sz_t,char*> value_t;
+    typedef std::pair<sz_t, char *> key_t;
+    typedef std::pair<sz_t, char *> value_t;
 
-    superblock_metainfo_iterator_t(char* metainfo, char* metainfo_end) : end(metainfo_end) { advance(metainfo); }
+    superblock_metainfo_iterator_t(char *metainfo, char *metainfo_end) : end(metainfo_end) { advance(metainfo); }
     explicit superblock_metainfo_iterator_t(std::vector<char>& metainfo) : end(metainfo.data() + metainfo.size()) { advance(metainfo.data()); }
 
     bool is_end() { return pos == end; }
@@ -235,20 +235,20 @@ struct superblock_metainfo_iterator_t {
     key_t key() { return std::make_pair(key_size, key_ptr); }
     value_t value() { return std::make_pair(value_size, value_ptr); }
 
-    char* record_ptr() { return pos; }
-    char* next_record_ptr() { return next_pos; }
-    char* end_ptr() { return end; }
-    sz_t* value_size_ptr() { return reinterpret_cast<sz_t*>(value_ptr) - 1; }
+    char *record_ptr() { return pos; }
+    char *next_record_ptr() { return next_pos; }
+    char *end_ptr() { return end; }
+    sz_t *value_size_ptr() { return reinterpret_cast<sz_t*>(value_ptr) - 1; }
 private:
-    void advance(char* p);
+    void advance(char *p);
 
-    char* pos;
-    char* next_pos;
-    char* end;
+    char *pos;
+    char *next_pos;
+    char *end;
     sz_t key_size;
-    char* key_ptr;
+    char *key_ptr;
     sz_t value_size;
-    char* value_ptr;
+    char *value_ptr;
 };
 
 bool get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key, std::vector<char> &value_out);

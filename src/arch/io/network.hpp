@@ -273,7 +273,7 @@ private:
     /* memcpy up to n bytes from read_buffer into dest. Returns the number of bytes
     copied. Then pop_read_buffer() can be used to remove the fetched bytes from the read buffer.
     */
-    // TODO! Recover that to make pop() fast again
+    // TODO ! Recover that to make pop() fast again
     //size_t memcpy_from_read_buffer(void *buf, const size_t n);
     //void pop_read_buffer(const size_t n);
 

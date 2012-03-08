@@ -106,7 +106,7 @@ public:
         protect();
     }
 
-    scoped_js_t(const scoped_js_t<T> &other)
+    scoped_js_t(const scoped_js_t &other)
         : ctx(other.ctx), value_ref(other.value_ref)
     {
         protect();
