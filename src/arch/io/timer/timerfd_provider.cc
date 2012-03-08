@@ -15,11 +15,11 @@
 /* Kernel timer provider based on timerfd  */
 timerfd_provider_t::timerfd_provider_t(linux_event_queue_t *_queue,
                                        timer_provider_callback_t *_callback,
-                                       time_t secs, long nsecs)
+                                       time_t secs, int32_t nsecs)
     : queue(_queue), callback(_callback)
 {
     int res;
-    
+
     timer_fd = timerfd_create(CLOCK_MONOTONIC, 0);
     guarantee_err(timer_fd != -1, "Could not create timer");
 
@@ -33,7 +33,7 @@ timerfd_provider_t::timerfd_provider_t(linux_event_queue_t *_queue,
 
     res = timerfd_settime(timer_fd, 0, &timer_spec, NULL);
     guarantee_err(res == 0, "Could not arm the timer");
-    
+
     queue->watch_resource(timer_fd, poll_event_in, this);
 }
 
@@ -50,7 +50,7 @@ void timerfd_provider_t::on_event(int events) {
 
     int res;
     eventfd_t nexpirations;
-    
+
     res = eventfd_read(timer_fd, &nexpirations);
     guarantee_err(res == 0 || errno == EAGAIN, "Could not read timer_fd value");
     if (res == 0) {

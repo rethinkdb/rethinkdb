@@ -18,7 +18,7 @@
 /* Kernel timer provider based on signals */
 timer_signal_provider_t::timer_signal_provider_t(linux_event_queue_t *_queue,
                                                  timer_provider_callback_t *_callback,
-                                                 time_t secs, long nsecs)
+                                                 time_t secs, int32_t nsecs)
     : queue(_queue), callback(_callback)
 {
     // Initialize the event structure
@@ -27,13 +27,13 @@ timer_signal_provider_t::timer_signal_provider_t(linux_event_queue_t *_queue,
     evp.sigev_notify = SIGEV_THREAD_ID;
     evp.sigev_notify_thread_id = _gettid();
     evp.sigev_value.sival_ptr = this;
-    
+
     // Tell the event queue to start watching the signal. It's
     // important to call this before creating the timer, because the
     // event queue automatically blocks the signal (which is necessary
     // to implement poll/epoll properly).
     queue->watch_signal(&evp, this);
-    
+
     // Create the timer
     int res = timer_create(CLOCK_MONOTONIC, &evp, &timerid);
     guarantee_err(res == 0, "Could not create timer");
