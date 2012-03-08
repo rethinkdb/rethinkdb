@@ -92,19 +92,6 @@ typedef value_sizer_t<memcached_value_t> memcached_value_sizer_t;
 struct btree_superblock_t {
     block_magic_t magic;
     block_id_t root_block;
-    /* These are used for replication. replication_clock is a value that is kept synchronized
-    between the master and the slave, which is updated once per second. last_sync is the value that
-    replication_clock had the last time that the slave was connected to master. If we are a slave,
-    replication_master_id is the creation timestamp of the master we belong to; if we are
-    not a slave, it is -1 so that we can't later become a slave. If we are a master,
-    replication_slave_id is the creation timestamp of the last slave we saw.
-
-    At creation, all of them are set to 0.
-
-    These really don't belong here! */
-    repli_timestamp_t replication_clock;
-    repli_timestamp_t last_sync;
-    uint32_t replication_master_id, replication_slave_id;
 
     // We are unnecessarily generous with the amount of space
     // allocated here, but there's nothing else to push out of the
