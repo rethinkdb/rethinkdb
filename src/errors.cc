@@ -106,12 +106,12 @@ void install_generic_crash_handler() {
 
 namespace boost {
 
-void assertion_failed(char const * expr, char const * function, char const * file, long line) {
+void assertion_failed(char const * expr, char const * function, char const * file, long line) { // NOLINT(runtime/int)
     report_fatal_error(file, line, "BOOST_ASSERT failure in '%s': %s", function, expr);
     BREAKPOINT;
 }
 
-void assertion_failed_msg(char const * expr, char const * msg, char const * function, char const * file, long line) {
+void assertion_failed_msg(char const * expr, char const * msg, char const * function, char const * file, long line) { // NOLINT(runtime/int)
     report_fatal_error(file, line, "BOOST_ASSERT_MSG failure in '%s': %s (%s)", function, expr, msg);
     BREAKPOINT;
 }
