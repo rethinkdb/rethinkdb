@@ -216,7 +216,7 @@ boost::uuids::uuid generate_uuid() {
 #else
     boost::uuids::uuid uuid;
     for (size_t i = 0; i < sizeof uuid.data; i++) {
-        uuid.data[i] = static_cast<uint8_t>(rand()&0xff);
+        uuid.data[i] = static_cast<uint8_t>(rand() % 256);
     }
     return uuid;
 #endif
