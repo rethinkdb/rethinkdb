@@ -11,7 +11,9 @@ each other. */
 
 namespace unittest {
 
-using namespace mock;
+using mock::dummy_protocol_t;
+using mock::dummy_underlying_store_t;
+using mock::dummy_store_view_t;
 
 namespace {
 
