@@ -1,4 +1,6 @@
 #include <getopt.h>
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -952,7 +954,7 @@ void cmd_config_t::print_runtime_flags() {
     printf("--- Runtime ----\n");
     printf("Threads............%d\n", n_workers);
     
-    printf("Block cache........%lldMB\n", store_dynamic_config.cache.max_size / 1024 / 1024);
+    printf("Block cache........%" PRId64 "MB\n", store_dynamic_config.cache.max_size / 1024 / 1024);
     printf("Wait for flush.....");
     if(store_dynamic_config.cache.wait_for_flush) {
         printf("Y\n");
