@@ -552,7 +552,7 @@ bool check_lba_extent(nondirect_file_t *file, file_knowledge_t *knog, unsigned i
 
     for (int i = 0; i < entries_count; ++i) {
         lba_entry_t entry = buf->entries[i];
-        
+
         if (entry.block_id == NULL_BLOCK_ID) {
             // do nothing, this is ok.
         } else if (entry.block_id > MAX_BLOCK_ID) {
@@ -560,7 +560,6 @@ bool check_lba_extent(nondirect_file_t *file, file_knowledge_t *knog, unsigned i
         } else if (entry.block_id % LBA_SHARD_FACTOR != shard_number) {
             errs->wrong_shard_count++;
         } else if (!is_valid_btree_offset(knog, entry.offset)) {
-            debugf("Bad offset with value %lld\n", (long long)entry.offset.the_value_);
             errs->bad_offset_count++;
         } else {
             write_locker_t locker(knog);
