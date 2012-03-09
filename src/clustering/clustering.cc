@@ -10,6 +10,8 @@
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/reactor_driver.hpp"
 #include "http/file_server.hpp"
+#include "http/routing_server.hpp"
+#include "http/routing_server.hpp"
 #include "memcached/clustering.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "mock/dummy_protocol_parser.hpp"
@@ -95,9 +97,9 @@ void clustering_main(int port, int contact_port) {
                                              directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::memcached_namespaces)));
                                                
 
-    blueprint_http_server_t server(semilattice_manager_cluster.get_root_view(),
-                                   connectivity_cluster.get_me().get_uuid(),
-                                   port + 1000);
+    //TODO obviously this needs to go away from this function.
+    blueprint_http_server_t bp_server(semilattice_manager_cluster.get_root_view(),
+                                   connectivity_cluster.get_me().get_uuid());
     std::set<std::string> white_list;
     white_list.insert("/cluster.html");
     white_list.insert("/cluster-min.js");
@@ -139,7 +141,12 @@ void clustering_main(int port, int contact_port) {
     white_list.insert("/js/date-en-US.js");
     white_list.insert("/js/jquery.timeago.js");
     white_list.insert("/favicon.ico");
-    http_file_server_t file_server(port + 1001, white_list, "../build/debug/web");
+    http_file_server_t file_server(white_list, "../build/debug/web");
+
+    std::map<std::string, http_server_t *> routes;
+    routes["ajax"] = & bp_server;
+
+    routing_server_t server(port + 1000, &file_server, routes);
 
     wait_for_sigint();
 }

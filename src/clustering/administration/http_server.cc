@@ -9,6 +9,7 @@ typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
 typedef tokenizer::iterator tok_iterator;
 
 http_res_t blueprint_http_server_t::handle(const http_req_t &req) {
+    debugf("Handling a blueprint request for resource: %s\n", req.resource.c_str());
     cluster_semilattice_metadata_t cluster_metadata = 
         semilattice_metadata->get();
 

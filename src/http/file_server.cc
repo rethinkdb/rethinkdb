@@ -11,6 +11,10 @@ http_file_server_t::http_file_server_t(int port, std::set<std::string> _whitelis
     : http_server_t(port), whitelist(_whitelist), asset_dir(_asset_dir)
 { }
 
+http_file_server_t::http_file_server_t(std::set<std::string> _whitelist, std::string _asset_dir) 
+    : whitelist(_whitelist), asset_dir(_asset_dir)
+{ }
+
 http_res_t http_file_server_t::handle(const http_req_t &req) {
     if (!std_contains(whitelist, req.resource)) {
         logINF("Someone asked for the nonwhitelisted file %s, if this should be accessible add it to the whitelist.\n", req.resource.c_str());

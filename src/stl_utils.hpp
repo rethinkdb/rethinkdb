@@ -2,6 +2,7 @@
 #define __STL_UTILS_HPP__
 
 #include <map>
+#include <set>
 
 #include "errors.hpp"
 #include <boost/function.hpp>
