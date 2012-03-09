@@ -1,24 +1,14 @@
-#include "clustering/clustering.hpp"
-
 #include "errors.hpp"
 #include <boost/bind.hpp>
 #include <boost/program_options.hpp>
 
 #include "arch/arch.hpp"
 #include "arch/os_signal.hpp"
-#include "clustering/administration/http_server.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/persist.hpp"
-#include "clustering/administration/reactor_driver.hpp"
+#include "clustering/main/command_line.hpp"
+#include "clustering/main/serve.hpp"
 #include "mock/dummy_protocol.hpp"
-#include "mock/dummy_protocol_parser.hpp"
-#include "rpc/connectivity/cluster.hpp"
-#include "rpc/connectivity/cluster.hpp"
-#include "rpc/connectivity/multiplexer.hpp"
-#include "rpc/directory/manager.hpp"
-#include "rpc/mailbox/mailbox.hpp"
-#include "rpc/semilattice/semilattice_manager.hpp"
-#include "memcached/clustering.hpp"
 
 namespace po = boost::program_options;
 
@@ -30,68 +20,6 @@ public:
     std::string host;
     int port;
 };
-
-void join_peers(connectivity_cluster_t::run_t *run, const std::vector<host_and_port_t> &peers) {
-    for (int i = 0; i < (int)peers.size(); i++) {
-        ip_address_t ip(peers[i].host);
-        run->join(peer_address_t(ip, peers[i].port));
-    }
-}
-
-bool serve(const std::string &filepath, const std::vector<host_and_port_t> &joins, int port, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata) {
-
-    std::cout << "Establishing cluster node on port " << port << "..." << std::endl;
-
-    connectivity_cluster_t connectivity_cluster; 
-    message_multiplexer_t message_multiplexer(&connectivity_cluster);
-
-    message_multiplexer_t::client_t mailbox_manager_client(&message_multiplexer, 'M');
-    mailbox_manager_t mailbox_manager(&mailbox_manager_client);
-    message_multiplexer_t::client_t::run_t mailbox_manager_client_run(&mailbox_manager_client, &mailbox_manager);
-
-    message_multiplexer_t::client_t semilattice_manager_client(&message_multiplexer, 'S');
-    semilattice_manager_t<cluster_semilattice_metadata_t> semilattice_manager_cluster(&semilattice_manager_client, semilattice_metadata);
-    message_multiplexer_t::client_t::run_t semilattice_manager_client_run(&semilattice_manager_client, &semilattice_manager_cluster);
-
-    message_multiplexer_t::client_t directory_manager_client(&message_multiplexer, 'D');
-    directory_readwrite_manager_t<cluster_directory_metadata_t> directory_manager(&directory_manager_client, cluster_directory_metadata_t(machine_id));
-    message_multiplexer_t::client_t::run_t directory_manager_client_run(&directory_manager_client, &directory_manager);
-
-    message_multiplexer_t::run_t message_multiplexer_run(&message_multiplexer);
-    connectivity_cluster_t::run_t connectivity_cluster_run(&connectivity_cluster, port, &message_multiplexer_run);
-
-    join_peers(&connectivity_cluster_run, joins);
-
-    metadata_persistence::semilattice_watching_persister_t persister(filepath, machine_id, semilattice_manager_cluster.get_root_view());
-
-    reactor_driver_t<mock::dummy_protocol_t> dummy_reactor_driver(&mailbox_manager,
-                                                                  directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::dummy_namespaces)), 
-                                                                  metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_manager_cluster.get_root_view()),
-                                                                  directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::machine_id)));
-
-    reactor_driver_t<memcached_protocol_t> memcached_reactor_driver(&mailbox_manager,
-                                                                    directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::memcached_namespaces)), 
-                                                                    metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_manager_cluster.get_root_view()),
-                                                                    directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::machine_id)));
-
-    mock::dummy_protocol_parser_maker_t dummy_parser_maker(&mailbox_manager, 
-                                                           metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_manager_cluster.get_root_view()),
-                                                           directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::dummy_namespaces)));
-
-    memcached_parser_maker_t mc_parser_maker(&mailbox_manager, 
-                                             metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_manager_cluster.get_root_view()),
-                                             directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::memcached_namespaces)));
-
-    blueprint_http_server_t server(semilattice_manager_cluster.get_root_view(),
-                                   machine_id,
-                                   port + 1000);
-
-    std::cout << "Server started; send SIGINT to stop." << std::endl;
-
-    wait_for_sigint();
-
-    return true;
-}
 
 void run_rethinkdb_create(const std::string &filepath, bool *result_out) {
 
@@ -111,6 +39,14 @@ void run_rethinkdb_create(const std::string &filepath, bool *result_out) {
         "inside it." << std::endl;
 
     *result_out = true;
+}
+
+std::vector<peer_address_t> look_up_peers_addresses(std::vector<host_and_port_t> names) {
+    std::vector<peer_address_t> peers;
+    for (int i = 0; i < (int)names.size(); i++) {
+        peers.push_back(peer_address_t(ip_address_t(names[i].host), names[i].port));
+    }
+    return peers;
 }
 
 void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and_port_t> &joins, int port, bool *result_out) {
@@ -137,7 +73,7 @@ void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and
         return;
     }
 
-    *result_out = serve(filepath, joins, port, persisted_machine_id, persisted_semilattice_metadata);
+    *result_out = serve(filepath, look_up_peers_addresses(joins), port, persisted_machine_id, persisted_semilattice_metadata);
 }
 
 void run_rethinkdb_porcelain(const std::string &filepath, const std::vector<host_and_port_t> &joins, int port, bool *result_out) {
@@ -153,7 +89,7 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::vector<host
         cluster_semilattice_metadata_t persisted_semilattice_metadata;
         metadata_persistence::read(filepath, &persisted_machine_id, &persisted_semilattice_metadata);
 
-        *result_out = serve(filepath, joins, port, persisted_machine_id, persisted_semilattice_metadata);
+        *result_out = serve(filepath, look_up_peers_addresses(joins), port, persisted_machine_id, persisted_semilattice_metadata);
 
     } else {
         std::cout << "It does not already exist. Creating it..." << std::endl;
@@ -195,7 +131,7 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::vector<host
 
         metadata_persistence::create(filepath, our_machine_id, semilattice_metadata);
 
-        *result_out = serve(filepath, joins, port, our_machine_id, semilattice_metadata);
+        *result_out = serve(filepath, look_up_peers_addresses(joins), port, our_machine_id, semilattice_metadata);
     }
 }
 
@@ -275,7 +211,10 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
     po::notify(vm);
 
     std::string filepath = vm["directory"].as<std::string>();
-    std::vector<host_and_port_t> joins = vm["join"].as<std::vector<host_and_port_t> >();
+    std::vector<host_and_port_t> joins;
+    if (vm.count("join") > 0) {
+        joins = vm["join"].as<std::vector<host_and_port_t> >();
+    }
     int port = vm["port"].as<int>();
 
     bool result;
@@ -290,7 +229,10 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
     po::notify(vm);
 
     std::string filepath = vm["directory"].as<std::string>();
-    std::vector<host_and_port_t> joins = vm["join"].as<std::vector<host_and_port_t> >();
+    std::vector<host_and_port_t> joins;
+    if (vm.count("join") > 0) {
+        joins = vm["join"].as<std::vector<host_and_port_t> >();
+    }
     int port = vm["port"].as<int>();
 
     bool result;

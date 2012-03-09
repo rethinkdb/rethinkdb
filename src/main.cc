@@ -1,7 +1,7 @@
 #include <set>
 #include <sys/resource.h>
 
-#include "clustering/clustering.hpp"
+#include "clustering/main/command_line.hpp"
 #include "utils.hpp"
 #include "help.hpp"
 
