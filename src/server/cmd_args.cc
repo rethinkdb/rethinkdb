@@ -294,7 +294,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
 
     int slices_per_device = DEFAULT_BTREE_SHARD_FACTOR;
 
-    long long override_diff_log_size = -1;
+    int64_t override_diff_log_size = -1;
     optind = 1; // reinit getopt
     while(1)
     {
@@ -388,7 +388,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 config.set_cores(optarg);
                 break;
             case 's':
-                config.set_slices(&slices_per_device, optarg); break;
+                config.set_slices(&slices_per_device, optarg);
+                break;
             case 'f':
                 config.push_private_config(optarg);
                 break;
@@ -557,7 +558,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
         /* The page replacement algorithm won't work properly if the number of dirty bufs
         is allowed to be more than about half of the total number of bufs. */
         config.store_dynamic_config.cache.max_dirty_size =
-            (long long int)(config.store_dynamic_config.cache.max_size * MAX_UNSAVED_DATA_LIMIT_FRACTION);
+            config.store_dynamic_config.cache.max_size * MAX_UNSAVED_DATA_LIMIT_FRACTION;
     }
     
     if (config.store_dynamic_config.cache.wait_for_flush == true &&
@@ -584,7 +585,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     
     // It's probably not necessary for this parameter to be independently configurable
     config.store_dynamic_config.cache.flush_dirty_size =
-        (long long int)(config.store_dynamic_config.cache.max_dirty_size * FLUSH_AT_FRACTION_OF_UNSAVED_DATA_LIMIT);
+        config.store_dynamic_config.cache.max_dirty_size * FLUSH_AT_FRACTION_OF_UNSAVED_DATA_LIMIT;
 
     // HACK: Scales n_slices by the number of files.
     config.store_static_config.btree.n_slices = slices_per_device * config.store_dynamic_config.serializer_private.size();
@@ -596,7 +597,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     } else {
         patch_log_memory = std::min(
             DEFAULT_PATCH_LOG_SIZE,
-            (long)(DEFAULT_PATCH_LOG_FRACTION * config.store_dynamic_config.cache.max_dirty_size)
+            int64_t(DEFAULT_PATCH_LOG_FRACTION * config.store_dynamic_config.cache.max_dirty_size)
             );
     }
     config.store_static_config.cache.n_patch_log_blocks = patch_log_memory / config.store_static_config.serializer.block_size().ser_value() / config.store_static_config.btree.n_slices;
@@ -685,15 +686,15 @@ void parsing_cmd_config_t::set_max_concurrent_flushes(const char* value) {
 }
 
 void parsing_cmd_config_t::set_extent_size(const char* value) {
-    long long int target;
-    const long long int minimum_value = 1ll;
-    const long long int maximum_value = TERABYTE;
+    int64_t target;
+    const int64_t minimum_value = 1ll;
+    const int64_t maximum_value = TERABYTE;
 
     target = parse_longlong(value);
     if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
-        fail_due_to_user_error("Extent size must be a number from %lld to %lld.", minimum_value, maximum_value);
+        fail_due_to_user_error("Extent size must be a number from %" PRId64 " to %" PRId64 ".", minimum_value, maximum_value);
 
-    store_static_config.serializer.extent_size_ = static_cast<long long unsigned int>(target);
+    store_static_config.serializer.extent_size_ = (target);
 }
 
 void parsing_cmd_config_t::set_read_ahead(const char* value) {
@@ -703,14 +704,14 @@ void parsing_cmd_config_t::set_read_ahead(const char* value) {
     store_dynamic_config.serializer.read_ahead = (value[0] == 'y');
 }
 
-long long parsing_cmd_config_t::parse_diff_log_size(const char* value) {
-    long long int result;
-    const long long int minimum_value = 0ll;
-    const long long int maximum_value = TERABYTE;
+int64_t parsing_cmd_config_t::parse_diff_log_size(const char *value) {
+    int64_t result;
+    const int64_t minimum_value = 0ll;
+    const int64_t maximum_value = TERABYTE;
 
     result = parse_longlong(value) * MEGABYTE;
     if (parsing_failed || !is_in_range(result, minimum_value, maximum_value))
-        fail_due_to_user_error("Diff log size must be a number from %lld to %lld.", minimum_value, maximum_value);
+        fail_due_to_user_error("Diff log size must be a number from %" PRId64 " to %" PRId64 ".", minimum_value, maximum_value);
 
     return result;
 }
@@ -719,13 +720,13 @@ void parsing_cmd_config_t::set_block_size(const char* value) {
     int target;
     const int minimum_value = 1;
     const int maximum_value = DEVICE_BLOCK_SIZE * 1000;
-    
+
     target = parse_int(value);
     if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
         fail_due_to_user_error("Block size must be a number from %d to %d.", minimum_value, maximum_value);
     if (target % DEVICE_BLOCK_SIZE != 0)
         fail_due_to_user_error("Block size must be a multiple of %ld.", DEVICE_BLOCK_SIZE);
-        
+
     store_static_config.serializer.block_size_ = static_cast<unsigned int>(target);
 }
 
@@ -761,7 +762,7 @@ void parsing_cmd_config_t::set_unsaved_data_limit(const char* value) {
     if (parsing_failed || !is_positive(int_value)) {
         fail_due_to_user_error("Unsaved data limit must be a positive number.");
     }
-    store_dynamic_config.cache.max_dirty_size = (long long)(int_value) * MEGABYTE;
+    store_dynamic_config.cache.max_dirty_size = int64_t(int_value) * MEGABYTE;
 }
 
 void parsing_cmd_config_t::set_wait_for_flush(const char* value) {
@@ -777,7 +778,7 @@ void parsing_cmd_config_t::set_max_cache_size(const char* value) {
     if (parsing_failed || !is_positive(int_value))
         fail_due_to_user_error("Cache size must be a positive number.");
 
-    store_dynamic_config.cache.max_size = (long long)(int_value) * MEGABYTE;
+    store_dynamic_config.cache.max_size = int64_t(int_value) * MEGABYTE;
 }
 
 // This is a bit of a HACK.  Go cry to your mommy about it.
@@ -916,23 +917,23 @@ void parsing_cmd_config_t::set_io_batch_factor(const char* value) {
         fail_due_to_user_error("The io batch factor must be a number from %d to %d.", minimum_value, maximum_value);
 }
 
-long long int parsing_cmd_config_t::parse_longlong(const char* value) {
+int64_t parsing_cmd_config_t::parse_longlong(const char* value) {
     char* endptr;
-    const long long int result = strtoll(value, &endptr, 10);
-    
+    const int64_t result = strtoll(value, &endptr, 10);
+
     parsing_failed = *endptr != '\0' // Tests for invalid characters (or empty string)
             || errno == ERANGE; // Tests for range problems (too small / too large values)
-    
+
     return result;
 }
 
 int parsing_cmd_config_t::parse_int(const char* value) {
     char* endptr;
     const int result = strtol(value, &endptr, 10);
-    
+
     parsing_failed = *endptr != '\0' // Tests for invalid characters (or empty string)
             || errno == ERANGE; // Tests for range problems (too small / too large values)
-    
+
     return result;
 }
 
@@ -1055,7 +1056,7 @@ cmd_config_t::cmd_config_t() {
     replication_master_active = false;
     force_unslavify = false;
 
-    store_dynamic_config.cache.max_size = (long long int)(DEFAULT_MAX_CACHE_RATIO * get_available_ram());
+    store_dynamic_config.cache.max_size = DEFAULT_MAX_CACHE_RATIO * get_available_ram();
 
     // TODO: This is hacky. It also doesn't belong here. Probably the metadata
     // store should really have a configuration structure of its own.

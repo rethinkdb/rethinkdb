@@ -95,7 +95,7 @@
 #define LOG_WORKER 0
 
 // Ratio of free ram to use for the cache by default
-#define DEFAULT_MAX_CACHE_RATIO                   0.5f
+#define DEFAULT_MAX_CACHE_RATIO                   0.5
 
 // Maximum number of threads we support
 // TODO: make this dynamic where possible
@@ -119,7 +119,7 @@
 #else
 #define DEFAULT_PATCH_LOG_SIZE                     (4 * MEGABYTE)
 #endif
-#define DEFAULT_PATCH_LOG_FRACTION                 0.2
+#define DEFAULT_PATCH_LOG_FRACTION                0.2
 
 // Default port to listen on
 #define DEFAULT_LISTEN_PORT                       11211

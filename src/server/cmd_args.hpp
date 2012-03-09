@@ -134,12 +134,12 @@ public:
     void push_private_config(const char* value);
     void set_metadata_file(const char *value);
 
-    long long parse_diff_log_size(const char* value);
+    int64_t parse_diff_log_size(const char* value);
 
 private:
     bool parsing_failed;
     int parse_int(const char* value);
-    long long int parse_longlong(const char* value);
+    int64_t parse_longlong(const char* value);
 
     template<typename T> bool is_positive(const T value) const;
     template<typename T> bool is_in_range(const T value, const T minimum_value, const T maximum_value) const;
