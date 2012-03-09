@@ -1,4 +1,8 @@
 #include "serializer/log/lba/in_memory_index.hpp"
+
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
+
 #include "serializer/log/lba/disk_format.hpp"
 #include "serializer/log/lba/in_memory_index.hpp"
 
@@ -19,7 +23,7 @@ in_memory_index_t::info_t in_memory_index_t::get_block_info(block_id_t id) {
 }
 
 void in_memory_index_t::set_block_info(block_id_t id, repli_timestamp_t recency,
-                                     flagged_off64_t offset) {
+                                       flagged_off64_t offset) {
     if (id >= blocks.get_size()) {
         blocks.set_size(id + 1, flagged_off64_t::unused());
         timestamps.set_size(id + 1, repli_timestamp_t::invalid);
@@ -33,7 +37,7 @@ void in_memory_index_t::set_block_info(block_id_t id, repli_timestamp_t recency,
 void in_memory_index_t::print() {
     printf("LBA:\n");
     for (unsigned int i = 0; i < blocks.get_size(); i++) {
-        printf("%d %lld\n", i, (long long)blocks[i].the_value_);
+        printf("%d %" PRId64 "\n", i, int64_t(blocks[i].the_value_));
     }
 }
 #endif

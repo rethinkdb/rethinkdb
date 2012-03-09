@@ -232,11 +232,11 @@ inline bool divides(int64_t x, int64_t y) {
 
 int gcd(int x, int y);
 
-typedef unsigned long long ticks_t;
+typedef uint64_t ticks_t;
 ticks_t secs_to_ticks(float secs);
 ticks_t get_ticks();
 time_t get_secs();
-long get_ticks_res();
+int64_t get_ticks_res();
 double ticks_to_secs(ticks_t ticks);
 
 // HEY: Maybe debugf and log_call and TRACEPOINT should be placed in
@@ -253,7 +253,7 @@ public:
 // Returns a random number in [0, n).  Is not perfectly uniform; the
 // bias tends to get worse when RAND_MAX is far from a multiple of n.
     int randint(int n);
-    explicit rng_t(long int seed = -1);
+    explicit rng_t(int seed = -1);
 private:
     struct drand48_data buffer_;
     DISABLE_COPYING(rng_t);
