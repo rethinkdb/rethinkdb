@@ -40,7 +40,6 @@ http_res_t routing_server_t::handle(const http_req_t &req) {
     if (it == tokens.end() || !std_contains(subroutes, *it)) {
         /* if we don't have a route for this, or no route was specified see if the default server knows anything about it */
         if (defaultroute) {
-            debugf("Using default route\n");
             return defaultroute->handle(req);
         } else {
             return http_res_t(404);
@@ -59,7 +58,6 @@ http_res_t routing_server_t::handle(const http_req_t &req) {
             it++;
         }
 
-        debugf("Using subroute %s\n", route.c_str());
         return subroutes[route]->handle(copy);
     }
 }

@@ -567,7 +567,7 @@ web-assets: $(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/clust
 
 $(WEB_ASSETS_BUILD_DIR)/cluster-min.js: $(COFFEE_SOURCES)
 	mkdir -p $(WEB_ASSETS_BUILD_DIR)
-	coffee -bp $+ > $@
+	cat $+ | coffee -bp --stdio > $@
 
 $(WEB_ASSETS_BUILD_DIR)/cluster.css: $(LESS_SOURCES)
 	mkdir -p $(WEB_ASSETS_BUILD_DIR)

@@ -891,34 +891,48 @@ declare_client_connected = ->
     clearTimeout(window.apply_diffs_timer)
     window.apply_diffs_timer = setTimeout (-> window.connection_status.set({client_disconnected: true})), 2 * updateInterval
 
-
 # Process updates from the server and apply the diffs to our view of the data. Used by our version of Backbone.sync and POST / PUT responses for form actions
 apply_diffs = (updates) ->
     declare_client_connected()
-    if updates.full_update == "true"
-        location.reload()
-        return
-    if updates.length > 0
-        console.log "Updates received from the server: ", updates
-    else
-        console.log "Empty update received from the server."
-    for update in updates
-        collection =  null
-        switch update.element
-            when 'namespaces' then collection = namespaces
-            when 'datacenters' then collection = datacenters
-            when 'machines' then collection = machines
-            when 'alerts' then collection = alerts
+    for collection_id, collection_data in updates
+        for id, data in data_for_colection
+            switch collection_id
+                when 'dummy_namespaces' then collection = namespaces
+                when 'memcached_namespaces' then collection = namespaces
+                when 'datacenters' then collection = datacenters
+                when 'machines' then collection = machines
+                else
+                    console.log "Unhandled element update: " + update
+                    return
+            if (id of collection)
+                collection.get(id).set(data)
             else
-                console.log "Unhandled element update: " + update
-                return
+                data.id = id
+                colection.add new colection.model(data)
+    return
 
-        operation = null
-        model = collection.get(update.id)
-        switch update.operation
-            when 'add' then collection.add new collection.model(update.data)
-            when 'update' then model.set(update.data)
-            when 'delete' then model.trigger('destroy', model, collection, {})
+#    namespaces.get(update.id
+#    if updates.length > 1
+#        console.log "Updates received from the server: ", updates
+#    else
+#        console.log "Empty update received from the server."
+#    for update in updates
+#        collection =  null
+#        switch update.element
+#            when 'namespaces' then collection = namespaces
+#            when 'datacenters' then collection = datacenters
+#            when 'machines' then collection = machines
+#            when 'alerts' then collection = alerts
+#            else
+#                console.log "Unhandled element update: " + update
+#                return
+#
+#        operation = null
+#        model = collection.get(update.id)
+#        switch update.operation
+#            when 'add' then collection.add new collection.model(update.data)
+#            when 'update' then model.set(update.data)
+#            when 'delete' then model.trigger('destroy', model, collection, {})
 
 
 $ ->
@@ -950,7 +964,7 @@ $ ->
     legacy_sync = Backbone.sync
     Backbone.sync = (method, model, success, error) ->
         if method is 'read'
-            $.getJSON('/ajax/updates?token=' + token, (updates) -> apply_diffs(updates))
+            $.getJSON('/ajax', apply_diffs)
         else
             legacy_sync method, model, success, error
 
