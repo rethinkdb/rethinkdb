@@ -16,6 +16,7 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 
+#include "config/args.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "containers/scoped_malloc.hpp"
 #include "db_thread_info.hpp"
@@ -117,7 +118,7 @@ timespec get_uptime() {
         now.tv_sec -= time_sync_data.hi_res_clock.tv_sec;
         now.tv_nsec -= time_sync_data.hi_res_clock.tv_nsec;
         if (now.tv_nsec < 0) {
-            now.tv_nsec += (long long int)1e9;
+            now.tv_nsec += BILLION;
             now.tv_sec--;
         }
         return now;
@@ -135,7 +136,7 @@ precise_time_t get_absolute_time(const timespec& relative_time) {
     time_t sec = time_sync_data.low_res_clock + relative_time.tv_sec;
     uint32_t nsec = time_sync_data.hi_res_clock.tv_nsec + relative_time.tv_nsec;
     if (nsec > 1e9) {
-        nsec -= (long long int)1e9;
+        nsec -= BILLION;
         sec++;
     }
     (void) gmtime_r(&sec, &result);
