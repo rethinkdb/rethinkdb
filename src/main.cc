@@ -1,12 +1,9 @@
+#include <set>
 #include <sys/resource.h>
 
-#include "stats/control.hpp"
 #include "clustering/clustering.hpp"
-#include "fsck/fsck.hpp"
 #include "utils.hpp"
 #include "help.hpp"
-#include "migrate/migrate.hpp"
-#include "http/http.hpp"
 
 void print_version_message() {
     printf("rethinkdb " RETHINKDB_VERSION
@@ -15,27 +12,6 @@ void print_version_message() {
 #endif
            "\n");
 }
-
-void usage() {
-    Help_Pager *help = Help_Pager::instance();
-    help->pagef("Usage: rethinkdb COMMAND ...\n"
-                "Commands:\n"
-                "    help        Display help about rethinkdb and rethinkdb commands.\n"
-                "\n"
-                "Creating and serving databases:\n"
-                "    create      Create an empty database.\n"
-                "    serve       Serve an existing database.\n"
-                "\n"
-                "Administrating databases:\n"
-                "    import      Import data from raw memcached commands.\n"
-                "    fsck        Check a database for corruption.\n"
-                "    migrate     Convert between file versions.\n"
-                "\n"
-                "Use 'rethinkdb help COMMAND' for help on a single command.\n"
-                "Use 'rethinkdb --version' for the current version of rethinkdb.\n");
-}
-
-int dispatch_on_args(std::vector<char *> args);
 
 int main(int argc, char *argv[]) {
     initialize_precise_time();
@@ -48,49 +24,65 @@ int main(int argc, char *argv[]) {
     setrlimit(RLIMIT_CORE, &core_limit);
 #endif
 
-    /* Put arguments into a vector so we can modify them if convenient */
-    std::vector<char *> args(argv, argv + argc);
+    std::set<std::string> subcommands_that_look_like_flags;
+    subcommands_that_look_like_flags.insert("--version");
+    subcommands_that_look_like_flags.insert("--help");
+    subcommands_that_look_like_flags.insert("-h");
 
-    return dispatch_on_args(args);
-}
+    if (argc == 1 || (argv[1][0] == '-' && subcommands_that_look_like_flags.count(argv[1]) == 0)) {
+        return main_rethinkdb_porcelain(argc, argv);
 
-int dispatch_on_args(std::vector<char *> args) {
-    /* Default to "rethinkdb serve" */
-    if (args.size() == 1) args.push_back(const_cast<char *>("serve"));
-
-    /* Switch based on subcommand, then dispatch to the appropriate function */
-    if (!strcmp(args[1], "serve")) {
-        return run_server(args.size() - 1, args.data() + 1);
-
-    } else if (!strcmp(args[1], "fsck")) {
-        return run_fsck(args.size() - 1, args.data() + 1);
-
-    } else if (!strcmp(args[1], "migrate")) {
-        return run_migrate(args.size(), args.data()); //migrate requires the exec path
-
-    } else if (!strcmp(args[1], "help") || !strcmp(args[1], "-h") || !strcmp(args[1], "--help")) {
-        if (args.size() >= 3) {
-            if (!strcmp(args[2], "serve")) {
-                // usage_serve();
-            } else if (!strcmp(args[2], "fsck")) {
-                fsck::usage(args[1]);
-            } else if (!strcmp(args[2], "migrate")) {
-                migrate::usage(args[1]);
-            } else {
-                printf("No such command %s.\n", args[2]);
-            }
-        } else {
-            usage();
-        }
-
-    } else if (!strcmp(args[1], "--version")) {
-        print_version_message();
     } else {
-        /* Default to "rethinkdb serve"; we get here if we are run without an explicit subcommand
-        but with at least one flag */
-        args.insert(args.begin() + 1, const_cast<char *>("serve"));
-        return run_server(args.size() - 1, args.data() + 1);
-    }
+        std::string subcommand = argv[1];
 
-    return 0;
+        if (subcommand == "create") {
+            return main_rethinkdb_create(argc, argv);
+
+        } else if (subcommand == "serve") {
+            return main_rethinkdb_serve(argc, argv);
+
+        } else if (subcommand == "--version") {
+            if (argc != 2) {
+                std::cout << "WARNING: Ignoring extra parameters after '--version'." << std::endl;
+            }
+            print_version_message();
+            return 0;
+
+        } else if (subcommand == "help" || subcommand == "-h" || subcommand == "--help") {
+
+            if (argc == 2) {
+                std::cout << "'rethinkdb' is divided into a number of "
+                    "subcommands:" << std::endl;
+                std::cout << std::endl;
+                std::cout << "    'rethinkdb create': prepare files on disk" << std::endl;
+                std::cout << "    'rethinkdb serve': serve queries" << std::endl;
+                std::cout << std::endl;
+                std::cout << "For more information, run 'rethinkdb help [subcommand]'." << std::endl;
+                return 0;
+
+            } else if (argc == 3) {
+                std::string subcommand2 = argv[2];
+                if (subcommand2 == "create") {
+                    help_rethinkdb_create();
+                    return 0;
+                } else if (subcommand2 == "serve") {
+                    help_rethinkdb_serve();
+                    return 0;
+                } else {
+                    std::cout << "ERROR: No help for '" << subcommand2 << "'." << std::endl;
+                    return 1;
+                }
+
+            } else {
+                std::cout << "ERROR: Too many parameters to 'rethinkdb help'. "
+                    "Try 'rethinkdb help [subcommand]'." << std::endl;
+                return 1;
+            }
+
+        } else {
+            std::cout << "ERROR: Unrecognized subcommand '" << subcommand <<
+                "'. Try 'rethinkdb help'." << std::endl;
+            return 1;
+        }
+    }
 }

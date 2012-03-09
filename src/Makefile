@@ -107,7 +107,7 @@ LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lQtCore
 endif
 endif
 
-STATIC_LIBRARIES:=boost_serialization protobuf
+STATIC_LIBRARIES:=boost_serialization protobuf boost_program_options
 
 CXXFLAGS?=
 
