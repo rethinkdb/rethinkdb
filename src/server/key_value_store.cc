@@ -208,11 +208,11 @@ void btree_key_value_store_t::create(btree_key_value_store_dynamic_config_t *dyn
 
 static mirrored_cache_config_t partition_cache_config(const mirrored_cache_config_t &orig, float share) {
     mirrored_cache_config_t shard = orig;
-    shard.max_size = std::max((long long) floorf(orig.max_size * share), 1LL);
-    shard.max_dirty_size = std::max((long long) floorf(orig.max_dirty_size * share), 1LL);
-    shard.flush_dirty_size = std::max((long long) floorf(orig.flush_dirty_size * share), 1LL);
-    shard.io_priority_reads = std::max((int) floorf(orig.io_priority_reads * share), 1);
-    shard.io_priority_writes = std::max((int) floorf(orig.io_priority_writes * share), 1);
+    shard.max_size = std::max<int64_t>(floor(orig.max_size * share), 1LL);
+    shard.max_dirty_size = std::max<int64_t>(floor(orig.max_dirty_size * share), 1LL);
+    shard.flush_dirty_size = std::max<int64_t>(floor(orig.flush_dirty_size * share), 1LL);
+    shard.io_priority_reads = std::max<int>(floor(orig.io_priority_reads * share), 1);
+    shard.io_priority_writes = std::max<int>(floor(orig.io_priority_writes * share), 1);
     return shard;
 }
 

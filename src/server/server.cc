@@ -89,9 +89,9 @@ static void server_shutdown() {
 #ifdef TIMEBOMB_DAYS
 namespace timebomb {
 
-static const long seconds_in_an_hour = 3600;
-static const long seconds_in_a_day = seconds_in_an_hour*24;
-static const long timebomb_check_period_in_sec = seconds_in_an_hour * 12;
+static const int64_t seconds_in_an_hour = 3600;
+static const int64_t seconds_in_a_day = seconds_in_an_hour*24;
+static const int64_t timebomb_check_period_in_sec = seconds_in_an_hour * 12;
 
 // Timebomb synchronization code is ugly: we don't want the timer to run when we have cancelled it,
 // but it's hard to do, since timers are asynchronous and can execute while we are trying to destroy them.
@@ -145,8 +145,8 @@ struct periodic_checker_t {
                 server_shutdown();
             } else {
                 // schedule next check
-                long seconds_left = ceil(double(TIMEBOMB_DAYS)*seconds_in_a_day - seconds_since_created) + 1;
-                long seconds_till_check = seconds_left < timebomb_check_period_in_sec ? seconds_left : timebomb_check_period_in_sec;
+                int64_t seconds_left = ceil(double(TIMEBOMB_DAYS)*seconds_in_a_day - seconds_since_created) + 1;
+                int64_t seconds_till_check = seconds_left < timebomb_check_period_in_sec ? seconds_left : timebomb_check_period_in_sec;
                 timebomb_checker->timer_token = fire_timer_once(seconds_till_check * 1000, &check, timebomb_checker);
             }
         }
