@@ -1,5 +1,8 @@
 #include "buffer_cache/mirrored/patch_disk_storage.hpp"
 
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
+
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
@@ -47,10 +50,10 @@ patch_disk_storage_t::patch_disk_storage_t(mc_cache_t *_cache, block_id_t start_
         number_of_blocks = config_block->cache.n_patch_log_blocks;
         cache->serializer->free(config_block);
 
-        if ((unsigned long long)number_of_blocks > (unsigned long long)cache->dynamic_config.max_size / cache->get_block_size().ser_value()) {
-            fail_due_to_user_error("The cache of size %d blocks is too small to hold this database's diff log of %d blocks.",
-                (int)(cache->dynamic_config.max_size / cache->get_block_size().ser_value()),
-                (int)(number_of_blocks));
+        if (uint64_t(number_of_blocks) > uint64_t(cache->dynamic_config.max_size) / cache->get_block_size().ser_value()) {
+            fail_due_to_user_error("The cache of size %" PRId64 " blocks is too small to hold this database's diff log of %d blocks.",
+                                   cache->dynamic_config.max_size / cache->get_block_size().ser_value(),
+                                   number_of_blocks);
         }
 
         if (number_of_blocks == 0)
