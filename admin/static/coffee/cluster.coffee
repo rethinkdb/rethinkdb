@@ -894,8 +894,8 @@ declare_client_connected = ->
 # Process updates from the server and apply the diffs to our view of the data. Used by our version of Backbone.sync and POST / PUT responses for form actions
 apply_diffs = (updates) ->
     declare_client_connected()
-    for collection_id, collection_data in updates
-        for id, data in data_for_colection
+    for collection_id, collection_data of updates
+        for id, data of collection_data
             switch collection_id
                 when 'dummy_namespaces' then collection = namespaces
                 when 'memcached_namespaces' then collection = namespaces
@@ -908,7 +908,7 @@ apply_diffs = (updates) ->
                 collection.get(id).set(data)
             else
                 data.id = id
-                colection.add new colection.model(data)
+                collection.add new collection.model(data)
     return
 
 #    namespaces.get(update.id
