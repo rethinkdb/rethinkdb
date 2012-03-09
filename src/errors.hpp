@@ -140,11 +140,11 @@ void install_generic_crash_handler();
 // failures will be forwarded to the RethinkDB error mechanism.
 #define BOOST_ENABLE_ASSERT_HANDLER
 namespace boost {
-    void assertion_failed(char const * expr, char const * function, char const * file, long line);
+void assertion_failed(char const * expr, char const * function, char const * file, long line);  // NOLINT(runtime/int)
 }
 
 
-// Put this in a private: section.
+// put this in a private: section.
 #define DISABLE_COPYING(T)                      \
     T(const T&);                                \
     void operator=(const T&)

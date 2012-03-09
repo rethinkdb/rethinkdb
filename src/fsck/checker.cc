@@ -1,5 +1,8 @@
 #include "fsck/checker.hpp"
 
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
+
 #include <algorithm>
 
 #include "arch/arch.hpp"
@@ -552,7 +555,7 @@ bool check_lba_extent(nondirect_file_t *file, file_knowledge_t *knog, unsigned i
 
     for (int i = 0; i < entries_count; ++i) {
         lba_entry_t entry = buf->entries[i];
-        
+
         if (entry.block_id == NULL_BLOCK_ID) {
             // do nothing, this is ok.
         } else if (entry.block_id > MAX_BLOCK_ID) {
@@ -560,7 +563,6 @@ bool check_lba_extent(nondirect_file_t *file, file_knowledge_t *knog, unsigned i
         } else if (entry.block_id % LBA_SHARD_FACTOR != shard_number) {
             errs->wrong_shard_count++;
         } else if (!is_valid_btree_offset(knog, entry.offset)) {
-            debugf("Bad offset with value %lld\n", (long long)entry.offset.the_value_);
             errs->bad_offset_count++;
         } else {
             write_locker_t locker(knog);
@@ -1482,10 +1484,10 @@ std::string extract_cache_flags(nondirect_file_t *file, const multiplexer_config
 
 
     // Convert total number of log blocks to MB
-    long long int diff_log_size = mcc.cache.n_patch_log_blocks * c.n_proxies * block_size.ser_value();
-    int diff_log_size_mb = ceil_divide(diff_log_size, MEGABYTE);
+    int64_t diff_log_size = int64_t(mcc.cache.n_patch_log_blocks) * int64_t(c.n_proxies) * int64_t(block_size.ser_value());
+    int64_t diff_log_size_mb = ceil_divide(diff_log_size, MEGABYTE);
 
-    return strprintf(" --diff-log-size %d", diff_log_size_mb);
+    return strprintf(" --diff-log-size %" PRId64, diff_log_size_mb);
 }
 
 bool check_files(const config_t *cfg) {

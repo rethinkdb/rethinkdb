@@ -5,11 +5,17 @@ namespace riak {
 link_filter_t::link_filter_t(std::string _bucket, std::string _tag, bool keep) 
     : keep(keep)
 {
-    if (_bucket == "_") { bucket = boost::optional<std::string>(); }
-    else { bucket = boost::optional<std::string>(_bucket); }
+    if (_bucket == "_") {
+        bucket = boost::optional<std::string>();
+    } else {
+        bucket = boost::optional<std::string>(_bucket);
+    }
 
-    if (_tag == "_") { tag = boost::optional<std::string>(); }
-    else { tag = boost::optional<std::string>(_tag); }
+    if (_tag == "_") {
+        tag = boost::optional<std::string>();
+    } else {
+        tag = boost::optional<std::string>(_tag);
+    }
 }
 
 bool match(link_filter_t const &link_filter, link_t const &link) {
@@ -44,7 +50,7 @@ object_t::object_t(std::string const &key, std::string const &bucket, riak_value
         blob_acq_t acq;
         blob.expose_region(txn, rwi_read, 0, val->content_type_len, &buffer_group, &acq);
 
-        const_buffer_group_t::iterator it = buffer_group.begin(); 
+        const_buffer_group_t::iterator it = buffer_group.begin();
 
         /* grab the content type */
         content_type.reserve(val->content_type_len);
@@ -91,14 +97,17 @@ object_t::object_t(std::string const &key, std::string const &bucket, riak_value
 
         blob.expose_region(txn, rwi_read, val->content_type_len + val->value_len, val->links_length, &buffer_group, &acq);
 
-        const_buffer_group_t::iterator it = buffer_group.begin(); 
+        const_buffer_group_t::iterator it = buffer_group.begin();
         for (int i = 0; i < val->n_links; i++) {
             link_hdr_t link_hdr;
             link_t link;
 
-            link_hdr.bucket_len = *it; it++;
-            link_hdr.key_len = *it; it++;
-            link_hdr.tag_len = *it; it++;
+            link_hdr.bucket_len = *it;
+            it++;
+            link_hdr.key_len = *it;
+            it++;
+            link_hdr.tag_len = *it;
+            it++;
 
             link.bucket.reserve(link_hdr.bucket_len);
             for (int j = 0; j < link_hdr.bucket_len; j++) {

@@ -1,5 +1,7 @@
 /* This file exists to provide some stat monitors for process statistics and the like. */
 
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
 #include <vector>
 #include <string.h>
 #include <stdlib.h>
@@ -40,18 +42,18 @@ struct proc_pid_stat_t {
     char state;
     int ppid, pgrp, session, tty_nr, tpgid;
     unsigned int flags;
-    unsigned long int minflt, cminflt, majflt, cmajflt, utime, stime;
-    long int cutime, cstime, priority, nice, num_threads, itrealvalue;
-    long long unsigned int starttime;
-    long unsigned int vsize;
-    long int rss;
-    long unsigned int rsslim, startcode, endcode, startstack, kstkesp, kstkeip, signal, blocked,
+    uint64_t minflt, cminflt, majflt, cmajflt, utime, stime;
+    int64_t cutime, cstime, priority, nice, num_threads, itrealvalue;
+    uint64_t starttime;
+    uint64_t vsize;
+    int64_t rss;
+    uint64_t rsslim, startcode, endcode, startstack, kstkesp, kstkeip, signal, blocked,
         sigignore, sigcatch, wchan, nswap, cnswap;
     int exit_signal, processor;
     unsigned int rt_priority, policy;
-    long long unsigned int delayacct_blkio_ticks;
-    long unsigned int guest_time;
-    long int cguest_time;
+    uint64_t delayacct_blkio_ticks;
+    uint64_t guest_time;
+    int64_t cguest_time;
 
     static proc_pid_stat_t for_pid(pid_t pid) {
         char path[100];
@@ -75,7 +77,7 @@ private:
         if (stat_file.get() == INVALID_FD) {
             throw proc_pid_stat_exc_t("Could not open '%s': %s (errno = %d)", path, strerror(errno), errno);
         }
-        
+
         char buffer[1000];
         int res = ::read(stat_file.get(), buffer, sizeof(buffer));
         if (res <= 0) {
@@ -84,18 +86,35 @@ private:
 
         buffer[res] = '\0';
 
-        // TODO rewrite this mess to use something more safe and sane, e.g. iostreams
         const int items_to_parse = 44;
-        int res2 = sscanf(buffer, "%d %s %c %d %d %d %d %d %u %lu %lu %lu %lu %lu %lu %ld %ld "
-            "%ld %ld %ld %ld %llu %lu %ld %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %d "
-            "%d %u %u %u %u %llu %lu %ld",
-            &pid, name, &state, &ppid, &pgrp, &session, &tty_nr, &tpgid,
-            &flags, &minflt, &cminflt, &majflt, &cmajflt, &utime, &stime,
-            &cutime, &cstime, &priority, &nice, &num_threads, &itrealvalue,
-            &starttime, &vsize, &rss, &rsslim, &startcode, &endcode, &startstack,
-            &kstkesp, &kstkeip, &signal, &blocked, &sigignore, &sigcatch, &wchan,
-            &nswap, &cnswap, &exit_signal, &processor, &rt_priority, &processor,
-            &rt_priority, &policy, &delayacct_blkio_ticks, &guest_time, &cguest_time);
+        int res2 = sscanf(buffer, "%d %s %c %d %d %d %d %d %u"
+                          " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64
+                          " %" SCNd64 " %" SCNd64 " %" SCNd64 " %" SCNd64 " %" SCNd64 " %" SCNd64
+                          " %" SCNu64 " %" SCNu64 " %" SCNd64
+                          " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64
+                          " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64
+                          " %d %d"
+                          " %u %u"
+                          " %" SCNu64
+                          " %" SCNu64
+                          " %" SCNd64,
+                          &pid,
+                          name,
+                          &state,
+                          &ppid, &pgrp, &session, &tty_nr, &tpgid,
+                          &flags,
+                          &minflt, &cminflt, &majflt, &cmajflt, &utime, &stime,
+                          &cutime, &cstime, &priority, &nice, &num_threads, &itrealvalue,
+                          &starttime,
+                          &vsize,
+                          &rss,
+                          &rsslim, &startcode, &endcode, &startstack, &kstkesp, &kstkeip, &signal, &blocked,
+                          &sigignore, &sigcatch, &wchan, &nswap, &cnswap,
+                          &exit_signal, &processor,
+                          &rt_priority, &policy,
+                          &delayacct_blkio_ticks,
+                          &guest_time,
+                          &cguest_time);
         if (res2 != items_to_parse) {
             throw proc_pid_stat_exc_t("Could not parse '%s': expected to parse %d items, parsed "
                 "%d. Buffer contents: %s", path, items_to_parse, res2, buffer);

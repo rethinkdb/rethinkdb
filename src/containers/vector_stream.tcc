@@ -6,7 +6,7 @@ vector_streambuf_t<C, T, A>::vector_streambuf_t() : inner(), underlying(inner) {
 }
 
 template<typename C, typename T, typename A>
-vector_streambuf_t<C, T, A>::vector_streambuf_t(std::vector<C,A> &underlying_) : underlying(underlying_) {
+vector_streambuf_t<C, T, A>::vector_streambuf_t(std::vector<C, A> &underlying_) : underlying(underlying_) {
     init();
 }
 
@@ -35,7 +35,7 @@ std::streamsize vector_streambuf_t<C, T, A>::xsputn(const char_type* s, std::str
 }
 
 template<typename C, typename T, typename A>
-typename vector_streambuf_t<C, T, A>::int_type vector_streambuf_t<C,T,A>::overflow(int_type c) {
+typename vector_streambuf_t<C, T, A>::int_type vector_streambuf_t<C, T, A>::overflow(int_type c) {
     std::streamsize putback_size = this->gptr() - this->eback();
 
     underlying.push_back(c);
