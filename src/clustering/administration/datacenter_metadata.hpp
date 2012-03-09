@@ -4,20 +4,26 @@
 #include "errors.hpp"
 #include <boost/uuid/uuid.hpp>
 
-#include "rpc/serialize_macros.hpp"
 #include "http/json.hpp"
 #include "http/json/json_adapter.hpp"
+#include "rpc/semilattice/joins/deletable.hpp"
+#include "rpc/semilattice/joins/vclock.hpp"
+#include "rpc/serialize_macros.hpp"
 
 
 typedef boost::uuids::uuid datacenter_id_t;
 
 class datacenter_semilattice_metadata_t {
-    RDB_MAKE_ME_SERIALIZABLE_0();
+public:
+    vclock_t<std::string> name;
+    RDB_MAKE_ME_SERIALIZABLE_1(name);
 };
 
 template <class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(datacenter_semilattice_metadata_t *, const ctx_t &) {
-    return typename json_adapter_if_t<ctx_t>::json_adapter_map_t();
+typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(datacenter_semilattice_metadata_t *target, const ctx_t &) {
+    typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
+    res["name"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<vclock_t<std::string>, ctx_t>(&target->name));
+    return res;
 }
 
 template <class ctx_t>
