@@ -16,6 +16,7 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 
+#include "config/args.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "containers/scoped_malloc.hpp"
 #include "db_thread_info.hpp"
@@ -123,7 +124,7 @@ timespec get_uptime() {
         now.tv_sec -= time_sync_data.hi_res_clock.tv_sec;
         now.tv_nsec -= time_sync_data.hi_res_clock.tv_nsec;
         if (now.tv_nsec < 0) {
-            now.tv_nsec += (long long int)1e9;
+            now.tv_nsec += BILLION;
             now.tv_sec--;
         }
         return now;
@@ -141,7 +142,7 @@ precise_time_t get_absolute_time(const timespec& relative_time) {
     time_t sec = time_sync_data.low_res_clock + relative_time.tv_sec;
     uint32_t nsec = time_sync_data.hi_res_clock.tv_nsec + relative_time.tv_nsec;
     if (nsec > 1e9) {
-        nsec -= (long long int)1e9;
+        nsec -= BILLION;
         sec++;
     }
     (void) gmtime_r(&sec, &result);
@@ -174,8 +175,6 @@ std::string format_precise_time(const precise_time_t& time) {
 }
 
 #ifndef NDEBUG
-
-#include <iostream>
 
 void home_thread_mixin_t::assert_thread() const {
     if(home_thread() != get_thread_id()) {
@@ -266,16 +265,16 @@ struct rand_initter_t {
     }
 } rand_initter;
 
-rng_t::rng_t( UNUSED long int seed) {
+rng_t::rng_t( UNUSED int seed) {
     memset(&buffer_, 0, sizeof(buffer_));
 #ifndef NDEBUG
-    if(seed == -1) {
+    if (seed == -1) {
         struct timeval tv;
         gettimeofday(&tv, NULL);
         seed = tv.tv_usec;
     }
     srand48_r(seed, &buffer_);
-    logDBG("Random number generator seeded with: %ld\n", seed);
+    logDBG("Random number generator seeded with: %d\n", seed);
 #else
     srand48_r(314159, &buffer_);
 #endif
@@ -359,7 +358,7 @@ int gcd(int x, int y) {
 ticks_t secs_to_ticks(float secs) {
     // The timespec struct used in clock_gettime has a tv_nsec field.
     // That's why we use a billion.
-    return (unsigned long long)secs * 1000000000L;
+    return ticks_t(secs) * 1000000000L;
 }
 
 ticks_t get_ticks() {
@@ -374,10 +373,10 @@ time_t get_secs() {
     return tv.tv_sec;
 }
 
-long get_ticks_res() {
+uint64_t get_ticks_res() {
     timespec tv;
     clock_getres(CLOCK_MONOTONIC, &tv);
-    return secs_to_ticks(tv.tv_sec) + tv.tv_nsec;
+    return uint64_t(secs_to_ticks(tv.tv_sec)) + tv.tv_nsec;
 }
 
 double ticks_to_secs(ticks_t ticks) {
