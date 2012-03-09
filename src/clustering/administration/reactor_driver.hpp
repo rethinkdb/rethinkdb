@@ -47,13 +47,15 @@ blueprint_t<protocol_t> translate_blueprint(const persistable_blueprint_t<protoc
                                 clone_ptr_t<directory_rwview_t<namespaces_directory_metadata_t<protocol_t> > > _directory_view,
                                 namespace_id_t _namespace_id,
                                 boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > _branch_history,
-                                const blueprint_t<protocol_t> &bp)
+                                const blueprint_t<protocol_t> &bp,
+                                const std::string &_file_path)
             : watchable(bp),
               mbox_manager(_mbox_manager),
               directory_view(_directory_view),
               namespace_id(_namespace_id),
-              branch_history(_branch_history)
-        { 
+              branch_history(_branch_history),
+              file_path(_file_path)
+        {
             coro_t::spawn_sometime(boost::bind(&watchable_and_reactor_t<protocol_t>::initialize_reactor, this));
         }
 
@@ -75,7 +77,7 @@ blueprint_t<protocol_t> translate_blueprint(const persistable_blueprint_t<protoc
         }
 
         std::string get_file_name() {
-            return "rethinkdb_cluster_data/" + uuid_to_str(namespace_id);
+            return file_path + "/" + uuid_to_str(namespace_id);
         }
 
         watchable_impl_t<blueprint_t<protocol_t> > watchable;
@@ -124,6 +126,8 @@ blueprint_t<protocol_t> translate_blueprint(const persistable_blueprint_t<protoc
         clone_ptr_t<directory_rwview_t<namespaces_directory_metadata_t<protocol_t> > > directory_view;
         namespace_id_t namespace_id;
         boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > branch_history;
+        std::string file_path;
+
         boost::scoped_ptr<typename protocol_t::store_t> store;
         boost::scoped_ptr<reactor_t<protocol_t> > reactor;
     };
@@ -135,12 +139,14 @@ public:
     reactor_driver_t(mailbox_manager_t *_mbox_manager,
                      clone_ptr_t<directory_rwview_t<namespaces_directory_metadata_t<protocol_t> > > _directory_view,
                      boost::shared_ptr<semilattice_readwrite_view_t<namespaces_semilattice_metadata_t<protocol_t> > > _namespaces_view,
-                     const clone_ptr_t<directory_rview_t<machine_id_t> > &_machine_id_translation_table)
+                     const clone_ptr_t<directory_rview_t<machine_id_t> > &_machine_id_translation_table,
+                     std::string _file_path)
         : mbox_manager(_mbox_manager),
           directory_view(_directory_view), 
           branch_history(metadata_field(&namespaces_semilattice_metadata_t<protocol_t>::branch_history, _namespaces_view)),
           machine_id_translation_table(_machine_id_translation_table),
           namespaces_view(_namespaces_view),
+          file_path(_file_path),
           semilattice_subscription(boost::bind(&reactor_driver_t<protocol_t>::on_change, this), namespaces_view),
           connectivity_subscription(boost::bind(&reactor_driver_t<protocol_t>::on_change, this), boost::bind(&reactor_driver_t<protocol_t>::on_change, this))
     {
@@ -200,7 +206,8 @@ private:
                                     directory_view,
                                     it->first,
                                     branch_history,
-                                    bp));
+                                    bp,
+                                    file_path));
                     } else {
                         reactor_data.find(it->first)->second->watchable.set_value(bp);
                     }
@@ -219,8 +226,9 @@ private:
     clone_ptr_t<directory_rwview_t<namespaces_directory_metadata_t<protocol_t> > > directory_view;
     boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > branch_history;
     clone_ptr_t<directory_rview_t<machine_id_t> > machine_id_translation_table;
-
     boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> > > namespaces_view;
+    std::string file_path;
+
     boost::ptr_map<namespace_id_t, reactor_driver_details::watchable_and_reactor_t<protocol_t> > reactor_data;
 
     auto_drainer_t drainer;
