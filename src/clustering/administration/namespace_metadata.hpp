@@ -85,24 +85,24 @@ public:
 //json adapter concept for namespaces_semilattice_metadata_t
 
 template <class ctx_t, class protocol_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(namespaces_semilattice_metadata_t<protocol_t> *target, const ctx_t &) {
-    typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
-    res["namespaces"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_with_inserter_t<typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t, ctx_t>(&target->namespaces, boost::bind(&generate_uuid)));
-    return res;
+typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(namespaces_semilattice_metadata_t<protocol_t> *target, const ctx_t &ctx) {
+    return get_json_subfields(&target->namespaces, ctx);
 }
 
 template <class ctx_t, class protocol_t>
 cJSON *render_as_json(namespaces_semilattice_metadata_t<protocol_t> *target, const ctx_t &ctx) {
-    return render_as_directory(target, ctx);
+    return render_as_json(&target->namespaces, ctx);
 }
 
 template <class ctx_t, class protocol_t>
 void apply_json_to(cJSON *change, namespaces_semilattice_metadata_t<protocol_t> *target, const ctx_t &ctx) {
-    apply_as_directory(change, target, ctx);
+    apply_as_directory(change, &target->namespaces, ctx);
 }
 
 template <class ctx_t, class protocol_t>
-void on_subfield_change(namespaces_semilattice_metadata_t<protocol_t> *, const ctx_t &) { }
+void on_subfield_change(namespaces_semilattice_metadata_t<protocol_t> *target, const ctx_t &ctx) { 
+    on_subfield_change(&target->namespaces, ctx);
+}
 
 //semilattice concept for namespaces_semilattice_metadata_t 
 template <class protocol_t>

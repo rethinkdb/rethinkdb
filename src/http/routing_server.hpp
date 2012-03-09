@@ -8,9 +8,9 @@
 
 class routing_server_t : public http_server_t {
 public:
-    routing_server_t(int port, http_server_t *defaultroute, std::map<std::string, http_server_t *> subroutes = std::map<std::string, http_server_t *>());
+    routing_server_t(int port, http_server_t *defaultroute, std::map<std::string, http_server_t *> subroutes);
 
-    routing_server_t(http_server_t *defaultroute, std::map<std::string, http_server_t *> subroutes = std::map<std::string, http_server_t *>());
+    routing_server_t(http_server_t *defaultroute, std::map<std::string, http_server_t *> subroutes);
 
     void add_route(std::string route, http_server_t *server);
 
