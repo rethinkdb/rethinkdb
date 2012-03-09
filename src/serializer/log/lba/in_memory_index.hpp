@@ -35,7 +35,7 @@ public:
     block_id_t get_block_id(off64_t offset);
 
     // Rebuild the reverse mapping offset -> block id. Can become necessary on startup, when the LBA contains outdaited entries with offset collisions to recent ones
-    void rebuild_reverse_index(); 
+    void rebuild_reverse_index();
 
 #ifndef NDEBUG
     void print();

@@ -13,8 +13,8 @@ class timer_token_t : public intrusive_list_node_t<timer_token_t> {
     
 private:
     bool once;   // If 'false', the timer is repeating
-    long interval_ms;   // If a repeating timer, this is the time between 'rings'
-    long next_time_in_ms;   // This is the time (in ms since the server started) of the next 'ring'
+    int64_t interval_ms;   // If a repeating timer, this is the time between 'rings'
+    int64_t next_time_in_ms;   // This is the time (in ms since the server started) of the next 'ring'
     
     // It's unsafe to remove arbitrary timers from the list as we iterate over
     // it, so instead we set the 'deleted' flag and then remove them in a
@@ -27,7 +27,7 @@ private:
 
 /* Timer implementation */
 timer_handler_t::timer_handler_t(linux_event_queue_t *queue)
-    : timer_provider(queue, this, TIMER_TICKS_IN_MS / 1000, (TIMER_TICKS_IN_MS % 1000) * 1000000L),
+    : timer_provider(queue, this, TIMER_TICKS_IN_MS / 1000, (TIMER_TICKS_IN_MS % 1000) * 1000000),
       timer_ticks_since_server_startup(0)
 {
     // Nothing to do here, timer_provider handles the OS
@@ -50,7 +50,7 @@ timer_handler_t::~timer_handler_t() {
 
 void timer_handler_t::on_timer(int nexpirations) {
     timer_ticks_since_server_startup += nexpirations;
-    long time_in_ms = timer_ticks_since_server_startup * TIMER_TICKS_IN_MS;
+    int64_t time_in_ms = timer_ticks_since_server_startup * TIMER_TICKS_IN_MS;
 
     timer_token_t *p = timers.head();
     while (p) {
@@ -82,10 +82,10 @@ void timer_handler_t::on_timer(int nexpirations) {
         }
     }
 }
-    
-timer_token_t *timer_handler_t::add_timer_internal(long ms, void (*callback)(void *ctx), void *ctx, bool once) {
+
+timer_token_t *timer_handler_t::add_timer_internal(int64_t ms, void (*callback)(void *ctx), void *ctx, bool once) {
     rassert(ms >= 0);
-    
+
     timer_token_t *t = new timer_token_t();
     t->next_time_in_ms = timer_ticks_since_server_startup * TIMER_TICKS_IN_MS + ms;
     t->once = once;
@@ -93,9 +93,9 @@ timer_token_t *timer_handler_t::add_timer_internal(long ms, void (*callback)(voi
     t->deleted = false;
     t->callback = callback;
     t->context = ctx;
-    
+
     timers.push_front(t);
-    
+
     return t;
 }
 

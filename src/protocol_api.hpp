@@ -239,7 +239,7 @@ public:
     [Precondition] region_is_superset(expected_metainfo.get_domain(), read.get_region())
     [May block] */
     virtual typename protocol_t::read_response_t read(
-            DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+            DEBUG_ONLY(const metainfo_t& expected_metainfo, )
             const typename protocol_t::read_t &read,
             boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
             signal_t *interruptor)
@@ -251,7 +251,7 @@ public:
     [Precondition] region_is_superset(expected_metainfo.get_domain(), write.get_region())
     [May block] */
     virtual typename protocol_t::write_response_t write(
-            DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+            DEBUG_ONLY(const metainfo_t& expected_metainfo, )
             const metainfo_t& new_metainfo,
             const typename protocol_t::write_t &write,
             transition_timestamp_t timestamp,
@@ -267,7 +267,7 @@ public:
     [May block]
     */
     virtual bool send_backfill(
-            const region_map_t<protocol_t,state_timestamp_t> &start_point,
+            const region_map_t<protocol_t, state_timestamp_t> &start_point,
             const boost::function<bool(const metainfo_t&)> &should_backfill,
             const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
             boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
@@ -377,18 +377,18 @@ public:
     }
 
     typename protocol_t::read_response_t read(
-            DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+            DEBUG_ONLY(const metainfo_t& expected_metainfo, )
             const typename protocol_t::read_t &read,
             boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         rassert(region_is_superset(get_region(), expected_metainfo.get_domain()));
 
-        return store_view->read(DEBUG_ONLY(expected_metainfo,) read, token, interruptor);
+        return store_view->read(DEBUG_ONLY(expected_metainfo, ) read, token, interruptor);
     }
 
     typename protocol_t::write_response_t write(
-            DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+            DEBUG_ONLY(const metainfo_t& expected_metainfo, )
             const metainfo_t& new_metainfo,
             const typename protocol_t::write_t &write,
             transition_timestamp_t timestamp,
@@ -398,11 +398,11 @@ public:
         rassert(region_is_superset(get_region(), expected_metainfo.get_domain()));
         rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
-        return store_view->write(DEBUG_ONLY(expected_metainfo,) new_metainfo, write, timestamp, token, interruptor);
+        return store_view->write(DEBUG_ONLY(expected_metainfo, ) new_metainfo, write, timestamp, token, interruptor);
     }
 
     bool send_backfill(
-            const region_map_t<protocol_t,state_timestamp_t> &start_point,
+            const region_map_t<protocol_t, state_timestamp_t> &start_point,
             const boost::function<bool(const metainfo_t&)> &should_backfill,
             const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
             boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,

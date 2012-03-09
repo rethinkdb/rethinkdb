@@ -112,7 +112,7 @@ object_iterator_t riak_interface_t::objects(const std::string &) {
     unreachable();
 }
 
-const object_t riak_interface_t::get_object(std::string key, std::pair<int,int> range) {
+const object_t riak_interface_t::get_object(std::string key, std::pair<int, int> range) {
     /* std::list<std::string> sm_key;
     sm_key.push_back("riak"); sm_key.push_back(bucket);
     btree_slice_t *slice = get_slice(sm_key);
@@ -236,7 +236,7 @@ bool riak_interface_t::delete_object(UNUSED std::string key) {
 
 std::string secs_to_riak_date(time_t secs) {
     struct tm *time = gmtime(&secs);
-    char buffer[100]; 
+    char buffer[100];
 
     DEBUG_ONLY_VAR size_t res = strftime(buffer, 100, RIAK_DATE_FORMAT, time);
     rassert(res != 0, "Not enough space for the date time");

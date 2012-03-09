@@ -1,6 +1,10 @@
+#ifndef CONFIG_ARGS_HPP_
+#define CONFIG_ARGS_HPP_
 
-#ifndef __CONFIG_ARGS_H__
-#define __CONFIG_ARGS_H__
+#define THOUSAND (1000LL)
+#define MILLION (THOUSAND * THOUSAND)
+#define BILLION (THOUSAND * MILLION)
+#define TRILLION (THOUSAND * BILLION)
 
 #define KILOBYTE 1024L
 #define MEGABYTE (KILOBYTE*1024L)
@@ -95,7 +99,7 @@
 #define LOG_WORKER 0
 
 // Ratio of free ram to use for the cache by default
-#define DEFAULT_MAX_CACHE_RATIO                   0.5f
+#define DEFAULT_MAX_CACHE_RATIO                   0.5
 
 // Maximum number of threads we support
 // TODO: make this dynamic where possible
@@ -119,7 +123,7 @@
 #else
 #define DEFAULT_PATCH_LOG_SIZE                     (4 * MEGABYTE)
 #endif
-#define DEFAULT_PATCH_LOG_FRACTION                 0.2
+#define DEFAULT_PATCH_LOG_FRACTION                0.2
 
 // Default port to listen on
 #define DEFAULT_LISTEN_PORT                       11211
