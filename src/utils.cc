@@ -373,10 +373,10 @@ time_t get_secs() {
     return tv.tv_sec;
 }
 
-uint64_t get_ticks_res() {
+int64_t get_ticks_res() {
     timespec tv;
     clock_getres(CLOCK_MONOTONIC, &tv);
-    return uint64_t(secs_to_ticks(tv.tv_sec)) + tv.tv_nsec;
+    return int64_t(secs_to_ticks(tv.tv_sec)) + tv.tv_nsec;
 }
 
 double ticks_to_secs(ticks_t ticks) {
