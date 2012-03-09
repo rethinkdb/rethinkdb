@@ -182,7 +182,7 @@ void slave_t::run(signal_t *shutdown_signal) {
         /* The connection has failed. Let's see what we should do */
         if (failover_config_.no_rogue || !give_up_.give_up()) {
             int timeout = timeout_;
-            timeout_ = std::min(timeout_ * TIMEOUT_GROWTH_FACTOR, (long)TIMEOUT_CAP);
+            timeout_ = std::min<int64_t>(timeout_ * TIMEOUT_GROWTH_FACTOR, TIMEOUT_CAP);
 
             cond_t failover_reset;
             pulse_to_reset_failover_ = &failover_reset;

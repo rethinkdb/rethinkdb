@@ -107,7 +107,7 @@ void install_generic_crash_handler() {
 namespace boost {
 
 void assertion_failed(char const * expr, char const * function, char const * file, long line) {
-    report_fatal_error(file, line, "BOOST_ASSERT failure in '%s': %s", function, expr); 
+    report_fatal_error(file, line, "BOOST_ASSERT failure in '%s': %s", function, expr);
     BREAKPOINT;
 }
 

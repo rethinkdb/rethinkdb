@@ -102,7 +102,7 @@ private:
     give_up_t give_up_;
 
     /* state for failover */
-    long timeout_; /* ms to wait before trying to reconnect */
+    int64_t timeout_; /* ms to wait before trying to reconnect */
 
     failover_reset_control_t failover_reset_control_;
 

@@ -1,5 +1,7 @@
 #include "memcached/memcached.hpp"
 
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
 #include <stdexcept>
 #include <stdarg.h>
 #include <unistd.h>
@@ -88,8 +90,8 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
     }
 
     void write_value_header(const char *key, size_t key_size, mcflags_t mcflags, size_t value_size, cas_t cas) {
-        writef("VALUE %*.*s %u %zu %llu\r\n",
-               int(key_size), int(key_size), key, mcflags, value_size, (long long unsigned int)cas);
+        writef("VALUE %*.*s %u %zu %" PRIu64 "\r\n",
+               int(key_size), int(key_size), key, mcflags, value_size, cas);
     }
 
     void error() {
@@ -370,7 +372,7 @@ static bool rget_parse_bound(char *flag, char *key, rget_bound_mode_t *mode_out,
     if (!str_to_key(key, key_out)) return false;
 
     char *invalid_char;
-    long open_flag = strtol_strict(flag, &invalid_char, 10);
+    int64_t open_flag = strtol_strict(flag, &invalid_char, 10);
     if (*invalid_char != '\0') return false;
 
     switch (open_flag) {
@@ -742,7 +744,7 @@ void run_incr_decr(txt_memcached_handler_t *rh, pipeliner_acq_t *pipeliner_acq, 
     if (!noreply) {
         switch (res.res) {
             case incr_decr_result_t::idr_success:
-                rh->writef("%llu\r\n", (unsigned long long)res.new_value);
+                rh->writef("%" PRIu64 "\r\n", res.new_value);
                 break;
             case incr_decr_result_t::idr_not_found:
                 rh->writef("NOT_FOUND\r\n");
