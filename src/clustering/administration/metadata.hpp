@@ -20,8 +20,7 @@ public:
     machines_semilattice_metadata_t machines;
     std::map<datacenter_id_t, datacenter_semilattice_metadata_t> datacenters;
 
-
-    RDB_MAKE_ME_SERIALIZABLE_3(dummy_namespaces, memcached_namespaces, machines);
+    RDB_MAKE_ME_SERIALIZABLE_4(dummy_namespaces, memcached_namespaces, machines, datacenters);
 };
 
 //json adapter concept for cluster_semilattice_metadata_t
