@@ -193,10 +193,10 @@ inline bool divides(int64_t x, int64_t y) {
 
 int gcd(int x, int y);
 
-typedef unsigned long long ticks_t;
+typedef uint64_t ticks_t;
 ticks_t secs_to_ticks(float secs);
 ticks_t get_ticks();
-long get_ticks_res();
+uint64_t get_ticks_res();
 double ticks_to_secs(ticks_t ticks);
 
 // HEY: Maybe debugf and log_call and TRACEPOINT should be placed in
@@ -211,7 +211,7 @@ void debugf(const char *msg, ...) __attribute__((format (printf, 1, 2)));
 class rng_t {
 public:
     int randint(int n);
-    explicit rng_t(long int seed = -1);
+    explicit rng_t(int seed = -1);
 private:
     struct drand48_data buffer_;
     DISABLE_COPYING(rng_t);
