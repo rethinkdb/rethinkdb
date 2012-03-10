@@ -281,7 +281,10 @@ rng_t::rng_t( UNUSED int seed) {
 }
 
 int rng_t::randint(int n) {
-    long int x;
+    // We return int, and use it in the moduloizer, so the long here
+    // (which is necessary for the lrand48_r API) is okay.
+
+    long x;  // NOLINT(runtime/int)
     lrand48_r(&buffer_, &x);
 
     return x % n;
@@ -307,36 +310,42 @@ bool begins_with_minus(const char *string) {
     return *string == '-';
 }
 
-long strtol_strict(const char *string, char **end, int base) {
-    long result = strtol(string, end, base);
+int64_t strtol_strict(const char *string, const char **end, int base) {
+    // It's okay to have long, that's what strtol returns.
+    // We convert it to int64_t (which is the same thing, or bigger).
+    long result = strtol(string, const_cast<char **>(end), base);  // NOLINT(runtime/int)
     if ((result == LONG_MAX || result == LONG_MIN) && errno == ERANGE) {
-        *end = const_cast<char *>(string);
+        *end = string;
         return 0;
     }
     return result;
 }
 
-unsigned long strtoul_strict(const char *string, char **end, int base) {
+uint64_t strtoul_strict(const char *string, const char **end, int base) {
     if (begins_with_minus(string)) {
-        *end = const_cast<char *>(string);
+        *end = string;
         return 0;
     }
-    unsigned long result = strtoul(string, end, base);
+    // It's okay to have an unsigned long, that's what strtoul returns.
+    // We convert it to uint64_t (which is the same thing, or bigger).
+    unsigned long result = strtoul(string, const_cast<char **>(end), base);  // NOLINT(runtime/int)
     if (result == ULONG_MAX && errno == ERANGE) {
-        *end = const_cast<char *>(string);
+        *end = string;
         return 0;
     }
     return result;
 }
 
-unsigned long long strtoull_strict(const char *string, char **end, int base) {
+uint64_t strtoull_strict(const char *string, const char **end, int base) {
     if (begins_with_minus(string)) {
-        *end = const_cast<char *>(string);
+        *end = string;
         return 0;
     }
-    unsigned long long result = strtoull(string, end, base);
+    // It's okay to have an unsigned long long, that's what strtoull returns.
+    // We convert it to uint64_t (which is the same thing).
+    unsigned long long result = strtoull(string, const_cast<char **>(end), base);  // NOLINT(runtime/int)
     if (result == ULLONG_MAX && errno == ERANGE) {
-        *end = const_cast<char *>(string);
+        *end = string;
         return 0;
     }
     return result;
