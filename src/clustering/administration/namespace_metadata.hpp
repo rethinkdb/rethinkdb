@@ -33,6 +33,8 @@ public:
 
     vclock_t<std::set<typename protocol_t::region_t> > shards;
 
+    vclock_t<std::string> name;
+
     RDB_MAKE_ME_SERIALIZABLE_4(blueprint, primary_datacenter, replica_affinities, shards);
 };
 
@@ -41,8 +43,10 @@ template <class ctx_t, class protocol_t>
 typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(namespace_semilattice_metadata_t<protocol_t> *target, const ctx_t &) {
     typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
     res["blueprint"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<vclock_t<blueprint_t<protocol_t> >, ctx_t>(&target->blueprint));
-    res["primary_datacenter"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<vclock_t<datacenter_id_t>, ctx_t>(&target->primary_datacenter));
+    res["primary_uuid"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<vclock_t<datacenter_id_t>, ctx_t>(&target->primary_datacenter));
     res["replica_affinities"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<vclock_t<std::map<datacenter_id_t, int> >, ctx_t>(&target->replica_affinities));
+    res["name"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<vclock_t<std::string>, ctx_t>(&target->name));
+    res["shards"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<vclock_t<std::set<typename protocol_t::region_t> >, ctx_t>(&target->shards));
     return res;
 }
 
