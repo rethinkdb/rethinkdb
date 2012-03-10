@@ -258,6 +258,9 @@ private:
     DISABLE_COPYING(rng_t);
 };
 
+int randint(int n);
+
+
 
 std::string rand_string(int len);
 
