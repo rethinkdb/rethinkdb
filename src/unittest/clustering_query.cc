@@ -13,8 +13,6 @@
 
 namespace unittest {
 
-using namespace mock;
-
 /* The `ReadWrite` test sends some reads and writes to some shards via a
 `cluster_namespace_interface_t`. */
 

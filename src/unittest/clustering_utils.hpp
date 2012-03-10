@@ -7,7 +7,8 @@
 
 namespace unittest {
 
-using namespace mock;
+using mock::dummy_protocol_t;
+using mock::a_thru_z_region;
 
 class test_store_t {
 public:
