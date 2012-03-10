@@ -411,11 +411,9 @@ bool notf(bool x);
 
 
 template<class K, class V>
-std::ostream &operator<<(std::ostream &stream, const std::map<K,V> &map) {
+std::ostream &operator<<(std::ostream &stream, const std::map<K, V> &map) {
     stream << "{ ";
-    for (typename std::map<K,V>::const_iterator it =  map.begin();
-                                                it != map.end();
-                                                it++) {
+    for (typename std::map<K, V>::const_iterator it =  map.begin(); it != map.end(); ++it) {
         stream << it->first << " -> " << it->second << ", ";
     }
     stream << "}";
