@@ -6,11 +6,9 @@
 
 //TODO this can be much more efficient with an iterator
 template <class K, class V>
-std::set<K> keys(const std::map<K,V> &map) {
+std::set<K> keys(const std::map<K, V> &map) {
     std::set<K> res;
-    for (typename std::map<K,V>::const_iterator it = map.begin();
-                                                it != map.end();
-                                                it++) {
+    for (typename std::map<K, V>::const_iterator it = map.begin(); it != map.end(); it++) {
         res.insert(it->first);
     }
 

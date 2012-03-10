@@ -17,8 +17,6 @@
 
 namespace unittest {
 
-using namespace mock;
-
 namespace {
 
 /* `let_stuff_happen()` delays for some time to let events occur */
@@ -96,7 +94,7 @@ public:
 template<class protocol_t>
 class reactor_test_cluster_t {
 public:
-    reactor_test_cluster_t(int port) :
+    explicit reactor_test_cluster_t(int port) :
         connectivity_cluster(),
         message_multiplexer(&connectivity_cluster),
 
@@ -166,8 +164,8 @@ public:
 
     std::map<std::string, std::string> inserter_state;
 
-    test_cluster_group_t(int n_machines) {
-        int port = 10000 + rand() % 20000;
+    explicit test_cluster_group_t(int n_machines) {
+        int port = 10000 + randint(20000);
         for (int i = 0; i < n_machines; i++) {
             files.push_back(new temp_file_t("/tmp/rdb_unittest.XXXXXX"));
             stores.push_back(new typename protocol_t::store_t(files[i].name(), true));
