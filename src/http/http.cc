@@ -93,6 +93,9 @@ void test_header_parser() {
     UNUSED bool success = true;
 }
 
+http_server_t::http_server_t() {
+}
+
 http_server_t::http_server_t(int port) {
     tcp_listener.reset(new tcp_listener_t(port, boost::bind(&http_server_t::handle_conn, this, _1)));
 }
@@ -116,7 +119,7 @@ std::string human_readable_status(int code) {
     case 501:
         return "Not Implemented";
     default:
-        unreachable();
+        unreachable("Unknown code %d.", code);
     }
 }
 
@@ -137,15 +140,23 @@ void http_server_t::handle_conn(boost::scoped_ptr<nascent_tcp_conn_t> &nconn) {
     tcp_http_msg_parser_t http_msg_parser;
 
     /* parse the request */
-    if(http_msg_parser.parse(conn.get(), &req)) {
-        http_res_t res = handle(req); 
-        res.version = req.version;
-        write_http_msg(conn, res);
-    } else {
-        // Write error
-        http_res_t res;
-        res.code = 400;
-        write_http_msg(conn, res);
+    try {
+        if(http_msg_parser.parse(conn.get(), &req)) {
+            http_res_t res = handle(req); 
+            res.version = req.version;
+            write_http_msg(conn, res);
+        } else {
+            // Write error
+            http_res_t res;
+            res.code = 400;
+            write_http_msg(conn, res);
+        }
+    } catch (linux_tcp_conn_t::read_closed_exc_t &) {
+        //Someone disconnected before sending us all the information we
+        //needed... oh well.
+    } catch (linux_tcp_conn_t::write_closed_exc_t &) {
+        //We were trying to write to someone and they didn't stick around long
+        //enough to write it.
     }
 }
 
