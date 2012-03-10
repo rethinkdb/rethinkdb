@@ -51,7 +51,7 @@ endif
 # Set SYMBOLS to 1 to enable symbols, even in release mode
 SYMBOLS?=0
 
-JSON_SHORTCUTS?=1
+JSON_SHORTCUTS?=0
 DEBUG?=1
 VALGRIND?=0
 NO_TCMALLOC?=0
