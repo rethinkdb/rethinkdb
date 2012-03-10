@@ -36,7 +36,7 @@ struct btree_incr_decr_oper_t : public btree_modify_oper_t {
             char buffer[50];
             memcpy(buffer, buffergroup.get_buffer(0).data, buffergroup.get_buffer(0).size);
             buffer[buffergroup.get_buffer(0).size] = '\0';
-            char *endptr;
+            const char *endptr;
             number = strtoull_strict(buffer, &endptr, 10);
             valid = (endptr != buffer);
         } else {

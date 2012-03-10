@@ -219,11 +219,12 @@ private:
 
 
 bool begins_with_minus(const char *string);
-// strtoul() and strtoull() will for some reason not fail if the input begins with a minus
-// sign. strtoul_strict() and strtoull_strict() do.
-long strtol_strict(const char *string, char **end, int base);
-unsigned long strtoul_strict(const char *string, char **end, int base);
-unsigned long long strtoull_strict(const char *string, char **end, int base);
+// strtoul() and strtoull() will for some reason not fail if the input
+// begins with a minus sign. strtoul_strict() and strtoull_strict()
+// do.  Also we fix the constness of the end parameter.
+int64_t strtol_strict(const char *string, const char **end, int base);
+uint64_t strtoul_strict(const char *string, const char **end, int base);
+uint64_t strtoull_strict(const char *string, const char **end, int base);
 
 // This is inefficient, it calls vsnprintf twice and copies the
 // arglist and output buffer excessively.
