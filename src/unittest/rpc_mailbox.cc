@@ -30,7 +30,7 @@ public:
         mailbox(m, boost::bind(&dummy_mailbox_t::on_message, this, _1, _2))
         { }
     void expect(int message) {
-        EXPECT_TRUE(inbox.count(message) == 1);
+        EXPECT_EQ(1, inbox.count(message));
     }
     mailbox_t mailbox;
 };
@@ -48,7 +48,7 @@ void send(mailbox_manager_t *c, mailbox_t::address_t dest, int message) {
 /* `MailboxStartStop` creates and destroys some mailboxes. */
 
 void run_mailbox_start_stop_test() {
-    int port = 10000 + rand() % 20000;
+    int port = 10000 + randint(20000);
     connectivity_cluster_t c;
     mailbox_manager_t m(&c);
     connectivity_cluster_t::run_t r(&c, port, &m);
@@ -67,7 +67,7 @@ TEST(RPCMailboxTest, MailboxStartStop) {
 /* `MailboxMessage` sends messages to some mailboxes */
 
 void run_mailbox_message_test() {
-    int port = 10000 + rand() % 20000;
+    int port = 10000 + randint(20000);
     connectivity_cluster_t c1, c2;
     mailbox_manager_t m1(&c1), m2(&c2);
     connectivity_cluster_t::run_t r1(&c1, port, &m1), r2(&c2, port+1, &m2);
@@ -100,7 +100,7 @@ TEST(RPCMailboxTest, MailboxMessageMultiThread) {
 for the message to be silently ignored. */
 
 void run_dead_mailbox_test() {
-    int port = 10000 + rand() % 20000;
+    int port = 10000 + randint(20000);
     connectivity_cluster_t c1, c2;
     mailbox_manager_t m1(&c1), m2(&c2);
     connectivity_cluster_t::run_t r1(&c1, port, &m1), r2(&c2, port+1, &m2);
@@ -131,7 +131,7 @@ void run_mailbox_address_semantics_test() {
     mailbox_t::address_t nil_addr;
     EXPECT_TRUE(nil_addr.is_nil());
 
-    int port = 10000 + rand() % 20000;
+    int port = 10000 + randint(20000);
     connectivity_cluster_t c;
     mailbox_manager_t m(&c);
     connectivity_cluster_t::run_t r(&c, port, &m);
@@ -152,7 +152,7 @@ TEST(RPCMailboxTest, MailboxAddressSemanticsMultiThread) {
 
 void run_typed_mailbox_test() {
 
-    int port = 10000 + rand() % 20000;
+    int port = 10000 + randint(20000);
     connectivity_cluster_t c;
     mailbox_manager_t m(&c);
     connectivity_cluster_t::run_t r(&c, port, &m);

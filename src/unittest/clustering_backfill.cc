@@ -62,7 +62,7 @@ void run_backfill_test() {
     // Insert 10 values into both stores, then another 10 into only `backfiller_store` and not `backfillee_store`
     for (int i = 0; i < 20; i++) {
         dummy_protocol_t::write_t w;
-        std::string key = std::string(1, 'a' + rand() % 26);
+        std::string key = std::string(1, 'a' + randint(26));
         w.values[key] = strprintf("%d", i);
 
         for (int j = 0; j < (i < 10 ? 2 : 1); j++) {

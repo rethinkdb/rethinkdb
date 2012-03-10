@@ -56,7 +56,7 @@ private:
                 if (keepalive.get_drain_signal()->is_pulsed()) throw interrupted_exc_t();
 
                 dummy_protocol_t::write_t w;
-                std::string key = std::string(1, 'a' + rand() % 26);
+                std::string key = std::string(1, 'a' + randint(26));
                 w.values[key] = values_inserted[key] = strprintf("%d", i);
 
                 cond_t interruptor;
@@ -74,7 +74,7 @@ class simple_mailbox_cluster_t {
 public:
     simple_mailbox_cluster_t() :
         mailbox_manager(&connectivity_cluster),
-        connectivity_cluster_run(&connectivity_cluster, 10000 + rand() % 20000, &mailbox_manager)
+        connectivity_cluster_run(&connectivity_cluster, 10000 + randint(20000), &mailbox_manager)
         { }
     connectivity_service_t *get_connectivity_service() {
         return &connectivity_cluster;
