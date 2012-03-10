@@ -217,6 +217,9 @@ private:
     DISABLE_COPYING(rng_t);
 };
 
+int randint(int n);
+
+
 
 bool begins_with_minus(const char *string);
 // strtoul() and strtoull() will for some reason not fail if the input
