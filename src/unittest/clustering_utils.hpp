@@ -7,7 +7,8 @@
 
 namespace unittest {
 
-using namespace mock;
+using mock::dummy_protocol_t;
+using mock::a_thru_z_region;
 
 class test_store_t {
 public:
@@ -94,7 +95,7 @@ private:
                 if (keepalive.get_drain_signal()->is_pulsed()) throw interrupted_exc_t();
 
                 dummy_protocol_t::write_t w;
-                std::string key = std::string(1, 'a' + rand() % 26);
+                std::string key = std::string(1, 'a' + randint(26));
                 std::string value = (*values_inserted)[key] = strprintf("%d", i);
 
                 cond_t interruptor;
@@ -128,7 +129,7 @@ class simple_mailbox_cluster_t {
 public:
     simple_mailbox_cluster_t() :
         mailbox_manager(&connectivity_cluster),
-        connectivity_cluster_run(&connectivity_cluster, 10000 + rand() % 20000, &mailbox_manager)
+        connectivity_cluster_run(&connectivity_cluster, 10000 + randint(20000), &mailbox_manager)
         { }
     connectivity_service_t *get_connectivity_service() {
         return &connectivity_cluster;

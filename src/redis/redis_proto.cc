@@ -203,8 +203,10 @@ RedisParser::RedisParser(tcp_conn_t *conn_, namespace_interface_t<redis_protocol
      conn(conn_)
 {
     //TODO better than this
-    srand(time(NULL));
-    connection_id = rand();
+
+    // Originally this line had rand().  I changed this to
+    // randint(RAND_MAX) because rand() is not thread safe.
+    connection_id = randint(RAND_MAX);
     subscribed_channels = 0;
 
     // All redis commands declared here

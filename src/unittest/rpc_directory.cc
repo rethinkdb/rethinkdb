@@ -18,7 +18,7 @@ void let_stuff_happen() {
 /* `OneNode` starts a single directory node, then shuts it down again. */
 
 void run_one_node_test() {
-    int port = 10000 + rand() % 20000;
+    int port = 10000 + randint(20000);
     connectivity_cluster_t c;
     directory_readwrite_manager_t<int> directory_manager(&c, 5);
     connectivity_cluster_t::run_t cr(&c, port, &directory_manager);
@@ -32,7 +32,7 @@ TEST(RPCDirectoryTest, OneNode) {
 then shuts them down again. */
 
 void run_three_nodes_test() {
-    int port = 10000 + rand() % 20000;
+    int port = 10000 + randint(20000);
     connectivity_cluster_t c1, c2, c3;
     directory_readwrite_manager_t<int> m1(&c1, 101), m2(&c2, 202), m3(&c3, 303);
     connectivity_cluster_t::run_t cr1(&c1, port, &m1), cr2(&c2, port+1, &m2), cr3(&c3, port+2, &m3);
@@ -47,7 +47,7 @@ TEST(RPCDirectoryTest, ThreeNodes) {
 /* `Exchange` tests that directory nodes receive values from their peers. */
 
 void run_exchange_test() {
-    int port = 10000 + rand() % 20000;
+    int port = 10000 + randint(20000);
     connectivity_cluster_t c1, c2, c3;
     directory_readwrite_manager_t<int> m1(&c1, 101), m2(&c2, 202), m3(&c3, 303);
     connectivity_cluster_t::run_t cr1(&c1, port, &m1), cr2(&c2, port+1, &m2), cr3(&c3, port+2, &m3);
@@ -65,7 +65,7 @@ TEST(RPCDirectoryTest, Exchange) {
 /* `Update` tests that directory nodes see updates from their peers. */
 
 void run_update_test() {
-    int port = 10000 + rand() % 20000;
+    int port = 10000 + randint(20000);
     connectivity_cluster_t c1, c2, c3;
     directory_readwrite_manager_t<int> m1(&c1, 101), m2(&c2, 202), m3(&c3, 303);
     connectivity_cluster_t::run_t cr1(&c1, port, &m1), cr2(&c2, port+1, &m2), cr3(&c3, port+2, &m3);
@@ -90,7 +90,7 @@ TEST(RPCDirectoryTest, Update) {
 value changes. */
 
 void run_notify_test() {
-    int port = 10000 + rand() % 20000;
+    int port = 10000 + randint(20000);
     connectivity_cluster_t c;
     directory_readwrite_manager_t<int> m(&c, 8765);
     connectivity_cluster_t::run_t cr(&c, port, &m);
@@ -115,7 +115,7 @@ TEST(RPCDirectoryTest, Notify) {
 }
 
 void run_destructor_race_test() {
-    int port = 10000 + rand() % 20000;
+    int port = 10000 + randint(20000);
     connectivity_cluster_t c;
     directory_readwrite_manager_t<int> directory_manager(&c, 5);
     connectivity_cluster_t::run_t cr(&c, port, &directory_manager);
