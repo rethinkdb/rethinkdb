@@ -54,7 +54,7 @@ void handle_charwise_echo_conn(boost::scoped_ptr<streamed_tcp_conn_t> &conn) {
 }   /* anonymous namespace */
 
 void run_transmit_lines_test() {
-    int port = 10000 + rand() % 20000;
+    int port = 10000 + randint(20000);
     streamed_tcp_listener_t listener(port, boost::bind(&handle_echo_conn, _1));
 
     streamed_tcp_conn_t conn("localhost", port);
@@ -76,7 +76,7 @@ TEST(TCPStreamTest, TransmitLines) {
 }
 
 void run_boost_serialize_test() {
-    int port = 10000 + rand() % 20000;
+    int port = 10000 + randint(20000);
     streamed_tcp_listener_t listener(port, boost::bind(&handle_charwise_echo_conn, _1));
     streamed_tcp_conn_t conn("localhost", port);
 

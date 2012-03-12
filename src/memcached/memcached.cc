@@ -364,7 +364,7 @@ static const char *rget_null_key = "null";
 static bool rget_parse_bound(char *flag, char *key, rget_bound_mode_t *mode_out, store_key_t *key_out) {
     if (!str_to_key(key, key_out)) return false;
 
-    char *invalid_char;
+    const char *invalid_char;
     int64_t open_flag = strtol_strict(flag, &invalid_char, 10);
     if (*invalid_char != '\0') return false;
 
@@ -414,7 +414,7 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, char
     }
 
     /* Parse max items count */
-    char *invalid_char;
+    const char *invalid_char;
     uint64_t max_items = strtoull_strict(argv[5], &invalid_char, 10);
     if (*invalid_char != '\0') {
         pipeliner_acq.done_argparsing();
@@ -590,7 +590,7 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
     pipeliner_acq_t *pipeliner_acq = new pipeliner_acq_t(pipeliner);
     pipeliner_acq->begin_operation();
 
-    char *invalid_char;
+    const char *invalid_char;
 
     /* cmd key flags exptime size [noreply]
        OR "cas" key flags exptime size cas [noreply] */
@@ -778,7 +778,7 @@ void do_incr_decr(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool i, i
     }
 
     /* Parse amount to change by */
-    char *invalid_char;
+    const char *invalid_char;
     uint64_t delta = strtoull_strict(argv[2], &invalid_char, 10);
     if (*invalid_char != '\0') {
         pipeliner_acq.done_argparsing();

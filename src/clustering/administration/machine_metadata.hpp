@@ -7,6 +7,7 @@
 
 #include "clustering/administration/datacenter_metadata.hpp"
 #include "http/json/json_adapter.hpp"
+#include "rpc/semilattice/joins/macros.hpp"
 #include "rpc/semilattice/joins/map.hpp"
 #include "rpc/semilattice/joins/vclock.hpp"
 #include "rpc/serialize_macros.hpp"
@@ -17,14 +18,20 @@ class machine_semilattice_metadata_t {
 public:
     vclock_t<datacenter_id_t> datacenter;
 
-    RDB_MAKE_ME_SERIALIZABLE_1(datacenter);
+    vclock_t<std::string> name;
+
+    RDB_MAKE_ME_SERIALIZABLE_2(datacenter, name);
 };
+
+RDB_MAKE_SEMILATTICE_JOINABLE_2(machine_semilattice_metadata_t, datacenter, name);
+RDB_MAKE_EQUALITY_COMPARABLE_2(machine_semilattice_metadata_t, datacenter, name);
 
 //json adapter concept for machine_semilattice_metadata_t
 template <class ctx_t>
 typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(machine_semilattice_metadata_t *target, const ctx_t &) {
     typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
-    res["datacenter"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<vclock_t<datacenter_id_t>, ctx_t>(&target->datacenter));
+    res["datacenter_uuid"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<vclock_t<datacenter_id_t>, ctx_t>(&target->datacenter));
+    res["name"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<vclock_t<std::string>, ctx_t>(&target->name));
     return res;
 }
 
@@ -41,17 +48,15 @@ void apply_json_to(cJSON *change, machine_semilattice_metadata_t *target, const 
 template <class ctx_t>
 void on_subfield_change(machine_semilattice_metadata_t *, const ctx_t &) { }
 
-/* semilattice concept for machine_semilattice_metadata_t */
-bool operator==(const machine_semilattice_metadata_t& a, const machine_semilattice_metadata_t& b);
-
-void semilattice_join(machine_semilattice_metadata_t *a, const machine_semilattice_metadata_t &b);
-
 class machines_semilattice_metadata_t {
 public:
     std::map<machine_id_t, machine_semilattice_metadata_t> machines;
 
     RDB_MAKE_ME_SERIALIZABLE_1(machines);
 };
+
+RDB_MAKE_SEMILATTICE_JOINABLE_1(machines_semilattice_metadata_t, machines);
+RDB_MAKE_EQUALITY_COMPARABLE_1(machines_semilattice_metadata_t, machines);
 
 //json adapter concept for machines_semilattice_metadata_t
 template <class ctx_t>
@@ -71,10 +76,5 @@ void apply_json_to(cJSON *change, machines_semilattice_metadata_t *target, const
 
 template <class ctx_t>
 void on_subfield_change(machines_semilattice_metadata_t *, const ctx_t &) { }
-
-/* semilattice concept for machines_semilattice_metadata_t */
-bool operator==(const machines_semilattice_metadata_t& a, const machines_semilattice_metadata_t& b);
-
-void semilattice_join(machines_semilattice_metadata_t *a, const machines_semilattice_metadata_t &b);
 
 #endif

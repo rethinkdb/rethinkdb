@@ -95,7 +95,7 @@ bool reactor_t<protocol_t>::find_replier_in_directory(const typename protocol_t:
     if (backfill_candidates.empty()) {
         return false;
     } else {
-        *replier_out = backfill_candidates[rand() % backfill_candidates.size()];
+        *replier_out = backfill_candidates[randint(backfill_candidates.size())];
         return true;
     }
 }

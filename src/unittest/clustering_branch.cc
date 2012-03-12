@@ -105,7 +105,7 @@ void run_read_write_test(UNUSED simple_mailbox_cluster_t *cluster,
     std::map<std::string, std::string> values_inserted;
     for (int i = 0; i < 10; i++) {
         dummy_protocol_t::write_t w;
-        std::string key = std::string(1, 'a' + rand() % 26);
+        std::string key = std::string(1, 'a' + randint(26));
         w.values[key] = values_inserted[key] = strprintf("%d", i);
         (*broadcaster)->write(w, order_source.check_in("unittest"));
     }

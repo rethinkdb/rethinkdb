@@ -100,7 +100,7 @@ void json_read_only_adapter_t<T, ctx_t>::apply_impl(cJSON *, const ctx_t &) {
 //implementation for json_temporary_adapter_t
 template <class T, class ctx_t>
 json_temporary_adapter_t<T, ctx_t>::json_temporary_adapter_t(const T &_t)
-    : t(_t), json_read_only_adapter_t<T,ctx_t>(&t)
+    : t(_t), json_read_only_adapter_t<T, ctx_t>(&t)
 { }
 
 //implementation for map_inserter_t
@@ -324,10 +324,8 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(std::ma
     int shortcut_index = 0;
 #endif
 
-    for (typename std::map<K,V>::iterator it  = map->begin();
-                                          it != map->end();
-                                          it++) {
-        typename std::map<K,V>::key_type key = it->first;
+    for (typename std::map<K, V>::iterator it  = map->begin(); it != map->end(); ++it) {
+        typename std::map<K, V>::key_type key = it->first;
         try {
             res[get_string(render_as_json(&key, ctx))] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<V, ctx_t>(&(it->second)));
         } catch (schema_mismatch_exc_t &) {

@@ -90,12 +90,12 @@ json_vclock_resolver_t<T, ctx_t>::json_vclock_resolver_t(vclock_t<T> *_target)
 { }
 
 template <class T, class ctx_t>
-json_vclock_adapter_t<T,ctx_t>::json_vclock_adapter_t(vclock_t<T> *_target)
+json_vclock_adapter_t<T, ctx_t>::json_vclock_adapter_t(vclock_t<T> *_target)
     : target(_target)
 { }
 
 template <class T, class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_vclock_adapter_t<T,ctx_t>::get_subfields_impl(const ctx_t &ctx) {
+typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_vclock_adapter_t<T, ctx_t>::get_subfields_impl(const ctx_t &ctx) {
     typename json_adapter_if_t<ctx_t>::json_adapter_map_t res = get_json_subfields(target, ctx);
     rassert(!std_contains("resolve", res), "Programmer error: do not put anything with a \"resolve\" subfield in a vector clock.\n");
     res["resolve"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_vclock_resolver_t<T, ctx_t>(target));
@@ -104,17 +104,17 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_vclock_adapter_t<T,ct
 }
 
 template <class T, class ctx_t>
-cJSON *json_vclock_adapter_t<T,ctx_t>::render_impl(const ctx_t &ctx) {
+cJSON *json_vclock_adapter_t<T, ctx_t>::render_impl(const ctx_t &ctx) {
     return render_as_json(target, ctx);
 }
 
 template <class T, class ctx_t>
-void json_vclock_adapter_t<T,ctx_t>::apply_impl(cJSON *change, const ctx_t &ctx) {
+void json_vclock_adapter_t<T, ctx_t>::apply_impl(cJSON *change, const ctx_t &ctx) {
     apply_json_to(change, target, ctx);
 }
 
 template <class T, class ctx_t>
-boost::shared_ptr<subfield_change_functor_t<ctx_t> >  json_vclock_adapter_t<T,ctx_t>::get_change_callback() {
+boost::shared_ptr<subfield_change_functor_t<ctx_t> >  json_vclock_adapter_t<T, ctx_t>::get_change_callback() {
     return boost::shared_ptr<subfield_change_functor_t<ctx_t> >(new standard_subfield_change_functor_t<vclock_t<T>, ctx_t>(target));
 }
 

@@ -17,6 +17,11 @@ public:
         : http_server_t(port), semilattice_metadata(_semilattice_metadata), us(_us)
     { }
 
+    blueprint_http_server_t(boost::shared_ptr<internal_view_t> _semilattice_metadata, 
+                            boost::uuids::uuid _us)
+        : http_server_t(), semilattice_metadata(_semilattice_metadata), us(_us)
+    { }
+
 private:
     http_res_t handle(const http_req_t &);
 
