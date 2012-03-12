@@ -66,12 +66,12 @@ module 'NamespaceView', ->
             # addition to datacenter ids)
             secondary_affinities = {}
             _.each @model.get('replica_affinities'), (replica_obj, id) =>
-                if id != @model.get('primary_uuid') then secondary_affinities[id] = replica_obj.desired_replication_count
+                if id != @model.get('primary_uuid') then secondary_affinities[id] = replica_obj
             json = _.extend @model.toJSON(),
                 'primary':
                     'id': @model.get('primary_uuid')
                     'name': datacenters.get(@model.get('primary_uuid')).get('name')
-                    'replicas': @model.get('replica_affinities')[@model.get('primary_uuid')].desired_replication_count
+                    'replicas': @model.get('replica_affinities')[@model.get('primary_uuid')]
                 'secondaries':
                     _.map secondary_affinities, (replica_count, uuid) =>
                         'id': uuid
