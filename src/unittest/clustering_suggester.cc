@@ -5,7 +5,9 @@
 
 namespace unittest {
 
-using namespace mock;
+using mock::dummy_protocol_t;
+using mock::a_thru_z_region;
+
 
 TEST(ClusteringSuggester, NewNamespace) {
     datacenter_id_t primary_datacenter = generate_uuid(),
