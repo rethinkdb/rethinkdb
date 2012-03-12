@@ -2,7 +2,6 @@
 #define __REDIS_SERVER_HPP__
 
 #include "arch/arch.hpp"
-#include <iostream>
 
 // Just for this dummy namespace interface thing until clustering is better prepared
 #include "redis/redis.hpp"
