@@ -60,6 +60,7 @@ module 'NamespaceView', ->
             e.preventDefault()
 
         render: =>
+            debugger
             log_render '(rendering) namespace view: replica'
             # Walk over json and add datacenter names to the model (in
             # addition to datacenter ids)
@@ -97,6 +98,7 @@ module 'NamespaceView', ->
 
             return @
 
+#Doesnt work TODO
     class @AddSecondaryModal extends ClusterView.AbstractModal
         template: Handlebars.compile $('#add_secondary-modal-template').html()
         alert_tmpl: Handlebars.compile $('#modified_replica-alert-template').html()
@@ -136,7 +138,6 @@ module 'NamespaceView', ->
 
             super validator_options, json
 
-
     class @AddNamespaceModal extends ClusterView.AbstractModal
         template: Handlebars.compile $('#add_namespace-modal-template').html()
         alert_tmpl: Handlebars.compile $('#added_namespace-alert-template').html()
@@ -158,9 +159,14 @@ module 'NamespaceView', ->
                    name: 'Required'
 
                 submitHandler: =>
-                    $('form', @$modal).ajaxSubmit
-                        url: '/ajax/namespaces?token=' + token
+                    formdata = form_data_as_object($('form', @$modal))
+
+                    $.ajax
+                        processData: false
+                        url: '/ajax/memcached_namespaces/new'
                         type: 'POST'
+                        contentType: 'application/json'
+                        data: JSON.stringify({"name" : formdata.name, "primary_uuid" : formdata.primary_datacenter})
 
                         success: (response) =>
                             clear_modals()

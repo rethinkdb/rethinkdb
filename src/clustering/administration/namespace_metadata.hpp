@@ -91,7 +91,7 @@ public:
 
 template <class ctx_t, class protocol_t>
 typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(namespaces_semilattice_metadata_t<protocol_t> *target, const ctx_t &ctx) {
-    return get_json_subfields(&target->namespaces, ctx);
+    return json_adapter_with_inserter_t<typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t, ctx_t>(&target->namespaces, boost::bind(&generate_uuid)).get_subfields(ctx);
 }
 
 template <class ctx_t, class protocol_t>

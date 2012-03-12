@@ -508,10 +508,15 @@ module 'ClusterView', ->
                     datacenter_uuid: 'Required'
 
                 submitHandler: =>
+                    debugger
+                    formdata = form_data_as_object($('form', @$modal))
                     for m in machines
-                        $('form', @$modal).ajaxSubmit
-                            url: "/ajax/machines/#{m.id}?token=#{token}"
+                        $.ajax
+                            processData: false
+                            url: "/ajax/machines/#{m.id}"
                             type: 'POST'
+                            contentType: 'application/json'
+                            data: JSON.stringify({"datacenter_uuid" : formdata.datacenter_uuid})
 
                             success: (response) =>
                                 clear_modals()
