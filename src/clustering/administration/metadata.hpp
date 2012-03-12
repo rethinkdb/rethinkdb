@@ -25,12 +25,13 @@ public:
 
 //json adapter concept for cluster_semilattice_metadata_t
 template <class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(cluster_semilattice_metadata_t *target, const ctx_t &) {
+typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(cluster_semilattice_metadata_t *target, const ctx_t &ctx) {
     typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
     res["dummy_namespaces"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t>, ctx_t>(&target->dummy_namespaces));
     res["memcached_namespaces"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<namespaces_semilattice_metadata_t<memcached_protocol_t>, ctx_t>(&target->memcached_namespaces));
     res["machines"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<machines_semilattice_metadata_t, ctx_t>(&target->machines));
     res["datacenters"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_with_inserter_t<typename std::map<datacenter_id_t, datacenter_semilattice_metadata_t>, ctx_t>(&target->datacenters, boost::bind(&generate_uuid)));
+    res["me"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<boost::uuids::uuid, ctx_t>(const_cast<boost::uuids::uuid*>(&ctx.us)));
     return res;
 }
 
