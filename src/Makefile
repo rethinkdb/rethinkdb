@@ -566,20 +566,32 @@ endif
 web-assets: $(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/cluster.css $(WEB_ASSETS_BUILD_DIR)/cluster.html $(WEB_ASSETS_BUILD_DIR)/js
 
 $(WEB_ASSETS_BUILD_DIR)/cluster-min.js: $(COFFEE_SOURCES)
-	mkdir -p $(WEB_ASSETS_BUILD_DIR)
-	cat $+ | coffee -bp --stdio > $@
+	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
+ifeq ($(VERBOSE),0)
+	@echo "   COFFEE $@" 
+endif
+	$(QUIET) cat $+ | coffee -bp --stdio > $@
 
 $(WEB_ASSETS_BUILD_DIR)/cluster.css: $(LESS_SOURCES)
-	mkdir -p $(WEB_ASSETS_BUILD_DIR)
-	lessc $(LESS_MAIN) > $@
+	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
+ifeq ($(VERBOSE),0)
+	@echo "   LESSC $@" 
+endif
+	$(QUIET) lessc $(LESS_MAIN) > $@
 
 $(WEB_ASSETS_BUILD_DIR)/cluster.html: $(CLUSTER_HTML)
-	mkdir -p $(WEB_ASSETS_BUILD_DIR)
-	sed 's:="gen/:=":g' $(CLUSTER_HTML) > $@
+	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
+ifeq ($(VERBOSE),0)
+	@echo "   STRIP GEN $@"
+endif
+	$(QUIET) sed 's:="gen/:=":g' $(CLUSTER_HTML) > $@
 
 $(WEB_ASSETS_BUILD_DIR)/js: 
-	mkdir -p $(WEB_ASSETS_BUILD_DIR)
-	cp -rP $(JS_EXTERNAL_DIR) $(WEB_ASSETS_BUILD_DIR)
+	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
+ifeq ($(VERBOSE),0)
+	@echo "   CP $(JS_EXTERNAL_DIR) -> $(WEB_ASSETS_BUILD_DIR)"
+endif
+	$(QUIET) cp -rP $(JS_EXTERNAL_DIR) $(WEB_ASSETS_BUILD_DIR)
 
 # Special recipe for the proto buffer generated code
 $(PROTO_DIR)/%.pb.h: $(SOURCE_DIR)/%.proto
