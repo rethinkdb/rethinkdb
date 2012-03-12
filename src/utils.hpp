@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <iostream>
 #include <map>
 #include <string>
 #include <vector>
@@ -50,10 +49,7 @@ public:
     }
 };
 
-inline std::ostream &operator<<(std::ostream &os, repli_timestamp_t ts) {
-    os << ts.time;
-    return os;
-}
+
 
 struct const_charslice {
     const char *beg, *end;

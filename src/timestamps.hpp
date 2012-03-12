@@ -43,10 +43,6 @@ private:
     RDB_MAKE_ME_SERIALIZABLE_1(num);
 };
 
-inline std::ostream &operator<<(std::ostream &os, state_timestamp_t ts) {
-    return os << ts.num;
-}
-
 class transition_timestamp_t {
 public:
     bool operator==(transition_timestamp_t t) const { return before == t.before; }
