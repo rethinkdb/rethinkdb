@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <iostream>
 #include <map>
 #include <string>
 #include <vector>
@@ -51,10 +50,7 @@ public:
     }
 };
 
-inline std::ostream &operator<<(std::ostream &os, repli_timestamp_t ts) {
-    os << ts.time;
-    return os;
-}
+
 
 struct const_charslice {
     const char *beg, *end;
@@ -409,7 +405,7 @@ bool all_in_container_match_predicate (const T &container, UnaryPredicate f) {
 
 bool notf(bool x);
 
-
+/*
 template<class K, class V>
 std::ostream &operator<<(std::ostream &stream, const std::map<K, V> &map) {
     stream << "{ ";
@@ -430,6 +426,9 @@ std::ostream &operator<<(std::ostream &stream, const boost::optional<T> &optiona
 
     return stream;
 }
+*/
+
+std::string read_file(const char *path);
 
 std::string uuid_to_str(boost::uuids::uuid id);
 
