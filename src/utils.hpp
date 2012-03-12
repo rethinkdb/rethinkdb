@@ -414,4 +414,6 @@ bool all_in_container_match_predicate (const T &container, UnaryPredicate f) {
 
 bool notf(bool x);
 
+std::string read_file(const char *path);
+
 #endif // __UTILS_HPP__
