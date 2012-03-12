@@ -37,14 +37,14 @@ public:
 
     vclock_t<std::string> name;
 
-    RDB_MAKE_ME_SERIALIZABLE_4(blueprint, primary_datacenter, replica_affinities, shards);
+    RDB_MAKE_ME_SERIALIZABLE_5(blueprint, primary_datacenter, replica_affinities, shards, name);
 };
 
 template<class protocol_t>
-RDB_MAKE_SEMILATTICE_JOINABLE_4(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, shards);
+RDB_MAKE_SEMILATTICE_JOINABLE_5(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, shards, name);
 
 template<class protocol_t>
-RDB_MAKE_EQUALITY_COMPARABLE_4(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, shards);
+RDB_MAKE_EQUALITY_COMPARABLE_5(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, shards, name);
 
 //json adapter concept for namespace_semilattice_metadata_t
 template <class ctx_t, class protocol_t>
