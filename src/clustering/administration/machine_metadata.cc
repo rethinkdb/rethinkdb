@@ -2,11 +2,13 @@
 
 /* semilattice concept for machine_semilattice_metadata_t */
 bool operator==(const machine_semilattice_metadata_t& a, const machine_semilattice_metadata_t& b) {
-    return a.datacenter == b.datacenter;
+    return a.datacenter == b.datacenter &&
+           a.name == b.name;
 }
 
 void semilattice_join(machine_semilattice_metadata_t *a, const machine_semilattice_metadata_t &b) {
     semilattice_join(&a->datacenter, b.datacenter);
+    semilattice_join(&a->name, b.name);
 }
 
 /* semilattice concept for machines_semilattice_metadata_t */
