@@ -52,11 +52,12 @@ http_res_t blueprint_http_server_t::handle(const http_req_t &req) {
 #endif
             scoped_cJSON_t change(cJSON_Parse(req.body.c_str()));
             if (!change.get()) { //A null value indicates that parsing failed
-                logINF("json body failed to parse.\n");
+                logINF("Json body failed to parse.\n Here's the data that failed: %s\n", req.body.c_str());
                 return http_res_t(400);
             }
 
             try {
+                logINF("Applying data %s\n", req.body.c_str());
                 json_adapter_head->apply(change.get(), json_ctx);
                 semilattice_metadata->join(cluster_metadata);
 

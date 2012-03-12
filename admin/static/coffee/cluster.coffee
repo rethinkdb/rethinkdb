@@ -915,30 +915,6 @@ apply_diffs = (updates) ->
                 collection.add new collection.model(data)
     return
 
-#    namespaces.get(update.id
-#    if updates.length > 1
-#        console.log "Updates received from the server: ", updates
-#    else
-#        console.log "Empty update received from the server."
-#    for update in updates
-#        collection =  null
-#        switch update.element
-#            when 'namespaces' then collection = namespaces
-#            when 'datacenters' then collection = datacenters
-#            when 'machines' then collection = machines
-#            when 'alerts' then collection = alerts
-#            else
-#                console.log "Unhandled element update: " + update
-#                return
-#
-#        operation = null
-#        model = collection.get(update.id)
-#        switch update.operation
-#            when 'add' then collection.add new collection.model(update.data)
-#            when 'update' then model.set(update.data)
-#            when 'delete' then model.trigger('destroy', model, collection, {})
-
-
 $ ->
     bind_dev_tools()
 

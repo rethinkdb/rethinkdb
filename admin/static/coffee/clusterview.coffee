@@ -414,9 +414,14 @@ module 'ClusterView', ->
                    name: 'Required'
 
                 submitHandler: =>
-                    $('form', @$modal).ajaxSubmit
-                        url: '/ajax/datacenters?token=' + token
+                    formdata = form_data_as_object($('form', @$modal))
+
+                    $.ajax
+                        processData: false
+                        url: '/ajax/datacenters/new'
                         type: 'POST'
+                        contentType: 'application/json'
+                        data: JSON.stringify({"name" : formdata.name})
 
                         success: (response) =>
                             clear_modals()
