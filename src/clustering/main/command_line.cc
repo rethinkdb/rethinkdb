@@ -105,10 +105,16 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::vector<host
 
             datacenter_id_t datacenter_id = generate_uuid();
             datacenter_semilattice_metadata_t datacenter_metadata;
+            datacenter_metadata.name = vclock_t<std::string>("Welcome", our_machine_id);
             semilattice_metadata.datacenters.insert(std::make_pair(datacenter_id, datacenter_metadata));
+
+            /* Add ourselves as a member of the "Welcome" datacenter. */
+            semilattice_metadata.machines.machines[our_machine_id].datacenter = vclock_t<datacenter_id_t>(datacenter_id, our_machine_id);
 
             namespace_id_t namespace_id = generate_uuid();
             namespace_semilattice_metadata_t<memcached_protocol_t> namespace_metadata;
+
+            namespace_metadata.name = vclock_t<std::string>("Welcome", our_machine_id);
 
             persistable_blueprint_t<memcached_protocol_t> blueprint;
             std::map<key_range_t, blueprint_details::role_t> roles;
@@ -138,8 +144,7 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::vector<host
 po::options_description get_file_option() {
     po::options_description desc("File path options");
     desc.add_options()
-        ("directory,d", po::value<std::string>()->default_value("rethinkdb_cluster_data"), "specify directory to store data and metadata")
-    ;
+        ("directory,d", po::value<std::string>()->default_value("rethinkdb_cluster_data"), "specify directory to store data and metadata");
     return desc;
 }
 
@@ -167,8 +172,7 @@ po::options_description get_network_options() {
     po::options_description desc("Network options");
     desc.add_options()
         ("port", po::value<int>()->default_value(default_peer_port), "port for communicating with other nodes")
-        ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to")
-    ;
+        ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to");
     return desc;
 }
 

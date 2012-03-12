@@ -218,7 +218,7 @@ boost::uuids::uuid generate_uuid() {
 #else
     boost::uuids::uuid uuid;
     for (size_t i = 0; i < sizeof uuid.data; i++) {
-        uuid.data[i] = static_cast<uint8_t>(rand() % 256);
+        uuid.data[i] = static_cast<uint8_t>(randint(256));
     }
     return uuid;
 #endif
@@ -293,16 +293,23 @@ rng_t::rng_t( UNUSED int seed) {
 }
 
 int rng_t::randint(int n) {
-    long int x;
+    // We return int, and use it in the moduloizer, so the long here
+    // (which is necessary for the lrand48_r API) is okay.
+
+    long x;  // NOLINT(runtime/int)
     lrand48_r(&buffer_, &x);
 
     return x % n;
 }
 
+int randint(int n) {
+    return thread_local_randint(n);
+}
+
 std::string rand_string(int len) {
     std::string res;
 
-    int seed = rand();
+    int seed = randint(RAND_MAX);
 
     while (len --> 0) {
         res.push_back((seed % 26) + 'A');
@@ -319,36 +326,42 @@ bool begins_with_minus(const char *string) {
     return *string == '-';
 }
 
-long strtol_strict(const char *string, char **end, int base) {
-    long result = strtol(string, end, base);
+int64_t strtol_strict(const char *string, const char **end, int base) {
+    // It's okay to have long, that's what strtol returns.
+    // We convert it to int64_t (which is the same thing, or bigger).
+    long result = strtol(string, const_cast<char **>(end), base);  // NOLINT(runtime/int)
     if ((result == LONG_MAX || result == LONG_MIN) && errno == ERANGE) {
-        *end = const_cast<char *>(string);
+        *end = string;
         return 0;
     }
     return result;
 }
 
-unsigned long strtoul_strict(const char *string, char **end, int base) {
+uint64_t strtoul_strict(const char *string, const char **end, int base) {
     if (begins_with_minus(string)) {
-        *end = const_cast<char *>(string);
+        *end = string;
         return 0;
     }
-    unsigned long result = strtoul(string, end, base);
+    // It's okay to have an unsigned long, that's what strtoul returns.
+    // We convert it to uint64_t (which is the same thing, or bigger).
+    unsigned long result = strtoul(string, const_cast<char **>(end), base);  // NOLINT(runtime/int)
     if (result == ULONG_MAX && errno == ERANGE) {
-        *end = const_cast<char *>(string);
+        *end = string;
         return 0;
     }
     return result;
 }
 
-unsigned long long strtoull_strict(const char *string, char **end, int base) {
+uint64_t strtoull_strict(const char *string, const char **end, int base) {
     if (begins_with_minus(string)) {
-        *end = const_cast<char *>(string);
+        *end = string;
         return 0;
     }
-    unsigned long long result = strtoull(string, end, base);
+    // It's okay to have an unsigned long long, that's what strtoull returns.
+    // We convert it to uint64_t (which is the same thing).
+    unsigned long long result = strtoull(string, const_cast<char **>(end), base);  // NOLINT(runtime/int)
     if (result == ULLONG_MAX && errno == ERANGE) {
-        *end = const_cast<char *>(string);
+        *end = string;
         return 0;
     }
     return result;

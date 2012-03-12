@@ -96,11 +96,13 @@ class http_server_t {
 private:
     boost::scoped_ptr<tcp_listener_t> tcp_listener;
 public:
+    /* Constructing without a port will cause the server not to bind. This can
+     * be useful if you're using it as a route in a routing server. */
+    http_server_t();
     explicit http_server_t(int);
     virtual ~http_server_t();
-private:
     virtual http_res_t handle(const http_req_t &) = 0;
-protected:
+private:
     void handle_conn(boost::scoped_ptr<nascent_tcp_conn_t> &conn);
 };
 
