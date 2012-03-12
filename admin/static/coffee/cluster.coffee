@@ -897,8 +897,12 @@ apply_diffs = (updates) ->
     for collection_id, collection_data of updates
         for id, data of collection_data
             switch collection_id
-                when 'dummy_namespaces' then collection = namespaces
-                when 'memcached_namespaces' then collection = namespaces
+                when 'dummy_namespaces'
+                    collection = namespaces
+                    data.protocol = "dummy"
+                when 'memcached_namespaces'
+                    collection = namespaces
+                    data.protocol = "memcached"
                 when 'datacenters' then collection = datacenters
                 when 'machines' then collection = machines
                 else
