@@ -218,7 +218,7 @@ boost::uuids::uuid generate_uuid() {
 #else
     boost::uuids::uuid uuid;
     for (size_t i = 0; i < sizeof uuid.data; i++) {
-        uuid.data[i] = static_cast<uint8_t>(rand() % 256);
+        uuid.data[i] = static_cast<uint8_t>(randint(256));
     }
     return uuid;
 #endif
@@ -302,10 +302,14 @@ int rng_t::randint(int n) {
     return x % n;
 }
 
+int randint(int n) {
+    return thread_local_randint(n);
+}
+
 std::string rand_string(int len) {
     std::string res;
 
-    int seed = rand();
+    int seed = randint(RAND_MAX);
 
     while (len --> 0) {
         res.push_back((seed % 26) + 'A');
