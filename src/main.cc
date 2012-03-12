@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
 
         } else if (subcommand == "--version") {
             if (argc != 2) {
-                std::cout << "WARNING: Ignoring extra parameters after '--version'." << std::endl;
+                puts("WARNING: Ignoring extra parameters after '--version'.");
             }
             print_version_message();
             return 0;
@@ -51,13 +51,12 @@ int main(int argc, char *argv[]) {
         } else if (subcommand == "help" || subcommand == "-h" || subcommand == "--help") {
 
             if (argc == 2) {
-                std::cout << "'rethinkdb' is divided into a number of "
-                    "subcommands:" << std::endl;
-                std::cout << std::endl;
-                std::cout << "    'rethinkdb create': prepare files on disk" << std::endl;
-                std::cout << "    'rethinkdb serve': serve queries" << std::endl;
-                std::cout << std::endl;
-                std::cout << "For more information, run 'rethinkdb help [subcommand]'." << std::endl;
+                puts("'rethinkdb' is divided into a number of subcommands:");
+                puts("");
+                puts("    'rethinkdb create': prepare files on disk");
+                puts("    'rethinkdb serve': serve queries");
+                puts("");
+                puts("For more information, run 'rethinkdb help [subcommand]'.");
                 return 0;
 
             } else if (argc == 3) {
@@ -69,19 +68,17 @@ int main(int argc, char *argv[]) {
                     help_rethinkdb_serve();
                     return 0;
                 } else {
-                    std::cout << "ERROR: No help for '" << subcommand2 << "'." << std::endl;
+                    printf("ERROR: No help for '%s'.", subcommand2.c_str());
                     return 1;
                 }
 
             } else {
-                std::cout << "ERROR: Too many parameters to 'rethinkdb help'. "
-                    "Try 'rethinkdb help [subcommand]'." << std::endl;
+                puts("ERROR: Too many parameters to 'rethinkdb help'.  Try 'rethinkdb help [subcommand]'.");
                 return 1;
             }
 
         } else {
-            std::cout << "ERROR: Unrecognized subcommand '" << subcommand <<
-                "'. Try 'rethinkdb help'." << std::endl;
+            puts("ERROR: Unrecognized subcommand ''. Try 'rethinkdb help'.");
             return 1;
         }
     }
