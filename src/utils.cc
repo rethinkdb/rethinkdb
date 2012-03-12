@@ -614,3 +614,20 @@ bool operator==(const binary_blob_t &left, const binary_blob_t &right) {
 bool operator!=(const binary_blob_t &left, const binary_blob_t &right) {
     return !(left == right);
 }
+
+std::string read_file(const char *path) {
+    std::string s;
+    FILE *fp = fopen(path, "rb");
+    char buffer[4096];
+    int count;
+    do {
+        count = fread(buffer, 1, sizeof(buffer), fp);
+        s.append(buffer, buffer + count);
+    } while(count == sizeof(buffer));
+
+    rassert(feof(fp));
+
+    fclose(fp);
+
+    return s;
+}

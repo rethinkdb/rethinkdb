@@ -17,6 +17,7 @@
 #include "clustering/reactor/metadata.hpp"
 #include "http/json/json_adapter.hpp"
 #include "rpc/semilattice/joins/deletable.hpp"
+#include "rpc/semilattice/joins/macros.hpp"
 #include "rpc/semilattice/joins/vclock.hpp"
 #include "rpc/serialize_macros.hpp"
 
@@ -36,8 +37,14 @@ public:
 
     vclock_t<std::string> name;
 
-    RDB_MAKE_ME_SERIALIZABLE_4(blueprint, primary_datacenter, replica_affinities, shards);
+    RDB_MAKE_ME_SERIALIZABLE_5(blueprint, primary_datacenter, replica_affinities, shards, name);
 };
+
+template<class protocol_t>
+RDB_MAKE_SEMILATTICE_JOINABLE_5(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, shards, name);
+
+template<class protocol_t>
+RDB_MAKE_EQUALITY_COMPARABLE_5(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, shards, name);
 
 //json adapter concept for namespace_semilattice_metadata_t
 template <class ctx_t, class protocol_t>
@@ -64,17 +71,6 @@ void apply_json_to(cJSON *change, namespace_semilattice_metadata_t<protocol_t> *
 template <class ctx_t, class protocol_t>
 void on_subfield_change(namespace_semilattice_metadata_t<protocol_t> *, const ctx_t &) { }
 
-/* semilattice concept for namespace_semilattice_metadata_t */
-template <class protocol_t>
-bool operator==(const namespace_semilattice_metadata_t<protocol_t>& a, const namespace_semilattice_metadata_t<protocol_t>& b) {
-    return a.blueprint == b.blueprint;
-}
-
-template <class protocol_t>
-void semilattice_join(namespace_semilattice_metadata_t<protocol_t> *a, const namespace_semilattice_metadata_t<protocol_t> &b) {
-    semilattice_join(&a->blueprint, b.blueprint);
-}
-
 /* This is the metadata for all of the namespaces of a specific protocol. */
 template <class protocol_t>
 class namespaces_semilattice_metadata_t {
@@ -86,6 +82,12 @@ public:
 
     RDB_MAKE_ME_SERIALIZABLE_2(namespaces, branch_history);
 };
+
+template<class protocol_t>
+RDB_MAKE_SEMILATTICE_JOINABLE_2(namespaces_semilattice_metadata_t<protocol_t>, namespaces, branch_history);
+
+template<class protocol_t>
+RDB_MAKE_EQUALITY_COMPARABLE_2(namespaces_semilattice_metadata_t<protocol_t>, namespaces, branch_history);
 
 //json adapter concept for namespaces_semilattice_metadata_t
 
@@ -107,18 +109,6 @@ void apply_json_to(cJSON *change, namespaces_semilattice_metadata_t<protocol_t> 
 template <class ctx_t, class protocol_t>
 void on_subfield_change(namespaces_semilattice_metadata_t<protocol_t> *target, const ctx_t &ctx) { 
     on_subfield_change(&target->namespaces, ctx);
-}
-
-//semilattice concept for namespaces_semilattice_metadata_t 
-template <class protocol_t>
-bool operator==(const namespaces_semilattice_metadata_t<protocol_t> &a, const namespaces_semilattice_metadata_t<protocol_t> &b) {
-    return a.namespaces == b.namespaces && a.branch_history == b.branch_history;
-}
-
-template <class protocol_t>
-void semilattice_join(namespaces_semilattice_metadata_t<protocol_t> *a, const namespaces_semilattice_metadata_t<protocol_t> &b) {
-    semilattice_join(&a->namespaces, b.namespaces);
-    semilattice_join(&a->branch_history, b.branch_history);
 }
 
 template <class protocol_t>

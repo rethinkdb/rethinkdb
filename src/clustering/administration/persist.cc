@@ -87,4 +87,4 @@ void semilattice_watching_persister_t::dump() {
     }
 }
 
-}   /* namespace metadata_persistence */
+}  // namespace metadata_persistence

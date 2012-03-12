@@ -8,9 +8,6 @@
 #include "arch/runtime/context_switching.hpp"
 #include "utils.hpp"
 
-#include <fstream>
-#include <iostream>
-#include <sstream>
 #include <string>
 
 
@@ -387,13 +384,7 @@ std::string riak_interface_t::gen_key() {
 }
 
 void riak_interface_t::initialize_riak_ctx(JS::ctx_t &ctx) {
-    std::ifstream ifs("../assets/riak/mapred_builtins.js");
-    rassert(ifs);
-    std::stringstream oss;
-    oss << ifs.rdbuf();
-    rassert(ifs || ifs.eof());
-    std::string script(oss.str());
-
+    std::string script = read_file("../assets/riak/mapred_builtins.js");
 
     JS::scoped_js_string_t scriptJS(script);
     ctx.JSEvaluateScript(scriptJS, JS::scoped_js_object_t(NULL), JS::scoped_js_string_t(), 0);

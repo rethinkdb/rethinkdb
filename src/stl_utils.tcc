@@ -17,7 +17,7 @@ std::set<K> keys(const std::map<K, V> &map) {
 
 // If keys is called "keys", this should be called "values".
 template <class K, class V>
-std::set<V> range(const std::map<K,V> &map) {
+std::set<V> range(const std::map<K, V> &map) {
     std::set<V> res;
 
     for (typename std::map<K, V>::const_iterator it =  map.begin(); it != map.end(); ++it) {
