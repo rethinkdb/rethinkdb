@@ -1,7 +1,5 @@
 #include "http/http.hpp"
 
-#include <iostream>
-
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
@@ -48,9 +46,7 @@ void http_res_t::set_body(std::string const &content_type, std::string const &co
 
     add_header_line("Content-Type", content_type);
 
-    std::ostringstream res;
-    res << content.size();
-    add_header_line("Content-Length", res.str());
+    add_header_line("Content-Length", strprintf("%zu", content.size()));
 
     body = content;
 }

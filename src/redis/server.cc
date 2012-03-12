@@ -1,7 +1,5 @@
 #include "redis/server.hpp"
 
-#include <iostream>
-
 #include "errors.hpp"
 #include <boost/bind.hpp>
 #include <boost/make_shared.hpp>
