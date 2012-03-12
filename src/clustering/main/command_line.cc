@@ -138,8 +138,7 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::vector<host
 po::options_description get_file_option() {
     po::options_description desc("File path options");
     desc.add_options()
-        ("directory,d", po::value<std::string>()->default_value("rethinkdb_cluster_data"), "specify directory to store data and metadata")
-    ;
+        ("directory,d", po::value<std::string>()->default_value("rethinkdb_cluster_data"), "specify directory to store data and metadata");
     return desc;
 }
 
@@ -167,8 +166,7 @@ po::options_description get_network_options() {
     po::options_description desc("Network options");
     desc.add_options()
         ("port", po::value<int>()->default_value(default_peer_port), "port for communicating with other nodes")
-        ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to")
-    ;
+        ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to");
     return desc;
 }
 
