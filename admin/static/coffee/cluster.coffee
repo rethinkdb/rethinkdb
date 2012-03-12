@@ -904,7 +904,7 @@ apply_diffs = (updates) ->
                 else
                     console.log "Unhandled element update: " + update
                     return
-            if (id of collection)
+            if (collection.get(id))
                 collection.get(id).set(data)
             else
                 data.id = id

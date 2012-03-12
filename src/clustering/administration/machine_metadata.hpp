@@ -17,14 +17,17 @@ class machine_semilattice_metadata_t {
 public:
     vclock_t<datacenter_id_t> datacenter;
 
-    RDB_MAKE_ME_SERIALIZABLE_1(datacenter);
+    vclock_t<std::string> name;
+
+    RDB_MAKE_ME_SERIALIZABLE_2(datacenter, name);
 };
 
 //json adapter concept for machine_semilattice_metadata_t
 template <class ctx_t>
 typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(machine_semilattice_metadata_t *target, const ctx_t &) {
     typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
-    res["datacenter"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<vclock_t<datacenter_id_t>, ctx_t>(&target->datacenter));
+    res["datacenter_uuid"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<vclock_t<datacenter_id_t>, ctx_t>(&target->datacenter));
+    res["name"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<vclock_t<std::string>, ctx_t>(&target->name));
     return res;
 }
 
