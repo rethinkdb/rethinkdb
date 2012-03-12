@@ -8,7 +8,7 @@ namespace metadata_persistence {
 
 class file_exc_t : public std::exception {
 public:
-    file_exc_t(std::string msg) : m(msg) { }
+    explicit file_exc_t(std::string msg) : m(msg) { }
     ~file_exc_t() throw () { }
     const char *what() const throw () {
         return m.c_str();
