@@ -169,7 +169,7 @@ engine_exception::engine_exception(ctx_t &ctx, scoped_js_value_t &js_exception) 
     }
 }
 
-engine_exception::engine_exception(std::string custom_val) 
+engine_exception::engine_exception(const std::string& custom_val) 
     : value(custom_val)
 { }
 

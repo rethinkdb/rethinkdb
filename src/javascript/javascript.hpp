@@ -195,7 +195,7 @@ public:
         return value.c_str();
     }
     engine_exception(ctx_t &, scoped_js_value_t &);
-    explicit engine_exception(std::string);
+    explicit engine_exception(const std::string&);
     ~engine_exception() throw() { }
 private:
     std::string value;

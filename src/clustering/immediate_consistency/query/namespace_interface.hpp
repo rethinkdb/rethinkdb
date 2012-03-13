@@ -64,7 +64,7 @@ private:
         op_response_t operator()(op_response_t response) const {
             return response;
         }
-        op_response_t operator()(UNUSED std::string error_message) const {
+        op_response_t operator()(UNUSED const std::string& error_message) const {
             /* TODO: Throw a more informative exception. */
             throw forwarded_exc_t();
         }

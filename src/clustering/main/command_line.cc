@@ -16,7 +16,7 @@ static const int default_peer_port = 20300;
 
 class host_and_port_t {
 public:
-    host_and_port_t(std::string h, int p) : host(h), port(p) { }
+    host_and_port_t(const std::string& h, int p) : host(h), port(p) { }
     std::string host;
     int port;
 };
