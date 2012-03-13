@@ -18,8 +18,6 @@ coro_pool_t::coro_pool_t(size_t worker_count_, availability_t * const available_
 coro_pool_t::~coro_pool_t() {
     assert_thread();
     available->unset_callback();
-    coro_drain_semaphore.drain();
-    rassert(active_worker_count == 0);
 }
 
 void coro_pool_t::on_source_availability_changed() {
@@ -27,11 +25,11 @@ void coro_pool_t::on_source_availability_changed() {
     while (available->get() && active_worker_count < max_worker_count) {
         coro_t::spawn_now(boost::bind(&coro_pool_t::worker_run,
                                       this,
-                                      drain_semaphore_t::lock_t(&coro_drain_semaphore)));
+                                      auto_drainer_t::lock_t(&coro_drain_semaphore)));
     }
 }
 
-void coro_pool_t::worker_run(UNUSED drain_semaphore_t::lock_t coro_drain_semaphore_lock) {
+void coro_pool_t::worker_run(UNUSED auto_drainer_t::lock_t coro_drain_semaphore_lock) {
     assert_thread();
     ++active_worker_count;
     rassert(active_worker_count <= max_worker_count);
