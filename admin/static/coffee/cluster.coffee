@@ -905,7 +905,7 @@ apply_diffs = (updates) ->
                     data.protocol = "memcached"
                 when 'datacenters' then collection = datacenters
                 when 'machines' then collection = machines
-                when 'me' then #do nothing for now
+                when 'me' then continue
                 else
                     console.log "Unhandled element update: " + update
                     return
