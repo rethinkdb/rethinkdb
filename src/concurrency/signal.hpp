@@ -25,7 +25,7 @@ Although you may be tempted to, please do not add a method that "unpulses" a
 `signal_t`. Part of the definition of a `signal_t` is that it does not return to
 the unpulsed state after being pulsed, and some things may depend on that
 property. If you want something like that, maybe you should look at something
-other than `signal_t`; have you tried `resettable_cond_t`? */
+other than `signal_t`. */
 
 class signal_t :
     public home_thread_mixin_t
