@@ -230,7 +230,7 @@ std::string uuid_to_str(boost::uuids::uuid id) {
     return ss.str();
 }
 
-boost::uuids::uuid str_to_uuid(std::string uuid) {
+boost::uuids::uuid str_to_uuid(const std::string& uuid) {
     return boost::uuids::string_generator()(uuid);
 }
 

@@ -189,7 +189,7 @@ public:
         return test_clusters[i].get_me();
     }
 
-    blueprint_t<protocol_t> compile_blueprint(std::string bp) {
+    blueprint_t<protocol_t> compile_blueprint(const std::string& bp) {
         blueprint_t<protocol_t> blueprint;
 
         typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
@@ -268,7 +268,7 @@ public:
         nap(100);
     }
 
-    void wait_until_blueprint_is_satisfied(std::string bp) {
+    void wait_until_blueprint_is_satisfied(const std::string& bp) {
         wait_until_blueprint_is_satisfied(compile_blueprint(bp));
     }
 };

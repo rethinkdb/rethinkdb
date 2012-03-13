@@ -12,7 +12,7 @@ public:
 
     routing_server_t(http_server_t *defaultroute, std::map<std::string, http_server_t *> subroutes);
 
-    void add_route(std::string route, http_server_t *server);
+    void add_route(const std::string& route, http_server_t *server);
 
 private:
     http_res_t handle(const http_req_t &);

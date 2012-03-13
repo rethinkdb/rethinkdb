@@ -127,7 +127,7 @@ TEST(ClusteringBranch, ReadWrite) {
 /* The `Backfill` test starts up a node with one mirror, inserts some data, and
 then adds another mirror. */
 
-void write_to_broadcaster(broadcaster_t<dummy_protocol_t> *broadcaster, std::string key, std::string value, order_token_t otok, signal_t *) {
+void write_to_broadcaster(broadcaster_t<dummy_protocol_t> *broadcaster, const std::string& key, const std::string& value, order_token_t otok, signal_t *) {
     dummy_protocol_t::write_t w;
     w.values[key] = value;
     broadcaster->write(w, otok);

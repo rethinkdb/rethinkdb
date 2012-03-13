@@ -26,7 +26,7 @@ void sanitize_routes(const std::map<std::string, http_server_t *> routes) {
 #endif
 }
 
-void routing_server_t::add_route(std::string route, http_server_t *server) {
+void routing_server_t::add_route(const std::string& route, http_server_t *server) {
     subroutes[route] = server;
     sanitize_routes(subroutes);
 }

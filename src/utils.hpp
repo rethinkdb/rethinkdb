@@ -432,6 +432,6 @@ std::string read_file(const char *path);
 
 std::string uuid_to_str(boost::uuids::uuid id);
 
-boost::uuids::uuid str_to_uuid(std::string);
+boost::uuids::uuid str_to_uuid(const std::string&);
 
 #endif // __UTILS_HPP__
