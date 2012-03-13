@@ -23,10 +23,6 @@ public:
     virtual ~coro_pool_t();
     void rethread(int new_thread);
 
-    // Blocks until all pending tasks have been processed. The coro_pool_t is
-    // reusable immediately after drain() returns.
-    void drain();
-
 protected:
     // Callback to be overloaded by derived classes when an item is available
     virtual void run_internal() = 0;

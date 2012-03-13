@@ -51,12 +51,6 @@ void coro_pool_t::rethread(int new_thread) {
     coro_drain_semaphore.rethread(new_thread);
 }
 
-
-void coro_pool_t::drain() {
-    assert_thread();
-    coro_drain_semaphore.drain();
-}
-
 coro_pool_boost_t::coro_pool_boost_t(size_t worker_count_, passive_producer_t<boost::function<void()> > *source_) :
     coro_pool_t(worker_count_, source_->available),
     source(source_)
