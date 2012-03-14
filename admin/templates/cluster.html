@@ -15,16 +15,6 @@
         <meta http-equiv="Expires" content="-1">
         <meta http-equiv="Cache-Control" content="no-cache">
 
-        {% block shims %}
-            <!--shims for IE support -->
-            <!--[if lt IE 9]>
-                <script type="text/javascript" src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
-                <![endif]-->
-            <!--[if lte IE 8]>
-                <script language="javascript" type="text/javascript" src="{{ url_for('static', filename='js/flot/excanvas.min.js') }}"></script>
-            <![endif]-->
-        {% endblock %}
-
         {% block style %}
             {% assets filters="less", output="gen/cluster.css",
                         "less/cluster.less" %}
@@ -1128,16 +1118,12 @@
             {{ js('js/bootstrap/bootstrap-modal.js') }}
             {{ js('js/bootstrap/bootstrap-alert.js') }}
             {{ js('js/jquery.sparkline.min.js') }}
-            {{ js('js/flot/jquery.flot.js') }}
-            {{ js('js/flot/jquery.flot.resize.js') }}
             {{ js('js/jquery.validate.min.js') }}
             {{ js('js/jquery.hotkeys.js') }}
             {{ js('js/jquery.form.js') }}
             {{ js('js/jquery.timeago.js') }}
             {{ js('js/date-en-US.js') }}
             {{ js('js/d3.v2.min.js') }}
-
-
 
             {% assets filters="coffeescript", output="gen/cluster-min.js",
                         "coffee/util.coffee",

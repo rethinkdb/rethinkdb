@@ -31,6 +31,7 @@ window.log_render = (msg) ->  #console.log msg
 window.log_action = (msg) ->  #console.log msg
 window.log_router = (msg) ->  #console.log '-- router -- ' + msg
 window.log_binding = (msg) -> #console.log msg
+window.log_ajax = (msg) -> #console.log msg
 window.class_name = (obj) ->  obj.__proto__.constructor.name
 
 # Date utility functions (helps with testing)

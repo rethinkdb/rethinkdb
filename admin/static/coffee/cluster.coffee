@@ -158,8 +158,8 @@ class DashboardView extends Backbone.View
 
         @.$('.data-picker').html @data_picker.render().el
         @.$('.disk-usage').html @disk_usage.render().el
-        @.$('.mem-usage').html @mem_usage.render().el
-        @.$('.chart.cluster-performance').html @cluster_performance.render().el
+        #@.$('.mem-usage').html @mem_usage.render().el
+        #@.$('.chart.cluster-performance').html @cluster_performance.render().el
 
         return @
 
@@ -257,10 +257,7 @@ module 'Vis', ->
 
             for stream in @data_streams
                 stream.set
-                    'active_uuids': []
-                stream.set
                     'active_uuids': active_uuids
-                console.log stream
 
     class @ResourcePieChart extends Backbone.View
         className: 'resource-pie-chart'
@@ -298,9 +295,10 @@ module 'Vis', ->
             @arc = d3.svg.arc().innerRadius(@radius).outerRadius(@radius - 25)
 
         # Utility function to get the total value of the data points based on filtering
-        get_total: =>
+        #   data: data set that contains data points to be totaled
+        get_total: (data) =>
             # Choose only data points that are among the selected sets, get their sum
-            values = _.map @get_filtered_data(), (data_point) -> data_point.value
+            values = _.map data, (data_point) -> data_point.value
             return _.reduce values, (memo, num) -> memo + num
 
         # Utility function to only get a filtered subset of the data
@@ -312,17 +310,23 @@ module 'Vis', ->
             # If existing data has been provided, order the json by uuid for easy lookup
             if existing_data?
                 for datum in existing_data
-                    existing[datum.data.id] =
-                        previous: datum.data.previous
+                    if datum?
+                        existing[datum.data.id] =
+                            previous: datum.data.previous
 
             # Filter the datastream based on active uuids
+            console.log '************************'
+            #console.log 'filtering data:'
             filtered_data = _.map @data_stream.get('active_uuids'), (uuid) =>
                 json = @data.get(uuid).toJSON()
+                #console.log "\t#{@data.get(uuid).get('collection').get(uuid).get('name')}:", json
+                #console.log '\t\texisting data:',existing_data if existing_data?
                 # If the uuid is already in our pie chart, attach its previously calculated positional data (previous position)
                 if existing[uuid]?
                     json = _.defaults json, existing[uuid]
                 return json
 
+            console.log '\tfiltered_data:',filtered_data
             return filtered_data
 
         render: =>
@@ -344,32 +348,43 @@ module 'Vis', ->
                 .attr('class', 'center')
                 .attr('transform', "translate(#{@width/2},#{@height/2})")
 
-            # Define the center text
+            # Add the center text
             #   label for just the "total" element
-            total_label = @groups.center.append('svg:text')
+            @groups.center.append('svg:text')
                 .attr('class','total-label')
                 .attr('dy', -10)
                 .attr('text-anchor', 'middle')
                 .text('Total')
-            #   label for the actual value
-            total_value = @groups.center.append('svg:text')
-                .attr('class','total-value')
-                .attr('dy', 7)
-                .attr('text-anchor', 'middle')
-                .text(@get_total())
             #   label for the units
-            total_units = @groups.center.append('svg:text')
+            @groups.center.append('svg:text')
                 .attr('class','total-units')
                 .attr('dy', 21)
                 .attr('text-anchor', 'middle')
                 .text('mb')
+            #   label for the actual value
+            @groups.center.append('svg:text')
+                .attr('class','total-value')
+                .attr('dy', 7)
+                .attr('text-anchor', 'middle')
 
-            # Draw arcs for the donut pie chart
-            draw_pie_chart = =>
-                @arcs = @groups.arcs.selectAll('g.arc').data(@donut @get_filtered_data())
 
-                # Whenever a datum is added, create a new group that will contain the arc path, arc tick, and arc label
-                group = @arcs.enter()
+            @draw_pie_chart()
+            @data_stream.on 'change:active_uuids', => @draw_pie_chart()
+
+            # Make the data change every few ms | faked TODO
+            setInterval @update_chart, 2000
+
+            return @
+
+        # Draw arcs for the donut pie chart from scratch
+        draw_pie_chart: =>
+            filtered_data = @get_filtered_data()
+            total = @get_total filtered_data
+            @arcs = @groups.arcs.selectAll('g.arc').data(@donut(filtered_data), (d) -> d.data.id)
+
+            # Whenever a datum is entered, create a new group that will contain the arc path, arc tick, and arc label
+            entering_arc_groups = @arcs
+                .enter()
                     .append('svg:g')
                         .attr('class','arc')
                         # Save the current state of the arc (angles, values, etc.) for use when tweening
@@ -383,60 +398,60 @@ module 'Vis', ->
                                 value: d.value
                         )
 
-                # Add an arc path to the group
-                group.append('svg:path')
-                    .attr('class','section')
-                    # Fill the pie chart with the color scheme we defined
-                    .attr('fill', (d,i) => @color_map[d.data.id])
-                    # Set the arc we defined
-                    .attr('d', @arc)
+            # Add an arc path to the group
+            entering_arc_groups.append('svg:path')
+                .attr('class','section')
+                # Fill the pie chart with the color scheme we defined
+                .attr('fill', (d) => console.log 'entering: ',d.data.collection.get(d.data.id).get('name'),'\t|\t',d; @color_map[d.data.id])
 
-                # Add a tick to the group
-                group.append('svg:line')
-                        .attr('class','tick')
-                        .attr('x1', 0)
-                        .attr('x2', 0)
-                        .attr('y1', -@radius - 7)
-                        .attr('y2', -@radius - 3)
-                        .attr('transform', (d) -> "rotate(#{(d.startAngle + d.endAngle)/2 * (180/Math.PI)})")
+            # Add a tick to the group
+            entering_arc_groups.append('svg:line')
+                    .attr('class','tick')
+                    .attr('x1', 0)
+                    .attr('x2', 0)
+                    .attr('y1', -@radius - 7)
+                    .attr('y2', -@radius - 3)
 
-                # Add a label to each group
-                @pie_label = group.append('svg:text')
-                    .attr('class','label')
-                    .attr('text-anchor','middle')
-                    .attr('dominant-baseline','central')
+            # Add a label to each group
+            entering_arc_groups.append('svg:text')
+                .attr('class','label')
+                .attr('text-anchor','middle')
+                .attr('dominant-baseline','central')
+
+            # Update the center text
+            @groups.center.select('text.total-value').text(total)
+
+            # Whenever a datum is exited, just remove the group
+            @arcs.exit().each((d) -> console.log 'exiting:',d.data.collection.get(d.data.id).get('name'),'\t|\t',d).remove()
+            
+            # Calculate the positions, transformations, and data for each of the arc group elements
+            @arcs.select('path.section').attr('d', @arc)
+            @arcs.select('line.tick').attr('transform', (d) -> "rotate(#{(d.startAngle + d.endAngle)/2 * (180/Math.PI)})")
+            # Terrible hack that works: set a timeout of zero so that this is called only when the rendered view is actually added to the DOM
+            # Reason this is necessary: getting the bounding box of the text node (bbox) will only work when the text box is actually rendered on the page
+            setTimeout =>
+                # Keep a local reference to the class function
+                pie_label_position = @pie_label_position
+                @arcs.select('text.label')
                     .text((d) =>
-                        percentage = (d.value/@get_total()) * 100
+                        console.log d.data.collection.get(d.data.id).get('name'), ' has the value ', d.data.value
+                        percentage = (d.value/total) * 100
                         return percentage.toFixed(1) + '%'
                     )
-
-                # Terrible hack that works: set a timeout of zero so that this is called only when the rendered view is actually added to the DOM
-                # Reason this is necessary: getting the bounding box of the text node (bbox) will only work when the text box is actually rendered on the page
-                setTimeout =>
-                    @pie_label.attr('transform', (d) =>
+                    # Determine each pie label's position
+                    .attr('transform', (d) ->
                         angle = (d.startAngle + d.endAngle)/2
-                        p = @pie_label_position(@pie_label, angle)
-                        return "translate(#{p.x},#{p.y})"
+                        pos = pie_label_position(this, angle)
+                        return "translate(#{pos.x},#{pos.y})"
                     )
-                , 0
-
-                # Whenever a datum is removed, just remove the group
-                @arcs.exit().remove()
-
-            draw_pie_chart()
-
-            @data_stream.on 'change:active_uuids', -> draw_pie_chart()
-
-            # Make the data change every few ms | faked TODO
-            setInterval @update_chart, 2000
-
-            return @
+            , 0
 
         update_chart: =>
             # Update the data, redraw the arcs, calculate the new total
+            console.log 'existing data: ', @arcs.data(), '\n---------------'
             new_data = @get_filtered_data(@arcs.data()) # Include the old data so we can keep the positional data for existing elements (previous position)
-            @arcs.data(@donut new_data)
-            total = @get_total()
+            total = @get_total new_data
+            @arcs.data(@donut(new_data), (d) -> d.data.id)
 
             # Use an arc tweening function to transition between arcs
             @arcs.select('path.section').transition().duration(@duration)
@@ -467,31 +482,36 @@ module 'Vis', ->
                     return (t) => "rotate(#{i(t)})"
                 )
 
+            # Keep a local reference to the class function
+            pie_label_position = @pie_label_position
             # Transition between label positions
-            pie_label = @arcs.select('text.label')
-            pie_label.transition().duration(@duration)
-                .attrTween('transform', (d) =>
-                    previous_angle = (d.data.previous.startAngle + d.data.previous.endAngle)/2
-                    new_angle = (d.startAngle + d.endAngle)/2
-                    i = d3.interpolate previous_angle, new_angle
-                    return (t) =>
-                        p = @pie_label_position pie_label, i(t)
-                        return "translate(#{p.x},#{p.y})"
-                )
-                .text((d) =>
-                    percentage = (d.value/total) * 100
-                    return percentage.toFixed(1) + '%'
+            pie_labels = @arcs.select('text.label')
+                .transition().duration(@duration)
+                    .attrTween('transform', (d) ->
+                            try
+                                previous_angle = (d.data.previous.startAngle + d.data.previous.endAngle)/2
+                            catch error
+                                debugger
+                            new_angle = (d.startAngle + d.endAngle)/2
+                            i = d3.interpolate previous_angle, new_angle
+                            return (t) =>
+                                p = pie_label_position(this, i(t))
+                                return "translate(#{p.x},#{p.y})"
+                    )
+                    .text((d) =>
+                        percentage = (d.value/total) * 100
+                        return percentage.toFixed(1) + '%'
                 )
 
             # Update the tracked value
             @groups.center.select('text.total-value')
-                .text total
+                .text(total)
 
         # Calculates the x and y position for labels on each section of the pie chart
         # Takes a text box that will be used as the label, and an angle that the label should be positioned at
-        pie_label_position: (text_box, angle) ->
+        pie_label_position: (text_box, angle) =>
             # Bounding box of the text label
-            bbox = text_box.node().getBBox()
+            bbox = text_box.getBBox()
             # Distance the text box should be from the circle
             r = @radius + @text_offset
 
@@ -529,9 +549,10 @@ module 'Vis', ->
         get_data: =>
             # Create a zero-filled array the size of the first data set's cached values: this array will help keep track of stacking data sets
             previous_values = _.map @data_stream.get('cached_data')[@active_uuids[0]], -> 0
-            _.map @active_uuids, (uuid, i) =>
+
+            _.map @active_uuids, (uuid) =>
                 active_data = @data_stream.get('cached_data')[uuid]
-                points = _.map active_data, (data_point) -> _.extend data_point.toJSON(),
+                points = _.map active_data, (data_point,i) -> _.extend data_point.toJSON(),
                     previous_value: previous_values[i]
                 
                 # The current active dataset values should be added to previous_values: this helps stack each dataset on top of one another
@@ -763,7 +784,7 @@ register_modal = (modal) -> modal_registry.push(modal)
 # Router for Backbone.js
 class BackboneCluster extends Backbone.Router
     routes:
-        '': 'index_namespaces'
+        '': 'dashboard'
         'namespaces': 'index_namespaces'
         'namespaces/:id': 'namespace'
         'datacenters': 'index_datacenters'
@@ -884,7 +905,7 @@ class BackboneCluster extends Backbone.Router
         # Otherwise, show an error message stating that the machine does not exist
         @$container.empty().text 'Machine '+id+' does not exist.'
 
-updateInterval = 5000;
+updateInterval = 5000
 
 declare_client_connected = ->
     window.connection_status.set({client_disconnected: false})
@@ -899,9 +920,9 @@ apply_diffs = (updates) ->
         location.reload()
         return
     if updates.length > 0
-        console.log "Updates received from the server: ", updates
+        log_ajax "Updates received from the server: ", updates
     else
-        console.log "Empty update received from the server."
+        log_ajax "Empty update received from the server."
     for update in updates
         collection =  null
         switch update.element
