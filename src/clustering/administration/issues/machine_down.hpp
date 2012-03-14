@@ -2,6 +2,7 @@
 #define __CLUSTERING_ADMINISTRATION_ISSUES_MACHINE_DOWN_HPP__
 
 #include "clustering/administration/issues/global.hpp"
+#include "clustering/administration/machine_metadata.hpp"
 
 class machine_down_issue_t : public global_issue_t {
 public:

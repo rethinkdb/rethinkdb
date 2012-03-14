@@ -65,6 +65,8 @@ public:
     /* Tell the other peers what our machine ID is */
     machine_id_t machine_id;
 
+    std::list<clone_ptr_t<local_issue_t> > local_issues;
+
     RDB_MAKE_ME_SERIALIZABLE_3(dummy_namespaces, memcached_namespaces, machine_id);
 };
 

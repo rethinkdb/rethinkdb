@@ -42,6 +42,25 @@ bool serve(const std::string &filepath, const std::vector<peer_address_t> &joins
     message_multiplexer_t::run_t message_multiplexer_run(&message_multiplexer);
     connectivity_cluster_t::run_t connectivity_cluster_run(&connectivity_cluster, port, &message_multiplexer_run);
 
+    watchable_copier_t<std::list<clone_ptr_t<local_issue_t> > > copy_local_issues_to_cluster(
+        local_issue_tracker.get_issues_watchable(),
+        directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::local_issue_list))
+        );
+
+    global_issue_aggregator_t issue_aggregator;
+
+    remote_issue_collector_t remote_issue_tracker(
+        translate_view_to_watchable(directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::local_issue_list))),
+        directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::machine_id))
+        );
+    global_issue_aggregator_t::source_t remote_issue_tracker_feed(&issue_aggregator, &remote_issue_tracker);
+
+    machine_down_issue_tracker_t machine_down_issue_tracker(
+        semilattice_manager_cluster.get_root_view(),
+        directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::machine_id))
+        );
+    global_issue_aggregator_t::source_t machine_down_issue_tracker_feed(&issue_aggregator, &machine_down_issue_tracker);
+
     for (int i = 0; i < (int)joins.size(); i++) {
         connectivity_cluster_run.join(joins[i]);
     }

@@ -11,6 +11,7 @@ class local_issue_t {
 public:
     virtual std::string get_description() const = 0;
 
+    virtual ~local_issue_t() { }
     virtual local_issue_t *clone() const = 0;
 };
 
