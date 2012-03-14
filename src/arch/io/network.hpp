@@ -342,10 +342,9 @@ private:
 
     /* accept_loop() runs in a separate coroutine. It repeatedly tries to accept
     new connections; when accept() blocks, then it waits for events from the
-    event loop. When accept_loop_handler's destructor is called, accept_loop_handler
-    stops accept_loop() by pulsing the signal. */
-    boost::scoped_ptr<side_coro_handler_t> accept_loop_handler;
-    void accept_loop(signal_t *);
+    event loop. */
+    void accept_loop(auto_drainer_t::lock_t);
+    boost::scoped_ptr<auto_drainer_t> accept_loop_drainer;
 
     void handle(fd_t sock);
 

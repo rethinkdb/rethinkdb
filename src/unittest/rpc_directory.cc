@@ -2,6 +2,7 @@
 
 #include "rpc/connectivity/cluster.hpp"
 #include "rpc/directory/manager.hpp"
+#include "rpc/directory/watchable_copier.hpp"
 #include "unittest/unittest_utils.hpp"
 
 namespace unittest {
@@ -84,6 +85,59 @@ void run_update_test() {
 }
 TEST(RPCDirectoryTest, Update) {
     run_in_thread_pool(&run_update_test, 3);
+}
+
+/* `WatchableWriteCopier` tests that `watchable_write_copier_t` works. */
+
+void run_watchable_write_copier_test() {
+    int port = 10000 + randint(20000);
+    connectivity_cluster_t c;
+    directory_readwrite_manager_t<int> m(&c, 101);
+    connectivity_cluster_t::run_t cr(&c, port, &m);
+    let_stuff_happen();
+    watchable_variable_t<int> watchable(102);
+    watchable_write_copier_t<int> copier(watchable.get_watchable(), m.get_root_view());
+    let_stuff_happen();
+    EXPECT_EQ(boost::optional<int>(102), m.get_root_view()->get_value(c.get_me()));
+    watchable.set_value(103);
+    let_stuff_happen();
+    EXPECT_EQ(boost::optional<int>(103), m.get_root_view()->get_value(c.get_me()));
+}
+TEST(RPCDirectoryTest, WatchableWriteCopier) {
+    run_in_thread_pool(&run_watchable_write_copier_test, 3);
+}
+
+/* `TranslateIntoWatchable` tests that `translate_into_watchable()` works. */
+
+void run_translate_into_watchable_test() {
+    int port = 10000 + randint(20000);
+    connectivity_cluster_t c;
+    directory_readwrite_manager_t<int> m(&c, 101);
+    clone_ptr_t<watchable_t<std::map<peer_id_t, int> > > watchable =
+        translate_into_watchable(m.get_root_view());
+    connectivity_cluster_t::run_t cr(&c, port, &m);
+    let_stuff_happen();
+    {
+        EXPECT_EQ(1, watchable->get().size());
+        EXPECT_EQ(101, watchable->get()[c.get_me()]);
+        cond_t got_notified;
+        watchable_t<std::map<peer_id_t, int> >::subscription_t subs(boost::bind(&cond_t::pulse, &got_notified));
+        {
+            watchable_t<std::map<peer_id_t, int> >::freeze_t freeze(watchable);
+            subs.reset(watchable, &freeze);
+        }
+        {
+            directory_write_service_t::our_value_lock_acq_t lock(&m);
+            m.get_root_view()->set_our_value(4321, &lock);
+        }
+        let_stuff_happen();
+        EXPECT_TRUE(got_notified.is_pulsed());
+        EXPECT_EQ(1, watchable->get().size());
+        EXPECT_EQ(4321, watchable->get()[c.get_me()]);
+    }
+}
+TEST(RPCDirectoryTest, TranslateIntoWatchable) {
+    run_in_thread_pool(&run_translate_into_watchable_test, 3);
 }
 
 /* `Notify` tests that directory peer value watchers are notified when a peer's

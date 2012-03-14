@@ -80,7 +80,7 @@ blueprint_t<protocol_t> translate_blueprint(const persistable_blueprint_t<protoc
             return file_path + "/" + uuid_to_str(namespace_id);
         }
 
-        watchable_impl_t<blueprint_t<protocol_t> > watchable;
+        watchable_variable_t<blueprint_t<protocol_t> > watchable;
     private:
 
         void initialize_reactor() {
@@ -115,7 +115,7 @@ blueprint_t<protocol_t> translate_blueprint(const persistable_blueprint_t<protoc
                 directory_view->subview(field_lens(&namespaces_directory_metadata_t<protocol_t>::master_maps))->subview(
                     assumed_member_lens<namespace_id_t, std::map<master_id_t, master_business_card_t<protocol_t> > >(namespace_id));
 
-            reactor.reset(new reactor_t<protocol_t>(mbox_manager, reactor_directory, master_directory, branch_history, &watchable, store.get()));
+            reactor.reset(new reactor_t<protocol_t>(mbox_manager, reactor_directory, master_directory, branch_history, watchable.get_watchable(), store.get()));
 
             reactor_has_been_initialized.pulse();
         }
