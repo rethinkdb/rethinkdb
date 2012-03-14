@@ -111,10 +111,14 @@ std::string human_readable_status(int code) {
         return "Forbidden";
     case 404:
         return "Not Found";
+    case 405:
+        return "Method Not Allowed";
     case 500:
         return "Internal Server Error";
     case 501:
         return "Not Implemented";
+    case 503:
+        return "Service Unavailable";
     default:
         unreachable("Unknown code %d.", code);
     }
@@ -313,7 +317,7 @@ http_res_t test_server_t::handle(const http_req_t &req) {
     res.version = req.version;
     res.code = 200;
 
-    res.add_header_line("Vary", "Accept-Encoding");
+    res.add_header_line("Accept-Encoding", "Vary");
     res.add_header_line("Content-Length", "0");
 
     return res;
