@@ -73,8 +73,14 @@ void read(std::string file_path, machine_id_t *machine_id_out, cluster_semilatti
     }
 }
 
-semilattice_watching_persister_t::semilattice_watching_persister_t(std::string fp, machine_id_t mi, boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > v) :
-    file_path(fp), machine_id(mi), view(v), subs(boost::bind(&semilattice_watching_persister_t::dump, this), v)
+semilattice_watching_persister_t::semilattice_watching_persister_t(
+        std::string fp,
+        machine_id_t mi,
+        boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > v,
+        local_issue_tracker_t *lit) :
+    file_path(fp), machine_id(mi), view(v),
+    subs(boost::bind(&semilattice_watching_persister_t::dump, this), v),
+    issue_tracker(lit)
 {
     dump();
 }
@@ -83,8 +89,14 @@ void semilattice_watching_persister_t::dump() {
     try {
         update(file_path, machine_id, view->get());
     } catch (file_exc_t e) {
-        logERR("Could not persist metadata: %s", e.what());
+        persistence_issue.reset(new local_issue_tracker_t::entry_t(
+            issue_tracker,
+            clone_ptr_t<local_issue_t>(new persistence_issue_t(e.what()))
+            ));
+        /* TODO: Should we set a timer to retry? */
+        return;
     }
+    persistence_issue.reset();
 }
 
 }  // namespace metadata_persistence

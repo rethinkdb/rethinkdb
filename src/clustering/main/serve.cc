@@ -20,6 +20,8 @@
 
 bool serve(const std::string &filepath, const std::vector<peer_address_t> &joins, int port, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata) {
 
+    local_issue_tracker_t local_issue_tracker;
+
     std::cout << "Establishing cluster node on port " << port << "..." << std::endl;
 
     connectivity_cluster_t connectivity_cluster; 
@@ -46,7 +48,7 @@ bool serve(const std::string &filepath, const std::vector<peer_address_t> &joins
 
     /* TODO: Warn if the `join()` didn't go through. */
 
-    metadata_persistence::semilattice_watching_persister_t persister(filepath, machine_id, semilattice_manager_cluster.get_root_view());
+    metadata_persistence::semilattice_watching_persister_t persister(filepath, machine_id, semilattice_manager_cluster.get_root_view(), &local_issue_tracker);
 
     reactor_driver_t<mock::dummy_protocol_t> dummy_reactor_driver(&mailbox_manager,
                                                                   directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::dummy_namespaces)), 
