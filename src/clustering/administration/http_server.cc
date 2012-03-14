@@ -4,6 +4,7 @@
 
 #include "clustering/administration/http_server.hpp"
 #include "clustering/administration/json_adapters.hpp"
+#include "clustering/administration/suggester.hpp"
 
 typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
 typedef tokenizer::iterator tok_iterator;
@@ -20,6 +21,30 @@ http_res_t blueprint_http_server_t::handle(const http_req_t &req) {
     boost::char_separator<char> sep("/");
     tokenizer tokens(req.resource, sep);
     tok_iterator it = tokens.begin();
+
+    if (*it == "propose") {
+        /* The user is dropping hints that she wants us to pop the question.
+         * Bring that bitch some blueprints, bitches love blueprints. */
+
+        if (++it != tokens.end()) {
+            /* Whoops dealbreaker */
+            return http_res_t(404);
+        }
+
+        std::map<machine_id_t, datacenter_id_t> machine_assignments;
+        
+        for (std::map<machine_id_t, machine_semilattice_metadata_t>::iterator it  = cluster_metadata.machines.machines.begin();
+                                                                              it != cluster_metadata.machines.machines.end();
+                                                                              it++) {
+            machine_assignments[it->first] = it->second.datacenter.get();
+        }
+
+        suggest_blueprints_for_protocol<memcached_protocol_t> (cluster_metadata.memcached_namespaces,
+                                                               directory_metadata->subview(field_lens(&cluster_directory_metadata_t::memcached_namespaces)),
+                                                               directory_metadata->subview(field_lens(&cluster_directory_metadata_t::machine_id)),
+                                                               machine_assignments);
+
+    }
 
     //Traverse through the subfields until we're done with the url
     namespace_metadata_ctx_t json_ctx(us);

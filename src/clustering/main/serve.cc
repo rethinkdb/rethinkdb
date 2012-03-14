@@ -70,6 +70,7 @@ bool serve(const std::string &filepath, const std::vector<peer_address_t> &joins
 
     //TODO obviously this needs to go away from this function.
     blueprint_http_server_t bp_server(semilattice_manager_cluster.get_root_view(),
+                                      directory_manager.get_root_view(),
                                       machine_id);
     std::set<std::string> white_list;
     white_list.insert("/cluster.css");
