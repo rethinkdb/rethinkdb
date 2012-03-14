@@ -11,7 +11,7 @@ public:
         underlying(_underlying), source(_source) { }
 
     std::string get_description() const {
-        return "On machine " + uuid_to_str(source) + ": " + underlying.get_description();
+        return "On machine " + uuid_to_str(source) + ": " + underlying->get_description();
     }
 
     remote_issue_t *clone() const {
@@ -39,6 +39,7 @@ public:
                 l.push_back(clone_ptr_t<global_issue_t>(new remote_issue_t(*jt, machine_id)));
             }
         }
+        return l;
     }
 
 private:

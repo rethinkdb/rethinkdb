@@ -19,7 +19,7 @@ class global_issue_tracker_t {
 public:
     virtual std::list<clone_ptr_t<global_issue_t> > get_issues() = 0;
 
-private:
+protected:
     virtual ~global_issue_tracker_t() { }
 };
 

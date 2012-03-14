@@ -2,6 +2,7 @@
 #define __CLUSTERING_ADMINISTRATION_METADATA_HPP_
 
 #include "clustering/administration/datacenter_metadata.hpp"
+#include "clustering/administration/issues/local.hpp"
 #include "clustering/administration/machine_metadata.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
 #include "http/json/json_adapter.hpp"

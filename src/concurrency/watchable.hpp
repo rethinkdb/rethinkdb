@@ -3,6 +3,7 @@
 
 #include "concurrency/mutex_assertion.hpp"
 #include "concurrency/pubsub.hpp"
+#include "containers/clone_ptr.hpp"
 
 template <class value_t>
 class watchable_t {

@@ -17,24 +17,28 @@ public:
 
 class local_issue_tracker_t {
 public:
+    local_issue_tracker_t() : issues_watchable(std::list<clone_ptr_t<local_issue_t> >()) { }
+
     class entry_t {
     public:
         entry_t(local_issue_tracker_t *p, const clone_ptr_t<local_issue_t> &d) :
-            parent(p) {
+            parent(p), issue(d)
+        {
             parent->issues.insert(this);
             parent->recompute();
         }
         ~entry_t() {
-            parent->issues.remove(this);
+            parent->issues.erase(this);
             parent->recompute();
         }
     private:
+        friend class local_issue_tracker_t;
         local_issue_tracker_t *parent;
         clone_ptr_t<local_issue_t> issue;
     };
 
-    watchable_t<std::list<clone_ptr_t<local_issue_t> > > *get_issues_watchable() {
-        return &issues_watchable;
+    clone_ptr_t<watchable_t<std::list<clone_ptr_t<local_issue_t> > > > get_issues_watchable() {
+        return issues_watchable.get_watchable();
     }
 
 private:
@@ -47,7 +51,7 @@ private:
     }
 
     std::set<entry_t *> issues;
-    watchable_impl_t<std::list<clone_ptr_t<local_issue_t> > > issues_watchable;
+    watchable_variable_t<std::list<clone_ptr_t<local_issue_t> > > issues_watchable;
 };
 
 #endif /* __CLUSTERING_ADMINISTRATION_ISSUES_LOCAL_HPP__ */

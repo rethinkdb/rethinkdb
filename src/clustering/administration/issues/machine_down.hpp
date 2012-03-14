@@ -2,18 +2,19 @@
 #define __CLUSTERING_ADMINISTRATION_ISSUES_MACHINE_DOWN_HPP__
 
 #include "clustering/administration/issues/global.hpp"
-#include "clustering/administration/machine_metadata.hpp"
+#include "clustering/administration/metadata.hpp"
+#include "rpc/semilattice/view.hpp"
 
 class machine_down_issue_t : public global_issue_t {
 public:
-    machine_down_issue_t(const machine_id_t &mid,) : machine_id(mid) { }
+    machine_down_issue_t(const machine_id_t &mid) : machine_id(mid) { }
 
     std::string get_description() const {
         return "Machine " + uuid_to_str(machine_id) + " is inaccessible.";
     }
 
     machine_down_issue_t *clone() const {
-        return machine_down_issue_t(machine_id);
+        return new machine_down_issue_t(machine_id);
     }
 
     machine_id_t machine_id;

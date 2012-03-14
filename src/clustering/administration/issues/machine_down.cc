@@ -1,4 +1,5 @@
 #include "clustering/administration/issues/machine_down.hpp"
+#include "clustering/administration/machine_id_to_peer_id.hpp"
 
 machine_down_issue_tracker_t::machine_down_issue_tracker_t(
         boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > _semilattice_view,
@@ -9,13 +10,13 @@ machine_down_issue_tracker_t::machine_down_issue_tracker_t(
 
 std::list<clone_ptr_t<global_issue_t> > machine_down_issue_tracker_t::get_issues() {
     std::list<clone_ptr_t<global_issue_t> > issues;
-    cluster_semilattice_metadata_t metadata = semilattice_view.get();
-    for (machines_semilattice_metadata_t::machine_map_t::iterator it = metadata.machines.machines.begin();
+    cluster_semilattice_metadata_t metadata = semilattice_view->get();
+    for (std::map<machine_id_t, machine_semilattice_metadata_t>::iterator it = metadata.machines.machines.begin();
             it != metadata.machines.machines.end(); it++) {
         peer_id_t peer = machine_id_to_peer_id(it->first, machine_id_translation_table);
         if (peer.is_nil()) {
             issues.push_back(clone_ptr_t<global_issue_t>(
-                new machine_down_issue_t(it->first, it->second.name.get())
+                new machine_down_issue_t(it->first)
                 ));
         }
     }
