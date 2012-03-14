@@ -1,8 +1,9 @@
 #ifndef __STL_UTILS_TCC__
 #define __STL_UTILS_TCC__
 
-#include <boost/optional.hpp>
 #include <algorithm>
+
+#include <boost/optional.hpp>
 
 //TODO this can be much more efficient with an iterator
 template <class K, class V>
@@ -109,13 +110,6 @@ template <class left_container_t, class right_container_t>
 cartesian_product_iterator_t<left_container_t, right_container_t> &
 cartesian_product_iterator_t<left_container_t, right_container_t>::operator++(int) {
     return *this = *this + 1;
-}
-
-template <class left_container_t, class right_container_t>
-bool cartesian_product_iterator_t<left_container_t, right_container_t>::operator==(const cartesian_product_iterator_t &other) {
-    return left == other.left && left_start == other.left_start && left_end == other.left_end &&
-           right == other.right && right_start == other.right_start && right_end == other.right_end;
-           
 }
 
 #endif
