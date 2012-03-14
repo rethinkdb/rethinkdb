@@ -508,7 +508,6 @@ module 'ClusterView', ->
                     datacenter_uuid: 'Required'
 
                 submitHandler: =>
-                    debugger
                     formdata = form_data_as_object($('form', @$modal))
                     for m in machines
                         $.ajax

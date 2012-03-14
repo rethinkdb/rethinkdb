@@ -60,7 +60,6 @@ module 'NamespaceView', ->
             e.preventDefault()
 
         render: =>
-            debugger
             log_render '(rendering) namespace view: replica'
             # Walk over json and add datacenter names to the model (in
             # addition to datacenter ids)
@@ -455,13 +454,14 @@ module 'NamespaceView', ->
             super validator_options, json
 
 
-    compute_renderable_shards_array = (shard_boundaries) ->
+    compute_renderable_shards_array = (shards) ->
         ret = []
-        for i in [0...shard_boundaries.length + 1]
+        for i in [0...shards.length]
+            json_repr = $.parseJSON(shards[i])
             ret.push
-                lower: (if i == 0 then "&minus;&infin;" else shard_boundaries[i-1])
-                upper: (if i == shard_boundaries.length then "+&infin;" else shard_boundaries[i])
-                notlast: i != shard_boundaries.length
+                lower: (if json_repr[0] == "" then "&minus;&infin;" else json_repr[0])
+                upper: (if json_repr[1] == null then "+&infin;" else json_repr[1])
+                notlast: i != shards.length
                 index: i
         return ret
 
