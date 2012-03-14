@@ -18,8 +18,7 @@ struct redis_listener_t : public home_thread_mixin_t {
 private:
     namespace_interface_t<redis_protocol_t> *redis_interface;
 
-    cond_t pulse_to_begin_shutdown;
-    drain_semaphore_t active_connection_drain_semaphore;
+    auto_drainer_t active_connection_drainer;
     int next_thread;
     boost::scoped_ptr<tcp_listener_t> tcp_listener;
 

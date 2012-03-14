@@ -180,11 +180,11 @@ then. */
 
 /* Implementation support for `ASSERT_NO_CORO_WAITING` and `ASSERT_FINITE_CORO_WAITING` */
 struct assert_no_coro_waiting_t {
-    assert_no_coro_waiting_t(std::string, int);
+    assert_no_coro_waiting_t(const std::string&, int);
     ~assert_no_coro_waiting_t();
 };
 struct assert_finite_coro_waiting_t {
-    assert_finite_coro_waiting_t(std::string, int);
+    assert_finite_coro_waiting_t(const std::string&, int);
     ~assert_finite_coro_waiting_t();
 };
 

@@ -16,6 +16,10 @@ http_file_server_t::http_file_server_t(std::set<std::string> _whitelist, std::st
 { }
 
 http_res_t http_file_server_t::handle(const http_req_t &req) {
+    if (req.method != GET) {
+        /* Method not allowed. */
+        return http_res_t(405);
+    }
     if (!std_contains(whitelist, req.resource)) {
         logINF("Someone asked for the nonwhitelisted file %s, if this should be accessible add it to the whitelist.\n", req.resource.c_str());
         return http_res_t(403);

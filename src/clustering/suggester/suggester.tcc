@@ -1,6 +1,8 @@
 #ifndef __CLUSTERING_SUGGESTER_SUGGESTER_TCC__
 #define __CLUSTERING_SUGGESTER_SUGGESTER_TCC__
 
+#include "stl_utils.hpp"
+
 /* Returns a "score" indicating how expensive it would be to turn the machine
 with the given business card into a primary or secondary for the given shard. */
 
@@ -84,7 +86,12 @@ std::map<machine_id_t, typename blueprint_details::role_t> suggest_blueprint_for
     for (std::map<machine_id_t, datacenter_id_t>::const_iterator it = machine_data_centers.begin();
             it != machine_data_centers.end(); it++) {
         if (it->second == primary_datacenter) {
-            float cost = estimate_cost_to_get_up_to_date(directory.find(it->first)->second, shard);
+                float cost;
+                if (std_contains(directory, it->first)) {
+                    cost = estimate_cost_to_get_up_to_date(directory.find(it->first)->second, shard);
+                } else {
+                    cost = 3.0;
+                }
             primary_candidates.insert(std::make_pair(cost, it->first));
         }
     }
@@ -96,7 +103,12 @@ std::map<machine_id_t, typename blueprint_details::role_t> suggest_blueprint_for
         for (std::map<machine_id_t, datacenter_id_t>::const_iterator jt = machine_data_centers.begin();
                 jt != machine_data_centers.end(); jt++) {
             if (jt->second == it->first && jt->first != primary) {
-                float cost = estimate_cost_to_get_up_to_date(directory.find(jt->first)->second, shard);
+                float cost;
+                if (std_contains(directory, jt->first)) {
+                    cost = estimate_cost_to_get_up_to_date(directory.find(jt->first)->second, shard);
+                } else {
+                    cost = 3.0;
+                }
                 secondary_candidates.insert(std::make_pair(cost, jt->first));
             }
         }

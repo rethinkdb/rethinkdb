@@ -195,8 +195,13 @@ mock_cache_t::mock_cache_t( serializer_t *_serializer, UNUSED mirrored_cache_con
 
     on_thread_t switcher(serializer->home_thread());
 
-    struct : public iocallback_t, public drain_semaphore_t {
-        void on_io_complete() { release(); }
+    struct read_callback_t : public iocallback_t, public cond_t {
+        read_callback_t() : count(0) { }
+        void on_io_complete() {
+            count--;
+            if (count == 0) pulse();
+        }
+        int count;
     } read_cb;
 
     block_id_t end_block_id = serializer->max_block_id();
@@ -204,13 +209,13 @@ mock_cache_t::mock_cache_t( serializer_t *_serializer, UNUSED mirrored_cache_con
     for (block_id_t i = 0; i < end_block_id; i++) {
         if (!serializer->get_delete_bit(i)) {
             internal_buf_t *internal_buf = bufs[i] = new internal_buf_t(this, i, serializer->get_recency(i));
-            read_cb.acquire();
+            read_cb.count++;
             serializer->block_read(serializer->index_read(i), internal_buf->data, DEFAULT_DISK_ACCOUNT, &read_cb);
         }
     }
 
     /* Block until all readers are done */
-    read_cb.drain();
+    read_cb.wait();
 }
 
 struct mock_cb_t : public iocallback_t, public cond_t {

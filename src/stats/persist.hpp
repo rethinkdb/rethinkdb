@@ -74,7 +74,7 @@ struct perfmon_persistent_counter_t
     : public perfmon_counter_t
     , public persistent_stat_perthread_t<cache_line_padded_t<int64_t> >
 {
-    explicit perfmon_persistent_counter_t(std::string name, bool internal = true);
+    explicit perfmon_persistent_counter_t(const std::string& name, bool internal = true);
 
     PERSISTENT_STAT_PERTHREAD_IMPL(padded_int64_t);
     int64_t combine_stats(padded_int64_t *);
@@ -88,7 +88,7 @@ struct perfmon_persistent_stddev_t
     : public perfmon_stddev_t
     , public persistent_stat_perthread_t<stddev_t>
 {
-    explicit perfmon_persistent_stddev_t(std::string name, bool internal = true);
+    explicit perfmon_persistent_stddev_t(const std::string& name, bool internal = true);
 
     PERSISTENT_STAT_PERTHREAD_IMPL(stddev_t);
     stddev_t combine_stats(stddev_t *);
