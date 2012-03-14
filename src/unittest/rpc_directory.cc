@@ -2,6 +2,7 @@
 
 #include "rpc/connectivity/cluster.hpp"
 #include "rpc/directory/manager.hpp"
+#include "rpc/directory/watchable_copier.hpp"
 #include "unittest/unittest_utils.hpp"
 
 namespace unittest {
@@ -84,6 +85,26 @@ void run_update_test() {
 }
 TEST(RPCDirectoryTest, Update) {
     run_in_thread_pool(&run_update_test, 3);
+}
+
+/* `WatchableWriteCopier` tests that `watchable_write_copier_t` works. */
+
+void run_watchable_write_copier_test() {
+    int port = 10000 + randint(20000);
+    connectivity_cluster_t c;
+    directory_readwrite_manager_t<int> m(&c, 101);
+    connectivity_cluster_t::run_t cr(&c, port, &m);
+    let_stuff_happen();
+    watchable_variable_t<int> watchable(102);
+    watchable_write_copier_t<int> copier(watchable.get_watchable(), m.get_root_view());
+    let_stuff_happen();
+    EXPECT_EQ(boost::optional<int>(102), m.get_root_view()->get_value(c.get_me()));
+    watchable.set_value(103);
+    let_stuff_happen();
+    EXPECT_EQ(boost::optional<int>(103), m.get_root_view()->get_value(c.get_me()));
+}
+TEST(RPCDirectoryTest, WatchableWriteCopier) {
+    run_in_thread_pool(&run_watchable_write_copier_test, 3);
 }
 
 /* `Notify` tests that directory peer value watchers are notified when a peer's
