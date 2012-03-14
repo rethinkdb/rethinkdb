@@ -1,21 +1,24 @@
 #ifndef __CONCURRENCY_WATCHABLE_HPP__
 #define __CONCURRENCY_WATCHABLE_HPP__
 
+#include "concurrency/mutex_assertion.hpp"
+#include "concurrency/pubsub.hpp"
+
 template <class value_t>
 class watchable_t {
 public:
     class freeze_t {
     public:
         explicit freeze_t(watchable_t *watchable) 
-            : mutex_acquisition(watchable->get_mutex_assertion())
+            : rwi_lock_acquisition(watchable->get_rwi_lock_assertion())
         { }
 
         void assert_is_holding(watchable_t *watchable) {
-            mutex_acquisition.assert_is_holding(watchable->get_mutex_assertion());
+            rwi_lock_acquisition.assert_is_holding(watchable->get_rwi_lock_assertion());
         }
 
     private:
-        mutex_assertion_t::acq_t mutex_acquisition;
+        rwi_lock_assertion_t::read_acq_t rwi_lock_acquisition;
     };
 
     class subscription_t {
@@ -43,7 +46,7 @@ public:
     virtual value_t get() = 0;
     virtual ~watchable_t() { }
     virtual publisher_t<boost::function<void()> > *get_publisher(freeze_t *) = 0;
-    virtual mutex_assertion_t *get_mutex_assertion() = 0;
+    virtual rwi_lock_assertion_t *get_rwi_lock_assertion() = 0;
 };
 
 template <class value_t>
@@ -62,12 +65,12 @@ public:
         return publisher_controller.get_publisher();
     }
 
-    mutex_assertion_t *get_mutex_assertion() {
-        return &mutex_assertion;
+    rwi_lock_assertion_t *get_rwi_lock_assertion() {
+        return &rwi_lock_assertion;
     }
 
     void set_value(const value_t &_value) {
-        mutex_assertion_t::acq_t acquisition(get_mutex_assertion());
+        rwi_lock_assertion_t::write_acq_t acquisition(get_rwi_lock_assertion());
         value = _value;
         publisher_controller.publish(&watchable_impl_t<value_t>::call);
     }
@@ -79,7 +82,7 @@ private:
 
     publisher_controller_t<boost::function<void()> > publisher_controller;
     value_t value;
-    mutex_assertion_t mutex_assertion;
+    rwi_lock_assertion_t rwi_lock_assertion;
 };
 
 #endif
