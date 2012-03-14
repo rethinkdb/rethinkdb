@@ -2,6 +2,7 @@
 #define __CONTAINERS_CLONE_PTR_HPP__
 
 #include "errors.hpp"
+#include <boost/serialization/split_member.hpp>
 
 /* `clone_ptr_t` is a smart pointer that calls the `clone()` method on its
 underlying object whenever the `clone_ptr_t`'s copy constructor is called. It's
@@ -36,7 +37,24 @@ public:
 
 private:
     template<class U> friend class clone_ptr_t;
+    friend class boost::serialization::access;
+
     void truth_value_method_for_use_in_boolean_conversions();
+
+    template<class Archive>
+    void save(Archive & ar, UNUSED const unsigned int version) const {
+        ar & object;
+    }
+    template<class Archive>
+    void load(Archive & ar, UNUSED const unsigned int version) {
+        if (object) {
+            delete object;
+            object = NULL;
+        }
+        ar & object;
+    }
+    BOOST_SERIALIZATION_SPLIT_MEMBER()
+
     T *object;
 };
 

@@ -1,6 +1,9 @@
 #ifndef __CLUSTERING_ADMINISTRATION_METADATA_HPP_
 #define __CLUSTERING_ADMINISTRATION_METADATA_HPP_
 
+#include "errors.hpp"
+#include <boost/serialization/list.hpp>
+
 #include "clustering/administration/datacenter_metadata.hpp"
 #include "clustering/administration/issues/local.hpp"
 #include "clustering/administration/machine_metadata.hpp"
@@ -69,7 +72,7 @@ public:
 
     std::list<clone_ptr_t<local_issue_t> > local_issues;
 
-    RDB_MAKE_ME_SERIALIZABLE_3(dummy_namespaces, memcached_namespaces, machine_id);
+    RDB_MAKE_ME_SERIALIZABLE_4(dummy_namespaces, memcached_namespaces, machine_id, local_issues);
 };
 
 #endif
