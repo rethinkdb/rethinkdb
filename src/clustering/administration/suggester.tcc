@@ -27,10 +27,9 @@ persistable_blueprint_t<protocol_t> suggest_blueprint_for_namespace(
         }
         boost::optional<boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > value =
             reactor_directory_view->get_value(peer);
-        if (!value || !*value) {
-            throw missing_machine_exc_t();
+        if (value && *value) {
+            directory.insert(std::make_pair(machine, (**value).internal));
         }
-        directory.insert(std::make_pair(machine, (**value).internal));
     }
 
     datacenter_id_t primary_datacenter =
@@ -70,6 +69,26 @@ std::map<namespace_id_t, persistable_blueprint_t<protocol_t> > suggest_blueprint
         }
     }
     return out;
-        }
+}
+
+template<class protocol_t>
+void fill_in_blueprints_for_protocol(
+        namespaces_semilattice_metadata_t<protocol_t> *ns_goals,
+        const clone_ptr_t<directory_rview_t<namespaces_directory_metadata_t<protocol_t> > > &reactor_directory_view,
+        const clone_ptr_t<directory_rview_t<machine_id_t> > &machine_id_translation_table,
+        const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
+        const machine_id_t &us)
+        THROWS_ONLY(cannot_satisfy_goals_exc_t, in_conflict_exc_t, missing_machine_exc_t) 
+{
+    typedef std::map<namespace_id_t, persistable_blueprint_t<protocol_t> > blueprint_map_t;
+    blueprint_map_t suggested_blueprints =
+        suggest_blueprints_for_protocol(*ns_goals, reactor_directory_view, machine_id_translation_table, machine_data_centers);
+
+    for (typename blueprint_map_t::iterator it  = suggested_blueprints.begin();
+                                            it != suggested_blueprints.end();
+                                            ++it) {
+        ns_goals->namespaces[it->first].get_mutable().blueprint = ns_goals->namespaces[it->first].get().blueprint.make_new_version(it->second, us);
+    }
+}
 
 #endif

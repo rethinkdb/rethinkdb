@@ -15,6 +15,7 @@ http_res_t blueprint_http_server_t::handle(const http_req_t &req) {
 
     //as we traverse the json sub directories this will keep track of where we are
     boost::shared_ptr<json_adapter_if_t<namespace_metadata_ctx_t> > json_adapter_head(new json_adapter_t<cluster_semilattice_metadata_t, namespace_metadata_ctx_t>(&cluster_metadata));
+    namespace_metadata_ctx_t json_ctx(us);
 
 
     //setup a tokenizer
@@ -22,9 +23,9 @@ http_res_t blueprint_http_server_t::handle(const http_req_t &req) {
     tokenizer tokens(req.resource, sep);
     tok_iterator it = tokens.begin();
 
-    if (*it == "propose") {
-        /* The user is dropping hints that she wants us to pop the question.
-         * Bring that bitch some blueprints, bitches love blueprints. */
+    if (it != tokens.end() && *it == "propose") {
+        /* The user is dropping hints that she wants us to propose.  Bring that
+         * bitch some blueprints, bitches love blueprints. */
 
         if (++it != tokens.end()) {
             /* Whoops dealbreaker */
@@ -38,16 +39,19 @@ http_res_t blueprint_http_server_t::handle(const http_req_t &req) {
                                                                               it++) {
             machine_assignments[it->first] = it->second.datacenter.get();
         }
+        fill_in_blueprints_for_protocol<memcached_protocol_t>(&cluster_metadata.memcached_namespaces,
+                                                              directory_metadata->subview(field_lens(&cluster_directory_metadata_t::memcached_namespaces)),
+                                                              directory_metadata->subview(field_lens(&cluster_directory_metadata_t::machine_id)),
+                                                              machine_assignments,
+                                                              us);
 
-        suggest_blueprints_for_protocol<memcached_protocol_t> (cluster_metadata.memcached_namespaces,
-                                                               directory_metadata->subview(field_lens(&cluster_directory_metadata_t::memcached_namespaces)),
-                                                               directory_metadata->subview(field_lens(&cluster_directory_metadata_t::machine_id)),
-                                                               machine_assignments);
-
+        http_res_t res(200);
+        scoped_cJSON_t json_repr(json_adapter_head->render(json_ctx));
+        res.set_body("application/json", cJSON_print_std_string(json_repr.get()));
+        return res;
     }
 
     //Traverse through the subfields until we're done with the url
-    namespace_metadata_ctx_t json_ctx(us);
     while (it != tokens.end()) {
         json_adapter_if_t<namespace_metadata_ctx_t>::json_adapter_map_t subfields = json_adapter_head->get_subfields(json_ctx);
         if (subfields.find(*it) == subfields.end()) {
