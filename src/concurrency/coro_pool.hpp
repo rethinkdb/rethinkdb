@@ -4,7 +4,7 @@
 #include "utils.hpp"
 #include <boost/function.hpp>
 
-#include "concurrency/drain_semaphore.hpp"
+#include "concurrency/auto_drainer.hpp"
 #include "concurrency/queue/passive_producer.hpp"
 
 /* coro_pool_t maintains a bunch of coroutines; when you give it tasks, it
@@ -23,21 +23,17 @@ public:
     virtual ~coro_pool_t();
     void rethread(int new_thread);
 
-    // Blocks until all pending tasks have been processed. The coro_pool_t is
-    // reusable immediately after drain() returns.
-    void drain();
-
 protected:
     // Callback to be overloaded by derived classes when an item is available
     virtual void run_internal() = 0;
 
 private:
-    void worker_run(drain_semaphore_t::lock_t coro_drain_semaphore_lock);
+    void worker_run(auto_drainer_t::lock_t coro_drain_semaphore_lock);
     void on_source_availability_changed();
 
     availability_t * const available;
     int max_worker_count, active_worker_count;
-    drain_semaphore_t coro_drain_semaphore;
+    auto_drainer_t coro_drain_semaphore;
 };
 
 class coro_pool_boost_t :
