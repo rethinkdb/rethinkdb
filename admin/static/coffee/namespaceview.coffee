@@ -500,26 +500,36 @@ module 'NamespaceView', ->
         alert_tmpl: Handlebars.compile $('#modify_shards-alert-template').html()
         class: 'modify-shards'
 
-        initialize: (namespace, shard_boundaries) ->
+        initialize: (namespace, shard_set) ->
             log_initial '(initializing) modal dialog: ModifyShards'
             @namespace = namespace
-            @shards = compute_renderable_shards_array(shard_boundaries)
+            @shards = compute_renderable_shards_array(shard_set)
 
             # Keep an unmodified copy of the shard boundaries with which we compare against when reviewing the changes.
-            @original_shard_boundaries = _.map(shard_boundaries, _.identity)
-            @shard_boundaries = _.map(shard_boundaries, _.identity)
+            @original_shard_set = _.map(shard_set, _.identity)
+            @shard_set = _.map(shard_set, _.identity)
             super @template
 
         insert_splitpoint: (index, splitpoint) =>
-            if ((index == @shard_boundaries.length || @shard_boundaries[index] > splitpoint) && (index == 0 || @shard_boundaries[index - 1] < splitpoint))
-                @shard_boundaries.splice(index, 0, splitpoint)
+            debugger
+            if (0 <= index || index < @shard_set.length)
+                json_repr = $.parseJSON(@shard_set[index])
+                if (splitpoint <= json_repr[0] || (splitpoint >= json_repr[1] && json_repr[1] != null))
+                    raise "Error invalid splitpoint"
+
+                @shard_set.splice(index, 1, JSON.stringify([json_repr[0], splitpoint]), JSON.stringify([splitpoint, json_repr[1]]))
                 clear_modals()
                 @render()
             else
                 # TODO handle error
 
         merge_shard: (index) =>
-            @shard_boundaries.splice(index, 1)
+            @shard_set.splice(index, 1)
+            if (index < 0 || index + 1 >= @shard_set.length)
+                raise "Error invalid index"
+
+            newshard = JSON.stringify([$.parseJSON(@shard_set[index])[0], $.parseJSON(@shard_set[index+1])[1]])
+            @shard_set.splice(index, 2, newshard)
             clear_modals()
             @render()
 
@@ -533,11 +543,14 @@ module 'NamespaceView', ->
                 rules: { }
                 messages: { }
                 submitHandler: =>
+                    formdata = form_data_as_object($('form', @$modal))
                     # TODO detect when there are no changes.
-                    $('form', @$modal).ajaxSubmit
-                        url: "/ajax/namespaces/#{@namespace.id}/apply_shard_plan?token=" + token
+                    $.ajax
+                        processData: false
+                        url: "/ajax/#{@namespace.attributes.protocol}_namespaces/#{@namespace.id}"
                         type: 'POST'
-                        data: { proposed_shard_boundaries: @shard_boundaries }
+                        contentType: 'application/json'
+                        data: JSON.stringify({"shards": @shard_set})
 
                         success: (response) =>
                             clear_modals()
@@ -551,11 +564,11 @@ module 'NamespaceView', ->
 
             json =
                 namespace: @namespace.toJSON()
-                shards: compute_renderable_shards_array(@shard_boundaries)
+                shards: compute_renderable_shards_array(@shard_set)
 
             super validator_options, json
 
-            shard_views = _.map(compute_renderable_shards_array(@shard_boundaries), (shard) => new NamespaceView.ModifyShardsModalShard @namespace, shard, @)
+            shard_views = _.map(compute_renderable_shards_array(@shard_set), (shard) => new NamespaceView.ModifyShardsModalShard @namespace, shard, @)
             @.$('.shards tbody').append view.render().el for view in shard_views
 
     class @ModifyShardsModalShard extends Backbone.View
