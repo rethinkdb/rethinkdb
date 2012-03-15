@@ -54,9 +54,9 @@ object_t::object_t(std::string const &key, std::string const &bucket, riak_value
 
         /* grab the content type */
         content_type.reserve(val->content_type_len);
-        for (unsigned i = 0; i < val->content_type_len; i++) {
+        for (unsigned i = 0; i < val->content_type_len; ++i) {
             content_type += *it;
-            it++;
+            ++it;
         }
     }
 
@@ -71,9 +71,9 @@ object_t::object_t(std::string const &key, std::string const &bucket, riak_value
             const_buffer_group_t::iterator it = buffer_group.begin();
 
             resize_content(val->value_len);
-            for (char *hd = content.get(); hd - content.get() < val->value_len; hd++) {
+            for (char *hd = content.get(); hd - content.get() < val->value_len; ++hd) {
                 *hd = *it;
-                it++;
+                ++it;
             }
         } else {
             //getting a range
@@ -83,9 +83,9 @@ object_t::object_t(std::string const &key, std::string const &bucket, riak_value
             const_buffer_group_t::iterator it = buffer_group.begin();
 
             resize_content(range.second - range.first);
-            for (char *hd = content.get(); hd - content.get() < range.second - range.first; hd++) {
+            for (char *hd = content.get(); hd - content.get() < range.second - range.first; ++hd) {
                 *hd = *it;
-                it++;
+                ++it;
             }
         }
     }
@@ -102,30 +102,33 @@ object_t::object_t(std::string const &key, std::string const &bucket, riak_value
             link_hdr_t link_hdr;
             link_t link;
 
+	    // TODO: Is this right?  *it should return a char, no?
+	    // That's signed.  Is it right for these to be signed
+	    // interpretations of the byte?
             link_hdr.bucket_len = *it;
-            it++;
+            ++it;
             link_hdr.key_len = *it;
-            it++;
+            ++it;
             link_hdr.tag_len = *it;
-            it++;
+            ++it;
 
             link.bucket.reserve(link_hdr.bucket_len);
             for (int j = 0; j < link_hdr.bucket_len; j++) {
                 link.bucket.push_back(*it);
-                it++;
+                ++it;
             }
 
 
             link.key.reserve(link_hdr.key_len);
             for (int j = 0; j < link_hdr.key_len; j++) {
                 link.key.push_back(*it);
-                it++;
+                ++it;
             }
 
             link.key.reserve(link_hdr.tag_len);
             for (int j = 0; j < link_hdr.tag_len; j++) {
                 link.tag.push_back(*it);
-                it++;
+                ++it;
             }
 
             links.push_back(link);
