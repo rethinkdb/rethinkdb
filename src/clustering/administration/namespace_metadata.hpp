@@ -8,7 +8,7 @@
 #include <boost/bind.hpp>
 
 #include "clustering/administration/datacenter_metadata.hpp"
-#include "clustering/administration/json_adapters.hpp"
+#include "clustering/administration/http/json_adapters.hpp"
 #include "clustering/administration/persistable_blueprint.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "clustering/immediate_consistency/query/metadata.hpp"

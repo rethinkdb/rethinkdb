@@ -2,7 +2,7 @@
 #include <boost/tokenizer.hpp>
 
 #include "http/http.hpp"
-#include "clustering/administration/json_adapters.hpp"
+#include "clustering/administration/http/json_adapters.hpp"
 #include "clustering/administration/http/semilattice_app.hpp"
 #include "clustering/administration/suggester.hpp"
 #include "stl_utils.hpp"

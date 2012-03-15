@@ -1,5 +1,5 @@
-#ifndef  __CLUSTERING_ADMINISTRATION_JSON_ADAPTERS_HPP__
-#define __CLUSTERING_ADMINISTRATION_JSON_ADAPTERS_HPP__
+#ifndef __CLUSTERING_ADMINISTRATION_HTTP_JSON_ADAPTERS_HPP__
+#define __CLUSTERING_ADMINISTRATION_HTTP_JSON_ADAPTERS_HPP__
 
 #include "http/json/json_adapter.hpp"
 #include "rpc/connectivity/connectivity.hpp"
@@ -85,6 +85,6 @@ void apply_json_to(cJSON *, peer_id_t *, const ctx_t &);
 template <class ctx_t>
 void on_subfield_change(peer_id_t *, const ctx_t &);
 
-#include "clustering/administration/json_adapters.tcc"
+#include "clustering/administration/http/json_adapters.tcc"
 
 #endif
