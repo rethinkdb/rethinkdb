@@ -76,7 +76,7 @@ public:
 private:
     class w_t : public watchable_t<value_t> {
     public:
-        w_t(watchable_variable_t<value_t> *p) : parent(p) { }
+        explicit w_t(watchable_variable_t<value_t> *p) : parent(p) { }
         w_t *clone() {
             return new w_t(parent);
         }
