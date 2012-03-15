@@ -15,7 +15,6 @@
 #include "perfmon_types.hpp"
 #include "arch/io/event_watcher.hpp"
 #include "containers/intrusive_list.hpp"
-#include <boost/iterator/iterator_facade.hpp>
 #include <stdexcept>
 #include <stdarg.h>
 #include <unistd.h>
@@ -144,10 +143,8 @@ public:
      * impetus for this class comes from wanting to use network connection's with
      * Boost's spirit parser */
 
-    class iterator
-        : public boost::iterator_facade<iterator, const char, boost::forward_traversal_tag>
-    {
-    friend class linux_tcp_conn_t;
+    class iterator {
+	friend class linux_tcp_conn_t;
     private:
         linux_tcp_conn_t *source;
         bool end;
@@ -155,7 +152,6 @@ public:
     private:
         int compare(iterator const& other) const;
     private:
-    // boost iterator interface
         void increment();
         bool equal(iterator const& other);
         const char &dereference();
@@ -165,6 +161,11 @@ public:
     private:
         iterator(linux_tcp_conn_t *, bool); // <--- constructs and end iterator use the below method for better readability;
     public:
+	typedef std::forward_iterator_tag iterator_category;
+	typedef char value_type;
+	typedef int64_t difference_type;
+	typedef const char* pointer;
+	typedef const char& reference;
         static iterator make_end_iterator(linux_tcp_conn_t *);
         iterator(const iterator&);
         ~iterator();
