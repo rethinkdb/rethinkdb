@@ -100,3 +100,8 @@ void semilattice_watching_persister_t::dump() {
 }
 
 }  // namespace metadata_persistence
+
+/* Necessary so that we can serialize `persistence_issue_t` in the form of a
+`clone_ptr_t<local_issue_t>` */
+BOOST_CLASS_EXPORT(metadata_persistence::persistence_issue_t)
+

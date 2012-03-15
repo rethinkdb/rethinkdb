@@ -1,6 +1,9 @@
 #ifndef __CLUSTERING_ADMINISTRATION_PERSIST_HPP__
 #define __CLUSTERING_ADMINISTRATION_PERSIST_HPP__
 
+#include "errors.hpp"
+#include <boost/serialization/export.hpp>
+
 #include "clustering/administration/issues/local.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "rpc/semilattice/view.hpp"
@@ -26,6 +29,8 @@ void read(const std::string& file_path, machine_id_t *machine_id_out, cluster_se
 
 class persistence_issue_t : public local_issue_t {
 public:
+    persistence_issue_t() { }   // for serialization
+
     persistence_issue_t(const std::string &_message) : message(_message) { }
 
     std::string get_description() const {
@@ -38,6 +43,8 @@ public:
     }
 
     std::string message;
+
+    RDB_MAKE_ME_SERIALIZABLE_2(boost::serialization::base_object<local_issue_t>(*this), message);
 };
 
 class semilattice_watching_persister_t {

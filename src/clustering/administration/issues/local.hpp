@@ -13,6 +13,8 @@ public:
 
     virtual ~local_issue_t() { }
     virtual local_issue_t *clone() const = 0;
+
+    RDB_MAKE_ME_SERIALIZABLE_0();
 };
 
 class local_issue_tracker_t {
