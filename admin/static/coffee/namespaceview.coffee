@@ -514,7 +514,7 @@ module 'NamespaceView', ->
             if (0 <= index || index < @shard_set.length)
                 json_repr = $.parseJSON(@shard_set[index])
                 if (splitpoint <= json_repr[0] || (splitpoint >= json_repr[1] && json_repr[1] != null))
-                    raise "Error invalid splitpoint"
+                    throw "Error invalid splitpoint"
 
                 @shard_set.splice(index, 1, JSON.stringify([json_repr[0], splitpoint]), JSON.stringify([splitpoint, json_repr[1]]))
                 clear_modals()
@@ -523,9 +523,8 @@ module 'NamespaceView', ->
                 # TODO handle error
 
         merge_shard: (index) =>
-            @shard_set.splice(index, 1)
             if (index < 0 || index + 1 >= @shard_set.length)
-                raise "Error invalid index"
+                throw "Error invalid index"
 
             newshard = JSON.stringify([$.parseJSON(@shard_set[index])[0], $.parseJSON(@shard_set[index+1])[1]])
             @shard_set.splice(index, 2, newshard)
@@ -627,18 +626,19 @@ module 'NamespaceView', ->
             shard_index = parseInt $(e.target).data 'index'
             log_action "merge button clicked with index #{shard_index}"
             shards = @namespace.get('shards')
-            lower_bound = if shard_index == 0 then "&minus;&infin;" else shards[shard_index - 1]
-            mid_bound = shards[shard_index]
-            upper_bound = if shard_index + 1 == shards.length then "+&infin;" else shards[shard_index + 1]
+            low_shard = human_readable_shard(shards[shard_index])
+            high_shard = human_readable_shard(shards[shard_index + 1])
+#lower_bound = if shard_index == 0 then "&minus;&infin;" else shards[shard_index - 1]
+#mid_bound = shards[shard_index]
+#upper_bound = if shard_index + 1 == shards.length then "+&infin;" else shards[shard_index + 1]
 
-            console.log 'shards to be merged: ',[lower_bound, mid_bound, upper_bound, shards, shard_index]
+            console.log 'shards to be merged: ',[low_shard, high_shard, shards, shard_index]
 
             @.$el.html @editable_tmpl
                 merging: true
                 shard: @shard
-                lower_bound : lower_bound
-                mid_bound: mid_bound
-                upper_bound: upper_bound
+                low_shard: low_shard
+                high_shard: high_shard
 
             e.preventDefault()
 
