@@ -167,7 +167,7 @@ void writeback_t::local_buf_t::set_dirty(bool _dirty) {
             /* Use `force_lock()` to prevent deadlocks; `co_lock()` could block. */
             gbuf->cache->writeback.dirty_block_semaphore.force_lock();
         }
-        pm_n_blocks_dirty++;
+        ++pm_n_blocks_dirty;
     }
     if (dirty && !_dirty) {
         // We need to "unmark" the buf
@@ -176,7 +176,7 @@ void writeback_t::local_buf_t::set_dirty(bool _dirty) {
             gbuf->cache->writeback.dirty_bufs.remove(this);
             gbuf->cache->writeback.dirty_block_semaphore.unlock();
         }
-        pm_n_blocks_dirty--;
+        --pm_n_blocks_dirty;
     }
 }
 

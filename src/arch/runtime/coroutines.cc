@@ -122,7 +122,7 @@ coro_t::coro_t() :
     , selfname_number(get_thread_id() + MAX_THREADS * ++coro_selfname_counter)
 #endif
 {
-    pm_allocated_coroutines++;
+    ++pm_allocated_coroutines;
 
 #ifndef NDEBUG
     cglobals->coro_count++;
@@ -143,7 +143,7 @@ coro_t::~coro_t() {
 #ifndef NDEBUG
     cglobals->coro_count--;
 #endif
-    pm_allocated_coroutines--;
+    --pm_allocated_coroutines;
 }
 
 void coro_t::run() {
@@ -180,7 +180,7 @@ void coro_t::run() {
 
         /* Return the context to the free-contexts list we took it from. */
         do_on_thread(coro->home_thread(), boost::bind(coro_t::return_coro_to_free_list, coro));
-        pm_active_coroutines--;
+        --pm_active_coroutines;
 
         if (cglobals->prev_coro) {
             context_switch(&coro->stack.context, &cglobals->prev_coro->stack.context);
@@ -375,7 +375,7 @@ coro_t * coro_t::get_coro() {
     coro->notified_ = false;
     coro->waiting_ = true;
 
-    pm_active_coroutines++;
+    ++pm_active_coroutines;
     return coro;
 }
 

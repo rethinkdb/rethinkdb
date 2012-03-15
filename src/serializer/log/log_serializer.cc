@@ -459,7 +459,7 @@ boost::intrusive_ptr<ls_block_token_pointee_t> log_serializer_t::generate_block_
 boost::intrusive_ptr<ls_block_token_pointee_t>
 log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) {
     // TODO: Implement a duration sampler perfmon for this
-    pm_serializer_block_writes++;
+    ++pm_serializer_block_writes;
 
     extent_manager_t::transaction_t *em_trx = extent_manager->begin_transaction();
     const off64_t offset = data_block_manager->write(buf, block_id, true, io_account, cb);
@@ -591,7 +591,7 @@ block_id_t log_serializer_t::max_block_id() {
 }
     
 boost::intrusive_ptr<ls_block_token_pointee_t> log_serializer_t::index_read(block_id_t block_id) {
-    pm_serializer_index_reads++;
+    ++pm_serializer_index_reads;
 
     assert_thread();
     rassert(state == state_ready);

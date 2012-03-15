@@ -30,7 +30,7 @@ private:
 public:
     counter_progress_bar_t(std::string, int, int redraw_interval_ms = 100);
     void draw();
-    void operator++(int);
+    void operator++();
 };
 
 //file progress bar watches as you use a file to see how fast you're using it,

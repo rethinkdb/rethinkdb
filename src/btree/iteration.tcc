@@ -13,7 +13,7 @@ leaf_iterator_t<Value>::leaf_iterator_t(const leaf_node_t *_leaf, leaf::live_ite
 
     rassert(leaf != NULL);
     rassert(lock != NULL);
-    leaf_iterators++;
+    ++leaf_iterators;
 }
 
 template <class V>
@@ -37,7 +37,7 @@ void leaf_iterator_t<Value>::prefetch() {
 
 template <class Value>
 leaf_iterator_t<Value>::~leaf_iterator_t() {
-    leaf_iterators--;
+    --leaf_iterators;
     done();
 }
 
@@ -57,7 +57,7 @@ slice_leaves_iterator_t<Value>::slice_leaves_iterator_t(const boost::shared_ptr<
     left_mode(_left_mode), left_key(_left_key), right_mode(_right_mode), right_key(_right_key),
     traversal_state(), started(false), nevermore(false) {
     superblock.swap(_superblock);
-    slice_leaves_iterators++;
+    ++slice_leaves_iterators;
 }
 
 template <class Value>
@@ -78,7 +78,7 @@ void slice_leaves_iterator_t<Value>::prefetch() {
 
 template <class Value>
 slice_leaves_iterator_t<Value>::~slice_leaves_iterator_t() {
-    slice_leaves_iterators--;
+    --slice_leaves_iterators;
     done();
 }
 

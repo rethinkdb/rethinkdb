@@ -64,7 +64,7 @@ void counter_progress_bar_t::draw() {
     progress_bar_t::draw_bar(float(count) / float(expected_count), -1);
 }
 
-void counter_progress_bar_t::operator++(int) {
+void counter_progress_bar_t::operator++() {
     count++;
 }
 

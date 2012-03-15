@@ -309,9 +309,9 @@ private:
     public:
         explicit gc_stat_t(perfmon_counter_t *_perfmon)
             : val(0), perfmon(_perfmon) { }
-        void operator++(int);
+        void operator++();
         void operator+=(int64_t num);
-        void operator--(int);
+        void operator--();
         void operator-=(int64_t num);
         int get() const { return val; }
     };
