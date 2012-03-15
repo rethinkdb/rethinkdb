@@ -397,13 +397,16 @@ cJSON *render_as_json(std::set<V> *target, const ctx_t &ctx) {
 
 template <class V, class ctx_t>
 void apply_json_to(cJSON *change, std::set<V> *target, const ctx_t &ctx) {
+    std::set<V> res;
     json_array_iterator_t it = get_array_it(change);
     cJSON *val;
     while ((val = it.next())) {
         V v;
         apply_json_to(val, &v, ctx);
-        target->insert(v);
+        res.insert(v);
     }
+
+    *target = res;
 }
 
 template <class V, class ctx_t>

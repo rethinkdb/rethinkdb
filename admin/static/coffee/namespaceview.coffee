@@ -511,7 +511,6 @@ module 'NamespaceView', ->
             super @template
 
         insert_splitpoint: (index, splitpoint) =>
-            debugger
             if (0 <= index || index < @shard_set.length)
                 json_repr = $.parseJSON(@shard_set[index])
                 if (splitpoint <= json_repr[0] || (splitpoint >= json_repr[1] && json_repr[1] != null))

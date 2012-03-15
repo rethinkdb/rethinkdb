@@ -15,6 +15,10 @@
 #include "btree/erase_range.hpp"
 
 
+memcached_protocol_t::region_t memcached_protocol_t::universe_region() {
+    return region_t(region_t::closed, store_key_t(""), region_t::none, store_key_t(""));
+}
+
 /* `memcached_protocol_t::read_t::get_region()` */
 
 static key_range_t::bound_t convert_bound_mode(rget_bound_mode_t rbm) {
