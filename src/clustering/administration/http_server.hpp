@@ -1,6 +1,7 @@
 #ifndef __CLUSTERING_ADMINSTRATION_HTTP_SERVER_HPP__
 #define __CLUSTERING_ADMINSTRATION_HTTP_SERVER_HPP__
 
+#include "clustering/administration/issues/global.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "http/http.hpp"
 #include "mock/dummy_protocol.hpp"
@@ -15,16 +16,20 @@ public:
     blueprint_http_server_t(boost::shared_ptr<internal_view_t> _semilattice_metadata, 
                             clone_ptr_t<directory_view_t> _directory_metadata,
                             boost::uuids::uuid _us,
+                            global_issue_tracker_t *_issue_tracker,
                             int port)
         : http_server_t(port), semilattice_metadata(_semilattice_metadata), 
-          directory_metadata(_directory_metadata), us(_us)
+          directory_metadata(_directory_metadata), us(_us),
+          issue_tracker(_issue_tracker)
     { }
 
     blueprint_http_server_t(boost::shared_ptr<internal_view_t> _semilattice_metadata, 
                             clone_ptr_t<directory_view_t> _directory_metadata,
-                            boost::uuids::uuid _us)
+                            boost::uuids::uuid _us,
+                            global_issue_tracker_t *_issue_tracker)
         : http_server_t(), semilattice_metadata(_semilattice_metadata), 
-          directory_metadata(_directory_metadata), us(_us)
+          directory_metadata(_directory_metadata), us(_us),
+          issue_tracker(_issue_tracker)
     { }
 
 private:
@@ -34,6 +39,8 @@ private:
     clone_ptr_t<directory_view_t> directory_metadata;
 
     boost::uuids::uuid us;
+
+    global_issue_tracker_t *issue_tracker;
 };
 
 #endif
