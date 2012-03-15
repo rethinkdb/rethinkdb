@@ -102,14 +102,11 @@ object_t::object_t(std::string const &key, std::string const &bucket, riak_value
             link_hdr_t link_hdr;
             link_t link;
 
-	    // TODO: Is this right?  *it should return a char, no?
-	    // That's signed.  Is it right for these to be signed
-	    // interpretations of the byte?
-            link_hdr.bucket_len = *it;
+            link_hdr.bucket_len = uint8_t(*it);
             ++it;
-            link_hdr.key_len = *it;
+            link_hdr.key_len = uint8_t(*it);
             ++it;
-            link_hdr.tag_len = *it;
+            link_hdr.tag_len = uint8_t(*it);
             ++it;
 
             link.bucket.reserve(link_hdr.bucket_len);
