@@ -303,7 +303,10 @@ module 'ClusterView', ->
 
         json_for_template: =>
             stuff = super()
-            stuff.datacenter_name = datacenters.find((d) => d.get('id') == @model.get('datacenter_uuid')).get('name')
+            if @model.get('datacenter_uuid')
+                stuff.datacenter_name = datacenters.find((d) => d.get('id') == @model.get('datacenter_uuid')).get('name')
+            else
+                stuff.datacenter_name = "Unassigned"
             return stuff
 
     class @AbstractModal extends Backbone.View
