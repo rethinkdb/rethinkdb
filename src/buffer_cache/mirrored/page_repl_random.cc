@@ -109,7 +109,7 @@ void page_repl_random_t::make_space(unsigned int space_needed) {
         // because its callback could delete it.
         block_to_unload->remove_from_page_repl();
         block_to_unload->unload();
-        pm_n_blocks_evicted++;
+        ++pm_n_blocks_evicted;
     }
 }
 
