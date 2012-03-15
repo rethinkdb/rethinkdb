@@ -166,15 +166,20 @@ public:
 	typedef int64_t difference_type;
 	typedef const char* pointer;
 	typedef const char& reference;
+
         static iterator make_end_iterator(linux_tcp_conn_t *);
         iterator(const iterator&);
         ~iterator();
         char operator*();
-        void operator++();
-        void operator++(int);
+
+	iterator& operator++();
+
         bool operator==(const iterator&);
         bool operator!=(const iterator&);
+
+	// Necessary for boost concept check, not implemented.
         bool operator<(const iterator&);
+        void operator++(int);
     };
 
 public:
