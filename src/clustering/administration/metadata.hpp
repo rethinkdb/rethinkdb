@@ -19,14 +19,11 @@
 class cluster_semilattice_metadata_t {
 public:
     cluster_semilattice_metadata_t() { }
-    explicit cluster_semilattice_metadata_t(const machine_id_t &us) {
-        machines.machines.insert(std::make_pair(us, machine_semilattice_metadata_t()));
-    }
 
     namespaces_semilattice_metadata_t<mock::dummy_protocol_t> dummy_namespaces;
     namespaces_semilattice_metadata_t<memcached_protocol_t> memcached_namespaces;
     machines_semilattice_metadata_t machines;
-    std::map<datacenter_id_t, datacenter_semilattice_metadata_t> datacenters;
+    datacenters_semilattice_metadata_t datacenters;
 
     RDB_MAKE_ME_SERIALIZABLE_4(dummy_namespaces, memcached_namespaces, machines, datacenters);
 };
@@ -41,7 +38,7 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(cluster
     res["dummy_namespaces"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t>, ctx_t>(&target->dummy_namespaces));
     res["memcached_namespaces"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<namespaces_semilattice_metadata_t<memcached_protocol_t>, ctx_t>(&target->memcached_namespaces));
     res["machines"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<machines_semilattice_metadata_t, ctx_t>(&target->machines));
-    res["datacenters"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_with_inserter_t<typename std::map<datacenter_id_t, datacenter_semilattice_metadata_t>, ctx_t>(&target->datacenters, boost::bind(&generate_uuid)));
+    res["datacenters"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<datacenters_semilattice_metadata_t, ctx_t>(&target->datacenters));
     res["me"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_temporary_adapter_t<boost::uuids::uuid, ctx_t>(ctx.us));
     return res;
 }

@@ -50,7 +50,8 @@ void on_subfield_change(machine_semilattice_metadata_t *, const ctx_t &) { }
 
 class machines_semilattice_metadata_t {
 public:
-    std::map<machine_id_t, machine_semilattice_metadata_t> machines;
+    typedef std::map<machine_id_t, deletable_t<machine_semilattice_metadata_t> > machine_map_t;
+    machine_map_t machines;
 
     RDB_MAKE_ME_SERIALIZABLE_1(machines);
 };

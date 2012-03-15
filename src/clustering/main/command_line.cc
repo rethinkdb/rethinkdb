@@ -33,7 +33,13 @@ void run_rethinkdb_create(const std::string &filepath, bool *result_out) {
     machine_id_t our_machine_id = generate_uuid();
     std::cout << "Our machine ID: " << our_machine_id << std::endl;
 
-    metadata_persistence::create(filepath, our_machine_id, cluster_semilattice_metadata_t(our_machine_id));
+    cluster_semilattice_metadata_t metadata;
+    metadata.machines.machines.insert(std::make_pair(
+        our_machine_id,
+        machine_semilattice_metadata_t()
+        ));
+
+    metadata_persistence::create(filepath, our_machine_id, metadata);
 
     std::cout << "Created directory '" << filepath << "' and a metadata file "
         "inside it." << std::endl;
@@ -95,7 +101,7 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::vector<host
         std::cout << "It does not already exist. Creating it..." << std::endl;
 
         machine_id_t our_machine_id = generate_uuid();
-        cluster_semilattice_metadata_t semilattice_metadata(our_machine_id);
+        cluster_semilattice_metadata_t semilattice_metadata;
 
         if (joins.empty()) {
             std::cout << "Creating a default namespace and default data center "
@@ -106,10 +112,18 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::vector<host
             datacenter_id_t datacenter_id = generate_uuid();
             datacenter_semilattice_metadata_t datacenter_metadata;
             datacenter_metadata.name = vclock_t<std::string>("Welcome", our_machine_id);
-            semilattice_metadata.datacenters.insert(std::make_pair(datacenter_id, datacenter_metadata));
+            semilattice_metadata.datacenters.datacenters.insert(std::make_pair(
+                datacenter_id,
+                deletable_t<datacenter_semilattice_metadata_t>(datacenter_metadata)
+                ));
 
             /* Add ourselves as a member of the "Welcome" datacenter. */
-            semilattice_metadata.machines.machines[our_machine_id].datacenter = vclock_t<datacenter_id_t>(datacenter_id, our_machine_id);
+            machine_semilattice_metadata_t our_machine_metadata;
+            our_machine_metadata.datacenter = vclock_t<datacenter_id_t>(datacenter_id, our_machine_id);
+            semilattice_metadata.machines.machines.insert(std::make_pair(
+                our_machine_id,
+                deletable_t<machine_semilattice_metadata_t>(our_machine_metadata)
+                ));
 
             namespace_id_t namespace_id = generate_uuid();
             namespace_semilattice_metadata_t<memcached_protocol_t> namespace_metadata;
@@ -133,6 +147,12 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::vector<host
             namespace_metadata.shards = vclock_t<std::set<key_range_t> >(shards, our_machine_id);
 
             semilattice_metadata.memcached_namespaces.namespaces.insert(std::make_pair(namespace_id, namespace_metadata));
+
+        } else {
+            semilattice_metadata.machines.machines.insert(std::make_pair(
+                our_machine_id,
+                machine_semilattice_metadata_t()
+                ));
         }
 
         metadata_persistence::create(filepath, our_machine_id, semilattice_metadata);

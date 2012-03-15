@@ -56,10 +56,12 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
 
             std::map<machine_id_t, datacenter_id_t> machine_assignments;
 
-            for (std::map<machine_id_t, machine_semilattice_metadata_t>::iterator it  = cluster_metadata.machines.machines.begin();
+            for (std::map<machine_id_t, deletable_t<machine_semilattice_metadata_t> >::iterator it  = cluster_metadata.machines.machines.begin();
                     it != cluster_metadata.machines.machines.end();
                     it++) {
-                machine_assignments[it->first] = it->second.datacenter.get();
+                if (!it->second.is_deleted()) {
+                    machine_assignments[it->first] = it->second.get().datacenter.get();
+                }
             }
             fill_in_blueprints_for_protocol<memcached_protocol_t>(&cluster_metadata.memcached_namespaces,
                     directory_metadata->subview(clone_ptr_t<read_lens_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t> >(field_lens(&cluster_directory_metadata_t::memcached_namespaces))),
