@@ -122,9 +122,9 @@ class perfmon_counter_t :
     void output_stat(const int64_t&, perfmon_stats_t *);
   public:
     explicit perfmon_counter_t(const std::string& name, bool internal = true);
-    void operator++(int) { get()++; }
+    void operator++() { get()++; }
     void operator+=(int64_t num) { get() += num; }
-    void operator--(int) { get()--; }
+    void operator--() { get()--; }
     void operator-=(int64_t num) { get() -= num; }
 };
 
@@ -287,8 +287,8 @@ public:
           recent(name, length, true, internal), ignore_global_full_perfmon(_ignore_global_full_perfmon)
         { }
     void begin(ticks_t *v) {
-        active++;
-        total++;
+        ++active;
+        ++total;
         if (global_full_perfmon || ignore_global_full_perfmon) {
             *v = get_ticks();
         } else {
@@ -296,7 +296,7 @@ public:
         }
     }
     void end(ticks_t *v) {
-        active--;
+        --active;
         if (*v != 0) {
             recent.record(ticks_to_secs(get_ticks() - *v));
         }

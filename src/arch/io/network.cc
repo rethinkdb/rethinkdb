@@ -734,12 +734,9 @@ char linux_tcp_conn_t::iterator::operator*() {
     return dereference();
 }
 
-void linux_tcp_conn_t::iterator::operator++() {
+linux_tcp_conn_t::iterator& linux_tcp_conn_t::iterator::operator++() {
     increment();
-}
-
-void linux_tcp_conn_t::iterator::operator++(int) {
-    increment();
+    return *this;
 }
 
 bool linux_tcp_conn_t::iterator::operator==(linux_tcp_conn_t::iterator const &other) {

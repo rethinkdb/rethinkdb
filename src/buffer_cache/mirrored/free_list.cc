@@ -14,8 +14,8 @@ array_free_list_t::array_free_list_t(serializer_t *_serializer)
         if (serializer->get_delete_bit(i)) {
             free_ids.push_back(i);
         } else {
-            pm_n_blocks_total++;
-            num_blocks_in_use++;
+            ++pm_n_blocks_total;
+            ++num_blocks_in_use;
         }
     }
 }
@@ -50,16 +50,16 @@ block_id_t array_free_list_t::gen_block_id() {
         id = free_ids.back();
         free_ids.pop_back();
     }
-    
-    pm_n_blocks_total++;
-    num_blocks_in_use++;
-    
+
+    ++pm_n_blocks_total;
+    ++num_blocks_in_use;
+
     return id;
 }
 
 void array_free_list_t::release_block_id(block_id_t id) {
     free_ids.push_back(id);
-    
-    pm_n_blocks_total--;
-    num_blocks_in_use--;
+
+    --pm_n_blocks_total;
+    --num_blocks_in_use;
 }

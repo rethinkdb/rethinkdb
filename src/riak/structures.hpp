@@ -126,11 +126,7 @@ public:
         not_implemented();
         return true;
     }
-    object_iterator_t operator++() {
-        not_implemented();
-        return *this;
-    }
-    object_iterator_t operator++(int) {
+    object_iterator_t& operator++() {
         not_implemented();
         return *this;
     }
@@ -154,8 +150,7 @@ struct object_tree_t : public object_t {
 struct object_tree_iterator_t {
     bool operator!=(object_tree_iterator_t const &) {crash("Not implemented");}
     bool operator==(object_tree_iterator_t const &) {crash("Not implemented");}
-    object_tree_iterator_t operator++() {crash("Not implemented");}
-    object_tree_iterator_t operator++(int) {crash("Not implemented");}
+    object_tree_iterator_t& operator++() { crash("Not implemented"); }
     object_tree_t operator*() {crash("Not implemented");}
     object_tree_t *operator->() {crash("Not implemented");}
 };

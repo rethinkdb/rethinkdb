@@ -227,7 +227,6 @@ struct superblock_metainfo_iterator_t {
     bool is_end() { return pos == end; }
 
     void operator++();
-    void operator++(int) { this->operator++(); }
 
     std::pair<key_t, value_t> operator*() {
         return std::make_pair(key(), value());
