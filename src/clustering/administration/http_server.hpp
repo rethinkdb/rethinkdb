@@ -29,7 +29,7 @@ public:
     http_res_t handle(const http_req_t &req);
 
 private:
-    static std::map<std::string,http_server_t*> build_routes(http_server_t *directory_server);
+    static std::map<std::string, http_server_t *> build_routes(http_server_t *directory_server);
 
     boost::scoped_ptr<http_server_t> semilattice_server;
     boost::scoped_ptr<http_server_t> directory_server;

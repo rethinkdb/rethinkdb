@@ -21,8 +21,8 @@ http_res_t blueprint_http_server_t::handle(const http_req_t &req) {
     return routing_server.handle(req);
 }
 
-std::map<std::string,http_server_t*> blueprint_http_server_t::build_routes(http_server_t *directory_server) {
-    std::map<std::string,http_server_t*> routes;
+std::map<std::string, http_server_t *> blueprint_http_server_t::build_routes(http_server_t *directory_server) {
+    std::map<std::string, http_server_t *> routes;
     routes["directory"] = directory_server;
     return routes;
 }

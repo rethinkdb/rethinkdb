@@ -23,7 +23,10 @@ public:
 public:
     bool operator==(bucket_iterator_t const &other) { return it == other.it; }
     bool operator!=(bucket_iterator_t const &other) { return !operator==(other); }
-    bucket_iterator_t& operator++() { ++it; return *this; }
+    bucket_iterator_t& operator++() {
+        ++it;
+        return *this;
+    }
     bucket_t operator*() { return boost::get<riak_store_metadata_t>(it->second->store_metadata); }
     bucket_t *operator->() { return &boost::get<riak_store_metadata_t>(it->second->store_metadata); }
 };

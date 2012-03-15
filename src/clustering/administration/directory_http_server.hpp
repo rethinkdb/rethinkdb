@@ -6,7 +6,7 @@
 class directory_http_server_t : public http_server_t {
     typedef blueprint_http_server_t::directory_view_t directory_view_t;
 public:
-    directory_http_server_t(clone_ptr_t<directory_view_t>& _directory_metadata);
+    explicit directory_http_server_t(clone_ptr_t<directory_view_t>& _directory_metadata);
     http_res_t handle(const http_req_t &);
 private:
     clone_ptr_t<directory_view_t> directory_metadata;
