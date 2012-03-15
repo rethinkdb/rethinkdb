@@ -1,5 +1,5 @@
-#ifndef __BTREE_BACKFILL_HPP__
-#define __BTREE_BACKFILL_HPP__
+#ifndef BTREE_BACKFILL_HPP_
+#define BTREE_BACKFILL_HPP_
 
 #include "btree/node.hpp"
 #include "btree/slice.hpp"
@@ -71,4 +71,4 @@ void agnostic_btree_backfill(btree_slice_t *slice, const key_range_t& key_range,
 }
 
 
-#endif  // __BTREE_BACKFILL_HPP__
+#endif  // BTREE_BACKFILL_HPP_

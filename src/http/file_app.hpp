@@ -1,5 +1,5 @@
-#ifndef __HTTP_FILE_APP_HPP__
-#define __HTTP_FILE_APP_HPP__
+#ifndef HTTP_FILE_APP_HPP_
+#define HTTP_FILE_APP_HPP_
 
 #include "http/http.hpp"
 

@@ -1,5 +1,5 @@
-#ifndef __BTREE_NODE_FUNCTIONS_HPP__
-#define __BTREE_NODE_FUNCTIONS_HPP__
+#ifndef BTREE_NODE_FUNCTIONS_HPP_
+#define BTREE_NODE_FUNCTIONS_HPP_
 
 // We have to have this file because putting these definitions in node.hpp would require mutually recursive header files.
 
@@ -78,4 +78,4 @@ void validate(UNUSED value_sizer_t<V> *sizer, UNUSED const node_t *node) {
 }  // namespace node
 
 
-#endif  // __BTREE_NODE_FUNCTIONS_HPP__
+#endif  // BTREE_NODE_FUNCTIONS_HPP_

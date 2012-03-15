@@ -1,5 +1,5 @@
-#ifndef __ARCH_SPINLOCK_HPP__
-#define __ARCH_SPINLOCK_HPP__
+#ifndef ARCH_SPINLOCK_HPP_
+#define ARCH_SPINLOCK_HPP_
 
 #include <pthread.h>
 #include <string.h>
@@ -47,4 +47,4 @@ private:
     void operator=(const spinlock_acq_t&);
 };
 
-#endif /* __ARCH_SPINLOCK_HPP__ */
+#endif /* ARCH_SPINLOCK_HPP_ */

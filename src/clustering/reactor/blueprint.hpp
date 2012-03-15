@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_REACTOR_BLUEPRINT_HPP__
-#define __CLUSTERING_REACTOR_BLUEPRINT_HPP__
+#ifndef CLUSTERING_REACTOR_BLUEPRINT_HPP_
+#define CLUSTERING_REACTOR_BLUEPRINT_HPP_
 
 #include "utils.hpp"
 #include <boost/optional.hpp>
@@ -62,5 +62,5 @@ public:
     role_map_t peers_roles;
 };
 
-#endif /* __CLUSTERING_REACTOR_BLUEPRINT_HPP__ */
+#endif /* CLUSTERING_REACTOR_BLUEPRINT_HPP_ */
 

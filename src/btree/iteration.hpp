@@ -1,5 +1,5 @@
-#ifndef __BTREE_ITERATION_HPP__
-#define __BTREE_ITERATION_HPP__
+#ifndef BTREE_ITERATION_HPP_
+#define BTREE_ITERATION_HPP_
 
 #include <list>
 
@@ -148,4 +148,4 @@ range_txn_t<Value> get_range(btree_slice_t *slice, order_token_t token, rget_bou
 #include "btree/iteration.tcc"
 
 
-#endif // __BTREE_ITERATION_HPP__
+#endif // BTREE_ITERATION_HPP_

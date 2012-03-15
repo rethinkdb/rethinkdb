@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_ADMINISTRATION_PERSIST_HPP__
-#define __CLUSTERING_ADMINISTRATION_PERSIST_HPP__
+#ifndef CLUSTERING_ADMINISTRATION_PERSIST_HPP_
+#define CLUSTERING_ADMINISTRATION_PERSIST_HPP_
 
 #include "errors.hpp"
 #include <boost/serialization/export.hpp>
@@ -67,4 +67,4 @@ private:
 
 }   /* namespace metadata_persistence */
 
-#endif /* __CLUSTERING_ADMINISTRATION_PERSIST_HPP__ */
+#endif /* CLUSTERING_ADMINISTRATION_PERSIST_HPP_ */

@@ -1,5 +1,5 @@
-#ifndef __HTTP_JSON_JSON_ADAPTER_HPP__
-#define __HTTP_JSON_JSON_ADAPTER_HPP__
+#ifndef HTTP_JSON_JSON_ADAPTER_HPP_
+#define HTTP_JSON_JSON_ADAPTER_HPP_
 
 #include <map>
 #include <set>

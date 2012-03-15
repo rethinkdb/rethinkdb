@@ -1,5 +1,5 @@
-#ifndef __ARCH_IO_DISK_ACCOUNTING_HPP__
-#define __ARCH_IO_DISK_ACCOUNTING_HPP__
+#ifndef ARCH_IO_DISK_ACCOUNTING_HPP_
+#define ARCH_IO_DISK_ACCOUNTING_HPP_
 
 #include <boost/function.hpp>
 #include "containers/intrusive_list.hpp"
@@ -98,4 +98,4 @@ private:
     casting_passive_producer_t<action_t *, payload_t *> caster;
 };
 
-#endif /* __ARCH_IO_DISK_ACCOUNTING_HPP__ */
+#endif /* ARCH_IO_DISK_ACCOUNTING_HPP_ */

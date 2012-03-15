@@ -1,5 +1,5 @@
-#ifndef __ARCH_IO_DISK_CONFLICT_RESOLVING_HPP__
-#define __ARCH_IO_DISK_CONFLICT_RESOLVING_HPP__
+#ifndef ARCH_IO_DISK_CONFLICT_RESOLVING_HPP_
+#define ARCH_IO_DISK_CONFLICT_RESOLVING_HPP_
 
 #include <map>
 #include <deque>
@@ -98,4 +98,4 @@ private:
 
 #include "arch/io/disk/conflict_resolving.tcc"
 
-#endif /* __ARCH_IO_DISK_CONFLICT_RESOLVING_HPP__ */
+#endif /* ARCH_IO_DISK_CONFLICT_RESOLVING_HPP_ */

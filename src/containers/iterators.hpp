@@ -1,5 +1,5 @@
-#ifndef __CONTAINERS_ITERATOR_HPP__
-#define __CONTAINERS_ITERATOR_HPP__
+#ifndef CONTAINERS_ITERATOR_HPP_
+#define CONTAINERS_ITERATOR_HPP_
 
 #include <algorithm>
 #include <functional>
@@ -319,4 +319,4 @@ private:
     boost::optional<T> prefetched_right;
 };
 
-#endif /* __CONTAINERS_ITERATOR_HPP__ */
+#endif /* CONTAINERS_ITERATOR_HPP_ */

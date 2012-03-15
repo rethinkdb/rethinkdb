@@ -1,5 +1,5 @@
-#ifndef __MEMCACHED_PROTOCOL_HPP__
-#define __MEMCACHED_PROTOCOL_HPP__
+#ifndef MEMCACHED_PROTOCOL_HPP_
+#define MEMCACHED_PROTOCOL_HPP_
 
 #include <vector>
 
@@ -308,4 +308,4 @@ public:
 };
 };
 
-#endif /* __MEMCACHED_PROTOCOL_HPP__ */
+#endif /* MEMCACHED_PROTOCOL_HPP_ */

@@ -1,5 +1,5 @@
-#ifndef __RIAK_PROTO_SERVER_HPP__
-#define __RIAK_PROTO_SERVER_HPP__
+#ifndef RIAK_PROTO_SERVER_HPP_
+#define RIAK_PROTO_SERVER_HPP_
 
 #include "arch/arch.hpp"
 #include "riak/proto/riakclient.pb.h"

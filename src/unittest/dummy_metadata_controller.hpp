@@ -1,5 +1,5 @@
-#ifndef __UNITTEST_DUMMY_METADATA_CONTROLLER_HPP__
-#define __UNITTEST_DUMMY_METADATA_CONTROLLER_HPP__
+#ifndef UNITTEST_DUMMY_METADATA_CONTROLLER_HPP_
+#define UNITTEST_DUMMY_METADATA_CONTROLLER_HPP_
 
 #include "errors.hpp"
 #include <boost/make_shared.hpp>
@@ -71,4 +71,4 @@ private:
     publisher_controller_t<boost::function<void()> > change_publisher;
 };
 
-#endif /* __UNITTEST_DUMMY_METADATA_CONTROLLER_HPP__ */
+#endif /* UNITTEST_DUMMY_METADATA_CONTROLLER_HPP_ */

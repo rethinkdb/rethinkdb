@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_ADMINSTRATION_HTTP_SEMILATTICE_APP_HPP__
-#define __CLUSTERING_ADMINSTRATION_HTTP_SEMILATTICE_APP_HPP__
+#ifndef CLUSTERING_ADMINSTRATION_HTTP_SEMILATTICE_APP_HPP_
+#define CLUSTERING_ADMINSTRATION_HTTP_SEMILATTICE_APP_HPP_
 
 #include "clustering/administration/metadata.hpp"
 #include "rpc/directory/read_view.hpp"
@@ -18,4 +18,4 @@ private:
     boost::uuids::uuid us;
 };
 
-#endif /* __CLUSTERING_ADMINSTRATION_HTTP_SEMILATTICE_APP_HPP__ */
+#endif /* CLUSTERING_ADMINSTRATION_HTTP_SEMILATTICE_APP_HPP_ */

@@ -1,5 +1,5 @@
-#ifndef __ARCH_IO_ARCH_HPP__
-#define __ARCH_IO_ARCH_HPP__
+#ifndef ARCH_IO_ARCH_HPP_
+#define ARCH_IO_ARCH_HPP_
 
 #include "arch/io/disk.hpp"
 #include "arch/io/network.hpp"
@@ -29,4 +29,4 @@ inline int64_t get_total_ram() {
     return int64_t(sysconf(_SC_PHYS_PAGES)) * int64_t(sysconf(_SC_PAGESIZE));
 }
 
-#endif /* __ARCH_IO_ARCH_HPP__ */
+#endif /* ARCH_IO_ARCH_HPP_ */

@@ -1,5 +1,5 @@
-#ifndef __RIAK_RIAK_HPP__
-#define __RIAK_RIAK_HPP__
+#ifndef RIAK_RIAK_HPP_
+#define RIAK_RIAK_HPP_
 
 #include "http/http.hpp"
 #include <boost/tokenizer.hpp>

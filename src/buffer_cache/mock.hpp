@@ -1,5 +1,5 @@
-#ifndef __BUFFER_CACHE_MOCK_HPP__
-#define __BUFFER_CACHE_MOCK_HPP__
+#ifndef BUFFER_CACHE_MOCK_HPP_
+#define BUFFER_CACHE_MOCK_HPP_
 
 #include "errors.hpp"
 #include <boost/scoped_ptr.hpp>
@@ -146,4 +146,4 @@ private:
     coro_fifo_t transaction_constructor_coro_fifo_;
 };
 
-#endif /* __BUFFER_CACHE_MOCK_HPP__ */
+#endif /* BUFFER_CACHE_MOCK_HPP_ */

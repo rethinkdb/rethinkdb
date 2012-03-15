@@ -1,5 +1,5 @@
-#ifndef __SERIALIZER_TYPES_HPP__
-#define __SERIALIZER_TYPES_HPP__
+#ifndef SERIALIZER_TYPES_HPP_
+#define SERIALIZER_TYPES_HPP_
 
 #include <stdint.h>
 #include <time.h>
@@ -224,4 +224,4 @@ public:
     virtual bool offer_read_ahead_buf(block_id_t block_id, void *buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) = 0;
 };
 
-#endif  // __SERIALIZER_TYPES_HPP__
+#endif  // SERIALIZER_TYPES_HPP_

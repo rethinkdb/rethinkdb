@@ -1,5 +1,5 @@
-#ifndef __FSCK_RAW_BLOCK_HPP__
-#define __FSCK_RAW_BLOCK_HPP__
+#ifndef FSCK_RAW_BLOCK_HPP_
+#define FSCK_RAW_BLOCK_HPP_
 
 #include "serializer/log/data_block_manager.hpp"
 #include "serializer/log/log_serializer.hpp"
@@ -32,4 +32,4 @@ private:
 }  // namespace fsck
 
 
-#endif  // __FSCK_RAW_BLOCK_HPP__
+#endif  // FSCK_RAW_BLOCK_HPP_

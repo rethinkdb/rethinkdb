@@ -1,5 +1,5 @@
-#ifndef __RIAK_INTERFACE_HPP__
-#define __RIAK_INTERFACE_HPP__
+#ifndef RIAK_INTERFACE_HPP_
+#define RIAK_INTERFACE_HPP_
 
 #include "riak/structures.hpp"
 #include "riak/store_manager.hpp"

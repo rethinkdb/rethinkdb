@@ -1,5 +1,5 @@
-#ifndef __PROGRESS_HPP__
-#define __PROGRESS_HPP__
+#ifndef PROGRESS_HPP_
+#define PROGRESS_HPP_
 #include <stdio.h>
 #include <string>
 #include "arch/timing.hpp"
@@ -44,4 +44,4 @@ public:
     void draw();
 };
 
-#endif //__PROGRESS_HPP__
+#endif //PROGRESS_HPP_

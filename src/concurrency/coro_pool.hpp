@@ -1,5 +1,5 @@
-#ifndef __CONCURRENCY_CORO_POOL_HPP__
-#define __CONCURRENCY_CORO_POOL_HPP__
+#ifndef CONCURRENCY_CORO_POOL_HPP_
+#define CONCURRENCY_CORO_POOL_HPP_
 
 #include "utils.hpp"
 #include <boost/function.hpp>
@@ -80,5 +80,5 @@ public:
     { }
 };
 
-#endif /* __CONCURRENCY_CORO_POOL_HPP__ */
+#endif /* CONCURRENCY_CORO_POOL_HPP_ */
 

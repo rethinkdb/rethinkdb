@@ -1,6 +1,6 @@
 
-#ifndef __PAGE_REPL_RANDOM_HPP__
-#define __PAGE_REPL_RANDOM_HPP__
+#ifndef PAGE_REPL_RANDOM_HPP_
+#define PAGE_REPL_RANDOM_HPP_
 
 #include "buffer_cache/types.hpp"
 #include "config/args.hpp"
@@ -78,4 +78,4 @@ private:
     two_level_array_t<evictable_t*, MAX_BLOCKS_IN_MEMORY> array;
 };
 
-#endif // __PAGE_REPL_RANDOM_HPP__
+#endif // PAGE_REPL_RANDOM_HPP_

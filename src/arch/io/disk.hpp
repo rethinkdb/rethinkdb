@@ -1,5 +1,5 @@
-#ifndef __ARCH_IO_DISK_HPP__
-#define __ARCH_IO_DISK_HPP__
+#ifndef ARCH_IO_DISK_HPP_
+#define ARCH_IO_DISK_HPP_
 
 #include "utils.hpp"
 #include <boost/scoped_ptr.hpp>
@@ -93,5 +93,5 @@ private:
     DISABLE_COPYING(linux_nondirect_file_t);
 };
 
-#endif // __ARCH_IO_DISK_HPP__
+#endif // ARCH_IO_DISK_HPP_
 

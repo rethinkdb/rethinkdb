@@ -1,5 +1,5 @@
-#ifndef __RIAK_PROTOCOL_HPP__
-#define __RIAK_PROTOCOL_HPP__
+#ifndef RIAK_PROTOCOL_HPP_
+#define RIAK_PROTOCOL_HPP_
 
 #include <set>
 #include <string>

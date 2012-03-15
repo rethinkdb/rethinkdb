@@ -1,5 +1,5 @@
-#ifndef __RPC_SEMILATTICE_VIEW_MEMBER_HPP__
-#define __RPC_SEMILATTICE_VIEW_MEMBER_HPP__
+#ifndef RPC_SEMILATTICE_VIEW_MEMBER_HPP_
+#define RPC_SEMILATTICE_VIEW_MEMBER_HPP_
 
 #include <map>
 
@@ -32,4 +32,4 @@ boost::shared_ptr<semilattice_readwrite_view_t<value_t> > metadata_new_member(
 
 #include "rpc/semilattice/view/member.tcc"
 
-#endif /* __RPC_SEMILATTICE_VIEW_MEMBER_HPP__ */
+#endif /* RPC_SEMILATTICE_VIEW_MEMBER_HPP_ */

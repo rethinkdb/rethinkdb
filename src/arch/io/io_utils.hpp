@@ -1,5 +1,5 @@
-#ifndef __ARCH_IO_IO_UTILS_HPP__
-#define __ARCH_IO_IO_UTILS_HPP__
+#ifndef ARCH_IO_IO_UTILS_HPP_
+#define ARCH_IO_IO_UTILS_HPP_
 
 #include "arch/runtime/runtime_utils.hpp"
 
@@ -34,4 +34,4 @@ private:
     DISABLE_COPYING(scoped_fd_t);
 };
 
-#endif /* __ARCH_IO_IO_UTILS_HPP__ */
+#endif /* ARCH_IO_IO_UTILS_HPP_ */

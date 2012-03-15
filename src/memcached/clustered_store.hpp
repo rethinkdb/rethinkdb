@@ -1,5 +1,5 @@
-#ifndef __MEMCACHED_CLUSTERED_STORE_HPP__
-#define __MEMCACHED_CLUSTERED_STORE_HPP__
+#ifndef MEMCACHED_CLUSTERED_STORE_HPP_
+#define MEMCACHED_CLUSTERED_STORE_HPP_
 
 #include "memcached/store.hpp"
 #include "memcached/protocol.hpp"

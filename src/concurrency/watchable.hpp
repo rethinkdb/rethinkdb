@@ -1,5 +1,5 @@
-#ifndef __CONCURRENCY_WATCHABLE_HPP__
-#define __CONCURRENCY_WATCHABLE_HPP__
+#ifndef CONCURRENCY_WATCHABLE_HPP_
+#define CONCURRENCY_WATCHABLE_HPP_
 
 #include "concurrency/mutex_assertion.hpp"
 #include "concurrency/pubsub.hpp"
@@ -107,4 +107,4 @@ private:
     DISABLE_COPYING(watchable_variable_t);
 };
 
-#endif /* __CONCURRENCY_WATCHABLE_HPP__ */
+#endif /* CONCURRENCY_WATCHABLE_HPP_ */

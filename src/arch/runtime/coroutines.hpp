@@ -1,5 +1,5 @@
-#ifndef __ARCH_RUNTIME_COROUTINES_HPP__
-#define __ARCH_RUNTIME_COROUTINES_HPP__
+#ifndef ARCH_RUNTIME_COROUTINES_HPP_
+#define ARCH_RUNTIME_COROUTINES_HPP_
 
 #ifndef NDEBUG
 #include <string>
@@ -204,4 +204,4 @@ public:
     void assert_coro();
 };
 
-#endif // __ARCH_RUNTIME_COROUTINES_HPP__
+#endif // ARCH_RUNTIME_COROUTINES_HPP_

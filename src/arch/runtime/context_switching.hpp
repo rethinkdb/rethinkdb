@@ -1,5 +1,5 @@
-#ifndef __ARCH_RUNTIME_CONTEXT_SWITCHING_HPP__
-#define __ARCH_RUNTIME_CONTEXT_SWITCHING_HPP__
+#ifndef ARCH_RUNTIME_CONTEXT_SWITCHING_HPP_
+#define ARCH_RUNTIME_CONTEXT_SWITCHING_HPP_
 
 #include "utils.hpp"
 
@@ -74,4 +74,4 @@ void context_switch(
     context_ref_t *dest_context_in
     );
 
-#endif /* __ARCH_RUNTIME_CONTEXT_SWITCHING_HPP__ */
+#endif /* ARCH_RUNTIME_CONTEXT_SWITCHING_HPP_ */

@@ -1,5 +1,5 @@
-#ifndef __CONCURRENCY_WAIT_ANY_HPP__
-#define __CONCURRENCY_WAIT_ANY_HPP__
+#ifndef CONCURRENCY_WAIT_ANY_HPP_
+#define CONCURRENCY_WAIT_ANY_HPP_
 
 #include "concurrency/signal.hpp"
 #include <boost/ptr_container/ptr_vector.hpp>
@@ -25,4 +25,4 @@ private:
 pulsed, stops waiting and throws `interrupted_exc_t`. */
 void wait_interruptible(signal_t *signal, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
-#endif /* __CONCURRENCY_WAIT_ANY_HPP__ */
+#endif /* CONCURRENCY_WAIT_ANY_HPP_ */

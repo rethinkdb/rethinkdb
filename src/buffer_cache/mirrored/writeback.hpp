@@ -1,5 +1,5 @@
-#ifndef __BUFFER_CACHE_WRITEBACK_HPP__
-#define __BUFFER_CACHE_WRITEBACK_HPP__
+#ifndef BUFFER_CACHE_WRITEBACK_HPP_
+#define BUFFER_CACHE_WRITEBACK_HPP_
 
 #include <set>
 #include <vector>
@@ -184,5 +184,5 @@ private:
     void flush_update_block_sequence_ids(flush_state_t &state);
 };
 
-#endif // __BUFFER_CACHE_WRITEBACK_HPP__
+#endif // BUFFER_CACHE_WRITEBACK_HPP_
 

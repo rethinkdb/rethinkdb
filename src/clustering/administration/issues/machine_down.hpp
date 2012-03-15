@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_ADMINISTRATION_ISSUES_MACHINE_DOWN_HPP__
-#define __CLUSTERING_ADMINISTRATION_ISSUES_MACHINE_DOWN_HPP__
+#ifndef CLUSTERING_ADMINISTRATION_ISSUES_MACHINE_DOWN_HPP_
+#define CLUSTERING_ADMINISTRATION_ISSUES_MACHINE_DOWN_HPP_
 
 #include "clustering/administration/issues/global.hpp"
 #include "clustering/administration/metadata.hpp"
@@ -33,4 +33,4 @@ private:
     clone_ptr_t<directory_rview_t<machine_id_t> > machine_id_translation_table;
 };
 
-#endif /* __CLUSTERING_ADMINISTRATION_ISSUES_MACHINE_DOWN_HPP__ */
+#endif /* CLUSTERING_ADMINISTRATION_ISSUES_MACHINE_DOWN_HPP_ */

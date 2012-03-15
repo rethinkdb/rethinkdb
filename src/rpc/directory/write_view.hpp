@@ -1,5 +1,5 @@
-#ifndef __RPC_DIRECTORY_WRITE_VIEW_HPP__
-#define __RPC_DIRECTORY_WRITE_VIEW_HPP__
+#ifndef RPC_DIRECTORY_WRITE_VIEW_HPP_
+#define RPC_DIRECTORY_WRITE_VIEW_HPP_
 
 #include "concurrency/mutex.hpp"
 #include "containers/clone_ptr.hpp"
@@ -58,4 +58,4 @@ public:
 
 #include "rpc/directory/write_view.tcc"
 
-#endif /* __RPC_DIRECTORY_WRITE_VIEW_HPP__ */
+#endif /* RPC_DIRECTORY_WRITE_VIEW_HPP_ */

@@ -1,5 +1,5 @@
-#ifndef __SERIALIZER_TRANSLATOR_HPP__
-#define __SERIALIZER_TRANSLATOR_HPP__
+#ifndef SERIALIZER_TRANSLATOR_HPP_
+#define SERIALIZER_TRANSLATOR_HPP_
 
 #include "serializer/serializer.hpp"
 #include "buffer_cache/types.hpp"
@@ -145,4 +145,4 @@ public:
     bool offer_read_ahead_buf(block_id_t block_id, void *buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
 };
 
-#endif /* __SERIALIZER_TRANSLATOR_HPP__ */
+#endif /* SERIALIZER_TRANSLATOR_HPP_ */

@@ -1,5 +1,5 @@
-#ifndef __RPC_CONNECTIVITY_CLUSTER_HPP__
-#define __RPC_CONNECTIVITY_CLUSTER_HPP__
+#ifndef RPC_CONNECTIVITY_CLUSTER_HPP_
+#define RPC_CONNECTIVITY_CLUSTER_HPP_
 
 #include "errors.hpp"
 #include <boost/optional.hpp>
@@ -193,4 +193,4 @@ private:
     DISABLE_COPYING(connectivity_cluster_t);
 };
 
-#endif /* __RPC_CONNECTIVITY_CLUSTER_HPP__ */
+#endif /* RPC_CONNECTIVITY_CLUSTER_HPP_ */

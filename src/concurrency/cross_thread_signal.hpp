@@ -1,5 +1,5 @@
-#ifndef __CONCURRENCY_CROSS_THREAD_SIGNAL_HPP__
-#define __CONCURRENCY_CROSS_THREAD_SIGNAL_HPP__
+#ifndef CONCURRENCY_CROSS_THREAD_SIGNAL_HPP_
+#define CONCURRENCY_CROSS_THREAD_SIGNAL_HPP_
 
 #include "concurrency/signal.hpp"
 #include "concurrency/auto_drainer.hpp"
@@ -51,4 +51,4 @@ private:
     signal_t::subscription_t subs;
 };
 
-#endif /* __CONCURRENCY_CROSS_THREAD_SIGNAL_HPP__ */
+#endif /* CONCURRENCY_CROSS_THREAD_SIGNAL_HPP_ */

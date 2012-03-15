@@ -1,5 +1,5 @@
-#ifndef __ARCH_IO_DISK_AIO_HPP__
-#define __ARCH_IO_DISK_AIO_HPP__
+#ifndef ARCH_IO_DISK_AIO_HPP_
+#define ARCH_IO_DISK_AIO_HPP_
 
 #include <libaio.h>
 #include "errors.hpp"
@@ -115,5 +115,5 @@ public:
     void aio_notify(iocb *event, int result) NON_NULL_ATTR(2);
 };
 
-#endif // __ARCH_IO_DISK_AIO_HPP__
+#endif // ARCH_IO_DISK_AIO_HPP_
 

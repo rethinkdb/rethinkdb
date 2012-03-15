@@ -1,5 +1,5 @@
-#ifndef __ARCH_TIMING_HPP__
-#define __ARCH_TIMING_HPP__
+#ifndef ARCH_TIMING_HPP_
+#define ARCH_TIMING_HPP_
 
 #include "errors.hpp"
 #include <boost/function.hpp>
@@ -45,4 +45,4 @@ private:
     boost::function<void()> ring;
 };
 
-#endif /* __ARCH_TIMING_HPP__ */
+#endif /* ARCH_TIMING_HPP_ */

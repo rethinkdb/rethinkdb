@@ -1,5 +1,5 @@
-#ifndef __MEMCACHED_FILE_HPP__
-#define __MEMCACHED_FILE_HPP__
+#ifndef MEMCACHED_FILE_HPP_
+#define MEMCACHED_FILE_HPP_
 
 class signal_t;
 class set_store_interface_t;
@@ -15,4 +15,4 @@ subcommand.*/
 
 void import_memcache(const char *filename, set_store_interface_t *set_store, int n_slices, signal_t *interrupt);
 
-#endif /* __MEMCACHED_FILE_HPP__ */
+#endif /* MEMCACHED_FILE_HPP_ */

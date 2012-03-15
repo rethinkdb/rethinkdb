@@ -1,5 +1,5 @@
-#ifndef __FSCK_CHECKER_HPP__
-#define __FSCK_CHECKER_HPP__
+#ifndef FSCK_CHECKER_HPP_
+#define FSCK_CHECKER_HPP_
 
 #include <vector>
 
@@ -60,4 +60,4 @@ bool check_files(const config_t *config);
 
 }  // namespace fsck
 
-#endif  // __FSCK_CHECKER_HPP__
+#endif  // FSCK_CHECKER_HPP_

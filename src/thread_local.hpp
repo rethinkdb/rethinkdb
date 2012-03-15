@@ -1,5 +1,5 @@
-#ifndef __THREAD_LOCAL_HPP__
-#define __THREAD_LOCAL_HPP__
+#ifndef THREAD_LOCAL_HPP_
+#define THREAD_LOCAL_HPP_
 
 #include "errors.hpp"
 
