@@ -138,8 +138,7 @@ memcached_protocol_t::write_response_t memcached_protocol_t::write_t::unshard(st
     return responses[0];
 }
 
-memcached_protocol_t::store_t::store_t(std::string filename, bool create) : store_view_t<memcached_protocol_t>(key_range_t::entire_range()) {
-
+memcached_protocol_t::store_t::store_t(const std::string& filename, bool create) : store_view_t<memcached_protocol_t>(key_range_t::entire_range()) {
     if (create) {
         standard_serializer_t::create(
             standard_serializer_t::dynamic_config_t(),

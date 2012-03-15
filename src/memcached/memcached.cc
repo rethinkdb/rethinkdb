@@ -15,7 +15,6 @@
 #include "concurrency/mutex.hpp"
 #include "concurrency/semaphore.hpp"
 #include "concurrency/fifo_checker.hpp"
-#include "concurrency/drain_semaphore.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/promise.hpp"

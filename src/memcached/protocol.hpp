@@ -216,7 +216,7 @@ public:
         fifo_enforcer_sink_t token_sink;
 
     public:
-        store_t(std::string filename, bool create);
+        store_t(const std::string& filename, bool create);
 
         void new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out);
         void new_write_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token_out);

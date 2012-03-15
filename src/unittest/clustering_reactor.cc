@@ -144,12 +144,12 @@ public:
         : blueprint_watchable(initial_blueprint),
           reactor(&r->mailbox_manager, r->directory_manager.get_root_view()->subview(field_lens(&test_cluster_directory_t<protocol_t>::reactor_directory)), 
                   r->directory_manager.get_root_view()->subview(field_lens(&test_cluster_directory_t<protocol_t>::master_directory)),
-                  r->semilattice_manager_branch_history.get_root_view(), &blueprint_watchable, store_view)
+                  r->semilattice_manager_branch_history.get_root_view(), blueprint_watchable.get_watchable(), store_view)
     {
         rassert(store_view->get_region() == a_thru_z_region());
     }
 
-    watchable_impl_t<blueprint_t<protocol_t> > blueprint_watchable;
+    watchable_variable_t<blueprint_t<protocol_t> > blueprint_watchable;
     reactor_t<protocol_t> reactor;
 };
 
@@ -189,7 +189,7 @@ public:
         return test_clusters[i].get_me();
     }
 
-    blueprint_t<protocol_t> compile_blueprint(std::string bp) {
+    blueprint_t<protocol_t> compile_blueprint(const std::string& bp) {
         blueprint_t<protocol_t> blueprint;
 
         typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
@@ -268,7 +268,7 @@ public:
         nap(100);
     }
 
-    void wait_until_blueprint_is_satisfied(std::string bp) {
+    void wait_until_blueprint_is_satisfied(const std::string& bp) {
         wait_until_blueprint_is_satisfied(compile_blueprint(bp));
     }
 };

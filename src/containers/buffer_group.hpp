@@ -61,9 +61,6 @@ public:
             }
             return *this;
         }
-        iterator operator++(int) {
-            return operator++();
-        }
         bool operator==(iterator const &other) {
             return it == other.it && offset == other.offset;
         }

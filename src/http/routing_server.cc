@@ -26,7 +26,7 @@ void sanitize_routes(const std::map<std::string, http_server_t *> routes) {
 #endif
 }
 
-void routing_server_t::add_route(std::string route, http_server_t *server) {
+void routing_server_t::add_route(const std::string& route, http_server_t *server) {
     subroutes[route] = server;
     sanitize_routes(subroutes);
 }
@@ -52,6 +52,7 @@ http_res_t routing_server_t::handle(const http_req_t &req) {
 
         copy.resource = "";
 
+        // FIXME: this is not very efficient. Split the request into parts once and then only work with parts in the rest of the code.
         while(it != tokens.end()) {
             copy.resource += "/";
             copy.resource += *it;

@@ -568,28 +568,28 @@ web-assets: $(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/clust
 $(WEB_ASSETS_BUILD_DIR)/cluster-min.js: $(COFFEE_SOURCES)
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
 ifeq ($(VERBOSE),0)
-	@echo "   COFFEE $@" 
+	@echo "    COFFEE $@"
 endif
 	$(QUIET) cat $+ | coffee -bp --stdio > $@
 
 $(WEB_ASSETS_BUILD_DIR)/cluster.css: $(LESS_SOURCES)
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
 ifeq ($(VERBOSE),0)
-	@echo "   LESSC $@" 
+	@echo "    LESSC $@"
 endif
 	$(QUIET) lessc $(LESS_MAIN) > $@
 
 $(WEB_ASSETS_BUILD_DIR)/cluster.html: $(CLUSTER_HTML)
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
 ifeq ($(VERBOSE),0)
-	@echo "   STRIP GEN $@"
+	@echo "    STRIP GEN $@"
 endif
 	$(QUIET) sed 's:="gen/:=":g' $(CLUSTER_HTML) > $@
 
 $(WEB_ASSETS_BUILD_DIR)/js: 
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
 ifeq ($(VERBOSE),0)
-	@echo "   CP $(JS_EXTERNAL_DIR) -> $(WEB_ASSETS_BUILD_DIR)"
+	@echo "    CP $(JS_EXTERNAL_DIR) -> $(WEB_ASSETS_BUILD_DIR)"
 endif
 	$(QUIET) cp -rP $(JS_EXTERNAL_DIR) $(WEB_ASSETS_BUILD_DIR)
 

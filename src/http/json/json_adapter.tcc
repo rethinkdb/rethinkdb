@@ -100,7 +100,7 @@ void json_read_only_adapter_t<T, ctx_t>::apply_impl(cJSON *, const ctx_t &) {
 //implementation for json_temporary_adapter_t
 template <class T, class ctx_t>
 json_temporary_adapter_t<T, ctx_t>::json_temporary_adapter_t(const T &_t)
-    : t(_t), json_read_only_adapter_t<T, ctx_t>(&t)
+    : json_read_only_adapter_t<T, ctx_t>(&t), t(_t)
 { }
 
 //implementation for map_inserter_t

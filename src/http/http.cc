@@ -8,7 +8,7 @@
 #include "arch/arch.hpp"
 #include "logger.hpp"
 
-std::string http_req_t::find_query_param(std::string key) const {
+std::string http_req_t::find_query_param(const std::string& key) const {
     //TODO this is inefficient we should actually load it all into a map
     for (std::vector<query_parameter_t>::const_iterator it = query_params.begin(); it != query_params.end(); it++) {
         if (it->key == key) return it->val;
@@ -16,7 +16,7 @@ std::string http_req_t::find_query_param(std::string key) const {
     return std::string("");
 }
 
-std::string http_req_t::find_header_line(std::string key) const {
+std::string http_req_t::find_header_line(const std::string& key) const {
     //TODO this is inefficient we should actually load it all into a map
     for (std::vector<header_line_t>::const_iterator it = header_lines.begin(); it != header_lines.end(); it++) {
         if (it->key == key) return it->val;
@@ -24,7 +24,7 @@ std::string http_req_t::find_header_line(std::string key) const {
     return std::string("");
 }
 
-bool http_req_t::has_header_line(std::string key) const {
+bool http_req_t::has_header_line(const std::string& key) const {
     //TODO this is inefficient we should actually load it all into a map
     for (std::vector<header_line_t>::const_iterator it = header_lines.begin(); it != header_lines.end(); it++) {
         if (it->key == key) {
@@ -53,14 +53,14 @@ void http_res_t::add_last_modified(int) {
     not_implemented();
 }
 
-void http_res_t::add_header_line(std::string const &key, std::string const &val) {
+void http_res_t::add_header_line(const std::string& key, const std::string& val) {
     header_line_t hdr_ln;
     hdr_ln.key = key;
     hdr_ln.val = val;
     header_lines.push_back(hdr_ln);
 }
 
-void http_res_t::set_body(std::string const &content_type, std::string const &content) {
+void http_res_t::set_body(const std::string& content_type, const std::string& content) {
     for (std::vector<header_line_t>::iterator it = header_lines.begin(); it != header_lines.end(); it++) {
         rassert(it->key != "Content-Type");
         rassert(it->key != "Content-Length");
@@ -111,10 +111,14 @@ std::string human_readable_status(int code) {
         return "Forbidden";
     case 404:
         return "Not Found";
+    case 405:
+        return "Method Not Allowed";
     case 500:
         return "Internal Server Error";
     case 501:
         return "Not Implemented";
+    case 503:
+        return "Service Unavailable";
     default:
         unreachable("Unknown code %d.", code);
     }
@@ -313,7 +317,7 @@ http_res_t test_server_t::handle(const http_req_t &req) {
     res.version = req.version;
     res.code = 200;
 
-    res.add_header_line("Vary", "Accept-Encoding");
+    res.add_header_line("Accept-Encoding", "Vary");
     res.add_header_line("Content-Length", "0");
 
     return res;

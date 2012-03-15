@@ -89,7 +89,7 @@ private:
 
             /* \brief handles moving along successive mb slots
              */
-            void operator++(int);
+            void operator++();
             /* \brief return the offset we should be writing to
              */
             off64_t offset();

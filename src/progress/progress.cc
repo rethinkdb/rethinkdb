@@ -5,7 +5,7 @@
 #include "utils.hpp"
 #include <boost/bind.hpp>
 
-progress_bar_t::progress_bar_t(std::string _activity, int _redraw_interval_ms = 100)
+progress_bar_t::progress_bar_t(const std::string& _activity, int _redraw_interval_ms = 100)
     : repeating_timer_t(redraw_interval_ms, boost::bind(&progress_bar_t::refresh, this)),
       activity(_activity), redraw_interval_ms(_redraw_interval_ms), start_time(get_ticks()),
       total_refreshes(0)
@@ -57,18 +57,18 @@ void progress_bar_t::draw_bar(float progress,  int eta) {
 }
 
 
-counter_progress_bar_t::counter_progress_bar_t(std::string activity, int _expected_count, int redraw_interval_ms)
+counter_progress_bar_t::counter_progress_bar_t(const std::string& activity, int _expected_count, int redraw_interval_ms)
     : progress_bar_t(activity, redraw_interval_ms), count(0), expected_count(_expected_count) { }
 
 void counter_progress_bar_t::draw() {
     progress_bar_t::draw_bar(float(count) / float(expected_count), -1);
 }
 
-void counter_progress_bar_t::operator++(int) {
+void counter_progress_bar_t::operator++() {
     count++;
 }
 
-file_progress_bar_t::file_progress_bar_t(std::string activity, FILE *_file, int redraw_interval_ms)
+file_progress_bar_t::file_progress_bar_t(const std::string& activity, FILE *_file, int redraw_interval_ms)
     : progress_bar_t(activity, redraw_interval_ms), file(_file) { 
     struct stat file_stats;
     fstat(fileno(file), &file_stats);

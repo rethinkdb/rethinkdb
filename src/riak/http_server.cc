@@ -98,7 +98,7 @@ http_res_t riak_server_t::list_buckets(const http_req_t &) {
 
     bucket_iterator_t it = bucket_iters.first, end = bucket_iters.second;
 
-    for (; it != end; it++) {
+    for (; it != end; ++it) {
         cJSON_AddItemToArray(buckets.get(), cJSON_CreateString(it->name.c_str()));
     }
 
