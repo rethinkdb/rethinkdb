@@ -1,24 +1,20 @@
 #include "errors.hpp"
 #include <boost/tokenizer.hpp>
 
-#include "http/routing_server.hpp"
+#include "http/routing_app.hpp"
 #include "stl_utils.hpp"
 
 typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
 typedef tokenizer::iterator tok_iterator;
 
-routing_server_t::routing_server_t(int port, http_server_t *_defaultroute, std::map<std::string, http_server_t *> _subroutes)
-    : http_server_t(port), subroutes(_subroutes), defaultroute(_defaultroute)
-{ }
-
-routing_server_t::routing_server_t(http_server_t *_defaultroute, std::map<std::string, http_server_t *> _subroutes)
+routing_http_app_t::routing_http_app_t(http_app_t *_defaultroute, std::map<std::string, http_app_t *> _subroutes)
     : subroutes(_subroutes), defaultroute(_defaultroute)
 { }
 
 /* Routes should not have any slashes in them */
-void sanitize_routes(const std::map<std::string, http_server_t *> routes) {
+void sanitize_routes(const std::map<std::string, http_app_t *> routes) {
 #ifndef NDEBUG
-    for (std::map<std::string, http_server_t *>::const_iterator it =  routes.begin();
+    for (std::map<std::string, http_app_t *>::const_iterator it =  routes.begin();
                                                                 it != routes.end();
                                                                 it++) {
         rassert(strchr(it->first.c_str(), '/') == NULL, "Routes should not contain '/'s");
@@ -26,12 +22,12 @@ void sanitize_routes(const std::map<std::string, http_server_t *> routes) {
 #endif
 }
 
-void routing_server_t::add_route(const std::string& route, http_server_t *server) {
+void routing_http_app_t::add_route(const std::string& route, http_app_t *server) {
     subroutes[route] = server;
     sanitize_routes(subroutes);
 }
 
-http_res_t routing_server_t::handle(const http_req_t &req) {
+http_res_t routing_http_app_t::handle(const http_req_t &req) {
     //setup a tokenizer
     boost::char_separator<char> sep("/");
     tokenizer tokens(req.resource, sep);

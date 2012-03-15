@@ -5,12 +5,12 @@
 #include "lens.hpp"
 
 namespace mock {
-http_access_t::http_access_t(namespace_interface_t<dummy_protocol_t> * _namespace_if, 
-                            int _port)
-    : http_server_t(_port), namespace_if(_namespace_if)
+
+query_http_app_t::query_http_app_t(namespace_interface_t<dummy_protocol_t> * _namespace_if)
+    : namespace_if(_namespace_if)
 { }
 
-http_res_t http_access_t::handle(const http_req_t &req) {
+http_res_t query_http_app_t::handle(const http_req_t &req) {
     try {
         typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
         typedef tokenizer::iterator tok_iterator;
@@ -113,7 +113,8 @@ dummy_protocol_parser_maker_t::parser_and_namespace_if_t::parser_and_namespace_i
                    parent->namespaces_directory_metadata->
                        subview<master_map_t>(field_lens(&namespaces_directory_metadata_t<dummy_protocol_t>::master_maps))->
                            subview(default_member_lens<master_map_t::key_type, master_map_t::mapped_type>(id))),
-      parser(&namespace_if, port)
+      parser(&namespace_if),
+      server(port, &parser)
 { }
 
 } //namespace mock 

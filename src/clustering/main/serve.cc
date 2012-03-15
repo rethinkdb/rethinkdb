@@ -1,13 +1,10 @@
 #include "arch/arch.hpp"
 #include "arch/os_signal.hpp"
-#include "clustering/administration/http_server.hpp"
+#include "clustering/administration/http/server.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/persist.hpp"
 #include "clustering/administration/reactor_driver.hpp"
 #include "clustering/main/serve.hpp"
-#include "http/file_server.hpp"
-#include "http/routing_server.hpp"
-#include "http/routing_server.hpp"
 #include "memcached/clustering.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "mock/dummy_protocol_parser.hpp"
@@ -68,37 +65,11 @@ bool serve(const std::string &filepath, const std::vector<peer_address_t> &joins
                                              metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_manager_cluster.get_root_view()),
                                              directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::memcached_namespaces)));
 
-    //TODO obviously this needs to go away from this function.
-    blueprint_http_server_t bp_server(semilattice_manager_cluster.get_root_view(),
-                                      directory_manager.get_root_view(),
-                                      machine_id);
-    std::set<std::string> white_list;
-    white_list.insert("/cluster.css");
-    white_list.insert("/cluster.html");
-    white_list.insert("/cluster-min.js");
-    white_list.insert("/favicon.ico");
-    white_list.insert("/js/backbone.js");
-    white_list.insert("/js/bootstrap/bootstrap-alert.js");
-    white_list.insert("/js/bootstrap/bootstrap-modal.js");
-    white_list.insert("/js/bootstrap/bootstrap-tab.js");
-    white_list.insert("/js/d3.v2.min.js");
-    white_list.insert("/js/date-en-US.js");
-    white_list.insert("/js/flot/jquery.flot.js");
-    white_list.insert("/js/flot/jquery.flot.resize.js");
-    white_list.insert("/js/handlebars-1.0.0.beta.6.js");
-    white_list.insert("/js/jquery-1.7.1.min.js");
-    white_list.insert("/js/jquery.form.js");
-    white_list.insert("/js/jquery.hotkeys.js");
-    white_list.insert("/js/jquery.sparkline.min.js");
-    white_list.insert("/js/jquery.timeago.js");
-    white_list.insert("/js/jquery.validate.min.js");
-    white_list.insert("/js/underscore-min.js");
-    http_file_server_t file_server(white_list, "../build/debug/web");
-
-    std::map<std::string, http_server_t *> routes;
-    routes["ajax"] = & bp_server;
-
-    routing_server_t server(port + 1000, &file_server, routes);
+    administrative_http_server_manager_t administrative_http_interface(
+        port + 1000,
+        semilattice_manager_cluster.get_root_view(),
+        directory_manager.get_root_view(),
+        machine_id);
 
     std::cout << "Server started; send SIGINT to stop." << std::endl;
 
