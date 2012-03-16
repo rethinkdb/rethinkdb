@@ -25,7 +25,7 @@
 /* Warning: It is very easy to accidentally introduce race conditions to linux_tcp_conn_t.
 Think carefully before changing read_internal(), perform_write(), or on_shutdown_*(). */
 
-static fd_t connect_to(const char *host, int port) {
+static fd_t connect_to(const char *host, int port, int local_port) {
 
     struct addrinfo *res;
 
@@ -48,6 +48,19 @@ static fd_t connect_to(const char *host, int port) {
             logERR("Failed to create a socket\n");
             goto ERROR_BREAKOUT;
         }
+        if (local_port != 0) {
+            // Set the socket to reusable so we don't block out other sockets from this port
+            int reuse = 1;
+            if (setsockopt(sock.get(), SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) != 0)
+                logINF("Failed to set socket reuse to true: %s\n", strerror(errno));
+            struct sockaddr_in addr;
+            addr.sin_family = AF_INET;
+            addr.sin_port = htons(local_port);
+            addr.sin_addr.s_addr = INADDR_ANY;
+            bzero(addr.sin_zero, sizeof(addr.sin_zero));
+            if (bind(sock.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) != 0)
+                logINF("Failed to bind to local port %d: %s\n", local_port, strerror(errno));
+        }
         if (connect(sock.get(), res->ai_addr, res->ai_addrlen) != 0) {
             /* for some reason the connection failed */
             logERR("Failed to make a connection with error: %s\n", strerror(errno));
@@ -65,9 +78,9 @@ ERROR_BREAKOUT:
     throw linux_tcp_conn_t::connect_failed_exc_t();
 }
 
-linux_tcp_conn_t::linux_tcp_conn_t(const char *host, int port) :
+linux_tcp_conn_t::linux_tcp_conn_t(const char *host, int port, int local_port) :
     write_perfmon(NULL),
-    sock(connect_to(host, port)),
+    sock(connect_to(host, port, local_port)),
     event_watcher(new linux_event_watcher_t(sock.get(), this)),
     read_in_progress(false), write_in_progress(false),
     write_handler(this),
@@ -76,12 +89,25 @@ linux_tcp_conn_t::linux_tcp_conn_t(const char *host, int port) :
     current_write_buffer(get_write_buffer())
 { }
 
-static fd_t connect_to(const ip_address_t &host, int port) {
+static fd_t connect_to(const ip_address_t &host, int port, int local_port) {
 
     scoped_fd_t sock;
     sock.reset(socket(AF_INET, SOCK_STREAM, 0));
 
     struct sockaddr_in addr;
+    if (local_port != 0) {
+        // Set the socket to reusable so we don't block out other sockets from this port
+        int reuse = 1;
+        if (setsockopt(sock.get(), SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) != 0)
+            logINF("Failed to set socket reuse to true: %s\n", strerror(errno));
+        addr.sin_family = AF_INET;
+        addr.sin_port = htons(local_port);
+        addr.sin_addr.s_addr = INADDR_ANY;
+        bzero(addr.sin_zero, sizeof(addr.sin_zero));
+        if (bind(sock.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) != 0)
+            logINF("Failed to bind to local port %d: %s\n", local_port, strerror(errno));
+    }
+
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
     addr.sin_addr = host.addr;
@@ -98,9 +124,9 @@ static fd_t connect_to(const ip_address_t &host, int port) {
     return sock.release();
 }
 
-linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port) :
+linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port, int local_port) :
     write_perfmon(NULL),
-    sock(connect_to(host, port)),
+    sock(connect_to(host, port, local_port)),
     event_watcher(new linux_event_watcher_t(sock.get(), this)),
     read_in_progress(false), write_in_progress(false),
     write_handler(this),

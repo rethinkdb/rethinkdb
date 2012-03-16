@@ -38,8 +38,8 @@ public:
     };
 
     /* TODO: One of these forms should be replaced by the other. */
-    linux_tcp_conn_t(const char *host, int port);
-    linux_tcp_conn_t(const ip_address_t &host, int port);
+    linux_tcp_conn_t(const char *host, int port, int local_port = 0);
+    linux_tcp_conn_t(const ip_address_t &host, int port, int local_port = 0);
 
     /* Reading */
 

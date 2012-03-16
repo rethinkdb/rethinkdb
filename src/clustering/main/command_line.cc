@@ -49,7 +49,7 @@ std::vector<peer_address_t> look_up_peers_addresses(std::vector<host_and_port_t>
     return peers;
 }
 
-void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and_port_t> &joins, int port, bool *result_out) {
+void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and_port_t> &joins, int port, int client_port, bool *result_out) {
 
     os_signal_cond_t c;
 
@@ -73,10 +73,10 @@ void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and
         return;
     }
 
-    *result_out = serve(filepath, look_up_peers_addresses(joins), port, persisted_machine_id, persisted_semilattice_metadata);
+    *result_out = serve(filepath, look_up_peers_addresses(joins), port, client_port, persisted_machine_id, persisted_semilattice_metadata);
 }
 
-void run_rethinkdb_porcelain(const std::string &filepath, const std::vector<host_and_port_t> &joins, int port, bool *result_out) {
+void run_rethinkdb_porcelain(const std::string &filepath, const std::vector<host_and_port_t> &joins, int port, int client_port, bool *result_out) {
 
     os_signal_cond_t c;
 
@@ -89,7 +89,7 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::vector<host
         cluster_semilattice_metadata_t persisted_semilattice_metadata;
         metadata_persistence::read(filepath, &persisted_machine_id, &persisted_semilattice_metadata);
 
-        *result_out = serve(filepath, look_up_peers_addresses(joins), port, persisted_machine_id, persisted_semilattice_metadata);
+        *result_out = serve(filepath, look_up_peers_addresses(joins), port, client_port, persisted_machine_id, persisted_semilattice_metadata);
 
     } else {
         std::cout << "It does not already exist. Creating it..." << std::endl;
@@ -137,7 +137,7 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::vector<host
 
         metadata_persistence::create(filepath, our_machine_id, semilattice_metadata);
 
-        *result_out = serve(filepath, look_up_peers_addresses(joins), port, our_machine_id, semilattice_metadata);
+        *result_out = serve(filepath, look_up_peers_addresses(joins), port, client_port, our_machine_id, semilattice_metadata);
     }
 }
 
@@ -172,6 +172,9 @@ po::options_description get_network_options() {
     po::options_description desc("Network options");
     desc.add_options()
         ("port", po::value<int>()->default_value(default_peer_port), "port for communicating with other nodes")
+#ifndef NDEBUG
+        ("client-port", po::value<int>()->default_value(0), "port to use when connecting to other nodes")
+#endif
         ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to");
     return desc;
 }
@@ -220,9 +223,14 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         joins = vm["join"].as<std::vector<host_and_port_t> >();
     }
     int port = vm["port"].as<int>();
+#ifndef NDEBUG
+    int client_port = vm["client-port"].as<int>();
+#else
+    int client_port = 0;
+#endif
 
     bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_serve, filepath, joins, port, &result));
+    run_in_thread_pool(boost::bind(&run_rethinkdb_serve, filepath, joins, port, client_port, &result));
 
     return result ? 0 : 1;
 }
@@ -238,9 +246,14 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         joins = vm["join"].as<std::vector<host_and_port_t> >();
     }
     int port = vm["port"].as<int>();
+#ifndef NDEBUG
+    int client_port = vm["client-port"].as<int>();
+#else
+    int client_port = 0;
+#endif
 
     bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain, filepath, joins, port, &result));
+    run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain, filepath, joins, port, client_port, &result));
 
     return result ? 0 : 1;
 }

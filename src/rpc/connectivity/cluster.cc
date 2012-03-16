@@ -16,7 +16,8 @@
 
 connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
         int port,
-        message_handler_t *mh) THROWS_NOTHING :
+        message_handler_t *mh,
+        int client_port) THROWS_NOTHING :
 
     parent(p), message_handler(mh),
 
@@ -37,6 +38,9 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
     connected to ourself. The destructor will remove us from the
     `connection_map` and again notify any listeners. */
     connection_to_ourself(this, parent->me, NULL, routing_table[parent->me]),
+
+    /* The local port to use when connecting to the cluster port of peers */
+    cluster_client_port(client_port),
 
     listener(port, boost::bind(
         &connectivity_cluster_t::run_t::on_new_connection,
@@ -131,7 +135,7 @@ void connectivity_cluster_t::run_t::join_blocking(
         auto_drainer_t::lock_t drainer_lock) THROWS_NOTHING {
     parent->assert_thread();
     try {
-        streamed_tcp_conn_t conn(address.ip, address.port);
+        streamed_tcp_conn_t conn(address.ip, address.port, cluster_client_port);
         handle(&conn, expected_id, boost::optional<peer_address_t>(address), drainer_lock);
     } catch (tcp_conn_t::connect_failed_exc_t) {
         /* Ignore */

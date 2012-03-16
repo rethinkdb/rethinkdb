@@ -18,7 +18,7 @@
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
 
-bool serve(const std::string &filepath, const std::vector<peer_address_t> &joins, int port, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata) {
+bool serve(const std::string &filepath, const std::vector<peer_address_t> &joins, int port, int client_port, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata) {
 
     std::cout << "Establishing cluster node on port " << port << "..." << std::endl;
 
@@ -38,7 +38,7 @@ bool serve(const std::string &filepath, const std::vector<peer_address_t> &joins
     message_multiplexer_t::client_t::run_t directory_manager_client_run(&directory_manager_client, &directory_manager);
 
     message_multiplexer_t::run_t message_multiplexer_run(&message_multiplexer);
-    connectivity_cluster_t::run_t connectivity_cluster_run(&connectivity_cluster, port, &message_multiplexer_run);
+    connectivity_cluster_t::run_t connectivity_cluster_run(&connectivity_cluster, port, &message_multiplexer_run, client_port);
 
     for (int i = 0; i < (int)joins.size(); i++) {
         connectivity_cluster_run.join(joins[i]);
