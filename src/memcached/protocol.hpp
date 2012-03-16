@@ -102,6 +102,8 @@ class memcached_protocol_t {
 public:
     typedef key_range_t region_t;
 
+    static region_t universe_region();
+
     struct temporary_cache_t { };
 
     struct read_response_t {

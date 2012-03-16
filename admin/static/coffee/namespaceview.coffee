@@ -60,7 +60,6 @@ module 'NamespaceView', ->
             e.preventDefault()
 
         render: =>
-            debugger
             log_render '(rendering) namespace view: replica'
             # Walk over json and add datacenter names to the model (in
             # addition to datacenter ids)
@@ -455,13 +454,14 @@ module 'NamespaceView', ->
             super validator_options, json
 
 
-    compute_renderable_shards_array = (shard_boundaries) ->
+    compute_renderable_shards_array = (shards) ->
         ret = []
-        for i in [0...shard_boundaries.length + 1]
+        for i in [0...shards.length]
+            json_repr = $.parseJSON(shards[i])
             ret.push
-                lower: (if i == 0 then "&minus;&infin;" else shard_boundaries[i-1])
-                upper: (if i == shard_boundaries.length then "+&infin;" else shard_boundaries[i])
-                notlast: i != shard_boundaries.length
+                lower: (if json_repr[0] == "" then "&minus;&infin;" else json_repr[0])
+                upper: (if json_repr[1] == null then "+&infin;" else json_repr[1])
+                notlast: i != shards.length
                 index: i
         return ret
 
@@ -500,26 +500,34 @@ module 'NamespaceView', ->
         alert_tmpl: Handlebars.compile $('#modify_shards-alert-template').html()
         class: 'modify-shards'
 
-        initialize: (namespace, shard_boundaries) ->
+        initialize: (namespace, shard_set) ->
             log_initial '(initializing) modal dialog: ModifyShards'
             @namespace = namespace
-            @shards = compute_renderable_shards_array(shard_boundaries)
+            @shards = compute_renderable_shards_array(shard_set)
 
             # Keep an unmodified copy of the shard boundaries with which we compare against when reviewing the changes.
-            @original_shard_boundaries = _.map(shard_boundaries, _.identity)
-            @shard_boundaries = _.map(shard_boundaries, _.identity)
+            @original_shard_set = _.map(shard_set, _.identity)
+            @shard_set = _.map(shard_set, _.identity)
             super @template
 
         insert_splitpoint: (index, splitpoint) =>
-            if ((index == @shard_boundaries.length || @shard_boundaries[index] > splitpoint) && (index == 0 || @shard_boundaries[index - 1] < splitpoint))
-                @shard_boundaries.splice(index, 0, splitpoint)
+            if (0 <= index || index < @shard_set.length)
+                json_repr = $.parseJSON(@shard_set[index])
+                if (splitpoint <= json_repr[0] || (splitpoint >= json_repr[1] && json_repr[1] != null))
+                    throw "Error invalid splitpoint"
+
+                @shard_set.splice(index, 1, JSON.stringify([json_repr[0], splitpoint]), JSON.stringify([splitpoint, json_repr[1]]))
                 clear_modals()
                 @render()
             else
                 # TODO handle error
 
         merge_shard: (index) =>
-            @shard_boundaries.splice(index, 1)
+            if (index < 0 || index + 1 >= @shard_set.length)
+                throw "Error invalid index"
+
+            newshard = JSON.stringify([$.parseJSON(@shard_set[index])[0], $.parseJSON(@shard_set[index+1])[1]])
+            @shard_set.splice(index, 2, newshard)
             clear_modals()
             @render()
 
@@ -533,11 +541,14 @@ module 'NamespaceView', ->
                 rules: { }
                 messages: { }
                 submitHandler: =>
+                    formdata = form_data_as_object($('form', @$modal))
                     # TODO detect when there are no changes.
-                    $('form', @$modal).ajaxSubmit
-                        url: "/ajax/namespaces/#{@namespace.id}/apply_shard_plan?token=" + token
+                    $.ajax
+                        processData: false
+                        url: "/ajax/#{@namespace.attributes.protocol}_namespaces/#{@namespace.id}"
                         type: 'POST'
-                        data: { proposed_shard_boundaries: @shard_boundaries }
+                        contentType: 'application/json'
+                        data: JSON.stringify({"shards": @shard_set})
 
                         success: (response) =>
                             clear_modals()
@@ -551,11 +562,11 @@ module 'NamespaceView', ->
 
             json =
                 namespace: @namespace.toJSON()
-                shards: compute_renderable_shards_array(@shard_boundaries)
+                shards: compute_renderable_shards_array(@shard_set)
 
             super validator_options, json
 
-            shard_views = _.map(compute_renderable_shards_array(@shard_boundaries), (shard) => new NamespaceView.ModifyShardsModalShard @namespace, shard, @)
+            shard_views = _.map(compute_renderable_shards_array(@shard_set), (shard) => new NamespaceView.ModifyShardsModalShard @namespace, shard, @)
             @.$('.shards tbody').append view.render().el for view in shard_views
 
     class @ModifyShardsModalShard extends Backbone.View
@@ -615,18 +626,19 @@ module 'NamespaceView', ->
             shard_index = parseInt $(e.target).data 'index'
             log_action "merge button clicked with index #{shard_index}"
             shards = @namespace.get('shards')
-            lower_bound = if shard_index == 0 then "&minus;&infin;" else shards[shard_index - 1]
-            mid_bound = shards[shard_index]
-            upper_bound = if shard_index + 1 == shards.length then "+&infin;" else shards[shard_index + 1]
+            low_shard = human_readable_shard(shards[shard_index])
+            high_shard = human_readable_shard(shards[shard_index + 1])
+#lower_bound = if shard_index == 0 then "&minus;&infin;" else shards[shard_index - 1]
+#mid_bound = shards[shard_index]
+#upper_bound = if shard_index + 1 == shards.length then "+&infin;" else shards[shard_index + 1]
 
-            console.log 'shards to be merged: ',[lower_bound, mid_bound, upper_bound, shards, shard_index]
+            console.log 'shards to be merged: ',[low_shard, high_shard, shards, shard_index]
 
             @.$el.html @editable_tmpl
                 merging: true
                 shard: @shard
-                lower_bound : lower_bound
-                mid_bound: mid_bound
-                upper_bound: upper_bound
+                low_shard: low_shard
+                high_shard: high_shard
 
             e.preventDefault()
 

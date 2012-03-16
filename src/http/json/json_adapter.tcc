@@ -249,7 +249,11 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(boost::
 
 template <class ctx_t>
 cJSON *render_as_json(const boost::uuids::uuid *uuid, const ctx_t &) {
-    return cJSON_CreateString(uuid_to_str(*uuid).c_str());
+    if (uuid->is_nil()) {
+        return cJSON_CreateNull();
+    } else {
+        return cJSON_CreateString(uuid_to_str(*uuid).c_str());
+    }
 }
 
 template <class ctx_t>
@@ -398,13 +402,16 @@ cJSON *render_as_json(std::set<V> *target, const ctx_t &ctx) {
 
 template <class V, class ctx_t>
 void apply_json_to(cJSON *change, std::set<V> *target, const ctx_t &ctx) {
+    std::set<V> res;
     json_array_iterator_t it = get_array_it(change);
     cJSON *val;
     while ((val = it.next())) {
         V v;
         apply_json_to(val, &v, ctx);
-        target->insert(v);
+        res.insert(v);
     }
+
+    *target = res;
 }
 
 template <class V, class ctx_t>
