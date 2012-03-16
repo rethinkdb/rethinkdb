@@ -7,9 +7,7 @@
 
 #include <string>
 
-
 #include "errors.hpp"
-#include <boost/uuid/uuid.hpp>
 
 /* Note that repli_timestamp_t does NOT represent an actual timestamp; instead it's an arbitrary
 counter. */
@@ -233,10 +231,6 @@ public:
     ~on_thread_t();
 };
 
-/* This does the same thing as `boost::uuids::random_generator()()`, except that
-Valgrind won't complain about it. */
-boost::uuids::uuid generate_uuid();
-
 void print_backtrace(FILE *out = stderr, bool use_addr2line = true);
 
 template <class InputIterator, class UnaryPredicate>
@@ -256,9 +250,5 @@ bool all_in_container_match_predicate (const T &container, UnaryPredicate f) {
 bool notf(bool x);
 
 std::string read_file(const char *path);
-
-std::string uuid_to_str(boost::uuids::uuid id);
-
-boost::uuids::uuid str_to_uuid(const std::string&);
 
 #endif // UTILS_HPP_

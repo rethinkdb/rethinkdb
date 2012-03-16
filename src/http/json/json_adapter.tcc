@@ -1,6 +1,7 @@
 #ifndef HTTP_JSON_JSON_ADAPTER_TCC_
 #define HTTP_JSON_JSON_ADAPTER_TCC_
 
+#include "containers/uuid.hpp"
 #include "utils.hpp"
 #include "logger.hpp"
 #include "http/json.hpp"

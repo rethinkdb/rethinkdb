@@ -1,4 +1,7 @@
 #include "rpc/semilattice/joins/vclock.hpp"
+
+#include "containers/uuid.hpp"
+
 namespace vclock_details {
 bool dominates(const version_map_t &a, const version_map_t &b) {
     //check that a doesn't dominate b for any machine

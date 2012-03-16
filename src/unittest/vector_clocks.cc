@@ -1,6 +1,7 @@
+#include "containers/uuid.hpp"
+#include "rpc/semilattice/joins/vclock.hpp"
 #include "unittest/gtest.hpp"
 #include "utils.hpp"
-#include "rpc/semilattice/joins/vclock.hpp"
 
 
 namespace unittest {
