@@ -12,6 +12,7 @@
 
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/pmap.hpp"
+#include "containers/uuid.hpp"
 #include "do_on_thread.hpp"
 
 connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
