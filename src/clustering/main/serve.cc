@@ -5,6 +5,7 @@
 #include "clustering/administration/issues/local_to_global.hpp"
 #include "clustering/administration/issues/machine_down.hpp"
 #include "clustering/administration/issues/name_conflict.hpp"
+#include "clustering/administration/issues/vector_clock_conflict.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/persist.hpp"
 #include "clustering/administration/reactor_driver.hpp"
@@ -67,6 +68,11 @@ bool serve(const std::string &filepath, const std::vector<peer_address_t> &joins
         semilattice_manager_cluster.get_root_view()
         );
     global_issue_aggregator_t::source_t name_conflict_issue_tracker_feed(&issue_aggregator, &name_conflict_issue_tracker);
+
+    vector_clock_conflict_issue_tracker_t vector_clock_conflict_issue_tracker(
+        semilattice_manager_cluster.get_root_view()
+        );
+    global_issue_aggregator_t::source_t vector_clock_conflict_issue_tracker_feed(&issue_aggregator, &vector_clock_conflict_issue_tracker);
 
     for (int i = 0; i < (int)joins.size(); i++) {
         connectivity_cluster_run.join(joins[i]);
