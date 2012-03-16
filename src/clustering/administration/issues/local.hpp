@@ -6,6 +6,7 @@
 
 #include "concurrency/watchable.hpp"
 #include "containers/clone_ptr.hpp"
+#include "rpc/serialize_macros.hpp"
 
 class local_issue_t {
 public:

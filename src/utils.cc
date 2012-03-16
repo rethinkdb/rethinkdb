@@ -607,14 +607,6 @@ void print_backtrace(FILE *out, bool use_addr2line) {
     }
 }
 
-bool operator==(const binary_blob_t &left, const binary_blob_t &right) {
-    return left.size() == right.size() && memcmp(left.data(), right.data(), left.size()) == 0;
-}
-
-bool operator!=(const binary_blob_t &left, const binary_blob_t &right) {
-    return !(left == right);
-}
-
 std::string read_file(const char *path) {
     std::string s;
     FILE *fp = fopen(path, "rb");
