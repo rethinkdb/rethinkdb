@@ -1,5 +1,5 @@
-#ifndef __PROTOCOL_REDIS_TYPES_H__
-#define __PROTOCOL_REDIS_TYPES_H__
+#ifndef PROTOCOL_REDIS_TYPES_HPP_
+#define PROTOCOL_REDIS_TYPES_HPP_
 
 #include <vector>
 #include <inttypes.h>
@@ -383,5 +383,4 @@ protected:
 };
 
 
-#endif /*__PROTOCOL_REDIS_TYPES_H__*/
-
+#endif  // PROTOCOL_REDIS_TYPES_HPP_

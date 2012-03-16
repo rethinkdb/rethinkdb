@@ -1,5 +1,5 @@
-#ifndef __ARCH_RUNTIME_EVENTFD_HPP__
-#define __ARCH_RUNTIME_EVENTFD_HPP__
+#ifndef ARCH_RUNTIME_EVENTFD_HPP_
+#define ARCH_RUNTIME_EVENTFD_HPP_
 
 #ifndef LEGACY_LINUX
 
@@ -17,4 +17,4 @@ int eventfd_write(int fd, eventfd_t value);
 
 #endif /* LEGACY_LINUX */
 
-#endif /* __ARCH_RUNTIME_EVENTFD_HPP__ */
+#endif /* ARCH_RUNTIME_EVENTFD_HPP_ */

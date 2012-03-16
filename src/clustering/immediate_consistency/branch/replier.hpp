@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_REPLIER_HPP__
-#define __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_REPLIER_HPP__
+#ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_REPLIER_HPP_
+#define CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_REPLIER_HPP_
 
 #include "clustering/immediate_consistency/branch/backfiller.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
@@ -92,4 +92,4 @@ private:
     backfiller_t<protocol_t> backfiller;
 };
 
-#endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_REPLIER_HPP__ */
+#endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_REPLIER_HPP_ */

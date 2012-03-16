@@ -1,5 +1,5 @@
-#ifndef __CONTAINERS_CLONE_PTR_HPP__
-#define __CONTAINERS_CLONE_PTR_HPP__
+#ifndef CONTAINERS_CLONE_PTR_HPP_
+#define CONTAINERS_CLONE_PTR_HPP_
 
 #include "errors.hpp"
 #include <boost/serialization/split_member.hpp>
@@ -60,4 +60,4 @@ private:
 
 #include "containers/clone_ptr.tcc"
 
-#endif /* __CONTAINERS_CLONE_PTR_HPP__ */
+#endif /* CONTAINERS_CLONE_PTR_HPP_ */

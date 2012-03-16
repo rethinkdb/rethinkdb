@@ -1,5 +1,5 @@
-#ifndef __DB_THREAD_INFO_HPP__
-#define __DB_THREAD_INFO_HPP__
+#ifndef DB_THREAD_INFO_HPP_
+#define DB_THREAD_INFO_HPP_
 
 #include "arch/runtime/runtime.hpp"
 
@@ -14,5 +14,5 @@ inline int get_num_db_threads() {
     return get_num_threads() - 1;
 }
 
-#endif // __DB_THREAD_INFO_HPP__
+#endif // DB_THREAD_INFO_HPP_
 

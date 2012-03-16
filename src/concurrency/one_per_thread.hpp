@@ -1,5 +1,5 @@
-#ifndef __CONCURRENCY_ONE_PER_THREAD_HPP__
-#define __CONCURRENCY_ONE_PER_THREAD_HPP__
+#ifndef CONCURRENCY_ONE_PER_THREAD_HPP_
+#define CONCURRENCY_ONE_PER_THREAD_HPP_
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
@@ -51,4 +51,4 @@ private:
     boost::scoped_array<boost::scoped_ptr<inner_t> > array;
 };
 
-#endif /* __CONCURRENCY_ONE_PER_THREAD_HPP__ */
+#endif /* CONCURRENCY_ONE_PER_THREAD_HPP_ */

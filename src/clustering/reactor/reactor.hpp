@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_REACTOR_REACTOR_HPP__
-#define __CLUSTERING_REACTOR_REACTOR_HPP__
+#ifndef CLUSTERING_REACTOR_REACTOR_HPP_
+#define CLUSTERING_REACTOR_REACTOR_HPP_
 
 #include "clustering/reactor/metadata.hpp"
 #include "rpc/directory/view.hpp"
@@ -146,7 +146,7 @@ private:
 };
 
 
-#endif /* __CLUSTERING_REACTOR_REACTOR_HPP__ */
+#endif /* CLUSTERING_REACTOR_REACTOR_HPP_ */
 
 #include "clustering/reactor/reactor.tcc"
 

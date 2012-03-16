@@ -1,5 +1,5 @@
-#ifndef __UNITTEST_CLUSTERING_UTILS_HPP__
-#define __UNITTEST_CLUSTERING_UTILS_HPP__
+#ifndef UNITTEST_CLUSTERING_UTILS_HPP_
+#define UNITTEST_CLUSTERING_UTILS_HPP_
 
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "rpc/directory/view.hpp"
@@ -216,4 +216,4 @@ private:
 
 }   /* namespace unittest */
 
-#endif /* __UNITTEST_CLUSTERING_UTILS_HPP__ */
+#endif /* UNITTEST_CLUSTERING_UTILS_HPP_ */

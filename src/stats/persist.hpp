@@ -1,5 +1,5 @@
-#ifndef __STATS_PERSIST_HPP__
-#define __STATS_PERSIST_HPP__
+#ifndef STATS_PERSIST_HPP_
+#define STATS_PERSIST_HPP_
 
 #include "arch/runtime/runtime.hpp"
 #include "containers/intrusive_list.hpp"

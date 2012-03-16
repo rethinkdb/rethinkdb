@@ -1,5 +1,5 @@
-#ifndef __ERRORS_HPP__
-#define __ERRORS_HPP__
+#ifndef ERRORS_HPP_
+#define ERRORS_HPP_
 
 #include <errno.h>
 #include <stdlib.h>
@@ -164,4 +164,4 @@ release mode. */
 #endif
 
 
-#endif /* __ERRORS_HPP__ */
+#endif /* ERRORS_HPP_ */

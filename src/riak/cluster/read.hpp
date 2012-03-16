@@ -1,5 +1,5 @@
-#ifndef __RIAK_CLUSTER_READ_HPP__
-#define __RIAK_CLUSTER_READ_HPP__
+#ifndef RIAK_CLUSTER_READ_HPP_
+#define RIAK_CLUSTER_READ_HPP_
 
 #include <string>
 #include <boost/optional.hpp>

@@ -1,5 +1,5 @@
-#ifndef __LOG_SERIALIZER_HPP__
-#define __LOG_SERIALIZER_HPP__
+#ifndef LOG_SERIALIZER_HPP_
+#define LOG_SERIALIZER_HPP_
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -240,4 +240,4 @@ private:
     DISABLE_COPYING(log_serializer_t);
 };
 
-#endif /* __LOG_SERIALIZER_HPP__ */
+#endif /* LOG_SERIALIZER_HPP_ */

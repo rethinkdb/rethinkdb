@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_REGISTRAR_HPP__
-#define __CLUSTERING_REGISTRAR_HPP__
+#ifndef CLUSTERING_REGISTRAR_HPP_
+#define CLUSTERING_REGISTRAR_HPP_
 
 #include "clustering/registration_metadata.hpp"
 #include "clustering/resource.hpp"
@@ -107,4 +107,4 @@ private:
     typename registrar_business_card_t<business_card_t>::delete_mailbox_t delete_mailbox;
 };
 
-#endif /* __CLUSTERING_REGISTRAR_HPP__ */
+#endif /* CLUSTERING_REGISTRAR_HPP_ */

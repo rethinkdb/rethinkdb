@@ -1,5 +1,5 @@
-#ifndef __ACCESS_HPP__
-#define __ACCESS_HPP__
+#ifndef ACCESS_HPP_
+#define ACCESS_HPP_
 
 enum access_t {
     // Intent to read
@@ -39,5 +39,5 @@ inline bool is_write_mode(access_t mode) {
     return !is_read_mode(mode);
 }
 
-#endif // __ACCESS_HPP__
+#endif // ACCESS_HPP_
 

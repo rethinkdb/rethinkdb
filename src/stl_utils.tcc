@@ -1,5 +1,5 @@
-#ifndef __STL_UTILS_TCC__
-#define __STL_UTILS_TCC__
+#ifndef STL_UTILS_TCC_
+#define STL_UTILS_TCC_
 
 #include <algorithm>
 

@@ -1,5 +1,5 @@
-#ifndef __CONCURRENCY_PMAP_HPP__
-#define __CONCURRENCY_PMAP_HPP__
+#ifndef CONCURRENCY_PMAP_HPP_
+#define CONCURRENCY_PMAP_HPP_
 
 #include "arch/runtime/runtime.hpp"
 #include "concurrency/cond_var.hpp"
@@ -104,4 +104,4 @@ void pimap(iterator_t start, iterator_t end, const callable_t &c) {
     }
 }
 
-#endif /* __CONCURRENCY_PMAP_HPP__ */
+#endif /* CONCURRENCY_PMAP_HPP_ */

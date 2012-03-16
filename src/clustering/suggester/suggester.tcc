@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_SUGGESTER_SUGGESTER_TCC__
-#define __CLUSTERING_SUGGESTER_SUGGESTER_TCC__
+#ifndef CLUSTERING_SUGGESTER_SUGGESTER_TCC_
+#define CLUSTERING_SUGGESTER_SUGGESTER_TCC_
 
 #include "stl_utils.hpp"
 
@@ -149,4 +149,4 @@ persistable_blueprint_t<protocol_t> suggest_blueprint(
     return blueprint;
 }
 
-#endif /* __CLUSTERING_SUGGESTER_SUGGESTER_TCC__ */
+#endif /* CLUSTERING_SUGGESTER_SUGGESTER_TCC_ */

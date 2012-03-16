@@ -1,5 +1,5 @@
-#ifndef __HTTP_ROUTING_APP_HPP__
-#define __HTTP_ROUTING_APP_HPP__
+#ifndef HTTP_ROUTING_APP_HPP_
+#define HTTP_ROUTING_APP_HPP_
 
 #include <map>
 #include <string>
@@ -19,4 +19,4 @@ private:
     http_app_t *defaultroute;
 };
 
-#endif /* __HTTP_ROUTING_APP_HPP__ */
+#endif /* HTTP_ROUTING_APP_HPP_ */

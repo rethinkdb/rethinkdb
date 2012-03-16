@@ -1,5 +1,5 @@
-#ifndef __MEMCACHED_STORE_HPP__
-#define __MEMCACHED_STORE_HPP__
+#ifndef MEMCACHED_STORE_HPP_
+#define MEMCACHED_STORE_HPP_
 
 #include "memcached/queries.hpp"
 
@@ -105,4 +105,4 @@ private:
     repli_timestamp_t timestamp;
 };
 
-#endif /* __STORE_HPP__ */
+#endif /* STORE_HPP_ */

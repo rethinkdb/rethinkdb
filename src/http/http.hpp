@@ -1,5 +1,5 @@
-#ifndef __HTPP_HTPP_HPP__
-#define __HTPP_HTPP_HPP__
+#ifndef HTPP_HTPP_HPP_
+#define HTPP_HTPP_HPP_
 
 #include "errors.hpp"
 #include <boost/fusion/include/io.hpp>

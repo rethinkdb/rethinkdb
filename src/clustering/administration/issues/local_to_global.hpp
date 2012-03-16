@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_ADMINISTRATION_ISSUES_LOCAL_TO_GLOBAL_HPP__
-#define __CLUSTERING_ADMINISTRATION_ISSUES_LOCAL_TO_GLOBAL_HPP__
+#ifndef CLUSTERING_ADMINISTRATION_ISSUES_LOCAL_TO_GLOBAL_HPP_
+#define CLUSTERING_ADMINISTRATION_ISSUES_LOCAL_TO_GLOBAL_HPP_
 
 #include "clustering/administration/issues/global.hpp"
 #include "clustering/administration/issues/local.hpp"
@@ -47,4 +47,4 @@ private:
     clone_ptr_t<directory_rview_t<machine_id_t> > machine_id_translation_table;
 };
 
-#endif /* __CLUSTERING_ADMINISTRATION_ISSUES_LOCAL_TO_GLOBAL_HPP__ */
+#endif /* CLUSTERING_ADMINISTRATION_ISSUES_LOCAL_TO_GLOBAL_HPP_ */

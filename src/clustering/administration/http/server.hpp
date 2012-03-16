@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_ADMINISTRATION_HTTP_SERVER_HPP__
-#define __CLUSTERING_ADMINISTRATION_HTTP_SERVER_HPP__
+#ifndef CLUSTERING_ADMINISTRATION_HTTP_SERVER_HPP_
+#define CLUSTERING_ADMINISTRATION_HTTP_SERVER_HPP_
 
 #include "clustering/administration/issues/global.hpp"
 #include "clustering/administration/metadata.hpp"
@@ -34,4 +34,4 @@ private:
     boost::scoped_ptr<http_server_t> server;
 };
 
-#endif /* __CLUSTERING_ADMINISTRATION_HTTP_SERVER_HPP__ */
+#endif /* CLUSTERING_ADMINISTRATION_HTTP_SERVER_HPP_ */

@@ -1,5 +1,5 @@
-#ifndef __ARCH_IO_BLOCKER_POOL_HPP__
-#define __ARCH_IO_BLOCKER_POOL_HPP__
+#ifndef ARCH_IO_BLOCKER_POOL_HPP_
+#define ARCH_IO_BLOCKER_POOL_HPP_
 
 #include <vector>
 
@@ -46,4 +46,4 @@ private:
     void on_event(int);
 };
 
-#endif /* __ARCH_IO_BLOCKER_POOL_HPP__ */
+#endif /* ARCH_IO_BLOCKER_POOL_HPP_ */

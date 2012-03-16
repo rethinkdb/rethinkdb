@@ -1,5 +1,5 @@
-#ifndef __CONCURRENCY_SIGNAL_HPP__
-#define __CONCURRENCY_SIGNAL_HPP__
+#ifndef CONCURRENCY_SIGNAL_HPP_
+#define CONCURRENCY_SIGNAL_HPP_
 
 #include "errors.hpp"
 #include <boost/function.hpp>
@@ -105,4 +105,4 @@ private:
     DISABLE_COPYING(signal_t);
 };
 
-#endif /* __CONCURRENCY_SIGNAL_HPP__ */
+#endif /* CONCURRENCY_SIGNAL_HPP_ */

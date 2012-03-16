@@ -1,5 +1,5 @@
-#ifndef __ARCH_RUNTIME_MESSAGE_HUB_HPP__
-#define __ARCH_RUNTIME_MESSAGE_HUB_HPP__
+#ifndef ARCH_RUNTIME_MESSAGE_HUB_HPP_
+#define ARCH_RUNTIME_MESSAGE_HUB_HPP_
 
 #include <pthread.h>
 #include <strings.h>
@@ -90,4 +90,4 @@ private:
     unsigned int current_thread;
 };
 
-#endif // __ARCH_RUNTIME_MESSAGE_HUB_HPP__
+#endif // ARCH_RUNTIME_MESSAGE_HUB_HPP_

@@ -1,5 +1,5 @@
-#ifndef __RPC_METADATA_VIEW_HPP__
-#define __RPC_METADATA_VIEW_HPP__
+#ifndef RPC_METADATA_VIEW_HPP_
+#define RPC_METADATA_VIEW_HPP_
 
 #include "concurrency/pubsub.hpp"
 
@@ -70,4 +70,4 @@ public:
     virtual void sync_to(peer_id_t peer, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, sync_failed_exc_t) = 0;
 };
 
-#endif /* __RPC_METADATA_VIEW_HPP__ */
+#endif /* RPC_METADATA_VIEW_HPP_ */

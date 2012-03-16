@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_ADMINISTRATION_HTTP_ISSUES_APP_HPP__
-#define __CLUSTERING_ADMINISTRATION_HTTP_ISSUES_APP_HPP__
+#ifndef CLUSTERING_ADMINISTRATION_HTTP_ISSUES_APP_HPP_
+#define CLUSTERING_ADMINISTRATION_HTTP_ISSUES_APP_HPP_
 
 #include "clustering/administration/issues/global.hpp"
 #include "http/http.hpp"
@@ -14,4 +14,4 @@ private:
     global_issue_tracker_t *issue_tracker;
 };
 
-#endif /* __CLUSTERING_ADMINISTRATION_HTTP_ISSUES_APP_HPP__ */
+#endif /* CLUSTERING_ADMINISTRATION_HTTP_ISSUES_APP_HPP_ */

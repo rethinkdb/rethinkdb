@@ -1,5 +1,5 @@
-#ifndef __SERIALIZER_LOG_LBA_EXTENT_HPP__
-#define __SERIALIZER_LOG_LBA_EXTENT_HPP__
+#ifndef SERIALIZER_LOG_LBA_EXTENT_HPP_
+#define SERIALIZER_LOG_LBA_EXTENT_HPP_
 
 #include "serializer/log/extent_manager.hpp"
 #include "arch/types.hpp"
@@ -44,4 +44,4 @@ private:
     extent_block_t *last_block, *current_block;
 };
 
-#endif /* __SERIALIZER_LOG_LBA_EXTENT_HPP__ */
+#endif /* SERIALIZER_LOG_LBA_EXTENT_HPP_ */

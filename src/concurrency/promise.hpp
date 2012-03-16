@@ -1,5 +1,5 @@
-#ifndef __CONCURRENCY_PROMISE_HPP__
-#define __CONCURRENCY_PROMISE_HPP__
+#ifndef CONCURRENCY_PROMISE_HPP_
+#define CONCURRENCY_PROMISE_HPP_
 
 #include "concurrency/cond_var.hpp"
 
@@ -36,4 +36,4 @@ private:
     DISABLE_COPYING(promise_t);
 };
 
-#endif /* __CONCURRENCY_PROMISE_HPP__ */
+#endif /* CONCURRENCY_PROMISE_HPP_ */

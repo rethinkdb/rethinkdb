@@ -1,5 +1,5 @@
-#ifndef __RPC_DIRECTORY_VIEW_HPP__
-#define __RPC_DIRECTORY_VIEW_HPP__
+#ifndef RPC_DIRECTORY_VIEW_HPP_
+#define RPC_DIRECTORY_VIEW_HPP_
 
 #include "rpc/directory/read_view.hpp"
 #include "rpc/directory/write_view.hpp"
@@ -27,6 +27,6 @@ public:
     clone_ptr_t<directory_rwview_t<inner_t> > subview(const clone_ptr_t<readwrite_lens_t<inner_t, metadata_t> > &lens);
 };
 
-#endif /* __RPC_DIRECTORY_VIEW_HPP__ */
+#endif /* RPC_DIRECTORY_VIEW_HPP_ */
 
 #include "rpc/directory/view.tcc"

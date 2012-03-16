@@ -1,5 +1,5 @@
-#ifndef __CONCURRENCY_CORO_FIFO_HPP__
-#define __CONCURRENCY_CORO_FIFO_HPP__
+#ifndef CONCURRENCY_CORO_FIFO_HPP_
+#define CONCURRENCY_CORO_FIFO_HPP_
 
 #include "errors.hpp"
 #include "concurrency/cond_var.hpp"
@@ -69,4 +69,4 @@ private:
 };
 
 
-#endif  // __CONCURRENCY_CORO_FIFO_HPP__
+#endif  // CONCURRENCY_CORO_FIFO_HPP_

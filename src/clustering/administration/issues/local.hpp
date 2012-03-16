@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_ADMINISTRATION_ISSUES_LOCAL_HPP__
-#define __CLUSTERING_ADMINISTRATION_ISSUES_LOCAL_HPP__
+#ifndef CLUSTERING_ADMINISTRATION_ISSUES_LOCAL_HPP_
+#define CLUSTERING_ADMINISTRATION_ISSUES_LOCAL_HPP_
 
 #include <list>
 #include <string>
@@ -56,4 +56,4 @@ private:
     watchable_variable_t<std::list<clone_ptr_t<local_issue_t> > > issues_watchable;
 };
 
-#endif /* __CLUSTERING_ADMINISTRATION_ISSUES_LOCAL_HPP__ */
+#endif /* CLUSTERING_ADMINISTRATION_ISSUES_LOCAL_HPP_ */

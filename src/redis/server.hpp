@@ -1,5 +1,5 @@
-#ifndef __REDIS_SERVER_HPP__
-#define __REDIS_SERVER_HPP__
+#ifndef REDIS_SERVER_HPP_
+#define REDIS_SERVER_HPP_
 
 #include "arch/arch.hpp"
 
@@ -25,4 +25,4 @@ private:
     void handle(boost::scoped_ptr<nascent_tcp_conn_t> &conn);
 };
 
-#endif /* __REDIS_SERVER_HPP__ */
+#endif /* REDIS_SERVER_HPP_ */

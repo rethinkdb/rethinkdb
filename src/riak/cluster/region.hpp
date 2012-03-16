@@ -1,5 +1,5 @@
-#ifndef __RIAK_CLUSTER_REGION_HPP__
-#define __RIAK_CLUSTER_REGION_HPP__
+#ifndef RIAK_CLUSTER_REGION_HPP_
+#define RIAK_CLUSTER_REGION_HPP_
 
 #include <string>
 #include <set>

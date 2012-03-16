@@ -1,5 +1,5 @@
-#ifndef __RPC_CONNECTIVITY_MULTIPLEXER_HPP__
-#define __RPC_CONNECTIVITY_MULTIPLEXER_HPP__
+#ifndef RPC_CONNECTIVITY_MULTIPLEXER_HPP_
+#define RPC_CONNECTIVITY_MULTIPLEXER_HPP_
 
 #include "rpc/connectivity/messages.hpp"
 
@@ -70,4 +70,4 @@ private:
     run_t *run;
 };
 
-#endif /* __RPC_CONNECTIVITY_MULTIPLEXER_HPP__ */
+#endif /* RPC_CONNECTIVITY_MULTIPLEXER_HPP_ */

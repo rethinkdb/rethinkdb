@@ -1,5 +1,5 @@
-#ifndef __DO_ON_THREAD_HPP__
-#define __DO_ON_THREAD_HPP__
+#ifndef DO_ON_THREAD_HPP_
+#define DO_ON_THREAD_HPP_
 
 #include "arch/runtime/runtime.hpp"
 #include "utils.hpp"
@@ -124,4 +124,4 @@ void one_way_do_on_thread(int thread, const callable_t& callable) {
 
 
 
-#endif  // __DO_ON_THREAD_HPP__
+#endif  // DO_ON_THREAD_HPP_

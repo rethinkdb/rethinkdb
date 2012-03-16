@@ -1,5 +1,5 @@
-#ifndef __SERIALIZER_LOG_LBA_DISK_FORMAT__
-#define __SERIALIZER_LOG_LBA_DISK_FORMAT__
+#ifndef SERIALIZER_LOG_LBA_DISK_FORMAT_HPP_
+#define SERIALIZER_LOG_LBA_DISK_FORMAT_HPP_
 
 #include <limits.h>
 
@@ -158,5 +158,5 @@ struct lba_superblock_t {
 
 
 
-#endif /* __SERIALIZER_LOG_LBA_DISK_FORMAT__ */
+#endif  // SERIALIZER_LOG_LBA_DISK_FORMAT_HPP_
 

@@ -1,5 +1,5 @@
-#ifndef __ARCH_IO_TIMER_TIMER_SIGNAL_PROVIDER_HPP__
-#define __ARCH_IO_TIMER_TIMER_SIGNAL_PROVIDER_HPP__
+#ifndef ARCH_IO_TIMER_TIMER_SIGNAL_PROVIDER_HPP_
+#define ARCH_IO_TIMER_TIMER_SIGNAL_PROVIDER_HPP_
 
 #include "arch/runtime/event_queue.hpp"
 
@@ -24,5 +24,5 @@ private:
     sigevent evp;    // notify event
 };
 
-#endif // __ARCH_IO_TIMER_TIMER_SIGNAL_PROVIDER_HPP__
+#endif // ARCH_IO_TIMER_TIMER_SIGNAL_PROVIDER_HPP_
 

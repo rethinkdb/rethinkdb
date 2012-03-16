@@ -1,5 +1,5 @@
-#ifndef __BTREE_PARALLEL_TRAVERSAL_HPP__
-#define __BTREE_PARALLEL_TRAVERSAL_HPP__
+#ifndef BTREE_PARALLEL_TRAVERSAL_HPP_
+#define BTREE_PARALLEL_TRAVERSAL_HPP_
 
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
@@ -101,4 +101,4 @@ struct btree_traversal_helper_t {
 void btree_parallel_traversal(transaction_t *txn, btree_slice_t *slice, btree_traversal_helper_t *helper);
 void btree_parallel_traversal(transaction_t *txn, got_superblock_t &superblock, btree_slice_t *slice, btree_traversal_helper_t *helper);
 
-#endif  // __BTREE_PARALLEL_TRAVERSAL_HPP__
+#endif  // BTREE_PARALLEL_TRAVERSAL_HPP_

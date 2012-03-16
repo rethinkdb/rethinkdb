@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_ADMINISTRATION_PERSISTABLE_BLUEPRINT_TCC__
-#define __CLUSTERING_ADMINISTRATION_PERSISTABLE_BLUEPRINT_TCC__
+#ifndef CLUSTERING_ADMINISTRATION_PERSISTABLE_BLUEPRINT_TCC_
+#define CLUSTERING_ADMINISTRATION_PERSISTABLE_BLUEPRINT_TCC_
 
 #include "errors.hpp"
 
@@ -71,4 +71,4 @@ void apply_json_to(cJSON *change, persistable_blueprint_t<protocol_t> *target, c
 template <class protocol_t, class ctx_t>
 void on_subfield_change(persistable_blueprint_t<protocol_t> *, const ctx_t &) { }
 
-#endif /* __CLUSTERING_ADMINISTRATION_PERSISTABLE_BLUEPRINT_TCC__ */
+#endif /* CLUSTERING_ADMINISTRATION_PERSISTABLE_BLUEPRINT_TCC_ */

@@ -1,5 +1,5 @@
-#ifndef __MOCK_DUMMY_PROTOCOL_PARSER_HPP__
-#define __MOCK_DUMMY_PROTOCOL_PARSER_HPP__
+#ifndef MOCK_DUMMY_PROTOCOL_PARSER_HPP_
+#define MOCK_DUMMY_PROTOCOL_PARSER_HPP_
 
 #include "errors.hpp"
 #include <boost/ptr_container/ptr_map.hpp>

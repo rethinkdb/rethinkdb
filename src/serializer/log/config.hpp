@@ -1,5 +1,5 @@
-#ifndef __SERIALIZER_LOG_CONFIG_HPP__
-#define __SERIALIZER_LOG_CONFIG_HPP__
+#ifndef SERIALIZER_LOG_CONFIG_HPP_
+#define SERIALIZER_LOG_CONFIG_HPP_
 
 #include "config/args.hpp"
 #include "serializer/types.hpp"

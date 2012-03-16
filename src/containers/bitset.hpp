@@ -1,5 +1,5 @@
-#ifndef __CONTAINERS_BITSET_HPP__
-#define __CONTAINERS_BITSET_HPP__
+#ifndef CONTAINERS_BITSET_HPP_
+#define CONTAINERS_BITSET_HPP_
 
 #include <vector>
 
@@ -108,4 +108,4 @@ public:
     }
 };
 
-#endif /* __CONTAINERS_BITSET_HPP__ */
+#endif /* CONTAINERS_BITSET_HPP_ */

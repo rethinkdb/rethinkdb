@@ -1,5 +1,5 @@
-#ifndef __UNITTEST_UNITTEST_UTILS_HPP__
-#define __UNITTEST_UNITTEST_UTILS_HPP__
+#ifndef UNITTEST_UNITTEST_UTILS_HPP_
+#define UNITTEST_UNITTEST_UTILS_HPP_
 
 #include "errors.hpp"
 #include <boost/function.hpp>
@@ -28,4 +28,4 @@ public:
 
 }  // namespace unittest
 
-#endif // __UNITTEST_UTILS__
+#endif  // UNITTEST_UNITTEST_UTILS_HPP_

@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_RESOURCE_HPP__
-#define __CLUSTERING_RESOURCE_HPP__
+#ifndef CLUSTERING_RESOURCE_HPP_
+#define CLUSTERING_RESOURCE_HPP_
 
 #include "concurrency/wait_any.hpp"
 #include "rpc/directory/read_view.hpp"
@@ -164,4 +164,4 @@ private:
     key_t key;
 };
 
-#endif /* __CLUSTERING_RESOURCE_HPP__ */
+#endif /* CLUSTERING_RESOURCE_HPP_ */

@@ -1,5 +1,5 @@
-#ifndef __HELP_HPP__
-#define __HELP_HPP__
+#ifndef HELP_HPP_
+#define HELP_HPP_
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -90,4 +90,4 @@ public:
     }
 };
 
-#endif // __HELP_HPP__
+#endif // HELP_HPP_

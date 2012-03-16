@@ -1,5 +1,5 @@
-#ifndef __PARSING_UTIL_HPP__
-#define __PARSING_UTIL_HPP__
+#ifndef PARSING_UTIL_HPP_
+#define PARSING_UTIL_HPP_
 
 #include <string>
 #include <alloca.h>
@@ -48,4 +48,4 @@ private:
     bool readCRLF();
 };
 
-#endif /* __PARSING_UTIL_HPP__ */
+#endif /* PARSING_UTIL_HPP_ */

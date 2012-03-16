@@ -1,5 +1,5 @@
-#ifndef __CONCURRENCY_AUTO_DRAINER_HPP__
-#define __CONCURRENCY_AUTO_DRAINER_HPP__
+#ifndef CONCURRENCY_AUTO_DRAINER_HPP_
+#define CONCURRENCY_AUTO_DRAINER_HPP_
 
 #include "concurrency/cond_var.hpp"
 
@@ -94,4 +94,4 @@ which interrupts `serve_queries_until_interrupted()`, causing `serve()` to
 return and destroy `keepalive`. This way, `drainer`'s destructor blocks until
 all the copies of `serve` have returned. */
 
-#endif /* __CONCURRENCY_AUTO_DRAINER_HPP__ */
+#endif /* CONCURRENCY_AUTO_DRAINER_HPP_ */

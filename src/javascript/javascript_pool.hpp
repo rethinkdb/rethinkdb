@@ -1,5 +1,5 @@
-#ifndef __JAVASCRIPT_JAVASCRIPT_POOL_HPP__
-#define __JAVASCRIPT_JAVASCRIPT_POOL_HPP__
+#ifndef JAVASCRIPT_JAVASCRIPT_POOL_HPP_
+#define JAVASCRIPT_JAVASCRIPT_POOL_HPP_
 
 #include <vector>
 #include "arch/runtime/event_queue.hpp"
@@ -160,4 +160,4 @@ inline void ctx_group_t::run_blocking<void>(boost::function<void()> f) {
 
 } // namespace JS
 
-#endif /* __JAVASCRIPT_JAVASCRIPT_POOL_HPP__ */
+#endif /* JAVASCRIPT_JAVASCRIPT_POOL_HPP_ */

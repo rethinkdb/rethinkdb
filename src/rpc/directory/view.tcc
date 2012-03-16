@@ -1,5 +1,5 @@
-#ifndef __RPC_DIRECTORY_VIEW_TCC__
-#define __RPC_DIRECTORY_VIEW_TCC__
+#ifndef RPC_DIRECTORY_VIEW_TCC_
+#define RPC_DIRECTORY_VIEW_TCC_
 
 template<class metadata_t, class inner_t>
 class subview_directory_rwview_t :

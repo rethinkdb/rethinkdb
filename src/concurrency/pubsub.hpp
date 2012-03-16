@@ -1,5 +1,5 @@
-#ifndef __CONCURRENCY_PUBSUB_HPP__
-#define __CONCURRENCY_PUBSUB_HPP__
+#ifndef CONCURRENCY_PUBSUB_HPP_
+#define CONCURRENCY_PUBSUB_HPP_
 
 #include "concurrency/mutex_assertion.hpp"
 #include "utils.hpp"
@@ -130,4 +130,4 @@ private:
     DISABLE_COPYING(publisher_controller_t);
 };
 
-#endif /* __CONCURRENCY_PUBSUB_HPP__ */
+#endif /* CONCURRENCY_PUBSUB_HPP_ */
