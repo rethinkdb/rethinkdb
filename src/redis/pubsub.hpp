@@ -1,5 +1,5 @@
-#ifndef PROTOCOL_REDIS_PUBSUB__HPP_
-#define PROTOCOL_REDIS_PUBSUB__HPP_
+#ifndef PROTOCOL_REDIS_PUBSUB_HPP_
+#define PROTOCOL_REDIS_PUBSUB_HPP_
 
 #include "concurrency/rwi_lock.hpp"
 #include "arch/arch.hpp"
@@ -31,4 +31,4 @@ private:
     std::list<pattern_subscription_t> pattern_subscriptions;
 };
 
-#endif /*PROTOCOL_REDIS_PUBSUB__HPP_*/
+#endif /*PROTOCOL_REDIS_PUBSUB_HPP_*/

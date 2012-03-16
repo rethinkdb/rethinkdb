@@ -1,5 +1,5 @@
-#ifndef __CONTAINERS_VECTOR_STREAM__
-#define __CONTAINERS_VECTOR_STREAM__
+#ifndef CONTAINERS_VECTOR_STREAM_HPP_
+#define CONTAINERS_VECTOR_STREAM_HPP_
 
 #include <streambuf>
 #include <vector>
@@ -37,5 +37,5 @@ private:
 
 #include "containers/vector_stream.tcc"
 
-#endif // __CONTAINERS_VECTOR_STREAM__
+#endif  // CONTAINERS_VECTOR_STREAM_HPP_
 

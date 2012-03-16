@@ -1,5 +1,5 @@
-#ifndef __SERIALIZER_LOG_LBA_DISK_STRUCTURE__
-#define __SERIALIZER_LOG_LBA_DISK_STRUCTURE__
+#ifndef SERIALIZER_LOG_LBA_DISK_STRUCTURE_HPP_
+#define SERIALIZER_LOG_LBA_DISK_STRUCTURE_HPP_
 
 #include "arch/types.hpp"
 #include "serializer/log/extent_manager.hpp"
@@ -70,4 +70,4 @@ private:
     ~lba_disk_structure_t() {}
 };
 
-#endif /* __SERIALIZER_LOG_LBA_DISK_STRUCTURE__ */
+#endif  // SERIALIZER_LOG_LBA_DISK_STRUCTURE_HPP_

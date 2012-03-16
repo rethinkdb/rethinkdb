@@ -1,5 +1,5 @@
-#ifndef __UNITTEST_SERVER_TEST_HELPER__
-#define __UNITTEST_SERVER_TEST_HELPER__
+#ifndef UNITTEST_SERVER_TEST_HELPER_HPP_
+#define UNITTEST_SERVER_TEST_HELPER_HPP_
 
 #include "arch/types.hpp"
 #include "utils.hpp"
@@ -59,4 +59,4 @@ private:
 
 }  // namespace unittest
 
-#endif //__UNITTEST_SERVER_TEST_HELPER__
+#endif  // UNITTEST_SERVER_TEST_HELPER_HPP_
