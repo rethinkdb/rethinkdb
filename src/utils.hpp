@@ -8,14 +8,12 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <map>
+
 
 #include "errors.hpp"
 #include <boost/uuid/uuid.hpp>
 #include <boost/function.hpp>
-#include <boost/optional.hpp>
-
-#include <list>
-#include <map>
 
 #include "rpc/serialize_macros.hpp"
 
@@ -371,24 +369,6 @@ boost::uuids::uuid generate_uuid();
 
 void print_backtrace(FILE *out = stderr, bool use_addr2line = true);
 
-/* I think we basically all know this... but this function has linear
- * complexity and thus you can't use it for anything real, if you want to do
- * this type of access pattern use a different STL container. This only exists
- * because it's convenient to pass around paths as std::lists and I don't want
- * to write 3 lines of code to access the second element. */
-template <class T>
-T const &nth(std::list<T> const &l, unsigned n) {
-    typename std::list<T>::const_iterator it = l.begin();
-
-    while (n > 0) {
-        rassert(it != l.end(), "n > list.size()");
-        n--;
-        it++;
-    }
-
-    return *it;
-}
-
 template <class InputIterator, class UnaryPredicate>
 bool all_match_predicate(InputIterator begin, InputIterator end, UnaryPredicate f) {
     bool res = true;
@@ -404,29 +384,6 @@ bool all_in_container_match_predicate (const T &container, UnaryPredicate f) {
 }
 
 bool notf(bool x);
-
-/*
-template<class K, class V>
-std::ostream &operator<<(std::ostream &stream, const std::map<K, V> &map) {
-    stream << "{ ";
-    for (typename std::map<K, V>::const_iterator it =  map.begin(); it != map.end(); ++it) {
-        stream << it->first << " -> " << it->second << ", ";
-    }
-    stream << "}";
-    return stream;
-}
-
-template <class T>
-std::ostream &operator<<(std::ostream &stream, const boost::optional<T> &optional) {
-    if (optional) {
-        stream << optional.get();
-    } else {
-        stream << "Boost optional containing nothing.";
-    }
-
-    return stream;
-}
-*/
 
 std::string read_file(const char *path);
 
