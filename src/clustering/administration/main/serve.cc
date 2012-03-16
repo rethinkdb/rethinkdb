@@ -20,6 +20,7 @@
 #include "rpc/directory/watchable_copier.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
+#include "rpc/semilattice/view/field.hpp"
 
 bool serve(const std::string &filepath, const std::vector<peer_address_t> &joins, int port, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata) {
 
