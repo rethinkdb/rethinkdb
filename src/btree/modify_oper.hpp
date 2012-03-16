@@ -1,5 +1,5 @@
-#ifndef __BTREE_MODIFY_OPER_HPP__
-#define __BTREE_MODIFY_OPER_HPP__
+#ifndef BTREE_MODIFY_OPER_HPP_
+#define BTREE_MODIFY_OPER_HPP_
 
 #include "btree/node.hpp"
 #include "containers/scoped_malloc.hpp"
@@ -34,4 +34,4 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
     transaction_t *txn, got_superblock_t& superblock);
 
 
-#endif // __BTREE_MODIFY_OPER_HPP__
+#endif // BTREE_MODIFY_OPER_HPP_

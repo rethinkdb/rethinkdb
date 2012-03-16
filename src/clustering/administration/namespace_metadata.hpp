@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_ADMINISTRATION_NAMESPACE_METADATA_HPP__
-#define __CLUSTERING_ADMINISTRATION_NAMESPACE_METADATA_HPP__
+#ifndef CLUSTERING_ADMINISTRATION_NAMESPACE_METADATA_HPP_
+#define CLUSTERING_ADMINISTRATION_NAMESPACE_METADATA_HPP_
 
 #include <map>
 
@@ -8,7 +8,7 @@
 #include <boost/bind.hpp>
 
 #include "clustering/administration/datacenter_metadata.hpp"
-#include "clustering/administration/json_adapters.hpp"
+#include "clustering/administration/http/json_adapters.hpp"
 #include "clustering/administration/persistable_blueprint.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "clustering/immediate_consistency/query/metadata.hpp"
@@ -18,6 +18,7 @@
 #include "http/json/json_adapter.hpp"
 #include "rpc/semilattice/joins/deletable.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
+#include "rpc/semilattice/joins/map.hpp"
 #include "rpc/semilattice/joins/vclock.hpp"
 #include "rpc/serialize_macros.hpp"
 
@@ -127,5 +128,5 @@ struct namespace_metadata_ctx_t {
     { }
 };
 
-#endif /* __CLUSTERING_ARCHITECT_METADATA_HPP__ */
+#endif /* CLUSTERING_ARCHITECT_METADATA_HPP_ */
 

@@ -1,6 +1,5 @@
-
-#ifndef __SERIALIZER_LOG_LBA_IN_MEMORY_INDEX__
-#define __SERIALIZER_LOG_LBA_IN_MEMORY_INDEX__
+#ifndef SERIALIZER_LOG_LBA_IN_MEMORY_INDEX_HPP_
+#define SERIALIZER_LOG_LBA_IN_MEMORY_INDEX_HPP_
 
 
 #include "containers/segmented_vector.hpp"
@@ -42,5 +41,5 @@ public:
 #endif
 };
 
-#endif /* __SERIALIZER_LOG_LBA_IN_MEMORY_INDEX__ */
+#endif  // SERIALIZER_LOG_LBA_IN_MEMORY_INDEX_HPP_
 

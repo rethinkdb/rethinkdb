@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_REACTOR_DIRECTORY_ECHO_TCC__
-#define __CLUSTERING_REACTOR_DIRECTORY_ECHO_TCC__
+#ifndef CLUSTERING_REACTOR_DIRECTORY_ECHO_TCC_
+#define CLUSTERING_REACTOR_DIRECTORY_ECHO_TCC_
 
 template <class internal_t>
 directory_echo_access_t<internal_t>::our_value_change_t::our_value_change_t(directory_echo_access_t *p) 

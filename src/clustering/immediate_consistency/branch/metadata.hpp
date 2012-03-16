@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_METADATA_HPP__
-#define __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_METADATA_HPP__
+#ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_METADATA_HPP_
+#define CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_METADATA_HPP_
 
 #include <map>
 
@@ -251,4 +251,4 @@ void semilattice_join(branch_history_t<protocol_t> *a, const branch_history_t<pr
     semilattice_join(&a->branches, b.branches);
 }
 
-#endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_METADATA_HPP__ */
+#endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_METADATA_HPP_ */

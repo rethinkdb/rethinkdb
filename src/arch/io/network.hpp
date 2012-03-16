@@ -1,5 +1,5 @@
-#ifndef __ARCH_IO_NETWORK_HPP__
-#define __ARCH_IO_NETWORK_HPP__
+#ifndef ARCH_IO_NETWORK_HPP_
+#define ARCH_IO_NETWORK_HPP_
 
 #include <vector>
 
@@ -361,4 +361,4 @@ private:
 
 
 
-#endif // __ARCH_IO_NETWORK_HPP__
+#endif // ARCH_IO_NETWORK_HPP_

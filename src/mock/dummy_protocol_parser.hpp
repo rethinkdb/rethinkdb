@@ -1,5 +1,5 @@
-#ifndef __MOCK_DUMMY_PROTOCOL_PARSER_HPP__
-#define __MOCK_DUMMY_PROTOCOL_PARSER_HPP__
+#ifndef MOCK_DUMMY_PROTOCOL_PARSER_HPP_
+#define MOCK_DUMMY_PROTOCOL_PARSER_HPP_
 
 #include "errors.hpp"
 #include <boost/ptr_container/ptr_map.hpp>
@@ -14,10 +14,9 @@
 
 namespace mock {
 
-class http_access_t : public http_server_t {
+class query_http_app_t : public http_app_t {
 public:
-    http_access_t(namespace_interface_t<dummy_protocol_t> *, 
-                  int);
+    query_http_app_t(namespace_interface_t<dummy_protocol_t> * _namespace_if);
     http_res_t handle(const http_req_t &);
 
 private:
@@ -42,7 +41,8 @@ private:
         parser_and_namespace_if_t(namespace_id_t, dummy_protocol_parser_maker_t *parent, int port);
 
         cluster_namespace_interface_t<dummy_protocol_t> namespace_if;
-        http_access_t parser;
+        query_http_app_t parser;
+        http_server_t server;
     };
     boost::ptr_map<namespace_id_t, parser_and_namespace_if_t> parsers;
 

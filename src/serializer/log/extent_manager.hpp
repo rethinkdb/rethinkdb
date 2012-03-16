@@ -1,5 +1,5 @@
-#ifndef __SERIALIZER_LOG_EXTENT_MANAGER_HPP__
-#define __SERIALIZER_LOG_EXTENT_MANAGER_HPP__
+#ifndef SERIALIZER_LOG_EXTENT_MANAGER_HPP_
+#define SERIALIZER_LOG_EXTENT_MANAGER_HPP_
 
 #include <deque>
 
@@ -97,4 +97,4 @@ private:
 
     transaction_t *current_transaction;
 };
-#endif /* __SERIALIZER_LOG_EXTENT_MANAGER_HPP__ */
+#endif /* SERIALIZER_LOG_EXTENT_MANAGER_HPP_ */

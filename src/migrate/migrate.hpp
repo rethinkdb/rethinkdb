@@ -1,5 +1,5 @@
-#ifndef __MIGRATE_MIGRATE_HPP_
-#define __MIGRATE_MIGRATE_HPP_
+#ifndef MIGRATE_MIGRATE_HPP_
+#define MIGRATE_MIGRATE_HPP_
 
 #include <vector>
 #include <string>
@@ -28,4 +28,4 @@ void usage(const char *name);
 
 int run_migrate(int argc, char **argv);
 
-#endif
+#endif  // MIGRATE_MIGRATE_HPP_

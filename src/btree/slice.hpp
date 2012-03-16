@@ -1,5 +1,5 @@
-#ifndef __BTREE_SLICE_HPP__
-#define __BTREE_SLICE_HPP__
+#ifndef BTREE_SLICE_HPP_
+#define BTREE_SLICE_HPP_
 
 #include "errors.hpp"
 #include <boost/scoped_ptr.hpp>
@@ -91,4 +91,4 @@ public:
     eviction_priority_t root_eviction_priority;
 };
 
-#endif /* __BTREE_SLICE_HPP__ */
+#endif /* BTREE_SLICE_HPP_ */

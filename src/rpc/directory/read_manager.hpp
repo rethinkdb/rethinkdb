@@ -1,5 +1,5 @@
-#ifndef __RPC_DIRECTORY_READ_MANAGER_HPP__
-#define __RPC_DIRECTORY_READ_MANAGER_HPP__
+#ifndef RPC_DIRECTORY_READ_MANAGER_HPP_
+#define RPC_DIRECTORY_READ_MANAGER_HPP_
 
 #include "errors.hpp"
 #include <boost/ptr_container/ptr_map.hpp>
@@ -146,4 +146,4 @@ private:
 
 #include "rpc/directory/read_manager.tcc"
 
-#endif /* __RPC_DIRECTORY_READ_MANAGER_HPP__ */
+#endif /* RPC_DIRECTORY_READ_MANAGER_HPP_ */

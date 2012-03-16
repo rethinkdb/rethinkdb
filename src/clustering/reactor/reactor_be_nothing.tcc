@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_REACTOR_REACTOR_BE_NOTHING_TCC__
-#define __CLUSTERING_REACTOR_REACTOR_BE_NOTHING_TCC__
+#ifndef CLUSTERING_REACTOR_REACTOR_BE_NOTHING_TCC_
+#define CLUSTERING_REACTOR_REACTOR_BE_NOTHING_TCC_
 
 /* Returns true if every peer listed as a primary for this shard in the
  * blueprint has activity primary_t and every peer listed as a secondary has

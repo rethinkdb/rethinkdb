@@ -1,5 +1,5 @@
-#ifndef __REDIS_OUTPUT_HPP__
-#define __REDIS_OUTPUT_HPP__
+#ifndef REDIS_OUTPUT_HPP_
+#define REDIS_OUTPUT_HPP_
 
 #include "utils.hpp"
 #include "arch/types.hpp"
@@ -14,4 +14,4 @@ protected:
     tcp_conn_t *out_conn;
 };
 
-#endif //__REDIS_OUTPUT_HPP__
+#endif //REDIS_OUTPUT_HPP_

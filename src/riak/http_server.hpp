@@ -1,5 +1,5 @@
-#ifndef __RIAK_RIAK_HPP__
-#define __RIAK_RIAK_HPP__
+#ifndef RIAK_RIAK_HPP_
+#define RIAK_RIAK_HPP_
 
 #include "http/http.hpp"
 #include <boost/tokenizer.hpp>
@@ -36,9 +36,10 @@ struct link_parser_t: qi::grammar<Iterator, std::vector<link_t>()> {
     qi::rule<Iterator, std::vector<link_t>()> start;
 };
 
-class riak_server_t : public http_server_t {
+class riak_http_app_t : public http_app_t {
 public:
-    riak_server_t(int, store_manager_t<std::list<std::string> > *);
+    riak_http_app_t(store_manager_t<std::list<std::string> > *);
+
 private:
     http_res_t handle(const http_req_t &);
 

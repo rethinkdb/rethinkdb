@@ -1,5 +1,5 @@
-#ifndef __BTREE_OPERATIONS_HPP__
-#define __BTREE_OPERATIONS_HPP__
+#ifndef BTREE_OPERATIONS_HPP_
+#define BTREE_OPERATIONS_HPP_
 
 #include "errors.hpp"
 #include <boost/scoped_ptr.hpp>
@@ -260,4 +260,4 @@ void clear_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock);
 
 #include "btree/operations.tcc"
 
-#endif  // __BTREE_OPERATIONS_HPP__
+#endif  // BTREE_OPERATIONS_HPP_

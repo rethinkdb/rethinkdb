@@ -1,5 +1,5 @@
-#ifndef __BUFFER_CACHE_BLOB_HPP__
-#define __BUFFER_CACHE_BLOB_HPP__
+#ifndef BUFFER_CACHE_BLOB_HPP_
+#define BUFFER_CACHE_BLOB_HPP_
 
 #include <string>
 #include <vector>
@@ -228,4 +228,4 @@ private:
 
 
 
-#endif  // __BUFFER_CACHE_BLOB_HPP__
+#endif  // BUFFER_CACHE_BLOB_HPP_

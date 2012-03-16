@@ -1,5 +1,5 @@
-#ifndef __BTREE_VALUE_HPP__
-#define __BTREE_VALUE_HPP__
+#ifndef BTREE_VALUE_HPP_
+#define BTREE_VALUE_HPP_
 
 #include "errors.hpp"
 #include "buffer_cache/blob.hpp"
@@ -101,4 +101,4 @@ bool btree_value_fits(block_size_t bs, int data_length, const memcached_value_t 
 
 
 
-#endif  // __BTREE_VALUE_HPP__
+#endif  // BTREE_VALUE_HPP_

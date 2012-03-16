@@ -1,5 +1,5 @@
-#ifndef __SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP__
-#define __SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP__
+#ifndef SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP_
+#define SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP_
 
 #include "utils.hpp"
 #include <boost/scoped_ptr.hpp>
@@ -335,4 +335,4 @@ private:
     DISABLE_COPYING(data_block_manager_t);
 };
 
-#endif /* __SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP__ */
+#endif /* SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP_ */

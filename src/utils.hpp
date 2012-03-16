@@ -1,5 +1,5 @@
-#ifndef __UTILS_HPP__
-#define __UTILS_HPP__
+#ifndef UTILS_HPP_
+#define UTILS_HPP_
 
 #include <stdint.h>
 #include <stdio.h>
@@ -434,4 +434,4 @@ std::string uuid_to_str(boost::uuids::uuid id);
 
 boost::uuids::uuid str_to_uuid(const std::string&);
 
-#endif // __UTILS_HPP__
+#endif // UTILS_HPP_

@@ -1,6 +1,5 @@
-
-#ifndef __ARCH_ADDRESS_HPP__
-#define __ARCH_ADDRESS_HPP__
+#ifndef ARCH_ADDRESS_HPP_
+#define ARCH_ADDRESS_HPP_
 
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/binary_object.hpp>
@@ -32,4 +31,4 @@ private:
     }
 };
 
-#endif /* __ARCH_ADDRESS_HPP__ */
+#endif /* ARCH_ADDRESS_HPP_ */

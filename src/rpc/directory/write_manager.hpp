@@ -1,5 +1,5 @@
-#ifndef __RPC_DIRECTORY_WRITE_MANAGER_HPP__
-#define __RPC_DIRECTORY_WRITE_MANAGER_HPP__
+#ifndef RPC_DIRECTORY_WRITE_MANAGER_HPP_
+#define RPC_DIRECTORY_WRITE_MANAGER_HPP_
 
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/connectivity/messages.hpp"
@@ -54,4 +54,4 @@ private:
 
 #include "rpc/directory/write_manager.tcc"
 
-#endif /* __RPC_DIRECTORY_WRITE_MANAGER_HPP__ */
+#endif /* RPC_DIRECTORY_WRITE_MANAGER_HPP_ */

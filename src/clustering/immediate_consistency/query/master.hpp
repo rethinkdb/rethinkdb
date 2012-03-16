@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_MASTER_HPP__
-#define __CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_MASTER_HPP__
+#ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_MASTER_HPP_
+#define CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_MASTER_HPP_
 
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/query/metadata.hpp"
@@ -75,4 +75,4 @@ private:
     resource_map_advertisement_t<master_id_t, master_business_card_t<protocol_t> > advertisement;
 };
 
-#endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_MASTER_HPP__ */
+#endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_MASTER_HPP_ */

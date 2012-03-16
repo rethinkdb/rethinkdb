@@ -1,5 +1,5 @@
-#ifndef __HTTP_JSON_JSON_ADAPTER_TCC__
-#define __HTTP_JSON_JSON_ADAPTER_TCC__
+#ifndef HTTP_JSON_JSON_ADAPTER_TCC_
+#define HTTP_JSON_JSON_ADAPTER_TCC_
 
 #include "utils.hpp"
 #include "logger.hpp"

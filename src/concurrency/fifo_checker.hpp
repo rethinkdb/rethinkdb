@@ -1,5 +1,5 @@
-#ifndef __CONCURRENCY_FIFO_CHECKER_HPP__
-#define __CONCURRENCY_FIFO_CHECKER_HPP__
+#ifndef CONCURRENCY_FIFO_CHECKER_HPP_
+#define CONCURRENCY_FIFO_CHECKER_HPP_
 
 #include "utils.hpp"
 #include <boost/serialization/split_member.hpp>
@@ -244,4 +244,4 @@ private:
 };
 
 
-#endif  // __CONCURRENCY_FIFO_CHECKER_HPP__
+#endif  // CONCURRENCY_FIFO_CHECKER_HPP_

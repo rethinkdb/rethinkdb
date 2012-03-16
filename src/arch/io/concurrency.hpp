@@ -1,5 +1,5 @@
-#ifndef __ARCH_IO_CONCURRENCY_HPP__
-#define __ARCH_IO_CONCURRENCY_HPP__
+#ifndef ARCH_IO_CONCURRENCY_HPP_
+#define ARCH_IO_CONCURRENCY_HPP_
 
 #include <pthread.h>
 
@@ -62,5 +62,5 @@ public:
     }
 };
 
-#endif /* __ARCH_LINUX_CONCURRENCY_HPP__ */
+#endif /* ARCH_LINUX_CONCURRENCY_HPP_ */
 

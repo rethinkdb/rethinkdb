@@ -1,5 +1,5 @@
-#ifndef __BUFFER_CACHE_TYPES_HPP__
-#define __BUFFER_CACHE_TYPES_HPP__
+#ifndef BUFFER_CACHE_TYPES_HPP_
+#define BUFFER_CACHE_TYPES_HPP_
 
 #include <limits.h>
 #include <stdint.h>
@@ -145,4 +145,4 @@ typedef mock_cache_account_t cache_account_t;
 
 // Don't put anything down here, put it above the line labeled "BLAH".
 
-#endif /* __BUFFER_CACHE_TYPES_HPP__ */
+#endif /* BUFFER_CACHE_TYPES_HPP_ */

@@ -1,5 +1,5 @@
-#ifndef __CONCURRENCY_MUTEX_HPP__
-#define __CONCURRENCY_MUTEX_HPP__
+#ifndef CONCURRENCY_MUTEX_HPP_
+#define CONCURRENCY_MUTEX_HPP_
 
 #include <deque>
 
@@ -53,5 +53,5 @@ inline void swap(mutex_t::acq_t &a, mutex_t::acq_t &b) {
     std::swap(a.eager_, b.eager_);
 }
 
-#endif /* __CONCURRENCY_MUTEX_HPP__ */
+#endif /* CONCURRENCY_MUTEX_HPP_ */
 

@@ -90,14 +90,9 @@ void test_header_parser() {
     UNUSED bool success = true;
 }
 
-http_server_t::http_server_t() {
-}
-
-http_server_t::http_server_t(int port) {
+http_server_t::http_server_t(int port, http_app_t *_application) : application(_application) {
     tcp_listener.reset(new tcp_listener_t(port, boost::bind(&http_server_t::handle_conn, this, _1)));
 }
-
-http_server_t::~http_server_t() { }
 
 std::string human_readable_status(int code) {
     switch(code) {
@@ -143,7 +138,7 @@ void http_server_t::handle_conn(boost::scoped_ptr<nascent_tcp_conn_t> &nconn) {
     /* parse the request */
     try {
         if(http_msg_parser.parse(conn.get(), &req)) {
-            http_res_t res = handle(req); 
+            http_res_t res = application->handle(req); 
             res.version = req.version;
             write_http_msg(conn, res);
         } else {
@@ -305,22 +300,6 @@ bool tcp_http_msg_parser_t::header_line_parser_t::parse(std::string &src) {
     val = std::string(iter + 1, src.end());
 
     return true;
-}
-
-test_server_t::test_server_t(int port) 
-    : http_server_t(port)
-{ }
-
-http_res_t test_server_t::handle(const http_req_t &req) {
-    http_res_t res;
-
-    res.version = req.version;
-    res.code = 200;
-
-    res.add_header_line("Accept-Encoding", "Vary");
-    res.add_header_line("Content-Length", "0");
-
-    return res;
 }
 
 bool is_safe(char c) {

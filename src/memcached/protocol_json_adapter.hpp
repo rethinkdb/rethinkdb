@@ -1,5 +1,5 @@
-#ifndef __MEMCACHED_PROTOCOL_JSON_ADAPTER_HPP__
-#define __MEMCACHED_PROTOCOL_JSON_ADAPTER_HPP__
+#ifndef MEMCACHED_PROTOCOL_JSON_ADAPTER_HPP_
+#define MEMCACHED_PROTOCOL_JSON_ADAPTER_HPP_
 
 #include "memcached/protocol.hpp"
 #include "http/json/json_adapter.hpp"

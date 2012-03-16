@@ -2,18 +2,21 @@
 #include <boost/tokenizer.hpp>
 
 #include "http/http.hpp"
-#include "clustering/administration/json_adapters.hpp"
-#include "clustering/administration/semilattice_http_server.hpp"
+#include "clustering/administration/http/json_adapters.hpp"
+#include "clustering/administration/http/semilattice_app.hpp"
 #include "clustering/administration/suggester.hpp"
 #include "stl_utils.hpp"
 
-semilattice_http_server_t::semilattice_http_server_t(boost::shared_ptr<internal_view_t> _semilattice_metadata, clone_ptr_t<directory_view_t> _directory_metadata, boost::uuids::uuid _us)
+semilattice_http_app_t::semilattice_http_app_t(
+        const boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > &_semilattice_metadata,
+        const clone_ptr_t<directory_rview_t<cluster_directory_metadata_t> > &_directory_metadata,
+        boost::uuids::uuid _us)
     : semilattice_metadata(_semilattice_metadata), directory_metadata(_directory_metadata), us(_us) { }
 
 typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
 typedef tokenizer::iterator tok_iterator;
 
-http_res_t semilattice_http_server_t::handle(const http_req_t &req) {
+http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
     try {
         cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
 
@@ -53,14 +56,16 @@ http_res_t semilattice_http_server_t::handle(const http_req_t &req) {
 
             std::map<machine_id_t, datacenter_id_t> machine_assignments;
 
-            for (std::map<machine_id_t, machine_semilattice_metadata_t>::iterator it  = cluster_metadata.machines.machines.begin();
+            for (std::map<machine_id_t, deletable_t<machine_semilattice_metadata_t> >::iterator it  = cluster_metadata.machines.machines.begin();
                     it != cluster_metadata.machines.machines.end();
                     it++) {
-                machine_assignments[it->first] = it->second.datacenter.get();
+                if (!it->second.is_deleted()) {
+                    machine_assignments[it->first] = it->second.get().datacenter.get();
+                }
             }
             fill_in_blueprints_for_protocol<memcached_protocol_t>(&cluster_metadata.memcached_namespaces,
-                    directory_metadata->subview(field_lens(&cluster_directory_metadata_t::memcached_namespaces)),
-                    directory_metadata->subview(field_lens(&cluster_directory_metadata_t::machine_id)),
+                    directory_metadata->subview(clone_ptr_t<read_lens_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t> >(field_lens(&cluster_directory_metadata_t::memcached_namespaces))),
+                    directory_metadata->subview(clone_ptr_t<read_lens_t<machine_id_t, cluster_directory_metadata_t> >(field_lens(&cluster_directory_metadata_t::machine_id))),
                     machine_assignments,
                     us);
 

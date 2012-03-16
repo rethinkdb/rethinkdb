@@ -150,7 +150,7 @@ std::string escape_spaces(const std::string& str) {
     size_t pos = 0;
     do {
         size_t space_pos = str.find(' ', pos);
-        bool found = space_pos != std::string::npos ;
+        bool found = space_pos != std::string::npos;
         space_pos = found ? space_pos : len;
         result.append(str, pos, space_pos-pos);
         if (found)

@@ -1,5 +1,5 @@
-#ifndef __BTREE_NODE_HPP__
-#define __BTREE_NODE_HPP__
+#ifndef BTREE_NODE_HPP_
+#define BTREE_NODE_HPP_
 
 #include <stdint.h>
 #include <stdio.h>
@@ -214,4 +214,4 @@ inline void valuecpy(block_size_t bs, memcached_value_t *dest, const memcached_v
 
 
 
-#endif // __BTREE_NODE_HPP__
+#endif // BTREE_NODE_HPP_

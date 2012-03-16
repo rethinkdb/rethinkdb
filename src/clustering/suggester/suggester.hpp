@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_SUGGESTER_SUGGESTER_HPP__
-#define __CLUSTERING_SUGGESTER_SUGGESTER_HPP__
+#ifndef CLUSTERING_SUGGESTER_SUGGESTER_HPP_
+#define CLUSTERING_SUGGESTER_SUGGESTER_HPP_
 
 #include "clustering/administration/datacenter_metadata.hpp"
 #include "clustering/administration/persistable_blueprint.hpp"
@@ -23,4 +23,4 @@ persistable_blueprint_t<protocol_t> suggest_blueprint(
 
 #include "clustering/suggester/suggester.tcc"
 
-#endif /* __CLUSTERING_SUGGESTER_SUGGESTER_HPP__ */
+#endif /* CLUSTERING_SUGGESTER_SUGGESTER_HPP_ */

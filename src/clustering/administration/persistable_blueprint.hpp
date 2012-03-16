@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_ADMINISTRATION_PERSISTABLE_BLUEPRINT_HPP__
-#define __CLUSTERING_ADMINISTRATION_PERSISTABLE_BLUEPRINT_HPP__
+#ifndef CLUSTERING_ADMINISTRATION_PERSISTABLE_BLUEPRINT_HPP_
+#define CLUSTERING_ADMINISTRATION_PERSISTABLE_BLUEPRINT_HPP_
 
 #include "clustering/reactor/blueprint.hpp"
 #include "clustering/administration/machine_metadata.hpp"
@@ -58,4 +58,4 @@ void on_subfield_change(persistable_blueprint_t<protocol_t> *, const ctx_t &);
 
 #include "clustering/administration/persistable_blueprint.tcc"
 
-#endif /* __CLUSTERING_ADMINISTRATION_PERSISTABLE_BLUEPRINT_HPP__ */
+#endif /* CLUSTERING_ADMINISTRATION_PERSISTABLE_BLUEPRINT_HPP_ */

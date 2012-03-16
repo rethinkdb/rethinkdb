@@ -1,5 +1,5 @@
-#ifndef __STL_UTILS_HPP__
-#define __STL_UTILS_HPP__
+#ifndef STL_UTILS_HPP_
+#define STL_UTILS_HPP_
 
 #include <map>
 #include <set>

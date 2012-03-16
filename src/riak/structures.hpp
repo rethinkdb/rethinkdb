@@ -1,5 +1,5 @@
-#ifndef __RIAK_STRUCTURES__
-#define __RIAK_STRUCTURES__
+#ifndef RIAK_STRUCTURES_HPP_
+#define RIAK_STRUCTURES_HPP_
 
 #include "riak/riak_value.hpp"
 #include "containers/buffer_group.hpp"
@@ -209,4 +209,4 @@ void serialize(Archive & ar, riak::object_t & object, const unsigned int) {
 } //namespace serialization
 } //namespace boost */
 
-#endif
+#endif  // RIAK_STRUCTURES_HPP_

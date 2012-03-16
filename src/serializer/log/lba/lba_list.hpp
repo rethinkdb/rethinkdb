@@ -1,7 +1,5 @@
-
-
-#ifndef __SERIALIZER_LOG_LBA_LIST_HPP__
-#define __SERIALIZER_LOG_LBA_LIST_HPP__
+#ifndef SERIALIZER_LOG_LBA_LIST_HPP_
+#define SERIALIZER_LOG_LBA_LIST_HPP_
 
 #include "serializer/serializer.hpp"
 #include "serializer/log/extent_manager.hpp"
@@ -101,4 +99,4 @@ private:
 
 };
 
-#endif /* __SERIALIZER_LOG_LBA_LIST_HPP__ */
+#endif /* SERIALIZER_LOG_LBA_LIST_HPP_ */

@@ -1,5 +1,5 @@
-#ifndef __BTREE_BTREE_DATA_PROVIDER_HPP__
-#define __BTREE_BTREE_DATA_PROVIDER_HPP__
+#ifndef BTREE_BTREE_DATA_PROVIDER_HPP_
+#define BTREE_BTREE_DATA_PROVIDER_HPP_
 
 #include "errors.hpp"
 #include <boost/intrusive_ptr.hpp>
@@ -14,4 +14,4 @@ boost::intrusive_ptr<data_buffer_t> value_to_data_buffer(const memcached_value_t
 
 
 
-#endif // __BTREE_BTREE_DATA_PROVIDER_HPP__
+#endif // BTREE_BTREE_DATA_PROVIDER_HPP_

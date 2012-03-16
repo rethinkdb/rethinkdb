@@ -1,5 +1,5 @@
-#ifndef __RPC_SEMILATTICE_VIEW_FIELD_HPP__
-#define __RPC_SEMILATTICE_VIEW_FIELD_HPP__
+#ifndef RPC_SEMILATTICE_VIEW_FIELD_HPP_
+#define RPC_SEMILATTICE_VIEW_FIELD_HPP_
 
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
@@ -32,4 +32,4 @@ boost::shared_ptr<semilattice_readwrite_view_t<inner_t> > metadata_field(
 
 #include "rpc/semilattice/view/field.tcc"
 
-#endif /* __RPC_SEMILATTICE_VIEW_FIELD_HPP__ */
+#endif /* RPC_SEMILATTICE_VIEW_FIELD_HPP_ */

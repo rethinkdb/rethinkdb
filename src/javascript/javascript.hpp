@@ -1,5 +1,5 @@
-#ifndef __JAVASCRIPT_JAVASCRIPT_HPP__
-#define __JAVASCRIPT_JAVASCRIPT_HPP__
+#ifndef JAVASCRIPT_JAVASCRIPT_HPP_
+#define JAVASCRIPT_JAVASCRIPT_HPP_
 
 #include <JavaScriptCore/JavaScript.h>
 #include <API/JSContextRefPrivate.h>
@@ -113,7 +113,7 @@ public:
     }
 
     template <class S>
-    scoped_js_t(const scoped_js_t<S> &other)
+    scoped_js_t(const scoped_js_t<S> &other)  // NOLINT(runtime/explicit)
         : ctx(other.ctx), value_ref(other.value_ref)
     {
         protect();

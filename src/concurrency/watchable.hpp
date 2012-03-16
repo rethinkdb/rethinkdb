@@ -1,8 +1,9 @@
-#ifndef __CONCURRENCY_WATCHABLE_HPP__
-#define __CONCURRENCY_WATCHABLE_HPP__
+#ifndef CONCURRENCY_WATCHABLE_HPP_
+#define CONCURRENCY_WATCHABLE_HPP_
 
 #include "concurrency/mutex_assertion.hpp"
 #include "concurrency/pubsub.hpp"
+#include "containers/clone_ptr.hpp"
 
 template <class value_t>
 class watchable_t {
@@ -76,7 +77,7 @@ public:
 private:
     class w_t : public watchable_t<value_t> {
     public:
-        w_t(watchable_variable_t<value_t> *p) : parent(p) { }
+        explicit w_t(watchable_variable_t<value_t> *p) : parent(p) { }
         w_t *clone() {
             return new w_t(parent);
         }
@@ -106,4 +107,4 @@ private:
     DISABLE_COPYING(watchable_variable_t);
 };
 
-#endif /* __CONCURRENCY_WATCHABLE_HPP__ */
+#endif /* CONCURRENCY_WATCHABLE_HPP_ */
