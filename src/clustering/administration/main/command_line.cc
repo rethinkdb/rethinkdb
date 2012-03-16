@@ -4,10 +4,10 @@
 
 #include "arch/arch.hpp"
 #include "arch/os_signal.hpp"
+#include "clustering/administration/main/command_line.hpp"
+#include "clustering/administration/main/serve.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/persist.hpp"
-#include "clustering/main/command_line.hpp"
-#include "clustering/main/serve.hpp"
 #include "mock/dummy_protocol.hpp"
 
 namespace po = boost::program_options;
