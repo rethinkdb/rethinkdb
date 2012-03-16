@@ -1,5 +1,5 @@
-#ifndef __ARCH_IO_DISK_AIO_SUBMIT_SYNC_HPP__
-#define __ARCH_IO_DISK_AIO_SUBMIT_SYNC_HPP__
+#ifndef ARCH_IO_DISK_AIO_SUBMIT_SYNC_HPP_
+#define ARCH_IO_DISK_AIO_SUBMIT_SYNC_HPP_
 
 #include "arch/io/disk/aio.hpp"
 #include <vector>
@@ -20,4 +20,4 @@ private:
     std::vector<iocb *> request_batch;
 };
 
-#endif /* __ARCH_IO_DISK_AIO_SUBMIT_SYNC_HPP__ */
+#endif /* ARCH_IO_DISK_AIO_SUBMIT_SYNC_HPP_ */

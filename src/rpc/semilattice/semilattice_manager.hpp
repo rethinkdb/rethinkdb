@@ -1,5 +1,5 @@
-#ifndef __RPC_SEMILATTICE_SEMILATTICE_MANAGER_HPP__
-#define __RPC_SEMILATTICE_SEMILATTICE_MANAGER_HPP__
+#ifndef RPC_SEMILATTICE_SEMILATTICE_MANAGER_HPP_
+#define RPC_SEMILATTICE_SEMILATTICE_MANAGER_HPP_
 
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/semilattice/view.hpp"
@@ -86,4 +86,4 @@ private:
 
 #include "rpc/semilattice/semilattice_manager.tcc"
 
-#endif /* __RPC_SEMILATTICE_SEMILATTICE_MANAGER_HPP__ */
+#endif /* RPC_SEMILATTICE_SEMILATTICE_MANAGER_HPP_ */

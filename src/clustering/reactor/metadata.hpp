@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_REACTOR_METADATA_HPP__
-#define __CLUSTERING_REACTOR_METADATA_HPP__
+#ifndef CLUSTERING_REACTOR_METADATA_HPP_
+#define CLUSTERING_REACTOR_METADATA_HPP_
 
 #include "errors.hpp"
 #include <boost/optional.hpp>
@@ -212,4 +212,4 @@ std::ostream & operator<<(std::ostream &stream, const reactor_business_card_t<pr
     return stream;
 }
 
-#endif /* __CLUSTERING_REACTOR_METADATA_HPP__ */
+#endif /* CLUSTERING_REACTOR_METADATA_HPP_ */

@@ -1,6 +1,5 @@
-
-#ifndef __SERIALIZER_LOG_LBA_DISK_EXTENT_H__
-#define __SERIALIZER_LOG_LBA_DISK_EXTENT_H__
+#ifndef SERIALIZER_LOG_LBA_DISK_EXTENT_HPP_
+#define SERIALIZER_LOG_LBA_DISK_EXTENT_HPP_
 
 #include "containers/intrusive_list.hpp"
 #include "arch/types.hpp"
@@ -62,4 +61,4 @@ private:
     ~lba_disk_extent_t() {}
 };
 
-#endif /* __SERIALIZER_LOG_LBA_DISK_EXTENT_H__ */
+#endif  // SERIALIZER_LOG_LBA_DISK_EXTENT_HPP_

@@ -1,5 +1,5 @@
-#ifndef __CONCURRENCY_COND_VAR_HPP__
-#define __CONCURRENCY_COND_VAR_HPP__
+#ifndef CONCURRENCY_COND_VAR_HPP_
+#define CONCURRENCY_COND_VAR_HPP_
 
 #include "errors.hpp"
 #include "concurrency/signal.hpp"
@@ -38,4 +38,4 @@ private:
     DISABLE_COPYING(one_waiter_cond_t);
 };
 
-#endif /* __CONCURRENCY_COND_VAR_HPP__ */
+#endif /* CONCURRENCY_COND_VAR_HPP_ */

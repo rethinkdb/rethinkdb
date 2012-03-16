@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_REACTOR_DIRECTORY_ECHO_HPP__
-#define __CLUSTERING_REACTOR_DIRECTORY_ECHO_HPP__
+#ifndef CLUSTERING_REACTOR_DIRECTORY_ECHO_HPP_
+#define CLUSTERING_REACTOR_DIRECTORY_ECHO_HPP_
 
 #include "utils.hpp"
 #include <boost/optional.hpp>
@@ -85,6 +85,6 @@ private:
     connectivity_service_t::peers_list_subscription_t peers_list_subscription;
 };
 
-#endif /* __CLUSTERING_REACTOR_DIRECTORY_ECHO_HPP__ */
+#endif /* CLUSTERING_REACTOR_DIRECTORY_ECHO_HPP_ */
 
 #include "clustering/reactor/directory_echo.tcc"

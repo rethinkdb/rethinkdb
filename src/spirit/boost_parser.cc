@@ -37,6 +37,6 @@ void echo_conn(boost::scoped_ptr<tcp_conn_t> &conn) {
     conn->write("foo", strlen("foo"));
     conn->shutdown_write();
 
-    for (tcp_conn_t::iterator it = conn->begin(); it != conn->end(); it++)
+    for (tcp_conn_t::iterator it = conn->begin(); it != conn->end(); ++it)
         printf("%c", *it);
 }

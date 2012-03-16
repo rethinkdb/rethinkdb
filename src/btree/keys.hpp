@@ -1,5 +1,5 @@
-#ifndef __BTREE_KEYS_HPP__
-#define __BTREE_KEYS_HPP__
+#ifndef BTREE_KEYS_HPP_
+#define BTREE_KEYS_HPP_
 
 #include <stdio.h>
 #include <string.h>
@@ -199,4 +199,4 @@ bool operator==(key_range_t, key_range_t) THROWS_NOTHING;
 bool operator!=(key_range_t, key_range_t) THROWS_NOTHING;
 bool operator<(const key_range_t &, const key_range_t &) THROWS_NOTHING;
 
-#endif // __BTREE_KEYS_HPP__
+#endif // BTREE_KEYS_HPP_

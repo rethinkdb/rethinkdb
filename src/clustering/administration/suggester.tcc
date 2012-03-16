@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_ADMINISTRATION_SUGGESTER_TCC__
-#define __CLUSTERING_ADMINISTRATION_SUGGESTER_TCC__
+#ifndef CLUSTERING_ADMINISTRATION_SUGGESTER_TCC_
+#define CLUSTERING_ADMINISTRATION_SUGGESTER_TCC_
 
 #include "clustering/administration/machine_id_to_peer_id.hpp"
 #include "clustering/administration/suggester.hpp"

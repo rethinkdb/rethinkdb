@@ -1,5 +1,5 @@
-#ifndef __HTPP_HTPP_HPP__
-#define __HTPP_HTPP_HPP__
+#ifndef HTPP_HTPP_HPP_
+#define HTPP_HTPP_HPP_
 
 #include "errors.hpp"
 #include <boost/fusion/include/io.hpp>
@@ -88,29 +88,24 @@ private:
     };
 };
 
+class http_app_t {
+public:
+    virtual http_res_t handle(const http_req_t &) = 0;
+protected:
+    virtual ~http_app_t() { }
+};
+
 /* creating an http server will bind to the specified port and listen for http
  * connections, the data from incoming connections will be parsed into
  * http_req_ts and passed to the handle function which must then return an http
  * msg that's a meaningful response */
 class http_server_t {
-private:
-    boost::scoped_ptr<tcp_listener_t> tcp_listener;
 public:
-    /* Constructing without a port will cause the server not to bind. This can
-     * be useful if you're using it as a route in a routing server. */
-    http_server_t();
-    explicit http_server_t(int);
-    virtual ~http_server_t();
-    virtual http_res_t handle(const http_req_t &) = 0;
+    http_server_t(int port, http_app_t *application);
 private:
     void handle_conn(boost::scoped_ptr<nascent_tcp_conn_t> &conn);
-};
-
-class test_server_t : public http_server_t {
-public:
-    explicit test_server_t(int);
-private:
-    http_res_t handle(const http_req_t &);
+    boost::scoped_ptr<tcp_listener_t> tcp_listener;
+    http_app_t *application;
 };
 
 std::string percent_escaped_string(const std::string &s);

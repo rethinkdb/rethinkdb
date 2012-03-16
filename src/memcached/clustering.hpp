@@ -1,5 +1,5 @@
-#ifndef __MEMCACHED_CLUSTERING_HPP__
-#define __MEMCACHED_CLUSTERING_HPP__
+#ifndef MEMCACHED_CLUSTERING_HPP_
+#define MEMCACHED_CLUSTERING_HPP_
 
 #include "errors.hpp"
 #include <boost/ptr_container/ptr_map.hpp>
@@ -37,5 +37,5 @@ private:
     semilattice_read_view_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::subscription_t subscription;
 };
 
-#endif /* __MEMCACHED_CLUSTERING_HPP__ */
+#endif /* MEMCACHED_CLUSTERING_HPP_ */
 

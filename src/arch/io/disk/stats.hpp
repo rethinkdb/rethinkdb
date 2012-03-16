@@ -1,5 +1,5 @@
-#ifndef __ARCH_IO_DISK_STATS_HPP__
-#define __ARCH_IO_DISK_STATS_HPP__
+#ifndef ARCH_IO_DISK_STATS_HPP_
+#define ARCH_IO_DISK_STATS_HPP_
 
 #include <boost/function.hpp>
 #include "perfmon_types.hpp"
@@ -92,4 +92,4 @@ private:
     perfmon_duration_sampler_t *read_sampler, *write_sampler;
 };
 
-#endif /* __ARCH_IO_DISK_STATS_HPP__ */
+#endif /* ARCH_IO_DISK_STATS_HPP_ */

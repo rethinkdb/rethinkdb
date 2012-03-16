@@ -1,5 +1,5 @@
-#ifndef __TIMESTAMPS_HPP__
-#define __TIMESTAMPS_HPP__
+#ifndef TIMESTAMPS_HPP_
+#define TIMESTAMPS_HPP_
 
 #include <stdint.h>
 
@@ -84,4 +84,4 @@ private:
     RDB_MAKE_ME_SERIALIZABLE_1(before);
 };
 
-#endif /* __TIMESTAMPS_HPP__ */
+#endif /* TIMESTAMPS_HPP_ */

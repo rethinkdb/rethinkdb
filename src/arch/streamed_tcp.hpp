@@ -1,5 +1,5 @@
-#ifndef __ARCH_STREAMED_TCP_HPP__
-#define __ARCH_STREAMED_TCP_HPP__
+#ifndef ARCH_STREAMED_TCP_HPP_
+#define ARCH_STREAMED_TCP_HPP_
 
 /* This file contains an std::streambuf implementation that works
 with a tcp_conn_t object. This allows us to create std::ostream and std::istream

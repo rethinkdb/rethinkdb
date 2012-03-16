@@ -1,5 +1,5 @@
-#ifndef __BUFFER_CACHE_HPP__
-#define __BUFFER_CACHE_HPP__
+#ifndef BUFFER_CACHE_HPP_
+#define BUFFER_CACHE_HPP_
 
 // Predeclarations are in here.
 #include "buffer_cache/types.hpp"
@@ -34,4 +34,4 @@
 #endif  // MOCK_CACHE_CHECK
 
 
-#endif /* __BUFFER_CACHE_HPP__ */
+#endif /* BUFFER_CACHE_HPP_ */

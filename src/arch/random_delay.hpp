@@ -1,5 +1,5 @@
-#ifndef __ARCH_RANDOM_DELAY_HPP__
-#define __ARCH_RANDOM_DELAY_HPP__
+#ifndef ARCH_RANDOM_DELAY_HPP_
+#define ARCH_RANDOM_DELAY_HPP_
 
 #include <stdlib.h>
 
@@ -98,4 +98,4 @@ bool maybe_random_delay(cb_t *cb, void (cb_t::*method)(arg1_t), arg1_t arg) {
 
 
 
-#endif  // __ARCH_RANDOM_DELAY_HPP__
+#endif  // ARCH_RANDOM_DELAY_HPP_

@@ -1,5 +1,5 @@
-#ifndef __SERIALIZER_CONFIG_HPP__
-#define __SERIALIZER_CONFIG_HPP__
+#ifndef SERIALIZER_CONFIG_HPP_
+#define SERIALIZER_CONFIG_HPP_
 
 #include "serializer/types.hpp"
 #include "serializer/log/log_serializer.hpp"
@@ -10,4 +10,4 @@
 
 #endif  // SEMANTIC_SERIALIZER_CHECK
 
-#endif /* __SERIALIZER_CONFIG_HPP__ */
+#endif /* SERIALIZER_CONFIG_HPP_ */

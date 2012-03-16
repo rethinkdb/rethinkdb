@@ -1,5 +1,5 @@
-#ifndef __RIAK_RIAK_VALUE__
-#define __RIAK_RIAK_VALUE__
+#ifndef RIAK_RIAK_VALUE_HPP_
+#define RIAK_RIAK_VALUE_HPP_
 
 #include "buffer_cache/blob.hpp"
 #include "btree/node.hpp"
@@ -108,4 +108,4 @@ protected:
     block_size_t block_size_;
 };
 
-#endif
+#endif  // RIAK_VALUE_HPP_

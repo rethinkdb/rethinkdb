@@ -1,5 +1,5 @@
-#ifndef __ARCH_RUNTIME_RUNTIME_UTILS_HPP__
-#define __ARCH_RUNTIME_RUNTIME_UTILS_HPP__
+#ifndef ARCH_RUNTIME_RUNTIME_UTILS_HPP_
+#define ARCH_RUNTIME_RUNTIME_UTILS_HPP_
 
 #include "containers/intrusive_list.hpp"
 #include <stdint.h>
@@ -88,4 +88,4 @@ void disarm_watchdog(); // Suspends time supervision until the next pet or start
 void pet_watchdog(); // Checks for long-running routines and restarts time supervision
 #endif
 
-#endif // __ARCH_RUNTIME_RUNTIME_UTILS_HPP__
+#endif // ARCH_RUNTIME_RUNTIME_UTILS_HPP_

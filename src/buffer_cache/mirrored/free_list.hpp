@@ -1,5 +1,5 @@
-#ifndef __BUFFER_CACHE_MIRRORED_FREE_LIST_HPP__
-#define __BUFFER_CACHE_MIRRORED_FREE_LIST_HPP__
+#ifndef BUFFER_CACHE_MIRRORED_FREE_LIST_HPP_
+#define BUFFER_CACHE_MIRRORED_FREE_LIST_HPP_
 
 #include <deque>
 
@@ -29,4 +29,4 @@ private:
     std::deque<block_id_t> free_ids;
 };
 
-#endif /* __BUFFER_CACHE_MIRRORED_FREE_LIST_HPP__ */
+#endif /* BUFFER_CACHE_MIRRORED_FREE_LIST_HPP_ */

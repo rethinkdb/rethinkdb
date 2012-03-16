@@ -1,5 +1,5 @@
-#ifndef __INTRUSIVE_LIST_HPP__
-#define __INTRUSIVE_LIST_HPP__
+#ifndef INTRUSIVE_LIST_HPP_
+#define INTRUSIVE_LIST_HPP_
 
 #include "errors.hpp"
 
@@ -192,5 +192,5 @@ private:
     DISABLE_COPYING(intrusive_list_t);
 };
 
-#endif // __INTRUSIVE_LIST_HPP__
+#endif // INTRUSIVE_LIST_HPP_
 

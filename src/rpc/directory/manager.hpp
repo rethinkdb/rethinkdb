@@ -1,5 +1,5 @@
-#ifndef __RPC_DIRECTORY_MANAGER_HPP__
-#define __RPC_DIRECTORY_MANAGER_HPP__
+#ifndef RPC_DIRECTORY_MANAGER_HPP_
+#define RPC_DIRECTORY_MANAGER_HPP_
 
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/directory/view.hpp"
@@ -38,4 +38,4 @@ private:
 
 #include "rpc/directory/manager.tcc"
 
-#endif /* __RPC_DIRECTORY_MANAGER_HPP__ */
+#endif /* RPC_DIRECTORY_MANAGER_HPP_ */

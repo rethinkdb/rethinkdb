@@ -1,5 +1,5 @@
-#ifndef __MEMCACHED_MEMCACHED_HPP__
-#define __MEMCACHED_MEMCACHED_HPP__
+#ifndef MEMCACHED_MEMCACHED_HPP_
+#define MEMCACHED_MEMCACHED_HPP_
 
 #include <vector>
 
@@ -39,4 +39,4 @@ void handle_memcache(memcached_interface_t *interface,
                      set_store_interface_t *set_store,
                      int max_concurrent_queries_per_connection);
 
-#endif /* __MEMCACHED_MEMCACHED_HPP__ */
+#endif /* MEMCACHED_MEMCACHED_HPP_ */

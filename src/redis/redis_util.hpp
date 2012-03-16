@@ -1,5 +1,5 @@
-#ifndef __PROTOCOL_REDIS_UTIL_H__
-#define __PROTOCOL_REDIS_UTIL_H__
+#ifndef PROTOCOL_REDIS_UTIL_HPP_
+#define PROTOCOL_REDIS_UTIL_HPP_
 
 #include "redis/redis_types.hpp"
 #include "redis/redis.hpp"
@@ -270,4 +270,4 @@ private:
     redis_protocol_t::bulk_result_t *val;
 };
 
-#endif /*__PROTOCOL_REDIS_UTIL_H__*/
+#endif  // PROTOCOL_REDIS_UTIL_HPP_

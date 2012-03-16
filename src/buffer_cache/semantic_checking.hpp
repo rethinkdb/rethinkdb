@@ -1,5 +1,5 @@
-#ifndef __BUFFER_CACHE_SEMANTIC_CHECKING_HPP__
-#define __BUFFER_CACHE_SEMANTIC_CHECKING_HPP__
+#ifndef BUFFER_CACHE_SEMANTIC_CHECKING_HPP_
+#define BUFFER_CACHE_SEMANTIC_CHECKING_HPP_
 
 #include "utils.hpp"
 #include <boost/crc.hpp>
@@ -152,5 +152,5 @@ private:
 
 #include "buffer_cache/semantic_checking.tcc"
 
-#endif /* __BUFFER_CACHE_SEMANTIC_CHECKING_HPP__ */
+#endif /* BUFFER_CACHE_SEMANTIC_CHECKING_HPP_ */
 

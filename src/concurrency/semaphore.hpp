@@ -1,5 +1,5 @@
-#ifndef __CONCURRENCY_SEMAPHORE_HPP__
-#define __CONCURRENCY_SEMAPHORE_HPP__
+#ifndef CONCURRENCY_SEMAPHORE_HPP_
+#define CONCURRENCY_SEMAPHORE_HPP_
 
 #include "containers/intrusive_list.hpp"
 
@@ -91,4 +91,4 @@ private:
     void pump();
 };
 
-#endif /* __CONCURRENCY_SEMAPHORE_HPP__ */
+#endif /* CONCURRENCY_SEMAPHORE_HPP_ */

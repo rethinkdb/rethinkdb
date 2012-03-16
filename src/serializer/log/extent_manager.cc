@@ -178,7 +178,7 @@ void extent_manager_t::reserve_extent(off64_t extent) {
     print_backtrace(stderr, false);
 #endif
     rassert(state == state_reserving_extents);
-    pm_extents_in_use++;
+    ++pm_extents_in_use;
     pm_bytes_in_use += extent_size;
     zone_for_offset(extent)->reserve_extent(extent);
 }
@@ -248,7 +248,7 @@ extent_manager_t::transaction_t *extent_manager_t::begin_transaction() {
 off64_t extent_manager_t::gen_extent() {
     rassert(state == state_running);
     rassert(current_transaction);
-    pm_extents_in_use++;
+    ++pm_extents_in_use;
     pm_bytes_in_use += extent_size;
     
     off64_t extent;
@@ -283,7 +283,7 @@ void extent_manager_t::release_extent(off64_t extent) {
 #endif
     rassert(state == state_running);
     rassert(current_transaction);
-    pm_extents_in_use--;
+    --pm_extents_in_use;
     pm_bytes_in_use -= extent_size;
     current_transaction->free_queue.push_back(extent);
 }

@@ -1,5 +1,5 @@
-#ifndef __ARCH_RUNTIME_EVENT_QUEUE_POLL_HPP__
-#define __ARCH_RUNTIME_EVENT_QUEUE_POLL_HPP__
+#ifndef ARCH_RUNTIME_EVENT_QUEUE_POLL_HPP_
+#define ARCH_RUNTIME_EVENT_QUEUE_POLL_HPP_
 
 #include <map>
 #include <vector>
@@ -35,4 +35,4 @@ public:
 };
 
 
-#endif // __ARCH_RUNTIME_EVENT_QUEUE_POLL_HPP__
+#endif // ARCH_RUNTIME_EVENT_QUEUE_POLL_HPP_

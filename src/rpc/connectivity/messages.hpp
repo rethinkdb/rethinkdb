@@ -1,5 +1,5 @@
-#ifndef __RPC_CONNECTIVITY_MESSAGES_HPP__
-#define __RPC_CONNECTIVITY_MESSAGES_HPP__
+#ifndef RPC_CONNECTIVITY_MESSAGES_HPP_
+#define RPC_CONNECTIVITY_MESSAGES_HPP_
 
 #include "rpc/connectivity/connectivity.hpp"
 
@@ -58,4 +58,4 @@ protected:
     virtual ~message_handler_t() { }
 };
 
-#endif /* __RPC_CONNECTIVITY_MESSAGES_HPP__ */
+#endif /* RPC_CONNECTIVITY_MESSAGES_HPP_ */

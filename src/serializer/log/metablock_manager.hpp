@@ -1,5 +1,5 @@
-#ifndef __SERIALIZER_LOG_METABLOCK_METABLOCK_MANAGER_HPP__
-#define __SERIALIZER_LOG_METABLOCK_METABLOCK_MANAGER_HPP__
+#ifndef SERIALIZER_LOG_METABLOCK_METABLOCK_MANAGER_HPP_
+#define SERIALIZER_LOG_METABLOCK_METABLOCK_MANAGER_HPP_
 
 /* Notice:
  * This file defines templatized classes and does not provide their
@@ -89,7 +89,7 @@ private:
 
             /* \brief handles moving along successive mb slots
              */
-            void operator++(int);
+            void operator++();
             /* \brief return the offset we should be writing to
              */
             off64_t offset();
@@ -170,4 +170,4 @@ private:
     direct_file_t *dbfile;
 };
 
-#endif /* __SERIALIZER_LOG_METABLOCK_METABLOCK_MANAGER_HPP__ */
+#endif /* SERIALIZER_LOG_METABLOCK_METABLOCK_MANAGER_HPP_ */

@@ -5,7 +5,7 @@
 template<class metadata_t>
 class read_view_translator_t {
 public:
-    read_view_translator_t(const clone_ptr_t<directory_rview_t<metadata_t> > &_view) :
+    explicit read_view_translator_t(const clone_ptr_t<directory_rview_t<metadata_t> > &_view) :
         view(_view),
         peers_list_sub(
             boost::bind(&read_view_translator_t<metadata_t>::on_connect, this, _1),
@@ -78,7 +78,7 @@ private:
 template<class metadata_t>
 class read_view_translator_watchable_t : public watchable_t<std::map<peer_id_t, metadata_t> > {
 public:
-    read_view_translator_watchable_t(const boost::shared_ptr<read_view_translator_t<metadata_t> > &p) :
+    explicit read_view_translator_watchable_t(const boost::shared_ptr<read_view_translator_t<metadata_t> > &p) :
         parent(p) { }
     read_view_translator_watchable_t *clone() {
         return new read_view_translator_watchable_t(parent);

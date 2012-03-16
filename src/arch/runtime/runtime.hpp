@@ -1,5 +1,5 @@
-#ifndef __ARCH_RUNTIME_RUNTIME_HPP__
-#define __ARCH_RUNTIME_RUNTIME_HPP__
+#ifndef ARCH_RUNTIME_RUNTIME_HPP_
+#define ARCH_RUNTIME_RUNTIME_HPP_
 
 #include "arch/runtime/runtime_utils.hpp"
 #include "arch/runtime/coroutines.hpp"
@@ -50,4 +50,4 @@ shuts down the thread pool. */
 
 void run_in_thread_pool(const boost::function<void()>& fun, int num_threads = 1);
 
-#endif /* __ARCH_RUNTIME_RUNTIME_HPP__ */
+#endif /* ARCH_RUNTIME_RUNTIME_HPP_ */

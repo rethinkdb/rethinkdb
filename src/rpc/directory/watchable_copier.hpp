@@ -1,5 +1,5 @@
-#ifndef __RPC_DIRECTORY_WATCHABLE_COPIER_HPP__
-#define __RPC_DIRECTORY_WATCHABLE_COPIER_HPP__
+#ifndef RPC_DIRECTORY_WATCHABLE_COPIER_HPP_
+#define RPC_DIRECTORY_WATCHABLE_COPIER_HPP_
 
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/watchable.hpp"
@@ -57,4 +57,4 @@ clone_ptr_t<watchable_t<std::map<peer_id_t, metadata_t> > > translate_into_watch
 
 #include "watchable_copier.tcc"
 
-#endif /* __RPC_DIRECTORY_WATCHABLE_COPIER_HPP__ */
+#endif /* RPC_DIRECTORY_WATCHABLE_COPIER_HPP_ */

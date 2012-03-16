@@ -1,5 +1,5 @@
-#ifndef __ARCH_ARCH_HPP__
-#define __ARCH_ARCH_HPP__
+#ifndef ARCH_ARCH_HPP_
+#define ARCH_ARCH_HPP_
 
 #include "arch/runtime/runtime.hpp"
 
@@ -20,4 +20,4 @@ void co_write(direct_file_t *file, size_t offset, size_t length, void *buf, file
 #include "arch/spinlock.hpp"
 #include "arch/timing.hpp"
 
-#endif /* __ARCH_ARCH_HPP__ */
+#endif /* ARCH_ARCH_HPP_ */

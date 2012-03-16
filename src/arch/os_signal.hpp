@@ -1,5 +1,5 @@
-#ifndef __OS_SIGNAL__
-#define __OS_SIGNAL__
+#ifndef OS_SIGNAL_HPP_
+#define OS_SIGNAL_HPP_
 
 #include "concurrency/cond_var.hpp"
 #include "arch/runtime/runtime.hpp"
@@ -14,4 +14,4 @@ public:
 
 void wait_for_sigint();
 
-#endif
+#endif  // OS_SIGNAL_HPP_

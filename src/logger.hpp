@@ -1,5 +1,5 @@
-#ifndef __LOGGER_HPP__
-#define __LOGGER_HPP__
+#ifndef LOGGER_HPP_
+#define LOGGER_HPP_
 
 #include <stdio.h>
 
@@ -53,4 +53,4 @@ public:
 
     int home_thread_;
 };
-#endif // __LOGGER_HPP__
+#endif // LOGGER_HPP_

@@ -1,5 +1,5 @@
-#ifndef __SPIRIT_NUM_ADDER_HPP__
-#define __SPIRIT_NUM_ADDER_HPP__
+#ifndef SPIRIT_NUM_ADDER_HPP_
+#define SPIRIT_NUM_ADDER_HPP_
 
 #include "spirit/boost_parser.hpp"
 #include "arch/types.hpp"

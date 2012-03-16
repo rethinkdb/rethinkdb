@@ -1,5 +1,5 @@
-#ifndef __ARCH_IO_DISK_POOL_HPP__
-#define __ARCH_IO_DISK_POOL_HPP__
+#ifndef ARCH_IO_DISK_POOL_HPP_
+#define ARCH_IO_DISK_POOL_HPP_
 
 #include "arch/runtime/event_queue.hpp"
 #include "arch/io/blocker_pool.hpp"
@@ -64,4 +64,4 @@ private:
     void pump();
 };
 
-#endif /* __ARCH_IO_DISK_POOL_HPP__ */
+#endif /* ARCH_IO_DISK_POOL_HPP_ */

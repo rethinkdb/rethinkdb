@@ -1,5 +1,5 @@
-#ifndef __STATS_CONTROL_HPP__
-#define __STATS_CONTROL_HPP__
+#ifndef STATS_CONTROL_HPP_
+#define STATS_CONTROL_HPP_
 
 /* This isn't really part of the stats code. It's in the `stats` subdirectory
 because it's like stats in that it's a relatively slow method of bypassing the
@@ -28,4 +28,4 @@ private:
     bool internal;
 };
 
-#endif  // __STATS_CONTROL_HPP__
+#endif  // STATS_CONTROL_HPP_

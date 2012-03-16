@@ -1,5 +1,5 @@
-#ifndef __ARCH_IO_EVENT_WATCHER_HPP__
-#define __ARCH_IO_EVENT_WATCHER_HPP__
+#ifndef ARCH_IO_EVENT_WATCHER_HPP_
+#define ARCH_IO_EVENT_WATCHER_HPP_
 
 #include "arch/runtime/event_queue.hpp"
 #include "utils.hpp"
@@ -43,4 +43,4 @@ private:
     DISABLE_COPYING(linux_event_watcher_t);
 };
 
-#endif /* __ARCH_IO_EVENT_WATCHER_HPP__ */
+#endif /* ARCH_IO_EVENT_WATCHER_HPP_ */

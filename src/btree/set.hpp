@@ -1,5 +1,5 @@
-#ifndef __BTREE_SET_HPP__
-#define __BTREE_SET_HPP__
+#ifndef BTREE_SET_HPP_
+#define BTREE_SET_HPP_
 
 #include "memcached/store.hpp"
 #include "btree/node.hpp"
@@ -14,4 +14,4 @@ set_result_t btree_set(const store_key_t &key, btree_slice_t *slice,
                        add_policy_t add_policy, replace_policy_t replace_policy, cas_t req_cas,
                        castime_t castime, transaction_t *txn, got_superblock_t& superblock);
 
-#endif // __BTREE_SET_HPP__
+#endif // BTREE_SET_HPP_

@@ -1,5 +1,5 @@
-#ifndef __PROTOCOL_API_HPP__
-#define __PROTOCOL_API_HPP__
+#ifndef PROTOCOL_API_HPP_
+#define PROTOCOL_API_HPP_
 
 #include <functional>
 #include <list>
@@ -441,4 +441,4 @@ public:
     store_view_t<protocol_t> *store_view;
 };
 
-#endif /* __PROTOCOL_API_HPP__ */
+#endif /* PROTOCOL_API_HPP_ */

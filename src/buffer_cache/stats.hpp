@@ -1,5 +1,5 @@
-#ifndef __BUFFER_CACHE_STATS_HPP__
-#define __BUFFER_CACHE_STATS_HPP__
+#ifndef BUFFER_CACHE_STATS_HPP_
+#define BUFFER_CACHE_STATS_HPP_
 
 #include "perfmon_types.hpp"
 
@@ -8,4 +8,4 @@ extern perfmon_counter_t
     pm_n_blocks_dirty,
     pm_n_blocks_total;
 
-#endif /* __BUFFER_CACHE_STATS_HPP__ */
+#endif /* BUFFER_CACHE_STATS_HPP_ */

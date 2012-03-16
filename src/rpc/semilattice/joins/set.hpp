@@ -1,5 +1,5 @@
-#ifndef __RPC_SEMILATTICE_JOINS_SET_HPP__
-#define __RPC_SEMILATTICE_JOINS_SET_HPP__
+#ifndef RPC_SEMILATTICE_JOINS_SET_HPP_
+#define RPC_SEMILATTICE_JOINS_SET_HPP_
 
 #include <set>
 #include <algorithm>

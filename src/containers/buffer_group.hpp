@@ -1,5 +1,5 @@
-#ifndef __CONTAINERS_BUFFER_GROUP_HPP__
-#define __CONTAINERS_BUFFER_GROUP_HPP__
+#ifndef CONTAINERS_BUFFER_GROUP_HPP_
+#define CONTAINERS_BUFFER_GROUP_HPP_
 
 #include <stdlib.h>
 #include <vector>
@@ -60,9 +60,6 @@ public:
                 offset = 0;
             }
             return *this;
-        }
-        iterator operator++(int) {
-            return operator++();
         }
         bool operator==(iterator const &other) {
             return it == other.it && offset == other.offset;
@@ -147,4 +144,4 @@ void buffer_group_copy_data(const buffer_group_t *out, const const_buffer_group_
 
 void buffer_group_copy_data(const buffer_group_t *out, const char *in, int64_t size);
 
-#endif  // __CONTAINERS_BUFFER_GROUP_HPP__
+#endif  // CONTAINERS_BUFFER_GROUP_HPP_

@@ -1,5 +1,5 @@
-#ifndef __UNITTEST_DUMMY_NAMESPACE_INTERFACE_HPP__
-#define __UNITTEST_DUMMY_NAMESPACE_INTERFACE_HPP__
+#ifndef UNITTEST_DUMMY_NAMESPACE_INTERFACE_HPP_
+#define UNITTEST_DUMMY_NAMESPACE_INTERFACE_HPP_
 
 #include "utils.hpp"
 #include <boost/bind.hpp>
@@ -203,4 +203,4 @@ private:
 
 }   /* namespace unittest */
 
-#endif /* __UNITTEST_DUMMY_NAMESPACE_INTERFACE_HPP__ */
+#endif /* UNITTEST_DUMMY_NAMESPACE_INTERFACE_HPP_ */

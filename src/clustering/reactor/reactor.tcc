@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_REACTOR_REACTOR_TCC__
-#define __CLUSTERING_REACTOR_REACTOR_TCC__
+#ifndef CLUSTERING_REACTOR_REACTOR_TCC_
+#define CLUSTERING_REACTOR_REACTOR_TCC_
 
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"

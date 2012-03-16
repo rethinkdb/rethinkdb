@@ -1,5 +1,5 @@
-#ifndef __BTREE_INTERNAL_NODE_HPP__
-#define __BTREE_INTERNAL_NODE_HPP__
+#ifndef BTREE_INTERNAL_NODE_HPP_
+#define BTREE_INTERNAL_NODE_HPP_
 
 #include "utils.hpp"
 #include <boost/scoped_array.hpp>
@@ -96,4 +96,4 @@ public:
 
 
 
-#endif // __BTREE_INTERNAL_NODE_HPP__
+#endif // BTREE_INTERNAL_NODE_HPP_

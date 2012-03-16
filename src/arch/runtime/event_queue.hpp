@@ -1,6 +1,5 @@
-
-#ifndef __ARCH_RUNTIME_EVENT_QUEUE_HPP__
-#define __ARCH_RUNTIME_EVENT_QUEUE_HPP__
+#ifndef ARCH_RUNTIME_EVENT_QUEUE_HPP_
+#define ARCH_RUNTIME_EVENT_QUEUE_HPP_
 
 #include <signal.h>
 
@@ -38,4 +37,4 @@ typedef epoll_event_queue_t linux_event_queue_t;
 
 #endif
 
-#endif // __ARCH_RUNTIME_EVENT_QUEUE_HPP__
+#endif // ARCH_RUNTIME_EVENT_QUEUE_HPP_

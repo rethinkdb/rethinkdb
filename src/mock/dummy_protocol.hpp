@@ -1,5 +1,5 @@
-#ifndef __MOCK_DUMMY_PROTOCOL_HPP__
-#define __MOCK_DUMMY_PROTOCOL_HPP__
+#ifndef MOCK_DUMMY_PROTOCOL_HPP_
+#define MOCK_DUMMY_PROTOCOL_HPP_
 
 #include <map>
 #include <set>
@@ -135,4 +135,4 @@ bool operator!=(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b);
 
 } // namespace mock
 
-#endif /* __MOCK_DUMMY_PROTOCOL_HPP__ */
+#endif /* MOCK_DUMMY_PROTOCOL_HPP_ */

@@ -1,5 +1,5 @@
-#ifndef __PROGRESS_HPP__
-#define __PROGRESS_HPP__
+#ifndef PROGRESS_HPP_
+#define PROGRESS_HPP_
 #include <stdio.h>
 #include <string>
 #include "arch/timing.hpp"
@@ -30,7 +30,7 @@ private:
 public:
     counter_progress_bar_t(const std::string&, int, int redraw_interval_ms = 100);
     void draw();
-    void operator++(int);
+    void operator++();
 };
 
 //file progress bar watches as you use a file to see how fast you're using it,
@@ -44,4 +44,4 @@ public:
     void draw();
 };
 
-#endif //__PROGRESS_HPP__
+#endif //PROGRESS_HPP_
