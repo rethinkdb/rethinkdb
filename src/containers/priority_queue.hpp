@@ -1,4 +1,3 @@
-
 #ifndef PRIORITY_QUEUE_HPP_
 #define PRIORITY_QUEUE_HPP_
 

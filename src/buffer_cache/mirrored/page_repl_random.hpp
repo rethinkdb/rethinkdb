@@ -1,4 +1,3 @@
-
 #ifndef PAGE_REPL_RANDOM_HPP_
 #define PAGE_REPL_RANDOM_HPP_
 

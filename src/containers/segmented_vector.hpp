@@ -1,4 +1,3 @@
-
 #ifndef SEGMENTED_VECTOR_HPP_
 #define SEGMENTED_VECTOR_HPP_
 

@@ -1,4 +1,3 @@
-
 #ifndef ARCH_ADDRESS_HPP_
 #define ARCH_ADDRESS_HPP_
 
