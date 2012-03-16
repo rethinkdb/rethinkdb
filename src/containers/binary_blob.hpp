@@ -1,6 +1,8 @@
 #ifndef CONTAINERS_BINARY_BLOB_HPP_
 #define CONTAINERS_BINARY_BLOB_HPP_
 
+#include <vector>
+
 #include "rpc/serialize_macros.hpp"
 
 /* Binary blob that represents some unknown POD type */
