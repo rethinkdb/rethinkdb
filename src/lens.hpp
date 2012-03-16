@@ -2,6 +2,7 @@
 #define LENS_HPP_
 
 #include "errors.hpp"
+#include <boost/function.hpp>
 #include <boost/optional.hpp>
 
 #include "containers/clone_ptr.hpp"

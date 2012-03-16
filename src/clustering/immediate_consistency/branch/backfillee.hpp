@@ -3,6 +3,7 @@
 
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "concurrency/promise.hpp"
+#include "containers/death_runner.hpp"
 #include "rpc/semilattice/view.hpp"
 
 /* TODO: What if the backfill chunks on the network get reordered in transit?

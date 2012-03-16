@@ -2,6 +2,7 @@
 #define CLUSTERING_REGISTRANT_HPP_
 
 #include "clustering/registration_metadata.hpp"
+#include "containers/death_runner.hpp"
 #include "rpc/semilattice/view.hpp"
 #include "rpc/mailbox/typed.hpp"
 
