@@ -100,6 +100,8 @@ blueprint_t<protocol_t> translate_blueprint(const persistable_blueprint_t<protoc
                 store->set_metainfo(region_map_t<protocol_t, binary_blob_t>(store->get_region(), binary_blob_t(version_range_t(version_t::zero()))), token, &dummy_interruptor);
             }
 
+            rassert(store->get_region() == protocol_t::universe_region());
+
             {
                 directory_write_service_t::our_value_lock_acq_t lock(directory_view->get_directory_service());
                 namespaces_directory_metadata_t<protocol_t> namespaces_directory = directory_view->get_our_value(&lock);
