@@ -28,4 +28,4 @@ public:
 
 }  // namespace unittest
 
-#endif // __UNITTEST_UTILS__
+#endif  // UNITTEST_UNITTEST_UTILS_HPP_

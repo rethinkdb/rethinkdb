@@ -84,4 +84,4 @@ private:
     DISABLE_COPYING(segmented_vector_t);
 };
 
-#endif /* __SEGMENTED_VECTOR_HPP_ */
+#endif  // SEGMENTED_VECTOR_HPP_

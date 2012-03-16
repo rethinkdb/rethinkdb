@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_ADMINISTRATION_METADATA_HPP_
-#define __CLUSTERING_ADMINISTRATION_METADATA_HPP_
+#ifndef CLUSTERING_ADMINISTRATION_METADATA_HPP_
+#define CLUSTERING_ADMINISTRATION_METADATA_HPP_
 
 #include "errors.hpp"
 #include <boost/serialization/list.hpp>
@@ -72,4 +72,4 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_4(dummy_namespaces, memcached_namespaces, machine_id, local_issues);
 };
 
-#endif
+#endif  // CLUSTERING_ADMINISTRATION_METADATA_HPP_
