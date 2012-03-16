@@ -20,7 +20,8 @@ public:
     public:
         run_t(connectivity_cluster_t *parent,
             int port,
-            message_handler_t *message_handler) THROWS_NOTHING;
+            message_handler_t *message_handler,
+            int client_port = 0) THROWS_NOTHING;
 
         /* Attaches the cluster this node is part of to another existing
         cluster. May only be called on home thread. Returns immediately (it does
@@ -126,6 +127,7 @@ public:
         /* For picking random threads */
         rng_t rng;
 
+        int cluster_client_port;
         auto_drainer_t drainer;
 
         /* This must be destroyed before `drainer` is. */

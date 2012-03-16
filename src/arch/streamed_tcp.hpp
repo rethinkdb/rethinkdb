@@ -35,15 +35,15 @@ make this synchronous. */
 
 class streamed_tcp_conn_t {
 public:
-    streamed_tcp_conn_t(const char *host, int port) :
-            conn_(new tcp_conn_t(host, port)),
+    streamed_tcp_conn_t(const char *host, int port, int local_port = 0) :
+            conn_(new tcp_conn_t(host, port, local_port)),
             conn_streambuf_in(conn_.get()),
             conn_streambuf_out(conn_.get()),
             istream(&conn_streambuf_in),
             ostream(&conn_streambuf_out) {
     }
-    streamed_tcp_conn_t(const ip_address_t &host, int port) :
-            conn_(new tcp_conn_t(host, port)),
+    streamed_tcp_conn_t(const ip_address_t &host, int port, int local_port = 0) :
+            conn_(new tcp_conn_t(host, port, local_port)),
             conn_streambuf_in(conn_.get()),
             conn_streambuf_out(conn_.get()),
             istream(&conn_streambuf_in),
