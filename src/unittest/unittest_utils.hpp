@@ -2,7 +2,9 @@
 #define UNITTEST_UNITTEST_UTILS_HPP_
 
 #include "errors.hpp"
-#include <boost/function.hpp>
+
+// Include run_in_thread_pool for people.
+#include "arch/runtime/starter.hpp"
 
 #ifndef NDEBUG
 #define trace_call(fn, args...) do {                                          \

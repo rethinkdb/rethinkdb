@@ -58,7 +58,7 @@ RDB_MAKE_EQUALITY_COMPARABLE_1(datacenters_semilattice_metadata_t, datacenters);
 //json adapter concept for datacenters_semilattice_metadata_t
 template <class ctx_t>
 typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(datacenters_semilattice_metadata_t *target, const ctx_t &ctx) {
-    return json_adapter_with_inserter_t<datacenters_semilattice_metadata_t::datacenter_map_t, ctx_t>(&target->datacenters, boost::bind(&generate_uuid)).get_subfields(ctx);
+    return json_adapter_with_inserter_t<datacenters_semilattice_metadata_t::datacenter_map_t, ctx_t>(&target->datacenters, generate_uuid).get_subfields(ctx);
 }
 
 template <class ctx_t>

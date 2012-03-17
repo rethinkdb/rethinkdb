@@ -3,6 +3,7 @@
 #include <boost/program_options.hpp>
 
 #include "arch/arch.hpp"
+#include "arch/runtime/starter.hpp"
 #include "arch/os_signal.hpp"
 #include "clustering/administration/main/command_line.hpp"
 #include "clustering/administration/main/serve.hpp"
