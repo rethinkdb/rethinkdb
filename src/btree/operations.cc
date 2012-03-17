@@ -43,7 +43,7 @@ bool find_superblock_metainfo_entry(char *beg, char *end, const std::vector<char
     superblock_metainfo_iterator_t::sz_t len = static_cast<superblock_metainfo_iterator_t::sz_t>(key.size());
     for (superblock_metainfo_iterator_t kv_iter(beg, end); !kv_iter.is_end(); ++kv_iter) {
         const superblock_metainfo_iterator_t::key_t& cur_key = kv_iter.key();
-        if (len == cur_key.first && std::equal(key.begin(), key.end(), cur_key.second) == 0) {
+        if (len == cur_key.first && std::equal(key.begin(), key.end(), cur_key.second)) {
             *verybeg_ptr_out = kv_iter.record_ptr();
             *size_ptr_out = kv_iter.value_size_ptr();
             *beg_ptr_out = kv_iter.value().second;
@@ -258,6 +258,8 @@ void delete_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, cons
         std::vector<char>::iterator p = metainfo.begin() + (verybeg - metainfo.data());
         std::vector<char>::iterator q = metainfo.begin() + (info_end - metainfo.data());
         metainfo.erase(p, q);
+
+        blob.append_region(txn, metainfo.size());
 
         {
             blob_acq_t acq;
