@@ -1,7 +1,7 @@
 #ifndef ARCH_RUNTIME_CONTEXT_SWITCHING_HPP_
 #define ARCH_RUNTIME_CONTEXT_SWITCHING_HPP_
 
-#include "utils.hpp"
+#include "errors.hpp"
 
 /* Note that `context_ref_t` is not a POD type. We could make it a POD type, but
 at the cost of removing some safety guarantees provided by the constructor and

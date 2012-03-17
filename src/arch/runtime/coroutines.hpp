@@ -7,6 +7,7 @@
 
 #include "arch/runtime/runtime_utils.hpp"
 #include "arch/runtime/context_switching.hpp"
+#include "utils.hpp"
 
 const size_t MAX_COROUTINE_STACK_SIZE = 8*1024*1024;
 
@@ -132,14 +133,14 @@ private:
 
     static void return_coro_to_free_list(coro_t *coro);
 
-    artificial_stack_t stack;
-
     static void run();
 
     friend struct coro_globals_t;
     ~coro_t();
 
     virtual void on_thread_switch();
+
+    artificial_stack_t stack;
 
     int current_thread_;
 
