@@ -1,3 +1,47 @@
+# This file contains several classes used for running a rethinkdb cluster in different states
+# 
+# Cluster - This base class provides most functionality for managing a cluster:
+#   add_machine - adds a new instance of rethinkdb by instantiating an InternalServer
+#   add_datacenter - adds a new datacenter object to the cluster
+#   add_*_namespace - adds a new namespace of the specified type (dummy or memcached)
+#   kill_machines - kills a rethinkdb_server, but does not clean up its metadata, it may be recovered later to rejoin the cluster (UNTESTED)
+#   recover_machines - recovers a previously killed rethinkdb_server, which should then rejoin the cluster
+# The cluster's machines, datacenters, and *_namespaces variables may be inspected directly, but
+#   should not be touched.  The cluster is specialized into an ExternalCluster and InternalCluster
+# ExternalCluster - This is deprecated, and will probably be removed.  The original intention was to
+#   allow the script to connect to a cluster that was instantiated outside of this script
+# InternalCluster - This is the typical type with which a cluster should be instantiated.  This constructor
+#   will instantiate a cluster with the given number of datacenters and namespaces.  InternalClusters
+#   also allow for the cluster to be split and joined.
+#
+# InternalCluster::split - this will split off a set of machines or an arbitrary number of machines from
+#   the cluster and return another InternalCluster object.  Methods may then be performed on only one
+#   of the remaining sub-clusters.  In order to use this method, the "resunder" daemon must be started.
+#   This can be done using "resunder.py" in the same directory as this file.  "sudo resunder.py start" and
+#   "./resunder.py stop" to start and stop the daemon.  The daemon tries its best to make sure all iptables
+#   rules have been removed upon shutdown, but the currently enabled rules can be checked with
+#   "sudo iptables -S".
+#
+# InternalCluster::join - this will join back two sub-clusters which must be part of the same rethinkdb
+#   cluster.  If there is a value conflict, this script will not handle it very well at the moment, but
+#   that functionality can be added.
+#
+# Cleanup has a few bugs in it, you may need to kill the rethinkdb instances manually, and make sure to
+#   remove your folders from /tmp/rethinkdb-port-XXXXXX, which contains the database files for the
+#   servers.  The folder name corresponds to the cluster port used by the rethinkdb instance.
+#
+# There are other objects used for tracking metadata, which provide very little functionality, the exception
+#   is the Server, which is specialized into InternalServer and ExternalServer (consistent with the naming
+#   for Clusters).  InternalServers are in charge of actually launching and stopping rethinkdb, and are supposed
+#   to take care of any cleanup once the server goes out of scope.
+#
+# Things currently not very well supported
+#  - Blueprints - proposals and checking of blueprint data is not implemented
+#  - Renaming things - Machines, Datacenters, etc, may be renamed through the cluster, but not yet by this script
+#  - Value conflicts - if a value conflict arises due to a split cluster (or some other method), most operations
+#     will fail until the conflict is resolved
+#
+
 import os
 import re
 import json
