@@ -1,6 +1,9 @@
 #ifndef CONCURRENCY_WATCHABLE_HPP_
 #define CONCURRENCY_WATCHABLE_HPP_
 
+#include "errors.hpp"
+#include <boost/function.hpp>
+
 #include "concurrency/mutex_assertion.hpp"
 #include "concurrency/pubsub.hpp"
 #include "containers/clone_ptr.hpp"
