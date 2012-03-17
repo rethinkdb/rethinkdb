@@ -25,14 +25,13 @@ public:
 void run_rethinkdb_create(const std::string &filepath, bool *result_out) {
 
     if (metadata_persistence::check_existence(filepath)) {
-        std::cout << "ERROR: The path '" << filepath << "' already exists. "
-            "Delete it and try again." << std::endl;
+        printf("ERROR: The path '%s' already exists.  Delete it and try again.\n", filepath.c_str());
         *result_out = false;
         return;
     }
 
     machine_id_t our_machine_id = generate_uuid();
-    std::cout << "Our machine ID: " << our_machine_id << std::endl;
+    printf("Our machine ID: %s\n", uuid_to_str(our_machine_id).c_str());
 
     cluster_semilattice_metadata_t metadata;
     metadata.machines.machines.insert(std::make_pair(
@@ -42,8 +41,7 @@ void run_rethinkdb_create(const std::string &filepath, bool *result_out) {
 
     metadata_persistence::create(filepath, our_machine_id, metadata);
 
-    std::cout << "Created directory '" << filepath << "' and a metadata file "
-        "inside it." << std::endl;
+    printf("Created directory '%s' and a metadata file inside it.\n", filepath.c_str());
 
     *result_out = true;
 }
@@ -61,9 +59,7 @@ void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and
     os_signal_cond_t c;
 
     if (!metadata_persistence::check_existence(filepath)) {
-        std::cout << "ERROR: The directory '" << filepath << "' does not "
-            "exist. Run 'rethinkdb create -d \"" << filepath << "\"' and try "
-            "again." << std::endl;
+        printf("ERROR: The directory '%s' does not exist.  Run 'rethinkdb create -d \"%s\"' and try again.\n", filepath.c_str(), filepath.c_str());
         *result_out = false;
         return;
     }
@@ -74,8 +70,7 @@ void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and
     try {
         metadata_persistence::read(filepath, &persisted_machine_id, &persisted_semilattice_metadata);
     } catch (metadata_persistence::file_exc_t e) {
-        std::cout << "ERROR: Could not read metadata file: " << e.what() << ". "
-            << std::endl;
+        printf("ERROR: Could not read metadata file: %s\n", e.what());
         *result_out = false;
         return;
     }
@@ -87,10 +82,9 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::vector<host
 
     os_signal_cond_t c;
 
-    std::cout << "Checking if directory '" << filepath << "' already "
-        "exists..." << std::endl;
+    printf("Checking if directory '%s' already exists...\n", filepath.c_str());
     if (metadata_persistence::check_existence(filepath)) {
-        std::cout << "It already exists. Loading data..." << std::endl;
+        printf("It already exists.  Loading data...\n");
 
         machine_id_t persisted_machine_id;
         cluster_semilattice_metadata_t persisted_semilattice_metadata;
@@ -99,16 +93,16 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::vector<host
         *result_out = serve(filepath, look_up_peers_addresses(joins), port, client_port, persisted_machine_id, persisted_semilattice_metadata);
 
     } else {
-        std::cout << "It does not already exist. Creating it..." << std::endl;
+        printf("It does not already exist. Creating it...\n");
 
         machine_id_t our_machine_id = generate_uuid();
         cluster_semilattice_metadata_t semilattice_metadata;
 
         if (joins.empty()) {
-            std::cout << "Creating a default namespace and default data center "
-                "for your convenience. (This is because you ran 'rethinkdb' "
-                "without 'create', 'serve', or '--join', and the directory '" <<
-                filepath << "' did not already exist.)" << std::endl;
+            printf("Creating a default namespace and default data center "
+                   "for your convenience. (This is because you ran 'rethinkdb' "
+                   "without 'create', 'serve', or '--join', and the directory '%s' did not already exist.)\n",
+                   filepath.c_str());
 
             datacenter_id_t datacenter_id = generate_uuid();
             datacenter_semilattice_metadata_t datacenter_metadata;
@@ -280,13 +274,16 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 }
 
 void help_rethinkdb_create() {
-    std::cout << "'rethinkdb create' is used to prepare a directory to act "
-        "as the storage location for a RethinkDB cluster node." << std::endl;
-    std::cout << get_rethinkdb_create_options() << std::endl;
+    printf("'rethinkdb create' is used to prepare a directory to act "
+           "as the storage location for a RethinkDB cluster node.\n");
+    std::stringstream sstream;
+    sstream << get_rethinkdb_create_options();
+    printf("%s\n", sstream.str().c_str());
 }
 
 void help_rethinkdb_serve() {
-    std::cout << "'rethinkdb serve' is the actual process for a RethinkDB "
-        "cluster node." << std::endl;
-    std::cout << get_rethinkdb_serve_options() << std::endl;
+    printf("'rethinkdb serve' is the actual process for a RethinkDB cluster node.\n");
+    std::stringstream sstream;
+    sstream << get_rethinkdb_serve_options();
+    printf("%s\n", sstream.str().c_str());
 }
