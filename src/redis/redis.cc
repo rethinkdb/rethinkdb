@@ -2,7 +2,6 @@
 #include "redis/redis.hpp"
 #include "btree/slice.hpp"
 #include "errors.hpp"
-// #include <iostream>
 #include <string>
 #include <vector>
 
