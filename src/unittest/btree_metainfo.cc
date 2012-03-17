@@ -1,0 +1,196 @@
+#include "unittest/gtest.hpp"
+
+#include "btree/operations.hpp"
+#include "serializer/log/log_serializer.hpp"
+#include "unittest/unittest_utils.hpp"
+
+namespace unittest {
+
+static const bool print_log_messages = false;
+
+std::string random_existing_key(const std::map<std::string, std::string> &map) {
+    int i = random() % map.size();
+    std::map<std::string, std::string>::const_iterator it = map.begin();
+    while (i-- > 0) it++;
+    return it->first;
+}
+
+std::string random_string() {
+    std::string s;
+    int length = random() % 10;
+    if (random() % 100 == 0) {
+        length *= 5000;
+    }
+    char c = 'a' + random() % ('z' - 'a' + 1);
+    return std::string(length, c);
+}
+
+std::vector<char> string_to_vector(const std::string &s) {
+    return std::vector<char>(s.data(), s.data() + s.size());
+}
+
+std::string vector_to_string(const std::vector<char> &v) {
+    return std::string(v.data(), v.size());
+}
+
+void run_metainfo_test() {
+
+    temp_file_t temp_file("/tmp/rdb_unittest.XXXXXX");
+
+    standard_serializer_t::create(
+        standard_serializer_t::dynamic_config_t(),
+        standard_serializer_t::private_dynamic_config_t(temp_file.name()),
+        standard_serializer_t::static_config_t()
+        );
+
+    standard_serializer_t serializer(
+        standard_serializer_t::dynamic_config_t(),
+        standard_serializer_t::private_dynamic_config_t(temp_file.name())
+        );
+
+    mirrored_cache_static_config_t cache_static_config;
+    cache_t::create(&serializer, &cache_static_config);
+
+    mirrored_cache_config_t cache_dynamic_config;
+    cache_t cache(&serializer, &cache_dynamic_config);
+
+    btree_slice_t::create(&cache, key_range_t::entire_range());
+
+    btree_slice_t btree(&cache);
+
+    order_source_t order_source;
+
+    std::map<std::string, std::string> mirror;
+
+    {
+        order_token_t otok = order_source.check_in("metainfo unittest");
+        boost::scoped_ptr<transaction_t> txn;
+        got_superblock_t got_superblock;
+        get_btree_superblock(&btree, rwi_write, 1, repli_timestamp_t::invalid, otok, &got_superblock, txn);
+        buf_lock_t *sb_buf = got_superblock.get_real_buf();
+        clear_superblock_metainfo(txn.get(), sb_buf);
+    }
+
+    for (int i = 0; i < 1000; i++) {
+
+        order_token_t otok = order_source.check_in("metainfo unittest");
+        boost::scoped_ptr<transaction_t> txn;
+        got_superblock_t got_superblock;
+        get_btree_superblock(&btree, rwi_write, 1, repli_timestamp_t::invalid, otok, &got_superblock, txn);
+        buf_lock_t *sb_buf = got_superblock.get_real_buf();
+
+        int op = random() % 100;
+        if (op == 0) {
+            clear_superblock_metainfo(txn.get(), sb_buf);
+            mirror.clear();
+            if (print_log_messages) {
+                std::cout << "clear" << std::endl;
+            }
+        } else if (op <= 30) {
+            if (mirror.empty()) {
+                continue;
+            }
+            std::string key = random_existing_key(mirror);
+            std::vector<char> value_out;
+            bool found = get_superblock_metainfo(txn.get(), sb_buf, string_to_vector(key), value_out);
+            EXPECT_TRUE(found);
+            if (found) {
+                EXPECT_EQ(mirror[key], vector_to_string(value_out));
+            }
+            if (print_log_messages) {
+                std::string repr = found ? "'" + vector_to_string(value_out) + "'" : "<not found>";
+                std::cout << "get '" << key << "' -> " << repr << " (expected '" <<
+                    mirror[key] << "')" << std::endl;
+            }
+        } else if (op <= 40) {
+            std::string key = random_string();
+            if (mirror.count(key) > 0) {
+                continue;
+            }
+            std::vector<char> value_out;
+            bool found = get_superblock_metainfo(txn.get(), sb_buf, string_to_vector(key), value_out);
+            EXPECT_FALSE(found);
+            if (found) {
+                EXPECT_EQ(mirror[key], vector_to_string(value_out));
+            }
+            if (print_log_messages) {
+                std::string repr = found ? "'" + vector_to_string(value_out) + "'" : "<not found>";
+                std::cout << "get '" << key << "' -> " << repr << " (expected <not found>)" << std::endl;
+            }
+        } else if (op <= 60) {
+            if (mirror.empty()) {
+                continue;
+            }
+            std::string key = random_existing_key(mirror);
+            std::string value = random_string();
+            set_superblock_metainfo(txn.get(), sb_buf, string_to_vector(key), string_to_vector(value));
+            mirror[key] = value;
+            if (print_log_messages) {
+                std::cout << "update '" << key << "' = '" << value << "'" << std::endl;
+            }
+        } else if (op <= 80) {
+            std::string key = random_string();
+            if (mirror.count(key) > 0) {
+                continue;
+            }
+            std::string value = random_string();
+            set_superblock_metainfo(txn.get(), sb_buf, string_to_vector(key), string_to_vector(value));
+            mirror[key] = value;
+            if (print_log_messages) {
+                std::cout << "insert '" << key << "' = '" << value << "'" << std::endl;
+            }
+        } else if (op <= 90) {
+            if (mirror.empty()) {
+                continue;
+            }
+            std::string key = random_existing_key(mirror);
+            delete_superblock_metainfo(txn.get(), sb_buf, string_to_vector(key));
+            mirror.erase(key);
+            if (print_log_messages) {
+                std::cout << "delete '" << key << "'" << std::endl;
+            }
+        } else {
+            std::vector<std::pair<std::vector<char>, std::vector<char> > > pairs;
+            get_superblock_metainfo(txn.get(), sb_buf, pairs);
+            std::map<std::string, std::string> mirror_copy = mirror;
+            if (print_log_messages) {
+                std::cout << "scan..." << std::endl;
+            }
+            for (int i = 0; i < (int)pairs.size(); i++) {
+                std::map<std::string, std::string>::iterator it = mirror_copy.find(vector_to_string(pairs[i].first));
+                if (it == mirror_copy.end()) {
+                    if (print_log_messages) {
+                        std::cout << "    '" <<
+                            vector_to_string(pairs[i].first) << "' = '" <<
+                            vector_to_string(pairs[i].second) <<
+                            " (expected <not found>)" << std::endl;
+                    }
+                    ADD_FAILURE() << "extra key";
+                } else {
+                    if (print_log_messages) {
+                        std::cout << "    '" <<
+                            vector_to_string(pairs[i].first) << "' = '" <<
+                            vector_to_string(pairs[i].second) <<
+                            " (expected '" << it->second << "')" << std::endl;
+                    }
+                    EXPECT_EQ(it->second, vector_to_string(pairs[i].second));
+                    mirror_copy.erase(it);
+                }
+            }
+            if (print_log_messages) {
+                for (std::map<std::string, std::string>::iterator it = mirror_copy.begin(); it != mirror_copy.end(); it++) {
+                    std::cout << "    '" << it->first <<
+                        "' = <not found> (expected '" << it->second <<
+                        "')" << std::endl;
+                }
+            }
+            EXPECT_EQ(0, mirror_copy.size()) << "missing key(s)";
+        }
+    }
+}
+
+TEST(BtreeMetainfo, MetainfoTest) {
+    run_in_thread_pool(&run_metainfo_test);
+}
+
+}   /* namespace unittest */

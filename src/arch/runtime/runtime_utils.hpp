@@ -1,8 +1,9 @@
 #ifndef ARCH_RUNTIME_RUNTIME_UTILS_HPP_
 #define ARCH_RUNTIME_RUNTIME_UTILS_HPP_
 
-#include "containers/intrusive_list.hpp"
 #include <stdint.h>
+
+#include "containers/intrusive_list.hpp"
 
 typedef int fd_t;
 #define INVALID_FD fd_t(-1)

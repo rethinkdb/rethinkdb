@@ -31,7 +31,7 @@ class persistence_issue_t : public local_issue_t {
 public:
     persistence_issue_t() { }   // for serialization
 
-    persistence_issue_t(const std::string &_message) : message(_message) { }
+    explicit persistence_issue_t(const std::string &_message) : message(_message) { }
 
     std::string get_description() const {
         return "There was a problem when trying to persist the metadata to "

@@ -16,7 +16,7 @@ namespace mock {
 
 class query_http_app_t : public http_app_t {
 public:
-    query_http_app_t(namespace_interface_t<dummy_protocol_t> * _namespace_if);
+    explicit query_http_app_t(namespace_interface_t<dummy_protocol_t> * _namespace_if);
     http_res_t handle(const http_req_t &);
 
 private:

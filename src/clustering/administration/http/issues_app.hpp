@@ -6,7 +6,7 @@
 
 class issues_http_app_t : public http_app_t {
 public:
-    issues_http_app_t(global_issue_tracker_t *_issue_tracker);
+    explicit issues_http_app_t(global_issue_tracker_t *_issue_tracker);
 
     http_res_t handle(const http_req_t &req);
 

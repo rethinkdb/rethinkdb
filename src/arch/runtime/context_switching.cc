@@ -1,9 +1,12 @@
 #include "arch/runtime/context_switching.hpp"
-#include "errors.hpp"
+
 #include <sys/mman.h>
+
 #ifdef VALGRIND
 #include <valgrind/valgrind.h>
 #endif
+
+#include "utils.hpp"
 
 /* We have a custom implementation of `swapcontext()` that doesn't swap the
 floating-point registers, the SSE registers, or the signal mask. This is for
