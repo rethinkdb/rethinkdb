@@ -1,7 +1,10 @@
 #include "arch/runtime/runtime.hpp"
 #include "arch/runtime/starter.hpp"
 
+
 #include "utils.hpp"
+#include <boost/bind.hpp>
+
 #include "arch/runtime/thread_pool.hpp"
 #include "do_on_thread.hpp"
 
@@ -45,7 +48,9 @@ struct starter_t : public thread_message_t {
 
     starter_t(linux_thread_pool_t *_tp, const boost::function<void()>& _fun) : tp(_tp), run(boost::bind(&starter_t::run_wrapper, this, _fun)) { }
     void on_thread_switch() {
-        spawn_on_thread(0, run);
+        const int run_thread = 0;
+        rassert(get_thread_id() != run_thread);
+        do_on_thread(run_thread, boost::bind(&coro_t::spawn_now< boost::function<void()> >, boost::ref(run)));
     }
 private:
     void run_wrapper(const boost::function<void()>& fun) {

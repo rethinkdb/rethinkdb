@@ -1,4 +1,5 @@
 #include "errors.hpp"
+#include <boost/bind.hpp>
 #include <boost/ptr_container/ptr_map.hpp>
 #include <boost/scoped_ptr.hpp>
 

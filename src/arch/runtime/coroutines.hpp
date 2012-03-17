@@ -5,9 +5,6 @@
 #include <string>
 #endif
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "arch/runtime/runtime_utils.hpp"
 #include "arch/runtime/context_switching.hpp"
 
