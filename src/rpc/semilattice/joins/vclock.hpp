@@ -5,6 +5,7 @@
 
 #include <boost/uuid/uuid.hpp>
 
+#include "containers/map_sentries.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/serialize_macros.hpp"
 

@@ -52,7 +52,7 @@ json_array_iterator_t::json_array_iterator_t(cJSON *target)
 std::string cJSON_print_std_string(cJSON *json) {
     char *s = cJSON_Print(json);
     std::string res(s);
-    delete s;
+    free(s);
 
     return res;
 }

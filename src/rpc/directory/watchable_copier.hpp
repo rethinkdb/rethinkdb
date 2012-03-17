@@ -55,6 +55,6 @@ template<class metadata_t>
 clone_ptr_t<watchable_t<std::map<peer_id_t, metadata_t> > > translate_into_watchable(
     const clone_ptr_t<directory_rwview_t<metadata_t> > &view);
 
-#include "watchable_copier.tcc"
+#include "rpc/directory/watchable_copier.tcc"
 
 #endif /* RPC_DIRECTORY_WATCHABLE_COPIER_HPP_ */

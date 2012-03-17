@@ -16,7 +16,7 @@
 /* This files contains the class reactor driver whose job is to create and
  * destroy reactors based on blueprints given to the server. */
 
-template<class protocol_t>
+template <class protocol_t>
 class watchable_and_reactor_t;
 
 template <class protocol_t>

@@ -15,6 +15,10 @@
 #include "btree/erase_range.hpp"
 
 
+memcached_protocol_t::region_t memcached_protocol_t::universe_region() {
+    return key_range_t::entire_range();
+}
+
 /* `memcached_protocol_t::read_t::get_region()` */
 
 static key_range_t::bound_t convert_bound_mode(rget_bound_mode_t rbm) {
@@ -271,7 +275,9 @@ region_map_t<memcached_protocol_t, binary_blob_t> memcached_protocol_t::store_t:
             binary_blob_t(value.begin(), value.end())
         ));
     }
-    return region_map_t<memcached_protocol_t, binary_blob_t>(result.begin(), result.end());
+    region_map_t<memcached_protocol_t, binary_blob_t> res(result.begin(), result.end());
+    rassert(res.get_domain() == memcached_protocol_t::universe_region());
+    return res;
 }
 
 void memcached_protocol_t::store_t::set_metainfo(
@@ -492,6 +498,8 @@ memcached_protocol_t::store_t::metainfo_t memcached_protocol_t::store_t::check_m
 void memcached_protocol_t::store_t::update_metainfo(const metainfo_t &old_metainfo, const metainfo_t &new_metainfo, transaction_t *txn, got_superblock_t &superblock) const THROWS_NOTHING {
     region_map_t<memcached_protocol_t, binary_blob_t> updated_metadata = old_metainfo;
     updated_metadata.update(new_metainfo);
+
+    rassert(updated_metadata.get_domain() == memcached_protocol_t::universe_region());
 
     buf_lock_t* sb_buf = superblock.get_real_buf();
     clear_superblock_metainfo(txn, sb_buf);

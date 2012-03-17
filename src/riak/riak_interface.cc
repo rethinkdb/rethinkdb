@@ -39,7 +39,11 @@ btree_slice_t *riak_interface_t::create_slice(std::list<std::string> key) {
 
     standard_serializer_t::config_t ser_config(boost::algorithm::join(key,"_"));
     store_manager->create_store(key, ser_config);
-    store_manager->get_store(key)->store_metadata = bucket_t(nth(key, 1));
+    std::list<std::string>::const_iterator iter = key.begin();
+    rassert(iter != key.end());
+    ++iter;
+    rassert(iter != key.end());
+    store_manager->get_store(key)->store_metadata = bucket_t(*iter);
 
     store_manager->get_store(key)->load_store();
 

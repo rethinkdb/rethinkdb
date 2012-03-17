@@ -74,6 +74,16 @@ key_range_t::key_range_t(bound_t lm, const store_key_t& l, bound_t rm, const sto
     }
 }
 
+std::ostream &operator<<(std::ostream & stream, const key_range_t &kr) {
+    stream << "[\"" << key_to_str(kr.left) << "\", ";
+    if (kr.right.unbounded) {
+        stream << "...]";
+    } else {
+        stream << "\"" << key_to_str(kr.right.key) << "\")";
+    }
+    return stream;
+}
+
 bool region_is_superset(const key_range_t &potential_superset, const key_range_t &potential_subset) THROWS_NOTHING {
     /* Special-case empty ranges */
     if (key_range_t::right_bound_t(potential_subset.left) == potential_subset.right) return true;
@@ -141,12 +151,15 @@ std::vector<key_range_t> region_subtract_many(key_range_t minuend, const std::ve
             // m-s = m & not(s) = m & ([-inf, s.left) | [s.right, +inf))
             //                  = (m & [-inf, s.left)) | (m & [s.right, +inf))
             key_range_t left = region_intersection(*m, key_range_t(key_range_t::none, store_key_t(), key_range_t::open, (*s).left));
-            key_range_t right = region_intersection(*m, key_range_t(key_range_t::closed, store_key_t(), key_range_t::open, (*s).left));
             if (!left.is_empty()) {
                 temp_result_buf.push_back(left);
             }
-            if (!right.is_empty()) {
-                temp_result_buf.push_back(right);
+            if (!s->right.unbounded) {
+                key_range_t right = region_intersection(*m, key_range_t(key_range_t::closed, s->right.key, key_range_t::none, store_key_t()));
+
+                if (!right.is_empty()) {
+                    temp_result_buf.push_back(right);
+                }
             }
         }
         buf.swap(temp_result_buf);

@@ -7,6 +7,7 @@
 
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "clustering/registrar.hpp"
+#include "containers/uuid.hpp"
 #include "protocol_api.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/mailbox/typed.hpp"

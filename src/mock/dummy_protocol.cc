@@ -40,6 +40,10 @@ bool dummy_protocol_t::region_t::operator<(const region_t &other) const {
     }
 }
 
+dummy_protocol_t::region_t dummy_protocol_t::universe_region() {
+    return a_thru_z_region();
+}
+
 dummy_protocol_t::region_t::region_t() THROWS_NOTHING {
 }
 

@@ -1,6 +1,8 @@
 #ifndef ARCH_RUNTIME_RUNTIME_HPP_
 #define ARCH_RUNTIME_RUNTIME_HPP_
 
+#include <boost/function.hpp>
+
 #include "arch/runtime/runtime_utils.hpp"
 #include "arch/runtime/coroutines.hpp"
 
