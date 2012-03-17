@@ -158,8 +158,8 @@ class DashboardView extends Backbone.View
 
         @.$('.data-picker').html @data_picker.render().el
         @.$('.disk-usage').html @disk_usage.render().el
-        #@.$('.mem-usage').html @mem_usage.render().el
-        #@.$('.chart.cluster-performance').html @cluster_performance.render().el
+        @.$('.mem-usage').html @mem_usage.render().el
+        @.$('.chart.cluster-performance').html @cluster_performance.render().el
 
         return @
 
@@ -302,32 +302,9 @@ module 'Vis', ->
             return _.reduce values, (memo, num) -> memo + num
 
         # Utility function to only get a filtered subset of the data
-        #   existing_data: optional argument that will keep previously
-        #       calculated positional data for each datum in the json 
-        #       if it isn't added or removed from the filtered data
-        get_filtered_data: (existing_data) =>
-            existing = {}
-            # If existing data has been provided, order the json by uuid for easy lookup
-            if existing_data?
-                for datum in existing_data
-                    if datum?
-                        existing[datum.data.id] =
-                            previous: datum.data.previous
-
-            # Filter the datastream based on active uuids
-            console.log '************************'
-            #console.log 'filtering data:'
-            filtered_data = _.map @data_stream.get('active_uuids'), (uuid) =>
-                json = @data.get(uuid).toJSON()
-                #console.log "\t#{@data.get(uuid).get('collection').get(uuid).get('name')}:", json
-                #console.log '\t\texisting data:',existing_data if existing_data?
-                # If the uuid is already in our pie chart, attach its previously calculated positional data (previous position)
-                if existing[uuid]?
-                    json = _.defaults json, existing[uuid]
-                return json
-
-            console.log '\tfiltered_data:',filtered_data
-            return filtered_data
+        get_filtered_data: =>
+            return _.map @data_stream.get('active_uuids'), (uuid) =>
+                @data.get(uuid).toJSON()
 
         render: =>
             $(@el).empty()
@@ -382,27 +359,32 @@ module 'Vis', ->
             total = @get_total filtered_data
             @arcs = @groups.arcs.selectAll('g.arc').data(@donut(filtered_data), (d) -> d.data.id)
 
+            # Stop all running animations / tweenings to allow us to redraw the pie chart.
+            d3.selectAll("*").transition().delay(0)
+
             # Whenever a datum is entered, create a new group that will contain the arc path, arc tick, and arc label
             entering_arc_groups = @arcs
                 .enter()
                     .append('svg:g')
                         .attr('class','arc')
-                        # Save the current state of the arc (angles, values, etc.) for use when tweening
-                        .each((d) =>
-                            # Make sure we have a color
-                            if not @color_map[d.data.id]?
-                                console.log "No color can be found for #{d.data.id}."
-                            d.data.previous =
-                                endAngle: d.endAngle
-                                startAngle: d.startAngle
-                                value: d.value
-                        )
+
+            # Make sure each arc path has positional data to help tween: if it's missing, use the current position
+            @arcs.each((d) =>
+                # Make sure we have a color
+                if not @color_map[d.data.id]?
+                    console.log "No color can be found for #{d.data.id}."
+                # Save the current state of the arc (angles, values, etc.) for use when tweening
+                d.data.previous =
+                    endAngle: d.endAngle
+                    startAngle: d.startAngle
+                    value: d.value
+            )
 
             # Add an arc path to the group
             entering_arc_groups.append('svg:path')
                 .attr('class','section')
                 # Fill the pie chart with the color scheme we defined
-                .attr('fill', (d) => console.log 'entering: ',d.data.collection.get(d.data.id).get('name'),'\t|\t',d; @color_map[d.data.id])
+                .attr('fill', (d) => @color_map[d.data.id])
 
             # Add a tick to the group
             entering_arc_groups.append('svg:line')
@@ -418,15 +400,17 @@ module 'Vis', ->
                 .attr('text-anchor','middle')
                 .attr('dominant-baseline','central')
 
+
             # Update the center text
             @groups.center.select('text.total-value').text(total)
 
             # Whenever a datum is exited, just remove the group
-            @arcs.exit().each((d) -> console.log 'exiting:',d.data.collection.get(d.data.id).get('name'),'\t|\t',d).remove()
+            @arcs.exit().remove()
             
             # Calculate the positions, transformations, and data for each of the arc group elements
             @arcs.select('path.section').attr('d', @arc)
             @arcs.select('line.tick').attr('transform', (d) -> "rotate(#{(d.startAngle + d.endAngle)/2 * (180/Math.PI)})")
+
             # Terrible hack that works: set a timeout of zero so that this is called only when the rendered view is actually added to the DOM
             # Reason this is necessary: getting the bounding box of the text node (bbox) will only work when the text box is actually rendered on the page
             setTimeout =>
@@ -434,7 +418,6 @@ module 'Vis', ->
                 pie_label_position = @pie_label_position
                 @arcs.select('text.label')
                     .text((d) =>
-                        console.log d.data.collection.get(d.data.id).get('name'), ' has the value ', d.data.value
                         percentage = (d.value/total) * 100
                         return percentage.toFixed(1) + '%'
                     )
@@ -447,11 +430,26 @@ module 'Vis', ->
             , 0
 
         update_chart: =>
-            # Update the data, redraw the arcs, calculate the new total
-            console.log 'existing data: ', @arcs.data(), '\n---------------'
-            new_data = @get_filtered_data(@arcs.data()) # Include the old data so we can keep the positional data for existing elements (previous position)
+            # Save positional data calculated by the previous tween before we fetch new data
+            existing_positional_data = {}
+            for datum in @arcs.data()
+                if datum.data.previous?
+                    existing_positional_data[datum.data.id] = datum.data.previous
+
+            # Update the data, run it through the donut layout manager
+            new_data = @donut @get_filtered_data() 
+
+            # Drop in positional data if it exists for the given arc
+            new_data = _.map new_data, (datum) ->
+                if datum.data.id of existing_positional_data
+                    datum.data.previous = existing_positional_data[datum.data.id]
+                return datum
+
+            # Calculate a new total
             total = @get_total new_data
-            @arcs.data(@donut(new_data), (d) -> d.data.id)
+
+            # Update the pie chart with the new data
+            @arcs.data(new_data, (d) -> d.data.id)
 
             # Use an arc tweening function to transition between arcs
             @arcs.select('path.section').transition().duration(@duration)
@@ -488,10 +486,7 @@ module 'Vis', ->
             pie_labels = @arcs.select('text.label')
                 .transition().duration(@duration)
                     .attrTween('transform', (d) ->
-                            try
-                                previous_angle = (d.data.previous.startAngle + d.data.previous.endAngle)/2
-                            catch error
-                                debugger
+                            previous_angle = (d.data.previous.startAngle + d.data.previous.endAngle)/2
                             new_angle = (d.startAngle + d.endAngle)/2
                             i = d3.interpolate previous_angle, new_angle
                             return (t) =>
