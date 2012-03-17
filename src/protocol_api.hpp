@@ -128,7 +128,6 @@ public:
 
     // Important: 'update' assumes that new_values regions do not intersect
     void update(const region_map_t& new_values) {
-        //std::cout << get_domain() << " greater than " << new_values.get_domain() << std::endl;
         rassert(region_is_superset(get_domain(), new_values.get_domain()), "Update cannot expand the domain of a region_map.");
         std::vector<typename protocol_t::region_t> overlay_regions;
         for (const_iterator i = new_values.begin(); i != new_values.end(); ++i) {
@@ -142,7 +141,6 @@ public:
 
             // Insert the unchanged parts of the old region into updated_pairs with the old value
             for (typename std::vector<typename protocol_t::region_t>::const_iterator j = old_subregions.begin(); j != old_subregions.end(); ++j) {
-                //std::cout << *j << ", " << std::endl;
                 updated_pairs.push_back(internal_pair_t(*j, (*i).second));
             }
         }
