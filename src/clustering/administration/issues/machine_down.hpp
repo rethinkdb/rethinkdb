@@ -7,7 +7,7 @@
 
 class machine_down_issue_t : public global_issue_t {
 public:
-    machine_down_issue_t(const machine_id_t &mid) : machine_id(mid) { }
+    explicit machine_down_issue_t(const machine_id_t &mid) : machine_id(mid) { }
 
     std::string get_description() const {
         return "Machine " + uuid_to_str(machine_id) + " is inaccessible.";
