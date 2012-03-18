@@ -4,6 +4,22 @@
 #include "concurrency/signal.hpp"
 #include "concurrency/auto_drainer.hpp"
 
+class cross_thread_signal_t;
+
+class cross_thread_signal_subscription_t : public signal_t::abstract_subscription_t {
+public:
+    cross_thread_signal_subscription_t(cross_thread_signal_t *parent,
+				       auto_drainer_t::lock_t keepalive)
+	: parent_(parent), keepalive_(keepalive) { }
+
+    virtual void run();
+
+private:
+    cross_thread_signal_t *parent_;
+    auto_drainer_t::lock_t keepalive_;
+    DISABLE_COPYING(cross_thread_signal_subscription_t);
+};
+
 /* `cross_thread_signal_t` is useful when you have a `signal_t` on some
 thread, but you wish you had the same `signal_t` on a different thread.
 Construct a `cross_thread_signal_t` on the original thread, and pass the new
@@ -17,6 +33,7 @@ public:
     cross_thread_signal_t(signal_t *source, int dest_thread);
 
 private:
+    friend class cross_thread_signal_subscription_t;
     void on_signal_pulsed(auto_drainer_t::lock_t);
     void deliver(auto_drainer_t::lock_t);
 
@@ -48,7 +65,7 @@ private:
     because `drainer`'s destructor will block until all the
     `auto_drainer_t::lock_t` objects are gone, and `subs`'s callback holds an
     `auto_drainer_t::lock_t`. */
-    signal_t::subscription_t subs;
+    cross_thread_signal_subscription_t subs;
 };
 
 #endif /* CONCURRENCY_CROSS_THREAD_SIGNAL_HPP_ */
