@@ -39,17 +39,15 @@ public:
 
     /* Wrapper around a `publisher_t<boost::function<void()> >::subscription_t`
     */
-    class subscription_t : public home_thread_mixin_t {
+
+    class abstract_subscription_t : public home_thread_mixin_t {
     public:
-        explicit subscription_t(boost::function<void()> cb) : cb_(cb), subs(this) { }
-        subscription_t(boost::function<void()> cb, signal_t *s) : cb_(cb), subs(this) {
-            reset(s);
-        }
+	abstract_subscription_t() : subs(this) { }
         void reset(signal_t *s = NULL) {
             if (s) {
                 mutex_assertion_t::acq_t acq(&s->lock);
                 if (s->is_pulsed()) {
-                    (subs.subscriber->cb_)();
+                    subs.subscriber->run();
                 } else {
                     subs.reset(s->publisher_controller.get_publisher());
                 }
@@ -57,10 +55,26 @@ public:
                 subs.reset(NULL);
             }
         }
-	friend class signal_t;
+
+	virtual void run() = 0;
+    private:
+	publisher_t<abstract_subscription_t *>::subscription_t subs;
+	DISABLE_COPYING(abstract_subscription_t);
+    };
+
+
+    class subscription_t : public abstract_subscription_t {
+    public:
+        explicit subscription_t(boost::function<void()> cb) : cb_(cb) { }
+        subscription_t(boost::function<void()> cb, signal_t *s) : cb_(cb) {
+            reset(s);
+        }
+
+	virtual void run() {
+	    cb_();
+	}
     private:
 	boost::function<void()> cb_;
-        publisher_t<subscription_t *>::subscription_t subs;
         DISABLE_COPYING(subscription_t);
     };
 
@@ -97,12 +111,12 @@ protected:
     }
 
 private:
-    static void call(subscription_t *subscription) THROWS_NOTHING {
-        (subscription->cb_)();
+    static void call(abstract_subscription_t *subscription) THROWS_NOTHING {
+        subscription->run();
     }
 
     bool pulsed;
-    publisher_controller_t<subscription_t *> publisher_controller;
+    publisher_controller_t<abstract_subscription_t *> publisher_controller;
     mutex_assertion_t lock;
     DISABLE_COPYING(signal_t);
 };
