@@ -41,15 +41,15 @@ public:
     */
     class subscription_t : public home_thread_mixin_t {
     public:
-        explicit subscription_t(boost::function<void()> cb) : subs(cb) { }
-        subscription_t(boost::function<void()> cb, signal_t *s) : subs(cb) {
+        explicit subscription_t(boost::function<void()> cb) : cb_(cb), subs(this) { }
+        subscription_t(boost::function<void()> cb, signal_t *s) : cb_(cb), subs(this) {
             reset(s);
         }
         void reset(signal_t *s = NULL) {
             if (s) {
                 mutex_assertion_t::acq_t acq(&s->lock);
                 if (s->is_pulsed()) {
-                    (subs.subscriber)();
+                    (subs.subscriber->cb_)();
                 } else {
                     subs.reset(s->publisher_controller.get_publisher());
                 }
@@ -57,8 +57,10 @@ public:
                 subs.reset(NULL);
             }
         }
+	friend class signal_t;
     private:
-        publisher_t<boost::function<void()> >::subscription_t subs;
+	boost::function<void()> cb_;
+        publisher_t<subscription_t *>::subscription_t subs;
         DISABLE_COPYING(subscription_t);
     };
 
@@ -95,12 +97,12 @@ protected:
     }
 
 private:
-    static void call(boost::function<void()>& fun) THROWS_NOTHING {
-        fun();
+    static void call(subscription_t *subscription) THROWS_NOTHING {
+        (subscription->cb_)();
     }
 
     bool pulsed;
-    publisher_controller_t<boost::function<void()> > publisher_controller;
+    publisher_controller_t<subscription_t *> publisher_controller;
     mutex_assertion_t lock;
     DISABLE_COPYING(signal_t);
 };
