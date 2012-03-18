@@ -166,8 +166,8 @@ class DashboardView extends Backbone.View
 module 'Vis', ->
     class @DataPicker extends Backbone.View
         template: Handlebars.compile $('#data_picker-template').html()
-        class: 'data-picker'
 
+        class: 'data-picker'
 
         events: =>
             'click .nav li': 'switch_filter'
@@ -261,6 +261,8 @@ module 'Vis', ->
 
     class @ResourcePieChart extends Backbone.View
         className: 'resource-pie-chart'
+        no_data_template: Handlebars.compile $('#vis_no_data-template').html()
+        empty_chart_showing: false
 
         events: ->
             'click': 'update_chart'
@@ -307,11 +309,12 @@ module 'Vis', ->
                 @data.get(uuid).toJSON()
 
         render: =>
-            $(@el).empty()
+            @.$el.empty()
             # Define the base visualization layer for the pie chart
             svg = d3.select(@el).append('svg:svg')
                     .attr('width', @width)
                     .attr('height', @height)
+            @svg = svg
 
             @groups = {}
 
@@ -355,8 +358,18 @@ module 'Vis', ->
 
         # Draw arcs for the donut pie chart from scratch
         draw_pie_chart: =>
+            # Get the selected datasets. If there aren't any selected, indicate no data was selected.
             filtered_data = @get_filtered_data()
+            if filtered_data.length is 0
+                @show_empty_chart()
+                return
+            else
+                @hide_empty_chart() if @empty_chart_showing
+
+            # Calculate a new total
             total = @get_total filtered_data
+
+            # Update the pie chart with the new data
             @arcs = @groups.arcs.selectAll('g.arc').data(@donut(filtered_data), (d) -> d.data.id)
 
             # Stop all running animations / tweenings to allow us to redraw the pie chart.
@@ -430,13 +443,19 @@ module 'Vis', ->
             , 0
 
         update_chart: =>
+            # Get the selected datasets. If there aren't any selected, indicate no data was selected.
+            filtered_data = @get_filtered_data()
+            if filtered_data.length is 0
+                @show_empty_chart()
+                return
+
             # Save positional data calculated by the previous tween before we fetch new data
             existing_positional_data = {}
             for datum in @arcs.data()
                 if datum.data.previous?
                     existing_positional_data[datum.data.id] = datum.data.previous
 
-            # Update the data, run it through the donut layout manager
+            # Run the updated data through the donut layout manager
             new_data = @donut @get_filtered_data() 
 
             # Drop in positional data if it exists for the given arc
@@ -501,6 +520,20 @@ module 'Vis', ->
             # Update the tracked value
             @groups.center.select('text.total-value')
                 .text(total)
+
+        # Show the empty chart div, hide the svg
+        show_empty_chart: =>
+            if not @empty_chart_showing
+                @.$el.append @no_data_template()
+                @.$('svg').hide()
+                @empty_chart_showing = true
+
+        # Hide the empty chart div, show the svg
+        hide_empty_chart: =>
+            if @empty_chart_showing
+                $('.no-data').remove()
+                @.$('svg').show()
+                @empty_chart_showing = false
 
         # Calculates the x and y position for labels on each section of the pie chart
         # Takes a text box that will be used as the label, and an angle that the label should be positioned at
@@ -621,7 +654,7 @@ module 'Vis', ->
 
         render_chart: =>
             data = @get_data()
-            $(@el).empty()
+            @.$el.empty()
 
             # If there is no data, don't render the chart
             return if data.length <= 0

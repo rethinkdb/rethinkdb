@@ -64,6 +64,10 @@
                 <div class="loading"><h4>Loading data...</h4><img src="/static/images/loading.gif" /></div>
             </script>
 
+            <script id="vis_no_data-template" type="text/x-handlebars-template">
+                <p class="no-data">No data selected.</p>
+            </script>
+
             <script id="data_stream_filter-template" type="text/x-handlebars-template">
                 {{#each models}}
                     <div class="model" style="background:{{this.color}}" data-id="{{this.id}}">
