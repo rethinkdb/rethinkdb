@@ -1,6 +1,6 @@
 #include "concurrency/signal.hpp"
 
-class notify_later_ordered_subscription_t : public signal_t::abstract_subscription_t {
+class notify_later_ordered_subscription_t : public signal_t::subscription_t {
 public:
     notify_later_ordered_subscription_t() : coro_(coro_t::self()) { }
     virtual void run() {
@@ -19,7 +19,7 @@ void signal_t::wait_lazily_ordered() {
     }
 }
 
-class notify_sometime_subscription_t : public signal_t::abstract_subscription_t {
+class notify_sometime_subscription_t : public signal_t::subscription_t {
 public:
     notify_sometime_subscription_t() : coro_(coro_t::self()) { }
     virtual void run() {

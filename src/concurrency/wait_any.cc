@@ -1,6 +1,6 @@
 #include "concurrency/wait_any.hpp"
 
-class wait_any_subscription_t : public signal_t::abstract_subscription_t {
+class wait_any_subscription_t : public signal_t::subscription_t {
 public:
     wait_any_subscription_t(wait_any_t *parent) : parent_(parent) { }
     virtual void run();

@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "errors.hpp"
+#include <boost/function.hpp>
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/utility.hpp>   /* for `std::pair` serialization */
 #include <boost/scoped_ptr.hpp>

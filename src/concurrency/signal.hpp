@@ -1,9 +1,6 @@
 #ifndef CONCURRENCY_SIGNAL_HPP_
 #define CONCURRENCY_SIGNAL_HPP_
 
-#include "errors.hpp"
-#include <boost/function.hpp>
-
 #include "concurrency/pubsub.hpp"
 #include "utils.hpp"
 
@@ -12,12 +9,13 @@ that boolean variable becomes true. Typically you will construct a concrete
 subclass of `signal_t`, then pass a pointer to the underlying `signal_t` to
 another object which will read from or listen to it.
 
-To check if a `signal_t` has already been pulsed, call `is_pulsed()` on it. To
-be notified when it gets pulsed, construct a `signal_t::subscription_t` and pass
-a callback function and the signal to watch to its constructor. The callback
-will be called when the signal is pulsed. If the signal is already pulsed at the
-time you construct the `signal_t::subscription_t`, then the callback will be
-called immediately.
+To check if a `signal_t` has already been pulsed, call `is_pulsed()`
+on it. To be notified when it gets pulsed, construct a
+`signal_t::subscription_t` subclass and reset(...) it with the signal to
+watch. The callback will be called when the signal is pulsed. If the
+signal is already pulsed at the time you construct the
+`signal_t::subscription_t`, then the callback will be called
+immediately.
 
 `signal_t` is not thread-safe.
 
@@ -37,12 +35,12 @@ public:
         return pulsed;
     }
 
-    /* Wrapper around a `publisher_t<boost::function<void()> >::subscription_t`
+    /* Wrapper around a `publisher_t<signal_t::subscription_t>::subscription_t`
     */
 
-    class abstract_subscription_t : public home_thread_mixin_t {
+    class subscription_t : public home_thread_mixin_t {
     public:
-	abstract_subscription_t() : subs(this) { }
+	subscription_t() : subs(this) { }
         void reset(signal_t *s = NULL) {
             if (s) {
                 mutex_assertion_t::acq_t acq(&s->lock);
@@ -58,24 +56,8 @@ public:
 
 	virtual void run() = 0;
     private:
-	publisher_t<abstract_subscription_t *>::subscription_t subs;
-	DISABLE_COPYING(abstract_subscription_t);
-    };
-
-
-    class subscription_t : public abstract_subscription_t {
-    public:
-        explicit subscription_t(boost::function<void()> cb) : cb_(cb) { }
-        subscription_t(boost::function<void()> cb, signal_t *s) : cb_(cb) {
-            reset(s);
-        }
-
-	virtual void run() {
-	    cb_();
-	}
-    private:
-	boost::function<void()> cb_;
-        DISABLE_COPYING(subscription_t);
+	publisher_t<subscription_t *>::subscription_t subs;
+	DISABLE_COPYING(subscription_t);
     };
 
     /* The coro that calls `wait_lazily_ordered()` will be pushed onto the event
@@ -111,12 +93,12 @@ protected:
     }
 
 private:
-    static void call(abstract_subscription_t *subscription) THROWS_NOTHING {
+    static void call(subscription_t *subscription) THROWS_NOTHING {
         subscription->run();
     }
 
     bool pulsed;
-    publisher_controller_t<abstract_subscription_t *> publisher_controller;
+    publisher_controller_t<subscription_t *> publisher_controller;
     mutex_assertion_t lock;
     DISABLE_COPYING(signal_t);
 };

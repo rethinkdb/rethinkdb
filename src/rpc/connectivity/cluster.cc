@@ -143,14 +143,23 @@ void connectivity_cluster_t::run_t::join_blocking(
     }
 }
 
-static void close_conn(streamed_tcp_conn_t *c) THROWS_NOTHING {
-    if (c->is_read_open()) {
-        c->shutdown_read();
+class cluster_conn_closing_subscription_t : public signal_t::subscription_t {
+public:
+    cluster_conn_closing_subscription_t(streamed_tcp_conn_t *conn) : conn_(conn) { }
+
+    virtual void run() {
+	if (conn_->is_read_open()) {
+	    conn_->shutdown_read();
+	}
+	if (conn_->is_write_open()) {
+	    conn_->shutdown_write();
+	}
     }
-    if (c->is_write_open()) {
-        c->shutdown_write();
-    }
-}
+private:
+    streamed_tcp_conn_t *conn_;
+    DISABLE_COPYING(cluster_conn_closing_subscription_t);
+};
+
 
 void connectivity_cluster_t::run_t::handle(
         /* `conn` should remain valid until `handle()` returns. `handle()` does
@@ -376,9 +385,8 @@ void connectivity_cluster_t::run_t::handle(
 
     // Make sure that if we're ordered to shut down, any pending read
     // or write gets interrupted.
-    signal_t::subscription_t conn_closer(
-        boost::bind(&close_conn, conn),
-        &connection_thread_drain_signal);
+    cluster_conn_closing_subscription_t conn_closer(conn);
+    conn_closer.reset(&connection_thread_drain_signal);
 
     {
         /* `connection_entry_t` is the public interface of this coroutine. Its

@@ -4,14 +4,15 @@
 #include <set>
 
 #include "utils.hpp"
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
-#include <boost/uuid/uuid_serialize.hpp>
+#include <boost/function.hpp>
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/base_object.hpp>
 #include <boost/serialization/binary_object.hpp>
 #include <boost/serialization/utility.hpp>
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
+#include <boost/uuid/uuid_serialize.hpp>
 
 #include "arch/address.hpp"
 #include "concurrency/mutex.hpp"
