@@ -7,6 +7,8 @@
 /* Monitors multiple signals; becomes pulsed if any individual signal becomes
 pulsed. */
 
+class wait_any_subscription_t;
+
 class wait_any_t : public signal_t {
 public:
     wait_any_t();
@@ -15,10 +17,17 @@ public:
     wait_any_t(signal_t *s1, signal_t *s2, signal_t *s3);
     wait_any_t(signal_t *s1, signal_t *s2, signal_t *s3, signal_t *s4);
     wait_any_t(signal_t *s1, signal_t *s2, signal_t *s3, signal_t *s4, signal_t *s5);
+
+    ~wait_any_t();
+
     void add(signal_t *s);
 private:
-    boost::ptr_vector<signal_t::subscription_t> subs;
+    friend class wait_any_subscription_t;
     void pulse_if_not_already_pulsed();
+
+    boost::ptr_vector<wait_any_subscription_t> subs;
+
+    DISABLE_COPYING(wait_any_t);
 };
 
 /* Waits for the first signal to become pulsed. If the second signal becomes

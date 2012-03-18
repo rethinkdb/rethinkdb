@@ -1,5 +1,6 @@
 #include "concurrency/cross_thread_signal.hpp"
 
+#include "errors.hpp"
 #include <boost/bind.hpp>
 
 void cross_thread_signal_subscription_t::run() {

@@ -1,7 +1,18 @@
 #include "concurrency/wait_any.hpp"
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
+class wait_any_subscription_t : public signal_t::abstract_subscription_t {
+public:
+    wait_any_subscription_t(wait_any_t *parent) : parent_(parent) { }
+    virtual void run();
+private:
+    wait_any_t *parent_;
+    DISABLE_COPYING(wait_any_subscription_t);
+};
+
+void wait_any_subscription_t::run() {
+    parent_->pulse_if_not_already_pulsed();
+}
+
 
 wait_any_t::wait_any_t() {
 }
@@ -36,11 +47,13 @@ wait_any_t::wait_any_t(signal_t *s1, signal_t *s2, signal_t *s3, signal_t *s4, s
     add(s5);
 }
 
+wait_any_t::~wait_any_t() { }
+
 void wait_any_t::add(signal_t *s) {
     rassert(s);
-    subs.push_back(new signal_t::subscription_t(
-        boost::bind(&wait_any_t::pulse_if_not_already_pulsed, this),
-        s));
+    wait_any_subscription_t *sub = new wait_any_subscription_t(this);
+    sub->reset(s);
+    subs.push_back(sub);
 }
 
 void wait_any_t::pulse_if_not_already_pulsed() {
