@@ -241,9 +241,7 @@ BUILD_DIR:=$(BUILD_DIR)-noepoll
 endif
 
 ifeq ($(VALGRIND),1)
-# Disable the "unused-but-set-variable" warning in Valgrind mode because some
-# Valgrind macros set variables but don't use them.
-CXXFLAGS+=-DVALGRIND -Wno-unused-but-set-variable
+CXXFLAGS+=-DVALGRIND
 BUILD_DIR:=$(BUILD_DIR)-valgrind
 NO_TCMALLOC:=1
 endif
