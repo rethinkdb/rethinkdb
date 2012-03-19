@@ -1,9 +1,12 @@
 #include "arch/runtime/context_switching.hpp"
-#include "errors.hpp"
+
 #include <sys/mman.h>
+
 #ifdef VALGRIND
 #include <valgrind/valgrind.h>
 #endif
+
+#include "utils.hpp"
 
 /* We have a custom implementation of `swapcontext()` that doesn't swap the
 floating-point registers, the SSE registers, or the signal mask. This is for
@@ -88,10 +91,18 @@ artificial_stack_t::~artificial_stack_t() {
 
     /* Tell Valgrind the stack is no longer in use */
 #ifdef VALGRIND
+// Disable GCC diagnostic for VALGRIND_STACK_DEREGISTER.  The flag
+// exists only in GCC 4.6 and greater.  See the "reenable" comment
+// after the destructor.
+#if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 406)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+#endif
     VALGRIND_STACK_DEREGISTER(valgrind_stack_id);
+// Reenable GCC diagnostic for VALGRIND_STACK_DEREGISTER.
+#if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 406)
 #pragma GCC diagnostic pop
+#endif
 #endif
 
     /* Undo protections changes */

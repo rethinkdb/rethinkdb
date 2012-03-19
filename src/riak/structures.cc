@@ -1,5 +1,7 @@
 #include "riak/structures.hpp"
 
+#include "riak/riak_value.hpp"
+
 namespace riak {
 
 link_filter_t::link_filter_t(std::string _bucket, std::string _tag, bool keep) 

@@ -1,13 +1,17 @@
 #ifndef RIAK_STRUCTURES_HPP_
 #define RIAK_STRUCTURES_HPP_
 
-#include "riak/riak_value.hpp"
-#include "containers/buffer_group.hpp"
-#include "containers/scoped_malloc.hpp"
-#include "containers/iterators.hpp"
-#include "btree/iteration.hpp"
-#include <boost/fusion/include/adapt_struct.hpp>
+#include "errors.hpp"
 #include <boost/bind.hpp>
+#include <boost/fusion/include/adapt_struct.hpp>
+#include <boost/shared_array.hpp>
+
+#include "buffer_cache/types.hpp"
+#include "containers/iterators.hpp"
+
+class riak_value_t;
+template <class Value> struct key_value_pair_t;
+
 
 namespace riak {
 

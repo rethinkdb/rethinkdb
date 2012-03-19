@@ -2,7 +2,6 @@
 #define CLUSTERING_ADMINISTRATION_SUGGESTER_TCC_
 
 #include "clustering/administration/machine_id_to_peer_id.hpp"
-#include "clustering/administration/suggester.hpp"
 #include "lens.hpp"
 
 const char *missing_machine_exc_t::what() const throw () {

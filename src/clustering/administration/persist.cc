@@ -3,6 +3,7 @@
 #include "errors.hpp"
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
+#include <boost/serialization/export.hpp>
 
 #include "clustering/administration/persist.hpp"
 

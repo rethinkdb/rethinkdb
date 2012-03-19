@@ -36,14 +36,11 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/js/underscore-min.js");
     file_app.reset(new file_http_app_t(white_list, "../build/debug/web"));
 
-    semilattice_app.reset(new semilattice_http_app_t(
-        _semilattice_metadata, _directory_metadata,_us));
+    semilattice_app.reset(new semilattice_http_app_t(_semilattice_metadata, _directory_metadata, _us));
 
-    directory_app.reset(new directory_http_app_t(
-        _directory_metadata));
+    directory_app.reset(new directory_http_app_t(_directory_metadata));
 
-    issues_app.reset(new issues_http_app_t(
-        _issue_tracker));
+    issues_app.reset(new issues_http_app_t(_issue_tracker));
 
     std::map<std::string, http_app_t *> ajax_routes;
     ajax_routes["directory"] = directory_app.get();

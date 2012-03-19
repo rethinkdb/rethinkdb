@@ -44,10 +44,5 @@ continue processing immediately if we are already on the correct thread, but
 at the time it didn't seem worth rewriting it, so call_later_on_this_thread()
 was added to make it easy to simulate the old semantics. */
 
-/* `run_in_thread_pool()` starts a RethinkDB thread pool, runs the given
-function in a coroutine inside of it, waits for the function to return, and then
-shuts down the thread pool. */
-
-void run_in_thread_pool(const boost::function<void()>& fun, int num_threads = 1);
 
 #endif /* ARCH_RUNTIME_RUNTIME_HPP_ */

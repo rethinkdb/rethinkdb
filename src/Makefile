@@ -126,7 +126,7 @@ ifeq ($(COMPILER), INTEL)
 CXXFLAGS+=-std=gnu++98 -w1 -ftls-model=local-dynamic
 else
 ifeq ($(COMPILER), CLANG)
-CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-mismatched-tags
+CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default
 else
 CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default
 endif
@@ -241,9 +241,7 @@ BUILD_DIR:=$(BUILD_DIR)-noepoll
 endif
 
 ifeq ($(VALGRIND),1)
-# Disable the "unused-but-set-variable" warning in Valgrind mode because some
-# Valgrind macros set variables but don't use them.
-CXXFLAGS+=-DVALGRIND -Wno-unused-but-set-variable
+CXXFLAGS+=-DVALGRIND
 BUILD_DIR:=$(BUILD_DIR)-valgrind
 NO_TCMALLOC:=1
 endif

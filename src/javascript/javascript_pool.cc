@@ -1,4 +1,9 @@
 #include "javascript/javascript_pool.hpp"
+#include <pthread.h>
+#include <stddef.h>
+#include <boost/bind.hpp>
+
+#include <API/JSContextRef.h>
 #include "javascript/javascript.hpp"
 #include "concurrency/cond_var.hpp"
 

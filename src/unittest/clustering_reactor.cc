@@ -254,7 +254,13 @@ public:
 
     void wait_until_blueprint_is_satisfied(const blueprint_t<protocol_t> &bp) {
         try {
-            signal_timer_t timer(2000);
+#ifdef VALGRIND
+	    const int timeout = 8000;
+#else
+	    const int timeout = 2000;
+#endif
+
+            signal_timer_t timer(timeout);
             static_cast<clone_ptr_t<directory_rview_t<boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > > >(test_clusters[0].directory_manager.get_root_view()
                 ->subview(field_lens(&test_cluster_directory_t<protocol_t>::reactor_directory)))
                 ->subview(optional_monad_lens<reactor_business_card_t<protocol_t>, directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >(

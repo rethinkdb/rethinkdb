@@ -1,9 +1,6 @@
 #ifndef CLUSTERING_ADMINISTRATION_PERSIST_HPP_
 #define CLUSTERING_ADMINISTRATION_PERSIST_HPP_
 
-#include "errors.hpp"
-#include <boost/serialization/export.hpp>
-
 #include "clustering/administration/issues/local.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "rpc/semilattice/view.hpp"
@@ -31,7 +28,7 @@ class persistence_issue_t : public local_issue_t {
 public:
     persistence_issue_t() { }   // for serialization
 
-    persistence_issue_t(const std::string &_message) : message(_message) { }
+    explicit persistence_issue_t(const std::string &_message) : message(_message) { }
 
     std::string get_description() const {
         return "There was a problem when trying to persist the metadata to "

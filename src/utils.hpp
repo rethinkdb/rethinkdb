@@ -5,19 +5,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <map>
 #include <string>
-#include <vector>
 
 #include "errors.hpp"
-#include <boost/uuid/uuid.hpp>
-#include <boost/function.hpp>
-#include <boost/optional.hpp>
-
-#include <list>
-#include <map>
-
-#include "rpc/serialize_macros.hpp"
 
 /* Note that repli_timestamp_t does NOT represent an actual timestamp; instead it's an arbitrary
 counter. */
@@ -70,130 +60,6 @@ public:
         return "interrupted";
     }
 };
-
-/* `death_runner_t` runs an arbitrary function in its destructor */
-class death_runner_t {
-public:
-    death_runner_t() { }
-    explicit death_runner_t(const boost::function<void()> &f) : fun(f) { }
-    ~death_runner_t() {
-        if (!fun.empty()) fun();
-    }
-    boost::function<void()> fun;
-};
-
-/* `map_insertion_sentry_t` inserts a value into a map on construction, and
-removes it in the destructor. */
-template<class key_t, class value_t>
-class map_insertion_sentry_t {
-public:
-    map_insertion_sentry_t() : map(NULL) { }
-    map_insertion_sentry_t(std::map<key_t, value_t> *m, const key_t &key, const value_t &value) : map(NULL) {
-        reset(m, key, value);
-    }
-    ~map_insertion_sentry_t() {
-        reset();
-    }
-    void reset() {
-        if (map) {
-            map->erase(it);
-            map = NULL;
-        }
-    }
-    void reset(std::map<key_t, value_t> *m, const key_t &key, const value_t &value) {
-        reset();
-        map = m;
-        std::pair<typename std::map<key_t, value_t>::iterator, bool> iterator_and_is_new =
-            map->insert(std::make_pair(key, value));
-        rassert(iterator_and_is_new.second, "value to be inserted already "
-            "exists. don't do that.");
-        it = iterator_and_is_new.first;
-    }
-private:
-    std::map<key_t, value_t> *map;
-    typename std::map<key_t, value_t>::iterator it;
-};
-
-/* `multimap_insertion_sentry_t` inserts a value into a multimap on
-construction, and removes it in the destructor. */
-template<class key_t, class value_t>
-class multimap_insertion_sentry_t {
-public:
-    multimap_insertion_sentry_t() : map(NULL) { }
-    multimap_insertion_sentry_t(std::multimap<key_t, value_t> *m, const key_t &key, const value_t &value) : map(NULL) {
-        reset(m, key, value);
-    }
-    ~multimap_insertion_sentry_t() {
-        reset();
-    }
-    void reset() {
-        if (map) {
-            map->erase(it);
-            map = NULL;
-        }
-    }
-    void reset(std::multimap<key_t, value_t> *m, const key_t &key, const value_t &value) {
-        reset();
-        map = m;
-        it = map->insert(std::make_pair(key, value));
-    }
-private:
-    std::multimap<key_t, value_t> *map;
-    typename std::multimap<key_t, value_t>::iterator it;
-};
-
-/* Binary blob that represents some unknown POD type */
-class binary_blob_t {
-public:
-    binary_blob_t() { }
-
-    template<class obj_t>
-    explicit binary_blob_t(const obj_t &o) : storage(reinterpret_cast<const uint8_t *>(&o), reinterpret_cast<const uint8_t *>(&o + 1)) { }
-
-    binary_blob_t(const uint8_t *data, size_t size) : storage(data, data+size) { }
-    template<class InputIterator>
-    binary_blob_t(InputIterator begin, InputIterator end) : storage(begin, end) { }
-
-    /* Constructor in static method form so we can use it as a functor */
-    template<class obj_t>
-    static binary_blob_t make(const obj_t &o) {
-        return binary_blob_t(o);
-    }
-
-    size_t size() const {
-        return storage.size();
-    }
-
-    // Unfortunately C++ compiler gets confused by two overloaded functions
-    // which differ only in constness of the argument, so they have to be named
-    // differently.
-    template<class obj_t>
-    static obj_t &get_modifiable(binary_blob_t &blob) {
-        rassert(blob.size() == sizeof(obj_t));
-        return *reinterpret_cast<obj_t *>(blob.data());
-    }
-
-    template<class obj_t>
-    static const obj_t &get(const binary_blob_t &blob) {
-        rassert(blob.size() == sizeof(obj_t));
-        return *reinterpret_cast<const obj_t *>(blob.data());
-    }
-
-    void *data() {
-        return storage.data();
-    }
-
-    const void *data() const {
-        return storage.data();
-    }
-
-private:
-    std::vector<uint8_t> storage;
-    RDB_MAKE_ME_SERIALIZABLE_1(storage);
-};
-
-bool operator==(const binary_blob_t &left, const binary_blob_t &right);
-bool operator!=(const binary_blob_t &left, const binary_blob_t &right);
 
 // Like std::max, except it's technically not associative.
 repli_timestamp_t repli_max(repli_timestamp_t x, repli_timestamp_t y);
@@ -365,29 +231,7 @@ public:
     ~on_thread_t();
 };
 
-/* This does the same thing as `boost::uuids::random_generator()()`, except that
-Valgrind won't complain about it. */
-boost::uuids::uuid generate_uuid();
-
 void print_backtrace(FILE *out = stderr, bool use_addr2line = true);
-
-/* I think we basically all know this... but this function has linear
- * complexity and thus you can't use it for anything real, if you want to do
- * this type of access pattern use a different STL container. This only exists
- * because it's convenient to pass around paths as std::lists and I don't want
- * to write 3 lines of code to access the second element. */
-template <class T>
-T const &nth(std::list<T> const &l, unsigned n) {
-    typename std::list<T>::const_iterator it = l.begin();
-
-    while (n > 0) {
-        rassert(it != l.end(), "n > list.size()");
-        n--;
-        it++;
-    }
-
-    return *it;
-}
 
 template <class InputIterator, class UnaryPredicate>
 bool all_match_predicate(InputIterator begin, InputIterator end, UnaryPredicate f) {
@@ -405,33 +249,6 @@ bool all_in_container_match_predicate (const T &container, UnaryPredicate f) {
 
 bool notf(bool x);
 
-/*
-template<class K, class V>
-std::ostream &operator<<(std::ostream &stream, const std::map<K, V> &map) {
-    stream << "{ ";
-    for (typename std::map<K, V>::const_iterator it =  map.begin(); it != map.end(); ++it) {
-        stream << it->first << " -> " << it->second << ", ";
-    }
-    stream << "}";
-    return stream;
-}
-
-template <class T>
-std::ostream &operator<<(std::ostream &stream, const boost::optional<T> &optional) {
-    if (optional) {
-        stream << optional.get();
-    } else {
-        stream << "Boost optional containing nothing.";
-    }
-
-    return stream;
-}
-*/
-
 std::string read_file(const char *path);
-
-std::string uuid_to_str(boost::uuids::uuid id);
-
-boost::uuids::uuid str_to_uuid(const std::string&);
 
 #endif // UTILS_HPP_

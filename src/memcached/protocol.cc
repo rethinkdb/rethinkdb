@@ -388,7 +388,7 @@ bool memcached_protocol_t::store_t::send_backfill(
     boost::scoped_ptr<transaction_t> txn;
     acquire_superblock_for_backfill(token, txn, superblock, interruptor);
 
-    metainfo_t metainfo = get_metainfo_internal(txn.get(), superblock.get_real_buf());
+    metainfo_t metainfo = get_metainfo_internal(txn.get(), superblock.get_real_buf()).mask(start_point.get_domain());
     if (should_backfill(metainfo)) {
         memcached_backfill_callback_t callback(chunk_fun);
 

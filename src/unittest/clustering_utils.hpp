@@ -2,29 +2,35 @@
 #define UNITTEST_CLUSTERING_UTILS_HPP_
 
 #include "clustering/immediate_consistency/branch/metadata.hpp"
-#include "rpc/directory/view.hpp"
 #include "mock/dummy_protocol.hpp"
+#include "rpc/directory/view.hpp"
+#include "unittest/unittest_utils.hpp"
 
 namespace unittest {
 
 using mock::dummy_protocol_t;
 using mock::a_thru_z_region;
 
+template<class protocol_t>
 class test_store_t {
 public:
-    test_store_t() {
+    test_store_t() :
+            temp_file("/tmp/rdb_unittest.XXXXXX"),
+            store(temp_file.name(), true)
+    {
         /* Initialize store metadata */
         cond_t non_interruptor;
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> token;
         store.new_write_token(token);
-        region_map_t<dummy_protocol_t, binary_blob_t> new_metainfo(
-                a_thru_z_region(),
+        region_map_t<protocol_t, binary_blob_t> new_metainfo(
+                store.get_region(),
                 binary_blob_t(version_range_t(version_t::zero()))
             );
         store.set_metainfo(new_metainfo, token, &non_interruptor);
     }
 
-    dummy_protocol_t::store_t store;
+    temp_file_t temp_file;
+    typename protocol_t::store_t store;
 };
 
 inline void test_inserter_write_namespace_if(namespace_interface_t<dummy_protocol_t> *nif, const std::string& key, const std::string& value, order_token_t otok, signal_t *interruptor) {

@@ -102,10 +102,20 @@ redis_listener_t::~redis_listener_t() {
     tcp_listener.reset();
 }
 
-static void close_conn_if_open(tcp_conn_t *conn) {
-    if (conn->is_read_open()) conn->shutdown_read();
-}
- 
+class redis_conn_closing_subscription_t : public signal_t::subscription_t {
+public:
+    redis_conn_closing_subscription_t(tcp_conn_t *conn) : conn_(conn) { }
+
+    virtual void run() {
+	if (conn_->is_read_open()) {
+	    conn_->shutdown_read();
+	}
+    }
+private:
+    tcp_conn_t *conn_;
+    DISABLE_COPYING(redis_conn_closing_subscription_t);
+};
+
 void redis_listener_t::handle(boost::scoped_ptr<nascent_tcp_conn_t> &nconn) {
     assert_thread();
 
@@ -128,9 +138,8 @@ void redis_listener_t::handle(boost::scoped_ptr<nascent_tcp_conn_t> &nconn) {
 
     // Set up an object that will close the network connection when a shutdown signal
     // is delivered
-    signal_t::subscription_t conn_closer(
-        boost::bind(&close_conn_if_open, conn.get()),
-        &signal_transfer);
+    redis_conn_closing_subscription_t conn_closer(conn.get());
+    conn_closer.reset(&signal_transfer);
 
     // `serve_redis()` will continuously serve redis queries on the given conn
     // until the connection is closed.

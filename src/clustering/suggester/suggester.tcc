@@ -33,6 +33,10 @@ float estimate_cost_to_get_up_to_date(
                 cost = 3;
             } else if (boost::get<typename rb_t::nothing_t>(&it->second.second)) {
                 cost = 3;
+            } else {
+                // I don't know if this is unreachable, but cost would be uninitialized otherwise  - Sam
+                // TODO: Is this really unreachable?
+                unreachable();
             }
             /* It's ok to just call `set()` instead of trying to find the minimum
             because activities should never overlap. */

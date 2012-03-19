@@ -7,6 +7,7 @@
 #include "arch/streamed_tcp.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/one_per_thread.hpp"
+#include "containers/map_sentries.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/connectivity/messages.hpp"
 

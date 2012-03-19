@@ -42,16 +42,14 @@ semilattice_manager_t<metadata_t>::root_view_t::root_view_t(semilattice_manager_
 
 template<class metadata_t>
 metadata_t semilattice_manager_t<metadata_t>::root_view_t::get() {
-    rassert(parent, "accessing `semilattice_manager_t` root view when cluster "
-        "no longer exists");
+    rassert(parent, "accessing `semilattice_manager_t` root view when cluster no longer exists");
     parent->assert_thread();
     return parent->metadata;
 }
 
 template<class metadata_t>
 void semilattice_manager_t<metadata_t>::root_view_t::join(const metadata_t &added_metadata) {
-    rassert(parent, "accessing `semilattice_manager_t` root view when cluster "
-        "no longer exists");
+    rassert(parent, "accessing `semilattice_manager_t` root view when cluster no longer exists");
     parent->assert_thread();
 
     parent->join_metadata_locally(added_metadata);
@@ -77,8 +75,7 @@ it in the future. `sync_from()` and `sync_to()` kind of just suck... */
 
 template<class metadata_t>
 void semilattice_manager_t<metadata_t>::root_view_t::sync_from(peer_id_t peer, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, sync_failed_exc_t) {
-    rassert(parent, "accessing `semilattice_manager_t` root view when cluster "
-        "no longer exists");
+    rassert(parent, "accessing `semilattice_manager_t` root view when cluster no longer exists");
     parent->assert_thread();
     int ping_id = parent->ping_id_counter++;
     cond_t response_cond;
@@ -106,8 +103,7 @@ void semilattice_manager_t<metadata_t>::root_view_t::sync_to(peer_id_t peer, sig
 
 template<class metadata_t>
 publisher_t<boost::function<void()> > *semilattice_manager_t<metadata_t>::root_view_t::get_publisher() {
-    rassert(parent, "accessing `semilattice_manager_t` root view when cluster no "
-        "longer exists");
+    rassert(parent, "accessing `semilattice_manager_t` root view when cluster no longer exists");
     parent->assert_thread();
     return parent->metadata_publisher.get_publisher();
 }

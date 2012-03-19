@@ -2,12 +2,17 @@
 #define JAVASCRIPT_JAVASCRIPT_POOL_HPP_
 
 #include <vector>
+
+#include "errors.hpp"
+#include <boost/function.hpp>  // for function
+
+#include "API/JSBase.h"
+#include "errors.hpp"
+#include "arch/runtime/coroutines.hpp"
 #include "arch/runtime/event_queue.hpp"
 #include "arch/io/blocker_pool.hpp"
-#include "arch/runtime/thread_pool.hpp"
 #include "concurrency/cond_var.hpp"
 
-#include <JavaScriptCore/JavaScript.h>
 
 namespace JS {
 
