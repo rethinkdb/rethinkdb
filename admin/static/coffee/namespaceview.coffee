@@ -122,11 +122,9 @@ module 'NamespaceView', ->
                         success: (response) =>
                             clear_modals()
 
-                            # Parse the response JSON
-                            response_json = $.parseJSON response
-                            # apply the diffs to the backbone state
-                            apply_diffs response_json.diffs
-                            $('#user-alert-space').append @alert_tmpl {}
+                            apply_diffs(response)
+                            #TODO hook this up
+                            #$('#user-alert-space').append @alert_tmpl {}
 
             namespace = @namespace
             _datacenters = _.filter datacenters.models, (datacenter) ->
@@ -170,12 +168,10 @@ module 'NamespaceView', ->
                         success: (response) =>
                             clear_modals()
 
-                            # Parse the response JSON
-                            response_json = $.parseJSON response
-                            # apply the diffs to the backbone state
-                            apply_diffs response_json.diffs
+                            apply_diffs(response)
                             # the result of this operation are some attributes about the namespace we created, to be used in an alert
-                            $('#user-alert-space').append @alert_tmpl response_json.op_result
+                            # TODO hook this up
+                            #$('#user-alert-space').append @alert_tmpl response_json.op_result
 
             json = { 'datacenters' : _.map datacenters.models, (datacenter) -> datacenter.toJSON() }
 
@@ -208,11 +204,10 @@ module 'NamespaceView', ->
                         success: (response) =>
                             clear_modals()
 
-                            # Parse the response JSON, apply appropriate diffs, and show an alert
-                            response_json = $.parseJSON response
-                            apply_diffs response_json.diffs
-                            for namespace in response_json.op_result
-                                $('#user-alert-space').append @alert_tmpl namespace
+                            apply_diffs(response)
+                            #TODO hook this up
+                            #for namespace in response_json.op_result
+                                #$('#user-alert-space').append @alert_tmpl namespace
 
             array_for_template = _.map namespaces_to_delete, (namespace) -> namespace.toJSON()
             super validator_options, { 'namespaces': array_for_template }
@@ -273,10 +268,9 @@ module 'NamespaceView', ->
                         success: (response) =>
                             clear_modals()
 
-                            # Parse the response JSON
-                            response_json = $.parseJSON response
-                            apply_diffs response_json.diffs
-                            $('#user-alert-space').append @alert_tmpl {}
+                            apply_diffs(response)
+                            #TODO hook this up
+                            #$('#user-alert-space').append @alert_tmpl {}
 
 
             num_changed = 0
@@ -419,11 +413,9 @@ module 'NamespaceView', ->
                         success: (response) =>
                             clear_modals()
 
-                            # Parse the response JSON
-                            response_json = $.parseJSON response
-                            # apply the diffs to the backbone state
-                            apply_diffs response_json.diffs
-                            $('#user-alert-space').append @alert_tmpl {}
+                            apply_diffs(response)
+                            #TODO hook this up
+                            #$('#user-alert-space').append @alert_tmpl {}
 
             # Generate faked data TODO
             num_replicas = @namespace.get('replica_affinities')[@datacenter.id].desired_replication_count
@@ -538,11 +530,11 @@ module 'NamespaceView', ->
                         success: (response) =>
                             clear_modals()
 
-                            response_json = $.parseJSON(response)
-                            apply_diffs(response_json.diffs)
+                            apply_diffs(response)
 
                             # should be empty.
-                            $('#user-alert-space').append(@alert_tmpl({}))
+                            # TODO hook this up
+                            #$('#user-alert-space').append(@alert_tmpl({}))
 
 
             json =
