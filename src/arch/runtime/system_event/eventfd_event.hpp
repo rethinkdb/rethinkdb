@@ -1,5 +1,5 @@
-#ifndef __ARCH_RUNTIME_EVENTFD_EVENT_HPP__
-#define __ARCH_RUNTIME_EVENTFD_EVENT_HPP__
+#ifndef ARCH_RUNTIME_EVENTFD_EVENT_HPP_
+#define ARCH_RUNTIME_EVENTFD_EVENT_HPP_
 
 #include <stdint.h>
 #include "errors.hpp"
@@ -23,5 +23,5 @@ private:
     DISABLE_COPYING(eventfd_event_t);
 };
 
-#endif // __ARCH_RUNTIME_EVENTFD_EVENT_HPP__
+#endif // ARCH_RUNTIME_EVENTFD_EVENT_HPP_
 

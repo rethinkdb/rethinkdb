@@ -4,7 +4,6 @@
 #include <boost/bind.hpp>
 
 #include "arch/arch.hpp"
-#include "buffer_cache/sequence_group.hpp"
 #include "buffer_cache/stats.hpp"
 #include "do_on_thread.hpp"
 #include "stats/persist.hpp"
@@ -209,7 +208,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, file_accou
     coro_t::spawn_now(boost::bind(&mc_inner_buf_t::load_inner_buf, this, true, _io_account));
 
     // TODO: only increment pm_n_blocks_in_memory when we actually load the block into memory.
-    pm_n_blocks_in_memory++;
+    ++pm_n_blocks_in_memory;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
 
     _cache->page_repl.make_space();
@@ -237,7 +236,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, void *_buf
 
     array_map_t::constructing_inner_buf(this);
 
-    pm_n_blocks_in_memory++;
+    ++pm_n_blocks_in_memory;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
     _cache->page_repl.make_space();
     _cache->maybe_unregister_read_ahead_callback();
@@ -314,13 +313,13 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, version_id
 
     array_map_t::constructing_inner_buf(this);
 
-    pm_n_blocks_in_memory++;
-    refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
+    ++pm_n_blocks_in_memory;
+    ++refcount; // Make the refcount nonzero so this block won't be considered safe to unload.
 
     _cache->page_repl.make_space();
     _cache->maybe_unregister_read_ahead_callback();
 
-    refcount--;
+    --refcount;
 }
 
 void mc_inner_buf_t::unload() {
@@ -352,7 +351,7 @@ mc_inner_buf_t::~mc_inner_buf_t() {
         remove_from_page_repl();
     }
 
-    pm_n_blocks_in_memory--;
+    --pm_n_blocks_in_memory;
 }
 
 void mc_inner_buf_t::replay_patches() {
@@ -1064,7 +1063,7 @@ perfmon_duration_sampler_t
     pm_transactions_active("transactions_active", secs_to_ticks(1)),
     pm_transactions_committing("transactions_committing", secs_to_ticks(1));
 
-mc_transaction_t::mc_transaction_t(cache_t *_cache, sequence_group_t *seq_group, access_t _access, int _expected_change_count, repli_timestamp_t _recency_timestamp)
+mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, int _expected_change_count, repli_timestamp_t _recency_timestamp)
     : cache(_cache),
       expected_change_count(_expected_change_count),
       access(_access),
@@ -1114,8 +1113,10 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, sequence_group_t *seq_group,
     // It is important that we leave the sequence group's fifo _after_
     // we leave the write throttle fifo.  So we construct it first.
     // (The destructor will run after.)
-    coro_fifo_acq_t seq_group_acq;
-    seq_group_acq.enter(&seq_group->slice_groups[cache->get_slice_num()].fifo);
+
+    // POST-POST-MODERN COMMENTS:
+
+    // Sequence groups are going away now.
 
     coro_fifo_acq_t write_throttle_acq;
 
@@ -1134,7 +1135,7 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, sequence_group_t *seq_group,
 }
 
 /* This version is only for read transactions from the writeback!  And some unit tests use it. */
-mc_transaction_t::mc_transaction_t(cache_t *_cache, sequence_group_t *seq_group, access_t _access, UNUSED int fook, UNUSED bool dont_assert_about_shutting_down) :
+mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, UNUSED int fook, UNUSED bool dont_assert_about_shutting_down) :
     cache(_cache),
     expected_change_count(0),
     access(_access),
@@ -1144,9 +1145,6 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, sequence_group_t *seq_group,
 {
     block_pm_duration start_timer(&pm_transactions_starting);
     rassert(access == rwi_read || access == rwi_read_sync);
-
-    coro_fifo_acq_t seq_group_acq;
-    seq_group_acq.enter(&seq_group->slice_groups[cache->get_slice_num()].fifo);
 
     // No write throttle acq.
 
@@ -1177,7 +1175,7 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, UNUSED i_a
 
 void mc_transaction_t::register_buf_snapshot(mc_inner_buf_t *inner_buf, mc_inner_buf_t::buf_snapshot_t *snap) {
     assert_thread();
-    pm_registered_snapshot_blocks++;
+    ++pm_registered_snapshot_blocks;
     owned_buf_snapshots.push_back(std::make_pair(inner_buf, snap));
 }
 
@@ -1318,9 +1316,7 @@ void mc_cache_t::create(serializer_t *serializer, mirrored_cache_static_config_t
 }
 
 mc_cache_t::mc_cache_t(serializer_t *_serializer,
-                       mirrored_cache_config_t *dynamic_config,
-                       int this_slice_num) :
-    slice_num(this_slice_num),
+                       mirrored_cache_config_t *dynamic_config) :
     dynamic_config(*dynamic_config),
     serializer(_serializer),
     page_repl(
@@ -1424,7 +1420,7 @@ block_size_t mc_cache_t::get_block_size() {
 }
 
 void mc_cache_t::register_snapshot(mc_transaction_t *txn) {
-    pm_registered_snapshots++;
+    ++pm_registered_snapshots;
     rassert(txn->snapshot_version == mc_inner_buf_t::faux_version_id, "Snapshot has been already created for this transaction");
 
     txn->snapshot_version = next_snapshot_version++;
@@ -1438,7 +1434,7 @@ void mc_cache_t::unregister_snapshot(mc_transaction_t *txn) {
     } else {
         unreachable("Tried to unregister a snapshot which doesn't exist");
     }
-    pm_registered_snapshots--;
+    --pm_registered_snapshots;
 }
 
 size_t mc_cache_t::calculate_snapshots_affected(mc_inner_buf_t::version_id_t snapshotted_version, mc_inner_buf_t::version_id_t new_version) {
@@ -1469,9 +1465,9 @@ size_t mc_cache_t::register_buf_snapshot(mc_inner_buf_t *inner_buf, mc_inner_buf
 mc_cache_t::inner_buf_t *mc_cache_t::find_buf(block_id_t block_id) {
     inner_buf_t *buf = page_map.find(block_id);
     if (buf) {
-        pm_cache_hits++;
+        ++pm_cache_hits;
     } else {
-        pm_cache_misses++;
+        ++pm_cache_misses;
     }
     return buf;
 }

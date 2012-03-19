@@ -362,7 +362,7 @@ rwi_lock_assertion_t *directory_read_manager_t<metadata_t>::get_peers_list_lock(
 }
 
 template<class metadata_t>
-publisher_t<std::pair<
+publisher_t< std::pair<
         boost::function<void(peer_id_t)>,
         boost::function<void(peer_id_t)>
         > > *directory_read_manager_t<metadata_t>::get_peers_list_publisher() THROWS_NOTHING {

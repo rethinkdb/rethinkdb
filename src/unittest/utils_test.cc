@@ -2,7 +2,8 @@
 
 #include "utils.hpp"
 #include "arch/address.hpp"
-#include "unittest_utils.hpp"
+#include "arch/runtime/runtime.hpp"
+#include "unittest/unittest_utils.hpp"
 
 namespace unittest {
 
@@ -25,7 +26,7 @@ TEST(UtilsTest, StrtofooStrict) {
     char test3[] = "102834728273347433844";
     char test4[] = "123lskdjf";
 
-    char *end;
+    const char *end;
 
     ASSERT_EQ(0, strtoul_strict(test1, &end, 10));
     ASSERT_EQ(1024, strtoul_strict(test2, &end, 10));

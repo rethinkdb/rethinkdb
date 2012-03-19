@@ -1,5 +1,5 @@
-#ifndef __TIMER_HPP__
-#define __TIMER_HPP__
+#ifndef TIMER_HPP_
+#define TIMER_HPP_
 
 #include "containers/intrusive_list.hpp"
 #include "arch/io/timer_provider.hpp"
@@ -19,15 +19,15 @@ public:
     explicit timer_handler_t(linux_event_queue_t *queue);
     ~timer_handler_t();
     
-    timer_token_t *add_timer_internal(long ms, void (*callback)(void *ctx), void *ctx, bool once);
+    timer_token_t *add_timer_internal(int64_t ms, void (*callback)(void *ctx), void *ctx, bool once);
     void cancel_timer(timer_token_t *timer);
 
     void on_timer(int nexpirations);
     
 private:
     timer_provider_t timer_provider;
-    long timer_ticks_since_server_startup;
+    int64_t timer_ticks_since_server_startup;
     intrusive_list_t<timer_token_t> timers;
 };
 
-#endif /* __TIMER_HPP__ */
+#endif /* TIMER_HPP_ */

@@ -1,6 +1,5 @@
 #include "http/http.hpp"
 
-#include <iostream>
 #include <exception>
 
 #include "errors.hpp"
@@ -9,7 +8,7 @@
 #include "arch/arch.hpp"
 #include "logger.hpp"
 
-std::string http_req_t::find_query_param(std::string key) const {
+std::string http_req_t::find_query_param(const std::string& key) const {
     //TODO this is inefficient we should actually load it all into a map
     for (std::vector<query_parameter_t>::const_iterator it = query_params.begin(); it != query_params.end(); it++) {
         if (it->key == key) return it->val;
@@ -17,7 +16,7 @@ std::string http_req_t::find_query_param(std::string key) const {
     return std::string("");
 }
 
-std::string http_req_t::find_header_line(std::string key) const {
+std::string http_req_t::find_header_line(const std::string& key) const {
     //TODO this is inefficient we should actually load it all into a map
     for (std::vector<header_line_t>::const_iterator it = header_lines.begin(); it != header_lines.end(); it++) {
         if (it->key == key) return it->val;
@@ -25,7 +24,7 @@ std::string http_req_t::find_header_line(std::string key) const {
     return std::string("");
 }
 
-bool http_req_t::has_header_line(std::string key) const {
+bool http_req_t::has_header_line(const std::string& key) const {
     //TODO this is inefficient we should actually load it all into a map
     for (std::vector<header_line_t>::const_iterator it = header_lines.begin(); it != header_lines.end(); it++) {
         if (it->key == key) {
@@ -54,14 +53,14 @@ void http_res_t::add_last_modified(int) {
     not_implemented();
 }
 
-void http_res_t::add_header_line(std::string const &key, std::string const &val) {
+void http_res_t::add_header_line(const std::string& key, const std::string& val) {
     header_line_t hdr_ln;
     hdr_ln.key = key;
     hdr_ln.val = val;
     header_lines.push_back(hdr_ln);
 }
 
-void http_res_t::set_body(std::string const &content_type, std::string const &content) {
+void http_res_t::set_body(const std::string& content_type, const std::string& content) {
     for (std::vector<header_line_t>::iterator it = header_lines.begin(); it != header_lines.end(); it++) {
         rassert(it->key != "Content-Type");
         rassert(it->key != "Content-Length");
@@ -70,9 +69,7 @@ void http_res_t::set_body(std::string const &content_type, std::string const &co
 
     add_header_line("Content-Type", content_type);
 
-    std::ostringstream res;
-    res << content.size();
-    add_header_line("Content-Length", res.str());
+    add_header_line("Content-Length", strprintf("%zu", content.size()));
 
     body = content;
 }
@@ -93,11 +90,9 @@ void test_header_parser() {
     UNUSED bool success = true;
 }
 
-http_server_t::http_server_t(int port) {
+http_server_t::http_server_t(int port, http_app_t *_application) : application(_application) {
     tcp_listener.reset(new tcp_listener_t(port, boost::bind(&http_server_t::handle_conn, this, _1)));
 }
-
-http_server_t::~http_server_t() { }
 
 std::string human_readable_status(int code) {
     switch(code) {
@@ -111,12 +106,16 @@ std::string human_readable_status(int code) {
         return "Forbidden";
     case 404:
         return "Not Found";
+    case 405:
+        return "Method Not Allowed";
     case 500:
         return "Internal Server Error";
     case 501:
         return "Not Implemented";
+    case 503:
+        return "Service Unavailable";
     default:
-        unreachable();
+        unreachable("Unknown code %d.", code);
     }
 }
 
@@ -137,15 +136,23 @@ void http_server_t::handle_conn(boost::scoped_ptr<nascent_tcp_conn_t> &nconn) {
     tcp_http_msg_parser_t http_msg_parser;
 
     /* parse the request */
-    if(http_msg_parser.parse(conn.get(), &req)) {
-        http_res_t res = handle(req); 
-        res.version = req.version;
-        write_http_msg(conn, res);
-    } else {
-        // Write error
-        http_res_t res;
-        res.code = 400;
-        write_http_msg(conn, res);
+    try {
+        if(http_msg_parser.parse(conn.get(), &req)) {
+            http_res_t res = application->handle(req); 
+            res.version = req.version;
+            write_http_msg(conn, res);
+        } else {
+            // Write error
+            http_res_t res;
+            res.code = 400;
+            write_http_msg(conn, res);
+        }
+    } catch (linux_tcp_conn_t::read_closed_exc_t &) {
+        //Someone disconnected before sending us all the information we
+        //needed... oh well.
+    } catch (linux_tcp_conn_t::write_closed_exc_t &) {
+        //We were trying to write to someone and they didn't stick around long
+        //enough to write it.
     }
 }
 
@@ -293,22 +300,6 @@ bool tcp_http_msg_parser_t::header_line_parser_t::parse(std::string &src) {
     val = std::string(iter + 1, src.end());
 
     return true;
-}
-
-test_server_t::test_server_t(int port) 
-    : http_server_t(port)
-{ }
-
-http_res_t test_server_t::handle(const http_req_t &req) {
-    http_res_t res;
-
-    res.version = req.version;
-    res.code = 200;
-
-    res.add_header_line("Vary", "Accept-Encoding");
-    res.add_header_line("Content-Length", "0");
-
-    return res;
 }
 
 bool is_safe(char c) {

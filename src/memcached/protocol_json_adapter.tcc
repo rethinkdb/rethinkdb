@@ -1,11 +1,10 @@
-#ifndef __MEMCACHED_PROTOCOL_JSON_ADAPTER_TCC__
-#define __MEMCACHED_PROTOCOL_JSON_ADAPTER_TCC__
+#ifndef MEMCACHED_PROTOCOL_JSON_ADAPTER_TCC_
+#define MEMCACHED_PROTOCOL_JSON_ADAPTER_TCC_
 
 #include <exception>
 
 #include "http/http.hpp"
 #include "http/json.hpp"
-#include "memcached/protocol_json_adapter.hpp"
 
 //json adapter concept for memcached_protocol_t::region_t
 template <class ctx_t>
@@ -36,6 +35,8 @@ void apply_json_to(cJSON *change, memcached_protocol_t::region_t *target, const 
         throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a memcached_protocol_t::region_t.\n", get_string(change).c_str()));
     }
 
+    /* TODO: If something other than an array is passed here, then it will crash
+    rather than report the error to the user. */
     json_array_iterator_t it(js.get());
 
     cJSON *first = it.next();

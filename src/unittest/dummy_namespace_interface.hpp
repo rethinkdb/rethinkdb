@@ -1,5 +1,5 @@
-#ifndef __UNITTEST_DUMMY_NAMESPACE_INTERFACE_HPP__
-#define __UNITTEST_DUMMY_NAMESPACE_INTERFACE_HPP__
+#ifndef UNITTEST_DUMMY_NAMESPACE_INTERFACE_HPP_
+#define UNITTEST_DUMMY_NAMESPACE_INTERFACE_HPP_
 
 #include "utils.hpp"
 #include <boost/bind.hpp>
@@ -25,20 +25,20 @@ public:
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> read_token;
         store->new_read_token(read_token);
 
-        region_map_t<protocol_t,binary_blob_t> expected_metainfo(store->get_region(), binary_blob_t(expected_timestamp));
+        region_map_t<protocol_t, binary_blob_t> expected_metainfo(store->get_region(), binary_blob_t(expected_timestamp));
 
-        return store->read(DEBUG_ONLY(expected_metainfo,) read, read_token, interruptor);
+        return store->read(DEBUG_ONLY(expected_metainfo, ) read, read_token, interruptor);
     }
 
     typename protocol_t::write_response_t write(typename protocol_t::write_t write, transition_timestamp_t transition_timestamp) THROWS_NOTHING {
         cond_t non_interruptor;
-        region_map_t<protocol_t,binary_blob_t> expected_metainfo(store->get_region(), binary_blob_t(transition_timestamp.timestamp_before()));
+        region_map_t<protocol_t, binary_blob_t> expected_metainfo(store->get_region(), binary_blob_t(transition_timestamp.timestamp_before()));
 
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> write_token;
         store->new_write_token(write_token);
 
         return store->write(
-            DEBUG_ONLY(expected_metainfo,)
+            DEBUG_ONLY(expected_metainfo, )
             region_map_t<protocol_t, binary_blob_t>(store->get_region(), binary_blob_t(transition_timestamp.timestamp_after())),
             write, transition_timestamp,
             write_token, &non_interruptor
@@ -203,4 +203,4 @@ private:
 
 }   /* namespace unittest */
 
-#endif /* __UNITTEST_DUMMY_NAMESPACE_INTERFACE_HPP__ */
+#endif /* UNITTEST_DUMMY_NAMESPACE_INTERFACE_HPP_ */

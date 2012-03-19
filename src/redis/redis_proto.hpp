@@ -1,5 +1,5 @@
-#ifndef __PROTOCOL_REDIS_PROTO_HPP__
-#define __PROTOCOL_REDIS_PROTO_HPP__
+#ifndef PROTOCOL_REDIS_PROTO_HPP_
+#define PROTOCOL_REDIS_PROTO_HPP_
 
 #include <boost/unordered_map.hpp>
 
@@ -62,4 +62,4 @@ private:
     void parse_pubsub();
 };
 
-#endif /* __PROTOCOL_REDIS_PROTO_HPP__*/
+#endif /* PROTOCOL_REDIS_PROTO_HPP_*/

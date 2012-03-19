@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BACKFILLER_HPP__
-#define __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BACKFILLER_HPP__
+#ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BACKFILLER_HPP_
+#define CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BACKFILLER_HPP_
 
 #include <map>
 
@@ -39,7 +39,7 @@ struct backfiller_t :
     /* TODO: Support warm shutdowns? */
 
 private:
-    bool confirm_and_send_metainfo(typename store_view_t<protocol_t>::metainfo_t metainfo, region_map_t<protocol_t, version_range_t> start_point,
+    bool confirm_and_send_metainfo(typename store_view_t<protocol_t>::metainfo_t metainfo, UNUSED region_map_t<protocol_t, version_range_t> start_point,
             typename async_mailbox_t<void(region_map_t<protocol_t, version_range_t>)>::address_t end_point_cont) {
         rassert(metainfo.get_domain() == start_point.get_domain());
         region_map_t<protocol_t, version_range_t> end_point =
@@ -162,4 +162,4 @@ private:
     typename backfiller_business_card_t<protocol_t>::cancel_backfill_mailbox_t cancel_backfill_mailbox;
 };
 
-#endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BACKFILLER_HPP__ */
+#endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BACKFILLER_HPP_ */

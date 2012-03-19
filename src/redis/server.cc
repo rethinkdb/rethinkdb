@@ -1,7 +1,5 @@
 #include "redis/server.hpp"
 
-#include <iostream>
-
 #include "errors.hpp"
 #include <boost/bind.hpp>
 #include <boost/make_shared.hpp>
@@ -102,22 +100,26 @@ redis_listener_t::~redis_listener_t() {
 
     // Stop accepting new connections
     tcp_listener.reset();
-
-    // Interrupt existing connections
-    pulse_to_begin_shutdown.pulse();
-
-    // Wait for existing connections to finish shutting down
-    active_connection_drain_semaphore.drain();
 }
 
-static void close_conn_if_open(tcp_conn_t *conn) {
-    if (conn->is_read_open()) conn->shutdown_read();
-}
- 
+class redis_conn_closing_subscription_t : public signal_t::subscription_t {
+public:
+    redis_conn_closing_subscription_t(tcp_conn_t *conn) : conn_(conn) { }
+
+    virtual void run() {
+	if (conn_->is_read_open()) {
+	    conn_->shutdown_read();
+	}
+    }
+private:
+    tcp_conn_t *conn_;
+    DISABLE_COPYING(redis_conn_closing_subscription_t);
+};
+
 void redis_listener_t::handle(boost::scoped_ptr<nascent_tcp_conn_t> &nconn) {
     assert_thread();
 
-    drain_semaphore_t::lock_t dont_shut_down_yet(&active_connection_drain_semaphore);
+    auto_drainer_t::lock_t dont_shut_down_yet(&active_connection_drainer);
 
     // We will switch to another thread so there isn't too much load on the thread
     // where the `memcache_listener_t` lives
@@ -128,7 +130,7 @@ void redis_listener_t::handle(boost::scoped_ptr<nascent_tcp_conn_t> &nconn) {
 
     // Construct a cross-thread watcher so we will get notified on `chosen_thread`
     // when a shutdown command is delivered on the main thread.
-    cross_thread_signal_t signal_transfer(&pulse_to_begin_shutdown, chosen_thread);
+    cross_thread_signal_t signal_transfer(active_connection_drainer.get_drain_signal(), chosen_thread);
 
     on_thread_t thread_switcher(chosen_thread);
     boost::scoped_ptr<tcp_conn_t> conn;
@@ -136,9 +138,8 @@ void redis_listener_t::handle(boost::scoped_ptr<nascent_tcp_conn_t> &nconn) {
 
     // Set up an object that will close the network connection when a shutdown signal
     // is delivered
-    signal_t::subscription_t conn_closer(
-        boost::bind(&close_conn_if_open, conn.get()),
-        &signal_transfer);
+    redis_conn_closing_subscription_t conn_closer(conn.get());
+    conn_closer.reset(&signal_transfer);
 
     // `serve_redis()` will continuously serve redis queries on the given conn
     // until the connection is closed.

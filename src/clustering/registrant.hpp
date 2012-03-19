@@ -1,7 +1,9 @@
-#ifndef __CLUSTERING_REGISTRANT_HPP__
-#define __CLUSTERING_REGISTRANT_HPP__
+#ifndef CLUSTERING_REGISTRANT_HPP_
+#define CLUSTERING_REGISTRANT_HPP_
 
 #include "clustering/registration_metadata.hpp"
+#include "containers/death_runner.hpp"
+#include "containers/uuid.hpp"
 #include "rpc/semilattice/view.hpp"
 #include "rpc/mailbox/typed.hpp"
 
@@ -71,4 +73,4 @@ private:
     registration_id_t registration_id;
 };
 
-#endif /* __CLUSTERING_REGISTRANT_HPP__ */
+#endif /* CLUSTERING_REGISTRANT_HPP_ */

@@ -1,7 +1,6 @@
-#ifndef __RPC_SEMILATTICE_JOIN_VCLOCK_TCC__
-#define __RPC_SEMILATTICE_JOIN_VCLOCK_TCC__
+#ifndef RPC_SEMILATTICE_JOIN_VCLOCK_TCC_
+#define RPC_SEMILATTICE_JOIN_VCLOCK_TCC_
 
-#include "rpc/semilattice/joins/vclock.hpp"
 #include "stl_utils.hpp"
 
 template <class T>

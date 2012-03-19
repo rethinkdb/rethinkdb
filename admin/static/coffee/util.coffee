@@ -97,6 +97,23 @@ generate_fake_issues = (issues) ->
             datetime: ISODateString time_travel 59
     ]
 
+# Extract form data as an object
+form_data_as_object = (form) ->
+    formarray = form.serializeArray()
+    formdata = {}
+    for x in formarray 
+        formdata[x.name] = x.value
+    return formdata
+
+# Shards aren't pretty to print, let's change that
+human_readable_shard = (shard) ->
+    json_shard = $.parseJSON(shard)
+    res = ""
+    res += if json_shard[0] == "" then "&minus;&infin;" else json_shard[0]
+    res += " to "
+    res += if json_shard[1] == null then "+&infin;" else json_shard[1]
+    return res
+
 # Binds actions to the dev tools (accessible through alt+d)
 bind_dev_tools = ->
     # Development tools

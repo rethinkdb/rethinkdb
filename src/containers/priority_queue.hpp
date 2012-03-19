@@ -1,6 +1,5 @@
-
-#ifndef __PRIORITY_QUEUE_HPP__
-#define __PRIORITY_QUEUE_HPP__
+#ifndef PRIORITY_QUEUE_HPP_
+#define PRIORITY_QUEUE_HPP_
 
 #include <deque>
 #include <functional>

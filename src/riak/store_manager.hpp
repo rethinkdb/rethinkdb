@@ -1,5 +1,5 @@
-#ifndef __STORE_MANAGER_HPP__
-#define __STORE_MANAGER_HPP__
+#ifndef STORE_MANAGER_HPP_
+#define STORE_MANAGER_HPP_
 
 /*
 Managing multiple stores involves two components:
@@ -21,6 +21,7 @@ structures into a metadata file or metadata_store of some kind.
 */
 
 #include <string>
+#include <list>
 #include <map>
 #include <vector>
 
@@ -393,5 +394,5 @@ void serialize(Archive &ar, std::list<std::string> &target, const unsigned int) 
 } //namespace serialization
 
 
-#endif  /* __STORE_MANAGER_HPP__ */
+#endif  /* STORE_MANAGER_HPP_ */
 

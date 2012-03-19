@@ -1,5 +1,7 @@
 #include "memcached/memcached.hpp"
 
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
 #include <stdexcept>
 #include <stdarg.h>
 #include <unistd.h>
@@ -13,7 +15,6 @@
 #include "concurrency/mutex.hpp"
 #include "concurrency/semaphore.hpp"
 #include "concurrency/fifo_checker.hpp"
-#include "concurrency/drain_semaphore.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/promise.hpp"
@@ -51,16 +52,14 @@ do_storage(), and the like. */
 
 struct txt_memcached_handler_t : public home_thread_mixin_t {
     txt_memcached_handler_t(memcached_interface_t *_interface, get_store_t *_get_store,
-                            set_store_interface_t *_set_store, int _max_concurrent_queries_per_connection, int num_slices)
-        : interface(_interface), get_store(_get_store), set_store(_set_store), seq_group(num_slices), max_concurrent_queries_per_connection(_max_concurrent_queries_per_connection)
+                            set_store_interface_t *_set_store, int _max_concurrent_queries_per_connection)
+        : interface(_interface), get_store(_get_store), set_store(_set_store), max_concurrent_queries_per_connection(_max_concurrent_queries_per_connection)
     { }
 
     memcached_interface_t *interface;
 
     get_store_t *get_store;
     set_store_interface_t *set_store;
-
-    sequence_group_t seq_group;
 
     const int max_concurrent_queries_per_connection;
 
@@ -105,8 +104,8 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
     }
 
     void write_value_header(const char *key, size_t key_size, mcflags_t mcflags, size_t value_size, cas_t cas) {
-        writef("VALUE %*.*s %u %zu %llu\r\n",
-               int(key_size), int(key_size), key, mcflags, value_size, (long long unsigned int)cas);
+        writef("VALUE %*.*s %u %zu %" PRIu64 "\r\n",
+               int(key_size), int(key_size), key, mcflags, value_size, cas);
     }
 
     void error() {
@@ -269,9 +268,9 @@ struct get_t {
 
 void do_one_get(txt_memcached_handler_t *rh, bool with_cas, get_t *gets, int i, order_token_t token) {
     if (with_cas) {
-        gets[i].res = rh->set_store->get_cas(&rh->seq_group, gets[i].key, token);
+        gets[i].res = rh->set_store->get_cas(gets[i].key, token);
     } else {
-        gets[i].res = rh->get_store->get(gets[i].key, &rh->seq_group, token);
+        gets[i].res = rh->get_store->get(gets[i].key, token);
     }
 }
 
@@ -364,8 +363,8 @@ static const char *rget_null_key = "null";
 static bool rget_parse_bound(char *flag, char *key, rget_bound_mode_t *mode_out, store_key_t *key_out) {
     if (!str_to_key(key, key_out)) return false;
 
-    char *invalid_char;
-    long open_flag = strtol_strict(flag, &invalid_char, 10);
+    const char *invalid_char;
+    int64_t open_flag = strtol_strict(flag, &invalid_char, 10);
     if (*invalid_char != '\0') return false;
 
     switch (open_flag) {
@@ -414,7 +413,7 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, char
     }
 
     /* Parse max items count */
-    char *invalid_char;
+    const char *invalid_char;
     uint64_t max_items = strtoull_strict(argv[5], &invalid_char, 10);
     if (*invalid_char != '\0') {
         pipeliner_acq.done_argparsing();
@@ -428,7 +427,7 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, char
 
     block_pm_duration rget_timer(&pm_cmd_rget);
 
-    rget_result_t results_iterator = rh->get_store->rget(&rh->seq_group, left_mode, left_key, right_mode, right_key, token);
+    rget_result_t results_iterator = rh->get_store->rget(left_mode, left_key, right_mode, right_key, token);
 
     pipeliner_acq.begin_write();
 
@@ -515,7 +514,7 @@ void run_storage_command(txt_memcached_handler_t *rh,
             unreachable();
         }
 
-        set_result_t res = rh->set_store->sarc(&rh->seq_group, key, data, metadata.mcflags, metadata.exptime,
+        set_result_t res = rh->set_store->sarc(key, data, metadata.mcflags, metadata.exptime,
                                                add_policy, replace_policy, metadata.unique, token);
 
         pipeliner_acq->begin_write();
@@ -556,7 +555,7 @@ void run_storage_command(txt_memcached_handler_t *rh,
 
     } else {
         append_prepend_result_t res =
-            rh->set_store->append_prepend(&rh->seq_group,
+            rh->set_store->append_prepend(
                 sc == append_command ? append_prepend_APPEND : append_prepend_PREPEND,
                 key, data, token);
 
@@ -590,7 +589,7 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
     pipeliner_acq_t *pipeliner_acq = new pipeliner_acq_t(pipeliner);
     pipeliner_acq->begin_operation();
 
-    char *invalid_char;
+    const char *invalid_char;
 
     /* cmd key flags exptime size [noreply]
        OR "cas" key flags exptime size cas [noreply] */
@@ -727,7 +726,7 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
 void run_incr_decr(txt_memcached_handler_t *rh, pipeliner_acq_t *pipeliner_acq, store_key_t key, uint64_t amount, bool incr, bool noreply, order_token_t token) {
     block_pm_duration set_timer(&pm_cmd_set);
 
-    incr_decr_result_t res = rh->set_store->incr_decr(&rh->seq_group,
+    incr_decr_result_t res = rh->set_store->incr_decr(
         incr ? incr_decr_INCR : incr_decr_DECR,
         key, amount, token);
 
@@ -735,7 +734,7 @@ void run_incr_decr(txt_memcached_handler_t *rh, pipeliner_acq_t *pipeliner_acq, 
     if (!noreply) {
         switch (res.res) {
             case incr_decr_result_t::idr_success:
-                rh->writef("%llu\r\n", (unsigned long long)res.new_value);
+                rh->writef("%" PRIu64 "\r\n", res.new_value);
                 break;
             case incr_decr_result_t::idr_not_found:
                 rh->writef("NOT_FOUND\r\n");
@@ -778,7 +777,7 @@ void do_incr_decr(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool i, i
     }
 
     /* Parse amount to change by */
-    char *invalid_char;
+    const char *invalid_char;
     uint64_t delta = strtoull_strict(argv[2], &invalid_char, 10);
     if (*invalid_char != '\0') {
         pipeliner_acq.done_argparsing();
@@ -812,7 +811,7 @@ void run_delete(txt_memcached_handler_t *rh, pipeliner_acq_t *pipeliner_acq, sto
 
     block_pm_duration set_timer(&pm_cmd_set);
 
-    delete_result_t res = rh->set_store->delete_key(&rh->seq_group, key, token);
+    delete_result_t res = rh->set_store->delete_key(key, token);
 
     pipeliner_acq->begin_write();
     if (!noreply) {
@@ -949,7 +948,7 @@ void do_quickset(txt_memcached_handler_t *rh, pipeliner_acq_t *pipeliner_acq, st
         boost::intrusive_ptr<data_buffer_t> value = data_buffer_t::create(args_copy[i + 1].size());
         memcpy(value->buf(), args_copy[i + 1].data(), value->size());
 
-        set_result_t res = rh->set_store->sarc(&rh->seq_group, key, value, 0, 0, add_policy_yes, replace_policy_yes, 0, order_token_t::ignore);
+        set_result_t res = rh->set_store->sarc(key, value, 0, 0, add_policy_yes, replace_policy_yes, 0, order_token_t::ignore);
 
         if (res == sr_stored) {
             rh->writef("STORED key %s\r\n", args_copy[i].c_str());
@@ -1002,12 +1001,12 @@ bool parse_debug_command(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, st
 
 /* Handle memcached, takes a txt_memcached_handler_t and handles the memcached commands that come in on it */
 void handle_memcache(memcached_interface_t *interface, get_store_t *get_store,
-                     set_store_interface_t *set_store, int max_concurrent_queries_per_connection, int n_slices) {
+                     set_store_interface_t *set_store, int max_concurrent_queries_per_connection) {
     logDBG("Opened memcached stream: %p\n", coro_t::self());
 
     /* This object just exists to group everything together so we don't have to pass a lot of
     context around. */
-    txt_memcached_handler_t rh(interface, get_store, set_store, max_concurrent_queries_per_connection, n_slices);
+    txt_memcached_handler_t rh(interface, get_store, set_store, max_concurrent_queries_per_connection);
 
     /* The commands from each individual memcached handler must be performed in the order
     that the handler parses them. This `order_source_t` is used to guarantee that. */

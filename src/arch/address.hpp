@@ -1,6 +1,5 @@
-
-#ifndef __ARCH_ADDRESS_HPP__
-#define __ARCH_ADDRESS_HPP__
+#ifndef ARCH_ADDRESS_HPP_
+#define ARCH_ADDRESS_HPP_
 
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/binary_object.hpp>
@@ -10,7 +9,7 @@
 /* ip_address_t represents an IPv4 address. */
 struct ip_address_t {
     ip_address_t() { }
-    explicit ip_address_t(const char *);   // Address with hostname or IP
+    explicit ip_address_t(const std::string &);   // Address with hostname or IP
     static ip_address_t us();
 
     bool operator==(const ip_address_t &x) const;   // Compare addresses
@@ -32,4 +31,4 @@ private:
     }
 };
 
-#endif /* __ARCH_ADDRESS_HPP__ */
+#endif /* ARCH_ADDRESS_HPP_ */

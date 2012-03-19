@@ -167,7 +167,7 @@ void writeback_t::local_buf_t::set_dirty(bool _dirty) {
             /* Use `force_lock()` to prevent deadlocks; `co_lock()` could block. */
             gbuf->cache->writeback.dirty_block_semaphore.force_lock();
         }
-        pm_n_blocks_dirty++;
+        ++pm_n_blocks_dirty;
     }
     if (dirty && !_dirty) {
         // We need to "unmark" the buf
@@ -176,7 +176,7 @@ void writeback_t::local_buf_t::set_dirty(bool _dirty) {
             gbuf->cache->writeback.dirty_bufs.remove(this);
             gbuf->cache->writeback.dirty_block_semaphore.unlock();
         }
-        pm_n_blocks_dirty--;
+        --pm_n_blocks_dirty;
     }
 }
 
@@ -361,7 +361,7 @@ void writeback_t::do_concurrent_flush() {
     ticks_t start_time2;
     pm_flushes_diff_flush.begin(&start_time2);
     // TODO: What are these magic constants doing here?
-    unsigned int blocks_to_flush = (unsigned long long)dirty_bufs.size() * 100ll / cache->get_block_size().value() + 1;
+    unsigned int blocks_to_flush = uint64_t(dirty_bufs.size()) * 100LL / cache->get_block_size().value() + 1;
     if (force_patch_storage_flush) {
         blocks_to_flush = std::max(cache->patch_disk_storage->get_number_of_log_blocks() / 20 + 1, blocks_to_flush);
         force_patch_storage_flush = false;

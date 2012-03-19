@@ -1,13 +1,17 @@
-#ifndef __RIAK_STRUCTURES__
-#define __RIAK_STRUCTURES__
+#ifndef RIAK_STRUCTURES_HPP_
+#define RIAK_STRUCTURES_HPP_
 
-#include "riak/riak_value.hpp"
-#include "containers/buffer_group.hpp"
-#include "containers/scoped_malloc.hpp"
-#include "containers/iterators.hpp"
-#include "btree/iteration.hpp"
-#include <boost/fusion/include/adapt_struct.hpp>
+#include "errors.hpp"
 #include <boost/bind.hpp>
+#include <boost/fusion/include/adapt_struct.hpp>
+#include <boost/shared_array.hpp>
+
+#include "buffer_cache/types.hpp"
+#include "containers/iterators.hpp"
+
+class riak_value_t;
+template <class Value> struct key_value_pair_t;
+
 
 namespace riak {
 
@@ -126,11 +130,7 @@ public:
         not_implemented();
         return true;
     }
-    object_iterator_t operator++() {
-        not_implemented();
-        return *this;
-    }
-    object_iterator_t operator++(int) {
+    object_iterator_t& operator++() {
         not_implemented();
         return *this;
     }
@@ -154,8 +154,7 @@ struct object_tree_t : public object_t {
 struct object_tree_iterator_t {
     bool operator!=(object_tree_iterator_t const &) {crash("Not implemented");}
     bool operator==(object_tree_iterator_t const &) {crash("Not implemented");}
-    object_tree_iterator_t operator++() {crash("Not implemented");}
-    object_tree_iterator_t operator++(int) {crash("Not implemented");}
+    object_tree_iterator_t& operator++() { crash("Not implemented"); }
     object_tree_t operator*() {crash("Not implemented");}
     object_tree_t *operator->() {crash("Not implemented");}
 };
@@ -214,4 +213,4 @@ void serialize(Archive & ar, riak::object_t & object, const unsigned int) {
 } //namespace serialization
 } //namespace boost */
 
-#endif
+#endif  // RIAK_STRUCTURES_HPP_

@@ -1,6 +1,6 @@
 #include "unittest/gtest.hpp"
 
-#include "unittest_utils.hpp"
+#include "unittest/unittest_utils.hpp"
 #include "rpc/connectivity/cluster.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
 
@@ -78,7 +78,7 @@ private:
 /* `StartStop` starts a cluster of three nodes, then shuts it down again. */
 
 void run_start_stop_test() {
-    int port = 10000 + rand() % 20000;
+    int port = 10000 + randint(20000);
     connectivity_cluster_t c1, c2, c3;
     connectivity_cluster_t::run_t cr1(&c1, port, NULL), cr2(&c2, port+1, NULL), cr3(&c3, port+2, NULL);
     cr2.join(c1.get_peer_address(c1.get_me()));
@@ -97,7 +97,7 @@ TEST(RPCConnectivityTest, StartStopMultiThread) {
 /* `Message` sends some simple messages between the nodes of a cluster. */
 
 void run_message_test() {
-    int port = 10000 + rand() % 20000;
+    int port = 10000 + randint(20000);
     connectivity_cluster_t c1, c2, c3;
     recording_test_application_t a1(&c1), a2(&c2), a3(&c3);
     connectivity_cluster_t::run_t cr1(&c1, port, &a1), cr2(&c2, port+1, &a2), cr3(&c3, port+2, &a3);
@@ -129,7 +129,7 @@ TEST(RPCConnectivityTest, MesssageMultiThread) {
 fail. */
 
 void run_unreachable_peer_test() {
-    int port = 10000 + rand() % 20000;
+    int port = 10000 + randint(20000);
     connectivity_cluster_t c1, c2;
     recording_test_application_t a1(&c1), a2(&c2);
     connectivity_cluster_t::run_t cr1(&c1, port, &a1), cr2(&c2, port+1, &a2);
@@ -168,7 +168,7 @@ TEST(RPCConnectivityTest, UnreachablePeerMultiThread) {
 order they were sent in. */
 
 void run_ordering_test() {
-    int port = 10000 + rand() % 20000;
+    int port = 10000 + randint(20000);
     connectivity_cluster_t c1, c2;
     recording_test_application_t a1(&c1), a2(&c2);
     connectivity_cluster_t::run_t cr1(&c1, port, &a1), cr2(&c2, port+1, &a2);
@@ -200,7 +200,7 @@ TEST(RPCConnectivityTest, OrderingMultiThread) {
 correct. */
 
 void run_get_peers_list_test() {
-    int port = 10000 + rand() % 20000;
+    int port = 10000 + randint(20000);
     connectivity_cluster_t c1;
     connectivity_cluster_t::run_t cr1(&c1, port, NULL);
 
@@ -241,7 +241,7 @@ TEST(RPCConnectivityTest, GetPeersListMultiThread) {
 `connectivity_service_t::peers_list_subscription_t` work properly. */
 
 void run_event_watchers_test() {
-    int port = 10000 + rand() % 20000;
+    int port = 10000 + randint(20000);
     connectivity_cluster_t c1;
     connectivity_cluster_t::run_t cr1(&c1, port, NULL);
 
@@ -327,7 +327,7 @@ struct watcher_t {
 
 void run_event_watcher_ordering_test() {
 
-    int port = 10000 + rand() % 20000;
+    int port = 10000 + randint(20000);
     connectivity_cluster_t c1;
     recording_test_application_t a1(&c1);
     connectivity_cluster_t::run_t cr1(&c1, port, &a1);
@@ -361,7 +361,7 @@ while it is still coming up */
 
 void run_stop_mid_join_test() {
 
-    int port = 10000 + rand() % 20000;
+    int port = 10000 + randint(20000);
 
     const int num_members = 5;
 
@@ -398,7 +398,7 @@ together. */
 
 void run_blob_join_test() {
 
-    int port = 10000 + rand() % 20000;
+    int port = 10000 + randint(20000);
 
     /* Two blobs of `blob_size` nodes */
     const int blob_size = 4;
@@ -442,7 +442,7 @@ TEST(RPCConnectivityTest, BlobJoinMultiThread) {
 
 void run_multiplexer_test() {
 
-    int port = 10000 + rand() % 20000;
+    int port = 10000 + randint(20000);
     connectivity_cluster_t c1, c2;
     message_multiplexer_t c1m(&c1), c2m(&c2);
     message_multiplexer_t::client_t c1mcA(&c1m, 'A'), c2mcA(&c2m, 'A');
@@ -506,7 +506,7 @@ public:
 
 void run_binary_data_test() {
 
-    int port = 10000 + rand() % 20000;
+    int port = 10000 + randint(20000);
     connectivity_cluster_t c1, c2;
     binary_test_application_t a1(&c1), a2(&c2);
     connectivity_cluster_t::run_t cr1(&c1, port, &a1), cr2(&c2, port+1, &a2);

@@ -1,5 +1,5 @@
-#ifndef __COUNTED_HPP__
-#define __COUNTED_HPP__
+#ifndef COUNTED_HPP_
+#define COUNTED_HPP_
 
 #include "buffer_cache/blob.hpp"
 #include "redis/redis_types.hpp"
@@ -127,4 +127,4 @@ protected:
     transaction_t *txn;
 };
 
-#endif /* __COUNTED_HPP__ */
+#endif /* COUNTED_HPP_ */

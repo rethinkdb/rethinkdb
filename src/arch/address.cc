@@ -10,7 +10,7 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
-ip_address_t::ip_address_t(const char *host) {
+ip_address_t::ip_address_t(const std::string &host) {
 
     /* Use hint to make sure we get a IPv4 address that we can use with TCP */
     struct addrinfo hint;
@@ -25,7 +25,7 @@ ip_address_t::ip_address_t(const char *host) {
 
     struct addrinfo *addr_possibilities;
     // Because getaddrinfo may block, send it to a blocker thread and give up execution in the meantime
-    boost::function<int()> fn = boost::bind(getaddrinfo, host, static_cast<const char*>(NULL), &hint, &addr_possibilities);
+    boost::function<int()> fn = boost::bind(getaddrinfo, host.c_str(), static_cast<const char*>(NULL), &hint, &addr_possibilities);
     int res = thread_pool_t::run_in_blocker_pool(fn);
     guarantee_err(res == 0, "getaddrinfo() failed");
 

@@ -1048,31 +1048,27 @@ declare_client_connected = ->
 # Process updates from the server and apply the diffs to our view of the data. Used by our version of Backbone.sync and POST / PUT responses for form actions
 apply_diffs = (updates) ->
     declare_client_connected()
-    if updates.full_update == "true"
-        location.reload()
-        return
-    if updates.length > 0
-        log_ajax "Updates received from the server: ", updates
-    else
-        log_ajax "Empty update received from the server."
-    for update in updates
-        collection =  null
-        switch update.element
-            when 'namespaces' then collection = namespaces
-            when 'datacenters' then collection = datacenters
-            when 'machines' then collection = machines
-            when 'alerts' then collection = alerts
+    for collection_id, collection_data of updates
+        for id, data of collection_data
+            switch collection_id
+                when 'dummy_namespaces'
+                    collection = namespaces
+                    data.protocol = "dummy"
+                when 'memcached_namespaces'
+                    collection = namespaces
+                    data.protocol = "memcached"
+                when 'datacenters' then collection = datacenters
+                when 'machines' then collection = machines
+                when 'me' then continue
+                else
+                    console.log "Unhandled element update: " + update
+                    return
+            if (collection.get(id))
+                collection.get(id).set(data)
             else
-                console.log "Unhandled element update: " + update
-                return
-
-        operation = null
-        model = collection.get(update.id)
-        switch update.operation
-            when 'add' then collection.add new collection.model(update.data)
-            when 'update' then model.set(update.data)
-            when 'delete' then model.trigger('destroy', model, collection, {})
-
+                data.id = id
+                collection.add new collection.model(data)
+    return
 
 $ ->
     bind_dev_tools()
@@ -1092,7 +1088,7 @@ $ ->
     generate_fake_issues(issues)
 
     # Load the data bootstrapped from the HTML template
-    reset_collections()
+    # reset_collections()
     reset_token()
 
     # Log all events fired for the namespaces collection (debugging)
@@ -1103,7 +1099,7 @@ $ ->
     legacy_sync = Backbone.sync
     Backbone.sync = (method, model, success, error) ->
         if method is 'read'
-            $.getJSON('/ajax/updates?token=' + token, (updates) -> apply_diffs(updates))
+            $.getJSON('/ajax', apply_diffs)
         else
             legacy_sync method, model, success, error
 

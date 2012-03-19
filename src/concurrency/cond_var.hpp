@@ -1,14 +1,11 @@
-#ifndef __CONCURRENCY_COND_VAR_HPP__
-#define __CONCURRENCY_COND_VAR_HPP__
+#ifndef CONCURRENCY_COND_VAR_HPP_
+#define CONCURRENCY_COND_VAR_HPP_
 
 #include "errors.hpp"
 #include "concurrency/signal.hpp"
 
-/* A cond_t is the simplest form of signal. It just exposes the pulse() method directly.
-It is safe to call pulse() on any thread.
-
-If you want something that's like a cond_t but that you can "un-pulse", you should
-use resettable_cond_t. */
+/* A cond_t is the simplest form of signal. It just exposes the pulse() method
+directly. It is safe to call pulse() on any thread. */
 
 class coro_t;
 
@@ -41,4 +38,4 @@ private:
     DISABLE_COPYING(one_waiter_cond_t);
 };
 
-#endif /* __CONCURRENCY_COND_VAR_HPP__ */
+#endif /* CONCURRENCY_COND_VAR_HPP_ */

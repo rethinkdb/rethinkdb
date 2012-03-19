@@ -1,7 +1,8 @@
-#ifndef __HTTP_JSON_HPP__
-#define __HTTP_JSON_HPP__
+#ifndef HTTP_JSON_HPP_
+#define HTTP_JSON_HPP_
 
 #include <string>
+#include <set>
 
 #include "errors.hpp"
 #include "http/json/cJSON.hpp"
@@ -37,5 +38,7 @@ public:
 };
 
 std::string cJSON_print_std_string(cJSON *json);
+
+void project(cJSON *json, std::set<std::string> keys);
 
 #endif

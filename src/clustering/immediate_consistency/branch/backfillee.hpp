@@ -1,8 +1,10 @@
-#ifndef __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BACKFILLEE_HPP__
-#define __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BACKFILLEE_HPP__
+#ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BACKFILLEE_HPP_
+#define CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BACKFILLEE_HPP_
 
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "concurrency/promise.hpp"
+#include "containers/death_runner.hpp"
+#include "containers/uuid.hpp"
 #include "rpc/semilattice/view.hpp"
 
 /* TODO: What if the backfill chunks on the network get reordered in transit?
@@ -39,7 +41,7 @@ void on_receive_backfill_chunk(
 template<class protocol_t>
 void backfillee(
         mailbox_manager_t *mailbox_manager,
-        boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > branch_history,
+        UNUSED boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > branch_history,
         store_view_t<protocol_t> *store,
         typename protocol_t::region_t region,
         clone_ptr_t<directory_single_rview_t<boost::optional<backfiller_business_card_t<protocol_t> > > > backfiller_metadata,
@@ -209,4 +211,4 @@ void backfillee(
         );
 }
 
-#endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BACKFILLEE_HPP__ */
+#endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BACKFILLEE_HPP_ */

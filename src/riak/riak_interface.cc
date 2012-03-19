@@ -1,16 +1,22 @@
 #include "riak/riak_interface.hpp"
-#include "btree/operations.hpp"
-#include "riak/riak_value.hpp"
-#include "containers/buffer_group.hpp"
-#include <boost/algorithm/string/join.hpp>
-#include "JavaScriptCore/JavaScript.h"
-#include "API/JSContextRefPrivate.h"
-#include "arch/runtime/context_switching.hpp"
+
 #include "utils.hpp"
 
-#include <fstream>
-#include <iostream>
-#include <sstream>
+// These five headers are commented out because the code that uses
+// them is commented out.
+
+// #include <boost/algorithm/string/join.hpp>
+
+// #include <JavaScriptCore/JavaScript.h>
+// #include <API/JSContextRefPrivate.h>
+
+// #include "arch/runtime/context_switching.hpp"
+// #include "containers/buffer_group.hpp"
+
+#include "btree/operations.hpp"
+#include "http/json.hpp"
+#include "riak/riak_value.hpp"
+
 #include <string>
 
 
@@ -42,7 +48,11 @@ btree_slice_t *riak_interface_t::create_slice(std::list<std::string> key) {
 
     standard_serializer_t::config_t ser_config(boost::algorithm::join(key,"_"));
     store_manager->create_store(key, ser_config);
-    store_manager->get_store(key)->store_metadata = bucket_t(nth(key, 1));
+    std::list<std::string>::const_iterator iter = key.begin();
+    rassert(iter != key.end());
+    ++iter;
+    rassert(iter != key.end());
+    store_manager->get_store(key)->store_metadata = bucket_t(*iter);
 
     store_manager->get_store(key)->load_store();
 
@@ -112,7 +122,7 @@ object_iterator_t riak_interface_t::objects(const std::string &) {
     unreachable();
 }
 
-const object_t riak_interface_t::get_object(std::string key, std::pair<int,int> range) {
+const object_t riak_interface_t::get_object(std::string key, std::pair<int, int> range) {
     /* std::list<std::string> sm_key;
     sm_key.push_back("riak"); sm_key.push_back(bucket);
     btree_slice_t *slice = get_slice(sm_key);
@@ -236,7 +246,7 @@ bool riak_interface_t::delete_object(UNUSED std::string key) {
 
 std::string secs_to_riak_date(time_t secs) {
     struct tm *time = gmtime(&secs);
-    char buffer[100]; 
+    char buffer[100];
 
     DEBUG_ONLY_VAR size_t res = strftime(buffer, 100, RIAK_DATE_FORMAT, time);
     rassert(res != 0, "Not enough space for the date time");
@@ -387,13 +397,7 @@ std::string riak_interface_t::gen_key() {
 }
 
 void riak_interface_t::initialize_riak_ctx(JS::ctx_t &ctx) {
-    std::ifstream ifs("../assets/riak/mapred_builtins.js");
-    rassert(ifs);
-    std::stringstream oss;
-    oss << ifs.rdbuf();
-    rassert(ifs || ifs.eof());
-    std::string script(oss.str());
-
+    std::string script = read_file("../assets/riak/mapred_builtins.js");
 
     JS::scoped_js_string_t scriptJS(script);
     ctx.JSEvaluateScript(scriptJS, JS::scoped_js_object_t(NULL), JS::scoped_js_string_t(), 0);

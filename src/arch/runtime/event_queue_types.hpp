@@ -1,5 +1,5 @@
-#ifndef __ARCH_RUNTIME_EVENT_QUEUE_TYPES_HPP__
-#define __ARCH_RUNTIME_EVENT_QUEUE_TYPES_HPP__
+#ifndef ARCH_RUNTIME_EVENT_QUEUE_TYPES_HPP_
+#define ARCH_RUNTIME_EVENT_QUEUE_TYPES_HPP_
 
 #include <signal.h>
 
@@ -28,5 +28,5 @@ struct linux_queue_parent_t {
 };
 
 
-#endif  // __ARCH_RUNTIME_EVENT_QUEUE_TYPES_HPP__
+#endif  // ARCH_RUNTIME_EVENT_QUEUE_TYPES_HPP_
 

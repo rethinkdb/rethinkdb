@@ -1,15 +1,23 @@
 #include "riak/structures.hpp"
 
+#include "riak/riak_value.hpp"
+
 namespace riak {
 
 link_filter_t::link_filter_t(std::string _bucket, std::string _tag, bool keep) 
     : keep(keep)
 {
-    if (_bucket == "_") { bucket = boost::optional<std::string>(); }
-    else { bucket = boost::optional<std::string>(_bucket); }
+    if (_bucket == "_") {
+        bucket = boost::optional<std::string>();
+    } else {
+        bucket = boost::optional<std::string>(_bucket);
+    }
 
-    if (_tag == "_") { tag = boost::optional<std::string>(); }
-    else { tag = boost::optional<std::string>(_tag); }
+    if (_tag == "_") {
+        tag = boost::optional<std::string>();
+    } else {
+        tag = boost::optional<std::string>(_tag);
+    }
 }
 
 bool match(link_filter_t const &link_filter, link_t const &link) {
@@ -44,13 +52,13 @@ object_t::object_t(std::string const &key, std::string const &bucket, riak_value
         blob_acq_t acq;
         blob.expose_region(txn, rwi_read, 0, val->content_type_len, &buffer_group, &acq);
 
-        const_buffer_group_t::iterator it = buffer_group.begin(); 
+        const_buffer_group_t::iterator it = buffer_group.begin();
 
         /* grab the content type */
         content_type.reserve(val->content_type_len);
-        for (unsigned i = 0; i < val->content_type_len; i++) {
+        for (unsigned i = 0; i < val->content_type_len; ++i) {
             content_type += *it;
-            it++;
+            ++it;
         }
     }
 
@@ -65,9 +73,9 @@ object_t::object_t(std::string const &key, std::string const &bucket, riak_value
             const_buffer_group_t::iterator it = buffer_group.begin();
 
             resize_content(val->value_len);
-            for (char *hd = content.get(); hd - content.get() < val->value_len; hd++) {
+            for (char *hd = content.get(); hd - content.get() < val->value_len; ++hd) {
                 *hd = *it;
-                it++;
+                ++it;
             }
         } else {
             //getting a range
@@ -77,9 +85,9 @@ object_t::object_t(std::string const &key, std::string const &bucket, riak_value
             const_buffer_group_t::iterator it = buffer_group.begin();
 
             resize_content(range.second - range.first);
-            for (char *hd = content.get(); hd - content.get() < range.second - range.first; hd++) {
+            for (char *hd = content.get(); hd - content.get() < range.second - range.first; ++hd) {
                 *hd = *it;
-                it++;
+                ++it;
             }
         }
     }
@@ -91,32 +99,35 @@ object_t::object_t(std::string const &key, std::string const &bucket, riak_value
 
         blob.expose_region(txn, rwi_read, val->content_type_len + val->value_len, val->links_length, &buffer_group, &acq);
 
-        const_buffer_group_t::iterator it = buffer_group.begin(); 
+        const_buffer_group_t::iterator it = buffer_group.begin();
         for (int i = 0; i < val->n_links; i++) {
             link_hdr_t link_hdr;
             link_t link;
 
-            link_hdr.bucket_len = *it; it++;
-            link_hdr.key_len = *it; it++;
-            link_hdr.tag_len = *it; it++;
+            link_hdr.bucket_len = uint8_t(*it);
+            ++it;
+            link_hdr.key_len = uint8_t(*it);
+            ++it;
+            link_hdr.tag_len = uint8_t(*it);
+            ++it;
 
             link.bucket.reserve(link_hdr.bucket_len);
             for (int j = 0; j < link_hdr.bucket_len; j++) {
                 link.bucket.push_back(*it);
-                it++;
+                ++it;
             }
 
 
             link.key.reserve(link_hdr.key_len);
             for (int j = 0; j < link_hdr.key_len; j++) {
                 link.key.push_back(*it);
-                it++;
+                ++it;
             }
 
             link.key.reserve(link_hdr.tag_len);
             for (int j = 0; j < link_hdr.tag_len; j++) {
                 link.tag.push_back(*it);
-                it++;
+                ++it;
             }
 
             links.push_back(link);

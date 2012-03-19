@@ -1,5 +1,5 @@
-#ifndef __CONCURRENCY_QUEUE_ACCOUNTING_HPP__
-#define __CONCURRENCY_QUEUE_ACCOUNTING_HPP__
+#ifndef CONCURRENCY_QUEUE_ACCOUNTING_HPP_
+#define CONCURRENCY_QUEUE_ACCOUNTING_HPP_
 
 #include "concurrency/queue/passive_producer.hpp"
 #include "containers/intrusive_list.hpp"
@@ -135,4 +135,4 @@ private:
     }
 };
 
-#endif /* __CONCURRENCY_QUEUE_ACCOUNTING_HPP__ */
+#endif /* CONCURRENCY_QUEUE_ACCOUNTING_HPP_ */

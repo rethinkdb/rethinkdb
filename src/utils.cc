@@ -14,16 +14,12 @@
 #include <unistd.h>
 
 #include <boost/scoped_array.hpp>
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
 
+#include "config/args.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "containers/scoped_malloc.hpp"
 #include "db_thread_info.hpp"
 #include "logger.hpp"
-
-#include <boost/uuid/uuid_generators.hpp>
 
 #ifdef VALGRIND
 #include <valgrind/memcheck.h>
@@ -125,7 +121,7 @@ timespec get_uptime() {
         now.tv_sec -= time_sync_data.hi_res_clock.tv_sec;
         now.tv_nsec -= time_sync_data.hi_res_clock.tv_nsec;
         if (now.tv_nsec < 0) {
-            now.tv_nsec += (long long int)1e9;
+            now.tv_nsec += BILLION;
             now.tv_sec--;
         }
         return now;
@@ -143,7 +139,7 @@ precise_time_t get_absolute_time(const timespec& relative_time) {
     time_t sec = time_sync_data.low_res_clock + relative_time.tv_sec;
     uint32_t nsec = time_sync_data.hi_res_clock.tv_nsec + relative_time.tv_nsec;
     if (nsec > 1e9) {
-        nsec -= (long long int)1e9;
+        nsec -= BILLION;
         sec++;
     }
     (void) gmtime_r(&sec, &result);
@@ -177,11 +173,9 @@ std::string format_precise_time(const precise_time_t& time) {
 
 #ifndef NDEBUG
 
-#include <iostream>
-
 void home_thread_mixin_t::assert_thread() const {
     if(home_thread() != get_thread_id()) {
-        std::cout << home_thread() << " " << get_thread_id() << std::endl;
+        printf("%d %d\n", home_thread(), get_thread_id());
         BREAKPOINT;
     }
     rassert(home_thread() == get_thread_id());
@@ -211,28 +205,6 @@ microtime_t current_microtime() {
     int res __attribute__((unused)) = gettimeofday(&t, NULL);
     rassert(0 == res);
     return uint64_t(t.tv_sec) * (1000 * 1000) + t.tv_usec;
-}
-
-boost::uuids::uuid generate_uuid() {
-#ifndef VALGRIND
-    return boost::uuids::random_generator()();
-#else
-    boost::uuids::uuid uuid;
-    for (size_t i = 0; i < sizeof uuid.data; i++) {
-        uuid.data[i] = static_cast<uint8_t>(rand()&0xff);
-    }
-    return uuid;
-#endif
-}
-
-std::string uuid_to_str(boost::uuids::uuid id) {
-    std::stringstream ss;
-    ss << id;
-    return ss.str();
-}
-
-boost::uuids::uuid str_to_uuid(std::string uuid) {
-    return boost::uuids::string_generator()(uuid);
 }
 
 
@@ -279,10 +251,10 @@ struct rand_initter_t {
     }
 } rand_initter;
 
-rng_t::rng_t( UNUSED long int seed) {
+rng_t::rng_t( UNUSED int seed) {
     memset(&buffer_, 0, sizeof(buffer_));
 #ifndef NDEBUG
-    if(seed == -1) {
+    if (seed == -1) {
         struct timeval tv;
         gettimeofday(&tv, NULL);
         seed = tv.tv_usec;
@@ -294,16 +266,23 @@ rng_t::rng_t( UNUSED long int seed) {
 }
 
 int rng_t::randint(int n) {
-    long int x;
+    // We return int, and use it in the moduloizer, so the long here
+    // (which is necessary for the lrand48_r API) is okay.
+
+    long x;  // NOLINT(runtime/int)
     lrand48_r(&buffer_, &x);
 
     return x % n;
 }
 
+int randint(int n) {
+    return thread_local_randint(n);
+}
+
 std::string rand_string(int len) {
     std::string res;
 
-    int seed = rand();
+    int seed = randint(RAND_MAX);
 
     while (len --> 0) {
         res.push_back((seed % 26) + 'A');
@@ -320,36 +299,42 @@ bool begins_with_minus(const char *string) {
     return *string == '-';
 }
 
-long strtol_strict(const char *string, char **end, int base) {
-    long result = strtol(string, end, base);
+int64_t strtol_strict(const char *string, const char **end, int base) {
+    // It's okay to have long, that's what strtol returns.
+    // We convert it to int64_t (which is the same thing, or bigger).
+    long result = strtol(string, const_cast<char **>(end), base);  // NOLINT(runtime/int)
     if ((result == LONG_MAX || result == LONG_MIN) && errno == ERANGE) {
-        *end = const_cast<char *>(string);
+        *end = string;
         return 0;
     }
     return result;
 }
 
-unsigned long strtoul_strict(const char *string, char **end, int base) {
+uint64_t strtoul_strict(const char *string, const char **end, int base) {
     if (begins_with_minus(string)) {
-        *end = const_cast<char *>(string);
+        *end = string;
         return 0;
     }
-    unsigned long result = strtoul(string, end, base);
+    // It's okay to have an unsigned long, that's what strtoul returns.
+    // We convert it to uint64_t (which is the same thing, or bigger).
+    unsigned long result = strtoul(string, const_cast<char **>(end), base);  // NOLINT(runtime/int)
     if (result == ULONG_MAX && errno == ERANGE) {
-        *end = const_cast<char *>(string);
+        *end = string;
         return 0;
     }
     return result;
 }
 
-unsigned long long strtoull_strict(const char *string, char **end, int base) {
+uint64_t strtoull_strict(const char *string, const char **end, int base) {
     if (begins_with_minus(string)) {
-        *end = const_cast<char *>(string);
+        *end = string;
         return 0;
     }
-    unsigned long long result = strtoull(string, end, base);
+    // It's okay to have an unsigned long long, that's what strtoull returns.
+    // We convert it to uint64_t (which is the same thing).
+    unsigned long long result = strtoull(string, const_cast<char **>(end), base);  // NOLINT(runtime/int)
     if (result == ULLONG_MAX && errno == ERANGE) {
-        *end = const_cast<char *>(string);
+        *end = string;
         return 0;
     }
     return result;
@@ -371,7 +356,7 @@ int gcd(int x, int y) {
 ticks_t secs_to_ticks(float secs) {
     // The timespec struct used in clock_gettime has a tv_nsec field.
     // That's why we use a billion.
-    return (unsigned long long)secs * 1000000000L;
+    return ticks_t(secs) * 1000000000L;
 }
 
 ticks_t get_ticks() {
@@ -386,10 +371,10 @@ time_t get_secs() {
     return tv.tv_sec;
 }
 
-long get_ticks_res() {
+int64_t get_ticks_res() {
     timespec tv;
     clock_getres(CLOCK_MONOTONIC, &tv);
-    return secs_to_ticks(tv.tv_sec) + tv.tv_nsec;
+    return int64_t(secs_to_ticks(tv.tv_sec)) + tv.tv_nsec;
 }
 
 double ticks_to_secs(ticks_t ticks) {
@@ -485,6 +470,45 @@ static bool parse_backtrace_line(char *line, char **filename, char **function, c
     return true;
 }
 
+/* There has been some trouble with abi::__cxa_demangle.
+
+Originally, demangle_cpp_name() took a pointer to the mangled name, and returned a
+buffer that must be free()ed. It did this by calling __cxa_demangle() and passing NULL
+and 0 for the buffer and buffer-size arguments.
+
+There were complaints that print_backtrace() was smashing memory. Shachaf observed that
+pieces of the backtrace seemed to be ending up overwriting other structs, and filed
+issue #100.
+
+Daniel Mewes suspected that the memory smashing was related to calling malloc().
+In December 2010, he changed demangle_cpp_name() to take a static buffer, and fill
+this static buffer with the demangled name. See 284246bd.
+
+abi::__cxa_demangle expects a malloc()ed buffer, and if the buffer is too small it
+will call realloc() on it. So the static-buffer approach worked except when the name
+to be demangled was too large.
+
+In March 2011, Tim and Ivan got tired of the memory allocator complaining that someone
+was trying to realloc() an unallocated buffer, and changed demangle_cpp_name() back
+to the way it was originally.
+
+Please don't change this function without talking to the people who have already
+been involved in this. */
+
+#include <cxxabi.h>
+
+std::string demangle_cpp_name(const char *mangled_name) {
+    int res;
+    char *name_as_c_str = abi::__cxa_demangle(mangled_name, NULL, 0, &res);
+    if (res == 0) {
+        std::string name_as_std_string(name_as_c_str);
+        free(name_as_c_str);
+        return name_as_std_string;
+    } else {
+        throw demangle_failed_exc_t();
+    }
+}
+
 static bool run_addr2line(char *executable, char *address, char *line, int line_size) {
     // Generate and run addr2line command
     char cmd_buf[255] = {0};
@@ -556,10 +580,19 @@ void print_backtrace(FILE *out, bool use_addr2line) {
     }
 }
 
-bool operator==(const binary_blob_t &left, const binary_blob_t &right) {
-    return left.size() == right.size() && memcmp(left.data(), right.data(), left.size()) == 0;
-}
+std::string read_file(const char *path) {
+    std::string s;
+    FILE *fp = fopen(path, "rb");
+    char buffer[4096];
+    int count;
+    do {
+        count = fread(buffer, 1, sizeof(buffer), fp);
+        s.append(buffer, buffer + count);
+    } while(count == sizeof(buffer));
 
-bool operator!=(const binary_blob_t &left, const binary_blob_t &right) {
-    return !(left == right);
+    rassert(feof(fp));
+
+    fclose(fp);
+
+    return s;
 }

@@ -1,5 +1,5 @@
-#ifndef __CONCURRENCY_FIFO_ENFORCER_HPP__
-#define __CONCURRENCY_FIFO_ENFORCER_HPP__
+#ifndef CONCURRENCY_FIFO_ENFORCER_HPP_
+#define CONCURRENCY_FIFO_ENFORCER_HPP_
 
 #include <map>
 
@@ -166,4 +166,4 @@ private:
     DISABLE_COPYING(fifo_enforcer_sink_t);
 };
 
-#endif /* __CONCURRENCY_FIFO_ENFORCER_HPP__ */
+#endif /* CONCURRENCY_FIFO_ENFORCER_HPP_ */

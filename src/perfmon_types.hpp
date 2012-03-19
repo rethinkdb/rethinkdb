@@ -1,5 +1,5 @@
-#ifndef __PERFMON_TYPES_HPP__
-#define __PERFMON_TYPES_HPP__
+#ifndef PERFMON_TYPES_HPP_
+#define PERFMON_TYPES_HPP_
 
 class perfmon_counter_t;
 class perfmon_sampler_t;
@@ -8,4 +8,4 @@ struct perfmon_duration_sampler_t;
 class perfmon_rate_monitor_t;
 struct perfmon_function_t;
 
-#endif  // __PERFMON_TYPES_HPP__
+#endif  // PERFMON_TYPES_HPP_

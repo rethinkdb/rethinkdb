@@ -1,8 +1,7 @@
-#ifndef __REDIS_SERVER_HPP__
-#define __REDIS_SERVER_HPP__
+#ifndef REDIS_SERVER_HPP_
+#define REDIS_SERVER_HPP_
 
 #include "arch/arch.hpp"
-#include <iostream>
 
 // Just for this dummy namespace interface thing until clustering is better prepared
 #include "redis/redis.hpp"
@@ -19,12 +18,11 @@ struct redis_listener_t : public home_thread_mixin_t {
 private:
     namespace_interface_t<redis_protocol_t> *redis_interface;
 
-    cond_t pulse_to_begin_shutdown;
-    drain_semaphore_t active_connection_drain_semaphore;
+    auto_drainer_t active_connection_drainer;
     int next_thread;
     boost::scoped_ptr<tcp_listener_t> tcp_listener;
 
     void handle(boost::scoped_ptr<nascent_tcp_conn_t> &conn);
 };
 
-#endif /* __REDIS_SERVER_HPP__ */
+#endif /* REDIS_SERVER_HPP_ */

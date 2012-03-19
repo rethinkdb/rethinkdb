@@ -1,5 +1,5 @@
-#ifndef __BTREE_BACKFILL_HPP__
-#define __BTREE_BACKFILL_HPP__
+#ifndef BTREE_BACKFILL_HPP_
+#define BTREE_BACKFILL_HPP_
 
 #include "btree/node.hpp"
 #include "btree/slice.hpp"
@@ -43,9 +43,8 @@ protected:
 or equal than `since_when` but which reached the tree before `btree_backfill()` was called.
 It may also find changes that happened before `since_when`.
 */
-class sequence_group_t;
 
-void btree_backfill(btree_slice_t *slice, sequence_group_t *seq_group, const key_range_t& key_range, repli_timestamp_t since_when,
+void btree_backfill(btree_slice_t *slice, const key_range_t& key_range, repli_timestamp_t since_when,
                     const boost::shared_ptr<cache_account_t>& backfill_account, backfill_callback_t *callback, order_token_t token);
 void btree_backfill(btree_slice_t *slice, const key_range_t& key_range, repli_timestamp_t since_when, backfill_callback_t *callback,
                     transaction_t *txn, got_superblock_t& superblock);
@@ -60,16 +59,16 @@ public:
 };
 
 
-void do_agnostic_btree_backfill(value_sizer_t<void> *sizer, btree_slice_t *slice, sequence_group_t *seq_group,
+void do_agnostic_btree_backfill(value_sizer_t<void> *sizer, btree_slice_t *slice,
     const key_range_t& key_range, repli_timestamp_t since_when, const boost::shared_ptr<cache_account_t>& backfill_account,
     agnostic_backfill_callback_t *callback, order_token_t token);
 
 template <class V>
-void agnostic_btree_backfill(btree_slice_t *slice, sequence_group_t *seq_group, const key_range_t& key_range, repli_timestamp_t since_when,
+void agnostic_btree_backfill(btree_slice_t *slice, const key_range_t& key_range, repli_timestamp_t since_when,
                              const boost::shared_ptr<cache_account_t>& backfill_account, agnostic_backfill_callback_t *callback, order_token_t token) {
     value_sizer_t<V> sizer(slice->cache()->get_block_size());
-    do_agnostic_btree_backfill(&sizer, slice, seq_group, key_range, since_when, backfill_account, callback, token);
+    do_agnostic_btree_backfill(&sizer, slice, key_range, since_when, backfill_account, callback, token);
 }
 
 
-#endif  // __BTREE_BACKFILL_HPP__
+#endif  // BTREE_BACKFILL_HPP_

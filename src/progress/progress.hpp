@@ -1,5 +1,5 @@
-#ifndef __PROGRESS_HPP__
-#define __PROGRESS_HPP__
+#ifndef PROGRESS_HPP_
+#define PROGRESS_HPP_
 #include <stdio.h>
 #include <string>
 #include "arch/timing.hpp"
@@ -12,7 +12,7 @@ private:
 private:
     int total_refreshes;
 public:
-    progress_bar_t(std::string, int);
+    progress_bar_t(const std::string&, int);
     virtual ~progress_bar_t() { 
         if (total_refreshes > 0)
             printf("\n"); 
@@ -28,9 +28,9 @@ class counter_progress_bar_t : public progress_bar_t {
 private:
     int count, expected_count;
 public:
-    counter_progress_bar_t(std::string, int, int redraw_interval_ms = 100);
+    counter_progress_bar_t(const std::string&, int, int redraw_interval_ms = 100);
     void draw();
-    void operator++(int);
+    void operator++();
 };
 
 //file progress bar watches as you use a file to see how fast you're using it,
@@ -40,8 +40,8 @@ private:
     FILE *file;
     int file_size;
 public:
-    file_progress_bar_t(std::string, FILE *, int redraw_interval_ms = 100);
+    file_progress_bar_t(const std::string&, FILE *, int redraw_interval_ms = 100);
     void draw();
 };
 
-#endif //__PROGRESS_HPP__
+#endif //PROGRESS_HPP_

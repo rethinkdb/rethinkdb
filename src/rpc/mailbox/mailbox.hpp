@@ -1,5 +1,5 @@
-#ifndef __RPC_MAILBOX_MAILBOX_HPP__
-#define __RPC_MAILBOX_MAILBOX_HPP__
+#ifndef RPC_MAILBOX_MAILBOX_HPP_
+#define RPC_MAILBOX_MAILBOX_HPP_
 
 #include "rpc/connectivity/cluster.hpp"
 
@@ -117,4 +117,4 @@ private:
     void on_message(peer_id_t, std::istream&);
 };
 
-#endif /* __RPC_MAILBOX_MAILBOX_HPP__ */
+#endif /* RPC_MAILBOX_MAILBOX_HPP_ */

@@ -303,7 +303,10 @@ module 'ClusterView', ->
 
         json_for_template: =>
             stuff = super()
-            stuff.datacenter_name = datacenters.find((d) => d.get('id') == @model.get('datacenter_uuid')).get('name')
+            if @model.get('datacenter_uuid')
+                stuff.datacenter_name = datacenters.find((d) => d.get('id') == @model.get('datacenter_uuid')).get('name')
+            else
+                stuff.datacenter_name = "Unassigned"
             return stuff
 
     class @AbstractModal extends Backbone.View
@@ -414,9 +417,14 @@ module 'ClusterView', ->
                    name: 'Required'
 
                 submitHandler: =>
-                    $('form', @$modal).ajaxSubmit
-                        url: '/ajax/datacenters?token=' + token
+                    formdata = form_data_as_object($('form', @$modal))
+
+                    $.ajax
+                        processData: false
+                        url: '/ajax/datacenters/new'
                         type: 'POST'
+                        contentType: 'application/json'
+                        data: JSON.stringify({"name" : formdata.name})
 
                         success: (response) =>
                             clear_modals()
@@ -503,10 +511,14 @@ module 'ClusterView', ->
                     datacenter_uuid: 'Required'
 
                 submitHandler: =>
+                    formdata = form_data_as_object($('form', @$modal))
                     for m in machines
-                        $('form', @$modal).ajaxSubmit
-                            url: "/ajax/machines/#{m.id}?token=#{token}"
+                        $.ajax
+                            processData: false
+                            url: "/ajax/machines/#{m.id}"
                             type: 'POST'
+                            contentType: 'application/json'
+                            data: JSON.stringify({"datacenter_uuid" : formdata.datacenter_uuid})
 
                             success: (response) =>
                                 clear_modals()

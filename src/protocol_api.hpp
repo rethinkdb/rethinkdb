@@ -1,5 +1,5 @@
-#ifndef __PROTOCOL_API_HPP__
-#define __PROTOCOL_API_HPP__
+#ifndef PROTOCOL_API_HPP_
+#define PROTOCOL_API_HPP_
 
 #include <functional>
 #include <list>
@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "errors.hpp"
+#include <boost/function.hpp>
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/utility.hpp>   /* for `std::pair` serialization */
 #include <boost/scoped_ptr.hpp>
@@ -14,6 +15,7 @@
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/signal.hpp"
+#include "containers/binary_blob.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
 
@@ -85,7 +87,7 @@ public:
     template <class input_iterator_t>
     region_map_t(const input_iterator_t &_begin, const input_iterator_t &_end)
         : regions_and_values(_begin, _end)
-    { 
+    {
         DEBUG_ONLY(get_domain());
     }
 
@@ -149,7 +151,7 @@ public:
     }
 
     void set(const typename protocol_t::region_t &r, const value_t &v) {
-        update(region_map_t(r,v));
+        update(region_map_t(r, v));
     }
 
 private:
@@ -157,15 +159,15 @@ private:
     RDB_MAKE_ME_SERIALIZABLE_1(regions_and_values);
 };
 
-template<class P,class V>
-bool operator==(const region_map_t<P,V> &left, const region_map_t<P,V> &right) {
+template<class P, class V>
+bool operator==(const region_map_t<P, V> &left, const region_map_t<P, V> &right) {
     if (left.get_domain() != right.get_domain()) {
         return false;
     }
 
-    for (typename region_map_t<P,V>::const_iterator i = left.begin(); i != left.end(); ++i) {
-        region_map_t<P,V> r = right.mask((*i).first);
-        for (typename region_map_t<P,V>::const_iterator j = r.begin(); j != r.end(); ++j) {
+    for (typename region_map_t<P, V>::const_iterator i = left.begin(); i != left.end(); ++i) {
+        region_map_t<P, V> r = right.mask((*i).first);
+        for (typename region_map_t<P, V>::const_iterator j = r.begin(); j != r.end(); ++j) {
             if (j->second != i->second) {
                 return false;
             }
@@ -174,8 +176,8 @@ bool operator==(const region_map_t<P,V> &left, const region_map_t<P,V> &right) {
     return true;
 }
 
-template<class P,class V>
-bool operator!=(const region_map_t<P,V> &left, const region_map_t<P,V> &right) {
+template<class P, class V>
+bool operator!=(const region_map_t<P, V> &left, const region_map_t<P, V> &right) {
     return !(left == right);
 }
 
@@ -205,7 +207,7 @@ opaque binary blob (`binary_blob_t`).
 template<class protocol_t>
 class store_view_t {
 public:
-    typedef region_map_t<protocol_t,binary_blob_t> metainfo_t;
+    typedef region_map_t<protocol_t, binary_blob_t> metainfo_t;
 
     virtual ~store_view_t() { }
 
@@ -225,7 +227,7 @@ public:
             THROWS_ONLY(interrupted_exc_t) = 0;
 
     /* Replaces the metainfo over the view's entire range with the given metainfo.
-    [Precondition] region_is_superset(view->get_region(), new_metainfo.get_domain()) 
+    [Precondition] region_is_superset(view->get_region(), new_metainfo.get_domain())
     [Postcondition] this->get_metainfo() == new_metainfo
     [May block] */
     virtual void set_metainfo(
@@ -235,23 +237,23 @@ public:
             THROWS_ONLY(interrupted_exc_t) = 0;
 
     /* Performs a read.
-    [Precondition] region_is_superset(view->get_region(), expected_metainfo.get_domain()) 
-    [Precondition] region_is_superset(expected_metainfo.get_domain(), read.get_region()) 
+    [Precondition] region_is_superset(view->get_region(), expected_metainfo.get_domain())
+    [Precondition] region_is_superset(expected_metainfo.get_domain(), read.get_region())
     [May block] */
     virtual typename protocol_t::read_response_t read(
-            DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+            DEBUG_ONLY(const metainfo_t& expected_metainfo, )
             const typename protocol_t::read_t &read,
             boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
     /* Performs a write.
-    [Precondition] region_is_superset(view->get_region(), expected_metainfo.get_domain()) 
+    [Precondition] region_is_superset(view->get_region(), expected_metainfo.get_domain())
     [Precondition] new_metainfo.get_domain() == expected_metainfo.get_domain()
-    [Precondition] region_is_superset(expected_metainfo.get_domain(), write.get_region()) 
+    [Precondition] region_is_superset(expected_metainfo.get_domain(), write.get_region())
     [May block] */
     virtual typename protocol_t::write_response_t write(
-            DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+            DEBUG_ONLY(const metainfo_t& expected_metainfo, )
             const metainfo_t& new_metainfo,
             const typename protocol_t::write_t &write,
             transition_timestamp_t timestamp,
@@ -267,7 +269,7 @@ public:
     [May block]
     */
     virtual bool send_backfill(
-            const region_map_t<protocol_t,state_timestamp_t> &start_point,
+            const region_map_t<protocol_t, state_timestamp_t> &start_point,
             const boost::function<bool(const metainfo_t&)> &should_backfill,
             const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
             boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
@@ -292,7 +294,7 @@ public:
      */
     virtual void reset_data(
             typename protocol_t::region_t subregion,
-            const metainfo_t &new_metainfo, 
+            const metainfo_t &new_metainfo,
             boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
@@ -348,7 +350,9 @@ public:
 
     store_subview_t(store_view_t<protocol_t> *_store_view, typename protocol_t::region_t region)
         : store_view_t<protocol_t>(region), store_view(_store_view)
-    { }
+    { 
+        rassert(region_is_superset(_store_view->get_region(), region));
+    }
 
     using store_view_t<protocol_t>::get_region;
 
@@ -364,7 +368,7 @@ public:
             boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
-                return store_view->get_metainfo(token, interruptor).mask(get_region());
+        return store_view->get_metainfo(token, interruptor).mask(get_region());
     }
 
     void set_metainfo(
@@ -372,45 +376,45 @@ public:
             boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
-                rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
-                store_view->set_metainfo(new_metainfo, token, interruptor);
+        rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
+        store_view->set_metainfo(new_metainfo, token, interruptor);
     }
 
     typename protocol_t::read_response_t read(
-            DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+            DEBUG_ONLY(const metainfo_t& expected_metainfo, )
             const typename protocol_t::read_t &read,
             boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
-                rassert(region_is_superset(get_region(), expected_metainfo.get_domain()));
+        rassert(region_is_superset(get_region(), expected_metainfo.get_domain()));
 
-                return store_view->read(DEBUG_ONLY(expected_metainfo,) read, token, interruptor);
+        return store_view->read(DEBUG_ONLY(expected_metainfo, ) read, token, interruptor);
     }
 
     typename protocol_t::write_response_t write(
-            DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+            DEBUG_ONLY(const metainfo_t& expected_metainfo, )
             const metainfo_t& new_metainfo,
             const typename protocol_t::write_t &write,
             transition_timestamp_t timestamp,
             boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
-                rassert(region_is_superset(get_region(), expected_metainfo.get_domain()));
-                rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
+        rassert(region_is_superset(get_region(), expected_metainfo.get_domain()));
+        rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
-                return store_view->write(DEBUG_ONLY(expected_metainfo,) new_metainfo, write, timestamp, token, interruptor);
+        return store_view->write(DEBUG_ONLY(expected_metainfo, ) new_metainfo, write, timestamp, token, interruptor);
     }
 
     bool send_backfill(
-            const region_map_t<protocol_t,state_timestamp_t> &start_point,
+            const region_map_t<protocol_t, state_timestamp_t> &start_point,
             const boost::function<bool(const metainfo_t&)> &should_backfill,
             const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
             boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
-                rassert(region_is_superset(get_region(), start_point.get_domain()));
+        rassert(region_is_superset(get_region(), start_point.get_domain()));
 
-                return store_view->send_backfill(start_point, should_backfill, chunk_fun, token, interruptor);
+        return store_view->send_backfill(start_point, should_backfill, chunk_fun, token, interruptor);
     }
 
     void receive_backfill(
@@ -423,18 +427,18 @@ public:
 
     void reset_data(
             typename protocol_t::region_t subregion,
-            const metainfo_t &new_metainfo, 
+            const metainfo_t &new_metainfo,
             boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
-                rassert(region_is_superset(get_region(), subregion));
-                rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
-                
-                store_view->reset_data(subregion, new_metainfo, token, interruptor);
+        rassert(region_is_superset(get_region(), subregion));
+        rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
+
+        store_view->reset_data(subregion, new_metainfo, token, interruptor);
     }
 
 public:
     store_view_t<protocol_t> *store_view;
 };
 
-#endif /* __PROTOCOL_API_HPP__ */
+#endif /* PROTOCOL_API_HPP_ */

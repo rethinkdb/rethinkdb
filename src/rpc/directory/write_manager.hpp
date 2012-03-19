@@ -1,5 +1,5 @@
-#ifndef __RPC_DIRECTORY_WRITE_MANAGER_HPP__
-#define __RPC_DIRECTORY_WRITE_MANAGER_HPP__
+#ifndef RPC_DIRECTORY_WRITE_MANAGER_HPP_
+#define RPC_DIRECTORY_WRITE_MANAGER_HPP_
 
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/connectivity/messages.hpp"
@@ -19,7 +19,7 @@ public:
 private:
     class root_view_t : public directory_wview_t<metadata_t> {
     public:
-        root_view_t *clone() const ;
+        root_view_t *clone() const;
         metadata_t get_our_value(directory_write_service_t::our_value_lock_acq_t *proof) THROWS_NOTHING;
         void set_our_value(const metadata_t &new_value_for_us, directory_write_service_t::our_value_lock_acq_t *proof) THROWS_NOTHING;
         directory_write_service_t *get_directory_service() THROWS_NOTHING;
@@ -54,4 +54,4 @@ private:
 
 #include "rpc/directory/write_manager.tcc"
 
-#endif /* __RPC_DIRECTORY_WRITE_MANAGER_HPP__ */
+#endif /* RPC_DIRECTORY_WRITE_MANAGER_HPP_ */

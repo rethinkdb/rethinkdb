@@ -1,12 +1,12 @@
-#ifndef __CONTAINERS_VECTOR_STREAM__
-#define __CONTAINERS_VECTOR_STREAM__
+#ifndef CONTAINERS_VECTOR_STREAM_HPP_
+#define CONTAINERS_VECTOR_STREAM_HPP_
 
 #include <streambuf>
 #include <vector>
 #include <ios>
 
-template<typename C=char,typename T=std::char_traits<C>,typename A=std::allocator<C> >
-class vector_streambuf_t : public std::basic_streambuf<C,T> {
+template< typename C = char, typename T = std::char_traits<C>, typename A = std::allocator<C> >
+class vector_streambuf_t : public std::basic_streambuf<C, T> {
 public:
     typedef C char_type;
     typedef T traits_type;
@@ -15,7 +15,7 @@ public:
     typedef typename T::int_type int_type;
 
     vector_streambuf_t();
-    explicit vector_streambuf_t(std::vector<C,A> &underlying_);
+    explicit vector_streambuf_t(std::vector<C, A> &underlying_);
 
     std::streamsize showmanyc();
 
@@ -24,18 +24,18 @@ public:
 
     int_type overflow(int_type c);
 
-    std::vector<C,A>& vector() { return underlying; }
+    std::vector<C, A>& vector() { return underlying; }
 
 private:
     void init();
     void update_pointers(std::streamsize putback_size);
     void reserve(size_t n);
 
-    std::vector<C,A> inner;   // this array is only used when the parameterless constructor is used
-    std::vector<C,A> &underlying;
+    std::vector<C, A> inner;   // this array is only used when the parameterless constructor is used
+    std::vector<C, A> &underlying;
 };
 
 #include "containers/vector_stream.tcc"
 
-#endif // __CONTAINERS_VECTOR_STREAM__
+#endif  // CONTAINERS_VECTOR_STREAM_HPP_
 

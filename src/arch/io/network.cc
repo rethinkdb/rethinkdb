@@ -15,7 +15,7 @@
 #include "arch/runtime/runtime.hpp"
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/timing.hpp"
-#include "concurrency/side_coro.hpp"
+#include "concurrency/auto_drainer.hpp"
 #include "concurrency/wait_any.hpp"
 #include "logger.hpp"
 #include "perfmon.hpp"
@@ -25,7 +25,7 @@
 /* Warning: It is very easy to accidentally introduce race conditions to linux_tcp_conn_t.
 Think carefully before changing read_internal(), perform_write(), or on_shutdown_*(). */
 
-static fd_t connect_to(const char *host, int port) {
+static fd_t connect_to(const char *host, int port, int local_port) {
 
     struct addrinfo *res;
 
@@ -48,6 +48,19 @@ static fd_t connect_to(const char *host, int port) {
             logERR("Failed to create a socket\n");
             goto ERROR_BREAKOUT;
         }
+        if (local_port != 0) {
+            // Set the socket to reusable so we don't block out other sockets from this port
+            int reuse = 1;
+            if (setsockopt(sock.get(), SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) != 0)
+                logINF("Failed to set socket reuse to true: %s\n", strerror(errno));
+            struct sockaddr_in addr;
+            addr.sin_family = AF_INET;
+            addr.sin_port = htons(local_port);
+            addr.sin_addr.s_addr = INADDR_ANY;
+            bzero(addr.sin_zero, sizeof(addr.sin_zero));
+            if (bind(sock.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) != 0)
+                logINF("Failed to bind to local port %d: %s\n", local_port, strerror(errno));
+        }
         if (connect(sock.get(), res->ai_addr, res->ai_addrlen) != 0) {
             /* for some reason the connection failed */
             logERR("Failed to make a connection with error: %s\n", strerror(errno));
@@ -65,9 +78,9 @@ ERROR_BREAKOUT:
     throw linux_tcp_conn_t::connect_failed_exc_t();
 }
 
-linux_tcp_conn_t::linux_tcp_conn_t(const char *host, int port) :
+linux_tcp_conn_t::linux_tcp_conn_t(const char *host, int port, int local_port) :
     write_perfmon(NULL),
-    sock(connect_to(host, port)),
+    sock(connect_to(host, port, local_port)),
     event_watcher(new linux_event_watcher_t(sock.get(), this)),
     read_in_progress(false), write_in_progress(false),
     write_handler(this),
@@ -76,12 +89,25 @@ linux_tcp_conn_t::linux_tcp_conn_t(const char *host, int port) :
     current_write_buffer(get_write_buffer())
 { }
 
-static fd_t connect_to(const ip_address_t &host, int port) {
+static fd_t connect_to(const ip_address_t &host, int port, int local_port) {
 
     scoped_fd_t sock;
     sock.reset(socket(AF_INET, SOCK_STREAM, 0));
 
     struct sockaddr_in addr;
+    if (local_port != 0) {
+        // Set the socket to reusable so we don't block out other sockets from this port
+        int reuse = 1;
+        if (setsockopt(sock.get(), SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) != 0)
+            logINF("Failed to set socket reuse to true: %s\n", strerror(errno));
+        addr.sin_family = AF_INET;
+        addr.sin_port = htons(local_port);
+        addr.sin_addr.s_addr = INADDR_ANY;
+        bzero(addr.sin_zero, sizeof(addr.sin_zero));
+        if (bind(sock.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) != 0)
+            logINF("Failed to bind to local port %d: %s\n", local_port, strerror(errno));
+    }
+
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
     addr.sin_addr = host.addr;
@@ -98,9 +124,9 @@ static fd_t connect_to(const ip_address_t &host, int port) {
     return sock.release();
 }
 
-linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port) :
+linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port, int local_port) :
     write_perfmon(NULL),
-    sock(connect_to(host, port)),
+    sock(connect_to(host, port, local_port)),
     event_watcher(new linux_event_watcher_t(sock.get(), this)),
     read_in_progress(false), write_in_progress(false),
     write_handler(this),
@@ -734,12 +760,9 @@ char linux_tcp_conn_t::iterator::operator*() {
     return dereference();
 }
 
-void linux_tcp_conn_t::iterator::operator++() {
+linux_tcp_conn_t::iterator& linux_tcp_conn_t::iterator::operator++() {
     increment();
-}
-
-void linux_tcp_conn_t::iterator::operator++(int) {
-    increment();
+    return *this;
 }
 
 bool linux_tcp_conn_t::iterator::operator==(linux_tcp_conn_t::iterator const &other) {
@@ -821,19 +844,21 @@ linux_tcp_listener_t::linux_tcp_listener_t(
     guarantee_err(res == 0, "Could not make socket non-blocking");
 
     logINF("Listening on port %d\n", port);
+
     // Start the accept loop
-    accept_loop_handler.reset(new side_coro_handler_t(
-        boost::bind(&linux_tcp_listener_t::accept_loop, this, _1)
+    accept_loop_drainer.reset(new auto_drainer_t);
+    coro_t::spawn_sometime(boost::bind(
+        &linux_tcp_listener_t::accept_loop, this, auto_drainer_t::lock_t(accept_loop_drainer.get())
         ));
 }
 
-void linux_tcp_listener_t::accept_loop(signal_t *shutdown_signal) {
+void linux_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) {
 
     static const int initial_backoff_delay_ms = 10;   // Milliseconds
     static const int max_backoff_delay_ms = 160;
     int backoff_delay_ms = initial_backoff_delay_ms;
 
-    while (!shutdown_signal->is_pulsed()) {
+    while (!lock.get_drain_signal()->is_pulsed()) {
 
         fd_t new_sock = accept(sock.get(), NULL, NULL);
 
@@ -852,7 +877,7 @@ void linux_tcp_listener_t::accept_loop(signal_t *shutdown_signal) {
             /* Wait for a notification from the event loop, or for a command to shut down,
             before continuing */
             linux_event_watcher_t::watch_t watch(&event_watcher, poll_event_in);
-            wait_any_t waiter(&watch, shutdown_signal);
+            wait_any_t waiter(&watch, lock.get_drain_signal());
             waiter.wait_lazily_unordered();
 
         } else if (errno == EINTR) {
@@ -869,7 +894,7 @@ void linux_tcp_listener_t::accept_loop(signal_t *shutdown_signal) {
             /* Delay before retrying. We use pulse_after_time() instead of nap() so that we will
             be interrupted immediately if something wants to shut us down. */
             signal_timer_t backoff_delay_timer(backoff_delay_ms);
-            wait_any_t waiter(&backoff_delay_timer, shutdown_signal);
+            wait_any_t waiter(&backoff_delay_timer, lock.get_drain_signal());
             waiter.wait_lazily_unordered();
 
             /* Exponentially increase backoff time */
@@ -886,7 +911,7 @@ void linux_tcp_listener_t::handle(fd_t socket) {
 linux_tcp_listener_t::~linux_tcp_listener_t() {
 
     /* Interrupt the accept loop */
-    accept_loop_handler.reset();
+    accept_loop_drainer.reset();
 
     int res;
 

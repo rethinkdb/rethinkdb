@@ -12,7 +12,7 @@ namespace unittest {
 namespace {
 
 void run_with_broadcaster(
-        boost::function<void(
+        boost::function< void(
             simple_mailbox_cluster_t *,
             boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<dummy_protocol_t> > >,
             clone_ptr_t<directory_single_rview_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > >,
@@ -66,7 +66,7 @@ void run_with_broadcaster(
 }
 
 void run_in_thread_pool_with_broadcaster(
-        boost::function<void(
+        boost::function< void(
             simple_mailbox_cluster_t *,
             boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<dummy_protocol_t> > >,
             clone_ptr_t<directory_single_rview_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > >,
@@ -105,7 +105,7 @@ void run_read_write_test(UNUSED simple_mailbox_cluster_t *cluster,
     std::map<std::string, std::string> values_inserted;
     for (int i = 0; i < 10; i++) {
         dummy_protocol_t::write_t w;
-        std::string key = std::string(1, 'a' + rand() % 26);
+        std::string key = std::string(1, 'a' + randint(26));
         w.values[key] = values_inserted[key] = strprintf("%d", i);
         (*broadcaster)->write(w, order_source.check_in("unittest"));
     }
@@ -127,7 +127,7 @@ TEST(ClusteringBranch, ReadWrite) {
 /* The `Backfill` test starts up a node with one mirror, inserts some data, and
 then adds another mirror. */
 
-void write_to_broadcaster(broadcaster_t<dummy_protocol_t> *broadcaster, std::string key, std::string value, order_token_t otok, signal_t *) {
+void write_to_broadcaster(broadcaster_t<dummy_protocol_t> *broadcaster, const std::string& key, const std::string& value, order_token_t otok, signal_t *) {
     dummy_protocol_t::write_t w;
     w.values[key] = value;
     broadcaster->write(w, otok);

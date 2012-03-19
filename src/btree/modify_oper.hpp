@@ -1,5 +1,5 @@
-#ifndef __BTREE_MODIFY_OPER_HPP__
-#define __BTREE_MODIFY_OPER_HPP__
+#ifndef BTREE_MODIFY_OPER_HPP_
+#define BTREE_MODIFY_OPER_HPP_
 
 #include "btree/node.hpp"
 #include "containers/scoped_malloc.hpp"
@@ -28,11 +28,10 @@ public:
     virtual MUST_USE int compute_expected_change_count(block_size_t block_size) = 0;
 };
 
-class sequence_group_t;
 // Runs a btree_modify_oper_t.
-void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, sequence_group_t *seq_group, const store_key_t &key, castime_t castime, order_token_t token);
+void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, const store_key_t &key, castime_t castime, order_token_t token);
 void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, const store_key_t &key, castime_t castime,
     transaction_t *txn, got_superblock_t& superblock);
 
 
-#endif // __BTREE_MODIFY_OPER_HPP__
+#endif // BTREE_MODIFY_OPER_HPP_

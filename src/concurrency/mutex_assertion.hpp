@@ -1,5 +1,5 @@
-#ifndef __CONCURRENCY_MUTEX_ASSERTION_HPP__
-#define __CONCURRENCY_MUTEX_ASSERTION_HPP__
+#ifndef CONCURRENCY_MUTEX_ASSERTION_HPP_
+#define CONCURRENCY_MUTEX_ASSERTION_HPP_
 
 #include "utils.hpp"
 
@@ -10,18 +10,6 @@ there is contention. */
 
 struct mutex_assertion_t : public home_thread_mixin_t {
     struct acq_t {
-        struct temporary_release_t {
-            explicit temporary_release_t(acq_t *a) : mutex(a->mutex), acq(a) {
-                acq->reset();
-            }
-            ~temporary_release_t() {
-                acq->reset(mutex);
-            }
-        private:
-            mutex_assertion_t *mutex;
-            acq_t *acq;
-            DISABLE_COPYING(temporary_release_t);
-        };
         acq_t() : mutex(NULL) { }
         explicit acq_t(mutex_assertion_t *m) : mutex(NULL) {
             reset(m);
@@ -46,7 +34,6 @@ struct mutex_assertion_t : public home_thread_mixin_t {
             rassert(mutex == m);
         }
     private:
-        friend struct temporary_release_t;
         friend void swap(acq_t &, acq_t &);
         mutex_assertion_t *mutex;
         DISABLE_COPYING(acq_t);
@@ -152,12 +139,6 @@ private:
 
 struct mutex_assertion_t {
     struct acq_t {
-        struct temporary_release_t {
-            explicit temporary_release_t(acq_t *) { }
-            ~temporary_release_t() { }
-        private:
-            DISABLE_COPYING(temporary_release_t);
-        };
         acq_t() { }
         explicit acq_t(mutex_assertion_t *) { }
         void reset(mutex_assertion_t * = NULL) { }
@@ -202,4 +183,4 @@ private:
 
 #endif /* NDEBUG */
 
-#endif /* __CONCURRENCY_MUTEX_ASSERTION_HPP__ */
+#endif /* CONCURRENCY_MUTEX_ASSERTION_HPP_ */

@@ -1,5 +1,5 @@
-#ifndef __HTTP_JSON_JSON_ADAPTER_HPP__
-#define __HTTP_JSON_JSON_ADAPTER_HPP__
+#ifndef HTTP_JSON_JSON_ADAPTER_HPP_
+#define HTTP_JSON_JSON_ADAPTER_HPP_
 
 #include <map>
 #include <set>
@@ -152,7 +152,7 @@ private:
  * json data that's not actually reflected in our structures such as having the
  * id of every element in a map referenced in an id field */
 template <class T, class ctx_t>
-class json_temporary_adapter_t : public json_read_only_adapter_t<T,ctx_t> {
+class json_temporary_adapter_t : public json_read_only_adapter_t<T, ctx_t> {
 private:
     T t;
 public:

@@ -51,7 +51,7 @@ endif
 # Set SYMBOLS to 1 to enable symbols, even in release mode
 SYMBOLS?=0
 
-JSON_SHORTCUTS?=1
+JSON_SHORTCUTS?=0
 DEBUG?=1
 VALGRIND?=0
 NO_TCMALLOC?=0
@@ -107,7 +107,7 @@ LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lQtCore
 endif
 endif
 
-STATIC_LIBRARIES:=boost_serialization protobuf
+STATIC_LIBRARIES:=boost_serialization protobuf boost_program_options
 
 CXXFLAGS?=
 
@@ -126,7 +126,7 @@ ifeq ($(COMPILER), INTEL)
 CXXFLAGS+=-std=gnu++98 -w1 -ftls-model=local-dynamic
 else
 ifeq ($(COMPILER), CLANG)
-CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-mismatched-tags
+CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default
 else
 CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default
 endif
@@ -241,9 +241,7 @@ BUILD_DIR:=$(BUILD_DIR)-noepoll
 endif
 
 ifeq ($(VALGRIND),1)
-# Disable the "unused-but-set-variable" warning in Valgrind mode because some
-# Valgrind macros set variables but don't use them.
-CXXFLAGS+=-DVALGRIND -Wno-unused-but-set-variable
+CXXFLAGS+=-DVALGRIND
 BUILD_DIR:=$(BUILD_DIR)-valgrind
 NO_TCMALLOC:=1
 endif
@@ -307,6 +305,17 @@ SERVER_NOMAIN_OBJS:=$(PROTO_OBJS) $(patsubst %.cc,$(OBJ_DIR)/%.o,$(filter-out %/
 
 SERVER_UNIT_TEST_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/unittest/main.o
 
+#### Web UI sources
+WEB_SOURCE_DIR:=../admin
+WEB_ASSETS_BUILD_DIR:=$(BUILD_DIR)/web
+#This atrociousness comes from the fact... fuck it blah blah blah coffee script.
+#Basically coffee script can't handle dependencies.
+COFFEE_SOURCES:=$(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%, util.coffee clusterview.coffee namespaceview.coffee otherviews.coffee cluster.coffee)
+LESS_SOURCES:=$(shell find $(WEB_SOURCE_DIR)/static/less -name '*.less')
+LESS_MAIN:=$(WEB_SOURCE_DIR)/static/less/cluster.less
+CLUSTER_HTML:=$(WEB_SOURCE_DIR)/templates/cluster.html
+JS_EXTERNAL_DIR:=$(WEB_SOURCE_DIR)/static/js
+
 #### Version number handling
 RETHINKDB_VERSION:=$(shell ../scripts/gen-version.sh)
 RETHINKDB_SHORT_VERSION:=$(shell ../scripts/gen-version.sh -s)
@@ -322,14 +331,14 @@ CXXFLAGS+=-DRETHINKDB_VERSION=\"$(RETHINKDB_VERSION)\"
 SERVER_EXEC_NAME_VERSIONED:=$(SERVER_EXEC_NAME)-$(RETHINKDB_SHORT_VERSION)
 
 ##### Build targets
-.PHONY: all build-deb build-rpm callgrind callgrind clean cscope deb deb depclean gdb install install-binaries install-deb install-docs install-manpages install-rpm install-tools prepare_deb_package_dirs prepare_rpm_package_dirs regdb rerun revalgrind rpm rpm rpm-suse10 run sembuild showdefines style tags unit valgrind
+.PHONY: all build-deb build-rpm callgrind callgrind clean cscope deb deb depclean gdb install install-binaries install-deb install-docs install-manpages install-rpm install-tools prepare_deb_package_dirs prepare_rpm_package_dirs regdb rerun revalgrind rpm rpm rpm-suse10 run sembuild showdefines style tags unit valgrind web-assets
 
 # High level build targets
 
 ifeq ($(UNIT_TESTS),1)
-all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME)
+all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME) web-assets
 else
-all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME)
+all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME) web-assets
 endif
 
 unit:
@@ -551,6 +560,36 @@ rpm-suse10:
 endif
 
 # Build rules
+
+web-assets: $(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/cluster.css $(WEB_ASSETS_BUILD_DIR)/cluster.html $(WEB_ASSETS_BUILD_DIR)/js
+
+$(WEB_ASSETS_BUILD_DIR)/cluster-min.js: $(COFFEE_SOURCES)
+	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
+ifeq ($(VERBOSE),0)
+	@echo "    COFFEE $@"
+endif
+	$(QUIET) cat $+ | coffee -bp --stdio > $@
+
+$(WEB_ASSETS_BUILD_DIR)/cluster.css: $(LESS_SOURCES)
+	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
+ifeq ($(VERBOSE),0)
+	@echo "    LESSC $@"
+endif
+	$(QUIET) lessc $(LESS_MAIN) > $@
+
+$(WEB_ASSETS_BUILD_DIR)/cluster.html: $(CLUSTER_HTML)
+	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
+ifeq ($(VERBOSE),0)
+	@echo "    STRIP GEN $@"
+endif
+	$(QUIET) sed 's:="gen/:=":g' $(CLUSTER_HTML) > $@
+
+$(WEB_ASSETS_BUILD_DIR)/js: 
+	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
+ifeq ($(VERBOSE),0)
+	@echo "    CP $(JS_EXTERNAL_DIR) -> $(WEB_ASSETS_BUILD_DIR)"
+endif
+	$(QUIET) cp -rP $(JS_EXTERNAL_DIR) $(WEB_ASSETS_BUILD_DIR)
 
 # Special recipe for the proto buffer generated code
 $(PROTO_DIR)/%.pb.h: $(SOURCE_DIR)/%.proto

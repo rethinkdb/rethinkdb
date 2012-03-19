@@ -1,5 +1,5 @@
-#ifndef __CONTAINERS_THICK_LIST_HPP__
-#define __CONTAINERS_THICK_LIST_HPP__
+#ifndef CONTAINERS_THICK_LIST_HPP_
+#define CONTAINERS_THICK_LIST_HPP_
 
 #include <algorithm>
 
@@ -144,4 +144,4 @@ private:
 
 
 
-#endif  // __CONTAINERS_THICK_LIST_HPP__
+#endif  // CONTAINERS_THICK_LIST_HPP_

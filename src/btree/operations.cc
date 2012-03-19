@@ -25,7 +25,7 @@ void real_superblock_t::set_root_block_id(const block_id_t new_root_block) {
     rassert(sb_buf_.is_acquired());
     // We have to const_cast, because set_data unfortunately takes void* pointers, but get_data_read()
     // gives us const data. No way around this (except for making set_data take a const void * again, as it used to be).
-    sb_buf_.set_data(const_cast<block_id_t *>(&reinterpret_cast<const btree_superblock_t *>(sb_buf_.get_data_read())->root_block), &new_root_block, sizeof(new_root_block));
+    sb_buf_.set_data(const_cast<block_id_t *>(&(static_cast<const btree_superblock_t *>(sb_buf_.get_data_read())->root_block)), &new_root_block, sizeof(new_root_block));
 }
 
 void real_superblock_t::set_eviction_priority(eviction_priority_t eviction_priority) {
@@ -43,7 +43,7 @@ bool find_superblock_metainfo_entry(char *beg, char *end, const std::vector<char
     superblock_metainfo_iterator_t::sz_t len = static_cast<superblock_metainfo_iterator_t::sz_t>(key.size());
     for (superblock_metainfo_iterator_t kv_iter(beg, end); !kv_iter.is_end(); ++kv_iter) {
         const superblock_metainfo_iterator_t::key_t& cur_key = kv_iter.key();
-        if (len == cur_key.first && std::equal(key.begin(), key.end(), cur_key.second) == 0) {
+        if (len == cur_key.first && std::equal(key.begin(), key.end(), cur_key.second)) {
             *verybeg_ptr_out = kv_iter.record_ptr();
             *size_ptr_out = kv_iter.value_size_ptr();
             *beg_ptr_out = kv_iter.value().second;
@@ -133,7 +133,7 @@ bool get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const s
     }
 }
 
-void get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, std::vector<std::pair<std::vector<char>,std::vector<char> > > &kv_pairs_out) {
+void get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, std::vector<std::pair<std::vector<char>, std::vector<char> > > &kv_pairs_out) {
     const btree_superblock_t *data = static_cast<const btree_superblock_t *>(superblock->get_data_read());
 
     // The const cast is okay because we access the data with rwi_read
@@ -258,6 +258,8 @@ void delete_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, cons
         std::vector<char>::iterator p = metainfo.begin() + (verybeg - metainfo.data());
         std::vector<char>::iterator q = metainfo.begin() + (info_end - metainfo.data());
         metainfo.erase(p, q);
+
+        blob.append_region(txn, metainfo.size());
 
         {
             blob_acq_t acq;

@@ -62,7 +62,7 @@ void run_backfill_test() {
     // Insert 10 values into both stores, then another 10 into only `backfiller_store` and not `backfillee_store`
     for (int i = 0; i < 20; i++) {
         dummy_protocol_t::write_t w;
-        std::string key = std::string(1, 'a' + rand() % 26);
+        std::string key = std::string(1, 'a' + randint(26));
         w.values[key] = strprintf("%d", i);
 
         for (int j = 0; j < (i < 10 ? 2 : 1); j++) {
@@ -130,7 +130,7 @@ void run_backfill_test() {
     backfillee_store.new_read_token(token1);
 
     region_map_t<dummy_protocol_t, version_range_t> backfillee_metadata = 
-        region_map_transform<dummy_protocol_t,binary_blob_t,version_range_t>(
+        region_map_transform<dummy_protocol_t, binary_blob_t, version_range_t>(
             backfillee_store.get_metainfo(token1, &interruptor),
             &binary_blob_t::get<version_range_t>
         );
@@ -139,7 +139,7 @@ void run_backfill_test() {
     backfiller_store.new_read_token(token2);
 
     region_map_t<dummy_protocol_t, version_range_t> backfiller_metadata = 
-        region_map_transform<dummy_protocol_t,binary_blob_t,version_range_t>(
+        region_map_transform<dummy_protocol_t, binary_blob_t, version_range_t>(
             backfiller_store.get_metainfo(token2, &interruptor),
             &binary_blob_t::get<version_range_t>
         );

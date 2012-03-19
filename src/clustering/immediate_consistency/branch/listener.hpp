@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_LISTENER_HPP__
-#define __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_LISTENER_HPP__
+#ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_LISTENER_HPP_
+#define CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_LISTENER_HPP_
 
 #include <map>
 
@@ -375,7 +375,7 @@ private:
             cond_t non_interruptor;
             store->write(
                 DEBUG_ONLY(
-                    region_map_t<protocol_t,binary_blob_t>(store->get_region(),
+                    region_map_t<protocol_t, binary_blob_t>(store->get_region(),
                         binary_blob_t(version_range_t(version_t(branch_id, transition_timestamp.timestamp_before())))),
                     )
                 region_map_t<protocol_t, binary_blob_t>(store->get_region(),
@@ -435,7 +435,7 @@ private:
             // Perform the operation
             cond_t non_interruptor;
             typename protocol_t::write_response_t response = store->write(DEBUG_ONLY(
-                    region_map_t<protocol_t,binary_blob_t>(store->get_region(),
+                    region_map_t<protocol_t, binary_blob_t>(store->get_region(),
                         binary_blob_t(version_range_t(version_t(branch_id, transition_timestamp.timestamp_before())))),
                     )
                 region_map_t<protocol_t, binary_blob_t>(store->get_region(),
@@ -485,7 +485,7 @@ private:
             /* Perform the operation */
             typename protocol_t::read_response_t response = store->read(
                 DEBUG_ONLY(
-                    region_map_t<protocol_t,binary_blob_t>(store->get_region(),
+                    region_map_t<protocol_t, binary_blob_t>(store->get_region(),
                         binary_blob_t(version_range_t(version_t(branch_id, expected_timestamp)))),
                     )
                 read,
@@ -572,4 +572,4 @@ private:
     std::multimap<state_timestamp_t, cond_t *> synchronize_waiters;
 };
 
-#endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_LISTENER_HPP__ */
+#endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_LISTENER_HPP_ */

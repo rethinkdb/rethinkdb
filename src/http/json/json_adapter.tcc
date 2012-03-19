@@ -1,6 +1,7 @@
-#ifndef __HTTP_JSON_JSON_ADAPTER_TCC__
-#define __HTTP_JSON_JSON_ADAPTER_TCC__
+#ifndef HTTP_JSON_JSON_ADAPTER_TCC_
+#define HTTP_JSON_JSON_ADAPTER_TCC_
 
+#include "containers/uuid.hpp"
 #include "utils.hpp"
 #include "logger.hpp"
 #include "http/json.hpp"
@@ -100,7 +101,7 @@ void json_read_only_adapter_t<T, ctx_t>::apply_impl(cJSON *, const ctx_t &) {
 //implementation for json_temporary_adapter_t
 template <class T, class ctx_t>
 json_temporary_adapter_t<T, ctx_t>::json_temporary_adapter_t(const T &_t)
-    : t(_t), json_read_only_adapter_t<T,ctx_t>(&t)
+    : json_read_only_adapter_t<T, ctx_t>(&t), t(_t)
 { }
 
 //implementation for map_inserter_t
@@ -248,7 +249,11 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(boost::
 
 template <class ctx_t>
 cJSON *render_as_json(const boost::uuids::uuid *uuid, const ctx_t &) {
-    return cJSON_CreateString(uuid_to_str(*uuid).c_str());
+    if (uuid->is_nil()) {
+        return cJSON_CreateNull();
+    } else {
+        return cJSON_CreateString(uuid_to_str(*uuid).c_str());
+    }
 }
 
 template <class ctx_t>
@@ -324,10 +329,8 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(std::ma
     int shortcut_index = 0;
 #endif
 
-    for (typename std::map<K,V>::iterator it  = map->begin();
-                                          it != map->end();
-                                          it++) {
-        typename std::map<K,V>::key_type key = it->first;
+    for (typename std::map<K, V>::iterator it  = map->begin(); it != map->end(); ++it) {
+        typename std::map<K, V>::key_type key = it->first;
         try {
             res[get_string(render_as_json(&key, ctx))] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<V, ctx_t>(&(it->second)));
         } catch (schema_mismatch_exc_t &) {
@@ -399,13 +402,16 @@ cJSON *render_as_json(std::set<V> *target, const ctx_t &ctx) {
 
 template <class V, class ctx_t>
 void apply_json_to(cJSON *change, std::set<V> *target, const ctx_t &ctx) {
+    std::set<V> res;
     json_array_iterator_t it = get_array_it(change);
     cJSON *val;
     while ((val = it.next())) {
         V v;
         apply_json_to(val, &v, ctx);
-        target->insert(v);
+        res.insert(v);
     }
+
+    *target = res;
 }
 
 template <class V, class ctx_t>

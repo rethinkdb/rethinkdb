@@ -1,29 +1,27 @@
-#ifndef __STL_UTILS_TCC__
-#define __STL_UTILS_TCC__
+#ifndef STL_UTILS_TCC_
+#define STL_UTILS_TCC_
+
+#include <algorithm>
 
 #include <boost/optional.hpp>
-#include <algorithm>
 
 //TODO this can be much more efficient with an iterator
 template <class K, class V>
-std::set<K> keys(const std::map<K,V> &map) {
+std::set<K> keys(const std::map<K, V> &map) {
     std::set<K> res;
-    for (typename std::map<K,V>::const_iterator it = map.begin();
-                                                it != map.end();
-                                                it++) {
+    for (typename std::map<K, V>::const_iterator it = map.begin(); it != map.end(); ++it) {
         res.insert(it->first);
     }
 
     return res;
 }
 
+// If keys is called "keys", this should be called "values".
 template <class K, class V>
-std::set<V> range(const std::map<K,V> &map) {
+std::set<V> range(const std::map<K, V> &map) {
     std::set<V> res;
 
-    for (typename std::map<K,V>::const_iterator it =  map.begin();
-                                                it != map.end();
-                                                it++) {
+    for (typename std::map<K, V>::const_iterator it =  map.begin(); it != map.end(); ++it) {
         res.insert(it->second);
     }
 
@@ -112,13 +110,6 @@ template <class left_container_t, class right_container_t>
 cartesian_product_iterator_t<left_container_t, right_container_t> &
 cartesian_product_iterator_t<left_container_t, right_container_t>::operator++(int) {
     return *this = *this + 1;
-}
-
-template <class left_container_t, class right_container_t>
-bool cartesian_product_iterator_t<left_container_t, right_container_t>::operator==(const cartesian_product_iterator_t &other) {
-    return left == other.left && left_start == other.left_start && left_end == other.left_end &&
-           right == other.right && right_start == other.right_start && right_end == other.right_end;
-           
 }
 
 #endif

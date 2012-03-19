@@ -1,5 +1,5 @@
-#ifndef __PATCH_MEMORY_STORAGE_HPP__
-#define __PATCH_MEMORY_STORAGE_HPP__
+#ifndef PATCH_MEMORY_STORAGE_HPP_
+#define PATCH_MEMORY_STORAGE_HPP_
 
 #include <list>
 #include <map>
@@ -98,5 +98,5 @@ private:
 };
 
 
-#endif /* __PATCH_MEMORY_STORAGE_HPP__ */
+#endif /* PATCH_MEMORY_STORAGE_HPP_ */
 

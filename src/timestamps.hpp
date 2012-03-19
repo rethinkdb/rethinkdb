@@ -1,5 +1,5 @@
-#ifndef __TIMESTAMPS_HPP__
-#define __TIMESTAMPS_HPP__
+#ifndef TIMESTAMPS_HPP_
+#define TIMESTAMPS_HPP_
 
 #include <stdint.h>
 
@@ -43,10 +43,6 @@ private:
     RDB_MAKE_ME_SERIALIZABLE_1(num);
 };
 
-inline std::ostream &operator<<(std::ostream &os, state_timestamp_t ts) {
-    return os << ts.num;
-}
-
 class transition_timestamp_t {
 public:
     bool operator==(transition_timestamp_t t) const { return before == t.before; }
@@ -88,4 +84,4 @@ private:
     RDB_MAKE_ME_SERIALIZABLE_1(before);
 };
 
-#endif /* __TIMESTAMPS_HPP__ */
+#endif /* TIMESTAMPS_HPP_ */

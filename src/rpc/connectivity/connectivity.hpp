@@ -1,17 +1,18 @@
-#ifndef __RPC_CONNECTIVITY_CONNECTIVITY_HPP__
-#define __RPC_CONNECTIVITY_CONNECTIVITY_HPP__
+#ifndef RPC_CONNECTIVITY_CONNECTIVITY_HPP_
+#define RPC_CONNECTIVITY_CONNECTIVITY_HPP_
 
 #include <set>
 
 #include "utils.hpp"
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
-#include <boost/uuid/uuid_serialize.hpp>
+#include <boost/function.hpp>
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/base_object.hpp>
 #include <boost/serialization/binary_object.hpp>
 #include <boost/serialization/utility.hpp>
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
+#include <boost/uuid/uuid_serialize.hpp>
 
 #include "arch/address.hpp"
 #include "concurrency/mutex.hpp"
@@ -125,7 +126,7 @@ public:
         void reset();
         void reset(connectivity_service_t *, peers_list_freeze_t *proof);
     private:
-        publisher_t<std::pair<
+        publisher_t< std::pair<
                 boost::function<void(peer_id_t)>,
                 boost::function<void(peer_id_t)>
                 > >::subscription_t subs;
@@ -153,7 +154,7 @@ protected:
 
 private:
     virtual rwi_lock_assertion_t *get_peers_list_lock() = 0;
-    virtual publisher_t<std::pair<
+    virtual publisher_t< std::pair<
             boost::function<void(peer_id_t)>,
             boost::function<void(peer_id_t)>
             > > *get_peers_list_publisher() = 0;
@@ -177,4 +178,4 @@ private:
     peer_id_t peer;
 };
 
-#endif /* __RPC_CONNECTIVITY_CONNECTIVITY_HPP__ */
+#endif /* RPC_CONNECTIVITY_CONNECTIVITY_HPP_ */

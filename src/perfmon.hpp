@@ -4,8 +4,8 @@
  * place but also depend on a significant chunk of our threading infrastructure
  * (by way of get_thread_id() & co).
  */
-#ifndef __PERFMON_HPP__
-#define __PERFMON_HPP__
+#ifndef PERFMON_HPP_
+#define PERFMON_HPP_
 
 #include <map>
 #include <limits>
@@ -121,10 +121,10 @@ class perfmon_counter_t :
     int64_t combine_stats(padded_int64_t *);
     void output_stat(const int64_t&, perfmon_stats_t *);
   public:
-    explicit perfmon_counter_t(std::string name, bool internal = true);
-    void operator++(int) { get()++; }
+    explicit perfmon_counter_t(const std::string& name, bool internal = true);
+    void operator++() { get()++; }
     void operator+=(int64_t num) { get() += num; }
-    void operator--(int) { get()--; }
+    void operator--() { get()--; }
     void operator-=(int64_t num) { get() -= num; }
 };
 
@@ -183,7 +183,7 @@ class perfmon_sampler_t
     ticks_t length;
     bool include_rate;
   public:
-    perfmon_sampler_t(std::string name, ticks_t length, bool include_rate = false, bool internal = true);
+    perfmon_sampler_t(const std::string& name, ticks_t length, bool include_rate = false, bool internal = true);
     void record(double value);
 };
 
@@ -220,7 +220,7 @@ struct perfmon_stddev_t
     : public perfmon_perthread_t<stddev_t>
 {
     // should be possible to make this a templated class if necessary
-    explicit perfmon_stddev_t(std::string name, bool internal = true);
+    explicit perfmon_stddev_t(const std::string& name, bool internal = true);
     void record(float value);
 
   protected:
@@ -254,7 +254,7 @@ private:
     double combine_stats(double *);
     void output_stat(const double&, perfmon_stats_t *);
 public:
-    perfmon_rate_monitor_t(std::string name, ticks_t length, bool internal = true);
+    perfmon_rate_monitor_t(const std::string& name, ticks_t length, bool internal = true);
     void record(double value = 1.0);
 };
 
@@ -281,14 +281,14 @@ private:
     perfmon_sampler_t recent;
     bool ignore_global_full_perfmon;
 public:
-    perfmon_duration_sampler_t(std::string name, ticks_t length, bool internal = true, bool _ignore_global_full_perfmon = false)
+    perfmon_duration_sampler_t(const std::string& name, ticks_t length, bool internal = true, bool _ignore_global_full_perfmon = false)
         : control_t(std::string("pm_") + name + "_toggle", name + " toggle on and off", true),
           active(name + "_active_count", internal), total(name + "_total", internal),
           recent(name, length, true, internal), ignore_global_full_perfmon(_ignore_global_full_perfmon)
         { }
     void begin(ticks_t *v) {
-        active++;
-        total++;
+        ++active;
+        ++total;
         if (global_full_perfmon || ignore_global_full_perfmon) {
             *v = get_ticks();
         } else {
@@ -296,7 +296,7 @@ public:
         }
     }
     void end(ticks_t *v) {
-        active--;
+        --active;
         if (*v != 0) {
             recent.record(ticks_to_secs(get_ticks() - *v));
         }
@@ -367,4 +367,4 @@ struct block_pm_duration {
     }
 };
 
-#endif /* __PERFMON_HPP__ */
+#endif /* PERFMON_HPP_ */

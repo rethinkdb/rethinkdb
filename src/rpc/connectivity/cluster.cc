@@ -12,11 +12,13 @@
 
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/pmap.hpp"
+#include "containers/uuid.hpp"
 #include "do_on_thread.hpp"
 
 connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
         int port,
-        message_handler_t *mh) THROWS_NOTHING :
+        message_handler_t *mh,
+        int client_port) THROWS_NOTHING :
 
     parent(p), message_handler(mh),
 
@@ -37,6 +39,9 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
     connected to ourself. The destructor will remove us from the
     `connection_map` and again notify any listeners. */
     connection_to_ourself(this, parent->me, NULL, routing_table[parent->me]),
+
+    /* The local port to use when connecting to the cluster port of peers */
+    cluster_client_port(client_port),
 
     listener(port, boost::bind(
         &connectivity_cluster_t::run_t::on_new_connection,
@@ -131,21 +136,30 @@ void connectivity_cluster_t::run_t::join_blocking(
         auto_drainer_t::lock_t drainer_lock) THROWS_NOTHING {
     parent->assert_thread();
     try {
-        streamed_tcp_conn_t conn(address.ip, address.port);
+        streamed_tcp_conn_t conn(address.ip, address.port, cluster_client_port);
         handle(&conn, expected_id, boost::optional<peer_address_t>(address), drainer_lock);
     } catch (tcp_conn_t::connect_failed_exc_t) {
         /* Ignore */
     }
 }
 
-static void close_conn(streamed_tcp_conn_t *c) THROWS_NOTHING {
-    if (c->is_read_open()) {
-        c->shutdown_read();
+class cluster_conn_closing_subscription_t : public signal_t::subscription_t {
+public:
+    cluster_conn_closing_subscription_t(streamed_tcp_conn_t *conn) : conn_(conn) { }
+
+    virtual void run() {
+	if (conn_->is_read_open()) {
+	    conn_->shutdown_read();
+	}
+	if (conn_->is_write_open()) {
+	    conn_->shutdown_write();
+	}
     }
-    if (c->is_write_open()) {
-        c->shutdown_write();
-    }
-}
+private:
+    streamed_tcp_conn_t *conn_;
+    DISABLE_COPYING(cluster_conn_closing_subscription_t);
+};
+
 
 void connectivity_cluster_t::run_t::handle(
         /* `conn` should remain valid until `handle()` returns. `handle()` does
@@ -168,8 +182,11 @@ void connectivity_cluster_t::run_t::handle(
         /* We expect that sending can fail due to a network problem. If that
         happens, just ignore it. If sending fails for some other reason, then
         the programmer should learn about it, so we rethrow the exception. */
-        if (!conn->is_write_open()) return;
-        else throw;
+        if (!conn->is_write_open()) {
+            return;
+        } else {
+            throw;
+        }
     }
 
     peer_id_t other_id;
@@ -179,8 +196,11 @@ void connectivity_cluster_t::run_t::handle(
         receiver >> other_id;
         receiver >> other_address;
     } catch (boost::archive::archive_exception) {
-        if (!conn->is_read_open()) return;
-        else throw;
+        if (!conn->is_read_open()) {
+            return;
+        } else {
+            throw;
+        }
     }
 
     /* Sanity checks */
@@ -365,9 +385,8 @@ void connectivity_cluster_t::run_t::handle(
 
     // Make sure that if we're ordered to shut down, any pending read
     // or write gets interrupted.
-    signal_t::subscription_t conn_closer(
-        boost::bind(&close_conn, conn),
-        &connection_thread_drain_signal);
+    cluster_conn_closing_subscription_t conn_closer(conn);
+    conn_closer.reset(&connection_thread_drain_signal);
 
     {
         /* `connection_entry_t` is the public interface of this coroutine. Its
@@ -542,7 +561,7 @@ rwi_lock_assertion_t *connectivity_cluster_t::get_peers_list_lock() THROWS_NOTHI
     return &thread_info.get()->lock;
 }
 
-publisher_t<std::pair<
+publisher_t< std::pair<
         boost::function<void(peer_id_t)>,
         boost::function<void(peer_id_t)>
         > > *connectivity_cluster_t::get_peers_list_publisher() THROWS_NOTHING {

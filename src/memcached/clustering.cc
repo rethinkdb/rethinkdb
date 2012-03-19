@@ -15,6 +15,7 @@ memcached_parser_maker_t::memcached_parser_maker_t(mailbox_manager_t *_mailbox_m
 {
     on_change();
 }
+
 void memcached_parser_maker_t::on_change() {
     namespaces_semilattice_metadata_t<memcached_protocol_t> snapshot = namespaces_semilattice_metadata->get();
 
@@ -22,7 +23,7 @@ void memcached_parser_maker_t::on_change() {
                                                                                         it != snapshot.namespaces.end();
                                                                                         it++) {
         if (parsers.find(it->first) == parsers.end() && !it->second.is_deleted()) {
-            int port = 10000 + (random() % 10000);
+            int port = 10000 + rng_t().randint(55535);
             //We're feeling lucky
             namespace_id_t tmp = it->first;
             parsers.insert(tmp, new parser_and_namespace_if_t(it->first, this, port));
@@ -46,3 +47,4 @@ memcached_parser_maker_t::parser_and_namespace_if_t::parser_and_namespace_if_t(n
                            subview(default_member_lens<master_map_t::key_type, master_map_t::mapped_type>(id))),
       parser(port, &namespace_if)
 { }
+

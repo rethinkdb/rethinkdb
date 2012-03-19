@@ -1,5 +1,5 @@
-#ifndef __RPC_SEMILATTICE_JOINS_MAP_HPP__
-#define __RPC_SEMILATTICE_JOINS_MAP_HPP__
+#ifndef RPC_SEMILATTICE_JOINS_MAP_HPP_
+#define RPC_SEMILATTICE_JOINS_MAP_HPP_
 
 #include <map>
 
@@ -22,4 +22,4 @@ void semilattice_join(std::map<key_t, value_t> *a, const std::map<key_t, value_t
 
 }   /* namespace std */
 
-#endif /* __RPC_SEMILATTICE_JOINS_MAP_HPP__ */
+#endif /* RPC_SEMILATTICE_JOINS_MAP_HPP_ */

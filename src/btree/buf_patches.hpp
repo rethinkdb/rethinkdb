@@ -1,5 +1,5 @@
-#ifndef __BTREE_BUF_PATCHES_HPP__
-#define __BTREE_BUF_PATCHES_HPP__
+#ifndef BTREE_BUF_PATCHES_HPP_
+#define BTREE_BUF_PATCHES_HPP_
 
 /* This file provides btree specific buffer patches */
 
@@ -76,5 +76,5 @@ private:
     scoped_malloc<btree_key_t> key_buf;
 };
 
-#endif /* __BTREE_BUF_PATCHES_HPP__ */
+#endif /* BTREE_BUF_PATCHES_HPP_ */
 

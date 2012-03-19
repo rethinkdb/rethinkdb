@@ -9,7 +9,6 @@
 #include <boost/numeric/conversion/cast.hpp>
 #include <boost/bind.hpp>
 
-#include "stats/serialize.hpp"
 #include "concurrency/pmap.hpp"
 
 
@@ -62,9 +61,8 @@ void persistent_stat_t::unpersist_all(metadata_store_t *store) {
     }
 }
 
-
 // perfmon_persistent_counter_t
-perfmon_persistent_counter_t::perfmon_persistent_counter_t(std::string name, bool internal)
+perfmon_persistent_counter_t::perfmon_persistent_counter_t(const std::string& name, bool internal)
     : perfmon_counter_t(name, internal)
     , unpersisted_value(0) { }
 
@@ -77,21 +75,31 @@ int64_t perfmon_persistent_counter_t::combine_stats(padded_int64_t *stats) {
 }
 
 std::string perfmon_persistent_counter_t::combine_persist(padded_int64_t *stats) {
-    int64_t total = combine_stats(stats);
-    std::ostringstream ss;
-    serialize_i64(ss, total);
-    return ss.str();
+    // This is little endian.
+    union {
+        int64_t total;
+        char buf[sizeof(int64_t)];
+    };
+    total = combine_stats(stats);
+    return std::string(buf, buf + sizeof(buf));
 }
 
 void perfmon_persistent_counter_t::unpersist(const std::string &value) {
     rassert(unpersisted_value == 0, "unpersist called multiple times");
-    std::istringstream ss(value);
-    unpersisted_value = unserialize_i64(ss);
+
+    // This is little endian.
+    union {
+        int64_t val;
+        char buf[sizeof(int64_t)];
+    };
+    val = 0;
+    rassert(value.size() == sizeof(buf));
+    std::copy(value.begin(), value.begin() + sizeof(buf), buf);
+    unpersisted_value = val;
 }
 
-
 // perfmon_persistent_stddev_t
-perfmon_persistent_stddev_t::perfmon_persistent_stddev_t(std::string name, bool internal)
+perfmon_persistent_stddev_t::perfmon_persistent_stddev_t(const std::string& name, bool internal)
     : perfmon_stddev_t(name, internal) { }
 
 std::string perfmon_persistent_stddev_t::persist_key() { return name; }
@@ -103,19 +111,33 @@ stddev_t perfmon_persistent_stddev_t::combine_stats(stddev_t *stats) {
     return stddev_t::combine(2, devs);
 }
 
+struct stddev_packing_t {
+    uint64_t n;
+    double m, v;
+} __attribute__((packed));
+
 std::string perfmon_persistent_stddev_t::combine_persist(stddev_t *stats) {
     stddev_t total = combine_stats(stats);
-    std::ostringstream ss;
-    serialize_u64(ss, boost::numeric_cast<uint64_t>(total.datapoints()));
-    serialize_float(ss, total.mean());
-    serialize_float(ss, total.standard_variance());
-    return ss.str();
+
+    // This is little endian.
+    union {
+        stddev_packing_t x;
+        char buf[sizeof(stddev_packing_t)];
+    };
+    x.n = total.datapoints();
+    x.m = total.mean();
+    x.v = total.standard_variance();
+
+    return std::string(buf, buf + sizeof(buf));
 }
 
 void perfmon_persistent_stddev_t::unpersist(const std::string &value) {
-    std::istringstream ss(value);
-    size_t datapoints = boost::numeric_cast<size_t>(unserialize_u64(ss));
-    float mean = unserialize_float(ss);
-    float variance = unserialize_float(ss);
-    unpersisted_value = stddev_t(datapoints, mean, variance);
+    // This is little endian.
+    union {
+        stddev_packing_t x;
+        char buf[sizeof(stddev_packing_t)];
+    };
+    rassert(value.size() == sizeof(buf));
+    std::copy(value.begin(), value.end(), buf);
+    unpersisted_value = stddev_t(x.n, x.m, x.v);
 }

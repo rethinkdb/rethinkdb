@@ -1,6 +1,5 @@
-
-#ifndef __SEGMENTED_VECTOR_HPP__
-#define __SEGMENTED_VECTOR_HPP__
+#ifndef SEGMENTED_VECTOR_HPP_
+#define SEGMENTED_VECTOR_HPP_
 
 #include <stdio.h>
 
@@ -85,4 +84,4 @@ private:
     DISABLE_COPYING(segmented_vector_t);
 };
 
-#endif /* __SEGMENTED_VECTOR_HPP_ */
+#endif  // SEGMENTED_VECTOR_HPP_

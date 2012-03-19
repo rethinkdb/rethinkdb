@@ -1,5 +1,5 @@
-#ifndef __UNITTEST_CLUSTERING_UTILS_HPP__
-#define __UNITTEST_CLUSTERING_UTILS_HPP__
+#ifndef UNITTEST_CLUSTERING_UTILS_HPP_
+#define UNITTEST_CLUSTERING_UTILS_HPP_
 
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "rpc/directory/view.hpp"
@@ -7,7 +7,8 @@
 
 namespace unittest {
 
-using namespace mock;
+using mock::dummy_protocol_t;
+using mock::a_thru_z_region;
 
 class test_store_t {
 public:
@@ -26,13 +27,13 @@ public:
     dummy_protocol_t::store_t store;
 };
 
-inline void test_inserter_write_namespace_if(namespace_interface_t<dummy_protocol_t> *nif, std::string key, std::string value, order_token_t otok, signal_t *interruptor) {
+inline void test_inserter_write_namespace_if(namespace_interface_t<dummy_protocol_t> *nif, const std::string& key, const std::string& value, order_token_t otok, signal_t *interruptor) {
     dummy_protocol_t::write_t w;
     w.values[key] = value;
     nif->write(w, otok, interruptor);
 }
 
-inline std::string test_inserter_read_namespace_if(namespace_interface_t<dummy_protocol_t> *nif, std::string key, order_token_t otok, signal_t *interruptor) {
+inline std::string test_inserter_read_namespace_if(namespace_interface_t<dummy_protocol_t> *nif, const std::string& key, order_token_t otok, signal_t *interruptor) {
     dummy_protocol_t::read_t r;
     r.keys.keys.insert(key);
     dummy_protocol_t::read_response_t resp = nif->read(r, otok, interruptor);
@@ -44,8 +45,8 @@ class test_inserter_t {
 public:
     typedef std::map<std::string, std::string> state_t;
 
-    test_inserter_t(boost::function<void(std::string, std::string, order_token_t, signal_t *)> _wfun, 
-               boost::function<std::string(std::string, order_token_t, signal_t *)> _rfun,
+    test_inserter_t(boost::function<void(const std::string&, const std::string&, order_token_t, signal_t *)> _wfun, 
+               boost::function<std::string(const std::string&, order_token_t, signal_t *)> _rfun,
                order_source_t *_osource, state_t *state)
         : values_inserted(state), drainer(new auto_drainer_t), wfun(_wfun), rfun(_rfun), osource(_osource)
     {
@@ -74,12 +75,12 @@ public:
 
 private:
     template<class protocol_t>
-    static void write_namespace_if(namespace_interface_t<protocol_t> *namespace_if, std::string key, std::string value, order_token_t otok, signal_t *interruptor) {
+    static void write_namespace_if(namespace_interface_t<protocol_t> *namespace_if, const std::string& key, const std::string& value, order_token_t otok, signal_t *interruptor) {
         test_inserter_write_namespace_if(namespace_if, key, value, otok, interruptor);
     }
 
     template<class protocol_t>
-    static std::string read_namespace_if(namespace_interface_t<protocol_t> *namespace_if, std::string key, order_token_t otok, signal_t *interruptor) {
+    static std::string read_namespace_if(namespace_interface_t<protocol_t> *namespace_if, const std::string& key, order_token_t otok, signal_t *interruptor) {
         return test_inserter_read_namespace_if(namespace_if, key, otok, interruptor);
     }
 
@@ -94,7 +95,7 @@ private:
                 if (keepalive.get_drain_signal()->is_pulsed()) throw interrupted_exc_t();
 
                 dummy_protocol_t::write_t w;
-                std::string key = std::string(1, 'a' + rand() % 26);
+                std::string key = std::string(1, 'a' + randint(26));
                 std::string value = (*values_inserted)[key] = strprintf("%d", i);
 
                 cond_t interruptor;
@@ -119,8 +120,8 @@ public:
     }
 
 private:
-    boost::function<void(std::string, std::string, order_token_t, signal_t *)> wfun;
-    boost::function<std::string(std::string, order_token_t, signal_t *)> rfun;
+    boost::function<void(const std::string&, const std::string&, order_token_t, signal_t *)> wfun;
+    boost::function<std::string(const std::string&, order_token_t, signal_t *)> rfun;
     order_source_t *osource;
 };
 
@@ -128,7 +129,7 @@ class simple_mailbox_cluster_t {
 public:
     simple_mailbox_cluster_t() :
         mailbox_manager(&connectivity_cluster),
-        connectivity_cluster_run(&connectivity_cluster, 10000 + rand() % 20000, &mailbox_manager)
+        connectivity_cluster_run(&connectivity_cluster, 10000 + randint(20000), &mailbox_manager)
         { }
     connectivity_service_t *get_connectivity_service() {
         return &connectivity_cluster;
@@ -215,4 +216,4 @@ private:
 
 }   /* namespace unittest */
 
-#endif /* __UNITTEST_CLUSTERING_UTILS_HPP__ */
+#endif /* UNITTEST_CLUSTERING_UTILS_HPP_ */

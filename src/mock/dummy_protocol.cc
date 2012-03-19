@@ -40,6 +40,10 @@ bool dummy_protocol_t::region_t::operator<(const region_t &other) const {
     }
 }
 
+dummy_protocol_t::region_t dummy_protocol_t::universe_region() {
+    return a_thru_z_region();
+}
+
 dummy_protocol_t::region_t::region_t() THROWS_NOTHING {
 }
 
@@ -174,7 +178,7 @@ dummy_protocol_t::store_t::store_t() : store_view_t<dummy_protocol_t>(dummy_prot
     initialize_empty();
 }
 
-dummy_protocol_t::store_t::store_t(std::string fn, bool create) : store_view_t<dummy_protocol_t>(dummy_protocol_t::region_t('a', 'z')), filename(fn) {
+dummy_protocol_t::store_t::store_t(const std::string& fn, bool create) : store_view_t<dummy_protocol_t>(dummy_protocol_t::region_t('a', 'z')), filename(fn) {
     if (create) {
         initialize_empty();
     } else {
@@ -231,7 +235,7 @@ void dummy_protocol_t::store_t::set_metainfo(const metainfo_t &new_metainfo, boo
     metainfo.update(new_metainfo);
 }
 
-dummy_protocol_t::read_response_t dummy_protocol_t::store_t::read(DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+dummy_protocol_t::read_response_t dummy_protocol_t::store_t::read(DEBUG_ONLY(const metainfo_t& expected_metainfo, )
         const dummy_protocol_t::read_t &read, boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), expected_metainfo.get_domain()));
     rassert(region_is_superset(get_region(), read.get_region()));
@@ -257,7 +261,7 @@ dummy_protocol_t::read_response_t dummy_protocol_t::store_t::read(DEBUG_ONLY(con
     return resp;
 }
 
-dummy_protocol_t::write_response_t dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+dummy_protocol_t::write_response_t dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_t& expected_metainfo, )
         const metainfo_t& new_metainfo, const dummy_protocol_t::write_t &write, transition_timestamp_t timestamp, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), expected_metainfo.get_domain()));
@@ -288,7 +292,7 @@ dummy_protocol_t::write_response_t dummy_protocol_t::store_t::write(DEBUG_ONLY(c
     return resp;
 }
 
-bool dummy_protocol_t::store_t::send_backfill(const region_map_t<dummy_protocol_t,state_timestamp_t> &start_point, const boost::function<bool(const metainfo_t&)> &should_backfill,
+bool dummy_protocol_t::store_t::send_backfill(const region_map_t<dummy_protocol_t, state_timestamp_t> &start_point, const boost::function<bool(const metainfo_t&)> &should_backfill,
         const boost::function<void(dummy_protocol_t::backfill_chunk_t)> &chunk_fun, boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), start_point.get_domain()));
 

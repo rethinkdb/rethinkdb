@@ -1,5 +1,5 @@
-#ifndef __ARCH_IO_DISK_AIO_GETEVENTS_NOEVENTFD_HPP__
-#define __ARCH_IO_DISK_AIO_GETEVENTS_NOEVENTFD_HPP__
+#ifndef ARCH_IO_DISK_AIO_GETEVENTS_NOEVENTFD_HPP_
+#define ARCH_IO_DISK_AIO_GETEVENTS_NOEVENTFD_HPP_
 
 #include <vector>
 
@@ -27,5 +27,5 @@ struct linux_aio_getevents_noeventfd_t :
     void on_event(int events);
 };
 
-#endif // __ARCH_IO_DISK_AIO_GETEVENTS_NOEVENTFD_HPP__
+#endif // ARCH_IO_DISK_AIO_GETEVENTS_NOEVENTFD_HPP_
 

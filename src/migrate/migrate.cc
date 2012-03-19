@@ -6,6 +6,7 @@
 #include "errors.hpp"
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/replace.hpp>
+#include <string>
 
 #include "help.hpp"
 
@@ -143,16 +144,20 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
 
 } // namespace migrate
 
-//convert spaces to command line safe '\ ' space escapes Truly sucks that I
-//have to write this, but the documentation for boost just wasn't explaining
-//things to me, if anyone knows how to use replace all, please rewrite this
-std::string escape_spaces(std::string str) {
-    for (std::string::iterator it = str.begin(); it != str.end(); it++) {
-        if (*it == ' ') {
-            it = str.insert(it, '\\') + 1;
-        }
-    }
-    return str;
+std::string escape_spaces(const std::string& str) {
+    std::string result;
+    size_t len = str.length();
+    size_t pos = 0;
+    do {
+        size_t space_pos = str.find(' ', pos);
+        bool found = space_pos != std::string::npos;
+        space_pos = found ? space_pos : len;
+        result.append(str, pos, space_pos-pos);
+        if (found)
+            result.append("\\ ");
+        pos = space_pos + 1;
+    } while (pos < len);
+    return result;
 }
 
 int run_migrate(int argc, char **argv) {

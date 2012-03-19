@@ -1,15 +1,13 @@
-#ifndef __ARCH_RUNTIME_COROUTINES_HPP__
-#define __ARCH_RUNTIME_COROUTINES_HPP__
+#ifndef ARCH_RUNTIME_COROUTINES_HPP_
+#define ARCH_RUNTIME_COROUTINES_HPP_
 
 #ifndef NDEBUG
 #include <string>
 #endif
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "arch/runtime/runtime_utils.hpp"
 #include "arch/runtime/context_switching.hpp"
+#include "utils.hpp"
 
 const size_t MAX_COROUTINE_STACK_SIZE = 8*1024*1024;
 
@@ -135,14 +133,14 @@ private:
 
     static void return_coro_to_free_list(coro_t *coro);
 
-    artificial_stack_t stack;
-
     static void run();
 
     friend struct coro_globals_t;
     ~coro_t();
 
     virtual void on_thread_switch();
+
+    artificial_stack_t stack;
 
     int current_thread_;
 
@@ -180,11 +178,11 @@ then. */
 
 /* Implementation support for `ASSERT_NO_CORO_WAITING` and `ASSERT_FINITE_CORO_WAITING` */
 struct assert_no_coro_waiting_t {
-    assert_no_coro_waiting_t(std::string, int);
+    assert_no_coro_waiting_t(const std::string&, int);
     ~assert_no_coro_waiting_t();
 };
 struct assert_finite_coro_waiting_t {
-    assert_finite_coro_waiting_t(std::string, int);
+    assert_finite_coro_waiting_t(const std::string&, int);
     ~assert_finite_coro_waiting_t();
 };
 
@@ -204,4 +202,4 @@ public:
     void assert_coro();
 };
 
-#endif // __ARCH_RUNTIME_COROUTINES_HPP__
+#endif // ARCH_RUNTIME_COROUTINES_HPP_

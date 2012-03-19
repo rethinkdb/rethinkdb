@@ -1,5 +1,12 @@
-#ifndef __RIAK_CLUSTER_WRITE_HPP__
-#define __RIAK_CLUSTER_WRITE_HPP__
+#ifndef RIAK_CLUSTER_WRITE_HPP_
+#define RIAK_CLUSTER_WRITE_HPP_
+
+#include <string>
+#include <vector>
+
+#include "errors.hpp"
+#include <boost/optional.hpp>
+#include <boost/variant.hpp>
 
 #include "riak/structures.hpp"
 #include "riak/cluster/region.hpp"

@@ -1,10 +1,11 @@
-#ifndef __RPC_SEMILATTICE_JOINS_VCLOCK_HPP__
-#define __RPC_SEMILATTICE_JOINS_VCLOCK_HPP__
+#ifndef RPC_SEMILATTICE_JOINS_VCLOCK_HPP_
+#define RPC_SEMILATTICE_JOINS_VCLOCK_HPP_
 
 #include "errors.hpp"
 
 #include <boost/uuid/uuid.hpp>
 
+#include "containers/map_sentries.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/serialize_macros.hpp"
 

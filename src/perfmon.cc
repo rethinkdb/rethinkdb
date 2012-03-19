@@ -84,7 +84,7 @@ bool global_full_perfmon = false;
 
 /* perfmon_counter_t */
 
-perfmon_counter_t::perfmon_counter_t(std::string _name, bool internal)
+perfmon_counter_t::perfmon_counter_t(const std::string& _name, bool internal)
     : perfmon_perthread_t<cache_line_padded_t<int64_t>, int64_t> (internal), name(_name)
 {
     for (int i = 0; i < MAX_THREADS; i++) thread_data[i].value = 0;
@@ -111,7 +111,7 @@ void perfmon_counter_t::output_stat(const int64_t &stat, perfmon_stats_t *dest) 
 
 /* perfmon_sampler_t */
 
-perfmon_sampler_t::perfmon_sampler_t(std::string _name, ticks_t _length, bool _include_rate, bool internal)
+perfmon_sampler_t::perfmon_sampler_t(const std::string& _name, ticks_t _length, bool _include_rate, bool internal)
     : perfmon_perthread_t<stats_t>(internal), name(_name), length(_length), include_rate(_include_rate)
 {
     for (int i = 0; i < MAX_THREADS; i++) {
@@ -242,7 +242,7 @@ stddev_t stddev_t::combine(size_t nelts, stddev_t *data) {
 }
 
 
-perfmon_stddev_t::perfmon_stddev_t(std::string _name, bool internal)
+perfmon_stddev_t::perfmon_stddev_t(const std::string& _name, bool internal)
     : perfmon_perthread_t<stddev_t>(internal), name(_name) { }
 
 void perfmon_stddev_t::get_thread_stat(stddev_t *stat) {
@@ -273,7 +273,7 @@ void perfmon_stddev_t::record(float value) {
 
 /* perfmon_rate_monitor_t */
 
-perfmon_rate_monitor_t::perfmon_rate_monitor_t(std::string _name, ticks_t _length, bool internal)
+perfmon_rate_monitor_t::perfmon_rate_monitor_t(const std::string& _name, ticks_t _length, bool internal)
     : perfmon_perthread_t<double>(internal), name(_name), length(_length)
 {
     for (int i = 0; i < MAX_THREADS; i++) {

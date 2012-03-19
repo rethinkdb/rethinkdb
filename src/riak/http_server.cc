@@ -1,12 +1,17 @@
 #include "riak/http_server.hpp"
-#include "http/json.hpp"
+
 #include <sstream>
+
 #include <boost/algorithm/string/join.hpp>
 #include <boost/regex.hpp>
 #include <boost/xpressive/xpressive.hpp>
-#include "riak/riak_value.hpp"
-#include "riak/store_manager.hpp"
+
+#include "btree/iteration.hpp"
+#include "http/json.hpp"
 #include "perfmon.hpp"
+#include "riak/store_manager.hpp"
+#include "riak/riak_value.hpp"
+
 
 namespace riak {
 
@@ -24,11 +29,11 @@ std::string link_to_string(link_t const &link) {
     return res.str();
 }
 
-riak_server_t::riak_server_t(int port, store_manager_t<std::list<std::string> > *)
-    : http_server_t(port), riak_interface(NULL)
+riak_http_app_t::riak_http_app_t(store_manager_t<std::list<std::string> > *)
+    : riak_interface(NULL)
 { }
 
-http_res_t riak_server_t::handle(const http_req_t &req) {
+http_res_t riak_http_app_t::handle(const http_req_t &req) {
     //setup a tokenizer
     boost::char_separator<char> sep("/");
     tokenizer tokens(req.resource, sep);
@@ -88,7 +93,7 @@ http_res_t riak_server_t::handle(const http_req_t &req) {
     return res;
 }
 
-http_res_t riak_server_t::list_buckets(const http_req_t &) {
+http_res_t riak_http_app_t::list_buckets(const http_req_t &) {
     std::pair<bucket_iterator_t, bucket_iterator_t> bucket_iters = riak_interface.buckets();
 
     scoped_cJSON_t body(cJSON_CreateObject());
@@ -98,7 +103,7 @@ http_res_t riak_server_t::list_buckets(const http_req_t &) {
 
     bucket_iterator_t it = bucket_iters.first, end = bucket_iters.second;
 
-    for (; it != end; it++) {
+    for (; it != end; ++it) {
         cJSON_AddItemToArray(buckets.get(), cJSON_CreateString(it->name.c_str()));
     }
 
@@ -110,7 +115,7 @@ http_res_t riak_server_t::list_buckets(const http_req_t &) {
     return res;
 }
 
-http_res_t riak_server_t::get_bucket(UNUSED const http_req_t &req) {
+http_res_t riak_http_app_t::get_bucket(UNUSED const http_req_t &req) {
     boost::char_separator<char> sep("/");
     tokenizer tokens(req.resource, sep);
     tok_iterator url_it = tokens.begin(), url_end = tokens.end();
@@ -192,7 +197,7 @@ http_res_t riak_server_t::get_bucket(UNUSED const http_req_t &req) {
     return res;
 }
 
-http_res_t riak_server_t::set_bucket(UNUSED const http_req_t &req) {
+http_res_t riak_http_app_t::set_bucket(UNUSED const http_req_t &req) {
     //boost::char_separator<char> sep("/");
     //tokenizer tokens(req.resource, sep);
     //tok_iterator url_it = tokens.begin(), url_end = tokens.end();
@@ -286,7 +291,7 @@ http_res_t riak_server_t::set_bucket(UNUSED const http_req_t &req) {
     return http_res_t(501);
 }
 
-http_res_t riak_server_t::fetch_object(const http_req_t &req) {
+http_res_t riak_http_app_t::fetch_object(const http_req_t &req) {
     //TODO this doesn't handle conditional request sementics
     boost::char_separator<char> sep("/");
     tokenizer tokens(req.resource, sep);
@@ -351,7 +356,7 @@ http_res_t riak_server_t::fetch_object(const http_req_t &req) {
     return res;
 }
 
-http_res_t riak_server_t::store_object(const http_req_t &req) {
+http_res_t riak_http_app_t::store_object(const http_req_t &req) {
     boost::char_separator<char> sep("/");
     tokenizer tokens(req.resource, sep);
     tok_iterator url_it = tokens.begin(), url_end = tokens.end();
@@ -411,7 +416,7 @@ http_res_t riak_server_t::store_object(const http_req_t &req) {
     return res;
 }
 
-http_res_t riak_server_t::delete_object(const http_req_t &req) {
+http_res_t riak_http_app_t::delete_object(const http_req_t &req) {
     boost::char_separator<char> sep("/");
     tokenizer tokens(req.resource, sep);
     tok_iterator url_it = tokens.begin(), url_end = tokens.end();
@@ -441,7 +446,7 @@ http_res_t riak_server_t::delete_object(const http_req_t &req) {
     return res;
 }
 
-http_res_t riak_server_t::link_walk(UNUSED const http_req_t &req) {
+http_res_t riak_http_app_t::link_walk(UNUSED const http_req_t &req) {
     //boost::char_separator<char> sep("/");
     //tokenizer tokens(req.resource, sep);
     //tok_iterator url_it = tokens.begin(), url_end = tokens.end();
@@ -536,13 +541,13 @@ http_res_t riak_server_t::link_walk(UNUSED const http_req_t &req) {
 //    return err_res;
 }
 
-http_res_t riak_server_t::mapreduce(const http_req_t &) {
+http_res_t riak_http_app_t::mapreduce(const http_req_t &) {
     not_implemented();
     http_res_t res;
     return res;
 }
 
-http_res_t riak_server_t::luwak_info(UNUSED const http_req_t &req) {
+http_res_t riak_http_app_t::luwak_info(UNUSED const http_req_t &req) {
     //http_res_t res; //the response we'll be sending back
     //json::mObject body;
 
@@ -569,7 +574,7 @@ http_res_t riak_server_t::luwak_info(UNUSED const http_req_t &req) {
     return http_res_t(501);
 }
 
-http_res_t riak_server_t::luwak_fetch(const http_req_t &req) {
+http_res_t riak_http_app_t::luwak_fetch(const http_req_t &req) {
     boost::char_separator<char> sep("/");
     tokenizer tokens(req.resource, sep);
     tok_iterator url_it = tokens.begin(), url_end = tokens.end();
@@ -597,7 +602,7 @@ http_res_t riak_server_t::luwak_fetch(const http_req_t &req) {
     return res;
 }
 
-http_res_t riak_server_t::luwak_store(const http_req_t &req) {
+http_res_t riak_http_app_t::luwak_store(const http_req_t &req) {
     boost::char_separator<char> sep("/");
     tokenizer tokens(req.resource, sep);
     tok_iterator url_it = tokens.begin(), url_end = tokens.end();
@@ -606,20 +611,20 @@ http_res_t riak_server_t::luwak_store(const http_req_t &req) {
     return res;
 }
 
-http_res_t riak_server_t::luwak_delete(const http_req_t &) {
+http_res_t riak_http_app_t::luwak_delete(const http_req_t &) {
     not_implemented();
     http_res_t res;
     return res;
 }
 
-http_res_t riak_server_t::ping(const http_req_t &) {
+http_res_t riak_http_app_t::ping(const http_req_t &) {
     http_res_t res;
     res.code = 200;
     res.set_body("text/html", "OK");
     return res;
 }
 
-http_res_t riak_server_t::status(const http_req_t &) {
+http_res_t riak_http_app_t::status(const http_req_t &) {
     perfmon_stats_t stats;
     perfmon_get_stats(&stats, false);
 
@@ -635,7 +640,7 @@ http_res_t riak_server_t::status(const http_req_t &) {
     return res;
 }
 
-http_res_t riak_server_t::list_resources(const http_req_t &) {
+http_res_t riak_http_app_t::list_resources(const http_req_t &) {
     not_implemented();
     http_res_t res;
     return res;

@@ -1,8 +1,10 @@
-#ifndef __UNITTEST_UNITTEST_UTILS_HPP__
-#define __UNITTEST_UNITTEST_UTILS_HPP__
+#ifndef UNITTEST_UNITTEST_UTILS_HPP_
+#define UNITTEST_UNITTEST_UTILS_HPP_
 
 #include "errors.hpp"
-#include <boost/function.hpp>
+
+// Include run_in_thread_pool for people.
+#include "arch/runtime/starter.hpp"
 
 #ifndef NDEBUG
 #define trace_call(fn, args...) do {                                          \
@@ -28,10 +30,4 @@ public:
 
 }  // namespace unittest
 
-/* `run_in_thread_pool()` starts a RethinkDB thread pool, runs the given
-function in a coroutine inside of it, waits for the function to return, and then
-shuts down the thread pool. */
-
-void run_in_thread_pool(const boost::function<void()>& fun, int num_threads = 1);
-
-#endif // __UNITTEST_UTILS__
+#endif  // UNITTEST_UNITTEST_UTILS_HPP_

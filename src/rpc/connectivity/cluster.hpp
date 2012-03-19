@@ -1,5 +1,5 @@
-#ifndef __RPC_CONNECTIVITY_CLUSTER_HPP__
-#define __RPC_CONNECTIVITY_CLUSTER_HPP__
+#ifndef RPC_CONNECTIVITY_CLUSTER_HPP_
+#define RPC_CONNECTIVITY_CLUSTER_HPP_
 
 #include "errors.hpp"
 #include <boost/optional.hpp>
@@ -7,6 +7,7 @@
 #include "arch/streamed_tcp.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/one_per_thread.hpp"
+#include "containers/map_sentries.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/connectivity/messages.hpp"
 
@@ -20,7 +21,8 @@ public:
     public:
         run_t(connectivity_cluster_t *parent,
             int port,
-            message_handler_t *message_handler) THROWS_NOTHING;
+            message_handler_t *message_handler,
+            int client_port = 0) THROWS_NOTHING;
 
         /* Attaches the cluster this node is part of to another existing
         cluster. May only be called on home thread. Returns immediately (it does
@@ -126,6 +128,7 @@ public:
         /* For picking random threads */
         rng_t rng;
 
+        int cluster_client_port;
         auto_drainer_t drainer;
 
         /* This must be destroyed before `drainer` is. */
@@ -166,7 +169,7 @@ private:
 
         rwi_lock_assertion_t lock;
 
-        publisher_controller_t<std::pair<
+        publisher_controller_t< std::pair<
                 boost::function<void(peer_id_t)>,
                 boost::function<void(peer_id_t)>
                 > > publisher;
@@ -174,7 +177,7 @@ private:
 
     /* `connectivity_service_t` private methods: */
     rwi_lock_assertion_t *get_peers_list_lock() THROWS_NOTHING;
-    publisher_t<std::pair<
+    publisher_t< std::pair<
             boost::function<void(peer_id_t)>,
             boost::function<void(peer_id_t)>
             > > *get_peers_list_publisher() THROWS_NOTHING;
@@ -193,4 +196,4 @@ private:
     DISABLE_COPYING(connectivity_cluster_t);
 };
 
-#endif /* __RPC_CONNECTIVITY_CLUSTER_HPP__ */
+#endif /* RPC_CONNECTIVITY_CLUSTER_HPP_ */

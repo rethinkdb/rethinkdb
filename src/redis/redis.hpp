@@ -1,5 +1,5 @@
-#ifndef __PROTOCOL_REDIS_REDIS_HPP__
-#define __PROTOCOL_REDIS_REDIS_HPP__
+#ifndef PROTOCOL_REDIS_REDIS_HPP_
+#define PROTOCOL_REDIS_REDIS_HPP_
 
 #include "arch/arch.hpp"
 #include "utils.hpp"
@@ -61,7 +61,7 @@ struct redis_protocol_t {
 
     // Base class for redis read operations
     struct read_operation_t {
-        virtual ~read_operation_t(){};
+        virtual ~read_operation_t() { }
         virtual indicated_key_t get_keys() = 0;
         virtual read_t shard(region_t mask) = 0;
         virtual read_response_t execute(btree_slice_t *btree, order_token_t otok) = 0;
@@ -83,15 +83,15 @@ struct redis_protocol_t {
 
     // Base class for redis write operations
     struct write_operation_t {
-        virtual ~write_operation_t(){};
+        virtual ~write_operation_t() { }
         virtual indicated_key_t get_keys() = 0;
         virtual write_t shard(region_t mask) = 0;
         virtual write_response_t execute(btree_slice_t *btree, timestamp_t timestamp, order_token_t otok) = 0;
     };
 
     struct read_result_t {
-        virtual ~read_result_t(){};
-        
+        virtual ~read_result_t() { }
+
         // Reduces other into this. Used to allow subclasses to define unshard/unparallelize behavior.
         virtual void deshard(const void *other) = 0;
 
@@ -101,7 +101,7 @@ struct redis_protocol_t {
     };
 
     struct write_result_t {
-        virtual ~write_result_t(){};
+        virtual ~write_result_t() { }
 
         // Reduces other into this. Used to allow subclasses to define unshard behavior.
         virtual void deshard(const void *other) = 0;
@@ -527,4 +527,4 @@ public:
 };
 */
 
-#endif /* __PROTOCOL_REDIS_REDIS_HPP__ */
+#endif /* PROTOCOL_REDIS_REDIS_HPP_ */

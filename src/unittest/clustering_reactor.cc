@@ -17,8 +17,6 @@
 
 namespace unittest {
 
-using namespace mock;
-
 namespace {
 
 /* `let_stuff_happen()` delays for some time to let events occur */
@@ -96,7 +94,7 @@ public:
 template<class protocol_t>
 class reactor_test_cluster_t {
 public:
-    reactor_test_cluster_t(int port) :
+    explicit reactor_test_cluster_t(int port) :
         connectivity_cluster(),
         message_multiplexer(&connectivity_cluster),
 
@@ -146,12 +144,12 @@ public:
         : blueprint_watchable(initial_blueprint),
           reactor(&r->mailbox_manager, r->directory_manager.get_root_view()->subview(field_lens(&test_cluster_directory_t<protocol_t>::reactor_directory)), 
                   r->directory_manager.get_root_view()->subview(field_lens(&test_cluster_directory_t<protocol_t>::master_directory)),
-                  r->semilattice_manager_branch_history.get_root_view(), &blueprint_watchable, store_view)
+                  r->semilattice_manager_branch_history.get_root_view(), blueprint_watchable.get_watchable(), store_view)
     {
         rassert(store_view->get_region() == a_thru_z_region());
     }
 
-    watchable_impl_t<blueprint_t<protocol_t> > blueprint_watchable;
+    watchable_variable_t<blueprint_t<protocol_t> > blueprint_watchable;
     reactor_t<protocol_t> reactor;
 };
 
@@ -167,7 +165,7 @@ public:
     std::map<std::string, std::string> inserter_state;
 
     explicit test_cluster_group_t(int n_machines) {
-        int port = 10000 + rand() % 20000;
+        int port = 10000 + randint(20000);
         for (int i = 0; i < n_machines; i++) {
             files.push_back(new temp_file_t("/tmp/rdb_unittest.XXXXXX"));
             stores.push_back(new typename protocol_t::store_t(files[i].name(), true));
@@ -191,7 +189,7 @@ public:
         return test_clusters[i].get_me();
     }
 
-    blueprint_t<protocol_t> compile_blueprint(std::string bp) {
+    blueprint_t<protocol_t> compile_blueprint(const std::string& bp) {
         blueprint_t<protocol_t> blueprint;
 
         typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
@@ -256,7 +254,13 @@ public:
 
     void wait_until_blueprint_is_satisfied(const blueprint_t<protocol_t> &bp) {
         try {
-            signal_timer_t timer(2000);
+#ifdef VALGRIND
+	    const int timeout = 8000;
+#else
+	    const int timeout = 2000;
+#endif
+
+            signal_timer_t timer(timeout);
             static_cast<clone_ptr_t<directory_rview_t<boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > > >(test_clusters[0].directory_manager.get_root_view()
                 ->subview(field_lens(&test_cluster_directory_t<protocol_t>::reactor_directory)))
                 ->subview(optional_monad_lens<reactor_business_card_t<protocol_t>, directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >(
@@ -270,7 +274,7 @@ public:
         nap(100);
     }
 
-    void wait_until_blueprint_is_satisfied(std::string bp) {
+    void wait_until_blueprint_is_satisfied(const std::string& bp) {
         wait_until_blueprint_is_satisfied(compile_blueprint(bp));
     }
 };

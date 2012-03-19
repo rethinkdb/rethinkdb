@@ -1,7 +1,8 @@
-#ifndef __LENS_HPP__
-#define __LENS_HPP__
+#ifndef LENS_HPP_
+#define LENS_HPP_
 
 #include "errors.hpp"
+#include <boost/function.hpp>
 #include <boost/optional.hpp>
 
 #include "containers/clone_ptr.hpp"
@@ -56,4 +57,4 @@ clone_ptr_t<read_lens_t<value_t, std::map<key_t, value_t> > > default_member_len
 
 #include "lens.tcc"
 
-#endif /* __LENS_HPP__ */
+#endif /* LENS_HPP_ */

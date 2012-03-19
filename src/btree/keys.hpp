@@ -1,5 +1,5 @@
-#ifndef __BTREE_KEYS_HPP__
-#define __BTREE_KEYS_HPP__
+#ifndef BTREE_KEYS_HPP_
+#define BTREE_KEYS_HPP_
 
 #include <stdio.h>
 #include <string.h>
@@ -155,7 +155,7 @@ struct key_range_t {
     }
 
     bool is_empty() const {
-        return !right.unbounded && left <= right.key;
+        return !right.unbounded && left >= right.key;
     }
 
     bool contains_key(const store_key_t& key) const {
@@ -187,6 +187,8 @@ struct key_range_t {
     RDB_MAKE_ME_SERIALIZABLE_2(left, right);
 };
 
+std::ostream &operator<<(std::ostream & stream, const key_range_t &);
+
 bool region_is_superset(const key_range_t &potential_superset, const key_range_t &potential_subset) THROWS_NOTHING;
 key_range_t region_intersection(const key_range_t &r1, const key_range_t &r2) THROWS_NOTHING;
 key_range_t region_join(const std::vector<key_range_t> &vec) THROWS_ONLY(bad_join_exc_t, bad_region_exc_t);
@@ -197,4 +199,4 @@ bool operator==(key_range_t, key_range_t) THROWS_NOTHING;
 bool operator!=(key_range_t, key_range_t) THROWS_NOTHING;
 bool operator<(const key_range_t &, const key_range_t &) THROWS_NOTHING;
 
-#endif // __BTREE_KEYS_HPP__
+#endif // BTREE_KEYS_HPP_

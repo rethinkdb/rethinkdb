@@ -1,5 +1,5 @@
-#ifndef __MOCK_DUMMY_PROTOCOL_HPP__
-#define __MOCK_DUMMY_PROTOCOL_HPP__
+#ifndef MOCK_DUMMY_PROTOCOL_HPP_
+#define MOCK_DUMMY_PROTOCOL_HPP_
 
 #include <map>
 #include <set>
@@ -35,6 +35,8 @@ public:
 
         RDB_MAKE_ME_SERIALIZABLE_1(keys);
     };
+
+    static region_t universe_region();
 
     class temporary_cache_t {
         /* Dummy protocol doesn't need to cache anything */
@@ -84,7 +86,7 @@ public:
         typedef region_map_t<dummy_protocol_t, binary_blob_t> metainfo_t;
 
         store_t();
-        store_t(std::string filename, bool create);
+        store_t(const std::string& filename, bool create);
         ~store_t();
 
         void new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out) THROWS_NOTHING;
@@ -92,12 +94,12 @@ public:
 
         metainfo_t get_metainfo(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
         void set_metainfo(const metainfo_t &new_metainfo, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
-        dummy_protocol_t::read_response_t read(DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+        dummy_protocol_t::read_response_t read(DEBUG_ONLY(const metainfo_t& expected_metainfo, )
                 const dummy_protocol_t::read_t &read, boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
-        dummy_protocol_t::write_response_t write(DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+        dummy_protocol_t::write_response_t write(DEBUG_ONLY(const metainfo_t& expected_metainfo, )
                 const metainfo_t& new_metainfo, const dummy_protocol_t::write_t &write, transition_timestamp_t timestamp, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
                 signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
-        bool send_backfill(const region_map_t<dummy_protocol_t,state_timestamp_t> &start_point, const boost::function<bool(const metainfo_t&)> &should_backfill,
+        bool send_backfill(const region_map_t<dummy_protocol_t, state_timestamp_t> &start_point, const boost::function<bool(const metainfo_t&)> &should_backfill,
                 const boost::function<void(dummy_protocol_t::backfill_chunk_t)> &chunk_fun, boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
         void receive_backfill(const dummy_protocol_t::backfill_chunk_t &chunk, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
         void reset_data(dummy_protocol_t::region_t subregion, const metainfo_t &new_metainfo, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
@@ -133,4 +135,4 @@ bool operator!=(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b);
 
 } // namespace mock
 
-#endif /* __MOCK_DUMMY_PROTOCOL_HPP__ */
+#endif /* MOCK_DUMMY_PROTOCOL_HPP_ */

@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_METADATA_HPP__
-#define __CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_METADATA_HPP__
+#ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_METADATA_HPP_
+#define CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_METADATA_HPP_
 
 #include "errors.hpp"
 #include <boost/variant.hpp>
@@ -18,18 +18,18 @@ class master_business_card_t {
 
 public:
     /* Mailbox types for the master */
-    typedef async_mailbox_t<void(
+    typedef async_mailbox_t< void(
         typename protocol_t::read_t,
         order_token_t,
-        typename async_mailbox_t<void(boost::variant<
+        typename async_mailbox_t< void(boost::variant<
             typename protocol_t::read_response_t,
             std::string
             >)>::address_t
         )> read_mailbox_t;
-    typedef async_mailbox_t<void(
+    typedef async_mailbox_t< void(
         typename protocol_t::write_t,
         order_token_t,
-        typename async_mailbox_t<void(boost::variant<
+        typename async_mailbox_t< void(boost::variant<
             typename protocol_t::write_response_t,
             std::string
             >)>::address_t
@@ -52,4 +52,4 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_3(region, read_mailbox, write_mailbox);
 };
 
-#endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_METADATA_HPP__ */
+#endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_METADATA_HPP_ */

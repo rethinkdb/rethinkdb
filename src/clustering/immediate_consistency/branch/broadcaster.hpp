@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BROADCASTER_HPP__
-#define __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BROADCASTER_HPP__
+#ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BROADCASTER_HPP_
+#define CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BROADCASTER_HPP_
 
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
@@ -7,6 +7,7 @@
 
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "clustering/registrar.hpp"
+#include "containers/uuid.hpp"
 #include "protocol_api.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/mailbox/typed.hpp"
@@ -333,4 +334,4 @@ private:
 
 #include "clustering/immediate_consistency/branch/broadcaster.tcc"
 
-#endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BROADCASTER_HPP__ */
+#endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BROADCASTER_HPP_ */

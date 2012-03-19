@@ -1,5 +1,5 @@
-#ifndef __ARCH_RUNTIME_THREAD_POOL_HPP__
-#define __ARCH_RUNTIME_THREAD_POOL_HPP__
+#ifndef ARCH_RUNTIME_THREAD_POOL_HPP_
+#define ARCH_RUNTIME_THREAD_POOL_HPP_
 
 #include <map>
 #include <pthread.h>
@@ -173,4 +173,4 @@ private:
 #endif
 };
 
-#endif /* __ARCH_RUNTIME_THREAD_POOL_HPP__ */
+#endif /* ARCH_RUNTIME_THREAD_POOL_HPP_ */

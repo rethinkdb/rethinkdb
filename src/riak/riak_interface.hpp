@@ -1,11 +1,14 @@
-#ifndef __RIAK_INTERFACE_HPP__
-#define __RIAK_INTERFACE_HPP__
+#ifndef RIAK_INTERFACE_HPP_
+#define RIAK_INTERFACE_HPP_
 
-#include "riak/structures.hpp"
-#include "store_manager.hpp"
-#include <boost/ptr_container/ptr_map.hpp>
-#include "http/json.hpp"
+#include "arch/runtime/thread_pool.hpp"
+// Map reduce code is currently commented out.
+// #include "http/json.hpp"
 #include "javascript/javascript.hpp"
+#include "riak/store_manager.hpp"
+#include "riak/structures.hpp"
+
+class btree_slice_t;
 
 #define RIAK_LIST_KEYS_BATCH_FACTOR 10
 
@@ -23,10 +26,12 @@ public:
 public:
     bool operator==(bucket_iterator_t const &other) { return it == other.it; }
     bool operator!=(bucket_iterator_t const &other) { return !operator==(other); }
-    bucket_iterator_t operator++() { it++; return *this; }
-    bucket_iterator_t operator++(int) { it++; return *this; }
+    bucket_iterator_t& operator++() {
+        ++it;
+        return *this;
+    }
     bucket_t operator*() { return boost::get<riak_store_metadata_t>(it->second->store_metadata); }
-    bucket_t *operator->() { return &boost::get<riak_store_metadata_t>(it->second->store_metadata); };
+    bucket_t *operator->() { return &boost::get<riak_store_metadata_t>(it->second->store_metadata); }
 };
 
 
@@ -72,7 +77,7 @@ public:
     object_iterator_t objects(const std::string &);
 
     // Get a single object
-    const object_t get_object(std::string, std::pair<int,int> range = std::make_pair(-1, -1));
+    const object_t get_object(std::string, std::pair<int, int> range = std::make_pair(-1, -1));
     // Store an object
     enum set_result_t {
         CREATED,

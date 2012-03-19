@@ -1,13 +1,18 @@
-#ifndef __JAVASCRIPT_JAVASCRIPT_POOL_HPP__
-#define __JAVASCRIPT_JAVASCRIPT_POOL_HPP__
+#ifndef JAVASCRIPT_JAVASCRIPT_POOL_HPP_
+#define JAVASCRIPT_JAVASCRIPT_POOL_HPP_
 
 #include <vector>
+
+#include "errors.hpp"
+#include <boost/function.hpp>  // for function
+
+#include "API/JSBase.h"
+#include "errors.hpp"
+#include "arch/runtime/coroutines.hpp"
 #include "arch/runtime/event_queue.hpp"
 #include "arch/io/blocker_pool.hpp"
-#include "arch/runtime/thread_pool.hpp"
 #include "concurrency/cond_var.hpp"
 
-#include <JavaScriptCore/JavaScript.h>
 
 namespace JS {
 
@@ -160,4 +165,4 @@ inline void ctx_group_t::run_blocking<void>(boost::function<void()> f) {
 
 } // namespace JS
 
-#endif /* __JAVASCRIPT_JAVASCRIPT_POOL_HPP__ */
+#endif /* JAVASCRIPT_JAVASCRIPT_POOL_HPP_ */

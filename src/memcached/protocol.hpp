@@ -1,5 +1,5 @@
-#ifndef __MEMCACHED_PROTOCOL_HPP__
-#define __MEMCACHED_PROTOCOL_HPP__
+#ifndef MEMCACHED_PROTOCOL_HPP_
+#define MEMCACHED_PROTOCOL_HPP_
 
 #include <vector>
 
@@ -15,7 +15,6 @@
 #include "btree/slice.hpp"
 #include "btree/operations.hpp"
 #include "btree/backfill.hpp"
-#include "buffer_cache/sequence_group.hpp"
 #include "buffer_cache/types.hpp"
 #include "memcached/queries.hpp"
 #include "protocol_api.hpp"
@@ -103,6 +102,8 @@ class memcached_protocol_t {
 public:
     typedef key_range_t region_t;
 
+    static region_t universe_region();
+
     struct temporary_cache_t { };
 
     struct read_response_t {
@@ -188,8 +189,8 @@ public:
         };
 
         backfill_chunk_t() { }
-        explicit backfill_chunk_t(boost::variant<delete_range_t,delete_key_t,key_value_pair_t> val_) : val(val_) { }
-        boost::variant<delete_range_t,delete_key_t,key_value_pair_t> val;
+        explicit backfill_chunk_t(boost::variant<delete_range_t, delete_key_t, key_value_pair_t> val_) : val(val_) { }
+        boost::variant<delete_range_t, delete_key_t, key_value_pair_t> val;
 
         static backfill_chunk_t delete_range(const key_range_t& range) {
             return backfill_chunk_t(delete_range_t(range));
@@ -210,7 +211,6 @@ public:
         boost::scoped_ptr<standard_serializer_t> serializer;
         mirrored_cache_config_t cache_dynamic_config;
         boost::scoped_ptr<cache_t> cache;
-        sequence_group_t seq_group;
         boost::scoped_ptr<btree_slice_t> btree;
         order_source_t order_source;
 
@@ -218,7 +218,7 @@ public:
         fifo_enforcer_sink_t token_sink;
 
     public:
-        store_t(std::string filename, bool create);
+        store_t(const std::string& filename, bool create);
 
         void new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out);
         void new_write_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token_out);
@@ -235,14 +235,14 @@ public:
                 THROWS_ONLY(interrupted_exc_t);
 
         memcached_protocol_t::read_response_t read(
-                DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+                DEBUG_ONLY(const metainfo_t& expected_metainfo, )
                 const memcached_protocol_t::read_t &read,
                 boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
                 signal_t *interruptor)
                 THROWS_ONLY(interrupted_exc_t);
 
         memcached_protocol_t::write_response_t write(
-                DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+                DEBUG_ONLY(const metainfo_t& expected_metainfo, )
                 const metainfo_t& new_metainfo,
                 const memcached_protocol_t::write_t &write,
                 transition_timestamp_t timestamp,
@@ -251,7 +251,7 @@ public:
                 THROWS_ONLY(interrupted_exc_t);
 
         bool send_backfill(
-                const region_map_t<memcached_protocol_t,state_timestamp_t> &start_point,
+                const region_map_t<memcached_protocol_t, state_timestamp_t> &start_point,
                 const boost::function<bool(const metainfo_t&)> &should_backfill,
                 const boost::function<void(memcached_protocol_t::backfill_chunk_t)> &chunk_fun,
                 boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
@@ -271,7 +271,7 @@ public:
                 signal_t *interruptor)
                 THROWS_ONLY(interrupted_exc_t);
     private:
-        region_map_t<memcached_protocol_t,binary_blob_t> get_metainfo_internal(transaction_t* txn, buf_lock_t* sb_buf) const THROWS_NOTHING;
+        region_map_t<memcached_protocol_t, binary_blob_t> get_metainfo_internal(transaction_t* txn, buf_lock_t* sb_buf) const THROWS_NOTHING;
 
         void acquire_superblock_for_read(
                 access_t access,
@@ -296,13 +296,13 @@ public:
                 signal_t *interruptor)
                 THROWS_ONLY(interrupted_exc_t);
         void check_and_update_metainfo(
-            DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+            DEBUG_ONLY(const metainfo_t& expected_metainfo, )
             const metainfo_t &new_metainfo,
             transaction_t *txn,
             got_superblock_t &superbloc) const
             THROWS_NOTHING;
         metainfo_t check_metainfo(
-            DEBUG_ONLY(const metainfo_t& expected_metainfo,)
+            DEBUG_ONLY(const metainfo_t& expected_metainfo, )
             transaction_t *txn,
             got_superblock_t &superbloc) const
             THROWS_NOTHING;
@@ -310,4 +310,4 @@ public:
 };
 };
 
-#endif /* __MEMCACHED_PROTOCOL_HPP__ */
+#endif /* MEMCACHED_PROTOCOL_HPP_ */

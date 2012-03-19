@@ -1,5 +1,5 @@
-#ifndef __MEMCACHED_QUERIES_HPP__
-#define __MEMCACHED_QUERIES_HPP__
+#ifndef MEMCACHED_QUERIES_HPP_
+#define MEMCACHED_QUERIES_HPP_
 
 #include <string.h>
 #include <stdio.h>
@@ -213,4 +213,4 @@ enum append_prepend_result_t {
     apr_not_allowed,
 };
 
-#endif /* __MEMCACHED_QUERIES_HPP__ */
+#endif /* MEMCACHED_QUERIES_HPP_ */

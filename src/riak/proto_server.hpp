@@ -1,7 +1,11 @@
-#ifndef __RIAK_PROTO_SERVER_HPP__
-#define __RIAK_PROTO_SERVER_HPP__
+#ifndef RIAK_PROTO_SERVER_HPP_
+#define RIAK_PROTO_SERVER_HPP_
 
-#include "arch/arch.hpp"
+#include "errors.hpp"
+#include <boost/scoped_ptr.hpp>
+
+#include "arch/io/network.hpp"
+#include "arch/types.hpp"
 #include "riak/proto/riakclient.pb.h"
 
 

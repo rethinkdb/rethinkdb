@@ -17,7 +17,7 @@ metablock_manager_t<metablock_t>::metablock_manager_t::head_t::head_t(metablock_
     : mb_slot(0), saved_mb_slot(static_cast<uint32_t>(-1)), wraparound(false), mgr(manager) { }
 
 template<class metablock_t>
-void metablock_manager_t<metablock_t>::metablock_manager_t::head_t::operator++(UNUSED int stupid_plusplus_parameter) {
+void metablock_manager_t<metablock_t>::metablock_manager_t::head_t::operator++() {
     mb_slot++;
     wraparound = false;
     
@@ -170,13 +170,13 @@ void metablock_manager_t<metablock_t>::co_start_existing(direct_file_t *file, bo
                 /* this metablock is good, maybe there are more? */
                 startup_values.version = mb_temp->version;
                 head.push();
-                head++;
+                ++head;
                 last_good_mb = mb_temp;
             } else {
                 break;
             }
         } else {
-            head++;
+            ++head;
         }
     }
 
@@ -233,7 +233,7 @@ void metablock_manager_t<metablock_t>::co_write_metablock(metablock_t *mb, file_
     state = state_writing;
     co_write(dbfile, head.offset(), DEVICE_BLOCK_SIZE, mb_buffer, io_account);
 
-    head++;
+    ++head;
 
     state = state_ready;
     mb_buffer_in_use = false;

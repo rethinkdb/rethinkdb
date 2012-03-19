@@ -65,7 +65,7 @@ perfmon_counter_t pm_serializer_lba_extents("serializer_lba_extents");
 extent_t::extent_t(extent_manager_t *_em, direct_file_t *_file)
     : offset(_em->gen_extent()), amount_filled(0), em(_em), file(_file), last_block(NULL), current_block(NULL)
 {
-    pm_serializer_lba_extents++;
+    ++pm_serializer_lba_extents;
 }
 
 extent_t::extent_t(extent_manager_t *_em, direct_file_t *_file, off64_t loc, size_t size)
@@ -74,7 +74,7 @@ extent_t::extent_t(extent_manager_t *_em, direct_file_t *_file, off64_t loc, siz
     em->reserve_extent(offset);
 
     rassert(divides(DEVICE_BLOCK_SIZE, amount_filled));
-    pm_serializer_lba_extents++;
+    ++pm_serializer_lba_extents;
 }
 
 void extent_t::destroy() {
@@ -89,7 +89,7 @@ void extent_t::shutdown() {
 extent_t::~extent_t() {
     rassert(!current_block);
     if (last_block) last_block->is_last_block = false;
-    pm_serializer_lba_extents--;
+    --pm_serializer_lba_extents;
 }
 
 void extent_t::read(size_t pos, size_t length, void *buffer, read_callback_t *cb) {

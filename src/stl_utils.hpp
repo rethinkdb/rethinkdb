@@ -1,7 +1,8 @@
-#ifndef __STL_UTILS_HPP__
-#define __STL_UTILS_HPP__
+#ifndef STL_UTILS_HPP_
+#define STL_UTILS_HPP_
 
 #include <map>
+#include <set>
 
 #include "errors.hpp"
 #include <boost/function.hpp>
@@ -10,10 +11,10 @@
 /* stl utils make some stl structures nicer to work with */
 
 template <class K, class V>
-std::set<K> keys(const std::map<K,V> &);
+std::set<K> keys(const std::map<K, V> &);
 
 template <class K, class V>
-std::set<V> range(const std::map<K,V> &);
+std::set<V> range(const std::map<K, V> &);
 
 template <class container_t>
 bool std_contains(const container_t &, const typename container_t::key_type &);

@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_METADATA_HPP__
-#define __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_METADATA_HPP__
+#ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_METADATA_HPP_
+#define CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_METADATA_HPP_
 
 #include <map>
 
@@ -86,17 +86,17 @@ public:
     /* These are the types of mailboxes that the master uses to communicate with
     the mirrors. */
 
-    typedef async_mailbox_t<void(
+    typedef async_mailbox_t< void(
         typename protocol_t::write_t, transition_timestamp_t, fifo_enforcer_write_token_t,
         async_mailbox_t<void()>::address_t
         )> write_mailbox_t;
 
-    typedef async_mailbox_t<void(
+    typedef async_mailbox_t< void(
         typename protocol_t::write_t, transition_timestamp_t, fifo_enforcer_write_token_t,
         typename async_mailbox_t<void(typename protocol_t::write_response_t)>::address_t
         )> writeread_mailbox_t;
 
-    typedef async_mailbox_t<void(
+    typedef async_mailbox_t< void(
         typename protocol_t::read_t, state_timestamp_t, fifo_enforcer_read_token_t,
         typename async_mailbox_t<void(typename protocol_t::read_response_t)>::address_t
         )> read_mailbox_t;
@@ -105,16 +105,16 @@ public:
     beginning. This tells the mirror what timestamp it's at, and also tells
     it where to send upgrade/downgrade messages. */
 
-    typedef async_mailbox_t<void(
+    typedef async_mailbox_t< void(
         typename writeread_mailbox_t::address_t,
         typename read_mailbox_t::address_t
         )> upgrade_mailbox_t;
 
-    typedef async_mailbox_t<void(
+    typedef async_mailbox_t< void(
         async_mailbox_t<void()>::address_t
         )> downgrade_mailbox_t;
 
-    typedef async_mailbox_t<void(
+    typedef async_mailbox_t< void(
         state_timestamp_t,
         typename upgrade_mailbox_t::address_t,
         typename downgrade_mailbox_t::address_t
@@ -140,7 +140,7 @@ typedef boost::uuids::uuid backfill_session_id_t;
 template<class protocol_t>
 struct backfiller_business_card_t {
 
-    typedef async_mailbox_t<void(
+    typedef async_mailbox_t< void(
         backfill_session_id_t,
         region_map_t<protocol_t, version_range_t>,
         typename async_mailbox_t<void(region_map_t<protocol_t, version_range_t>)>::address_t,
@@ -148,7 +148,7 @@ struct backfiller_business_card_t {
         async_mailbox_t<void()>::address_t
         )> backfill_mailbox_t;
 
-    typedef async_mailbox_t<void(
+    typedef async_mailbox_t< void(
         backfill_session_id_t
         )> cancel_backfill_mailbox_t;
 
@@ -236,8 +236,8 @@ bool operator==(const branch_birth_certificate_t<protocol_t> &a,
 }
 
 template<class protocol_t>
-void semilattice_join(branch_birth_certificate_t<protocol_t> *a,
-        const branch_birth_certificate_t<protocol_t> &b) {
+void semilattice_join(UNUSED branch_birth_certificate_t<protocol_t> *a,
+                      UNUSED const branch_birth_certificate_t<protocol_t> &b) {
     rassert(*a == b);
 }
 
@@ -251,4 +251,4 @@ void semilattice_join(branch_history_t<protocol_t> *a, const branch_history_t<pr
     semilattice_join(&a->branches, b.branches);
 }
 
-#endif /* __CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_METADATA_HPP__ */
+#endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_METADATA_HPP_ */

@@ -1,6 +1,5 @@
-
-#ifndef __SERIALIZER_LOG_LBA_IN_MEMORY_INDEX__
-#define __SERIALIZER_LOG_LBA_IN_MEMORY_INDEX__
+#ifndef SERIALIZER_LOG_LBA_IN_MEMORY_INDEX_HPP_
+#define SERIALIZER_LOG_LBA_IN_MEMORY_INDEX_HPP_
 
 
 #include "containers/segmented_vector.hpp"
@@ -35,12 +34,12 @@ public:
     block_id_t get_block_id(off64_t offset);
 
     // Rebuild the reverse mapping offset -> block id. Can become necessary on startup, when the LBA contains outdaited entries with offset collisions to recent ones
-    void rebuild_reverse_index(); 
+    void rebuild_reverse_index();
 
 #ifndef NDEBUG
     void print();
 #endif
 };
 
-#endif /* __SERIALIZER_LOG_LBA_IN_MEMORY_INDEX__ */
+#endif  // SERIALIZER_LOG_LBA_IN_MEMORY_INDEX_HPP_
 

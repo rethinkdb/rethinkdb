@@ -1,5 +1,5 @@
-#ifndef __RIAK_CLUSTER_UTILS_HPP__
-#define __RIAK_CLUSTER_UTILS_HPP__
+#ifndef RIAK_CLUSTER_UTILS_HPP_
+#define RIAK_CLUSTER_UTILS_HPP_
 
 #include <vector>
 

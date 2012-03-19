@@ -1,13 +1,16 @@
 #include "concurrency/cross_thread_signal.hpp"
 
+#include "errors.hpp"
 #include <boost/bind.hpp>
+
+void cross_thread_signal_subscription_t::run() {
+    parent_->on_signal_pulsed(keepalive_);
+}
 
 cross_thread_signal_t::cross_thread_signal_t(signal_t *source, int dest) :
     source_thread(get_thread_id()), dest_thread(dest),
     rethreader((signal_t *)this, dest_thread),
-    subs(boost::bind(&cross_thread_signal_t::on_signal_pulsed,
-        this, auto_drainer_t::lock_t(&drainer)))
-{
+    subs(this, auto_drainer_t::lock_t(&drainer)) {
     rassert(source->home_thread() == source_thread);
     subs.reset(source);
 }

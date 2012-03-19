@@ -1,5 +1,5 @@
-#ifndef __ARCH_IO_TIMER_PROVIDER_HPP__
-#define __ARCH_IO_TIMER_PROVIDER_HPP__
+#ifndef ARCH_IO_TIMER_PROVIDER_HPP_
+#define ARCH_IO_TIMER_PROVIDER_HPP_
 
 // We pick the right timer provider (that impelements OS level timer
 // interface) depending on which system we're on. Some older kernels
@@ -19,4 +19,4 @@ struct timer_provider_callback_t {
     virtual void on_timer(int nexpirations) = 0;
 };
 
-#endif // __ARCH_IO_TIMER_PROVIDER_HPP__
+#endif // ARCH_IO_TIMER_PROVIDER_HPP_

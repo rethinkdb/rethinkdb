@@ -1,5 +1,5 @@
-#ifndef __RWI_LOCK_HPP__
-#define __RWI_LOCK_HPP__
+#ifndef RWI_LOCK_HPP_
+#define RWI_LOCK_HPP_
 
 #include "errors.hpp"
 #include <boost/function.hpp>
@@ -135,5 +135,5 @@ inline void swap(rwi_lock_t::write_acq_t &a1, rwi_lock_t::write_acq_t &a2) {
     std::swap(a1.lock, a2.lock);
 }
 
-#endif // __RWI_LOCK_HPP__
+#endif // RWI_LOCK_HPP_
 

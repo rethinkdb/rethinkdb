@@ -1,5 +1,5 @@
-#ifndef __MEMCACHED_TCP_CONN_HPP__
-#define __MEMCACHED_TCP_CONN_HPP__
+#ifndef MEMCACHED_TCP_CONN_HPP_
+#define MEMCACHED_TCP_CONN_HPP_
 
 #include "arch/io/network.hpp"
 #include "arch/types.hpp"
@@ -10,7 +10,7 @@
 /* Serves memcache queries over the given TCP connection until the connection in question
 is closed. */
 
-void serve_memcache(tcp_conn_t *conn, get_store_t *get_store, set_store_interface_t *set_store, int n_slices);
+void serve_memcache(tcp_conn_t *conn, get_store_t *get_store, set_store_interface_t *set_store);
 
 /* Listens for TCP connections on the given port and serves memcache queries over those
 connections until the destructor is called. */
@@ -32,7 +32,7 @@ private:
 
     tcp_listener_t tcp_listener;
 
-    void handle(auto_drainer_t::lock_t keepalive, int n_slices, boost::scoped_ptr<nascent_tcp_conn_t>& conn);
+    void handle(auto_drainer_t::lock_t keepalive, boost::scoped_ptr<nascent_tcp_conn_t>& conn);
 };
 
-#endif /* __MEMCACHED_TCP_CONN_HPP__ */
+#endif /* MEMCACHED_TCP_CONN_HPP_ */
