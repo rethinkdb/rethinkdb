@@ -26,11 +26,10 @@ class DataStream extends Backbone.Model
 
     initialize: ->
         @.set('cached_data': [])
-        setInterval @tick, 1500
 
-    tick: => @.get('data').each (data_point) => @update_data data_point
+    update: (timestamp) => @.get('data').each (data_point) => @update_data_point data_point, timestamp
 
-    update_data: (data_point) =>
+    update_data_point: (data_point, timestamp) =>
         # Attributes of the data point
         uuid = data_point.get('id')
         existing_val = data_point.get('value')
@@ -73,7 +72,7 @@ class DataStream extends Backbone.Model
         data_point.set
             value: new_val
             # Assumption: every datapoint across datastreams at the time of sampling will have the same datetime stamp
-            time: new Date(Date.now())
+            time: timestamp
 
 class DataPoint extends Backbone.Model
 
@@ -108,49 +107,76 @@ class DashboardView extends Backbone.View
     className: 'dashboard-view'
     template: Handlebars.compile $('#dashboard_view-template').html()
 
+    update_data_streams: (datastreams) ->
+        timestamp = new Date(Date.now())
+        
+        for stream in datastreams
+           stream.update(timestamp)
+
     initialize: ->
         log_initial '(initializing) dashboard view'
 
-        fake_data = new DataPoints()
-        cached_data = {}
-        for collection in [namespaces, datacenters, machines]
-            collection.map (model, i) ->
-                d = new DataPoint
-                    collection: collection
-                    value: (i+1) * 100
-                    id: model.get('id')
-                    # Assumption: every datapoint across datastreams at the time of sampling will have the same datetime stamp
-                    time: new Date(Date.now())
-                fake_data.add d
-                cached_data[model.get('id')] = [d]
+        fake_data = ->
+            data_points = new DataPoints()
+            cached_data = {}
+            for collection in [namespaces, datacenters, machines]
+                collection.map (model, i) ->
+                    d = new DataPoint
+                        collection: collection
+                        value: (i+1) * 100
+                        id: model.get('id')
+                        # Assumption: every datapoint across datastreams at the time of sampling will have the same datetime stamp
+                        time: new Date(Date.now())
+                    data_points.add d
+                    cached_data[model.get('id')] = [d]
+            return data_points
 
         mem_usage_data = new DataStream
             name: 'mem_usage_data'
-            data: fake_data
+            pretty_print_name: 'memory usage'
+            data: fake_data()
             cached_data: []
             active_uuids: []
 
         disk_usage_data = new DataStream
             name: 'disk_usage_data'
-            data: fake_data
+            pretty_print_name: 'disk usage'
+            data: fake_data()
             cached_data: []
             active_uuids: []
 
-        cluster_performance_data = new DataStream
-            name:  'cluster_performance_data'
-            data: fake_data
+        cluster_performance_total = new DataStream
+            name:  'cluster_performance_total'
+            pretty_print_name: 'total ops/sec'
+            data: fake_data()
+            cached_data: []
+            active_uuids: []
+
+        cluster_performance_reads = new DataStream
+            name:  'cluster_performance_reads'
+            pretty_print_name: 'reads/sec'
+            data: fake_data()
+            cached_data: []
+            active_uuids: []
+
+        cluster_performance_writes = new DataStream
+            name:  'cluster_performance_writes'
+            pretty_print_name: 'writes/sec'
+            data: fake_data()
             cached_data: []
             active_uuids: []
 
 
-        data_streams = [mem_usage_data, disk_usage_data, cluster_performance_data]
+        data_streams = [mem_usage_data, disk_usage_data, cluster_performance_total, cluster_performance_reads, cluster_performance_writes]
+
+        setInterval (=> @update_data_streams data_streams), 1500
 
         @data_picker = new Vis.DataPicker data_streams
         color_map = @data_picker.get_color_map()
 
         @disk_usage = new Vis.ResourcePieChart disk_usage_data, color_map
         @mem_usage = new Vis.ResourcePieChart mem_usage_data, color_map
-        @cluster_performance = new Vis.ClusterPerformanceGraph cluster_performance_data, color_map
+        @cluster_performance = new Vis.ClusterPerformanceGraph [cluster_performance_total, cluster_performance_reads, cluster_performance_writes], color_map
 
     render: ->
         log_render '(rendering) dashboard view'
@@ -197,6 +223,8 @@ module 'Vis', ->
                 )
 
             @.$('.filter').html @selected_filter.render().el
+
+            @.delegateEvents()
             return @
 
         switch_filter: (event) =>
@@ -243,11 +271,10 @@ module 'Vis', ->
             return @
 
         select_model: (event) =>
-            $model = $(event.currentTarget)
+            $model = @.$(event.currentTarget)
             id = $model.data('id')
             @models_selected[id] = not @models_selected[id]
             $('input', $model).attr('checked', @models_selected[id])
-
 
             @filter_data_sources()
 
@@ -272,7 +299,6 @@ module 'Vis', ->
 
             # Use the given datastream to back the pie chart
             @data_stream = data_stream
-            @data = data_stream.get('data')
 
             # Use a pre-defined color scale to pick the colors
             @color_map = color_map
@@ -296,6 +322,9 @@ module 'Vis', ->
             # Define the arc's width using the built-in arc function
             @arc = d3.svg.arc().innerRadius(@radius).outerRadius(@radius - 25)
 
+            # Make the data change every few ms | faked TODO
+            setInterval @update_chart, 2000
+
         # Utility function to get the total value of the data points based on filtering
         #   data: data set that contains data points to be totaled
         get_total: (data) =>
@@ -306,7 +335,7 @@ module 'Vis', ->
         # Utility function to only get a filtered subset of the data
         get_filtered_data: =>
             return _.map @data_stream.get('active_uuids'), (uuid) =>
-                @data.get(uuid).toJSON()
+                @data_stream.get('data').get(uuid).toJSON()
 
         render: =>
             @.$el.empty()
@@ -349,10 +378,8 @@ module 'Vis', ->
 
 
             @draw_pie_chart()
-            @data_stream.on 'change:active_uuids', => @draw_pie_chart()
-
-            # Make the data change every few ms | faked TODO
-            setInterval @update_chart, 2000
+            @data_stream.off 'change:active_uuids', @draw_pie_chart
+            @data_stream.on 'change:active_uuids', @draw_pie_chart
 
             return @
 
@@ -360,6 +387,7 @@ module 'Vis', ->
         draw_pie_chart: =>
             # Get the selected datasets. If there aren't any selected, indicate no data was selected.
             filtered_data = @get_filtered_data()
+
             if filtered_data.length is 0
                 @show_empty_chart()
                 return
@@ -445,6 +473,7 @@ module 'Vis', ->
         update_chart: =>
             # Get the selected datasets. If there aren't any selected, indicate no data was selected.
             filtered_data = @get_filtered_data()
+
             if filtered_data.length is 0
                 @show_empty_chart()
                 return
@@ -456,7 +485,7 @@ module 'Vis', ->
                     existing_positional_data[datum.data.id] = datum.data.previous
 
             # Run the updated data through the donut layout manager
-            new_data = @donut @get_filtered_data() 
+            new_data = @donut filtered_data
 
             # Drop in positional data if it exists for the given arc
             new_data = _.map new_data, (datum) ->
@@ -567,10 +596,13 @@ module 'Vis', ->
 
     class @ClusterPerformanceGraph extends Backbone.View
         className: 'cluster-performance-graph'
-        template: Handlebars.compile $('#vis_loading-template').html()
+        loading_template: Handlebars.compile $('#vis_loading-template').html()
+        no_data_template: Handlebars.compile $('#vis_no_data-template').html()
+        stream_picker_template: Handlebars.compile $('#vis-graph_stream_picker-template').html()
+        empty_chart_showing: false
 
         events: ->
-            'click': 'update_chart'
+            'click .stream-picker .datastream': 'change_data_stream'
 
         time_now: -> new Date(Date.now() - @duration)
 
@@ -612,7 +644,7 @@ module 'Vis', ->
             # Return the maximum value (highest peak of data)
             return d3.max(sum_values)
             
-        initialize: (data_stream, color_map) ->
+        initialize: (data_streams, color_map) ->
             log_initial '(initializing) cluster performance graph'
             # Generate fake data for visualization reasons | faked data TODO
             # Number of elements
@@ -621,8 +653,9 @@ module 'Vis', ->
             @duration = 1500
 
             # Data stream that backs this plot, and the currently active uuids
-            @data_stream = data_stream
-            @active_uuids = data_stream.get('active_uuids')
+            @data_streams = data_streams
+            @data_stream = data_streams[0]
+            @active_uuids = @data_stream.get('active_uuids')
 
             # Use a pre-defined color scale to pick the colors
             @color_map = color_map
@@ -637,33 +670,93 @@ module 'Vis', ->
             @height = 300 - @margin.top - @margin.bottom
 
         render: =>
-            if @get_data.length >= 2
-                @render_chart()
-            else
-                @data_stream.on 'cache_ready', =>
-                    @.$('.loading').fadeOut 'medium', =>
-                        $(@).remove()
-                        @render_chart()
-                @.$el.html @template()
+            # We'll be recreating $el from scratch each time
+            @.$el.empty()
 
-            @data_stream.on 'change:active_uuids', => 
-                @active_uuids = @data_stream.get('active_uuids')
-                @render_chart()
+            # Remove all previous bindings on the datastreams we're watching
+            for stream in @data_streams
+                stream.off  'cache_ready', @cache_ready
+                stream.off 'change:active_uuids', @active_uuids_changed
+
+            # Get the new set of active datasets
+            @active_uuids = @data_stream.get('active_uuids')
+            
+            # Draw the chart immediately if enough data has been cached
+            if @get_data()[0].datapoints.length >= 2
+                @add_data_stream_picker()
+                @draw_chart()
+            # Otherwise, set up a binding to draw the chart when the cache is ready
+            else
+                @data_stream.on 'cache_ready', @cache_ready
+                @.$el.html @loading_template()
+
+            # Bind to datapicker changes
+            @data_stream.on 'change:active_uuids', @active_uuids_changed
+
+            # Reattach callbacks
+            @.delegateEvents()
                 
             return @
 
-        render_chart: =>
+        # Draw the chart when the cache is ready
+        cache_ready: =>
+            @.$('.loading').fadeOut 'medium', =>
+                $(@).remove()
+                @add_data_stream_picker()
+                @draw_chart()
+
+        # Update the new set of active datasets
+        active_uuids_changed: =>
+            @active_uuids = @data_stream.get('active_uuids')
+            @draw_chart()
+
+        # Set up datastream picker
+        add_data_stream_picker: =>
+            if @data_streams.length > 1
+                @.$el.append @stream_picker_template
+                    datastreams: _.map(@data_streams, (data_stream, i) =>
+                        id: i
+                        name: data_stream.get('pretty_print_name')
+                        selected: @data_stream is data_stream
+                    )
+
+        change_data_stream: (event) =>
+            # Remove the binding that watches @data_stream for changes in active uuids
+            @data_stream.off 'change:active_uuids'
+            
+            # Update the @data_stream reference based on what was clicked (and make appropriate visual changes to the radio buttons)
+            $data_stream = @.$(event.currentTarget)
+            id = $data_stream.data('id')
+            @data_stream = @data_streams[id]
+            @.$('.stream_picker input').attr('checked', false)
+            $('input', $data_stream).attr('checked', true)
+            
+            # Now that we've updated the @data_stream reference, bind again to datapicker changes
+            @data_stream.on 'change:active_uuids', @active_uuids_changed
+
+            @draw_chart()
+
+        draw_chart: =>
             data = @get_data()
-            @.$el.empty()
+
+            # Stop all running animations / tweenings to allow us to redraw the line chart
+            d3.selectAll("*").transition().delay(0)
+
+            @.$('svg').remove()
 
             # If there is no data, don't render the chart
-            return if data.length <= 0
+            if data.length is 0
+                @show_empty_chart()
+                return
+            else
+                @hide_empty_chart() if @empty_chart_showing
 
             # Get the latest recorded time
             last_time = @get_latest_time data
 
+            # The x scale's domain defines a window of 30 seconds, accounting for the points we're buffering
             @x = d3.time.scale()
-                .domain([last_time - 30000 - @duration, last_time - @duration])
+                .domain([last_time - 30000 - 2 * @duration, last_time - 2 * @duration])
                 .range([0, @width])
 
             # The y scale should start at zero, and end at the highest sum across all data sets
@@ -739,7 +832,6 @@ module 'Vis', ->
                     .attr('class', 'y-axis')
                     .call @y_axis()
 
-
             # Start the first tick
             @update_chart()
 
@@ -757,17 +849,6 @@ module 'Vis', ->
             existing_domain = @y.domain()
             highest_value = d3.max([@get_highest_value(data), existing_domain[1]])
             @y.domain([0, highest_value])
-
-            # Transition the axes: slide linearly
-            @chart.axes.x.transition()
-               .duration(@duration)
-               .ease('linear')
-               .call @x_axis()
-
-            @chart.axes.y.transition()
-                .duration(@duration)
-                .ease('linear')
-                .call @y_axis()
 
             animate = (data_set) =>
                 group = @chart.data_sets[data_set.uuid]
@@ -795,19 +876,37 @@ module 'Vis', ->
                         .duration(@duration)
                         .ease('linear')
                         .attr('transform', "translate(#{slide_path_to})")
-                    # Call the tick function again after this transition is finished (infinite loop)
-                    .each 'end', => @update_chart() if data_set.uuid is @active_uuids[@active_uuids.length - 1]
             for data_set in data
                 animate data_set
 
-modal_registry = []
-clear_modals = ->
-    modal.hide_modal() for modal in modal_registry
-    modal_registry = []
-register_modal = (modal) -> modal_registry.push(modal)
+            # Transition the axes: slide linearly
+            @chart.axes.x.transition()
+               .duration(@duration)
+               .ease('linear')
+               .call(@x_axis())
 
+            @chart.axes.y.transition()
+                .duration(@duration)
+                .ease('linear')
+                .call(@y_axis())
+                # Call the tick function again after this transition is finished (infinite loop)
+                .each 'end', => @update_chart() if data_set.uuid is @active_uuids[@active_uuids.length - 1]
 
+        # Show the empty chart div, hide the svg
+        show_empty_chart: =>
+            if not @empty_chart_showing
+                @.$el.append @no_data_template()
+                @.$('svg').hide()
+                @.$('.stream-picker').hide()
+                @empty_chart_showing = true
 
+        # Hide the empty chart div, show the svg
+        hide_empty_chart: =>
+            if @empty_chart_showing
+                $('.no-data').remove()
+                @.$('svg').show()
+                @.$('.stream-picker').show()
+                @empty_chart_showing = false
 
 # Router for Backbone.js
 class BackboneCluster extends Backbone.Router
@@ -933,13 +1032,18 @@ class BackboneCluster extends Backbone.Router
         # Otherwise, show an error message stating that the machine does not exist
         @$container.empty().text 'Machine '+id+' does not exist.'
 
+modal_registry = []
+clear_modals = ->
+    modal.hide_modal() for modal in modal_registry
+    modal_registry = []
+register_modal = (modal) -> modal_registry.push(modal)
+
 updateInterval = 5000
 
 declare_client_connected = ->
     window.connection_status.set({client_disconnected: false})
     clearTimeout(window.apply_diffs_timer)
     window.apply_diffs_timer = setTimeout (-> window.connection_status.set({client_disconnected: true})), 2 * updateInterval
-
 
 # Process updates from the server and apply the diffs to our view of the data. Used by our version of Backbone.sync and POST / PUT responses for form actions
 apply_diffs = (updates) ->

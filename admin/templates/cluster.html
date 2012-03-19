@@ -64,6 +64,17 @@
                 <div class="loading"><h4>Loading data...</h4><img src="/static/images/loading.gif" /></div>
             </script>
 
+            <script id="vis-graph_stream_picker-template" type="text/x-handlebars-template">
+                <form class="stream-picker">
+                {{#each datastreams}}
+                    <div class="datastream" data-id="{{this.id}}">
+                        <input {{#if this.selected}}checked="true"{{/if}} type="radio" name="graph-data-stream"/>
+                        {{this.name}}
+                    </div>
+                {{/each}}
+                </form>
+            </script>
+
             <script id="vis_no_data-template" type="text/x-handlebars-template">
                 <p class="no-data">No data selected.</p>
             </script>
