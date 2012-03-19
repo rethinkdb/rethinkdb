@@ -21,7 +21,7 @@ public:
     int port;
 };
 
-void run_rethinkdb_create(const std::string &filepath, bool *result_out) {
+void run_rethinkdb_create(const std::string &filepath, std::string &machine_name, bool *result_out) {
 
     if (metadata_persistence::check_existence(filepath)) {
         std::cout << "ERROR: The path '" << filepath << "' already exists. "
@@ -34,9 +34,13 @@ void run_rethinkdb_create(const std::string &filepath, bool *result_out) {
     std::cout << "Our machine ID: " << our_machine_id << std::endl;
 
     cluster_semilattice_metadata_t metadata;
+
+    machine_semilattice_metadata_t machine_semilattice_metadata;
+    machine_semilattice_metadata.name = machine_semilattice_metadata.name.make_new_version(machine_name, our_machine_id);
+
     metadata.machines.machines.insert(std::make_pair(
         our_machine_id,
-        machine_semilattice_metadata_t()
+        machine_semilattice_metadata
         ));
 
     metadata_persistence::create(filepath, our_machine_id, metadata);
@@ -82,7 +86,7 @@ void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and
     *result_out = serve(filepath, look_up_peers_addresses(joins), port, client_port, persisted_machine_id, persisted_semilattice_metadata);
 }
 
-void run_rethinkdb_porcelain(const std::string &filepath, const std::vector<host_and_port_t> &joins, int port, int client_port, bool *result_out) {
+void run_rethinkdb_porcelain(const std::string &filepath, const std::string &machine_name, const std::vector<host_and_port_t> &joins, int port, int client_port, bool *result_out) {
 
     os_signal_cond_t c;
 
@@ -120,6 +124,8 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::vector<host
             /* Add ourselves as a member of the "Welcome" datacenter. */
             machine_semilattice_metadata_t our_machine_metadata;
             our_machine_metadata.datacenter = vclock_t<datacenter_id_t>(datacenter_id, our_machine_id);
+            our_machine_metadata.name = vclock_t<std::string>(machine_name, our_machine_id);
+
             semilattice_metadata.machines.machines.insert(std::make_pair(
                 our_machine_id,
                 deletable_t<machine_semilattice_metadata_t>(our_machine_metadata)
@@ -159,6 +165,13 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::vector<host
 
         *result_out = serve(filepath, look_up_peers_addresses(joins), port, client_port, our_machine_id, semilattice_metadata);
     }
+}
+
+po::options_description get_machine_name_options() {
+    po::options_description desc("Machine name options");
+    desc.add_options()
+        ("name,n", po::value<std::string>()->default_value("NN"), "The name for this machine (as will appear in the metadata.");
+    return desc;
 }
 
 po::options_description get_file_option() {
@@ -202,6 +215,7 @@ po::options_description get_network_options() {
 po::options_description get_rethinkdb_create_options() {
     po::options_description desc("Allowed options");
     desc.add(get_file_option());
+    desc.add(get_machine_name_options());
     return desc;
 }
 
@@ -215,6 +229,7 @@ po::options_description get_rethinkdb_serve_options() {
 po::options_description get_rethinkdb_porcelain_options() {
     po::options_description desc("Allowed options");
     desc.add(get_file_option());
+    desc.add(get_machine_name_options());
     desc.add(get_network_options());
     return desc;
 }
@@ -225,9 +240,10 @@ int main_rethinkdb_create(int argc, char *argv[]) {
     po::notify(vm);
 
     std::string filepath = vm["directory"].as<std::string>();
+    std::string machine_name = vm["name"].as<std::string>();
 
     bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_create, filepath, &result));
+    run_in_thread_pool(boost::bind(&run_rethinkdb_create, filepath, machine_name, &result));
 
     return result ? 0 : 1;
 }
@@ -261,6 +277,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
     po::notify(vm);
 
     std::string filepath = vm["directory"].as<std::string>();
+    std::string machine_name = vm["name"].as<std::string>();
     std::vector<host_and_port_t> joins;
     if (vm.count("join") > 0) {
         joins = vm["join"].as<std::vector<host_and_port_t> >();
@@ -273,7 +290,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 #endif
 
     bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain, filepath, joins, port, client_port, &result));
+    run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain, filepath, machine_name, joins, port, client_port, &result));
 
     return result ? 0 : 1;
 }
