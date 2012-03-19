@@ -126,7 +126,7 @@ ifeq ($(COMPILER), INTEL)
 CXXFLAGS+=-std=gnu++98 -w1 -ftls-model=local-dynamic
 else
 ifeq ($(COMPILER), CLANG)
-CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-mismatched-tags
+CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default
 else
 CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default
 endif

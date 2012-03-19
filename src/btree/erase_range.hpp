@@ -10,7 +10,8 @@ struct btree_key_t;
 class order_token_t;
 class got_superblock_t;
 
-struct key_tester_t {
+class key_tester_t {
+public:
     key_tester_t() { }
     virtual bool key_should_be_erased(const btree_key_t *key) = 0;
 

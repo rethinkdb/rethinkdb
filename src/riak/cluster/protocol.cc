@@ -19,7 +19,8 @@ repli_timestamp_t store_t::get_timestamp() {
     crash("Not implemented");
 }
 
-struct read_functor : public boost::static_visitor<read_response_t> {
+class read_functor : public boost::static_visitor<read_response_t> {
+public:
     read_response_t operator()(point_read_t read, riak_interface_t *riak) const {
         if (read.range) {
             return read_response_t(point_read_response_t(riak->get_object(read.key, *(read.range))));
@@ -42,7 +43,8 @@ read_response_t store_t::read(read_t read, order_token_t) {
     return boost::apply_visitor(read_functor(),  read.internal, interface_variant);
 }
 
-struct write_functor : public boost::static_visitor<write_response_t> {
+class write_functor : public boost::static_visitor<write_response_t> {
+public:
     write_response_t operator()(set_write_t write, riak_interface_t *riak) const {
         set_write_response_t res;
 
