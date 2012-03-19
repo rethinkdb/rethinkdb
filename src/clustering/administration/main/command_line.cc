@@ -150,9 +150,13 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
             semilattice_metadata.memcached_namespaces.namespaces.insert(std::make_pair(namespace_id, namespace_metadata));
 
         } else {
+
+            machine_semilattice_metadata_t our_machine_metadata;
+            our_machine_metadata.name = vclock_t<std::string>(machine_name, our_machine_id);
+
             semilattice_metadata.machines.machines.insert(std::make_pair(
                 our_machine_id,
-                machine_semilattice_metadata_t()
+                our_machine_metadata
                 ));
         }
 
