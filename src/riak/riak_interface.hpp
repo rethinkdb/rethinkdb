@@ -1,11 +1,14 @@
 #ifndef RIAK_INTERFACE_HPP_
 #define RIAK_INTERFACE_HPP_
 
-#include "riak/structures.hpp"
-#include "riak/store_manager.hpp"
-#include <boost/ptr_container/ptr_map.hpp>
-#include "http/json.hpp"
+#include "arch/runtime/thread_pool.hpp"
+// Map reduce code is currently commented out.
+// #include "http/json.hpp"
 #include "javascript/javascript.hpp"
+#include "riak/store_manager.hpp"
+#include "riak/structures.hpp"
+
+class btree_slice_t;
 
 #define RIAK_LIST_KEYS_BATCH_FACTOR 10
 

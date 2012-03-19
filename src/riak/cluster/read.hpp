@@ -2,9 +2,15 @@
 #define RIAK_CLUSTER_READ_HPP_
 
 #include <string>
-#include <boost/optional.hpp>
-#include "riak/cluster/region.hpp"
+#include <utility>
 #include <vector>
+
+#include "errors.hpp"
+#include <boost/optional.hpp>
+#include <boost/variant.hpp>
+
+#include "btree/iteration.hpp"
+#include "riak/cluster/region.hpp"
 #include "riak/structures.hpp"
 
 namespace riak {

@@ -1,12 +1,17 @@
 #include "riak/http_server.hpp"
-#include "http/json.hpp"
+
 #include <sstream>
+
 #include <boost/algorithm/string/join.hpp>
 #include <boost/regex.hpp>
 #include <boost/xpressive/xpressive.hpp>
-#include "riak/riak_value.hpp"
-#include "riak/store_manager.hpp"
+
+#include "btree/iteration.hpp"
+#include "http/json.hpp"
 #include "perfmon.hpp"
+#include "riak/store_manager.hpp"
+#include "riak/riak_value.hpp"
+
 
 namespace riak {
 

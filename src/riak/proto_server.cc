@@ -1,7 +1,9 @@
 #include "riak/proto_server.hpp"
-#include "riak/proto/riakclient.pb.h"
+
+#include "utils.hpp"
+#include <boost/bind.hpp>
+
 #include <google/protobuf/message.h>
-#include "riak/riak_interface.hpp"
 
 
 namespace riak {

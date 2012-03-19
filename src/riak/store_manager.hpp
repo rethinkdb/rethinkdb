@@ -21,6 +21,7 @@ structures into a metadata file or metadata_store of some kind.
 */
 
 #include <string>
+#include <list>
 #include <map>
 #include <vector>
 

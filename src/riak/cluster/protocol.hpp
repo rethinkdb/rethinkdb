@@ -1,22 +1,17 @@
 #ifndef RIAK_PROTOCOL_HPP_
 #define RIAK_PROTOCOL_HPP_
 
-#include <set>
-#include <string>
-#include <vector>
-#include <boost/variant.hpp>
-#include "utils.hpp"
-#include <boost/bind.hpp>
-#include "riak/structures.hpp"
-#include "javascript/javascript.hpp"
-#include "riak/riak_interface.hpp"
-#include "riak/cluster/region.hpp"
 #include "riak/cluster/read.hpp"
+#include "riak/cluster/region.hpp"
 #include "riak/cluster/write.hpp"
-#include "javascript/javascript.hpp"
+#include "utils.hpp"
+
+class order_token_t;
+class signal_t;
+namespace boost { template <typename Signature> class function; }
+namespace riak { class riak_interface_t; }
 
 namespace riak {
-class temporary_cache_t;
 
 
 /* Riak store */

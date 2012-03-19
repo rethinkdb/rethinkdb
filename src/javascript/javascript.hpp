@@ -1,12 +1,17 @@
 #ifndef JAVASCRIPT_JAVASCRIPT_HPP_
 #define JAVASCRIPT_JAVASCRIPT_HPP_
 
-#include <JavaScriptCore/JavaScript.h>
-#include <API/JSContextRefPrivate.h>
-#include "utils.hpp"
-#include "arch/runtime/runtime.hpp"
-#include <vector>
+#include <stddef.h>
 #include <exception>
+#include <string>
+#include <vector>
+
+#include "errors.hpp"
+#include <boost/function/function_fwd.hpp>
+
+#include <API/JSBase.h>
+#include <API/JSStringRef.h>
+#include "arch/runtime/runtime.hpp"
 #include "javascript/javascript_pool.hpp"
 
 namespace JS {
@@ -27,6 +32,8 @@ typedef details::scoped_js_t< ::JSObjectRef> scoped_js_object_t;
 
 class scoped_js_value_array_t;
 class scoped_js_string_t;
+struct ctx_group_t;
+struct javascript_pool_t;
 
 /* ctx_t is a wrapper for an actual JavaScript context object. Any operations
  * that touch a context must be run in the ctx_group_t's associated

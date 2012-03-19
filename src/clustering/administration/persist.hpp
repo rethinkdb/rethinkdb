@@ -1,9 +1,6 @@
 #ifndef CLUSTERING_ADMINISTRATION_PERSIST_HPP_
 #define CLUSTERING_ADMINISTRATION_PERSIST_HPP_
 
-#include "errors.hpp"
-#include <boost/serialization/export.hpp>
-
 #include "clustering/administration/issues/local.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "rpc/semilattice/view.hpp"
