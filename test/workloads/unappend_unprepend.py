@@ -16,6 +16,24 @@ def expect(s, string):
     if msg != string:
         raise ValueError("Didn't get what we expected: expected %s, got %s" % (string, msg));
 
+def test_sizes(s, cmd, lo, hi):
+    print ("testing un%s with %d .. %d" % (cmd, lo, hi))
+    s.send("set x 0 0 %d\r\n" % lo + "a" * lo + "\r\n")
+    msg = readline(s)
+    if msg != "STORED\r\n":
+        print ("Server responded with '%s', should have been STORED." % msg)
+        raise ValueError("Initial large value of size %d not set.  Weird." % lo)
+
+    # We send a malformed request, with an extra char!
+    s.send("%s x 0 0 %d\r\n" % (cmd, (hi - lo)) + "b" * (hi - lo) + "b" + "\r\n")
+
+    expect(s, "CLIENT_ERROR bad data chunk\r\n")
+
+    s.send("get x\r\n")
+    expect(s, "VALUE x 0 %d\r\n" % lo)
+    expect(s, "a" * lo + "\r\n")
+    expect(s, "END\r\n")
+
 op = workload_common.option_parser_for_socket()
 opts = op.parse(sys.argv)
 

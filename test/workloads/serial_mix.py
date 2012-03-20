@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import random, time, sys, workload_common
+from vcoptparse import *
 
 def random_key(opts):
     # The reason we have keysuffix is in case another test (such as multi_serial_mix.py) is using
@@ -120,6 +121,7 @@ def option_parser_for_serial_mix():
     op["keysize"] = IntFlag("--keysize", 250)
     op["valuesize"] = IntFlag("--valuesize", 10000)
     op["thorough"] = BoolFlag("--thorough")
+    op["duration"] = IntFlag("--duration", 10)
     return op
 
 if __name__ == "__main__":

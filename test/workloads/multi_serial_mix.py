@@ -1,5 +1,6 @@
 #!/usr/bin/python
-import multiprocessing, sys, workload_common, os, serial_mix
+import multiprocessing, sys, workload_common, os, serial_mix, time
+from vcoptparse import *
 
 def child(opts, log_path):
     # This is run in a separate process
@@ -31,8 +32,7 @@ try:
         opts2 = dict(opts)
         opts2["keysuffix"] = "_%d" % id   # Prevent collisions between tests
 
-    nth_test_dir = os.path.join(test_dir.p("testers/%d/" %id))
-        process = multiprocessing.Process(target = child, args = (opts2, log_path, nth_test_dir, port))
+        process = multiprocessing.Process(target = child, args = (opts2, log_path))
         process.start()
 
         processes.append((process, id))

@@ -9,7 +9,7 @@ op["num_ints"] = IntFlag("--num-ints", 10)
 opts = op.parse(sys.argv)
 opts["mclib"] = "memcache"
 
-with make_memcache_connection(opts) as mc:
+with workload_common.make_memcache_connection(opts) as mc:
     print "Shuffling numbers"
     ints = range(0, opts["num_ints"])
     shuffle(ints)
