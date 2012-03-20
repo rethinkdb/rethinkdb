@@ -1134,6 +1134,8 @@ $ ->
     setInterval (-> Backbone.sync 'read', null), updateInterval
     declare_client_connected()
 
+    $.getJSON('/ajax', apply_diffs)
+
     # Set up common DOM behavior
     $('.modal').modal
         backdrop: true

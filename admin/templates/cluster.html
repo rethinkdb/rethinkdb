@@ -927,7 +927,7 @@
     <td class="machines">
         <p class="existing-replicas">
                     Replicas for this shard:
-        {{#comma_separated machines}}<input type="hidden" name="machine_for_{{shard_index}}" value="{{machine.id}}"> <a href='/#machines/{{machine.id}}'>{{machine.name}}</a>{{/comma_separated}}
+        {{#comma_separated existing_machines}}<input type="hidden" name="machine_for_{{shard_index}}" value="{{machine.id}}"> <a href='/#machines/{{machine.id}}'>{{machine.name}}</a>{{/comma_separated}}
         </p>
     </td>
     <td class="change-machines">

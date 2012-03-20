@@ -122,11 +122,9 @@ module 'NamespaceView', ->
                         success: (response) =>
                             clear_modals()
 
-                            # Parse the response JSON
-                            response_json = $.parseJSON response
-                            # apply the diffs to the backbone state
-                            apply_diffs response_json.diffs
-                            $('#user-alert-space').append @alert_tmpl {}
+                            apply_diffs(response)
+                            #TODO hook this up
+                            #$('#user-alert-space').append @alert_tmpl {}
 
             namespace = @namespace
             _datacenters = _.filter datacenters.models, (datacenter) ->
@@ -170,12 +168,10 @@ module 'NamespaceView', ->
                         success: (response) =>
                             clear_modals()
 
-                            # Parse the response JSON
-                            response_json = $.parseJSON response
-                            # apply the diffs to the backbone state
-                            apply_diffs response_json.diffs
+                            apply_diffs(response)
                             # the result of this operation are some attributes about the namespace we created, to be used in an alert
-                            $('#user-alert-space').append @alert_tmpl response_json.op_result
+                            # TODO hook this up
+                            #$('#user-alert-space').append @alert_tmpl response_json.op_result
 
             json = { 'datacenters' : _.map datacenters.models, (datacenter) -> datacenter.toJSON() }
 
@@ -208,11 +204,10 @@ module 'NamespaceView', ->
                         success: (response) =>
                             clear_modals()
 
-                            # Parse the response JSON, apply appropriate diffs, and show an alert
-                            response_json = $.parseJSON response
-                            apply_diffs response_json.diffs
-                            for namespace in response_json.op_result
-                                $('#user-alert-space').append @alert_tmpl namespace
+                            apply_diffs(response)
+                            #TODO hook this up
+                            #for namespace in response_json.op_result
+                                #$('#user-alert-space').append @alert_tmpl namespace
 
             array_for_template = _.map namespaces_to_delete, (namespace) -> namespace.toJSON()
             super validator_options, { 'namespaces': array_for_template }
@@ -232,6 +227,25 @@ module 'NamespaceView', ->
             @namespace = namespace
             @datacenter = datacenter
             super @template
+
+        get_blueprint_data: ->
+            #First we need to get the data in a manageable form the schema of this is:
+            blueprint_data = {} #a map from shards to machines
+
+            #Initialize the data
+            for shard in @namespace.get('shards')
+                blueprint_data[shard] = []
+
+            for peer_id, shards_to_roles of @namespace.get('blueprint').peers_roles
+                if (machines.get(peer_id).get('datacenter_uuid') == @datacenter.id)
+                    #This machine is in the correct datacenter and thus relevant
+
+                    #Iterate the shards
+                    for shard, role of shards_to_roles
+                        if role == "role_primary" || role == "role_secondary"
+                            blueprint_data[shard].push(machines.get(peer_id))
+            return blueprint_data
+            
 
         # Simple utility function to generate JSON for a set of machines
         machine_json: (machine_set) -> _.map machine_set, (machine) ->
@@ -254,76 +268,40 @@ module 'NamespaceView', ->
                         success: (response) =>
                             clear_modals()
 
-                            # Parse the response JSON
-                            response_json = $.parseJSON response
-                            apply_diffs response_json.diffs
-                            $('#user-alert-space').append @alert_tmpl {}
+                            apply_diffs(response)
+                            #TODO hook this up
+                            #$('#user-alert-space').append @alert_tmpl {}
 
 
-            num_changed = Math.abs(@namespace.get('replica_affinities')[@datacenter.id].desired_replication_count - num_replicas)
-            adding = @namespace.get('replica_affinities')[@datacenter.id].desired_replication_count < num_replicas
-            removing = @namespace.get('replica_affinities')[@datacenter.id].desired_replication_count > num_replicas
+            num_changed = 0
+            adding = false
+            removing = false
+
+            #Get all the potential machines
+            filtered_machines = machines.filter (machine) => machine.get('datacenter_uuid') is @datacenter.id
 
             # Build shards for template
             shards = []
-            add_shard = null
 
-            if adding
-                add_shard = (index, start, end) =>
-                    existing_machines = _.map(@namespace.get('replica_affinities')[@datacenter.id].machines[index], (id) -> machines.get(id))
-                    shards.push
-                        'adding': adding
-                        'removing': removing
-                        'name': "#{start} to #{end}"
-                        'index': index
-                        'machines': @machine_json (_.sortBy(_.difference(_.filter(machines.models, (m) => m.get('datacenter_uuid') == @datacenter.id), existing_machines), (m) -> m.get('name')))[0...num_changed]
-                        'existing_machines': @machine_json existing_machines
-            else if removing
-                add_shard = (index, start, end) =>
-                    existing_machines = _.map(@namespace.get('replica_affinities')[@datacenter.id].machines[index], (id) -> machines.get(id))
-                    shards.push
-                        'adding': adding
-                        'removing': removing
-                        'name': "#{start} to #{end}"
-                        'index': index
-                        'machines': @machine_json (_.sortBy existing_machines, (m) -> m.get('name'))[0...num_changed]
-                        'existing_machines': @machine_json existing_machines
-            else
-                add_shard = (index, start, end) =>
-                    existing_machines = _.map(@namespace.get('replica_affinities')[@datacenter.id].machines[index], (id) -> machines.get(id))
-                    shards.push
-                        'adding': adding
-                        'removing': removing
-                        'name': "#{start} to #{end}"
-                        'index': index
-                        'machines': @machine_json existing_machines
-                        'existing_machines': @machine_json existing_machines
-
-            start_split = '&minus;&infin;'
-            end_split = '&infin;'
-            prev_split = start_split
-
+            blueprint_data = @get_blueprint_data()
+            
             index = 0
-            for split in @namespace.get('shards')
-                add_shard index, prev_split, split
-                prev_split = split
-                index += 1
-            add_shard index, prev_split, end_split
+            for shard, used_machines of blueprint_data
+                _used_machines = _.map(used_machines, (machine) -> machines.get(machine.id))
+                console.log 'used_machines is', _used_machines
+                shards.push
+                    'name': human_readable_shard(shard)
+                    'machines': filtered_machines #The machines which could be used for this shard
+                    'existing_machines': _used_machines
+                    'index': index
+                index++
 
-#            filtered_machines = machines.filter (machine) => machine.get('datacenter_uuid') is @datacenter.get('id')
-            filtered_machines = machines.filter (machine) => true
-
-            # Right now our simulation doesn't have machines in every datacenter, so for the time being we'll just return all machines
-            # TODO There's supposedly something wrong with having machines in every datacenter.
-            machines_in_datacenter = @machine_json filtered_machines
-
-            console.log 'machines_in_datacenter is', machines_in_datacenter
             console.log 'and all machines is', machines, 'filtered machines', filtered_machines
             console.log 'and datacenter is', @datacenter, 'with id', @datacenter.get('id')
 
 
             # Create a view for each shard
-            shard_views = _.map shards, (shard) -> new ReplicaPlanShard machines_in_datacenter, shard
+            shard_views = _.map shards, (shard) -> new ReplicaPlanShard filtered_machines, shard
 
             # TODO (Holy TODO) this is a copy/paste of AbstractModal!  Holy crap!
             @$container.append @template
@@ -333,7 +311,7 @@ module 'NamespaceView', ->
                     'removing': removing
                     'num_changed': num_changed
                     'num': num_replicas
-                    'shards': shards
+                    'shards': shards ###### Pay attention to this this is where the action happens
                 'acks':
                     'num': num_acks
 
@@ -377,13 +355,14 @@ module 'NamespaceView', ->
             @available_machines = machines_in_datacenter
 
         render: ->
-            console.log 'rendering with shard.machines being', @shard.machines
+            console.log 'rendering with shard.machines being', @shard.machines, 'and existing =', @shard.existing_machines
             @.$el.html @template
-                'adding': @shard.adding
-                'removing': @shard.removing
+                'adding': false
+                'removing': false
                 'name': @shard.name
-                'machines': _.map(@shard.machines, (machine) => { machine: machine, shard_index: @shard.index })  # FML
-                'existing_machines': _.map(@shard.existing_machines, (machine) => { machine: machine, shard_index: @shard.index })  # FML
+                'shard_index': @shard.index
+                'machines': _.map(@shard.machines, (machine) => { machine: { name: machine.get('name'), id: machine.id }, shard_index: @shard.index })  # FML
+                'existing_machines': _.map(@shard.existing_machines, (machine) => { machine: { name: machine.get('name'), id: machine.id }, shard_index: @shard.index })  # FML
 
             return @
 
@@ -394,7 +373,7 @@ module 'NamespaceView', ->
                 'machine_dropdowns': _.map(@shard.machines, (machine) =>
                     'shard_index': @shard.index  # FML
                     'selected': machine
-                    'available_machines': @available_machines
+                    'available_machines': _.map(@available_machines, (machine) => { name: machine.get('name'), id: machine.id })
                 )
                 'adding': @shard.adding
                 'removing': @shard.removing
@@ -434,11 +413,9 @@ module 'NamespaceView', ->
                         success: (response) =>
                             clear_modals()
 
-                            # Parse the response JSON
-                            response_json = $.parseJSON response
-                            # apply the diffs to the backbone state
-                            apply_diffs response_json.diffs
-                            $('#user-alert-space').append @alert_tmpl {}
+                            apply_diffs(response)
+                            #TODO hook this up
+                            #$('#user-alert-space').append @alert_tmpl {}
 
             # Generate faked data TODO
             num_replicas = @namespace.get('replica_affinities')[@datacenter.id].desired_replication_count
@@ -553,11 +530,11 @@ module 'NamespaceView', ->
                         success: (response) =>
                             clear_modals()
 
-                            response_json = $.parseJSON(response)
-                            apply_diffs(response_json.diffs)
+                            apply_diffs(response)
 
                             # should be empty.
-                            $('#user-alert-space').append(@alert_tmpl({}))
+                            # TODO hook this up
+                            #$('#user-alert-space').append(@alert_tmpl({}))
 
 
             json =

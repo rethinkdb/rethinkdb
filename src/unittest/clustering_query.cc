@@ -26,7 +26,7 @@ static void run_read_write_test() {
     dummy_semilattice_controller_t<branch_history_t<dummy_protocol_t> > branch_history_controller(initial_branch_metadata);
 
     /* Set up a branch */
-    test_store_t initial_store;
+    test_store_t<dummy_protocol_t> initial_store;
     cond_t interruptor;
     broadcaster_t<dummy_protocol_t> broadcaster(
         cluster.get_mailbox_manager(),
