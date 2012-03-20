@@ -176,8 +176,8 @@ struct rwi_lock_assertion_t {
     explicit rwi_lock_assertion_t(int) { }
     rwi_lock_assertion_t() { }
 private:
-    friend class read_acq_t;
-    friend class write_acq_t;
+    friend struct read_acq_t;
+    friend struct write_acq_t;
     DISABLE_COPYING(rwi_lock_assertion_t);
 };
 
