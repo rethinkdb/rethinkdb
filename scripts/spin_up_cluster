@@ -246,7 +246,7 @@ else:
     kids = []
     for i in range(n_machines):
         # cleanup the directory
-        directory = "/tmp/cluster_directory_%d" % i
+        directory = "cluster_directory_%d" % i
         os.system("rm -rf " + directory)
         if (i == 0):
             kids += [subprocess.Popen(["../build/debug/rethinkdb", "--port", str(port), "--directory", directory, "--name", random.choice(names), "--port-offset", str(i)])]
