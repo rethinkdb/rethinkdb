@@ -15,20 +15,20 @@ def generate_make_semilattice_joinable_macro(nfields):
     print "#define RDB_MAKE_SEMILATTICE_JOINABLE_%d(type_t%s) \\" % \
         (nfields, "".join(", field%d" % (i+1) for i in xrange(nfields)))
     unused = "UNUSED " if nfields == 0 else ""
-    print "    inline void semilattice_join(%stype_t *__a, %sconst type_t &__b) { \\" % (unused, unused)
+    print "    inline void semilattice_join(%stype_t *_a_, %sconst type_t &_b_) { \\" % (unused, unused)
     for i in xrange(nfields):
-        print "        semilattice_join(&__a->field%d, __b.field%d); \\" % (i + 1, i + 1)
+        print "        semilattice_join(&_a_->field%d, _b_.field%d); \\" % (i + 1, i + 1)
     print "    }"
 
 def generate_make_equality_comparable_macro(nfields):
     print "#define RDB_MAKE_EQUALITY_COMPARABLE_%d(type_t%s) \\" % \
         (nfields, "".join(", field%d" % (i+1) for i in xrange(nfields)))
     unused = "UNUSED " if nfields == 0 else ""
-    print "    inline bool operator==(%sconst type_t &__a, %sconst type_t &__b) { \\" % (unused, unused)
+    print "    inline bool operator==(%sconst type_t &_a_, %sconst type_t &_b_) { \\" % (unused, unused)
     if nfields == 0:
         print "        return true; \\"
     else:
-        print "        return " + " && ".join("__a.field%d == __b.field%d" % (i + 1, i + 1) for i in xrange(nfields)) + "; \\"
+        print "        return " + " && ".join("_a_.field%d == _b_.field%d" % (i + 1, i + 1) for i in xrange(nfields)) + "; \\"
     print "    }"
 
 if __name__ == "__main__":
