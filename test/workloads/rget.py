@@ -1,8 +1,6 @@
 #!/usr/bin/python
-import os, sys, socket, random, time
-
+import os, sys, random, time, workload_common
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, "common")))
-from test_common import *
 from line import *
 
 key_padding = ''.zfill(20)
@@ -68,23 +66,23 @@ def check_results(res, expected_count):
     if not is_sorted_output(res):
         raise ValueError("received unsorted rget output")
 
-def test_function(opts, port, test_dir):
-    foo_count = 100
-    fop_count = 1000
-    max_results = foo_count+fop_count
+op = workload_common.option_parser_for_socket()
+opts = op.parse(sys.argv)
 
+foo_count = 100
+fop_count = 1000
+max_results = foo_count+fop_count
+
+with workload_common.MemcacheConnection(opts["host"], opts["port"]) as mc:
     print "Creating test data"
-    mc = connect_to_port(opts, port)
     mc.set('z1', 'bar', time=1) # we expect it to expire before we check it later
     for i in range(0,foo_count):
         mc.set(gen_key('foo', i), gen_value('foo', i))
     for i in range(0,fop_count):
         mc.set(gen_key('fop', i), gen_value('fop', i))
-    mc.disconnect_all()
 
+with workload_common.make_socket_connection(opts) as s:
     print "Testing rget"
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect(("localhost", port))
 
     print "Checking simple rget requests with open/closed boundaries"
     s.send('rget %s %s %d %d %d\r\n' % (gen_key('foo', 0), gen_key('fop', 0), 0, 1, max_results))
@@ -150,10 +148,3 @@ def test_function(opts, port, test_dir):
     s.send('rget z0 z2 1 1 100\r\n')
     res = get_results(s)
     check_results(res, 0)
-
-    s.close()
-
-if __name__ == "__main__":
-    op = make_option_parser()
-    auto_server_test_main(test_function, op.parse(sys.argv))
-

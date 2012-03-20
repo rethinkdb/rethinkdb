@@ -1,7 +1,5 @@
 #!/usr/bin/python
-import os, sys, socket, random, select, time
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-from test_common import *
+import sys, random, workload_common, time
 
 # "I am a string" -> ["I a", "m a s", "trin", "g"]
 def rand_split(string, nsub_strings):
@@ -15,29 +13,32 @@ def rand_split(string, nsub_strings):
 
     return strings
 
-def test_function(opts, port, test_dir):
-    
+op = workload_common.option_parser_for_socket()
+op["chunk_size"] = IntFlag("--chunk-size", 10)
+op["num_ints"] = IntFlag("--num-ints", 1000)
+op["num_chunks"] = IntFlag("--num-chunks", 50)
+opts = op.parse(sys.argv)
+
+with workload_common.make_socket_connection(opts) as s:
+
     ints = range(opts["num_ints"])
-    
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect(("localhost", port))
-    
+
     print "Set time"
-    
+
     command_string = ''
     for int in ints:
         command_string += ("set " + str(int) + " 0 0 " + str(len(str(int))) + " noreply\r\n" + str(int) + "\r\n")
-    
+
     strings = rand_split(command_string, opts["num_chunks"])
     for string in strings:
         s.send(string)
-    
+
     start = time.time()
     print "Get time"
 
     s.send("set foo 0 0 3\r\nbar\r\n")
     s.recv(len("STORED\r\n"))
-    
+
     #pipeline some gets
     command_string = ''
     expected_response = ''
@@ -100,17 +101,3 @@ def test_function(opts, port, test_dir):
         raise ValueError("Incorrect response: %r Expected: %r" % (response, expected_response))
     '''
     s.send("quit\r\n")
-    s.close()
-
-if __name__ == "__main__":
-    op = make_option_parser()
-    op["chunk_size"] = IntFlag("--chunk-size", 10)
-    op["num_ints"] = IntFlag("--num-ints", 1000)
-    op["num_chunks"] = IntFlag("--num-chunks", 50)
-    op["force_timeout"] = IntFlag("--force-timeout", 0)
-    opts = op.parse(sys.argv)
-    if opts["force_timeout"]:
-        timeout = opts["force_timeout"]
-    else:
-        timeout = opts["num_ints"] * (0.03 if "mockcache" not in opts["mode"] else 1)
-    auto_server_test_main(test_function, opts, timeout = timeout)

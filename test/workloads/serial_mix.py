@@ -1,7 +1,5 @@
 #!/usr/bin/python
-import random, time, sys, os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-from test_common import *
+import random, time, sys, workload_common
 
 def random_key(opts):
     # The reason we have keysuffix is in case another test (such as multi_serial_mix.py) is using
@@ -110,19 +108,22 @@ def random_action(opts, mc, clone, deleted):
             raise ValueError("Could not delete %r." % key)
         verify(opts, mc, clone, deleted, key)
 
-def test(opts, mc, test_dir):
+def test(opts, mc):
     clone = {}
     deleted = set()
     start_time = time.time()
     while time.time() < start_time + opts["duration"]:
         random_action(opts, mc, clone, deleted)
 
-if __name__ == "__main__":
-    op = make_option_parser()
+def option_parser_for_serial_mix():
+    op = workload_common.option_parser_for_memcache()
     op["keysize"] = IntFlag("--keysize", 250)
     op["valuesize"] = IntFlag("--valuesize", 10000)
     op["thorough"] = BoolFlag("--thorough")
-    op["restart_server_prob"] = FloatFlag("--restart-server-prob", 0)
-    op["extra-timeout"] = IntFlag("--extra-timeout", 60)
+    return op
+
+if __name__ == "__main__":
+    op = option_parser_for_serial_mix()
     opts = op.parse(sys.argv)
-    simple_test_main(test, opts, timeout = opts["duration"] + opts["extra-timeout"])
+    with workload_common.make_memcache_connection(opts) as mc:
+        test(opts, mc)

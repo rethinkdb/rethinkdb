@@ -1,9 +1,10 @@
 #!/usr/bin/python
-import sys, os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-from test_common import *
+import sys, workload_common
 
-def test_function(opts, mc, test_dir):
+op = workload_common.option_parser_for_memcache()
+opts = op.parse(sys.argv)
+
+with workload_common.make_memcache_connection(opts) as mc:
     
     print "Testing increment"
     if mc.set(str(1),str(1)) == 0:
@@ -51,6 +52,3 @@ def test_function(opts, mc, test_dir):
 
     # TODO: Figure out a way to test negative decrements and decrementing by a very large value.
     # memcache doesn't allow either.
-
-if __name__ == "__main__":
-    simple_test_main(test_function, make_option_parser().parse(sys.argv), timeout = 5)
