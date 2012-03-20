@@ -38,6 +38,7 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
         cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
 
         //as we traverse the json sub directories this will keep track of where we are
+        // RSI: why is it a shared_ptr?
         boost::shared_ptr<json_adapter_if_t<namespace_metadata_ctx_t> > json_adapter_head(new json_adapter_t<cluster_semilattice_metadata_t, namespace_metadata_ctx_t>(&cluster_metadata));
         namespace_metadata_ctx_t json_ctx(us);
 
