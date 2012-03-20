@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import sys, random, workload_common, time
+from vcoptparse import *
 
 # "I am a string" -> ["I a", "m a s", "trin", "g"]
 def rand_split(string, nsub_strings):

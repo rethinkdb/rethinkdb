@@ -1,5 +1,6 @@
 #!/usr/bin/python
-import sys, random, workload_common
+import sys, random, workload_common, time
+from vcoptparse import *
 
 # "I am a string" -> ["I a", "m a s", "trin", "g"]
 def rand_split(string, nsub_strings):
@@ -51,21 +52,21 @@ with workload_common.make_socket_connection(opts) as s:
 
     while (time.time() - start_time < opts["duration"]):
         time.sleep(.05)
-        str = ''
+        string = ''
         for i in range(20):
             choice = random.random()
             if choice < .5:
-                str += word()
+                string += word()
             elif choice < .75:
-                str += number()
+                string += number()
             elif choice < .85:
-                str += garbage()
+                string += garbage()
             elif choice < .99:
-                str += delim()
+                string += delim()
             else:
-                str += funny()
+                string += funny()
 
-        for substr in rand_split(str, random.randint(10, 40)):
+        for substr in rand_split(string, random.randint(10, 40)):
             s.send(substr)
             sent_log.write(substr)
 

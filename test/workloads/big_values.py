@@ -78,7 +78,6 @@ with workload_common.make_socket_connection(opts) as s:
     
     sizes = [250, 4079, 4080, 4081, 8160, 8161, (232 / 4) * 4080 - 1, (232 / 4) * 4080, (232 / 4) * 4080 + 1, 1048576, 10 * 1048577]
 
-    s.connect((opts["host"], opts["port"]))
     for x in sizes:
         for y in sizes:
             if x < y:
