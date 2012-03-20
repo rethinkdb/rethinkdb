@@ -22,7 +22,7 @@ class Builder(Thread):
         finally:
             semaphore.release()
 
-target_names = ["suse", "redhat5_1", "ubuntu", "debian", "centos5_5"]
+target_names = ["suse", "redhat5_1", "ubuntu", "debian", "centos5_5", "centos6"]
 
 def help():
     print >>sys.stderr, "Virtual builder:"
@@ -92,8 +92,9 @@ redhat5_1 = vm_build.target('5eaf8089-9ae4-4493-81fc-a885dc8e08ff', '192.168.0.1
 ubuntu = vm_build.target('b555d9f6-441f-4b00-986f-b94286d122e9', '192.168.0.172', 'rethinkdb', 'LANG=C make deb' + flags, 'deb', vm_build.deb_install, vm_build.deb_uninstall, vm_build.deb_get_binary)
 debian = vm_build.target('3ba1350e-eda8-4166-90c1-714be0960724', '192.168.0.176', 'root', 'LANG=C make deb NO_EVENTFD=1 LEGACY_LINUX=1 ' + flags, 'deb', vm_build.deb_install, vm_build.deb_uninstall, vm_build.deb_get_binary)
 centos5_5 = vm_build.target('46c6b842-b4ac-4cd6-9eae-fe98a7246ca9', '192.168.0.177', 'root', 'LANG=C make rpm LEGACY_GCC=1 LEGACY_LINUX=1 ' + flags, 'rpm', vm_build.rpm_install, vm_build.rpm_uninstall, vm_build.rpm_get_binary)
+centos6 = vm_build.target('b01809f9-4000-4857-862f-b1face8d54ea', '192.168.0.178', 'rethinkdb', 'LANG=C make rpm LEGACY_GCC=1 LEGACY_LINUX=1 ' + flags, 'rpm', vm_build.rpm_install, vm_build.rpm_uninstall, vm_build.rpm_get_binary)
 
-targets = {"suse" : suse, "redhat5_1" : redhat5_1, "ubuntu" : ubuntu, "debian" : debian, "centos5_5" : centos5_5}
+targets = {"suse" : suse, "redhat5_1" : redhat5_1, "ubuntu" : ubuntu, "debian" : debian, "centos5_5" : centos5_5, "centos6" : centos6}
 
 if (opts["target"]):
     targets = {opts["target"] : targets[opts["target"]]}
