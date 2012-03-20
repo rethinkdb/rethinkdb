@@ -22,7 +22,11 @@ public:
     int port;
 };
 
+#ifndef NDEBUG
+void run_rethinkdb_create(const std::string &filepath, std::string &machine_name, int port_offset, bool *result_out) {
+#else
 void run_rethinkdb_create(const std::string &filepath, std::string &machine_name, bool *result_out) {
+#endif
 
     if (metadata_persistence::check_existence(filepath)) {
         printf("ERROR: The path '%s' already exists.  Delete it and try again.\n", filepath.c_str());
@@ -37,6 +41,10 @@ void run_rethinkdb_create(const std::string &filepath, std::string &machine_name
 
     machine_semilattice_metadata_t machine_semilattice_metadata;
     machine_semilattice_metadata.name = machine_semilattice_metadata.name.make_new_version(machine_name, our_machine_id);
+#ifndef NDEBUG
+    machine_semilattice_metadata.port_offset = vclock_t<int>(port_offset, our_machine_id);
+#endif
+
 
     metadata.machines.machines.insert(std::make_pair(
         our_machine_id,
@@ -82,7 +90,11 @@ void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and
     *result_out = serve(filepath, look_up_peers_addresses(joins), port, client_port, persisted_machine_id, persisted_semilattice_metadata);
 }
 
+#ifndef NDEBUG
+void run_rethinkdb_porcelain(const std::string &filepath, const std::string &machine_name, int port_offset, const std::vector<host_and_port_t> &joins, int port, int client_port, bool *result_out) {
+#else
 void run_rethinkdb_porcelain(const std::string &filepath, const std::string &machine_name, const std::vector<host_and_port_t> &joins, int port, int client_port, bool *result_out) {
+#endif
 
     os_signal_cond_t c;
 
@@ -120,6 +132,9 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
             machine_semilattice_metadata_t our_machine_metadata;
             our_machine_metadata.datacenter = vclock_t<datacenter_id_t>(datacenter_id, our_machine_id);
             our_machine_metadata.name = vclock_t<std::string>(machine_name, our_machine_id);
+#ifndef NDEBUG
+            our_machine_metadata.port_offset = vclock_t<int>(port_offset, our_machine_id);
+#endif
 
             semilattice_metadata.machines.machines.insert(std::make_pair(
                 our_machine_id,
@@ -130,6 +145,7 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
             namespace_semilattice_metadata_t<memcached_protocol_t> namespace_metadata;
 
             namespace_metadata.name = vclock_t<std::string>("Welcome", our_machine_id);
+            namespace_metadata.port = vclock_t<int>(11213, our_machine_id);
 
             persistable_blueprint_t<memcached_protocol_t> blueprint;
             std::map<key_range_t, blueprint_details::role_t> roles;
@@ -153,6 +169,9 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
 
             machine_semilattice_metadata_t our_machine_metadata;
             our_machine_metadata.name = vclock_t<std::string>(machine_name, our_machine_id);
+#ifndef NDEBUG
+            our_machine_metadata.port_offset = vclock_t<int>(port_offset, our_machine_id);
+#endif
 
             semilattice_metadata.machines.machines.insert(std::make_pair(
                 our_machine_id,
@@ -166,10 +185,14 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
     }
 }
 
-po::options_description get_machine_name_options() {
+po::options_description get_machine_options() {
     po::options_description desc("Machine name options");
     desc.add_options()
+#ifndef NDEBUG
+        ("port-offset,o", po::value<int>()->default_value(0), "This machine will set up parsers for namespaces on the namespace's port + this value.")
+#endif
         ("name,n", po::value<std::string>()->default_value("NN"), "The name for this machine (as will appear in the metadata.");
+        
     return desc;
 }
 
@@ -214,7 +237,7 @@ po::options_description get_network_options() {
 po::options_description get_rethinkdb_create_options() {
     po::options_description desc("Allowed options");
     desc.add(get_file_option());
-    desc.add(get_machine_name_options());
+    desc.add(get_machine_options());
     return desc;
 }
 
@@ -228,7 +251,7 @@ po::options_description get_rethinkdb_serve_options() {
 po::options_description get_rethinkdb_porcelain_options() {
     po::options_description desc("Allowed options");
     desc.add(get_file_option());
-    desc.add(get_machine_name_options());
+    desc.add(get_machine_options());
     desc.add(get_network_options());
     return desc;
 }
@@ -240,9 +263,16 @@ int main_rethinkdb_create(int argc, char *argv[]) {
 
     std::string filepath = vm["directory"].as<std::string>();
     std::string machine_name = vm["name"].as<std::string>();
+#ifndef NDEBUG
+    int port_offset = vm["port-offset"].as<int>();
+#endif
 
     bool result;
+#ifndef NDEBUG
+    run_in_thread_pool(boost::bind(&run_rethinkdb_create, filepath, machine_name, port_offset, &result));
+#else
     run_in_thread_pool(boost::bind(&run_rethinkdb_create, filepath, machine_name, &result));
+#endif
 
     return result ? 0 : 1;
 }
@@ -277,6 +307,9 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 
     std::string filepath = vm["directory"].as<std::string>();
     std::string machine_name = vm["name"].as<std::string>();
+#ifndef NDEBUG
+    int port_offset = vm["port-offset"].as<int>();
+#endif
     std::vector<host_and_port_t> joins;
     if (vm.count("join") > 0) {
         joins = vm["join"].as<std::vector<host_and_port_t> >();
@@ -289,7 +322,11 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 #endif
 
     bool result;
+#ifndef NDEBUG
+    run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain, filepath, machine_name, port_offset, joins, port, client_port, &result));
+#else
     run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain, filepath, machine_name, joins, port, client_port, &result));
+#endif
 
     return result ? 0 : 1;
 }

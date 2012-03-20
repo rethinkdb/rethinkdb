@@ -29,23 +29,20 @@ template<class protocol_t>
 class namespace_semilattice_metadata_t {
 public:
     vclock_t<persistable_blueprint_t<protocol_t> > blueprint;
-
     vclock_t<datacenter_id_t> primary_datacenter;
-
     vclock_t<std::map<datacenter_id_t, int> > replica_affinities;
-
     vclock_t<std::set<typename protocol_t::region_t> > shards;
-
     vclock_t<std::string> name;
+    vclock_t<int> port;
 
-    RDB_MAKE_ME_SERIALIZABLE_5(blueprint, primary_datacenter, replica_affinities, shards, name);
+    RDB_MAKE_ME_SERIALIZABLE_6(blueprint, primary_datacenter, replica_affinities, shards, name, port);
 };
 
 template<class protocol_t>
-RDB_MAKE_SEMILATTICE_JOINABLE_5(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, shards, name);
+RDB_MAKE_SEMILATTICE_JOINABLE_6(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, shards, name, port);
 
 template<class protocol_t>
-RDB_MAKE_EQUALITY_COMPARABLE_5(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, shards, name);
+RDB_MAKE_EQUALITY_COMPARABLE_6(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, shards, name, port);
 
 //json adapter concept for namespace_semilattice_metadata_t
 template <class ctx_t, class protocol_t>
@@ -56,6 +53,7 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(namespa
     res["replica_affinities"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<vclock_t<std::map<datacenter_id_t, int> >, ctx_t>(&target->replica_affinities));
     res["name"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<vclock_t<std::string>, ctx_t>(&target->name));
     res["shards"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<vclock_t<std::set<typename protocol_t::region_t> >, ctx_t>(&target->shards));
+    res["port"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<vclock_t<int>, ctx_t>(&target->port));
     return res;
 }
 

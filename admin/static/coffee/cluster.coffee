@@ -26,11 +26,10 @@ class DataStream extends Backbone.Model
 
     initialize: ->
         @.set('cached_data': [])
-        setInterval @tick, 1500
 
-    tick: => @.get('data').each (data_point) => @update_data data_point
+    update: (timestamp) => @.get('data').each (data_point) => @update_data_point data_point, timestamp
 
-    update_data: (data_point) =>
+    update_data_point: (data_point, timestamp) =>
         # Attributes of the data point
         uuid = data_point.get('id')
         existing_val = data_point.get('value')
@@ -73,12 +72,14 @@ class DataStream extends Backbone.Model
         data_point.set
             value: new_val
             # Assumption: every datapoint across datastreams at the time of sampling will have the same datetime stamp
-            time: new Date(Date.now())
+            time: timestamp
 
 class DataPoint extends Backbone.Model
 
 class DataPoints extends Backbone.Collection
     model: DataPoint
+
+class ColorMap extends Backbone.Model
 
 # Collections for Backbone.js
 class Namespaces extends Backbone.Collection
@@ -108,10 +109,14 @@ class DashboardView extends Backbone.View
     className: 'dashboard-view'
     template: Handlebars.compile $('#dashboard_view-template').html()
 
-    initialize: ->
-        log_initial '(initializing) dashboard view'
+    update_data_streams: (datastreams) ->
+        timestamp = new Date(Date.now())
+        
+        for stream in datastreams
+           stream.update(timestamp)
 
-        fake_data = new DataPoints()
+    create_fake_data: ->
+        data_points = new DataPoints()
         cached_data = {}
         for collection in [namespaces, datacenters, machines]
             collection.map (model, i) ->
@@ -121,38 +126,65 @@ class DashboardView extends Backbone.View
                     id: model.get('id')
                     # Assumption: every datapoint across datastreams at the time of sampling will have the same datetime stamp
                     time: new Date(Date.now())
-                fake_data.add d
+                data_points.add d
                 cached_data[model.get('id')] = [d]
+        return data_points
+
+
+    initialize: ->
+        log_initial '(initializing) dashboard view'
 
         mem_usage_data = new DataStream
             name: 'mem_usage_data'
-            data: fake_data
+            pretty_print_name: 'memory usage'
+            data: @create_fake_data()
             cached_data: []
             active_uuids: []
 
         disk_usage_data = new DataStream
             name: 'disk_usage_data'
-            data: fake_data
+            pretty_print_name: 'disk usage'
+            data: @create_fake_data()
             cached_data: []
             active_uuids: []
 
-        cluster_performance_data = new DataStream
-            name:  'cluster_performance_data'
-            data: fake_data
+        cluster_performance_total = new DataStream
+            name:  'cluster_performance_total'
+            pretty_print_name: 'total ops/sec'
+            data: @create_fake_data()
             cached_data: []
             active_uuids: []
 
+        cluster_performance_reads = new DataStream
+            name:  'cluster_performance_reads'
+            pretty_print_name: 'reads/sec'
+            data: @create_fake_data()
+            cached_data: []
+            active_uuids: []
 
-        data_streams = [mem_usage_data, disk_usage_data, cluster_performance_data]
+        cluster_performance_writes = new DataStream
+            name:  'cluster_performance_writes'
+            pretty_print_name: 'writes/sec'
+            data: @create_fake_data()
+            cached_data: []
+            active_uuids: []
 
-        @data_picker = new Vis.DataPicker data_streams
+        @data_streams = [mem_usage_data, disk_usage_data, cluster_performance_total, cluster_performance_reads, cluster_performance_writes]
+
+        setInterval (=> @update_data_streams @data_streams), 1500
+
+        @data_picker = new Vis.DataPicker @data_streams
         color_map = @data_picker.get_color_map()
 
         @disk_usage = new Vis.ResourcePieChart disk_usage_data, color_map
         @mem_usage = new Vis.ResourcePieChart mem_usage_data, color_map
-        @cluster_performance = new Vis.ClusterPerformanceGraph cluster_performance_data, color_map
+        @cluster_performance = new Vis.ClusterPerformanceGraph [cluster_performance_total, cluster_performance_reads, cluster_performance_writes], color_map
 
     render: ->
+        # Updates elements tracked by our fake data streams | Should be removed when DataStreams are live from the server TODO
+        for stream in @data_streams
+            stream.set('data', @create_fake_data())
+
         log_render '(rendering) dashboard view'
         @.$el.html @template({})
 
@@ -166,8 +198,8 @@ class DashboardView extends Backbone.View
 module 'Vis', ->
     class @DataPicker extends Backbone.View
         template: Handlebars.compile $('#data_picker-template').html()
-        class: 'data-picker'
 
+        class: 'data-picker'
 
         events: =>
             'click .nav li': 'switch_filter'
@@ -178,11 +210,11 @@ module 'Vis', ->
             @filters = {}
             @collections = [namespaces, datacenters, machines]
 
-            color_scheme = d3.scale.category20()
-            @color_map = {}
+            @color_scheme = d3.scale.category20()
+            @color_map = new ColorMap()
             for collection in @collections
                 collection.map (model, i) =>
-                    @color_map[model.get('id')] = color_scheme i
+                    @color_map.set(model.get('id'), @color_scheme i)
 
             # Create one filter for each type of data (machine, namespace, datacenter, etc.) we use in all of these data streams
             for collection in @collections
@@ -190,6 +222,11 @@ module 'Vis', ->
             @selected_filter = @filters[@collections[0].name]
 
         render: =>
+            # Recreate color data whenever the picker is shown. | Ideally this should be removed when datastreams are cleaned up and loaded from the server TODO
+            for collection in @collections
+                collection.map (model, i) =>
+                    @color_map.set(model.get('id'), @color_scheme i)
+
             @.$el.html @template
                 stream_filters: _.map(@filters, (filter, collection_name) =>
                     name: collection_name
@@ -197,6 +234,8 @@ module 'Vis', ->
                 )
 
             @.$('.filter').html @selected_filter.render().el
+
+            @.delegateEvents()
             return @
 
         switch_filter: (event) =>
@@ -234,7 +273,7 @@ module 'Vis', ->
                     id: model.get('id')
                     name: model.get('name')
                     selected: @models_selected[model.get('id')]
-                    color: @color_map[model.get('id')]
+                    color: @color_map.get(model.get('id'))
                 )
 
             @filter_data_sources()
@@ -243,11 +282,10 @@ module 'Vis', ->
             return @
 
         select_model: (event) =>
-            $model = $(event.currentTarget)
+            $model = @.$(event.currentTarget)
             id = $model.data('id')
             @models_selected[id] = not @models_selected[id]
             $('input', $model).attr('checked', @models_selected[id])
-
 
             @filter_data_sources()
 
@@ -257,13 +295,12 @@ module 'Vis', ->
 
             for stream in @data_streams
                 stream.set
-                    'active_uuids': []
-                stream.set
                     'active_uuids': active_uuids
-                console.log stream
 
     class @ResourcePieChart extends Backbone.View
         className: 'resource-pie-chart'
+        no_data_template: Handlebars.compile $('#vis_no_data-template').html()
+        empty_chart_showing: false
 
         events: ->
             'click': 'update_chart'
@@ -273,7 +310,6 @@ module 'Vis', ->
 
             # Use the given datastream to back the pie chart
             @data_stream = data_stream
-            @data = data_stream.get('data')
 
             # Use a pre-defined color scale to pick the colors
             @color_map = color_map
@@ -297,40 +333,39 @@ module 'Vis', ->
             # Define the arc's width using the built-in arc function
             @arc = d3.svg.arc().innerRadius(@radius).outerRadius(@radius - 25)
 
+            # Make the data change every few ms | faked TODO
+            setInterval @update_chart, 2000
+
         # Utility function to get the total value of the data points based on filtering
-        get_total: =>
+        #   data: data set that contains data points to be totaled
+        get_total: (data) =>
             # Choose only data points that are among the selected sets, get their sum
-            values = _.map @get_filtered_data(), (data_point) -> data_point.value
+            values = _.map data, (data_point) -> data_point.value
             return _.reduce values, (memo, num) -> memo + num
 
         # Utility function to only get a filtered subset of the data
-        #   existing_data: optional argument that will keep previously
-        #       calculated positional data for each datum in the json 
-        #       if it isn't added or removed from the filtered data
-        get_filtered_data: (existing_data) =>
-            existing = {}
-            # If existing data has been provided, order the json by uuid for easy lookup
-            if existing_data?
-                for datum in existing_data
-                    existing[datum.data.id] =
-                        previous: datum.data.previous
-
-            # Filter the datastream based on active uuids
-            filtered_data = _.map @data_stream.get('active_uuids'), (uuid) =>
-                json = @data.get(uuid).toJSON()
-                # If the uuid is already in our pie chart, attach its previously calculated positional data (previous position)
-                if existing[uuid]?
-                    json = _.defaults json, existing[uuid]
-                return json
-
-            return filtered_data
+        get_filtered_data: =>
+            return _.map @data_stream.get('active_uuids'), (uuid) =>
+                @data_stream.get('data').get(uuid).toJSON()
 
         render: =>
-            $(@el).empty()
+            # We'll be recreating $el from scratch each time
+            @.$el.empty()
+
+            @data_stream.off 'change:active_uuids', @draw_pie_chart
+            @data_stream.on 'change:active_uuids', @draw_pie_chart
+
+            @draw_pie_chart_layout()
+
+            return @
+
+        # Draw the pie chart layout from scratch (on first run)
+        draw_pie_chart_layout: =>
             # Define the base visualization layer for the pie chart
             svg = d3.select(@el).append('svg:svg')
                     .attr('width', @width)
                     .attr('height', @height)
+            @svg = svg
 
             @groups = {}
 
@@ -344,99 +379,140 @@ module 'Vis', ->
                 .attr('class', 'center')
                 .attr('transform', "translate(#{@width/2},#{@height/2})")
 
-            # Define the center text
+            # Add the center text
             #   label for just the "total" element
-            total_label = @groups.center.append('svg:text')
+            @groups.center.append('svg:text')
                 .attr('class','total-label')
                 .attr('dy', -10)
                 .attr('text-anchor', 'middle')
                 .text('Total')
-            #   label for the actual value
-            total_value = @groups.center.append('svg:text')
-                .attr('class','total-value')
-                .attr('dy', 7)
-                .attr('text-anchor', 'middle')
-                .text(@get_total())
             #   label for the units
-            total_units = @groups.center.append('svg:text')
+            @groups.center.append('svg:text')
                 .attr('class','total-units')
                 .attr('dy', 21)
                 .attr('text-anchor', 'middle')
                 .text('mb')
+            #   label for the actual value
+            @groups.center.append('svg:text')
+                .attr('class','total-value')
+                .attr('dy', 7)
+                .attr('text-anchor', 'middle')
 
-            # Draw arcs for the donut pie chart
-            draw_pie_chart = =>
-                @arcs = @groups.arcs.selectAll('g.arc').data(@donut @get_filtered_data())
+            @draw_pie_chart()
 
-                # Whenever a datum is added, create a new group that will contain the arc path, arc tick, and arc label
-                group = @arcs.enter()
+        # Draw the pie chart using a new dataset
+        draw_pie_chart: =>
+            # Get the selected datasets. If there aren't any selected, indicate no data was selected.
+            filtered_data = @get_filtered_data()
+
+            if filtered_data.length is 0
+                @show_empty_chart()
+                return
+            else
+                @hide_empty_chart() if @empty_chart_showing
+
+            # Calculate a new total
+            total = @get_total filtered_data
+
+            # Update the pie chart with the new data
+            @arcs = @groups.arcs.selectAll('g.arc').data(@donut(filtered_data), (d) -> d.data.id)
+
+            # Stop all running animations / tweenings to allow us to redraw the pie chart.
+            d3.selectAll("*").transition().delay(0)
+
+            # Whenever a datum is entered, create a new group that will contain the arc path, arc tick, and arc label
+            entering_arc_groups = @arcs
+                .enter()
                     .append('svg:g')
                         .attr('class','arc')
-                        # Save the current state of the arc (angles, values, etc.) for use when tweening
-                        .each((d) =>
-                            # Make sure we have a color
-                            if not @color_map[d.data.id]?
-                                console.log "No color can be found for #{d.data.id}."
-                            d.data.previous =
-                                endAngle: d.endAngle
-                                startAngle: d.startAngle
-                                value: d.value
-                        )
 
-                # Add an arc path to the group
-                group.append('svg:path')
-                    .attr('class','section')
-                    # Fill the pie chart with the color scheme we defined
-                    .attr('fill', (d,i) => @color_map[d.data.id])
-                    # Set the arc we defined
-                    .attr('d', @arc)
+            # Make sure each arc path has positional data to help tween: if it's missing, use the current position
+            @arcs.each((d) =>
+                # Make sure we have a color
+                if not @color_map.get(d.data.id)?
+                    console.log "No color can be found for #{d.data.id}."
+                # Save the current state of the arc (angles, values, etc.) for use when tweening
+                d.data.previous =
+                    endAngle: d.endAngle
+                    startAngle: d.startAngle
+                    value: d.value
+            )
 
-                # Add a tick to the group
-                group.append('svg:line')
-                        .attr('class','tick')
-                        .attr('x1', 0)
-                        .attr('x2', 0)
-                        .attr('y1', -@radius - 7)
-                        .attr('y2', -@radius - 3)
-                        .attr('transform', (d) -> "rotate(#{(d.startAngle + d.endAngle)/2 * (180/Math.PI)})")
+            # Add an arc path to the group
+            entering_arc_groups.append('svg:path')
+                .attr('class','section')
+                # Fill the pie chart with the color scheme we defined
+                .attr('fill', (d) => @color_map.get(d.data.id))
 
-                # Add a label to each group
-                @pie_label = group.append('svg:text')
-                    .attr('class','label')
-                    .attr('text-anchor','middle')
-                    .attr('dominant-baseline','central')
+            # Add a tick to the group
+            entering_arc_groups.append('svg:line')
+                    .attr('class','tick')
+                    .attr('x1', 0)
+                    .attr('x2', 0)
+                    .attr('y1', -@radius - 7)
+                    .attr('y2', -@radius - 3)
+
+            # Add a label to each group
+            entering_arc_groups.append('svg:text')
+                .attr('class','label')
+                .attr('text-anchor','middle')
+                .attr('dominant-baseline','central')
+
+
+            # Update the center text
+            @groups.center.select('text.total-value').text(total)
+
+            # Whenever a datum is exited, just remove the group
+            @arcs.exit().remove()
+            
+            # Calculate the positions, transformations, and data for each of the arc group elements
+            @arcs.select('path.section').attr('d', @arc)
+            @arcs.select('line.tick').attr('transform', (d) -> "rotate(#{(d.startAngle + d.endAngle)/2 * (180/Math.PI)})")
+
+            # Terrible hack that works: set a timeout of zero so that this is called only when the rendered view is actually added to the DOM
+            # Reason this is necessary: getting the bounding box of the text node (bbox) will only work when the text box is actually rendered on the page
+            setTimeout =>
+                # Keep a local reference to the class function
+                pie_label_position = @pie_label_position
+                @arcs.select('text.label')
                     .text((d) =>
-                        percentage = (d.value/@get_total()) * 100
+                        percentage = (d.value/total) * 100
                         return percentage.toFixed(1) + '%'
                     )
-
-                # Terrible hack that works: set a timeout of zero so that this is called only when the rendered view is actually added to the DOM
-                # Reason this is necessary: getting the bounding box of the text node (bbox) will only work when the text box is actually rendered on the page
-                setTimeout =>
-                    @pie_label.attr('transform', (d) =>
+                    # Determine each pie label's position
+                    .attr('transform', (d) ->
                         angle = (d.startAngle + d.endAngle)/2
-                        p = @pie_label_position(@pie_label, angle)
-                        return "translate(#{p.x},#{p.y})"
+                        pos = pie_label_position(this, angle)
+                        return "translate(#{pos.x},#{pos.y})"
                     )
-                , 0
-
-                # Whenever a datum is removed, just remove the group
-                @arcs.exit().remove()
-
-            draw_pie_chart()
-
-            @data_stream.on 'change:active_uuids', -> draw_pie_chart()
-
-            # Make the data change every few ms | faked TODO
-            setInterval @update_chart, 2000
-
-            return @
+            , 0
 
         update_chart: =>
-            # Update the data, redraw the arcs, calculate the new total
-            new_data = @get_filtered_data(@arcs.data()) # Include the old data so we can keep the positional data for existing elements (previous position)
-            @arcs.data(@donut new_data)
-            total = @get_total()
+            # Get the selected datasets. If there aren't any selected, indicate no data was selected.
+            filtered_data = @get_filtered_data()
+            if @empty_chart_showing or filtered_data.length is 0
+                return
+
+            # Save positional data calculated by the previous tween before we fetch new data
+            existing_positional_data = {}
+            for datum in @arcs.data()
+                if datum.data.previous?
+                    existing_positional_data[datum.data.id] = datum.data.previous
+
+            # Run the updated data through the donut layout manager
+            new_data = @donut filtered_data
+
+            # Drop in positional data if it exists for the given arc
+            new_data = _.map new_data, (datum) ->
+                if datum.data.id of existing_positional_data
+                    datum.data.previous = existing_positional_data[datum.data.id]
+                return datum
+
+            # Calculate a new total
+            total = @get_total new_data
+
+            # Update the pie chart with the new data
+            @arcs.data(new_data, (d) -> d.data.id)
 
             # Use an arc tweening function to transition between arcs
             @arcs.select('path.section').transition().duration(@duration)
@@ -467,31 +543,45 @@ module 'Vis', ->
                     return (t) => "rotate(#{i(t)})"
                 )
 
+            # Keep a local reference to the class function
+            pie_label_position = @pie_label_position
             # Transition between label positions
-            pie_label = @arcs.select('text.label')
-            pie_label.transition().duration(@duration)
-                .attrTween('transform', (d) =>
-                    previous_angle = (d.data.previous.startAngle + d.data.previous.endAngle)/2
-                    new_angle = (d.startAngle + d.endAngle)/2
-                    i = d3.interpolate previous_angle, new_angle
-                    return (t) =>
-                        p = @pie_label_position pie_label, i(t)
-                        return "translate(#{p.x},#{p.y})"
-                )
-                .text((d) =>
-                    percentage = (d.value/total) * 100
-                    return percentage.toFixed(1) + '%'
+            pie_labels = @arcs.select('text.label')
+                .transition().duration(@duration)
+                    .attrTween('transform', (d) ->
+                            previous_angle = (d.data.previous.startAngle + d.data.previous.endAngle)/2
+                            new_angle = (d.startAngle + d.endAngle)/2
+                            i = d3.interpolate previous_angle, new_angle
+                            return (t) =>
+                                p = pie_label_position(this, i(t))
+                                return "translate(#{p.x},#{p.y})"
+                    )
+                    .text((d) =>
+                        percentage = (d.value/total) * 100
+                        return percentage.toFixed(1) + '%'
                 )
 
             # Update the tracked value
             @groups.center.select('text.total-value')
-                .text total
+                .text(total)
+
+        # Show the empty chart div, hide the svg
+        show_empty_chart: =>
+            @.$el.append @no_data_template()
+            @.$('svg').hide()
+            @empty_chart_showing = true
+
+        # Hide the empty chart div, show the svg
+        hide_empty_chart: =>
+            $('.no-data').remove()
+            @.$('svg').show()
+            @empty_chart_showing = false
 
         # Calculates the x and y position for labels on each section of the pie chart
         # Takes a text box that will be used as the label, and an angle that the label should be positioned at
-        pie_label_position: (text_box, angle) ->
+        pie_label_position: (text_box, angle) =>
             # Bounding box of the text label
-            bbox = text_box.node().getBBox()
+            bbox = text_box.getBBox()
             # Distance the text box should be from the circle
             r = @radius + @text_offset
 
@@ -519,19 +609,23 @@ module 'Vis', ->
 
     class @ClusterPerformanceGraph extends Backbone.View
         className: 'cluster-performance-graph'
-        template: Handlebars.compile $('#vis_loading-template').html()
+        loading_template: Handlebars.compile $('#vis_loading-template').html()
+        no_data_template: Handlebars.compile $('#vis_no_data-template').html()
+        stream_picker_template: Handlebars.compile $('#vis-graph_stream_picker-template').html()
+        empty_chart_showing: false
 
         events: ->
-            'click': 'update_chart'
+            'click .stream-picker .datastream': 'change_data_stream'
 
         time_now: -> new Date(Date.now() - @duration)
 
         get_data: =>
             # Create a zero-filled array the size of the first data set's cached values: this array will help keep track of stacking data sets
             previous_values = _.map @data_stream.get('cached_data')[@active_uuids[0]], -> 0
-            _.map @active_uuids, (uuid, i) =>
+
+            _.map @active_uuids, (uuid) =>
                 active_data = @data_stream.get('cached_data')[uuid]
-                points = _.map active_data, (data_point) -> _.extend data_point.toJSON(),
+                points = _.map active_data, (data_point,i) -> _.extend data_point.toJSON(),
                     previous_value: previous_values[i]
                 
                 # The current active dataset values should be added to previous_values: this helps stack each dataset on top of one another
@@ -563,7 +657,7 @@ module 'Vis', ->
             # Return the maximum value (highest peak of data)
             return d3.max(sum_values)
             
-        initialize: (data_stream, color_map) ->
+        initialize: (data_streams, color_map) ->
             log_initial '(initializing) cluster performance graph'
             # Generate fake data for visualization reasons | faked data TODO
             # Number of elements
@@ -572,8 +666,9 @@ module 'Vis', ->
             @duration = 1500
 
             # Data stream that backs this plot, and the currently active uuids
-            @data_stream = data_stream
-            @active_uuids = data_stream.get('active_uuids')
+            @data_streams = data_streams
+            @data_stream = data_streams[0]
+            @active_uuids = @data_stream.get('active_uuids')
 
             # Use a pre-defined color scale to pick the colors
             @color_map = color_map
@@ -588,33 +683,100 @@ module 'Vis', ->
             @height = 300 - @margin.top - @margin.bottom
 
         render: =>
-            if @get_data.length >= 2
-                @render_chart()
-            else
-                @data_stream.on 'cache_ready', =>
-                    @.$('.loading').fadeOut 'medium', =>
-                        $(@).remove()
-                        @render_chart()
-                @.$el.html @template()
+            # We'll be recreating $el from scratch each time
+            @.$el.empty()
 
-            @data_stream.on 'change:active_uuids', => 
-                @active_uuids = @data_stream.get('active_uuids')
-                @render_chart()
+            # Remove all previous bindings on the datastreams we're watching
+            for stream in @data_streams
+                stream.off  'cache_ready', @cache_ready
+                stream.off 'change:active_uuids', @active_uuids_changed
+
+            # Get the new set of active datasets
+            @active_uuids = @data_stream.get('active_uuids')
+            
+            # Draw the chart immediately if enough data has been cached
+            if @active_uuids.length > 0 and @get_data()[0].datapoints.length >= 2
+                @draw_chart()
+            else if @active_uuids.length is 0
+                @show_empty_chart()
+            # Otherwise, set up a binding to draw the chart when the cache is ready
+            else
+                @data_stream.on 'cache_ready', @cache_ready
+                @.$el.html @loading_template()
+
+            # Bind to datapicker changes
+            @data_stream.on 'change:active_uuids', @active_uuids_changed
+
+            # Reattach callbacks
+            @.delegateEvents()
                 
             return @
 
-        render_chart: =>
+        # Draw the chart when the cache is ready
+        cache_ready: =>
+            @.$('.loading').fadeOut 'medium', =>
+                $(@).remove()
+                @draw_chart()
+
+        # Update the new set of active datasets
+        active_uuids_changed: =>
+            @active_uuids = @data_stream.get('active_uuids')
+            @draw_chart()
+
+        # Set up datastream picker
+        add_data_stream_picker: =>
+            # Remove a stream picker if it already exists
+            @.$('.stream-picker').remove()
+
+            # If there is more than one data stream being used, add a stream picker 
+            if @data_streams.length > 1
+                @.$el.append @stream_picker_template
+                    datastreams: _.map(@data_streams, (data_stream, i) =>
+                        id: i
+                        name: data_stream.get('pretty_print_name')
+                        selected: @data_stream is data_stream
+                    )
+
+        change_data_stream: (event) =>
+            # Remove the binding that watches @data_stream for changes in active uuids
+            @data_stream.off 'change:active_uuids'
+            
+            # Update the @data_stream reference based on what was clicked (and make appropriate visual changes to the radio buttons)
+            $data_stream = @.$(event.currentTarget)
+            id = $data_stream.data('id')
+            @data_stream = @data_streams[id]
+            @.$('.stream_picker input').attr('checked', false)
+            $('input', $data_stream).attr('checked', true)
+            
+            # Now that we've updated the @data_stream reference, bind again to datapicker changes
+            @data_stream.on 'change:active_uuids', @active_uuids_changed
+
+            @draw_chart()
+
+        draw_chart: =>
             data = @get_data()
-            $(@el).empty()
+
+            # Stop all running animations / tweenings to allow us to redraw the line chart
+            d3.selectAll("*").transition().delay(0)
+
+            # Add a data stream picker if it's needed (if there is more than one data stream for this graph)
+            @add_data_stream_picker()
+
+            @.$('svg').remove()
 
             # If there is no data, don't render the chart
-            return if data.length <= 0
+            if data.length is 0
+                @show_empty_chart()
+                return
+            else
+                @hide_empty_chart() if @empty_chart_showing
 
             # Get the latest recorded time
             last_time = @get_latest_time data
 
+            # The x scale's domain defines a window of 30 seconds, accounting for the points we're buffering
             @x = d3.time.scale()
-                .domain([last_time - 30000 - @duration, last_time - @duration])
+                .domain([last_time - 30000 - 2 * @duration, last_time - 2 * @duration])
                 .range([0, @width])
 
             # The y scale should start at zero, and end at the highest sum across all data sets
@@ -661,7 +823,7 @@ module 'Vis', ->
             # Add elements from the back, since SVG's z-order depends on the order in which elements are added
             for i in [data.length-1..0]
                 data_set = data[i]
-                color = @color_map[data_set.uuid]
+                color = @color_map.get(data_set.uuid)
                 group = @chart.svg.append('g')
                         .attr('clip-path', 'url(#clip)')
                         .data([data_set.datapoints])
@@ -690,7 +852,6 @@ module 'Vis', ->
                     .attr('class', 'y-axis')
                     .call @y_axis()
 
-
             # Start the first tick
             @update_chart()
 
@@ -708,17 +869,6 @@ module 'Vis', ->
             existing_domain = @y.domain()
             highest_value = d3.max([@get_highest_value(data), existing_domain[1]])
             @y.domain([0, highest_value])
-
-            # Transition the axes: slide linearly
-            @chart.axes.x.transition()
-               .duration(@duration)
-               .ease('linear')
-               .call @x_axis()
-
-            @chart.axes.y.transition()
-                .duration(@duration)
-                .ease('linear')
-                .call @y_axis()
 
             animate = (data_set) =>
                 group = @chart.data_sets[data_set.uuid]
@@ -746,24 +896,40 @@ module 'Vis', ->
                         .duration(@duration)
                         .ease('linear')
                         .attr('transform', "translate(#{slide_path_to})")
-                    # Call the tick function again after this transition is finished (infinite loop)
-                    .each 'end', => @update_chart() if data_set.uuid is @active_uuids[@active_uuids.length - 1]
             for data_set in data
                 animate data_set
 
-modal_registry = []
-clear_modals = ->
-    modal.hide_modal() for modal in modal_registry
-    modal_registry = []
-register_modal = (modal) -> modal_registry.push(modal)
+            # Transition the axes: slide linearly
+            @chart.axes.x.transition()
+               .duration(@duration)
+               .ease('linear')
+               .call(@x_axis())
 
+            @chart.axes.y.transition()
+                .duration(@duration)
+                .ease('linear')
+                .call(@y_axis())
+                # Call the tick function again after this transition is finished (infinite loop)
+                .each 'end', => @update_chart() if data_set.uuid is @active_uuids[@active_uuids.length - 1]
 
+        # Show the empty chart div, hide the svg
+        show_empty_chart: =>
+            @.$el.append @no_data_template()
+            @.$('svg').hide()
+            @.$('.stream-picker').hide()
+            @empty_chart_showing = true
 
+        # Hide the empty chart div, show the svg
+        hide_empty_chart: =>
+            $('.no-data').remove()
+            @.$('svg').show()
+            @.$('.stream-picker').show()
+            @empty_chart_showing = false
 
 # Router for Backbone.js
 class BackboneCluster extends Backbone.Router
     routes:
-        '': 'index_namespaces'
+        '': 'dashboard'
         'namespaces': 'index_namespaces'
         'namespaces/:id': 'namespace'
         'datacenters': 'index_datacenters'
@@ -884,7 +1050,13 @@ class BackboneCluster extends Backbone.Router
         # Otherwise, show an error message stating that the machine does not exist
         @$container.empty().text 'Machine '+id+' does not exist.'
 
-updateInterval = 5000;
+modal_registry = []
+clear_modals = ->
+    modal.hide_modal() for modal in modal_registry
+    modal_registry = []
+register_modal = (modal) -> modal_registry.push(modal)
+
+updateInterval = 5000
 
 declare_client_connected = ->
     window.connection_status.set({client_disconnected: false})

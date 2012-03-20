@@ -1,32 +1,31 @@
 #include "riak/http_server.hpp"
 
-#include <sstream>
-
 #include <boost/algorithm/string/join.hpp>
-#include <boost/regex.hpp>
 #include <boost/xpressive/xpressive.hpp>
 
 #include "btree/iteration.hpp"
 #include "http/json.hpp"
 #include "perfmon.hpp"
 #include "riak/store_manager.hpp"
-#include "riak/riak_value.hpp"
 
 
 namespace riak {
 
 std::string link_to_string(link_t const &link) {
-    std::stringstream res;
+    std::string res;
 
-    res << "</riak/";
-    res << link.bucket;
+    res += "</riak/";
+    res += link.bucket;
     if (link.key.size() > 0) {
-        res << "/" << link.key;
+	res += "/";
+	res += link.key;
     }
 
-    res <<">;";
-    res << " riaktag=" << "\"" << link.tag << "\"";
-    return res.str();
+    res += ">;";
+    res += " riaktag=\"";
+    res += link.tag;
+    res += "\"";
+    return res;
 }
 
 riak_http_app_t::riak_http_app_t(store_manager_t<std::list<std::string> > *)
