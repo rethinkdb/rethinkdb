@@ -50,7 +50,7 @@ struct starter_t : public thread_message_t {
     void on_thread_switch() {
         const int run_thread = 0;
         rassert(get_thread_id() != run_thread);
-        do_on_thread(run_thread, boost::bind(&coro_t::spawn_now< boost::function<void()> >, boost::ref(run)));
+        one_way_do_on_thread(run_thread, boost::bind(&coro_t::spawn_sometime< boost::function<void()> >, boost::ref(run)));
     }
 private:
     void run_wrapper(const boost::function<void()>& fun) {

@@ -60,12 +60,12 @@ void run_single_metadata_test() {
     connectivity_cluster_t::run_t cr(&c, port, &slm);
 
     /* Make sure that metadata works properly when passed to the constructor */
-    EXPECT_EQ(slm.get_root_view()->get().i, 2);
+    EXPECT_EQ(2, slm.get_root_view()->get().i);
 
     /* Make sure `join()` works properly */
     slm.get_root_view()->join(sl_int_t(1));
 
-    EXPECT_EQ(slm.get_root_view()->get().i, 3);
+    EXPECT_EQ(3, slm.get_root_view()->get().i);
 }
 TEST(RPCSemilatticeTest, SingleMetadata) {
     run_in_thread_pool(&run_single_metadata_test, 2);
@@ -80,8 +80,8 @@ void run_metadata_exchange_test() {
     semilattice_manager_t<sl_int_t> slm1(&cluster1, sl_int_t(1)), slm2(&cluster2, sl_int_t(2));
     connectivity_cluster_t::run_t run1(&cluster1, port, &slm1), run2(&cluster2, port+1, &slm2);
 
-    EXPECT_EQ(slm1.get_root_view()->get().i, 1);
-    EXPECT_EQ(slm2.get_root_view()->get().i, 2);
+    EXPECT_EQ(1, slm1.get_root_view()->get().i);
+    EXPECT_EQ(2, slm2.get_root_view()->get().i);
 
     run1.join(cluster2.get_peer_address(cluster2.get_me()));
 
@@ -106,16 +106,16 @@ void run_metadata_exchange_test() {
     cond_t interruptor1;
     slm1.get_root_view()->sync_to(cluster2.get_me(), &interruptor1);
 
-    EXPECT_EQ(slm1.get_root_view()->get().i, 3);
-    EXPECT_EQ(slm2.get_root_view()->get().i, 3);
+    EXPECT_EQ(3, slm1.get_root_view()->get().i);
+    EXPECT_EQ(3, slm2.get_root_view()->get().i);
 
     slm1.get_root_view()->join(sl_int_t(4));
 
     cond_t interruptor2;
     slm1.get_root_view()->sync_to(cluster2.get_me(), &interruptor2);
 
-    EXPECT_EQ(slm1.get_root_view()->get().i, 7);
-    EXPECT_EQ(slm2.get_root_view()->get().i, 7);
+    EXPECT_EQ(7, slm1.get_root_view()->get().i);
+    EXPECT_EQ(7, slm2.get_root_view()->get().i);
 }
 TEST(RPCSemilatticeTest, MetadataExchange) {
     run_in_thread_pool(&run_metadata_exchange_test, 2);
@@ -148,10 +148,10 @@ TEST(RPCSemilatticeTest, Watcher) {
 void run_view_controller_test() {
 
     dummy_semilattice_controller_t<sl_int_t> controller(sl_int_t(16));
-    EXPECT_EQ(controller.get_view()->get().i, 16);
+    EXPECT_EQ(16, controller.get_view()->get().i);
 
     controller.get_view()->join(sl_int_t(2));
-    EXPECT_EQ(controller.get_view()->get().i, 18);
+    EXPECT_EQ(18, controller.get_view()->get().i);
 
     bool have_been_notified = false;
     semilattice_read_view_t<sl_int_t>::subscription_t watcher(
@@ -161,7 +161,7 @@ void run_view_controller_test() {
     EXPECT_FALSE(have_been_notified);
 
     controller.get_view()->join(sl_int_t(1));
-    EXPECT_EQ(controller.get_view()->get().i, 19);
+    EXPECT_EQ(19, controller.get_view()->get().i);
 
     EXPECT_TRUE(have_been_notified);
 }
@@ -182,7 +182,7 @@ void run_field_view_test() {
     boost::shared_ptr<semilattice_read_view_t<sl_int_t> > x_view =
         metadata_field(&sl_pair_t::x, controller.get_view());
 
-    EXPECT_EQ(x_view->get().i, 8);
+    EXPECT_EQ(8, x_view->get().i);
 
     bool have_been_notified = false;
     semilattice_read_view_t<sl_int_t>::subscription_t watcher(
@@ -193,7 +193,7 @@ void run_field_view_test() {
     controller.get_view()->join(sl_pair_t(sl_int_t(1), sl_int_t(0)));
     EXPECT_TRUE(have_been_notified);
 
-    EXPECT_EQ(x_view->get().i, 9);
+    EXPECT_EQ(9, x_view->get().i);
 }
 TEST(RPCSemilatticeTest, FieldView) {
     run_in_thread_pool(&run_field_view_test);
@@ -214,7 +214,7 @@ void run_member_view_test() {
     boost::shared_ptr<semilattice_read_view_t<sl_int_t> > foo_view =
         metadata_member(std::string("foo"), controller.get_view());
 
-    EXPECT_EQ(foo_view->get().i, 8);
+    EXPECT_EQ(8, foo_view->get().i);
 
     bool have_been_notified = false;
     semilattice_read_view_t<sl_int_t>::subscription_t watcher(
@@ -227,7 +227,7 @@ void run_member_view_test() {
     controller.get_view()->join(new_value);
     EXPECT_TRUE(have_been_notified);
 
-    EXPECT_EQ(foo_view->get().i, 9);
+    EXPECT_EQ(9, foo_view->get().i);
 }
 TEST(RPCSemilatticeTest, MemberView) {
     run_in_thread_pool(&run_member_view_test);

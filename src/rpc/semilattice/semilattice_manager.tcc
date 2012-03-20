@@ -199,6 +199,10 @@ void semilattice_manager_t<metadata_t>::send_metadata_to_peer(peer_id_t peer, me
 
 template<class metadata_t>
 void semilattice_manager_t<metadata_t>::send_ping_response_to_peer(peer_id_t peer, int ping_id, auto_drainer_t::lock_t) {
+    /* Switching threads is a stupid hack for ordering reasons. It's only
+    necessary because `sync_from()` and `sync_to()` rely on message-hub and
+    network ordering, which is fragile. */
+    on_thread_t thread_switcher(home_thread());
     message_service->send_message(peer,
         boost::bind(&semilattice_manager_t<metadata_t>::write_ping_response, _1, ping_id));
 }

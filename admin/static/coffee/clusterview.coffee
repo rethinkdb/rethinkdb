@@ -430,9 +430,8 @@ module 'ClusterView', ->
                             clear_modals()
 
                             # Parse the response JSON, apply appropriate diffs, and show an alert
-                            response_json = $.parseJSON response
-                            apply_diffs response_json.diffs
-                            $('#user-alert-space').html @alert_tmpl response_json.op_result
+                            apply_diffs(response)
+                            #$('#user-alert-space').html @alert_tmpl response_json.op_result TODO make this work again after we have alerts in our responses
 
             super validator_options
 
@@ -472,10 +471,10 @@ module 'ClusterView', ->
                             clear_modals()
 
                             # Parse the response JSON, apply appropriate diffs, and show an alert
-                            response_json = $.parseJSON response
-                            apply_diffs response_json.diffs
-                            for datacenter in response_json.op_result
-                                $('#user-alert-space').append @alert_tmpl datacenter
+                            apply_diffs(response)
+                            #TODO hook this back up
+                            #for datacenter in response_json.op_result
+                                #$('#user-alert-space').append @alert_tmpl datacenter
 
             array_for_template = _.map datacenters_to_delete, (datacenter) -> datacenter.toJSON()
             super validator_options, { 'datacenters': array_for_template }
@@ -523,12 +522,12 @@ module 'ClusterView', ->
                             success: (response) =>
                                 clear_modals()
 
-                                response_json = $.parseJSON response
-                                apply_diffs response_json.diffs
-                                $('#user-alert-space').append (@alert_tmpl {
-                                    datacenter_name: datacenters.find((d) -> d.get('id') == response_json.op_result.datacenter_uuid).get('name'),
-                                    machine_name: m.get('name')
-                                })
+                                apply_diffs(response)
+                                #TODO hook this back up
+                                #$('#user-alert-space').append (@alert_tmpl {
+                                #    datacenter_name: datacenters.find((d) -> d.get('id') == response_json.op_result.datacenter_uuid).get('name'),
+                                #    machine_name: m.get('name')
+                                #})
 
 
             super validator_options, { datacenters: (datacenter.toJSON() for datacenter in datacenters.models) }

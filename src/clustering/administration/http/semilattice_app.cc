@@ -81,6 +81,8 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
             return res;
         }
 
+        boost::shared_ptr<json_adapter_if_t<namespace_metadata_ctx_t> > json_adapter_head_copy = json_adapter_head;
+
         //Traverse through the subfields until we're done with the url
         while (it != tokens.end()) {
             json_adapter_if_t<namespace_metadata_ctx_t>::json_adapter_map_t subfields = json_adapter_head->get_subfields(json_ctx);
@@ -137,7 +139,7 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
 
                     http_res_t res(200);
 
-                    scoped_cJSON_t json_repr(json_adapter_head->render(json_ctx));
+                    scoped_cJSON_t json_repr(json_adapter_head_copy->render(json_ctx));
                     res.set_body("application/json", cJSON_print_std_string(json_repr.get()));
 
                     return res;
