@@ -95,8 +95,8 @@ void serve_memcache(tcp_conn_t *conn, get_store_t *get_store, set_store_interfac
 
 perfmon_duration_sampler_t pm_conns("conns", secs_to_ticks(600), false);
 
-memcache_listener_t::memcache_listener_t(int port, namespace_interface_t<memcached_protocol_t> *namespace_if) 
-    : get_store(*namespace_if), set_store(*namespace_if), ts_set_store(&set_store),
+memcache_listener_t::memcache_listener_t(int _port, namespace_interface_t<memcached_protocol_t> *namespace_if) 
+    : port(_port), get_store(*namespace_if), set_store(*namespace_if), ts_set_store(&set_store),
       next_thread(0),
       tcp_listener(port, boost::bind(&memcache_listener_t::handle,
                                      this, auto_drainer_t::lock_t(&drainer), _1))

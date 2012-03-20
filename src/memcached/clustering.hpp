@@ -16,6 +16,7 @@ class memcached_parser_maker_t {
 public:
     memcached_parser_maker_t(mailbox_manager_t *, 
                              boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<memcached_protocol_t> > >,
+                             boost::shared_ptr<semilattice_read_view_t<machine_semilattice_metadata_t> >,
                              clone_ptr_t<directory_rview_t<namespaces_directory_metadata_t<memcached_protocol_t> > >);
 
 private:
@@ -23,6 +24,7 @@ private:
 
     mailbox_manager_t *mailbox_manager;
     boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<memcached_protocol_t> > > namespaces_semilattice_metadata;
+    boost::shared_ptr<semilattice_read_view_t<machine_semilattice_metadata_t> > machine_semilattice_metadata;
     clone_ptr_t<directory_rview_t<namespaces_directory_metadata_t<memcached_protocol_t> > > namespaces_directory_metadata;
 
     struct parser_and_namespace_if_t {
@@ -32,9 +34,15 @@ private:
         memcache_listener_t parser;
     };
 
-    boost::ptr_map<namespace_id_t, parser_and_namespace_if_t> parsers;
+public:
+    typedef boost::ptr_map<namespace_id_t, parser_and_namespace_if_t> parser_map_t;
+private:
+    parser_map_t parsers;
 
-    semilattice_read_view_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::subscription_t subscription;
+#ifndef NDEBUG
+    semilattice_read_view_t<machine_semilattice_metadata_t>::subscription_t machines_subscription;
+#endif
+    semilattice_read_view_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::subscription_t namespaces_subscription;
 };
 
 #endif /* MEMCACHED_CLUSTERING_HPP_ */

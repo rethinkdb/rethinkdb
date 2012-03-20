@@ -19,6 +19,7 @@ struct memcache_listener_t : public home_thread_mixin_t {
 
     memcache_listener_t(int port, namespace_interface_t<memcached_protocol_t> *namespace_if);
 
+    int port;
 private:
     cluster_get_store_t get_store;
     cluster_set_store_t set_store;
