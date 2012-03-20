@@ -48,7 +48,31 @@
         </script>
 
         <script id="vis_loading-template" type="text/x-handlebars-template">
-            <div class="loading"><h4>Loading data...</h4><img src="/static/images/loading.gif" /></div>
+            <div class="loading"><h4>Loading data...</h4><img src="/images/loading.gif" /></div>
+        </script>
+
+        <script id="data_stream_filter-template" type="text/x-handlebars-template">
+            {{#each models}}
+                <div class="model" style="background:{{this.color}}" data-id="{{this.id}}">
+                    <input {{#if this.selected}}checked="true"{{/if}} type="checkbox" />
+                    {{this.name}}
+                </div>
+            {{/each}}
+        </script>
+
+        <script id="vis-graph_stream_picker-template" type="text/x-handlebars-template">
+            <form class="stream-picker">
+            {{#each datastreams}}
+                <div class="datastream" data-id="{{this.id}}">
+                    <input {{#if this.selected}}checked="true"{{/if}} type="radio" name="graph-data-stream"/>
+                    {{this.name}}
+                </div>
+            {{/each}}
+            </form>
+        </script>
+
+        <script id="vis_no_data-template" type="text/x-handlebars-template">
+            <p class="no-data">No data selected.</p>
         </script>
 
         <script id="data_stream_filter-template" type="text/x-handlebars-template">
@@ -647,7 +671,6 @@
                 <div class="other-issues"></div>
                 {{#if show_resolve_issues}}
                 <div class="resolve-issues">
-                    <!--<img class="tint" src="/static/images/point_arrow.png" />-->
                     <p><a href="#resolve_issues">Resolve issues</a></p>
                 </div>
                 {{/if}}
@@ -1108,9 +1131,6 @@
         <script type="text/javascript" src="js/jquery.timeago.js"></script>
         <script type="text/javascript" src="js/date-en-US.js"></script>
         <script type="text/javascript" src="js/d3.v2.min.js"></script>
-
-
-
         <script type="text/javascript" src="gen/cluster-min.js"></script>
         <script type="text/javascript">
             var reset_token = function() {
