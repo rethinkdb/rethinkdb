@@ -315,6 +315,7 @@ LESS_SOURCES:=$(shell find $(WEB_SOURCE_DIR)/static/less -name '*.less')
 LESS_MAIN:=$(WEB_SOURCE_DIR)/static/less/cluster.less
 CLUSTER_HTML:=$(WEB_SOURCE_DIR)/templates/cluster.html
 JS_EXTERNAL_DIR:=$(WEB_SOURCE_DIR)/static/js
+IMAGES_EXTERNAL_DIR:=$(WEB_SOURCE_DIR)/static/images
 
 #### Version number handling
 RETHINKDB_VERSION:=$(shell ../scripts/gen-version.sh)
@@ -590,6 +591,13 @@ ifeq ($(VERBOSE),0)
 	@echo "    CP $(JS_EXTERNAL_DIR) -> $(WEB_ASSETS_BUILD_DIR)"
 endif
 	$(QUIET) cp -rP $(JS_EXTERNAL_DIR) $(WEB_ASSETS_BUILD_DIR)
+
+$(WEB_ASSETS_BUILD_DIR)/images: 
+	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
+ifeq ($(VERBOSE),0)
+	@echo "    CP $(IMAGES_EXTERNAL_DIR) -> $(WEB_ASSETS_BUILD_DIR)"
+endif
+	$(QUIET) cp -rP $(IMAGES_EXTERNAL_DIR) $(WEB_ASSETS_BUILD_DIR)
 
 # Special recipe for the proto buffer generated code
 $(PROTO_DIR)/%.pb.h: $(SOURCE_DIR)/%.proto
