@@ -79,6 +79,8 @@ class DataPoint extends Backbone.Model
 class DataPoints extends Backbone.Collection
     model: DataPoint
 
+class ColorMap extends Backbone.Model
+
 # Collections for Backbone.js
 class Namespaces extends Backbone.Collection
     model: Namespace
@@ -113,65 +115,65 @@ class DashboardView extends Backbone.View
         for stream in datastreams
            stream.update(timestamp)
 
+    create_fake_data: ->
+        data_points = new DataPoints()
+        cached_data = {}
+        for collection in [namespaces, datacenters, machines]
+            collection.map (model, i) ->
+                d = new DataPoint
+                    collection: collection
+                    value: (i+1) * 100
+                    id: model.get('id')
+                    # Assumption: every datapoint across datastreams at the time of sampling will have the same datetime stamp
+                    time: new Date(Date.now())
+                data_points.add d
+                cached_data[model.get('id')] = [d]
+        return data_points
+
+
     initialize: ->
         log_initial '(initializing) dashboard view'
-
-        fake_data = ->
-            data_points = new DataPoints()
-            cached_data = {}
-            for collection in [namespaces, datacenters, machines]
-                collection.map (model, i) ->
-                    d = new DataPoint
-                        collection: collection
-                        value: (i+1) * 100
-                        id: model.get('id')
-                        # Assumption: every datapoint across datastreams at the time of sampling will have the same datetime stamp
-                        time: new Date(Date.now())
-                    data_points.add d
-                    cached_data[model.get('id')] = [d]
-            return data_points
 
         mem_usage_data = new DataStream
             name: 'mem_usage_data'
             pretty_print_name: 'memory usage'
-            data: fake_data()
+            data: @create_fake_data()
             cached_data: []
             active_uuids: []
 
         disk_usage_data = new DataStream
             name: 'disk_usage_data'
             pretty_print_name: 'disk usage'
-            data: fake_data()
+            data: @create_fake_data()
             cached_data: []
             active_uuids: []
 
         cluster_performance_total = new DataStream
             name:  'cluster_performance_total'
             pretty_print_name: 'total ops/sec'
-            data: fake_data()
+            data: @create_fake_data()
             cached_data: []
             active_uuids: []
 
         cluster_performance_reads = new DataStream
             name:  'cluster_performance_reads'
             pretty_print_name: 'reads/sec'
-            data: fake_data()
+            data: @create_fake_data()
             cached_data: []
             active_uuids: []
 
         cluster_performance_writes = new DataStream
             name:  'cluster_performance_writes'
             pretty_print_name: 'writes/sec'
-            data: fake_data()
+            data: @create_fake_data()
             cached_data: []
             active_uuids: []
 
+        @data_streams = [mem_usage_data, disk_usage_data, cluster_performance_total, cluster_performance_reads, cluster_performance_writes]
 
-        data_streams = [mem_usage_data, disk_usage_data, cluster_performance_total, cluster_performance_reads, cluster_performance_writes]
+        setInterval (=> @update_data_streams @data_streams), 1500
 
-        setInterval (=> @update_data_streams data_streams), 1500
-
-        @data_picker = new Vis.DataPicker data_streams
+        @data_picker = new Vis.DataPicker @data_streams
         color_map = @data_picker.get_color_map()
 
         @disk_usage = new Vis.ResourcePieChart disk_usage_data, color_map
@@ -179,6 +181,10 @@ class DashboardView extends Backbone.View
         @cluster_performance = new Vis.ClusterPerformanceGraph [cluster_performance_total, cluster_performance_reads, cluster_performance_writes], color_map
 
     render: ->
+        # Updates elements tracked by our fake data streams | Should be removed when DataStreams are live from the server TODO
+        for stream in @data_streams
+            stream.set('data', @create_fake_data())
+
         log_render '(rendering) dashboard view'
         @.$el.html @template({})
 
@@ -204,11 +210,11 @@ module 'Vis', ->
             @filters = {}
             @collections = [namespaces, datacenters, machines]
 
-            color_scheme = d3.scale.category20()
-            @color_map = {}
+            @color_scheme = d3.scale.category20()
+            @color_map = new ColorMap()
             for collection in @collections
                 collection.map (model, i) =>
-                    @color_map[model.get('id')] = color_scheme i
+                    @color_map.set(model.get('id'), @color_scheme i)
 
             # Create one filter for each type of data (machine, namespace, datacenter, etc.) we use in all of these data streams
             for collection in @collections
@@ -216,6 +222,11 @@ module 'Vis', ->
             @selected_filter = @filters[@collections[0].name]
 
         render: =>
+            # Recreate color data whenever the picker is shown. | Ideally this should be removed when datastreams are cleaned up and loaded from the server TODO
+            for collection in @collections
+                collection.map (model, i) =>
+                    @color_map.set(model.get('id'), @color_scheme i)
+
             @.$el.html @template
                 stream_filters: _.map(@filters, (filter, collection_name) =>
                     name: collection_name
@@ -262,7 +273,7 @@ module 'Vis', ->
                     id: model.get('id')
                     name: model.get('name')
                     selected: @models_selected[model.get('id')]
-                    color: @color_map[model.get('id')]
+                    color: @color_map.get(model.get('id'))
                 )
 
             @filter_data_sources()
@@ -338,7 +349,18 @@ module 'Vis', ->
                 @data_stream.get('data').get(uuid).toJSON()
 
         render: =>
+            # We'll be recreating $el from scratch each time
             @.$el.empty()
+
+            @data_stream.off 'change:active_uuids', @draw_pie_chart
+            @data_stream.on 'change:active_uuids', @draw_pie_chart
+
+            @draw_pie_chart_layout()
+
+            return @
+
+        # Draw the pie chart layout from scratch (on first run)
+        draw_pie_chart_layout: =>
             # Define the base visualization layer for the pie chart
             svg = d3.select(@el).append('svg:svg')
                     .attr('width', @width)
@@ -376,14 +398,9 @@ module 'Vis', ->
                 .attr('dy', 7)
                 .attr('text-anchor', 'middle')
 
-
             @draw_pie_chart()
-            @data_stream.off 'change:active_uuids', @draw_pie_chart
-            @data_stream.on 'change:active_uuids', @draw_pie_chart
 
-            return @
-
-        # Draw arcs for the donut pie chart from scratch
+        # Draw the pie chart using a new dataset
         draw_pie_chart: =>
             # Get the selected datasets. If there aren't any selected, indicate no data was selected.
             filtered_data = @get_filtered_data()
@@ -412,7 +429,7 @@ module 'Vis', ->
             # Make sure each arc path has positional data to help tween: if it's missing, use the current position
             @arcs.each((d) =>
                 # Make sure we have a color
-                if not @color_map[d.data.id]?
+                if not @color_map.get(d.data.id)?
                     console.log "No color can be found for #{d.data.id}."
                 # Save the current state of the arc (angles, values, etc.) for use when tweening
                 d.data.previous =
@@ -425,7 +442,7 @@ module 'Vis', ->
             entering_arc_groups.append('svg:path')
                 .attr('class','section')
                 # Fill the pie chart with the color scheme we defined
-                .attr('fill', (d) => @color_map[d.data.id])
+                .attr('fill', (d) => @color_map.get(d.data.id))
 
             # Add a tick to the group
             entering_arc_groups.append('svg:line')
@@ -473,9 +490,7 @@ module 'Vis', ->
         update_chart: =>
             # Get the selected datasets. If there aren't any selected, indicate no data was selected.
             filtered_data = @get_filtered_data()
-
-            if filtered_data.length is 0
-                @show_empty_chart()
+            if @empty_chart_showing or filtered_data.length is 0
                 return
 
             # Save positional data calculated by the previous tween before we fetch new data
@@ -552,17 +567,15 @@ module 'Vis', ->
 
         # Show the empty chart div, hide the svg
         show_empty_chart: =>
-            if not @empty_chart_showing
-                @.$el.append @no_data_template()
-                @.$('svg').hide()
-                @empty_chart_showing = true
+            @.$el.append @no_data_template()
+            @.$('svg').hide()
+            @empty_chart_showing = true
 
         # Hide the empty chart div, show the svg
         hide_empty_chart: =>
-            if @empty_chart_showing
-                $('.no-data').remove()
-                @.$('svg').show()
-                @empty_chart_showing = false
+            $('.no-data').remove()
+            @.$('svg').show()
+            @empty_chart_showing = false
 
         # Calculates the x and y position for labels on each section of the pie chart
         # Takes a text box that will be used as the label, and an angle that the label should be positioned at
@@ -682,9 +695,10 @@ module 'Vis', ->
             @active_uuids = @data_stream.get('active_uuids')
             
             # Draw the chart immediately if enough data has been cached
-            if @get_data()[0].datapoints.length >= 2
-                @add_data_stream_picker()
+            if @active_uuids.length > 0 and @get_data()[0].datapoints.length >= 2
                 @draw_chart()
+            else if @active_uuids.length is 0
+                @show_empty_chart()
             # Otherwise, set up a binding to draw the chart when the cache is ready
             else
                 @data_stream.on 'cache_ready', @cache_ready
@@ -702,7 +716,6 @@ module 'Vis', ->
         cache_ready: =>
             @.$('.loading').fadeOut 'medium', =>
                 $(@).remove()
-                @add_data_stream_picker()
                 @draw_chart()
 
         # Update the new set of active datasets
@@ -712,6 +725,10 @@ module 'Vis', ->
 
         # Set up datastream picker
         add_data_stream_picker: =>
+            # Remove a stream picker if it already exists
+            @.$('.stream-picker').remove()
+
+            # If there is more than one data stream being used, add a stream picker 
             if @data_streams.length > 1
                 @.$el.append @stream_picker_template
                     datastreams: _.map(@data_streams, (data_stream, i) =>
@@ -741,6 +758,9 @@ module 'Vis', ->
 
             # Stop all running animations / tweenings to allow us to redraw the line chart
             d3.selectAll("*").transition().delay(0)
+
+            # Add a data stream picker if it's needed (if there is more than one data stream for this graph)
+            @add_data_stream_picker()
 
             @.$('svg').remove()
 
@@ -803,7 +823,7 @@ module 'Vis', ->
             # Add elements from the back, since SVG's z-order depends on the order in which elements are added
             for i in [data.length-1..0]
                 data_set = data[i]
-                color = @color_map[data_set.uuid]
+                color = @color_map.get(data_set.uuid)
                 group = @chart.svg.append('g')
                         .attr('clip-path', 'url(#clip)')
                         .data([data_set.datapoints])
@@ -894,19 +914,17 @@ module 'Vis', ->
 
         # Show the empty chart div, hide the svg
         show_empty_chart: =>
-            if not @empty_chart_showing
-                @.$el.append @no_data_template()
-                @.$('svg').hide()
-                @.$('.stream-picker').hide()
-                @empty_chart_showing = true
+            @.$el.append @no_data_template()
+            @.$('svg').hide()
+            @.$('.stream-picker').hide()
+            @empty_chart_showing = true
 
         # Hide the empty chart div, show the svg
         hide_empty_chart: =>
-            if @empty_chart_showing
-                $('.no-data').remove()
-                @.$('svg').show()
-                @.$('.stream-picker').show()
-                @empty_chart_showing = false
+            $('.no-data').remove()
+            @.$('svg').show()
+            @.$('.stream-picker').show()
+            @empty_chart_showing = false
 
 # Router for Backbone.js
 class BackboneCluster extends Backbone.Router
