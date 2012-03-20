@@ -1,10 +1,5 @@
 #!/usr/bin/python
-
-from random import shuffle, randint
-from time import sleep
-import os, socket, sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-from test_common import *
+import sys, workload_common
 
 NUM_INTS = 5
 
@@ -21,21 +16,17 @@ def get_pipelined(sock):
     if actual_response != expected_response:
         raise ValueError("Pipelined get failed, expected %s, got %s" % (repr(expected_response), repr(actual_response)))
 
-def test_function(opts, port, test_dir):
+op = workload_common.option_parser_for_socket()
+opts = op.parse(sys.argv)
+
+with workload_common.make_memcache_connection(opts) as mc:
     print "Inserting"
-    mc = connect_to_port(opts, port)
     insert_dict = dict((str(i), str(i)) for i in xrange(NUM_INTS))
     if (0 == mc.set_multi(insert_dict)):
         raise ValueError("Multi insert failed")
-    mc.disconnect_all()
 
+with workload_common.make_socket_connection(opts) as s:
     print "Verifying (multi)"
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect(("localhost", port))
     get_pipelined(s)
-    s.close()
-    
-    print "Done"
 
-if __name__ == "__main__":
-    auto_server_test_main(test_function, make_option_parser().parse(sys.argv), timeout = 2)
+print "Done"

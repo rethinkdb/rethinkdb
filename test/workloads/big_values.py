@@ -1,9 +1,5 @@
 #!/usr/bin/env python
-
-from socket import *
-import sys, os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-from test_common import *
+import sys, os, workload_common
 
 def readline(s):
     buf = ""
@@ -66,7 +62,10 @@ def test_sizes(x, y, s):
     test_sizes_one_way("append", x, y, s)
     test_sizes_another_way("prepend", x, y, s)
 
-def test(options, port, test_dir):
+op = workload_common.option_parser_for_socket()
+opts = op.parse(sys.argv)
+
+with workload_common.make_socket_connection(opts) as s:
 
     # 250 - the maximum small value
     # 251 - the minimum large buf (in a leaf node)
@@ -79,20 +78,10 @@ def test(options, port, test_dir):
     
     sizes = [250, 4079, 4080, 4081, 8160, 8161, (232 / 4) * 4080 - 1, (232 / 4) * 4080, (232 / 4) * 4080 + 1, 1048576, 10 * 1048577]
 
-    s = socket.socket()
-    s.connect(("localhost", port))
+    s.connect((opts["host"], opts["port"]))
     for x in sizes:
         for y in sizes:
             if x < y:
                 test_sizes(x, y, s)
 
     s.send("quit\r\n")
-    s.close()
-
-def main():
-    op = make_option_parser()
-    opts = op.parse(sys.argv)
-    auto_server_test_main(test, opts, timeout = 600)
-
-if __name__ == "__main__":
-    main()

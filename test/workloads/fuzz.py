@@ -1,7 +1,5 @@
 #!/usr/bin/python
-import os, sys, socket, random, time
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-from test_common import *
+import sys, random, workload_common
 
 # "I am a string" -> ["I a", "m a s", "trin", "g"]
 def rand_split(string, nsub_strings):
@@ -39,15 +37,15 @@ def garbage():
 def funny():
     return "Yo dawg"
 
-def test_function(opts, port, test_dir):
+op = workload_common.option_parser_for_socket()
+op["duration"] = IntFlag("--duration", 1000)
+opts = op.parse(sys.argv)
 
+with workload_common.make_socket_connection(opts) as s:
     sent_log = open('fuzz_sent', 'w')
     recv_log = open('fuzz_recv', 'w')
-    
-    start_time = time.time()
 
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect(("localhost", port))
+    start_time = time.time()
 
     time.sleep(2)
 
@@ -79,11 +77,3 @@ def test_function(opts, port, test_dir):
             pass
 
     s.send('quit\r\n')
-
-    s.close()
-
-if __name__ == "__main__":
-    op = make_option_parser()
-    op["duration"] = IntFlag("--duration", 1000)
-    opts = op.parse(sys.argv)
-    auto_server_test_main(test_function, opts, timeout = opts["duration"] + 30)
