@@ -63,7 +63,7 @@ public:
             send(listener->mailbox_manager,
                 listener->registration_done_cond.get_value().downgrade_mailbox,
                 /* We don't want a confirmation */
-                async_mailbox_t<void()>::address_t()
+                mailbox_t<void()>::address_t()
                 );
         }
     }
@@ -75,7 +75,7 @@ public:
     /* TODO: Support warm shutdowns? */
 
 private:
-    void on_synchronize(state_timestamp_t timestamp, async_mailbox_t<void()>::address_t ack_mbox, auto_drainer_t::lock_t keepalive) {
+    void on_synchronize(state_timestamp_t timestamp, mailbox_t<void()>::address_t ack_mbox, auto_drainer_t::lock_t keepalive) {
         try {
             listener->wait_for_version(timestamp, keepalive.get_drain_signal());
             send(listener->mailbox_manager, ack_mbox);

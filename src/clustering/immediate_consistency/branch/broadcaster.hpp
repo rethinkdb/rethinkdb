@@ -262,7 +262,7 @@ private:
             auto_drainer_t::lock_t)
             THROWS_NOTHING;
         void downgrade(
-            async_mailbox_t<void()>::address_t,
+            mailbox_t<void()>::address_t,
             auto_drainer_t::lock_t)
             THROWS_NOTHING;
 

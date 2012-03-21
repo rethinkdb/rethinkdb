@@ -11,7 +11,7 @@ void listener_write(
         THROWS_ONLY(interrupted_exc_t)
 {
     cond_t ack_cond;
-    async_mailbox_t<void()> ack_mailbox(
+    mailbox_t<void()> ack_mailbox(
         mailbox_manager, boost::bind(&cond_t::pulse, &ack_cond));
 
     send(mailbox_manager, write_mailbox,
@@ -29,7 +29,7 @@ typename protocol_t::write_response_t listener_writeread(
         THROWS_ONLY(interrupted_exc_t)
 {
     promise_t<typename protocol_t::write_response_t> resp_cond;
-    async_mailbox_t<void(typename protocol_t::write_response_t)> resp_mailbox(
+    mailbox_t<void(typename protocol_t::write_response_t)> resp_mailbox(
         mailbox_manager, boost::bind(&promise_t<typename protocol_t::write_response_t>::pulse, &resp_cond, _1));
 
     send(mailbox_manager, writeread_mailbox,
@@ -49,7 +49,7 @@ typename protocol_t::read_response_t listener_read(
         THROWS_ONLY(interrupted_exc_t)
 {
     promise_t<typename protocol_t::read_response_t> resp_cond;
-    async_mailbox_t<void(typename protocol_t::read_response_t)> resp_mailbox(
+    mailbox_t<void(typename protocol_t::read_response_t)> resp_mailbox(
         mailbox_manager, boost::bind(&promise_t<typename protocol_t::read_response_t>::pulse, &resp_cond, _1));
 
     send(mailbox_manager, read_mailbox,
@@ -241,7 +241,7 @@ void broadcaster_t<protocol_t>::dispatchee_t::upgrade(
 
 template<class protocol_t>
 void broadcaster_t<protocol_t>::dispatchee_t::downgrade(
-        async_mailbox_t<void()>::address_t ack_addr,
+        mailbox_t<void()>::address_t ack_addr,
         auto_drainer_t::lock_t)
         THROWS_NOTHING
 {

@@ -148,7 +148,7 @@ TEST(RPCMailboxTest, MailboxAddressSemanticsMultiThread) {
     run_in_thread_pool(&run_mailbox_address_semantics_test, 3);
 }
 
-/* `TypedMailbox` makes sure that `async_mailbox_t<>` works. */
+/* `TypedMailbox` makes sure that `mailbox_t<>` works. */
 
 void run_typed_mailbox_test() {
 
@@ -158,9 +158,9 @@ void run_typed_mailbox_test() {
     connectivity_cluster_t::run_t r(&c, port, &m);
 
     std::vector<std::string> inbox;
-    async_mailbox_t<void(std::string)> mbox(&m, boost::bind(&std::vector<std::string>::push_back, &inbox, _1));
+    mailbox_t<void(std::string)> mbox(&m, boost::bind(&std::vector<std::string>::push_back, &inbox, _1));
 
-    async_mailbox_t<void(std::string)>::address_t addr = mbox.get_address();
+    mailbox_t<void(std::string)>::address_t addr = mbox.get_address();
 
     send(&m, addr, std::string("foo"));
     send(&m, addr, std::string("bar"));

@@ -75,7 +75,7 @@ private:
             /* This is a pointer-to-member. It's always going to be either
             `&master_business_card_t<protocol_t>::read_mailbox` or
             `&master_business_card_t<protocol_t>::write_mailbox`. */
-            typename async_mailbox_t<void(op_t, order_token_t, typename async_mailbox_t<void(boost::variant<op_response_t, std::string>)>::address_t)>::address_t master_business_card_t<protocol_t>::*mailbox_field,
+            typename mailbox_t<void(op_t, order_token_t, typename mailbox_t<void(boost::variant<op_response_t, std::string>)>::address_t)>::address_t master_business_card_t<protocol_t>::*mailbox_field,
             op_t op, order_token_t order_token, signal_t *interruptor)
             THROWS_ONLY(ambiguity_exc_t, gap_exc_t, forwarded_exc_t, interrupted_exc_t)
     {
@@ -104,7 +104,7 @@ private:
 
     template<class op_t, class op_response_t>
     void generic_perform(
-            typename async_mailbox_t<void(op_t, order_token_t, typename async_mailbox_t<void(boost::variant<op_response_t, std::string>)>::address_t)>::address_t master_business_card_t<protocol_t>::*mailbox_field,
+            typename mailbox_t<void(op_t, order_token_t, typename mailbox_t<void(boost::variant<op_response_t, std::string>)>::address_t)>::address_t master_business_card_t<protocol_t>::*mailbox_field,
             const std::vector<typename protocol_t::region_t> *regions,
             const std::vector<boost::shared_ptr<resource_access_t<master_business_card_t<protocol_t> > > > *master_accesses,
             const op_t *operation,
@@ -119,12 +119,12 @@ private:
 
         try {
             promise_t<boost::variant<op_response_t, std::string> > result_or_failure;
-            async_mailbox_t<void(boost::variant<op_response_t, std::string>)> result_or_failure_mailbox(
+            mailbox_t<void(boost::variant<op_response_t, std::string>)> result_or_failure_mailbox(
                 mailbox_manager, boost::bind(&promise_t<boost::variant<op_response_t, std::string> >::pulse, &result_or_failure, _1));
 
             master_business_card_t<protocol_t> bcard = (*master_accesses)[i]->access();
 
-            typename async_mailbox_t<void(op_t, order_token_t, typename async_mailbox_t<void(boost::variant<op_response_t, std::string>)>::address_t)>::address_t query_address =
+            typename mailbox_t<void(op_t, order_token_t, typename mailbox_t<void(boost::variant<op_response_t, std::string>)>::address_t)>::address_t query_address =
                 bcard.*mailbox_field;
 
             send(mailbox_manager, query_address,

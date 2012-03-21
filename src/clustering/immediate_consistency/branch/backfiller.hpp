@@ -40,7 +40,7 @@ struct backfiller_t :
 
 private:
     bool confirm_and_send_metainfo(typename store_view_t<protocol_t>::metainfo_t metainfo, UNUSED region_map_t<protocol_t, version_range_t> start_point,
-            typename async_mailbox_t<void(region_map_t<protocol_t, version_range_t>)>::address_t end_point_cont) {
+            typename mailbox_t<void(region_map_t<protocol_t, version_range_t>)>::address_t end_point_cont) {
         rassert(metainfo.get_domain() == start_point.get_domain());
         region_map_t<protocol_t, version_range_t> end_point =
             region_map_transform<protocol_t, binary_blob_t, version_range_t>(
@@ -77,9 +77,9 @@ private:
     void on_backfill(
             backfill_session_id_t session_id,
             region_map_t<protocol_t, version_range_t> start_point,
-            typename async_mailbox_t<void(region_map_t<protocol_t, version_range_t>)>::address_t end_point_cont,
-            typename async_mailbox_t<void(typename protocol_t::backfill_chunk_t)>::address_t chunk_cont,
-            async_mailbox_t<void()>::address_t done_cont,
+            typename mailbox_t<void(region_map_t<protocol_t, version_range_t>)>::address_t end_point_cont,
+            typename mailbox_t<void(typename protocol_t::backfill_chunk_t)>::address_t chunk_cont,
+            mailbox_t<void()>::address_t done_cont,
             auto_drainer_t::lock_t keepalive) {
 
         assert_thread();
@@ -101,7 +101,7 @@ private:
             `boost::bind()` so that C++ will find the correct overload. */
             void (*send_cast_to_correct_type)(
                 mailbox_manager_t *,
-                typename async_mailbox_t<void(typename protocol_t::backfill_chunk_t)>::address_t,
+                typename mailbox_t<void(typename protocol_t::backfill_chunk_t)>::address_t,
                 const typename protocol_t::backfill_chunk_t &
                 ) = &send;
             boost::function<void(typename protocol_t::backfill_chunk_t)> send_fun =

@@ -35,7 +35,7 @@ public:
 
 private:
     void on_read(typename protocol_t::read_t read, order_token_t otok,
-            typename async_mailbox_t<void(boost::variant<typename protocol_t::read_response_t, std::string>)>::address_t response_address,
+            typename mailbox_t<void(boost::variant<typename protocol_t::read_response_t, std::string>)>::address_t response_address,
             auto_drainer_t::lock_t keepalive)
             THROWS_NOTHING
     {
@@ -51,7 +51,7 @@ private:
     }
 
     void on_write(typename protocol_t::write_t write, order_token_t otok,
-            typename async_mailbox_t<void(boost::variant<typename protocol_t::write_response_t, std::string>)>::address_t response_address,
+            typename mailbox_t<void(boost::variant<typename protocol_t::write_response_t, std::string>)>::address_t response_address,
             auto_drainer_t::lock_t keepalive)
             THROWS_NOTHING
     {
