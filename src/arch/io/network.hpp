@@ -1,7 +1,11 @@
 #ifndef ARCH_IO_NETWORK_HPP_
 #define ARCH_IO_NETWORK_HPP_
 
+#include <stdarg.h>
+#include <unistd.h>
+
 #include <vector>
+#include <stdexcept>
 
 #include "utils.hpp"
 #include <boost/scoped_ptr.hpp>
@@ -15,10 +19,6 @@
 #include "perfmon_types.hpp"
 #include "arch/io/event_watcher.hpp"
 #include "containers/intrusive_list.hpp"
-#include <stdexcept>
-#include <stdarg.h>
-#include <unistd.h>
-#include <sstream>
 
 class side_coro_handler_t;
 
@@ -73,10 +73,6 @@ public:
     const_charslice peek(size_t size);
 
     void pop(size_t len);
-
-    //pop to the position the iterator has been incremented to
-    class iterator;
-    void pop(iterator &);
 
     void read_more_buffered();
 
@@ -138,53 +134,6 @@ public:
     ~linux_tcp_conn_t();
 
 public:
-    /* iterator always you to handle the stream of data off the
-     * socket with iterators, the iterator handles all of the buffering itself. The
-     * impetus for this class comes from wanting to use network connection's with
-     * Boost's spirit parser */
-
-    class iterator {
-	friend class linux_tcp_conn_t;
-    private:
-        linux_tcp_conn_t *source;
-        bool end;
-        size_t pos;
-    private:
-        int compare(iterator const& other) const;
-    private:
-        void increment();
-        bool equal(iterator const& other);
-        const char &dereference();
-    public:
-        iterator();
-        iterator(linux_tcp_conn_t *, size_t);
-    private:
-        iterator(linux_tcp_conn_t *, bool); // <--- constructs and end iterator use the below method for better readability;
-    public:
-	typedef std::forward_iterator_tag iterator_category;
-	typedef char value_type;
-	typedef int64_t difference_type;
-	typedef const char* pointer;
-	typedef const char& reference;
-
-        static iterator make_end_iterator(linux_tcp_conn_t *);
-        iterator(const iterator&);
-        ~iterator();
-        char operator*();
-
-	iterator& operator++();
-
-        bool operator==(const iterator&);
-        bool operator!=(const iterator&);
-
-	// Necessary for boost concept check, not implemented.
-        bool operator<(const iterator&);
-        void operator++(int);
-    };
-
-public:
-    iterator begin();
-    iterator end();
 
     void rethread(int);
 

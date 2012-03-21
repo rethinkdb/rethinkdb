@@ -311,11 +311,6 @@ void linux_tcp_conn_t::pop(size_t len) {
     read_buffer.erase(read_buffer.begin(), read_buffer.begin() + len);  // INEFFICIENT
 }
 
-void linux_tcp_conn_t::pop(iterator &it) {
-    rassert(!it.end, "Trying to pop an end iterator doesn't make any sense");
-    pop(it.pos);
-}
-
 void linux_tcp_conn_t::shutdown_read() {
     assert_thread();
     int res = ::shutdown(sock.get(), SHUT_RD);
@@ -596,15 +591,6 @@ linux_tcp_conn_t::~linux_tcp_conn_t() {
     /* scoped_fd_t's destructor will take care of close()ing the socket. */
 }
 
-linux_tcp_conn_t::iterator linux_tcp_conn_t::begin() {
-    return iterator(this, size_t(0));
-}
-
-linux_tcp_conn_t::iterator linux_tcp_conn_t::end() {
-    linux_tcp_conn_t::iterator res = iterator(this, true);
-    return res;
-}
-
 void linux_tcp_conn_t::rethread(int new_thread) {
 
     if (home_thread() == get_thread_id() && new_thread == INVALID_THREAD) {
@@ -689,89 +675,6 @@ void linux_tcp_conn_t::on_event(int events) {
     }
 }
 
-void linux_tcp_conn_t::iterator::increment() {
-    pos++;
-}
-
-/* compare ourselves to another iterator:
- * Returns:
- * -1 -> *this < other
- *  0 -> *this == other
- *  1 -> *this > other */
-int linux_tcp_conn_t::iterator::compare(iterator const& other) const {
-    rassert(source == other.source, "Comparing iterators from different connections\n");
-
-    if (!end && other.end) return -1;
-    if (end && other.end) return 0;
-    if (end && !other.end) return 1;
-
-    //compare the positions
-    if (pos < other.pos) return -1;
-    if (pos == other.pos) return 0;
-    if (pos > other.pos) return 1;
-
-    unreachable();
-    return -2; //happify gcc
-}
-
-bool linux_tcp_conn_t::iterator::equal(iterator const& other) {
-    return compare(other) == 0;
-}
-
-const char &linux_tcp_conn_t::iterator::dereference() {
-    rassert(!end, "Trying to dereference an end iterator.");
-    const_charslice slc = source->peek(pos + 1);
-
-    /* check to make sure we at least got some data */
-    /* rassert(slc.end >= slc.beg);
-    while ((size_t) (slc.end - slc.beg) <= (pos - source->pos)) {
-        source->read_more_buffered();
-        slc = source->peek();
-    } */
-
-    return *(slc.beg + pos);
-}
-
-linux_tcp_conn_t::iterator::iterator() {
-    not_implemented();
-}
-
-linux_tcp_conn_t::iterator::iterator(linux_tcp_conn_t *_source, size_t _pos)
-    : source(_source), end(false), pos(_pos)
-{ }
-
-//The unused bool denotes and "end" constructor. You should use the below
-//method in actual code
-linux_tcp_conn_t::iterator::iterator(linux_tcp_conn_t *_source, bool)
-    : source(_source), end(true), pos(0)
-{ }
-
-linux_tcp_conn_t::iterator linux_tcp_conn_t::iterator::make_end_iterator(linux_tcp_conn_t *conn) {
-    return iterator(conn, true);
-}
-
-linux_tcp_conn_t::iterator::iterator(iterator const& other) 
-    : source(other.source), end(other.end), pos(other.pos)
-{ }
-
-linux_tcp_conn_t::iterator::~iterator() { }
-
-char linux_tcp_conn_t::iterator::operator*() {
-    return dereference();
-}
-
-linux_tcp_conn_t::iterator& linux_tcp_conn_t::iterator::operator++() {
-    increment();
-    return *this;
-}
-
-bool linux_tcp_conn_t::iterator::operator==(linux_tcp_conn_t::iterator const &other) {
-    return equal(other);
-}
-
-bool linux_tcp_conn_t::iterator::operator!=(linux_tcp_conn_t::iterator const &other) {
-    return !equal(other);
-}
 
 
 linux_nascent_tcp_conn_t::linux_nascent_tcp_conn_t(fd_t fd) : fd_(fd) {
