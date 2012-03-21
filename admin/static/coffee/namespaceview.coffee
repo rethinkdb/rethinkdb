@@ -168,7 +168,7 @@ module 'NamespaceView', ->
                         success: (response) =>
                             clear_modals()
 
-                            apply_diffs(response)
+                            apply_to_collection(namespaces, add_protocol_tag(response, "memcached"))
                             # the result of this operation are some attributes about the namespace we created, to be used in an alert
                             # TODO hook this up
                             #$('#user-alert-space').append @alert_tmpl response_json.op_result
@@ -530,7 +530,7 @@ module 'NamespaceView', ->
                         success: (response) =>
                             clear_modals()
 
-                            apply_diffs(response)
+                            namespaces.get(@namespace.id).set(response)
 
                             # should be empty.
                             # TODO hook this up
