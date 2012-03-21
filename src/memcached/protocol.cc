@@ -14,11 +14,6 @@
 
 #include "btree/erase_range.hpp"
 
-
-memcached_protocol_t::region_t memcached_protocol_t::universe_region() {
-    return key_range_t::entire_range();
-}
-
 /* `memcached_protocol_t::read_t::get_region()` */
 
 static key_range_t::bound_t convert_bound_mode(rget_bound_mode_t rbm) {
@@ -144,7 +139,7 @@ memcached_protocol_t::write_response_t memcached_protocol_t::write_t::unshard(st
 
 namespace arc = boost::archive;
 
-memcached_protocol_t::store_t::store_t(const std::string& filename, bool create) : store_view_t<memcached_protocol_t>(key_range_t::entire_range()) {
+memcached_protocol_t::store_t::store_t(const std::string& filename, bool create) : store_view_t<memcached_protocol_t>(key_range_t::universe()) {
     if (create) {
         standard_serializer_t::create(
             standard_serializer_t::dynamic_config_t(),
@@ -172,7 +167,7 @@ memcached_protocol_t::store_t::store_t(const std::string& filename, bool create)
     btree.reset(new btree_slice_t(cache.get()));
 
     // Initialize metainfo to an empty `binary_blob_t` because its domain is
-    // required to be `universe_region()` at all times
+    // required to be `key_range_t::universe()` at all times
     {
         /* Wow, this is a lot of lines of code for a simple concept. Can we do better? */
         got_superblock_t superblock;
@@ -185,7 +180,7 @@ memcached_protocol_t::store_t::store_t(const std::string& filename, bool create)
         vector_streambuf_t<> key;
         {
             arc::binary_oarchive key_archive(key, arc::no_header);
-            key_range_t kr = universe_region();   // `operator<<` needs a non-const reference
+            key_range_t kr = key_range_t::universe();   // `operator<<` needs a non-const reference
             key_archive << kr;
         }
         set_superblock_metainfo(txn.get(), sb_buf, key.vector(), std::vector<char>());
@@ -296,7 +291,7 @@ region_map_t<memcached_protocol_t, binary_blob_t> memcached_protocol_t::store_t:
         ));
     }
     region_map_t<memcached_protocol_t, binary_blob_t> res(result.begin(), result.end());
-    rassert(res.get_domain() == memcached_protocol_t::universe_region());
+    rassert(res.get_domain() == key_range_t::universe());
     return res;
 }
 
@@ -521,7 +516,7 @@ void memcached_protocol_t::store_t::update_metainfo(const metainfo_t &old_metain
     region_map_t<memcached_protocol_t, binary_blob_t> updated_metadata = old_metainfo;
     updated_metadata.update(new_metainfo);
 
-    rassert(updated_metadata.get_domain() == memcached_protocol_t::universe_region());
+    rassert(updated_metadata.get_domain() == key_range_t::universe());
 
     buf_lock_t* sb_buf = superblock.get_real_buf();
     clear_superblock_metainfo(txn, sb_buf);

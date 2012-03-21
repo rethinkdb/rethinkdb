@@ -24,6 +24,9 @@ public:
         of. */
         static region_t empty() THROWS_NOTHING;
 
+        /* Returns a `region_t` that is a superset of every other `region_t`. */
+        static region_t universe() THROWS_NOTHING;
+
         /* Most of the `region_t` operations are defined as standalone
         functions. See below. */
 
