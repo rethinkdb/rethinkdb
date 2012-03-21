@@ -4,24 +4,24 @@
 
 #include "logger.hpp"
 
-/* mailbox_t */
+/* raw_mailbox_t */
 
-mailbox_t::address_t::address_t() :
+raw_mailbox_t::address_t::address_t() :
     peer(peer_id_t()), thread(-1), mailbox_id(-1) { }
 
-mailbox_t::address_t::address_t(const address_t &a) :
+raw_mailbox_t::address_t::address_t(const address_t &a) :
     peer(a.peer), thread(a.thread), mailbox_id(a.mailbox_id) { }
 
-bool mailbox_t::address_t::is_nil() const {
+bool raw_mailbox_t::address_t::is_nil() const {
     return peer.is_nil();
 }
 
-peer_id_t mailbox_t::address_t::get_peer() const {
+peer_id_t raw_mailbox_t::address_t::get_peer() const {
     rassert(!is_nil(), "A nil address has no peer");
     return peer;
 }
 
-mailbox_t::mailbox_t(mailbox_manager_t *m, const boost::function<void(std::istream &, const boost::function<void()> &)> &fun) :
+raw_mailbox_t::raw_mailbox_t(mailbox_manager_t *m, const boost::function<void(std::istream &, const boost::function<void()> &)> &fun) :
     manager(m),
     mailbox_id(manager->mailbox_tables.get()->next_mailbox_id++),
     callback(fun)
@@ -31,13 +31,13 @@ mailbox_t::mailbox_t(mailbox_manager_t *m, const boost::function<void(std::istre
     manager->mailbox_tables.get()->mailboxes[mailbox_id] = this;
 }
 
-mailbox_t::~mailbox_t() {
+raw_mailbox_t::~raw_mailbox_t() {
     assert_thread();
     rassert(manager->mailbox_tables.get()->mailboxes[mailbox_id] == this);
     manager->mailbox_tables.get()->mailboxes.erase(mailbox_id);
 }
 
-mailbox_t::address_t mailbox_t::get_address() {
+raw_mailbox_t::address_t raw_mailbox_t::get_address() {
     address_t a;
     a.peer = manager->get_connectivity_service()->get_me();
     a.thread = home_thread();
@@ -45,7 +45,7 @@ mailbox_t::address_t mailbox_t::get_address() {
     return a;
 }
 
-void send(mailbox_manager_t *src, mailbox_t::address_t dest, boost::function<void(std::ostream&)> writer) {
+void send(mailbox_manager_t *src, raw_mailbox_t::address_t dest, boost::function<void(std::ostream&)> writer) {
     rassert(src);
     rassert(!dest.is_nil());
 
@@ -72,8 +72,8 @@ mailbox_manager_t::mailbox_table_t::~mailbox_table_t() {
         "the cluster");
 }
 
-mailbox_t *mailbox_manager_t::mailbox_table_t::find_mailbox(mailbox_t::id_t id) {
-    std::map<mailbox_t::id_t, mailbox_t*>::iterator it = mailboxes.find(id);
+raw_mailbox_t *mailbox_manager_t::mailbox_table_t::find_mailbox(raw_mailbox_t::id_t id) {
+    std::map<raw_mailbox_t::id_t, raw_mailbox_t *>::iterator it = mailboxes.find(id);
     if (it == mailboxes.end()) {
         rassert(id < next_mailbox_id, "Not only does the requested mailbox not "
             "currently exist, but it never existed; the given mailbox ID has "
@@ -84,7 +84,7 @@ mailbox_t *mailbox_manager_t::mailbox_table_t::find_mailbox(mailbox_t::id_t id) 
     }
 }
 
-void mailbox_manager_t::write_mailbox_message(std::ostream &stream, int dest_thread, mailbox_t::id_t dest_mailbox_id, boost::function<void(std::ostream&)> writer) {
+void mailbox_manager_t::write_mailbox_message(std::ostream &stream, int dest_thread, raw_mailbox_t::id_t dest_mailbox_id, boost::function<void(std::ostream&)> writer) {
     stream.write(reinterpret_cast<char*>(&dest_thread), sizeof(dest_thread));
     stream.write(reinterpret_cast<char*>(&dest_mailbox_id), sizeof(dest_mailbox_id));
     writer(stream);
@@ -92,7 +92,7 @@ void mailbox_manager_t::write_mailbox_message(std::ostream &stream, int dest_thr
 
 void mailbox_manager_t::on_message(UNUSED peer_id_t source_peer, std::istream &stream) {
     int dest_thread;
-    mailbox_t::id_t dest_mailbox_id;
+    raw_mailbox_t::id_t dest_mailbox_id;
     stream.read(reinterpret_cast<char*>(&dest_thread), sizeof(dest_thread));
     stream.read(reinterpret_cast<char*>(&dest_mailbox_id), sizeof(dest_mailbox_id));
 
@@ -100,7 +100,7 @@ void mailbox_manager_t::on_message(UNUSED peer_id_t source_peer, std::istream &s
     thread and back before we parse the next message. */
     on_thread_t thread_switcher(dest_thread);
 
-    mailbox_t *mbox = mailbox_tables.get()->find_mailbox(dest_mailbox_id);
+    raw_mailbox_t *mbox = mailbox_tables.get()->find_mailbox(dest_mailbox_id);
     if (mbox) {
         cond_t done_cond;
         boost::function<void()> done_fun = boost::bind(&cond_t::pulse, &done_cond);
@@ -108,7 +108,7 @@ void mailbox_manager_t::on_message(UNUSED peer_id_t source_peer, std::istream &s
         done_cond.wait_lazily_unordered();
     } else {
         /* Print a warning message */
-        mailbox_t::address_t dest_address;
+        raw_mailbox_t::address_t dest_address;
         dest_address.peer = message_service->get_connectivity_service()->get_me();
         dest_address.thread = dest_thread;
         dest_address.mailbox_id = dest_mailbox_id;

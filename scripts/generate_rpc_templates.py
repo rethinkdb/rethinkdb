@@ -42,7 +42,7 @@ def generate_async_message_template(nargs):
     else:
         print "        template<" + csep("class a#_t") + ">"
         print "        friend void send(mailbox_manager_t*, typename async_mailbox_t< void(" + csep("a#_t") + ") >::address_t" + cpre("const a#_t&") + ");"
-    print "        mailbox_t::address_t addr;"
+    print "        raw_mailbox_t::address_t addr;"
     print "    };"
     print
     print "    address_t get_address() {"
@@ -74,7 +74,7 @@ def generate_async_message_template(nargs):
     print "        fun(" + csep("arg#") + ");"
     print "    }"
     print
-    print "    mailbox_t mailbox;"
+    print "    raw_mailbox_t mailbox;"
     print "};"
     print
     if nargs == 0:

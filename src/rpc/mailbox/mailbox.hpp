@@ -9,7 +9,7 @@ struct mailbox_manager_t;
 to handle messages it receives. To send messages to the mailbox, call the
 `get_address()` method and then call `send()` on the address it returns. */
 
-struct mailbox_t :
+struct raw_mailbox_t :
     public home_thread_mixin_t
 {
 private:
@@ -22,7 +22,7 @@ private:
 
     boost::function<void(std::istream &, const boost::function<void()> &)> callback;
 
-    DISABLE_COPYING(mailbox_t);
+    DISABLE_COPYING(raw_mailbox_t);
 
 public:
     struct address_t {
@@ -40,9 +40,9 @@ public:
         peer_id_t get_peer() const;
 
     private:
-        friend std::ostream &operator<<(std::ostream &, mailbox_t::address_t);
-        friend void send(mailbox_manager_t *, mailbox_t::address_t, boost::function<void(std::ostream&)>);
-        friend struct mailbox_t;
+        friend std::ostream &operator<<(std::ostream &, raw_mailbox_t::address_t);
+        friend void send(mailbox_manager_t *, raw_mailbox_t::address_t, boost::function<void(std::ostream&)>);
+        friend struct raw_mailbox_t;
         friend struct mailbox_manager_t;
 
         friend class ::boost::serialization::access;
@@ -62,13 +62,13 @@ public:
         id_t mailbox_id;
     };
 
-    mailbox_t(mailbox_manager_t *, const boost::function<void(std::istream &, const boost::function<void()> &)> &);
-    ~mailbox_t();
+    raw_mailbox_t(mailbox_manager_t *, const boost::function<void(std::istream &, const boost::function<void()> &)> &);
+    ~raw_mailbox_t();
 
     address_t get_address();
 };
 
-inline std::ostream &operator<<(std::ostream &s, mailbox_t::address_t a) {
+inline std::ostream &operator<<(std::ostream &s, raw_mailbox_t::address_t a) {
     return s << a.peer << ":" << a.thread << ":" << a.mailbox_id;
 }
 
@@ -78,7 +78,7 @@ inaccessible, `send()` will silently fail. */
 
 void send(
     mailbox_manager_t *src,
-    mailbox_t::address_t dest,
+    raw_mailbox_t::address_t dest,
     boost::function<void(std::ostream&)> message
     );
 
@@ -99,21 +99,21 @@ public:
     }
 
 private:
-    friend struct mailbox_t;
-    friend void send(mailbox_manager_t *, mailbox_t::address_t, boost::function<void(std::ostream&)>);
+    friend struct raw_mailbox_t;
+    friend void send(mailbox_manager_t *, raw_mailbox_t::address_t, boost::function<void(std::ostream&)>);
 
     message_service_t *message_service;
 
     struct mailbox_table_t {
         mailbox_table_t();
         ~mailbox_table_t();
-        mailbox_t::id_t next_mailbox_id;
-        std::map<mailbox_t::id_t, mailbox_t*> mailboxes;
-        mailbox_t *find_mailbox(mailbox_t::id_t);
+        raw_mailbox_t::id_t next_mailbox_id;
+        std::map<raw_mailbox_t::id_t, raw_mailbox_t *> mailboxes;
+        raw_mailbox_t *find_mailbox(raw_mailbox_t::id_t);
     };
     one_per_thread_t<mailbox_table_t> mailbox_tables;
 
-    static void write_mailbox_message(std::ostream&, int dest_thread, mailbox_t::id_t dest_mailbox_id, boost::function<void(std::ostream&)> writer);
+    static void write_mailbox_message(std::ostream&, int dest_thread, raw_mailbox_t::id_t dest_mailbox_id, boost::function<void(std::ostream&)> writer);
     void on_message(peer_id_t, std::istream&);
 };
 
