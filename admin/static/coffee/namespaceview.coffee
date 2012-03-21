@@ -71,11 +71,13 @@ module 'NamespaceView', ->
                     'id': @model.get('primary_uuid')
                     'name': datacenters.get(@model.get('primary_uuid')).get('name')
                     'replicas': @model.get('replica_affinities')[@model.get('primary_uuid')]
+                    'acks' : @model.get('replica_affinities')[@model.get('primary_uuid')]
                 'secondaries':
                     _.map secondary_affinities, (replica_count, uuid) =>
                         'id': uuid
                         'name': datacenters.get(uuid).get('name')
                         'replicas': replica_count
+                        'acks': replica_count
                 'datacenters_left': datacenters.models.length > _.size(@model.get('replica_affinities'))
             @.$el.html @template(json)
 
@@ -163,12 +165,12 @@ module 'NamespaceView', ->
                         url: '/ajax/memcached_namespaces/new'
                         type: 'POST'
                         contentType: 'application/json'
-                        data: JSON.stringify({"name" : formdata.name, "primary_uuid" : formdata.primary_datacenter})
+                        data: JSON.stringify({"name" : formdata.name, "primary_uuid" : formdata.primary_datacenter, "port" : parseInt(formdata.port)})
 
                         success: (response) =>
                             clear_modals()
 
-                            apply_diffs(response)
+                            apply_to_collection(namespaces, add_protocol_tag(response, "memcached"))
                             # the result of this operation are some attributes about the namespace we created, to be used in an alert
                             # TODO hook this up
                             #$('#user-alert-space').append @alert_tmpl response_json.op_result
@@ -189,25 +191,21 @@ module 'NamespaceView', ->
             log_render '(rendering) remove namespace dialog'
             validator_options =
                 submitHandler: =>
-                    url = '/ajax/namespaces?ids='
-                    num_namespaces = namespaces_to_delete.length
                     for namespace in namespaces_to_delete
-                        url += namespace.id
-                        url += "," if num_namespaces-=1 > 0
+                        $.ajax
+                            url: "/ajax/#{namespace.get("protocol")}_namespaces/#{namespace.id}"
+                            type: 'DELETE'
+                            contentType: 'application/json'
 
-                    url += '&token=' + token
+                            success: (response) =>
+                                clear_modals()
 
-                    $('form', @$modal).ajaxSubmit
-                        url: url
-                        type: 'DELETE'
-
-                        success: (response) =>
-                            clear_modals()
-
-                            apply_diffs(response)
-                            #TODO hook this up
-                            #for namespace in response_json.op_result
-                                #$('#user-alert-space').append @alert_tmpl namespace
+                                if (response)
+                                    throw "Received a non null response to a delete... this is incorrect"
+                                namespaces.remove(namespace.id)
+                                #TODO hook this up
+                                #for namespace in response_json.op_result
+                                    #$('#user-alert-space').append @alert_tmpl namespace
 
             array_for_template = _.map namespaces_to_delete, (namespace) -> namespace.toJSON()
             super validator_options, { 'namespaces': array_for_template }
@@ -530,7 +528,7 @@ module 'NamespaceView', ->
                         success: (response) =>
                             clear_modals()
 
-                            apply_diffs(response)
+                            namespaces.get(@namespace.id).set(response)
 
                             # should be empty.
                             # TODO hook this up
