@@ -13,6 +13,7 @@
 #include <stdarg.h>
 
 #include "arch/io/io_utils.hpp"
+#include "containers/printf_buffer.hpp"
 #include "perfmon.hpp"
 #include "logger.hpp"
 #include "utils.hpp"
@@ -22,12 +23,10 @@
 
 struct proc_pid_stat_exc_t : public std::exception {
     explicit proc_pid_stat_exc_t(const char *format, ...) __attribute__ ((format (printf, 2, 3))) {
-        char buffer[2000];
-        va_list l;
-        va_start(l, format);
-        vsnprintf(buffer, sizeof(buffer), format, l);
-        va_end(l);
-        msg = buffer;
+        va_list ap;
+        va_start(ap, format);
+        msg = vstrprintf(format, ap);
+        va_end(ap);
     }
     std::string msg;
     const char *what() const throw () {
@@ -56,23 +55,21 @@ struct proc_pid_stat_t {
     int64_t cguest_time;
 
     static proc_pid_stat_t for_pid(pid_t pid) {
-        char path[100];
-        snprintf(path, sizeof(path), "/proc/%d/stat", pid);
+        printf_buffer_t<100> path("/proc/%d/stat", pid);
         proc_pid_stat_t stat;
-        stat.read_from_file(path);
+        stat.read_from_file(path.c_str());
         return stat;
     }
 
     static proc_pid_stat_t for_pid_and_tid(pid_t pid, pid_t tid) {
-        char path[100];
-        snprintf(path, sizeof(path), "/proc/%d/task/%d/stat", pid, tid);
+        printf_buffer_t<100> path("/proc/%d/task/%d/stat", pid, tid);
         proc_pid_stat_t stat;
-        stat.read_from_file(path);
+        stat.read_from_file(path.c_str());
         return stat;
     }
 
 private:
-    void read_from_file(char * path) {
+    void read_from_file(const char * path) {
         scoped_fd_t stat_file(open(path, O_RDONLY));
         if (stat_file.get() == INVALID_FD) {
             throw proc_pid_stat_exc_t("Could not open '%s': %s (errno = %d)", path, strerror(errno), errno);

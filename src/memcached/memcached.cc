@@ -20,6 +20,7 @@
 #include "concurrency/promise.hpp"
 #include "containers/buffer_group.hpp"
 #include "containers/iterators.hpp"
+#include "containers/printf_buffer.hpp"
 #include "stats/control.hpp"
 #include "memcached/store.hpp"
 #include "logger.hpp"
@@ -72,10 +73,8 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
     }
 
     void vwritef(const char *format, va_list args) {
-        char buffer[1000];
-        size_t bytes = vsnprintf(buffer, sizeof(buffer), format, args);
-        rassert(bytes < sizeof(buffer));
-        write(buffer, bytes);
+        printf_buffer_t<1000> buffer(args, format);
+        write(buffer.data(), buffer.size());
     }
 
     void writef(const char *format, ...)
