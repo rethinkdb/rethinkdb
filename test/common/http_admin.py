@@ -219,21 +219,27 @@ class ExternalServer(Server):
 		return "External" + Server.__str__(self)
 
 class InternalServer(Server):
-	def __init__(self, serv_port, local_cluster_port, cluster_host = None, cluster_port = None, port_offset = 0):
+	def __init__(self, serv_port, local_cluster_port, join = None, port_offset = 0):
+
+		self.local_cluster_port = local_cluster_port
+
 		# Make a temporary file for the database
 		#TODO use a portable method to select db_dir
 		self.db_dir = "/tmp/rethinkdb-port-" + str(serv_port)
 		assert not os.path.exists(self.db_dir)
 
-		# Otherwise, we need to create a new server 
-		self.args = ["../../build/debug/rethinkdb", "--directory=" + self.db_dir, "--port=" + str(serv_port), "--client-port=" + str(local_cluster_port), "--port-offset=" + str(port_offset)]
-		if cluster_port is not None:
-			self.args.append("--join=" + str(cluster_host) + ":" + str(cluster_port))
+		create_args = ["../../build/debug/rethinkdb", "create", "--directory=" + self.db_dir, "--port-offset=" + str(port_offset)]
+		subprocess.check_call(create_args)
 
-		self.local_cluster_port = local_cluster_port
+		self.args_without_join = ["../../build/debug/rethinkdb", "serve", "--directory=" + self.db_dir, "--port=" + str(serv_port), "--client-port=" + str(local_cluster_port)]
+		if join is None:
+			serve_args = self.args_without_join
+		else:
+			join_host, join_port = join
+			serve_args = self.args_without_join + ["--join=" + join_host + ":" + str(join_port)]
 
-		print self.args
-		self.instance = subprocess.Popen(self.args, 0, None, None, subprocess.PIPE)
+		print serve_args
+		self.instance = subprocess.Popen(serve_args, 0, None, None, subprocess.PIPE)
 		time.sleep(0.2)
 		Server.__init__(self, socket.gethostname(), serv_port)
 		self.running = True
@@ -244,9 +250,14 @@ class InternalServer(Server):
 		self.instance.wait()
 		self.running = False
 
-	def recover(self):
+	def recover(self, join = None):
 		assert not self.running
-		self.instance = subprocess.Popen(self.args, 0, None, None, subprocess.PIPE)
+		if join is None:
+			serve_args = self.args_without_join
+		else:
+			join_host, join_port = join
+			serve_args = self.args_without_join + ["--join=" + join_host + ":" + str(join_port)]
+		self.instance = subprocess.Popen(serve_args, 0, None, None, subprocess.PIPE)
 		self.running = True
 
 	def __del__(self):
@@ -318,8 +329,7 @@ class Cluster(object):
 			serv = InternalServer(
 				self.base_port + self.server_instances,
 				self.base_port - self.server_instances - 1,
-				cluster_host = socket.gethostname(),
-				cluster_port = self.base_port,
+				join = (socket.gethostname(), self.base_port),
 				port_offset = self.server_instances)
 		self.machines[serv.uuid] = serv
 		self.server_instances += 1
