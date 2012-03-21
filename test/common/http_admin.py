@@ -137,7 +137,7 @@ class Namespace(object):
 	def __init__(self, uuid, json_data):
 		self.uuid = validate_uuid(uuid)
 		self.blueprint = Blueprint(json_data["blueprint"])
-		self.primary_uuid = validate_uuid(json_data["primary_uuid"])
+		self.primary_uuid = None if json_data["primary_uuid"] is None else validate_uuid(json_data["primary_uuid"])
 		self.replica_affinities = json_data["replica_affinities"]
 		self.shards = json_data["shards"]
 		self.name = json_data["name"]
@@ -369,79 +369,94 @@ class Cluster(object):
 		self.update_cluster_data()
 		return datacenter
 
+	def _find_thing(self, what, type_class, type_str, search_space):
+		if isinstance(what, (str, unicode)):
+			if is_uuid(what):
+				return search_space[what]
+			else:
+				hits = [x for x in search_space.values() if x.name == what]
+				if len(hits) == 0:
+					raise ValueError("No %s named %r" % (type_str, what))
+				elif len(hits) == 1:
+					return hits[0]
+				else:
+					raise ValueError("Multiple %ss named %r" % (type_str, what))
+		elif isinstance(what, type_class):
+			assert search_space[what.uuid] is what
+			return what
+		else:
+			raise TypeError("Can't interpret %r as a %s" % (what, type_str))
+
+	def find_machine(self, what):
+		return _find_thing(what, Server, "machine", self.machines)
+
+	def find_datacenter(self, what):
+		return _find_thing(what, Datacenter, "data center", self.datacenters)
+
+	def find_namespace(self, what):
+		nss = {}
+		nss.extend(self.memcached_namespaces)
+		nss.extend(self.dummy_namespaces)
+		return _find_thing(what, Namespace, "namespace", nss)
+
 	def move_server_to_datacenter(self, serv, datacenter, servid = None):
-		if type(serv) is str or type(serv) is unicode:
-			serv = self.machines[serv]
-		if type(datacenter) is str or type(datacenter) is unicode:
-			datacenter = self.datacenters[datacenter]
-		assert self.machines[serv.uuid] is serv
-		assert self.datacenters[datacenter.uuid] is datacenter
+		serv = self.find_machine(serv)
+		datacenter = self.find_datacenter(datacenter)
 		if type(serv) is not DummyServer:
 			serv.datacenter_uuid = datacenter.uuid
 		self._get_server_for_command(servid).do_query("POST", "/ajax/machines/" + serv.uuid + "/datacenter_uuid", datacenter.uuid)
 		time.sleep(0.2) # Give some time for changes to hit the rest of the cluster
 		self.update_cluster_data()
-		return datacenter
 
 	def move_namespace_to_datacenter(self, namespace, primary, servid = None):
-		if type(namespace) is str or type(namespace) is unicode:
-			if namespace in self.dummy_namespaces:
-				namespace = self.dummy_namespaces[namespace]
-			elif namespace in self.memcached_namespaces:
-				namespace = self.memcached_namespaces[namespace]
-			else:
-				assert False
-		if type(primary) is str or type(primary) is unicode:
-			primary = self.datacenters[primary]
-		assert self.datacenters[primary.uuid] is primary
+		namespace = self.find_namespace(namespace)
+		primary = None if primary is None else self.find_datacenter(primary)
 		namespace.primary_uuid = primary.uuid
 		if type(namespace) == MemcachedNamespace:
-			assert self.memcached_namespaces[namespace.uuid] is namespace
 			self._get_server_for_command(servid).do_query("POST", "/ajax/memcached_namespaces/" + namespace.uuid, namespace.to_json())
 		elif type(namespace) == DummyNamespace:
-			assert self.dummy_namespaces[namespace.uuid] is namespace
 			self._get_server_for_command(servid).do_query("POST", "/ajax/dummy_namespaces/" + namespace.uuid, namespace.to_json())
 		time.sleep(0.2) # Give some time for the changes to hit the rest of the cluster
 		self.update_cluster_data()
-		return namespace
 
 	def set_namespace_affinities(self, namespace, affinities = { }, servid = None):
+		namespace = self.find_namespace(namespace)
 		aff_dict = { }
-		for i in affinities.iterkeys():
-			assert i.uuid in self.datacenters
-			aff_dict[i.uuid] = affinities[i]
+		for datacenter, count in affinities.iteritems():
+			aff_dict[self.find_datacenter(datacenter).uuid] = count
 		namespace.replica_affinities = aff_dict
 		if type(namespace) == MemcachedNamespace:
-			assert self.memcached_namespaces[namespace.uuid] is namespace
 			self._get_server_for_command(servid).do_query("POST", "/ajax/memcached_namespaces/" + namespace.uuid, namespace.to_json())
 		elif type(namespace) == DummyNamespace:
-			assert self.dummy_namespaces[namespace.uuid] is namespace
 			self._get_server_for_command(servid).do_query("POST", "/ajax/dummy_namespaces/" + namespace.uuid, namespace.to_json())
 		time.sleep(0.2) # Give some time for the changes to hit the rest of the cluster
 		self.update_cluster_data()
 		return namespace
 
-	def _add_namespace(self, type_class, type_str, name, port, servid):
-		content = { }
-		if name is not None:
-			content["name"] = name
-		content["port"] = port if port is not None else random.randint(20000, 60000)
-		info = self._get_server_for_command(servid).do_query("POST", "/ajax/%s_namespaces/new" % type_str, content)
+	def add_namespace(self, protocol = "memcached", name = None, port = None, primary = None, affinities = { }, servid = None):
+		if port is None:
+			port = random.randint(20000, 60000)
+		if name is None:
+			name = str(random.randint(1000000))
+		if primary is not None:
+			primary = self.find_namespace(primary)
+		aff_dict = { }
+		for datacenter, count in affinities.iteritems():
+			aff_dict[self.find_datacenter(datacenter).uuid] = count
+		info = self._get_server_for_command(servid).do_query("POST", "/ajax/%s_namespaces/new" % protocol, {
+			"name": name,
+			"port": port,
+			"primary_uuid": primary,
+			"replica_affinities": aff_dict
+			})
 		time.sleep(0.2) # Give some time for changes to hit the rest of the cluster
 		assert len(info) is 1
 		info = next(info.iteritems())
+		type_class = {"memcached": MemcachedNamespace, "dummy": DummyNamespace}[protocol]
 		namespace = type_class(info[0], info[1])
-		getattr(self, "%s_namespaces" % type_str)[namespace.uuid] = namespace
+		getattr(self, "%s_namespaces" % protocol)[namespace.uuid] = namespace
 		self.update_cluster_data()
 		return namespace
-
-	# Add a dummy namespace through the given uuid of a machine in the cluster
-	def add_dummy_namespace(self, name = None, port = None, servid = None):
-		return self._add_namespace(DummyNamespace, "dummy", name, port, servid)
-
-	# Add a memcached namespace through the given uuid of a machine in the cluster
-	def add_memcached_namespace(self, name = None, port = None, servid = None):
-		return self._add_namespace(MemcachedNamespace, "memcached", name, port, servid)
 
 	def _pull_cluster_data(self, cluster_data, local_data, data_type):
 		num_uuids = 0

@@ -13,6 +13,6 @@ cluster = http_admin.Cluster()
 for i in xrange(opts["num-nodes"]):
     cluster.add_machine(name = "x" * (i + 1))
 
-cluster.add_memcached_namespace(name = "Test Namespace")
+cluster.add_namespace(name = "Test Namespace")
 
 print cluster
