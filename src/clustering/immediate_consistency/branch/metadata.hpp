@@ -88,17 +88,17 @@ public:
 
     typedef mailbox_t< void(
         typename protocol_t::write_t, transition_timestamp_t, fifo_enforcer_write_token_t,
-        mailbox_t<void()>::address_t
+        address_t<void()>
         )> write_mailbox_t;
 
     typedef mailbox_t< void(
         typename protocol_t::write_t, transition_timestamp_t, fifo_enforcer_write_token_t,
-        typename mailbox_t<void(typename protocol_t::write_response_t)>::address_t
+        address_t<void(typename protocol_t::write_response_t)>
         )> writeread_mailbox_t;
 
     typedef mailbox_t< void(
         typename protocol_t::read_t, state_timestamp_t, fifo_enforcer_read_token_t,
-        typename mailbox_t<void(typename protocol_t::read_response_t)>::address_t
+        address_t<void(typename protocol_t::read_response_t)>
         )> read_mailbox_t;
 
     /* The master sends a single message to `intro_mailbox` at the very
@@ -111,7 +111,7 @@ public:
         )> upgrade_mailbox_t;
 
     typedef mailbox_t< void(
-        mailbox_t<void()>::address_t
+        address_t<void()>
         )> downgrade_mailbox_t;
 
     typedef mailbox_t< void(
@@ -143,14 +143,12 @@ struct backfiller_business_card_t {
     typedef mailbox_t< void(
         backfill_session_id_t,
         region_map_t<protocol_t, version_range_t>,
-        typename mailbox_t<void(region_map_t<protocol_t, version_range_t>)>::address_t,
-        typename mailbox_t<void(typename protocol_t::backfill_chunk_t)>::address_t,
+        address_t<void(region_map_t<protocol_t, version_range_t>)>,
+        address_t<void(typename protocol_t::backfill_chunk_t)>,
         mailbox_t<void()>::address_t
         )> backfill_mailbox_t;
 
-    typedef mailbox_t< void(
-        backfill_session_id_t
-        )> cancel_backfill_mailbox_t;
+    typedef mailbox_t<void(backfill_session_id_t)> cancel_backfill_mailbox_t;
 
     backfiller_business_card_t() { }
     backfiller_business_card_t(
@@ -188,7 +186,7 @@ struct replier_business_card_t {
     /* This mailbox is used to check that the replier is at least as up to date
      * as the timestamp. The second argument is used as an ack mailbox, once
      * synchronization is complete the replier will send a message to it. */
-    typedef mailbox_t<void(state_timestamp_t, mailbox_t<void()>::address_t)> synchronize_mailbox_t;
+    typedef mailbox_t<void(state_timestamp_t, address_t<void()>)> synchronize_mailbox_t;
     synchronize_mailbox_t::address_t synchronize_mailbox;
 
     backfiller_business_card_t<protocol_t> backfiller_bcard;
