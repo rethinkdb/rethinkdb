@@ -163,7 +163,7 @@ module 'NamespaceView', ->
                         url: '/ajax/memcached_namespaces/new'
                         type: 'POST'
                         contentType: 'application/json'
-                        data: JSON.stringify({"name" : formdata.name, "primary_uuid" : formdata.primary_datacenter})
+                        data: JSON.stringify({"name" : formdata.name, "primary_uuid" : formdata.primary_datacenter, "port" : parseInt(formdata.port)})
 
                         success: (response) =>
                             clear_modals()
