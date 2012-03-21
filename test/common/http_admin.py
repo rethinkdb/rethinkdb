@@ -359,8 +359,12 @@ class Cluster(object):
 		self.update_cluster_data()
 		return serv
 
-	def add_datacenter(self, servid = None):
-		info = self._get_server_for_command(servid).do_query("POST", "/ajax/datacenters/new", { })
+	def add_datacenter(self, name = None, servid = None):
+		if name is None:
+			name = str(randint(1000000))
+		info = self._get_server_for_command(servid).do_query("POST", "/ajax/datacenters/new", {
+			"name": name
+			})
 		time.sleep(0.2) # Give some time for changes to hit the rest of the cluster
 		assert len(info) is 1
 		info = next(info.iteritems())
@@ -388,16 +392,16 @@ class Cluster(object):
 			raise TypeError("Can't interpret %r as a %s" % (what, type_str))
 
 	def find_machine(self, what):
-		return _find_thing(what, Server, "machine", self.machines)
+		return self._find_thing(what, Server, "machine", self.machines)
 
 	def find_datacenter(self, what):
-		return _find_thing(what, Datacenter, "data center", self.datacenters)
+		return self._find_thing(what, Datacenter, "data center", self.datacenters)
 
 	def find_namespace(self, what):
 		nss = {}
-		nss.extend(self.memcached_namespaces)
-		nss.extend(self.dummy_namespaces)
-		return _find_thing(what, Namespace, "namespace", nss)
+		nss.update(self.memcached_namespaces)
+		nss.update(self.dummy_namespaces)
+		return self._find_thing(what, Namespace, "namespace", nss)
 
 	def move_server_to_datacenter(self, serv, datacenter, servid = None):
 		serv = self.find_machine(serv)
@@ -439,7 +443,7 @@ class Cluster(object):
 		if name is None:
 			name = str(random.randint(1000000))
 		if primary is not None:
-			primary = self.find_namespace(primary)
+			primary = self.find_datacenter(primary).uuid
 		aff_dict = { }
 		for datacenter, count in affinities.iteritems():
 			aff_dict[self.find_datacenter(datacenter).uuid] = count
@@ -457,6 +461,11 @@ class Cluster(object):
 		getattr(self, "%s_namespaces" % protocol)[namespace.uuid] = namespace
 		self.update_cluster_data()
 		return namespace
+
+	def compute_port(self, namespace, machine):
+		namespace = self.find_namespace(namespace)
+		machine = self.find_machine(machine)
+		return namespace.port + machine.port_offset
 
 	def _pull_cluster_data(self, cluster_data, local_data, data_type):
 		num_uuids = 0
