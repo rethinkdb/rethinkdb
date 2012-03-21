@@ -135,9 +135,13 @@ int64_t strtol_strict(const char *string, const char **end, int base);
 uint64_t strtoul_strict(const char *string, const char **end, int base);
 uint64_t strtoull_strict(const char *string, const char **end, int base);
 
-// This is inefficient, it calls vsnprintf twice and copies the
-// arglist and output buffer excessively.
+
+
 std::string strprintf(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
+
+std::string vstrprintf(const char *format, va_list ap);
+
+
 
 // Precise time (time+nanoseconds) for logging, etc.
 

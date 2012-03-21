@@ -37,7 +37,7 @@ public:
      * deleted */
     deletable_t get_deletion() {
         deletable_t<T> res;
-        res.deletion_state = true;
+        res.deleted = true;
         return res;
     }
 

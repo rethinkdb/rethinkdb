@@ -79,10 +79,11 @@ public:
         va_list arg;
         va_start(arg, format);
 
-        if (msg_hd < msg + MAX_HELP_MSG_LEN - 1)
+        if (msg_hd < msg + MAX_HELP_MSG_LEN - 1) {
             res = vsnprintf(msg_hd, (msg + MAX_HELP_MSG_LEN - 1) - msg_hd, format, arg);
-        else
+        } else {
             unreachable("Help message is too big, increase MAX_HELP_MSG_LEN");
+        }
 
         msg_hd += res;
         va_end(arg);
