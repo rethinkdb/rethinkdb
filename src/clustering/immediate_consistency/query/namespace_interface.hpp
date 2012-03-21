@@ -105,9 +105,9 @@ private:
     template<class op_t, class op_response_t>
     void generic_perform(
             typename async_mailbox_t<void(op_t, order_token_t, typename async_mailbox_t<void(boost::variant<op_response_t, std::string>)>::address_t)>::address_t master_business_card_t<protocol_t>::*mailbox_field,
-            std::vector<typename protocol_t::region_t> *regions,
-            std::vector<boost::shared_ptr<resource_access_t<master_business_card_t<protocol_t> > > > *master_accesses,
-            op_t *operation,
+            const std::vector<typename protocol_t::region_t> *regions,
+            const std::vector<boost::shared_ptr<resource_access_t<master_business_card_t<protocol_t> > > > *master_accesses,
+            const op_t *operation,
             order_token_t order_token,
             std::vector<boost::variant<op_response_t, std::string> > *results_or_failures,
             int i,
