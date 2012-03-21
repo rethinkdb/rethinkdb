@@ -54,22 +54,13 @@ void run_metainfo_test() {
     mirrored_cache_config_t cache_dynamic_config;
     cache_t cache(&serializer, &cache_dynamic_config);
 
-    btree_slice_t::create(&cache, key_range_t::entire_range());
+    btree_slice_t::create(&cache);
 
     btree_slice_t btree(&cache);
 
     order_source_t order_source;
 
     std::map<std::string, std::string> mirror;
-
-    {
-        order_token_t otok = order_source.check_in("metainfo unittest");
-        boost::scoped_ptr<transaction_t> txn;
-        got_superblock_t got_superblock;
-        get_btree_superblock(&btree, rwi_write, 1, repli_timestamp_t::invalid, otok, &got_superblock, txn);
-        buf_lock_t *sb_buf = got_superblock.get_real_buf();
-        clear_superblock_metainfo(txn.get(), sb_buf);
-    }
 
     for (int i = 0; i < 1000; i++) {
 
