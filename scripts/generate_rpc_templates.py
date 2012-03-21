@@ -17,8 +17,8 @@ def generate_async_message_template(nargs):
     def cpre(template):
         return "".join(", " + template.replace("#", str(i)) for i in xrange(nargs))
 
-    print "template<" + csep("class arg#_t") + ">"
     print
+    print "template<" + csep("class arg#_t") + ">"
     print "class address_t< void(" + csep("arg#_t") + ") > {"
     print "public:"
     print "    bool is_nil() { return addr.is_nil(); }"

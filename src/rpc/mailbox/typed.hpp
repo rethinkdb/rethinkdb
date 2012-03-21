@@ -21,8 +21,8 @@ template<class invalid_proto_t> class address_t {
     // this should cause an error.
     typename invalid_proto_t::you_are_using_address_t_incorrectly foo;
 };
-template<>
 
+template<>
 class address_t< void() > {
 public:
     bool is_nil() { return addr.is_nil(); }
@@ -79,8 +79,8 @@ void send(mailbox_manager_t *src, mailbox_t< void() >::address_t dest) {
         boost::bind(&mailbox_t< void() >::write, _1));
 }
 
-template<class arg0_t>
 
+template<class arg0_t>
 class address_t< void(arg0_t) > {
 public:
     bool is_nil() { return addr.is_nil(); }
@@ -142,8 +142,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t) >::address_t 
         boost::bind(&mailbox_t< void(arg0_t) >::write, _1, arg0));
 }
 
-template<class arg0_t, class arg1_t>
 
+template<class arg0_t, class arg1_t>
 class address_t< void(arg0_t, arg1_t) > {
 public:
     bool is_nil() { return addr.is_nil(); }
@@ -208,8 +208,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t) >::ad
         boost::bind(&mailbox_t< void(arg0_t, arg1_t) >::write, _1, arg0, arg1));
 }
 
-template<class arg0_t, class arg1_t, class arg2_t>
 
+template<class arg0_t, class arg1_t, class arg2_t>
 class address_t< void(arg0_t, arg1_t, arg2_t) > {
 public:
     bool is_nil() { return addr.is_nil(); }
@@ -277,8 +277,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_
         boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t) >::write, _1, arg0, arg1, arg2));
 }
 
-template<class arg0_t, class arg1_t, class arg2_t, class arg3_t>
 
+template<class arg0_t, class arg1_t, class arg2_t, class arg3_t>
 class address_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > {
 public:
     bool is_nil() { return addr.is_nil(); }
@@ -349,8 +349,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_
         boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) >::write, _1, arg0, arg1, arg2, arg3));
 }
 
-template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t>
 
+template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t>
 class address_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > {
 public:
     bool is_nil() { return addr.is_nil(); }
@@ -424,8 +424,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_
         boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) >::write, _1, arg0, arg1, arg2, arg3, arg4));
 }
 
-template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t>
 
+template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t>
 class address_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > {
 public:
     bool is_nil() { return addr.is_nil(); }
@@ -502,8 +502,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_
         boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) >::write, _1, arg0, arg1, arg2, arg3, arg4, arg5));
 }
 
-template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t>
 
+template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t>
 class address_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > {
 public:
     bool is_nil() { return addr.is_nil(); }
@@ -583,8 +583,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_
         boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) >::write, _1, arg0, arg1, arg2, arg3, arg4, arg5, arg6));
 }
 
-template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t>
 
+template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t>
 class address_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > {
 public:
     bool is_nil() { return addr.is_nil(); }
@@ -667,8 +667,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_
         boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) >::write, _1, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7));
 }
 
-template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t>
 
+template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t>
 class address_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > {
 public:
     bool is_nil() { return addr.is_nil(); }
@@ -754,8 +754,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_
         boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) >::write, _1, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8));
 }
 
-template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t>
 
+template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t>
 class address_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > {
 public:
     bool is_nil() { return addr.is_nil(); }
@@ -844,8 +844,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_
         boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) >::write, _1, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9));
 }
 
-template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t>
 
+template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t>
 class address_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > {
 public:
     bool is_nil() { return addr.is_nil(); }
@@ -937,8 +937,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_
         boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) >::write, _1, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10));
 }
 
-template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t>
 
+template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t>
 class address_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > {
 public:
     bool is_nil() { return addr.is_nil(); }
@@ -1033,8 +1033,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_
         boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) >::write, _1, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11));
 }
 
-template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t, class arg12_t>
 
+template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t, class arg12_t>
 class address_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > {
 public:
     bool is_nil() { return addr.is_nil(); }
@@ -1132,8 +1132,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_
         boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) >::write, _1, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12));
 }
 
-template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t, class arg12_t, class arg13_t>
 
+template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t, class arg12_t, class arg13_t>
 class address_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > {
 public:
     bool is_nil() { return addr.is_nil(); }
