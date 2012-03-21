@@ -5,6 +5,7 @@
 
 #include "btree/modify_oper.hpp"
 #include "containers/buffer_group.hpp"
+#include "containers/printf_buffer.hpp"
 #include "containers/scoped_malloc.hpp"
 
 
@@ -68,18 +69,15 @@ struct btree_incr_decr_oper_t : public btree_modify_oper_t {
         result.res = incr_decr_result_t::idr_success;
         result.new_value = number;
 
-        char tmp[50];
-        int chars_written = snprintf(tmp, sizeof(tmp), "%" PRIu64, number);
-        rassert(chars_written <= 49);
+        printf_buffer_t<50> tmp("%" PRIu64, number);
         b.clear(txn);
-        b.append_region(txn, chars_written);
-        rassert(b.valuesize() == chars_written, "expecting %ld == %d", b.valuesize(), chars_written);
+        b.append_region(txn, tmp.size());
         buffer_group_t group;
         blob_acq_t acqs;
         b.expose_region(txn, rwi_write, 0, b.valuesize(), &group, &acqs);
         rassert(group.num_buffers() == 1);
-        rassert(group.get_buffer(0).size == chars_written, "expecting %zd == %d", group.get_buffer(0).size, chars_written);
-        memcpy(group.get_buffer(0).data, tmp, chars_written);
+        rassert(group.get_buffer(0).size == tmp.size(), "expecting %zd == %d", group.get_buffer(0).size, tmp.size());
+        memcpy(group.get_buffer(0).data, tmp.data(), tmp.size());
 
         return true;
     }

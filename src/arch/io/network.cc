@@ -9,7 +9,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
-#include "errors.hpp"
+#include "utils.hpp"
 #include <boost/bind.hpp>
 
 #include "arch/runtime/runtime.hpp"
@@ -17,6 +17,7 @@
 #include "arch/timing.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/wait_any.hpp"
+#include "containers/printf_buffer.hpp"
 #include "logger.hpp"
 #include "perfmon.hpp"
 
@@ -32,12 +33,10 @@ static fd_t connect_to(const char *host, int port, int local_port) {
     /* make a sacrifice to the elders honor by converting port to a string, why
      * can't we just sacrifice a virgin for them (lord knows we have enough
      * virgins in Silicon Valley) */
-    char port_str[10]; /* god is it dumb that we have to do this */
-    snprintf(port_str, sizeof(port_str), "%d", port);
-    //fail_due_to_user_error("Port is too big", (snprintf(port_str, 10, "%d", port) == 10));
+    printf_buffer_t<10> port_str("%d", port);
 
     /* make the connection */
-    if (getaddrinfo(host, port_str, NULL, &res) != 0) {
+    if (getaddrinfo(host, port_str.c_str(), NULL, &res) != 0) {
         logERR("Failed to look up address %s:%d.\n", host, port);
         goto ERROR_BREAKOUT;
     }
@@ -496,6 +495,16 @@ void linux_tcp_conn_t::write_buffered(const void *vbuf, size_t size) {
     write_in_progress = false;
 
     if (write_closed.is_pulsed()) throw write_closed_exc_t();
+}
+
+void linux_tcp_conn_t::writef(const char *format, ...) {
+    va_list ap;
+    va_start(ap, format);
+
+    printf_buffer_t<1000> b(ap, format);
+    write(b.data(), b.size());
+
+    va_end(ap);
 }
 
 void linux_tcp_conn_t::flush_buffer() {

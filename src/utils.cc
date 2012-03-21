@@ -1,7 +1,6 @@
 #include "utils.hpp"
 
 #include <cxxabi.h>
-#include "errors.hpp"
 #include <execinfo.h>
 #include <limits.h>
 #include <signal.h>
@@ -13,9 +12,8 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#include <boost/scoped_array.hpp>
-
 #include "config/args.hpp"
+#include "containers/printf_buffer.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "containers/scoped_malloc.hpp"
 #include "db_thread_info.hpp"
@@ -381,44 +379,26 @@ double ticks_to_secs(ticks_t ticks) {
     return ticks / 1000000000.0;
 }
 
-std::string vstrprintf(const char *format, va_list ap) {
-    boost::scoped_array<char> arr;
-    int size;
 
-    va_list aq;
-    va_copy(aq, ap);
-
-    // the snprintfs return the number of characters they _would_ have
-    // written, not including the '\0', so we use that number to
-    // allocate an appropriately sized array.
-    char buf[1];
-    size = vsnprintf(buf, sizeof(buf), format, ap);
-
-    guarantee_err(size >= 0, "vsnprintf failed, bad format string?");
-
-    arr.reset(new char[size + 1]);
-
-    int newsize = vsnprintf(arr.get(), size + 1, format, aq);
-    (void)newsize;
-    rassert(newsize == size);
-
-    va_end(aq);
-
-    return std::string(arr.get(), arr.get() + size);
+bool notf(bool x) {
+    return !x;
 }
 
-bool notf(bool x) { 
-    return !x; 
+std::string vstrprintf(const char *format, va_list ap) {
+    printf_buffer_t<500> buf(ap, format);
+
+    return std::string(buf.data(), buf.data() + buf.size());
 }
 
 std::string strprintf(const char *format, ...) {
-    va_list ap;
-
     std::string ret;
 
+    va_list ap;
     va_start(ap, format);
 
-    ret = vstrprintf(format, ap);
+    printf_buffer_t<500> buf(ap, format);
+
+    ret.assign(buf.data(), buf.data() + buf.size());
 
     va_end(ap);
 

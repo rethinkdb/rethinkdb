@@ -100,20 +100,7 @@ public:
     performance. */
     void write_buffered(const void *buf, size_t size);
 
-    void vwritef(const char *format, va_list args) {
-        char buffer[1000];
-        size_t bytes = vsnprintf(buffer, sizeof(buffer), format, args);
-        rassert(bytes < sizeof(buffer));
-        write(buffer, bytes);
-    }
-
-    void writef(const char *format, ...)
-        __attribute__ ((format (printf, 2, 3))) {
-        va_list args;
-        va_start(args, format);
-        vwritef(format, args);
-        va_end(args);
-    }
+    void writef(const char *format, ...) __attribute__ ((format (printf, 2, 3)));
 
     void flush_buffer();   // Blocks until flush is done
     void flush_buffer_eventually();   // Blocks only if the queue is backed up
