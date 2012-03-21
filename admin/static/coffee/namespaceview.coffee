@@ -71,11 +71,13 @@ module 'NamespaceView', ->
                     'id': @model.get('primary_uuid')
                     'name': datacenters.get(@model.get('primary_uuid')).get('name')
                     'replicas': @model.get('replica_affinities')[@model.get('primary_uuid')]
+                    'acks' : @model.get('replica_affinities')[@model.get('primary_uuid')]
                 'secondaries':
                     _.map secondary_affinities, (replica_count, uuid) =>
                         'id': uuid
                         'name': datacenters.get(uuid).get('name')
                         'replicas': replica_count
+                        'acks': replica_count
                 'datacenters_left': datacenters.models.length > _.size(@model.get('replica_affinities'))
             @.$el.html @template(json)
 
