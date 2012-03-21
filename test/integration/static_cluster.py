@@ -11,8 +11,8 @@ opts = op.parse(sys.argv)
 
 if "$HOST" not in opts["workload"] or "$PORT" not in opts["workload"]:
     print "Workload should be a command-line with '$HOST' and '$PORT' in place "
-    print "of the hostname and port of the server. Did you mess up the shell "
-    print "expansion? Workload was %r." % opts["workload"]
+    print "of the hostname and port of the server. Did you forget to escape "
+    print "the dollar signs? Workload was %r." % opts["workload"]
     sys.exit(1)
 
 cluster = http_admin.Cluster()
