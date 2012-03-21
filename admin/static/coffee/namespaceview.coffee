@@ -189,25 +189,21 @@ module 'NamespaceView', ->
             log_render '(rendering) remove namespace dialog'
             validator_options =
                 submitHandler: =>
-                    url = '/ajax/namespaces?ids='
-                    num_namespaces = namespaces_to_delete.length
                     for namespace in namespaces_to_delete
-                        url += namespace.id
-                        url += "," if num_namespaces-=1 > 0
+                        $.ajax
+                            url: "/ajax/#{namespace.get("protocol")}_namespaces/#{namespace.id}"
+                            type: 'DELETE'
+                            contentType: 'application/json'
 
-                    url += '&token=' + token
+                            success: (response) =>
+                                clear_modals()
 
-                    $('form', @$modal).ajaxSubmit
-                        url: url
-                        type: 'DELETE'
-
-                        success: (response) =>
-                            clear_modals()
-
-                            apply_diffs(response)
-                            #TODO hook this up
-                            #for namespace in response_json.op_result
-                                #$('#user-alert-space').append @alert_tmpl namespace
+                                if (response)
+                                    throw "Received a non null response to a delete... this is incorrect"
+                                namespaces.remove(namespace.id)
+                                #TODO hook this up
+                                #for namespace in response_json.op_result
+                                    #$('#user-alert-space').append @alert_tmpl namespace
 
             array_for_template = _.map namespaces_to_delete, (namespace) -> namespace.toJSON()
             super validator_options, { 'namespaces': array_for_template }

@@ -1065,14 +1065,21 @@ declare_client_connected = ->
 
 apply_to_collection = (collection, collection_data) ->
     for id, data of collection_data
-        if (collection.get(id))
-            collection.get(id).set(data)
+        if (data)
+            if (collection.get(id))
+                collection.get(id).set(data)
+            else
+                data.id = id
+                collection.add(new collection.model(data))
         else
-            data.id = id
-            collection.add(new collection.model(data))
+            if (collection.get(id))
+                collection.remove(id)
 
 add_protocol_tag = (data, tag) ->
-    _.each(data, (unused, id) -> data[id].protocol = tag)
+    f = (unused,id) ->
+        if (data[id])
+            data[id].protocol = tag
+    _.each(data, f)
     return data
 
 # Process updates from the server and apply the diffs to our view of the data. Used by our version of Backbone.sync and POST / PUT responses for form actions
