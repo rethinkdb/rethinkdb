@@ -404,9 +404,14 @@ module 'NamespaceView', ->
             # Define the validator options
             validator_options =
                 submitHandler: =>
-                    $('form', @$modal).ajaxSubmit
-                        url: '/ajax/namespaces/'+@namespace.id+'/set_desired_replicas_and_acks?token=' + token
+                    formdata = form_data_as_object($('form', @$modal))
+                    replica_affinities_to_send = {}
+                    replica_affinities_to_send[formdata.datacenter] = parseInt(formdata.num_replicas)
+                    $.ajax
+                        processData: false
+                        url: "/ajax/#{@namespace.get("protocol")}_namespaces/#{@namespace.id}"
                         type: 'POST'
+                        data: JSON.stringify({ "replica_affinities": replica_affinities_to_send})
 
                         success: (response) =>
                             clear_modals()
