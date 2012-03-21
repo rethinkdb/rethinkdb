@@ -1063,29 +1063,42 @@ declare_client_connected = ->
     clearTimeout(window.apply_diffs_timer)
     window.apply_diffs_timer = setTimeout (-> window.connection_status.set({client_disconnected: true})), 2 * updateInterval
 
-# Process updates from the server and apply the diffs to our view of the data. Used by our version of Backbone.sync and POST / PUT responses for form actions
-apply_diffs = (updates) ->
-    declare_client_connected()
-    for collection_id, collection_data of updates
-        for id, data of collection_data
-            switch collection_id
-                when 'dummy_namespaces'
-                    collection = namespaces
-                    data.protocol = "dummy"
-                when 'memcached_namespaces'
-                    collection = namespaces
-                    data.protocol = "memcached"
-                when 'datacenters' then collection = datacenters
-                when 'machines' then collection = machines
-                when 'me' then continue
-                else
-                    console.log "Unhandled element update: " + update
-                    return
+apply_to_collection = (collection, collection_data) ->
+    for id, data of collection_data
+        if (data)
             if (collection.get(id))
                 collection.get(id).set(data)
             else
                 data.id = id
-                collection.add new collection.model(data)
+                collection.add(new collection.model(data))
+        else
+            if (collection.get(id))
+                collection.remove(id)
+
+add_protocol_tag = (data, tag) ->
+    f = (unused,id) ->
+        if (data[id])
+            data[id].protocol = tag
+    _.each(data, f)
+    return data
+
+# Process updates from the server and apply the diffs to our view of the data. Used by our version of Backbone.sync and POST / PUT responses for form actions
+apply_diffs = (updates) ->
+    declare_client_connected()
+    for collection_id, collection_data of updates
+        switch collection_id
+            when 'dummy_namespaces'
+                apply_to_collection(namespaces, add_protocol_tag(collection_data, "dummy"))
+            when 'memcached_namespaces'
+                apply_to_collection(namespaces, add_protocol_tag(collection_data, "memcached"))
+            when 'datacenters'
+                apply_to_collection(datacenters, collection_data)
+            when 'machines'
+                apply_to_collection(machines, collection_data)
+            when 'me' then continue
+            else
+                console.log "Unhandled element update: " + updates
+                return
     return
 
 $ ->

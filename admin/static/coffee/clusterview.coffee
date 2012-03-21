@@ -430,7 +430,7 @@ module 'ClusterView', ->
                             clear_modals()
 
                             # Parse the response JSON, apply appropriate diffs, and show an alert
-                            apply_diffs(response)
+                            apply_to_collection(datacenters, response)
                             #$('#user-alert-space').html @alert_tmpl response_json.op_result TODO make this work again after we have alerts in our responses
 
             super validator_options
@@ -499,7 +499,7 @@ module 'ClusterView', ->
             log_initial '(initializing) modal dialog: set datacenter'
             super @template
 
-        render: (machines) ->
+        render: (machines_list) ->
             log_render '(rendering) set datacenter dialog'
 
             validator_options =
@@ -511,7 +511,7 @@ module 'ClusterView', ->
 
                 submitHandler: =>
                     formdata = form_data_as_object($('form', @$modal))
-                    for m in machines
+                    for m in machines_list
                         $.ajax
                             processData: false
                             url: "/ajax/machines/#{m.id}"
@@ -522,7 +522,7 @@ module 'ClusterView', ->
                             success: (response) =>
                                 clear_modals()
 
-                                apply_diffs(response)
+                                machines.get(m.id).set(response)
                                 #TODO hook this back up
                                 #$('#user-alert-space').append (@alert_tmpl {
                                 #    datacenter_name: datacenters.find((d) -> d.get('id') == response_json.op_result.datacenter_uuid).get('name'),
