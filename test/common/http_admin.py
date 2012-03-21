@@ -219,7 +219,7 @@ class ExternalServer(Server):
 		return "External" + Server.__str__(self)
 
 class InternalServer(Server):
-	def __init__(self, serv_port, local_cluster_port, join = None, port_offset = 0):
+	def __init__(self, serv_port, local_cluster_port, join = None, name = None, port_offset = 0):
 
 		self.local_cluster_port = local_cluster_port
 
@@ -229,6 +229,8 @@ class InternalServer(Server):
 		assert not os.path.exists(self.db_dir)
 
 		create_args = ["../../build/debug/rethinkdb", "create", "--directory=" + self.db_dir, "--port-offset=" + str(port_offset)]
+		if name is not None:
+			create_args.append("--name=" + name)
 		subprocess.check_call(create_args)
 
 		self.args_without_join = ["../../build/debug/rethinkdb", "serve", "--directory=" + self.db_dir, "--port=" + str(serv_port), "--client-port=" + str(local_cluster_port)]
@@ -266,7 +268,7 @@ class InternalServer(Server):
 		shutil.rmtree(self.db_dir)
 
 	def __str__(self):
-		return "Internal" + Server.__str__(self) + ", args:" + str(self.args)
+		return "Internal" + Server.__str__(self) + ", args:" + str(self.args_without_join)
 
 class Cluster(object):
 	def __init__(self):
@@ -319,18 +321,18 @@ class Cluster(object):
 			return self.machines[servid]
 
 	# Add a machine to the cluster by starting a server instance locally
-	def add_machine(self):
+	def add_machine(self, name = None):
 		if self.server_instances is 0:
-			serv = InternalServer(
-				self.base_port,
-				self.base_port - 1,
-				port_offset = self.server_instances) # First server in cluster shouldn't connect to anyone
+			# First server in cluster shouldn't connect to anyone
+			join = None
 		else:
-			serv = InternalServer(
-				self.base_port + self.server_instances,
-				self.base_port - self.server_instances - 1,
-				join = (socket.gethostname(), self.base_port),
-				port_offset = self.server_instances)
+			join = (socket.gethostname(), self.base_port)
+		serv = InternalServer(
+			self.base_port + self.server_instances,
+			self.base_port - self.server_instances - 1,
+			join = join,
+			name = name,
+			port_offset = self.server_instances)
 		self.machines[serv.uuid] = serv
 		self.server_instances += 1
 		time.sleep(0.2)
