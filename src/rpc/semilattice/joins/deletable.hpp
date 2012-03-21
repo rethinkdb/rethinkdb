@@ -57,6 +57,9 @@ bool operator==(const deletable_t<T> &, const deletable_t<T> &);
 template <class T>
 void semilattice_join(deletable_t<T> *, const deletable_t<T> &);
 
+template <class T>
+T &deletable_getter(deletable_t<T> &target);
+
 #include "rpc/semilattice/joins/deletable.tcc"
 
 #endif
