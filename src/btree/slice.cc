@@ -19,11 +19,6 @@
 namespace arc = boost::archive;
 
 void btree_slice_t::create(cache_t *cache) {
-    key_range_t all_keys(key_range_t::open, store_key_t(), key_range_t::open, store_key_t());
-    create(cache, all_keys);
-}
-
-void btree_slice_t::create(cache_t *cache, const key_range_t &key_range) {
 
     /* Initialize the btree superblock and the delete queue */
     transaction_t txn(cache, rwi_write, 1, repli_timestamp_t::distant_past);
@@ -41,13 +36,6 @@ void btree_slice_t::create(cache_t *cache, const key_range_t &key_range) {
 
     sb->magic = btree_superblock_t::expected_magic;
     sb->root_block = NULL_BLOCK_ID;
-
-    vector_streambuf_t<> meta_key;
-    {
-        arc::binary_oarchive meta_key_archive(meta_key, arc::no_header);
-        meta_key_archive << key_range;
-    }
-    set_superblock_metainfo(&txn, &superblock, meta_key.vector(), std::vector<char>());
 }
 
 btree_slice_t::btree_slice_t(cache_t *c)

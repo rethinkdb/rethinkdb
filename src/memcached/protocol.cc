@@ -142,6 +142,8 @@ memcached_protocol_t::write_response_t memcached_protocol_t::write_t::unshard(st
     return responses[0];
 }
 
+namespace arc = boost::archive;
+
 memcached_protocol_t::store_t::store_t(const std::string& filename, bool create) : store_view_t<memcached_protocol_t>(key_range_t::entire_range()) {
     if (create) {
         standard_serializer_t::create(
@@ -164,13 +166,31 @@ memcached_protocol_t::store_t::store_t(const std::string& filename, bool create)
     cache.reset(new cache_t(serializer.get(), &cache_dynamic_config));
 
     if (create) {
-        btree_slice_t::create(cache.get(), key_range_t::entire_range());
+        btree_slice_t::create(cache.get());
     }
 
     btree.reset(new btree_slice_t(cache.get()));
-}
 
-namespace arc = boost::archive;
+    // Initialize metainfo to an empty `binary_blob_t` because its domain is
+    // required to be `universe_region()` at all times
+    {
+        /* Wow, this is a lot of lines of code for a simple concept. Can we do better? */
+        got_superblock_t superblock;
+        boost::scoped_ptr<transaction_t> txn;
+        order_token_t order_token = order_source.check_in("memcached_protocol_t::store_t::store_t");
+        order_token = btree->order_checkpoint_.check_through(order_token);
+        get_btree_superblock(btree.get(), rwi_write, 1, repli_timestamp_t::invalid, order_token, &superblock, txn);
+        buf_lock_t* sb_buf = superblock.get_real_buf();
+        clear_superblock_metainfo(txn.get(), sb_buf);
+        vector_streambuf_t<> key;
+        {
+            arc::binary_oarchive key_archive(key, arc::no_header);
+            key_range_t kr = universe_region();   // `operator<<` needs a non-const reference
+            key_archive << kr;
+        }
+        set_superblock_metainfo(txn.get(), sb_buf, key.vector(), std::vector<char>());
+    }
+}
 
 void memcached_protocol_t::store_t::new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out) {
     fifo_enforcer_read_token_t token = token_source.enter_read();
@@ -464,6 +484,8 @@ void memcached_protocol_t::store_t::reset_data(
     // reasoning that we're probably going to touch a leaf-node-sized
     // range of keys and that it won't be aligned right on a leaf node
     // boundary.
+    // TODO that's not reasonable; reset_data() is sometimes used to wipe out
+    // entire databases.
     const int expected_change_count = 2;
     acquire_superblock_for_write(rwi_write, expected_change_count, token, txn, superblock, interruptor);
 
