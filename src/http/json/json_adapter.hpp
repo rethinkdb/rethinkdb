@@ -107,6 +107,7 @@ private:
     virtual json_adapter_map_t get_subfields_impl(const ctx_t &) = 0;
     virtual cJSON *render_impl(const ctx_t &) = 0;
     virtual void apply_impl(cJSON *, const ctx_t &) = 0;
+    virtual void erase_impl(const ctx_t &) = 0;
     /* follows the creation paradigm, ie the caller is responsible for the
      * object this points to */
     virtual boost::shared_ptr<subfield_change_functor_t<ctx_t> >  get_change_callback() = 0;
@@ -117,6 +118,7 @@ public:
     json_adapter_map_t get_subfields(const ctx_t &);
     cJSON *render(const ctx_t &);
     void apply(cJSON *, const ctx_t &);
+    void erase(const ctx_t &);
     virtual ~json_adapter_if_t() { }
 };
 
@@ -131,9 +133,10 @@ public:
     explicit json_adapter_t(T *);
 
 private:
+    json_adapter_map_t get_subfields_impl(const ctx_t &);
     cJSON *render_impl(const ctx_t &);
     virtual void apply_impl(cJSON *, const ctx_t &);
-    json_adapter_map_t get_subfields_impl(const ctx_t &);
+    virtual void erase_impl(const ctx_t &);
     boost::shared_ptr<subfield_change_functor_t<ctx_t> > get_change_callback();
 };
 
@@ -145,6 +148,7 @@ public:
     explicit json_read_only_adapter_t(T *);
 private:
     void apply_impl(cJSON *, const ctx_t &);
+    void erase_impl(const ctx_t &);
 };
 
 /* A json temporary adapter is like a read only adapter but it stores a copy of
@@ -193,6 +197,7 @@ public:
 private:
     cJSON *render_impl(const ctx_t &);
     void apply_impl(cJSON *, const ctx_t &);
+    void erase_impl(const ctx_t &);
     json_adapter_map_t get_subfields_impl(const ctx_t &);
     boost::shared_ptr<subfield_change_functor_t<ctx_t> > get_change_callback();
 };
@@ -218,12 +223,26 @@ public:
     json_adapter_with_inserter_t(container_t *, gen_function_t, value_t _initial_value = value_t(), std::string _inserter_key = std::string("new"));
 
 private:
+    json_adapter_map_t get_subfields_impl(const ctx_t &);
     cJSON *render_impl(const ctx_t &);
     void apply_impl(cJSON *, const ctx_t &);
-    json_adapter_map_t get_subfields_impl(const ctx_t &);
+    void erase_impl(const ctx_t &);
     void on_change(const ctx_t &);
     boost::shared_ptr<subfield_change_functor_t<ctx_t> > get_change_callback();
 };
+
+/* Erase is a fairly rare function for an adapter to allow so we implement a
+ * generic version of it. */
+template <class T, class ctx_t>
+void erase(T *, const ctx_t &) { 
+#ifndef NDEBUG
+    throw permission_denied_exc_t("Can't erase this object.. by default"
+            "json_adapters disallow deletion. if you'd like to be able to please"
+            "implement a working erase method for it.");
+#else
+    throw permission_denied_exc_t("Can't erase this object.");
+#endif
+}
 
 /* Here we have implementations of the json adapter concept for several
  * prominent types, these could in theory be relocated to a different file if
