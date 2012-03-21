@@ -17,10 +17,31 @@ def generate_async_message_template(nargs):
     def cpre(template):
         return "".join(", " + template.replace("#", str(i)) for i in xrange(nargs))
 
+    print "template<" + csep("class arg#_t") + ">"
+    print
+    print "class address_t< void(" + csep("arg#_t") + ") > {"
+    print "public:"
+    print "    bool is_nil() { return addr.is_nil(); }"
+    print "    peer_id_t get_peer() { return addr.get_peer(); }"
+    print
+    print "    friend class mailbox_t< void(" + csep("arg#_t") + ") >;"
+    print
+    print "    RDB_MAKE_ME_SERIALIZABLE_1(addr)"
+    print "private:"
+    print "    friend class mailbox_t< void(" + csep("arg#_t") + ") >;"
+    if nargs == 0:
+        print "    friend void send(mailbox_manager_t*, address_t);"
+    else:
+        print "    template<" + csep("class a#_t") + ">"
+        print "    friend void send(mailbox_manager_t*, typename mailbox_t< void(" + csep("a#_t") + ") >::address_t" + cpre("const a#_t&") + ");"
+    print "    raw_mailbox_t::address_t addr;"
+    print "};"
+    print
     print "template<" + csep("class arg#_t") + ">" 
     print "class mailbox_t< void(" + csep("arg#_t") + ") > {"
-    print
     print "public:"
+    print "    typedef address_t< void(" + csep("arg#_t") + ") > address_t;"
+    print
     print "    mailbox_t(mailbox_manager_t *manager, const boost::function< void(" + csep("arg#_t") + ") > &fun) :"
     print "        mailbox(manager, boost::bind(&mailbox_t::on_message, _1, _2, fun))"
     print "        {"
@@ -29,21 +50,6 @@ def generate_async_message_template(nargs):
     print 
     print "    ~mailbox_t() {"
     print "    }"
-    print
-    print "    class address_t {"
-    print "    public:"
-    print "        bool is_nil() { return addr.is_nil(); }"
-    print "        peer_id_t get_peer() { return addr.get_peer(); }"
-    print "        RDB_MAKE_ME_SERIALIZABLE_1(addr)"
-    print "    private:"
-    print "        friend class mailbox_t;"
-    if nargs == 0:
-        print "        friend void send(mailbox_manager_t*, address_t);"
-    else:
-        print "        template<" + csep("class a#_t") + ">"
-        print "        friend void send(mailbox_manager_t*, typename mailbox_t< void(" + csep("a#_t") + ") >::address_t" + cpre("const a#_t&") + ");"
-    print "        raw_mailbox_t::address_t addr;"
-    print "    };"
     print
     print "    address_t get_address() {"
     print "        address_t a;"
@@ -110,6 +116,11 @@ if __name__ == "__main__":
     print "    typename invalid_proto_t::you_are_using_mailbox_t_incorrectly foo;"
     print "};"
     print
+    print "template<class invalid_proto_t> class address_t {"
+    print "    // If someoen tries to instantiate address_t incorrectly,"
+    print "    // this should cause an error."
+    print "    typename invalid_proto_t::you_are_using_address_t_incorrectly foo;"
+    print "};"
 
     for nargs in xrange(15):
         generate_async_message_template(nargs)
