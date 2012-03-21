@@ -58,6 +58,7 @@ def block_path(source_port, dest_port):
 	assert "resunder" in subprocess.check_output(["ps", "-A"])
 	conn = socket.create_connection(("localhost", 46594))
 	conn.send("block %s %s" % (str(source_port), str(dest_port)))
+	# TODO: Wait for ack?
 	conn.close()
 
 def unblock_path(source_port, dest_port):
@@ -133,12 +134,13 @@ class Namespace(object):
 		self.replica_affinities = json_data["replica_affinities"]
 		self.shards = json_data["shards"]
 		self.name = json_data["name"]
+		self.port = json_data["port"]
 
 	def check(self, data):
 		return data == self.to_json()
 
 	def to_json(self):
-		return { unicode("blueprint"): self.blueprint.to_json(), unicode("name"): self.name, unicode("primary_uuid"): self.primary_uuid, unicode("replica_affinities"): self.replica_affinities, unicode("shards"): self.shards }
+		return { unicode("blueprint"): self.blueprint.to_json(), unicode("name"): self.name, unicode("primary_uuid"): self.primary_uuid, unicode("replica_affinities"): self.replica_affinities, unicode("shards"): self.shards, unicode("port"): self.port }
 
 	def __str__(self):
 		affinities = ""
@@ -147,7 +149,7 @@ class Namespace(object):
 		else:
 			for i in self.replica_affinities.iteritems():
 				affinities += i[0] + "=" + str(i[1]) + ", "
-		return "Namespace(name:%s, primary:%s, affinities:%sblueprint:NYI)" % (self.name, self.primary_uuid, affinities)
+		return "Namespace(name:%s, port:%d, primary:%s, affinities:%sblueprint:NYI)" % (self.name, self.port, self.primary_uuid, affinities)
 
 class DummyNamespace(Namespace):
 	def __init__(self, uuid, json_data):
@@ -172,6 +174,7 @@ class Server(object):
 		serv_info = self.do_query("GET", "/ajax/machines/" + self.uuid)
 		self.datacenter_uuid = serv_info["datacenter_uuid"]
 		self.name = serv_info["name"]
+		self.port_offset = serv_info["port_offset"]
 
 	def check(self, data):
 		# Do not check DummyServer objects
@@ -180,7 +183,7 @@ class Server(object):
 		return data == self.to_json()
 
 	def to_json(self):
-		return { unicode("datacenter_uuid"): self.datacenter_uuid, unicode("name"): self.name }
+		return { unicode("datacenter_uuid"): self.datacenter_uuid, unicode("name"): self.name, unicode("port_offset"): self.port_offset }
 
 	def do_query(self, method, route, payload = None):
 		conn = httplib.HTTPConnection(self.host, self.http_port)
@@ -196,7 +199,7 @@ class Server(object):
 			raise BadServerResponse(response.status, response.reason)
 
 	def __str__(self):
-		return "Server(%s:%s, name:%s, datacenter:%s)" % (self.host, self.cluster_port, self.name, self.datacenter_uuid)
+		return "Server(%s:%s, name:%s, datacenter:%s, port_offset:%d)" % (self.host, self.cluster_port, self.name, self.datacenter_uuid, self.port_offset)
 
 class DummyServer(Server):
 	def __init__(self, uuid, dummy_data):
@@ -216,16 +219,16 @@ class ExternalServer(Server):
 		return "External" + Server.__str__(self)
 
 class InternalServer(Server):
-	def __init__(self, serv_port, local_cluster_port, cluster_host = None, cluster_port = None):
+	def __init__(self, serv_port, local_cluster_port, cluster_host = None, cluster_port = None, port_offset = 0):
 		# Make a temporary file for the database
+		#TODO use a portable method to select db_dir
 		self.db_dir = "/tmp/rethinkdb-port-" + str(serv_port)
 		assert not os.path.exists(self.db_dir)
 
-		# Otherwise, we need to create a new server
-		if cluster_port is None:
-			self.args = ["../../build/debug/rethinkdb", "--directory=" + self.db_dir, "--port=" + str(serv_port), "--client-port=" + str(local_cluster_port)]
-		else:
-			self.args = ["../../build/debug/rethinkdb", "--directory=" + self.db_dir, "--port=" + str(serv_port), "--client-port=" + str(local_cluster_port), "--join=" + str(cluster_host) + ":" + str(cluster_port)]
+		# Otherwise, we need to create a new server 
+		self.args = ["../../build/debug/rethinkdb", "--directory=" + self.db_dir, "--port=" + str(serv_port), "--client-port=" + str(local_cluster_port), "--port-offset=" + str(port_offset)]
+		if cluster_port is not None:
+			self.args.append("--join=" + str(cluster_host) + ":" + str(cluster_port))
 
 		self.local_cluster_port = local_cluster_port
 
@@ -307,9 +310,17 @@ class Cluster(object):
 	# Add a machine to the cluster by starting a server instance locally
 	def add_machine(self):
 		if self.server_instances is 0:
-			serv = InternalServer(self.base_port, self.base_port - 1) # First server in cluster shouldn't connect to anyone
+			serv = InternalServer(
+				self.base_port,
+				self.base_port - 1,
+				port_offset = self.server_instances) # First server in cluster shouldn't connect to anyone
 		else:
-			serv = InternalServer(self.base_port + self.server_instances, self.base_port - self.server_instances - 1, socket.gethostname(), self.base_port)
+			serv = InternalServer(
+				self.base_port + self.server_instances,
+				self.base_port - self.server_instances - 1,
+				cluster_host = socket.gethostname(),
+				cluster_port = self.base_port,
+				port_offset = self.server_instances)
 		self.machines[serv.uuid] = serv
 		self.server_instances += 1
 		time.sleep(0.2)
