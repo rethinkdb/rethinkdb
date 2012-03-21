@@ -37,7 +37,7 @@ def generate_async_message_template(nargs):
     print "    raw_mailbox_t::address_t addr;"
     print "};"
     print
-    print "template<" + csep("class arg#_t") + ">" 
+    print "template<" + csep("class arg#_t") + ">"
     print "class mailbox_t< void(" + csep("arg#_t") + ") > {"
     print "public:"
     print "    typedef address_t< void(" + csep("arg#_t") + ") > address_t;"
@@ -47,7 +47,7 @@ def generate_async_message_template(nargs):
     print "        {"
     print "            rassert(fun);"
     print "        }"
-    print 
+    print
     print "    ~mailbox_t() {"
     print "    }"
     print
