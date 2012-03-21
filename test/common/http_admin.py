@@ -67,6 +67,13 @@ def unblock_path(source_port, dest_port):
 	conn.send("unblock %s %s" % (str(source_port), str(dest_port)))
 	conn.close()
 
+def find_rethinkdb_executable():
+	paths = ["build/debug/rethinkdb", "../build/debug/rethinkdb", "../../build/debug/rethinkdb", "../../../build/debug/rethinkdb"]
+	for path in paths:
+		if os.path.exists(path):
+			return path
+	raise RuntimeError("Can't find RethinkDB executable. Tried these paths: %s" % paths)
+
 def validate_uuid(json_uuid):
 	assert isinstance(json_uuid, str) or isinstance(json_uuid, unicode)
 	assert json_uuid.count("-") == 4
@@ -228,12 +235,12 @@ class InternalServer(Server):
 		self.db_dir = "/tmp/rethinkdb-port-" + str(serv_port)
 		assert not os.path.exists(self.db_dir)
 
-		create_args = ["../../build/debug/rethinkdb", "create", "--directory=" + self.db_dir, "--port-offset=" + str(port_offset)]
+		create_args = [find_rethinkdb_executable(), "create", "--directory=" + self.db_dir, "--port-offset=" + str(port_offset)]
 		if name is not None:
 			create_args.append("--name=" + name)
 		subprocess.check_call(create_args)
 
-		self.args_without_join = ["../../build/debug/rethinkdb", "serve", "--directory=" + self.db_dir, "--port=" + str(serv_port), "--client-port=" + str(local_cluster_port)]
+		self.args_without_join = [find_rethinkdb_executable(), "serve", "--directory=" + self.db_dir, "--port=" + str(serv_port), "--client-port=" + str(local_cluster_port)]
 		if join is None:
 			serve_args = self.args_without_join
 		else:
@@ -376,17 +383,6 @@ class Cluster(object):
 		self.update_cluster_data()
 		return datacenter
 
-	# Add a dummy namespace through the given uuid of a machine in the cluster
-	def add_dummy_namespace(self, servid = None):
-		info = self._get_server_for_command(servid).do_query("POST", "/ajax/dummy_namespaces/new", { })
-		time.sleep(0.2) # Give some time for changes to hit the rest of the cluster
-		assert len(info) is 1
-		info = next(info.iteritems())
-		namespace = DummyNamespace(info[0], info[1])
-		self.dummy_namespaces[namespace.uuid] = namespace
-		self.update_cluster_data()
-		return namespace
-
 	def move_namespace_to_datacenter(self, namespace, primary, servid = None):
 		if type(namespace) is str or type(namespace) is unicode:
 			if namespace in self.dummy_namespaces:
@@ -425,16 +421,27 @@ class Cluster(object):
 		self.update_cluster_data()
 		return namespace
 
-	# Add a memcached namespace through the given uuid of a machine in the cluster
-	def add_memcached_namespace(self, servid = None):
-		info = self._get_server_for_command(servid).do_query("POST", "/ajax/memcached_namespaces/new", { })
-		time.sleep(0.2) # Give some time for the changes to hit the rest of the cluster
+	def _add_namespace(self, type_class, type_str, name, port, servid):
+		content = { }
+		if name is not None:
+			content["name"] = name
+		content["port"] = port if port is not None else random.randint(20000, 60000)
+		info = self._get_server_for_command(servid).do_query("POST", "/ajax/%s_namespaces/new" % type_str, content)
+		time.sleep(0.2) # Give some time for changes to hit the rest of the cluster
 		assert len(info) is 1
 		info = next(info.iteritems())
-		namespace = MemcachedNamespace(info[0], info[1])
-		self.memcached_namespaces[namespace.uuid] = namespace
+		namespace = type_class(info[0], info[1])
+		getattr(self, "%s_namespaces" % type_str)[namespace.uuid] = namespace
 		self.update_cluster_data()
 		return namespace
+
+	# Add a dummy namespace through the given uuid of a machine in the cluster
+	def add_dummy_namespace(self, name = None, port = None, servid = None):
+		return self._add_namespace(DummyNamespace, "dummy", name, port, servid)
+
+	# Add a memcached namespace through the given uuid of a machine in the cluster
+	def add_memcached_namespace(self, name = None, port = None, servid = None):
+		return self._add_namespace(MemcachedNamespace, "memcached", name, port, servid)
 
 	def _pull_cluster_data(self, cluster_data, local_data, data_type):
 		num_uuids = 0
