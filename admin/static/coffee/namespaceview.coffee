@@ -421,13 +421,13 @@ module 'NamespaceView', ->
                             #$('#user-alert-space').append @alert_tmpl {}
 
             # Generate faked data TODO
-            num_replicas = @namespace.get('replica_affinities')[@datacenter.id].desired_replication_count
+            num_replicas = @namespace.get('replica_affinities')[@datacenter.id]
             json =
                 'namespace': @namespace.toJSON()
                 'datacenter': @datacenter.toJSON()
                 # Faked data TODO
                 'num_replicas': num_replicas
-                'num_acks': 3
+                'num_acks': num_replicas
                 # random machines | faked TODO
                 'replica_machines': @machine_json (_.shuffle machines.models)[0...num_replicas]
 
