@@ -56,7 +56,7 @@ private:
             /* This is a pointer-to-member. It's always going to be either
             `&master_business_card_t<protocol_t>::read_mailbox` or
             `&master_business_card_t<protocol_t>::write_mailbox`. */
-            addr_t<void(op_t, order_token_t, addr_t<void(boost::variant<op_response_t, std::string>)>)> master_business_card_t<protocol_t>::*mailbox_field,
+            mailbox_addr_t<void(op_t, order_token_t, mailbox_addr_t<void(boost::variant<op_response_t, std::string>)>)> master_business_card_t<protocol_t>::*mailbox_field,
             op_t op, order_token_t order_token, signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t)
     {
@@ -85,7 +85,7 @@ private:
 
     template<class op_t, class op_response_t>
     void generic_perform(
-            addr_t<void(op_t, order_token_t, addr_t<void(boost::variant<op_response_t, std::string>)>)> master_business_card_t<protocol_t>::*mailbox_field,
+            mailbox_addr_t<void(op_t, order_token_t, mailbox_addr_t<void(boost::variant<op_response_t, std::string>)>)> master_business_card_t<protocol_t>::*mailbox_field,
             const std::vector<typename protocol_t::region_t> *regions,
             const std::vector<boost::shared_ptr<resource_access_t<master_business_card_t<protocol_t> > > > *master_accesses,
             const op_t *operation,
@@ -105,7 +105,7 @@ private:
 
             master_business_card_t<protocol_t> bcard = (*master_accesses)[i]->access();
 
-            addr_t<void(op_t, order_token_t, addr_t<void(boost::variant<op_response_t, std::string>)>)> query_address =
+            mailbox_addr_t<void(op_t, order_token_t, mailbox_addr_t<void(boost::variant<op_response_t, std::string>)>)> query_address =
                 bcard.*mailbox_field;
 
             send(mailbox_manager, query_address,
