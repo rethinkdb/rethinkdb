@@ -1,5 +1,5 @@
-#ifndef MEMCACHED_MEMCACHED_HPP_
-#define MEMCACHED_MEMCACHED_HPP_
+#ifndef MEMCACHED_PARSER_HPP_
+#define MEMCACHED_PARSER_HPP_
 
 #include <vector>
 
@@ -37,4 +37,4 @@ void handle_memcache(memcached_interface_t *interface,
                      namespace_interface_t<memcached_protocol_t> *nsi,
                      int max_concurrent_queries_per_connection);
 
-#endif /* MEMCACHED_MEMCACHED_HPP_ */
+#endif /* MEMCACHED_PARSER_HPP_ */
