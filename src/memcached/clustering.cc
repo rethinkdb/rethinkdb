@@ -4,7 +4,6 @@
 
 #include "clustering/administration/machine_metadata.hpp"
 #include "memcached/clustering.hpp"
-#include "memcached/store.hpp"
 #include "memcached/tcp_conn.hpp"
 
 memcached_parser_maker_t::memcached_parser_maker_t(mailbox_manager_t *_mailbox_manager, 

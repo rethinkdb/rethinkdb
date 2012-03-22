@@ -1,11 +1,9 @@
 #include "btree/get.hpp"
 
-#include "btree/delete_expired.hpp"
 #include "btree/btree_data_provider.hpp"
 #include "btree/internal_node.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/operations.hpp"
-#include "memcached/store.hpp"
 
 get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, exptime_t effective_time, transaction_t *txn, got_superblock_t& superblock) {
 

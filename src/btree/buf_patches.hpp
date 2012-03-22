@@ -4,8 +4,8 @@
 /* This file provides btree specific buffer patches */
 
 #include "buffer_cache/buf_patch.hpp"
-#include "memcached/store.hpp"
 #include "containers/scoped_malloc.hpp"
+#include "utils.hpp"
 
 /* Btree leaf node logical patches */
 struct btree_key_t;

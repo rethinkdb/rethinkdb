@@ -14,12 +14,13 @@
 #include "btree/keys.hpp"
 #include "config/args.hpp"
 #include "containers/data_buffer.hpp"
-#include "protocol_api.hpp"
 #include "utils.hpp"
 
 typedef uint32_t mcflags_t;
 typedef uint32_t exptime_t;
 typedef uint64_t cas_t;
+
+#define INVALID_CAS cas_t(-1)
 
 struct data_buffer_t;
 
@@ -87,6 +88,9 @@ typedef boost::shared_ptr<one_way_iterator_t<key_with_data_buffer_t> > rget_resu
 
 struct get_cas_mutation_t {
     store_key_t key;
+
+    get_cas_mutation_t() { }
+    get_cas_mutation_t(const store_key_t &k) : key(k) { }
 };
 
 /* `set`, `add`, `replace`, `cas` */
@@ -176,6 +180,10 @@ struct incr_decr_mutation_t {
     incr_decr_kind_t kind;
     store_key_t key;
     uint64_t amount;
+
+    incr_decr_mutation_t() { }
+    incr_decr_mutation_t(incr_decr_kind_t idk, const store_key_t &k, uint64_t a) :
+        kind(idk), key(k), amount(a) { }
 };
 
 struct incr_decr_result_t {
@@ -197,6 +205,10 @@ struct append_prepend_mutation_t {
     append_prepend_kind_t kind;
     store_key_t key;
     boost::intrusive_ptr<data_buffer_t> data;
+
+    append_prepend_mutation_t() { }
+    append_prepend_mutation_t(append_prepend_kind_t kind_, const store_key_t &key_, const boost::intrusive_ptr<data_buffer_t> &data_) :
+        kind(kind_), key(key_), data(data_) { }
 };
 
 enum append_prepend_result_t {

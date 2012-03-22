@@ -54,24 +54,11 @@ public:
     }
 };
 
-/* In our current use of import we ignore gets, the easiest way to do this
- * is with a dummyed get_store */
-class dummy_get_store_t : public get_store_t {
-    get_result_t get(UNUSED const store_key_t &key, UNUSED order_token_t token) { return get_result_t(); }
-    rget_result_t rget(UNUSED rget_bound_mode_t left_mode, UNUSED const store_key_t &left_key,
-                       UNUSED rget_bound_mode_t right_mode, UNUSED const store_key_t &right_key, 
-                       UNUSED order_token_t token)
-    {
-        return rget_result_t();
-    }
-};
-
-void import_memcache(const char *filename, set_store_interface_t *set_store, signal_t *interrupt) {
+void import_memcache(const char *filename, namespace_interface_t<memcached_protocol_t> *nsi, signal_t *interrupt) {
     rassert(interrupt);
     interrupt->assert_thread();
 
-    dummy_get_store_t dummy_get_store;
     file_memcached_interface_t interface(filename, interrupt);
 
-    handle_memcache(&interface, &dummy_get_store, set_store, MAX_CONCURRENT_QUEURIES_ON_IMPORT);
+    handle_memcache(&interface, nsi, MAX_CONCURRENT_QUEURIES_ON_IMPORT);
 }

@@ -88,15 +88,15 @@ struct tcp_conn_memcached_interface_t : public memcached_interface_t, public hom
     }
 };
 
-void serve_memcache(tcp_conn_t *conn, get_store_t *get_store, set_store_interface_t *set_store) {
+void serve_memcache(tcp_conn_t *conn, namespace_interface_t<memcached_protocol_t> *nsi) {
     tcp_conn_memcached_interface_t interface(conn);
-    handle_memcache(&interface, get_store, set_store, MAX_CONCURRENT_QUERIES_PER_CONNECTION);
+    handle_memcache(&interface, nsi, MAX_CONCURRENT_QUERIES_PER_CONNECTION);
 }
 
 perfmon_duration_sampler_t pm_conns("conns", secs_to_ticks(600), false);
 
-memcache_listener_t::memcache_listener_t(int _port, namespace_interface_t<memcached_protocol_t> *namespace_if) 
-    : port(_port), get_store(*namespace_if), set_store(*namespace_if), ts_set_store(&set_store),
+memcache_listener_t::memcache_listener_t(int _port, namespace_interface_t<memcached_protocol_t> *namespace_if_) 
+    : port(_port), namespace_if(namespace_if_),
       next_thread(0),
       tcp_listener(port, boost::bind(&memcache_listener_t::handle,
                                      this, auto_drainer_t::lock_t(&drainer), _1))
@@ -141,5 +141,5 @@ void memcache_listener_t::handle(auto_drainer_t::lock_t keepalive, boost::scoped
 
     /* `serve_memcache()` will continuously serve memcache queries on the given conn
     until the connection is closed. */
-    serve_memcache(conn.get(), &get_store, &ts_set_store);
+    serve_memcache(conn.get(), namespace_if);
 }

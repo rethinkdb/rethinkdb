@@ -3,8 +3,8 @@
 
 #include "errors.hpp"
 #include <boost/scoped_ptr.hpp>
-#include "memcached/store.hpp"
 #include "btree/operations.hpp"
+#include "memcached/queries.hpp"
 
 class btree_slice_t;
 

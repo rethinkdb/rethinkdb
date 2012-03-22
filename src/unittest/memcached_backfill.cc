@@ -96,7 +96,7 @@ static void write_to_broadcaster(broadcaster_t<memcached_protocol_t> *broadcaste
     set.exptime = 0;
     set.add_policy = add_policy_yes;
     set.replace_policy = replace_policy_yes;
-    memcached_protocol_t::write_t write(mutation_t(set), 12345);
+    memcached_protocol_t::write_t write(set, time(NULL), 12345);
     broadcaster->write(write, otok);
 }
 
@@ -156,7 +156,7 @@ void run_partial_backfill_test(simple_mailbox_cluster_t *cluster,
             it != inserter_state.end(); it++) {
         get_query_t get;
         get.key = store_key_t(it->first);
-        memcached_protocol_t::read_t read(get);
+        memcached_protocol_t::read_t read(get, time(NULL));
         memcached_protocol_t::read_response_t response =
             broadcaster->get()->read(read, order_source.check_in("unittest"));
         get_result_t get_result = boost::get<get_result_t>(response.result);

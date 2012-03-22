@@ -6,7 +6,7 @@
 #include "buffer_cache/buffer_cache.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/fifo_checker.hpp"
-#include "memcached/store.hpp"
+#include "containers/data_buffer.hpp"
 #include "utils.hpp"
 
 // Run backfilling at a reduced priority

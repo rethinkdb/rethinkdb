@@ -57,7 +57,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
 
 append_prepend_result_t btree_append_prepend(const store_key_t &key, btree_slice_t *slice, const boost::intrusive_ptr<data_buffer_t>& data, bool append, cas_t proposed_cas, exptime_t effective_time, repli_timestamp_t timestamp, transaction_t *txn, got_superblock_t& superblock) {
     btree_append_prepend_oper_t oper(data, append);
-    run_btree_modify_oper(&oper, slice, key, proposed_cas, effective_timestamp, timestamp, txn, superblock);
+    run_btree_modify_oper(&oper, slice, key, proposed_cas, effective_time, timestamp, txn, superblock);
     return oper.result;
 }
 

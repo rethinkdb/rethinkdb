@@ -3,7 +3,7 @@
 
 #include "btree/node.hpp"
 #include "btree/slice.hpp"
-#include "memcached/store.hpp"
+#include "memcached/queries.hpp"
 
 append_prepend_result_t btree_append_prepend(const store_key_t &key, btree_slice_t *slice, const boost::intrusive_ptr<data_buffer_t>& data, bool append, cas_t proposed_cas, exptime_t effective_time, repli_timestamp_t timestamp, transaction_t *txn, got_superblock_t& superblock);
 
