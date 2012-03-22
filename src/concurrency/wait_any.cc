@@ -2,7 +2,7 @@
 
 class wait_any_subscription_t : public signal_t::subscription_t {
 public:
-    wait_any_subscription_t(wait_any_t *parent) : parent_(parent) { }
+    explicit wait_any_subscription_t(wait_any_t *parent) : parent_(parent) { }
     virtual void run();
 private:
     wait_any_t *parent_;

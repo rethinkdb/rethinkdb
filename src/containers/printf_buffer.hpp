@@ -11,7 +11,7 @@ template <int N>
 class printf_buffer_t {
 public:
     printf_buffer_t();
-    printf_buffer_t(const char *format, ...) __attribute__((format (printf, 2, 3)));
+    explicit printf_buffer_t(const char *format, ...) __attribute__((format (printf, 2, 3)));
     printf_buffer_t(va_list ap, const char *format);
     ~printf_buffer_t();
 

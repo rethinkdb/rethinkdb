@@ -145,15 +145,15 @@ void connectivity_cluster_t::run_t::join_blocking(
 
 class cluster_conn_closing_subscription_t : public signal_t::subscription_t {
 public:
-    cluster_conn_closing_subscription_t(streamed_tcp_conn_t *conn) : conn_(conn) { }
+    explicit cluster_conn_closing_subscription_t(streamed_tcp_conn_t *conn) : conn_(conn) { }
 
     virtual void run() {
-	if (conn_->is_read_open()) {
-	    conn_->shutdown_read();
-	}
-	if (conn_->is_write_open()) {
-	    conn_->shutdown_write();
-	}
+        if (conn_->is_read_open()) {
+            conn_->shutdown_read();
+        }
+        if (conn_->is_write_open()) {
+            conn_->shutdown_write();
+        }
     }
 private:
     streamed_tcp_conn_t *conn_;
