@@ -35,12 +35,9 @@ struct get_query_t {
 
 struct get_result_t {
     get_result_t(const boost::intrusive_ptr<data_buffer_t>& v, mcflags_t f, cas_t c) :
-        is_not_allowed(false), value(v), flags(f), cas(c) { }
+        value(v), flags(f), cas(c) { }
     get_result_t() :
-        is_not_allowed(false), value(), flags(0), cas(0) { }
-
-    /* If true, then all other fields should be ignored. */
-    bool is_not_allowed;
+        value(), flags(0), cas(0) { }
 
     // NULL means not found.
     boost::intrusive_ptr<data_buffer_t> value;
@@ -84,7 +81,6 @@ struct key_with_data_buffer_t {
     };
 };
 
-// A NULL unique pointer means not allowed
 typedef boost::shared_ptr<one_way_iterator_t<key_with_data_buffer_t> > rget_result_t;
 
 /* `gets` */
@@ -148,8 +144,6 @@ enum set_result_t {
     sr_didnt_replace,
     /* Returned if the value to be stored is too big */
     sr_too_large,
-    /* Returned if the store doesn't want you to do what you're doing. */
-    sr_not_allowed,
 };
 
 /* `delete` */
@@ -168,7 +162,6 @@ struct delete_mutation_t {
 enum delete_result_t {
     dr_deleted,
     dr_not_found,
-    dr_not_allowed
 };
 
 /* `incr`, `decr` */
@@ -189,7 +182,6 @@ struct incr_decr_result_t {
         idr_success,
         idr_not_found,
         idr_not_numeric,
-        idr_not_allowed,
     } res;
     uint64_t new_value;   // Valid only if idr_success
     incr_decr_result_t() { }
@@ -210,7 +202,6 @@ enum append_prepend_result_t {
     apr_success,
     apr_too_large,
     apr_not_found,
-    apr_not_allowed,
 };
 
 #endif /* MEMCACHED_QUERIES_HPP_ */

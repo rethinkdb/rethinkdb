@@ -160,7 +160,6 @@ void run_partial_backfill_test(simple_mailbox_cluster_t *cluster,
         memcached_protocol_t::read_response_t response =
             broadcaster->get()->read(read, order_source.check_in("unittest"));
         get_result_t get_result = boost::get<get_result_t>(response.result);
-        EXPECT_FALSE(get_result.is_not_allowed);
         EXPECT_TRUE(get_result.value.get() != NULL);
         EXPECT_EQ(it->second.size(), get_result.value->size());
         if (get_result.value->size() == (int)it->second.size()) {

@@ -87,7 +87,6 @@ void run_get_set_test(namespace_interface_t<memcached_protocol_t> *nsi) {
         memcached_protocol_t::read_response_t result = nsi->read(read, osource.check_in("unittest"), &interruptor);
 
         if (get_result_t *maybe_get_result = boost::get<get_result_t>(&result.result)) {
-            EXPECT_FALSE(maybe_get_result->is_not_allowed);
             EXPECT_TRUE(maybe_get_result->value.get() != NULL);
             EXPECT_EQ(1, maybe_get_result->value->size());
             if (maybe_get_result->value->size() == 1) {

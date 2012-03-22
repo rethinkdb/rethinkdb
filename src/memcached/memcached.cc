@@ -145,19 +145,6 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
         client_error("bad data chunk\r\n");
     }
 
-    void client_error_not_allowed(bool op_is_write) {
-        // TODO: Do we have a way of figuring out what's going on more specifically?
-        // Like: Are we running in a replication setup? Are we actually shutting down?
-        std::string explanations;
-        if (op_is_write) {
-            explanations = "Maybe you are trying to write to a slave? We might also be shutting down, or master and slave are out of sync.";
-        } else {
-            explanations = "We might be shutting down, or master and slave are out of sync.";
-        }
-
-        client_error("operation not allowed; %s\r\n", explanations.c_str());
-    }
-
     void server_error_object_too_large_for_cache() {
         server_error("object too large for cache\r\n");
     }
@@ -314,45 +301,33 @@ void do_get(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool with_cas, 
 
     pipeliner_acq.begin_write();
 
-    /* Check if they hit a gated_get_store_t. */
-    if (gets.size() > 0 && gets[0].res.is_not_allowed) {
-        /* They all should have gotten the same error */
-        for (int i = 0; i < (int)gets.size(); i++) {
-            rassert(gets[i].res.is_not_allowed);
-        }
+    /* Handle the results in sequence */
+    for (int i = 0; i < (int)gets.size(); i++) {
+        get_result_t &res = gets[i].res;
 
-        rh->client_error_not_allowed(with_cas);
-    } else {
-        /* Handle the results in sequence */
-        for (int i = 0; i < (int)gets.size(); i++) {
-            get_result_t &res = gets[i].res;
+        /* If res.value is NULL that means the value was not found so we don't write
+           anything */
+        if (res.value) {
+            /* If the write half of the connection has been closed, there's no point in trying
+               to send anything */
+            if (rh->is_write_open()) {
+                const store_key_t &key = gets[i].key;
 
-            rassert(!res.is_not_allowed);
-
-            /* If res.value is NULL that means the value was not found so we don't write
-               anything */
-            if (res.value) {
-                /* If the write half of the connection has been closed, there's no point in trying
-                   to send anything */
-                if (rh->is_write_open()) {
-                    const store_key_t &key = gets[i].key;
-
-                    /* Write the "VALUE ..." header */
-                    if (with_cas) {
-                        rh->write_value_header(key.contents, key.size, res.flags, res.value->size(), res.cas);
-                    } else {
-                        rassert(res.cas == 0);
-                        rh->write_value_header(key.contents, key.size, res.flags, res.value->size());
-                    }
-
-                    rh->write_from_data_provider(res.value.get());
-                    rh->write_crlf();
+                /* Write the "VALUE ..." header */
+                if (with_cas) {
+                    rh->write_value_header(key.contents, key.size, res.flags, res.value->size(), res.cas);
+                } else {
+                    rassert(res.cas == 0);
+                    rh->write_value_header(key.contents, key.size, res.flags, res.value->size());
                 }
+
+                rh->write_from_data_provider(res.value.get());
+                rh->write_crlf();
             }
         }
-
-        rh->write_end();
     }
+
+    rh->write_end();
 
     pipeliner_acq.end_write();
 };
@@ -430,28 +405,23 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, char
 
     pipeliner_acq.begin_write();
 
-    /* Check if the query hit a gated_get_store_t */
-    if (!results_iterator) {
-        rh->client_error_not_allowed(false);
-    } else {
+    boost::optional<key_with_data_buffer_t> pair;
+    uint64_t count = 0;
+    ticks_t next_time;
+    while (++count <= max_items && (rget_iteration_next.begin(&next_time), pair = results_iterator->next())) {
+        rget_iteration_next.end(&next_time);
+        const key_with_data_buffer_t& kv = pair.get();
 
-        boost::optional<key_with_data_buffer_t> pair;
-        uint64_t count = 0;
-        ticks_t next_time;
-        while (++count <= max_items && (rget_iteration_next.begin(&next_time), pair = results_iterator->next())) {
-            rget_iteration_next.end(&next_time);
-            const key_with_data_buffer_t& kv = pair.get();
+        const std::string& key = kv.key;
+        const boost::intrusive_ptr<data_buffer_t>& dp = kv.value_provider;
 
-            const std::string& key = kv.key;
-            const boost::intrusive_ptr<data_buffer_t>& dp = kv.value_provider;
-
-            rh->write_value_header(key.c_str(), key.length(), kv.mcflags, dp->size());
-            rh->write_from_data_provider(dp.get());
-            rh->write_crlf();
-        }
-
-        rh->write_end();
+        rh->write_value_header(key.c_str(), key.length(), kv.mcflags, dp->size());
+        rh->write_from_data_provider(dp.get());
+        rh->write_crlf();
     }
+
+    rh->write_end();
+
     pipeliner_acq.end_write();
 }
 
@@ -545,9 +515,6 @@ void run_storage_command(txt_memcached_handler_t *rh,
             case sr_too_large:
                 rh->server_error_object_too_large_for_cache();
                 break;
-            case sr_not_allowed:
-                rh->client_error_not_allowed(true);
-                break;
             default: unreachable();
             }
         }
@@ -566,9 +533,6 @@ void run_storage_command(txt_memcached_handler_t *rh,
             case apr_not_found: rh->writef("NOT_FOUND\r\n"); break;
             case apr_too_large:
                 rh->server_error_object_too_large_for_cache();
-                break;
-            case apr_not_allowed:
-                rh->client_error_not_allowed(true);
                 break;
             default: unreachable();
             }
@@ -741,9 +705,6 @@ void run_incr_decr(txt_memcached_handler_t *rh, pipeliner_acq_t *pipeliner_acq, 
             case incr_decr_result_t::idr_not_numeric:
                 rh->client_error("cannot increment or decrement non-numeric value\r\n");
                 break;
-            case incr_decr_result_t::idr_not_allowed:
-                rh->client_error_not_allowed(true);
-                break;
             default: unreachable();
         }
     }
@@ -820,9 +781,6 @@ void run_delete(txt_memcached_handler_t *rh, pipeliner_acq_t *pipeliner_acq, sto
                 break;
             case dr_not_found:
                 rh->writef("NOT_FOUND\r\n");
-                break;
-            case dr_not_allowed:
-                rh->client_error_not_allowed(true);
                 break;
             default: unreachable();
         }

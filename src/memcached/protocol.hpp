@@ -84,7 +84,7 @@ BOOST_SERIALIZATION_SPLIT_FREE(rget_result_t);
 
 RDB_MAKE_SERIALIZABLE_1(get_query_t, key);
 RDB_MAKE_SERIALIZABLE_4(rget_query_t, left_mode, left_key, right_mode, right_key);
-RDB_MAKE_SERIALIZABLE_4(get_result_t, is_not_allowed, value, flags, cas);
+RDB_MAKE_SERIALIZABLE_3(get_result_t, value, flags, cas);
 RDB_MAKE_SERIALIZABLE_3(key_with_data_buffer_t, key, mcflags, value_provider);
 RDB_MAKE_SERIALIZABLE_1(get_cas_mutation_t, key);
 RDB_MAKE_SERIALIZABLE_7(sarc_mutation_t, key, data, flags, exptime, add_policy, replace_policy, old_cas);
