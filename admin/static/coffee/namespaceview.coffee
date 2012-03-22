@@ -359,8 +359,21 @@ module 'NamespaceView', ->
                 'removing': false
                 'name': @shard.name
                 'shard_index': @shard.index
-                'machines': _.map(@shard.machines, (machine) => { machine: { name: machine.get('name'), id: machine.id }, shard_index: @shard.index })  # FML
-                'existing_machines': _.map(@shard.existing_machines, (machine) => { machine: { name: machine.get('name'), id: machine.id }, shard_index: @shard.index })  # FML
+                'machines': _.map(@shard.machines, (machine) =>
+                    machine:
+                        name: machine.get('name')
+                        id: machine.id
+                    shard_index: @shard.index
+                )
+                'existing_secondary_machines': _.map(@shard.existing_machines, (machine) =>
+                    machine:
+                        name: machine.get('name')
+                        id: machine.id
+                    shard_index: @shard.index
+                )
+                'existing_primary_machine': # TODO This should be the actual primary machine (faked data)
+                    name: @shard.existing_machines[0].get('name')
+                    id: @shard.existing_machines[0].id
 
             return @
 
@@ -368,17 +381,30 @@ module 'NamespaceView', ->
             console.log 'edit-rending with shard.machines being', @shard.machines
             @.$el.html @editable_tmpl
                 'name': @shard.name
-                'machine_dropdowns': _.map(@shard.machines, (machine) =>
-                    'shard_index': @shard.index  # FML
+                'primary_machine_dropdown':# TODO This should be the actual primary machine (faked data)
+                    'shard_index': @shard.index
+                    'selected': @available_machines[0] 
+                    'available_machines': _.map(@available_machines, (machine) =>
+                        name: machine.get('name')
+                        id: machine.id
+                    )
+                'secondary_machine_dropdowns': _.map(@shard.machines, (machine) =>
+                    'shard_index': @shard.index
                     'selected': machine
-                    'available_machines': _.map(@available_machines, (machine) => { name: machine.get('name'), id: machine.id })
+                    'available_machines': _.map(@available_machines, (machine) =>
+                        name: machine.get('name')
+                        id: machine.id
+                    )
                 )
                 'adding': @shard.adding
                 'removing': @shard.removing
-                'existing_machines': _.map(@shard.existing_machines, (machine) => { machine: machine, shard_index: @shard.index })  # FML
+                'existing_machines': _.map(@shard.existing_machines, (machine) =>
+                    machine: machine
+                    shard_index: @shard.index
+                )
+
             e.preventDefault()
-
-
+            return @
 
     class @ModifyReplicasModal extends ClusterView.AbstractModal
         template: Handlebars.compile $('#modify_replicas-modal-template').html()
@@ -404,9 +430,14 @@ module 'NamespaceView', ->
             # Define the validator options
             validator_options =
                 submitHandler: =>
-                    $('form', @$modal).ajaxSubmit
-                        url: '/ajax/namespaces/'+@namespace.id+'/set_desired_replicas_and_acks?token=' + token
+                    formdata = form_data_as_object($('form', @$modal))
+                    replica_affinities_to_send = {}
+                    replica_affinities_to_send[formdata.datacenter] = parseInt(formdata.num_replicas)
+                    $.ajax
+                        processData: false
+                        url: "/ajax/#{@namespace.get("protocol")}_namespaces/#{@namespace.id}"
                         type: 'POST'
+                        data: JSON.stringify({ "replica_affinities": replica_affinities_to_send})
 
                         success: (response) =>
                             clear_modals()
@@ -416,13 +447,13 @@ module 'NamespaceView', ->
                             #$('#user-alert-space').append @alert_tmpl {}
 
             # Generate faked data TODO
-            num_replicas = @namespace.get('replica_affinities')[@datacenter.id].desired_replication_count
+            num_replicas = @namespace.get('replica_affinities')[@datacenter.id]
             json =
                 'namespace': @namespace.toJSON()
                 'datacenter': @datacenter.toJSON()
                 # Faked data TODO
                 'num_replicas': num_replicas
-                'num_acks': 3
+                'num_acks': num_replicas
                 # random machines | faked TODO
                 'replica_machines': @machine_json (_.shuffle machines.models)[0...num_replicas]
 

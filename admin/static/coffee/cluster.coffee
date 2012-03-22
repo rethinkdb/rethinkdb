@@ -1082,9 +1082,22 @@ add_protocol_tag = (data, tag) ->
     _.each(data, f)
     return data
 
+reset_collections = () ->
+    namespaces.reset()
+    datacenters.reset()
+    machines.reset()
+
 # Process updates from the server and apply the diffs to our view of the data. Used by our version of Backbone.sync and POST / PUT responses for form actions
 apply_diffs = (updates) ->
     declare_client_connected()
+
+    if (!window.contact_machine_id)
+        window.contact_machine_id = updates["me"] 
+    else
+        if (updates["me"] != window.contact_machine_id)
+            reset_collections()
+            window.contact_machine_id = updates["me"] 
+
     for collection_id, collection_data of updates
         switch collection_id
             when 'dummy_namespaces'
@@ -1098,7 +1111,6 @@ apply_diffs = (updates) ->
             when 'me' then continue
             else
                 console.log "Unhandled element update: " + updates
-                return
     return
 
 $ ->
