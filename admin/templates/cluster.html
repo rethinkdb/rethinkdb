@@ -932,9 +932,10 @@
     <script id="modify_replica_modal-replica_plan-shard-template" type="text/x-handlebars-template">
     <td class="name"><h4>{{name}}</h4></td>
     <td class="machines">
-        <p class="existing-replicas">
-                    Replicas for this shard:
-        {{#comma_separated existing_machines}}<input type="hidden" name="machine_for_{{shard_index}}" value="{{machine.id}}"> <a href='/#machines/{{machine.id}}'>{{machine.name}}</a>{{/comma_separated}}
+        <p class="existing-primary">Primary replica for this shard: <a href='/#machines/{{existing_primary_machine.id}}'>{{existing_primary_machine.name}}</a></p>
+        <p class="existing-secondaries">
+            Secondary replicas for this shard:
+            {{#comma_separated existing_secondary_machines}}<input type="hidden" name="machine_for_{{shard_index}}" value="{{machine.id}}"><a href='/#machines/{{machine.id}}'>{{machine.name}}</a>{{/comma_separated}}
         </p>
     </td>
     <td class="change-machines">
@@ -945,16 +946,24 @@
     <script id="modify_replica_modal-replica_plan-edit_shard-template" type="text/x-handlebars-template">
     <td class="name"><h4>{{name}}</h4></td>
     <td class="machines">
-        <p class="delta">
-                    Replicas for this shard:
-        {{#each machine_dropdowns}}
-            <select name="machine_for_{{shard_index}}" class="small machine-for-replica">
-            {{#each available_machines}}
-                <option value="{{this.id}}" {{#ifequal ...selected.id this.id}}selected="selected"{{/ifequal}}>{{this.name}}</option>
+        <div class="delta">
+            <p>Primary replica for this shard:</p>
+                {{#with primary_machine_dropdown}}
+                    <select name="machine_for_{{shard_index}}" class="small primary-for-replica">
+                    {{#each available_machines}}
+                        <option value="{{this.id}}" {{#ifequal ...selected.id this.id}}selected="selected"{{/ifequal}}>{{this.name}}</option>
+                    {{/each}}
+                    </select>
+                {{/with}}
+            <p>Secondary replicas for this shard:</p>
+            {{#each secondary_machine_dropdowns}}
+                <select name="machine_for_{{shard_index}}" class="small secondary-for-replica">
+                {{#each available_machines}}
+                    <option value="{{this.id}}" {{#ifequal ...selected.id this.id}}selected="selected"{{/ifequal}}>{{this.name}}</option>
+                {{/each}}
+                </select>
             {{/each}}
-            </select>
-        {{/each}}
-        </p>
+        </div>
     </td>
     </script>
 
