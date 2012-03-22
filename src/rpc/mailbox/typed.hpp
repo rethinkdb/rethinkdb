@@ -16,14 +16,14 @@ template<class invalid_proto_t> class mailbox_t {
     typename invalid_proto_t::you_are_using_mailbox_t_incorrectly foo;
 };
 
-template<class invalid_proto_t> class address_t {
-    // If someoen tries to instantiate address_t incorrectly,
+template<class invalid_proto_t> class addr_t {
+    // If someoen tries to instantiate addr_t incorrectly,
     // this should cause an error.
-    typename invalid_proto_t::you_are_using_address_t_incorrectly foo;
+    typename invalid_proto_t::you_are_using_addr_t_incorrectly foo;
 };
 
 template<>
-class address_t< void() > {
+class addr_t< void() > {
 public:
     bool is_nil() { return addr.is_nil(); }
     peer_id_t get_peer() { return addr.get_peer(); }
@@ -32,14 +32,14 @@ public:
 
     RDB_MAKE_ME_SERIALIZABLE_1(addr)
 private:
-    friend void send(mailbox_manager_t*, address_t);
+    friend void send(mailbox_manager_t*, addr_t);
     raw_mailbox_t::address_t addr;
 };
 
 template<>
 class mailbox_t< void() > {
 public:
-    typedef address_t< void() > address_type;
+    typedef addr_t< void() > address_t;
 
     mailbox_t(mailbox_manager_t *manager, const boost::function< void() > &fun) :
         mailbox(manager, boost::bind(&mailbox_t::on_message, _1, _2, fun))
@@ -50,14 +50,14 @@ public:
     ~mailbox_t() {
     }
 
-    address_type get_address() {
-        address_type a;
+    address_t get_address() {
+        address_t a;
         a.addr = mailbox.get_address();
         return a;
     }
 
 private:
-    friend void send(mailbox_manager_t*, address_type);
+    friend void send(mailbox_manager_t*, address_t);
     static void write(std::ostream &stream) {
         boost::archive::binary_oarchive archive(stream);
     }
@@ -73,14 +73,14 @@ private:
 };
 
 inline
-void send(mailbox_manager_t *src, mailbox_t< void() >::address_type dest) {
+void send(mailbox_manager_t *src, mailbox_t< void() >::address_t dest) {
     send(src, dest.addr,
         boost::bind(&mailbox_t< void() >::write, _1));
 }
 
 
 template<class arg0_t>
-class address_t< void(arg0_t) > {
+class addr_t< void(arg0_t) > {
 public:
     bool is_nil() { return addr.is_nil(); }
     peer_id_t get_peer() { return addr.get_peer(); }
@@ -90,14 +90,14 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_1(addr)
 private:
     template<class a0_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t) >::address_type, const a0_t&);
+    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t) >::address_t, const a0_t&);
     raw_mailbox_t::address_t addr;
 };
 
 template<class arg0_t>
 class mailbox_t< void(arg0_t) > {
 public:
-    typedef address_t< void(arg0_t) > address_type;
+    typedef addr_t< void(arg0_t) > address_t;
 
     mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t) > &fun) :
         mailbox(manager, boost::bind(&mailbox_t::on_message, _1, _2, fun))
@@ -108,15 +108,15 @@ public:
     ~mailbox_t() {
     }
 
-    address_type get_address() {
-        address_type a;
+    address_t get_address() {
+        address_t a;
         a.addr = mailbox.get_address();
         return a;
     }
 
 private:
     template<class a0_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t) >::address_type, const a0_t&);
+    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t) >::address_t, const a0_t&);
     static void write(std::ostream &stream, const arg0_t &arg0) {
         boost::archive::binary_oarchive archive(stream);
         archive << arg0;
@@ -135,14 +135,14 @@ private:
 };
 
 template<class arg0_t>
-void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t) >::address_type dest, const arg0_t &arg0) {
+void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t) >::address_t dest, const arg0_t &arg0) {
     send(src, dest.addr,
         boost::bind(&mailbox_t< void(arg0_t) >::write, _1, arg0));
 }
 
 
 template<class arg0_t, class arg1_t>
-class address_t< void(arg0_t, arg1_t) > {
+class addr_t< void(arg0_t, arg1_t) > {
 public:
     bool is_nil() { return addr.is_nil(); }
     peer_id_t get_peer() { return addr.get_peer(); }
@@ -152,14 +152,14 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_1(addr)
 private:
     template<class a0_t, class a1_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t) >::address_type, const a0_t&, const a1_t&);
+    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t) >::address_t, const a0_t&, const a1_t&);
     raw_mailbox_t::address_t addr;
 };
 
 template<class arg0_t, class arg1_t>
 class mailbox_t< void(arg0_t, arg1_t) > {
 public:
-    typedef address_t< void(arg0_t, arg1_t) > address_type;
+    typedef addr_t< void(arg0_t, arg1_t) > address_t;
 
     mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t) > &fun) :
         mailbox(manager, boost::bind(&mailbox_t::on_message, _1, _2, fun))
@@ -170,15 +170,15 @@ public:
     ~mailbox_t() {
     }
 
-    address_type get_address() {
-        address_type a;
+    address_t get_address() {
+        address_t a;
         a.addr = mailbox.get_address();
         return a;
     }
 
 private:
     template<class a0_t, class a1_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t) >::address_type, const a0_t&, const a1_t&);
+    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t) >::address_t, const a0_t&, const a1_t&);
     static void write(std::ostream &stream, const arg0_t &arg0, const arg1_t &arg1) {
         boost::archive::binary_oarchive archive(stream);
         archive << arg0;
@@ -200,14 +200,14 @@ private:
 };
 
 template<class arg0_t, class arg1_t>
-void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t) >::address_type dest, const arg0_t &arg0, const arg1_t &arg1) {
+void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1) {
     send(src, dest.addr,
         boost::bind(&mailbox_t< void(arg0_t, arg1_t) >::write, _1, arg0, arg1));
 }
 
 
 template<class arg0_t, class arg1_t, class arg2_t>
-class address_t< void(arg0_t, arg1_t, arg2_t) > {
+class addr_t< void(arg0_t, arg1_t, arg2_t) > {
 public:
     bool is_nil() { return addr.is_nil(); }
     peer_id_t get_peer() { return addr.get_peer(); }
@@ -217,14 +217,14 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_1(addr)
 private:
     template<class a0_t, class a1_t, class a2_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t) >::address_type, const a0_t&, const a1_t&, const a2_t&);
+    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t) >::address_t, const a0_t&, const a1_t&, const a2_t&);
     raw_mailbox_t::address_t addr;
 };
 
 template<class arg0_t, class arg1_t, class arg2_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t) > {
 public:
-    typedef address_t< void(arg0_t, arg1_t, arg2_t) > address_type;
+    typedef addr_t< void(arg0_t, arg1_t, arg2_t) > address_t;
 
     mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t) > &fun) :
         mailbox(manager, boost::bind(&mailbox_t::on_message, _1, _2, fun))
@@ -235,15 +235,15 @@ public:
     ~mailbox_t() {
     }
 
-    address_type get_address() {
-        address_type a;
+    address_t get_address() {
+        address_t a;
         a.addr = mailbox.get_address();
         return a;
     }
 
 private:
     template<class a0_t, class a1_t, class a2_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t) >::address_type, const a0_t&, const a1_t&, const a2_t&);
+    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t) >::address_t, const a0_t&, const a1_t&, const a2_t&);
     static void write(std::ostream &stream, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2) {
         boost::archive::binary_oarchive archive(stream);
         archive << arg0;
@@ -268,14 +268,14 @@ private:
 };
 
 template<class arg0_t, class arg1_t, class arg2_t>
-void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t) >::address_type dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2) {
+void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2) {
     send(src, dest.addr,
         boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t) >::write, _1, arg0, arg1, arg2));
 }
 
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t>
-class address_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > {
+class addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > {
 public:
     bool is_nil() { return addr.is_nil(); }
     peer_id_t get_peer() { return addr.get_peer(); }
@@ -285,14 +285,14 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_1(addr)
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t) >::address_type, const a0_t&, const a1_t&, const a2_t&, const a3_t&);
+    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&);
     raw_mailbox_t::address_t addr;
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > {
 public:
-    typedef address_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > address_type;
+    typedef addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > address_t;
 
     mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t) > &fun) :
         mailbox(manager, boost::bind(&mailbox_t::on_message, _1, _2, fun))
@@ -303,15 +303,15 @@ public:
     ~mailbox_t() {
     }
 
-    address_type get_address() {
-        address_type a;
+    address_t get_address() {
+        address_t a;
         a.addr = mailbox.get_address();
         return a;
     }
 
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t) >::address_type, const a0_t&, const a1_t&, const a2_t&, const a3_t&);
+    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&);
     static void write(std::ostream &stream, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3) {
         boost::archive::binary_oarchive archive(stream);
         archive << arg0;
@@ -339,14 +339,14 @@ private:
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t>
-void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) >::address_type dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3) {
+void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3) {
     send(src, dest.addr,
         boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) >::write, _1, arg0, arg1, arg2, arg3));
 }
 
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t>
-class address_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > {
+class addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > {
 public:
     bool is_nil() { return addr.is_nil(); }
     peer_id_t get_peer() { return addr.get_peer(); }
@@ -356,14 +356,14 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_1(addr)
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t) >::address_type, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&);
+    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&);
     raw_mailbox_t::address_t addr;
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > {
 public:
-    typedef address_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > address_type;
+    typedef addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > address_t;
 
     mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > &fun) :
         mailbox(manager, boost::bind(&mailbox_t::on_message, _1, _2, fun))
@@ -374,15 +374,15 @@ public:
     ~mailbox_t() {
     }
 
-    address_type get_address() {
-        address_type a;
+    address_t get_address() {
+        address_t a;
         a.addr = mailbox.get_address();
         return a;
     }
 
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t) >::address_type, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&);
+    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&);
     static void write(std::ostream &stream, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4) {
         boost::archive::binary_oarchive archive(stream);
         archive << arg0;
@@ -413,14 +413,14 @@ private:
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t>
-void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) >::address_type dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4) {
+void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4) {
     send(src, dest.addr,
         boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) >::write, _1, arg0, arg1, arg2, arg3, arg4));
 }
 
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t>
-class address_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > {
+class addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > {
 public:
     bool is_nil() { return addr.is_nil(); }
     peer_id_t get_peer() { return addr.get_peer(); }
@@ -430,14 +430,14 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_1(addr)
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t) >::address_type, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&);
+    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&);
     raw_mailbox_t::address_t addr;
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > {
 public:
-    typedef address_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > address_type;
+    typedef addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > address_t;
 
     mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > &fun) :
         mailbox(manager, boost::bind(&mailbox_t::on_message, _1, _2, fun))
@@ -448,15 +448,15 @@ public:
     ~mailbox_t() {
     }
 
-    address_type get_address() {
-        address_type a;
+    address_t get_address() {
+        address_t a;
         a.addr = mailbox.get_address();
         return a;
     }
 
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t) >::address_type, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&);
+    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&);
     static void write(std::ostream &stream, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5) {
         boost::archive::binary_oarchive archive(stream);
         archive << arg0;
@@ -490,14 +490,14 @@ private:
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t>
-void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) >::address_type dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5) {
+void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5) {
     send(src, dest.addr,
         boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) >::write, _1, arg0, arg1, arg2, arg3, arg4, arg5));
 }
 
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t>
-class address_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > {
+class addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > {
 public:
     bool is_nil() { return addr.is_nil(); }
     peer_id_t get_peer() { return addr.get_peer(); }
@@ -507,14 +507,14 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_1(addr)
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t) >::address_type, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&);
+    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&);
     raw_mailbox_t::address_t addr;
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > {
 public:
-    typedef address_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > address_type;
+    typedef addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > address_t;
 
     mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > &fun) :
         mailbox(manager, boost::bind(&mailbox_t::on_message, _1, _2, fun))
@@ -525,15 +525,15 @@ public:
     ~mailbox_t() {
     }
 
-    address_type get_address() {
-        address_type a;
+    address_t get_address() {
+        address_t a;
         a.addr = mailbox.get_address();
         return a;
     }
 
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t) >::address_type, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&);
+    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&);
     static void write(std::ostream &stream, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6) {
         boost::archive::binary_oarchive archive(stream);
         archive << arg0;
@@ -570,14 +570,14 @@ private:
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t>
-void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) >::address_type dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6) {
+void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6) {
     send(src, dest.addr,
         boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) >::write, _1, arg0, arg1, arg2, arg3, arg4, arg5, arg6));
 }
 
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t>
-class address_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > {
+class addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > {
 public:
     bool is_nil() { return addr.is_nil(); }
     peer_id_t get_peer() { return addr.get_peer(); }
@@ -587,14 +587,14 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_1(addr)
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t) >::address_type, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&);
+    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&);
     raw_mailbox_t::address_t addr;
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > {
 public:
-    typedef address_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > address_type;
+    typedef addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > address_t;
 
     mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > &fun) :
         mailbox(manager, boost::bind(&mailbox_t::on_message, _1, _2, fun))
@@ -605,15 +605,15 @@ public:
     ~mailbox_t() {
     }
 
-    address_type get_address() {
-        address_type a;
+    address_t get_address() {
+        address_t a;
         a.addr = mailbox.get_address();
         return a;
     }
 
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t) >::address_type, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&);
+    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&);
     static void write(std::ostream &stream, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7) {
         boost::archive::binary_oarchive archive(stream);
         archive << arg0;
@@ -653,14 +653,14 @@ private:
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t>
-void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) >::address_type dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7) {
+void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7) {
     send(src, dest.addr,
         boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) >::write, _1, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7));
 }
 
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t>
-class address_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > {
+class addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > {
 public:
     bool is_nil() { return addr.is_nil(); }
     peer_id_t get_peer() { return addr.get_peer(); }
@@ -670,14 +670,14 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_1(addr)
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t) >::address_type, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&);
+    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&);
     raw_mailbox_t::address_t addr;
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > {
 public:
-    typedef address_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > address_type;
+    typedef addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > address_t;
 
     mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > &fun) :
         mailbox(manager, boost::bind(&mailbox_t::on_message, _1, _2, fun))
@@ -688,15 +688,15 @@ public:
     ~mailbox_t() {
     }
 
-    address_type get_address() {
-        address_type a;
+    address_t get_address() {
+        address_t a;
         a.addr = mailbox.get_address();
         return a;
     }
 
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t) >::address_type, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&);
+    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&);
     static void write(std::ostream &stream, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8) {
         boost::archive::binary_oarchive archive(stream);
         archive << arg0;
@@ -739,14 +739,14 @@ private:
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t>
-void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) >::address_type dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8) {
+void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8) {
     send(src, dest.addr,
         boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) >::write, _1, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8));
 }
 
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t>
-class address_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > {
+class addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > {
 public:
     bool is_nil() { return addr.is_nil(); }
     peer_id_t get_peer() { return addr.get_peer(); }
@@ -756,14 +756,14 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_1(addr)
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t) >::address_type, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&);
+    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&);
     raw_mailbox_t::address_t addr;
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > {
 public:
-    typedef address_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > address_type;
+    typedef addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > address_t;
 
     mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > &fun) :
         mailbox(manager, boost::bind(&mailbox_t::on_message, _1, _2, fun))
@@ -774,15 +774,15 @@ public:
     ~mailbox_t() {
     }
 
-    address_type get_address() {
-        address_type a;
+    address_t get_address() {
+        address_t a;
         a.addr = mailbox.get_address();
         return a;
     }
 
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t) >::address_type, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&);
+    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&);
     static void write(std::ostream &stream, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9) {
         boost::archive::binary_oarchive archive(stream);
         archive << arg0;
@@ -828,14 +828,14 @@ private:
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t>
-void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) >::address_type dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9) {
+void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9) {
     send(src, dest.addr,
         boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) >::write, _1, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9));
 }
 
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t>
-class address_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > {
+class addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > {
 public:
     bool is_nil() { return addr.is_nil(); }
     peer_id_t get_peer() { return addr.get_peer(); }
@@ -845,14 +845,14 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_1(addr)
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t, class a10_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t) >::address_type, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&);
+    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&);
     raw_mailbox_t::address_t addr;
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > {
 public:
-    typedef address_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > address_type;
+    typedef addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > address_t;
 
     mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > &fun) :
         mailbox(manager, boost::bind(&mailbox_t::on_message, _1, _2, fun))
@@ -863,15 +863,15 @@ public:
     ~mailbox_t() {
     }
 
-    address_type get_address() {
-        address_type a;
+    address_t get_address() {
+        address_t a;
         a.addr = mailbox.get_address();
         return a;
     }
 
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t, class a10_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t) >::address_type, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&);
+    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&);
     static void write(std::ostream &stream, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10) {
         boost::archive::binary_oarchive archive(stream);
         archive << arg0;
@@ -920,14 +920,14 @@ private:
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t>
-void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) >::address_type dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10) {
+void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10) {
     send(src, dest.addr,
         boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) >::write, _1, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10));
 }
 
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t>
-class address_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > {
+class addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > {
 public:
     bool is_nil() { return addr.is_nil(); }
     peer_id_t get_peer() { return addr.get_peer(); }
@@ -937,14 +937,14 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_1(addr)
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t, class a10_t, class a11_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t) >::address_type, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&);
+    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&);
     raw_mailbox_t::address_t addr;
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > {
 public:
-    typedef address_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > address_type;
+    typedef addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > address_t;
 
     mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > &fun) :
         mailbox(manager, boost::bind(&mailbox_t::on_message, _1, _2, fun))
@@ -955,15 +955,15 @@ public:
     ~mailbox_t() {
     }
 
-    address_type get_address() {
-        address_type a;
+    address_t get_address() {
+        address_t a;
         a.addr = mailbox.get_address();
         return a;
     }
 
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t, class a10_t, class a11_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t) >::address_type, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&);
+    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&);
     static void write(std::ostream &stream, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10, const arg11_t &arg11) {
         boost::archive::binary_oarchive archive(stream);
         archive << arg0;
@@ -1015,14 +1015,14 @@ private:
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t>
-void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) >::address_type dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10, const arg11_t &arg11) {
+void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10, const arg11_t &arg11) {
     send(src, dest.addr,
         boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) >::write, _1, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11));
 }
 
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t, class arg12_t>
-class address_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > {
+class addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > {
 public:
     bool is_nil() { return addr.is_nil(); }
     peer_id_t get_peer() { return addr.get_peer(); }
@@ -1032,14 +1032,14 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_1(addr)
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t, class a10_t, class a11_t, class a12_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t, a12_t) >::address_type, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&, const a12_t&);
+    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t, a12_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&, const a12_t&);
     raw_mailbox_t::address_t addr;
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t, class arg12_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > {
 public:
-    typedef address_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > address_type;
+    typedef addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > address_t;
 
     mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > &fun) :
         mailbox(manager, boost::bind(&mailbox_t::on_message, _1, _2, fun))
@@ -1050,15 +1050,15 @@ public:
     ~mailbox_t() {
     }
 
-    address_type get_address() {
-        address_type a;
+    address_t get_address() {
+        address_t a;
         a.addr = mailbox.get_address();
         return a;
     }
 
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t, class a10_t, class a11_t, class a12_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t, a12_t) >::address_type, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&, const a12_t&);
+    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t, a12_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&, const a12_t&);
     static void write(std::ostream &stream, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10, const arg11_t &arg11, const arg12_t &arg12) {
         boost::archive::binary_oarchive archive(stream);
         archive << arg0;
@@ -1113,14 +1113,14 @@ private:
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t, class arg12_t>
-void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) >::address_type dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10, const arg11_t &arg11, const arg12_t &arg12) {
+void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10, const arg11_t &arg11, const arg12_t &arg12) {
     send(src, dest.addr,
         boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) >::write, _1, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12));
 }
 
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t, class arg12_t, class arg13_t>
-class address_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > {
+class addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > {
 public:
     bool is_nil() { return addr.is_nil(); }
     peer_id_t get_peer() { return addr.get_peer(); }
@@ -1130,14 +1130,14 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_1(addr)
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t, class a10_t, class a11_t, class a12_t, class a13_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t, a12_t, a13_t) >::address_type, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&, const a12_t&, const a13_t&);
+    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t, a12_t, a13_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&, const a12_t&, const a13_t&);
     raw_mailbox_t::address_t addr;
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t, class arg12_t, class arg13_t>
 class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > {
 public:
-    typedef address_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > address_type;
+    typedef addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > address_t;
 
     mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > &fun) :
         mailbox(manager, boost::bind(&mailbox_t::on_message, _1, _2, fun))
@@ -1148,15 +1148,15 @@ public:
     ~mailbox_t() {
     }
 
-    address_type get_address() {
-        address_type a;
+    address_t get_address() {
+        address_t a;
         a.addr = mailbox.get_address();
         return a;
     }
 
 private:
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t, class a10_t, class a11_t, class a12_t, class a13_t>
-    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t, a12_t, a13_t) >::address_type, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&, const a12_t&, const a13_t&);
+    friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t, a12_t, a13_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&, const a12_t&, const a13_t&);
     static void write(std::ostream &stream, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10, const arg11_t &arg11, const arg12_t &arg12, const arg13_t &arg13) {
         boost::archive::binary_oarchive archive(stream);
         archive << arg0;
@@ -1214,7 +1214,7 @@ private:
 };
 
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t, class arg12_t, class arg13_t>
-void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) >::address_type dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10, const arg11_t &arg11, const arg12_t &arg12, const arg13_t &arg13) {
+void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10, const arg11_t &arg11, const arg12_t &arg12, const arg13_t &arg13) {
     send(src, dest.addr,
         boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) >::write, _1, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13));
 }

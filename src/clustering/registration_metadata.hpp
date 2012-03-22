@@ -11,16 +11,16 @@ public:
     typedef boost::uuids::uuid registration_id_t;
 
     typedef mailbox_t<void(registration_id_t, peer_id_t, business_card_t)> create_mailbox_t;
-    typename create_mailbox_t::address_type create_mailbox;
+    typename create_mailbox_t::address_t create_mailbox;
 
     typedef mailbox_t<void(registration_id_t)> delete_mailbox_t;
-    typename delete_mailbox_t::address_type delete_mailbox;
+    typename delete_mailbox_t::address_t delete_mailbox;
 
     registrar_business_card_t() { }
 
     registrar_business_card_t(
-            const typename create_mailbox_t::address_type &cm,
-            const typename delete_mailbox_t::address_type &dm) :
+            const typename create_mailbox_t::address_t &cm,
+            const typename delete_mailbox_t::address_t &dm) :
         create_mailbox(cm), delete_mailbox(dm)
         { }
 

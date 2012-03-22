@@ -153,7 +153,7 @@ void directory_echo_access_t<internal_t>::on_change(peer_id_t peer) {
 }
 
 template <class internal_t>
-void directory_echo_access_t<internal_t>::ack_version(mailbox_t<void(peer_id_t, directory_echo_version_t)>::address_type peer, directory_echo_version_t version, auto_drainer_t::lock_t) {
+void directory_echo_access_t<internal_t>::ack_version(mailbox_t<void(peer_id_t, directory_echo_version_t)>::address_t peer, directory_echo_version_t version, auto_drainer_t::lock_t) {
     send(mailbox_manager, peer, mailbox_manager->get_connectivity_service()->get_me(), version);
 }
 

@@ -160,7 +160,7 @@ void run_typed_mailbox_test() {
     std::vector<std::string> inbox;
     mailbox_t<void(std::string)> mbox(&m, boost::bind(&std::vector<std::string>::push_back, &inbox, _1));
 
-    address_t<void(std::string)> addr = mbox.get_address();
+    addr_t<void(std::string)> addr = mbox.get_address();
 
     send(&m, addr, std::string("foo"));
     send(&m, addr, std::string("bar"));

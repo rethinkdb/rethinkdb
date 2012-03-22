@@ -18,12 +18,12 @@ template<class internal_t>
 class directory_echo_wrapper_t {
 public:
     directory_echo_wrapper_t() { }
-    directory_echo_wrapper_t(internal_t i, directory_echo_version_t v, const address_t<void(peer_id_t, directory_echo_version_t)> &am) :
+    directory_echo_wrapper_t(internal_t i, directory_echo_version_t v, const addr_t<void(peer_id_t, directory_echo_version_t)> &am) :
         internal(i), version(v), ack_mailbox(am) { }
 
     internal_t internal;
     directory_echo_version_t version;
-    address_t<void(peer_id_t, directory_echo_version_t)> ack_mailbox;
+    addr_t<void(peer_id_t, directory_echo_version_t)> ack_mailbox;
 
     RDB_MAKE_ME_SERIALIZABLE_3(internal, version, ack_mailbox);
 };
@@ -66,7 +66,7 @@ private:
 
     void on_change(peer_id_t peer);
 
-    void ack_version(address_t<void(peer_id_t, directory_echo_version_t)> peer, directory_echo_version_t version, auto_drainer_t::lock_t);
+    void ack_version(addr_t<void(peer_id_t, directory_echo_version_t)> peer, directory_echo_version_t version, auto_drainer_t::lock_t);
 
     void on_ack(peer_id_t peer, directory_echo_version_t version, auto_drainer_t::lock_t);
 

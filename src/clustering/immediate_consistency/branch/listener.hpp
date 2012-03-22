@@ -266,8 +266,8 @@ private:
     broadcaster if all goes well. */
     class intro_t {
     public:
-        typename listener_business_card_t<protocol_t>::upgrade_mailbox_t::address_type upgrade_mailbox;
-        typename listener_business_card_t<protocol_t>::downgrade_mailbox_t::address_type downgrade_mailbox;
+        typename listener_business_card_t<protocol_t>::upgrade_mailbox_t::address_t upgrade_mailbox;
+        typename listener_business_card_t<protocol_t>::downgrade_mailbox_t::address_t downgrade_mailbox;
         state_timestamp_t broadcaster_begin_timestamp;
     };
 
@@ -278,8 +278,8 @@ private:
     public:
         intro_t intro;
         void fill(state_timestamp_t its,
-                typename listener_business_card_t<protocol_t>::upgrade_mailbox_t::address_type um,
-                typename listener_business_card_t<protocol_t>::downgrade_mailbox_t::address_type dm) {
+                typename listener_business_card_t<protocol_t>::upgrade_mailbox_t::address_t um,
+                typename listener_business_card_t<protocol_t>::downgrade_mailbox_t::address_t dm) {
             rassert(!is_pulsed());
             intro.broadcaster_begin_timestamp = its;
             intro.upgrade_mailbox = um;
@@ -333,7 +333,7 @@ private:
             typename protocol_t::write_t write,
             transition_timestamp_t transition_timestamp,
             fifo_enforcer_write_token_t fifo_token,
-            address_t<void()> ack_addr)
+            addr_t<void()> ack_addr)
             THROWS_NOTHING
     {
         try {
@@ -399,7 +399,7 @@ private:
             typename protocol_t::write_t write,
             transition_timestamp_t transition_timestamp,
             fifo_enforcer_write_token_t fifo_token,
-            address_t<void(typename protocol_t::write_response_t)> ack_addr)
+            addr_t<void(typename protocol_t::write_response_t)> ack_addr)
             THROWS_NOTHING
     {
         try {
@@ -456,7 +456,7 @@ private:
             typename protocol_t::read_t read,
             DEBUG_ONLY_VAR state_timestamp_t expected_timestamp,
             fifo_enforcer_read_token_t fifo_token,
-            address_t<void(typename protocol_t::read_response_t)> ack_addr)
+            addr_t<void(typename protocol_t::read_response_t)> ack_addr)
             THROWS_NOTHING
     {
         try {
