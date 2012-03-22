@@ -139,7 +139,7 @@ void apply_json_to(cJSON *change, deletable_t<T> *target, const ctx_t &ctx) {
 }
 
 template <class T, class ctx_t>
-void erase(deletable_t<T> *target, const ctx_t &) {
+void erase_json(deletable_t<T> *target, const ctx_t &) {
     *target = target->get_deletion();
 }
 

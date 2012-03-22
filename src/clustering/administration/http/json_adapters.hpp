@@ -70,7 +70,7 @@ template <class T, class ctx_t>
 void apply_json_to(cJSON *, deletable_t<T> *, const ctx_t &);
 
 template <class T, class ctx_t>
-void erase(deletable_t<T> *, const ctx_t &);
+void erase_json(deletable_t<T> *, const ctx_t &);
 
 template <class T, class ctx_t>
 void on_subfield_change(deletable_t<T> *, const ctx_t &);

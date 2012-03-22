@@ -32,7 +32,7 @@ public:
 
 class name_conflict_issue_tracker_t : public global_issue_tracker_t {
 public:
-    name_conflict_issue_tracker_t(
+    explicit name_conflict_issue_tracker_t(
             boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > _semilattice_view) :
         semilattice_view(_semilattice_view) { }
 

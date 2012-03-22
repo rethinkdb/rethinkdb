@@ -9,7 +9,7 @@ class cannot_satisfy_goals_exc_t : public std::exception {
 private:
     std::string desc;
 public:
-    cannot_satisfy_goals_exc_t(const std::string &_desc)
+    explicit cannot_satisfy_goals_exc_t(const std::string &_desc)
         : desc(_desc)
     { }
 

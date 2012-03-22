@@ -234,7 +234,7 @@ private:
 /* Erase is a fairly rare function for an adapter to allow so we implement a
  * generic version of it. */
 template <class T, class ctx_t>
-void erase(T *, const ctx_t &) { 
+void erase_json(T *, const ctx_t &) { 
 #ifndef NDEBUG
     throw permission_denied_exc_t("Can't erase this object.. by default"
             "json_adapters disallow deletion. if you'd like to be able to please"
