@@ -151,6 +151,7 @@ enum set_result_t {
 struct delete_mutation_t {
     store_key_t key;
 
+    // TODO: wat
     /* This is a hack for replication. If true, the btree will not record the change
     in the delete queue. */
     bool dont_put_in_delete_queue;

@@ -123,16 +123,17 @@ public:
         read_response_t unshard(std::vector<read_response_t> responses, temporary_cache_t *cache) const THROWS_NOTHING;
 
         read_t() { }
-        read_t(const read_t& r) : query(r.query) { }
-        explicit read_t(const query_t& q) : query(q) { }
+        read_t(const read_t& r) : query(r.query), effective_time(r.effective_time) { }
+        explicit read_t(const query_t& q, exptime_t et) : query(q), effective_time(et) { }
 
         query_t query;
+        exptime_t effective_time;
 
         RDB_MAKE_ME_SERIALIZABLE_1(query);
     };
 
     struct write_response_t {
-        typedef mutation_result_t::result_variant_t result_t;
+        typedef boost::variant<get_result_t, set_result_t, delete_result_t, incr_decr_result_t, append_prepend_result_t> result_t;
 
         write_response_t() { }
         write_response_t(const write_response_t& w) : result(w.result) { }
@@ -143,18 +144,18 @@ public:
     };
 
     struct write_t {
-        typedef mutation_t::mutation_variant_t query_t;
+        typedef boost::variant<get_cas_mutation_t, sarc_mutation_t, delete_mutation_t, incr_decr_mutation_t, append_prepend_mutation_t> query_t;
         key_range_t get_region() const THROWS_NOTHING;
         write_t shard(key_range_t region) const THROWS_NOTHING;
         write_response_t unshard(std::vector<write_response_t> responses, temporary_cache_t *cache) const THROWS_NOTHING;
 
         write_t() { }
-        write_t(const write_t& w) : mutation(w.mutation), proposed_cas(w.proposed_cas) { }
-        write_t(const mutation_t& m, cas_t pc) : mutation(m.mutation), proposed_cas(pc) { }
-        write_t(const query_t& m, cas_t pc) : mutation(m), proposed_cas(pc) { }
+        write_t(const write_t& w) : mutation(w.mutation), proposed_cas(w.proposed_cas), effective_time(w.effective_time) { }
+        write_t(const query_t& m, cas_t pc, exptime_t et) : mutation(m), proposed_cas(pc), effective_time(et) { }
 
         query_t mutation;
         cas_t proposed_cas;
+        exptime_t effective_time;   /* so operations are deterministic even with expiration */
 
         RDB_MAKE_ME_SERIALIZABLE_2(mutation, proposed_cas);
     };
