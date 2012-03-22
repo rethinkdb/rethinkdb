@@ -32,7 +32,6 @@ public:
 
     RDB_MAKE_ME_SERIALIZABLE_1(addr)
 private:
-    friend class mailbox_t< void() >;
     friend void send(mailbox_manager_t*, address_t);
     raw_mailbox_t::address_t addr;
 };
@@ -90,7 +89,6 @@ public:
 
     RDB_MAKE_ME_SERIALIZABLE_1(addr)
 private:
-    friend class mailbox_t< void(arg0_t) >;
     template<class a0_t>
     friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t) >::address_t, const a0_t&);
     raw_mailbox_t::address_t addr;
@@ -153,7 +151,6 @@ public:
 
     RDB_MAKE_ME_SERIALIZABLE_1(addr)
 private:
-    friend class mailbox_t< void(arg0_t, arg1_t) >;
     template<class a0_t, class a1_t>
     friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t) >::address_t, const a0_t&, const a1_t&);
     raw_mailbox_t::address_t addr;
@@ -219,7 +216,6 @@ public:
 
     RDB_MAKE_ME_SERIALIZABLE_1(addr)
 private:
-    friend class mailbox_t< void(arg0_t, arg1_t, arg2_t) >;
     template<class a0_t, class a1_t, class a2_t>
     friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t) >::address_t, const a0_t&, const a1_t&, const a2_t&);
     raw_mailbox_t::address_t addr;
@@ -288,7 +284,6 @@ public:
 
     RDB_MAKE_ME_SERIALIZABLE_1(addr)
 private:
-    friend class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) >;
     template<class a0_t, class a1_t, class a2_t, class a3_t>
     friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&);
     raw_mailbox_t::address_t addr;
@@ -360,7 +355,6 @@ public:
 
     RDB_MAKE_ME_SERIALIZABLE_1(addr)
 private:
-    friend class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) >;
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t>
     friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&);
     raw_mailbox_t::address_t addr;
@@ -435,7 +429,6 @@ public:
 
     RDB_MAKE_ME_SERIALIZABLE_1(addr)
 private:
-    friend class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) >;
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t>
     friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&);
     raw_mailbox_t::address_t addr;
@@ -513,7 +506,6 @@ public:
 
     RDB_MAKE_ME_SERIALIZABLE_1(addr)
 private:
-    friend class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) >;
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t>
     friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&);
     raw_mailbox_t::address_t addr;
@@ -594,7 +586,6 @@ public:
 
     RDB_MAKE_ME_SERIALIZABLE_1(addr)
 private:
-    friend class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) >;
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t>
     friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&);
     raw_mailbox_t::address_t addr;
@@ -678,7 +669,6 @@ public:
 
     RDB_MAKE_ME_SERIALIZABLE_1(addr)
 private:
-    friend class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) >;
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t>
     friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&);
     raw_mailbox_t::address_t addr;
@@ -765,7 +755,6 @@ public:
 
     RDB_MAKE_ME_SERIALIZABLE_1(addr)
 private:
-    friend class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) >;
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t>
     friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&);
     raw_mailbox_t::address_t addr;
@@ -855,7 +844,6 @@ public:
 
     RDB_MAKE_ME_SERIALIZABLE_1(addr)
 private:
-    friend class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) >;
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t, class a10_t>
     friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&);
     raw_mailbox_t::address_t addr;
@@ -948,7 +936,6 @@ public:
 
     RDB_MAKE_ME_SERIALIZABLE_1(addr)
 private:
-    friend class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) >;
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t, class a10_t, class a11_t>
     friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&);
     raw_mailbox_t::address_t addr;
@@ -1044,7 +1031,6 @@ public:
 
     RDB_MAKE_ME_SERIALIZABLE_1(addr)
 private:
-    friend class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) >;
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t, class a10_t, class a11_t, class a12_t>
     friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t, a12_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&, const a12_t&);
     raw_mailbox_t::address_t addr;
@@ -1143,7 +1129,6 @@ public:
 
     RDB_MAKE_ME_SERIALIZABLE_1(addr)
 private:
-    friend class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) >;
     template<class a0_t, class a1_t, class a2_t, class a3_t, class a4_t, class a5_t, class a6_t, class a7_t, class a8_t, class a9_t, class a10_t, class a11_t, class a12_t, class a13_t>
     friend void send(mailbox_manager_t*, typename mailbox_t< void(a0_t, a1_t, a2_t, a3_t, a4_t, a5_t, a6_t, a7_t, a8_t, a9_t, a10_t, a11_t, a12_t, a13_t) >::address_t, const a0_t&, const a1_t&, const a2_t&, const a3_t&, const a4_t&, const a5_t&, const a6_t&, const a7_t&, const a8_t&, const a9_t&, const a10_t&, const a11_t&, const a12_t&, const a13_t&);
     raw_mailbox_t::address_t addr;

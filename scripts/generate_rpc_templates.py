@@ -28,7 +28,6 @@ def generate_async_message_template(nargs):
     print
     print "    RDB_MAKE_ME_SERIALIZABLE_1(addr)"
     print "private:"
-    print "    friend class mailbox_t< void(" + csep("arg#_t") + ") >;"
     if nargs == 0:
         print "    friend void send(mailbox_manager_t*, address_t);"
     else:
