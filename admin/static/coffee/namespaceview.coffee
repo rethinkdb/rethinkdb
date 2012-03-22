@@ -427,7 +427,7 @@ module 'NamespaceView', ->
             id: machine.get('id')
             name: machine.get('name')
 
-        render: ->
+        render:(server_error) ->
             log_render '(rendering) modify replicas dialog'
 
             # Define the validator options
@@ -448,6 +448,9 @@ module 'NamespaceView', ->
                             namespaces.get(@namespace.id).set(response)
                             #TODO hook this up
                             #$('#user-alert-space').append @alert_tmpl {}
+                        error: (response, unused, unused_2) =>
+                            clear_modals()
+                            @render(response.responseText)
 
             # Generate faked data TODO
             num_replicas = @namespace.get('replica_affinities')[@datacenter.id]
@@ -459,6 +462,9 @@ module 'NamespaceView', ->
                 'num_acks': num_replicas
                 # random machines | faked TODO
                 'replica_machines': @machine_json (_.shuffle machines.models)[0...num_replicas]
+
+            if server_error?
+                json['server_error'] = server_error
 
             super validator_options, json
 
