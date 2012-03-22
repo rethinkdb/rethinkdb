@@ -240,7 +240,7 @@ void broadcaster_t<protocol_t>::dispatchee_t::upgrade(
 }
 
 template<class protocol_t>
-void broadcaster_t<protocol_t>::dispatchee_t::downgrade(addr_t<void()> ack_addr, auto_drainer_t::lock_t) THROWS_NOTHING {
+void broadcaster_t<protocol_t>::dispatchee_t::downgrade(mailbox_addr_t<void()> ack_addr, auto_drainer_t::lock_t) THROWS_NOTHING {
     {
         mutex_t::acq_t acq(&controller->mutex);
         ASSERT_FINITE_CORO_WAITING;

@@ -19,7 +19,7 @@ def generate_async_message_template(nargs):
 
     print
     print "template<" + csep("class arg#_t") + ">"
-    print "class addr_t< void(" + csep("arg#_t") + ") > {"
+    print "class mailbox_addr_t< void(" + csep("arg#_t") + ") > {"
     print "public:"
     print "    bool is_nil() { return addr.is_nil(); }"
     print "    peer_id_t get_peer() { return addr.get_peer(); }"
@@ -29,7 +29,7 @@ def generate_async_message_template(nargs):
     print "    RDB_MAKE_ME_SERIALIZABLE_1(addr)"
     print "private:"
     if nargs == 0:
-        print "    friend void send(mailbox_manager_t*, addr_t);"
+        print "    friend void send(mailbox_manager_t*, mailbox_addr_t);"
     else:
         print "    template<" + csep("class a#_t") + ">"
         print "    friend void send(mailbox_manager_t*, typename mailbox_t< void(" + csep("a#_t") + ") >::address_t" + cpre("const a#_t&") + ");"
@@ -39,7 +39,7 @@ def generate_async_message_template(nargs):
     print "template<" + csep("class arg#_t") + ">"
     print "class mailbox_t< void(" + csep("arg#_t") + ") > {"
     print "public:"
-    print "    typedef addr_t< void(" + csep("arg#_t") + ") > address_t;"
+    print "    typedef mailbox_addr_t< void(" + csep("arg#_t") + ") > address_t;"
     print
     print "    mailbox_t(mailbox_manager_t *manager, const boost::function< void(" + csep("arg#_t") + ") > &fun) :"
     print "        mailbox(manager, boost::bind(&mailbox_t::on_message, _1, _2, fun))"
@@ -115,10 +115,10 @@ if __name__ == "__main__":
     print "    typename invalid_proto_t::you_are_using_mailbox_t_incorrectly foo;"
     print "};"
     print
-    print "template<class invalid_proto_t> class addr_t {"
-    print "    // If someoen tries to instantiate addr_t incorrectly,"
+    print "template<class invalid_proto_t> class mailbox_addr_t {"
+    print "    // If someoen tries to instantiate mailbox_addr_t incorrectly,"
     print "    // this should cause an error."
-    print "    typename invalid_proto_t::you_are_using_addr_t_incorrectly foo;"
+    print "    typename invalid_proto_t::you_are_using_mailbox_addr_t_incorrectly foo;"
     print "};"
 
     for nargs in xrange(15):
