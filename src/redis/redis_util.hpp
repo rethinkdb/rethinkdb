@@ -4,6 +4,7 @@
 #include "redis/redis_types.hpp"
 #include "redis/redis.hpp"
 #include "btree/operations.hpp"
+#include "buffer_cache/sequence_group.hpp"
 #include <boost/lexical_cast.hpp>
 
 typedef redis_protocol_t::timestamp_t timestamp_t;
@@ -13,51 +14,51 @@ typedef redis_protocol_t::timestamp_t timestamp_t;
 //declaration from the header file to get a default implementation. Gradually these will go away
 //as we actually define real implementations of the various redis commands.
 
-#define WRITE(CNAME)\
-redis_protocol_t::indicated_key_t redis_protocol_t::CNAME::get_keys() {return std::string("");}\
- \
-redis_protocol_t::write_t redis_protocol_t::CNAME::shard(UNUSED redis_protocol_t::region_t mask) { \
-    return redis_protocol_t::write_t(new CNAME(*this)); \
-} \
- \
-redis_protocol_t::write_response_t redis_protocol_t::CNAME::execute(btree_slice_t *btree, timestamp_t timestamp, order_token_t otok) { \
-    (void)btree; \
-    (void)timestamp; \
-    (void)otok; \
-    throw "ERR Redis command " #CNAME " not yet implemented"; \
-}
+#define WRITE(CNAME)                                                    \
+    redis_protocol_t::indicated_key_t redis_protocol_t::CNAME::get_keys() { return std::string(""); } \
+                                                                        \
+    redis_protocol_t::write_t redis_protocol_t::CNAME::shard(UNUSED redis_protocol_t::region_t mask) { \
+        return redis_protocol_t::write_t(new CNAME(*this));             \
+    }                                                                   \
+                                                                        \
+    redis_protocol_t::write_response_t redis_protocol_t::CNAME::execute(btree_slice_t *btree, timestamp_t timestamp, order_token_t otok) { \
+        (void)btree;                                                    \
+        (void)timestamp;                                                \
+        (void)otok;                                                     \
+        throw "ERR Redis command " #CNAME " not yet implemented";       \
+    }
 
-#define READ(CNAME)\
-redis_protocol_t::indicated_key_t redis_protocol_t::CNAME::get_keys() {return std::string("");}\
- \
-redis_protocol_t::read_t redis_protocol_t::CNAME::shard(UNUSED redis_protocol_t::region_t mask) { \
-    return redis_protocol_t::read_t(new CNAME(*this)); \
-} \
- \
-redis_protocol_t::read_response_t redis_protocol_t::CNAME::execute(btree_slice_t *btree, order_token_t otok) { \
-    (void)btree; \
-    (void)otok; \
-    throw "ERR Redis command " #CNAME " not yet implemented"; \
-}
+#define READ(CNAME)                                                     \
+    redis_protocol_t::indicated_key_t redis_protocol_t::CNAME::get_keys() {return std::string("");} \
+                                                                        \
+    redis_protocol_t::read_t redis_protocol_t::CNAME::shard(UNUSED redis_protocol_t::region_t mask) { \
+        return redis_protocol_t::read_t(new CNAME(*this));              \
+    }                                                                   \
+                                                                        \
+    redis_protocol_t::read_response_t redis_protocol_t::CNAME::execute(btree_slice_t *btree, order_token_t otok) { \
+        (void)btree;                                                    \
+        (void)otok;                                                     \
+        throw "ERR Redis command " #CNAME " not yet implemented";       \
+    }
 
 // Macros to make some of these implementations a little less tedius
 
 // Assumes the key (or keys) is simply the first argument to the command. This is true for almost all commands
 #define KEYS(CNAME) redis_protocol_t::indicated_key_t redis_protocol_t::CNAME::get_keys() { \
-    return one; \
-}
+        return one;                                                     \
+    }
 
 // Simple shard behavior that merely returns one copy of this operation. Useful when the operation will only
 // touch one key (and thus touch only one shard) which is most of them
-#define SHARD_W(CNAME) redis_protocol_t::write_t \
-        redis_protocol_t::CNAME::shard(UNUSED redis_protocol_t::region_t mask) { \
-    return redis_protocol_t::write_t(new CNAME(*this)); \
-}
+#define SHARD_W(CNAME) redis_protocol_t::write_t                        \
+    redis_protocol_t::CNAME::shard(UNUSED redis_protocol_t::region_t mask) { \
+        return redis_protocol_t::write_t(new CNAME(*this));             \
+    }
 
-#define SHARD_R(CNAME) redis_protocol_t::read_t \
-        redis_protocol_t::CNAME::shard(UNUSED redis_protocol_t::region_t mask) { \
-    return redis_protocol_t::read_t(new CNAME(*this)); \
-}
+#define SHARD_R(CNAME) redis_protocol_t::read_t                         \
+    redis_protocol_t::CNAME::shard(UNUSED redis_protocol_t::region_t mask) { \
+        return redis_protocol_t::read_t(new CNAME(*this));              \
+    }
 
 #define EXECUTE_R(CNAME) redis_protocol_t::read_response_t redis_protocol_t::CNAME::execute(btree_slice_t *btree, order_token_t otok)
 
@@ -74,9 +75,16 @@ struct set_oper_t {
 
         // TODO Figure out correct conversion from transition timestamp to repli timestamp
         
+        // TODO Get an actual sequence group.
+        sequence_group_t seq_group(1);
+
         // Get the superblock that represents our write transaction
-        get_btree_superblock(btree, rwi_write, 1, convert_to_repli_timestamp(timestamp), otok, &superblock, txn);
-        find_keyvalue_location_for_write(txn.get(), &superblock, btree_key.key(), &location);
+        get_btree_superblock(btree, &seq_group, rwi_write, 1, convert_to_repli_timestamp(timestamp), otok, &superblock, txn);
+
+        // TODO Figure out where the root eviction priority is supposed to be.
+        eviction_priority_t fake_root_eviction_priority = FAKE_EVICTION_PRIORITY;
+
+        find_keyvalue_location_for_write(txn.get(), &superblock, btree_key.key(), &location, &fake_root_eviction_priority);
 
         // Check for expiration
         redis_value_t *value = location.value.get();
@@ -95,7 +103,11 @@ struct set_oper_t {
 
     ~set_oper_t() {
         fake_key_modification_callback_t<redis_value_t> fake_cb;
-        apply_keyvalue_change(txn.get(), &location, btree_key.key(), repli_timestamp_t::invalid, &fake_cb);
+
+        // TODO Figure out where the root eviction priority is supposed to be.
+        eviction_priority_t fake_root_eviction_priority = FAKE_EVICTION_PRIORITY;
+
+        apply_keyvalue_change(txn.get(), &location, btree_key.key(), repli_timestamp_t::invalid, &fake_cb, &fake_root_eviction_priority);
     }
 
     bool del() {
@@ -154,10 +166,13 @@ struct read_oper_t {
         sizer(btree->cache()->get_block_size()),
         storing_expired_value(false)
     {
+        // TODO Figure out where this sequence group comes from.
+        sequence_group_t seq_group(1);
+
         got_superblock_t superblock;
-        get_btree_superblock(btree, rwi_read, otok, &superblock, txn);
+        get_btree_superblock(btree, &seq_group, rwi_read, otok, &superblock, txn);
         btree_key_buffer_t btree_key(key);
-        find_keyvalue_location_for_read(txn.get(), &superblock, btree_key.key(), &location);
+        find_keyvalue_location_for_read(txn.get(), &superblock, btree_key.key(), &location, FAKE_EVICTION_PRIORITY);
 
         // Check for expiration
         redis_value_t *value = location.value.get();
@@ -227,7 +242,7 @@ int incr_loc(transaction_t *txn, keyvalue_location_t<T> &loc, int by) {
 // (one for read_t and one for write_t) so this is what I had to do instead, create a functor with overloaded
 // cast operators
 struct int_response {
-    int_response(int val_) : val(val_) { }
+    explicit int_response(int val_) : val(val_) { }
 
     operator redis_protocol_t::read_response_t () {
         return redis_protocol_t::read_response_t(new redis_protocol_t::integer_result_t(val));
@@ -242,11 +257,11 @@ private:
 };
 
 struct bulk_response {
-    bulk_response(std::string &val_) {
+    explicit bulk_response(std::string &val_) {
         val = new redis_protocol_t::bulk_result_t(val_);
     }
 
-    bulk_response(float val_) {
+    explicit bulk_response(float val_) {
         val = new redis_protocol_t::bulk_result_t(val_);
     }
 

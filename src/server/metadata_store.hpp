@@ -1,5 +1,5 @@
 #ifndef __SERVER_METADATA_STORE_HPP__
-#define	__SERVER_METADATA_STORE_HPP__
+#define __SERVER_METADATA_STORE_HPP__
 
 #include "errors.hpp"
 #include <boost/scoped_ptr.hpp>
@@ -30,14 +30,16 @@ public:
 public:
     /* metadata_store_t interface */
     // NOTE: key cannot be longer than MAX_KEY_SIZE. currently enforced by guarantee().
-    MUSTUSE bool get_meta(const std::string& key, std::string *out);
+    MUST_USE bool get_meta(const std::string& key, std::string *out);
     void set_meta(const std::string& key, const std::string& value);
 
 private:
+    boost::scoped_ptr<sequence_group_t> seq_group_;
+
     boost::scoped_ptr<btree_key_value_store_t> store_;
 
     // Used for persisting stats; see stats/persist.hpp
     side_coro_handler_t *stat_persistence_side_coro_ptr;
 };
 
-#endif	/* __SERVER_METADATA_STORE_HPP__ */
+#endif /* __SERVER_METADATA_STORE_HPP__ */

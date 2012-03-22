@@ -170,13 +170,12 @@ void do_parse_messages(tcp_conn_t *conn, connection_handler_t *conn_handler) {
         do_parse_normal_messages(conn, conn_handler, streams);
 
     } catch (tcp_conn_t::read_closed_exc_t& e) {
+        (void) e;   // clang has problems with UNUSED in catch clause
         if (conn->is_write_open()) {
             conn->shutdown_write();
         }
         logERR("Replication connection was closed.\n");
         debugf("Reading end closed on replication connection.\n");
-
-	(void)e;
     } catch (protocol_exc_t& e) {
         if (conn->is_write_open()) {
             conn->shutdown_write();

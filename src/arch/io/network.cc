@@ -22,9 +22,6 @@
 
 /* Network connection object */
 
-#define WRITE_QUEUE_MAX_SIZE (128 * KILOBYTE)
-#define WRITE_CHUNK_SIZE (8 * KILOBYTE)
-
 /* Warning: It is very easy to accidentally introduce race conditions to linux_tcp_conn_t.
 Think carefully before changing read_internal(), perform_write(), or on_shutdown_*(). */
 
@@ -73,8 +70,11 @@ linux_tcp_conn_t::linux_tcp_conn_t(const char *host, int port) :
     sock(connect_to(host, port)),
     event_watcher(new linux_event_watcher_t(sock.get(), this)),
     read_in_progress(false), write_in_progress(false),
-    write_queue_limiter(WRITE_QUEUE_MAX_SIZE), write_coro_pool(1, &write_queue)
-    { }
+    write_handler(this),
+    write_queue_limiter(WRITE_QUEUE_MAX_SIZE),
+    write_coro_pool(1, &write_queue, &write_handler),
+    current_write_buffer(get_write_buffer())
+{ }
 
 static fd_t connect_to(const ip_address_t &host, int port) {
 
@@ -103,20 +103,59 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port) :
     sock(connect_to(host, port)),
     event_watcher(new linux_event_watcher_t(sock.get(), this)),
     read_in_progress(false), write_in_progress(false),
-    write_queue_limiter(WRITE_QUEUE_MAX_SIZE), write_coro_pool(1, &write_queue)
-    { }
+    write_handler(this),
+    write_queue_limiter(WRITE_QUEUE_MAX_SIZE),
+    write_coro_pool(1, &write_queue, &write_handler),
+    current_write_buffer(get_write_buffer())
+{ }
 
 linux_tcp_conn_t::linux_tcp_conn_t(fd_t s) :
     write_perfmon(NULL),
     sock(s),
     event_watcher(new linux_event_watcher_t(sock.get(), this)),
     read_in_progress(false), write_in_progress(false),
-    write_queue_limiter(WRITE_QUEUE_MAX_SIZE), write_coro_pool(1, &write_queue)
+    write_handler(this),
+    write_queue_limiter(WRITE_QUEUE_MAX_SIZE),
+    write_coro_pool(1, &write_queue, &write_handler),
+    current_write_buffer(get_write_buffer())
 {
     rassert(sock.get() != INVALID_FD);
 
     int res = fcntl(sock.get(), F_SETFL, O_NONBLOCK);
     guarantee_err(res == 0, "Could not make socket non-blocking");
+}
+
+linux_tcp_conn_t::write_buffer_t * linux_tcp_conn_t::get_write_buffer() {
+    write_buffer_t *buffer;
+
+    if (unused_write_buffers.empty()) {
+        buffer = new write_buffer_t;
+    } else {
+        buffer = unused_write_buffers.head();
+        unused_write_buffers.pop_front();
+    }
+    buffer->size = 0;
+    return buffer;
+}
+
+linux_tcp_conn_t::write_queue_op_t * linux_tcp_conn_t::get_write_queue_op() {
+    write_queue_op_t *op;
+
+    if (unused_write_queue_ops.empty()) {
+        op = new write_queue_op_t;
+    } else {
+        op = unused_write_queue_ops.head();
+        unused_write_queue_ops.pop_front();
+    }
+    return op;
+}
+
+void linux_tcp_conn_t::release_write_buffer(write_buffer_t *buffer) {
+    unused_write_buffers.push_front(buffer);
+}
+
+void linux_tcp_conn_t::release_write_queue_op(write_queue_op_t *op) {
+    unused_write_queue_ops.push_front(op);
 }
 
 size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
@@ -277,34 +316,48 @@ void delete_char_vector(std::vector<char> *x) {
     delete x;
 }
 
+linux_tcp_conn_t::write_handler_t::write_handler_t(linux_tcp_conn_t *parent_) :
+    parent(parent_)
+{ }
+
+void linux_tcp_conn_t::write_handler_t::coro_pool_callback(write_queue_op_t *operation) {
+    if (operation->buffer != NULL) {
+        parent->perform_write(operation->buffer, operation->size);
+        if (operation->dealloc != NULL) {
+            parent->release_write_buffer(operation->dealloc);
+            parent->write_queue_limiter.unlock((int)operation->size);
+        }
+    }
+
+    if (operation->cond != NULL) {
+        operation->cond->pulse();
+    }
+    if (operation->dealloc != NULL) {
+        parent->release_write_queue_op(operation);
+    }
+}
 
 void linux_tcp_conn_t::internal_flush_write_buffer() {
 
+    write_queue_op_t *op = get_write_queue_op();
     assert_thread();
     rassert(write_in_progress);
 
     /* Swap in a new write buffer, and set up the old write buffer to be
     released once the write is over. */
-    std::vector<char> *buffer = new std::vector<char>;
-    std::swap(write_buffer, *buffer);
-    write_buffer.reserve(WRITE_CHUNK_SIZE);
+    op->buffer = current_write_buffer->buffer;
+    op->size = current_write_buffer->size;
+    op->dealloc = current_write_buffer;
+    op->cond = NULL;
+    current_write_buffer = get_write_buffer();
 
-    /* Acquire the write semaphore so the write queue doesn't get too long */
-    rassert(buffer->size() <= WRITE_CHUNK_SIZE);
+    /* Acquire the write semaphore so the write queue doesn't get too long
+    to be released once the write is completed by the coroutine pool */
+    rassert(op->size <= WRITE_CHUNK_SIZE);
     rassert(WRITE_CHUNK_SIZE < WRITE_QUEUE_MAX_SIZE);
-    write_queue_limiter.co_lock(buffer->size());
+    write_queue_limiter.co_lock((int)op->size);
 
-    /* Now `write_buffer` is empty, and `buffer` contains our data */
-    write_queue.push(boost::bind(&linux_tcp_conn_t::perform_write, this,
-        buffer->data(), buffer->size()));
-
-    /* Set things up so the semaphore gets released and the buffer gets freed
-    once the write is over */
-    write_queue.push(boost::bind(&semaphore_t::unlock, &write_queue_limiter, (int)buffer->size()));
-
-    /* Careful--this operation might succeed immediately, so you can't access `buffer`
-    after `push()` returns. */
-    write_queue.push(boost::bind(delete_char_vector, buffer));
+    write_queue.push(op);
 }
 
 void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
@@ -367,24 +420,28 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
 
 void linux_tcp_conn_t::write(const void *buf, size_t size) {
 
+    write_queue_op_t op;
+    cond_t to_signal_when_done;
     assert_thread();
     rassert(!write_in_progress);
     write_in_progress = true;
 
     /* Flush out any data that's been buffered, so that things don't get out of order */
-    internal_flush_write_buffer();
+    if (current_write_buffer->size > 0) internal_flush_write_buffer();
 
     /* Don't bother acquiring the write semaphore because we're going to block
     until the write is done anyway */
 
     /* Enqueue the write so it will happen eventually */
-    write_queue.push(boost::bind(&linux_tcp_conn_t::perform_write, this, buf, size));
+    op.buffer = buf;
+    op.size = size;
+    op.dealloc = NULL;
+    op.cond = &to_signal_when_done;
+    write_queue.push(&op);
 
     /* Wait for the write to be done. If the write half of the network connection
     is closed before or during our write, then `perform_write()` will turn into a
     no-op, so the cond will still get pulsed. */
-    cond_t to_signal_when_done;
-    write_queue.push(boost::bind(&cond_t::pulse, &to_signal_when_done));
     to_signal_when_done.wait();
 
     write_in_progress = false;
@@ -403,11 +460,13 @@ void linux_tcp_conn_t::write_buffered(const void *vbuf, size_t size) {
 
     while (size > 0) {
         /* Insert the largest chunk that fits in this block */
-        size_t chunk = std::min(size, WRITE_CHUNK_SIZE - write_buffer.size());
+        size_t chunk = std::min(size, WRITE_CHUNK_SIZE - current_write_buffer->size);
 
-        write_buffer.insert(write_buffer.end(), buf, buf + chunk);
-        rassert(write_buffer.size() <= WRITE_CHUNK_SIZE);
-        if (write_buffer.size() == WRITE_CHUNK_SIZE) internal_flush_write_buffer();
+        memcpy(current_write_buffer->buffer + current_write_buffer->size, buf, chunk);
+        current_write_buffer->size += chunk;
+
+        rassert(current_write_buffer->size <= WRITE_CHUNK_SIZE);
+        if (current_write_buffer->size == WRITE_CHUNK_SIZE) internal_flush_write_buffer();
 
         buf += chunk;
         size -= chunk;
@@ -425,15 +484,19 @@ void linux_tcp_conn_t::flush_buffer() {
     write_in_progress = true;
 
     /* Flush the write buffer; it might be half-full. */
-    if (!write_buffer.empty()) internal_flush_write_buffer();
+    if (current_write_buffer->size > 0) internal_flush_write_buffer();
 
     /* Wait until we know that the write buffer has gone out over the network.
     If the write half of the connection is closed, then the call to
     `perform_write()` that `internal_flush_write_buffer()` will turn into a no-op,
     but the queue will continue to be pumped and so our cond will still get
     pulsed. */
+    write_queue_op_t op;
     cond_t to_signal_when_done;
-    write_queue.push(boost::bind(&cond_t::pulse, &to_signal_when_done));
+    op.buffer = NULL;
+    op.dealloc = NULL;
+    op.cond = &to_signal_when_done;
+    write_queue.push(&op);
     to_signal_when_done.wait();
 
     write_in_progress = false;
@@ -448,7 +511,7 @@ void linux_tcp_conn_t::flush_buffer_eventually() {
     write_in_progress = true;
 
     /* Flush the write buffer; it might be half-full. */
-    if (!write_buffer.empty()) internal_flush_write_buffer();
+    if (current_write_buffer->size > 0) internal_flush_write_buffer();
 
     write_in_progress = false;
 
@@ -491,6 +554,19 @@ linux_tcp_conn_t::~linux_tcp_conn_t() {
     delete event_watcher;
     event_watcher = NULL;
 
+    while (!unused_write_buffers.empty()) {
+        write_buffer_t *buffer = unused_write_buffers.head();
+        unused_write_buffers.pop_front();
+        delete buffer;
+    }
+
+    while (!unused_write_queue_ops.empty()) {
+        write_queue_op_t *op = unused_write_queue_ops.head();
+        unused_write_queue_ops.pop_front();
+        delete op;
+    }
+
+    delete current_write_buffer;
     /* scoped_fd_t's destructor will take care of close()ing the socket. */
 }
 
@@ -546,7 +622,7 @@ void linux_tcp_conn_t::on_event(int events) {
         }
 
     } else {
-        /* We don't know why we got this, so log it and then shut down */
+        /* We don't know why we got this, so log it and then shut down the socket */
         logERR("Unexpected epoll err/hup/rdhup. events=%s, reading=%s, writing=%s\n",
             format_poll_event(events).c_str(),
             reading ? "yes" : "no",
@@ -700,9 +776,9 @@ linux_tcp_listener_t::linux_tcp_listener_t(
     res = bind(sock.get(), reinterpret_cast<sockaddr *>(&serv_addr), sizeof(serv_addr));
     if (res != 0) {
         if (errno == EADDRINUSE) {
-            throw address_in_use_exc_t();
+            throw address_in_use_exc_t("localhost", port);
         } else {
-            crash("Could not bind socket: %s\n", strerror(errno));
+            crash("Could not bind socket at localhost:%i - %s\n", port, strerror(errno));
         }
     }
 

@@ -5,10 +5,9 @@
 #include "btree/internal_node.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/operations.hpp"
-#include "buffer_cache/buf_lock.hpp"
 #include "memcached/store.hpp"
 
-get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, order_token_t token) {
+get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, sequence_group_t *seq_group, order_token_t token) {
     btree_key_buffer_t kbuffer(store_key);
     btree_key_t *key = kbuffer.key();
 
@@ -16,10 +15,11 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, order
 
     boost::scoped_ptr<transaction_t> txn;
     got_superblock_t got;
-    get_btree_superblock(slice, rwi_read, token, &got, txn);
+    get_btree_superblock(slice, seq_group, rwi_read, token, &got, txn);
 
     keyvalue_location_t<memcached_value_t> kv_location;
-    find_keyvalue_location_for_read(txn.get(), &got, key, &kv_location);
+
+    find_keyvalue_location_for_read(txn.get(), &got, key, &kv_location, slice->root_eviction_priority);
 
     if (!kv_location.value) {
         return get_result_t();

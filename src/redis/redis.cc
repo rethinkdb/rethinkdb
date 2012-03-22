@@ -1,9 +1,8 @@
-#ifndef NO_REDIS
 #include "redis/redis_types.hpp"
 #include "redis/redis.hpp"
 #include "btree/slice.hpp"
 #include "errors.hpp"
-#include <iostream>
+// #include <iostream>
 #include <string>
 #include <vector>
 
@@ -56,6 +55,7 @@ redis_protocol_t::write_response_t redis_protocol_t::write_t::unshard(const std:
     return result;
 }
 
+/*
 dummy_redis_store_view_t::dummy_redis_store_view_t(key_range_t region, btree_slice_t *b) :
         store_view_t<redis_protocol_t>(region), btree(b) {
     binary_blob_t empty;
@@ -135,7 +135,7 @@ void dummy_redis_store_view_t::transaction_t::receive_backfill(
     (void)chunk_fun;
     (void)interruptor;
 }
-
+*/
 /* OUTDATED
 
 redis_protocol_t::read_response_t dummy_redis_store_view_t::do_read(const redis_protocol_t::read_t &r, UNUSED state_timestamp_t t, order_token_t otok, UNUSED signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
@@ -159,4 +159,3 @@ redis_protocol_t::write_response_t dummy_redis_store_view_t::do_write(const redi
 */
 
 // Individual commands are implemented in their respective files: keys, strings, etc.
-#endif //#ifndef NO_REDIS

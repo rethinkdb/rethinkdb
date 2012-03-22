@@ -12,7 +12,7 @@ struct thread_doer_t :
     public thread_message_t,
     public home_thread_mixin_t
 {
-    callable_t callable;
+    const callable_t callable;
     int thread;
     enum state_t {
         state_go_to_core,
@@ -39,7 +39,12 @@ struct thread_doer_t :
     
     void do_return_home() {
         state = state_go_home;
-        if (continue_on_thread(home_thread(), this)) delete this;
+
+#ifndef NDEBUG
+        rassert(!continue_on_thread(home_thread(), this));
+#else
+        continue_on_thread(home_thread(), this);
+#endif
     }
     
     void on_thread_switch() {
@@ -58,17 +63,32 @@ struct thread_doer_t :
 
 /* API to allow a nicer way of performing jobs on other cores than subclassing
 from thread_message_t. Call do_on_thread() with an object and a method for that object.
-The method will be called on the other thread. If the thread to call the method on is
-the current thread, returns the method's return value. Otherwise, returns false. */
+The method will be called on the other thread. */
 
 template<class callable_t>
 void do_on_thread(int thread, const callable_t &callable) {
     assert_good_thread_id(thread);
-    // TODO: if we are currently on `thread`, we shouldn't need to allocate memory to do this.
-    thread_doer_t<callable_t> *fsm = new thread_doer_t<callable_t>(callable, thread);
-    fsm->run();
+
+    if(thread == get_thread_id()) {
+      // Run the function directly since we are already in the requested thread
+      callable();
+    } else {
+      thread_doer_t<callable_t> *fsm = new thread_doer_t<callable_t>(callable, thread);
+      fsm->run();
+    }
 }
 
+// Beware: if you call spawn_on_thread with an action that is stored on stack (as is often
+// the case when you pass a boost::bind there), spawn_on_thread will return before the
+// action gets executed, and the action may go out of scope and get clobbered.
+template<class Callable>
+static void spawn_on_thread(int thread, const Callable &action) {
+    if (get_thread_id() == thread) {
+        coro_t::spawn_later_ordered(action);
+    } else {
+        do_on_thread(thread, boost::bind(&coro_t::spawn_now<Callable>, boost::ref(action)));
+    }
+}
 
 template <class callable_t>
 class one_way_doer_t : public thread_message_t {

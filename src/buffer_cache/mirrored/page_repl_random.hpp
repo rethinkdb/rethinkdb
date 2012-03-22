@@ -2,6 +2,7 @@
 #ifndef __PAGE_REPL_RANDOM_HPP__
 #define __PAGE_REPL_RANDOM_HPP__
 
+#include "buffer_cache/types.hpp"
 #include "config/args.hpp"
 #include "containers/two_level_array.hpp"
 
@@ -11,7 +12,7 @@
 
 /*
 The random page replacement algorithm needs to be able to quickly choose a random buf among all the
-bufs in memory. This is accomplished using a dense array of buf_t* in a completely arbitrary order.
+bufs in memory. This is accomplished using a dense array of buf_lock_t* in a completely arbitrary order.
 Because the array is dense, choosing a random buf is as simple as choosing a random number less
 than the number of bufs in memory. When a buf is removed from memory, the last buf in the array is
 moved to the slot it last occupied, keeping the array dense. Each buf carries an index which is its
@@ -35,6 +36,11 @@ public:
     bool in_page_repl();
     void insert_into_page_repl();
     void remove_from_page_repl(); // does *not* call unload()
+
+    /* The eviction priority represents how bad of a choice a buf is for
+     * eviction the buffer cache will (probabalistically) evict blocks of
+     * lower priority first. */
+    eviction_priority_t eviction_priority;
 
   protected:
     mc_cache_t *cache;

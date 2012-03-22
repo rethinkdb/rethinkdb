@@ -262,16 +262,3 @@ memcached_protocol_t::write_response_t memcached_protocol_t::write_t::unshard(st
     return responses[0];
 }
 
-/* `dummy_memcached_store_view_t::dummy_memcached_store_view_t()` */
-
-dummy_memcached_store_view_t::dummy_memcached_store_view_t(key_range_t region, btree_slice_t *b) :
-    store_view_t<memcached_protocol_t>(region), btree(b) { }
-
-boost::shared_ptr<store_view_t<memcached_protocol_t>::read_transaction_t> dummy_memcached_store_view_t::begin_read_transaction(UNUSED signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    crash("stub");
-}
-
-boost::shared_ptr<store_view_t<memcached_protocol_t>::write_transaction_t> dummy_memcached_store_view_t::begin_write_transaction(UNUSED signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    crash("stub");
-}
-

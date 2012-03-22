@@ -1,5 +1,8 @@
 #include "fsck/checker.hpp"
 
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
+
 #include <algorithm>
 
 #include "arch/arch.hpp"
@@ -552,7 +555,7 @@ bool check_lba_extent(nondirect_file_t *file, file_knowledge_t *knog, unsigned i
 
     for (int i = 0; i < entries_count; ++i) {
         lba_entry_t entry = buf->entries[i];
-        
+
         if (entry.block_id == NULL_BLOCK_ID) {
             // do nothing, this is ok.
         } else if (entry.block_id > MAX_BLOCK_ID) {
@@ -560,7 +563,6 @@ bool check_lba_extent(nondirect_file_t *file, file_knowledge_t *knog, unsigned i
         } else if (entry.block_id % LBA_SHARD_FACTOR != shard_number) {
             errs->wrong_shard_count++;
         } else if (!is_valid_btree_offset(knog, entry.offset)) {
-            debugf("Bad offset with value %lld\n", (long long)entry.offset.the_value_);
             errs->bad_offset_count++;
         } else {
             write_locker_t locker(knog);
@@ -780,7 +782,7 @@ void check_and_load_diff_log(slicecx_t *cx, diff_log_errors *errs) {
                     try {
                         patch = buf_patch_t::load_patch(reinterpret_cast<const char *>(buf_data) + current_offset);
                     } catch (patch_deserialization_error_t &e) {
-			(void)e;
+                        (void)e;
                         ++errs->corrupted_patch_blocks;
                         break;
                     }
@@ -1239,11 +1241,11 @@ void launch_check_after_config_block(nondirect_file_t *file, std::vector<pthread
 }
 
 void report_pre_config_block_errors(const check_to_config_block_errors& errs) {
-    const static_config_error *sc;
+    const static_config_error *sc = NULL;
     if (errs.static_config_err.is_known(&sc) && *sc != static_config_none) {
         printf("ERROR %s static header: %s\n", state, static_config_errstring[*sc]);
     }
-    const metablock_errors *mb;
+    const metablock_errors *mb = NULL;
     if (errs.metablock_errs.is_known(&mb)) {
         if (mb->unloadable_count > 0) {
             printf("ERROR %s %d of %d metablocks were unloadable\n", state, mb->unloadable_count, mb->total_count);
@@ -1270,7 +1272,7 @@ void report_pre_config_block_errors(const check_to_config_block_errors& errs) {
             printf("ERROR %s a metablock we once loaded became unloadable (your computer is broken)\n", state);
         }
     }
-    const lba_errors *lba;
+    const lba_errors *lba = NULL;
     if (errs.lba_errs.is_known(&lba) && lba->error_happened) {
         for (int i = 0; i < LBA_SHARD_FACTOR; ++i) {
             const lba_shard_errors *sherr = &lba->shard_errors[i];
@@ -1482,10 +1484,10 @@ std::string extract_cache_flags(nondirect_file_t *file, const multiplexer_config
 
 
     // Convert total number of log blocks to MB
-    long long int diff_log_size = mcc.cache.n_patch_log_blocks * c.n_proxies * block_size.ser_value();
-    int diff_log_size_mb = ceil_divide(diff_log_size, MEGABYTE);
+    int64_t diff_log_size = int64_t(mcc.cache.n_patch_log_blocks) * int64_t(c.n_proxies) * int64_t(block_size.ser_value());
+    int64_t diff_log_size_mb = ceil_divide(diff_log_size, MEGABYTE);
 
-    return strprintf(" --diff-log-size %d", diff_log_size_mb);
+    return strprintf(" --diff-log-size %" PRId64, diff_log_size_mb);
 }
 
 bool check_files(const config_t *cfg) {

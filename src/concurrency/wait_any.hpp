@@ -21,4 +21,8 @@ private:
     void pulse_if_not_already_pulsed();
 };
 
+/* Waits for the first signal to become pulsed. If the second signal becomes
+pulsed, stops waiting and throws `interrupted_exc_t`. */
+void wait_interruptible(signal_t *signal, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+
 #endif /* __CONCURRENCY_WAIT_ANY_HPP__ */

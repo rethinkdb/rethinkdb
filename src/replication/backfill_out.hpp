@@ -15,6 +15,8 @@ When you pulse the signal_t that you give it (from another coroutine) it will st
 and return. */
 
 void backfill_and_realtime_stream(
+    /* Whaddaya think this is? */
+    sequence_group_t *replication_seq_group,
 
     /* The key-value store to get the data out of. */
     btree_key_value_store_t *kvs,

@@ -1,4 +1,6 @@
 #include <getopt.h>
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -29,7 +31,7 @@ void usage_serve() {
                 "                        Can be specified multiple times to use multiple files.\n"
                 "  --metadata-file       Path to file or block device used for database metadata.\n");
     help->pagef("  -c, --cores           Number of cores to use for handling requests.\n"
-                "      --no-set-affinity Do not set thread affinity (affinity is set by default).\n"  
+                "      --no-set-affinity Do not set thread affinity (affinity is set by default).\n"
                 "  -m, --max-cache-size  Maximum amount of RAM to use for caching disk\n"
                 "                        blocks, in megabytes. This should be ~80%% of\n" 
                 "                        the RAM you want RethinkDB to use.\n"
@@ -98,6 +100,18 @@ void usage_serve() {
                 "                        the database file. Default is the name of the database\n"
                 "                        file with \"%s\" appended.\n", DEFAULT_SEMANTIC_EXTENSION);
 #endif
+#ifndef NDEBUG
+    help->pagef("      --watchdog-enabled\n"
+                "                        Prints out the information of a coroutine if it takes a\n"
+                "                        significant amount of time to switch out (more than 100k\n"
+                "                        cycles.  This will be more common if the system is under\n"
+                "                        load from other processes.\n");
+    help->pagef("      --coroutine_summary\n"
+                "                        On process exit, prints out a summary of all coroutines\n"
+                "                        that ran, with the total count of each type.  These are\n"
+                "                        aggregated from all threads and sorted by the templatized\n"
+                "                        callable object that the coroutine was spawned with.\n");
+#endif
     //TODO move this in to an advanced options help file
     /* help->pagef("      --coroutine-stack-size\n"
                 "                        How much space is allocated for the stacks of coroutines.\n"
@@ -163,6 +177,18 @@ void usage_create() {
                 "  -l, --log-file        File to log to. If not provided, messages will be\n"
                 "                        printed to stderr.\n"
            );
+#ifndef NDEBUG
+    help->pagef("      --watchdog-enabled\n"
+                "                        Prints out the information of a coroutine if it takes a\n"
+                "                        significant amount of time to switch out (more than 100k\n"
+                "                        cycles.  This will be more common if the system is under\n"
+                "                        load from other processes.\n");
+    help->pagef("      --coroutine_summary\n"
+                "                        On process exit, prints out a summary of all coroutines\n"
+                "                        that ran, with the total count of each type.  These are\n"
+                "                        aggregated from all threads and sorted by the templatized\n"
+                "                        callable object that the coroutine was spawned with.\n");
+#endif
     help->pagef("\n"
                 "Behaviour options:\n"
                 "      --force           Create a new database even if there already is one.\n"
@@ -187,6 +213,18 @@ void usage_import() {
                 "Output options:\n"
                 "  -l, --log-file        File to log to. If not provided, messages will be\n"
                 "                        printed to stderr.\n");
+#ifndef NDEBUG
+    help->pagef("      --watchdog-enabled\n"
+                "                        Prints out the information of a coroutine if it takes a\n"
+                "                        significant amount of time to switch out (more than 100k\n"
+                "                        cycles.  This will be more common if the system is under\n"
+                "                        load from other processes.\n");
+    help->pagef("      --coroutine_summary\n"
+                "                        On process exit, prints out a summary of all coroutines\n"
+                "                        that ran, with the total count of each type.  These are\n"
+                "                        aggregated from all threads and sorted by the templatized\n"
+                "                        callable object that the coroutine was spawned with.\n");
+#endif
     help->pagef("\n"
                 "Files are imported in the order specified, thus if a key is set in successive\n" 
                 "files it will ultimately be set to the value in the last file it's metioned in.\n");
@@ -219,7 +257,9 @@ enum {
     memcache_file,
     metadata_file,
     verbose,
-    no_rogue
+    no_rogue,
+    watchdog_enabled,
+    coroutine_summary
 };
 
 cmd_config_t parse_cmd_args(int argc, char *argv[]) {
@@ -252,8 +292,9 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
         config.import_config.do_import = true;
     }
 
-    bool slices_set_by_user = false;
-    long long override_diff_log_size = -1;
+    int slices_per_device = DEFAULT_BTREE_SHARD_FACTOR;
+
+    int64_t override_diff_log_size = -1;
     optind = 1; // reinit getopt
     while(1)
     {
@@ -300,6 +341,10 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"full-perfmon",         no_argument, &do_full_perfmon, 1},
                 {"no-set-affinity",      no_argument, &do_no_set_affinity, 1},
                 {"memcached-file",       required_argument, 0, memcache_file},
+#ifndef NDEBUG
+                {"watchdog-enabled",     no_argument, 0, watchdog_enabled},
+                {"coroutine-summary",    no_argument, 0, coroutine_summary},
+#endif
                 {0, 0, 0, 0}
             };
 
@@ -343,8 +388,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 config.set_cores(optarg);
                 break;
             case 's':
-                slices_set_by_user = true;
-                config.set_slices(optarg);
+                config.set_slices(&slices_per_device, optarg);
                 break;
             case 'f':
                 config.push_private_config(optarg);
@@ -435,6 +479,14 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
             case no_rogue:
                 config.failover_config.no_rogue = true;
                 break;
+#ifndef NDEBUG
+            case watchdog_enabled:
+                config.watchdog_enabled = true;
+                break;
+            case coroutine_summary:
+                config.coroutine_summary = true;
+                break;
+#endif
             case 'h':
             default:
                 /* getopt_long already printed an error message. */
@@ -506,7 +558,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
         /* The page replacement algorithm won't work properly if the number of dirty bufs
         is allowed to be more than about half of the total number of bufs. */
         config.store_dynamic_config.cache.max_dirty_size =
-            (long long int)(config.store_dynamic_config.cache.max_size * MAX_UNSAVED_DATA_LIMIT_FRACTION);
+            config.store_dynamic_config.cache.max_size * MAX_UNSAVED_DATA_LIMIT_FRACTION;
     }
     
     if (config.store_dynamic_config.cache.wait_for_flush == true &&
@@ -533,18 +585,10 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     
     // It's probably not necessary for this parameter to be independently configurable
     config.store_dynamic_config.cache.flush_dirty_size =
-        (long long int)(config.store_dynamic_config.cache.max_dirty_size * FLUSH_AT_FRACTION_OF_UNSAVED_DATA_LIMIT);
+        config.store_dynamic_config.cache.max_dirty_size * FLUSH_AT_FRACTION_OF_UNSAVED_DATA_LIMIT;
 
-    //slices divisable by the number of files
-    if ((config.store_static_config.btree.n_slices % config.store_dynamic_config.serializer_private.size()) != 0) {
-        if (slices_set_by_user) {
-            fail_due_to_user_error("Slices must be divisable by the number of files\n");
-        } else {
-            config.store_static_config.btree.n_slices -= config.store_static_config.btree.n_slices % config.store_dynamic_config.serializer_private.size();
-            if (config.store_static_config.btree.n_slices <= 0)
-                fail_due_to_user_error("Failed to set number of slices automatically. Please specify it manually by using the -s option.\n");
-        }
-    }
+    // HACK: Scales n_slices by the number of files.
+    config.store_static_config.btree.n_slices = slices_per_device * config.store_dynamic_config.serializer_private.size();
 
     /* Convert values which depends on others to be set first */
     int patch_log_memory;
@@ -553,7 +597,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     } else {
         patch_log_memory = std::min(
             DEFAULT_PATCH_LOG_SIZE,
-            (long)(DEFAULT_PATCH_LOG_FRACTION * config.store_dynamic_config.cache.max_dirty_size)
+            int64_t(DEFAULT_PATCH_LOG_FRACTION * config.store_dynamic_config.cache.max_dirty_size)
             );
     }
     config.store_static_config.cache.n_patch_log_blocks = patch_log_memory / config.store_static_config.serializer.block_size().ser_value() / config.store_static_config.btree.n_slices;
@@ -642,15 +686,15 @@ void parsing_cmd_config_t::set_max_concurrent_flushes(const char* value) {
 }
 
 void parsing_cmd_config_t::set_extent_size(const char* value) {
-    long long int target;
-    const long long int minimum_value = 1ll;
-    const long long int maximum_value = TERABYTE;
+    int64_t target;
+    const int64_t minimum_value = 1ll;
+    const int64_t maximum_value = TERABYTE;
 
     target = parse_longlong(value);
     if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
-        fail_due_to_user_error("Extent size must be a number from %lld to %lld.", minimum_value, maximum_value);
+        fail_due_to_user_error("Extent size must be a number from %" PRId64 " to %" PRId64 ".", minimum_value, maximum_value);
 
-    store_static_config.serializer.extent_size_ = static_cast<long long unsigned int>(target);
+    store_static_config.serializer.extent_size_ = (target);
 }
 
 void parsing_cmd_config_t::set_read_ahead(const char* value) {
@@ -660,14 +704,14 @@ void parsing_cmd_config_t::set_read_ahead(const char* value) {
     store_dynamic_config.serializer.read_ahead = (value[0] == 'y');
 }
 
-long long parsing_cmd_config_t::parse_diff_log_size(const char* value) {
-    long long int result;
-    const long long int minimum_value = 0ll;
-    const long long int maximum_value = TERABYTE;
+int64_t parsing_cmd_config_t::parse_diff_log_size(const char *value) {
+    int64_t result;
+    const int64_t minimum_value = 0ll;
+    const int64_t maximum_value = TERABYTE;
 
     result = parse_longlong(value) * MEGABYTE;
     if (parsing_failed || !is_in_range(result, minimum_value, maximum_value))
-        fail_due_to_user_error("Diff log size must be a number from %lld to %lld.", minimum_value, maximum_value);
+        fail_due_to_user_error("Diff log size must be a number from %" PRId64 " to %" PRId64 ".", minimum_value, maximum_value);
 
     return result;
 }
@@ -676,13 +720,13 @@ void parsing_cmd_config_t::set_block_size(const char* value) {
     int target;
     const int minimum_value = 1;
     const int maximum_value = DEVICE_BLOCK_SIZE * 1000;
-    
+
     target = parse_int(value);
     if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
         fail_due_to_user_error("Block size must be a number from %d to %d.", minimum_value, maximum_value);
     if (target % DEVICE_BLOCK_SIZE != 0)
         fail_due_to_user_error("Block size must be a multiple of %ld.", DEVICE_BLOCK_SIZE);
-        
+
     store_static_config.serializer.block_size_ = static_cast<unsigned int>(target);
 }
 
@@ -718,7 +762,7 @@ void parsing_cmd_config_t::set_unsaved_data_limit(const char* value) {
     if (parsing_failed || !is_positive(int_value)) {
         fail_due_to_user_error("Unsaved data limit must be a positive number.");
     }
-    store_dynamic_config.cache.max_dirty_size = (long long)(int_value) * MEGABYTE;
+    store_dynamic_config.cache.max_dirty_size = int64_t(int_value) * MEGABYTE;
 }
 
 void parsing_cmd_config_t::set_wait_for_flush(const char* value) {
@@ -734,17 +778,18 @@ void parsing_cmd_config_t::set_max_cache_size(const char* value) {
     if (parsing_failed || !is_positive(int_value))
         fail_due_to_user_error("Cache size must be a positive number.");
 
-    store_dynamic_config.cache.max_size = (long long)(int_value) * MEGABYTE;
+    store_dynamic_config.cache.max_size = int64_t(int_value) * MEGABYTE;
 }
 
-void parsing_cmd_config_t::set_slices(const char* value) {
-    int& target = store_static_config.btree.n_slices;
+// This is a bit of a HACK.  Go cry to your mommy about it.
+void parsing_cmd_config_t::set_slices(int *slices_per_device_out, const char* value) {
     const int minimum_value = 1;
-    const int maximum_value = MAX_SLICES;
-    
-    target = parse_int(value);
+    const int maximum_value = MAX_SLICES_PER_DEVICE;
+
+    int target = parse_int(value);
     if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
         fail_due_to_user_error("Number of slices must be a number from %d to %d.", minimum_value, maximum_value);
+    *slices_per_device_out = target;
 }
 
 void parsing_cmd_config_t::set_log_file(const char* value) {
@@ -872,23 +917,23 @@ void parsing_cmd_config_t::set_io_batch_factor(const char* value) {
         fail_due_to_user_error("The io batch factor must be a number from %d to %d.", minimum_value, maximum_value);
 }
 
-long long int parsing_cmd_config_t::parse_longlong(const char* value) {
+int64_t parsing_cmd_config_t::parse_longlong(const char* value) {
     char* endptr;
-    const long long int result = strtoll(value, &endptr, 10);
-    
+    const int64_t result = strtoll(value, &endptr, 10);
+
     parsing_failed = *endptr != '\0' // Tests for invalid characters (or empty string)
             || errno == ERANGE; // Tests for range problems (too small / too large values)
-    
+
     return result;
 }
 
 int parsing_cmd_config_t::parse_int(const char* value) {
     char* endptr;
     const int result = strtol(value, &endptr, 10);
-    
+
     parsing_failed = *endptr != '\0' // Tests for invalid characters (or empty string)
             || errno == ERANGE; // Tests for range problems (too small / too large values)
-    
+
     return result;
 }
 
@@ -910,7 +955,7 @@ void cmd_config_t::print_runtime_flags() {
     printf("--- Runtime ----\n");
     printf("Threads............%d\n", n_workers);
     
-    printf("Block cache........%lldMB\n", store_dynamic_config.cache.max_size / 1024 / 1024);
+    printf("Block cache........%" PRId64 "MB\n", store_dynamic_config.cache.max_size / 1024 / 1024);
     printf("Wait for flush.....");
     if(store_dynamic_config.cache.wait_for_flush) {
         printf("Y\n");
@@ -988,6 +1033,10 @@ void cmd_config_t::print() {
 
 cmd_config_t::cmd_config_t() {
     verbose = false;
+#ifndef NDEBUG
+    watchdog_enabled = false;
+    coroutine_summary = false;
+#endif
     port = DEFAULT_LISTEN_PORT;
     n_workers = get_cpu_count();
     do_set_affinity = true;
@@ -1007,9 +1056,7 @@ cmd_config_t::cmd_config_t() {
     replication_master_active = false;
     force_unslavify = false;
 
-    store_dynamic_config.cache.max_size = (long long int)(DEFAULT_MAX_CACHE_RATIO * get_available_ram());
-
-    store_static_config.cache.n_patch_log_blocks = DEFAULT_PATCH_LOG_SIZE / store_static_config.serializer.block_size().ser_value() / store_static_config.btree.n_slices;
+    store_dynamic_config.cache.max_size = DEFAULT_MAX_CACHE_RATIO * get_available_ram();
 
     // TODO: This is hacky. It also doesn't belong here. Probably the metadata
     // store should really have a configuration structure of its own.

@@ -5,7 +5,6 @@
 
 #include "btree/modify_oper.hpp"
 #include "containers/buffer_group.hpp"
-#include "buffer_cache/buf_lock.hpp"
 #include "containers/scoped_malloc.hpp"
 
 
@@ -37,7 +36,7 @@ struct btree_incr_decr_oper_t : public btree_modify_oper_t {
             char buffer[50];
             memcpy(buffer, buffergroup.get_buffer(0).data, buffergroup.get_buffer(0).size);
             buffer[buffergroup.get_buffer(0).size] = '\0';
-            char *endptr;
+            const char *endptr;
             number = strtoull_strict(buffer, &endptr, 10);
             valid = (endptr != buffer);
         } else {
@@ -95,8 +94,8 @@ struct btree_incr_decr_oper_t : public btree_modify_oper_t {
     incr_decr_result_t result;
 };
 
-incr_decr_result_t btree_incr_decr(const store_key_t &key, btree_slice_t *slice, bool increment, uint64_t delta, castime_t castime, order_token_t token) {
+incr_decr_result_t btree_incr_decr(const store_key_t &key, btree_slice_t *slice, sequence_group_t *seq_group, bool increment, uint64_t delta, castime_t castime, order_token_t token) {
     btree_incr_decr_oper_t oper(increment, delta);
-    run_btree_modify_oper(&oper, slice, key, castime, token);
+    run_btree_modify_oper(&oper, slice, seq_group, key, castime, token);
     return oper.result;
 }

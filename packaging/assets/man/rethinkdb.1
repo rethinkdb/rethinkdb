@@ -80,7 +80,7 @@ Serve:
     Number of cores to use.
 
 .B \-\-no\-set\-affinity
-    Do not set threads' affinity and let the OS move the threads between the cores.
+    Do not set threads' affinity and let the OS move the threads between CPU cores.
     This may cause performance degradation.
 
 .B \-m, 
@@ -163,7 +163,7 @@ Create:
 
 .B \-s,
 .B \-\-slices
-    The total number of slices across all devices.
+    The number of slices per device.
 
 .B \-\-block\-size
     The size (in MB) of a serialized block (must be divisable by 4096).

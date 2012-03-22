@@ -3,6 +3,7 @@
 
 #include "server/key_value_store.hpp"
 #include "replication/backfill.hpp"
+#include "buffer_cache/sequence_group.hpp"
 #include "concurrency/queue/limited_fifo.hpp"
 #include "concurrency/coro_pool.hpp"
 
@@ -24,9 +25,9 @@ public:
     }
 
     struct recompute_caller_t {
-	selective_passive_producer_t *parent_;
-	explicit recompute_caller_t(selective_passive_producer_t *parent) : parent_(parent) { }
-	void operator()() { parent_->recompute(); }
+        selective_passive_producer_t *parent_;
+        explicit recompute_caller_t(selective_passive_producer_t *parent) : parent_(parent) { }
+        void operator()() { parent_->recompute(); }
     };
 
     void set_source(passive_producer_t<value_t> *selectee) {
@@ -68,7 +69,7 @@ backfill_and_realtime_stream() and when they are stored by backfill_storer_t. */
 
 class backfill_storer_t : public backfill_and_realtime_streaming_callback_t {
 public:
-    explicit backfill_storer_t(btree_key_value_store_t *underlying);
+    backfill_storer_t(sequence_group_t *seq_group, btree_key_value_store_t *underlying);
     ~backfill_storer_t();
 
     void backfill_delete_range(int hash_value, int hashmod, bool left_key_supplied, const store_key_t& left_key_exclusive, bool right_key_supplied, const store_key_t& right_key_inclusive, order_token_t token);
@@ -91,11 +92,13 @@ private:
     // set to true
     void ensure_backfilling();
 
+    sequence_group_t *seq_group_;
+
     btree_key_value_store_t *kvs_;
     bool backfilling_, print_backfill_warning_;
     limited_fifo_queue_t<boost::function<void()> > backfill_queue_, realtime_queue_;
     selective_passive_producer_t<boost::function<void()> > queue_picker_;
-    coro_pool_t coro_pool_;
+    coro_pool_boost_t coro_pool_;
 };
 
 }

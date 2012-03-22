@@ -1,5 +1,5 @@
 #ifndef __SERVER_KEY_VALUE_STORE_CONFIG_HPP__
-#define	__SERVER_KEY_VALUE_STORE_CONFIG_HPP__
+#define __SERVER_KEY_VALUE_STORE_CONFIG_HPP__
 
 /* TODO: This file, especially at this location, should die together with
  btree_key_value_store. */
@@ -53,5 +53,5 @@ struct btree_key_value_store_static_config_t {
     mirrored_cache_static_config_t cache;
 };
 
-#endif	/* __SERVER_KEY_VALUE_STORE_CONFIG_HPP__ */
+#endif  /* __SERVER_KEY_VALUE_STORE_CONFIG_HPP__ */
 

@@ -1,9 +1,43 @@
 #ifndef __BUFFER_CACHE_TYPES_HPP__
 #define __BUFFER_CACHE_TYPES_HPP__
 
+#include <limits.h>
 #include <stdint.h>
 
 #include "serializer/types.hpp"
+
+struct eviction_priority_t {
+    int priority;
+};
+
+const eviction_priority_t INITIAL_ROOT_EVICTION_PRIORITY = { 100 };
+const eviction_priority_t DEFAULT_EVICTION_PRIORITY = { INT_MAX / 2 };
+// TODO: Get rid of FAKE_EVICTION_PRIORITY.  It's just the default
+// eviction priority, with the connotation the code using is is doing
+// something stupid and needs to be fixed.
+const eviction_priority_t FAKE_EVICTION_PRIORITY = { INT_MAX / 2 };
+
+const eviction_priority_t ZERO_EVICTION_PRIORITY = { 0 };
+
+inline eviction_priority_t incr_priority(eviction_priority_t p) {
+    eviction_priority_t ret;
+    ret.priority = p.priority + (p.priority < DEFAULT_EVICTION_PRIORITY.priority);
+    return ret;
+}
+
+inline eviction_priority_t decr_priority(eviction_priority_t p) {
+    eviction_priority_t ret;
+    ret.priority = p.priority - (p.priority > 0);
+    return ret;
+}
+
+inline bool operator==(eviction_priority_t x, eviction_priority_t y) {
+    return x.priority == y.priority;
+}
+
+inline bool operator<(eviction_priority_t x, eviction_priority_t y) {
+    return x.priority < y.priority;
+}
 
 typedef uint32_t block_magic_comparison_t;
 
@@ -46,25 +80,24 @@ protected:
 };
 
 
-// This line is hereby labeled BLAH.
 
 // Keep this part below synced up with buffer_cache.hpp.
 
 #ifndef MOCK_CACHE_CHECK
 
 class mc_cache_t;
-class mc_buf_t;
+class mc_buf_lock_t;
 class mc_transaction_t;
 class mc_cache_account_t;
 
 #if !defined(VALGRIND) && !defined(NDEBUG)
 
 template <class inner_cache_type> class scc_cache_t;
-template <class inner_cache_type> class scc_buf_t;
+template <class inner_cache_type> class scc_buf_lock_t;
 template <class inner_cache_type> class scc_transaction_t;
 
 typedef scc_cache_t<mc_cache_t> cache_t;
-typedef scc_buf_t<mc_cache_t> buf_t;
+typedef scc_buf_lock_t<mc_cache_t> buf_lock_t;
 typedef scc_transaction_t<mc_cache_t> transaction_t;
 typedef mc_cache_account_t cache_account_t;
 
@@ -73,7 +106,7 @@ typedef mc_cache_account_t cache_account_t;
 // scc_cache_t is way too slow under valgrind and makes automated
 // tests run forever.
 typedef mc_cache_t cache_t;
-typedef mc_buf_t buf_t;
+typedef mc_buf_lock_t buf_lock_t;
 typedef mc_transaction_t transaction_t;
 typedef mc_cache_account_t cache_account_t;
 
@@ -87,22 +120,22 @@ class mock_cache_account_t;
 #if !defined(VALGRIND)
 
 template <class inner_cache_type> class scc_cache_t;
-template <class inner_cache_type> class scc_buf_t;
+template <class inner_cache_type> class scc_buf_lock_t;
 template <class inner_cache_type> class scc_transaction_t;
 
 typedef scc_cache_t<mock_cache_t> cache_t;
-typedef scc_buf_t<mock_cache_t> buf_t;
+typedef scc_buf_lock_t<mock_cache_t> buf_lock_t;
 typedef scc_transaction_t<mock_cache_t> transaction_t;
 typedef mock_cache_account_t cache_account_t;
 
 #else  // !defined(VALGRIND)
 
-class mock_buf_t;
+class mock_buf_lock_t;
 class mock_transaction_t;
 class mock_cache_account_t;
 
 typedef mock_cache_t cache_t;
-typedef mock_buf_t buf_t;
+typedef mock_buf_lock_t buf_lock_t;
 typedef mock_transaction_t transaction_t;
 typedef mock_cache_account_t cache_account_t;
 

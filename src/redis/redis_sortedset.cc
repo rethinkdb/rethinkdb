@@ -1,4 +1,3 @@
-#ifndef NO_REDIS
 #include "redis/redis.hpp"
 #include "redis/redis_util.hpp"
 #include "redis/counted/counted.hpp"
@@ -171,7 +170,9 @@ private:
             got_superblock_t nested_superblock;
             nested_superblock.sb.swap(nested_btree_sb);
 
-            find_keyvalue_location_for_write(txn, &nested_superblock, nested_key.key(), &loc);
+            eviction_priority_t fake_eviction_priority = FAKE_EVICTION_PRIORITY;
+
+            find_keyvalue_location_for_write(txn, &nested_superblock, nested_key.key(), &loc, &fake_eviction_priority);
         }
 
         void create(transaction_t *txn, std::string &member, float score) {
@@ -189,7 +190,10 @@ private:
         void apply_change(transaction_t *txn) {
             // TODO hook up timestamp once Tim figures out what to do with the timestamp
             fake_key_modification_callback_t<redis_nested_sorted_set_value_t> fake_cb;
-            apply_keyvalue_change(txn, &loc, nested_key.key(), repli_timestamp_t::invalid /*ths->timestamp*/, &fake_cb);
+
+            eviction_priority_t fake_eviction_priority = FAKE_EVICTION_PRIORITY;
+
+            apply_keyvalue_change(txn, &loc, nested_key.key(), repli_timestamp_t::invalid /*ths->timestamp*/, &fake_cb, &fake_eviction_priority);
             virtual_superblock_t *sb = reinterpret_cast<virtual_superblock_t *>(loc.sb.get());
             ths->member_index_root = sb->get_root_block_id();
         }
@@ -325,7 +329,7 @@ private:
             got_superblock_t nested_superblock;
             nested_superblock.sb.swap(nested_btree_sb);
 
-            find_keyvalue_location_for_read(ths->txn.get(), &nested_superblock, nested_key.key(), &loc);
+            find_keyvalue_location_for_read(ths->txn.get(), &nested_superblock, nested_key.key(), &loc, FAKE_EVICTION_PRIORITY);
         }
 
         sorted_set_read_oper_t *ths;
@@ -605,4 +609,3 @@ EXECUTE_R(zscore) {
 }
 
 WRITE(zunionstore)
-#endif //#ifndef NO_REDIS

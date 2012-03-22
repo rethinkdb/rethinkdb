@@ -35,7 +35,7 @@ class slave_t :
 public:
     friend void run(slave_t *);
 
-    slave_t(btree_key_value_store_t *, replication_config_t, failover_config_t, failover_t *failover);
+    slave_t(sequence_group_t *replication_seq_group, btree_key_value_store_t *, replication_config_t, failover_config_t, failover_t *failover);
 
     failover_t *failover_;
 
@@ -80,7 +80,7 @@ private:
     public:
         explicit new_master_control_t(slave_t *_slave)
             : control_t("new-master", "Set a new master for replication. The slave will disconnect and immediately reconnect to the new server. Syntax: \"rethinkdb new-master host port\""),
-	      slave(_slave) { }
+              slave(_slave) { }
 
         std::string call(int argc, char **argv) {
             if (argc != 3) return "Syntax: \"rethinkdb new-master host port\"\r\n";
@@ -97,10 +97,12 @@ private:
         slave_t *slave;
     };
 
+    sequence_group_t *seq_group_;
+
     give_up_t give_up_;
 
     /* state for failover */
-    long timeout_; /* ms to wait before trying to reconnect */
+    int64_t timeout_; /* ms to wait before trying to reconnect */
 
     failover_reset_control_t failover_reset_control_;
 

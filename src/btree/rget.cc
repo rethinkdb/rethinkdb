@@ -100,12 +100,11 @@ private:
     DISABLE_COPYING(transaction_holding_iterator_t);
 };
 
-rget_result_t btree_rget_slice(btree_slice_t *slice, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token) {
+rget_result_t btree_rget_slice(btree_slice_t *slice, sequence_group_t *seq_group, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token) {
     slice->pre_begin_transaction_sink_.check_out(token);
-    order_token_t begin_transaction_token = slice->pre_begin_transaction_read_mode_source_.check_in(token.tag() + "+begin_transaction_token").with_read_mode();
+    UNUSED order_token_t begin_transaction_token = slice->pre_begin_transaction_read_mode_source_.check_in(token.tag() + "+begin_transaction_token").with_read_mode();
 
-
-    transaction_t *transaction = new transaction_t(slice->cache(), rwi_read);
+    transaction_t *transaction = new transaction_t(slice->cache(), seq_group, rwi_read, 0, repli_timestamp_t::distant_past);
     boost::scoped_ptr<transaction_t> txn(transaction);
 
     transaction->set_token(slice->post_begin_transaction_checkpoint_.check_through(token).with_read_mode());
@@ -116,6 +115,7 @@ rget_result_t btree_rget_slice(btree_slice_t *slice, rget_bound_mode_t left_mode
     // Get the superblock of the slice
     slice->assert_thread();
     buf_lock_t sb_buf(transaction, SUPERBLOCK_ID, rwi_read);
+    sb_buf.set_eviction_priority(ZERO_EVICTION_PRIORITY);
     boost::scoped_ptr<superblock_t> superblock(new real_superblock_t(sb_buf));
 
     return boost::shared_ptr<one_way_iterator_t<key_with_data_buffer_t> >(

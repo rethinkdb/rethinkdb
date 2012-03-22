@@ -1,130 +1,13 @@
-#include "utils.hpp"
+#include "errors.hpp"
 
 #include <signal.h>
+#include <stdarg.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <stdlib.h>
-#include <stdarg.h>
+#include <typeinfo>
 
-#include <execinfo.h>
-
-
-#include "containers/scoped_malloc.hpp"
-
-static bool parse_backtrace_line(char *line, char **filename, char **function, char **offset, char **address) {
-    /*
-    backtrace() gives us lines in one of the following two forms:
-       ./path/to/the/binary(function+offset) [address]
-       ./path/to/the/binary [address]
-    */
-
-    *filename = line;
-
-    // Check if there is a function present
-    if (char *paren1 = strchr(line, '(')) {
-        char *paren2 = strchr(line, ')');
-        if (!paren2) return false;
-        *paren1 = *paren2 = '\0';   // Null-terminate the offset and the filename
-        *function = paren1 + 1;
-        char *plus = strchr(*function, '+');
-        if (!plus) return false;
-        *plus = '\0';   // Null-terminate the function name
-        *offset = plus + 1;
-        line = paren2 + 1;
-        if (*line != ' ') return false;
-        line += 1;
-    } else {
-        *function = NULL;
-        *offset = NULL;
-        char *bracket = strchr(line, '[');
-        if (!bracket) return false;
-        line = bracket - 1;
-        if (*line != ' ') return false;
-        *line = '\0';   // Null-terminate the file name
-        line += 1;
-    }
-
-    // We are now at the opening bracket of the address
-    if (*line != '[') return false;
-    line += 1;
-    *address = line;
-    line = strchr(line, ']');
-    if (!line || line[1] != '\0') return false;
-    *line = '\0';   // Null-terminate the address
-
-    return true;
-}
-
-static bool run_addr2line(char *executable, char *address, char *line, int line_size) {
-    // Generate and run addr2line command
-    char cmd_buf[255] = {0};
-    snprintf(cmd_buf, sizeof(cmd_buf), "addr2line -s -e %s %s", executable, address);
-    FILE *fline = popen(cmd_buf, "r");
-    if (!fline) return false;
-
-    int count = fread(line, sizeof(char), line_size - 1, fline);
-    pclose(fline);
-    if (count == 0) return false;
-
-    if (line[count-1] == '\n') {
-        line[count-1] = '\0';
-    } else {
-        line[count] = '\0';
-    }
-
-    if (strcmp(line, "??:0") == 0) return false;
-
-    return true;
-}
-
-void print_backtrace(FILE *out, bool use_addr2line) {
-    // Get a backtrace
-    static const int max_frames = 100;
-    void *stack_frames[max_frames];
-    int size = backtrace(stack_frames, max_frames);
-    char **symbols = backtrace_symbols(stack_frames, size);
-
-    if (symbols) {
-        for (int i = 0; i < size; i ++) {
-            // Parse each line of the backtrace
-	    scoped_malloc<char> line(symbols[i], symbols[i] + (strlen(symbols[i]) + 1));
-            char *executable, *function, *offset, *address;
-
-            fprintf(out, "%d: ", i+1);
-
-            if (!parse_backtrace_line(line.get(), &executable, &function, &offset, &address)) {
-                fprintf(out, "%s\n", symbols[i]);
-            } else {
-                if (function) {
-                    try {
-                        std::string demangled = demangle_cpp_name(function);
-                        fprintf(out, "%s", demangled.c_str());
-                    } catch (demangle_failed_exc_t) {
-                        fprintf(out, "%s+%s", function, offset);
-                    }
-                } else {
-                    fprintf(out, "?");
-                }
-
-                fprintf(out, " at ");
-
-                char line[255] = {0};
-                if (use_addr2line && run_addr2line(executable, address, line, sizeof(line))) {
-                    fprintf(out, "%s", line);
-                } else {
-                    fprintf(out, "%s (%s)", address, executable);
-                }
-
-                fprintf(out, "\n");
-            }
-
-        }
-
-        free(symbols);
-    } else {
-        fprintf(out, "(too little memory for backtrace)\n");
-    }
-}
+#include "utils.hpp"
 
 void report_user_error(const char *msg, ...) {
     flockfile(stderr);
@@ -161,45 +44,6 @@ void report_fatal_error(const char *file, int line, const char *msg, ...) {
     funlockfile(stderr);
 }
 
-/* There has been some trouble with abi::__cxa_demangle.
-
-Originally, demangle_cpp_name() took a pointer to the mangled name, and returned a
-buffer that must be free()ed. It did this by calling __cxa_demangle() and passing NULL
-and 0 for the buffer and buffer-size arguments.
-
-There were complaints that print_backtrace() was smashing memory. Shachaf observed that
-pieces of the backtrace seemed to be ending up overwriting other structs, and filed
-issue #100.
-
-Daniel Mewes suspected that the memory smashing was related to calling malloc().
-In December 2010, he changed demangle_cpp_name() to take a static buffer, and fill
-this static buffer with the demangled name. See 284246bd.
-
-abi::__cxa_demangle expects a malloc()ed buffer, and if the buffer is too small it
-will call realloc() on it. So the static-buffer approach worked except when the name
-to be demangled was too large.
-
-In March 2011, Tim and Ivan got tired of the memory allocator complaining that someone
-was trying to realloc() an unallocated buffer, and changed demangle_cpp_name() back
-to the way it was originally.
-
-Please don't change this function without talking to the people who have already
-been involved in this. */
-
-#include <cxxabi.h>
-
-std::string demangle_cpp_name(const char *mangled_name) {
-    int res;
-    char *name_as_c_str = abi::__cxa_demangle(mangled_name, NULL, 0, &res);
-    if (res == 0) {
-        std::string name_as_std_string(name_as_c_str);
-        free(name_as_c_str);
-        return name_as_std_string;
-    } else {
-        throw demangle_failed_exc_t();
-    }
-}
-
 /* Handlers for various signals and for unexpected exceptions or calls to std::terminate() */
 
 void generic_crash_handler(int signum) {
@@ -211,6 +55,8 @@ void generic_crash_handler(int signum) {
 }
 
 void ignore_crash_handler(UNUSED int signum) { }
+
+#include <cxxabi.h>
 
 void terminate_handler() {
     std::type_info *t = abi::__cxa_current_exception_type();
@@ -260,12 +106,12 @@ void install_generic_crash_handler() {
 
 namespace boost {
 
-void assertion_failed(char const * expr, char const * function, char const * file, long line) {
-    report_fatal_error(file, line, "BOOST_ASSERT failure in '%s': %s", function, expr); 
+void assertion_failed(char const * expr, char const * function, char const * file, long line) { // NOLINT(runtime/int)
+    report_fatal_error(file, line, "BOOST_ASSERT failure in '%s': %s", function, expr);
     BREAKPOINT;
 }
 
-void assertion_failed_msg(char const * expr, char const * msg, char const * function, char const * file, long line) {
+void assertion_failed_msg(char const * expr, char const * msg, char const * function, char const * file, long line) { // NOLINT(runtime/int)
     report_fatal_error(file, line, "BOOST_ASSERT_MSG failure in '%s': %s (%s)", function, expr, msg);
     BREAKPOINT;
 }

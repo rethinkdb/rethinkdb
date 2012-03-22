@@ -21,8 +21,12 @@ __thread linux_thread_pool_t *linux_thread_pool_t::thread_pool;
 __thread int linux_thread_pool_t::thread_id;
 __thread linux_thread_t *linux_thread_pool_t::thread;
 
-linux_thread_pool_t::linux_thread_pool_t(int worker_threads, bool _do_set_affinity)
-    : interrupt_message(NULL),
+linux_thread_pool_t::linux_thread_pool_t(int worker_threads, bool _do_set_affinity) :
+#ifndef NDEBUG
+      coroutine_summary(false),
+#endif
+      interrupt_message(NULL),
+      generic_blocker_pool(NULL),
       n_threads(worker_threads + 1),    // we create an extra utility thread
       do_set_affinity(_do_set_affinity)
 {
@@ -86,6 +90,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         linux_thread_t thread(tdata->thread_pool, tdata->current_thread);
         tdata->thread_pool->threads[tdata->current_thread] = &thread;
         linux_thread_pool_t::thread = &thread;
+        blocker_pool_t *generic_blocker_pool = NULL; // Will only be instantiated by one thread
 
         /* Install a handler for segmentation faults that just prints a backtrace. If we're
         running under valgrind, we don't install this handler because Valgrind will print the
@@ -107,11 +112,21 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         guarantee_err(r == 0, "Could not install SEGV handler");
 #endif
 
+        // First thread should initialize generic_blocker_pool before the start barrier
+        if (tdata->initial_message) {
+            rassert(tdata->thread_pool->generic_blocker_pool == NULL, "generic_blocker_pool already initialized");
+            generic_blocker_pool = new blocker_pool_t(GENERIC_BLOCKER_THREAD_COUNT,
+                                                      &thread.queue);
+            tdata->thread_pool->generic_blocker_pool = generic_blocker_pool;
+        }
+
         // If one thread is allowed to run before another one has finished
         // starting up, then it might try to access an uninitialized part of the
         // unstarted one.
         int res = pthread_barrier_wait(tdata->barrier);
         guarantee(res == 0 || res == PTHREAD_BARRIER_SERIAL_THREAD, "Could not wait at start barrier");
+        rassert(tdata->thread_pool->generic_blocker_pool != NULL,
+                "Thread passed start barrier while generic_blocker_pool uninitialized");
 
         // Prime the pump by calling the initial thread message that was passed to thread_pool::run()
         if (tdata->initial_message) {
@@ -130,6 +145,12 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         free(segv_stack.ss_sp);
 #endif
 
+        // If this thread created the generic blocker pool, clean it up
+        if (generic_blocker_pool != NULL) {
+            delete generic_blocker_pool;
+            tdata->thread_pool->generic_blocker_pool = NULL;
+        }
+
         tdata->thread_pool->threads[tdata->current_thread] = NULL;
         linux_thread_pool_t::thread = NULL;
     }
@@ -137,6 +158,12 @@ void *linux_thread_pool_t::start_thread(void *arg) {
     delete tdata;
     return NULL;
 }
+
+#ifndef NDEBUG
+void linux_thread_pool_t::enable_coroutine_summary() {
+    coroutine_summary = true;
+}
+#endif
 
 void linux_thread_pool_t::run(linux_thread_message_t *initial_message) {
     int res;
@@ -222,11 +249,19 @@ void linux_thread_pool_t::run(linux_thread_message_t *initial_message) {
     }
     linux_thread_pool_t::thread_pool = NULL;
 
-    // Shut down child threads
+#ifndef NDEBUG
+    // Save each thread's coroutine counters before shutting down
+    std::vector<std::map<std::string, size_t> > coroutine_counts(n_threads);
+#endif
 
+    // Shut down child threads
     for (int i = 0; i < n_threads; i++) {
         // Cause child thread to break out of its loop
+#ifndef NDEBUG
+        threads[i]->initiate_shut_down(coroutine_counts[i]);
+#else
         threads[i]->initiate_shut_down();
+#endif
     }
 
     for (int i = 0; i < n_threads; i++) {
@@ -235,6 +270,25 @@ void linux_thread_pool_t::run(linux_thread_message_t *initial_message) {
         res = pthread_join(pthreads[i], NULL);
         guarantee(res == 0, "Could not join thread");
     }
+
+#ifndef NDEBUG
+    if (coroutine_summary)
+    {
+        // Combine coroutine counts from each thread, and log the totals
+        std::map<std::string, size_t> total_coroutine_counts;
+        for (int i = 0; i < n_threads; ++i) {
+            for (std::map<std::string, size_t>::iterator j = coroutine_counts[i].begin();
+                 j != coroutine_counts[i].end(); ++j) {
+                total_coroutine_counts[j->first] += j->second;
+            }
+        }
+
+        for (std::map<std::string, size_t>::iterator i = total_coroutine_counts.begin();
+             i != total_coroutine_counts.end(); ++i) {
+            logDBG("%ld coroutines ran with type %s\n", i->second, i->first.c_str());
+        }
+    }
+#endif
 
     res = pthread_barrier_destroy(&barrier);
     guarantee(res == 0, "Could not destroy barrier");
@@ -311,6 +365,9 @@ linux_thread_t::linux_thread_t(linux_thread_pool_t *parent_pool, int thread_id)
       message_hub(&queue, parent_pool, thread_id),
       timer_handler(&queue),
       do_shutdown(false)
+#ifndef NDEBUG
+      , coroutine_counts_at_shutdown(NULL)
+#endif
 {
     // Initialize the mutex which synchronizes access to the do_shutdown variable
     pthread_mutex_init(&do_shutdown_mutex, NULL);
@@ -328,6 +385,13 @@ linux_thread_t::linux_thread_t(linux_thread_pool_t *parent_pool, int thread_id)
 linux_thread_t::~linux_thread_t() {
 #ifndef LEGACY_LINUX
     timer_handler.cancel_timer(perfmon_stats_timer);
+#endif
+
+#ifndef NDEBUG
+    // Save the coroutine counts before they're deleted, should be ready at shutdown
+    rassert(coroutine_counts_at_shutdown != NULL);
+    coroutine_counts_at_shutdown->clear();
+    coro_runtime.get_coroutine_counts(coroutine_counts_at_shutdown);
 #endif
 
     guarantee(pthread_mutex_destroy(&do_shutdown_mutex) == 0);
@@ -353,8 +417,15 @@ bool linux_thread_t::should_shut_down() {
     return result;
 }
 
+#ifndef NDEBUG
+void linux_thread_t::initiate_shut_down(std::map<std::string, size_t> &coroutine_counts) {
+#else
 void linux_thread_t::initiate_shut_down() {
+#endif
     pthread_mutex_lock(&do_shutdown_mutex);
+#ifndef NDEBUG
+    coroutine_counts_at_shutdown = &coroutine_counts;   
+#endif
     do_shutdown = true;
     shutdown_notify_event.write(1);
     pthread_mutex_unlock(&do_shutdown_mutex);

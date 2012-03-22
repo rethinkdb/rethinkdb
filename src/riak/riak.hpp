@@ -12,6 +12,7 @@
 #include "riak/structures.hpp"
 #include "btree/slice.hpp"
 #include "btree/operations.hpp"
+#include "buffer_cache/sequence_group.hpp"
 #include "riak/riak_value.hpp"
 #include "containers/buffer_group.hpp"
 
@@ -112,7 +113,11 @@ public:
 
         keyvalue_location_t<riak_value_t> kv_location;
         boost::scoped_ptr<transaction_t> txn;
-        get_value_read(slice, btree_key_buffer_t(key.begin(), key.end()).key(), order_token_t::ignore, &kv_location, txn);
+
+        // TODO b.s. sequence group. - this will probably crash
+        sequence_group_t seq_group(-1);
+
+        get_value_read(slice, &seq_group, btree_key_buffer_t(key.begin(), key.end()).key(), order_token_t::ignore, &kv_location, txn);
 
         kv_location.value->print(slice->cache()->get_block_size());
 
@@ -126,7 +131,7 @@ public:
         blob_acq_t acq;
         blob.expose_all(txn.get(), rwi_read, &buffer_group, &acq);
 
-        const_buffer_group_t::iterator it = buffer_group.begin(), end = buffer_group.end(); 
+        const_buffer_group_t::iterator it = buffer_group.begin();
 
         /* grab the content type */
         res.content_type.reserve(kv_location.value->content_type_len);
@@ -160,8 +165,11 @@ public:
             slice = create_slice(sm_key);
         }
 
+        // TODO b.s. sequence group - this will probably crash
+        sequence_group_t seq_group(-1);
+
         fake_key_modification_callback_t<riak_value_t> fake_cb;
-        value_txn_t<riak_value_t> txn(slice, btree_key_buffer_t(obj.key.begin(), obj.key.end()).key(), repli_timestamp_t::invalid, order_token_t::ignore, &fake_cb);
+        value_txn_t<riak_value_t> txn(slice, &seq_group, btree_key_buffer_t(obj.key.begin(), obj.key.end()).key(), repli_timestamp_t::invalid, order_token_t::ignore, &fake_cb);
 
         if (!txn.value()) {
             scoped_malloc<riak_value_t> tmp(MAX_RIAK_VALUE_SIZE);

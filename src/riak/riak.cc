@@ -36,8 +36,14 @@ btree_slice_t *riak_interface_t::get_slice(std::list<std::string> key) {
         //to recreate the slice
         standard_serializer_t *serializer = store_manager->get_store(key)->get_store_interface<standard_serializer_t>();
 
+        // TODO wtf is this, why are we getting a slice by key and creating a cache?
+        // TODO we use a fake cache bucket number in the cache_t constructor call below.
+        // TODO surely the cache's memory leaks!
+
+        int fake_bucket = -1;
+
         mirrored_cache_config_t config;
-        slice_map.insert(key, new btree_slice_t(new cache_t(serializer, &config)));
+        slice_map.insert(key, new btree_slice_t(new cache_t(serializer, &config, fake_bucket)));
 
         return &slice_map.at(key);
     } else {
@@ -59,7 +65,14 @@ btree_slice_t *riak_interface_t::create_slice(std::list<std::string> key) {
     mirrored_cache_static_config_t mc_static_config;
     mirrored_cache_config_t mc_config;
     cache_t::create(serializer, &mc_static_config);
-    cache_t *cache = new cache_t(serializer, &mc_config);
+
+    // TODO wtf don't we leak the cache_t?
+    // TODO wtf we're just creating a cache on the fly depending on key?  WTF WTF WTF (how does that _work_?)
+    // TODO we use a fake bucket here.
+
+    int fake_bucket = -1;
+
+    cache_t *cache = new cache_t(serializer, &mc_config, fake_bucket);
 
     btree_slice_t::create(cache);
     slice_map.insert(key, new btree_slice_t(cache));

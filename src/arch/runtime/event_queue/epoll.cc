@@ -121,9 +121,7 @@ void epoll_event_queue_t::run() {
 }
 
 epoll_event_queue_t::~epoll_event_queue_t() {
-    int res;
-    
-    res = close(epoll_fd);
+    UNUSED int res = close(epoll_fd);
     rassert_err(res == 0, "Could not close epoll_fd");
 }
 
@@ -137,7 +135,7 @@ void epoll_event_queue_t::watch_resource(fd_t resource, int watch_mode, linux_ev
     int res = epoll_ctl(epoll_fd, EPOLL_CTL_ADD, resource, &event);
     guarantee_err(res == 0, "Could not watch resource\n");
 
-    DEBUG_ONLY(events_requested[cb] = watch_mode);
+    DEBUG_ONLY_CODE(events_requested[cb] = watch_mode);
 }
 
 void epoll_event_queue_t::adjust_resource(fd_t resource, int watch_mode, linux_event_callback_t *cb) {
@@ -158,7 +156,7 @@ void epoll_event_queue_t::adjust_resource(fd_t resource, int watch_mode, linux_e
         }
     }
 
-    DEBUG_ONLY(events_requested[cb] = watch_mode);
+    DEBUG_ONLY_CODE(events_requested[cb] = watch_mode);
 }
 
 void epoll_event_queue_t::forget_resource(fd_t resource, linux_event_callback_t *cb) {
@@ -181,7 +179,7 @@ void epoll_event_queue_t::forget_resource(fd_t resource, linux_event_callback_t 
         }
     }
 
-    DEBUG_ONLY(events_requested.erase(events_requested.find(cb)));
+    DEBUG_ONLY_CODE(events_requested.erase(events_requested.find(cb)));
 }
 
 #endif

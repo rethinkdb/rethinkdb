@@ -38,24 +38,24 @@ buf_patch_t *buf_patch_t::load_patch(const char *source) {
 
         buf_patch_t* result = NULL;
         switch (operation_code) {
-	case OPER_MEMCPY:
-	    result = new memcpy_patch_t(block_id, patch_counter, source, remaining_length);
+        case OPER_MEMCPY:
+            result = new memcpy_patch_t(block_id, patch_counter, source, remaining_length);
             break;
-	case OPER_MEMMOVE:
-	    result = new memmove_patch_t(block_id, patch_counter, source, remaining_length);
+        case OPER_MEMMOVE:
+            result = new memmove_patch_t(block_id, patch_counter, source, remaining_length);
             break;
-	case OPER_LEAF_INSERT:
-	    result = new leaf_insert_patch_t(block_id, patch_counter, source, remaining_length);
+        case OPER_LEAF_INSERT:
+            result = new leaf_insert_patch_t(block_id, patch_counter, source, remaining_length);
             break;
-	case OPER_LEAF_REMOVE:
-	    result = new leaf_remove_patch_t(block_id, patch_counter, source, remaining_length);
+        case OPER_LEAF_REMOVE:
+            result = new leaf_remove_patch_t(block_id, patch_counter, source, remaining_length);
             break;
-	case OPER_LEAF_ERASE_PRESENCE:
-	    result = new leaf_erase_presence_patch_t(block_id, patch_counter, source, remaining_length);
+        case OPER_LEAF_ERASE_PRESENCE:
+            result = new leaf_erase_presence_patch_t(block_id, patch_counter, source, remaining_length);
             break;
-	default:
-	    guarantee_patch_format(false, "Unsupported patch operation code");
-	    return NULL;
+        default:
+            guarantee_patch_format(false, "Unsupported patch operation code");
+            return NULL;
         }
         result->set_block_sequence_id(applies_to_block_sequence_id);
         return result;
@@ -115,7 +115,9 @@ memcpy_patch_t::memcpy_patch_t(const block_id_t block_id, const patch_counter_t 
     guarantee_patch_format(data_length == sizeof(dest_offset) + sizeof(n) + n);
     src_buf = new char[n];
     memcpy(src_buf, data, n);
-    data += n;
+
+    // Uncomment if you have more to read.
+    // data += n;
 }
 
 void memcpy_patch_t::serialize_data(char* destination) const {
@@ -124,7 +126,9 @@ void memcpy_patch_t::serialize_data(char* destination) const {
     memcpy(destination, &n, sizeof(n));
     destination += sizeof(n);
     memcpy(destination, src_buf, n);
-    destination += n;
+
+    // Uncomment if you have more to write.
+    // destination += n;
 }
 uint16_t memcpy_patch_t::get_data_size() const {
     return sizeof(dest_offset) + sizeof(n) + n;
@@ -152,7 +156,9 @@ memmove_patch_t::memmove_patch_t(const block_id_t block_id, const patch_counter_
     src_offset = *reinterpret_cast<const uint16_t *>(data);
     data += sizeof(src_offset);
     n = *reinterpret_cast<const uint16_t *>(data);
-    data += sizeof(n);
+
+    // Uncomment if you have more to read.
+    // data += sizeof(n);
 }
 
 void memmove_patch_t::serialize_data(char* destination) const {
@@ -161,7 +167,9 @@ void memmove_patch_t::serialize_data(char* destination) const {
     memcpy(destination, &src_offset, sizeof(src_offset));
     destination += sizeof(src_offset);
     memcpy(destination, &n, sizeof(n));
-    destination += sizeof(n);
+
+    // Uncomment if you have more to write.
+    // destination += sizeof(n);
 }
 uint16_t memmove_patch_t::get_data_size() const {
     return sizeof(dest_offset) + sizeof(src_offset) + sizeof(n);

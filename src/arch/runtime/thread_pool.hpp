@@ -1,11 +1,14 @@
 #ifndef __ARCH_RUNTIME_THREAD_POOL_HPP__
 #define __ARCH_RUNTIME_THREAD_POOL_HPP__
 
+#include <map>
 #include <pthread.h>
 #include "config/args.hpp"
 #include "arch/runtime/event_queue.hpp"
 #include "arch/runtime/system_event.hpp"
 #include "arch/runtime/message_hub.hpp"
+#include "arch/runtime/coroutines.hpp"
+#include "arch/io/blocker_pool.hpp"
 #include "arch/timer.hpp"
 
 class linux_thread_t;
@@ -17,6 +20,10 @@ when a coro_runtime_t exists. It exists to take advantage of RAII. */
 struct coro_runtime_t {
     coro_runtime_t();
     ~coro_runtime_t();
+
+#ifndef NDEBUG
+    void get_coroutine_counts(std::map<std::string, size_t> *dest);
+#endif
 };
 
 
@@ -39,12 +46,20 @@ public:
     // have been started; it is used to start the server's activity.
     void run(linux_thread_message_t *initial_message);
 
+#ifndef NDEBUG
+    void enable_coroutine_summary();
+#endif
+
     // Shut down all the threads. Can be called from any thread.
     void shutdown();
 
     ~linux_thread_pool_t();
 
 private:
+#ifndef NDEBUG
+    bool coroutine_summary;
+#endif
+
     static void *start_thread(void*);
 
     static void interrupt_handler(int);
@@ -57,9 +72,35 @@ private:
     pthread_cond_t shutdown_cond;
     pthread_mutex_t shutdown_cond_mutex;
 
+    // The number of threads to allocate for handling blocking calls
+    static const int GENERIC_BLOCKER_THREAD_COUNT = 2;
+    blocker_pool_t* generic_blocker_pool;
+
+    template<class T>
+    struct generic_job_t :
+        public blocker_pool_t::job_t
+    {
+        void run() {
+            retval = fn();
+        }
+
+        void done() {
+            // Now that the function is done, resume execution of the suspended task
+            suspended->notify_sometime();
+        }
+
+        boost::function<T()> fn;
+        coro_t* suspended;
+        T retval;
+    };
+
 public:
     pthread_t pthreads[MAX_THREADS];
     linux_thread_t *threads[MAX_THREADS];
+
+    // Cooperatively run a blocking function call using the generic_blocker_pool
+    template<class T>
+    static T run_in_blocker_pool(boost::function<T()>);
 
     int n_threads;
     bool do_set_affinity;
@@ -73,6 +114,25 @@ public:
 private:
     DISABLE_COPYING(linux_thread_pool_t);
 };
+
+// Function to handle blocking calls in a separate thread pool
+// This should be used for any calls that cannot otherwise be made non-blocking
+template<class T>
+T linux_thread_pool_t::run_in_blocker_pool(boost::function<T()> fn)
+{
+    generic_job_t<T> job;
+    job.fn = fn;
+    job.suspended = coro_t::self();
+
+    rassert(thread_pool->generic_blocker_pool != NULL,
+            "thread_pool_t::run_in_blocker_pool called while generic_thread_pool uninitialized");
+    thread_pool->generic_blocker_pool->do_job(&job);
+
+    // Give up execution, to be resumed when the done callback is made
+    coro_t::wait();
+
+    return job.retval;
+}
 
 class linux_thread_t :
     public linux_event_callback_t,
@@ -94,7 +154,11 @@ public:
 
     void pump();   // Called by the event queue
     bool should_shut_down();   // Called by the event queue
+#ifndef NDEBUG
+    void initiate_shut_down(std::map<std::string, size_t> &coroutine_counts); // Can be called from any thread
+#else
     void initiate_shut_down(); // Can be called from any thread
+#endif
     void on_event(int events);
 
     rng_t thread_local_rng;
@@ -103,6 +167,10 @@ private:
     volatile bool do_shutdown;
     pthread_mutex_t do_shutdown_mutex;
     system_event_t shutdown_notify_event;
+
+#ifndef NDEBUG
+    std::map<std::string, size_t> *coroutine_counts_at_shutdown;
+#endif
 };
 
 #endif /* __ARCH_RUNTIME_THREAD_POOL_HPP__ */

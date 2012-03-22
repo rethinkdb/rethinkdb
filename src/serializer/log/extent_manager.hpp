@@ -12,6 +12,7 @@
 #include "config/args.hpp"
 #include "serializer/log/config.hpp"
 #include "containers/segmented_vector.hpp"
+#include <boost/ptr_container/ptr_vector.hpp>
 
 #define NULL_OFFSET off64_t(-1)
 
@@ -45,8 +46,7 @@ public:
     ~extent_manager_t();
 
 private:
-    unsigned int num_zones;
-    extent_zone_t *zones[MAX_FILE_ZONES];
+    boost::ptr_vector<extent_zone_t> zones;
     int next_zone;    /* Which zone to give the next extent from */
 
     extent_zone_t *zone_for_offset(off64_t offset);

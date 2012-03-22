@@ -433,7 +433,7 @@ void repli_stream_t::try_write(const void *data, size_t size) {
         block_pm_duration set_timer(&master_write);
         conn_->write_buffered(data, size);
     } catch (tcp_conn_t::write_closed_exc_t &e) {
-	(void)e;
+        (void) e;   // clang has problems with UNUSED in catch clause
 #ifndef REPLICATION_DEBUG
         debugf("try_write failed!\n");
 #endif
@@ -450,7 +450,7 @@ void repli_stream_t::flush() {
         mutex_t::acq_t ak(&outgoing_mutex_, true);
         conn_->flush_buffer_eventually();
     } catch (tcp_conn_t::write_closed_exc_t &e) {
-	(void)e;
+        (void) e;   // clang has problems with UNUSED in catch clause
         /* Ignore; see `repli_stream_t::try_write()`. */
     }
 }

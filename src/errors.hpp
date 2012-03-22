@@ -3,8 +3,6 @@
 
 #include <errno.h>
 #include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
 
 #ifdef __linux__
 #if defined __i386 || defined __x86_64
@@ -16,9 +14,24 @@
 
 
 #ifndef NDEBUG
-#define DEBUG_ONLY(expr) do { expr; } while (0)
+#define DEBUG_ONLY(...) __VA_ARGS__
+#define DEBUG_ONLY_CODE(expr) do { expr; } while (0)
 #else
-#define DEBUG_ONLY(expr) ((void)(0))
+#define DEBUG_ONLY(...)
+#define DEBUG_ONLY_CODE(expr) ((void)(0))
+#endif
+
+/* This macro needs to exist because gcc and icc disagree on how to number the
+ * attributes to methods. ICC does different number for methods and functions
+ * and it's too unwieldy to make programs use these macros so we're just going
+ * to disable them in icc.
+ * With this macro attribute number starts at 1. If it is a nonstatic method
+ * then "1" refers to the class pointer ("this").
+ * */
+#ifdef __ICC
+#define NON_NULL_ATTR(arg) 
+#else
+#define NON_NULL_ATTR(arg) __attribute__((nonnull(arg)))
 #endif
 
 /* Error handling
@@ -50,8 +63,14 @@
  * every single time it gets included.
  */
 
+#ifndef NDEBUG
+#define DEBUG_ONLY_VAR
+#else
+#define DEBUG_ONLY_VAR __attribute__((unused))
+#endif
+
 #define UNUSED __attribute__((unused))
-#define MUSTUSE __attribute__((warn_unused_result))
+#define MUST_USE __attribute__((warn_unused_result))
 
 // TODO: Abort probably is not the right thing to do here.
 #define fail_due_to_user_error(msg, ...) do {                           \
@@ -121,13 +140,11 @@ void install_generic_crash_handler();
 // failures will be forwarded to the RethinkDB error mechanism.
 #define BOOST_ENABLE_ASSERT_HANDLER
 namespace boost {
-    void assertion_failed(char const * expr, char const * function, char const * file, long line);
+void assertion_failed(char const * expr, char const * function, char const * file, long line);  // NOLINT(runtime/int)
 }
 
-void print_backtrace(FILE *out = stderr, bool use_addr2line = true);
 
-
-// Put this in a private: section.
+// put this in a private: section.
 #define DISABLE_COPYING(T)                      \
     T(const T&);                                \
     void operator=(const T&)

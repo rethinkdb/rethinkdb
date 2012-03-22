@@ -1,6 +1,8 @@
 #include "unittest/gtest.hpp"
 
 #include "utils.hpp"
+#include "arch/address.hpp"
+#include "unittest/unittest_utils.hpp"
 
 namespace unittest {
 
@@ -23,7 +25,7 @@ TEST(UtilsTest, StrtofooStrict) {
     char test3[] = "102834728273347433844";
     char test4[] = "123lskdjf";
 
-    char *end;
+    const char *end;
 
     ASSERT_EQ(0, strtoul_strict(test1, &end, 10));
     ASSERT_EQ(1024, strtoul_strict(test2, &end, 10));
@@ -56,6 +58,11 @@ TEST(UtilsTest, PreciseTime) {
 
     EXPECT_EQ(std::string("2010-05-04T04:04:04.000102"), std::string(buf, buf + strnlen(buf, 100)));
 
+    struct timespec zerotime;
+    zerotime.tv_sec = 0;
+    zerotime.tv_nsec = 0;
+    set_precise_time_offset(zerotime, 0);
+
     struct timespec timespec;
     timespec.tv_sec = 1203731445;
     timespec.tv_nsec = 1203745;
@@ -65,6 +72,7 @@ TEST(UtilsTest, PreciseTime) {
 
     EXPECT_EQ(std::string("2008-02-23T01:50:45.001203"), std::string(buf, buf + strnlen(buf, 100)));
     EXPECT_EQ(format_precise_time(precise_time), std::string(buf, buf + strnlen(buf, 100)));
+    initialize_precise_time();
 }
 
 TEST(UtilsTest, SizedStrcmp)
@@ -79,6 +87,20 @@ TEST(UtilsTest, SizedStrcmp)
     ASSERT_EQ(0, sized_strcmp(test1, 14, test1, 14));
     ASSERT_EQ(0, sized_strcmp(test1, 0, test1, 0));
     ASSERT_NE(0, sized_strcmp(test3, 11, test1, 14));
+}
+
+/* This doesn't quite belong in `utils_test.cc`, but I don't want to create a
+new file just for it. */
+
+void run_ip_address_test() {
+    ip_address_t test("111.112.113.114");
+    EXPECT_EQ(ntohl(0x6F707172), test.ip_as_uint32());
+}
+
+TEST(UtilsTest, IPAddress)
+{
+    // Since ip_address_t may block, it requires a thread_pool_t to exist
+    run_in_thread_pool(&run_ip_address_test);
 }
 
 }  // namespace unittest

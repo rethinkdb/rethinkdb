@@ -1,5 +1,5 @@
 #ifndef __BUFFER_CACHE_MIRRORED_CONFIG_HPP__
-#define	__BUFFER_CACHE_MIRRORED_CONFIG_HPP__
+#define __BUFFER_CACHE_MIRRORED_CONFIG_HPP__
 
 #include "config/args.hpp"
 #include "utils.hpp"
@@ -13,7 +13,7 @@
 
 struct mirrored_cache_config_t {
     mirrored_cache_config_t() {
-        max_size = (long long int)(8 * MEGABYTE); // This should be overwritten
+        max_size = 8 * MEGABYTE; // This should be overwritten
             // at a place where more information about the system and use of the cache is available.
         wait_for_flush = false;
         flush_timer_ms = DEFAULT_FLUSH_TIMER_MS;
@@ -26,7 +26,7 @@ struct mirrored_cache_config_t {
     }
 
     // Max amount of memory that will be used for the cache, in bytes.
-    long long max_size;
+    int64_t max_size;
 
     // If wait_for_flush is true, then write operations will not return until after the data is
     // safely sitting on the disk.
@@ -39,11 +39,11 @@ struct mirrored_cache_config_t {
 
     // max_dirty_size is the most unsaved data that is allowed in memory before the cache will
     // throttle write transactions. It's in bytes.
-    long long max_dirty_size;
+    int64_t max_dirty_size;
 
     // flush_dirty_size is the amount of unsaved data that will trigger an immediate flush. It
     // should be much less than max_dirty_size. It's in bytes.
-    long long flush_dirty_size;
+    int64_t flush_dirty_size;
 
     // flush_waiting_threshold is the maximal number of transactions which can wait
     // for a sync before a flush gets triggered on any single slice. As transactions only wait for

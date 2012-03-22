@@ -17,7 +17,7 @@
 
 struct backfill_traversal_helper_t : public btree_traversal_helper_t, public home_thread_mixin_t {
 
-    void process_a_leaf(transaction_t *txn, buf_t *leaf_node_buf, const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null) {
+    void process_a_leaf(transaction_t *txn, buf_lock_t *leaf_node_buf, const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null) {
         assert_thread();
         const leaf_node_t *data = reinterpret_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
 
@@ -47,11 +47,11 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         leaf::dump_entries_since_time(sizer_, data, since_when_, maximum_possible_timestamp_, &x);
     }
 
-    void postprocess_internal_node(UNUSED buf_t *internal_node_buf) {
+    void postprocess_internal_node(UNUSED buf_lock_t *internal_node_buf) {
         assert_thread();
         // do nothing
     }
-    void postprocess_btree_superblock(UNUSED buf_t *superblock_buf) {
+    void postprocess_btree_superblock(UNUSED buf_lock_t *superblock_buf) {
         assert_thread();
         // do nothing
     }
@@ -160,7 +160,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
 };
 
 
-void do_agnostic_btree_backfill(value_sizer_t<void> *sizer, btree_slice_t *slice, const key_range_t *key_range, repli_timestamp_t since_when, repli_timestamp_t maximum_possible_timestamp, const boost::shared_ptr<cache_account_t>& backfill_account, agnostic_backfill_callback_t *callback, order_token_t token) {
+void do_agnostic_btree_backfill(value_sizer_t<void> *sizer, btree_slice_t *slice, sequence_group_t *seq_group, const key_range_t *key_range, repli_timestamp_t since_when, repli_timestamp_t maximum_possible_timestamp, const boost::shared_ptr<cache_account_t>& backfill_account, agnostic_backfill_callback_t *callback, order_token_t token) {
     rassert(coro_t::self());
 
     backfill_traversal_helper_t helper(callback, since_when, maximum_possible_timestamp, sizer, key_range);
@@ -169,7 +169,7 @@ void do_agnostic_btree_backfill(value_sizer_t<void> *sizer, btree_slice_t *slice
     // TODO: Why are we using a write_mode source here?  There must be a reason...
     order_token_t begin_transaction_token = slice->pre_begin_transaction_write_mode_source_.check_in(token.tag() + "+begin_transaction_token").with_read_mode();
 
-    transaction_t txn(slice->cache(), rwi_read_sync);
+    transaction_t txn(slice->cache(), seq_group, rwi_read_sync, 0, repli_timestamp_t::distant_past);
 
     txn.set_token(slice->post_begin_transaction_checkpoint_.check_through(begin_transaction_token));
 
@@ -218,11 +218,11 @@ public:
 };
 
 
-void btree_backfill(btree_slice_t *slice, repli_timestamp_t since_when, repli_timestamp_t maximum_possible_timestamp, const boost::shared_ptr<cache_account_t>& backfill_account, backfill_callback_t *callback, order_token_t token) {
+void btree_backfill(btree_slice_t *slice, sequence_group_t *seq_group, repli_timestamp_t since_when, repli_timestamp_t maximum_possible_timestamp, const boost::shared_ptr<cache_account_t>& backfill_account, backfill_callback_t *callback, order_token_t token) {
     agnostic_memcached_backfill_callback_t agnostic_cb(callback);
 
     value_sizer_t<memcached_value_t> sizer(slice->cache()->get_block_size());
     store_key_t k;
     key_range_t range(key_range_t::none, k, key_range_t::none, k);
-    do_agnostic_btree_backfill(&sizer, slice, &range, since_when, maximum_possible_timestamp, backfill_account, &agnostic_cb, token);
+    do_agnostic_btree_backfill(&sizer, slice, seq_group, &range, since_when, maximum_possible_timestamp, backfill_account, &agnostic_cb, token);
 }

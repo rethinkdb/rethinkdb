@@ -13,14 +13,15 @@
 class cond_t;
 class timer_token_t;
 class mc_cache_t;
-class mc_buf_t;
+class mc_buf_lock_t;
 class mc_inner_buf_t;
 class mc_transaction_t;
 
 class writeback_t
 {
+    // TODO: These typedefs are horrible, since globally they could be different, in other files.
     typedef mc_cache_t cache_t;
-    typedef mc_buf_t buf_t;
+    typedef mc_buf_lock_t buf_lock_t;
     typedef mc_inner_buf_t inner_buf_t;
     typedef mc_transaction_t transaction_t;
     
@@ -87,7 +88,7 @@ public:
         bool recency_dirty;
 
     private:
-	DISABLE_COPYING(local_buf_t);
+        DISABLE_COPYING(local_buf_t);
     };
 
     /* User-controlled settings. */
@@ -172,7 +173,7 @@ public:
     bool can_read_ahead_block_be_accepted(block_id_t block_id);
 
     // Concurrent flush helpers
-    class buf_writer_t;      // public so that mc_buf_t can declare it a friend
+    class buf_writer_t;      // public so that mc_buf_lock_t can declare it a friend
 
 private:
     struct flush_state_t;

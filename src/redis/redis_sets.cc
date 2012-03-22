@@ -1,8 +1,6 @@
-#ifndef NO_REDIS
 #include "redis/redis_util.hpp"
 #include "btree/iteration.hpp"
 #include <boost/bind.hpp>
-#include <iostream>
 
 // Set utilities
 struct set_set_oper_t : set_oper_t {
@@ -10,14 +8,14 @@ struct set_set_oper_t : set_oper_t {
         set_oper_t(key, btree, timestamp, otok)
     { 
         redis_set_value_t *value = reinterpret_cast<redis_set_value_t *>(location.value.get());
-        if(value == NULL) {
+        if (value == NULL) {
             scoped_malloc<redis_value_t> smrsv(MAX_BTREE_VALUE_SIZE);
             location.value.swap(smrsv);
             location.value->set_redis_type(REDIS_SET);
             value = reinterpret_cast<redis_set_value_t *>(location.value.get());
             value->get_root() = NULL_BLOCK_ID;
             value->get_sub_size() = 0;
-        } else if(value->get_redis_type() != REDIS_SET) {
+        } else if (value->get_redis_type() != REDIS_SET) {
             throw "ERR Operation against key holding the wrong kind of value";
         }
 
@@ -27,7 +25,7 @@ struct set_set_oper_t : set_oper_t {
     bool add_member(std::string &member) {
         find_member mem(this, member);
         
-        if(mem.loc.value.get() == NULL) {
+        if (mem.loc.value.get() == NULL) {
             scoped_malloc<redis_nested_set_value_t> smrsv(0);
             mem.loc.value.swap(smrsv);
             mem.apply_change();
@@ -40,7 +38,7 @@ struct set_set_oper_t : set_oper_t {
     bool remove_member(std::string &member) {
         find_member mem(this, member);
 
-        if(mem.loc.value.get() == NULL) {
+        if (mem.loc.value.get() == NULL) {
             return false;
         }
 
@@ -70,13 +68,18 @@ protected:
             got_superblock_t nested_superblock;
             nested_superblock.sb.swap(nested_btree_sb);
 
-            find_keyvalue_location_for_write(ths->txn.get(), &nested_superblock, nested_key.key(), &loc);
+            eviction_priority_t root_eviction_priority = FAKE_EVICTION_PRIORITY;
+
+            find_keyvalue_location_for_write(ths->txn.get(), &nested_superblock, nested_key.key(), &loc, &root_eviction_priority);
         }
 
         void apply_change() {
             // TODO hook up timestamp once Tim figures out what to do with the timestamp
             fake_key_modification_callback_t<redis_nested_set_value_t> fake_cb;
-            apply_keyvalue_change(ths->txn.get(), &loc, nested_key.key(), repli_timestamp_t::invalid /*ths->timestamp*/, &fake_cb);
+
+            eviction_priority_t fake_eviction_priority = FAKE_EVICTION_PRIORITY;
+
+            apply_keyvalue_change(ths->txn.get(), &loc, nested_key.key(), repli_timestamp_t::invalid /*ths->timestamp*/, &fake_cb, &fake_eviction_priority);
             virtual_superblock_t *sb = reinterpret_cast<virtual_superblock_t *>(loc.sb.get());
             ths->root = sb->get_root_block_id();
         }
@@ -95,9 +98,9 @@ struct set_read_oper_t : read_oper_t {
         btree(btr)
     {
         value = reinterpret_cast<redis_set_value_t *>(location.value.get());
-        if(!value) {
+        if (!value) {
             root = NULL_BLOCK_ID;
-        } else if(value->get_redis_type() != REDIS_SET) {
+        } else if (value->get_redis_type() != REDIS_SET) {
             throw "ERR Operation against key holding the wrong kind of value";
         } else {
             root = value->get_root();
@@ -111,7 +114,10 @@ struct set_read_oper_t : read_oper_t {
 
         btree_key_buffer_t nested_key(member);
         keyvalue_location_t<redis_nested_set_value_t> loc;
-        find_keyvalue_location_for_read(txn.get(), &nested_superblock, nested_key.key(), &loc);
+
+        eviction_priority_t fake_eviction_priority = FAKE_EVICTION_PRIORITY;
+
+        find_keyvalue_location_for_read(txn.get(), &nested_superblock, nested_key.key(), &loc, fake_eviction_priority);
         return (loc.value.get() != NULL);
     }
 
@@ -158,8 +164,8 @@ SHARD_W(sadd)
 EXECUTE_W(sadd) {
     int count = 0;
     set_set_oper_t oper(one[0], btree, timestamp, otok);
-    for(std::vector<std::string>::iterator iter = one.begin() + 1; iter != one.end(); ++iter) {
-        if(oper.add_member(*iter)) {
+    for (std::vector<std::string>::iterator iter = one.begin() + 1; iter != one.end(); ++iter) {
+        if (oper.add_member(*iter)) {
             count++;
         }
     }
@@ -175,7 +181,7 @@ SHARD_R(scard)
 EXECUTE_R(scard) {
     set_read_oper_t oper(one, btree, otok);
     redis_set_value_t *value = reinterpret_cast<redis_set_value_t *>(oper.location.value.get());
-    if(value == NULL) return int_response(0);
+    if (value == NULL) return int_response(0);
     return int_response(value->get_sub_size());
 }
 
@@ -191,7 +197,7 @@ EXECUTE_R(sdiff) {
         new merge_ordered_data_iterator_t<std::string>();
 
     // Add each set iterator to the merged data iterator
-    for(std::vector<std::string>::iterator iter = one.begin() + 1; iter != one.end(); ++iter) {
+    for (std::vector<std::string>::iterator iter = one.begin() + 1; iter != one.end(); ++iter) {
         set_read_oper_t oper(*iter, btree, otok);
         boost::shared_ptr<one_way_iterator_t<std::string> > set_iter = oper.iterator();
         right->add_mergee(set_iter);
@@ -209,9 +215,9 @@ EXECUTE_R(sdiff) {
     diff_filter_iterator_t<std::string> filter(left, right);
 
     std::vector<std::string> result;
-    while(true) {
+    while (true) {
         boost::optional<std::string> next = filter.next();
-        if(!next) break;
+        if (!next) break;
 
         result.push_back(next.get());
     }
@@ -232,7 +238,7 @@ EXECUTE_R(sinter) {
 
     // Add each set iterator to the merged data iterator
     std::list<set_read_oper_t *> opers;
-    for(std::vector<std::string>::iterator iter = one.begin(); iter != one.end(); ++iter) {
+    for (std::vector<std::string>::iterator iter = one.begin(); iter != one.end(); ++iter) {
         set_read_oper_t *oper = new set_read_oper_t(*iter, btree, otok);
         opers.push_back(oper);
         boost::shared_ptr<one_way_iterator_t<std::string> > set_iter = oper->iterator();
@@ -243,15 +249,15 @@ EXECUTE_R(sinter) {
     repetition_filter_iterator_t<std::string> filter(merged, one.size());
 
     std::vector<std::string> result;
-    while(true) {
+    while (true) {
         boost::optional<std::string> next = filter.next();
-        if(!next) break;
+        if (!next) break;
 
         result.push_back(next.get());
     }
 
     // Delete opers
-    for(std::list<set_read_oper_t *>::iterator iter = opers.begin(); iter != opers.end(); ++iter) {
+    for (std::list<set_read_oper_t *>::iterator iter = opers.begin(); iter != opers.end(); ++iter) {
         delete *iter;
     }
 
@@ -276,12 +282,14 @@ EXECUTE_R(smembers) {
 
     std::vector<std::string> result;
     boost::shared_ptr<one_way_iterator_t<std::string> > iter = oper.iterator();
-    while(true) {
+    while (true) {
         boost::optional<std::string> mem = iter->next();
-        if(mem) {
+        if (mem) {
             std::string mem_str = mem.get();
             result.push_back(mem_str);
-        } else break;
+        } else {
+            break;
+        }
     }
 
     return read_response_t(new multi_bulk_result_t(result));
@@ -301,8 +309,8 @@ EXECUTE_W(srem) {
     set_set_oper_t oper(one[0], btree, timestamp, otok);
 
     int count = 0;
-    for(std::vector<std::string>::iterator iter = one.begin() + 1; iter != one.end(); ++iter) {
-        if(oper.remove_member(*iter))
+    for (std::vector<std::string>::iterator iter = one.begin() + 1; iter != one.end(); ++iter) {
+        if (oper.remove_member(*iter))
             ++count;
     }
 
@@ -323,7 +331,7 @@ EXECUTE_R(sunion) {
 
     // Add each set iterator to the merged data iterator
     std::list<set_read_oper_t *> opers;
-    for(std::vector<std::string>::iterator iter = one.begin(); iter != one.end(); ++iter) {
+    for (std::vector<std::string>::iterator iter = one.begin(); iter != one.end(); ++iter) {
         set_read_oper_t *oper = new set_read_oper_t(*iter, btree, otok);
         boost::shared_ptr<one_way_iterator_t<std::string> > set_iter = oper->iterator();
         merged->add_mergee(set_iter);
@@ -333,15 +341,15 @@ EXECUTE_R(sunion) {
     unique_filter_iterator_t<std::string> filter(merged);
 
     std::vector<std::string> result;
-    while(true) {
+    while (true) {
         boost::optional<std::string> next = filter.next();
-        if(!next) break;
+        if (!next) break;
 
         result.push_back(next.get());
     }
 
     // Delete opers
-    for(std::list<set_read_oper_t *>::iterator iter = opers.begin(); iter != opers.end(); ++iter) {
+    for (std::list<set_read_oper_t *>::iterator iter = opers.begin(); iter != opers.end(); ++iter) {
         delete *iter;
     }
 
@@ -349,4 +357,3 @@ EXECUTE_R(sunion) {
 }
 
 WRITE(sunionstore)
-#endif //#ifndef NO_REDIS

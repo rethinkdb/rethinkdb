@@ -15,6 +15,7 @@
 
 #include <boost/crc.hpp>
 #include <stddef.h>
+#include <string.h>
 
 #include "arch/types.hpp"
 #include "concurrency/mutex.hpp"
@@ -151,13 +152,9 @@ private:
     // Just some compartmentalization to make this mildly cleaner.
     struct startup {
         /* these are only used in the beginning when we want to find the metablock */
-        crc_metablock_t *mb_buffer_last;
         metablock_version_t version;
     } startup_values;
         
-    // swaps &mb_buffer and &mb_buffer_last.
-    void swap_buffers();
-
     extent_manager_t *extent_manager;
     
     std::vector<off64_t> metablock_offsets;

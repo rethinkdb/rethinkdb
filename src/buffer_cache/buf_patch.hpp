@@ -1,5 +1,5 @@
 #ifndef __BUF_PATCH_HPP__
-#define	__BUF_PATCH_HPP__
+#define __BUF_PATCH_HPP__
 
 #include <string>
 
@@ -83,7 +83,7 @@ public:
         return block_id;
     }
 
-    // This is called from buf_t
+    // This is called from buf_lock_t
     virtual void apply_to_buf(char* buf_data, block_size_t block_size) = 0;
 
     bool applies_before(const buf_patch_t *p) const;
@@ -161,5 +161,5 @@ private:
     uint16_t n;
 };
 
-#endif	/* __BUF_PATCH_HPP__ */
+#endif /* __BUF_PATCH_HPP__ */
 

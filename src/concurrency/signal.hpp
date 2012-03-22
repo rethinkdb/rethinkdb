@@ -1,6 +1,9 @@
 #ifndef __CONCURRENCY_SIGNAL_HPP__
 #define __CONCURRENCY_SIGNAL_HPP__
 
+#include "errors.hpp"
+#include <boost/function.hpp>
+
 #include "concurrency/pubsub.hpp"
 #include "utils.hpp"
 

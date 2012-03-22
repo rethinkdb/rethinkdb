@@ -41,6 +41,13 @@ RUN_FILE?=rethinkdb_data
 VALGRIND_FLAGS?=--leak-check=full --db-attach=yes --show-reachable=yes --suppressions=../scripts/rethinkdb-valgrind-suppressions.supp
 CALLGRIND_FLAGS?=--simulate-cache=yes --simulate-wb=yes --simulate-hwpref=yes --cacheuse=yes --collect-jumps=yes
 
+COMPILER?=gcc
+override COMPILER:=$(shell echo $(COMPILER) | tr '[:lower:]' '[:upper:]')
+SUPPORTED_COMPILERS:=GCC CLANG INTEL
+ifneq ($(COMPILER),$(filter $(COMPILER),$(SUPPORTED_COMPILERS)))
+$(error Unknown compiler: $(COMPILER). The supported compilers are: $(SUPPORTED_COMPILERS))
+endif
+
 # Set SYMBOLS to 1 to enable symbols, even in release mode
 SYMBOLS?=0
 
@@ -51,7 +58,6 @@ SEMANTIC_SERIALIZER_CHECK?=0
 MOCK_CACHE_CHECK?=0
 VERBOSE?=0
 UNIT_TESTS?=$(DEBUG)
-NO_REDIS?=1
 
 # Set TRIAL to 1 to build a 21-day trial version. If you want a different number of days, set TIMEBOMB to the number of days instead.
 TRIAL?=0
@@ -81,27 +87,22 @@ RPM_PACKAGE_DIR:=$(PACKAGES_DIR)/rpm
 DEB_PACKAGE_DIR:=$(PACKAGES_DIR)/deb
 
 
-# Define configuration variables
-ifeq ($(COMPILER),CLANG)
-CXX:=clang
-CXXDEP:=clang
-else
-ifeq ($(COMPILER),INTEL)
-CXX:=icc
-CXXDEP:=icc
-else
-CXX:=g++
-CXXDEP:=g++
-endif
-endif
 
 ifeq ($(COMPILER),CLANG)
-LDFLAGS:=-Wl,--no-as-needed -lpthread -lrt -laio
+CXX:=clang
+else ifeq ($(COMPILER),INTEL)
+CXX:=icc
+endif
+
+
+ifeq ($(COMPILER),CLANG)
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lQtCore -lstdc++ -lm
 else
 ifeq ($(COMPILER),INTEL)
-LDFLAGS:= -B/opt/intel/bin -lpthread -lrt -laio -lstdc++
+LDFLAGS:= -B/opt/intel/bin -pthread -lrt -laio -lQtCore -lstdc++
 else
-LDFLAGS:=-Wl,--no-as-needed -lpthread -lrt -laio
+# GCC
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lQtCore
 endif
 endif
 
@@ -109,7 +110,7 @@ STATIC_LIBRARIES:=boost_serialization
 
 CXXFLAGS?=
 
-CXXFLAGS+=-I$(SOURCE_DIR) -I/usr/include/qt4 -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source/JavaScriptCore/ForwardingHeaders -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source/JavaScriptCore 
+CXXFLAGS+=-I$(SOURCE_DIR) -I/usr/include/qt4 -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source/JavaScriptCore/ForwardingHeaders -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source/JavaScriptCore -pthread
 CXXFLAGS+="-DPRODUCT_NAME=\"$(PRODUCT_NAME)\""
 
 ifeq ($(SOLO),1)
@@ -124,7 +125,7 @@ ifeq ($(COMPILER), INTEL)
 CXXFLAGS+=-std=gnu++98 -w1 -ftls-model=local-dynamic
 else
 ifeq ($(COMPILER), CLANG)
-CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default
+CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-mismatched-tags
 else
 CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default
 endif
@@ -132,6 +133,12 @@ endif
 
 ifeq ($(AGRESSIVE_BUF_UNLOADING),1)
 CXXFLAGS+=-DAGRESSIVE_BUF_UNLOADING=1
+endif
+
+ifeq ($(COMPILER),INTEL)
+IGNORE_SOME_ICC_LD_WARNINGS?=1
+else
+IGNORE_SOME_ICC_LD_WARNINGS?=0
 endif
 
 STRIP_ON_INSTALL?=1
@@ -234,10 +241,6 @@ BUILD_DIR:=$(BUILD_DIR)-valgrind
 NO_TCMALLOC:=1
 endif
 
-ifeq ($(NO_REDIS),1)
-CXXFLAGS+=-DNO_REDIS
-endif
-
 PROTO_DIR:=$(BUILD_DIR)/proto
 CXXFLAGS += -I$(PROTO_DIR)
 
@@ -246,13 +249,19 @@ STATIC_LIBRARIES+=tcmalloc_minimal
 endif
 
 # look for the static library in the same directory as the .so file
-STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }')) $(EXTERNAL_SOURCE_DIR)/WebKit/WebKitBuild/Release/JavaScriptCore/release/libjscore.a /usr/lib/libQtCore.so.4
+STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }')) $(EXTERNAL_SOURCE_DIR)/WebKit/WebKitBuild/Release/JavaScriptCore/release/libjscore.a
+
+#  /usr/lib/x86_64-linux-gnu/libQtCore.so.4
 
 # Should makefile be noisy?
 ifeq ($(VERBOSE),1)
 QUIET:=
 else
+ifeq ($(TIMINGS),1)
+QUIET:=@ time
+else
 QUIET:=@
+endif
 endif
 
 # googletest flags
@@ -548,7 +557,14 @@ $(BUILD_DIR)/$(SERVER_EXEC_NAME): $(OBJS) $(BUILD_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    LD $@"
 endif
+ifeq ($(IGNORE_SOME_ICC_LD_WARNINGS),0)
 	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_EXEC_OBJS) $(STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME)
+else
+# The following line runs CXX in linking mode (supplying only the object files and libraries) and then
+# pass the output through a filter which filters out bogus (?) icc-related problems.
+# FIXME: figure out why we get these problems
+	$(QUIET) ($(CXX) $(LDFLAGS) $(SERVER_EXEC_OBJS) $(STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME) 2>&1 >&3 | (grep -v "warning: relocation refers to discarded section" || true) >&2) 3>&1
+endif
 ifeq ($(NO_TCMALLOC),0)
 	@objdump -T $(BUILD_DIR)/$(SERVER_EXEC_NAME) | c++filt | grep -q 'tcmalloc::\|google_malloc' || \
 		(echo "    Failed to link in TCMalloc. Either install it, or make with NO_TCMALLOC=1." && \
@@ -564,7 +580,15 @@ $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME): $(OBJS) $(BUILD_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    LD $@"
 endif
+ifeq ($(IGNORE_SOME_ICC_LD_WARNINGS),0)
 	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_UNIT_TEST_OBJS) $(STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
+else
+# Note: that is the copy of the problem description that we have above in server linking section.
+# The following line runs CXX in linking mode (supplying only the object files and libraries) and then
+# pass the output through a filter which filters out bogus (?) icc-related problems.
+# FIXME: figure out why we get these problems
+	$(QUIET) ($(CXX) $(LDFLAGS) $(SERVER_UNIT_TEST_OBJS) $(STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) 2>&1 >&3 | (grep -v "warning: relocation refers to discarded section" || true) >&2) 3>&1
+endif
 
 $(BUILD_DIR)/$(START_DB_NAME):
 	$(QUIET) cp $(SCRIPTS_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(START_DB_NAME)
@@ -624,6 +648,9 @@ tags:
 cscope:
 	$(QUIET) cscope -bR -f $(CSCOPE_XREF)
 
+analyze: $(SOURCES)
+	$(QUIET) clang --analyze $(CXXFLAGS) $(SOURCES)
+
 style:
 	$(QUIET) find . -name \*.cc -o -name \*.hpp -o -name \*.tcc | xargs ../scripts/cpplint --verbose 2 --filter=-whitespace/end_of_line,-whitespace/parens,-whitespace/line_length,-readability/casting,-whitespace/braces,-readability/todo,-legal/copyright,-whitespace/comments,-build/include,-whitespace/labels,-runtime/references,-whitespace/blank_line,-readability/function 2>&1 | grep -v Done\ processing
 
@@ -675,7 +702,7 @@ ifeq ($(VERBOSE),0)
 	@echo "    DEP $@"
 endif
 	$(QUIET) mkdir -p $(dir $@)
-	$(QUIET) $(CXXDEP) $(CXXFLAGS) -M -MQ $(OBJ_DIR)/$*.o -MQ $@ $< > $@
+	$(QUIET) $(CXX) $(CXXFLAGS) -M -MQ $(OBJ_DIR)/$*.o -MQ $@ $< > $@
 
 # Without this, the proto headers get generated to build the .d files, then are removed as
 # intermediate files; then the .d files are read in, and some depend on the proto headers, so they
@@ -683,7 +710,7 @@ endif
 # bug in GNU Make, possibly a bug in our Makefile.
 .SECONDARY: $(PROTO_HEADERS)
 
-NO_DEPS_TARGETS:=clean depclean tags cscope style
+NO_DEPS_TARGETS:=clean depclean tags analyze cscope style
 # Include the dependencies into the makefile so that they take effect
 ifneq (,$(if $(MAKECMDGOALS),$(filter-out $(NO_DEPS_TARGETS),$(MAKECMDGOALS)),non-empty-placeholder))
 -include $(DEPS)

@@ -9,8 +9,8 @@
 /* The pool disk manager uses a thread pool in conjunction with synchronous
 (blocking) IO calls to asynchronously run IO requests. */
 
-struct pool_diskmgr_t
-{
+class pool_diskmgr_t {
+public:
     struct action_t : private blocker_pool_t::job_t {
 
         void make_write(fd_t f, const void *b, size_t c, off_t o) {

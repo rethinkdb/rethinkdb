@@ -3,6 +3,7 @@
 #include "unittest/unittest_utils.hpp"
 #include "buffer_cache/blob.hpp"
 #include "buffer_cache/buffer_cache.hpp"
+#include "buffer_cache/sequence_group.hpp"
 #include "containers/buffer_group.hpp"
 
 namespace unittest {
@@ -51,30 +52,30 @@ public:
     }
 
     void check_normalization(transaction_t *txn) {
-	int64_t size = expected_.size();
-	size_t rs = blob_.refsize(txn->get_cache()->get_block_size());
-	if (size < 251) {
-	    ASSERT_EQ(1 + size, rs);
-	} else if (size <= 4080) {
-	    ASSERT_EQ(1 + 8 + 8 + 4, rs);
-	} else if (size <= int64_t(4080 * ((250 - 8 - 8) / sizeof(block_id_t)))) {
-	    if (rs != 1 + 8 + 8 + 4) {
-		ASSERT_LE(1 + 8 + 8 + 4 * ceil_divide(size, 4080), rs);
-		ASSERT_GE(1 + 8 + 8 + 4 * (1 + ceil_divide(size - 1, 4080)), rs);
-	    } else {
-		ASSERT_GT(size, 4080 * ((250 - 8 - 8) / sizeof(block_id_t)) - 4080 + 1);
-	    }
-	} else if (size <= int64_t(4080 * (4080 / 4) * ((250 - 8 - 8) / sizeof(block_id_t)))) {
-	    ASSERT_LE(1 + 8 + 8 + 4 * ceil_divide(size, 4080 * (4080 / 4)), rs);
-	    ASSERT_GE(1 + 8 + 8 + 4 * (1 + ceil_divide(size - 1, 4080 * (4080 / 4))), rs);
-	} else {
-	    ASSERT_GT(0, size);
-	}
+        int64_t size = expected_.size();
+        size_t rs = blob_.refsize(txn->get_cache()->get_block_size());
+        if (size < 251) {
+            ASSERT_EQ(1 + size, rs);
+        } else if (size <= 4080) {
+            ASSERT_EQ(1 + 8 + 8 + 4, rs);
+        } else if (size <= int64_t(4080 * ((250 - 8 - 8) / sizeof(block_id_t)))) {
+            if (rs != 1 + 8 + 8 + 4) {
+                ASSERT_LE(1 + 8 + 8 + 4 * ceil_divide(size, 4080), rs);
+                ASSERT_GE(1 + 8 + 8 + 4 * (1 + ceil_divide(size - 1, 4080)), rs);
+            } else {
+                ASSERT_GT(size, 4080 * ((250 - 8 - 8) / sizeof(block_id_t)) - 4080 + 1);
+            }
+        } else if (size <= int64_t(4080 * (4080 / 4) * ((250 - 8 - 8) / sizeof(block_id_t)))) {
+            ASSERT_LE(1 + 8 + 8 + 4 * ceil_divide(size, 4080 * (4080 / 4)), rs);
+            ASSERT_GE(1 + 8 + 8 + 4 * (1 + ceil_divide(size - 1, 4080 * (4080 / 4))), rs);
+        } else {
+            ASSERT_GT(0, size);
+        }
     }
 
     void check(transaction_t *txn) {
         check_region(txn, 0, expected_.size());
-	check_normalization(txn);
+        check_normalization(txn);
     }
 
     void append(transaction_t *txn, const std::string& x) {
@@ -183,9 +184,12 @@ protected:
 private:
     void small_value_test(cache_t *cache) {
         SCOPED_TRACE("small_value_test");
-        block_size_t block_size = cache->get_block_size();
+        UNUSED block_size_t block_size = cache->get_block_size();
 
-        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past);
+        sequence_group_t seq_group(1);
+        seq_group.slice_groups[cache->get_slice_num()].fifo.rethread(cache->home_thread());
+
+        transaction_t txn(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
 
         blob_tracker_t tk(251);
 
@@ -218,7 +222,10 @@ private:
         SCOPED_TRACE("small_value_boundary_test");
         block_size_t block_size = cache->get_block_size();
 
-        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past);
+        sequence_group_t seq_group(1);
+        seq_group.slice_groups[cache->get_slice_num()].fifo.rethread(cache->home_thread());
+
+        transaction_t txn(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
 
         blob_tracker_t tk(251);
 
@@ -272,7 +279,10 @@ private:
 
         ASSERT_EQ(4080, block_size.value() - sizeof(block_magic_t));
 
-        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past);
+        sequence_group_t seq_group(1);
+        seq_group.slice_groups[cache->get_slice_num()].fifo.rethread(cache->home_thread());
+
+        transaction_t txn(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
 
         blob_tracker_t tk(251);
 
@@ -288,7 +298,10 @@ private:
 
         ASSERT_EQ(4080, block_size.value() - sizeof(block_magic_t));
 
-        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past);
+        sequence_group_t seq_group(1);
+        seq_group.slice_groups[cache->get_slice_num()].fifo.rethread(cache->home_thread());
+
+        transaction_t txn(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
 
         blob_tracker_t tk(251);
 
@@ -302,39 +315,43 @@ private:
     struct step_t {
         int64_t size;
         bool prepend;
-	step_t(int64_t _size, bool _prepend) : size(_size), prepend(_prepend) { }
+        step_t(int64_t _size, bool _prepend) : size(_size), prepend(_prepend) { }
     };
 
     void general_journey_test(cache_t *cache, const std::vector<step_t>& steps) {
-	block_size_t block_size = cache->get_block_size();
-	transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past);
-	blob_tracker_t tk(251);
+        UNUSED block_size_t block_size = cache->get_block_size();
 
-	char v = 'A';
-	int64_t size = 0;
+        sequence_group_t seq_group(1);
+        seq_group.slice_groups[cache->get_slice_num()].fifo.rethread(cache->home_thread());
+
+        transaction_t txn(cache, &seq_group, rwi_write, 0, repli_timestamp_t::distant_past);
+        blob_tracker_t tk(251);
+
+        char v = 'A';
+        int64_t size = 0;
         for (int i = 0, n = steps.size(); i < n; ++i) {
-	    if (steps[i].prepend) {
-		if (steps[i].size <= size) {
+            if (steps[i].prepend) {
+                if (steps[i].size <= size) {
                     SCOPED_TRACE(strprintf("unprepending from %ld to %ld\n", size, steps[i].size));
-		    tk.unprepend(&txn, size - steps[i].size);
-		} else {
+                    tk.unprepend(&txn, size - steps[i].size);
+                } else {
                     SCOPED_TRACE(strprintf("prepending from %ld to %ld\n", size, steps[i].size));
-		    tk.prepend(&txn, std::string(steps[i].size - size, v));
-		}
-	    } else {
-		if (steps[i].size <= size) {
+                    tk.prepend(&txn, std::string(steps[i].size - size, v));
+                }
+            } else {
+                if (steps[i].size <= size) {
                     SCOPED_TRACE(strprintf("unappending from %ld to %ld\n", size, steps[i].size));
-		    tk.unappend(&txn, size - steps[i].size);
-		} else {
+                    tk.unappend(&txn, size - steps[i].size);
+                } else {
                     SCOPED_TRACE(strprintf("appending from %ld to %ld\n", size, steps[i].size));
-		    tk.append(&txn, std::string(steps[i].size - size, v));
-		}
-	    }
+                    tk.append(&txn, std::string(steps[i].size - size, v));
+                }
+            }
 
             size = steps[i].size;
 
-	    v = (v == 'z' ? 'A' : v == 'Z' ? 'a' : v + 1);
-	}
+            v = (v == 'z' ? 'A' : v == 'Z' ? 'a' : v + 1);
+        }
         tk.unappend(&txn, size);
     }
 
@@ -342,7 +359,7 @@ private:
         SCOPED_TRACE("combinations_test");
         int64_t inline_sz = 4080 * ((250 - 1 - 8 - 8) / 4);
         //        int64_t l2_sz = 4080 * (4080 / 4);
-	int64_t szs[] = { 0, 251, 4080, 4081, inline_sz - 300, inline_sz, inline_sz + 1 };  // for now, until we can make this test faster.  // , l2_sz, l2_sz + 1, l2_sz * 3 + 1 };
+        int64_t szs[] = { 0, 251, 4080, 4081, inline_sz - 300, inline_sz, inline_sz + 1 };  // for now, until we can make this test faster.  // , l2_sz, l2_sz + 1, l2_sz * 3 + 1 };
 
         int n = sizeof(szs) / sizeof(szs[0]);
 

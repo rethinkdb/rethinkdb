@@ -3,11 +3,12 @@
 
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdio.h>
 
+#include <map>
 #include <string>
 #include <vector>
 
-// #include "config/args.hpp"
 #include "errors.hpp"
 
 /* Note that repli_timestamp_t does NOT represent an actual timestamp; instead it's an arbitrary
@@ -54,6 +55,66 @@ public:
     }
 };
 
+/* `map_insertion_sentry_t` inserts a value into a map on construction, and
+removes it in the destructor. */
+template<class key_t, class value_t>
+class map_insertion_sentry_t {
+public:
+    map_insertion_sentry_t() : map(NULL) { }
+    map_insertion_sentry_t(std::map<key_t, value_t> *m, const key_t &key, const value_t &value) : map(NULL) {
+        reset(m, key, value);
+    }
+    ~map_insertion_sentry_t() {
+        reset();
+    }
+    void reset() {
+        if (map) {
+            map->erase(it);
+            map = NULL;
+        }
+    }
+    void reset(std::map<key_t, value_t> *m, const key_t &key, const value_t &value) {
+        reset();
+        map = m;
+        std::pair<typename std::map<key_t, value_t>::iterator, bool> iterator_and_is_new =
+            map->insert(std::make_pair(key, value));
+        rassert(iterator_and_is_new.second, "value to be inserted already "
+            "exists. don't do that.");
+        it = iterator_and_is_new.first;
+    }
+private:
+    std::map<key_t, value_t> *map;
+    typename std::map<key_t, value_t>::iterator it;
+};
+
+/* `multimap_insertion_sentry_t` inserts a value into a multimap on
+construction, and removes it in the destructor. */
+template<class key_t, class value_t>
+class multimap_insertion_sentry_t {
+public:
+    multimap_insertion_sentry_t() : map(NULL) { }
+    multimap_insertion_sentry_t(std::multimap<key_t, value_t> *m, const key_t &key, const value_t &value) : map(NULL) {
+        reset(m, key, value);
+    }
+    ~multimap_insertion_sentry_t() {
+        reset();
+    }
+    void reset() {
+        if (map) {
+            map->erase(it);
+            map = NULL;
+        }
+    }
+    void reset(std::multimap<key_t, value_t> *m, const key_t &key, const value_t &value) {
+        reset();
+        map = m;
+        it = map->insert(std::make_pair(key, value));
+    }
+private:
+    std::multimap<key_t, value_t> *map;
+    typename std::multimap<key_t, value_t>::iterator it;
+};
+
 /* Binary blob that represents some unknown POD type */
 class binary_blob_t {
 public:
@@ -96,6 +157,9 @@ private:
     std::vector<uint8_t> storage;
 };
 
+bool operator==(const binary_blob_t &left, const binary_blob_t &right);
+bool operator!=(const binary_blob_t &left, const binary_blob_t &right);
+
 // Like std::max, except it's technically not associative.
 repli_timestamp_t repli_max(repli_timestamp_t x, repli_timestamp_t y);
 
@@ -129,10 +193,10 @@ inline bool divides(int64_t x, int64_t y) {
 
 int gcd(int x, int y);
 
-typedef unsigned long long ticks_t;
+typedef uint64_t ticks_t;
 ticks_t secs_to_ticks(float secs);
 ticks_t get_ticks();
-long get_ticks_res();
+int64_t get_ticks_res();
 double ticks_to_secs(ticks_t ticks);
 
 // HEY: Maybe debugf and log_call and TRACEPOINT should be placed in
@@ -147,23 +211,29 @@ void debugf(const char *msg, ...) __attribute__((format (printf, 1, 2)));
 class rng_t {
 public:
     int randint(int n);
-    rng_t();
+    explicit rng_t(int seed = -1);
 private:
     struct drand48_data buffer_;
     DISABLE_COPYING(rng_t);
 };
 
+int randint(int n);
+
+
 
 bool begins_with_minus(const char *string);
-// strtoul() and strtoull() will for some reason not fail if the input begins with a minus
-// sign. strtoul_strict() and strtoull_strict() do.
-long strtol_strict(const char *string, char **end, int base);
-unsigned long strtoul_strict(const char *string, char **end, int base);
-unsigned long long strtoull_strict(const char *string, char **end, int base);
+// strtoul() and strtoull() will for some reason not fail if the input
+// begins with a minus sign. strtoul_strict() and strtoull_strict()
+// do.  Also we fix the constness of the end parameter.
+int64_t strtol_strict(const char *string, const char **end, int base);
+uint64_t strtoul_strict(const char *string, const char **end, int base);
+uint64_t strtoull_strict(const char *string, const char **end, int base);
 
 // This is inefficient, it calls vsnprintf twice and copies the
 // arglist and output buffer excessively.
 std::string strprintf(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
+
+// Precise time (time+nanoseconds) for logging, etc.
 
 /* `demangle_cpp_name()` attempts to de-mangle the given symbol name. If it
 succeeds, it returns the result as a `std::string`. If it fails, it throws
@@ -175,8 +245,6 @@ struct demangle_failed_exc_t : public std::exception {
 };
 std::string demangle_cpp_name(const char *mangled_name);
 
-// Precise time (time+nanoseconds) for logging, etc.
-
 struct precise_time_t : public tm {
     uint32_t ns;    // nanoseconds since the start of the second
                     // beware:
@@ -187,6 +255,7 @@ struct precise_time_t : public tm {
 };
 
 void initialize_precise_time();     // should be called during startup
+void set_precise_time_offset(timespec hi_res_clock, time_t low_res_clock);  // used in unit-tests
 timespec get_uptime();              // returns relative time since initialize_precise_time(),
                                     // can return low precision time if clock_gettime call fails
 precise_time_t get_absolute_time(const timespec& relative_time); // converts relative time to absolute
@@ -255,5 +324,7 @@ public:
     explicit on_thread_t(int thread);
     ~on_thread_t();
 };
+
+void print_backtrace(FILE *out = stderr, bool use_addr2line = true);
 
 #endif // __UTILS_HPP__

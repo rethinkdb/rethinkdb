@@ -6,7 +6,7 @@
 #include "buffer_cache/mirrored/config.hpp"
 
 class mc_cache_t;
-class mc_buf_t;
+class mc_buf_lock_t;
 class serializer_t;
 class coro_t;
 
@@ -37,7 +37,7 @@ struct mc_config_block_t {
 /* WARNING: Most of the functions in here are *not* reentrant-safe and rely on concurrency control happening
  *  elsewhere (specifically in mc_cache_t and writeback_t) */
 
-// TODO: This is a huge mess because it goes through the same mc_inner_buf_t / mc_buf_t interface
+// TODO: This is a huge mess because it goes through the same mc_inner_buf_t / mc_buf_lock_t interface
 // that the cache client goes through, except that it cheats on some things. Instead it should just
 // directly manage its own buffers in a different block-id-space than the public buffers.
 
@@ -77,7 +77,7 @@ private:
     // We use our own acquire function which does not care about locks
     // (we are the only one ever acessing the log blocks, except for writeback_t
     //      which takes care of synchronizing with us by itself)
-    mc_buf_t* acquire_block_no_locking(const block_id_t log_block_id);
+    mc_buf_lock_t * acquire_block_no_locking(const block_id_t log_block_id);
 
     block_id_t active_log_block;
     uint16_t next_patch_offset;
@@ -88,8 +88,8 @@ private:
     block_id_t first_block;
     block_id_t number_of_blocks;
     std::vector<bool> block_is_empty;
-    std::vector<mc_buf_t*> log_block_bufs;
+    std::vector<mc_buf_lock_t *> log_block_bufs;
 };
 
-#endif	/* __PATCH_DISK_STORAGE_HPP__ */
+#endif /* __PATCH_DISK_STORAGE_HPP__ */
 

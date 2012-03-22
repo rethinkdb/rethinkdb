@@ -22,7 +22,7 @@ class master_t :
     public backfill_sender_t,
     public backfill_receiver_t {
 public:
-    master_t(int port, btree_key_value_store_t *kv_store, replication_config_t replication_config, gated_get_store_t *get_gate, gated_set_store_interface_t *set_gate, backfill_receiver_order_source_t *master_order_source);
+    master_t(sequence_group_t *replication_seq_group, int port, btree_key_value_store_t *kv_store, replication_config_t replication_config, gated_get_store_t *get_gate, gated_set_store_interface_t *set_gate, backfill_receiver_order_source_t *master_order_source);
 
     ~master_t();
 
@@ -55,6 +55,8 @@ private:
 
     // The stream to the slave, or NULL if there is no slave connected.
     repli_stream_t *stream_;
+
+    sequence_group_t *seq_group_;
 
     const int listener_port_;
     // Listens for incoming slave connections.

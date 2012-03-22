@@ -4,7 +4,6 @@
 #include "utils.hpp"
 #include <boost/scoped_ptr.hpp>
 
-#include "buffer_cache/buf_lock.hpp"
 #include "containers/scoped_malloc.hpp"
 #include "btree/node.hpp"
 #include "btree/leaf_node.hpp"
@@ -23,6 +22,8 @@ public:
     virtual void swap_buf(buf_lock_t &swapee) = 0;
     virtual block_id_t get_root_block_id() const = 0;
     virtual void set_root_block_id(const block_id_t new_root_block) = 0;
+    virtual void set_eviction_priority(eviction_priority_t eviction_priority) = 0;
+    virtual eviction_priority_t get_eviction_priority() = 0;
 
 private:
     DISABLE_COPYING(superblock_t);
@@ -39,6 +40,8 @@ public:
     block_id_t get_root_block_id() const;
     void set_root_block_id(const block_id_t new_root_block);
     block_id_t get_delete_queue_block() const;
+    void set_eviction_priority(eviction_priority_t eviction_priority);
+    eviction_priority_t get_eviction_priority();
 
 private:
     buf_lock_t sb_buf_;
@@ -73,6 +76,15 @@ public:
     }
     block_id_t get_delete_queue_block() const {
         return NULL_BLOCK_ID;
+    }
+
+    void set_eviction_priority(UNUSED eviction_priority_t eviction_priority) {
+        // TODO Actually support the setting and getting of eviction priority in a virtual superblock.
+    }
+
+    eviction_priority_t get_eviction_priority() {
+        // TODO Again, actually support the setting and getting of eviction priority in a virtual superblock.
+        return FAKE_EVICTION_PRIORITY;
     }
 
 private:
@@ -141,8 +153,8 @@ private:
 template <class Value>
 class value_txn_t {
 public:
-    value_txn_t(btree_key_t *, keyvalue_location_t<Value>&, repli_timestamp_t, key_modification_callback_t<Value> *km_callback);
-    value_txn_t(btree_slice_t *slice, btree_key_t *key, const repli_timestamp_t tstamp, const order_token_t token, key_modification_callback_t<Value> *km_callback);
+    value_txn_t(btree_key_t *, keyvalue_location_t<Value>&, repli_timestamp_t, key_modification_callback_t<Value> *km_callback, eviction_priority_t *root_eviction_priority);
+    value_txn_t(btree_slice_t *slice, sequence_group_t *seq_group, btree_key_t *key, const repli_timestamp_t tstamp, const order_token_t token, key_modification_callback_t<Value> *km_callback);
 
     ~value_txn_t();
 
@@ -155,6 +167,7 @@ private:
     boost::scoped_ptr<transaction_t> txn;
     keyvalue_location_t<Value> kv_location;
     repli_timestamp_t tstamp;
+    eviction_priority_t *root_eviction_priority;
 
     // Not owned by this object.
     key_modification_callback_t<Value> *km_callback;
@@ -183,11 +196,11 @@ class fake_key_modification_callback_t : public key_modification_callback_t<Valu
 };
 
 
-bool get_superblock_metainfo(transaction_t *txn, buf_t *superblock, const std::vector<char> &key, std::vector<char> &value_out);
+bool get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key, std::vector<char> &value_out);
 
-void set_superblock_metainfo(transaction_t *txn, buf_t *superblock, const std::vector<char> &key, const std::vector<char> &value);
+void set_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key, const std::vector<char> &value);
 
-void delete_superblock_metainfo(transaction_t *txn, buf_t *superblock, const std::vector<char> &key);
+void delete_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key);
 
 #include "btree/operations.tcc"
 

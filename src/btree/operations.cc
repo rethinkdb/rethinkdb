@@ -18,14 +18,24 @@ void real_superblock_t::swap_buf(buf_lock_t &swapee) {
 }
 
 block_id_t real_superblock_t::get_root_block_id() const {
-    rassert (sb_buf_.is_acquired());
-    return reinterpret_cast<const btree_superblock_t *>(sb_buf_.const_buf()->get_data_read())->root_block;
+    rassert(sb_buf_.is_acquired());
+    return reinterpret_cast<const btree_superblock_t *>(sb_buf_.get_data_read())->root_block;
 }
 void real_superblock_t::set_root_block_id(const block_id_t new_root_block) {
-    rassert (sb_buf_.is_acquired());
+    rassert(sb_buf_.is_acquired());
     // We have to const_cast, because set_data unfortunately takes void* pointers, but get_data_read()
     // gives us const data. No way around this (except for making set_data take a const void * again, as it used to be).
-    sb_buf_->set_data(const_cast<block_id_t *>(&reinterpret_cast<const btree_superblock_t *>(sb_buf_.buf()->get_data_read())->root_block), &new_root_block, sizeof(new_root_block));
+    sb_buf_.set_data(const_cast<block_id_t *>(&(static_cast<const btree_superblock_t *>(sb_buf_.get_data_read())->root_block)), &new_root_block, sizeof(new_root_block));
+}
+
+void real_superblock_t::set_eviction_priority(eviction_priority_t eviction_priority) {
+    rassert(sb_buf_.is_acquired());
+    sb_buf_.set_eviction_priority(eviction_priority);
+}
+
+eviction_priority_t real_superblock_t::get_eviction_priority() {
+    rassert(sb_buf_.is_acquired());
+    return sb_buf_.get_eviction_priority();
 }
 
 
@@ -68,7 +78,7 @@ bool find_superblock_metainfo_entry(char *beg, char *end, const std::vector<char
     return false;
 }
 
-bool get_superblock_metainfo(transaction_t *txn, buf_t *superblock, const std::vector<char> &key, std::vector<char> &value_out) {
+bool get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key, std::vector<char> &value_out) {
     const btree_superblock_t *data = static_cast<const btree_superblock_t *>(superblock->get_data_read());
 
     // The const cast is okay because we access the data with rwi_read
@@ -97,7 +107,7 @@ bool get_superblock_metainfo(transaction_t *txn, buf_t *superblock, const std::v
     }
 }
 
-void set_superblock_metainfo(transaction_t *txn, buf_t *superblock, const std::vector<char> &key, const std::vector<char> &value) {
+void set_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key, const std::vector<char> &value) {
     btree_superblock_t *data = static_cast<btree_superblock_t *>(superblock->get_data_major_write());
 
     blob_t blob(data->metainfo_blob, btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
@@ -160,7 +170,7 @@ void set_superblock_metainfo(transaction_t *txn, buf_t *superblock, const std::v
 
 
 
-void delete_superblock_metainfo(transaction_t *txn, buf_t *superblock, const std::vector<char> &key) {
+void delete_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key) {
     btree_superblock_t *data = static_cast<btree_superblock_t *>(superblock->get_data_major_write());
 
     blob_t blob(data->metainfo_blob, btree_superblock_t::METAINFO_BLOB_MAXREFLEN);

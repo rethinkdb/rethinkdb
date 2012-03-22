@@ -56,7 +56,7 @@ struct conflict_resolving_diskmgr_t {
 
     struct action_t : public payload_t {
     private:
-        friend class conflict_resolving_diskmgr_t;
+        friend struct conflict_resolving_diskmgr_t;
         int conflict_count;
     };
 
