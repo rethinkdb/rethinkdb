@@ -12,7 +12,6 @@
 #include "btree/leaf_node.hpp"
 #include "btree/operations.hpp"
 #include "btree/slice.hpp"
-#include "memcached/store.hpp"
 
 //TODO make this not store value as a char array
 template <class Value>
@@ -49,6 +48,12 @@ private:
     transaction_t *transaction;
 };
 
+enum btree_bound_mode_t {
+    btree_bound_open,   // Don't include boundary key
+    btree_bound_closed,   // Include boundary key
+    btree_bound_none   // Ignore boundary key and go all the way to the left/right side of the tree
+};
+
 /* slice_leaves_iterator_t finds the first leaf that contains the given key (or
  * the next key, if left_open is true). It returns that leaf iterator (which
  * also contains the lock), however it doesn't release the leaf lock itself
@@ -69,7 +74,7 @@ class slice_leaves_iterator_t : public one_way_iterator_t<leaf_iterator_t<Value>
         buf_lock_t *lock;
     };
 public:
-    slice_leaves_iterator_t(const boost::shared_ptr<value_sizer_t<Value> >& sizer, transaction_t *transaction, boost::scoped_ptr<superblock_t> &superblock, int slice_home_thread, rget_bound_mode_t left_mode, const btree_key_t *left_key, rget_bound_mode_t right_mode, const btree_key_t *right_key);
+    slice_leaves_iterator_t(const boost::shared_ptr<value_sizer_t<Value> >& sizer, transaction_t *transaction, boost::scoped_ptr<superblock_t> &superblock, int slice_home_thread, btree_bound_mode_t left_mode, const btree_key_t *left_key, btree_bound_mode_t right_mode, const btree_key_t *right_key);
 
     boost::optional<leaf_iterator_t<Value>*> next();
     void prefetch();
@@ -86,9 +91,9 @@ private:
     transaction_t *transaction;
     boost::scoped_ptr<superblock_t> superblock;
     int slice_home_thread;
-    rget_bound_mode_t left_mode;
+    btree_bound_mode_t left_mode;
     const btree_key_t *left_key;
-    rget_bound_mode_t right_mode;
+    btree_bound_mode_t right_mode;
     const btree_key_t *right_key;
 
     std::list<internal_node_state> traversal_state;
@@ -106,7 +111,7 @@ template <class Value>
 class slice_keys_iterator_t : public one_way_iterator_t<key_value_pair_t<Value> > {
 public:
     /* Cannot assume that 'start' and 'end' will remain valid after the constructor returns! */
-    slice_keys_iterator_t(const boost::shared_ptr<value_sizer_t<Value> >& sizer, transaction_t *transaction, boost::scoped_ptr<superblock_t> &superblock, int slice_home_thread, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key);
+    slice_keys_iterator_t(const boost::shared_ptr<value_sizer_t<Value> >& sizer, transaction_t *transaction, boost::scoped_ptr<superblock_t> &superblock, int slice_home_thread, btree_bound_mode_t left_mode, const store_key_t &left_key, btree_bound_mode_t right_mode, const store_key_t &right_key);
     virtual ~slice_keys_iterator_t();
 
     boost::optional<key_value_pair_t<Value> > next();
@@ -123,9 +128,9 @@ private:
     transaction_t *transaction;
     boost::scoped_ptr<superblock_t> superblock;
     int slice_home_thread;
-    rget_bound_mode_t left_mode;
+    btree_bound_mode_t left_mode;
     btree_key_buffer_t left_key;
-    rget_bound_mode_t right_mode;
+    btree_bound_mode_t right_mode;
     btree_key_buffer_t right_key;
     std::string left_str;
     std::string right_str;
@@ -143,7 +148,7 @@ public:
 };
 
 template <class Value> 
-range_txn_t<Value> get_range(btree_slice_t *slice, order_token_t token, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t, const store_key_t &right_key);
+range_txn_t<Value> get_range(btree_slice_t *slice, order_token_t token, btree_bound_mode_t left_mode, const store_key_t &left_key, btree_bound_mode_t, const store_key_t &right_key);
 
 #include "btree/iteration.tcc"
 

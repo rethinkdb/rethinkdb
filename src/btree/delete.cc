@@ -29,17 +29,11 @@ struct btree_delete_oper_t : public btree_modify_oper_t {
     }
 };
 
-delete_result_t btree_delete(const store_key_t &key, bool dont_put_in_delete_queue, btree_slice_t *slice, repli_timestamp_t timestamp, order_token_t token) {
-    btree_delete_oper_t oper(dont_put_in_delete_queue, slice);
-    run_btree_modify_oper(&oper, slice, key, castime_t(BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS, timestamp), token);
-    return oper.result;
-}
-
-delete_result_t btree_delete(const store_key_t &key, bool dont_put_in_delete_queue, btree_slice_t *slice, repli_timestamp_t timestamp,
+delete_result_t btree_delete(const store_key_t &key, bool dont_put_in_delete_queue, btree_slice_t *slice, exptime_t effective_time, repli_timestamp_t timestamp,
     transaction_t *txn, got_superblock_t& superblock) {
 
     btree_delete_oper_t oper(dont_put_in_delete_queue, slice);
-    run_btree_modify_oper(&oper, slice, key, castime_t(BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS, timestamp), txn, superblock);
+    run_btree_modify_oper(&oper, slice, key, BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS, effective_time, timestamp, txn, superblock);
     return oper.result;
 }
 

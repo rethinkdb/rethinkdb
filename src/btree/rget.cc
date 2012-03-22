@@ -60,9 +60,9 @@
  * Actual merging of the slice iterators is done in server/key_value_store.cc.
  */
 
-bool is_not_expired(key_value_pair_t<memcached_value_t>& pair) {
+bool is_not_expired(key_value_pair_t<memcached_value_t>& pair, exptime_t effective_time) {
     const memcached_value_t *value = reinterpret_cast<const memcached_value_t *>(pair.value.get());
-    return !value->expired();
+    return !value->expired(effective_time);
 }
 
 key_with_data_buffer_t pair_to_key_with_data_buffer(transaction_t *txn, key_value_pair_t<memcached_value_t>& pair) {
@@ -100,19 +100,17 @@ private:
     DISABLE_COPYING(transaction_holding_iterator_t);
 };
 
-rget_result_t btree_rget_slice(btree_slice_t *slice, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token) {
-    // Get the superblock of the slice
-    slice->assert_thread();
-
-    boost::scoped_ptr<transaction_t> txn;
-    got_superblock_t superblock;
-    get_btree_superblock_for_reading(slice, rwi_read, token, true, &superblock, txn);
-
-    return btree_rget_slice(slice, left_mode, left_key, right_mode, right_key, txn, superblock);
+btree_bound_mode_t convert_bound_mode(rget_bound_mode_t m) {
+    switch (m) {
+        case rget_bound_open: return btree_bound_open;
+        case rget_bound_closed: return btree_bound_closed;
+        case rget_bound_none: return btree_bound_none;
+        default: unreachable();
+    }
 }
 
 rget_result_t btree_rget_slice(btree_slice_t *slice, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key,
-    boost::scoped_ptr<transaction_t>& txn, got_superblock_t& superblock) {
+    exptime_t effective_time, boost::scoped_ptr<transaction_t>& txn, got_superblock_t& superblock) {
 
     boost::shared_ptr<value_sizer_t<memcached_value_t> > sizer = boost::make_shared<memcached_value_sizer_t>(txn->get_cache()->get_block_size());
 
@@ -121,6 +119,6 @@ rget_result_t btree_rget_slice(btree_slice_t *slice, rget_bound_mode_t left_mode
             new transform_iterator_t<key_value_pair_t<memcached_value_t>, key_with_data_buffer_t>(
                 boost::bind(pair_to_key_with_data_buffer, txn.get(), _1),
                 new filter_iterator_t<key_value_pair_t<memcached_value_t> >(
-                    is_not_expired,
-                    new slice_keys_iterator_t<memcached_value_t>(sizer, txn.get(), superblock.sb, slice->home_thread(), left_mode, left_key, right_mode, right_key)))));
+                    boost::bind(&is_not_expired, _1, effective_time),
+                    new slice_keys_iterator_t<memcached_value_t>(sizer, txn.get(), superblock.sb, slice->home_thread(), convert_bound_mode(left_mode), left_key, convert_bound_mode(right_mode), right_key)))));
 }

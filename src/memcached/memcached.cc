@@ -22,7 +22,6 @@
 #include "containers/iterators.hpp"
 #include "containers/printf_buffer.hpp"
 #include "stats/control.hpp"
-#include "memcached/store.hpp"
 #include "logger.hpp"
 #include "arch/os_signal.hpp"
 #include "perfmon.hpp"
@@ -52,17 +51,24 @@ static const char *crlf = "\r\n";
 do_storage(), and the like. */
 
 struct txt_memcached_handler_t : public home_thread_mixin_t {
-    txt_memcached_handler_t(memcached_interface_t *_interface, get_store_t *_get_store,
-                            set_store_interface_t *_set_store, int _max_concurrent_queries_per_connection)
-        : interface(_interface), get_store(_get_store), set_store(_set_store), max_concurrent_queries_per_connection(_max_concurrent_queries_per_connection)
+    txt_memcached_handler_t(memcached_interface_t *_interface,
+                            namespace_interface_t<memcached_protocol_t> *_nsi,
+                            int _max_concurrent_queries_per_connection)
+        : interface(_interface), nsi(_nsi), max_concurrent_queries_per_connection(_max_concurrent_queries_per_connection)
     { }
 
     memcached_interface_t *interface;
 
-    get_store_t *get_store;
-    set_store_interface_t *set_store;
+    namespace_interface_t<memcached_protocol_t> *nsi;
 
     const int max_concurrent_queries_per_connection;
+
+    cas_t generate_cas() {
+        // TODO we have to do better than this. CASes need to be generated in a
+        // way that is very fast but also gives a reasonably good guarantee of
+        // uniqueness across time and space.
+        return random();
+    }
 
     void write(const std::string& buffer) {
         write(buffer.data(), buffer.length());
@@ -254,9 +260,17 @@ struct get_t {
 
 void do_one_get(txt_memcached_handler_t *rh, bool with_cas, get_t *gets, int i, order_token_t token) {
     if (with_cas) {
-        gets[i].res = rh->set_store->get_cas(gets[i].key, token);
+        get_cas_mutation_t get_cas_mutation(gets[i].key);
+        memcached_protocol_t::write_t write(get_cas_mutation, rh->generate_cas(), time(NULL));
+        cond_t non_interruptor;
+        memcached_protocol_t::write_response_t response = rh->nsi->write(write, token, &non_interruptor);
+        gets[i].res = boost::get<get_result_t>(response.result);
     } else {
-        gets[i].res = rh->get_store->get(gets[i].key, token);
+        get_query_t get_query(gets[i].key);
+        memcached_protocol_t::read_t read(get_query, time(NULL));
+        cond_t non_interruptor;
+        memcached_protocol_t::read_response_t response = rh->nsi->read(read, token, &non_interruptor);
+        gets[i].res = boost::get<get_result_t>(response.result);
     }
 }
 
@@ -401,7 +415,11 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, char
 
     block_pm_duration rget_timer(&pm_cmd_rget);
 
-    rget_result_t results_iterator = rh->get_store->rget(left_mode, left_key, right_mode, right_key, token);
+    rget_query_t rget_query(left_mode, left_key, right_mode, right_key);
+    memcached_protocol_t::read_t read(rget_query, time(NULL));
+    cond_t non_interruptor;
+    memcached_protocol_t::read_response_t response = rh->nsi->read(read, token, &non_interruptor);
+    rget_result_t results_iterator = boost::get<rget_result_t>(response.result);
 
     pipeliner_acq.begin_write();
 
@@ -483,8 +501,12 @@ void run_storage_command(txt_memcached_handler_t *rh,
             unreachable();
         }
 
-        set_result_t res = rh->set_store->sarc(key, data, metadata.mcflags, metadata.exptime,
-                                               add_policy, replace_policy, metadata.unique, token);
+        sarc_mutation_t sarc_mutation(key, data, metadata.mcflags, metadata.exptime,
+            add_policy, replace_policy, metadata.unique);
+        memcached_protocol_t::write_t write(sarc_mutation, rh->generate_cas(), time(NULL));
+        cond_t non_interruptor;
+        memcached_protocol_t::write_response_t result = rh->nsi->write(write, token, &non_interruptor);
+        set_result_t res = boost::get<set_result_t>(result.result);
 
         pipeliner_acq->begin_write();
 
@@ -520,10 +542,13 @@ void run_storage_command(txt_memcached_handler_t *rh,
         }
 
     } else {
-        append_prepend_result_t res =
-            rh->set_store->append_prepend(
-                sc == append_command ? append_prepend_APPEND : append_prepend_PREPEND,
-                key, data, token);
+        append_prepend_mutation_t append_prepend_mutation(
+            sc == append_command ? append_prepend_APPEND : append_prepend_PREPEND,
+            key, data);
+        memcached_protocol_t::write_t write(append_prepend_mutation, rh->generate_cas(), time(NULL));
+        cond_t non_interruptor;
+        memcached_protocol_t::write_response_t result = rh->nsi->write(write, token, &non_interruptor);
+        append_prepend_result_t res = boost::get<append_prepend_result_t>(result.result);
 
         pipeliner_acq->begin_write();
 
@@ -689,9 +714,13 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
 void run_incr_decr(txt_memcached_handler_t *rh, pipeliner_acq_t *pipeliner_acq, store_key_t key, uint64_t amount, bool incr, bool noreply, order_token_t token) {
     block_pm_duration set_timer(&pm_cmd_set);
 
-    incr_decr_result_t res = rh->set_store->incr_decr(
+    incr_decr_mutation_t incr_decr_mutation(
         incr ? incr_decr_INCR : incr_decr_DECR,
-        key, amount, token);
+        key, amount);
+    memcached_protocol_t::write_t write(incr_decr_mutation, rh->generate_cas(), time(NULL));
+    cond_t non_interruptor;
+    memcached_protocol_t::write_response_t result = rh->nsi->write(write, token, &non_interruptor);
+    incr_decr_result_t res = boost::get<incr_decr_result_t>(result.result);
 
     pipeliner_acq->begin_write();
     if (!noreply) {
@@ -771,7 +800,11 @@ void run_delete(txt_memcached_handler_t *rh, pipeliner_acq_t *pipeliner_acq, sto
 
     block_pm_duration set_timer(&pm_cmd_set);
 
-    delete_result_t res = rh->set_store->delete_key(key, token);
+    delete_mutation_t delete_mutation(key, false);
+    memcached_protocol_t::write_t write(delete_mutation, INVALID_CAS, time(NULL));
+    cond_t non_interruptor;
+    memcached_protocol_t::write_response_t result = rh->nsi->write(write, token, &non_interruptor);
+    delete_result_t res = boost::get<delete_result_t>(result.result);
 
     pipeliner_acq->begin_write();
     if (!noreply) {
@@ -905,7 +938,11 @@ void do_quickset(txt_memcached_handler_t *rh, pipeliner_acq_t *pipeliner_acq, st
         boost::intrusive_ptr<data_buffer_t> value = data_buffer_t::create(args_copy[i + 1].size());
         memcpy(value->buf(), args_copy[i + 1].data(), value->size());
 
-        set_result_t res = rh->set_store->sarc(key, value, 0, 0, add_policy_yes, replace_policy_yes, 0, order_token_t::ignore);
+        sarc_mutation_t sarc_mutation(key, value, 0, 0, add_policy_yes, replace_policy_yes, 0);
+        memcached_protocol_t::write_t write(sarc_mutation, rh->generate_cas(), time(NULL));
+        cond_t non_interruptor;
+        memcached_protocol_t::write_response_t result = rh->nsi->write(write, order_token_t::ignore, &non_interruptor);
+        set_result_t res = boost::get<set_result_t>(result.result);
 
         if (res == sr_stored) {
             rh->writef("STORED key %s\r\n", args_copy[i].c_str());
@@ -957,13 +994,12 @@ bool parse_debug_command(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, st
 #endif  // NDEBUG
 
 /* Handle memcached, takes a txt_memcached_handler_t and handles the memcached commands that come in on it */
-void handle_memcache(memcached_interface_t *interface, get_store_t *get_store,
-                     set_store_interface_t *set_store, int max_concurrent_queries_per_connection) {
+void handle_memcache(memcached_interface_t *interface, namespace_interface_t<memcached_protocol_t> *nsi, int max_concurrent_queries_per_connection) {
     logDBG("Opened memcached stream: %p\n", coro_t::self());
 
     /* This object just exists to group everything together so we don't have to pass a lot of
     context around. */
-    txt_memcached_handler_t rh(interface, get_store, set_store, max_concurrent_queries_per_connection);
+    txt_memcached_handler_t rh(interface, nsi, max_concurrent_queries_per_connection);
 
     /* The commands from each individual memcached handler must be performed in the order
     that the handler parses them. This `order_source_t` is used to guarantee that. */

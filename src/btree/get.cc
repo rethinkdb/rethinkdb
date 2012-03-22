@@ -1,22 +1,11 @@
 #include "btree/get.hpp"
 
-#include "btree/delete_expired.hpp"
 #include "btree/btree_data_provider.hpp"
 #include "btree/internal_node.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/operations.hpp"
-#include "memcached/store.hpp"
 
-get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, order_token_t token) {
-    slice->assert_thread();
-
-    boost::scoped_ptr<transaction_t> txn;
-    got_superblock_t superblock;
-    get_btree_superblock_for_reading(slice, rwi_read, token, false, &superblock, txn);
-    return btree_get(store_key, slice, txn.get(), superblock);
-}
-
-get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, transaction_t *txn, got_superblock_t& superblock) {
+get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, exptime_t effective_time, transaction_t *txn, got_superblock_t& superblock) {
 
     btree_key_buffer_t kbuffer(store_key);
     btree_key_t *key = kbuffer.key();
@@ -29,9 +18,8 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, trans
     }
 
     const memcached_value_t *value = kv_location.value.get();
-    if (value->expired()) {
-        // If the value is expired, delete it in the background.
-        btree_delete_expired(store_key, slice);
+    if (value->expired(effective_time)) {
+        // TODO signal the parser to start deleting the key in the background
         return get_result_t();
     }
 
