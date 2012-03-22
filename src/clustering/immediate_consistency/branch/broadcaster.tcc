@@ -5,7 +5,7 @@
 template<class protocol_t>
 void listener_write(
         mailbox_manager_t *mailbox_manager,
-        const typename listener_business_card_t<protocol_t>::write_mailbox_t::address_t &write_mailbox,
+        const typename listener_business_card_t<protocol_t>::write_mailbox_t::address_type &write_mailbox,
         typename protocol_t::write_t w, transition_timestamp_t ts, fifo_enforcer_write_token_t token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
@@ -23,7 +23,7 @@ void listener_write(
 template<class protocol_t>
 typename protocol_t::write_response_t listener_writeread(
         mailbox_manager_t *mailbox_manager,
-        const typename listener_business_card_t<protocol_t>::writeread_mailbox_t::address_t &writeread_mailbox,
+        const typename listener_business_card_t<protocol_t>::writeread_mailbox_t::address_type &writeread_mailbox,
         typename protocol_t::write_t w, transition_timestamp_t ts, fifo_enforcer_write_token_t token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
@@ -43,7 +43,7 @@ typename protocol_t::write_response_t listener_writeread(
 template<class protocol_t>
 typename protocol_t::read_response_t listener_read(
         mailbox_manager_t *mailbox_manager,
-        const typename listener_business_card_t<protocol_t>::read_mailbox_t::address_t &read_mailbox,
+        const typename listener_business_card_t<protocol_t>::read_mailbox_t::address_type &read_mailbox,
         typename protocol_t::read_t r, state_timestamp_t ts, fifo_enforcer_read_token_t token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
@@ -225,8 +225,8 @@ void broadcaster_t<protocol_t>::dispatchee_t::send_intro(listener_business_card_
 
 template<class protocol_t>
 void broadcaster_t<protocol_t>::dispatchee_t::upgrade(
-        typename listener_business_card_t<protocol_t>::writeread_mailbox_t::address_t wrm,
-        typename listener_business_card_t<protocol_t>::read_mailbox_t::address_t rm,
+        typename listener_business_card_t<protocol_t>::writeread_mailbox_t::address_type wrm,
+        typename listener_business_card_t<protocol_t>::read_mailbox_t::address_type rm,
         auto_drainer_t::lock_t)
         THROWS_NOTHING
 {

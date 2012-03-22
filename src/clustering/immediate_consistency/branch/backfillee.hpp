@@ -116,7 +116,7 @@ void backfillee(
             overload to use. */
             void (*send_cast_to_correct_type)(
                 mailbox_manager_t *,
-                typename backfiller_business_card_t<protocol_t>::cancel_backfill_mailbox_t::address_t,
+                typename backfiller_business_card_t<protocol_t>::cancel_backfill_mailbox_t::address_type,
                 const backfill_session_id_t &) = &send;
             backfiller_notifier.fun = boost::bind(
                 send_cast_to_correct_type, mailbox_manager,

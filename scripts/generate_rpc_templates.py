@@ -32,14 +32,14 @@ def generate_async_message_template(nargs):
         print "    friend void send(mailbox_manager_t*, address_t);"
     else:
         print "    template<" + csep("class a#_t") + ">"
-        print "    friend void send(mailbox_manager_t*, typename mailbox_t< void(" + csep("a#_t") + ") >::address_t" + cpre("const a#_t&") + ");"
+        print "    friend void send(mailbox_manager_t*, typename mailbox_t< void(" + csep("a#_t") + ") >::address_type" + cpre("const a#_t&") + ");"
     print "    raw_mailbox_t::address_t addr;"
     print "};"
     print
     print "template<" + csep("class arg#_t") + ">"
     print "class mailbox_t< void(" + csep("arg#_t") + ") > {"
     print "public:"
-    print "    typedef address_t< void(" + csep("arg#_t") + ") > address_t;"
+    print "    typedef address_t< void(" + csep("arg#_t") + ") > address_type;"
     print
     print "    mailbox_t(mailbox_manager_t *manager, const boost::function< void(" + csep("arg#_t") + ") > &fun) :"
     print "        mailbox(manager, boost::bind(&mailbox_t::on_message, _1, _2, fun))"
@@ -50,18 +50,18 @@ def generate_async_message_template(nargs):
     print "    ~mailbox_t() {"
     print "    }"
     print
-    print "    address_t get_address() {"
-    print "        address_t a;"
+    print "    address_type get_address() {"
+    print "        address_type a;"
     print "        a.addr = mailbox.get_address();"
     print "        return a;"
     print "    }"
     print
     print "private:"
     if nargs == 0:
-        print "    friend void send(mailbox_manager_t*, address_t);"
+        print "    friend void send(mailbox_manager_t*, address_type);"
     else:
         print "    template<" + csep("class a#_t") + ">"
-        print "    friend void send(mailbox_manager_t*, typename mailbox_t< void(" + csep("a#_t") + ") >::address_t" + cpre("const a#_t&") + ");"
+        print "    friend void send(mailbox_manager_t*, typename mailbox_t< void(" + csep("a#_t") + ") >::address_type" + cpre("const a#_t&") + ");"
     print "    static void write(std::ostream &stream" + cpre("const arg#_t &arg#") + ") {"
     print "        boost::archive::binary_oarchive archive(stream);"
     for i in xrange(nargs):
@@ -86,7 +86,7 @@ def generate_async_message_template(nargs):
         print "inline"
     else:
         print "template<" + csep("class arg#_t") + ">"
-    print "void send(mailbox_manager_t *src, " + ("typename " if nargs > 0 else "") + "mailbox_t< void(" + csep("arg#_t") + ") >::address_t dest" + cpre("const arg#_t &arg#") + ") {"
+    print "void send(mailbox_manager_t *src, " + ("typename " if nargs > 0 else "") + "mailbox_t< void(" + csep("arg#_t") + ") >::address_type dest" + cpre("const arg#_t &arg#") + ") {"
     print "    send(src, dest.addr,"
     print "        boost::bind(&mailbox_t< void(" + csep("arg#_t") + ") >::write, _1" + cpre("arg#") + "));"
     print "}"

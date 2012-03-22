@@ -32,16 +32,16 @@ public:
     master_business_card_t() { }
     master_business_card_t(
             const typename protocol_t::region_t &r,
-            const typename read_mailbox_t::address_t &rm,
-            const typename write_mailbox_t::address_t &wm) :
+            const typename read_mailbox_t::address_type &rm,
+            const typename write_mailbox_t::address_type &wm) :
         region(r), read_mailbox(rm), write_mailbox(wm) { }
 
     /* The region that this master covers */
     typename protocol_t::region_t region;
 
     /* Contact info for the master itself */
-    typename read_mailbox_t::address_t read_mailbox;
-    typename write_mailbox_t::address_t write_mailbox;
+    typename read_mailbox_t::address_type read_mailbox;
+    typename write_mailbox_t::address_type write_mailbox;
 
     RDB_MAKE_ME_SERIALIZABLE_3(region, read_mailbox, write_mailbox);
 };

@@ -62,7 +62,7 @@ private:
     `send_deregister_message()`, and that deregisters things as necessary. */
     static void send_deregister_message(
             mailbox_manager_t *mailbox_manager,
-            typename registrar_business_card_t<business_card_t>::delete_mailbox_t::address_t addr,
+            typename registrar_business_card_t<business_card_t>::delete_mailbox_t::address_type addr,
             registration_id_t rid) THROWS_NOTHING {
         send(mailbox_manager, addr, rid);
     }

@@ -266,8 +266,8 @@ private:
     broadcaster if all goes well. */
     class intro_t {
     public:
-        typename listener_business_card_t<protocol_t>::upgrade_mailbox_t::address_t upgrade_mailbox;
-        typename listener_business_card_t<protocol_t>::downgrade_mailbox_t::address_t downgrade_mailbox;
+        typename listener_business_card_t<protocol_t>::upgrade_mailbox_t::address_type upgrade_mailbox;
+        typename listener_business_card_t<protocol_t>::downgrade_mailbox_t::address_type downgrade_mailbox;
         state_timestamp_t broadcaster_begin_timestamp;
     };
 
@@ -278,8 +278,8 @@ private:
     public:
         intro_t intro;
         void fill(state_timestamp_t its,
-                typename listener_business_card_t<protocol_t>::upgrade_mailbox_t::address_t um,
-                typename listener_business_card_t<protocol_t>::downgrade_mailbox_t::address_t dm) {
+                typename listener_business_card_t<protocol_t>::upgrade_mailbox_t::address_type um,
+                typename listener_business_card_t<protocol_t>::downgrade_mailbox_t::address_type dm) {
             rassert(!is_pulsed());
             intro.broadcaster_begin_timestamp = its;
             intro.upgrade_mailbox = um;

@@ -237,10 +237,10 @@ private:
         dispatchee_t(broadcaster_t *c, listener_business_card_t<protocol_t> d) THROWS_NOTHING;
         ~dispatchee_t() THROWS_NOTHING;
 
-        typename listener_business_card_t<protocol_t>::write_mailbox_t::address_t write_mailbox;
+        typename listener_business_card_t<protocol_t>::write_mailbox_t::address_type write_mailbox;
         bool is_readable;
-        typename listener_business_card_t<protocol_t>::writeread_mailbox_t::address_t writeread_mailbox;
-        typename listener_business_card_t<protocol_t>::read_mailbox_t::address_t read_mailbox;
+        typename listener_business_card_t<protocol_t>::writeread_mailbox_t::address_type writeread_mailbox;
+        typename listener_business_card_t<protocol_t>::read_mailbox_t::address_type read_mailbox;
 
         /* This is used to enforce that operations are performed on the
         destination machine in the same order that we send them, even if the
@@ -257,8 +257,8 @@ private:
 
         /* `upgrade()` and `downgrade()` are mailbox callbacks. */
         void upgrade(
-            typename listener_business_card_t<protocol_t>::writeread_mailbox_t::address_t,
-            typename listener_business_card_t<protocol_t>::read_mailbox_t::address_t,
+            typename listener_business_card_t<protocol_t>::writeread_mailbox_t::address_type,
+            typename listener_business_card_t<protocol_t>::read_mailbox_t::address_type,
             auto_drainer_t::lock_t)
             THROWS_NOTHING;
         void downgrade(address_t<void()>, auto_drainer_t::lock_t) THROWS_NOTHING;
