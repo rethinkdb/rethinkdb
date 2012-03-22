@@ -117,14 +117,20 @@ module 'NamespaceView', ->
             # Define the validator options
             validator_options =
                 submitHandler: =>
-                    $('form', @$modal).ajaxSubmit
-                        url: '/ajax/namespaces/'+@namespace.id+'/add_secondary?token=' + token
+                    formdata = form_data_as_object($('form', @$modal))
+                    replica_affinities = {}
+                    replica_affinities[formdata.datacenter] = 0
+                    $.ajax
+                        processData: false
+                        url: "/ajax/#{@namespace.attributes.protocol}_namespaces/#{@namespace.id}"
                         type: 'POST'
+                        contentType: 'application/json'
+                        data: JSON.stringify({"replica_affinities": replica_affinities})
 
                         success: (response) =>
                             clear_modals()
 
-                            apply_diffs(response)
+                            namespaces.get(@namespace.id).set(response)
                             #TODO hook this up
                             #$('#user-alert-space').append @alert_tmpl {}
 
