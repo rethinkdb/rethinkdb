@@ -531,7 +531,7 @@
     </script>
 
         <script id="modify_shards-alert-template" type="text/x-handlebars-template">
-            <div class="alert-message" data-alert="alert">
+            <div class="alert" data-alert="alert">
                 <a class="close" href="#">&times;</a>
                 <p>Shard was modified.</p>
             </div>
@@ -755,49 +755,49 @@
 
         <!-- Alerts -->
         <script id="added_namespace-alert-template" type="text/x-handlebars-template">
-            <div class="alert-message" data-alert="alert">
+            <div class="alert" data-alert="alert">
                 <a class="close" href="#">&times;</a>
                 <p>You added namespace <span class="name">{{name}}</span>. You can now <a href="#namespaces/{{uuid}}">configure</a> it further.</p>
             </div>
         </script>
 
         <script id="removed_namespace-alert-template" type="text/x-handlebars-template">
-            <div class="alert-message" data-alert="alert">
+            <div class="alert" data-alert="alert">
                 <a class="close" href="#">&times;</a>
                 <p>You removed namespace <span class="name">{{name}}</span>.</p>
             </div>
         </script>
 
         <script id="added_datacenter-alert-template" type="text/x-handlebars-template">
-            <div class="alert-message" data-alert="alert">
+            <div class="alert" data-alert="alert">
                 <a class="close" href="#">&times;</a>
                 <p>You added datacenter <span class="name">{{name}}</span>. You can now <a href="#datacenters/{{uuid}}">configure</a> it further.</p>
             </div>
         </script>
 
         <script id="removed_datacenter-alert-template" type="text/x-handlebars-template">
-            <div class="alert-message" data-alert="alert">
+            <div class="alert" data-alert="alert">
                 <a class="close" href="#">&times;</a>
                 <p>You removed datacenter <span class="name">{{name}}</span>.</p>
             </div>
         </script>
 
         <script id="suspended_machine-alert-template" type="text/x-handlebars-template">
-            <div class="alert-message" data-alert="alert">
+            <div class="alert" data-alert="alert">
                 <a class="close" href="#">&times;</a>
                 <p>You suspended machine <span class="name">{{name}}</span>.</p>
             </div>
         </script>
 
         <script id="modified_replica-alert-template" type="text/x-handlebars-template">
-            <div class="alert-message" data-alert="alert">
+            <div class="alert" data-alert="alert">
                 <a class="close" href="#">&times;</a>
                 <p>Replicas are modified.</p>
             </div>
         </script>
 
         <script id="set_datacenter-alert-template" type="text/x-handlebars-template">
-            <div class="alert-message" data-alert="alert">
+            <div class="alert" data-alert="alert">
                 <a class="close" href="#">&times;</a>
                 <p>Machine {{machine_name}}'s datacenter was set to {{datacenter_name}}.</p>
             </div>
@@ -1043,7 +1043,7 @@
                         <h3>Remove a datacenter</h3>
                     </div>
                     <div class="modal-body">
-                        <div class="alert-message block-message error">
+                        <div class="alert block-message error">
                             <p>
                             <strong>Be careful.</strong>
                                 If you remove these datacenters, all
@@ -1074,7 +1074,7 @@
                         <h3>Suspend a machine</h3>
                     </div>
                     <div class="modal-body">
-                        <div class="alert-message block-message error">
+                        <div class="alert block-message error">
                             <p>
                             <strong>Be careful.</strong>
                                 Suspending these machines will cause the following

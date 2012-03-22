@@ -173,7 +173,10 @@ module 'NamespaceView', ->
                             apply_to_collection(namespaces, add_protocol_tag(response, "memcached"))
                             # the result of this operation are some attributes about the namespace we created, to be used in an alert
                             # TODO hook this up
-                            #$('#user-alert-space').append @alert_tmpl response_json.op_result
+                            for id, namespace of response
+                                $('#user-alert-space').append @alert_tmpl
+                                    uuid: id
+                                    name: namespace.name
 
             json = { 'datacenters' : _.map datacenters.models, (datacenter) -> datacenter.toJSON() }
 
@@ -437,12 +440,12 @@ module 'NamespaceView', ->
                         processData: false
                         url: "/ajax/#{@namespace.get("protocol")}_namespaces/#{@namespace.id}"
                         type: 'POST'
-                        data: JSON.stringify({ "replica_affinities": replica_affinities_to_send})
+                        data: JSON.stringify({ "replica_affinities": replica_affinities_to_send })
 
                         success: (response) =>
                             clear_modals()
-
-                            apply_diffs(response)
+                            
+                            namespaces.get(@namespace.id).set(response)
                             #TODO hook this up
                             #$('#user-alert-space').append @alert_tmpl {}
 
