@@ -5,12 +5,11 @@
 #include "arch/types.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "memcached/protocol.hpp"
-#include "memcached/clustered_store.hpp"
 
 /* Serves memcache queries over the given TCP connection until the connection in question
 is closed. */
 
-void serve_memcache(tcp_conn_t *conn, get_store_t *get_store, set_store_interface_t *set_store);
+void serve_memcache(tcp_conn_t *conn, namespace_interface_t<memcached_protocol_t> *nsi);
 
 /* Listens for TCP connections on the given port and serves memcache queries over those
 connections until the destructor is called. */
@@ -20,10 +19,9 @@ struct memcache_listener_t : public home_thread_mixin_t {
     memcache_listener_t(int port, namespace_interface_t<memcached_protocol_t> *namespace_if);
 
     int port;
+
 private:
-    cluster_get_store_t get_store;
-    cluster_set_store_t set_store;
-    timestamping_set_store_interface_t ts_set_store;
+    namespace_interface_t<memcached_protocol_t> *namespace_if;
 
     int next_thread;
 

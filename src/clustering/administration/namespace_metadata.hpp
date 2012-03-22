@@ -94,7 +94,7 @@ template <class ctx_t, class protocol_t>
 typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(namespaces_semilattice_metadata_t<protocol_t> *target, const ctx_t &ctx) {
     namespace_semilattice_metadata_t<protocol_t> default_namespace;
     std::set<typename protocol_t::region_t> default_shards;
-    default_shards.insert(protocol_t::universe_region());
+    default_shards.insert(protocol_t::region_t::universe());
     default_namespace.shards = default_namespace.shards.make_new_version(default_shards, ctx.us);
 
     deletable_t<namespace_semilattice_metadata_t<protocol_t> > default_ns_in_deletable(default_namespace);

@@ -14,12 +14,13 @@
 #include "btree/keys.hpp"
 #include "config/args.hpp"
 #include "containers/data_buffer.hpp"
-#include "protocol_api.hpp"
 #include "utils.hpp"
 
 typedef uint32_t mcflags_t;
 typedef uint32_t exptime_t;
 typedef uint64_t cas_t;
+
+#define INVALID_CAS cas_t(-1)
 
 struct data_buffer_t;
 
@@ -35,12 +36,9 @@ struct get_query_t {
 
 struct get_result_t {
     get_result_t(const boost::intrusive_ptr<data_buffer_t>& v, mcflags_t f, cas_t c) :
-        is_not_allowed(false), value(v), flags(f), cas(c) { }
+        value(v), flags(f), cas(c) { }
     get_result_t() :
-        is_not_allowed(false), value(), flags(0), cas(0) { }
-
-    /* If true, then all other fields should be ignored. */
-    bool is_not_allowed;
+        value(), flags(0), cas(0) { }
 
     // NULL means not found.
     boost::intrusive_ptr<data_buffer_t> value;
@@ -84,13 +82,15 @@ struct key_with_data_buffer_t {
     };
 };
 
-// A NULL unique pointer means not allowed
 typedef boost::shared_ptr<one_way_iterator_t<key_with_data_buffer_t> > rget_result_t;
 
 /* `gets` */
 
 struct get_cas_mutation_t {
     store_key_t key;
+
+    get_cas_mutation_t() { }
+    get_cas_mutation_t(const store_key_t &k) : key(k) { }
 };
 
 /* `set`, `add`, `replace`, `cas` */
@@ -148,8 +148,6 @@ enum set_result_t {
     sr_didnt_replace,
     /* Returned if the value to be stored is too big */
     sr_too_large,
-    /* Returned if the store doesn't want you to do what you're doing. */
-    sr_not_allowed,
 };
 
 /* `delete` */
@@ -157,6 +155,7 @@ enum set_result_t {
 struct delete_mutation_t {
     store_key_t key;
 
+    // TODO: wat
     /* This is a hack for replication. If true, the btree will not record the change
     in the delete queue. */
     bool dont_put_in_delete_queue;
@@ -168,7 +167,6 @@ struct delete_mutation_t {
 enum delete_result_t {
     dr_deleted,
     dr_not_found,
-    dr_not_allowed
 };
 
 /* `incr`, `decr` */
@@ -182,6 +180,10 @@ struct incr_decr_mutation_t {
     incr_decr_kind_t kind;
     store_key_t key;
     uint64_t amount;
+
+    incr_decr_mutation_t() { }
+    incr_decr_mutation_t(incr_decr_kind_t idk, const store_key_t &k, uint64_t a) :
+        kind(idk), key(k), amount(a) { }
 };
 
 struct incr_decr_result_t {
@@ -189,7 +191,6 @@ struct incr_decr_result_t {
         idr_success,
         idr_not_found,
         idr_not_numeric,
-        idr_not_allowed,
     } res;
     uint64_t new_value;   // Valid only if idr_success
     incr_decr_result_t() { }
@@ -204,13 +205,16 @@ struct append_prepend_mutation_t {
     append_prepend_kind_t kind;
     store_key_t key;
     boost::intrusive_ptr<data_buffer_t> data;
+
+    append_prepend_mutation_t() { }
+    append_prepend_mutation_t(append_prepend_kind_t kind_, const store_key_t &key_, const boost::intrusive_ptr<data_buffer_t> &data_) :
+        kind(kind_), key(key_), data(data_) { }
 };
 
 enum append_prepend_result_t {
     apr_success,
     apr_too_large,
     apr_not_found,
-    apr_not_allowed,
 };
 
 #endif /* MEMCACHED_QUERIES_HPP_ */

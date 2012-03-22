@@ -78,7 +78,7 @@ public:
         return ret;
     }
 
-    bool expired() const;
+    bool expired(exptime_t effective_time) const;
 
     // CAS is treated differently from the other fields. Values initially don't
     // have a CAS; once it's added, though, we assume it's there for good. An

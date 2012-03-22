@@ -3,8 +3,8 @@
 
 #include "errors.hpp"
 #include <boost/scoped_ptr.hpp>
+#include <boost/shared_ptr.hpp>
 
-#include "memcached/store.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/fifo_checker.hpp"
 
@@ -19,48 +19,17 @@ cache for the purpose of storing a btree. There are many btree_slice_ts per
 btree_key_value_store_t. */
 
 class btree_slice_t :
-    public get_store_t,
-    public set_store_t,
     public home_thread_mixin_t
 {
 public:
     // Blocks
-    static void create(cache_t *cache); // calls the create function below with a key range which includes all keys
-    static void create(cache_t *cache, const key_range_t &key_range);
+    static void create(cache_t *cache);
 
     // Blocks
     explicit btree_slice_t(cache_t *cache);
 
     // Blocks
     ~btree_slice_t();
-
-    /* get_store_t interface */
-
-    get_result_t get(const store_key_t &key, order_token_t token);
-    get_result_t get(const store_key_t &key, transaction_t *txn, got_superblock_t& superblock);
-    rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token);
-    rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key,
-        boost::scoped_ptr<transaction_t>& txn, got_superblock_t& superblock);
-
-    /* set_store_t interface */
-
-    mutation_result_t change(const mutation_t &m, castime_t castime, order_token_t token);
-    mutation_result_t change(const mutation_t &m, castime_t castime, transaction_t *txn, got_superblock_t& superblock);
-
-    /* btree_slice_t interface */
-
-    void backfill_delete_range(key_tester_t *tester,
-                               bool left_key_supplied, const store_key_t& left_key_exclusive,
-                               bool right_key_supplied, const store_key_t& right_key_inclusive,
-                               order_token_t token);
-    void backfill_delete_range(key_tester_t *tester,
-                               bool left_key_supplied, const store_key_t& left_key_exclusive,
-                               bool right_key_supplied, const store_key_t& right_key_inclusive,
-                               transaction_t *txn, got_superblock_t& superblock);
-
-    void backfill(const key_range_t& key_range, repli_timestamp_t since_when, backfill_callback_t *callback, order_token_t token);
-    void backfill(const key_range_t& key_range, repli_timestamp_t since_when, backfill_callback_t *callback,
-                  transaction_t *txn, got_superblock_t& superblock);
 
     cache_t *cache() { return cache_; }
     boost::shared_ptr<cache_account_t> get_backfill_account() { return backfill_account; }

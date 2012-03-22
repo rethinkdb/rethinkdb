@@ -118,18 +118,10 @@ struct btree_set_oper_t : public btree_modify_oper_t {
 set_result_t btree_set(const store_key_t &key, btree_slice_t *slice,
                        const boost::intrusive_ptr<data_buffer_t>& data, mcflags_t mcflags, exptime_t exptime,
                        add_policy_t add_policy, replace_policy_t replace_policy, cas_t req_cas,
-                       castime_t castime, order_token_t token) {
+                       cas_t proposed_cas, exptime_t effective_time, repli_timestamp_t timestamp,
+                       transaction_t *txn, got_superblock_t& superblock) {
     btree_set_oper_t oper(data, mcflags, exptime, add_policy, replace_policy, req_cas);
-    run_btree_modify_oper(&oper, slice, key, castime, token);
-    return oper.result;
-}
-
-set_result_t btree_set(const store_key_t &key, btree_slice_t *slice,
-                       const boost::intrusive_ptr<data_buffer_t>& data, mcflags_t mcflags, exptime_t exptime,
-                       add_policy_t add_policy, replace_policy_t replace_policy, cas_t req_cas,
-                       castime_t castime, transaction_t *txn, got_superblock_t& superblock) {
-    btree_set_oper_t oper(data, mcflags, exptime, add_policy, replace_policy, req_cas);
-    run_btree_modify_oper(&oper, slice, key, castime, txn, superblock);
+    run_btree_modify_oper(&oper, slice, key, proposed_cas, effective_time, timestamp, txn, superblock);
     return oper.result;
 }
 
