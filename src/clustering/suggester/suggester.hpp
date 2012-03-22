@@ -6,11 +6,19 @@
 #include "clustering/reactor/metadata.hpp"
 
 class cannot_satisfy_goals_exc_t : public std::exception {
+private:
+    std::string desc;
 public:
+    cannot_satisfy_goals_exc_t(const std::string &_desc)
+        : desc(_desc)
+    { }
+
+    ~cannot_satisfy_goals_exc_t() throw() { }
+
     const char *what() const throw () {
-        return "The given goals are impossible to satisfy with the given "
-            "machines.";
+        return desc.c_str();
     }
+
 };
 
 template<class protocol_t>

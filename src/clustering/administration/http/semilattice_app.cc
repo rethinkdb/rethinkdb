@@ -170,6 +170,11 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
         logINF("HTTP request throw a permission_denied_exc_t with what =:\n %s\n", e.what());
         res.set_body("application/text", e.what());
         return res;
+    } catch (cannot_satisfy_goals_exc_t &e) {
+        http_res_t res(500);
+        logINF("The server was given a set of goals for which it couldn't find a valid blueprint. %s\n", e.what());
+        res.set_body("application/text", e.what());
+        return res;
     }
     unreachable();
 }
