@@ -443,38 +443,25 @@ module 'ClusterView', ->
             log_initial '(initializing) modal dialog: remove datacenter'
             super @template
 
-        render : (datacenters_to_delete) ->
-            log_render '(rendering) remove datacenter dialog'
-
+        render: (datacenters_to_delete) ->
+            log_render '(rendering) remove datacenters dialog'
             validator_options =
                 submitHandler: =>
-                    url = '/ajax/datacenters?ids='
-                    num_datacenters = datacenters_to_delete.length
                     for datacenter in datacenters_to_delete
-                        url += datacenter.id
-                        url += "," if num_datacenters-=1 > 0
+                        $.ajax
+                            url: "/ajax/datacenters/#{datacenter.id}"
+                            type: 'DELETE'
+                            contentType: 'application/json'
 
-                    url += '&token=' + token
+                            success: (response) =>
+                                clear_modals()
 
-                    # TODO: This action causes a bunch of machines to
-                    # reference a datacenter that no longer exists,
-                    # and javascript elsewhere can't handle this
-                    # inconsistent data.  Generally speaking, all our
-                    # javascript needs to be able to handle
-                    # inconsistent data.
-
-                    $('form', @$modal).ajaxSubmit
-                        url: url
-                        type: 'DELETE'
-
-                        success: (response) =>
-                            clear_modals()
-
-                            # Parse the response JSON, apply appropriate diffs, and show an alert
-                            apply_diffs(response)
-                            #TODO hook this back up
-                            #for datacenter in response_json.op_result
-                                #$('#user-alert-space').append @alert_tmpl datacenter
+                                if (response)
+                                    throw "Received a non null response to a delete... this is incorrect"
+                                datacenters.remove(datacenter.id)
+                                #TODO hook this up
+                                #for namespace in response_json.op_result
+                                    #$('#user-alert-space').append @alert_tmpl namespace
 
             array_for_template = _.map datacenters_to_delete, (datacenter) -> datacenter.toJSON()
             super validator_options, { 'datacenters': array_for_template }

@@ -69,7 +69,7 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
                 break;
         }
         crash("Unreachable\n");
-    } catch(cluster_namespace_interface_t<mock::dummy_protocol_t>::gap_exc_t) {
+    } catch(cannot_perform_query_exc_t) {
         return http_res_t(500);
     }
 }

@@ -17,24 +17,6 @@ class cluster_namespace_interface_t :
 public:
     typedef std::map<master_id_t, master_business_card_t<protocol_t> > master_map_t;
 
-    class ambiguity_exc_t : public std::exception {
-        const char *what() const throw () {
-            return "There are two or more masters for this region.";
-        }
-    };
-
-    class gap_exc_t : public std::exception {
-        const char *what() const throw () {
-            return "There are zero masters for this region.";
-        }
-    };
-
-    class forwarded_exc_t : public std::exception {
-        const char *what() const throw () {
-            return "Something went wrong at the master.";
-        }
-    };
-
     cluster_namespace_interface_t(
             mailbox_manager_t *mm,
             clone_ptr_t<directory_rview_t<master_map_t> > mv) :
@@ -42,13 +24,13 @@ public:
         masters_view(mv)
         { }
 
-    typename protocol_t::read_response_t read(typename protocol_t::read_t r, order_token_t order_token, signal_t *interruptor) {
+    typename protocol_t::read_response_t read(typename protocol_t::read_t r, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
         return generic_dispatch<typename protocol_t::read_t, typename protocol_t::read_response_t>(
             &master_business_card_t<protocol_t>::read_mailbox,
             r, order_token, interruptor);
     }
 
-    typename protocol_t::write_response_t write(typename protocol_t::write_t w, order_token_t order_token, signal_t *interruptor) {
+    typename protocol_t::write_response_t write(typename protocol_t::write_t w, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
         return generic_dispatch<typename protocol_t::write_t, typename protocol_t::write_response_t>(
             &master_business_card_t<protocol_t>::write_mailbox,
             w, order_token, interruptor);
@@ -65,8 +47,7 @@ private:
             return response;
         }
         op_response_t operator()(UNUSED const std::string& error_message) const {
-            /* TODO: Throw a more informative exception. */
-            throw forwarded_exc_t();
+            throw cannot_perform_query_exc_t(error_message);
         }
     };
 
@@ -77,7 +58,7 @@ private:
             `&master_business_card_t<protocol_t>::write_mailbox`. */
             typename async_mailbox_t<void(op_t, order_token_t, typename async_mailbox_t<void(boost::variant<op_response_t, std::string>)>::address_t)>::address_t master_business_card_t<protocol_t>::*mailbox_field,
             op_t op, order_token_t order_token, signal_t *interruptor)
-            THROWS_ONLY(ambiguity_exc_t, gap_exc_t, forwarded_exc_t, interrupted_exc_t)
+            THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t)
     {
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
@@ -153,7 +134,7 @@ private:
             typename protocol_t::region_t target_region,
             std::vector<typename protocol_t::region_t> *regions_out,
             std::vector<boost::shared_ptr<resource_access_t<master_business_card_t<protocol_t> > > > *masters_out)
-            THROWS_ONLY(ambiguity_exc_t, gap_exc_t)
+            THROWS_ONLY(cannot_perform_query_exc_t)
     {
         rassert(regions_out->empty());
         rassert(masters_out->empty());
@@ -191,11 +172,13 @@ private:
         try {
             join = region_join(*regions_out);
         } catch (bad_region_exc_t) {
-            throw gap_exc_t();
+            throw cannot_perform_query_exc_t("No master available");
         } catch (bad_join_exc_t) {
-            throw ambiguity_exc_t();
+            throw cannot_perform_query_exc_t("Multiple masters available");
         }
-        if (join != target_region) throw gap_exc_t();
+        if (join != target_region) {
+            throw cannot_perform_query_exc_t("No master available");
+        }
     }
 
     mailbox_manager_t *mailbox_manager;
