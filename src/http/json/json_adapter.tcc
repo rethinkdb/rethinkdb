@@ -97,7 +97,7 @@ void json_adapter_t<T, ctx_t>::apply_impl(cJSON *change, const ctx_t &ctx) {
 
 template <class T, class ctx_t>
 void json_adapter_t<T, ctx_t>::erase_impl(const ctx_t &ctx) {
-    erase(target, ctx);
+    erase_json(target, ctx);
 }
 
 template <class T, class ctx_t>
@@ -207,7 +207,7 @@ void json_adapter_with_inserter_t<container_t, ctx_t>::apply_impl(cJSON *change,
 
 template <class container_t, class ctx_t>
 void json_adapter_with_inserter_t<container_t, ctx_t>::erase_impl(const ctx_t &ctx) {
-    erase(target, ctx);
+    erase_json(target, ctx);
 }
 
 template <class container_t, class ctx_t>

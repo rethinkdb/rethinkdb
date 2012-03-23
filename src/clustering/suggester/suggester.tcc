@@ -53,12 +53,12 @@ float estimate_cost_to_get_up_to_date(
     return sum / count;
 }
 
-inline std::vector<machine_id_t> pick_n_best(const std::multimap<float, machine_id_t> candidates, int n) {
+inline std::vector<machine_id_t> pick_n_best(const std::multimap<float, machine_id_t> candidates, int n, const datacenter_id_t &datacenter) {
     std::vector<machine_id_t> result;
     std::multimap<float, machine_id_t>::const_iterator it = candidates.begin();
     while ((int)result.size() < n) {
         if (it == candidates.end()) {
-            throw cannot_satisfy_goals_exc_t();
+            throw cannot_satisfy_goals_exc_t(strprintf("Didn't have enough unused machines in datacenter %s, we needed %d\n", uuid_to_str(datacenter).c_str(), n));
         }
         float block_value = it->first;
         std::vector<machine_id_t> block;
@@ -99,7 +99,7 @@ std::map<machine_id_t, typename blueprint_details::role_t> suggest_blueprint_for
             primary_candidates.insert(std::make_pair(cost, it->first));
         }
     }
-    machine_id_t primary = pick_n_best(primary_candidates, 1).front();
+    machine_id_t primary = pick_n_best(primary_candidates, 1, primary_datacenter).front();
     sub_blueprint[primary] = blueprint_details::role_primary;
 
     for (std::map<datacenter_id_t, int>::const_iterator it = datacenter_affinities.begin(); it != datacenter_affinities.end(); it++) {
@@ -116,7 +116,7 @@ std::map<machine_id_t, typename blueprint_details::role_t> suggest_blueprint_for
                 secondary_candidates.insert(std::make_pair(cost, jt->first));
             }
         }
-        std::vector<machine_id_t> secondaries = pick_n_best(secondary_candidates, it->second);
+        std::vector<machine_id_t> secondaries = pick_n_best(secondary_candidates, it->second, it->first);
         for (std::vector<machine_id_t>::iterator jt = secondaries.begin(); jt != secondaries.end(); jt++) {
             sub_blueprint[*jt] = blueprint_details::role_secondary;
         }

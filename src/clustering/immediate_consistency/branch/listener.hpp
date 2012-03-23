@@ -333,7 +333,7 @@ private:
             typename protocol_t::write_t write,
             transition_timestamp_t transition_timestamp,
             fifo_enforcer_write_token_t fifo_token,
-            addr_t<void()> ack_addr)
+            mailbox_addr_t<void()> ack_addr)
             THROWS_NOTHING
     {
         try {
@@ -399,7 +399,7 @@ private:
             typename protocol_t::write_t write,
             transition_timestamp_t transition_timestamp,
             fifo_enforcer_write_token_t fifo_token,
-            addr_t<void(typename protocol_t::write_response_t)> ack_addr)
+            mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr)
             THROWS_NOTHING
     {
         try {
@@ -456,7 +456,7 @@ private:
             typename protocol_t::read_t read,
             DEBUG_ONLY_VAR state_timestamp_t expected_timestamp,
             fifo_enforcer_read_token_t fifo_token,
-            addr_t<void(typename protocol_t::read_response_t)> ack_addr)
+            mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr)
             THROWS_NOTHING
     {
         try {

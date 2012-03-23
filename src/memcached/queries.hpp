@@ -90,7 +90,7 @@ struct get_cas_mutation_t {
     store_key_t key;
 
     get_cas_mutation_t() { }
-    get_cas_mutation_t(const store_key_t &k) : key(k) { }
+    explicit get_cas_mutation_t(const store_key_t &k) : key(k) { }
 };
 
 /* `set`, `add`, `replace`, `cas` */

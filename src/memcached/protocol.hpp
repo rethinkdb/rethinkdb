@@ -124,7 +124,7 @@ public:
 
         read_t() { }
         read_t(const read_t& r) : query(r.query), effective_time(r.effective_time) { }
-        explicit read_t(const query_t& q, exptime_t et) : query(q), effective_time(et) { }
+        read_t(const query_t& q, exptime_t et) : query(q), effective_time(et) { }
 
         query_t query;
         exptime_t effective_time;

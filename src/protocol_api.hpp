@@ -29,7 +29,7 @@ instantiated. For a description of what `protocol_t` must be like, see
 
 class cannot_perform_query_exc_t : public std::exception {
 public:
-    cannot_perform_query_exc_t(const std::string &s) : message(s) { }
+    explicit cannot_perform_query_exc_t(const std::string &s) : message(s) { }
     ~cannot_perform_query_exc_t() throw () { }
     const char *what() const throw () {
         return message.c_str();

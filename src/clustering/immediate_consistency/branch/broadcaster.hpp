@@ -261,7 +261,7 @@ private:
             typename listener_business_card_t<protocol_t>::read_mailbox_t::address_t,
             auto_drainer_t::lock_t)
             THROWS_NOTHING;
-        void downgrade(addr_t<void()>, auto_drainer_t::lock_t) THROWS_NOTHING;
+        void downgrade(mailbox_addr_t<void()>, auto_drainer_t::lock_t) THROWS_NOTHING;
 
         broadcaster_t *controller;
         auto_drainer_t drainer;

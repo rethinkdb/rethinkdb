@@ -104,7 +104,7 @@ memcache_listener_t::memcache_listener_t(int _port, namespace_interface_t<memcac
 
 class memcache_conn_closing_subscription_t : public signal_t::subscription_t {
 public:
-    memcache_conn_closing_subscription_t(tcp_conn_t *conn) : conn_(conn) { }
+    explicit memcache_conn_closing_subscription_t(tcp_conn_t *conn) : conn_(conn) { }
 
     virtual void run() {
 	if (conn_->is_read_open()) {

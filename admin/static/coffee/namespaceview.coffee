@@ -117,14 +117,20 @@ module 'NamespaceView', ->
             # Define the validator options
             validator_options =
                 submitHandler: =>
-                    $('form', @$modal).ajaxSubmit
-                        url: '/ajax/namespaces/'+@namespace.id+'/add_secondary?token=' + token
+                    formdata = form_data_as_object($('form', @$modal))
+                    replica_affinities = {}
+                    replica_affinities[formdata.datacenter] = 0
+                    $.ajax
+                        processData: false
+                        url: "/ajax/#{@namespace.attributes.protocol}_namespaces/#{@namespace.id}"
                         type: 'POST'
+                        contentType: 'application/json'
+                        data: JSON.stringify({"replica_affinities": replica_affinities})
 
                         success: (response) =>
                             clear_modals()
 
-                            apply_diffs(response)
+                            namespaces.get(@namespace.id).set(response)
                             #TODO hook this up
                             #$('#user-alert-space').append @alert_tmpl {}
 
@@ -173,7 +179,10 @@ module 'NamespaceView', ->
                             apply_to_collection(namespaces, add_protocol_tag(response, "memcached"))
                             # the result of this operation are some attributes about the namespace we created, to be used in an alert
                             # TODO hook this up
-                            #$('#user-alert-space').append @alert_tmpl response_json.op_result
+                            for id, namespace of response
+                                $('#user-alert-space').append @alert_tmpl
+                                    uuid: id
+                                    name: namespace.name
 
             json = { 'datacenters' : _.map datacenters.models, (datacenter) -> datacenter.toJSON() }
 
@@ -424,7 +433,7 @@ module 'NamespaceView', ->
             id: machine.get('id')
             name: machine.get('name')
 
-        render: ->
+        render:(server_error) ->
             log_render '(rendering) modify replicas dialog'
 
             # Define the validator options
@@ -437,14 +446,17 @@ module 'NamespaceView', ->
                         processData: false
                         url: "/ajax/#{@namespace.get("protocol")}_namespaces/#{@namespace.id}"
                         type: 'POST'
-                        data: JSON.stringify({ "replica_affinities": replica_affinities_to_send})
+                        data: JSON.stringify({ "replica_affinities": replica_affinities_to_send })
 
                         success: (response) =>
                             clear_modals()
-
-                            apply_diffs(response)
+                            
+                            namespaces.get(@namespace.id).set(response)
                             #TODO hook this up
                             #$('#user-alert-space').append @alert_tmpl {}
+                        error: (response, unused, unused_2) =>
+                            clear_modals()
+                            @render(response.responseText)
 
             # Generate faked data TODO
             num_replicas = @namespace.get('replica_affinities')[@datacenter.id]
@@ -456,6 +468,9 @@ module 'NamespaceView', ->
                 'num_acks': num_replicas
                 # random machines | faked TODO
                 'replica_machines': @machine_json (_.shuffle machines.models)[0...num_replicas]
+
+            if server_error?
+                json['server_error'] = server_error
 
             super validator_options, json
 

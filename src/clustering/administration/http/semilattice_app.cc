@@ -38,6 +38,7 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
         cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
 
         //as we traverse the json sub directories this will keep track of where we are
+        // RSI: why is it a shared_ptr?
         boost::shared_ptr<json_adapter_if_t<namespace_metadata_ctx_t> > json_adapter_head(new json_adapter_t<cluster_semilattice_metadata_t, namespace_metadata_ctx_t>(&cluster_metadata));
         namespace_metadata_ctx_t json_ctx(us);
 
@@ -168,6 +169,11 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
     } catch (permission_denied_exc_t &e) {
         http_res_t res(400);
         logINF("HTTP request throw a permission_denied_exc_t with what =:\n %s\n", e.what());
+        res.set_body("application/text", e.what());
+        return res;
+    } catch (cannot_satisfy_goals_exc_t &e) {
+        http_res_t res(500);
+        logINF("The server was given a set of goals for which it couldn't find a valid blueprint. %s\n", e.what());
         res.set_body("application/text", e.what());
         return res;
     }

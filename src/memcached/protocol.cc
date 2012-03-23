@@ -53,7 +53,7 @@ key_range_t memcached_protocol_t::read_t::get_region() const THROWS_NOTHING {
 /* `memcached_protocol_t::read_t::shard()` */
 
 struct read_shard_visitor_t : public boost::static_visitor<memcached_protocol_t::read_t> {
-    explicit read_shard_visitor_t(const key_range_t &r, exptime_t et) :
+    read_shard_visitor_t(const key_range_t &r, exptime_t et) :
         region(r), effective_time(et) { }
     const key_range_t &region;
     exptime_t effective_time;

@@ -1092,11 +1092,11 @@ apply_diffs = (updates) ->
     declare_client_connected()
 
     if (!window.contact_machine_id)
-        window.contact_machine_id = updates["me"] 
+        window.contact_machine_id = updates["me"]
     else
         if (updates["me"] != window.contact_machine_id)
             reset_collections()
-            window.contact_machine_id = updates["me"] 
+            window.contact_machine_id = updates["me"]
 
     for collection_id, collection_data of updates
         switch collection_id

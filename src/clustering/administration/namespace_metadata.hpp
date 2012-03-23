@@ -88,7 +88,7 @@ RDB_MAKE_SEMILATTICE_JOINABLE_2(namespaces_semilattice_metadata_t<protocol_t>, n
 template<class protocol_t>
 RDB_MAKE_EQUALITY_COMPARABLE_2(namespaces_semilattice_metadata_t<protocol_t>, namespaces, branch_history);
 
-//json adapter concept for namespaces_semilattice_metadata_t
+// json adapter concept for namespaces_semilattice_metadata_t
 
 template <class ctx_t, class protocol_t>
 typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(namespaces_semilattice_metadata_t<protocol_t> *target, const ctx_t &ctx) {
@@ -119,8 +119,11 @@ void on_subfield_change(namespaces_semilattice_metadata_t<protocol_t> *target, c
 template <class protocol_t>
 class namespaces_directory_metadata_t {
 public:
-    std::map<namespace_id_t, directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > reactor_bcards;
-    std::map<namespace_id_t, std::map<master_id_t, master_business_card_t<protocol_t> > > master_maps;
+    typedef std::map<namespace_id_t, directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > reactor_bcards_map_t;
+    typedef std::map<namespace_id_t, std::map<master_id_t, master_business_card_t<protocol_t> > > master_maps_map_t;
+
+    reactor_bcards_map_t reactor_bcards;
+    master_maps_map_t master_maps;
 
     RDB_MAKE_ME_SERIALIZABLE_2(reactor_bcards, master_maps);
 };
@@ -132,5 +135,26 @@ struct namespace_metadata_ctx_t {
     { }
 };
 
-#endif /* CLUSTERING_ARCHITECT_METADATA_HPP_ */
+// json adapter concept for namespaces_directory_metadata_t
 
+template <class ctx_t, class protocol_t>
+typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(namespaces_directory_metadata_t<protocol_t> *target, UNUSED const ctx_t &ctx) {
+    typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
+    res["reactor_bcards"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_read_only_adapter_t<std::map<namespace_id_t, directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >, ctx_t>(&target->reactor_bcards));
+    return res;
+}
+
+template <class ctx_t, class protocol_t>
+cJSON *render_as_json(namespaces_directory_metadata_t<protocol_t> *target, const ctx_t &ctx) {
+    return render_as_directory(target, ctx);
+}
+
+template <class ctx_t, class protocol_t>
+void apply_json_to(cJSON *change, namespaces_directory_metadata_t<protocol_t> *target, const ctx_t &ctx) {
+    apply_as_directory(change, target, ctx);
+}
+
+template <class ctx_t, class protocol_t>
+void on_subfield_change(UNUSED namespaces_directory_metadata_t<protocol_t> *target, UNUSED const ctx_t &ctx) { }
+
+#endif /* CLUSTERING_ARCHITECT_METADATA_HPP_ */
