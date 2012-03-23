@@ -1,13 +1,15 @@
-#include "btree/rget.hpp"
+#include "memcached/btree/rget.hpp"
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
 #include <boost/make_shared.hpp>
 
-#include "btree/btree_data_provider.hpp"
+#include "arch/runtime/runtime.hpp"
 #include "btree/iteration.hpp"
 #include "containers/iterators.hpp"
-#include "arch/runtime/runtime.hpp"
+#include "memcached/btree/btree_data_provider.hpp"
+#include "memcached/btree/node.hpp"
+#include "memcached/btree/value.hpp"
 
 /*
  * Possible rget designs:
@@ -109,7 +111,7 @@ btree_bound_mode_t convert_bound_mode(rget_bound_mode_t m) {
     }
 }
 
-rget_result_t btree_rget_slice(btree_slice_t *slice, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key,
+rget_result_t memcached_rget_slice(btree_slice_t *slice, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key,
     exptime_t effective_time, boost::scoped_ptr<transaction_t>& txn, got_superblock_t& superblock) {
 
     boost::shared_ptr<value_sizer_t<memcached_value_t> > sizer = boost::make_shared<memcached_value_sizer_t>(txn->get_cache()->get_block_size());

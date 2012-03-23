@@ -1,17 +1,16 @@
-#include "btree/incr_decr.hpp"
+#include "memcached/btree/incr_decr.hpp"
 
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 
-#include "btree/modify_oper.hpp"
 #include "containers/buffer_group.hpp"
 #include "containers/printf_buffer.hpp"
 #include "containers/scoped_malloc.hpp"
+#include "memcached/btree/modify_oper.hpp"
 
+struct memcached_incr_decr_oper_t : public memcached_modify_oper_t {
 
-struct btree_incr_decr_oper_t : public btree_modify_oper_t {
-
-    btree_incr_decr_oper_t(bool _increment, uint64_t _delta)
+    memcached_incr_decr_oper_t(bool _increment, uint64_t _delta)
         : increment(_increment), delta(_delta)
     { }
 
@@ -92,9 +91,9 @@ struct btree_incr_decr_oper_t : public btree_modify_oper_t {
     incr_decr_result_t result;
 };
 
-incr_decr_result_t btree_incr_decr(const store_key_t &key, btree_slice_t *slice, bool increment, uint64_t delta, cas_t proposed_cas, exptime_t effective_time, repli_timestamp_t timestamp, transaction_t *txn, got_superblock_t& superblock) {
-    btree_incr_decr_oper_t oper(increment, delta);
-    run_btree_modify_oper(&oper, slice, key, proposed_cas, effective_time, timestamp, txn, superblock);
+incr_decr_result_t memcached_incr_decr(const store_key_t &key, btree_slice_t *slice, bool increment, uint64_t delta, cas_t proposed_cas, exptime_t effective_time, repli_timestamp_t timestamp, transaction_t *txn, got_superblock_t& superblock) {
+    memcached_incr_decr_oper_t oper(increment, delta);
+    run_memcached_modify_oper(&oper, slice, key, proposed_cas, effective_time, timestamp, txn, superblock);
     return oper.result;
 }
 

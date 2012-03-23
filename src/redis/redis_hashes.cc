@@ -89,7 +89,7 @@ struct hash_set_oper_t : set_oper_t {
         redis_hash_value_t *value = reinterpret_cast<redis_hash_value_t *>(location.value.get());
         if(value == NULL) {
             // Hash doesn't exist, we create it on creation of the first field
-            scoped_malloc<redis_value_t> smrsv(MAX_BTREE_VALUE_SIZE);
+            scoped_malloc<redis_value_t> smrsv(MAX_REDIS_VALUE_SIZE);
             location.value.swap(smrsv);
             location.value->set_redis_type(REDIS_HASH);
             value = reinterpret_cast<redis_hash_value_t *>(location.value.get());
@@ -170,8 +170,8 @@ protected:
             redis_nested_string_value_t *nst_str = loc.value.get();
             bool created = false;
             if(nst_str == NULL) {
-                scoped_malloc<redis_nested_string_value_t> smrsv(MAX_BTREE_VALUE_SIZE);
-                memset(smrsv.get(), 0, MAX_BTREE_VALUE_SIZE);
+                scoped_malloc<redis_nested_string_value_t> smrsv(MAX_REDIS_VALUE_SIZE);
+                memset(smrsv.get(), 0, MAX_REDIS_VALUE_SIZE);
                 loc.value.swap(smrsv);
                 nst_str = loc.value.get();
                 created = true;

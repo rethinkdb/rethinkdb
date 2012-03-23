@@ -6,13 +6,12 @@
 #include <boost/bind.hpp>
 
 #include "arch/runtime/runtime.hpp"
-#include "buffer_cache/buffer_cache.hpp"
-#include "btree/btree_data_provider.hpp"
 #include "btree/node.hpp"
 #include "btree/internal_node.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/parallel_traversal.hpp"
 #include "btree/slice.hpp"
+#include "buffer_cache/buffer_cache.hpp"
 
 struct backfill_traversal_helper_t : public btree_traversal_helper_t, public home_thread_mixin_t {
 
@@ -159,74 +158,4 @@ void do_agnostic_btree_backfill(value_sizer_t<void> *sizer, btree_slice_t *slice
 
     backfill_traversal_helper_t helper(callback, since_when, sizer, key_range);
     btree_parallel_traversal(txn, superblock, slice, &helper);
-}
-
-void do_agnostic_btree_backfill(value_sizer_t<void> *sizer, btree_slice_t *slice, const key_range_t& key_range, repli_timestamp_t since_when,
-    const boost::shared_ptr<cache_account_t>& backfill_account, agnostic_backfill_callback_t *callback, order_token_t token) {
-    slice->pre_begin_transaction_sink_.check_out(token);
-    // TODO: Why are we using a write_mode source here?  There must be a reason...
-    order_token_t begin_transaction_token = slice->pre_begin_transaction_write_mode_source_.check_in(token.tag() + "+begin_transaction_token").with_read_mode();
-
-    boost::scoped_ptr<transaction_t> txn(new transaction_t(slice->cache(), rwi_read_sync, 0, repli_timestamp_t::distant_past));
-
-    txn->set_token(slice->post_begin_transaction_checkpoint_.check_through(begin_transaction_token));
-
-#ifndef NDEBUG
-    boost::scoped_ptr<assert_no_coro_waiting_t> no_coro_waiting(new assert_no_coro_waiting_t(__FILE__, __LINE__));
-#endif
-
-    txn->set_account(backfill_account);
-    txn->snapshot();
-
-#ifndef NDEBUG
-    no_coro_waiting.reset();
-#endif
-
-    got_superblock_t superblock;
-    get_btree_superblock(txn.get(), rwi_read, &superblock);
-
-    do_agnostic_btree_backfill(sizer, slice, key_range, since_when, callback, txn.get(), superblock);
-}
-
-class agnostic_memcached_backfill_callback_t : public agnostic_backfill_callback_t {
-public:
-    explicit agnostic_memcached_backfill_callback_t(backfill_callback_t *cb) : cb_(cb) { }
-
-    void on_delete_range(const btree_key_t *low, const btree_key_t *high) {
-        cb_->on_delete_range(low, high);
-    }
-
-    void on_deletion(const btree_key_t *key, repli_timestamp_t recency) {
-        cb_->on_deletion(key, recency);
-    }
-
-    void on_pair(transaction_t *txn, repli_timestamp_t recency, const btree_key_t *key, const void *val) {
-        const memcached_value_t *value = static_cast<const memcached_value_t *>(val);
-        boost::intrusive_ptr<data_buffer_t> data_provider = value_to_data_buffer(value, txn);
-        backfill_atom_t atom;
-        atom.key.assign(key->size, key->contents);
-        atom.value = data_provider;
-        atom.flags = value->mcflags();
-        atom.exptime = value->exptime();
-        atom.recency = recency;
-        atom.cas_or_zero = value->has_cas() ? value->cas() : 0;
-        cb_->on_keyvalue(atom);
-    }
-
-    backfill_callback_t *cb_;
-};
-
-void btree_backfill(btree_slice_t *slice, const key_range_t& key_range, repli_timestamp_t since_when,
-    const boost::shared_ptr<cache_account_t>& backfill_account, backfill_callback_t *callback, order_token_t token) {
-
-    agnostic_memcached_backfill_callback_t agnostic_cb(callback);
-    value_sizer_t<memcached_value_t> sizer(slice->cache()->get_block_size());
-    do_agnostic_btree_backfill(&sizer, slice, key_range, since_when, backfill_account, &agnostic_cb, token);
-}
-
-void btree_backfill(btree_slice_t *slice, const key_range_t& key_range, repli_timestamp_t since_when, backfill_callback_t *callback,
-                    transaction_t *txn, got_superblock_t& superblock) {
-    agnostic_memcached_backfill_callback_t agnostic_cb(callback);
-    value_sizer_t<memcached_value_t> sizer(slice->cache()->get_block_size());
-    do_agnostic_btree_backfill(&sizer, slice, key_range, since_when, &agnostic_cb, txn, superblock);
 }

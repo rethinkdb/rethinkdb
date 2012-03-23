@@ -8,9 +8,13 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/variant.hpp>
 
-#include "serializer/types.hpp"
-#include "buffer_cache/blob.hpp"
 #include "btree/node.hpp"
+#include "buffer_cache/blob.hpp"
+#include "config/args.hpp"
+#include "serializer/types.hpp"
+
+// TODO: Terrible hack.
+#define MAX_REDIS_VALUE_SIZE 300
 
 enum redis_value_type {
     REDIS_STRING,
@@ -206,7 +210,7 @@ public:
     }
 
     int max_possible_size() const {
-        return MAX_BTREE_VALUE_SIZE;
+        return MAX_REDIS_VALUE_SIZE;
     }
 
     block_magic_t btree_leaf_magic() const {
@@ -246,7 +250,7 @@ public:
     }
 
     int max_possible_size() const {
-        return MAX_BTREE_VALUE_SIZE;
+        return MAX_REDIS_VALUE_SIZE;
     }
 
     bool deep_fsck(block_getter_t *getter, const void *value, int length_available, std::string *msg_out) const {
@@ -312,7 +316,7 @@ public:
     }
 
     int max_possible_size() const {
-        return MAX_BTREE_VALUE_SIZE;
+        return MAX_REDIS_VALUE_SIZE;
     }
 
     block_magic_t btree_leaf_magic() const {
