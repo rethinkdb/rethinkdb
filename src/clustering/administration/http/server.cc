@@ -34,6 +34,8 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/js/jquery.timeago.js");
     white_list.insert("/js/jquery.validate.min.js");
     white_list.insert("/js/underscore-min.js");
+    white_list.insert("/images/alert-icon_small.png");
+    white_list.insert("/images/information-icon_small.png");
     file_app.reset(new file_http_app_t(white_list, "../build/debug/web"));
 
     semilattice_app.reset(new semilattice_http_app_t(_semilattice_metadata, _directory_metadata, _us));
