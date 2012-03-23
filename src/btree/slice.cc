@@ -2,21 +2,15 @@
 #include <boost/archive/binary_oarchive.hpp>
 #include "containers/vector_stream.hpp"
 
-#include "btree/backfill.hpp"
-#include "btree/erase_range.hpp"
 #include "btree/slice.hpp"
 #include "btree/node.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "concurrency/cond_var.hpp"
-#include "btree/get.hpp"
-#include "btree/rget.hpp"
-#include "btree/set.hpp"
-#include "btree/incr_decr.hpp"
-#include "btree/append_prepend.hpp"
-#include "btree/delete.hpp"
-#include "btree/get_cas.hpp"
 
 namespace arc = boost::archive;
+
+// Run backfilling at a reduced priority
+#define BACKFILL_CACHE_PRIORITY 10
 
 void btree_slice_t::create(cache_t *cache) {
 

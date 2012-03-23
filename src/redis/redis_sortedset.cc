@@ -14,7 +14,7 @@ struct sorted_set_set_oper_t : set_oper_t {
 
         if(value == NULL) {
             // Allocate sorted set
-            scoped_malloc<redis_value_t> smrsv(MAX_BTREE_VALUE_SIZE);
+            scoped_malloc<redis_value_t> smrsv(MAX_REDIS_VALUE_SIZE);
             location.value.swap(smrsv);
             location.value->set_redis_type(REDIS_SORTED_SET);
             value = reinterpret_cast<redis_sorted_set_value_t *>(location.value.get());

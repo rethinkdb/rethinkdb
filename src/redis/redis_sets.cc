@@ -9,7 +9,7 @@ struct set_set_oper_t : set_oper_t {
     { 
         redis_set_value_t *value = reinterpret_cast<redis_set_value_t *>(location.value.get());
         if (value == NULL) {
-            scoped_malloc<redis_value_t> smrsv(MAX_BTREE_VALUE_SIZE);
+            scoped_malloc<redis_value_t> smrsv(MAX_REDIS_VALUE_SIZE);
             location.value.swap(smrsv);
             location.value->set_redis_type(REDIS_SET);
             value = reinterpret_cast<redis_set_value_t *>(location.value.get());

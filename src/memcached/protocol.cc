@@ -4,20 +4,20 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 
-#include "btree/append_prepend.hpp"
-#include "btree/delete.hpp"
-#include "btree/erase_range.hpp"
-#include "btree/get.hpp"
-#include "btree/get_cas.hpp"
-#include "btree/incr_decr.hpp"
-#include "btree/rget.hpp"
-#include "btree/set.hpp"
 #include "btree/slice.hpp"
 #include "btree/operations.hpp"
 #include "concurrency/access.hpp"
 #include "concurrency/wait_any.hpp"
 #include "containers/iterators.hpp"
 #include "containers/vector_stream.hpp"
+#include "memcached/btree/append_prepend.hpp"
+#include "memcached/btree/delete.hpp"
+#include "memcached/btree/erase_range.hpp"
+#include "memcached/btree/get.hpp"
+#include "memcached/btree/get_cas.hpp"
+#include "memcached/btree/incr_decr.hpp"
+#include "memcached/btree/rget.hpp"
+#include "memcached/btree/set.hpp"
 #include "memcached/queries.hpp"
 
 /* `memcached_protocol_t::read_t::get_region()` */
@@ -321,11 +321,11 @@ struct read_visitor_t : public boost::static_visitor<memcached_protocol_t::read_
 
     memcached_protocol_t::read_response_t operator()(const get_query_t& get) {
         return memcached_protocol_t::read_response_t(
-            btree_get(get.key, btree, effective_time, txn.get(), superblock));
+            memcached_get(get.key, btree, effective_time, txn.get(), superblock));
     }
     memcached_protocol_t::read_response_t operator()(const rget_query_t& rget) {
         return memcached_protocol_t::read_response_t(
-            btree_rget_slice(btree, rget.left_mode, rget.left_key, rget.right_mode, rget.right_key, effective_time, txn, superblock));
+            memcached_rget_slice(btree, rget.left_mode, rget.left_key, rget.right_mode, rget.right_key, effective_time, txn, superblock));
     }
 
     read_visitor_t(btree_slice_t *btree_, boost::scoped_ptr<transaction_t>& txn_, got_superblock_t& superblock_, exptime_t effective_time_) : btree(btree_), txn(txn_), superblock(superblock_), effective_time(effective_time_) { }
@@ -357,24 +357,24 @@ memcached_protocol_t::read_response_t memcached_protocol_t::store_t::read(
 struct write_visitor_t : public boost::static_visitor<memcached_protocol_t::write_response_t> {
     memcached_protocol_t::write_response_t operator()(const get_cas_mutation_t &m) {
         return memcached_protocol_t::write_response_t(
-            btree_get_cas(m.key, btree, proposed_cas, effective_time, timestamp, txn.get(), superblock));
+            memcached_get_cas(m.key, btree, proposed_cas, effective_time, timestamp, txn.get(), superblock));
     }
     memcached_protocol_t::write_response_t operator()(const sarc_mutation_t &m) {
         return memcached_protocol_t::write_response_t(
-            btree_set(m.key, btree, m.data, m.flags, m.exptime, m.add_policy, m.replace_policy, m.old_cas, proposed_cas, effective_time, timestamp, txn.get(), superblock));
+            memcached_set(m.key, btree, m.data, m.flags, m.exptime, m.add_policy, m.replace_policy, m.old_cas, proposed_cas, effective_time, timestamp, txn.get(), superblock));
     }
     memcached_protocol_t::write_response_t operator()(const incr_decr_mutation_t &m) {
         return memcached_protocol_t::write_response_t(
-            btree_incr_decr(m.key, btree, (m.kind == incr_decr_INCR), m.amount, proposed_cas, effective_time, timestamp, txn.get(), superblock));
+            memcached_incr_decr(m.key, btree, (m.kind == incr_decr_INCR), m.amount, proposed_cas, effective_time, timestamp, txn.get(), superblock));
     }
     memcached_protocol_t::write_response_t operator()(const append_prepend_mutation_t &m) {
         return memcached_protocol_t::write_response_t(
-            btree_append_prepend(m.key, btree, m.data, (m.kind == append_prepend_APPEND), proposed_cas, effective_time, timestamp, txn.get(), superblock));
+            memcached_append_prepend(m.key, btree, m.data, (m.kind == append_prepend_APPEND), proposed_cas, effective_time, timestamp, txn.get(), superblock));
     }
     memcached_protocol_t::write_response_t operator()(const delete_mutation_t &m) {
         rassert(proposed_cas == INVALID_CAS);
         return memcached_protocol_t::write_response_t(
-            btree_delete(m.key, m.dont_put_in_delete_queue, btree, effective_time, timestamp, txn.get(), superblock));
+            memcached_delete(m.key, m.dont_put_in_delete_queue, btree, effective_time, timestamp, txn.get(), superblock));
     }
 
     write_visitor_t(btree_slice_t *btree_, boost::scoped_ptr<transaction_t>& txn_, got_superblock_t& superblock_, cas_t proposed_cas_, exptime_t effective_time_, repli_timestamp_t timestamp_) : btree(btree_), txn(txn_), superblock(superblock_), proposed_cas(proposed_cas_), effective_time(effective_time_), timestamp(timestamp_) { }
@@ -456,7 +456,7 @@ bool memcached_protocol_t::store_t::send_backfill(
         for (region_map_t<memcached_protocol_t, state_timestamp_t>::const_iterator i = start_point.begin(); i != start_point.end(); i++) {
             const memcached_protocol_t::region_t& range = (*i).first;
             repli_timestamp_t since_when = (*i).second.to_repli_timestamp(); // FIXME: this loses precision
-            btree_backfill(btree.get(), range, since_when, &callback, txn.get(), superblock);
+            memcached_backfill(btree.get(), range, since_when, &callback, txn.get(), superblock);
         }
         return true;
     } else {
@@ -468,21 +468,21 @@ struct receive_backfill_visitor_t : public boost::static_visitor<> {
     receive_backfill_visitor_t(btree_slice_t *btree_, transaction_t *txn_, got_superblock_t &superblock_, signal_t *interruptor_) : btree(btree_), txn(txn_), superblock(superblock_), interruptor(interruptor_) { }
     void operator()(const memcached_protocol_t::backfill_chunk_t::delete_key_t& delete_key) const {
         // FIXME: we ignored delete_key.recency here. Should we use it in place of repli_timestamp_t::invalid?
-        btree_delete(delete_key.key, true, btree, 0, repli_timestamp_t::invalid, txn, superblock);
+        memcached_delete(delete_key.key, true, btree, 0, repli_timestamp_t::invalid, txn, superblock);
     }
     void operator()(const memcached_protocol_t::backfill_chunk_t::delete_range_t& delete_range) const {
         const key_range_t& range = delete_range.range;
         range_key_tester_t tester(range);
         bool left_supplied = range.left.size > 0;
         bool right_supplied = !range.right.unbounded;
-        btree_erase_range(btree, &tester,
+        memcached_erase_range(btree, &tester,
               left_supplied, range.left,
               right_supplied, range.right.key,
               txn, superblock);
     }
     void operator()(const memcached_protocol_t::backfill_chunk_t::key_value_pair_t& kv) const {
         const backfill_atom_t& bf_atom = kv.backfill_atom;
-        btree_set(bf_atom.key, btree, 
+        memcached_set(bf_atom.key, btree, 
             bf_atom.value, bf_atom.flags, bf_atom.exptime,
             add_policy_yes, replace_policy_yes, INVALID_CAS,
             // TODO: Should we pass bf_atom.recency in place of repli_timestamp_t::invalid here? Ask Sam.
@@ -544,7 +544,7 @@ void memcached_protocol_t::store_t::reset_data(
     region_map_t<memcached_protocol_t, binary_blob_t> old_metainfo = get_metainfo_internal(txn.get(), superblock.get_real_buf());
     update_metainfo(old_metainfo, new_metainfo, txn.get(), superblock);
 
-    btree_erase_range(btree.get(), NULL, subregion, txn.get(), superblock);
+    memcached_erase_range(btree.get(), NULL, subregion, txn.get(), superblock);
 }
 
 void memcached_protocol_t::store_t::check_and_update_metainfo(

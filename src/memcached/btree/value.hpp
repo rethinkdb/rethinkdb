@@ -1,5 +1,5 @@
-#ifndef BTREE_VALUE_HPP_
-#define BTREE_VALUE_HPP_
+#ifndef MEMCACHED_BTREE_VALUE_HPP_
+#define MEMCACHED_BTREE_VALUE_HPP_
 
 #include "errors.hpp"
 #include "buffer_cache/blob.hpp"
@@ -95,10 +95,12 @@ public:
     }
 };
 
+// In addition to the value itself we could potentially store
+// memcached flags, exptime, and a CAS value in the value contents,
+// plus the first size byte, so we reserve space for that.
+#define MAX_MEMCACHED_VALUE_AUXILIARY_SIZE            (sizeof(memcached_value_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint64_t) + 1)
+#define MAX_MEMCACHED_VALUE_SIZE                      (MAX_MEMCACHED_VALUE_AUXILIARY_SIZE + MAX_IN_NODE_VALUE_SIZE)
+
 bool btree_value_fits(block_size_t bs, int data_length, const memcached_value_t *value);
 
-
-
-
-
-#endif  // BTREE_VALUE_HPP_
+#endif  // MEMCACHED_BTREE_VALUE_HPP_

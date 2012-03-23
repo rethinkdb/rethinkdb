@@ -27,18 +27,22 @@ struct always_true_key_tester_t : public key_tester_t {
     }
 };
 
-void btree_erase_range(btree_slice_t *slice, key_tester_t *tester,
-                       bool left_key_supplied, const store_key_t& left_key_exclusive,
-                       bool right_key_supplied, const store_key_t& right_key_inclusive,
-                       order_token_t token);
+class value_deleter_t {
+public:
+    value_deleter_t() { }
+    virtual void delete_value(transaction_t *txn, void *value) = 0;
 
-void btree_erase_range(btree_slice_t *slice, key_tester_t *tester,
-                       bool left_key_supplied, const store_key_t& left_key_exclusive,
-                       bool right_key_supplied, const store_key_t& right_key_inclusive,
-                       transaction_t *txn, got_superblock_t& superblock);
+protected:
+    virtual ~value_deleter_t() { }
 
-void btree_erase_range(btree_slice_t *slice, key_tester_t *tester,
-                       const key_range_t &keys,
-                       transaction_t *txn, got_superblock_t& superblock);
+    DISABLE_COPYING(value_deleter_t);
+};
+
+void btree_erase_range_generic(value_sizer_t<void> *sizer, btree_slice_t *slice,
+                               key_tester_t *tester,
+                               value_deleter_t *deleter,
+                               const btree_key_t *left_exclusive_or_null,
+                               const btree_key_t *right_inclusive_or_null,
+                               transaction_t *txn, got_superblock_t& superblock);
 
 #endif  // BTREE_ERASE_RANGE_HPP_

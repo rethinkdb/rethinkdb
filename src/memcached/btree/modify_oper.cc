@@ -1,10 +1,11 @@
-#include "btree/modify_oper.hpp"
+#include "memcached/btree/modify_oper.hpp"
+
 #include "btree/internal_node.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/operations.hpp"
 #include "btree/slice.hpp"
 
-void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, const store_key_t &store_key, cas_t proposed_cas, exptime_t effective_time, repli_timestamp_t timestamp,
+void run_memcached_modify_oper(memcached_modify_oper_t *oper, btree_slice_t *slice, const store_key_t &store_key, cas_t proposed_cas, exptime_t effective_time, repli_timestamp_t timestamp,
     transaction_t *txn, got_superblock_t& superblock) {
 
     btree_key_buffer_t kbuffer(store_key);

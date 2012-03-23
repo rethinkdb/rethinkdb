@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #include "btree/slice.hpp"
+#include "buffer_cache/blob.hpp"
 
 real_superblock_t::real_superblock_t(buf_lock_t &sb_buf) {
     sb_buf_.swap(sb_buf);

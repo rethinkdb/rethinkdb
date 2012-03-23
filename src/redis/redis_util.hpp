@@ -205,8 +205,8 @@ int incr_loc(transaction_t *txn, keyvalue_location_t<T> &loc, int by) {
     std::string int_string;
     T *value = loc.value.get();
     if (value == NULL) {
-        scoped_malloc<T> smrsv(MAX_BTREE_VALUE_SIZE);
-        memset(smrsv.get(), 0, MAX_BTREE_VALUE_SIZE);
+        scoped_malloc<T> smrsv(MAX_REDIS_VALUE_SIZE);
+        memset(smrsv.get(), 0, MAX_REDIS_VALUE_SIZE);
         loc.value.swap(smrsv);
         value = loc.value.get();
     } else {
