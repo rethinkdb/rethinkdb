@@ -310,7 +310,7 @@ WEB_SOURCE_DIR:=../admin
 WEB_ASSETS_BUILD_DIR:=$(BUILD_DIR)/web
 #This atrociousness comes from the fact... fuck it blah blah blah coffee script.
 #Basically coffee script can't handle dependencies.
-COFFEE_SOURCES:=$(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%, util.coffee clusterview.coffee namespaceview.coffee otherviews.coffee cluster.coffee)
+COFFEE_SOURCES:=$(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%, util.coffee clusterview.coffee namespaceview.coffee otherviews.coffee vis.coffee cluster.coffee)
 LESS_SOURCES:=$(shell find $(WEB_SOURCE_DIR)/static/less -name '*.less')
 LESS_MAIN:=$(WEB_SOURCE_DIR)/static/less/cluster.less
 CLUSTER_HTML:=$(WEB_SOURCE_DIR)/templates/cluster.html
@@ -562,7 +562,7 @@ endif
 
 # Build rules
 
-web-assets: $(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/cluster.css $(WEB_ASSETS_BUILD_DIR)/cluster.html $(WEB_ASSETS_BUILD_DIR)/js
+web-assets: $(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/cluster.css $(WEB_ASSETS_BUILD_DIR)/index.html $(WEB_ASSETS_BUILD_DIR)/js $(WEB_ASSETS_BUILD_DIR)/images
 
 $(WEB_ASSETS_BUILD_DIR)/cluster-min.js: $(COFFEE_SOURCES)
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
@@ -571,14 +571,14 @@ ifeq ($(VERBOSE),0)
 endif
 	$(QUIET) cat $+ | coffee -bp --stdio > $@
 
-$(WEB_ASSETS_BUILD_DIR)/cluster.css: $(LESS_SOURCES)
+$(WEB_ASSETS_BUILD_DIR)/cluster.css: $(LESS_MAIN)
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    LESSC $@"
 endif
 	$(QUIET) lessc $(LESS_MAIN) > $@
 
-$(WEB_ASSETS_BUILD_DIR)/cluster.html: $(CLUSTER_HTML)
+$(WEB_ASSETS_BUILD_DIR)/index.html: $(CLUSTER_HTML)
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    STRIP GEN $@"
@@ -592,7 +592,7 @@ ifeq ($(VERBOSE),0)
 endif
 	$(QUIET) cp -rP $(JS_EXTERNAL_DIR) $(WEB_ASSETS_BUILD_DIR)
 
-$(WEB_ASSETS_BUILD_DIR)/images: 
+$(WEB_ASSETS_BUILD_DIR)/images:
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    CP $(IMAGES_EXTERNAL_DIR) -> $(WEB_ASSETS_BUILD_DIR)"

@@ -36,7 +36,7 @@ fifo_enforcer_sink_t::exit_read_t::~exit_read_t() THROWS_NOTHING {
         parent->finish_a_reader(token.timestamp);
         parent->pump();
     } else {
-        (*queue_position).second = NULL;
+        queue_position->second = NULL;
     }
 }
 
@@ -59,7 +59,7 @@ fifo_enforcer_sink_t::exit_write_t::~exit_write_t() THROWS_NOTHING {
         parent->finish_a_writer(token.timestamp, token.num_preceding_reads);
         parent->pump();
     } else {
-        (*queue_position).second.second = NULL;
+        queue_position->second.second = NULL;
     }
 }
 
@@ -71,12 +71,12 @@ void fifo_enforcer_sink_t::pump() THROWS_NOTHING {
             waiting_readers.equal_range(state.timestamp);
         for (reader_queue_t::iterator it = bounds.first;
                 it != bounds.second; it++) {
-            exit_read_t *read = (*it).second;
+            exit_read_t *read = it->second;
             if (read) {
                 read->pulse();
             } else {
                 cont = true;
-                finish_a_reader((*it).first);
+                finish_a_reader(it->first);
             }
         }
         waiting_readers.erase(bounds.first, bounds.second);
@@ -84,16 +84,16 @@ void fifo_enforcer_sink_t::pump() THROWS_NOTHING {
         writer_queue_t::iterator it =
             waiting_writers.find(transition_timestamp_t::starting_from(state.timestamp));
         if (it != waiting_writers.end()) {
-            int expected_num_reads = (*it).second.first;
+            int64_t expected_num_reads = it->second.first;
             rassert(state.num_reads <= expected_num_reads);
 
             if (state.num_reads == expected_num_reads) {
-                exit_write_t *write = (*it).second.second;
+                exit_write_t *write = it->second.second;
                 if (write) {
                     write->pulse();
                 } else {
                     cont = true;
-                    finish_a_writer((*it).first, expected_num_reads);
+                    finish_a_writer(it->first, expected_num_reads);
                 }
                 waiting_writers.erase(it);
             }
@@ -109,7 +109,7 @@ void fifo_enforcer_sink_t::finish_a_reader(DEBUG_ONLY_VAR state_timestamp_t time
     state.num_reads++;
 }
 
-void fifo_enforcer_sink_t::finish_a_writer(transition_timestamp_t timestamp, DEBUG_ONLY_VAR int num_preceding_reads) THROWS_NOTHING {
+void fifo_enforcer_sink_t::finish_a_writer(transition_timestamp_t timestamp, DEBUG_ONLY_VAR int64_t num_preceding_reads) THROWS_NOTHING {
     assert_thread();
 
     rassert(state.timestamp == timestamp.timestamp_before());
