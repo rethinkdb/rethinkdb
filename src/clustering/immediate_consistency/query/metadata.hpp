@@ -21,11 +21,13 @@ public:
     typedef mailbox_t< void(
         typename protocol_t::read_t,
         order_token_t,
+        fifo_enforcer_read_token_t,
         mailbox_addr_t< void(boost::variant<typename protocol_t::read_response_t, std::string>)>
         )> read_mailbox_t;
     typedef mailbox_t< void(
         typename protocol_t::write_t,
         order_token_t,
+        fifo_enforcer_write_token_t,
         mailbox_addr_t< void(boost::variant<typename protocol_t::write_response_t, std::string>)>
         )> write_mailbox_t;
 

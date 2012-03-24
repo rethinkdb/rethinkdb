@@ -25,20 +25,22 @@ public:
         mailbox_manager(mm),
         broadcaster(b),
         read_mailbox(mailbox_manager, boost::bind(&master_t<protocol_t>::on_read,
-            this, _1, _2, _3, auto_drainer_t::lock_t(&drainer))),
+                                                  this, _1, _2, _3, _4, auto_drainer_t::lock_t(&drainer))),
         write_mailbox(mailbox_manager, boost::bind(&master_t<protocol_t>::on_write,
-            this, _1, _2, _3, auto_drainer_t::lock_t(&drainer))),
+                                                   this, _1, _2, _3, _4, auto_drainer_t::lock_t(&drainer))),
         advertisement(master_directory, generate_uuid(),
             master_business_card_t<protocol_t>(region, read_mailbox.get_address(), write_mailbox.get_address())
             )
         { }
 
 private:
-    void on_read(typename protocol_t::read_t read, order_token_t otok,
+    void on_read(typename protocol_t::read_t read, order_token_t otok, UNUSED fifo_enforcer_read_token_t token,
             mailbox_addr_t<void(boost::variant<typename protocol_t::read_response_t, std::string>)> response_address,
             auto_drainer_t::lock_t keepalive)
             THROWS_NOTHING
     {
+        // TODO: Use the fifo enforcer token.
+
         keepalive.assert_is_holding(&drainer);
         try {
             typename protocol_t::read_response_t response = broadcaster->read(read, otok);
@@ -50,11 +52,12 @@ private:
         }
     }
 
-    void on_write(typename protocol_t::write_t write, order_token_t otok,
+    void on_write(typename protocol_t::write_t write, order_token_t otok, UNUSED fifo_enforcer_write_token_t token,
             mailbox_addr_t<void(boost::variant<typename protocol_t::write_response_t, std::string>)> response_address,
             auto_drainer_t::lock_t keepalive)
             THROWS_NOTHING
     {
+        // TODO: Use the fifo enforcer token.
         keepalive.assert_is_holding(&drainer);
         try {
             typename protocol_t::write_response_t response = broadcaster->write(write, otok);
