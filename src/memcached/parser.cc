@@ -256,21 +256,29 @@ private:
 struct get_t {
     store_key_t key;
     get_result_t res;
+    std::string error_message;
+    bool ok;
 };
 
 void do_one_get(txt_memcached_handler_t *rh, bool with_cas, get_t *gets, int i, order_token_t token) {
-    if (with_cas) {
-        get_cas_mutation_t get_cas_mutation(gets[i].key);
-        memcached_protocol_t::write_t write(get_cas_mutation, rh->generate_cas(), time(NULL));
-        cond_t non_interruptor;
-        memcached_protocol_t::write_response_t response = rh->nsi->write(write, token, &non_interruptor);
-        gets[i].res = boost::get<get_result_t>(response.result);
-    } else {
-        get_query_t get_query(gets[i].key);
-        memcached_protocol_t::read_t read(get_query, time(NULL));
-        cond_t non_interruptor;
-        memcached_protocol_t::read_response_t response = rh->nsi->read(read, token, &non_interruptor);
-        gets[i].res = boost::get<get_result_t>(response.result);
+    try {
+        if (with_cas) {
+            get_cas_mutation_t get_cas_mutation(gets[i].key);
+            memcached_protocol_t::write_t write(get_cas_mutation, rh->generate_cas(), time(NULL));
+            cond_t non_interruptor;
+            memcached_protocol_t::write_response_t response = rh->nsi->write(write, token, &non_interruptor);
+            gets[i].res = boost::get<get_result_t>(response.result);
+        } else {
+            get_query_t get_query(gets[i].key);
+            memcached_protocol_t::read_t read(get_query, time(NULL));
+            cond_t non_interruptor;
+            memcached_protocol_t::read_response_t response = rh->nsi->read(read, token, &non_interruptor);
+            gets[i].res = boost::get<get_result_t>(response.result);
+        }
+        gets[i].ok = true;
+    } catch (cannot_perform_query_exc_t e) {
+        gets[i].error_message = e.what();
+        gets[i].ok = false;
     }
 }
 
@@ -314,6 +322,15 @@ void do_get(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool with_cas, 
     pmap(gets.size(), boost::bind(&do_one_get, rh, with_cas, gets.data(), _1, token));
 
     pipeliner_acq.begin_write();
+
+    /* Check if any failed */
+    for (int i = 0; i < (int)gets.size(); i++) {
+        if (!gets[i].ok) {
+            rh->server_error("%s\r\n", gets[i].error_message.c_str());
+            pipeliner_acq.end_write();
+            return;
+        }
+    }
 
     /* Handle the results in sequence */
     for (int i = 0; i < (int)gets.size(); i++) {
@@ -415,30 +432,46 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, char
 
     block_pm_duration rget_timer(&pm_cmd_rget);
 
-    rget_query_t rget_query(left_mode, left_key, right_mode, right_key);
-    memcached_protocol_t::read_t read(rget_query, time(NULL));
-    cond_t non_interruptor;
-    memcached_protocol_t::read_response_t response = rh->nsi->read(read, token, &non_interruptor);
-    rget_result_t results_iterator = boost::get<rget_result_t>(response.result);
+    rget_result_t results_iterator;
+    std::string error_message;
+    bool ok;
+
+    try {
+        rget_query_t rget_query(left_mode, left_key, right_mode, right_key);
+        memcached_protocol_t::read_t read(rget_query, time(NULL));
+        cond_t non_interruptor;
+        memcached_protocol_t::read_response_t response = rh->nsi->read(read, token, &non_interruptor);
+        results_iterator = boost::get<rget_result_t>(response.result);
+        ok = true;
+    } catch (cannot_perform_query_exc_t e) {
+        /* We can't call `server_error()` directly from within here because it's
+        not safe to call `coro_t::wait()` from inside a `catch`-block. */
+        error_message = e.what();
+        ok = false;
+    }
 
     pipeliner_acq.begin_write();
 
-    boost::optional<key_with_data_buffer_t> pair;
-    uint64_t count = 0;
-    ticks_t next_time;
-    while (++count <= max_items && (rget_iteration_next.begin(&next_time), pair = results_iterator->next())) {
-        rget_iteration_next.end(&next_time);
-        const key_with_data_buffer_t& kv = pair.get();
+    if (ok) {
+        boost::optional<key_with_data_buffer_t> pair;
+        uint64_t count = 0;
+        ticks_t next_time;
+        while (++count <= max_items && (rget_iteration_next.begin(&next_time), pair = results_iterator->next())) {
+            rget_iteration_next.end(&next_time);
+            const key_with_data_buffer_t& kv = pair.get();
 
-        const std::string& key = kv.key;
-        const boost::intrusive_ptr<data_buffer_t>& dp = kv.value_provider;
+            const std::string& key = kv.key;
+            const boost::intrusive_ptr<data_buffer_t>& dp = kv.value_provider;
 
-        rh->write_value_header(key.c_str(), key.length(), kv.mcflags, dp->size());
-        rh->write_from_data_provider(dp.get());
-        rh->write_crlf();
+            rh->write_value_header(key.c_str(), key.length(), kv.mcflags, dp->size());
+            rh->write_from_data_provider(dp.get());
+            rh->write_crlf();
+        }
+
+        rh->write_end();
+    } else {
+        rh->server_error("%s\r\n", error_message.c_str());
     }
-
-    rh->write_end();
 
     pipeliner_acq.end_write();
 }
@@ -501,65 +534,92 @@ void run_storage_command(txt_memcached_handler_t *rh,
             unreachable();
         }
 
-        sarc_mutation_t sarc_mutation(key, data, metadata.mcflags, metadata.exptime,
-            add_policy, replace_policy, metadata.unique);
-        memcached_protocol_t::write_t write(sarc_mutation, rh->generate_cas(), time(NULL));
-        cond_t non_interruptor;
-        memcached_protocol_t::write_response_t result = rh->nsi->write(write, token, &non_interruptor);
-        set_result_t res = boost::get<set_result_t>(result.result);
+        set_result_t res;
+        std::string error_message;
+        bool ok;
+
+        try {
+            sarc_mutation_t sarc_mutation(key, data, metadata.mcflags, metadata.exptime,
+                add_policy, replace_policy, metadata.unique);
+            memcached_protocol_t::write_t write(sarc_mutation, rh->generate_cas(), time(NULL));
+            cond_t non_interruptor;
+            memcached_protocol_t::write_response_t result = rh->nsi->write(write, token, &non_interruptor);
+            res = boost::get<set_result_t>(result.result);
+            ok = true;
+        } catch (cannot_perform_query_exc_t e) {
+            error_message = e.what();
+            ok = false;
+        }
 
         pipeliner_acq->begin_write();
 
-
         if (!noreply) {
-            switch (res) {
-            case sr_stored:
-                rh->writef("STORED\r\n");
-                break;
-            case sr_didnt_add:
-                if (sc == replace_command) {
-                    rh->writef("NOT_STORED\r\n");
-                } else if (sc == cas_command) {
-                    rh->writef("NOT_FOUND\r\n");
-                } else {
-                    unreachable();
+            if (ok) {
+                switch (res) {
+                case sr_stored:
+                    rh->writef("STORED\r\n");
+                    break;
+                case sr_didnt_add:
+                    if (sc == replace_command) {
+                        rh->writef("NOT_STORED\r\n");
+                    } else if (sc == cas_command) {
+                        rh->writef("NOT_FOUND\r\n");
+                    } else {
+                        unreachable();
+                    }
+                    break;
+                case sr_didnt_replace:
+                    if (sc == add_command) {
+                        rh->writef("NOT_STORED\r\n");
+                    } else if (sc == cas_command) {
+                        rh->writef("EXISTS\r\n");
+                    } else {
+                        unreachable();
+                    }
+                    break;
+                case sr_too_large:
+                    rh->server_error_object_too_large_for_cache();
+                    break;
+                default: unreachable();
                 }
-                break;
-            case sr_didnt_replace:
-                if (sc == add_command) {
-                    rh->writef("NOT_STORED\r\n");
-                } else if (sc == cas_command) {
-                    rh->writef("EXISTS\r\n");
-                } else {
-                    unreachable();
-                }
-                break;
-            case sr_too_large:
-                rh->server_error_object_too_large_for_cache();
-                break;
-            default: unreachable();
+            } else {
+                rh->server_error("%s\r\n", error_message.c_str());
             }
         }
 
     } else {
-        append_prepend_mutation_t append_prepend_mutation(
-            sc == append_command ? append_prepend_APPEND : append_prepend_PREPEND,
-            key, data);
-        memcached_protocol_t::write_t write(append_prepend_mutation, rh->generate_cas(), time(NULL));
-        cond_t non_interruptor;
-        memcached_protocol_t::write_response_t result = rh->nsi->write(write, token, &non_interruptor);
-        append_prepend_result_t res = boost::get<append_prepend_result_t>(result.result);
+        append_prepend_result_t res;
+        std::string error_message;
+        bool ok;
+
+        try {
+            append_prepend_mutation_t append_prepend_mutation(
+                sc == append_command ? append_prepend_APPEND : append_prepend_PREPEND,
+                key, data);
+            memcached_protocol_t::write_t write(append_prepend_mutation, rh->generate_cas(), time(NULL));
+            cond_t non_interruptor;
+            memcached_protocol_t::write_response_t result = rh->nsi->write(write, token, &non_interruptor);
+            res = boost::get<append_prepend_result_t>(result.result);
+            ok = true;
+        } catch (cannot_perform_query_exc_t e) {
+            error_message = e.what();
+            ok = false;
+        }
 
         pipeliner_acq->begin_write();
 
         if (!noreply) {
-            switch (res) {
-            case apr_success: rh->writef("STORED\r\n"); break;
-            case apr_not_found: rh->writef("NOT_FOUND\r\n"); break;
-            case apr_too_large:
-                rh->server_error_object_too_large_for_cache();
-                break;
-            default: unreachable();
+            if (ok) {
+                switch (res) {
+                case apr_success: rh->writef("STORED\r\n"); break;
+                case apr_not_found: rh->writef("NOT_FOUND\r\n"); break;
+                case apr_too_large:
+                    rh->server_error_object_too_large_for_cache();
+                    break;
+                default: unreachable();
+                }
+            } else {
+                rh->server_error("%s\r\n", error_message.c_str());
             }
         }
     }
@@ -714,27 +774,41 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
 void run_incr_decr(txt_memcached_handler_t *rh, pipeliner_acq_t *pipeliner_acq, store_key_t key, uint64_t amount, bool incr, bool noreply, order_token_t token) {
     block_pm_duration set_timer(&pm_cmd_set);
 
-    incr_decr_mutation_t incr_decr_mutation(
-        incr ? incr_decr_INCR : incr_decr_DECR,
-        key, amount);
-    memcached_protocol_t::write_t write(incr_decr_mutation, rh->generate_cas(), time(NULL));
-    cond_t non_interruptor;
-    memcached_protocol_t::write_response_t result = rh->nsi->write(write, token, &non_interruptor);
-    incr_decr_result_t res = boost::get<incr_decr_result_t>(result.result);
+    incr_decr_result_t res;
+    std::string error_message;
+    bool ok;
+
+    try {
+        incr_decr_mutation_t incr_decr_mutation(
+            incr ? incr_decr_INCR : incr_decr_DECR,
+            key, amount);
+        memcached_protocol_t::write_t write(incr_decr_mutation, rh->generate_cas(), time(NULL));
+        cond_t non_interruptor;
+        memcached_protocol_t::write_response_t result = rh->nsi->write(write, token, &non_interruptor);
+        res = boost::get<incr_decr_result_t>(result.result);
+        ok = true;
+    } catch (cannot_perform_query_exc_t e) {
+        error_message = e.what();
+        ok = false;
+    }
 
     pipeliner_acq->begin_write();
     if (!noreply) {
-        switch (res.res) {
-            case incr_decr_result_t::idr_success:
-                rh->writef("%" PRIu64 "\r\n", res.new_value);
-                break;
-            case incr_decr_result_t::idr_not_found:
-                rh->writef("NOT_FOUND\r\n");
-                break;
-            case incr_decr_result_t::idr_not_numeric:
-                rh->client_error("cannot increment or decrement non-numeric value\r\n");
-                break;
-            default: unreachable();
+        if (ok) {
+            switch (res.res) {
+                case incr_decr_result_t::idr_success:
+                    rh->writef("%" PRIu64 "\r\n", res.new_value);
+                    break;
+                case incr_decr_result_t::idr_not_found:
+                    rh->writef("NOT_FOUND\r\n");
+                    break;
+                case incr_decr_result_t::idr_not_numeric:
+                    rh->client_error("cannot increment or decrement non-numeric value\r\n");
+                    break;
+                default: unreachable();
+            }
+        } else {
+            rh->server_error("%s\r\n", error_message.c_str());
         }
     }
 
@@ -800,22 +874,36 @@ void run_delete(txt_memcached_handler_t *rh, pipeliner_acq_t *pipeliner_acq, sto
 
     block_pm_duration set_timer(&pm_cmd_set);
 
-    delete_mutation_t delete_mutation(key, false);
-    memcached_protocol_t::write_t write(delete_mutation, INVALID_CAS, time(NULL));
-    cond_t non_interruptor;
-    memcached_protocol_t::write_response_t result = rh->nsi->write(write, token, &non_interruptor);
-    delete_result_t res = boost::get<delete_result_t>(result.result);
+    delete_result_t res;
+    std::string error_message;
+    bool ok;
+
+    try {
+        delete_mutation_t delete_mutation(key, false);
+        memcached_protocol_t::write_t write(delete_mutation, INVALID_CAS, time(NULL));
+        cond_t non_interruptor;
+        memcached_protocol_t::write_response_t result = rh->nsi->write(write, token, &non_interruptor);
+        res = boost::get<delete_result_t>(result.result);
+        ok = true;
+    } catch (cannot_perform_query_exc_t e) {
+        error_message = e.what();
+        ok = false;
+    }
 
     pipeliner_acq->begin_write();
     if (!noreply) {
-        switch (res) {
-            case dr_deleted:
-                rh->writef("DELETED\r\n");
-                break;
-            case dr_not_found:
-                rh->writef("NOT_FOUND\r\n");
-                break;
-            default: unreachable();
+        if (ok) {
+            switch (res) {
+                case dr_deleted:
+                    rh->writef("DELETED\r\n");
+                    break;
+                case dr_not_found:
+                    rh->writef("NOT_FOUND\r\n");
+                    break;
+                default: unreachable();
+            }
+        } else {
+            rh->server_error("%s\r\n", error_message.c_str());
         }
     }
 
@@ -938,16 +1026,30 @@ void do_quickset(txt_memcached_handler_t *rh, pipeliner_acq_t *pipeliner_acq, st
         boost::intrusive_ptr<data_buffer_t> value = data_buffer_t::create(args_copy[i + 1].size());
         memcpy(value->buf(), args_copy[i + 1].data(), value->size());
 
-        sarc_mutation_t sarc_mutation(key, value, 0, 0, add_policy_yes, replace_policy_yes, 0);
-        memcached_protocol_t::write_t write(sarc_mutation, rh->generate_cas(), time(NULL));
-        cond_t non_interruptor;
-        memcached_protocol_t::write_response_t result = rh->nsi->write(write, order_token_t::ignore, &non_interruptor);
-        set_result_t res = boost::get<set_result_t>(result.result);
+        set_result_t res;
+        std::string error_message;
+        bool ok;
 
-        if (res == sr_stored) {
-            rh->writef("STORED key %s\r\n", args_copy[i].c_str());
+        try {
+            sarc_mutation_t sarc_mutation(key, value, 0, 0, add_policy_yes, replace_policy_yes, 0);
+            memcached_protocol_t::write_t write(sarc_mutation, rh->generate_cas(), time(NULL));
+            cond_t non_interruptor;
+            memcached_protocol_t::write_response_t result = rh->nsi->write(write, order_token_t::ignore, &non_interruptor);
+            res = boost::get<set_result_t>(result.result);
+            ok = true;
+        } catch (cannot_perform_query_exc_t e) {
+            error_message = e.what();
+            ok = false;
+        }
+
+        if (ok) {
+            if (res == sr_stored) {
+                rh->writef("STORED key %s\r\n", args_copy[i].c_str());
+            } else {
+                rh->writef("MYSTERIOUS_ERROR key %s\r\n", args_copy[i].c_str());
+            }
         } else {
-            rh->writef("MYSTERIOUS_ERROR key %s\r\n", args_copy[i].c_str());
+            rh->server_error("%s\r\n", error_message.c_str());
         }
     }
     pipeliner_acq->end_write();
