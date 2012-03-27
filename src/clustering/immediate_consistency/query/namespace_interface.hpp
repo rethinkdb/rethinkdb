@@ -207,6 +207,7 @@ private:
     }
 
     void update_registrants() {
+        ASSERT_NO_CORO_WAITING;
         std::map<peer_id_t, master_map_t> existings = master_map_watcher->get();
 
         for (typename std::map<peer_id_t, master_map_t>::const_iterator it = existings.begin(); it != existings.end(); ++it) {
@@ -216,14 +217,47 @@ private:
                     // We have an unhandled master id.  Say it's handled NOW!  And handle it.
                     handled_master_ids.insert(id);  // We said it.
 
-                    spawn_registrant_coroutine(it->first, id, mmit->second);  // We handled it.
+                    spawn_registrant_coroutine(it->first, id);  // We handled it.
                 }
             }
         }
     }
 
-    void spawn_registrant_coroutine(UNUSED peer_id_t peer_id, UNUSED master_id_t master_id, UNUSED master_business_card_t<protocol_t> master_business_card) {
-        // TODO: Implement me!
+    void spawn_registrant_coroutine(peer_id_t peer_id, master_id_t master_id) {
+        coro_t::spawn_sometime(boost::bind(&cluster_namespace_interface_t::registrant_coroutine, this, peer_id, master_id, auto_drainer_t::lock_t(&registrant_coroutine_auto_drainer)));
+    }
+
+    void registrant_coroutine(peer_id_t peer_id, master_id_t master_id, auto_drainer_t::lock_t lock) {
+        clone_ptr_t<readwrite_lens_t<registrar_business_card_t<namespace_interface_business_card_t>, master_business_card_t<protocol_t> > >
+            field = field_lens(&master_business_card_t<protocol_t>::namespace_interface_registration_business_card);
+
+        clone_ptr_t<read_lens_t<registrar_business_card_t<namespace_interface_business_card_t>, master_business_card_t<protocol_t> > >
+            field_r(field);
+
+        clone_ptr_t<read_lens_t<boost::optional<registrar_business_card_t<namespace_interface_business_card_t> >, boost::optional<master_business_card_t<protocol_t> > > > opt = optional_monad_lens(field_r);
+
+        clone_ptr_t<readwrite_lens_t<boost::optional<master_business_card_t<protocol_t> >, std::map<master_id_t, master_business_card_t<protocol_t> > > > memb = optional_member_lens<master_id_t, master_business_card_t<protocol_t> >(master_id);
+
+        clone_ptr_t<read_lens_t<boost::optional<master_business_card_t<protocol_t> >, std::map<master_id_t, master_business_card_t<protocol_t> > > >
+            memb_r(memb);
+
+        clone_ptr_t<read_lens_t<boost::optional<registrar_business_card_t<namespace_interface_business_card_t> >, std::map<master_id_t, master_business_card_t<protocol_t> > > > composed = compose_lens(opt, memb_r);
+
+        registrant_t<namespace_interface_business_card_t>
+            registrant(mailbox_manager,
+                       masters_view->get_peer_view(peer_id)->subview(composed),
+                       namespace_interface_business_card_t());
+
+        signal_t *failed_signal = registrant.get_failed_signal();
+        signal_t *drain_signal = lock.get_drain_signal();
+
+        wait_any_t waiter(failed_signal, drain_signal);
+
+        waiter.wait_lazily_unordered();
+
+        handled_master_ids.erase(master_id);
+
+        update_registrants();
     }
 
     fifo_enforcer_source_t fifo_enforcer_source_;

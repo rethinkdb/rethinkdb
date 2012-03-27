@@ -71,6 +71,7 @@ private:
 
     mailbox_manager_t *mailbox_manager;
     resource_access_t<registrar_business_card_t<business_card_t> > registrar;
+
     registration_id_t registration_id;
 };
 
