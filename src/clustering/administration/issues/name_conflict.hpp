@@ -4,6 +4,7 @@
 #include "clustering/administration/issues/global.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "rpc/semilattice/view.hpp"
+#include "clustering/administration/issues/json.hpp"
 
 class name_conflict_issue_t : public global_issue_t {
 public:
@@ -19,6 +20,16 @@ public:
             message += uuid_to_str(*it) + "; ";
         }
         return message;
+    }
+
+    cJSON *get_json_description() const {
+        issues::issue_json_t json;
+        json.critical = false;
+        json.description = "The following " + type + "s are all named '" + contested_name + "': ";
+        json.type.issue_type = issues::NAME_CONFLICT_ISSUE;
+        json.time = get_ticks();
+
+        return issues::render_as_json<int>(&json, 0);
     }
 
     name_conflict_issue_t *clone() const {

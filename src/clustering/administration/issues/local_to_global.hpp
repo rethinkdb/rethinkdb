@@ -14,6 +14,11 @@ public:
         return "On machine " + uuid_to_str(source) + ": " + underlying->get_description();
     }
 
+    cJSON *get_json_description() const {
+        //TODO this doesn't mention which machine is having the issue
+        return underlying->get_json_description();
+    }
+
     remote_issue_t *clone() const {
         return new remote_issue_t(underlying, source);
     }

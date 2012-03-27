@@ -1,6 +1,7 @@
 #ifndef CLUSTERING_ADMINISTRATION_ISSUES_MACHINE_DOWN_HPP_
 #define CLUSTERING_ADMINISTRATION_ISSUES_MACHINE_DOWN_HPP_
 
+#include "clustering/administration/issues/json.hpp"
 #include "clustering/administration/issues/global.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "rpc/semilattice/view.hpp"
@@ -11,6 +12,16 @@ public:
 
     std::string get_description() const {
         return "Machine " + uuid_to_str(machine_id) + " is inaccessible.";
+    }
+
+    cJSON *get_json_description() const {
+        issues::issue_json_t json;
+        json.critical = true;
+        json.description = "Machine " + uuid_to_str(machine_id) + " is inaccessible.";
+        json.type.issue_type = issues::MACHINE_DOWN;
+        json.time = get_ticks();
+
+        return issues::render_as_json<int>(&json, 0);
     }
 
     machine_down_issue_t *clone() const {

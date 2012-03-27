@@ -13,7 +13,7 @@ http_res_t issues_http_app_t::handle(const http_req_t &req) {
     std::list<clone_ptr_t<global_issue_t> > issues = issue_tracker->get_issues();
     scoped_cJSON_t json(cJSON_CreateArray());
     for (std::list<clone_ptr_t<global_issue_t> >::iterator it = issues.begin(); it != issues.end(); it++) {
-        cJSON_AddItemToArray(json.get(), cJSON_CreateString((*it)->get_description().c_str()));
+        cJSON_AddItemToArray(json.get(), (*it)->get_json_description());
     }
 
     http_res_t res(200);

@@ -4,6 +4,7 @@
 #include "clustering/administration/issues/local.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "rpc/semilattice/view.hpp"
+#include "clustering/administration/issues/json.hpp"
 
 namespace metadata_persistence {
 
@@ -33,6 +34,16 @@ public:
     std::string get_description() const {
         return "There was a problem when trying to persist the metadata to "
             "disk locally: " + message;
+    }
+    cJSON *get_json_description() const {
+        issues::issue_json_t json;
+        json.critical = true;
+        json.description = "There was a problem when trying to persist the metadata to "
+            "disk locally: " + message;
+        json.time = get_ticks();
+        json.type.issue_type = issues::PERSISTANCE_ISSUE;
+
+        return issues::render_as_json<int>(&json, 0);
     }
 
     persistence_issue_t *clone() const {
