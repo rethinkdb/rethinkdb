@@ -4,10 +4,12 @@
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
+#include <boost/ptr_container/ptr_map.hpp>
 
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/pmap.hpp"
 #include "clustering/immediate_consistency/query/metadata.hpp"
+#include "clustering/registrant.hpp"
 #include "concurrency/promise.hpp"
 #include "protocol_api.hpp"
 
@@ -22,8 +24,9 @@ public:
             mailbox_manager_t *mm,
             clone_ptr_t<directory_rview_t<master_map_t> > mv) :
         mailbox_manager(mm),
-        masters_view(mv)
-        { }
+        masters_view(mv),
+        master_map_watcher(translate_into_watchable(masters_view)) {
+    }
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t r, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
         fifo_enforcer_read_token_t token = fifo_enforcer_source_.enter_read();
@@ -201,6 +204,10 @@ private:
     clone_ptr_t<directory_rview_t<master_map_t> > masters_view;
 
     typename protocol_t::temporary_cache_t temporary_cache;
+
+    boost::ptr_map<master_id_t, registrant_t<namespace_interface_business_card_t> > registrant_map;
+
+    clone_ptr_t<watchable_t<std::map<peer_id_t, master_map_t> > > master_map_watcher;
 
     DISABLE_COPYING(cluster_namespace_interface_t);
 };
