@@ -3,6 +3,9 @@
 
 #include "clustering/administration/issues/global.hpp"
 #include "clustering/administration/issues/local.hpp"
+#include "clustering/administration/machine_metadata.hpp"
+#include "containers/clone_ptr.hpp"
+#include "http/json/json_adapter.hpp"
 #include "rpc/directory/read_view.hpp"
 
 class remote_issue_t : public global_issue_t {
@@ -14,9 +17,11 @@ public:
         return "On machine " + uuid_to_str(source) + ": " + underlying->get_description();
     }
 
-    cJSON *get_json_description() const {
-        //TODO this doesn't mention which machine is having the issue
-        return underlying->get_json_description();
+    cJSON *get_json_description() {
+        cJSON *res = underlying->get_json_description();
+        cJSON_AddItemToObject(res, "location", render_as_json(&source, 0));
+
+        return res;
     }
 
     remote_issue_t *clone() const {

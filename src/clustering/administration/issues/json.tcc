@@ -4,7 +4,6 @@
 #include "http/json.hpp"
 #include "http/json/json_adapter.hpp"
 
-namespace issues {
 //json adapter concept for issue_type_t
 template <class ctx_t>
 typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(issue_type_t *, const ctx_t &) {
@@ -86,6 +85,5 @@ void apply_json_to(cJSON *, local_issue_json_t *target, const ctx_t &ctx) {
 
 template <class ctx_t>
 void on_subfield_change(local_issue_json_t *, const ctx_t &) { }
-} //namespace issues 
 
 #endif

@@ -11,7 +11,7 @@
 class global_issue_t {
 public:
     virtual std::string get_description() const = 0;
-    virtual cJSON *get_json_description() const = 0;
+    virtual cJSON *get_json_description() = 0;
 
     virtual ~global_issue_t() { }
     virtual global_issue_t *clone() const = 0;

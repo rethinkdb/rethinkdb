@@ -19,15 +19,21 @@ public:
             " has a vector clock conflict in its field '" + field + "'.";
     }
 
-    cJSON *get_json_description() const {
-        issues::issue_json_t json;
+    cJSON *get_json_description() {
+        issue_json_t json;
         json.critical = false;
         json.time = get_ticks();
         json.description = "The " + object_type + " with UUID " + uuid_to_str(object_id) +
             " has a vector clock conflict in its field '" + field + "'.";
-        json.type.issue_type = issues::VCLOCK_CONFLICT;
+        json.type.issue_type = VCLOCK_CONFLICT;
 
-        return issues::render_as_json<int>(&json, 0);
+        cJSON *res = render_as_json(&json, 0);
+
+        cJSON_AddItemToObject(res, "object_type", render_as_json(&object_type, 0));
+        cJSON_AddItemToObject(res, "object_id", render_as_json(&object_id, 0));
+        cJSON_AddItemToObject(res, "field", render_as_json(&field, 0));
+
+        return res;
     }
 
     vector_clock_conflict_issue_t *clone() const {

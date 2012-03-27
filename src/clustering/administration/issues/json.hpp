@@ -9,7 +9,6 @@
 #include "utils.hpp"
 #include "http/json/json_adapter.hpp"
 
-namespace issues {
 enum _issue_type_t {
     VCLOCK_CONFLICT,
     MACHINE_DOWN,
@@ -75,8 +74,6 @@ void apply_json_to(cJSON *, local_issue_json_t *, const ctx_t &);
 
 template <class ctx_t>
 void on_subfield_change(local_issue_json_t *, const ctx_t &);
-
-} //namespace issues 
 
 #include "clustering/administration/issues/json.tcc"
 #endif

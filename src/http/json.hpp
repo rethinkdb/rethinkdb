@@ -41,4 +41,7 @@ std::string cJSON_print_std_string(cJSON *json);
 
 void project(cJSON *json, std::set<std::string> keys);
 
+//Merge two cJSON objects, crashes if there are overlapping keys
+cJSON *merge(cJSON *, cJSON *);
+
 #endif

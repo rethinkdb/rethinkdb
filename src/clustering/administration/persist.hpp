@@ -36,14 +36,14 @@ public:
             "disk locally: " + message;
     }
     cJSON *get_json_description() const {
-        issues::issue_json_t json;
+        issue_json_t json;
         json.critical = true;
         json.description = "There was a problem when trying to persist the metadata to "
             "disk locally: " + message;
         json.time = get_ticks();
-        json.type.issue_type = issues::PERSISTANCE_ISSUE;
+        json.type.issue_type = PERSISTANCE_ISSUE;
 
-        return issues::render_as_json<int>(&json, 0);
+        return render_as_json(&json, 0);
     }
 
     persistence_issue_t *clone() const {

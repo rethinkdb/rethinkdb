@@ -14,14 +14,17 @@ public:
         return "Machine " + uuid_to_str(machine_id) + " is inaccessible.";
     }
 
-    cJSON *get_json_description() const {
-        issues::issue_json_t json;
+    cJSON *get_json_description() {
+        issue_json_t json;
         json.critical = true;
         json.description = "Machine " + uuid_to_str(machine_id) + " is inaccessible.";
-        json.type.issue_type = issues::MACHINE_DOWN;
+        json.type.issue_type = MACHINE_DOWN;
         json.time = get_ticks();
 
-        return issues::render_as_json<int>(&json, 0);
+        cJSON *res = render_as_json(&json, 0);
+        cJSON_AddItemToObject(res, "victim", render_as_json(&machine_id, 0));
+
+        return res;
     }
 
     machine_down_issue_t *clone() const {
