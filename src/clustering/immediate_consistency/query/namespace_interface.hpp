@@ -257,7 +257,12 @@ private:
 
         handled_master_ids.erase(master_id);
 
-        update_registrants();
+        // Maybe we got reconnected really quickly, and didn't handle
+        // the reconnection, because handled_master_ids already noted
+        // ourselves as handled.
+        if (!drain_signal->is_pulsed()) {
+            update_registrants();
+        }
     }
 
     fifo_enforcer_source_t fifo_enforcer_source_;
