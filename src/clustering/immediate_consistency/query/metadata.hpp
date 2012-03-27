@@ -4,6 +4,7 @@
 #include "errors.hpp"
 #include <boost/variant.hpp>
 
+#include "clustering/registration_metadata.hpp"
 #include "clustering/resource.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "rpc/mailbox/typed.hpp"
@@ -12,6 +13,10 @@ typedef boost::uuids::uuid master_id_t;
 
 /* There is one `master_business_card_t` per branch. It's created by the master.
 Parsers use it to find the master. */
+
+struct namespace_interface_business_card_t {
+    RDB_MAKE_ME_SERIALIZABLE_0();
+};
 
 template<class protocol_t>
 class master_business_card_t {
@@ -32,11 +37,11 @@ public:
         )> write_mailbox_t;
 
     master_business_card_t() { }
-    master_business_card_t(
-            const typename protocol_t::region_t &r,
-            const typename read_mailbox_t::address_t &rm,
-            const typename write_mailbox_t::address_t &wm) :
-        region(r), read_mailbox(rm), write_mailbox(wm) { }
+    master_business_card_t(const typename protocol_t::region_t &r,
+                           const typename read_mailbox_t::address_t &rm,
+                           const typename write_mailbox_t::address_t &wm,
+                           const registrar_business_card_t<namespace_interface_business_card_t> &nirbc)
+        : region(r), read_mailbox(rm), write_mailbox(wm), namespace_interface_registration_business_card(nirbc) { }
 
     /* The region that this master covers */
     typename protocol_t::region_t region;
@@ -45,12 +50,9 @@ public:
     typename read_mailbox_t::address_t read_mailbox;
     typename write_mailbox_t::address_t write_mailbox;
 
-    RDB_MAKE_ME_SERIALIZABLE_3(region, read_mailbox, write_mailbox);
-};
+    registrar_business_card_t<namespace_interface_business_card_t> namespace_interface_registration_business_card;
 
-
-struct namespace_interface_business_card_t {
-    RDB_MAKE_ME_SERIALIZABLE_0();
+    RDB_MAKE_ME_SERIALIZABLE_4(region, read_mailbox, write_mailbox, namespace_interface_registration_business_card);
 };
 
 

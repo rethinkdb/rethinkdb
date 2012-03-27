@@ -28,9 +28,9 @@ public:
                                                   this, _1, _2, _3, _4, auto_drainer_t::lock_t(&drainer))),
         write_mailbox(mailbox_manager, boost::bind(&master_t<protocol_t>::on_write,
                                                    this, _1, _2, _3, _4, auto_drainer_t::lock_t(&drainer))),
+        registrar(mm, this),
         advertisement(master_directory, generate_uuid(),
-                      master_business_card_t<protocol_t>(region, read_mailbox.get_address(), write_mailbox.get_address())),
-        registrar(mm, this) {
+                      master_business_card_t<protocol_t>(region, read_mailbox.get_address(), write_mailbox.get_address(), registrar.get_business_card())) {
     }
 
 private:
@@ -69,14 +69,6 @@ private:
         }
     }
 
-    mailbox_manager_t *mailbox_manager;
-    broadcaster_t<protocol_t> *broadcaster;
-    auto_drainer_t drainer;
-
-    typename master_business_card_t<protocol_t>::read_mailbox_t read_mailbox;
-    typename master_business_card_t<protocol_t>::write_mailbox_t write_mailbox;
-    resource_map_advertisement_t<master_id_t, master_business_card_t<protocol_t> > advertisement;
-
     struct parser_lifetime_t {
         parser_lifetime_t(UNUSED master_t *m, UNUSED namespace_interface_business_card_t bc) {
             logDBG("parser_lifetime_t constructor has been called.\n");
@@ -84,10 +76,18 @@ private:
         ~parser_lifetime_t() {
             logDBG("parser_lifetime_t destructor has been called.\n");
         }
-
     };
 
+    mailbox_manager_t *mailbox_manager;
+    broadcaster_t<protocol_t> *broadcaster;
+    auto_drainer_t drainer;
+
+    typename master_business_card_t<protocol_t>::read_mailbox_t read_mailbox;
+    typename master_business_card_t<protocol_t>::write_mailbox_t write_mailbox;
+
     registrar_t<namespace_interface_business_card_t, master_t *, parser_lifetime_t> registrar;
+
+    resource_map_advertisement_t<master_id_t, master_business_card_t<protocol_t> > advertisement;
 };
 
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_MASTER_HPP_ */
