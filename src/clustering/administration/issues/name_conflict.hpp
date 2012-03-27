@@ -26,6 +26,9 @@ public:
         issues::issue_json_t json;
         json.critical = false;
         json.description = "The following " + type + "s are all named '" + contested_name + "': ";
+        for (std::set<boost::uuids::uuid>::iterator it = contestants.begin(); it != contestants.end(); it++) {
+            json.description += uuid_to_str(*it) + "; ";
+        }
         json.type.issue_type = issues::NAME_CONFLICT_ISSUE;
         json.time = get_ticks();
 
