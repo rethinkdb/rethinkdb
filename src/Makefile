@@ -316,6 +316,7 @@ LESS_MAIN:=$(WEB_SOURCE_DIR)/static/less/cluster.less
 CLUSTER_HTML:=$(WEB_SOURCE_DIR)/templates/cluster.html
 JS_EXTERNAL_DIR:=$(WEB_SOURCE_DIR)/static/js
 IMAGES_EXTERNAL_DIR:=$(WEB_SOURCE_DIR)/static/images
+FAVICON:=$(WEB_SOURCE_DIR)/favicon.ico
 
 #### Version number handling
 RETHINKDB_VERSION:=$(shell ../scripts/gen-version.sh)
@@ -562,7 +563,7 @@ endif
 
 # Build rules
 
-web-assets: $(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/cluster.css $(WEB_ASSETS_BUILD_DIR)/index.html $(WEB_ASSETS_BUILD_DIR)/js $(WEB_ASSETS_BUILD_DIR)/images
+web-assets: $(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/cluster.css $(WEB_ASSETS_BUILD_DIR)/index.html $(WEB_ASSETS_BUILD_DIR)/js $(WEB_ASSETS_BUILD_DIR)/images $(WEB_ASSETS_BUILD_DIR)/favicon.ico
 
 $(WEB_ASSETS_BUILD_DIR)/cluster-min.js: $(COFFEE_SOURCES)
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
@@ -598,6 +599,13 @@ ifeq ($(VERBOSE),0)
 	@echo "    CP $(IMAGES_EXTERNAL_DIR) -> $(WEB_ASSETS_BUILD_DIR)"
 endif
 	$(QUIET) cp -rP $(IMAGES_EXTERNAL_DIR) $(WEB_ASSETS_BUILD_DIR)
+
+$(WEB_ASSETS_BUILD_DIR)/favicon.ico: $(FAVICON)
+	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
+ifeq ($(VERBOSE),0)
+	@echo "    CP $(FAVICON) -> $(WEB_ASSETS_BUILD_DIR)"
+endif
+	$(QUIET) cp -P $(FAVICON) $(WEB_ASSETS_BUILD_DIR)
 
 # Special recipe for the proto buffer generated code
 $(PROTO_DIR)/%.pb.h: $(SOURCE_DIR)/%.proto

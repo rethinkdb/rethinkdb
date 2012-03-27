@@ -4,13 +4,16 @@
 #include <list>
 #include <string>
 
+#include "clustering/administration/issues/json.hpp"
 #include "concurrency/watchable.hpp"
 #include "containers/clone_ptr.hpp"
+#include "http/json.hpp"
 #include "rpc/serialize_macros.hpp"
 
 class local_issue_t {
 public:
     virtual std::string get_description() const = 0;
+    virtual cJSON *get_json_description() const = 0;
 
     virtual ~local_issue_t() { }
     virtual local_issue_t *clone() const = 0;
