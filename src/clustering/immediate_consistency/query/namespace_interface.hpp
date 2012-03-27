@@ -25,7 +25,14 @@ public:
             clone_ptr_t<directory_rview_t<master_map_t> > mv) :
         mailbox_manager(mm),
         masters_view(mv),
-        master_map_watcher(translate_into_watchable(masters_view)) {
+        master_map_watcher(translate_into_watchable(masters_view)),
+        watcher_subscription(boost::bind(&cluster_namespace_interface_t::update_registrants, this))
+    {
+
+        typename watchable_t< std::map<peer_id_t, master_map_t> >::freeze_t freeze(master_map_watcher);
+        update_registrants();
+
+        watcher_subscription.reset(master_map_watcher, &freeze);
     }
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t r, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
@@ -199,15 +206,41 @@ private:
         }
     }
 
+    void update_registrants() {
+        std::map<peer_id_t, master_map_t> existings = master_map_watcher->get();
+
+        for (typename std::map<peer_id_t, master_map_t>::const_iterator it = existings.begin(); it != existings.end(); ++it) {
+            for (typename master_map_t::const_iterator mmit = it->second.begin(); mmit != it->second.end(); ++mmit) {
+                master_id_t id = mmit->first;
+                if (handled_master_ids.find(id) == handled_master_ids.end()) {
+                    // We have an unhandled master id.  Say it's handled NOW!  And handle it.
+                    handled_master_ids.insert(id);  // We said it.
+
+                    spawn_registrant_coroutine(it->first, id, mmit->second);  // We handled it.
+                }
+            }
+        }
+    }
+
+    void spawn_registrant_coroutine(UNUSED peer_id_t peer_id, UNUSED master_id_t master_id, UNUSED master_business_card_t<protocol_t> master_business_card) {
+        // TODO: Implement me!
+    }
+
     fifo_enforcer_source_t fifo_enforcer_source_;
     mailbox_manager_t *mailbox_manager;
     clone_ptr_t<directory_rview_t<master_map_t> > masters_view;
 
     typename protocol_t::temporary_cache_t temporary_cache;
 
-    boost::ptr_map<master_id_t, registrant_t<namespace_interface_business_card_t> > registrant_map;
+    std::set<master_id_t> handled_master_ids;
+
+    auto_drainer_t registrant_coroutine_auto_drainer;
 
     clone_ptr_t<watchable_t<std::map<peer_id_t, master_map_t> > > master_map_watcher;
+
+    typename watchable_t< std::map<peer_id_t, master_map_t> >::subscription_t watcher_subscription;
+
+
 
     DISABLE_COPYING(cluster_namespace_interface_t);
 };
