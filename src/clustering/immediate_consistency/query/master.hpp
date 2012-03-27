@@ -29,9 +29,9 @@ public:
         write_mailbox(mailbox_manager, boost::bind(&master_t<protocol_t>::on_write,
                                                    this, _1, _2, _3, _4, auto_drainer_t::lock_t(&drainer))),
         advertisement(master_directory, generate_uuid(),
-            master_business_card_t<protocol_t>(region, read_mailbox.get_address(), write_mailbox.get_address())
-            )
-        { }
+                      master_business_card_t<protocol_t>(region, read_mailbox.get_address(), write_mailbox.get_address())),
+        registrar(mm, this) {
+    }
 
 private:
     void on_read(typename protocol_t::read_t read, order_token_t otok, UNUSED fifo_enforcer_read_token_t token,
@@ -76,6 +76,18 @@ private:
     typename master_business_card_t<protocol_t>::read_mailbox_t read_mailbox;
     typename master_business_card_t<protocol_t>::write_mailbox_t write_mailbox;
     resource_map_advertisement_t<master_id_t, master_business_card_t<protocol_t> > advertisement;
+
+    struct parser_lifetime_t {
+        parser_lifetime_t(UNUSED master_t *m, UNUSED namespace_interface_business_card_t bc) {
+            logDBG("parser_lifetime_t constructor has been called.\n");
+        }
+        ~parser_lifetime_t() {
+            logDBG("parser_lifetime_t destructor has been called.\n");
+        }
+
+    };
+
+    registrar_t<namespace_interface_business_card_t, master_t *, parser_lifetime_t> registrar;
 };
 
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_MASTER_HPP_ */

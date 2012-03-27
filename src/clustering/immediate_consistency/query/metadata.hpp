@@ -48,4 +48,10 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_3(region, read_mailbox, write_mailbox);
 };
 
+
+struct namespace_interface_business_card_t {
+    RDB_MAKE_ME_SERIALIZABLE_0();
+};
+
+
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_METADATA_HPP_ */
