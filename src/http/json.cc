@@ -2,8 +2,10 @@
 #include <stdlib.h>
 #include <vector>
 
+
 #include "http/json.hpp"
 #include "stl_utils.hpp"
+#include "utils.hpp"
 
 scoped_cJSON_t::scoped_cJSON_t(cJSON *_val) 
     : val(_val)
@@ -76,4 +78,37 @@ void project(cJSON *json, std::set<std::string> keys) {
                                             ++it) {
         cJSON_DeleteItemFromObject(json, it->c_str());
     }
+}
+
+cJSON *merge(cJSON *x, cJSON *y) {
+    cJSON *res = cJSON_CreateObject();
+    json_object_iterator_t xit(x), yit(y);
+
+    std::set<std::string> keys;
+    cJSON *hd;
+
+    while ((hd = xit.next())) {
+        keys.insert(hd->string);
+    }
+
+    for (std::set<std::string>::iterator it = keys.begin();
+                                         it != keys.end();
+                                         ++it) {
+        cJSON_AddItemToObject(res, it->c_str(), cJSON_DetachItemFromObject(x, it->c_str()));
+    }
+
+    keys.clear();
+
+    while ((hd = yit.next())) {
+        keys.insert(hd->string);
+    }
+
+    for (std::set<std::string>::iterator it = keys.begin();
+                                         it != keys.end();
+                                         ++it) {
+        rassert(!cJSON_GetObjectItem(res, it->c_str()), "Overlapping names in merge, name was: %s\n", it->c_str());
+        cJSON_AddItemToObject(res, it->c_str(), cJSON_DetachItemFromObject(y, it->c_str()));
+    }
+
+    return res;
 }

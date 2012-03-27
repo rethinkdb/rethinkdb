@@ -354,6 +354,7 @@ reset_collections = () ->
     namespaces.reset()
     datacenters.reset()
     machines.reset()
+    issues.reset()
 
 # Process updates from the server and apply the diffs to our view of the data. Used by our version of Backbone.sync and POST / PUT responses for form actions
 apply_diffs = (updates) ->
@@ -381,6 +382,9 @@ apply_diffs = (updates) ->
                 console.log "Unhandled element update: " + updates
     return
 
+set_issues = (issue_data_from_server) ->
+    issues.reset(_.map(issue_data_from_server, (issue) -> {critical: false, type: "master_down", time: ISODateString}))
+
 $ ->
     bind_dev_tools()
 
@@ -396,7 +400,7 @@ $ ->
 
     # Add fake issues and events for testing
     generate_fake_events(events)
-    generate_fake_issues(issues)
+    #generate_fake_issues(issues)
 
     # Load the data bootstrapped from the HTML template
     # reset_collections()
@@ -411,6 +415,7 @@ $ ->
     Backbone.sync = (method, model, success, error) ->
         if method is 'read'
             $.getJSON('/ajax', apply_diffs)
+            $.getJSON('/ajax/issues', set_issues)
         else
             legacy_sync method, model, success, error
 
@@ -428,6 +433,7 @@ $ ->
     declare_client_connected()
 
     $.getJSON('/ajax', apply_diffs)
+    $.getJSON('/ajax/issues', set_issues)
 
     # Set up common DOM behavior
     $('.modal').modal
