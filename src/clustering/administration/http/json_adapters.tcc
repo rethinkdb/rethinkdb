@@ -199,6 +199,11 @@ private:
     void erase_impl(const ctx_t &) {
         throw permission_denied_exc_t("Can't erase from a region map.\n");
     }
+
+    void reset_impl(const ctx_t &) {
+        throw permission_denied_exc_t("Can't reset from a region map.\n");
+    }
+
     /* follows the creation paradigm, ie the caller is responsible for the
      * object this points to */
     boost::shared_ptr<subfield_change_functor_t<ctx_t> >  get_change_callback() {
