@@ -9,7 +9,7 @@ Application that runs a CGI script.
 """
 import os
 import sys
-import subprocess32
+import subprocess
 import urllib
 try:
     import select
@@ -60,11 +60,11 @@ class CGIApplication(object):
                 old += '&'
             cgi_environ['QUERY_STRING'] = old + self.query_string
         cgi_environ['SCRIPT_FILENAME'] = self.script
-        proc = subprocess32.Popen(
+        proc = subprocess.Popen(
             [self.script],
-            stdin=subprocess32.PIPE,
-            stdout=subprocess32.PIPE,
-            stderr=subprocess32.PIPE,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             env=cgi_environ,
             cwd=os.path.dirname(self.script),
             )

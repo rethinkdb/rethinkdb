@@ -26,9 +26,9 @@ for machine in cluster.machines:
 
 namespace = cluster.add_namespace(name = "Test Namespace", primary = datacenter)
 
-print cluster
-
 port = cluster.compute_port(namespace, next(cluster.machines.iterkeys()))
+
+time.sleep(5)
 
 command_line = opts["workload"].replace("$HOST", "localhost").replace("$PORT", str(port))
 print "Running", repr(command_line)+"..."
