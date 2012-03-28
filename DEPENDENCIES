@@ -5,6 +5,8 @@ rethinkdb: [src/]
   gtest                     -- googletest <http://code.google.com/p/googletest/>
   valgrind
   libaio
+  protobuf-compiler
+  libprotobuf-dev
 
 test: [test/]
   retester
