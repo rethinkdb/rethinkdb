@@ -15,7 +15,13 @@ typedef boost::uuids::uuid master_id_t;
 Parsers use it to find the master. */
 
 struct namespace_interface_business_card_t {
-    RDB_MAKE_ME_SERIALIZABLE_0();
+    typedef mailbox_t<void ()> ack_mailbox_type;
+
+    namespace_interface_business_card_t(const ack_mailbox_type::address_t &_ack_address) : ack_address(_ack_address) { }
+    namespace_interface_business_card_t() { }
+
+    ack_mailbox_type::address_t ack_address;
+    RDB_MAKE_ME_SERIALIZABLE_1(ack_address);
 };
 
 template<class protocol_t>

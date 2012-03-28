@@ -243,13 +243,25 @@ private:
 
         clone_ptr_t<read_lens_t<boost::optional<registrar_business_card_t<namespace_interface_business_card_t> >, std::map<master_id_t, master_business_card_t<protocol_t> > > > composed = compose_lens(opt, memb_r);
 
+        cond_t ack_signal;
+        namespace_interface_business_card_t::ack_mailbox_type ack_mailbox(mailbox_manager, boost::bind(&cond_t::pulse, &ack_signal));
+
         registrant_t<namespace_interface_business_card_t>
             registrant(mailbox_manager,
                        masters_view->get_peer_view(peer_id)->subview(composed),
-                       namespace_interface_business_card_t());
+                       namespace_interface_business_card_t(ack_mailbox.get_address()));
+
+        signal_t *drain_signal = lock.get_drain_signal();
+
+        wait_any_t ack_waiter(&ack_signal, drain_signal);
+        ack_waiter.wait_lazily_unordered();
+
+        if (drain_signal->is_pulsed()) {
+            handled_master_ids.erase(master_id);
+            return;
+        }
 
         signal_t *failed_signal = registrant.get_failed_signal();
-        signal_t *drain_signal = lock.get_drain_signal();
 
         wait_any_t waiter(failed_signal, drain_signal);
 
