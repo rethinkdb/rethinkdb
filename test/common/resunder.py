@@ -110,7 +110,7 @@ class Daemon:
 		try:
 			# first attempt to shutdown the daemon by issuing a shutdown command
 			conn = socket.create_connection(("localhost", 46594))
-			conn.send("shutdown")
+			conn.sendall("shutdown\n")
 			conn.close()
 			time.sleep(0.2)
 			while 1:

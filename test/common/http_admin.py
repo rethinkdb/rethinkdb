@@ -1,5 +1,5 @@
 # This file contains several classes used for running a rethinkdb cluster in different states
-# 
+#
 # Cluster - This base class provides most functionality for managing a cluster:
 #   add_machine - adds a new instance of rethinkdb by instantiating an InternalServer
 #   add_datacenter - adds a new datacenter object to the cluster
@@ -45,26 +45,26 @@
 import os
 import re
 import json
-import time
 import copy
-import random
-import signal
-import shutil
 import socket
-import httplib
+import random
 import subprocess
+from time import sleep
+from signal import SIGINT
+from shutil import rmtree
+from httplib import HTTPConnection
 
 def block_path(source_port, dest_port):
 	assert "resunder" in subprocess.check_output(["ps", "-A"])
 	conn = socket.create_connection(("localhost", 46594))
-	conn.send("block %s %s" % (str(source_port), str(dest_port)))
+	conn.sendall("block %s %s\n" % (str(source_port), str(dest_port)))
 	# TODO: Wait for ack?
 	conn.close()
 
 def unblock_path(source_port, dest_port):
 	assert "resunder" in subprocess.check_output(["ps", "-A"])
 	conn = socket.create_connection(("localhost", 46594))
-	conn.send("unblock %s %s" % (str(source_port), str(dest_port)))
+	conn.sendall("unblock %s %s\n" % (str(source_port), str(dest_port)))
 	conn.close()
 
 def find_rethinkdb_executable():
@@ -154,8 +154,8 @@ class Namespace(object):
 		if len(self.replica_affinities) == 0:
 			affinities = "None, "
 		else:
-			for i in self.replica_affinities.iteritems():
-				affinities += i[0] + "=" + str(i[1]) + ", "
+			for uuid, count in self.replica_affinities.iteritems():
+				affinities += uuid + "=" + str(count) + ", "
 		return "Namespace(name:%s, port:%d, primary:%s, affinities:%sblueprint:NYI)" % (self.name, self.port, self.primary_uuid, affinities)
 
 class DummyNamespace(Namespace):
@@ -185,7 +185,7 @@ class Server(object):
 
 	def check(self, data):
 		# Do not check DummyServer objects
-		if type(self) is DummyServer:
+		if isinstance(self, DummyServer):
 			return True
 		return data == self.to_json()
 
@@ -193,7 +193,7 @@ class Server(object):
 		return { unicode("datacenter_uuid"): self.datacenter_uuid, unicode("name"): self.name, unicode("port_offset"): self.port_offset }
 
 	def do_query(self, method, route, payload = None):
-		conn = httplib.HTTPConnection(self.host, self.http_port)
+		conn = HTTPConnection(self.host, self.http_port)
 		conn.connect()
 		if payload is not None:
 			conn.request(method, route, json.dumps(payload))
@@ -249,13 +249,13 @@ class InternalServer(Server):
 
 		print serve_args
 		self.instance = subprocess.Popen(serve_args, 0, None, None, subprocess.PIPE)
-		time.sleep(0.2)
+		sleep(0.2)
 		Server.__init__(self, socket.gethostname(), serv_port)
 		self.running = True
 
 	def kill(self):
 		assert self.running
-		self.instance.send_signal(signal.SIGINT)
+		self.instance.send_signal(SIGINT)
 		self.instance.wait()
 		self.running = False
 
@@ -270,9 +270,9 @@ class InternalServer(Server):
 		self.running = True
 
 	def __del__(self):
-		self.instance.send_signal(signal.SIGINT)
+		self.instance.send_signal(SIGINT)
 		self.instance.wait()
-		shutil.rmtree(self.db_dir)
+		rmtree(self.db_dir)
 
 	def __str__(self):
 		return "Internal" + Server.__str__(self) + ", args:" + str(self.args_without_join)
@@ -322,14 +322,14 @@ class Cluster(object):
 	def _get_server_for_command(self, servid = None):
 		if servid is None:
 			for serv in self.machines.itervalues():
-				if type(serv) is not DummyServer:
+				if not isinstance(serv, DummyServer):
 					return serv
 		else:
 			return self.machines[servid]
 
 	# Add a machine to the cluster by starting a server instance locally
 	def add_machine(self, name = None):
-		if self.server_instances is 0:
+		if self.server_instances == 0:
 			# First server in cluster shouldn't connect to anyone
 			join = None
 		else:
@@ -342,7 +342,7 @@ class Cluster(object):
 			port_offset = self.server_instances)
 		self.machines[serv.uuid] = serv
 		self.server_instances += 1
-		time.sleep(0.2)
+		sleep(0.2)
 		self.update_cluster_data()
 		return serv
 
@@ -361,14 +361,14 @@ class Cluster(object):
 
 	def add_datacenter(self, name = None, servid = None):
 		if name is None:
-			name = str(randint(1000000))
+			name = str(random.randint(0, 1000000))
 		info = self._get_server_for_command(servid).do_query("POST", "/ajax/datacenters/new", {
 			"name": name
 			})
-		time.sleep(0.2) # Give some time for changes to hit the rest of the cluster
-		assert len(info) is 1
-		info = next(info.iteritems())
-		datacenter = Datacenter(info[0], info[1])
+		sleep(0.2) # Give some time for changes to hit the rest of the cluster
+		assert len(info) == 1
+		uuid, json_data = next(info.iteritems())
+		datacenter = Datacenter(uuid, json_data)
 		self.datacenters[datacenter.uuid] = datacenter
 		self.update_cluster_data()
 		return datacenter
@@ -406,21 +406,21 @@ class Cluster(object):
 	def move_server_to_datacenter(self, serv, datacenter, servid = None):
 		serv = self.find_machine(serv)
 		datacenter = self.find_datacenter(datacenter)
-		if type(serv) is not DummyServer:
+		if not isinstance(serv, DummyServer):
 			serv.datacenter_uuid = datacenter.uuid
 		self._get_server_for_command(servid).do_query("POST", "/ajax/machines/" + serv.uuid + "/datacenter_uuid", datacenter.uuid)
-		time.sleep(0.2) # Give some time for changes to hit the rest of the cluster
+		sleep(0.2) # Give some time for changes to hit the rest of the cluster
 		self.update_cluster_data()
 
 	def move_namespace_to_datacenter(self, namespace, primary, servid = None):
 		namespace = self.find_namespace(namespace)
 		primary = None if primary is None else self.find_datacenter(primary)
 		namespace.primary_uuid = primary.uuid
-		if type(namespace) == MemcachedNamespace:
+		if isinstance(namespace, MemcachedNamespace):
 			self._get_server_for_command(servid).do_query("POST", "/ajax/memcached_namespaces/" + namespace.uuid, namespace.to_json())
-		elif type(namespace) == DummyNamespace:
+		elif isinstance(namespace, DummyNamespace):
 			self._get_server_for_command(servid).do_query("POST", "/ajax/dummy_namespaces/" + namespace.uuid, namespace.to_json())
-		time.sleep(0.2) # Give some time for the changes to hit the rest of the cluster
+		sleep(0.2) # Give some time for the changes to hit the rest of the cluster
 		self.update_cluster_data()
 
 	def set_namespace_affinities(self, namespace, affinities = { }, servid = None):
@@ -429,11 +429,11 @@ class Cluster(object):
 		for datacenter, count in affinities.iteritems():
 			aff_dict[self.find_datacenter(datacenter).uuid] = count
 		namespace.replica_affinities = aff_dict
-		if type(namespace) == MemcachedNamespace:
+		if isinstance(namespace, MemcachedNamespace):
 			self._get_server_for_command(servid).do_query("POST", "/ajax/memcached_namespaces/" + namespace.uuid, namespace.to_json())
-		elif type(namespace) == DummyNamespace:
+		elif isinstance(namespace, DummyNamespace):
 			self._get_server_for_command(servid).do_query("POST", "/ajax/dummy_namespaces/" + namespace.uuid, namespace.to_json())
-		time.sleep(0.2) # Give some time for the changes to hit the rest of the cluster
+		sleep(0.2) # Give some time for the changes to hit the rest of the cluster
 		self.update_cluster_data()
 		return namespace
 
@@ -441,23 +441,31 @@ class Cluster(object):
 		if port is None:
 			port = random.randint(20000, 60000)
 		if name is None:
-			name = str(random.randint(1000000))
+			name = str(random.randint(0, 1000000))
 		if primary is not None:
 			primary = self.find_datacenter(primary).uuid
+		else:
+			primary = random.choice(self.datacenters.keys())
 		aff_dict = { }
 		for datacenter, count in affinities.iteritems():
 			aff_dict[self.find_datacenter(datacenter).uuid] = count
+		info = { "name": name,
+				 "port": port,
+				 "primary_uuid": primary,
+				 "replica_affinities": aff_dict
+			   }
+		print info
 		info = self._get_server_for_command(servid).do_query("POST", "/ajax/%s_namespaces/new" % protocol, {
 			"name": name,
 			"port": port,
 			"primary_uuid": primary,
 			"replica_affinities": aff_dict
 			})
-		time.sleep(0.2) # Give some time for changes to hit the rest of the cluster
-		assert len(info) is 1
-		info = next(info.iteritems())
+		sleep(0.2) # Give some time for changes to hit the rest of the cluster
+		assert len(info) == 1
+		uuid, json_data = next(info.iteritems())
 		type_class = {"memcached": MemcachedNamespace, "dummy": DummyNamespace}[protocol]
-		namespace = type_class(info[0], info[1])
+		namespace = type_class(uuid, json_data)
 		getattr(self, "%s_namespaces" % protocol)[namespace.uuid] = namespace
 		self.update_cluster_data()
 		return namespace
@@ -467,15 +475,55 @@ class Cluster(object):
 		machine = self.find_machine(machine)
 		return namespace.port + machine.port_offset
 
+	def get_port_for_namespace(self, namespace, selector = None):
+		# selector may be a specific machine or datacenter to use, none will take any
+		type_namespaces = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces }
+		assert type_namespaces[type(namespace)][namespace.uuid] is namespace
+		if selector is None:
+			# Take any datacenter/machine with this namespace available
+			datacenter = self.get_datacenter_in_namespace(namespace)
+			machine = self.get_machine_in_datacenter(datacenter)
+		elif isinstance(selector, Datacenter):
+			# Take any machine from the specified datacenter
+			datacenter = selector
+			machine = self.get_machine_in_datacenter(selector)
+		elif isinstance(selector, Server):
+			# Use the given server directly
+			datacenter = self.datacenters[selector.datacenter_uuid]
+			machine = selector
+
+		# TODO: assert that the datacenter is valid for this namespace
+
+		return self.compute_port(namespace, machine)
+
+	def get_datacenter_in_namespace(self, namespace, primary = None):
+		type_namespaces = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces }
+		assert type_namespaces[type(namespace)][namespace.uuid] is namespace
+		if primary is not None:
+			return self.datacenters[namespace.primary_uuid]
+
+		# Build a list of datacenters in the given namespace
+		datacenters = [ self.datacenters[namespace.primary_uuid] ]
+		for uuid in namespace.replica_affinities.iterkeys():
+			datacenters.append(self.datacenters[uuid])
+		return random.choice(datacenters)
+
+
+	def get_machine_in_datacenter(self, datacenter):
+		assert self.datacenters[datacenter.uuid] is datacenter
+		# Build a list of machines in the given datacenter
+		machines = [ ]
+		for serv in self.machines.itervalues():
+			if serv.datacenter_uuid == datacenter.uuid:
+				machines.append(serv)
+		return random.choice(machines)
+
 	def _pull_cluster_data(self, cluster_data, local_data, data_type):
-		num_uuids = 0
 		for uuid in cluster_data.iterkeys():
-			# There are also aliases in the list, ignore things that don't match a uuid
-			if is_uuid(uuid):
-				num_uuids += 1
-				if uuid not in local_data:
-					local_data[uuid] = data_type(uuid, cluster_data[uuid])
-		assert num_uuids == len(local_data)
+			validate_uuid(uuid)
+			if uuid not in local_data:
+				local_data[uuid] = data_type(uuid, cluster_data[uuid])
+		assert len(cluster_data) == len(local_data)
 
 	# Get the list of machines/namespaces from the cluster, verify that it is consistent across each machine
 	def _verify_consistent_cluster(self):
@@ -483,7 +531,7 @@ class Cluster(object):
 		# Filter out the "me" value - it will be different on each machine
 		assert expected.pop("me") is not None
 		for i in self.machines.iterkeys():
-			if type(self.machines[i]) is DummyServer: # Don't try to query a server we don't know anything about
+			if isinstance(self.machines[i], DummyServer): # Don't try to query a server we don't know anything about
 				continue
 
 			actual = self.machines[i].do_query("GET", "/ajax/")
@@ -493,8 +541,8 @@ class Cluster(object):
 		return expected
 
 	def _verify_cluster_data_chunk(self, local, remote):
-		for i in local.iteritems():
-			assert i[1].check(remote[i[0]])
+		for key, value in local.iteritems():
+			assert value.check(remote[key])
 
 	# Check the data from the server against our data
 	def _verify_cluster_data(self, data):
@@ -532,9 +580,9 @@ class InternalCluster(Cluster):
 	def __init__(self, datacenters = [ ], affinities = [ ]):
 		assert len(affinities) <= 2 # only two namespace types at the moment - dummy and memcached
 		for i in affinities:
-			for j in i:
-				assert j[0] < len(datacenters) # make sure the primary datacenter id doesn't overflow
-				assert len(j[1]) == len(datacenters) or len(j[1]) == 0 # namespace affinities must define values for each datacenter or no affinities
+			for primary_id, replica_counts in i:
+				assert primary_id < len(datacenters) # make sure the primary datacenter id doesn't overflow
+				assert len(replica_counts) == len(datacenters) or len(replica_counts) == 0 # namespace affinities must define values for each datacenter or no affinities
 
 		Cluster.__init__(self)
 		self.blocked_ports = set()
@@ -597,21 +645,21 @@ class InternalCluster(Cluster):
 	# Sets up iptables rules to isolate a set of machines from the cluster, constructs a new cluster object with the selected machines
 	# This won't block any DummyServers in your cluster (ExternalServers that have not been initialized by the user)
 	def split(self, machines):
-		if type(machines) is int:
+		if isinstance(machines, int):
 			# Pick n arbitrary machines
 			n = machines
 			machines = [ ]
 			machines_list = self.machines.values()
 			machines_index = 0
 			for i in range(n):
-				while type(machines_list[machines_index]) is DummyServer:
+				while isinstance(machines_list[machines_index], DummyServer):
 					machines_index += 1
 				machines.append(machines_list[machines_index])
 				machines_index += 1
 
 		for m in machines:
 			assert m.uuid in self.machines
-			assert type(m) is not DummyServer
+			assert not isinstance(m, DummyServer)
 
 		# Create a new cluster and copy all cluster data
 		new_cluster = InternalCluster([ ], [ ])
@@ -630,18 +678,18 @@ class InternalCluster(Cluster):
 			ports_to_block_self.add(m.cluster_port)
 
 		for m in self.machines.values():
-			if type(m) is not DummyServer:
+			if not isinstance(m, DummyServer):
 				ports_to_block_new.add(m.cluster_port)
 
 		# Block ports from this cluster to the new cluster
 		for m in self.machines.values():
-			if type(m) is not DummyServer:
+			if not isinstance(m, DummyServer):
 				for p in ports_to_block_self:
 					block_path(m.local_cluster_port, p)
 
 		# Block ports from the new cluster to this cluster
 		for m in new_cluster.machines.values():
-			if type(m) is not DummyServer:
+			if not isinstance(m, DummyServer):
 				for p in ports_to_block_new:
 					block_path(m.local_cluster_port, p)
 
@@ -670,17 +718,17 @@ class InternalCluster(Cluster):
 
 		# Remove blocks between the clusters
 		for m in self.machines.values():
-			if type(m) is not DummyServer:
+			if not isinstance(m, DummyServer):
 				for n in other.machines.values():
-					if type(n) is not DummyServer:
+					if not isinstance(n, DummyServer):
 						unblock_path(m.local_cluster_port, n.cluster_port)
 						unblock_path(n.local_cluster_port, m.cluster_port)
 
 		for m in self.machines.values():
-			if type(m) is not DummyServer:
+			if not isinstance(m, DummyServer):
 				other.blocked_ports.remove(m.cluster_port)
 		for m in other.machines.values():
-			if type(m) is not DummyServer:
+			if not isinstance(m, DummyServer):
 				self.blocked_ports.remove(m.cluster_port)
 				self.machines[m.uuid] = m
 
@@ -709,13 +757,13 @@ class InternalCluster(Cluster):
 		other.other_cluster = set()
 
 		# Give some time for the cluster to update internally, then pull the cluster data
-		time.sleep(1)
+		sleep(1)
 		self.update_cluster_data()
 
 	def _notify_of_new_cluster_port(self, port):
 		self.blocked_ports.add(port)
 		for m in self.machines.itervalues():
-			if type(m) is not DummyServer:
+			if not isinstance(m, DummyServer):
 				block_path(m.cluster_port, port)
 
 	def add_machine(self):
