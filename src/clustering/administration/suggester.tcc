@@ -37,9 +37,11 @@ persistable_blueprint_t<protocol_t> suggest_blueprint_for_namespace(
         ns_goals.replica_affinities.get();
     std::set<typename protocol_t::region_t> shards =
         ns_goals.shards.get();
+    region_map_t<protocol_t, std::set<machine_id_t> > pinnings =
+        ns_goals.pinnings.get();
 
     return suggest_blueprint(directory, primary_datacenter,
-        datacenter_affinities, shards, machine_data_centers);
+        datacenter_affinities, shards, machine_data_centers, pinnings);
 }
 
 template<class protocol_t>

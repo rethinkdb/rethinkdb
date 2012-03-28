@@ -151,8 +151,38 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
                 return res;
             }
             break;
-            case HEAD:
             case PUT:
+            {
+#ifdef NDEBUG
+                if (req.find_header_line("Content-Type") != "application/json") {
+                    logINF("Bad request, Content-Type should be application/json.\n");
+                    return http_res_t(415);
+                }
+#endif
+                scoped_cJSON_t change(cJSON_Parse(req.body.c_str()));
+                if (!change.get()) { //A null value indicates that parsing failed
+                    logINF("Json body failed to parse.\n Here's the data that failed: %s\n", req.body.c_str());
+                    return http_res_t(400);
+                }
+
+                logINF("Applying data %s\n", req.body.c_str());
+                json_adapter_head->reset(json_ctx);
+                json_adapter_head->apply(change.get(), json_ctx);
+
+                /* Fill in the blueprints */
+                fill_in_blueprints(&cluster_metadata);
+
+                semilattice_metadata->join(cluster_metadata);
+
+                http_res_t res(200);
+
+                scoped_cJSON_t json_repr(json_adapter_head->render(json_ctx));
+                res.set_body("application/json", cJSON_print_std_string(json_repr.get()));
+
+                return res;
+            }
+            break;
+            case HEAD:
             case TRACE:
             case OPTIONS:
             case CONNECT:

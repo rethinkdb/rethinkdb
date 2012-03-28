@@ -108,6 +108,7 @@ private:
     virtual cJSON *render_impl(const ctx_t &) = 0;
     virtual void apply_impl(cJSON *, const ctx_t &) = 0;
     virtual void erase_impl(const ctx_t &) = 0;
+    virtual void reset_impl(const ctx_t &) = 0;
     /* follows the creation paradigm, ie the caller is responsible for the
      * object this points to */
     virtual boost::shared_ptr<subfield_change_functor_t<ctx_t> >  get_change_callback() = 0;
@@ -119,6 +120,7 @@ public:
     cJSON *render(const ctx_t &);
     void apply(cJSON *, const ctx_t &);
     void erase(const ctx_t &);
+    void reset(const ctx_t &);
     virtual ~json_adapter_if_t() { }
 };
 
@@ -137,6 +139,7 @@ private:
     cJSON *render_impl(const ctx_t &);
     virtual void apply_impl(cJSON *, const ctx_t &);
     virtual void erase_impl(const ctx_t &);
+    virtual void reset_impl(const ctx_t &);
     boost::shared_ptr<subfield_change_functor_t<ctx_t> > get_change_callback();
 };
 
@@ -149,6 +152,7 @@ public:
 private:
     void apply_impl(cJSON *, const ctx_t &);
     void erase_impl(const ctx_t &);
+    void reset_impl(const ctx_t &);
 };
 
 /* A json temporary adapter is like a read only adapter but it stores a copy of
@@ -198,6 +202,7 @@ private:
     cJSON *render_impl(const ctx_t &);
     void apply_impl(cJSON *, const ctx_t &);
     void erase_impl(const ctx_t &);
+    void reset_impl(const ctx_t &);
     json_adapter_map_t get_subfields_impl(const ctx_t &);
     boost::shared_ptr<subfield_change_functor_t<ctx_t> > get_change_callback();
 };
@@ -227,6 +232,7 @@ private:
     cJSON *render_impl(const ctx_t &);
     void apply_impl(cJSON *, const ctx_t &);
     void erase_impl(const ctx_t &);
+    void reset_impl(const ctx_t &);
     void on_change(const ctx_t &);
     boost::shared_ptr<subfield_change_functor_t<ctx_t> > get_change_callback();
 };
@@ -241,6 +247,19 @@ void erase_json(T *, const ctx_t &) {
             "implement a working erase method for it.");
 #else
     throw permission_denied_exc_t("Can't erase this object.");
+#endif
+}
+
+/* Erase is a fairly rare function for an adapter to allow so we implement a
+ * generic version of it. */
+template <class T, class ctx_t>
+void reset_json(T *, const ctx_t &) { 
+#ifndef NDEBUG
+    throw permission_denied_exc_t("Can't reset this object.. by default"
+            "json_adapters disallow deletion. if you'd like to be able to please"
+            "implement a working reset method for it.");
+#else
+    throw permission_denied_exc_t("Can't reset this object.");
 #endif
 }
 

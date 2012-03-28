@@ -89,7 +89,9 @@ public:
     typedef typename internal_vec_t::const_iterator const_iterator;
     typedef typename internal_vec_t::iterator iterator;
 
-    region_map_t() THROWS_NOTHING { }
+    region_map_t() THROWS_NOTHING { 
+        regions_and_values.push_back(internal_pair_t(protocol_t::region_t::universe(), value_t()));
+    }
 
     explicit region_map_t(typename protocol_t::region_t r, value_t v = value_t()) THROWS_NOTHING {
         regions_and_values.push_back(internal_pair_t(r, v));
