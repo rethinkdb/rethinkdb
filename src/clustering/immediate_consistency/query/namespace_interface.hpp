@@ -171,20 +171,20 @@ private:
             ASSERT_FINITE_CORO_WAITING;
             std::set<peer_id_t> peers = masters_view->get_directory_service()->
                 get_connectivity_service()->get_peers_list();
-            for (std::set<peer_id_t>::iterator it = peers.begin(); it != peers.end(); it++) {
+            for (std::set<peer_id_t>::iterator it = peers.begin(); it != peers.end(); ++it) {
                 directory_read_service_t::peer_value_freeze_t value_freeze(
                     masters_view->get_directory_service(), *it);
                 master_map_t masters = masters_view->get_value(*it).get();
-                for (typename master_map_t::iterator it2 = masters.begin(); it2 != masters.end(); it2++) {
+                for (typename master_map_t::iterator it2 = masters.begin(); it2 != masters.end(); ++it2) {
                     typename protocol_t::region_t intersection =
-                        region_intersection(target_region, (*it2).second.region);
+                        region_intersection(target_region, it2->second.region);
                     if (!region_is_empty(intersection)) {
                         regions_out->push_back(intersection);
                         masters_out->push_back(boost::make_shared<resource_access_t<master_business_card_t<protocol_t> > >(
                             masters_view
                                 ->get_peer_view(*it)
                                 ->template subview<boost::optional<master_business_card_t<protocol_t> > >(
-                                    optional_member_lens<master_id_t, master_business_card_t<protocol_t> >((*it2).first)
+                                    optional_member_lens<master_id_t, master_business_card_t<protocol_t> >(it2->first)
                                     )
                             ));
                     }
