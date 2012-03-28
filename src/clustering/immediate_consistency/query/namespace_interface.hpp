@@ -261,12 +261,15 @@ private:
             return;
         }
 
+        fifo_enforcers.insert(master_id, new fifo_enforcer_source_t);
+
         signal_t *failed_signal = registrant.get_failed_signal();
 
         wait_any_t waiter(failed_signal, drain_signal);
 
         waiter.wait_lazily_unordered();
 
+        fifo_enforcers.erase(master_id);
         handled_master_ids.erase(master_id);
 
         // Maybe we got reconnected really quickly, and didn't handle
@@ -284,6 +287,7 @@ private:
     typename protocol_t::temporary_cache_t temporary_cache;
 
     std::set<master_id_t> handled_master_ids;
+    boost::ptr_map<master_id_t, fifo_enforcer_source_t> fifo_enforcers;
 
     auto_drainer_t registrant_coroutine_auto_drainer;
 
