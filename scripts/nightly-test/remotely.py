@@ -1,4 +1,4 @@
-import sys, subprocess32, tempfile, string, signal, os
+import sys, subprocess, tempfile, string, signal, os
 
 class RemotelyInternalError(Exception):
     pass
@@ -26,7 +26,7 @@ class SafePopen(object):
         self.args = args
         self.kwargs = kwargs
     def __enter__(self):
-        self.process = subprocess32.Popen(*self.args, **self.kwargs)
+        self.process = subprocess.Popen(*self.args, **self.kwargs)
         return self.process
     def __exit__(self, type, value, traceback):
         try:
@@ -104,12 +104,12 @@ rm -rf "$DIR"
     srun_command += ["bash", "-c", command_script]
     # For some reason, it's essential to set `close_fds` to `True` or else
     # `run()` will lock up if you run it in multiple threads concurrently.
-    with SafePopen(srun_command, stdin = subprocess32.PIPE, stdout = subprocess32.PIPE, close_fds = True) as srun_process:
+    with SafePopen(srun_command, stdin = subprocess.PIPE, stdout = subprocess.PIPE, close_fds = True) as srun_process:
         line = srun_process.stdout.readline()
         if inputs:
             if not line.startswith("SEND_TARBALL"):
                 raise RemotelyInternalError("Expected 'SEND_TARBALL', got %r" % line)
-            subprocess32.check_call(
+            subprocess.check_call(
                 ["tar", "--create", "--gzip", "--file=-", "-C", input_root, "--"] + inputs,
                 stdout = srun_process.stdin
                 )
@@ -141,7 +141,7 @@ rm -rf "$DIR"
                 # location to the beginning of the tarball so that our `tar`
                 # subprocess gets the right input.
                 srun_process.stdout.flush()
-                subprocess32.check_call(
+                subprocess.check_call(
                     ["tar", "--extract", "--gzip", "--touch", "--file=-", "-C", output_root, "--"] + outputs,
                     stdin = srun_process.stdout
                     )
