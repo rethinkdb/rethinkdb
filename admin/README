@@ -2,6 +2,8 @@ RethinkDB admin.
 
 DEPENDENCIES:
 
+sudo apt-get install libssl-dev
+
 # You could instead use easy_install
 
 sudo pip install Flask beaker requests flask-assets jsmin cssmin colorama
