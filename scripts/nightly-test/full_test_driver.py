@@ -7,7 +7,7 @@
 # it. The full test results are stored in the current working directory in a
 # format that can be parsed by the `renderer` script.
 
-import sys, subprocess32, time, os, traceback, socket, threading, optparse
+import sys, subprocess, time, os, traceback, socket, threading, optparse
 import remotely, simple_linear_db
 
 # Parse input
@@ -114,15 +114,15 @@ with simple_linear_db.LinearDBWriter("result_log.txt") as result_log:
 
         print "Checking out RethinkDB..."
 
-        subprocess32.check_call(["git", "clone", "git@github.com:rethinkdb/rethinkdb.git", "--depth", "0", "rethinkdb"])
-        subprocess32.check_call(["git", "checkout", options.git_branch], cwd="rethinkdb")
+        subprocess.check_call(["git", "clone", "git@github.com:rethinkdb/rethinkdb.git", "--depth", "0", "rethinkdb"])
+        subprocess.check_call(["git", "checkout", options.git_branch], cwd="rethinkdb")
 
         print "Done checking out RethinkDB."
 
-        rethinkdb_version = subprocess32.check_output(["scripts/gen-version.sh"], cwd="rethinkdb").strip()
+        rethinkdb_version = subprocess.check_output(["scripts/gen-version.sh"], cwd="rethinkdb").strip()
         print "RethinkDB version:", rethinkdb_version
 
-        rethinkdb_shortversion = subprocess32.check_output(["scripts/gen-version.sh", "-s"], cwd="rethinkdb").strip()
+        rethinkdb_shortversion = subprocess.check_output(["scripts/gen-version.sh", "-s"], cwd="rethinkdb").strip()
         print "RethinkDB version (short):", rethinkdb_shortversion
 
         # Plan what builds to run
@@ -190,7 +190,7 @@ with simple_linear_db.LinearDBWriter("result_log.txt") as result_log:
 
         # Run builds
 
-        subprocess32.check_call(["tar", "--create", "--gzip", "--file=rethinkdb.tar.gz", "--", "rethinkdb"])
+        subprocess.check_call(["tar", "--create", "--gzip", "--file=rethinkdb.tar.gz", "--", "rethinkdb"])
 
         os.mkdir("builds")
         def run_build(name, build):
