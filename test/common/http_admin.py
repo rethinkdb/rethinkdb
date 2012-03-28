@@ -449,12 +449,6 @@ class Cluster(object):
 		aff_dict = { }
 		for datacenter, count in affinities.iteritems():
 			aff_dict[self.find_datacenter(datacenter).uuid] = count
-		info = { "name": name,
-				 "port": port,
-				 "primary_uuid": primary,
-				 "replica_affinities": aff_dict
-			   }
-		print info
 		info = self._get_server_for_command(servid).do_query("POST", "/ajax/%s_namespaces/new" % protocol, {
 			"name": name,
 			"port": port,
@@ -475,26 +469,21 @@ class Cluster(object):
 		machine = self.find_machine(machine)
 		return namespace.port + machine.port_offset
 
-	def get_port_for_namespace(self, namespace, selector = None):
+	def get_namespace_host(self, namespace, selector = None):
 		# selector may be a specific machine or datacenter to use, none will take any
 		type_namespaces = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces }
 		assert type_namespaces[type(namespace)][namespace.uuid] is namespace
 		if selector is None:
-			# Take any datacenter/machine with this namespace available
-			datacenter = self.get_datacenter_in_namespace(namespace)
-			machine = self.get_machine_in_datacenter(datacenter)
+			# Take any machine
+			machine = random.choice(list(self.machines))
 		elif isinstance(selector, Datacenter):
 			# Take any machine from the specified datacenter
-			datacenter = selector
 			machine = self.get_machine_in_datacenter(selector)
 		elif isinstance(selector, Server):
 			# Use the given server directly
-			datacenter = self.datacenters[selector.datacenter_uuid]
 			machine = selector
 
-		# TODO: assert that the datacenter is valid for this namespace
-
-		return self.compute_port(namespace, machine)
+		return (machine.host, self.compute_port(namespace, machine))
 
 	def get_datacenter_in_namespace(self, namespace, primary = None):
 		type_namespaces = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces }
