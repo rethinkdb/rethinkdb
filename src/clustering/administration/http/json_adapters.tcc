@@ -185,7 +185,8 @@ private:
     }
 
     cJSON *render_impl(const ctx_t &ctx) {
-        return render_as_json(&parent->mask(target_region), ctx);
+        target_region_map_t target_map = parent->mask(target_region);
+        return render_as_json(&target_map, ctx);
     }
 
     void apply_impl(cJSON *change, const ctx_t &ctx) {
@@ -215,10 +216,12 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(region_
     for (typename region_map_t<protocol_t, value_t>::iterator it  = target->begin();
                                                               it != target->end();
                                                               ++it) {
-        scoped_cJSON_t key(render_as_json(it->first, ctx));
+        scoped_cJSON_t key(render_as_json(&it->first, ctx));
         rassert(key.get()->type = cJSON_String);
         res[get_string(key.get())] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_region_adapter_t<protocol_t, value_t, ctx_t>(target, it->first));
     }
+
+    return res;
 }
 
 template <class protocol_t, class value_t, class ctx_t>
@@ -227,9 +230,9 @@ cJSON *render_as_json(region_map_t<protocol_t, value_t> *target, const ctx_t &ct
     for (typename region_map_t<protocol_t, value_t>::iterator it  = target->begin();
                                                               it != target->end();
                                                               ++it) {
-        scoped_cJSON_t key(render_as_json(it->first, ctx));
+        scoped_cJSON_t key(render_as_json(&it->first, ctx));
         rassert(key.get()->type = cJSON_String);
-        cJSON_AddItemToObject(res, get_string(key.get()).c_str(), ctx);
+        cJSON_AddItemToObject(res, get_string(key.get()).c_str(), render_as_json(&it->second, ctx));
     }
 
     return res;
