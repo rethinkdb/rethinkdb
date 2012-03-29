@@ -13,6 +13,22 @@
 #include "concurrency/promise.hpp"
 #include "protocol_api.hpp"
 
+
+template <class fifo_enforcer_token_type> fifo_enforcer_token_type get_fifo_enforcer_token(fifo_enforcer_source_t *source);
+
+template <>
+inline
+fifo_enforcer_read_token_t get_fifo_enforcer_token<fifo_enforcer_read_token_t>(fifo_enforcer_source_t *source) {
+    return source->enter_read();
+}
+
+template <>
+inline
+fifo_enforcer_write_token_t get_fifo_enforcer_token<fifo_enforcer_write_token_t>(fifo_enforcer_source_t *source) {
+    return source->enter_write();
+}
+
+
 template<class protocol_t>
 class cluster_namespace_interface_t :
     public namespace_interface_t<protocol_t>
@@ -36,17 +52,15 @@ public:
     }
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t r, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-        fifo_enforcer_read_token_t token = fifo_enforcer_source_.enter_read();
         return generic_dispatch<typename protocol_t::read_t, fifo_enforcer_read_token_t, typename protocol_t::read_response_t>(
             &master_business_card_t<protocol_t>::read_mailbox,
-            r, order_token, token, interruptor);
+            r, order_token, interruptor);
     }
 
     typename protocol_t::write_response_t write(typename protocol_t::write_t w, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-        fifo_enforcer_write_token_t token = fifo_enforcer_source_.enter_write();
         return generic_dispatch<typename protocol_t::write_t, fifo_enforcer_write_token_t, typename protocol_t::write_response_t>(
             &master_business_card_t<protocol_t>::write_mailbox,
-            w, order_token, token, interruptor);
+            w, order_token, interruptor);
     }
 
 private:
@@ -68,6 +82,7 @@ private:
     struct regions_and_master_accesses_t {
         std::vector<typename protocol_t::region_t> regions;
         std::vector<boost::shared_ptr<resource_access_t<master_business_card_t<protocol_t> > > > master_accesses;
+        std::vector<master_id_t> master_ids;
     };
 
 
@@ -77,19 +92,22 @@ private:
             `&master_business_card_t<protocol_t>::read_mailbox` or
             `&master_business_card_t<protocol_t>::write_mailbox`. */
             mailbox_addr_t<void(op_type, order_token_t, fifo_enforcer_token_type, mailbox_addr_t<void(boost::variant<op_response_type, std::string>)>)> master_business_card_t<protocol_t>::*mailbox_field,
-            op_type op, order_token_t order_token, fifo_enforcer_token_type token, signal_t *interruptor)
+            op_type op, order_token_t order_token, signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t)
     {
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
         regions_and_master_accesses_t regions_and_master_accesses;
-        cover(op.get_region(), &regions_and_master_accesses.regions, &regions_and_master_accesses.master_accesses);
+        cover(op.get_region(),
+              &regions_and_master_accesses.regions,
+              &regions_and_master_accesses.master_accesses,
+              &regions_and_master_accesses.master_ids);
         int regions_size = regions_and_master_accesses.regions.size();
         rassert(regions_and_master_accesses.regions.size() == regions_and_master_accesses.master_accesses.size());
 
         std::vector<boost::variant<op_response_type, std::string> > results_or_failures(regions_size);
         pmap(regions_size, boost::bind(&cluster_namespace_interface_t::generic_perform<op_type, fifo_enforcer_token_type, op_response_type>, this,
-                                       mailbox_field, &regions_and_master_accesses, &op, order_token, token, &results_or_failures, _1, interruptor));
+                                       mailbox_field, &regions_and_master_accesses, &op, order_token, &results_or_failures, _1, interruptor));
 
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
@@ -103,14 +121,12 @@ private:
         return op.unshard(results, &temporary_cache);
     }
 
-
     template<class op_type, class fifo_enforcer_token_type, class op_response_type>
     void generic_perform(
             mailbox_addr_t<void(op_type, order_token_t, fifo_enforcer_token_type, mailbox_addr_t<void(boost::variant<op_response_type, std::string>)>)> master_business_card_t<protocol_t>::*mailbox_field,
             const regions_and_master_accesses_t *regions_and_master_accesses,
             const op_type *operation,
             order_token_t order_token,
-            fifo_enforcer_token_type token,
             std::vector<boost::variant<op_response_type, std::string> > *results_or_failures,
             int i,
             signal_t *interruptor)
@@ -119,6 +135,7 @@ private:
         const std::vector<typename protocol_t::region_t> *regions = &regions_and_master_accesses->regions;
         const std::vector<boost::shared_ptr<resource_access_t<master_business_card_t<protocol_t> > > > *master_accesses
             = &regions_and_master_accesses->master_accesses;
+        const std::vector<master_id_t> *master_ids = &regions_and_master_accesses->master_ids;
 
         op_type shard = operation->shard((*regions)[i]);
         rassert(region_is_superset((*regions)[i], shard.get_region()));
@@ -133,8 +150,17 @@ private:
             mailbox_addr_t<void(op_type, order_token_t, fifo_enforcer_token_type, mailbox_addr_t<void(boost::variant<op_response_type, std::string>)>)> query_address =
                 bcard.*mailbox_field;
 
+            master_id_t master_id = (*master_ids)[i];
+
+            boost::ptr_map<master_id_t, fifo_enforcer_source_t>::iterator enf_it = fifo_enforcers.find(master_id);
+            if (enf_it == fifo_enforcers.end()) {
+                throw resource_lost_exc_t();
+            }
+
+            fifo_enforcer_source_t *fifo_source = enf_it->second;
+
             send(mailbox_manager, query_address,
-                 shard, order_token, token, result_or_failure_mailbox.get_address());
+                 shard, order_token, get_fifo_enforcer_token<fifo_enforcer_token_type>(fifo_source), result_or_failure_mailbox.get_address());
 
             wait_any_t waiter(result_or_failure.get_ready_signal(), (*master_accesses)[i]->get_failed_signal());
             wait_interruptible(&waiter, interruptor);
@@ -158,7 +184,8 @@ private:
     void cover(
             typename protocol_t::region_t target_region,
             std::vector<typename protocol_t::region_t> *regions_out,
-            std::vector<boost::shared_ptr<resource_access_t<master_business_card_t<protocol_t> > > > *masters_out)
+            std::vector<boost::shared_ptr<resource_access_t<master_business_card_t<protocol_t> > > > *masters_out,
+            std::vector<master_id_t> *master_ids_out)
             THROWS_ONLY(cannot_perform_query_exc_t)
     {
         rassert(regions_out->empty());
@@ -187,6 +214,7 @@ private:
                                     optional_member_lens<master_id_t, master_business_card_t<protocol_t> >(it2->first)
                                     )
                             ));
+                        master_ids_out->push_back(it2->first);
                     }
                 }
             }
@@ -280,7 +308,6 @@ private:
         }
     }
 
-    fifo_enforcer_source_t fifo_enforcer_source_;
     mailbox_manager_t *mailbox_manager;
     clone_ptr_t<directory_rview_t<master_map_t> > masters_view;
 
