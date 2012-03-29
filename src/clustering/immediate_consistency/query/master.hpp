@@ -70,8 +70,8 @@ private:
     }
 
     struct parser_lifetime_t {
-        parser_lifetime_t(UNUSED master_t *m, UNUSED namespace_interface_business_card_t bc) {
-            logDBG("parser_lifetime_t constructor has been called.\n");
+        parser_lifetime_t(master_t *m, namespace_interface_business_card_t bc) {
+            send(m->mailbox_manager, bc.ack_address);
         }
         ~parser_lifetime_t() {
             logDBG("parser_lifetime_t destructor has been called.\n");
