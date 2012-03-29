@@ -36,6 +36,7 @@ class SafePopen(object):
             pass
 
 def run(command_line, stdout = sys.stdout, inputs = [], outputs = [],
+        on_begin_transfer = lambda: None,
         on_begin_script = lambda: None, on_end_script = lambda: None,
         input_root = ".", output_root = ".",
         constraint = None):
@@ -109,6 +110,7 @@ rm -rf "$DIR"
         if inputs:
             if not line.startswith("SEND_TARBALL"):
                 raise RemotelyInternalError("Expected 'SEND_TARBALL', got %r" % line)
+            on_begin_transfer()
             subprocess.check_call(
                 ["tar", "--create", "--gzip", "--file=-", "-C", input_root, "--"] + inputs,
                 stdout = srun_process.stdin
@@ -116,6 +118,7 @@ rm -rf "$DIR"
         else:
             if not line.startswith("SEND_NO_TARBALL"):
                 raise RemotelyInternalError("Expected 'SEND_NO_TARBALL', got %r" % line)
+            on_begin_transfer()
         srun_process.stdin.close()
         line = srun_process.stdout.readline()
         if not line.startswith("SCRIPT_BEGIN"):
