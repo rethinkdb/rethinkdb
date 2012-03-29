@@ -39,6 +39,7 @@ public:
     cluster_namespace_interface_t(
             mailbox_manager_t *mm,
             clone_ptr_t<directory_rview_t<master_map_t> > mv) :
+        self_id(generate_uuid()),
         mailbox_manager(mm),
         masters_view(mv),
         master_map_watcher(translate_into_watchable(masters_view)),
@@ -91,7 +92,7 @@ private:
             /* This is a pointer-to-member. It's always going to be either
             `&master_business_card_t<protocol_t>::read_mailbox` or
             `&master_business_card_t<protocol_t>::write_mailbox`. */
-            mailbox_addr_t<void(op_type, order_token_t, fifo_enforcer_token_type, mailbox_addr_t<void(boost::variant<op_response_type, std::string>)>)> master_business_card_t<protocol_t>::*mailbox_field,
+            mailbox_addr_t<void(namespace_interface_id_t, op_type, order_token_t, fifo_enforcer_token_type, mailbox_addr_t<void(boost::variant<op_response_type, std::string>)>)> master_business_card_t<protocol_t>::*mailbox_field,
             op_type op, order_token_t order_token, signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t)
     {
@@ -123,7 +124,7 @@ private:
 
     template<class op_type, class fifo_enforcer_token_type, class op_response_type>
     void generic_perform(
-            mailbox_addr_t<void(op_type, order_token_t, fifo_enforcer_token_type, mailbox_addr_t<void(boost::variant<op_response_type, std::string>)>)> master_business_card_t<protocol_t>::*mailbox_field,
+            mailbox_addr_t<void(namespace_interface_id_t, op_type, order_token_t, fifo_enforcer_token_type, mailbox_addr_t<void(boost::variant<op_response_type, std::string>)>)> master_business_card_t<protocol_t>::*mailbox_field,
             const regions_and_master_accesses_t *regions_and_master_accesses,
             const op_type *operation,
             order_token_t order_token,
@@ -147,7 +148,7 @@ private:
 
             master_business_card_t<protocol_t> bcard = (*master_accesses)[i]->access();
 
-            mailbox_addr_t<void(op_type, order_token_t, fifo_enforcer_token_type, mailbox_addr_t<void(boost::variant<op_response_type, std::string>)>)> query_address =
+            mailbox_addr_t<void(namespace_interface_id_t, op_type, order_token_t, fifo_enforcer_token_type, mailbox_addr_t<void(boost::variant<op_response_type, std::string>)>)> query_address =
                 bcard.*mailbox_field;
 
             master_id_t master_id = (*master_ids)[i];
@@ -160,7 +161,7 @@ private:
             fifo_enforcer_source_t *fifo_source = enf_it->second;
 
             send(mailbox_manager, query_address,
-                 shard, order_token, get_fifo_enforcer_token<fifo_enforcer_token_type>(fifo_source), result_or_failure_mailbox.get_address());
+                 self_id, shard, order_token, get_fifo_enforcer_token<fifo_enforcer_token_type>(fifo_source), result_or_failure_mailbox.get_address());
 
             wait_any_t waiter(result_or_failure.get_ready_signal(), (*master_accesses)[i]->get_failed_signal());
             wait_interruptible(&waiter, interruptor);
@@ -277,7 +278,7 @@ private:
         registrant_t<namespace_interface_business_card_t>
             registrant(mailbox_manager,
                        masters_view->get_peer_view(peer_id)->subview(composed),
-                       namespace_interface_business_card_t(ack_mailbox.get_address()));
+                       namespace_interface_business_card_t(self_id, ack_mailbox.get_address()));
 
         signal_t *drain_signal = lock.get_drain_signal();
 
@@ -308,6 +309,7 @@ private:
         }
     }
 
+    namespace_interface_id_t self_id;
     mailbox_manager_t *mailbox_manager;
     clone_ptr_t<directory_rview_t<master_map_t> > masters_view;
 

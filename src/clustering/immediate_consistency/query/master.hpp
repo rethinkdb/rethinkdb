@@ -25,25 +25,31 @@ public:
         mailbox_manager(mm),
         broadcaster(b),
         read_mailbox(mailbox_manager, boost::bind(&master_t<protocol_t>::on_read,
-                                                  this, _1, _2, _3, _4, auto_drainer_t::lock_t(&drainer))),
+                                                  this, _1, _2, _3, _4, _5, auto_drainer_t::lock_t(&drainer))),
         write_mailbox(mailbox_manager, boost::bind(&master_t<protocol_t>::on_write,
-                                                   this, _1, _2, _3, _4, auto_drainer_t::lock_t(&drainer))),
+                                                   this, _1, _2, _3, _4, _5, auto_drainer_t::lock_t(&drainer))),
         registrar(mm, this),
         advertisement(master_directory, generate_uuid(),
                       master_business_card_t<protocol_t>(region, read_mailbox.get_address(), write_mailbox.get_address(), registrar.get_business_card())) {
     }
 
 private:
-    void on_read(typename protocol_t::read_t read, order_token_t otok, UNUSED fifo_enforcer_read_token_t token,
+    void on_read(namespace_interface_id_t parser_id, typename protocol_t::read_t read, order_token_t otok, UNUSED fifo_enforcer_read_token_t token,
             mailbox_addr_t<void(boost::variant<typename protocol_t::read_response_t, std::string>)> response_address,
             auto_drainer_t::lock_t keepalive)
             THROWS_NOTHING
     {
-        // TODO: Use the fifo enforcer token.
-
         keepalive.assert_is_holding(&drainer);
         try {
-            typename protocol_t::read_response_t response = broadcaster->read(read, otok);
+            boost::ptr_map<namespace_interface_id_t, fifo_enforcer_sink_t>::iterator it = sink_map.find(parser_id);
+            // TODO: Remove this assertion.  Out-of-order operations (which allegedly can happen) could cause it to be wrong?
+            rassert(it != sink_map.end());
+            typename protocol_t::read_response_t response;
+            {
+                // TODO: The lifetime of exiter is absurdly long.
+                fifo_enforcer_sink_t::exit_read_t exiter(it->second, token);
+                response = broadcaster->read(read, otok);
+            }
             send(mailbox_manager, response_address, boost::variant<typename protocol_t::read_response_t, std::string>(response));
         } catch (typename broadcaster_t<protocol_t>::mirror_lost_exc_t e) {
             send(mailbox_manager, response_address, boost::variant<typename protocol_t::read_response_t, std::string>(std::string(e.what())));
@@ -52,15 +58,23 @@ private:
         }
     }
 
-    void on_write(typename protocol_t::write_t write, order_token_t otok, UNUSED fifo_enforcer_write_token_t token,
-            mailbox_addr_t<void(boost::variant<typename protocol_t::write_response_t, std::string>)> response_address,
-            auto_drainer_t::lock_t keepalive)
-            THROWS_NOTHING
+    void on_write(namespace_interface_id_t parser_id, typename protocol_t::write_t write, order_token_t otok, fifo_enforcer_write_token_t token,
+                  mailbox_addr_t<void(boost::variant<typename protocol_t::write_response_t, std::string>)> response_address,
+                  auto_drainer_t::lock_t keepalive)
+        THROWS_NOTHING
     {
-        // TODO: Use the fifo enforcer token.
         keepalive.assert_is_holding(&drainer);
         try {
-            typename protocol_t::write_response_t response = broadcaster->write(write, otok);
+            boost::ptr_map<namespace_interface_id_t, fifo_enforcer_sink_t>::iterator it = sink_map.find(parser_id);
+            // TODO: Remove this assertion.  Out-of-order operations (which allegedly can hoppen) could cause it to be wrong?
+            rassert(it != sink_map.end());
+
+            typename protocol_t::write_response_t response;
+            {
+                // TODO: The lifetime of exiter is absurdly long.
+                fifo_enforcer_sink_t::exit_write_t exiter(it->second, token);
+                response = broadcaster->write(write, otok);
+            }
             send(mailbox_manager, response_address, boost::variant<typename protocol_t::write_response_t, std::string>(response));
         } catch (typename broadcaster_t<protocol_t>::mirror_lost_exc_t e) {
             send(mailbox_manager, response_address, boost::variant<typename protocol_t::write_response_t, std::string>(std::string(e.what())));
@@ -70,16 +84,20 @@ private:
     }
 
     struct parser_lifetime_t {
-        parser_lifetime_t(master_t *m, namespace_interface_business_card_t bc) {
+        parser_lifetime_t(master_t *m, namespace_interface_business_card_t bc) : m_(m), namespace_interface_id_(bc.namespace_interface_id) {
+            m->sink_map.insert(bc.namespace_interface_id, new fifo_enforcer_sink_t);
             send(m->mailbox_manager, bc.ack_address);
         }
         ~parser_lifetime_t() {
-            logDBG("parser_lifetime_t destructor has been called.\n");
+            m_->sink_map.erase(namespace_interface_id_);
         }
+        master_t *m_;
+        namespace_interface_id_t namespace_interface_id_;
     };
 
     mailbox_manager_t *mailbox_manager;
     broadcaster_t<protocol_t> *broadcaster;
+    boost::ptr_map<namespace_interface_id_t, fifo_enforcer_sink_t> sink_map;
     auto_drainer_t drainer;
 
     typename master_business_card_t<protocol_t>::read_mailbox_t read_mailbox;
