@@ -34,15 +34,16 @@ public:
     vclock_t<std::set<typename protocol_t::region_t> > shards;
     vclock_t<std::string> name;
     vclock_t<int> port;
+    vclock_t<region_map_t<protocol_t, std::set<machine_id_t> > > pinnings;
 
-    RDB_MAKE_ME_SERIALIZABLE_6(blueprint, primary_datacenter, replica_affinities, shards, name, port);
+    RDB_MAKE_ME_SERIALIZABLE_7(blueprint, primary_datacenter, replica_affinities, shards, name, port, pinnings);
 };
 
 template<class protocol_t>
-RDB_MAKE_SEMILATTICE_JOINABLE_6(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, shards, name, port);
+RDB_MAKE_SEMILATTICE_JOINABLE_7(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, shards, name, port, pinnings);
 
 template<class protocol_t>
-RDB_MAKE_EQUALITY_COMPARABLE_6(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, shards, name, port);
+RDB_MAKE_EQUALITY_COMPARABLE_7(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, shards, name, port, pinnings);
 
 //json adapter concept for namespace_semilattice_metadata_t
 template <class ctx_t, class protocol_t>
@@ -54,6 +55,7 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(namespa
     res["name"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<vclock_t<std::string>, ctx_t>(&target->name));
     res["shards"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<vclock_t<std::set<typename protocol_t::region_t> >, ctx_t>(&target->shards));
     res["port"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<vclock_t<int>, ctx_t>(&target->port));
+    res["pinnings"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<vclock_t<region_map_t<protocol_t, std::set<machine_id_t> > >, ctx_t>(&target->pinnings));
     return res;
 }
 
