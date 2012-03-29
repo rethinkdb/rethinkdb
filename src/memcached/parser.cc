@@ -789,6 +789,7 @@ void run_incr_decr(txt_memcached_handler_t *rh, pipeliner_acq_t *pipeliner_acq, 
         ok = true;
     } catch (cannot_perform_query_exc_t e) {
         error_message = e.what();
+        res = incr_decr_result_t();   /* shut up compiler warnings */
         ok = false;
     }
 

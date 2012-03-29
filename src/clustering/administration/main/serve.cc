@@ -104,6 +104,7 @@ bool serve(const std::string &filepath, const std::vector<peer_address_t> &joins
     memcached_parser_maker_t mc_parser_maker(&mailbox_manager, 
                                              metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_manager_cluster.get_root_view()),
 #ifndef NDEBUG
+                                             /* TODO: This will crash if we are declared dead. */
                                              metadata_function<deletable_t<machine_semilattice_metadata_t>, machine_semilattice_metadata_t>(boost::bind(&deletable_getter<machine_semilattice_metadata_t>, _1),
                                                                metadata_member(machine_id, 
                                                                                metadata_field(&machines_semilattice_metadata_t::machines, 
