@@ -519,10 +519,13 @@ def list():
                     };
 
                     function refresh() {
+                        console.log("refresh()");
                         doGETJSON(%(refresh_results_url)s, function (results) {
+                            console.log("got results");
                             root.setResults(results);
                         });
                         doGETJSON(%(refresh_output_url)s, function (output) {
+                            console.log("got output");
                             root.setOutput(output);
                         });
                     }
@@ -530,6 +533,7 @@ def list():
                     initialResults = %(initial_results)s;
                     initialOutput = %(initial_output)s;
                     function start() {
+                        console.log("start()");
                         root = new ListRootRenderer();
                         root.setResults(initialResults);
                         root.setOutput(initialOutput);
@@ -703,7 +707,6 @@ def test(name):
                     }
 
                     function refresh() {
-                        console.log("refreshing...");
                         doGETJSON(%(refresh_result_url)s, function (result) {
                             root.setResult(result);
                         });
