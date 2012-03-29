@@ -1,10 +1,12 @@
 rethinkdb: [src/]
   libc6 >= 2.10
-  libboost >= 1.40          -- for crc checks
+  libboost >= 1.40
   libunwind >= 0.99-beta
-  gtest                     -- googletest <http://code.google.com/p/googletest/>
+  gtest                     -- see rethinkdb_lib_external
   valgrind
   libaio
+  protobuf-compiler
+  libprotobuf-dev
 
 test: [test/]
   retester
