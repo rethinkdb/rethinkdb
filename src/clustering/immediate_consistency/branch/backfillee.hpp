@@ -69,7 +69,7 @@ void backfillee(
     any other messages; that message will tell us what the version will be when
     the backfill is over. */
     promise_t<region_map_t<protocol_t, version_range_t> > end_point_cond;
-    async_mailbox_t<void(region_map_t<protocol_t, version_range_t>)> end_point_mailbox(
+    mailbox_t<void(region_map_t<protocol_t, version_range_t>)> end_point_mailbox(
         mailbox_manager, boost::bind(&promise_t<region_map_t<protocol_t, version_range_t> >::pulse, &end_point_cond, _1));
 
     /* `dont_go_until` prevents any backfill chunks from being applied before we
@@ -79,7 +79,7 @@ void backfillee(
     /* The backfiller will notify `done_mailbox` when the backfill is all over
     and the version described in `end_point_mailbox` has been achieved. */
     cond_t done_cond;
-    async_mailbox_t<void()> done_mailbox(
+    mailbox_t<void()> done_mailbox(
         mailbox_manager, boost::bind(&cond_t::pulse, &done_cond));
 
     {
@@ -90,7 +90,7 @@ void backfillee(
 
         /* The backfiller will send individual chunks of the backfill to
         `chunk_mailbox`. */
-        async_mailbox_t<void(typename protocol_t::backfill_chunk_t)> chunk_mailbox(
+        mailbox_t<void(typename protocol_t::backfill_chunk_t)> chunk_mailbox(
             mailbox_manager, boost::bind(&on_receive_backfill_chunk<protocol_t>,
                 store, &dont_go_until, _1, interruptor, auto_drainer_t::lock_t(&drainer)
                 ));

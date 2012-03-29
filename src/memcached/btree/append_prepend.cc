@@ -1,11 +1,11 @@
-#include "btree/append_prepend.hpp"
+#include "memcached/btree/append_prepend.hpp"
 
-#include "btree/modify_oper.hpp"
+#include "memcached/btree/modify_oper.hpp"
 #include "containers/buffer_group.hpp"
 
-struct btree_append_prepend_oper_t : public btree_modify_oper_t {
+struct memcached_append_prepend_oper_t : public memcached_modify_oper_t {
 
-    btree_append_prepend_oper_t(boost::intrusive_ptr<data_buffer_t> _data, bool _append)
+    memcached_append_prepend_oper_t(boost::intrusive_ptr<data_buffer_t> _data, bool _append)
         : data(_data), append(_append)
     { }
 
@@ -55,15 +55,9 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
     bool append;   // true = append, false = prepend
 };
 
-append_prepend_result_t btree_append_prepend(const store_key_t &key, btree_slice_t *slice, const boost::intrusive_ptr<data_buffer_t>& data, bool append, castime_t castime, order_token_t token) {
-    btree_append_prepend_oper_t oper(data, append);
-    run_btree_modify_oper(&oper, slice, key, castime, token);
-    return oper.result;
-}
-
-append_prepend_result_t btree_append_prepend(const store_key_t &key, btree_slice_t *slice, const boost::intrusive_ptr<data_buffer_t>& data, bool append, castime_t castime, transaction_t *txn, got_superblock_t& superblock) {
-    btree_append_prepend_oper_t oper(data, append);
-    run_btree_modify_oper(&oper, slice, key, castime, txn, superblock);
+append_prepend_result_t memcached_append_prepend(const store_key_t &key, btree_slice_t *slice, const boost::intrusive_ptr<data_buffer_t>& data, bool append, cas_t proposed_cas, exptime_t effective_time, repli_timestamp_t timestamp, transaction_t *txn, got_superblock_t& superblock) {
+    memcached_append_prepend_oper_t oper(data, append);
+    run_memcached_modify_oper(&oper, slice, key, proposed_cas, effective_time, timestamp, txn, superblock);
     return oper.result;
 }
 

@@ -230,6 +230,7 @@
                         <div id="summary">
                             <h4>{{name}}</h4>
                             <p class="protocol">Protocol: {{protocol}}</p>
+                            <p class="port">Port: {{port}}</p>
                         </div>
                     </div>
                     <div class="wrapper">
@@ -329,38 +330,41 @@
         </div>
         <div class="modal-body">
             <div class="replica-attributes">
-            <h4>Set the replica properties</h4>
-            <div class="existing-replicas">
-                <p><strong>Current replicas:</strong> {{#comma_separated replica_machines}}<a href="/#machines/{{this.id}}">{{this.name}}</a>{{/comma_separated}}</p>
-            </div>
-            <div class="info">
-                <p>You can specify the <strong>number of replicas</strong> to use per shard for this datacenter.</p>
-                <p>The <strong>number of acks</strong> specifies how many replicas in this datacenter must acknowledge a write before an operation succeeds.</p>
-            </div>
-            <fieldset>
-                <input name="datacenter" type="hidden" value="{{datacenter.id}}" />
-                <div class="clearfix">
-                <label for="replicas">
-                    <p>Number of replicas:</p>
-                    <p class="current">Current replicas: {{num_replicas}}</p>
-                </label>
-                <div class="input">
-                    <input class="xlarge" name="num_replicas" type="text" value="{{num_replicas}}"/>
+                {{#if server_error}}
+                    <p class="server-error alert alert-error"> {{server_error}} </p>
+                {{/if}}
+                <h4>Set the replica properties</h4>
+                <div class="existing-replicas">
+                    <p><strong>Current replicas:</strong> {{#comma_separated replica_machines}}<a href="/#machines/{{this.id}}">{{this.name}}</a>{{/comma_separated}}</p>
                 </div>
+                <div class="info">
+                    <p>You can specify the <strong>number of replicas</strong> to use per shard for this datacenter.</p>
+                    <p>The <strong>number of acks</strong> specifies how many replicas in this datacenter must acknowledge a write before an operation succeeds.</p>
                 </div>
-                <div class="clearfix">
-                <label for="acks">
-                    <p>Number of acks from datacenter <a href="/#datacenters/{{datacenter.id}}">{{datacenter.name}}</a>:</p>
-                    <p class="current">Current acks: {{num_acks}}</p>
-                </label>
-                <div class="input">
-                    <input class="xlarge" name="num_acks" type="text" value="{{num_acks}}"/>
+                <fieldset>
+                    <input name="datacenter" type="hidden" value="{{datacenter.id}}" />
+                    <div class="clearfix">
+                    <label for="replicas">
+                        <p>Number of replicas:</p>
+                        <p class="current">Current replicas: {{num_replicas}}</p>
+                    </label>
+                    <div class="input">
+                        <input class="xlarge" name="num_replicas" type="text" value="{{num_replicas}}"/>
+                    </div>
+                    </div>
+                    <div class="clearfix">
+                    <label for="acks">
+                        <p>Number of acks from datacenter <a href="/#datacenters/{{datacenter.id}}">{{datacenter.name}}</a>:</p>
+                        <p class="current">Current acks: {{num_acks}}</p>
+                    </label>
+                    <div class="input">
+                        <input class="xlarge" name="num_acks" type="text" value="{{num_acks}}"/>
+                    </div>
+                    </div>
+                </fieldset>
+                <div class="clearboth"></div>
                 </div>
-                </div>
-            </fieldset>
-            <div class="clearboth"></div>
-            </div>
-            <div class="replica-plan">
+                <div class="replica-plan">
             </div>
         </div>
         <div class="modal-footer">
@@ -530,7 +534,7 @@
     </script>
 
         <script id="modify_shards-alert-template" type="text/x-handlebars-template">
-            <div class="alert-message" data-alert="alert">
+            <div class="alert" data-alert="alert">
                 <a class="close" href="#">&times;</a>
                 <p>Shard was modified.</p>
             </div>
@@ -754,49 +758,49 @@
 
         <!-- Alerts -->
         <script id="added_namespace-alert-template" type="text/x-handlebars-template">
-            <div class="alert-message" data-alert="alert">
+            <div class="alert" data-alert="alert">
                 <a class="close" href="#">&times;</a>
                 <p>You added namespace <span class="name">{{name}}</span>. You can now <a href="#namespaces/{{uuid}}">configure</a> it further.</p>
             </div>
         </script>
 
         <script id="removed_namespace-alert-template" type="text/x-handlebars-template">
-            <div class="alert-message" data-alert="alert">
+            <div class="alert" data-alert="alert">
                 <a class="close" href="#">&times;</a>
                 <p>You removed namespace <span class="name">{{name}}</span>.</p>
             </div>
         </script>
 
         <script id="added_datacenter-alert-template" type="text/x-handlebars-template">
-            <div class="alert-message" data-alert="alert">
+            <div class="alert" data-alert="alert">
                 <a class="close" href="#">&times;</a>
                 <p>You added datacenter <span class="name">{{name}}</span>. You can now <a href="#datacenters/{{uuid}}">configure</a> it further.</p>
             </div>
         </script>
 
         <script id="removed_datacenter-alert-template" type="text/x-handlebars-template">
-            <div class="alert-message" data-alert="alert">
+            <div class="alert" data-alert="alert">
                 <a class="close" href="#">&times;</a>
                 <p>You removed datacenter <span class="name">{{name}}</span>.</p>
             </div>
         </script>
 
         <script id="suspended_machine-alert-template" type="text/x-handlebars-template">
-            <div class="alert-message" data-alert="alert">
+            <div class="alert" data-alert="alert">
                 <a class="close" href="#">&times;</a>
                 <p>You suspended machine <span class="name">{{name}}</span>.</p>
             </div>
         </script>
 
         <script id="modified_replica-alert-template" type="text/x-handlebars-template">
-            <div class="alert-message" data-alert="alert">
+            <div class="alert" data-alert="alert">
                 <a class="close" href="#">&times;</a>
                 <p>Replicas are modified.</p>
             </div>
         </script>
 
         <script id="set_datacenter-alert-template" type="text/x-handlebars-template">
-            <div class="alert-message" data-alert="alert">
+            <div class="alert" data-alert="alert">
                 <a class="close" href="#">&times;</a>
                 <p>Machine {{machine_name}}'s datacenter was set to {{datacenter_name}}.</p>
             </div>
@@ -817,6 +821,12 @@
                                 <label for="name">Name</label>
                                 <div class="input">
                                     <input class="xlarge" name="name" size="30" type="text" />
+                                </div>
+                            </div>
+                            <div class="clearfix">
+                                <label for="port">Port</label>
+                                <div class="input">
+                                    <input class="xlarge" name="port" size="5" type="text" />
                                 </div>
                             </div>
                             <div class="clearfix">
@@ -925,9 +935,10 @@
     <script id="modify_replica_modal-replica_plan-shard-template" type="text/x-handlebars-template">
     <td class="name"><h4>{{name}}</h4></td>
     <td class="machines">
-        <p class="existing-replicas">
-                    Replicas for this shard:
-        {{#comma_separated existing_machines}}<input type="hidden" name="machine_for_{{shard_index}}" value="{{machine.id}}"> <a href='/#machines/{{machine.id}}'>{{machine.name}}</a>{{/comma_separated}}
+        <p class="existing-primary">Primary replica for this shard: <a href='/#machines/{{existing_primary_machine.id}}'>{{existing_primary_machine.name}}</a></p>
+        <p class="existing-secondaries">
+            Secondary replicas for this shard:
+            {{#comma_separated existing_secondary_machines}}<input type="hidden" name="machine_for_{{shard_index}}" value="{{machine.id}}"><a href='/#machines/{{machine.id}}'>{{machine.name}}</a>{{/comma_separated}}
         </p>
     </td>
     <td class="change-machines">
@@ -938,16 +949,24 @@
     <script id="modify_replica_modal-replica_plan-edit_shard-template" type="text/x-handlebars-template">
     <td class="name"><h4>{{name}}</h4></td>
     <td class="machines">
-        <p class="delta">
-                    Replicas for this shard:
-        {{#each machine_dropdowns}}
-            <select name="machine_for_{{shard_index}}" class="small machine-for-replica">
-            {{#each available_machines}}
-                <option value="{{this.id}}" {{#ifequal ...selected.id this.id}}selected="selected"{{/ifequal}}>{{this.name}}</option>
+        <div class="delta">
+            <p>Primary replica for this shard:</p>
+                {{#with primary_machine_dropdown}}
+                    <select name="machine_for_{{shard_index}}" class="small primary-for-replica">
+                    {{#each available_machines}}
+                        <option value="{{this.id}}" {{#ifequal ...selected.id this.id}}selected="selected"{{/ifequal}}>{{this.name}}</option>
+                    {{/each}}
+                    </select>
+                {{/with}}
+            <p>Secondary replicas for this shard:</p>
+            {{#each secondary_machine_dropdowns}}
+                <select name="machine_for_{{shard_index}}" class="small secondary-for-replica">
+                {{#each available_machines}}
+                    <option value="{{this.id}}" {{#ifequal ...selected.id this.id}}selected="selected"{{/ifequal}}>{{this.name}}</option>
+                {{/each}}
+                </select>
             {{/each}}
-            </select>
-        {{/each}}
-        </p>
+        </div>
     </td>
     </script>
 
@@ -1027,7 +1046,7 @@
                         <h3>Remove a datacenter</h3>
                     </div>
                     <div class="modal-body">
-                        <div class="alert-message block-message error">
+                        <div class="alert block-message error">
                             <p>
                             <strong>Be careful.</strong>
                                 If you remove these datacenters, all
@@ -1058,7 +1077,7 @@
                         <h3>Suspend a machine</h3>
                     </div>
                     <div class="modal-body">
-                        <div class="alert-message block-message error">
+                        <div class="alert block-message error">
                             <p>
                             <strong>Be careful.</strong>
                                 Suspending these machines will cause the following

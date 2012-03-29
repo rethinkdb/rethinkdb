@@ -27,14 +27,25 @@ will be templatized on a `protocol_t`. `protocol_t` itself is never
 instantiated. For a description of what `protocol_t` must be like, see
 `rethinkdb/docs_internal/protocol_api_notes.hpp`. */
 
+class cannot_perform_query_exc_t : public std::exception {
+public:
+    explicit cannot_perform_query_exc_t(const std::string &s) : message(s) { }
+    ~cannot_perform_query_exc_t() throw () { }
+    const char *what() const throw () {
+        return message.c_str();
+    }
+private:
+    std::string message;
+};
+
 /* `namespace_interface_t` is the interface that the protocol-agnostic database
 logic for query routing exposes to the protocol-specific query parser. */
 
 template<class protocol_t>
 class namespace_interface_t {
 public:
-    virtual typename protocol_t::read_response_t read(typename protocol_t::read_t, order_token_t tok, signal_t *interruptor) = 0;
-    virtual typename protocol_t::write_response_t write(typename protocol_t::write_t, order_token_t tok, signal_t *interruptor) = 0;
+    virtual typename protocol_t::read_response_t read(typename protocol_t::read_t, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
+    virtual typename protocol_t::write_response_t write(typename protocol_t::write_t, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
 
 protected:
     virtual ~namespace_interface_t() { }
@@ -78,7 +89,9 @@ public:
     typedef typename internal_vec_t::const_iterator const_iterator;
     typedef typename internal_vec_t::iterator iterator;
 
-    region_map_t() THROWS_NOTHING { }
+    region_map_t() THROWS_NOTHING { 
+        regions_and_values.push_back(internal_pair_t(protocol_t::region_t::universe(), value_t()));
+    }
 
     explicit region_map_t(typename protocol_t::region_t r, value_t v = value_t()) THROWS_NOTHING {
         regions_and_values.push_back(internal_pair_t(r, v));

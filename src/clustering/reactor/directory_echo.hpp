@@ -18,12 +18,12 @@ template<class internal_t>
 class directory_echo_wrapper_t {
 public:
     directory_echo_wrapper_t() { }
-    directory_echo_wrapper_t(internal_t i, directory_echo_version_t v, const async_mailbox_t<void(peer_id_t, directory_echo_version_t)>::address_t &am) :
+    directory_echo_wrapper_t(internal_t i, directory_echo_version_t v, const mailbox_addr_t<void(peer_id_t, directory_echo_version_t)> &am) :
         internal(i), version(v), ack_mailbox(am) { }
 
     internal_t internal;
     directory_echo_version_t version;
-    async_mailbox_t<void(peer_id_t, directory_echo_version_t)>::address_t ack_mailbox;
+    mailbox_addr_t<void(peer_id_t, directory_echo_version_t)> ack_mailbox;
 
     RDB_MAKE_ME_SERIALIZABLE_3(internal, version, ack_mailbox);
 };
@@ -66,7 +66,7 @@ private:
 
     void on_change(peer_id_t peer);
 
-    void ack_version(async_mailbox_t<void(peer_id_t, directory_echo_version_t)>::address_t peer, directory_echo_version_t version, auto_drainer_t::lock_t);
+    void ack_version(mailbox_addr_t<void(peer_id_t, directory_echo_version_t)> peer, directory_echo_version_t version, auto_drainer_t::lock_t);
 
     void on_ack(peer_id_t peer, directory_echo_version_t version, auto_drainer_t::lock_t);
 
@@ -80,7 +80,7 @@ private:
     mutex_assertion_t ack_lock;
 
     auto_drainer_t drainer;
-    async_mailbox_t<void(peer_id_t, directory_echo_version_t)> ack_mailbox;
+    mailbox_t<void(peer_id_t, directory_echo_version_t)> ack_mailbox;
     boost::ptr_map<peer_id_t, directory_read_service_t::peer_value_subscription_t> peer_value_subscriptions;
     connectivity_service_t::peers_list_subscription_t peers_list_subscription;
 };

@@ -19,6 +19,10 @@ dummy_protocol_t::region_t dummy_protocol_t::region_t::empty() THROWS_NOTHING {
     return region_t();
 }
 
+dummy_protocol_t::region_t dummy_protocol_t::region_t::universe() THROWS_NOTHING {
+    return a_thru_z_region();
+}
+
 bool dummy_protocol_t::region_t::operator<(const region_t &other) const {
     std::set<std::string>::iterator it_us = keys.begin();
     std::set<std::string>::iterator it_other = other.keys.begin();
@@ -38,10 +42,6 @@ bool dummy_protocol_t::region_t::operator<(const region_t &other) const {
             return *it_us < *it_other;
         }
     }
-}
-
-dummy_protocol_t::region_t dummy_protocol_t::universe_region() {
-    return a_thru_z_region();
 }
 
 dummy_protocol_t::region_t::region_t() THROWS_NOTHING {

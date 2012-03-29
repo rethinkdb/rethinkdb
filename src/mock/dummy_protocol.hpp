@@ -27,6 +27,7 @@ public:
     class region_t {
     public:
         static region_t empty() THROWS_NOTHING;
+        static region_t universe() THROWS_NOTHING;
         region_t() THROWS_NOTHING;
         region_t(char x, char y) THROWS_NOTHING;
 
@@ -35,8 +36,6 @@ public:
 
         RDB_MAKE_ME_SERIALIZABLE_1(keys);
     };
-
-    static region_t universe_region();
 
     class temporary_cache_t {
         /* Dummy protocol doesn't need to cache anything */

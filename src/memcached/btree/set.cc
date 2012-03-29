@@ -1,16 +1,16 @@
-#include "btree/set.hpp"
-#include "btree/modify_oper.hpp"
 #include "containers/buffer_group.hpp"
+#include "memcached/btree/set.hpp"
+#include "memcached/btree/modify_oper.hpp"
 
-struct btree_set_oper_t : public btree_modify_oper_t {
-    btree_set_oper_t(const boost::intrusive_ptr<data_buffer_t>& _data, mcflags_t _mcflags, exptime_t _exptime,
+struct memcached_set_oper_t : public memcached_modify_oper_t {
+    memcached_set_oper_t(const boost::intrusive_ptr<data_buffer_t>& _data, mcflags_t _mcflags, exptime_t _exptime,
                               add_policy_t ap, replace_policy_t rp, cas_t _req_cas)
         : data(_data), mcflags(_mcflags), exptime(_exptime),
           add_policy(ap), replace_policy(rp), req_cas(_req_cas)
     {
     }
 
-    ~btree_set_oper_t() {
+    ~memcached_set_oper_t() {
     }
 
     bool operate(transaction_t *txn, scoped_malloc<memcached_value_t>& value) {
@@ -44,9 +44,9 @@ struct btree_set_oper_t : public btree_modify_oper_t {
         }
 
         if (!value) {
-            scoped_malloc<memcached_value_t> tmp(MAX_BTREE_VALUE_SIZE);
+            scoped_malloc<memcached_value_t> tmp(MAX_MEMCACHED_VALUE_SIZE);
             value.swap(tmp);
-            memset(value.get(), 0, MAX_BTREE_VALUE_SIZE);
+            memset(value.get(), 0, MAX_MEMCACHED_VALUE_SIZE);
         }
 
         // Whatever the case, shrink the old value.
@@ -62,9 +62,9 @@ struct btree_set_oper_t : public btree_modify_oper_t {
         }
 
         {
-            scoped_malloc<memcached_value_t> tmp(MAX_BTREE_VALUE_SIZE);
+            scoped_malloc<memcached_value_t> tmp(MAX_MEMCACHED_VALUE_SIZE);
             if (value->has_cas()) {
-                // run_btree_modify_oper will set an actual CAS later.
+                // run_memcached_modify_oper will set an actual CAS later.
                 metadata_write(&tmp->metadata_flags, tmp->contents, mcflags, exptime, 0xCA5ADDED);
             } else {
                 metadata_write(&tmp->metadata_flags, tmp->contents, mcflags, exptime);
@@ -115,21 +115,13 @@ struct btree_set_oper_t : public btree_modify_oper_t {
     set_result_t result;
 };
 
-set_result_t btree_set(const store_key_t &key, btree_slice_t *slice,
+set_result_t memcached_set(const store_key_t &key, btree_slice_t *slice,
                        const boost::intrusive_ptr<data_buffer_t>& data, mcflags_t mcflags, exptime_t exptime,
                        add_policy_t add_policy, replace_policy_t replace_policy, cas_t req_cas,
-                       castime_t castime, order_token_t token) {
-    btree_set_oper_t oper(data, mcflags, exptime, add_policy, replace_policy, req_cas);
-    run_btree_modify_oper(&oper, slice, key, castime, token);
-    return oper.result;
-}
-
-set_result_t btree_set(const store_key_t &key, btree_slice_t *slice,
-                       const boost::intrusive_ptr<data_buffer_t>& data, mcflags_t mcflags, exptime_t exptime,
-                       add_policy_t add_policy, replace_policy_t replace_policy, cas_t req_cas,
-                       castime_t castime, transaction_t *txn, got_superblock_t& superblock) {
-    btree_set_oper_t oper(data, mcflags, exptime, add_policy, replace_policy, req_cas);
-    run_btree_modify_oper(&oper, slice, key, castime, txn, superblock);
+                       cas_t proposed_cas, exptime_t effective_time, repli_timestamp_t timestamp,
+                       transaction_t *txn, got_superblock_t& superblock) {
+    memcached_set_oper_t oper(data, mcflags, exptime, add_policy, replace_policy, req_cas);
+    run_memcached_modify_oper(&oper, slice, key, proposed_cas, effective_time, timestamp, txn, superblock);
     return oper.result;
 }
 

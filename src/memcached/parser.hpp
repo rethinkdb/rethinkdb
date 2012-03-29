@@ -1,9 +1,8 @@
-#ifndef MEMCACHED_MEMCACHED_HPP_
-#define MEMCACHED_MEMCACHED_HPP_
+#ifndef MEMCACHED_PARSER_HPP_
+#define MEMCACHED_PARSER_HPP_
 
 #include <vector>
 
-#include "memcached/store.hpp"
 #include "memcached/protocol.hpp"
 #include "clustering/immediate_consistency/query/namespace_interface.hpp"
 
@@ -35,8 +34,7 @@ struct memcached_interface_t {
 };
 
 void handle_memcache(memcached_interface_t *interface,
-                     get_store_t *get_store,
-                     set_store_interface_t *set_store,
+                     namespace_interface_t<memcached_protocol_t> *nsi,
                      int max_concurrent_queries_per_connection);
 
-#endif /* MEMCACHED_MEMCACHED_HPP_ */
+#endif /* MEMCACHED_PARSER_HPP_ */

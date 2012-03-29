@@ -6,7 +6,7 @@ struct string_set_oper_t : set_oper_t {
         set_oper_t(key, btree, timestamp, otok)
     {
         if(location.value.get() == NULL && !nx) {
-            scoped_malloc<redis_value_t> smrsv(MAX_BTREE_VALUE_SIZE);
+            scoped_malloc<redis_value_t> smrsv(MAX_REDIS_VALUE_SIZE);
             location.value.swap(smrsv);
             location.value->set_redis_type(REDIS_STRING);
         } else if(location.value->get_redis_type() != REDIS_STRING) {

@@ -13,7 +13,7 @@ void let_stuff_happen() {
     nap(1000);
 }
 
-/* `dummy_mailbox_t` is a `mailbox_t` that keeps track of messages it receives.
+/* `dummy_mailbox_t` is a `raw_mailbox_t` that keeps track of messages it receives.
 You can send to a `dummy_mailbox_t` with `send()`. */
 
 struct dummy_mailbox_t {
@@ -32,14 +32,14 @@ public:
     void expect(int message) {
         EXPECT_EQ(1, inbox.count(message));
     }
-    mailbox_t mailbox;
+    raw_mailbox_t mailbox;
 };
 
 void write_integer(int i, std::ostream &stream) {
     stream << i;
 }
 
-void send(mailbox_manager_t *c, mailbox_t::address_t dest, int message) {
+void send(mailbox_manager_t *c, raw_mailbox_t::address_t dest, int message) {
     send(c, dest, boost::bind(&write_integer, message, _1));
 }
 
@@ -76,7 +76,7 @@ void run_mailbox_message_test() {
 
     /* Create a mailbox and send it three messages */
     dummy_mailbox_t mbox(&m1);
-    mailbox_t::address_t address = mbox.mailbox.get_address();
+    raw_mailbox_t::address_t address = mbox.mailbox.get_address();
 
     send(&m1, address, 88555);
     send(&m2, address, 3131);
@@ -106,7 +106,7 @@ void run_dead_mailbox_test() {
     connectivity_cluster_t::run_t r1(&c1, port, &m1), r2(&c2, port+1, &m2);
 
     /* Create a mailbox, take its address, then destroy it. */
-    mailbox_t::address_t address;
+    raw_mailbox_t::address_t address;
     {
         dummy_mailbox_t mbox(&m1);
         address = mbox.mailbox.get_address();
@@ -123,12 +123,12 @@ TEST(RPCMailboxTest, DeadMailbox) {
 TEST(RPCMailboxTest, DeadMailboxMultiThread) {
     run_in_thread_pool(&run_dead_mailbox_test, 3);
 }
-/* `MailboxAddressSemantics` makes sure that `mailbox_t::address_t` behaves as
+/* `MailboxAddressSemantics` makes sure that `raw_mailbox_t::address_t` behaves as
 expected. */
 
 void run_mailbox_address_semantics_test() {
 
-    mailbox_t::address_t nil_addr;
+    raw_mailbox_t::address_t nil_addr;
     EXPECT_TRUE(nil_addr.is_nil());
 
     int port = 10000 + randint(20000);
@@ -137,7 +137,7 @@ void run_mailbox_address_semantics_test() {
     connectivity_cluster_t::run_t r(&c, port, &m);
 
     dummy_mailbox_t mbox(&m);
-    mailbox_t::address_t mbox_addr = mbox.mailbox.get_address();
+    raw_mailbox_t::address_t mbox_addr = mbox.mailbox.get_address();
     EXPECT_FALSE(mbox_addr.is_nil());
     EXPECT_TRUE(mbox_addr.get_peer() == c.get_me());
 }
@@ -148,7 +148,7 @@ TEST(RPCMailboxTest, MailboxAddressSemanticsMultiThread) {
     run_in_thread_pool(&run_mailbox_address_semantics_test, 3);
 }
 
-/* `TypedMailbox` makes sure that `async_mailbox_t<>` works. */
+/* `TypedMailbox` makes sure that `mailbox_t<>` works. */
 
 void run_typed_mailbox_test() {
 
@@ -158,9 +158,9 @@ void run_typed_mailbox_test() {
     connectivity_cluster_t::run_t r(&c, port, &m);
 
     std::vector<std::string> inbox;
-    async_mailbox_t<void(std::string)> mbox(&m, boost::bind(&std::vector<std::string>::push_back, &inbox, _1));
+    mailbox_t<void(std::string)> mbox(&m, boost::bind(&std::vector<std::string>::push_back, &inbox, _1));
 
-    async_mailbox_t<void(std::string)>::address_t addr = mbox.get_address();
+    mailbox_addr_t<void(std::string)> addr = mbox.get_address();
 
     send(&m, addr, std::string("foo"));
     send(&m, addr, std::string("bar"));

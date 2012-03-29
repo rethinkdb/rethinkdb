@@ -71,11 +71,13 @@ module 'NamespaceView', ->
                     'id': @model.get('primary_uuid')
                     'name': datacenters.get(@model.get('primary_uuid')).get('name')
                     'replicas': @model.get('replica_affinities')[@model.get('primary_uuid')]
+                    'acks' : @model.get('replica_affinities')[@model.get('primary_uuid')]
                 'secondaries':
                     _.map secondary_affinities, (replica_count, uuid) =>
                         'id': uuid
                         'name': datacenters.get(uuid).get('name')
                         'replicas': replica_count
+                        'acks': replica_count
                 'datacenters_left': datacenters.models.length > _.size(@model.get('replica_affinities'))
             @.$el.html @template(json)
 
@@ -115,14 +117,20 @@ module 'NamespaceView', ->
             # Define the validator options
             validator_options =
                 submitHandler: =>
-                    $('form', @$modal).ajaxSubmit
-                        url: '/ajax/namespaces/'+@namespace.id+'/add_secondary?token=' + token
+                    formdata = form_data_as_object($('form', @$modal))
+                    replica_affinities = {}
+                    replica_affinities[formdata.datacenter] = 0
+                    $.ajax
+                        processData: false
+                        url: "/ajax/#{@namespace.attributes.protocol}_namespaces/#{@namespace.id}"
                         type: 'POST'
+                        contentType: 'application/json'
+                        data: JSON.stringify({"replica_affinities": replica_affinities})
 
                         success: (response) =>
                             clear_modals()
 
-                            apply_diffs(response)
+                            namespaces.get(@namespace.id).set(response)
                             #TODO hook this up
                             #$('#user-alert-space').append @alert_tmpl {}
 
@@ -163,15 +171,18 @@ module 'NamespaceView', ->
                         url: '/ajax/memcached_namespaces/new'
                         type: 'POST'
                         contentType: 'application/json'
-                        data: JSON.stringify({"name" : formdata.name, "primary_uuid" : formdata.primary_datacenter})
+                        data: JSON.stringify({"name" : formdata.name, "primary_uuid" : formdata.primary_datacenter, "port" : parseInt(formdata.port)})
 
                         success: (response) =>
                             clear_modals()
 
-                            apply_diffs(response)
+                            apply_to_collection(namespaces, add_protocol_tag(response, "memcached"))
                             # the result of this operation are some attributes about the namespace we created, to be used in an alert
                             # TODO hook this up
-                            #$('#user-alert-space').append @alert_tmpl response_json.op_result
+                            for id, namespace of response
+                                $('#user-alert-space').append @alert_tmpl
+                                    uuid: id
+                                    name: namespace.name
 
             json = { 'datacenters' : _.map datacenters.models, (datacenter) -> datacenter.toJSON() }
 
@@ -189,25 +200,21 @@ module 'NamespaceView', ->
             log_render '(rendering) remove namespace dialog'
             validator_options =
                 submitHandler: =>
-                    url = '/ajax/namespaces?ids='
-                    num_namespaces = namespaces_to_delete.length
                     for namespace in namespaces_to_delete
-                        url += namespace.id
-                        url += "," if num_namespaces-=1 > 0
+                        $.ajax
+                            url: "/ajax/#{namespace.get("protocol")}_namespaces/#{namespace.id}"
+                            type: 'DELETE'
+                            contentType: 'application/json'
 
-                    url += '&token=' + token
+                            success: (response) =>
+                                clear_modals()
 
-                    $('form', @$modal).ajaxSubmit
-                        url: url
-                        type: 'DELETE'
-
-                        success: (response) =>
-                            clear_modals()
-
-                            apply_diffs(response)
-                            #TODO hook this up
-                            #for namespace in response_json.op_result
-                                #$('#user-alert-space').append @alert_tmpl namespace
+                                if (response)
+                                    throw "Received a non null response to a delete... this is incorrect"
+                                namespaces.remove(namespace.id)
+                                #TODO hook this up
+                                #for namespace in response_json.op_result
+                                    #$('#user-alert-space').append @alert_tmpl namespace
 
             array_for_template = _.map namespaces_to_delete, (namespace) -> namespace.toJSON()
             super validator_options, { 'namespaces': array_for_template }
@@ -361,8 +368,21 @@ module 'NamespaceView', ->
                 'removing': false
                 'name': @shard.name
                 'shard_index': @shard.index
-                'machines': _.map(@shard.machines, (machine) => { machine: { name: machine.get('name'), id: machine.id }, shard_index: @shard.index })  # FML
-                'existing_machines': _.map(@shard.existing_machines, (machine) => { machine: { name: machine.get('name'), id: machine.id }, shard_index: @shard.index })  # FML
+                'machines': _.map(@shard.machines, (machine) =>
+                    machine:
+                        name: machine.get('name')
+                        id: machine.id
+                    shard_index: @shard.index
+                )
+                'existing_secondary_machines': _.map(@shard.existing_machines, (machine) =>
+                    machine:
+                        name: machine.get('name')
+                        id: machine.id
+                    shard_index: @shard.index
+                )
+                'existing_primary_machine': # TODO This should be the actual primary machine (faked data)
+                    name: @shard.existing_machines[0].get('name')
+                    id: @shard.existing_machines[0].id
 
             return @
 
@@ -370,17 +390,30 @@ module 'NamespaceView', ->
             console.log 'edit-rending with shard.machines being', @shard.machines
             @.$el.html @editable_tmpl
                 'name': @shard.name
-                'machine_dropdowns': _.map(@shard.machines, (machine) =>
-                    'shard_index': @shard.index  # FML
+                'primary_machine_dropdown':# TODO This should be the actual primary machine (faked data)
+                    'shard_index': @shard.index
+                    'selected': @available_machines[0] 
+                    'available_machines': _.map(@available_machines, (machine) =>
+                        name: machine.get('name')
+                        id: machine.id
+                    )
+                'secondary_machine_dropdowns': _.map(@shard.machines, (machine) =>
+                    'shard_index': @shard.index
                     'selected': machine
-                    'available_machines': _.map(@available_machines, (machine) => { name: machine.get('name'), id: machine.id })
+                    'available_machines': _.map(@available_machines, (machine) =>
+                        name: machine.get('name')
+                        id: machine.id
+                    )
                 )
                 'adding': @shard.adding
                 'removing': @shard.removing
-                'existing_machines': _.map(@shard.existing_machines, (machine) => { machine: machine, shard_index: @shard.index })  # FML
+                'existing_machines': _.map(@shard.existing_machines, (machine) =>
+                    machine: machine
+                    shard_index: @shard.index
+                )
+
             e.preventDefault()
-
-
+            return @
 
     class @ModifyReplicasModal extends ClusterView.AbstractModal
         template: Handlebars.compile $('#modify_replicas-modal-template').html()
@@ -400,33 +433,44 @@ module 'NamespaceView', ->
             id: machine.get('id')
             name: machine.get('name')
 
-        render: ->
+        render:(server_error) ->
             log_render '(rendering) modify replicas dialog'
 
             # Define the validator options
             validator_options =
                 submitHandler: =>
-                    $('form', @$modal).ajaxSubmit
-                        url: '/ajax/namespaces/'+@namespace.id+'/set_desired_replicas_and_acks?token=' + token
+                    formdata = form_data_as_object($('form', @$modal))
+                    replica_affinities_to_send = {}
+                    replica_affinities_to_send[formdata.datacenter] = parseInt(formdata.num_replicas)
+                    $.ajax
+                        processData: false
+                        url: "/ajax/#{@namespace.get("protocol")}_namespaces/#{@namespace.id}"
                         type: 'POST'
+                        data: JSON.stringify({ "replica_affinities": replica_affinities_to_send })
 
                         success: (response) =>
                             clear_modals()
-
-                            apply_diffs(response)
+                            
+                            namespaces.get(@namespace.id).set(response)
                             #TODO hook this up
                             #$('#user-alert-space').append @alert_tmpl {}
+                        error: (response, unused, unused_2) =>
+                            clear_modals()
+                            @render(response.responseText)
 
             # Generate faked data TODO
-            num_replicas = @namespace.get('replica_affinities')[@datacenter.id].desired_replication_count
+            num_replicas = @namespace.get('replica_affinities')[@datacenter.id]
             json =
                 'namespace': @namespace.toJSON()
                 'datacenter': @datacenter.toJSON()
                 # Faked data TODO
                 'num_replicas': num_replicas
-                'num_acks': 3
+                'num_acks': num_replicas
                 # random machines | faked TODO
                 'replica_machines': @machine_json (_.shuffle machines.models)[0...num_replicas]
+
+            if server_error?
+                json['server_error'] = server_error
 
             super validator_options, json
 
@@ -530,7 +574,7 @@ module 'NamespaceView', ->
                         success: (response) =>
                             clear_modals()
 
-                            apply_diffs(response)
+                            namespaces.get(@namespace.id).set(response)
 
                             # should be empty.
                             # TODO hook this up

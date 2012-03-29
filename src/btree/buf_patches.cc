@@ -1,11 +1,10 @@
 #include "btree/buf_patches.hpp"
 
 #include "btree/leaf_node.hpp"
+#include "memcached/btree/node.hpp"
+#include "memcached/btree/value.hpp"
 #include "riak/riak_value.hpp"
 #include "btree/detemplatizer.hpp"
-
-
-
 
 leaf_insert_patch_t::leaf_insert_patch_t(block_id_t block_id, patch_counter_t patch_counter, uint16_t _value_size, const void *value, uint8_t key_size, const char *key_contents, repli_timestamp_t _insertion_time)
     : buf_patch_t(block_id, patch_counter, buf_patch_t::OPER_LEAF_INSERT),

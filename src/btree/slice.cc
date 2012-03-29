@@ -2,28 +2,17 @@
 #include <boost/archive/binary_oarchive.hpp>
 #include "containers/vector_stream.hpp"
 
-#include "btree/backfill.hpp"
-#include "btree/erase_range.hpp"
 #include "btree/slice.hpp"
 #include "btree/node.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "concurrency/cond_var.hpp"
-#include "btree/get.hpp"
-#include "btree/rget.hpp"
-#include "btree/set.hpp"
-#include "btree/incr_decr.hpp"
-#include "btree/append_prepend.hpp"
-#include "btree/delete.hpp"
-#include "btree/get_cas.hpp"
 
 namespace arc = boost::archive;
 
-void btree_slice_t::create(cache_t *cache) {
-    key_range_t all_keys(key_range_t::open, store_key_t(), key_range_t::open, store_key_t());
-    create(cache, all_keys);
-}
+// Run backfilling at a reduced priority
+#define BACKFILL_CACHE_PRIORITY 10
 
-void btree_slice_t::create(cache_t *cache, const key_range_t &key_range) {
+void btree_slice_t::create(cache_t *cache) {
 
     /* Initialize the btree superblock and the delete queue */
     transaction_t txn(cache, rwi_write, 1, repli_timestamp_t::distant_past);
@@ -41,13 +30,6 @@ void btree_slice_t::create(cache_t *cache, const key_range_t &key_range) {
 
     sb->magic = btree_superblock_t::expected_magic;
     sb->root_block = NULL_BLOCK_ID;
-
-    vector_streambuf_t<> meta_key;
-    {
-        arc::binary_oarchive meta_key_archive(meta_key, arc::no_header);
-        meta_key_archive << key_range;
-    }
-    set_superblock_metainfo(&txn, &superblock, meta_key.vector(), std::vector<char>());
 }
 
 btree_slice_t::btree_slice_t(cache_t *c)
@@ -59,134 +41,4 @@ btree_slice_t::btree_slice_t(cache_t *c)
 
 btree_slice_t::~btree_slice_t() {
     // Cache's destructor handles flushing and stuff
-}
-
-get_result_t btree_slice_t::get(const store_key_t &key, order_token_t token) {
-    assert_thread();
-    token = order_checkpoint_.check_through(token);
-    return btree_get(key, this, token);
-}
-
-get_result_t btree_slice_t::get(const store_key_t &key, transaction_t *txn, got_superblock_t& superblock) {
-    assert_thread();
-    return btree_get(key, this, txn, superblock);
-}
-
-rget_result_t btree_slice_t::rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token) {
-    assert_thread();
-    token = order_checkpoint_.check_through(token);
-    return btree_rget_slice(this, left_mode, left_key, right_mode, right_key, token);
-}
-
-rget_result_t btree_slice_t::rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key,
-    boost::scoped_ptr<transaction_t>& txn, got_superblock_t& superblock) {
-
-    assert_thread();
-    return btree_rget_slice(this, left_mode, left_key, right_mode, right_key, txn, superblock);
-}
-
-struct btree_slice_change_visitor_t : public boost::static_visitor<mutation_result_t> {
-    mutation_result_t operator()(const get_cas_mutation_t &m) {
-        return mutation_result_t(btree_get_cas(m.key, parent, ct, order_token));
-    }
-    mutation_result_t operator()(const sarc_mutation_t &m) {
-        return mutation_result_t(btree_set(m.key, parent, m.data, m.flags, m.exptime, m.add_policy, m.replace_policy, m.old_cas, ct, order_token));
-    }
-    mutation_result_t operator()(const incr_decr_mutation_t &m) {
-        return mutation_result_t(btree_incr_decr(m.key, parent, (m.kind == incr_decr_INCR), m.amount, ct, order_token));
-    }
-    mutation_result_t operator()(const append_prepend_mutation_t &m) {
-        return mutation_result_t(btree_append_prepend(m.key, parent, m.data, (m.kind == append_prepend_APPEND), ct, order_token));
-    }
-    mutation_result_t operator()(const delete_mutation_t &m) {
-        return mutation_result_t(btree_delete(m.key, m.dont_put_in_delete_queue, parent, ct.timestamp, order_token));
-    }
-
-    btree_slice_change_visitor_t(btree_slice_t *_parent, castime_t _ct, order_token_t _order_token)
-        : parent(_parent), ct(_ct), order_token(_order_token) { }
-private:
-    btree_slice_t *parent;
-    castime_t ct;
-    order_token_t order_token;
-
-    DISABLE_COPYING(btree_slice_change_visitor_t);
-};
-
-struct btree_slice_change_with_superblock_visitor_t : public boost::static_visitor<mutation_result_t> {
-    mutation_result_t operator()(const get_cas_mutation_t &m) {
-        return mutation_result_t(btree_get_cas(m.key, parent, ct, txn, superblock));
-    }
-    mutation_result_t operator()(const sarc_mutation_t &m) {
-        return mutation_result_t(btree_set(m.key, parent, m.data, m.flags, m.exptime, m.add_policy, m.replace_policy, m.old_cas, ct, txn, superblock));
-    }
-    mutation_result_t operator()(const incr_decr_mutation_t &m) {
-        return mutation_result_t(btree_incr_decr(m.key, parent, (m.kind == incr_decr_INCR), m.amount, ct, txn, superblock));
-    }
-    mutation_result_t operator()(const append_prepend_mutation_t &m) {
-        return mutation_result_t(btree_append_prepend(m.key, parent, m.data, (m.kind == append_prepend_APPEND), ct, txn, superblock));
-    }
-    mutation_result_t operator()(const delete_mutation_t &m) {
-        return mutation_result_t(btree_delete(m.key, m.dont_put_in_delete_queue, parent, ct.timestamp, txn, superblock));
-    }
-
-    btree_slice_change_with_superblock_visitor_t(btree_slice_t *_parent, castime_t _ct, transaction_t *_txn, got_superblock_t& _superblock)
-        : parent(_parent), ct(_ct), txn(_txn), superblock(_superblock) { }
-private:
-    btree_slice_t *parent;
-    castime_t ct;
-
-    transaction_t *txn;
-    got_superblock_t& superblock;
-
-    DISABLE_COPYING(btree_slice_change_with_superblock_visitor_t);
-};
-
-mutation_result_t btree_slice_t::change(const mutation_t &m, castime_t castime, order_token_t token) {
-    assert_thread();
-    token = order_checkpoint_.check_through(token);
-
-    btree_slice_change_visitor_t functor(this, castime, token);
-    return boost::apply_visitor(functor, m.mutation);
-}
-
-mutation_result_t btree_slice_t::change(const mutation_t &m, castime_t castime, transaction_t *txn, got_superblock_t& superblock) {
-    assert_thread();
-    btree_slice_change_with_superblock_visitor_t functor(this, castime, txn, superblock);
-    return boost::apply_visitor(functor, m.mutation);
-}
-
-void btree_slice_t::backfill_delete_range(key_tester_t *tester,
-                                          bool left_key_supplied, const store_key_t& left_key_exclusive,
-                                          bool right_key_supplied, const store_key_t& right_key_inclusive,
-                                          order_token_t token) {
-    assert_thread();
-
-    token = order_checkpoint_.check_through(token);
-
-    btree_erase_range(this, tester,
-                      left_key_supplied, left_key_exclusive,
-                      right_key_supplied, right_key_inclusive,
-                      token);
-}
-
-void btree_slice_t::backfill_delete_range(key_tester_t *tester,
-                                          bool left_key_supplied, const store_key_t& left_key_exclusive,
-                                          bool right_key_supplied, const store_key_t& right_key_inclusive,
-                                          transaction_t *txn, got_superblock_t& superblock) {
-    assert_thread();
-
-    btree_erase_range(this, tester,
-                      left_key_supplied, left_key_exclusive,
-                      right_key_supplied, right_key_inclusive,
-                      txn, superblock);
-}
-void btree_slice_t::backfill(const key_range_t& key_range, repli_timestamp_t since_when, backfill_callback_t *callback, order_token_t token) {
-    assert_thread();
-    token = order_checkpoint_.check_through(token);
-    btree_backfill(this, key_range, since_when, backfill_account, callback, token);
-}
-
-void btree_slice_t::backfill(const key_range_t& key_range, repli_timestamp_t since_when, backfill_callback_t *callback,
-                             transaction_t *txn, got_superblock_t& superblock) {
-    btree_backfill(this, key_range, since_when, callback, txn, superblock);
 }

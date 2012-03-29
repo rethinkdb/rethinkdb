@@ -53,7 +53,7 @@ private:
     fifo_enforcer_write_token_t(transition_timestamp_t t, int npr) THROWS_NOTHING :
         timestamp(t), num_preceding_reads(npr) { }
     transition_timestamp_t timestamp;
-    int num_preceding_reads;
+    int64_t num_preceding_reads;
     RDB_MAKE_ME_SERIALIZABLE_2(timestamp, num_preceding_reads);
 };
 
@@ -71,9 +71,9 @@ public:
     private:
         friend class fifo_enforcer_source_t;
         friend class fifo_enforcer_sink_t;
-        state_t(state_timestamp_t ts, int nr) THROWS_NOTHING : timestamp(ts), num_reads(nr) { }
+        state_t(state_timestamp_t ts, int64_t nr) THROWS_NOTHING : timestamp(ts), num_reads(nr) { }
         state_timestamp_t timestamp;
-        int num_reads;
+        int64_t num_reads;
         RDB_MAKE_ME_SERIALIZABLE_2(timestamp, num_reads);
     };
 
@@ -102,7 +102,7 @@ public:
     class exit_write_t;
 private:
     typedef std::multimap<state_timestamp_t, exit_read_t*> reader_queue_t;
-    typedef std::map<transition_timestamp_t, std::pair<int, exit_write_t*> > writer_queue_t;
+    typedef std::map<transition_timestamp_t, std::pair<int64_t, exit_write_t*> > writer_queue_t;
 public:
     class exit_read_t : public signal_t {
     public:
@@ -157,7 +157,7 @@ public:
 private:
     void pump() THROWS_NOTHING;
     void finish_a_reader(state_timestamp_t timestamp) THROWS_NOTHING;
-    void finish_a_writer(transition_timestamp_t timestamp, int num_preceding_reads) THROWS_NOTHING;
+    void finish_a_writer(transition_timestamp_t timestamp, int64_t num_preceding_reads) THROWS_NOTHING;
 
     mutex_assertion_t lock;
     fifo_enforcer_source_t::state_t state;

@@ -2,7 +2,9 @@
 #define CLUSTERING_ADMINISTRATION_ISSUES_NAME_CONFLICT_HPP_
 
 #include "clustering/administration/issues/global.hpp"
+#include "clustering/administration/issues/json.hpp"
 #include "clustering/administration/metadata.hpp"
+#include "http/json.hpp"
 #include "rpc/semilattice/view.hpp"
 
 class name_conflict_issue_t : public global_issue_t {
@@ -10,20 +12,13 @@ public:
     name_conflict_issue_t(
             const std::string &_type,
             const std::string &_contested_name,
-            const std::set<boost::uuids::uuid> &_contestants) : 
-        type(_type), contested_name(_contested_name), contestants(_contestants) { }
+            const std::set<boost::uuids::uuid> &_contestants);
 
-    std::string get_description() const {
-        std::string message = "The following " + type + "s are all named '" + contested_name + "': ";
-        for (std::set<boost::uuids::uuid>::iterator it = contestants.begin(); it != contestants.end(); it++) {
-            message += uuid_to_str(*it) + "; ";
-        }
-        return message;
-    }
+    std::string get_description() const; 
 
-    name_conflict_issue_t *clone() const {
-        return new name_conflict_issue_t(type, contested_name, contestants);
-    }
+    cJSON *get_json_description();
+
+    name_conflict_issue_t *clone() const; 
 
     std::string type;
     std::string contested_name;
@@ -32,7 +27,7 @@ public:
 
 class name_conflict_issue_tracker_t : public global_issue_tracker_t {
 public:
-    name_conflict_issue_tracker_t(
+    explicit name_conflict_issue_tracker_t(
             boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > _semilattice_view) :
         semilattice_view(_semilattice_view) { }
 

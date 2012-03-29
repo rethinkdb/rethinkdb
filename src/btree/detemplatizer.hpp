@@ -1,11 +1,14 @@
 #ifndef BTREE_DETEMPLATIZER_HPP_
 #define BTREE_DETEMPLATIZER_HPP_
 
+// This is disgusting.
+
 // TODO: Uhm, refactor the sizer definitions to a central place, so we don't have to include
 // files from non-btree directories here
 //#include "server/nested_demo/redis_utils.hpp"
 //#include "server/nested_demo/redis_sortedset_values.hpp"
 #include "redis/redis_types.hpp"
+#include "memcached/btree/value.hpp"
 
 /*
  op_name is the name of a template function to call, arguments are the function

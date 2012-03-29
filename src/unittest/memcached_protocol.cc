@@ -66,7 +66,7 @@ void run_get_set_test(namespace_interface_t<memcached_protocol_t> *nsi) {
         set.exptime = 0;
         set.add_policy = add_policy_yes;
         set.replace_policy = replace_policy_yes;
-        memcached_protocol_t::write_t write(mutation_t(set), 12345);
+        memcached_protocol_t::write_t write(set, time(NULL), 12345);
 
         cond_t interruptor;
         memcached_protocol_t::write_response_t result = nsi->write(write, osource.check_in("unittest"), &interruptor);
@@ -81,13 +81,12 @@ void run_get_set_test(namespace_interface_t<memcached_protocol_t> *nsi) {
     {
         get_query_t get;
         get.key = store_key_t("a");
-        memcached_protocol_t::read_t read(get);
+        memcached_protocol_t::read_t read(get, time(NULL));
 
         cond_t interruptor;
         memcached_protocol_t::read_response_t result = nsi->read(read, osource.check_in("unittest"), &interruptor);
 
         if (get_result_t *maybe_get_result = boost::get<get_result_t>(&result.result)) {
-            EXPECT_FALSE(maybe_get_result->is_not_allowed);
             EXPECT_TRUE(maybe_get_result->value.get() != NULL);
             EXPECT_EQ(1, maybe_get_result->value->size());
             if (maybe_get_result->value->size() == 1) {
@@ -101,7 +100,7 @@ void run_get_set_test(namespace_interface_t<memcached_protocol_t> *nsi) {
 
     {
         rget_query_t rget(rget_bound_none, store_key_t(), rget_bound_open, store_key_t("z"));
-        memcached_protocol_t::read_t read(rget);
+        memcached_protocol_t::read_t read(rget, time(NULL));
 
         cond_t interruptor;
         memcached_protocol_t::read_response_t result = nsi->read(read, osource.check_in("unittest"), &interruptor);

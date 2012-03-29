@@ -79,6 +79,24 @@ void json_adapter_if_t<ctx_t>::erase(const ctx_t &ctx) {
     }
 }
 
+template <class ctx_t>
+void json_adapter_if_t<ctx_t>::reset(const ctx_t &ctx) {
+    reset_impl(ctx);
+
+    boost::shared_ptr<subfield_change_functor_t<ctx_t> > change_callback = get_change_callback();
+    if (change_callback) {
+        get_change_callback()->on_change(ctx);
+    }
+
+    for (typename std::vector<boost::shared_ptr<subfield_change_functor_t<ctx_t> > >::iterator it  = superfields.begin();
+                                                                                             it != superfields.end();
+                                                                                             it++) {
+        if (*it) {
+            (*it)->on_change(ctx);
+        }
+    }
+}
+
 //implementation for json_adapter_t
 template <class T, class ctx_t>
 json_adapter_t<T, ctx_t>::json_adapter_t(T *_target)
@@ -97,8 +115,14 @@ void json_adapter_t<T, ctx_t>::apply_impl(cJSON *change, const ctx_t &ctx) {
 
 template <class T, class ctx_t>
 void json_adapter_t<T, ctx_t>::erase_impl(const ctx_t &ctx) {
-    erase(target, ctx);
+    erase_json(target, ctx);
 }
+
+template <class T, class ctx_t>
+void json_adapter_t<T, ctx_t>::reset_impl(const ctx_t &ctx) {
+    reset_json(target, ctx);
+}
+
 
 template <class T, class ctx_t>
 typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_adapter_t<T, ctx_t>::get_subfields_impl(const ctx_t &ctx) {
@@ -126,6 +150,10 @@ void json_read_only_adapter_t<T, ctx_t>::erase_impl(const ctx_t &) {
     throw permission_denied_exc_t("Trying to erase a readonly value\n");
 }
 
+template <class T, class ctx_t>
+void json_read_only_adapter_t<T, ctx_t>::reset_impl(const ctx_t &) {
+    throw permission_denied_exc_t("Trying to reset a readonly value\n");
+}
 
 //implementation for json_temporary_adapter_t
 template <class T, class ctx_t>
@@ -172,6 +200,11 @@ void json_map_inserter_t<container_t, ctx_t>::erase_impl(const ctx_t &) {
 }
 
 template <class container_t, class ctx_t>
+void json_map_inserter_t<container_t, ctx_t>::reset_impl(const ctx_t &) {
+    throw permission_denied_exc_t("Trying to reset a value that can't be reset.\n");
+}
+
+template <class container_t, class ctx_t>
 typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_map_inserter_t<container_t, ctx_t>::get_subfields_impl(const ctx_t &ctx) {
     json_adapter_map_t res;
     for (typename keys_set_t::iterator it =  added_keys.begin();
@@ -207,7 +240,12 @@ void json_adapter_with_inserter_t<container_t, ctx_t>::apply_impl(cJSON *change,
 
 template <class container_t, class ctx_t>
 void json_adapter_with_inserter_t<container_t, ctx_t>::erase_impl(const ctx_t &ctx) {
-    erase(target, ctx);
+    erase_json(target, ctx);
+}
+
+template <class container_t, class ctx_t>
+void json_adapter_with_inserter_t<container_t, ctx_t>::reset_impl(const ctx_t &ctx) {
+    reset_json(target, ctx);
 }
 
 template <class container_t, class ctx_t>
@@ -252,6 +290,25 @@ void apply_json_to(cJSON *change, int *target, const ctx_t &) {
 template <class ctx_t>
 void on_subfield_change(int *, const ctx_t &) { }
 
+//JSON adapter for uint64_t
+template <class ctx_t>
+typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(uint64_t *, const ctx_t &) {
+    return typename json_adapter_if_t<ctx_t>::json_adapter_map_t();
+}
+
+template <class ctx_t>
+cJSON *render_as_json(uint64_t *target, const ctx_t &) {
+    return cJSON_CreateNumber(*target);
+}
+
+template <class ctx_t>
+void apply_json_to(cJSON *change, uint64_t *target, const ctx_t &) {
+    *target = get_int(change);
+}
+
+template <class ctx_t>
+void on_subfield_change(uint64_t *, const ctx_t &) { }
+
 //JSON adapter for char
 template <class ctx_t>
 typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(char *, const ctx_t &) {
@@ -274,8 +331,24 @@ void apply_json_to(cJSON *change, char *target, const ctx_t &) {
     }
 }
 
+//JSON adapter for bool
 template <class ctx_t>
-void on_subfield_change(char *, const ctx_t &) { }
+typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(bool *, const ctx_t &) {
+    return typename json_adapter_if_t<ctx_t>::json_adapter_map_t();
+}
+
+template <class ctx_t>
+cJSON *render_as_json(bool *target, const ctx_t &) {
+    return cJSON_CreateBool(*target);
+}
+
+template <class ctx_t>
+void apply_json_to(cJSON *change, bool *target, const ctx_t &) {
+    *target = get_bool(change);
+}
+
+template <class ctx_t>
+void on_subfield_change(bool *, const ctx_t &) { }
 
 namespace boost {
 

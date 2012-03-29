@@ -1,5 +1,43 @@
 #include "clustering/administration/issues/name_conflict.hpp"
 
+name_conflict_issue_t::name_conflict_issue_t(
+        const std::string &_type,
+        const std::string &_contested_name,
+        const std::set<boost::uuids::uuid> &_contestants) : 
+    type(_type), contested_name(_contested_name), contestants(_contestants) { }
+
+std::string name_conflict_issue_t::get_description() const {
+    std::string message = "The following " + type + "s are all named '" + contested_name + "': ";
+    for (std::set<boost::uuids::uuid>::iterator it = contestants.begin(); it != contestants.end(); it++) {
+        message += uuid_to_str(*it) + "; ";
+    }
+    return message;
+}
+
+cJSON *name_conflict_issue_t::get_json_description() {
+
+    issue_json_t json;
+    json.critical = false;
+    json.description = "The following " + type + "s are all named '" + contested_name + "': ";
+    for (std::set<boost::uuids::uuid>::iterator it = contestants.begin(); it != contestants.end(); it++) {
+        json.description += uuid_to_str(*it) + "; ";
+    }
+    json.type.issue_type = NAME_CONFLICT_ISSUE;
+    json.time = get_ticks();
+
+    cJSON *res = render_as_json(&json, 0);
+
+    cJSON_AddItemToObject(res, "contested_type", render_as_json(&type, 0));
+    cJSON_AddItemToObject(res, "contested_name", render_as_json(&contested_name, 0));
+    cJSON_AddItemToObject(res, "contestants", render_as_json(&contestants, 0));
+
+    return res;
+}
+
+name_conflict_issue_t *name_conflict_issue_t::clone() const {
+    return new name_conflict_issue_t(type, contested_name, contestants);
+}
+
 class name_map_t {
 public:
     template<class object_metadata_t>

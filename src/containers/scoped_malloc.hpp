@@ -1,6 +1,8 @@
 #ifndef SCOPED_MALLOC_HPP_
 #define SCOPED_MALLOC_HPP_
 
+#include <string.h>
+
 #include "errors.hpp"
 
 // For dumb structs that get malloc/free for allocation.

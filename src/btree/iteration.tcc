@@ -52,7 +52,7 @@ void leaf_iterator_t<Value>::done() {
 
 template <class Value>
 slice_leaves_iterator_t<Value>::slice_leaves_iterator_t(const boost::shared_ptr<value_sizer_t<Value> >& _sizer, transaction_t *_transaction, boost::scoped_ptr<superblock_t> &_superblock, int _slice_home_thread,
-    rget_bound_mode_t _left_mode, const btree_key_t *_left_key, rget_bound_mode_t _right_mode, const btree_key_t *_right_key) :
+    btree_bound_mode_t _left_mode, const btree_key_t *_left_key, btree_bound_mode_t _right_mode, const btree_key_t *_right_key) :
     sizer(_sizer), transaction(_transaction), slice_home_thread(_slice_home_thread),
     left_mode(_left_mode), left_key(_left_key), right_mode(_right_mode), right_key(_right_key),
     traversal_state(), started(false), nevermore(false) {
@@ -106,7 +106,7 @@ boost::optional<leaf_iterator_t<Value>*> slice_leaves_iterator_t<Value>::get_fir
         return boost::none;
     }
 
-    if (left_mode == rget_bound_none) {
+    if (left_mode == btree_bound_none) {
         boost::optional<leaf_iterator_t<Value>*> leftmost_leaf = get_leftmost_leaf(root_id);
         superblock->release();
         return leftmost_leaf;
@@ -223,7 +223,7 @@ block_id_t slice_leaves_iterator_t<Value>::get_child_id(const internal_node_t *i
 
 template <class Value>
 slice_keys_iterator_t<Value>::slice_keys_iterator_t(const boost::shared_ptr<value_sizer_t<Value> >& _sizer, transaction_t *_transaction, boost::scoped_ptr<superblock_t> &_superblock, int _slice_home_thread,
-        rget_bound_mode_t _left_mode, const store_key_t &_left_key, rget_bound_mode_t _right_mode, const store_key_t &_right_key) :
+        btree_bound_mode_t _left_mode, const store_key_t &_left_key, btree_bound_mode_t _right_mode, const store_key_t &_right_key) :
     sizer(_sizer), transaction(_transaction), slice_home_thread(_slice_home_thread),
     left_mode(_left_mode), left_key(_left_key), right_mode(_right_mode), right_key(_right_key),
     left_str(key_to_str(_left_key)), right_str(key_to_str(_right_key)),
@@ -273,10 +273,10 @@ boost::optional<key_value_pair_t<Value> > slice_keys_iterator_t<Value>::get_firs
 
     key_value_pair_t<Value> pair = first_pair.get();
 
-    // skip the left key if left_mode == rget_bound_mode_open
+    // skip the left key if left_mode == btree_bound_mode_open
     int compare_result = pair.key.compare(left_str);
     rassert(compare_result >= 0);
-    if (left_mode == rget_bound_open && compare_result == 0) {
+    if (left_mode == btree_bound_open && compare_result == 0) {
         return get_next_value();
     } else {
         return validate_return_value(pair);
@@ -311,11 +311,11 @@ boost::optional<key_value_pair_t<Value> > slice_keys_iterator_t<Value>::get_next
 
 template <class Value>
 boost::optional<key_value_pair_t<Value> > slice_keys_iterator_t<Value>::validate_return_value(key_value_pair_t<Value> &pair) const {
-    if (right_mode == rget_bound_none)
+    if (right_mode == btree_bound_none)
         return boost::make_optional(pair);
 
     int compare_result = pair.key.compare(right_str);
-    if (compare_result < 0 || (right_mode == rget_bound_closed && compare_result == 0)) {
+    if (compare_result < 0 || (right_mode == btree_bound_closed && compare_result == 0)) {
         return boost::make_optional(pair);
     } else {
         return boost::none;
@@ -345,7 +345,7 @@ range_txn_t<Value>::range_txn_t(slice_keys_iterator_t<Value> *it) : it(it)
 { }
 
 template <class Value>
-range_txn_t<Value> get_range(btree_slice_t *slice, order_token_t token, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key) {
+range_txn_t<Value> get_range(btree_slice_t *slice, order_token_t token, btree_bound_mode_t left_mode, const store_key_t &left_key, btree_bound_mode_t right_mode, const store_key_t &right_key) {
     boost::scoped_ptr<transaction_t> txn;
     got_superblock_t got_superblock;
     get_btree_superblock_for_reading(slice, rwi_read, token, true, &got_superblock, txn);

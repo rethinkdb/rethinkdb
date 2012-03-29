@@ -16,13 +16,21 @@ http_res_t file_http_app_t::handle(const http_req_t &req) {
         /* Method not allowed. */
         return http_res_t(405);
     }
-    if (!std_contains(whitelist, req.resource)) {
+    if (req.resource != "/" && req.resource != "" && !std_contains(whitelist, req.resource)) {
         logINF("Someone asked for the nonwhitelisted file %s, if this should be accessible add it to the whitelist.\n", req.resource.c_str());
         return http_res_t(403);
     }
 
     http_res_t res;
-    std::ifstream f((asset_dir + req.resource).c_str());
+    std::string filename;
+
+    if (req.resource == "/" || req.resource == "") {
+        filename = "/index.html";
+    } else {
+        filename = req.resource;
+    }
+
+    std::ifstream f((asset_dir + filename).c_str());
     
     if (f.fail()) {
         logINF("File %s was requested and is on the whitelist but we didn't find it in the directory.\n", (asset_dir + req.resource).c_str());
