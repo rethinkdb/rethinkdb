@@ -46,9 +46,8 @@ private:
             rassert(it != sink_map.end());
             typename protocol_t::read_response_t response;
             {
-                // TODO: The lifetime of exiter is absurdly long.
                 fifo_enforcer_sink_t::exit_read_t exiter(it->second, token);
-                response = broadcaster->read(read, otok);
+                response = broadcaster->read(read, &exiter, otok);
             }
             send(mailbox_manager, response_address, boost::variant<typename protocol_t::read_response_t, std::string>(response));
         } catch (typename broadcaster_t<protocol_t>::mirror_lost_exc_t e) {
@@ -71,9 +70,8 @@ private:
 
             typename protocol_t::write_response_t response;
             {
-                // TODO: The lifetime of exiter is absurdly long.
                 fifo_enforcer_sink_t::exit_write_t exiter(it->second, token);
-                response = broadcaster->write(write, otok);
+                response = broadcaster->write(write, &exiter, otok);
             }
             send(mailbox_manager, response_address, boost::variant<typename protocol_t::write_response_t, std::string>(response));
         } catch (typename broadcaster_t<protocol_t>::mirror_lost_exc_t e) {

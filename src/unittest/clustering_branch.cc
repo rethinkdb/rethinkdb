@@ -104,18 +104,24 @@ void run_read_write_test(UNUSED simple_mailbox_cluster_t *cluster,
     /* Send some writes via the broadcaster to the mirror */
     std::map<std::string, std::string> values_inserted;
     for (int i = 0; i < 10; i++) {
+        fake_fifo_enforcement_t enforce;
+        fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());
+
         dummy_protocol_t::write_t w;
         std::string key = std::string(1, 'a' + randint(26));
         w.values[key] = values_inserted[key] = strprintf("%d", i);
-        (*broadcaster)->write(w, order_source.check_in("unittest"));
+        (*broadcaster)->write(w, &exiter, order_source.check_in("unittest"));
     }
 
     /* Now send some reads */
     for (std::map<std::string, std::string>::iterator it = values_inserted.begin();
             it != values_inserted.end(); it++) {
+        fake_fifo_enforcement_t enforce;
+        fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());
+
         dummy_protocol_t::read_t r;
         r.keys.keys.insert((*it).first);
-        dummy_protocol_t::read_response_t resp = (*broadcaster)->read(r, order_source.check_in("unittest"));
+        dummy_protocol_t::read_response_t resp = (*broadcaster)->read(r, &exiter, order_source.check_in("unittest"));
         EXPECT_EQ((*it).second, resp.values[(*it).first]);
     }
 }
@@ -128,9 +134,12 @@ TEST(ClusteringBranch, ReadWrite) {
 then adds another mirror. */
 
 static void write_to_broadcaster(broadcaster_t<dummy_protocol_t> *broadcaster, const std::string& key, const std::string& value, order_token_t otok, signal_t *) {
+    // TODO: Is this the right place?  Maybe we should have real fifo enforcement for this helper function.
+    fake_fifo_enforcement_t enforce;
+    fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());
     dummy_protocol_t::write_t w;
     w.values[key] = value;
-    broadcaster->write(w, otok);
+    broadcaster->write(w, &exiter, otok);
 }
 
 void run_backfill_test(simple_mailbox_cluster_t *cluster,

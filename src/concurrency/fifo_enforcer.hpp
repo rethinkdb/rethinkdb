@@ -108,10 +108,14 @@ public:
     public:
         exit_read_t(fifo_enforcer_sink_t *, fifo_enforcer_read_token_t) THROWS_NOTHING;
         ~exit_read_t() THROWS_NOTHING;
+
+        void reset();
     private:
         friend class fifo_enforcer_sink_t;
 
+        // parent is null, once the exit_read_t has been reset().
         fifo_enforcer_sink_t *parent;
+
         fifo_enforcer_read_token_t token;
         reader_queue_t::iterator queue_position;
     };
@@ -120,10 +124,14 @@ public:
     public:
         exit_write_t(fifo_enforcer_sink_t *, fifo_enforcer_write_token_t) THROWS_NOTHING;
         ~exit_write_t() THROWS_NOTHING;
+
+        void reset();
     private:
         friend class fifo_enforcer_sink_t;
 
+        // parent is null, once the exit_write_t has been reset().
         fifo_enforcer_sink_t *parent;
+
         fifo_enforcer_write_token_t token;
         writer_queue_t::iterator queue_position;
     };
