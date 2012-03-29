@@ -1,0 +1,38 @@
+workloads = [
+    "test/workloads/append_prepend.py --host $HOST --port $PORT",
+    "test/workloads/append_stress.py --host $HOST --port $PORT",
+    "test/workloads/big_values.py --host $HOST --port $PORT",
+    "test/workloads/bin_pipeline.py --host $HOST --port $PORT",
+    "test/workloads/cas.py --host $HOST --port $PORT",
+    "test/workloads/deletion.py --host $HOST --port $PORT",
+    "test/workloads/expiration.py --host $HOST --port $PORT",
+    "test/workloads/flags.py --host $HOST --port $PORT",
+    "test/workloads/fuzz.py --host $HOST --port $PORT",
+    "test/workloads/incr_decr.py --host $HOST --port $PORT",
+    "test/workloads/many_keys.py --host $HOST --port $PORT",
+    "test/workloads/memcached_suite.py bogus-commands.t --host $HOST --port $PORT",
+    "test/workloads/memcached_suite.py cas.t --host $HOST --port $PORT",
+    "test/workloads/memcached_suite.py expirations.t --host $HOST --port $PORT",
+    "test/workloads/memcached_suite.py flags.t --host $HOST --port $PORT",
+    "test/workloads/memcached_suite.py getset.t --host $HOST --port $PORT",
+    "test/workloads/memcached_suite.py incrdecr.t --host $HOST --port $PORT",
+    "test/workloads/memcached_suite.py issue_108.t --host $HOST --port $PORT",
+    "test/workloads/memcached_suite.py issue_3.t --host $HOST --port $PORT",
+    "test/workloads/memcached_suite.py issue_68.t --host $HOST --port $PORT",
+    "test/workloads/memcached_suite.py issue_70.t --host $HOST --port $PORT",
+    "test/workloads/memcached_suite.py multiversioning.t --host $HOST --port $PORT",
+    "test/workloads/memcached_suite.py noreply.t --host $HOST --port $PORT",
+    "test/workloads/multi_serial_mix.py --host $HOST --port $PORT",
+    "test/workloads/pipeline.py --host $HOST --port $PORT",
+    "test/workloads/rget_no_blocking.py --host $HOST --port $PORT",
+    "test/workloads/rget.py --host $HOST --port $PORT",
+    "test/workloads/serial_mix.py --host $HOST --port $PORT",
+    "test/workloads/unappend_unprepend.py --host $HOST --port $PORT"
+    ]
+
+for workload in workloads:
+    do_test(
+        "test/integration/static_cluster.py '%s'" % workload,
+        repeat = 3,
+        inputs = ["build/debug/rethinkdb"]
+        )

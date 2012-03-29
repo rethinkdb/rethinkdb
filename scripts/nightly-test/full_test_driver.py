@@ -227,47 +227,10 @@ tar --extract --gzip --touch --file=rethinkdb.tar.gz -- rethinkdb
     tests = { }
     test_counter = 1
 
-    def do_test_fog(executable, arguments, repeat=1, timeout=60):
+    def do_test(command_line, repeat = 1, inputs = []):
         global test_counter
-
-        # The `timeout` parameter is ignored
-
-        inputs = []
-
-        inputs.append("rethinkdb/test")
-
-        # We assume that all tests need `stress.py` and `libstress.so`. This is more
-        # conservative than necessary, but it's not a big deal.
-        inputs.append("rethinkdb/bench/stress-client/stress.py")
-        inputs.append("rethinkdb/bench/stress-client/libstress.so")
-        inputs.append("rethinkdb/bench/stress-client/stress")
-
-        # Try to infer which version(s) of the server the test needs on the basis of
-        # the command line.
-        inputs.append("rethinkdb/build/" + arguments.get("mode", "debug") +
-            ("-valgrind" if not arguments.get("no-valgrind", False) else "") +
-            "/rethinkdb")
-        if executable == "integration/corruption.py" and not arguments.get("no-valgrind", False):
-            # The corruption test always uses the no-valgrind version of RethinkDB
-            # in addition to whatever version is specified on the command line
-            inputs.append("rethinkdb/build/" + arguments.get("mode", "debug") + "/rethinkdb")
-
-        # Try to figure out how many cores the test will use
-        # cores = arguments.get("cores", "exclusive")
-
-        # Put together test command line
-        command_line = [executable]
-        for (key, value) in arguments.iteritems():
-            if isinstance(value, bool):
-                if value:
-                    command_line.append("--%s" % key)
-            else:
-                command_line.append("--%s" % key)
-                command_line.append(str(value))
-        command_line = " ".join(remotely.escape_shell_arg(x) for x in command_line)
-
         tests[str(test_counter)] = {
-            "inputs": inputs,
+            "inputs": [os.path.join("rethinkdb", i) for i in inputs],
             "command_line": command_line,
             "repeat": repeat
             }
