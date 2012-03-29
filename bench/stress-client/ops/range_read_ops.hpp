@@ -183,6 +183,8 @@ struct calibrated_range_read_op_t : public base_range_read_op_t {
 };
 
 class calibrated_range_read_op_generator_t : public op_generator_t {
+
+public:
     calibrated_range_read_op_generator_t(int max_concurrent_opts, existence_tracker_t *et, int mul,
             protocol_t *p, distr_t rsize, distr_t c, std::string prefix = "")
         : head(0)
