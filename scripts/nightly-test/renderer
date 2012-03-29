@@ -703,6 +703,7 @@ def test(name):
                     }
 
                     function refresh() {
+                        console.log("refreshing...");
                         doGETJSON(%(refresh_result_url)s, function (result) {
                             root.setResult(result);
                         });
