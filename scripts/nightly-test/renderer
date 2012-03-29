@@ -64,8 +64,11 @@ function doGET(url, cb) {
     req.open('GET', url, true);
     req.onreadystatechange = function (e) {
         if (req.readyState === 4) { // Completed
-            // The callback can handle errors here, but maybe we should.
-            cb(req);
+            if (req.status == 200) {
+                cb(req);
+            } else {
+                console.log("HTTP request to", url, "status code", req.status);
+            }
         }
     };
     req.send(null);
