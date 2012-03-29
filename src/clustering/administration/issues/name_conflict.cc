@@ -15,7 +15,6 @@ std::string name_conflict_issue_t::get_description() const {
 }
 
 cJSON *name_conflict_issue_t::get_json_description() {
-
     issue_json_t json;
     json.critical = false;
     json.description = "The following " + type + "s are all named '" + contested_name + "': ";
