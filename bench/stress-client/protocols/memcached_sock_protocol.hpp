@@ -587,6 +587,7 @@ struct memcached_sock_protocol_t : public protocol_t {
                 }
             }
         }
+        outstanding_reads--;
     }
 
     bool exist_outstanding_pipeline_reads() {
