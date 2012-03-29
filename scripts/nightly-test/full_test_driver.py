@@ -92,8 +92,11 @@ def run_rethinkdb_test_remotely(dependencies, command_line, stdout_file, zipfile
     demuxer = ExitCodeDemuxer()
     remotely.run("""
 set +e
-(PYTHONUNBUFFERED=1 rethinkdb/test/%(command_line)s 2>&1 | sed -u s/^/stdout:/)
+mkdir output_from_test
+cd rethinkdb
+(PYTHONUNBUFFERED=1 OUTPUT_DIR=../output_from_test/ %(command_line)s 2>&1 | sed -u s/^/stdout:/)
 echo "exitcode:$?"
+cd ..
 zip -r %(zipfile_name)s output_from_test >/dev/null
 """ % { "command_line": command_line, "zipfile_name": os.path.basename(zipfile_path) },
         stdout = demuxer,

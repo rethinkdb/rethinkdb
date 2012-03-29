@@ -9,12 +9,6 @@ op["workload"] = PositionalArg()
 op["num-nodes"] = IntFlag("--num-nodes", 3)
 opts = op.parse(sys.argv)
 
-if "$HOST" not in opts["workload"] or "$PORT" not in opts["workload"]:
-    print "Workload should be a command-line with '$HOST' and '$PORT' in place "
-    print "of the hostname and port of the server. Did you forget to escape "
-    print "the dollar signs? Workload was %r." % opts["workload"]
-    sys.exit(1)
-
 cluster = http_admin.Cluster()
 for i in xrange(opts["num-nodes"]):
     cluster.add_machine(name = "x" * (i + 1))
@@ -30,14 +24,19 @@ port = cluster.compute_port(namespace, next(cluster.machines.iterkeys()))
 
 time.sleep(5)
 
-command_line = opts["workload"].replace("$HOST", "localhost").replace("$PORT", str(port))
-print "Running", repr(command_line)+"..."
+command_line = opts["workload"]
+new_environ = os.environ.copy()
+new_environ["HOST"] = "localhost"
+new_environ["PORT"] = str(port)
+
+print "Running %r with HOST=%r and PORT=%r..." % (command_line, new_environ["HOST"], new_environ["PORT"])
 start_time = time.time()
 try:
-    subprocess.check_call(command_line, shell = True)
+    subprocess.check_call(command_line, shell = True, env = new_environ)
 except subprocess.CalledProcessError:
     end_time = time.time()
     print "Failed (%d seconds)" % (end_time - start_time)
+    sys.exit(1)
 else:
     end_time = time.time()
     print "Done (%d seconds)" % (end_time - start_time)
