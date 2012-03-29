@@ -235,6 +235,9 @@ function BuildStatusRenderer() {
         if (build.status == "waiting") {
             this.element.style.color = "black";
             this.text.replaceWholeText("Waiting");
+        } else if (build.status == "uploading") {
+            this.element.style.color = "#CCAA00";
+            this.text.replaceWholeText("Uploading");
         } else if (build.status == "running") {
             this.element.style.color = "#CCAA00";
             this.text.replaceWholeText("Running (" + formatDuration(currentUnixTimestamp() - build.start_time) + ")");

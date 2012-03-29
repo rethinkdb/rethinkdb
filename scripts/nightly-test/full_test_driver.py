@@ -63,7 +63,7 @@ def run_in_threads(functions, max = 10):
         for thread in threads:
             thread.join()
 
-def run_rethinkdb_test_remotely(dependencies, command_line, stdout_file, zipfile_path, on_begin_script = lambda: None, on_end_script = lambda status: None, constraint = None):
+def run_rethinkdb_test_remotely(dependencies, command_line, stdout_file, zipfile_path, on_begin_transfer = lambda: None, on_begin_script = lambda: None, on_end_script = lambda status: None, constraint = None):
     # We must have an exit code of zero even if the test-script fails so that
     # `remotely` will copy `output_from_test` even if the test script fails. So
     # we have to trap a non-zero exit status and communicate it some other way.
@@ -100,6 +100,7 @@ zip -r %(zipfile_name)s output_from_test >/dev/null
         inputs = dependencies,
         outputs = [os.path.basename(zipfile_path)],
         output_root = os.path.dirname(zipfile_path),
+        on_begin_transfer = on_begin_transfer,
         on_begin_script = on_begin_script,
         on_end_script = lambda: on_end_script("pass" if demuxer.exit_code == 0 else "fail"),
         constraint = constraint
@@ -205,6 +206,7 @@ tar --extract --gzip --touch --file=rethinkdb.tar.gz -- rethinkdb
                             stdout = output,
                             inputs = ["rethinkdb.tar.gz"],
                             outputs = build["products"],
+                            on_begin_transfer = lambda: result_log.write("builds", name, status = "uploading", start_time = time.time()),
                             on_begin_script = lambda: result_log.write("builds", name, status = "running", start_time = time.time()),
                             on_end_script = lambda: result_log.write("builds", name, status = "ok", end_time = time.time()),
                             constraint = "build-ready"
