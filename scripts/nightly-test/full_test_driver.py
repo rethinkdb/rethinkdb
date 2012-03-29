@@ -241,7 +241,7 @@ tar --extract --gzip --touch --file=rethinkdb.tar.gz -- rethinkdb
             full_path = os.path.join(dirpath, filename)
             print "Reading specification file %r" % full_path
             try:
-                execfile(full_path, {"__builtins__": __builtins__, "do_test_fog": do_test_fog, "ec2": False})
+                execfile(full_path, {"__builtins__": __builtins__, "do_test": do_test})
             except Exception, e:
                 traceback.print_exc()
 
