@@ -8,11 +8,15 @@
 
 memcached_parser_maker_t::memcached_parser_maker_t(mailbox_manager_t *_mailbox_manager, 
                                                    boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<memcached_protocol_t> > > _namespaces_semilattice_metadata,
+#ifndef NDEBUG
                                                    boost::shared_ptr<semilattice_read_view_t<machine_semilattice_metadata_t> > _machine_semilattice_metadata,
+#endif
                                                    clone_ptr_t<directory_rview_t<namespaces_directory_metadata_t<memcached_protocol_t> > > _namespaces_directory_metadata)
     : mailbox_manager(_mailbox_manager), 
-      namespaces_semilattice_metadata(_namespaces_semilattice_metadata), 
+      namespaces_semilattice_metadata(_namespaces_semilattice_metadata),
+#ifndef NDEBUG
       machine_semilattice_metadata(_machine_semilattice_metadata),
+#endif
       namespaces_directory_metadata(_namespaces_directory_metadata),
 #ifndef NDEBUG
       machines_subscription(boost::bind(&memcached_parser_maker_t::on_change, this), machine_semilattice_metadata),
@@ -22,11 +26,15 @@ memcached_parser_maker_t::memcached_parser_maker_t(mailbox_manager_t *_mailbox_m
     on_change();
 }
 
-int get_port(const namespace_semilattice_metadata_t<memcached_protocol_t> &ns, const machine_semilattice_metadata_t &us) {
+int get_port(const namespace_semilattice_metadata_t<memcached_protocol_t> &ns
+#ifndef NDEBUG
+    , const machine_semilattice_metadata_t &us
+#endif
+    ) {
 #ifndef NDEBUG
     return ns.port.get() + us.port_offset.get();
 #else
-    return ns.get().port.get()
+    return ns.port.get();
 #endif
 }
 
@@ -44,17 +52,29 @@ void memcached_parser_maker_t::on_change() {
                                                                                         it != snapshot.namespaces.end();
                                                                                         it++) {
         if (parsers.find(it->first) == parsers.end() && !it->second.is_deleted()) {
-            int port = get_port(it->second.get(), machine_metadata_snapshot);
+            int port = get_port(it->second.get()
+#ifndef NDEBUG
+                , machine_metadata_snapshot
+#endif
+                );
 
             //We're feeling lucky
             namespace_id_t tmp = it->first;
             parsers.insert(tmp, new parser_and_namespace_if_t(it->first, this, port));
             logINF("Setup an mc parser on %d\n", port);
         } else if (parsers.find(it->first) != parsers.end() && !it->second.is_deleted() && 
-                   parsers.find(it->first)->second->parser.port != get_port(it->second.get(), machine_metadata_snapshot)) {
+                   parsers.find(it->first)->second->parser.port != get_port(it->second.get()
+#ifndef NDEBUG
+                   , machine_metadata_snapshot
+#endif
+                   )) {
             coro_t::spawn_sometime(boost::bind(&do_delete, new memcached_parser_maker_t::parser_map_t::auto_type(parsers.release(parsers.find(it->first)))));
 
-            int port = get_port(it->second.get(), machine_metadata_snapshot);
+            int port = get_port(it->second.get()
+#ifndef NDEBUG
+                , machine_metadata_snapshot
+#endif
+                );
 
             //We're feeling lucky
             namespace_id_t tmp = it->first;
