@@ -93,7 +93,8 @@ def run_rethinkdb_test_remotely(dependencies, command_line, stdout_file, zipfile
     remotely.run("""
 set +e
 mkdir output_from_test
-(cd rethinkdb; PYTHONUNBUFFERED=1 OUTPUT_DIR=../output_from_test/ %(command_line)s 2>&1 | sed -u s/^/stdout:/)
+echo "stdout:About to start test..."
+(cd rethinkdb; echo "stdout:$PWD"; PYTHONUNBUFFERED=1 OUTPUT_DIR=../output_from_test/ %(command_line)s 2>&1 | sed -u s/^/stdout:/)
 echo "exitcode:$?"
 zip -r %(zipfile_name)s output_from_test >/dev/null
 """ % { "command_line": command_line, "zipfile_name": os.path.basename(zipfile_path) },

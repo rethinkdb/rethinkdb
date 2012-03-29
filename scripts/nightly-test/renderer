@@ -521,7 +521,7 @@ def list():
                     function refresh() {
                         console.log("refresh()");
                         doGETJSON(%(refresh_results_url)s, function (results) {
-                            console.log("got results");
+                            console.log("got results", results);
                             root.setResults(results);
                         });
                         doGETJSON(%(refresh_output_url)s, function (output) {
