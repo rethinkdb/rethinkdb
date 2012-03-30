@@ -494,7 +494,8 @@ class Cluster(object):
 
 	def _verify_cluster_data_chunk(self, local, remote):
 		for i in local.iteritems():
-			assert i[1].check(remote[i[0]])
+			if not i[1].check(remote[i[0]]):
+				raise ValueError("inconsistent cluster data: %r != %r" % (i[1].to_json(), remote[i[0]]))
 
 	# Check the data from the server against our data
 	def _verify_cluster_data(self, data):
