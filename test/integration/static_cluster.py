@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import sys, os, subprocess, time
+import sys, os, subprocess, time, signal
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import http_admin
 from vcoptparse import *
@@ -45,5 +45,5 @@ while time.time() < start_time + opts["timeout"]:
         print "Failed (%d seconds)" % (time.time() - start_time)
         sys.exit(1)
 print "Timed out (%d seconds)" % opts["timeout"]
-subp.terminate()
+subp.send_signal(signal.SIGKILL)
 sys.exit(1)

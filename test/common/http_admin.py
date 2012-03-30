@@ -282,7 +282,7 @@ class InternalServer(Server):
 		while time.time() - start_time < 15 and self.instance.poll() is None:
 			time.sleep(1)
 		if self.instance.poll() is None:
-			self.instance.terminate()
+			self.instance.send_signal(signal.SIGKILL)
 
 	def __str__(self):
 		return "Internal" + Server.__str__(self) + ", args:" + str(self.args_without_join)
