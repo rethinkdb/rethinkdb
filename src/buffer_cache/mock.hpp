@@ -60,6 +60,17 @@ public:
     bool is_deleted() const;
     repli_timestamp_t get_recency() const;
 
+public:
+    eviction_priority_t get_eviction_priority() {
+        // Mock cache does not implement eviction priorities
+        return ZERO_EVICTION_PRIORITY;
+    }
+
+    void set_eviction_priority(eviction_priority_t __attribute__ ((unused)) val) {
+        // Mock cache does not implement eviction priorities
+    }
+
+
 private:
     friend class mock_transaction_t;
     friend class mock_cache_t;
@@ -67,6 +78,7 @@ private:
     internal_buf_t *internal_buf;
     access_t access;
     bool dirty, deleted;
+    bool acquired;
 };
 
 class mock_transaction_t :

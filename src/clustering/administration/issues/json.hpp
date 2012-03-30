@@ -14,6 +14,7 @@ enum _issue_type_t {
     MACHINE_DOWN,
     NAME_CONFLICT_ISSUE,
     PERSISTANCE_ISSUE,
+    PINNINGS_SHARDS_MISMATCH
 };
 
 class issue_type_t {
