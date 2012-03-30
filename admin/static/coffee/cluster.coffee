@@ -232,18 +232,11 @@ class BackboneCluster extends Backbone.Router
 
         @dashboard_view = new DashboardView
 
-        @status_panel_view = new StatusPanelView
-            model: connection_status
-
         # Add and render the sidebar (visible across all views)
         @$sidebar = $('#sidebar')
         window.sidebar = new Sidebar.Container()
         @sidebar = window.sidebar
         @render_sidebar()
-
-        # Same for the status panel
-        @$status_panel = $('.sidebar-container .section.cluster-status')
-        @$status_panel.prepend @status_panel_view.render().el
 
         @resolve_issues_view = new ResolveIssuesView.Container
         @events_view = new EventsView.Container
@@ -369,12 +362,12 @@ reset_collections = () ->
 apply_diffs = (updates) ->
     declare_client_connected()
 
-    if (!window.contact_machine_id)
-        window.contact_machine_id = updates["me"]
+    if (not connection_status.get('contact_machine_id'))
+        connection_status.set('contact_machine_id', updates["me"])
     else
-        if (updates["me"] != window.contact_machine_id)
+        if (updates["me"] != connection_status.get('contact_machine_id'))
             reset_collections()
-            window.contact_machine_id = updates["me"]
+            connection_status.set('contact_machine_id', updates["me"])
 
     for collection_id, collection_data of updates
         switch collection_id

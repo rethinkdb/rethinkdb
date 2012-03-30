@@ -7,10 +7,16 @@ class StatusPanelView extends Backbone.View
 
     initialize: ->
         log_initial '(initializing status panel view'
-        @model.on 'change', => @render()
+        connection_status.on 'all', => @render()
+        machines.on 'all', => @render()
+
     render: ->
         log_render '(rendering) status panel view'
-        @.$el.html @template(connection_status.toJSON())
+        cs_json = connection_status.toJSON()
+        connected_machine = machines.get(connection_status.get('contact_machine_id'))
+        if connected_machine
+            cs_json['contact_machine_name'] = connected_machine.get('name')
+        @.$el.html @template(cs_json)
         return @
 
 # Machine view
@@ -116,6 +122,44 @@ module 'DatacenterView', ->
 # Sidebar view
 module 'Sidebar', ->
     # Sidebar.Container
+    class @ConnectivityStatus extends Backbone.View
+        className: 'sidebar-connectivity-status'
+        template: Handlebars.compile $('#sidebar-connectivity-status-template').html()
+
+        initialize: =>
+            # Rerender every time some relevant info changes
+            directory.on 'all', (model, collection) =>
+                @render()
+            machines.on 'all', (model, collection) =>
+                @render()
+            datacenters.on 'all', (model, collection) =>
+                @render()
+
+        compute_connectivity: =>
+            # data centers with machines
+            dc_have_machines = []
+            for m in machines.models
+                if m.get('datacenter_uuid')
+                    dc_have_machines[dc_have_machines.length] = m.get('datacenter_uuid')
+            dc_have_machines = _.uniq(dc_have_machines)
+            # data centers visible
+            dc_visible = []
+            for m in directory.models
+                _m = machines.get(m.get('id'))
+                if _m and _m.get('datacenter_uuid')
+                    dc_visible[dc_visible.length] = _m.get('datacenter_uuid')
+            dc_visible = _.uniq(dc_visible)
+            conn =
+                machines_active: directory.length
+                machines_total: machines.length
+                datacenters_active: dc_visible.length
+                datacenters_total: dc_have_machines.length
+            return conn
+
+        render: =>
+            @.$el.html @template @compute_connectivity()
+            return @
+
     class @Container extends Backbone.View
         className: 'sidebar-container'
         template: Handlebars.compile $('#sidebar-container-template').html()
@@ -135,6 +179,8 @@ module 'Sidebar', ->
                     type: type
                     num: issue_set.length
 
+            @client_connectivity_status = new StatusPanelView()
+            @connectivity_status = new Sidebar.ConnectivityStatus()
             @other_issues = new Sidebar.OtherIssues()
 
             @reset_event_views()
@@ -149,16 +195,16 @@ module 'Sidebar', ->
         render: (route) =>
             @.$el.html @template
                 show_resolve_issues: window.location.hash isnt @resolve_issues_route
-                machines_active: 8     # TODO: replace bullshit with reality
-                machines_total: 10     # TODO: replace bullshit with reality
-                datacenters_active: 4  # TODO: replace bullshit with reality
-                datacenters_total: 5   # TODO: replace bullshit with reality
 
             # Render each critical issue summary and add it to the list of critical issues
             for view in @critical_issue_views
                 $('.critical-issues', @el).append view.render().el
 
-            # Render a view for all other issues
+            # Render connectivity status
+            $('#client-connectivity-status-placeholder', @el).html @client_connectivity_status.render().el
+            $('#sidebar-connectivity-status-placeholder', @el).html @connectivity_status.render().el
+
+                # Render a view for all other issues
             $('.other-issues', @el).html @other_issues.render().el
 
             # Render each event view and add it to the list of recent events

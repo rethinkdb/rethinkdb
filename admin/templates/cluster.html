@@ -15,9 +15,8 @@
         <script id="dashboard_view-template" type="text/x-handlebars-template">
             <h1>Cluster overview</h1>
             <div class="section">
-                <h3 class="title">8 machines connected across 5 datacenters.</h3>
-                    <div class="machines"></div>
-                    <div class="data-picker"></div>
+              <div class="machines"></div>
+              <div class="data-picker"></div>
             </div>
             <div class="visualizations section">
                 <hr class="first" />
@@ -88,7 +87,8 @@
             {{#if client_disconnected}}
                 <a class="disconnected" href="#">Disconnected</a>
             {{else}}
-                <a class="connected" href="#">Connected</a>
+                <a class="connected" href="#">Connected to:</a><br />
+                <span style="margin-left: 10px">{{contact_machine_name}}</span>
             {{/if}}
         </script>
 
@@ -666,9 +666,16 @@
         </script>
 
         <!-- Sidebar -->
+        <script id="sidebar-connectivity-status-template" type="text/x-handlebars-template">
+          <h5 class="cluster">Cluster status</h5>
+          <div class="connectivity-info">
+            <p class="metrics"><strong>{{machines_active}}</strong> of <strong>{{machines_total}}</strong> machines reachable.</p>
+            <p class="metrics"><strong>{{datacenters_active}}</strong> of <strong>{{datacenters_total}}</strong> data centers reachable.</p>
+          </div>
+        </script>
         <script id="sidebar-container-template" type="text/x-handlebars-template">
             <div class="section cluster-status">
-                <!--<h3>Cluster status</h3>-->
+                <div id="client-connectivity-status-placeholder"></div>
                 <h5 class="critical">Critical issues</h5>
                 <div class="critical-issues"></div>
                 <h5 class="other">Other issues</h5>
@@ -679,11 +686,8 @@
                 </div>
                 {{/if}}
                 <hr />
-                <h5 class="cluster">Cluster status</h5>
-                <div class="connectivity-info">
-                  <p class="metrics"><strong>{{machines_active}}</strong> of <strong>{{machines_total}}</strong> machines reachable.</p>
-                  <p class="metrics"><strong>{{datacenters_active}}</strong> of <strong>{{datacenters_total}}</strong> data centers reachable.</p>
-                  <p class="more-details"><a href="#dashboard">More details &rarr;</a></p>
+                <!-- Connectivity status goes here -->
+                <div id="sidebar-connectivity-status-placeholder">
                 </div>
             </div>
             <div class="section last">
