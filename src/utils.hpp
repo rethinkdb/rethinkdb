@@ -6,6 +6,7 @@
 #include <stdlib.h>
 
 #include <string>
+#include <vector>
 
 #include "errors.hpp"
 
@@ -254,5 +255,9 @@ bool all_in_container_match_predicate (const T &container, UnaryPredicate f) {
 bool notf(bool x);
 
 std::string read_file(const char *path);
+
+std::vector<std::string> parse_as_path(const std::string &);
+std::string render_as_path(const std::vector<std::string> &);
+
 
 #endif // UTILS_HPP_

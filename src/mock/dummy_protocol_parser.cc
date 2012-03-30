@@ -1,6 +1,4 @@
 #include "errors.hpp"
-#include <boost/tokenizer.hpp>
-
 #include "mock/dummy_protocol_parser.hpp"
 #include "lens.hpp"
 
@@ -12,19 +10,13 @@ query_http_app_t::query_http_app_t(namespace_interface_t<dummy_protocol_t> * _na
 
 http_res_t query_http_app_t::handle(const http_req_t &req) {
     try {
-        typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-        typedef tokenizer::iterator tok_iterator;
-
         switch (req.method) {
             case GET:
             {
                 dummy_protocol_t::read_t read;
 
-                //setup a tokenizer
-                boost::char_separator<char> sep("/");
-                tokenizer tokens(req.resource, sep);
-                tok_iterator it = tokens.begin();
-                rassert(it != tokens.end());
+                http_req_t::resource_t::iterator it = req.resource.begin();
+                rassert(it != req.resource.end());
 
                 read.keys.keys.insert(*it);
                 cond_t cond;
@@ -45,11 +37,8 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
             {
                 dummy_protocol_t::write_t write;
 
-                //setup a tokenizer
-                boost::char_separator<char> sep("/");
-                tokenizer tokens(req.resource, sep);
-                tok_iterator it = tokens.begin();
-                rassert(it != tokens.end());
+                http_req_t::resource_t::iterator it = req.resource.begin();
+                rassert(it != req.resource.end());
 
                 write.values.insert(std::make_pair(*it, req.body));
                 cond_t cond;
