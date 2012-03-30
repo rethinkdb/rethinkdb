@@ -142,21 +142,24 @@ class Namespace(object):
 		self.shards = json_data["shards"]
 		self.name = json_data["name"]
 		self.port = json_data["port"]
+		self.pinnings = json_data["pinnings"]
 
 	def check(self, data):
 		return data == self.to_json()
 
 	def to_json(self):
-		return { unicode("blueprint"): self.blueprint.to_json(), unicode("name"): self.name, unicode("primary_uuid"): self.primary_uuid, unicode("replica_affinities"): self.replica_affinities, unicode("shards"): self.shards, unicode("port"): self.port }
+		return {
+			unicode("blueprint"): self.blueprint.to_json(),
+			unicode("name"): self.name,
+			unicode("primary_uuid"): self.primary_uuid,
+			unicode("replica_affinities"): self.replica_affinities,
+			unicode("shards"): self.shards,
+			unicode("port"): self.port,
+			unicode("pinnings"): self.pinnings
+			}
 
 	def __str__(self):
-		affinities = ""
-		if len(self.replica_affinities) == 0:
-			affinities = "None, "
-		else:
-			for i in self.replica_affinities.iteritems():
-				affinities += i[0] + "=" + str(i[1]) + ", "
-		return "Namespace(name:%s, port:%d, primary:%s, affinities:%sblueprint:NYI)" % (self.name, self.port, self.primary_uuid, affinities)
+		return "Namespace(name:%s, port:%d, primary:%s, affinities:%r, pinnings:%s, blueprint:NYI)" % (self.name, self.port, self.primary_uuid, self.replica_affinities, self.pinnings)
 
 class DummyNamespace(Namespace):
 	def __init__(self, uuid, json_data):
