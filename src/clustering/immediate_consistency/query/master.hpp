@@ -34,7 +34,7 @@ public:
     }
 
 private:
-    void on_read(namespace_interface_id_t parser_id, typename protocol_t::read_t read, order_token_t otok, UNUSED fifo_enforcer_read_token_t token,
+    void on_read(namespace_interface_id_t parser_id, typename protocol_t::read_t read, order_token_t otok, fifo_enforcer_read_token_t token,
             mailbox_addr_t<void(boost::variant<typename protocol_t::read_response_t, std::string>)> response_address,
             auto_drainer_t::lock_t keepalive)
             THROWS_NOTHING
