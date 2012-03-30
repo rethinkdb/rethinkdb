@@ -141,43 +141,6 @@ class NetRecord(object):
         if getattr(self, "process"):
             self.stop()
 
-num_stress_clients = 0
-
-def stress_client(test_dir, port=8080, host="localhost", workload={"gets":1, "inserts":1}, duration="10000q", clients=64, extra_flags=[], keys_prefix=None, run_in_background=False):
-    global num_stress_clients
-    num_stress_clients += 1
-
-    executable_path = os.path.join(os.path.dirname(__file__), "../../bench/stress-client/stress")
-    if not os.path.exists(executable_path):
-        raise ValueError("Looked for stress client at %r, didn't find it." % executable_path)
-
-    command_line = [executable_path,
-        "-s", "%s:%d" % (host, port),
-        "-d", duration,
-        "-w", "%d/%d/%d/%d/%d/%d/%d/%d" % (workload.get("deletes", 0), workload.get("updates", 0),
-            workload.get("inserts", 0), workload.get("gets", 0), workload.get("appends", 0),
-            workload.get("prepends", 0), workload.get("verifies", 0), workload.get("rgets", 0)),
-        "-c", str(clients),
-        ] + extra_flags
-
-    if keys_prefix and keys_prefix != "":
-        command_line.extend(['-K', keys_prefix])
-
-    key_file = test_dir.make_file("stress_client/keys")
-    command_line.extend(["-o", key_file])
-    if os.path.exists(key_file): command_line.extend(["-i", key_file])
-
-    if run_in_background:
-        stress_client_process = SubProcess(
-            command_line,
-            "stress_client/output",
-            test_dir,
-            valgrind_tool = None,
-            interactive = False)
-        return stress_client_process
-    else:
-        run_executable(command_line, "stress_client/output", timeout=None, test_dir=test_dir)
-
 def rdb_stats(port=8080, host="localhost"):
     sock = socket.socket()
     sock.connect((host, port))

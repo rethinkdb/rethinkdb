@@ -321,6 +321,8 @@ template <class ctx_t>
 void on_subfield_change(bool *, const ctx_t &);
 
 namespace boost {
+
+namespace uuid {
 //JSON adapter for boost::uuids::uuid
 template <class ctx_t>
 typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(boost::uuids::uuid *, const ctx_t &);
@@ -333,6 +335,8 @@ void apply_json_to(cJSON *, boost::uuids::uuid *, const ctx_t &);
 
 template <class ctx_t>
 void on_subfield_change(boost::uuids::uuid *, const ctx_t &);
+
+} // namespace uuid
 
 //JSON adapter for boost::optional
 template <class T, class ctx_t>

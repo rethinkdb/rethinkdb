@@ -370,10 +370,14 @@ cJSON *render_as_json(const boost::uuids::uuid *uuid, const ctx_t &) {
 
 template <class ctx_t>
 void apply_json_to(cJSON *change, boost::uuids::uuid *uuid, const ctx_t &) {
-    try {
-        *uuid = str_to_uuid(get_string(change));
-    } catch (std::runtime_error) {
-        throw schema_mismatch_exc_t(strprintf("String %s, did not parse as uuid\n", get_string(change).c_str()));
+    if (change->type == cJSON_NULL) {
+        *uuid = boost::uuids::nil_generator()();
+    } else {
+        try {
+            *uuid = str_to_uuid(get_string(change));
+        } catch (std::runtime_error) {
+            throw schema_mismatch_exc_t(strprintf("String %s, did not parse as uuid\n", get_string(change).c_str()));
+        }
     }
 }
 

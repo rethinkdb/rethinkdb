@@ -16,24 +16,26 @@ http_res_t file_http_app_t::handle(const http_req_t &req) {
         /* Method not allowed. */
         return http_res_t(405);
     }
-    if (req.resource != "/" && req.resource != "" && !std_contains(whitelist, req.resource)) {
-        logINF("Someone asked for the nonwhitelisted file %s, if this should be accessible add it to the whitelist.\n", req.resource.c_str());
+    std::string resource(req.resource.as_string());
+    if (resource != "/" && resource != "" && !std_contains(whitelist, resource)) {
+        logINF("Someone asked for the nonwhitelisted file %s, if this should be accessible add it to the whitelist.\n", resource.c_str());
         return http_res_t(403);
     }
 
     http_res_t res;
     std::string filename;
 
-    if (req.resource == "/" || req.resource == "") {
+    if (resource == "/" || resource == "") {
         filename = "/index.html";
     } else {
-        filename = req.resource;
+        filename = resource;
     }
 
+    // FIXME: make sure that we won't walk out of our sandbox! Check symbolic links, etc.
     std::ifstream f((asset_dir + filename).c_str());
     
     if (f.fail()) {
-        logINF("File %s was requested and is on the whitelist but we didn't find it in the directory.\n", (asset_dir + req.resource).c_str());
+        logINF("File %s was requested and is on the whitelist but we didn't find it in the directory.\n", (asset_dir + resource).c_str());
         return http_res_t(404);
     }
 
@@ -65,3 +67,4 @@ http_res_t file_http_app_t::handle(const http_req_t &req) {
 INTERNAL_ERROR:
     return http_res_t(500);
 }
+
