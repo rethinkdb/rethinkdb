@@ -52,12 +52,16 @@ http_req_t::resource_t::iterator http_req_t::resource_t::end() const {
 }
 
 std::string http_req_t::resource_t::as_string(const http_req_t::resource_t::iterator& it) const {
-    // -1 for the '/' before the token start
-    const char* sub_resource = token_start_position(it) - 1; 
-    rassert(sub_resource >= val.get() && sub_resource <= val.get() + val_size);
+    if (it == e) {
+        return std::string();
+    } else {
+        // -1 for the '/' before the token start
+        const char* sub_resource = token_start_position(it) - 1; 
+        rassert(sub_resource >= val.get() && sub_resource < val.get() + val_size);
 
-    size_t sub_resource_len = val_size - (sub_resource - val.get());
-    return std::string(sub_resource, sub_resource_len);
+        size_t sub_resource_len = val_size - (sub_resource - val.get());
+        return std::string(sub_resource, sub_resource_len);
+    }
 }
 
 std::string http_req_t::resource_t::as_string() const {
