@@ -65,11 +65,15 @@ std::string http_req_t::resource_t::as_string() const {
 }
 
 const char* http_req_t::resource_t::token_start_position(const http_req_t::resource_t::iterator& it) const {
-    // Ugh, this is quite awful, but boost tokenizer iterator can't give us the pointer to the beginning of the data.
-    //
-    // it.base() points to the '/' before the next token.
-    // it->length() is the length of the current token.
-    return it.base() - it->length();
+    if (it == e) {
+        return val.get() + val_size;
+    } else {
+        // Ugh, this is quite awful, but boost tokenizer iterator can't give us the pointer to the beginning of the data.
+        //
+        // it.base() points to the '/' before the next token.
+        // it->length() is the length of the current token.
+        return it.base() - it->length();
+    }
 }
 
 http_req_t::http_req_t() {

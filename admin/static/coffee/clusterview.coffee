@@ -284,25 +284,23 @@ module 'ClusterView', ->
         initialize: ->
             log_initial '(initializing) list view: machine'
 
-            # Sparkline for CPU
-            @cpu_sparkline =
-                data : []
-                total_points: 30
-                update_interval: 750
-            @cpu_sparkline.data[i] = 0 for i in [0...@cpu_sparkline.total_points]
+            directory.on 'all', =>
+                @render()
 
             # Load abstract list element view with the machine template
             super @template
-            setInterval @update_sparklines, @cpu_sparkline.update_interval
-
-        # Update the data and render a new sparkline for this view
-        update_sparklines: =>
-            @cpu_sparkline.data = @cpu_sparkline.data.slice(1)
-            @cpu_sparkline.data.push @model.get('cpu')
-            $('.cpu-graph', @el).sparkline(@cpu_sparkline.data)
 
         json_for_template: =>
             stuff = super()
+            # status
+            stuff.status = "Unreachable"
+            for m in directory.models
+                if m.get('id') == @model.get('id')
+                    stuff.status = "Reachable"
+
+            # ip
+            stuff.ip = "TBD"
+            # grab datacenter name
             if @model.get('datacenter_uuid')
                 stuff.datacenter_name = datacenters.find((d) => d.get('id') == @model.get('datacenter_uuid')).get('name')
             else
