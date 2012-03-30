@@ -302,7 +302,11 @@ module 'ClusterView', ->
             stuff.ip = "TBD"
             # grab datacenter name
             if @model.get('datacenter_uuid')
-                stuff.datacenter_name = datacenters.find((d) => d.get('id') == @model.get('datacenter_uuid')).get('name')
+                # We need this in case the server disconnects/reconnects
+                try
+                    stuff.datacenter_name = datacenters.find((d) => d.get('id') == @model.get('datacenter_uuid')).get('name')
+                catch err
+                    stuff.datacenter_name = 'N/A'
             else
                 stuff.datacenter_name = "Unassigned"
             return stuff
