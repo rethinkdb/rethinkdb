@@ -257,6 +257,8 @@ private:
     }
 
     void registrant_coroutine(peer_id_t peer_id, master_id_t master_id, auto_drainer_t::lock_t lock) {
+        // this function is responsible for removing master_id from handled_master_ids before it returns.
+
         clone_ptr_t<readwrite_lens_t<registrar_business_card_t<namespace_interface_business_card_t>, master_business_card_t<protocol_t> > >
             field = field_lens(&master_business_card_t<protocol_t>::namespace_interface_registration_business_card);
 
@@ -281,24 +283,24 @@ private:
                        namespace_interface_business_card_t(self_id, ack_mailbox.get_address()));
 
         signal_t *drain_signal = lock.get_drain_signal();
-
-        wait_any_t ack_waiter(&ack_signal, drain_signal);
-        ack_waiter.wait_lazily_unordered();
-
-        if (drain_signal->is_pulsed()) {
-            handled_master_ids.erase(master_id);
-            return;
-        }
-
-        fifo_enforcers.insert(master_id, new fifo_enforcer_source_t);
-
         signal_t *failed_signal = registrant.get_failed_signal();
 
-        wait_any_t waiter(failed_signal, drain_signal);
+        {
+            wait_any_t ack_waiter(&ack_signal, drain_signal, failed_signal);
+            ack_waiter.wait_lazily_unordered();
+        }
 
-        waiter.wait_lazily_unordered();
+        if (ack_signal.is_pulsed()) {
+            fifo_enforcers.insert(master_id, new fifo_enforcer_source_t);
 
-        fifo_enforcers.erase(master_id);
+            {
+                wait_any_t waiter(failed_signal, drain_signal);
+                waiter.wait_lazily_unordered();
+            }
+
+            fifo_enforcers.erase(master_id);
+        }
+
         handled_master_ids.erase(master_id);
 
         // Maybe we got reconnected really quickly, and didn't handle
