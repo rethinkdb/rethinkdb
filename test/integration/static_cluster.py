@@ -7,6 +7,7 @@ from vcoptparse import *
 op = OptParser()
 op["workload"] = PositionalArg()
 op["num-nodes"] = IntFlag("--num-nodes", 3)
+op["timeout"] = IntFlag("--timeout", 600)
 opts = op.parse(sys.argv)
 
 cluster = http_admin.Cluster()
@@ -22,7 +23,9 @@ namespace = cluster.add_namespace(name = "Test Namespace", primary = datacenter)
 
 port = cluster.compute_port(namespace, next(cluster.machines.iterkeys()))
 
-time.sleep(5)
+wait_time = 5
+print "Waiting %d seconds for cluster to configure itself..." % wait_time
+time.sleep(wait_time)
 
 command_line = opts["workload"]
 new_environ = os.environ.copy()
@@ -31,12 +34,16 @@ new_environ["PORT"] = str(port)
 
 print "Running %r with HOST=%r and PORT=%r..." % (command_line, new_environ["HOST"], new_environ["PORT"])
 start_time = time.time()
-try:
-    subprocess.check_call(command_line, shell = True, env = new_environ)
-except subprocess.CalledProcessError:
-    end_time = time.time()
-    print "Failed (%d seconds)" % (end_time - start_time)
-    sys.exit(1)
-else:
-    end_time = time.time()
-    print "Done (%d seconds)" % (end_time - start_time)
+subp = subprocess.Popen(command_line, shell = True, env = new_environ)
+while time.time() < start_time + opts["timeout"]:
+    if subp.poll() is None:
+        time.sleep(1)
+    elif subp.poll() == 0:
+        print "Done (%d seconds)" % (end_time - start_time)
+        sys.exit(0)
+    else:
+        print "Failed (%d seconds)" % (end_time - start_time)
+        sys.exit(1)
+print "Timed out"
+subp.terminate()
+sys.exit(1)
