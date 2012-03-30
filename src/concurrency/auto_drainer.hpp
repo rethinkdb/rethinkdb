@@ -30,6 +30,7 @@ public:
         explicit lock_t(auto_drainer_t *);
         lock_t(const lock_t &);
         lock_t &operator=(const lock_t &);
+        void reset();
         signal_t *get_drain_signal();
         void assert_is_holding(auto_drainer_t *);
         ~lock_t();

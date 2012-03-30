@@ -110,7 +110,8 @@ void run_read_write_test(UNUSED simple_mailbox_cluster_t *cluster,
         dummy_protocol_t::write_t w;
         std::string key = std::string(1, 'a' + randint(26));
         w.values[key] = values_inserted[key] = strprintf("%d", i);
-        (*broadcaster)->write(w, &exiter, order_source.check_in("unittest"));
+        auto_drainer_t::lock_t fake_lock;
+        (*broadcaster)->write(w, &exiter, &fake_lock, order_source.check_in("unittest"));
     }
 
     /* Now send some reads */
@@ -121,7 +122,8 @@ void run_read_write_test(UNUSED simple_mailbox_cluster_t *cluster,
 
         dummy_protocol_t::read_t r;
         r.keys.keys.insert((*it).first);
-        dummy_protocol_t::read_response_t resp = (*broadcaster)->read(r, &exiter, order_source.check_in("unittest"));
+        auto_drainer_t::lock_t fake_lock;
+        dummy_protocol_t::read_response_t resp = (*broadcaster)->read(r, &exiter, &fake_lock, order_source.check_in("unittest"));
         EXPECT_EQ((*it).second, resp.values[(*it).first]);
     }
 }
@@ -139,7 +141,8 @@ static void write_to_broadcaster(broadcaster_t<dummy_protocol_t> *broadcaster, c
     fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());
     dummy_protocol_t::write_t w;
     w.values[key] = value;
-    broadcaster->write(w, &exiter, otok);
+    auto_drainer_t::lock_t fake_lock;
+    broadcaster->write(w, &exiter, &fake_lock, otok);
 }
 
 void run_backfill_test(simple_mailbox_cluster_t *cluster,
