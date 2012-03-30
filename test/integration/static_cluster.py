@@ -39,11 +39,11 @@ while time.time() < start_time + opts["timeout"]:
     if subp.poll() is None:
         time.sleep(1)
     elif subp.poll() == 0:
-        print "Done (%d seconds)" % (end_time - start_time)
+        print "Done (%d seconds)" % (time.time() - start_time)
         sys.exit(0)
     else:
-        print "Failed (%d seconds)" % (end_time - start_time)
+        print "Failed (%d seconds)" % (time.time() - start_time)
         sys.exit(1)
-print "Timed out"
+print "Timed out (%d seconds)" % opts["timeout"]
 subp.terminate()
 sys.exit(1)
