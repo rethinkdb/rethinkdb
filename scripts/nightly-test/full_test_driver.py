@@ -63,7 +63,7 @@ def run_in_threads(functions, max = 10):
         for thread in threads:
             thread.join()
 
-def run_rethinkdb_test_remotely(dependencies, command_line, stdout_file, zipfile_path, on_begin_script = lambda: None, on_end_script = lambda status: None, constraint = None):
+def run_rethinkdb_test_remotely(dependencies, command_line, stdout_file, zipfile_path, on_begin_transfer = lambda: None, on_begin_script = lambda: None, on_end_script = lambda status: None, constraint = None):
     # We must have an exit code of zero even if the test-script fails so that
     # `remotely` will copy `output_from_test` even if the test script fails. So
     # we have to trap a non-zero exit status and communicate it some other way.
@@ -92,7 +92,9 @@ def run_rethinkdb_test_remotely(dependencies, command_line, stdout_file, zipfile
     demuxer = ExitCodeDemuxer()
     remotely.run("""
 set +e
-(PYTHONUNBUFFERED=1 rethinkdb/test/%(command_line)s 2>&1 | sed -u s/^/stdout:/)
+mkdir output_from_test
+echo "stdout:About to start test..."
+(cd rethinkdb; echo "stdout:$PWD"; PYTHONUNBUFFERED=1 OUTPUT_DIR=../output_from_test/ %(command_line)s 2>&1 | sed -u s/^/stdout:/)
 echo "exitcode:$?"
 zip -r %(zipfile_name)s output_from_test >/dev/null
 """ % { "command_line": command_line, "zipfile_name": os.path.basename(zipfile_path) },
@@ -100,6 +102,7 @@ zip -r %(zipfile_name)s output_from_test >/dev/null
         inputs = dependencies,
         outputs = [os.path.basename(zipfile_path)],
         output_root = os.path.dirname(zipfile_path),
+        on_begin_transfer = on_begin_transfer,
         on_begin_script = on_begin_script,
         on_end_script = lambda: on_end_script("pass" if demuxer.exit_code == 0 else "fail"),
         constraint = constraint
@@ -205,6 +208,7 @@ tar --extract --gzip --touch --file=rethinkdb.tar.gz -- rethinkdb
                             stdout = output,
                             inputs = ["rethinkdb.tar.gz"],
                             outputs = build["products"],
+                            on_begin_transfer = lambda: result_log.write("builds", name, status = "uploading", start_time = time.time()),
                             on_begin_script = lambda: result_log.write("builds", name, status = "running", start_time = time.time()),
                             on_end_script = lambda: result_log.write("builds", name, status = "ok", end_time = time.time()),
                             constraint = "build-ready"
@@ -225,47 +229,10 @@ tar --extract --gzip --touch --file=rethinkdb.tar.gz -- rethinkdb
     tests = { }
     test_counter = 1
 
-    def do_test_fog(executable, arguments, repeat=1, timeout=60):
+    def do_test(command_line, repeat = 1, inputs = []):
         global test_counter
-
-        # The `timeout` parameter is ignored
-
-        inputs = []
-
-        inputs.append("rethinkdb/test")
-
-        # We assume that all tests need `stress.py` and `libstress.so`. This is more
-        # conservative than necessary, but it's not a big deal.
-        inputs.append("rethinkdb/bench/stress-client/stress.py")
-        inputs.append("rethinkdb/bench/stress-client/libstress.so")
-        inputs.append("rethinkdb/bench/stress-client/stress")
-
-        # Try to infer which version(s) of the server the test needs on the basis of
-        # the command line.
-        inputs.append("rethinkdb/build/" + arguments.get("mode", "debug") +
-            ("-valgrind" if not arguments.get("no-valgrind", False) else "") +
-            "/rethinkdb")
-        if executable == "integration/corruption.py" and not arguments.get("no-valgrind", False):
-            # The corruption test always uses the no-valgrind version of RethinkDB
-            # in addition to whatever version is specified on the command line
-            inputs.append("rethinkdb/build/" + arguments.get("mode", "debug") + "/rethinkdb")
-
-        # Try to figure out how many cores the test will use
-        # cores = arguments.get("cores", "exclusive")
-
-        # Put together test command line
-        command_line = [executable]
-        for (key, value) in arguments.iteritems():
-            if isinstance(value, bool):
-                if value:
-                    command_line.append("--%s" % key)
-            else:
-                command_line.append("--%s" % key)
-                command_line.append(str(value))
-        command_line = " ".join(remotely.escape_shell_arg(x) for x in command_line)
-
         tests[str(test_counter)] = {
-            "inputs": inputs,
+            "inputs": [os.path.join("rethinkdb", i) for i in inputs],
             "command_line": command_line,
             "repeat": repeat
             }
@@ -276,7 +243,7 @@ tar --extract --gzip --touch --file=rethinkdb.tar.gz -- rethinkdb
             full_path = os.path.join(dirpath, filename)
             print "Reading specification file %r" % full_path
             try:
-                execfile(full_path, {"__builtins__": __builtins__, "do_test_fog": do_test_fog, "ec2": False})
+                execfile(full_path, {"__builtins__": __builtins__, "do_test": do_test})
             except Exception, e:
                 traceback.print_exc()
 

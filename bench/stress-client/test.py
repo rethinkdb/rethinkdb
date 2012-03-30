@@ -5,9 +5,9 @@ client = stress.Client()
 conn = stress.Connection("localhost:%d" % int(os.environ["RUN_PORT"]))
 key_generator = stress.SeedKeyGenerator()
 model = stress.ConsecutiveSeedModel()
-read_op = stress.ReadOp(key_generator, model.live_chooser(), conn)
+read_op = stress.ReadOpGenerator(1, key_generator, model.live_chooser(), conn)
 client.add_op(1, read_op)
-insert_op = stress.InsertOp(key_generator, model.insert_chooser(), model, conn)
+insert_op = stress.InsertOpGenerator(1, key_generator, model.insert_chooser(), model, conn)
 client.add_op(1, insert_op)
 
 def avg(x):
