@@ -25,7 +25,7 @@
 #include "rpc/semilattice/view/member.hpp"
 #include "rpc/semilattice/view/function.hpp"
 
-bool serve(const std::string &filepath, const std::vector<peer_address_t> &joins, int port, int client_port, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata) {
+bool serve(const std::string &filepath, const std::vector<peer_address_t> &joins, int port, int client_port, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets) {
 
     local_issue_tracker_t local_issue_tracker;
 
@@ -129,7 +129,8 @@ bool serve(const std::string &filepath, const std::vector<peer_address_t> &joins
         semilattice_manager_cluster.get_root_view(),
         directory_manager.get_root_view(),
         &issue_aggregator,
-        machine_id);
+        machine_id,
+        web_assets);
 
     std::cout << "Server started; send SIGINT to stop." << std::endl;
 
