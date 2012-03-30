@@ -259,7 +259,7 @@ class InternalServer(Server):
 	def kill(self):
 		assert self.running
 		self.instance.send_signal(signal.SIGINT)
-		self.instance.wait()
+		self._wait()
 		self.running = False
 
 	def recover(self, join = None):
@@ -274,8 +274,15 @@ class InternalServer(Server):
 
 	def __del__(self):
 		self.instance.send_signal(signal.SIGINT)
-		self.instance.wait()
+		self._wait()
 		shutil.rmtree(self.db_dir)
+
+	def _wait(self):
+		start_time = time.time()
+		while time.time() - start_time < 15 and self.instance.poll() is None:
+			time.sleep(1)
+		if self.instance.poll() is None:
+			self.instance.terminate()
 
 	def __str__(self):
 		return "Internal" + Server.__str__(self) + ", args:" + str(self.args_without_join)
