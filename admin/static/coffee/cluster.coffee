@@ -18,6 +18,9 @@ class Event extends Backbone.Model
 
 class Issue extends Backbone.Model
 
+# this is a hook into the directory
+class MachineAttributes extends Backbone.Model
+
 class ConnectionStatus extends Backbone.Model
 
 class DataStream extends Backbone.Model
@@ -63,7 +66,7 @@ class DataStream extends Backbone.Model
         if name is 'usa_1' and @.get('name') is 'mem_usage_data'
             console.log name, "in dataset #{@.get('name')} now includes the data", _.map cached_data["01f04592-e403-4abc-a845-83d43f6fd967"], (data_point) -> data_point.get('value')
         ###
-        
+
         # Make sure the new value is non-negative
         new_val = existing_val + delta
         new_val = existing_val if new_val <= 0
@@ -105,13 +108,18 @@ class Issues extends Backbone.Collection
     model: Issue
     url: '/ajax/issues'
 
+# hook into directory
+class Directory extends Backbone.Collection
+    model: MachineAttributes
+    url: '/ajax/directory'
+
 class DashboardView extends Backbone.View
     className: 'dashboard-view'
     template: Handlebars.compile $('#dashboard_view-template').html()
 
     update_data_streams: (datastreams) ->
         timestamp = new Date(Date.now())
-        
+
         for stream in datastreams
            stream.update(timestamp)
 
@@ -355,6 +363,7 @@ reset_collections = () ->
     datacenters.reset()
     machines.reset()
     issues.reset()
+    directory.reset()
 
 # Process updates from the server and apply the diffs to our view of the data. Used by our version of Backbone.sync and POST / PUT responses for form actions
 apply_diffs = (updates) ->
@@ -385,6 +394,14 @@ apply_diffs = (updates) ->
 set_issues = (issue_data_from_server) ->
     issues.reset(_.map(issue_data_from_server, (issue) -> {critical: false, type: "master_down", time: ISODateString}))
 
+set_directory = (attributes_from_server) ->
+    # Convert directory representation from RethinkDB into backbone friendly one
+    dir_machines = []
+    for key, value of attributes_from_server
+        value['id'] = key
+        dir_machines[dir_machines.length] = value
+    directory.reset(dir_machines)
+
 $ ->
     bind_dev_tools()
 
@@ -393,6 +410,7 @@ $ ->
     window.namespaces = new Namespaces
     window.machines = new Machines
     window.issues = new Issues
+    window.directory = new Directory
     window.events = new Events
     window.connection_status = new ConnectionStatus
 
@@ -416,6 +434,7 @@ $ ->
         if method is 'read'
             $.getJSON('/ajax', apply_diffs)
             $.getJSON('/ajax/issues', set_issues)
+            $.getJSON('/ajax/directory', set_directory)
         else
             legacy_sync method, model, success, error
 
@@ -434,6 +453,7 @@ $ ->
 
     $.getJSON('/ajax', apply_diffs)
     $.getJSON('/ajax/issues', set_issues)
+    $.getJSON('/ajax/directory', set_directory)
 
     # Set up common DOM behavior
     $('.modal').modal
