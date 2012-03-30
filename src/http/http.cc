@@ -8,6 +8,81 @@
 #include "arch/arch.hpp"
 #include "logger.hpp"
 
+static const char *resource_parts_sep_char = "/";
+
+static boost::char_separator<char> resource_parts_sep(resource_parts_sep_char, "", boost::keep_empty_tokens);
+
+http_req_t::resource_t::resource_t() {
+}
+
+http_req_t::resource_t::resource_t(const http_req_t::resource_t &from, const http_req_t::resource_t::iterator& resource_start)
+    : val(from.val), val_size(from.val_size), b(resource_start), e(from.e) {
+}
+
+http_req_t::resource_t::resource_t(const std::string &val_) {
+    assign(val_);
+}
+
+http_req_t::resource_t::resource_t(const char * val_, size_t size) {
+    assign(val_, size);
+}
+
+void http_req_t::resource_t::assign(const std::string &val_) {
+    assign(val_.data(), val_.length());
+}
+
+void http_req_t::resource_t::assign(const char * val_, size_t size) {
+    rassert(size > 0 && val_[0] == resource_parts_sep_char[0], "resource path must start with a '/'");
+    val.reset(new char[size]);
+    memcpy(val.get(), val_, size);
+    val_size = size;
+
+    // We skip the first '/' when we initialize tokenizer, otherwise we'll get an empty token out of it first.
+    tokenizer t(val.get() + 1, val.get() + size, resource_parts_sep);
+    b = t.begin();
+    e = t.end();
+}
+
+http_req_t::resource_t::iterator http_req_t::resource_t::begin() const {
+    return b;
+}
+
+http_req_t::resource_t::iterator http_req_t::resource_t::end() const {
+    return e;
+}
+
+std::string http_req_t::resource_t::as_string(const http_req_t::resource_t::iterator& it) const {
+    // -1 for the '/' before the token start
+    const char* sub_resource = token_start_position(it) - 1; 
+    rassert(sub_resource >= val.get() && sub_resource <= val.get() + val_size);
+
+    size_t sub_resource_len = val_size - (sub_resource - val.get());
+    return std::string(sub_resource, sub_resource_len);
+}
+
+std::string http_req_t::resource_t::as_string() const {
+    return as_string(b);
+}
+
+const char* http_req_t::resource_t::token_start_position(const http_req_t::resource_t::iterator& it) const {
+    // Ugh, this is quite awful, but boost tokenizer iterator can't give us the pointer to the beginning of the data.
+    //
+    // it.base() points to the '/' before the next token.
+    // it->length() is the length of the current token.
+    return it.base() - it->length();
+}
+
+http_req_t::http_req_t() {
+}
+
+http_req_t::http_req_t(const std::string &resource_path) : resource(resource_path) {
+}
+
+http_req_t::http_req_t(const http_req_t &from, const resource_t::iterator& resource_start)
+    : resource(from.resource, resource_start),
+      method(from.method), query_params(from.query_params), version(from.version), header_lines(from.header_lines), body(from.body) {
+}
+
 std::string http_req_t::find_query_param(const std::string& key) const {
     //TODO this is inefficient we should actually load it all into a map
     for (std::vector<query_parameter_t>::const_iterator it = query_params.begin(); it != query_params.end(); it++) {
@@ -33,6 +108,7 @@ bool http_req_t::has_header_line(const std::string& key) const {
     }
     return false;
 }
+
 
 int content_length(http_req_t msg) {
     for (std::vector<header_line_t>::iterator it = msg.header_lines.begin(); it != msg.header_lines.end(); it++) {
@@ -75,7 +151,7 @@ void http_res_t::set_body(const std::string& content_type, const std::string& co
 }
 
 void test_header_parser() {
-    http_req_t res;
+    http_req_t res("/foo/bar");
     //str_http_msg_parser_t http_msg_parser;
     std::string header = 
         "GET /foo/bar HTTP/1.1\r\n"
@@ -137,7 +213,7 @@ void http_server_t::handle_conn(boost::scoped_ptr<nascent_tcp_conn_t> &nconn) {
 
     /* parse the request */
     try {
-        if(http_msg_parser.parse(conn.get(), &req)) {
+        if (http_msg_parser.parse(conn.get(), &req)) {
             http_res_t res = application->handle(req); 
             res.version = req.version;
             write_http_msg(conn, res);
@@ -190,7 +266,7 @@ bool tcp_http_msg_parser_t::parse(tcp_conn_t *conn, http_req_t *req) {
         return false;
     }
 
-    req->resource = resource_string.resource;
+    req->resource.assign(resource_string.resource);
     req->query_params = resource_string.query_params;
 
     std::string version_str = parser.readLine();
