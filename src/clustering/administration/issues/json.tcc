@@ -25,6 +25,9 @@ cJSON *render_as_json(issue_type_t *target, const ctx_t &) {
         case PERSISTANCE_ISSUE:
             return cJSON_CreateString("PERSISTANCE_ISSUE");
             break;
+        case PINNINGS_SHARDS_MISMATCH:
+            return cJSON_CreateString("PINNINGS_SHARDS_MISMATCH");
+            break;
         default:
             unreachable();
             break;
