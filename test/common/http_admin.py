@@ -258,7 +258,10 @@ class InternalServer(Server):
 
 	def kill(self):
 		assert self.running
-		self.instance.send_signal(signal.SIGINT)
+		try:
+			self.instance.send_signal(signal.SIGINT)
+		except OSError:
+			pass
 		self._wait()
 		self.running = False
 
@@ -273,7 +276,10 @@ class InternalServer(Server):
 		self.running = True
 
 	def __del__(self):
-		self.instance.send_signal(signal.SIGINT)
+		try:
+			self.instance.send_signal(signal.SIGINT)
+		except OSError:
+			pass
 		self._wait()
 		shutil.rmtree(self.db_dir)
 
@@ -522,6 +528,13 @@ class Cluster(object):
 		self._pull_cluster_data(data["memcached_namespaces"], self.memcached_namespaces, MemcachedNamespace)
 		self._verify_cluster_data(data)
 		return data
+
+	def is_alive(self):
+		for i, m in self.machines.iteritems():
+			if isinstance(m, InternalServer):
+				if m.running and m.instance.poll() is not None:
+					return False
+		return True
 
 class ExternalCluster(Cluster):
 	def __init__(self, serv_list):

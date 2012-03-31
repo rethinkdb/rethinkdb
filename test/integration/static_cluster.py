@@ -36,14 +36,23 @@ print "Running %r with HOST=%r and PORT=%r..." % (command_line, new_environ["HOS
 start_time = time.time()
 subp = subprocess.Popen(command_line, shell = True, env = new_environ)
 while time.time() < start_time + opts["timeout"]:
-    if subp.poll() is None:
-        time.sleep(1)
+    if not cluster.is_alive():
+        print "Cluster crashed (%d seconds)" % (time.time() - start_time)
+        try:
+            subp.send_signal(signal.SIGKILL)
+        except OSError:
+            pass
+        sys.exit(1)
     elif subp.poll() == 0:
         print "Done (%d seconds)" % (time.time() - start_time)
         sys.exit(0)
-    else:
+    elif subp.poll() is not None:
         print "Failed (%d seconds)" % (time.time() - start_time)
         sys.exit(1)
+    time.sleep(1)
 print "Timed out (%d seconds)" % opts["timeout"]
-subp.send_signal(signal.SIGKILL)
+try:
+    subp.send_signal(signal.SIGKILL)
+except OSError:
+    pass
 sys.exit(1)
