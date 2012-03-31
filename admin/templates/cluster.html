@@ -13,7 +13,7 @@
 
         <!-- handlebars templates -->
         <script id="dashboard_view-template" type="text/x-handlebars-template">
-            <h1>Cluster overview</h1>
+            <h1>Cluster dashboard</h1>
             <div class="section">
               <div class="machines"></div>
               <div class="data-picker"></div>
@@ -94,35 +94,20 @@
 
         <!-- Cluster view -->
         <script id="namespaces_container-template" type="text/x-handlebars-template">
-            <h1>Cluster overview</h1>
+            <h1>Namespaces overview</h1>
             <div id="user-alert-space"></div>
-            <ul class="browser-tabs nav nav-tabs">
-                <li class="active" id="namespaces-tab"><a href="#namespaces">Namespaces</a></li>
-                <li id="datacenters-tab"><a href="#datacenters">Datacenters</a></li>
-                <li id="machines-tab"><a href="#machines">Machines</a></li>
-            </ul>
             <div id="namespaces-panel" class="rdb-content"></div>
         </script>
 
         <script id="datacenters_container-template" type="text/x-handlebars-template">
-            <h1>Cluster overview</h1>
+            <h1>Datacenters overview</h1>
             <div id="user-alert-space"></div>
-            <ul class="browser-tabs nav nav-tabs">
-                <li id="namespaces-tab"><a href="#namespaces">Namespaces</a></li>
-                <li class="active" id="datacenters-tab"><a href="#datacenters">Datacenters</a></li>
-                <li id="machines-tab"><a href="#machines">Machines</a></li>
-            </ul>
             <div id="datacenters-panel" class="rdb-content"></div>
         </script>
 
         <script id="machines_container-template" type="text/x-handlebars-template">
-            <h1>Cluster overview</h1>
+            <h1>Machines overview</h1>
             <div id="user-alert-space"></div>
-            <ul class="browser-tabs nav nav-tabs">
-                <li id="namespaces-tab"><a href="#namespaces">Namespaces</a></li>
-                <li id="datacenters-tab"><a href="#datacenters">Datacenters</a></li>
-                <li class="active" id="machines-tab"><a href="#machines">Machines</a></li>
-            </ul>
             <div id="machines-panel" class="rdb-content"></div>
         </script>
 
@@ -1166,10 +1151,10 @@
                 <div class="container">
                     <a class="brand" href="#">RethinkDB Administration Console</a>
                     <ul class="nav">
-                        <li><a href="#dashboard">Dashboard</a></li>
-                        <li class="active"><a href="#namespaces">Namespaces</a></li>
-                        <li class="active"><a href="#datacenters">Datacenters</a></li>
-                        <li class="active"><a href="#machines">Machines</a></li>
+                        <li id="nav-dashboard"><a href="#dashboard">Dashboard</a></li>
+                        <li id="nav-namespaces"><a href="#namespaces">Namespaces</a></li>
+                        <li id="nav-datacenters"><a href="#datacenters">Datacenters</a></li>
+                        <li id="nav-machines"><a href="#machines">Machines</a></li>
                     </ul>
 
                     <ul class="right-nav nav pull-right">

@@ -246,21 +246,29 @@ class BackboneCluster extends Backbone.Router
     index_namespaces: ->
         log_router '/index_namespaces'
         clear_modals()
+        $('ul.nav li').removeClass('active')
+        $('ul.nav li#nav-namespaces').addClass('active')
         @$container.html @namespaces_cluster_view.render().el
 
     index_datacenters: ->
         log_router '/index_datacenters'
         clear_modals()
+        $('ul.nav li').removeClass('active')
+        $('ul.nav li#nav-datacenters').addClass('active')
         @$container.html @datacenters_cluster_view.render().el
 
     index_machines: ->
         log_router '/index_machines'
         clear_modals()
+        $('ul.nav li').removeClass('active')
+        $('ul.nav li#nav-machines').addClass('active')
         @$container.html @machines_cluster_view.render().el
 
     dashboard: ->
         log_router '/dashboard'
         clear_modals()
+        $('ul.nav li').removeClass('active')
+        $('ul.nav li#nav-dashboard').addClass('active')
         @$container.html @dashboard_view.render().el
 
     resolve_issues: ->
