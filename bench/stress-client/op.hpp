@@ -75,6 +75,7 @@ struct op_t {
  * instance of the op with its own state that can be put in the pipeline queue.
  * */
 struct op_generator_t {
+    virtual ~op_generator_t() { }
     /* note this method does not follow the create paradigm, do not free the
      * results */
     virtual op_t *generate() = 0;

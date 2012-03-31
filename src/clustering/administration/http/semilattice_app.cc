@@ -1,5 +1,4 @@
 #include "errors.hpp"
-#include <boost/tokenizer.hpp>
 
 #include "http/http.hpp"
 #include "clustering/administration/http/json_adapters.hpp"
@@ -30,28 +29,21 @@ semilattice_http_app_t::semilattice_http_app_t(
         boost::uuids::uuid _us)
     : semilattice_metadata(_semilattice_metadata), directory_metadata(_directory_metadata), us(_us) { }
 
-typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-typedef tokenizer::iterator tok_iterator;
-
 http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
     try {
         cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
 
         //as we traverse the json sub directories this will keep track of where we are
-        // RSI: why is it a shared_ptr?
         boost::shared_ptr<json_adapter_if_t<namespace_metadata_ctx_t> > json_adapter_head(new json_adapter_t<cluster_semilattice_metadata_t, namespace_metadata_ctx_t>(&cluster_metadata));
         namespace_metadata_ctx_t json_ctx(us);
 
-        //setup a tokenizer
-        boost::char_separator<char> sep("/");
-        tokenizer tokens(req.resource, sep);
-        tok_iterator it = tokens.begin();
+        http_req_t::resource_t::iterator it = req.resource.begin();
 
-        if (it != tokens.end() && *it == "propose") {
+        if (it != req.resource.end() && *it == "propose") {
             /* The user is dropping hints that she wants us to propose.  Bring that
              * bitch some blueprints, bitches love blueprints. */
 
-            if (++it != tokens.end()) {
+            if (++it != req.resource.end()) {
                 /* Whoops dealbreaker */
                 return http_res_t(404);
             }
@@ -88,7 +80,7 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
         }
 
         //Traverse through the subfields until we're done with the url
-        while (it != tokens.end()) {
+        while (it != req.resource.end()) {
             json_adapter_if_t<namespace_metadata_ctx_t>::json_adapter_map_t subfields = json_adapter_head->get_subfields(json_ctx);
             if (subfields.find(*it) == subfields.end()) {
                 return http_res_t(404); //someone tried to walk off the edge of the world

@@ -10,13 +10,19 @@
 #include <boost/function.hpp>
 #include <boost/optional/optional.hpp>
 #include <boost/ptr_container/ptr_list.hpp>
-#include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <boost/uuid/uuid_serialize.hpp>
 
 #include "http/json.hpp"
+#include "http/json/json_adapter.hpp"
 
+/* A note about json adapter exceptions: When an operation throws an exception
+ * there is no guaruntee that the target object has been left in tact.
+ * Generally this is okay because we first apply changes and then join them in
+ * to semilattice metadata. Generally once a particular object has thrown one
+ * of these exceptions it should probably not be used anymore. */
 struct json_adapter_exc_t : public std::exception { 
     virtual const char *what() const throw () {
         return "Generic json adapter exception\n";
@@ -165,6 +171,26 @@ private:
     T t;
 public:
     explicit json_temporary_adapter_t(const T &);
+};
+
+/* A json_combiner_adapter_t is useful for glueing different adapters together.
+ * */
+template <class ctx_t>
+class json_combiner_adapter_t : public json_adapter_if_t<ctx_t> {
+private:
+    typedef typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_adapter_map_t;
+public:
+    json_combiner_adapter_t();
+    void add_adapter(std::string key, boost::shared_ptr<json_adapter_if_t<ctx_t> > adapter);
+private:
+    cJSON *render_impl(const ctx_t &);
+    void apply_impl(cJSON *, const ctx_t &);
+    void erase_impl(const ctx_t &);
+    void reset_impl(const ctx_t &);
+    json_adapter_map_t get_subfields_impl(const ctx_t &);
+    boost::shared_ptr<subfield_change_functor_t<ctx_t> > get_change_callback();
+
+    json_adapter_map_t sub_adapters; 
 };
 
 /* This adapter is a little bit different from the other ones, it's meant to
@@ -321,6 +347,8 @@ template <class ctx_t>
 void on_subfield_change(bool *, const ctx_t &);
 
 namespace boost {
+
+namespace uuid {
 //JSON adapter for boost::uuids::uuid
 template <class ctx_t>
 typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(boost::uuids::uuid *, const ctx_t &);
@@ -333,6 +361,8 @@ void apply_json_to(cJSON *, boost::uuids::uuid *, const ctx_t &);
 
 template <class ctx_t>
 void on_subfield_change(boost::uuids::uuid *, const ctx_t &);
+
+} // namespace uuid
 
 //JSON adapter for boost::optional
 template <class T, class ctx_t>

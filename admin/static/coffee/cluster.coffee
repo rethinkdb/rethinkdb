@@ -232,18 +232,11 @@ class BackboneCluster extends Backbone.Router
 
         @dashboard_view = new DashboardView
 
-        @status_panel_view = new StatusPanelView
-            model: connection_status
-
         # Add and render the sidebar (visible across all views)
         @$sidebar = $('#sidebar')
         window.sidebar = new Sidebar.Container()
         @sidebar = window.sidebar
         @render_sidebar()
-
-        # Same for the status panel
-        @$status_panel = $('.sidebar-container .section.cluster-status')
-        @$status_panel.prepend @status_panel_view.render().el
 
         @resolve_issues_view = new ResolveIssuesView.Container
         @events_view = new EventsView.Container
@@ -253,36 +246,47 @@ class BackboneCluster extends Backbone.Router
     index_namespaces: ->
         log_router '/index_namespaces'
         clear_modals()
+        $('ul.nav li').removeClass('active')
+        $('ul.nav li#nav-namespaces').addClass('active')
         @$container.html @namespaces_cluster_view.render().el
 
     index_datacenters: ->
         log_router '/index_datacenters'
         clear_modals()
+        $('ul.nav li').removeClass('active')
+        $('ul.nav li#nav-datacenters').addClass('active')
         @$container.html @datacenters_cluster_view.render().el
 
     index_machines: ->
         log_router '/index_machines'
         clear_modals()
+        $('ul.nav li').removeClass('active')
+        $('ul.nav li#nav-machines').addClass('active')
         @$container.html @machines_cluster_view.render().el
 
     dashboard: ->
         log_router '/dashboard'
         clear_modals()
+        $('ul.nav li').removeClass('active')
+        $('ul.nav li#nav-dashboard').addClass('active')
         @$container.html @dashboard_view.render().el
 
     resolve_issues: ->
         log_router '/resolve_issues'
         clear_modals()
+        $('ul.nav li').removeClass('active')
         @$container.html @resolve_issues_view.render().el
 
     events: ->
         log_router '/events'
         clear_modals()
+        $('ul.nav li').removeClass('active')
         @$container.html @events_view.render().el
 
     namespace: (id) ->
         log_router '/namespaces/' + id
         clear_modals()
+        $('ul.nav li').removeClass('active')
 
         # Helper function to build the namespace view
         build_namespace_view = (namespace) =>
@@ -298,6 +302,7 @@ class BackboneCluster extends Backbone.Router
     datacenter: (id) ->
         log_router '/datacenters/' + id
         clear_modals()
+        $('ul.nav li').removeClass('active')
 
         # Helper function to build the datacenter view
         build_datacenter_view = (datacenter) =>
@@ -314,6 +319,7 @@ class BackboneCluster extends Backbone.Router
     machine: (id) ->
         log_router '/machines/' + id
         clear_modals()
+        $('ul.nav li').removeClass('active')
 
         # Helper function to build the machine view
         build_machine_view = (machine) =>
@@ -369,12 +375,12 @@ reset_collections = () ->
 apply_diffs = (updates) ->
     declare_client_connected()
 
-    if (!window.contact_machine_id)
-        window.contact_machine_id = updates["me"]
+    if (not connection_status.get('contact_machine_id'))
+        connection_status.set('contact_machine_id', updates["me"])
     else
-        if (updates["me"] != window.contact_machine_id)
+        if (updates["me"] != connection_status.get('contact_machine_id'))
             reset_collections()
-            window.contact_machine_id = updates["me"]
+            connection_status.set('contact_machine_id', updates["me"])
 
     for collection_id, collection_data of updates
         switch collection_id

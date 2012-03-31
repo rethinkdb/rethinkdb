@@ -58,6 +58,7 @@ def block_path(source_port, dest_port):
 	assert "resunder" in subprocess.check_output(["ps", "-A"])
 	conn = socket.create_connection(("localhost", 46594))
 	conn.send("block %s %s" % (str(source_port), str(dest_port)))
+	# TODO: Wait for ack?
 	conn.close()
 
 def unblock_path(source_port, dest_port):
@@ -65,6 +66,13 @@ def unblock_path(source_port, dest_port):
 	conn = socket.create_connection(("localhost", 46594))
 	conn.send("unblock %s %s" % (str(source_port), str(dest_port)))
 	conn.close()
+
+def find_rethinkdb_executable():
+	paths = ["build/debug/rethinkdb", "../build/debug/rethinkdb", "../../build/debug/rethinkdb", "../../../build/debug/rethinkdb"]
+	for path in paths:
+		if os.path.exists(path):
+			return path
+	raise RuntimeError("Can't find RethinkDB executable. Tried these paths: %s" % paths)
 
 def validate_uuid(json_uuid):
 	assert isinstance(json_uuid, str) or isinstance(json_uuid, unicode)
@@ -129,16 +137,17 @@ class Namespace(object):
 	def __init__(self, uuid, json_data):
 		self.uuid = validate_uuid(uuid)
 		self.blueprint = Blueprint(json_data["blueprint"])
-		self.primary_uuid = validate_uuid(json_data["primary_uuid"])
+		self.primary_uuid = None if json_data["primary_uuid"] is None else validate_uuid(json_data["primary_uuid"])
 		self.replica_affinities = json_data["replica_affinities"]
 		self.shards = json_data["shards"]
 		self.name = json_data["name"]
+		self.port = json_data["port"]
 
 	def check(self, data):
 		return data == self.to_json()
 
 	def to_json(self):
-		return { unicode("blueprint"): self.blueprint.to_json(), unicode("name"): self.name, unicode("primary_uuid"): self.primary_uuid, unicode("replica_affinities"): self.replica_affinities, unicode("shards"): self.shards }
+		return { unicode("blueprint"): self.blueprint.to_json(), unicode("name"): self.name, unicode("primary_uuid"): self.primary_uuid, unicode("replica_affinities"): self.replica_affinities, unicode("shards"): self.shards, unicode("port"): self.port }
 
 	def __str__(self):
 		affinities = ""
@@ -147,7 +156,7 @@ class Namespace(object):
 		else:
 			for i in self.replica_affinities.iteritems():
 				affinities += i[0] + "=" + str(i[1]) + ", "
-		return "Namespace(name:%s, primary:%s, affinities:%sblueprint:NYI)" % (self.name, self.primary_uuid, affinities)
+		return "Namespace(name:%s, port:%d, primary:%s, affinities:%sblueprint:NYI)" % (self.name, self.port, self.primary_uuid, affinities)
 
 class DummyNamespace(Namespace):
 	def __init__(self, uuid, json_data):
@@ -172,6 +181,7 @@ class Server(object):
 		serv_info = self.do_query("GET", "/ajax/machines/" + self.uuid)
 		self.datacenter_uuid = serv_info["datacenter_uuid"]
 		self.name = serv_info["name"]
+		self.port_offset = serv_info["port_offset"]
 
 	def check(self, data):
 		# Do not check DummyServer objects
@@ -180,7 +190,7 @@ class Server(object):
 		return data == self.to_json()
 
 	def to_json(self):
-		return { unicode("datacenter_uuid"): self.datacenter_uuid, unicode("name"): self.name }
+		return { unicode("datacenter_uuid"): self.datacenter_uuid, unicode("name"): self.name, unicode("port_offset"): self.port_offset }
 
 	def do_query(self, method, route, payload = None):
 		conn = httplib.HTTPConnection(self.host, self.http_port)
@@ -196,7 +206,7 @@ class Server(object):
 			raise BadServerResponse(response.status, response.reason)
 
 	def __str__(self):
-		return "Server(%s:%s, name:%s, datacenter:%s)" % (self.host, self.cluster_port, self.name, self.datacenter_uuid)
+		return "Server(%s:%s, name:%s, datacenter:%s, port_offset:%d)" % (self.host, self.cluster_port, self.name, self.datacenter_uuid, self.port_offset)
 
 class DummyServer(Server):
 	def __init__(self, uuid, dummy_data):
@@ -216,21 +226,29 @@ class ExternalServer(Server):
 		return "External" + Server.__str__(self)
 
 class InternalServer(Server):
-	def __init__(self, serv_port, local_cluster_port, cluster_host = None, cluster_port = None):
-		# Make a temporary file for the database
-		self.db_dir = "/tmp/rethinkdb-port-" + str(serv_port)
-		assert not os.path.exists(self.db_dir)
-
-		# Otherwise, we need to create a new server
-		if cluster_port is None:
-			self.args = ["../../build/debug/rethinkdb", "--directory=" + self.db_dir, "--port=" + str(serv_port), "--client-port=" + str(local_cluster_port)]
-		else:
-			self.args = ["../../build/debug/rethinkdb", "--directory=" + self.db_dir, "--port=" + str(serv_port), "--client-port=" + str(local_cluster_port), "--join=" + str(cluster_host) + ":" + str(cluster_port)]
+	def __init__(self, serv_port, local_cluster_port, join = None, name = None, port_offset = 0):
 
 		self.local_cluster_port = local_cluster_port
 
-		print self.args
-		self.instance = subprocess.Popen(self.args, 0, None, None, subprocess.PIPE)
+		# Make a temporary file for the database
+		#TODO use a portable method to select db_dir
+		self.db_dir = "/tmp/rethinkdb-port-" + str(serv_port)
+		assert not os.path.exists(self.db_dir)
+
+		create_args = [find_rethinkdb_executable(), "create", "--directory=" + self.db_dir, "--port-offset=" + str(port_offset)]
+		if name is not None:
+			create_args.append("--name=" + name)
+		subprocess.check_call(create_args)
+
+		self.args_without_join = [find_rethinkdb_executable(), "serve", "--directory=" + self.db_dir, "--port=" + str(serv_port), "--client-port=" + str(local_cluster_port)]
+		if join is None:
+			serve_args = self.args_without_join
+		else:
+			join_host, join_port = join
+			serve_args = self.args_without_join + ["--join=" + join_host + ":" + str(join_port)]
+
+		print serve_args
+		self.instance = subprocess.Popen(serve_args, 0, None, None, subprocess.PIPE)
 		time.sleep(0.2)
 		Server.__init__(self, socket.gethostname(), serv_port)
 		self.running = True
@@ -241,9 +259,14 @@ class InternalServer(Server):
 		self.instance.wait()
 		self.running = False
 
-	def recover(self):
+	def recover(self, join = None):
 		assert not self.running
-		self.instance = subprocess.Popen(self.args, 0, None, None, subprocess.PIPE)
+		if join is None:
+			serve_args = self.args_without_join
+		else:
+			join_host, join_port = join
+			serve_args = self.args_without_join + ["--join=" + join_host + ":" + str(join_port)]
+		self.instance = subprocess.Popen(serve_args, 0, None, None, subprocess.PIPE)
 		self.running = True
 
 	def __del__(self):
@@ -252,7 +275,7 @@ class InternalServer(Server):
 		shutil.rmtree(self.db_dir)
 
 	def __str__(self):
-		return "Internal" + Server.__str__(self) + ", args:" + str(self.args)
+		return "Internal" + Server.__str__(self) + ", args:" + str(self.args_without_join)
 
 class Cluster(object):
 	def __init__(self):
@@ -305,11 +328,18 @@ class Cluster(object):
 			return self.machines[servid]
 
 	# Add a machine to the cluster by starting a server instance locally
-	def add_machine(self):
+	def add_machine(self, name = None):
 		if self.server_instances is 0:
-			serv = InternalServer(self.base_port, self.base_port - 1) # First server in cluster shouldn't connect to anyone
+			# First server in cluster shouldn't connect to anyone
+			join = None
 		else:
-			serv = InternalServer(self.base_port + self.server_instances, self.base_port - self.server_instances - 1, socket.gethostname(), self.base_port)
+			join = (socket.gethostname(), self.base_port)
+		serv = InternalServer(
+			self.base_port + self.server_instances,
+			self.base_port - self.server_instances - 1,
+			join = join,
+			name = name,
+			port_offset = self.server_instances)
 		self.machines[serv.uuid] = serv
 		self.server_instances += 1
 		time.sleep(0.2)
@@ -329,8 +359,12 @@ class Cluster(object):
 		self.update_cluster_data()
 		return serv
 
-	def add_datacenter(self, servid = None):
-		info = self._get_server_for_command(servid).do_query("POST", "/ajax/datacenters/new", { })
+	def add_datacenter(self, name = None, servid = None):
+		if name is None:
+			name = str(randint(1000000))
+		info = self._get_server_for_command(servid).do_query("POST", "/ajax/datacenters/new", {
+			"name": name
+			})
 		time.sleep(0.2) # Give some time for changes to hit the rest of the cluster
 		assert len(info) is 1
 		info = next(info.iteritems())
@@ -339,79 +373,99 @@ class Cluster(object):
 		self.update_cluster_data()
 		return datacenter
 
+	def _find_thing(self, what, type_class, type_str, search_space):
+		if isinstance(what, (str, unicode)):
+			if is_uuid(what):
+				return search_space[what]
+			else:
+				hits = [x for x in search_space.values() if x.name == what]
+				if len(hits) == 0:
+					raise ValueError("No %s named %r" % (type_str, what))
+				elif len(hits) == 1:
+					return hits[0]
+				else:
+					raise ValueError("Multiple %ss named %r" % (type_str, what))
+		elif isinstance(what, type_class):
+			assert search_space[what.uuid] is what
+			return what
+		else:
+			raise TypeError("Can't interpret %r as a %s" % (what, type_str))
+
+	def find_machine(self, what):
+		return self._find_thing(what, Server, "machine", self.machines)
+
+	def find_datacenter(self, what):
+		return self._find_thing(what, Datacenter, "data center", self.datacenters)
+
+	def find_namespace(self, what):
+		nss = {}
+		nss.update(self.memcached_namespaces)
+		nss.update(self.dummy_namespaces)
+		return self._find_thing(what, Namespace, "namespace", nss)
+
 	def move_server_to_datacenter(self, serv, datacenter, servid = None):
-		if type(serv) is str or type(serv) is unicode:
-			serv = self.machines[serv]
-		if type(datacenter) is str or type(datacenter) is unicode:
-			datacenter = self.datacenters[datacenter]
-		assert self.machines[serv.uuid] is serv
-		assert self.datacenters[datacenter.uuid] is datacenter
+		serv = self.find_machine(serv)
+		datacenter = self.find_datacenter(datacenter)
 		if type(serv) is not DummyServer:
 			serv.datacenter_uuid = datacenter.uuid
 		self._get_server_for_command(servid).do_query("POST", "/ajax/machines/" + serv.uuid + "/datacenter_uuid", datacenter.uuid)
 		time.sleep(0.2) # Give some time for changes to hit the rest of the cluster
 		self.update_cluster_data()
-		return datacenter
 
-	# Add a dummy namespace through the given uuid of a machine in the cluster
-	def add_dummy_namespace(self, servid = None):
-		info = self._get_server_for_command(servid).do_query("POST", "/ajax/dummy_namespaces/new", { })
+	def move_namespace_to_datacenter(self, namespace, primary, servid = None):
+		namespace = self.find_namespace(namespace)
+		primary = None if primary is None else self.find_datacenter(primary)
+		namespace.primary_uuid = primary.uuid
+		if type(namespace) == MemcachedNamespace:
+			self._get_server_for_command(servid).do_query("POST", "/ajax/memcached_namespaces/" + namespace.uuid, namespace.to_json())
+		elif type(namespace) == DummyNamespace:
+			self._get_server_for_command(servid).do_query("POST", "/ajax/dummy_namespaces/" + namespace.uuid, namespace.to_json())
+		time.sleep(0.2) # Give some time for the changes to hit the rest of the cluster
+		self.update_cluster_data()
+
+	def set_namespace_affinities(self, namespace, affinities = { }, servid = None):
+		namespace = self.find_namespace(namespace)
+		aff_dict = { }
+		for datacenter, count in affinities.iteritems():
+			aff_dict[self.find_datacenter(datacenter).uuid] = count
+		namespace.replica_affinities = aff_dict
+		if type(namespace) == MemcachedNamespace:
+			self._get_server_for_command(servid).do_query("POST", "/ajax/memcached_namespaces/" + namespace.uuid, namespace.to_json())
+		elif type(namespace) == DummyNamespace:
+			self._get_server_for_command(servid).do_query("POST", "/ajax/dummy_namespaces/" + namespace.uuid, namespace.to_json())
+		time.sleep(0.2) # Give some time for the changes to hit the rest of the cluster
+		self.update_cluster_data()
+		return namespace
+
+	def add_namespace(self, protocol = "memcached", name = None, port = None, primary = None, affinities = { }, servid = None):
+		if port is None:
+			port = random.randint(20000, 60000)
+		if name is None:
+			name = str(random.randint(1000000))
+		if primary is not None:
+			primary = self.find_datacenter(primary).uuid
+		aff_dict = { }
+		for datacenter, count in affinities.iteritems():
+			aff_dict[self.find_datacenter(datacenter).uuid] = count
+		info = self._get_server_for_command(servid).do_query("POST", "/ajax/%s_namespaces/new" % protocol, {
+			"name": name,
+			"port": port,
+			"primary_uuid": primary,
+			"replica_affinities": aff_dict
+			})
 		time.sleep(0.2) # Give some time for changes to hit the rest of the cluster
 		assert len(info) is 1
 		info = next(info.iteritems())
-		namespace = DummyNamespace(info[0], info[1])
-		self.dummy_namespaces[namespace.uuid] = namespace
+		type_class = {"memcached": MemcachedNamespace, "dummy": DummyNamespace}[protocol]
+		namespace = type_class(info[0], info[1])
+		getattr(self, "%s_namespaces" % protocol)[namespace.uuid] = namespace
 		self.update_cluster_data()
 		return namespace
 
-	def move_namespace_to_datacenter(self, namespace, primary, servid = None):
-		if type(namespace) is str or type(namespace) is unicode:
-			if namespace in self.dummy_namespaces:
-				namespace = self.dummy_namespaces[namespace]
-			elif namespace in self.memcached_namespaces:
-				namespace = self.memcached_namespaces[namespace]
-			else:
-				assert False
-		if type(primary) is str or type(primary) is unicode:
-			primary = self.datacenters[primary]
-		assert self.datacenters[primary.uuid] is primary
-		namespace.primary_uuid = primary.uuid
-		if type(namespace) == MemcachedNamespace:
-			assert self.memcached_namespaces[namespace.uuid] is namespace
-			self._get_server_for_command(servid).do_query("POST", "/ajax/memcached_namespaces/" + namespace.uuid, namespace.to_json())
-		elif type(namespace) == DummyNamespace:
-			assert self.dummy_namespaces[namespace.uuid] is namespace
-			self._get_server_for_command(servid).do_query("POST", "/ajax/dummy_namespaces/" + namespace.uuid, namespace.to_json())
-		time.sleep(0.2) # Give some time for the changes to hit the rest of the cluster
-		self.update_cluster_data()
-		return namespace
-
-	def set_namespace_affinities(self, namespace, affinities = { }, servid = None):
-		aff_dict = { }
-		for i in affinities.iterkeys():
-			assert i.uuid in self.datacenters
-			aff_dict[i.uuid] = affinities[i]
-		namespace.replica_affinities = aff_dict
-		if type(namespace) == MemcachedNamespace:
-			assert self.memcached_namespaces[namespace.uuid] is namespace
-			self._get_server_for_command(servid).do_query("POST", "/ajax/memcached_namespaces/" + namespace.uuid, namespace.to_json())
-		elif type(namespace) == DummyNamespace:
-			assert self.dummy_namespaces[namespace.uuid] is namespace
-			self._get_server_for_command(servid).do_query("POST", "/ajax/dummy_namespaces/" + namespace.uuid, namespace.to_json())
-		time.sleep(0.2) # Give some time for the changes to hit the rest of the cluster
-		self.update_cluster_data()
-		return namespace
-
-	# Add a memcached namespace through the given uuid of a machine in the cluster
-	def add_memcached_namespace(self, servid = None):
-		info = self._get_server_for_command(servid).do_query("POST", "/ajax/memcached_namespaces/new", { })
-		time.sleep(0.2) # Give some time for the changes to hit the rest of the cluster
-		assert len(info) is 1
-		info = next(info.iteritems())
-		namespace = MemcachedNamespace(info[0], info[1])
-		self.memcached_namespaces[namespace.uuid] = namespace
-		self.update_cluster_data()
-		return namespace
+	def compute_port(self, namespace, machine):
+		namespace = self.find_namespace(namespace)
+		machine = self.find_machine(machine)
+		return namespace.port + machine.port_offset
 
 	def _pull_cluster_data(self, cluster_data, local_data, data_type):
 		num_uuids = 0

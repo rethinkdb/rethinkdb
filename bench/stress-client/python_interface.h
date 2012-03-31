@@ -7,17 +7,17 @@ extern "C" {
     protocol_t *protocol_create(const char *server_str);
     void protocol_destroy(protocol_t *);
 
-    struct op_t;
-    void op_destroy(op_t *op);
-    void op_lock(op_t *op);
-    void op_poll(op_t *op, int *queries_out, float *worstlatency_out, int *samples_count_inout, float *samples_out);
-    void op_reset(op_t *op);
-    void op_unlock(op_t *op);
+    struct op_generator_t;
+    void op_generator_destroy(op_generator_t *op);
+    void op_generator_lock(op_generator_t *op);
+    void op_generator_poll(op_generator_t *op, int *queries_out, float *worstlatency_out, int *samples_count_inout, float *samples_out);
+    void op_generator_reset(op_generator_t *op);
+    void op_generator_unlock(op_generator_t *op);
 
     struct client_t;
     client_t *client_create();
     void client_destroy(client_t *client);
-    void client_add_op(client_t *client, int freq, op_t *op);
+    void client_add_op(client_t *client, int freq, op_generator_t *op);
     void client_start(client_t *client);
     void client_stop(client_t *client);
 
@@ -36,14 +36,14 @@ extern "C" {
     struct seed_chooser_t;
     void seed_chooser_destroy(seed_chooser_t *sch);
 
-    op_t *op_create_read(seed_key_generator_t *skgen, seed_chooser_t *sch, protocol_t *proto, int batchfactor_min, int batchfactor_max);
-    op_t *op_create_insert(seed_key_generator_t *skgen, seed_chooser_t *sch, value_watcher_t *vw, protocol_t *proto, int size_min, int size_max);
-    op_t *op_create_update(seed_key_generator_t *skgen, seed_chooser_t *sch, value_watcher_t *vw, protocol_t *proto, int size_min, int size_max);
-    op_t *op_create_delete(seed_key_generator_t *skgen, seed_chooser_t *sch, value_watcher_t *vw, protocol_t *proto);
-    op_t *op_create_append_prepend(seed_key_generator_t *skgen, seed_chooser_t *sch, value_watcher_t *vw, protocol_t *proto, int is_append, int size_min, int size_max);
+    op_generator_t *op_generator_create_read(int, seed_key_generator_t *skgen, seed_chooser_t *sch, protocol_t *proto, int batchfactor_min, int batchfactor_max);
+    op_generator_t *op_generator_create_insert(int, seed_key_generator_t *skgen, seed_chooser_t *sch, value_watcher_t *vw, protocol_t *proto, int size_min, int size_max);
+    op_generator_t *op_generator_create_update(int, seed_key_generator_t *skgen, seed_chooser_t *sch, value_watcher_t *vw, protocol_t *proto, int size_min, int size_max);
+    op_generator_t *op_generator_create_delete(int, seed_key_generator_t *skgen, seed_chooser_t *sch, value_watcher_t *vw, protocol_t *proto);
+    op_generator_t *op_generator_create_append_prepend(int, seed_key_generator_t *skgen, seed_chooser_t *sch, value_watcher_t *vw, protocol_t *proto, int is_append, int size_min, int size_max);
 
-    op_t *op_create_percentage_range_read(protocol_t *protocol, int percentage_min, int percentage_max, int limit_min, int limit_max, const char *prefix);
-    op_t *op_create_calibrated_range_read(existence_tracker_t *et, int model_factor, protocol_t *protocol, int rangesize_min, int rangesize_max, int limit_min, int limit_max, const char *prefix);
+    op_generator_t *op_generator_create_percentage_range_read(int, protocol_t *protocol, int percentage_min, int percentage_max, int limit_min, int limit_max, const char *prefix);
+    op_generator_t *op_generator_create_calibrated_range_read(int, existence_tracker_t *et, int model_factor, protocol_t *protocol, int rangesize_min, int rangesize_max, int limit_min, int limit_max, const char *prefix);
 
     struct consecutive_seed_model_t;
     consecutive_seed_model_t *consecutive_seed_model_create();
