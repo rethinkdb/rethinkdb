@@ -26,7 +26,7 @@
 /* Warning: It is very easy to accidentally introduce race conditions to linux_tcp_conn_t.
 Think carefully before changing read_internal(), perform_write(), or on_shutdown_*(). */
 
-static fd_t connect_to(const char *host, int port, int local_port) {
+fd_t connect_to(const char *host, int port, int local_port) {
 
     struct addrinfo *res;
 
@@ -88,7 +88,7 @@ linux_tcp_conn_t::linux_tcp_conn_t(const char *host, int port, int local_port) :
     current_write_buffer(get_write_buffer())
 { }
 
-static fd_t connect_to(const ip_address_t &host, int port, int local_port) {
+fd_t connect_to(const ip_address_t &host, int port, int local_port) {
 
     scoped_fd_t sock;
     sock.reset(socket(AF_INET, SOCK_STREAM, 0));
