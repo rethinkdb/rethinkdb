@@ -274,16 +274,19 @@ class BackboneCluster extends Backbone.Router
     resolve_issues: ->
         log_router '/resolve_issues'
         clear_modals()
+        $('ul.nav li').removeClass('active')
         @$container.html @resolve_issues_view.render().el
 
     events: ->
         log_router '/events'
         clear_modals()
+        $('ul.nav li').removeClass('active')
         @$container.html @events_view.render().el
 
     namespace: (id) ->
         log_router '/namespaces/' + id
         clear_modals()
+        $('ul.nav li').removeClass('active')
 
         # Helper function to build the namespace view
         build_namespace_view = (namespace) =>
@@ -299,6 +302,7 @@ class BackboneCluster extends Backbone.Router
     datacenter: (id) ->
         log_router '/datacenters/' + id
         clear_modals()
+        $('ul.nav li').removeClass('active')
 
         # Helper function to build the datacenter view
         build_datacenter_view = (datacenter) =>
@@ -315,6 +319,7 @@ class BackboneCluster extends Backbone.Router
     machine: (id) ->
         log_router '/machines/' + id
         clear_modals()
+        $('ul.nav li').removeClass('active')
 
         # Helper function to build the machine view
         build_machine_view = (machine) =>
