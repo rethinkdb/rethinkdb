@@ -12,6 +12,7 @@ class file_http_app_t;
 class semilattice_http_app_t;
 class directory_http_app_t;
 class issues_http_app_t;
+class stat_http_app_t;
 
 class administrative_http_server_manager_t {
 
@@ -30,6 +31,7 @@ private:
     boost::scoped_ptr<semilattice_http_app_t> semilattice_app;
     boost::scoped_ptr<directory_http_app_t> directory_app;
     boost::scoped_ptr<issues_http_app_t> issues_app;
+    boost::scoped_ptr<stat_http_app_t> stat_app;
     boost::scoped_ptr<routing_http_app_t> ajax_routing_app;
     boost::scoped_ptr<routing_http_app_t> root_routing_app;
     boost::scoped_ptr<http_server_t> server;

@@ -127,7 +127,7 @@ http_res_t riak_http_app_t::get_bucket(UNUSED const http_req_t &req) {
     }
     scoped_cJSON_t body(cJSON_CreateObject());
 
-    if (req.find_query_param("keys") == "true" || req.find_query_param("keys") == "stream") {
+    if (req.find_query_param("keys") == std::string("true") || req.find_query_param("keys") == std::string("stream")) {
         //add the keys array to the json
         cJSON *keys = cJSON_CreateArray();
 
@@ -149,7 +149,7 @@ http_res_t riak_http_app_t::get_bucket(UNUSED const http_req_t &req) {
         res.add_header_line("Link", boost::algorithm::join(links, ", "));
     }
 
-    if (req.find_header_line("props") != "false") {
+    if (req.find_header_line("props") != std::string("false")) {
         cJSON *props = cJSON_CreateObject();
         cJSON_AddItemToObject(body.get(), "props", props);
 
@@ -299,7 +299,7 @@ http_res_t riak_http_app_t::fetch_object(const http_req_t &req) {
     object_t obj;
     if (req.has_header_line("Range")) {
         //Only a specific range of bytes has been requested
-        std::string range = req.find_header_line("Range");
+        std::string range = req.find_header_line("Range").get();
 
         boost::xpressive::sregex range_regex = boost::xpressive::sregex::compile("^bytes=(\\d+)-(\\d+)$");
         boost::xpressive::smatch what;
@@ -360,7 +360,7 @@ http_res_t riak_http_app_t::store_object(const http_req_t &req) {
     object_t obj; //the obj we'll be submitting
 
     //Parse the links
-    std::string links = req.find_header_line("Link");
+    std::string links = req.find_header_line("Link").get_value_or("");
     std::string::iterator links_iter = links.begin();
     if (!links.empty() && !parse(links_iter, links.end(), link_parser_t<std::string::iterator>(), obj.links)) {
         // parsing the links failed
@@ -371,7 +371,7 @@ http_res_t riak_http_app_t::store_object(const http_req_t &req) {
     obj.resize_content(req.body.size());
     memcpy(obj.content.get(), req.body.data(), req.body.size());
 
-    obj.content_type = req.find_header_line("Content-Type");
+    obj.content_type = req.find_header_line("Content-Type").get_value_or("");
 
     if (obj.content_type == "") {
         //must set a content type
@@ -379,8 +379,8 @@ http_res_t riak_http_app_t::store_object(const http_req_t &req) {
         return res;
     }
 
-    if (req.find_query_param("returnbody") == "true") {
-        res.set_body(req.find_header_line("Content-Type"), req.body);
+    if (req.find_query_param("returnbody") == std::string("true")) {
+        res.set_body(req.find_header_line("Content-Type").get_value_or(""), req.body);
         res.code = 200;
     } else {
         res.code = 204;

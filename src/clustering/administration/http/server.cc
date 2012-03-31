@@ -1,5 +1,6 @@
 #include "clustering/administration/http/directory_app.hpp"
 #include "clustering/administration/http/issues_app.hpp"
+#include "clustering/administration/http/stat_app.hpp"
 #include "clustering/administration/http/semilattice_app.hpp"
 #include "clustering/administration/http/server.hpp"
 #include "http/file_app.hpp"
@@ -41,14 +42,14 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     file_app.reset(new file_http_app_t(white_list, path));
 
     semilattice_app.reset(new semilattice_http_app_t(_semilattice_metadata, _directory_metadata, _us));
-
     directory_app.reset(new directory_http_app_t(_directory_metadata));
-
     issues_app.reset(new issues_http_app_t(_issue_tracker));
+    stat_app.reset(new stat_http_app_t());
 
     std::map<std::string, http_app_t *> ajax_routes;
     ajax_routes["directory"] = directory_app.get();
     ajax_routes["issues"] = issues_app.get();
+    ajax_routes["stat"] = stat_app.get();
     ajax_routing_app.reset(new routing_http_app_t(semilattice_app.get(), ajax_routes));
 
     std::map<std::string, http_app_t *> root_routes;

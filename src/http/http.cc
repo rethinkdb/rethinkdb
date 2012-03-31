@@ -9,7 +9,6 @@
 #include "logger.hpp"
 
 static const char *resource_parts_sep_char = "/";
-
 static boost::char_separator<char> resource_parts_sep(resource_parts_sep_char, "", boost::keep_empty_tokens);
 
 http_req_t::resource_t::resource_t() {
@@ -91,20 +90,22 @@ http_req_t::http_req_t(const http_req_t &from, const resource_t::iterator& resou
       method(from.method), query_params(from.query_params), version(from.version), header_lines(from.header_lines), body(from.body) {
 }
 
-std::string http_req_t::find_query_param(const std::string& key) const {
+boost::optional<std::string> http_req_t::find_query_param(const std::string& key) const {
     //TODO this is inefficient we should actually load it all into a map
     for (std::vector<query_parameter_t>::const_iterator it = query_params.begin(); it != query_params.end(); it++) {
-        if (it->key == key) return it->val;
+        if (it->key == key)
+            return boost::optional<std::string>(it->val);
     }
-    return std::string("");
+    return boost::none;
 }
 
-std::string http_req_t::find_header_line(const std::string& key) const {
+boost::optional<std::string> http_req_t::find_header_line(const std::string& key) const {
     //TODO this is inefficient we should actually load it all into a map
     for (std::vector<header_line_t>::const_iterator it = header_lines.begin(); it != header_lines.end(); it++) {
-        if (it->key == key) return it->val;
+        if (it->key == key)
+            return boost::optional<std::string>(it->val);
     }
-    return std::string("");
+    return boost::none;
 }
 
 bool http_req_t::has_header_line(const std::string& key) const {
