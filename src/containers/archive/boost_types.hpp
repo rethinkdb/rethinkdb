@@ -97,6 +97,7 @@ ARCHIVE_CLASS_DECL(1, 2);
 template <class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15, class T16, class T17, class T18, class T19, class T20>
 write_message_t &operator<<(write_message_t &msg, const boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> &x) {
     archive_nonsense::v_1_t<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> visitor;
+    rassert(sizeof(visitor) == sizeof(write_message_t *));
 
     visitor.msg = &msg;
 
