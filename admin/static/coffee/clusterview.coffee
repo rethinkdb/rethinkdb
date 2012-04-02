@@ -275,7 +275,34 @@ module 'ClusterView', ->
 
         initialize: ->
             log_initial '(initializing) list view: datacenter'
+            # Any of these models may affect the view, so rerender
+            directory.on 'all', =>
+                @render()
+            machines.on 'all', =>
+                @render()
+            datacenters.on 'all', =>
+                @render()
             super @template
+
+        json_for_template: =>
+            stuff = super()
+
+            try
+                # total number of machines in this datacenter
+                stuff.total = (_.filter machines.models, (m) => m.get('datacenter_uuid') == @model.get('id')).length
+                # real number of machines in this datacenter
+                stuff.reachable = (_.filter directory.models, (m) => machines.get(m.get('id')).get('datacenter_uuid') == @model.get('id')).length
+                if(stuff.reachable > 0)
+                    stuff.status = 'Live'
+                else
+                    stuff.status = 'Down'
+
+            catch err
+                stuff.total = 'N/A'
+                stuff.reachable = 'N/A'
+                stuff.status = 'N/A'
+
+            return stuff
 
     # Machine list element
     class @MachineListElement extends @AbstractListElement
@@ -284,27 +311,29 @@ module 'ClusterView', ->
         initialize: ->
             log_initial '(initializing) list view: machine'
 
-            # Sparkline for CPU
-            @cpu_sparkline =
-                data : []
-                total_points: 30
-                update_interval: 750
-            @cpu_sparkline.data[i] = 0 for i in [0...@cpu_sparkline.total_points]
+            directory.on 'all', =>
+                @render()
 
             # Load abstract list element view with the machine template
             super @template
-            setInterval @update_sparklines, @cpu_sparkline.update_interval
-
-        # Update the data and render a new sparkline for this view
-        update_sparklines: =>
-            @cpu_sparkline.data = @cpu_sparkline.data.slice(1)
-            @cpu_sparkline.data.push @model.get('cpu')
-            $('.cpu-graph', @el).sparkline(@cpu_sparkline.data)
 
         json_for_template: =>
             stuff = super()
+            # status
+            stuff.status = "Unreachable"
+            for m in directory.models
+                if m.get('id') == @model.get('id')
+                    stuff.status = "Reachable"
+
+            # ip
+            stuff.ip = "TBD"
+            # grab datacenter name
             if @model.get('datacenter_uuid')
-                stuff.datacenter_name = datacenters.find((d) => d.get('id') == @model.get('datacenter_uuid')).get('name')
+                # We need this in case the server disconnects/reconnects
+                try
+                    stuff.datacenter_name = datacenters.find((d) => d.get('id') == @model.get('datacenter_uuid')).get('name')
+                catch err
+                    stuff.datacenter_name = 'N/A'
             else
                 stuff.datacenter_name = "Unassigned"
             return stuff

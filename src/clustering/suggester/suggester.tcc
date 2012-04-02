@@ -83,7 +83,8 @@ std::map<machine_id_t, typename blueprint_details::role_t> suggest_blueprint_for
         const std::map<datacenter_id_t, int> &datacenter_affinities,
         const typename protocol_t::region_t &shard,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
-        const std::set<machine_id_t> &pinnings) {
+        const std::set<machine_id_t> &primary_pinnings,
+        const std::set<machine_id_t> &secondary_pinnings) {
 
     std::map<machine_id_t, typename blueprint_details::role_t> sub_blueprint;
 
@@ -98,8 +99,12 @@ std::map<machine_id_t, typename blueprint_details::role_t> suggest_blueprint_for
                 cost = 3.0;
             }
 
-            if (!std_contains(pinnings, it->first)) {
-                cost += 4.0;
+            if (!std_contains(primary_pinnings, it->first)) {
+                if (std_contains(secondary_pinnings, it->first)) {
+                    cost += 5.0;
+                } else {
+                    cost += 4.0;
+                }
             }
 
             primary_candidates.insert(std::make_pair(cost, it->first));
@@ -120,7 +125,7 @@ std::map<machine_id_t, typename blueprint_details::role_t> suggest_blueprint_for
                     cost = 3.0;
                 }
 
-                if (!std_contains(pinnings, it->first)) {
+                if (!std_contains(secondary_pinnings, it->first)) {
                     cost += 4.0;
                 }
 
@@ -150,24 +155,35 @@ persistable_blueprint_t<protocol_t> suggest_blueprint(
         const std::map<datacenter_id_t, int> &datacenter_affinities,
         const std::set<typename protocol_t::region_t> &shards,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
-        const region_map_t<protocol_t, std::set<machine_id_t> > &pinnings) {
+        const region_map_t<protocol_t, machine_id_t> &primary_pinnings,
+        const region_map_t<protocol_t, std::set<machine_id_t> > &secondary_pinnings) {
 
-    typedef region_map_t<protocol_t, std::set<machine_id_t> > pinnings_map_t;
+    typedef region_map_t<protocol_t, machine_id_t> primary_pinnings_map_t;
+    typedef region_map_t<protocol_t, std::set<machine_id_t> > secondary_pinnings_map_t;
 
     persistable_blueprint_t<protocol_t> blueprint;
     for (typename std::set<typename protocol_t::region_t>::const_iterator it = shards.begin();
             it != shards.end(); it++) {
-        std::set<machine_id_t> machines_shard_is_pinned_to;
-        pinnings_map_t masked_map = pinnings.mask(*it);
+        std::set<machine_id_t> machines_shard_primary_is_pinned_to;
+        primary_pinnings_map_t primary_masked_map = primary_pinnings.mask(*it);
 
-        for (typename pinnings_map_t::iterator pit  = masked_map.begin();
-                                               pit != masked_map.end();
-                                               ++pit) {
-            machines_shard_is_pinned_to.insert(pit->second.begin(), pit->second.end());
+        for (typename primary_pinnings_map_t::iterator pit  = primary_masked_map.begin();
+                                                       pit != primary_masked_map.end();
+                                                       ++pit) {
+            machines_shard_primary_is_pinned_to.insert(pit->second);
+        }
+
+        std::set<machine_id_t> machines_shard_secondary_is_pinned_to;
+        secondary_pinnings_map_t secondary_masked_map = secondary_pinnings.mask(*it);
+
+        for (typename secondary_pinnings_map_t::iterator pit  = secondary_masked_map.begin();
+                                                         pit != secondary_masked_map.end();
+                                                         ++pit) {
+            machines_shard_secondary_is_pinned_to.insert(pit->second.begin(), pit->second.end());
         }
 
         std::map<machine_id_t, typename blueprint_details::role_t> shard_blueprint =
-            suggest_blueprint_for_shard(directory, primary_datacenter, datacenter_affinities, *it, machine_data_centers, machines_shard_is_pinned_to);
+            suggest_blueprint_for_shard(directory, primary_datacenter, datacenter_affinities, *it, machine_data_centers, machines_shard_primary_is_pinned_to, machines_shard_secondary_is_pinned_to);
         for (typename std::map<machine_id_t, typename blueprint_details::role_t>::iterator jt = shard_blueprint.begin();
                 jt != shard_blueprint.end(); jt++) {
             blueprint.machines_roles[jt->first][*it] = jt->second;

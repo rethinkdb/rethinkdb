@@ -17,8 +17,8 @@ std::string link_to_string(link_t const &link) {
     res += "</riak/";
     res += link.bucket;
     if (link.key.size() > 0) {
-	res += "/";
-	res += link.key;
+        res += "/";
+        res += link.key;
     }
 
     res += ">;";
@@ -33,11 +33,7 @@ riak_http_app_t::riak_http_app_t(store_manager_t<std::list<std::string> > *)
 { }
 
 http_res_t riak_http_app_t::handle(const http_req_t &req) {
-    //setup a tokenizer
-    boost::char_separator<char> sep("/");
-    tokenizer tokens(req.resource, sep);
-
-    tok_iterator it = tokens.begin(), end = tokens.end();
+    http_req_t::resource_t::iterator it = req.resource.begin(), end = req.resource.end();
 
     if (it == end) {
     } else if (*it == "riak") { 
@@ -115,9 +111,7 @@ http_res_t riak_http_app_t::list_buckets(const http_req_t &) {
 }
 
 http_res_t riak_http_app_t::get_bucket(UNUSED const http_req_t &req) {
-    boost::char_separator<char> sep("/");
-    tokenizer tokens(req.resource, sep);
-    tok_iterator url_it = tokens.begin(), url_end = tokens.end();
+    http_req_t::resource_t::iterator url_it = req.resource.begin(), url_end = req.resource.end();
     rassert(url_it != url_end, "The first path compenent in the resource should be riak");
     url_it++;
     rassert(url_it != url_end, "This function should only be called if there's a bucket specified in the url");
@@ -133,7 +127,7 @@ http_res_t riak_http_app_t::get_bucket(UNUSED const http_req_t &req) {
     }
     scoped_cJSON_t body(cJSON_CreateObject());
 
-    if (req.find_query_param("keys") == "true" || req.find_query_param("keys") == "stream") {
+    if (req.find_query_param("keys") == std::string("true") || req.find_query_param("keys") == std::string("stream")) {
         //add the keys array to the json
         cJSON *keys = cJSON_CreateArray();
 
@@ -155,7 +149,7 @@ http_res_t riak_http_app_t::get_bucket(UNUSED const http_req_t &req) {
         res.add_header_line("Link", boost::algorithm::join(links, ", "));
     }
 
-    if (req.find_header_line("props") != "false") {
+    if (req.find_header_line("props") != std::string("false")) {
         cJSON *props = cJSON_CreateObject();
         cJSON_AddItemToObject(body.get(), "props", props);
 
@@ -197,9 +191,7 @@ http_res_t riak_http_app_t::get_bucket(UNUSED const http_req_t &req) {
 }
 
 http_res_t riak_http_app_t::set_bucket(UNUSED const http_req_t &req) {
-    //boost::char_separator<char> sep("/");
-    //tokenizer tokens(req.resource, sep);
-    //tok_iterator url_it = tokens.begin(), url_end = tokens.end();
+    //http_req_t::resource_t::iterator url_it = req.resource.begin(), url_end = req.resource.end();
     //rassert(url_it != url_end, "The first path compenent in the resource should be riak");
     //url_it++; //get past the /riak
 
@@ -292,9 +284,7 @@ http_res_t riak_http_app_t::set_bucket(UNUSED const http_req_t &req) {
 
 http_res_t riak_http_app_t::fetch_object(const http_req_t &req) {
     //TODO this doesn't handle conditional request sementics
-    boost::char_separator<char> sep("/");
-    tokenizer tokens(req.resource, sep);
-    tok_iterator url_it = tokens.begin(), url_end = tokens.end();
+    http_req_t::resource_t::iterator url_it = req.resource.begin(), url_end = req.resource.end();
     rassert(url_it != url_end, "The first path compenent in the resource should be riak");
     url_it++; //get past the /riak
 
@@ -309,7 +299,7 @@ http_res_t riak_http_app_t::fetch_object(const http_req_t &req) {
     object_t obj;
     if (req.has_header_line("Range")) {
         //Only a specific range of bytes has been requested
-        std::string range = req.find_header_line("Range");
+        std::string range = req.find_header_line("Range").get();
 
         boost::xpressive::sregex range_regex = boost::xpressive::sregex::compile("^bytes=(\\d+)-(\\d+)$");
         boost::xpressive::smatch what;
@@ -356,9 +346,7 @@ http_res_t riak_http_app_t::fetch_object(const http_req_t &req) {
 }
 
 http_res_t riak_http_app_t::store_object(const http_req_t &req) {
-    boost::char_separator<char> sep("/");
-    tokenizer tokens(req.resource, sep);
-    tok_iterator url_it = tokens.begin(), url_end = tokens.end();
+    http_req_t::resource_t::iterator url_it = req.resource.begin(), url_end = req.resource.end();
     rassert(url_it != url_end, "The first path compenent in the resource should be riak");
     url_it++; //get past the /riak
 
@@ -372,7 +360,7 @@ http_res_t riak_http_app_t::store_object(const http_req_t &req) {
     object_t obj; //the obj we'll be submitting
 
     //Parse the links
-    std::string links = req.find_header_line("Link");
+    std::string links = req.find_header_line("Link").get_value_or("");
     std::string::iterator links_iter = links.begin();
     if (!links.empty() && !parse(links_iter, links.end(), link_parser_t<std::string::iterator>(), obj.links)) {
         // parsing the links failed
@@ -383,7 +371,7 @@ http_res_t riak_http_app_t::store_object(const http_req_t &req) {
     obj.resize_content(req.body.size());
     memcpy(obj.content.get(), req.body.data(), req.body.size());
 
-    obj.content_type = req.find_header_line("Content-Type");
+    obj.content_type = req.find_header_line("Content-Type").get_value_or("");
 
     if (obj.content_type == "") {
         //must set a content type
@@ -391,8 +379,8 @@ http_res_t riak_http_app_t::store_object(const http_req_t &req) {
         return res;
     }
 
-    if (req.find_query_param("returnbody") == "true") {
-        res.set_body(req.find_header_line("Content-Type"), req.body);
+    if (req.find_query_param("returnbody") == std::string("true")) {
+        res.set_body(req.find_header_line("Content-Type").get_value_or(""), req.body);
         res.code = 200;
     } else {
         res.code = 204;
@@ -416,9 +404,7 @@ http_res_t riak_http_app_t::store_object(const http_req_t &req) {
 }
 
 http_res_t riak_http_app_t::delete_object(const http_req_t &req) {
-    boost::char_separator<char> sep("/");
-    tokenizer tokens(req.resource, sep);
-    tok_iterator url_it = tokens.begin(), url_end = tokens.end();
+    http_req_t::resource_t::iterator url_it = req.resource.begin(), url_end = req.resource.end();
     rassert(url_it != url_end, "The first path compenent in the resource should be riak");
     url_it++; //get past the /riak
 
@@ -446,9 +432,7 @@ http_res_t riak_http_app_t::delete_object(const http_req_t &req) {
 }
 
 http_res_t riak_http_app_t::link_walk(UNUSED const http_req_t &req) {
-    //boost::char_separator<char> sep("/");
-    //tokenizer tokens(req.resource, sep);
-    //tok_iterator url_it = tokens.begin(), url_end = tokens.end();
+    //http_req_t::resource_t::iterator url_it = req.resource.begin(), url_end = req.resource.end();
 
     //rassert(*url_it++ == "riak");
 
@@ -574,9 +558,7 @@ http_res_t riak_http_app_t::luwak_info(UNUSED const http_req_t &req) {
 }
 
 http_res_t riak_http_app_t::luwak_fetch(const http_req_t &req) {
-    boost::char_separator<char> sep("/");
-    tokenizer tokens(req.resource, sep);
-    tok_iterator url_it = tokens.begin(), url_end = tokens.end();
+    http_req_t::resource_t::iterator url_it = req.resource.begin(), url_end = req.resource.end();
 
     http_res_t res;
 
@@ -602,9 +584,7 @@ http_res_t riak_http_app_t::luwak_fetch(const http_req_t &req) {
 }
 
 http_res_t riak_http_app_t::luwak_store(const http_req_t &req) {
-    boost::char_separator<char> sep("/");
-    tokenizer tokens(req.resource, sep);
-    tok_iterator url_it = tokens.begin(), url_end = tokens.end();
+    http_req_t::resource_t::iterator url_it = req.resource.begin(), url_end = req.resource.end();
 
     http_res_t res;
     return res;

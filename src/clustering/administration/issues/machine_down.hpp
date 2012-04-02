@@ -19,7 +19,7 @@ public:
         json.critical = true;
         json.description = "Machine " + uuid_to_str(machine_id) + " is inaccessible.";
         json.type.issue_type = MACHINE_DOWN;
-        json.time = get_ticks();
+        json.time = get_secs();
 
         cJSON *res = render_as_json(&json, 0);
         cJSON_AddItemToObject(res, "victim", render_as_json(&machine_id, 0));

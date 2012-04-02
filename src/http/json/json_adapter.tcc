@@ -161,6 +161,71 @@ json_temporary_adapter_t<T, ctx_t>::json_temporary_adapter_t(const T &_t)
     : json_read_only_adapter_t<T, ctx_t>(&t), t(_t)
 { }
 
+//implementation for json_combiner_adapter_t
+template <class ctx_t>
+json_combiner_adapter_t<ctx_t>::json_combiner_adapter_t()
+{ }
+
+template <class ctx_t>
+void json_combiner_adapter_t<ctx_t>::add_adapter(std::string key, boost::shared_ptr<json_adapter_if_t<ctx_t> > adapter) {
+    sub_adapters[key] = adapter;
+}
+
+template <class ctx_t>
+cJSON *json_combiner_adapter_t<ctx_t>::render_impl(const ctx_t &) {
+    cJSON *res = cJSON_CreateObject();
+
+    for (typename json_adapter_map_t::iterator it  = sub_adapters.begin();
+                                               it != sub_adapters.end();
+                                               ++it) {
+        cJSON_AddItemToObject(res, it->first.c_str(), it->second);
+    }
+
+    return res;
+}
+
+template <class ctx_t>
+void json_combiner_adapter_t<ctx_t>::apply_impl(cJSON *change, const ctx_t &ctx) {
+    json_object_iterator_t it = get_object_it(change);
+    cJSON *hd;
+
+    while ((hd = it.next())) {
+        if (!std_contains(sub_adapters, std::string(hd->string))) {
+            throw schema_mismatch_exc_t(strprintf("Didn't find a sub adapter matching the field: %s\n", hd->string));
+        }
+
+        sub_adapters[hd->string]->apply(hd, ctx);
+    }
+}
+
+template <class ctx_t>
+void json_combiner_adapter_t<ctx_t>::erase_impl(const ctx_t &ctx) {
+    for (typename json_adapter_map_t::iterator it  = sub_adapters.begin();
+                                               it != sub_adapters.end();
+                                               ++it) {
+        it->second->erase(ctx);
+    }
+}
+
+template <class ctx_t>
+void json_combiner_adapter_t<ctx_t>::reset_impl(const ctx_t &ctx) {
+    for (typename json_adapter_map_t::iterator it  = sub_adapters.begin();
+                                               it != sub_adapters.end();
+                                               ++it) {
+        it->second->reset(ctx);
+    }
+}
+
+template <class ctx_t>
+typename json_combiner_adapter_t<ctx_t>::json_adapter_map_t json_combiner_adapter_t<ctx_t>::get_subfields_impl(const ctx_t &) {
+    return sub_adapters;
+}
+
+template <class ctx_t>
+boost::shared_ptr<subfield_change_functor_t<ctx_t> > json_combiner_adapter_t<ctx_t>::get_change_callback() {
+    return boost::shared_ptr<subfield_change_functor_t<ctx_t> >(new noop_subfield_change_functor_t<ctx_t>());
+}
+
 //implementation for map_inserter_t
 template <class container_t, class ctx_t>
 json_map_inserter_t<container_t, ctx_t>::json_map_inserter_t(container_t *_target, gen_function_t _generator, value_t _initial_value) 
