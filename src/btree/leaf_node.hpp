@@ -1380,7 +1380,7 @@ void remove(value_sizer_t<V> *sizer, leaf_node_t *node, const btree_key_t *key, 
 template <class V>
 void erase_presence(value_sizer_t<V> *sizer, leaf_node_t *node, const btree_key_t *key, UNUSED key_modification_proof_t km_proof) {
     // TODO: Maybe we don't want key_modification_proof_t for this function.
-    rassert(!km_proof.is_fake());
+    //XXX according to sam it's safe to remove this assert. To be fair we only trip this from a call siterassert(!km_proof.is_fake());
     int index;
     bool found = find_key(node, key, &index);
 
