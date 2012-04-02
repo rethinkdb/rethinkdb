@@ -80,10 +80,13 @@ private:
     };
 
     // Used to overcome boost::bind parameter limitations.
+    template<class fifo_enforcer_token_type>
     struct regions_and_master_accesses_t {
         std::vector<typename protocol_t::region_t> regions;
         std::vector<boost::shared_ptr<resource_access_t<master_business_card_t<protocol_t> > > > master_accesses;
         std::vector<master_id_t> master_ids;
+        std::vector<fifo_enforcer_token_type> enforcement_tokens;
+        std::vector<bool> enforcement_token_found;  // a ghetto hack, i know.  send your prayers to valgrind.
     };
 
 
@@ -98,13 +101,26 @@ private:
     {
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
-        regions_and_master_accesses_t regions_and_master_accesses;
+        regions_and_master_accesses_t<fifo_enforcer_token_type> regions_and_master_accesses;
         cover(op.get_region(),
               &regions_and_master_accesses.regions,
               &regions_and_master_accesses.master_accesses,
               &regions_and_master_accesses.master_ids);
         int regions_size = regions_and_master_accesses.regions.size();
         rassert(regions_and_master_accesses.regions.size() == regions_and_master_accesses.master_accesses.size());
+
+        // Create fifo enforcement tokens to be sent over the wire.
+        for (int i = 0, e = regions_and_master_accesses.master_ids.size(); i < e; ++i) {
+            boost::ptr_map<master_id_t, fifo_enforcer_source_t>::iterator enf_it = fifo_enforcers.find(regions_and_master_accesses.master_ids[i]);
+            if (enf_it == fifo_enforcers.end()) {
+                regions_and_master_accesses.enforcement_tokens.push_back(fifo_enforcer_token_type());
+                regions_and_master_accesses.enforcement_token_found.push_back(false);
+            } else {
+                fifo_enforcer_source_t *fifo_source = enf_it->second;
+                regions_and_master_accesses.enforcement_tokens.push_back(get_fifo_enforcer_token<fifo_enforcer_token_type>(fifo_source));
+                regions_and_master_accesses.enforcement_token_found.push_back(false);
+            }
+        }
 
         std::vector<boost::variant<op_response_type, std::string> > results_or_failures(regions_size);
         pmap(regions_size, boost::bind(&cluster_namespace_interface_t::generic_perform<op_type, fifo_enforcer_token_type, op_response_type>, this,
@@ -125,7 +141,7 @@ private:
     template<class op_type, class fifo_enforcer_token_type, class op_response_type>
     void generic_perform(
             mailbox_addr_t<void(namespace_interface_id_t, op_type, order_token_t, fifo_enforcer_token_type, mailbox_addr_t<void(boost::variant<op_response_type, std::string>)>)> master_business_card_t<protocol_t>::*mailbox_field,
-            const regions_and_master_accesses_t *regions_and_master_accesses,
+            const regions_and_master_accesses_t<fifo_enforcer_token_type> *regions_and_master_accesses,
             const op_type *operation,
             order_token_t order_token,
             std::vector<boost::variant<op_response_type, std::string> > *results_or_failures,
@@ -136,7 +152,8 @@ private:
         const std::vector<typename protocol_t::region_t> *regions = &regions_and_master_accesses->regions;
         const std::vector<boost::shared_ptr<resource_access_t<master_business_card_t<protocol_t> > > > *master_accesses
             = &regions_and_master_accesses->master_accesses;
-        const std::vector<master_id_t> *master_ids = &regions_and_master_accesses->master_ids;
+        const std::vector<fifo_enforcer_token_type> *enforcement_tokens = &regions_and_master_accesses->enforcement_tokens;
+        const std::vector<bool> *enforcement_token_found = &regions_and_master_accesses->enforcement_token_found;
 
         op_type shard = operation->shard((*regions)[i]);
         rassert(region_is_superset((*regions)[i], shard.get_region()));
@@ -151,17 +168,14 @@ private:
             mailbox_addr_t<void(namespace_interface_id_t, op_type, order_token_t, fifo_enforcer_token_type, mailbox_addr_t<void(boost::variant<op_response_type, std::string>)>)> query_address =
                 bcard.*mailbox_field;
 
-            master_id_t master_id = (*master_ids)[i];
-
-            boost::ptr_map<master_id_t, fifo_enforcer_source_t>::iterator enf_it = fifo_enforcers.find(master_id);
-            if (enf_it == fifo_enforcers.end()) {
+            if (!(*enforcement_token_found)[i]) {
                 throw resource_lost_exc_t();
             }
 
-            fifo_enforcer_source_t *fifo_source = enf_it->second;
+            fifo_enforcer_token_type enforcement_token = (*enforcement_tokens)[i];
 
             send(mailbox_manager, query_address,
-                 self_id, shard, order_token, get_fifo_enforcer_token<fifo_enforcer_token_type>(fifo_source), result_or_failure_mailbox.get_address());
+                 self_id, shard, order_token, enforcement_token, result_or_failure_mailbox.get_address());
 
             wait_any_t waiter(result_or_failure.get_ready_signal(), (*master_accesses)[i]->get_failed_signal());
             wait_interruptible(&waiter, interruptor);
