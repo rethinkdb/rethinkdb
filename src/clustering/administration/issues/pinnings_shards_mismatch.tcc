@@ -57,7 +57,6 @@ pinnings_shards_mismatch_issue_t<protocol_t> *pinnings_shards_mismatch_issue_t<p
 
 template <class protocol_t>
 std::list<clone_ptr_t<global_issue_t> > pinnings_shards_mismatch_issue_tracker_t<protocol_t>::get_issues() {
-    debugf("Getting issues\n");
     std::list<clone_ptr_t<global_issue_t> > res;
 
     typedef std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > > namespace_map_t;
@@ -106,7 +105,6 @@ NAMESPACE_HAS_ISSUE:
         ;
     }
 
-    debugf("Done getting issues\n");
     return res;
 }
 
