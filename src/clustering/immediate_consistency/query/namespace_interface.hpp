@@ -118,7 +118,7 @@ private:
             } else {
                 fifo_enforcer_source_t *fifo_source = enf_it->second;
                 info.enforcement_tokens.push_back(get_fifo_enforcer_token<fifo_enforcer_token_type>(fifo_source));
-                info.enforcement_token_found.push_back(false);
+                info.enforcement_token_found.push_back(true);
             }
         }
 
