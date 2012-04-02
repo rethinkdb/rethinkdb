@@ -1,11 +1,6 @@
 #include "errors.hpp"
-#include <boost/tokenizer.hpp>
-
 #include "http/routing_app.hpp"
 #include "stl_utils.hpp"
-
-typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-typedef tokenizer::iterator tok_iterator;
 
 routing_http_app_t::routing_http_app_t(http_app_t *_defaultroute, std::map<std::string, http_app_t *> _subroutes)
     : subroutes(_subroutes), defaultroute(_defaultroute)
@@ -28,12 +23,8 @@ void routing_http_app_t::add_route(const std::string& route, http_app_t *server)
 }
 
 http_res_t routing_http_app_t::handle(const http_req_t &req) {
-    //setup a tokenizer
-    boost::char_separator<char> sep("/");
-    tokenizer tokens(req.resource, sep);
-    tok_iterator it = tokens.begin();
-
-    if (it == tokens.end() || !std_contains(subroutes, *it)) {
+    http_req_t::resource_t::iterator it = req.resource.begin();
+    if (it == req.resource.end() || !std_contains(subroutes, *it)) {
         /* if we don't have a route for this, or no route was specified see if the default server knows anything about it */
         if (defaultroute) {
             return defaultroute->handle(req);
@@ -41,20 +32,8 @@ http_res_t routing_http_app_t::handle(const http_req_t &req) {
             return http_res_t(404);
         }
     } else {
-        http_req_t copy = req;
-
-        std::string route = *it;
-        it++;
-
-        copy.resource = "";
-
-        // FIXME: this is not very efficient. Split the request into parts once and then only work with parts in the rest of the code.
-        while(it != tokens.end()) {
-            copy.resource += "/";
-            copy.resource += *it;
-            it++;
-        }
-
-        return subroutes[route]->handle(copy);
+        std::string route(*it);
+        ++it;
+        return subroutes[route]->handle(http_req_t(req, it));
     }
 }

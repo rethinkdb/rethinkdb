@@ -88,6 +88,7 @@ void mock_buf_lock_t::touch_recency(repli_timestamp_t timestamp) {
 void mock_buf_lock_t::release() {
     internal_buf->lock.unlock();
     if (deleted) internal_buf->destroy();
+    acquired = false;
     delete this;
 }
 
@@ -101,14 +102,16 @@ mock_buf_lock_t::mock_buf_lock_t() :
     internal_buf(NULL),
     access(rwi_read),
     dirty(false),
-    deleted(false)
+    deleted(false),
+    acquired(false)
 { }
 
 mock_buf_lock_t::mock_buf_lock_t(mock_transaction_t *txn, block_id_t block_id, access_t mode, boost::function<void()> call_when_in_line) :
     internal_buf(txn->cache->bufs[block_id]),
     access(mode),
     dirty(false),
-    deleted(false)
+    deleted(false),
+    acquired(true)
 {
     assert_thread();
     rassert(mode != rwi_write || txn->access == rwi_write);
@@ -254,3 +257,25 @@ bool mock_cache_t::offer_read_ahead_buf(UNUSED block_id_t block_id, UNUSED void 
 bool mock_cache_t::contains_block(UNUSED block_id_t id) {
     return true;    // TODO (maybe) write a more sensible implementation
 }
+
+void mock_buf_lock_t::swap(mock_buf_lock_t &swapee) {
+    assert_thread();
+    swapee.assert_thread();
+    std::swap(internal_buf, swapee.internal_buf);
+    std::swap(access, swapee.access);
+    std::swap(dirty, swapee.dirty);
+    std::swap(deleted, swapee.deleted);
+    std::swap(acquired, swapee.acquired);
+#ifndef NDEBUG
+    std::swap(real_home_thread, swapee.real_home_thread);
+#endif
+}
+
+bool mock_buf_lock_t::is_acquired() const {
+    return acquired;
+}
+
+repli_timestamp_t mock_buf_lock_t::get_recency() const {
+    return internal_buf->subtree_recency;
+}
+

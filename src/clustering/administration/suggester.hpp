@@ -23,7 +23,7 @@ std::map<namespace_id_t, persistable_blueprint_t<protocol_t> > suggest_blueprint
         const clone_ptr_t<directory_rview_t<namespaces_directory_metadata_t<protocol_t> > > &reactor_directory_view,
         const clone_ptr_t<directory_rview_t<machine_id_t> > &machine_id_translation_table,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers)
-        THROWS_ONLY(cannot_satisfy_goals_exc_t, in_conflict_exc_t, missing_machine_exc_t);
+        THROWS_ONLY(missing_machine_exc_t);
 
 template<class protocol_t>
 void fill_in_blueprints_for_protocol(
@@ -32,7 +32,7 @@ void fill_in_blueprints_for_protocol(
         const clone_ptr_t<directory_rview_t<machine_id_t> > &machine_id_translation_table,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
         const machine_id_t &us)
-        THROWS_ONLY(cannot_satisfy_goals_exc_t, in_conflict_exc_t, missing_machine_exc_t);
+        THROWS_ONLY(missing_machine_exc_t);
 
 #include "clustering/administration/suggester.tcc"
 #endif

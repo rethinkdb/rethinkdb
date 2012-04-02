@@ -1,4 +1,4 @@
-#include "errors.hpp"
+#include "utils.hpp"
 #include <boost/bind.hpp>
 #include <boost/program_options.hpp>
 
@@ -66,7 +66,7 @@ std::vector<peer_address_t> look_up_peers_addresses(std::vector<host_and_port_t>
     return peers;
 }
 
-void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and_port_t> &joins, int port, int client_port, bool *result_out) {
+void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and_port_t> &joins, int port, int client_port, bool *result_out, std::string web_assets) {
 
     os_signal_cond_t c;
 
@@ -87,13 +87,13 @@ void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and
         return;
     }
 
-    *result_out = serve(filepath, look_up_peers_addresses(joins), port, client_port, persisted_machine_id, persisted_semilattice_metadata);
+    *result_out = serve(filepath, look_up_peers_addresses(joins), port, client_port, persisted_machine_id, persisted_semilattice_metadata, web_assets);
 }
 
 #ifndef NDEBUG
-void run_rethinkdb_porcelain(const std::string &filepath, const std::string &machine_name, int port_offset, const std::vector<host_and_port_t> &joins, int port, int client_port, bool *result_out) {
+void run_rethinkdb_porcelain(const std::string &filepath, const std::string &machine_name, int port_offset, const std::vector<host_and_port_t> &joins, int port, int client_port, bool *result_out, std::string web_assets) {
 #else
-void run_rethinkdb_porcelain(const std::string &filepath, const std::string &machine_name, const std::vector<host_and_port_t> &joins, int port, int client_port, bool *result_out) {
+void run_rethinkdb_porcelain(const std::string &filepath, const std::string &machine_name, const std::vector<host_and_port_t> &joins, int port, int client_port, bool *result_out, std::string web_assets) {
 #endif
 
     os_signal_cond_t c;
@@ -106,7 +106,7 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
         cluster_semilattice_metadata_t persisted_semilattice_metadata;
         metadata_persistence::read(filepath, &persisted_machine_id, &persisted_semilattice_metadata);
 
-        *result_out = serve(filepath, look_up_peers_addresses(joins), port, client_port, persisted_machine_id, persisted_semilattice_metadata);
+        *result_out = serve(filepath, look_up_peers_addresses(joins), port, client_port, persisted_machine_id, persisted_semilattice_metadata, web_assets);
 
     } else {
         printf("It does not already exist. Creating it...\n");
@@ -181,7 +181,7 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
 
         metadata_persistence::create(filepath, our_machine_id, semilattice_metadata);
 
-        *result_out = serve(filepath, look_up_peers_addresses(joins), port, client_port, our_machine_id, semilattice_metadata);
+        *result_out = serve(filepath, look_up_peers_addresses(joins), port, client_port, our_machine_id, semilattice_metadata, web_assets);
     }
 }
 
@@ -294,8 +294,12 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
     int client_port = 0;
 #endif
 
+    std::vector<std::string> web_path = parse_as_path(argv[0]);
+    web_path.pop_back();
+    web_path.push_back("web");
+
     bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_serve, filepath, joins, port, client_port, &result));
+    run_in_thread_pool(boost::bind(&run_rethinkdb_serve, filepath, joins, port, client_port, &result, render_as_path(web_path)));
 
     return result ? 0 : 1;
 }
@@ -321,11 +325,15 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
     int client_port = 0;
 #endif
 
+    std::vector<std::string> web_path = parse_as_path(argv[0]);
+    web_path.pop_back();
+    web_path.push_back("web");
+    
     bool result;
 #ifndef NDEBUG
-    run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain, filepath, machine_name, port_offset, joins, port, client_port, &result));
+    run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain, filepath, machine_name, port_offset, joins, port, client_port, &result, render_as_path(web_path)));
 #else
-    run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain, filepath, machine_name, joins, port, client_port, &result));
+    run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain, filepath, machine_name, joins, port, client_port, &result, render_as_path(web_path)));
 #endif
 
     return result ? 0 : 1;

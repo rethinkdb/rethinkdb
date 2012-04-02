@@ -1,5 +1,6 @@
 #include "clustering/administration/http/directory_app.hpp"
 #include "clustering/administration/http/issues_app.hpp"
+#include "clustering/administration/http/stat_app.hpp"
 #include "clustering/administration/http/semilattice_app.hpp"
 #include "clustering/administration/http/server.hpp"
 #include "http/file_app.hpp"
@@ -11,7 +12,8 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata, 
         clone_ptr_t<directory_rview_t<cluster_directory_metadata_t> > _directory_metadata,
         global_issue_tracker_t *_issue_tracker,
-        boost::uuids::uuid _us)
+        boost::uuids::uuid _us,
+        std::string path)
 {
     std::set<std::string> white_list;
     white_list.insert("/cluster.css");
@@ -37,17 +39,17 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/images/alert-icon_small.png");
     white_list.insert("/images/information-icon_small.png");
     white_list.insert("/index.html");
-    file_app.reset(new file_http_app_t(white_list, "../build/debug/web"));
+    file_app.reset(new file_http_app_t(white_list, path));
 
     semilattice_app.reset(new semilattice_http_app_t(_semilattice_metadata, _directory_metadata, _us));
-
     directory_app.reset(new directory_http_app_t(_directory_metadata));
-
     issues_app.reset(new issues_http_app_t(_issue_tracker));
+    stat_app.reset(new stat_http_app_t());
 
     std::map<std::string, http_app_t *> ajax_routes;
     ajax_routes["directory"] = directory_app.get();
     ajax_routes["issues"] = issues_app.get();
+    ajax_routes["stat"] = stat_app.get();
     ajax_routing_app.reset(new routing_http_app_t(semilattice_app.get(), ajax_routes));
 
     std::map<std::string, http_app_t *> root_routes;
