@@ -33,15 +33,22 @@ persistable_blueprint_t<protocol_t> suggest_blueprint_for_namespace(
 
     datacenter_id_t primary_datacenter =
         ns_goals.primary_datacenter.get();
+
     std::map<datacenter_id_t, int> datacenter_affinities =
         ns_goals.replica_affinities.get();
+
     std::set<typename protocol_t::region_t> shards =
         ns_goals.shards.get();
-    region_map_t<protocol_t, std::set<machine_id_t> > pinnings =
-        ns_goals.pinnings.get();
+
+    region_map_t<protocol_t, machine_id_t> primary_pinnings =
+        ns_goals.primary_pinnings.get();
+
+    region_map_t<protocol_t, std::set<machine_id_t> > secondary_pinnings =
+        ns_goals.secondary_pinnings.get();
 
     return suggest_blueprint(directory, primary_datacenter,
-        datacenter_affinities, shards, machine_data_centers, pinnings);
+        datacenter_affinities, shards, machine_data_centers, 
+        primary_pinnings, secondary_pinnings);
 }
 
 template<class protocol_t>
