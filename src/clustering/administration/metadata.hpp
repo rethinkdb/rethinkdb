@@ -94,43 +94,6 @@ void on_subfield_change(directory_echo_wrapper_t<T> *target, const ctx_t &ctx) {
     on_subfield_change(&target->internal, ctx);
 }
 
-// json adapter concept for reactor_business_card_t
-template <typename protocol_t,class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(reactor_business_card_t<protocol_t> *target, const ctx_t &ctx) {
-    typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
-    for (typename reactor_business_card_t<protocol_t>::activity_map_t::const_iterator i = target->activities.begin(); i != target->activities.end(); ++i) {
-        typename protocol_t::region_t key = i->second.first;
-        typename reactor_business_card_t<protocol_t>::activity_t val = i->second.second;
-
-        std::string key_str = get_string(render_as_json(&key, ctx));
-
-        std::string val_str;
-        {
-            std::stringstream val_stream(val_str, std::stringstream::out | std::stringstream::binary);
-            val_stream << val;
-        }
-
-        res[key_str] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_temporary_adapter_t<std::string, ctx_t>(val_str));
-    }
-    return res;
-}
-
-template <typename protocol_t,class ctx_t>
-cJSON *render_as_json(reactor_business_card_t<protocol_t> *target, const ctx_t &ctx) {
-    return render_as_directory(target, ctx);
-}
-
-template <typename protocol_t,class ctx_t>
-void apply_json_to(cJSON *, reactor_business_card_t<protocol_t> *, const ctx_t &) {
-    // FIXME?: this method exists to please the compiler
-}
-
-template <typename protocol_t,class ctx_t>
-void on_subfield_change(reactor_business_card_t<protocol_t> *, const ctx_t &) {
-    // FIXME?: this method exists to please the compiler
-}
-
-
 //  json adapter concept for cluster_directory_metadata_t
 template <class ctx_t>
 typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(cluster_directory_metadata_t *target, const ctx_t &) {
