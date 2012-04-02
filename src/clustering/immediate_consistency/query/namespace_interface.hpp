@@ -80,13 +80,10 @@ private:
     };
 
     // Used to overcome boost::bind parameter limitations.
-    template<class fifo_enforcer_token_type>
-    struct master_info_t {
+    struct regions_and_master_accesses_t {
         std::vector<typename protocol_t::region_t> regions;
         std::vector<boost::shared_ptr<resource_access_t<master_business_card_t<protocol_t> > > > master_accesses;
         std::vector<master_id_t> master_ids;
-        std::vector<fifo_enforcer_token_type> enforcement_tokens;
-        std::vector<bool> enforcement_token_found;  // a ghetto hack, i know.  send your prayers to valgrind.
     };
 
 
@@ -101,30 +98,17 @@ private:
     {
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
-        master_info_t<fifo_enforcer_token_type> info;
+        regions_and_master_accesses_t regions_and_master_accesses;
         cover(op.get_region(),
-              &info.regions,
-              &info.master_accesses,
-              &info.master_ids);
-        int regions_size = info.regions.size();
-        rassert(info.regions.size() == info.master_accesses.size());
-
-        // Create fifo enforcement tokens to be sent over the wire.
-        for (int i = 0, e = info.master_ids.size(); i < e; ++i) {
-            boost::ptr_map<master_id_t, fifo_enforcer_source_t>::iterator enf_it = fifo_enforcers.find(info.master_ids[i]);
-            if (enf_it == fifo_enforcers.end()) {
-                info.enforcement_tokens.push_back(fifo_enforcer_token_type());
-                info.enforcement_token_found.push_back(false);
-            } else {
-                fifo_enforcer_source_t *fifo_source = enf_it->second;
-                info.enforcement_tokens.push_back(get_fifo_enforcer_token<fifo_enforcer_token_type>(fifo_source));
-                info.enforcement_token_found.push_back(true);
-            }
-        }
+              &regions_and_master_accesses.regions,
+              &regions_and_master_accesses.master_accesses,
+              &regions_and_master_accesses.master_ids);
+        int regions_size = regions_and_master_accesses.regions.size();
+        rassert(regions_and_master_accesses.regions.size() == regions_and_master_accesses.master_accesses.size());
 
         std::vector<boost::variant<op_response_type, std::string> > results_or_failures(regions_size);
         pmap(regions_size, boost::bind(&cluster_namespace_interface_t::generic_perform<op_type, fifo_enforcer_token_type, op_response_type>, this,
-                                       mailbox_field, &info, &op, order_token, &results_or_failures, _1, interruptor));
+                                       mailbox_field, &regions_and_master_accesses, &op, order_token, &results_or_failures, _1, interruptor));
 
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
@@ -141,7 +125,7 @@ private:
     template<class op_type, class fifo_enforcer_token_type, class op_response_type>
     void generic_perform(
             mailbox_addr_t<void(namespace_interface_id_t, op_type, order_token_t, fifo_enforcer_token_type, mailbox_addr_t<void(boost::variant<op_response_type, std::string>)>)> master_business_card_t<protocol_t>::*mailbox_field,
-            const master_info_t<fifo_enforcer_token_type> *info,
+            const regions_and_master_accesses_t *regions_and_master_accesses,
             const op_type *operation,
             order_token_t order_token,
             std::vector<boost::variant<op_response_type, std::string> > *results_or_failures,
@@ -149,33 +133,41 @@ private:
             signal_t *interruptor)
             THROWS_NOTHING
     {
-        op_type shard = operation->shard(info->regions[i]);
-        rassert(region_is_superset(info->regions[i], shard.get_region()));
+        const std::vector<typename protocol_t::region_t> *regions = &regions_and_master_accesses->regions;
+        const std::vector<boost::shared_ptr<resource_access_t<master_business_card_t<protocol_t> > > > *master_accesses
+            = &regions_and_master_accesses->master_accesses;
+        const std::vector<master_id_t> *master_ids = &regions_and_master_accesses->master_ids;
+
+        op_type shard = operation->shard((*regions)[i]);
+        rassert(region_is_superset((*regions)[i], shard.get_region()));
 
         try {
             promise_t<boost::variant<op_response_type, std::string> > result_or_failure;
             mailbox_t<void(boost::variant<op_response_type, std::string>)> result_or_failure_mailbox(
                 mailbox_manager, boost::bind(&promise_t<boost::variant<op_response_type, std::string> >::pulse, &result_or_failure, _1));
 
-            master_business_card_t<protocol_t> bcard = info->master_accesses[i]->access();
+            master_business_card_t<protocol_t> bcard = (*master_accesses)[i]->access();
 
             mailbox_addr_t<void(namespace_interface_id_t, op_type, order_token_t, fifo_enforcer_token_type, mailbox_addr_t<void(boost::variant<op_response_type, std::string>)>)> query_address =
                 bcard.*mailbox_field;
 
-            if (!info->enforcement_token_found[i]) {
+            master_id_t master_id = (*master_ids)[i];
+
+            boost::ptr_map<master_id_t, fifo_enforcer_source_t>::iterator enf_it = fifo_enforcers.find(master_id);
+            if (enf_it == fifo_enforcers.end()) {
                 throw resource_lost_exc_t();
             }
 
-            fifo_enforcer_token_type enforcement_token = info->enforcement_tokens[i];
+            fifo_enforcer_source_t *fifo_source = enf_it->second;
 
             send(mailbox_manager, query_address,
-                 self_id, shard, order_token, enforcement_token, result_or_failure_mailbox.get_address());
+                 self_id, shard, order_token, get_fifo_enforcer_token<fifo_enforcer_token_type>(fifo_source), result_or_failure_mailbox.get_address());
 
-            wait_any_t waiter(result_or_failure.get_ready_signal(), info->master_accesses[i]->get_failed_signal());
+            wait_any_t waiter(result_or_failure.get_ready_signal(), (*master_accesses)[i]->get_failed_signal());
             wait_interruptible(&waiter, interruptor);
 
             /* Throw an exception if the master went down */
-            info->master_accesses[i]->access();
+            (*master_accesses)[i]->access();
 
             (*results_or_failures)[i] = result_or_failure.get_value();
 

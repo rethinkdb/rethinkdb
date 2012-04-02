@@ -46,7 +46,7 @@ private:
 
 class fifo_enforcer_write_token_t {
 public:
-    fifo_enforcer_write_token_t() THROWS_NOTHING : timestamp(), num_preceding_reads(-1) { }
+    fifo_enforcer_write_token_t() THROWS_NOTHING { }
 private:
     friend class fifo_enforcer_source_t;
     friend class fifo_enforcer_sink_t;
