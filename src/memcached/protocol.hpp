@@ -27,16 +27,29 @@ namespace boost {
 namespace serialization {
 
 template<class Archive> void save(Archive &ar, const boost::intrusive_ptr<data_buffer_t> &buf, UNUSED const unsigned int version) {
-    int64_t sz = buf->size();
-    ar & sz;
-    ar.save_binary(buf.get()->buf(), buf.get()->size());
+    if (buf) {
+        bool exists = true;
+        ar << exists;
+        int64_t size = buf->size();
+        ar << size;
+        ar.save_binary(buf.get()->buf(), buf.get()->size());
+    } else {
+        bool exists = false;
+        ar << exists;
+    }
 }
 
 template<class Archive> void load(Archive &ar, boost::intrusive_ptr<data_buffer_t> &value, UNUSED const unsigned int version) {
-    int64_t size;
-    ar >> size;
-    value = data_buffer_t::create(size);
-    ar.load_binary(value->buf(), size);
+    bool exists;
+    ar >> exists;
+    if (exists) {
+        int64_t size;
+        ar >> size;
+        value = data_buffer_t::create(size);
+        ar.load_binary(value->buf(), size);
+    } else {
+        value.reset();
+    }
 }
 
 template<class Archive> void save(Archive &ar, rget_result_t &iter, UNUSED const unsigned int version) {
