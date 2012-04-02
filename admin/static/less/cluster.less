@@ -21,39 +21,39 @@
 
 .drop-shadow() {
     .box-shadow(0 1px 2px @grayLighter);
-}
-
-.panel-gradient() {
-    #gradient > .vertical(rgba(255,255,255,1), rgba(246,246,246,1));
-}
-
-/*
-    ----------------------------
-    Development tools
-    ----------------------------
-*/
-
-#dev-tools {
-    display: none;
-    #translucent > .background(#000, 0.1);
-    border: thin solid #BBB;
-    padding: 10px 15px 20px 30px;
-    position: absolute;
-    right: 0;
-    width: 190px;
-    z-index: 1000;
-    .btn {
-        line-height: 16px;
-        margin: 5px 0px;
-        padding-top: 8px;
-        padding-bottom: 8px;
-        text-align: center;
-        width: 150px;
     }
-}
 
-/*
-    ----------------------------
+    .panel-gradient() {
+        #gradient > .vertical(rgba(255,255,255,1), rgba(246,246,246,1));
+    }
+
+    /*
+        ----------------------------
+        Development tools
+        ----------------------------
+    */
+
+    #dev-tools {
+        display: none;
+        #translucent > .background(#000, 0.1);
+        border: thin solid #BBB;
+        padding: 10px 15px 20px 30px;
+        position: absolute;
+        right: 0;
+        width: 190px;
+        z-index: 1000;
+        .btn {
+            line-height: 16px;
+            margin: 5px 0px;
+            padding-top: 8px;
+            padding-bottom: 8px;
+            text-align: center;
+            width: 150px;
+        }
+    }
+
+    /*
+        ----------------------------
     Sidebar
     ----------------------------
 */
@@ -104,10 +104,8 @@
 
         &.cluster { color: darken(@green, 30%); }
         &.critical { color: @red; }
-        &.other {
-            color: darken(@purple, 20%);
-            margin-top: 1em;
-        }
+        &.other { color: darken(@purple, 20%); }
+        &.no-issues { color: darken(@green, 20%); }
     }
 
     .issue {
