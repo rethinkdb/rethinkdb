@@ -13,8 +13,14 @@ class StatusPanelView extends Backbone.View
         log_render '(rendering) status panel view'
         cs_json = connection_status.toJSON()
         connected_machine = machines.get(connection_status.get('contact_machine_id'))
-        if connected_machine
+        if connected_machine?
             cs_json['contact_machine_name'] = connected_machine.get('name')
+            contact_datacenter = connected_machine.get('datacenter_uuid')
+            if contact_datacenter?
+               cs_json['contact_datacenter_name'] = contact_datacenter.get('name')
+            else
+               cs_json['contact_datacenter_name'] = 'Unassigned'
+                
         @.$el.html @template(cs_json)
         return @
 
