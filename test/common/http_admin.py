@@ -142,7 +142,8 @@ class Namespace(object):
 		self.shards = json_data["shards"]
 		self.name = json_data["name"]
 		self.port = json_data["port"]
-		self.pinnings = json_data["pinnings"]
+		self.primary_pinnings = json_data["primary_pinnings"]
+		self.secondary_pinnings = json_data["secondary_pinnings"]
 
 	def check(self, data):
 		return data == self.to_json()
@@ -155,7 +156,8 @@ class Namespace(object):
 			unicode("replica_affinities"): self.replica_affinities,
 			unicode("shards"): self.shards,
 			unicode("port"): self.port,
-			unicode("pinnings"): self.pinnings
+			unicode("primary_pinnings"): self.primary_pinnings,
+			unicode("secondary_pinnings"): self.secondary_pinnings
 			}
 
 	def __str__(self):
