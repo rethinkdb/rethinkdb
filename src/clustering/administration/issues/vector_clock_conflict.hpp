@@ -22,7 +22,7 @@ public:
     cJSON *get_json_description() {
         issue_json_t json;
         json.critical = false;
-        json.time = get_ticks();
+        json.time = get_secs();
         json.description = "The " + object_type + " with UUID " + uuid_to_str(object_id) +
             " has a vector clock conflict in its field '" + field + "'.";
         json.type.issue_type = VCLOCK_CONFLICT;

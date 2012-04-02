@@ -39,7 +39,7 @@ cJSON *pinnings_shards_mismatch_issue_t<protocol_t>::get_json_description() {
     json.critical = false;
     json.description = get_description();
     json.type.issue_type = PINNINGS_SHARDS_MISMATCH;
-    json.time = get_ticks();
+    json.time = get_secs();
     cJSON *res = render_as_json(&json, 0);
 
     cJSON_AddItemToObject(res, "offending_namespace", render_as_json(&offending_namespace, 0));

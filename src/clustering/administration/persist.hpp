@@ -40,7 +40,7 @@ public:
         json.critical = true;
         json.description = "There was a problem when trying to persist the metadata to "
             "disk locally: " + message;
-        json.time = get_ticks();
+        json.time = get_secs();
         json.type.issue_type = PERSISTANCE_ISSUE;
 
         return render_as_json(&json, 0);
