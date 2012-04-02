@@ -366,7 +366,8 @@ module 'ResolveIssuesView', ->
     class @Issue extends Backbone.View
         className: 'issue-container'
         templates:
-            'MACHINE_DOWN': Handlebars.compile $('#resolve_issues-issue-machine_down-template').html()
+            'MACHINE_DOWN': Handlebars.compile $('#resolve_issues-machine_down-template').html()
+            'NAME_CONFLICT_ISSUE': Handlebars.compile $('#resolve_issues-name_conflict-template').html()
         unknown_issue_template: Handlebars.compile $('#resolve_issues-unknown-template').html()
 
         initialize: ->
@@ -404,6 +405,16 @@ module 'ResolveIssuesView', ->
                         replicas: replicas
                         datetime: ISODateString new Date() # faked TODO -- the time field should be ISO 8601
 
+                when 'NAME_CONFLICT_ISSUE'
+                   json =
+                        name: @model.get('contested_name')
+                        type: @model.get('contested_type')
+                        num_contestants: @model.get('contestants').length
+                        contestants: _.map(@model.get('contestants'), (uuid) ->
+                            uuid: uuid
+                        )
+                        datetime: ISODateString new Date() # faked TODO -- the time field should be ISO 8601
+                       
                 else
                     _template = @unknown_issue_template
                     json =
