@@ -20,6 +20,7 @@
 #include <stdarg.h>
 #include <unistd.h>
 #include <sstream>
+#include "containers/intrusive_list.hpp"
 
 class side_coro_handler_t;
 
@@ -243,6 +244,7 @@ private:
     write_queue_op_t * get_write_queue_op();
     void release_write_buffer(write_buffer_t *buffer);
     void release_write_queue_op(write_queue_op_t *op);
+
 
     /* Schedules old write buffer's contents to be flushed and swaps in a fresh write buffer.
     Blocks until it can acquire the `write_queue_limiter` semaphore, but doesn't wait for
