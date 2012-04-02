@@ -698,7 +698,7 @@
                 <div class="critical-issues">
                     <div class="priority"></div>
                     <div class="message">
-                        {{num_other_issues}} other issue{{pluralize_noun num_other_issues}}
+                        {{other_issues.num}} other issue{{pluralize_noun num_other_issues}}
                     </div>
                 </div>
             {{/if}}
@@ -718,8 +718,7 @@
             <div class="issues"></div>
             <a class="btn large danger">Resolve these issues</a>
         </script>
-        <script id="resolve_issues-issue-machine_down-template" type="text/x-handlebars-template">
-            {{debug}}
+        <script id="resolve_issues-machine_down-template" type="text/x-handlebars-template">
             <div class="issue {{#if critical }}critical{{/if}}">
                 <div class="header">
                     <h3 class="title">Machine {{name}} is unreachable.</h3>
@@ -730,25 +729,43 @@
                 <hr />
                 <h4>This machine is responsible for the following namespaces:</h4>
                 <ul>
-                    {{#each masters}}
-                        <li>This machine acts as a master for the namespace <a href="#namespaces/{{uuid}}">{{name}}</a> for the shard {{shard}}.</li>
-                    {{/each}}
-                    {{#each replicas}}
-                        <li>This machine acts as a replica for the namespace <a href="#namespaces/{{uuid}}">{{name}}</a> for the shard {{shard}}.</li>
-                    {{/each}}
+                {{#each masters}}
+                    <li>This machine acts as a master for the namespace <a href="#namespaces/{{uuid}}">{{name}}</a> for the shard {{shard}}.</li>
+                {{/each}}
+                {{#each replicas}}
+                    <li>This machine acts as a replica for the namespace <a href="#namespaces/{{uuid}}">{{name}}</a> for the shard {{shard}}.</li>
+                {{/each}}
                 </ul>
             </div>
         </script>
-        <script id="resolve_issues-issue-unknown-template" type="text/x-handlebars-template">
+        <script id="resolve_issues-name_conflict-template" type="text/x-handlebars-template">
             <div class="issue {{#if critical }}critical{{/if}}">
+                <div class="header">
+                    <h3 class="title">The name {{name}} is used by more than one {{type}}.</h3>
+                    {{#if datetime}}
+                        <p class="datetime"><abbr class="timeago" title="{{datetime}}">on {{prettify_date datetime}}</abbr></p>
+                    {{/if}}
+                </div>
+                <hr />
+                <h4>{{capitalize type}}{{pluralize_noun num_contestants}} with the name {{name}}:</h4>
+                <ul>
+                {{#each contestants}}
+                    <li><a href="#namespaces/{{uuid}}">{{uuid}}</a></li>
+                {{/each}}
+                </ul>
             </div>
-            <div class="header">
-                <h3 class="title">Unknown issue: {{issue_type}}</h3>
-                {{#if datetime}}
-                    <p class="datetime"><abbr class="timeago" title="{{datetime}}">on {{prettify_date datetime}}</abbr></p>
-                {{/if}}
+        </script>
+
+        <script id="resolve_issues-unknown-template" type="text/x-handlebars-template">
+            <div class="issue {{#if critical }}critical{{/if}}">
+                <div class="header">
+                    <h3 class="title">Unknown issue: {{issue_type}}</h3>
+                    {{#if datetime}}
+                        <p class="datetime"><abbr class="timeago" title="{{datetime}}">on {{prettify_date datetime}}</abbr></p>
+                    {{/if}}
+                </div>
+                <hr />
             </div>
-            <hr />
         </script>
 
         <!-- Events view -->
