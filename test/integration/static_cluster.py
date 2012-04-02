@@ -7,7 +7,7 @@ from vcoptparse import *
 op = OptParser()
 op["workload"] = PositionalArg()
 op["num-nodes"] = IntFlag("--num-nodes", 3)
-op["timeout"] = IntFlag("--timeout", 600)
+op["timeout"] = IntFlag("--timeout", 120)
 opts = op.parse(sys.argv)
 
 cluster = http_admin.Cluster()
@@ -34,15 +34,11 @@ new_environ["PORT"] = str(port)
 
 print "Running %r with HOST=%r and PORT=%r..." % (command_line, new_environ["HOST"], new_environ["PORT"])
 start_time = time.time()
-subp = subprocess.Popen(command_line, shell = True, env = new_environ)
+subp = subprocess.Popen(command_line, shell = True, env = new_environ, preexec_fn = os.setsid)
 while time.time() < start_time + opts["timeout"]:
     if not cluster.is_alive():
         print "Cluster crashed (%d seconds)" % (time.time() - start_time)
-        try:
-            subp.send_signal(signal.SIGKILL)
-        except OSError:
-            pass
-        sys.exit(1)
+        break
     elif subp.poll() == 0:
         print "Done (%d seconds)" % (time.time() - start_time)
         sys.exit(0)
@@ -50,9 +46,11 @@ while time.time() < start_time + opts["timeout"]:
         print "Failed (%d seconds)" % (time.time() - start_time)
         sys.exit(1)
     time.sleep(1)
-print "Timed out (%d seconds)" % opts["timeout"]
+else:
+    print "Timed out (%d seconds)" % opts["timeout"]
+
 try:
-    subp.send_signal(signal.SIGKILL)
+    os.killpg(subp.pid, signal.SIGKILL)
 except OSError:
     pass
 sys.exit(1)
