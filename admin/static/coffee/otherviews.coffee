@@ -1,4 +1,3 @@
-
 class StatusPanelView extends Backbone.View
     # TODO get rid of className?
     className: 'status-panel'
@@ -7,10 +6,106 @@ class StatusPanelView extends Backbone.View
 
     initialize: ->
         log_initial '(initializing status panel view'
-        @model.on 'change', => @render()
+        connection_status.on 'all', => @render()
+        machines.on 'all', => @render()
+
     render: ->
         log_render '(rendering) status panel view'
-        @.$el.html @template(connection_status.toJSON())
+        cs_json = connection_status.toJSON()
+        connected_machine = machines.get(connection_status.get('contact_machine_id'))
+        if connected_machine
+            cs_json['contact_machine_name'] = connected_machine.get('name')
+        @.$el.html @template(cs_json)
+        return @
+
+# Dashboard: provides an overview and visualizations of the cluster
+class DashboardView extends Backbone.View
+    className: 'dashboard-view'
+    template: Handlebars.compile $('#dashboard_view-template').html()
+
+    update_data_streams: (datastreams) ->
+        timestamp = new Date(Date.now())
+
+        for stream in datastreams
+           stream.update(timestamp)
+
+    create_fake_data: ->
+        data_points = new DataPoints()
+        cached_data = {}
+        for collection in [namespaces, datacenters, machines]
+            collection.map (model, i) ->
+                d = new DataPoint
+                    collection: collection
+                    value: (i+1) * 100
+                    id: model.get('id')
+                    # Assumption: every datapoint across datastreams at the time of sampling will have the same datetime stamp
+                    time: new Date(Date.now())
+                data_points.add d
+                cached_data[model.get('id')] = [d]
+        return data_points
+
+    initialize: ->
+        log_initial '(initializing) dashboard view'
+
+        mem_usage_data = new DataStream
+            name: 'mem_usage_data'
+            pretty_print_name: 'memory usage'
+            data: @create_fake_data()
+            cached_data: []
+            active_uuids: []
+
+        disk_usage_data = new DataStream
+            name: 'disk_usage_data'
+            pretty_print_name: 'disk usage'
+            data: @create_fake_data()
+            cached_data: []
+            active_uuids: []
+
+        cluster_performance_total = new DataStream
+            name:  'cluster_performance_total'
+            pretty_print_name: 'total ops/sec'
+            data: @create_fake_data()
+            cached_data: []
+            active_uuids: []
+
+        cluster_performance_reads = new DataStream
+            name:  'cluster_performance_reads'
+            pretty_print_name: 'reads/sec'
+            data: @create_fake_data()
+            cached_data: []
+            active_uuids: []
+
+        cluster_performance_writes = new DataStream
+            name:  'cluster_performance_writes'
+            pretty_print_name: 'writes/sec'
+            data: @create_fake_data()
+            cached_data: []
+            active_uuids: []
+
+        @data_streams = [mem_usage_data, disk_usage_data, cluster_performance_total, cluster_performance_reads, cluster_performance_writes]
+
+        setInterval (=> @update_data_streams @data_streams), 1500
+
+        @data_picker = new Vis.DataPicker @data_streams
+        color_map = @data_picker.get_color_map()
+
+        @disk_usage = new Vis.ResourcePieChart disk_usage_data, color_map
+        @mem_usage = new Vis.ResourcePieChart mem_usage_data, color_map
+        @cluster_performance = new Vis.ClusterPerformanceGraph [cluster_performance_total, cluster_performance_reads, cluster_performance_writes], color_map
+
+    render: ->
+        # Updates elements tracked by our fake data streams | Should be removed when DataStreams are live from the server TODO
+        for stream in @data_streams
+            stream.set('data', @create_fake_data())
+
+        log_render '(rendering) dashboard view'
+        @.$el.html @template({})
+
+        @.$('.data-picker').html @data_picker.render().el
+        @.$('.disk-usage').html @disk_usage.render().el
+        @.$('.mem-usage').html @mem_usage.render().el
+        @.$('.chart.cluster-performance').html @cluster_performance.render().el
+
         return @
 
 # Machine view
@@ -64,7 +159,7 @@ module 'MachineView', ->
         update_sparklines: =>
             @cpu_sparkline.data = @cpu_sparkline.data.slice(1)
             @cpu_sparkline.data.push @model.get 'cpu'
-            $('.cpu-graph', @el).sparkline(@cpu_sparkline.data)
+            @.$('.cpu-graph').sparkline(@cpu_sparkline.data)
 
         # Update the performance data and render a graph for the view
         update_graphs: =>
@@ -116,6 +211,41 @@ module 'DatacenterView', ->
 # Sidebar view
 module 'Sidebar', ->
     # Sidebar.Container
+    class @ConnectivityStatus extends Backbone.View
+        className: 'sidebar-connectivity-status'
+        template: Handlebars.compile $('#sidebar-connectivity-status-template').html()
+
+        initialize: =>
+            # Rerender every time some relevant info changes
+            directory.on 'all', (model, collection) => @render()
+            machines.on 'all', (model, collection) => @render()
+            datacenters.on 'all', (model, collection) => @render()
+
+        compute_connectivity: =>
+            # data centers with machines
+            dc_have_machines = []
+            for m in machines.models
+                if m.get('datacenter_uuid')
+                    dc_have_machines[dc_have_machines.length] = m.get('datacenter_uuid')
+            dc_have_machines = _.uniq(dc_have_machines)
+            # data centers visible
+            dc_visible = []
+            for m in directory.models
+                _m = machines.get(m.get('id'))
+                if _m and _m.get('datacenter_uuid')
+                    dc_visible[dc_visible.length] = _m.get('datacenter_uuid')
+            dc_visible = _.uniq(dc_visible)
+            conn =
+                machines_active: directory.length
+                machines_total: machines.length
+                datacenters_active: dc_visible.length
+                datacenters_total: dc_have_machines.length
+            return conn
+
+        render: =>
+            @.$el.html @template @compute_connectivity()
+            return @
+
     class @Container extends Backbone.View
         className: 'sidebar-container'
         template: Handlebars.compile $('#sidebar-container-template').html()
@@ -125,17 +255,9 @@ module 'Sidebar', ->
         initialize: =>
             log_initial '(initializing) sidebar view: container'
 
-            # Create and store a list of critical issue views, sliced by type of issue
-            @critical_issue_views = []
-
-            critical_issues = _.groupBy _.filter(issues.models, (issue) -> return issue.get('critical')),
-                (issue) -> issue.get('type')
-            for type, issue_set of critical_issues
-                @critical_issue_views.push new Sidebar.CriticalIssue
-                    type: type
-                    num: issue_set.length
-
-            @other_issues = new Sidebar.OtherIssues()
+            @client_connectivity_status = new StatusPanelView()
+            @connectivity_status = new Sidebar.ConnectivityStatus()
+            @issues = new Sidebar.Issues()
 
             @reset_event_views()
             events.on 'add', (model, collection) =>
@@ -149,21 +271,17 @@ module 'Sidebar', ->
         render: (route) =>
             @.$el.html @template
                 show_resolve_issues: window.location.hash isnt @resolve_issues_route
-                machines_active: 8     # TODO: replace bullshit with reality
-                machines_total: 10     # TODO: replace bullshit with reality
-                datacenters_active: 4  # TODO: replace bullshit with reality
-                datacenters_total: 5   # TODO: replace bullshit with reality
 
-            # Render each critical issue summary and add it to the list of critical issues
-            for view in @critical_issue_views
-                $('.critical-issues', @el).append view.render().el
+            # Render connectivity status
+            @.$('#client-connectivity-status-placeholder').html @client_connectivity_status.render().el
+            @.$('#sidebar-connectivity-status-placeholder').html @connectivity_status.render().el
 
-            # Render a view for all other issues
-            $('.other-issues', @el).html @other_issues.render().el
+            # Render issue summary
+            @.$('.issues').html @issues.render().el
 
             # Render each event view and add it to the list of recent events
             for view in @event_views
-                $('.recent-events', @el).append view.render().el
+                @.$('.recent-events').append view.render().el
 
             return @
 
@@ -175,49 +293,36 @@ module 'Sidebar', ->
             for event in events.models[0...@max_recent_events]
                 @event_views.push new Sidebar.Event model: event
 
-    # Sidebar.CriticalIssue
-    class @CriticalIssue extends Backbone.View
-        className: 'critical issue'
-        template: Handlebars.compile $('#sidebar-critical_issue-template').html()
+    # Sidebar.Issues
+    class @Issues extends Backbone.View
+        className: 'issues'
+        template: Handlebars.compile $('#sidebar-issues-template').html()
 
         initialize: =>
-            log_initial '(initializing) sidebar view: critical issues'
-            @num = @options.num
-            @type = @options.type
-
-            plural = @num > 1
-
-            switch @type
-                when 'master_down'
-                    if plural then @message = "#{@num} masters are down."
-                    else @message = "#{@num} master is down."
-                when 'metadata_conflict'
-                    if plural then @message = "#{@num} metadata conflicts."
-                    else @message = "#{@num} metadata conflict."
-                else
-                    if plural then @message = "#{@num} critical issues."
-                    else @message = "#{@num} critical issues."
+            log_initial '(initializing) sidebar view: issues'
+            issues.on 'all', => @render()
 
         render: =>
-            @.$el.html @template
-                message: @message
+            # Group critical issues by type
+            critical_issues = issues.filter (issue) -> issue.get('critical')
+            critical_issues = _.groupBy critical_issues, (issue) -> issue.get('type')
 
-            return @
-
-    # Sidebar.OtherIssues
-    class @OtherIssues extends Backbone.View
-        className: 'other issue'
-        template: Handlebars.compile $('#sidebar-other_issues-template').html()
-
-        initialize: ->
-            log_initial '(initializing) sidebar view: other issues'
-
-        render: =>
-            num = (issues.filter (issue) -> return issue.get('critical')).length
+            # Get a list of all other issues (non-critical) 
+            other_issues = issues.filter (issue) -> not issue.get('critical')
 
             @.$el.html @template
-                message: if num > 1 then "#{num} non-critical issues." else "#{num} other issue."
-
+                critical_issues:
+                    exist: _.keys(critical_issues).length > 0
+                    types: _.map(critical_issues, (issues, type) ->
+                        json = {}
+                        json[type] = true
+                        json['num'] = issues.length
+                        return json
+                    )
+                other_issues:
+                    exist: other_issues.length > 0
+                    num: other_issues.length
+                no_issues: _.keys(critical_issues).length is 0 and other_issues.length is 0 
             return @
 
     # Sidebar.Event
@@ -230,7 +335,7 @@ module 'Sidebar', ->
 
         render: =>
             @.$el.html @template @model.toJSON()
-            $('abbr.timeago', @el).timeago()
+            @.$('abbr.timeago').timeago()
             return @
 
 # Resolve issues view
@@ -240,18 +345,19 @@ module 'ResolveIssuesView', ->
         className: 'resolve-issues'
         template: Handlebars.compile $('#resolve_issues-container-template').html()
 
-        initialize: ->
+        initialize: =>
             log_initial '(initializing) resolve issues view: container'
+            issues.on 'all', (model, collection) => @render()
 
         render: ->
             @.$el.html @template({})
 
             issue_views = []
-            for issue in issues.models
+            issues.each (issue) ->
                 issue_views.push new ResolveIssuesView.Issue
                     model: issue
 
-            $issues = $('.issues', @el).empty()
+            $issues = @.$('.issues').empty()
             $issues.append view.render().el for view in issue_views
 
             return @
@@ -259,39 +365,52 @@ module 'ResolveIssuesView', ->
     # ResolveIssuesView.Issue
     class @Issue extends Backbone.View
         className: 'issue-container'
-        template: Handlebars.compile $('#resolve_issues-issue-template').html()
+        templates:
+            'MACHINE_DOWN': Handlebars.compile $('#resolve_issues-issue-machine_down-template').html()
+        unknown_issue_template: Handlebars.compile $('#resolve_issues-unknown-template').html()
 
         initialize: ->
             log_initial '(initializing) resolve issues view: issue'
 
         render: ->
+            _template = @templates[@model.get('type')]
             switch @model.get('type')
-                when 'master_down'
-                    model = random_model_from namespaces
+                when 'MACHINE_DOWN'
+                    machine = machines.get(@model.get('victim'))
+
+                    masters = []
+                    replicas = []
+                    
+                    # Look at all namespaces in the cluster and determine whether this machine had a master or replicas for them
+                    namespaces.each (namespace) ->
+                        for machine_uuid, role_summary of namespace.get('blueprint').peers_roles
+                            if machine_uuid is machine.get('id')
+                                for shard, role of role_summary
+                                    console.log role
+                                    if role is 'role_primary'
+                                        masters.push
+                                            name: namespace.get('name')
+                                            uuid: namespace.get('id')
+                                            shard: shard
+                                    if role is 'role_secondary'
+                                        replicas.push
+                                            name: namespace.get('name')
+                                            uuid: namespace.get('id')
+                                            shard: shard
+
                     json =
-                        master_down: true
-                        shard: 'a-k'
-                        namespace: model.get('name')
-                        namespace_uuid: model.get('id')
-                        datetime: @model.get('datetime')
-                        details: [
-                            'Write availability is lost for shard a-k on namespace bobloblaw.'
-                            "Reason: <strong>#{random_model_from(machines).get('name')}</strong> is unreachable."
-                        ]
-                        resolution:
-                            summary: 'a new master must be chosen.'
-                            action: 'Choose a new master: '
-                            options: ['usa_1', 'usa_2']
-                            recommended: 'usa_1'
+                        name: machine.get('name')
+                        masters: masters
+                        replicas: replicas
+                        datetime: ISODateString new Date() # faked TODO -- the time field should be ISO 8601
+
                 else
+                    _template = @unknown_issue_template
                     json =
-                        title: "Unknown issue: #{ @model.get('type') }"
+                        issue_type: @model.get('type')
 
-            if @model.get('critical')
-                json = _.extend json, critical: true
-
-            @.$el.html @template json
-            $('abbr.timeago', @el).timeago()
+            @.$el.html _template(json)
+            @.$('abbr.timeago').timeago()
 
             return @
 
@@ -315,7 +434,7 @@ module 'EventsView', ->
 
             # Render each event view and add it to the list of events
             for view in @event_views
-                $('.events', @el).append view.render().el
+                @.$('.events').append view.render().el
             return @
 
         reset_event_views: =>

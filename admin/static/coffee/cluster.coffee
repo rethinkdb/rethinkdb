@@ -113,95 +113,6 @@ class Directory extends Backbone.Collection
     model: MachineAttributes
     url: '/ajax/directory'
 
-class DashboardView extends Backbone.View
-    className: 'dashboard-view'
-    template: Handlebars.compile $('#dashboard_view-template').html()
-
-    update_data_streams: (datastreams) ->
-        timestamp = new Date(Date.now())
-
-        for stream in datastreams
-           stream.update(timestamp)
-
-    create_fake_data: ->
-        data_points = new DataPoints()
-        cached_data = {}
-        for collection in [namespaces, datacenters, machines]
-            collection.map (model, i) ->
-                d = new DataPoint
-                    collection: collection
-                    value: (i+1) * 100
-                    id: model.get('id')
-                    # Assumption: every datapoint across datastreams at the time of sampling will have the same datetime stamp
-                    time: new Date(Date.now())
-                data_points.add d
-                cached_data[model.get('id')] = [d]
-        return data_points
-
-    initialize: ->
-        log_initial '(initializing) dashboard view'
-
-        mem_usage_data = new DataStream
-            name: 'mem_usage_data'
-            pretty_print_name: 'memory usage'
-            data: @create_fake_data()
-            cached_data: []
-            active_uuids: []
-
-        disk_usage_data = new DataStream
-            name: 'disk_usage_data'
-            pretty_print_name: 'disk usage'
-            data: @create_fake_data()
-            cached_data: []
-            active_uuids: []
-
-        cluster_performance_total = new DataStream
-            name:  'cluster_performance_total'
-            pretty_print_name: 'total ops/sec'
-            data: @create_fake_data()
-            cached_data: []
-            active_uuids: []
-
-        cluster_performance_reads = new DataStream
-            name:  'cluster_performance_reads'
-            pretty_print_name: 'reads/sec'
-            data: @create_fake_data()
-            cached_data: []
-            active_uuids: []
-
-        cluster_performance_writes = new DataStream
-            name:  'cluster_performance_writes'
-            pretty_print_name: 'writes/sec'
-            data: @create_fake_data()
-            cached_data: []
-            active_uuids: []
-
-        @data_streams = [mem_usage_data, disk_usage_data, cluster_performance_total, cluster_performance_reads, cluster_performance_writes]
-
-        setInterval (=> @update_data_streams @data_streams), 1500
-
-        @data_picker = new Vis.DataPicker @data_streams
-        color_map = @data_picker.get_color_map()
-
-        @disk_usage = new Vis.ResourcePieChart disk_usage_data, color_map
-        @mem_usage = new Vis.ResourcePieChart mem_usage_data, color_map
-        @cluster_performance = new Vis.ClusterPerformanceGraph [cluster_performance_total, cluster_performance_reads, cluster_performance_writes], color_map
-
-    render: ->
-        # Updates elements tracked by our fake data streams | Should be removed when DataStreams are live from the server TODO
-        for stream in @data_streams
-            stream.set('data', @create_fake_data())
-
-        log_render '(rendering) dashboard view'
-        @.$el.html @template({})
-
-        @.$('.data-picker').html @data_picker.render().el
-        @.$('.disk-usage').html @disk_usage.render().el
-        @.$('.mem-usage').html @mem_usage.render().el
-        @.$('.chart.cluster-performance').html @cluster_performance.render().el
-
-        return @
-
 # Router for Backbone.js
 class BackboneCluster extends Backbone.Router
     routes:
@@ -232,18 +143,11 @@ class BackboneCluster extends Backbone.Router
 
         @dashboard_view = new DashboardView
 
-        @status_panel_view = new StatusPanelView
-            model: connection_status
-
         # Add and render the sidebar (visible across all views)
         @$sidebar = $('#sidebar')
         window.sidebar = new Sidebar.Container()
         @sidebar = window.sidebar
         @render_sidebar()
-
-        # Same for the status panel
-        @$status_panel = $('.sidebar-container .section.cluster-status')
-        @$status_panel.prepend @status_panel_view.render().el
 
         @resolve_issues_view = new ResolveIssuesView.Container
         @events_view = new EventsView.Container
@@ -253,36 +157,47 @@ class BackboneCluster extends Backbone.Router
     index_namespaces: ->
         log_router '/index_namespaces'
         clear_modals()
+        $('ul.nav li').removeClass('active')
+        $('ul.nav li#nav-namespaces').addClass('active')
         @$container.html @namespaces_cluster_view.render().el
 
     index_datacenters: ->
         log_router '/index_datacenters'
         clear_modals()
+        $('ul.nav li').removeClass('active')
+        $('ul.nav li#nav-datacenters').addClass('active')
         @$container.html @datacenters_cluster_view.render().el
 
     index_machines: ->
         log_router '/index_machines'
         clear_modals()
+        $('ul.nav li').removeClass('active')
+        $('ul.nav li#nav-machines').addClass('active')
         @$container.html @machines_cluster_view.render().el
 
     dashboard: ->
         log_router '/dashboard'
         clear_modals()
+        $('ul.nav li').removeClass('active')
+        $('ul.nav li#nav-dashboard').addClass('active')
         @$container.html @dashboard_view.render().el
 
     resolve_issues: ->
         log_router '/resolve_issues'
         clear_modals()
+        $('ul.nav li').removeClass('active')
         @$container.html @resolve_issues_view.render().el
 
     events: ->
         log_router '/events'
         clear_modals()
+        $('ul.nav li').removeClass('active')
         @$container.html @events_view.render().el
 
     namespace: (id) ->
         log_router '/namespaces/' + id
         clear_modals()
+        $('ul.nav li').removeClass('active')
 
         # Helper function to build the namespace view
         build_namespace_view = (namespace) =>
@@ -298,6 +213,7 @@ class BackboneCluster extends Backbone.Router
     datacenter: (id) ->
         log_router '/datacenters/' + id
         clear_modals()
+        $('ul.nav li').removeClass('active')
 
         # Helper function to build the datacenter view
         build_datacenter_view = (datacenter) =>
@@ -314,6 +230,7 @@ class BackboneCluster extends Backbone.Router
     machine: (id) ->
         log_router '/machines/' + id
         clear_modals()
+        $('ul.nav li').removeClass('active')
 
         # Helper function to build the machine view
         build_machine_view = (machine) =>
@@ -341,14 +258,14 @@ declare_client_connected = ->
 
 apply_to_collection = (collection, collection_data) ->
     for id, data of collection_data
-        if (data)
-            if (collection.get(id))
+        if data
+            if collection.get(id)
                 collection.get(id).set(data)
             else
                 data.id = id
                 collection.add(new collection.model(data))
         else
-            if (collection.get(id))
+            if collection.get(id)
                 collection.remove(id)
 
 add_protocol_tag = (data, tag) ->
@@ -369,12 +286,12 @@ reset_collections = () ->
 apply_diffs = (updates) ->
     declare_client_connected()
 
-    if (!window.contact_machine_id)
-        window.contact_machine_id = updates["me"]
+    if (not connection_status.get('contact_machine_id'))
+        connection_status.set('contact_machine_id', updates["me"])
     else
-        if (updates["me"] != window.contact_machine_id)
+        if (updates["me"] != connection_status.get('contact_machine_id'))
             reset_collections()
-            window.contact_machine_id = updates["me"]
+            connection_status.set('contact_machine_id', updates["me"])
 
     for collection_id, collection_data of updates
         switch collection_id
@@ -391,8 +308,7 @@ apply_diffs = (updates) ->
                 console.log "Unhandled element update: " + updates
     return
 
-set_issues = (issue_data_from_server) ->
-    issues.reset(_.map(issue_data_from_server, (issue) -> {critical: false, type: "master_down", time: ISODateString}))
+set_issues = (issue_data_from_server) -> issues.reset(issue_data_from_server)
 
 set_directory = (attributes_from_server) ->
     # Convert directory representation from RethinkDB into backbone friendly one

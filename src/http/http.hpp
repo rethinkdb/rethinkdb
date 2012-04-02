@@ -6,6 +6,7 @@
 #include <boost/tokenizer.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <boost/shared_array.hpp>
+#include <boost/optional.hpp>
 #include <sstream>
 
 #include "arch/types.hpp"
@@ -72,8 +73,8 @@ struct http_req_t {
     explicit http_req_t(const std::string &resource_path);
     http_req_t(const http_req_t &from, const resource_t::iterator& resource_start);
 
-    std::string find_query_param(const std::string&) const;
-    std::string find_header_line(const std::string&) const;
+    boost::optional<std::string> find_query_param(const std::string&) const;
+    boost::optional<std::string> find_header_line(const std::string&) const;
     bool has_header_line(const std::string&) const;
 };
 

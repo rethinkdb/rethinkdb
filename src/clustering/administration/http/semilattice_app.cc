@@ -39,46 +39,6 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
 
         http_req_t::resource_t::iterator it = req.resource.begin();
 
-        if (it != req.resource.end() && *it == "propose") {
-            /* The user is dropping hints that she wants us to propose.  Bring that
-             * bitch some blueprints, bitches love blueprints. */
-
-            if (++it != req.resource.end()) {
-                /* Whoops dealbreaker */
-                return http_res_t(404);
-            }
-
-            if (req.method == POST) {
-#ifdef NDEBUG
-                if (req.find_header_line("Content-Type") != "application/json") {
-                    logINF("Bad request, Content-Type should be application/json.\n");
-                    return http_res_t(415);
-                }
-#endif
-                scoped_cJSON_t change(cJSON_Parse(req.body.c_str()));
-                if (!change.get()) { //A null value indicates that parsing failed
-                    logINF("Json body failed to parse.\n Here's the data that failed: %s\n", req.body.c_str());
-                    return http_res_t(400);
-                }
-
-                json_adapter_head->apply(change.get(), json_ctx);
-            }
-
-            /* Fill in the blueprints */
-            fill_in_blueprints(&cluster_metadata);
-
-            http_res_t res(200);
-            scoped_cJSON_t json_repr(json_adapter_head->render(json_ctx));
-
-            std::set<std::string> returned_fields;
-            returned_fields.insert("dummy_namespaces");
-            returned_fields.insert("memcached_namespaces");
-
-            project(json_repr.get(), returned_fields);
-            res.set_body("application/json", cJSON_print_std_string(json_repr.get()));
-            return res;
-        }
-
         //Traverse through the subfields until we're done with the url
         while (it != req.resource.end()) {
             json_adapter_if_t<namespace_metadata_ctx_t>::json_adapter_map_t subfields = json_adapter_head->get_subfields(json_ctx);
@@ -117,7 +77,9 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
                 json_adapter_head->apply(change.get(), json_ctx);
 
                 /* Fill in the blueprints */
-                fill_in_blueprints(&cluster_metadata);
+                try {
+                    fill_in_blueprints(&cluster_metadata);
+                } catch (missing_machine_exc_t &e) { }
 
                 semilattice_metadata->join(cluster_metadata);
 
@@ -132,7 +94,11 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
             case DELETE:
             {
                 json_adapter_head->erase(json_ctx);
-                fill_in_blueprints(&cluster_metadata);
+
+                try {
+                    fill_in_blueprints(&cluster_metadata);
+                } catch (missing_machine_exc_t &e) { }
+
                 semilattice_metadata->join(cluster_metadata);
 
                 http_res_t res(200);
@@ -162,7 +128,9 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
                 json_adapter_head->apply(change.get(), json_ctx);
 
                 /* Fill in the blueprints */
-                fill_in_blueprints(&cluster_metadata);
+                try {
+                    fill_in_blueprints(&cluster_metadata);
+                } catch (missing_machine_exc_t &e) { }
 
                 semilattice_metadata->join(cluster_metadata);
 

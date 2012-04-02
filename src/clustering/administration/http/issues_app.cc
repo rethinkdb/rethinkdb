@@ -5,7 +5,8 @@ issues_http_app_t::issues_http_app_t(global_issue_tracker_t *_issue_tracker) :
     issue_tracker(_issue_tracker) { }
 
 http_res_t issues_http_app_t::handle(const http_req_t &req) {
-    if (req.resource.as_string() != "/") {
+    std::string resource = req.resource.as_string();
+    if (resource != "/" && resource != "") {
         return http_res_t(404);
     }
 
