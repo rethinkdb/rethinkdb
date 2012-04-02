@@ -181,7 +181,7 @@ class Server(object):
 		self.cluster_port = serv_port
 		self.http_port = serv_port + 1000
 		self.uuid = validate_uuid(self.do_query("GET", "/ajax/me"))
-		serv_info = self.do_query("GET", "/ajax/machines" + self.uuid)
+		serv_info = self.do_query("GET", "/ajax/machines/" + self.uuid)
 		self.datacenter_uuid = serv_info["datacenter_uuid"]
 		self.name = serv_info["name"]
 		self.port_offset = serv_info["port_offset"]
@@ -424,7 +424,7 @@ class Cluster(object):
 		datacenter = self.find_datacenter(datacenter)
 		if type(serv) is not DummyServer:
 			serv.datacenter_uuid = datacenter.uuid
-		self._get_server_for_command(servid).do_query("POST", "/ajax/machines" + serv.uuid + "/datacenter_uuid", datacenter.uuid)
+		self._get_server_for_command(servid).do_query("POST", "/ajax/machines/" + serv.uuid + "/datacenter_uuid", datacenter.uuid)
 		time.sleep(0.2) # Give some time for changes to hit the rest of the cluster
 		self.update_cluster_data()
 
@@ -433,9 +433,9 @@ class Cluster(object):
 		primary = None if primary is None else self.find_datacenter(primary)
 		namespace.primary_uuid = primary.uuid
 		if type(namespace) == MemcachedNamespace:
-			self._get_server_for_command(servid).do_query("POST", "/ajax/memcached_namespaces" + namespace.uuid, namespace.to_json())
+			self._get_server_for_command(servid).do_query("POST", "/ajax/memcached_namespaces/" + namespace.uuid, namespace.to_json())
 		elif type(namespace) == DummyNamespace:
-			self._get_server_for_command(servid).do_query("POST", "/ajax/dummy_namespaces" + namespace.uuid, namespace.to_json())
+			self._get_server_for_command(servid).do_query("POST", "/ajax/dummy_namespaces/" + namespace.uuid, namespace.to_json())
 		time.sleep(0.2) # Give some time for the changes to hit the rest of the cluster
 		self.update_cluster_data()
 
@@ -446,9 +446,9 @@ class Cluster(object):
 			aff_dict[self.find_datacenter(datacenter).uuid] = count
 		namespace.replica_affinities = aff_dict
 		if type(namespace) == MemcachedNamespace:
-			self._get_server_for_command(servid).do_query("POST", "/ajax/memcached_namespaces" + namespace.uuid, namespace.to_json())
+			self._get_server_for_command(servid).do_query("POST", "/ajax/memcached_namespaces/" + namespace.uuid, namespace.to_json())
 		elif type(namespace) == DummyNamespace:
-			self._get_server_for_command(servid).do_query("POST", "/ajax/dummy_namespaces" + namespace.uuid, namespace.to_json())
+			self._get_server_for_command(servid).do_query("POST", "/ajax/dummy_namespaces/" + namespace.uuid, namespace.to_json())
 		time.sleep(0.2) # Give some time for the changes to hit the rest of the cluster
 		self.update_cluster_data()
 		return namespace
