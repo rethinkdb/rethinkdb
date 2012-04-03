@@ -12,6 +12,31 @@
         <link rel="stylesheet" type="text/css" href="gen/cluster.css" />
 
         <!-- handlebars templates -->
+        <script id="navbar_view-template" type="text/x-handlebars-template">
+          <div id="topbar" class="navbar">
+            <div class="navbar-inner">
+              <div class="container">
+                <a class="brand" href="#">RethinkDB Administration Console</a>
+                <ul class="nav">
+                  <li id="nav-dashboard"><a href="#dashboard">Dashboard</a></li>
+                  <li id="nav-namespaces"><a href="#namespaces">Namespaces</a></li>
+                  <li id="nav-datacenters"><a href="#datacenters">Datacenters</a></li>
+                  <li id="nav-machines"><a href="#machines">Machines</a></li>
+                </ul>
+
+                <ul class="right-nav nav pull-right">
+                  <li class="divider-vertical"></li>
+                  <li>
+                    <form class="navbar-search pull-right">
+                      <input type="text" class="search-query" placeholder="Search">
+                    </form>
+                  </li>
+                </ul>
+              </div><!-- /container -->
+            </div><!-- /navbar-inner -->
+          </div><!-- /navbar -->
+        </script>
+
         <script id="dashboard_view-template" type="text/x-handlebars-template">
             <h1>Cluster dashboard</h1>
             <div class="section">
@@ -1222,29 +1247,7 @@
         </script>
     </head>
     <body>
-        <div id="topbar" class="navbar">
-            <div class="navbar-inner">
-                <div class="container">
-                    <a class="brand" href="#">RethinkDB Administration Console</a>
-                    <ul class="nav">
-                        <li id="nav-dashboard"><a href="#dashboard">Dashboard</a></li>
-                        <li id="nav-namespaces"><a href="#namespaces">Namespaces</a></li>
-                        <li id="nav-datacenters"><a href="#datacenters">Datacenters</a></li>
-                        <li id="nav-machines"><a href="#machines">Machines</a></li>
-                    </ul>
-
-                    <ul class="right-nav nav pull-right">
-                        <li class="divider-vertical"></li>
-                        <li>
-                            <form class="navbar-search pull-right">
-                                <input type="text" class="search-query" placeholder="Search">
-                            </form>
-                        </li>
-                    </ul>
-                </div><!-- /container -->
-            </div><!-- /navbar-inner -->
-        </div><!-- /navbar -->
-
+        <div id="navbar-container"></div>
         <div id="dev-tools">
             <h3>Development tools</h3>
             <div id="live-data" class="btn" href="#">Pause live data feed</div>

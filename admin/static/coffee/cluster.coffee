@@ -113,6 +113,36 @@ class Directory extends Backbone.Collection
     model: MachineAttributes
     url: '/ajax/directory'
 
+# navigation bar view. Not sure where it should go, putting it here
+# because it's global.
+class NavBarView extends Backbone.View
+    className: 'navbar-view'
+    template: Handlebars.compile $('#navbar_view-template').html()
+
+    initialize: ->
+        log_initial '(initializing) NavBarView'
+        # rerender when route changes
+        $(window.app_events).on "on_ready", =>
+            # Render every time the route changes
+            window.app.on "all", @render
+
+    render: (route) =>
+        log_render '(rendering) NavBarView'
+        @.$el.html @template()
+        # set active tab
+        if route?
+            @.$('ul.nav li').removeClass('active')
+            if route is 'route:dashboard'
+                $('ul.nav li#nav-dashboard').addClass('active')
+            else if route is 'route:index_namespaces'
+                $('ul.nav li#nav-namespaces').addClass('active')
+            else if route is 'route:index_datacenters'
+                $('ul.nav li#nav-datacenters').addClass('active')
+            else if route is 'route:index_machines'
+                $('ul.nav li#nav-machines').addClass('active')
+        
+        return @
+
 # Router for Backbone.js
 class BackboneCluster extends Backbone.Router
     routes:
@@ -143,61 +173,56 @@ class BackboneCluster extends Backbone.Router
 
         @dashboard_view = new DashboardView
 
+        @navbar_view = new NavBarView
+
         # Add and render the sidebar (visible across all views)
         @$sidebar = $('#sidebar')
         window.sidebar = new Sidebar.Container()
         @sidebar = window.sidebar
         @render_sidebar()
 
+        # Render navbar for the first time
+        @render_navbar()
+
         @resolve_issues_view = new ResolveIssuesView.Container
         @events_view = new EventsView.Container
 
     render_sidebar: -> @$sidebar.html @sidebar.render().el
+    render_navbar: -> $('#navbar-container').html @navbar_view.render().el
 
     index_namespaces: ->
         log_router '/index_namespaces'
         clear_modals()
-        $('ul.nav li').removeClass('active')
-        $('ul.nav li#nav-namespaces').addClass('active')
         @$container.html @namespaces_cluster_view.render().el
 
     index_datacenters: ->
         log_router '/index_datacenters'
         clear_modals()
-        $('ul.nav li').removeClass('active')
-        $('ul.nav li#nav-datacenters').addClass('active')
         @$container.html @datacenters_cluster_view.render().el
 
     index_machines: ->
         log_router '/index_machines'
         clear_modals()
-        $('ul.nav li').removeClass('active')
-        $('ul.nav li#nav-machines').addClass('active')
         @$container.html @machines_cluster_view.render().el
 
     dashboard: ->
         log_router '/dashboard'
         clear_modals()
-        $('ul.nav li').removeClass('active')
-        $('ul.nav li#nav-dashboard').addClass('active')
         @$container.html @dashboard_view.render().el
 
     resolve_issues: ->
         log_router '/resolve_issues'
         clear_modals()
-        $('ul.nav li').removeClass('active')
         @$container.html @resolve_issues_view.render().el
 
     events: ->
         log_router '/events'
         clear_modals()
-        $('ul.nav li').removeClass('active')
         @$container.html @events_view.render().el
 
     namespace: (id) ->
         log_router '/namespaces/' + id
         clear_modals()
-        $('ul.nav li').removeClass('active')
 
         # Helper function to build the namespace view
         build_namespace_view = (namespace) =>
@@ -213,7 +238,6 @@ class BackboneCluster extends Backbone.Router
     datacenter: (id) ->
         log_router '/datacenters/' + id
         clear_modals()
-        $('ul.nav li').removeClass('active')
 
         # Helper function to build the datacenter view
         build_datacenter_view = (datacenter) =>
@@ -230,7 +254,6 @@ class BackboneCluster extends Backbone.Router
     machine: (id) ->
         log_router '/machines/' + id
         clear_modals()
-        $('ul.nav li').removeClass('active')
 
         # Helper function to build the machine view
         build_machine_view = (machine) =>
@@ -358,11 +381,14 @@ $ ->
     # This object is for events triggered by views on the router; this exists because the router is unavailable when first initializing
     window.app_events = {}
 
+    # Create the app
     window.app = new BackboneCluster
-    Backbone.history.start()
 
     # Signal that the router is ready to be bound to
     $(window.app_events).trigger('on_ready')
+
+    # Now that we're all bound, start routing
+    Backbone.history.start()
 
     setInterval (-> Backbone.sync 'read', null), updateInterval
     declare_client_connected()
