@@ -198,20 +198,12 @@ module 'ClusterView', ->
 
         # Extend the generic list events
         events:
-            'click a.btn.suspend-machine': 'suspend_machine'
             'click a.btn.set-datacenter': 'set_datacenter'
 
         initialize: ->
-            @suspend_machine_dialog = new ClusterView.SuspendMachineModal
             @set_datacenter_dialog = new ClusterView.SetDatacenterModal
 
             super
-
-        suspend_machine: (event) =>
-            log_action 'remove namespace button clicked'
-            if not $(event.currentTarget).hasClass 'disabled'
-                @suspend_machine_dialog.render()
-            event.preventDefault()
 
         set_datacenter: (event) =>
             log_action 'set datacenter button clicked'
@@ -494,18 +486,6 @@ module 'ClusterView', ->
 
             array_for_template = _.map datacenters_to_delete, (datacenter) -> datacenter.toJSON()
             super validator_options, { 'datacenters': array_for_template }
-
-    class @SuspendMachineModal extends @AbstractModal
-        template: Handlebars.compile $('#suspend_machine-modal-template').html()
-        alert_tmpl: Handlebars.compile $('#suspended_machine-alert-template').html()
-
-        initialize: ->
-            log_initial '(initializing) modal dialog: suspend machine'
-            super @template
-
-        render: ->
-            log_render '(rendering) suspend machine dialog'
-            super {}
 
     class @SetDatacenterModal extends @AbstractModal
         template: Handlebars.compile $('#set_datacenter-modal-template').html()
