@@ -28,6 +28,9 @@ Handlebars.registerHelper 'ifequal', (val_a, val_b, if_block, else_block) ->
 Handlebars.registerHelper 'pluralize_noun', (num) -> if num is 1 then '' else 's'
 Handlebars.registerHelper 'pluralize_verb_to_be', (num) -> if num is 1 then 'is' else 'are'
 
+# Helpers for capitalization
+Handlebars.registerHelper 'capitalize', (str) -> str.charAt(0).toUpperCase() + str.slice(1)
+
 # Dev utility functions and variables
 window.pause_live_data = false
 window.log_initial = (msg) -> #console.log msg
@@ -49,6 +52,8 @@ ISODateString = (d) ->
         pad(d.getUTCHours())+':' +
         pad(d.getUTCMinutes())+':' +
         pad(d.getUTCSeconds())+'Z'
+
+iso_date_from_unix_time = (unix_time) -> ISODateString new Date(unix_time * 1000)
 
 # Choose a random model from the given collection
 # -----------------------------------------------
