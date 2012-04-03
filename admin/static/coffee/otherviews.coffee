@@ -416,7 +416,7 @@ module 'ResolveIssuesView', ->
                         name: machine.get('name')
                         masters: masters
                         replicas: replicas
-                        datetime: ISODateString new Date # faked TODO -- the time field should be ISO 8601
+                        datetime: iso_date_from_unix_time @model.get('time')
 
                 when 'NAME_CONFLICT_ISSUE'
                    json =
@@ -429,16 +429,16 @@ module 'ResolveIssuesView', ->
                         datetime: iso_date_from_unix_time @model.get('time')
                 when 'PERSISTENCE_ISSUE'
                     json =
-                        datetime: ISODateString new Date() # faked TODO -- the time field should be ISO 8601
+                        datetime: iso_date_from_unix_time @model.get('time')
                 when 'VCLOCK_CONFLICT'
                     json =
-                        datetime: ISODateString new Date() # faked TODO -- the time field should be ISO 8601
+                        datetime: iso_date_from_unix_time @model.get('time')
                 when 'PINNINGS_SHARDS_MISMATCH'
                     namespace = namespaces.get @model.get('offending_namespace')
                     json =
                         namespace_name: namespace.get('name')
                         namespace_uuid: namespace.get('id')
-                        datetime: ISODateString new Date() # faked TODO -- the time field should be ISO 8601
+                        datetime: iso_date_from_unix_time @model.get('time')
                 else
                     _template = @unknown_issue_template
                     json =
