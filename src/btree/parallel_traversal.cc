@@ -317,11 +317,17 @@ struct do_a_subtree_traversal_fsm_t : public node_ready_callback_t {
         const btree_key_t *local_right_inclusive_or_null = right_inclusive_or_null;
 
         if (node::is_leaf(node)) {
+            if (state->helper->progress) {
+                state->helper->progress->inform(level, traversal_progress_t::ACQUIRE, traversal_progress_t::LEAF);
+            }
             delete this;
             process_a_leaf_node(local_state, buf, local_level, local_left_exclusive_or_null, local_right_inclusive_or_null);
         } else {
             rassert(node::is_internal(node));
 
+            if (state->helper->progress) {
+                state->helper->progress->inform(level, traversal_progress_t::ACQUIRE, traversal_progress_t::INTERNAL);
+            }
             delete this;
             process_a_internal_node(local_state, buf, local_level, local_left_exclusive_or_null, local_right_inclusive_or_null);
         }
@@ -353,6 +359,9 @@ void process_a_leaf_node(traversal_state_t *state, buf_lock_t *buf, int level,
     // This can be run in the scheduler thread.
     state->helper->process_a_leaf(state->transaction_ptr, buf, left_exclusive_or_null, right_inclusive_or_null);
     delete buf;
+    if (state->helper->progress) {
+        state->helper->progress->inform(level, traversal_progress_t::RELEASE, traversal_progress_t::LEAF);
+    }
     state->level_count(level) -= 1;
     state->consider_pulsing();
 }
@@ -360,6 +369,9 @@ void process_a_leaf_node(traversal_state_t *state, buf_lock_t *buf, int level,
 void interesting_children_callback_t::receive_interesting_child(int child_index) {
     rassert(child_index >= 0 && child_index < ids_source->num_block_ids());
 
+    if (state->helper->progress) {
+        state->helper->progress->inform(level, traversal_progress_t::LEARN, traversal_progress_t::UNKNOWN);
+    }
     block_id_t block_id;
     const btree_key_t *left_excl_or_null;
     const btree_key_t *right_incl_or_null;
@@ -384,6 +396,9 @@ void interesting_children_callback_t::decr_acquisition_countdown() {
     if (acquisition_countdown == 0) {
         releaser->release();
         state->level_count(level - 1) -= 1;
+        if (state->helper->progress) {
+            state->helper->progress->inform(level - 1, traversal_progress_t::RELEASE, traversal_progress_t::INTERNAL);
+        }
         state->consider_pulsing();
         delete this;
     }
@@ -422,3 +437,16 @@ void ranged_block_ids_t::get_block_id_and_bounding_interval(int index,
         *right_incl_bound_out = right_inclusive_or_null_;
     }
 }
+
+void traversal_progress_t::inform(int , action_t action, node_type_t ) {
+    switch(action) {
+    case LEARN:
+        break;
+    case ACQUIRE:
+        break;
+    case RELEASE:
+        break;
+    }
+}
+
+float guess_completion();
