@@ -434,7 +434,10 @@ module 'ResolveIssuesView', ->
                     json =
                         datetime: ISODateString new Date() # faked TODO -- the time field should be ISO 8601
                 when 'PINNINGS_SHARDS_MISMATCH'
+                    namespace = namespaces.get @model.get('offending_namespace')
                     json =
+                        namespace_name: namespace.get('name')
+                        namespace_uuid: namespace.get('id')
                         datetime: ISODateString new Date() # faked TODO -- the time field should be ISO 8601
                 else
                     _template = @unknown_issue_template
